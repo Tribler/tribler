@@ -1,0 +1,32 @@
+# Various constants
+
+STATUS_QUEUE      = 0
+STATUS_STOP       = 200
+STATUS_ACTIVE     = 100
+STATUS_HASHCHECK  = 101
+STATUS_PAUSE      = 102
+STATUS_SUPERSEED  = 103
+STATUS_FINISHED   = 300
+
+COL_TITLE         = 4
+COL_PROGRESS      = 5
+COL_BTSTATUS      = 6
+COL_PRIO          = 7
+COL_ETA           = 8
+COL_SIZE          = 9
+COL_DLSPEED       = 10
+COL_ULSPEED       = 11
+COL_RATIO         = 12
+COL_MESSAGE       = 13
+COL_SEEDS         = 14
+COL_PEERS         = 15
+COL_COPIES        = 16
+COL_PEERPROGRESS  = 17
+COL_DLSIZE        = 18
+COL_ULSIZE        = 19
+COL_TOTALSPEED    = 20
+COL_NAME          = 21
+COL_DEST          = 22
+COL_SEEDTIME      = 23
+COL_CONNECTIONS   = 24
+COL_SEEDOPTION    = 25

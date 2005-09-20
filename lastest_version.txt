@@ -1,0 +1,17 @@
+	Latest version of ABC is Version 3.0.1b
+	======================
+- (3.0.1b - fixed WebService)
+
+- Updated to BitTornado 0.3.12 core (includes various fixes)
+
+- Updated to wxPython 2.6.0
+
+- More things can be done via menus
+
+- Should have slightly lower cpu usage
+
+- Better shutdown behavior
+
+- Preferences window should appear a little more quickly
+
+- More strings added to language file

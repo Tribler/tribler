@@ -1,0 +1,562 @@
+##################################################################
+# You can change language here, this is all ABC using variables
+# Make sure that try to keep text length as the original text
+##################################################################
+
+[ABC/language]
+
+# The name of the language defined in this file:
+languagename = "Français"
+
+
+# this credit will display in aboutme dialog
+# translate="Translator: <Your name>"
+translate="Traducteur: Daimonji"
+
+# All ABC Variables
+#######################
+title="ABC [Yet Another Bittorrent Client]"
+
+superseederrornotcompleted="Votre torrent n'est pas terminé, vous ne pouvez pas passer en mode Super-Seed"
+superseedisalreadyenable="Le mode Super-seed est déjà activé"
+superseedmustruntorrentbefore="Vous devez lancer ce torrent avant de passer en mode Super-Seed"
+
+superwarningmsg_line1="Cette option réduit considérablement l'efficacité du torrent."
+superwarningmsg_line2="Le mode super-seed n'est à utiliser que par ceux"
+superwarningmsg_line3="qui diffusent le fichier pour la première fois ou veulent le rediffuser."
+superwarningmsg_line4=""
+superwarningmsg_line5="Une fois le mode super-seed activé, vous ne pouvez le désactiver"
+superwarningmsg_line6="qu'en passant par les opérations \"Arrêter\", \"Mettre en queue\", \"Enlever\"."
+
+failedinvalidtorrent="Echec : fichier torrent non valide."
+OK="OK"
+cancel="Annuler"
+apply="Appliquer"
+close="Fermer"
+save="Enregistrer"
+saveandapply="Enregistrer"
+done="Fait"
+noslotavailable="Pas de slot disponible"
+
+choosefiletosaveas="Choisissez un nom de fichier ou prenez celui d'un téléchargement à reprendre "
+choosedirtosaveto="Choisissez un nom de répertoire ou prenez celui d'un téléchargement à reprendre "
+confirmmsg="Voulez-vous fermer ABC ?"
+confirm="Confirmer"
+aboutabc="A Propos de ABC"
+abctweak="ABC Tweak"
+abcpreference="ABC Préférences"
+showabcwindow="Montrer Fenêtre ABC"
+error="Erreur"
+warning="Avertissement"
+cantconnectwebserver="Ne peut se connecter au serveur web\nPeut être que le serveur web est inactif ou que vous n*êtes pas connecté"
+abclatestversion="Dernière Version ABC"
+globaluploadsetting="Réglage Envoi Total"
+webinterfaceservice="Service Interface Web"
+
+duplicatetorrent="Duplique le torrent"
+duplicatetorrentmsg="Ce torrent est déjà présent!\nEtes-vous sûr de vouloir le remplacer ?"
+choosetorrentfile="Choisissez un fichier torrent"
+startwithhttp="Entrez SVP une URL commençant par http://"
+cantgettorrentfromurl="Ne peut obtenir le torrent de cette URL"
+torrentadvdetail="Détails Avancés Torrent"
+localsetting="Réglage Local"
+errordeletefile="Erreur en tentant de détruire le fichier\nFichier non trouvé ou fichier en cours d*utilisation"
+confirmdeletefile="Etes-vous certain de vouloir détruire le fichier ou répertoire ?"
+choosenewfolder="Choisissez un nouveau répertoire pour ce torrent"
+choosenewlocation="Choisissez un nouvel emplacement pour ce torrent"
+errorchangedestination="Torrent actif, désactivez-le avant de changer son emplacement."
+extracterrorduplicatemsg="Un fichier de même nom existe déjà dans le répertoire destination.\nVoulez-vous l'écraser ?"
+extracterrorduplicate="Nom de fichier dupliqué"
+extracterrorinactive="Au moins un torrent sélectionné est actif. Désactivez-le avant de l'extraire."
+extracterrormoving="Le fichier torrent ne peut pas être déplacé"
+warningopenfile="Votre fichier n'est pas encore terminé\nEtes-vous sûr de vouloir l'ouvrir ?"
+torrentdetail="Détails Torrent"
+currentseedpeerontracker="Seed/Peer actuels sur le tracker"
+radvdetail="Détails Avancés..."
+moveup="Monter torrent"
+movedown="Descendre torrent"
+movetop="Placer en premier"
+movebottom="Placer en dernier"
+clearallcompleted="Effacer tous les torrents terminés"
+onholdall="Tout mettre en pause"
+pauseall="Tout arrêter"
+unpauseall="Démarrer Tous"
+mode="Mode Manuel/Auto"
+webservice="Service web :"
+torrentfilenotfound="Fichier torrent non trouvé"
+clear="Effacer"
+addlink="Ajouter un lien"
+bittorrentlink="Lien bittorrent : "
+
+totaldlspeed="\nVitesse Totale DL:"
+totalulspeed="\nVitesse Totale UL:"
+
+failbehavior1 = "Mettre à l'état"
+failbehavior2 = "quand un torrent échoue"
+
+defaultpriority = "Priorité par défaut pour les nouveaux torrents:"
+
+################################
+# Menu
+################################
+menuaction="&Action"
+menutools="&Outils"
+menuversion="&Version"
+menuaboutabc="A &Propos de ABC"
+menuaboutabcmsg="Voir &Crédits"
+menuchecklatestversion="Vérifier &Dernière Version"
+menuchecklatestversionmsg="Vérifier Dernière Version"
+menuwebinterfaceservice="Service Interface &Web"
+menuwebinterfaceservicemsg="Démarrage/Arrêt et Config Service Interface Web"
+menucreatetorrent="C&réer Torrent"
+menucreatetorrentmsg="Créer fichier .torrent"
+menuabctweak="A&BC Tweak"
+menuabctweakmsg="ABC Tweak Lancé"
+menuexit="&Quitter"
+menuexitmsg="Fermer Programme"
+menuglobaluploadsetting="&Réglage Envoi Total"
+menuglobaluploadsettingmsg="Valeur Réglage Envoi Total"
+menuabcpreference="&Préférences de ABC"
+menuabcpreferencemsg="Règle Préférences de ABC"
+
+#########################
+# ToolBar
+#########################
+addtorrentfile_short="Ajouter Fichier Torrent"
+addtorrentfile_long="Ajouter nouveau fichier .torrent à ABC"
+addtorrentfiletonondefault_short="Ajouter Fichier Torrent vers chemin"
+addtorrentfiletonondefault_long="Ajouter nouveau fichier .torrent à un emplacement à définir"
+tb_resume_short="Reprendre"
+tb_resume_long="Reprendre/Démarrer torrent"
+tb_reseedresume_short="Reprendre Reseed"
+tb_reseedresume_long="Passer reprise vérification hash, seulement pour seed/reseed."
+tb_onhold_short="Mettre en Pause"
+tb_onhold_long="Mettre en pause le torrent actif (conserve les ressources)"
+tb_pause_short="Arrêter"
+tb_pause_long="Arrêter torrent (libère les ressources)"
+tb_queue_short="Mettre en Queue"
+tb_queue_long="Placer le torrent en queue"
+tb_delete_short="Enlever torrent"
+tb_delete_long="Enlever torrent seulement de la liste d'ABC"
+tb_spy_short="Seed/Peer Actuel"
+tb_spy_long="Voir nombre de seed/peer du torrent sur le tracker"
+tb_torrentdetail_short="Détails Torrent"
+tb_torrentdetail_long="Voir entête de meta information du torrent"
+tb_advdetail_short="Détails Avancés"
+tb_advdetail_long="Voir les détails avancés du torrent"
+
+##########################
+# Priority
+##########################
+highest="la plus haute"
+high="haute"
+normal="normale"
+low="basse"
+lowest="la plus basse"
+priorities = [highest, high, normal, low, lowest]
+
+###################################################
+# Upload Setting
+###################################################
+uploadoptforcompletedfile="Envoi pour un fichier terminé"
+unlimitedupload="Envoi illimité"
+continueuploadfor="Continue envoi pendant"
+untilratio="Ratio UL/DL à"
+uploadsetting="Réglage Envoi"
+maxuploads="Envois Maximum:"
+maxuploadrate="Vitesse Maximum Envois :"
+maxoveralluploadrate="Vitesse envoi max. totale"
+whendownload="pendant le téléchargement"
+whennodownload="sans téléchargement"
+
+zeroisunlimited="(0 = Illimité)"
+zeroisauto="(0 = Auto)"
+
+uploadrateintwarning="Un entier est demandé dans Vitesse Maximum Envoi"
+uploadrateminwarning="La vitesse d'envoi minimale est de 3 Ko/s ou 0 pour vitesse d'envoi illimité"
+uploadrateminwarningauto="La vitesse d'envoi minimale est de 3 Ko/s ou 0 pour vitesse d'envoi auto"
+
+############################################
+# Unit
+############################################
+kBps="Ko/s"
+Byte="o"
+kB="Ko"
+MB="Mo"
+GB="Go"
+TB="To"
+
+week="Sem"
+day="J"
+hour="H"
+minute="M"
+second="S"
+l_week="sem"
+l_day="j"
+l_hour="h"
+l_minute="m"
+l_second="s"
+
+############################################
+# ABC Tweak
+############################################
+pixel="pixels"
+abctweaktitle="ABC Tweak 1.0b"
+abcwinwidth="Largeur Fenêtre ABC"
+abcwinheight="Hauteur Fenêtre ABC"
+detailwinwidth="Largeur Fenêtre Av"
+detailwinheight="Hauteur Fenêtre Av"
+unselecteddisplay="Affichage non sélectionné"
+selecteddisplay="Affichage sélectionné"
+addto="Ajouter >>"
+removefrom="<< Enlever"
+up="Mont."
+down="Desc."
+columnsettingmsg="Réglage Colonne (Cliquer Appliquer à chaque fois pour changer les paramètres)"
+column="Colonne :"
+displayname="Nom affiché :"
+columnwidth="Larg. colonne :"
+
+##############################################
+# ABC Detail Frame
+##############################################
+dnumconnectedseed="# Seed connectés :"
+dseenseed="# Seed vus"
+dnumconnectedpeer="# Peer connectés :"
+dseeingcopies="# Copies vues :"
+davgpeerprogress="Progression moy. peer :"
+ddownloadedsize="Quantité téléchargée :"
+duploadedsize="Quantité envoyée : "
+dtotalspeed="Vitesse totale : "
+updateseedpeer="Mettre à jour #Seed/#Peer"
+manualannounce="Annonce manuelle"
+externalannounce="Annonce externe"
+finishallocation="Finir allocation"
+spewoptunchoke="Désengorgeage optimiste"
+spewIP="IP"
+spewlr="Local/Distant"
+spewinterested="Intéressé"
+spewchoking="Engorgeant"
+spewinteresting="Intéressant"
+spewchoecked="Engorgé"
+spewsnubbed="Retroussé"
+spewdownloaded="Téléchargé"
+spewuploaded="Envoyé"
+spewcompleted="Terminé"
+spewpeerdownloadspeed="Vitesse téléchargement client"
+entertrackerannounceurl="Entrer URL tracker d'annonce:"
+TOTALS="TOTAL:"
+KICKED="EJECTE"
+BANNED="INTERDIT"
+errortopausestatemsg="\n\n Ce torrent est mis à l'état arret."
+detailline1="Actuellement en téléchargement de %d morceaux (%d récents), %d morceaux récupérés en partie"
+detailline2="%d de %d morceaux terminés (%d récents), %d ont échoué la vérification du hashage"
+
+#####################################################
+# Meta info frame
+#####################################################
+filename="Nom fichier :"
+destination="Destination :"
+md5hash="Hachage MD5 :"
+directoryname="Nom répertoire : "
+file="Fichier"
+progress="Progression"
+md5sum="Md5sum"
+infohash="info_hash :"
+pieces="morceaux : "
+str1="%s (%s octets)"
+str2="%i (%s octets chacun)"
+announceurl="Url annonce : "
+announceurls="Urls annonce"
+tier="tier "
+single="single:"
+likelytracker="tracker:"
+comment="Commentaire :"
+creationdate="date création :"
+filesize="taille fichier"
+archivesize="taille archive"
+
+########################################################
+# ABCOptionDlg
+#######################################################
+networksetting="Réseau"
+portsetting="Ports"
+minportnumber="Numéro port min : "
+maxportnumber="Numéro port max : "
+portrangewarning="Les numéros de port doivent être un entier compris entre 0 et 65535"
+kickban="Sanctionner l'envoi de mauvaises données client"
+security="Une seule connexion par IP"
+scrape="Récupérer les fragments de données"
+
+choose_language = "Langue: "
+
+queuesetting="Queue"
+maxnumsimul="Nombre de télé-\nchargements simultanés:"
+trignexttorrent="Déclencher le suivant après:"
+after_downloading="en téléchargement"
+after_seeding="en seed"
+prioritizelocal="Priorité aux torrents avec réglage local du taux d'upload"
+
+miscsetting="Divers"
+removebackuptorrent="Enlever le fichier torrent de sauvegarde avec 'Enlever Torrent'"
+mintotray="Minimiser le client ABC dans le systray"
+confirmonexit="Confirmation de sortie du programme"
+setdefaultfolder="Répertoire par défaut"
+stripedlist="Liste avec bandes grisées"
+
+choosedefaultdownloadfolder="Choisissez un dossier par défaut pour le téléchargement"
+maxsimdownloadwarning="Le nombre maximum de torrents simultanément en download\nne doit pas être supérieur au nombre de ports reservés ou à 20"
+
+########################################################
+# ABCOptionDlg - Advanced Options
+#######################################################
+
+advsetting="Réglages Avancés"
+abcadvancepref="ABC Préférences Avancées"
+changeownrisk="A MODIFIER A VOS RISQUES ET PERILS"
+localip="IP Locale: "
+iptobindto="IP de liaison: "
+minnumberofpeer="Nombre minimal de peers: "
+diskalloctype="Type Allocation Disque:"
+allocrate="Débit allocation (Mo/s):"
+filelocking="Verrouillage Fichier:"
+extradatachecking="Vérification Supplémentaire Donnée:"
+maxfileopen="Max de fichiers ouverts:"
+maxpeerconnection="Max connexions peer:"
+reverttodefault="Remet Par Défaut"
+
+advsettingwarning_line1="Aucun de ces réglages ne sera pris en compte avant le prochain torrent actif."
+advsettingwarning_line2="[N'oubliez pas de cliquer Appliquer dans le Menu de préférence ABC]"
+
+iphint_line1="L'IP rapportée au tracker."
+iphint_line2="A moins que le tracker soit sur"
+iphint_line3="le même réseau privé que le"
+iphint_line4="client, le tracker détectera"
+iphint_line5="l'IP du client automatiquement"
+iphint_line6="et ignorera cette valeur."
+
+bindhint_line1="L'IP de liaison au client."
+bindhint_line2="A utiliser seulement si votre"
+bindhint_line3="machine possède plusieurs"
+bindhint_line4="adresses IP. Si cela ne vous"
+bindhint_line5="dit rien, laissez-le vide."
+
+minpeershint_line1="Le nombre minimal de peers auxquels"
+minpeershint_line2="le client tente de rester connecté"
+minpeershint_line3="Ne pas régler trop haut à moins"
+minpeershint_line4="d'avoir une connexion très rapide et"
+minpeershint_line5="beaucoup de ressources système."
+
+alloctypehint_line1="Manière d'allouer de l'espace disque."
+alloctypehint_line2="allocation normal réserve quand la"
+alloctypehint_line3="donnée est reçue, background"
+alloctypehint_line4="réserve de l'espace en arrière-plan,"
+alloctypehint_line5="pre-allocate réserve par avance, et"
+alloctypehint_line6="sparse est seulement pour les"
+alloctypehint_line7="systèmes de fichiers qui le"
+alloctypehint_line8="supportent par défaut."
+
+allocratehint_line1="A quel débit allouer l'espace"
+allocratehint_line2="disque en allocation en arrière-plan"
+allocratehint_line3="Mettre une valeur trop haute avec"
+allocratehint_line4="un système de fichiers lent ralentit"
+allocratehint_line5="considérablement la vitesse de"
+allocratehint_line6="téléchargement."
+
+lockinghint_line1="Le verrouillage de fichier empêche"
+lockinghint_line2="tout programme autre que ABC"
+lockinghint_line3="d'accéder aux fichiers en"
+lockinghint_line4="téléchargement."
+
+doublecheckhint_line1="Combien de fois faire la vérification ?"
+doublecheckhint_line2="Pour s'assurer que les données ne"
+doublecheckhint_line3="sont pas corrompues."
+doublecheckhint_line4="Le mode double-check requiert plus"
+doublecheckhint_line5="de CPU, le mode triple-check"
+doublecheckhint_line6="augmente les accès disque."
+
+maxfileopenhint_line1="Le nombre maximal de fichiers à"
+maxfileopenhint_line2="garder ouvert simultanément. Zéro"
+maxfileopenhint_line3="signifie pas de limite.  A noter que"
+maxfileopenhint_line4="même si choisie, cette option ne peut"
+maxfileopenhint_line5="garantir le verrouillage des fichiers."
+
+maxconnectionhint_line1="Certains systèmes d'exploitation"
+maxconnectionhint_line2="comme Windows 9x/ME avec des"
+maxconnectionhint_line3="pilotes réseau spécifiques ne"
+maxconnectionhint_line4="peuvent supporter plus qu'un"
+maxconnectionhint_line5="certain nombre de ports ouverts."
+maxconnectionhint_line6="Si le client bloque, essayer de"
+maxconnectionhint_line7="mettre à 60 ou moins."
+
+############################################################
+# BTMakeTorrentGUI
+############################################################
+btfilemakertitle="BitTorrent Création d'un Fichier Torrent"
+btmaketorrenttitle="BitTorrent construction d'un torrent"
+maketorrentof="Creer torrent de:"
+dir="Répertoire"
+add="Ajouter"
+remove="Enlever"
+announcelist="Liste annonce:"
+copyannouncefromtorrent="Copier les\nannonces\ndu\ntorrent"
+
+multiannouncehelp_line1="Une liste d'annonces séparées par des virgules "
+multiannouncehelp_line2="ou des espaces et sur plusieurs lignes\n"
+multiannouncehelp_line3="les trackers sur une même ligne seront triés aléatoirement, "
+multiannouncehelp_line4="et tous les trackers sur une\nligne "
+multiannouncehelp_line5="seront triés avant ceux de la ligne suivante."
+
+saveasdefaultconfig="Enregistrer comme par défaut"
+maketorrent="Créer Torrent"
+
+errorremoveannounceurl="Choisissez SVP l'url d'annonce parmi ceux de la boite combo"
+choosefiletouse="Choisissez le fichier ou répertoire à utiliser"
+choosedottorrentfiletouse="Choisissez le fichier .torrent à utiliser"
+youmustselectfileordir="Il faut choisir un \n fichier ou répertoire"
+
+dirnotice_line1="Voulez-vous créer un .torrent individuel"
+dirnotice_line2="pour chaque élément de ce répertoire ?"
+yes="Oui"
+no="Non"
+
+###########################################################
+# BTcompletedirgui
+###########################################################
+btcompletedirtitle="BitTorrent complete dir 1.0.1"
+directorytomake="Répertoire à créer:"
+select="Selectionner"
+piecesize="Taille pièce:"
+make="Faire"
+errormustselectdir="Choisissez un répertoire"
+btmakedirtitle="BitTorrent répertoire créé"
+checkfilesize="Vérification taille fichier"
+building="Construction "
+
+#################################################
+# Timeouts
+#################################################
+timeout="Temps Attente"
+schedulerrulemsg="Régler le temps d'attente pour les torrents"
+setrule_line1="Réduire la priorité d'un torrent et le forcer à se placer en queue, ainsi"
+setrule_line2="les autres torrents en queue ne seront plus bloqués quand..."
+timeout_tracker ="...le torrent ne peut établir de connexion avant"
+timeout_download="...le torrent ne peut rien télécharger d'ici"
+timeout_upload  ="...le torrent en seed n'envoie rien d'ici"
+minute_long="minutes"
+hour_long="heure(s)"
+
+################################
+# Right-Click Menu
+################################
+rResume="Reprendre"
+rReseedResume="Reprendre Reseed"
+rPause="Arrêter"
+rOnhold="Mettre en Pause"
+rQueue="Placer en Queue"
+rRemoveTorrent="Enlever Torrent"
+rRemoveTorrentandFile="Enlever Torrent et fichier(s)"
+rextractfromlist="Extraire de la Liste..."
+rclearmessage="Effacer le message"
+rtorrentdetail="Détails Torrent..."
+rcurrentseedpeer="Seed/Peer Actuel"
+rchangedownloaddest="Changer Emplacement Téléchargement..."
+ropendest="Ouvrir Emplacement..."
+rsuperseedmode="Passer en mode Super-seed"
+rpriosetting="Réglage Priorité"
+rlocaluploadsetting="Réglage Envoi Local..."
+
+################################
+# BT status
+################################
+completed="terminé"
+completedseeding="terminé/seeding"
+onhold="pause"
+queue="queue"
+pause="arrêt"
+working="en cours"
+superseeding="super-seeding"
+waiting="en attente.."
+
+##############################################
+# Web Interface Service
+#############################################
+cantopensocket="Ne peut ouvrir la socket"
+socketerror="Erreur Socket !"
+inactive="Inactif"
+active="Actif"
+webinterfacetitle="Service Interface Web (version Alpha-2)"
+webip="IP :"
+webport="Port :"
+uniquekey="Clef Unique :"
+commandpermission="Commandes Permises"
+webquery="Requête"
+webdelete="Suppression"
+webadd="Ajoute"
+webqueue="Queue"
+webpause="Pause"
+webresume="Reprise"
+priority="Priorité"
+webclearallcompleted="Enlève tous les terminés"
+webautostart="Démarrer le service web au lancement d'ABC"
+startservice="Démarrer Service"
+stopservice="Arrêter Service"
+portmustbenumber="Le port doit être un nombre entier"
+warningportunder1024="En principe, les numéro de port inférieurs à 1024 sont utilisés par le système\n Voulez-vous utiliser néanmoins ce port ?"
+cantconnectabcwebinterface="Ne peut se connecter au serveur web ABC"
+
+##############################################
+# Scrape Dialog
+##############################################
+cantreadmetainfo="Ne peut pas lire le metainfo"
+cantgetdatafromtracker="Ne peut obtenir de donnée du tracker"
+noannouncetrackerinmeta="Pas de tracker d'annonce dans votre metainfo"
+warningscrapelessthanmin="SVP n'utilisez pas cette option plus d'1 fois par minute."
+scrape_File="Fichier :"
+seed="Seed :"
+peer="Peer :"
+status="Etat :"
+fetching="Recherche..."
+scraping="Scraping..."
+scrapingdone="Scraping terminé"
+
+##############################################
+# Upload Rate Maximizer
+##############################################
+urmsetting="URM"
+urm="Gestionnaire URM en service"
+urmmaxtorrent="Nombre maximum de torrents :"
+urmlowpriority="Priorité basse"
+urmupthreshold="Bande morte du débit en upload :"
+urmdelay="Délai :"
+urmonholdtorrent="Etat on-hold pour torrents arrêtés"
+urmdynmaxuprate="Débit max en upload dynamique pour ABC"
+urmmaxsysuprate="Débit système max en upload pour ABC :"
+urmupfromdown="Coefficients A, B, C, D :"
+urmthresholdrangewarning="La bande morte du débit en upload de l'URM doit être un entier positif"
+urmdelayrangewarning="Le délai de l'URM doit être un entier supérieur ou égal à 1"
+urmmaxsysupraterangewarning="Le débit système max en upload pour ABC doit être un entier positif"
+urmABCDrangewarning="A, B, C et D doivent être des nombres réels, et A et B ne doivent pas être simultanément nuls,\n et C et D ne doivent pas être simultanément nuls"
+
+errorlanguagefile_line1="Au moins une chaîne manque dans votre fichier de langue."
+errorlanguagefile_line2="Vérifiez SVP la disponibilité d'une mise à jour."
+restartabc="(prend effet à la prochaine ouverture de ABC)"
+
+column4_text = "Titre"
+column5_text = "Progrès"
+column6_text = "Etat"
+column7_text = "Priorité
+column8_text = "ETA"
+column9_text = "Taille"
+column10_text = "Vit. DL"
+column11_text = "Vit. UL"
+column12_text = "%U/D"
+column13_text = "Message"
+column14_text = "#Seeds
+column15_text = "#Peers
+column16_text = "#Copies"
+column17_text = "Progrès moyen Peers"
+column18_text = "Taille DL"
+column19_text = "Taille UL"
+column20_text = "Vit. Totale"
+column21_text = "Nom Torrent"

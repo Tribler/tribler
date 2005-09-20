@@ -1,0 +1,32 @@
+-------------------------------------------------------------
+
+                How to compile under Win32:
+
+-------------------------------------------------------------
+
+1. Install Python 2.4 or greater   - http://www.python.org
+
+2. Install wxPython 2.5.4.1 or greater - http://www.wxpython.org
+
+3. Install NSIS 2.06 or greater     - http://nsis.sourceforge.net/
+
+4. Install py2exe 0.5.4 or greater   - http://starship.python.net/crew/theller/py2exe/
+
+5. Modify makedist.bat to point to the location for Python.
+   i.e.:
+   set PYTHON="C:\Python24\python.exe"
+
+6. Modify makedist.bat to point to the location for NSIS.
+   i.e.:
+   set NSIS="C:\Program Files\NSIS\makensis.exe"
+
+(Note: steps 7 and 8 are optional steps to build an executable that forces single processor affinity)
+7. Install imagecfg                - http://www.robpol86.com/misc_pgs/imagecfg.php
+
+8. Modify makedist.bat to point to the location for ImageCFG
+   i.e.:
+   set IMGCFG="C:\Program Files\Imagecfg\imagecfg.exe"
+
+9. Run makedist.bat
+
+10. An installer will be created in \dist under the current directory
