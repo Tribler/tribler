@@ -36,7 +36,7 @@ class HTTPConnection:
         if self.donereading or self.next_func is None:
             return True
         self.buf += data
-        while True:
+        while 1:
             try:
                 i = self.buf.index('\n')
             except ValueError:
@@ -71,7 +71,7 @@ class HTTPConnection:
         data = data.strip()
         if data == '':
             self.donereading = True
-            if self.headers.get('accept-encoding','').find('gzip') > -1:
+            if self.headers.get('accept-encoding', '').find('gzip') > -1:
                 self.encoding = 'gzip'
             else:
                 self.encoding = 'identity'
@@ -101,7 +101,7 @@ class HTTPConnection:
                 self.encoding = 'identity'
             else:
                 if DEBUG:
-                   print "Compressed: %i  Uncompressed: %i\n" % (len(cdata),len(data))
+                    print "Compressed: %i  Uncompressed: %i\n" % (len(cdata), len(data))
                 data = cdata
                 headers['Content-Encoding'] = 'gzip'
 

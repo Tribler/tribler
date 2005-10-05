@@ -1,8 +1,6 @@
 # Written by Bram Cohen
 # see LICENSE.txt for license information
 
-from cStringIO import StringIO
-from urllib import quote
 from threading import Event
 
 try:
@@ -66,7 +64,7 @@ class DownloaderFeedback:
             a['snubbed'] = d.is_snubbed()
             a['utotal'] = d.connection.upload.measure.get_total()
             a['dtotal'] = d.connection.download.measure.get_total()
-            if len(d.connection.download.have) > 0:
+            if d.connection.download.have:
                 a['completed'] = float(len(d.connection.download.have)-d.connection.download.have.numfalse)/float(len(d.connection.download.have))
             else:
                 a['completed'] = 1.0
@@ -129,19 +127,19 @@ class DownloaderFeedback:
         self.doneprocessing.clear()
         stats = self.gather()
         if self.finflag.isSet():
-            displayfunc(dpflag = self.doneprocessing,
-                upRate = stats['up'],
+            displayfunc(dpflag = self.doneprocessing, 
+                upRate = stats['up'], 
                 statistics = stats['stats'], spew = stats['spew'])
         elif stats['time'] is not None:
-            displayfunc(dpflag = self.doneprocessing,
-                fractionDone = stats['frac'], sizeDone = stats['done'],
-                downRate = stats['down'], upRate = stats['up'],
-                statistics = stats['stats'], spew = stats['spew'],
+            displayfunc(dpflag = self.doneprocessing, 
+                fractionDone = stats['frac'], sizeDone = stats['done'], 
+                downRate = stats['down'], upRate = stats['up'], 
+                statistics = stats['stats'], spew = stats['spew'], 
                 timeEst = stats['time'])
         else:
-            displayfunc(dpflag = self.doneprocessing,
-                fractionDone = stats['frac'], sizeDone = stats['done'],
-                downRate = stats['down'], upRate = stats['up'],
+            displayfunc(dpflag = self.doneprocessing, 
+                fractionDone = stats['frac'], sizeDone = stats['done'], 
+                downRate = stats['down'], upRate = stats['up'], 
                 statistics = stats['stats'], spew = stats['spew'])
 
 

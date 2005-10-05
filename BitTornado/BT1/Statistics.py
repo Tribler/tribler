@@ -13,7 +13,7 @@ class Statistics_Response:
 
 
 class Statistics:
-    def __init__(self, upmeasure, downmeasure, connecter, httpdl,
+    def __init__(self, upmeasure, downmeasure, connecter, httpdl, 
                  ratelimiter, rerequest_lastfailed, fdatflag):
         self.upmeasure = upmeasure
         self.downmeasure = downmeasure
@@ -32,7 +32,7 @@ class Statistics:
         self.storage_totalpieces = len(self.storage.hashes)
 
 
-    def set_dirstats(self, files, numpieces, piece_length):
+    def set_dirstats(self, files, piece_length):
         self.piecescomplete = 0
         self.placesopen = 0
         self.filelistupdated = Event()
@@ -53,7 +53,7 @@ class Statistics:
             else:
                 fp = self.filepieces[i]
                 fp2 = self.filepieces2[i]
-                for piece in range(int(start/piece_length),
+                for piece in range(int(start/piece_length), 
                                    int((start+l-1)/piece_length)+1):
                     fp.append(piece)
                     fp2.append(piece)
@@ -69,9 +69,9 @@ class Statistics:
         if s.downTotal > 0:
             s.shareRating = float(s.upTotal)/s.downTotal
         elif s.upTotal == 0:
-           s.shareRating = 0.0
+            s.shareRating = 0.0
         else:
-           s.shareRating = -1.0
+            s.shareRating = -1.0
         s.torrentRate = self.torrentmeasure.get_rate()
         s.torrentTotal = self.torrentmeasure.get_total()
         s.numSeeds = self.picker.seeds_connected

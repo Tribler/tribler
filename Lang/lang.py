@@ -6,41 +6,48 @@ from traceback import print_exc
 from cStringIO import StringIO
 
 from Utility.configreader import ConfigReader
+from Utility.helpers import existsAndIsReadable
 
-try:
-    True
-except:
-    True = 1
-    False = 0
-
+################################################################
+#
+# Class: Lang
+#
+# Keep track of language strings.
+#
+# Lookups occur in the following order:
+# 1. See if the string is in user.lang
+# 2. See if the string is in the local language file
+# 3. See if the string is in english.lang
+#
+################################################################
 class Lang:
     def __init__(self, utility):
         self.utility = utility
         
         filename = self.utility.config.Read('language_file')
         
-        langpath = os.path.join(self.utility.abcpath, "lang")
+        langpath = os.path.join(self.utility.getPath(), "lang")
         
         sys.stdout.write("Setting up languages\n")
         sys.stdout.write("filename: " + str(filename) + "\n")
         
-        # Set up user language file
+        # Set up user language file (stored in user's config directory)
         self.user_lang = None
-        user_filepath = os.path.join(langpath, 'user.lang')
+        user_filepath = os.path.join(self.utility.getConfigPath(), 'user.lang')
         self.user_lang = ConfigReader(user_filepath, "ABC/language")
 
         # Set up local language file
         self.local_lang_filename = None
         self.local_lang = None
         local_filepath = os.path.join(langpath, filename)
-        if filename != 'english.lang' and os.access(local_filepath, os.R_OK):
+        if filename != 'english.lang' and existsAndIsReadable(local_filepath):
             self.local_lang_filename = filename
             self.local_lang = ConfigReader(local_filepath, "ABC/language")
         
         # Set up english language file
         self.english_lang = None
         english_filepath = os.path.join(langpath, 'english.lang')
-        if os.access(english_filepath, os.R_OK):
+        if existsAndIsReadable(english_filepath):
             self.english_lang = ConfigReader(english_filepath, "ABC/language")
         
         self.cache = {}
@@ -63,15 +70,15 @@ class Lang:
         else:
             tryall = False
     
-        if tryall and self.cache.has_key(label):
+        if tryall and label in self.cache:
             return self.cache[label]
     
         if (label == 'version'):
-            return "3.0.1"
+            return "3.1"
         if (label == 'build'):
-            return "Build 144"
+            return "Build 168"
         if (label == 'build_date'):
-            return "May 8, 2005"
+            return "October 2, 2005"
 
         # see if it exists in 'user.lang'
         if tryuser:
@@ -115,8 +122,8 @@ class Lang:
                     self.error(label, silent = True)
         except:
             fileused = ""
-            langfilenames = { "user.lang": self.user_lang,
-                              self.local_lang_filename: self.local_lang,
+            langfilenames = { "user.lang": self.user_lang, 
+                              self.local_lang_filename: self.local_lang, 
                               "english.lang": self.english_lang }
             for name in langfilenames:
                 if langfilenames[name] == langfile:
@@ -140,7 +147,7 @@ class Lang:
                 text+= "\n"
             text += langfile.Read(label + "_line" + str(i)).decode("string-escape") 
             i += 1
-        if (text == ""):
+        if not text:
             sys.stdout.write("Got an error reading multiline string\n")
             self.error(label)
         return text

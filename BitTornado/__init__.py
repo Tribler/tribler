@@ -1,7 +1,7 @@
-product_name = 'ABC 3.01'
-version_short = 'ABC-3.0.1'
+product_name = 'ABC'
+version_short = 'ABC-3.1.0'
 
-version = version_short + ' (' + product_name + ' - BitTornado 0.3.12'
+version = version_short + ' (' + product_name + ' - BitTornado 0.3.13'
 report_email = version_short+'@degreez.net'
 
 from types import StringType
@@ -28,7 +28,7 @@ _idrandom = [None]
 
 def resetPeerIDs():
     try:
-        f = open('/dev/urandom','rb')
+        f = open('/dev/urandom', 'rb')
         x = f.read(20)
         f.close()
     except:
@@ -50,7 +50,7 @@ def resetPeerIDs():
     x += ( repr(time()) + '/' + str(time()) + '/'
            + str(l1) + '/' + str(l2) + '/' + str(l3) + '/'
            + str(getpid()) )
-        
+
     s = ''
     for i in sha(x).digest()[-11:]:
         s += mapbase64[ord(i) & 0x3F]

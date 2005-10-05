@@ -1,11 +1,8 @@
 # Written by Bram Cohen
 # see LICENSE.txt for license information
 
-from traceback import print_exc
-from binascii import b2a_hex
 from clock import clock
 from CurrentRateMeasure import Measure
-from cStringIO import StringIO
 from math import sqrt
 
 try:
@@ -16,7 +13,7 @@ except:
 try:
     sum([1])
 except:
-    sum = lambda a: reduce(lambda x,y: x+y, a, 0)
+    sum = lambda a: reduce(lambda x, y: x+y, a, 0)
 
 DEBUG = False
 
@@ -123,9 +120,9 @@ class RateLimiter:
             if self.upload_rate == MAX_RATE:
                 self.upload_rate = self.measure.get_rate()*ADJUST_DOWN
             else:
-                self.upload_rate = min(self.upload_rate,
+                self.upload_rate = min(self.upload_rate, 
                                        self.measure.get_rate()*1.1)
-            self.upload_rate = max(int(self.upload_rate*ADJUST_DOWN),2)
+            self.upload_rate = max(int(self.upload_rate*ADJUST_DOWN), 2)
             self.slots = int(sqrt(self.upload_rate*SLOTS_FACTOR))
             self.slotsfunc(self.slots)
             if DEBUG:

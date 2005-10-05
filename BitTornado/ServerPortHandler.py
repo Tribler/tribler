@@ -121,7 +121,7 @@ class NewSocketHandler:     # hand a new socket off where it belongs
         return None
 
     def data_came_in(self, garbage, s):
-        while True:
+        while 1:
             if self.closed:
                 return
             i = self.next_len - self.buffer.tell()

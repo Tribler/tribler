@@ -6,7 +6,6 @@ from os.path import getsize, split, join, abspath, isdir
 from os import listdir
 from sha import sha
 from copy import copy
-from string import strip
 from BitTornado.bencode import bencode
 from btformats import check_info
 from threading import Event
@@ -20,18 +19,18 @@ except:
     ENCODING = getdefaultencoding()
 
 defaults = [
-    ('announce_list', '',
-        'a list of announce URLs - explained below'),
-    ('httpseeds', '',
-        'a list of http seed URLs - explained below'),
-    ('piece_size_pow2', 0,
-        "which power of 2 to set the piece size to (0 = automatic)"),
-    ('comment', '',
-        "optional human-readable comment to put in .torrent"),
-    ('filesystem_encoding', '',
+    ('announce_list', '', 
+        'a list of announce URLs - explained below'), 
+    ('httpseeds', '', 
+        'a list of http seed URLs - explained below'), 
+    ('piece_size_pow2', 0, 
+        "which power of 2 to set the piece size to (0 = automatic)"), 
+    ('comment', '', 
+        "optional human-readable comment to put in .torrent"), 
+    ('filesystem_encoding', '', 
         "optional specification for filesystem encoding " +
-        "(set automatically in recent Python versions)"),
-    ('target', '',
+        "(set automatically in recent Python versions)"), 
+    ('target', '', 
         "optional target file for the torrent")
     ]
 
@@ -104,7 +103,7 @@ def make_meta_file(file, url, params = {}, flag = Event(),
         return
     check_info(info)
     h = open(f, 'wb')
-    data = {'info': info, 'announce': strip(url), 'creation date': long(time())}
+    data = {'info': info, 'announce': url.strip(), 'creation date': long(time())}
     
     if params.has_key('comment') and params['comment']:
         data['comment'] = params['comment']
@@ -145,7 +144,7 @@ def uniconvertl(l, e):
 
 def uniconvert(s, e):
     try:
-        s = unicode(s,e)
+        s = unicode(s, e)
     except UnicodeError:
         raise UnicodeError('bad filename: '+s)
     return s.encode('utf-8')
@@ -189,7 +188,7 @@ def makeinfo(file, piece_length, encoding, flag, progress, progress_percent=1):
             h.close()
         if done > 0:
             pieces.append(sh.digest())
-        return {'pieces': ''.join(pieces),
+        return {'pieces': ''.join(pieces), 
             'piece length': piece_length, 'files': fs, 
             'name': uniconvert(split(file)[1], encoding) }
     else:
@@ -217,7 +216,7 @@ def makeinfo(file, piece_length, encoding, flag, progress, progress_percent=1):
 def subfiles(d):
     r = []
     stack = [([], d)]
-    while len(stack) > 0:
+    while stack:
         p, n = stack.pop()
         if isdir(n):
             for s in listdir(n):
@@ -257,7 +256,7 @@ def completedir(dir, url, params = {}, flag = Event(),
             t = split(i)[-1]
             if t not in ignore and t[0] != '.':
                 if target != '':
-                    params['target'] = join(target,t+ext)
+                    params['target'] = join(target, t+ext)
                 make_meta_file(i, url, params, flag, progress = callback, progress_percent = 0)
         except ValueError:
             print_exc()

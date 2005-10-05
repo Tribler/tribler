@@ -28,4 +28,4 @@ connChoices=(
     {'name':'SUPER-SEED', 'super-seed':1}
      )
 
-connChoiceList = map(lambda x:x['name'], connChoices)
+connChoiceList = [x['name'] for x in connChoices]

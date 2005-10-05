@@ -1,5 +1,5 @@
 !define PRODUCT "ABC"
-!define VERSION "3.0.1b"
+!define VERSION "3.1"
 
 !include "MUI.nsh"
 
@@ -16,7 +16,14 @@
 ;Remember install folder
  InstallDirRegKey HKCU "Software\${PRODUCT}" ""
 
- SetCompressor "lzma"
+;
+; Uncomment for smaller file size
+;
+SetCompressor "lzma"
+;
+; Uncomment for quick built time
+;
+;SetCompress "off"
 
  CompletedText "Install Complete. Thank you for choosing ${PRODUCT}"
 
@@ -64,9 +71,6 @@
 Section "!Main EXE" SecMain
  SectionIn RO
  SetOutPath "$INSTDIR"
- IfFileExists announce.lst announcelst 
- File announce.lst
- announcelst:
  File LICENSE.txt
  File *.ico
  File readme.txt
@@ -79,7 +83,6 @@ Section "!Main EXE" SecMain
  File *.dll
  Delete "$INSTDIR\*.zip"
  File *.zip
- CreateDirectory "$INSTDIR\torrent"
  CreateDirectory "$INSTDIR\icons"
  SetOutPath "$INSTDIR\icons"
  File icons\*.*
@@ -112,6 +115,8 @@ Section "Startmenu Icons" SecStart
 SectionEnd
 
 Section "Make Default" SecDefault
+   ; Delete ddeexec key if it exists
+   DeleteRegKey HKCR "bittorrent\shell\open\ddeexec"
    WriteRegStr HKCR .torrent "" bittorrent
    WriteRegStr HKCR .torrent "Content Type" application/x-bittorrent
    WriteRegStr HKCR "MIME\Database\Content Type\application/x-bittorrent" Extension .torrent

@@ -26,7 +26,6 @@ translate = ""
 title = "ABC [Yet Another Bittorrent Client]"
 
 superseederrornotcompleted = "Super-seed can only be enabled for completed torrents"
-superseedisalreadyenable = "Super-seed mode is already enabled"
 superseedmustruntorrentbefore = "This torrent must be running before using Super-Seed mode"
 
 superwarningmsg_line1 = "This option greatly reduces the torrent's efficiency."
@@ -46,20 +45,20 @@ close				= "Close"
 save				= "Save"
 saveandapply 		= "Save and Apply"
 done 				= "Done"
-noslotavailable 	= "No slot available"
 
-choosefiletosaveas 	= "Choose a file to save as (pick a partial download to resume)"
+choosefiletosaveas  = "Choose file to save as, pick a partial download to resume"
 choosedirtosaveto 	= "Choose a directory to save to (pick a partial download to resume)"
 enterurl 			= "Enter the URL for the torrent you wish to add:"
 confirmmsg 			= "Do you want to close ABC ?"
 confirm 			= "Confirm"
 aboutabc 			= "About ABC"
-abcpreference 		= "ABC Preferences"
+abcpreference 		= "Preferences"
 showabcwindow 		= "Show ABC Window"
 error 				= "Error"
 warning 			= "Warning"
-cantconnectwebserver = "Can't connect to web server\nMaybe web server is down or you're not connected"
-abclatestversion 	= "ABC Latest Version"
+cantconnectwebserver_line1 = "Can't connect to web server"
+cantconnectwebserver_line2 = "Maybe web server is down or you're not connected"
+abclatestversion 	= "Latest Version"
 globaluploadsetting = "Global Upload"
 downloadsetting 	= "Download Setting"
 ratelimits 			= "Rate Limiting"
@@ -67,25 +66,26 @@ seedoptions 		= "Seeding Options"
 webinterfaceservice = "Web Interface Service"
 
 duplicatetorrent 	= "Duplicate Torrent"
+duplicatetorrentinlist  = "This torrent (or one with the same hash value) already exists in the list"
 duplicatetorrentmsg = "This torrent is a duplicate!\nAre you sure you want to replace it?"
 choosetorrentfile 	= "Choose a torrent file"
-startwithhttp 		= "Please enter URL starting with http://"
-endwithtorrent 		= "Can't add something that isn't a .torrent file"
 cantgettorrentfromurl = "Can't get torrent from this URL"
-torrentadvdetail 	= "Torrent Advanced Details"
 localsetting 		= "Local Settings"
 errordeletefile 	= "Error, while trying to delete file.\nFile not cannot be found or is in use"
 filenotfound 		= "File not found or cannot be accessed."
 confirmdeletefile 	= "Are you sure you want to remove this file or folder?"
 choosenewlocation 	= "Choose a new location for this torrent"
-errorchangedestination = "Torrent is active: it must be stopped before changing the destination."
+
 extracterrorduplicatemsg_line1 = "A file with the same name already exists in the destination folder.
 extracterrorduplicatemsg_line2 = "Do you want to overwrite it?"
 extracterrorduplicate = "Duplicate file name"
+
+
 extracterrorinactive = "At least one selected torrent is active. Please deactivate before extracting."
+
+
 extracterrormoving 	= "Can't move the torrent file."
 torrentdetail 		= "Torrent Details..."
-currentseedpeerontracker = "Current Seed/Peer on Tracker"
 
 moveup 				= "Move torrent up"
 movedown 			= "Move torrent down"
@@ -99,7 +99,6 @@ mode 				= "Mode Manual/Auto"
 webservice 			= "Web Service: "
 torrentfilenotfound = "Torrent file not found"
 clear 				= "Clear"
-addlink 			= "Add Link"
 errormovefile 		= "Error while moving files"
 
 totaldlspeed 		= "Total DL Speed:"
@@ -152,7 +151,7 @@ addtorrenturl_short = "Add Torrent from URL"
 tb_resume_short = "Resume"
 tb_resume_long 	= "Resume/Launch torrent"
 tb_reseedresume_short = "Reseed Resume"
-tb_reseedresume_long = "Skip hash checking resume, use only for seed/reseed."
+tb_reseedresume_long = "Resume without hashcheck, use only for seeding/reseeding."
 tb_pause_short 	= "Pause"
 tb_pause_long 	= "Pause active torrent(s) (without releasing resources)"
 tb_stop_short 	= "Stop"
@@ -164,12 +163,9 @@ tb_delete_long 	= "Remove torrent only from ABC list"
 tb_spy_short 	= "Current Seed/Peer"
 tb_spy_long 	= "See current number of seed/peer of torrent on the tracker"
 tb_torrentdetail_short = "Torrent Details"
-tb_torrentdetail_long = "See meta information header of torrent"
-tb_advdetail_short = "Advanced Details"
-tb_advdetail_long = "See advanced details of torrent"
 
 tb_urm = "URM:"
-tb_maxsim = "Downloads:"
+tb_maxsim = "Active:"
 
 ##########################
 # Priority
@@ -242,12 +238,15 @@ column 			= "Column :"
 displayname 	= "Column Name :"
 columnwidth 	= "Column Width :"
 
+customizetoolbar = "Customize Toolbar"
+
 ##############################################
 # ABC Detail Frame
 ##############################################
 
 networkinfo 	= "Network Info"
 fileinfo 		= "File Info"
+torrentinfo     = "Torrent Info"
 
 dnumconnectedseed = "# Connected seed :"
 dseenseed 		= "# Seen seed"
@@ -262,18 +261,6 @@ updateseedpeer 	= "Update #Seed/#Peer"
 manualannounce 	= "Manual Announce"
 externalannounce = "External Announce"
 finishallocation = "Finish Allocation"
-spewoptunchoke 	= "Optimistic Unchoke"
-spewIP 			= "IP"
-spewlr 			= "Local/Remote"
-spewinterested 	= "Interested"
-spewchoking 	= "Choking"
-spewinteresting = "Interesting"
-spewchoecked 	= "Choked"
-spewsnubbed 	= "Snubbed"
-spewdownloaded 	= "Downloaded"
-spewuploaded 	= "Uploaded"
-spewcompleted 	= "Completed"
-spewpeerdownloadspeed = "Peer Download Speed"
 entertrackerannounceurl = "Enter tracker anounce URL:"
 TOTALS 			= "TOTALS:"
 KICKED 			= "KICKED"
@@ -284,23 +271,32 @@ detailline2 	= "%d of %d pieces complete (%d just downloaded), %d failed hash ch
 #####################################################
 # Meta info frame
 #####################################################
+fileinfo0_text  = "Filename"
+fileinfo1_text  = "Size"
+fileinfo2_text  = "Progress"
+fileinfo3_text  = "MD5"
+fileinfo4_text  = "CRC-32"
+fileinfo5_text  = "SHA-1"
+fileinfo6_text  = "ED2K"
+
+encoding        = "Encoding :"
+
 filename 		= "File name :"
 destination 	= "Destination :"
-md5hash 		= "MD5 hash :"
-directoryname 	= "Directory name : "
+
+directoryname 	= "Directory name :"
 file 			= "File"
 progress 		= "Progress"
-md5sum 			= "Md5sum"
 infohash 		= "Info Hash :"
 pieces 			= "Pieces : "
 str1 			= "%s (%s bytes)"
 str2 			= "%i (%s bytes each)"
-announceurl 	= "Announce URL : "
+announceurl 	= "Announce URL :"
 announceurls 	= "Announce URLs"
 tier 			= "Tier "
 single 			= "Single:"
 likelytracker 	= "Likely Tracker :"
-comment 		= "comment :"
+comment 		= "Comments :"
 creationdate 	= "Creation Date :"
 filesize 		= "Filesize"
 archivesize 	= "Archive Size"
@@ -309,6 +305,7 @@ archivesize 	= "Archive Size"
 # ABCOptionDlg
 #######################################################
 networksetting 	= "Network"
+portnumber  	= "Port:"
 portsetting 	= "Ports"
 minportnumber 	= "Minimum port : "
 maxportnumber 	= "Maximum port :"
@@ -334,13 +331,16 @@ global_uprate_hint_line5 = "      of 3KB/s"
 choose_language = "Language: "
 
 queuesetting 	= "Queue"
-maxnumsimul_line1 = "Maximum number of"
-maxnumsimul_line2 = "simultaneous downloads"
-trignexttorrent = "Trigger next torrent after:"
+maxnumsimul     = "Maximum number of active torrents"
+trignexttorrent = "Consider torrents active if they are:"
 after_downloading = "Downloading"
-after_seeding 	= "Seeding"
+after_seeding 	= "Downloading or Seeding"
 prioritizelocal = "Don't count torrents with local settings towards global limit"
 fastresume 		= "Fast Resume (also enables File Selector)"
+
+skipcheck       = "Skip hashcheck for completed torrents"
+skipcheck_hint_line1 = "Don't conduct a hashcheck for torrents"
+skipcheck_hint_line2 = "that have already completed."
 
 fastresume_hint_line1 = "Automatically resume torrents that have already"
 fastresume_hint_line2 = "conducted a hashcheck."
@@ -349,6 +349,8 @@ fastresume_hint_line4 = "Note: This option is required in order to set"
 fastresume_hint_line5 = "      priorities for individual files within"
 fastresume_hint_line6 = "      a multi-file torrent."
 
+
+displaysetting  = "Display"
 miscsetting 	= "Misc."
 removebackuptorrent = "Remove .torrent backup file when using remove"
 confirmonexit 	= "Confirm on exit program"
@@ -375,8 +377,7 @@ showtray_only 	= "Only show in Tray"
 disksettings 	= "Disk"
 advanced 		= "Advanced"
 advsetting 		= "Advanced settings"
-abcadvancepref 	= "ABC Advanced Preferences"
-changeownrisk 	= "CHANGE THESE SETTINGS AT YOUR OWN RISK"
+changeownrisk 	= "(Under most circumstances, these settings do not need to be changed)"
 localip 		= "Local IP: "
 iptobindto 		= "IP to bind to: "
 minnumberofpeer = "Minimum number of peers: "
@@ -386,14 +387,12 @@ filelocking 	= "File locking:"
 extradatachecking = "Extra data checking:"
 maxfileopen 	= "Max files open:"
 maxpeerconnection = "Max peer connections:"
-reverttodefault = "Revert to Defaults"
+reverttodefault = "Restore Defaults"
 bufferdisk 		= "Disk Buffering"
 buffer_read 	= "Read Cache"
 buffer_write 	= "Write Cache"
 
 flush_data 		= "Flush data to disk every"
-
-advsettingwarning = "None of these settings will take effect until the next active torrent."
 
 iphint_line1 	= "The IP reported to the tracker."
 iphint_line2 	= "(unless the tracker is on the same intranet as this client,"
@@ -439,23 +438,32 @@ maxconnectionhint_line5 = "If the client freezes, try setting this to 60 or belo
 ############################################################
 # BTMakeTorrentGUI
 ############################################################
-btfilemakertitle 	= "BitTorrent Torrent File Maker"
-btmaketorrenttitle 	= "BitTorrent make torrent"
-maketorrentof 		= "make torrent of:"
+btfilemakertitle 	= "Create Torrent"
+btmaketorrenttitle 	= "Make Torrent"
+maketorrentof 		= "Source :"
 dir 				= "Dir"
 add 				= "Add"
 remove 				= "Remove"
-announcelist 		= "announce list:"
-copyannouncefromtorrent = "copy\nannounces\nfrom\ntorrent"
+announce			= "Announce"
+announcelist 		= "Announce list :"
+copyannouncefromtorrent = "Copy announce from torrent"
+createdby			= "Created By :"
 
-multiannouncehelp_line1 = "a list of announces separated by commas or whitespace and on several lines -"
-multiannouncehelp_line2 = "trackers on the same line will be tried randomly, and all the trackers on one line"
-multiannouncehelp_line3 = "will be tried before the trackers on the next line."
+trackerinfo			= "Tracker Info"
+miscinfo			= "Misc. Info"
+
+selectdir			= "Select a directory"
+
+multiannouncehelp_line1="(A list of announces separated by commas or whitespace.
+multiannouncehelp_line2=" Trackers on the same line will be tried randomly."
+multiannouncehelp_line3=" All the trackers on one line will be tried before the trackers on the next.)"
+
+httpseeds		= "HTTP Seeds :"
+httpseedshelp = "(A list of HTTP seeds separated by commas or whitespace.)
 
 saveasdefaultconfig = "Save as default config"
 maketorrent 		= "Make Torrent"
 
-errorremoveannounceurl = "Please select announce url from combo box"
 choosefiletouse 	= "Choose file or directory to use"
 choosedottorrentfiletouse = "Choose .torrent file to use"
 youmustselectfileordir = "You must select a\n file or directory"
@@ -470,14 +478,14 @@ notoall				= "No to All"
 ###########################################################
 # BTcompletedirgui
 ###########################################################
-directorytomake 	= "directory to build:"
-select 				= "select"
-piecesize 			= "piece size:"
-make 				= "make"
+directorytomake     = "Directory to build :"
+select              = "Select"
+piecesize           = "Piece size :"
+make                = "Make"
 errormustselectdir 	= "You must select a directory"
-btmakedirtitle 		= "BitTorrent make directory"
-checkfilesize 		= "checking file sizes"
-building 			= "building "
+btmakedirtitle 		= "Make Directory"
+checkfilesize 		= "Checking file sizes"
+building 			= "Building "
 
 #################################################
 # Timeouts
@@ -503,15 +511,22 @@ rPause 				= "&Pause"
 rQueue 				= "&Queue"
 rRemoveTorrent 		= "Remove Torrent"
 rRemoveTorrentandFile = "Remove Torrent and File(s)"
+
+rcopyfromlist       = "&Copy from list..."
+rexportfromlist     = "&Export torrent"
 rextractfromlist 	= "&Extract from List..."
 rclearmessage 		= "&Clear Message"
 rtorrentdetail 		= "&Torrent Details..."
 rcurrentseedpeer 	= "Current Seed/Peer"
 rchangedownloaddest = "Change Download Destination..."
+ropenfiledest 		= "Open &File..."
 ropendest 			= "&Open Destination..."
 rsuperseedmode 		= "Use Super-seed &Mode"
 rpriosetting 		= "&Priority Setting"
 rlocaluploadsetting = "&Local Settings..."
+
+openfiledest 	    = "Open File..."
+opendest 			= "Open Destination..."
 
 ################################
 # BT status
@@ -521,8 +536,6 @@ completedseeding 	= "completed/seeding"
 working 			= "working"
 superseeding 		= "super-seeding"
 waiting 			= "waiting.."
-resume 				= "resume"
-reseedresume 		= "reseed resume"
 pause 				= "pause"
 queue 				= "queue"
 stopping 			= "stopping.."
@@ -539,6 +552,7 @@ cantopensocket 		= "Can't open socket"
 socketerror 		= "Socket Error!"
 inactive 			= "Webservice: Inactive"
 active 				= "Webservice: Active"
+toolbar_webservice  = "Webservice"
 webinterfacetitle 	= "Web Interface Service (version 3.0)"
 webip 				= "IP :"
 webport 			= "Port :"
@@ -569,25 +583,21 @@ cantreadmetainfo 	= "Can't read metainfo"
 cantgetdatafromtracker = "Can't get data from tracker"
 noannouncetrackerinmeta = "No announce tracker in your metainfo"
 warningscrapelessthanmin = "Please don't scrape more than once per minute."
-scrape_File 		= "File :"
+trackernoscrape     = "Tracker does not support scraping"
 seed 				= "Seed :"
 peer 				= "Peer :"
 status 				= "Status :"
-fetching 			= "Fetching..."
 scraping 			= "Scraping..."
 scrapingdone 		= "Scraping done"
 
 ##############################################
 # Upload Rate Maximizer
 ##############################################
-urmsetting 			= "URM"
-urm 				= "Enable Upload Rate Manager (URM)"
-urmmaxtorrent 		= "Allow URM to start up to:"
-torrents 			= "torrents"
-urmlowpriority 		= "Give priority to non-URM torrents"
-urmupthreshold 		= "Upload rate dead band :"
-urmdelaya 			= "Wait: "
-urmdelayb 			= " between starting/stopping URM torrents"
+autostart_threshold	= "Start a new torrent if upload is more than"
+autostart_delay		= "below the global limit for at least"
+
+activetorrents      = "Active Torrents"
+autostart           = "Auto Start"
 
 dynmaxuprate 		= "Adjust upload rate for network overhead"
 dynrate 			= "(Dynamic Rate = Global Upload Rate - DownCalc - ConnectCalc)"
@@ -609,6 +619,7 @@ date 				= "Date"
 close_title 		= "Closing"
 
 noportavailable 	= "Couldn't find an available port to listen on"
+tryotherport        = "Would you like ABC to try using another port?"
 
 column4_text 		= "Title"
 column5_text 		= "Progress"
@@ -634,7 +645,12 @@ column24_text 		= "Connections"
 column25_text		= "Seeding Option"
 
 savecolumnwidth 	= "Save column widths when resizing"
-stoptorrent 		= "Stop this torrent?"
+
+errorinactivesingle_line1   = "Torrent must be inactive before proceeding"
+errorinactivesingle_line2	= "Stop this torrent?"
+
+errorinactivemultiple_line1   = "Torrents must be inactive before proceeding"
+errorinactivemultiple_line2	 = "Stop torrents?"
 
 disabletimeout 		= "Disable timeouts for this torrent"
 
@@ -660,10 +676,10 @@ savelog				= "Save Log"
 savelogas			= "Save log file as..."
 error_savelog		= "Error writing log file"
 
-download_normal 	= "Download Normally"
-download_never 		= "Download Never"
-download_later 		= "Download Later"
-download_first 		= "Download First"
+download_normal 	= "Download &Normally"
+download_never 		= "Download Ne&ver"
+download_later 		= "Download &Later"
+download_first 		= "Download &First"
 
 ###
 # Abbreviations in the status bar:
@@ -699,3 +715,139 @@ loopback			= "Loop Back"
 
 move_up				= "Move Up"
 move_down			= "Move Down"
+
+interfacemode		= "Interface mode:"
+mode_simple			= "Simple"
+mode_intermediate	= "Intermediate"
+mode_expert			= "Expert"
+
+spew0_text          = "Optimistic Unchoke"
+spew1_text          = "IP"
+spew2_text          = "Local/Remote"
+spew3_text          = "Up"
+spew4_text          = "Interested"
+spew5_text          = "Choking"
+spew6_text          = "Down"
+spew7_text          = "Interesting"
+spew8_text          = "Choked"
+spew9_text          = "Snubbed"
+spew10_text         = "Downloaded"
+spew11_text         = "Uploaded"
+spew12_text         = "Completed"
+spew13_text         = "Peer Download Speed"
+
+spew_direction_local = "L"
+spew_direction_remote = "R"
+
+color_startup		= "Not active"
+color_disconnected  = "Can't contact server"
+color_noconnections = "No connections"
+color_noincoming    = "No incoming connections"
+color_nocomplete    = "No complete copies"
+color_good          = "All good"
+
+color_stripe		= "Stripe color"
+
+torrentcolors		= "Torrent Colors"
+
+more				= "More..."
+
+trackererror_problemconnecting = "Problem connecting to tracker"
+trackererror_rejected          = "Rejected by tracker"
+trackererror_baddata           = "Bad data from tracker"
+
+###################
+#Rename Torrent Dlg
+###################
+rrenametorrent="Rename torrent"
+renametorrent="Rename torrent : "
+edittorname="Edit torrent name :"
+usenamefrom="Use name from"
+currenttorname="Current torrent name :"
+
+originalname="Original name :"
+torrentfilename=".torrent file name :"
+othername = "Other :"
+
+destname="Destination name :"
+
+copybtn="Copy"
+rendestwithtor="Also rename destination"
+Name = "Name: "
+rtwd = "Rename torrent with destination by default"
+
+###
+#######################################################
+# Change destination dialog
+#######################################################
+choosedowndest="Change download destination..."
+downdestloc="Set download directory location"
+downdirname="Set download directory name"
+downfilename="Set download file name"
+choosenewdestloc="Choose new download directory location"
+choosenewdirname="Choose new download directory name :"
+choosenewfilename="Choose new download file name :"
+totalsize="total size :"
+updatetorname="Rename torrent"
+choosenewdest="New download destination :"
+browsebtn="Browse"
+
+rentorwithdest="Also change title in list"
+
+#errors:
+errorinvalidpath="Invalid syntax in the path. \nTry to add a \\"
+errorinvalidwinunitname="This name cannot be used as a Windows unit name."
+
+suggestedname="Suggested corrected name :"
+invalidwinname="This name cannot be used as a Windows file or folder name."
+
+#########
+#Other
+#########
+warningopenfile = "Torrent is not completed yet, are you sure you want to open it?"
+
+#############
+#Make Torrent
+#############
+savedtofolderwithsource = "Torrent will be saved to folder containing source"
+notadir="The default download directory is a file"
+savetor="Torrent location"
+savetordefault="Save to default folder :"
+savetorsource="Save to folder containing source"
+savetorask="Ask where to save to"
+choosetordeffolder="Choose a default folder to save torrents"
+
+torrentfileswildcard = ".torrent files"
+allfileswildcard = "All Files"
+logfileswildcard = "Log Files"
+
+listfont = "List font:"
+choosefont = "Choose Font..."
+sampletext = "Sample Text, 0123456789"
+
+startnow = "Start seeding immediately"
+makehash_md5 = "MD5"
+makehash_crc32 = "CRC-32"
+makehash_sha1 = "SHA-1"
+makehash_optional = "Optional hashes:"
+
+rcopyfilename = "&Copy Filename"
+rcopypath = "Copy &Path"
+
+diskfull = "Error: Not enough space left on the destination disk"
+diskfullthreshold = "Stop torrents if destination has less than:"
+
+changetitle = "Change title to"
+
+separator          = "Separator"
+buttons_available  = "Available toolbar buttons:"
+buttons_current    = "Current toolbar buttons:"
+buttons_add        = "Add"
+buttons_remove     = "Remove"
+
+customizecontextmenu      = "Customize Context Menu"
+menu_available  = "Available menu items:"
+menu_current    = "Current menu items:"
+
+lowuploadstart1 = "Start next torrent if upload speed stays"
+lowuploadstart2 = "below global limit for at least"

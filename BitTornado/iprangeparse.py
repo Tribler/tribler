@@ -23,7 +23,7 @@ def to_long_ipv4(ip):
 
 
 def to_long_ipv6(ip):
-    if ip == '':
+    if not ip:
         raise ValueError, "bad address"
     if ip == '::':      # boundary handling
         ip = ''
@@ -53,8 +53,8 @@ def to_long_ipv6(ip):
                 b.append(int(i))
             continue
         n = ('0'*(4-len(n))) + n
-        b.append(int(n[:2],16))
-        b.append(int(n[2:],16))
+        b.append(int(n[:2], 16))
+        b.append(int(n[2:], 16))
     bb = 0L
     for n in b:
         if n is None:
@@ -92,7 +92,7 @@ class IP_List:
             ip_beg = to_long_ipv6(ip_beg)
             ip_end = to_long_ipv6(ip_end)
             bb = ip_beg % (256*256*256*256)
-            if bb == ipv4addressmask:
+            if bb == ipv4addrmask:
                 ip_beg -= bb
                 ip_end -= bb
                 l = self.ipv4list
@@ -101,7 +101,7 @@ class IP_List:
                 l = self.ipv6list
                 d = self.ipv6dict
 
-        pos = bisect(l,ip_beg)-1
+        pos = bisect(l, ip_beg)-1
         done = pos < 0
         while not done:
             p = pos
@@ -124,7 +124,7 @@ class IP_List:
                 del d[range_beg]
                 break
 
-        insort(l,ip_beg)
+        insort(l, ip_beg)
         d[ip_beg] = ip_end
 
 
@@ -138,14 +138,14 @@ class IP_List:
         else:
             ip = to_long_ipv6(ip)
             bb = ip % (256*256*256*256)
-            if bb == ipv4addressmask:
+            if bb == ipv4addrmask:
                 ip -= bb
                 l = self.ipv4list
                 d = self.ipv4dict
             else:
                 l = self.ipv6list
                 d = self.ipv6dict
-        for ip_beg in l[bisect(l,ip)-1:]:
+        for ip_beg in l[bisect(l, ip)-1:]:
             if ip == ip_beg:
                 return True
             ip_end = d[ip_beg]
@@ -158,7 +158,7 @@ class IP_List:
     # (not IPv6 compatible at all)
     def read_rangelist(self, file):
         f = open(file, 'r')
-        while True:
+        while 1:
             line = f.readline()
             if not line:
                 break
@@ -167,12 +167,12 @@ class IP_List:
                 continue
             line = line.split(':')[-1]
             try:
-                ip1,ip2 = line.split('-')
+                ip1, ip2 = line.split('-')
             except:
                 ip1 = line
                 ip2 = line
             try:
-                self.append(ip1.strip(),ip2.strip())
+                self.append(ip1.strip(), ip2.strip())
             except:
                 print '*** WARNING *** could not parse IP range: '+line
         f.close()

@@ -2,9 +2,9 @@
 # see LICENSE.txt for license information
 
 from types import StringType, LongType, IntType, ListType, DictType
-from re import compile
+import re
 
-reg = compile(r'^[^/\\.~][^/\\]*$')
+reg = re.compile(r'^[^/\\.~][^/\\]*$')
 
 ints = (LongType, IntType)
 

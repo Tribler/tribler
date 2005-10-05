@@ -25,7 +25,6 @@ Booleans are written as integers.  Anything else aside from string/int/float
 may have unpredictable results.
 '''
 
-from cStringIO import StringIO
 from traceback import print_exc
 from types import DictType, StringType
 try:
@@ -44,7 +43,7 @@ DEBUG = False
 def ini_write(f, d, comment=''):
     try:
         a = {'':{}}
-        for k,v in d.items():
+        for k, v in d.items():
             assert type(k) == StringType
             k = k.lower()
             if type(v) == DictType:
@@ -54,7 +53,7 @@ def ini_write(f, d, comment=''):
                     assert not a.has_key(k)
                     a[k] = {}
                 aa = a[k]
-                for kk,vv in v:
+                for kk, vv in v:
                     assert type(kk) == StringType
                     kk = kk.lower()
                     assert not aa.has_key(kk)
@@ -75,7 +74,7 @@ def ini_write(f, d, comment=''):
                 aa[k] = str(v)
                 if DEBUG:
                     print 'a[\'\']['+k+'] = '+str(v)
-        r = open(f,'w')
+        r = open(f, 'w')
         if comment:
             for c in comment.split('\n'):
                 r.write('# '+c+'\n')
@@ -110,7 +109,7 @@ else:
 
 def ini_read(f, errfunc = errfunc):
     try:
-        r = open(f,'r')
+        r = open(f, 'r')
         ll = r.readlines()
         d = {}
         dd = {'':d}
@@ -123,26 +122,26 @@ def ini_read(f, errfunc = errfunc):
                 continue
             if l[0] == '[':
                 if l[-1] != ']':
-                    errfunc(i,l,'syntax error')
+                    errfunc(i, l, 'syntax error')
                     continue
                 l1 = l[1:-1].strip().lower()
                 if not l1:
-                    errfunc(i,l,'syntax error')
+                    errfunc(i, l, 'syntax error')
                     continue
                 if dd.has_key(l1):
-                    errfunc(i,l,'duplicate section')
+                    errfunc(i, l, 'duplicate section')
                     d = dd[l1]
                     continue
                 d = {}
                 dd[l1] = d
                 continue
             try:
-                k,v = l.split('=',1)
+                k, v = l.split('=', 1)
             except:
                 try:
-                    k,v = l.split(':',1)
+                    k, v = l.split(':', 1)
                 except:
-                    errfunc(i,l,'syntax error')
+                    errfunc(i, l, 'syntax error')
                     continue
             k = k.strip().lower()
             v = v.strip()
@@ -150,10 +149,10 @@ def ini_read(f, errfunc = errfunc):
                                 (v[0] == "'" and v[-1] == "'") ):
                 v = v[1:-1]
             if not k:
-                errfunc(i,l,'syntax error')
+                errfunc(i, l, 'syntax error')
                 continue
             if d.has_key(k):
-                errfunc(i,l,'duplicate entry')
+                errfunc(i, l, 'duplicate entry')
                 continue
             d[k] = v
         if DEBUG:

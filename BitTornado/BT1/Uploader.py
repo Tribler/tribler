@@ -10,7 +10,7 @@ except:
     False = 0
 
 class Upload:
-    def __init__(self, connection, ratelimiter, totalup, choker, storage,
+    def __init__(self, connection, ratelimiter, totalup, choker, storage, 
                  picker, config):
         self.connection = connection
         self.ratelimiter = ratelimiter
@@ -91,14 +91,14 @@ class Upload:
         return (index, begin, piece)
 
     def got_request(self, index, begin, length):
-        if ( (self.super_seeding and not index in self.seed_have_list)
-                   or not self.interested or length > self.max_slice_length ):
+        if ((self.super_seeding and not index in self.seed_have_list)
+                   or not self.interested or length > self.max_slice_length):
             self.connection.close()
             return
         if not self.cleared:
             self.buffer.append((index, begin, length))
         if not self.choked and self.connection.next_upload is None:
-                self.ratelimiter.queue(self.connection)
+            self.ratelimiter.queue(self.connection)
 
 
     def got_cancel(self, index, begin, length):
@@ -138,7 +138,7 @@ class Upload:
         return self.interested
 
     def has_queries(self):
-        return not self.choked and len(self.buffer) > 0
+        return not self.choked and self.buffer
 
     def get_rate(self):
         return self.measure.get_rate()

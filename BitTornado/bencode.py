@@ -10,7 +10,6 @@ try:
     from types import UnicodeType
 except ImportError:
     UnicodeType = None
-from cStringIO import StringIO
 
 def decode_int(x, f):
     f += 1
@@ -39,7 +38,7 @@ def decode_string(x, f):
 
 def decode_unicode(x, f):
     s, f = decode_string(x, f+1)
-    return (s.decode('UTF-8'),f)
+    return (s.decode('UTF-8'), f)
 
 def decode_list(x, f):
     r, f = [], f+1
@@ -236,35 +235,35 @@ class Bencached:
 
 BencachedType = type(Bencached('')) # insufficient, but good as a filter
 
-def encode_bencached(x,r):
+def encode_bencached(x, r):
     assert x.marker == bencached_marker
     r.append(x.bencoded)
 
-def encode_int(x,r):
-    r.extend(('i',str(x),'e'))
+def encode_int(x, r):
+    r.extend(('i', str(x), 'e'))
 
-def encode_bool(x,r):
-    encode_int(int(x),r)
+def encode_bool(x, r):
+    encode_int(int(x), r)
 
-def encode_string(x,r):    
-    r.extend((str(len(x)),':',x))
+def encode_string(x, r):    
+    r.extend((str(len(x)), ':', x))
 
-def encode_unicode(x,r):
+def encode_unicode(x, r):
     #r.append('u')
-    encode_string(x.encode('UTF-8'),r)
+    encode_string(x.encode('UTF-8'), r)
 
-def encode_list(x,r):
-        r.append('l')
-        for e in x:
-            encode_func[type(e)](e, r)
-        r.append('e')
+def encode_list(x, r):
+    r.append('l')
+    for e in x:
+        encode_func[type(e)](e, r)
+    r.append('e')
 
-def encode_dict(x,r):
+def encode_dict(x, r):
     r.append('d')
     ilist = x.items()
     ilist.sort()
-    for k,v in ilist:
-        r.extend((str(len(k)),':',k))
+    for k, v in ilist:
+        r.extend((str(len(k)), ':', k))
         encode_func[type(v)](v, r)
     r.append('e')
 

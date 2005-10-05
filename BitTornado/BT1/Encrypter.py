@@ -5,7 +5,6 @@ from cStringIO import StringIO
 from binascii import b2a_hex
 from socket import error as socketerror
 from urllib import quote
-from traceback import print_exc
 try:
     True
 except:
@@ -20,28 +19,13 @@ option_pattern = chr(0)*8
 def toint(s):
     return long(b2a_hex(s), 16)
 
-def tobinary(i):
-    return (chr(i >> 24) + chr((i >> 16) & 0xFF) + 
-        chr((i >> 8) & 0xFF) + chr(i & 0xFF))
-
-hexchars = '0123456789ABCDEF'
-hexmap = []
-for i in xrange(256):
-    hexmap.append(hexchars[(i&0xF0)/16]+hexchars[i&0x0F])
-
-def tohex(s):
-    r = []
-    for c in s:
-        r.append(hexmap[ord(c)])
-    return ''.join(r)
-
 def make_readable(s):
     if not s:
         return ''
     if quote(s).find('%') >= 0:
-        return tohex(s)
+        return b2a_hex(s).upper()
     return '"'+s+'"'
-   
+
 
 class IncompleteCounter:
     def __init__(self):
@@ -59,7 +43,7 @@ incompletecounter = IncompleteCounter()
 # header, reserved, download id, my id, [length, message]
 
 class Connection:
-    def __init__(self, Encoder, connection, id, ext_handshake=False):
+    def __init__(self, Encoder, connection, id, ext_handshake = False):
         self.Encoder = Encoder
         self.connection = connection
         self.connecter = Encoder.connecter
@@ -173,7 +157,7 @@ class Connection:
 
     def data_came_in(self, connection, s):
         self.Encoder.measurefunc(len(s))
-        while True:
+        while 1:
             if self.closed:
                 return
             i = self.next_len - self.buffer.tell()

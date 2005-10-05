@@ -113,7 +113,7 @@ class PiecePicker:
 
     def got_seed(self):
         self.seeds_connected += 1
-        self.cutoff = max(self.rarest_first_priority_cutoff-self.seeds_connected,0)
+        self.cutoff = max(self.rarest_first_priority_cutoff-self.seeds_connected, 0)
 
     def became_seed(self):
         self.got_seed()
@@ -128,7 +128,7 @@ class PiecePicker:
 
     def lost_seed(self):
         self.seeds_connected -= 1
-        self.cutoff = max(self.rarest_first_priority_cutoff-self.seeds_connected,0)
+        self.cutoff = max(self.rarest_first_priority_cutoff-self.seeds_connected, 0)
 
 
     def requested(self, piece):
@@ -180,14 +180,14 @@ class PiecePicker:
             if complete_first or (cutoff and len(self.interests) > self.cutoff):
                 return best
         if haves.complete():
-            r = [ (0, min(bestnum,len(self.interests))) ]
+            r = [ (0, min(bestnum, len(self.interests))) ]
         elif cutoff and len(self.interests) > self.cutoff:
-            r = [ (self.cutoff, min(bestnum,len(self.interests))),
+            r = [ (self.cutoff, min(bestnum, len(self.interests))),
                       (0, self.cutoff) ]
         else:
-            r = [ (0, min(bestnum,len(self.interests))) ]
-        for lo,hi in r:
-            for i in xrange(lo,hi):
+            r = [ (0, min(bestnum, len(self.interests))) ]
+        for lo, hi in r:
+            for i in xrange(lo, hi):
                 for j in self.interests[i]:
                     if haves[j] and wantfunc(j):
                         return j
@@ -204,7 +204,7 @@ class PiecePicker:
         pos = self.pos_in_interests[piece]
         del l[pos]
         l.append(piece)
-        for i in range(pos,len(l)):
+        for i in range(pos, len(l)):
             self.pos_in_interests[l[i]] = i
         try:
             self.started.remove(piece)
@@ -294,7 +294,7 @@ class PiecePicker:
                     self.level_in_interests[piece] += 1  # tweak it up one, so you don't duplicate effort
                     if seedint == len(self.interests) - 1:
                         self.interests.append([])
-                    self._shift_over(piece,
+                    self._shift_over(piece, 
                                 self.interests[seedint], self.interests[seedint + 1])
                     self.seed_got_haves[piece] = 0       # reset this
                     self.seed_connections[connection] = piece

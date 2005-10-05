@@ -5,6 +5,15 @@
 import wx
 from os import path
 
+
+################################################################
+#
+# Class: LocalSettingDialog
+#
+# Allows for setting local limits on rates or changing the
+# upload options for torrents on an individual basis.
+#
+################################################################
 class LocalSettingDialog(wx.Dialog):
     def __init__(self, parent, torrentlist):
         
@@ -18,6 +27,10 @@ class LocalSettingDialog(wx.Dialog):
         self.torrentlist = torrentlist
 
         outerbox = wx.BoxSizer( wx.VERTICAL )
+        
+        leftrightbox = wx.BoxSizer(wx.HORIZONTAL)
+        leftbox = wx.BoxSizer(wx.VERTICAL)
+        rightbox = wx.BoxSizer(wx.VERTICAL)
         
         # GUI for local upload setting
         ################################
@@ -47,7 +60,7 @@ class LocalSettingDialog(wx.Dialog):
         uploadsection.Add(maxuploadratebox, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         uploadsection.Add(wx.StaticText(self, -1,  self.utility.lang.get('zeroisauto')), 0, wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_RIGHT|wx.ALL, 5)
 
-        outerbox.Add( uploadsection, 0, wx.EXPAND|wx.ALL, 5)
+        leftbox.Add( uploadsection, 0, wx.EXPAND|wx.ALL, 5)
 
         # Download setting
         ########################################
@@ -65,7 +78,7 @@ class LocalSettingDialog(wx.Dialog):
         downloadsection.Add(maxdownloadratebox, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         downloadsection.Add(wx.StaticText(self, -1,  self.utility.lang.get('zeroisauto')), 0, wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_RIGHT|wx.ALL, 5)
 
-        outerbox.Add( downloadsection, 0, wx.EXPAND|wx.ALL, 5)
+        leftbox.Add( downloadsection, 0, wx.EXPAND|wx.ALL, 5)
 
         # Upload setting for completed file
         ########################################
@@ -82,7 +95,7 @@ class LocalSettingDialog(wx.Dialog):
               
         mtimeval = ['30', '45', '60', '75']
         htimeval = []
-        for i in range(0, 24):
+        for i in range(24):
             htimeval.append(str(i))
             
         self.cbhtime = wx.ComboBox(self, -1, "", wx.Point(-1, -1),                                  
@@ -112,11 +125,15 @@ class LocalSettingDialog(wx.Dialog):
         
         continuesection.Add(percent_sizer, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
 
-        outerbox.Add( continuesection, 0, wx.EXPAND|wx.ALL, 5)
+        rightbox.Add( continuesection, 0, wx.EXPAND|wx.ALL, 5)
         
         self.timeoutbox = wx.CheckBox(self, -1, self.utility.lang.get('disabletimeout'))
         
-        outerbox.Add( self.timeoutbox, 0, wx.EXPAND|wx.ALL, 10)
+        rightbox.Add( self.timeoutbox, 0, wx.EXPAND|wx.ALL, 10)
+        
+        leftrightbox.Add(leftbox)
+        leftrightbox.Add(rightbox)
+        outerbox.Add(leftrightbox)
 
         applybtn  = wx.Button(self, -1, self.utility.lang.get('apply'))
         self.Bind(wx.EVT_BUTTON, self.onApply, applybtn)
@@ -125,10 +142,14 @@ class LocalSettingDialog(wx.Dialog):
 
         cancelbtn = wx.Button(self, wx.ID_CANCEL, self.utility.lang.get('cancel'))
 
+        setDefaultsbtn = wx.Button(self, -1, self.utility.lang.get('reverttodefault'))
+        self.Bind(wx.EVT_BUTTON, self.RevertToDefault, setDefaultsbtn)
+
         buttonbox = wx.BoxSizer( wx.HORIZONTAL )
         buttonbox.Add(applybtn, 0, wx.ALL, 5)
         buttonbox.Add(okbtn, 0, wx.ALL, 5)
         buttonbox.Add(cancelbtn, 0, wx.ALL, 5)
+        buttonbox.Add(setDefaultsbtn, 0, wx.ALL, 5)
 
         outerbox.Add( buttonbox, 0, wx.ALIGN_CENTER)
         
@@ -137,16 +158,15 @@ class LocalSettingDialog(wx.Dialog):
         self.SetAutoLayout( True )
         self.SetSizer( outerbox )
         self.Fit()
+
+    def RevertToDefault(self, event = None):
+        maxupt = int(self.utility.config.Read('maxupload'))
+        loc_maxupload       = maxupt
         
-    def setDefaults(self, event = None):
-        ABCTorrentTemp = self.torrentlist[0]
-        
-        loc_maxupload       = ABCTorrentTemp.getMaxUpload()
-        
-        loc_uploadopt       = ABCTorrentTemp.getSeedOption('uploadoption')
-        loc_uploadtimeh     = ABCTorrentTemp.getSeedOption('uploadtimeh')
-        loc_uploadtimem     = ABCTorrentTemp.getSeedOption('uploadtimem')
-        loc_uploadratio     = ABCTorrentTemp.getSeedOption('uploadratio')
+        loc_uploadopt       = self.utility.config.Read('uploadoption')
+        loc_uploadtimeh     = self.utility.config.Read('uploadtimeh')
+        loc_uploadtimem     = self.utility.config.Read('uploadtimem')
+        loc_uploadratio     = self.utility.config.Read('uploadratio')
 
         self.maxupload.SetValue(loc_maxupload)
 
@@ -157,15 +177,33 @@ class LocalSettingDialog(wx.Dialog):
         self.cbhtime.SetValue(loc_uploadtimeh)
         self.cbmtime.SetValue(loc_uploadtimem)
         
-        loc_maxuploadrate = ABCTorrentTemp.getLocalRate('up')
+        loc_maxuploadrate = 0
         self.uploadrate.SetValue(int(loc_maxuploadrate))
 
-        loc_maxdownloadrate = ABCTorrentTemp.getLocalRate('down')
+        loc_maxdownloadrate = 0
         self.downloadrate.SetValue(int(loc_maxdownloadrate))
 
-        self.timeoutbox.SetValue(not ABCTorrentTemp.timeout)
+        self.timeoutbox.SetValue(0)      
         
-    def onApply(self, event):
+    def setDefaults(self, event = None):
+        ABCTorrentTemp      = self.torrentlist[0]
+        
+        loc_uploadopt       = ABCTorrentTemp.connection.getSeedOption('uploadoption')
+        self.rb[int(loc_uploadopt)].SetValue(True)
+
+        self.maxupload.SetValue(ABCTorrentTemp.connection.getMaxUpload())
+
+        self.cbratio.SetValue(ABCTorrentTemp.connection.getSeedOption('uploadratio'))
+
+        self.cbhtime.SetValue(ABCTorrentTemp.connection.getSeedOption('uploadtimeh'))
+        self.cbmtime.SetValue(ABCTorrentTemp.connection.getSeedOption('uploadtimem'))
+        
+        self.uploadrate.SetValue(ABCTorrentTemp.connection.getLocalRate('up'))
+        self.downloadrate.SetValue(ABCTorrentTemp.connection.getLocalRate('down'))
+
+        self.timeoutbox.SetValue(not ABCTorrentTemp.connection.timeout)
+        
+    def onApply(self, event = None):
         upload_rate = int(self.uploadrate.GetValue())
 
         if upload_rate < 3 and upload_rate != 0:
@@ -176,14 +214,15 @@ class LocalSettingDialog(wx.Dialog):
             return False
 
         loc_info = {}
-        loc_info['maxupload'] = str(self.maxupload.GetValue())      #maxupload
-        loc_info['uploadrate'] = str(self.uploadrate.GetValue())     #maxuploadrate
+        loc_info['maxupload'] = self.maxupload.GetValue()      #maxupload
+        loc_info['uploadrate'] = self.uploadrate.GetValue()     #maxuploadrate
 
-        loc_info['downloadrate'] = str(self.downloadrate.GetValue())     #maxdownloadrate
+        loc_info['downloadrate'] = self.downloadrate.GetValue()     #maxdownloadrate
 
         for i in range (0, 3):                          #uploadopt
             if self.rb[i].GetValue():
                 loc_info['uploadoption'] = str(i)
+                break
 
         loc_info['uploadtimeh'] = self.cbhtime.GetValue()        #uploadtimeh   
         loc_info['uploadtimem'] = self.cbmtime.GetValue()        #uploadtimem   
@@ -192,7 +231,7 @@ class LocalSettingDialog(wx.Dialog):
         loc_info['timeout'] = not self.timeoutbox.IsChecked()
 
         for ABCTorrentTemp in self.torrentlist:
-            ABCTorrentTemp.changeLocalInfo(loc_info)
+            ABCTorrentTemp.connection.changeLocalInfo(loc_info)
         self.utility.queue.updateAndInvoke()
 
         # Sent new parameter to process
@@ -200,14 +239,11 @@ class LocalSettingDialog(wx.Dialog):
         # must change now
         # - maxupload, maxuploadrate, numsimdownload
         # - uploadoption, uploadtimeh, uploadtimem,
-        # - uploadratio, removetorrent
-        ##########################################
-        # - minport, maxport, setdefaultfolder, defaultfolder will
-        #   automatically activate with new torrent
+        # - uploadratio
         #########################################
         
         return True
 
-    def onOK(self, event):
-        if self.onApply(event):
+    def onOK(self, event = None):
+        if self.onApply():
             self.EndModal(wx.ID_OK)

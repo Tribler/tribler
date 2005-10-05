@@ -56,7 +56,7 @@ def to_bitfield_ipv6(ip):
     b = ''
     doublecolon = False
 
-    if ip == '':
+    if not ip:
         raise ValueError, "bad address"
     if ip == '::':      # boundary handling
         ip = ''
@@ -102,13 +102,13 @@ class IP_List:
 
     def append(self, ip, depth = 256):
         if ip.find(':') < 0:        # IPv4
-            insort(self.ipv4list,to_bitfield_ipv4(ip)[:depth])
+            insort(self.ipv4list, to_bitfield_ipv4(ip)[:depth])
         else:
             b = to_bitfield_ipv6(ip)
             if b.startswith(ipv4addrmask):
-                insort(self.ipv4list,b[96:][:depth-96])
+                insort(self.ipv4list, b[96:][:depth-96])
             else:
-                insort(self.ipv6list,b[:depth])
+                insort(self.ipv6list, b[:depth])
 
 
     def includes(self, ip):
@@ -124,7 +124,7 @@ class IP_List:
             l = self.ipv6list
         else:
             l = self.ipv4list
-        for map in l[bisect(l,b)-1:]:
+        for map in l[bisect(l, b)-1:]:
             if b.startswith(map):
                 return True
             if map > b:
@@ -134,7 +134,7 @@ class IP_List:
 
     def read_fieldlist(self, file):   # reads a list from a file in the format 'ip/len <whatever>'
         f = open(file, 'r')
-        while True:
+        while 1:
             line = f.readline()
             if not line:
                 break
@@ -142,11 +142,11 @@ class IP_List:
             if not line or line[0] == '#':
                 continue
             try:
-                line, garbage = line.split(' ',1)
+                line, garbage = line.split(' ', 1)
             except:
                 pass
             try:
-                line, garbage = line.split('#',1)
+                line, garbage = line.split('#', 1)
             except:
                 pass
             try:
@@ -157,24 +157,24 @@ class IP_List:
             try:
                 if depth is not None:                
                     depth = int(depth)
-                self.append(ip,depth)
+                self.append(ip, depth)
             except:
                 print '*** WARNING *** could not parse IP range: '+line
         f.close()
 
 
     def set_intranet_addresses(self):
-        self.append('127.0.0.1',8)
-        self.append('10.0.0.0',8)
-        self.append('172.16.0.0',12)
-        self.append('192.168.0.0',16)
-        self.append('169.254.0.0',16)
+        self.append('127.0.0.1', 8)
+        self.append('10.0.0.0', 8)
+        self.append('172.16.0.0', 12)
+        self.append('192.168.0.0', 16)
+        self.append('169.254.0.0', 16)
         self.append('::1')
-        self.append('fe80::',16)
-        self.append('fec0::',16)
+        self.append('fe80::', 16)
+        self.append('fec0::', 16)
 
     def set_ipv4_addresses(self):
-        self.append('::ffff:0:0',96)
+        self.append('::ffff:0:0', 96)
 
 def ipv6_to_ipv4(ip):
     ip = to_bitfield_ipv6(ip)
@@ -183,7 +183,7 @@ def ipv6_to_ipv4(ip):
     ip = ip[-32:]
     x = ''
     for i in range(4):
-        x += str(int(ip[:8],2))
+        x += str(int(ip[:8], 2))
         if i < 3:
             x += '.'
         ip = ip[8:]
@@ -207,6 +207,8 @@ def _valid_ipv4(ip):
 
 def is_valid_ip(ip):
     try:
+        if not ip:
+            return False
         if is_ipv4(ip):
             _valid_ipv4(ip)
             return True

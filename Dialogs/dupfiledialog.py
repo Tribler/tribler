@@ -1,10 +1,16 @@
 #########################################################################
 # Author : Tim Tucker
-# Description : Ask whether or not to overwrite files
 #########################################################################
 import wx
 from os import path
 
+from Utility.constants import * #IGNORE:W0611
+
+################################################################
+#
+# Class: DupFileDialog
+#
+# Asks whether or not to overwrite files
 #
 # Will return one several values:
 #
@@ -13,6 +19,7 @@ from os import path
 #  1: Yes
 #  2: Yes to All
 #
+################################################################
 class DupFileDialog(wx.Dialog):
     def __init__(self, torrent, filename, single = True):
         self.utility = torrent.utility
@@ -23,7 +30,7 @@ class DupFileDialog(wx.Dialog):
         pre.Create(None, -1, title)
         self.this = pre.this
 
-        message = "Torrent : "+ torrent.filename + "\n" + \
+        message = "Torrent : "+ torrent.getColumnText(COL_TITLE) + "\n" + \
                   "File : " + filename + "\n" +\
                   self.utility.lang.get('extracterrorduplicatemsg')
 
@@ -55,14 +62,14 @@ class DupFileDialog(wx.Dialog):
         self.SetSizer( outerbox )
         self.Fit()
         
-    def onYES(self, event):
+    def onYES(self, event = None):
         self.EndModal(1)
 
-    def onYESTOALL(self, event):
+    def onYESTOALL(self, event = None):
         self.EndModal(2)
 
-    def onNO(self, event):
+    def onNO(self, event = None):
         self.EndModal(-1)
         
-    def onNOTOALL(self, event):
+    def onNOTOALL(self, event = None):
         self.EndModal(-2)

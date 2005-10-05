@@ -2,12 +2,12 @@
 # see LICENSE.txt for license information
 
 import socket
-from errno import EWOULDBLOCK, ECONNREFUSED, EHOSTUNREACH
+from errno import EWOULDBLOCK
 try:
-    from select import poll, error, POLLIN, POLLOUT, POLLERR, POLLHUP
+    from select import poll, POLLIN, POLLOUT, POLLERR, POLLHUP
     timemult = 1000
 except ImportError:
-    from selectpoll import poll, error, POLLIN, POLLOUT, POLLERR, POLLHUP
+    from selectpoll import poll, POLLIN, POLLOUT, POLLERR, POLLHUP
     timemult = 1
 from time import sleep
 from clock import clock
@@ -158,7 +158,7 @@ class SocketHandler:
                 socktype = socket.AF_INET
             bind = bind.split(',')
             for addr in bind:
-                if sys.version_info < (2,2):
+                if sys.version_info < (2, 2):
                     addrinfos.append((socket.AF_INET, None, None, None, (addr, port)))
                 else:
                     addrinfos.extend(socket.getaddrinfo(addr, port,
@@ -252,8 +252,8 @@ class SocketHandler:
     def start_connection(self, dns, handler = None, randomize = False):
         if handler is None:
             handler = self.handler
-        if sys.version_info < (2,2):
-            s = self.start_connection_raw(dns,socket.AF_INET,handler)
+        if sys.version_info < (2, 2):
+            s = self.start_connection_raw(dns, socket.AF_INET, handler)
         else:
             if self.ipv6_enable:
                 socktype = socket.AF_UNSPEC
@@ -270,7 +270,7 @@ class SocketHandler:
                 shuffle(addrinfos)
             for addrinfo in addrinfos:
                 try:
-                    s = self.start_connection_raw(addrinfo[4],addrinfo[0],handler)
+                    s = self.start_connection_raw(addrinfo[4], addrinfo[0], handler)
                     break
                 except:
                     pass
@@ -354,8 +354,8 @@ class SocketHandler:
         return r     
 
     def get_stats(self):
-        return { 'interfaces': self.interfaces,
-                 'port': self.port,
+        return { 'interfaces': self.interfaces, 
+                 'port': self.port, 
                  'upnp': self.port_forwarded is not None }
 
 

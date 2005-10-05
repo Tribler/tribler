@@ -4,13 +4,13 @@
 
 -------------------------------------------------------------
 
-1. Install Python 2.4 or greater   - http://www.python.org
+1. Install Python 2.4 or greater   - http://www.python.org/
 
-2. Install wxPython 2.5.4.1 or greater - http://www.wxpython.org
+2. Install wxPython 2.6 or greater - http://www.wxpython.org/
 
-3. Install NSIS 2.06 or greater     - http://nsis.sourceforge.net/
+3. Install NSIS 2.0 or greater     - http://nsis.sourceforge.net/
 
-4. Install py2exe 0.5.4 or greater   - http://starship.python.net/crew/theller/py2exe/
+4. Install py2exe 0.6.2 or greater   - http://starship.python.net/crew/theller/py2exe/
 
 5. Modify makedist.bat to point to the location for Python.
    i.e.:

@@ -1,8 +1,9 @@
 # Written by John Hoffman
 # see LICENSE.txt for license information
 
-from time import *
 import sys
+
+from time import time
 
 _MAXFORWARD = 100
 _FUDGE = 1
@@ -25,3 +26,5 @@ if sys.platform != 'win32':
     _RTIME = RelativeTime()
     def clock():
         return _RTIME.get_time()
+else:
+    from time import clock

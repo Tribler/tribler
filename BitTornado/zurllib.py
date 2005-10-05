@@ -1,13 +1,11 @@
 # Written by John Hoffman
 # see LICENSE.txt for license information
 
-from httplib import HTTPConnection, HTTPException
+from httplib import HTTPConnection, HTTPSConnection, HTTPException
 from urlparse import urlparse
 from bencode import bdecode
-import socket
 from gzip import GzipFile
 from StringIO import StringIO
-from urllib import quote, unquote
 from __init__ import product_name, version_short
 
 VERSION = product_name+'/'+version_short
@@ -22,6 +20,13 @@ class btHTTPcon(HTTPConnection): # attempt to add automatic connection timeout
         except:
             pass
 
+class btHTTPScon(HTTPSConnection): # attempt to add automatic connection timeout
+    def connect(self):
+        HTTPSConnection.connect(self)
+        try:
+            self.sock.settimeout(30)
+        except:
+            pass 
 
 class urlopen:
     def __init__(self, url):
@@ -35,7 +40,7 @@ class urlopen:
             raise IOError, ('http error', 500,
                             "Internal Server Error: Redirect Recursion")
         (scheme, netloc, path, pars, query, fragment) = urlparse(url)
-        if scheme != 'http':
+        if scheme != 'http' and scheme != 'https':
             raise IOError, ('url error', 'unknown url type', scheme, url)
         url = path
         if pars:
@@ -44,7 +49,10 @@ class urlopen:
             url += '?'+query
 #        if fragment:
         try:
-            self.connection = btHTTPcon(netloc)
+            if scheme == 'http':
+                self.connection = btHTTPcon(netloc)
+            else:
+                self.connection = btHTTPScon(netloc)
             self.connection.request('GET', url, None,
                                 { 'User-Agent': VERSION,
                                   'Accept-Encoding': 'gzip' } )
@@ -52,7 +60,7 @@ class urlopen:
         except HTTPException, e:
             raise IOError, ('http error', str(e))
         status = self.response.status
-        if status in (301,302):
+        if status in (301, 302):
             try:
                 self.connection.close()
             except:
@@ -77,7 +85,7 @@ class urlopen:
 
     def _read(self):
         data = self.response.read()
-        if self.response.getheader('Content-Encoding','').find('gzip') >= 0:
+        if self.response.getheader('Content-Encoding', '').find('gzip') >= 0:
             try:
                 compressed = StringIO(data)
                 f = GzipFile(fileobj = compressed)

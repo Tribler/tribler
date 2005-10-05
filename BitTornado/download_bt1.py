@@ -14,7 +14,7 @@ from BT1.HTTPDownloader import HTTPDownloader
 from BT1.Connecter import Connecter
 from RateLimiter import RateLimiter
 from BT1.Encrypter import Encoder
-from RawServer import RawServer, autodetect_ipv6, autodetect_socket_style
+from RawServer import RawServer, autodetect_socket_style
 from BT1.Rerequester import Rerequester
 from BT1.DownloaderFeedback import DownloaderFeedback
 from RateMeasure import RateMeasure
@@ -29,7 +29,7 @@ from os import path, makedirs, listdir
 from parseargs import parseargs, formatDefinitions, defaultargs
 from socket import error as socketerror
 from random import seed
-from threading import Thread, Event
+from threading import Event
 from clock import clock
 from __init__ import createPeerID
 
@@ -235,12 +235,12 @@ def download(params, filefunc, statusfunc, finfunc, errorfunc, doneflag, cols,
 
 
 def parse_params(params, presets = {}):
-    if len(params) == 0:
+    if not params:
         return None
     config, args = parseargs(params, defaults, 0, 1, presets = presets)
     if args:
         if config['responsefile'] or config['url']:
-            raise ValueError,'must have responsefile or url as arg or parameter, not both'
+            raise ValueError, 'must have responsefile or url as arg or parameter, not both'
         if path.isfile(args[0]):
             config['responsefile'] = args[0]
         else:
@@ -249,7 +249,7 @@ def parse_params(params, presets = {}):
             except:
                 raise ValueError, 'bad filename or url'
             config['url'] = args[0]
-    elif (config['responsefile'] == '') == (config['url'] == ''):
+    elif (not config['responsefile']) == (not config['url']):
         raise ValueError, 'need responsefile or url, must have one, cannot have both'
     return config
 
@@ -264,7 +264,7 @@ def get_response(file, url, errorfunc):
             h = open(file, 'rb')
             try:
                 line = h.read(10)   # quick test to see if responsefile contains a dict
-                front,garbage = line.split(':',1)
+                front, garbage = line.split(':', 1)
                 assert front[0] == 'd'
                 int(front[1:])
             except:
@@ -295,7 +295,7 @@ def get_response(file, url, errorfunc):
         pass
     try:
         try:
-        	response = bdecode(response)
+            response = bdecode(response)
         except:
             errorfunc("warning: bad data in responsefile")
             response = bdecode(response, sloppy=1)
@@ -308,8 +308,8 @@ def get_response(file, url, errorfunc):
 
 
 class BT1Download:    
-    def __init__(self, statusfunc, finfunc, errorfunc, excfunc, doneflag,
-                 config, response, infohash, id, rawserver, port,
+    def __init__(self, statusfunc, finfunc, errorfunc, excfunc, doneflag, 
+                 config, response, infohash, id, rawserver, port, 
                  appdataobj = None):
         self.statusfunc = statusfunc
         self.finfunc = finfunc
@@ -355,10 +355,11 @@ class BT1Download:
         self.checking = False
         self.started = False
 
-        self.picker = PiecePicker(self.len_pieces, config['rarest_first_cutoff'],
+        self.picker = PiecePicker(self.len_pieces, config['rarest_first_cutoff'], 
                              config['rarest_first_priority_cutoff'])
-        self.choker = Choker(config, rawserver.add_task,
+        self.choker = Choker(config, rawserver.add_task, 
                              self.picker, self.finflag.isSet)
+
 
     def checkSaveLocation(self, loc):
         if self.info.has_key('length'):
@@ -369,7 +370,7 @@ class BT1Download:
         return False
                 
 
-    def saveAs(self, filefunc, pathfunc = None, forcenewdir = False):
+    def saveAs(self, filefunc, pathfunc = None):
         try:
             def make(f, forcedir = False):
                 if not forcedir:
@@ -379,7 +380,7 @@ class BT1Download:
 
             if self.info.has_key('length'):
                 file_length = self.info['length']
-                file = filefunc(self.info['name'], file_length,
+                file = filefunc(self.info['name'], file_length, 
                                 self.config['saveas'], False)
                 if file is None:
                     return None
@@ -389,7 +390,7 @@ class BT1Download:
                 file_length = 0L
                 for x in self.info['files']:
                     file_length += x['length']
-                file = filefunc(self.info['name'], file_length,
+                file = filefunc(self.info['name'], file_length, 
                                 self.config['saveas'], True)
                 if file is None:
                     return None
@@ -401,13 +402,11 @@ class BT1Download:
                     if not path.isdir(file):
                         self.errorfunc(file + 'is not a dir')
                         return None
-                    if len(listdir(file)) > 0:  # if it's not empty
+                    if listdir(file):  # if it's not empty
                         for x in self.info['files']:
                             if path.exists(path.join(file, x['path'][0])):
                                 existing = 1
-                        # Begin change in code
-                        if not existing or forcenewdir:
-                        # End change in code
+                        if not existing:
                             file = path.join(file, self.info['name'])
                             if path.exists(file) and not path.isdir(file):
                                 if file[-8:] == '.torrent':
@@ -504,7 +503,7 @@ class BT1Download:
 
         try:
             try:
-                self.storage = Storage(self.files, self.info['piece length'],
+                self.storage = Storage(self.files, self.info['piece length'], 
                                        self.doneflag, self.config, disabled_files)
             except IOError, e:
                 self.errorfunc('trouble accessing files - ' + str(e))
@@ -512,10 +511,10 @@ class BT1Download:
             if self.doneflag.isSet():
                 return None
 
-            self.storagewrapper = StorageWrapper(self.storage, self.config['download_slice_size'],
-                self.pieces, self.info['piece length'], self._finished, self._failed,
-                statusfunc, self.doneflag, self.config['check_hashes'],
-                self._data_flunked, self.rawserver.add_task,
+            self.storagewrapper = StorageWrapper(self.storage, self.config['download_slice_size'], 
+                self.pieces, self.info['piece length'], self._finished, self._failed, 
+                statusfunc, self.doneflag, self.config['check_hashes'], 
+                self._data_flunked, self.rawserver.add_task, 
                 self.config, self.unpauseflag)
             
         except ValueError, e:
@@ -526,10 +525,10 @@ class BT1Download:
             return None
 
         if self.selector_enabled:
-            self.fileselector = FileSelector(self.files, self.info['piece length'],
-                                             self.appdataobj.getPieceDir(self.infohash),
-                                             self.storage, self.storagewrapper,
-                                             self.rawserver.add_task,
+            self.fileselector = FileSelector(self.files, self.info['piece length'], 
+                                             self.appdataobj.getPieceDir(self.infohash), 
+                                             self.storage, self.storagewrapper, 
+                                             self.rawserver.add_task, 
                                              self._failed)
             if data:
                 data = data.get('resume data')
@@ -540,21 +539,21 @@ class BT1Download:
         if old_style:
             return self.storagewrapper.old_style_init()
         return self.storagewrapper.initialize
-       
+
 
     def getCachedTorrentData(self):
         return self.appdataobj.getTorrentData(self.infohash)
 
 
     def _make_upload(self, connection, ratelimiter, totalup):
-        return Upload(connection, ratelimiter, totalup,
-                      self.choker, self.storagewrapper, self.picker,
+        return Upload(connection, ratelimiter, totalup, 
+                      self.choker, self.storagewrapper, self.picker, 
                       self.config)
 
     def _kick_peer(self, connection):
         def k(connection = connection):
             connection.close()
-        self.rawserver.add_task(k,0)
+        self.rawserver.add_task(k, 0)
 
     def _ban_peer(self, ip):
         self.encoder_ban(ip)
@@ -591,39 +590,39 @@ class BT1Download:
         for i in xrange(self.len_pieces):
             if self.storagewrapper.do_I_have(i):
                 self.picker.complete(i)
-        self.upmeasure = Measure(self.config['max_rate_period'],
+        self.upmeasure = Measure(self.config['max_rate_period'], 
                             self.config['upload_rate_fudge'])
         self.downmeasure = Measure(self.config['max_rate_period'])
 
         if ratelimiter:
             self.ratelimiter = ratelimiter
         else:
-            self.ratelimiter = RateLimiter(self.rawserver.add_task,
-                                           self.config['upload_unit_size'],
+            self.ratelimiter = RateLimiter(self.rawserver.add_task, 
+                                           self.config['upload_unit_size'], 
                                            self.setConns)
             self.ratelimiter.set_upload_rate(self.config['max_upload_rate'])
         
         self.ratemeasure = RateMeasure()
         self.ratemeasure_datarejected = self.ratemeasure.data_rejected
 
-        self.downloader = Downloader(self.storagewrapper, self.picker,
-            self.config['request_backlog'], self.config['max_rate_period'],
-            self.len_pieces, self.config['download_slice_size'],
-            self._received_data, self.config['snub_time'], self.config['auto_kick'],
+        self.downloader = Downloader(self.storagewrapper, self.picker, 
+            self.config['request_backlog'], self.config['max_rate_period'], 
+            self.len_pieces, self.config['download_slice_size'], 
+            self._received_data, self.config['snub_time'], self.config['auto_kick'], 
             self._kick_peer, self._ban_peer)
         self.downloader.set_download_rate(self.config['max_download_rate'])
-        self.connecter = Connecter(self._make_upload, self.downloader, self.choker,
-                            self.len_pieces, self.upmeasure, self.config,
+        self.connecter = Connecter(self._make_upload, self.downloader, self.choker, 
+                            self.len_pieces, self.upmeasure, self.config, 
                             self.ratelimiter, self.rawserver.add_task)
-        self.encoder = Encoder(self.connecter, self.rawserver,
-            self.myid, self.config['max_message_length'], self.rawserver.add_task,
-            self.config['keepalive_interval'], self.infohash,
+        self.encoder = Encoder(self.connecter, self.rawserver, 
+            self.myid, self.config['max_message_length'], self.rawserver.add_task, 
+            self.config['keepalive_interval'], self.infohash, 
             self._received_raw_data, self.config)
         self.encoder_ban = self.encoder.ban
 
-        self.httpdownloader = HTTPDownloader(self.storagewrapper, self.picker,
-            self.rawserver, self.finflag, self.errorfunc, self.downloader,
-            self.config['max_rate_period'], self.infohash, self._received_http_data,
+        self.httpdownloader = HTTPDownloader(self.storagewrapper, self.picker, 
+            self.rawserver, self.finflag, self.errorfunc, self.downloader, 
+            self.config['max_rate_period'], self.infohash, self._received_http_data, 
             self.connecter.got_piece)
         if self.response.has_key('httpseeds') and not self.finflag.isSet():
             for u in self.response['httpseeds']:
@@ -660,23 +659,23 @@ class BT1Download:
 
         self.rerequest = Rerequester(trackerlist, self.config['rerequest_interval'], 
             self.rawserver.add_task, self.connecter.how_many_connections, 
-            self.config['min_peers'], self.encoder.start_connections,
+            self.config['min_peers'], self.encoder.start_connections, 
             self.rawserver.add_task, self.storagewrapper.get_amount_left, 
-            self.upmeasure.get_total, self.downmeasure.get_total, self.port, self.config['ip'],
-            self.myid, self.infohash, self.config['http_timeout'],
-            self.errorfunc, self.excfunc, self.config['max_initiate'],
-            self.doneflag, self.upmeasure.get_rate, self.downmeasure.get_rate,
-            self.unpauseflag )
+            self.upmeasure.get_total, self.downmeasure.get_total, self.port, self.config['ip'], 
+            self.myid, self.infohash, self.config['http_timeout'], 
+            self.errorfunc, self.excfunc, self.config['max_initiate'], 
+            self.doneflag, self.upmeasure.get_rate, self.downmeasure.get_rate, 
+            self.unpauseflag)
 
         self.rerequest.start()
 
 
     def _init_stats(self):
-        self.statistics = Statistics(self.upmeasure, self.downmeasure,
-                    self.connecter, self.httpdownloader, self.ratelimiter,
+        self.statistics = Statistics(self.upmeasure, self.downmeasure, 
+                    self.connecter, self.httpdownloader, self.ratelimiter, 
                     self.rerequest_lastfailed, self.filedatflag)
         if self.info.has_key('files'):
-            self.statistics.set_dirstats(self.files, self.len_pieces, self.info['piece length'])
+            self.statistics.set_dirstats(self.files, self.info['piece length'])
         if self.config['spew']:
             self.spewflag.set()
 
@@ -685,17 +684,17 @@ class BT1Download:
             displayfunc = self.statusfunc
 
         self._init_stats()
-        DownloaderFeedback(self.choker, self.httpdownloader, self.rawserver.add_task,
-            self.upmeasure.get_rate, self.downmeasure.get_rate,
-            self.ratemeasure, self.storagewrapper.get_stats,
-            self.datalength, self.finflag, self.spewflag, self.statistics,
+        DownloaderFeedback(self.choker, self.httpdownloader, self.rawserver.add_task, 
+            self.upmeasure.get_rate, self.downmeasure.get_rate, 
+            self.ratemeasure, self.storagewrapper.get_stats, 
+            self.datalength, self.finflag, self.spewflag, self.statistics, 
             displayfunc, self.config['display_interval'])
 
     def startStats(self):
         self._init_stats()
-        d = DownloaderFeedback(self.choker, self.httpdownloader, self.rawserver.add_task,
-            self.upmeasure.get_rate, self.downmeasure.get_rate,
-            self.ratemeasure, self.storagewrapper.get_stats,
+        d = DownloaderFeedback(self.choker, self.httpdownloader, self.rawserver.add_task, 
+            self.upmeasure.get_rate, self.downmeasure.get_rate, 
+            self.ratemeasure, self.storagewrapper.get_stats, 
             self.datalength, self.finflag, self.spewflag, self.statistics)
         return d.gather
 
@@ -704,9 +703,7 @@ class BT1Download:
         return self.encoder
 
 
-    def shutdown(self, torrentdata = None):
-        if torrentdata is None:
-            torrentdata = {}
+    def shutdown(self, torrentdata = {}):
         if self.checking or self.started:
             self.storagewrapper.sync()
             self.storage.close()
@@ -716,7 +713,7 @@ class BT1Download:
                 self.fileselector.finish()
                 torrentdata['resume data'] = self.fileselector.pickle()
             try:
-                self.appdataobj.writeTorrentData(self.infohash,torrentdata)
+                self.appdataobj.writeTorrentData(self.infohash, torrentdata)
             except:
                 self.appdataobj.deleteTorrentData(self.infohash) # clear it
         return not self.failed and not self.excflag.isSet()
@@ -843,17 +840,11 @@ class BT1Download:
             self.rerequest.announce(3)      # rerequest automatically if paused for >60 seconds
 
     def set_super_seed(self):
-        try:
-            self.superseedflag.set()
-            def s(self = self):
-                if self.finflag.isSet():
-                    self._set_super_seed()
-            self.rawserver.add_task(s)
-        except AttributeError:
-            pass
+        self.superseedflag.set()
+        self.rawserver.add_task(self._set_super_seed)
 
     def _set_super_seed(self):
-        if not self.super_seeding_active:
+        if not self.super_seeding_active and self.finflag.isSet():
             self.super_seeding_active = True
             self.errorfunc('        ** SUPER-SEED OPERATION ACTIVE **\n' +
                            '  please set Max uploads so each peer gets 6-8 kB/s')

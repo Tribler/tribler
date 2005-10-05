@@ -1,8 +1,16 @@
 from sys import argv, exit
 from time import sleep
 
-from Utility.utility import getSocket
+from Utility.helpers import getSocket
 
+
+################################################################
+#
+# Class: Webclient
+#
+# Used to send commands to the webservice
+#
+################################################################
 class WebClient:
     def __init__(self, ip, port):
         self.ip = ip

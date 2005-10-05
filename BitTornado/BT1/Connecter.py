@@ -44,6 +44,7 @@ class Connection:
         self.outqueue = []
         self.partial_message = None
         self.download = None
+        self.upload = None
         self.send_choke_queued = False
         self.just_unchoked = None
 
@@ -85,8 +86,8 @@ class Connection:
                 print 'CHOKE SUPPRESSED'
         else:
             self._send_message(UNCHOKE)
-            if ( self.partial_message or self.just_unchoked is None
-                 or not self.upload.interested or self.download.active_requests ):
+            if (self.partial_message or self.just_unchoked is None
+                or not self.upload.interested or self.download.active_requests):
                 self.just_unchoked = 0
             else:
                 self.just_unchoked = clock()
@@ -128,8 +129,8 @@ class Connection:
                 return 0
             index, begin, piece = s
             self.partial_message = ''.join((
-                            tobinary(len(piece) + 9), PIECE,
-                            tobinary(index), tobinary(begin), piece.tostring() ))
+                            tobinary(len(piece) + 9), PIECE, 
+                            tobinary(index), tobinary(begin), piece.tostring()))
             if DEBUG:
                 print 'sending chunk: '+str(index)+': '+str(begin)+'-'+str(begin+len(piece))
 
@@ -173,7 +174,7 @@ class Connection:
 
 
 class Connecter:
-    def __init__(self, make_upload, downloader, choker, numpieces,
+    def __init__(self, make_upload, downloader, choker, numpieces, 
             totalup, config, ratelimiter, sched = None):
         self.downloader = downloader
         self.make_upload = make_upload
@@ -209,7 +210,7 @@ class Connecter:
     def connection_flushed(self, connection):
         conn = self.connections[connection]
         if conn.next_upload is None and (conn.partial_message is not None
-               or len(conn.upload.buffer) > 0):
+               or conn.upload.buffer):
             self.ratelimiter.queue(conn)
             
     def got_piece(self, i):

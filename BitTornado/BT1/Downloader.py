@@ -164,19 +164,19 @@ class SingleDownload:
         if self.downloader.endgamemode:
             for d in self.downloader.downloads:
                 if d is not self:
-                  if d.interested:
-                    if d.choked:
-                        assert not d.active_requests
-                        d.fix_download_endgame()
+                    if d.interested:
+                        if d.choked:
+                            assert not d.active_requests
+                            d.fix_download_endgame()
+                        else:
+                            try:
+                                d.active_requests.remove((index, begin, length))
+                            except ValueError:
+                                continue
+                            d.connection.send_cancel(index, begin, length)
+                            d.fix_download_endgame()
                     else:
-                        try:
-                            d.active_requests.remove((index, begin, length))
-                        except ValueError:
-                            continue
-                        d.connection.send_cancel(index, begin, length)
-                        d.fix_download_endgame()
-                  else:
-                      assert not d.active_requests
+                        assert not d.active_requests
         self._request_more()
         self.downloader.check_complete(index)
         return self.downloader.storage.do_I_have(index)
@@ -383,7 +383,7 @@ class Downloader:
             self.requeueing = False
         if -self.bytes_requested > 5*self.download_rate:
             self.bytes_requested = -5*self.download_rate
-        return max(int(-self.bytes_requested/self.chunksize),0)
+        return max(int(-self.bytes_requested/self.chunksize), 0)
 
     def chunk_requested(self, size):
         self.bytes_requested += size
@@ -454,7 +454,7 @@ class Downloader:
     def num_disconnected_seeds(self):
         # first expire old ones
         expired = []
-        for id,t in self.disconnectedseeds.items():
+        for id, t in self.disconnectedseeds.items():
             if clock() - t > EXPIRE_TIME:     #Expire old seeds after so long
                 expired.append(id)
         for id in expired:
