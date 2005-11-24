@@ -45,6 +45,8 @@ class Upload:
                 connection.send_bitfield(storage.get_have_list())
         self.piecedl = None
         self.piecebuf = None
+        # Merkle
+        self.hashlist = []
 
     def got_not_interested(self):
         if self.interested:
@@ -71,24 +73,29 @@ class Upload:
                 if self.piecebuf:
                     self.piecebuf.release()
                 self.piecedl = index
-                self.piecebuf = self.storage.get_piece(index, 0, -1)
+                # Merkle
+                [ self.piecebuf, self.hashlist ] = self.storage.get_piece(index, 0, -1)
             try:
                 piece = self.piecebuf[begin:begin+length]
                 assert len(piece) == length
             except:     # fails if storage.get_piece returns None or if out of range
                 self.connection.close()
                 return None
-        else:
+	    if begin == 0:
+		hashlist = self.hashlist
+	    else:
+		hashlist = []
+	else:
             if self.piecebuf:
                 self.piecebuf.release()
                 self.piecedl = None
-            piece = self.storage.get_piece(index, begin, length)
+            [piece, hashlist] = self.storage.get_piece(index, begin, length)
             if piece is None:
                 self.connection.close()
                 return None
         self.measure.update_rate(len(piece))
         self.totalup.update_rate(len(piece))
-        return (index, begin, piece)
+        return (index, begin, hashlist, piece)
 
     def got_request(self, index, begin, length):
         if ((self.super_seeding and not index in self.seed_have_list)

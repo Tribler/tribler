@@ -3,22 +3,6 @@
 # Written by John Hoffman
 # see LICENSE.txt for license information
 
-from BitTornado import PSYCO
-if PSYCO.psyco:
-    try:
-        import psyco
-        assert psyco.__version__ >= 0x010100f0
-        psyco.full()
-    except:
-        pass
-
-from download_bt1 import BT1Download
-from RawServer import RawServer 
-from SocketHandler import UPnP_ERROR
-from RateLimiter import RateLimiter
-from ServerPortHandler import MultiHandler
-from parsedir import parsedir
-from natpunch import UPnP_test
 from random import seed
 from socket import error as socketerror
 from threading import Event
@@ -28,12 +12,33 @@ from __init__ import createPeerID, mapbase64
 from cStringIO import StringIO
 from traceback import print_exc
 
+from BitTornado import PSYCO
+if PSYCO.psyco:
+    try:
+        import psyco
+        assert psyco.__version__ >= 0x010100f0
+        psyco.full()
+    except:
+        pass
+from download_bt1 import BT1Download
+from RawServer import RawServer 
+from SocketHandler import UPnP_ERROR
+from RateLimiter import RateLimiter
+from ServerPortHandler import MultiHandler
+from parsedir import parsedir
+from natpunch import UPnP_test         
+from overlayswarm import OverlaySwarm
+from BT1.Encrypter import Encoder
+from BT1.Connecter import Connecter
+from BitTornado.PeerCacheHandler import PeerCacheHandler
+from BitTornado.FileCacheHandler import FileCacheHandler
 try:
     True
 except:
     True = 1
     False = 0
 
+DEBUG = True
 
 def fmttime(n):
     try:
@@ -165,6 +170,7 @@ class LaunchMany:
             self.blocked_files = {}
             self.scan_period = config['parse_dir_interval']
             self.stats_period = config['display_interval']
+            self.updatepeers_period = 5    # add it to config['updatepeers_interval']
 
             self.torrent_list = []
             self.downloads = {}
@@ -173,6 +179,22 @@ class LaunchMany:
 
             self.hashcheck_queue = []
             self.hashcheck_current = None
+            
+            # BT+ extension flags TODO: read the config
+            self.do_cache = True
+            self.do_overlay = True
+            self.do_buddycast = True
+            self.do_download_help = True
+            
+            if not self.do_cache:
+                self.do_overlay = False    # overlay
+            if not self.do_overlay:
+                self.do_buddycast = False
+                self.do_download_help = False
+            
+            if self.do_cache:
+                self.all_peers_cache = PeerCacheHandler()
+                self.all_files_cache = FileCacheHandler()
             
             self.rawserver = RawServer(self.doneflag,
                                        config['timeout_check_interval'],
@@ -187,6 +209,8 @@ class LaunchMany:
                                     config['minport'], config['maxport'], config['bind'], 
                                     ipv6_socket_style = config['ipv6_binds_v4'], 
                                     upnp = upnp_type, randomizer = config['random_port'])
+                    if DEBUG:
+                        print "Got listen port", self.listen_port
                     break
                 except socketerror, e:
                     if upnp_type and e == UPnP_ERROR:
@@ -204,12 +228,46 @@ class LaunchMany:
             seed(createPeerID())
             self.rawserver.add_task(self.scan, 0)
             self.rawserver.add_task(self.stats, 0)
+            if self.do_cache:
+                self.rawserver.add_task(self.updatePeers, self.updatepeers_period)
+            
+            if self.do_overlay:
+                self.register_overlayswarm(self.handler, config, self.listen_port)
 
             self.start()
         except:
             data = StringIO()
             print_exc(file = data)
             Output.exception(data.getvalue())
+
+    def register_overlayswarm(self, multihandler, config, listen_port):
+        # Register overlay_infohash as known swarm with MultiHandler
+        
+        overlay_swarm = OverlaySwarm.getInstance()
+        overlay_swarm.multihandler = multihandler
+        overlay_swarm.config = config
+        overlay_swarm.doneflag = Event()
+        rawserver = multihandler.newRawServer(overlay_swarm.infohash, 
+                                              overlay_swarm.doneflag,
+                                              overlay_swarm.protocol)
+        overlay_swarm.set_rawserver(rawserver)
+        overlay_swarm.set_listen_port(listen_port)
+        overlay_swarm.set_errorfunc(self.exchandler)
+        
+        # Create Connecter and Encoder for the swarm. TODO: ratelimiter
+        overlay_swarm.connecter = Connecter(None, None, None, 
+                            None, None, config, 
+                            None, False,
+                            overlay_swarm.rawserver.add_task)
+        overlay_swarm.encoder = Encoder(overlay_swarm.connecter, overlay_swarm.rawserver, 
+            overlay_swarm.myid, config['max_message_length'], overlay_swarm.rawserver.add_task, 
+            config['keepalive_interval'], overlay_swarm.infohash, 
+            lambda x: None, config)
+        overlay_swarm.rawserver.start_listening(overlay_swarm.encoder)
+        if self.do_buddycast:
+            overlay_swarm.start_buddycast()
+        if self.do_download_help:
+            overlay_swarm.start_download_helper()
 
     def start(self):
         try:
@@ -242,7 +300,7 @@ class LaunchMany:
         for hash, data in added.items():
             self.Output.message('added "'+data['path']+'"')
             self.add(hash, data)
-
+            
     def stats(self):
         self.rawserver.add_task(self.stats, self.stats_period)
         data = []
@@ -308,7 +366,22 @@ class LaunchMany:
         stop = self.Output.display(data)
         if stop:
             self.doneflag.set()
-
+            
+    def updatePeers(self):
+        self.rawserver.add_task(self.updatePeers, self.updatepeers_period)
+        data = []
+        for hash in self.torrent_list:
+            d = self.downloads[hash]
+            if d.is_dead() or d.waiting or d.checking:
+                pass
+            else:
+                stats = d.statsfunc()
+                s = stats['stats']
+                spew = stats['spew']
+                for peer in spew:
+                    if peer['permid']:
+                        self.all_peers_cache.updatePeer(hash, peer)
+        
     def remove(self, hash):
         self.torrent_list.remove(hash)
         self.downloads[hash].shutdown()
@@ -321,13 +394,14 @@ class LaunchMany:
         for i in xrange(3):
             x = mapbase64[c & 0x3F]+x
             c >>= 6
-        peer_id = createPeerID(x)
+        peer_id = createPeerID(x)    # Uses different id for different swarm
         d = SingleDownload(self, hash, data['metainfo'], self.config, peer_id)
         self.torrent_list.append(hash)
         self.downloads[hash] = d
+        if self.do_cache:
+            self.all_files_cache.addTorrent(hash, data, 1)
         d.start()
         return d
-
 
     def saveAs(self, hash, name, saveas, isdir):
         x = self.torrent_cache[hash]

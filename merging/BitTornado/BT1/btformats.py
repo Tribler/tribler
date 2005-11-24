@@ -11,9 +11,15 @@ ints = (LongType, IntType)
 def check_info(info):
     if type(info) != DictType:
         raise ValueError, 'bad metainfo - not a dictionary'
-    pieces = info.get('pieces')
-    if type(pieces) != StringType or len(pieces) % 20 != 0:
-        raise ValueError, 'bad metainfo - bad pieces key'
+    if info.has_key('pieces'):
+        pieces = info.get('pieces')
+        if type(pieces) != StringType or len(pieces) % 20 != 0:
+            raise ValueError, 'bad metainfo - bad pieces key'
+    elif info.has_key('root hash'):
+        # Merkle
+        root_hash = info.get('root hash')
+        if type(root_hash) != StringType or len(root_hash) != 20:
+            raise ValueError, 'bad metainfo - bad root hash key'
     piecelength = info.get('piece length')
     if type(piecelength) not in ints or piecelength <= 0:
         raise ValueError, 'bad metainfo - illegal piece length'

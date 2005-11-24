@@ -12,7 +12,7 @@ except:
 class DownloaderFeedback:
     def __init__(self, choker, httpdl, add_task, upfunc, downfunc,
             ratemeasure, leftfunc, file_length, finflag, sp, statistics,
-            statusfunc = None, interval = None):
+            statusfunc = None, interval = None, infohash = None):
         self.choker = choker
         self.httpdl = httpdl
         self.add_task = add_task
@@ -26,6 +26,7 @@ class DownloaderFeedback:
         self.statistics = statistics
         self.lastids = []
         self.spewdata = None
+        self.infohash = infohash
         self.doneprocessing = Event()
         self.doneprocessing.set()
         if statusfunc:
@@ -44,15 +45,24 @@ class DownloaderFeedback:
         l = []
         cs = self._rotate()
         self.lastids = [c.get_id() for c in cs]
-        for c in cs:
+        for c in cs:    # c: Connecter.Connection
             a = {}
             a['id'] = c.get_readable_id()
             a['ip'] = c.get_ip()
+            if c.is_locally_initiated():
+                a['port'] = c.get_port()
+            else:
+                a['port'] = 0
             a['optimistic'] = (c is self.choker.connections[0])
             if c.is_locally_initiated():
                 a['direction'] = 'L'
             else:
                 a['direction'] = 'R'
+#            if c.get_peer_authenticated():
+#                a['permid'] = c.get_peer_permid()
+#            else:
+#                a['permid'] = None
+            a['permid'] = c.get_permid()
             u = c.get_upload()
             a['uprate'] = int(u.measure.get_rate())
             a['uinterested'] = u.is_interested()

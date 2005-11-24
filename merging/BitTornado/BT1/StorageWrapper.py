@@ -6,6 +6,13 @@ from sha import sha
 from BitTornado.clock import clock
 from traceback import print_exc
 from random import randrange
+from math import log,pow,floor
+from BitTornado.bencode import bencode
+from BitTornado.merkle import MerkleTree
+from copy import deepcopy
+import pickle
+import traceback, sys
+
 try:
     True
 except:
@@ -61,7 +68,7 @@ class fakeflag:
 
 class StorageWrapper:
     def __init__(self, storage, request_size, hashes, 
-            piece_size, finished, failed, 
+            piece_size, root_hash, finished, failed, 
             statusfunc = dummy_status, flag = fakeflag(), check_hashes = True, 
             data_flunked = lambda x: None, backfunc = None, 
             config = {}, unpauseflag = fakeflag(True)):
@@ -120,6 +127,20 @@ class StorageWrapper:
         self.write_buf_size = 0L
         self.write_buf = {}   # structure:  piece: [(start, data), ...]
         self.write_buf_list = []
+        # Merkle:
+        self.merkle_torrent = (root_hash is not None)
+        self.root_hash = root_hash
+        self.initial_hashes = deepcopy(self.hashes)
+        if self.merkle_torrent:
+            self.hashes_unpickled = False
+            # Must see if we're initial seeder
+            self.check_hashes = True
+            # Fallback for if we're not an initial seeder or don't have a 
+            # Merkle tree on disk.
+            self.merkletree = MerkleTree(self.piece_size,self.total_length,self.root_hash,None)
+        else:
+            # Normal BT
+            self.hashes_unpickled = True
 
         self.initialize_tasks = [
             ['checking existing data', 0, self.init_hashcheck, self.hashcheckfunc], 
@@ -186,14 +207,17 @@ class StorageWrapper:
 
         self.backfunc(self._initialize)
 
-
     def init_hashcheck(self):
         if self.flag.isSet():
+            if DEBUG:
+                print "init_hashcheck: FLAG IS SET"
             return False
         self.check_list = []
         if not self.hashes or self.amount_left == 0:
             self.check_total = 0
             self.finished()
+            if DEBUG:
+                print "init_hashcheck: Download finished"
             return False
 
         self.check_targets = {}
@@ -229,6 +253,9 @@ class StorageWrapper:
         self.check_numchecked = 0.0
         self.lastlen = self._piecelen(len(self.hashes) - 1)
         self.numchecked = 0.0
+        if DEBUG:
+            print "init_hashcheck: checking",self.check_list
+            print "init_hashcheck: return self.check_total > 0 is ",(self.check_total > 0)
         return self.check_total > 0
 
     def _markgot(self, piece, pos):
@@ -245,46 +272,76 @@ class StorageWrapper:
         self.stat_numfound += 1
 
     def hashcheckfunc(self):
-        if self.flag.isSet():
-            return None
-        if not self.check_list:
-            return None
-        
-        i = self.check_list.pop(0)
-        if not self.check_hashes:
-            self._markgot(i, i)
-        else:
-            d1 = self.read_raw(i, 0, self.lastlen)
-            if d1 is None:
+        try:
+            if self.flag.isSet():
                 return None
-            sh = sha(d1[:])
-            d1.release()
-            sp = sh.digest()
-            d2 = self.read_raw(i, self.lastlen, self._piecelen(i)-self.lastlen)
-            if d2 is None:
+            if not self.check_list:
                 return None
-            sh.update(d2[:])
-            d2.release()
-            s = sh.digest()
-            if s == self.hashes[i]:
+
+            i = self.check_list.pop(0)
+            if not self.check_hashes:
                 self._markgot(i, i)
-            elif (self.check_targets.get(s)
-                   and self._piecelen(i) == self._piecelen(self.check_targets[s][-1])):
-                self._markgot(self.check_targets[s].pop(), i)
-                self.out_of_place += 1
-            elif (not self.have[-1] and sp == self.hashes[-1]
-                   and (i == len(self.hashes) - 1
-                        or not self._waspre(len(self.hashes) - 1))):
-                self._markgot(len(self.hashes) - 1, i)
-                self.out_of_place += 1
             else:
-                self.places[i] = i
-        self.numchecked += 1
-        if self.amount_left == 0:
-            self.finished()
-        return (self.numchecked / self.check_total)
+                d1 = self.read_raw(i, 0, self.lastlen)
+                if d1 is None:
+                    return None
+                sh = sha(d1[:])
+                d1.release()
+                sp = sh.digest()
+                d2 = self.read_raw(i, self.lastlen, self._piecelen(i)-self.lastlen)
+                if d2 is None:
+                    return None
+                sh.update(d2[:])
+                d2.release()
+                s = sh.digest()
 
+                # Merkle: If we didn't read the hashes from persistent storage then
+                # we can't check anything. Exception is the case where we are the
+                # initial seeder. In that case we first calculate all hashes, 
+                # and then compute the hash tree. If the root hash equals the
+                # root hash in the .torrent we're a seeder. Otherwise, we are
+                # client with messed up data and no (local) way of checking it.
+                #
+                if not self.hashes_unpickled:
+                    if DEBUG:
+                        print "StorageWrapper: Merkle torrent, saving calculated hash",i
+                    self.initial_hashes[i] = s
+                    self._markgot(i, i)
+                elif s == self.hashes[i]:
+                    self._markgot(i, i)
+                elif (self.check_targets.get(s)
+                       and self._piecelen(i) == self._piecelen(self.check_targets[s][-1])):
+                    self._markgot(self.check_targets[s].pop(), i)
+                    self.out_of_place += 1
+                elif (not self.have[-1] and sp == self.hashes[-1]
+                       and (i == len(self.hashes) - 1
+                            or not self._waspre(len(self.hashes) - 1))):
+                    self._markgot(len(self.hashes) - 1, i)
+                    self.out_of_place += 1
+                else:
+                    self.places[i] = i
+            self.numchecked += 1
+            if self.amount_left == 0:
+                if not self.hashes_unpickled:
+                    # Merkle: The moment of truth. Are we an initial seeder?
+                    self.merkletree = MerkleTree(self.piece_size,self.total_length,None,self.initial_hashes)
+                    if self.merkletree.compare_root_hashes(self.root_hash):
+                        if DEBUG:
+                            print "StorageWrapper: Merkle torrent, initial seeder!"
+                        self.hashes = self.initial_hashes
+                    else:
+                        # Bad luck
+                        if DEBUG:
+                            print "StorageWrapper: Merkle torrent, NOT a seeder!"
+                        self.failed('download corrupted; please restart and resume')
+                        return 1
+                self.finished()
+            return (self.numchecked / self.check_total)
 
+	except Exception, e:
+            self.failed('download corrupted; please restart and resume')
+    
+    
     def init_movedata(self):
         if self.flag.isSet():
             return False
@@ -637,8 +694,20 @@ class StorageWrapper:
         return False
 
 
-    def piece_came_in(self, index, begin, piece, source = None):
+    def piece_came_in(self, index, begin, hashlist, piece, length, source = None):
         assert not self.have[index]
+
+        # Merkle: Check that the hashes are valid using the known root_hash
+        # If so, put them in the hash tree and the normal list of hashes to
+        # allow (1) us to send this piece to others using the right hashes
+        # and (2) us to check the validity of the piece when it has been
+        # received completely.
+        #
+        if self.merkle_torrent and len(hashlist) > 0:
+            if self.merkletree.check_hashes(hashlist):
+                self.merkletree.update_hash_admin(hashlist,self.hashes)
+            # if the check wasn't right, the peer will be discovered as bad later
+            # TODO: make bad now?
         
         if not self.places.has_key(index):
             while self._clear_space(index):
@@ -736,8 +805,17 @@ class StorageWrapper:
             if self.stat_new.has_key(index):
                 del self.stat_new[index]
 
-
     def get_piece(self, index, begin, length):
+        # Merkle: Get (sub)piece from disk and its associated hashes
+        # do_get_piece() returns PieceBuffer
+        pb = self.do_get_piece(index,begin,length)
+	if self.merkle_torrent and pb is not None and begin == 0:
+             hashlist = self.merkletree.get_hashes_for_piece(index)
+	else:
+	     hashlist = []
+        return [pb,hashlist]
+
+    def do_get_piece(self, index, begin, length):
         if not self.have[index]:
             return None
         data = None
@@ -868,7 +946,8 @@ class StorageWrapper:
     d['pieces'] = either a string containing a bitfield of complete pieces,
                     or the numeric value "1" signifying a seed.  If it is
                     a seed, d['places'] and d['partials'] should be empty
-                    and needn't even exist.
+                    and needn't even exist. d['merkletree'] must exist
+                    if it's a seed and a Merkle torrent.
     d['partials'] = [ piece, [ offset, length... ]... ]
                     a list of partial data that had been previously
                     downloaded, plus the given offsets.  Adjacent partials
@@ -884,10 +963,16 @@ class StorageWrapper:
                     corresponding data in d['pieces'] or d['partials']
                     indicates allocated space with no valid data, and is
                     reserved so it doesn't need to be hash-checked.
+    d['merkletree'] = pickle.dumps(self.merkletree)
+                    if we're using a Merkle torrent the Merkle tree, otherwise
+                    there is no 'merkletree' in the dictionary.
     '''
     def pickle(self):
         if self.have.complete():
-            return {'pieces': 1}
+            if self.merkle_torrent:
+                return {'pieces': 1, 'merkletree': pickle.dumps(self.merkletree) }
+            else:
+                return {'pieces': 1 }
         pieces = Bitfield(len(self.hashes))
         places = []
         partials = []
@@ -915,7 +1000,10 @@ class StorageWrapper:
                     del pp[0]
             r.extend(pp[0])
             partials.extend([p, r])
-        return {'pieces': pieces.tostring(), 'places': places, 'partials': partials}
+        if self.merkle_torrent:
+            return {'pieces': pieces.tostring(), 'places': places, 'partials': partials, 'merkletree': pickle.dumps(self.merkletree) }
+        else:
+            return {'pieces': pieces.tostring(), 'places': places, 'partials': partials,}
 
 
     def unpickle(self, data, valid_places):
@@ -932,9 +1020,19 @@ class StorageWrapper:
         restored_partials = []
 
         try:
+            if data.has_key('merkletree'):
+                try:
+                    print "StorageWrapper: Unpickling Merkle tree!"
+                    self.merkletree = pickle.loads(data['merkletree'])
+                    self.hashes = self.merkletree.get_piece_hashes()
+                    self.hashes_unpickled = True
+                except Exception, e:
+                    print "StorageWrapper: Exception while unpickling Merkle tree",str(e)
+                    traceback.print_exc(file=sys.stdout)
             if data['pieces'] == 1:     # a seed
                 assert not data.get('places', None)
                 assert not data.get('partials', None)
+                # Merkle: restore Merkle tree
                 have = Bitfield(len(self.hashes))
                 for i in xrange(len(self.hashes)):
                     have[i] = True
@@ -960,6 +1058,8 @@ class StorageWrapper:
                 got[place] = 1
 
             for index in xrange(len(self.hashes)):
+                if DEBUG:
+                    print "StorageWrapper: Unpickle: Checking if we have piece",index
                 if have[index]:
                     if not places.has_key(index):
                         if index not in valid_places:

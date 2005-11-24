@@ -22,6 +22,9 @@ except:
     True = 1
     False = 0
 
+DEBUG = False
+FIREWALL = False
+
 all = POLLIN | POLLOUT
 
 UPnP_ERROR = "unable to forward port via UPnP"
@@ -37,8 +40,11 @@ class SingleSocket:
         self.connected = False
         self.skipped = 0
 #        self.check = StreamCheck()
+        self.myip = None
+        self.myport = -1
         try:
-            self.ip = self.socket.getpeername()[0]
+            (self.myip,self.myport) = self.socket.getsockname()
+            (self.ip,self.port) = self.socket.getpeername()
         except:
             if ip is None:
                 self.ip = 'unknown'
@@ -48,10 +54,28 @@ class SingleSocket:
     def get_ip(self, real=False):
         if real:
             try:
-                self.ip = self.socket.getpeername()[0]
+                (self.ip,self.port) = self.socket.getpeername()
             except:
                 pass
         return self.ip
+    
+    def get_port(self, real=False):
+        if real:
+            self.get_ip(True)
+        return self.port
+
+    def get_myip(self, real=False):
+        if real:
+            try:
+                (self.myip,self.myport) = self.socket.getsockname()
+            except:
+                pass
+        return self.myip
+    
+    def get_myport(self, real=False):
+        if real:
+            self.get_myip(True)
+        return self.myport
         
     def close(self):
         '''
@@ -174,10 +198,14 @@ class SocketHandler:
                 if reuse:
                     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 server.setblocking(0)
+                if DEBUG:
+                    print "Try to bind socket on", addrinfo[4], "..."
                 server.bind(addrinfo[4])
                 self.servers[server.fileno()] = server
                 if bind:
                     self.interfaces.append(server.getsockname()[0])
+                if DEBUG:
+                    print "OK"
                 server.listen(64)
                 self.poll.register(server, POLLIN)
             except socket.error, e:
@@ -218,6 +246,14 @@ class SocketHandler:
                 listen_port = randrange(minport, maxport+1)
                 if not listen_port in portrange:
                     portrange.append(listen_port)
+        if DEBUG and FIREWALL:    # try 22 first, because TU only opens port 22 for SSH...
+            try:
+                first_port = 22
+                self.bind(first_port, bind,
+                               ipv6_socket_style = ipv6_socket_style, upnp = upnp)
+                return first_port
+            except socket.error, e:
+                pass
         for listen_port in portrange:
             try:
                 self.bind(listen_port, bind,
@@ -239,13 +275,19 @@ class SocketHandler:
         sock.setblocking(0)
         try:
             sock.connect_ex(dns)
-        except socket.error:
+        except socket.error, e:
+            if DEBUG:
+                print "SocketHandler: SocketError in connect_ex",str(e)
             raise
         except Exception, e:
+            if DEBUG:
+                print "SocketHandler: Exception in connect_ex",str(e)      
             raise socket.error(str(e))
         self.poll.register(sock, POLLIN)
-        s = SingleSocket(self, sock, handler, dns[0])
+        s = SingleSocket(self, sock, handler, dns[0])    # create socket to connect the peers obtained from tracker
         self.single_sockets[sock.fileno()] = s
+        if DEBUG:
+            print "SocketHandler: Created Socket"
         return s
 
 
@@ -287,19 +329,24 @@ class SocketHandler:
             s = self.servers.get(sock)
             if s:
                 if event & (POLLHUP | POLLERR) != 0:
+                    if DEBUG:
+                        print "SocketHandler: Got event, close server socket"
                     self.poll.unregister(s)
                     s.close()
                     del self.servers[sock]
-                    print "lost server socket"
                 elif len(self.single_sockets) < self.max_connects:
                     try:
                         newsock, addr = s.accept()
+                        if DEBUG:
+                            print "Got connection from",newsock.getpeername()
                         newsock.setblocking(0)
-                        nss = SingleSocket(self, newsock, self.handler)
+                        nss = SingleSocket(self, newsock, self.handler)    # create socket for incoming peers and tracker
                         self.single_sockets[newsock.fileno()] = nss
                         self.poll.register(newsock, POLLIN)
                         self.handler.external_connection_made(nss)
-                    except socket.error:
+                    except socket.error,e:
+                        if DEBUG:
+                            print "SocketHandler: SocketError while accepting new connection",str(e)
                         self._sleep()
             else:
                 s = self.single_sockets.get(sock)
@@ -307,6 +354,8 @@ class SocketHandler:
                     continue
                 s.connected = True
                 if (event & (POLLHUP | POLLERR)):
+                    if DEBUG:
+                        print "SocketHandler: Got event, connect socket got error"
                     self._close_socket(s)
                     continue
                 if (event & POLLIN):
@@ -316,8 +365,11 @@ class SocketHandler:
                         if not data:
                             self._close_socket(s)
                         else:
+                            # btlaunchmany: NewSocketHandler, btdownloadheadless: Encrypter.Connection
                             s.handler.data_came_in(s, data)
                     except socket.error, e:
+                        if DEBUG:
+                            print "SocketHandler: Socket error",str(e)
                         code, msg = e
                         if code != EWOULDBLOCK:
                             self._close_socket(s)

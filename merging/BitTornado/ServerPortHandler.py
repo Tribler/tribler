@@ -2,7 +2,9 @@
 # see LICENSE.txt for license information
 
 from cStringIO import StringIO
+from binascii import b2a_hex, b2a_uu 
 #from RawServer import RawServer
+from sha import sha
 try:
     True
 except:
@@ -10,8 +12,19 @@ except:
     False = 0
 
 from BT1.Encrypter import protocol_name
+from overlayswarm import OverlaySwarm
+
+def toint(s):
+    return long(b2a_hex(s), 16)
 
 default_task_id = []
+
+DEBUG = False
+
+def show(s):
+    for i in xrange(len(s)): 
+        print ord(s[i]),
+    print
 
 class SingleRawServer:
     def __init__(self, info_hash, multihandler, doneflag, protocol):
@@ -120,7 +133,12 @@ class NewSocketHandler:     # hand a new socket off where it belongs
                 return True
         return None
 
+    def read_dead(self, s):
+        return None
+
     def data_came_in(self, garbage, s):
+#        if DEBUG:
+#            print "NewSocketHandler data came in", sha(s).hexdigest()
         while 1:
             if self.closed:
                 return

@@ -28,7 +28,9 @@ from BitTornado.RateLimiter import RateLimiter
 from BitTornado.RawServer import RawServer
 from BitTornado.SocketHandler import UPnP_ERROR
 from BitTornado.ServerPortHandler import MultiHandler
-
+from BitTornado.overlayswarm import OverlaySwarm
+from BitTornado.BT1.Encrypter import Encoder
+from BitTornado.BT1.Connecter import Connecter
 from Utility.constants import * #IGNORE:W0611
 
 from abcengine import ABCEngine
@@ -44,7 +46,7 @@ def fmttime(n):
     return '%d:%02d:%02d' % (h, m, s)
 
 class LaunchMany(Thread):
-    def __init__(self, utility):
+    def __init__(self, utility, all_peers_cache, all_files_cache):
         Thread.__init__(self)
         
         try:
@@ -62,6 +64,9 @@ class LaunchMany(Thread):
             self.hashcheck_queue = []
             self.hashcheck_current = None
             
+            self.all_peers_cache = all_peers_cache
+            self.all_files_cache = all_files_cache
+            
             self.rawserver = RawServer(self.doneflag, btconfig['timeout_check_interval'], 
                               btconfig['timeout'], ipv6_enable = btconfig['ipv6_enabled'], 
                               failfunc = self.failed, errorfunc = self.exchandler)                   
@@ -71,11 +76,35 @@ class LaunchMany(Thread):
             self.handler = MultiHandler(self.rawserver, self.doneflag)
             seed(createPeerID())
             self.rawserver.add_task(self.stats, 0)
+
+            self.register_swarm(self.handler, btconfig)
         except:
             data = StringIO()
             print_exc(file = data)
             self.Output.exception(data.getvalue())
             
+    def register_swarm(self, multihandler, config, myid=createPeerID()):
+        # Register overlay_infohash as known swarm with MultiHandler
+        
+        overlay_swarm = OverlaySwarm.getInstance()
+        overlay_swarm.multihandler = multihandler
+        overlay_swarm.config = config
+        overlay_swarm.myid = myid
+        overlay_swarm.doneflag = Event()
+        overlay_swarm.rawserver = multihandler.newRawServer(overlay_swarm.infohash, 
+                                                            overlay_swarm.doneflag)
+
+        # Create Connecter and Encoder for the swarm. TODO: ratelimiter
+        overlay_swarm.connecter = Connecter(None, None, None, 
+                            None, None, config, 
+                            None, False,
+                            overlay_swarm.rawserver.add_task)
+        overlay_swarm.encoder = Encoder(overlay_swarm.connecter, overlay_swarm.rawserver, 
+            myid, config['max_message_length'], overlay_swarm.rawserver.add_task, 
+            config['keepalive_interval'], overlay_swarm.infohash, 
+            lambda x: None, config)
+        overlay_swarm.rawserver.start_listening(overlay_swarm.encoder)
+                    
     def getPort(self):
         listen_port = None
         btconfig = self.utility.getBTParams()
@@ -161,7 +190,7 @@ class LaunchMany(Thread):
                 status = engine.btstatus
                 progress = engine.status_done
             else:
-                stats = engine.statsfunc()
+                stats = engine.statsfunc()    # call DownloaderFeedback.gather() actually
                 
                 s = stats['stats']
                 spew = stats['spew']
@@ -180,6 +209,7 @@ class LaunchMany(Thread):
                     dnrate = stats['down']
                     progress = stats['frac']
                 uprate = stats['up']
+                self.all_peers_cache.updateSpew(ABCTorrentTemp.torrent_hash, spew)
 
             engine.onUpdateStatus(progress, t, dnrate, uprate, status, s, spew)
         self.rawserver.add_task(self.stats, self.stats_period)

@@ -2,7 +2,7 @@
 # see LICENSE.txt for license information
 
 from bisect import insort
-from SocketHandler import SocketHandler
+from SocketHandler import SocketHandler, UPnP_ERROR
 import socket
 from cStringIO import StringIO
 from traceback import print_exc
@@ -108,6 +108,7 @@ class RawServer:
 
 
     def listen_forever(self, handler):
+        # handler=btlanuchmany: MultiHandler, btdownloadheadless: Encoder
         self.sockethandler.set_handler(handler)
         try:
             while not self.doneflag.isSet():
