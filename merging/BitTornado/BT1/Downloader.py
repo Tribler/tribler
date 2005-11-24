@@ -68,11 +68,11 @@ class SingleDownload:
         self.guard = BadDataGuard(self)
 
     def _backlog(self, just_unchoked):
-        self.backlog = min(
+        self.backlog = int(min(
             2+int(4*self.measure.get_rate()/self.downloader.chunksize),
-            (2*just_unchoked)+self.downloader.queue_limit() )
+            (2*just_unchoked)+self.downloader.queue_limit() ))
         if self.backlog > 50:
-            self.backlog = max(50, self.backlog * 0.075)
+            self.backlog = int(max(50, self.backlog * 0.075))
         return self.backlog
     
     def disconnected(self):
@@ -143,7 +143,7 @@ class SingleDownload:
             self.interested = False
             self.connection.send_not_interested()
 
-    def got_piece(self, index, begin, piece):
+    def got_piece(self, index, begin, hashlist, piece):
         length = len(piece)
         try:
             self.active_requests.remove((index, begin, length))
@@ -156,7 +156,7 @@ class SingleDownload:
         self.last2 = clock()
         self.measure.update_rate(length)
         self.downloader.measurefunc(length)
-        if not self.downloader.storage.piece_came_in(index, begin, piece, self.guard):
+        if not self.downloader.storage.piece_came_in(index, begin, hashlist, piece, self.guard):
             self.downloader.piece_flunked(index)
             return False
         if self.downloader.storage.do_I_have(index):

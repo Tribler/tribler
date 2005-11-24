@@ -1,9 +1,15 @@
 # Written by Bram Cohen
 # see LICENSE.txt for license information
 
+import traceback,sys
+from sha import sha
+
 from BitTornado.bitfield import Bitfield
 from BitTornado.clock import clock
 from binascii import b2a_hex
+from BitTornado.bencode import bencode,bdecode
+from BitTornado.overlayswarm import OverlaySwarm
+from MessageID import *
 
 try:
     True
@@ -20,24 +26,15 @@ def tobinary(i):
     return (chr(i >> 24) + chr((i >> 16) & 0xFF) + 
         chr((i >> 8) & 0xFF) + chr(i & 0xFF))
 
-CHOKE = chr(0)
-UNCHOKE = chr(1)
-INTERESTED = chr(2)
-NOT_INTERESTED = chr(3)
-# index
-HAVE = chr(4)
-# index, bitfield
-BITFIELD = chr(5)
-# index, begin, length
-REQUEST = chr(6)
-# index, begin, piece
-PIECE = chr(7)
-# index, begin, piece
-CANCEL = chr(8)
-
+def show(s):
+    text = []
+    for i in xrange(len(s)): 
+        text.append(ord(s[i]))
+    return text
+    
 class Connection:
     def __init__(self, connection, connecter):
-        self.connection = connection
+        self.connection = connection    
         self.connecter = connecter
         self.got_anything = False
         self.next_upload = None
@@ -47,10 +44,28 @@ class Connection:
         self.upload = None
         self.send_choke_queued = False
         self.just_unchoked = None
-
+        self.permid = None
+        self.overlay_connection = None
+        self.closed = False
+            
+    def get_myip(self, real=False):
+        return self.connection.get_myip(real)
+    
+    def get_myport(self, real=False):
+        return self.connection.get_myport(real)
+        
     def get_ip(self, real=False):
         return self.connection.get_ip(real)
 
+    def get_port(self, real=False):
+        return self.connection.get_port(real)
+
+    def set_permid(self, permid):
+        self.permid = permid
+
+    def get_permid(self):
+        return self.permid;
+        
     def get_id(self):
         return self.connection.get_id()
 
@@ -61,6 +76,10 @@ class Connection:
         if DEBUG:
             print 'connection closed'
         self.connection.close()
+        self.closed = True
+        
+    def is_closed(self):
+        return self.closed
 
     def is_locally_initiated(self):
         return self.connection.is_locally_initiated()
@@ -120,6 +139,10 @@ class Connection:
         else:
             self.connection.send_message_raw(s)
 
+    def send_overlay_message(self, s):
+        s = tobinary(len(s))+s
+        self.connection.send_message_raw(s)
+
     def send_partial(self, bytes):
         if self.connection.closed:
             return 0
@@ -127,12 +150,20 @@ class Connection:
             s = self.upload.get_upload_chunk()
             if s is None:
                 return 0
-            index, begin, piece = s
-            self.partial_message = ''.join((
+            # Merkle: send hashlist along with piece in HASHPIECE message
+            index, begin, hashlist, piece = s
+            if self.connecter.merkle_torrent:
+                bhashlist = bencode(hashlist)
+                self.partial_message = ''.join((
+                                tobinary(1+4+4+4+len(bhashlist)+len(piece)), HASHPIECE,
+                                tobinary(index), tobinary(begin), tobinary(len(bhashlist)), bhashlist, piece.tostring() ))
+            else:
+                self.partial_message = ''.join((
                             tobinary(len(piece) + 9), PIECE, 
                             tobinary(index), tobinary(begin), piece.tostring()))
             if DEBUG:
                 print 'sending chunk: '+str(index)+': '+str(begin)+'-'+str(begin+len(piece))
+        #print 'with hashes: ',hashlist
 
         if bytes < len(self.partial_message):
             self.connection.send_message_raw(self.partial_message[:bytes])
@@ -170,12 +201,12 @@ class Connection:
             self.connecter.ratelimiter.ping(clock() - self.just_unchoked)
             self.just_unchoked = 0
     
-
-
+    def is_overlayswarm(self):
+        return self.connection.is_overlayswarm()
 
 class Connecter:
     def __init__(self, make_upload, downloader, choker, numpieces, 
-            totalup, config, ratelimiter, sched = None):
+            totalup, config, ratelimiter, merkle_torrent, sched = None):
         self.downloader = downloader
         self.make_upload = make_upload
         self.choker = choker
@@ -188,6 +219,8 @@ class Connecter:
         self.rate_capped = False
         self.connections = {}
         self.external_connection_made = 0
+        self.merkle_torrent = merkle_torrent
+        self.overlay_swarm = OverlaySwarm.getInstance()
 
     def how_many_connections(self):
         return len(self.connections)
@@ -195,9 +228,12 @@ class Connecter:
     def connection_made(self, connection):
         c = Connection(connection, self)
         self.connections[connection] = c
-        c.upload = self.make_upload(c, self.ratelimiter, self.totalup)
-        c.download = self.downloader.make_download(c)
-        self.choker.connection_made(c)
+        if not connection.is_overlayswarm():    
+            #TODO: overlay swarm also needs upload and download to control transferring rate
+            c.upload = self.make_upload(c, self.ratelimiter, self.totalup)
+            c.download = self.downloader.make_download(c)
+            self.choker.connection_made(c)
+        connection.connecter_connection = c
         return c
 
     def connection_lost(self, connection):
@@ -205,7 +241,8 @@ class Connecter:
         del self.connections[connection]
         if c.download:
             c.download.disconnected()
-        self.choker.connection_lost(c)
+        if not c.is_overlayswarm():
+            self.choker.connection_lost(c)
 
     def connection_flushed(self, connection):
         conn = self.connections[connection]
@@ -218,14 +255,27 @@ class Connecter:
             co.send_have(i)
 
     def got_message(self, connection, message):
-        c = self.connections[connection]
+        # connection: Encrypter.Connection; c: Connecter.Connection
+        c = self.connections[connection]    
         t = message[0]
+        if DEBUG:
+            printMessageID(t)
+
+        if connection.is_overlayswarm():    # Overlay Swarm uses different protocol
+            self.overlay_swarm.got_message(c, message)    
+            # if something is wrong, overlay swarm will close the connection
+            return
+
         if t == BITFIELD and c.got_anything:
+            if DEBUG:
+                print "Close on BITFIELD"
             connection.close()
             return
         c.got_anything = True
         if (t in [CHOKE, UNCHOKE, INTERESTED, NOT_INTERESTED] and 
                 len(message) != 1):
+            if DEBUG:
+                print "Close on bad (UN)CHOKE/(NOT_)INTERESTED",t
             connection.close()
             return
         if t == CHOKE:
@@ -238,10 +288,14 @@ class Connecter:
             c.upload.got_not_interested()
         elif t == HAVE:
             if len(message) != 5:
+                if DEBUG:
+                    print "Close on bad HAVE: msg len"
                 connection.close()
                 return
             i = toint(message[1:])
             if i >= self.numpieces:
+                if DEBUG:
+                    print "Close on bad HAVE: index out of range"
                 connection.close()
                 return
             c.download.got_have(i)
@@ -249,38 +303,82 @@ class Connecter:
             try:
                 b = Bitfield(self.numpieces, message[1:])
             except ValueError:
+                if DEBUG:
+                    print "Close on bad BITFIELD"
                 connection.close()
                 return
             c.download.got_have_bitfield(b)
         elif t == REQUEST:
             if len(message) != 13:
+                if DEBUG:
+                    print "Close on bad REQUEST: msg len"
                 connection.close()
                 return
             i = toint(message[1:5])
             if i >= self.numpieces:
+                if DEBUG:
+                    print "Close on bad REQUEST: index out of range"
                 connection.close()
                 return
             c.got_request(i, toint(message[5:9]), 
                 toint(message[9:]))
         elif t == CANCEL:
             if len(message) != 13:
+                if DEBUG:
+                    print "Close on bad CANCEL: msg len"
                 connection.close()
                 return
             i = toint(message[1:5])
             if i >= self.numpieces:
+                if DEBUG:
+                    print "Close on bad CANCEL: index out of range"
                 connection.close()
                 return
             c.upload.got_cancel(i, toint(message[5:9]), 
                 toint(message[9:]))
         elif t == PIECE:
             if len(message) <= 9:
+                if DEBUG:
+                    print "Close on bad PIECE: msg len"
                 connection.close()
                 return
             i = toint(message[1:5])
             if i >= self.numpieces:
+                if DEBUG:
+                    print "Close on bad PIECE: msg len"
                 connection.close()
                 return
-            if c.download.got_piece(i, toint(message[5:9]), message[9:]):
+            if c.download.got_piece(i, toint(message[5:9]), [], message[9:]):
                 self.got_piece(i)
+        elif t == HASHPIECE:
+            try:
+                # Merkle: Handle pieces with hashes
+                if len(message) <= 13:
+                    if DEBUG:
+                        print "Close on bad HASHPIECE: msg len"
+                    connection.close()
+                    return
+                i = toint(message[1:5])
+                if i >= self.numpieces:
+                    if DEBUG:
+                        print "Close on bad HASHPIEC: index out of range"
+                    connection.close()
+                    return
+                begin = toint(message[5:9])
+                len_hashlist = toint(message[9:13])
+                bhashlist = message[13:13+len_hashlist]
+                hashlist = bdecode(bhashlist)
+                piece = message[13+len_hashlist:]
+                if c.download.got_piece(i, begin, hashlist, piece):
+                    self.got_piece(i)
+            except Exception,e:
+                if DEBUG:
+                    print "Close on bad HASHPIECE: exception",str(e)
+                    traceback.print_exc(file=sys.stdout)
+                connection.close()
+                return
         else:
             connection.close()
+#        # PermID: Start challenge-response protocol
+#        if connection.supports_cr(): # or connection.is_overlayswarm():
+#            c.start_cr()

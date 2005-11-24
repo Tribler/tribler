@@ -24,6 +24,8 @@ try:
 except:
     True = 1
     False = 0
+    
+DEBUG = False
 
 mapbase64 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-'
 keys = {}
@@ -259,6 +261,9 @@ class Rerequester:
 
             err = None
             try:
+                if DEBUG:
+                    print "Rerequest tracker:"
+                    print t+s
                 h = urlopen(t+s)
                 closer[0] = h.close
                 data = h.read()
@@ -285,6 +290,8 @@ class Rerequester:
             try:
                 r = bdecode(data, sloppy=1)
                 check_peers(r)
+                if DEBUG:
+                    print "Tracker returns:", r
             except ValueError, e:
                 if self.lock.trip(l):
                     self.errorcodes['bad_data'] = 'bad data from tracker - ' + str(e)

@@ -32,6 +32,7 @@ from random import seed
 from threading import Event
 from clock import clock
 from __init__ import createPeerID
+from merkle import create_fake_hashes
 
 try:
     True
@@ -323,9 +324,15 @@ class BT1Download:
         self.rawserver = rawserver
         self.port = port
         
-        self.info = self.response['info']
-        self.pieces = [self.info['pieces'][x:x+20]
-                       for x in xrange(0, len(self.info['pieces']), 20)]
+        self.info = self.response['info']  
+        self.infohash = sha(bencode(self.info)).digest()
+        # Merkle: Create list of fake hashes. This will be filled if we're an
+        # initial seeder
+        if self.info.has_key('root hash'):
+            self.pieces = create_fake_hashes(self.info)
+        else:
+            self.pieces = [self.info['pieces'][x:x+20]
+                           for x in xrange(0, len(self.info['pieces']), 20)]
         self.len_pieces = len(self.pieces)
         self.argslistheader = argslistheader
         self.unpauseflag = Event()
@@ -511,16 +518,23 @@ class BT1Download:
             if self.doneflag.isSet():
                 return None
 
-            self.storagewrapper = StorageWrapper(self.storage, self.config['download_slice_size'], 
-                self.pieces, self.info['piece length'], self._finished, self._failed, 
-                statusfunc, self.doneflag, self.config['check_hashes'], 
-                self._data_flunked, self.rawserver.add_task, 
+            # Merkle: Are we dealing with a Merkle torrent y/n?
+            if self.info.has_key('root hash'):
+                root_hash = self.info['root hash']
+            else:
+                root_hash = None
+            self.storagewrapper = StorageWrapper(self.storage, self.config['download_slice_size'],
+                self.pieces, self.info['piece length'], root_hash, 
+                self._finished, self._failed,
+                statusfunc, self.doneflag, self.config['check_hashes'],
+                self._data_flunked, self.rawserver.add_task,
                 self.config, self.unpauseflag)
             
         except ValueError, e:
             self._failed('bad data - ' + str(e))
         except IOError, e:
             self._failed('IOError - ' + str(e))
+
         if self.doneflag.isSet():
             return None
 
@@ -613,7 +627,8 @@ class BT1Download:
         self.downloader.set_download_rate(self.config['max_download_rate'])
         self.connecter = Connecter(self._make_upload, self.downloader, self.choker, 
                             self.len_pieces, self.upmeasure, self.config, 
-                            self.ratelimiter, self.rawserver.add_task)
+                            self.ratelimiter, self.info.has_key('root hash'),
+                            self.rawserver.add_task)
         self.encoder = Encoder(self.connecter, self.rawserver, 
             self.myid, self.config['max_message_length'], self.rawserver.add_task, 
             self.config['keepalive_interval'], self.infohash, 
@@ -688,14 +703,17 @@ class BT1Download:
             self.upmeasure.get_rate, self.downmeasure.get_rate, 
             self.ratemeasure, self.storagewrapper.get_stats, 
             self.datalength, self.finflag, self.spewflag, self.statistics, 
-            displayfunc, self.config['display_interval'])
+            displayfunc, self.config['display_interval'], 
+            infohash = self.infohash)
 
     def startStats(self):
         self._init_stats()
+        self.spewflag.set()    # start collecting peer cache
         d = DownloaderFeedback(self.choker, self.httpdownloader, self.rawserver.add_task, 
             self.upmeasure.get_rate, self.downmeasure.get_rate, 
             self.ratemeasure, self.storagewrapper.get_stats, 
-            self.datalength, self.finflag, self.spewflag, self.statistics)
+            self.datalength, self.finflag, self.spewflag, self.statistics, 
+            infohash = self.infohash)
         return d.gather
 
 
