@@ -1,6 +1,0 @@
-Washington DC  , 38.905, -77.0162
-Shanghai, 31.1667, 121.467
-Cape Town, -33.9167, 18.3667
-Rio De Janeiro, -22.95, -43.2
-#London, 51.5,   -0.1167
-#Amsterdam, 52.3667, 4.88333
