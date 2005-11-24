@@ -1,0 +1,28 @@
+	Latest version of ABC is Version 3.1
+	======================
+- Single port core
+
+- Several improvements to reduce cpu usage, display flicker,
+  and otherwise cut down on undesirable behavior
+
+- Some instances of 100% CPU usage bug may be fixed
+
+- Should be able to run as a non-admin user
+
+- Toolbars and context menu can now be customized
+
+- Torrent list colors now customizable
+
+- Advanced Details window
+  - Now customizable
+  - Separated "File Info" into "File Info" and "Torrent Info"
+  - Added more information to "Torrent Info"
+
+- Torrent Maker
+  - Added support for more fields
+
+- No longer scraping trackers that don't support scraping
+
+- Updated to Python 2.4.2
+- Updated to wxPython 2.6.1
+- Updated to py2exe 0.6.2
