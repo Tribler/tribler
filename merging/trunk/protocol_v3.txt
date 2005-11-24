@@ -1,0 +1,153 @@
+	ABC Web Interface Service (2.7 version) [03/15/2005]
+	=====================================
+Propose :
+=========
+	To allow users who are always away from home can communicate with ABC client
+and manage ABC client from distance. 
+	In this version 3 allows several commands to manage ABC client via web:
+
+	* Close Web Service
+
+	* Query current status of all torrents in ABC client
+
+	* Add Torrent to ABC client by giving URL
+
+	* Delete Torrent from ABC client
+
+	* Clear all completed torrent
+
+	* Pause Torrent
+
+	* Stop Torrent
+
+	* Resume Torrent
+
+	* Force Queue Torrent
+
+	* Query version of ABC client
+
+	* Get language strings
+
+	* Get parameters
+
+	* Set Parameters
+
+Protocol 
+========
+	Web Interface Service use TCP protocol. After you send command to ABC web interface
+the connection will close immediatly, so remember that you need to make new connection everytime 
+you send 1 command. 
+
+***** All Messages MUST begin with "ID|<unique key>\n" and then follow with these commands *****
+
+CLOSE|
+	To tell ABC to close web interface service.
+
+QUERY|       
+	 To get  current status of all torrents. when you send this message to ABC web interface, 
+	  ABC will return result by using protocol below
+
+        Filename|Progress|BT Status|ETA|DL Speed|UL Speed|%UL/DL|#Peers|#Seeds|#Copies|DL Size|UL Size|Peer Avg Progress|Total Speed|Info Hash(new line [\n])
+        filename1|xx.x%|status1|xx:xx:xx|xx.x kB/s|xx.x kB/s|x(xx)|x(xx)|x.xxx|xx.xx MB|xxx.xx MB|xx.x%|xxx kB/s|xxxxxxxxxxxxxxxxxxxx(new line[\n])
+		.		.		.		.
+		.		.		.		.
+		.		.		.		.
+       filenameN|xx.x%|statusN|xx:xx:xx|xx.x kB/s|xx.x kB/s||x(xx)|x(xx)|x.xxx|xx.xx MB|xxx.xx MB|xx.x%|xxx kB/s|xxxxxxxxxxxxxxxxxxxx(new line[\n])
+	 
+	   The First line just to tell you the ordering of field (Thanks to Michel Hartmann) to design
+	    this protocol, so web server side can be dymanically.
+
+QUERY|<field1>,<field2>,..,<field N>
+    The preferred format is now to send the field numbers for the requested fields.
+    The old field names will still work, but no new names will be added.
+    See english.lang for a definition of field numbers.
+
+	Old method:
+	To specify what field(s) you want ABC to return
+	Field can be :
+	- filename, progress, btstatus, eta, dlspeed, ulspeed, ratio, peers, seeds, copies
+	- dlsize, ulsize, peeravgprogress, totalspeed, totalsize
+	
+	For example : you want to query only Filename, Progress, ETA so you make a protocol like this
+	QUERY|filename,progress,eta
+	and ABC will return
+	Filename|Progress|ETA|Info Hash\n
+	filename1|xx.x%|xx:xx:xx|xxxxxxxxxxxxxxxxxxxx\n
+	                  .                      .                   .
+                                       .                      .                   .
+	filenameN|xx.x%|xx:xx:xx|xxxxxxxxxxxxxxxxxxxx\n
+
+
+VERSION|
+	return ABC version with this format "Version(new line[ \n])x.x" ( where x.x is ABC version)
+
+DELETE|COMPLETED
+	To delete all completed torrents from ABC list.
+
+DELETE|<info_hash1>,<info_hash2>,...,<info_hash N>
+	To delete torrent(s) which match info_hash in the list.
+	For example : DELETE|81d042b69f58775a8116ff214507dd52cee47df9
+
+ADD|<URL>
+	For example : ADD|http://mytracker.net/example.torrent
+	ABC will add this torrent into torrent list.
+	(For this to work, you must have a default download folder specified)
+
+RESUME|ALL
+    To resume all stopped torrents in the list.
+RESUME|<info_hash1>,<info_hash2>,...,<info_hash N>
+	To resume torrent(s) which match info_hash in the list.
+	For example : RESUME|81d042b69f58775a8116ff214507dd52cee47df9
+
+PAUSE|ALL
+    To pause all active torrents in the list.
+PAUSE|<info_hash1>,<info_hash2>,...,<info_hash N>
+    To pause torrent(s) which match info_hash in the list.
+	For example : PAUSE|81d042b69f58775a8116ff214507dd52cee47df9
+	
+UNPAUSE|ALL
+    To unpause all paused torrents in the list
+UNPAUSE|<info_hash1>,<info_hash2>,...,<info_hash N>
+    To unpause torrent(s) which match info_hash in the list.
+	For example : PAUSE|81d042b69f58775a8116ff214507dd52cee47df9
+	
+STOP|ALL
+	To Stop all torrents in the list.
+STOP|<info_hash1>,<info_hash2>,...,<info_hash N>
+	To Stop torrent(s) which matches info_hash in the list.
+	For example : STOP|81d042b69f58775a8116ff214507dd52cee47df9
+
+QUEUE|ALL
+	To Queue all torrents in the list.
+QUEUE|<info_hash1>,<info_hash2>,...,<info_hash N>
+	To force torrent(s) which matches info_hash in the list to queue state.
+	For example : QUEUE|81d042b69f58775a8116ff214507dd52cee47df9
+
+PRIORITY|<info_hash1>,<priority1>|<info_hash2>,<priority2>|...|<info_hash N>,<priority N>
+	Set the priorities of torrent(s) to a value between 0 and 4
+
+GETSTRING|<string>
+    Will return the value of a given string from the current language file in the form:
+    
+GETPARAM|<param1>,<param2>,...,<param N>
+    Will return values of parameters from the config file in the form:
+    value1|value2|...|value N\n
+    
+SETPARAM|<param1>=<value1>|<param2>=<value2>|...|<param N>=<value N>
+	Change the values of parameters in the config file
+	(note: changing some values may require torrents to be restarted to take effect)
+
+*********************************************************************************************************************
+NOTE : All commands that send to ABC, ABC  will return message back  in protocol
+               "Feedback\nOK" if operation is successful OR
+               "Feedback\nError=<error message>", if error
+               
+Exceptions : QUERY, VERSION, GETSTRING, GETPARAM return a message
+             CLOSE doesn't return anything because it's closed -_-"
+*********************************************************************************************************************	
+
+===============================================================
+Protocol Design:  Michel Hartmann, Choopan Rattanapoka
+===============================================================
+Author:            Choopan RATTANAPOKA (choopanr[AT]hotmail.com)
+Project-site :  http://pingpong-abc.sourceforge.net
