@@ -1,17 +1,28 @@
-	Latest version of ABC is Version 3.0.1b
+	Latest version of ABC is Version 3.1
 	======================
-- (3.0.1b - fixed WebService)
+- Single port core
 
-- Updated to BitTornado 0.3.12 core (includes various fixes)
+- Several improvements to reduce cpu usage, display flicker,
+  and otherwise cut down on undesirable behavior
 
-- Updated to wxPython 2.6.0
+- Some instances of 100% CPU usage bug may be fixed
 
-- More things can be done via menus
+- Should be able to run as a non-admin user
 
-- Should have slightly lower cpu usage
+- Toolbars and context menu can now be customized
 
-- Better shutdown behavior
+- Torrent list colors now customizable
 
-- Preferences window should appear a little more quickly
+- Advanced Details window
+  - Now customizable
+  - Separated "File Info" into "File Info" and "Torrent Info"
+  - Added more information to "Torrent Info"
 
-- More strings added to language file
+- Torrent Maker
+  - Added support for more fields
+
+- No longer scraping trackers that don't support scraping
+
+- Updated to Python 2.4.2
+- Updated to wxPython 2.6.1
+- Updated to py2exe 0.6.2

@@ -5,6 +5,15 @@
 import wx
 from os import path
 
+
+################################################################
+#
+# Class: RegCheckDialog
+#
+# Prompts to associate ABC with .torrent files if it is not
+# already associated with them
+#
+################################################################
 class RegCheckDialog(wx.Dialog):
     def __init__(self, parent):
         self.utility = parent.utility
@@ -38,11 +47,11 @@ class RegCheckDialog(wx.Dialog):
         self.SetSizer( outerbox )
         self.Fit()
         
-    def onYES(self, event):
+    def onYES(self, event = None):
         self.apply(True)
         self.EndModal(wx.ID_YES)
         
-    def onNO(self, event):
+    def onNO(self, event = None):
         self.apply(False)
         self.EndModal(wx.ID_NO)
         

@@ -57,7 +57,7 @@ class _UPnP1:   # derived from Myers Carpenter's code
     def open(self, ip, p):
         map = self._get_map()
         try:
-            map.Add(p,'TCP',p,ip,True,ID)
+            map.Add(p, 'TCP', p, ip, True, ID)
             if DEBUG:
                 print 'port opened: '+ip+':'+str(p)
             success = True
@@ -72,7 +72,7 @@ class _UPnP1:   # derived from Myers Carpenter's code
     def close(self, p):
         map = self._get_map()
         try:
-            map.Remove(p,'TCP')
+            map.Remove(p, 'TCP')
             success = True
             if DEBUG:
                 print 'port closed: '+str(p)
@@ -103,7 +103,7 @@ class _UPnP1:   # derived from Myers Carpenter's code
             success = True
             for port in ports_in_use:
                 try:
-                    map.Remove(port,'TCP')
+                    map.Remove(port, 'TCP')
                 except:
                     success = False
             if not success and not retry:
@@ -129,7 +129,7 @@ class _UPnP2:   # derived from Yejun Yang's code
                 for t in ( "urn:schemas-upnp-org:service:WANIPConnection:1",
                            "urn:schemas-upnp-org:service:WANPPPConnection:1" ):
                     try:
-                        conns = f.FindByType(t,0)
+                        conns = f.FindByType(t, 0)
                         for c in xrange(len(conns)):
                             try:
                                 svcs = conns[c].Services
@@ -161,7 +161,7 @@ class _UPnP2:   # derived from Yejun Yang's code
         success = False
         for s in svcs:
             try:
-                s.InvokeAction('AddPortMapping',['',p,'TCP',p,ip,True,ID,0],'')
+                s.InvokeAction('AddPortMapping', ['', p, 'TCP', p, ip, True, ID, 0], '')
                 success = True
             except:
                 pass
@@ -176,7 +176,7 @@ class _UPnP2:   # derived from Yejun Yang's code
         success = False
         for s in svcs:
             try:
-                s.InvokeAction('DeletePortMapping', ['',p,'TCP'], '')
+                s.InvokeAction('DeletePortMapping', ['', p, 'TCP'], '')
                 success = True
             except:
                 pass
@@ -200,7 +200,7 @@ class _UPnP:    # master holding class
             local_ips = IP_List()
             local_ips.set_intranet_addresses()
             try:
-                for info in socket.getaddrinfo(socket.gethostname(),0,socket.AF_INET):
+                for info in socket.getaddrinfo(socket.gethostname(), 0, socket.AF_INET):
                             # exception if socket library isn't recent
                     self.local_ip = info[4][0]
                     if local_ips.includes(self.local_ip):

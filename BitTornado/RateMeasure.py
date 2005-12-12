@@ -39,7 +39,7 @@ class RateMeasure:
             self.update(0)
         try:
             remaining = left/self.rate
-            delta = max(remaining/20,2)
+            delta = max(remaining/20, 2)
             if self.remaining is None:
                 self.remaining = remaining
             elif abs(self.remaining-remaining) > delta:
@@ -57,7 +57,7 @@ class RateMeasure:
         t = clock()
         t1 = int(t)
         l1 = int(self.last)
-        for i in xrange(l1,t1):
+        for i in xrange(l1, t1):
             self.time *= FACTOR
             self.got *= FACTOR
         self.got += amount

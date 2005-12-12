@@ -1,12 +1,13 @@
 # Written by Bram Cohen
 # see LICENSE.txt for license information
 
-from traceback import print_exc
-from binascii import b2a_hex
 from clock import clock
 from CurrentRateMeasure import Measure
-from cStringIO import StringIO
 from math import sqrt
+
+# 2fastbt_
+from toofastbt.Logger import get_logger
+# _2fastbt
 
 try:
     True
@@ -16,7 +17,7 @@ except:
 try:
     sum([1])
 except:
-    sum = lambda a: reduce(lambda x,y: x+y, a, 0)
+    sum = lambda a: reduce(lambda x, y: x+y, a, 0)
 
 DEBUG = False
 
@@ -67,6 +68,10 @@ class RateLimiter:
 
     def queue(self, conn):
         assert conn.next_upload is None
+# 2fastbt_
+        if conn.connection.is_coordinator_con():
+            get_logger().log(3, "retelimiter.ratelimiter adding to queue coordinator request")
+# _2fastbt
         if self.last is None:
             self.last = conn
             conn.next_upload = conn
@@ -74,7 +79,12 @@ class RateLimiter:
         else:
             conn.next_upload = self.last.next_upload
             self.last.next_upload = conn
-            self.last = conn
+# 2fastbt_
+            if not conn.connection.is_coordinator_con():
+                self.last = conn
+#            else:
+#                get_logger().log(2, "retelimiter.ratelimiter adding to queue coordinator request")
+# _2fastbt
 
     def try_send(self, check_time = False):
         t = clock()
@@ -97,8 +107,18 @@ class RateLimiter:
                     cur.next_upload = None
                     cur = self.last.next_upload
             else:
-                self.last = cur
-                cur = cur.next_upload
+# 2fastbt_
+#                get_logger().log(2, "retelimiter.ratelimiter")
+                if not cur.connection.is_coordinator_con() or not cur.upload.buffer:
+#                    get_logger().log(2, "retelimiter.ratelimiter buffer: '" + str(cur.upload.buffer) + "'")
+# _2fastbt
+                    self.last = cur
+                    cur = cur.next_upload
+# 2fastbt_
+                else:
+                    pass
+#                    get_logger().log(2, "retelimiter.ratelimiter coordinator_con buffer: '" + str(cur.upload.buffer) + "'")
+# _2fastbt
         else:
             self.sched(self.try_send, self.bytes_sent / self.upload_rate)
 
@@ -123,9 +143,9 @@ class RateLimiter:
             if self.upload_rate == MAX_RATE:
                 self.upload_rate = self.measure.get_rate()*ADJUST_DOWN
             else:
-                self.upload_rate = min(self.upload_rate,
+                self.upload_rate = min(self.upload_rate, 
                                        self.measure.get_rate()*1.1)
-            self.upload_rate = max(int(self.upload_rate*ADJUST_DOWN),2)
+            self.upload_rate = max(int(self.upload_rate*ADJUST_DOWN), 2)
             self.slots = int(sqrt(self.upload_rate*SLOTS_FACTOR))
             self.slotsfunc(self.slots)
             if DEBUG:

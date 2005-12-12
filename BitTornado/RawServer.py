@@ -7,10 +7,13 @@ import socket
 from cStringIO import StringIO
 from traceback import print_exc
 from select import error
-from threading import Thread, Event
-from time import sleep
+from threading import Event
 from clock import clock
 import sys
+# 2fastbt_
+from toofastbt.Logger import get_logger
+# _2fastbt
+
 try:
     True
 except:
@@ -20,7 +23,7 @@ except:
 
 def autodetect_ipv6():
     try:
-        assert sys.version_info >= (2,3)
+        assert sys.version_info >= (2, 3)
         assert socket.has_ipv6
         socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
     except:
@@ -28,16 +31,16 @@ def autodetect_ipv6():
     return 1
 
 def autodetect_socket_style():
-	if sys.platform.find('linux') < 0:
-		return 1
-	else:
-		try:
-			f = open('/proc/sys/net/ipv6/bindv6only','r')
-			dual_socket_style = int(f.read())
-			f.close()
-			return int(not dual_socket_style)
-		except:
-			return 0
+    if sys.platform.find('linux') < 0:
+        return 1
+    else:
+        try:
+            f = open('/proc/sys/net/ipv6/bindv6only', 'r')
+            dual_socket_style = int(f.read())
+            f.close()
+            return int(not dual_socket_style)
+        except:
+            return 0
 
 
 READSIZE = 100000
@@ -71,11 +74,13 @@ class RawServer:
         return self.excflag
 
     def _add_task(self, func, delay, id = None):
-        assert float(delay) >= 0
+        if delay < 0:
+            delay = 0
         insort(self.funcs, (clock() + delay, func, id))
 
     def add_task(self, func, delay = 0, id = None):
-        assert float(delay) >= 0
+        if delay < 0:
+            delay = 0
         self.externally_added.append((func, delay, id))
 
     def scan_for_timeouts(self):
@@ -86,10 +91,14 @@ class RawServer:
                         ipv6_socket_style = 1, upnp = False):
         self.sockethandler.bind(port, bind, reuse, ipv6_socket_style, upnp)
 
-    def find_and_bind(self, minport, maxport, bind = '', reuse = False,
+    def find_and_bind(self, minport, maxport, bind = '', reuse = False, 
                       ipv6_socket_style = 1, upnp = 0, randomizer = False):
-        return self.sockethandler.find_and_bind(minport, maxport, bind, reuse,
+# 2fastbt_
+        result = self.sockethandler.find_and_bind(minport, maxport, bind, reuse, 
                                  ipv6_socket_style, upnp, randomizer)
+        get_logger().log(2, "port = " + str(self.sockethandler.get_stats()['port']))
+# _2fastbt
+        return result
 
     def start_connection_raw(self, dns, socktype, handler = None):
         return self.sockethandler.start_connection_raw(dns, socktype, handler)
@@ -107,6 +116,7 @@ class RawServer:
 
 
     def listen_forever(self, handler):
+        # handler=btlanuchmany: MultiHandler, btdownloadheadless: Encoder
         self.sockethandler.set_handler(handler)
         try:
             while not self.doneflag.isSet():

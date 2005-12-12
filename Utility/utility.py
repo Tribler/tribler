@@ -2,98 +2,79 @@ import wx
 import sys
 import os
 import socket
+import random
 
-from shutil import copyfile, move
-from lang.lang import Lang
-from string import join as stjoin, find
-from threading import Event, Thread, Semaphore
-from time import time, sleep
-from traceback import print_exc
-from cStringIO import StringIO
-from urlparse import urlsplit, urlunsplit
+from Lang.lang import Lang
+from threading import Event, Semaphore
+from time import sleep
+#from traceback import print_exc
+#from cStringIO import StringIO
 
 from wx.lib import masked
 
-from BitTornado.zurllib import urlopen, quote, unquote
-from BitTornado.bencode import *
+from BitTornado.ConfigDir import ConfigDir
+from BitTornado.bencode import bdecode
+from BitTornado.download_bt1 import defaults as BTDefaults
+from BitTornado.parseargs import parseargs
+from BitTornado.zurllib import urlopen
+
+from ABC.Actions.actions import makeActionList
 
 if (sys.platform == 'win32'):
     from Utility.regchecker import RegChecker
-from Utility.guimanager import GUIManager
+
 from Utility.configreader import ConfigReader
+from Utility.compat import convertINI, moveOldConfigFiles
+from Utility.constants import * #IGNORE:W0611
 
-def getClientSocket(host, port):
-    s = None
-    
-    for res in socket.getaddrinfo(host, port, socket.AF_UNSPEC, socket.SOCK_STREAM):
-        af, socktype, proto, canonname, sa = res
-        try:
-            s = socket.socket(af, socktype, proto)
-        except socket.error:
-            s = None
-            continue
-
-        try:
-            s.connect(sa)
-        except socket.error:
-            s.close()
-            s = None
-            continue
-        break
-        
-    return s
-    
-def getServerSocket(host, port):
-    s = None
-
-    for res in socket.getaddrinfo(host, port, socket.AF_UNSPEC, socket.SOCK_STREAM, 0, socket.AI_PASSIVE):
-        af, socktype, proto, canonname, sa = res
-        try:
-            s = socket.socket(af, socktype, proto)
-        except socket.error:
-            s = None
-            continue
-        try:
-            s.bind(sa)
-            s.listen(1)
-        except socket.error:
-            s.close()
-            s = None
-            continue
-        break
-
-    return s
-
-def getSocket(host, port, sockettype = "client", attempt = 5):
-    s = None
-
-    tries = 0
-
-    while s is None and tries < attempt:
-        if sockettype == "server":
-            s = getServerSocket(host, port)
-        else:
-            s = getClientSocket(host, port)
-            
-        if s is None:
-            # Try several times, increase in time each try
-            sleep(0.01 * tries)
-            tries += 1
-            
-    return s
-
+  
+################################################################
+#
+# Class: Utility
+#
+# Generic "glue" class that contains commonly used helper
+# functions and helps to keep track of objects
+#
+################################################################
 class Utility:
-    def __init__(self, app, abcpath):
+    def __init__(self, abcpath):
         self.abcpath = abcpath
-        self.app = app
+
+        # Find the directory to save config files, etc.
+        self.setupConfigPath()
+        moveOldConfigFiles(self)
 
         self.setupConfig()
-        self.setupWebConfig()
-        self.setupTorrentList()
-                            
+
+        # Setup language files
         self.lang = Lang(self)
 
-        GUIManager(self)
+        # Convert old INI file
+        convertINI(self)
+        
+        # Make torrent directory (if needed)
+        self.MakeTorrentDir()
+        
+        self.setupWebConfig()
+        
+        self.setupTorrentMakerConfig()
+        
+        self.setupTorrentList()
+        
+        self.torrents = { "all": [], 
+                          "active": {}, 
+                          "inactive": {}, 
+                          "pause": {}, 
+                          "seeding": {}, 
+                          "downloading": {} }
+                          
+        self.accessflag = Event()
+        self.accessflag.set()
+                            
+        self.invalidwinfilenamechar = ''
+        for i in range(32):
+            self.invalidwinfilenamechar += chr(i)
+        self.invalidwinfilenamechar += '"*/:<>?\\|'
         
         self.FILESEM   = Semaphore(1)
 
@@ -101,23 +82,34 @@ class Utility:
             self.regchecker = RegChecker(self)
 
         self.lastdir = { "save" : self.config.Read('defaultfolder'), 
-                         "open" : "",
+                         "open" : "", 
                          "log": "" }
 
         # Is ABC in the process of shutting down?
         self.abcquitting = False
-        self.abcdonequitting = False
+#        self.abcdonequitting = False
         
         # Keep track of the last tab that was being viewed
         self.lasttab = { "advanced" : 0, 
                          "preferences" : 0 }
                          
         self.languages = {}
+        
+        # Keep track of all the "ManagedList" objects in use
+        self.lists = {}
+        
+    def setupConfigPath(self):
+        configdir = ConfigDir()
+        self.dir_root = configdir.dir_root        
+        
+    def getConfigPath(self):
+        return self.dir_root
                          
-    def setupConfig(self):
+    def setupConfig(self):        
         defaults = {
-            'minport': '10000', 
-            'maxport': '60000', 
+            'defrentorwithdest': '1', 
+            'minport': str(random.randint(10000, 60000)), 
+            'maxport': '50000', 
             'maxupload': '5', 
             'maxuploadrate': '0', 
             'maxdownloadrate': '0', 
@@ -127,7 +119,7 @@ class Utility:
             'uploadtimeh': '0', 
             'uploadtimem': '30', 
             'uploadratio': '100', 
-            'removetorrent': '1', 
+            'removetorrent': '0', 
             'setdefaultfolder': '0', 
             'defaultfolder': 'c:\\', 
             'defaultmovedir': 'c:\\', 
@@ -156,26 +148,17 @@ class Utility:
             'failbehavior': '0', 
             'language_file': 'english.lang', 
             'urm': '0', 
-            'urmmaxtorrent': '5', 
-            'urmupthreshold': '2', 
-            'urmlowpriority': '0', 
+            'urmupthreshold': '10', 
             'urmdelay': '60', 
-#            'dynmaxuprate': '0',
-            'upfromdownA': '0.1', 
-            'upfromdownB': '3.0', 
-            'upfromdownC': '0.12', 
-            'upfromdownD': '10.0', 
-#            'urmstartdelay': '180',
-#            'urmtorrentstartdelay': '60',
-            'stripedlist': '1', 
+            'stripedlist': '0', 
 #            'mode': '1',
             'window_width': '710', 
             'window_height': '400', 
             'detailwindow_width': '610', 
             'detailwindow_height': '500', 
-            'prefwindow_width': '530',
-            'prefwindow_height': '400',
-            'prefwindow_split': '130',
+            'prefwindow_width': '530', 
+            'prefwindow_height': '400', 
+            'prefwindow_split': '130', 
             'column4_rank': '0', # Title
             'column4_width': '150', 
             'column5_rank': '1', # Progress
@@ -223,16 +206,118 @@ class Utility:
             'fastresume': '1', 
             'randomport': '1', 
             'savecolumnwidth': '1', 
-            'forcenewdir': '1', 
+#            'forcenewdir': '1', 
             'upnp_nat_access': '0', 
             'buffer_write' : '4', 
             'buffer_read' : '1', 
             'auto_flush' : '0', 
             'associate' : '1', 
-            'movecompleted': '0'
+            'movecompleted': '0', 
+            'spew0_rank': '0', # Optimistic Unchoke
+            'spew0_width': '24', 
+            'spew1_rank': '1', # IP
+            'spew1_width': '132', 
+            'spew2_rank': '2', # Local / Remote
+            'spew2_width': '24', 
+            'spew3_rank': '3', # Upload Rate
+            'spew3_width': '72', 
+            'spew4_rank': '4', # Interested
+            'spew4_width': '24', 
+            'spew5_rank': '5', # Choking
+            'spew5_width': '24', 
+            'spew6_rank': '6', # Download Rate
+            'spew6_width': '72', 
+            'spew7_rank': '7', # Interesting
+            'spew7_width': '24', 
+            'spew8_rank': '8', # Choked
+            'spew8_width': '24', 
+            'spew9_rank': '9', # Snubbed
+            'spew9_width': '24', 
+            'spew10_rank': '10', # Downloaded
+            'spew10_width': '84', 
+            'spew11_rank': '11', # Uploaded
+            'spew11_width': '84', 
+            'spew12_rank': '12', # Peer Progress
+            'spew12_width': '72', 
+            'spew13_rank': '-1', # Peer Download Speed
+            'spew13_width': '72', 
+            'fileinfo0_rank': '0', # Filename
+            'fileinfo0_width': '300', 
+            'fileinfo1_rank': '1', # Size
+            'fileinfo1_width': '100', 
+            'fileinfo2_rank': '2', # Progress
+            'fileinfo2_width': '60', 
+            'fileinfo3_rank': '3', # MD5 Hash
+            'fileinfo3_width': '200', 
+            'fileinfo4_rank': '-1', # CRC32 Hash
+            'fileinfo4_width': '200', 
+            'fileinfo5_rank': '-1', # SHA1 Hash
+            'fileinfo5_width': '200', 
+            'fileinfo6_rank': '-1', # ED2K Hash
+            'fileinfo6_width': '200', 
+            'color_startup': '000000000', 
+            'color_disconnected': '100100100', 
+            'color_noconnections': '200000000', 
+            'color_noincoming': '150150000', 
+            'color_nocomplete': '000000150', 
+            'color_good': '000150000', 
+            'color_stripe': '245245245', 
+            'display_interval': '0.8', 
+            'listfont': '', 
+            'diskfullthreshold': '0', 
+            'updatepeers_interval': '5',
+            'update_preference_interval': '36000',     # 
+#            'showmenuicons': '1',
+            'icons_toolbarbottom': [ACTION_MOVEUP, 
+                                    ACTION_MOVEDOWN, 
+                                    ACTION_MOVETOP, 
+                                    ACTION_MOVEBOTTOM, 
+                                    -1, 
+                                    ACTION_CLEARCOMPLETED, 
+                                    -1, 
+                                    ACTION_PAUSEALL, 
+                                    ACTION_STOPALL, 
+                                    ACTION_UNSTOPALL, 
+                                    -1], 
+            'icons_toolbartop': [ACTION_ADDTORRENT, 
+                                 ACTION_ADDTORRENTNONDEFAULT, 
+                                 ACTION_ADDTORRENTURL, 
+                                 -1, 
+                                 ACTION_RESUME, 
+                                 ACTION_PAUSE, 
+                                 ACTION_STOP, 
+                                 ACTION_QUEUE, 
+                                 ACTION_REMOVE, 
+                                 -1, 
+                                 ACTION_SCRAPE, 
+                                 ACTION_DETAILS,
+                                 -1,
+                                 ACTION_BUDDIES,
+                                 ACTION_FILES], 
+            'menu_listrightclick': [ACTION_RESUME, 
+                                    ACTION_STOP, 
+                                    ACTION_PAUSE, 
+                                    ACTION_QUEUE, 
+                                    ACTION_HASHCHECK, 
+                                    -1, 
+                                    ACTION_REMOVE, 
+                                    ACTION_REMOVEFILE, 
+                                    ACTION_EXPORTMENU, 
+                                    ACTION_CLEARMESSAGE, 
+                                    -1, 
+                                    ACTION_LOCALUPLOAD, 
+                                    ACTION_CHANGEPRIO, 
+                                    -1, 
+                                    ACTION_OPENFILEDEST, 
+                                    ACTION_OPENDEST, 
+                                    ACTION_CHANGEDEST, 
+                                    -1, 
+                                    ACTION_SCRAPE, 
+                                    ACTION_DETAILS],
+#            'skipcheck': '0'
         }
 
-        configfilepath = os.path.join(self.abcpath, "abc.conf")
+        configfilepath = os.path.join(self.getConfigPath(), "abc.conf")
         self.config = ConfigReader(configfilepath, "ABC", defaults)
 #        self.config = ConfigReader(configfilepath, "ABC")
 #        self.config.defaults = defaults
@@ -250,21 +335,40 @@ class Utility:
             'allow_setparam': '0', 
             'allow_getparam': '0', 
             'allow_queue': '1', 
-            'allow_pause': '1',
+            'allow_pause': '1', 
             'allow_stop': '1', 
             'allow_resume': '1', 
             'allow_setprio': '1', 
         }
 
-        webconfigfilepath = os.path.join(self.abcpath, "webservice.conf")
+        webconfigfilepath = os.path.join(self.getConfigPath(), "webservice.conf")
         self.webconfig = ConfigReader(webconfigfilepath, "ABC/Webservice", defaults)
-#        self.webconfig = ConfigReader(webconfigfilepath, "ABC/Webservice")
-#        self.webconfig.defaults = defaults
+
+    def setupTorrentMakerConfig(self):
+        defaults = {
+            'piece_size': '0', 
+            'comment': '', 
+            'created_by': '', 
+            'announcedefault': '', 
+            'announcehistory': '', 
+            'announce-list': '', 
+            'httpseeds': '', 
+            'makehash_md5': '0', 
+            'makehash_crc32': '0', 
+            'makehash_sha1': '0', 
+            'startnow': '0', 
+            'savetorrent': '2',
+            'createmerkletorrent': '0',
+            'createtorrentsig': '0'
+        }
+
+        torrentmakerconfigfilepath = os.path.join(self.getConfigPath(), "maker.conf")
+        self.makerconfig = ConfigReader(torrentmakerconfigfilepath, "ABC/TorrentMaker", defaults)
         
-    def setupTorrentList(self):        
-        torrentfilepath = os.path.join(self.abcpath, "torrent.list")
-        self.torrentconfig = ConfigReader(torrentfilepath, "dummygroup")
-        
+    def setupTorrentList(self):
+        torrentfilepath = os.path.join(self.getConfigPath(), "torrent.list")
+        self.torrentconfig = ConfigReader(torrentfilepath, "list0")
+               
     # Initialization that has to be done after the wx.App object
     # has been created
     def postAppInit(self):
@@ -272,6 +376,8 @@ class Utility:
             self.icon = wx.Icon(os.path.join(self.getPath(), 'icon_abc.ico'), wx.BITMAP_TYPE_ICO)
         except:
             pass
+            
+        makeActionList(self)
             
     def getLastDir(self, operation = "save"):
         lastdir = self.lastdir[operation]
@@ -291,7 +397,7 @@ class Utility:
     def eta_value(self, n, truncate = 3):
         if n == -1:
             return '<unknown>'
-        if n == 0:
+        if not n:
             return ''
         n = int(n)
         week, r1 = divmod(n, 60 * 60 * 24 * 7)
@@ -313,11 +419,11 @@ class Utility:
             if truncate > 1:
                 text += ":" + daystr
             if truncate > 2:
-                text += ":" + hourstr
+                text += "-" + hourstr
         elif day > 0:
             text = daystr
             if truncate > 1:
-                text += ":" + hourstr
+                text += "-" + hourstr
             if truncate > 2:
                 text += ":" + minutestr
         elif hour > 0:
@@ -333,7 +439,7 @@ class Utility:
 
         return  text
             
-    def getMetainfo(self, src, openoptions = 'rb', url = False):
+    def getMetainfo(self, src, openoptions = 'rb', style = "file"):
         if src is None:
             return None
         
@@ -341,7 +447,9 @@ class Utility:
         try:
             metainfo_file = None
             # We're getting a url
-            if (url):
+            if style == "rawdata":
+                return bdecode(src)
+            elif style == "url":
                 metainfo_file = urlopen(src)
             # We're getting a file that exists
             elif os.access(src, os.R_OK):
@@ -425,175 +533,9 @@ class Utility:
                               groupDigits = False, 
                               useFixedWidthFont = False, 
                               autoSize = autoSize)
-                              
-    def AddTorrentURL(self, url, caller=""):
-        self.utility = self
-        # Strip any leading/trailing spaces from the URL
-        url = url.strip()
-        
-        # Check to see if the url starts with http
-        #########################################
-        if not url.startswith("http://"):
-            if caller != "web":
-                dialog = wx.MessageDialog(None, self.utility.lang.get('startwithhttp'), 
-                                          self.utility.lang.get('error'), wx.ICON_ERROR)
-                dialog.ShowModal()
-                dialog.Destroy()
-                return
-            else:
-                return "Error=Torrent doesn't start with http"
-        
-        # Copy file from web and call addnewproc
-        #########################################
-        try:
-            url_splitted=urlsplit(url)
-            h = urlopen(urlunsplit([url_splitted[0], url_splitted[1], quote(unquote(url_splitted[2])), url_splitted[3], url_splitted[4]]))
-            
-            btmetafile = h.read()
-            h.close()
-        except :
-            if caller != "web":
-                #display error can't connect to server
-                dialog = wx.MessageDialog(None, self.utility.lang.get('cantgettorrentfromurl') + ":\n" + url, 
-                                      self.utility.lang.get('error'), wx.ICON_ERROR)
-                dialog.ShowModal()
-                dialog.Destroy()
-                return
-            return "Error=Can't get torrent from URL"
-
-        # Backup metainfo from URL to local directory
-        filename = os.path.split(stjoin([unquote(url_splitted[2]), url_splitted[3]], ''))[1]
-        # If the filename is blank, then don't continue
-        if filename == "":
-            if caller != "web":
-                dialog = wx.MessageDialog(None, self.utility.lang.get('failedinvalidtorrent') + ":\n" + url, 
-                                      self.utility.lang.get('error'), wx.ICON_ERROR)
-                dialog.ShowModal()
-                dialog.Destroy()
-                return
-            else:
-                return "Error=Invalid torrent file"
-            
-        torrentsrc = os.path.join(self.utility.getPath(), "torrent", filename)
-#        dotTorrentDuplicate = False
-
-        fileexists = os.access(torrentsrc, os.R_OK)
-
-        if not fileexists:
-            # Make torrent directory if necessary
-            self.MakeTorrentDir()
-
-            f = open(torrentsrc, "wb")
-            f.write(btmetafile)
-            f.close()
-        
-        # Torrent either already existed or should exist now
-        dotTorrentDuplicate = True
-        
-        return self.AddTorrentFromFile(torrentsrc, False, dotTorrentDuplicate, caller = caller)
-    
-    def AddTorrentLink(self, event):
-        self.utility = self
-        dialog = wx.TextEntryDialog(None, 
-                                    self.utility.lang.get('enterurl'), 
-                                    self.utility.lang.get('addtorrenturl_short'))
-
-        result = dialog.ShowModal()
-        btlink = dialog.GetValue()
-        dialog.Destroy()
-        
-        if result != wx.ID_OK:
-            return
-        
-        if btlink != "":
-            self.AddTorrentURL(btlink)
-
-    def AddTorrentNoneDefault(self, event):
-        self.AddTorrentFile(event, True)
-            
-    def AddTorrentFile(self, event, forceasklocation = False):
-        self.utility = self
-        dialog = wx.FileDialog(None, self.utility.lang.get('choosetorrentfile'), self.getLastDir("open"), '', '*.torrent', wx.OPEN|wx.MULTIPLE)
-        result = dialog.ShowModal()
-        dialog.Destroy()
-        if result != wx.ID_OK:
-            return
-        
-        filelocation = dialog.GetPaths()
-
-        for filepath in filelocation:
-            self.AddTorrentFromFile(filepath, forceasklocation)
-            
-    def AddTorrentFromFile(self, filepath, forceasklocation = False, dotTorrentDuplicate = False, caller = ""):
-        self.utility = self
-        # Check to make sure that the source file exists
-        sourcefileexists = os.access(filepath, os.R_OK)
-        
-        if not sourcefileexists:
-            if caller != "web":
-                dlg = wx.MessageDialog(None, filepath + '\n' +
-                                                    self.utility.lang.get('failedtorrentmissing'), self.utility.lang.get('error'), wx.OK|wx.ICON_ERROR)
-                result = dlg.ShowModal()
-                dlg.Destroy()
-            # What do we do if the source file doesn't exist?
-            # Just return if the source file doesn't exist?
-            return "Error=The source file for this torrent doesn't exist"
-
-        # Make torrent directory if necessary
-        self.MakeTorrentDir()
-      
-        torrentpath = os.path.join(self.utility.getPath(), "torrent")    
-        filename     = os.path.split(filepath)[1]
-        torrentsrc   = os.path.join(torrentpath, filename)
-        dontremove = False
-
-        fileexists = os.access(torrentsrc, os.R_OK)
-        if fileexists and not dotTorrentDuplicate:
-            if caller != "web":
-                # ignore if the src and dest files are the same
-                # this means that files in the torrent directory
-                # will only give a duplicate torrent error if
-                # they are already loaded in the list
-                # (dotTorrentDuplicate stays False and the check to
-                #  see if it's in the list is performed in addNewProc)
-                ##############################################
-                if (filepath == torrentsrc):
-                    # If addNewProc finds that the torrent is already in the proctab,
-                    # we don't want to remove it otherwise the torrent that is running
-                    # will be in trouble
-                    dontremove = True
-                else:
-                    # There is a duplicate .torrent file in /torrent
-                    dialog = wx.MessageDialog(None, self.utility.lang.get('duplicatetorrentmsg') , self.utility.lang.get('duplicatetorrent'), wx.YES_NO|wx.ICON_EXCLAMATION)
-                    result = dialog.ShowModal()
-                    dialog.Destroy()
-                    if(result == wx.ID_NO):
-                        return "Error=This torrent is duplicate"
-                    else:
-                        dotTorrentDuplicate = True
-            else:
-                return "Error=This torrent is duplicate"
-        else:
-            # Either:
-            # dotTorrentDuplicate was False and the file didn't exist (no change)
-            # dotTorrentDuplicate was True before when coming from AddTorrentURL (still need to check the list)
-            dotTorrentDuplicate = False
-
-        # No need to copy if we're just copying the file onto itself
-        if (filepath != torrentsrc):
-            copyfile(filepath, torrentsrc)
-        success, mesg, ABCTorrent = self.utility.queue.addNewProc(torrentsrc, 
-                                                                  forceasklocation = forceasklocation, 
-                                                                  dotTorrentDuplicate = dotTorrentDuplicate, 
-                                                                  dontremove = dontremove, 
-                                                                  caller = caller)
-        if success:
-            return "OK"
-        else:
-            return "Error="+mesg
             
     def MakeTorrentDir(self):
-        torrentpath = os.path.join(self.utility.getPath(), "torrent")
+        torrentpath = os.path.join(self.getConfigPath(), "torrent")
         pathexists = os.access(torrentpath, os.F_OK)
         # If the torrent directory doesn't exist, create it now
         if not pathexists:
@@ -608,11 +550,11 @@ class Utility:
 
                     # Only try to delete if it exists
                     if os.access(dirname, os.F_OK):
-                        if len(os.listdir(dirname)) == 0:
+                        if not os.listdir(dirname):
                             os.rmdir(dirname)
         #remove folder
         if os.access(basedir, os.F_OK):
-            if len(os.listdir(basedir)) == 0:
+            if not os.listdir(basedir):
                 os.rmdir(basedir)
         
     def makeBitmap(self, bitmap, trans_color = wx.Colour(200, 200, 200)):
@@ -620,3 +562,223 @@ class Utility:
         button_mask = wx.Mask(button_bmp, trans_color)
         button_bmp.SetMask(button_mask)
         return button_bmp
+
+    def makeBitmapButton(self, parent, bitmap, tooltip, event, trans_color = wx.Colour(200, 200, 200)):
+        tooltiptext = self.lang.get(tooltip)
+        
+        button_bmp = self.makeBitmap(bitmap, trans_color)
+        
+        ID_BUTTON = wx.NewId()
+        button_btn = wx.BitmapButton(parent, ID_BUTTON, button_bmp, size=wx.Size(button_bmp.GetWidth()+18, button_bmp.GetHeight()+4))
+        button_btn.SetToolTipString(tooltiptext)
+        parent.Bind(wx.EVT_BUTTON, event, button_btn)
+        return button_btn
+       
+    def getBTParams(self, skipcheck = False):
+        # Construct BT params
+        ###########################
+        btparams = []
+        
+        btparams.append("--display_interval")
+        btparams.append(self.config.Read('display_interval'))
+        
+        # Use single port only
+        btparams.append("--minport")
+        btparams.append(self.config.Read('minport'))
+        btparams.append("--maxport")
+        btparams.append(self.config.Read('minport'))
+        
+#        btparams.append("--random_port")
+#        btparams.append(self.config.Read('randomport'))
+        
+        #if self.config.Read('ipv6') == "1":
+        #    btparams.append("--ipv6_enable")
+        #    btparams.append(self.config.Read('ipv6'))
+        #    btparams.append("--ipv6_binds_v4")
+        #    btparams.append(self.config.Read('ipv6_binds_v4'))
+        
+        # Fast resume
+        btparams.append("--selector_enabled")
+        btparams.append(self.config.Read('fastresume'))
+        
+        btparams.append("--auto_kick")
+        btparams.append(self.config.Read('kickban'))
+        btparams.append("--security")
+        btparams.append(self.config.Read('notsameip'))
+
+        btparams.append("--max_upload_rate")
+        btparams.append("0")
+               
+        paramlist = [ "ip", 
+                      "bind", 
+                      "alloc_rate", 
+                      "alloc_type", 
+                      "double_check", 
+                      "triple_check", 
+                      "lock_while_reading", 
+                      "lock_files", 
+                      "min_peers", 
+                      "max_files_open", 
+                      "max_connections", 
+                      "upnp_nat_access", 
+                      "auto_flush" ]
+        for param in paramlist:
+            value = self.config.Read(param)
+            if value != "":
+                btparams.append("--" + param)
+                btparams.append(value)
+
+        config, args = parseargs(btparams, BTDefaults)
+            
+        return config
+
+    # Check if str is a valid Windows file name (or unit name if unit is true)
+    # If the filename isn't valid: returns a fixed name
+    # If the filename is valid: returns an empty string
+    def fixWindowsName(self, name, unit = False):        
+        if unit and (len(name) != 2 or name[1] != ':'):
+            return 'c:'
+        if not name or name == '.' or name == '..':
+            return '_'
+        if unit:
+            name = name[0]
+        fixed = False
+        if len(name) > 250:
+            name = name[:250]
+            fixed = True
+        fixedname = ''
+        spaces = 0
+        for c in name:
+            if c in self.invalidwinfilenamechar:
+                fixedname += '_'
+                fixed = True
+            else:
+                fixedname += c
+                if c == ' ':
+                    spaces += 1
+        if fixed:
+            return fixedname
+        elif spaces == len(name):
+            # contains only spaces
+            return '_'
+        else:
+            return ''
+
+    def checkWinPath(self, parent, pathtocheck):
+        if pathtocheck and pathtocheck[-1] == '\\' and pathtocheck != '\\\\':
+            pathitems = pathtocheck[:-1].split('\\')
+        else:
+            pathitems = pathtocheck.split('\\')
+        nexttotest = 1
+        if self.isPathRelative(pathtocheck):
+            # Relative path
+            # Empty relative path is allowed
+            if pathtocheck == '':
+                return True
+            fixedname = self.fixWindowsName(pathitems[0])
+            if fixedname:
+                dlg = wx.MessageDialog(parent, 
+                                       pathitems[0] + '\n' + \
+                                       self.lang.get('invalidwinname') + '\n'+ \
+                                       self.lang.get('suggestedname') + '\n\n' + \
+                                       fixedname, 
+                                       self.lang.get('error'), wx.ICON_ERROR)
+                dlg.ShowModal()
+                dlg.Destroy()
+                return False
+        else:
+            # Absolute path
+            # An absolute path must have at least one '\'
+            if not '\\' in pathtocheck:
+                dlg = wx.MessageDialog(parent, pathitems[0] + '\n' + self.lang.get('errorinvalidpath'), 
+                                       self.lang.get('error'), wx.ICON_ERROR)
+                dlg.ShowModal()
+                dlg.Destroy()
+                return False
+            if pathtocheck[:2] != '\\\\':
+                # Not a network path
+                fixedname = self.fixWindowsName(pathitems[0], unit = True)
+                if fixedname:
+                    dlg = wx.MessageDialog(parent, 
+                                           pathitems[0] + '\n' + \
+                                           self.lang.get('invalidwinname') + \
+                                           fixedname, 
+                                           self.lang.get('error'), wx.ICON_ERROR)
+                    dlg.ShowModal()
+                    dlg.Destroy()
+                    return False
+            else:
+                # Network path
+                nexttotest = 2
+
+        for name in pathitems[nexttotest:]:
+            fixedname = self.fixWindowsName(name)
+            if fixedname:
+                dlg = wx.MessageDialog(parent, name + '\n' + self.lang.get('errorinvalidwinname') + fixedname, 
+                                       self.lang.get('error'), wx.ICON_ERROR)
+                dlg.ShowModal()
+                dlg.Destroy()
+                return False
+
+        return True
+
+    def isPathRelative(self, path):
+        if len(path) < 2 or path[1] != ':' and path[:2] != '\\\\':
+            return True
+        return False
+
+    # Get a dictionary with information about a font
+    def getInfoFromFont(self, font):
+        default = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
+        
+        try:
+            if font.Ok():
+                font_to_use = font
+            else:
+                font_to_use = default
+        
+            fontname = font_to_use.GetFaceName()
+            fontsize = font_to_use.GetPointSize()
+            fontstyle = font_to_use.GetStyle()
+            fontweight = font_to_use.GetWeight()
+                
+            fontinfo = {'name': fontname, 
+                        'size': fontsize, 
+                        'style': fontstyle, 
+                        'weight': fontweight }
+        except:
+            fontinfo = {'name': "", 
+                        'size': 8, 
+                        'style': wx.FONTSTYLE_NORMAL, 
+                        'weight': wx.FONTWEIGHT_NORMAL }
+    
+        return fontinfo
+
+            
+    def getFontFromInfo(self, fontinfo):
+        size = fontinfo['size']
+        name = fontinfo['name']
+        style = fontinfo['style']        
+        weight = fontinfo['weight']
+                
+        try:
+            font = wx.Font(size, wx.DEFAULT, style, weight, faceName = name)
+        except:
+            font = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
+        
+        return font
+
+    # Make an entry for a popup menu
+    def makePopup(self, menu, event = None, label = "", extralabel = "", bindto = None):
+        text = ""
+        if label != "":
+            text = self.lang.get(label)
+        text += extralabel
+        
+        newid = wx.NewId()
+        if event is not None:
+            if bindto is None:
+                bindto = menu
+            bindto.Bind(wx.EVT_MENU, event, id = newid)
+        menu.Append(newid, text)
+        return newid

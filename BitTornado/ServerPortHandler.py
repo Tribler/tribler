@@ -2,16 +2,32 @@
 # see LICENSE.txt for license information
 
 from cStringIO import StringIO
+from binascii import b2a_hex, b2a_uu 
 #from RawServer import RawServer
+from sha import sha
 try:
     True
 except:
     True = 1
     False = 0
 
-from BT1.Encrypter import protocol_name
+# 2fastbt_
+from BT1.Encrypter import protocol_name, control_option_pattern
+from toofastbt.Logger import get_logger
+# _2fastbt
+from overlayswarm import OverlaySwarm
+
+def toint(s):
+    return long(b2a_hex(s), 16)
 
 default_task_id = []
+
+DEBUG = False
+
+def show(s):
+    for i in xrange(len(s)): 
+        print ord(s[i]),
+    print
 
 class SingleRawServer:
     def __init__(self, info_hash, multihandler, doneflag, protocol):
@@ -74,7 +90,6 @@ class SingleRawServer:
     def get_exception_flag(self):
         return self.rawserver.get_exception_flag()
 
-
 class NewSocketHandler:     # hand a new socket off where it belongs
     def __init__(self, multihandler, connection):
         self.multihandler = multihandler
@@ -95,7 +110,6 @@ class NewSocketHandler:     # hand a new socket off where it belongs
             self.connection.close()
             self.closed = True
 
-        
 #   header format:
 #        connection.write(chr(len(protocol_name)) + protocol_name + 
 #            (chr(0) * 8) + self.encrypter.download_id + self.encrypter.my_id)
@@ -112,6 +126,11 @@ class NewSocketHandler:     # hand a new socket off where it belongs
 
     def read_reserved(self, s):
         self.options = s
+# 2fastbt_
+#        get_logger().log(3, "serverporthandler.newsockethandler socket: '" +
+#            str(self.connection.socket.fileno()) + "' options: '" + 
+#            self.options + "'")
+# _2fastbt
         return 20, self.read_download_id
 
     def read_download_id(self, s):
@@ -120,8 +139,13 @@ class NewSocketHandler:     # hand a new socket off where it belongs
                 return True
         return None
 
+    def read_dead(self, s):
+        return None
+
     def data_came_in(self, garbage, s):
-        while True:
+#        if DEBUG:
+#            print "NewSocketHandler data came in", sha(s).hexdigest()
+        while 1:
             if self.closed:
                 return
             i = self.next_len - self.buffer.tell()

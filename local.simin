@@ -1,0 +1,40 @@
+# global options
+software_dir = /home/pawel/phd/soft/abc310
+python = /home/pawel/phd/soft/install_abc/usr/local/bin/python
+simulation_dir = /home/pawel/2fast_simulation/work
+screen_executable = /usr/bin/screen -m -d
+screen_command_wrapper = /home/pawel/2fast_simulation/control/screen_cmd.sh
+killall_executable = /usr/bin/killall screen
+torrent_file = /home/pawel/data/torrents/local_70M.torrent
+mode = active
+superpeer_file = superpeer.txt
+
+# poisson simulation parameters
+# lambda = 0.016
+lambda = 0.05
+n_bootstrapping_phases = 300
+
+# coordinator related options
+coordinator_executable = btlaunchmany.py
+coordinator_fixed_params = --role coordinator --rerequest_interval 10 --min_peers 200 --security 0
+# coordinator_exclude_ips = 130.161.211.191
+coordinator_max_upload_rate = 64
+coordinator_max_download_rate = 256
+# coordinator_max_upload_rate = 512
+# coordinator_max_download_rate = 2048
+
+# helper related options
+n_helpers = 9
+helper_executable = btlaunchmany.py
+helper_fixed_params = --rerequest_interval 10 --min_peers 200 --security 0
+# helper_exclude_ips = 130.161.211.191
+helper_max_upload_rate = 64
+helper_max_download_rate = 256
+
+# original client related options
+n_originals = 300
+original_executable = btlaunchmany.py
+original_fixed_params = --rerequest_interval 10 --min_peers 200 --security 0
+# original_exclude_ips = 130.161.211.191
+original_max_upload_rate = 64
+original_max_download_rate = 256

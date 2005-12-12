@@ -4,10 +4,9 @@ set PYTHONPATH="C:\Python24"
 set NSIS="C:\Program Files\NSIS\makensis.exe"
 set IMGCFG="C:\Program Files\Imagecfg\imagecfg.exe"
 
-%PYTHONPATH%\python.exe -OO setupabc.py py2exe
+%PYTHONPATH%\python.exe setupabc.py py2exe
+REM copy %PYTHONPATH%\msvcr71.dll dist\abc
 copy %PYTHONPATH%\msvcp71.dll dist\abc
-copy %PYTHONPATH%\msvcr71.dll dist\abc
-mkdir dist\abc\torrent
 mkdir dist\abc\icons
 copy icons\*.bmp dist\abc\icons
 mkdir dist\abc\lang

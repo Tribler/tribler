@@ -1,8 +1,6 @@
 # Written by Bram Cohen
 # see LICENSE.txt for license information
 
-from cStringIO import StringIO
-from urllib import quote
 from threading import Event
 
 try:
@@ -14,7 +12,7 @@ except:
 class DownloaderFeedback:
     def __init__(self, choker, httpdl, add_task, upfunc, downfunc,
             ratemeasure, leftfunc, file_length, finflag, sp, statistics,
-            statusfunc = None, interval = None):
+            statusfunc = None, interval = None, infohash = None):
         self.choker = choker
         self.httpdl = httpdl
         self.add_task = add_task
@@ -28,6 +26,7 @@ class DownloaderFeedback:
         self.statistics = statistics
         self.lastids = []
         self.spewdata = None
+        self.infohash = infohash
         self.doneprocessing = Event()
         self.doneprocessing.set()
         if statusfunc:
@@ -46,15 +45,24 @@ class DownloaderFeedback:
         l = []
         cs = self._rotate()
         self.lastids = [c.get_id() for c in cs]
-        for c in cs:
+        for c in cs:    # c: Connecter.Connection
             a = {}
             a['id'] = c.get_readable_id()
             a['ip'] = c.get_ip()
+            if c.is_locally_initiated():
+                a['port'] = c.get_port()
+            else:
+                a['port'] = 0
             a['optimistic'] = (c is self.choker.connections[0])
             if c.is_locally_initiated():
                 a['direction'] = 'L'
             else:
                 a['direction'] = 'R'
+#            if c.get_peer_authenticated():
+#                a['permid'] = c.get_peer_permid()
+#            else:
+#                a['permid'] = None
+            a['permid'] = c.get_permid()
             u = c.get_upload()
             a['uprate'] = int(u.measure.get_rate())
             a['uinterested'] = u.is_interested()
@@ -66,7 +74,7 @@ class DownloaderFeedback:
             a['snubbed'] = d.is_snubbed()
             a['utotal'] = d.connection.upload.measure.get_total()
             a['dtotal'] = d.connection.download.measure.get_total()
-            if len(d.connection.download.have) > 0:
+            if d.connection.download.have:
                 a['completed'] = float(len(d.connection.download.have)-d.connection.download.have.numfalse)/float(len(d.connection.download.have))
             else:
                 a['completed'] = 1.0
@@ -129,19 +137,19 @@ class DownloaderFeedback:
         self.doneprocessing.clear()
         stats = self.gather()
         if self.finflag.isSet():
-            displayfunc(dpflag = self.doneprocessing,
-                upRate = stats['up'],
+            displayfunc(dpflag = self.doneprocessing, 
+                upRate = stats['up'], 
                 statistics = stats['stats'], spew = stats['spew'])
         elif stats['time'] is not None:
-            displayfunc(dpflag = self.doneprocessing,
-                fractionDone = stats['frac'], sizeDone = stats['done'],
-                downRate = stats['down'], upRate = stats['up'],
-                statistics = stats['stats'], spew = stats['spew'],
+            displayfunc(dpflag = self.doneprocessing, 
+                fractionDone = stats['frac'], sizeDone = stats['done'], 
+                downRate = stats['down'], upRate = stats['up'], 
+                statistics = stats['stats'], spew = stats['spew'], 
                 timeEst = stats['time'])
         else:
-            displayfunc(dpflag = self.doneprocessing,
-                fractionDone = stats['frac'], sizeDone = stats['done'],
-                downRate = stats['down'], upRate = stats['up'],
+            displayfunc(dpflag = self.doneprocessing, 
+                fractionDone = stats['frac'], sizeDone = stats['done'], 
+                downRate = stats['down'], upRate = stats['up'], 
                 statistics = stats['stats'], spew = stats['spew'])
 
 

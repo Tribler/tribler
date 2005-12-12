@@ -1,23 +1,49 @@
-import os
 import sys
 import wx
+import os
 
-from string import lower
-from traceback import print_exc
-from cStringIO import StringIO
 from ConfigParser import ConfigParser, MissingSectionHeaderError, NoSectionError
 
+from BitTornado.bencode import bencode, bdecode
+
+################################################################
+#
+# Class: ConfigReader
+#
+# Extension of ConfigParser that supports various types of
+# config values.  Values are converted to strings when writing
+# and back into their respective types when reading.
+#
+################################################################
 class ConfigReader(ConfigParser):
-    def __init__(self, filename, section, defaults = {}):
-#        if defaults is None:
-#            ConfigParser.__init__(self)
-#        else:
-#            ConfigParser.__init__(self, defaults)
+    def __init__(self, filename, section, defaults = None):
+        if defaults is None:
+            defaults = {}
+            
         ConfigParser.__init__(self)
         self.defaults = defaults
 
+        self.defaultvalues = { "string"  : "",
+                               "int"     : 0,
+                               "float"   : 0.0,
+                               "boolean" : False,
+                               "color"   : wx.Colour(0, 0, 0),
+                               "bencode-list" : [],
+                               "bencode-string": "",
+                               "bencode-fontinfo": {'name': None,
+                                                    'size': None,
+                                                    'style': None,
+                                                    'weight': None }
+                              }
+
         self.filename = filename
         self.section = section
+        
+        # If the directory for this file doesn't exist,
+        # try creating it now
+        dirname = os.path.dirname(self.filename)
+        if not os.access(dirname, os.F_OK):
+            os.makedirs(dirname)
         
         try:
             self.read(self.filename)
@@ -37,44 +63,41 @@ class ConfigReader(ConfigParser):
             
     def setSection(self, section):
         self.section = section
+
+    def ValueToString(self, value, type):
+        if type == "boolean":
+            if value:
+                text = "1"
+            else:
+                text = "0"
+        elif type == "color":
+            red = str(value.Red())
+            while len(red) < 3:
+                red = "0" + red
+
+            green = str(value.Green())            
+            while len(green) < 3:
+                green = "0" + green
+                
+            blue = str(value.Blue())            
+            while len(blue) < 3:
+                blue = "0" + blue
+
+            text = str(red) + str(green) + str(blue)
+        elif type.startswith("bencode"):
+            text = bencode(value)
+        else:
+            text = str(value)
         
-    def Read(self, param, type = "string", section = None):
-        if section is None:
-            section = self.section
-            
-        if param is None or param == "":
-            return ""
+        return text
 
-        defaults = { "string"  : "",
-                     "int"     : 0,
-                     "float"   : 0.0,
-                     "boolean" : False }
-                     
-        value = defaults[type]
-            
-        try:
-            value = self.get(section, param)
-            value = value.strip("\"")
-            value = value.strip("'")
+    def StringToValue(self, value, type):
+        # Assume that the value is already in the proper form
+        # if it's not a string
+        # (the case for some defaults)
+        if value is not None and not isinstance(value, str):
+            return value
 
-#            if self.has_option(section, param):
-#                value = self.get(section, param)
-#                value = value.strip("\"")
-#                value = value.strip("'")
-#            else:
-#                param = lower(param)
-#                if self.defaults.has_key(param):
-#                    value = self.defaults[param]
-        except:
-            param = lower(param)
-            if self.defaults.has_key(param):
-                value = self.defaults[param]
-#            sys.stderr.write("Error while reading parameter: (" + str(param) + ")\n")
-#            data = StringIO()
-#            print_exc(file = data)
-#            sys.stderr.write(data.getvalue())
-            pass
-            
         try:
             if type == "boolean":
                 if value == "1":
@@ -85,8 +108,58 @@ class ConfigReader(ConfigParser):
                 value = int(value)
             elif type == "float":
                 value = float(value)
+            elif type == "color":
+                red = int(value[0:3])
+                green = int(value[3:6])
+                blue = int(value[6:9])
+                value = wx.Colour(red, green, blue)
+            elif type.startswith("bencode"):
+                value = bdecode(value)
+        except:           
+            value = None
+            
+        if value is None:
+            value = self.defaultvalues[type]
+        
+        return value
+
+    def ReadDefault(self, param, type = "string", section = None):
+        if section is None:
+            section = self.section
+
+        if param is None or param == "":
+            return ""
+
+        param = param.lower()
+        value = self.defaults.get(param, None)
+            
+        value = self.StringToValue(value, type)
+            
+        return value
+        
+    def Read(self, param, type = "string", section = None):
+        if section is None:
+            section = self.section
+            
+        if param is None or param == "":
+            return ""
+
+#        value = None
+
+        try:
+            value = self.get(section, param)
+            value = value.strip("\"")
+#            value = value.strip("'")
         except:
-            value = defaults[type]
+            param = param.lower()
+            value = self.defaults.get(param, None)
+#            sys.stderr.write("Error while reading parameter: (" + str(param) + ")\n")
+#            data = StringIO()
+#            print_exc(file = data)
+#            sys.stderr.write(data.getvalue())
+            pass
+
+        value = self.StringToValue(value, type)
            
         return value
         
@@ -96,6 +169,22 @@ class ConfigReader(ConfigParser):
             
         return self.has_option(section, param)
         
+    def Items(self, section = None):
+        if section is None:
+            section = self.section
+        
+        try:
+            items = self.items(section)
+            for i in range(len(items)):
+                (key, value) = items[i]
+                value = value.strip("\"")
+#                value = value.strip("'")
+                items[i] = (key, value)
+            return items
+        except:
+            self.add_section(section)
+        return []
+        
     def Write(self, param, value, type = "string", section = None):
         if section is None:
             section = self.section
@@ -103,20 +192,14 @@ class ConfigReader(ConfigParser):
         if param is None or param == "":            
             return False
         
-        param = lower(param)
+        param = param.lower()
             
         if not self.has_section(section):
             self.add_section(section)
                
-        if type == "boolean":
-            if value:
-                text = "1"
-            else:
-                text = "0"
-        else:
-            text = str(value)
+        text = self.ValueToString(value, type)
 
-        while True:
+        while 1:
             try:
                 oldtext = self.Read(param)
                 
@@ -141,7 +224,7 @@ class ConfigReader(ConfigParser):
     def DeleteEntry(self, param, section = None):
         if section is None:
             section = self.section
-        
+               
         try:
             return self.remove_option(section, param)
         except:
@@ -156,5 +239,5 @@ class ConfigReader(ConfigParser):
         except:
             return False
         
-    def Flush(self):
+    def Flush(self):        
         self.write(open(self.filename, "w"))

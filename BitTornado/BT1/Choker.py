@@ -3,6 +3,9 @@
 
 from random import randrange, shuffle
 from BitTornado.clock import clock
+# 2fastbt_
+from toofastbt.Logger import get_logger
+# _2fastbt
 try:
     True
 except:
@@ -56,6 +59,16 @@ class Choker:
         self._rechoke()
 
     def _rechoke(self):
+# 2fastbt_
+        helper = self.picker.helper
+        if helper is not None and helper.coordinator is None and helper.is_complete():
+            for c in self.connections:
+                if not c.connection.is_coordinator_con():
+                    u = c.get_upload()
+                    u.choke()
+            return
+# _2fastbt
+
         preferred = []
         maxuploads = self.config['max_uploads']
         if self.paused:
@@ -93,7 +106,12 @@ class Choker:
                         count += 1
                         hit = True
                 else:
-                    u.choke()
+# 2fastbt_
+                    if not c.connection.is_coordinator_con() and not c.connection.is_helper_con():
+                        u.choke()
+                    elif u.is_choked():
+                        to_unchoke.append(u)
+# _2fastbt
         for u in to_unchoke:
             u.unchoke()
 

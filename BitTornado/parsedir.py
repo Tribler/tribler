@@ -2,7 +2,6 @@
 # see LICENSE.txt for license information
 from bencode import bencode, bdecode
 from BT1.btformats import check_info
-from os.path import exists, isfile
 from sha import sha
 import sys, os
 
@@ -51,7 +50,7 @@ def parsedir(directory, parsed, files, blocked,
     removed = {}
     # files[path] = [(modification_time, size), hash], hash is 0 if the file
     # has not been successfully parsed
-    for p,v in new_files.items():   # re-add old items and check for changes
+    for p, v in new_files.items():   # re-add old items and check for changes
         oldval = files.get(p)
         if not oldval:          # new file
             to_add.append(p)
@@ -76,7 +75,7 @@ def parsedir(directory, parsed, files, blocked,
     to_add.sort()
     for p in to_add:                # then, parse new and changed torrents
         new_file = new_files[p]
-        v,h = new_file
+        v, h = new_file
         if new_parsed.has_key(h): # duplicate
             if not blocked.has_key(p) or files[p][0] != v:
                 errfunc('**warning** '+
@@ -107,7 +106,7 @@ def parsedir(directory, parsed, files, blocked,
             l = 0
             nf = 0
             if i.has_key('length'):
-                l = i.get('length',0)
+                l = i.get('length', 0)
                 nf = 1
             elif i.has_key('files'):
                 for li in i['files']:
@@ -138,7 +137,7 @@ def parsedir(directory, parsed, files, blocked,
         new_parsed[h] = a
         added[h] = a
 
-    for p,v in files.items():       # and finally, mark removed torrents
+    for p, v in files.items():       # and finally, mark removed torrents
         if not new_files.has_key(p) and not blocked.has_key(p):
             if NOISY:
                 errfunc('removing '+p)

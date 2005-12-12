@@ -3,6 +3,11 @@
 
 from random import randrange, shuffle
 from BitTornado.clock import clock
+# 2fastbt_
+from toofastbt.Logger import get_logger
+from sys import exc_info
+from traceback import extract_tb
+# _2fastbt
 try:
     True
 except:
@@ -10,9 +15,11 @@ except:
     False = 0
 
 class PiecePicker:
+# 2fastbt_
     def __init__(self, numpieces,
                  rarest_first_cutoff = 1, rarest_first_priority_cutoff = 3,
-                 priority_step = 20):
+                 priority_step = 20, helper = None, rate_predictor = None):
+# _2fastbt
         self.rarest_first_cutoff = rarest_first_cutoff
         self.rarest_first_priority_cutoff = rarest_first_priority_cutoff + priority_step
         self.priority_step = priority_step
@@ -32,6 +39,10 @@ class PiecePicker:
         self.seed_time = None
         self.superseed = False
         self.seeds_connected = 0
+# 2fastbt_
+        self.helper = helper
+        self.rate_predictor = rate_predictor
+# _2fastbt
         self._init_interests()
 
     def _init_interests(self):
@@ -43,7 +54,6 @@ class PiecePicker:
         for i in xrange(self.numpieces):
             self.pos_in_interests[interests[i]] = i
         self.interests.append(interests)
-
 
     def got_have(self, piece):
         self.totalcount+=1
@@ -110,10 +120,9 @@ class PiecePicker:
             l2[newp] = piece
             parray[piece] = newp
 
-
     def got_seed(self):
         self.seeds_connected += 1
-        self.cutoff = max(self.rarest_first_priority_cutoff-self.seeds_connected,0)
+        self.cutoff = max(self.rarest_first_priority_cutoff-self.seeds_connected, 0)
 
     def became_seed(self):
         self.got_seed()
@@ -128,8 +137,7 @@ class PiecePicker:
 
     def lost_seed(self):
         self.seeds_connected -= 1
-        self.cutoff = max(self.rarest_first_priority_cutoff-self.seeds_connected,0)
-
+        self.cutoff = max(self.rarest_first_priority_cutoff-self.seeds_connected, 0)
 
     def requested(self, piece):
         if piece not in self.started:
@@ -165,14 +173,17 @@ class PiecePicker:
             self.crosscount2[numhaves+1] += 1
         self._remove_from_interests(piece)
 
-
-    def next(self, haves, wantfunc, complete_first = False):
+# 2fastbt_
+    def _next(self, haves, wantfunc, complete_first, helper_con):
+# _2fastbt
         cutoff = self.numgot < self.rarest_first_cutoff
         complete_first = (complete_first or cutoff) and not haves.complete()
         best = None
         bestnum = 2 ** 30
         for i in self.started:
-            if haves[i] and wantfunc(i):
+# 2fastbt_
+            if haves[i] and wantfunc(i) and (self.helper is None or helper_con or not self.helper.is_ignored(i)):
+# _2fastbt
                 if self.level_in_interests[i] < bestnum:
                     best = i
                     bestnum = self.level_in_interests[i]
@@ -180,21 +191,43 @@ class PiecePicker:
             if complete_first or (cutoff and len(self.interests) > self.cutoff):
                 return best
         if haves.complete():
-            r = [ (0, min(bestnum,len(self.interests))) ]
+            r = [ (0, min(bestnum, len(self.interests))) ]
         elif cutoff and len(self.interests) > self.cutoff:
-            r = [ (self.cutoff, min(bestnum,len(self.interests))),
+            r = [ (self.cutoff, min(bestnum, len(self.interests))),
                       (0, self.cutoff) ]
         else:
-            r = [ (0, min(bestnum,len(self.interests))) ]
-        for lo,hi in r:
-            for i in xrange(lo,hi):
+            r = [ (0, min(bestnum, len(self.interests))) ]
+        for lo, hi in r:
+            for i in xrange(lo, hi):
                 for j in self.interests[i]:
-                    if haves[j] and wantfunc(j):
+# 2fastbt_
+                    if haves[j] and wantfunc(j) and (self.helper is None or helper_con or not self.helper.is_ignored(j)):
+# _2fastbt
                         return j
         if best is not None:
             return best
         return None
 
+# 2fastbt_
+    def next(self, haves, wantfunc, complete_first = False, helper_con = False):
+#        try:
+        while True:
+            piece = self._next(haves, wantfunc, complete_first, helper_con)
+            if piece is None:
+                break
+            if self.helper is None or helper_con or self.helper.reserve_piece(piece):
+                return piece
+        if self.rate_predictor is None or not self.rate_predictor.has_capacity():
+            return None
+        else:
+            return self._next(haves, wantfunc, complete_first, True)
+#        except:
+#            get_logger().log(3, "piecepicker.piecepicker: EXCEPTION in next: " + 
+#                str(exc_info()[0]) + str(exc_info()[1]) + str(extract_tb(exc_info()[2])))
+
+    def set_rate_predictor(self, rate_predictor):
+        self.rate_predictor = rate_predictor
+# _2fastbt
 
     def am_I_complete(self):
         return self.done
@@ -204,7 +237,7 @@ class PiecePicker:
         pos = self.pos_in_interests[piece]
         del l[pos]
         l.append(piece)
-        for i in range(pos,len(l)):
+        for i in range(pos, len(l)):
             self.pos_in_interests[l[i]] = i
         try:
             self.started.remove(piece)
@@ -294,7 +327,7 @@ class PiecePicker:
                     self.level_in_interests[piece] += 1  # tweak it up one, so you don't duplicate effort
                     if seedint == len(self.interests) - 1:
                         self.interests.append([])
-                    self._shift_over(piece,
+                    self._shift_over(piece, 
                                 self.interests[seedint], self.interests[seedint + 1])
                     self.seed_got_haves[piece] = 0       # reset this
                     self.seed_connections[connection] = piece

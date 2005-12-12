@@ -38,13 +38,13 @@ def formatDefinitions(options, COLS, presets = {}):
                 pass
         if default is not None:
             doc += ' (defaults to ' + repr(default) + ')'
-        s.write(splitLine(doc,COLS,10))
+        s.write(splitLine(doc, COLS, 10))
         s.write('\n\n')
     return s.getvalue()
 
 
-def usage(str):
-    raise ValueError(str)
+def usage(string):
+    raise ValueError(string)
 
 
 def defaultargs(options):

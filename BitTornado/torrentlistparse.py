@@ -17,7 +17,7 @@ def parsetorrentlist(filename, parsed):
     added = {}
     removed = parsed
     f = open(filename, 'r')
-    while True:
+    while 1:
         l = f.readline()
         if not l:
             break

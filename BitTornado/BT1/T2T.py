@@ -5,7 +5,6 @@ from Rerequester import Rerequester
 from urllib import quote
 from threading import Event
 from random import randrange
-from string import lower
 import sys
 import __init__
 try:
@@ -14,7 +13,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = True
+DEBUG = False
 
 
 def excfunc(x):
@@ -96,7 +95,7 @@ class T2TConnection:
             self.deactivate()
             self.disallow(self.tracker)   # signal other torrents on this tracker
             return
-        if lower(r[:8]) == 'rejected': # tracker rejected this particular torrent
+        if r[:8].lower() == 'rejected': # tracker rejected this particular torrent
             self.rejected += 1
             if self.rejected == 3:     # rejected 3 times
                 if DEBUG:

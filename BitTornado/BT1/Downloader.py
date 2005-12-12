@@ -5,6 +5,9 @@ from BitTornado.CurrentRateMeasure import Measure
 from BitTornado.bitfield import Bitfield
 from random import shuffle
 from BitTornado.clock import clock
+# 2fastbt_
+from toofastbt.Logger import get_logger
+# _2fastbt
 try:
     True
 except:
@@ -66,13 +69,16 @@ class SingleDownload:
         self.backlog = 2
         self.ip = connection.get_ip()
         self.guard = BadDataGuard(self)
+# 2fastbt_
+        self.helper = downloader.picker.helper
+# _2fastbt
 
     def _backlog(self, just_unchoked):
-        self.backlog = min(
+        self.backlog = int(min(
             2+int(4*self.measure.get_rate()/self.downloader.chunksize),
-            (2*just_unchoked)+self.downloader.queue_limit() )
+            (2*just_unchoked)+self.downloader.queue_limit() ))
         if self.backlog > 50:
-            self.backlog = max(50, self.backlog * 0.075)
+            self.backlog = int(max(50, self.backlog * 0.075))
         return self.backlog
     
     def disconnected(self):
@@ -143,46 +149,78 @@ class SingleDownload:
             self.interested = False
             self.connection.send_not_interested()
 
-    def got_piece(self, index, begin, piece):
+    def got_piece(self, index, begin, hashlist, piece):
         length = len(piece)
         try:
             self.active_requests.remove((index, begin, length))
         except ValueError:
+# 2fastbt_
+###            if self.helper is not None and self.helper.coordinator is not None:
+###                self.downloader.storage.new_request(index)
+###            else:
+# _2fastbt
             self.downloader.discarded += length
             return False
         if self.downloader.endgamemode:
+# 2fastbt_
+###            try:
             self.downloader.all_requests.remove((index, begin, length))
+###            except ValueError, e:
+###                if self.helper is None or self.helper.coordinator is None:
+###                    raise e
+# _2fastbt
+
         self.last = clock()
         self.last2 = clock()
         self.measure.update_rate(length)
         self.downloader.measurefunc(length)
-        if not self.downloader.storage.piece_came_in(index, begin, piece, self.guard):
+        if not self.downloader.storage.piece_came_in(index, begin, hashlist, piece, self.guard):
             self.downloader.piece_flunked(index)
             return False
+
         if self.downloader.storage.do_I_have(index):
             self.downloader.picker.complete(index)
+# 2fastbt_
+###            if self.helper is not None and self.helper.coordinator is None and self.helper.coordinator_data_con is not None:
+###                get_logger().log(3, "downloader.downloader: got_piece sending to coordinator")
+###                tmp_piece = self.downloader.storage.get_piece(index, 0, -1)
+###                tmp_begin = 0
+###                piece_len = len(tmp_piece)
+###                tmp_len = self.helper.coordinator_data_con.upload.max_slice_length
+###                while tmp_begin < piece_len:
+###                    if tmp_begin + tmp_len > piece_len:
+###                        tmp_len = piece_len - tmp_begin
+###                    self.helper.coordinator_data_con.upload.got_request(index, tmp_begin, tmp_len)
+###                    tmp_begin += tmp_len
+# _2fastbt
+
         if self.downloader.endgamemode:
             for d in self.downloader.downloads:
                 if d is not self:
-                  if d.interested:
-                    if d.choked:
-                        assert not d.active_requests
-                        d.fix_download_endgame()
+                    if d.interested:
+                        if d.choked:
+                            assert not d.active_requests
+                            d.fix_download_endgame()
+                        else:
+                            try:
+                                d.active_requests.remove((index, begin, length))
+                            except ValueError:
+                                continue
+                            d.connection.send_cancel(index, begin, length)
+                            d.fix_download_endgame()
                     else:
-                        try:
-                            d.active_requests.remove((index, begin, length))
-                        except ValueError:
-                            continue
-                        d.connection.send_cancel(index, begin, length)
-                        d.fix_download_endgame()
-                  else:
-                      assert not d.active_requests
+                        assert not d.active_requests
         self._request_more()
         self.downloader.check_complete(index)
         return self.downloader.storage.do_I_have(index)
 
     def _request_more(self, new_unchoke = False):
         assert not self.choked
+# 2fastbt_
+        # do not download from coordinator
+        if self.connection.connection.is_coordinator_con():
+            return
+# _2fastbt
         if self.downloader.endgamemode:
             self.fix_download_endgame(new_unchoke)
             return
@@ -194,9 +232,12 @@ class SingleDownload:
             return
         lost_interests = []
         while len(self.active_requests) < self.backlog:
+# 2fastbt_
             interest = self.downloader.picker.next(self.have,
                                self.downloader.storage.do_I_have_requests,
-                               self.downloader.too_many_partials())
+                               self.downloader.too_many_partials(),
+                               self.connection.connection.is_helper_con())
+# _2fastbt
             if interest is None:
                 break
             self.example_interest = interest
@@ -224,9 +265,12 @@ class SingleDownload:
                         break
                 else:
                     continue
+# 2fastbt_
                 interest = self.downloader.picker.next(d.have,
                                    self.downloader.storage.do_I_have_requests,
-                                   self.downloader.too_many_partials())
+                                   self.downloader.too_many_partials(),
+                                   self.connection.connection.is_helper_con())
+# _2fastbt
                 if interest is None:
                     d.send_not_interested()
                 else:
@@ -236,13 +280,18 @@ class SingleDownload:
 
 
     def fix_download_endgame(self, new_unchoke = False):
-        if self.downloader.paused:
+# 2fastbt_
+        # do not download from coordinator
+        if self.downloader.paused or self.connection.connection.is_coordinator_con():
+# _2fastbt
             return
         if len(self.active_requests) >= self._backlog(new_unchoke):
             if not (self.active_requests or self.backlog) and not self.choked:
                 self.downloader.queued_out[self] = 1
             return
-        want = [a for a in self.downloader.all_requests if self.have[a[0]] and a not in self.active_requests]
+# 2fastbt_
+        want = [a for a in self.downloader.all_requests if self.have[a[0]] and a not in self.active_requests and (self.helper is None or self.connection.connection.is_helper_con() or not self.helper.is_ignored(a[0]))]
+# _2fastbt
         if not (self.active_requests or want):
             self.send_not_interested()
             return
@@ -254,8 +303,11 @@ class SingleDownload:
         del want[self.backlog - len(self.active_requests):]
         self.active_requests.extend(want)
         for piece, begin, length in want:
-            self.connection.send_request(piece, begin, length)
-            self.downloader.chunk_requested(length)
+# 2fastbt_
+            if self.helper is None or self.connection.connection.is_helper_con() or self.helper.reserve_piece(piece):
+                self.connection.send_request(piece, begin, length)
+                self.downloader.chunk_requested(length)
+# _2fastbt
 
     def got_have(self, index):
         if index == self.downloader.numpieces-1:
@@ -320,12 +372,15 @@ class SingleDownload:
         return self.measure.get_rate()
 
     def is_snubbed(self):
-        if not self.choked and clock() - self.last2 > self.downloader.snub_time:
+# 2fastbt_
+        if not self.choked and clock() - self.last2 > self.downloader.snub_time and \
+            not self.connection.connection.is_helper_con() and \
+            not self.connection.connection.is_coordinator_con():
+# _2fastbt
             for index, begin, length in self.active_requests:
                 self.connection.send_cancel(index, begin, length)
             self.got_choke()    # treat it just like a choke
         return clock() - self.last > self.downloader.snub_time
-
 
 class Downloader:
     def __init__(self, storage, picker, backlog, max_rate_period,
@@ -383,7 +438,7 @@ class Downloader:
             self.requeueing = False
         if -self.bytes_requested > 5*self.download_rate:
             self.bytes_requested = -5*self.download_rate
-        return max(int(-self.bytes_requested/self.chunksize),0)
+        return max(int(-self.bytes_requested/self.chunksize), 0)
 
     def chunk_requested(self, size):
         self.bytes_requested += size
@@ -454,7 +509,7 @@ class Downloader:
     def num_disconnected_seeds(self):
         # first expire old ones
         expired = []
-        for id,t in self.disconnectedseeds.items():
+        for id, t in self.disconnectedseeds.items():
             if clock() - t > EXPIRE_TIME:     #Expire old seeds after so long
                 expired.append(id)
         for id in expired:

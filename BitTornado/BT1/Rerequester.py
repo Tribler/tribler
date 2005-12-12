@@ -2,9 +2,8 @@
 # modified for multitracker operation by John Hoffman
 # see LICENSE.txt for license information
 
-from BitTornado.zurllib import urlopen, quote
-from urlparse import urlparse, urlunparse
-from socket import gethostbyname
+from BitTornado.zurllib import urlopen
+from urllib import quote
 from btformats import check_peers
 from BitTornado.bencode import bdecode
 from threading import Thread, Lock
@@ -25,6 +24,8 @@ try:
 except:
     True = 1
     False = 0
+    
+DEBUG = False
 
 mapbase64 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-'
 keys = {}
@@ -53,15 +54,15 @@ class fakeflag:
 
 class Rerequester:
     def __init__(self, trackerlist, interval, sched, howmany, minpeers, 
-            connect, externalsched, amount_left, up, down,
-            port, ip, myid, infohash, timeout, errorfunc, excfunc,
-            maxpeers, doneflag, upratefunc, downratefunc,
+            connect, externalsched, amount_left, up, down, 
+            port, ip, myid, infohash, timeout, errorfunc, excfunc, 
+            maxpeers, doneflag, upratefunc, downratefunc, 
             unpauseflag = fakeflag(True)):
 
         self.excfunc = excfunc
         newtrackerlist = []        
         for tier in trackerlist:
-            if len(tier)>1:
+            if len(tier) > 1:
                 shuffle(tier)
             newtrackerlist += [tier]
         self.trackerlist = newtrackerlist
@@ -169,7 +170,7 @@ class Rerequester:
         if not self.lock.isfinished():  # still waiting for prior cycle to complete??
             def retry(self = self, s = s, callback = callback):
                 self.rerequest(s, callback)
-            self.sched(retry,5)         # retry in 5 seconds
+            self.sched(retry, 5)         # retry in 5 seconds
             return
         self.lock.reset()
         rq = Thread(target = self._rerequest, args = [s, callback])
@@ -178,7 +179,7 @@ class Rerequester:
 
     def _rerequest(self, s, callback):
         try:
-            def fail (self = self, callback = callback):
+            def fail(self = self, callback = callback):
                 self._fail(callback)
             if self.ip:
                 try:
@@ -260,6 +261,9 @@ class Rerequester:
 
             err = None
             try:
+                if DEBUG:
+                    print "Rerequest tracker:"
+                    print t+s
                 h = urlopen(t+s)
                 closer[0] = h.close
                 data = h.read()
@@ -277,7 +281,7 @@ class Rerequester:
                     self.lock.unwait(l)
                 return
 
-            if data == '':
+            if not data:
                 if self.lock.trip(l):
                     self.errorcodes['troublecode'] = 'no data from tracker'
                     self.lock.unwait(l)
@@ -286,6 +290,8 @@ class Rerequester:
             try:
                 r = bdecode(data, sloppy=1)
                 check_peers(r)
+                if DEBUG:
+                    print "Tracker returns:", r
             except ValueError, e:
                 if self.lock.trip(l):
                     self.errorcodes['bad_data'] = 'bad data from tracker - ' + str(e)
@@ -313,7 +319,7 @@ class Rerequester:
 
     def postrequest(self, r, callback):
         if r.has_key('warning message'):
-                self.errorfunc('warning from tracker - ' + r['warning message'])
+            self.errorfunc('warning from tracker - ' + r['warning message'])
         self.announce_interval = r.get('interval', self.announce_interval)
         self.interval = r.get('min interval', self.interval)
         self.trackerid = r.get('tracker id', self.trackerid)
@@ -328,7 +334,7 @@ class Rerequester:
                 peers.append(((ip, port), 0))
         else:
             for x in p:
-                peers.append(((x['ip'].strip(), x['port']), x.get('peer id',0)))
+                peers.append(((x['ip'].strip(), x['port']), x.get('peer id', 0)))
         ps = len(peers) + self.howmany()
         if ps < self.maxpeers:
             if self.doneflag.isSet():

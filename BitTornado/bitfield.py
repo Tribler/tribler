@@ -10,9 +10,9 @@ except:
 
 try:
     sum([1])
-    negsum = lambda a: len(a)-sum(a)
+    negsum = lambda a: len(a) - sum(a)
 except:
-    negsum = lambda a: reduce(lambda x,y: x+(not y), a, 0)
+    negsum = lambda a: reduce(lambda x, y: x + (not y), a, 0)
     
 def _int_to_booleans(x):
     r = []

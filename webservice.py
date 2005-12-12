@@ -7,11 +7,18 @@ from string import upper
 from traceback import print_exc
 from cStringIO import StringIO
 
-from Utility.utility import getSocket
-from Utility.constants import *
+from Utility.helpers import getSocket
+from Utility.constants import * #IGNORE:W0611
 
+
+################################################################
+#
+# Class: WebDialog
+#
+# Let the user specify settings for the webservice
+#
+################################################################
 class WebDialog(wx.Dialog):
-    
     def __init__(self, parent):
         self.utility = parent.utility
         
@@ -25,10 +32,12 @@ class WebDialog(wx.Dialog):
         
         self.utility.webserver.webdlg = self
         
-        self.warnlowport = [False, self.utility.webconfig.Read('webport')]
+        WebRead = self.utility.webconfig.Read
+        
+        self.warnlowport = [False, WebRead('webport')]
 
 #        # Change old config value
-#        oldval = self.utility.webconfig.Read('webIP')
+#        oldval = WebRead('webIP')
 #        if (oldval == "Automatics") or (oldval == "Automatic"):
 #            self.utility.webconfig.Write('webIP', "")
 #            self.utility.webconfig.Flush()
@@ -37,7 +46,7 @@ class WebDialog(wx.Dialog):
 #            self.utility.webconfig.Write('webIP', "127.0.0.1")
 #            self.utility.webconfig.Flush()
 #            
-#        newval = self.utility.webconfig.Read('webIP')
+#        newval = WebRead('webIP')
         newval = self.utility.webserver.getIP()
         if newval == "":
             default_ip = self.utility.lang.get('automatic')
@@ -58,7 +67,7 @@ class WebDialog(wx.Dialog):
         ipandport_box.Add(self.iptext, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
        
         ipandport_box.Add(wx.StaticText(self, -1, self.utility.lang.get('webport')), 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
-        self.porttext = self.utility.makeNumCtrl(self, self.utility.webconfig.Read('webport'), max = 65536)
+        self.porttext = self.utility.makeNumCtrl(self, WebRead('webport'), max = 65536)
         ipandport_box.Add(self.porttext, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
 
         outerbox.Add(ipandport_box, 0, wx.EXPAND|wx.ALL, 5)
@@ -66,7 +75,7 @@ class WebDialog(wx.Dialog):
         uniquekey_box = wx.BoxSizer(wx.HORIZONTAL)
         
         uniquekey_box.Add(wx.StaticText(self, -1, self.utility.lang.get('uniquekey')), 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
-        self.keytext = wx.TextCtrl(self, -1, self.utility.webconfig.Read('webID'), wx.Point(-1, -1), wx.Size(165, -1))
+        self.keytext = wx.TextCtrl(self, -1, WebRead('webID'), wx.Point(-1, -1), wx.Size(165, -1))
         uniquekey_box.Add(self.keytext, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         
         outerbox.Add(uniquekey_box, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 5)
@@ -86,10 +95,10 @@ class WebDialog(wx.Dialog):
         self.perm_checkbox = wx.CheckListBox(self, -1, size = wx.Size(100, 120), style = wx.LB_SINGLE)
         perm_text = [self.utility.lang.get(item[0]) for item in self.permissions]
         self.perm_checkbox.Set(perm_text)
-        
+         
         for i in range(0, len(self.permissions)):
             param = self.permissions[i][1]
-            checked = self.utility.webconfig.Read(param, "boolean")
+            checked = WebRead(param, "boolean")
             if checked:
                 self.perm_checkbox.Check(i)
         
@@ -102,7 +111,7 @@ class WebDialog(wx.Dialog):
 
         #CheckBox Set Value from Config
         #####################################
-        self.webautostart.SetValue(self.utility.webconfig.Read('webautostart', "boolean"))
+        self.webautostart.SetValue(WebRead('webautostart', "boolean"))
 
         self.actionbtn = wx.Button(self, -1, "")
 
@@ -136,7 +145,7 @@ class WebDialog(wx.Dialog):
 
     def onOK(self, event = None):
         self.utility.webserver.webdlg = None
-        if self.onApply(event):
+        if self.onApply():
             self.EndModal(wx.ID_OK)
             
     def onClose(self, event = None):
@@ -185,7 +194,7 @@ class WebDialog(wx.Dialog):
         
         return True
         
-    def OnAction(self, event):
+    def OnAction(self, event = None):
         if not self.utility.webserver.active:
             if self.saveParams():
                 self.startWebService()
@@ -201,7 +210,27 @@ class WebDialog(wx.Dialog):
     def stopWebService(self):
 		# Stop Web Service
         self.utility.webserver.stop()
+        
+    def updateLabels(self):
+        active = self.utility.webserver.active
+        
+        if active:
+            label = self.utility.lang.get('stopservice')
+        else:
+            label = self.utility.lang.get('startservice')
+        self.actionbtn.SetLabel(label)
+        self.porttext.Enable(not active)
+        self.keytext.Enable(not active)
+        self.iptext.Enable(not active)
 
+
+################################################################
+#
+# Class: WebListener
+#
+# Listens for webservice commands 
+#
+################################################################
 class WebListener:
     def __init__(self, utility, webdlg = None):
         self.s = None
@@ -253,7 +282,7 @@ class WebListener:
         self.updateLabels()
         
         webservice = Thread(target = self.startThread)
-        webservice.setDaemon(True)
+        webservice.setDaemon(False)
         webservice.start()
         
     def stop(self):
@@ -269,25 +298,11 @@ class WebListener:
         self.active = False
         self.updateLabels()
         
-    def updateLabels(self):
-        self.utility.bottomline.webbutton.SetValue(self.active)
+    def updateLabels(self):       
+        self.utility.actions[ACTION_WEBSERVICE].updateButton()
 
-        webdlg = self.webdlg
-
-        if self.active:
-            self.utility.bottomline.webbutton.SetToolTipString(self.utility.lang.get('active'))
-            if webdlg is not None:
-                webdlg.actionbtn.SetLabel(self.utility.lang.get('stopservice'))
-                webdlg.porttext.Enable(False)
-                webdlg.keytext.Enable(False)
-                webdlg.iptext.Enable(False)
-        else:            
-            self.utility.bottomline.webbutton.SetToolTipString(self.utility.lang.get('inactive'))
-            if webdlg is not None:
-                webdlg.actionbtn.SetLabel(self.utility.lang.get('startservice'))
-                webdlg.porttext.Enable(True)
-                webdlg.keytext.Enable(True)
-                webdlg.iptext.Enable(True)
+        if self.webdlg is not None:
+            self.webdlg.updateLabels()
         
     def startThread(self):
         self.s = getSocket(self.ip, self.port, "server")
@@ -303,6 +318,15 @@ class WebListener:
             return
         WebServiceCmd(self).go()
 
+
+################################################################
+#
+# Class: WebClient
+#
+# Used to sent brief commands to the webservice
+# (i.e.: use to send the shutdown command)
+#
+################################################################
 class WebClient:
     def __init__(self, utility):
         self.utility = utility
@@ -332,6 +356,14 @@ class WebClient:
         s.close()
         return True
 
+
+################################################################
+#
+# Class: WebServiceCmd
+#
+# Processes the actual webservice commands
+#
+################################################################
 class WebServiceCmd:
     def __init__(self, parent):
         self.parent = parent
@@ -416,8 +448,9 @@ class WebServiceCmd:
             return
 
         retmsg = ""
+        Read = self.utility.config.Read
         for param in separated:
-            value = self.utility.config.Read(param)
+            value = Read(param)
             retmsg += value + "|"
         retmsg += "\n"
         conn.send("Feedback\n" + str(retmsg))
@@ -430,6 +463,8 @@ class WebServiceCmd:
         
         conn.close()
         self.parent.s.close()
+        
+#        sys.stderr.write("\nDone shutting down webservice")
                
     def cmdQuery(self, info = ""):
         conn = self.conn
@@ -451,7 +486,7 @@ class WebServiceCmd:
     def QueryFields(self, fieldlist = None):
         conn = self.conn
         
-        maxid = self.utility.guiman.maxid
+        maxid = self.utility.list.columns.maxid
 
         # Default to returning all fields
         if fieldlist is None:
@@ -489,7 +524,7 @@ class WebServiceCmd:
                     return                    
             except:
                 # Old format -- a field name was specified
-                if oldfields.has_key(req_field):
+                if req_field in oldfields:
                     fieldid = oldfields[req_field]
                     fieldids.append(fieldid)
                 else:
@@ -502,7 +537,7 @@ class WebServiceCmd:
 
         retmsg += "Info Hash\n"
 
-        for ABCTorrentTemp in self.utility.queue.proctab:
+        for ABCTorrentTemp in self.utility.torrents["all"]:
             retmsg += ABCTorrentTemp.getInfo(fieldlist = fieldids)
         
         conn.send(retmsg)
@@ -518,7 +553,7 @@ class WebServiceCmd:
         # What do we do if we don't have a default download location specified
         # and we call this from the webservice?
         ####################################################
-        retmsg = self.utility.AddTorrentURL(info, "web")
+        retmsg = self.utility.queue.addtorrents.AddTorrentURL(info, "web")
         conn.send("Feedback\n"+retmsg)
             
     def cmdDelete(self, info):
@@ -529,7 +564,7 @@ class WebServiceCmd:
                 conn.send("Feedback\nError=CLEARCOMPLETED,Permission denied")
                 return
                 
-            self.utility.window.onClearAllCompleted()
+            self.utility.actions[ACTION_CLEARCOMPLETED].action()
             conn.send("Feedback\nOK")
         else:
             if not self.utility.webconfig.Read('allow_delete', "boolean") != "1":
@@ -551,7 +586,7 @@ class WebServiceCmd:
             return
         
         if upper(info) == "ALL":
-            self.utility.window.onUnStopAll()
+            self.utility.actions[ACTION_UNSTOPALL].action()
             conn.send("Feedback\nOK")   
         else:
             torrents = self.getTorrents(info)
@@ -569,7 +604,7 @@ class WebServiceCmd:
             return
         
         if upper(info) == "ALL":
-            self.utility.window.onStopAll()
+            self.utility.actions[ACTION_STOPALL].action()
             conn.send("Feedback\nOK")
         else:
             torrents = self.getTorrents(info)
@@ -588,7 +623,7 @@ class WebServiceCmd:
             return
             
         if upper(info) == "ALL":
-            torrents = self.utility.queue.activetorrents
+            torrents = self.utility.torrents["active"].keys()
         else:
             torrents = self.getTorrents(info)
             if torrents is None:
@@ -605,7 +640,7 @@ class WebServiceCmd:
             return
 
         if upper(info) == "ALL":
-            torrents = self.utility.queue.proctab
+            torrents = self.utility.torrents["all"]
         else:
             torrents = self.getTorrents(info)
             if torrents is None:
@@ -654,7 +689,7 @@ class WebServiceCmd:
         conn.send("Feedback\nOK")
         
     def go(self):
-        while True:
+        while 1:
             conn, addr = self.parent.s.accept()
             self.conn = conn
             try:
@@ -710,9 +745,9 @@ class WebServiceCmd:
                     self.cmdClose()
                     return
                 
-                elif cmd == "KEEPALIVE":
-                    # Don't actually do anything
-                    pass
+#                elif cmd == "KEEPALIVE":
+#                    # Don't actually do anything
+#                    pass
                 
                 elif cmd == "QUERY":
                     self.cmdQuery(info)

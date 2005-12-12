@@ -67,7 +67,7 @@ class NatCheck:
         return None
 
     def data_came_in(self, connection, s):
-        while True:
+        while 1:
             if self.closed:
                 return
             i = self.next_len - self.buffer.tell()

@@ -2,12 +2,12 @@
 # see LICENSE.txt for license information
 
 from random import shuffle
-from traceback import print_exc
 try:
     True
 except:
     True = 1
     False = 0
+
 
 class FileSelector:
     def __init__(self, files, piece_length, bufferdir,
@@ -45,11 +45,11 @@ class FileSelector:
         try:
             assert len(new_priority) == self.numfiles
             for v in new_priority:
-                assert type(v) in (type(0),type(0L))
+                assert type(v) in (type(0), type(0L))
                 assert v >= -1
                 assert v <= 2
         except:
-#           print_exc()            
+#           print_exc()
             return False
         try:
             for f in xrange(self.numfiles):
@@ -87,7 +87,6 @@ class FileSelector:
         self.requestmorefunc = requestmorefunc
 
         if self.new_priority:
-            old_priority = self.priority
             self.priority = self.new_priority
             self.new_priority = None
             self.new_piece_priority = self._set_piece_priority(self.priority)
@@ -154,7 +153,7 @@ class FileSelector:
                 if l[i] == -1:
                     l[i] = file_priority_list[f]
                     continue
-                l[i] = min(l[i],file_priority_list[f])
+                l[i] = min(l[i], file_priority_list[f])
         return l
         
 
@@ -165,7 +164,7 @@ class FileSelector:
         new_blocked = []
         new_unblocked = []
         for piece in pieces:
-            self.picker.set_priority(piece,new_piece_priority[piece])
+            self.picker.set_priority(piece, new_piece_priority[piece])
             o = self.piece_priority[piece] == -1
             n = new_piece_priority[piece] == -1
             if n and not o:

@@ -3,9 +3,7 @@
 
 from cStringIO import StringIO
 from binascii import b2a_hex
-from socket import error as socketerror
 from urllib import quote
-from traceback import print_exc
 import Connecter
 try:
     True
@@ -22,20 +20,8 @@ option_pattern = chr(0)*8
 def toint(s):
     return long(b2a_hex(s), 16)
 
-def tobinary(i):
-    return (chr(i >> 24) + chr((i >> 16) & 0xFF) + 
-        chr((i >> 8) & 0xFF) + chr(i & 0xFF))
-
-hexchars = '0123456789ABCDEF'
-hexmap = []
-for i in xrange(256):
-    hexmap.append(hexchars[(i&0xF0)/16]+hexchars[i&0x0F])
-
 def tohex(s):
-    r = []
-    for c in s:
-        r.append(hexmap[ord(c)])
-    return ''.join(r)
+    return b2a_hex(s).upper()
 
 def make_readable(s):
     if not s:
@@ -43,9 +29,6 @@ def make_readable(s):
     if quote(s).find('%') >= 0:
         return tohex(s)
     return '"'+s+'"'
-   
-def toint(s):
-    return long(b2a_hex(s), 16)
 
 # header, reserved, download id, my id, [length, message]
 
@@ -121,7 +104,7 @@ class StreamCheck:
         return 4, self.read_len
 
     def write(self, s):
-        while True:
+        while 1:
             i = self.next_len - self.buffer.tell()
             if i > len(s):
                 self.buffer.write(s)

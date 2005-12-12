@@ -6,17 +6,34 @@ from BitTornado.zurllib import urlopen
 from webbrowser import open_new
 from threading import Thread
 
+
+################################################################
+#
+# Class: MyHtmlWindow
+#
+# Helper class to display html in a panel and handle clicking
+# on urls.
+#
+################################################################
 class MyHtmlWindow(html.HtmlWindow):
     def __init__(self, parent, id):
-        html.HtmlWindow.__init__(self, parent, id, size=(400,300))
-        self.Bind(wx.EVT_SCROLLWIN, self.OnScroll )
+        html.HtmlWindow.__init__(self, parent, id, size=(400, 300))
+        self.Bind(wx.EVT_SCROLLWIN, self.OnScroll)
 
-    def OnScroll( self, event ):
+    def OnScroll(self, event):
         event.Skip()
         
     def OnLinkClicked(self, linkinfo):
         Thread(target = open_new(linkinfo.GetHref())).start()
-        
+
+
+################################################################
+#
+# Class: MyHtmlDialog
+#
+# Displays html formatted information in a dialog
+#
+################################################################
 class MyHtmlDialog(wx.Dialog):
     def __init__(self, parent, title, content):
         wx.Dialog.__init__(self, parent, -1, title)
@@ -35,17 +52,25 @@ class MyHtmlDialog(wx.Dialog):
         self.html = MyHtmlWindow(self, -1)
         self.html.SetPage(about_html)
         
-        buttonbox = wx.BoxSizer( wx.HORIZONTAL )
+        buttonbox = wx.BoxSizer(wx.HORIZONTAL)
         buttonbox.Add(btn, 0, wx.ALL, 5)
 
-        outerbox = wx.BoxSizer( wx.VERTICAL )
-        outerbox.Add( self.html, 0, wx.EXPAND|wx.ALL, 5)
-        outerbox.Add( buttonbox, 0, wx.ALIGN_CENTER)
+        outerbox = wx.BoxSizer(wx.VERTICAL)
+        outerbox.Add(self.html, 0, wx.EXPAND|wx.ALL, 5)
+        outerbox.Add(buttonbox, 0, wx.ALIGN_CENTER)
        
-        self.SetAutoLayout( True )
-        self.SetSizer( outerbox )
+        self.SetAutoLayout(True)
+        self.SetSizer(outerbox)
         self.Fit()
 
+
+################################################################
+#
+# Class: VersionDialog
+#
+# Show information about the current version of ABC
+#
+################################################################
 class VersionDialog(MyHtmlDialog):
     def __init__(self, parent):
         self.parent = parent
@@ -69,15 +94,24 @@ class VersionDialog(MyHtmlDialog):
         
         MyHtmlDialog.__init__(self, parent, title, content)
 
+
+################################################################
+#
+# Class: AboutMeDialog
+#
+# Display credits information about who has contributed to ABC
+# along with what software modules it uses.
+#
+################################################################
 class AboutMeDialog(MyHtmlDialog):
     def __init__(self, parent):
 
         self.parent = parent
         self.utility = parent.utility
         
-        bittornado_version = "0.3.12"
-        py2exe_version = "0.5.4"
-        nsis_version = "2.06"
+        bittornado_version = "0.3.13"
+        py2exe_version = "0.6.2"
+        nsis_version = "2.09"
                 
         title = self.utility.lang.get('aboutabc')
 
@@ -124,10 +158,11 @@ class AboutMeDialog(MyHtmlDialog):
                          "<TD>Additional Code:</TD>" + \
                          "<TD>Tim Tucker (<A HREF=mailto:abc@timtucker.com>abc@timtucker.com</A>)</TD>" + \
                      "</TR>" + \
-                     "<TR>" + \
-                         "<TD>Additional Code:</TD>" + \
-                         "<TD>NoirSoldats (noirsoldats@codemeu.com)</TD>" + \
-                     "</TR>" + \
+                     "<TR><TD>&nbsp;</TD><TD>" + \
+                         "NoirSoldats (noirsoldats@codemeu.com)" + \
+                         "<BR>kratoak5" + \
+                         "<BR>roe88" + \
+                     "</TD></TR>" + \
                      "<TR>" + \
                          "<TD COLSPAN=2>" + self.utility.lang.get('translate') + "</TD>"\
                      "</TR>" + \
@@ -135,7 +170,6 @@ class AboutMeDialog(MyHtmlDialog):
                      "<P>The system core is <A HREF=http://www.bittornado.com>BitTornado " + bittornado_version + "</A>" + \
                      "<BR>based on Bittorrent coded by Bram Cohen" + \
                      "<P>Special Thanks:" + \
-                     "<BR>kratoak5" + \
                      "<BR>Greg Fleming (www.darkproject.com)" + \
                      "<BR>Pir4nhaX (www.clanyakuza.com)" + \
                      "<BR>Michel Hartmann (php4abc.i-networx.de)" + \
@@ -148,70 +182,3 @@ class AboutMeDialog(MyHtmlDialog):
                      "</FONT>"
 
         MyHtmlDialog.__init__(self, parent, title, content)
-#        about_html = "<HTML><HEAD><TITLE>" + title + "</TITLE></HEAD>" + \
-#                     "<BODY BGCOLOR=" + bgcolor + " TEXT=#000000>" + \
-#                     "<B><CENTER>" + \
-#                     self.utility.lang.get('title') + \
-#                     "<BR>" + \
-#                     self.utility.lang.get('version') + \
-#                     "</CENTER></B>" + \
-#                     "<FONT SIZE=-1>" + \
-#                     "<P><TABLE BORDER=0 CELLSPACING=0>" + \
-#                     "<TR>" + \
-#                         "<TD>Author:</TD>" + \
-#                         "<TD>Choopan Rattanapoka (choopanr@hotmail.com)</TD>" + \
-#                     "</TR>" + \
-#                     "<TR>" + \
-#                         "<TD>Date:</TD>" + \
-#                         "<TD>" + self.utility.lang.get('build_date') + "</TD>" + \
-#                     "</TR>" + \
-#                     "<TR>" + \
-#                         "<TD>Homepage:</TD>" + \
-#                         "<TD><A HREF=http://pingpong-abc.sourceforge.net>http://pingpong-abc.sourceforge.net</A></TD>" + \
-#                     "</TR>" + \
-#                     "<TR>" + \
-#                         "<TD>Forums:</TD>" + \
-#                         "<TD><A HREF=https://sourceforge.net/forum/forum.php?forum_id=303226>Open Discussion</A>" + \
-#                                  " |  <A HREF=https://sourceforge.net/forum/forum.php?forum_id=303227>Help</A></TD>" + \
-#                     "</TR>" + \
-#                     "<TR>" + \
-#                         "<TD>Additional Code:</TD>" + \
-#                         "<TD>Tim Tucker (<A HREF=mailto:abc@timtucker.com>abc@timtucker.com</A>)</TD>" + \
-#                     "</TR>" + \
-#                     "<TR>" + \
-#                         "<TD>Additional Code:</TD>" + \
-#                         "<TD>NoirSoldats (noirsoldats@codemeu.com)</TD>" + \
-#                     "</TR>" + \
-#                     "<TR>" + \
-#                         "<TD COLSPAN=2>" + self.utility.lang.get('translate') + "</TD>"\
-#                     "</TR>" + \
-#                     "</TABLE>" + \
-#                     "<P>The system core is <A HREF=http://www.bittornado.com>BitTornado " + bittornado_version + "</A>" + \
-#                     "<BR>based on Bittorrent coded by Bram Cohen" + \
-#                     "<P>Special Thanks:" + \
-#                     "<BR>kratoak5" + \
-#                     "<BR>Greg Fleming (www.darkproject.com)" + \
-#                     "<BR>Pir4nhaX (www.clanyakuza.com)" + \
-#                     "<BR>Michel Hartmann (php4abc.i-networx.de)" + \
-#                     "<BR>Everybody for supporting ABC" + \
-#                     "<P>Powered by <A HREF=http://www.python.org>Python " + python_version + "</A>, " + \
-#                                   "<A HREF=http://www.wxpython.org>wxPython " + wx_version + "</A>, " + \
-#                                   "<A HREF=http://starship.python.net/crew/theller/py2exe/>py2exe " + py2exe_version + "</A>, " + \
-#                                   "<A HREF=http://nsis.sourceforge.net/>NSIS " + nsis_version + "</A>" + \
-#                     "<P>Copyright (c) 2003-2004, Choopan Rattanapoka" + \
-#                     "</FONT>" + \
-#                     "</BODY></HTML>"
-#                     
-#        self.html = MyHtmlWindow(self, -1)
-#        self.html.SetPage(about_html)
-#
-#        buttonbox = wx.BoxSizer( wx.HORIZONTAL )
-#        buttonbox.Add(btn, 0, wx.ALL, 5)
-#
-#        outerbox = wx.BoxSizer( wx.VERTICAL )
-#        outerbox.Add( self.html, 0, wx.EXPAND|wx.ALL, 5)
-#        outerbox.Add( buttonbox, 0, wx.ALIGN_CENTER)
-#       
-#        self.SetAutoLayout( True )
-#        self.SetSizer( outerbox )
-#        self.Fit()

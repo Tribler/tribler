@@ -1,7 +1,7 @@
 rmdir /S /Q build
 rmdir /S /Q dist
-rmdir /S /Q torrent
 del /S *.pyc
+del /S *~
 del *.conf
 del torrent.lst
 del torrent.list*

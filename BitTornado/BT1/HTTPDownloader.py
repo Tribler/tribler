@@ -63,7 +63,7 @@ class SingleDownload:
         self.goodseed = False
         self.active = False
         self.cancelled = False
-        self.resched(randint(2,10))
+        self.resched(randint(2, 10))
 
     def resched(self, len = None):
         if len is None:
@@ -109,7 +109,7 @@ class SingleDownload:
         self.error = None
         self.received_data = None
         try:
-            self.connection.request('GET',self.url, None,
+            self.connection.request('GET', self.url, None, 
                                 {'User-Agent': VERSION})
             r = self.connection.getresponse()
             self.connection_status = r.status
@@ -148,7 +148,7 @@ class SingleDownload:
     def _got_data(self):
         if self.connection_status == 503:   # seed is busy
             try:
-                self.retry_period = max(int(self.received_data),5)
+                self.retry_period = max(int(self.received_data), 5)
             except:
                 pass
             return False
@@ -189,7 +189,7 @@ class SingleDownload:
         success = True
         while self.requests:
             begin, length = self.requests.pop(0)
-            if not self.downloader.storage.piece_came_in(self.index, begin,
+            if not self.downloader.storage.piece_came_in(self.index, begin, 
                             self.received_data[start:start+length]):
                 success = False
                 break

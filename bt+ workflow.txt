@@ -1,0 +1,159 @@
+BT+ Buddycast Workflow:
+
+M: my client
+P: (super) peer
+
+The following policies are used universally:
+Relax policy: Don't visit or welcome a guest if you have met him in N(N = 3600 * 3) seconds.
+Close policy: If a connection is closed before you get PREFERENCE_EXCHANGE message via the connection, M always GOTO 3 and P always STOP going ahead.
+
+
+1.	Initialization Buddycast
+
+M> Set do_buddycast flag according to your configuration.
+
+M> If do_buddycast flag is False: STOP. 
+
+M> If M has not taste buddies database table, create it.
+
+M> Read Random Cache(RC) and Buddy Cache(BC) from database. They may be empty. The maximum length of RC if RCL(RCL=1000); The maximum length of BC is BCL(BCL=100). RC'd data structure is Sorted Linked List; the head is the biggest one. 
+
+M> Read newest PL(max. PL=1000) items in my preference list, which can be updated when you download new torrent or changed your preference list manually.
+
+M> Init an empty connection queue(Q), whose maximum length is L (L = 1); set try_times = 0
+
+
+2.	Initialization Q
+
+M> Discover new super peers. (number of items in BC > 100; find some peer(s) are reliable(don't change ip&port often, not behind firewall) and useful(stored many preferences))
+
+M> Update superpeer database. Add each superpeer into RC if it is not in BC or RC.
+
+M> Randomly select L peers at most from BC & RC according to Relax policy and BuddyCast algorithm.
+
+M> If L > 0: GOTO 3
+
+M> If try_times > 36: STOP.
+
+M> Sleep T (T=300) seconds. set try_times += 1; GOTO 2
+
+
+3.	Connecting (Super) Peer
+
+M> If L == 0, goto 2
+
+M> Pick up the first peer from Q. We call it P. Remove P from Q.
+
+M> Connect P using overlay swarm
+
+M> If connection if failed: change the online status of P as offline; if P is in RC, remove it; if P is in BC, remove it if P's last_seen is D(D=7*24*3600) seconds ago. GOTO 3.
+
+P> Check if incoming connection is overlay swarm connection; Checks if the reserved bit is correct; Check if M hasn't visited P for N seconds.
+
+P> If any check is not past: close the connection. 
+
+P> Establish the overlay swarm connection with M.
+
+M> Establish the overlay swarm connection with P.
+
+
+4. PermID Exchange and Validation
+
+M> Send M's PermID to P
+
+P> Send P's PermID to M
+
+M> Send Challenge to P
+
+P> Send Response1 to M
+
+M> If Response1 is invalid: close the connection. 
+
+M> Update P's online status and last seen time.
+
+M> Send Response2 to P; Record the connection with the P permid
+
+P> If Response2 is invalid: close the connection. 
+
+P> Update M's online status and last seen time.
+
+
+5.	Exchanging Preference with (Super) Peer
+
+M> Run 6 to select TB and RP 
+
+M> Send PREFERENCE_EXCHANGE message to P with M's (empty) preference, TB and RP
+
+M> Wait S(S=120) seconds and close the connection if P doesn't reply in time.
+
+P> Recv PREFERENCE_EXCHANGE message from M. 
+
+P> If do_buddycast flag is False: close the connection.
+
+P> Run 6 to select TB' and RP'
+
+P> Send PREFERENCE_EXCHANGE message to M with TB' and RP'.
+
+P> Close the connection. 
+
+P> Run 7 to update BC and RC.
+
+M> Recv PREFERENCE_EXCHANGE message from P. 
+
+M> Run 7 to update BC and RC.
+
+M> Run 8 to do select a peer (Note: 8 will GOTO 3)
+
+M> GOTO 3
+
+
+6. Selecting taste buddies(TB) and random peers(RP).
+
+Goal: M selects X(X=10) taste buddies and Y(Y=10) random peers which will be sent to P in the PREFERENCE_EXCHANGE message
+
+M> Taste buddies selection algorithms (adopt one of them): 
+	1). Top X most similar buddies with M from BC
+	2). Top X most similar buddies with P from all taste buddies (only applicable if M has P's preference)
+	3). Randomly select X peers using their similarity with P as the weight (only applicable if M has P's preference)
+   Random peers selection algorithm (adopt one of them): 
+	1). Top Y last seen peers
+	2). Randomly select Y peers using their last_seen as the weight. The more recent you see a peer, the higher chance the peer is selected
+
+
+7. Updating BC and RC.
+
+M> Check the age of each taste buddy and update its ip, port, last_seen, preferences if necessary.
+
+M> Check the age of each random peer and update its ip, port, last_seen if necessary.
+
+M> Calculate similarity of each taste buddy in TB. 
+
+M> Insert all taste buddies in TB into BC at apropos positions. (Note: BC is a sorted list; the head is the most similar one)
+
+M> If BC is full, move taste buddies in the tail into RC
+
+M> Append all random peers in RP in RC. 
+
+M> If RC is full, remove old peers according to their last_seen.
+
+
+8. Selecting a peer.
+
+M> Set try_times = 0;
+
+M> Assign random peers similarity with the least value in BC.
+
+M> Candidate List(CL) = BC + RC. 
+
+M> Select a peer P' from CL. The higher similarity a peer has, the higher chance it can be selected.
+
+M> Add P' into Q, delay T(T=60) seconds
+
+
+
+OPEN QUESTION:
+
+To test P's online status and reliability, we can use lost_times to indicate the times you failed to connect to P, connected_times to indicate the times you successfully connected to P, and relia_ratio = (connected_times+1)/(lost_time+connected_times+1) to indicate the ratio between them. 
+We can even collect peer's relia_ratio and calculate it.
+Is this idea useful?
+

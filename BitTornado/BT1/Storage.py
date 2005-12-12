@@ -3,7 +3,7 @@
 
 from BitTornado.piecebuffer import BufferPool
 from threading import Lock
-from time import time, strftime, localtime
+from time import strftime, localtime
 import os
 from os.path import exists, getsize, getmtime, basename
 from traceback import print_exc
@@ -32,7 +32,7 @@ def dummy_status(fractionDone = None, activity = None):
     pass
 
 class Storage:
-    def __init__(self, files, piece_length, doneflag, config,
+    def __init__(self, files, piece_length, doneflag, config, 
                  disabled_files = None):
         # can raise IOError and ValueError
         self.files = files
@@ -43,8 +43,8 @@ class Storage:
         self.disabled_ranges = []
         self.working_ranges = []
         numfiles = 0
-        total = 0l
-        so_far = 0l
+        total = 0L
+        so_far = 0L
         self.handles = {}
         self.whandles = {}
         self.tops = {}
@@ -53,7 +53,7 @@ class Storage:
         if config.get('lock_files', True):
             self.lock_file, self.unlock_file = self._lock_file, self._unlock_file
         else:
-            self.lock_file, self.unlock_file = lambda x1,x2: None, lambda x1,x2: None
+            self.lock_file, self.unlock_file = lambda x1, x2: None, lambda x1, x2: None
         self.lock_while_reading = config.get('lock_while_reading', False)
         self.lock = Lock()
 
@@ -108,17 +108,17 @@ class Storage:
     if os.name == 'nt':
         def _lock_file(self, name, f):
             import msvcrt
-            for p in range(0, min(self.sizes[name],MAXLOCKRANGE), MAXLOCKSIZE):
+            for p in range(0, min(self.sizes[name], MAXLOCKRANGE), MAXLOCKSIZE):
                 f.seek(p)
-                msvcrt.locking(f.fileno(), msvcrt.LK_LOCK,
-                               min(MAXLOCKSIZE,self.sizes[name]-p))
+                msvcrt.locking(f.fileno(), msvcrt.LK_LOCK, 
+                               min(MAXLOCKSIZE, self.sizes[name]-p))
 
         def _unlock_file(self, name, f):
             import msvcrt
-            for p in range(0, min(self.sizes[name],MAXLOCKRANGE), MAXLOCKSIZE):
+            for p in range(0, min(self.sizes[name], MAXLOCKRANGE), MAXLOCKSIZE):
                 f.seek(p)
-                msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK,
-                               min(MAXLOCKSIZE,self.sizes[name]-p))
+                msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 
+                               min(MAXLOCKSIZE, self.sizes[name]-p))
 
     elif os.name == 'posix':
         def _lock_file(self, name, f):
@@ -170,17 +170,17 @@ class Storage:
     def _open(self, file, mode):
         if self.mtimes.has_key(file):
             try:
-              if self.handlebuffer is not None:
-                assert getsize(file) == self.tops[file]
-                newmtime = getmtime(file)
-                oldmtime = self.mtimes[file]
-                assert newmtime <= oldmtime+1
-                assert newmtime >= oldmtime-1
+                if self.handlebuffer is not None:
+                    assert getsize(file) == self.tops[file]
+                    newmtime = getmtime(file)
+                    oldmtime = self.mtimes[file]
+                    assert newmtime <= oldmtime+1
+                    assert newmtime >= oldmtime-1
             except:
                 if DEBUG:
-                    print ( file+' modified: '
-                            +strftime('(%x %X)',localtime(self.mtimes[file]))
-                            +strftime(' != (%x %X) ?',localtime(getmtime(file))) )
+                    print( file+' modified: '
+                           +strftime('(%x %X)', localtime(self.mtimes[file]))
+                           +strftime(' != (%x %X) ?', localtime(getmtime(file))) )
                 raise IOError('modified during download')
         try:
             return open(file, mode)
@@ -273,9 +273,9 @@ class Storage:
             begin, end, offset, file = self.ranges[p]
             if begin >= stop:
                 break
-            r.append(( file,
-                       offset + max(pos, begin) - begin,
-                       offset + min(end, stop) - begin   ))
+            r.append(( file, 
+                       offset + max(pos, begin) - begin, 
+                       offset + min(end, stop) - begin ))
             p += 1
         return r
 
@@ -285,20 +285,24 @@ class Storage:
         for file, pos, end in self._intervals(pos, amount):
             if DEBUG:
                 print 'reading '+file+' from '+str(pos)+' to '+str(end)
-            self.lock.acquire()
-            h = self._get_file_handle(file, False)
-            if flush_first and self.whandles.has_key(file):
-                h.flush()
-                fsync(h)
-            h.seek(pos)
-            while pos < end:
-                length = min(end-pos, MAXREADSIZE)
-                data = h.read(length)
-                if len(data) != length:
-                    raise IOError('error reading data from '+file)
-                r.append(data)
-                pos += length
-            self.lock.release()
+            try:
+                self.lock.acquire()
+                h = self._get_file_handle(file, False)
+                if flush_first and self.whandles.has_key(file):
+                    h.flush()
+                    fsync(h)
+                h.seek(pos)
+                while pos < end:
+                    length = min(end-pos, MAXREADSIZE)
+                    data = h.read(length)
+                    if len(data) != length:
+                        raise IOError('error reading data from '+ file)
+                    r.append(data)
+                    pos += length
+                self.lock.release()
+            except:
+                self.lock.release()
+                raise IOError('error reading data from '+ file)
         return r
 
     def write(self, pos, s):
@@ -348,7 +352,7 @@ class Storage:
 
     def _get_disabled_ranges(self, f):
         if not self.file_ranges[f]:
-            return ((),(),())
+            return ((), (), ())
         r = self.disabled_ranges[f]
         if r:
             return r
@@ -357,8 +361,8 @@ class Storage:
             print 'calculating disabled range for '+self.files[f][0]
             print 'bytes: '+str(start)+'-'+str(end)
             print 'file spans pieces '+str(int(start/self.piece_length))+'-'+str(int((end-1)/self.piece_length)+1)
-        pieces = range( int(start/self.piece_length),
-                        int((end-1)/self.piece_length)+1 )
+        pieces = range(int(start/self.piece_length), 
+                        int((end-1)/self.piece_length)+1)
         offset = 0
         disabled_files = []
         if len(pieces) == 1:
@@ -368,7 +372,7 @@ class Storage:
                 working_range = [(start, end, offset, file)]
                 update_pieces = []
             else:
-                midfile = os.path.join(self.bufferdir,str(f))
+                midfile = os.path.join(self.bufferdir, str(f))
                 working_range = [(start, end, 0, midfile)]
                 disabled_files.append((midfile, start, end))
                 length = end - start
@@ -379,7 +383,7 @@ class Storage:
             update_pieces = []
             if start % self.piece_length != 0:  # doesn't begin on an even piece boundary
                 end_b = pieces[1]*self.piece_length
-                startfile = os.path.join(self.bufferdir,str(f)+'b')
+                startfile = os.path.join(self.bufferdir, str(f)+'b')
                 working_range_b = [ ( start, end_b, 0, startfile ) ]
                 disabled_files.append((startfile, start, end_b))
                 length = end_b - start
@@ -392,7 +396,7 @@ class Storage:
             if f  != len(self.files)-1 and end % self.piece_length != 0:
                                                 # doesn't end on an even piece boundary
                 start_e = pieces[-1] * self.piece_length
-                endfile = os.path.join(self.bufferdir,str(f)+'e')
+                endfile = os.path.join(self.bufferdir, str(f)+'e')
                 working_range_e = [ ( start_e, end, 0, endfile ) ]
                 disabled_files.append((endfile, start_e, end))
                 length = end - start_e
@@ -498,10 +502,10 @@ class Storage:
                 continue
             if self.disabled[i]:
                 for file, start, end in self._get_disabled_ranges(i)[2]:
-                    pfiles.extend([basename(file),getsize(file),getmtime(file)])
+                    pfiles.extend([basename(file), getsize(file), getmtime(file)])
                 continue
             file = self.files[i][0]
-            files.extend([i,getsize(file),getmtime(file)])
+            files.extend([i, getsize(file), getmtime(file)])
         return {'files': files, 'partial files': pfiles}
 
 
@@ -512,12 +516,12 @@ class Storage:
             pfiles = {}
             l = data['files']
             assert len(l) % 3 == 0
-            l = [l[x:x+3] for x in xrange(0,len(l),3)]
+            l = [l[x:x+3] for x in xrange(0, len(l), 3)]
             for f, size, mtime in l:
                 files[f] = (size, mtime)
-            l = data.get('partial files',[])
+            l = data.get('partial files', [])
             assert len(l) % 3 == 0
-            l = [l[x:x+3] for x in xrange(0,len(l),3)]
+            l = [l[x:x+3] for x in xrange(0, len(l), 3)]
             for file, size, mtime in l:
                 pfiles[file] = (size, mtime)
 
@@ -528,7 +532,7 @@ class Storage:
                 r = self.file_ranges[i]
                 if not r:
                     continue
-                start, end, offset, file =r
+                start, end, offset, file = r
                 if DEBUG:
                     print 'adding '+file
                 for p in xrange( int(start/self.piece_length),
@@ -565,7 +569,7 @@ class Storage:
                 if not size:
                     continue
                 if ( not files.has_key(i)
-                     or not test(files[i],getsize(file),getmtime(file)) ):
+                     or not test(files[i], getsize(file), getmtime(file)) ):
                     start, end, offset, file = self.file_ranges[i]
                     if DEBUG:
                         print 'removing '+file
