@@ -1,3 +1,6 @@
+# Written by Pawel Garbacki
+# see LICENSE.txt for license information
+
 from BitTornado.BT1.Encrypter import Connection #, control_option_pattern
 from BitTornado.BT1.Connecter import tobinary
 from socket import error as socketerror

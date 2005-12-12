@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Written by John Hoffman
+# Written by John Hoffman and Pawel Garbacki
 # see LICENSE.txt for license information
 
 from BitTornado import PSYCO

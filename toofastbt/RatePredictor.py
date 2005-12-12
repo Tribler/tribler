@@ -1,3 +1,6 @@
+# Written by Pawel Garbacki
+# see LICENSE.txt for license information
+
 from toofastbt.Logger import get_logger
 from BitTornado.clock import clock
 

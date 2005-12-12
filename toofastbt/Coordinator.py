@@ -1,3 +1,6 @@
+# Written by Pawel Garbacki
+# see LICENSE.txt for license information
+
 from thread import allocate_lock
 from toofastbt.Logger import get_logger
 

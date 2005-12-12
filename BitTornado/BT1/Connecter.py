@@ -1,4 +1,4 @@
-# Written by Bram Cohen
+# Written by Bram Cohen and Pawel Garbacki
 # see LICENSE.txt for license information
 
 import traceback,sys
