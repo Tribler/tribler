@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Written by John Hoffman
+# Written by John Hoffman and Arno Bakker
 # see LICENSE.txt for license information
 
 from BitTornado import PSYCO
@@ -15,6 +15,7 @@ if PSYCO.psyco:
 import sys
 import gc
 import wx
+import os
 
 from random import seed
 from socket import error as socketerror
@@ -22,18 +23,28 @@ from threading import Event, Thread
 from cStringIO import StringIO
 from traceback import print_exc
 
+from BitTornado.launchmanycore import LaunchMany
 from BitTornado.__init__ import createPeerID, mapbase64
-from BitTornado.natpunch import UPnP_test
-from BitTornado.RateLimiter import RateLimiter
-from BitTornado.RawServer import RawServer
-from BitTornado.SocketHandler import UPnP_ERROR
-from BitTornado.ServerPortHandler import MultiHandler
-from BitTornado.overlayswarm import OverlaySwarm
-from BitTornado.BT1.Encrypter import Encoder
-from BitTornado.BT1.Connecter import Connecter
 from Utility.constants import * #IGNORE:W0611
 
 from abcengine import ABCEngine
+
+wxEVT_INVOKE = wx.NewEventType()
+
+def EVT_INVOKE(win, func):
+    win.Connect(-1, -1, wxEVT_INVOKE, func)
+    
+def DELEVT_INVOKE(win):
+    win.Disconnect(-1, -1, wxEVT_INVOKE)
+
+class InvokeEvent(wx.PyEvent):
+    def __init__(self, func, args, kwargs):
+        wx.PyEvent.__init__(self)
+        self.SetEventType(wxEVT_INVOKE)
+        self.func = func
+        self.args = args
+        self.kwargs = kwargs
+
 
 def fmttime(n):
     try:
@@ -45,120 +56,43 @@ def fmttime(n):
     h, m = divmod(m, 60)
     return '%d:%02d:%02d' % (h, m, s)
 
-class LaunchMany(Thread):
-    def __init__(self, utility, all_peers_cache, all_files_cache):
+#
+# Try to do everything in BitTornado.LaunchMany such that the command-line
+# tools also work.
+#
+class ABCLaunchMany(Thread,LaunchMany,wx.EvtHandler):
+    def __init__(self, utility):
+        self.utility = utility        
+        output = Outputter()
+        btconfig = utility.getBTParams()
+        # TODO: move to better place
+        torrent_dir = os.path.join(self.utility.getConfigPath(), 'torrenthelping' )
+        btconfig['torrent_dir'] = torrent_dir
+        if not os.access(torrent_dir,os.F_OK):
+            os.mkdir(torrent_dir)
+        btconfig['parse_dir_interval'] = 60
+        btconfig['saveas_style'] = 1 # must be 1 for security during download helping
+
         Thread.__init__(self)
+        LaunchMany.__init__(self,btconfig,output)
+        wx.EvtHandler.__init__(self)
         
-        try:
-            self.utility = utility
-            
-            self.Output = Output()
-            
-            btconfig = self.utility.getBTParams()
+        # set by BitTornado.LaunchMany constructor
+        self.utility.listen_port = self.listen_port
 
-            self.stats_period = btconfig['display_interval']
+        EVT_INVOKE(self, self.onInvoke)
+    
+    # override
+    def go(self):
+        pass
 
-            self.counter = 0
-            self.doneflag = Event()
-
-            self.hashcheck_queue = []
-            self.hashcheck_current = None
-            
-            self.all_peers_cache = all_peers_cache
-            self.all_files_cache = all_files_cache
-            
-            self.rawserver = RawServer(self.doneflag, btconfig['timeout_check_interval'], 
-                              btconfig['timeout'], ipv6_enable = btconfig['ipv6_enabled'], 
-                              failfunc = self.failed, errorfunc = self.exchandler)                   
-                
-            self.listen_port = self.getPort()
-
-            self.handler = MultiHandler(self.rawserver, self.doneflag)
-            seed(createPeerID())
-            self.rawserver.add_task(self.stats, 0)
-
-            self.register_swarm(self.handler, btconfig)
-        except:
-            data = StringIO()
-            print_exc(file = data)
-            self.Output.exception(data.getvalue())
-            
-    def register_swarm(self, multihandler, config, myid=createPeerID()):
-        # Register overlay_infohash as known swarm with MultiHandler
-        
-        overlay_swarm = OverlaySwarm.getInstance()
-        overlay_swarm.multihandler = multihandler
-        overlay_swarm.config = config
-        overlay_swarm.myid = myid
-        overlay_swarm.doneflag = Event()
-        overlay_swarm.rawserver = multihandler.newRawServer(overlay_swarm.infohash, 
-                                                            overlay_swarm.doneflag)
-
-        # Create Connecter and Encoder for the swarm. TODO: ratelimiter
-        overlay_swarm.connecter = Connecter(None, None, None, 
-                            None, None, config, 
-                            None, False,
-                            overlay_swarm.rawserver.add_task)
-        overlay_swarm.encoder = Encoder(overlay_swarm.connecter, overlay_swarm.rawserver, 
-            myid, config['max_message_length'], overlay_swarm.rawserver.add_task, 
-            config['keepalive_interval'], overlay_swarm.infohash, 
-            lambda x: None, config)
-        overlay_swarm.rawserver.start_listening(overlay_swarm.encoder)
-                    
-    def getPort(self):
-        listen_port = None
-        btconfig = self.utility.getBTParams()
-        
-        upnp_type = UPnP_test(btconfig['upnp_nat_access'])
-
-        while 1:
-            try:
-                listen_port = self.rawserver.find_and_bind(btconfig['minport'], 
-                                                           btconfig['maxport'], 
-                                                           btconfig['bind'], 
-                                                           ipv6_socket_style = btconfig['ipv6_binds_v4'], 
-                                                           upnp = upnp_type, 
-                                                           randomizer = False)
-                self.utility.listen_port = listen_port
-                break
-            except socketerror, e:
-                if upnp_type and e == UPnP_ERROR:
-                    message = "WARNING: COULD NOT FORWARD VIA UPnP"
-                    dialog = wx.MessageDialog(None, 
-                                              message, 
-                                              self.utility.lang.get('error'), 
-                                              wx.ICON_ERROR)
-                    dialog.ShowModal()
-                    dialog.Destroy()
-                    self.Output.message('WARNING: COULD NOT FORWARD VIA UPnP')
-                    upnp_type = 0
-                    continue
-                else:
-                    message = self.utility.lang.get('noportavailable') + \
-                              "\n" + \
-                              self.utility.lang.get('tryotherport')
-                    dialog = wx.MessageDialog(None, 
-                                              message, 
-                                              self.utility.lang.get('error'), 
-                                              wx.YES_NO|wx.ICON_ERROR)
-                    result = dialog.ShowModal()
-                    dialog.Destroy()
-                    if(result == wx.ID_NO):
-                        self.failed(self.utility.lang.get('noportavailable'))
-                        break
-                    
-                    btconfig['minport'] = btconfig['minport'] + 1
-                    btconfig['maxport'] = btconfig['maxport'] + 1
-                    
-        return listen_port
-            
     def run(self):
         try:
             self.handler.listen_forever()
         except:
             data = StringIO()
             print_exc(file=data)
-            self.Output.exception(data.getvalue())
+            self.Outputter.exception(data.getvalue())
         
         for ABCTorrentTemp in self.utility.torrents["active"].keys():
             ABCTorrentTemp.shutdown()
@@ -168,6 +102,7 @@ class LaunchMany(Thread):
     def stop(self):
         self.doneflag.set()
 
+    # override
     def stats(self):
         for ABCTorrentTemp in self.utility.torrents["active"].keys():
             engine = ABCTorrentTemp.connection.engine
@@ -213,8 +148,27 @@ class LaunchMany(Thread):
 
             engine.onUpdateStatus(progress, t, dnrate, uprate, status, s, spew)
         self.rawserver.add_task(self.stats, self.stats_period)
+
+    def add(self, hash, data):
+        self.invokeLater(self.add_callback,[hash,data])
+
+    def onInvoke(self, event):
+        if ((self.doneflag is not None)
+            and (not self.doneflag.isSet())):
+            event.func(*event.args, **event.kwargs)
+
+    def invokeLater(self, func, args = [], kwargs = {}):
+        if ((self.doneflag is not None)
+            and (not self.doneflag.isSet())):
+            wx.PostEvent(self, InvokeEvent(func, args, kwargs))
+
+    # Make sure this is called by the MainThread, as it does GUI updates
+    def add_callback(self, hash, data):
+        self.utility.queue.addtorrents.AddTorrentFromFile(data['path'], caller = "helper", dest = data['dest'], caller_data = data)
+
         
-    def add(self, ABCTorrentTemp):
+    # polymorph/override
+    def addDownload(self, ABCTorrentTemp):
         c = self.counter
         self.counter += 1
         x = ''
@@ -227,6 +181,7 @@ class LaunchMany(Thread):
         self.utility.torrents["active"][ABCTorrentTemp] = 1
         engine.start()
 
+    # override
     def hashchecksched(self, ABCTorrentTemp = None):
         if ABCTorrentTemp:
             self.hashcheck_queue.append(ABCTorrentTemp)
@@ -239,11 +194,13 @@ class LaunchMany(Thread):
         if not self.hashcheck_current:
             self._hashcheck_start()
 
+    # override
     def _hashcheck_start(self):
         self.hashcheck_current = self.hashcheck_queue.pop(0)
         engine = self.hashcheck_current.connection.engine
         engine.hashcheck_start(self.hashcheck_callback)
 
+    # override
     def hashcheck_callback(self):
         try:
             current = self.hashcheck_current.connection.engine
@@ -257,6 +214,7 @@ class LaunchMany(Thread):
         else:
             self.hashcheck_current = None
         
+    # polymorph/override
     def was_stopped(self, ABCTorrentTemp):
         try:
             self.hashcheck_queue.remove(ABCTorrentTemp)
@@ -276,13 +234,8 @@ class LaunchMany(Thread):
         # (may be left behind when active torrents end)
         gc.collect()
 
-    def failed(self, s):
-        self.Output.message('FAILURE: '+s)
 
-    def exchandler(self, s):
-        self.Output.exception(s)
-
-class Output:
+class Outputter:
     def __init__(self):
         pass
         

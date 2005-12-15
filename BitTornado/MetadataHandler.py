@@ -3,8 +3,12 @@ from BT1.MessageID import *
 from FileCacheHandler import FileCacheHandler
 
 import md5
+from traceback import print_exc
 
+# Python no recursive imports?
+# from overlayswarm import overlay_infohash
 overlay_infohash = '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+
 
 DEBUG = False
 Max_Torrent_Size = 8*1024*1024    # 8MB torrent = about 80G files
@@ -132,6 +136,7 @@ class MetadataHandler:
                 #self.dlhelper.call_dlhelp_task(torrent_hash, torrent_path, conn)
                 self.dlhelper.call_dlhelp_task(torrent_hash, metadata)
         except Exception, msg:
+            print_exc()
             print "Received metadata is broken", msg
             return False
         

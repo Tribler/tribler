@@ -35,7 +35,9 @@ class BTPeer:
         else:
             self.id_type = 'ip'
             self.id = self.ip
-        self.ip_info = IPInfo.lookupIPInfo(self.ip)    #TODO: add it to task queue or start a thread
+        # Arno disabling temporarily to fix GUI update problems
+        #self.ip_info = IPInfo.lookupIPInfo(self.ip)    #TODO: add it to task queue or start a thread
+        self.ip_info = None
         self.torrent.peer_swarm[self.ip] = self
         
     def updateBTInfo(self, bt_info):

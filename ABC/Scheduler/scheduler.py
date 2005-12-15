@@ -4,6 +4,7 @@ import wx
 #from operator import attrgetter
 from threading import Event
 from threading import Timer
+from threading import currentThread
 #from traceback import print_exc
 #from cStringIO import StringIO
 
@@ -110,6 +111,13 @@ class ABCScheduler(wx.EvtHandler):
             return len(self.utility.torrents["active"]) - len(self.utility.torrents["seeding"])
         
     def UpdateRunningTorrentCounters(self):
+
+        print "UpdateRunningTorrentCounters thread",currentThread()
+        if currentThread().getName() != "MainThread":
+            print "counters NOT MAIN THREAD"
+            return
+
+
         self.CalculateTorrentCounters()
             
         statusfunc = self.utility.frame.abc_sb.SetStatusText      
@@ -209,7 +217,8 @@ class ABCScheduler(wx.EvtHandler):
         # Try invoking the scheduler
         # (just in case we need to start more stuff:
         #  should return almost immediately otherwise)
-        self.Scheduler()
+        ## Do so via main thread, because Scheduler updates counters in the GUI 
+        self.invokeLater(self.Scheduler)
 
         # Start Timer
         ##########################################

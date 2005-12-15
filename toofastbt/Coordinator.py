@@ -48,9 +48,13 @@ class Coordinator:
 
     def request_help(self):
         for (ip, port) in self.pending_helpers:
+            print "Coordinator connecting to",ip,port," for help"
             self.encoder.overlay_swarm.connect_peer(ip, port)
             self.encoder.overlay_swarm.add_os_task2(ip, port, ['DOWNLOAD_HELP', self.info_hash])
         self.pending_helpers = []
+
+    def add_pending_helper(self,permid,ip,port):
+        self.pending_helpers.append((ip, port))
 
 ### Connecter interface
     def get_reserved(self):

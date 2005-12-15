@@ -1,4 +1,4 @@
-from threading import Event
+from threading import Event,currentThread
 
 from bencode import bencode, bdecode
 from sha import sha
@@ -12,28 +12,7 @@ from buddycast import BuddyCast
 from MetadataHandler import MetadataHandler
 from helper import Helper
 
-REQUEST_LISTENING_PORT = chr(249)
-# listen port
-LISTENING_PORT = chr(248)
-# maximum number of items in preference
-REQUEST_PREFERENCE = chr(247)
-# preference
-PREFERENCE = chr(246)
-# {type:metadata type, infohash:info hash}
-REQUEST_METADATA = chr(245)
-# {type:metadata type, infohash:info hash, metadata:meta data}
-METADATA = chr(244)
-
 protocol_name = 'BitTorrent protocol'    #TODO: 'BitTorrent+ protocol'
-
-# Enable I-Share extensions:
-# Left-most bit = Azureus Enhanced Messaging Protocol (AEMP)
-# Left+1 bit = I-Share Challenge/Response extension
-# Left+2 bit = I-Share Simple Merkle Hashes extension
-# Right-most bit = BitTorrent DHT extension
-#option_pattern = chr(0)*8
-option_pattern = '\x60\x00\x00\x00\x00\x00\x00\x00' 
-
 overlay_infohash = '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
 
 DEBUG = True
@@ -93,7 +72,7 @@ class OverlaySwarm:
         self.valid_tasks = [
             'PREFERENCE_EXCHANGE',
             'GET_METADATA',
-            'PUBKEY',
+            'CHALLENGE',
             'DOWNLOAD_HELP',
             ]
             
@@ -110,6 +89,9 @@ class OverlaySwarm:
 # 2fastbt_
     def set_launchmany(self, launchmany):
         self.launchmany = launchmany
+    
+    def set_utility(self, utility):
+        self.utility = utility
 # _2fastbt
     
     def set_listen_port(self, port):
@@ -128,9 +110,9 @@ class OverlaySwarm:
             self.buddycast.set_myip(conn.get_myip(True))
             
     def connect_peer(self, ip, port):
-        """ Connect to overlay swarm given peer's ip and port """
+            """ Connect to overlay swarm given peer's ip and port """
         
-        if not self.peers.has_key(ip) or not self.peers[ip][port].is_overlayswarm():
+        #if not self.peers.has_key(ip) or not self.peers[ip][port].is_overlayswarm():
             if DEBUG:
                 print "Start overlay swarm connection to", ip + ':' + str(port)
             # The new Encrypter.Connection will be registered at OverlaySwarm.connections
@@ -138,15 +120,19 @@ class OverlaySwarm:
             self.encoder.start_connection(dns, 0)
             
     def add_os_task(self, conn, task):
+        print "add_os_task:",currentThread()
         if isinstance(task, str):
             task = (task, None)
         if task[0] not in self.valid_tasks:
+            print "TASK 0 NOT VALID",task[0]
             return
         if conn not in self.tasks_queue:
             self.tasks_queue[conn] = []
         self.tasks_queue[conn].append(task)
+        print "TASK ADDED!!",conn,task
         
     def add_os_task2(self, ip, port, task):
+        print "add_os_task2:",currentThread()
         if DEBUG:
             print "Add overlay swarm task ", ip, " ", port, " ", task
         if isinstance(task, str):
@@ -160,24 +146,31 @@ class OverlaySwarm:
             print "Added overlay swarm task ", ip, " ", port, " ", task, " - \n"
 
     def move_os_tasks(self, ip, port, conn):    # move tasks from task_queue2 to task_queue
+        print "move_os_task:",currentThread()
         try:
             if DEBUG:
                 print "Moving os tasks ", (ip, port), " ", self.tasks_queue2, " - \n"
             while True:
+                print "HALLO"
                 task = self.tasks_queue2[(ip, port)].pop(0)
+                print "DAG"
                 self.add_os_task(conn, task)
                 if DEBUG:
                     print "Moving os task: ", ip, " ", port, " ", task
-        except:
+        except Exception,e:
+            print "EXCEPTION IN MOVE",e
             pass
         
     def check_os_task(self, conn):    # fetch one task to execute
+        print "check_os_task:",currentThread()
+        print "Fetching task to execute for",conn
         while True:
             try:
                 task = self.tasks_queue[conn].pop(0)
-            except:
+            except Exception,e:
+                print "Exception while fetching task!",e 
                 return
-            if task[0] == 'PUBKEY':
+            if task[0] == 'CHALLENGE':
                 self.start_cr(conn)
             elif task[0] == 'PREFERENCE_EXCHANGE':
                 self._start_prefxchg(conn)
@@ -275,8 +268,11 @@ class OverlaySwarm:
     def post_connection_added(self, conn):
         ip = conn.get_ip(True)
         port = conn.get_port(True)
+        print "POSTCONN BEFORE MOVE"
         self.move_os_tasks(ip, port, conn)
+        print "POSTCONN AFTER MOVE"        
         self.check_os_task(conn)
+        print "POSTCONN AFTER CHECK"
         
     def start_cr(self, conn):
         """ Start permid exchange and challenge/response validation """
@@ -294,8 +290,10 @@ class OverlaySwarm:
     
     def got_message(self, conn, message):
         """ Handle message for overlay swarm and return if the message is valid """
-#        if DEBUG:
-#            print "GOT message:", len(message), show(message), message
+        if DEBUG:
+            #print "GOT message:", len(message), show(message), message
+            print "Overlay",
+            printMessageID(message[0],message)
 
         if not conn:
             return False

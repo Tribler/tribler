@@ -22,6 +22,8 @@ class PeerCacheHandler:
         self.peers.addPeer(peer)
             
     def updateSpew(self, torrent_hash, spew):
+        if spew is None:
+            return
         for peer in spew:
             if not peer.has_key('torrent_hash'):
                 peer.update({'torrent_hash':torrent_hash})

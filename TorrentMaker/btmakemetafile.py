@@ -70,7 +70,8 @@ def print_announcelist_details():
     print ('            url[|url...]')
 
 def make_meta_file(file, url, params = None, flag = Event(), 
-                   progress = lambda x: None, progress_percent = 1, gethash = None):        
+                   progress = lambda x: None, progress_percent = 1, fileCallback = lambda x: None, gethash = None):
+        
     if params is None:
         params = {}
     if 'piece_size_pow2' in params:
@@ -78,20 +79,20 @@ def make_meta_file(file, url, params = None, flag = Event(),
     else:
         piece_len_exp = default_piece_len_exp
     merkle_torrent = params.has_key('merkle_torrent')
+    if merkle_torrent:
+        postfix = '.merkle.torrent'
+    else:
+        postfix = '.torrent'
     sign = params.has_key('permid signature')
     if 'target' in params and params['target']:
-        f = join(params['target'], split(normpath(file))[1] + '.torrent')
+        f = join(params['target'], split(normpath(file))[1] + postfix)
     else:
-        if merkle_torrent:
-            postfix = '.merkle.torrent'
-        else:
-            postfix = '.torrent'
         a, b = split(file)
         if b == '':
             f = a + postfix
         else:
             f = join(a, b + postfix)
-            
+
     if merkle_torrent and piece_len_exp == 0:
         piece_len_exp = 15 # standardized value
     elif piece_len_exp == 0:  # automatic
@@ -151,6 +152,7 @@ def make_meta_file(file, url, params = None, flag = Event(),
 
     h.write(bencode(data))
     h.close()
+    fileCallback(file,f)
 
 def calcsize(file):
     if not isdir(file):
@@ -280,7 +282,7 @@ def makeinfo(file, piece_length, encoding, flag, merkle_torrent, progress, progr
         if done > 0:
             pieces.append(sh.digest())
         if merkle_torrent:
-            merkletree = MerkleTree(piece_length,totalsize,None,pieces)
+            merkletree = MerkleTree(piece_length,long(totalsize),None,pieces)
             root_hash = merkletree.get_root_hash()
             return {'root hash': root_hash,
                 'piece length': piece_length, 'files': fs, 
@@ -386,16 +388,20 @@ def subfiles(d):
     return r
 
 def completedir(dir, url, params = None, flag = Event(),
-                vc = lambda x: None, fc = lambda x: None, getmd5 = False):
+                vc = lambda x: None, fc = lambda x: None, gethash = None):
     if params is None:
         params = {}
+    merkle_torrent = params.has_key('merkle_torrent')
+    if merkle_torrent:
+        ext = '.merkle.torrent'
+    else:
+        ext = '.torrent'
     files = listdir(dir)
     files.sort()
-    ext = '.torrent'
-    if 'target' in params:
-        target = params['target']
-    else:
-        target = ''
+    #if 'target' in params:
+    #    target = params['target']
+    #else:
+    #    target = ''
 
     togen = []
     for f in files:
@@ -411,12 +417,11 @@ def completedir(dir, url, params = None, flag = Event(),
         subtotal[0] += x
         vc(float(subtotal[0]) / total)
     for i in togen:
-        fc(i)
         try:
             t = split(i)[-1]
             if t not in ignore and t[0] != '.':
-                if target != '':
-                    params['target'] = join(target,t+ext)
-                make_meta_file(i, url, params, flag, progress = callback, progress_percent = 0, getmd5 = getmd5)
+                #if target != '':
+                #    params['target'] = join(target,t+ext)
+                make_meta_file(i, url, params, flag, progress = callback, progress_percent = 0, fileCallback = fc, gethash = gethash)
         except ValueError:
             print_exc()

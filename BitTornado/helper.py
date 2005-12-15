@@ -79,6 +79,10 @@ class Helper:
                 return
             self.do_help(torrent_hash, torrent_data, conn, server_port)    # only ask for metadata once
 
+    # It is very important here that we create safe filenames, i.e., it should
+    # not be possible for a coordinator to send a METADATA message that causes
+    # important file to be overwritten
+    #
     def do_help(self, torrent_hash, torrent_data, conn, server_port):
         print "**************** download help **************"
 #        print "Torrent hash:", torrent_hash, "From:", conn.get_ip(), conn.get_port()
@@ -106,7 +110,14 @@ class Helper:
         data['length'] = l
         data['name'] = i.get('name', data['file'])
         print "name: ", data['name']
-        data['path'] = os.path.join(self.launchmany.torrent_dir, data['name'] + '.torrent')
+        # Arno HACK TO GET A SAFE PATH FOR STORING THE DOWNLOAD
+        dest = os.path.join(self.launchmany.torrent_dir, data['file'] )
+        data['dest'] = dest        
+        data['coordinator_ip'] = conn.get_ip()
+        data['coordinator_port'] = server_port
+
+        tfile = os.path.join(self.launchmany.torrent_dir, data['file'] + '.torrent')
+        data['path'] = tfile
         print "path: ", data['path']
         def setkey(k, d = d, data = data):
             if d.has_key(k):
@@ -129,6 +140,7 @@ class Helper:
         self.launchmany.config['coordinator_port'] = server_port
         self.launchmany.add(torrent_hash, data)
 
+
     def can_help(self, torrent_hash):    #TODO: test if I can help the cordinator to download this file
         return True                      #Future support: make the decision based on my preference
 
@@ -144,7 +156,7 @@ class Helper:
                 print "Helper got_message DOWNLOAD_HELP"
             return self.got_dlhelp_request(conn, message)
         else:
-            print "UNKONW OVERLAY MESSAGE", ord(t)
+            print "UNKNOWN OVERLAY MESSAGE", ord(t)
         
     def startup(self):
         if DEBUG:

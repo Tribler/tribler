@@ -22,6 +22,8 @@ class ScrapeThread(Thread):
         self.currentseed = "?"
         self.currentpeer = "?"
 
+        self.setName( "Scrape"+self.getName() )
+
     def run(self):
         self.GetScrapeData()
 

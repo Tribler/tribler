@@ -23,7 +23,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = False
+DEBUG = True
 MAX_INCOMPLETE = 8
 
 protocol_name = 'BitTorrent protocol'
@@ -167,7 +167,7 @@ class Connection:
         if r[0] & 0x10:    # left + 43 bit
             self.support_overlayswarm = True
             if DEBUG:
-                print "Peer supports Challenge/Response"
+                print "Peer supports overlay swarm"
         if r[0] & 0x20:    # left + 42 bit
             self.support_merklehash= True
             if DEBUG:
@@ -236,12 +236,15 @@ class Connection:
             self.readable_id = make_readable(s)
         else:    # locat init with remote id
             if s != self.id:
+                print "NONE self.id not s"
                 return None
         self.complete = self.Encoder.got_id(self)
         if not self.complete:
+            print "NONE incomplete"
             return None
         if self.is_overlayswarm():
             if not self.check_overlay_version(s[16:18], s[18:20]):    # versioning protocol
+                print "NONE overlay version"
                 return None
         if self.locally_initiated:
             self.connection.write(self.Encoder.my_id)
@@ -283,6 +286,7 @@ class Connection:
         if self.is_overlayswarm():
             low_ver = unpack('H', low_ver_str)[0]
             cur_ver = unpack('H', cur_ver_str)[0]
+            print "VERSIONS ARE",low_ver,cur_ver
             if cur_ver != CurrentVersion:
                 if low_ver > CurrentVersion:    # the other's version is too high
                     return False
@@ -294,6 +298,8 @@ class Connection:
                 if cur_ver < CurretVersion:     # set low version as our version
                     self.overlay_version = cur_ver
             return True
+        else:
+            return False
 
     def post_connection_made(self, conn):
         """ Initailize overlay swarm connection; exchange permid if overlay conncetion is established """
@@ -312,7 +318,7 @@ class Connection:
                 
         else:    # couple overlay swarm connection with normal swarm connection
             # permid exchange is always the first message in overlay swarm connection
-            self.overlay_swarm.add_os_task(conn, 'PUBKEY')
+            self.overlay_swarm.add_os_task(conn, 'CHALLENGE')
             self.overlay_swarm.check_os_task(conn)
 
     def read_len(self, s):
@@ -369,8 +375,8 @@ class Connection:
             self.connection.write(message)    # SingleSocket
 
     def data_came_in(self, connection, s):
-#        if DEBUG and self.is_overlayswarm():
-#            print ">>>>>>>>Encrypter.Conection data came in", show(s), self.next_func
+        #if DEBUG and self.is_overlayswarm():
+        #    print ">>>>>>>>Encrypter.Conection data came in", show(s), self.next_func
         self.Encoder.measurefunc(len(s))  #TODO: add rate limiter for overlay 
         while 1:
             if self.closed:
@@ -389,6 +395,7 @@ class Connection:
             try:
                 x = self.next_func(m)
             except:
+                print_exc()
                 self.next_len, self.next_func = 1, self.read_dead
                 raise
             if x is None:
@@ -457,16 +464,16 @@ class Encoder:
 #        if not self.is_overlayswarm():
 #            return
         self.raw_server.add_task(self.check_connections, 2)
-        print '------------- ' + str(len(self.connections)) + ' - ' + show(self.download_id) + ' -------------'
+        ##print '------------- ' + str(len(self.connections)) + ' - ' + show(self.download_id) + ' -------------'
         for conn in self.connections.values():
             if conn.connecter_connection and conn.connecter_connection.permid:
                 permid = sha(conn.connecter_connection.permid).hexdigest()
             else:
                 permid = 'no perm id'
-            print 'Overlay Swarm:', str(conn.is_overlayswarm()), ' - ', conn.connecter_connection, permid
-        if self.is_overlayswarm():
-            print 'Peers:', self.overlay_swarm.peers
-            print 'Connections:', self.overlay_swarm.connections
+            ##print 'Overlay Swarm:', str(conn.is_overlayswarm()), ' - ', conn.connecter_connection, permid
+##        if self.is_overlayswarm():
+##            print 'Peers:', self.overlay_swarm.peers
+##            print 'Connections:', self.overlay_swarm.connections
         
     def is_overlayswarm(self):
         return self.download_id == OverlaySwarm.infohash
@@ -521,6 +528,7 @@ class Encoder:
              or len(self.connections) >= self.max_connections
              or id == self.my_id
              or self.banned.has_key(dns[0]) ):
+            print "Encoder start_connection paused RETURN"
             return True
 #--- 2fastbt_
 #        if self.banned.has_key(dns[0]) and not self.connection.is_helper_con() and \
@@ -534,6 +542,7 @@ class Encoder:
                 return True
             ip = v.get_ip(True)
             if self.config['security'] and ip != 'unknown' and ip == dns[0]:
+                print "Encoder start_connection values RETURN"
                 return True
         try:
             if DEBUG:

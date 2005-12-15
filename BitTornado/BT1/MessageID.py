@@ -60,21 +60,24 @@ METADATA = chr(247)
 MetadataMessages = [GET_METADATA, METADATA]
 
 DOWNLOAD_HELP = chr(246)
+# 2fastbt_
+RESERVE_PIECES = chr(242)
+PIECES_RESERVED = chr(241)
+IGNORE_PIECES = chr(240)
+# _2fastbt
 
-HelpMessages = [DOWNLOAD_HELP]
+HelpMessages = [DOWNLOAD_HELP,RESERVE_PIECES,PIECES_RESERVED,IGNORE_PIECES]
 
 ONLINE_EXCHANGE = chr(244)
 FRIENDS_EXCHANGE = chr(243)
 
 OverlaySwarmMessages= PermIDMessages + BuddyCastMessages + MetadataMessages + HelpMessages
 
-
-
 CurrentVersion = 1
 LowestVersion = 1
 SupportedVersions = range(LowestVersion, CurrentVersion+1)
 
-def printMessageID(t):
+def printMessageID(t,message):
     if t == CHOKE:
         print "GOT CHOKE",len(message)
     elif t == UNCHOKE:
@@ -93,24 +96,28 @@ def printMessageID(t):
         print "GOT CANCEL",len(message)
     elif t == PIECE:
         print "GOT PIECE",len(message)
-    elif t == PUBKEY:
-        print "GOT PUBKEY",len(message)
     elif t == CHALLENGE:
         print "GOT CHALLENGE",len(message)            
     elif t == RESPONSE1:
         print "GOT RESPONSE1",len(message)
     elif t == RESPONSE2:
         print "GOT RESPONSE2",len(message)
-    elif t == LISTENING_PORT:
-        print "GOT SEND_LISTENING_PORT", len(message)
-    elif t == REQUEST_PREFERENCE:
-        print "GOT REQUEST_PREFERENCE", len(message)
-    elif t == PREFERENCE:
-        print "GOT SEND_PREFERENCE", len(message)
-    elif t == REQUEST_METADATA:
-        print "GOT REQUEST_METADATA", len(message)
+    elif t == DOWNLOAD_HELP:
+        print "GOT DOWNLOAD_HELP", len(message)
+    elif t == HASHPIECE:
+        print "GOT HASHPIECE", len(message)
+    elif t == PREFERENCE_EXCHANGE:
+        print "GOT PREFERENCE_EXCHANGE", len(message)
+    elif t == GET_METADATA:
+        print "GOT GET_METADATA", len(message)
     elif t == METADATA:
         print "GOT SEND_METADATA", len(message)
+    elif t == RESERVE_PIECES:
+        print "GOT RESERVE_PIECES", len(message)
+    elif t == PIECES_RESERVED:
+        print "GOT PIECES_RESERVED", len(message)
+    elif t == IGNORE_PIECES:
+        print "GOT IGNORE_PIECES", len(message)
     else:
         print "GOT unknown!",`t`,"length",len(message)
         

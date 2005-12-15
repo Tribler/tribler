@@ -14,6 +14,7 @@ from cStringIO import StringIO
 from wx.lib.buttons import GenButton
 
 from ABC.GUI.list import ManagedList
+from Dialogs.dlhelperframe import DownloadHelperPanel
 
 from Utility.constants import * #IGNORE:W0611
 from Utility.ipinfo import IPInfo, no_info
@@ -1201,6 +1202,9 @@ class ABCDetailFrame(wx.Frame):
         self.torrentInfoPanel = TorrentInfoPanel(self.notebook, self)
         self.notebook.AddPage(self.torrentInfoPanel, self.utility.lang.get('torrentinfo'))
 
+        self.downloadHelperPanel = DownloadHelperPanel(self.notebook, self)
+        self.notebook.AddPage(self.downloadHelperPanel, self.utility.lang.get('helperinfo'))
+
         self.messageLogPanel = MessageLogPanel(self.notebook, self)
         self.notebook.AddPage(self.messageLogPanel, self.utility.lang.get('messagelog'))
         
@@ -1372,5 +1376,3 @@ class ABCDetailFrame(wx.Frame):
         info = self.metainfo['info']
         if 'length' in info:
             self.fileInfoPanel.fileList.updateColumns()
-            
-

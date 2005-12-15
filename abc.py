@@ -1,5 +1,6 @@
 #!/usr/bin/python
- 
+import base64 
+
 #########################################################################
 #
 # Author : Choopan RATTANAPOKA
@@ -20,7 +21,7 @@ from traceback import print_exc
 from cStringIO import StringIO
 
 from interconn import ServerListener, ClientPassParam
-from launchmanycore import LaunchMany
+from launchmanycore import ABCLaunchMany
 
 from ABC.Toolbars.toolbars import ABCBottomBar2, ABCStatusBar, ABCMenuBar, ABCToolBar
 from ABC.GUI.menu import ABCMenu
@@ -365,10 +366,48 @@ class ABCFrame(wx.Frame):
         self.utility.all_peers_cache = PeerCacheHandler()
         self.utility.all_files_cache = FileCacheHandler()
         
+
+
+        ## DEBUG
+        
+        friend = {}
+        friend['name'] = 'Jie'
+        friend['permid'] = base64.decodestring('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAc6ebdH+dmvvgKiE7oOZuQba5I4msyuTJmVpJQVPAT+R9Pg8zsLsuJPV6RjU30RKHnCiaJvjtFW6pLXo')
+        friend['ip'] = '130.37.193.64'
+        friend['port'] = 6882
+        id = self.utility.all_peers_cache.addPeer(friend)
+        self.utility.all_peers_cache.addFriend(id)
+
+        friend = {}
+        friend['name'] = 'Pawel'
+        friend['permid'] = base64.decodestring('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAd0fxkXBDGOTD/TfM6yCEuT7F26NgVV3KIrOM8OvAc0X25KQCohK5kD+URfoCO8sHVfxpSJe3Q8ri0uz')
+        friend['ip'] = '130.37.198.241'
+        friend['port'] = 6882
+        id = self.utility.all_peers_cache.addPeer(friend)
+        self.utility.all_peers_cache.addFriend(id)
+
+
+        friend = {}
+        friend['name'] = 'Johan'
+        friend['permid'] = base64.decodestring('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAUo6nahUzz+NtYWfabmtkvBryqX3ToxgdBKIllVtADv1Et+W0OyT9J0F8VPqSeBZVA1TPuLUpt3I9QHP')
+        friend['ip'] = '130.37.193.64'
+        friend['port'] = 6883
+        id = self.utility.all_peers_cache.addPeer(friend)
+        self.utility.all_peers_cache.addFriend(id)
+
+        friend = {}
+        friend['name'] = 'Arno'
+        friend['permid'] = base64.decodestring('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAWAiRwei5Kw9b2he6qmwh5Hr5fNR3FlgHQ1WhXY0AC4w8RQD59rp4Jbo2NdjyXUGb5y1BCeMCGoRCaFy')
+        friend['ip'] = '130.37.193.64'
+        friend['port'] = 6881
+        id = self.utility.all_peers_cache.addPeer(friend)
+        self.utility.all_peers_cache.addFriend(id)
+
+        print "My Friends"
+        print self.utility.all_peers_cache.getFriends(last_file=True)
+
         # Start up the controller
-        self.utility.controller = LaunchMany(self.utility, 
-                                             self.utility.all_peers_cache, 
-                                             self.utility.all_files_cache)
+        self.utility.controller = ABCLaunchMany(self.utility)
         self.utility.controller.start()
         
         self.utility.queue.postInitTasks()
@@ -561,6 +600,7 @@ class ABCApp(wx.App):
         self.single_instance_checker = single_instance_checker
 
         self.utility = Utility(abcpath)
+
         # Set locale to determine localisation
         locale.setlocale(locale.LC_ALL, '')
 
@@ -604,7 +644,8 @@ def run(params = None):
         ClientPassParam(params[0])
     else:
         abcpath = os.path.abspath(os.path.dirname(sys.argv[0]))
-        os.chdir(abcpath)
+        # Arno: don't chdir to allow testing as other user from other dir.
+        #os.chdir(abcpath)
 
         # Launch first abc single instance
         app = ABCApp(0, params, single_instance_checker, abcpath)

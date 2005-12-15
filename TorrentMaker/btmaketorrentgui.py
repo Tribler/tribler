@@ -4,13 +4,12 @@
 # modified for multitracker by John Hoffman
 # see LICENSE.txt for license information
 
-
 import sys
 import wx
 import os
 
 from os.path import join, isdir, exists, normpath, split
-from threading import Event, Thread
+from threading import Event, Thread, currentThread
 from shutil import copy2
 
 from traceback import print_exc
@@ -611,6 +610,9 @@ class TorrentMaker(wx.Frame):
         self.utility.makerconfig.Flush()
     
     def complete(self, event = None):
+
+        print "complete thread",currentThread()
+
         filename = self.fileInfoPanel.dirCtl.GetValue()
         if filename == '':
             dlg = wx.MessageDialog(self, message = self.utility.lang.get('youmustselectfileordir'), 
@@ -648,6 +650,7 @@ class CompleteDir:
         self.utility = self.parent.utility
         self.flag = Event()
         self.separatetorrents = False
+        self.files = []
         
         # See if we need to get md5sums for each file
         if 'gethash' in params:
@@ -658,11 +661,6 @@ class CompleteDir:
         # Can remove it from params before we pass things on
         if 'gethash' in params:
             del params['gethash']
-
-        if params.has_key('merkle_torrent'):
-            self.postfix = '.merkle.torrent'
-        else:
-            self.postfix = '.torrent'
 
         if isdir(d):
             self.choicemade = Event()
@@ -721,7 +719,7 @@ class CompleteDir:
         if self.separatetorrents:
             self.currentLabel = wx.StaticText(panel, -1, self.utility.lang.get('checkfilesize'))
         else:
-            self.currentLabel = wx.StaticText(panel, -1, self.utility.lang.get('building') + self.d + self.postfix)
+            self.currentLabel = wx.StaticText(panel, -1, self.utility.lang.get('building'))
         gridSizer.Add(self.currentLabel, 0, wx.EXPAND)
         self.gauge = wx.Gauge(panel, -1, range = 1000, style = wx.GA_SMOOTH)
         gridSizer.Add(self.gauge, 0, wx.EXPAND)
@@ -748,43 +746,58 @@ class CompleteDir:
             if self.separatetorrents:
                 completedir(self.d, self.a, self.params, self.flag, self.valCallback, self.fileCallback, gethash = self.gethash)
             else:
-                make_meta_file(self.d, self.a, self.params, self.flag, self.valCallback, progress_percent = 1, gethash = self.gethash)
+                make_meta_file(self.d, self.a, self.params, self.flag, self.valCallback, progress_percent = 1, fileCallback = self.fileCallback, gethash = self.gethash)
             if not self.flag.isSet():
-                self.currentLabel.SetLabel(self.utility.lang.get('Done'))
-                self.gauge.SetValue(1000)
-                self.button.SetLabel(self.utility.lang.get('close'))
-                self.frame.Refresh()
-        except (OSError, IOError), e:
-            self.currentLabel.SetLabel(self.utility.lang.get('error'))
-            self.button.SetLabel(self.utility.lang.get('close'))
-            dlg = wx.MessageDialog(None, 
-                                   message = self.utility.lang.get('error') + ' - ' + str(e), 
-                                   caption = self.utility.lang.get('error'), 
-                                   style = wx.OK | wx.ICON_ERROR)
-            dlg.ShowModal()
-            dlg.Destroy()
+	    	self.completeCallback()
 
-        if self.parent.fileInfoPanel.startnow.GetValue():
-            targeted = self.parent.fileInfoPanel.getTargeted()
-            if not targeted:
-                copy2(normpath(self.d) + self.postfix, os.path.join(self.utility.getConfigPath(), "torrent"))
-            else:
-                try:
-                    copy2(join(targeted, split(normpath(self.d))[1]) + self.postfix, os.path.join(self.utility.getConfigPath(), "torrent"))
-                except:
-                    pass
+            if self.parent.fileInfoPanel.startnow.GetValue():
+                # When seeding immediately, copy torrents to config dir
+                for list in self.files:
+                    torrentfile = list[1]
+                    copy2(normpath(torrentfile), os.path.join(self.utility.getConfigPath(), "torrent"))
+                    torrentfile4seed = os.path.join(self.utility.getConfigPath(), "torrent", split(normpath(torrentfile))[1])
+                    list.append(torrentfile4seed)
+        except (OSError, IOError), e:
+		self.errorCallback(e)
+
+    def errorCallback(self,e):
+    	self.invokeLater(self.onError,[e])
+	
+    def onError(self,e):
+        self.currentLabel.SetLabel(self.utility.lang.get('error'))
+        self.button.SetLabel(self.utility.lang.get('close'))
+        dlg = wx.MessageDialog(None, 
+                               message = self.utility.lang.get('error') + ' - ' + str(e), 
+                               caption = self.utility.lang.get('error'), 
+                               style = wx.OK | wx.ICON_ERROR)
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    def completeCallback(self):
+    	self.invokeLater(self.onComplete)
+	
+    def onComplete(self):
+        self.currentLabel.SetLabel(self.utility.lang.get('Done'))
+        self.gauge.SetValue(1000)
+        self.button.SetLabel(self.utility.lang.get('close'))
 
     def valCallback(self, amount):
         self.invokeLater(self.onVal, [amount])
 
     def onVal(self, amount):
-        self.gauge.SetValue(int(amount * 1000))
+        target = int(amount * 1000)
+        old = self.gauge.GetValue()
+        perc10 = self.gauge.GetRange()/10
+        if target > old+perc10: # 10% increments
+            self.gauge.SetValue(target)
 
-    def fileCallback(self, f):
-        self.invokeLater(self.onFile, [f])
+    def fileCallback(self, orig, torrent):
+        self.files.append([orig,torrent])
+        self.invokeLater(self.onFile, [torrent])
 
-    def onFile(self, f):
-        self.currentLabel.SetLabel(self.utility.lang.get('building') + join(self.d, f) + self.postfix)
+    def onFile(self, torrent):
+        print "onFile thread",currentThread()
+        self.currentLabel.SetLabel(self.utility.lang.get('building') + torrent)
 
     def onInvoke(self, event):
         if not self.flag.isSet():
@@ -799,9 +812,12 @@ class CompleteDir:
             wx.PostEvent(self.frame, InvokeEvent(func, args, kwargs))
 
     def done(self, event):
+        print "done thread",currentThread()
         self.flag.set()
         self.frame.Destroy()
         if self.parent.fileInfoPanel.startnow.GetValue():
-            self.tmtordest = split(normpath(self.d))[1] + self.postfix
-            torrentsrc = os.path.join(self.utility.getConfigPath(), "torrent", self.tmtordest)
-            self.utility.queue.addtorrents.AddTorrentFromFile(torrentsrc, dest = self.d)
+            # When seeding immediately, add torrents to queue
+            for list in self.files:
+                orig = list[0]
+                torrentfile4seed = list[2]
+                self.utility.queue.addtorrents.AddTorrentFromFile(torrentfile4seed, dest = orig)

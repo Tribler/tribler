@@ -18,6 +18,23 @@ from Utility.helpers import getfreespace
 
 from peer import BTPeer
 
+wxEVT_INVOKE = wx.NewEventType()
+
+def EVT_INVOKE(win, func):
+    win.Connect(-1, -1, wxEVT_INVOKE, func)
+    
+def DELEVT_INVOKE(win):
+    win.Disconnect(-1, -1, wxEVT_INVOKE)
+
+class InvokeEvent(wx.PyEvent):
+    def __init__(self, func, args, kwargs):
+        wx.PyEvent.__init__(self)
+        self.SetEventType(wxEVT_INVOKE)
+        self.func = func
+        self.args = args
+        self.kwargs = kwargs
+
+
 ################################################################
 #
 # Class: ABCEngine
@@ -27,8 +44,10 @@ from peer import BTPeer
 # from the BitTornado core.
 #
 ################################################################
-class ABCEngine:
-    def __init__(self, torrent, myid):        
+class ABCEngine(wx.EvtHandler):
+    def __init__(self, torrent, myid):
+        wx.EvtHandler.__init__(self)
+
         self.torrent = torrent
         self.queue = torrent.queue
         self.utility = torrent.utility
@@ -103,8 +122,18 @@ class ABCEngine:
         self.workarounds = { 'hasexternal': False }
         
         self.color = 'color_startup'
+        self.downloadHelpers = []
         
         btconfig = self.utility.getBTParams()
+        # 2fastbt_
+        if self.torrent.caller == "helper":
+            btconfig['role'] = 'helper'
+            btconfig['coordinator_ip'] = self.torrent.caller_data['coordinator_ip']
+            btconfig['coordinator_port'] = self.torrent.caller_data['coordinator_port']
+        else:
+            btconfig['role'] = 'coordinator'
+            btconfig['helpers_file'] = ''
+         # _2fastbt
 
 #        # TODO: setting check_hashes doesn't seem to work quite right
 #        #
@@ -129,6 +158,7 @@ class ABCEngine:
                                self.rawserver, 
                                self.controller.listen_port)
 
+        EVT_INVOKE(self, self.onInvoke)
 
     ####################################
     # BEGIN NEW STUFF (FOR SINGLE PORT)
@@ -259,8 +289,26 @@ class ABCEngine:
                            "allocating disk space": self.utility.lang.get('allocatingspace'), 
                            "moving data": self.utility.lang.get('movingdata') }
             self.btstatus = activities.get(activity, activity)
+
+    def onInvoke(self, event):
+        if ((self.doneflag is not None)
+            and (not self.doneflag.isSet())):
+            event.func(*event.args, **event.kwargs)
+
+    def invokeLater(self, func, args = [], kwargs = {}):
+        if ((self.doneflag is not None)
+            and (not self.doneflag.isSet())):
+            wx.PostEvent(self, InvokeEvent(func, args, kwargs))
+
+    def onUpdateStatus(self, fractionDone = None, 
+            timeEst = None, downRate = None, upRate = None, 
+            activity = None, statistics = None, spew = None, 
+            **kws):
+
+        self.invokeLater(self.updateStatus, [fractionDone, timeEst, downRate, upRate, activity, statistics, spew])
+
         
-    def onUpdateStatus(self, fractionDone = None, timeEst = None, downRate = None, upRate = None, activity = None, statistics = None, spew = None):                   
+    def updateStatus(self, fractionDone = None, timeEst = None, downRate = None, upRate = None, activity = None, statistics = None, spew = None):
         #print "<<<<< enter onUpdateStatus", self
         # Just in case a torrent was finished
         # but now isn't
@@ -899,6 +947,10 @@ class ABCEngine:
         self.queue.updateAndInvoke()
 
     def finished(self):
+        # Let main thread perform GUI updates
+        self.invokeLater(self.finished_callback)
+
+    def finished_callback(self):
         self.seed = True
         
         # seeding process
@@ -953,3 +1005,12 @@ class ABCEngine:
             self.btstatus = self.utility.lang.get('queue')
             self.utility.actionhandler.procQUEUE([self.torrent])            
 
+
+    def setDownloadHelpers(self,friendList):
+        self.downloadHelpers = friendList
+        for friend in friendList:
+            self.dow.coordinator.add_pending_helper(friend['permid'],friend['ip'],friend['port'])
+        self.dow.coordinator.request_help()
+
+    def getDownloadHelpers(self):
+        return self.downloadHelpers

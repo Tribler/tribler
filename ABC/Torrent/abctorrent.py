@@ -5,7 +5,7 @@ import os
 from cStringIO import StringIO
 from sha import sha
 from time import strftime, localtime, time
-from traceback import print_exc
+from traceback import print_exc,print_stack
 
 from BitTornado.bencode import bencode
 
@@ -18,6 +18,19 @@ from ABC.Torrent.status import TorrentStatus
 
 from Utility.constants import * #IGNORE:W0611
 
+try:
+    True
+except:
+    True = 1
+    False = 0
+
+DEBUG = False
+
+
+import threading
+
+
+
 
 ################################################################
 #
@@ -28,13 +41,15 @@ from Utility.constants import * #IGNORE:W0611
 #
 ################################################################
 class ABCTorrent:
-    def __init__(self, queue, src = None, dest = None, forceasklocation = False, caller = ""):
+    def __init__(self, queue, src = None, dest = None, forceasklocation = False, caller = "", caller_data = None):
         self.queue = queue
         self.utility = self.queue.utility
         self.list = self.utility.list
         self.listindex = len(self.utility.torrents["all"])
 
         self.src = src
+        self.caller = caller
+        self.caller_data = caller_data
 
         self.status = TorrentStatus(self)
         self.actions = TorrentActions(self)
@@ -438,6 +453,14 @@ class ABCTorrent:
     # (only visible columns will be updated)
     #
     def updateColumns(self, columnlist = None, force = False):
+
+        if DEBUG:
+            print "updateColumns thread",threading.currentThread()
+            if threading.currentThread().getName() != "MainThread":
+                print "NOT MAIN THREAD"
+                print_stack()
+                return
+
         if columnlist is None:
             columnlist = range(self.list.columns.minid, self.list.columns.maxid)
             
@@ -490,6 +513,14 @@ class ABCTorrent:
     #
 #    def updateColor(self, colorString = None, force = False):
     def updateColor(self, force = False):
+
+        if DEBUG:
+            print "updateColour thread",threading.currentThread()
+            if threading.currentThread().getName() != "MainThread":
+                print "colour NOT MAIN THREAD"
+                return
+
+
 #        print "<<< enter updateColor"
         # Don't do anything if ABC is shutting down
         if self.status.dontupdate:
@@ -554,6 +585,13 @@ class ABCTorrent:
     # for active torrents
     #
     def updateSingleItemStatus(self):
+
+        print "updateSingleItem thread",threading.currentThread()
+        if threading.currentThread().getName() != "MainThread":
+            print "item NOT MAIN THREAD"
+            return
+
+
         # Ignore 4, 5, 7, 9, 12, 13, 18, 22, 25
         
         # Do check to see if we're done uploading
@@ -614,6 +652,13 @@ class ABCTorrent:
     # Update the torrent with new scrape information
     #
     def updateScrapeData(self, newpeer, newseed, message = ""):
+
+        print "updateScrapeData thread",threading.currentThread()
+        if threading.currentThread().getName() != "MainThread":
+            print "scrape NOT MAIN THREAD"
+            return
+
+
         self.actions.lastgetscrape = time()
         self.totalpeers = newpeer
         self.totalseeds = newseed
@@ -644,6 +689,13 @@ class ABCTorrent:
             self.dialogs.details.detailPanel.updateFromABCTorrent()
     
     def changeMessage(self, message = "", type = "clear"):       
+
+        print "changeMesage thread",threading.currentThread()
+        if threading.currentThread().getName() != "MainThread":
+            print "message NOT MAIN THREAD"
+            ##return
+
+
         # Clear the error message
         if type == "clear":
             self.messages["current"] = ""

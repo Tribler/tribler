@@ -121,7 +121,7 @@ class TorrentConnections:
 
         self.torrent.updateSingleItemStatus() # BT Status
 
-        self.utility.controller.add(self.torrent)
+        self.utility.controller.addDownload(self.torrent)
 
 #    def stopEngine(self, waitForThread = False, update = True):
     def stopEngine(self, update = True):

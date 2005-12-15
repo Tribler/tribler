@@ -242,7 +242,10 @@ class PeerTable:
                 max_id = int(id['id'])
         return max_id
         
-    def addPeer(self, peer, friend=0, update_time=True):
+    def addPeer(self, peer, friend=1, update_time=True):
+
+    ## HACK REMOVE
+    #def addPeer(self, peer, friend=0, update_time=True):
         """ add a peer is it doesn't exist; otherwise update the status of this peer """
         
         if not peer.has_key('permid'):

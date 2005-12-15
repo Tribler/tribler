@@ -10,7 +10,10 @@ class RatePredictor:
     def __init__(self, raw_server, rate_measure, max_rate, probing_period = 2):
         self.raw_server = raw_server
         self.rate_measure = rate_measure
-        self.max_rate = max_rate
+        if max_rate == 0:   
+            self.max_rate = 2147483647
+        else:
+            self.max_rate = max_rate
         self.probing_period = probing_period # in seconds
 
 class ExpSmoothRatePredictor(RatePredictor):

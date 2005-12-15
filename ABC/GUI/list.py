@@ -531,7 +531,7 @@ class ManagedList(wx.ListCtrl):
     def updateColumns(self):
         self.columns.getColumnData()
         self.loadColumns()
-        
+
         self.parent.updateColumns(force = True)
     
     def getSelected(self, firstitemonly = False, reverse = False):

@@ -73,6 +73,7 @@ class SingleSocket:
 class Helper:
     def __init__(self, num_pieces, coordinator_ip, coordinator_port, 
             encoder = None, coordinator = None):
+        print "CREATING HELPER FOR COORDINATOR",coordinator_ip,coordinator_port
         self.encoder = encoder
         self.coordinator_ip = coordinator_ip
         self.coordinator_port = coordinator_port

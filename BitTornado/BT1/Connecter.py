@@ -20,7 +20,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = False
+DEBUG = True
 
 def toint(s):
     return long(b2a_hex(s), 16)
@@ -35,13 +35,6 @@ def show(s):
         text.append(ord(s[i]))
     return text
     
-# 2fastbt_
-RESERVE_PIECES = chr(20)
-PIECES_RESERVED = chr(21)
-IGNORE_PIECES = chr(22)
-
-
-
 MAX_ROUNDS = 137
 # hash
 
@@ -262,6 +255,7 @@ class Connecter:
         self.connections[connection] = c
 # 2fastbt_
         if connection.is_control_con():
+            print "GOT CONTROL CONNECTION"
             get_logger().log(2, "connecter.connecter: min_uploads: '" +
                 str(self.config['min_uploads']) + "' max_uploads: '" +
                 str(self.config['max_uploads']) + "'")
@@ -307,8 +301,10 @@ class Connecter:
         # connection: Encrypter.Connection; c: Connecter.Connection
         c = self.connections[connection]    
         t = message[0]
-        if DEBUG:
-            printMessageID(t)
+        #if DEBUG:
+        #if t in HelpMessages:
+        if connection.is_helper_con():
+            printMessageID(t,message)
 
         if connection.is_overlayswarm():    # Overlay Swarm uses different protocol
             self.overlay_swarm.got_message(c, message)    
@@ -347,6 +343,7 @@ class Connecter:
                     print "Close on bad HAVE: index out of range"
                 connection.close()
                 return
+            print "PEER SAYS HAVE(",i,")"
             c.download.got_have(i)
         elif t == BITFIELD:
             try:

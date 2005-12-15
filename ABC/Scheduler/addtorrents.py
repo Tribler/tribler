@@ -150,7 +150,7 @@ class AddTorrents:
         for filepath in filelocation:
             self.AddTorrentFromFile(filepath, forceasklocation)
            
-    def AddTorrentFromFile(self, filepath, forceasklocation = False, dotTorrentDuplicate = False, caller = "", dest = None):
+    def AddTorrentFromFile(self, filepath, forceasklocation = False, dotTorrentDuplicate = False, caller = "", dest = None, caller_data = None):
         # Check to make sure that the source file exists
         sourcefileexists = os.access(filepath, os.R_OK)
         
@@ -230,7 +230,8 @@ class AddTorrents:
                                                  forceasklocation = forceasklocation, 
                                                  dotTorrentDuplicate = dotTorrentDuplicate, 
                                                  dontremove = dontremove, 
-                                                 caller = caller)
+                                                 caller = caller,
+                                                 caller_data = caller_data)
         if success:
             return "OK"
         else:
@@ -243,7 +244,7 @@ class AddTorrents:
     #   from URL
     #   autoadd (command line)
     #
-    def addNewProc(self, src, dest = None, forceasklocation = False, dotTorrentDuplicate = False, dontremove = False, caller = "", doupdate = True):
+    def addNewProc(self, src, dest = None, forceasklocation = False, dotTorrentDuplicate = False, dontremove = False, caller = "", doupdate = True, caller_data = None):
         #from file, URL maybe down torrent.lst from addProc
         # change at onChooseFile make sure they choose dest
         # dotTorrentDuplicate : To avoid asking the user twice about duplicate (for torrent file name and torrent name)
@@ -265,7 +266,7 @@ class AddTorrents:
                 dontremove = True
             error = ".torrent file doesn't exist or can't be read"
         else:
-            ABCTorrentTemp = ABCTorrent(self.queue, src, dest = dest, forceasklocation = forceasklocation, caller = caller)       
+            ABCTorrentTemp = ABCTorrent(self.queue, src, dest = dest, forceasklocation = forceasklocation, caller = caller, caller_data = caller_data )       
             
             if ABCTorrentTemp.metainfo is None:
                 if caller != "web":

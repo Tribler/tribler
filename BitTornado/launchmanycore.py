@@ -171,10 +171,11 @@ class LaunchMany:
             self.Output = Output
 
             self.torrent_dir = config['torrent_dir']
+            self.scan_period = config['parse_dir_interval']
+
             self.torrent_cache = {}
             self.file_cache = {}
             self.blocked_files = {}
-            self.scan_period = config['parse_dir_interval']
             self.stats_period = config['display_interval']
             self.updatepeers_period = 5    # add it to config['updatepeers_interval']
 
@@ -198,6 +199,8 @@ class LaunchMany:
                 self.do_buddycast = False
                 self.do_download_help = False
             
+
+            # HACK TODO: DETERMINE WHERE THESE ARE CREATED
             if self.do_cache:
                 self.all_peers_cache = PeerCacheHandler()
                 self.all_files_cache = FileCacheHandler()
@@ -231,7 +234,6 @@ class LaunchMany:
             self.ratelimiter.set_upload_rate(config['max_upload_rate'])
 
             self.handler = MultiHandler(self.rawserver, self.doneflag)
-            seed(createPeerID())
             self.rawserver.add_task(self.scan, 0)
             self.rawserver.add_task(self.stats, 0)
             if self.do_cache:
@@ -240,7 +242,7 @@ class LaunchMany:
             if self.do_overlay:
                 self.register_overlayswarm(self.handler, config, self.listen_port)
 
-            self.start()
+            self.go()
         except:
             data = StringIO()
             print_exc(file = data)
@@ -277,8 +279,9 @@ class LaunchMany:
             overlay_swarm.start_buddycast()
         if self.do_download_help:
             overlay_swarm.start_download_helper()
+        self.overlay_swarm = overlay_swarm
 
-    def start(self):
+    def go(self):
         try:
             self.handler.listen_forever()
         except:
