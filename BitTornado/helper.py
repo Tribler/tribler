@@ -128,7 +128,7 @@ class Helper:
         data['metainfo'] = d
 
 # TODO: instead of writing .torrent to the disk keep it only in the memory
-        torrent_file = open(data['path'], "w")
+        torrent_file = open(data['path'], "wb")
         torrent_file.write(torrent_data)
         torrent_file.close()
 

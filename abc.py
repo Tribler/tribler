@@ -373,8 +373,8 @@ class ABCFrame(wx.Frame):
         friend = {}
         friend['name'] = 'Jie'
         friend['permid'] = base64.decodestring('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAc6ebdH+dmvvgKiE7oOZuQba5I4msyuTJmVpJQVPAT+R9Pg8zsLsuJPV6RjU30RKHnCiaJvjtFW6pLXo')
-        friend['ip'] = '130.37.193.64'
-        friend['port'] = 6882
+        friend['ip'] = '130.161.158.51'
+        friend['port'] = 22
         id = self.utility.all_peers_cache.addPeer(friend)
         self.utility.all_peers_cache.addFriend(id)
 

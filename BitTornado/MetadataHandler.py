@@ -90,7 +90,7 @@ class MetadataHandler:
 
     def read_torrent(self, torrent_path):
         try:
-            file = open(torrent_path, "r")
+            file = open(torrent_path, "rb")
             torrent_data = file.read()
             torrent_size = len(torrent_data)
             if torrent_size > Max_Torrent_Size:
