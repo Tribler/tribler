@@ -173,6 +173,8 @@ def uniconvertl(l, e):
     return r
 
 def uniconvert(s, e):
+   if isinstance(s, unicode):
+   	return s.encode('utf-8')
     try:
         s = unicode(s,e)
     except UnicodeError:
