@@ -33,6 +33,7 @@ from threading import Event
 from clock import clock
 from __init__ import createPeerID
 from merkle import create_fake_hashes
+from BT1.globalvars import GLOBAL
 
 # 2fastbt_
 from toofastbt.Coordinator import Coordinator
@@ -42,6 +43,7 @@ from toofastbt.Logger import get_logger
 import sys
 from traceback import print_exc
 # _2fastbt
+
 
 try:
     True
@@ -179,8 +181,23 @@ defaults = [
     ('2fastbtlog', '2fastbt.log',
         "log file of the 2fastbt protocol"),
     ('exclude_ips', '',
-        "list of IP addresse to be excluded; comma separated")
+        "list of IP addresse to be excluded; comma separated"),
 # _2fastbt
+    #BT+ extension
+    ('cache', GLOBAL.do_cache,
+        "use bsddb to cache peers and preferences"),
+    ('overlay', GLOBAL.do_overlay,
+        "create overlay swarm to transfer special messages"),
+    ('buddycast', GLOBAL.do_buddycast,
+        "run buddycast recommendation system"),
+    ('download_help', GLOBAL.do_download_help,
+        "accept download help request"),
+    ('superpeer', GLOBAL.do_superpeer,
+        "run on super peer mode (0 = disabled)"),
+    ('das_test', GLOBAL.do_das_test,
+        "test buddycast on das2 (0 = disabled)"),
+    ('buddycast_interval', GLOBAL.do_buddycast_interval,
+        "number of seconds to pause between exchanging preference with a peer in buddycast"),
     ]
 
 argslistheader = 'Arguments are:\n\n'

@@ -11,6 +11,9 @@ from permid import ChallengeResponse
 from buddycast import BuddyCast
 from MetadataHandler import MetadataHandler
 from helper import Helper
+from BT1.globalvars import GLOBAL
+#from BT1.Connecter import Connecter
+#from BT1.Encrypter import Encoder
 
 protocol_name = 'BitTorrent protocol'    #TODO: 'BitTorrent+ protocol'
 overlay_infohash = '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
@@ -75,31 +78,47 @@ class OverlaySwarm:
             'CHALLENGE',
             'DOWNLOAD_HELP',
             ]
-            
-                        
+        self.registered = False
+                    
     def getInstance(*args, **kw):
         if OverlaySwarm.__single is None:
             OverlaySwarm(*args, **kw)
         return OverlaySwarm.__single
     getInstance = staticmethod(getInstance)
-    
-    def set_rawserver(self, rawserver):
-        self.rawserver = rawserver
 
-# 2fastbt_
-    def set_launchmany(self, launchmany):
-        self.launchmany = launchmany
-    
-    def set_utility(self, utility):
-        self.utility = utility
-# _2fastbt
-    
-    def set_listen_port(self, port):
-        self.listen_port = port
+    def register(self, launchmany, multihandler, config, listen_port, errorfunc):
+        # Register overlay_infohash as known swarm with MultiHandler
         
-    def set_errorfunc(self, errorfunc):
+        if self.registered:
+            return
+        
+        self.launchmany = launchmany
+        self.multihandler = multihandler
+        self.config = config
+        self.doneflag = Event()
+        self.rawserver = multihandler.newRawServer(self.infohash, 
+                                              self.doneflag,
+                                              self.protocol)
+        self.listen_port = listen_port
         self.errorfunc = errorfunc
         
+        # Create Connecter and Encoder for the swarm. TODO: ratelimiter
+#        self.connecter = Connecter(None, None, None, 
+#                            None, None, self.config, 
+#                            None, False,
+#                            self.rawserver.add_task, self)
+#        self.encoder = Encoder(self.connecter, self.rawserver, 
+#            self.myid, self.config['max_message_length'], self.rawserver.add_task, 
+#            self.config['keepalive_interval'], self.infohash, 
+#            lambda x: None, self.config, self)
+        self.registered = True
+            
+    def start(self):
+        return
+        if not self.registered:
+            return
+        self.rawserver.start_listening(self.encoder)
+       
     def connection_made(self, conn):
         """ Initiate overlay swarm connection """
         

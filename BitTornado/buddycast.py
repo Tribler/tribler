@@ -6,9 +6,6 @@ from bencode import bencode, bdecode
 from BT1.MessageID import *
 from dictlist import DictListQueue
 from similarity import simMeasure
-from FileCacheHandler import FileCacheHandler
-from PeerCacheHandler import PeerCacheHandler
-from PrefCacheHandler import PrefCacheHandler
 
 DEBUG = False
 

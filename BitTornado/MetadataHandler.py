@@ -1,6 +1,5 @@
 from bencode import bencode, bdecode
 from BT1.MessageID import *
-from FileCacheHandler import FileCacheHandler
 
 import md5
 from traceback import print_exc

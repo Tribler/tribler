@@ -27,11 +27,11 @@ from RateLimiter import RateLimiter
 from ServerPortHandler import MultiHandler
 from parsedir import parsedir
 from natpunch import UPnP_test         
-from overlayswarm import OverlaySwarm
 from BT1.Encrypter import Encoder
 from BT1.Connecter import Connecter
-from BitTornado.PeerCacheHandler import PeerCacheHandler
-from BitTornado.FileCacheHandler import FileCacheHandler
+
+from overlayswarm import OverlaySwarm
+from BT1.globalvars import GLOBAL
 # 2fastbt_
 from toofastbt.Logger import get_logger, create_logger
 # _2fastbt
@@ -186,24 +186,16 @@ class LaunchMany:
 
             self.hashcheck_queue = []
             self.hashcheck_current = None
+            self.torrent_list = []
             
-            # BT+ extension flags TODO: read the config
-            self.do_cache = True
-            self.do_overlay = True
-            self.do_buddycast = True
-            self.do_download_help = True
-            
-            if not self.do_cache:
-                self.do_overlay = False    # overlay
-            if not self.do_overlay:
-                self.do_buddycast = False
-                self.do_download_help = False
-            
-
-            # HACK TODO: DETERMINE WHERE THESE ARE CREATED
-            if self.do_cache:
-                self.all_peers_cache = PeerCacheHandler()
-                self.all_files_cache = FileCacheHandler()
+            # BT+ extension flags
+            GLOBAL.do_overlay = config['overlay']
+            GLOBAL.do_cache = config['cache']
+            GLOBAL.do_buddycast = config['buddycast']
+            GLOBAL.do_download_help = config['download_help']
+            GLOBAL.do_superpeer = config['superpeer']
+            GLOBAL.do_das_test = config['das_test']
+            GLOBAL.do_buddycast_interval = config['buddycast_interval']
             
             self.rawserver = RawServer(self.doneflag,
                                        config['timeout_check_interval'],
@@ -236,52 +228,28 @@ class LaunchMany:
             self.handler = MultiHandler(self.rawserver, self.doneflag)
             self.rawserver.add_task(self.scan, 0)
             self.rawserver.add_task(self.stats, 0)
-            if self.do_cache:
-                self.rawserver.add_task(self.updatePeers, self.updatepeers_period)
-            
-            if self.do_overlay:
-                self.register_overlayswarm(self.handler, config, self.listen_port)
 
-            self.go()
+            # do_cache -> do_overlay -> (do_buddycast, do_download_help)
+            if not GLOBAL.do_cache:
+                GLOBAL.do_overlay = 0    # overlay
+            if not GLOBAL.do_overlay:
+                GLOBAL.do_buddycast = 0
+                GLOBAL.do_download_help = 0
+
+            if GLOBAL.do_overlay:
+                self.overlayswarm = OverlaySwarm.getInstance()
+                self.overlayswarm.register(self, self.handler, self.config, 
+                                           self.listen_port, self.exchandler)
+                self.overlayswarm.start()
+
+            self.start()
+
         except:
             data = StringIO()
             print_exc(file = data)
             Output.exception(data.getvalue())
 
-    def register_overlayswarm(self, multihandler, config, listen_port):
-        # Register overlay_infohash as known swarm with MultiHandler
-        
-        overlay_swarm = OverlaySwarm.getInstance()
-        overlay_swarm.multihandler = multihandler
-        overlay_swarm.config = config
-        overlay_swarm.doneflag = Event()
-        rawserver = multihandler.newRawServer(overlay_swarm.infohash, 
-                                              overlay_swarm.doneflag,
-                                              overlay_swarm.protocol)
-        overlay_swarm.set_rawserver(rawserver)
-        overlay_swarm.set_listen_port(listen_port)
-        overlay_swarm.set_errorfunc(self.exchandler)
-        
-        # Create Connecter and Encoder for the swarm. TODO: ratelimiter
-        overlay_swarm.connecter = Connecter(None, None, None, 
-                            None, None, config, 
-                            None, False,
-                            overlay_swarm.rawserver.add_task)
-        overlay_swarm.encoder = Encoder(overlay_swarm.connecter, overlay_swarm.rawserver, 
-            overlay_swarm.myid, config['max_message_length'], overlay_swarm.rawserver.add_task, 
-            config['keepalive_interval'], overlay_swarm.infohash, 
-            lambda x: None, config)
-        overlay_swarm.rawserver.start_listening(overlay_swarm.encoder)
-# 2fastbt_
-        overlay_swarm.set_launchmany(self)
-# _2fastbt
-        if self.do_buddycast:
-            overlay_swarm.start_buddycast()
-        if self.do_download_help:
-            overlay_swarm.start_download_helper()
-        self.overlay_swarm = overlay_swarm
-
-    def go(self):
+    def start(self):
         try:
             self.handler.listen_forever()
         except:
@@ -385,21 +353,6 @@ class LaunchMany:
         if stop:
             self.doneflag.set()
             
-    def updatePeers(self):
-        self.rawserver.add_task(self.updatePeers, self.updatepeers_period)
-        data = []
-        for hash in self.torrent_list:
-            d = self.downloads[hash]
-            if d.is_dead() or d.waiting or d.checking:
-                pass
-            else:
-                stats = d.statsfunc()
-                s = stats['stats']
-                spew = stats['spew']
-                for peer in spew:
-                    if peer['permid']:
-                        self.all_peers_cache.updatePeer(hash, peer)
-        
     def remove(self, hash):
         self.torrent_list.remove(hash)
         self.downloads[hash].shutdown()
@@ -413,8 +366,6 @@ class LaunchMany:
             x = mapbase64[c & 0x3F]+x
             c >>= 6
         peer_id = createPeerID(x)    # Uses different id for different swarm
-#         if DEBUG:
-#             print "add torrent 1 ", data['metainfo'], " ", peer_id
         d = SingleDownload(self, hash, data['metainfo'], self.config, peer_id)
         self.torrent_list.append(hash)
         self.downloads[hash] = d
