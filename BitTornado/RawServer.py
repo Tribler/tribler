@@ -11,7 +11,7 @@ from threading import Event
 from clock import clock
 import sys
 # 2fastbt_
-from toofastbt.Logger import get_logger
+from Tribler.DownloadHelp.toofastbt.Logger import get_logger
 # _2fastbt
 
 try:

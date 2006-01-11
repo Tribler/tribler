@@ -8,10 +8,10 @@ from BitTornado.bitfield import Bitfield
 from BitTornado.clock import clock
 from binascii import b2a_hex
 from BitTornado.bencode import bencode,bdecode
-from BitTornado.overlayswarm import OverlaySwarm
+
 from MessageID import *
 # 2fastbt_
-from toofastbt.Logger import get_logger
+from Tribler.DownloadHelp.toofastbt.Logger import get_logger
 # _2fastbt
 
 try:

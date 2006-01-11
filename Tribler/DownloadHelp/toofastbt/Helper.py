@@ -4,7 +4,7 @@
 from BitTornado.BT1.Encrypter import Connection #, control_option_pattern
 from BitTornado.BT1.Connecter import tobinary
 from socket import error as socketerror
-from toofastbt.Logger import get_logger
+from Logger import get_logger
 from time import sleep
 from sys import exit, exc_info
 from thread import allocate_lock

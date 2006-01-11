@@ -17,7 +17,6 @@
 ##############################################################
 import sys, math
 
-from skotvdataread import readSKOData
 from dictlist import DictListQueue
 
 class simMeasure:

@@ -2,7 +2,7 @@
 # see LICENSE.txt for license information
 
 from thread import allocate_lock
-from toofastbt.Logger import get_logger
+from Logger import get_logger
 
 class Coordinator:
         

@@ -2,13 +2,13 @@
 # see LICENSE.txt for license information
 
 import StringIO
-from bencode import bencode, bdecode
 from sha import sha
 from copy import deepcopy
 import traceback,sys
 
 from M2Crypto import Rand,EC,EVP
-from BT1.MessageID import *
+from BitTornado.bencode import bencode, bdecode
+from BitTornado.BT1.MessageID import *
 
 # Internal constants
 keypair_ecc_curve = EC.NID_sect233k1;

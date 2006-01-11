@@ -8,11 +8,10 @@ from urllib import quote
 from struct import unpack
 from sha import sha
 from time import time
-from BitTornado.overlayswarm import OverlaySwarm
-from binascii import b2a_hex
+
 from MessageID import CurrentVersion, LowestVersion, SupportedVersions
 # 2fastbt_
-from toofastbt.Logger import get_logger
+from Tribler.DownloadHelp.toofastbt.Logger import get_logger
 from traceback import print_exc, extract_stack
 import sys
 # _2fastbt

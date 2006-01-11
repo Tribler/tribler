@@ -32,14 +32,15 @@ from random import seed
 from threading import Event
 from clock import clock
 from __init__ import createPeerID
-from merkle import create_fake_hashes
-from BT1.globalvars import GLOBAL
+
+from Tribler.Merkle.merkle import create_fake_hashes
+from Tribler.globalvars import GLOBAL
 
 # 2fastbt_
-from toofastbt.Coordinator import Coordinator
-from toofastbt.Helper import Helper
-from toofastbt.RatePredictor import ExpSmoothRatePredictor
-from toofastbt.Logger import get_logger
+from Tribler.DownloadHelp.toofastbt.Coordinator import Coordinator
+from Tribler.DownloadHelp.toofastbt.Helper import Helper
+from Tribler.DownloadHelp.toofastbt.RatePredictor import ExpSmoothRatePredictor
+from Tribler.DownloadHelp.toofastbt.Logger import get_logger
 import sys
 from traceback import print_exc
 # _2fastbt

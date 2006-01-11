@@ -1,9 +1,9 @@
 from time import time
 from sha import sha
 
-from superpeer import SuperPeer
-from bencode import bencode, bdecode
-from BT1.MessageID import *
+from Tribler.CacheDB.superpeer import SuperPeer
+from BitTornado.bencode import bencode, bdecode
+from BitTornado.BT1.MessageID import *
 from dictlist import DictListQueue
 from similarity import simMeasure
 

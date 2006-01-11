@@ -2,8 +2,6 @@ from socket import inet_aton
 from base64 import encodestring, decodestring
 import sys
 
-from cachedb import SuperPeerTable
-
 superpeer_file = 'superpeer.txt'
 
 class SuperPeer:

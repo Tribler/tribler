@@ -1,17 +1,17 @@
 from threading import Event,currentThread
 
-from bencode import bencode, bdecode
 from sha import sha
 from time import time
 from struct import pack
 
-from __init__ import createPeerID
-from BT1.MessageID import *
+from BitTornado.__init__ import createPeerID
+from BitTornado.bencode import bencode, bdecode
+from BitTornado.BT1.MessageID import *
 from permid import ChallengeResponse
-from buddycast import BuddyCast
+from Tribler.BuddyCast.buddycast import BuddyCast
 from MetadataHandler import MetadataHandler
-from helper import Helper
-from BT1.globalvars import GLOBAL
+from Tribler.DownloadHelp.helper import Helper
+from Tribler.globalvars import GLOBAL
 #from BT1.Connecter import Connecter
 #from BT1.Encrypter import Encoder
 

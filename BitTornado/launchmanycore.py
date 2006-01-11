@@ -30,10 +30,10 @@ from natpunch import UPnP_test
 from BT1.Encrypter import Encoder
 from BT1.Connecter import Connecter
 
-from overlayswarm import OverlaySwarm
-from BT1.globalvars import GLOBAL
+from Tribler.globalvars import GLOBAL
+from Tribler.Overlay.overlayswarm import OverlaySwarm
 # 2fastbt_
-from toofastbt.Logger import get_logger, create_logger
+from Tribler.DownloadHelp.toofastbt.Logger import get_logger, create_logger
 # _2fastbt
 
 try:

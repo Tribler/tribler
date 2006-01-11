@@ -8,10 +8,11 @@ from traceback import print_exc
 from random import randrange
 from math import log,pow,floor
 from BitTornado.bencode import bencode
-from BitTornado.merkle import MerkleTree
 from copy import deepcopy
 import pickle
 import traceback, sys
+
+from Tribler.Merkle.merkle import MerkleTree
 
 try:
     True

@@ -1,5 +1,5 @@
-from bencode import bencode, bdecode
-from BT1.MessageID import *
+from BitTornado.bencode import bencode, bdecode
+from BitTornado.BT1.MessageID import *
 from sha import sha
 import sys, os
 from random import randint

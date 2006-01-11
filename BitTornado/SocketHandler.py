@@ -16,7 +16,7 @@ from random import shuffle, randrange
 from natpunch import UPnP_open_port, UPnP_close_port
 
 # 2fastbt_
-from toofastbt.Logger import get_logger
+from Tribler.DownloadHelp.toofastbt.Logger import get_logger
 # _2fastbt
 
 # from BT1.StreamCheck import StreamCheck

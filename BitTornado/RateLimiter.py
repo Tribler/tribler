@@ -6,7 +6,7 @@ from CurrentRateMeasure import Measure
 from math import sqrt
 
 # 2fastbt_
-from toofastbt.Logger import get_logger
+from Tribler.DownloadHelp.toofastbt.Logger import get_logger
 # _2fastbt
 
 try:
