@@ -1,17 +1,21 @@
 from socket import inet_aton 
-from base64 import encodestring, decodestring
+from base64 import decodestring
 import sys
 
+#from cachedb import SuperPeerTable
+from CacheDBHandler import MyDBHandler
+
 superpeer_file = 'superpeer.txt'
+permid_len = 112
 
 class SuperPeer:
     def __init__(self):
-        self.superpeers = SuperPeerTable.getInstance()
+        self.superpeers = MyDBHandler()
         pre_superpeers = self.readSuperPeer(superpeer_file)
         for peer in pre_superpeers:
             self.superpeers.addSuperPeerByPeer(peer)
-        self.superpeers_list = []
         self.updateSuperPeers()
+        self.superpeers.sync()
 
     def readSuperPeer(self, filename):
         """ read (superpeer_ip, superpeer_port) lines from a text file """
@@ -19,7 +23,7 @@ class SuperPeer:
         try:
             file = open(filename, "r")
         except IOError:
-            print >> sys.stderr, "File " + filename + " could not be opened"
+            print "File " + filename + " could not be opened"
             sys.exit(1)
             
         superpeers = file.readlines()
@@ -38,7 +42,6 @@ class SuperPeer:
                 if len(superpeer_info) > 3:
                     superpeer['name'] = superpeer_info[3]
                 superpeers_info.append(superpeer)
-            
         return superpeers_info
     
     def validSuperPeer(self, superpeer):
@@ -49,9 +52,8 @@ class SuperPeer:
             port = int(superpeer[1])
             if port < 1 or port > 65535:
                 return False
-            inet_aton(ip)
             permid = superpeer[2]
-            if len(permid) != 148:
+            if len(permid) != permid_len:
                 return False
         except:
             return False
@@ -62,10 +64,11 @@ class SuperPeer:
 
     def updateSuperPeers(self):
         #TODO: select new superpeers
-        self.superpeer_list = self.getSuperPeers()
-
+        pass
+        
+        
 if __name__=='__main__':
     superpeer_file = '../' + superpeer_file
     sp = SuperPeer()
-    print sp.superpeer_list
+    print sp.getSuperPeers()
     

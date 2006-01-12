@@ -98,6 +98,8 @@ class Connection:
         self.keepalive = lambda: None
         self.closed = False
         self.buffer = StringIO()
+        self.overlay_swarm = Encoder.overlay_swarm
+        self.overlay_version = CurrentVersion
         if self.locally_initiated:
             incompletecounter.increment()
 # 2fastbt_
@@ -115,9 +117,15 @@ class Connection:
             self.next_len, self.next_func = 20, self.read_peer_id
         else:
             self.next_len, self.next_func = 1, self.read_header_len
-        self.Encoder.raw_server.add_task(self._auto_close, 15)
-        self.support_overlayswarm = False
-        self.support_merklehash= False
+        if self.is_overlayswarm() and self.is_locally_initiated():
+            self.overlay_swarm.close_conn[self] = time() + \
+                                            self.overlay_swarm.alive_interval
+            self.Encoder.raw_server.add_task(self._auto_close_overlay, 
+                                            self.overlay_swarm.alive_interval+2)
+        else:
+            self.Encoder.raw_server.add_task(self._auto_close, 15)
+        self.support_overlayswarm = False  # does peer support Overlay Swarm?
+        self.support_merklehash= False  # does peer support Merkle hashes
 
     def get_ip(self, real=False):
         return self.connection.get_ip(real)
@@ -143,11 +151,14 @@ class Connection:
     def is_flushed(self):
         return self.connection.is_flushed()
 
+    def supports_overlayswarm(self):
+        return self.support_overlayswarm
+
     def supports_merklehash(self):
         return self.support_merklehash
 
     def is_overlayswarm(self):
-        return False
+        return self.Encoder.download_id == OverlaySwarm.infohash
 
     def set_options(self, s):
         r = unpack("B", s[5])

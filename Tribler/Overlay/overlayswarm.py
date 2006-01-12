@@ -7,13 +7,15 @@ from struct import pack
 from BitTornado.__init__ import createPeerID
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
-from permid import ChallengeResponse
+
 from Tribler.BuddyCast.buddycast import BuddyCast
-from MetadataHandler import MetadataHandler
-from Tribler.DownloadHelp.helper import Helper
+from Tribler.toofastbt.bthelper import Helper
 from Tribler.globalvars import GLOBAL
-#from BT1.Connecter import Connecter
-#from BT1.Encrypter import Encoder
+
+from permid import ChallengeResponse
+from MetadataHandler import MetadataHandler
+from Encrypter import Encoder
+from Connecter import Connecter
 
 protocol_name = 'BitTorrent protocol'    #TODO: 'BitTorrent+ protocol'
 overlay_infohash = '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
@@ -93,7 +95,6 @@ class OverlaySwarm:
             return
         
         self.launchmany = launchmany
-        self.multihandler = multihandler
         self.config = config
         self.doneflag = Event()
         self.rawserver = multihandler.newRawServer(self.infohash, 
@@ -103,14 +104,14 @@ class OverlaySwarm:
         self.errorfunc = errorfunc
         
         # Create Connecter and Encoder for the swarm. TODO: ratelimiter
-#        self.connecter = Connecter(None, None, None, 
-#                            None, None, self.config, 
-#                            None, False,
-#                            self.rawserver.add_task, self)
-#        self.encoder = Encoder(self.connecter, self.rawserver, 
-#            self.myid, self.config['max_message_length'], self.rawserver.add_task, 
-#            self.config['keepalive_interval'], self.infohash, 
-#            lambda x: None, self.config, self)
+        self.connecter = Connecter(None, None, None, 
+                            None, None, self.config, 
+                            None, False,
+                            self.rawserver.add_task)
+        self.encoder = Encoder(self.connecter, self.rawserver, 
+            self.myid, self.config['max_message_length'], self.rawserver.add_task, 
+            self.config['keepalive_interval'], self.infohash, 
+            lambda x: None, self.config)
         self.registered = True
             
     def start(self):

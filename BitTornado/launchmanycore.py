@@ -33,7 +33,7 @@ from BT1.Connecter import Connecter
 from Tribler.globalvars import GLOBAL
 from Tribler.Overlay.overlayswarm import OverlaySwarm
 # 2fastbt_
-from Tribler.DownloadHelp.toofastbt.Logger import get_logger, create_logger
+from Tribler.toofastbt.Logger import get_logger, create_logger
 # _2fastbt
 
 try:

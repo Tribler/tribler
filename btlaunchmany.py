@@ -22,7 +22,7 @@ from BitTornado import version, report_email
 from BitTornado.ConfigDir import ConfigDir
 #--- 2fastbt_
 from time import time
-from Tribler.DownloadHelp.toofastbt.Logger import get_logger
+from Tribler.toofastbt.Logger import get_logger
 # _2fastbt
 
 assert sys.version >= '2', "Install Python 2.0 or greater"

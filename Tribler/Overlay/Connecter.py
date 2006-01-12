@@ -3,13 +3,12 @@
 
 import traceback,sys
 from sha import sha
-
-from BitTornado.bitfield import Bitfield
-from BitTornado.clock import clock
 from binascii import b2a_hex
+
+from BitTornado.clock import clock
 from BitTornado.bencode import bencode,bdecode
 
-from MessageID import *
+from BitTornado.BT1.MessageID import *
 # 2fastbt_
 from Tribler.toofastbt.Logger import get_logger
 # _2fastbt

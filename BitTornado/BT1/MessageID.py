@@ -73,10 +73,6 @@ FRIENDS_EXCHANGE = chr(243)
 
 OverlaySwarmMessages= PermIDMessages + BuddyCastMessages + MetadataMessages + HelpMessages
 
-CurrentVersion = 1
-LowestVersion = 1
-SupportedVersions = range(LowestVersion, CurrentVersion+1)
-
 def printMessageID(t,message):
     if t == CHOKE:
         print "GOT CHOKE",len(message)

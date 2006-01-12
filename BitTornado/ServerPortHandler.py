@@ -13,7 +13,7 @@ except:
 
 # 2fastbt_
 from BT1.Encrypter import protocol_name, control_option_pattern
-from Tribler.DownloadHelp.toofastbt.Logger import get_logger
+from Tribler.toofastbt.Logger import get_logger
 # _2fastbt
 from Tribler.Overlay.overlayswarm import OverlaySwarm
 

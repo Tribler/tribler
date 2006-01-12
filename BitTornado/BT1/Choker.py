@@ -4,7 +4,7 @@
 from random import randrange, shuffle
 from BitTornado.clock import clock
 # 2fastbt_
-from Tribler.DownloadHelp.toofastbt.Logger import get_logger
+from Tribler.toofastbt.Logger import get_logger
 # _2fastbt
 try:
     True

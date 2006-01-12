@@ -37,10 +37,10 @@ from Tribler.Merkle.merkle import create_fake_hashes
 from Tribler.globalvars import GLOBAL
 
 # 2fastbt_
-from Tribler.DownloadHelp.toofastbt.Coordinator import Coordinator
-from Tribler.DownloadHelp.toofastbt.Helper import Helper
-from Tribler.DownloadHelp.toofastbt.RatePredictor import ExpSmoothRatePredictor
-from Tribler.DownloadHelp.toofastbt.Logger import get_logger
+from Tribler.toofastbt.Coordinator import Coordinator
+from Tribler.toofastbt.Helper import Helper
+from Tribler.toofastbt.RatePredictor import ExpSmoothRatePredictor
+from Tribler.toofastbt.Logger import get_logger
 import sys
 from traceback import print_exc
 # _2fastbt
