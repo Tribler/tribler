@@ -113,13 +113,8 @@ class OverlaySwarm:
             self.config['keepalive_interval'], self.infohash, 
             lambda x: None, self.config)
         self.registered = True
-            
-    def start(self):
-        return
-        if not self.registered:
-            return
         self.rawserver.start_listening(self.encoder)
-       
+            
     def connection_made(self, conn):
         """ Initiate overlay swarm connection """
         

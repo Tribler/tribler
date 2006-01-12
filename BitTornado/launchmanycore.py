@@ -240,7 +240,6 @@ class LaunchMany:
                 self.overlayswarm = OverlaySwarm.getInstance()
                 self.overlayswarm.register(self, self.handler, self.config, 
                                            self.listen_port, self.exchandler)
-                self.overlayswarm.start()
 
             self.start()
 
