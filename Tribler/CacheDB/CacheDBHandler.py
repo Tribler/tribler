@@ -1,4 +1,4 @@
-from cachedb2 import *
+from cachedb import *
 from time import time
 from copy import deepcopy
 

@@ -35,6 +35,12 @@ all = POLLIN | POLLOUT
 UPnP_ERROR = "unable to forward port via UPnP"
 
 class SingleSocket:
+    """ 
+    There are two places to create SingleSocket:
+    incoming connection -- SocketHandler.handle_events
+    outgoing connection -- SocketHandler.start_connection_raw
+    """
+    
     def __init__(self, socket_handler, sock, handler, ip = None):
         self.socket_handler = socket_handler
         self.socket = sock
@@ -146,8 +152,9 @@ class SingleSocket:
         else:
             self.socket_handler.poll.register(self.socket, POLLIN)
 
-    def set_handler(self, handler):
+    def set_handler(self, handler):    # can be: NewSocketHandler, Encoder, En_Connection
         self.handler = handler
+
 
 class SocketHandler:
     def __init__(self, timeout, ipv6_enable, readsize = 100000):
@@ -274,6 +281,7 @@ class SocketHandler:
 
 
     def start_connection_raw(self, dns, socktype = socket.AF_INET, handler = None):
+        # handler = Encoder, self.handler = Multihandler
         if handler is None:
             handler = self.handler
         sock = socket.socket(socktype, socket.SOCK_STREAM)

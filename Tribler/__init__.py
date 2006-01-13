@@ -15,11 +15,20 @@ except ImportError:
     def getpid():
         return 1
 import Overlay.permid as permid
-import CacheDB.cachedb2 as cachedb2
+import CacheDB.cachedb as cachedb
 from base64 import decodestring 
     
 mapbase64 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-'
 
+class GLOBAL:
+    do_cache = 1
+    do_overlay = 1
+    do_buddycast = 1
+    do_download_help = 1
+    do_superpeer = 0
+    do_das_test = 0
+    do_buddycast_interval = 3
+    
 def read_pubkey(filename):
     try:
         file = open(filename, "r")
@@ -69,7 +78,7 @@ _idprefix += ('-' * (6-len(_idprefix)))
 _idrandom = [None]
 permid.init()
 myinfo = load_myinfo()
-cachedb2.init(myinfo)
+cachedb.init(myinfo)
 
 def resetPeerIDs():
     try:

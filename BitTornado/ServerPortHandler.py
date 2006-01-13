@@ -80,7 +80,7 @@ class SingleRawServer:
 #        pass    # don't call with this
     
     def start_listening(self, handler):
-        self.handler = handler
+        self.handler = handler    # Encoder
         self.running = True
         return self.shutdown    # obviously, doesn't listen forever
 
@@ -91,7 +91,7 @@ class SingleRawServer:
         return self.rawserver.get_exception_flag()
 
 class NewSocketHandler:     # hand a new socket off where it belongs
-    def __init__(self, multihandler, connection):
+    def __init__(self, multihandler, connection):    # connection: SingleSocket
         self.multihandler = multihandler
         self.connection = connection
         connection.set_handler(self)
@@ -206,4 +206,5 @@ class MultiHandler:
     # be wary of name collisions
 
     def external_connection_made(self, ss):
+        # ss: SingleSocket
         NewSocketHandler(self, ss)

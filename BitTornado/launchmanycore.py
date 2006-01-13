@@ -30,7 +30,7 @@ from natpunch import UPnP_test
 from BT1.Encrypter import Encoder
 from BT1.Connecter import Connecter
 
-from Tribler.globalvars import GLOBAL
+from Tribler.__init__ import GLOBAL
 from Tribler.Overlay.overlayswarm import OverlaySwarm
 # 2fastbt_
 from Tribler.toofastbt.Logger import get_logger, create_logger
@@ -73,6 +73,7 @@ class SingleDownload:
         self.status_errtime = 0
         self.status_done = 0.0
 
+        #SingleRawServer=LaunchMany.MultiHandler.newRawServer(infohash)
         self.rawserver = controller.handler.newRawServer(hash, self.doneflag)
         d = BT1Download(self.display,
                         self.finished,
@@ -368,8 +369,6 @@ class LaunchMany:
         d = SingleDownload(self, hash, data['metainfo'], self.config, peer_id)
         self.torrent_list.append(hash)
         self.downloads[hash] = d
-        if self.do_cache:
-            self.all_files_cache.addTorrent(hash, data, 1)
         d.start()
         return d
 

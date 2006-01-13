@@ -105,6 +105,7 @@ class Connection:
             self.support_merklehash= True
             if DEBUG:
                 print "Peer supports Merkle hashes"
+                
     def read_header_len(self, s):
         if ord(s) != len(protocol_name):
             return None
@@ -148,6 +149,7 @@ class Connection:
             incompletecounter.decrement()
         c = self.Encoder.connecter.connection_made(self)
         self.keepalive = c.send_keepalive
+        #TODO: permid exchange protocol
         return 4, self.read_len
     
     def version_supported(self, low_ver_str, cur_ver_str):
@@ -225,10 +227,6 @@ class Connection:
                 self.close()
                 return
             self.next_len, self.next_func = x
-
-    def connection_flushed(self, connection):
-        if self.complete:
-            self.connecter.connection_flushed(self)
 
     def connection_lost(self, connection):
         if self.Encoder.connections.has_key(connection):

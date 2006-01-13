@@ -10,7 +10,7 @@ from BitTornado.BT1.MessageID import *
 
 from Tribler.BuddyCast.buddycast import BuddyCast
 from Tribler.toofastbt.bthelper import Helper
-from Tribler.globalvars import GLOBAL
+from Tribler.__init__ import GLOBAL
 
 from permid import ChallengeResponse
 from MetadataHandler import MetadataHandler
@@ -19,6 +19,8 @@ from Connecter import Connecter
 
 protocol_name = 'BitTorrent protocol'    #TODO: 'BitTorrent+ protocol'
 overlay_infohash = '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+
+from __init__ import CurrentVersion, LowestVersion, SupportedVersions
 
 DEBUG = True
 
@@ -104,10 +106,7 @@ class OverlaySwarm:
         self.errorfunc = errorfunc
         
         # Create Connecter and Encoder for the swarm. TODO: ratelimiter
-        self.connecter = Connecter(None, None, None, 
-                            None, None, self.config, 
-                            None, False,
-                            self.rawserver.add_task)
+        self.connecter = Connecter(self.config, None, self.rawserver.add_task)
         self.encoder = Encoder(self.connecter, self.rawserver, 
             self.myid, self.config['max_message_length'], self.rawserver.add_task, 
             self.config['keepalive_interval'], self.infohash, 
@@ -303,40 +302,43 @@ class OverlaySwarm:
         if self.connections.has_key(permid):
             del self.connections[permid]
     
-    def got_message(self, conn, message):
+    def got_message(self, co_conn, message, en_conn):
         """ Handle message for overlay swarm and return if the message is valid """
         if DEBUG:
             #print "GOT message:", len(message), show(message), message
             print "Overlay",
             printMessageID(message[0],message)
 
-        if not conn:
+        if not co_conn:
             return False
         t = message[0]
-        
+        if t == CANCEL:
+            en_conn.close()
+            return
+    
         if t in PermIDMessages:
-            if not self.crs.has_key(conn) or not self.crs[conn]:    # incoming permid exchange
+            if not self.crs.has_key(co_conn) or not self.crs[co_conn]:    # incoming permid exchange
                 cr = ChallengeResponse(self.myid,self,self.errorfunc)
-                self.crs[conn] = cr
-            return self.crs[conn].got_message(conn, message)
+                self.crs[co_conn] = cr
+            return self.crs[co_conn].got_message(co_conn, message)
         
-        if not conn.permid:    # Do not go ahead without permid
+        if not co_conn.permid:    # Do not go ahead without permid
             return False
             
         if t in BuddyCastMessages:
             if not hasattr(self, "buddycast"):
                 return False
-            return self.buddycast.got_message(conn, message)
+            return self.buddycast.got_message(co_conn, message)
         
         if t in MetadataMessages:
             if not hasattr(self, "metadata_handler"):
                 return False
-            return self.metadata_handler.got_message(conn, message)
+            return self.metadata_handler.got_message(co_conn, message)
         
         if t in HelpMessages:
             if not hasattr(self, "helper"):
                 return False
-            return self.helper.got_message(conn, message)
+            return self.helper.got_message(co_conn, message)
         
     def start_buddycast(self):
         self.buddycast = BuddyCast.getInstance()

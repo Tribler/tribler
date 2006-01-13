@@ -34,7 +34,7 @@ from clock import clock
 from __init__ import createPeerID
 
 from Tribler.Merkle.merkle import create_fake_hashes
-from Tribler.globalvars import GLOBAL
+from Tribler.__init__ import GLOBAL
 
 # 2fastbt_
 from Tribler.toofastbt.Coordinator import Coordinator

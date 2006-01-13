@@ -51,7 +51,6 @@ class Connection:
         self.send_choke_queued = False
         self.just_unchoked = None
         self.permid = None
-        self.overlay_connection = None
         self.closed = False
             
     def get_myip(self, real=False):
@@ -157,10 +156,6 @@ class Connection:
         else:
             self.connection.send_message_raw(s)
 
-    def send_overlay_message(self, s):
-        s = tobinary(len(s))+s
-        self.connection.send_message_raw(s)
-
     def send_partial(self, bytes):
         if self.connection.closed:
             return 0
@@ -218,8 +213,6 @@ class Connection:
             self.connecter.ratelimiter.ping(clock() - self.just_unchoked)
             self.just_unchoked = 0
     
-    def is_overlayswarm(self):
-        return self.connection.is_overlayswarm()
 
 class Connecter:
 # 2fastbt_
@@ -240,7 +233,6 @@ class Connecter:
         self.connections = {}
         self.external_connection_made = 0
         self.merkle_torrent = merkle_torrent
-        self.overlay_swarm = OverlaySwarm.getInstance()
         # 2fastbt_
         self.coordinator = coordinator
         self.helper = helper
@@ -264,7 +256,7 @@ class Connecter:
             if self.coordinator is not None:
                 self.coordinator.add_helper(c)
 
-        if not connection.is_control_con() and not connection.is_overlayswarm():
+        if not connection.is_control_con():
             #TODO: overlay swarm also needs upload and download to control transferring rate
             c.upload = self.make_upload(c, self.ratelimiter, self.totalup)
             c.download = self.downloader.make_download(c)
@@ -280,7 +272,7 @@ class Connecter:
         if c.download:
             c.download.disconnected()
 # 2fastbt_
-        if not connection.is_control_con() and not c.is_overlayswarm():
+        if not connection.is_control_con():
             self.choker.connection_lost(c)
 # _2fastbt
 
@@ -305,11 +297,6 @@ class Connecter:
         #if t in HelpMessages:
         if connection.is_helper_con():
             printMessageID(t,message)
-
-        if connection.is_overlayswarm():    # Overlay Swarm uses different protocol
-            self.overlay_swarm.got_message(c, message)    
-            # if something is wrong, overlay swarm will close the connection
-            return
 
         if t == BITFIELD and c.got_anything:
             if DEBUG:
@@ -453,6 +440,3 @@ class Connecter:
                 return
         else:
             connection.close()
-#        # PermID: Start challenge-response protocol
-#        if connection.supports_cr(): # or connection.is_overlayswarm():
-#            c.start_cr()

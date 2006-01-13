@@ -345,7 +345,7 @@ class Rerequester:
                     self.last = None
         if peers:
             shuffle(peers)
-            self.connect(peers)
+            self.connect(peers)    # Encoder.start_connections(peers)
         callback()
 
     def exception(self, callback):
