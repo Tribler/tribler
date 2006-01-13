@@ -14,6 +14,8 @@ except:
     True = 1
     False = 0
 
+DEBUG = False
+
 class PiecePicker:
 # 2fastbt_
     def __init__(self, numpieces,
@@ -218,13 +220,17 @@ class PiecePicker:
                 break
             if self.helper is None or helper_con or self.helper.reserve_piece(piece):
                 if self.helper is None:
-                    print "NORMAL SHOULD DL PIECE",piece
+                    if DEBUG:
+                        print "NORMAL SHOULD DL PIECE",piece
                 elif helper_con:
-                    print "helper_con SHOULD DL PIECE",piece
+                    if DEBUG:
+                        print "helper_con SHOULD DL PIECE",piece
                 elif self.helper.reserve_piece(piece):
-                    print "helper.reserve SHOULD DL PIECE",piece
+                    if DEBUG:
+                        print "helper.reserve SHOULD DL PIECE",piece
                 else:
-                    print "NONE SHOULD DL PIECE",piece
+                    if DEBUG:
+                        print "NONE SHOULD DL PIECE",piece
                 return piece
         if self.rate_predictor is None or not self.rate_predictor.has_capacity():
             return None

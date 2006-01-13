@@ -27,7 +27,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = True
+DEBUG = False
 FIREWALL = False
 
 all = POLLIN | POLLOUT

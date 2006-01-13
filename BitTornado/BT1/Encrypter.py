@@ -21,7 +21,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = True
+DEBUG = False
 MAX_INCOMPLETE = 8
 
 protocol_name = 'BitTorrent protocol'
@@ -229,6 +229,7 @@ class Connection:
         c = self.Encoder.connecter.connection_made(self)    
         self.keepalive = c.send_keepalive
 # 2fastbt_
+        #FIXME: self.Encoder.connecter.helper may be None
         if self.is_control_con() and self.Encoder.connecter.coordinator is None:
             self.Encoder.connecter.helper.coordinator_con = c
         if self.locally_initiated and self.is_control_con():
@@ -426,7 +427,8 @@ class Encoder:
              or len(self.connections) >= self.max_connections
              or id == self.my_id
              or self.banned.has_key(dns[0]) ):
-            print "Encoder start_connection paused RETURN"
+            if DEBUG:
+                print "Encoder start_connection paused RETURN"
             return True
 #--- 2fastbt_
 #        if self.banned.has_key(dns[0]) and not self.connection.is_helper_con() and \
@@ -440,7 +442,8 @@ class Encoder:
                 return True
             ip = v.get_ip(True)
             if self.config['security'] and ip != 'unknown' and ip == dns[0]:
-                print "Encoder start_connection values RETURN"
+                if DEBUG:
+                    print "Encoder start_connection values RETURN"
                 return True
         try:
             if DEBUG:

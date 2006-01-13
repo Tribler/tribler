@@ -203,7 +203,7 @@ defaults = [
 
 argslistheader = 'Arguments are:\n\n'
 
-DEBUG = True
+DEBUG = False
 
 def _failfunc(x):
     print x
@@ -712,9 +712,11 @@ class BT1Download:
             self.config['exclude_ips'] = list_of_banned_ips
         except:
             self.config['exclude_ips'] = []
-        print str(self.config['exclude_ips'])
+        if DEBUG:
+            print str(self.config['exclude_ips'])
         for ip in self.config['exclude_ips']:
-            print "Banning ip: " + str(ip)
+            if DEBUG:
+                print "Banning ip: " + str(ip)
             self.encoder_ban(ip)
 
         if self.coordinator is not None:

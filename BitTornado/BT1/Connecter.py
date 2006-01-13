@@ -20,7 +20,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = True
+DEBUG = False
 
 def toint(s):
     return long(b2a_hex(s), 16)
@@ -315,6 +315,7 @@ class Connecter:
         elif t == UNCHOKE:
             c.download.got_unchoke()
         elif t == INTERESTED:
+            #FIXME: c.upload may be None
             c.upload.got_interested()
         elif t == NOT_INTERESTED:
             c.upload.got_not_interested()
@@ -330,7 +331,8 @@ class Connecter:
                     print "Close on bad HAVE: index out of range"
                 connection.close()
                 return
-            print "PEER SAYS HAVE(",i,")"
+            if DEBUG:
+                print "PEER SAYS HAVE(",i,")"
             c.download.got_have(i)
         elif t == BITFIELD:
             try:
@@ -340,6 +342,7 @@ class Connecter:
                     print "Close on bad BITFIELD"
                 connection.close()
                 return
+            #FIXME: c.download may be None
             c.download.got_have_bitfield(b)
         elif t == REQUEST:
             if len(message) != 13:
@@ -388,8 +391,6 @@ class Connecter:
 # 2fastbt_
             if connection.is_helper_con():
                 get_logger().log(2, "connecter.connecter: got from helper piece: " + str(i))
-# _2fastbt
-            
 # _2fastbt
             if c.download.got_piece(i, toint(message[5:9]), [], message[9:]):
                 self.got_piece(i)
