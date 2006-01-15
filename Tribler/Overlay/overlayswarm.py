@@ -14,8 +14,8 @@ from Tribler.__init__ import GLOBAL
 
 from permid import ChallengeResponse
 from MetadataHandler import MetadataHandler
-from Encrypter import Encoder
-from Connecter import Connecter
+from OverlayEncrypter import OverlayEncoder
+from OverlayConnecter import OverlayConnecter
 
 protocol_name = 'BitTorrent protocol'    #TODO: 'BitTorrent+ protocol'
 overlay_infohash = '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
@@ -90,13 +90,14 @@ class OverlaySwarm:
         return OverlaySwarm.__single
     getInstance = staticmethod(getInstance)
 
-    def register(self, launchmany, multihandler, config, listen_port, errorfunc):
+    def register(self, launchmany, secure_overlay, multihandler, config, listen_port, errorfunc):
         # Register overlay_infohash as known swarm with MultiHandler
         
         if self.registered:
             return
         
         self.launchmany = launchmany
+        self.secure_overlay = secure_overlay
         self.config = config
         self.doneflag = Event()
         self.rawserver = multihandler.newRawServer(self.infohash, 
@@ -106,8 +107,8 @@ class OverlaySwarm:
         self.errorfunc = errorfunc
         
         # Create Connecter and Encoder for the swarm. TODO: ratelimiter
-        self.connecter = Connecter(self.config, None, self.rawserver.add_task)
-        self.encoder = Encoder(self.connecter, self.rawserver, 
+        self.connecter = OverlayConnecter(self.config, None, self.rawserver.add_task)
+        self.encoder = OverlayEncoder(self.connecter, self.rawserver, 
             self.myid, self.config['max_message_length'], self.rawserver.add_task, 
             self.config['keepalive_interval'], self.infohash, 
             lambda x: None, self.config)

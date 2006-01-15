@@ -149,7 +149,7 @@ class Connection:
             incompletecounter.decrement()
         c = self.Encoder.connecter.connection_made(self)
         self.keepalive = c.send_keepalive
-        #TODO: permid exchange protocol
+        #TODO: permid exchange protocol, notify Overlay
         return 4, self.read_len
     
     def version_supported(self, low_ver_str, cur_ver_str):
@@ -233,7 +233,7 @@ class Connection:
             self.sever()
 
 
-class Encoder:
+class OverlayEncoder:
     def __init__(self, connecter, raw_server, my_id, max_len, 
             schedulefunc, keepalive_delay, download_id, 
             measurefunc, config):

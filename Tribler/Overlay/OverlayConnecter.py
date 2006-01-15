@@ -72,8 +72,7 @@ class Connection:
         return not self.connection.is_flushed()
 
 
-
-class Connecter:
+class OverlayConnecter:
     def __init__(self, config, ratelimiter, sched = None):
         self.config = config
         self.ratelimiter = ratelimiter

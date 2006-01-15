@@ -339,7 +339,7 @@ class SocketHandler:
         
     def handle_events(self, events):
         for sock, event in events:
-            s = self.servers.get(sock)
+            s = self.servers.get(sock)    # socket.socket
             if s:
                 if event & (POLLHUP | POLLERR) != 0:
                     if DEBUG:

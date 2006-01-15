@@ -83,7 +83,6 @@ class Connection:
         self.Encoder = Encoder
         self.connection = connection    # SocketHandler.SingleSocket
         self.connecter = Encoder.connecter
-        self.connecter_connection = None    # Connecter.Connection
         self.id = id
         self.readable_id = make_readable(id)
 # 2fastbt_
@@ -274,7 +273,6 @@ class Connection:
 
     def sever(self):
         self.closed = True
-        del self.connecter_connection
         del self.Encoder.connections[self.connection]
         
         if self.complete:
@@ -366,17 +364,6 @@ class Encoder:
         self.toofast_banned = {}
 # _2fastbt        
         schedulefunc(self.send_keepalives, keepalive_delay)
-        if DEBUG:
-            self.raw_server.add_task(self.check_connections, 2)
-        
-    def check_connections(self):
-        self.raw_server.add_task(self.check_connections, 2)
-        ##print '------------- ' + str(len(self.connections)) + ' - ' + show(self.download_id) + ' -------------'
-        for conn in self.connections.values():
-            if conn.connecter_connection and conn.connecter_connection.permid:
-                permid = sha(conn.connecter_connection.permid).hexdigest()
-            else:
-                permid = 'no perm id'
         
     def send_keepalives(self):
         self.schedulefunc(self.send_keepalives, self.keepalive_delay)

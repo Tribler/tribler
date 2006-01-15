@@ -32,6 +32,7 @@ from BT1.Connecter import Connecter
 
 from Tribler.__init__ import GLOBAL
 from Tribler.Overlay.overlayswarm import OverlaySwarm
+from Tribler.Overlay.SecureOverlay import SecureOverlay
 # 2fastbt_
 from Tribler.toofastbt.Logger import get_logger, create_logger
 # _2fastbt
@@ -238,9 +239,10 @@ class LaunchMany:
                 GLOBAL.do_download_help = 0
 
             if GLOBAL.do_overlay:
+                self.secure_overlay = SecureOverlay.getInstance()
                 self.overlayswarm = OverlaySwarm.getInstance()
-                self.overlayswarm.register(self, self.handler, self.config, 
-                                           self.listen_port, self.exchandler)
+                self.overlayswarm.register(self, self.secure_overlay, self.handler, 
+                                           self.config, self.listen_port, self.exchandler)
 
             self.start()
 
