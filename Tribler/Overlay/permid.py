@@ -24,7 +24,7 @@ STATE_FAILED = 4
 # Global variable holding our EC keypair
 _ec_keypair = None
 
-DEBUG = False
+DEBUG = True
 
 # Exported functions
 def init():
@@ -326,6 +326,8 @@ class ChallengeResponse:
                     print "Close on bad CHALLENGE: msg len"
                 return False
             try:
+#                if DEBUG:
+#                    print "got challeng", len(msg), conn
                 self.got_challenge(msg, conn)
             except Exception,e:
                 if DEBUG:
@@ -338,6 +340,8 @@ class ChallengeResponse:
                     print "Close on bad RESPONSE1: msg len"
                 return False
             try:
+#                if DEBUG:
+#                    print "got response1", len(msg), conn
                 self.got_response1(msg, conn)
             except Exception,e:
                 if DEBUG:
@@ -350,6 +354,8 @@ class ChallengeResponse:
                     print "Close on bad RESPONSE2: msg len"
                 return False
             try:
+#                if DEBUG:
+#                    print "got response2", len(msg), conn
                 self.got_response2(msg, conn)
             except Exception,e:
                 if DEBUG:

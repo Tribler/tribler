@@ -143,9 +143,10 @@ class OverlaySwarm:
                 
     def got_message(self, conn, message):    # Connecter.Connection
         """ Handle message for overlay swarm and return if the message is valid """
+
         if DEBUG:
             #print "GOT message:", len(message), show(message), message
-            print "Overlay",
+            print "Overlay - ",
             printMessageID(message[0],message)
         
         if not conn:

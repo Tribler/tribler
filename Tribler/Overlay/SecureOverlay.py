@@ -81,12 +81,14 @@ class OverlayTask:
         if self.hasExpired():
             return
         elif self.findConnection():
-            self.sendMessage()
+            self.sendMessage()    # if connection exists, send message now
         else:
             self.register(self.dns)
             self.makeConnection()
                 
     def update(self):    # phase 2: overlay connection has been made; send msg now
+        if DEBUG:
+            print "task update", self.dns, self
         if self.hasExpired():
             return
         if self.callback:    # used by other task
@@ -160,13 +162,19 @@ class Subject:
         
     def notify(self):
         for observer in self.observers:
+            if DEBUG:
+                print "subject", self.dns, "notifies observer", observer
             observer.update()
             
     def attachObserver(self, observer):
         if observer not in self.observers:
             self.observers.append(observer)
+            if DEBUG:
+                print "subject", self.dns, "attaches observer", self.observers
         
     def detachObserver(self, observer):
+        if DEBUG:
+            print "subject", self.dns, "detaches observer", observer
         self.observers.remove(observer)
         if self.isEmpty():
             self.subject_manager.unregisterSubject(self.dns)
@@ -197,7 +205,7 @@ class SubjectManager:
     def notifySubject(self, dns):    # notify the connection is made
         if DEBUG:
             print "notify subject", dns
-        if self.subjects.has_key(dns):
+        if dns and self.subjects.has_key(dns):
             subject = self.subjects[dns]
             subject.notify()
 
@@ -296,7 +304,8 @@ class SecureOverlay:
                 print "add OverlayTask", target, message
             task = OverlayTask(self, self.subject_manager, target, message, timeout)
         else: return
-        task.start()
+        if self.overlayswarm.registered:
+            self.overlayswarm.rawserver.add_task(task.start, 0)
         
     def connectionMade(self, connection):    # Connecter.Connection
         #TODO: schedule it on rawserver task queue?
