@@ -133,7 +133,7 @@ class PermidOverlayTask:
     def findDNSFromCache(self):
         if DEBUG:
             return ('1.2.3.4', 80)
-        peer_cache = PeerDBHandler.getInstance()
+        peer_cache = PeerDBHandler()
         peer = peer_cache.getPeer(self.permid)
         if peer:
             return (peer['ip'], int(peer['port']))
@@ -308,18 +308,27 @@ class SecureOverlay:
             self.overlayswarm.rawserver.add_task(task.start, 0)
         
     def connectionMade(self, connection):    # Connecter.Connection
+        if DEBUG:
+            print "***** secure overlay connection made *****", connection
         #TODO: schedule it on rawserver task queue?
         dns = self._addConnection(connection)
-        self.subject_manager.notifySubject(dns)
+        if dns:
+            self.subject_manager.notifySubject(dns)
+            
 
     def _addConnection(self, connection):
         dns = connection.dns
         permid = connection.permid
+        if DEBUG:
+                print "add connection in secure overlay", dns, len(permid)
         if validPermid(permid) and validDNS(dns):
             self._updateDNS(permid, dns)
             expire = int(time() + self.timeout)
             self.connection_list[permid] = {'c_conn':connection, 'dns':dns, 'expire':expire}
-        return dns
+            peer_cache = PeerDBHandler()
+            peer = peer_cache.updatePeerIPPort(permid, dns[0], dns[1])
+            return dns
+        return None
         
     def _updateDNS(self, permid, dns):
         pass    # TODO: use bsddb

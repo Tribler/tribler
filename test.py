@@ -1,5 +1,5 @@
-from BitTornado.cachedb import SuperPeerTable, PeerTable, TorrentTable, PreferenceTable, dropTables
-from BitTornado.CacheDBHandler import *
+from Tribler.CacheDB.cachedb import *
+from Tribler.CacheDB.CacheDBHandler import *
 
 if __name__ == "__main1__":
     spew = [{'ip':'202.115.39.6', 'permid':'2', 'torrent_hash':'a'}, # ip, permid, infohash
@@ -51,10 +51,13 @@ def printOld():
     
 def printNew():
     mydb = MyDBHandler()
-    mydb.printAll()
+    mydb.printList()
     
+def print2():
+    peer = PeerDBHandler()
+    peer.printList()
     
 if __name__ == "__main__":
+    print2()
     printNew()
-    #printOld()
     

@@ -120,6 +120,10 @@ class PeerDBHandler:
     def updatePeer(self, peer):
         self.peers.updateItem(peer)
         
+    def updatePeerIPPort(self, permid, ip, port):
+        peer = {'permid':permid, 'ip':ip, 'port':port}
+        self.peers.updateItem(peer)
+        
     def updatePeerTrust(self, permid, trust):
         peer = {'permid':permid, 'my_trust':trust}
         self.peers.updateItem(peer)

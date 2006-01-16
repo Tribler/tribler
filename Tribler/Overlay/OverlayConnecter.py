@@ -41,7 +41,7 @@ class Connection:
         return self.connection.get_readable_id()
     
     def set_permid(self, permid):
-        self.permid = permid
+        self.permid = str(permid)
 
     def close(self):
         if DEBUG:
