@@ -284,6 +284,7 @@ class SecureOverlay:
         
     def addTask(self, target, message=None, timeout=15):    # id = [permid|(ip,port)]
         """ Command Pattern """
+        #TODO: priority task queue
         
         if validPermid(target):
             if DEBUG:
@@ -294,18 +295,20 @@ class SecureOverlay:
                 print "add OverlayTask", target, message
             task = OverlayTask(self, self.subject_manager, target, message, timeout)
         else: return
-        task.start()    # TODO: priority task queue
+        task.start()
         
     def connectionMade(self, connection):    # Connecter.Connection
+        #TODO: schedule it on rawserver task queue?
         dns = self._addConnection(connection)
         self.subject_manager.notifySubject(dns)
 
     def _addConnection(self, connection):
         dns = connection.dns
         permid = connection.permid
-        self._updateDNS(permid, dns)
-        expire = int(time() + self.timeout)
-        self.connection_list[permid] = {'c_conn':connection, 'dns':dns, 'expire':expire}
+        if validPermid(permid) and validDNS(dns):
+            self._updateDNS(permid, dns)
+            expire = int(time() + self.timeout)
+            self.connection_list[permid] = {'c_conn':connection, 'dns':dns, 'expire':expire}
         return dns
         
     def _updateDNS(self, permid, dns):

@@ -15,6 +15,8 @@ from traceback import print_exc, extract_stack
 import sys
 # _2fastbt
 
+from Tribler.Overlay.SecureOverlay import SecureOverlay
+
 try:
     True
 except:
@@ -78,7 +80,8 @@ incompletecounter = IncompleteCounter()
 
 class Connection:
 # 2fastbt_
-    def __init__(self, Encoder, connection, id, ext_handshake = False, locally_initiated = None, control_con = False): #, options = None):
+    def __init__(self, Encoder, connection, id, ext_handshake = False, 
+                  locally_initiated = None, control_con = False, dns = None): #, options = None):
 # _2fastbt
         self.Encoder = Encoder
         self.connection = connection    # SocketHandler.SingleSocket
@@ -97,6 +100,11 @@ class Connection:
         self.keepalive = lambda: None
         self.closed = False
         self.buffer = StringIO()
+# _overlay        
+        self.dns = dns
+        self.support_overlayswarm = False
+# overlay_
+        self.support_merklehash= False
         if self.locally_initiated:
             incompletecounter.increment()
 # 2fastbt_
@@ -115,7 +123,6 @@ class Connection:
         else:
             self.next_len, self.next_func = 1, self.read_header_len
         self.Encoder.raw_server.add_task(self._auto_close, 15)
-        self.support_merklehash= False
 
     def get_ip(self, real=False):
         return self.connection.get_ip(real)
@@ -227,6 +234,9 @@ class Connection:
             incompletecounter.decrement()
         c = self.Encoder.connecter.connection_made(self)    
         self.keepalive = c.send_keepalive
+# overlay_
+        self.connect_overlay()
+# _overlay
 # 2fastbt_
         #FIXME: self.Encoder.connecter.helper may be None
         if self.is_control_con() and self.Encoder.connecter.coordinator is None:
@@ -246,6 +256,13 @@ class Connection:
                         break
 # _2fastbt
         return 4, self.read_len
+
+# overlay_
+    def connect_overlay(self):
+        if self.support_overlayswarm and self.dns and not self.is_control_con():
+            so = SecureOverlay.getInstance()
+            so.addTask(self.dns)
+# _overlay
 
     def read_len(self, s):
         l = toint(s)
@@ -436,7 +453,7 @@ class Encoder:
             if DEBUG:
                 print "Encoder.start_connection to peer", dns
             c = self.raw_server.start_connection(dns)
-            con = Connection(self, c, id)
+            con = Connection(self, c, id, dns = dns)
             self.connections[c] = con
             c.set_handler(con)
         except socketerror:

@@ -8,10 +8,10 @@ from BitTornado.__init__ import createPeerID
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
 
-from Tribler.BuddyCast.buddycast import BuddyCast
-from Tribler.toofastbt.bthelper import Helper
-from Tribler.__init__ import GLOBAL
+#from Tribler.BuddyCast.buddycast import BuddyCast
+#from Tribler.toofastbt.bthelper import Helper
 
+from Tribler.__init__ import GLOBAL
 from permid import ChallengeResponse
 from MetadataHandler import MetadataHandler
 from OverlayEncrypter import OverlayEncoder
@@ -23,6 +23,7 @@ overlay_infohash = '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00
 from __init__ import CurrentVersion, LowestVersion, SupportedVersions
 
 DEBUG = True
+TEST = False
 
 def show(s):
     text = []
@@ -45,15 +46,7 @@ def wrap_message(message_id, payload=None):
         message = tobinary(1) + message_id
     return message
         
-if DEBUG:
-    class ENC_CONN:    # Encrypter.Connection class for test
-        def __init__(self):
-            pass
-        
-        def get_ip(self):
-            return "1.2.3.4"
-                        
-        
+
 class OverlaySwarm:
     # Code to make this a singleton
     __single = None
@@ -91,8 +84,8 @@ class OverlaySwarm:
         self.errorfunc = errorfunc
         
         # Create Connecter and Encoder for the swarm. TODO: ratelimiter
-        self.connecter = OverlayConnecter(self.config, None, self.rawserver.add_task)
-        self.encoder = OverlayEncoder(self.connecter, self.rawserver, 
+        self.connecter = OverlayConnecter(self, self.config)
+        self.encoder = OverlayEncoder(self, self.connecter, self.rawserver, 
             self.myid, self.config['max_message_length'], self.rawserver.add_task, 
             self.config['keepalive_interval'], self.infohash, 
             lambda x: None, self.config)
@@ -104,6 +97,7 @@ class OverlaySwarm:
         
         if DEBUG:
             print "Start overlay swarm connection to", dns
+        if TEST:
             class Conn:
                 def __init__(self, dns):
                     self.dns = dns
@@ -118,7 +112,7 @@ class OverlaySwarm:
             print "    waiting connection ..."
             sleep(3)
             self.connectionMade(conn)
-        #self.encoder.start_connection(dns, 0)
+        self.encoder.start_connection(dns, 0)
             
     def sendMessage(self, connection, message):
         if DEBUG:
@@ -174,20 +168,4 @@ class OverlaySwarm:
 # _2fastbt
         self.helper.startup()
 
-        
-if DEBUG and __name__ == "__main__":
-    overlayswarm = OverlaySwarm.getInstance()
-    overlayswarm.listen_port = 4321
-    enc_conn = ENC_CONN()
-    enc_conn.overlayswarm = overlayswarm
-    
-    print "Testing REQUEST_LISTENING_PORT, LISTENING_PORT"
-    overlayswarm.request_listening_port(enc_conn)
-    
-    print "\nTesting REQUEST_PREFERENCE, PREFERENCE"
-    overlayswarm.request_preference(enc_conn, 5)
-    
-    print "\nTesting REQUEST_METADATA, METADATA"
-    infohash = 'T\xcc\x03+\xd1\x03\xe5\xd20(\xfb{\xa9\x99\xe9\t\x97\xf7\xddE'
-    overlayswarm.request_metadata(infohash)
-    overlayswarm.do_request_metadata(enc_conn, infohash)
+

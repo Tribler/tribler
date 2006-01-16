@@ -54,11 +54,13 @@ incompletecounter = IncompleteCounter()
 # header, reserved, download id, my id, [length, message]
 
 class Connection:    # OverlaySocket, a better name for it?
-    def __init__(self, Encoder, connection, id, ext_handshake = False):
+    def __init__(self, Encoder, connection, id, ext_handshake = False, dns = None):
         self.Encoder = Encoder
         self.connection = connection    # SocketHandler.SingleSocket
         self.connecter = Encoder.connecter
         self.id = id
+        self.dns = dns
+        self.permid = None
         self.readable_id = make_readable(id)
         self.locally_initiated = (id != None)
         self.complete = False
@@ -96,15 +98,7 @@ class Connection:    # OverlaySocket, a better name for it?
         return self.connection.is_flushed()
 
     def set_options(self, s):
-        r = unpack("B", s[5])
-        if r[0] & 0x10:    # left + 43 bit
-            self.support_overlayswarm = True
-            if DEBUG:
-                print "Peer supports Challenge/Response"
-        if r[0] & 0x20:    # left + 42 bit
-            self.support_merklehash= True
-            if DEBUG:
-                print "Peer supports Merkle hashes"
+        pass    # used by future
                 
     def read_header_len(self, s):
         if ord(s) != len(protocol_name):
@@ -141,16 +135,15 @@ class Connection:    # OverlaySocket, a better name for it?
         self.complete = self.Encoder.got_id(self)
         if not self.complete:
             return None
-        if self.is_overlayswarm():
-            if not self.version_supported(s[16:18], s[18:20]):    # versioning protocol
-                return None
+        if not self.version_supported(s[16:18], s[18:20]):    # versioning protocol
+            return None
         if self.locally_initiated:
             self.connection.write(self.Encoder.my_id)
             incompletecounter.decrement()
-        c = self.Encoder.connecter.connection_made(self)
+        c = self.Encoder.connecter.connection_made(self, self.dns, self.permid)
         self.keepalive = c.send_keepalive
-        #TODO: permid exchange protocol, notify Overlay
         return 4, self.read_len
+        #TODO: put permid exchange in handshake, so called Permid Socket
     
     def version_supported(self, low_ver_str, cur_ver_str):
         """ overlay swarm versioning solution: use last 4 bytes in PeerID """
@@ -234,11 +227,12 @@ class Connection:    # OverlaySocket, a better name for it?
 
 
 class OverlayEncoder:
-    def __init__(self, connecter, raw_server, my_id, max_len, 
+    def __init__(self, overlayswarm, connecter, raw_server, my_id, max_len, 
             schedulefunc, keepalive_delay, download_id, 
             measurefunc, config):
-        self.raw_server = raw_server
+        self.overlayswarm = overlayswarm
         self.connecter = connecter
+        self.raw_server = raw_server
         self.my_id = my_id
         self.max_len = max_len
         self.schedulefunc = schedulefunc
@@ -301,11 +295,11 @@ class OverlayEncoder:
             if id and v.id == id:
                 return True
             ip = v.get_ip(True)
-            if self.config['security'] and ip != 'unknown' and ip == dns[0]:
+            if ip != 'unknown' and ip == dns[0]:    # forbid to setup multiple connection on overlay swarm
                 return True
         try:
             c = self.raw_server.start_connection(dns)
-            con = Connection(self, c, id)
+            con = Connection(self, c, id, dns = dns)
             self.connections[c] = con
             c.set_handler(con)
         except socketerror:

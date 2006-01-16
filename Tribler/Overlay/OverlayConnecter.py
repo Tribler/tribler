@@ -23,9 +23,11 @@ def tobinary(i):
         chr((i >> 8) & 0xFF) + chr(i & 0xFF))
 
 class Connection:
-    def __init__(self, connection, connecter):
+    def __init__(self, connection, connecter, dns=None, permid=None):
         self.connection = connection
         self.connecter = connecter
+        self.dns = dns
+        self.permid = permid
         self.got_anything = False
         self.closed = False
 
@@ -55,7 +57,7 @@ class Connection:
 
     def send_keepalive(self):
         self._send_message('')
-
+        
     def _send_message(self, s):
         s = tobinary(len(s))+s
         if self.partial_message:
@@ -68,19 +70,20 @@ class Connection:
 
 
 class OverlayConnecter:
-    def __init__(self, config, ratelimiter, sched = None):
+    def __init__(self, overlayswarm, config, ratelimiter = None):
         self.config = config
         self.ratelimiter = ratelimiter
-        self.sched = sched
+        self.overlayswarm = overlayswarm
         self.connections = {}
         self.external_connection_made = 0
 
     def how_many_connections(self):
         return len(self.connections)
 
-    def connection_made(self, connection):
-        c = Connection(connection, self)
+    def connection_made(self, connection, dns=None, permid=None):
+        c = Connection(connection, self, dns, permid)
         self.connections[connection] = c
+        self.overlayswarm.connectionMade(c)    # notify overlay a new connection is made
         return c
 
     def connection_lost(self, connection):
@@ -95,6 +98,5 @@ class OverlayConnecter:
         # connection: Encrypter.Connection; 
         # c: Connecter.Connection
         c = self.connections[connection]
-        t = message[0]
-        self.overlay_swarm.got_message(c, message, connection)
+        self.overlay_swarm.got_message(c, c.permid, message)
 
