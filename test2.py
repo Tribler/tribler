@@ -1,2 +1,3 @@
-from Tribler.DownloadHelp.Logger import *
+from Tribler.Overlay.SecureOverlay import test
+test()
 

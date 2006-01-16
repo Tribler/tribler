@@ -53,7 +53,7 @@ incompletecounter = IncompleteCounter()
 
 # header, reserved, download id, my id, [length, message]
 
-class Connection:
+class Connection:    # OverlaySocket, a better name for it?
     def __init__(self, Encoder, connection, id, ext_handshake = False):
         self.Encoder = Encoder
         self.connection = connection    # SocketHandler.SingleSocket
