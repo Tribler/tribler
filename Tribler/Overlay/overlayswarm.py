@@ -115,6 +115,7 @@ class OverlaySwarm:
                     
             conn = Conn(dns)
             from time import sleep
+            print "    waiting connection ..."
             sleep(3)
             self.connectionMade(conn)
         #self.encoder.start_connection(dns, 0)

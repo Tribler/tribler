@@ -1,10 +1,50 @@
-""" The middle layer between OverlaySwarm and BuddyCast/DownloadHelp """
+""" 
+- The middle layer between OverlaySwarm and BuddyCast/DownloadHelp 
+- A high level module, like buddycast or dlhelp, calls SecureOverlay.addTask,
+and then SecureOverlay will handle the task.
+- There is only one task for secure overlay: Send message (the message can be None)
+- But each time before sending a message, secure overlay must connect the target's
+overlay.
+- If the message is None, secure overlay only creates an overlay connection.
+- Each time after an normal connection is created and if the other peer supports
+overlay swarm, it will always create a task without message
+- After overlay connection is created, secure overlay will update the (permid, (ip, port))
+in local cache.
+- The target can be either permid or (ip, port)
+- If the target is permid, the task much check if target's permid matches
+the task's permid
+- If the target is (ip, port), connect directly and record the peer's permid later on.
+"""
 
 from time import time
 from overlayswarm import OverlaySwarm
 from Tribler.CacheDB.CacheDBHandler import PeerDBHandler
+from socket import inet_aton
 
 DEBUG = True
+Length_of_permid = 0    # 0: no restriction
+
+def validIP(ip):
+    try:
+        inet_aton(ip)
+    except:
+        print "invalid ip", ip
+        return False
+    return True
+
+def validPermid(permid):
+    if not isinstance(permid, str):
+        return False
+    if Length_of_permid:
+        return len(permid) == Length_of_permid
+    return True
+    
+def validDNS(dns):
+    if isinstance(dns, tuple) and len(dns)==2 and \
+       isinstance(dns[0], str) and isinstance(dns[1], int) and \
+       dns[1] > 0 and dns[1] < 65535 and validIP(dns[0]):
+           return True
+    return False
 
 class OverlayTask:
     """ 
@@ -83,7 +123,7 @@ class PermidOverlayTask:
         self.dns = self.secure_overlay.findDNSByPermid(self.permid)    # first lookup overlay
         if not self.dns:    # then lookup local cache
             self.dns = self.findDNSFromCache()
-        if self.dns:
+        if validDNS(self.dns):
             self.task = OverlayTask(secure_overlay, subject_manager, self.dns, message, timeout)
         else:
             self.task = None
@@ -242,17 +282,18 @@ class SecureOverlay:
         if self._findConnByPermid(permid):
             return self.connection_list[permid]['dns']
         
-    def addTask(self, permid=None, dns=None, message=None, timeout=15):
+    def addTask(self, target, message=None, timeout=15):    # id = [permid|(ip,port)]
         """ Command Pattern """
         
-        if permid and dns:
-            raise RuntimeError, "Error: both permid and dns are provided"
-        if not permid and not dns:
-            raise RuntimeError, "Error: neither permid nor dns is provided"
-        if permid:
-            task = PermidOverlayTask(self, self.subject_manager, permid, message, timeout)
-        else:
-            task = OverlayTask(self, self.subject_manager, dns, message, timeout)
+        if validPermid(target):
+            if DEBUG:
+                print "add PermidOverlayTask", target, message
+            task = PermidOverlayTask(self, self.subject_manager, target, message, timeout)
+        elif validDNS(target):
+            if DEBUG:
+                print "add OverlayTask", target, message
+            task = OverlayTask(self, self.subject_manager, target, message, timeout)
+        else: return
         task.start()    # TODO: priority task queue
         
     def connectionMade(self, connection):    # Connecter.Connection
@@ -296,5 +337,8 @@ class SecureOverlay:
 def test():            
     so = SecureOverlay.getInstance()
     so.overlayswarm.secure_overlay = so
-    so.addTask(permid='permid1', message="hello overlay")
+    dns = ('4.3.2.1', 1111)
+    permid = 'permid1'
+    so.addTask(permid)
+    so.addTask(dns, message="hello overlay")
 
