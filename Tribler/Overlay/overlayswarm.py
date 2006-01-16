@@ -59,6 +59,7 @@ class OverlaySwarm:
         self.myid = createPeerID()
         self.myid = self.myid[:16] + pack('H', LowestVersion) + pack('H', CurrentVersion)
         self.protocol = protocol_name
+        self.crs = {}
         self.registered = False
                     
     def getInstance(*args, **kw):
@@ -111,39 +112,55 @@ class OverlaySwarm:
             from time import sleep
             print "    waiting connection ..."
             sleep(3)
-            self.connectionMade(conn)
-        self.encoder.start_connection(dns, 0)
+            self.permidSocketMade(conn)
+        else:
+            self.encoder.start_connection(dns, 0)
             
     def sendMessage(self, connection, message):
         if DEBUG:
             print "send message", message, "from", connection
             
-    def connectionMade(self, connection):    # Connecter.Connection. 
-        """ notify that the connection has been made """
-        self.secure_overlay.connectionMade(connection)
-                
-    def request_download_help(self, ip, port, torrent_hash):
-        try:
-            normal_conn = self.peers[ip][port]
-            overlay_conn = self.connections[normal_conn.permid]
-            self._request_download_help(overlay_conn, torrent_hash)
-        except:
-            self.connect_peer(ip, port)
-            self.add_os_task2(ip, port, ('DOWNLOAD_HELP', torrent_hash))
+    def connectionMade(self, connection):
+        """ phase 1: Connecter.Connection is created but permid has not been verified """
+        
+        def c(conn = connection):
+            """ Start permid exchange and challenge/response validation """
+            if not connection or self.crs.has_key(connection) and self.crs[connection]:
+                return    # don't start c/r if connection is invalid or permid was exchanged
+            cr = ChallengeResponse(self.myid, self, self.errorfunc)
+            self.crs[connection] = cr
+            cr.start_cr(connection)
+        self.rawserver.add_task(c, 0)
             
-    def _request_download_help(self, conn, torrent_hash):
-        if not hasattr(self, "helper") or not conn.permid:
-            print "start download help failed"
-            return
-        self.helper.send_dlhelp_request(conn, torrent_hash)
-
-    def got_message(self, permid, message):    # Connecter.Connection
+    def permidSocketMade(self, connection):    # Connecter.Connection. 
+        """ phase 2: notify that the connection has been made """
+        
+        if self.crs.has_key(connection):
+            self.crs.pop(connection)
+        def notify(connection=connection):
+            self.secure_overlay.connectionMade(connection)
+        self.rawserver.add_task(notify, 0)
+                
+    def got_message(self, conn, message):    # Connecter.Connection
         """ Handle message for overlay swarm and return if the message is valid """
         if DEBUG:
             #print "GOT message:", len(message), show(message), message
             print "Overlay",
             printMessageID(message[0],message)
-        self.secure_overlay.gotMessage(permid, message)
+        
+        if not conn:
+            return False
+        t = message[0]
+        
+        if t in PermIDMessages:
+            if not self.crs.has_key(conn) or not self.crs[conn]:    # incoming permid exchange
+                cr = ChallengeResponse(self.myid,self,self.errorfunc)
+                self.crs[conn] = cr
+            if self.crs[conn].got_message(conn, message) == False:
+                self.crs.pop(conn)
+                conn.close()
+        elif conn.permid:    # Do not go ahead without permid
+            self.secure_overlay.gotMessage(permid, message)
         
     def start_buddycast(self):
         self.buddycast = BuddyCast.getInstance()

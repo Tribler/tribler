@@ -23,11 +23,11 @@ def tobinary(i):
         chr((i >> 8) & 0xFF) + chr(i & 0xFF))
 
 class Connection:
-    def __init__(self, connection, connecter, dns=None, permid=None):
+    def __init__(self, connection, connecter, dns=None):
         self.connection = connection
         self.connecter = connecter
         self.dns = dns
-        self.permid = permid
+        self.permid = None
         self.got_anything = False
         self.closed = False
 
@@ -39,6 +39,9 @@ class Connection:
 
     def get_readable_id(self):
         return self.connection.get_readable_id()
+    
+    def set_permid(self, permid):
+        self.permid = permid
 
     def close(self):
         if DEBUG:
@@ -60,10 +63,7 @@ class Connection:
         
     def _send_message(self, s):
         s = tobinary(len(s))+s
-        if self.partial_message:
-            self.outqueue.append(s)
-        else:
-            self.connection.send_message_raw(s)
+        self.connection.send_message_raw(s)
 
     def backlogged(self):
         return not self.connection.is_flushed()
@@ -80,16 +80,19 @@ class OverlayConnecter:
     def how_many_connections(self):
         return len(self.connections)
 
-    def connection_made(self, connection, dns=None, permid=None):
-        c = Connection(connection, self, dns, permid)
+    def connection_made(self, connection, dns=None):
+        c = Connection(connection, self, dns)
         self.connections[connection] = c
-        self.overlayswarm.connectionMade(c)    # notify overlay a new connection is made
         return c
-
+    
     def connection_lost(self, connection):
         c = self.connections[connection]
         del self.connections[connection]
 
+    def connection_flushed(self, connection):
+        print "___________ connection flused!!!"
+        pass    
+            
     def got_piece(self, i):
         for co in self.connections.values():
             co.send_have(i)
@@ -98,5 +101,5 @@ class OverlayConnecter:
         # connection: Encrypter.Connection; 
         # c: Connecter.Connection
         c = self.connections[connection]
-        self.overlay_swarm.got_message(c, c.permid, message)
+        self.overlayswarm.got_message(c, message)
 

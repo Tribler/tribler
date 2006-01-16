@@ -9,6 +9,10 @@ from struct import unpack
 from sha import sha
 from time import time
 from binascii import b2a_hex
+from __init__ import *
+
+from permid import ChallengeResponse
+
 try:
     True
 except:
@@ -60,7 +64,6 @@ class Connection:    # OverlaySocket, a better name for it?
         self.connecter = Encoder.connecter
         self.id = id
         self.dns = dns
-        self.permid = None
         self.readable_id = make_readable(id)
         self.locally_initiated = (id != None)
         self.complete = False
@@ -140,27 +143,29 @@ class Connection:    # OverlaySocket, a better name for it?
         if self.locally_initiated:
             self.connection.write(self.Encoder.my_id)
             incompletecounter.decrement()
-        c = self.Encoder.connecter.connection_made(self, self.dns, self.permid)
+        c = self.Encoder.connecter.connection_made(self, self.dns)
         self.keepalive = c.send_keepalive
+        def notify(connection=c):
+            self.Encoder.overlayswarm.connectionMade(connection)
+        self.Encoder.raw_server.add_task(notify, 0)
         return 4, self.read_len
-        #TODO: put permid exchange in handshake, so called Permid Socket
     
     def version_supported(self, low_ver_str, cur_ver_str):
         """ overlay swarm versioning solution: use last 4 bytes in PeerID """
-        if self.is_overlayswarm():
-            low_ver = unpack('H', low_ver_str)[0]
-            cur_ver = unpack('H', cur_ver_str)[0]
-            if cur_ver != CurrentVersion:
-                if low_ver > CurrentVersion:    # the other's version is too high
-                    return False
-                if cur_ver < LowestVersion:     # the other's version is too low
-                    return False           
-                if cur_ver < CurrentVersion and \
-                   cur_ver not in SupportedVersions:   # the other's version is not supported
-                    return False
-                if cur_ver < CurretVersion:     # set low version as our version
-                    self.overlay_version = cur_ver
-            return True
+        
+        low_ver = unpack('H', low_ver_str)[0]
+        cur_ver = unpack('H', cur_ver_str)[0]
+        if cur_ver != CurrentVersion:
+            if low_ver > CurrentVersion:    # the other's version is too high
+                return False
+            if cur_ver < LowestVersion:     # the other's version is too low
+                return False           
+            if cur_ver < CurrentVersion and \
+               cur_ver not in SupportedVersions:   # the other's version is not supported
+                return False
+            if cur_ver < CurretVersion:     # set low version as our version
+                self.overlay_version = cur_ver
+        return True
 
     def read_len(self, s):
         l = toint(s)
@@ -225,7 +230,11 @@ class Connection:    # OverlaySocket, a better name for it?
         if self.Encoder.connections.has_key(connection):
             self.sever()
 
-
+    def connection_flushed(self, connection):
+        if self.complete:
+            self.connecter.connection_flushed(self)
+            
+            
 class OverlayEncoder:
     def __init__(self, overlayswarm, connecter, raw_server, my_id, max_len, 
             schedulefunc, keepalive_delay, download_id, 

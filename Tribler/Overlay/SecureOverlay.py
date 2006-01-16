@@ -195,7 +195,8 @@ class SubjectManager:
         return self.subjects[dns]        
             
     def notifySubject(self, dns):    # notify the connection is made
-        print "notify subject", dns
+        if DEBUG:
+            print "notify subject", dns
         if self.subjects.has_key(dns):
             subject = self.subjects[dns]
             subject.notify()
@@ -234,7 +235,7 @@ class SecureOverlay:
         self.timeout = 60
         self.check_interval = 15
         #self.add_rawserver_task = self.overlayswarm.rawserver.add_task
-        #self.add_rawserver_task(self._autoCheckConnections, self.check_interval)
+        #self.add_rawserver_task(self._auto_close, self.check_interval)
                             
     def getInstance(*args, **kw):
         if SecureOverlay.__single is None:
@@ -247,8 +248,8 @@ class SecureOverlay:
         
         self.incoming_handler.registerHandler(ids, handler)
 
-    def _autoCheckConnections(self):
-        self.add_rawserver_task(self._autoCheckConnections, self.check_interval)
+    def _auto_close(self):
+        self.add_rawserver_task(self._auto_close, self.check_interval)
         self._checkConnections()
     
     def _checkConnections(self):

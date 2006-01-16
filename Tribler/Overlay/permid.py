@@ -186,7 +186,7 @@ class PermIDException(Exception): pass
 class ChallengeResponse:
     """ Exchange Challenge/Response via Overlay Swarm """
 
-    def __init__(self,my_id,overlay_swarm,errorfunc):
+    def __init__(self, my_id, overlay_swarm, errorfunc):
         self.overlay_swarm = overlay_swarm
         self.errorfunc = errorfunc
 
@@ -289,23 +289,27 @@ class ChallengeResponse:
 
     def send_challenge(self, conn):
         cdata = self.create_challenge()
-        conn.send_overlay_message(CHALLENGE + str(cdata) )
+        conn._send_message(CHALLENGE + str(cdata) )
 
     def got_challenge(self, cdata, conn):
         rdata1 = self.got_challenge_event(cdata, conn.connection.id)
-        conn.send_overlay_message(RESPONSE1 + rdata1)
+        conn._send_message(RESPONSE1 + rdata1)
 
     def got_response1(self, rdata1, conn):
         rdata2 = self.got_response1_event(rdata1, conn.connection.id)
-        conn.send_overlay_message(RESPONSE2 + rdata2)
+        conn._send_message(RESPONSE2 + rdata2)
         # get_peer_permid() throws exception if auth has failed
-        self.overlay_swarm.add_connection(conn, self.get_peer_permid())
+        permid = self.get_peer_permid()
+        conn.set_permid(permid)
+        self.overlay_swarm.permidSocketMade(conn)
      
     def got_response2(self, rdata2, conn):
         self.got_response2_event(rdata2)
         if self.get_peer_authenticated():
-            conn.send_overlay_message('')    # Send KeepAlive message as reply
-            self.overlay_swarm.add_connection(conn, self.get_peer_permid())
+            #conn._send_message('')    # Send KeepAlive message as reply
+            permid = self.get_peer_permid()
+            conn.set_permid(permid)
+            self.overlay_swarm.permidSocketMade(conn)
 
     def got_message(self, conn, message):
         """ Handle message for PermID exchange and return if the message is valid """
@@ -320,7 +324,6 @@ class ChallengeResponse:
             if len(message) < self.get_challenge_minlen():
                 if DEBUG:
                     print "Close on bad CHALLENGE: msg len"
-                conn.close()
                 return False
             try:
                 self.got_challenge(msg, conn)
@@ -328,13 +331,11 @@ class ChallengeResponse:
                 if DEBUG:
                     print "Close on bad CHALLENGE: exception",str(e)
                     traceback.print_exc(file=sys.stdout)
-                conn.close()
                 return False
         elif t == RESPONSE1:
             if len(message) < self.get_response1_minlen():
                 if DEBUG:
                     print "Close on bad RESPONSE1: msg len"
-                conn.close()
                 return False
             try:
                 self.got_response1(msg, conn)
@@ -342,13 +343,11 @@ class ChallengeResponse:
                 if DEBUG:
                     print "Close on bad RESPONSE1: exception",str(e)
                     traceback.print_exc(file=sys.stdout)
-                conn.close()
                 return False
         elif t == RESPONSE2:
             if len(message) < self.get_response2_minlen():
                 if DEBUG:
                     print "Close on bad RESPONSE2: msg len"
-                conn.close()
                 return False
             try:
                 self.got_response2(msg, conn)
@@ -356,11 +355,10 @@ class ChallengeResponse:
                 if DEBUG:
                     print "Close on bad RESPONSE1: exception",str(e)
                     traceback.print_exc(file=sys.stdout)
-                conn.close()
                 return False
         else:
             return False
-
+        return True
 
 if __name__ == '__main__':
     init()
