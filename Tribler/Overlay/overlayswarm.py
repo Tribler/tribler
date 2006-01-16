@@ -124,14 +124,13 @@ class OverlaySwarm:
         if hasattr(self, 'buddycast') and not self.buddycast.my_ip:
             self.buddycast.set_myip(conn.get_myip(True))
             
-    def connect_peer(self, ip, port):
+    def connectPeer(self, dns):
             """ Connect to overlay swarm given peer's ip and port """
         
         #if not self.peers.has_key(ip) or not self.peers[ip][port].is_overlayswarm():
             if DEBUG:
                 print "Start overlay swarm connection to", ip + ':' + str(port)
             # The new Encrypter.Connection will be registered at OverlaySwarm.connections
-            dns = (ip, port)
             self.encoder.start_connection(dns, 0)
             
     def add_os_task(self, conn, task):

@@ -27,13 +27,7 @@ class Connection:
         self.connection = connection
         self.connecter = connecter
         self.got_anything = False
-        self.next_upload = None
-        self.outqueue = []
-        self.partial_message = None
-        self.download = None
-        self.upload = None
-        self.send_choke_queued = False
-        self.just_unchoked = None
+        self.closed = False
 
     def get_ip(self, real=False):
         return self.connection.get_ip(real)
@@ -47,6 +41,7 @@ class Connection:
     def close(self):
         if DEBUG:
             print 'connection closed'
+        self.closed = True
         self.connection.close()
 
     def is_locally_initiated(self):
