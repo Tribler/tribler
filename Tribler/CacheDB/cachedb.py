@@ -8,7 +8,7 @@ MyDB - (PeerDB)
     permid: str                    # required
     ip: str ('')
     port: int (0)
-    name: str ('Chitraka')
+    name: str ('Tribler')
     torrent_path: str ('')    # default path to store torrents
     superpeers: list ([])     # permid
     prefxchg_queue: list ([]) # permid

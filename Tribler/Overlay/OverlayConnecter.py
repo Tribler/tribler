@@ -1,4 +1,4 @@
-# Written by Bram Cohen
+# Written by Bram Cohen, Jie Yang
 # see LICENSE.txt for license information
 
 from BitTornado.bitfield import Bitfield
@@ -53,15 +53,15 @@ class Connection:
         return self.connection.is_locally_initiated()
 
     def send_cancel(self, index, begin, length):
-        self._send_message(CANCEL + tobinary(index) + 
+        self.send_message(CANCEL + tobinary(index) + 
             tobinary(begin) + tobinary(length))
         if DEBUG:
             print 'sent cancel: '+str(index)+': '+str(begin)+'-'+str(begin+length)
 
     def send_keepalive(self):
-        self._send_message('')
+        self.send_message('')
         
-    def _send_message(self, s):
+    def send_message(self, s):
         s = tobinary(len(s))+s
         self.connection.send_message_raw(s)
 

@@ -17,8 +17,8 @@ the task's permid
 """
 
 from time import time
-from overlayswarm import OverlaySwarm
 from Tribler.CacheDB.CacheDBHandler import PeerDBHandler
+from BitTornado.BT1.MessageID import CANCEL, getMessageName
 from socket import inet_aton
 
 DEBUG = True
@@ -131,8 +131,8 @@ class PermidOverlayTask:
             self.task = None
         
     def findDNSFromCache(self):
-        if DEBUG:
-            return ('1.2.3.4', 80)
+        #if DEBUG:
+        #    return ('1.2.3.4', 80)
         peer_cache = PeerDBHandler()
         peer = peer_cache.getPeer(self.permid)
         if peer:
@@ -217,17 +217,20 @@ class IncomingMessageHandler:
         self.handlers = {}
         
     def registerHandler(self, ids, handler):
-        self.handlers[ids] = handler
+        for id in ids:
+            print "secover: Handler registered for",getMessageName(id)
+            self.handlers[id] = handler
         
     def handleMessage(self, permid, message):    # connection is type of Conneter.Connection 
-        t = message[0]
+        id = message[0]
         handled = False
-        for ids in self.handlers.keys():
-            if t in ids:
-                self.handler[ids].handleMessage(permid, message)
-                handled = True
-        return handled
-
+        if not self.handlers.has_key(id):
+            print "seover: No handler found for",getMessageName(id)
+            return False
+        else:
+            print "secover: Giving message to handler for",getMessageName(id)
+            self.handlers[id].handleMessage(permid, message)
+            return True
 
 class SecureOverlay:
     __single = None
@@ -236,14 +239,11 @@ class SecureOverlay:
         if SecureOverlay.__single:
             raise RuntimeError, "SecureOverlay is Singleton"
         SecureOverlay.__single = self 
-        self.overlayswarm = OverlaySwarm.getInstance()
         self.subject_manager = SubjectManager()    #???? for outgoing message
         self.incoming_handler = IncomingMessageHandler()    # for incoming message
         self.connection_list = {}    # permid:{'c_conn': Connecter.Connection, 'e_conn': Encrypter.Connection, 'dns':(ip, port)}
         self.timeout = 60
         self.check_interval = 15
-        #self.add_rawserver_task = self.overlayswarm.rawserver.add_task
-        #self.add_rawserver_task(self._auto_close, self.check_interval)
                             
     def getInstance(*args, **kw):
         if SecureOverlay.__single is None:
@@ -251,6 +251,14 @@ class SecureOverlay:
         return SecureOverlay.__single
     getInstance = staticmethod(getInstance)
     
+    def register(self,overlayswarm):
+        self.overlayswarm = overlayswarm
+        #self.add_rawserver_task = self.overlayswarm.rawserver.add_task
+        #self.add_rawserver_task(self._auto_close, self.check_interval)
+
+
+    ## To be called by applications using SecureOverlay, see OverlayApps.py
+
     def registerHandler(self, ids, handler):    
         """ ids is the [ID1, ID2, ..] where IDn is a sort of message ID in overlay swarm. """
         
@@ -291,17 +299,18 @@ class SecureOverlay:
         if self._findConnByPermid(permid):
             return self.connection_list[permid]['dns']
         
+    # Main function to send messages
     def addTask(self, target, message=None, timeout=15):    # id = [permid|(ip,port)]
         """ Command Pattern """
         #TODO: priority task queue
         
         if validPermid(target):
             if DEBUG:
-                print "add PermidOverlayTask", target, message
+                print "add PermidOverlayTask", `target` # , message
             task = PermidOverlayTask(self, self.subject_manager, target, message, timeout)
         elif validDNS(target):
             if DEBUG:
-                print "add OverlayTask", target, message
+                print "add OverlayTask", `target` # , message
             task = OverlayTask(self, self.subject_manager, target, message, timeout)
         else: return
         if self.overlayswarm.registered:
@@ -321,7 +330,18 @@ class SecureOverlay:
         permid = connection.permid
         if DEBUG:
                 print "add connection in secure overlay", dns, len(permid)
-        if validPermid(permid) and validDNS(dns):
+        #
+        # Arno: HACK: ALLOWING dns NONE. Current code don't take into account
+        # the non-initiator side of the connection. I think we should add a
+        # listen_port of the initiator somewhere in the protocol such that
+        # we can easily use existing overlay-swarm connections and update the
+        # PermID-to-IP mapping.
+        #
+        if dns is None:
+            dns = ( '127.0.0.1', 80 )
+
+        #if validPermid(permid) and validDNS(dns):
+        if validPermid(permid):
             self._updateDNS(permid, dns)
             expire = int(time() + self.timeout)
             self.connection_list[permid] = {'c_conn':connection, 'dns':dns, 'expire':expire}
@@ -350,7 +370,7 @@ class SecureOverlay:
         t = message[0]
         if t == CANCEL:    # the only message handled by secure overlay
             self._closeConnection(permid)
-        elif self.incoming_msg_handler.handleMessage(permid, message) == False:
+        elif self.incoming_handler.handleMessage(permid, message) == False:
             self._closeConnection(permid)
         else:
             self._extendExpire(permid)

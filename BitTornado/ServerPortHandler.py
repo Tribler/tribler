@@ -15,7 +15,6 @@ except:
 from BT1.Encrypter import protocol_name, control_option_pattern
 from Tribler.toofastbt.Logger import get_logger
 # _2fastbt
-from Tribler.Overlay.overlayswarm import OverlaySwarm
 
 def toint(s):
     return long(b2a_hex(s), 16)

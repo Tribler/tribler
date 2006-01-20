@@ -1,3 +1,5 @@
+# Written by Jie Yang
+# see LICENSE.txt for license information
 """ All message IDs in BitTorrent Protocol and BT+ Protocol """
 
 CHOKE = chr(0)
@@ -66,54 +68,55 @@ PIECES_RESERVED = chr(241)
 IGNORE_PIECES = chr(240)
 # _2fastbt
 
-HelpMessages = [DOWNLOAD_HELP,RESERVE_PIECES,PIECES_RESERVED,IGNORE_PIECES]
+HelpCoordinatorMessages = [DOWNLOAD_HELP]
+HelpHelperMessages = [RESERVE_PIECES,PIECES_RESERVED,IGNORE_PIECES]
 
 ONLINE_EXCHANGE = chr(244)
 FRIENDS_EXCHANGE = chr(243)
 
-OverlaySwarmMessages= PermIDMessages + BuddyCastMessages + MetadataMessages + HelpMessages
+OverlaySwarmMessages= PermIDMessages + BuddyCastMessages + MetadataMessages + HelpCoordinatorMessages + HelpHelperMessages
 
-def printMessageID(t,message):
+def getMessageName(t):
     if t == CHOKE:
-        print "GOT CHOKE",len(message)
+        return "CHOKE"
     elif t == UNCHOKE:
-        print "GOT UNCHOKE",len(message)
+        return "UNCHOKE"
     elif t == INTERESTED:
-        print "GOT INTEREST",len(message)
+        return "INTEREST"
     elif t == NOT_INTERESTED:
-        print "GOT NOT_INTEREST",len(message)
+        return "NOT_INTEREST"
     elif t == HAVE:
-        print "GOT HAVE",len(message)
+        return "HAVE"
     elif t == BITFIELD:
-        print "GOT BITFIELD",len(message)
+        return "BITFIELD"
     elif t == REQUEST:
-        print "GOT REQUEST",len(message)
+        return "REQUEST"
     elif t == CANCEL:
-        print "GOT CANCEL",len(message)
+        return "CANCEL"
     elif t == PIECE:
-        print "GOT PIECE",len(message)
+        return "PIECE"
     elif t == CHALLENGE:
-        print "GOT CHALLENGE",len(message)            
+        return "CHALLENGE"            
     elif t == RESPONSE1:
-        print "GOT RESPONSE1",len(message)
+        return "RESPONSE1"
     elif t == RESPONSE2:
-        print "GOT RESPONSE2",len(message)
+        return "RESPONSE2"
     elif t == DOWNLOAD_HELP:
-        print "GOT DOWNLOAD_HELP", len(message)
+        return "DOWNLOAD_HELP"
     elif t == HASHPIECE:
-        print "GOT HASHPIECE", len(message)
+        return "HASHPIECE"
     elif t == PREFERENCE_EXCHANGE:
-        print "GOT PREFERENCE_EXCHANGE", len(message)
+        return "PREFERENCE_EXCHANGE"
     elif t == GET_METADATA:
-        print "GOT GET_METADATA", len(message)
+        return "GET_METADATA"
     elif t == METADATA:
-        print "GOT SEND_METADATA", len(message)
+        return "SEND_METADATA"
     elif t == RESERVE_PIECES:
-        print "GOT RESERVE_PIECES", len(message)
+        return "RESERVE_PIECES"
     elif t == PIECES_RESERVED:
-        print "GOT PIECES_RESERVED", len(message)
+        return "PIECES_RESERVED"
     elif t == IGNORE_PIECES:
-        print "GOT IGNORE_PIECES", len(message)
+        return "IGNORE_PIECES"
     else:
-        print "GOT unknown!",`t`,"length",len(message)
+        return "unknown!",ord(t)
         

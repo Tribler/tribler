@@ -31,8 +31,9 @@ from BT1.Encrypter import Encoder
 from BT1.Connecter import Connecter
 
 from Tribler.__init__ import GLOBAL
-from Tribler.Overlay.overlayswarm import OverlaySwarm
+from Tribler.Overlay.OverlaySwarm import OverlaySwarm
 from Tribler.Overlay.SecureOverlay import SecureOverlay
+from Tribler.Overlay.OverlayApps import OverlayApps
 # 2fastbt_
 from Tribler.toofastbt.Logger import get_logger, create_logger
 # _2fastbt
@@ -239,10 +240,16 @@ class LaunchMany:
                 GLOBAL.do_download_help = 0
 
             if GLOBAL.do_overlay:
+                self.overlayswarm = OverlaySwarm.getInstance()                
                 self.secure_overlay = SecureOverlay.getInstance()
-                self.overlayswarm = OverlaySwarm.getInstance()
-                self.overlayswarm.register(self, self.secure_overlay, self.handler, 
-                                           self.config, self.listen_port, self.exchandler)
+                self.secure_overlay.register(self.overlayswarm)
+                self.overlayswarm.register(self.secure_overlay, self.handler, 
+                                           self.config, self.exchandler)
+                self.overlay_apps = OverlayApps.getInstance()
+                self.overlay_apps.register(self.secure_overlay,self)
+                # It's important we don't start listening to the network until
+                # all higher protocol-handling layers are properly configured.
+                self.overlayswarm.start_listening()
 
             self.start()
 

@@ -16,13 +16,20 @@ class DownloadHelperPanel(wx.Panel):
     def __init__(self, parent, dialog):
         wx.Panel.__init__(self, parent, -1)
 
-        self.engine = dialog.torrent.connection.engine
         self.utility = dialog.utility
+        engine = dialog.torrent.connection.engine
+        # If the torrent is stopped, don't allow helping
+        if engine is None:
+            mainbox = wx.BoxSizer(wx.VERTICAL)
+            mainbox.Add(wx.StaticText(self, -1, self.utility.lang.get('dlhelpdisabled')), 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+            self.SetSizerAndFit(mainbox)
+            return
+        self.coordinator = engine.getDownloadhelpCoordinator()
 
         # 0. Read friends from DB, and figure out who's already helping 
         # for this torrent
-        friends = self.utility.all_peers_cache.getFriends(last_file=True)
-        helpingFriends = self.engine.getDownloadHelpers()
+        friends = self.utility.all_peers_cache
+        helpingFriends = self.coordinator.get_asked_helpers_copy()
 
         # 1. Create list of images of all friends
         type = wx.LC_LIST
@@ -33,8 +40,12 @@ class DownloadHelperPanel(wx.Panel):
         if type == wx.LC_LIST:
             # St*pid C++ wrapping, if I don't make 2 copies I get segmentation
             # faults at garbage-collection time
-            imgListLeft = self.createImageList(friends)
-            imgListRight = self.createImageList(friends)
+            try:
+                imgListLeft = self.createImageList(friends)
+                imgListRight = self.createImageList(friends)
+            except:
+                # disable icons
+                type = wx.LC_REPORT
 
         # 2. Filter out friends already helping for left window
         self.remainingFriends = []
@@ -65,7 +76,7 @@ class DownloadHelperPanel(wx.Panel):
 
         # 4a. Friends in left window
         friendsbox = wx.BoxSizer(wx.VERTICAL)
-        friendsbox.Add(wx.StaticText(self, -1, self.utility.lang.get('friends')), 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        friendsbox.Add(wx.StaticText(self, -1, self.utility.lang.get('availcandidates')), 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
 
         self.leftListCtl = FriendList(self,self.remainingFriends,type,imgListLeft)
         #self.leftListCtl.SetToolTipString(self.utility.lang.get('multiannouncehelp'))
@@ -118,12 +129,10 @@ class DownloadHelperPanel(wx.Panel):
         imgList = None
         for friend in friends:
             if friend['name'] is not None:
-                try:
-                    filename = os.path.join(self.utility.getConfigPath(), 'icons', friend['name']+'.bmp')
-                    bm = wx.Bitmap(filename,wx.BITMAP_TYPE_BMP)
-                except:
-                    defaultfile = os.path.join(self.utility.getPath(), 'icons', 'joe32.bmp')
-                    bm = wx.Bitmap(defaultfile,wx.BITMAP_TYPE_BMP)
+                filename = os.path.join(self.utility.getConfigPath(), 'icons', friend['name']+'.bmp')
+                if not os.access(filename, os.F_OK):
+                    filename = os.path.join(self.utility.getPath(), 'icons', 'joe32.bmp')
+                bm = wx.Bitmap(filename,wx.BITMAP_TYPE_BMP)
                 if flag == 0:
                     imgList = wx.ImageList(bm.GetWidth(),bm.GetHeight())
                     flag=1
@@ -159,8 +168,8 @@ class DownloadHelperPanel(wx.Panel):
             friend['dlh_status'] = 'Candidate'
         self.leftListCtl.updateStatus()
 
-        # TODO: actually request peer to start/stop helping
-        self.engine.setDownloadHelpers(helpingFriends)
+        self.coordinator.stop_help(remainingFriends)
+        self.coordinator.request_help(helpingFriends)
 
 class FriendList(wx.ListCtrl):
     def __init__(self, parent, friends, type, imgList):

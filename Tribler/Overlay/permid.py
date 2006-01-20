@@ -289,15 +289,15 @@ class ChallengeResponse:
 
     def send_challenge(self, conn):
         cdata = self.create_challenge()
-        conn._send_message(CHALLENGE + str(cdata) )
+        conn.send_message(CHALLENGE + str(cdata) )
 
     def got_challenge(self, cdata, conn):
         rdata1 = self.got_challenge_event(cdata, conn.connection.id)
-        conn._send_message(RESPONSE1 + rdata1)
+        conn.send_message(RESPONSE1 + rdata1)
 
     def got_response1(self, rdata1, conn):
         rdata2 = self.got_response1_event(rdata1, conn.connection.id)
-        conn._send_message(RESPONSE2 + rdata2)
+        conn.send_message(RESPONSE2 + rdata2)
         # get_peer_permid() throws exception if auth has failed
         permid = self.get_peer_permid()
         conn.set_permid(permid)
@@ -306,7 +306,7 @@ class ChallengeResponse:
     def got_response2(self, rdata2, conn):
         self.got_response2_event(rdata2)
         if self.get_peer_authenticated():
-            #conn._send_message('')    # Send KeepAlive message as reply
+            #conn.send_message('')    # Send KeepAlive message as reply
             permid = self.get_peer_permid()
             conn.set_permid(permid)
             self.overlay_swarm.permidSocketMade(conn)

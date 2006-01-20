@@ -23,7 +23,7 @@ translate = ""
 
 # All ABC Variables
 #######################
-title = "ABC [Yet Another Bittorrent Client]"
+title = "ABC_Tribler [The Social Bittorrent Client]"
 
 superseederrornotcompleted = "Super-seed can only be enabled for completed torrents"
 superseedmustruntorrentbefore = "This torrent must be running before using Super-Seed mode"
@@ -250,7 +250,7 @@ networkinfo 	= "Network Info"
 fileinfo 		= "File Info"
 torrentinfo     = "Torrent Info"					
 geoinfo         = "Geography Info"
-helperinfo	= "Helper Info"
+helperinfo	= "Download booster"
 
 dnumconnectedseed = "# Connected seed :"
 dseenseed 		= "# Seen seed"
@@ -298,6 +298,7 @@ name			= "Name"
 dlh_status		= "Status"
 friends			= "Friends"
 helpers 		= "Helpers"
+availcandidates         = "Available Candidates"
 requestdlhelp		= "Request Help"
 requestdlhelp_help	= "(Ask friends to help in downloading this torrent)"
 

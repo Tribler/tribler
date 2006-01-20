@@ -719,9 +719,6 @@ class BT1Download:
                 print "Banning ip: " + str(ip)
             self.encoder_ban(ip)
 
-        if self.coordinator is not None:
-            self.coordinator.set_encoder(self.encoder)
-
         if self.helper is not None:
             self.helper.set_encoder(self.encoder)
             self.rate_predictor = ExpSmoothRatePredictor(self.rawserver, 

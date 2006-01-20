@@ -25,8 +25,8 @@ except:
 
 from BitTornado.bencode import bencode
 from BitTornado.BT1.btformats import check_info
-from BitTornado.merkle import MerkleTree
-from BitTornado.permid import create_torrent_signature
+from Tribler.Merkle.merkle import MerkleTree
+from Tribler.Overlay.permid import create_torrent_signature
 
 defaults = [
     ('announce_list', '', 
@@ -173,7 +173,7 @@ def uniconvertl(l, e):
     return r
 
 def uniconvert(s, e):
-   if isinstance(s, unicode):
+    if isinstance(s, unicode):
    	return s.encode('utf-8')
     try:
         s = unicode(s,e)

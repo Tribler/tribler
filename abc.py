@@ -17,7 +17,7 @@ import wx
 
 from threading import Thread
 
-from traceback import print_exc
+from traceback import print_exc, print_stack
 from cStringIO import StringIO
 
 from interconn import ServerListener, ClientPassParam
@@ -36,9 +36,9 @@ from ABC.GUI.list import ManagedList
 from Utility.utility import Utility
 from Utility.constants import * #IGNORE:W0611
 
-from BitTornado.PeerCacheHandler import PeerCacheHandler
-from BitTornado.FileCacheHandler import FileCacheHandler
-
+#from BitTornado.PeerCacheHandler import PeerCacheHandler
+#from BitTornado.FileCacheHandler import FileCacheHandler
+from Tribler.CacheDB.cachedb import PeerDB
 
 ################################################################
 #
@@ -363,52 +363,49 @@ class ABCFrame(wx.Frame):
             
         # Set up PeerCacheHandler and FileCacheHandler
         
-        self.utility.all_peers_cache = PeerCacheHandler()
-        self.utility.all_files_cache = FileCacheHandler()
+        #self.utility.all_peers_cache = PeerCacheHandler()
+        #self.utility.all_files_cache = FileCacheHandler()
         
-
+	self.utility.all_peers_cache = []
 
         ## DEBUG
+        peerdb = PeerDB.getInstance()
         
         friend = {}
         friend['name'] = 'Jie'
         friend['permid'] = base64.decodestring('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAc6ebdH+dmvvgKiE7oOZuQba5I4msyuTJmVpJQVPAT+R9Pg8zsLsuJPV6RjU30RKHnCiaJvjtFW6pLXo')
         friend['ip'] = '130.161.158.51'
         friend['port'] = 22
-        id = self.utility.all_peers_cache.addPeer(friend)
-        self.utility.all_peers_cache.addFriend(id)
+        self.utility.all_peers_cache.append(friend)
+        peerdb.put(friend['permid'],friend)
 
         friend = {}
         friend['name'] = 'Pawel'
-        friend['permid'] = base64.decodestring('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAd0fxkXBDGOTD/TfM6yCEuT7F26NgVV3KIrOM8OvAc0X25KQCohK5kD+URfoCO8sHVfxpSJe3Q8ri0uz')
-        friend['ip'] = '130.37.198.241'
+        friend['permid'] = base64.decodestring('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAJ114tMJ6C8TkLkSv8QlVFlj/RpF2ibbar1P8GbzASpMDb1kSUBnmldfMFsNTNSK5cJGsTgAGFjYEJ78')
+        friend['ip'] = '130.37.198.247'
         friend['port'] = 6882
-        id = self.utility.all_peers_cache.addPeer(friend)
-        self.utility.all_peers_cache.addFriend(id)
-
+        self.utility.all_peers_cache.append(friend)
+        peerdb.put(friend['permid'],friend)
 
         friend = {}
         friend['name'] = 'Johan'
         friend['permid'] = base64.decodestring('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAUo6nahUzz+NtYWfabmtkvBryqX3ToxgdBKIllVtADv1Et+W0OyT9J0F8VPqSeBZVA1TPuLUpt3I9QHP')
         friend['ip'] = '130.37.193.64'
         friend['port'] = 6883
-        id = self.utility.all_peers_cache.addPeer(friend)
-        self.utility.all_peers_cache.addFriend(id)
+        self.utility.all_peers_cache.append(friend)
+        peerdb.put(friend['permid'],friend)
 
         friend = {}
         friend['name'] = 'Arno'
         friend['permid'] = base64.decodestring('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAWAiRwei5Kw9b2he6qmwh5Hr5fNR3FlgHQ1WhXY0AC4w8RQD59rp4Jbo2NdjyXUGb5y1BCeMCGoRCaFy')
         friend['ip'] = '130.37.193.64'
         friend['port'] = 6881
-        id = self.utility.all_peers_cache.addPeer(friend)
-        self.utility.all_peers_cache.addFriend(id)
-
-        print "My Friends"
-        print self.utility.all_peers_cache.getFriends(last_file=True)
+        self.utility.all_peers_cache.append(friend)
+        peerdb.put(friend['permid'],friend)
 
         # Start up the controller
         self.utility.controller = ABCLaunchMany(self.utility)
-        self.utility.controller.start()
+        #self.utility.controller.start() # done by ABCLaunchMany parent
         
         self.utility.queue.postInitTasks()
 

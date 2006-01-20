@@ -21,7 +21,7 @@ from random import seed
 from socket import error as socketerror
 from threading import Event, Thread
 from cStringIO import StringIO
-from traceback import print_exc
+from traceback import print_exc, print_stack
 
 from BitTornado.launchmanycore import LaunchMany
 from BitTornado.__init__ import createPeerID, mapbase64
@@ -144,7 +144,7 @@ class ABCLaunchMany(Thread,LaunchMany,wx.EvtHandler):
                     dnrate = stats['down']
                     progress = stats['frac']
                 uprate = stats['up']
-                self.all_peers_cache.updateSpew(ABCTorrentTemp.torrent_hash, spew)
+                #self.all_peers_cache.updateSpew(ABCTorrentTemp.torrent_hash, spew)
 
             engine.onUpdateStatus(progress, t, dnrate, uprate, status, s, spew)
         self.rawserver.add_task(self.stats, self.stats_period)

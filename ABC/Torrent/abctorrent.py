@@ -116,7 +116,7 @@ class ABCTorrent:
         self.totalseeds = "?"
         
         self.peer_swarm = {}    # swarm of each torrent, used to display peers on map
-        self.addTorrent(self.utility.all_files_cache)
+        #self.addTorrent(self.utility.all_files_cache)
         
     def addTorrent(self, FileCacheHandler):
         torrent = {}
@@ -693,6 +693,7 @@ class ABCTorrent:
         print "changeMesage thread",threading.currentThread()
         if threading.currentThread().getName() != "MainThread":
             print "message NOT MAIN THREAD"
+            print_stack()
             ##return
 
 

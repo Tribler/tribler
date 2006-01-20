@@ -112,7 +112,7 @@ class ABCScheduler(wx.EvtHandler):
         
     def UpdateRunningTorrentCounters(self):
 
-        print "UpdateRunningTorrentCounters thread",currentThread()
+        print "UpdateRunningTorrentCounters thread",currentThread().getName()
         if currentThread().getName() != "MainThread":
             print "counters NOT MAIN THREAD"
             return

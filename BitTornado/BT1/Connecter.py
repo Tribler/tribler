@@ -296,7 +296,7 @@ class Connecter:
         #if DEBUG:
         #if t in HelpMessages:
         if connection.is_helper_con():
-            printMessageID(t,message)
+            print "helperconn: GOT",getMessageName(t),len(message)
 
         if t == BITFIELD and c.got_anything:
             if DEBUG:

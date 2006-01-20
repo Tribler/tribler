@@ -255,6 +255,8 @@ class ABCEngine(wx.EvtHandler):
         self.checking = False
         self.working = False
         self.closed = True
+
+        self.stop_download_help()
         self.controller.was_stopped(self.torrent)
 
     def display(self, activity = None, fractionDone = None):
@@ -875,7 +877,7 @@ class ABCEngine(wx.EvtHandler):
         except:
             pass
         
-        self.torrent.changeMessage(errormsg, "error")
+        self.errormsgCallback(errormsg, "error")
 
         # If failed connecting tracker in parameter 'timeouttracker' mins
         # reduce its priority and force to queue
@@ -886,6 +888,12 @@ class ABCEngine(wx.EvtHandler):
                     self.ReducePrioandForceQueue()
             except:
                 pass
+
+    def errormsgCallback(self,msg,label):
+        self.invokeLater(self.onErrorMsg,[msg,label])
+
+    def onErrorMsg(self,msg,label):
+        self.torrent.changeMessage(msg, label)
 
     def ReducePrioandForceQueue(self):
         currentprio = self.torrent.prio
@@ -1005,12 +1013,8 @@ class ABCEngine(wx.EvtHandler):
             self.btstatus = self.utility.lang.get('queue')
             self.utility.actionhandler.procQUEUE([self.torrent])            
 
+    def getDownloadhelpCoordinator(self):
+        return self.dow.coordinator
 
-    def setDownloadHelpers(self,friendList):
-        self.downloadHelpers = friendList
-        for friend in friendList:
-            self.dow.coordinator.add_pending_helper(friend['permid'],friend['ip'],friend['port'])
-        self.dow.coordinator.request_help()
-
-    def getDownloadHelpers(self):
-        return self.downloadHelpers
+    def stop_download_help(self):
+        self.dow.coordinator.stop_all_help()
