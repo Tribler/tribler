@@ -1,0 +1,129 @@
+from BitTornado.bencode import bencode, bdecode
+from BitTornado.BT1.MessageID import *
+from sha import sha
+import sys, os
+from random import randint
+
+DEBUG = True
+
+def get_random_filename(dir):
+    while True:
+        name = str(randint(1, sys.maxint - 1))
+        p = os.path.join(dir, name)
+        if not os.path.exists(p):
+            return name
+
+class HelperMessageHandler:
+    def __init__(self,launchmany):
+        self.metadata_queue = {}
+        self.launchmany = launchmany
+
+    def register(self, metadata_handler):
+        self.metadata_handler = metadata_handler
+
+    def handleMessage(self,permid,message):
+        t = message[0]
+        
+        if t == DOWNLOAD_HELP:
+            if DEBUG:
+                print "helper: Got DOWNLOAD_HELP"
+            return self.got_dlhelp_request(permid, message)
+        else:
+            print "helper: UNKNOWN OVERLAY MESSAGE", ord(t)
+        
+    def got_dlhelp_request(self, permid, message):
+        try:
+            #(torrent_hash, server_port) = bdecode(message[1:])
+            torrent_hash = message[1:]
+        except:
+            errorfunc("warning: bad data in dlhelp_request")
+            return False
+        if DEBUG:
+            print "helper: Got DOWNLOAD_HELP from ", `permid`
+        
+        if not self.can_help(torrent_hash):
+            return False
+        torrent_path = self.find_torrent(torrent_hash)
+        if torrent_path:
+            self.do_help(torrent_hash, torrent_path, permid)
+        else:
+            self.get_metadata(permid, torrent_hash)
+        return True
+
+
+    # It is very important here that we create safe filenames, i.e., it should
+    # not be possible for a coordinator to send a METADATA message that causes
+    # important files to be overwritten
+    #
+    def do_help(self, torrent_hash, torrent_data, permid):
+        d = bdecode(torrent_data)
+        data = {}
+        data['file'] = get_random_filename(self.launchmany.torrent_dir)
+        print "file: ", data['file']
+#        data['path'] = os.path.join(self.launchmany.torrent_dir, data['file'])
+        data['type'] = 'torrent'
+        i = d['info']
+        h = sha(bencode(d['info'])).digest()
+        assert(h == torrent_hash)
+        l = 0
+        nf = 0
+        if i.has_key('length'):
+            l = i.get('length', 0)
+            nf = 1
+        elif i.has_key('files'):
+            for li in i['files']:
+                nf += 1
+                if li.has_key('length'):
+                    l += li['length']
+        data['numfiles'] = nf
+        data['length'] = l
+        data['name'] = i.get('name', data['file'])
+        print "name: ", data['name']
+        # Arno HACK TO GET A SAFE PATH FOR STORING THE DOWNLOAD
+        dest = os.path.join(self.launchmany.torrent_dir, data['file'] )
+        data['dest'] = dest        
+        data['coordinator_permid'] = permid
+
+        tfile = os.path.join(self.launchmany.torrent_dir, data['file'] + '.torrent')
+        data['path'] = tfile
+        print "path: ", data['path']
+        def setkey(k, d = d, data = data):
+            if d.has_key(k):
+                data[k] = d[k]
+        setkey('failure reason')
+        setkey('warning message')
+        setkey('announce-list')
+        data['metainfo'] = d
+
+        # TODO: instead of writing .torrent to the disk keep it only in the memory
+        torrent_file = open(data['path'], "wb")
+        torrent_file.write(torrent_data)
+        torrent_file.close()
+
+        self.launchmany.torrent_cache[torrent_hash] = data
+        self.launchmany.file_cache[data['path']] = \
+            [(os.path.getmtime(data['path']), os.path.getsize(data['path'])), torrent_hash]
+        self.launchmany.config['role'] = 'helper'
+        self.launchmany.config['coordinator_permid'] = permid
+        self.launchmany.add(torrent_hash, data)
+
+    def get_metadata(self, permid, torrent_hash):
+        if not self.metadata_queue.has_key(torrent_hash):
+            self.metadata_queue[torrent_hash] = []
+        self.metadata_queue[torrent_hash].append(permid)
+        self.metadata_handler.send_metadata_request(permid, torrent_hash)
+
+    def call_dlhelp_task(self, torrent_hash, torrent_data):
+        if not self.metadata_queue.has_key(torrent_hash) or not self.metadata_queue[torrent_hash]:
+            return
+        
+        for permid in self.metadata_queue[torrent_hash]:
+            # only ask for metadata once
+            self.do_help(torrent_hash, torrent_data, permid)    
+
+    def can_help(self, torrent_hash):    #TODO: test if I can help the cordinator to download this file
+        return True                      #Future support: make the decision based on my preference
+
+    def find_torrent(self, torrent_hash):
+        return None
+

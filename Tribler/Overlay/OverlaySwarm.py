@@ -1,3 +1,6 @@
+# Written by Jie Yang
+# see LICENSE.txt for license information
+
 from threading import Event,currentThread
 
 from sha import sha
@@ -68,20 +71,18 @@ class OverlaySwarm:
         return OverlaySwarm.__single
     getInstance = staticmethod(getInstance)
 
-    def register(self, launchmany, secure_overlay, multihandler, config, listen_port, errorfunc):
+    def register(self, secure_overlay, multihandler, config, errorfunc):
         # Register overlay_infohash as known swarm with MultiHandler
         
         if self.registered:
             return
         
-        self.launchmany = launchmany
         self.secure_overlay = secure_overlay
         self.config = config
         self.doneflag = Event()
         self.rawserver = multihandler.newRawServer(self.infohash, 
                                               self.doneflag,
                                               self.protocol)
-        self.listen_port = listen_port
         self.errorfunc = errorfunc
         
         # Create Connecter and Encoder for the swarm. TODO: ratelimiter
@@ -91,6 +92,8 @@ class OverlaySwarm:
             self.config['keepalive_interval'], self.infohash, 
             lambda x: None, self.config)
         self.registered = True
+
+    def start_listening(self):
         self.rawserver.start_listening(self.encoder)
             
     def connectPeer(self, dns):
@@ -118,8 +121,9 @@ class OverlaySwarm:
             
     def sendMessage(self, connection, message):
         if DEBUG:
-            print "send message", message, "from", connection
-            
+            print "send message", `message`, "to", connection
+        connection.send_message(message)
+
     def connectionMade(self, connection):
         """ phase 1: Connecter.Connection is created but permid has not been verified """
         
@@ -146,8 +150,7 @@ class OverlaySwarm:
 
         if DEBUG:
             #print "GOT message:", len(message), show(message), message
-            print "Overlay - ",
-            printMessageID(message[0],message)
+            print "overlay: GOT ",getMessageName(message[0]),len(message)
         
         if not conn:
             return False
@@ -161,29 +164,4 @@ class OverlaySwarm:
                 self.crs.pop(conn)
                 conn.close()
         elif conn.permid:    # Do not go ahead without permid
-            self.secure_overlay.gotMessage(permid, message)
-        
-    def start_buddycast(self):
-        self.buddycast = BuddyCast.getInstance()
-        self.buddycast.set_rawserver(self.rawserver)
-        self.buddycast.set_listen_port(self.listen_port)
-        self.buddycast.set_errorfunc(self.errorfunc)
-        self.buddycast.startup()
-        self.start_metadata_handler()
-        
-    def start_metadata_handler(self):
-        self.metadata_handler = MetadataHandler.getInstance()
-        self.metadata_handler.set_rawserver(self.rawserver)
-        self.metadata_handler.set_dlhelper(Helper.getInstance())
-        self.metadata_handler.startup()
-        
-    def start_download_helper(self):
-        self.helper = Helper.getInstance()
-        self.helper.set_rawserver(self.rawserver)
-        self.helper.set_metadata_handler(MetadataHandler.getInstance())
-# 2fastbt_
-        self.helper.set_launchmany(self.launchmany)
-# _2fastbt
-        self.helper.startup()
-
-
+            self.secure_overlay.gotMessage(conn.permid, message)
