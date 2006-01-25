@@ -48,9 +48,9 @@ class Coordinator:
                         peer['port'] = port
             f.close()
 
-    def is_helper(self, permid):
+    def is_helper(self, ip):
         for peer in self.asked_helpers:
-            if peer['permid'] == permid:
+            if peer['ip'] == ip:
                 return True
         return False
 

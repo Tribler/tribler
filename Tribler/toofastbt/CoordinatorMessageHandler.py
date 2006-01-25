@@ -1,3 +1,7 @@
+# Written by Arno Bakker
+# see LICENSE.txt for license information
+""" SecureOverlay message handler for a Coordinator """
+
 from Tribler.toofastbt.intencode import toint, tobinary
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *

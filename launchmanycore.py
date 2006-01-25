@@ -22,6 +22,7 @@ from socket import error as socketerror
 from threading import Event, Thread
 from cStringIO import StringIO
 from traceback import print_exc, print_stack
+from tempfile import gettempdir
 
 from BitTornado.launchmanycore import LaunchMany
 from BitTornado.bencode import bencode
@@ -66,9 +67,17 @@ class ABCLaunchMany(Thread,LaunchMany,wx.EvtHandler):
         self.utility = utility        
         output = Outputter()
         btconfig = utility.getBTParams()
-        # TODO: move to better place
-        #torrent_dir = os.path.join(self.utility.getConfigPath(), 'torrenthelping' )
-        torrent_dir = os.path.join( '/tmp', 'torrenthelping' )
+        
+        # CAREFUL: Sometimes there are problems when attempting to save 
+        # downloads to a NFS filesystem, so make sure torrent_dir is on
+        # a local disk.
+        destdir = None
+        if self.utility.config.Read('setdefaultfolder') == 1:
+            destdir = self.utility.config.Read('defaultfolder')
+        if destdir is None:
+            destdir = gettempdir()
+
+        torrent_dir = os.path.join( destdir, 'torrenthelping' )
         btconfig['torrent_dir'] = torrent_dir
         if not os.access(torrent_dir,os.F_OK):
             os.mkdir(torrent_dir)

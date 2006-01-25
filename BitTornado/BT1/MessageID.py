@@ -64,12 +64,14 @@ MetadataMessages = [GET_METADATA, METADATA]
 # 2fastbt_
 # torrent_hash
 DOWNLOAD_HELP = chr(246)
-# torrent_hash + 1-byte all_or_nothing + bencode([piece num,...])
+# torrent_hash
+STOP_DOWNLOAD_HELP = chr(245)
+# torrent_hash + 4-byte requestID + 1-byte all_or_nothing + bencode([piece num,...])
 RESERVE_PIECES = chr(242)
-# torrent_hash +bencode([piece num,...])
+# torrent_hash + + 4-byte requestID + bencode([piece num,...])
 PIECES_RESERVED = chr(241)
 
-HelpCoordinatorMessages = [DOWNLOAD_HELP,PIECES_RESERVED]
+HelpCoordinatorMessages = [DOWNLOAD_HELP,STOP_DOWNLOAD_HELP,PIECES_RESERVED]
 HelpHelperMessages = [RESERVE_PIECES]
 # _2fastbt
 
@@ -117,8 +119,6 @@ def getMessageName(t):
         return "RESERVE_PIECES"
     elif t == PIECES_RESERVED:
         return "PIECES_RESERVED"
-    elif t == IGNORE_PIECES:
-        return "IGNORE_PIECES"
     else:
         return "unknown!",ord(t)
         

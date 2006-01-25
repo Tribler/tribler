@@ -1,5 +1,7 @@
 # Written by Pawel Garbacki, Arno Bakker
 # see LICENSE.txt for license information
+""" SecureOverlay message handler for a Helper"""
+
 
 from sha import sha
 import sys, os
@@ -29,17 +31,15 @@ class HelperMessageHandler:
 
     def handleMessage(self,permid,message):
         t = message[0]
-        
+
+        if DEBUG:
+            print "helper: Got",getMessageName(t)
         if t == DOWNLOAD_HELP:
-            if DEBUG:
-                print "helper: Got DOWNLOAD_HELP"
+            return self.got_dlhelp_request(permid, message)
+        elif t == STOP_DOWNLOAD_HELP:
             return self.got_dlhelp_request(permid, message)
         elif t == PIECES_RESERVED:
-            if DEBUG:
-                print "helper: Got PIECES_RESERVED"
             return self.got_pieces_reserved(permid, message)
-        else:
-            print "helper: UNKNOWN OVERLAY MESSAGE", ord(t)
 
 
     def got_dlhelp_request(self, permid, message):
@@ -72,8 +72,6 @@ class HelperMessageHandler:
         d = bdecode(torrent_data)
         data = {}
         data['file'] = get_random_filename(self.launchmany.torrent_dir)
-        print "file: ", data['file']
-#        data['path'] = os.path.join(self.launchmany.torrent_dir, data['file'])
         data['type'] = 'torrent'
         i = d['info']
         h = sha(bencode(d['info'])).digest()
@@ -91,8 +89,6 @@ class HelperMessageHandler:
         data['numfiles'] = nf
         data['length'] = l
         data['name'] = i.get('name', data['file'])
-        print "name: ", data['name']
-        # Arno HACK TO GET A SAFE PATH FOR STORING THE DOWNLOAD
         dest = os.path.join(self.launchmany.torrent_dir, data['file'] )
         data['dest'] = dest        
 
@@ -108,7 +104,6 @@ class HelperMessageHandler:
 
         tfile = os.path.join(self.launchmany.torrent_dir, data['file'] + '.torrent')
         data['path'] = tfile
-        print "path: ", data['path']
         def setkey(k, d = d, data = data):
             if d.has_key(k):
                 data[k] = d[k]
@@ -116,6 +111,12 @@ class HelperMessageHandler:
         setkey('warning message')
         setkey('announce-list')
         data['metainfo'] = d
+
+        if DEBUG:
+            print "helpmsg: Got metadata required for helping"
+            print "helpmsg: name:   ", data['name']
+            print "helpmsg: torrent: ", data['path']
+            print "helpmsg: saveas: ", data['file']
 
         # TODO: instead of writing .torrent to the disk keep it only in the memory
         torrent_file = open(data['path'], "wb")

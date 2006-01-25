@@ -307,7 +307,10 @@ class Connection:
             return False
 
     def is_helper_con(self):
-        return False
+        coordinator = self.connecter.coordinator
+        if coordinator is None:
+            return False
+        return coordinator.is_helper(self.get_ip())
 # _2fastbt
 
 class Encoder:
@@ -387,11 +390,6 @@ class Encoder:
             if DEBUG:
                 print "Encoder start_connection paused RETURN"
             return True
-#--- 2fastbt_
-#        if self.banned.has_key(dns[0]) and not self.connection.is_helper_con() and \
-#            not self.connections.is_coordinator_con()):
-#            return True
-# _2fastbt
         for v in self.connections.values():    # avoid duplicated connectiion from a single ip
             if v is None:
                 continue
