@@ -61,15 +61,17 @@ METADATA = chr(247)
 
 MetadataMessages = [GET_METADATA, METADATA]
 
-DOWNLOAD_HELP = chr(246)
 # 2fastbt_
+# torrent_hash
+DOWNLOAD_HELP = chr(246)
+# torrent_hash + 1-byte all_or_nothing + bencode([piece num,...])
 RESERVE_PIECES = chr(242)
+# torrent_hash +bencode([piece num,...])
 PIECES_RESERVED = chr(241)
-IGNORE_PIECES = chr(240)
-# _2fastbt
 
-HelpCoordinatorMessages = [DOWNLOAD_HELP]
-HelpHelperMessages = [RESERVE_PIECES,PIECES_RESERVED,IGNORE_PIECES]
+HelpCoordinatorMessages = [DOWNLOAD_HELP,PIECES_RESERVED]
+HelpHelperMessages = [RESERVE_PIECES]
+# _2fastbt
 
 ONLINE_EXCHANGE = chr(244)
 FRIENDS_EXCHANGE = chr(243)
@@ -110,7 +112,7 @@ def getMessageName(t):
     elif t == GET_METADATA:
         return "GET_METADATA"
     elif t == METADATA:
-        return "SEND_METADATA"
+        return "METADATA"
     elif t == RESERVE_PIECES:
         return "RESERVE_PIECES"
     elif t == PIECES_RESERVED:

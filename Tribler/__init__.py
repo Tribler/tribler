@@ -20,52 +20,8 @@ from base64 import decodestring
     
 mapbase64 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-'
 
-class GLOBAL:
-    do_cache = 1
-    do_overlay = 1
-    do_buddycast = 1
-    do_download_help = 1
-    do_superpeer = 0
-    do_das_test = 0
-    do_buddycast_interval = 3
-    
-def read_pubkey(filename):
-    try:
-        file = open(filename, "r")
-    except:
-        raise RuntimeError, "Cannot open " + filename + " to read my PermID. Abort"
-    lines= file.readlines()
-    pubkey = ''
-    for line in lines:
-        if line.startswith('-----BEGIN PUBLIC KEY-----'):
-            pubkey = ''
-        elif line.startswith('-----END PUBLIC KEY-----'):
-            break
-        else:
-            pubkey += strip(line)
-    return pubkey
+## Global initialization
 
-def is_valid_ip(ip):
-    invalid_iphead = ['0.', '127.0.0.1']
-    for iphead in invalid_iphead:
-        if ip.startswith(iphead):
-            return False
-    return True
-
-def load_myinfo():    # TODO: load more personal infomation
-    my_permid64 = read_pubkey('ecpub.pem')
-    my_permid = decodestring(my_permid64)
-    name = socket.gethostname()
-    host = socket.gethostbyname_ex(name)
-    ipaddrlist = host[2]
-    valid_ip = ''
-    for ip in ipaddrlist:
-        if is_valid_ip(ip):
-            valid_ip = ip
-            break
-    myinfo = {'permid':my_permid, 'ip':valid_ip, 'name':name}
-    return myinfo
-    
 _idprefix = version_short[0]
 #for subver in version_short[2:].split('.'):
 for subver in version_short.split('-')[1].split('.'):
@@ -76,9 +32,37 @@ for subver in version_short.split('-')[1].split('.'):
     _idprefix += mapbase64[subver]
 _idprefix += ('-' * (6-len(_idprefix)))
 _idrandom = [None]
-permid.init()
-myinfo = load_myinfo()
-cachedb.init(myinfo)
+
+
+class GLOBAL:
+    do_cache = 1
+    do_overlay = 1
+    do_buddycast = 1
+    do_download_help = 1
+    do_superpeer = 0
+    do_das_test = 0
+    do_buddycast_interval = 3
+    
+def is_valid_ip(ip):
+    invalid_iphead = ['0.', '127.0.0.1']
+    for iphead in invalid_iphead:
+        if ip.startswith(iphead):
+            return False
+    return True
+
+def load_myinfo():    # TODO: load more personal infomation
+    my_permid = permid._ec_keypair.pub().get_der()
+    name = socket.gethostname()
+    host = socket.gethostbyname_ex(name)
+    ipaddrlist = host[2]
+    valid_ip = ''
+    for ip in ipaddrlist:
+        if is_valid_ip(ip):
+            valid_ip = ip
+            break
+    myinfo = {'permid':my_permid, 'ip':valid_ip, 'name':name}
+    return myinfo
+
 
 def resetPeerIDs():
     try:
@@ -109,10 +93,15 @@ def resetPeerIDs():
     for i in sha(x).digest()[-11:]:
         s += mapbase64[ord(i) & 0x3F]
     _idrandom[0] = s
-        
-resetPeerIDs()
 
 def createPeerID(ins = '---'):
     assert type(ins) is StringType
     assert len(ins) == 3
     return _idprefix + ins + _idrandom[0]
+
+
+def tribler_init(config_dir = None):
+    resetPeerIDs()
+    permid.init(config_dir)
+    myinfo = load_myinfo()
+    cachedb.init(config_dir,myinfo)

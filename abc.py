@@ -39,6 +39,7 @@ from Utility.constants import * #IGNORE:W0611
 #from BitTornado.PeerCacheHandler import PeerCacheHandler
 #from BitTornado.FileCacheHandler import FileCacheHandler
 from Tribler.CacheDB.cachedb import PeerDB
+from Tribler.__init__ import tribler_init
 
 ################################################################
 #
@@ -603,7 +604,9 @@ class ABCApp(wx.App):
 
         sys.stdout.write('Client Starting Up.\n')
         sys.stdout.write('Build: ' + self.utility.lang.get('build') + '\n')
-        
+
+        tribler_init(self.utility.getConfigPath())
+
         wx.App.__init__(self, x)
 
     def OnInit(self):

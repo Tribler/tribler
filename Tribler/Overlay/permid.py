@@ -4,7 +4,7 @@
 import StringIO
 from sha import sha
 from copy import deepcopy
-import traceback,sys
+import traceback,sys,os
 
 from M2Crypto import Rand,EC,EVP
 from BitTornado.bencode import bencode, bdecode
@@ -27,17 +27,17 @@ _ec_keypair = None
 DEBUG = True
 
 # Exported functions
-def init():
-    Rand.load_file('randpool.dat', -1) 
+def init(config_dir = None):
+    Rand.load_file(get_rand_filename(config_dir), -1) 
     try:
-        read_keypair()
+        read_keypair(config_dir)
     except:
         generate_keypair()
-        save_keypair()
-        save_pub_key()
+        save_keypair(config_dir)
+        save_pub_key(config_dir)
 
 def exit():
-    Rand.save_file('randpool.dat')
+    Rand.save_file(get_rand_filename(config_dir))
 
 
 # Internal functions
@@ -46,18 +46,32 @@ def generate_keypair():
     _ec_keypair=EC.gen_params(keypair_ecc_curve)
     _ec_keypair.gen_key()
 
-def read_keypair():
+def read_keypair(config_dir = None):
     global _ec_keypair
-    _ec_keypair=EC.load_key('ec.pem')
+    _ec_keypair=EC.load_key(get_keypair_filename(config_dir))
 
-def save_keypair():
+def save_keypair(config_dir = None):
     global _ec_keypair
-    _ec_keypair.save_key('ec.pem', None)    
+    _ec_keypair.save_key(get_keypair_filename(config_dir), None)    
 
-def save_pub_key():
+def save_pub_key(config_dir = None):
     global _ec_keypair
-    _ec_keypair.save_pub_key('ecpub.pem')    
+    _ec_keypair.save_pub_key(get_pub_key_filename(config_dir))    
 
+def get_rand_filename(config_dir=None):
+    return make_filename(config_dir,'randpool.dat')
+
+def get_keypair_filename(config_dir=None):
+    return make_filename(config_dir,'ec.pem')
+
+def get_pub_key_filename(config_dir=None):
+    return make_filename(config_dir,'ecpub.pem')
+
+def make_filename(config_dir,filename):
+    if config_dir is None:
+        return filename
+    else:
+        return os.path.join(config_dir,filename)
 
 #
 # The following methods and ChallengeResponse class implement a
@@ -272,6 +286,11 @@ class ChallengeResponse:
             raise PermIDException
         return self.peer_pub.get_der()
 
+    def get_auth_peer_id(self):
+        if self.state != STATE_AUTHENTICATED:
+            raise PermIDException
+        return self.peer_id
+
     def get_challenge_minlen(self):
         return self.minchal
 
@@ -301,6 +320,7 @@ class ChallengeResponse:
         # get_peer_permid() throws exception if auth has failed
         permid = self.get_peer_permid()
         conn.set_permid(permid)
+        conn.set_auth_peer_id(self.get_auth_peer_id())
         self.overlay_swarm.permidSocketMade(conn)
      
     def got_response2(self, rdata2, conn):
@@ -309,6 +329,7 @@ class ChallengeResponse:
             #conn.send_message('')    # Send KeepAlive message as reply
             permid = self.get_peer_permid()
             conn.set_permid(permid)
+            conn.set_auth_peer_id(self.get_auth_peer_id())
             self.overlay_swarm.permidSocketMade(conn)
 
     def got_message(self, conn, message):

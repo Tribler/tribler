@@ -19,7 +19,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = False
+DEBUG = True
 
 MAXREADSIZE = 32768
 MAXLOCKSIZE = 1000000000L

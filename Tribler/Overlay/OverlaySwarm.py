@@ -71,12 +71,13 @@ class OverlaySwarm:
         return OverlaySwarm.__single
     getInstance = staticmethod(getInstance)
 
-    def register(self, secure_overlay, multihandler, config, errorfunc):
+    def register(self, listen_port, secure_overlay, multihandler, config, errorfunc):
         # Register overlay_infohash as known swarm with MultiHandler
         
         if self.registered:
             return
         
+        self.myid = self.myid[:14] + pack('H', listen_port) + self.myid[16:]
         self.secure_overlay = secure_overlay
         self.config = config
         self.doneflag = Event()
@@ -100,7 +101,7 @@ class OverlaySwarm:
         """ Connect to Overlay Socket given peer's ip and port """
         
         if DEBUG:
-            print "Start overlay swarm connection to", dns
+            print "overlay: Start overlay swarm connection to", dns
         if TEST:
             class Conn:
                 def __init__(self, dns):
@@ -121,12 +122,15 @@ class OverlaySwarm:
             
     def sendMessage(self, connection, message):
         if DEBUG:
-            print "send message", `message`, "to", connection
+            print "send message", getMessageName(message[0]), "to", connection
         connection.send_message(message)
 
     def connectionMade(self, connection):
         """ phase 1: Connecter.Connection is created but permid has not been verified """
+
+        print "overlay: Bare connection",connection.get_myip(),connection.get_myport(),"to",connection.get_ip(),connection.get_port(),"reported by thread",currentThread().getName()
         
+
         def c(conn = connection):
             """ Start permid exchange and challenge/response validation """
             if not connection or self.crs.has_key(connection) and self.crs[connection]:
@@ -149,8 +153,8 @@ class OverlaySwarm:
         """ Handle message for overlay swarm and return if the message is valid """
 
         if DEBUG:
-            #print "GOT message:", len(message), show(message), message
-            print "overlay: GOT ",getMessageName(message[0]),len(message)
+            #print "Got message:", len(message), show(message), message
+            print "overlay: Got ",getMessageName(message[0]),len(message)
         
         if not conn:
             return False

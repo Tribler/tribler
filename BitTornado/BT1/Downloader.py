@@ -235,8 +235,11 @@ class SingleDownload:
 # 2fastbt_
             interest = self.downloader.picker.next(self.have,
                                self.downloader.storage.do_I_have_requests,
+                               self,
                                self.downloader.too_many_partials(),
                                self.connection.connection.is_helper_con())
+
+            print "sdownload: _request_more: next() returned",interest                               
 # _2fastbt
             if interest is None:
                 break
@@ -268,8 +271,10 @@ class SingleDownload:
 # 2fastbt_
                 interest = self.downloader.picker.next(d.have,
                                    self.downloader.storage.do_I_have_requests,
+                                   self,
                                    self.downloader.too_many_partials(),
                                    self.connection.connection.is_helper_con())
+                print "sdownload: _request_more: next()2 returned",interest
 # _2fastbt
                 if interest is None:
                     d.send_not_interested()

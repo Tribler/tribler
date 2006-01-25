@@ -1,22 +1,25 @@
 # Written by Pawel Garbacki
 # see LICENSE.txt for license information
 
-from Tribler.toofastbt.Logger import get_logger
-from Tribler.Overlay.SecureOverlay import SecureOverlay
-from BitTornado.bencode import bencode
-from BitTornado.BT1.MessageID import DOWNLOAD_HELP
-
 from traceback import print_exc
 import copy
 
+from Tribler.toofastbt.Logger import get_logger
+from Tribler.toofastbt.intencode import toint, tobinary
+from Tribler.Overlay.SecureOverlay import SecureOverlay
+from BitTornado.bencode import bencode
+from BitTornado.BT1.MessageID import DOWNLOAD_HELP, PIECES_RESERVED
+
+
+MAX_ROUNDS = 137
+
+
 class Coordinator:
         
-    def __init__(self, info_hash, num_pieces, helpers_file = None):
+    def __init__(self, torrent_hash, num_pieces, helpers_file = None):
         self.reserved_pieces = [False] * num_pieces
-        self.info_hash = info_hash
-        self.control_connections = []
+        self.torrent_hash = torrent_hash
         self.asked_helpers = []
-        self.pending_helpers = []        
         # optimization
         self.reserved = []
         self.secure_overlay = SecureOverlay.getInstance()
@@ -43,27 +46,13 @@ class Coordinator:
                         peer['permid'] = None
                         peer['ip'] = ip
                         peer['port'] = port
-                        self.pending_helpers.append(peer)
             f.close()
 
-    def is_helper(self, peer_id):
-        for con in self.control_connections:
-            if con.get_id() == peer_id:
+    def is_helper(self, permid):
+        for peer in self.asked_helpers:
+            if peer['permid'] == permid:
                 return True
         return False
-
-    def add_helper(self, control_con):
-        assert not self.is_helper(control_con.get_id())
-        get_logger().log(3, "coordinator.coordinator: helper id: '" + 
-            str(control_con.get_id()) + "'")
-        self.control_connections.append(control_con)
-
-    def set_encoder(self, encoder):
-        self.encoder = encoder
-
-    def request_pending_callback(self):
-        self.do_request_help(self.pending_helpers)
-        self.pending_helpers = []
 
     def request_help(self,peerList,force = False):
         #print "dlhelp: REQUESTING HELP FROM",peerList
@@ -81,16 +70,17 @@ class Coordinator:
                             break
                     if flag == 0:
                         toask_helpers.append(cand)
-            self.do_request_help(toask_helpers)
+            self.send_request_help(toask_helpers)
         except Exception,e:
             print_exc()
-            print "dlhelp: Exception while requesting help",e
+            print "helpcoord: Exception while requesting help",e
 
-    def do_request_help(self,peerList):
+    def send_request_help(self,peerList):
         for peer in peerList:
+            peer['round'] = 0
             self.asked_helpers.append(peer)
             print "dlhelp: Coordinator connecting to",peer['name'],peer['ip'],peer['port']," for help"
-            dlhelp_request = self.info_hash
+            dlhelp_request = self.torrent_hash
             self.secure_overlay.addTask(peer['permid'], DOWNLOAD_HELP + dlhelp_request)
 
     def stop_help(self,peerList, force = False):
@@ -117,17 +107,17 @@ class Coordinator:
             if flag == 0:
                 tokeep_helpers.append(asked)
 
-        self.do_stop_help(tostop_helpers)
+        self.send_stop_help(tostop_helpers)
         self.asked_helpers = tokeep_helpers
 
     def stop_all_help(self):
-        self.do_stop_help(self.asked_helpers)
+        self.send_stop_help(self.asked_helpers)
         self.asked_helpers = []
 
-    def do_stop_help(self,peerList):
+    def send_stop_help(self,peerList):
         for peer in peerList:
             print "dlhelp: Coordinator connecting to",peer['name'],peer['ip'],peer['port']," for stopping help"
-            stop_request = torrent_hash
+            stop_request = self.torrent_hash
             #self.secure_overlay.addTask(peer['permid'],(STOP_DOWNLOAD_HELP + stop_request)
 
     def get_asked_helpers_copy(self):
@@ -145,15 +135,19 @@ class Coordinator:
         else:
             return False
 
-### Connecter interface
-    def get_reserved(self):
-        return self.reserved
 
-    def reserve_pieces(self, control_con, pieces, all_or_nothing = False):
-        if not not self.pending_helpers:
-            self.encoder.raw_server.add_task(self.request_pending_callback, 1)
-#        if not control_connections.has_key(peer_id):
-#            control_connections[peer_id] = connection
+### CoordinatorMessageHandler interface
+    def got_reserve_pieces(self,permid,reqid,pieces,all_or_nothing):
+
+        reserved_pieces = self.reserve_pieces(pieces, all_or_nothing)
+        for peer in self.asked_helpers:
+            if peer['permid'] == permid:
+                peer['round'] = (peer['round'] + 1) % MAX_ROUNDS
+                if peer['round'] == 0:
+                    reserved_pieces.extend(self.get_reserved())
+        self.send_pieces_reserved(permid,reqid,reserved_pieces)
+
+    def reserve_pieces(self, pieces, all_or_nothing = False):
         try:
             new_reserved = []
             for piece in pieces:
@@ -170,7 +164,15 @@ class Coordinator:
                     self.reserved_pieces[piece] = True
                     self.reserved.append(-piece)
         except Exception, e:
-            print "EXCEPTION!"
-            get_logger().log(3, "EXCEPTION: '" + str(e) + "'")
+            print_exc()
+            print "helpcoord: Exception in reserve_pieces",e
+            #get_logger().log(3, "EXCEPTION: '" + str(e) + "'")
         return new_reserved
-        
+
+    def get_reserved(self):
+        return self.reserved
+
+    def send_pieces_reserved(self, permid, reqid, pieces):
+        payload = self.torrent_hash + tobinary(reqid) + bencode(pieces)
+        self.secure_overlay.addTask(permid, PIECES_RESERVED + payload )
+    

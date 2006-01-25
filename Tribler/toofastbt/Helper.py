@@ -1,122 +1,45 @@
 # Written by Pawel Garbacki
 # see LICENSE.txt for license information
 
-from BitTornado.BT1.Encrypter import Connection #, control_option_pattern
-from BitTornado.BT1.Connecter import tobinary
-from socket import error as socketerror
-from Logger import get_logger
-from time import sleep
-from sys import exit, exc_info
-from thread import allocate_lock
+from sys import exc_info, exit
 from traceback import print_exc
-import socket
+from threading import Semaphore,currentThread
+
+from Logger import get_logger
+from Tribler.Overlay.SecureOverlay import SecureOverlay
+from Tribler.toofastbt.WaitForReplyException import WaitForReplyException
+from Tribler.toofastbt.intencode import toint, tobinary
+from BitTornado.bencode import bencode
+from BitTornado.BT1.MessageID import RESERVE_PIECES
 
 MAX_ROUNDS = 200
-
-class SingleSocket:
-    def __init__(self, sock, handler, ip = None):
-        self.socket = sock
-        self.handler = handler
-        self.fileno = sock.fileno()
-        self.connected = False
-        self.skipped = 0
-        try:
-            self.ip = self.socket.getpeername()[0]
-        except:
-            if ip is None:
-                self.ip = 'unknown'
-            else:
-                self.ip = ip
-        
-    def get_ip(self, real=False):
-        if real:
-            try:
-                self.ip = self.socket.getpeername()[0]
-            except:
-                pass
-        return self.ip
-        
-    def close(self):
-        assert self.socket
-        self.connected = False
-        sock = self.socket
-        self.socket = None
-        sock.close()
-        raise Exception('socket.close', 'Control connection closed unexpectedly')
-
-    def shutdown(self, val):
-        self.socket.shutdown(val)
-
-    def write(self, s):
-        assert self.socket is not None
-        self.connected = True
-        try:
-            while len(s) > 0:
-                amount = self.socket.send(s)
-                if amount == 0:
-                    break
-                s = s[amount:]
-        except socket.error, e:
-            raise e
-    
-    def read(self):
-        self.connected = True
-        try:
-            data = self.socket.recv(100000)
-            self.handler.data_came_in(self, data)
-        except socket.error, e:
-            raise e
-
-    def set_handler(self, handler):
-        self.handler = handler
+DEBUG = False
 
 class Helper:
-    def __init__(self, num_pieces, coordinator_ip, coordinator_port, 
-            encoder = None, coordinator = None):
-        print "CREATING HELPER FOR COORDINATOR",coordinator_ip,coordinator_port
-        self.encoder = encoder
+    def __init__(self, torrent_hash, num_pieces, coordinator_permid, coordinator_ip, coordinator = None):
+        print "CREATING HELPER FOR COORDINATOR",`coordinator_permid`
+        self.secure_overlay = SecureOverlay.getInstance()
+        self.torrent_hash = torrent_hash
+        self.coordinator_permid = coordinator_permid
         self.coordinator_ip = coordinator_ip
-        self.coordinator_port = coordinator_port
         self.reserved_pieces = [False] * num_pieces
         self.ignored_pieces = [False] * num_pieces
-        self.coordinator_con = None
-        self.coordinator_data_con = None
         self.coordinator = coordinator
         self.counter = 0
         self.completed = False
         self.distr_reserved_pieces = [False] * num_pieces
         self.marker = [True] * num_pieces
         self.round = 0
+        self.encoder = None
+        self.sema = Semaphore(0)
+        self.requestid = 0
+        self.continuations = {}
 
-### Private methods
-    def _start_connection(self, dns, socktype = socket.AF_INET, handler = None):
-        if handler is None:
-            handler = self
-        
-        sock = socket.socket(socktype, socket.SOCK_STREAM)
-        sock.setblocking(1)
-        try:
-            sock.connect_ex(dns)
-        except socket.error:
-            raise
-        except Exception, e:
-            raise socket.error(str(e))
-        s = SingleSocket(sock, handler, dns[0])
-        return s
-
-    def _connect_to_coordinator(self):
-        # c instanceof SocketHandler.SingleSocket
-        c = self._start_connection((self.coordinator_ip, self.coordinator_port))
-        # con instanceof Encrypter.Connection
-        con = Connection(self.encoder, c, None, locally_initiated = True, control_con = True) # options = control_option_pattern
-        c.set_handler(con)
-#        self.encoder.connections[c] = con
-        while self.coordinator_con is None:
-            c.read()
-
+    def set_encoder(self,encoder):
+        self.encoder = encoder
+        self.encoder.set_coordinator_ip(self.coordinator_ip)
+    
     def test(self):
-        if self.coordinator is None:
-            self._connect_to_coordinator()
         result = self.reserve_piece(10)
         print "reserve piece returned: " + str(result)
         print "Test passed"
@@ -131,14 +54,11 @@ class Helper:
             self.ignored_pieces[piece] = True
             self.distr_reserved_pieces[piece] = True
 
-    def get_coordinator_id(self):
-        if self.coordinator_con is None:
-            return None
-        return self.coordinator_con.get_id()
-
-### download_bt1 interface
-    def set_encoder(self, encoder):
-        self.encoder = encoder
+    def is_coordinator(self,permid):
+        if self.coordinator_permid == permid:
+            return True
+        else:
+            return False
 
 ### PiecePicker and Downloader interface
     def is_reserved(self, piece):
@@ -163,63 +83,101 @@ class Helper:
             self.completed = (self.distr_reserved_pieces == self.marker)
         return self.completed
 
-    def reserve_pieces(self, pieces, all_or_nothing = False):
+    def reserve_pieces(self, pieces, sdownload, all_or_nothing = False):
+        print "helper: reserve_pieces: Want to reserve",pieces
         pieces_to_send = []
-        try:
-            ex = "None"
-            result = []
-            for piece in pieces:
-                if self.is_reserved(piece):
-                    result.append(piece)
-                elif not self.is_ignored(piece):
-                    pieces_to_send.append(piece)
-            if pieces_to_send == []:
-                return result
-            if self.coordinator is not None:
-                new_reserved_pieces = self.coordinator.reserve_pieces(None, pieces_to_send, all_or_nothing)
-                for piece in new_reserved_pieces:
-                    self._reserve_piece(piece)
+        ex = "None"
+        result = []
+        for piece in pieces:
+            if self.is_reserved(piece):
+                result.append(piece)
+            elif not self.is_ignored(piece):
+                pieces_to_send.append(piece)
+
+        print "helper: reserve_pieces: result is",result,"to_send is",pieces_to_send
+
+        if pieces_to_send == []:
+            return result
+        if self.coordinator is not None:
+            new_reserved_pieces = self.coordinator.reserve_pieces(pieces_to_send, all_or_nothing)
+            for piece in new_reserved_pieces:
+                self._reserve_piece(piece)
+        else:
+            self.counter += 1
+            ex = "self.send_reserve_pieces(pieces_to_send)"
+            self.requestid += 1
+            self.send_reserve_pieces(self.requestid,pieces_to_send)
+            # Can't do much until reservation received
+            self.wait(self.requestid,sdownload)
+            
+            print "helper: result has length",len(result)
+            if len(result) != 0:
+                raise WaitForReplyException
+
+        result = []
+        for piece in pieces:
+            if self.is_reserved(piece):
+                result.append(piece)
             else:
-                if self.coordinator_con is None:
-                    self._connect_to_coordinator()
-
-                self.counter += 1
-                ex = "self.coordinator_con.send_reserve_pieces(pieces_to_send)"
-                self.coordinator_con.send_reserve_pieces(pieces_to_send)
-                while self.counter > 0:
-                    ex = "self.coordinator_con.connection.connection.read() conter: " + str(self.counter)
-                    self.coordinator_con.connection.connection.read()
-
-            result = []
-            for piece in pieces:
-                if self.is_reserved(piece):
-                    result.append(piece)
-                else:
-                    self._ignore_piece(piece)
-        except Exception, e:
-            print "EXCEPTION in " + str(ex)
-            print_exc(e)
-            print exc_info()
+                self._ignore_piece(piece)
         return result
 
-    def reserve_piece(self, piece):
+    def reserve_piece(self, piece, sdownload):
         if self.coordinator is not None and self.is_complete():
             return True
-        new_reserved_pieces = self.reserve_pieces([piece])
+        new_reserved_pieces = self.reserve_pieces([piece],sdownload)
         if new_reserved_pieces == []:
             return False
         else:
             return True
-       
-### Connecter interface
-    def pieces_reserved(self, pieces):
+
+
+## Synchronization interface
+
+    def wait(self,reqid,sdownload):
+        self.continuations[reqid] = sdownload
+
+    def notify(self,reqid):
+        if self.continuations.has_key(reqid):
+            print "helper: notify: Waking downloader for reqid",reqid
+            sdownload = self.continuations[reqid]
+            del self.continuations[reqid]
+            sdownload._request_more()
+        else:
+            print "helper: notify: no downloader for reqid",reqid
+
+## Coordinator comm.       
+    def send_reserve_pieces(self, reqid, pieces, all_or_nothing = False):
+        if all_or_nothing:
+            all_or_nothing = chr(1)
+        else:
+            all_or_nothing = chr(0)
+        payload = self.torrent_hash + tobinary(reqid) + all_or_nothing + bencode(pieces)
+        self.secure_overlay.addTask(self.coordinator_permid, RESERVE_PIECES + payload )
+
+### HelperMessageHandler interface
+    def got_pieces_reserved(self, permid, pieces):
+        self.handle_pieces_reserved(pieces)
+        # Do this always, will return quickly when connection already exists
+        dns = self.secure_overlay.findDNSByPermid(permid)
+        if dns:
+            print "helpmsg: Starting data connection to coordinator",dns
+            self.encoder.start_connection(dns,id = None,coord_con = True)
+
+    def handle_pieces_reserved(self,pieces):
+        print "helper: COORDINATOR REPLIED",pieces
         try:
             for piece in pieces:
                 if piece > 0:
+                    print "helper: COORDINATOR LET US RESERVE",piece
                     self._reserve_piece(piece)
                 else:
+                    print "helper: COORDINATOR SAYS IGNORE",-piece
                     self._ignore_piece(-piece)
             self.counter -= 1
-        except:
-            print "EXCEPTION!"
 
+        except Exception,e:
+            print_exc()
+            print "helper: Exception in handle_pieces_reserved",e
+
+      

@@ -178,6 +178,7 @@ class PiecePicker:
 # 2fastbt_
     def _next(self, haves, wantfunc, complete_first, helper_con):
 # _2fastbt
+
         cutoff = self.numgot < self.rarest_first_cutoff
         complete_first = (complete_first or cutoff) and not haves.complete()
         best = None
@@ -211,21 +212,21 @@ class PiecePicker:
         return None
 
 # 2fastbt_
-    def next(self, haves, wantfunc, complete_first = False, helper_con = False):
+    def next(self, haves, wantfunc, sdownload, complete_first = False, helper_con = False):
 #        try:
         while True:
             piece = self._next(haves, wantfunc, complete_first, helper_con)
             if piece is None:
-                print "!",
+                print "PiecePicker: _next returned no pieces!",
                 break
-            if self.helper is None or helper_con or self.helper.reserve_piece(piece):
+            if self.helper is None or helper_con or self.helper.reserve_piece(piece,sdownload):
                 if self.helper is None:
                     if DEBUG:
                         print "NORMAL SHOULD DL PIECE",piece
                 elif helper_con:
                     if DEBUG:
                         print "helper_con SHOULD DL PIECE",piece
-                elif self.helper.reserve_piece(piece):
+                elif self.helper.reserve_piece(piece,sdownload):
                     if DEBUG:
                         print "helper.reserve SHOULD DL PIECE",piece
                 else:

@@ -5,7 +5,7 @@ import sys
 from threading import Event, Timer
 from time import time
 #from cStringIO import StringIO
-#from traceback import print_exc
+from traceback import print_stack
 
 from BitTornado.clock import clock
 
@@ -128,8 +128,8 @@ class ABCEngine(wx.EvtHandler):
         # 2fastbt_
         if self.torrent.caller == "helper":
             btconfig['role'] = 'helper'
+            btconfig['coordinator_permid'] = self.torrent.caller_data['coordinator_permid']
             btconfig['coordinator_ip'] = self.torrent.caller_data['coordinator_ip']
-            btconfig['coordinator_port'] = self.torrent.caller_data['coordinator_port']
         else:
             btconfig['role'] = 'coordinator'
             btconfig['helpers_file'] = ''
@@ -271,6 +271,9 @@ class ABCEngine(wx.EvtHandler):
         self.status_err.append(msg)
         self.status_errtime = clock()
         self.errormsg(msg)
+        print_stack()
+        print "abcengine: Error",msg
+
 
     def saveAs(self, name, length, saveas, isdir):
         return self.torrent.files.dest
@@ -1017,4 +1020,5 @@ class ABCEngine(wx.EvtHandler):
         return self.dow.coordinator
 
     def stop_download_help(self):
-        self.dow.coordinator.stop_all_help()
+        if self.dow.coordinator is not None:
+            self.dow.coordinator.stop_all_help()

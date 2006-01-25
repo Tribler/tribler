@@ -1,6 +1,8 @@
 # Written by Bram Cohen, Jie Yang
 # see LICENSE.txt for license information
 
+from struct import unpack
+
 from BitTornado.bitfield import Bitfield
 from BitTornado.clock import clock
 from binascii import b2a_hex
@@ -30,9 +32,19 @@ class Connection:
         self.permid = None
         self.got_anything = False
         self.closed = False
+        self.auth_listen_port = -1
 
     def get_ip(self, real=False):
         return self.connection.get_ip(real)
+
+    def get_port(self, real=False):
+        return self.connection.get_port(real)
+
+    def get_myip(self, real=False):
+        return self.connection.get_myip(real)
+
+    def get_myport(self, real=False):
+        return self.connection.get_myport(real)
 
     def get_id(self):
         return self.connection.get_id()
@@ -42,6 +54,15 @@ class Connection:
     
     def set_permid(self, permid):
         self.permid = str(permid)
+
+    def set_auth_peer_id(self,peer_id):
+        # See OverlaySwarm.register()
+        bin = peer_id[14:16]
+        tuple = unpack('H', bin)
+        self.auth_listen_port = tuple[0]
+
+    def get_auth_listen_port(self):
+        return self.auth_listen_port
 
     def close(self):
         if DEBUG:

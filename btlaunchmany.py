@@ -23,6 +23,7 @@ from BitTornado.ConfigDir import ConfigDir
 #--- 2fastbt_
 from time import time
 from Tribler.toofastbt.Logger import get_logger
+from Tribler.__init__ import tribler_init
 # _2fastbt
 
 assert sys.version >= '2', "Install Python 2.0 or greater"
@@ -130,6 +131,8 @@ if __name__ == '__main__':
     except ValueError, e:
         print 'error: ' + str(e) + '\nrun with no args for parameter explanations'
         exit(1)
+
+    tribler_init(configdir)
 
     LaunchMany(config, HeadlessDisplayer())
     if Exceptions:

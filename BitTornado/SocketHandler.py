@@ -53,6 +53,8 @@ class SingleSocket:
 #        self.check = StreamCheck()
         self.myip = None
         self.myport = -1
+        self.ip = None
+        self.port = -1
         try:
             (self.myip,self.myport) = self.socket.getsockname()
             (self.ip,self.port) = self.socket.getpeername()

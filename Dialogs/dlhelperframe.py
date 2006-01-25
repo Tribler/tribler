@@ -18,13 +18,18 @@ class DownloadHelperPanel(wx.Panel):
 
         self.utility = dialog.utility
         engine = dialog.torrent.connection.engine
+        self.coordinator = engine.getDownloadhelpCoordinator()
+
         # If the torrent is stopped, don't allow helping
-        if engine is None:
+        if engine is None or self.coordinator is None:
+            if engine is None:
+                msg = self.utility.lang.get('dlhelpdisabledstop')
+            else:
+                msg = self.utility.lang.get('dlhelpdisabledhelper')
             mainbox = wx.BoxSizer(wx.VERTICAL)
-            mainbox.Add(wx.StaticText(self, -1, self.utility.lang.get('dlhelpdisabled')), 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+            mainbox.Add(wx.StaticText(self, -1, msg), 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
             self.SetSizerAndFit(mainbox)
             return
-        self.coordinator = engine.getDownloadhelpCoordinator()
 
         # 0. Read friends from DB, and figure out who's already helping 
         # for this torrent

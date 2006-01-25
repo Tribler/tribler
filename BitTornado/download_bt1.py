@@ -175,10 +175,10 @@ defaults = [
         "role of the peer in the download"),
     ('helpers_file', '',
         "file with the list of friends"),
+    ('coordinator_permid', '',
+        "PermID of the cooperative download coordinator"),
     ('coordinator_ip', '',
         "IP address of the cooperative download coordinator"),
-    ('coordinator_port', 0,
-        "port of the cooperative download coordinator"),
     ('2fastbtlog', '2fastbt.log',
         "log file of the 2fastbt protocol"),
     ('exclude_ips', '',
@@ -415,11 +415,11 @@ class BT1Download:
                     self.coordinator = Coordinator(self.infohash, self.len_pieces)
                 else:
                     self.coordinator = Coordinator(self.infohash, self.len_pieces, self.config['helpers_file'])
+                self.config['coordinator_ip'] = None
             if self.config['role'] == 'coordinator' or self.config['role'] == 'helper':
-                self.helper = Helper(self.len_pieces, self.config['coordinator_ip'], self.config['coordinator_port'], coordinator = self.coordinator)
+                self.helper = Helper(self.infohash, self.len_pieces, self.config['coordinator_permid'], self.config['coordinator_ip'], coordinator = self.coordinator)
                 self.config['role'] = ''
-                self.config['coordinator_ip'] = ''
-                self.config['coordinator_port'] = 0
+                self.config['coordinator_permid'] = ''
 
             self.picker = PiecePicker(self.len_pieces, config['rarest_first_cutoff'], 
                              config['rarest_first_priority_cutoff'], helper = self.helper)
@@ -704,7 +704,6 @@ class BT1Download:
             self.myid, self.config['max_message_length'], self.rawserver.add_task, 
             self.config['keepalive_interval'], self.infohash, 
             self._received_raw_data, self.config)
-        self.encoder.scan_connections()
         self.encoder_ban = self.encoder.ban
 #--- 2fastbt_
         try:

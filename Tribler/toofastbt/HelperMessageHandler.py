@@ -1,8 +1,14 @@
-from BitTornado.bencode import bencode, bdecode
-from BitTornado.BT1.MessageID import *
+# Written by Pawel Garbacki, Arno Bakker
+# see LICENSE.txt for license information
+
 from sha import sha
 import sys, os
 from random import randint
+
+from Tribler.toofastbt.intencode import toint, tobinary
+from Tribler.Overlay.SecureOverlay import SecureOverlay
+from BitTornado.bencode import bencode, bdecode
+from BitTornado.BT1.MessageID import *
 
 DEBUG = True
 
@@ -28,9 +34,14 @@ class HelperMessageHandler:
             if DEBUG:
                 print "helper: Got DOWNLOAD_HELP"
             return self.got_dlhelp_request(permid, message)
+        elif t == PIECES_RESERVED:
+            if DEBUG:
+                print "helper: Got PIECES_RESERVED"
+            return self.got_pieces_reserved(permid, message)
         else:
             print "helper: UNKNOWN OVERLAY MESSAGE", ord(t)
-        
+
+
     def got_dlhelp_request(self, permid, message):
         try:
             #(torrent_hash, server_port) = bdecode(message[1:])
@@ -41,6 +52,8 @@ class HelperMessageHandler:
         if DEBUG:
             print "helper: Got DOWNLOAD_HELP from ", `permid`
         
+# TODO: add concurrency control
+
         if not self.can_help(torrent_hash):
             return False
         torrent_path = self.find_torrent(torrent_hash)
@@ -82,7 +95,16 @@ class HelperMessageHandler:
         # Arno HACK TO GET A SAFE PATH FOR STORING THE DOWNLOAD
         dest = os.path.join(self.launchmany.torrent_dir, data['file'] )
         data['dest'] = dest        
+
+        # These values are used by abcengine.py to create BT1Download
         data['coordinator_permid'] = permid
+        secure_overlay = SecureOverlay.getInstance()
+        dns = secure_overlay.findDNSByPermid(permid)
+        # Do this before writing torrent to disk
+        if dns is None:
+            print "helpmsg: Cannot get coordinator IP address, ignoring help request"
+            return
+        data['coordinator_ip'] = dns[0]
 
         tfile = os.path.join(self.launchmany.torrent_dir, data['file'] + '.torrent')
         data['path'] = tfile
@@ -103,8 +125,13 @@ class HelperMessageHandler:
         self.launchmany.torrent_cache[torrent_hash] = data
         self.launchmany.file_cache[data['path']] = \
             [(os.path.getmtime(data['path']), os.path.getsize(data['path'])), torrent_hash]
+
+        # These values are used by launchmanycore??? in text mode????
         self.launchmany.config['role'] = 'helper'
         self.launchmany.config['coordinator_permid'] = permid
+        self.launchmany.config['coordinator_ip'] = dns[0]
+
+        # Start new download
         self.launchmany.add(torrent_hash, data)
 
     def get_metadata(self, permid, torrent_hash):
@@ -114,7 +141,9 @@ class HelperMessageHandler:
         self.metadata_handler.send_metadata_request(permid, torrent_hash)
 
     def call_dlhelp_task(self, torrent_hash, torrent_data):
+        print "helpmsg: Metadata handler reports torrent is in"
         if not self.metadata_queue.has_key(torrent_hash) or not self.metadata_queue[torrent_hash]:
+            print "helpmsg: Metadata's data not right one!"
             return
         
         for permid in self.metadata_queue[torrent_hash]:
@@ -127,3 +156,27 @@ class HelperMessageHandler:
     def find_torrent(self, torrent_hash):
         return None
 
+    def got_pieces_reserved(self,permid, message):
+        try:
+            print "helpmsg: pieces_reserved len is",len(message)
+            torrent_hash = message[1:21]
+            reqid = toint(message[21:25])
+            pieces = bdecode(message[25:])
+        except:
+            errorfunc("warning: bad data in PIECES_RESERVED")
+            return False
+
+# TODO: add concurrency control
+
+        h = self.launchmany.get_helper(torrent_hash)
+        if h is None:
+            return False
+
+        if not h.is_coordinator(permid): 
+            return False
+
+        h.got_pieces_reserved(permid, pieces)
+        # Wake up download thread
+        h.notify(reqid)
+        return True
+        

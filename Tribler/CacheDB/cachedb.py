@@ -46,13 +46,13 @@ TorrentDB - (PreferenceDB, MyPreference, OwnerDB)
             # if have > 2, look up mypreferences.bsd for more info
         }
 
-PrefernceDB - (PeerDB, TorrentDB)
+PreferenceDB - (PeerDB, TorrentDB)
   preferences.bsd:
     peer_id:{
         torrent_id:{'relevance': int (0), 'rank': int (0)}    # re: [0, 1000], rank: [-1, 5]
     }
 
-MyPrefrenceDB - (TorrentDB)
+MyPreferenceDB - (TorrentDB)
   mypreferences.bsd:    # future keys: speed
     torrent_id:{
         torrent_hash: str ('')
@@ -108,10 +108,13 @@ torrent_hash_length = 20
 torrent_id_length = 20
 STRICT_CHECK = False
     
-def init(myinfo):
+def init(config_dir,myinfo):
+    global home_dir
+    home_dir = os.path.join( config_dir, 'bsddb' )
     MyDB.getInstance(myinfo)
     
 def open_db(filename, db_dir='', filetype=db.DB_BTREE):
+    global home_dir
     if not db_dir:
         db_dir = home_dir
     dir = setDBPath(db_dir)

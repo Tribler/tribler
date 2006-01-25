@@ -11,6 +11,7 @@ from time import time
 
 # 2fastbt_
 from Tribler.toofastbt.Logger import get_logger
+from Tribler.toofastbt.WaitForReplyException import WaitForReplyException
 from traceback import print_exc, extract_stack
 import sys
 # _2fastbt
@@ -29,14 +30,11 @@ MAX_INCOMPLETE = 8
 protocol_name = 'BitTorrent protocol'
 # Enable I-Share extensions:
 # Left-most bit = Azureus Enhanced Messaging Protocol (AEMP)
-# Left+42 bit = I-Share Overlay swarm extension
-# Left+43 bit = I-Share Simple Merkle Hashes extension
+# Left+42 bit = Tribler Overlay swarm extension
+# Left+43 bit = Tribler Simple Merkle Hashes extension
 # Right-most bit = BitTorrent DHT extension
 #option_pattern = chr(0)*8
 option_pattern = '\x00\x00\x00\x00\x00\x30\x00\x00'
-# 2fastbt_
-control_option_pattern = '\x00\x00\x00\x00\x00\x40\x00\x00' # chr(0) * 6 + chr(1) * 2
-# _2fastbt
 
 def toint(s):
     return long(b2a_hex(s), 16)
@@ -50,18 +48,6 @@ def make_readable(s):
 
 def show(s):
     return b2a_hex(s)
-
-# 2fastbt_
-def combine_patterns(p1, p2):
-    l = len(p1)
-    assert(l == len(p2))
-    r = ''
-    for i in range(0, l):
-        v1 = unpack('B', p1[i])[0]
-        v2 = unpack('B', p2[i])[0]
-        r += chr(v1 | v2)
-    return r
-# _2fastbt
 
 class IncompleteCounter:
     def __init__(self):
@@ -81,16 +67,14 @@ incompletecounter = IncompleteCounter()
 class Connection:
 # 2fastbt_
     def __init__(self, Encoder, connection, id, ext_handshake = False, 
-                  locally_initiated = None, control_con = False, dns = None): #, options = None):
+                  locally_initiated = None, dns = None, coord_con = False):
 # _2fastbt
         self.Encoder = Encoder
         self.connection = connection    # SocketHandler.SingleSocket
         self.connecter = Encoder.connecter
         self.id = id
         self.readable_id = make_readable(id)
-# 2fastbt_
-        self.control_con = control_con
-#        self.options  = options
+        self.coord_con = coord_con
         if locally_initiated is not None:
             self.locally_initiated = locally_initiated
         else:
@@ -100,23 +84,19 @@ class Connection:
         self.keepalive = lambda: None
         self.closed = False
         self.buffer = StringIO()
-# _overlay        
+# overlay        
         self.dns = dns
         self.support_overlayswarm = False
-# overlay_
+# _overlay
         self.support_merklehash= False
         if self.locally_initiated:
             incompletecounter.increment()
 # 2fastbt_
         self.create_time = time()
-# TODO: incomplete counter???
-        if self.locally_initiated or ext_handshake or self.is_control_con():
-            option_to_send = option_pattern
-            if self.is_control_con():
-                option_to_send = combine_patterns(option_to_send, control_option_pattern)
-            self.connection.write(chr(len(protocol_name)) + protocol_name + 
-                option_to_send + self.Encoder.download_id)
 # _2fastbt
+        if self.locally_initiated or ext_handshake:
+            self.connection.write(chr(len(protocol_name)) + protocol_name + 
+                option_pattern + self.Encoder.download_id)
         if ext_handshake:
             self.connection.write(self.Encoder.my_id)
             self.next_len, self.next_func = 20, self.read_peer_id
@@ -152,6 +132,7 @@ class Connection:
         return self.support_merklehash
 
     def set_options(self, s):
+# overlay_
         r = unpack("B", s[5])
         if r[0] & 0x10:    # left + 43 bit
             self.support_overlayswarm = True
@@ -161,13 +142,7 @@ class Connection:
             self.support_merklehash= True
             if DEBUG:
                 print "Peer supports Merkle hashes"
-# 2fastbt_
-        if r[0] & 0x40:
-            self.control_con = True
-            if DEBUG:
-                print "Control connection"
-# _2fastbt
-
+# _overlay
 
     def read_header_len(self, s):
         if ord(s) != len(protocol_name):
@@ -195,6 +170,7 @@ class Connection:
         return 20, self.read_peer_id
 
     def read_peer_id(self, s):
+# 2fastbt_
         """ In the scenario of locally initiating: 
         - I may or may not (normally not) get the remote peerid from a tracker before connecting. 
         - If I've gotten the remote peerid, set it as self.id, otherwise set self.id as 0.
@@ -220,6 +196,7 @@ class Connection:
         after read_peer_id(),  self.id = remote id if locally init
                                self.id = remote id if remotely init
         """
+# _2fastbt        
         if not self.id:    # remote init or local init without remote peer's id or remote init
             self.id = s
             self.readable_id = make_readable(s)
@@ -237,29 +214,11 @@ class Connection:
 # overlay_
         self.connect_overlay()
 # _overlay
-# 2fastbt_
-        #FIXME: self.Encoder.connecter.helper may be None
-        if self.is_control_con() and self.Encoder.connecter.coordinator is None:
-            self.Encoder.connecter.helper.coordinator_con = c
-        if self.locally_initiated and self.is_control_con():
-            # start normal (data-exchange) connection with coordinator
-            self.Encoder.start_connection((self.connection.socket.getpeername()), self.id)
-        if self.Encoder.connecter.helper is not None and self.Encoder.connecter.helper.coordinator_data_con is None and self.is_coordinator_con():
-            if not self.is_control_con():
-                get_logger().log(3, "encrypter.connection control_data_con created")
-                self.Encoder.connecter.helper.coordinator_data_con = c
-            else:
-                for c in self.Encoder.connecter.connections.values():
-                    if not c.connection.is_control_con() and (c.get_id() == self.get_id()):
-                        get_logger().log(3, "encrypter.connection control_data_con created")
-                        self.Encoder.connecter.helper.coordinator_data_con = c
-                        break
-# _2fastbt
         return 4, self.read_len
 
 # overlay_
     def connect_overlay(self):
-        if self.support_overlayswarm and self.dns and not self.is_control_con():
+        if self.support_overlayswarm and self.dns:
             so = SecureOverlay.getInstance()
             so.addTask(self.dns)
 # _overlay
@@ -280,6 +239,7 @@ class Connection:
 
     def _auto_close(self):
         if not self.complete:
+            print "encrypter: closing ",self.get_myip(),self.get_myport(),"to",self.get_ip(),self.get_port()
             self.close()
 
     def close(self):
@@ -313,12 +273,13 @@ class Connection:
             self.buffer.write(s[:i])
             s = s[i:]
             m = self.buffer.getvalue()
-#            get_logger().log(3, "encrypter.connection data came in m: '" +
-#                    str(m) + "' next_func: '" + str(self.next_func) + "'")
             self.buffer.reset()
             self.buffer.truncate()
             try:
                 x = self.next_func(m)
+            except WaitForReplyException:
+                print_exc()
+                return 4, self.read_len
             except:
                 print_exc()
                 self.next_len, self.next_func = 1, self.read_dead
@@ -335,25 +296,18 @@ class Connection:
     def connection_lost(self, connection):
         if self.Encoder.connections.has_key(connection):
             self.sever()
-
 # 2fastbt_
-    def is_control_con(self):
-        return self.control_con
-
     def is_coordinator_con(self):
-        helper = self.Encoder.connecter.helper
-        if helper is None:
+        print "encoder: is_coordinator_con: coordinator is ",self.Encoder.coordinator_ip
+        if self.coord_con:
+            return True
+        elif self.get_ip() == self.Encoder.coordinator_ip:
+            return True
+        else:
             return False
-        coordinator_id = helper.get_coordinator_id()
-        if coordinator_id is None:
-            return False
-        return coordinator_id == self.get_id()
 
     def is_helper_con(self):
-        coordinator = self.Encoder.connecter.coordinator
-        if coordinator is None:
-            return False
-        return coordinator.is_helper(self.get_id())
+        return False
 # _2fastbt
 
 class Encoder:
@@ -379,6 +333,7 @@ class Encoder:
             self.max_connections = self.config['max_connections']
 # 2fastbt_
         self.toofast_banned = {}
+        self.coordinator_ip = None
 # _2fastbt        
         schedulefunc(self.send_keepalives, keepalive_delay)
         
@@ -396,8 +351,6 @@ class Encoder:
                 helper.coordinator_con.connection.keepalive()
             except:
                 print_exc()
-#            if not c.control_con:
-#            c.keepalive()
 # _2fastbt
 
     def start_connections(self, list):
@@ -424,7 +377,7 @@ class Encoder:
         if self.to_connect:
             self.raw_server.add_task(self._start_connection_from_queue, delay)
 
-    def start_connection(self, dns, id):
+    def start_connection(self, dns, id, coord_con = False):
         """ Locally initiated connection """
         
         if ( self.paused
@@ -453,7 +406,7 @@ class Encoder:
             if DEBUG:
                 print "Encoder.start_connection to peer", dns
             c = self.raw_server.start_connection(dns)
-            con = Connection(self, c, id, dns = dns)
+            con = Connection(self, c, id, dns = dns, coord_con = coord_con)
             self.connections[c] = con
             c.set_handler(con)
         except socketerror:
@@ -475,18 +428,12 @@ class Encoder:
             self.connecter.external_connection_made -= 1
             return False
         ip = connection.get_ip(True)
-#--- 2fastbt_
-#        if self.config['security'] and self.banned.has_key(ip):
-        if self.banned.has_key(ip) and (self.config['security'] or \
-            (not connection.is_helper_con() and not connection.is_coordinator_con())):
-            print "is_helper_con: '" + str(connection.is_helper_con()) + \
-                "' is_coordinator_con: '" + str(connection.is_coordinator_con()) + "'"
-# _2fastbt
+        if self.config['security'] and self.banned.has_key(ip):
             return False
         for v in self.connections.values():
             if connection is not v:
 # 2fastbt_
-                if connection.id == v.id and not connection.is_control_con() and \
+                if connection.id == v.id and \
                     v.create_time < connection.create_time:
 # _2fastbt
                     return False
@@ -514,10 +461,6 @@ class Encoder:
 #        con = Connection(self, connection, None, True, options = options)
         con = Connection(self, connection, None, True)
         con.set_options(options)
-# 2fastbt_
-        if not con.is_control_con():
-            self.connections[connection] = con
-# _2fastbt
         # before: connection.handler = Encoder
         connection.set_handler(con)
         # after: connection.handler = Encrypter.Connecter
@@ -537,56 +480,6 @@ class Encoder:
         self.paused = flag
 
 # 2fastbt_
-    def scan_connections(self):
-        self.raw_server.add_task(self.scan_connections, 2)
-        n_helper_con = 0
-        n_helper_choked_con = 0
-        n_helper_not_interested_con = 0
-        n_coordinator_con = 0
-        n_coordinator_choked_con = 0
-        n_coordinator_not_interested_con = 0
-        n_control_con = 0
-        helper_cons = []
-        coordinator_cons = []
-        try:
-            for c in self.connections.values():
-                if c.is_control_con():
-                    n_control_con += 1
-                if c.is_helper_con():
-                    n_helper_con += 1
-                    helper_cons.append(c.connection.socket.fileno())
-                    try:
-                        con = self.connecter.connections[c]
-                        if con.download is not None:
-                            if con.download.is_choked():
-                                n_helper_choked_con += 1
-                            if not con.download.is_interested():
-                                n_helper_not_interested_con += 1
-                    except:
-                        get_logger().log(2, "encrypter.scan_connections EXCEPTION")
-                if c.is_coordinator_con():
-                    n_coordinator_con += 1
-                    coordinator_cons.append(c.connection.socket.fileno())
-                    try:
-                        con = self.connecter.connections[c]
-                        if con.upload is not None:
-                            if con.upload.is_choked():
-                                n_coordinator_choked_con += 1
-                            if not con.upload.is_interested():
-                                n_coordinator_not_interested_con += 1
-                    except:
-                        get_logger().log(2, "encrypter.scan_connections EXCEPTION")
-                    
-            get_logger().log(2, "encrypter.scan_connections n_control_con: '" + 
-                str(n_control_con) + " n_helper_con: '" + str(n_helper_con) + 
-                "' n_helper_choked_con: '" + str(n_helper_choked_con) + 
-                "' n_helper_not_interested_con: '" + str(n_helper_not_interested_con) + 
-                "' n_coordinator_con: '" + str(n_coordinator_con) + 
-                "' n_coordinator_choked_con: '" + str(n_coordinator_choked_con) +
-                "' n_coordinator_not_interested_con: '" + str(n_coordinator_not_interested_con) +
-                "' n_all_con: '" + str(len(self.connections)) + 
-                "' helper_cons: '" + str(helper_cons) +
-                "' coordinator_cons: '" + str(coordinator_cons) + "'")
-        except:
-            pass
-# _2fastbt
+    def set_coordinator_ip(self,ip):
+        self.coordinator_ip = ip
+# _2fastbt    

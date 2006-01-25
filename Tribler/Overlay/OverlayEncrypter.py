@@ -11,22 +11,20 @@ from time import time
 from binascii import b2a_hex
 from __init__ import *
 
-from permid import ChallengeResponse
-
 try:
     True
 except:
     True = 1
     False = 0
 
-DEBUG = False
+DEBUG = True
 MAX_INCOMPLETE = 8
 
 protocol_name = 'BitTorrent protocol'
 # Enable I-Share extensions:
 # Left-most bit = Azureus Enhanced Messaging Protocol (AEMP)
-# Left+42 bit = I-Share Overlay swarm extension
-# Left+43 bit = I-Share Simple Merkle Hashes extension
+# Left+42 bit = Tribler Overlay swarm extension
+# Left+43 bit = Tribler Simple Merkle Hashes extension
 # Right-most bit = BitTorrent DHT extension
 #option_pattern = chr(0)*8
 option_pattern = '\x00\x00\x00\x00\x00\x30\x00\x00' 
@@ -88,6 +86,15 @@ class Connection:    # OverlaySocket, a better name for it?
     def get_ip(self, real=False):
         return self.connection.get_ip(real)
 
+    def get_port(self, real=False):
+        return self.connection.get_port(real)
+
+    def get_myip(self, real=False):
+        return self.connection.get_myip(real)
+
+    def get_myport(self, real=False):
+        return self.connection.get_myport(real)
+
     def get_id(self):
         return self.id
 
@@ -115,7 +122,7 @@ class Connection:    # OverlaySocket, a better name for it?
 
     def read_reserved(self, s):
         if DEBUG:
-            print "Reserved bits:", show(s)
+            print "olencoder: Reserved bits:", `s`
         self.set_options(s)
         return 20, self.read_download_id
 
@@ -305,8 +312,13 @@ class OverlayEncoder:
                 return True
             ip = v.get_ip(True)
             if ip != 'unknown' and ip == dns[0]:    # forbid to setup multiple connection on overlay swarm
+                if DEBUG:
+                    print "olencoder: Using existing connection to",dns
+                ####self.overlayswarm.connectionMade(v)
                 return True
         try:
+            if DEBUG:
+                print "olencoder: Setting up new connection to",dns
             c = self.raw_server.start_connection(dns)
             con = Connection(self, c, id, dns = dns)
             self.connections[c] = con

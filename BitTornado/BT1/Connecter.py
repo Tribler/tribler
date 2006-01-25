@@ -20,7 +20,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = False
+DEBUG = True
 
 def toint(s):
     return long(b2a_hex(s), 16)
@@ -35,9 +35,6 @@ def show(s):
         text.append(ord(s[i]))
     return text
     
-MAX_ROUNDS = 137
-# hash
-
 class Connection:
     def __init__(self, connection, connecter):
         self.connection = connection    
@@ -65,12 +62,13 @@ class Connection:
     def get_port(self, real=False):
         return self.connection.get_port(real)
 
+    ## ARNO: FIXME, MAKE SURE THIS IS FILLED IN OR SPEW WORKS OTHERWISE
     def set_permid(self, permid):
         self.permid = permid
 
     def get_permid(self):
         return self.permid;
-        
+
     def get_id(self):
         return self.connection.get_id()
 
@@ -120,6 +118,7 @@ class Connection:
         self._send_message(REQUEST + tobinary(index) + 
             tobinary(begin) + tobinary(length))
         if DEBUG:
+            print "sending REQUEST to",self.get_ip()
             print 'sent request: '+str(index)+': '+str(begin)+'-'+str(begin+length)
 
     def send_cancel(self, index, begin, length):
@@ -133,18 +132,6 @@ class Connection:
 
     def send_have(self, index):
         self._send_message(HAVE + tobinary(index))
-
-# 2fastbt_
-    def send_reserve_pieces(self, pieces, all_or_nothing = False):
-        if all_or_nothing:
-            all_or_nothing = chr(1)
-        else:
-            all_or_nothing = chr(0)
-        self._send_message(RESERVE_PIECES + self.connecter.helper.encoder.my_id + all_or_nothing + bencode(pieces))
-
-    def send_pieces_reserved(self, pieces):
-        self._send_message(PIECES_RESERVED + bencode(pieces))
-# _2fastbt
 
     def send_keepalive(self):
         self._send_message('')
@@ -245,36 +232,18 @@ class Connecter:
     def connection_made(self, connection):
         c = Connection(connection, self)
         self.connections[connection] = c
-# 2fastbt_
-        if connection.is_control_con():
-            print "GOT CONTROL CONNECTION"
-            get_logger().log(2, "connecter.connecter: min_uploads: '" +
-                str(self.config['min_uploads']) + "' max_uploads: '" +
-                str(self.config['max_uploads']) + "'")
-            self.config['min_uploads'] += 1
-            self.config['max_uploads'] += 1
-            if self.coordinator is not None:
-                self.coordinator.add_helper(c)
-
-        if not connection.is_control_con():
-            #TODO: overlay swarm also needs upload and download to control transferring rate
-            c.upload = self.make_upload(c, self.ratelimiter, self.totalup)
-            c.download = self.downloader.make_download(c)
-            self.choker.connection_made(c)
-        connection.connecter_connection = c
-
+        #TODO: overlay swarm also needs upload and download to control transferring rate
+        c.upload = self.make_upload(c, self.ratelimiter, self.totalup)
+        c.download = self.downloader.make_download(c)
+        self.choker.connection_made(c)
         return c
-# _2fastbt
 
     def connection_lost(self, connection):
         c = self.connections[connection]
         del self.connections[connection]
         if c.download:
             c.download.disconnected()
-# 2fastbt_
-        if not connection.is_control_con():
-            self.choker.connection_lost(c)
-# _2fastbt
+        self.choker.connection_lost(c)
 
     def connection_flushed(self, connection):
         conn = self.connections[connection]
@@ -284,20 +253,12 @@ class Connecter:
 
     def got_piece(self, i):
         for co in self.connections.values():
-# 2fastbt_
-            if not co.connection.is_control_con():
-                co.send_have(i)
-# _2fastbt
+            co.send_have(i)
 
     def got_message(self, connection, message):
         # connection: Encrypter.Connection; c: Connecter.Connection
         c = self.connections[connection]    
         t = message[0]
-        #if DEBUG:
-        #if t in HelpMessages:
-        if connection.is_helper_con():
-            print "helperconn: GOT",getMessageName(t),len(message)
-
         if t == BITFIELD and c.got_anything:
             if DEBUG:
                 print "Close on BITFIELD"
@@ -332,7 +293,7 @@ class Connecter:
                 connection.close()
                 return
             if DEBUG:
-                print "PEER SAYS HAVE(",i,")"
+                print "connecter: Got HAVE(",i,") from",connection.get_ip()
             c.download.got_have(i)
         elif t == BITFIELD:
             try:
@@ -358,10 +319,6 @@ class Connecter:
                 return
             c.got_request(i, toint(message[5:9]), 
                 toint(message[9:]))
-# 2fastbt_
-            if connection.is_coordinator_con():
-                get_logger().log(2, "connecter.connecter: sending to coordinator piece: " + str(i))
-# _2fastbt
         elif t == CANCEL:
             if len(message) != 13:
                 if DEBUG:
@@ -388,30 +345,8 @@ class Connecter:
                     print "Close on bad PIECE: msg len"
                 connection.close()
                 return
-# 2fastbt_
-            if connection.is_helper_con():
-                get_logger().log(2, "connecter.connecter: got from helper piece: " + str(i))
-# _2fastbt
             if c.download.got_piece(i, toint(message[5:9]), [], message[9:]):
                 self.got_piece(i)
-# 2fastbt_
-        elif t == RESERVE_PIECES:
-#            get_logger().log(3, "connection: got RESERVE_PIECES")
-            peer_id = message[1:21]
-            all_or_nothing = message[21]
-            pieces = bdecode(message[22:])
-            reserved_pieces = self.coordinator.reserve_pieces(c, pieces, all_or_nothing)
-            self.round = (self.round + 1) % MAX_ROUNDS
-            if self.round == 0:
-                reserved_pieces.extend(self.coordinator.get_reserved())
-            c.send_pieces_reserved(reserved_pieces)
-        elif t == PIECES_RESERVED:
-            pieces = bdecode(message[1:])
-            self.helper.pieces_reserved(pieces)
-        elif t == IGNORE_PIECES:
-            pieces = bdecode(message[1:])
-            self.helper.ignore_pieces(pieces)
-# _2fastbt
         elif t == HASHPIECE:
             try:
                 # Merkle: Handle pieces with hashes

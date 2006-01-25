@@ -23,8 +23,6 @@ class MetadataHandler:
         if MetadataHandler.__single:
             raise RuntimeError, "MetadataHandler is singleton"
         MetadataHandler.__single = self
-        #self.file_cache = FileCacheHandler()
-        self.file_cache = {}
 
     def getInstance(*args, **kw):
         if MetadataHandler.__single is None:
@@ -32,10 +30,11 @@ class MetadataHandler:
         return MetadataHandler.__single
     getInstance = staticmethod(getInstance)
         
-    def register(self,secure_overlay,dlhelper):
+    def register(self,secure_overlay,dlhelper,launchmany):
         self.secure_overlay = secure_overlay
         self.dlhelper = dlhelper
-
+        #self.file_cache = FileCacheHandler()
+        self.arno_file_cache = launchmany.arno_file_cache
 
     def handleMessage(self, permid, message):
         
@@ -78,6 +77,14 @@ class MetadataHandler:
             return False
         if not self.valid_torrent_hash(torrent_hash):
             return False
+
+        ## ARNO HACK
+        torrent_data = self.arno_file_cache[torrent_hash]
+        if torrent_data:
+            self.do_send_metadata(conn, torrent_hash, torrent_data)
+            return True
+
+        ## PREVIOUS CODE
         torrent_path = self.find_torrent(torrent_hash)
         if not torrent_path:
             return False
@@ -96,7 +103,6 @@ class MetadataHandler:
         """ lookup torrent file and return torrent path """
         
         # metadata = self.file_cache.findTorrent(torrent_hash)
-        metadata = self.file_cache[torrent_hash]
         if metadata:
             return metadata['torrent_path']    #TODO: handle merkle torrent
         return None

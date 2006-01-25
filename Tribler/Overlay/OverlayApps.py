@@ -1,8 +1,11 @@
+# Written by Arno Bakker
+# see LICENSE.txt for license information
 #
 # All applications on top of the SecureOverlay should be started here.
 #
 
-from BitTornado.BT1.MessageID import HelpCoordinatorMessages, MetadataMessages
+from BitTornado.BT1.MessageID import HelpCoordinatorMessages, HelpHelperMessages, MetadataMessages
+from Tribler.toofastbt.CoordinatorMessageHandler import CoordinatorMessageHandler
 from Tribler.toofastbt.HelperMessageHandler import HelperMessageHandler
 from MetadataHandler import MetadataHandler
 
@@ -22,10 +25,17 @@ class OverlayApps:
     getInstance = staticmethod(getInstance)
 
     def register(self,secure_overlay,launchmany):
+        # Create handler for messages to dlhelp coordinator
+        self.coordinator = CoordinatorMessageHandler(launchmany)
+        secure_overlay.registerHandler(HelpHelperMessages,self.coordinator)
+
+        # Create handler for messages to dlhelp helper
         self.helper = HelperMessageHandler(launchmany)
         secure_overlay.registerHandler(HelpCoordinatorMessages,self.helper)
+
+        # Create handler for metadata messages
         self.metadata_handler = MetadataHandler.getInstance()
-        self.metadata_handler.register(secure_overlay,self.helper)
+        self.metadata_handler.register(secure_overlay,self.helper,launchmany)
         secure_overlay.registerHandler(MetadataMessages,self.metadata_handler)
         self.helper.register(self.metadata_handler)
 

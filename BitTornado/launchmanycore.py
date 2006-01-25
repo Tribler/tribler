@@ -62,7 +62,6 @@ class SingleDownload:
         self.hash = hash
         self.response = response
         self.config = config
-        
         self.doneflag = Event()
         self.waiting = True
         self.checking = False
@@ -191,7 +190,7 @@ class LaunchMany:
             self.hashcheck_current = None
             self.torrent_list = []
             
-            # BT+ extension flags
+            # Tribler extension flags
             GLOBAL.do_overlay = config['overlay']
             GLOBAL.do_cache = config['cache']
             GLOBAL.do_buddycast = config['buddycast']
@@ -199,7 +198,8 @@ class LaunchMany:
             GLOBAL.do_superpeer = config['superpeer']
             GLOBAL.do_das_test = config['das_test']
             GLOBAL.do_buddycast_interval = config['buddycast_interval']
-            
+            self.arno_file_cache = { 'bla': 10 }            
+
             self.rawserver = RawServer(self.doneflag,
                                        config['timeout_check_interval'],
                                        config['timeout'],
@@ -243,7 +243,7 @@ class LaunchMany:
                 self.overlayswarm = OverlaySwarm.getInstance()                
                 self.secure_overlay = SecureOverlay.getInstance()
                 self.secure_overlay.register(self.overlayswarm)
-                self.overlayswarm.register(self.secure_overlay, self.handler, 
+                self.overlayswarm.register(self.listen_port, self.secure_overlay, self.handler, 
                                            self.config, self.exchandler)
                 self.overlay_apps = OverlayApps.getInstance()
                 self.overlay_apps.register(self.secure_overlay,self)
@@ -368,6 +368,11 @@ class LaunchMany:
         del self.downloads[hash]
         
     def add(self, hash, data):
+        
+        print "BitTornado/launchmanycore: ADD"
+        ## ARNO: HACK 
+        self.arno_file_cache[hash] = data
+
         c = self.counter
         self.counter += 1
         x = ''
@@ -451,3 +456,25 @@ class LaunchMany:
 
     def exchandler(self, s):
         self.Output.exception(s)
+
+# 2fastbt_
+    def get_coordinator(self,torrent_hash):
+        d = self.get_bt1download(torrent_hash)
+        if d is not None:
+            return d.coordinator
+        
+    def get_helper(self,torrent_hash):
+        d = self.get_bt1download(torrent_hash)
+        if d is not None:
+            return d.helper
+
+    def get_bt1download(self,torrent_hash):
+        try:
+            d = self.downloads[torrent_hash]
+            if d is None:
+                return None
+            else:
+                return d
+        except KeyError:
+            return None
+# _2fastbt

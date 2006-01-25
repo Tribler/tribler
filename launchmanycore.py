@@ -24,6 +24,7 @@ from cStringIO import StringIO
 from traceback import print_exc, print_stack
 
 from BitTornado.launchmanycore import LaunchMany
+from BitTornado.bencode import bencode
 from BitTornado.__init__ import createPeerID, mapbase64
 from Utility.constants import * #IGNORE:W0611
 
@@ -66,13 +67,15 @@ class ABCLaunchMany(Thread,LaunchMany,wx.EvtHandler):
         output = Outputter()
         btconfig = utility.getBTParams()
         # TODO: move to better place
-        torrent_dir = os.path.join(self.utility.getConfigPath(), 'torrenthelping' )
+        #torrent_dir = os.path.join(self.utility.getConfigPath(), 'torrenthelping' )
+        torrent_dir = os.path.join( '/tmp', 'torrenthelping' )
         btconfig['torrent_dir'] = torrent_dir
         if not os.access(torrent_dir,os.F_OK):
             os.mkdir(torrent_dir)
         btconfig['parse_dir_interval'] = 60
         btconfig['saveas_style'] = 1 # must be 1 for security during download helping
 
+        #Thread.__init__(self,name="ABCLaunchManyThread") # TODO: add counter to name
         Thread.__init__(self)
         LaunchMany.__init__(self,btconfig,output)
         wx.EvtHandler.__init__(self)
@@ -150,6 +153,8 @@ class ABCLaunchMany(Thread,LaunchMany,wx.EvtHandler):
         self.rawserver.add_task(self.stats, self.stats_period)
 
     def add(self, hash, data):
+        """ called by Tribler/toofastbt/HelperMessageHandler """
+        print "ABC's launchmanycore: ADD (postponed)"
         self.invokeLater(self.add_callback,[hash,data])
 
     def onInvoke(self, event):
@@ -164,11 +169,18 @@ class ABCLaunchMany(Thread,LaunchMany,wx.EvtHandler):
 
     # Make sure this is called by the MainThread, as it does GUI updates
     def add_callback(self, hash, data):
+        print "ABC's launchmanycore: actual ADD"
         self.utility.queue.addtorrents.AddTorrentFromFile(data['path'], caller = "helper", dest = data['dest'], caller_data = data)
 
         
     # polymorph/override
     def addDownload(self, ABCTorrentTemp):
+        print "ABC's launchmanycore: ADDDOWNLOAD"
+
+        ## ARNO: HACK
+        self.arno_file_cache[ABCTorrentTemp.torrent_hash] = bencode(ABCTorrentTemp.getResponse())
+        #print "ABC's launchmanycore: arno_file cache is",self.arno_file_cache
+
         c = self.counter
         self.counter += 1
         x = ''
@@ -179,6 +191,10 @@ class ABCLaunchMany(Thread,LaunchMany,wx.EvtHandler):
         engine = ABCEngine(ABCTorrentTemp, peer_id)
         ABCTorrentTemp.connection.engine = engine
         self.utility.torrents["active"][ABCTorrentTemp] = 1
+
+        # To get coordinators and helpers
+        self.downloads[ABCTorrentTemp.torrent_hash] = engine.dow
+
         engine.start()
 
     # override

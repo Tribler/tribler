@@ -12,7 +12,7 @@ except:
     False = 0
 
 # 2fastbt_
-from BT1.Encrypter import protocol_name, control_option_pattern
+from BT1.Encrypter import protocol_name
 from Tribler.toofastbt.Logger import get_logger
 # _2fastbt
 

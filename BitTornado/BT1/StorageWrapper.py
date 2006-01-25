@@ -557,6 +557,7 @@ class StorageWrapper:
             self.storage.write(self.piece_size * index + begin, data)
             return True
         except IOError, e:
+            traceback.print_exc()
             self.failed('IO Error: ' + str(e))
             return False
 
