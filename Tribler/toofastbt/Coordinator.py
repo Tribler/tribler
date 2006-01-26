@@ -8,7 +8,7 @@ from Tribler.toofastbt.Logger import get_logger
 from Tribler.toofastbt.intencode import toint, tobinary
 from Tribler.Overlay.SecureOverlay import SecureOverlay
 from BitTornado.bencode import bencode
-from BitTornado.BT1.MessageID import DOWNLOAD_HELP, PIECES_RESERVED
+from BitTornado.BT1.MessageID import DOWNLOAD_HELP, STOP_DOWNLOAD_HELP, PIECES_RESERVED
 
 
 MAX_ROUNDS = 137
@@ -48,7 +48,15 @@ class Coordinator:
                         peer['port'] = port
             f.close()
 
-    def is_helper(self, ip):
+    def is_helper_permid(self, permid):
+        """ Used by HelperMessageHandler to check if RESERVE_PIECES is from good source """
+        for peer in self.asked_helpers:
+            if peer['permid'] == permid:
+                return True
+        return False
+
+    def is_helper_ip(self, ip):
+        """ Used by Coordinator's Downloader to see what connections are helpers """
         for peer in self.asked_helpers:
             if peer['ip'] == ip:
                 return True
@@ -118,7 +126,7 @@ class Coordinator:
         for peer in peerList:
             print "dlhelp: Coordinator connecting to",peer['name'],peer['ip'],peer['port']," for stopping help"
             stop_request = self.torrent_hash
-            #self.secure_overlay.addTask(peer['permid'],(STOP_DOWNLOAD_HELP + stop_request)
+            self.secure_overlay.addTask(peer['permid'],STOP_DOWNLOAD_HELP + stop_request)
 
     def get_asked_helpers_copy(self):
         # returns a COPY of the list. We need 'before' and 'after' info here,

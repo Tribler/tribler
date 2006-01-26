@@ -8,6 +8,7 @@
 import sys
 import os
 import wx
+import threading
 
 from ABC.GUI.spinner import ABCSpinner
 
@@ -23,6 +24,11 @@ class NumSimSpinner(ABCSpinner):
         self.changeSpinner()
 
     def changeSpinner(self, event = None):
+
+        if threading.currentThread().getName() != "MainThread":
+            print "NOT MAIN THREAD"
+            print_stack()
+
         if event is None:
             self.spinner.SetValue(self.utility.config.Read('numsimdownload', "int"))
             self.updateCounter()
@@ -39,6 +45,11 @@ class NumSimSpinner(ABCSpinner):
                 self.utility.queue.updateAndInvoke()
 
     def updateCounter(self, event = None):
+
+        if threading.currentThread().getName() != "MainThread":
+            print "NOT MAIN THREAD"
+            print_stack()
+
         proccount = self.utility.queue.getProcCount()
         self.current.SetLabel(str(proccount))
        

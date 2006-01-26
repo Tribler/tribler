@@ -21,8 +21,8 @@ class TorrentConfig(ConfigReader):
         self.utility = torrent.utility
         
         basepath = os.path.join(self.utility.getConfigPath(), "torrentinfo")
-        filename = os.path.split(self.torrent.src)[1] + ".info"
-        configpath = os.path.join(basepath, filename)
+        self.filename = os.path.split(self.torrent.src)[1] + ".info"
+        configpath = os.path.join(basepath, self.filename)
         ConfigReader.__init__(self, configpath, "TorrentInfo")
         
         self.writeflags = { "src": False, 

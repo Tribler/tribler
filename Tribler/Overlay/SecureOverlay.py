@@ -20,14 +20,13 @@ the task's permid
 """
 
 from time import time
+from socket import inet_aton
+from traceback import print_exc, print_stack
+from threading import RLock, currentThread
+import copy
+
 from Tribler.CacheDB.CacheDBHandler import PeerDBHandler
 from BitTornado.BT1.MessageID import CANCEL, getMessageName
-from socket import inet_aton
-# Written by Jie Yang
-# see LICENSE.txt for license information
-
-from traceback import print_stack
-from threading import RLock, currentThread
 
 DEBUG = True
 Length_of_permid = 0    # 0: no restriction
@@ -272,9 +271,7 @@ class SecureOverlay:
     
     def register(self,overlayswarm):
         self.overlayswarm = overlayswarm
-        #self.add_rawserver_task = self.overlayswarm.rawserver.add_task
-        #self.add_rawserver_task(self._auto_close, self.check_interval)
-
+        self.overlayswarm.rawserver.add_task(self._auto_close, self.check_interval)
 
     def registerHandler(self, ids, handler):    
         """ ids is the [ID1, ID2, ..] where IDn is a sort of message ID in overlay swarm. """
@@ -283,19 +280,27 @@ class SecureOverlay:
         self.incoming_handler.registerHandler(ids, handler)
 
     def _auto_close(self):
-        # TODO: concurrency control
-        self.add_rawserver_task(self._auto_close, self.check_interval)
+        self.acquire()
+        self.overlayswarm.rawserver.add_task(self._auto_close, self.check_interval)
         self._checkConnections()
-    
+        self.release()    
+
     def _checkConnections(self):
-        for permid in self.connections:
+        connections = copy.copy(self.connection_list)
+        for permid in connections:
             self._checkConnection(permid)
 
     def _checkConnection(self, permid):
         conn = self.connection_list[permid]['c_conn']
         expire = self.connection_list[permid]['expire']
-        if not conn or conn.closed or time() > expire:
-            self._closeConnection(permid)
+        expired = time() > expire
+        if not conn or conn.closed or expired:
+            #self._closeConnection(permid) # don't work due to recursion prob
+            if expired:
+                print "secover: closing expired connection to",`permid`
+                conn.close()
+            print "secover: removing connection to",`permid`
+            self.connection_list.pop(permid)
             ret = None
         else:
             ret = conn
@@ -324,7 +329,6 @@ class SecureOverlay:
         return ret
 
     def findDNSByPermid(self, permid):
-        print "secover: before findDNSBy acquire"
         self.acquire()
         ret = None
         if self._findConnByPermid(permid):
@@ -339,9 +343,6 @@ class SecureOverlay:
         self.acquire()
         #TODO: priority task queue
         try:
-            if message is None:
-                print_stack()
-
             if validPermid(target):
                 if DEBUG:
                     if message is None:

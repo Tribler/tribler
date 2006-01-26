@@ -199,6 +199,8 @@ class Connection:    # OverlaySocket, a better name for it?
 
     def sever(self):
         self.closed = True
+        if self.Encoder.connections.has_key(self.connection):
+            del self.Encoder.connections[self.connection]
 
         if self.complete:
             self.connecter.connection_lost(self)

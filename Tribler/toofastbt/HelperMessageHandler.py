@@ -25,34 +25,43 @@ class HelperMessageHandler:
     def __init__(self,launchmany):
         self.metadata_queue = {}
         self.launchmany = launchmany
+        self.helpdir = launchmany.torrent_dir
 
     def register(self, metadata_handler):
         self.metadata_handler = metadata_handler
 
     def handleMessage(self,permid,message):
         t = message[0]
-
         if DEBUG:
             print "helper: Got",getMessageName(t)
+
+        # Access control
+        flag = 0
+        for peer in self.launchmany.utility.all_peers_cache:
+            if peer['permid'] == permid:
+                print "helper: Got",getMessageName(t),"from friend",peer['name']
+                flag = 1
+                break
+        if flag == 0:
+            print "helper: Got",getMessageName(t),"from unknown peer", `permid`
+            return False
+        
         if t == DOWNLOAD_HELP:
             return self.got_dlhelp_request(permid, message)
         elif t == STOP_DOWNLOAD_HELP:
-            return self.got_dlhelp_request(permid, message)
+            return self.got_stop_dlhelp_request(permid, message)
         elif t == PIECES_RESERVED:
             return self.got_pieces_reserved(permid, message)
 
 
     def got_dlhelp_request(self, permid, message):
         try:
-            #(torrent_hash, server_port) = bdecode(message[1:])
             torrent_hash = message[1:]
         except:
             errorfunc("warning: bad data in dlhelp_request")
             return False
-        if DEBUG:
-            print "helper: Got DOWNLOAD_HELP from ", `permid`
         
-# TODO: add concurrency control
+# TODO: add smarter concurrency control, see SecureOverlay. Currently has 1 big lock
 
         if not self.can_help(torrent_hash):
             return False
@@ -71,7 +80,7 @@ class HelperMessageHandler:
     def do_help(self, torrent_hash, torrent_data, permid):
         d = bdecode(torrent_data)
         data = {}
-        data['file'] = get_random_filename(self.launchmany.torrent_dir)
+        data['file'] = get_random_filename(self.helpdir)
         data['type'] = 'torrent'
         i = d['info']
         h = sha(bencode(d['info'])).digest()
@@ -89,20 +98,13 @@ class HelperMessageHandler:
         data['numfiles'] = nf
         data['length'] = l
         data['name'] = i.get('name', data['file'])
-        dest = os.path.join(self.launchmany.torrent_dir, data['file'] )
+        dest = os.path.join(self.helpdir, data['file'] )
         data['dest'] = dest        
 
         # These values are used by abcengine.py to create BT1Download
         data['coordinator_permid'] = permid
-        secure_overlay = SecureOverlay.getInstance()
-        dns = secure_overlay.findDNSByPermid(permid)
-        # Do this before writing torrent to disk
-        if dns is None:
-            print "helpmsg: Cannot get coordinator IP address, ignoring help request"
-            return
-        data['coordinator_ip'] = dns[0]
 
-        tfile = os.path.join(self.launchmany.torrent_dir, data['file'] + '.torrent')
+        tfile = os.path.join(self.helpdir, data['file'] + '.torrent')
         data['path'] = tfile
         def setkey(k, d = d, data = data):
             if d.has_key(k):
@@ -112,8 +114,15 @@ class HelperMessageHandler:
         setkey('announce-list')
         data['metainfo'] = d
 
+        friendname = None
+        for peer in self.launchmany.utility.all_peers_cache:
+            if peer['permid'] == permid:
+                friendname = peer['name']
+                break
+        data['friendname'] = friendname
+
         if DEBUG:
-            print "helpmsg: Got metadata required for helping"
+            print "helpmsg: Got metadata required for helping",friendname
             print "helpmsg: name:   ", data['name']
             print "helpmsg: torrent: ", data['path']
             print "helpmsg: saveas: ", data['file']
@@ -130,7 +139,6 @@ class HelperMessageHandler:
         # These values are used by launchmanycore??? in text mode????
         self.launchmany.config['role'] = 'helper'
         self.launchmany.config['coordinator_permid'] = permid
-        self.launchmany.config['coordinator_ip'] = dns[0]
 
         # Start new download
         self.launchmany.add(torrent_hash, data)
@@ -157,9 +165,27 @@ class HelperMessageHandler:
     def find_torrent(self, torrent_hash):
         return None
 
+
+    def got_stop_dlhelp_request(self, permid, message):
+        try:
+            torrent_hash = message[1:]
+        except:
+            errorfunc("warning: bad data in STOP_DOWNLOAD_HELP")
+            return False
+
+        h = self.launchmany.get_helper(torrent_hash)
+        if h is None:
+            return False
+
+        if not h.is_coordinator(permid): 
+            return False
+
+        self.launchmany.remove(torrent_hash)
+        return True
+
+
     def got_pieces_reserved(self,permid, message):
         try:
-            print "helpmsg: pieces_reserved len is",len(message)
             torrent_hash = message[1:21]
             reqid = toint(message[21:25])
             pieces = bdecode(message[25:])
@@ -167,7 +193,7 @@ class HelperMessageHandler:
             errorfunc("warning: bad data in PIECES_RESERVED")
             return False
 
-# TODO: add concurrency control
+# TODO: add smarter concurrency control, see SecureOverlay. Currently has 1 big lock
 
         h = self.launchmany.get_helper(torrent_hash)
         if h is None:
@@ -181,3 +207,6 @@ class HelperMessageHandler:
         h.notify(reqid)
         return True
         
+    def errorfunc(self,msg):
+        if DEBUG:
+            print msg

@@ -107,6 +107,8 @@ def getMessageName(t):
         return "RESPONSE2"
     elif t == DOWNLOAD_HELP:
         return "DOWNLOAD_HELP"
+    elif t == STOP_DOWNLOAD_HELP:
+        return "STOP_DOWNLOAD_HELP"
     elif t == HASHPIECE:
         return "HASHPIECE"
     elif t == PREFERENCE_EXCHANGE:
@@ -120,5 +122,5 @@ def getMessageName(t):
     elif t == PIECES_RESERVED:
         return "PIECES_RESERVED"
     else:
-        return "unknown!",ord(t)
+        return "unknown!"+str(ord(t))
         

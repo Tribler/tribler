@@ -18,7 +18,8 @@ class DownloadHelperPanel(wx.Panel):
 
         self.utility = dialog.utility
         engine = dialog.torrent.connection.engine
-        self.coordinator = engine.getDownloadhelpCoordinator()
+        if engine is not None:
+            self.coordinator = engine.getDownloadhelpCoordinator()
 
         # If the torrent is stopped, don't allow helping
         if engine is None or self.coordinator is None:
@@ -35,6 +36,9 @@ class DownloadHelperPanel(wx.Panel):
         # for this torrent
         friends = self.utility.all_peers_cache
         helpingFriends = self.coordinator.get_asked_helpers_copy()
+
+        #print "dlhelperframe: friends is",friends
+        #print "dlhelperframe: helping friends is",helpingFriends
 
         # 1. Create list of images of all friends
         type = wx.LC_LIST
@@ -54,14 +58,13 @@ class DownloadHelperPanel(wx.Panel):
 
         # 2. Filter out friends already helping for left window
         self.remainingFriends = []
-        flag = 0
         for index in range(len(friends)):
             friend = friends[index]
 
             ## HACK REMOVE
             friend['dlh_status'] = 'Candidat3'
 
-
+            flag = 0
             for helper in helpingFriends:
                 if friend['name'] == helper['name']:
                     helper['tempiconindex'] = index
@@ -173,8 +176,8 @@ class DownloadHelperPanel(wx.Panel):
             friend['dlh_status'] = 'Candidate'
         self.leftListCtl.updateStatus()
 
-        self.coordinator.stop_help(remainingFriends)
-        self.coordinator.request_help(helpingFriends)
+        self.coordinator.stop_help(remainingFriends, force = False)
+        self.coordinator.request_help(helpingFriends, force = True)
 
 class FriendList(wx.ListCtrl):
     def __init__(self, parent, friends, type, imgList):

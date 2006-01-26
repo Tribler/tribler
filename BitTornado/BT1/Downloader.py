@@ -309,7 +309,7 @@ class SingleDownload:
         self.active_requests.extend(want)
         for piece, begin, length in want:
 # 2fastbt_
-            if self.helper is None or self.connection.connection.is_helper_con() or self.helper.reserve_piece(piece):
+            if self.helper is None or self.connection.connection.is_helper_con() or self.helper.reserve_piece(piece,self):
                 self.connection.send_request(piece, begin, length)
                 self.downloader.chunk_requested(length)
 # _2fastbt

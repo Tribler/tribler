@@ -66,8 +66,10 @@ class ABCLaunchMany(Thread,LaunchMany,wx.EvtHandler):
     def __init__(self, utility):
         self.utility = utility        
         output = Outputter()
+
         btconfig = utility.getBTParams()
-        
+        # Create dir for helper to put torrents and files in.
+        #
         # CAREFUL: Sometimes there are problems when attempting to save 
         # downloads to a NFS filesystem, so make sure torrent_dir is on
         # a local disk.
@@ -81,10 +83,11 @@ class ABCLaunchMany(Thread,LaunchMany,wx.EvtHandler):
         btconfig['torrent_dir'] = torrent_dir
         if not os.access(torrent_dir,os.F_OK):
             os.mkdir(torrent_dir)
-        btconfig['parse_dir_interval'] = 60
+
+        btconfig['parse_dir_interval'] = None # No parsing done at the moment
         btconfig['saveas_style'] = 1 # must be 1 for security during download helping
 
-        #Thread.__init__(self,name="ABCLaunchManyThread") # TODO: add counter to name
+        # btconfig must be set before calling LaunchMany constructor
         Thread.__init__(self)
         LaunchMany.__init__(self,btconfig,output)
         wx.EvtHandler.__init__(self)
@@ -92,6 +95,7 @@ class ABCLaunchMany(Thread,LaunchMany,wx.EvtHandler):
         # set by BitTornado.LaunchMany constructor
         self.utility.listen_port = self.listen_port
 
+        self.setName( "ABCLaunchMany"+self.getName() )
         EVT_INVOKE(self, self.onInvoke)
     
     # override
@@ -102,6 +106,7 @@ class ABCLaunchMany(Thread,LaunchMany,wx.EvtHandler):
         try:
             self.handler.listen_forever()
         except:
+            print_exc()
             data = StringIO()
             print_exc(file=data)
             self.Outputter.exception(data.getvalue())
@@ -160,6 +165,29 @@ class ABCLaunchMany(Thread,LaunchMany,wx.EvtHandler):
 
             engine.onUpdateStatus(progress, t, dnrate, uprate, status, s, spew)
         self.rawserver.add_task(self.stats, self.stats_period)
+
+
+    def remove(self,torrent_hash):
+        # Arno: at the moment I just stop the torrent, as removal from GUI list 
+        # is rather complex (need to update the list shown to the user, who may 
+        # just be editing it)
+
+        # St*pid ABC code uses string with hex representation as infohash
+        hexhash = "".join([hex(ord(x))[2:].zfill(2)for x in tuple(torrent_hash)])
+        ABCTorrentTemp = self.utility.queue.getABCTorrent(-1,hexhash)
+
+        if ABCTorrentTemp is None:
+            print "launchmany: STOP_DOWNLOAD_HELP could not find torrent!"
+
+        if ABCTorrentTemp is not None:
+            print "launchmany: STOP_DOWNLOAD_HELP stopping torrent (postponed)"
+            self.invokeLater(self.remove_callback,[ABCTorrentTemp])            
+
+    def remove_callback(self,ABCTorrentTemp):
+        print "launchmany: STOP_DOWNLOAD_HELP actually stopping torrent"
+        #msg = self.utility.lang.get('helping_stopped')
+        #ABCTorrentTemp.changeMessage( msg, "status")
+        self.utility.actionhandler.procREMOVE([ABCTorrentTemp], removefiles = True)
 
     def add(self, hash, data):
         """ called by Tribler/toofastbt/HelperMessageHandler """

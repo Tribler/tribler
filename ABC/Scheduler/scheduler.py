@@ -5,7 +5,7 @@ import wx
 from threading import Event
 from threading import Timer
 from threading import currentThread
-#from traceback import print_exc
+from traceback import print_stack
 #from cStringIO import StringIO
 
 from ABC.Scheduler.action import ActionHandler
@@ -115,8 +115,7 @@ class ABCScheduler(wx.EvtHandler):
         print "UpdateRunningTorrentCounters thread",currentThread().getName()
         if currentThread().getName() != "MainThread":
             print "counters NOT MAIN THREAD"
-            return
-
+            print_stack()
 
         self.CalculateTorrentCounters()
             
@@ -452,6 +451,11 @@ class ABCScheduler(wx.EvtHandler):
             pass
             
     def getABCTorrent(self, index = -1, info_hash = None):
+        print "queue: Finding torrent",`info_hash`
+        print "queue: candidates are:"
+        for t in self.utility.torrents["all"]:
+            print "queue: cand",t.infohash
+
         # Find it by the index
         if index >= 0 and index < len(self.utility.torrents["all"]):
             return self.utility.torrents["all"][index]

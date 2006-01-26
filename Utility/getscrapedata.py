@@ -1,8 +1,29 @@
 import re
 import binascii
 import sys
+import wx
 
-from threading import Thread
+from threading import Thread,Event
+
+# The ScrapeThread calls ABCTorrent to update the info. As that updates
+# the GUI, those updates must be done by the MainThread and not this
+# scraping thread itself.
+
+wxEVT_INVOKE = wx.NewEventType()
+
+def EVT_INVOKE(win, func):
+    win.Connect(-1, -1, wxEVT_INVOKE, func)
+    
+def DELEVT_INVOKE(win):
+    win.Disconnect(-1, -1, wxEVT_INVOKE)
+
+class InvokeEvent(wx.PyEvent):
+    def __init__(self, func, args, kwargs):
+        wx.PyEvent.__init__(self)
+        self.SetEventType(wxEVT_INVOKE)
+        self.func = func
+        self.args = args
+        self.kwargs = kwargs
 
 
 ################################################################
@@ -12,9 +33,12 @@ from threading import Thread
 # Retrieves scrape data from a tracker.
 #
 ################################################################
-class ScrapeThread(Thread):
+class ScrapeThread(Thread,wx.EvtHandler):
+
     def __init__(self, utility, torrent, manualscrape = False):
         Thread.__init__(self, None, None, None)
+        wx.EvtHandler.__init__(self)
+
         self.torrent = torrent
         self.utility = utility
         self.manualscrape = manualscrape
@@ -23,6 +47,8 @@ class ScrapeThread(Thread):
         self.currentpeer = "?"
 
         self.setName( "Scrape"+self.getName() )
+        self.doneflag = Event()
+        EVT_INVOKE(self, self.onInvoke)
 
     def run(self):
         self.GetScrapeData()
@@ -117,8 +143,23 @@ class ScrapeThread(Thread):
         self.updateTorrent()
         
         print "done scraping"
-        
+
+
+    def onInvoke(self, event):
+        if ((self.doneflag is not None)
+            and (not self.doneflag.isSet())):
+            event.func(*event.args, **event.kwargs)
+
+    def invokeLater(self, func, args = [], kwargs = {}):
+        if ((self.doneflag is not None)
+            and (not self.doneflag.isSet())):
+            wx.PostEvent(self, InvokeEvent(func, args, kwargs))
+
     def updateTorrent(self):
+        self.invokeLater(self.OnUpdateTorrent, [])
+
+
+    def OnUpdateTorrent(self):
         if not self.manualscrape:
             # Don't update status information if doing an automatic scrape
             status = ""

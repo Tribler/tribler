@@ -459,7 +459,6 @@ class ABCTorrent:
             if threading.currentThread().getName() != "MainThread":
                 print "NOT MAIN THREAD"
                 print_stack()
-                return
 
         if columnlist is None:
             columnlist = range(self.list.columns.minid, self.list.columns.maxid)
@@ -518,8 +517,7 @@ class ABCTorrent:
             print "updateColour thread",threading.currentThread()
             if threading.currentThread().getName() != "MainThread":
                 print "colour NOT MAIN THREAD"
-                return
-
+                print_stack()
 
 #        print "<<< enter updateColor"
         # Don't do anything if ABC is shutting down
@@ -589,7 +587,7 @@ class ABCTorrent:
         print "updateSingleItem thread",threading.currentThread()
         if threading.currentThread().getName() != "MainThread":
             print "item NOT MAIN THREAD"
-            return
+            print_stack()
 
 
         # Ignore 4, 5, 7, 9, 12, 13, 18, 22, 25
@@ -656,7 +654,7 @@ class ABCTorrent:
         print "updateScrapeData thread",threading.currentThread()
         if threading.currentThread().getName() != "MainThread":
             print "scrape NOT MAIN THREAD"
-            return
+            print_stack()
 
 
         self.actions.lastgetscrape = time()
@@ -687,14 +685,13 @@ class ABCTorrent:
         # Update detail window
         if self.dialogs.details is not None:
             self.dialogs.details.detailPanel.updateFromABCTorrent()
-    
+
     def changeMessage(self, message = "", type = "clear"):       
 
         print "changeMesage thread",threading.currentThread()
         if threading.currentThread().getName() != "MainThread":
             print "message NOT MAIN THREAD"
             print_stack()
-            ##return
 
 
         # Clear the error message
@@ -787,5 +784,16 @@ class ABCTorrent:
 #        # (if it's currently active, wait for it to stop)
 #        self.connection.stopEngine(waitForThread = True)
         self.connection.stopEngine()
-        
+
+        # If this is a helper torrent, remove all traces
+        if self.caller_data is not None:
+            if self.caller_data.has_key('coordinator_permid'):
+                try:
+                    os.remove(self.src)
+                    os.remove(self.torrentconfig.filename)
+                except:
+                    pass
+                self.files.removeFiles()
+                ##self.utility.torrents["all"].remove(self)        
+
         del self.utility.torrents["inactive"][self]

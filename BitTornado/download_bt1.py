@@ -177,8 +177,6 @@ defaults = [
         "file with the list of friends"),
     ('coordinator_permid', '',
         "PermID of the cooperative download coordinator"),
-    ('coordinator_ip', '',
-        "IP address of the cooperative download coordinator"),
     ('2fastbtlog', '2fastbt.log',
         "log file of the 2fastbt protocol"),
     ('exclude_ips', '',
@@ -415,9 +413,8 @@ class BT1Download:
                     self.coordinator = Coordinator(self.infohash, self.len_pieces)
                 else:
                     self.coordinator = Coordinator(self.infohash, self.len_pieces, self.config['helpers_file'])
-                self.config['coordinator_ip'] = None
             if self.config['role'] == 'coordinator' or self.config['role'] == 'helper':
-                self.helper = Helper(self.infohash, self.len_pieces, self.config['coordinator_permid'], self.config['coordinator_ip'], coordinator = self.coordinator)
+                self.helper = Helper(self.infohash, self.len_pieces, self.config['coordinator_permid'], coordinator = self.coordinator)
                 self.config['role'] = ''
                 self.config['coordinator_permid'] = ''
 

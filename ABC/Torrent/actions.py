@@ -6,7 +6,6 @@ from time import time
 from Utility.getscrapedata import ScrapeThread
 from Utility.constants import * #IGNORE:W0611
 
-
 ################################################################
 #
 # Class: TorrentActions

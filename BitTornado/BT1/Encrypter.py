@@ -24,7 +24,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = False
+DEBUG = True
 MAX_INCOMPLETE = 8
 
 protocol_name = 'BitTorrent protocol'
@@ -250,7 +250,8 @@ class Connection:
 
     def sever(self):
         self.closed = True
-        del self.Encoder.connections[self.connection]
+        if self.Encoder.connections.has_key(self.connection):
+            del self.Encoder.connections[self.connection]
         
         if self.complete:
             self.connecter.connection_lost(self)
@@ -298,7 +299,8 @@ class Connection:
             self.sever()
 # 2fastbt_
     def is_coordinator_con(self):
-        print "encoder: is_coordinator_con: coordinator is ",self.Encoder.coordinator_ip
+        if DEBUG:
+            print "encoder: is_coordinator_con: coordinator is ",self.Encoder.coordinator_ip
         if self.coord_con:
             return True
         elif self.get_ip() == self.Encoder.coordinator_ip:
@@ -310,7 +312,7 @@ class Connection:
         coordinator = self.connecter.coordinator
         if coordinator is None:
             return False
-        return coordinator.is_helper(self.get_ip())
+        return coordinator.is_helper_ip(self.get_ip())
 # _2fastbt
 
 class Encoder:
@@ -346,15 +348,6 @@ class Encoder:
             return
         for c in self.connections.values():
             c.keepalive()
-# 2fastbt_
-        helper = self.connecter.helper
-        coordinator = self.connecter.coordinator
-        if helper is not None and coordinator is None and helper.coordinator_con is not None:
-            try:
-                helper.coordinator_con.connection.keepalive()
-            except:
-                print_exc()
-# _2fastbt
 
     def start_connections(self, list):
         if DEBUG:
@@ -388,7 +381,7 @@ class Encoder:
              or id == self.my_id
              or self.banned.has_key(dns[0]) ):
             if DEBUG:
-                print "Encoder start_connection paused RETURN"
+                print "encoder: start_connection: we're paused or too busy"
             return True
         for v in self.connections.values():    # avoid duplicated connectiion from a single ip
             if v is None:
@@ -398,11 +391,11 @@ class Encoder:
             ip = v.get_ip(True)
             if self.config['security'] and ip != 'unknown' and ip == dns[0]:
                 if DEBUG:
-                    print "Encoder start_connection values RETURN"
+                    print "encoder: start_connection: using existing"
                 return True
         try:
             if DEBUG:
-                print "Encoder.start_connection to peer", dns
+                print "encoder: start_connection: Setting up new to peer", dns
             c = self.raw_server.start_connection(dns)
             con = Connection(self, c, id, dns = dns, coord_con = coord_con)
             self.connections[c] = con

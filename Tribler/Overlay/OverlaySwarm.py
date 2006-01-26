@@ -154,7 +154,7 @@ class OverlaySwarm:
 
         if DEBUG:
             #print "Got message:", len(message), show(message), message
-            print "overlay: Got ",getMessageName(message[0]),len(message)
+            print "overlay: Got",getMessageName(message[0]),len(message)
         
         if not conn:
             return False

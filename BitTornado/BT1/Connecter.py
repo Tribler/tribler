@@ -292,8 +292,8 @@ class Connecter:
                     print "Close on bad HAVE: index out of range"
                 connection.close()
                 return
-            if DEBUG:
-                print "connecter: Got HAVE(",i,") from",connection.get_ip()
+            #if DEBUG:
+            print "connecter: Got HAVE(",i,") from",connection.get_ip()
             c.download.got_have(i)
         elif t == BITFIELD:
             try:
@@ -317,8 +317,8 @@ class Connecter:
                     print "Close on bad REQUEST: index out of range"
                 connection.close()
                 return
-            c.got_request(i, toint(message[5:9]), 
-                toint(message[9:]))
+            print "connecter: Got REQUEST(",i,") from",connection.get_ip()
+            c.got_request(i, toint(message[5:9]), toint(message[9:]))
         elif t == CANCEL:
             if len(message) != 13:
                 if DEBUG:

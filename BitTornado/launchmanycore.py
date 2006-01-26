@@ -207,6 +207,7 @@ class LaunchMany:
                                        failfunc = self.failed,
                                        errorfunc = self.exchandler)
             upnp_type = UPnP_test(config['upnp_nat_access'])
+            self.listen_port = -1
             while 1:
                 try:
                     self.listen_port = self.rawserver.find_and_bind(
@@ -229,7 +230,11 @@ class LaunchMany:
             self.ratelimiter.set_upload_rate(config['max_upload_rate'])
 
             self.handler = MultiHandler(self.rawserver, self.doneflag)
-            self.rawserver.add_task(self.scan, 0)
+            #
+            # Arno: disabling out startup of torrents, need to fix this
+            # to let text-mode work again.
+            #
+            ##self.rawserver.add_task(self.scan, 0)
             self.rawserver.add_task(self.stats, 0)
 
             # do_cache -> do_overlay -> (do_buddycast, do_download_help)
@@ -242,9 +247,9 @@ class LaunchMany:
             if GLOBAL.do_overlay:
                 self.overlayswarm = OverlaySwarm.getInstance()                
                 self.secure_overlay = SecureOverlay.getInstance()
-                self.secure_overlay.register(self.overlayswarm)
                 self.overlayswarm.register(self.listen_port, self.secure_overlay, self.handler, 
                                            self.config, self.exchandler)
+                self.secure_overlay.register(self.overlayswarm)
                 self.overlay_apps = OverlayApps.getInstance()
                 self.overlay_apps.register(self.secure_overlay,self)
                 # It's important we don't start listening to the network until
@@ -363,9 +368,11 @@ class LaunchMany:
             self.doneflag.set()
             
     def remove(self, hash):
-        self.torrent_list.remove(hash)
-        self.downloads[hash].shutdown()
-        del self.downloads[hash]
+        if DEBUG:
+            print "STOP_DOWNLOAD_HELP not supported in text-mode!"
+        #self.torrent_list.remove(hash)
+        #self.downloads[hash].shutdown()
+        #del self.downloads[hash]
         
     def add(self, hash, data):
         

@@ -3,10 +3,10 @@
 
 from sys import exc_info, exit
 from traceback import print_exc
-from threading import Semaphore,currentThread
 
 from Logger import get_logger
 from Tribler.Overlay.SecureOverlay import SecureOverlay
+from Tribler.CacheDB.CacheDBHandler import PeerDBHandler
 from Tribler.toofastbt.WaitForReplyException import WaitForReplyException
 from Tribler.toofastbt.intencode import toint, tobinary
 from BitTornado.bencode import bencode
@@ -16,12 +16,19 @@ MAX_ROUNDS = 200
 DEBUG = False
 
 class Helper:
-    def __init__(self, torrent_hash, num_pieces, coordinator_permid, coordinator_ip, coordinator = None):
+    def __init__(self, torrent_hash, num_pieces, coordinator_permid, coordinator = None):
         print "CREATING HELPER FOR COORDINATOR",`coordinator_permid`
         self.secure_overlay = SecureOverlay.getInstance()
         self.torrent_hash = torrent_hash
         self.coordinator_permid = coordinator_permid
-        self.coordinator_ip = coordinator_ip
+
+        peerdb = PeerDBHandler()
+        peer = peerdb.getPeer(coordinator_permid)
+        if peer is None:
+            self.coordinator_ip = None  # see is_coordinator()
+        else:
+            self.coordinator_ip = peer['ip']
+
         self.reserved_pieces = [False] * num_pieces
         self.ignored_pieces = [False] * num_pieces
         self.coordinator = coordinator
@@ -31,7 +38,6 @@ class Helper:
         self.marker = [True] * num_pieces
         self.round = 0
         self.encoder = None
-        self.sema = Semaphore(0)
         self.requestid = 0
         self.continuations = {}
 
@@ -55,6 +61,10 @@ class Helper:
             self.distr_reserved_pieces[piece] = True
 
     def is_coordinator(self,permid):
+        # If we could get coordinator_ip, don't help
+        if self.coordinator_ip is None:
+            return False
+
         if self.coordinator_permid == permid:
             return True
         else:
@@ -106,6 +116,8 @@ class Helper:
             self.counter += 1
             ex = "self.send_reserve_pieces(pieces_to_send)"
             self.requestid += 1
+            if self.requestid == (2 ** 32)-1:
+                self.requestid = 1
             self.send_reserve_pieces(self.requestid,pieces_to_send)
             # Can't do much until reservation received
             self.wait(self.requestid,sdownload)

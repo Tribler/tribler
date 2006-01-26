@@ -129,7 +129,8 @@ class ABCEngine(wx.EvtHandler):
         if self.torrent.caller == "helper":
             btconfig['role'] = 'helper'
             btconfig['coordinator_permid'] = self.torrent.caller_data['coordinator_permid']
-            btconfig['coordinator_ip'] = self.torrent.caller_data['coordinator_ip']
+            msg = self.utility.lang.get('helping_friend') + self.torrent.caller_data['friendname']
+            self.errormsgCallback( msg, "status")
         else:
             btconfig['role'] = 'coordinator'
             btconfig['helpers_file'] = ''
@@ -231,6 +232,8 @@ class ABCEngine(wx.EvtHandler):
             del self.utility.torrents["active"][self.torrent]
         except:
             pass
+
+        self.stop_download_help()
             
         # Cancel timer
         try:
@@ -256,7 +259,6 @@ class ABCEngine(wx.EvtHandler):
         self.working = False
         self.closed = True
 
-        self.stop_download_help()
         self.controller.was_stopped(self.torrent)
 
     def display(self, activity = None, fractionDone = None):
@@ -952,7 +954,7 @@ class ABCEngine(wx.EvtHandler):
         #####################################################
         self.torrent.status.completed = True
         self.progress = 100.0
-        
+
         self.torrent.connection.stopEngine()
         
         self.queue.updateAndInvoke()
@@ -972,6 +974,8 @@ class ABCEngine(wx.EvtHandler):
         self.torrent.status.completed = True
         self.progress = 100.0
         self.torrent.files.updateProgress()
+
+        self.stop_download_help()
 
         if self.torrent.status.isDoneUploading():
             self.TerminateUpload()

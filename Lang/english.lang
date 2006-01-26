@@ -302,7 +302,9 @@ friends			= "Friends"
 helpers 		= "Helpers"
 availcandidates         = "Available Candidates"
 requestdlhelp		= "Request Help"
-requestdlhelp_help	= "(Ask friends to help in downloading this torrent)"
+requestdlhelp_help	= "Ask friends to help in downloading this torrent"
+helping_friend		= "Helping "
+helping_stopped		= "Helping was stopped remotely, please remove torrent"
 
 #####################################################
 # Meta info frame
