@@ -18,15 +18,12 @@ class CoordinatorMessageHandler:
 
     def handleMessage(self,permid,message):
         t = message[0]
-        
-        if t == RESERVE_PIECES:
-            if DEBUG:
-                print "helpcoord: Got RESERVE_PIECES"
+        if DEBUG:
+            print "helpcoord: Got",getMessageName(t)
 #            get_logger().log(3, "connection: got RESERVE_PIECES")
+
+        if t == RESERVE_PIECES:
             return self.got_reserve_pieces(permid, message)
-        else:
-            if DEBUG:
-                print "helpcoord: UNKNOWN OVERLAY MESSAGE", ord(t)
         
     def got_reserve_pieces(self, permid, message):
         try:

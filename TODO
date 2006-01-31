@@ -3,6 +3,10 @@ TODO WP3:
 
 Now:
 
+* Buddycast doesn't attempt to contact any superpeers. Alternative
+  is to disable super-peer bootstrapping and just let it talk to the
+  peers it meets.
+
 * All peers are added as friends, see BitTorrent/cachedb:PeerTable::addPeer
   as the addFriend method doesn't seem to work.
 

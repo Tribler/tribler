@@ -14,7 +14,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = True
+DEBUG = False
 EXPIRE_TIME = 60 * 60
 
 class PerIPStats: 	 

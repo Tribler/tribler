@@ -4,10 +4,11 @@
 # All applications on top of the SecureOverlay should be started here.
 #
 
-from BitTornado.BT1.MessageID import HelpCoordinatorMessages, HelpHelperMessages, MetadataMessages
+from BitTornado.BT1.MessageID import HelpCoordinatorMessages, HelpHelperMessages, MetadataMessages, BuddyCastMessages
 from Tribler.toofastbt.CoordinatorMessageHandler import CoordinatorMessageHandler
 from Tribler.toofastbt.HelperMessageHandler import HelperMessageHandler
 from MetadataHandler import MetadataHandler
+from Tribler.BuddyCast.buddycast import BuddyCast
 
 class OverlayApps:
     # Code to make this a singleton
@@ -26,31 +27,21 @@ class OverlayApps:
 
     def register(self,secure_overlay,launchmany):
         # Create handler for messages to dlhelp coordinator
-        self.coordinator = CoordinatorMessageHandler(launchmany)
-        secure_overlay.registerHandler(HelpHelperMessages,self.coordinator)
+        self.coord_handler = CoordinatorMessageHandler(launchmany)
+        secure_overlay.registerHandler(HelpHelperMessages,self.coord_handler)
 
         # Create handler for messages to dlhelp helper
-        self.helper = HelperMessageHandler(launchmany)
-        secure_overlay.registerHandler(HelpCoordinatorMessages,self.helper)
+        self.help_handler = HelperMessageHandler(launchmany)
+        secure_overlay.registerHandler(HelpCoordinatorMessages,self.help_handler)
 
         # Create handler for metadata messages
         self.metadata_handler = MetadataHandler.getInstance()
-        self.metadata_handler.register(secure_overlay,self.helper,launchmany)
+        self.metadata_handler.register(secure_overlay,self.help_handler,launchmany)
         secure_overlay.registerHandler(MetadataMessages,self.metadata_handler)
-        self.helper.register(self.metadata_handler)
+        self.help_handler.register(self.metadata_handler)
 
-#    def start_buddycast(self):
-#        self.buddycast = BuddyCast.getInstance()
-#        self.buddycast.set_rawserver(self.rawserver)
-#        self.buddycast.set_listen_port(self.listen_port)
-#        self.buddycast.set_errorfunc(self.errorfunc)
-#        self.buddycast.startup()
-#        self.start_metadata_handler()
-        
-#    def start_metadata_handler(self):
-#        self.metadata_handler = MetadataHandler.getInstance()
-#        self.metadata_handler.set_rawserver(self.rawserver)
-#        self.metadata_handler.set_dlhelper(Helper.getInstance())
-#        self.metadata_handler.startup()
-
+        # Create handler for Buddycast messages
+        self.buddycast = BuddyCast.getInstance()
+        self.buddycast.register(secure_overlay,launchmany.rawserver,launchmany.listen_port,launchmany.exchandler)
+        secure_overlay.registerHandler(BuddyCastMessages,self.buddycast)
 

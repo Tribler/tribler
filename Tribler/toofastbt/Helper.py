@@ -11,7 +11,7 @@ from BitTornado.bencode import bencode
 from BitTornado.BT1.MessageID import RESERVE_PIECES
 
 MAX_ROUNDS = 200
-DEBUG = True
+DEBUG = False
 
 class Helper:
     def __init__(self, torrent_hash, num_pieces, coordinator_permid, coordinator = None):

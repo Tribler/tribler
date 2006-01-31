@@ -1,6 +1,7 @@
-import sys, math
+# Written by Jun Wang, Jie Yang
+# see LICENSE.txt for license information
 
-from dictlist import DictListQueue
+import math
 
 def cooccurrence(pref1, pref2):
     pref1.sort()

@@ -26,7 +26,11 @@ from threading import RLock, currentThread
 import copy
 
 from Tribler.CacheDB.CacheDBHandler import PeerDBHandler
+from Tribler.Overlay.permid import show_permid
 from BitTornado.BT1.MessageID import CANCEL, getMessageName
+
+# TEMP HACK
+from Tribler.BuddyCast.buddycast import BuddyCast
 
 DEBUG = True
 
@@ -134,7 +138,7 @@ class PermidOverlayTask:
         self.dns = self.secure_overlay.findDNSByPermid(self.permid)    # first lookup overlay
         if not self.dns:    # then lookup local cache
             if DEBUG:
-                print "secover: PermidOverlayTask: don't know dns for permid",`permid`
+                print "secover: PermidOverlayTask: don't know dns for permid",show_permid(permid)
             self.dns = self.findDNSFromCache()
         else:
             if DEBUG:
@@ -165,7 +169,7 @@ class PermidOverlayTask:
         if self.dns:
             permid = self.secure_overlay.findPermidByDNS(self.dns)
 
-            print "secover: Think connecting to",`self.permid`," and connected to",`permid`
+            print "secover: Think connecting to",show_permid(self.permid)," and connected to",show_permid(permid)
 
             if self.permid == permid and self.task:
                 self.task.sendMessage()
@@ -307,10 +311,10 @@ class SecureOverlay:
             #self._closeConnection(permid) # don't work due to recursion prob
             if expired:
                 if DEBUG:
-                    print "secover: closing expired connection to",`permid`
+                    print "secover: closing expired connection to",show_permid(permid)
                 conn.close()
             if DEBUG:
-                print "secover: removing connection to",`permid`
+                print "secover: removing connection to",show_permid(permid)
             self.connection_list.pop(permid)
             ret = None
         else:
@@ -381,6 +385,7 @@ class SecureOverlay:
                 self.overlayswarm.rawserver.add_task(task.start, 0)
         except Exception,e:
             print_exc()
+
         self.release()        
 
     def connectionMade(self, connection):    # OverlayConnecter.Connection
@@ -391,6 +396,12 @@ class SecureOverlay:
         dns = self._addConnection(connection)
         if dns:
             self.subject_manager.notifySubject(dns)
+
+        ## Arno: test hack
+        print "secover: starting BUDDYCAST"
+        buddycast = BuddyCast.getInstance()
+        buddycast.exchangePreference(connection.permid)
+
         self.release()    
 
     def _addConnection(self, connection):

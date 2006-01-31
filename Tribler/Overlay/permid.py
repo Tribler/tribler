@@ -3,6 +3,7 @@
 
 import StringIO
 from sha import sha
+from base64 import encodestring
 from copy import deepcopy
 import traceback,os
 
@@ -39,6 +40,8 @@ def init(config_dir = None):
 def exit():
     Rand.save_file(get_rand_filename(config_dir))
 
+def show_permid(permid):
+    return encodestring(permid).replace("\n","")
 
 # Internal functions
 def generate_keypair():
