@@ -1,0 +1,160 @@
+
+TODO WP3:
+
+Now:
+
+* All peers are added as friends, see BitTorrent/cachedb:PeerTable::addPeer
+  as the addFriend method doesn't seem to work.
+
+* Text version may not work as before because I hacked up
+  launchmanycore.py and BitTornado/launchmanycore.py. Need to redo this.
+  
+  	Arno, 2006-1-6: A single friends-assisted download with 1 helper in
+	passive mode appears to work, so it's not that broken.
+
+* Look at launchmanycore.py and who creates peer caches
+
+* Process Jennke's comments on GUI.
+
+* Put Buddycast on SecureOverlay
+
+* Need way/GUI to add friends. Currently list of friends hardcoded into abc.py
+ 
+* Extend Preferences with flags for enabling/disabling Download Help and
+  Recommendation.
+
+
+Short term:
+
+* Change GET_METADATA/METADATA messages to operate on lists rather than
+  single torrents.
+  
+  	Arno, 2006-1-31: Jie said he would do this.
+
+* Complete the specification of the PREF_EXCHANGE and GET_METADATA messages
+  to a level that others could implement a compatible version.
+
+* Question: Should we change the Recommendation design to prevent
+  accusations of being spyware and and violating privacy? I.e. make sure
+  
+	 a) no data is stored at our superpeer servers
+	 b) preference exchange takes place between explicitly defined
+	    friends. So a friend gives you (PermID, IP address, port)
+	    with you register in your client, and you only exchange
+	    preferences with that friend.
+
+
+  These things are not necessary in a system where all content distributed
+  is legal, but as that is not the case for BitTorrent we may have to
+  accommodate for that.
+	   
+  	Proposed solution: At first startup the user will be asked if he wants
+  	to:
+  		1. Share list of downloaded torrents with everybody
+		2. Share list of downloaded torrents with friends only
+		3. Share list of downloaded torrents with noone.
+
+* Website/bug reporting facility for Chitraka.
+  
+  	Proposal by Johan: for first period use ABC mailing list
+  
+  
+* In the current design, after a PREFERENCE_EXCHANGE message, the receiver
+  will directly ask the sender for the metadata of any files it did not
+  know. I.e. it will send a GET_METADATA message and receive all the
+  torrents for the unknown files in a METADATA reply.
+  
+  This works when the .torrent files are small Merkle torrents, but can
+  consume a lot of bandwidth if the .torrents are regular torrents containing
+  a hash for each piece.
+
+  Question is if we should add extra support to reduce the amount of 
+  bandwidth consumed when old torrents are used. E.g. don't ask torrents
+  for all files, just files that are likely to be liked by the user. Or
+  delay obtaining the metadata until the user actually says he wants to
+  download the file.
+
+  	Proposal is to write a design note for this issue, giving pros and
+	cons for each alternative (including ignoring the issue)
+
+Longer term:
+
+* Clearly define what all the planned features for BitTorrent++ and
+  BitTorrent-2 are. Currently they are 1/2 line bullets on a PowerPoint sheet
+  
+* Design an encoding for a Merkle torrent in a URL of less that 2083 bytes.
+
+
+
+DONE:
+
+* Write a design note about protocol versioning. In particular, it
+  should have support for protocol compatibility. E.g. if the protocol
+  has been upgraded to V2, but a V2 client can still talk to a V1 client
+  and vice versa, this should be possible.
+
+	DONE, Arno, 11-11-2005
+	
+
+* Replace Challenge/Response with std. protocol as suggested by Jeroen Doumen
+  (ISO/IEC 9798-3 protocol, see $10.3.3 (ii) in Handbook of Applied Crypto)
+
+	DONE, Arno, 14-11-2005
+
+  [ ] OPEN ISSUE:
+  	We currently authenticate only the overlay-swarm connection and
+	not the normal BT connection. At present there is no secure
+	correlation between the two TCP connections, so we cannot authenticate/
+	allow priviledged operations over the normal BT connection.
+
+
+* Update the Challenge/Response specification to reflect changes in
+  CHALLENGE message.
+
+	OUTDATED by upgrade of C/R protocol, Arno 14-11-2005
+
+* Implement PREFERENCE_EXCHANGE and GET_METADATA messages
+
+	DONE, Jie
+
+* Implement BuddyCast algorithm
+
+	DONE, Jie
+
+* Migrate/implement Pawel's download-via-friends to ABC.
+
+	DONE, Pawel, Arno
+
+* Automatic seeding don't work when creating torrents for each file in 
+  a given directory. Should update btmaketorrentgui.py's done() method
+  such that it registers all created torrents.
+	
+	DONE, Arno
+
+* I don't think there is an authentication check that sees if
+  sender of DOWNLOAD_HELP is actually a friend.
+
+* Add support for stopping download help
+
+* Helping client's GUI doesn't repaint correctly. 
+
+* List of helpers selected must be made persistent somehow
+
+	Arno, 2006-1-27: No, currently I prefer a transient approach.
+
+* Opening detail frame doesn't work when torrent stopped.
+
+* Remove peerID field from RESERVE_PIECES
+
+* The coordinator sends DOWNLOAD_HELP over a overlay swarm connection.
+  The helper then initiates a separate control connection for reserving
+  pieces. Is this connection authenticated? If not: DoS attack possible
+  by malicious host reserving all pieces but not delivering (TRUE?)
+
+ And why is this needed. Overlay connection can also be used, IMHO.
+
+	Arno, 2006-1-31: all sensitive messages are now sent
+	over the overlay connection.
+
+* Move 'bsddb' to $HOME/.ABC/ such that all user data is stored there.
+
