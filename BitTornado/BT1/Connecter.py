@@ -20,7 +20,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = True
+DEBUG = False
 
 def toint(s):
     return long(b2a_hex(s), 16)
@@ -272,8 +272,10 @@ class Connecter:
             connection.close()
             return
         if t == CHOKE:
+            print "connecter: Got CHOKE from",connection.get_ip()
             c.download.got_choke()
         elif t == UNCHOKE:
+            print "connecter: Got UNCHOKE from",connection.get_ip()
             c.download.got_unchoke()
         elif t == INTERESTED:
             #FIXME: c.upload may be None

@@ -128,7 +128,8 @@ class OverlaySwarm:
     def connectionMade(self, connection):
         """ phase 1: Connecter.Connection is created but permid has not been verified """
 
-        print "overlay: Bare connection",connection.get_myip(),connection.get_myport(),"to",connection.get_ip(),connection.get_port(),"reported by thread",currentThread().getName()
+        if DEBUG:
+            print "overlay: Bare connection",connection.get_myip(),connection.get_myport(),"to",connection.get_ip(),connection.get_port(),"reported by thread",currentThread().getName()
         
 
         def c(conn = connection):
@@ -149,11 +150,19 @@ class OverlaySwarm:
             self.secure_overlay.connectionMade(connection)
         self.rawserver.add_task(notify, 0)
                 
+    def connectionLost(self,connection):
+        print "overlay: connectionLost: connection is",connection
+        if connection.permid is None:
+            # No permid, so it was never reported to the SecureOverlay
+            return
+        def notify(connection=connection):
+            self.secure_overlay.connectionLost(connection)
+        self.rawserver.add_task(notify, 0)
+
     def got_message(self, conn, message):    # Connecter.Connection
         """ Handle message for overlay swarm and return if the message is valid """
 
         if DEBUG:
-            #print "Got message:", len(message), show(message), message
             print "overlay: Got",getMessageName(message[0]),len(message)
         
         if not conn:

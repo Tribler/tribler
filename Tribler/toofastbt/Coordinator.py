@@ -5,12 +5,11 @@ from traceback import print_exc
 import copy
 
 from Tribler.toofastbt.Logger import get_logger
-from Tribler.toofastbt.intencode import toint, tobinary
 from Tribler.Overlay.SecureOverlay import SecureOverlay
 from BitTornado.bencode import bencode
 from BitTornado.BT1.MessageID import DOWNLOAD_HELP, STOP_DOWNLOAD_HELP, PIECES_RESERVED
 
-
+DEBUG = True
 MAX_ROUNDS = 137
 
 
@@ -78,6 +77,8 @@ class Coordinator:
                             break
                     if flag == 0:
                         toask_helpers.append(cand)
+
+            self.asked_helpers = toask_helpers
             self.send_request_help(toask_helpers)
         except Exception,e:
             print_exc()
@@ -86,8 +87,8 @@ class Coordinator:
     def send_request_help(self,peerList):
         for peer in peerList:
             peer['round'] = 0
-            self.asked_helpers.append(peer)
-            print "dlhelp: Coordinator connecting to",peer['name'],peer['ip'],peer['port']," for help"
+            if DEBUG:
+                print "dlhelp: Coordinator connecting to",peer['name'],peer['ip'],peer['port']," for help"
             dlhelp_request = self.torrent_hash
             self.secure_overlay.addTask(peer['permid'], DOWNLOAD_HELP + dlhelp_request)
 
@@ -124,7 +125,8 @@ class Coordinator:
 
     def send_stop_help(self,peerList):
         for peer in peerList:
-            print "dlhelp: Coordinator connecting to",peer['name'],peer['ip'],peer['port']," for stopping help"
+            if DEBUG:
+                print "dlhelp: Coordinator connecting to",peer['name'],peer['ip'],peer['port']," for stopping help"
             stop_request = self.torrent_hash
             self.secure_overlay.addTask(peer['permid'],STOP_DOWNLOAD_HELP + stop_request)
 
@@ -145,7 +147,7 @@ class Coordinator:
 
 
 ### CoordinatorMessageHandler interface
-    def got_reserve_pieces(self,permid,reqid,pieces,all_or_nothing):
+    def got_reserve_pieces(self,permid,pieces,all_or_nothing):
 
         reserved_pieces = self.reserve_pieces(pieces, all_or_nothing)
         for peer in self.asked_helpers:
@@ -153,7 +155,7 @@ class Coordinator:
                 peer['round'] = (peer['round'] + 1) % MAX_ROUNDS
                 if peer['round'] == 0:
                     reserved_pieces.extend(self.get_reserved())
-        self.send_pieces_reserved(permid,reqid,reserved_pieces)
+        self.send_pieces_reserved(permid,reserved_pieces)
 
     def reserve_pieces(self, pieces, all_or_nothing = False):
         try:
@@ -180,7 +182,7 @@ class Coordinator:
     def get_reserved(self):
         return self.reserved
 
-    def send_pieces_reserved(self, permid, reqid, pieces):
-        payload = self.torrent_hash + tobinary(reqid) + bencode(pieces)
+    def send_pieces_reserved(self, permid, pieces):
+        payload = self.torrent_hash + bencode(pieces)
         self.secure_overlay.addTask(permid, PIECES_RESERVED + payload )
     

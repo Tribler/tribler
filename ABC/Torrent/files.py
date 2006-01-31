@@ -3,9 +3,9 @@ import wx
 import os
 
 from cStringIO import StringIO
-from threading import Thread
+from threading import Thread,currentThread
 from time import sleep
-from traceback import print_exc
+from traceback import print_exc, print_stack
 from webbrowser import open_new
 
 from Dialogs.dupfiledialog import DupFileDialog
@@ -126,6 +126,7 @@ class TorrentFiles:
         return True
         
     def changeProcDest(self, dest, rentorrent = False):
+
         self.dest = dest
         self.torrent.updateColumns([COL_DEST])
         self.torrent.torrentconfig.writeBasicInfo()
@@ -453,6 +454,13 @@ class TorrentFiles:
         return notdefault, text
         
     def updateProgress(self):
+
+        if currentThread().getName() != "MainThread":
+            print "TorrentFiles: updateProgress thread",currentThread()
+            print "NOT MAIN THREAD"
+            print_stack()
+        
+
         # update the download progress
         if self.torrent.status.isActive():
             engine = self.torrent.connection.engine
@@ -472,6 +480,12 @@ class TorrentFiles:
         if self.isFile():
             return
         
+        if currentThread().getName() != "MainThread":
+            print "TorrentFiles: updateFileProgress thread",currentThread()
+            print "NOT MAIN THREAD"
+            print_stack()
+
+
         # Clear progress for all files that are set to never download
         for i in range(len(self.filepriorities)):
             priority = self.filepriorities[i]

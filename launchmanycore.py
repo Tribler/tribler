@@ -19,7 +19,7 @@ import os
 
 from random import seed
 from socket import error as socketerror
-from threading import Event, Thread
+from threading import Event, Thread, currentThread
 from cStringIO import StringIO
 from traceback import print_exc, print_stack
 from tempfile import gettempdir
@@ -105,12 +105,17 @@ class ABCLaunchMany(Thread,LaunchMany,wx.EvtHandler):
     def run(self):
         try:
             self.handler.listen_forever()
-        except:
+        except AssertionError:
+            print "launchmany: Exception in main loop"
+            print_exc()
+        except Exception,e:
+            print "launchmany: Exception in main loop",str(e)
             print_exc()
             data = StringIO()
             print_exc(file=data)
             self.Outputter.exception(data.getvalue())
         
+
         for ABCTorrentTemp in self.utility.torrents["active"].keys():
             ABCTorrentTemp.shutdown()
 
@@ -212,7 +217,7 @@ class ABCLaunchMany(Thread,LaunchMany,wx.EvtHandler):
         
     # polymorph/override
     def addDownload(self, ABCTorrentTemp):
-        print "ABC's launchmanycore: ADDDOWNLOAD"
+        print "ABC's launchmanycore: ADDDOWNLOAD",currentThread().getName()
 
         ## ARNO: HACK
         self.arno_file_cache[ABCTorrentTemp.torrent_hash] = bencode(ABCTorrentTemp.getResponse())

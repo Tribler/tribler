@@ -49,14 +49,16 @@ class MetadataHandler:
                 print "metadata: Got METADATA",len(message)
             return self.got_metadata(permid, message)
         else:
-            print "metadata: UNKNOWN OVERLAY MESSAGE", ord(t)
+            if DEBUG:
+                print "metadata: UNKNOWN OVERLAY MESSAGE", ord(t)
             return False
 
     def request_metadata(self, torrent_hash):
         # TODO: lookup all candidates who have this torrent_hash
         #       select a peer according to its upload speed. 
         #       Request another peer if the previous one failed
-        print "Request metadata", torrent_hash
+        if DEBUG:
+            print "Request metadata", torrent_hash
 
 
     def send_metadata_request(self, permid, torrent_hash):

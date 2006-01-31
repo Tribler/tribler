@@ -14,6 +14,7 @@ except:
     True = 1
     False = 0
 
+DEBUG = True
 EXPIRE_TIME = 60 * 60
 
 class PerIPStats: 	 
@@ -71,6 +72,7 @@ class SingleDownload:
         self.guard = BadDataGuard(self)
 # 2fastbt_
         self.helper = downloader.picker.helper
+        self.frozen_by_helper = False
 # _2fastbt
 
     def _backlog(self, just_unchoked):
@@ -132,6 +134,14 @@ class SingleDownload:
             if self.interested:
                 self._request_more(new_unchoke = True)
             self.last2 = clock()
+
+# 2fastbt_
+    def helper_forces_unchoke(self):
+        self.choked = False
+
+    def helper_set_freezing(self,val):
+        self.frozen_by_helper = val
+# _2fastbt
 
     def is_choked(self):
         return self.choked
@@ -215,10 +225,20 @@ class SingleDownload:
         return self.downloader.storage.do_I_have(index)
 
     def _request_more(self, new_unchoke = False):
+# 2fastbt_
+        if DEBUG:
+            print "Downloader: _request_more()"
+        if self.frozen_by_helper:
+            if DEBUG:
+                print "Downloader: blocked, returning"
+            return
+# _2fastbt    
         assert not self.choked
 # 2fastbt_
         # do not download from coordinator
         if self.connection.connection.is_coordinator_con():
+            if DEBUG:
+                print "Downloader: coordinator conn"
             return
 # _2fastbt
         if self.downloader.endgamemode:
@@ -227,19 +247,23 @@ class SingleDownload:
         if self.downloader.paused:
             return
         if len(self.active_requests) >= self._backlog(new_unchoke):
+            if DEBUG:
+                print "Downloader: more req than unchoke"
             if not (self.active_requests or self.backlog):
                 self.downloader.queued_out[self] = 1
             return
         lost_interests = []
         while len(self.active_requests) < self.backlog:
 # 2fastbt_
+            if DEBUG:
+                print "Downloader: Looking for interesting piece"
             interest = self.downloader.picker.next(self.have,
                                self.downloader.storage.do_I_have_requests,
                                self,
                                self.downloader.too_many_partials(),
                                self.connection.connection.is_helper_con())
-
-            print "sdownload: _request_more: next() returned",interest                               
+            if DEBUG:
+                print "sdownload: _request_more: next() returned",interest                               
 # _2fastbt
             if interest is None:
                 break
@@ -274,7 +298,8 @@ class SingleDownload:
                                    self,
                                    self.downloader.too_many_partials(),
                                    self.connection.connection.is_helper_con())
-                print "sdownload: _request_more: next()2 returned",interest
+                if DEBUG:                                   
+                    print "sdownload: _request_more: next()2 returned",interest
 # _2fastbt
                 if interest is None:
                     d.send_not_interested()

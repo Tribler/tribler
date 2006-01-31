@@ -2,10 +2,10 @@ import wx
 import sys
 
 #from operator import itemgetter
-from threading import Event, Timer
+from threading import Event, Timer, currentThread
 from time import time
 #from cStringIO import StringIO
-from traceback import print_stack
+from traceback import print_stack, print_exc
 
 from BitTornado.clock import clock
 
@@ -205,8 +205,9 @@ class ABCEngine(wx.EvtHandler):
         if not self.dow.startEngine(ratelimiter = None):
             self.shutdown()
             return
-        
+
         self.dow.startRerequester()
+
         self.statsfunc = self.dow.startStats()
 
         if self.torrent.status.value != STATUS_HASHCHECK:
@@ -227,6 +228,7 @@ class ABCEngine(wx.EvtHandler):
         self.working = True
 
     def shutdown(self):
+        print "abcengine: Starting shutdown"
         # Remove from the active torrents list
         try:
             del self.utility.torrents["active"][self.torrent]
@@ -246,8 +248,10 @@ class ABCEngine(wx.EvtHandler):
             return
         self.doneflag.set()
         try:
+            print "abcengine: Shutting down SingleRawServer"
             self.rawserver.shutdown()
         except:
+            print_exc()
             pass
 
         try:
@@ -389,24 +393,19 @@ class ABCEngine(wx.EvtHandler):
                 self.TerminateUpload()
 
         # Update color
-        #print "<<< enter engine.updateColor"
         self.updateColor(statistics, spew)
-        #print ">>> leave engine.updateColor"
 
         # Update text strings
-        #print "<<< enter engine.updateColumns"
         self.torrent.updateColumns([COL_PROGRESS, 
                                     COL_BTSTATUS, 
                                     COL_ETA, 
                                     COL_DLSPEED, 
                                     COL_ULSPEED, 
                                     COL_MESSAGE])
-        #print ">>> leave engine.updateColumns"
         
         if statistics is not None:
             # Share Ratio, #Seed, #Peer, #Copies, #Peer Avg Progress,
             # Download Size, Upload Size, Total Speed
-            #print "<<< enter engine.statistics.updateColumns"
             self.torrent.updateColumns([COL_RATIO, 
                                         COL_SEEDS, 
                                         COL_PEERS, 
@@ -417,23 +416,16 @@ class ABCEngine(wx.EvtHandler):
                                         COL_TOTALSPEED, 
                                         COL_SEEDTIME, 
                                         COL_CONNECTIONS])
-            #print "<<< enter engine.statistics.updateColumns"
 
         # Update progress in details window
         if statistics is not None:
-            #print "<<< enter engine.updateColumns"            
             self.torrent.files.updateFileProgress(statistics)
-            #print ">>> leave engine.updateColumns"            
 
         if spew and len(spew) > 0:
-            #print "<<< enter engine.updatePeerSwarm"            
             self.updateCaches(spew)
-            #print ">>> leave engine.updatePeerSwarm"            
 
 #        try:
-#            print "<<< enter engine.updateDetailWindow"            
             self.updateDetailWindow(statistics, spew)
-#            print ">>> leave engine.updateDetailWindow"
 #        except Exception, msg:
 #            # Just in case the window gets set to "None"
 #            # or is destroyed first
@@ -476,6 +468,11 @@ class ABCEngine(wx.EvtHandler):
         ##################################################
         color = None
         
+        if currentThread().getName() != "MainThread":
+            print "engine: updateColor thread",currentThread()
+            print "engine: NOT MAIN THREAD"
+            print_stack()
+
         if statistics is not None:
             externalConnectionMade = statistics.external_connection_made
         
@@ -704,11 +701,14 @@ class ABCEngine(wx.EvtHandler):
         tot_uprate = 0.0
         tot_downrate = 0.0
         
-        # Sort by uprate first, comment to be compatible with Python2.3
-#        spew.sort(key=itemgetter('uprate'), reverse = True)
-#        if not self.torrent.status.completed:
-#            # Then sort by downrate if not complete
-#            spew.sort(key=itemgetter('downrate'), reverse = True)
+        # Disabling itemgetter sorts to remain 2.3 compatible
+        # Sort by uprate first
+        #spew.sort(None, key=itemgetter('uprate'))
+        #spew.reverse()
+        #if not self.torrent.status.completed:
+            # Then sort by downrate if not complete
+            #spew.sort(None, key=itemgetter('downrate'))
+            #spew.reverse()
 
         for x in range(len(spew)):                
             for colid, rank in columns.active:

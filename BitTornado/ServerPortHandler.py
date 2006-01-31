@@ -41,13 +41,17 @@ class SingleRawServer:
         self.taskqueue = []
 
     def shutdown(self):
+        print "srawserv: Shutting down SingleRawServer"
         if not self.finished:
+            print "srawserv: Shutting down SingleRawServer for real"
             self.multihandler.shutdown_torrent(self.info_hash)
 
     def _shutdown(self):
+        print "srawserv: Shutting down underscore SingleRawServer"
         if not self.finished:
             self.finished = True
             self.running = False
+            print "srawserv: Shutting down underscore SingleRawServer for real"
             self.rawserver.kill_tasks(self.info_hash)
             if self.handler:
                 self.handler.close_all()

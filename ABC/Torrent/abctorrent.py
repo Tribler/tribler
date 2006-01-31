@@ -24,7 +24,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = False
+DEBUG = True
 
 
 import threading
@@ -176,7 +176,7 @@ class ABCTorrent:
         if colid is None:
             colid = COL_TITLE
         value = None
-        
+
         activetorrent = self.status.isActive(checking = False, pause = False)
         
         try:
@@ -285,7 +285,7 @@ class ABCTorrent:
     #
     def getColumnText(self, colid):
         text = None
-        
+
         activetorrent = self.status.isActive(checking = False, pause = False)
         
         try:
@@ -455,9 +455,9 @@ class ABCTorrent:
     def updateColumns(self, columnlist = None, force = False):
 
         if DEBUG:
-            print "updateColumns thread",threading.currentThread()
             if threading.currentThread().getName() != "MainThread":
-                print "NOT MAIN THREAD"
+                print "abctorrent: updateColumns thread",threading.currentThread()
+                print "abctorrent: NOT MAIN THREAD"
                 print_stack()
 
         if columnlist is None:
@@ -514,8 +514,8 @@ class ABCTorrent:
     def updateColor(self, force = False):
 
         if DEBUG:
-            print "updateColour thread",threading.currentThread()
             if threading.currentThread().getName() != "MainThread":
+                print "abctorrent: updateColour thread",threading.currentThread()
                 print "colour NOT MAIN THREAD"
                 print_stack()
 
@@ -584,9 +584,9 @@ class ABCTorrent:
     #
     def updateSingleItemStatus(self):
 
-        print "updateSingleItem thread",threading.currentThread()
         if threading.currentThread().getName() != "MainThread":
-            print "item NOT MAIN THREAD"
+            print "abctorrent: updateSingleItem thread",threading.currentThread()
+            print "abctorrent: NOT MAIN THREAD"
             print_stack()
 
 
@@ -651,9 +651,9 @@ class ABCTorrent:
     #
     def updateScrapeData(self, newpeer, newseed, message = ""):
 
-        print "updateScrapeData thread",threading.currentThread()
         if threading.currentThread().getName() != "MainThread":
-            print "scrape NOT MAIN THREAD"
+            print "abctorrent: updateScrapeData thread",threading.currentThread()
+            print "abctorrent: NOT MAIN THREAD"
             print_stack()
 
 
@@ -688,9 +688,9 @@ class ABCTorrent:
 
     def changeMessage(self, message = "", type = "clear"):       
 
-        print "changeMesage thread",threading.currentThread()
         if threading.currentThread().getName() != "MainThread":
-            print "message NOT MAIN THREAD"
+            print "abctorrent: updateScrapeData thread",threading.currentThread()
+            print "abctorrent: NOT MAIN THREAD"
             print_stack()
 
 

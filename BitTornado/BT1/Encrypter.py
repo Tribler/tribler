@@ -11,8 +11,7 @@ from time import time
 
 # 2fastbt_
 from Tribler.toofastbt.Logger import get_logger
-from Tribler.toofastbt.WaitForReplyException import WaitForReplyException
-from traceback import print_exc, extract_stack
+from traceback import print_exc, extract_stack, print_stack
 import sys
 # _2fastbt
 
@@ -77,6 +76,8 @@ class Connection:
         self.coord_con = coord_con
         if locally_initiated is not None:
             self.locally_initiated = locally_initiated
+        elif coord_con:
+            self.locally_initiated = True
         else:
             self.locally_initiated = (id != None)
 # _2fastbt
@@ -238,11 +239,12 @@ class Connection:
         return None
 
     def _auto_close(self):
-        if not self.complete:
-            print "encrypter: closing ",self.get_myip(),self.get_myport(),"to",self.get_ip(),self.get_port()
+        if not self.complete and not self.is_coordinator_con():
+            print "encrypter: autoclosing ",self.get_myip(),self.get_myport(),"to",self.get_ip(),self.get_port()
             self.close()
 
     def close(self):
+        print "encrypter: closing connection",self.get_ip()
         if not self.closed:
             self.connection.close()
             self.sever()
@@ -278,9 +280,6 @@ class Connection:
             self.buffer.truncate()
             try:
                 x = self.next_func(m)
-            except WaitForReplyException:
-                print_exc()
-                return 4, self.read_len
             except:
                 print_exc()
                 self.next_len, self.next_func = 1, self.read_dead
@@ -299,8 +298,8 @@ class Connection:
             self.sever()
 # 2fastbt_
     def is_coordinator_con(self):
-        if DEBUG:
-            print "encoder: is_coordinator_con: coordinator is ",self.Encoder.coordinator_ip
+        #if DEBUG:
+        #    print "encoder: is_coordinator_con: coordinator is ",self.Encoder.coordinator_ip
         if self.coord_con:
             return True
         elif self.get_ip() == self.Encoder.coordinator_ip:
@@ -453,6 +452,10 @@ class Encoder:
         con = Connection(self, connection, None, True)
         con.set_options(options)
         # before: connection.handler = Encoder
+# 2fastbt_
+        # Don't forget to count the external conns!
+        self.connections[connection] = con
+# _2fastbt
         connection.set_handler(con)
         # after: connection.handler = Encrypter.Connecter
         if already_read:
@@ -460,7 +463,9 @@ class Encoder:
         return True
 
     def close_all(self):
-        for c in self.connections.values():
+        print "encrypter: closing all connections"
+        copy = self.connections.values()[:]
+        for c in copy:
             c.close()
         self.connections = {}
 

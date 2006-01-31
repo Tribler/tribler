@@ -29,13 +29,15 @@ from Tribler.CacheDB.CacheDBHandler import PeerDBHandler
 from BitTornado.BT1.MessageID import CANCEL, getMessageName
 
 DEBUG = True
+
 Length_of_permid = 0    # 0: no restriction
 
 def validIP(ip):
     try:
         inet_aton(ip)
     except:
-        print "invalid ip", ip
+        if DEBUG:
+            print "invalid ip", ip
         return False
     return True
 
@@ -129,18 +131,21 @@ class PermidOverlayTask:
     def __init__(self, secure_overlay, subject_manager, permid, message=None, timeout=15):
         self.secure_overlay = secure_overlay
         self.permid = permid
-        print "secover: PermidOverlayTask: before"
         self.dns = self.secure_overlay.findDNSByPermid(self.permid)    # first lookup overlay
         if not self.dns:    # then lookup local cache
-            print "secover: PermidOverlayTask: don't know dns for permid",`permid`
+            if DEBUG:
+                print "secover: PermidOverlayTask: don't know dns for permid",`permid`
             self.dns = self.findDNSFromCache()
         else:
-            print "secover: PermidOverlayTask: dns for permid is known",self.dns
+            if DEBUG:
+                print "secover: PermidOverlayTask: dns for permid is known",self.dns
         if validDNS(self.dns):
-            print "secover: PermidOverlayTask: dns is valid"
+            if DEBUG:
+                print "secover: PermidOverlayTask: dns is valid"
             self.task = OverlayTask(secure_overlay, subject_manager, self.dns, message, timeout)
         else:
-            print "secover: PermidOverlayTask: dns is INVALID"
+            if DEBUG:
+                print "secover: PermidOverlayTask: dns is INVALID"
             self.task = None
         
     def findDNSFromCache(self):
@@ -159,6 +164,9 @@ class PermidOverlayTask:
     def update(self):    # phase 2: check permids, and send msg if they match
         if self.dns:
             permid = self.secure_overlay.findPermidByDNS(self.dns)
+
+            print "secover: Think connecting to",`self.permid`," and connected to",`permid`
+
             if self.permid == permid and self.task:
                 self.task.sendMessage()
             elif DEBUG and self.permid != permid:
@@ -233,17 +241,20 @@ class IncomingMessageHandler:
         
     def registerHandler(self, ids, handler):
         for id in ids:
-            print "secover: Handler registered for",getMessageName(id)
+            if DEBUG:
+                print "secover: Handler registered for",getMessageName(id)
             self.handlers[id] = handler
         
     def handleMessage(self, permid, message):    # connection is type of Conneter.Connection 
         id = message[0]
         handled = False
         if not self.handlers.has_key(id):
-            print "secover: No handler found for",getMessageName(id)
+            if DEBUG:
+                print "secover: No handler found for",getMessageName(id)
             return False
         else:
-            print "secover: Giving message to handler for",getMessageName(id)
+            if DEBUG:
+                print "secover: Giving message to handler for",getMessageName(id)
             self.handlers[id].handleMessage(permid, message)
             return True
 
@@ -259,8 +270,6 @@ class SecureOverlay:
         self.connection_list = {}    # permid:{'c_conn': Connecter.Connection, 'e_conn': Encrypter.Connection, 'dns':(ip, port)}
         self.timeout = 60
         self.check_interval = 15
-        
-        print "secover: CREATING LOCK FOR SECUREOVERLAY"
         self.lock = RLock()
                             
     def getInstance(*args, **kw):
@@ -297,9 +306,11 @@ class SecureOverlay:
         if not conn or conn.closed or expired:
             #self._closeConnection(permid) # don't work due to recursion prob
             if expired:
-                print "secover: closing expired connection to",`permid`
+                if DEBUG:
+                    print "secover: closing expired connection to",`permid`
                 conn.close()
-            print "secover: removing connection to",`permid`
+            if DEBUG:
+                print "secover: removing connection to",`permid`
             self.connection_list.pop(permid)
             ret = None
         else:
@@ -365,7 +376,8 @@ class SecureOverlay:
                 self.release() 
                 return
             if self.overlayswarm.registered:
-                print "secover: addTask, adding task to rawserver"
+                if DEBUG:
+                    print "secover: addTask, adding task to rawserver"
                 self.overlayswarm.rawserver.add_task(task.start, 0)
         except Exception,e:
             print_exc()
@@ -374,7 +386,7 @@ class SecureOverlay:
     def connectionMade(self, connection):    # OverlayConnecter.Connection
         self.acquire()
         if DEBUG:
-            print "secover: ***** secure overlay connection made *****", connection
+            print "secover: ***** secure overlay connection made *****", connection.get_ip()
         #TODO: schedule it on rawserver task queue?
         dns = self._addConnection(connection)
         if dns:
@@ -399,7 +411,8 @@ class SecureOverlay:
             dns = ( connection.get_ip(), auth_listen_port )
         else:
             if dns[1] != auth_listen_port:
-                print "secover: WARNING given listen port not equal to authenticated one"
+                if DEBUG:
+                    print "secover: WARNING given listen port not equal to authenticated one"
 
         #if validPermid(permid) and validDNS(dns):
         if validPermid(permid):
@@ -417,6 +430,19 @@ class SecureOverlay:
     def _extendExpire(self, permid):
         self.connection_list[permid]['expire'] = int(time() + self.timeout)
         
+    def connectionLost(self, connection):    # OverlayConnecter.Connection
+        permid = connection.permid
+        self.acquire()
+        if DEBUG:
+            print "secover: ***** secure overlay connection lost *****", connection.get_ip()
+        if self.connection_list.has_key(permid):
+            print "secover: removing lost connection from admin"
+            dns = self.connection_list[permid]['dns']
+            del self.connection_list[permid]
+            # TODO: remove subject?
+        self.release()
+
+
     def connectPeer(self, dns):    # called by task
         self.acquire()
         self.overlayswarm.connectPeer(dns)
@@ -443,11 +469,13 @@ class SecureOverlay:
         self.release()
 
     def acquire(self):
-        print "secover: LOCK",currentThread().getName()
+        if DEBUG:
+            print "secover: LOCK",currentThread().getName()
         self.lock.acquire()
         
     def release(self):
-        print "secover: UNLOCK",currentThread().getName()
+        if DEBUG:
+            print "secover: UNLOCK",currentThread().getName()
         self.lock.release()
 
 

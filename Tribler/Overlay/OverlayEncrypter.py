@@ -59,6 +59,7 @@ class Connection:    # OverlaySocket, a better name for it?
     def __init__(self, Encoder, connection, id, ext_handshake = False, dns = None):
         self.Encoder = Encoder
         self.connection = connection    # SocketHandler.SingleSocket
+        self.connecter_conn = None      # OverlayConnecter.Connection
         self.connecter = Encoder.connecter
         self.id = id
         self.dns = dns
@@ -152,6 +153,7 @@ class Connection:    # OverlaySocket, a better name for it?
             incompletecounter.decrement()
         c = self.Encoder.connecter.connection_made(self, self.dns)
         self.keepalive = c.send_keepalive
+        self.connecter_conn = c
         def notify(connection=c):
             self.Encoder.overlayswarm.connectionMade(connection)
         self.Encoder.raw_server.add_task(notify, 0)
@@ -206,6 +208,8 @@ class Connection:    # OverlaySocket, a better name for it?
             self.connecter.connection_lost(self)
         elif self.locally_initiated:
             incompletecounter.decrement()
+        if self.connecter_conn:
+            self.Encoder.overlayswarm.connectionLost(self.connecter_conn)
 
     def send_message_raw(self, message):
         if not self.closed:
@@ -236,6 +240,7 @@ class Connection:    # OverlaySocket, a better name for it?
             self.next_len, self.next_func = x
 
     def connection_lost(self, connection):
+        print "olencoder: connection_lost"
         if self.Encoder.connections.has_key(connection):
             self.sever()
 
@@ -316,7 +321,6 @@ class OverlayEncoder:
             if ip != 'unknown' and ip == dns[0]:    # forbid to setup multiple connection on overlay swarm
                 if DEBUG:
                     print "olencoder: Using existing connection to",dns
-                ####self.overlayswarm.connectionMade(v)
                 return True
         try:
             if DEBUG:

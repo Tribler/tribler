@@ -64,7 +64,7 @@ class ABCScheduler(wx.EvtHandler):
         self.UpdateRunningTorrentCounters()
 
         EVT_INVOKE(self, self.onInvoke)
-        
+
     def postInitTasks(self):
         # Read old list from torrent.lst
         ####################################
@@ -160,6 +160,9 @@ class ABCScheduler(wx.EvtHandler):
         self.totals['connections'] = totalconnections
         
     def updateTrayAndStatusBar(self):
+        self.invokeLater(self.onUpdateTrayAndStatusBar)
+
+    def onUpdateTrayAndStatusBar(self):
         maxuprate = self.ratemanager.MaxRate("up")
         if maxuprate == 0:
             upspeed = self.utility.speed_format(self.totals['up'], truncate = 1)
@@ -237,20 +240,6 @@ class ABCScheduler(wx.EvtHandler):
         self.timers['infrequent'] = Timer(300, self.InfrequentCyclicalTasks)
         self.timers['infrequent'].start()
 
-               
-    def onInvoke(self, event):
-        if not self.flag.isSet():
-            event.func(*event.args, **event.kwargs)
-
-    def invokeLater(self, func, args = None, kwargs = None):
-        if args is None:
-            args = []
-        if kwargs is None:
-            kwargs = {}
-            
-        if not self.flag.isSet():
-            wx.PostEvent(self, InvokeEvent(func, args, kwargs))
-              
     def updateAndInvoke(self, updateCounters = True, invokeLater = True):
         if updateCounters:
             # Update counter for running torrents
@@ -286,11 +275,12 @@ class ABCScheduler(wx.EvtHandler):
         inactivelength = len(inactivetorrents)
 
         if inactivelength > numtorrents:
-            # Sort first by listindex, comment to be compatible with Python2.3
-            #inactivetorrents.sort(key = attrgetter('listindex'))
+            # Disabling attrgetter sorts to remain 2.3 compatible
+            # Sort first by listindex
+            #inactivetorrents.sort(None, key = attrgetter('listindex'))
                 
             # Sort second by priority
-            #inactivetorrents.sort(key = attrgetter('prio'))
+            #inactivetorrents.sort(None, key = attrgetter('prio'))
                 
             # Slice off the number of torrents we need to start
             inactivetorrents = inactivetorrents[0:numtorrents]
@@ -471,7 +461,9 @@ class ABCScheduler(wx.EvtHandler):
 
     def sortList(self, colid = 4, reverse = False):
         # Sort by uprate first
-        self.utility.torrents["all"].sort(key = lambda x: x.getColumnValue(colid, -1.0), reverse = reverse)
+        self.utility.torrents["all"].sort(None, key = lambda x: x.getColumnValue(colid, -1.0))
+        if reverse:
+            self.utility.torrents["all"].reverse()
         self.updateListIndex()
 
     def updateListIndex(self, startindex = 0, endindex = None):
@@ -492,3 +484,16 @@ class ABCScheduler(wx.EvtHandler):
             ABCTorrentTemp.torrentconfig.writeSrc(False)
         
         self.utility.torrentconfig.Flush()
+
+    def onInvoke(self, event):
+        if not self.flag.isSet():
+            event.func(*event.args, **event.kwargs)
+
+    def invokeLater(self, func, args = None, kwargs = None):
+        if args is None:
+            args = []
+        if kwargs is None:
+            kwargs = {}
+            
+        if not self.flag.isSet():
+            wx.PostEvent(self, InvokeEvent(func, args, kwargs))

@@ -26,7 +26,7 @@ class NumSimSpinner(ABCSpinner):
     def changeSpinner(self, event = None):
 
         if threading.currentThread().getName() != "MainThread":
-            print "NOT MAIN THREAD"
+            print "spinners: NOT MAIN THREAD"
             print_stack()
 
         if event is None:
@@ -47,7 +47,7 @@ class NumSimSpinner(ABCSpinner):
     def updateCounter(self, event = None):
 
         if threading.currentThread().getName() != "MainThread":
-            print "NOT MAIN THREAD"
+            print "spinners: NOT MAIN THREAD"
             print_stack()
 
         proccount = self.utility.queue.getProcCount()

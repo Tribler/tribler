@@ -66,9 +66,9 @@ MetadataMessages = [GET_METADATA, METADATA]
 DOWNLOAD_HELP = chr(246)
 # torrent_hash
 STOP_DOWNLOAD_HELP = chr(245)
-# torrent_hash + 4-byte requestID + 1-byte all_or_nothing + bencode([piece num,...])
+# torrent_hash + 1-byte all_or_nothing + bencode([piece num,...])
 RESERVE_PIECES = chr(242)
-# torrent_hash + + 4-byte requestID + bencode([piece num,...])
+# torrent_hash + bencode([piece num,...])
 PIECES_RESERVED = chr(241)
 
 HelpCoordinatorMessages = [DOWNLOAD_HELP,STOP_DOWNLOAD_HELP,PIECES_RESERVED]

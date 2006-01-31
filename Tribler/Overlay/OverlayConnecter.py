@@ -15,7 +15,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = False
+DEBUG = True
 
 def toint(s):
     return long(b2a_hex(s), 16)
@@ -66,7 +66,7 @@ class Connection:
 
     def close(self):
         if DEBUG:
-            print 'connection closed'
+            print 'olconnctr: connection closed'
         self.closed = True
         self.connection.close()
 
@@ -107,11 +107,13 @@ class OverlayConnecter:
         return c
     
     def connection_lost(self, connection):
+        print "olconnctr: connection_lost"
         c = self.connections[connection]
         del self.connections[connection]
 
     def connection_flushed(self, connection):
-        print "___________ connection flused!!!"
+        if DEBUG:
+            print "___________ connection flused!!!"
         pass    
             
     def got_piece(self, i):

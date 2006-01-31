@@ -2,22 +2,19 @@
 # see LICENSE.txt for license information
 
 from sys import exc_info, exit
-from traceback import print_exc
+from traceback import print_exc, print_stack
 
 from Logger import get_logger
 from Tribler.Overlay.SecureOverlay import SecureOverlay
 from Tribler.CacheDB.CacheDBHandler import PeerDBHandler
-from Tribler.toofastbt.WaitForReplyException import WaitForReplyException
-from Tribler.toofastbt.intencode import toint, tobinary
 from BitTornado.bencode import bencode
 from BitTornado.BT1.MessageID import RESERVE_PIECES
 
 MAX_ROUNDS = 200
-DEBUG = False
+DEBUG = True
 
 class Helper:
     def __init__(self, torrent_hash, num_pieces, coordinator_permid, coordinator = None):
-        print "CREATING HELPER FOR COORDINATOR",`coordinator_permid`
         self.secure_overlay = SecureOverlay.getInstance()
         self.torrent_hash = torrent_hash
         self.coordinator_permid = coordinator_permid
@@ -26,8 +23,10 @@ class Helper:
         peer = peerdb.getPeer(coordinator_permid)
         if peer is None:
             self.coordinator_ip = None  # see is_coordinator()
+            self.coordinator_port = -1
         else:
             self.coordinator_ip = peer['ip']
+            self.coordinator_port = peer['port']
 
         self.reserved_pieces = [False] * num_pieces
         self.ignored_pieces = [False] * num_pieces
@@ -38,13 +37,16 @@ class Helper:
         self.marker = [True] * num_pieces
         self.round = 0
         self.encoder = None
-        self.requestid = 0
-        self.continuations = {}
+        self.continuations = []
+        self.outstanding = None
 
     def set_encoder(self,encoder):
         self.encoder = encoder
         self.encoder.set_coordinator_ip(self.coordinator_ip)
-    
+        # To support a helping user stopping and restarting a torrent
+        if self.coordinator_permid is not None:
+            self.start_data_connection()   
+
     def test(self):
         result = self.reserve_piece(10)
         print "reserve piece returned: " + str(result)
@@ -94,7 +96,8 @@ class Helper:
         return self.completed
 
     def reserve_pieces(self, pieces, sdownload, all_or_nothing = False):
-        print "helper: reserve_pieces: Want to reserve",pieces
+        if DEBUG:
+            print "helper: reserve_pieces: Want to reserve",pieces
         pieces_to_send = []
         ex = "None"
         result = []
@@ -104,7 +107,8 @@ class Helper:
             elif not self.is_ignored(piece):
                 pieces_to_send.append(piece)
 
-        print "helper: reserve_pieces: result is",result,"to_send is",pieces_to_send
+        if DEBUG:
+            print "helper: reserve_pieces: result is",result,"to_send is",pieces_to_send
 
         if pieces_to_send == []:
             return result
@@ -113,18 +117,8 @@ class Helper:
             for piece in new_reserved_pieces:
                 self._reserve_piece(piece)
         else:
-            self.counter += 1
-            ex = "self.send_reserve_pieces(pieces_to_send)"
-            self.requestid += 1
-            if self.requestid == (2 ** 32)-1:
-                self.requestid = 1
-            self.send_reserve_pieces(self.requestid,pieces_to_send)
-            # Can't do much until reservation received
-            self.wait(self.requestid,sdownload)
-            
-            print "helper: result has length",len(result)
-            if len(result) != 0:
-                raise WaitForReplyException
+            self.send_or_queue_reservation(sdownload,pieces_to_send,result)
+            return []
 
         result = []
         for piece in pieces:
@@ -146,45 +140,84 @@ class Helper:
 
 ## Synchronization interface
 
-    def wait(self,reqid,sdownload):
-        self.continuations[reqid] = sdownload
+    def send_or_queue_reservation(self,sdownload,pieces_to_send,result):
+        """ Records the fact that a SingleDownload wants to reserve a
+            piece with the coordinator. If it's the first, send the
+            actual reservation request.
+        """
+        print "helper: Sending or queuing reservation"
+        if sdownload not in self.continuations:
+            print "helper: Queuing reservation"
+            self.continuations.append(sdownload)
+            sdownload.helper_set_freezing(True)
+        if len(self.continuations) > 0:
+            self.send_reservation(pieces_to_send)
 
-    def notify(self,reqid):
-        if self.continuations.has_key(reqid):
-            print "helper: notify: Waking downloader for reqid",reqid
-            sdownload = self.continuations[reqid]
-            del self.continuations[reqid]
-            sdownload._request_more()
+    def send_reservation(self,pieces_to_send):
+        if self.outstanding is None:
+            self.counter += 1
+            print "helper: Sending reservation"
+            sdownload = self.continuations.pop(0)
+            self.outstanding = sdownload            
+            ex = "self.send_reserve_pieces(pieces_to_send)"
+            self.send_reserve_pieces(pieces_to_send)
+
+
+    def notify(self):
+        """ Called by HelperMessageHandler to "wake up" the download that's
+            waiting for its coordinator to reserve it a piece 
+        """
+        if self.outstanding is None:
+            if DEBUG:
+                print "helper: notify: No continuation waiting???"
         else:
-            print "helper: notify: no downloader for reqid",reqid
+            if DEBUG:
+                print "helper: notify: Waking downloader"
+            sdownload = self.outstanding
+            self.outstanding = None # must be not before calling self.restart!
+            self.restart(sdownload)
+            
+            #self.send_reservation()
+            list = self.continuations[:] # copy just to be sure
+            self.continuations = []
+            for sdownload in list:
+                self.restart(sdownload)
+
+    def restart(self,sdownload):
+        # Chokes can get in while we're waiting for reply from coordinator. 
+        # But as we were called from _request_more() we were not choked 
+        # just before, so pretend we didn't see the message yet.
+        if sdownload.is_choked():
+            sdownload.helper_forces_unchoke()
+        sdownload.helper_set_freezing(False)
+        sdownload._request_more()
 
 ## Coordinator comm.       
-    def send_reserve_pieces(self, reqid, pieces, all_or_nothing = False):
+    def send_reserve_pieces(self, pieces, all_or_nothing = False):
         if all_or_nothing:
             all_or_nothing = chr(1)
         else:
             all_or_nothing = chr(0)
-        payload = self.torrent_hash + tobinary(reqid) + all_or_nothing + bencode(pieces)
+        payload = self.torrent_hash + all_or_nothing + bencode(pieces)
         self.secure_overlay.addTask(self.coordinator_permid, RESERVE_PIECES + payload )
 
 ### HelperMessageHandler interface
     def got_pieces_reserved(self, permid, pieces):
         self.handle_pieces_reserved(pieces)
-        # Do this always, will return quickly when connection already exists
-        dns = self.secure_overlay.findDNSByPermid(permid)
-        if dns:
-            print "helpmsg: Starting data connection to coordinator",dns
-            self.encoder.start_connection(dns,id = None,coord_con = True)
+        self.start_data_connection()
 
     def handle_pieces_reserved(self,pieces):
-        print "helper: COORDINATOR REPLIED",pieces
+        if DEBUG:
+            print "helper: Coordinator replied",pieces
         try:
             for piece in pieces:
                 if piece > 0:
-                    print "helper: COORDINATOR LET US RESERVE",piece
+                    if DEBUG:
+                        print "helper: COORDINATOR LET US RESERVE",piece
                     self._reserve_piece(piece)
                 else:
-                    print "helper: COORDINATOR SAYS IGNORE",-piece
+                    if DEBUG:
+                        print "helper: COORDINATOR SAYS IGNORE",-piece
                     self._ignore_piece(-piece)
             self.counter -= 1
 
@@ -192,4 +225,10 @@ class Helper:
             print_exc()
             print "helper: Exception in handle_pieces_reserved",e
 
+    def start_data_connection(self):
+        # Do this always, will return quickly when connection already exists
+        dns = (self.coordinator_ip, self.coordinator_port)
+        if DEBUG:
+            print "helpmsg: Starting data connection to coordinator",dns
+        self.encoder.start_connection(dns,id = None,coord_con = True)
       

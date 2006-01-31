@@ -27,7 +27,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = False
+DEBUG = True
 FIREWALL = False
 
 all = POLLIN | POLLOUT
@@ -118,6 +118,9 @@ class SingleSocket:
 
     def write(self, s):
 #        self.check.write(s)
+        # Arno: fishy concurrency problem, sometimes self.socket is None
+        if self.socket is None:
+            return
         assert self.socket is not None
         self.buffer.append(s)
         if len(self.buffer) == 1:
@@ -179,6 +182,7 @@ class SocketHandler:
                 tokill.append(s)
         for k in tokill:
             if k.socket is not None:
+                print "SocketHandler: scan_timeout closing connection",k.get_ip()
                 self._close_socket(k)
 
     def bind(self, port, bind = '', reuse = False, ipv6_socket_style = 1, upnp = 0):
@@ -263,14 +267,14 @@ class SocketHandler:
         if DEBUG and FIREWALL:    # try 22 first, because TU only opens port 22 for SSH...
             try:
                 first_port = 22
-                self.bind(first_port, bind,
+                self.bind(first_port, bind, reuse = reuse, 
                                ipv6_socket_style = ipv6_socket_style, upnp = upnp)
                 return first_port
             except socket.error, e:
                 pass
         for listen_port in portrange:
             try:
-                self.bind(listen_port, bind,
+                self.bind(listen_port, bind, reuse = reuse,
                                ipv6_socket_style = ipv6_socket_style, upnp = upnp)
                 return listen_port
             except socket.error, e:
@@ -329,7 +333,7 @@ class SocketHandler:
                 try:
                     s = self.start_connection_raw(addrinfo[4], addrinfo[0], handler)
                     break
-                except:
+                except Exception,e:
                     pass
             else:
                 raise socket.error('unable to connect')
@@ -353,7 +357,7 @@ class SocketHandler:
                     try:
                         newsock, addr = s.accept()
                         if DEBUG:
-                            print "Got connection from",newsock.getpeername()
+                            print "SocketHandler: Got connection from",newsock.getpeername()
                         newsock.setblocking(0)
                         nss = SingleSocket(self, newsock, self.handler)    # create socket for incoming peers and tracker
                         self.single_sockets[newsock.fileno()] = nss
@@ -382,6 +386,7 @@ class SocketHandler:
                         s.last_hit = clock()
                         data = s.socket.recv(100000)
                         if not data:
+                            print "SocketHandler: no-data closing connection",s.get_ip(),s.get_port()
                             self._close_socket(s)
                         else:
                             # btlaunchmany: NewSocketHandler, btdownloadheadless: Encrypter.Connection
@@ -391,6 +396,7 @@ class SocketHandler:
                             print "SocketHandler: Socket error",str(e)
                         code, msg = e
                         if code != EWOULDBLOCK:
+                            print "SocketHandler: not WOULDBLOCK closing connection",s.get_ip()
                             self._close_socket(s)
                             continue
                 if (event & POLLOUT) and s.socket and not s.is_flushed():
@@ -404,9 +410,11 @@ class SocketHandler:
             self.dead_from_write = []
             for s in old:
                 if s.socket:
+                    print "SocketHandler: close_dead closing connection",s.get_ip()
                     self._close_socket(s)
 
     def _close_socket(self, s):
+        print "SocketHandler: closing connection to ",s.get_ip()
         s.close()
         s.handler.connection_lost(s)
 
@@ -420,6 +428,7 @@ class SocketHandler:
             shuffle(closelist)
             closelist = closelist[:to_close]
             for sock in closelist:
+                print "SocketHandler: do_poll closing connection",sock.get_ip()
                 self._close_socket(sock)
             return []
         return r     

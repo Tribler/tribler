@@ -371,19 +371,19 @@ class ABCFrame(wx.Frame):
 
         ## DEBUG
         peerdb = PeerDB.getInstance()
-        
+
         friend = {}
         friend['name'] = 'Jie'
         friend['permid'] = base64.decodestring('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAc6ebdH+dmvvgKiE7oOZuQba5I4msyuTJmVpJQVPAT+R9Pg8zsLsuJPV6RjU30RKHnCiaJvjtFW6pLXo')
-        friend['ip'] = '130.161.158.51'
-        friend['port'] = 22
+        friend['ip'] = '130.37.198.241'
+        friend['port'] = 6882
         self.utility.all_peers_cache.append(friend)
         peerdb.put(friend['permid'],friend)
 
         friend = {}
         friend['name'] = 'Pawel'
         friend['permid'] = base64.decodestring('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAJ114tMJ6C8TkLkSv8QlVFlj/RpF2ibbar1P8GbzASpMDb1kSUBnmldfMFsNTNSK5cJGsTgAGFjYEJ78')
-        friend['ip'] = '130.37.198.247'
+        friend['ip'] = '130.37.198.240'
         friend['port'] = 6882
         self.utility.all_peers_cache.append(friend)
         peerdb.put(friend['permid'],friend)

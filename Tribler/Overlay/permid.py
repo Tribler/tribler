@@ -4,7 +4,7 @@
 import StringIO
 from sha import sha
 from copy import deepcopy
-import traceback,sys,os
+import traceback,os
 
 from M2Crypto import Rand,EC,EVP
 from BitTornado.bencode import bencode, bdecode
@@ -216,7 +216,7 @@ class ChallengeResponse:
         rdata2 = generate_response2(dummy_random,my_id,dummy_random,_ec_keypair)
         self.minchal = 1+len(cdata) # 1+ = message type
         self.minr1 = 1+len(rdata1)
-        self.minr2 = 1+len(rdata2)
+        self.minr2 = 1+len(rdata2) - 1 # Arno: hack, sometimes the official minimum is too big
 
     def starting_party(self,locally_initiated):
         if self.state == STATE_INITIAL and locally_initiated:
@@ -275,7 +275,7 @@ class ChallengeResponse:
 
     def set_peer_authenticated(self):
         if DEBUG:
-            print "Challenge response succesful! (",self.my_id,"<->",self.peer_id,")"
+            print "Challenge response succesful!"
         self.state = STATE_AUTHENTICATED
 
     def get_peer_authenticated(self):
@@ -316,6 +316,8 @@ class ChallengeResponse:
 
     def got_response1(self, rdata1, conn):
         rdata2 = self.got_response1_event(rdata1, conn.connection.id)
+        if DEBUG:
+            print "ChallengeResponse: sending RESPONSE2 of length",1+len(rdata2)
         conn.send_message(RESPONSE2 + rdata2)
         # get_peer_permid() throws exception if auth has failed
         permid = self.get_peer_permid()
@@ -345,43 +347,40 @@ class ChallengeResponse:
             if len(message) < self.get_challenge_minlen():
                 if DEBUG:
                     print "Close on bad CHALLENGE: msg len"
+                self.state = STATE_FAILED
                 return False
             try:
-#                if DEBUG:
-#                    print "got challeng", len(msg), conn
                 self.got_challenge(msg, conn)
             except Exception,e:
                 if DEBUG:
                     print "Close on bad CHALLENGE: exception",str(e)
-                    traceback.print_exc(file=sys.stdout)
+                    traceback.print_exc()
                 return False
         elif t == RESPONSE1:
             if len(message) < self.get_response1_minlen():
                 if DEBUG:
                     print "Close on bad RESPONSE1: msg len"
+                self.state = STATE_FAILED
                 return False
             try:
-#                if DEBUG:
-#                    print "got response1", len(msg), conn
                 self.got_response1(msg, conn)
             except Exception,e:
                 if DEBUG:
                     print "Close on bad RESPONSE1: exception",str(e)
-                    traceback.print_exc(file=sys.stdout)
+                    traceback.print_exc()
                 return False
         elif t == RESPONSE2:
             if len(message) < self.get_response2_minlen():
                 if DEBUG:
                     print "Close on bad RESPONSE2: msg len"
+                self.state = STATE_FAILED
                 return False
             try:
-#                if DEBUG:
-#                    print "got response2", len(msg), conn
                 self.got_response2(msg, conn)
             except Exception,e:
                 if DEBUG:
                     print "Close on bad RESPONSE1: exception",str(e)
-                    traceback.print_exc(file=sys.stdout)
+                    traceback.print_exc()
                 return False
         else:
             return False

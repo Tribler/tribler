@@ -1,1 +1,0 @@
-class WaitForReplyException(Exception): pass

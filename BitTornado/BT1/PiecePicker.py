@@ -217,22 +217,22 @@ class PiecePicker:
         while True:
             piece = self._next(haves, wantfunc, complete_first, helper_con)
             if piece is None:
-                print "PiecePicker: _next returned no pieces!",
+                if DEBUG:
+                    print "PiecePicker: _next returned no pieces!",
                 break
-            if self.helper is None or helper_con or self.helper.reserve_piece(piece,sdownload):
-                if self.helper is None:
-                    if DEBUG:
-                        print "NORMAL SHOULD DL PIECE",piece
-                elif helper_con:
-                    if DEBUG:
-                        print "helper_con SHOULD DL PIECE",piece
-                elif self.helper.reserve_piece(piece,sdownload):
-                    if DEBUG:
-                        print "helper.reserve SHOULD DL PIECE",piece
-                else:
-                    if DEBUG:
-                        print "NONE SHOULD DL PIECE",piece
+            if self.helper is None or helper_con:
                 return piece
+
+            if self.helper.reserve_piece(piece,sdownload):
+                if DEBUG:
+                    print "helper: reserve SHOULD DL PIECE",piece
+                return piece
+            else:
+                return None
+
+            if DEBUG:
+                print "helper: NONE SHOULD DL PIECE",piece
+            return piece
         if self.rate_predictor is None or not self.rate_predictor.has_capacity():
             return None
         else:

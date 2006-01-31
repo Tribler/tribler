@@ -212,6 +212,7 @@ class LaunchMany:
                 try:
                     self.listen_port = self.rawserver.find_and_bind(
                                     config['minport'], config['maxport'], config['bind'], 
+                                    reuse = True,
                                     ipv6_socket_style = config['ipv6_binds_v4'], 
                                     upnp = upnp_type, randomizer = config['random_port'])
                     if DEBUG:

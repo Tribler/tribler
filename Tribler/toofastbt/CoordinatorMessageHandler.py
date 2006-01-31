@@ -2,7 +2,6 @@
 # see LICENSE.txt for license information
 """ SecureOverlay message handler for a Coordinator """
 
-from Tribler.toofastbt.intencode import toint, tobinary
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
 
@@ -26,14 +25,14 @@ class CoordinatorMessageHandler:
 #            get_logger().log(3, "connection: got RESERVE_PIECES")
             return self.got_reserve_pieces(permid, message)
         else:
-            print "helpcoord: UNKNOWN OVERLAY MESSAGE", ord(t)
+            if DEBUG:
+                print "helpcoord: UNKNOWN OVERLAY MESSAGE", ord(t)
         
     def got_reserve_pieces(self, permid, message):
         try:
             torrent_hash = message[1:21]
-            reqid = toint(message[21:25])
-            all_or_nothing = message[25]
-            pieces = bdecode(message[26:])
+            all_or_nothing = message[21]
+            pieces = bdecode(message[22:])
         except:
             errorfunc("warning: bad data in RESERVE_PIECES")
             return False
@@ -44,13 +43,8 @@ class CoordinatorMessageHandler:
         if c is None:
             return False
 
-
-        print "coordmsg: BEFORE ISHELPER CHECK"
-
         if not c.is_helper_permid(permid): 
             return False
 
-        print "coordmsg: AFTER ISHELPER CHECK"
-
-        c.got_reserve_pieces(permid, reqid, pieces, all_or_nothing)
+        c.got_reserve_pieces(permid, pieces, all_or_nothing)
         return True

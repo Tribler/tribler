@@ -7,7 +7,6 @@ from sha import sha
 import sys, os
 from random import randint
 
-from Tribler.toofastbt.intencode import toint, tobinary
 from Tribler.Overlay.SecureOverlay import SecureOverlay
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
@@ -39,11 +38,13 @@ class HelperMessageHandler:
         flag = 0
         for peer in self.launchmany.utility.all_peers_cache:
             if peer['permid'] == permid:
-                print "helper: Got",getMessageName(t),"from friend",peer['name']
+                if DEBUG:
+                    print "helper: Got",getMessageName(t),"from friend",peer['name']
                 flag = 1
                 break
         if flag == 0:
-            print "helper: Got",getMessageName(t),"from unknown peer", `permid`
+            if DEBUG:
+                print "helper: Got",getMessageName(t),"from unknown peer", `permid`
             return False
         
         if t == DOWNLOAD_HELP:
@@ -150,9 +151,11 @@ class HelperMessageHandler:
         self.metadata_handler.send_metadata_request(permid, torrent_hash)
 
     def call_dlhelp_task(self, torrent_hash, torrent_data):
-        print "helpmsg: Metadata handler reports torrent is in"
+        if DEBUG:
+            print "helpmsg: Metadata handler reports torrent is in"
         if not self.metadata_queue.has_key(torrent_hash) or not self.metadata_queue[torrent_hash]:
-            print "helpmsg: Metadata's data not right one!"
+            if DEBUG:
+                print "helpmsg: Metadata's data not right one!"
             return
         
         for permid in self.metadata_queue[torrent_hash]:
@@ -187,8 +190,7 @@ class HelperMessageHandler:
     def got_pieces_reserved(self,permid, message):
         try:
             torrent_hash = message[1:21]
-            reqid = toint(message[21:25])
-            pieces = bdecode(message[25:])
+            pieces = bdecode(message[21:])
         except:
             errorfunc("warning: bad data in PIECES_RESERVED")
             return False
@@ -204,7 +206,7 @@ class HelperMessageHandler:
 
         h.got_pieces_reserved(permid, pieces)
         # Wake up download thread
-        h.notify(reqid)
+        h.notify()
         return True
         
     def errorfunc(self,msg):
