@@ -5,9 +5,7 @@
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
 
-DEBUG = True
-
-
+DEBUG = False
 
 class CoordinatorMessageHandler:
     def __init__(self,launchmany):

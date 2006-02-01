@@ -32,7 +32,13 @@ from BitTornado.BT1.MessageID import CANCEL, getMessageName
 # TEMP HACK
 from Tribler.BuddyCast.buddycast import BuddyCast
 
-DEBUG = True
+try:
+    True
+except:
+    True = 1
+    False = 0
+
+DEBUG = False
 
 Length_of_permid = 0    # 0: no restriction
 
@@ -169,7 +175,8 @@ class PermidOverlayTask:
         if self.dns:
             permid = self.secure_overlay.findPermidByDNS(self.dns)
 
-            print "secover: Think connecting to",show_permid(self.permid)," and connected to",show_permid(permid)
+            if DEBUG:
+                print "secover: Think connecting to",show_permid(self.permid)," and connected to",show_permid(permid)
 
             if self.permid == permid and self.task:
                 self.task.sendMessage()
@@ -365,7 +372,8 @@ class SecureOverlay:
                     else:
                         msg = getMessageName(message[0])
                     msg += ' '+currentThread().getName()
-                    print "secover: add PermidOverlayTask", msg
+                    if DEBUG:
+                        print "secover: add PermidOverlayTask", msg
                 task = PermidOverlayTask(self, self.subject_manager, target, message, timeout)
             elif validDNS(target):
                 if DEBUG:
@@ -374,7 +382,8 @@ class SecureOverlay:
                     else:
                         msg = getMessageName(message[0])
                     msg += ' '+currentThread().getName()
-                    print "secover: add OverlayTask", msg
+                    if DEBUG:
+                        print "secover: add OverlayTask", msg
                 task = OverlayTask(self, self.subject_manager, target, message, timeout)
             else:
                 self.release() 
@@ -398,9 +407,11 @@ class SecureOverlay:
             self.subject_manager.notifySubject(dns)
 
         ## Arno: test hack
-        print "secover: starting BUDDYCAST"
         buddycast = BuddyCast.getInstance()
-        buddycast.exchangePreference(connection.permid)
+        if buddycast.is_registered():
+            if DEBUG:
+                print "secover: starting BUDDYCAST"
+            buddycast.exchangePreference(connection.permid)
 
         self.release()    
 
@@ -409,7 +420,7 @@ class SecureOverlay:
         permid = connection.permid
         auth_listen_port = connection.get_auth_listen_port()
         if DEBUG:
-                print "secover: add connection in secure overlay", dns, "auth listen port", auth_listen_port
+            print "secover: add connection in secure overlay", dns, "auth listen port", auth_listen_port
         #
         # Arno: if DNS is none, this is an incoming connection from another
         # peer. We cannot enter this connection into the table because we don't
@@ -447,7 +458,8 @@ class SecureOverlay:
         if DEBUG:
             print "secover: ***** secure overlay connection lost *****", connection.get_ip()
         if self.connection_list.has_key(permid):
-            print "secover: removing lost connection from admin"
+            if DEBUG:
+                print "secover: removing lost connection from admin"
             dns = self.connection_list[permid]['dns']
             del self.connection_list[permid]
             # TODO: remove subject?

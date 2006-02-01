@@ -27,7 +27,8 @@ except:
     True = 1
     False = 0
 
-DEBUG = True
+DEBUG = False
+
 FIREWALL = False
 
 all = POLLIN | POLLOUT
@@ -182,7 +183,8 @@ class SocketHandler:
                 tokill.append(s)
         for k in tokill:
             if k.socket is not None:
-                print "SocketHandler: scan_timeout closing connection",k.get_ip()
+                if DEBUG:
+                    print "SocketHandler: scan_timeout closing connection",k.get_ip()
                 self._close_socket(k)
 
     def bind(self, port, bind = '', reuse = False, ipv6_socket_style = 1, upnp = 0):
@@ -217,13 +219,13 @@ class SocketHandler:
                     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 server.setblocking(0)
                 if DEBUG:
-                    print "Try to bind socket on", addrinfo[4], "..."
+                    print "SocketHandler: Try to bind socket on", addrinfo[4], "..."
                 server.bind(addrinfo[4])
                 self.servers[server.fileno()] = server
                 if bind:
                     self.interfaces.append(server.getsockname()[0])
                 if DEBUG:
-                    print "OK"
+                    print "SocketHandler: OK"
                 server.listen(64)
                 self.poll.register(server, POLLIN)
             except socket.error, e:
@@ -386,7 +388,8 @@ class SocketHandler:
                         s.last_hit = clock()
                         data = s.socket.recv(100000)
                         if not data:
-                            print "SocketHandler: no-data closing connection",s.get_ip(),s.get_port()
+                            if DEBUG:
+                                print "SocketHandler: no-data closing connection",s.get_ip(),s.get_port()
                             self._close_socket(s)
                         else:
                             # btlaunchmany: NewSocketHandler, btdownloadheadless: Encrypter.Connection
@@ -396,7 +399,8 @@ class SocketHandler:
                             print "SocketHandler: Socket error",str(e)
                         code, msg = e
                         if code != EWOULDBLOCK:
-                            print "SocketHandler: not WOULDBLOCK closing connection",s.get_ip()
+                            if DEBUG:
+                                print "SocketHandler: not WOULDBLOCK closing connection",s.get_ip()
                             self._close_socket(s)
                             continue
                 if (event & POLLOUT) and s.socket and not s.is_flushed():
@@ -410,11 +414,13 @@ class SocketHandler:
             self.dead_from_write = []
             for s in old:
                 if s.socket:
-                    print "SocketHandler: close_dead closing connection",s.get_ip()
+                    if DEBUG:
+                        print "SocketHandler: close_dead closing connection",s.get_ip()
                     self._close_socket(s)
 
     def _close_socket(self, s):
-        print "SocketHandler: closing connection to ",s.get_ip()
+        if DEBUG:
+            print "SocketHandler: closing connection to ",s.get_ip()
         s.close()
         s.handler.connection_lost(s)
 
@@ -428,7 +434,8 @@ class SocketHandler:
             shuffle(closelist)
             closelist = closelist[:to_close]
             for sock in closelist:
-                print "SocketHandler: do_poll closing connection",sock.get_ip()
+                if DEBUG:
+                    print "SocketHandler: do_poll closing connection",sock.get_ip()
                 self._close_socket(sock)
             return []
         return r     

@@ -31,6 +31,15 @@ from Utility.constants import * #IGNORE:W0611
 
 from abcengine import ABCEngine
 
+try:
+    True
+except:
+    True = 1
+    False = 0
+
+DEBUG = False
+
+
 wxEVT_INVOKE = wx.NewEventType()
 
 def EVT_INVOKE(win, func):
@@ -86,6 +95,10 @@ class ABCLaunchMany(Thread,LaunchMany,wx.EvtHandler):
 
         btconfig['parse_dir_interval'] = None # No parsing done at the moment
         btconfig['saveas_style'] = 1 # must be 1 for security during download helping
+
+        # Enable/disable features
+        btconfig['buddycast'] = int(self.utility.config.Read('enablerecommender'))
+        btconfig['download_help'] = int(self.utility.config.Read('enabledlhelp'))
 
         # btconfig must be set before calling LaunchMany constructor
         Thread.__init__(self)
@@ -182,21 +195,25 @@ class ABCLaunchMany(Thread,LaunchMany,wx.EvtHandler):
         ABCTorrentTemp = self.utility.queue.getABCTorrent(-1,hexhash)
 
         if ABCTorrentTemp is None:
-            print "launchmany: STOP_DOWNLOAD_HELP could not find torrent!"
+            if DEBUG:
+                print "launchmany: STOP_DOWNLOAD_HELP could not find torrent!"
 
         if ABCTorrentTemp is not None:
-            print "launchmany: STOP_DOWNLOAD_HELP stopping torrent (postponed)"
+            if DEBUG:
+                print "launchmany: STOP_DOWNLOAD_HELP stopping torrent (postponed)"
             self.invokeLater(self.remove_callback,[ABCTorrentTemp])            
 
     def remove_callback(self,ABCTorrentTemp):
-        print "launchmany: STOP_DOWNLOAD_HELP actually stopping torrent"
+        if DEBUG:
+            print "launchmany: STOP_DOWNLOAD_HELP actually stopping torrent"
         #msg = self.utility.lang.get('helping_stopped')
         #ABCTorrentTemp.changeMessage( msg, "status")
         self.utility.actionhandler.procREMOVE([ABCTorrentTemp], removefiles = True)
 
     def add(self, hash, data):
         """ called by Tribler/toofastbt/HelperMessageHandler """
-        print "ABC's launchmanycore: ADD (postponed)"
+        if DEBUG:
+            print "launchmany: Adding torrent (postponed)"
         self.invokeLater(self.add_callback,[hash,data])
 
     def onInvoke(self, event):
@@ -211,17 +228,18 @@ class ABCLaunchMany(Thread,LaunchMany,wx.EvtHandler):
 
     # Make sure this is called by the MainThread, as it does GUI updates
     def add_callback(self, hash, data):
-        print "ABC's launchmanycore: actual ADD"
+        if DEBUG:
+            print "launchmany: actually Adding torrent"
         self.utility.queue.addtorrents.AddTorrentFromFile(data['path'], caller = "helper", dest = data['dest'], caller_data = data)
 
         
     # polymorph/override
     def addDownload(self, ABCTorrentTemp):
-        print "ABC's launchmanycore: ADDDOWNLOAD",currentThread().getName()
+        if DEBUG:
+            print "launchmany: addDownload",currentThread().getName()
 
         ## ARNO: HACK
         self.arno_file_cache[ABCTorrentTemp.torrent_hash] = bencode(ABCTorrentTemp.getResponse())
-        #print "ABC's launchmanycore: arno_file cache is",self.arno_file_cache
 
         c = self.counter
         self.counter += 1

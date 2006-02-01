@@ -216,7 +216,7 @@ class LaunchMany:
                                     ipv6_socket_style = config['ipv6_binds_v4'], 
                                     upnp = upnp_type, randomizer = config['random_port'])
                     if DEBUG:
-                        print "Got listen port", self.listen_port
+                        print "BitTornado/launchmany: Got listen port", self.listen_port
                     break
                 except socketerror, e:
                     if upnp_type and e == UPnP_ERROR:
@@ -252,7 +252,7 @@ class LaunchMany:
                                            self.config, self.exchandler)
                 self.secure_overlay.register(self.overlayswarm)
                 self.overlay_apps = OverlayApps.getInstance()
-                self.overlay_apps.register(self.secure_overlay,self)
+                self.overlay_apps.register(self.secure_overlay,self,GLOBAL.do_buddycast,GLOBAL.do_download_help)
                 # It's important we don't start listening to the network until
                 # all higher protocol-handling layers are properly configured.
                 self.overlayswarm.start_listening()
@@ -370,14 +370,15 @@ class LaunchMany:
             
     def remove(self, hash):
         if DEBUG:
-            print "STOP_DOWNLOAD_HELP not supported in text-mode!"
+            print "BitTornado/launchmany: STOP_DOWNLOAD_HELP not supported in text-mode!"
         #self.torrent_list.remove(hash)
         #self.downloads[hash].shutdown()
         #del self.downloads[hash]
         
     def add(self, hash, data):
         
-        print "BitTornado/launchmanycore: ADD"
+        if DEBUG:
+            print "BitTornado/launchmany: Adding torrent"
         ## ARNO: HACK 
         self.arno_file_cache[hash] = data
 

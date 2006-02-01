@@ -314,6 +314,8 @@ class Utility:
                                     -1, 
                                     ACTION_SCRAPE, 
                                     ACTION_DETAILS],
+             'enablerecommender': '1',
+             'enabledlhelp': '1',  
 #            'skipcheck': '0'
         }
 

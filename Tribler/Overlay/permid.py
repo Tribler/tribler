@@ -11,6 +11,8 @@ from M2Crypto import Rand,EC,EVP
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
 
+DEBUG = False
+
 # Internal constants
 keypair_ecc_curve = EC.NID_sect233k1;
 num_random_bits = 1024*8 # bits
@@ -24,8 +26,6 @@ STATE_FAILED = 4
 
 # Global variable holding our EC keypair
 _ec_keypair = None
-
-DEBUG = True
 
 # Exported functions
 def init(config_dir = None):
@@ -166,7 +166,7 @@ def create_torrent_signature(response):
         response['signer'] = str(_ec_keypair.pub().get_der())
         return True
     except Exception, e:
-        print "Exception in permid: create_torrent_signature:",str(e) 
+        print "permid: Exception in create_torrent_signature:",str(e) 
         return False
     
 def verify_torrent_signature(response):
@@ -193,7 +193,7 @@ def do_verify_torrent_signature(digest,sigstr,permid):
         intret = ecpub.verify_dsa_asn1(digest,sigstr)
         return intret == 1
     except Exception, e:
-        print "Exception in permid: verify_torrent_signature:",str(e) 
+        print "permid: Exception in verify_torrent_signature:",str(e) 
         return False
 
 
@@ -278,7 +278,7 @@ class ChallengeResponse:
 
     def set_peer_authenticated(self):
         if DEBUG:
-            print "Challenge response succesful!"
+            print "permid: Challenge response succesful!"
         self.state = STATE_AUTHENTICATED
 
     def get_peer_authenticated(self):
@@ -319,8 +319,6 @@ class ChallengeResponse:
 
     def got_response1(self, rdata1, conn):
         rdata2 = self.got_response1_event(rdata1, conn.connection.id)
-        if DEBUG:
-            print "ChallengeResponse: sending RESPONSE2 of length",1+len(rdata2)
         conn.send_message(RESPONSE2 + rdata2)
         # get_peer_permid() throws exception if auth has failed
         permid = self.get_peer_permid()
@@ -349,40 +347,40 @@ class ChallengeResponse:
         if t == CHALLENGE:
             if len(message) < self.get_challenge_minlen():
                 if DEBUG:
-                    print "Close on bad CHALLENGE: msg len"
+                    print "permid: Close on bad CHALLENGE: msg len"
                 self.state = STATE_FAILED
                 return False
             try:
                 self.got_challenge(msg, conn)
             except Exception,e:
                 if DEBUG:
-                    print "Close on bad CHALLENGE: exception",str(e)
+                    print "permid: Close on bad CHALLENGE: exception",str(e)
                     traceback.print_exc()
                 return False
         elif t == RESPONSE1:
             if len(message) < self.get_response1_minlen():
                 if DEBUG:
-                    print "Close on bad RESPONSE1: msg len"
+                    print "permid: Close on bad RESPONSE1: msg len"
                 self.state = STATE_FAILED
                 return False
             try:
                 self.got_response1(msg, conn)
             except Exception,e:
                 if DEBUG:
-                    print "Close on bad RESPONSE1: exception",str(e)
+                    print "permid: Close on bad RESPONSE1: exception",str(e)
                     traceback.print_exc()
                 return False
         elif t == RESPONSE2:
             if len(message) < self.get_response2_minlen():
                 if DEBUG:
-                    print "Close on bad RESPONSE2: msg len"
+                    print "permid: Close on bad RESPONSE2: msg len"
                 self.state = STATE_FAILED
                 return False
             try:
                 self.got_response2(msg, conn)
             except Exception,e:
                 if DEBUG:
-                    print "Close on bad RESPONSE1: exception",str(e)
+                    print "permid: Close on bad RESPONSE1: exception",str(e)
                     traceback.print_exc()
                 return False
         else:

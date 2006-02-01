@@ -111,9 +111,7 @@ class TorrentDialogs:
         return True, dest
         
     def advancedDetails(self, event = None):
-        print "advancedDetails", self
         if (self.details is not None):
-            print "self.details is not None"
             try:
                 self.details.Raise()
                 return

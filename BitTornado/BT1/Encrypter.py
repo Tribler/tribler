@@ -23,7 +23,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = True
+DEBUG = False
 MAX_INCOMPLETE = 8
 
 protocol_name = 'BitTorrent protocol'
@@ -157,7 +157,7 @@ class Connection:
 
     def read_reserved(self, s):
         if DEBUG:
-            print "Reserved bits:", show(s)
+            print "encrypter: Reserved bits:", show(s)
         self.set_options(s)
         return 20, self.read_download_id
 
@@ -240,11 +240,13 @@ class Connection:
 
     def _auto_close(self):
         if not self.complete and not self.is_coordinator_con():
-            print "encrypter: autoclosing ",self.get_myip(),self.get_myport(),"to",self.get_ip(),self.get_port()
+            if DEBUG:
+                print "encrypter: autoclosing ",self.get_myip(),self.get_myport(),"to",self.get_ip(),self.get_port()
             self.close()
 
     def close(self):
-        print "encrypter: closing connection",self.get_ip()
+        if DEBUG:
+            print "encrypter: closing connection",self.get_ip()
         if not self.closed:
             self.connection.close()
             self.sever()
@@ -463,7 +465,8 @@ class Encoder:
         return True
 
     def close_all(self):
-        print "encrypter: closing all connections"
+        if DEBUG:
+            print "encrypter: closing all connections"
         copy = self.connections.values()[:]
         for c in copy:
             c.close()

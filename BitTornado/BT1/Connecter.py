@@ -272,10 +272,12 @@ class Connecter:
             connection.close()
             return
         if t == CHOKE:
-            print "connecter: Got CHOKE from",connection.get_ip()
+            if DEBUG:
+                print "connecter: Got CHOKE from",connection.get_ip()
             c.download.got_choke()
         elif t == UNCHOKE:
-            print "connecter: Got UNCHOKE from",connection.get_ip()
+            if DEBUG:
+                print "connecter: Got UNCHOKE from",connection.get_ip()
             c.download.got_unchoke()
         elif t == INTERESTED:
             #FIXME: c.upload may be None
@@ -294,8 +296,8 @@ class Connecter:
                     print "Close on bad HAVE: index out of range"
                 connection.close()
                 return
-            #if DEBUG:
-            print "connecter: Got HAVE(",i,") from",connection.get_ip()
+            if DEBUG:
+                print "connecter: Got HAVE(",i,") from",connection.get_ip()
             c.download.got_have(i)
         elif t == BITFIELD:
             try:
@@ -319,7 +321,8 @@ class Connecter:
                     print "Close on bad REQUEST: index out of range"
                 connection.close()
                 return
-            print "connecter: Got REQUEST(",i,") from",connection.get_ip()
+            if DEBUG:
+                print "connecter: Got REQUEST(",i,") from",connection.get_ip()
             c.got_request(i, toint(message[5:9]), toint(message[9:]))
         elif t == CANCEL:
             if len(message) != 13:

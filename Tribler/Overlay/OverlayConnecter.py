@@ -15,7 +15,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = True
+DEBUG = False
 
 def toint(s):
     return long(b2a_hex(s), 16)
@@ -107,7 +107,8 @@ class OverlayConnecter:
         return c
     
     def connection_lost(self, connection):
-        print "olconnctr: connection_lost"
+        if DEBUG:
+            print "olconnctr: connection_lost"
         c = self.connections[connection]
         del self.connections[connection]
 

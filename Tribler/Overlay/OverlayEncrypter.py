@@ -17,7 +17,8 @@ except:
     True = 1
     False = 0
 
-DEBUG = True
+DEBUG = False
+
 MAX_INCOMPLETE = 8
 
 protocol_name = 'BitTorrent protocol'
@@ -240,7 +241,8 @@ class Connection:    # OverlaySocket, a better name for it?
             self.next_len, self.next_func = x
 
     def connection_lost(self, connection):
-        print "olencoder: connection_lost"
+        if DEBUG:
+            print "olencoder: connection_lost"
         if self.Encoder.connections.has_key(connection):
             self.sever()
 

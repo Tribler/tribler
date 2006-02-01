@@ -623,7 +623,7 @@ class DetailPanel(wx.Panel):
                     self.portused.SetLabel(str(port))
             pass
         except wx.PyDeadObjectError, msg:
-            print "error in updateFromABCTorrent", msg
+            print "detailframe: error in updateFromABCTorrent", msg
             pass
         
 
@@ -685,7 +685,7 @@ class EarthPanel(wx.Panel):
                 try:
                     st = wx.StaticText(self, -1, self.info, pos=(10,10))
                 except:
-    #                print "error in getPeerInfo", self.peer.ip, self.info
+    #                print "detailframe: error in getPeerInfo", self.peer.ip, self.info
                     self.peer.ip_info = no_info
                     self.info = self.getPeerInfo()
                     st = wx.StaticText(self, -1, self.info, pos=(10,10))
@@ -723,7 +723,7 @@ class EarthPanel(wx.Panel):
             else:
                 info += self.utility.lang.get('peer_inactive') + ")\n"
             info += self.utility.lang.get('country_name') + " : " + ip_info['country_name'] \
-                    + "(" + ip_info['country_code'] + ")\n"
+                    + " (" + ip_info['country_code'] + ")\n"
             info += self.utility.lang.get('city') + " : " + ip_info['city'] + "\n"
             info += self.utility.lang.get('coordinate') + " : " + '%.2f' % ip_info['latitude'] \
                     + " , " + '%.2f' % ip_info['longitude'] + "\n"      
@@ -796,7 +796,7 @@ class EarthPanel(wx.Panel):
                     try:
                         st = wx.StaticText(self, -1, self.info, pos=(10,10))
                     except:
-    #                    print "error in getPeerInfo", self.peer.ip, self.info
+    #                    print "detailframe: error in getPeerInfo", self.peer.ip, self.info
                         self.peer.ip_info = no_info
                         self.info = self.getPeerInfo()
                         st = wx.StaticText(self, -1, self.info, pos=(10,10))
@@ -895,7 +895,7 @@ class EarthPanel(wx.Panel):
             file = open(filename, "r")
         except IOError:
             if DEBUG:
-                print "abcdetailframe: Geo info file " + filename + " could not be opened"
+                print "detailframe: Geo info file " + filename + " could not be opened"
             return []
             
         points = file.readlines()
@@ -932,19 +932,19 @@ class EarthPanel(wx.Panel):
             if alive:
                 if not point_created:
                     if IPInfo.foundIPLocation(peer.ip_info):    # create peerpoint only if it can be located
-                        #print "CREATE peer point", ip
+                        #print "detailframe: CREATE peer point", ip
                         self.peer_points[ip] = EarthPanel.PeerPoint(self, self.utility, 
                                         peer, self.size, wx.Size(3, 3))
                         self.peer_points[ip].setActive(True)
                     else:
                         self.peer_points[ip] = None
                 elif self.peer_points[ip] and not self.peer_points[ip].active:
-                    #print "REACTIVE peer point", ip
+                    #print "detailframe: REACTIVE peer point", ip
                     self.peer_points[ip].setActive(True)
             else:
                 if self.remove_unused_peers:    # remove the peerpoint if it has gone
                     if point_created and self.peer_points[ip]:
-                        print "REMOVE peer point", ip
+                        #print "detailframe: REMOVE peer point", ip
                         info_win = self.peer_points[ip].popup_win
                         try:
                             if info_win and not info_win.enter:
@@ -960,7 +960,7 @@ class EarthPanel(wx.Panel):
                 else:    # keep the point on map but turn it into another colour
                     if self.peer_points.has_key(ip) and self.peer_points[ip] \
                                                     and self.peer_points[ip].active:
-                        print "INACTIVE peer point", ip
+                        #print "detailframe: INACTIVE peer point", ip
                         self.peer_points[ip].setActive(False)
                         #TODO: let user select the color
                         
@@ -1011,7 +1011,7 @@ class EarthPanel(wx.Panel):
             lng = self.my_peer.ip_info['longitude']
             self.my_peer.display = True
             drawLabelAndDot(('Me', lat , lng ), size = 3, dotcolour = "GREEN")
-            #print "CREATE my peer", self.my_peer.ip
+            #print "detailframe: CREATE my peer", self.my_peer.ip
 
         self.displayPeers()
 
@@ -1164,7 +1164,6 @@ class MessageLogPanel(wx.Panel):
 ################################################################
 class ABCDetailFrame(wx.Frame):
     def __init__(self, torrent):
-        print "init abc detail"
         self.torrent = torrent
         self.utility = torrent.utility
         

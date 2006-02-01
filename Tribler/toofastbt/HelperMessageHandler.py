@@ -11,7 +11,7 @@ from Tribler.Overlay.SecureOverlay import SecureOverlay
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
 
-DEBUG = True
+DEBUG = False
 
 def get_random_filename(dir):
     while True:

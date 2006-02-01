@@ -151,8 +151,8 @@ class MetadataHandler:
                 return False
             else:
                 #torrent_path = self.save_torrent(torrent_hash, metadata)
-                #self.dlhelper.call_dlhelp_task(torrent_hash, torrent_path, conn)
-                self.dlhelper.call_dlhelp_task(torrent_hash, metadata)
+                if self.dlhelper is not None:
+                    self.dlhelper.call_dlhelp_task(torrent_hash, metadata)
         except Exception, msg:
             print_exc()
             print "metadata: Received metadata is broken", msg

@@ -1,11 +1,11 @@
 
-TODO WP3:
+TODO:
 
 Now:
 
 * Buddycast doesn't attempt to contact any superpeers. Alternative
   is to disable super-peer bootstrapping and just let it talk to the
-  peers it meets.
+  peers it meets. I currently do the latter.
 
 * All peers are added as friends, see BitTorrent/cachedb:PeerTable::addPeer
   as the addFriend method doesn't seem to work.
@@ -18,14 +18,8 @@ Now:
 
 * Look at launchmanycore.py and who creates peer caches
 
-* Process Jennke's comments on GUI.
-
-* Put Buddycast on SecureOverlay
-
 * Need way/GUI to add friends. Currently list of friends hardcoded into abc.py
  
-* Extend Preferences with flags for enabling/disabling Download Help and
-  Recommendation.
 
 
 Short term:
@@ -164,3 +158,5 @@ DONE:
 
 * Move 'bsddb' to $HOME/.ABC/ such that all user data is stored there.
 
+* Extend Preferences with flags for enabling/disabling Download Help and
+  Recommendation.

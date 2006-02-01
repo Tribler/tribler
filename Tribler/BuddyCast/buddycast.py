@@ -14,7 +14,7 @@ from Tribler.Overlay.permid import show_permid
 from dictlist import DictList
 from similarity import P2PSim
 
-DEBUG = True
+DEBUG = False
 relax_seconds = 30    # 3600*3
 
 num_torrents = 30
@@ -87,6 +87,9 @@ class BuddyCast:
         self.registered = True
         self.startup()
         
+    def is_registered(self):
+        return self.registered
+
     def set_myip(self, ip):
         self.my_ip = ip
         self.mydb.put('ip', ip)

@@ -1282,6 +1282,41 @@ class AdvancedDiskPanel(ABCOptionPanel):
 
 ################################################################
 #
+# Class: TriblerPanel
+#
+# Contains settings for Tribler's features
+#
+################################################################
+class TriblerPanel(ABCOptionPanel):
+    def __init__(self, parent, dialog):
+        ABCOptionPanel.__init__(self, parent, dialog)
+        sizer = self.sizer
+        
+        self.rec_enable = wx.CheckBox(self, -1, self.utility.lang.get('enablerecommender'))
+        sizer.Add(self.rec_enable, 0, wx.ALIGN_LEFT|wx.ALL, 5)
+        sizer.Add(wx.StaticText(self, -1, self.utility.lang.get('restartabc')), 0, wx.ALIGN_CENTER_VERTICAL)
+
+        self.dlhelp_enable = wx.CheckBox(self, -1, self.utility.lang.get('enabledlhelp'))
+        sizer.Add(self.dlhelp_enable, 0, wx.ALIGN_LEFT|wx.ALL, 5)
+        sizer.Add(wx.StaticText(self, -1, self.utility.lang.get('restartabc')), 0, wx.ALIGN_CENTER_VERTICAL)
+
+        self.initTasks()
+        
+    def loadValues(self, Read = None):
+        if Read is None:
+            Read = self.utility.config.Read
+        
+        self.rec_enable.SetValue(Read('enablerecommender', "boolean"))
+        self.dlhelp_enable.SetValue(Read('enabledlhelp', "boolean"))
+              
+    def apply(self):       
+        self.utility.config.Write('enablerecommender', self.rec_enable.GetValue(), "boolean")
+        self.utility.config.Write('enabledlhelp', self.dlhelp_enable.GetValue(), "boolean")          
+
+
+
+################################################################
+#
 # Class: ABCTree
 #
 # A collapsable listing of all the options panels
@@ -1315,12 +1350,15 @@ class ABCTree(wx.TreeCtrl):
                 
         self.misc = self.AppendItem(self.root, self.utility.lang.get('miscsetting'))
 
+        self.tribler = self.AppendItem(self.root, self.utility.lang.get('triblersetting'))
+
         self.treeMap = {self.ratelimits : self.dialog.rateLimitPanel, 
                         self.seedingoptions : self.dialog.seedingOptionsPanel, 
                         self.queuesetting : self.dialog.queuePanel, 
                         self.timeout : self.dialog.schedulerRulePanel, 
                         self.network : self.dialog.networkPanel, 
-                        self.misc : self.dialog.miscPanel, 
+                        self.misc : self.dialog.miscPanel,
+                        self.tribler : self.dialog.triblerPanel,
                         self.display : self.dialog.displayPanel, 
                         self.colors : self.dialog.colorPanel, 
                         self.disk : self.dialog.diskPanel }
@@ -1390,6 +1428,7 @@ class ABCOptionDialog(wx.Dialog):
         self.schedulerRulePanel = SchedulerRulePanel(self.splitter, self)
         self.networkPanel = NetworkPanel(self.splitter, self)
         self.miscPanel = MiscPanel(self.splitter, self)
+        self.triblerPanel = TriblerPanel(self.splitter, self)
         self.displayPanel = DisplayPanel(self.splitter, self)
         self.colorPanel = ColorPanel(self.splitter, self)
         self.diskPanel = DiskPanel(self.splitter, self)

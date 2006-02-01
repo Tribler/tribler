@@ -25,7 +25,8 @@ overlay_infohash = '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00
 
 from __init__ import CurrentVersion, LowestVersion, SupportedVersions
 
-DEBUG = True
+DEBUG = False
+
 TEST = False
 
 def show(s):
@@ -122,7 +123,7 @@ class OverlaySwarm:
             
     def sendMessage(self, connection, message):
         if DEBUG:
-            print "send message", getMessageName(message[0]), "to", connection
+            print "overlay: send message", getMessageName(message[0]), "to", connection
         connection.send_message(message)
 
     def connectionMade(self, connection):
@@ -151,7 +152,8 @@ class OverlaySwarm:
         self.rawserver.add_task(notify, 0)
                 
     def connectionLost(self,connection):
-        print "overlay: connectionLost: connection is",connection
+        if DEBUG:
+            print "overlay: connectionLost: connection is",connection
         if connection.permid is None:
             # No permid, so it was never reported to the SecureOverlay
             return

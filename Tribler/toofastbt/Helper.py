@@ -145,9 +145,11 @@ class Helper:
             piece with the coordinator. If it's the first, send the
             actual reservation request.
         """
-        print "helper: Sending or queuing reservation"
+        if DEBUG:
+            print "helper: Sending or queuing reservation"
         if sdownload not in self.continuations:
-            print "helper: Queuing reservation"
+            if DEBUG:
+                print "helper: Queuing reservation"
             self.continuations.append(sdownload)
             sdownload.helper_set_freezing(True)
         if len(self.continuations) > 0:
@@ -156,7 +158,8 @@ class Helper:
     def send_reservation(self,pieces_to_send):
         if self.outstanding is None:
             self.counter += 1
-            print "helper: Sending reservation"
+            if DEBUG:
+                print "helper: Sending reservation"
             sdownload = self.continuations.pop(0)
             self.outstanding = sdownload            
             ex = "self.send_reserve_pieces(pieces_to_send)"
@@ -229,6 +232,6 @@ class Helper:
         # Do this always, will return quickly when connection already exists
         dns = (self.coordinator_ip, self.coordinator_port)
         if DEBUG:
-            print "helpmsg: Starting data connection to coordinator",dns
+            print "helper: Starting data connection to coordinator",dns
         self.encoder.start_connection(dns,id = None,coord_con = True)
       

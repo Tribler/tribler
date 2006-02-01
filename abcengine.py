@@ -6,17 +6,17 @@ from threading import Event, Timer, currentThread
 from time import time
 #from cStringIO import StringIO
 from traceback import print_stack, print_exc
-
-from BitTornado.clock import clock
-
 from binascii import unhexlify
 
 from BitTornado.download_bt1 import BT1Download
-    
+from BitTornado.clock import clock
+
 from Utility.constants import * #IGNORE:W0611
 from Utility.helpers import getfreespace
 
 from Tribler.Worldmap.peer import BTPeer
+
+DEBUG = False
 
 wxEVT_INVOKE = wx.NewEventType()
 
@@ -228,7 +228,8 @@ class ABCEngine(wx.EvtHandler):
         self.working = True
 
     def shutdown(self):
-        print "abcengine: Starting shutdown"
+        if DEBUG:
+            print "engine: Starting shutdown"
         # Remove from the active torrents list
         try:
             del self.utility.torrents["active"][self.torrent]
@@ -248,7 +249,8 @@ class ABCEngine(wx.EvtHandler):
             return
         self.doneflag.set()
         try:
-            print "abcengine: Shutting down SingleRawServer"
+            if DEBUG:
+                print "engine: Shutting down SingleRawServer"
             self.rawserver.shutdown()
         except:
             print_exc()
@@ -277,8 +279,8 @@ class ABCEngine(wx.EvtHandler):
         self.status_err.append(msg)
         self.status_errtime = clock()
         self.errormsg(msg)
-        print_stack()
-        print "abcengine: Error",msg
+        if DEBUG:
+            print "engine: Error",msg
 
 
     def saveAs(self, name, length, saveas, isdir):
@@ -320,7 +322,6 @@ class ABCEngine(wx.EvtHandler):
 
         
     def updateStatus(self, fractionDone = None, timeEst = None, downRate = None, upRate = None, activity = None, statistics = None, spew = None):
-        #print "<<<<< enter onUpdateStatus", self
         # Just in case a torrent was finished
         # but now isn't
         self.torrent.status.completed = self.seed
@@ -441,7 +442,6 @@ class ABCEngine(wx.EvtHandler):
                 return
             else:
                 self.torrent.status.updateStatus(STATUS_ACTIVE)
-#        #print ">>>>> leave onUpdateStatus", self        
         
     # TODO: Workaround for multiport not reporting
     #       external_connection_made properly
@@ -606,17 +606,12 @@ class ABCEngine(wx.EvtHandler):
         detailpanel = detailwin.detailPanel
         
         if statistics is not None:
-            #print ">> enter updateFromABCTorrent"
             detailpanel.updateFromABCTorrent()
-            #print ">> leave updateFromABCTorrent"
                       
         if spew is not None and (time() - self.spewwait > 1):
-            #print ">> enter updateSpewList"
             self.updateSpewList(statistics, spew)
-            #print ">> leave updateSpewList"
 
         if statistics is not None:
-            #print ">> enter storagestats.SetLabel"
             detailpanel.storagestats1.SetLabel("          " + self.utility.lang.get('detailline1')
                              % (statistics.storage_active, 
                                  statistics.storage_new, 
@@ -626,7 +621,6 @@ class ABCEngine(wx.EvtHandler):
                                  statistics.storage_totalpieces, 
                                  statistics.storage_justdownloaded, 
                                  statistics.storage_numflunked))
-            #print "<< leave storagestats.SetLabel"
 
     def updatePeersOnEarth(self, spew):
         """ update peer_swarm, delete non-actived peers, insert newcoming peers
