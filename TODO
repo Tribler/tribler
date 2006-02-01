@@ -30,6 +30,8 @@ Now:
 
 Short term:
 
+* Store found lat/long info in PeerDB.
+
 * Change GET_METADATA/METADATA messages to operate on lists rather than
   single torrents.
   

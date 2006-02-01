@@ -17,8 +17,16 @@ from ABC.GUI.list import ManagedList
 from Dialogs.dlhelperframe import DownloadHelperPanel
 
 from Utility.constants import * #IGNORE:W0611
-from Utility.ipinfo import IPInfo, no_info
-from peer import BTPeer
+from Tribler.Worldmap.ipinfo import IPInfo, no_info
+
+try:
+    True
+except:
+    True = 1
+    False = 0
+
+DEBUG = False
+
 
 ################################################################
 #
@@ -858,14 +866,15 @@ class EarthPanel(wx.Panel):
             self.popup_win.Show(True)
 
     def __init__(self, parent, dialog):
-        image = wx.Image('earth_map.jpg', wx.BITMAP_TYPE_JPEG)
+        self.utility = dialog.utility
+        imgpath = os.path.join( self.utility.getPath(), 'icons', 'earth_map.jpg')
+        image = wx.Image(imgpath, wx.BITMAP_TYPE_JPEG)
         self.bmp = image.ConvertToBitmap()
         self.size = self.bmp.GetWidth()+0, self.bmp.GetHeight()
 
         wx.Panel.__init__(self, parent, -1, wx.DefaultPosition, self.size)
 
         self.dialog = dialog
-        self.utility = dialog.utility
         self.ABCTorrent = dialog.torrent
 
         self.cities = self.GetCities()
@@ -886,8 +895,9 @@ class EarthPanel(wx.Panel):
         try:
             file = open(filename, "r")
         except IOError:
-            print >> sys.stderr, "File " + filename + " could not be opened"
-            sys.exit(1)
+            if DEBUG:
+                print "abcdetailframe: Geo info file " + filename + " could not be opened"
+            return []
             
         points = file.readlines()
         points_info = []
@@ -907,13 +917,13 @@ class EarthPanel(wx.Panel):
     #TODO: create and manage cities and people by buttons, same as peers
     def GetCities(self):
         """ Obtain cities which are drawn on the map. """
-
-        return self.read_geo_info("cities.txt")
+        path = os.path.join( self.utility.getPath(), 'cities.txt' )
+        return self.read_geo_info(path)
 
     def GetPeople(self, ip = None):
         """ Obtain people which are drawn on the map. """
-        
-        return self.read_geo_info("people.txt")
+        path = os.path.join( self.utility.getPath(), 'people.txt' )
+        return self.read_geo_info(path)
 
     def displayPeers(self):
         for peer in self.ABCTorrent.peer_swarm.values():
@@ -923,14 +933,14 @@ class EarthPanel(wx.Panel):
             if alive:
                 if not point_created:
                     if IPInfo.foundIPLocation(peer.ip_info):    # create peerpoint only if it can be located
-                        print "CREATE peer point", ip
+                        #print "CREATE peer point", ip
                         self.peer_points[ip] = EarthPanel.PeerPoint(self, self.utility, 
                                         peer, self.size, wx.Size(3, 3))
                         self.peer_points[ip].setActive(True)
                     else:
                         self.peer_points[ip] = None
                 elif self.peer_points[ip] and not self.peer_points[ip].active:
-                    print "REACTIVE peer point", ip
+                    #print "REACTIVE peer point", ip
                     self.peer_points[ip].setActive(True)
             else:
                 if self.remove_unused_peers:    # remove the peerpoint if it has gone
@@ -1002,7 +1012,7 @@ class EarthPanel(wx.Panel):
             lng = self.my_peer.ip_info['longitude']
             self.my_peer.display = True
             drawLabelAndDot(('Me', lat , lng ), size = 3, dotcolour = "GREEN")
-            print "CREATE my peer", self.my_peer.ip
+            #print "CREATE my peer", self.my_peer.ip
 
         self.displayPeers()
 

@@ -1,3 +1,6 @@
+# Written by Jie Yang
+# see LICENSE.txt for license information
+
 from socket import inet_aton 
 from base64 import decodestring
 import sys

@@ -1,8 +1,11 @@
+# Written by Jie Yang
+# see LICENSE.txt for license information
+
 import socket
 import sys
 import cPickle
 
-from Utility.ipinfo import IPInfo
+from ipinfo import IPInfo
 
 class MyPeer:
     """ This class presents the user himself """
@@ -24,7 +27,7 @@ class BTPeer:
     displays this peer in the world map, and manages the popup info window
     """
     
-    def __init__(self, bt_info, ABCTorrent, permid=''):
+    def __init__(self, bt_info, ABCTorrent, rawserver = None, permid=''):
         self.torrent = ABCTorrent
         self.bt_info = bt_info
         self.active = True
@@ -35,14 +38,15 @@ class BTPeer:
         else:
             self.id_type = 'ip'
             self.id = self.ip
-        # Arno disabling temporarily to fix GUI update problems
-        #self.ip_info = IPInfo.lookupIPInfo(self.ip)    #TODO: add it to task queue or start a thread
         self.ip_info = None
         self.torrent.peer_swarm[self.ip] = self
-        
+        rawserver.add_task(self.lookupIPInfo, 0)
+
     def updateBTInfo(self, bt_info):
         self.bt_info.update(bt_info)
         
+    def lookupIPInfo(self):
+        self.ip_info = IPInfo.lookupIPInfo(self.ip)   
 
 class BTBuddy:
     """ This class presents a bater buddy who used/is using a same bittorrent file as you

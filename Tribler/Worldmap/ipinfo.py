@@ -1,3 +1,14 @@
+# Written by Jie Yang
+# see LICENSE.txt for license information
+
+try:
+    True
+except:
+    True = 1
+    False = 0
+
+DEBUG = False
+
 import urllib2
 try:
     import GeoIP
@@ -51,7 +62,8 @@ class IPInfo:
             try:
                 ip_info = urllib2.urlopen(url).read()    
             except:
-                print "getIPInfoByURL failed: cannot access", url
+                if DEBUG:
+                    print "ipinfo: getIPInfoByURL failed: cannot access", url
                 raise Exception
                             
             return ip_info
@@ -69,7 +81,8 @@ class IPInfo:
                 url = site_url + '/api/get.html?ip=' + ip + '&position=true'
                 ip_info = getIPInfoByURL(url)
             except Exception, message:
-                print "getIPInfoByURL failed:", message
+                if DEBUG:
+                    print "ipinfo: getIPInfoByURL failed:", message
                 return no_info
                 
             # Parse the ip_info string and translate it into a standard dict format
@@ -113,11 +126,13 @@ class IPInfo:
                 gi = GeoIP.open(geoip_lib, GeoIP.GEOIP_MEMORY_CACHE)
             except:
                 try:
-                    print 'cannot open GeoIP library at ' + geoip_lib
+                    if DEBUG:
+                        print 'ipinfo: cannot open GeoIP library at ' + geoip_lib
                     geoip_lib = './GeoIPCity.dat'
                     gi = GeoIP.open(geoip_lib, GeoIP.GEOIP_MEMORY_CACHE)
                 except Exception:
-                    print 'cannot open GeoIP library at ' + geoip_lib
+                    if DEBUG:
+                        print 'ipinfo: cannot open GeoIP library at ' + geoip_lib
                     return no_info
                     
             try:
@@ -156,7 +171,8 @@ class IPInfo:
                 return info
         
         # No method finds the ip, return the one which has the longest length
-        print ip, "cannot be located"
+        if DEBUG:
+            print "ipinfo:",ip, "cannot be located"
         maxlen = 0
         for info in ip_info:
             info_len = len(info)

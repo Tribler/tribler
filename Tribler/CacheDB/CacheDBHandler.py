@@ -1,3 +1,6 @@
+# Written by Jie Yang
+# see LICENSE.txt for license information
+
 from cachedb import *
 from time import time
 from copy import deepcopy

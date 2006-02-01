@@ -16,7 +16,7 @@ from BitTornado.download_bt1 import BT1Download
 from Utility.constants import * #IGNORE:W0611
 from Utility.helpers import getfreespace
 
-from peer import BTPeer
+from Tribler.Worldmap.peer import BTPeer
 
 wxEVT_INVOKE = wx.NewEventType()
 
@@ -644,7 +644,7 @@ class ABCEngine(wx.EvtHandler):
                 self.torrent.peer_swarm[ip].updateBTInfo(peer_info)
                 self.torrent.peer_swarm[ip].active = True
             else:   # otherwise create a new peer, add it into peer_swarm and display it
-                new_peer = BTPeer(peer_info, self.torrent)
+                new_peer = BTPeer(peer_info, self.torrent, self.rawserver)
                 new_peer.updateBTInfo(peer_info)
                 self.torrent.peer_swarm[ip] = new_peer
 
