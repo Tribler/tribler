@@ -777,6 +777,7 @@ spew10_text         = "Downloaded"
 spew11_text         = "Uploaded"
 spew12_text         = "Completed"
 spew13_text         = "Peer Download Speed"
+spew14_text	    = "PermID"
 
 spew_direction_local = "L"
 spew_direction_remote = "R"

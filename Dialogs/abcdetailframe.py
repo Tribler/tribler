@@ -640,7 +640,7 @@ class SpewList(ManagedList):
         
         prefix = 'spew'
         minid = 0
-        maxid = 14
+        maxid = 15
         rightalign = [SPEW_UP, 
                       SPEW_DOWN, 
                       SPEW_DLSIZE, 

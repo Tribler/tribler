@@ -489,10 +489,7 @@ class ABCTorrent:
                         force = True
                 
                 if force:
-                    #print "<< enter self.list.SetStringItem", self.listindex, "|", rank, "|", text
                     self.list.SetStringItem(self.listindex, rank, text)
-                    #print ">> leave list.SetStringItem"
-                    pass
                     
         except wx.PyDeadObjectError, msg:
             print "error updateColumns:", msg

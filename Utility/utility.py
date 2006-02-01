@@ -241,6 +241,8 @@ class Utility:
             'spew12_width': '72', 
             'spew13_rank': '-1', # Peer Download Speed
             'spew13_width': '72', 
+            'spew14_rank': '13', # Peer PermID
+            'spew14_width': '72', 
             'fileinfo0_rank': '0', # Filename
             'fileinfo0_width': '300', 
             'fileinfo1_rank': '1', # Size

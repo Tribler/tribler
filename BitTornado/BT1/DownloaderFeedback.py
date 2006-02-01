@@ -58,11 +58,7 @@ class DownloaderFeedback:
                 a['direction'] = 'L'
             else:
                 a['direction'] = 'R'
-#            if c.get_peer_authenticated():
-#                a['permid'] = c.get_peer_permid()
-#            else:
-#                a['permid'] = None
-            a['permid'] = c.get_permid()
+            a['unauth_permid'] = c.get_unauth_permid()
             u = c.get_upload()
             a['uprate'] = int(u.measure.get_rate())
             a['uinterested'] = u.is_interested()

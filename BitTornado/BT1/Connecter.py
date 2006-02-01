@@ -12,6 +12,7 @@ from BitTornado.bencode import bencode,bdecode
 from MessageID import *
 # 2fastbt_
 from Tribler.toofastbt.Logger import get_logger
+from Tribler.CacheDB.CacheDBHandler import PeerDBHandler
 # _2fastbt
 
 try:
@@ -20,7 +21,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = False
+DEBUG = True
 
 def toint(s):
     return long(b2a_hex(s), 16)
@@ -47,7 +48,8 @@ class Connection:
         self.upload = None
         self.send_choke_queued = False
         self.just_unchoked = None
-        self.permid = None
+        self.unauth_permid = None
+        self.looked_for_permid = 100
         self.closed = False
             
     def get_myip(self, real=False):
@@ -62,12 +64,23 @@ class Connection:
     def get_port(self, real=False):
         return self.connection.get_port(real)
 
-    ## ARNO: FIXME, MAKE SURE THIS IS FILLED IN OR SPEW WORKS OTHERWISE
-    def set_permid(self, permid):
-        self.permid = permid
+    #def set_permid(self, permid):
+    #    self.permid = permid
 
-    def get_permid(self):
-        return self.permid;
+    def get_unauth_permid(self):
+        """ Linking this normal connection to the PermID of its peer in all
+            cases is non-trivial. I currently hack this unsafe solution where
+            we look at the database periodically.
+        """
+        self.looked_for_permid += 1
+        if self.looked_for_permid >= 100:
+            self.looked_for_permid = 0
+            peerdb = PeerDBHandler()
+            peerList = peerdb.findPeers('ip',self.connection.get_ip())
+            if len(peerList) != 1:
+                return # Don't know
+            self.unauth_permid = peerList[0]['permid']
+        return self.unauth_permid
 
     def get_id(self):
         return self.connection.get_id()

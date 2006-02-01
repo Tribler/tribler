@@ -54,6 +54,7 @@ SPEW_DLSIZE       = 10
 SPEW_ULSIZE       = 11
 SPEW_PEERPROGRESS = 12
 SPEW_PEERSPEED    = 13
+SPEW_PERMID       = 14
 
 #
 # Constants used for headings in the file info list

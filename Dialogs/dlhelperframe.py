@@ -34,6 +34,7 @@ class DownloadHelperPanel(wx.Panel):
 
         # 0. Read friends from DB, and figure out who's already helping 
         # for this torrent
+        # FIXME
         friends = self.utility.all_peers_cache
         helpingFriends = self.coordinator.get_asked_helpers_copy()
 

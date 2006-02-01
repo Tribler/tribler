@@ -842,6 +842,15 @@ class ABCEngine(wx.EvtHandler):
         elif colid == SPEW_PEERSPEED:
             if spew[line]['speed'] is not None:
                 text = self.utility.speed_format(spew[line]['speed'], truncate = 0)
+
+        elif colid == SPEW_PERMID:
+            if spew[line]['unauth_permid'] is not None:
+                text = 'Tribler'
+                friends = self.utility.all_peers_cache
+                for friend in friends:
+                    if friend['permid'] == spew[line]['unauth_permid']:
+                        text = friend['name']
+                        break
             
         if text is None:
             text = ""

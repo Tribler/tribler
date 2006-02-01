@@ -23,7 +23,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = False
+DEBUG = True
 MAX_INCOMPLETE = 8
 
 protocol_name = 'BitTorrent protocol'
@@ -88,6 +88,7 @@ class Connection:
 # overlay        
         self.dns = dns
         self.support_overlayswarm = False
+        self.connecter_conn = None
 # _overlay
         self.support_merklehash= False
         if self.locally_initiated:
@@ -157,7 +158,7 @@ class Connection:
 
     def read_reserved(self, s):
         if DEBUG:
-            print "encrypter: Reserved bits:", show(s)
+            print "encoder: Reserved bits:", show(s)
         self.set_options(s)
         return 20, self.read_download_id
 
@@ -210,7 +211,7 @@ class Connection:
         if self.locally_initiated:
             self.connection.write(self.Encoder.my_id)
             incompletecounter.decrement()
-        c = self.Encoder.connecter.connection_made(self)    
+        c = self.Encoder.connecter.connection_made(self)
         self.keepalive = c.send_keepalive
 # overlay_
         self.connect_overlay()
@@ -241,12 +242,12 @@ class Connection:
     def _auto_close(self):
         if not self.complete and not self.is_coordinator_con():
             if DEBUG:
-                print "encrypter: autoclosing ",self.get_myip(),self.get_myport(),"to",self.get_ip(),self.get_port()
+                print "encoder: autoclosing ",self.get_myip(),self.get_myport(),"to",self.get_ip(),self.get_port()
             self.close()
 
     def close(self):
         if DEBUG:
-            print "encrypter: closing connection",self.get_ip()
+            print "encoder: closing connection",self.get_ip()
         if not self.closed:
             self.connection.close()
             self.sever()
@@ -352,7 +353,7 @@ class Encoder:
 
     def start_connections(self, list):
         if DEBUG:
-            print "Encrypter: connecting to",len(list),"peers"
+            print "encoder: connecting to",len(list),"peers"
         if not self.to_connect:
             self.raw_server.add_task(self._start_connection_from_queue)
         self.to_connect = list
@@ -466,7 +467,7 @@ class Encoder:
 
     def close_all(self):
         if DEBUG:
-            print "encrypter: closing all connections"
+            print "encoder: closing all connections"
         copy = self.connections.values()[:]
         for c in copy:
             c.close()

@@ -25,7 +25,7 @@ overlay_infohash = '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00
 
 from __init__ import CurrentVersion, LowestVersion, SupportedVersions
 
-DEBUG = False
+DEBUG = True
 
 TEST = False
 

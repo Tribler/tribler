@@ -147,7 +147,7 @@ class PeerDBHandler:
         
     def findPeers(self, key, value):
         res = []
-        if key not in self.peers.default_peer:
+        if key not in self.peers.default_data:
             pass
         elif key is 'permid':
             peer = self.getPeer(value)
