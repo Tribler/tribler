@@ -60,10 +60,6 @@ class DownloadHelperPanel(wx.Panel):
         self.remainingFriends = []
         for index in range(len(friends)):
             friend = friends[index]
-
-            ## HACK REMOVE
-            friend['dlh_status'] = 'Candidat3'
-
             flag = 0
             for helper in helpingFriends:
                 if friend['name'] == helper['name']:
@@ -93,19 +89,19 @@ class DownloadHelperPanel(wx.Panel):
         topbox.Add(friendsbox, 0, wx.EXPAND)
 
         # 4b. +/- buttons in between
-        operatorbox = wx.BoxSizer(wx.HORIZONTAL)
+        operatorbox = wx.BoxSizer(wx.VERTICAL)
        
-        button = wx.Button(self, -1, "+", size = (30, -1))
-        button.SetToolTipString(self.utility.lang.get('add'))
+        button = wx.Button(self, -1, self.utility.lang.get('requestdlhelp'), style = wx.BU_EXACTFIT)
+        button.SetToolTipString(self.utility.lang.get('requestdlhelp_help'))
         wx.EVT_BUTTON(self, button.GetId(), self.addHelper)
         operatorbox.Add(button, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
 
-        button2 = wx.Button(self, -1, "-", size = (30, -1))
-        button2.SetToolTipString(self.utility.lang.get('remove'))
+        button2 = wx.Button(self, -1, self.utility.lang.get('stopdlhelp'), style = wx.BU_EXACTFIT)
+        button2.SetToolTipString(self.utility.lang.get('stopdlhelp_help'))
         wx.EVT_BUTTON(self, button2.GetId(), self.removeHelper)
         operatorbox.Add(button2, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
 
-        topbox.Add(operatorbox, 0, wx.EXPAND)
+        topbox.Add(operatorbox, 0, wx.ALIGN_CENTER_VERTICAL)
 
         # 4c. Selected helpers in right window
         helperbox = wx.BoxSizer(wx.VERTICAL)
@@ -115,16 +111,6 @@ class DownloadHelperPanel(wx.Panel):
         #self.rightListCtl.SetToolTipString(self.utility.lang.get('httpseedshelp'))
         helperbox.Add(self.rightListCtl, 1, wx.EXPAND|wx.ALL, 5)
         topbox.Add(helperbox, 0, wx.EXPAND)      
-
-
-        # 4d. Buttons to send help requests
-        execbox = wx.BoxSizer(wx.HORIZONTAL)
-       
-        button3 = wx.Button(self, -1, self.utility.lang.get('requestdlhelp'), style = wx.BU_EXACTFIT)
-        button3.SetToolTipString(self.utility.lang.get('requestdlhelp_help'))
-        wx.EVT_BUTTON(self, button3.GetId(), self.onRequest)
-        execbox.Add(button3, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 3)
-        botbox.Add(execbox, 0, wx.EXPAND)      
 
         # 5. Show GUI
         mainbox.Add(topbox, 0, wx.EXPAND)
@@ -149,9 +135,11 @@ class DownloadHelperPanel(wx.Panel):
 
     def addHelper(self, event = None):
         self.addFriends(self.leftListCtl,self.rightListCtl)
+        self.onRequest()
 
     def removeHelper(self, event = None):
         self.addFriends(self.rightListCtl,self.leftListCtl)
+        self.onRequest()
 
     def addFriends(self,left,right):
         item = -1
@@ -167,15 +155,7 @@ class DownloadHelperPanel(wx.Panel):
         
     def onRequest(self, event = None):
         helpingFriends = self.rightListCtl.getFriends()
-        for friend in helpingFriends:
-            friend['dlh_status'] = 'Helping'
-        self.rightListCtl.updateStatus()
-
         remainingFriends = self.leftListCtl.getFriends()
-        for friend in remainingFriends:
-            friend['dlh_status'] = 'Candidate'
-        self.leftListCtl.updateStatus()
-
         self.coordinator.stop_help(remainingFriends, force = False)
         self.coordinator.request_help(helpingFriends, force = True)
 
@@ -201,7 +181,6 @@ class FriendList(wx.ListCtrl):
                 fw = wx.SystemSettings_GetFont(wx.SYS_SYSTEM_FONT).GetPointSize()+1
             
             self.InsertColumn(0, self.utility.lang.get('name'), format=wx.LIST_FORMAT_CENTER, width=fw*6)
-            self.InsertColumn(1, self.utility.lang.get('dlh_status'), format=wx.LIST_FORMAT_CENTER, width=fw*6)        
 
         self.updateAll()
         self.Show(True)
@@ -213,20 +192,12 @@ class FriendList(wx.ListCtrl):
             self.addItem(i,friend)
             i += 1
 
-    def updateStatus(self):
-        if self.type == wx.LC_LIST:
-            self.updateAll()
-        else:
-            for i in range(self.GetItemCount()):
-                self.SetStringItem(i,1,self.friends[i]['dlh_status'])
-
     def addItem(self,i,friend):
         if self.type == wx.LC_LIST:
-            label = friend['name']+' ('+friend['dlh_status']+')'
+            label = friend['name']
             self.InsertImageStringItem(i,label,friend['tempiconindex'])
         else:
             self.InsertStringItem(i, friend['name'])
-            self.SetStringItem(i, 1, friend['dlh_status'])
 
     def removeFriends(self,itemList):
         # Assumption: friends in list are in insert-order, i.e., not sorted afterwards!

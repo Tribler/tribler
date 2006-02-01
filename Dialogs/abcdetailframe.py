@@ -717,8 +717,7 @@ class EarthPanel(wx.Panel):
             ip_info = self.peer.ip_info
             bt_info = self.peer.bt_info
             starflag = { True : 'Yes', False : 'No' }
-            info = "=== Information of this peer ===" + "\n"
-            info += self.utility.lang.get('spewIP') + " : " + bt_info['ip'] + " ("
+            info = self.utility.lang.get('spewIP') + " : " + bt_info['ip'] + " ("
             if self.peer.active:
                 info += self.utility.lang.get('peer_active') + ")\n"
             else:
