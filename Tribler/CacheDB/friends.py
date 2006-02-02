@@ -1,6 +1,5 @@
 from time import time
 import os
-import base64
 
 from Tribler.utilities import validIP, validPort, validPermid, validName
 from CacheDBHandler import FriendDBHandler
@@ -18,6 +17,9 @@ class FriendList:
         self.friend_file = friend_file
         self.db_dir = db_dir
         self.friend_db = FriendDBHandler(db_dir=self.db_dir)
+        
+    def __del__(self):
+        self.writeFriendList()
         
     def clear(self):    # clean database
         if hasattr(self, 'friend_db'):
@@ -103,7 +105,23 @@ class FriendList:
         else:
             return True
     
-    def getFriends(self):
-        return self.friend_db.getFriends()
+    def writeFriendList(self, filename=''):
+        if not filename:
+            filename = self.friend_file
+        try:
+            file = open(filename, "w")
+        except IOError:
+            pass
         
+        friends = self.getFriends()
+        friends_to_write = self.formatForText(friends)
+        file.writelines(friends_to_write)
+        file.close()
 
+    def formatForText(self, friends):
+        lines = []
+        for friend in friends:
+            line = ', '.join([friend['name'], friend['permid'], friend['ip'], str(friend['port'])])
+            line += '\n'
+            lines.append(line)
+        return lines

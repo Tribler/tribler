@@ -86,6 +86,16 @@ class MyDBHandler(BasicDBHandler):
 #        self.my_db.put('prefxchg_queue', q)
 
 
+class SuperPeerDBHandler(BasicDBHandler):
+    def __init__(self, db_dir=''):
+        self.my_db = MyDB.getInstance(db_dir=db_dir)
+        self.peer_db = PeerDB.getInstance(db_dir=db_dir)
+        self.dbs = [self.my_db, self.peer_db]
+        
+    def getSuperPeers(self):
+        sps = self.my_db.getSuperPeers()
+        
+
 class FriendDBHandler(BasicDBHandler):
 
     def __init__(self, db_dir=''):

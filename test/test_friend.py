@@ -50,7 +50,6 @@ class TestFriendList(unittest.TestCase):
         self.writeFriends()
         self.flist.updateFriendList()
         self.db_is_ok()
-        assert not os.access(self.tmpfilepath, os.F_OK), "tmp file not removed"
         
     def db_is_ok(self):
         self.my_db = MyDB.getInstance()
@@ -83,6 +82,7 @@ class TestFriendList(unittest.TestCase):
                    ]
         assert len(friends) == 2, len(friends)
         assert friends == answer or (friends[0] == answer[1] and friends[1] == answer[0]), friends
+        #self.flist.writeFriendList('tmp.txt')
 
     def xxtest_normal(self):
         flist = FriendList()

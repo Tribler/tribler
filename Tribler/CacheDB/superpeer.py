@@ -1,79 +1,90 @@
 # Written by Jie Yang
 # see LICENSE.txt for license information
 
-from socket import inet_aton 
-from base64 import decodestring
-import sys
+from time import time
+import os
 
-#from cachedb import SuperPeerTable
-from CacheDBHandler import MyDBHandler
+from Tribler.utilities import validIP, validPort, validPermid, validName
+from CacheDBHandler import SuperPeerDBHandler
 
-superpeer_file = 'superpeer.txt'
-permid_len = 112
+superpeer_file = 'superpeers.txt'
+
+DEBUG = False
 
 def init():
-    pass
-class SuperPeer:
-    def __init__(self):
-        self.superpeers = MyDBHandler()
-        pre_superpeers = self.readSuperPeer(superpeer_file)
-        for peer in pre_superpeers:
-            self.superpeers.addSuperPeerByPeer(peer)
-        self.updateSuperPeers()
-        self.superpeers.sync()
+    print "secover: Update SuperPeerList"
+    return 
+    SuperPeer().updateSuperPeerList()
 
-    def readSuperPeer(self, filename):
-        """ read (superpeer_ip, superpeer_port) lines from a text file """
+class SuperPeer:
+    def __init__(self, superpeer_file=superpeer_file, db_dir=''):
+        self.superpeer_file = superpeer_file
+        self.db_dir = db_dir
+        self.superpeer_db = SuperPeerDBHandler(db_dir=self.db_dir)
         
+    def clear(self):    # clean database
+        if hasattr(self, 'superpeer_db'):
+            self.superpeer_db.clear()
+        
+    def updateSuperPeerList(self, superpeer_file=''):
+        if not superpeer_file:
+            superpeer_file = self.superpeer_file
+        self.superpeer_list = self.readSuperPeerList(superpeer_file)
+        self.updateDB(self.superpeer_list)
+        
+    def updateDB(self, superpeer_list):
+        if not superpeer_list:
+            return
+        for superpeer in superpeer_list:
+            self.superpeer_db.addSuperPeer(superpeer)
+
+    def getSuperPeers(self):
+        return self.superpeer_db.getSuperPeers()
+    
+    def readSuperPeerList(self, filename=''):
+        """ read (name, permid, superpeer_ip, superpeer_port) lines from a text file """
+        
+        if not filename:
+            filename = self.superpeer_file
         try:
             file = open(filename, "r")
         except IOError:
-            print "File " + filename + " could not be opened"
             return []
             
         superpeers = file.readlines()
+        file.close()
         superpeers_info = []
         for superpeer in superpeers:
             if superpeer.strip().startswith("#"):    # skip commended lines
                 continue
             superpeer_line = superpeer.split(',')
             superpeer_info = []
-            sl = len(superpeer_line)
-            if sl > 1:
-                for i in range(sl):
-                    superpeer_info.append(superpeer_line[i].strip())
-            if self.validSuperPeer(superpeer_info):
-                superpeer = {'ip':superpeer_info[0], 'port':superpeer_info[1], 'permid':decodestring(superpeer_info[2])}
+            for i in range(len(superpeer_line)):
+                superpeer_info.append(superpeer_line[i].strip())
+            if self.validSuperPeerList(superpeer_info):
+                superpeer = {'ip':superpeer_info[0], 'port':superpeer_info[1], 
+                          'permid':superpeer_info[2]}
                 if len(superpeer_info) > 3:
                     superpeer['name'] = superpeer_info[3]
                 superpeers_info.append(superpeer)
         return superpeers_info
     
-    def validSuperPeer(self, superpeer):
-        if len(superpeer) < 2:
-            return False
-        ip = superpeer[0]
+    def validSuperPeerList(self, superpeer_info):
         try:
-            port = int(superpeer[1])
-            if port < 1 or port > 65535:
-                return False
-            permid = superpeer[2]
-            if len(permid) != permid_len:
-                return False
-        except:
+            if len(superpeer_info) < 3:
+                raise RuntimeError, "one line in superpeers.txt contains at least 3 elements"
+            validIP(superpeer_info[0])
+            validPort(int(superpeer_info[1]))
+            validPermid(superpeer_info[2])
+        except Exception, msg:
+            if DEBUG:
+                print "======== reading superpeer list error ========"
+                print superpeer_info
+                print msg
+                print "==========================================="
             return False
-        return True    
+        else:
+            return True
     
-    def getSuperPeers(self):
-        return self.superpeers.getSuperPeers()
 
-    def updateSuperPeers(self):
-        #TODO: select new superpeers
-        pass
-        
-        
-if __name__=='__main__':
-    superpeer_file = '../' + superpeer_file
-    sp = SuperPeer()
-    print sp.getSuperPeers()
     
