@@ -35,11 +35,13 @@ def suite():
     import test.test_cachedb as test_cachedb
     import test.test_friend as test_friend
     import test.test_cachedbhandler as test_cachedbhandler
+    import test.test_superpeers as test_superpeers
     
     test_modules = [
-        test_cachedb,
-        test_friend,
-        test_cachedbhandler,
+#        test_cachedb,
+#        test_friend,
+#        test_cachedbhandler,
+        test_superpeers,
         ]
 
     alltests = unittest.TestSuite()

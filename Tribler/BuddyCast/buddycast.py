@@ -9,7 +9,7 @@ from BitTornado.BT1.MessageID import *
 
 from Tribler.__init__ import GLOBAL
 from Tribler.CacheDB.CacheDBHandler import *
-from Tribler.CacheDB.superpeer import SuperPeer
+from Tribler.CacheDB.superpeer import SuperPeerList
 from Tribler.Overlay.permid import show_permid
 from dictlist import DictList
 from similarity import P2PSim
@@ -110,7 +110,7 @@ class BuddyCast:
         self.run()
 
     def loadSuperpeers(self):
-        self.superpeers = SuperPeer().getSuperPeers()
+        self.superpeers = SuperPeerList().getSuperPeers()
                 
     def loadPrefxchgData(self):
         self.loadMyPreferences()

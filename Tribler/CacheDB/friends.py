@@ -67,24 +67,10 @@ class FriendList:
             friend_info = []
             for i in range(len(friend_line)):
                 friend_info.append(friend_line[i].strip())
-            try:
-                friend_info[1] = base64.decodestring( friend_info[1]+'\n' )
-            except:
-                continue
             if self.validFriendList(friend_info):
                 friend = {'name':friend_info[0], 'permid':friend_info[1], 
                           'ip':friend_info[2], 'port':int(friend_info[3])}
-#                if len(friend_info) > 4:
-#                    last_seen = int(friend_info[4])
-#                    if last_seen < 0:
-#                        last_seen = 0
-#                    if last_seen > time():
-#                        last_seen = int(time())
-#                else:
-#                    last_seen = 0
-#                friend['last_seen'] = last_seen
                 friends_info.append(friend)
-        print "FRIENDS ARE",friends_info
         return friends_info
     
     def validFriendList(self, friend_info):

@@ -408,7 +408,7 @@ class PeerDB(BasicDB):
         self._delete(permid)
         
     def getItem(self, permid):
-        return self._get(permid)
+        return self._get(permid, None)
     
     def hasItem(self, permid):
         return self._has_key(permid)

@@ -94,7 +94,27 @@ class SuperPeerDBHandler(BasicDBHandler):
         
     def getSuperPeers(self):
         sps = self.my_db.getSuperPeers()
+        res = []
+        for permid in sps:
+            peer = self.peer_db.getItem(permid)
+            if peer is not None:
+                peer.update({'permid':permid})
+                res.append(peer)
+        return res
         
+    def addSuperPeer(self, permid):
+        self.my_db.addSuperPeer(permid)
+        self.my_db._sync()        
+
+    def addExternalSuperPeer(self, superpeer):
+        if not isinstance(superpeer, dict) or 'permid' not in superpeer:
+            return
+        permid = superpeer.pop('permid')
+        self.peer_db.updateItem(permid, superpeer)
+        self.peer_db._sync()
+        self.my_db.addSuperPeer(permid)
+        self.my_db._sync()     
+           
 
 class FriendDBHandler(BasicDBHandler):
 

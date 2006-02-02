@@ -9,14 +9,14 @@ from CacheDBHandler import SuperPeerDBHandler
 
 superpeer_file = 'superpeers.txt'
 
-DEBUG = False
+DEBUG = True
 
 def init():
     print "secover: Update SuperPeerList"
     return 
     SuperPeer().updateSuperPeerList()
 
-class SuperPeer:
+class SuperPeerList:
     def __init__(self, superpeer_file=superpeer_file, db_dir=''):
         self.superpeer_file = superpeer_file
         self.db_dir = db_dir
@@ -36,7 +36,7 @@ class SuperPeer:
         if not superpeer_list:
             return
         for superpeer in superpeer_list:
-            self.superpeer_db.addSuperPeer(superpeer)
+            self.superpeer_db.addExternalSuperPeer(superpeer)
 
     def getSuperPeers(self):
         return self.superpeer_db.getSuperPeers()
@@ -73,7 +73,7 @@ class SuperPeer:
         try:
             if len(superpeer_info) < 3:
                 raise RuntimeError, "one line in superpeers.txt contains at least 3 elements"
-            validIP(superpeer_info[0])
+            #validIP(superpeer_info[0])
             validPort(int(superpeer_info[1]))
             validPermid(superpeer_info[2])
         except Exception, msg:
