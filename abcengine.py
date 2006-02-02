@@ -15,6 +15,7 @@ from Utility.constants import * #IGNORE:W0611
 from Utility.helpers import getfreespace
 
 from Tribler.Worldmap.peer import BTPeer
+from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
 
 DEBUG = False
 
@@ -846,7 +847,7 @@ class ABCEngine(wx.EvtHandler):
         elif colid == SPEW_PERMID:
             if spew[line]['unauth_permid'] is not None:
                 text = '*Tribler*'
-                friends = self.utility.all_peers_cache
+                friends = FriendDBHandler().getFriends()
                 for friend in friends:
                     if friend['permid'] == spew[line]['unauth_permid']:
                         text = friend['name']

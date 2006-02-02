@@ -359,16 +359,6 @@ class ABCFrame(wx.Frame):
         if self.utility.webconfig.Read("webautostart", "boolean"):
             self.utility.webserver.start()
             
-        for i in range(1,25):
-            friend = {}
-            friend['name'] = 'Friend-'+str(i)
-            friend['permid'] = base64.decodestring('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAWAiRwei5Kw9b2he6qmwh5Hr5fNR3FlgHQ1WhXY0AC4w8RQD59rp4Jbo2NdjyXUGb5y1BCeMCGoRCaFz')
-            friend['ip'] = '130.37.197.'+str(i)
-            friend['port'] = 6881
-            self.utility.all_peers_cache.append(friend)
-            peerdb.put(friend['permid'],friend)
-
-
         # Start up the controller
         self.utility.controller = ABCLaunchMany(self.utility)
         #self.utility.controller.start() # done by ABCLaunchMany parent

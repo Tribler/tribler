@@ -120,7 +120,7 @@ def init(config_dir, myinfo):
     MyDB.getInstance(myinfo)
     
 def make_filename(config_dir,filename):
-    if config_dir is None or config_dir is not isinstance(config_dir, str):
+    if config_dir is None or not isinstance(config_dir, str):
         return filename
     else:
         return os.path.join(config_dir,filename)    

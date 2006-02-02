@@ -8,10 +8,12 @@ import sys, os
 from random import randint
 
 from Tribler.Overlay.SecureOverlay import SecureOverlay
+from Tribler.Overlay.permid import show_permid
+from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
 
-DEBUG = False
+DEBUG = True
 
 def get_random_filename(dir):
     while True:
@@ -35,15 +37,9 @@ class HelperMessageHandler:
             print "helper: Got",getMessageName(t)
 
         # Access control
-        ### HACK: THIS SHOULD WORK WHEN PROPER FRIENDSDB IS USED
-        try:
-            x = self.launchmany.utility
-        except:
-            # Running in text-mode
-            return False
-
+        friends = FriendDBHandler().getFriends()
         flag = 0
-        for peer in self.launchmany.utility.all_peers_cache:
+        for peer in friends:
             if peer['permid'] == permid:
                 if DEBUG:
                     print "helper: Got",getMessageName(t),"from friend",peer['name']
@@ -51,7 +47,7 @@ class HelperMessageHandler:
                 break
         if flag == 0:
             if DEBUG:
-                print "helper: Got",getMessageName(t),"from unknown peer", `permid`
+                print "helper: Got",getMessageName(t),"from unknown peer",show_permid(permid)
             return False
         
         if t == DOWNLOAD_HELP:
@@ -123,7 +119,8 @@ class HelperMessageHandler:
         data['metainfo'] = d
 
         friendname = None
-        for peer in self.launchmany.utility.all_peers_cache:
+        friends = FriendDBHandler().getFriends()
+        for peer in friends:
             if peer['permid'] == permid:
                 friendname = peer['name']
                 break

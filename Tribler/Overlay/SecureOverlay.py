@@ -320,9 +320,12 @@ class SecureOverlay:
                 if DEBUG:
                     print "secover: closing expired connection to",show_permid(permid)
                 conn.close()
-            if DEBUG:
-                print "secover: removing connection to",show_permid(permid)
-            self.connection_list.pop(permid)
+            try:
+                if DEBUG:
+                    print "secover: removing connection to",show_permid(permid)
+                self.connection_list.pop(permid)
+            except:
+                pass
             ret = None
         else:
             ret = conn

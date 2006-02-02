@@ -3,6 +3,9 @@ TODO:
 
 Now:
 
+* Problem when doing download help: after request the requested user's
+  name changes to "unknown" in the database ???
+
 * Buddycast doesn't attempt to contact any superpeers. Alternative
   is to disable super-peer bootstrapping and just let it talk to the
   peers it meets. I currently do the latter.
@@ -27,6 +30,7 @@ Now:
   then asking each to help the other. The DOWNLOAD_HELP requests may not
   get through. Fix this.
 
+* Read friends.txt from $HOME/.ABC if it stays.
 
 Short term:
 
