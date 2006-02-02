@@ -29,7 +29,7 @@ class SuperPeer:
             file = open(filename, "r")
         except IOError:
             print "File " + filename + " could not be opened"
-            sys.exit(1)
+            return []
             
         superpeers = file.readlines()
         superpeers_info = []

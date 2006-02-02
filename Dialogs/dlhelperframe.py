@@ -3,6 +3,7 @@
 
 import wx
 import os
+import sys
 
 from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
 ################################################################
@@ -47,7 +48,7 @@ class DownloadHelperPanel(wx.Panel):
 
         imgListLeft = None
         imgListRight = None
-        if type == wx.LC_LIST:
+        if type != wx.LC_REPORT:
             # St*pid C++ wrapping, if I don't make 2 copies I get segmentation
             # faults at garbage-collection time
             try:
@@ -164,7 +165,9 @@ class FriendList(wx.ListCtrl):
     def __init__(self, parent, friends, type, imgList):
 
         self.type = type
-        style = wx.SIMPLE_BORDER|self.type|wx.LC_VRULES|wx.CLIP_CHILDREN
+        style = wx.VSCROLL|wx.SIMPLE_BORDER|self.type|wx.LC_VRULES|wx.CLIP_CHILDREN
+        if (sys.platform == 'win32'):
+            style |= wx.LC_ALIGN_TOP
         wx.ListCtrl.__init__(self, parent, -1, size=wx.Size(200, 300), style=style)
 
         self.parent = parent
@@ -194,7 +197,7 @@ class FriendList(wx.ListCtrl):
             i += 1
 
     def addItem(self,i,friend):
-        if self.type == wx.LC_LIST:
+        if self.type != wx.LC_REPORT:
             label = friend['name']
             self.InsertImageStringItem(i,label,friend['tempiconindex'])
         else:

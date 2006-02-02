@@ -11,7 +11,7 @@ from M2Crypto import Rand,EC,EVP
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
 
-DEBUG = False
+DEBUG = True
 
 # Internal constants
 keypair_ecc_curve = EC.NID_sect233k1;
@@ -41,7 +41,10 @@ def exit():
     Rand.save_file(get_rand_filename(config_dir))
 
 def show_permid(permid):
+    # Full BASE64-encoded 
     return encodestring(permid).replace("\n","")
+    # Short digest
+    ##return sha(permid).hexdigest()
 
 # Internal functions
 def generate_keypair():
@@ -380,7 +383,7 @@ class ChallengeResponse:
                 self.got_response2(msg, conn)
             except Exception,e:
                 if DEBUG:
-                    print "permid: Close on bad RESPONSE1: exception",str(e)
+                    print "permid: Close on bad RESPONSE2: exception",str(e)
                     traceback.print_exc()
                 return False
         else:

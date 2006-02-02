@@ -21,7 +21,9 @@ except:
     True = 1
     False = 0
 
-DEBUG = True
+DEBUG = False
+
+UNAUTH_PERMID_PERIOD = 3600
 
 def toint(s):
     return long(b2a_hex(s), 16)
@@ -49,7 +51,7 @@ class Connection:
         self.send_choke_queued = False
         self.just_unchoked = None
         self.unauth_permid = None
-        self.looked_for_permid = 100
+        self.looked_for_permid = UNAUTH_PERMID_PERIOD-3
         self.closed = False
             
     def get_myip(self, real=False):
@@ -71,9 +73,11 @@ class Connection:
         """ Linking this normal connection to the PermID of its peer in all
             cases is non-trivial. I currently hack this unsafe solution where
             we look at the database periodically.
+
+            FIXME: very expensive operation in 50.000 peer DB indexed on permid
         """
         self.looked_for_permid += 1
-        if self.looked_for_permid >= 100:
+        if self.looked_for_permid >= UNAUTH_PERMID_PERIOD:
             self.looked_for_permid = 0
             peerdb = PeerDBHandler()
             peerList = peerdb.findPeers('ip',self.connection.get_ip())

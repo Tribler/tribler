@@ -181,7 +181,7 @@ class BuddyCast:
             if DEBUG:
                 print "buddycast: pass"
         else:
-            self.sendPrefxchg(self, permid)
+            self.sendPrefxchg(permid)
             if DEBUG:
                 print "buddycast: done"
         

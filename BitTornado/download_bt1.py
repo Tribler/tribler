@@ -394,7 +394,10 @@ class BT1Download:
         if appdataobj:
             self.appdataobj = appdataobj
         elif self.selector_enabled:
-            self.appdataobj = ConfigDir()
+            if config.has_key('config_path'):
+                self.appdataobj = ConfigDir(dir_root = config['config_path'])
+            else:
+                self.appdataobj = ConfigDir()
             self.appdataobj.deleteOldCacheData( config['expire_cache_data'],
                                                 [self.infohash] )
 

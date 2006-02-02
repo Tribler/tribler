@@ -845,7 +845,7 @@ class ABCEngine(wx.EvtHandler):
 
         elif colid == SPEW_PERMID:
             if spew[line]['unauth_permid'] is not None:
-                text = 'Tribler'
+                text = '*Tribler*'
                 friends = self.utility.all_peers_cache
                 for friend in friends:
                     if friend['permid'] == spew[line]['unauth_permid']:
@@ -906,9 +906,12 @@ class ABCEngine(wx.EvtHandler):
     def ReducePrioandForceQueue(self):
         currentprio = self.torrent.prio
         if currentprio < 4:      #prio is not lowest
-            self.torrent.changePriority(currentprio + 1)     #lower 1 prio
+            self.changePriority(currentprio + 1)     #lower 1 prio
 
         self.queueMe()
+
+    def changePriority(self,prio):
+        self.invokeLater(self.torrent.changePriority,[prio])
 
     def countSeedingTime(self):
         now = time()

@@ -38,7 +38,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = False
+DEBUG = True
 
 Length_of_permid = 0    # 0: no restriction
 
@@ -387,9 +387,11 @@ class SecureOverlay:
                 self.release() 
                 return
             if self.overlayswarm.registered:
-                if DEBUG:
-                    print "secover: addTask, adding task to rawserver"
-                self.overlayswarm.rawserver.add_task(task.start, 0)
+                ## Arno: I don't see the need for letting the rawserver do it.
+                #if DEBUG:
+                #    print "secover: addTask, adding task to rawserver"
+                #self.overlayswarm.rawserver.add_task(task.start, 0)
+                task.start()
         except Exception,e:
             print_exc()
 
@@ -434,8 +436,18 @@ class SecureOverlay:
                 if DEBUG:
                     print "secover: WARNING given listen port not equal to authenticated one"
 
-        #if validPermid(permid) and validDNS(dns):
-        if validPermid(permid):
+        if validPermid(permid) and validDNS(dns):
+            if self.connection_list.has_key(permid):
+                # Conccurency: When a peer starts an overlay connection at
+                # the same time, and we start it before the C/R protocol
+                # has finished, we'll end up with two connections. In that
+                # case we drop the last one established.
+                if DEBUG:
+                    print "secover: dropping superfluous double connection to",show_permid(permid)
+                connection.close()
+                # Don't stop
+                return dns
+
             self._updateDNS(permid, dns)
             expire = int(time() + self.timeout)
             self.connection_list[permid] = {'c_conn':connection, 'dns':dns, 'expire':expire}

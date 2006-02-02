@@ -55,7 +55,7 @@ class ConfigDir:
 
     ###### INITIALIZATION TASKS ######
 
-    def __init__(self, config_type = None):
+    def __init__(self, config_type = None, dir_root = None):
         self.config_type = config_type
         if config_type:
             config_ext = '.'+config_type
@@ -68,16 +68,17 @@ class ConfigDir:
                 return y
             return None
 
-        for d in ['${APPDATA}', '${HOME}', '${HOMEPATH}', '${USERPROFILE}']:
-            dir_root = check_sysvars(d)
-            if dir_root:
-                break
-        else:
-            dir_root = os.path.expanduser('~')
-            if not os.path.isdir(dir_root):
-                dir_root = os.path.abspath(os.path.dirname(sys.argv[0]))
+        if dir_root is None or dir_root == '':
+            for d in ['${APPDATA}', '${HOME}', '${HOMEPATH}', '${USERPROFILE}']:
+                dir_root = check_sysvars(d)
+                if dir_root:
+                    break
+            else:
+                dir_root = os.path.expanduser('~')
+                if not os.path.isdir(dir_root):
+                    dir_root = os.path.abspath(os.path.dirname(sys.argv[0]))
 
-        dir_root = os.path.join(dir_root, DIRNAME)
+            dir_root = os.path.join(dir_root, DIRNAME)
         self.dir_root = dir_root
 
         if not os.path.isdir(self.dir_root):
@@ -160,6 +161,8 @@ class ConfigDir:
     def getConfig(self):
         return self.config
 
+    def getDirRoot(self):
+        return self.dir_root
 
     ###### STATE HANDLING ######
 

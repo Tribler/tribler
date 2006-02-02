@@ -16,13 +16,25 @@ Now:
   	Arno, 2006-1-6: A single friends-assisted download with 1 helper in
 	passive mode appears to work, so it's not that broken.
 
+	Arno, 2006-2-2: The code changed radically since last entry,
+	but the ./btlaunchmany.py works now as seeder.
+
 * Look at launchmanycore.py and who creates peer caches
 
 * Need way/GUI to add friends. Currently list of friends hardcoded into abc.py
  
+* Start two clients, each with busy torrent (i.e., many peers) and
+  then asking each to help the other. The DOWNLOAD_HELP requests may not
+  get through. Fix this.
 
 
 Short term:
+
+* We now have *unauthenticated* PermID to the detail window's list of peers
+  (i.e., spewList). This will need to be replaced with authenticated
+  PermIDs in the future. The problem that linking a random connection to
+  a PermID established via a different (overlay) connection in a secure way
+  is nearly or definitely impossible.
 
 * Store found lat/long info in PeerDB.
 

@@ -107,23 +107,45 @@ if __name__ == '__main__':
           "2 = save under name in torrent, 3 = save in directory under torrent name)" ),
         ( 'display_path', 1,
           "whether to display the full path or the torrent contents for each torrent" ),
+       ('config_path', '',
+          'directory containing the Tribler config files (default $HOME/.ABC)'),
     ] )
     try:
-        configdir = ConfigDir('launchmany')
+        # Make sure we can have a directory with config files in a user-chosen
+        # location
+        presets = {}
+        for tuple in defaults:
+            presets[tuple[0]] = tuple[1]
+        if len(argv) < 2:
+            print "Usage: btlaunchmany.py <directory> <global options>\n"
+            print "<directory> - directory to look for .torrent files (semi-recursive)"
+            print get_usage(defaults, 80, presets)
+            exit(1)
+
+        tempconfig, tempargs = parseargs(argv[1:], defaults, 1, 1, presets)
+        if tempconfig['config_path'] != '':
+            config_path = tempconfig['config_path']
+            configdir = ConfigDir('launchmany', config_path)
+        else:
+            configdir = ConfigDir('launchmany')
+            config_path = configdir.getDirRoot()
+            
+        # original init
         defaultsToIgnore = ['responsefile', 'url', 'priority']
         configdir.setDefaults(defaults,defaultsToIgnore)
         configdefaults = configdir.loadConfig()
         defaults.append(('save_options',0,
          "whether to save the current options as the new default configuration " +
          "(only for btlaunchmany.py)"))
-        if len(argv) < 2:
-            print "Usage: btlaunchmany.py <directory> <global options>\n"
-            print "<directory> - directory to look for .torrent files (semi-recursive)"
-            print get_usage(defaults, 80, configdefaults)
-            exit(1)
+
         config, args = parseargs(argv[1:], defaults, 1, 1, configdefaults)
         if config['save_options']:
             configdir.saveConfig(config)
+
+        config['config_path'] = config_path
+        if not os.path.isdir(config['config_path']):
+            print "Tribler requires config_path parameter pointing to dir with ecpub.pem, etc.!"
+            exit(1)
         configdir.deleteOldCacheData(config['expire_cache_data'])
         if not os.path.isdir(args[0]):
             raise ValueError("Warning: "+args[0]+" is not a directory")
@@ -132,8 +154,9 @@ if __name__ == '__main__':
         print 'error: ' + str(e) + '\nrun with no args for parameter explanations'
         exit(1)
 
-    tribler_init(configdir)
+    tribler_init(config['config_path'])
 
+    config['text_mode'] = 1
     LaunchMany(config, HeadlessDisplayer())
     if Exceptions:
         print '\nEXCEPTION:'

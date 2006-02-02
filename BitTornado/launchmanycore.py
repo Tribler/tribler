@@ -44,7 +44,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = False
+DEBUG = True
 
 def fmttime(n):
     try:
@@ -100,7 +100,10 @@ class SingleDownload:
         self.controller.hashchecksched(self.hash)
 
     def saveAs(self, name, length, saveas, isdir):
-        return self.controller.saveAs(self.hash, name, saveas, isdir)
+        name = self.controller.saveAs(self.hash, name, saveas, isdir)
+        if DEBUG:
+            print "SingleDownload: saveAs name is",name
+        return name
 
     def hashcheck_start(self, donefunc):
         if self.is_dead():
@@ -172,6 +175,7 @@ class LaunchMany:
             self.config = config
             self.Output = Output
 
+            self.text_mode = config.has_key('text_mode')
             self.torrent_dir = config['torrent_dir']
             self.scan_period = config['parse_dir_interval']
 
@@ -235,7 +239,8 @@ class LaunchMany:
             # Arno: disabling out startup of torrents, need to fix this
             # to let text-mode work again.
             #
-            ##self.rawserver.add_task(self.scan, 0)
+            if self.text_mode:
+                self.rawserver.add_task(self.scan, 0)
             self.rawserver.add_task(self.stats, 0)
 
             # do_cache -> do_overlay -> (do_buddycast, do_download_help)

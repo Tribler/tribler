@@ -17,7 +17,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = False
+DEBUG = True
 
 MAX_INCOMPLETE = 8
 

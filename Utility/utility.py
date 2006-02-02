@@ -162,7 +162,7 @@ class Utility:
             'column4_rank': '0', # Title
             'column4_width': '150', 
             'column5_rank': '1', # Progress
-            'column5_width': '160', 
+            'column5_width': '60', 
             'column6_rank': '2', # BT Status
             'column6_width': '100', 
             'column7_rank': '8', # Priority
@@ -176,7 +176,7 @@ class Utility:
             'column11_rank': '4', # UL Speed
             'column11_width': '60', 
             'column12_rank': '7', # %U/D Size
-            'column12_width': '150', 
+            'column12_width': '60', 
             'column13_rank': '9', # Error Message
             'column13_width': '60', 
             'column14_rank': '-1', # #Connected Seed

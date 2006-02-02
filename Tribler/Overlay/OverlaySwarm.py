@@ -11,11 +11,8 @@ from BitTornado.__init__ import createPeerID
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
 
-#from Tribler.BuddyCast.buddycast import BuddyCast
-#from Tribler.toofastbt.bthelper import Helper
-
 from Tribler.__init__ import GLOBAL
-from permid import ChallengeResponse
+from permid import ChallengeResponse,show_permid
 from MetadataHandler import MetadataHandler
 from OverlayEncrypter import OverlayEncoder
 from OverlayConnecter import OverlayConnecter
@@ -123,7 +120,7 @@ class OverlaySwarm:
             
     def sendMessage(self, connection, message):
         if DEBUG:
-            print "overlay: send message", getMessageName(message[0]), "to", connection
+            print "overlay: send message", getMessageName(message[0]), "to",show_permid(connection.permid)
         connection.send_message(message)
 
     def connectionMade(self, connection):
@@ -147,19 +144,21 @@ class OverlaySwarm:
         
         if self.crs.has_key(connection):
             self.crs.pop(connection)
-        def notify(connection=connection):
-            self.secure_overlay.connectionMade(connection)
-        self.rawserver.add_task(notify, 0)
+        ## Arno: I don't see the need for letting the rawserver do it.
+        ## gotMessage isn't scheduled on rawserver.
+        #def notify(connection=connection):
+        self.secure_overlay.connectionMade(connection)
+        #self.rawserver.add_task(notify, 0)
                 
     def connectionLost(self,connection):
         if DEBUG:
-            print "overlay: connectionLost: connection is",connection
+            print "overlay: connectionLost: connection is",connection.get_ip(),connection.get_port()
         if connection.permid is None:
             # No permid, so it was never reported to the SecureOverlay
             return
-        def notify(connection=connection):
-            self.secure_overlay.connectionLost(connection)
-        self.rawserver.add_task(notify, 0)
+        #def notify(connection=connection):
+        self.secure_overlay.connectionLost(connection)
+        #self.rawserver.add_task(notify, 0)
 
     def got_message(self, conn, message):    # Connecter.Connection
         """ Handle message for overlay swarm and return if the message is valid """

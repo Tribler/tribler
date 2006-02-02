@@ -35,6 +35,13 @@ class HelperMessageHandler:
             print "helper: Got",getMessageName(t)
 
         # Access control
+        ### HACK: THIS SHOULD WORK WHEN PROPER FRIENDSDB IS USED
+        try:
+            x = self.launchmany.utility
+        except:
+            # Running in text-mode
+            return False
+
         flag = 0
         for peer in self.launchmany.utility.all_peers_cache:
             if peer['permid'] == permid:
