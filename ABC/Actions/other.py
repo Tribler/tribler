@@ -8,6 +8,7 @@ from Dialogs.abcoption import ABCOptionDialog
 from Dialogs.localupload import LocalSettingDialog
 from Dialogs.abcbuddyframe import ABCBuddyFrame
 from Dialogs.abcfileframe import ABCFileFrame
+from Dialogs.makefriends import MakeFriendsDialog
 from webservice import WebDialog
 
 from Utility.helpers import stopTorrentsIfNeeded
@@ -312,3 +313,21 @@ class Separator(ABCAction):
         mask = wx.Mask(wx.EmptyBitmap(24, 24))
         self.bitmap = wx.EmptyBitmap(24, 24)
         self.bitmap.SetMask(mask)
+        
+# -- new functions in Tribler --        
+################################
+# 
+################################
+class MakeFriends(ABCAction):
+    
+    def __init__(self, utility):
+        ABCAction.__init__(self, 
+                           utility, 
+                           'friends.bmp', 
+                           'tb_friend_short',
+                           menudesc = 'menumakefriends')
+                           
+    def action(self, event = None):
+        dialog = MakeFriendsDialog(self.utility.frame)
+        dialog.ShowModal()
+        dialog.Destroy()

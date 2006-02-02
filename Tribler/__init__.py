@@ -16,8 +16,9 @@ except ImportError:
         return 1
 import Overlay.permid as permid
 import CacheDB.cachedb as cachedb
+import CacheDB.superpeer as superpeer
 from base64 import decodestring 
-    
+import CacheDB.friends as friends    
 mapbase64 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-'
 
 ## Global initialization
@@ -105,3 +106,5 @@ def tribler_init(config_dir = None):
     permid.init(config_dir)
     myinfo = load_myinfo()
     cachedb.init(config_dir,myinfo)
+    superpeer.init()
+    friends.init()

@@ -83,7 +83,8 @@ class TorrentActionMenu(ABCActionMenu):
 class ToolsMenu(ABCActionMenu):
     def __init__(self, utility):
         subactions = [ACTION_MAKETORRENT, 
-                      ACTION_WEBPREFERENCES]
+                      ACTION_WEBPREFERENCES,
+                      ACTION_MAKEFRIENDS]
         
         ABCActionMenu.__init__(self, 
                                utility, 

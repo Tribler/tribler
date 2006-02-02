@@ -36,9 +36,6 @@ from ABC.GUI.list import ManagedList
 from Utility.utility import Utility
 from Utility.constants import * #IGNORE:W0611
 
-#from BitTornado.PeerCacheHandler import PeerCacheHandler
-#from BitTornado.FileCacheHandler import FileCacheHandler
-from Tribler.CacheDB.cachedb import PeerDB
 from Tribler.__init__ import tribler_init
 
 ################################################################
@@ -362,48 +359,6 @@ class ABCFrame(wx.Frame):
         if self.utility.webconfig.Read("webautostart", "boolean"):
             self.utility.webserver.start()
             
-        # Set up PeerCacheHandler and FileCacheHandler
-        
-        #self.utility.all_peers_cache = PeerCacheHandler()
-        #self.utility.all_files_cache = FileCacheHandler()
-        
-	self.utility.all_peers_cache = []
-
-        ## DEBUG
-        peerdb = PeerDB.getInstance()
-
-        friend = {}
-        friend['name'] = 'Jie'
-        friend['permid'] = base64.decodestring('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAc6ebdH+dmvvgKiE7oOZuQba5I4msyuTJmVpJQVPAT+R9Pg8zsLsuJPV6RjU30RKHnCiaJvjtFW6pLXo')
-        friend['ip'] = '130.37.198.241'
-        friend['port'] = 6882
-        self.utility.all_peers_cache.append(friend)
-        peerdb.put(friend['permid'],friend)
-
-        friend = {}
-        friend['name'] = 'Pawel'
-        friend['permid'] = base64.decodestring('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAJ114tMJ6C8TkLkSv8QlVFlj/RpF2ibbar1P8GbzASpMDb1kSUBnmldfMFsNTNSK5cJGsTgAGFjYEJ78')
-        friend['ip'] = '130.37.198.240'
-        friend['port'] = 6882
-        self.utility.all_peers_cache.append(friend)
-        peerdb.put(friend['permid'],friend)
-
-        friend = {}
-        friend['name'] = 'Johan'
-        friend['permid'] = base64.decodestring('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAUo6nahUzz+NtYWfabmtkvBryqX3ToxgdBKIllVtADv1Et+W0OyT9J0F8VPqSeBZVA1TPuLUpt3I9QHP')
-        friend['ip'] = '130.37.193.65'
-        friend['port'] = 6883
-        self.utility.all_peers_cache.append(friend)
-        peerdb.put(friend['permid'],friend)
-
-        friend = {}
-        friend['name'] = 'Arno'
-        friend['permid'] = base64.decodestring('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAWAiRwei5Kw9b2he6qmwh5Hr5fNR3FlgHQ1WhXY0AC4w8RQD59rp4Jbo2NdjyXUGb5y1BCeMCGoRCaFy')
-        friend['ip'] = '130.37.193.64'
-        friend['port'] = 6881
-        self.utility.all_peers_cache.append(friend)
-        peerdb.put(friend['permid'],friend)
-
         # Start up the controller
         self.utility.controller = ABCLaunchMany(self.utility)
         #self.utility.controller.start() # done by ABCLaunchMany parent

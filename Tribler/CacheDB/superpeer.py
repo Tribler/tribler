@@ -11,6 +11,8 @@ from CacheDBHandler import MyDBHandler
 superpeer_file = 'superpeer.txt'
 permid_len = 112
 
+def init():
+    pass
 class SuperPeer:
     def __init__(self):
         self.superpeers = MyDBHandler()
