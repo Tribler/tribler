@@ -3,6 +3,7 @@
 
 from time import time
 import os
+import base64
 
 from Tribler.utilities import validIP, validPort, validPermid, validName
 from CacheDBHandler import FriendDBHandler
@@ -70,6 +71,10 @@ class FriendList:
             friend_info = []
             for i in range(len(friend_line)):
                 friend_info.append(friend_line[i].strip())
+            try:
+                friend_info[1] = base64.decodestring( friend_info[1]+'\n' )
+            except:
+                continue
             if self.validFriendList(friend_info):
                 friend = {'name':friend_info[0], 'permid':friend_info[1], 
                           'ip':friend_info[2], 'port':int(friend_info[3])}
