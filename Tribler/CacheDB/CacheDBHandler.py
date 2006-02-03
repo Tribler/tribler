@@ -141,8 +141,11 @@ class FriendDBHandler(BasicDBHandler):
                 peer.update({'permid':id})
                 friends.append(peer)
         return friends
-                    
             
+    def deleteFriend(self,permid):
+        self.my_db.deleteFriend(permid)
+        self.my_db._sync()            
+
 class PeerDBHandler(BasicDBHandler):
     
     def __init__(self, db_dir=''):

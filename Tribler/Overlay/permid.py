@@ -46,6 +46,11 @@ def show_permid(permid):
     # Short digest
     ##return sha(permid).hexdigest()
 
+def permid_for_user(permid):
+    # Full BASE64-encoded 
+    return encodestring(permid).replace("\n","")
+
+
 # Internal functions
 def generate_keypair():
     global _ec_keypair

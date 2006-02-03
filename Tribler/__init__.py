@@ -18,7 +18,8 @@ import Overlay.permid as permid
 import CacheDB.cachedb as cachedb
 import CacheDB.superpeer as superpeer
 from base64 import decodestring 
-import CacheDB.friends as friends    
+import CacheDB.friends as friends
+    
 mapbase64 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-'
 
 ## Global initialization
@@ -44,6 +45,8 @@ class GLOBAL:
     do_das_test = 0
     do_buddycast_interval = 3
     
+myinfo = {}
+
 def is_valid_ip(ip):
     invalid_iphead = ['0.', '127.0.0.1']
     for iphead in invalid_iphead:
@@ -51,7 +54,7 @@ def is_valid_ip(ip):
             return False
     return True
 
-def load_myinfo():    # TODO: load more personal infomation
+def load_myinfo(myinfo):    # TODO: load more personal infomation
     my_permid = permid._ec_keypair.pub().get_der()
     name = socket.gethostname()
     host = socket.gethostbyname_ex(name)
@@ -61,8 +64,9 @@ def load_myinfo():    # TODO: load more personal infomation
         if is_valid_ip(ip):
             valid_ip = ip
             break
-    myinfo = {'permid':my_permid, 'ip':valid_ip, 'name':name}
-    return myinfo
+    myinfo['permid'] = my_permid
+    myinfo['ip'] = valid_ip
+    myinfo['name'] = name
 
 
 def resetPeerIDs():
@@ -102,9 +106,10 @@ def createPeerID(ins = '---'):
 
 
 def tribler_init(config_dir = None):
+    global myinfo
     resetPeerIDs()
     permid.init(config_dir)
-    myinfo = load_myinfo()
+    load_myinfo(myinfo)
     #cachedb.init(config_dir,myinfo)
     cachedb.init(None, myinfo)
     superpeer.init()

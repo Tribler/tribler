@@ -8,7 +8,7 @@ from Dialogs.abcoption import ABCOptionDialog
 from Dialogs.localupload import LocalSettingDialog
 from Dialogs.abcbuddyframe import ABCBuddyFrame
 from Dialogs.abcfileframe import ABCFileFrame
-from Dialogs.makefriends import MakeFriendsDialog
+from Dialogs.managefriends import ManageFriendsDialog
 from webservice import WebDialog
 
 from Utility.helpers import stopTorrentsIfNeeded
@@ -325,9 +325,12 @@ class MakeFriends(ABCAction):
                            utility, 
                            'friends.bmp', 
                            'tb_friend_short',
-                           menudesc = 'menumakefriends')
+                           menudesc = 'menumanagefriends')
                            
     def action(self, event = None):
-        dialog = MakeFriendsDialog(self.utility.frame)
+        dialog = ManageFriendsDialog(self.utility.frame,self.utility,self)
         dialog.ShowModal()
         dialog.Destroy()
+
+    def reaction(self):
+        self.action()

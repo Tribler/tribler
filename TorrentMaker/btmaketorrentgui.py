@@ -140,6 +140,7 @@ class TrackerInfoPanel(wx.Panel):
        
         self.annListCtl = wx.TextCtrl(self, -1, size = (-1, 75), style = wx.TE_MULTILINE|wx.HSCROLL|wx.TE_DONTWRAP)
         self.annListCtl.SetToolTipString(self.utility.lang.get('multiannouncehelp'))
+        
         announcesection.Add(self.annListCtl, 1, wx.EXPAND|wx.TOP, 5)
         
         outerbox.Add(announcesection, 0, wx.EXPAND|wx.ALL, 3)

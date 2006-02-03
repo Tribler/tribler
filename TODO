@@ -34,6 +34,8 @@ Now:
 
 Short term:
 
+* Put text in Dialogs/makefriends.py in lang file.
+
 * We now have *unauthenticated* PermID to the detail window's list of peers
   (i.e., spewList). This will need to be replaced with authenticated
   PermIDs in the future. The problem that linking a random connection to

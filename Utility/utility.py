@@ -319,6 +319,7 @@ class Utility:
                                     ACTION_DETAILS],
              'enablerecommender': '1',
              'enabledlhelp': '1',  
+             'minport': '6881',
 #            'skipcheck': '0'
         }
 

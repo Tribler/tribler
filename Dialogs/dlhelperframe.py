@@ -6,6 +6,9 @@ import os
 import sys
 
 from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
+from managefriends import FriendList, createImageList
+
+
 ################################################################
 #
 # Class: DownloadHelperPanel
@@ -52,8 +55,8 @@ class DownloadHelperPanel(wx.Panel):
             # St*pid C++ wrapping, if I don't make 2 copies I get segmentation
             # faults at garbage-collection time
             try:
-                imgListLeft = self.createImageList(friends)
-                imgListRight = self.createImageList(friends)
+                imgListLeft = createImageList(self.utility,friends)
+                imgListRight = createImageList(self.utility.friends)
             except:
                 # disable icons
                 type = wx.LC_REPORT
@@ -120,21 +123,6 @@ class DownloadHelperPanel(wx.Panel):
         self.SetSizerAndFit(mainbox)
 
 
-    def createImageList(self,friends):
-        flag = 0
-        imgList = None
-        for friend in friends:
-            if friend['name'] is not None:
-                filename = os.path.join(self.utility.getConfigPath(), 'icons', friend['name']+'.bmp')
-                if not os.access(filename, os.F_OK):
-                    filename = os.path.join(self.utility.getPath(), 'icons', 'joe32.bmp')
-                bm = wx.Bitmap(filename,wx.BITMAP_TYPE_BMP)
-                if flag == 0:
-                    imgList = wx.ImageList(bm.GetWidth(),bm.GetHeight())
-                    flag=1
-                imgList.Add(bm)
-        return imgList
-
     def addHelper(self, event = None):
         self.addFriends(self.leftListCtl,self.rightListCtl)
         self.onRequest()
@@ -160,75 +148,3 @@ class DownloadHelperPanel(wx.Panel):
         remainingFriends = self.leftListCtl.getFriends()
         self.coordinator.stop_help(remainingFriends, force = False)
         self.coordinator.request_help(helpingFriends, force = True)
-
-class FriendList(wx.ListCtrl):
-    def __init__(self, parent, friends, type, imgList):
-
-        self.type = type
-        style = wx.VSCROLL|wx.SIMPLE_BORDER|self.type|wx.LC_VRULES|wx.CLIP_CHILDREN
-        if (sys.platform == 'win32'):
-            style |= wx.LC_ALIGN_TOP
-        wx.ListCtrl.__init__(self, parent, -1, size=wx.Size(200, 300), style=style)
-
-        self.parent = parent
-        self.friends = friends
-        self.utility = parent.utility
-
-        self.AssignImageList(imgList,wx.IMAGE_LIST_SMALL)
-        self.loadList()
-
-    def loadList(self):
-        if self.type == wx.LC_REPORT:
-            try:    # get system font width
-                fw = wx.SystemSettings_GetFont(wx.SYS_DEFAULT_GUI_FONT).GetPointSize()+1
-            except:
-                fw = wx.SystemSettings_GetFont(wx.SYS_SYSTEM_FONT).GetPointSize()+1
-            
-            self.InsertColumn(0, self.utility.lang.get('name'), format=wx.LIST_FORMAT_CENTER, width=fw*6)
-
-        self.updateAll()
-        self.Show(True)
-
-    def updateAll(self):
-        self.DeleteAllItems() 
-        i = 0;
-        for friend in self.friends:
-            self.addItem(i,friend)
-            i += 1
-
-    def addItem(self,i,friend):
-        if self.type != wx.LC_REPORT:
-            label = friend['name']
-            self.InsertImageStringItem(i,label,friend['tempiconindex'])
-        else:
-            self.InsertStringItem(i, friend['name'])
-
-    def removeFriends(self,itemList):
-        # Assumption: friends in list are in insert-order, i.e., not sorted afterwards!
-        friendList = []
-        # Make sure item ids stay the same during delete
-        itemList.sort()
-        itemList.reverse()
-        for item in itemList:
-            friend = self.friends[item]
-            friendList.append(friend)
-            del self.friends[item]
-            self.DeleteItem(item)
-        return friendList
-
-    def addFriends(self,friendList):
-        flag = 0
-        i = self.GetItemCount()
-        for friend in friendList:
-            for chum in self.friends:
-                if friend['name'] == chum['name']:
-                    flag = 1
-                    break
-            if flag:
-                continue
-            self.friends.append(friend)
-            self.addItem(i,friend)
-            i += 1
-
-    def getFriends(self):
-        return self.friends
