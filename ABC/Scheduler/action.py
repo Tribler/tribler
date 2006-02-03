@@ -70,7 +70,7 @@ class ActionHandler:
             for index in indexremoved:
                 # Remove from the display
                 self.utility.list.DeleteItem(index)
-            
+        
                 # Remove from scheduler
                 self.utility.torrents["all"].pop(index)
 

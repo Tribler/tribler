@@ -37,7 +37,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = False
+DEBUG = True
 
 
 wxEVT_INVOKE = wx.NewEventType()

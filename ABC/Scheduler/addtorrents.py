@@ -7,7 +7,7 @@ from string import join as stjoin
 from urlparse import urlsplit, urlunsplit
 from urllib import quote, unquote
 from sha import sha
-#from traceback import print_exc
+from traceback import print_exc, print_stack
 #from cStringIO import StringIO
 
 from BitTornado.bencode import bencode, bdecode

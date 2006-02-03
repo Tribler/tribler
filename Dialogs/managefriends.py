@@ -189,8 +189,11 @@ class ManageFriendsDialog(wx.Dialog):
 
 
 def createImageList(utility,friends):
-    flag = 0
-    imgList = None
+    if len(friends) == 0:
+        return None
+    height = 0
+    width = 0
+    list = []
     for friend in friends:
         if friend['name'] is not None:
             filename = nickname2iconfilename(utility, friend['name'])
@@ -198,10 +201,14 @@ def createImageList(utility,friends):
                 # fallback name, don't use nickname2... here
                 filename = os.path.join(utility.getPath(), 'icons', 'joe32.bmp')
             bm = wx.Bitmap(filename,wx.BITMAP_TYPE_BMP)
-            if flag == 0:
-                imgList = wx.ImageList(bm.GetWidth(),bm.GetHeight())
-                flag=1
-            imgList.Add(bm)
+            if bm.GetWidth() > width:
+                width = bm.GetWidth()
+            if bm.GetHeight() > height:
+                height = bm.GetHeight()
+            list.append(bm)
+    imgList = wx.ImageList(width,height)
+    for bm in list:
+        imgList.Add(bm)
     return imgList
 
 def nickname2iconfilename(utility,name):

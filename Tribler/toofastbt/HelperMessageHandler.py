@@ -164,7 +164,8 @@ class HelperMessageHandler:
         
         for permid in self.metadata_queue[torrent_hash]:
             # only ask for metadata once
-            self.do_help(torrent_hash, torrent_data, permid)    
+            self.do_help(torrent_hash, torrent_data, permid)
+        del self.metadata_queue[torrent_hash]
 
     def can_help(self, torrent_hash):    #TODO: test if I can help the cordinator to download this file
         return True                      #Future support: make the decision based on my preference
