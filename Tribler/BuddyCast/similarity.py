@@ -50,11 +50,4 @@ def testSim():
     
 if '__main__'== __name__:
     testSim()
-    
-    
-                    
-    
-    
-                                                                                        
-
 

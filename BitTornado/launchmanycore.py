@@ -251,7 +251,7 @@ class LaunchMany:
                 GLOBAL.do_download_help = 0
 
             # for test
-            GLOBAL.do_buddycast = 0
+            GLOBAL.do_buddycast = 1
             GLOBAL.do_download_help = 1
             
             if GLOBAL.do_overlay:

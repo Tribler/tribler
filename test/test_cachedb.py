@@ -151,11 +151,20 @@ class TestPeerDB(unittest.TestCase):
         self.d.updateItem('peer1')
         assert self.d.getItem('peer1'), self.d.getItem('peer1')
         assert self.d.getItem('peer1') == self.d.default_item, self.d.getItem('peer1')
+        
         x = {'ip':'1.2.3.4', 'port':3}
         y = deepcopy(self.d.default_item)
         y.update(x)
         self.d.updateItem('peer1', x)
         assert self.d.getItem('peer1') == y, self.d.getItem('peer1')
+        
+        x2 = {'port':7}
+        y = deepcopy(self.d.default_item)
+        y.update(x)
+        y.update(x2)
+        self.d.updateItem('peer1', x2)
+        assert self.d.getItem('peer1') == y, self.d.getItem('peer1')
+        
         self.d.deleteItem('peer1')
         assert not self.d.getItem('peer1')
         
@@ -164,7 +173,8 @@ class TestTorrentDB(unittest.TestCase):
     
     def setUp(self):
         self.dirname = os.path.join(tempfile.gettempdir(), 'testdb')
-        self.d = cachedb.PeerDB.getInstance(db_dir=self.dirname)
+        self.d = cachedb.TorrentDB.getInstance(db_dir=self.dirname)
+        self.d._clear()
         
     def tearDown(self):
         self.d._clear()
@@ -175,11 +185,20 @@ class TestTorrentDB(unittest.TestCase):
         self.d.updateItem('torrent1')
         assert self.d.getItem('torrent1'), self.d.getItem('torrent1')
         assert self.d.getItem('torrent1') == self.d.default_item, self.d.getItem('torrent1')
-        x = {'name':'torrent 1'}
+        
+        x = {'name':'torrent 1', 'relevance':32}
         y = deepcopy(self.d.default_item)
         y.update(x)
         self.d.updateItem('torrent1', x)
         assert self.d.getItem('torrent1') == y, self.d.getItem('torrent1')
+        
+        x2 = {'relevance':56}
+        y = deepcopy(self.d.default_item)
+        y.update(x)
+        y.update(x2)
+        self.d.updateItem('torrent1', x2)
+        assert self.d.getItem('torrent1') == y, self.d.getItem('torrent1')
+        
         self.d.deleteItem('torrent1')
         assert not self.d.getItem('torrent1')
 
@@ -189,6 +208,7 @@ class TestPreferenceDB(unittest.TestCase):
     def setUp(self):
         self.dirname = os.path.join(tempfile.gettempdir(), 'testdb')
         self.d = cachedb.PreferenceDB.getInstance(db_dir=self.dirname)
+        self.d._clear()
         
     def tearDown(self):
         self.d._clear()
@@ -196,31 +216,44 @@ class TestPreferenceDB(unittest.TestCase):
     def test_prefdb(self):
         
         # test addPreference, getPreference, hasPreference, getItem
-        self.d.addPreference('permid1', 'torrent1')
-        self.d.addPreference('permid1', 'torrent2')
-        assert self.d.hasPreference('permid1', 'torrent2')
-        it1 = self.d.getItem('permid1')
-        assert isinstance(it1, dict)
-        assert len(it1) == 2
-        self.d.addPreference('permid2', 'torrent3')
-        pf2 = self.d.getPreference('permid2', 'torrent1')
-        assert pf2 is None
-        pf2 = self.d.getPreference('permid2', 'torrent3')
-        assert pf2 == self.d.default_item
-        z = {'rank':3}
-        self.d.addPreference('permid2', 'torrent3', z)
+        self.d.addPreference('peer1', 'torrent1')
+        self.d.addPreference('peer1', 'torrent2')
+        assert self.d.hasPreference('peer1', 'torrent2')
+        
+        it1 = self.d.getItem('peer1')
+        assert isinstance(it1, dict) and len(it1) == 2, it1
+        
+        self.d.addPreference('peer2', 'torrent3')
+        pf2 = self.d.getPreference('peer2', 'torrent1')
+        assert pf2 is None, pf2
+        
+        self.d.addPreference('peer2', 'torrent5')
+        pf2 = self.d.getPreference('peer2', 'torrent5')
+        assert pf2 == self.d.default_item, pf2
+
+        pf2 = self.d.getPreference('peer2', 'torrent3')
+        assert pf2 == self.d.default_item, pf2
+        
+        z = {'rank':3, 'relevance':5}
+        self.d.addPreference('peer2', 'torrent3', z)
         x = deepcopy(self.d.default_item)
         x.update(z)
-        pf2 = self.d.getPreference('permid2', 'torrent3')
-        assert pf2 == x
-        it2 = self.d.getItem('permid2')
-        assert len(it2) == 1, len(it2)
+        pf2 = self.d.getPreference('peer2', 'torrent3')
+        assert pf2 == x, pf2
+        
+        z2 = {'relevance':7}
+        self.d.addPreference('peer2', 'torrent3', z2)
+        x = deepcopy(self.d.default_item)
+        x.update(z)
+        x.update(z2)
+        pf2 = self.d.getPreference('peer2', 'torrent3')
+        assert pf2 == x, pf2
         
         # test deletePreference, deleteItem
-        self.d.deletePreference('permid1', 'torrent2')
-        assert not self.d.hasPreference('permid1', 'torrent2')
-        self.d.deleteItem('permid2')
-        assert not self.d.getItem('permid2')
+        self.d.deletePreference('peer1', 'torrent2')
+        assert not self.d.hasPreference('peer1', 'torrent2')
+        self.d.deleteItem('peer2')
+        assert not self.d.getItem('peer2')
         
 
 class TestMyPreferenceDB(unittest.TestCase):
@@ -228,6 +261,7 @@ class TestMyPreferenceDB(unittest.TestCase):
     def setUp(self):
         self.dirname = os.path.join(tempfile.gettempdir(), 'testdb')
         self.d = cachedb.MyPreferenceDB.getInstance(db_dir=self.dirname)
+        self.d._clear()
         
     def tearDown(self):
         self.d._clear()
@@ -238,11 +272,22 @@ class TestMyPreferenceDB(unittest.TestCase):
         self.d.updateItem('torrent1')
         assert self.d.getItem('torrent1'), self.d.getItem('torrent1')
         assert self.d.getItem('torrent1') == self.d.default_item, self.d.getItem('torrent1')
-        x = {'name':'torrent 1'}
+        
+        x = {'name':'torrent 1', 'rank':3}
         y = deepcopy(self.d.default_item)
         y.update(x)
         self.d.updateItem('torrent1', x)
-        assert self.d.getItem('torrent1') == y, self.d.getItem('torrent1')
+        item = self.d.getItem('torrent1')
+        assert item['name'] == y['name'] and item['rank'] == y['rank'], self.d.getItem('torrent1')
+        
+        x2 = {'rank':'5'}
+        y = deepcopy(self.d.default_item)
+        y.update(x)
+        y.update(x2)
+        self.d.updateItem('torrent1', x2)
+        item = self.d.getItem('torrent1')
+        assert item['name'] == y['name'] and item['rank'] == y['rank'], self.d.getItem('torrent1')
+                
         self.d.deleteItem('torrent1')
         assert not self.d.getItem('torrent1')
 
@@ -257,20 +302,20 @@ class TestOwnerDB(unittest.TestCase):
             
     def test_owner(self):
         # test addOwner, getOwner, isOwner, getItem
-        self.d.addOwner('torrent1', 'permid1')
-        self.d.addOwner('torrent1', 'permid2')
-        assert self.d.isOwner('permid2', 'torrent1')
+        self.d.addOwner('torrent1', 'peer1')
+        self.d.addOwner('torrent1', 'peer2')
+        assert self.d.isOwner('peer2', 'torrent1')
         it1 = self.d.getItem('torrent1')
         assert isinstance(it1, list)
         assert len(it1) == 2, len(it1)
-        self.d.addOwner('torrent2', 'permid3')
-        self.d.addOwner('torrent2', 'permid3')
+        self.d.addOwner('torrent2', 'peer3')
+        self.d.addOwner('torrent2', 'peer3')
         it2 = self.d.getItem('torrent2')
         assert len(it2) == 1, len(it2)
         
         # test deleteOwner, deleteItem
-        self.d.deleteOwner('torrent2', 'permid3')
-        assert not self.d.isOwner('permid3', 'torrent2')
+        self.d.deleteOwner('torrent2', 'peer3')
+        assert not self.d.isOwner('peer3', 'torrent2')
         self.d.deleteItem('torrent1')
         assert not self.d.getItem('torrent1')
         

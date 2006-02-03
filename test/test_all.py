@@ -36,12 +36,14 @@ def suite():
     import test.test_friend as test_friend
     import test.test_cachedbhandler as test_cachedbhandler
     import test.test_superpeers as test_superpeers
+    import test.test_buddycast as test_buddycast
     
     test_modules = [
-#        test_cachedb,
-#        test_friend,
-#        test_cachedbhandler,
-        test_superpeers,
+        #test_cachedb,
+        #test_friend,
+        #test_cachedbhandler,
+        #test_superpeers,
+        test_buddycast
         ]
 
     alltests = unittest.TestSuite()

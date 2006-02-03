@@ -83,6 +83,10 @@ class TestFriendList(unittest.TestCase):
         assert len(friends) == 2, len(friends)
         assert friends == answer or (friends[0] == answer[1] and friends[1] == answer[0]), friends
         #self.flist.writeFriendList('tmp.txt')
+        self.flist.deleteFriend(answer[0]['permid'])
+        friends = self.flist.getFriends()
+        assert len(friends) == 1, len(friends)
+        assert friends[0]['permid'] == answer[1]['permid']
 
     def xxtest_normal(self):
         flist = FriendList()

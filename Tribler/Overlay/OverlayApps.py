@@ -8,7 +8,7 @@ from BitTornado.BT1.MessageID import HelpCoordinatorMessages, HelpHelperMessages
 from Tribler.toofastbt.CoordinatorMessageHandler import CoordinatorMessageHandler
 from Tribler.toofastbt.HelperMessageHandler import HelperMessageHandler
 from MetadataHandler import MetadataHandler
-from Tribler.BuddyCast.buddycast import BuddyCast
+from Tribler.BuddyCast.buddycast2 import BuddyCast
 
 class OverlayApps:
     # Code to make this a singleton

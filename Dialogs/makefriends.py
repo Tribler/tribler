@@ -212,11 +212,12 @@ class MakeFriendsDialog(wx.Dialog):
         
     def OnIconButton(self, evt):
         # get current working directory
+        # TODO: record the last opened path in config file
         try:
-            path = os.getcwd()
-        except:
+            path = os.path.join(os.getcwd(), 'icons')
+        except Exception, msg:
             path = ''
-
+            
         # open the image browser dialog
         dlg = ib.ImageDialog(self, path)
 
