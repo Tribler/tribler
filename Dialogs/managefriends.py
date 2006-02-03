@@ -60,7 +60,7 @@ class ManageFriendsDialog(wx.Dialog):
         topbox = wx.BoxSizer(wx.HORIZONTAL)
         botbox = wx.BoxSizer(wx.HORIZONTAL)
 
-        # 4a. Friends in left window
+        # 3. Friends in top window
         friendsbox_title = wx.StaticBox(self, -1, self.utility.lang.get('friends'))
         friendsbox = wx.StaticBoxSizer(friendsbox_title, wx.VERTICAL)
 
@@ -70,6 +70,7 @@ class ManageFriendsDialog(wx.Dialog):
         friendsbox.Add(self.leftListCtl, 1, wx.EXPAND|wx.TOP, 5)
         topbox.Add(friendsbox, 0, wx.EXPAND)
 
+        # 4. Buttons in lower window
         button = wx.Button(self, -1, self.utility.lang.get('buttons_add'), style = wx.BU_EXACTFIT)
         #button.SetToolTipString(self.utility.lang.get('requestdlhelp_help'))
         wx.EVT_BUTTON(self, button.GetId(), self.addFriend)
@@ -90,36 +91,7 @@ class ManageFriendsDialog(wx.Dialog):
         wx.EVT_BUTTON(self, button.GetId(), self.close)
         botbox.Add(button, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
 
-        # my info
-        myinfobox_title = wx.StaticBox(self, -1, self.utility.lang.get('myinfo'))
-        myinfobox = wx.StaticBoxSizer(myinfobox_title, wx.VERTICAL)
-
-        ip = self.utility.config.Read('bind')
-        if ip is None or ip == '':
-            ip = myinfo['ip']
-        permid_txt = self.utility.lang.get('permid')+": "+permid_for_user(myinfo['permid'])
-        ip_txt = self.utility.lang.get('ipaddress')+": "+ip
-        port_txt = self.utility.lang.get('portnumber')+" "+str(self.utility.controller.listen_port)
-
-        if True:
-            # Make it copy-and-paste able
-            self.textctrl = wx.TextCtrl(self, -1, size = (-1, 75), style = wx.TE_MULTILINE|wx.TE_DONTWRAP|wx.TE_READONLY)
-            self.textctrl.AppendText( permid_txt + '\n' );
-            self.textctrl.AppendText( ip_txt + '\n' );
-            self.textctrl.AppendText( port_txt );
-            myinfobox.Add( self.textctrl, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
-        else:
-            label = wx.StaticText(self, -1, permid_txt )
-            myinfobox.Add( label, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
-
-            label = wx.StaticText(self, -1, ip_txt )
-            myinfobox.Add( label, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
-
-            label = wx.StaticText(self, -1, port_txt )
-            myinfobox.Add( label, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
-
         # 5. Show GUI
-        mainbox.Add(myinfobox, 0, wx.EXPAND)
         mainbox.Add(topbox, 0, wx.EXPAND)
         mainbox.Add(botbox, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 5)
         self.SetSizerAndFit(mainbox)
@@ -184,6 +156,11 @@ class ManageFriendsDialog(wx.Dialog):
         dlg.Destroy()
 
 
+################################################################
+#
+#
+################################################################
+
 def createImageList(utility,friends):
     if len(friends) == 0:
         return None
@@ -211,6 +188,13 @@ def nickname2iconfilename(utility,name):
         return os.path.join(utility.getConfigPath(), 'icons', name+'.bmp')
 
 
+################################################################
+#
+# Class: FriendList
+#
+# ListCtrl for managing friends
+#
+################################################################
 class FriendList(wx.ListCtrl):
     def __init__(self, parent, friends, type, imgList):
 
@@ -283,3 +267,75 @@ class FriendList(wx.ListCtrl):
 
     def getFriends(self):
         return self.friends
+
+
+################################################################
+#
+# Class: MyInfoDialog
+#
+# Panel with user's info, to give to others to become friends
+#
+################################################################
+class MyInfoDialog(wx.Dialog):
+    def __init__(self, parent, utility):
+        self.utility = utility
+
+        style = wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
+        pos = wx.DefaultPosition
+        size = wx.Size(530, 420)
+        
+        title = self.utility.lang.get('myinfo')
+        wx.Dialog.__init__(self, parent, -1, title, size = size, style = style)
+
+        # 1. Build My Info
+        mainbox = wx.BoxSizer(wx.VERTICAL)
+
+        # my info
+        myinfobox_title = wx.StaticBox(self, -1, self.utility.lang.get('myinfo'))
+        myinfobox = wx.StaticBoxSizer(myinfobox_title, wx.VERTICAL)
+
+        ip = self.utility.config.Read('bind')
+        if ip is None or ip == '':
+            ip = myinfo['ip']
+        permid_txt = self.utility.lang.get('permid')+": "+permid_for_user(myinfo['permid'])
+        ip_txt = self.utility.lang.get('ipaddress')+": "+ip
+        port_txt = self.utility.lang.get('portnumber')+" "+str(self.utility.controller.listen_port)
+
+        if True:
+            # Make it copy-and-paste able
+            self.textctrl = wx.TextCtrl(self, -1, size = (640, 100), style = wx.TE_MULTILINE|wx.TE_DONTWRAP|wx.TE_READONLY)
+            self.textctrl.AppendText( permid_txt + '\n' );
+            self.textctrl.AppendText( ip_txt + '\n' );
+            self.textctrl.AppendText( port_txt + '\n' );
+            myinfobox.Add( self.textctrl, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        else:
+            label = wx.StaticText(self, -1, permid_txt )
+            myinfobox.Add( label, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+
+            label = wx.StaticText(self, -1, ip_txt )
+            myinfobox.Add( label, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+
+            label = wx.StaticText(self, -1, port_txt )
+            myinfobox.Add( label, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+
+
+       # 1.5 Explanatory text
+        botbox = wx.BoxSizer(wx.VERTICAL)
+
+        msg = self.utility.lang.get('myinfo_explanation')
+        botbox.Add(wx.StaticText(self, -1, msg), 0, wx.EXPAND|wx.ALIGN_LEFT|wx.ALL, 5)
+
+        # 2. Close button
+        button = wx.Button(self, -1, self.utility.lang.get('close'), style = wx.BU_EXACTFIT)
+        #button.SetToolTipString(self.utility.lang.get('stopdlhelp_help'))
+        wx.EVT_BUTTON(self, button.GetId(), self.close)
+        botbox.Add(button, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 3)
+
+        # 3. Show GUI
+        mainbox.Add(myinfobox, 0, wx.EXPAND)
+        mainbox.Add(botbox, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 5)
+        self.SetSizerAndFit(mainbox)
+
+    def close(self, event = None):
+        self.EndModal(wx.ID_OK)
+

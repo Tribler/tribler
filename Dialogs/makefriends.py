@@ -113,7 +113,7 @@ class MakeFriendsDialog(wx.Dialog):
         # picture
         box = wx.BoxSizer(wx.HORIZONTAL)
 
-        label = wx.StaticText(self, -1, "Icon (BMP format):")
+        label = wx.StaticText(self, -1, "Icon (32x32 BMP format):")
         #label.SetHelpText("")
         box.Add(label, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
 

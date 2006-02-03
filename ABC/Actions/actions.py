@@ -67,6 +67,7 @@ def makeActionList(utility):
     actions[ACTION_MAKETORRENT] = MakeTorrent(utility)
     actions[ACTION_WEBPREFERENCES] = WebServicePreferences(utility)
     actions[ACTION_MAKEFRIENDS] = MakeFriends(utility)
+    actions[ACTION_MYINFO] = MyInfoAction(utility)
     
     actions[ACTION_EXTRACTFROMLIST] = ExtractFromList(utility)
     actions[ACTION_COPYFROMLIST] = CopyFromList(utility)

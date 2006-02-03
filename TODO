@@ -3,15 +3,9 @@ TODO:
 
 Now:
 
-* Problem when doing download help: after request the requested user's
-  name changes to "unknown" in the database ???
-
 * Buddycast doesn't attempt to contact any superpeers. Alternative
   is to disable super-peer bootstrapping and just let it talk to the
   peers it meets. I currently do the latter.
-
-* All peers are added as friends, see BitTorrent/cachedb:PeerTable::addPeer
-  as the addFriend method doesn't seem to work.
 
 * Text version may not work as before because I hacked up
   launchmanycore.py and BitTornado/launchmanycore.py. Need to redo this.
@@ -24,15 +18,23 @@ Now:
 
 * Look at launchmanycore.py and who creates peer caches
 
-* Need way/GUI to add friends. Currently list of friends hardcoded into abc.py
- 
 * Start two clients, each with busy torrent (i.e., many peers) and
   then asking each to help the other. The DOWNLOAD_HELP requests may not
   get through. Fix this.
 
 * Read friends.txt from $HOME/.ABC if it stays.
 
+* There is a potential concurrency problem between the GUI thread (MainThread)
+  and the network thread (ABCLaunchMany) thread. They both write to the
+  peer DB, e.g. when a user edits the friends list and there is a torrent
+  downloading.
+  
+
+
+
 Short term:
+
+* Preferences: option to clear databases.
 
 * Put text in Dialogs/makefriends.py in lang file.
 
@@ -178,3 +180,12 @@ DONE:
 
 * Extend Preferences with flags for enabling/disabling Download Help and
   Recommendation.
+
+* Problem when doing download help: after request the requested user's
+  name changes to "unknown" in the database ???
+
+* All peers are added as friends, see BitTorrent/cachedb:PeerTable::addPeer
+  as the addFriend method doesn't seem to work.
+
+* Need way/GUI to add friends. Currently list of friends hardcoded into abc.py
+ 
