@@ -126,12 +126,12 @@ class DownloadHelperPanel(wx.Panel):
 
 
     def addHelper(self, event = None):
-        self.addFriends(self.leftListCtl,self.rightListCtl)
-        self.onRequest()
+        if self.addFriends(self.leftListCtl,self.rightListCtl):
+            self.onRequest()
 
     def removeHelper(self, event = None):
-        self.addFriends(self.rightListCtl,self.leftListCtl)
-        self.onRequest()
+        if self.addFriends(self.rightListCtl,self.leftListCtl):
+            self.onRequest()
 
     def addFriends(self,left,right):
         item = -1
@@ -142,11 +142,16 @@ class DownloadHelperPanel(wx.Panel):
                 break
             else:
                 itemList.append(item)
-        friendsList = left.removeFriends(itemList)
-        right.addFriends(friendsList)
+        if len(itemList) > 0:
+            friendsList = left.removeFriends(itemList)
+            right.addFriends(friendsList)
+            return True
+        else:
+            return False
         
     def onRequest(self, event = None):
         helpingFriends = self.rightListCtl.getFriends()
+        
         remainingFriends = self.leftListCtl.getFriends()
         self.coordinator.stop_help(remainingFriends, force = False)
         self.coordinator.request_help(helpingFriends, force = True)

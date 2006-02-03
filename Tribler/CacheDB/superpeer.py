@@ -3,6 +3,7 @@
 
 from time import time
 import os
+import base64
 
 from Tribler.utilities import validIP, validPort, validPermid, validName
 from CacheDBHandler import SuperPeerDBHandler
@@ -61,6 +62,10 @@ class SuperPeerList:
             superpeer_info = []
             for i in range(len(superpeer_line)):
                 superpeer_info.append(superpeer_line[i].strip())
+            try:
+                superpeer_info[2] = base64.decodestring( superpeer_info[2]+'\n' )
+            except:
+                continue
             if self.validSuperPeerList(superpeer_info):
                 superpeer = {'ip':superpeer_info[0], 'port':superpeer_info[1], 
                           'permid':superpeer_info[2]}

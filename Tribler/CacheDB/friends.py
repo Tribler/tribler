@@ -6,7 +6,9 @@ import os
 import base64
 
 from Tribler.utilities import validIP, validPort, validPermid, validName
+from Tribler.Overlay.permid import permid_for_user
 from CacheDBHandler import FriendDBHandler
+
 
 friend_file = 'friends.txt'
 
@@ -115,7 +117,8 @@ class FriendList:
     def formatForText(self, friends):
         lines = []
         for friend in friends:
-            line = ', '.join([friend['name'], friend['permid'], friend['ip'], str(friend['port'])])
+            permid = permid_for_user(friend['permid'])
+            line = ', '.join([friend['name'], permid, friend['ip'], str(friend['port'])])
             line += '\n'
             lines.append(line)
         return lines

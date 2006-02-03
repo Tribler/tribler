@@ -398,10 +398,10 @@ class PeerDB(BasicDB):
 
     def updateItem(self, permid, item={}):    # insert a peer; update it if existed
         if isValidPermid(permid) and validDict(item):
-            item = self.setDefaultItem(item)
             if self._has_key(permid):
                 self._updateItem(permid, item)
             else:
+                item = self.setDefaultItem(item)
                 self._put(permid, item)
                 
     def deleteItem(self, permid):
@@ -441,10 +441,10 @@ class TorrentDB(BasicDB):
 
     def updateItem(self, infohash, item={}):    # insert a torrent; update it if existed
         if isValidInfohash(infohash) and validDict(item):
-            item = self.setDefaultItem(item)
             if self._has_key(infohash):
                 self._updateItem(infohash, item)
             else:
+                item = self.setDefaultItem(item)
                 self._put(infohash, item)
                 
     def deleteItem(self, infohash):
@@ -480,6 +480,7 @@ class PreferenceDB(BasicDB):
     def addPreference(self, permid, infohash, data={}):    # add or update pref
         if not isValidPermid(permid) or not isValidInfohash(infohash):
             return
+        ## FIXME: Arno: setDefaultItem in right place?????
         data = self.setDefaultItem(data)
         item = {infohash:data}
         if self._has_key(permid):
@@ -541,10 +542,10 @@ class MyPreferenceDB(BasicDB):
     def updateItem(self, infohash, item={}):    # insert a torrent; update it if existed
         if isValidInfohash(infohash) and validDict(item):
             self.default_item['created_time'] = self.default_item['last_seen'] = int(time())
-            item = self.setDefaultItem(item)
             if self._has_key(infohash):
                 self._updateItem(infohash, item)
             else:
+                item = self.setDefaultItem(item)
                 self._put(infohash, item)
                 
     def deleteItem(self, infohash):

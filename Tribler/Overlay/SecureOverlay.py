@@ -391,10 +391,12 @@ class SecureOverlay:
                 return
             if self.overlayswarm.registered:
                 ## Arno: I don't see the need for letting the rawserver do it.
-                #if DEBUG:
-                #    print "secover: addTask, adding task to rawserver"
-                #self.overlayswarm.rawserver.add_task(task.start, 0)
-                task.start()
+                ## Except that it potentially avoids a concurrency problem of
+                ## multiple threads writing to the same socket.
+                if DEBUG:
+                    print "secover: addTask, adding task to rawserver"
+                self.overlayswarm.rawserver.add_task(task.start, 0)
+                ##task.start()
         except Exception,e:
             print_exc()
 
@@ -455,7 +457,12 @@ class SecureOverlay:
             expire = int(time() + self.timeout)
             self.connection_list[permid] = {'c_conn':connection, 'dns':dns, 'expire':expire}
             peer_cache = PeerDBHandler()
-            peer = peer_cache.updatePeerIPPort(permid, dns[0], dns[1])
+            #print "secover: permid received is",show_permid(permid)
+            #x = peer_cache.getPeer(permid)
+            #print "secover: old peer is",x
+            peer_cache.updatePeerIPPort(permid, dns[0], dns[1])
+            #y = peer_cache.getPeer(permid)
+            #print "secover: new peer is",y
             return dns
         return None
         

@@ -74,6 +74,8 @@ class Connection:    # OverlaySocket, a better name for it?
         if self.locally_initiated:
             incompletecounter.increment()
         if self.locally_initiated or ext_handshake:
+            if DEBUG:
+                print "olencoder: writing header"
             self.connection.write(chr(len(protocol_name)) + protocol_name + 
                 option_pattern + self.Encoder.download_id)
         if ext_handshake:

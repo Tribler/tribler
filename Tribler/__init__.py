@@ -110,7 +110,6 @@ def tribler_init(config_dir = None):
     resetPeerIDs()
     permid.init(config_dir)
     load_myinfo(myinfo)
-    #cachedb.init(config_dir,myinfo)
-    cachedb.init(None, myinfo)
+    cachedb.init(config_dir,myinfo)
     superpeer.init()
     friends.init()
