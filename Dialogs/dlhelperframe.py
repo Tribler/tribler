@@ -50,14 +50,10 @@ class DownloadHelperPanel(wx.Panel):
         type = wx.LC_LIST
         # type = wx.LC_REPORT
 
-        imgListLeft = None
-        imgListRight = None
+        imgList = None
         if type != wx.LC_REPORT:
-            # St*pid C++ wrapping, if I don't make 2 copies I get segmentation
-            # faults at garbage-collection time
             try:
-                imgListLeft = createImageList(self.utility,friends)
-                imgListRight = createImageList(self.utility,friends)
+                imgList = createImageList(self.utility,friends)
             except:
                 print_exc()
                 # disable icons
@@ -89,7 +85,7 @@ class DownloadHelperPanel(wx.Panel):
         friendsbox = wx.BoxSizer(wx.VERTICAL)
         friendsbox.Add(wx.StaticText(self, -1, self.utility.lang.get('availcandidates')), 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
 
-        self.leftListCtl = FriendList(self,self.remainingFriends,type,imgListLeft)
+        self.leftListCtl = FriendList(self,self.remainingFriends,type,imgList)
         #self.leftListCtl.SetToolTipString(self.utility.lang.get('multiannouncehelp'))
         
         friendsbox.Add(self.leftListCtl, 1, wx.EXPAND|wx.TOP, 5)
@@ -114,7 +110,7 @@ class DownloadHelperPanel(wx.Panel):
         helperbox = wx.BoxSizer(wx.VERTICAL)
         helperbox.Add(wx.StaticText(self, -1, self.utility.lang.get('helpers')), 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
        
-        self.rightListCtl = FriendList(self,helpingFriends,type,imgListRight)
+        self.rightListCtl = FriendList(self,helpingFriends,type,imgList)
         #self.rightListCtl.SetToolTipString(self.utility.lang.get('httpseedshelp'))
         helperbox.Add(self.rightListCtl, 1, wx.EXPAND|wx.ALL, 5)
         topbox.Add(helperbox, 0, wx.EXPAND)      

@@ -41,14 +41,10 @@ class ManageFriendsDialog(wx.Dialog):
         type = wx.LC_LIST
         # type = wx.LC_REPORT
 
-        imgListLeft = None
-        imgListRight = None
+        imgList = None
         if type != wx.LC_REPORT:
-            # St*pid C++ wrapping, if I don't make 2 copies I get segmentation
-            # faults at garbage-collection time
             try:
-                imgListLeft = createImageList(self.utility,friends)
-                imgListRight = createImageList(self.utility,friends)
+                imgList = createImageList(self.utility,friends)
             except:
                 print_exc()
                 # disable icons
@@ -68,7 +64,7 @@ class ManageFriendsDialog(wx.Dialog):
         friendsbox_title = wx.StaticBox(self, -1, self.utility.lang.get('friends'))
         friendsbox = wx.StaticBoxSizer(friendsbox_title, wx.VERTICAL)
 
-        self.leftListCtl = FriendList(self,friends,type,imgListLeft)
+        self.leftListCtl = FriendList(self,friends,type,imgList)
         #self.leftListCtl.SetToolTipString(self.utility.lang.get('multiannouncehelp'))
         
         friendsbox.Add(self.leftListCtl, 1, wx.EXPAND|wx.TOP, 5)
@@ -219,6 +215,7 @@ class FriendList(wx.ListCtrl):
     def __init__(self, parent, friends, type, imgList):
 
         self.type = type
+        self.imgList = imgList
         style = wx.VSCROLL|wx.SIMPLE_BORDER|self.type|wx.LC_VRULES|wx.CLIP_CHILDREN
         if (sys.platform == 'win32'):
             style |= wx.LC_ALIGN_TOP
@@ -228,7 +225,7 @@ class FriendList(wx.ListCtrl):
         self.friends = friends
         self.utility = parent.utility
 
-        self.AssignImageList(imgList,wx.IMAGE_LIST_SMALL)
+        self.SetImageList(imgList,wx.IMAGE_LIST_SMALL)
         self.loadList()
 
     def loadList(self):
