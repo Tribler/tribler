@@ -4,6 +4,7 @@
 import wx
 import os
 import sys
+from traceback import print_exc
 
 from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
 from managefriends import FriendList, createImageList
@@ -56,8 +57,9 @@ class DownloadHelperPanel(wx.Panel):
             # faults at garbage-collection time
             try:
                 imgListLeft = createImageList(self.utility,friends)
-                imgListRight = createImageList(self.utility.friends)
+                imgListRight = createImageList(self.utility,friends)
             except:
+                print_exc()
                 # disable icons
                 type = wx.LC_REPORT
 
