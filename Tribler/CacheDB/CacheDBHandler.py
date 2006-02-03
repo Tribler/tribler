@@ -236,11 +236,11 @@ class PeerDBHandler(BasicDBHandler):
 
 class PreferenceDBHandler:
     
-    def __init__(self):
-        self.preferences = PreferenceDB.getInstance()
-        self.owners = OwnerDB.getInstance()
-        self.torrents = TorrentDB.getInstance()
-        self.peer_db = PeerDB.getInstance()
+    def __init__(self, db_dir=''):
+        self.preferences = PreferenceDB.getInstance(db_dir=db_dir)
+        self.owners = OwnerDB.getInstance(db_dir=db_dir)
+        self.torrents = TorrentDB.getInstance(db_dir=db_dir)
+        self.peer_db = PeerDB.getInstance(db_dir=db_dir)
         
     def __del__(self):
         self.sync()
@@ -282,8 +282,8 @@ class PreferenceDBHandler:
         
 class TorrentDBHandler:
 
-    def __init__(self):
-        self.torrents = TorrentDB.getInstance()
+    def __init__(self, db_dir=''):
+        self.torrents = TorrentDB.getInstance(db_dir=db_dir)
         
     def __del__(self):
         self.sync()
@@ -323,9 +323,9 @@ class TorrentDBHandler:
 
 class MyPreferenceDBHandler:
     
-    def __init__(self):
-        self.myprefs = MyPreferenceDB.getInstance()
-        self.torrents = TorrentDB.getInstance()
+    def __init__(self, db_dir=''):
+        self.myprefs = MyPreferenceDB.getInstance(db_dir=db_dir)
+        self.torrents = TorrentDB.getInstance(db_dir=db_dir)
     
     def __del__(self):
         self.sync()
@@ -365,11 +365,11 @@ class MyPreferenceDBHandler:
 
 class OwnerDBHandler:
     
-    def __init__(self):
-        self.owners = OwnerDB.getInstance()
-        self.torrents = TorrentDB.getInstance()
-        self.peer_db = PeerDB.getInstance()
-        self.myprefs = MyPreferenceDB.getInstance()
+    def __init__(self, db_dir=''):
+        self.owners = OwnerDB.getInstance(db_dir=db_dir)
+        self.torrents = TorrentDB.getInstance(db_dir=db_dir)
+        self.peer_db = PeerDB.getInstance(db_dir=db_dir)
+        self.myprefs = MyPreferenceDB.getInstance(db_dir=db_dir)
         
     def __del__(self):
         self.sync()

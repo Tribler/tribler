@@ -399,7 +399,9 @@ class PeerDB(BasicDB):
     def updateItem(self, permid, item={}):    # insert a peer; update it if existed
         if isValidPermid(permid) and validDict(item):
             if self._has_key(permid):
-                self._updateItem(permid, item)
+                _item = self.getItem(permid)
+                _item.update(item)
+                self._updateItem(permid, _item)
             else:
                 item = self.setDefaultItem(item)
                 self._put(permid, item)
@@ -442,11 +444,13 @@ class TorrentDB(BasicDB):
     def updateItem(self, infohash, item={}):    # insert a torrent; update it if existed
         if isValidInfohash(infohash) and validDict(item):
             if self._has_key(infohash):
-                self._updateItem(infohash, item)
+                _item = self.getItem(infohash)
+                _item.update(item)
+                self._updateItem(infohash, _item)
             else:
                 item = self.setDefaultItem(item)
                 self._put(infohash, item)
-                
+
     def deleteItem(self, infohash):
         self._delete(infohash)
         
@@ -480,14 +484,21 @@ class PreferenceDB(BasicDB):
     def addPreference(self, permid, infohash, data={}):    # add or update pref
         if not isValidPermid(permid) or not isValidInfohash(infohash):
             return
-        ## FIXME: Arno: setDefaultItem in right place?????
-        data = self.setDefaultItem(data)
-        item = {infohash:data}
-        if self._has_key(permid):
-            self._updateItem(permid, item)
+        
+        if not self._has_key(permid):
+            data = self.setDefaultItem(data)
+            item = {infohash:data}
         else:
-            self._put(permid, item)
-
+            if self.hasPreference(permid, infohash):
+                _data = self.getPreference(permid, infohash)
+                _data.update(data)
+            else:
+                _data = self.setDefaultItem(data)
+            _item = {infohash:_data}
+            item = self.getItem(permid)
+            item.update(_item)
+        self._put(permid, item)
+                        
     def deletePreference(self, permid, infohash):
         if self._has_key(permid):
             preferences = self._get(permid)
@@ -541,10 +552,13 @@ class MyPreferenceDB(BasicDB):
 
     def updateItem(self, infohash, item={}):    # insert a torrent; update it if existed
         if isValidInfohash(infohash) and validDict(item):
-            self.default_item['created_time'] = self.default_item['last_seen'] = int(time())
             if self._has_key(infohash):
-                self._updateItem(infohash, item)
+                _item = self.getItem(infohash)
+                _item.update(item)
+                _item.update({'last_seen':int(time())})
+                self._updateItem(infohash, _item)
             else:
+                self.default_item['created_time'] = self.default_item['last_seen'] = int(time())
                 item = self.setDefaultItem(item)
                 self._put(infohash, item)
                 

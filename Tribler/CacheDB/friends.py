@@ -53,6 +53,9 @@ class FriendList:
     def getFriends(self):
         return self.friend_db.getFriends()
     
+    def deleteFriend(self, permid):
+        self.friend_db.deleteFriend(permid)
+    
     def readFriendList(self, filename=''):
         """ read (name, permid, friend_ip, friend_port) lines from a text file """
         
