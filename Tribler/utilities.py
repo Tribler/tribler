@@ -65,4 +65,39 @@ def isValidName(name):
     except:
         return False
     
-    
+def print_prefxchg_msg(prefxchg_msg):
+    def show_permid(permid):
+        return permid
+    print "------- preference_exchange message ---------"
+    print prefxchg_msg
+    print "---------------------------------------------"
+    print "permid:", show_permid(prefxchg_msg['permid'])
+    print "name", prefxchg_msg['name']
+    print "ip:", prefxchg_msg['ip']
+    print "port:", prefxchg_msg['port']
+    print "preferences:"
+    if prefxchg_msg['preferences']:
+        for pref in prefxchg_msg['preferences']:
+            print "\t", pref#, prefxchg_msg['preferences'][pref]
+    print "taste buddies:"
+    if prefxchg_msg['taste buddies']:
+        for buddy in prefxchg_msg['taste buddies']:
+            print "\t permid:", show_permid(buddy['permid'])
+            #print "\t permid:", buddy['permid']
+            print "\t ip:", buddy['ip']
+            print "\t port:", buddy['port']
+            print "\t age:", buddy['age']
+            print "\t preferences:"
+            if buddy['preferences']:
+                for pref in buddy['preferences']:
+                    print "\t\t", pref#, buddy['preferences'][pref]
+            print
+    print "random peers:"
+    if prefxchg_msg['random peers']:
+        for peer in prefxchg_msg['random peers']:
+            print "\t permid:", show_permid(peer['permid'])
+            #print "\t permid:", peer['permid']
+            print "\t ip:", peer['ip']
+            print "\t port:", peer['port']
+            print "\t age:", peer['age']
+            print    

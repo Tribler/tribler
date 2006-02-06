@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from sets import Set
 
-from Tribler.CacheDB.CacheDBHandler import PeerDBHandler
+from Tribler.CacheDB.CacheDBHandler import *
 
 test_peers = [('permid1', {'ip':'1.2.3.4', 'port':1234, 'name':'peer1'}),
               ('permid2', {'ip':'2.2.3.4', 'port':2234, 'name':'peer2'}),
@@ -11,6 +11,12 @@ test_peers = [('permid1', {'ip':'1.2.3.4', 'port':1234, 'name':'peer1'}),
               ('permid2', {'ip':'22.2.3.4', 'port':22342, 'name':'peer22'}),
               ('permid4', {'ip':'3.2.3.4', 'port':1234, 'name':'peer22'}), 
              ]  
+             
+test_prefs = [('torrent1', {'name':'File 1'}),
+              ('torrent2', {'name':'File 22'}), 
+              ('torrent3', {'name':'File 3'}), 
+              ('torrent2', {'name':'File 2'}), 
+               ]
 
 class TestPeerDBHandler(unittest.TestCase):
     
@@ -46,9 +52,33 @@ class TestPeerDBHandler(unittest.TestCase):
         assert x['ip'] == '4.3.2.1', x
         assert x['port'] == 4321
 
+
+class TestMyPreferenceDBHandler(unittest.TestCase):
+    
+    def setUp(self):
+        self.tmpdirpath = os.path.join(tempfile.gettempdir(), 'testdb')
+        self.mypref_db = MyPreferenceDBHandler(db_dir=self.tmpdirpath)
+        self.mypref_db.clear()
+        
+    def tearDown(self):
+        self.mypref_db.clear()
+        self.mypref_db.sync()
+
+    def test_all(self):
+        for infohash, data in test_prefs:
+            self.mypref_db.addPreference(infohash, data)
+        assert self.mypref_db.size() == 3, self.mypref_db.size()        
+        if 0:
+            print self.mypref_db.getPreferences()
+            print self.mypref_db.getPreferences('name')
+            print self.mypref_db.getRecentPrefs(2)
+            print self.mypref_db.getRecentPrefList(2)
+
+
 def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestPeerDBHandler))
+    suite.addTest(unittest.makeSuite(TestMyPreferenceDBHandler))
     
     return suite
     

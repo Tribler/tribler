@@ -12,6 +12,9 @@ class BasicDBHandler:
         
     def __del__(self):
         self.sync()
+        
+    def size(self):
+        return self.dbs[0]._size()
 
     def sync(self):
         for db in self.dbs:
@@ -20,6 +23,12 @@ class BasicDBHandler:
     def clear(self):
         for db in self.dbs:
             db._clear()
+
+    def printList(self):
+        records = self.dbs[0].items()
+        for key, value in records:
+            print key, value 
+
             
             
 class MyDBHandler(BasicDBHandler):
@@ -35,12 +44,6 @@ class MyDBHandler(BasicDBHandler):
     def put(self, key, value):
         self.my_db._put(key, value)
     
-#    def printList(self):
-#        data = self.my_db.items()
-#        print "========== all records in MyDB table =========="
-#        for item in data:
-#            print item
-#            
 #    def getSuperPeersPermID(self):
 #        return self.my_db.get('superpeers', [])
 #    
@@ -92,6 +95,12 @@ class SuperPeerDBHandler(BasicDBHandler):
         self.peer_db = PeerDB.getInstance(db_dir=db_dir)
         self.dbs = [self.my_db, self.peer_db]
         
+    def size(self):
+        return len(self.my_db.getSuperPeers())
+    
+    def printList(self):
+        print self.my_db.getSuperPeers()
+        
     def getSuperPeers(self):
         sps = self.my_db.getSuperPeers()
         res = []
@@ -122,6 +131,12 @@ class FriendDBHandler(BasicDBHandler):
         self.my_db = MyDB.getInstance(db_dir=db_dir)
         self.peer_db = PeerDB.getInstance(db_dir=db_dir)
         self.dbs = [self.my_db, self.peer_db]
+        
+    def size(self):
+        return len(self.my_db.getFriends())
+
+    def printList(self):
+        print self.my_db.getFriends()
         
     def addExternalFriend(self, friend):
         if not isinstance(friend, dict) or 'permid' not in friend:
@@ -202,12 +217,6 @@ class PeerDBHandler(BasicDBHandler):
 #            pass    # key error
 #        return res
 #    
-#    def printList(self):
-#        records = self.peer_db.values()
-#        print "========== all records in peer table ==========", len(records)
-#        for record in records:
-#            print record
-#        
 #    def filter(self, peer):
 #        default_keys = self.peer_db.default_data.keys()
 #        for key in peer.keys():
@@ -234,161 +243,106 @@ class PeerDBHandler(BasicDBHandler):
 #        
 
 
-class PreferenceDBHandler:
+class PreferenceDBHandler(BasicDBHandler):
     
     def __init__(self, db_dir=''):
-        self.preferences = PreferenceDB.getInstance(db_dir=db_dir)
-        self.owners = OwnerDB.getInstance(db_dir=db_dir)
-        self.torrents = TorrentDB.getInstance(db_dir=db_dir)
-        self.peer_db = PeerDB.getInstance(db_dir=db_dir)
+        self.owner_db = OwnerDB.getInstance(db_dir=db_dir)
+        self.pref_db = PreferenceDB.getInstance(db_dir=db_dir)
+        self.dbs = [self.pref_db, self.owner_db]
         
-    def __del__(self):
-        self.sync()
-    
-    def sync(self):
-        self.preferences.sync()
-        self.owners.sync()
-        self.torrents.sync()
-    
-    def printList(self):
-        records = self.preferences.items()
-        print "========== all records in preferences table ==========", len(records)
-        for record in records:
-            print record
-            
-    def size(self):
-        return self.preferences.size()            
-            
     def getPreferences(self, permid):
-        return self.preferences.get(permid, {})
+        return self.pref_db.getItem(permid)
 
-    def addPreferences(self, permid, preferences):
-#        if not self.peer_db.has_key(permid):
-#            peer = {'permid':permid}
-#            self.peer_db.updateItem(peer)
-        for torrent in preferences:
-            self.addPreference(permid, torrent, preferences[torrent])
-
-    def addPreference(self, permid, torrent_hash, data):
-        if not self.torrents.has_key(torrent_hash):
-            torrent = {'torrent_hash':torrent_hash}
-            self.torrents.updateItem(torrent)
-        self.preferences.addPreference(permid, torrent_hash, data)
-        self.owners.addOwner(torrent_hash, permid)
+    def addPreference(self, permid, torrent_hash, data={}):
+        self.pref_db.addPreference(permid, torrent_hash, data)
+        self.owner_db.addOwner(torrent_hash, permid)
 
     def deletePreference(self, permid, torrent_hash):
-        self.torrents.deletePreference(permid, torrent_hash)
+        self.torrent_db.deletePreference(permid, torrent_hash)
+        self.owner_db.deleteOwner(torrent_hash, permid)
         
         
-class TorrentDBHandler:
+class TorrentDBHandler(BasicDBHandler):
 
     def __init__(self, db_dir=''):
-        self.torrents = TorrentDB.getInstance(db_dir=db_dir)
+        self.torrent_db = TorrentDB.getInstance(db_dir=db_dir)
+        self.dbs = [self.torrent_db]
         
-    def __del__(self):
-        self.sync()
-    
-    def sync(self):
-        self.torrents.sync()
-        
-    def printList(self):
-        records = self.torrents.values()
-        print "========== all records in torrent table ==========", len(records)
-        for record in records:
-            print record
-            
     def size(self):
-        return self.torrents.size()
+        return self.torrent_db.size()
 
-    def addTorrent(self, torrent, have=1):
-        torrent.update({'have':have})
-        self.torrents.updateItem(torrent)
-        self.sync()
+    def addTorrent(self, infohash, torrent={}):
+        self.torrent_db.updateItem(infohash, torrent)
         
     def getTorrent(self, torrent_hash):
-        return self.torrents.get(torrent_hash)
+        return self.torrent_db.getItem(torrent_hash)
             
-    def findTorrent(self, torrent_hash=None, torrent_id=None):    # find both id and hash
-        pass
-
-    def updateTorrentRank(self, torrent_hash, rank):
-        pass
-            
-    def updateTorrent(self, torrent_hash, torrent):
-        pass
-        
-    def removeTorrent(self, torrent_hash):
-        pass
+#    def findTorrent(self, torrent_hash=None, torrent_id=None):    # find both id and hash
+#        pass
+#
+#    def updateTorrentRank(self, torrent_hash, rank):
+#        pass
+#            
+#    def updateTorrent(self, torrent_hash, torrent):
+#        pass
+#        
+#    def removeTorrent(self, torrent_hash):
+#        pass
     
 
-class MyPreferenceDBHandler:
+class MyPreferenceDBHandler(BasicDBHandler):
     
     def __init__(self, db_dir=''):
-        self.myprefs = MyPreferenceDB.getInstance(db_dir=db_dir)
-        self.torrents = TorrentDB.getInstance(db_dir=db_dir)
+        self.mypref_db = MyPreferenceDB.getInstance(db_dir=db_dir)
+        self.dbs = [self.mypref_db]
     
-    def __del__(self):
-        self.sync()
-    
-    def sync(self):
-        self.myprefs.sync()
-        self.torrents.sync()
-            
-    def size(self):
-        return self.myprefs.size()
-            
     def getPreferences(self, key=None):
-        all_values = self.myprefs.values()
+        all_items = self.mypref_db._items()
         if key is None:
-            return all_values
+            ret = []
+            for item in all_items:
+                item[1].update({'infohash':item[0]})
+                ret.append(item[1])
+            return ret
         else:
-            return [all_values[i][key] for i in xrange(len(all_values))]
+            return [all_items[i][1][key] for i in xrange(len(all_items))]
+        
+    def getRecentPrefList(self, num=10):
+        all_items = self.mypref_db._items()
+        prefs = [(item[1]['last_seen'], item[0]) for item in all_items]
+        prefs.sort()
+        prefs.reverse()
+        return [item[1] for item in prefs[:num]]
     
-    def addPreference(self, torrent_hash):
-        torrent={}
-        torrent.update({'torrent_hash':torrent_hash})
-        _torrent = deepcopy(torrent)
-        _torrent.update({'have':1})
-        self.myprefs.updateItem(torrent_hash, torrent)
-        self.torrents.updateItem(_torrent)
-        self.sync()
+    def getRecentPrefs(self, num=10):
+        all_items = self.getPreferences()
+        prefs = [(item['last_seen'], item) for item in all_items]
+        prefs.sort()
+        prefs.reverse()
+        return [item[1] for item in prefs[:num]]
+    
+    def addPreference(self, torrent_hash, data):
+        self.mypref_db.updateItem(torrent_hash, data)
 
     def deletePreference(self, torrent_hash):
-        self.myprefs.deleteItem(torrent_hash)
+        self.mypref_db.deleteItem(torrent_hash)
         
-    def printList(self):
-        records = self.myprefs.items()
-        print "========== all records in my preferences table ==========", len(records)
-        for key, value in records:
-            print key, value 
 
-
-class OwnerDBHandler:
+class OwnerDBHandler(BasicDBHandler):
     
     def __init__(self, db_dir=''):
-        self.owners = OwnerDB.getInstance(db_dir=db_dir)
-        self.torrents = TorrentDB.getInstance(db_dir=db_dir)
+        self.owner_db = OwnerDB.getInstance(db_dir=db_dir)
+        self.torrent_db = TorrentDB.getInstance(db_dir=db_dir)
         self.peer_db = PeerDB.getInstance(db_dir=db_dir)
-        self.myprefs = MyPreferenceDB.getInstance(db_dir=db_dir)
-        
-    def __del__(self):
-        self.sync()
-    
-    def sync(self):
-        self.owners.sync()
+        self.mypref_db = MyPreferenceDB.getInstance(db_dir=db_dir)
+        self.dbs = [self.owner_db, self.torrent_db, self.peer_db, self.mypref_db]
         
     def getOwners(self, torrent_hash):
-        return self.owners.get(torrent_hash)
+        return self.owner_db.get(torrent_hash)
         
     def getAllOwners(self):
-        return self.owners.items()
+        return self.owner_db.items()
         
-    def printList(self):
-        records = self.owners.items()
-        print "========== all records in owner table ==========", len(records)
-        for key, value in records:
-            print key, value 
-    
 def test_mydb():
     mydb = MyDBHandler()
     

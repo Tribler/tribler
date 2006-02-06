@@ -43,10 +43,12 @@ def testSim():
     pref3 = [1,3,5,7,9, 11, 13]
     pref4 = [11, 24, 25, 64]
     pref5 = []
+    pref6 = [1, 66, 77, 88, 99, 100, 11]
     print cooccurrence(pref1, pref2), P2PSim(pref1, pref2)
     print cooccurrence(pref1, pref3), P2PSim(pref1, pref3)
     print cooccurrence(pref1, pref4), P2PSim(pref1, pref4)
     print cooccurrence(pref1, pref5), P2PSim(pref1, pref5)
+    print cooccurrence(pref1, pref5), P2PSim(pref1, pref6)
     
 if '__main__'== __name__:
     testSim()

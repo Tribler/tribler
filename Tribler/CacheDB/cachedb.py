@@ -382,7 +382,7 @@ class PeerDB(BasicDB):
         self.default_item = {
             'ip':'',
             'port':0,
-            'name':'unknown',
+            'name':'',
             'last_seen':0,
             'similarity':0,
             #'trust':50,
@@ -525,7 +525,7 @@ class PreferenceDB(BasicDB):
         return self._get(permid)
 
 
-class MyPreferenceDB(BasicDB): 
+class MyPreferenceDB(BasicDB):     #  = FileDB
     
     __single = None
         
@@ -600,7 +600,10 @@ class OwnerDB(BasicDB):
         try:
             owners = self._data[infohash]
             owners.remove(permid)
-            self._put(infohash, owners)
+            if not owners:    # remove the item if it is empty
+                self._delete(infohash)
+            else:
+                self._put(infohash, owners)
         except:
             pass
         
