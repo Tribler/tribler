@@ -15,7 +15,6 @@ friend_file = 'friends.txt'
 DEBUG = False
 
 def init():
-    print "secover: Update FriendList"
     FriendList().updateFriendList()
 
 class FriendList:

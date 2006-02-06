@@ -14,7 +14,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = False
+DEBUG = True
 
 class PiecePicker:
 # 2fastbt_

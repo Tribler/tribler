@@ -925,6 +925,7 @@ class EarthPanel(wx.Panel):
         return self.read_geo_info(path)
 
     def displayPeers(self):
+        print "DISPLAY PEERS"
         for peer in self.ABCTorrent.peer_swarm.values():
             ip = peer.ip
             alive = peer.active

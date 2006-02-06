@@ -13,7 +13,7 @@ superpeer_file = 'superpeers.txt'
 DEBUG = True
 
 def init():
-    print "secover: Update SuperPeerList"
+    ## FIXME
     return 
     SuperPeer().updateSuperPeerList()
 

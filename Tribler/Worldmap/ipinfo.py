@@ -9,6 +9,7 @@ except:
 
 DEBUG = False
 
+import socket
 import urllib2
 try:
     import GeoIP
@@ -59,9 +60,15 @@ class IPInfo:
             #Known urls: http://www.hostip.info/api/get.html?ip=xxx&position=true 
             #  http://www.melissadata.com/Lookups/iplocation.asp?ipaddress=xxx&submit=submit (using IP2Location database without coordinate)
             
+            # Arno: make this quick because currently RawServer runs it
+            timeout = None
             try:
-                ip_info = urllib2.urlopen(url).read()    
+                timeout = socket.getdefaulttimeout()
+                socket.setdefaulttimeout(1.0)
+                ip_info = urllib2.urlopen(url).read()
+                socket.setdefaulttimeout(timeout)
             except:
+                socket.setdefaulttimeout(timeout)
                 if DEBUG:
                     print "ipinfo: getIPInfoByURL failed: cannot access", url
                 raise Exception

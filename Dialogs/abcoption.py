@@ -486,8 +486,12 @@ class MiscPanel(ABCOptionPanel):
     def apply(self):       
         self.utility.config.Write('mintray', self.mintray.GetSelection())
         self.utility.frame.tbicon.updateIcon()
-
-        langname_index = self.language_names.index(self.language_choice.GetValue())
+        
+        # FIXME: quick hack to prevent Unicode problem, will still give problems
+        # when French, i.e. "fran\,cais" is selected.
+        #
+        val = str(self.language_choice.GetValue())
+        langname_index = self.language_names.index(val)
         self.utility.config.Write('language_file', self.language_filenames[langname_index])
         
         self.utility.config.Write('confirmonclose', self.confirmonclose.GetValue(), "boolean")

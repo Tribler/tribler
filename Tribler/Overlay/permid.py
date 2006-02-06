@@ -11,7 +11,7 @@ from M2Crypto import Rand,EC,EVP
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
 
-DEBUG = True
+DEBUG = False
 
 # Internal constants
 keypair_ecc_curve = EC.NID_sect233k1;

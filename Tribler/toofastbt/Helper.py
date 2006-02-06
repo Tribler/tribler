@@ -3,6 +3,7 @@
 
 from sys import exc_info, exit
 from traceback import print_exc, print_stack
+from time import time
 
 from Logger import get_logger
 from Tribler.Overlay.SecureOverlay import SecureOverlay
@@ -11,7 +12,7 @@ from BitTornado.bencode import bencode
 from BitTornado.BT1.MessageID import RESERVE_PIECES
 
 MAX_ROUNDS = 200
-DEBUG = False
+DEBUG = True
 
 class Helper:
     def __init__(self, torrent_hash, num_pieces, coordinator_permid, coordinator = None):
@@ -39,6 +40,7 @@ class Helper:
         self.encoder = None
         self.continuations = []
         self.outstanding = None
+        self.last_req_time = 0
 
     def set_encoder(self,encoder):
         self.encoder = encoder
@@ -156,10 +158,18 @@ class Helper:
             self.send_reservation(pieces_to_send)
 
     def send_reservation(self,pieces_to_send):
-        if self.outstanding is None:
+        # Arno: I sometimes see no reply to a RESERVE_PIECE and the client
+        # stops acquiring new pieces. The last_req_time is supposed
+        # to fix this.
+        waited = int(time())-self.last_req_time
+        if self.outstanding is None or waited > 60:
             self.counter += 1
+            self.last_req_time = int(time())
             if DEBUG:
-                print "helper: Sending reservation"
+                if self.outstanding is None:
+                    print "helper: Sending reservation because none"
+                else:
+                    print "helper: Sending reservation because timeout"
             sdownload = self.continuations.pop(0)
             self.outstanding = sdownload            
             ex = "self.send_reserve_pieces(pieces_to_send)"

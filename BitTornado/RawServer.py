@@ -20,7 +20,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = False
+DEBUG = True
 
 def autodetect_ipv6():
     try:
@@ -145,6 +145,8 @@ class RawServer:
                             pass
                         try:
 #                            print func.func_name
+                            if DEBUG:
+                                print "RawServer: calling",func.func_name
                             func()
                         except (SystemError, MemoryError), e:
                             self.failfunc(str(e))
