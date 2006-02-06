@@ -13,23 +13,7 @@ from ABC.Scheduler.addtorrents import AddTorrents
 from ABC.Scheduler.ratemanager import RateManager
 
 from Utility.constants import * #IGNORE:W0611
-
-
-wxEVT_INVOKE = wx.NewEventType()
-
-def EVT_INVOKE(win, func):
-    win.Connect(-1, -1, wxEVT_INVOKE, func)
-    
-def DELEVT_INVOKE(win):
-    win.Disconnect(-1, -1, wxEVT_INVOKE)
-
-class InvokeEvent(wx.PyEvent):
-    def __init__(self, func, args, kwargs):
-        wx.PyEvent.__init__(self)
-        self.SetEventType(wxEVT_INVOKE)
-        self.func = func
-        self.args = args
-        self.kwargs = kwargs
+from safeguiupdate import DelayedEventHandler
 
 
 ################################################################
@@ -40,9 +24,10 @@ class InvokeEvent(wx.PyEvent):
 # and deal with loading, moving, and removing torrents.
 #
 ################################################################
-class ABCScheduler(wx.EvtHandler):
+class ABCScheduler(DelayedEventHandler):
     def __init__(self, utility):
-        wx.EvtHandler.__init__(self)
+        DelayedEventHandler.__init__(self)
+        self.doneflag = Event()
         
         self.utility = utility
         self.utility.queue = self
@@ -53,8 +38,6 @@ class ABCScheduler(wx.EvtHandler):
 
         self.timers = {}
         
-        self.flag = Event()
-
         self.totals = { 'up' : 0.0, 
                         'down' : 0.0, 
                         'connections': 0 }
@@ -62,8 +45,6 @@ class ABCScheduler(wx.EvtHandler):
                            'down': 0.0 }
 
         self.UpdateRunningTorrentCounters()
-
-        EVT_INVOKE(self, self.onInvoke)
 
     def postInitTasks(self):
         # Read old list from torrent.lst
@@ -289,9 +270,9 @@ class ABCScheduler(wx.EvtHandler):
         
     # Find new processes to start
     def Scheduler(self):
-        if self.flag.isSet():
+        if self.doneflag.isSet():
             return
-        self.flag.set()
+        self.doneflag.set()
         
         numsimdownload = self.utility.config.Read('numsimdownload', "int")
             
@@ -315,7 +296,7 @@ class ABCScheduler(wx.EvtHandler):
         if inactivestarted > 0:
             self.UpdateRunningTorrentCounters()
         
-        self.flag.clear()
+        self.doneflag.clear()
       
     def changeABCParams(self):
         self.utility.bottomline2.changeSpinners()
@@ -484,16 +465,3 @@ class ABCScheduler(wx.EvtHandler):
             ABCTorrentTemp.torrentconfig.writeSrc(False)
         
         self.utility.torrentconfig.Flush()
-
-    def onInvoke(self, event):
-        if not self.flag.isSet():
-            event.func(*event.args, **event.kwargs)
-
-    def invokeLater(self, func, args = None, kwargs = None):
-        if args is None:
-            args = []
-        if kwargs is None:
-            kwargs = {}
-            
-        if not self.flag.isSet():
-            wx.PostEvent(self, InvokeEvent(func, args, kwargs))

@@ -109,7 +109,7 @@ class ClearCompleted(ABCAction):
         
     def action(self, event = None):
         list = self.utility.window.getSelectedList()
-        if self.utility.queue.ratemanager.flag.isSet():
+        if self.utility.queue.ratemanager.doneflag.isSet():
             # RateManager is running : We record the event
             # It will be run after these tasks have completed
             if list.IsEnabled():
@@ -179,7 +179,7 @@ class Remove(ABCAction):
                            
     def action(self, event = None, removefiles = False):
         list = self.utility.window.getSelectedList()
-        if self.utility.queue.ratemanager.flag.isSet():
+        if self.utility.queue.ratemanager.doneflag.isSet():
             # RateManager is running : We record the event
             # It will be run after these tasks have completed
             if list.IsEnabled():

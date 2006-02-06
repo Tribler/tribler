@@ -17,23 +17,9 @@ from Utility.helpers import getfreespace
 from Tribler.Worldmap.peer import BTPeer
 from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
 
+from safeguiupdate import DelayedEventHandler
+
 DEBUG = False
-
-wxEVT_INVOKE = wx.NewEventType()
-
-def EVT_INVOKE(win, func):
-    win.Connect(-1, -1, wxEVT_INVOKE, func)
-    
-def DELEVT_INVOKE(win):
-    win.Disconnect(-1, -1, wxEVT_INVOKE)
-
-class InvokeEvent(wx.PyEvent):
-    def __init__(self, func, args, kwargs):
-        wx.PyEvent.__init__(self)
-        self.SetEventType(wxEVT_INVOKE)
-        self.func = func
-        self.args = args
-        self.kwargs = kwargs
 
 
 ################################################################
@@ -45,9 +31,10 @@ class InvokeEvent(wx.PyEvent):
 # from the BitTornado core.
 #
 ################################################################
-class ABCEngine(wx.EvtHandler):
+class ABCEngine(DelayedEventHandler):
     def __init__(self, torrent, myid):
-        wx.EvtHandler.__init__(self)
+        DelayedEventHandler.__init__(self)
+        self.doneflag = Event()
 
         self.torrent = torrent
         self.queue = torrent.queue
@@ -97,8 +84,6 @@ class ABCEngine(wx.EvtHandler):
         # Keep track of if we have any connections
         self.hasConnections = False
         
-        self.doneflag = Event()
-
         # New stuff....
 
         self.controller = self.utility.controller
@@ -160,7 +145,6 @@ class ABCEngine(wx.EvtHandler):
                                self.rawserver, 
                                self.controller.listen_port)
 
-        EVT_INVOKE(self, self.onInvoke)
 
     ####################################
     # BEGIN NEW STUFF (FOR SINGLE PORT)
@@ -303,16 +287,6 @@ class ABCEngine(wx.EvtHandler):
                            "allocating disk space": self.utility.lang.get('allocatingspace'), 
                            "moving data": self.utility.lang.get('movingdata') }
             self.btstatus = activities.get(activity, activity)
-
-    def onInvoke(self, event):
-        if ((self.doneflag is not None)
-            and (not self.doneflag.isSet())):
-            event.func(*event.args, **event.kwargs)
-
-    def invokeLater(self, func, args = [], kwargs = {}):
-        if ((self.doneflag is not None)
-            and (not self.doneflag.isSet())):
-            wx.PostEvent(self, InvokeEvent(func, args, kwargs))
 
     def onUpdateStatus(self, fractionDone = None, 
             timeEst = None, downRate = None, upRate = None, 
@@ -899,7 +873,10 @@ class ABCEngine(wx.EvtHandler):
                 pass
 
     def errormsgCallback(self,msg,label):
-        self.invokeLater(self.onErrorMsg,[msg,label])
+        #if currentThread().getName() == 'MainThread':
+        #    self.onErrorMsg(msg,label)
+        #else:
+            self.invokeLater(self.onErrorMsg,[msg,label])
 
     def onErrorMsg(self,msg,label):
         self.torrent.changeMessage(msg, label)

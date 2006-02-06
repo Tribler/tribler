@@ -14,7 +14,6 @@ if PSYCO.psyco:
 
 import sys
 import gc
-import wx
 import os
 
 from random import seed
@@ -28,6 +27,7 @@ from BitTornado.launchmanycore import LaunchMany
 from BitTornado.bencode import bencode
 from BitTornado.__init__ import createPeerID, mapbase64
 from Utility.constants import * #IGNORE:W0611
+from safeguiupdate import DelayedEventHandler
 
 from abcengine import ABCEngine
 
@@ -38,24 +38,6 @@ except:
     False = 0
 
 DEBUG = True
-
-
-wxEVT_INVOKE = wx.NewEventType()
-
-def EVT_INVOKE(win, func):
-    win.Connect(-1, -1, wxEVT_INVOKE, func)
-    
-def DELEVT_INVOKE(win):
-    win.Disconnect(-1, -1, wxEVT_INVOKE)
-
-class InvokeEvent(wx.PyEvent):
-    def __init__(self, func, args, kwargs):
-        wx.PyEvent.__init__(self)
-        self.SetEventType(wxEVT_INVOKE)
-        self.func = func
-        self.args = args
-        self.kwargs = kwargs
-
 
 def fmttime(n):
     try:
@@ -71,7 +53,7 @@ def fmttime(n):
 # Try to do everything in BitTornado.LaunchMany such that the command-line
 # tools also work.
 #
-class ABCLaunchMany(Thread,LaunchMany,wx.EvtHandler):
+class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
     def __init__(self, utility):
         self.utility = utility        
         output = Outputter()
@@ -103,13 +85,12 @@ class ABCLaunchMany(Thread,LaunchMany,wx.EvtHandler):
         # btconfig must be set before calling LaunchMany constructor
         Thread.__init__(self)
         LaunchMany.__init__(self,btconfig,output)
-        wx.EvtHandler.__init__(self)
+        DelayedEventHandler.__init__(self)
         
         # set by BitTornado.LaunchMany constructor
         self.utility.listen_port = self.listen_port
 
         self.setName( "ABCLaunchMany"+self.getName() )
-        EVT_INVOKE(self, self.onInvoke)
     
     # override
     def go(self):
@@ -215,16 +196,6 @@ class ABCLaunchMany(Thread,LaunchMany,wx.EvtHandler):
         if DEBUG:
             print "launchmany: Adding torrent (postponed)"
         self.invokeLater(self.add_callback,[hash,data])
-
-    def onInvoke(self, event):
-        if ((self.doneflag is not None)
-            and (not self.doneflag.isSet())):
-            event.func(*event.args, **event.kwargs)
-
-    def invokeLater(self, func, args = [], kwargs = {}):
-        if ((self.doneflag is not None)
-            and (not self.doneflag.isSet())):
-            wx.PostEvent(self, InvokeEvent(func, args, kwargs))
 
     # Make sure this is called by the MainThread, as it does GUI updates
     def add_callback(self, hash, data):

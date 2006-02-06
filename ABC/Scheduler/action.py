@@ -1,5 +1,4 @@
 import sys
-import wx
 import os
 
 #from traceback import print_exc
@@ -7,24 +6,6 @@ import os
 
 from Utility.constants import * #IGNORE:W0611
 from Utility.helpers import intersection
-
-
-wxEVT_INVOKE = wx.NewEventType()
-
-def EVT_INVOKE(win, func):
-    win.Connect(-1, -1, wxEVT_INVOKE, func)
-    
-def DELEVT_INVOKE(win):
-    win.Disconnect(-1, -1, wxEVT_INVOKE)
-
-class InvokeEvent(wx.PyEvent):
-    def __init__(self, func, args, kwargs):
-        wx.PyEvent.__init__(self)
-        self.SetEventType(wxEVT_INVOKE)
-        self.func = func
-        self.args = args
-        self.kwargs = kwargs
-
 
 ################################################################
 #

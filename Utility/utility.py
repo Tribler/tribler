@@ -294,9 +294,10 @@ class Utility:
                                  ACTION_SCRAPE, 
                                  ACTION_DETAILS,
                                  -1,
+                                 ACTION_MAKEFRIENDS,
                                  ACTION_BUDDIES,
-                                 ACTION_FILES,
-                                 ACTION_MAKEFRIENDS], 
+                                 ACTION_FILES
+                                 ], 
             'menu_listrightclick': [ACTION_RESUME, 
                                     ACTION_STOP, 
                                     ACTION_PAUSE, 

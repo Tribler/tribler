@@ -146,6 +146,8 @@ class DownloadHelperPanel(wx.Panel):
             return False
         
     def onRequest(self, event = None):
+        ## Arno: change this such that only latest additions/removals are taken
+        ## into account.
         helpingFriends = self.rightListCtl.getFriends()
         
         remainingFriends = self.leftListCtl.getFriends()

@@ -394,7 +394,7 @@ class SecureOverlay:
                 ## Except that it potentially avoids a concurrency problem of
                 ## multiple threads writing to the same socket.
                 if DEBUG:
-                    print "secover: addTask, adding task to rawserver"
+                    print "secover: addTask, adding task to rawserver",currentThread().getName()
                 self.overlayswarm.rawserver.add_task(task.start, 0)
                 ##task.start()
         except Exception,e:

@@ -10,24 +10,7 @@ from time import time, clock
 
 from Utility.constants import * #IGNORE:W0611
 from Utility.helpers import union, difference
-
-
-wxEVT_INVOKE = wx.NewEventType()
-
-def EVT_INVOKE(win, func):
-    win.Connect(-1, -1, wxEVT_INVOKE, func)
-    
-def DELEVT_INVOKE(win):
-    win.Disconnect(-1, -1, wxEVT_INVOKE)
-
-class InvokeEvent(wx.PyEvent):
-    def __init__(self, func, args, kwargs):
-        wx.PyEvent.__init__(self)
-        self.SetEventType(wxEVT_INVOKE)
-        self.func = func
-        self.args = args
-        self.kwargs = kwargs
-
+from safeguiupdate import DelayedEventHandler
 
 ################################################################
 #
@@ -37,9 +20,10 @@ class InvokeEvent(wx.PyEvent):
 # the defined local and global limits
 #
 ################################################################
-class RateManager(wx.EvtHandler):
+class RateManager(DelayedEventHandler):
     def __init__(self, queue):
-        wx.EvtHandler.__init__(self)
+        DelayedEventHandler.__init__(self)
+        self.doneflag = Event()
                
         self.queue = queue
         self.utility = queue.utility
@@ -67,34 +51,18 @@ class RateManager(wx.EvtHandler):
         self.rateminimum = { "up": 3.0,
                              "down": 0.01 }
 
-        self.flag = Event()
-        EVT_INVOKE(self, self.onInvoke)
-
-    def onInvoke(self, event):
-        if not self.flag.isSet():
-            event.func(*event.args, **event.kwargs)
-
-    def invokeLater(self, func, args = None, kwargs = None):
-        if args is None:
-            args = []
-        if kwargs is None:
-            kwargs = {}
-
-        if not self.flag.isSet():
-            wx.PostEvent(self, InvokeEvent(func, args, kwargs))
-                
     def RunTasks(self):
         self.invokeLater(self.RateTasks)
             
     def RateTasks(self):
-        self.flag.set()
+        self.doneflag.set()
         
         self.UploadRateMaximizer()
         
         self.CalculateBandwidth("down")
         self.CalculateBandwidth("up")
         
-        self.flag.clear()
+        self.doneflag.clear()
 
     def MaxRate(self, dir = "up"):
         Read = self.utility.config.Read

@@ -7,7 +7,7 @@ import socket
 from cStringIO import StringIO
 from traceback import print_exc
 from select import error
-from threading import Event
+from threading import Event, RLock
 from clock import clock
 import sys
 # 2fastbt_
@@ -65,7 +65,8 @@ class RawServer:
         self.finished = Event()
         self.tasks_to_kill = []
         self.excflag = excflag
-        
+        self.lock = RLock()        
+
         if sockethandler is None:
             sockethandler = SocketHandler(timeout, ipv6_enable, READSIZE)
         self.sockethandler = sockethandler
@@ -82,7 +83,9 @@ class RawServer:
     def add_task(self, func, delay = 0, id = None):
         if delay < 0:
             delay = 0
+        self.lock.acquire()
         self.externally_added.append((func, delay, id))
+        self.lock.release()
 
     def scan_for_timeouts(self):
         self.add_task(self.scan_for_timeouts, self.timeout_check_interval)
@@ -111,10 +114,11 @@ class RawServer:
         return self.sockethandler.get_stats()
 
     def pop_external(self):
+        self.lock.acquire()
         while self.externally_added:
             (a, b, c) = self.externally_added.pop(0)
             self._add_task(a, b, c)
-
+        self.lock.release()
 
     def listen_forever(self, handler):
         # handler=btlanuchmany: MultiHandler, btdownloadheadless: Encoder

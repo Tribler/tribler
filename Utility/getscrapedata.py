@@ -1,30 +1,15 @@
 import re
 import binascii
 import sys
-import wx
-
 from threading import Thread,Event
+from safeguiupdate import DelayedEventHandler
 
 # The ScrapeThread calls ABCTorrent to update the info. As that updates
 # the GUI, those updates must be done by the MainThread and not this
 # scraping thread itself.
 
-wxEVT_INVOKE = wx.NewEventType()
 
-def EVT_INVOKE(win, func):
-    win.Connect(-1, -1, wxEVT_INVOKE, func)
-    
-def DELEVT_INVOKE(win):
-    win.Disconnect(-1, -1, wxEVT_INVOKE)
-
-class InvokeEvent(wx.PyEvent):
-    def __init__(self, func, args, kwargs):
-        wx.PyEvent.__init__(self)
-        self.SetEventType(wxEVT_INVOKE)
-        self.func = func
-        self.args = args
-        self.kwargs = kwargs
-
+DEBUG = False
 
 ################################################################
 #
@@ -33,11 +18,12 @@ class InvokeEvent(wx.PyEvent):
 # Retrieves scrape data from a tracker.
 #
 ################################################################
-class ScrapeThread(Thread,wx.EvtHandler):
+class ScrapeThread(Thread,DelayedEventHandler):
 
     def __init__(self, utility, torrent, manualscrape = False):
         Thread.__init__(self, None, None, None)
-        wx.EvtHandler.__init__(self)
+        DelayedEventHandler.__init__(self)
+        self.doneflag = Event()
 
         self.torrent = torrent
         self.utility = utility
@@ -47,14 +33,14 @@ class ScrapeThread(Thread,wx.EvtHandler):
         self.currentpeer = "?"
 
         self.setName( "Scrape"+self.getName() )
-        self.doneflag = Event()
-        EVT_INVOKE(self, self.onInvoke)
+        
 
     def run(self):
         self.GetScrapeData()
 
     def GetScrapeData(self):
-        print "scraping..."
+        if DEBUG:
+            print "scrapethread: scraping..."
         
         # connect scrape at tracker and get data
         # save at self.currentpeer, self.currentseed
@@ -70,7 +56,8 @@ class ScrapeThread(Thread,wx.EvtHandler):
             self.updateTorrent()
             return
 
-        print "got metainfo"
+        if DEBUG:
+            print "scrapethread: got metainfo"
         
         announce = None    
         if 'announce' in metainfo:
@@ -84,7 +71,8 @@ class ScrapeThread(Thread,wx.EvtHandler):
             self.updateTorrent()
             return
         
-        print "got announce"
+        if DEBUG:
+            print "scrapethread: got announce"
             
 #        sys.stdout.write('Announce URL: ' + announce + '\n');
 
@@ -125,7 +113,8 @@ class ScrapeThread(Thread,wx.EvtHandler):
                 surl = surl + "%"
             surl = surl + info_hash_hex[i]
             
-        print "tring to scrape"
+        if DEBUG:
+            print "scrapethread: tring to scrape"
             
         # connect scrape URL
         scrapedata = self.utility.getMetainfo(surl, style = "url")
@@ -142,18 +131,8 @@ class ScrapeThread(Thread,wx.EvtHandler):
         
         self.updateTorrent()
         
-        print "done scraping"
-
-
-    def onInvoke(self, event):
-        if ((self.doneflag is not None)
-            and (not self.doneflag.isSet())):
-            event.func(*event.args, **event.kwargs)
-
-    def invokeLater(self, func, args = [], kwargs = {}):
-        if ((self.doneflag is not None)
-            and (not self.doneflag.isSet())):
-            wx.PostEvent(self, InvokeEvent(func, args, kwargs))
+        if DEBUG:
+            print "scrapethread: done scraping"
 
     def updateTorrent(self):
         self.invokeLater(self.OnUpdateTorrent, [])
