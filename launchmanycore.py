@@ -274,6 +274,10 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
 
         ABCTorrentTemp.connection.engine = None
 
+        self.invokeLater(self.make_inactive_callback,[ABCTorrentTemp])
+
+    def make_inactive_callback(self,ABCTorrentTemp):
+        # This touches the GUI, so delegate it.
         ABCTorrentTemp.makeInactive()
         
         # Run the garbage collector to
@@ -281,6 +285,11 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
         # (may be left behind when active torrents end)
         gc.collect()
 
+    def dying_engines_errormsg(self,ABCTorrentTemp,msg,label):
+        self.invokeLater(self.dying_engines_errormsg_callback,[ABCTorrentTemp,msg,label])
+
+    def dying_engines_errormsg_callback(self,ABCTorrentTemp,msg,label):
+        ABCTorrentTemp.changeMessage(msg, label)
 
 class Outputter:
     def __init__(self):

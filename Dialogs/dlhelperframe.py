@@ -96,12 +96,12 @@ class DownloadHelperPanel(wx.Panel):
        
         button = wx.Button(self, -1, self.utility.lang.get('requestdlhelp'), style = wx.BU_EXACTFIT)
         button.SetToolTipString(self.utility.lang.get('requestdlhelp_help'))
-        wx.EVT_BUTTON(self, button.GetId(), self.addHelper)
+        wx.EVT_BUTTON(self, button.GetId(), self.add_helper)
         operatorbox.Add(button, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
 
         button2 = wx.Button(self, -1, self.utility.lang.get('stopdlhelp'), style = wx.BU_EXACTFIT)
         button2.SetToolTipString(self.utility.lang.get('stopdlhelp_help'))
-        wx.EVT_BUTTON(self, button2.GetId(), self.removeHelper)
+        wx.EVT_BUTTON(self, button2.GetId(), self.remove_helper)
         operatorbox.Add(button2, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
 
         topbox.Add(operatorbox, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -121,15 +121,15 @@ class DownloadHelperPanel(wx.Panel):
         self.SetSizerAndFit(mainbox)
 
 
-    def addHelper(self, event = None):
-        if self.addFriends(self.leftListCtl,self.rightListCtl):
-            self.onRequest()
+    def add_helper(self, event = None):
+        changed_list = self.add_friends(self.leftListCtl,self.rightListCtl)
+        self.make_it_so(True,changed_list)
 
-    def removeHelper(self, event = None):
-        if self.addFriends(self.rightListCtl,self.leftListCtl):
-            self.onRequest()
+    def remove_helper(self, event = None):
+        changed_list = self.add_friends(self.rightListCtl,self.leftListCtl)
+        self.make_it_so(False,changed_list)
 
-    def addFriends(self,left,right):
+    def add_friends(self,left,right):
         item = -1
         itemList = []
         while 1:
@@ -141,15 +141,18 @@ class DownloadHelperPanel(wx.Panel):
         if len(itemList) > 0:
             friendsList = left.removeFriends(itemList)
             right.addFriends(friendsList)
-            return True
+            return friendsList
         else:
-            return False
+            return []
         
-    def onRequest(self, event = None):
+    def make_it_so(self, add, changed_list):
         ## Arno: change this such that only latest additions/removals are taken
         ## into account.
-        helpingFriends = self.rightListCtl.getFriends()
-        
-        remainingFriends = self.leftListCtl.getFriends()
-        self.coordinator.stop_help(remainingFriends, force = False)
-        self.coordinator.request_help(helpingFriends, force = True)
+        #helpingFriends = self.rightListCtl.getFriends()
+        #remainingFriends = self.leftListCtl.getFriends()
+        #self.coordinator.stop_help(remainingFriends, force = False)
+        #self.coordinator.request_help(helpingFriends, force = True)
+        if add:
+            self.coordinator.request_help(changed_list, force = True)
+        else:
+            self.coordinator.stop_help(changed_list, force = True)

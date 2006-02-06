@@ -34,6 +34,10 @@ Now:
 
 Short term:
 
+* If user is already downloading the torrent when asked to help by a friend
+  the former user gets an unclear popup saying the torrent already exists.
+  Make clearer.
+
 * Convert TorrentMaker/btmaketorrentgui to use "safeguiupdate.py" classes.
 
 * Preferences: option to clear databases.

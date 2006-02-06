@@ -3,7 +3,7 @@ import sys
 
 #from operator import itemgetter
 from threading import Event, Timer, currentThread
-from time import time
+from time import time, sleep
 #from cStringIO import StringIO
 from traceback import print_stack, print_exc
 from binascii import unhexlify
@@ -259,13 +259,17 @@ class ABCEngine(DelayedEventHandler):
             self.status_done = float(fractionDone)
 
     def error(self, msg):
-        if self.doneflag.isSet():
-            self.shutdown()
-        self.status_err.append(msg)
-        self.status_errtime = clock()
-        self.errormsg(msg)
         if DEBUG:
             print "engine: Error",msg
+        if self.doneflag.isSet():
+            # delegate updating GUI error message to launchmany core, as
+            # we're dying.
+            self.controller.dying_engines_errormsg(self.torrent,msg,"error")
+            self.shutdown()
+        else:
+            self.errormsg(msg)
+        self.status_err.append(msg)
+        self.status_errtime = clock()
 
 
     def saveAs(self, name, length, saveas, isdir):
@@ -873,10 +877,7 @@ class ABCEngine(DelayedEventHandler):
                 pass
 
     def errormsgCallback(self,msg,label):
-        #if currentThread().getName() == 'MainThread':
-        #    self.onErrorMsg(msg,label)
-        #else:
-            self.invokeLater(self.onErrorMsg,[msg,label])
+        self.invokeLater(self.onErrorMsg,[msg,label])
 
     def onErrorMsg(self,msg,label):
         self.torrent.changeMessage(msg, label)
