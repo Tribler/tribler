@@ -14,8 +14,15 @@ friend_file = 'friends.txt'
 
 DEBUG = False
 
-def init():
-    FriendList().updateFriendList()
+def init(config_dir = None):
+    filename = make_filename(config_dir, friend_file)
+    FriendList(filename).updateFriendList()
+    
+def make_filename(config_dir,filename):
+    if config_dir is None or not isinstance(config_dir, str):
+        return filename
+    else:
+        return os.path.join(config_dir,filename)    
 
 class FriendList:
     def __init__(self, friend_file=friend_file, db_dir=''):

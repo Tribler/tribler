@@ -112,4 +112,4 @@ def tribler_init(config_dir = None):
     load_myinfo(myinfo)
     cachedb.init(config_dir,myinfo)
     superpeer.init()
-    friends.init()
+    friends.init(config_dir)

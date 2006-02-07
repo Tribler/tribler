@@ -146,7 +146,8 @@ class RawServer:
                         try:
 #                            print func.func_name
                             if DEBUG:
-                                print "RawServer: calling",func.func_name
+                                if func.func_name != "_bgalloc":
+                                    print "RawServer: calling (not bgalloc)",func.func_name
                             func()
                         except (SystemError, MemoryError), e:
                             self.failfunc(str(e))

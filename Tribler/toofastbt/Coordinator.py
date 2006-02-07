@@ -78,7 +78,7 @@ class Coordinator:
                     if flag == 0:
                         toask_helpers.append(cand)
 
-            self.asked_helpers = toask_helpers
+            self.asked_helpers.extend(toask_helpers)
             self.send_request_help(toask_helpers)
         except Exception,e:
             print_exc()

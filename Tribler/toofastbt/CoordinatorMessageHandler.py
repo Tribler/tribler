@@ -4,6 +4,7 @@
 
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
+from Tribler.Overlay.permid import show_permid
 
 DEBUG = False
 
@@ -38,7 +39,11 @@ class CoordinatorMessageHandler:
         if c is None:
             return False
 
-        if not c.is_helper_permid(permid): 
+        ## FIXME: if he's not a helper, but thinks he is, we better send him
+        ## a STOP_DOWNLOAD_HELP (again)
+        if not c.is_helper_permid(permid):
+            if DEBUG:
+                print "helpcoord: Ignoring RESERVE_PIECES from non-helper",show_permid(permid)
             return False
 
         c.got_reserve_pieces(permid, pieces, all_or_nothing)

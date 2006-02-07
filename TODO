@@ -5,7 +5,8 @@ Now:
 
 * Buddycast doesn't attempt to contact any superpeers. Alternative
   is to disable super-peer bootstrapping and just let it talk to the
-  peers it meets. I currently do the latter.
+  peers it meets. I currently do the latter. Could use example torrent
+  file to meet other Tribesmen.
 
 * Text version may not work as before because I hacked up
   launchmanycore.py and BitTornado/launchmanycore.py. Need to redo this.
@@ -16,23 +17,35 @@ Now:
 	Arno, 2006-2-2: The code changed radically since last entry,
 	but the ./btlaunchmany.py works now as seeder.
 
-* Look at launchmanycore.py and who creates peer caches
-
 * Start two clients, each with busy torrent (i.e., many peers) and
   then asking each to help the other. The DOWNLOAD_HELP requests may not
   get through. Fix this.
 
-* Read friends.txt from $HOME/.ABC if it stays.
+	Arno, 2006-2-7: There were was a concurrency problem between
+	the MainThread and the network thread in the RawServer class.
+	The MainThread via the DL helper GUI would add tasks to the
+	rawserver, while the rawserver would be moving the external
+	task queue to its internal queue. So there may be improvement.
+
 
 * There is a potential concurrency problem between the GUI thread (MainThread)
   and the network thread (ABCLaunchMany) thread. They both write to the
   peer DB, e.g. when a user edits the friends list and there is a torrent
   downloading.
   
+* Look at launchmanycore.py and who creates peer caches
 
 
 
 Short term:
+
+* Tribler/Worldmap/ipinfo's lookupIPInfo will now timeout after 1 second to
+  prevent it from holding up the RawServer. (I scheduled the lookups as
+  tasks on the rawserver, but they sometimes take too long, freezing up all
+  network traffic). A better solution is to do IP lookup on a separate
+  thread.	
+
+* Also: make sure that earth map is updated while people are watching it.
 
 * If user is already downloading the torrent when asked to help by a friend
   the former user gets an unclear popup saying the torrent already exists.
@@ -195,3 +208,4 @@ DONE:
 
 * Need way/GUI to add friends. Currently list of friends hardcoded into abc.py
  
+* Read friends.txt from $HOME/.ABC if it stays.

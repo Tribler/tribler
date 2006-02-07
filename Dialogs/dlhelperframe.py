@@ -9,6 +9,8 @@ from traceback import print_exc
 from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
 from managefriends import FriendList, createImageList
 
+DEBUG = True
+
 
 ################################################################
 #
@@ -43,8 +45,9 @@ class DownloadHelperPanel(wx.Panel):
         friends = FriendDBHandler().getFriends()
         helpingFriends = self.coordinator.get_asked_helpers_copy()
 
-        #print "dlhelperframe: friends is",friends
-        #print "dlhelperframe: helping friends is",helpingFriends
+        if DEBUG:
+            print "dlhelperframe: friends is",friends
+            print "dlhelperframe: helping friends is",helpingFriends
 
         # 1. Create list of images of all friends
         type = wx.LC_LIST
@@ -146,13 +149,11 @@ class DownloadHelperPanel(wx.Panel):
             return []
         
     def make_it_so(self, add, changed_list):
-        ## Arno: change this such that only latest additions/removals are taken
-        ## into account.
-        #helpingFriends = self.rightListCtl.getFriends()
-        #remainingFriends = self.leftListCtl.getFriends()
-        #self.coordinator.stop_help(remainingFriends, force = False)
-        #self.coordinator.request_help(helpingFriends, force = True)
-        if add:
-            self.coordinator.request_help(changed_list, force = True)
-        else:
-            self.coordinator.stop_help(changed_list, force = True)
+        helpingFriends = self.rightListCtl.getFriends()
+        remainingFriends = self.leftListCtl.getFriends()
+
+        if DEBUG:
+            print "dlhelperframe: before exec: remaining friends is",remainingFriends
+            print "dlhelperframe: before exec: helping friends is",helpingFriends
+        self.coordinator.stop_help(remainingFriends, force = False)
+        self.coordinator.request_help(helpingFriends, force = False)
