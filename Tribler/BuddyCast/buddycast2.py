@@ -131,11 +131,11 @@ class BuddyCast:
         self.secure_overlay = secure_overlay
         self.rawserver = rawserver
         self.errorfunc = errorfunc
-        self.my_name = self.mydb.get('name')
-        self.my_ip = self.mydb.get('ip')
+        self.my_name = self.my_db.get('name')
+        self.my_ip = self.my_db.get('ip')
         self.my_port = port
-        self.mydb.put('port', port)
-        self.mydb.sync()
+        self.my_db.put('port', port)
+        self.my_db.sync()
         self.registered = True
         self.startup()
         
