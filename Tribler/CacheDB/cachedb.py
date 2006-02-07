@@ -522,7 +522,7 @@ class PreferenceDB(BasicDB):
         self._delete(permid)
 
     def getItem(self, permid):
-        return self._get(permid)
+        return self._get(permid, {})
 
 
 class MyPreferenceDB(BasicDB):     #  = FileDB
@@ -566,7 +566,7 @@ class MyPreferenceDB(BasicDB):     #  = FileDB
         self._delete(infohash)
         
     def getItem(self, infohash):
-        return self._get(infohash)
+        return self._get(infohash, [])
 
 
 class OwnerDB(BasicDB):

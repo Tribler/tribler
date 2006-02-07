@@ -25,7 +25,7 @@ class BasicDBHandler:
             db._clear()
 
     def printList(self):
-        records = self.dbs[0].items()
+        records = self.dbs[0]._items()
         for key, value in records:
             print key, value 
 
@@ -165,6 +165,7 @@ class PeerDBHandler(BasicDBHandler):
     
     def __init__(self, db_dir=''):
         self.peer_db = PeerDB.getInstance(db_dir=db_dir)
+        self.pref_db = PreferenceDB.getInstance(db_dir=db_dir)
         self.dbs = [self.peer_db]
         
     def __len__(self):
@@ -196,8 +197,32 @@ class PeerDBHandler(BasicDBHandler):
                     pass
         return res
     
+    def updatePeer(self, permid, key, value):
+        self.peer_db.updateItem(permid, {key:value})
+    
     def updatePeerIPPort(self, permid, ip, port):
         self.peer_db.updateItem(permid, {'ip':ip, 'port':port})
+    
+    def getRecentPeerList(self, ntb=10, nrp=10):    
+        # ntb - number of taste buddies
+        # nrp - number of random peers
+        
+        taste_buddies = []
+        rand_peers = []
+        peers = self.peer_db._items()
+        for i in xrange(len(peers)):
+            peers[i][1].update({'permid':peers[i][0]})
+            if self.pref_db._has_key(peers[i][0]):
+                taste_buddies.append(peers[i][1])
+            else:
+                rand_peers.append(peers[i][1])
+        return self.getRecentItems(taste_buddies, ntb), self.getRecentItems(rand_peers, nrp)
+    
+    def getRecentItems(self, all_items, num):
+        items = [(item['last_seen'], item) for item in all_items]
+        items.sort()
+        items.reverse()
+        return [item[1] for item in items[:num]]
     
 #    def getAllPeers(self, key=None):
 #        all_values = self.peer_db.values()
@@ -252,7 +277,7 @@ class PreferenceDBHandler(BasicDBHandler):
         
     def getPreferences(self, permid):
         return self.pref_db.getItem(permid)
-
+    
     def addPreference(self, permid, torrent_hash, data={}):
         self.pref_db.addPreference(permid, torrent_hash, data)
         self.owner_db.addOwner(torrent_hash, permid)
@@ -307,12 +332,15 @@ class MyPreferenceDBHandler(BasicDBHandler):
         else:
             return [all_items[i][1][key] for i in xrange(len(all_items))]
         
-    def getRecentPrefList(self, num=10):
+    def getRecentPrefList(self, num=0):    # num = 0: all files
         all_items = self.mypref_db._items()
         prefs = [(item[1]['last_seen'], item[0]) for item in all_items]
         prefs.sort()
         prefs.reverse()
-        return [item[1] for item in prefs[:num]]
+        if num > 0:
+            return [item[1] for item in prefs[:num]]
+        else:
+            return [item[1] for item in prefs]
     
     def getRecentPrefs(self, num=10):
         all_items = self.getPreferences()
@@ -321,7 +349,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
         prefs.reverse()
         return [item[1] for item in prefs[:num]]
     
-    def addPreference(self, torrent_hash, data):
+    def addPreference(self, torrent_hash, data={}):
         self.mypref_db.updateItem(torrent_hash, data)
 
     def deletePreference(self, torrent_hash):
@@ -338,10 +366,7 @@ class OwnerDBHandler(BasicDBHandler):
         self.dbs = [self.owner_db, self.torrent_db, self.peer_db, self.mypref_db]
         
     def getOwners(self, torrent_hash):
-        return self.owner_db.get(torrent_hash)
-        
-    def getAllOwners(self):
-        return self.owner_db.items()
+        return self.owner_db.getItem(torrent_hash)
         
 def test_mydb():
     mydb = MyDBHandler()
