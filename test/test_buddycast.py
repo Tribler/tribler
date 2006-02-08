@@ -4,7 +4,7 @@ import tempfile
 from sets import Set
 
 from BitTornado.bencode import bencode, bdecode
-from Tribler.BuddyCast.buddycast2 import BuddyCastFactory
+from Tribler.BuddyCast.buddycast2 import *
 from Tribler.CacheDB.cachedb import *
 from Tribler.utilities import print_prefxchg_msg
 
@@ -53,7 +53,7 @@ class TestBuddyCast(unittest.TestCase):
         
     def test_updateDB(self):
         msg = self.prefxchg_msgs[0].strip()
-        self.buddycast.gotBuddycastMsg(msg)
+        self.buddycast.gotBuddyCastMsg(msg)
         assert self.peer_db._size() == 21, self.peer_db._data.keys()
         assert self.torrent_db._size() == 132, self.torrent_db._size()
         assert self.pref_db._size() == 11, self.pref_db._size()
@@ -65,22 +65,26 @@ class TestBuddyCast(unittest.TestCase):
             if i == self.myid:
                 continue
             msg = self.prefxchg_msgs[i].strip()
-            self.buddycast.gotBuddycastMsg(msg)
+            self.buddycast.gotBuddyCastMsg(msg)
         
-    def xxtest_gotPrefxchg(self):
+    def test_gotPrefxchg(self):
         self.preload()
         assert self.peer_db._size() == 80
         assert self.torrent_db._size() == 317
         assert self.pref_db._size() == 40
         assert self.torrent_db._size() == self.owner_db._size()
         
-    def xxtest_getMyPrefxchg(self):
+    def test_getBuddyCastMsg(self):
         self.preload()
-        my_prefxchg = self.buddycast.getMyPrefxchg()
-        assert self.buddycast.validPrefxchg(my_prefxchg)
-        print_prefxchg_msg(my_prefxchg)
+        buddycast_data = BuddyCastWorker(self.buddycast).getBuddyCastMsg()
+        try:
+            assert validBuddyCastData(buddycast_data)
+        except:
+            validBuddyCastData(buddycast_data)
+        #print_prefxchg_msg(buddycast_data)
+        #print_dict(buddycast_data)
         
-    def xxtest_addMyPref(self):
+    def test_addMyPref(self):
         self.preload()
         items = self.owner_db._items()
 #        for item in items:
@@ -99,6 +103,8 @@ class TestBuddyCast(unittest.TestCase):
 #        for o in owners:
 #            print o, self.peer_db.getItem(o)
     
+    def test_selectBuddyCastCandidate(self):
+        pass
     
 def test_suite():
     suite = unittest.TestSuite()

@@ -203,6 +203,9 @@ class PeerDBHandler(BasicDBHandler):
     def updatePeerIPPort(self, permid, ip, port):
         self.peer_db.updateItem(permid, {'ip':ip, 'port':port})
         
+    def getItems(self):
+        return self.peer_db._items()
+        
 #    def getAllPeers(self, key=None):
 #        all_values = self.peer_db.values()
 #        if key is None:
@@ -265,6 +268,8 @@ class PreferenceDBHandler(BasicDBHandler):
         self.torrent_db.deletePreference(permid, torrent_hash)
         self.owner_db.deleteOwner(torrent_hash, permid)
         
+    def hasPreference(self, permid):
+        return self.pref_db._has_key(permid)
         
 class TorrentDBHandler(BasicDBHandler):
 

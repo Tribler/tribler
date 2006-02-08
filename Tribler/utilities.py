@@ -8,34 +8,34 @@ infohash_len = 0  #20
 
 def validName(name):
     if not isinstance(name, str) and len(name) == 0:
-        raise RuntimeError, "invalid name"
+        raise RuntimeError, "invalid name: " + name
     return True
 
 def validPort(port):
     port = int(port)
     if port < 1 or port > 65535:
-        raise RuntimeError, "invalid Port"
+        raise RuntimeError, "invalid Port: " + port
     return True
 
 def validIP(ip):
     try:
         inet_aton(ip)
     except:
-        raise RuntimeError, "invalid IP address"
+        raise RuntimeError, "invalid IP address: " + ip
     return True
     
 def validPermid(permid):
     if not isinstance(permid, str):
-        raise RuntimeError, "invalid permid"
+        raise RuntimeError, "invalid permid: " + permid
     if permid_len > 0 and len(permid) != permid_len:
-        raise RuntimeError, "invalid permid"
+        raise RuntimeError, "invalid permid: " + permid
     return True
 
 def validInfohash(infohash):
     if not isinstance(infohash, str):
-        raise RuntimeError, "invalid permid"
+        raise RuntimeError, "invalid permid " + permid
     if infohash_len > 0 and len(infohash) != infohash_len:
-        raise RuntimeError, "invalid permid"
+        raise RuntimeError, "invalid permid " + permid
     return True
     
 def isValidPermid(permid):
@@ -104,3 +104,22 @@ def print_prefxchg_msg(prefxchg_msg):
             print "\t port:", peer['port']
             print "\t age:", peer['age']
             print    
+            
+def print_dict(data, level=0):
+    if isinstance(data, dict):
+        print
+        for i in data:
+            print "  "*level, str(i) + ':',
+            print_dict(data[i], level+1)
+    elif isinstance(data, list):
+        print
+        for i in xrange(len(data)):
+            print "  "*level, '[' + str(i) + ']:',
+            print_dict(data[i], level+1)
+    else:
+        print data
+    
+
+if __name__=='__main__':
+    d = {'a':1,'b':[1,2,3],'c':{'c':2,'d':[3,4],'k':{'c':2,'d':[3,4]}}}
+    print_dict(d)    

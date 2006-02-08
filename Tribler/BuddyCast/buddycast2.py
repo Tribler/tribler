@@ -8,7 +8,7 @@ from Tribler.utilities import *
 from Tribler.Overlay.SecureOverlay import SecureOverlay
 from similarity import P2PSim, selectByProbability
 
-def validBuddycastMsg(prefxchg):
+def validBuddyCastData(prefxchg):
     def validPeer(peer):
         validPermid(peer['permid'])
         validIP(peer['ip'])
@@ -30,7 +30,7 @@ def validBuddycastMsg(prefxchg):
     for p in prefxchg['random peers']:
         validPeer(b)
         assert isinstance(b['age'], int) and b['age'] >= 0
-    
+    return True
 
 
 class DataHandler:
@@ -46,6 +46,7 @@ class DataHandler:
         self.dbs = [self.my_db, self.peer_db, self.superpeer_db, self.owner_db, 
                     self.torrent_db, self.mypref_db, self.pref_db]        
         self.preflist = self.getMyRecentPrefList()
+        self.connected_list = []    # peer in this list should not be connected in 4 hours
     
     def clear(self):
         for db in self.dbs:
@@ -96,8 +97,8 @@ class DataHandler:
         self.mypref_db.addPreference(infohash, data)
         updateSimilarity(infohash)
         
-    def selectBuddycastCandidate(self, nbuddies=10, npeers=10):
-        
+    def selectBuddyCastCandidate(self, nbuddies=10, npeers=10):
+        # TODO: new algorithm
         def filter(peer):
             keys = ['ip', 'port', 'permid']
             _peer = {}
@@ -111,44 +112,39 @@ class DataHandler:
         def getRandomPeers(peers, num):
             return peers[:num]
         
-        def getTBPeers(ntb=10, nrp=10):
-            pass
-        
-        def getRecentPeerList(ntb=10, nrp=10):    
-            # ntb - number of taste buddies
-            # nrp - number of random peers
-            
-            taste_buddies = []
-            rand_peers = []
-            peers = self.peer_db._items()
-            for i in xrange(len(peers)):
-                peers[i][1].update({'permid':peers[i][0]})
-                if self.pref_db._has_key(peers[i][0]):
-                    taste_buddies.append(peers[i][1])
-                else:
-                    rand_peers.append(peers[i][1])
-            return self.getRecentItems(taste_buddies, ntb), self.getRecentItems(rand_peers, nrp)
-        
-        def getRecentItems(self, all_items, num):
-            items = [(item['last_seen'], item) for item in all_items]
-            items.sort()
-            items.reverse()
-            return [item[1] for item in items[:num]]
-                
         alpha = 10
-        tbs, rps = self.getRecentPeerList(nbuddies*alpha, npeers)
+        tbs, rps = self.TBPeers(nbuddies*alpha, npeers)
         pass
-            
+
+    def getRecentItems(self, all_items, num):
+        items = [(item['last_seen'], item) for item in all_items]
+        items.sort()
+        items.reverse()
+        return [item[1] for item in items[:num]]
+                
+    def getTBPeers(self, ntb=10, nrp=10):    
+        # ntb - number of taste buddies
+        # nrp - number of random peers
+        
+        taste_buddies = []
+        rand_peers = []
+        peers = self.peer_db.getItems()
+        for i in xrange(len(peers)):
+            peers[i][1].update({'permid':peers[i][0]})
+            if self.pref_db.hasPreference(peers[i][0]):
+                taste_buddies.append(peers[i][1])
+            else:
+                rand_peers.append(peers[i][1])
+        return self.getRecentItems(taste_buddies, ntb), self.getRecentItems(rand_peers, nrp)
+    
+
     
 class RandomPeer:
     def __init__(self, data_handler, data):
         self.data_handler = data_handler
         self.permid = data['permid']
         self.ip = data['ip']
-        try:
-            self.port = int(data['port'])
-        except:
-            self.port = 0
+        self.port = int(data['port'])
         self.name = data.get('name', '')
         age = data.get('age', 0)
         if age < 0:
@@ -188,18 +184,25 @@ class TasteBuddy(RandomPeer):
         self.data_handler.addPeer(self.permid, self.data)
         
 
-class BuddycastWorker:
+class BuddyCastWorker:
     def __init__(self, buddycast, target=None):
         self.data_handler = buddycast.data_handler
         self.secure_overlay = buddycast.secure_overlay
+        if not target:
+            target = self.getBuddyCastTarget()
         self.ip = target['ip']
-        self.port = target['port']
+        self.port = int(target['port'])
         self.permid = target['permid']
+        self.name = target.get('name', '')
+            
+    def getBuddyCastTarget(self):
+        target = {'ip':'1.2.3.4', 'port':1234, 'permid':'permid1'}
+        return target
         
-    def getBuddycastMsg(self, nmyprefs=50, nbuddies=10, npeers=10, nbuddyprefs=10):
+    def getBuddyCastMsg(self, nmyprefs=50, nbuddies=10, npeers=10, nbuddyprefs=10):
 
         def filter(peer):
-            keys = ['ip', 'port', 'permid']
+            keys = ['ip', 'port', 'permid', 'age']
             _peer = {}
             for key in keys:
                 _peer[key] = peer[key]
@@ -216,18 +219,22 @@ class BuddycastWorker:
         def getTasteBuddies(peers, num, nbuddyprefs):
             prob_vec = [peer['similarity'] for peer in peers]
             peers = selectByProbability(prob_vec, peers, num)
+            if num > len(peers):
+                num = len(peers)
             for i in xrange(num):
-                peers[i] = filter(peers[i])
                 peers[i]['age'] = int(time()) - peers[i]['last_seen']
+                peers[i] = filter(peers[i])
                 if peers[i]['age'] < 0:
                     peers[i]['age'] = 0
                 peers[i]['preferences'] = getPeerPrefList(peers[i]['permid'], nbuddyprefs)
             return peers
     
         def getRandomPeers(peers, num):
+            if num > len(peers):
+                num = len(peers)
             for i in xrange(num):
-                peers[i] = filter(peers[i])
                 peers[i]['age'] = int(time()) - peers[i]['last_seen']
+                peers[i] = filter(peers[i])
                 if peers[i]['age'] < 0:
                     peers[i]['age'] = 0
             return peers
@@ -237,8 +244,9 @@ class BuddycastWorker:
         data['port'] = self.port
         data['permid'] = self.permid
         data['name'] = self.name
-        data['preferences'] = self.getMyPrefList(nmyprefs)
-        tbs, rps = self.getTBPeers(nbuddies, npeers)
+        data['preferences'] = self.data_handler.getMyPrefList(nmyprefs)
+        # TODO: new algorithm
+        tbs, rps = self.data_handler.getTBPeers(nbuddies, npeers)
         data['taste buddies'] = getTasteBuddies(tbs, nbuddies, nbuddyprefs)
         data['random peers'] = getRandomPeers(rps, npeers)
         return data
@@ -286,7 +294,7 @@ class BuddyCastFactory:
     def addMyPref(self, infohash, data={}):
         self.data_handler.addMyPref(infohash, data)
         
-    def gotBuddycastMsg(self, msg):
+    def gotBuddyCastMsg(self, msg):
         def updateDB(prefxchg):
             TasteBuddy(self.data_handler, prefxchg).updateDB()
             for b in prefxchg['taste buddies']:
@@ -295,14 +303,18 @@ class BuddyCastFactory:
                 RandomPeer(self.data_handler, p).updateDB()
 
         try:
-            buddycast = bdecode(msg)
-            validBuddycastMsg(buddycast)
+            buddycast_data = bdecode(msg)
+            validBuddyCastData(buddycast_data)
         except Exception, msg:
-            print msg
+            print >> sys.stderr, msg
             return
-        updateDB(buddycast)
-        BuddyCastWorker(self, buddycast).work()
+        updateDB(buddycast_data)
+        b = BuddyCastWorker(self, buddycast_data)
+        b.work()
+        del b
         
-    def doBuddycast(self):
-        BuddyCastWorker(self).work()
+    def doBuddyCast(self):
+        b = BuddyCastWorker(self)
+        b.work()
+        del b
 
