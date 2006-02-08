@@ -163,7 +163,7 @@ class OverlaySwarm:
         """ Handle message for overlay swarm and return if the message is valid """
 
         if DEBUG:
-            print >> sys.stderr,"overlay: Got",getMessageName(message[0]),len(message)
+            print >> sys.stderr,"overlay: Got",getMessageName(message[0]),"len",len(message)
         
         if not conn:
             return False

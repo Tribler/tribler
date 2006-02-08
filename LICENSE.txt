@@ -113,8 +113,8 @@ STICHTING MATHEMATISCH CENTRUM DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFT
 
 ------------------------------------------------------------------------------
 
-All code written by Jie Yang, Pawel Garbacki, Jun Wang and Arno Bakker has
-the following license:
+All code written by Jie Yang, Pawel Garbacki, Jun Wang, Arno Bakker,
+Jan David Mol and Qin Chen has the following license:
 
 Copyright (c) 2005-2006, Delft University of Technology and Vrije Universiteit 
 Amsterdam; All rights reserved.

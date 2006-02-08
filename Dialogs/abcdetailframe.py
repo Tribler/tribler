@@ -826,7 +826,7 @@ class EarthPanel(wx.Panel):
             self.Bind(wx.EVT_ENTER_WINDOW, self.OnEnter)
     
         active_colour = 'RED'
-        inactive_colour = 'PINK'
+        inactive_colour = 'YELLOW'
             
         def setActive(self, active):
             self.active = active

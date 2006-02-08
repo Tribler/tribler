@@ -778,6 +778,8 @@ class ABCTorrent:
                 except:
                     pass
                 self.files.removeFiles()
-                self.utility.torrents["all"].remove(self)        
+                if self.utility.abcquitting:
+                    # Normally done in procREMOVE, except when stopping client
+                    self.utility.torrents["all"].remove(self)        
 
         del self.utility.torrents["inactive"][self]
