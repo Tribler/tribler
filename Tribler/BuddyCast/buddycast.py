@@ -87,7 +87,7 @@ class BuddyCast:
         self.registered = True
         self.startup()
         
-    def is_registered(self):
+    def isRegistered(self):
         return self.registered
 
     def set_myip(self, ip):

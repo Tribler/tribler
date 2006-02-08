@@ -31,7 +31,6 @@ from Tribler.Overlay.permid import show_permid
 from BitTornado.BT1.MessageID import CANCEL, getMessageName
 
 # TEMP HACK
-from Tribler.BuddyCast.buddycast import BuddyCast
 
 try:
     True
@@ -387,7 +386,7 @@ class SecureOverlay:
             else:
                 self.release() 
                 return
-            if self.overlayswarm.registered:
+            if self.overlayswarm.isRegistered():
                 ## Arno: I don't see the need for letting the rawserver do it.
                 ## Except that it potentially avoids a concurrency problem of
                 ## multiple threads writing to the same socket.
@@ -408,14 +407,6 @@ class SecureOverlay:
         dns = self._addConnection(connection)
         if dns:
             self.subject_manager.notifySubject(dns)
-
-        ## Arno: test hack
-        buddycast = BuddyCast.getInstance()
-        if buddycast.is_registered():
-            if DEBUG:
-                print >> sys.stderr,"secover: starting BUDDYCAST"
-            buddycast.exchangePreference(connection.permid)
-
         self.release()    
 
     def _addConnection(self, connection):

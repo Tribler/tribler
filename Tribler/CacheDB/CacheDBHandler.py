@@ -202,28 +202,7 @@ class PeerDBHandler(BasicDBHandler):
     
     def updatePeerIPPort(self, permid, ip, port):
         self.peer_db.updateItem(permid, {'ip':ip, 'port':port})
-    
-    def getRecentPeerList(self, ntb=10, nrp=10):    
-        # ntb - number of taste buddies
-        # nrp - number of random peers
         
-        taste_buddies = []
-        rand_peers = []
-        peers = self.peer_db._items()
-        for i in xrange(len(peers)):
-            peers[i][1].update({'permid':peers[i][0]})
-            if self.pref_db._has_key(peers[i][0]):
-                taste_buddies.append(peers[i][1])
-            else:
-                rand_peers.append(peers[i][1])
-        return self.getRecentItems(taste_buddies, ntb), self.getRecentItems(rand_peers, nrp)
-    
-    def getRecentItems(self, all_items, num):
-        items = [(item['last_seen'], item) for item in all_items]
-        items.sort()
-        items.reverse()
-        return [item[1] for item in items[:num]]
-    
 #    def getAllPeers(self, key=None):
 #        all_values = self.peer_db.values()
 #        if key is None:

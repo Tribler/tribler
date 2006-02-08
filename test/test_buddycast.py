@@ -4,7 +4,7 @@ import tempfile
 from sets import Set
 
 from BitTornado.bencode import bencode, bdecode
-from Tribler.BuddyCast.buddycast2 import BuddyCast
+from Tribler.BuddyCast.buddycast2 import BuddyCastFactory
 from Tribler.CacheDB.cachedb import *
 from Tribler.utilities import print_prefxchg_msg
 
@@ -21,7 +21,7 @@ class TestBuddyCast(unittest.TestCase):
     
     def setUp(self):
         self.tmpdirpath = db_dir = os.path.join(tempfile.gettempdir(), 'testdb')
-        self.buddycast = BuddyCast.getInstance(db_dir=self.tmpdirpath)
+        self.buddycast = BuddyCastFactory.getInstance(db_dir=self.tmpdirpath)
         testdata = open(testdata_file, 'r')
         self.prefxchg_msgs = testdata.readlines()
         testdata.close()
@@ -48,12 +48,12 @@ class TestBuddyCast(unittest.TestCase):
 #            self.mypref_db.updateItem(pref)
         
     def tearDown(self):
-        self.buddycast.clear()
-        self.buddycast.sync()
+        self.buddycast.data_handler.clear()
+        self.buddycast.data_handler.sync()
         
-    def xxtest_updateDB(self):
+    def test_updateDB(self):
         msg = self.prefxchg_msgs[0].strip()
-        self.buddycast.gotPrefxchg(msg)
+        self.buddycast.gotBuddycastMsg(msg)
         assert self.peer_db._size() == 21, self.peer_db._data.keys()
         assert self.torrent_db._size() == 132, self.torrent_db._size()
         assert self.pref_db._size() == 11, self.pref_db._size()
@@ -65,7 +65,7 @@ class TestBuddyCast(unittest.TestCase):
             if i == self.myid:
                 continue
             msg = self.prefxchg_msgs[i].strip()
-            self.buddycast.gotPrefxchg(msg)
+            self.buddycast.gotBuddycastMsg(msg)
         
     def xxtest_gotPrefxchg(self):
         self.preload()
@@ -74,7 +74,7 @@ class TestBuddyCast(unittest.TestCase):
         assert self.pref_db._size() == 40
         assert self.torrent_db._size() == self.owner_db._size()
         
-    def test_getMyPrefxchg(self):
+    def xxtest_getMyPrefxchg(self):
         self.preload()
         my_prefxchg = self.buddycast.getMyPrefxchg()
         assert self.buddycast.validPrefxchg(my_prefxchg)
