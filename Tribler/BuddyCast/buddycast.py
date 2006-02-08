@@ -119,7 +119,7 @@ class BuddyCast:
     def loadMyPreferences(self):
         mypref = self.myprefs.getPreferences()
         if DEBUG:
-            print "buddycast: *********** importDictList mypref"
+            print >> sys.stderr,"buddycast: *********** importDictList mypref"
         self.mypref_cache.importDictList(mypref, ['last_seen', 'torrent_hash'], 'last_seen', 'decrease')
         
     def loadCache(self):
@@ -148,10 +148,10 @@ class BuddyCast:
         rand_peers.extend(rand_peers2)
         # fill cache
         if DEBUG:
-            print "buddycast: ********** importDictList buddy"
+            print >> sys.stderr,"buddycast: ********** importDictList buddy"
         self.buddy_cache.importDictList(taste_buddies, ['permid', 'ip', 'port', 'last_seen', 'similarity'], 'similarity', 'decreaes')
         if DEBUG:
-            print "buddycast: *********** importDictList rand"
+            print >> sys.stderr,"buddycast: *********** importDictList rand"
         self.random_cache.importDictList(rand_peers, ['permid', 'ip', 'port', 'last_seen'], 'last_seen', 'decrease')
         
 #------------ run ----------------
@@ -169,21 +169,21 @@ class BuddyCast:
 
     def runBuddycast(self):
         if DEBUG:
-            print "buddycast: Start cycle"
+            print >> sys.stderr,"buddycast: Start cycle"
         c = self.getPrefxchgCandidate()
         if not c:
             return
         ip, port, permid = c['ip'], c['port'], c['permid']
         if DEBUG:
-            print "buddycast: do buddycast with", ip, port, "......",
+            print >> sys.stderr,"buddycast: do buddycast with", ip, port, "......",
         port = int(port)
         if port == 0 or ip == self.my_ip or ip == '127.0.0.1' or self.isRelaxing(permid):
             if DEBUG:
-                print "buddycast: pass"
+                print >> sys.stderr,"buddycast: pass"
         else:
             self.sendPrefxchg(permid)
             if DEBUG:
-                print "buddycast: done"
+                print >> sys.stderr,"buddycast: done"
         
     def loadPrefxchgCandidates(self):
         """ load unfinished queue. If bootstrapping, fill it in with superpeers """
@@ -239,10 +239,10 @@ class BuddyCast:
                 min = buddy_sims[buddy_size-1]
             random_sims = [min for i in range(random_size)]
             if DEBUG:
-                print "buddycast: @@@ buddy sims", len(buddy_sims), buddy_sims
+                print >> sys.stderr,"buddycast: @@@ buddy sims", len(buddy_sims), buddy_sims
             buddies = self.buddy_cache.getAllValues('permid')
             if DEBUG:
-                print "buddycast: @@@ buddies", buddies
+                print >> sys.stderr,"buddycast: @@@ buddies", buddies
                 print 
             buddy_sims.extend(random_sims)
             for i in xrange(1, total_size):
@@ -254,8 +254,8 @@ class BuddyCast:
                 random_var = randint(0, total_sim)
                 idx = self.bisearch(sims, random_var)
                 if DEBUG:
-                    print "buddycast: @@@ select out", idx, "from", total_size, "and", total_size
-                    print "buddycast: ---------------"
+                    print >> sys.stderr,"buddycast: @@@ select out", idx, "from", total_size, "and", total_size
+                    print >> sys.stderr,"buddycast: ---------------"
                 if sims[idx][1] < buddy_size:
                     candidates.append(self.buddy_cache.getItem(idx))
                 else:
@@ -431,12 +431,12 @@ class BuddyCast:
         idx = self.buddy_cache.findItem('permid', buddy['permid'])
         if idx >= 0:
             if DEBUG:
-                print "buddycast: >>> update buddy", show_permid(buddy['permid']), buddy['similarity'], "at", idx
+                print >> sys.stderr,"buddycast: >>> update buddy", show_permid(buddy['permid']), buddy['similarity'], "at", idx
             self.buddy_cache.updateItem(idx, buddy)
         else:
             idx, pop_item = self.buddy_cache.addItem(buddy)
             if DEBUG:
-                print "buddycast: @@@ add    buddy",show_permid(buddy['permid']), buddy['similarity'], "at", idx
+                print >> sys.stderr,"buddycast: @@@ add    buddy",show_permid(buddy['permid']), buddy['similarity'], "at", idx
             if pop_item:    # move poped buddy into random cache
                 self.random_cache.addItem(pop_item)
         
@@ -479,7 +479,7 @@ class BuddyCast:
             errorfunc("warning: bad data in prefxchg_msg")
             return False
         if DEBUG:
-            print "************* got preference *************"
+            print >> sys.stderr,"************* got preference *************"
             self.print_prefxchg_msg(prefxchg_msg, permid)
         self.gotPrefxchg(permid, prefxchg_msg)
         return True
@@ -487,7 +487,7 @@ class BuddyCast:
     def handleMessage(self,permid,message):
         t = message[0]
         if DEBUG:
-            print "buddycast: Got",getMessageName(t)
+            print >> sys.stderr,"buddycast: Got",getMessageName(t)
 
         if t == PREFERENCE_EXCHANGE:
             self.gotPrefxchgMsg(permid, message)
@@ -541,10 +541,10 @@ class BuddyCast:
         if not c:
             return
         ip, port = c['ip'], c['port']
-        print "do buddycast with", ip, port
+        print >> sys.stderr,"do buddycast with", ip, port
         self.oldnp, self.oldnf, self.oldnt, self.last_recomm = \
             run_buddycast(self, 10, 1, 1, self.oldnp, self.oldnf, self.oldnt, self.last_recomm)
-        #print "res --->", self.oldnp, self.oldnf, self.oldnt, self.last_recomm
+        #print >> sys.stderr,"res --->", self.oldnp, self.oldnf, self.oldnt, self.last_recomm
         if not self.stopBuddycast():
             self.rawserver.add_task(self.do_buddy_cast, self.buddycast_interval)
         #self.connectPeer(ip, port)
@@ -575,44 +575,44 @@ class BuddyCast:
                 updated_peers[p] = None
 
     def print_prefxchg_msg(self, prefxchg_msg, permid=None):
-        print "------- preference_exchange message ---------"
+        print >> sys.stderr,"------- preference_exchange message ---------"
         print prefxchg_msg
-        print "---------------------------------------------"
-        print "name", prefxchg_msg['name']
+        print >> sys.stderr,"---------------------------------------------"
+        print >> sys.stderr,"name", prefxchg_msg['name']
         if permid:
-            #print "permid:", permid
-            print "permid:", show_permid(permid)
-        print "ip:", prefxchg_msg['ip']
-        print "port:", prefxchg_msg['port']
-        print "preferences:"
+            #print >> sys.stderr,"permid:", permid
+            print >> sys.stderr,"permid:", show_permid(permid)
+        print >> sys.stderr,"ip:", prefxchg_msg['ip']
+        print >> sys.stderr,"port:", prefxchg_msg['port']
+        print >> sys.stderr,"preferences:"
         if prefxchg_msg['preferences']:
             for pref in prefxchg_msg['preferences']:
-                print "\t", pref, prefxchg_msg['preferences'][pref]
-        print "taste buddies:"
+                print >> sys.stderr,"\t", pref, prefxchg_msg['preferences'][pref]
+        print >> sys.stderr,"taste buddies:"
         if prefxchg_msg['taste buddies']:
             for buddy in prefxchg_msg['taste buddies']:
-                print "\t permid:", show_permid(buddy['permid'])
-                #print "\t permid:", buddy['permid']
-                print "\t ip:", buddy['ip']
-                print "\t port:", buddy['port']
-                print "\t age:", buddy['age']
-                print "\t preferences:"
+                print >> sys.stderr,"\t permid:", show_permid(buddy['permid'])
+                #print >> sys.stderr,"\t permid:", buddy['permid']
+                print >> sys.stderr,"\t ip:", buddy['ip']
+                print >> sys.stderr,"\t port:", buddy['port']
+                print >> sys.stderr,"\t age:", buddy['age']
+                print >> sys.stderr,"\t preferences:"
                 if buddy['preferences']:
                     for pref in buddy['preferences']:
-                        print "\t\t", pref, buddy['preferences'][pref]
+                        print >> sys.stderr,"\t\t", pref, buddy['preferences'][pref]
                 print
-        print "random peers:"
+        print >> sys.stderr,"random peers:"
         if prefxchg_msg['random peers']:
             for peer in prefxchg_msg['random peers']:
-                print "\t permid:", show_permid(peer['permid'])
-                #print "\t permid:", peer['permid']
-                print "\t ip:", peer['ip']
-                print "\t port:", peer['port']
-                print "\t age:", peer['age']
+                print >> sys.stderr,"\t permid:", show_permid(peer['permid'])
+                #print >> sys.stderr,"\t permid:", peer['permid']
+                print >> sys.stderr,"\t ip:", peer['ip']
+                print >> sys.stderr,"\t port:", peer['port']
+                print >> sys.stderr,"\t age:", peer['age']
                 print
         
     def show(self):
-        print " +++++++++++++++ show +++++++++++++++++ "
+        print >> sys.stderr," +++++++++++++++ show +++++++++++++++++ "
         self.showDBs()
         self.showBuffers()
         
@@ -745,7 +745,7 @@ def init_myprefs(bc, num=30):
     myprefs = MyPreferenceDBHandler()
     for i in xrange(num):
         torrent_hash = rand_pref()
-        #print "randomly add a preference", torrent_hash
+        #print >> sys.stderr,"randomly add a preference", torrent_hash
         myprefs.addPreference(torrent_hash)
         bc.addMyPreference(torrent_hash)
         
@@ -785,7 +785,7 @@ def do_buddycast(bc):
     if not c:
         return
     ip, port, permid = c['ip'], c['port'], c['permid']
-    print "do buddycast with", ip, port, "\n"
+    print >> sys.stderr,"do buddycast with", ip, port, "\n"
 
 def run_buddycast(bc, num=20, nd=1, times=1, oldnp=0, oldnf=0, oldnt=0, last_recomm=[]):
     
@@ -796,35 +796,35 @@ def run_buddycast(bc, num=20, nd=1, times=1, oldnp=0, oldnf=0, oldnt=0, last_rec
         
         nf = bc.myprefs.size()
         added2 = nf - oldnf
-#        print "=== num of my preferences:", nf, "\tadded new preferences:", added2
+#        print >> sys.stderr,"=== num of my preferences:", nf, "\tadded new preferences:", added2
         oldnf = nf
         
         np = bc.peers.size()
         if np > bc.num_peers * 0.9:
             bc.num_peers = int(bc.num_peers*1.1)
         added = np - oldnp
-#        print "=== num of peers:", np, "\t\tdiscovered new peers:", added
+#        print >> sys.stderr,"=== num of peers:", np, "\t\tdiscovered new peers:", added
         oldnp = np
         
         nt = bc.torrents.size()
         if nt > bc.num_torrents * 0.9:
             bc.num_torrents = int(bc.num_torrents*1.1)
         added3 = nt - oldnt
-#        print "=== num of files:", nt, "\t\tdiscovered new files:", added3
+#        print >> sys.stderr,"=== num of files:", nt, "\t\tdiscovered new files:", added3
         oldnt = nt
         
-#        print "--- recommendated files ---"
+#        print >> sys.stderr,"--- recommendated files ---"
 #        nr = len(bc.recommended_files)
 #        for i in xrange(nr):
 #            recom, file = bc.recommended_files[i]
 #            print file, '%d'%recom, getRankChange(file, i, last_recomm, nr)
         
-#        print "--- download files ---"
+#        print >> sys.stderr,"--- download files ---"
         for i in range(nd):
             select = rand_down(bc.recommended_files)
             rank, file = bc.recommended_files.pop(select)
             bc.addMyPreference(file)
-#            print "add a preference by recom", file
+#            print >> sys.stderr,"add a preference by recom", file
         
         init_myprefs(bc, 1)
         last_recomm = deepcopy(bc.recommended_files)

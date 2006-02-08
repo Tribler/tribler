@@ -162,6 +162,8 @@ class AboutMeDialog(MyHtmlDialog):
                          "NoirSoldats (noirsoldats@codemeu.com)" + \
                          "<BR>kratoak5" + \
                          "<BR>roe88" + \
+                         "<BR>Delft University of Technology" + \
+                         "<BR>Vrije Universiteit Amsterdam" + \
                      "</TD></TR>" + \
                      "<TR>" + \
                          "<TD COLSPAN=2>" + self.utility.lang.get('translate') + "</TD>"\
@@ -179,6 +181,7 @@ class AboutMeDialog(MyHtmlDialog):
                                    "<A HREF=http://starship.python.net/crew/theller/py2exe/>py2exe " + py2exe_version + "</A>, " + \
                                    "<A HREF=http://nsis.sourceforge.net/>NSIS " + nsis_version + "</A>" + \
                      "<P>Copyright (c) 2003-2004, Choopan Rattanapoka" + \
+                    "<P>Copyright (c) 2005-2006, Delft University of Technology and Vrije Universiteit Amsterdam" + \
                      "</FONT>"
 
         MyHtmlDialog.__init__(self, parent, title, content)

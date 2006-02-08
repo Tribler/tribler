@@ -3,6 +3,7 @@
 
 from traceback import print_exc
 import copy
+import sys
 
 from Tribler.toofastbt.Logger import get_logger
 from Tribler.Overlay.SecureOverlay import SecureOverlay
@@ -26,7 +27,7 @@ class Coordinator:
         # read helpers from file
         if helpers_file is not None:
 
-            print "Reading helpers from file currently not supported"
+            print >> sys.stderr,"Reading helpers from file currently not supported"
 
             f = open(helpers_file, 'r')
             while 1:
@@ -62,7 +63,7 @@ class Coordinator:
         return False
 
     def request_help(self,peerList,force = False):
-        #print "dlhelp: REQUESTING HELP FROM",peerList
+        #print >> sys.stderr,"dlhelp: REQUESTING HELP FROM",peerList
         try:
             toask_helpers = []
             if force:
@@ -82,18 +83,18 @@ class Coordinator:
             self.send_request_help(toask_helpers)
         except Exception,e:
             print_exc()
-            print "helpcoord: Exception while requesting help",e
+            print >> sys.stderr,"helpcoord: Exception while requesting help",e
 
     def send_request_help(self,peerList):
         for peer in peerList:
             peer['round'] = 0
             if DEBUG:
-                print "dlhelp: Coordinator connecting to",peer['name'],peer['ip'],peer['port']," for help"
+                print >> sys.stderr,"dlhelp: Coordinator connecting to",peer['name'],peer['ip'],peer['port']," for help"
             dlhelp_request = self.torrent_hash
             self.secure_overlay.addTask(peer['permid'], DOWNLOAD_HELP + dlhelp_request)
 
     def stop_help(self,peerList, force = False):
-        # print "dlhelp: STOPPING HELP FROM",peerList
+        # print >> sys.stderr,"dlhelp: STOPPING HELP FROM",peerList
         if force:
             tostop_helpers = peerList
         else:
@@ -126,7 +127,7 @@ class Coordinator:
     def send_stop_help(self,peerList):
         for peer in peerList:
             if DEBUG:
-                print "dlhelp: Coordinator connecting to",peer['name'],peer['ip'],peer['port']," for stopping help"
+                print >> sys.stderr,"dlhelp: Coordinator connecting to",peer['name'],peer['ip'],peer['port']," for stopping help"
             stop_request = self.torrent_hash
             self.secure_overlay.addTask(peer['permid'],STOP_DOWNLOAD_HELP + stop_request)
 
@@ -175,7 +176,7 @@ class Coordinator:
                     self.reserved.append(-piece)
         except Exception, e:
             print_exc()
-            print "helpcoord: Exception in reserve_pieces",e
+            print >> sys.stderr,"helpcoord: Exception in reserve_pieces",e
             #get_logger().log(3, "EXCEPTION: '" + str(e) + "'")
         return new_reserved
 

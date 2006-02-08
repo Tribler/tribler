@@ -1,6 +1,6 @@
-# Written by Bram Cohen
+# Written by Bram Cohen, Jie Yang
 # see LICENSE.txt for license information
-
+import sys
 from cStringIO import StringIO
 from binascii import b2a_hex
 from socket import error as socketerror
@@ -22,7 +22,7 @@ DEBUG = True
 MAX_INCOMPLETE = 8
 
 protocol_name = 'BitTorrent protocol'
-# Enable I-Share extensions:
+# Enable Tribler extensions:
 # Left-most bit = Azureus Enhanced Messaging Protocol (AEMP)
 # Left+42 bit = Tribler Overlay swarm extension
 # Left+43 bit = Tribler Simple Merkle Hashes extension
@@ -74,8 +74,8 @@ class Connection:    # OverlaySocket, a better name for it?
         if self.locally_initiated:
             incompletecounter.increment()
         if self.locally_initiated or ext_handshake:
-            if DEBUG:
-                print "olencoder: writing header"
+            #if DEBUG:
+            #    print >> sys.stderr,"olencoder: writing header"
             self.connection.write(chr(len(protocol_name)) + protocol_name + 
                 option_pattern + self.Encoder.download_id)
         if ext_handshake:
@@ -126,7 +126,7 @@ class Connection:    # OverlaySocket, a better name for it?
 
     def read_reserved(self, s):
         if DEBUG:
-            print "olencoder: Reserved bits:", `s`
+            print >> sys.stderr,"olencoder: Reserved bits:", `s`
         self.set_options(s)
         return 20, self.read_download_id
 
@@ -244,7 +244,7 @@ class Connection:    # OverlaySocket, a better name for it?
 
     def connection_lost(self, connection):
         if DEBUG:
-            print "olencoder: connection_lost"
+            print >> sys.stderr,"olencoder: connection_lost"
         if self.Encoder.connections.has_key(connection):
             self.sever()
 
@@ -324,11 +324,11 @@ class OverlayEncoder:
             ip = v.get_ip(True)
             if ip != 'unknown' and ip == dns[0]:    # forbid to setup multiple connection on overlay swarm
                 if DEBUG:
-                    print "olencoder: Using existing connection to",dns
+                    print >> sys.stderr,"olencoder: Using existing connection to",dns
                 return True
         try:
             if DEBUG:
-                print "olencoder: Setting up new connection to",dns
+                print >> sys.stderr,"olencoder: Setting up new connection to",dns
             c = self.raw_server.start_connection(dns)
             con = Connection(self, c, id, dns = dns)
             self.connections[c] = con

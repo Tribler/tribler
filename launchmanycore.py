@@ -100,10 +100,10 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
         try:
             self.handler.listen_forever()
         except AssertionError:
-            print "launchmany: Exception in main loop"
+            print >> sys.stderr,"launchmany: Exception in main loop"
             print_exc()
         except Exception,e:
-            print "launchmany: Exception in main loop",str(e)
+            print >> sys.stderr,"launchmany: Exception in main loop",str(e)
             print_exc()
             data = StringIO()
             print_exc(file=data)
@@ -177,16 +177,16 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
 
         if ABCTorrentTemp is None:
             if DEBUG:
-                print "launchmany: STOP_DOWNLOAD_HELP could not find torrent!"
+                print >> sys.stderr,"launchmany: STOP_DOWNLOAD_HELP could not find torrent!"
 
         if ABCTorrentTemp is not None:
             if DEBUG:
-                print "launchmany: STOP_DOWNLOAD_HELP stopping torrent (postponed)"
+                print >> sys.stderr,"launchmany: STOP_DOWNLOAD_HELP stopping torrent (postponed)"
             self.invokeLater(self.remove_callback,[ABCTorrentTemp])            
 
     def remove_callback(self,ABCTorrentTemp):
         if DEBUG:
-            print "launchmany: STOP_DOWNLOAD_HELP actually stopping torrent"
+            print >> sys.stderr,"launchmany: STOP_DOWNLOAD_HELP actually stopping torrent"
         #msg = self.utility.lang.get('helping_stopped')
         #ABCTorrentTemp.changeMessage( msg, "status")
         self.utility.actionhandler.procREMOVE([ABCTorrentTemp], removefiles = True)
@@ -194,20 +194,20 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
     def add(self, hash, data):
         """ called by Tribler/toofastbt/HelperMessageHandler """
         if DEBUG:
-            print "launchmany: Adding torrent (postponed)"
+            print >> sys.stderr,"launchmany: Adding torrent (postponed)"
         self.invokeLater(self.add_callback,[hash,data])
 
     # Make sure this is called by the MainThread, as it does GUI updates
     def add_callback(self, hash, data):
         if DEBUG:
-            print "launchmany: actually Adding torrent"
+            print >> sys.stderr,"launchmany: actually Adding torrent"
         self.utility.queue.addtorrents.AddTorrentFromFile(data['path'], caller = "helper", dest = data['dest'], caller_data = data)
 
         
     # polymorph/override
     def addDownload(self, ABCTorrentTemp):
         if DEBUG:
-            print "launchmany: addDownload",currentThread().getName()
+            print >> sys.stderr,"launchmany: addDownload",currentThread().getName()
 
         ## ARNO: HACK
         self.arno_file_cache[ABCTorrentTemp.torrent_hash] = bencode(ABCTorrentTemp.getResponse())

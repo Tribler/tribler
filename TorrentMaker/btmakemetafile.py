@@ -2,6 +2,7 @@
 
 # Written by Bram Cohen
 # multitracker extensions by John Hoffman
+# modified for Merkle hashes and digital signatures by Arno Bakker
 # see LICENSE.txt for license information
 
 import sys

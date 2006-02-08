@@ -1,4 +1,4 @@
-# Written by Jie Yang
+# Written by Jie Yang, Arno Bakker
 # see LICENSE.txt for license information
 
 import os
@@ -190,8 +190,6 @@ class MakeFriendsDialog(wx.Dialog):
 
             fdb = FriendDBHandler()
             friend = {'permid':permid, 'ip':ip, 'port':port, 'name':name, 'icon':icon}
-            if DEBUG:
-                print "add friend", friend
 
             if self.editfriend is not None:
                 if self.editfriend['permid'] != permid:
@@ -224,12 +222,8 @@ class MakeFriendsDialog(wx.Dialog):
         dlg.Centre()
 
         if dlg.ShowModal() == wx.ID_OK:
-            if DEBUG:
-                print "You Selected File: ", dlg.GetFile()
             self.icon_path.SetValue(dlg.GetFile())
         else:
-            if DEBUG:
-                print "You pressed Cancel"
             pass
 
         dlg.Destroy()        

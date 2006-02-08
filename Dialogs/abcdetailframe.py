@@ -14,9 +14,9 @@ from cStringIO import StringIO
 from wx.lib.buttons import GenButton
 
 from ABC.GUI.list import ManagedList
-from Dialogs.dlhelperframe import DownloadHelperPanel
 
 from Utility.constants import * #IGNORE:W0611
+from Tribler.Dialogs.dlhelperframe import DownloadHelperPanel
 from Tribler.Worldmap.ipinfo import IPInfo, no_info
 
 try:

@@ -27,7 +27,7 @@ DEBUG = False
 MAX_INCOMPLETE = 8
 
 protocol_name = 'BitTorrent protocol'
-# Enable I-Share extensions:
+# Enable Tribler extensions:
 # Left-most bit = Azureus Enhanced Messaging Protocol (AEMP)
 # Left+42 bit = Tribler Overlay swarm extension
 # Left+43 bit = Tribler Simple Merkle Hashes extension

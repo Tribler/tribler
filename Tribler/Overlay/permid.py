@@ -174,7 +174,7 @@ def create_torrent_signature(response):
         response['signer'] = str(_ec_keypair.pub().get_der())
         return True
     except Exception, e:
-        print "permid: Exception in create_torrent_signature:",str(e) 
+        traceback.print_exc()
         return False
     
 def verify_torrent_signature(response):
@@ -201,7 +201,7 @@ def do_verify_torrent_signature(digest,sigstr,permid):
         intret = ecpub.verify_dsa_asn1(digest,sigstr)
         return intret == 1
     except Exception, e:
-        print "permid: Exception in verify_torrent_signature:",str(e) 
+        print >> sys.stderr,"permid: Exception in verify_torrent_signature:",str(e) 
         return False
 
 
@@ -286,7 +286,7 @@ class ChallengeResponse:
 
     def set_peer_authenticated(self):
         if DEBUG:
-            print "permid: Challenge response succesful!"
+            print >> sys.stderr,"permid: Challenge response succesful!"
         self.state = STATE_AUTHENTICATED
 
     def get_peer_authenticated(self):
@@ -355,40 +355,40 @@ class ChallengeResponse:
         if t == CHALLENGE:
             if len(message) < self.get_challenge_minlen():
                 if DEBUG:
-                    print "permid: Close on bad CHALLENGE: msg len"
+                    print >> sys.stderr,"permid: Close on bad CHALLENGE: msg len"
                 self.state = STATE_FAILED
                 return False
             try:
                 self.got_challenge(msg, conn)
             except Exception,e:
                 if DEBUG:
-                    print "permid: Close on bad CHALLENGE: exception",str(e)
+                    print >> sys.stderr,"permid: Close on bad CHALLENGE: exception",str(e)
                     traceback.print_exc()
                 return False
         elif t == RESPONSE1:
             if len(message) < self.get_response1_minlen():
                 if DEBUG:
-                    print "permid: Close on bad RESPONSE1: msg len"
+                    print >> sys.stderr,"permid: Close on bad RESPONSE1: msg len"
                 self.state = STATE_FAILED
                 return False
             try:
                 self.got_response1(msg, conn)
             except Exception,e:
                 if DEBUG:
-                    print "permid: Close on bad RESPONSE1: exception",str(e)
+                    print >> sys.stderr,"permid: Close on bad RESPONSE1: exception",str(e)
                     traceback.print_exc()
                 return False
         elif t == RESPONSE2:
             if len(message) < self.get_response2_minlen():
                 if DEBUG:
-                    print "permid: Close on bad RESPONSE2: msg len"
+                    print >> sys.stderr,"permid: Close on bad RESPONSE2: msg len"
                 self.state = STATE_FAILED
                 return False
             try:
                 self.got_response2(msg, conn)
             except Exception,e:
                 if DEBUG:
-                    print "permid: Close on bad RESPONSE2: exception",str(e)
+                    print >> sys.stderr,"permid: Close on bad RESPONSE2: exception",str(e)
                     traceback.print_exc()
                 return False
         else:

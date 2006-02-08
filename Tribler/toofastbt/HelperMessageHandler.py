@@ -33,8 +33,8 @@ class HelperMessageHandler:
 
     def handleMessage(self,permid,message):
         t = message[0]
-        if DEBUG:
-            print "helper: Got",getMessageName(t)
+        #if DEBUG:
+        #    print >> sys.stderr,"helper: Got",getMessageName(t)
 
         # Access control
         friends = FriendDBHandler().getFriends()
@@ -42,12 +42,12 @@ class HelperMessageHandler:
         for peer in friends:
             if peer['permid'] == permid:
                 if DEBUG:
-                    print "helper: Got",getMessageName(t),"from friend",peer['name']
+                    print >> sys.stderr,"helper: Got",getMessageName(t),"from friend",peer['name']
                 flag = 1
                 break
         if flag == 0:
             if DEBUG:
-                print "helper: Got",getMessageName(t),"from unknown peer",show_permid(permid)
+                print >> sys.stderr,"helper: Got",getMessageName(t),"from unknown peer",show_permid(permid)
             return False
         
         if t == DOWNLOAD_HELP:
@@ -127,10 +127,10 @@ class HelperMessageHandler:
         data['friendname'] = friendname
 
         if DEBUG:
-            print "helpmsg: Got metadata required for helping",friendname
-            print "helpmsg: name:   ", data['name']
-            print "helpmsg: torrent: ", data['path']
-            print "helpmsg: saveas: ", data['file']
+            print >> sys.stderr,"helpmsg: Got metadata required for helping",friendname
+            print >> sys.stderr,"helpmsg: name:   ", data['name']
+            print >> sys.stderr,"helpmsg: torrent: ", data['path']
+            print >> sys.stderr,"helpmsg: saveas: ", data['file']
 
         # TODO: instead of writing .torrent to the disk keep it only in the memory
         torrent_file = open(data['path'], "wb")
@@ -156,10 +156,10 @@ class HelperMessageHandler:
 
     def call_dlhelp_task(self, torrent_hash, torrent_data):
         if DEBUG:
-            print "helpmsg: Metadata handler reports torrent is in"
+            print >> sys.stderr,"helpmsg: Metadata handler reports torrent is in"
         if not self.metadata_queue.has_key(torrent_hash) or not self.metadata_queue[torrent_hash]:
             if DEBUG:
-                print "helpmsg: Metadata's data not right one!"
+                print >> sys.stderr,"helpmsg: Metadata's data not right one!"
             return
         
         for permid in self.metadata_queue[torrent_hash]:

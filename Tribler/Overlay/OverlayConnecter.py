@@ -1,6 +1,6 @@
 # Written by Bram Cohen, Jie Yang
 # see LICENSE.txt for license information
-
+import sys
 from struct import unpack
 
 from BitTornado.bitfield import Bitfield
@@ -108,13 +108,13 @@ class OverlayConnecter:
     
     def connection_lost(self, connection):
         if DEBUG:
-            print "olconnctr: connection_lost"
+            print >> sys.stderr,"olconnctr: connection_lost"
         c = self.connections[connection]
         del self.connections[connection]
 
     def connection_flushed(self, connection):
         if DEBUG:
-            print "___________ connection flused!!!"
+            print >> sys.stderr,"___________ connection flused!!!"
         pass    
             
     def got_piece(self, i):

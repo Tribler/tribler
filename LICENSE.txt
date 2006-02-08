@@ -1,3 +1,30 @@
+Unless otherwise noted, all files are released under the MIT
+license, exceptions contain licensing information in them.
+
+Copyright (C) 2001-2002 Bram Cohen
+
+Permission is hereby granted, free of charge, to any person
+obtaining a copy of this software and associated documentation files
+(the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of the Software,
+and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+The Software is provided "AS IS", without warranty of any kind,
+express or implied, including but not limited to the warranties of
+merchantability,  fitness for a particular purpose and
+noninfringement. In no event shall the  authors or copyright holders
+be liable for any claim, damages or other liability, whether in an
+action of contract, tort or otherwise, arising from, out of or in
+connection with the Software or the use or other dealings in the
+Software.
+
+------------------------------------------------------------------------------
+
 Python Software Foundation License
 Python 2.1.1 license
 This is the official license for the Python 2.1.1 release:
@@ -84,37 +111,54 @@ Permission to use, copy, modify, and distribute this software and its documentat
 STICHTING MATHEMATISCH CENTRUM DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL STICHTING MATHEMATISCH CENTRUM BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE
 
 
-==============================================================================
-Copyright (c) 2005-2006, Vrije Universiteit & Delft University of
-Technology
-All rights reserved.
+------------------------------------------------------------------------------
 
-Redistribution and use of the TRIBLER system in source and binary forms,
-with or without modification, are permitted provided that the following
-conditions are met:
+All code written by Jie Yang, Pawel Garbacki, Jun Wang and Arno Bakker has
+the following license:
 
-   * Redistributions of source code must retain the above copyright
-     notice, this list of conditions and the following disclaimer.
+Copyright (c) 2005-2006, Delft University of Technology and Vrije Universiteit 
+Amsterdam; All rights reserved.
 
-   * Redistributions in binary form must reproduce the above
-     copyright notice, this list of conditions and the following
-     disclaimer in the documentation and/or other materials provided
-     with the distribution.
+1. This LICENSE AGREEMENT is between the Delft University of Technology and
+the Vrije Universiteit Amsterdam ("TUD/VU"), and the Individual or
+Organization ("Licensee") accessing and otherwise using Tribler software in
+source or binary form and its associated documentation.
 
-   * Neither the name of Vrije Universiteit or Delft University of 
-     Technology nor the names of the software authors or contributors may be
-     used to endorse or promote products derived from this software without
-     specific prior written permission.
+2. Subject to the terms and conditions of this License Agreement, TUD/VU
+hereby grants Licensee a nonexclusive, royalty-free, world-wide license to
+reproduce, analyze, test, perform and/or display publicly, prepare
+derivative works, distribute, and otherwise use Tribler alone or in any
+derivative version, provided, however, that TUD/VU's License Agreement and
+TUD/VU's notice of copyright, i.e., "Copyright (c) 2005-2006 Delft
+University of Technology and Vrije Universiteit Amsterdam; All Rights
+Reserved" are retained in Tribler alone or in any derivative version
+prepared by Licensee.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS, AUTHORS, AND
-CONTRIBUTORS ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES,
-INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL VRIJE UNIVERSITEIT OR ANY AUTHORS OR CONTRIBUTORS BE
-LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
-EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+3. In the event Licensee prepares a derivative work that is based on or
+incorporates Tribler or any part thereof, and wants to make the derivative
+work available to others as provided herein, then Licensee hereby agrees to
+include in any such work a brief summary of the changes made to Tribler.
+
+4. TUD/VU is making Tribler available to Licensee on an "AS IS" basis.
+TUD/VU MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED. BY WAY OF
+EXAMPLE, BUT NOT LIMITATION, TUD/VU MAKES NO AND DISCLAIMS ANY
+REPRESENTATION OR WARRANTY OF MERCHANTABILITY OR FITNESS FOR ANY PARTICULAR
+PURPOSE OR THAT THE USE OF TRIBLER WILL NOT INFRINGE ANY THIRD PARTY
+RIGHTS.
+
+5. TUD/VU SHALL NOT BE LIABLE TO LICENSEE OR ANY OTHER USERS OF TRIBLER
+FOR ANY INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES OR LOSS AS A RESULT OF
+MODIFYING, DISTRIBUTING, OR OTHERWISE USING TRIBLER, OR ANY DERIVATIVE
+THEREOF, EVEN IF ADVISED OF THE POSSIBILITY THEREOF.
+
+6. This License Agreement will automatically terminate upon a material
+breach of its terms and conditions.
+
+7. Nothing in this License Agreement shall be deemed to create any
+relationship of agency, partnership, or joint venture between TUD/VU and
+Licensee. This License Agreement does not grant permission to use TUD/VU
+trademarks or trade name in a trademark sense to endorse or promote products
+or services of Licensee, or any third party.
+
+8. By copying, installing or otherwise using Tribler, Licensee agrees to be
+bound by the terms and conditions of this License Agreement.

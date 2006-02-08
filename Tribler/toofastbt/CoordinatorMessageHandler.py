@@ -1,6 +1,7 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
 """ SecureOverlay message handler for a Coordinator """
+import sys
 
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
@@ -18,7 +19,7 @@ class CoordinatorMessageHandler:
     def handleMessage(self,permid,message):
         t = message[0]
         if DEBUG:
-            print "helpcoord: Got",getMessageName(t)
+            print >> sys.stderr,"helpcoord: Got",getMessageName(t)
 #            get_logger().log(3, "connection: got RESERVE_PIECES")
 
         if t == RESERVE_PIECES:
@@ -43,7 +44,7 @@ class CoordinatorMessageHandler:
         ## a STOP_DOWNLOAD_HELP (again)
         if not c.is_helper_permid(permid):
             if DEBUG:
-                print "helpcoord: Ignoring RESERVE_PIECES from non-helper",show_permid(permid)
+                print >> sys.stderr,"helpcoord: Ignoring RESERVE_PIECES from non-helper",show_permid(permid)
             return False
 
         c.got_reserve_pieces(permid, pieces, all_or_nothing)

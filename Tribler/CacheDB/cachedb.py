@@ -1,3 +1,6 @@
+# Written by Jie Yang
+# see LICENSE.txt for license information
+
 """
 Database design
 Value in bracket is the default value
@@ -134,7 +137,7 @@ def open_db(filename, db_dir='', filetype=db.DB_BTREE):
     try:
         d = dbshelve.open(path, filetype=filetype)
     except Exception, msg:
-        print "cannot open dbshelve on", path, msg
+        print >> sys.stderr,"cachedb: cannot open dbshelve on", path, msg
         d = dbshelve.open(filename, filetype=filetype)
     return d
 

@@ -70,7 +70,7 @@ class IPInfo:
             except:
                 socket.setdefaulttimeout(timeout)
                 if DEBUG:
-                    print "ipinfo: getIPInfoByURL failed: cannot access", url
+                    print >> sys.stderr,"ipinfo: getIPInfoByURL failed: cannot access", url
                 raise Exception
                             
             return ip_info
@@ -89,7 +89,7 @@ class IPInfo:
                 ip_info = getIPInfoByURL(url)
             except Exception, message:
                 if DEBUG:
-                    print "ipinfo: getIPInfoByURL failed:", message
+                    print >> sys.stderr,"ipinfo: getIPInfoByURL failed:", message
                 return no_info
                 
             # Parse the ip_info string and translate it into a standard dict format
@@ -179,7 +179,7 @@ class IPInfo:
         
         # No method finds the ip, return the one which has the longest length
         if DEBUG:
-            print "ipinfo:",ip, "cannot be located"
+            print >> sys.stderr,"ipinfo:",ip, "cannot be located"
         maxlen = 0
         for info in ip_info:
             info_len = len(info)

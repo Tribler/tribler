@@ -24,6 +24,7 @@ from socket import inet_aton
 from traceback import print_exc, print_stack
 from threading import RLock, currentThread
 import copy
+import sys
 
 from Tribler.CacheDB.CacheDBHandler import PeerDBHandler
 from Tribler.Overlay.permid import show_permid
@@ -47,7 +48,7 @@ def validIP(ip):
         inet_aton(ip)
     except:
         if DEBUG:
-            print "invalid ip", ip
+            print >> sys.stderr,"invalid ip", ip
         return False
     return True
 
@@ -107,7 +108,7 @@ class OverlayTask:
                 
     def update(self):    # phase 2: overlay connection has been made; send msg now
         if DEBUG:
-            print "secover: task update", self.dns, self
+            print >> sys.stderr,"secover: task update", self.dns, self
         if self.hasExpired():
             return
         if self.callback:    # used by other task
@@ -143,19 +144,16 @@ class PermidOverlayTask:
         self.permid = permid
         self.dns = self.secure_overlay.findDNSByPermid(self.permid)    # first lookup overlay
         if not self.dns:    # then lookup local cache
-            if DEBUG:
-                print "secover: PermidOverlayTask: don't know dns for permid",show_permid(permid)
+            #if DEBUG:
+            #    print >> sys.stderr,"secover: PermidOverlayTask: don't know dns for permid",show_permid(permid)
             self.dns = self.findDNSFromCache()
         else:
-            if DEBUG:
-                print "secover: PermidOverlayTask: dns for permid is known",self.dns
+            #if DEBUG:
+            #    print >> sys.stderr,"secover: PermidOverlayTask: dns for permid is known",self.dns
+            pass
         if validDNS(self.dns):
-            if DEBUG:
-                print "secover: PermidOverlayTask: dns is valid"
             self.task = OverlayTask(secure_overlay, subject_manager, self.dns, message, timeout)
         else:
-            if DEBUG:
-                print "secover: PermidOverlayTask: dns is INVALID"
             self.task = None
         
     def findDNSFromCache(self):
@@ -175,13 +173,13 @@ class PermidOverlayTask:
         if self.dns:
             permid = self.secure_overlay.findPermidByDNS(self.dns)
 
-            if DEBUG:
-                print "secover: Think connecting to",show_permid(self.permid)," and connected to",show_permid(permid)
+            #if DEBUG:
+            #    print >> sys.stderr,"secover: Think connecting to",show_permid(self.permid)," and connected to",show_permid(permid)
 
             if self.permid == permid and self.task:
                 self.task.sendMessage()
             elif DEBUG and self.permid != permid:
-                print "secover: Connection established but permid's do not match!"
+                print >> sys.stderr,"secover: Connection established but permid's do not match!"
                         
 class Subject:
     """ A subject class in Observer Pattern """
@@ -196,19 +194,19 @@ class Subject:
         
     def notify(self):
         for observer in self.observers:
-            if DEBUG:
-                print "secover: subject", self.dns, "notifies observer", observer
+            #if DEBUG:
+            #    print >> sys.stderr,"secover: subject", self.dns, "notifies observer", observer
             observer.update()
             
     def attachObserver(self, observer):
         if observer not in self.observers:
             self.observers.append(observer)
-            if DEBUG:
-                print "secover: subject", self.dns, "attaches observer", self.observers
+            #if DEBUG:
+            #    print >> sys.stderr,"secover: subject", self.dns, "attaches observer", self.observers
         
     def detachObserver(self, observer):
-        if DEBUG:
-            print "secover: subject", self.dns, "detaches observer", observer
+        #if DEBUG:
+        #    print >> sys.stderr,"secover: subject", self.dns, "detaches observer", observer
         self.observers.remove(observer)
         if self.isEmpty():
             self.subject_manager.unregisterSubject(self.dns)
@@ -221,14 +219,14 @@ class SubjectManager:
         self.subjects = {}    # (ip,port): Subject
     
     def registerSubject(self, dns):
-        if DEBUG:
-            print "secover: register subject", dns
+        #if DEBUG:
+        #    print >> sys.stderr,"secover: register subject", dns
         if not self.subjects.has_key(dns):
             self.subjects[dns] = Subject(dns, self)
                 
     def unregisterSubject(self, dns):
-        if DEBUG:
-            print "secover: unregister subject", dns
+        #if DEBUG:
+        #    print >> sys.stderr,"secover: unregister subject", dns
         if self.subjects[dns].isEmpty():
             self.subjects.pop(dns)
     
@@ -237,8 +235,8 @@ class SubjectManager:
         return self.subjects[dns]        
             
     def notifySubject(self, dns):    # notify the connection is made
-        if DEBUG:
-            print "secover: notify subject", dns
+        #if DEBUG:
+        #    print >> sys.stderr,"secover: notify subject", dns
         if dns and self.subjects.has_key(dns):
             subject = self.subjects[dns]
             subject.notify()
@@ -253,7 +251,7 @@ class IncomingMessageHandler:
     def registerHandler(self, ids, handler):
         for id in ids:
             if DEBUG:
-                print "secover: Handler registered for",getMessageName(id)
+                print >> sys.stderr,"secover: Handler registered for",getMessageName(id)
             self.handlers[id] = handler
         
     def handleMessage(self, permid, message):    # connection is type of Conneter.Connection 
@@ -261,11 +259,11 @@ class IncomingMessageHandler:
         handled = False
         if not self.handlers.has_key(id):
             if DEBUG:
-                print "secover: No handler found for",getMessageName(id)
+                print >> sys.stderr,"secover: No handler found for",getMessageName(id)
             return False
         else:
-            if DEBUG:
-                print "secover: Giving message to handler for",getMessageName(id)
+            #if DEBUG:
+            #    print >> sys.stderr,"secover: Giving message to handler for",getMessageName(id)
             self.handlers[id].handleMessage(permid, message)
             return True
 
@@ -318,11 +316,11 @@ class SecureOverlay:
             #self._closeConnection(permid) # don't work due to recursion prob
             if expired:
                 if DEBUG:
-                    print "secover: closing expired connection to",show_permid(permid)
+                    print >> sys.stderr,"secover: closing expired connection to",show_permid(permid)
                 conn.close()
             try:
                 if DEBUG:
-                    print "secover: removing connection to",show_permid(permid)
+                    print >> sys.stderr,"secover: removing connection to",show_permid(permid)
                 self.connection_list.pop(permid)
             except:
                 pass
@@ -375,7 +373,7 @@ class SecureOverlay:
                     else:
                         msg = getMessageName(message[0])
                     msg += ' '+currentThread().getName()
-                    print "secover: add PermidOverlayTask", msg
+                    print >> sys.stderr,"secover: add PermidOverlayTask", msg
                 task = PermidOverlayTask(self, self.subject_manager, target, message, timeout)
             elif validDNS(target):
                 if DEBUG:
@@ -384,7 +382,7 @@ class SecureOverlay:
                     else:
                         msg = getMessageName(message[0])
                     msg += ' '+currentThread().getName()
-                    print "secover: add OverlayTask", msg
+                    print >> sys.stderr,"secover: add OverlayTask", msg
                 task = OverlayTask(self, self.subject_manager, target, message, timeout)
             else:
                 self.release() 
@@ -393,8 +391,8 @@ class SecureOverlay:
                 ## Arno: I don't see the need for letting the rawserver do it.
                 ## Except that it potentially avoids a concurrency problem of
                 ## multiple threads writing to the same socket.
-                if DEBUG:
-                    print "secover: addTask, adding task to rawserver",currentThread().getName()
+                #if DEBUG:
+                #    print >> sys.stderr,"secover: addTask, adding task to rawserver",currentThread().getName()
                 self.overlayswarm.rawserver.add_task(task.start, 0)
                 ##task.start()
         except Exception,e:
@@ -405,7 +403,7 @@ class SecureOverlay:
     def connectionMade(self, connection):    # OverlayConnecter.Connection
         self.acquire()
         if DEBUG:
-            print "secover: ***** secure overlay connection made *****", connection.get_ip()
+            print >> sys.stderr,"secover: ***** secure overlay connection made *****", connection.get_ip()
         #TODO: schedule it on rawserver task queue?
         dns = self._addConnection(connection)
         if dns:
@@ -415,7 +413,7 @@ class SecureOverlay:
         buddycast = BuddyCast.getInstance()
         if buddycast.is_registered():
             if DEBUG:
-                print "secover: starting BUDDYCAST"
+                print >> sys.stderr,"secover: starting BUDDYCAST"
             buddycast.exchangePreference(connection.permid)
 
         self.release()    
@@ -425,7 +423,7 @@ class SecureOverlay:
         permid = connection.permid
         auth_listen_port = connection.get_auth_listen_port()
         if DEBUG:
-            print "secover: add connection in secure overlay", dns, "auth listen port", auth_listen_port
+            print >> sys.stderr,"secover: add connection in secure overlay", dns, "auth listen port", auth_listen_port
         #
         # Arno: if DNS is none, this is an incoming connection from another
         # peer. We cannot enter this connection into the table because we don't
@@ -439,7 +437,7 @@ class SecureOverlay:
         else:
             if dns[1] != auth_listen_port:
                 if DEBUG:
-                    print "secover: WARNING given listen port not equal to authenticated one"
+                    print >> sys.stderr,"secover: WARNING given listen port not equal to authenticated one"
 
         if validPermid(permid) and validDNS(dns):
             if self.connection_list.has_key(permid):
@@ -448,7 +446,7 @@ class SecureOverlay:
                 # has finished, we'll end up with two connections. In that
                 # case we drop the last one established.
                 if DEBUG:
-                    print "secover: dropping superfluous double connection to",show_permid(permid)
+                    print >> sys.stderr,"secover: dropping superfluous double connection to",show_permid(permid)
                 connection.close()
                 # Don't stop
                 return dns
@@ -457,12 +455,12 @@ class SecureOverlay:
             expire = int(time() + self.timeout)
             self.connection_list[permid] = {'c_conn':connection, 'dns':dns, 'expire':expire}
             peer_cache = PeerDBHandler()
-            #print "secover: permid received is",show_permid(permid)
+            #print >> sys.stderr,"secover: permid received is",show_permid(permid)
             #x = peer_cache.getPeer(permid)
-            #print "secover: old peer is",x
+            #print >> sys.stderr,"secover: old peer is",x
             peer_cache.updatePeerIPPort(permid, dns[0], dns[1])
             #y = peer_cache.getPeer(permid)
-            #print "secover: new peer is",y
+            #print >> sys.stderr,"secover: new peer is",y
             return dns
         return None
         
@@ -476,10 +474,10 @@ class SecureOverlay:
         permid = connection.permid
         self.acquire()
         if DEBUG:
-            print "secover: ***** secure overlay connection lost *****", connection.get_ip()
+            print >> sys.stderr,"secover: ***** secure overlay connection lost *****", connection.get_ip()
         if self.connection_list.has_key(permid):
             if DEBUG:
-                print "secover: removing lost connection from admin"
+                print >> sys.stderr,"secover: removing lost connection from admin"
             dns = self.connection_list[permid]['dns']
             del self.connection_list[permid]
             # TODO: remove subject?
@@ -512,13 +510,13 @@ class SecureOverlay:
         self.release()
 
     def acquire(self):
-        if DEBUG:
-            print "secover: LOCK",currentThread().getName()
+        #if DEBUG:
+        #    print >> sys.stderr,"secover: LOCK",currentThread().getName()
         self.lock.acquire()
         
     def release(self):
-        if DEBUG:
-            print "secover: UNLOCK",currentThread().getName()
+        #if DEBUG:
+        #    print >> sys.stderr,"secover: UNLOCK",currentThread().getName()
         self.lock.release()
 
 

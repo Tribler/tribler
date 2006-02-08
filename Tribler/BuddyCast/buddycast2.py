@@ -1,3 +1,7 @@
+# Written by Jun Wang, Jie Yang
+# see LICENSE.txt for license information
+import sys
+
 from Tribler.CacheDB.CacheDBHandler import *
 from Tribler.__init__ import GLOBAL
 from BitTornado.bencode import bencode, bdecode
@@ -35,7 +39,7 @@ class RandomPeer:
         self.updatePeerDB()
                      
     def updatePeerDB(self):
-        #print "***add peer db:", self.permid, self.data
+        #print >> sys.stderr,"***add peer db:", self.permid, self.data
         self.peer_db.addPeer(self.permid, self.data)
          
          
@@ -68,11 +72,11 @@ class TasteBuddy(RandomPeer):
         
         self.similarity = getSimilarity(100)
         self.data['similarity'] = self.similarity
-        #print "***add peer db:", self.permid, self.data
+        #print >> sys.stderr,"***add peer db:", self.permid, self.data
         self.peer_db.addPeer(self.permid, self.data)
         
     def updateTorrentDB(self):
-        #print "^^^add torrent db:", self.prefs
+        #print >> sys.stderr,"^^^add torrent db:", self.prefs
         for t in self.prefs:
             self.torrent_db.addTorrent(t)
             
@@ -151,7 +155,7 @@ class BuddyCast:
         return self.registered
     
     def startup(self):
-        print "buddycast starts up"
+        print >> sys.stderr,"buddycast starts up"
         
     def gotPrefxchg(self, msg):
         try:

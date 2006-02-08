@@ -9,7 +9,7 @@ from traceback import print_exc
 from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
 from managefriends import FriendList, createImageList
 
-DEBUG = True
+DEBUG = False
 
 
 ################################################################
@@ -46,8 +46,8 @@ class DownloadHelperPanel(wx.Panel):
         helpingFriends = self.coordinator.get_asked_helpers_copy()
 
         if DEBUG:
-            print "dlhelperframe: friends is",friends
-            print "dlhelperframe: helping friends is",helpingFriends
+            print >> sys.stderr,"dlhelperframe: friends is",friends
+            print >> sys.stderr,"dlhelperframe: helping friends is",helpingFriends
 
         # 1. Create list of images of all friends
         type = wx.LC_LIST
@@ -153,7 +153,7 @@ class DownloadHelperPanel(wx.Panel):
         remainingFriends = self.leftListCtl.getFriends()
 
         if DEBUG:
-            print "dlhelperframe: before exec: remaining friends is",remainingFriends
-            print "dlhelperframe: before exec: helping friends is",helpingFriends
+            print >> sys.stderr,"dlhelperframe: before exec: remaining friends is",remainingFriends
+            print >> sys.stderr,"dlhelperframe: before exec: helping friends is",helpingFriends
         self.coordinator.stop_help(remainingFriends, force = False)
         self.coordinator.request_help(helpingFriends, force = False)

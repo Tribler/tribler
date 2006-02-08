@@ -1,3 +1,6 @@
+# Written by Jie Yang
+# see LICENSE.txt for license information
+
 from socket import inet_aton 
 
 permid_len = 0  #112

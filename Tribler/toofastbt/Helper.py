@@ -1,7 +1,7 @@
 # Written by Pawel Garbacki
 # see LICENSE.txt for license information
 
-from sys import exc_info, exit
+import sys
 from traceback import print_exc, print_stack
 from time import time
 
@@ -51,8 +51,8 @@ class Helper:
 
     def test(self):
         result = self.reserve_piece(10)
-        print "reserve piece returned: " + str(result)
-        print "Test passed"
+        print >> sys.stderr,"reserve piece returned: " + str(result)
+        print >> sys.stderr,"Test passed"
 
     def _reserve_piece(self, piece):
         self.reserved_pieces[piece] = True
@@ -98,8 +98,6 @@ class Helper:
         return self.completed
 
     def reserve_pieces(self, pieces, sdownload, all_or_nothing = False):
-        if DEBUG:
-            print "helper: reserve_pieces: Want to reserve",pieces
         pieces_to_send = []
         ex = "None"
         result = []
@@ -109,8 +107,8 @@ class Helper:
             elif not self.is_ignored(piece):
                 pieces_to_send.append(piece)
 
-        if DEBUG:
-            print "helper: reserve_pieces: result is",result,"to_send is",pieces_to_send
+        #if DEBUG:
+        #    print >> sys.stderr,"helper: reserve_pieces: result is",result,"to_send is",pieces_to_send
 
         if pieces_to_send == []:
             return result
@@ -147,11 +145,9 @@ class Helper:
             piece with the coordinator. If it's the first, send the
             actual reservation request.
         """
-        if DEBUG:
-            print "helper: Sending or queuing reservation"
         if sdownload not in self.continuations:
             if DEBUG:
-                print "helper: Queuing reservation"
+                print >> sys.stderr,"helper: Queuing reservation for",pieces_to_send
             self.continuations.append(sdownload)
             sdownload.helper_set_freezing(True)
         if len(self.continuations) > 0:
@@ -167,9 +163,9 @@ class Helper:
             self.last_req_time = int(time())
             if DEBUG:
                 if self.outstanding is None:
-                    print "helper: Sending reservation because none"
+                    print >> sys.stderr,"helper: Sending reservation for",pieces_to_send,"because none"
                 else:
-                    print "helper: Sending reservation because timeout"
+                    print >> sys.stderr,"helper: Sending reservation for",pieces_to_send,"because timeout"
             sdownload = self.continuations.pop(0)
             self.outstanding = sdownload            
             ex = "self.send_reserve_pieces(pieces_to_send)"
@@ -182,10 +178,10 @@ class Helper:
         """
         if self.outstanding is None:
             if DEBUG:
-                print "helper: notify: No continuation waiting???"
+                print >> sys.stderr,"helper: notify: No continuation waiting???"
         else:
             if DEBUG:
-                print "helper: notify: Waking downloader"
+                print >> sys.stderr,"helper: notify: Waking downloader"
             sdownload = self.outstanding
             self.outstanding = None # must be not before calling self.restart!
             self.restart(sdownload)
@@ -221,27 +217,23 @@ class Helper:
 
     def handle_pieces_reserved(self,pieces):
         if DEBUG:
-            print "helper: Coordinator replied",pieces
+            print >> sys.stderr,"helper: Coordinator replied",pieces
         try:
             for piece in pieces:
                 if piece > 0:
-                    if DEBUG:
-                        print "helper: COORDINATOR LET US RESERVE",piece
                     self._reserve_piece(piece)
                 else:
-                    if DEBUG:
-                        print "helper: COORDINATOR SAYS IGNORE",-piece
                     self._ignore_piece(-piece)
             self.counter -= 1
 
         except Exception,e:
             print_exc()
-            print "helper: Exception in handle_pieces_reserved",e
+            print >> sys.stderr,"helper: Exception in handle_pieces_reserved",e
 
     def start_data_connection(self):
         # Do this always, will return quickly when connection already exists
         dns = (self.coordinator_ip, self.coordinator_port)
         if DEBUG:
-            print "helper: Starting data connection to coordinator",dns
+            print >> sys.stderr,"helper: Starting data connection to coordinator",dns
         self.encoder.start_connection(dns,id = None,coord_con = True)
       

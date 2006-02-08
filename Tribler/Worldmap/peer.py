@@ -16,7 +16,7 @@ class MyPeer:
         self.ip = str(socket.gethostbyname(socket.gethostname()))
         self.ip_info = IPInfo.lookupIPInfo(self.ip)
         self.display = False
-        print "create my peer"
+        #print "create my peer"
 
     def updateStatistics(self, statistics):
         self.statistics = statistics

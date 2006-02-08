@@ -456,8 +456,8 @@ class ABCTorrent:
 
         if DEBUG:
             if threading.currentThread().getName() != "MainThread":
-                print "abctorrent: updateColumns thread",threading.currentThread()
-                print "abctorrent: NOT MAIN THREAD"
+                print >> sys.stderr,"abctorrent: updateColumns thread",threading.currentThread()
+                print >> sys.stderr,"abctorrent: NOT MAIN THREAD"
                 print_stack()
 
         if columnlist is None:
@@ -492,7 +492,7 @@ class ABCTorrent:
                     self.list.SetStringItem(self.listindex, rank, text)
                     
         except wx.PyDeadObjectError, msg:
-            print "error updateColumns:", msg
+            print >> sys.stderr,"error updateColumns:", msg
             pass
                
     #
@@ -512,11 +512,10 @@ class ABCTorrent:
 
         if DEBUG:
             if threading.currentThread().getName() != "MainThread":
-                print "abctorrent: updateColour thread",threading.currentThread()
-                print "colour NOT MAIN THREAD"
+                print >> sys.stderr,"abctorrent: updateColour thread",threading.currentThread()
+                print >> sys.stderr,"colour NOT MAIN THREAD"
                 print_stack()
 
-#        print "<<< enter updateColor"
         # Don't do anything if ABC is shutting down
         if self.status.dontupdate:
             return
@@ -524,8 +523,6 @@ class ABCTorrent:
         # Don't update display while minimized/shutting down
         if not self.utility.frame.GUIupdate:
             return
-        
-#        print "updateColor 1"
         
         colorString = None
         if self.connection.engine is not None:
@@ -536,8 +533,6 @@ class ABCTorrent:
         
         color = self.utility.config.Read(colorString, "color")
                     
-#        print "updateColor 2"
-        
         # Update color            
         if (self.utility.config.Read('stripedlist', "boolean")) and (self.listindex % 2):
             bgcolor = self.utility.config.Read('color_stripe', "color")
@@ -545,8 +540,6 @@ class ABCTorrent:
             # Use system specified background:
             bgcolor = wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOW)
 
- #       print "updateColor 3"
-        
         # Only update the color if it has changed
         # (or if the force flag is set to True)
         if (force
@@ -556,24 +549,17 @@ class ABCTorrent:
             or color != self.color['text']):
             
             try:
-#                print "updateColor 4"
                 item = self.list.GetItem(self.listindex)
-#                print "updateColor 5"
                 item.SetTextColour(color)
-#                print "updateColor 6"
                 item.SetBackgroundColour(bgcolor)
-#                print "updateColor 7"
                 self.list.SetItem(item)
-#                print "updateColor 8"
                 
                 self.color['text'] = color
                 self.color['bgcolor'] = bgcolor
             except:
-#                print "updateColor except error"
                 self.color['text'] = None
                 self.color['bgcolor'] = None
                 
-#        print ">>> leave updateColor"
 
     #
     # Update the fields that change frequently
@@ -582,8 +568,8 @@ class ABCTorrent:
     def updateSingleItemStatus(self):
 
         if threading.currentThread().getName() != "MainThread":
-            print "abctorrent: updateSingleItem thread",threading.currentThread()
-            print "abctorrent: NOT MAIN THREAD"
+            print >> sys.stderr,"abctorrent: updateSingleItem thread",threading.currentThread()
+            print >> sys.stderr,"abctorrent: NOT MAIN THREAD"
             print_stack()
 
 
@@ -649,8 +635,8 @@ class ABCTorrent:
     def updateScrapeData(self, newpeer, newseed, message = ""):
 
         if threading.currentThread().getName() != "MainThread":
-            print "abctorrent: updateScrapeData thread",threading.currentThread()
-            print "abctorrent: NOT MAIN THREAD"
+            print >> sys.stderr,"abctorrent: updateScrapeData thread",threading.currentThread()
+            print >> sys.stderr,"abctorrent: NOT MAIN THREAD"
             print_stack()
 
 
@@ -659,7 +645,8 @@ class ABCTorrent:
         self.totalseeds = newseed
         self.updateColumns([COL_SEEDS, COL_PEERS])
         if message != "":
-            print "message: " + message
+            if DEBUG:
+                print >> sys.stderr,"message: " + message
             
             if message == self.utility.lang.get('scraping'):
                 msgtype = "status"
@@ -686,8 +673,8 @@ class ABCTorrent:
     def changeMessage(self, message = "", type = "clear"):       
 
         if threading.currentThread().getName() != "MainThread":
-            print "abctorrent: updateScrapeData thread",threading.currentThread()
-            print "abctorrent: NOT MAIN THREAD"
+            print >> sys.stderr,"abctorrent: updateScrapeData thread",threading.currentThread()
+            print >> sys.stderr,"abctorrent: NOT MAIN THREAD"
             print_stack()
 
 
@@ -791,6 +778,6 @@ class ABCTorrent:
                 except:
                     pass
                 self.files.removeFiles()
-                ##self.utility.torrents["all"].remove(self)        
+                self.utility.torrents["all"].remove(self)        
 
         del self.utility.torrents["inactive"][self]

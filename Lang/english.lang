@@ -23,7 +23,7 @@ translate = ""
 
 # All ABC Variables
 #######################
-title = "ABC_Tribler [The Social Bittorrent Client]"
+title = "Tribler [The Social-Based ABC Client]"
 
 superseederrornotcompleted = "Super-seed can only be enabled for completed torrents"
 superseedmustruntorrentbefore = "This torrent must be running before using Super-Seed mode"

@@ -1,11 +1,11 @@
 # Written by Jie Yang
 # see LICENSE.txt for license information
+import sys
+import md5
+from traceback import print_exc
 
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
-
-import md5
-from traceback import print_exc
 
 # Python no recursive imports?
 # from overlayswarm import overlay_infohash
@@ -42,15 +42,15 @@ class MetadataHandler:
         
         if t == GET_METADATA:
             if DEBUG:
-                print "metadata: Got GET_METADATA",len(message)
+                print >> sys.stderr,"metadata: Got GET_METADATA",len(message)
             return self.send_metadata(permid, message)
         elif t == METADATA:
             if DEBUG:
-                print "metadata: Got METADATA",len(message)
+                print >> sys.stderr,"metadata: Got METADATA",len(message)
             return self.got_metadata(permid, message)
         else:
             if DEBUG:
-                print "metadata: UNKNOWN OVERLAY MESSAGE", ord(t)
+                print >> sys.stderr,"metadata: UNKNOWN OVERLAY MESSAGE", ord(t)
             return False
 
     def request_metadata(self, torrent_hash):
@@ -58,7 +58,7 @@ class MetadataHandler:
         #       select a peer according to its upload speed. 
         #       Request another peer if the previous one failed
         if DEBUG:
-            print "Request metadata", torrent_hash
+            print >> sys.stderr,"Request metadata", torrent_hash
 
 
     def send_metadata_request(self, permid, torrent_hash):
@@ -117,14 +117,14 @@ class MetadataHandler:
             if torrent_size > Max_Torrent_Size:
                 return None
             if DEBUG:
-                print "metadata: sending torrent", torrent_size, md5.new(torrent_data).hexdigest()
+                print >> sys.stderr,"metadata: sending torrent", torrent_size, md5.new(torrent_data).hexdigest()
             return torrent_data
         except:
             return None
 
     def save_torrent(self, torrent_hash, metadata):
         if DEBUG:
-            print "metadata: Store torrent", torrent_hash, "on disk"
+            print >> sys.stderr,"metadata: Store torrent", torrent_hash, "on disk"
         torrent_path = '.'
         return torrent_path
 
@@ -145,7 +145,7 @@ class MetadataHandler:
                 raise RuntimeError, "md5 sum check failed"
             if DEBUG:
                 torrent_size = len(metadata)
-                print "metadata: Recvd torrent", torrent_size, md5.new(metadata).hexdigest()
+                print >> sys.stderr,"metadata: Recvd torrent", torrent_size, md5.new(metadata).hexdigest()
             if not metadata:
                 #TODO: try another candidate. If failed, stop requesting this torrent
                 return False
@@ -155,7 +155,7 @@ class MetadataHandler:
                     self.dlhelper.call_dlhelp_task(torrent_hash, metadata)
         except Exception, msg:
             print_exc()
-            print "metadata: Received metadata is broken", msg
+            print >> sys.stderr,"metadata: Received metadata is broken", msg
             return False
         
         return True

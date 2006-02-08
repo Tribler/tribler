@@ -6,10 +6,10 @@ from shutil import copy, move
 from Dialogs.aboutme import AboutMeDialog, VersionDialog
 from Dialogs.abcoption import ABCOptionDialog
 from Dialogs.localupload import LocalSettingDialog
-from Dialogs.abcbuddyframe import ABCBuddyFrame
-from Dialogs.abcfileframe import ABCFileFrame
-from Dialogs.managefriends import ManageFriendsDialog
-from Dialogs.managefriends import MyInfoDialog
+from Tribler.Dialogs.abcbuddyframe import ABCBuddyFrame
+from Tribler.Dialogs.abcfileframe import ABCFileFrame
+from Tribler.Dialogs.managefriends import ManageFriendsDialog
+from Tribler.Dialogs.managefriends import MyInfoDialog
 from webservice import WebDialog
 
 from Utility.helpers import stopTorrentsIfNeeded

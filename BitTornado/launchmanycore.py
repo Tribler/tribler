@@ -44,7 +44,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = True
+DEBUG = False
 
 def fmttime(n):
     try:
@@ -102,7 +102,7 @@ class SingleDownload:
     def saveAs(self, name, length, saveas, isdir):
         name = self.controller.saveAs(self.hash, name, saveas, isdir)
         if DEBUG:
-            print "SingleDownload: saveAs name is",name
+            print >> sys.stderr,"SingleDownload: saveAs name is",name
         return name
 
     def hashcheck_start(self, donefunc):
@@ -220,7 +220,7 @@ class LaunchMany:
                                     ipv6_socket_style = config['ipv6_binds_v4'], 
                                     upnp = upnp_type, randomizer = config['random_port'])
                     if DEBUG:
-                        print "BitTornado/launchmany: Got listen port", self.listen_port
+                        print >> sys.stderr,"BitTornado/launchmany: Got listen port", self.listen_port
                     break
                 except socketerror, e:
                     if upnp_type and e == UPnP_ERROR:
@@ -296,11 +296,11 @@ class LaunchMany:
                      return_metainfo = True, errfunc = self.Output.message)
 
         if DEBUG:
-            print "Torrent cache len: ", len(self.torrent_cache)
+            print >> sys.stderr,"Torrent cache len: ", len(self.torrent_cache)
         ( self.torrent_cache, self.file_cache, self.blocked_files,
             added, removed ) = r
         if DEBUG:
-            print "Torrent cache len: ", len(self.torrent_cache), len(added), len(removed)
+            print >> sys.stderr,"Torrent cache len: ", len(self.torrent_cache), len(added), len(removed)
         for hash, data in removed.items():
             self.Output.message('dropped "'+data['path']+'"')
             self.remove(hash)
@@ -379,7 +379,7 @@ class LaunchMany:
             
     def remove(self, hash):
         if DEBUG:
-            print "BitTornado/launchmany: STOP_DOWNLOAD_HELP not supported in text-mode!"
+            print >> sys.stderr,"BitTornado/launchmany: STOP_DOWNLOAD_HELP not supported in text-mode!"
         #self.torrent_list.remove(hash)
         #self.downloads[hash].shutdown()
         #del self.downloads[hash]
@@ -387,7 +387,7 @@ class LaunchMany:
     def add(self, hash, data):
         
         if DEBUG:
-            print "BitTornado/launchmany: Adding torrent"
+            print >> sys.stderr,"BitTornado/launchmany: Adding torrent"
         ## ARNO: HACK 
         self.arno_file_cache[hash] = data
 

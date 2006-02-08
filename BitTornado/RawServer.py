@@ -20,7 +20,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = True
+DEBUG = False
 
 def autodetect_ipv6():
     try:
@@ -137,7 +137,7 @@ class RawServer:
                     events = self.sockethandler.do_poll(period)
                     if self.doneflag.isSet():
                         if DEBUG:
-                            print "rawserver: stopping because done flag set"
+                            print >> sys.stderr,"rawserver: stopping because done flag set"
                         return
                     while self.funcs and self.funcs[0][0] <= clock():
                         garbage1, func, id = self.funcs.pop(0)
@@ -147,7 +147,7 @@ class RawServer:
 #                            print func.func_name
                             if DEBUG:
                                 if func.func_name != "_bgalloc":
-                                    print "RawServer: calling (not bgalloc)",func.func_name
+                                    print >> sys.stderr,"RawServer: calling (not bgalloc)",func.func_name
                             func()
                         except (SystemError, MemoryError), e:
                             self.failfunc(str(e))
@@ -157,11 +157,11 @@ class RawServer:
                             return
                         except error:
                             if DEBUG:
-                                print "rawserver: func: ERROR exception"
+                                print >> sys.stderr,"rawserver: func: ERROR exception"
                                 print_exc()
                         except:
                             if DEBUG:
-                                print "rawserver: func: any exception"
+                                print >> sys.stderr,"rawserver: func: any exception"
                                 print_exc()
                             if self.noisy:
                                 self.exception()
@@ -169,17 +169,17 @@ class RawServer:
                     self.sockethandler.handle_events(events)
                     if self.doneflag.isSet():
                         if DEBUG:
-                            print "rawserver: stopping because done flag set2"
+                            print >> sys.stderr,"rawserver: stopping because done flag set2"
                         return
                     self.sockethandler.close_dead()
                 except (SystemError, MemoryError), e:
                     if DEBUG:
-                        print "rawserver: SYS/MEM exception",e
+                        print >> sys.stderr,"rawserver: SYS/MEM exception",e
                     self.failfunc(str(e))
                     return
                 except error:
                     if DEBUG:
-                        print "rawserver: ERROR exception"
+                        print >> sys.stderr,"rawserver: ERROR exception"
                         print_exc()
                     if self.doneflag.isSet():
                         return
@@ -188,12 +188,12 @@ class RawServer:
                     return
                 except:
                     if DEBUG:
-                        print "rawserver: other exception"
+                        print >> sys.stderr,"rawserver: other exception"
                         print_exc()
                     self.exception()
                 ## Arno: Don't stop till we drop
                 ##if self.exccount > 10:
-                ##    print "rawserver: stopping because exccount > 10"
+                ##    print >> sys.stderr,"rawserver: stopping because exccount > 10"
                 ##    return
         finally:
 #            self.sockethandler.shutdown()

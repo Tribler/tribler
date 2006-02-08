@@ -1,8 +1,7 @@
 # Written by Jie Yang
 # see LICENSE.txt for license information
-
+import sys
 from threading import Event,currentThread
-
 from sha import sha
 from time import time
 from struct import pack
@@ -99,7 +98,7 @@ class OverlaySwarm:
         """ Connect to Overlay Socket given peer's ip and port """
         
         if DEBUG:
-            print "overlay: Start overlay swarm connection to", dns
+            print >> sys.stderr,"overlay: Start overlay swarm connection to", dns
         if TEST:
             class Conn:
                 def __init__(self, dns):
@@ -107,12 +106,12 @@ class OverlaySwarm:
                     self.permid = 'permid1'
                     self.closed = False
                 def close(self):
-                    print "connection closed"
+                    print >> sys.stderr,"connection closed"
                     self.closed = True
                     
             conn = Conn(dns)
             from time import sleep
-            print "    waiting connection ..."
+            print >> sys.stderr,"    waiting connection ..."
             sleep(3)
             self.permidSocketMade(conn)
         else:
@@ -120,14 +119,14 @@ class OverlaySwarm:
             
     def sendMessage(self, connection, message):
         if DEBUG:
-            print "overlay: send message", getMessageName(message[0]), "to",show_permid(connection.permid)
+            print >> sys.stderr,"overlay: send message", getMessageName(message[0]), "to",show_permid(connection.permid)
         connection.send_message(message)
 
     def connectionMade(self, connection):
         """ phase 1: Connecter.Connection is created but permid has not been verified """
 
         if DEBUG:
-            print "overlay: Bare connection",connection.get_myip(),connection.get_myport(),"to",connection.get_ip(),connection.get_port(),"reported by thread",currentThread().getName()
+            print >> sys.stderr,"overlay: Bare connection",connection.get_myip(),connection.get_myport(),"to",connection.get_ip(),connection.get_port(),"reported by thread",currentThread().getName()
         
 
         def c(conn = connection):
@@ -152,7 +151,7 @@ class OverlaySwarm:
                 
     def connectionLost(self,connection):
         if DEBUG:
-            print "overlay: connectionLost: connection is",connection.get_ip(),connection.get_port()
+            print >> sys.stderr,"overlay: connectionLost: connection is",connection.get_ip(),connection.get_port()
         if connection.permid is None:
             # No permid, so it was never reported to the SecureOverlay
             return
@@ -164,7 +163,7 @@ class OverlaySwarm:
         """ Handle message for overlay swarm and return if the message is valid """
 
         if DEBUG:
-            print "overlay: Got",getMessageName(message[0]),len(message)
+            print >> sys.stderr,"overlay: Got",getMessageName(message[0]),len(message)
         
         if not conn:
             return False

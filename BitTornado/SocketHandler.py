@@ -184,7 +184,7 @@ class SocketHandler:
         for k in tokill:
             if k.socket is not None:
                 if DEBUG:
-                    print "SocketHandler: scan_timeout closing connection",k.get_ip()
+                    print >> sys.stderr,"SocketHandler: scan_timeout closing connection",k.get_ip()
                 self._close_socket(k)
 
     def bind(self, port, bind = '', reuse = False, ipv6_socket_style = 1, upnp = 0):
@@ -219,13 +219,13 @@ class SocketHandler:
                     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 server.setblocking(0)
                 if DEBUG:
-                    print "SocketHandler: Try to bind socket on", addrinfo[4], "..."
+                    print >> sys.stderr,"SocketHandler: Try to bind socket on", addrinfo[4], "..."
                 server.bind(addrinfo[4])
                 self.servers[server.fileno()] = server
                 if bind:
                     self.interfaces.append(server.getsockname()[0])
                 if DEBUG:
-                    print "SocketHandler: OK"
+                    print >> sys.stderr,"SocketHandler: OK"
                 server.listen(64)
                 self.poll.register(server, POLLIN)
             except socket.error, e:
@@ -298,17 +298,17 @@ class SocketHandler:
             sock.connect_ex(dns)
         except socket.error, e:
             if DEBUG:
-                print "SocketHandler: SocketError in connect_ex",str(e)
+                print >> sys.stderr,"SocketHandler: SocketError in connect_ex",str(e)
             raise
         except Exception, e:
             if DEBUG:
-                print "SocketHandler: Exception in connect_ex",str(e)      
+                print >> sys.stderr,"SocketHandler: Exception in connect_ex",str(e)      
             raise socket.error(str(e))
         self.poll.register(sock, POLLIN)
         s = SingleSocket(self, sock, handler, dns[0])    # create socket to connect the peers obtained from tracker
         self.single_sockets[sock.fileno()] = s
-        if DEBUG:
-            print "SocketHandler: Created Socket"
+        #if DEBUG:
+        #    print >> sys.stderr,"SocketHandler: Created Socket"
         return s
 
 
@@ -351,7 +351,7 @@ class SocketHandler:
             if s:
                 if event & (POLLHUP | POLLERR) != 0:
                     if DEBUG:
-                        print "SocketHandler: Got event, close server socket"
+                        print >> sys.stderr,"SocketHandler: Got event, close server socket"
                     self.poll.unregister(s)
                     s.close()
                     del self.servers[sock]
@@ -359,7 +359,7 @@ class SocketHandler:
                     try:
                         newsock, addr = s.accept()
                         if DEBUG:
-                            print "SocketHandler: Got connection from",newsock.getpeername()
+                            print >> sys.stderr,"SocketHandler: Got connection from",newsock.getpeername()
                         newsock.setblocking(0)
                         nss = SingleSocket(self, newsock, self.handler)    # create socket for incoming peers and tracker
                         self.single_sockets[newsock.fileno()] = nss
@@ -367,7 +367,7 @@ class SocketHandler:
                         self.handler.external_connection_made(nss)
                     except socket.error,e:
                         if DEBUG:
-                            print "SocketHandler: SocketError while accepting new connection",str(e)
+                            print >> sys.stderr,"SocketHandler: SocketError while accepting new connection",str(e)
                         self._sleep()
 # 2fastbt_
                 else:
@@ -380,7 +380,7 @@ class SocketHandler:
                 s.connected = True
                 if (event & (POLLHUP | POLLERR)):
                     if DEBUG:
-                        print "SocketHandler: Got event, connect socket got error"
+                        print >> sys.stderr,"SocketHandler: Got event, connect socket got error"
                     self._close_socket(s)
                     continue
                 if (event & POLLIN):
@@ -389,18 +389,18 @@ class SocketHandler:
                         data = s.socket.recv(100000)
                         if not data:
                             if DEBUG:
-                                print "SocketHandler: no-data closing connection",s.get_ip(),s.get_port()
+                                print >> sys.stderr,"SocketHandler: no-data closing connection",s.get_ip(),s.get_port()
                             self._close_socket(s)
                         else:
                             # btlaunchmany: NewSocketHandler, btdownloadheadless: Encrypter.Connection
                             s.handler.data_came_in(s, data)
                     except socket.error, e:
                         if DEBUG:
-                            print "SocketHandler: Socket error",str(e)
+                            print >> sys.stderr,"SocketHandler: Socket error",str(e)
                         code, msg = e
                         if code != EWOULDBLOCK:
                             if DEBUG:
-                                print "SocketHandler: not WOULDBLOCK closing connection",s.get_ip()
+                                print >> sys.stderr,"SocketHandler: closing connection because not WOULDBLOCK",s.get_ip()
                             self._close_socket(s)
                             continue
                 if (event & POLLOUT) and s.socket and not s.is_flushed():
@@ -415,12 +415,12 @@ class SocketHandler:
             for s in old:
                 if s.socket:
                     if DEBUG:
-                        print "SocketHandler: close_dead closing connection",s.get_ip()
+                        print >> sys.stderr,"SocketHandler: close_dead closing connection",s.get_ip()
                     self._close_socket(s)
 
     def _close_socket(self, s):
         if DEBUG:
-            print "SocketHandler: closing connection to ",s.get_ip()
+            print >> sys.stderr,"SocketHandler: closing connection to ",s.get_ip()
         s.close()
         s.handler.connection_lost(s)
 
@@ -435,7 +435,7 @@ class SocketHandler:
             closelist = closelist[:to_close]
             for sock in closelist:
                 if DEBUG:
-                    print "SocketHandler: do_poll closing connection",sock.get_ip()
+                    print >> sys.stderr,"SocketHandler: do_poll closing connection",sock.get_ip()
                 self._close_socket(sock)
             return []
         return r     
