@@ -91,6 +91,9 @@ class OverlaySwarm:
             lambda x: None, self.config)
         self.registered = True
 
+    def isRegistered(self):
+        return self.registered
+
     def start_listening(self):
         self.rawserver.start_listening(self.encoder)
             

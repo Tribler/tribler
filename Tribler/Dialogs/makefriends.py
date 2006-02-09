@@ -173,15 +173,25 @@ class MakeFriendsDialog(wx.Dialog):
             port = 0
             
         if len(name) == 0:
-            self.show_inputerror( 'Invalid input. Name is empty' )
+            self.show_inputerror( 'Name is empty.' )
         elif len(permid) == 0:
-            self.show_inputerror( 'Invalid input. PermID must be given (in BASE64, single line)' )
+            self.show_inputerror( 'PermID must be given (in BASE64, single line)' )
         elif port == 0:
-            self.show_inputerror( 'Invalid input. Port is not a number' )
+            self.show_inputerror( 'Port is not a number' )
         elif icon != '' and not os.path.exists(icon):
-            self.show_inputerror( 'Invalid input. Icon file does not exist' )
+            self.show_inputerror( 'Icon file does not exist' )
         else:
             if icon != '':
+                try:
+                    bm = wx.Bitmap(icon,wx.BITMAP_TYPE_BMP)
+                    if bm.GetWidth() != 32 or bm.GetHeight() != 32:
+                        self.show_inputerror( 'Icon file is not a 32x32 BMP' )
+                        return
+                except:
+                    self.show_inputerror( 'Icon file is not BMP' )
+                    return
+                    
+                # All good
                 try:
                     copy2(os.path.normpath(icon), managefriends.nickname2iconfilename(self.utility,name))
                 except:

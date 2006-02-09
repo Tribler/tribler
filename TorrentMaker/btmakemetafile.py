@@ -26,6 +26,7 @@ except:
 
 from BitTornado.bencode import bencode
 from BitTornado.BT1.btformats import check_info
+from BitTornado.parseargs import parseargs, formatDefinitions
 from Tribler.Merkle.merkle import MerkleTree
 from Tribler.Overlay.permid import create_torrent_signature
 
@@ -44,7 +45,9 @@ defaults = [
     ('target', '', 
         "optional target file for the torrent"),
     ('created by', '',
-        "optional information on who made the torrent")
+        "optional information on who made the torrent"),
+    ('merkle_torrent', 0, 
+        "create a Merkle torrent instead of a regular torrent")
     ]
 
 default_piece_len_exp = 18
@@ -428,3 +431,24 @@ def completedir(dir, url, params = None, flag = Event(),
                 make_meta_file(i, url, params, flag, progress = callback, progress_percent = 0, fileCallback = fc, gethash = gethash)
         except ValueError:
             print_exc()
+
+def prog(amount):
+    print '%.1f%% complete\r' % (amount * 100), 
+
+if __name__ == '__main__':
+    if len(sys.argv) < 3:
+        a, b = split(sys.argv[0])
+        print 'Usage: ' + b + ' <trackerurl> <file> [file...] [params...]'
+        print
+        print formatDefinitions(defaults, 80)
+        print_announcelist_details()
+        print ('')
+        sys.exit(2)
+
+    try:
+        config, args = parseargs(sys.argv[1:], defaults, 2, None)
+        for file in args[1:]:
+            make_meta_file(file, args[0], config, progress = prog)
+    except ValueError, e:
+        print 'error: ' + str(e)
+        print 'run with no args for parameter explanations'

@@ -30,8 +30,6 @@ from Tribler.CacheDB.CacheDBHandler import PeerDBHandler
 from Tribler.Overlay.permid import show_permid
 from BitTornado.BT1.MessageID import CANCEL, getMessageName
 
-# TEMP HACK
-
 try:
     True
 except:

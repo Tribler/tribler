@@ -8,7 +8,7 @@ from sys import *
 from os.path import *
 from sha import *
 from BitTornado.bencode import *
-from BitTornado.permid import verify_torrent_signature
+from Tribler.Overlay.permid import verify_torrent_signature
 
 NAME, EXT = splitext(basename(argv[0]))
 VERSION = '20030621'
