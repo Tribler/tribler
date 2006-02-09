@@ -8,7 +8,7 @@ from BitTornado.BT1.MessageID import HelpCoordinatorMessages, HelpHelperMessages
 from Tribler.toofastbt.CoordinatorMessageHandler import CoordinatorMessageHandler
 from Tribler.toofastbt.HelperMessageHandler import HelperMessageHandler
 from MetadataHandler import MetadataHandler
-from Tribler.BuddyCast.buddycast2 import BuddyCast
+from Tribler.BuddyCast.buddycast2 import BuddyCastFactory
 
 class OverlayApps:
     # Code to make this a singleton
@@ -41,7 +41,7 @@ class OverlayApps:
 
         if enable_recommender:
             # Create handler for Buddycast messages
-            self.buddycast = BuddyCast.getInstance()
+            self.buddycast = BuddyCastFactory.getInstance()
             self.buddycast.register(secure_overlay,launchmany.rawserver,launchmany.listen_port,launchmany.exchandler)
             secure_overlay.registerHandler(BuddyCastMessages,self.buddycast)
 

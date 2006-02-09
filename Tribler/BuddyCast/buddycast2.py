@@ -1,12 +1,13 @@
 import sys
 from random import sample
+from math import sqrt
 
 from BitTornado.bencode import bencode, bdecode
 from Tribler.CacheDB.CacheDBHandler import *
 from Tribler.__init__ import GLOBAL
 from Tribler.utilities import *
 from Tribler.Overlay.SecureOverlay import SecureOverlay
-from similarity import P2PSim, selectByProbability
+from similarity import P2PSim, P2PSim2, selectByProbability
 
 def validBuddyCastData(prefxchg):
     def validPeer(peer):
@@ -45,12 +46,16 @@ class DataHandler:
         self.owner_db = OwnerDBHandler(db_dir=db_dir)
         self.dbs = [self.my_db, self.peer_db, self.superpeer_db, self.owner_db, 
                     self.torrent_db, self.mypref_db, self.pref_db]        
+        self.name = self.my_db.get('name', '')
         self.preflist = self.getMyRecentPrefList()
         self.connected_list = []    # peer in this list should not be connected in 4 hours
     
+    #---------- database operations ----------#
     def clear(self):
         for db in self.dbs:
             db.clear()
+        self.preflist = []
+        self.connected_list = []
             
     def sync(self):
         for db in self.dbs:
@@ -68,8 +73,41 @@ class DataHandler:
     def addPeerPref(self, permid, pref):
         self.pref_db.addPreference(permid, pref)
     
-    def getPeerPref(self, permid):
-        return self.pref_db.getPreferences(permid)
+    def addMyPref(self, infohash, data={}):    # user adds a preference (i.e., downloads a new file)
+        
+        def updateSimilarity(infohash):
+            peers = self.peer_db.getTasteBuddyList()
+            if not peers:
+                return
+            owners = self.owner_db.getOwners(infohash)
+            n = self.mypref_db.size()
+            sim_var = sqrt(1.0*n/(n+1))    # new_sim = old_sim * sim_var 
+            if len(owners) > 0:
+                pref1 = self.getMyPrefList()
+                pref1.sort()
+            else:
+                pref1 = []
+            nmypref = len(pref1)
+            for p in peers:
+                if p in owners:
+                    pref2 = self.getPeerPrefList(p)
+                    new_sim = P2PSim2(pref1, pref2)
+                else:
+                    peer = self.peer_db.getPeer(p)
+                    old_sim = peer['similarity']
+                    new_sim = int(old_sim * sim_var)
+                self.peer_db.updatePeer(p, 'similarity', new_sim)
+        
+        existed = self.preflist.count(infohash)    
+        if existed:
+            self.preflist.remove(infohash)
+        self.preflist.insert(0, infohash)
+        self.mypref_db.addPreference(infohash, data)    # update last_seen if the pref exists
+        if not existed:    # don't update similarity if the pref exists
+            updateSimilarity(infohash)
+        
+    def getPeerPrefList(self, permid):
+        return self.pref_db.getPrefList(permid)
     
     def getMyRecentPrefList(self, num=0):
         return self.mypref_db.getRecentPrefList(num)
@@ -78,65 +116,87 @@ class DataHandler:
         if num > 0:
             return self.preflist[:num]
         else:
-            return self.preflist
+            return self.preflist[:]
+            
+    def getPeers(self, peerlist, keys):
+        return self.peer_db.getPeers(peerlist, keys)
 
+    #---------- utilities ----------#
     def getSimilarity(self, permid, num=0):
         pref1 = self.getMyPrefList(num)
-        pref2 = self.getPeerPref(permid).keys()
-        return P2PSim(pref1, pref2)
+        pref2 = self.getPeerPrefList(permid)
+        sim = P2PSim(pref1, pref2)
+        return sim
     
-    def addMyPref(self, infohash, data={}):    # user adds a preference (i.e., downloads a new file)
-        
-        def updateSimilarity(infohash):
-            owners = self.owner_db.getOwners(infohash)
-            for owner in owners:
-                sim = self.getSimilarity(owner)
-                self.peer_db.updatePeer(owner, 'similarity', sim)
-        
-        self.preflist.insert(0, infohash)
-        self.mypref_db.addPreference(infohash, data)
-        updateSimilarity(infohash)
-        
-    def selectBuddyCastCandidate(self, nbuddies=10, npeers=10):
-        # TODO: new algorithm
-        def filter(peer):
-            keys = ['ip', 'port', 'permid']
-            _peer = {}
-            for key in keys:
-                _peer[key] = peer[key]
-            return _peer
-
-        def getTasteBuddies(peers, num):
-            return peers
-    
-        def getRandomPeers(peers, num):
-            return peers[:num]
-        
-        alpha = 10
-        tbs, rps = self.TBPeers(nbuddies*alpha, npeers)
-        pass
-
     def getRecentItems(self, all_items, num):
         items = [(item['last_seen'], item) for item in all_items]
         items.sort()
         items.reverse()
         return [item[1] for item in items[:num]]
-                
-    def getTBPeers(self, ntb=10, nrp=10):    
-        # ntb - number of taste buddies
-        # nrp - number of random peers
+
+    def getTBPeerList(self, ntb=0, nrp=0):
+        """ get permid lists of taste budies and random peers """
         
-        taste_buddies = []
-        rand_peers = []
-        peers = self.peer_db.getItems()
-        for i in xrange(len(peers)):
-            peers[i][1].update({'permid':peers[i][0]})
-            if self.pref_db.hasPreference(peers[i][0]):
-                taste_buddies.append(peers[i][1])
-            else:
-                rand_peers.append(peers[i][1])
-        return self.getRecentItems(taste_buddies, ntb), self.getRecentItems(rand_peers, nrp)
+        tblist = self.peer_db.getTasteBuddyList()
+        rplist = self.peer_db.getRandomPeerList()
+        if ntb > 0:
+            tblist = tblist[:ntb]
+        if nrp > 0:
+            rplist = rplist[:nrp]
+        return tblist, rplist
+
+    def getTBPeers(self, ntb=0, nrp=0, tb_keys=['permid', 'last_seen', 'similarity'], rp_keys=['permid', 'last_seen']):
+        tblist, rplist = self.getTBPeerList(ntb, nrp)
+        taste_buddies = self.peer_db.getPeers(tblist, tb_keys)
+        rand_peers = self.peer_db.getPeers(rplist, rp_keys)
+        return taste_buddies, rand_peers
+
+                
+    #---------- core ----------#
     
+#    def selectBuddyCastCandidate(self, nbuddies=10, npeers=10):
+#        # TODO: new algorithm
+#        def filter(peer):
+#            keys = ['ip', 'port', 'permid']
+#            _peer = {}
+#            for key in keys:
+#                _peer[key] = peer[key]
+#            return _peer
+#
+#        def getTasteBuddies(peers, num):
+#            return peers
+#    
+#        def getRandomPeers(peers, num):
+#            return peers[:num]
+#        
+#        alpha = 10
+#        tbs, rps = self.TBPeers(nbuddies*alpha, npeers)
+#        pass
+#
+#    def getMsgTBPeers(self, ntb=10, nrp=10):    
+#        # ntb - number of taste buddies
+#        # nrp - number of random peers
+#        
+#        taste_buddies = []
+#        rand_peers = []
+#        peers = self.peer_db.getItems()
+#        for i in xrange(len(peers)):
+#            peers[i][1].update({'permid':peers[i][0]})
+#            if self.pref_db.hasPreference(peers[i][0]):
+#                taste_buddies.append(peers[i][1])
+#            else:
+#                rand_peers.append(peers[i][1])
+#        return self.getRecentItems(taste_buddies, ntb), self.getRecentItems(rand_peers, nrp)
+#    
+
+    def getMsgTBPeers(self, ntb=10, nrp=10):    
+        """ get taste buddies and random peers for buddycast msg """
+        
+        tbs, rps = self.getTBPeers()
+        
+        
+        return tbs, rps
+        
 
     
 class RandomPeer:
@@ -201,40 +261,27 @@ class BuddyCastWorker:
         
     def getBuddyCastMsg(self, nmyprefs=50, nbuddies=10, npeers=10, nbuddyprefs=10):
 
-        def filter(peer):
-            keys = ['ip', 'port', 'permid', 'age']
-            _peer = {}
-            for key in keys:
-                _peer[key] = peer[key]
-            return _peer
-
         def getPeerPrefList(permid, num=10):
-            preflist = self.data_handler.getPeerPref(permid).keys()
+            preflist = self.data_handler.getPeerPrefList(permid)
             if len(preflist) <= num:
                 prefs = preflist
             else:
                 prefs = sample(preflist, num)    # randomly select 10 prefs to avoid starvation
             return prefs
             
-        def getTasteBuddies(peers, num, nbuddyprefs):
-            prob_vec = [peer['similarity'] for peer in peers]
-            peers = selectByProbability(prob_vec, peers, num)
-            if num > len(peers):
-                num = len(peers)
-            for i in xrange(num):
-                peers[i]['age'] = int(time()) - peers[i]['last_seen']
-                peers[i] = filter(peers[i])
+        def getTasteBuddies(peerlist, nbuddyprefs):
+            peers = self.data_handler.getPeers(peerlist, ['permid', 'ip', 'port', 'last_seen'])
+            for i in xrange(len(peers)):
+                peers[i]['age'] = int(time()) - peers[i].pop('last_seen')
                 if peers[i]['age'] < 0:
                     peers[i]['age'] = 0
                 peers[i]['preferences'] = getPeerPrefList(peers[i]['permid'], nbuddyprefs)
             return peers
     
-        def getRandomPeers(peers, num):
-            if num > len(peers):
-                num = len(peers)
-            for i in xrange(num):
-                peers[i]['age'] = int(time()) - peers[i]['last_seen']
-                peers[i] = filter(peers[i])
+        def getRandomPeers(peerlist):
+            peers = self.data_handler.getPeers(peerlist, ['permid', 'ip', 'port', 'last_seen'])
+            for i in xrange(len(peers)):
+                peers[i]['age'] = int(time()) - peers[i].pop('last_seen')
                 if peers[i]['age'] < 0:
                     peers[i]['age'] = 0
             return peers
@@ -243,12 +290,11 @@ class BuddyCastWorker:
         data['ip'] = self.ip
         data['port'] = self.port
         data['permid'] = self.permid
-        data['name'] = self.name
+        data['name'] = self.data_handler.name
         data['preferences'] = self.data_handler.getMyPrefList(nmyprefs)
-        # TODO: new algorithm
-        tbs, rps = self.data_handler.getTBPeers(nbuddies, npeers)
-        data['taste buddies'] = getTasteBuddies(tbs, nbuddies, nbuddyprefs)
-        data['random peers'] = getRandomPeers(rps, npeers)
+        tbs, rps = self.data_handler.getMsgTBPeers(nbuddies, npeers)
+        data['taste buddies'] = getTasteBuddies(tbs, nbuddyprefs)
+        data['random peers'] = getRandomPeers(rps)
         return data
     
     def work(self):
@@ -289,7 +335,8 @@ class BuddyCastFactory:
         return self.registered
     
     def startup(self):
-        print "buddycast starts up"
+        print >> sys.stderr, "BuddyCast starts up"
+        
         
     def addMyPref(self, infohash, data={}):
         self.data_handler.addMyPref(infohash, data)
@@ -318,3 +365,7 @@ class BuddyCastFactory:
         b.work()
         del b
 
+    def recommendateItems(self):
+        self.data_handler.recommendateItems()
+        
+        

@@ -74,7 +74,7 @@ class TestBuddyCast(unittest.TestCase):
         assert self.pref_db._size() == 40
         assert self.torrent_db._size() == self.owner_db._size()
         
-    def test_getBuddyCastMsg(self):
+    def xxtest_getBuddyCastMsg(self):
         self.preload()
         buddycast_data = BuddyCastWorker(self.buddycast).getBuddyCastMsg()
         try:
@@ -84,6 +84,12 @@ class TestBuddyCast(unittest.TestCase):
         #print_prefxchg_msg(buddycast_data)
         #print_dict(buddycast_data)
         
+    def test_getMsgTBPeers(self):
+        self.preload()
+        tbs, rps = self.buddycast.data_handler.getMsgTBPeers(10, 10)
+        #print tbs
+        #print rps
+        
     def test_addMyPref(self):
         self.preload()
         items = self.owner_db._items()
@@ -91,17 +97,23 @@ class TestBuddyCast(unittest.TestCase):
 #            if len(item[1]) > 7 and not self.mypref_db._has_key(item[0]):
 #                print item[0], len(item[1]), item[1]
         new_item = '1651'
+#        for p, v in self.peer_db._items():
+#            print p, v['similarity']
         assert self.peer_db.getItem('peer_145')['similarity'] == 100
         assert self.peer_db.getItem('peer_83')['similarity'] == 0
-#        owners = self.owner_db.getItem(new_item)
+        assert self.peer_db.getItem('peer_509')['similarity'] == 134
+        owners = self.owner_db.getItem(new_item)
 #        for o in owners:
 #            print o, self.peer_db.getItem(o)
+#        print p, self.peer_db.getItem('peer_509')
         self.buddycast.addMyPref(new_item)
         assert self.peer_db.getItem('peer_145')['similarity'] == 118
         assert self.peer_db.getItem('peer_83')['similarity'] == 44
+        assert self.peer_db.getItem('peer_509')['similarity'] == 132
 #        print
 #        for o in owners:
 #            print o, self.peer_db.getItem(o)
+#        print p, self.peer_db.getItem('peer_509')
     
     def test_selectBuddyCastCandidate(self):
         pass

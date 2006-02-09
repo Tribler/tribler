@@ -31,6 +31,9 @@ class TestPeerDBHandler(unittest.TestCase):
     def test_all(self):
         for permid, value in test_peers:
             self.peer_db.addPeer(permid, value)
+        peers = self.peer_db.getPeers(['permid2', 'permid4'], ['ip', 'name'])
+        assert len(peers) == 2
+        assert len(peers[1].keys()) == 3
         #print self.peer_db.peer_db._data
         assert self.peer_db.hasPeer('permid2')
         assert len(self.peer_db) == 4

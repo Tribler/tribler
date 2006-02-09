@@ -386,7 +386,7 @@ class SecureOverlay:
             else:
                 self.release() 
                 return
-            if self.overlayswarm.isRegistered():
+            if self.overlayswarm.registered:
                 ## Arno: I don't see the need for letting the rawserver do it.
                 ## Except that it potentially avoids a concurrency problem of
                 ## multiple threads writing to the same socket.

@@ -38,8 +38,8 @@ class MyDBHandler(BasicDBHandler):
         self.peer_db = PeerDB.getInstance(db_dir = db_dir)
         self.dbs = [self.my_db, self.peer_db]
         
-    def get(self, key):
-        return self.my_db._get(key)
+    def get(self, key, value=''):
+        return self.my_db._get(key, value)
 
     def put(self, key, value):
         self.my_db._put(key, value)
@@ -173,6 +173,40 @@ class PeerDBHandler(BasicDBHandler):
         
     def getPeer(self, permid):
         return self.peer_db.getItem(permid)
+        
+    def getPeerList(self):    # get the list of all peers' permid
+        return self.peer_db._keys()
+        
+    def getTasteBuddyList(self):
+        return self.pref_db._keys()
+
+    def getRandomPeerList(self):
+        peers = self.peer_db._keys()
+        rand_peers = []
+        for i in xrange(len(peers)):
+            if not self.pref_db._has_key(peers[i]):
+                rand_peers.append(peers[i])
+        return rand_peers
+        
+    def getPeers(self, peer_list, keys):    # get peers given peer_list
+        peers = []
+        if 'permid' in keys:
+            permid = True
+            keys.remove('permid')
+        else:
+            permid = False
+        for peer in peer_list:
+            p = self.peer_db.getItem(peer)
+            if permid:
+                d = {'permid':peer}
+            else:
+                d = {}
+            for key in keys:
+                if key in p:
+                    d.update({key:p[key]})
+            peers.append(d)
+        
+        return peers
     
     def addPeer(self, permid, value):
         self.peer_db.updateItem(permid, value)
@@ -259,6 +293,9 @@ class PreferenceDBHandler(BasicDBHandler):
         
     def getPreferences(self, permid):
         return self.pref_db.getItem(permid)
+        
+    def getPrefList(self, permid):
+        return self.pref_db._get(permid,[]).keys()
     
     def addPreference(self, permid, torrent_hash, data={}):
         self.pref_db.addPreference(permid, torrent_hash, data)

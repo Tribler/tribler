@@ -3,6 +3,11 @@
 import sys
 import os
 import unittest
+
+import hotshot, hotshot.stats, test.test_all
+import math
+from test.test_all import *
+
     
 verbose = 0
 if 'verbose' in sys.argv:
@@ -53,4 +58,26 @@ def suite():
 
 def main():
     unittest.main(defaultTest='suite')
+    
+    
+def foo(n = 10000):
+    def bar(n):
+        for i in range(n):
+            math.pow(i,2)
+    def baz(n):
+        for i in range(n):
+            math.sqrt(i)
+    bar(n)
+    baz(n)
+
+def profile():
+    print "profile starts"
+    prof = hotshot.Profile("test.prof")
+    prof.runcall(foo) #test.test_all.main)
+    prof.close()
+    stats = hotshot.stats.load("test.prof")
+    stats.strip_dirs()
+    stats.sort_stats('time', 'calls')
+    stats.print_stats(100)
+    
     

@@ -28,9 +28,41 @@ def cooccurrence(pref1, pref2):
             i+=1
             j+=1
     return co
+    
+def cooccurrence2(pref1, pref2):    # pref1 is sorted
+    pref2.sort()
+    i = 0
+    j = 0
+    co = 0
+    size1 = len(pref1)
+    size2 = len(pref2)
+    if size1 == 0 or size2 == 0:
+        return 0
+    while 1:
+        if (i>= size1) or (j>=size2): break
+        Curr_ID1 = pref1[i]
+        Curr_ID2 = pref2[j]
+        if Curr_ID1 < Curr_ID2 :
+            i=i+1
+        elif Curr_ID1 > Curr_ID2 :
+            j=j+1
+        else:
+            co +=1
+            i+=1
+            j+=1
+    return co    
 
 def P2PSim(pref1, pref2):
     co = cooccurrence(pref1, pref2)
+    if co == 0:
+        return 0
+    normValue = math.sqrt(len(pref1)*len(pref2))
+    sim0 = co/normValue
+    sim = int(sim0*1000)    # use integer for bencode
+    return sim
+
+def P2PSim2(pref1, pref2):    # use cooccurrence2
+    co = cooccurrence2(pref1, pref2)
     if co == 0:
         return 0
     normValue = math.sqrt(len(pref1)*len(pref2))
@@ -97,20 +129,20 @@ def testSim():
     pref5 = []
     pref6 = [1, 66, 77, 88, 99, 100, 11]
     #cand = ['111','222','333','444','555','666','777','888','999']
-    for j in xrange(55000):
-        x = selectByProbability(deepcopy(pref1), pref1, 1)
-        for i in x:
-            print i,
-        print
+#    for j in xrange(55000):
+#        x = selectByProbability(deepcopy(pref1), pref1, 1)
+#        for i in x:
+#            print i,
+#        print
 #    print "****"
 #    print pref1
 #    print bisearch(pref1, 3.1)
 #    print accumulate(pref1)
-#    print cooccurrence(pref1, pref2), P2PSim(pref1, pref2)
-#    print cooccurrence(pref1, pref3), P2PSim(pref1, pref3)
-#    print cooccurrence(pref1, pref4), P2PSim(pref1, pref4)
-#    print cooccurrence(pref1, pref5), P2PSim(pref1, pref5)
-#    print cooccurrence(pref1, pref5), P2PSim(pref1, pref6)
+    print cooccurrence(pref1, pref2), P2PSim(pref1, pref2)
+    print cooccurrence(pref1, pref3), P2PSim(pref1, pref3)
+    print cooccurrence(pref1, pref4), P2PSim(pref1, pref4)
+    print cooccurrence(pref1, pref5), P2PSim(pref1, pref5)
+    print cooccurrence(pref1, pref6), P2PSim(pref1, pref6)
     
 if '__main__'== __name__:
     testSim()
