@@ -56,7 +56,7 @@ def fmttime(n):
 class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
     def __init__(self, utility):
         self.utility = utility        
-        output = Outputter()
+        self.output = Outputter()
 
         btconfig = utility.getBTParams()
         # Create dir for helper to put torrents and files in.
@@ -84,7 +84,7 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
 
         # btconfig must be set before calling LaunchMany constructor
         Thread.__init__(self)
-        LaunchMany.__init__(self,btconfig,output)
+        LaunchMany.__init__(self,btconfig,self.output)
         DelayedEventHandler.__init__(self)
         
         # set by BitTornado.LaunchMany constructor
@@ -107,7 +107,7 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
             print_exc()
             data = StringIO()
             print_exc(file=data)
-            self.Outputter.exception(data.getvalue())
+            self.output.exception(data.getvalue())
         
 
         for ABCTorrentTemp in self.utility.torrents["active"].keys():

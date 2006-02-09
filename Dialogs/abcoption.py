@@ -498,8 +498,9 @@ class MiscPanel(ABCOptionPanel):
         
         self.utility.config.Write('defrentorwithdest', self.rtwd.GetValue(), "boolean")          
         
-        self.utility.config.Write('associate', self.associate.GetValue(), "boolean")
-        self.utility.regchecker.updateRegistry(self.associate.GetValue())         
+        if (sys.platform == 'win32'):
+            self.utility.config.Write('associate', self.associate.GetValue(), "boolean")
+            self.utility.regchecker.updateRegistry(self.associate.GetValue())         
 
     def getLanguages(self):
         langpath = os.path.join(self.utility.getPath(), "Lang")

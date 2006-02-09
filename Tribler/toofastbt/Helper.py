@@ -167,6 +167,8 @@ class Helper:
                 else:
                     print >> sys.stderr,"helper: Sending reservation for",pieces_to_send,"because timeout"
             sdownload = self.continuations.pop(0)
+            if self.outstanding is not None: # allow bypassed conn to restart
+                self.outstanding.helper_set_freezing(False)
             self.outstanding = sdownload            
             ex = "self.send_reserve_pieces(pieces_to_send)"
             self.send_reserve_pieces(pieces_to_send)

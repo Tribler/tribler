@@ -9,6 +9,7 @@ import sys
 import os
 import wx
 import threading
+from traceback import print_stack
 
 from ABC.GUI.spinner import ABCSpinner
 

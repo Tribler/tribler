@@ -95,7 +95,7 @@ def make_meta_file(file, url, params = None, flag = Event(),
             f = join(a, b + postfix)
 
     if merkle_torrent and piece_len_exp == 0:
-        piece_len_exp = 15 # standardized value
+        piece_len_exp = 18 # used to be 15=32K, but this works better with slow python
     elif piece_len_exp == 0:  # automatic
         size = calcsize(file)
         if   size > 8L*1024*1024*1024:   # > 8 gig =
