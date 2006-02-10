@@ -160,13 +160,12 @@ class TrackerInfoPanel(wx.Panel):
     def loadValues(self, Read = None):
         if Read is None:
             Read = self.utility.makerconfig.Read
-        
-        self.annCtl.Clear()
-        self.annCtl.SetValue(Read('announcedefault'))
 
+        self.annCtl.Clear()
         self.announcehistory = Read('announcehistory', "bencode-list")
         for announceurl in self.announcehistory:
             self.annCtl.Append(announceurl)
+        self.annCtl.SetValue(Read('announcedefault'))
 
         self.annListCtl.SetValue(Read('announce-list'))
         self.httpSeeds.SetValue(Read('httpseeds'))

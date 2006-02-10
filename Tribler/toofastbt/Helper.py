@@ -18,16 +18,19 @@ class Helper:
     def __init__(self, torrent_hash, num_pieces, coordinator_permid, coordinator = None):
         self.secure_overlay = SecureOverlay.getInstance()
         self.torrent_hash = torrent_hash
-        self.coordinator_permid = coordinator_permid
-
-        peerdb = PeerDBHandler()
-        peer = peerdb.getPeer(coordinator_permid)
-        if peer is None:
-            self.coordinator_ip = None  # see is_coordinator()
-            self.coordinator_port = -1
+        if coordinator_permid is not None and coordinator_permid == '':
+            self.coordinator_permid = None
         else:
-            self.coordinator_ip = peer['ip']
-            self.coordinator_port = peer['port']
+            self.coordinator_permid = coordinator_permid
+        self.coordinator_ip = None  # see is_coordinator()
+        self.coordinator_port = -1
+
+        if self.coordinator_permid is not None:
+            peerdb = PeerDBHandler()
+            peer = peerdb.getPeer(coordinator_permid)
+            if peer is not None:
+                self.coordinator_ip = peer['ip']
+                self.coordinator_port = peer['port']
 
         self.reserved_pieces = [False] * num_pieces
         self.ignored_pieces = [False] * num_pieces
