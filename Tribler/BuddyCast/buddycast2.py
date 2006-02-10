@@ -200,7 +200,7 @@ class DataHandler:
             pdf_file = open(filename, 'r')
         except:
             print >> sys.stderr, "cannot open online pdf file", filename
-            return self.uniform_pdf    # uniform distribution
+            return self.uniform_distr    # uniform distribution
 
         datalines = pdf_file.readlines()
         pdf = []
