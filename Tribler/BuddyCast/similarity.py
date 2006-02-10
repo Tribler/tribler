@@ -1,9 +1,9 @@
 # Written by Jun Wang, Jie Yang
 # see LICENSE.txt for license information
 
+import sys
 import math
 from random import random
-from copy import deepcopy
 
 def cooccurrence(pref1, pref2):
     pref1.sort()
@@ -71,31 +71,35 @@ def P2PSim2(pref1, pref2):    # use cooccurrence2
     return sim
 
 
-def selectByProbability(prob_vector, candidates, num=1, smooth=2, smooth_value=1):    
+def selectByProbability(pdf_vector, candidates, num=1, smooth=2, smooth_value=1):    
     """ select a number of candidates based on their probabilities """
     
-    # it is important that the prob_vector's sequence is the same with candidates'
-    # num - the number of candidates to be selected
+    # Attention: pdf_vector and candidates will be changed after this call
+    # It is important that the size and sequence of pdf_vector are the same with candidates
+    # pdf_vector: Discrete vector of the Probability Density Function
+    # num: the number of candidates to be selected
     # smooth:
     #    0 - no smooth
     #    1 - always smooth
-    #    2 - if prob_vector contains 0, smooth
+    #    2 - if pdf_vector contains 0, smooth
     
+    if not pdf_vector or not candidates:
+        return []
     ncand = len(candidates)
+    assert len(pdf_vector) == ncand, (pdf_vector, candidates)
+    assert min(pdf_vector) >= 0, pdf_vector
     if num >= ncand:
         return candidates
-    _candidates = deepcopy(candidates)
-    if smooth == 1 or (smooth == 2 and min(prob_vector) == 0):
-        for i in xrange(len(prob_vector)):
-            prob_vector[i] += smooth_value
-    acc_vec = accumulate(prob_vector)
+    if smooth == 1 or (smooth == 2 and min(pdf_vector) == 0):
+        for i in xrange(len(pdf_vector)):
+            pdf_vector[i] += smooth_value
     selected = []
     while len(selected) < num:
+        acc_vec = accumulate(pdf_vector)
         rand = random() * max(acc_vec)
         cand = bisearch(acc_vec, rand)
-        selected.append(_candidates[cand])
-        _candidates.pop(cand)
-        acc_vec.pop(cand)
+        selected.append(candidates.pop(cand))
+        pdf_vector.pop(cand)
     return selected    
     
 def bisearch(vector, value):
@@ -110,7 +114,6 @@ def bisearch(vector, value):
         else:
             high = mid
     return low
-    
     
 def accumulate(vector):
     acc_vec = []
@@ -130,7 +133,7 @@ def testSim():
     pref6 = [1, 66, 77, 88, 99, 100, 11]
     #cand = ['111','222','333','444','555','666','777','888','999']
 #    for j in xrange(55000):
-#        x = selectByProbability(deepcopy(pref1), pref1, 1)
+#        x = selectByProbability(pref1[:], pref1, 1)
 #        for i in x:
 #            print i,
 #        print

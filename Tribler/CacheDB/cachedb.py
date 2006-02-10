@@ -265,7 +265,7 @@ class MyDB(BasicDB):
         self.default_data = {
             'version':curr_version, 
             'permid':'', 
-            'ip':'127.0.0.1', 
+            'ip':'', 
             'port':0, 
             'name':'Tribler', 
             'torrent_path':'',

@@ -13,8 +13,8 @@ def validName(name):
 
 def validPort(port):
     port = int(port)
-    if port < 1 or port > 65535:
-        raise RuntimeError, "invalid Port: " + port
+    if port < 0 or port > 65535:
+        raise RuntimeError, "invalid Port: " + str(port)
     return True
 
 def validIP(ip):
@@ -112,7 +112,10 @@ def print_dict(data, level=0):
             print "  "*level, str(i) + ':',
             print_dict(data[i], level+1)
     elif isinstance(data, list):
-        print
+        if not data:
+            print "[]"
+        else:
+            print
         for i in xrange(len(data)):
             print "  "*level, '[' + str(i) + ']:',
             print_dict(data[i], level+1)

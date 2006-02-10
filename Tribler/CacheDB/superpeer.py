@@ -2,20 +2,19 @@
 # see LICENSE.txt for license information
 
 from time import time
-import os
+import os, sys
 import base64
 
 from Tribler.utilities import validIP, validPort, validPermid, validName
 from CacheDBHandler import SuperPeerDBHandler
 
-superpeer_file = 'superpeers.txt'
+superpeer_file = 'superpeer.txt'
 
 DEBUG = True
 
 def init():
     ## FIXME
-    return 
-    SuperPeer().updateSuperPeerList()
+    SuperPeerList().updateSuperPeerList()
 
 class SuperPeerList:
     def __init__(self, superpeer_file=superpeer_file, db_dir=''):
@@ -50,6 +49,7 @@ class SuperPeerList:
         try:
             file = open(filename, "r")
         except IOError:
+            print >> sys.stderr, "cannot open superpeer file", filename
             return []
             
         superpeers = file.readlines()
