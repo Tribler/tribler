@@ -90,7 +90,7 @@ class TestBuddyCast(unittest.TestCase):
             self.buddycast.gotBuddyCastMsg(msg)
         #print self.peer_db._size(), self.torrent_db._size(), self.pref_db._size()
         
-    def test_updateDB(self):
+    def xxtest_updateDB(self):
         msg = self.prefxchg_msgs[0].strip()
         self.buddycast.gotBuddyCastMsg(msg)
         assert self.peer_db._size() == 21, self.peer_db._data.keys()
@@ -99,7 +99,7 @@ class TestBuddyCast(unittest.TestCase):
         assert self.owner_db._size() == 132, self.owner_db._size()
         assert self.mypref_db._size() == 50, self.mypref_db._size()
 
-    def test_createWorker(self):
+    def xxtest_createWorker(self):
         self.preload()
         worker = self.buddycast.createWorker('peer 0')
         buddycast_data = worker.getBuddyCastMsgData()
@@ -115,12 +115,12 @@ class TestBuddyCast(unittest.TestCase):
         #print len(msg), hash(msg)
         #worker.work()
         
-    def test_getMsgTBPeers(self):
+    def xxtest_getMsgTBPeers(self):
         self.preload()
         target, tbs, rps = self.buddycast.data_handler.getBuddyCastData('peer 0', 10, 10)
         assert target == 'peer 0' and len(tbs) == 10 and len(rps) == 10
         
-    def test_WorkerQueue(self):
+    def xxtest_WorkerQueue(self):
         q = WorkerQueue(None, max_size=5)
         q.addWorker('worker1')
         assert q._queue == ['worker1']
@@ -164,7 +164,7 @@ class TestBuddyCast(unittest.TestCase):
             target, tbs, rps = self.buddycast.data_handler.getBuddyCastData(None, 10, 10)
             print time() - begin, self.peer_db._size(), self.pref_db._size()
             
-    def xxtest_profile(self):
+    def test_profile(self):
         def foo(n = 10000):
             def bar(n):
                 for i in range(n):
@@ -185,7 +185,7 @@ class TestBuddyCast(unittest.TestCase):
         stats.sort_stats('cumulative', 'time', 'calls')
         stats.print_stats(100)
         
-    def test_addMyPref(self):
+    def xxtest_addMyPref(self):
         self.preload()
         items = self.owner_db._items()
 #        for item in items:

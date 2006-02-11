@@ -443,7 +443,7 @@ class TorrentDB(BasicDB):
             TorrentDB(*args, **kw)
         return TorrentDB.__single
     getInstance = staticmethod(getInstance)
-
+    
     def updateItem(self, infohash, item={}):    # insert a torrent; update it if existed
         if isValidInfohash(infohash) and validDict(item):
             if self._has_key(infohash):
@@ -541,9 +541,9 @@ class MyPreferenceDB(BasicDB):     #  = FileDB
         MyPreferenceDB.__single = self 
         self.default_item = {
             'created_time':0,
+            'rank':0,  # -1 ~ 5, as a recommendation degree to others
             'name':'',  # real file name in disk, may be different with info['name']
             'dir':'',   # dir + name = full path
-            'rank':0,  # -1 ~ 5, as a recommendation degree to others
             'last_seen':0,
         }
                 

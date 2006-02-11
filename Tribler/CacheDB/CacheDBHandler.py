@@ -8,7 +8,7 @@ from copy import deepcopy
 
 class BasicDBHandler:
     def __init__(self):
-        self.dbs = []
+        self.dbs = []    # don't include read only database
         
     def __del__(self):
         self.sync()
@@ -158,8 +158,10 @@ class FriendDBHandler(BasicDBHandler):
         return friends
             
     def deleteFriend(self,permid):
+        print "*********** sync friend db before", len(self.my_db.getFriends()), self.my_db.getFriends()
         self.my_db.deleteFriend(permid)
-        self.my_db._sync()            
+        self.my_db._sync()  
+        print "*********** sync friend db after", len(self.my_db.getFriends()), self.my_db.getFriends()
 
 class PeerDBHandler(BasicDBHandler):
     
@@ -359,6 +361,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
     
     def __init__(self, db_dir=''):
         self.mypref_db = MyPreferenceDB.getInstance(db_dir=db_dir)
+        self.torrent_db = TorrentDB.getInstance(db_dir=db_dir)
         self.dbs = [self.mypref_db]
     
     def getPreferences(self, key=None):
@@ -372,8 +375,18 @@ class MyPreferenceDBHandler(BasicDBHandler):
         else:
             return [all_items[i][1][key] for i in xrange(len(all_items))]
         
+    def removeFakeTorrents(self, items):
+        fakes = []
+        for i in xrange(len(items)):
+            torrent = items[i][0]
+            if self.torrent_db.getRank(torrent) < 0:
+                fakes.append(i)
+        for i in fakes:
+            items.pop(i)
+        
     def getRecentPrefList(self, num=0):    # num = 0: all files
         all_items = self.mypref_db._items()
+        self.removeFakeTorrents(all_items)
         prefs = [(item[1]['last_seen'], item[0]) for item in all_items]
         prefs.sort()
         prefs.reverse()

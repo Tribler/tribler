@@ -271,9 +271,28 @@ class DataHandler:
         return target
 
     def selectTasteBuddies(self, tbs_sim, tblist, ntb):
-        tbs_pdf = self.getTasteBuddiesPDF(tbs_sim)    # Probability Density Function of Taste Buddies
-        tbs = selectByProbability(tbs_pdf, tblist, ntb)
-        return tbs
+
+        def selectTBByTopSim(tbs_sim, tblist, ntb):    
+            """ get top similar taste buddies """
+            
+            aux = [(tbs_sim[i], tblist[i]) for i in range(len(tblist))]
+            aux.sort()
+            aux.reverse()
+            ret = []
+            for i in xrange(ntb):
+                ret.append(aux[i][1])
+            return ret
+    
+        def selectTBBySimProb(tbs_sim, tblist, ntb):
+            """ get taste buddies based on their similarity """
+            
+            tbs_pdf = self.getTasteBuddiesPDF(tbs_sim)    # Probability Density Function of Taste Buddies
+            tbs = selectByProbability(tbs_pdf, tblist, ntb)
+            return tbs
+        
+
+        assert len(tbs_sim) == len(tblist), (len(tbs_sim), len(tblist))
+        return selectTBByTopSim(tbs_sim, tblist, ntb)
     
     def selectRandomPeers(self, rps_age, rplist, nrp):
         rps_pdf = self.getRandPeersPDF(rps_age)   # Probability Density Function of Random Peers

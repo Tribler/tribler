@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+from random import randint
 from sets import Set
 
 from Tribler.CacheDB.CacheDBHandler import *
@@ -17,6 +18,13 @@ test_prefs = [('torrent1', {'name':'File 1'}),
               ('torrent3', {'name':'File 3'}), 
               ('torrent2', {'name':'File 2'}), 
                ]
+               
+test_prefs2 = [('torrent1', {'name':'File 1'}),
+              ('torrent2', {'name':'File 22'}), 
+              ('torrent3', {'name':'File 3'}), 
+              ('torrent2', {'name':'File 2'}), 
+               ]
+
 
 class TestPeerDBHandler(unittest.TestCase):
     
@@ -77,6 +85,10 @@ class TestMyPreferenceDBHandler(unittest.TestCase):
             print self.mypref_db.getRecentPrefs(2)
             print self.mypref_db.getRecentPrefList(2)
 
+    def test_removeFakeTorrents(self):
+        torrents = []
+        for i in range(10):
+            torrent = (str(i), )
 
 def test_suite():
     suite = unittest.TestSuite()
