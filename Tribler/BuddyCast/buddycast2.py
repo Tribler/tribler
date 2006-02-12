@@ -59,269 +59,6 @@ def validBuddyCastData(prefxchg, nmyprefs=50, nbuddies=10, npeers=10, nbuddypref
     return True
 
 
-        
-class DataHandler:
-    def __init__(self, block_time, db_dir=''):
-        # --- database handlers ---
-        self.my_db = MyDBHandler(db_dir=db_dir)
-        self.peer_db = PeerDBHandler(db_dir=db_dir)
-        self.superpeer_db = SuperPeerDBHandler(db_dir=db_dir)
-        self.torrent_db = TorrentDBHandler(db_dir=db_dir)
-        self.mypref_db = MyPreferenceDBHandler(db_dir=db_dir)
-        self.pref_db = PreferenceDBHandler(db_dir=db_dir)
-        self.owner_db = OwnerDBHandler(db_dir=db_dir)
-        self.dbs = [self.my_db, self.peer_db, self.superpeer_db, self.owner_db, 
-                    self.torrent_db, self.mypref_db, self.pref_db]        
-        self.name = self.my_db.get('name', '')
-        self.ip = self.my_db.get('ip', '')
-        self.port = self.my_db.get('port', 0)
-        self.permid = self.my_db.get('permid', '')
-        self.preflist = self.getMyRecentPrefList()
-        
-        self.block_time = block_time
-        self.block_list = {}
-        
-        self.uniform_distr = [1]*100
-        self.poisson_distr = self.readDistribution('poisson_cdf.txt')
-        self.online_pdf = self.poisson_distr
-    
-    #---------- database operations ----------#
-    def clear(self):
-        for db in self.dbs:
-            db.clear()
-        self.preflist = []
-        self.connected_list = []
-            
-    def sync(self):
-        for db in self.dbs:
-            db.sync()
-        
-    def updatePort(self, port):
-        self.my_db.put('port', port)
-        
-    def addPeer(self, permid, data):
-        self.peer_db.addPeer(permid, data)
-        
-    def addTorrent(self, infohash):
-        self.torrent_db.addTorrent(infohash)
-    
-    def addPeerPref(self, permid, pref):
-        self.pref_db.addPreference(permid, pref)
-    
-    def addMyPref(self, infohash, data={}):    # user adds a preference (i.e., downloads a new file)
-        
-        def updateSimilarity(infohash):
-            peers = self.peer_db.getTasteBuddyList()
-            if not peers:
-                return
-            owners = self.owner_db.getOwners(infohash)
-            n = self.mypref_db.size()
-            sim_var = sqrt(1.0*n/(n+1))    # new_sim = old_sim * sim_var 
-            if len(owners) > 0:
-                pref1 = self.getMyPrefList()
-                pref1.sort()
-            else:
-                pref1 = []
-            nmypref = len(pref1)
-            for p in peers:
-                if p in owners:
-                    pref2 = self.getPeerPrefList(p)
-                    new_sim = P2PSim2(pref1, pref2)
-                else:
-                    peer = self.peer_db.getPeer(p)
-                    old_sim = peer['similarity']
-                    new_sim = int(old_sim * sim_var)
-                self.peer_db.updatePeer(p, 'similarity', new_sim)
-        
-        existed = self.preflist.count(infohash)    
-        if existed:
-            self.preflist.remove(infohash)
-        self.preflist.insert(0, infohash)
-        self.mypref_db.addPreference(infohash, data)    # update last_seen if the pref exists
-        if not existed:    # don't update similarity if the pref exists
-            updateSimilarity(infohash)
-        
-    def getPeerPrefList(self, permid, num=0):
-        preflist = self.pref_db.getPrefList(permid)
-        if num == 0:
-            return preflist
-        else:
-            prefs = sample(preflist, num)    # randomly select 10 prefs to avoid starvation
-            return prefs
-    
-    def getMyRecentPrefList(self, num=0):
-        return self.mypref_db.getRecentPrefList(num)
-    
-    def getMyPrefList(self, num=0):    # num = 0 to return all preflist
-        if num > 0:
-            return self.preflist[:num]
-        else:
-            return self.preflist[:]
-            
-    def getPeers(self, peerlist, keys):
-        return self.peer_db.getPeers(peerlist, keys)
-
-    def getTBPeerList(self, ntb=0, nrp=0):
-        """ get permid lists of taste budies and random peers """
-        
-        tblist = self.peer_db.getTasteBuddyList()
-        rplist = self.peer_db.getRandomPeerList()
-        if ntb > 0:
-            tblist = tblist[:ntb]
-        if nrp > 0:
-            rplist = rplist[:nrp]
-        return tblist, rplist
-
-    def getTBPeerValues(self, tblist, rplist, tb_keys=['similarity'], rp_keys=['last_seen']):
-        taste_buddies = self.peer_db.getPeersValue(tblist, tb_keys)
-        rand_peers = self.peer_db.getPeersValue(rplist, rp_keys)
-        return taste_buddies, rand_peers
-        
-    def getTasteBuddies(self, peerlist, nbuddyprefs):
-        peers = self.getPeers(peerlist, ['permid', 'ip', 'port', 'last_seen'])
-        for i in xrange(len(peers)):
-            peers[i]['age'] = int(time()) - peers[i].pop('last_seen')
-            if peers[i]['age'] < 0:
-                peers[i]['age'] = 0
-            peers[i]['preferences'] = self.getPeerPrefList(peers[i]['permid'], nbuddyprefs)
-        return peers
-
-    def getRandomPeers(self, peerlist):
-        peers = self.getPeers(peerlist, ['permid', 'ip', 'port', 'last_seen'])
-        for i in xrange(len(peers)):
-            peers[i]['age'] = int(time()) - peers[i].pop('last_seen')
-            if peers[i]['age'] < 0:
-                peers[i]['age'] = 0
-        return peers        
-                
-    #---------- utilities ----------#
-    def readDistribution(self, filename):
-        try:
-            pdf_file = open(filename, 'r')
-        except:
-            print >> sys.stderr, "cannot open online pdf file", filename
-            return self.uniform_distr    # uniform distribution
-
-        datalines = pdf_file.readlines()
-        pdf = []
-        for line in datalines:
-            line.strip()
-            if line.startswith('#'):
-                continue
-            linedata = line.split()
-            for data in linedata:
-                try:
-                    x = float(data)
-                    if x >= 0:
-                        pdf.append(x)
-                except:
-                    print >> sys.stderr, "wrong number in file", data
-                    pass
-        return pdf
-    
-    def getSimilarity(self, permid, num=0):
-        pref1 = self.getMyPrefList(num)
-        pref2 = self.getPeerPrefList(permid)
-        sim = P2PSim(pref1, pref2)
-        return sim
-    
-    def getRecentItems(self, all_items, num):
-        items = [(item['last_seen'], item) for item in all_items]
-        items.sort()
-        items.reverse()
-        return [item[1] for item in items[:num]]
-
-    # --------- block list --------#
-    def addToBlockList(self, permid):
-        self.block_list[permid] = int(time()) + self.block_time
-        
-    def isBlocked(self, permid):
-        if not self.block_list.has_key(permid):
-            return False
-        elif self.block_list[permid] < int(time()):
-            self.block_list.pop(permid)        
-            return False
-        else:
-            return True
-
-    #---------- core ----------#
-    
-    def getBuddyCastData(self, target=None, ntb=10, nrp=10):    
-        """ get taste buddies and random peers for buddycast msg """
-        
-        tblist, rplist = self.getTBPeerList()
-        tbs_sim, rps_age = self.getTBPeerValues(tblist, rplist)
-        if target is None:
-            target = self.selectTarget(tbs_sim, rps_age)
-            if target is None:    # no target can be select, stop
-                return None, [], []
-        tbs = self.selectTasteBuddies(tbs_sim, tblist, ntb)
-        rps = self.selectRandomPeers(rps_age, rplist, nrp)
-        return target, tbs, rps
-
-    def selectTarget(self, tbs_sim, rps_age):
-        r = random()
-        target = 'peer_' + str(randint(1, 1000))
-        if r < 0.5:    # get a random peer
-            pass
-        if self.isBlocked(target):
-            return None
-        
-        
-        return target
-
-    def selectTasteBuddies(self, tbs_sim, tblist, ntb):
-
-        def selectTBByTopSim(tbs_sim, tblist, ntb):    
-            """ get top similar taste buddies """
-            
-            aux = [(tbs_sim[i], tblist[i]) for i in range(len(tblist))]
-            aux.sort()
-            aux.reverse()
-            ret = []
-            for i in xrange(ntb):
-                ret.append(aux[i][1])
-            return ret
-    
-        def selectTBBySimProb(tbs_sim, tblist, ntb):
-            """ get taste buddies based on their similarity """
-            
-            tbs_pdf = self.getTasteBuddiesPDF(tbs_sim)    # Probability Density Function of Taste Buddies
-            tbs = selectByProbability(tbs_pdf, tblist, ntb)
-            return tbs
-        
-
-        assert len(tbs_sim) == len(tblist), (len(tbs_sim), len(tblist))
-        return selectTBByTopSim(tbs_sim, tblist, ntb)
-    
-    def selectRandomPeers(self, rps_age, rplist, nrp):
-        rps_pdf = self.getRandPeersPDF(rps_age)   # Probability Density Function of Random Peers
-        rps = selectByProbability(rps_pdf, rplist, nrp)
-        return rps
-        
-    def getTasteBuddiesPDF(self, sims):    # simply use similarity as probablity
-        return sims
-        
-    def getRandPeersPDF(self, ages):
-        """ get online probability based on peer's last seen """
-        
-        aux = []
-        nlist = len(ages)
-        npdf = len(self.online_pdf)
-        for i in xrange(nlist):
-            aux.append([ages[i], i])
-        aux.sort()
-        aux.reverse()
-        for i in xrange(nlist):
-            idx = int(1.0*i*npdf/nlist)
-            prob = self.online_pdf[idx]
-            aux[i] = aux[i][1], prob
-        aux.sort()
-        for i in xrange(nlist):
-            aux[i] = aux[i][1]
-        return aux
-        
-    
 class RandomPeer:
     def __init__(self, data_handler, data):
         self.data_handler = data_handler
@@ -338,6 +75,7 @@ class RandomPeer:
     def updateDB(self):
         if isValidIP(self.ip) and isValidPort(self.port):
             self.updatePeerDB()
+        self.data_handler.changePeerCache()
                      
     def updatePeerDB(self):
         self.data_handler.addPeer(self.permid, self.data)
@@ -356,6 +94,8 @@ class TasteBuddy(RandomPeer):
     def updateDB(self):    # it's important to update pref_db before update peer_db
         self.updatePrefDB()
         self.updatePeerDB()
+        self.data_handler.changePeerCache()
+
         
     def updatePrefDB(self):
         for pref in self.prefs:
@@ -402,7 +142,7 @@ class BuddyCastWorker:
             print >> sys.stderr, "error in bencode buddycast msg"
             return
         if not self.data_handler.isBlocked(self.target):
-            self.factory.sendBuddyCast(self.target, buddycast_msg)
+            self.factory.sendBuddyCastMsg(self.target, buddycast_msg)
         self.data_handler.addToBlockList(self.target)
         
 
@@ -449,6 +189,380 @@ class WorkerQueue:
             return self.factory.createWorker()
 
 
+class DataHandler:
+    def __init__(self, block_time, buddycast_interval, db_dir=''):
+        # --- database handlers ---
+        self.my_db = MyDBHandler(db_dir=db_dir)
+        self.peer_db = PeerDBHandler(db_dir=db_dir)
+        self.superpeer_db = SuperPeerDBHandler(db_dir=db_dir)
+        self.torrent_db = TorrentDBHandler(db_dir=db_dir)
+        self.mypref_db = MyPreferenceDBHandler(db_dir=db_dir)
+        self.pref_db = PreferenceDBHandler(db_dir=db_dir)
+        self.owner_db = OwnerDBHandler(db_dir=db_dir)
+        self.dbs = [self.my_db, self.peer_db, self.superpeer_db, self.owner_db, 
+                    self.torrent_db, self.mypref_db, self.pref_db]        
+        self.name = self.my_db.get('name', '')
+        self.ip = self.my_db.get('ip', '')
+        self.port = self.my_db.get('port', 0)
+        self.permid = self.my_db.get('permid', '')
+
+        # cache in memory
+        self.preflist = self.mypref_db.getRecentPrefList()
+        self.data_handler.peercache_changed = False
+        self.tblist = []
+        self.rplist = []
+        
+        self.block_time = block_time
+        self.buddycast_interval = buddycast_interval
+        self.block_list = {}
+        
+#        self.uniform_distr = [1]*100
+#        self.poisson_distr = self.readDistribution('poisson_cdf.txt')
+#        self.online_pdf = self.poisson_distr
+                        
+    
+    #---------- database operations ----------#
+    def clear(self):
+        for db in self.dbs:
+            db.clear()
+        self.preflist = []
+        self.connected_list = []
+            
+    def sync(self):
+        for db in self.dbs:
+            db.sync()
+        
+    def updatePort(self, port):
+        self.my_db.put('port', port)
+        
+    # --- write ---
+    def addPeer(self, permid, data):
+        self.peer_db.addPeer(permid, data)
+        
+    def addTorrent(self, infohash):
+        self.torrent_db.addTorrent(infohash)
+    
+    def addPeerPref(self, permid, pref):
+        self.pref_db.addPreference(permid, pref)
+    
+    def addMyPref(self, infohash, data={}):    # user adds a preference (i.e., downloads a new file)
+        existed = self.preflist.count(infohash)    
+        if existed:
+            self.preflist.remove(infohash)
+        self.preflist.insert(0, infohash)
+        self.mypref_db.addPreference(infohash, data)    # update last_seen if the pref exists
+        if not existed:    # don't update similarity if the pref exists
+            self._updateSimilarity(infohash)
+
+    def _updateSimilarity(self, infohash):
+        peers = self.peer_db.getTasteBuddyList()
+        if not peers:
+            return
+        owners = self.owner_db.getOwners(infohash)
+        n = self.mypref_db.size()
+        sim_var = sqrt(1.0*n/(n+1))    # new_sim = old_sim * sim_var 
+        if len(owners) > 0:
+            pref1 = self.getMyPrefList()
+            pref1.sort()
+        else:
+            pref1 = []
+        nmypref = len(pref1)
+        for p in peers:
+            if p in owners:
+                pref2 = self.getPeerPrefList(p)
+                new_sim = P2PSim2(pref1, pref2)
+            else:
+                peer = self.peer_db.getPeer(p)
+                old_sim = peer['similarity']
+                new_sim = int(old_sim * sim_var)
+            self.peer_db.updatePeer(p, 'similarity', new_sim)
+        
+        
+    # --- read ---
+    def getPeerPrefList(self, permid, num=0):
+        preflist = self.pref_db.getPrefList(permid)
+        if num == 0:
+            return preflist
+        else:
+            prefs = sample(preflist, num)    # randomly select 10 prefs to avoid starvation
+            return prefs
+    
+    def getMyPrefList(self, num=0):    # num = 0 to return all preflist
+        if num > 0:
+            return self.preflist[:num]
+        else:
+            return self.preflist[:]
+            
+    def getPeerList(self):
+        return self.peer_db.getPeerList()
+    
+    def getPeersValue(self, peerlist, keys):
+        return self.peer_db.getPeersValue(peerlist, keys)
+
+
+
+    def getTBPeerList(self, ntb=0, nrp=0):
+        """ get permid lists of taste budies and random peers """
+        
+        if self.peercache_changed:
+            self.tblist = self.peer_db.getTasteBuddyList()
+            self.rplist = self.peer_db.getRandomPeerList()
+            self.peercache_changed = False
+        if ntb > 0:
+            tblist = self.tblist[:ntb]
+        if nrp > 0:
+            rplist = self.rplist[:nrp]
+        return tblist, rplist
+
+    def getTBPeerValues(self, tblist, rplist, tb_keys=['similarity'], rp_keys=['last_seen']):
+        taste_buddies = self.peer_db.getPeersValue(tblist, tb_keys)
+        rand_peers = self.peer_db.getPeersValue(rplist, rp_keys)
+        return taste_buddies, rand_peers
+        
+    def getTasteBuddies(self, peerlist, nbuddyprefs):
+        peers = self.peer_db.getPeers(peerlist, ['permid', 'ip', 'port', 'last_seen'])
+        for i in xrange(len(peers)):
+            peers[i]['age'] = int(time()) - peers[i].pop('last_seen')
+            if peers[i]['age'] < 0:
+                peers[i]['age'] = 0
+            peers[i]['preferences'] = self.getPeerPrefList(peers[i]['permid'], nbuddyprefs)
+        return peers
+
+    def getRandomPeers(self, peerlist):
+        peers = self.peer_db.getPeers(peerlist, ['permid', 'ip', 'port', 'last_seen'])
+        for i in xrange(len(peers)):
+            peers[i]['age'] = int(time()) - peers[i].pop('last_seen')
+            if peers[i]['age'] < 0:
+                peers[i]['age'] = 0
+        return peers        
+                
+    #---------- utilities ----------#
+    def changePeerCache(self):
+        self.data_handler.peercache_changed = True
+    
+#    def readDistribution(self, filename):
+#        try:
+#            pdf_file = open(filename, 'r')
+#        except:
+#            print >> sys.stderr, "cannot open online pdf file", filename
+#            return self.uniform_distr    # uniform distribution
+#
+#        datalines = pdf_file.readlines()
+#        pdf = []
+#        for line in datalines:
+#            line.strip()
+#            if line.startswith('#'):
+#                continue
+#            linedata = line.split()
+#            for data in linedata:
+#                try:
+#                    x = float(data)
+#                    if x >= 0:
+#                        pdf.append(x)
+#                except:
+#                    print >> sys.stderr, "wrong number in file", data
+#                    pass
+#        return pdf
+    
+    def getSimilarity(self, permid, num=0):
+        pref1 = self.getMyPrefList(num)
+        pref2 = self.getPeerPrefList(permid)
+        sim = P2PSim(pref1, pref2)
+        return sim
+    
+    def getRecentItems(self, all_items, num):
+        items = [(item['last_seen'], item) for item in all_items]
+        items.sort()
+        items.reverse()
+        return [item[1] for item in items[:num]]
+
+    # --------- block list --------#
+    def addToBlockList(self, permid):
+        self.block_list[permid] = int(time()) + self.block_time
+        
+    def isBlocked(self, permid):
+        if not self.block_list.has_key(permid):
+            return False
+        elif self.block_list[permid] < int(time()):
+            self.block_list.pop(permid)        
+            return False
+        else:
+            return True
+
+
+class BuddyCastCore:
+    def __init__(self, data_handler):
+        self.data_handler = data_handler
+    
+    def recommendateItems(self, num):
+        self._updateItemRecommendation()
+        file_list = []
+        return file_list[:num]
+    
+    def _updateItemRecommendation(self):
+        pass
+    
+    def getBuddyCastData(self, target=None):
+        """ 
+        Get target, taste buddy list and random peer list for buddycast message.
+        If target is not given, select a target.
+        """
+        
+        if target is None:
+            target = self._getTarget()
+        tbs, rps = self._getMsgSepPeerList()
+        return target, tbs, rps
+    
+    def _getMsgSepPeerList(self, nbuddies=10, npeers=10):
+        """ 
+        Get taste buddy list and random peer list for buddycast message.
+        Taste buddy list - the top 10 similar peers
+        Random peer list - From the rest of peer list select 10 random peers 
+        based on their online probability.
+        Online probability algorithm: 
+            Prob_online(Peer_x) = last_seen(Peer_x) - time_stamp_of_7_days_ago
+            set Prob_online(Peer_x) = 0 if Prob_online(Peer_x) > 0.
+        """
+        
+        peerlist = self.data_handler.getPeerList()
+        sims = self.data_handler.getPeersValue(peerlist, ['similarity'])
+        nsims = len(sims)
+        if nsims != len(peerlist):
+            return [],[]
+        aux = []
+        for i in xrange(nsims):
+            aux.append((sims[i], i))
+        aux.sort()
+        if nsims < nbuddies:
+            nbuddies = nsims
+        tbs = [peerlist.pop(0) for i in xrange(nbuddies)]
+        ages = self.data_handler.getPeersValue(peerlist, ['last_seen'])
+        online_prob = self._getOnlineProb(ages)
+        rps_idx = selectByProbability(online_prob, npeers)
+        rps = [peerlist[i] for i in rps_idx]
+        return tbs, rps
+    
+    def _getOnlineProb(self, ages):    
+        oldest_age = 7 * 24 * 60 * 60    # 7 days ago
+        benchmark = int(time()) - oldest_age
+        probs = []
+        for i in xrange(len(ages)):
+            prob = ages[i] - benchmark
+            if prob < 0:
+                prob = 0
+            probs.append(prob)
+        return probs
+    
+    def _getTarget(self):
+        r = random()
+        if r < 0.5:
+            target = self._getPeerCandidate()
+        else:
+            target = self._getBuddyCandidate()
+        return target
+    
+    def _getPeerCandidate(self):
+        target = None
+        return target
+    
+    def _getBuddyCandidate(self):
+        target = None
+        return target
+
+
+#class BuddyCastCoreBak:
+#    def __init__(self, data_handler):
+#        self.data_handler = data_handler
+#        
+#    def recommendateItems(self, num=10):
+#        pass
+#    
+#    def getBuddyCastData(self, target=None, ntb=10, nrp=10):    
+#        """ get taste buddies and random peers for buddycast msg """
+#        
+#        tblist, rplist = self.getTBPeerList()
+#        if target is not None:
+#            tbs_sim, rps_age = self.getTBPeerValues(tblist, rplist)
+#            tbs = self.selectTasteBuddies(tbs_sim, tblist, ntb)
+#            rps = self.selectRandomPeers(rps_age, rplist, nrp)
+#        else:
+#            tbs_age_sim, rps_age = self.getTBPeerValues(tblist, rplist, 
+#                                    ['last_seen', 'similarity'], ['last_seen'])
+#            tbs_age = []
+#            tbs_sim = []
+#            for i in xrange(len(tbs_age_sim)):
+#                tbs_age.append(tbs_age_sim[i][0])
+#                tbs_sim.append(tbs_age_sim[i][1])
+#            target = self.selectTarget(tbs_sim, rps_age)
+#            if target is None:    # no target can be select, stop
+#                return None, None, None
+#            
+#            
+#        return target, tbs, rps        
+#
+#    def selectTarget(self, tbs_sim, rps_age):
+#        r = random()
+#        target = 'peer_' + str(randint(1, 1000))
+#        if r < 0.5:    # get a random peer
+#            pass
+#        if self.isBlocked(target):
+#            return None
+#        
+#        
+#        return target
+#
+#    def selectTasteBuddies(self, tbs_sim, tblist, ntb):
+#
+#        def selectTBByTopSim(tbs_sim, tblist, ntb):    
+#            """ get top similar taste buddies """
+#            
+#            aux = [(tbs_sim[i], tblist[i]) for i in range(len(tblist))]
+#            aux.sort()
+#            aux.reverse()
+#            ret = []
+#            for i in xrange(ntb):
+#                ret.append(aux[i][1])
+#            return ret
+#    
+#        def selectTBBySimProb(tbs_sim, tblist, ntb):
+#            """ get taste buddies based on their similarity """
+#            
+#            tbs_pdf = self.getTasteBuddiesPDF(tbs_sim)    # Probability Density Function of Taste Buddies
+#            tbs = selectByProbability(tbs_pdf, tblist, ntb)
+#            return tbs
+#        
+#
+#        assert len(tbs_sim) == len(tblist), (len(tbs_sim), len(tblist))
+#        return selectTBByTopSim(tbs_sim, tblist, ntb)
+#    
+#    def selectRandomPeers(self, rps_age, rplist, nrp):
+#        rps_pdf = self.getRandPeersPDF(rps_age)   # Probability Density Function of Random Peers
+#        rps = selectByProbability(rps_pdf, rplist, nrp)
+#        return rps
+#        
+#    def getTasteBuddiesPDF(self, sims):    # simply use similarity as probablity
+#        return sims
+#        
+#    def getRandPeersPDF(self, ages):
+#        """ get online probability based on peer's last seen """
+#        
+#        aux = []
+#        nlist = len(ages)
+#        npdf = len(self.online_pdf)
+#        for i in xrange(nlist):
+#            aux.append([ages[i], i])
+#        aux.sort()
+#        aux.reverse()
+#        for i in xrange(nlist):
+#            idx = int(1.0*i*npdf/nlist)
+#            prob = self.online_pdf[idx]
+#            aux[i] = aux[i][1], prob
+#        aux.sort()
+#        for i in xrange(nlist):
+#            aux[i] = aux[i][1]
+#        return aux
+
+
 class BuddyCastFactory:
     __single = None
     
@@ -466,13 +580,14 @@ class BuddyCastFactory:
         self.msg_nmyprefs = 50    # number of my preferences in buddycast msg
         self.msg_nbuddyprefs = 10 # number of taste buddy's preferences in buddycast msg
         self.max_nworkers = 10    
-        # --- others ---
-        self.data_handler = DataHandler(block_time=self.block_time, db_dir=db_dir)
-        self.rawserver = None
-        self.registered = False
-        self.worker_queue = WorkerQueue(self, self.max_nworkers)
-        self.reply_policy = 0    # 0: don't reply soon, but put worker in job queue instead
+        self.reply_policy = 0    # 0: don't reply soon, but put worker in job queue instead (default)
                                  # 1: reply buddycast right now
+        # --- others ---
+        self.registered = False
+        self.rawserver = None
+        self.data_handler = DataHandler(self.block_time, self.buddycast_interval, db_dir=db_dir)
+        self.buddycast_core = BuddyCastCore(self.data_handler)
+        self.worker_queue = WorkerQueue(self, self.max_nworkers)
                 
     def getInstance(*args, **kw):
         if BuddyCastFactory.__single is None:
@@ -497,19 +612,9 @@ class BuddyCastFactory:
         if self.registered:
             self.rawserver.add_task(self.doBuddyCast, self.buddycast_interval)
         print >> sys.stderr, "BuddyCast starts up"
-        
-        
-    def addMyPref(self, infohash, data={}):
-        self.data_handler.addMyPref(infohash, data)
-        
-    def gotBuddyCastMsg(self, msg):
-        def updateDB(prefxchg):
-            TasteBuddy(self.data_handler, prefxchg).updateDB()
-            for b in prefxchg['taste buddies']:
-                TasteBuddy(self.data_handler, b).updateDB()
-            for p in prefxchg['random peers']:
-                RandomPeer(self.data_handler, p).updateDB()
 
+    # ----- message handle -----
+    def gotBuddyCastMsg(self, msg):
         try:
             buddycast_data = bdecode(msg)
             validBuddyCastData(buddycast_data, self.msg_nmyprefs, self.msg_nbuddies, 
@@ -520,7 +625,7 @@ class BuddyCastFactory:
         target = buddycast_data['permid']
         if self.data_handler.isBlocked(target):    # RCP 1
             return
-        updateDB(buddycast_data)
+        self._updateDB(buddycast_data)
         worker = self.createWorker(target)
         if self.reply_policy == 0:        # RCP 3
             self.worker_queue.addWorker(worker, 1)
@@ -528,18 +633,24 @@ class BuddyCastFactory:
             worker.work()
             del worker
 
+    def _updateDB(self, prefxchg):
+        TasteBuddy(self.data_handler, prefxchg).updateDB()
+        for b in prefxchg['taste buddies']:
+            TasteBuddy(self.data_handler, b).updateDB()
+        for p in prefxchg['random peers']:
+            RandomPeer(self.data_handler, p).updateDB()
+
     def createWorker(self, target=None):    
         """ 
         Create a worker to send buddycast msg. 
         If target is None, a target will be selected 
         """
         
-        target, tbs, rps = self.data_handler.getBuddyCastData(target, self.msg_nbuddies, self.msg_npeers)
+        target, tbs, rps = self.buddycast_core.getBuddyCastData(target, self.msg_nbuddies, self.msg_npeers)
         if target is not None:
             return BuddyCastWorker(self, target, tbs, rps, self.msg_nmyprefs, self.msg_nbuddyprefs)
         else:
             return None
-        
         
     def doBuddyCast(self):
         self.rawserver.add_task(self.doBuddyCast, self.buddycast_interval)
@@ -548,10 +659,14 @@ class BuddyCastFactory:
             b.work()
             del b
 
-    def recommendateItems(self):
-        self.data_handler.recommendateItems()
-        
-    def sendBuddyCast(self, target, msg):
+    def sendBuddyCastMsg(self, target, msg):
         print self.data_handler.block_list
         print "send", target, "buddy cast msg:", len(msg), hash(msg)
+    
+    # ----- interface for external calls -----
+    def addMyPref(self, infohash, data={}):
+        self.data_handler.addMyPref(infohash, data)
+
+    def recommendateItems(self, num):
+        self.buddycast_core.recommendateItems(num)
         

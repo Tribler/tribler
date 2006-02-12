@@ -190,7 +190,7 @@ class PeerDBHandler(BasicDBHandler):
                 rand_peers.append(peers[i])
         return rand_peers
         
-    def getPeers(self, peer_list, keys):    # get peers given peer_list
+    def getPeers(self, peer_list, keys):    # get a list of dictionaries given peer list
         peers = []
         if 'permid' in keys:
             permid = True
@@ -210,22 +210,22 @@ class PeerDBHandler(BasicDBHandler):
         
         return peers
         
-    def getPeersValue(self, peer_list, keys):
+    def getPeersValue(self, peer_list, keys):    # get a list of values given peer list 
         values = []
         if not keys:
             return []
         for peer in peer_list:
             p = self.peer_db.getItem(peer)
-            d = []
             if len(keys) == 1:
                 if keys[0] in p:
-                    d = p[keys[0]]
+                    values.append(p[keys[0]])
             else:
+                d = []
                 for key in keys:
                     if key in p:
                         d.append(p[key])
-            if d != []:
-                values.append(d)
+                if len(d) == len(peer_list):
+                    values.append(d)
         
         return values
     

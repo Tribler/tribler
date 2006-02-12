@@ -71,33 +71,33 @@ def P2PSim2(pref1, pref2):    # use cooccurrence2
     return sim
 
 
-def selectByProbability(pdf_vector, candidates, num=1, smooth=2, smooth_value=1):    
+def selectByProbability(pdf_vector, num=1, smooth=2, smooth_value=1):    
     """ select a number of candidates based on their probabilities """
     
     # Attention: pdf_vector and candidates will be changed after this call
-    # It is important that the size and sequence of pdf_vector are the same with candidates
     # pdf_vector: Discrete vector of the Probability Density Function
     # num: the number of candidates to be selected
     # smooth:
     #    0 - no smooth
     #    1 - always smooth
     #    2 - if pdf_vector contains 0, smooth
+    # smooth_value: the extra value added to each item if smooth
+    # return: The index list of selected items
     
-    if not pdf_vector or not candidates:
+    if not pdf_vector:
         return []
-    ncand = len(candidates)
-    assert len(pdf_vector) == ncand, (pdf_vector, candidates)
-    assert min(pdf_vector) >= 0, pdf_vector
-    if num >= ncand:
+    n = len(pdf_vector)
+    candidates = xrange(n)
+    if num >= n:
         return candidates
     if smooth == 1 or (smooth == 2 and min(pdf_vector) == 0):
-        for i in xrange(len(pdf_vector)):
+        for i in candidates:
             pdf_vector[i] += smooth_value
     selected = []
     while len(selected) < num:
-        acc_vec = accumulate(pdf_vector)
-        rand = random() * max(acc_vec)
-        cand = bisearch(acc_vec, rand)
+        cdf_vector = getCDF(pdf_vector)
+        rand = random() * max(cdf_vector)
+        cand = bisearch(cdf_vector, rand)
         selected.append(candidates.pop(cand))
         pdf_vector.pop(cand)
     return selected    
@@ -115,13 +115,14 @@ def bisearch(vector, value):
             high = mid
     return low
     
-def accumulate(vector):
-    acc_vec = []
+def getCDF(pdf_vector):
+    cdf_vector = []
     sum = 0
-    for i in xrange(len(vector)):
-        sum += vector[i]
-        acc_vec.append(sum)
-    return acc_vec
+    for i in xrange(len(pdf_vector)):
+        if pdf_vector[i] > 0:
+            sum += pdf_vector[i]
+        cdf_vector.append(sum)
+    return cdf_vector
     
 
 def testSim():
@@ -140,7 +141,7 @@ def testSim():
 #    print "****"
 #    print pref1
 #    print bisearch(pref1, 3.1)
-#    print accumulate(pref1)
+#    print getCDF(pref1)
     print cooccurrence(pref1, pref2), P2PSim(pref1, pref2)
     print cooccurrence(pref1, pref3), P2PSim(pref1, pref3)
     print cooccurrence(pref1, pref4), P2PSim(pref1, pref4)
