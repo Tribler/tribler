@@ -4,7 +4,7 @@
 from cachedb import *
 from time import time
 from copy import deepcopy
-
+from sets import Set
 
 class BasicDBHandler:
     def __init__(self):
@@ -183,12 +183,10 @@ class PeerDBHandler(BasicDBHandler):
         return self.pref_db._keys()
 
     def getRandomPeerList(self):
-        peers = self.peer_db._keys()
-        rand_peers = []
-        for i in xrange(len(peers)):
-            if not self.pref_db._has_key(peers[i]):
-                rand_peers.append(peers[i])
-        return rand_peers
+        peerlist = Set(self.peer_db._keys())
+        tblist = Set(self.pref_db._keys())
+        rplist = list(peerlist - tblist)
+        return rplist
         
     def getPeers(self, peer_list, keys):    # get a list of dictionaries given peer list
         peers = []
@@ -316,7 +314,7 @@ class PreferenceDBHandler(BasicDBHandler):
         return self.pref_db.getItem(permid)
         
     def getPrefList(self, permid):
-        return self.pref_db._get(permid,[]).keys()
+        return self.pref_db._get(permid,{}).keys()
     
     def addPreference(self, permid, torrent_hash, data={}):
         self.pref_db.addPreference(permid, torrent_hash, data)

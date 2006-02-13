@@ -12,6 +12,7 @@ import Tribler.CacheDB.superpeer
 
 import hotshot, hotshot.stats
 import math
+from random import random, shuffle
 
 
 
@@ -39,10 +40,10 @@ class TestBuddyCast(unittest.TestCase):
         msg = self.prefxchg_msgs[self.myid-1].strip()
         self.mydata = bdecode(msg)
         self.prefs = self.mydata['preferences']
-        self.buddycast.ip = self.mydata['ip']
-        self.buddycast.port = self.mydata['port']
-        self.buddycast.permid = self.mydata['permid']
-        self.buddycast.name = self.mydata['name']
+        self.buddycast.data_handler.ip = self.mydata['ip']
+        self.buddycast.data_handler.port = self.mydata['port']
+        self.buddycast.data_handler.permid = self.mydata['permid']
+        self.buddycast.data_handler.name = self.mydata['name']
         for p in self.prefs:
             self.buddycast.addMyPref(p)
                 
@@ -76,10 +77,11 @@ class TestBuddyCast(unittest.TestCase):
                 continue
             msg = self.prefxchg_msgs[i].strip()
             self.buddycast.gotBuddyCastMsg(msg)
-        assert self.peer_db._size() == 309 , self.peer_db._size()
+        assert self.peer_db._size() == 308 , self.peer_db._size()
         assert self.torrent_db._size() == 919
-        assert self.pref_db._size() == 160
-        assert self.torrent_db._size() == self.owner_db._size()
+        assert self.pref_db._size() == 159
+        assert self.torrent_db._size() == 919
+        assert self.owner_db._size() == 915
         
     def preload2(self, begin=136, num=10):
         end = begin + num
@@ -99,38 +101,86 @@ class TestBuddyCast(unittest.TestCase):
         assert self.owner_db._size() == 132, self.owner_db._size()
         assert self.mypref_db._size() == 50, self.mypref_db._size()
 
-    def xxtest_createWorker(self):
+    def test_createWorker2(self):
+        worker = self.buddycast.createWorker(None)
+        assert worker == None
+
+    def test_createWorker(self):
         self.preload()
-        worker = self.buddycast.createWorker('peer 0')
+        for i in xrange(10):
+            begin = time()
+            worker = self.buddycast.createWorker(None)
+            worker.work()
+            end = time()
+            #print end - begin, worker.target, len(self.buddycast.data_handler.send_block_list.keys())
+        
+#        print "**", worker.target, worker.target in self.pref_db._data, self.peer_db.getItem(worker.target)
+#        print "**", worker.tbs
+#        print "**", worker.rps
         buddycast_data = worker.getBuddyCastMsgData()
         try:
             validBuddyCastData(buddycast_data)
             msg = bencode(buddycast_data)
         except:
             print_exc()
-            print_dict(buddycast_data)
-            print >> sys.stderr, "bad buddycast data", buddycast_data
+            #print_dict(buddycast_data)
+            print >> sys.stderr, "bad buddycast data"
+            
         #print_prefxchg_msg(buddycast_data)
         #print_dict(buddycast_data)
         #print len(msg), hash(msg)
         #worker.work()
         
-    def xxtest_getMsgTBPeers(self):
+    def xxtest_addMyPref(self):
         self.preload()
-        target, tbs, rps = self.buddycast.data_handler.getBuddyCastData('peer 0', 10, 10)
-        assert target == 'peer 0' and len(tbs) == 10 and len(rps) == 10
+        items = self.owner_db._items()
+#        for item in items:
+#            if len(item[1]) > 7 and not self.mypref_db._has_key(item[0]):
+#                print item[0], len(item[1]), item[1]
+        new_item = '1651'
+#        for p, v in self.peer_db._items():
+#            print p, v['similarity']
+        assert self.peer_db.getItem('peer_145')['similarity'] == 100
+        assert self.peer_db.getItem('peer_83')['similarity'] == 0
+        assert self.peer_db.getItem('peer_509')['similarity'] == 134
+        owners = self.owner_db.getItem(new_item)
+#        for o in owners:
+#            print o, self.peer_db.getItem(o)
+#        print p, self.peer_db.getItem('peer_509')
+        self.buddycast.addMyPref(new_item)
+        assert self.peer_db.getItem('peer_145')['similarity'] == 118
+        assert self.peer_db.getItem('peer_83')['similarity'] == 44
+        assert self.peer_db.getItem('peer_509')['similarity'] == 132
+#        print
+#        for o in owners:
+#            print o, self.peer_db.getItem(o)
+#        print p, self.peer_db.getItem('peer_509')
+    
+#    def test_selectBuddyCastCandidate(self):
+#        pass
+            
         
-    def xxtest_WorkerQueue(self):
-        q = WorkerQueue(None, max_size=5)
-        q.addWorker('worker1')
+    def xxtest_sortlist(self):
+        bc = BuddyCastCore(None)
+        a = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9']
+        b = range(10)
+        shuffle(b)
+        print a
+        print b
+        ret = bc._sortList(a,b)
+        print ret
+        
+    def xxtest_JobQueue(self):
+        q = JobQueue(max_size=5)
+        q.addTarget('worker1')
         assert q._queue == ['worker1']
-        q.addWorker(['worker2', 'worker3'])
+        q.addTarget(['worker2', 'worker3'])
         assert q._queue == ['worker1', 'worker2', 'worker3']
-        q.addWorker(['worker44', 'worker55', 'worker66'], 0)
+        q.addTarget(['worker44', 'worker55', 'worker66'], 0)
         assert q._queue == ['worker1', 'worker2', 'worker3', 'worker44', 'worker55']
-        q.addWorker(['worker4', 'worker5', 'worker6'], 1)
+        q.addTarget(['worker4', 'worker5', 'worker6'], 1)
         assert q._queue == ['worker4', 'worker5', 'worker6', 'worker1', 'worker2']
-        assert q.getWorker() == 'worker4'
+        assert q.getTarget() == 'worker4'
         assert q._queue == ['worker5', 'worker6', 'worker1', 'worker2']
         
 
@@ -161,10 +211,10 @@ class TestBuddyCast(unittest.TestCase):
         for i in range(20):
             self.preload2(136+i*10, 10)
             begin = time()
-            target, tbs, rps = self.buddycast.data_handler.getBuddyCastData(None, 10, 10)
+            target, tbs, rps = self.buddycast.buddycast_core.getBuddyCastData(None, 10, 10)
             print time() - begin, self.peer_db._size(), self.pref_db._size()
             
-    def test_profile(self):
+    def xxtest_profile(self):
         def foo(n = 10000):
             def bar(n):
                 for i in range(n):
@@ -178,41 +228,14 @@ class TestBuddyCast(unittest.TestCase):
         self.preload2(136, 30)
         print "profile starts"
         prof = hotshot.Profile("test.prof")
-        prof.runcall(self.buddycast.data_handler.getBuddyCastData)
+        prof.runcall(self.buddycast.buddycast_core.getBuddyCastData)
         prof.close()
         stats = hotshot.stats.load("test.prof")
         stats.strip_dirs()
         stats.sort_stats('cumulative', 'time', 'calls')
         stats.print_stats(100)
         
-    def xxtest_addMyPref(self):
-        self.preload()
-        items = self.owner_db._items()
-#        for item in items:
-#            if len(item[1]) > 7 and not self.mypref_db._has_key(item[0]):
-#                print item[0], len(item[1]), item[1]
-        new_item = '1651'
-#        for p, v in self.peer_db._items():
-#            print p, v['similarity']
-        assert self.peer_db.getItem('peer_145')['similarity'] == 100
-        assert self.peer_db.getItem('peer_83')['similarity'] == 0
-        assert self.peer_db.getItem('peer_509')['similarity'] == 134
-        owners = self.owner_db.getItem(new_item)
-#        for o in owners:
-#            print o, self.peer_db.getItem(o)
-#        print p, self.peer_db.getItem('peer_509')
-        self.buddycast.addMyPref(new_item)
-        assert self.peer_db.getItem('peer_145')['similarity'] == 118
-        assert self.peer_db.getItem('peer_83')['similarity'] == 44
-        assert self.peer_db.getItem('peer_509')['similarity'] == 132
-#        print
-#        for o in owners:
-#            print o, self.peer_db.getItem(o)
-#        print p, self.peer_db.getItem('peer_509')
-    
-#    def test_selectBuddyCastCandidate(self):
-#        pass
-    
+
 def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestBuddyCast))

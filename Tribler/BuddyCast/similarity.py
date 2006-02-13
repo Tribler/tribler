@@ -87,7 +87,7 @@ def selectByProbability(pdf_vector, num=1, smooth=2, smooth_value=1):
     if not pdf_vector:
         return []
     n = len(pdf_vector)
-    candidates = xrange(n)
+    candidates = range(n)
     if num >= n:
         return candidates
     if smooth == 1 or (smooth == 2 and min(pdf_vector) == 0):
