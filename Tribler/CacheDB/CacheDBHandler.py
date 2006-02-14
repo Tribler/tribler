@@ -158,11 +158,9 @@ class FriendDBHandler(BasicDBHandler):
         return friends
             
     def deleteFriend(self,permid):
-        print "*********** sync friend db before", len(self.my_db.getFriends()), self.my_db.getFriends()
         self.my_db.deleteFriend(permid)
         self.my_db._sync()  
-        print "*********** sync friend db after", len(self.my_db.getFriends()), self.my_db.getFriends()
-
+        
 class PeerDBHandler(BasicDBHandler):
     
     def __init__(self, db_dir=''):

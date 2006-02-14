@@ -392,6 +392,8 @@ class PeerDB(BasicDB):
     getInstance = staticmethod(getInstance)
 
     def updateItem(self, permid, item={}):    # insert a peer; update it if existed
+#        if item.has_key('name'):
+#            assert item['name'] != 'qfqf'
         if isValidPermid(permid) and validDict(item):
             if self._has_key(permid):
                 _item = self.getItem(permid)

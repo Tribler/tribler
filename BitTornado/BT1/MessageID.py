@@ -50,9 +50,9 @@ HASHPIECE = chr(250)
                  }]
 }
 """                   
-PREFERENCE_EXCHANGE = chr(249)
+BUDDYCAST = chr(249)
 
-BuddyCastMessages = [PREFERENCE_EXCHANGE]
+BuddyCastMessages = [BUDDYCAST]
 
 # torrent_hash
 GET_METADATA = chr(248)
@@ -111,8 +111,8 @@ def getMessageName(t):
         return "STOP_DOWNLOAD_HELP"
     elif t == HASHPIECE:
         return "HASHPIECE"
-    elif t == PREFERENCE_EXCHANGE:
-        return "PREFERENCE_EXCHANGE"
+    elif t == BUDDYCAST:
+        return "BUDDYCAST"
     elif t == GET_METADATA:
         return "GET_METADATA"
     elif t == METADATA:

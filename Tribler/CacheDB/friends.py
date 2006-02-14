@@ -4,6 +4,7 @@
 from time import time
 import os
 import base64
+from traceback import print_exc
 
 from Tribler.utilities import validIP, validPort, validPermid, validName
 from Tribler.Overlay.permid import permid_for_user
@@ -16,7 +17,11 @@ DEBUG = False
 
 def init(config_dir = None):
     filename = make_filename(config_dir, friend_file)
-    FriendList(filename).updateFriendList()
+    ExternalFriendList(filename).updateFriendList()
+    
+def done(config_dir = None):
+    filename = make_filename(config_dir, friend_file)
+    ExternalFriendList(filename).writeFriendList()
     
 def make_filename(config_dir,filename):
     if config_dir is None or not isinstance(config_dir, str):
@@ -24,14 +29,11 @@ def make_filename(config_dir,filename):
     else:
         return os.path.join(config_dir,filename)    
 
-class FriendList:
+class ExternalFriendList:
     def __init__(self, friend_file=friend_file, db_dir=''):
         self.friend_file = friend_file
         self.db_dir = db_dir
         self.friend_db = FriendDBHandler(db_dir=self.db_dir)
-        
-    def __del__(self):
-        self.writeFriendList()
         
     def clear(self):    # clean database
         if hasattr(self, 'friend_db'):
@@ -116,7 +118,8 @@ class FriendList:
         try:
             file = open(filename, "w")
         except IOError:
-            pass
+            print_exc()
+            return
         
         friends = self.getFriends()
         friends_to_write = self.formatForText(friends)

@@ -113,3 +113,6 @@ def tribler_init(config_dir = None):
     cachedb.init(config_dir,myinfo)
     superpeer.init()
     friends.init(config_dir)
+
+def tribler_done(config_dir = None):
+    friends.done(config_dir)

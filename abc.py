@@ -35,7 +35,7 @@ from ABC.GUI.list import ManagedList
 from Utility.utility import Utility
 from Utility.constants import * #IGNORE:W0611
 
-from Tribler.__init__ import tribler_init
+from Tribler.__init__ import tribler_init, tribler_done
 
 ################################################################
 #
@@ -577,7 +577,10 @@ class ABCApp(wx.App):
         ClientPassParam("Close Connection")
         
         return 0
-
+        
+    def __del__(self):
+        tribler_done(self.utility.getConfigPath())
+        
 ##############################################################
 #
 # Main Program Start Here

@@ -24,11 +24,13 @@ from traceback import print_exc
 from sets import Set
 
 from BitTornado.bencode import bencode, bdecode
+from BitTornado.BT1.MessageID import BUDDYCAST
 from Tribler.CacheDB.CacheDBHandler import *
 #from Tribler.__init__ import GLOBAL
 from Tribler.utilities import *
 from Tribler.Overlay.SecureOverlay import SecureOverlay
 from similarity import P2PSim, P2PSim2, selectByProbability
+
 
 def validBuddyCastData(prefxchg, nmyprefs=50, nbuddies=10, npeers=10, nbuddyprefs=10):
     def validPeer(peer):
@@ -120,23 +122,23 @@ class BuddyCastWorker:
         self.data = None
         
     def getBuddyCastMsgData(self):
-        if self.data is not None:
-            return self.data
-        self.data = {}
-        self.data['ip'] = self.data_handler.ip
-        self.data['port'] = self.data_handler.port
-        self.data['permid'] = self.data_handler.permid
-        self.data['name'] = self.data_handler.name
-        self.data['preferences'] = self.data_handler.getMyPrefList(self.nmyprefs)
-        self.data['taste buddies'] = self.data_handler.getTasteBuddies(self.tbs, self.nbuddyprefs)
-        self.data['random peers'] = self.data_handler.getRandomPeers(self.rps)
+        if self.data is None:
+            self.data = {}
+            self.data['ip'] = self.data_handler.ip
+            self.data['port'] = self.data_handler.port
+            self.data['permid'] = self.data_handler.permid
+            self.data['name'] = self.data_handler.name
+            self.data['preferences'] = self.data_handler.getMyPrefList(self.nmyprefs)
+            self.data['taste buddies'] = self.data_handler.getTasteBuddies(self.tbs, self.nbuddyprefs)
+            self.data['random peers'] = self.data_handler.getRandomPeers(self.rps)
         return self.data
         
     def work(self):
         try:
             validPermid(self.target)
-            msg_data = self.getBuddyCastMsgData()
-            buddycast_msg = bencode(msg_data)
+            self.getBuddyCastMsgData()
+            print_dict(self.data)
+            buddycast_msg = bencode(self.data)
         except:
             print_exc()
             print >> sys.stderr, "error in bencode buddycast msg"
@@ -620,6 +622,7 @@ class BuddyCastFactory:
     def sendBuddyCastMsg(self, target, msg):
         print "*** send buddycast msg:", target, len(msg)
         print "*** blocklist:", len(self.data_handler.send_block_list)
+        self.secure_overlay.addTask(target, BUDDYCAST + msg)
         
     def BuddyCastMsgSent(self, target):    # msg has been sent, long delay
         self.data_handler.addToSendBlockList(target, self.long_block_time)
@@ -627,30 +630,25 @@ class BuddyCastFactory:
     # ----- interface for external calls -----
     def doBuddyCast(self):
         self.rawserver.add_task(self.doBuddyCast, self.buddycast_interval)
-        taget = self.job_queue.getTarget()
-        worker = self.createWorker(target)
+        target = self.job_queue.getTarget()
+        worker = self._createWorker(target)
         if worker is not None:
             worker.work()
             del worker
+        else:
+            print "** no worker to do buddycast"
 
-    def createWorker(self, target=None):
+    def _createWorker(self, target=None):
         """ 
         Create a worker to send buddycast msg. 
         If target is None, a new target will be selected 
         """
         
-        #print "..create worker", target
         if self.data_handler.isSendBlocked(target):    # if target is None, it is not blocked
-            #print "...target blocked:", target
             return None
         target, tbs, rps = self.buddycast_core.getBuddyCastData(target, self.msg_nbuddies, self.msg_npeers)
-#        print "**", target
-#        print "**", tbs
-#        print "**", rps
         if target is None:    # could not find a buddycast candidate
-            #print "...not found a target"
             return None
-        #print "...found a target", target
         return BuddyCastWorker(self, target, tbs, rps, self.msg_nmyprefs, self.msg_nbuddyprefs)
         
     def addMyPref(self, infohash, data={}):
