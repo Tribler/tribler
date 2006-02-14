@@ -1,7 +1,7 @@
 # Written by Jie Yang
 # see LICENSE.txt for license information
 
-from socket import inet_aton 
+from socket import inet_aton, gethostbyname
 
 permid_len = 0  #112
 infohash_len = 0  #20
@@ -19,6 +19,7 @@ def validPort(port):
 
 def validIP(ip):
     try:
+        ip = gethostbyname(ip)
         inet_aton(ip)
     except:
         raise RuntimeError, "invalid IP address: " + ip

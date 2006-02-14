@@ -56,7 +56,7 @@ def validBuddyCastData(prefxchg, nmyprefs=50, nbuddies=10, npeers=10, nbuddypref
         validPref(b['preferences'], nbuddyprefs)
         
     assert len(prefxchg['random peers']) <= npeers, len(prefxchg['random peers'])
-    for p in prefxchg['random peers']:
+    for b in prefxchg['random peers']:
         validPeer(b)
         assert isinstance(b['age'], int) and b['age'] >= 0
     return True
@@ -493,8 +493,10 @@ class BuddyCastCore:
     def _selectTarget(self):
         r = random()
         if r < 0.5:    # select a taste buddy based on similarity
+            print ">>> taste buddy candidate"
             target = self._getBuddyCandidate()
         else:          # select a random peer based on age
+            print ">>> random peer candidate"
             target = self._getPeerCandidate()
         return target
     
@@ -599,7 +601,16 @@ class BuddyCastFactory:
         print >> sys.stderr, "BuddyCast starts up"
 
     # ----- message handle -----
-    def gotBuddyCastMsg(self, msg):
+    def handleMessage(self, permid, message):
+        
+        t = message[0]
+        
+        if t == BUDDYCAST:
+            self.gotBuddyCastMsg(message[1:], permid)
+        else:
+            print >> sys.stderr, "wrong message to buddycast", message
+            
+    def gotBuddyCastMsg(self, msg, permid=None):
         def updateDB(prefxchg):
             TasteBuddy(self.data_handler, prefxchg).updateDB()
             for b in prefxchg['taste buddies']:
@@ -609,6 +620,11 @@ class BuddyCastFactory:
         
         try:
             buddycast_data = bdecode(msg)
+            if permid is not None and permid != buddycast_data['permid']:
+                raise RuntimeError, "buddycast message permid doesn't match: " + \
+                    permid + " " + buddycast_data['permid']
+            print_dict(msg)
+            print "***** got buddycast msg *******", len(msg), buddycast_data['ip']
             validBuddyCastData(buddycast_data, self.msg_nmyprefs, self.msg_nbuddies, 
                                self.msg_npeers, self.msg_nbuddyprefs)    # RCP 2
         except:
