@@ -137,7 +137,8 @@ class BuddyCastWorker:
         try:
             validPermid(self.target)
             self.getBuddyCastMsgData()
-            print_dict(self.data)
+            print "** send buddycast", self.data['ip'], self.data['name'], len(self.data['preferences']), \
+                len(self.data['taste buddies']), len(self.data['random peers'])
             buddycast_msg = bencode(self.data)
         except:
             print_exc()
@@ -145,6 +146,7 @@ class BuddyCastWorker:
             return
         self.factory.sendBuddyCastMsg(self.target, buddycast_msg)
         self.data_handler.addToSendBlockList(self.target, self.factory.short_block_time)
+        print "**** send blocklist:", len(self.data_handler.send_block_list)
 
 
 class JobQueue:
@@ -212,7 +214,7 @@ class DataHandler:
         self.tb_list = []
         self.rp_list = []
         
-        self.send_block_list = {}
+        self.send_block_list = {}    # TODO: BlockList class; sync with database
         self.recv_block_list = {}
       
     
@@ -620,8 +622,8 @@ class BuddyCastFactory:
         self.job_queue.addTarget(target, priority=1)
 
     def sendBuddyCastMsg(self, target, msg):
-        print "*** send buddycast msg:", target, len(msg)
-        print "*** blocklist:", len(self.data_handler.send_block_list)
+        #print "*** send buddycast msg:", target, len(msg)
+        #print "*** blocklist:", len(self.data_handler.send_block_list)
         self.secure_overlay.addTask(target, BUDDYCAST + msg)
         
     def BuddyCastMsgSent(self, target):    # msg has been sent, long delay
