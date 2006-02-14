@@ -176,6 +176,10 @@ class PeerDBHandler(BasicDBHandler):
     def getPeer(self, permid):
         return self.peer_db.getItem(permid)
         
+    def getPeerSim(self, permid):
+        x = self.peer_db.getItem(permid)
+        return x['similarity']
+        
     def getPeerList(self):    # get the list of all peers' permid
         return self.peer_db._keys()
         
@@ -183,10 +187,8 @@ class PeerDBHandler(BasicDBHandler):
         return self.pref_db._keys()
 
     def getRandomPeerList(self):
-        peerlist = Set(self.peer_db._keys())
-        tblist = Set(self.pref_db._keys())
-        rplist = list(peerlist - tblist)
-        return rplist
+        # TODO: improve performance 
+        return list(Set(self.peer_db._keys()) - Set(self.pref_db._keys()))
         
     def getPeers(self, peer_list, keys):    # get a list of dictionaries given peer list
         peers = []
@@ -209,21 +211,18 @@ class PeerDBHandler(BasicDBHandler):
         return peers
         
     def getPeersValue(self, peer_list, keys):    # get a list of values given peer list 
-        values = []
         if not keys:
             return []
+        values = []
         for peer in peer_list:
             p = self.peer_db.getItem(peer)
             if len(keys) == 1:
-                if keys[0] in p:
-                    values.append(p[keys[0]])
+                values.append(p[keys[0]])
             else:
                 d = []
                 for key in keys:
-                    if key in p:
-                        d.append(p[key])
-                if len(d) == len(peer_list):
-                    values.append(d)
+                    d.append(p[key])
+                values.append(d)
         
         return values
     
@@ -259,48 +258,6 @@ class PeerDBHandler(BasicDBHandler):
     def getItems(self):
         return self.peer_db._items()
         
-#    def getAllPeers(self, key=None):
-#        all_values = self.peer_db.values()
-#        if key is None:
-#            return all_values
-#        else:
-#            return [all_values[i][key] for i in xrange(len(all_values))]
-#        
-#    def getPeers(self, key, value):
-#        all_peers = self.peer_db.values()
-#        res = []
-#        try:
-#            for peer in all_peers:
-#                if peer[key] == value:
-#                    res.append(peer)
-#        except:
-#            pass    # key error
-#        return res
-#    
-#    def filter(self, peer):
-#        default_keys = self.peer_db.default_data.keys()
-#        for key in peer.keys():
-#            if key not in default_keys:
-#                peer.pop(key)
-#            
-#    def updatePeer(self, peer):
-#        self.peer_db.updateItem(peer)
-#        
-#    def updatePeerIPPort(self, permid, ip, port):
-#        peer = {'permid':permid, 'ip':ip, 'port':port}
-#        self.peer_db.updateItem(peer)
-#        
-#    def updatePeerTrust(self, permid, trust):
-#        peer = {'permid':permid, 'my_trust':trust}
-#        self.peer_db.updateItem(peer)
-#        
-#    def updatePeerSim(self, permid, sim):
-#        peer = {'permid':permid, 'similarity':sim}
-#        self.peer_db.updateItem(peer)
-#        
-#    def hasPermID(self, permid):
-#        return self.peer_db.has_key(permid)
-#        
 
 
 class PreferenceDBHandler(BasicDBHandler):
@@ -331,6 +288,8 @@ class TorrentDBHandler(BasicDBHandler):
 
     def __init__(self, db_dir=''):
         self.torrent_db = TorrentDB.getInstance(db_dir=db_dir)
+        self.mypref_db = MyPreferenceDB.getInstance(db_dir=db_dir)
+        self.owner_db = OwnerDB.getInstance(db_dir=db_dir)
         self.dbs = [self.torrent_db]
         
     def size(self):
@@ -342,18 +301,39 @@ class TorrentDBHandler(BasicDBHandler):
     def getTorrent(self, torrent_hash):
         return self.torrent_db.getItem(torrent_hash)
             
-#    def findTorrent(self, torrent_hash=None, torrent_id=None):    # find both id and hash
-#        pass
-#
-#    def updateTorrentRank(self, torrent_hash, rank):
-#        pass
-#            
-#    def updateTorrent(self, torrent_hash, torrent):
-#        pass
+#    def getTorrentList(self):    # get the list of all peers' permid
+#        return self.torrent_db._keys()
 #        
-#    def removeTorrent(self, torrent_hash):
-#        pass
-    
+#    def getMyTorrentList(self):
+#        return self.mypref_db._keys()
+        
+    def getOthersTorrentList(self):
+        return list(Set(self.torrent_db._keys()) - Set(self.mypref_db._keys()))
+        
+    def getTorrentsValue(self, torrent_list, keys):    # get a list of values given peer list 
+        if not keys:
+            return []
+        if not isinstance(keys, list):
+            keys = [str(keys)]
+        values = []
+        for torrent in torrent_list:
+            t = self.torrent_db.getItem(torrent)
+            if len(keys) == 1:
+                values.append(t[keys[0]])
+            else:
+                d = []
+                for key in keys:
+                    d.append(t[key])
+                values.append(d)
+        
+        return values
+            
+    def getOwners(self, torrent_hash):
+        return self.owner_db.getItem(torrent_hash)
+        
+    def updateTorrentRelevance(self, torrent, relevance):
+        self.torrent_db.updateItem(torrent, {'relevance':relevance})
+            
 
 class MyPreferenceDBHandler(BasicDBHandler):
     
@@ -411,13 +391,7 @@ class OwnerDBHandler(BasicDBHandler):
     
     def __init__(self, db_dir=''):
         self.owner_db = OwnerDB.getInstance(db_dir=db_dir)
-        self.torrent_db = TorrentDB.getInstance(db_dir=db_dir)
-        self.peer_db = PeerDB.getInstance(db_dir=db_dir)
-        self.mypref_db = MyPreferenceDB.getInstance(db_dir=db_dir)
-        self.dbs = [self.owner_db, self.torrent_db, self.peer_db, self.mypref_db]
-        
-    def getOwners(self, torrent_hash):
-        return self.owner_db.getItem(torrent_hash)
+        self.dbs = [self.owner_db]
         
 def test_mydb():
     mydb = MyDBHandler()

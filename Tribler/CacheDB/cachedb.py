@@ -72,7 +72,7 @@ from sha import sha
 from copy import deepcopy
 from sets import Set
 
-from Tribler.utilities import isValidPermid, isValidInfohash
+#from Tribler.utilities import isValidPermid, isValidInfohash
 
 try:
     # For Python 2.3
@@ -84,19 +84,11 @@ except ImportError:
 #permid_len = 0  #112
 #infohash_len = 20
 #
-#def isValidPermid(permid):
-#    if not isinstance(permid, str):
-#        return False
-#    if permid_len > 0 and len(permid) != permid_len:
-#        return False
-#    return True
-#    
-#def isValidInfohash(infohash):
-#    if not isinstance(infohash, str):
-#        return False
-#    if infohash_len > 0 and len(infohash) != infohash_len:
-#        return False
-#    return True
+def isValidPermid(permid):
+    return True
+    
+def isValidInfohash(infohash):
+    return True
 
 
 def setDBPath(db_dir = ''):

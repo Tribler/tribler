@@ -17,7 +17,7 @@ from random import random, shuffle
 
 
 testdata_file = 'test/testdata.txt'
-myid = 147
+myid =  147
 
 class TestBuddyCast(unittest.TestCase):
     """ 
@@ -77,11 +77,12 @@ class TestBuddyCast(unittest.TestCase):
                 continue
             msg = self.prefxchg_msgs[i].strip()
             self.buddycast.gotBuddyCastMsg(msg)
-        assert self.peer_db._size() == 308 , self.peer_db._size()
-        assert self.torrent_db._size() == 919
-        assert self.pref_db._size() == 159
-        assert self.torrent_db._size() == 919
-        assert self.owner_db._size() == 915
+        if self.myid == 147:
+            assert self.peer_db._size() == 308 , self.peer_db._size()
+            assert self.torrent_db._size() == 919
+            assert self.pref_db._size() == 159
+            assert self.torrent_db._size() == 919
+            assert self.owner_db._size() == 915
         
     def preload2(self, begin=136, num=10):
         end = begin + num
@@ -101,35 +102,47 @@ class TestBuddyCast(unittest.TestCase):
         assert self.owner_db._size() == 132, self.owner_db._size()
         assert self.mypref_db._size() == 50, self.mypref_db._size()
 
-    def test_createWorker2(self):
+    def xxtest_createWorker2(self):
         worker = self.buddycast.createWorker(None)
         assert worker == None
 
-    def test_createWorker(self):
-        self.preload()
-        for i in xrange(10):
+    def xxtest_createWorker(self):
+        #self.preload()
+        msg = self.prefxchg_msgs[0].strip()
+        self.buddycast.gotBuddyCastMsg(msg)
+        msg = self.prefxchg_msgs[1].strip()
+        self.buddycast.gotBuddyCastMsg(msg)
+        for i in xrange(50):
             begin = time()
+            print i,
             worker = self.buddycast.createWorker(None)
-            worker.work()
+            if worker is not None:
+                worker.work()
+                buddycast_data = worker.getBuddyCastMsgData()
+                try:
+                    validBuddyCastData(buddycast_data)
+                    msg = bencode(buddycast_data)
+                except:
+                    print_exc()
+                    #print_dict(buddycast_data)
+                    print >> sys.stderr, "bad buddycast data"
             end = time()
             #print end - begin, worker.target, len(self.buddycast.data_handler.send_block_list.keys())
         
 #        print "**", worker.target, worker.target in self.pref_db._data, self.peer_db.getItem(worker.target)
 #        print "**", worker.tbs
 #        print "**", worker.rps
-        buddycast_data = worker.getBuddyCastMsgData()
-        try:
-            validBuddyCastData(buddycast_data)
-            msg = bencode(buddycast_data)
-        except:
-            print_exc()
-            #print_dict(buddycast_data)
-            print >> sys.stderr, "bad buddycast data"
             
         #print_prefxchg_msg(buddycast_data)
         #print_dict(buddycast_data)
         #print len(msg), hash(msg)
         #worker.work()
+        
+    def test_recommendateItems(self):
+        self.preload()
+        rec_list = self.buddycast.recommendateItems(20)
+        #print self.mypref_db._keys()
+        print rec_list
         
     def xxtest_addMyPref(self):
         self.preload()

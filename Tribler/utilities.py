@@ -121,8 +121,7 @@ def print_dict(data, level=0):
             print_dict(data[i], level+1)
     else:
         print data
-    
-
+        
 if __name__=='__main__':
     d = {'a':1,'b':[1,2,3],'c':{'c':2,'d':[3,4],'k':{'c':2,'d':[3,4]}}}
     print_dict(d)    

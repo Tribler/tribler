@@ -2,6 +2,7 @@
 # see LICENSE.txt for license information
 
 """
+
 Rate Control Policies (RCP):
  
 1. Never exchange buddycast message with a peer if we have exchanged it in 4 hours. 
@@ -95,6 +96,7 @@ class TasteBuddy(RandomPeer):
         self.updatePrefDB()
         self.updatePeerDB()
         self.data_handler.setPeerCacheChanged(True)
+        self.data_handler.setTorrentCacheChanged(True)
         
     def updatePrefDB(self):
         for pref in self.prefs:
@@ -194,8 +196,7 @@ class DataHandler:
         self.torrent_db = TorrentDBHandler(db_dir=db_dir)
         self.mypref_db = MyPreferenceDBHandler(db_dir=db_dir)
         self.pref_db = PreferenceDBHandler(db_dir=db_dir)
-        self.owner_db = OwnerDBHandler(db_dir=db_dir)
-        self.dbs = [self.my_db, self.peer_db, self.superpeer_db, self.owner_db, 
+        self.dbs = [self.my_db, self.peer_db, self.superpeer_db,
                     self.torrent_db, self.mypref_db, self.pref_db]        
         self.name = self.my_db.get('name', '')
         self.ip = self.my_db.get('ip', '')
@@ -205,6 +206,7 @@ class DataHandler:
         # cache in memory
         self.preflist = self.mypref_db.getRecentPrefList()
         self.peercache_changed = True
+        self.torrentcache_changed = True
         self.tb_list = []
         self.rp_list = []
         
@@ -253,7 +255,7 @@ class DataHandler:
         peers = self.peer_db.getTasteBuddyList()
         if not peers:
             return
-        owners = self.owner_db.getOwners(infohash)
+        owners = self.torrent_db.getOwners(infohash)
         n = self.mypref_db.size()
         sim_var = sqrt(1.0*n/(n+1))    # new_sim = old_sim * sim_var 
         if len(owners) > 0:
@@ -326,21 +328,48 @@ class DataHandler:
             if peers[i]['age'] < 0:
                 peers[i]['age'] = 0
         return peers        
+        
+    def getOthersTorrentList(self):
+        return self.torrent_db.getOthersTorrentList()
+        
+    def getOwners(self, infohash):
+        return self.torrent_db.getOwners(infohash)
+        
+    def getPeerSims(self, peer_list):
+        sims = []
+        for peer in peer_list:
+            sim = self.peer_db.getPeerSim(peer)
+            sims.append(sim)
+        return sims        
+        
+    def updateTorrentRelevance(self, torrent, relevance):
+        self.torrent_db.updateTorrentRelevance(torrent, relevance)
+        
+    def getTorrentsValue(self, torrent_list, keys):
+        return self.torrent_db.getTorrentsValue(torrent_list, keys)
+        
 
     #---------- utilities ----------#
+    # --- cache status --- #
     def peerCacheChanged(self):
         return self.peercache_changed
 
     def setPeerCacheChanged(self, changed=True):
         self.peercache_changed = changed
     
+    def torrentCacheChanged(self):
+        return self.torrentcache_changed
+
+    def setTorrentCacheChanged(self, changed=True):
+        self.torrentcache_changed = changed
+
     def getSimilarity(self, permid, num=0):
         pref1 = self.getMyPrefList(num)
         pref2 = self.getPeerPrefList(permid)
         sim = P2PSim(pref1, pref2)
         return sim
 
-    # --------- block list --------#
+    # --- block list --- #
     def addToRecvBlockList(self, permid, block_time):
         if permid is not None:
             self.recv_block_list[permid] = int(time()) + block_time
@@ -385,9 +414,9 @@ class BuddyCastCore:
         Get target, taste buddy list and random peer list for buddycast message.
         If target is not given, select a target.
         
-        Taste buddy list - the top 10 similar peers
-        Random peer list - From the rest of peer list select 10 random peers 
-        based on their online probability.
+        Taste buddy list - the top 10 similar taste buddies
+        Random peer list - From the rest of peer list (include taste buddies and random peers)
+        randomly select 10 peers based on their online probability.
         
         Online probability of peers: 
             Prob_online(Peer_x) = last_seen(Peer_x) - time_stamp_of_7_days_ago
@@ -407,7 +436,8 @@ class BuddyCastCore:
         return self.msg_tbs
         
     def _getMsgPeers(self, npeers):
-        msg_rps_idx = selectByProbability(self.msg_rps_online[:], npeers)    # must pass a copy of self.msg_rps_online 
+        # must pass a copy of self.msg_rps_online 
+        msg_rps_idx = selectByProbability(self.msg_rps_online[:], npeers, inplace=False)    
         return [self.msg_rps[i] for i in msg_rps_idx]
         
     def _updatePeerCache(self, nbuddies=10, target=None):
@@ -467,13 +497,13 @@ class BuddyCastCore:
     def _getBuddyCandidate(self):
         if len(self.can_tbs) == 0:
             return None
-        target_idx = selectByProbability(self.can_tbs_sims[:], 1)
+        target_idx = selectByProbability(self.can_tbs_sims[:], 1, inplace=False)
         return self.can_tbs[target_idx[0]]
         
     def _getPeerCandidate(self):
         if len(self.can_rps) == 0:
             return None
-        target_idx = selectByProbability(self.can_rps_online[:], 1)
+        target_idx = selectByProbability(self.can_rps_online[:], 1, inplace=False)
         return self.can_rps[target_idx[0]]
         
     def _getOnlineProb(self, ages):    
@@ -488,14 +518,31 @@ class BuddyCastCore:
         return probs
     
     # ---------- recommend items ------------
-    def recommendateItems(self, num):
-        self._updateItemRecommendation()
-        file_list = []
-        return file_list[:num]
-    
+    def recommendateItems(self, num=15):
+        if self.data_handler.torrentCacheChanged():
+            self._updateItemRecommendation()
+            self.recom_list = self._updateRecommendedItemList(num)
+            self.data_handler.setTorrentCacheChanged(False)
+        return self.recom_list
+            
     def _updateItemRecommendation(self):
-        pass
-    
+        self.ot_list = self.data_handler.getOthersTorrentList()
+        self._naiveUserBasedRecommendation()    # TODO: advanced recommendation algorithm
+        
+    def _naiveUserBasedRecommendation(self):
+        """
+        Relevance of item(i): Sum of the similarity of all the owners of item(i)
+        """
+        for torrent in self.ot_list:
+            owners = self.data_handler.getOwners(torrent)
+            sims = self.data_handler.getPeerSims(owners)
+            relevance = sum(sims)
+            self.data_handler.updateTorrentRelevance(torrent, relevance)
+        
+    def _updateRecommendedItemList(self, num):
+        relevance =  self.data_handler.getTorrentsValue(self.ot_list, ['relevance'])
+        recom_list = self._sortList(self.ot_list, relevance)
+        return recom_list[:num]
 
 
 class BuddyCastFactory:
@@ -571,8 +618,8 @@ class BuddyCastFactory:
         self.job_queue.addTarget(target, priority=1)
 
     def sendBuddyCastMsg(self, target, msg):
-        print "***send", target, "buddy cast msg:", len(msg), hash(msg)
-        print "***blocklist:", self.data_handler.send_block_list.keys()
+        print "*** send buddycast msg:", target, len(msg)
+        print "*** blocklist:", len(self.data_handler.send_block_list)
         
     def BuddyCastMsgSent(self, target):    # msg has been sent, long delay
         self.data_handler.addToSendBlockList(target, self.long_block_time)
@@ -592,19 +639,23 @@ class BuddyCastFactory:
         If target is None, a new target will be selected 
         """
         
+        #print "..create worker", target
         if self.data_handler.isSendBlocked(target):    # if target is None, it is not blocked
+            #print "...target blocked:", target
             return None
         target, tbs, rps = self.buddycast_core.getBuddyCastData(target, self.msg_nbuddies, self.msg_npeers)
 #        print "**", target
 #        print "**", tbs
 #        print "**", rps
         if target is None:    # could not find a buddycast candidate
+            #print "...not found a target"
             return None
+        #print "...found a target", target
         return BuddyCastWorker(self, target, tbs, rps, self.msg_nmyprefs, self.msg_nbuddyprefs)
         
     def addMyPref(self, infohash, data={}):
         self.data_handler.addMyPref(infohash, data)
 
-    def recommendateItems(self, num):
-        self.buddycast_core.recommendateItems(num)
+    def recommendateItems(self, num=15):
+        return self.buddycast_core.recommendateItems(num)
         
