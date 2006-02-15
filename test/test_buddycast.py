@@ -5,7 +5,7 @@ from sets import Set
 from traceback import print_exc
 
 from BitTornado.bencode import bencode, bdecode
-from Tribler.BuddyCast.buddycast2 import *
+from Tribler.BuddyCast.buddycast import *
 from Tribler.CacheDB.cachedb import *
 from Tribler.utilities import print_prefxchg_msg
 import Tribler.CacheDB.superpeer

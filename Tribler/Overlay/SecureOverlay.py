@@ -368,7 +368,7 @@ class SecureOverlay:
         
         
     # Main function to send messages
-    def addTask(self, target, message=None, timeout=15):    # id = [permid|(ip,port)]
+    def addTask(self, target, message=None, timeout=15):    # target = [permid|(ip,port)]
         """ Command Pattern """
         self.acquire()
         #TODO: priority task queue

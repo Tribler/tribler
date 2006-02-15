@@ -1,4 +1,4 @@
-product_name = 'Tribler_ABC'
+product_name = 'Tribler'
 version_short = 'Tribler_ABC-3.3.0'
 
 version = version_short + ' (' + product_name + ' - BitTornado 0.3.13'
