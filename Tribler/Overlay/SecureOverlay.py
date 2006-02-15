@@ -42,6 +42,7 @@ Length_of_permid = 0    # 0: no restriction
 
 def validIP(ip):
     invalid_ip_heads = [
+        '0.',
         '127.0.0.1',
         '192.168.',
         ]
@@ -148,6 +149,7 @@ class PermidOverlayTask:
         self.secure_overlay = secure_overlay
         self.permid = permid
         self.dns = self.secure_overlay.findDNSByPermid(self.permid)    # first lookup overlay
+        self.peer_db = PeerDBHandler()
         if not self.dns:    # then lookup local cache
             #if DEBUG:
             #    print >> sys.stderr,"secover: PermidOverlayTask: don't know dns for permid",show_permid(permid)
@@ -164,8 +166,7 @@ class PermidOverlayTask:
     def findDNSFromCache(self):
         #if DEBUG:
         #    return ('1.2.3.4', 80)
-        peer_cache = PeerDBHandler()
-        peer = peer_cache.getPeer(self.permid)
+        peer = self.peer_db.getPeer(self.permid)
         if peer:
             return (peer['ip'], int(peer['port']))
         
@@ -281,6 +282,7 @@ class SecureOverlay:
         SecureOverlay.__single = self 
         self.subject_manager = SubjectManager()    #???? for outgoing message
         self.incoming_handler = IncomingMessageHandler()    # for incoming message
+        self.peer_db = PeerDBHandler()
         self.connection_list = {}    # permid:{'c_conn': Connecter.Connection, 'e_conn': Encrypter.Connection, 'dns':(ip, port)}
         self.timeout = 60
         self.check_interval = 15
@@ -451,18 +453,17 @@ class SecureOverlay:
             self._updateDNS(permid, dns)
             expire = int(time() + self.timeout)
             self.connection_list[permid] = {'c_conn':connection, 'dns':dns, 'expire':expire}
-            peer_cache = PeerDBHandler()
             #print >> sys.stderr,"secover: permid received is",show_permid(permid)
-            #x = peer_cache.getPeer(permid)
+            #x = self.peer_db.getPeer(permid)
             #print >> sys.stderr,"secover: old peer is",x
-            peer_cache.updatePeerIPPort(permid, dns[0], dns[1])
-            #y = peer_cache.getPeer(permid)
+            #self.peer_db.updatePeerIPPort(permid, dns[0], dns[1])
+            #y = self.peer_db.getPeer(permid)
             #print >> sys.stderr,"secover: new peer is",y
             return dns
         return None
         
     def _updateDNS(self, permid, dns):
-        pass    # TODO: use bsddb
+        self.peer_db.updatePeerIPPort(permid, dns[0], dns[1])
         
     def _extendExpire(self, permid):
         self.connection_list[permid]['expire'] = int(time() + self.timeout)
@@ -479,7 +480,6 @@ class SecureOverlay:
             del self.connection_list[permid]
             # TODO: remove subject?
         self.release()
-
 
     def connectPeer(self, dns):    # called by task
         self.acquire()

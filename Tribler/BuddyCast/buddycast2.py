@@ -214,9 +214,10 @@ class DataHandler:
         self.tb_list = []
         self.rp_list = []
         
-        self.send_block_list = {}    # TODO: BlockList class; sync with database
-        self.recv_block_list = {}
-      
+        # TODO: BlockList class; sync with database
+        self.send_block_list = {self.permid:int(time()+10e9)}
+        self.recv_block_list = {self.permid:int(time()+10e9)}
+        
     
     #---------- database operations ----------#
     def clear(self):
@@ -296,18 +297,10 @@ class DataHandler:
             
     def getTasteBuddyList(self):
         tb_list = self.peer_db.getTasteBuddyList()
-        try:
-            tb_list.remove(self.permid)    # don't include myself
-        except:
-            pass
         return tb_list
         
     def getRandomPeerList(self):
         rp_list = self.peer_db.getRandomPeerList()
-        try:
-            rp_list.remove(self.permid)    # don't include myself
-        except:
-            pass
         return rp_list
     
     def getPeersValue(self, peerlist, keys):
@@ -376,11 +369,11 @@ class DataHandler:
     # --- block list --- #
     def addToRecvBlockList(self, permid, block_time):
         if permid is not None:
-            self.recv_block_list[permid] = int(time()) + block_time
+            self.recv_block_list[permid] = int(time() + block_time)
         
     def addToSendBlockList(self, permid, block_time):
         if permid is not None:
-            self.send_block_list[permid] = int(time()) + block_time
+            self.send_block_list[permid] = int(time() + block_time)
 
     def isRecvBlocked(self, permid):
         if not self.recv_block_list.has_key(permid):
@@ -400,10 +393,17 @@ class DataHandler:
         else:
             return True
             
+    def _updateBlockList(self, block_list):
+        for peer in block_list.keys():
+            if block_list[peer] < time():
+                block_list.pop(peer)
+            
     def getRecvBlockList(self):
+        self._updateBlockList(self.recv_block_list)
         return self.recv_block_list.keys()
     
     def getSendBlockList(self):
+        self._updateBlockList(self.send_block_list)
         return self.send_block_list.keys()
     
 
@@ -432,17 +432,23 @@ class BuddyCastCore:
             target = self._selectTarget()
             if target is None:    # no candidate
                 return None, None, None
-        tbs = self._getMsgBuddies()    # it doesn't change if peer cache hasn't changed
-        rps = self._getMsgPeers(npeers)
+        tbs = self._getMsgBuddies(nbuddies, target)    # it doesn't change if peer cache hasn't changed
+        rps = self._getMsgPeers(npeers, target)
         return target, tbs, rps
         
-    def _getMsgBuddies(self):
-        return self.msg_tbs
+    def _getMsgBuddies(self, nbuddies, target):
+        msg_tbs = self.msg_tbs[:nbuddies]
+        if target in msg_tbs:
+            msg_tbs.remove(target)
+        return msg_tbs
         
-    def _getMsgPeers(self, npeers):
+    def _getMsgPeers(self, npeers, target):
         # must pass a copy of self.msg_rps_online 
         msg_rps_idx = selectByProbability(self.msg_rps_online[:], npeers, inplace=False)    
-        return [self.msg_rps[i] for i in msg_rps_idx]
+        msg_rps = [self.msg_rps[i] for i in msg_rps_idx]
+        if target in msg_rps:
+            msg_rps.remove(target)
+        return msg_rps
         
     def _updatePeerCache(self, nbuddies=10, target=None):
         
@@ -457,15 +463,25 @@ class BuddyCastCore:
             msg_rps_ages = self.data_handler.getPeersValue(self.msg_rps, ['last_seen'])
             self.msg_rps_online = self._getOnlineProb(msg_rps_ages)
         
-        if not self.data_handler.peerCacheChanged():
+        if False:    #not self.data_handler.peerCacheChanged():    # FIXME: peerCacheChanged must be handled by PeerDBHandler
             if target is None:
                 _updateCandidate()
         else:
             self.tb_list = self.data_handler.getTasteBuddyList()
             self.rp_list = self.data_handler.getRandomPeerList()
+            participants = [self.data_handler.permid]
+            if target is not None:
+                participants.append(target)
+            self._removeItems(self.tb_list, participants)
+            self._removeItems(self.rp_list, participants)
             _updateCandidate()
             _updateMessage(nbuddies)
             self.data_handler.setPeerCacheChanged(False)
+
+    def _removeItems(self, the_list, items):
+        for p in items:
+            if p in the_list:
+                the_list.remove(p)
             
     def _separatePeersForCandidate(self, ntb=100):
         # remove blocked peers
@@ -478,8 +494,8 @@ class BuddyCastCore:
             
     def _separatePeersForMessage(self, ntb=10):
         self.tb_sims = self.data_handler.getPeersValue(self.tb_list, ['similarity'])
-        tbs = self._sortList(self.tb_list, self.tb_sims)
-        return tbs[:ntb], tbs[ntb:]+self.rp_list
+        tb_list = self._sortList(self.tb_list, self.tb_sims)
+        return tb_list[:ntb], tb_list[ntb:]+self.rp_list
         
     def _sortList(self, list_to_sort, list_key, order='decrease'):
         nlist = len(list_to_sort)
@@ -493,10 +509,8 @@ class BuddyCastCore:
     def _selectTarget(self):
         r = random()
         if r < 0.5:    # select a taste buddy based on similarity
-            print ">>> taste buddy candidate"
             target = self._getBuddyCandidate()
         else:          # select a random peer based on age
-            print ">>> random peer candidate"
             target = self._getPeerCandidate()
         return target
     
@@ -563,12 +577,13 @@ class BuddyCastFactory:
         # TODO: add these variables into Config
         self.buddycast_interval = 15
         self.long_block_time = 4*60*60    # 4 hours by default
-        self.short_block_time = 5*60    # 4 minutes by default
+        self.short_block_time = 5*60    # 5 minutes by default
         self.msg_nbuddies = 10    # number of buddies in buddycast msg
         self.msg_npeers = 10      # number of peers in buddycast msg
         self.msg_nmyprefs = 50    # number of my preferences in buddycast msg
         self.msg_nbuddyprefs = 10 # number of taste buddy's preferences in buddycast msg
         self.max_nworkers = 10    
+        self.sync_interval = 5*60    # sync database every 5 min
         # --- others ---
         self.registered = False
         self.rawserver = None
@@ -595,9 +610,13 @@ class BuddyCastFactory:
     def is_registered(self):
         return self.registered
     
+    def sync(self):
+        self.data_handler.sync()
+    
     def startup(self):
         if self.registered:
             self.rawserver.add_task(self.doBuddyCast, self.buddycast_interval)
+            self.rawserver.add_task(self.sync, self.sync_interval)
         print >> sys.stderr, "BuddyCast starts up"
 
     # ----- message handle -----
@@ -620,13 +639,11 @@ class BuddyCastFactory:
         
         try:
             buddycast_data = bdecode(msg)
-            if permid is not None and permid != buddycast_data['permid']:
-                raise RuntimeError, "buddycast message permid doesn't match: " + \
-                    permid + " " + buddycast_data['permid']
-            print_dict(msg)
+            print_dict(buddycast_data)
             print "***** got buddycast msg *******", len(msg), buddycast_data['ip']
-            validBuddyCastData(buddycast_data, self.msg_nmyprefs, self.msg_nbuddies, 
-                               self.msg_npeers, self.msg_nbuddyprefs)    # RCP 2
+            validBuddyCastData(buddycast_data, self.msg_nmyprefs, self.msg_nbuddies, self.msg_npeers, self.msg_nbuddyprefs)    # RCP 2            
+            if not self._checkPeerConsistency(buddycast_data, permid):
+               return
         except:
             print_exc()
             return
@@ -637,10 +654,18 @@ class BuddyCastFactory:
         updateDB(buddycast_data)
         self.job_queue.addTarget(target, priority=1)
 
+    def _checkPeerConsistency(self, buddycast_data, permid):
+        if permid is not None:
+            if permid != buddycast_data['permid']:
+                return False
+#            raise RuntimeError, "buddycast message permid doesn't match: " + \
+#                hash(permid) + " " + hash(buddycast_data['permid'])
+
     def sendBuddyCastMsg(self, target, msg):
         #print "*** send buddycast msg:", target, len(msg)
         #print "*** blocklist:", len(self.data_handler.send_block_list)
-        self.secure_overlay.addTask(target, BUDDYCAST + msg)
+        if not self.data_handler.isSendBlocked(target):
+            self.secure_overlay.addTask(target, BUDDYCAST + msg)
         
     def BuddyCastMsgSent(self, target):    # msg has been sent, long delay
         self.data_handler.addToSendBlockList(target, self.long_block_time)

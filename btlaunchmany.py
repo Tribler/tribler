@@ -162,4 +162,4 @@ if __name__ == '__main__':
         print '\nEXCEPTION:'
         print Exceptions[0]
         get_logger().log(2, 'btlaunchmany EXCEPTION: ' + str(Exceptions[0]))
-        print 'please report this to '+report_email
+        print 'please report this to '+report_email+'. Thank you!'

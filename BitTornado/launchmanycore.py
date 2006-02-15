@@ -34,6 +34,7 @@ from Tribler.__init__ import GLOBAL
 from Tribler.Overlay.OverlaySwarm import OverlaySwarm
 from Tribler.Overlay.SecureOverlay import SecureOverlay
 from Tribler.Overlay.OverlayApps import OverlayApps
+from Tribler.CacheDB.CacheDBHandler import MyDBHandler
 # 2fastbt_
 from Tribler.toofastbt.Logger import get_logger, create_logger
 # _2fastbt
@@ -212,15 +213,17 @@ class LaunchMany:
                                        errorfunc = self.exchandler)
             upnp_type = UPnP_test(config['upnp_nat_access'])
             self.listen_port = -1
+            if config['minport'] != config['maxport']:
+                first_try = MyDBHandler().get('port')
+            first_try = 0
             while 1:
                 try:
-                    self.listen_port = self.rawserver.find_and_bind(
+                    self.listen_port = self.rawserver.find_and_bind(first_try, 
                                     config['minport'], config['maxport'], config['bind'], 
                                     reuse = True,
                                     ipv6_socket_style = config['ipv6_binds_v4'], 
                                     upnp = upnp_type, randomizer = config['random_port'])
-                    if DEBUG:
-                        print >> sys.stderr,"BitTornado/launchmany: Got listen port", self.listen_port
+                    print >> sys.stderr,"BitTornado/launchmany: Got listen port", self.listen_port
                     break
                 except socketerror, e:
                     if upnp_type and e == UPnP_ERROR:
@@ -229,6 +232,7 @@ class LaunchMany:
                         continue
                     self.failed("Couldn't listen - " + str(e))
                     return
+            
 
             self.ratelimiter = RateLimiter(self.rawserver.add_task, 
                                            config['upload_unit_size'])
@@ -251,6 +255,7 @@ class LaunchMany:
                 GLOBAL.do_download_help = 0
 
             if GLOBAL.do_overlay:
+                MyDBHandler().put('port', self.listen_port)
                 self.overlayswarm = OverlaySwarm.getInstance()                
                 self.secure_overlay = SecureOverlay.getInstance()
                 self.overlayswarm.register(self.listen_port, self.secure_overlay, self.handler, 

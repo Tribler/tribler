@@ -84,7 +84,7 @@ except ImportError:
 #permid_len = 0  #112
 #infohash_len = 20
 #
-def isValidPermid(permid):
+def isValidPermid(permid):    # validate permid in outer layer
     return True
     
 def isValidInfohash(infohash):

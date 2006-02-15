@@ -16,13 +16,13 @@ import py2exe
 
 target_abc = {
     "script": "abc.py",
-    "icon_resources": [(1, "icon_abc.ico")],
+    "icon_resources": [(1, "tribler.ico")],
 }
 
 setup(
 #    (Disabling bundle_files for now -- apparently causes some issues with Win98)
 #    options = {"py2exe": {"bundle_files": 1}},
 #    zipfile = None,
-    data_files = [("ABC", ["abc.exe.manifest", "abc.nsi", "icon_abc.ico", "torrenticon.ico", "LICENSE.txt", "readme.txt"])], 
+    data_files = [("ABC", ["abc.exe.manifest", "abc.nsi", "tribler.ico", "torrenticon.ico", "LICENSE.txt", "readme.txt"])], 
     windows = [target_abc],
 )

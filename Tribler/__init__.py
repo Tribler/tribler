@@ -1,14 +1,15 @@
-product_name = 'ABC'
-version_short = 'ABC-3.1.0'
+product_name = 'Tribler_ABC'
+version_short = 'Tribler_ABC-3.3.0'
 
 version = version_short + ' (' + product_name + ' - BitTornado 0.3.13'
-report_email = version_short+'@degreez.net'
+report_email = 'triblersoft@gmail.com'
 
 from types import StringType
 from sha import sha
 from time import time, clock
 from string import strip
 import socket
+import sys
 try:
     from os import getpid
 except ImportError:
@@ -55,7 +56,7 @@ def is_valid_ip(ip):
     return True
 
 def load_myinfo(myinfo):    # TODO: load more personal infomation
-    my_permid = permid._ec_keypair.pub().get_der()
+    my_permid = str(permid._ec_keypair.pub().get_der())
     name = socket.gethostname()
     host = socket.gethostbyname_ex(name)
     ipaddrlist = host[2]
@@ -67,7 +68,6 @@ def load_myinfo(myinfo):    # TODO: load more personal infomation
     myinfo['permid'] = my_permid
     myinfo['ip'] = valid_ip
     myinfo['name'] = name
-
 
 def resetPeerIDs():
     try:

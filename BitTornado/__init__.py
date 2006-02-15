@@ -1,8 +1,8 @@
-product_name = 'ABC'
-version_short = 'ABC-3.1.0'
+product_name = 'Tribler_ABC'
+version_short = 'Tribler_ABC-3.3.0'
 
 version = version_short + ' (' + product_name + ' - BitTornado 0.3.13'
-report_email = version_short+'@degreez.net'
+report_email = 'triblersoft@gmail.com'
 
 from types import StringType
 from sha import sha

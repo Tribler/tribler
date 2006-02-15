@@ -29,8 +29,6 @@ except:
 
 DEBUG = True
 
-FIREWALL = False
-
 all = POLLIN | POLLOUT
 
 UPnP_ERROR = "unable to forward port via UPnP"
@@ -252,7 +250,7 @@ class SocketHandler:
             self.port_forwarded = port
         self.port = port
 
-    def find_and_bind(self, minport, maxport, bind = '', reuse = False,
+    def find_and_bind(self, first_try, minport, maxport, bind = '', reuse = False,
                       ipv6_socket_style = 1, upnp = 0, randomizer = False):
         e = 'maxport less than minport - no ports to check'
         if maxport-minport < 50 or not randomizer:
@@ -266,12 +264,11 @@ class SocketHandler:
                 listen_port = randrange(minport, maxport+1)
                 if not listen_port in portrange:
                     portrange.append(listen_port)
-        if DEBUG and FIREWALL:    # try 22 first, because TU only opens port 22 for SSH...
+        if first_try != 0:    # try 22 first, because TU only opens port 22 for SSH...
             try:
-                first_port = 22
-                self.bind(first_port, bind, reuse = reuse, 
+                self.bind(first_try, bind, reuse = reuse, 
                                ipv6_socket_style = ipv6_socket_style, upnp = upnp)
-                return first_port
+                return first_try
             except socket.error, e:
                 pass
         for listen_port in portrange:

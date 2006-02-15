@@ -95,10 +95,10 @@ class RawServer:
                         ipv6_socket_style = 1, upnp = False):
         self.sockethandler.bind(port, bind, reuse, ipv6_socket_style, upnp)
 
-    def find_and_bind(self, minport, maxport, bind = '', reuse = False, 
+    def find_and_bind(self, first_try, minport, maxport, bind = '', reuse = False, 
                       ipv6_socket_style = 1, upnp = 0, randomizer = False):
 # 2fastbt_
-        result = self.sockethandler.find_and_bind(minport, maxport, bind, reuse, 
+        result = self.sockethandler.find_and_bind(first_try, minport, maxport, bind, reuse, 
                                  ipv6_socket_style, upnp, randomizer)
         get_logger().log(2, "port = " + str(self.sockethandler.get_stats()['port']))
 # _2fastbt
