@@ -138,6 +138,10 @@ class FriendDBHandler(BasicDBHandler):
     def printList(self):
         print self.my_db.getFriends()
         
+    def addFriend(self, permid):
+        self.my_db.addFriend(permid)
+        self.my_db._sync()
+        
     def addExternalFriend(self, friend):
         if not isinstance(friend, dict) or 'permid' not in friend:
             return
@@ -202,8 +206,7 @@ class PeerDBHandler(BasicDBHandler):
             else:
                 d = {}
             for key in keys:
-                if key in p:
-                    d.update({key:p[key]})
+                d[key] = p[key]
             peers.append(d)
         
         return peers
@@ -271,13 +274,13 @@ class PreferenceDBHandler(BasicDBHandler):
     def getPrefList(self, permid):
         return self.pref_db._get(permid,{}).keys()
     
-    def addPreference(self, permid, torrent_hash, data={}):
-        self.pref_db.addPreference(permid, torrent_hash, data)
-        self.owner_db.addOwner(torrent_hash, permid)
+    def addPreference(self, permid, infohash, data={}):
+        self.pref_db.addPreference(permid, infohash, data)
+        self.owner_db.addOwner(infohash, permid)
 
-    def deletePreference(self, permid, torrent_hash):
-        self.torrent_db.deletePreference(permid, torrent_hash)
-        self.owner_db.deleteOwner(torrent_hash, permid)
+    def deletePreference(self, permid, infohash):
+        self.torrent_db.deletePreference(permid, infohash)
+        self.owner_db.deleteOwner(infohash, permid)
         
     def hasPreference(self, permid):
         return self.pref_db._has_key(permid)
@@ -296,8 +299,8 @@ class TorrentDBHandler(BasicDBHandler):
     def addTorrent(self, infohash, torrent={}):
         self.torrent_db.updateItem(infohash, torrent)
         
-    def getTorrent(self, torrent_hash):
-        return self.torrent_db.getItem(torrent_hash)
+    def getTorrent(self, infohash):
+        return self.torrent_db.getItem(infohash)
             
 #    def getTorrentList(self):    # get the list of all peers' permid
 #        return self.torrent_db._keys()
@@ -326,8 +329,8 @@ class TorrentDBHandler(BasicDBHandler):
         
         return values
             
-    def getOwners(self, torrent_hash):
-        return self.owner_db.getItem(torrent_hash)
+    def getOwners(self, infohash):
+        return self.owner_db.getItem(infohash)
         
     def updateTorrentRelevance(self, torrent, relevance):
         self.torrent_db.updateItem(torrent, {'relevance':relevance})
@@ -350,20 +353,53 @@ class MyPreferenceDBHandler(BasicDBHandler):
             return ret
         else:
             return [all_items[i][1][key] for i in xrange(len(all_items))]
+            
+    def getPrefList(self):
+        return self.mypref_db._keys()
+        
+    def getPrefsValue(self, pref_list, keys):    # get a list of values given peer list 
+        if not keys:
+            return []
+        values = []
+        for torrent in pref_list:
+            p = self.torrent_db.getItem(torrent)
+            if len(keys) == 1:
+                values.append(p[keys[0]])
+            else:
+                d = []
+                for key in keys:
+                    d.append(p[key])
+                values.append(d)
+        
+        return values
+        
+    def getPrefs(self, pref_list, keys):    # get a list of dictionaries given peer list
+        peers = []
+        for torrent in pref_list:
+            d = self.mypref_db.getItem(torrent)
+            t = self.torrent_db.getItem(torrent)
+            d.update(t)
+            if 'infohash' in keys:
+                d.update({'infohash':torrent})
+            for key in d.keys():
+                if key not in keys:
+                    d.pop(key)
+            peers.append(d)
+        
+        return peers
         
     def removeFakeTorrents(self, items):
-        fakes = []
+        valid_torrents = []
         for i in xrange(len(items)):
             torrent = items[i][0]
-            if self.torrent_db.getRank(torrent) < 0:
-                fakes.append(i)
-        for i in fakes:
-            items.pop(i)
-        
+            if self.mypref_db.getRank(torrent) >= 0:
+                valid_torrents.append(items[i])
+        return valid_torrents
+            
     def getRecentPrefList(self, num=0):    # num = 0: all files
         all_items = self.mypref_db._items()
-        self.removeFakeTorrents(all_items)
-        prefs = [(item[1]['last_seen'], item[0]) for item in all_items]
+        valid_items = self.removeFakeTorrents(all_items)
+        prefs = [(item[1]['last_seen'], item[0]) for item in valid_items]
         prefs.sort()
         prefs.reverse()
         if num > 0:
@@ -371,19 +407,15 @@ class MyPreferenceDBHandler(BasicDBHandler):
         else:
             return [item[1] for item in prefs]
     
-    def getRecentPrefs(self, num=10):
-        all_items = self.getPreferences()
-        prefs = [(item['last_seen'], item) for item in all_items]
-        prefs.sort()
-        prefs.reverse()
-        return [item[1] for item in prefs[:num]]
-    
-    def addPreference(self, torrent_hash, data={}):
-        self.mypref_db.updateItem(torrent_hash, data)
+    def addPreference(self, infohash, data={}):
+        self.mypref_db.updateItem(infohash, data)
 
-    def deletePreference(self, torrent_hash):
-        self.mypref_db.deleteItem(torrent_hash)
+    def deletePreference(self, infohash):
+        self.mypref_db.deleteItem(infohash)
         
+    def updateRank(self, infohash, rank):
+        self.mypref_db.updateItem(infohash, {'rank':rank})
+        self.sync()
 
 class OwnerDBHandler(BasicDBHandler):
     

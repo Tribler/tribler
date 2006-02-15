@@ -575,7 +575,6 @@ class BuddyCastFactory:
         self.secure_overlay = SecureOverlay.getInstance()
         # --- variables ---
         # TODO: add these variables into Config
-        self.buddycast_interval = 15
         self.long_block_time = 4*60*60    # 4 hours by default
         self.short_block_time = 5*60    # 5 minutes by default
         self.msg_nbuddies = 10    # number of buddies in buddycast msg
@@ -583,7 +582,10 @@ class BuddyCastFactory:
         self.msg_nmyprefs = 50    # number of my preferences in buddycast msg
         self.msg_nbuddyprefs = 10 # number of taste buddy's preferences in buddycast msg
         self.max_nworkers = 10    
-        self.sync_interval = 5*60    # sync database every 5 min
+
+        self.buddycast_interval = 15
+        self.recommendate_interval = 60 + 11    # update recommendation interval; use prime number to avoid conflict
+        self.sync_interval = 5*60 + 11    # sync database every 5 min
         # --- others ---
         self.registered = False
         self.rawserver = None
@@ -617,6 +619,7 @@ class BuddyCastFactory:
         if self.registered:
             self.rawserver.add_task(self.doBuddyCast, self.buddycast_interval)
             self.rawserver.add_task(self.sync, self.sync_interval)
+            self.rawserver.add_task(self.recommendateItems, self.recommendate_interval)
         print >> sys.stderr, "BuddyCast starts up"
 
     # ----- message handle -----
@@ -639,7 +642,7 @@ class BuddyCastFactory:
         
         try:
             buddycast_data = bdecode(msg)
-            print_dict(buddycast_data)
+            #print_dict(buddycast_data)
             print "***** got buddycast msg *******", len(msg), buddycast_data['ip']
             validBuddyCastData(buddycast_data, self.msg_nmyprefs, self.msg_nbuddies, self.msg_npeers, self.msg_nbuddyprefs)    # RCP 2            
             if not self._checkPeerConsistency(buddycast_data, permid):
@@ -660,6 +663,7 @@ class BuddyCastFactory:
                 return False
 #            raise RuntimeError, "buddycast message permid doesn't match: " + \
 #                hash(permid) + " " + hash(buddycast_data['permid'])
+        return True
 
     def sendBuddyCastMsg(self, target, msg):
         #print "*** send buddycast msg:", target, len(msg)

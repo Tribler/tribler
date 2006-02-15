@@ -2,6 +2,7 @@
 # see LICENSE.txt for license information
 
 from socket import inet_aton, gethostbyname
+from time import time, ctime
 
 permid_len = 0  #112
 infohash_len = 0  #20
@@ -122,6 +123,39 @@ def print_dict(data, level=0):
             print_dict(data[i], level+1)
     else:
         print data
+        
+def friendly_time(old_time):
+    curr_time = time()
+    old_time = int(old_time)
+    diff = int(curr_time - old_time)
+    if diff < 1:
+        return str(diff) + " sec. ago"
+    elif diff < 60:
+        return str(diff) + " secs. ago"
+    elif diff < 120:
+        return "1 min. ago"
+    elif diff < 3600:
+        return str(int(diff/60)) + " mins. ago"
+    elif diff < 7200:
+        return "1 hour ago"
+    elif diff < 86400:
+        return str(int(diff/3600)) + " hours ago"
+    elif diff < 172800:
+        return "Yesterday"
+    elif diff < 259200:
+        return str(int(diff/86400)) + " days ago"
+    else:
+        return str(ctime(old_time))
+        
+def sort_dictlist(dict_list, key, order='increase'):
+    aux = [(dict_list[i][key], i) for i in xrange(len(dict_list))]
+    aux.sort()
+    if order != 'increase':
+        aux.reverse()
+    return [dict_list[i] for x, i in aux]
+    
+        
+    
         
 if __name__=='__main__':
     d = {'a':1,'b':[1,2,3],'c':{'c':2,'d':[3,4],'k':{'c':2,'d':[3,4]}}}

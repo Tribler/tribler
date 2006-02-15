@@ -9,6 +9,7 @@ from Tribler.BuddyCast.buddycast import *
 from Tribler.CacheDB.cachedb import *
 from Tribler.utilities import print_prefxchg_msg
 import Tribler.CacheDB.superpeer
+from Tribler.__init__ import tribler_init
 
 import hotshot, hotshot.stats
 import math
@@ -29,7 +30,9 @@ class TestBuddyCast(unittest.TestCase):
     
     def setUp(self):
         self.tmpdirpath = db_dir = os.path.join(tempfile.gettempdir(), 'testdb')
-        self.buddycast = BuddyCastFactory.getInstance(db_dir=self.tmpdirpath)
+        db_dir = ''
+        tribler_init()
+        self.buddycast = BuddyCastFactory.getInstance(db_dir=db_dir)
         self.buddycast.data_handler.clear()
         
         testdata = open(testdata_file, 'r')
@@ -60,7 +63,8 @@ class TestBuddyCast(unittest.TestCase):
 #            self.mypref_db.updateItem(pref)
         
     def tearDown(self):
-        self.buddycast.data_handler.clear()
+        #self.buddycast.data_handler.clear()
+        self.buddycast.data_handler.sync()
         
     def full_load(self):
         for i in xrange(self.np):
@@ -138,7 +142,7 @@ class TestBuddyCast(unittest.TestCase):
         #print len(msg), hash(msg)
         #worker.work()
         
-    def test_recommendateItems(self):
+    def xxtest_recommendateItems(self):
         self.preload()
         rec_list = self.buddycast.recommendateItems(20)
         #print self.mypref_db._keys()
@@ -197,7 +201,7 @@ class TestBuddyCast(unittest.TestCase):
         assert q._queue == ['worker5', 'worker6', 'worker1', 'worker2']
         
 
-    def xxtest_getBuddyCastDataPref(self):
+    def test_getBuddyCastDataPref(self):
         """ result:
             time  #peer, #taste buddies
             0.016 182 96

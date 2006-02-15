@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from sets import Set
 
-from Tribler.CacheDB.friends import FriendList
+from Tribler.CacheDB.friends import ExternalFriendList
 from Tribler.CacheDB.cachedb import MyDB, PeerDB
 
 lines = [
@@ -20,7 +20,7 @@ class TestFriendList(unittest.TestCase):
     def setUp(self):
         self.tmpfilepath = tempfile.mktemp()
         self.tmpdirpath = os.path.join(tempfile.gettempdir(), 'testdb')
-        self.flist = FriendList(friend_file=self.tmpfilepath, db_dir=self.tmpdirpath)
+        self.flist = ExternalFriendList(friend_file=self.tmpfilepath, db_dir=self.tmpdirpath)
         
     def tearDown(self):
         self.flist.clear()
