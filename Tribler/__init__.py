@@ -36,6 +36,7 @@ for subver in version_short.split('-')[1].split('.'):
 _idprefix += ('-' * (6-len(_idprefix)))
 _idrandom = [None]
 
+my_ip = ''
 
 class GLOBAL:
     do_cache = 1
@@ -56,17 +57,17 @@ def is_valid_ip(ip):
     return True
 
 def load_myinfo(myinfo):    # TODO: load more personal infomation
+    global my_ip
     my_permid = str(permid._ec_keypair.pub().get_der())
     name = socket.gethostname()
     host = socket.gethostbyname_ex(name)
     ipaddrlist = host[2]
-    valid_ip = ''
     for ip in ipaddrlist:
         if is_valid_ip(ip):
-            valid_ip = ip
+            my_ip = ip
             break
     myinfo['permid'] = my_permid
-    myinfo['ip'] = valid_ip
+    myinfo['ip'] = my_ip
     myinfo['name'] = name
 
 def resetPeerIDs():

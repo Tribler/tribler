@@ -25,9 +25,10 @@ class MyPreferenceList(wx.ListCtrl):
         self.list_key = ['infohash', 'torrent_name', 'content_name', 'rank', 'size', 'last_seen']
         self.column = -1
         self.order = [0, 0, 0, 1, 1, 1]    # 1 - decrease; 0 - increase
+        self.num = 100
 
         style = wx.LC_REPORT|wx.LC_VRULES|wx.CLIP_CHILDREN
-        wx.ListCtrl.__init__(self, parent, -1, size=wx.Size(780, 500), style=style)
+        wx.ListCtrl.__init__(self, parent, -1, size=wx.Size(780, 450), style=style)
         
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnRightClick)
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.test)
@@ -45,29 +46,15 @@ class MyPreferenceList(wx.ListCtrl):
         self.InsertColumn(4, "Size", format=wx.LIST_FORMAT_CENTER, width=fw*8)
         self.InsertColumn(5, "Last Seen", format=wx.LIST_FORMAT_CENTER, width=fw*15)
         
-        myprefs = self.mypref_db.getPrefList()
-        keys = ['infohash', 'torrent_name', 'info', 'content_name', 'rank', 'last_seen']
-        self.torrents = self.mypref_db.getPrefs(myprefs, keys)
+        self.loadList(self.num)
         
-        self.loadList()
+    def loadList(self, reload=True, key='rank', order=1, num=100):
+
+        if reload:
+            myprefs = self.mypref_db.getPrefList()
+            keys = ['infohash', 'torrent_name', 'info', 'content_name', 'rank', 'last_seen']
+            self.torrents = self.mypref_db.getPrefs(myprefs, keys)
         
-    def getMenuItems(self, min_rank, max_rank):
-        menu_items = {}
-        for i in range(min_rank, max_rank+1):
-            id = wx.NewId()
-            func = 'OnRank' + str(i - min_rank)
-            func = getattr(self, func)
-            if i == -1:
-                label = "Fake File"
-            elif i == 0:
-                label = "No Rate"
-            else:
-                label = "*" * i
-            menu_items[i] = {'id':id, 'func':func, 'label':label}
-        return menu_items
-
-    def loadList(self, key='rank', order=1, num=100):
-
         if order == 1:
             self.torrents = sort_dictlist(self.torrents, key, 'decrease')[:num]
         else:
@@ -101,13 +88,28 @@ class MyPreferenceList(wx.ListCtrl):
         if self.column == lastColumn:
             self.order[self.column] = 1 - self.order[self.column]
         key = self.list_key[event.m_col]
-        self.loadList(key, self.order[self.column])
+        self.loadList(False, key, self.order[self.column])
         
 
     def test(self, event):
         rank = event.GetItem()
         print "test", rank
         
+    def getMenuItems(self, min_rank, max_rank):
+        menu_items = {}
+        for i in range(min_rank, max_rank+1):
+            id = wx.NewId()
+            func = 'OnRank' + str(i - min_rank)
+            func = getattr(self, func)
+            if i == -1:
+                label = "Fake File"
+            elif i == 0:
+                label = "No Rate"
+            else:
+                label = "*" * i
+            menu_items[i] = {'id':id, 'func':func, 'label':label}
+        return menu_items
+
     def OnRightClick(self, event=None):
         self.curr_idx = event.m_itemIndex
         curr_rank = self.torrents[self.curr_idx]['rank']
@@ -167,15 +169,91 @@ class MyPreferenceList(wx.ListCtrl):
 class FileList(wx.ListCtrl):
     def __init__(self, parent):
         self.utility = parent.utility
-        style = wx.LC_REPORT|wx.LC_VRULES|wx.CLIP_CHILDREN
-        wx.ListCtrl.__init__(self, parent, -1, size=wx.Size(780, 500), style=style)
+        self.min_rank = -1
+        self.max_rank = 5
+        self.menu_items = self.getMenuItems(self.min_rank, self.max_rank)
         
-        self.utility = parent.utility
+        self.list_key = ['infohash', 'content_name', 'size', 'seeder', 'leecher']
+        self.column = -1
+        self.order = [0, 0, 1, 1, 1]    # 1 - decrease; 0 - increase
+        self.num = 100
+        
+        style = wx.LC_REPORT|wx.LC_VRULES|wx.CLIP_CHILDREN
+        wx.ListCtrl.__init__(self, parent, -1, size=wx.Size(780, 450), style=style)
+        
+        self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnRightClick)
+        self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.test)
+        #self.Bind(wx.EVT_LIST_COL_CLICK, self.OnColClick)
 
+        try:    # get system font width
+            fw = wx.SystemSettings_GetFont(wx.SYS_DEFAULT_GUI_FONT).GetPointSize()+1
+        except:
+            fw = wx.SystemSettings_GetFont(wx.SYS_SYSTEM_FONT).GetPointSize()+1
+            
+        self.InsertColumn(0, "Torrent Hash", format=wx.LIST_FORMAT_CENTER, width=fw*10)
+        self.InsertColumn(1, "Torrent Name", format=wx.LIST_FORMAT_CENTER, width=fw*10)
+        self.InsertColumn(2, "Content Name", format=wx.LIST_FORMAT_CENTER, width=fw*10)
+        self.InsertColumn(3, "Size", format=wx.LIST_FORMAT_CENTER, width=fw*6)
+        self.InsertColumn(4, "Seeder", format=wx.LIST_FORMAT_CENTER, width=fw*5)
+        self.InsertColumn(5, "Leecher", format=wx.LIST_FORMAT_CENTER, width=fw*5)
+        
+        
+        keys = ['infohash', 'torrent_name', 'info', 'content_name', 'rank', 'last_seen']
+        self.torrents = self.torrent_db.getTorrentsValue(myprefs, keys)
+        
         self.loadList()
+        
+    def loadList(self, reload=True, key='rank', order=1, num=100):
 
-    def loadList(self):
+        if reload:
+            self.torrent_db = TorrentDBHandler()
+            self.torrent_list = self.torrent_db.getOthersTorrentList()
+        
 
+        if order == 1:
+            self.torrents = sort_dictlist(self.torrents, key, 'decrease')[:num]
+        else:
+            self.torrents = sort_dictlist(self.torrents, key, 'increase')[:num]
+        #self.torrents.sort()
+        
+#        for i in xrange(len(self.torrents)):
+#        self.listInfo[i] = (type, name, revision, tag, option, status, date, conflict)
+        
+        self.DeleteAllItems() 
+        i = 0
+        for i in xrange(len(self.torrents)):
+            torrent = self.torrents[i]
+            torrent['infohash'] = showInfoHash(torrent['infohash'])
+            self.InsertStringItem(i, str(torrent['infohash']))
+            self.SetStringItem(i, 1, str(torrent['torrent_name']))
+            self.SetStringItem(i, 2, str(torrent['content_name']))
+            self.SetStringItem(i, 3, str(torrent['rank']))
+            info = torrent['info']
+            torrent['size'] = info.get('size', 0)
+            self.SetStringItem(i, 4, str(torrent['size']))
+            last_seen = friendly_time(torrent['last_seen'])
+            self.SetStringItem(i, 5, last_seen)
+            i += 1
+            
+        self.Show(True)
+    
+    
+    def __init__(self, parent):
+        self.utility = parent.utility
+        style = wx.LC_REPORT|wx.LC_VRULES|wx.CLIP_CHILDREN
+        wx.ListCtrl.__init__(self, parent, -1, size=wx.Size(780, 450), style=style)
+        
+        self.list_key = ['infohash', 'content_name', 'size', 'seeder', 'leecher']
+        self.column = -1
+        self.order = [0, 0, 1, 1, 1]    # 1 - decrease; 0 - increase
+        self.num = 100
+        
+        self.torrent_db = TorrentDBHandler()
+        self.torrent_list = self.torrent_db.getOthersTorrentList()
+        
+        
+        #self.Bind(wx.EVT_LIST_COL_CLICK, self.OnColClick)
+        
         try:    # get system font width
             fw = wx.SystemSettings_GetFont(wx.SYS_DEFAULT_GUI_FONT).GetPointSize()+1
         except:
@@ -186,8 +264,10 @@ class FileList(wx.ListCtrl):
         self.InsertColumn(2, "Size", format=wx.LIST_FORMAT_CENTER, width=fw*8)
         self.InsertColumn(3, "Recommendation", format=wx.LIST_FORMAT_CENTER, width=fw*8)
         self.InsertColumn(4, "Last Used Time", format=wx.LIST_FORMAT_CENTER, width=fw*16)
-        
-        torrents = self.utility.all_files_cache.getTorrents()
+                
+        self.loadList(num=self.num)
+
+    def loadList(self, key='infohash', order=0, num=100):
         torrents.sort()
         
         i = 0
@@ -223,20 +303,23 @@ class FilePanel(wx.Panel):
         
         self.Show()
 
-        
+
+class CommonTriblerList(wx.ListCtrl):
+    pass
+
 class ABCFileFrame(wx.Frame):
     def __init__(self, parent):
         self.utility = parent.utility
-        size = wx.Size(800, 500)
+        size = wx.Size(800, 520)
         wx.Frame.__init__(self, None, -1, "File Frame", wx.DefaultPosition, size)
        
         self.notebook = wx.Notebook(self, -1)
 
         self.myPreferencePanel = MyPreferencePanel(self.notebook, self.utility)
         self.notebook.AddPage(self.myPreferencePanel, "My Preference List")
-#
-#        self.filePanel = FilePanel(self.notebook, self.utility)
-#        self.notebook.AddPage(self.filePanel, "All File List")
+
+        self.filePanel = FilePanel(self.notebook, self.utility)
+        self.notebook.AddPage(self.filePanel, "All File List")
 
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
         

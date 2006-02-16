@@ -2,7 +2,7 @@
 # see LICENSE.txt for license information
 
 from socket import inet_aton, gethostbyname
-from time import time, ctime
+from time import time, strftime, gmtime
 
 permid_len = 0  #112
 infohash_len = 0  #20
@@ -145,12 +145,12 @@ def friendly_time(old_time):
     elif diff < 259200:
         return str(int(diff/86400)) + " days ago"
     else:
-        return str(ctime(old_time))
+        return strftime("%d-%m-%Y", gmtime(old_time))
         
 def sort_dictlist(dict_list, key, order='increase'):
     aux = [(dict_list[i][key], i) for i in xrange(len(dict_list))]
     aux.sort()
-    if order != 'increase':
+    if order == 'decrease' or order == 1:    # 0 - increase, 1 - decrease
         aux.reverse()
     return [dict_list[i] for x, i in aux]
     

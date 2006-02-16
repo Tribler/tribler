@@ -32,11 +32,12 @@ from Tribler.Overlay.SecureOverlay import SecureOverlay
 from similarity import P2PSim, P2PSim2, selectByProbability
 
 
+def validPeer(peer):
+    validPermid(peer['permid'])
+    validIP(peer['ip'])
+    validPort(peer['port'])
+
 def validBuddyCastData(prefxchg, nmyprefs=50, nbuddies=10, npeers=10, nbuddyprefs=10):
-    def validPeer(peer):
-        validPermid(peer['permid'])
-        validIP(peer['ip'])
-        validPort(peer['port'])
     
     def validPref(pref, num):
         assert isinstance(prefxchg, list) or \
@@ -137,7 +138,7 @@ class BuddyCastWorker:
         try:
             validPermid(self.target)
             self.getBuddyCastMsgData()
-            print "** send buddycast", self.data['ip'], self.data['name'], len(self.data['preferences']), \
+            print "** send buddycast", len(self.data['preferences']), \
                 len(self.data['taste buddies']), len(self.data['random peers'])
             buddycast_msg = bencode(self.data)
         except:
@@ -146,8 +147,7 @@ class BuddyCastWorker:
             return
         self.factory.sendBuddyCastMsg(self.target, buddycast_msg)
         self.data_handler.addToSendBlockList(self.target, self.factory.short_block_time)
-        print "**** send blocklist:", len(self.data_handler.send_block_list)
-
+        
 
 class JobQueue:
     def __init__(self, max_size=10):
@@ -347,6 +347,21 @@ class DataHandler:
         
 
     #---------- utilities ----------#
+    def validTarget(self, target):
+        if target is None:
+            return False
+        peer = self.peer_db.getPeer(target)
+        if peer is None:
+            return False
+        peer['permid'] = target
+        if peer['ip'] == self.ip:    # and peer['port'] == self.port:
+            return False
+        try:
+            validPeer(peer)
+            return True
+        except:
+            return False
+    
     # --- cache status --- #
     def peerCacheChanged(self):
         return self.peercache_changed
@@ -694,9 +709,10 @@ class BuddyCastFactory:
         if self.data_handler.isSendBlocked(target):    # if target is None, it is not blocked
             return None
         target, tbs, rps = self.buddycast_core.getBuddyCastData(target, self.msg_nbuddies, self.msg_npeers)
-        if target is None:    # could not find a buddycast candidate
+        if self.data_handler.validTarget(target):
+            return BuddyCastWorker(self, target, tbs, rps, self.msg_nmyprefs, self.msg_nbuddyprefs)
+        else:
             return None
-        return BuddyCastWorker(self, target, tbs, rps, self.msg_nmyprefs, self.msg_nbuddyprefs)
         
     def addMyPref(self, infohash, data={}):
         self.data_handler.addMyPref(infohash, data)

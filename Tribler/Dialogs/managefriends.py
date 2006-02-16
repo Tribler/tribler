@@ -116,6 +116,14 @@ class ManageFriendsDialog(wx.Dialog):
             if ret == wx.ID_OK:
                 self.phoenix()
 
+    def show_error(self, err_msg):
+        dlg = wx.MessageDialog(self, err_msg,
+                               'Warning!',
+                               wx.OK | wx.ICON_INFORMATION
+                               #wx.YES_NO | wx.NO_DEFAULT | wx.CANCEL | wx.ICON_INFORMATION
+                               )
+        dlg.ShowModal()
+        dlg.Destroy()
 
     def removeFriend(self, event = None):
         selected = self.getSelectedFriends()

@@ -151,6 +151,9 @@ class FriendDBHandler(BasicDBHandler):
         self.my_db.addFriend(permid)
         self.my_db._sync()
             
+    def getFriendList(self):
+        return self.my_db.getFriends()
+            
     def getFriends(self):
         ids = self.my_db.getFriends()
         friends = []

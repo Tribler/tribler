@@ -347,6 +347,8 @@ class SecureOverlay:
     def _findConnByPermid(self, permid):
         if self.connection_list.has_key(permid):
             return self._checkConnection(permid)
+        else:
+            return None
         
     def findPermidByDNS(self, dns):    #find permid from connection_list
         self.acquire()
@@ -365,8 +367,7 @@ class SecureOverlay:
             ret = self.connection_list[permid]['dns']
         self.release()
         return ret
-        
-        
+                
     # Main function to send messages
     def addTask(self, target, message=None, timeout=15):    # target = [permid|(ip,port)]
         """ Command Pattern """
@@ -394,7 +395,7 @@ class SecureOverlay:
             else:
                 self.release() 
                 return
-            if self.overlayswarm.registered:
+            if task and self.overlayswarm.registered:
                 ## Arno: I don't see the need for letting the rawserver do it.
                 ## Except that it potentially avoids a concurrency problem of
                 ## multiple threads writing to the same socket.
@@ -491,8 +492,9 @@ class SecureOverlay:
             return
         self.acquire()
         connection = self._findConnByPermid(permid)
-        self._extendExpire(permid)
-        self.overlayswarm.sendMessage(connection, message)
+        if connection:
+            self._extendExpire(permid)
+            self.overlayswarm.sendMessage(connection, message)
         self.release()
 
     def gotMessage(self, permid, message):    # connection is type of Connecter.Connection 
