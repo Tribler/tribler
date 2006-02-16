@@ -3,6 +3,7 @@ import images
 from base64 import decode
 from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler
 from Tribler.utilities import friendly_time, sort_dictlist
+from common import CommonTriblerList
 
 
 def showInfoHash(infohash):
@@ -13,87 +14,61 @@ def showInfoHash(infohash):
     except:
         return infohash
 
-class MyPreferenceList(wx.ListCtrl):
-    def __init__(self, parent):
-        self.utility = parent.utility
+
+class MyPreferenceList(CommonTriblerList):
+    def __init__(self, parent, window_size):
+        self.parent = parent
+        self.mypref_db = parent.mypref_db
         self.min_rank = -1
         self.max_rank = 5
-        self.menu_items = self.getMenuItems(self.min_rank, self.max_rank)
-        
-        self.mypref_db = MyPreferenceDBHandler()
+        CommonTriblerList.__init__(self, parent, window_size)
 
-        self.list_key = ['infohash', 'torrent_name', 'content_name', 'rank', 'size', 'last_seen']
-        self.column = -1
-        self.order = [0, 0, 0, 1, 1, 1]    # 1 - decrease; 0 - increase
-        self.num = 100
+    def getColumns(self):
+        format = wx.LIST_FORMAT_CENTER
+        columns = [
+            ('Torrent Hash', format, 10),
+            ('Torrent Name', format, 10),
+            ('Content Name', format, 15),
+            ('Rank', format, 8),
+            ('Size', format, 8),
+            ('Last Seen', format, 10)  
+            ]
+        return columns
+        
+    def getListKey(self):
+        return ['infohash', 'torrent_name', 'content_name', 'rank', 'size', 'last_seen']
+        
+    def getCurrentSortColumn(self):
+        return 1
 
-        style = wx.LC_REPORT|wx.LC_VRULES|wx.CLIP_CHILDREN
-        wx.ListCtrl.__init__(self, parent, -1, size=wx.Size(780, 450), style=style)
+    def getMaxNum(self):
+        return 100
         
-        self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnRightClick)
-        self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.test)
-        self.Bind(wx.EVT_LIST_COL_CLICK, self.OnColClick)
-
-        try:    # get system font width
-            fw = wx.SystemSettings_GetFont(wx.SYS_DEFAULT_GUI_FONT).GetPointSize()+1
-        except:
-            fw = wx.SystemSettings_GetFont(wx.SYS_SYSTEM_FONT).GetPointSize()+1
-            
-        self.InsertColumn(0, "Torrent Hash", format=wx.LIST_FORMAT_CENTER, width=fw*10)
-        self.InsertColumn(1, "Torrent Name", format=wx.LIST_FORMAT_CENTER, width=fw*10)
-        self.InsertColumn(2, "Content Name", format=wx.LIST_FORMAT_CENTER, width=fw*10)
-        self.InsertColumn(3, "Rank", format=wx.LIST_FORMAT_CENTER, width=fw*7)
-        self.InsertColumn(4, "Size", format=wx.LIST_FORMAT_CENTER, width=fw*8)
-        self.InsertColumn(5, "Last Seen", format=wx.LIST_FORMAT_CENTER, width=fw*15)
+    def getText(self, data, row, col):
+        key = self.list_key[col]
+        original_data = data[row][key]
+        if key == 'infohash':
+            return showInfoHash(original_data)
+        if key == 'size':
+            size = original_data/1024/1024.0
+            return '%.2f MB'%(size)
+        if key == 'last_seen':
+            if original_data == 0:
+                return 'Never'
+            return friendly_time(original_data)
+        return str(original_data)
         
-        self.loadList(self.num)
-        
-    def loadList(self, reload=True, key='rank', order=1, num=100):
-
-        if reload:
-            myprefs = self.mypref_db.getPrefList()
-            keys = ['infohash', 'torrent_name', 'info', 'content_name', 'rank', 'last_seen']
-            self.torrents = self.mypref_db.getPrefs(myprefs, keys)
-        
-        if order == 1:
-            self.torrents = sort_dictlist(self.torrents, key, 'decrease')[:num]
-        else:
-            self.torrents = sort_dictlist(self.torrents, key, 'increase')[:num]
-        #self.torrents.sort()
-        
-#        for i in xrange(len(self.torrents)):
-#        self.listInfo[i] = (type, name, revision, tag, option, status, date, conflict)
-        
-        self.DeleteAllItems() 
-        i = 0
-        for i in xrange(len(self.torrents)):
-            torrent = self.torrents[i]
-            torrent['infohash'] = showInfoHash(torrent['infohash'])
-            self.InsertStringItem(i, str(torrent['infohash']))
-            self.SetStringItem(i, 1, str(torrent['torrent_name']))
-            self.SetStringItem(i, 2, str(torrent['content_name']))
-            self.SetStringItem(i, 3, str(torrent['rank']))
-            info = torrent['info']
-            torrent['size'] = info.get('size', 0)
-            self.SetStringItem(i, 4, str(torrent['size']))
-            last_seen = friendly_time(torrent['last_seen'])
-            self.SetStringItem(i, 5, last_seen)
-            i += 1
-            
-        self.Show(True)
-        
-    def OnColClick(self, event):
-        lastColumn = self.column
-        self.column = event.m_col
-        if self.column == lastColumn:
-            self.order[self.column] = 1 - self.order[self.column]
-        key = self.list_key[event.m_col]
-        self.loadList(False, key, self.order[self.column])
-        
-
-    def test(self, event):
-        rank = event.GetItem()
-        print "test", rank
+    def reloadData(self):
+        myprefs = self.mypref_db.getPrefList()
+        keys = ['infohash', 'torrent_name', 'info', 'content_name', 'rank', 'last_seen']
+        self.data = self.mypref_db.getPrefs(myprefs, keys)
+        for i in xrange(len(self.data)):
+            info = self.data[i]['info']
+            self.data[i]['size'] = info.get('size', 0)
+            if self.data[i]['torrent_name'] == '':
+                self.data[i]['torrent_name'] = '\xff'
+            if self.data[i]['content_name'] == '':
+                self.data[i]['content_name'] = '\xff'
         
     def getMenuItems(self, min_rank, max_rank):
         menu_items = {}
@@ -112,9 +87,10 @@ class MyPreferenceList(wx.ListCtrl):
 
     def OnRightClick(self, event=None):
         self.curr_idx = event.m_itemIndex
-        curr_rank = self.torrents[self.curr_idx]['rank']
+        curr_rank = self.data[self.curr_idx]['rank']
         if not hasattr(self, "adjustRankID"):
             self.adjustRankID = wx.NewId()
+            self.menu_items = self.getMenuItems(self.min_rank, self.max_rank)
             for i in self.menu_items:
                 self.Bind(wx.EVT_MENU, self.menu_items[i]['func'], id=self.menu_items[i]['id'])
                 
@@ -135,7 +111,7 @@ class MyPreferenceList(wx.ListCtrl):
         sm.Destroy()
         
     def changeRank(self, rank):
-        torrent = self.torrents[self.curr_idx]
+        torrent = self.data[self.curr_idx]
         torrent['rank'] = rank
         self.mypref_db.updateRank(torrent['infohash'], rank)
         self.SetStringItem(self.curr_idx, 3, str(rank))
@@ -166,160 +142,117 @@ class MyPreferenceList(wx.ListCtrl):
         self.changeRank(6+self.min_rank)
         
 
-class FileList(wx.ListCtrl):
-    def __init__(self, parent):
-        self.utility = parent.utility
+
+class FileList(CommonTriblerList):
+    def __init__(self, parent, window_size):
+        self.parent = parent
+        self.torrent_db = parent.torrent_db
         self.min_rank = -1
         self.max_rank = 5
-        self.menu_items = self.getMenuItems(self.min_rank, self.max_rank)
-        
-        self.list_key = ['infohash', 'content_name', 'size', 'seeder', 'leecher']
-        self.column = -1
-        self.order = [0, 0, 1, 1, 1]    # 1 - decrease; 0 - increase
-        self.num = 100
-        
-        style = wx.LC_REPORT|wx.LC_VRULES|wx.CLIP_CHILDREN
-        wx.ListCtrl.__init__(self, parent, -1, size=wx.Size(780, 450), style=style)
-        
-        self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnRightClick)
-        self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.test)
-        #self.Bind(wx.EVT_LIST_COL_CLICK, self.OnColClick)
+        CommonTriblerList.__init__(self, parent, window_size)
 
-        try:    # get system font width
-            fw = wx.SystemSettings_GetFont(wx.SYS_DEFAULT_GUI_FONT).GetPointSize()+1
-        except:
-            fw = wx.SystemSettings_GetFont(wx.SYS_SYSTEM_FONT).GetPointSize()+1
-            
-        self.InsertColumn(0, "Torrent Hash", format=wx.LIST_FORMAT_CENTER, width=fw*10)
-        self.InsertColumn(1, "Torrent Name", format=wx.LIST_FORMAT_CENTER, width=fw*10)
-        self.InsertColumn(2, "Content Name", format=wx.LIST_FORMAT_CENTER, width=fw*10)
-        self.InsertColumn(3, "Size", format=wx.LIST_FORMAT_CENTER, width=fw*6)
-        self.InsertColumn(4, "Seeder", format=wx.LIST_FORMAT_CENTER, width=fw*5)
-        self.InsertColumn(5, "Leecher", format=wx.LIST_FORMAT_CENTER, width=fw*5)
+    def getColumns(self):
+        format = wx.LIST_FORMAT_CENTER
+        columns = [
+            ('Torrent Hash', format, 10),
+            ('Torrent Name', format, 10),
+            ('Content Name', format, 15),
+            ('Relevance', format, 8),
+            ('Size', format, 8),
+            ('Seeder', format, 7),
+            ('Leecher', format, 7),  
+            ]
+        return columns
         
+    def getListKey(self):
+        return ['infohash', 'torrent_name', 'content_name', 'relevance', 'size', 'seeder', 'leecher']
         
-        keys = ['infohash', 'torrent_name', 'info', 'content_name', 'rank', 'last_seen']
-        self.torrents = self.torrent_db.getTorrentsValue(myprefs, keys)
+    def getCurrentSortColumn(self):
+        return 3
         
-        self.loadList()
-        
-    def loadList(self, reload=True, key='rank', order=1, num=100):
+    def getCurrentOrders(self):
+         return [0, 0, 0, 1, 0, 0, 0]
 
-        if reload:
-            self.torrent_db = TorrentDBHandler()
-            self.torrent_list = self.torrent_db.getOthersTorrentList()
+    def getMaxNum(self):
+        return 300
         
+    def getText(self, data, row, col):
+        key = self.list_key[col]
+        original_data = data[row][key]
+        if key == 'relevance':
+            return '%.2f'%(original_data/1000.0)
+        if key == 'infohash':
+            return showInfoHash(original_data)
+        if key == 'size':
+            size = original_data/1024/1024.0
+            return '%.2f MB'%(size)
+        if key == 'seeder' or key == 'leecher':
+            if original_data < 0:
+                return '-'
+        return str(original_data)
+        
+    def reloadData(self):
+        torrent_list = self.torrent_db.getOthersTorrentList(self.num)
+        key = ['infohash', 'torrent_name', 'relevance', 'info']
+        self.data = self.torrent_db.getTorrents(torrent_list, key)
+        print len(self.data)
 
-        if order == 1:
-            self.torrents = sort_dictlist(self.torrents, key, 'decrease')[:num]
-        else:
-            self.torrents = sort_dictlist(self.torrents, key, 'increase')[:num]
-        #self.torrents.sort()
-        
-#        for i in xrange(len(self.torrents)):
-#        self.listInfo[i] = (type, name, revision, tag, option, status, date, conflict)
-        
-        self.DeleteAllItems() 
-        i = 0
-        for i in xrange(len(self.torrents)):
-            torrent = self.torrents[i]
-            torrent['infohash'] = showInfoHash(torrent['infohash'])
-            self.InsertStringItem(i, str(torrent['infohash']))
-            self.SetStringItem(i, 1, str(torrent['torrent_name']))
-            self.SetStringItem(i, 2, str(torrent['content_name']))
-            self.SetStringItem(i, 3, str(torrent['rank']))
-            info = torrent['info']
-            torrent['size'] = info.get('size', 0)
-            self.SetStringItem(i, 4, str(torrent['size']))
-            last_seen = friendly_time(torrent['last_seen'])
-            self.SetStringItem(i, 5, last_seen)
-            i += 1
-            
-        self.Show(True)
-    
-    
-    def __init__(self, parent):
-        self.utility = parent.utility
-        style = wx.LC_REPORT|wx.LC_VRULES|wx.CLIP_CHILDREN
-        wx.ListCtrl.__init__(self, parent, -1, size=wx.Size(780, 450), style=style)
-        
-        self.list_key = ['infohash', 'content_name', 'size', 'seeder', 'leecher']
-        self.column = -1
-        self.order = [0, 0, 1, 1, 1]    # 1 - decrease; 0 - increase
-        self.num = 100
-        
-        self.torrent_db = TorrentDBHandler()
-        self.torrent_list = self.torrent_db.getOthersTorrentList()
-        
-        
-        #self.Bind(wx.EVT_LIST_COL_CLICK, self.OnColClick)
-        
-        try:    # get system font width
-            fw = wx.SystemSettings_GetFont(wx.SYS_DEFAULT_GUI_FONT).GetPointSize()+1
-        except:
-            fw = wx.SystemSettings_GetFont(wx.SYS_SYSTEM_FONT).GetPointSize()+1
-            
-        self.InsertColumn(0, "ID", format=wx.LIST_FORMAT_CENTER, width=fw*3)
-        self.InsertColumn(1, "Title", format=wx.LIST_FORMAT_CENTER, width=fw*25)
-        self.InsertColumn(2, "Size", format=wx.LIST_FORMAT_CENTER, width=fw*8)
-        self.InsertColumn(3, "Recommendation", format=wx.LIST_FORMAT_CENTER, width=fw*8)
-        self.InsertColumn(4, "Last Used Time", format=wx.LIST_FORMAT_CENTER, width=fw*16)
-                
-        self.loadList(num=self.num)
+        for i in xrange(len(self.data)):
+            info = self.data[i]['info']
+            self.data[i]['size'] = info.get('size', 0)
+            self.data[i]['content_name'] = info.get('name', '\xff')
+            if self.data[i]['torrent_name'] == '':
+                self.data[i]['torrent_name'] = '\xff'
+            self.data[i]['seeder'] = -1
+            self.data[i]['leecher'] = -1
 
-    def loadList(self, key='infohash', order=0, num=100):
-        torrents.sort()
-        
-        i = 0
-        for torrent in torrents:
-            if int(torrent['have']) == 1:
-                continue
-            self.InsertStringItem(i, str(torrent['id']))
-            self.SetStringItem(i, 1, torrent['content_name'])
-            self.SetStringItem(i, 2, torrent['content_size'])
-            self.SetStringItem(i, 3, str(torrent['recommendation']))
-            self.SetStringItem(i, 4, torrent['last_seen'])    
-            i += 1
-            
-        self.Show(True)
-        
-        
+
 class MyPreferencePanel(wx.Panel):
-    def __init__(self, parent, utility, dialog = None):
-        self.utility = utility
-        wx.Panel.__init__(self, parent, -1)
-
-        self.list=MyPreferenceList(self)
+    def __init__(self, frame, parent):
+        self.parent = parent
+        self.utility = frame.utility
         
-        self.Show()
-
+        self.mypref_db = frame.mypref_db
+        self.torrent_db = frame.torrent_db
+        wx.Panel.__init__(self, parent, -1)
+        
+        self.list=MyPreferenceList(self, frame.window_size)
+        self.Fit()
+        self.Show(True)
+        
 
 class FilePanel(wx.Panel):
-    def __init__(self, parent, utility, dialog = None):
-        self.utility = utility
-        wx.Panel.__init__(self, parent, -1)
-
-        self.list=FileList(self)
+    def __init__(self, frame, parent):
+        self.parent = parent
+        self.utility = frame.utility
         
-        self.Show()
+        self.mypref_db = frame.mypref_db
+        self.torrent_db = frame.torrent_db
+        wx.Panel.__init__(self, parent, -1)
+        
+        self.list=FileList(self, frame.window_size)
+        self.Fit()
+        self.Show(True)
 
-
-class CommonTriblerList(wx.ListCtrl):
-    pass
 
 class ABCFileFrame(wx.Frame):
     def __init__(self, parent):
         self.utility = parent.utility
-        size = wx.Size(800, 520)
-        wx.Frame.__init__(self, None, -1, "File Frame", wx.DefaultPosition, size)
+        width = 600
+        height = 500
+        self.window_size = wx.Size(width, height)
+        wx.Frame.__init__(self, None, -1, "File Frame", size=wx.Size(width+20, height+60))
        
+        self.mypref_db = MyPreferenceDBHandler()
+        self.torrent_db = TorrentDBHandler()
+        
         self.notebook = wx.Notebook(self, -1)
 
-        self.myPreferencePanel = MyPreferencePanel(self.notebook, self.utility)
-        self.notebook.AddPage(self.myPreferencePanel, "My Preference List")
-
-        self.filePanel = FilePanel(self.notebook, self.utility)
+        self.filePanel = FilePanel(self, self.notebook)
         self.notebook.AddPage(self.filePanel, "All File List")
+
+        self.myPreferencePanel = MyPreferencePanel(self, self.notebook)
+        self.notebook.AddPage(self.myPreferencePanel, "My Preference List")
 
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
         

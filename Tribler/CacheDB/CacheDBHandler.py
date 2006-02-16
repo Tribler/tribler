@@ -214,9 +214,9 @@ class PeerDBHandler(BasicDBHandler):
         
         return peers
         
-    def getPeersValue(self, peer_list, keys):    # get a list of values given peer list 
+    def getPeersValue(self, peer_list, keys=None):    # get a list of values given peer list 
         if not keys:
-            return []
+            keys = self.peer_db.default_item.keys()
         values = []
         for peer in peer_list:
             p = self.peer_db.getItem(peer)
@@ -304,6 +304,28 @@ class TorrentDBHandler(BasicDBHandler):
         
     def getTorrent(self, infohash):
         return self.torrent_db.getItem(infohash)
+        
+    def getTorrents(self, torrent_list, keys=None):    # get a list of dictionaries given torrent list
+        if not keys:
+            keys = self.torrent_db.default_item.keys()
+            keys += ['infohash']
+        torrents = []
+        if 'infohash' in keys:
+            infohash = True
+            keys.remove('infohash')
+        else:
+            infohash = False
+        for torrent in torrent_list:
+            p = self.torrent_db.getItem(torrent)
+            if infohash:
+                d = {'infohash':torrent}
+            else:
+                d = {}
+            for key in keys:
+                d[key] = p[key]
+            torrents.append(d)
+        
+        return torrents
             
 #    def getTorrentList(self):    # get the list of all peers' permid
 #        return self.torrent_db._keys()
@@ -311,12 +333,23 @@ class TorrentDBHandler(BasicDBHandler):
 #    def getMyTorrentList(self):
 #        return self.mypref_db._keys()
         
-    def getOthersTorrentList(self):
-        return list(Set(self.torrent_db._keys()) - Set(self.mypref_db._keys()))
-        
-    def getTorrentsValue(self, torrent_list, keys):    # get a list of values given peer list 
+    def getOthersTorrentList(self, num=-1):
+        all_list = list(Set(self.torrent_db._keys()) - Set(self.mypref_db._keys()))
+        if num < 0:
+            return all_list
+        values = []
+        for torrent in all_list:
+            t = self.torrent_db.getItem(torrent)
+            values.append(t['relevance'])
+        nlist = len(all_list)
+        aux = [(values[i], i) for i in xrange(nlist)]
+        aux.sort()
+        aux.reverse()
+        return [all_list[i] for k, i in aux[:num]]
+            
+    def getTorrentsValue(self, torrent_list, keys=None):    # get a list of values given peer list 
         if not keys:
-            return []
+            keys = self.torrent_db.default_item.keys()
         if not isinstance(keys, list):
             keys = [str(keys)]
         values = []
@@ -360,9 +393,9 @@ class MyPreferenceDBHandler(BasicDBHandler):
     def getPrefList(self):
         return self.mypref_db._keys()
         
-    def getPrefsValue(self, pref_list, keys):    # get a list of values given peer list 
+    def getPrefsValue(self, pref_list, keys=None):    # get a list of values given peer list 
         if not keys:
-            return []
+            keys = self.mypref_db.default_item.keys()
         values = []
         for torrent in pref_list:
             p = self.torrent_db.getItem(torrent)
