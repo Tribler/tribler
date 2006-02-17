@@ -94,7 +94,7 @@ class TasteBuddyList(CommonTriblerList):
         if add_friend:
             menu.Append(self.addFriendID, "Add the peer as your friend")
         if delete_friend:
-            menu.Append(self.deleteFriendID, "Delete the friend")
+            menu.Append(self.deleteFriendID, "Remove the peer from your friend list")
         menu.Append(self.deletePeerID, "Delete the peer")
             
         self.PopupMenu(menu, event.GetPosition())
