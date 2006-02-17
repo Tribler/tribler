@@ -553,7 +553,7 @@ class ABCApp(wx.App):
 
         self.utility = Utility(abcpath)
         tribler_init(self.utility.getConfigPath())
-        self.utility.setDB()
+        self.utility.setTriblerVariables()
         
         # Set locale to determine localisation
         locale.setlocale(locale.LC_ALL, '')

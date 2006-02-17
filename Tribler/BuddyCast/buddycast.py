@@ -245,9 +245,10 @@ class DataHandler:
         if permid != self.permid:
             self.pref_db.addPreference(permid, pref)
     
-    def addMyPref(self, infohash, data={}):    # user adds a preference (i.e., downloads a new file)
+    def addMyPref(self, infohash):    # user adds a preference (i.e., downloads a new file)
         if infohash in self.preflist:
             return
+        self.mypref_db.addPreference(infohash)
         self.preflist.insert(0, infohash)
         self._updateSimilarity(infohash)
         self.setPeerCacheChanged(True)
@@ -274,7 +275,6 @@ class DataHandler:
                 old_sim = peer['similarity']
                 new_sim = int(old_sim * sim_var)
             self.peer_db.updatePeer(p, 'similarity', new_sim)
-        
         
     # --- read ---
     def getPeerPrefList(self, permid, num=0):
@@ -375,6 +375,7 @@ class DataHandler:
         pref1 = self.getMyPrefList(num)
         pref2 = self.getPeerPrefList(permid)
         sim = P2PSim(pref1, pref2)
+        print sim,
         return sim
 
     # --- block list --- #
@@ -710,8 +711,9 @@ class BuddyCastFactory:
         else:
             return None
         
-    def addMyPref(self, infohash, data={}):
-        self.data_handler.addMyPref(infohash, data)
+    def addMyPref(self, infohash):
+        if self.registered:
+            self.data_handler.addMyPref(infohash)
 
     def recommendateItems(self, num=15):
         return self.buddycast_core.recommendateItems(num)

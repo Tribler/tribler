@@ -151,6 +151,7 @@ class ABCTorrent:
         torrent['info'] = torrent_info
         
         self.torrent_db.addTorrent(self.torrent_hash, torrent)
+        self.torrent_db.sync()
         print >> sys.stderr, "add torrent to db", self.infohash, torrent_info
 
         
@@ -163,11 +164,13 @@ class ABCTorrent:
             
         mypref = {}
         if self.files.dest:
-            mypref['content_dir'], mypref['content_name'] = os.path.split(self.files.dest)
+            mypref['content_dir'] = self.files.dest    #TODO: check
+            mypref['content_name'] = self.files.filename
         
         self.mypref_db.addPreference(self.torrent_hash, mypref)
         if self.utility.abcfileframe is not None:
             self.utility.abcfileframe.updateMyPref()
+        self.utility.buddycast.addMyPref(self.torrent_hash)
         print >> sys.stderr, "add mypref to db", self.infohash, mypref
         
     #

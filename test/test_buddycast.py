@@ -33,7 +33,8 @@ class TestBuddyCast(unittest.TestCase):
         db_dir = ''
         tribler_init()
         self.buddycast = BuddyCastFactory.getInstance(db_dir=db_dir)
-        self.buddycast.data_handler.clear()
+        self.buddycast.registered = True
+        #self.buddycast.data_handler.clear()
         
         testdata = open(testdata_file, 'r')
         self.prefxchg_msgs = testdata.readlines()
@@ -225,12 +226,13 @@ class TestBuddyCast(unittest.TestCase):
             0.108 977 717
             0.125 981 738
         """
-        for i in range(20):
+        for i in range(5):
             self.preload2(136+i*10, 10)
             begin = time()
             target, tbs, rps = self.buddycast.buddycast_core.getBuddyCastData(None, 10, 10)
             print time() - begin, self.peer_db._size(), self.pref_db._size()
-            
+        print self.buddycast.recommendateItems(20)
+        
     def xxtest_profile(self):
         def foo(n = 10000):
             def bar(n):

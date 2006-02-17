@@ -320,6 +320,8 @@ class TorrentFiles:
                     dialog.ShowModal()
                     dialog.Destroy()
                     
+        #TODO: change db
+                    
     def getDest(self):
         return self.dest
         

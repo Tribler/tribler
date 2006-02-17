@@ -29,7 +29,7 @@ from Utility.constants import * #IGNORE:W0611
 
 from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler
 from Tribler.CacheDB.CacheDBHandler import PeerDBHandler, FriendDBHandler
-
+from Tribler.BuddyCast.buddycast import BuddyCastFactory
   
 ################################################################
 #
@@ -103,11 +103,12 @@ class Utility:
         
         self.abcfileframe = None
         
-    def setDB(self):    # CacheDB for Tribler
+    def setTriblerVariables(self):    # CacheDB for Tribler
         self.torrent_db = TorrentDBHandler()
         self.mypref_db = MyPreferenceDBHandler()
         self.peer_db = PeerDBHandler()
         self.friend_db = FriendDBHandler        
+        self.buddycast = BuddyCastFactory.getInstance()
         
     def setupConfigPath(self):
         configdir = ConfigDir()

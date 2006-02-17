@@ -261,6 +261,8 @@ class PeerDBHandler(BasicDBHandler):
     def getItems(self):
         return self.peer_db._items()
         
+    def deletePeer(self, permid):
+        self.peer_db._delete(permid)        
 
 
 class PreferenceDBHandler(BasicDBHandler):
@@ -373,6 +375,9 @@ class TorrentDBHandler(BasicDBHandler):
     def updateTorrentRelevance(self, torrent, relevance):
         self.torrent_db.updateItem(torrent, {'relevance':relevance})
             
+    def deleteTorrent(self, infohash):
+        self.torrent_db._delete(infohash)
+
 
 class MyPreferenceDBHandler(BasicDBHandler):
     
@@ -452,6 +457,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
         return self.mypref_db._has_key(infohash)
             
     def addPreference(self, infohash, data={}):
+        print "add my pref", infohash
         self.mypref_db.updateItem(infohash, data)
 
     def deletePreference(self, infohash):

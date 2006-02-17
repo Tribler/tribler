@@ -53,7 +53,10 @@ class DownloaderFeedback:
                 a['port'] = c.get_port()
             else:
                 a['port'] = 0
-            a['optimistic'] = (c is self.choker.connections[0])
+            try:
+                a['optimistic'] = (c is self.choker.connections[0])
+            except:
+                a['optimistic'] = False
             if c.is_locally_initiated():
                 a['direction'] = 'L'
             else:

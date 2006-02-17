@@ -65,40 +65,73 @@ class TasteBuddyList(CommonTriblerList):
             self.data[i]['friend'] = self.data[i]['permid'] in self.friend_list
         
     def OnRightClick(self, event=None):
-        self.curr_idx = event.m_itemIndex
-        if not hasattr(self, "addFriendID") or not hasattr(self, "removeFriendID"):
+        curr_idx = self.getSelectedItems()
+
+        if not hasattr(self, "addFriendID"): 
             self.addFriendID = wx.NewId()
             self.Bind(wx.EVT_MENU, self.OnAddFriend, id=self.addFriendID)
-            self.removeFriendID = wx.NewId()
-            self.Bind(wx.EVT_MENU, self.OnRemoveFriend, id=self.removeFriendID)
-        
-        # menu for change torrent's rank
+        if not hasattr(self, "deleteFriendID"):
+            self.deleteFriendID = wx.NewId()
+            self.Bind(wx.EVT_MENU, self.OnDeleteFriend, id=self.deleteFriendID)
+        if not hasattr(self, "deletePeerID"):
+            self.deletePeerID = wx.NewId()
+            self.Bind(wx.EVT_MENU, self.OnDeletePeer, id=self.deletePeerID)
+            
         menu = wx.Menu()
-        if self.data[self.curr_idx]['friend']:
-            menu.Append(self.removeFriendID, "Remove the friend")
-        else:
+        add_friend = False
+        delete_friend = False
+        for i in curr_idx:    
+            # if all the selected peers have been friend, don't show add menu
+            if not self.data[i]['friend']:
+                add_friend = True
+            else:
+                delete_friend = True
+                
+        if add_friend:
             menu.Append(self.addFriendID, "Add the peer as your friend")
-        #menu.Append(self.showDetailID, "Show Buddy Details")
-        
+        if delete_friend:
+            menu.Append(self.deleteFriendID, "Delete the friend")
+        menu.Append(self.deletePeerID, "Delete the peer")
+            
         self.PopupMenu(menu, event.GetPosition())
         menu.Destroy()
         
     def OnAddFriend(self, event=None):
-        permid = self.data[self.curr_idx]['permid']
-        self.data[self.curr_idx]['friend'] = True
-        self.SetStringItem(self.curr_idx, 0, '*')
-        self.friend_db.addFriend(permid)
-#        self.parent.parent.friendPanel.addFriend(permid)
-        if DEBUG:
-            print "add friend", peer['name']
-            
-    def OnRemoveFriend(self, event=None):
-        peer = self.data[self.curr_idx]
-        permid = peer['permid']
-        peer['friend'] = False
-        self.SetStringItem(self.curr_idx, 0, '')
-        self.friend_db.deleteFriend(permid)
+        selected = self.getSelectedItems()
+        for i in selected:
+            self.addFriend(i)
+        
+    def addFriend(self, curr_idx):
+        if not self.data[curr_idx]['friend']:
+            permid = self.data[curr_idx]['permid']
+            self.data[curr_idx]['friend'] = True
+            self.SetStringItem(curr_idx, 0, '*')
+            self.friend_db.addFriend(permid)
+
+    def OnDeleteFriend(self, event=None):
+        selected = self.getSelectedItems()
+        for i in selected:
+            self.deleteFriend(i)
+        
+    def deleteFriend(self, curr_idx):
+        if self.data[curr_idx]['friend']:
+            peer = self.data[curr_idx]
+            permid = peer['permid']
+            peer['friend'] = False
+            self.SetStringItem(curr_idx, 0, '')
+            self.friend_db.deleteFriend(permid)
 #        self.parent.parent.friendPanel.deleteFriend(permid)
+        
+    def OnDeletePeer(self, event=None):
+        curr_idx = self.getSelectedItems()
+        j = 0
+        for i in curr_idx:
+            permid = self.data[i]['permid']
+            if self.data[i]['friend']:
+                self.friend_db.deleteFriend(permid)
+            self.peer_db.deletePeer(permid)
+            self.DeleteItem(i-j)
+            j += 1
         
 
 class TasteBuddyPanel(wx.Panel):

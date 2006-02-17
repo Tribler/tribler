@@ -59,8 +59,8 @@ class CommonTriblerList(wx.ListCtrl):
         return -1
             
     def OnRightClick(self, event):
-        self.curr_idx = event.m_itemIndex
-        print "right click", self.curr_idx
+        print "right click", self.getSelectedItems()
+        
     
     def OnActivated(self, event):
         self.curr_idx = event.m_itemIndex
@@ -100,6 +100,17 @@ class CommonTriblerList(wx.ListCtrl):
             
         self.Show(True)
     
+    def getSelectedItems(self):
+        item = -1
+        itemList = []
+        while 1:
+            item = self.GetNextItem(item,wx.LIST_NEXT_ALL,wx.LIST_STATE_SELECTED)
+            if item == -1:
+                break
+            else:
+                itemList.append(item)
+        return itemList
+
 
 class MainWindow(wx.Frame):
     def __init__(self,parent,id, title):

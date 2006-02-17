@@ -1,15 +1,16 @@
 import wx
 import images
-from base64 import decode
+from base64 import b64encode
 from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler
 from Tribler.utilities import friendly_time, sort_dictlist
 from common import CommonTriblerList
 
 
+
 def showInfoHash(infohash):
     if infohash.startswith('torrent'):    # for testing
         return infohash
-    return str(hash(infohash))
+    return b64encode(infohash)
 #    try:
 #        return encodestring(infohash)
 #    except:
@@ -67,7 +68,6 @@ class MyPreferenceList(CommonTriblerList):
                 self.data[i]['torrent_name'] = '\xff'
             if self.data[i]['content_name'] == '':
                 self.data[i]['content_name'] = '\xff'
-        print "mypref num", len(self.data)
         
     def getMenuItems(self, min_rank, max_rank):
         menu_items = {}
@@ -85,61 +85,91 @@ class MyPreferenceList(CommonTriblerList):
         return menu_items
 
     def OnRightClick(self, event=None):
-        self.curr_idx = event.m_itemIndex
-        curr_rank = self.data[self.curr_idx]['rank']
+        curr_idx = self.getSelectedItems()
         if not hasattr(self, "adjustRankID"):
             self.adjustRankID = wx.NewId()
             self.menu_items = self.getMenuItems(self.min_rank, self.max_rank)
             for i in self.menu_items:
                 self.Bind(wx.EVT_MENU, self.menu_items[i]['func'], id=self.menu_items[i]['id'])
-                
+        if not hasattr(self, "deletePrefID"):
+            self.deletePrefID = wx.NewId()
+            self.Bind(wx.EVT_MENU, self.OnDeletePref, id=self.deletePrefID)
+            
         # menu for change torrent's rank
         sm = wx.Menu()
-        sm.Append(self.adjustRankID, "Rank items:")
+        
+        curr_rank = self.data[curr_idx[0]]['rank']
+        for i in curr_idx[1:]:
+            if self.data[i]['rank'] != curr_rank:
+                curr_rank = None
+
+        submenu = wx.Menu()
         idx = self.menu_items.keys()
         idx.sort()
-        idx.reverse()
-        for i in idx:
+        idx.reverse()    
+        for i in idx:    # 5..-1
             if i == curr_rank:
                 label = '> '+self.menu_items[i]['label']
             else:
                 label = '   '+self.menu_items[i]['label']
-            sm.Append(self.menu_items[i]['id'], label)
+            submenu.Append(self.menu_items[i]['id'], label)
+            
+        sm.AppendMenu(self.adjustRankID, "Rank items", submenu)
+        sm.Append(self.deletePrefID, 'Delete')
         
         self.PopupMenu(sm, event.GetPosition())
         sm.Destroy()
         
-    def changeRank(self, rank):
-        torrent = self.data[self.curr_idx]
+    def changeRank(self, curr_idx, rank):
+        torrent = self.data[curr_idx]
         torrent['rank'] = rank
         self.mypref_db.updateRank(torrent['infohash'], rank)
-        self.SetStringItem(self.curr_idx, 3, str(rank))
+        self.SetStringItem(curr_idx, 2, str(rank))
         #print "Set torrent", showInfoHash(torrent['infohash']), "rank", rank
         
-    def OnRank(self, rank):
-        return lambda rank: self.changeRank(rank)
-        
     def OnRank0(self, event=None):
-        self.changeRank(0+self.min_rank)
+        selected = self.getSelectedItems()
+        for i in selected:
+            self.changeRank(i, 0+self.min_rank)
         
     def OnRank1(self, event=None):
-        self.changeRank(1+self.min_rank)
+        selected = self.getSelectedItems()
+        for i in selected:
+            self.changeRank(i, 1+self.min_rank)
         
     def OnRank2(self, event=None):
-        self.changeRank(2+self.min_rank)
+        selected = self.getSelectedItems()
+        for i in selected:
+            self.changeRank(i, 2+self.min_rank)
         
     def OnRank3(self, event=None):
-        self.changeRank(3+self.min_rank)
+        selected = self.getSelectedItems()
+        for i in selected:
+            self.changeRank(i, 3+self.min_rank)
         
     def OnRank4(self, event=None):
-        self.changeRank(4+self.min_rank)
+        selected = self.getSelectedItems()
+        for i in selected:
+            self.changeRank(i, 4+self.min_rank)
         
     def OnRank5(self, event=None):
-        self.changeRank(5+self.min_rank)
+        selected = self.getSelectedItems()
+        for i in selected:
+            self.changeRank(i, 5+self.min_rank)
         
     def OnRank6(self, event=None):
-        self.changeRank(6+self.min_rank)
+        selected = self.getSelectedItems()
+        for i in selected:
+            self.changeRank(i, 6+self.min_rank)
         
+    def OnDeletePref(self, event=None):
+        selected = self.getSelectedItems()
+        j = 0
+        for i in selected:
+            infohash = self.data[i]['infohash']
+            self.mypref_db.deletePreference(infohash)
+            self.DeleteItem(i-j)
+            j += 1
 
 
 class FileList(CommonTriblerList):
@@ -173,7 +203,7 @@ class FileList(CommonTriblerList):
          return [0, 0, 0, 1, 0, 0, 0]
 
     def getMaxNum(self):
-        return 300
+        return 1000
         
     def getText(self, data, row, col):
         key = self.list_key[col]
@@ -191,10 +221,9 @@ class FileList(CommonTriblerList):
         return str(original_data)
         
     def reloadData(self):
-        torrent_list = self.torrent_db.getOthersTorrentList(self.num)
+        torrent_list = self.torrent_db.getOthersTorrentList()
         key = ['infohash', 'torrent_name', 'relevance', 'info']
         self.data = self.torrent_db.getTorrents(torrent_list, key)
-        print "torrent num", len(self.data)
 
         for i in xrange(len(self.data)):
             info = self.data[i]['info']
@@ -204,6 +233,27 @@ class FileList(CommonTriblerList):
                 self.data[i]['torrent_name'] = '\xff'
             self.data[i]['seeder'] = -1
             self.data[i]['leecher'] = -1
+
+    def OnDeleteTorrent(self, event=None):
+        selected = self.getSelectedItems()
+        j = 0
+        for i in selected:
+            infohash = self.data[i]['infohash']
+            self.torrent_db.deleteTorrent(infohash)
+            self.DeleteItem(i-j)
+            j += 1
+            
+    def OnRightClick(self, event=None):
+        if not hasattr(self, "deleteTorrentID"):
+            self.deleteTorrentID = wx.NewId()
+            self.Bind(wx.EVT_MENU, self.OnDeleteTorrent, id=self.deleteTorrentID)
+            
+        # menu for change torrent's rank
+        sm = wx.Menu()
+        sm.Append(self.deleteTorrentID, 'Delete')
+        
+        self.PopupMenu(sm, event.GetPosition())
+        sm.Destroy()
 
 
 class MyPreferencePanel(wx.Panel):
