@@ -246,14 +246,10 @@ class DataHandler:
             self.pref_db.addPreference(permid, pref)
     
     def addMyPref(self, infohash, data={}):    # user adds a preference (i.e., downloads a new file)
-        existed = self.preflist.count(infohash)    
-        while existed > 0:
-            self.preflist.remove(infohash)
-            existed -= 1
+        if infohash in self.preflist:
+            return
         self.preflist.insert(0, infohash)
-        self.mypref_db.addPreference(infohash, data)    # update last_seen if the pref exists
-        if not existed:    # don't update similarity if the pref exists
-            self._updateSimilarity(infohash)
+        self._updateSimilarity(infohash)
         self.setPeerCacheChanged(True)
 
     def _updateSimilarity(self, infohash):

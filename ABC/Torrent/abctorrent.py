@@ -44,6 +44,9 @@ class ABCTorrent:
     def __init__(self, queue, src = None, dest = None, forceasklocation = False, caller = "", caller_data = None):
         self.queue = queue
         self.utility = self.queue.utility
+        self.mypref_db = self.utility.mypref_db
+        self.torrent_db = self.utility.torrent_db
+        
         self.list = self.utility.list
         self.listindex = len(self.utility.torrents["all"])
 
@@ -116,14 +119,20 @@ class ABCTorrent:
         self.totalseeds = "?"
         
         self.peer_swarm = {}    # swarm of each torrent, used to display peers on map
-        #self.addTorrent(self.utility.all_files_cache)
         
-    def addTorrent(self, FileCacheHandler):
-        torrent = {}
-        torrent['file'] = os.path.split(self.src)[1]
-        torrent['path'] = self.src
+    def addTorrentToDB(self):
+        
+        if self.torrent_db.hasTorrent(self.torrent_hash):
+            return
+            
         info = self.metainfo['info']
-        torrent['name'] = info.get('name', '')
+        
+        torrent = {}
+        torrent['torrent_dir'], torrent['torrent_name'] = os.path.split(self.src)
+        torrent['relevance'] = 100*1000
+        
+        torrent_info = {}
+        torrent_info['name'] = info.get('name', '')
         length = 0
         nf = 0
         if info.has_key('length'):
@@ -134,10 +143,33 @@ class ABCTorrent:
                 nf += 1
                 if li.has_key('length'):
                     length += li['length']
-        torrent['length'] = length
-        torrent['numfiles'] = nf
-        FileCacheHandler.addTorrent(self.torrent_hash, torrent)
-             
+        torrent_info['length'] = length
+        torrent_info['num_files'] = nf
+        torrent_info['announce'] = self.metainfo.get('announce', '')
+        torrent_info['announce-list'] = self.metainfo.get('announce-list', '')
+        torrent_info['creation date'] = self.metainfo.get('creation date', 0)
+        torrent['info'] = torrent_info
+        
+        self.torrent_db.addTorrent(self.torrent_hash, torrent)
+        print >> sys.stderr, "add torrent to db", self.infohash, torrent_info
+
+        
+    def addMyPref(self):
+        
+        self.addTorrentToDB()
+        
+        if self.mypref_db.hasPreference(self.torrent_hash):
+            return
+            
+        mypref = {}
+        if self.files.dest:
+            mypref['content_dir'], mypref['content_name'] = os.path.split(self.files.dest)
+        
+        self.mypref_db.addPreference(self.torrent_hash, mypref)
+        if self.utility.abcfileframe is not None:
+            self.utility.abcfileframe.updateMyPref()
+        print >> sys.stderr, "add mypref to db", self.infohash, mypref
+        
     #
     # Tasks to perform when first starting adding this torrent to the display
     #
@@ -164,6 +196,9 @@ class ABCTorrent:
         
         # Do a quick check to see if it's finished
         self.status.isDoneUploading()
+
+        self.addMyPref()
+        
 
     #
     # As opposed to getColumnText,

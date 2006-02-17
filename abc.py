@@ -552,15 +552,16 @@ class ABCApp(wx.App):
         self.single_instance_checker = single_instance_checker
 
         self.utility = Utility(abcpath)
-
+        tribler_init(self.utility.getConfigPath())
+        self.utility.setDB()
+        
         # Set locale to determine localisation
         locale.setlocale(locale.LC_ALL, '')
 
         sys.stdout.write('Client Starting Up.\n')
         sys.stdout.write('Build: ' + self.utility.lang.get('build') + '\n')
 
-        tribler_init(self.utility.getConfigPath())
-
+        
         wx.App.__init__(self, x)
 
     def OnInit(self):

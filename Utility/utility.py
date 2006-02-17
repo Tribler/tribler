@@ -27,6 +27,9 @@ from Utility.configreader import ConfigReader
 from Utility.compat import convertINI, moveOldConfigFiles
 from Utility.constants import * #IGNORE:W0611
 
+from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler
+from Tribler.CacheDB.CacheDBHandler import PeerDBHandler, FriendDBHandler
+
   
 ################################################################
 #
@@ -97,6 +100,14 @@ class Utility:
         
         # Keep track of all the "ManagedList" objects in use
         self.lists = {}
+        
+        self.abcfileframe = None
+        
+    def setDB(self):    # CacheDB for Tribler
+        self.torrent_db = TorrentDBHandler()
+        self.mypref_db = MyPreferenceDBHandler()
+        self.peer_db = PeerDBHandler()
+        self.friend_db = FriendDBHandler        
         
     def setupConfigPath(self):
         configdir = ConfigDir()

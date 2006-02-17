@@ -9,10 +9,11 @@ from common import CommonTriblerList
 def showInfoHash(infohash):
     if infohash.startswith('torrent'):    # for testing
         return infohash
-    try:
-        return encodestring(infohash)
-    except:
-        return infohash
+    return str(hash(infohash))
+#    try:
+#        return encodestring(infohash)
+#    except:
+#        return infohash
 
 
 class MyPreferenceList(CommonTriblerList):
@@ -26,7 +27,6 @@ class MyPreferenceList(CommonTriblerList):
     def getColumns(self):
         format = wx.LIST_FORMAT_CENTER
         columns = [
-            ('Torrent Hash', format, 10),
             ('Torrent Name', format, 10),
             ('Content Name', format, 15),
             ('Rank', format, 8),
@@ -36,7 +36,7 @@ class MyPreferenceList(CommonTriblerList):
         return columns
         
     def getListKey(self):
-        return ['infohash', 'torrent_name', 'content_name', 'rank', 'size', 'last_seen']
+        return ['torrent_name', 'content_name', 'rank', 'length', 'last_seen']
         
     def getCurrentSortColumn(self):
         return 1
@@ -47,11 +47,9 @@ class MyPreferenceList(CommonTriblerList):
     def getText(self, data, row, col):
         key = self.list_key[col]
         original_data = data[row][key]
-        if key == 'infohash':
-            return showInfoHash(original_data)
-        if key == 'size':
-            size = original_data/1024/1024.0
-            return '%.2f MB'%(size)
+        if key == 'length':
+            length = original_data/1024/1024.0
+            return '%.2f MB'%(length)
         if key == 'last_seen':
             if original_data == 0:
                 return 'Never'
@@ -64,11 +62,12 @@ class MyPreferenceList(CommonTriblerList):
         self.data = self.mypref_db.getPrefs(myprefs, keys)
         for i in xrange(len(self.data)):
             info = self.data[i]['info']
-            self.data[i]['size'] = info.get('size', 0)
+            self.data[i]['length'] = info.get('length', 0)
             if self.data[i]['torrent_name'] == '':
                 self.data[i]['torrent_name'] = '\xff'
             if self.data[i]['content_name'] == '':
                 self.data[i]['content_name'] = '\xff'
+        print "mypref num", len(self.data)
         
     def getMenuItems(self, min_rank, max_rank):
         menu_items = {}
@@ -154,18 +153,18 @@ class FileList(CommonTriblerList):
     def getColumns(self):
         format = wx.LIST_FORMAT_CENTER
         columns = [
-            ('Torrent Hash', format, 10),
+            ('Torrent ID', format, 8),
             ('Torrent Name', format, 10),
             ('Content Name', format, 15),
-            ('Relevance', format, 8),
-            ('Size', format, 8),
-            ('Seeder', format, 7),
-            ('Leecher', format, 7),  
+            ('Recommendation', format, 8),
+            ('Size', format, 7),
+            ('Seeder', format, 6),
+            ('Leecher', format, 6),  
             ]
         return columns
         
     def getListKey(self):
-        return ['infohash', 'torrent_name', 'content_name', 'relevance', 'size', 'seeder', 'leecher']
+        return ['infohash', 'torrent_name', 'content_name', 'relevance', 'length', 'seeder', 'leecher']
         
     def getCurrentSortColumn(self):
         return 3
@@ -183,9 +182,9 @@ class FileList(CommonTriblerList):
             return '%.2f'%(original_data/1000.0)
         if key == 'infohash':
             return showInfoHash(original_data)
-        if key == 'size':
-            size = original_data/1024/1024.0
-            return '%.2f MB'%(size)
+        if key == 'length':
+            length = original_data/1024/1024.0
+            return '%.2f MB'%(length)
         if key == 'seeder' or key == 'leecher':
             if original_data < 0:
                 return '-'
@@ -195,11 +194,11 @@ class FileList(CommonTriblerList):
         torrent_list = self.torrent_db.getOthersTorrentList(self.num)
         key = ['infohash', 'torrent_name', 'relevance', 'info']
         self.data = self.torrent_db.getTorrents(torrent_list, key)
-        print len(self.data)
+        print "torrent num", len(self.data)
 
         for i in xrange(len(self.data)):
             info = self.data[i]['info']
-            self.data[i]['size'] = info.get('size', 0)
+            self.data[i]['length'] = info.get('length', 0)
             self.data[i]['content_name'] = info.get('name', '\xff')
             if self.data[i]['torrent_name'] == '':
                 self.data[i]['torrent_name'] = '\xff'
@@ -238,6 +237,8 @@ class FilePanel(wx.Panel):
 class ABCFileFrame(wx.Frame):
     def __init__(self, parent):
         self.utility = parent.utility
+        self.utility.abcfileframe = self
+        
         width = 600
         height = 500
         self.window_size = wx.Size(width, height)
@@ -258,7 +259,15 @@ class ABCFileFrame(wx.Frame):
         
         self.Show()
 
+    def updateMyPref(self):
+        self.myPreferencePanel.list.loadList()
+        
+    def updateFile(self):
+        self.filePanel.list.loadList()
+
     def OnCloseWindow(self, event = None):
         self.utility.frame.fileFrame = None
+        self.utility.abcfileframe = None
+        
         self.Destroy()
         

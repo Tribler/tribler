@@ -154,6 +154,7 @@ class AddTorrents:
         # Check to make sure that the source file exists
         sourcefileexists = os.access(filepath, os.R_OK)
         
+        
         if not sourcefileexists:
             if caller != "web":
                 dlg = wx.MessageDialog(None, 
@@ -166,6 +167,8 @@ class AddTorrents:
             # Just return if the source file doesn't exist?
             return "Error=The source file for this torrent doesn't exist"
 
+        print "******** add torrent:", filepath
+        
         # Make torrent directory if necessary
         self.utility.MakeTorrentDir()
       
@@ -236,6 +239,7 @@ class AddTorrents:
             return "OK"
         else:
             return "Error=" + mesg
+
 
     #
     # Add a torrent to the list

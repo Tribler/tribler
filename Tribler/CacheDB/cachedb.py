@@ -40,7 +40,7 @@ TorrentDB - (PreferenceDB, MyPreference, OwnerDB)
         relevance: int (0)    # [0, 1000]
         torrent_name: str ('')    # torrent name
         torrent_dir: str ('')    # path of the torrent (without the file name). '\x01' for default path
-        info: dict ({})   # {name, length, announce, creation date, comment}
+        info: dict ({})   # {name, length, announce, creation date, comment, announce-list, num_files}
     }
 
 PreferenceDB - (PeerDB, TorrentDB)    # other peers' preferences
@@ -405,9 +405,11 @@ class PeerDB(BasicDB):
             if self._has_key(permid):
                 _item = self.getItem(permid)
                 _item.update(item)
+                _item.update({'last_seen':int(time())})
                 self._updateItem(permid, _item)
             else:
                 item = self.setDefaultItem(item)
+                item.update({'last_seen':int(time())})
                 self._put(permid, item)
                 
     def deleteItem(self, permid):
@@ -565,12 +567,14 @@ class MyPreferenceDB(BasicDB):     #  = FileDB
                 self.default_item['created_time'] = self.default_item['last_seen'] = int(time())
                 item = self.setDefaultItem(item)
                 self._put(infohash, item)
+        self._sync()
                 
     def deleteItem(self, infohash):
         self._delete(infohash)
+        self._sync()
         
     def getItem(self, infohash):
-        return self._get(infohash, [])
+        return self._get(infohash)
 
     def getRank(self, infohash):
         v = self._get(infohash)

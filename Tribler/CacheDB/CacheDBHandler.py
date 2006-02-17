@@ -2,7 +2,6 @@
 # see LICENSE.txt for license information
 
 from cachedb import *
-from time import time
 from copy import deepcopy
 from sets import Set
 
@@ -326,6 +325,9 @@ class TorrentDBHandler(BasicDBHandler):
             torrents.append(d)
         
         return torrents
+        
+    def hasTorrent(self, infohash):
+        return self.torrent_db._has_key(infohash)
             
 #    def getTorrentList(self):    # get the list of all peers' permid
 #        return self.torrent_db._keys()
@@ -414,7 +416,10 @@ class MyPreferenceDBHandler(BasicDBHandler):
         for torrent in pref_list:
             d = self.mypref_db.getItem(torrent)
             t = self.torrent_db.getItem(torrent)
-            d.update(t)
+            try:
+                d.update(t)
+            except:
+                continue
             if 'infohash' in keys:
                 d.update({'infohash':torrent})
             for key in d.keys():
@@ -442,7 +447,10 @@ class MyPreferenceDBHandler(BasicDBHandler):
             return [item[1] for item in prefs[:num]]
         else:
             return [item[1] for item in prefs]
-    
+
+    def hasPreference(self, infohash):
+        return self.mypref_db._has_key(infohash)
+            
     def addPreference(self, infohash, data={}):
         self.mypref_db.updateItem(infohash, data)
 
