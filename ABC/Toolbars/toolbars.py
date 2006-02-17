@@ -84,8 +84,9 @@ class ABCStatusBar(wx.StatusBar):
         style = wx.ST_SIZEGRIP | wx.CLIP_CHILDREN
         
         wx.StatusBar.__init__(self, parent, -1, style = style)
-        self.SetFieldsCount(9)
-        self.SetStatusWidths([-1, 45, 35, 35, 35, 35, 50, 120, 120])
+        self.SetFieldsCount(11)
+        #self.SetStatusWidths([-1, 45, 35, 35, 35])
+        self.SetStatusWidths([-1, 45, 35, 35, 35, 35, 50, 120, 120, 100, 100])
    
    
 ##############################################################

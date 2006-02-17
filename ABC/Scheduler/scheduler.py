@@ -162,6 +162,10 @@ class ABCScheduler(DelayedEventHandler):
             downratecap = self.utility.speed_format((maxdownrate * 1024), truncate = 0, stopearly = "KB")
         downloadspeed = downspeed + " / " + downratecap
         
+        
+        npeer = str(self.utility.getNumPeers())
+        nfile = str(self.utility.getNumFiles())
+        
         try:
             # update value in minimize icon
             ###########################################
@@ -177,6 +181,9 @@ class ABCScheduler(DelayedEventHandler):
                 self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('abbrev_connections') + " " + str(int(self.totals['connections'])), 6)
                 self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('abbrev_down') + " " + downloadspeed, 7)
                 self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('abbrev_up') + " " + uploadspeed, 8)
+                self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('discover_peer') + " " + npeer, 9)
+                self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('discover_file') + " " + nfile, 10)
+                
         except wx.PyDeadObjectError:
             pass
                                 

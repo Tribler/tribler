@@ -745,6 +745,8 @@ abbrev_seeding		= "S:"
 abbrev_connections	= "CX:"
 abbrev_down			= "DL:"
 abbrev_up 			= "UL:"
+discover_peer   = "# Peers:"
+discover_file   = "# Files:"
 
 
 alloc_normal		= "normal"

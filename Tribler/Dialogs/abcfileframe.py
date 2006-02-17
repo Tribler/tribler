@@ -169,7 +169,9 @@ class MyPreferenceList(CommonTriblerList):
             infohash = self.data[i]['infohash']
             self.mypref_db.deletePreference(infohash)
             self.DeleteItem(i-j)
+            self.data.pop(i-j)
             j += 1
+        self.mypref_db.sync()
 
 
 class FileList(CommonTriblerList):
@@ -241,7 +243,9 @@ class FileList(CommonTriblerList):
             infohash = self.data[i]['infohash']
             self.torrent_db.deleteTorrent(infohash)
             self.DeleteItem(i-j)
+            self.data.pop(i-j)
             j += 1
+        self.torrent_db.sync()
             
     def OnRightClick(self, event=None):
         if not hasattr(self, "deleteTorrentID"):
@@ -254,6 +258,18 @@ class FileList(CommonTriblerList):
         
         self.PopupMenu(sm, event.GetPosition())
         sm.Destroy()
+        
+    def OnActivated(self, event):
+        self.curr_idx = event.m_itemIndex
+        infohash = self.data[self.curr_idx]['infohash']
+        str = "Starts downloading " + showInfoHash(infohash)
+        dlg = wx.MessageDialog(self, str,
+                               'Click and Download',
+                               wx.OK | wx.ICON_INFORMATION |
+                               wx.YES_NO | wx.NO_DEFAULT | wx.CANCEL | wx.ICON_INFORMATION
+                               )
+        dlg.ShowModal()
+        dlg.Destroy()
 
 
 class MyPreferencePanel(wx.Panel):
@@ -294,8 +310,8 @@ class ABCFileFrame(wx.Frame):
         self.window_size = wx.Size(width, height)
         wx.Frame.__init__(self, None, -1, "File Frame", size=wx.Size(width+20, height+60))
        
-        self.mypref_db = MyPreferenceDBHandler()
-        self.torrent_db = TorrentDBHandler()
+        self.mypref_db = self.utility.mypref_db
+        self.torrent_db = self.utility.torrent_db
         
         self.notebook = wx.Notebook(self, -1)
 

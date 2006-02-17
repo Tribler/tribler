@@ -43,50 +43,6 @@ class MyDBHandler(BasicDBHandler):
     def put(self, key, value):
         self.my_db._put(key, value)
     
-#    def getSuperPeersPermID(self):
-#        return self.my_db.get('superpeers', [])
-#    
-#    def getSuperPeers(self):
-#        sp = self.my_db.get('superpeers', [])
-#        res = []
-#        for permid in sp:
-#            peer = self.peer_db.get(permid)
-#            if peer:
-#                res.append(peer)
-#        return res
-#
-#    def addSuperPeer(self, permid):
-#        if permid in self.my_db.get('superpeers'):
-#            return
-#        if self.peer_db.has_key(permid):
-#            superpeers = self.getSuperPeers()
-#            superpeers.append(permid)
-#            self.my_db.update({'superpeers':superpeers})
-#
-#    def addSuperPeerByPeer(self, peer):
-#        permid = peer['permid']
-#        if not self.peer_db.has_key(permid):
-#            self.peer_db.updateItem(peer)
-#        superpeers = self.my_db.get('superpeers')
-#        if permid in superpeers:
-#            return
-#        superpeers.append(permid)
-#        self.my_db.update({'superpeers':superpeers})
-#
-#    def removeSuperPeer(self, permid):
-#        try:
-#            superpeers = self.getSuperPeers()
-#            superpeers.remove(permid)
-#            self.my_db.update({'superpeers':superpeers})
-#        except:
-#            pass
-#        
-#    def getPrefxchgQueue(self):
-#        return self.my_db.get('prefxchg_queue', [])
-#    
-#    def setPrefxchgQueue(self, q):
-#        self.my_db.put('prefxchg_queue', q)
-
 
 class SuperPeerDBHandler(BasicDBHandler):
     def __init__(self, db_dir=''):
@@ -289,6 +245,12 @@ class PreferenceDBHandler(BasicDBHandler):
     def hasPreference(self, permid):
         return self.pref_db._has_key(permid)
         
+    def getNumPrefs(self, permid):
+        if not self.pref_db._has_key(permid):
+            return 0
+        x = self.pref_db.getItem(permid)
+        return len(x)
+        
 class TorrentDBHandler(BasicDBHandler):
 
     def __init__(self, db_dir=''):
@@ -297,9 +259,6 @@ class TorrentDBHandler(BasicDBHandler):
         self.owner_db = OwnerDB.getInstance(db_dir=db_dir)
         self.dbs = [self.torrent_db]
         
-    def size(self):
-        return self.torrent_db.size()
-
     def addTorrent(self, infohash, torrent={}):
         self.torrent_db.updateItem(infohash, torrent)
         
@@ -384,7 +343,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
     def __init__(self, db_dir=''):
         self.mypref_db = MyPreferenceDB.getInstance(db_dir=db_dir)
         self.torrent_db = TorrentDB.getInstance(db_dir=db_dir)
-        self.dbs = [self.mypref_db]
+        self.dbs = [self.mypref_db, self.torrent_db]
     
     def getPreferences(self, key=None):
         all_items = self.mypref_db._items()

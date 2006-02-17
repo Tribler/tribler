@@ -134,7 +134,6 @@ def open_db(filename, db_dir='', filetype=db.DB_BTREE):
     dir = setDBPath(db_dir)
     path = os.path.join(dir, filename)
     try:
-        print "open db", path
         d = dbshelve.open(path, filetype=filetype)
     except Exception, msg:
         print >> sys.stderr,"cachedb: cannot open dbshelve on", path, msg

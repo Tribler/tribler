@@ -27,7 +27,7 @@ from Utility.configreader import ConfigReader
 from Utility.compat import convertINI, moveOldConfigFiles
 from Utility.constants import * #IGNORE:W0611
 
-from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler
+from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler, PreferenceDBHandler
 from Tribler.CacheDB.CacheDBHandler import PeerDBHandler, FriendDBHandler
 from Tribler.BuddyCast.buddycast import BuddyCastFactory
   
@@ -107,8 +107,14 @@ class Utility:
         self.torrent_db = TorrentDBHandler()
         self.mypref_db = MyPreferenceDBHandler()
         self.peer_db = PeerDBHandler()
-        self.friend_db = FriendDBHandler        
+        self.friend_db = FriendDBHandler     
         self.buddycast = BuddyCastFactory.getInstance()
+        
+    def getNumPeers(self):
+        return self.peer_db.size()
+        
+    def getNumFiles(self):
+        return self.torrent_db.size()
         
     def setupConfigPath(self):
         configdir = ConfigDir()

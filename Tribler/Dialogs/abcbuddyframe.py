@@ -2,7 +2,7 @@
 # see LICENSE.txt for license information
 
 import wx
-from Tribler.CacheDB.CacheDBHandler import PeerDBHandler, FriendDBHandler
+from Tribler.CacheDB.CacheDBHandler import PeerDBHandler, FriendDBHandler, PreferenceDBHandler
 from Tribler.utilities import friendly_time, sort_dictlist
 from common import CommonTriblerList
 
@@ -13,6 +13,7 @@ class TasteBuddyList(CommonTriblerList):
         self.parent = parent
         self.peer_db = parent.peer_db
         self.friend_db = parent.friend_db
+        self.pref_db = parent.pref_db
         CommonTriblerList.__init__(self, parent, window_size)
 
     def getColumns(self):
@@ -23,11 +24,12 @@ class TasteBuddyList(CommonTriblerList):
             ('IP', format, 15),
             ('Similarity', format, 8),
             ('Last Seen', format, 15),
+            ('# Preferences', format, 10)  
             ]
         return columns
 
     def getListKey(self):
-        return ['friend', 'name', 'ip', 'similarity', 'last_seen']
+        return ['friend', 'name', 'ip', 'similarity', 'last_seen', 'npref']
 
     def getCurrentSortColumn(self):
         return 1
@@ -60,9 +62,11 @@ class TasteBuddyList(CommonTriblerList):
         self.data = self.peer_db.getPeers(peer_list, key)
         self.friend_list = self.friend_db.getFriendList()
         for i in xrange(len(self.data)):
+            permid = self.data[i]['permid']
             if self.data[i]['name'] == '':
                 self.data[i]['name'] = '\xff'
-            self.data[i]['friend'] = self.data[i]['permid'] in self.friend_list
+            self.data[i]['friend'] = permid in self.friend_list
+            self.data[i]['npref'] = self.pref_db.getNumPrefs(permid)
         
     def OnRightClick(self, event=None):
         curr_idx = self.getSelectedItems()
@@ -131,6 +135,7 @@ class TasteBuddyList(CommonTriblerList):
                 self.friend_db.deleteFriend(permid)
             self.peer_db.deletePeer(permid)
             self.DeleteItem(i-j)
+            self.data.pop(i-j)
             j += 1
         
 
@@ -139,6 +144,7 @@ class TasteBuddyPanel(wx.Panel):
         self.parent = parent
         self.peer_db = frame.peer_db
         self.friend_db = frame.friend_db
+        self.pref_db = frame.pref_db
         wx.Panel.__init__(self, parent, -1)
         
         self.list=TasteBuddyList(self, frame.window_size)
@@ -156,6 +162,7 @@ class ABCBuddyFrame(wx.Frame):
        
         self.friend_db = FriendDBHandler()
         self.peer_db = PeerDBHandler()
+        self.pref_db = PreferenceDBHandler()
         
         self.notebook = wx.Notebook(self, -1)
 
