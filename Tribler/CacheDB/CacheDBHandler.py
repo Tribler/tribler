@@ -133,8 +133,8 @@ class PeerDBHandler(BasicDBHandler):
     def __len__(self):
         return self.peer_db._size()
         
-    def getPeer(self, permid):
-        return self.peer_db.getItem(permid)
+    def getPeer(self, permid, default=False):
+        return self.peer_db.getItem(permid, default)
         
     def getPeerSim(self, permid):
         x = self.peer_db.getItem(permid)
@@ -403,7 +403,8 @@ class MyPreferenceDBHandler(BasicDBHandler):
             
     def addPreference(self, infohash, data={}):
         if not data and self.hasPreference(infohash):
-            self.mypref_db.updateItem(infohash, data)
+            return
+        self.mypref_db.updateItem(infohash, data)
 
     def deletePreference(self, infohash):
         self.mypref_db.deleteItem(infohash)

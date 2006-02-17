@@ -117,6 +117,18 @@ class TasteBuddyList(CommonTriblerList):
         for i in selected:
             self.deleteFriend(i)
         
+    def externalDeleteFriend(self, permid):
+        idx = -1
+        for i in xrange(len(self.data)):
+            if self.data[i]['permid'] == permid:
+                idx = i
+                break
+        if idx > 0:
+            self.data[idx]['friend'] = False
+            self.SetStringItem(idx, 0, '')
+        else:
+            self.loadList()
+        
     def deleteFriend(self, curr_idx):
         if self.data[curr_idx]['friend']:
             peer = self.data[curr_idx]
@@ -155,6 +167,8 @@ class TasteBuddyPanel(wx.Panel):
 class ABCBuddyFrame(wx.Frame):
     def __init__(self, parent):
         self.parent = parent
+        self.parent.utility.abcbuddyframe = self
+        
         width = 600
         height = 500
         self.window_size = wx.Size(width, height)
@@ -173,7 +187,14 @@ class ABCBuddyFrame(wx.Frame):
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
         self.Show()
 
+    def updateBuddy(self):
+        self.tasteBuddyPanel.list.loadList()
+        
+    def deleteFriend(self, permid):
+        self.tasteBuddyPanel.list.externalDeleteFriend(permid)
+        
     def OnCloseWindow(self, event = None):
         self.parent.utility.frame.buddyFrame = None
+        self.utility.abcbuddyframe = None
         self.Destroy()        
 

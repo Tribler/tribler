@@ -271,8 +271,8 @@ class DataHandler:
                 pref2 = self.getPeerPrefList(p)
                 new_sim = P2PSim2(pref1, pref2)
             else:
-                peer = self.peer_db.getPeer(p)
-                old_sim = peer['similarity']
+                peer = self.peer_db.getPeer(p, True)
+                old_sim = peer.get('similarity', 0)
                 new_sim = int(old_sim * sim_var)
             self.peer_db.updatePeer(p, 'similarity', new_sim)
         

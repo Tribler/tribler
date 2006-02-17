@@ -127,9 +127,13 @@ class ManageFriendsDialog(wx.Dialog):
 
     def removeFriend(self, event = None):
         selected = self.getSelectedFriends()
+        to_remove = []
         for friend in selected:
             permid = friend['permid']
+            to_remove.append(permid)
             self.friendsdb.deleteFriend(permid)
+            if self.utility.abcbuddyframe is not None:    # update friend frame
+                self.utility.abcbuddyframe.deleteFriend(permid)    
         if len(selected) > 0:
             self.phoenix()
 

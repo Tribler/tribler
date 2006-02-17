@@ -102,6 +102,7 @@ class Utility:
         self.lists = {}
         
         self.abcfileframe = None
+        self.abcbuddyframe = None
         
     def setTriblerVariables(self):    # CacheDB for Tribler
         self.torrent_db = TorrentDBHandler()
