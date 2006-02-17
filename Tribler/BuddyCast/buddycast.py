@@ -146,10 +146,10 @@ class BuddyCastWorker:
             print >> sys.stderr, "error in bencode buddycast msg"
             return
         self.factory.sendBuddyCastMsg(self.target, buddycast_msg)
-        self.data_handler.addToSendBlockList(self.target, self.factory.short_block_time)
+        self.data_handler.addToSendBlockList(self.target, self.factory.block_time)
         
 
-class JobQueue:
+class JobQueue:    #TODO: parent class
     def __init__(self, max_size=10):
         self.max_size = max_size
         self._queue = []
@@ -190,6 +190,16 @@ class JobQueue:
         else:
             return None
 
+#class CollectTorrentQueue:
+#    def __init__(self, buddycast):
+#        self.metadata_handler = buddycast.metadata_handler
+#        self.data_handler = buddycast.data_handler
+#        self._queue = []
+#        
+#    def 
+#        
+
+
 
 class DataHandler:
     def __init__(self, db_dir=''):
@@ -201,7 +211,7 @@ class DataHandler:
         self.mypref_db = MyPreferenceDBHandler(db_dir=db_dir)
         self.pref_db = PreferenceDBHandler(db_dir=db_dir)
         self.dbs = [self.my_db, self.peer_db, self.superpeer_db,
-                    self.torrent_db, self.mypref_db, self.pref_db]        
+                    self.torrent_db, self.mypref_db, self.pref_db]
         self.name = self.my_db.get('name', '')
         self.ip = self.my_db.get('ip', '')
         self.port = self.my_db.get('port', 0)
@@ -539,11 +549,26 @@ class BuddyCastCore:
         return self.can_rps[target_idx[0]]
         
     def _getOnlineProb(self, ages):    
-        oldest_age = 7 * 24 * 60 * 60    # 7 days ago
+        return self._prob2(ages)
+        
+    def _prob2(self, ages):
+        oldest_age = 8 * 60 * 60
+        unit = 60
+        benchmark = max(ages)
+        probs = []
+        for i in xrange(len(ages)):
+            prob = oldest_age/unit - (benchmark - ages[i])/unit    # 5 mins
+            if prob < 0:
+                prob = 0
+            probs.append(prob)
+        return probs
+        
+    def _prob1(self, ages):    # linear probability
+        oldest_age = 7 * 24 * 60 * 60    # 7 dyas
         benchmark = int(time()) - oldest_age
         probs = []
         for i in xrange(len(ages)):
-            prob = (ages[i] - benchmark)/60
+            prob = (ages[i] - benchmark)/5 *60    # 5 mins
             if prob < 0:
                 prob = 0
             probs.append(prob)
@@ -587,23 +612,21 @@ class BuddyCastFactory:
         self.secure_overlay = SecureOverlay.getInstance()
         # --- variables ---
         # TODO: add these variables into Config
-        self.long_block_time = 4*60*60    # 4 hours by default
-        self.short_block_time = 5*60    # 5 minutes by default
+        self.db_dir = db_dir
+        self.block_time = 4*60*60    # 4 hours by default
         self.msg_nbuddies = 10    # number of buddies in buddycast msg
         self.msg_npeers = 10      # number of peers in buddycast msg
         self.msg_nmyprefs = 50    # number of my preferences in buddycast msg
         self.msg_nbuddyprefs = 10 # number of taste buddy's preferences in buddycast msg
-        self.max_nworkers = 10    
-
         self.buddycast_interval = 15
         self.recommendate_interval = 6 #60 + 11    # update recommendation interval; use prime number to avoid conflict
         self.sync_interval = 5*60 + 11    # sync database every 5 min
+        self.max_nworkers = self.block_time/self.buddycast_interval
+        
         # --- others ---
         self.registered = False
+        self.metadata_handler = None
         self.rawserver = None
-        self.data_handler = DataHandler(db_dir=db_dir)
-        self.buddycast_core = BuddyCastCore(self.data_handler)
-        self.job_queue = JobQueue(self.max_nworkers)
                 
     def getInstance(*args, **kw):
         if BuddyCastFactory.__single is None:
@@ -611,15 +634,25 @@ class BuddyCastFactory:
         return BuddyCastFactory.__single
     getInstance = staticmethod(getInstance)
     
-    def register(self, secure_overlay, rawserver, port, errorfunc):    
+    def register(self, secure_overlay, rawserver, port, errorfunc, start=True):    
         if self.registered:
             return
         self.secure_overlay = secure_overlay
         self.rawserver = rawserver
         self.errorfunc = errorfunc
-        self.data_handler.updatePort(port)
+        
+        #self.collect_torrents = CollectTorrentQueue(self)
+        self.data_handler = DataHandler(db_dir=self.db_dir)
+        self.buddycast_core = BuddyCastCore(self.data_handler)
+        self.job_queue = JobQueue(self.max_nworkers)
+        if isValidPort(port):
+            self.data_handler.updatePort(port)
         self.registered = True
-        self.startup()
+        if start:
+            self.startup()
+        
+    def registerHandler(self, metadata_handler):
+        self.metadata_handler = metadata_handler
         
     def is_registered(self):
         return self.registered

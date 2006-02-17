@@ -12,7 +12,6 @@ from BitTornado.BT1.MessageID import *
 
 from Tribler.__init__ import GLOBAL
 from permid import ChallengeResponse,show_permid
-from MetadataHandler import MetadataHandler
 from OverlayEncrypter import OverlayEncoder
 from OverlayConnecter import OverlayConnecter
 

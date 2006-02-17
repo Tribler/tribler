@@ -244,7 +244,8 @@ class Connection:    # OverlaySocket, a better name for it?
 
     def connection_lost(self, connection):
         if DEBUG:
-            print >> sys.stderr,"olencoder: connection_lost"
+            from time import ctime
+            print >> sys.stderr,"olencoder: connection_lost", self.dns, ctime(time())
         if self.Encoder.connections.has_key(connection):
             self.sever()
 

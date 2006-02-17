@@ -33,7 +33,7 @@ class TestBuddyCast(unittest.TestCase):
         db_dir = ''
         tribler_init()
         self.buddycast = BuddyCastFactory.getInstance(db_dir=db_dir)
-        self.buddycast.registered = True
+        self.buddycast.register(None, None, 0, None, False)
         #self.buddycast.data_handler.clear()
         
         testdata = open(testdata_file, 'r')
