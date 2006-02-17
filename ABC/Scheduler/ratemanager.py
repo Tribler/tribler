@@ -393,7 +393,10 @@ class RateManager(DelayedEventHandler):
 
             sizerate_id = len(rate_id)
             # Sort by increasing reserved rate
-            rate_id.sort(None, key = lambda x: x.connection.maxrate[dir])
+            try:
+                rate_id.sort(None, key = lambda x: x.connection.maxrate[dir])
+            except:
+                pass
             if rate_id:
                 ratenotassignedforeach = availableratetobedistributed / sizerate_id
             # Compute new reserved rate

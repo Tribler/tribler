@@ -109,6 +109,7 @@ class CommonTriblerList(wx.ListCtrl):
                 break
             else:
                 itemList.append(item)
+        itemList.sort()
         return itemList
 
 

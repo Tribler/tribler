@@ -415,11 +415,15 @@ class PeerDB(BasicDB):
     def deleteItem(self, permid):
         self._delete(permid)
         
-    def getItem(self, permid):
-        return self._get(permid, None)
+    def getItem(self, permid, default=False):
+        ret = self._get(permid, None)
+        if ret is None and default:
+            ret = deepcopy(self.default_item)
+        return ret
     
     def hasItem(self, permid):
         return self._has_key(permid)
+        
         
 
 class TorrentDB(BasicDB):
@@ -460,9 +464,12 @@ class TorrentDB(BasicDB):
     def deleteItem(self, infohash):
         self._delete(infohash)
         
-    def getItem(self, infohash):
-        return self._get(infohash)
-
+    def getItem(self, infohash, default=False):
+        ret = self._get(infohash, None)
+        if ret is None and default:
+            ret = deepcopy(self.default_item)
+        return ret
+    
 
 class PreferenceDB(BasicDB):
     """ Peer * Torrent """
@@ -573,14 +580,17 @@ class MyPreferenceDB(BasicDB):     #  = FileDB
         self._delete(infohash)
         self._sync()
         
-    def getItem(self, infohash):
-        return self._get(infohash)
-
+    def getItem(self, infohash, default=False):
+        ret = self._get(infohash, None)
+        if ret is None and default:
+            ret = deepcopy(self.default_item)
+        return ret
+    
     def getRank(self, infohash):
         v = self._get(infohash)
         return v.get('rank', 0)
         
-
+    
 class OwnerDB(BasicDB):
     """ Torrent * Peer """
     

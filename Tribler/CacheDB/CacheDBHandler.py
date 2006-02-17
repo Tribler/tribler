@@ -138,7 +138,9 @@ class PeerDBHandler(BasicDBHandler):
         
     def getPeerSim(self, permid):
         x = self.peer_db.getItem(permid)
-        return x['similarity']
+        if not x:
+            return 0
+        return x.get('similarity', 0)
         
     def getPeerList(self):    # get the list of all peers' permid
         return self.peer_db._keys()
@@ -158,7 +160,7 @@ class PeerDBHandler(BasicDBHandler):
         else:
             permid = False
         for peer in peer_list:
-            p = self.peer_db.getItem(peer)
+            p = self.peer_db.getItem(peer, default=True)
             if permid:
                 d = {'permid':peer}
             else:
@@ -174,7 +176,7 @@ class PeerDBHandler(BasicDBHandler):
             keys = self.peer_db.default_item.keys()
         values = []
         for peer in peer_list:
-            p = self.peer_db.getItem(peer)
+            p = self.peer_db.getItem(peer, default=True)
             if len(keys) == 1:
                 values.append(p[keys[0]])
             else:
@@ -276,7 +278,7 @@ class TorrentDBHandler(BasicDBHandler):
         else:
             infohash = False
         for torrent in torrent_list:
-            p = self.torrent_db.getItem(torrent)
+            p = self.torrent_db.getItem(torrent, default=True)
             if infohash:
                 d = {'infohash':torrent}
             else:
@@ -302,7 +304,7 @@ class TorrentDBHandler(BasicDBHandler):
             return all_list
         values = []
         for torrent in all_list:
-            t = self.torrent_db.getItem(torrent)
+            t = self.torrent_db.getItem(torrent, default=True)
             values.append(t['relevance'])
         nlist = len(all_list)
         aux = [(values[i], i) for i in xrange(nlist)]
@@ -317,7 +319,7 @@ class TorrentDBHandler(BasicDBHandler):
             keys = [str(keys)]
         values = []
         for torrent in torrent_list:
-            t = self.torrent_db.getItem(torrent)
+            t = self.torrent_db.getItem(torrent, default=True)
             if len(keys) == 1:
                 values.append(t[keys[0]])
             else:
@@ -359,27 +361,11 @@ class MyPreferenceDBHandler(BasicDBHandler):
     def getPrefList(self):
         return self.mypref_db._keys()
         
-    def getPrefsValue(self, pref_list, keys=None):    # get a list of values given peer list 
-        if not keys:
-            keys = self.mypref_db.default_item.keys()
-        values = []
-        for torrent in pref_list:
-            p = self.torrent_db.getItem(torrent)
-            if len(keys) == 1:
-                values.append(p[keys[0]])
-            else:
-                d = []
-                for key in keys:
-                    d.append(p[key])
-                values.append(d)
-        
-        return values
-        
     def getPrefs(self, pref_list, keys):    # get a list of dictionaries given peer list
         peers = []
         for torrent in pref_list:
-            d = self.mypref_db.getItem(torrent)
-            t = self.torrent_db.getItem(torrent)
+            d = self.mypref_db.getItem(torrent, default=True)
+            t = self.torrent_db.getItem(torrent, default=True)
             try:
                 d.update(t)
             except:
@@ -416,8 +402,8 @@ class MyPreferenceDBHandler(BasicDBHandler):
         return self.mypref_db._has_key(infohash)
             
     def addPreference(self, infohash, data={}):
-        print "add my pref", infohash
-        self.mypref_db.updateItem(infohash, data)
+        if not data and self.hasPreference(infohash):
+            self.mypref_db.updateItem(infohash, data)
 
     def deletePreference(self, infohash):
         self.mypref_db.deleteItem(infohash)

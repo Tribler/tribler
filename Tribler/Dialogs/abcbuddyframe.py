@@ -46,7 +46,7 @@ class TasteBuddyList(CommonTriblerList):
             else:
                 return ''
         if key == 'name':
-            if original_data == '\xff':
+            if original_data == '~':
                 return 'unknown'
         if key == 'similarity':
             return '%.2f'%(original_data/1000.0)
@@ -64,7 +64,7 @@ class TasteBuddyList(CommonTriblerList):
         for i in xrange(len(self.data)):
             permid = self.data[i]['permid']
             if self.data[i]['name'] == '':
-                self.data[i]['name'] = '\xff'
+                self.data[i]['name'] = '~'
             self.data[i]['friend'] = permid in self.friend_list
             self.data[i]['npref'] = self.pref_db.getNumPrefs(permid)
         

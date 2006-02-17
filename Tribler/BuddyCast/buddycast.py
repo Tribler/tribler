@@ -596,7 +596,7 @@ class BuddyCastFactory:
         self.max_nworkers = 10    
 
         self.buddycast_interval = 15
-        self.recommendate_interval = 60 + 11    # update recommendation interval; use prime number to avoid conflict
+        self.recommendate_interval = 6 #60 + 11    # update recommendation interval; use prime number to avoid conflict
         self.sync_interval = 5*60 + 11    # sync database every 5 min
         # --- others ---
         self.registered = False

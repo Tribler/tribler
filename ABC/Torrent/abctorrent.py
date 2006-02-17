@@ -152,7 +152,8 @@ class ABCTorrent:
         
         self.torrent_db.addTorrent(self.torrent_hash, torrent)
         self.torrent_db.sync()
-        print >> sys.stderr, "add torrent to db", self.infohash, torrent_info
+        if DEBUG:
+            print >> sys.stderr, "add torrent to db", self.infohash, torrent_info
 
         
     def addMyPref(self):
@@ -171,7 +172,8 @@ class ABCTorrent:
         if self.utility.abcfileframe is not None:
             self.utility.abcfileframe.updateMyPref()
         self.utility.buddycast.addMyPref(self.torrent_hash)
-        print >> sys.stderr, "add mypref to db", self.infohash, mypref
+        if DEBUG:
+            print >> sys.stderr, "add mypref to db", self.infohash, mypref
         
     #
     # Tasks to perform when first starting adding this torrent to the display
