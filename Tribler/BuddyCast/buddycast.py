@@ -138,8 +138,8 @@ class BuddyCastWorker:
         try:
             validPermid(self.target)
             self.getBuddyCastMsgData()
-            print "** send buddycast", len(self.data['preferences']), \
-                len(self.data['taste buddies']), len(self.data['random peers'])
+#            print "** send buddycast", len(self.data['preferences']), \
+#                len(self.data['taste buddies']), len(self.data['random peers'])
             buddycast_msg = bencode(self.data)
         except:
             print_exc()

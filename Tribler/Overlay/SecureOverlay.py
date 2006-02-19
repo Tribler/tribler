@@ -1,4 +1,4 @@
-# Written by Jie Yang
+# Written by Jie Yang, Arno Bakker
 # see LICENSE.txt for license information
 
 """ 
@@ -29,6 +29,7 @@ import sys
 from Tribler.CacheDB.CacheDBHandler import PeerDBHandler
 from Tribler.Overlay.permid import show_permid
 from BitTornado.BT1.MessageID import CANCEL, getMessageName
+from Tribler.utilities import *
 
 try:
     True
@@ -36,7 +37,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = True
+DEBUG = False
 
 Length_of_permid = 0    # 0: no restriction
 
@@ -57,20 +58,13 @@ def validIP(ip):
             print >> sys.stderr,"invalid ip", ip
         return False
     return True
-
-def validPermid(permid):
-    if not isinstance(permid, str):
-        return False
-    if Length_of_permid:
-        return len(permid) == Length_of_permid
-    return True
     
-def validDNS(dns):
+def isValidDNS(dns):
     if isinstance(dns, tuple) and len(dns)==2 and \
-       isinstance(dns[0], str) and isinstance(dns[1], int) and \
-       dns[1] > 0 and dns[1] < 65535 and validIP(dns[0]):
+       validIP(dns[0]) and isValidPort(dns[1]):
            return True
     return False
+    
 
 class OverlayTask:
     """ 
@@ -158,7 +152,7 @@ class PermidOverlayTask:
             #if DEBUG:
             #    print >> sys.stderr,"secover: PermidOverlayTask: dns for permid is known",self.dns
             pass
-        if validDNS(self.dns):
+        if isValidDNS(self.dns):
             self.task = OverlayTask(secure_overlay, subject_manager, self.dns, message, timeout)
         else:
             self.task = None
@@ -273,6 +267,7 @@ class IncomingMessageHandler:
             self.handlers[id].handleMessage(permid, message)
             return True
 
+
 class SecureOverlay:
     __single = None
 
@@ -284,7 +279,7 @@ class SecureOverlay:
         self.incoming_handler = IncomingMessageHandler()    # for incoming message
         self.peer_db = PeerDBHandler()
         self.connection_list = {}    # permid:{'c_conn': Connecter.Connection, 'e_conn': Encrypter.Connection, 'dns':(ip, port)}
-        self.timeout = 5*60    # TODO: adjust it by firewall status. less if no firewall
+        self.timeout = 1*60    # TODO: adjust it by firewall status. the value is smaller if no firewall
         self.check_interval = 15
         self.lock = RLock()
                             
@@ -300,7 +295,7 @@ class SecureOverlay:
 
     def registerHandler(self, ids, handler):    
         """ ids is the [ID1, ID2, ..] where IDn is a sort of message ID in overlay swarm. """
-        # I assume that all handler registration is done before hand, so no
+        # I assume that all handler registration is done before handling, so no
         # concurrency on incoming_handler
         self.incoming_handler.registerHandler(ids, handler)
 
@@ -374,7 +369,7 @@ class SecureOverlay:
         self.acquire()
         #TODO: priority task queue
         try:
-            if validPermid(target):
+            if isValidPermid(target):
                 if DEBUG:
                     if message is None:
                         msg = 'None'
@@ -383,7 +378,7 @@ class SecureOverlay:
                     msg += ' '+currentThread().getName()
                     print >> sys.stderr,"secover: add PermidOverlayTask", msg
                 task = PermidOverlayTask(self, self.subject_manager, target, message, timeout)
-            elif validDNS(target):
+            elif isValidDNS(target):
                 if DEBUG:
                     if message is None:
                         msg = 'None'
@@ -439,7 +434,7 @@ class SecureOverlay:
                 if DEBUG:
                     print >> sys.stderr,"secover: WARNING given listen port not equal to authenticated one"
 
-        if validPermid(permid) and validDNS(dns):
+        if isValidPermid(permid) and isValidDNS(dns):
             if self.connection_list.has_key(permid):
                 # Conccurency: When a peer starts an overlay connection at
                 # the same time, and we start it before the C/R protocol

@@ -7,7 +7,7 @@ from socket import error as socketerror
 from urllib import quote
 from struct import unpack
 from sha import sha
-from time import time
+from time import time, ctime
 from binascii import b2a_hex
 from __init__ import *
 
@@ -244,7 +244,6 @@ class Connection:    # OverlaySocket, a better name for it?
 
     def connection_lost(self, connection):
         if DEBUG:
-            from time import ctime
             print >> sys.stderr,"olencoder: connection_lost", self.dns, ctime(time())
         if self.Encoder.connections.has_key(connection):
             self.sever()
@@ -329,7 +328,7 @@ class OverlayEncoder:
                 return True
         try:
             if DEBUG:
-                print >> sys.stderr,"olencoder: Setting up new connection to",dns
+                print >> sys.stderr,"olencoder: Setting up new connection to", dns, ctime(time())
             c = self.raw_server.start_connection(dns)
             con = Connection(self, c, id, dns = dns)
             self.connections[c] = con

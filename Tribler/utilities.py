@@ -4,8 +4,14 @@
 from socket import inet_aton, gethostbyname
 from time import time, strftime, gmtime
 
-permid_len = 0  #112
-infohash_len = 0  #20
+STRICT = False
+
+if STRICT:
+    permid_len = 112
+    infohash_len = 20
+else:
+    permid_len = 0
+    infohash_len = 0  #20
 
 def validName(name):
     if not isinstance(name, str) and len(name) == 0:
@@ -69,6 +75,7 @@ def isValidName(name):
         return validPort(name)
     except:
         return False
+    
     
 def print_prefxchg_msg(prefxchg_msg):
     def show_permid(permid):
