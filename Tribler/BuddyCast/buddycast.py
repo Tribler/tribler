@@ -715,7 +715,7 @@ class BuddyCastFactory:
         target = buddycast_data['permid']
         if self.data_handler.isRecvBlocked(target):    # RCP 1
             return
-        self.data_handler.addToRecvBlockList(target, self.long_block_time)
+        self.data_handler.addToRecvBlockList(target, self.block_time)
         updateDB(buddycast_data)
         self.job_queue.addTarget(target, priority=1)
 
@@ -735,7 +735,7 @@ class BuddyCastFactory:
             self.secure_overlay.addTask(target, BUDDYCAST + msg)
         
     def BuddyCastMsgSent(self, target):    # msg has been sent, long delay
-        self.data_handler.addToSendBlockList(target, self.long_block_time)
+        self.data_handler.addToSendBlockList(target, self.block_time)
     
     # ----- interface for external calls -----
     def doBuddyCast(self):
