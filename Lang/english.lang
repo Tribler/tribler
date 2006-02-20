@@ -171,7 +171,7 @@ tb_spy_short 	= "Current Seed/Peer"
 tb_spy_long 	= "See current number of seed/peer of torrent on the tracker"
 tb_torrentdetail_short = "Torrent Details"
 tb_buddy_short  = "Manage Friends/Encountered Peers"
-tb_file_short   = "Show Recommendations/Downloads"
+tb_file_short   = "Show Recommendations/Download History"
 
 tb_urm = "URM:"
 tb_maxsim = "Active:"
