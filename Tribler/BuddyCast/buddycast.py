@@ -115,6 +115,57 @@ class TasteBuddy(RandomPeer):
         self.data_handler.addPeer(self.permid, self.data)
         
 
+class JobQueue:    #TODO: parent class
+    def __init__(self, max_size=0):
+        self.max_size = max_size
+        self._queue = []
+        self.lock = RLock()
+
+    def _addJob(self, job, position=None):    # position = None: append at tail
+        try:
+            self.lock.acquire()
+            if position is None:
+                if isinstance(job, list):
+                    for w in job:
+                        if self.max_size == 0 or len(self._queue) < self.max_size:
+                            self._queue.append(w)
+                else:
+                    if self.max_size == 0 or len(self._queue) < self.max_size:
+                        self._queue.append(job)
+            else:
+                if isinstance(job, list):
+                    job.reverse()
+                    for w in job:
+                        self._queue.insert(position, w)
+                        if self.max_size != 0 and len(self._queue) > self.max_size:
+                            self._queue.pop(len(self._queue)-1)
+                        
+                else:
+                    self._queue.insert(position, job)
+                    if self.max_size != 0 and len(self._queue) > self.max_size:
+                        self._queue.pop(len(self._queue)-1)
+        finally:
+            self.lock.release()
+                
+    def addJob(self, job, priority=0):    # priority: the biger the higher
+        if not job:
+            return
+        if priority == 0:
+            self._addJob(job)
+        elif priority > 0:
+            self._addJob(job, 0)
+            
+    def getJob(self):
+        try:
+            self.lock.acquire()
+            if len(self._queue) > 0:
+                return self._queue.pop(0)
+            else:
+                return None
+        finally:
+            self.lock.release()
+            
+            
 class BuddyCastWorker:
     def __init__(self, factory, target, tbs=[], rps=[], nmyprefs=50, nbuddyprefs=10):    
         self.factory = factory

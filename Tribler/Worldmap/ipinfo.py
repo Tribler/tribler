@@ -75,11 +75,13 @@ class IPInfo:
                             
             return ip_info
             
-        def getIPInfoByHostIP1(ip):
+        def getIPInfoByHostIP2(ip):
             return getIPInfoByHostIP('http://www.hostip.info', ip)
         
-        def getIPInfoByHostIP2(ip):
-            return getIPInfoByHostIP('http://superpeer1.das2.ewi.tudelft.nl/hostip', ip)
+        def getIPInfoByHostIP1(ip):
+            url = "http://superpeer1.das2.ewi.tudelft.nl/hostip"
+            # url = "http://hostip1.tribler.org"
+            return getIPInfoByHostIP(url, ip)
             
         def getIPInfoByHostIP(site_url, ip):
             """ Using hostip.info to find IP location """
