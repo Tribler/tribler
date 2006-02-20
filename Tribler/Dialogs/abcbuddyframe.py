@@ -195,6 +195,6 @@ class ABCBuddyFrame(wx.Frame):
         
     def OnCloseWindow(self, event = None):
         self.parent.utility.frame.buddyFrame = None
-        self.utility.abcbuddyframe = None
+        self.parent.utility.abcbuddyframe = None
         self.Destroy()        
 
