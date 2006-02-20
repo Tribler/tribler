@@ -3,10 +3,26 @@ TODO:
 
 Now:
 
+* In r529 there was a problem when a single Windows client would connect to
+  our text-based seeder (i.e. btlaunchmany) with no other clients present.
+  Apparently both the seeder and client would connect to eachother
+  simultaneously, but not end up with a good connection, halting the client.
+  
+  	Arno, 2006-02-20: It appears to have disappeared in r611.
+	
+* When using btlaunchmany for seeding, it does not always reuse the 
+  pickled Merkle trees stored in <cfg dir>/datacache.
+  
+* Integrate friends management with peer list.
+
+* cities.txt should be empty or contain a sensible list of cities.
+
 * Buddycast doesn't attempt to contact any superpeers. Alternative
   is to disable super-peer bootstrapping and just let it talk to the
   peers it meets. I currently do the latter. Could use example torrent
   file to meet other Tribesmen.
+
+	Arno, 2006-02-20: I think this works now?
 
 * Text version may not work as before because I hacked up
   launchmanycore.py and BitTornado/launchmanycore.py. Need to redo this.
