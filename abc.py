@@ -18,6 +18,7 @@ from threading import Thread
 
 from traceback import print_exc, print_stack
 from cStringIO import StringIO
+import urllib
 
 from interconn import ServerListener, ClientPassParam
 from launchmanycore import ABCLaunchMany
@@ -388,7 +389,39 @@ class ABCFrame(wx.Frame):
                     dialog = RegCheckDialog(self)
                     dialog.ShowModal()
                     dialog.Destroy()
+
+        self.checkVersion()
+        #TODO: check version
         
+    def checkVersion(self):
+        my_version = self.utility.getVersion()
+        try:
+            curr_status = urllib.urlopen('http://tribler.org/version').read()
+            _curr_status = curr_status.split()
+            curr_version = float(_curr_status[0])
+            if curr_version > my_version:
+                print >> sys.stderr, "Your software is outdated.  Would you like to upgrade Tribler?", curr_version, my_version
+            self.OnUpgrade()
+        except:
+            print >> sys.stderr, "check version failed"
+            print_exc()
+            
+    def OnUpgrade(self, event=None):
+        str = "Your software is outdated.\nWould you like to upgrade Tribler?"
+        dlg = wx.MessageDialog(self, str,
+                               'Click and Download',
+                               wx.YES_NO|wx.ICON_EXCLAMATION
+                               #wx.OK | wx.ICON_INFORMATION |
+                               #wx.YES_NO | wx.NO_DEFAULT | wx.CANCEL | wx.ICON_INFORMATION
+                               )
+        result = dlg.ShowModal()
+        dlg.Destroy()
+        if(result == wx.ID_YES):
+            import wx.lib.hyperlink as hl
+            self._hyper = hl.HyperLinkCtrl(self, wx.ID_ANY, "Tribler Main Page",
+                                        URL="http://tribler.org/")
+            self._hyper.GotoURL("http://tribler.org/",True, True)
+            
     def onFocus(self, event = None):
         if event is not None:
             event.Skip()
@@ -561,9 +594,8 @@ class ABCApp(wx.App):
         sys.stdout.write('Client Starting Up.\n')
         sys.stdout.write('Build: ' + self.utility.lang.get('build') + '\n')
 
-        
         wx.App.__init__(self, x)
-
+        
     def OnInit(self):
         self.utility.postAppInit()
         self.frame = ABCFrame(-1, self.params, self.utility)

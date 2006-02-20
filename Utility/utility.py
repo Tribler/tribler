@@ -41,6 +41,8 @@ from Tribler.BuddyCast.buddycast import BuddyCastFactory
 ################################################################
 class Utility:
     def __init__(self, abcpath):
+        
+        self.version = 0.01
         self.abcpath = abcpath
 
         # Find the directory to save config files, etc.
@@ -103,6 +105,9 @@ class Utility:
         
         self.abcfileframe = None
         self.abcbuddyframe = None
+        
+    def getVersion(self):
+        return self.version
         
     def setTriblerVariables(self):    # CacheDB for Tribler
         self.torrent_db = TorrentDBHandler()
@@ -345,6 +350,7 @@ class Utility:
 
         configfilepath = os.path.join(self.getConfigPath(), "abc.conf")
         self.config = ConfigReader(configfilepath, "ABC", defaults)
+        #print self.config.items("ABC")
 #        self.config = ConfigReader(configfilepath, "ABC")
 #        self.config.defaults = defaults
         

@@ -78,7 +78,8 @@ class VersionDialog(MyHtmlDialog):
         
         content = ""
         try :
-            h = urlopen('http://pingpong-abc.sourceforge.net/lastest_version.txt')
+            #h = urlopen('http://pingpong-abc.sourceforge.net/lastest_version.txt')
+            h = urlopen('http://www.tribler.org/version/latest.txt')
             lines = h.read()
             h.close()
             

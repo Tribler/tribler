@@ -748,7 +748,7 @@ class BuddyCastFactory:
             del worker
         else:
             if DEBUG:
-                print >> sys.stderr, "buddycast: no worker to do buddycast"
+                print >> sys.stderr, "buddycast: no peer to do buddycast"
 
     def _createWorker(self, target=None):
         """ 
