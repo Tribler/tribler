@@ -293,6 +293,8 @@ class DataHandler:
     # --- read ---
     def getPeerPrefList(self, permid, num=0):
         preflist = self.pref_db.getPrefList(permid)
+        if num > len(preflist):
+            return preflist
         if num == 0:
             return preflist
         else:

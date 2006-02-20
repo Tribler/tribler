@@ -401,7 +401,7 @@ class ABCFrame(wx.Frame):
             curr_version = float(_curr_status[0])
             if curr_version > my_version:
                 print >> sys.stderr, "Your software is outdated.  Would you like to upgrade Tribler?", curr_version, my_version
-            self.OnUpgrade()
+                self.OnUpgrade()
         except:
             print >> sys.stderr, "check version failed"
             print_exc()
