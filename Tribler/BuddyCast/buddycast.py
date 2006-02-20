@@ -29,6 +29,7 @@ from Tribler.CacheDB.CacheDBHandler import *
 #from Tribler.__init__ import GLOBAL
 from Tribler.utilities import *
 from Tribler.Overlay.SecureOverlay import SecureOverlay
+from Tribler.Overlay.permid import show_permid
 from similarity import P2PSim, P2PSim2, selectByProbability
 
 
@@ -729,7 +730,7 @@ class BuddyCastFactory:
 
     def sendBuddyCastMsg(self, target, msg):
         if DEBUG:
-            print >> sys.stderr, "buddycast: send buddycast msg:", target, len(msg)
+            print >> sys.stderr, "buddycast: send buddycast msg:", show_permid(target), len(msg)
         #print "*** blocklist:", len(self.data_handler.send_block_list)
         if not self.data_handler.isSendBlocked(target):
             self.secure_overlay.addTask(target, BUDDYCAST + msg)
