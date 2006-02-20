@@ -279,8 +279,8 @@ class SecureOverlay:
         self.incoming_handler = IncomingMessageHandler()    # for incoming message
         self.peer_db = PeerDBHandler()
         self.connection_list = {}    # permid:{'c_conn': Connecter.Connection, 'e_conn': Encrypter.Connection, 'dns':(ip, port)}
-        self.timeout = 3*60    # TODO: adjust it by firewall status. the value is smaller if no firewall
-        self.check_interval = 15
+        self.timeout = 300    # TODO: adjust it by firewall status. the value is smaller if no firewall
+        self.check_interval = 60
         self.lock = RLock()
                             
     def getInstance(*args, **kw):

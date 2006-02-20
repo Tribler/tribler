@@ -1,7 +1,13 @@
+import sys
 
 
 class JobQueue:
     def __init__(self, maxsize):
+        pass
+    
+    
+class TorrentFetcher:
+    def __init__(self):
         pass
 
 # TODO: implement click and download
@@ -13,8 +19,9 @@ class TorrentCollecting:
             raise RuntimeError, "TorrentCollecting is singleton"
         TorrentCollecting.__single = self 
         self.registered = False   
-        self.collect_interval = 4    # use prime to avoid conflict
+        self.collect_interval = 43    # use prime to avoid conflict
         self.queue_length = 10
+        self.ntorrents = 0
         self._queue = JobQueue(self.queue_length)     
         
     def getInstance(*args, **kw):
@@ -29,10 +36,14 @@ class TorrentCollecting:
             self.rawserver = rawserver
             self.metadata_handler = metadata_handler
             self.registered = True
-        
+            self.startup()
+            
     def startup(self):
         if self.registered:
+            print >> sys.stderr, "collect: Torrent collecting starts up"
             self.rawserver.add_task(self.collect, self.collect_interval)
     
     def collect(self):
-        print "collect torrent"
+        print "collect torrents"
+        
+    

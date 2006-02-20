@@ -157,7 +157,6 @@ class ABCTorrent:
 
         
     def addMyPref(self):
-        
         self.addTorrentToDB()
         
         if self.mypref_db.hasPreference(self.torrent_hash):

@@ -382,9 +382,9 @@ class LaunchMany:
     def remove(self, hash):
         if DEBUG:
             print >> sys.stderr,"BitTornado/launchmany: STOP_DOWNLOAD_HELP not supported in text-mode!"
-        #self.torrent_list.remove(hash)
-        #self.downloads[hash].shutdown()
-        #del self.downloads[hash]
+        self.torrent_list.remove(hash)
+        self.downloads[hash].shutdown()
+        del self.downloads[hash]
         
     def add(self, hash, data):
         
