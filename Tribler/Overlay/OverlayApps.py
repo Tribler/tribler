@@ -50,5 +50,7 @@ class OverlayApps:
             self.metadata_handler = MetadataHandler.getInstance()
             self.metadata_handler.register(secure_overlay,self.help_handler,launchmany)
             secure_overlay.registerHandler(MetadataMessages,self.metadata_handler)
-            self.help_handler.register(self.metadata_handler)
-            self.buddycast.registerHandler(metadata_handler=self.metadata_handler)
+            if self.help_handler is not None:
+                self.help_handler.register(self.metadata_handler)
+            if self.buddycast is not None: 
+                self.buddycast.registerHandler(metadata_handler=self.metadata_handler)

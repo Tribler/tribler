@@ -32,6 +32,8 @@ from Tribler.Overlay.SecureOverlay import SecureOverlay
 from similarity import P2PSim, P2PSim2, selectByProbability
 
 
+DEBUG = True
+
 def validPeer(peer):
     validPermid(peer['permid'])
     validIP(peer['ip'])
@@ -143,7 +145,7 @@ class BuddyCastWorker:
             buddycast_msg = bencode(self.data)
         except:
             print_exc()
-            print >> sys.stderr, "error in bencode buddycast msg"
+            print >> sys.stderr, "buddycast: error in bencode buddycast msg"
             return
         self.factory.sendBuddyCastMsg(self.target, buddycast_msg)
         self.data_handler.addToSendBlockList(self.target, self.factory.block_time)
@@ -190,6 +192,7 @@ class JobQueue:    #TODO: parent class
         else:
             return None
 
+# TODO: implement click and download
 #class CollectTorrentQueue:
 #    def __init__(self, buddycast):
 #        self.metadata_handler = buddycast.metadata_handler
@@ -385,7 +388,6 @@ class DataHandler:
         pref1 = self.getMyPrefList(num)
         pref2 = self.getPeerPrefList(permid)
         sim = P2PSim(pref1, pref2)
-        print sim,
         return sim
 
     # --- block list --- #
@@ -440,6 +442,18 @@ class BuddyCastCore:
         Get target, taste buddy list and random peer list for buddycast message.
         If target is not given, select a target.
         
+        Taste Buddy: the peer which has profile
+        Random Peer: the peer which doesn't have profile
+        
+        Target selection algorithm:
+        - the chance to select a taste buddy or a random peer is 50% respectively
+        - Any peer in sending block list cannot be selected as a target
+        - select a taste buddy candidate:
+            First get recent 100 taste buddies and then select one based on their similarity
+        - select a random peer candidate:
+            Select one peer from random peers based on their last seen timestamp.
+        
+        Taste buddies and random peers selection algorithm:
         Taste buddy list - the top 10 similar taste buddies
         Random peer list - From the rest of peer list (include taste buddies and random peers)
         randomly select 10 peers based on their online probability.
@@ -552,6 +566,8 @@ class BuddyCastCore:
         return self._prob2(ages)
         
     def _prob2(self, ages):
+        if not ages:
+            return []
         oldest_age = 8 * 60 * 60
         unit = 60
         benchmark = max(ages)
@@ -665,7 +681,7 @@ class BuddyCastFactory:
             self.rawserver.add_task(self.doBuddyCast, self.buddycast_interval)
             self.rawserver.add_task(self.sync, self.sync_interval)
             self.rawserver.add_task(self.recommendateItems, self.recommendate_interval)
-        print >> sys.stderr, "BuddyCast starts up"
+        print >> sys.stderr, "buddycast: BuddyCast starts up"
 
     # ----- message handle -----
     def handleMessage(self, permid, message):
@@ -675,7 +691,7 @@ class BuddyCastFactory:
         if t == BUDDYCAST:
             self.gotBuddyCastMsg(message[1:], permid)
         else:
-            print >> sys.stderr, "wrong message to buddycast", message
+            print >> sys.stderr, "buddycast: wrong message to buddycast", message
             
     def gotBuddyCastMsg(self, msg, permid=None):
         def updateDB(prefxchg):
@@ -688,7 +704,8 @@ class BuddyCastFactory:
         try:
             buddycast_data = bdecode(msg)
             #print_dict(buddycast_data)
-            print "***** got buddycast msg *******", len(msg), buddycast_data['ip']
+            if DEBUG:
+                print >> sys.stderr, "buddycast: got buddycast msg", len(msg), buddycast_data['ip']
             validBuddyCastData(buddycast_data, self.msg_nmyprefs, self.msg_nbuddies, self.msg_npeers, self.msg_nbuddyprefs)    # RCP 2            
             if not self._checkPeerConsistency(buddycast_data, permid):
                return
@@ -711,7 +728,8 @@ class BuddyCastFactory:
         return True
 
     def sendBuddyCastMsg(self, target, msg):
-        #print "*** send buddycast msg:", target, len(msg)
+        if DEBUG:
+            print >> sys.stderr, "buddycast: send buddycast msg:", target, len(msg)
         #print "*** blocklist:", len(self.data_handler.send_block_list)
         if not self.data_handler.isSendBlocked(target):
             self.secure_overlay.addTask(target, BUDDYCAST + msg)
@@ -728,7 +746,8 @@ class BuddyCastFactory:
             worker.work()
             del worker
         else:
-            print "** no worker to do buddycast"
+            if DEBUG:
+                print >> sys.stderr, "buddycast: no worker to do buddycast"
 
     def _createWorker(self, target=None):
         """ 
