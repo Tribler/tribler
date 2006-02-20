@@ -8,7 +8,6 @@ from Dialogs.abcoption import ABCOptionDialog
 from Dialogs.localupload import LocalSettingDialog
 from Tribler.Dialogs.abcbuddyframe import ABCBuddyFrame
 from Tribler.Dialogs.abcfileframe import ABCFileFrame
-from Tribler.Dialogs.managefriends import ManageFriendsDialog
 from Tribler.Dialogs.managefriends import MyInfoDialog
 from webservice import WebDialog
 
@@ -87,36 +86,6 @@ class Details(ABCAction):
             ABCTorrentTemp.dialogs.advancedDetails()
         
         
-################################
-# 
-################################
-class Buddies(ABCAction):
-    def __init__(self, utility):
-        ABCAction.__init__(self, 
-                           utility, 
-                           'buddies.bmp', 
-                           'tb_buddy_short', 
-                           menudesc = 'rtorrentdetail')
-                           
-    def action(self, event = None):
-        if self.utility.frame.buddyFrame is None:
-            self.utility.frame.buddyFrame = ABCBuddyFrame(self.utility.frame)
-
-
-################################
-# 
-################################
-class Files(ABCAction):
-    def __init__(self, utility):
-        ABCAction.__init__(self, 
-                           utility, 
-                           'files.bmp', 
-                           'tb_file_short', 
-                           menudesc = 'rtorrentdetail')
-                           
-    def action(self, event = None):
-        if self.utility.frame.fileFrame is None:
-            self.utility.frame.fileFrame = ABCFileFrame(self.utility.frame)
         
         
 ################################
@@ -319,22 +288,38 @@ class Separator(ABCAction):
 ################################
 # 
 ################################
-class MakeFriends(ABCAction):
-    
+class BuddiesAction(ABCAction):
     def __init__(self, utility):
         ABCAction.__init__(self, 
                            utility, 
-                           'friends.bmp', 
-                           'tb_friend_short',
-                           menudesc = 'menumanagefriends')
+                           'buddies.bmp', 
+                           'tb_buddy_short', 
+                           menudesc = 'managefriends')
                            
     def action(self, event = None):
-        dialog = ManageFriendsDialog(self.utility.frame,self.utility,self)
-        dialog.ShowModal()
-        dialog.Destroy()
+        if self.utility.frame.buddyFrame is None:
+            self.utility.frame.buddyFrame = ABCBuddyFrame(self.utility.frame)
 
-    def reaction(self):
-        self.action()
+
+################################
+# 
+################################
+class FilesAction(ABCAction):
+    def __init__(self, utility):
+        ABCAction.__init__(self, 
+                           utility, 
+                           'files.bmp', 
+                           'tb_file_short', 
+                           menudesc = 'rtorrentdetail')
+                           
+    def action(self, event = None):
+        if self.utility.frame.fileFrame is None:
+            self.utility.frame.fileFrame = ABCFileFrame(self.utility.frame)
+
+
+################################
+# 
+################################
 
 class MyInfoAction(ABCAction):
     
@@ -342,7 +327,7 @@ class MyInfoAction(ABCAction):
         ABCAction.__init__(self, 
                            utility, 
                            'friends.bmp', 
-                           'tb_friend_short',
+                           'tb_file_short',
                            menudesc = 'menumyinfo')
                            
     def action(self, event = None):

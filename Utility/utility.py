@@ -318,7 +318,6 @@ class Utility:
                                  ACTION_SCRAPE, 
                                  ACTION_DETAILS,
                                  -1,
-                                 ACTION_MAKEFRIENDS,
                                  ACTION_BUDDIES,
                                  ACTION_FILES
                                  ], 

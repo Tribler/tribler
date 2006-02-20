@@ -5,6 +5,7 @@ import wx
 from Tribler.CacheDB.CacheDBHandler import PeerDBHandler, FriendDBHandler, PreferenceDBHandler
 from Tribler.utilities import friendly_time, sort_dictlist
 from common import CommonTriblerList
+from managefriends import ManageFriendsPanel
 
 DEBUG = False
 
@@ -159,8 +160,12 @@ class TasteBuddyPanel(wx.Panel):
         self.pref_db = frame.pref_db
         wx.Panel.__init__(self, parent, -1)
         
+        colSizer = wx.BoxSizer(wx.VERTICAL)
         self.list=TasteBuddyList(self, frame.window_size)
-        self.Fit()
+        colSizer.Add(self.list, 1, wx.EXPAND|wx.ALL, 5)
+        self.SetSizer(colSizer)
+        self.SetAutoLayout(True)
+        #self.Fit()
         self.Show(True)
 
 
@@ -168,21 +173,43 @@ class ABCBuddyFrame(wx.Frame):
     def __init__(self, parent):
         self.parent = parent
         self.parent.utility.abcbuddyframe = self
-        
-        width = 600
-        height = 500
+        self.utility = self.parent.utility
+
+        width = 640
+        height = 300
         self.window_size = wx.Size(width, height)
-        wx.Frame.__init__(self, None, -1, "Buddy Frame", size=wx.Size(width+20, height+60))
+        wx.Frame.__init__(self, None, -1, self.utility.lang.get('managefriendspeers'), size=wx.Size(width+20, height+60))
        
         self.friend_db = FriendDBHandler()
         self.peer_db = PeerDBHandler()
         self.pref_db = PreferenceDBHandler()
         
+        mainbox = wx.BoxSizer(wx.VERTICAL)
+
+        # 1. Topbox contains the notebook
+        topbox = wx.BoxSizer(wx.HORIZONTAL)
+
         self.notebook = wx.Notebook(self, -1)
 
+        self.addFriendsPanel()
         self.tasteBuddyPanel = TasteBuddyPanel(self, self.notebook)
-        self.notebook.AddPage(self.tasteBuddyPanel, "Peer List")
-        self.notebook.tasteBuddyPanel = self.tasteBuddyPanel
+        self.notebook.AddPage(self.tasteBuddyPanel, self.utility.lang.get('viewpeerlist'))
+        #self.notebook.tasteBuddyPanel = self.tasteBuddyPanel
+
+        topbox.Add(self.notebook, 1, wx.EXPAND|wx.ALL, 5)
+
+        # 2. Bottom box contains "Close" button
+        botbox = wx.BoxSizer(wx.HORIZONTAL)
+
+        button = wx.Button(self, -1, self.utility.lang.get('close'), style = wx.BU_EXACTFIT)
+        button.SetToolTipString(self.utility.lang.get('stopdlhelp_help'))
+        wx.EVT_BUTTON(self, button.GetId(), self.OnCloseWindow)
+        botbox.Add(button, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+
+        # 3. Pack boxes together
+        mainbox.Add(topbox, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        mainbox.Add(botbox, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 5)
+        self.SetSizerAndFit(mainbox)
 
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
         self.Show()
@@ -198,3 +225,11 @@ class ABCBuddyFrame(wx.Frame):
         self.parent.utility.abcbuddyframe = None
         self.Destroy()        
 
+    def addFriendsPanel(self):
+        self.friendsPanel = ManageFriendsPanel(self.notebook, self.utility, self)
+        self.notebook.InsertPage(0,self.friendsPanel, self.utility.lang.get('managefriends'))
+
+    def reaction(self):
+        self.notebook.DeletePage(0)
+        self.addFriendsPanel()
+        self.notebook.SetSelection(0)

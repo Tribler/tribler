@@ -53,7 +53,7 @@ class FileMenu(ABCActionMenu):
     def __init__(self, utility):
         subactions = [ACTION_ADDTORRENTMENU, 
                       ACTION_MYINFO,
-                      ACTION_MAKEFRIENDS,
+                      ACTION_BUDDIES,
                       ACTION_PREFERENCES, 
                       -1, 
                       ACTION_EXIT]

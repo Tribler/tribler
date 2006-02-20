@@ -14,12 +14,12 @@ from makefriends import MakeFriendsDialog
 
 ################################################################
 #
-# Class: ManageFriendsDialog
+# Class: ManageFriendsPanel
 #
 # Panel for managing friends
 #
 ################################################################
-class ManageFriendsDialog(wx.Dialog):
+class ManageFriendsPanel(wx.Panel):
     def __init__(self, parent, utility, action):
         self.utility = utility
         self.action = action
@@ -30,7 +30,8 @@ class ManageFriendsDialog(wx.Dialog):
         #size, split = self.getWindowSettings()
         
         title = self.utility.lang.get('managefriends')
-        wx.Dialog.__init__(self, parent, -1, title, size = size, style = style)
+        #wx.Dialog.__init__(self, parent, -1, title, size = size, style = style)
+        wx.Panel.__init__(self, parent, -1)
 
         # 0. Read friends from DB, and figure out who's already helping 
         # for this torrent
@@ -57,18 +58,20 @@ class ManageFriendsDialog(wx.Dialog):
 
         # 2. Build GUI
         mainbox = wx.BoxSizer(wx.VERTICAL)
-        topbox = wx.BoxSizer(wx.HORIZONTAL)
+        #topbox = wx.BoxSizer(wx.HORIZONTAL)
         botbox = wx.BoxSizer(wx.HORIZONTAL)
 
         # 3. Friends in top window
-        friendsbox_title = wx.StaticBox(self, -1, self.utility.lang.get('friends'))
-        friendsbox = wx.StaticBoxSizer(friendsbox_title, wx.VERTICAL)
+        #friendsbox_title = wx.StaticBox(self, -1, self.utility.lang.get('friends'))
+        #friendsbox_title = wx.StaticBox(self, -1, '')
+        #friendsbox = wx.StaticBoxSizer(friendsbox_title, wx.VERTICAL)
+        friendsbox = wx.BoxSizer(wx.VERTICAL)
 
         self.leftListCtl = FriendList(self,friends,type,imgList)
         #self.leftListCtl.SetToolTipString(self.utility.lang.get('multiannouncehelp'))
         
         friendsbox.Add(self.leftListCtl, 1, wx.EXPAND|wx.TOP, 5)
-        topbox.Add(friendsbox, 0, wx.EXPAND)
+        #topbox.Add(friendsbox, 0, wx.EXPAND, 5)
 
         # 4. Buttons in lower window
         button = wx.Button(self, -1, self.utility.lang.get('buttons_add'), style = wx.BU_EXACTFIT)
@@ -86,13 +89,13 @@ class ManageFriendsDialog(wx.Dialog):
         wx.EVT_BUTTON(self, button.GetId(), self.removeFriend)
         botbox.Add(button, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
 
-        button = wx.Button(self, -1, self.utility.lang.get('close'), style = wx.BU_EXACTFIT)
-        #button.SetToolTipString(self.utility.lang.get('stopdlhelp_help'))
-        wx.EVT_BUTTON(self, button.GetId(), self.close)
-        botbox.Add(button, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+        ## button = wx.Button(self, -1, self.utility.lang.get('close'), style = wx.BU_EXACTFIT)
+        ## #button.SetToolTipString(self.utility.lang.get('stopdlhelp_help'))
+        ## wx.EVT_BUTTON(self, button.GetId(), self.close)
+        ## botbox.Add(button, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
 
         # 5. Show GUI
-        mainbox.Add(topbox, 0, wx.EXPAND)
+        mainbox.Add(friendsbox, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL, 5)
         mainbox.Add(botbox, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 5)
         self.SetSizerAndFit(mainbox)
 
@@ -159,7 +162,7 @@ class ManageFriendsDialog(wx.Dialog):
         """ Easiest way of keeping the info presented to the user up to date:
             build a new window
         """
-        self.EndModal(wx.ID_OK)
+        ##self.EndModal(wx.ID_OK)
         self.action.reaction()
 
     def show_inputerror(self,txt):

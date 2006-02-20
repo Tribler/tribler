@@ -48,8 +48,8 @@ def makeActionList(utility):
     actions[ACTION_REMOVEFILE] = RemoveFile(utility)
     actions[ACTION_SCRAPE] = Scrape(utility)
     actions[ACTION_DETAILS] = Details(utility)
-    actions[ACTION_BUDDIES] = Buddies(utility)
-    actions[ACTION_FILES] = Files(utility)
+    actions[ACTION_BUDDIES] = BuddiesAction(utility)
+    actions[ACTION_FILES] = FilesAction(utility)
     
     actions[ACTION_SUPERSEED] = SuperSeed(utility)
     
@@ -66,7 +66,6 @@ def makeActionList(utility):
     
     actions[ACTION_MAKETORRENT] = MakeTorrent(utility)
     actions[ACTION_WEBPREFERENCES] = WebServicePreferences(utility)
-    actions[ACTION_MAKEFRIENDS] = MakeFriends(utility)
     actions[ACTION_MYINFO] = MyInfoAction(utility)
     
     actions[ACTION_EXTRACTFROMLIST] = ExtractFromList(utility)
