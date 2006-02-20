@@ -3,6 +3,7 @@
 
 from socket import inet_aton, gethostbyname
 from time import time, strftime, gmtime
+from threading import RLock
 
 STRICT = False
 
@@ -162,7 +163,55 @@ def sort_dictlist(dict_list, key, order='increase'):
     return [dict_list[i] for x, i in aux]
     
         
-    
+class JobQueue:    #TODO: parent class
+    def __init__(self, max_size=0):
+        self.max_size = max_size
+        self._queue = []
+        self.lock = RLock()
+
+    def _addJob(self, job, position=None):    # position = None: append at tail
+        try:
+            self.lock.acquire()
+            if position is None:
+                if isinstance(job, list):
+                    for w in job:
+                        if self.max_size == 0 or len(self._queue) < self.max_size:
+                            self._queue.append(w)
+                else:
+                    if self.max_size == 0 or len(self._queue) < self.max_size:
+                        self._queue.append(job)
+            else:
+                if isinstance(job, list):
+                    job.reverse()
+                    for w in job:
+                        self._queue.insert(position, w)
+                        if self.max_size != 0 and len(self._queue) > self.max_size:
+                            self._queue.pop(len(self._queue)-1)
+                        
+                else:
+                    self._queue.insert(position, job)
+                    if self.max_size != 0 and len(self._queue) > self.max_size:
+                        self._queue.pop(len(self._queue)-1)
+        finally:
+            self.lock.release()
+                
+    def addJob(self, job, priority=0):    # priority: the biger the higher
+        if not job:
+            return
+        if priority == 0:
+            self._addJob(job)
+        elif priority > 0:
+            self._addJob(job, 0)
+            
+    def getJob(self):
+        try:
+            self.lock.acquire()
+            if len(self._queue) > 0:
+                return self._queue.pop(0)
+            else:
+                return None
+        finally:
+            self.lock.release()
         
 if __name__=='__main__':
     d = {'a':1,'b':[1,2,3],'c':{'c':2,'d':[3,4],'k':{'c':2,'d':[3,4]}}}

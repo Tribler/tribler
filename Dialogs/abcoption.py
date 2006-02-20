@@ -1305,6 +1305,10 @@ class TriblerPanel(ABCOptionPanel):
         sizer.Add(self.dlhelp_enable, 0, wx.ALIGN_LEFT|wx.ALL, 5)
         sizer.Add(wx.StaticText(self, -1, self.utility.lang.get('restartabc')), 0, wx.ALIGN_CENTER_VERTICAL)
 
+        self.collect_enable = wx.CheckBox(self, -1, self.utility.lang.get('enabledlcollecting'))
+        sizer.Add(self.collect_enable, 0, wx.ALIGN_LEFT|wx.ALL, 5)
+        sizer.Add(wx.StaticText(self, -1, self.utility.lang.get('restartabc')), 0, wx.ALIGN_CENTER_VERTICAL)
+
         self.initTasks()
         
     def loadValues(self, Read = None):
@@ -1313,11 +1317,12 @@ class TriblerPanel(ABCOptionPanel):
         
         self.rec_enable.SetValue(Read('enablerecommender', "boolean"))
         self.dlhelp_enable.SetValue(Read('enabledlhelp', "boolean"))
+        self.collect_enable.SetValue(Read('enabledlcollecting', "boolean"))
               
     def apply(self):       
         self.utility.config.Write('enablerecommender', self.rec_enable.GetValue(), "boolean")
         self.utility.config.Write('enabledlhelp', self.dlhelp_enable.GetValue(), "boolean")          
-
+        self.utility.config.Write('enabledlcollecting', self.collect_enable.GetValue(), "boolean")          
 
 
 ################################################################

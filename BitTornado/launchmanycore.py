@@ -200,6 +200,7 @@ class LaunchMany:
             GLOBAL.do_cache = config['cache']
             GLOBAL.do_buddycast = config['buddycast']
             GLOBAL.do_download_help = config['download_help']
+            GLOBAL.do_torrent_collecting = config['torrent_collecting']
             GLOBAL.do_superpeer = config['superpeer']
             GLOBAL.do_das_test = config['das_test']
             GLOBAL.do_buddycast_interval = config['buddycast_interval']
@@ -262,7 +263,7 @@ class LaunchMany:
                                            self.config, self.exchandler)
                 self.secure_overlay.register(self.overlayswarm)
                 self.overlay_apps = OverlayApps.getInstance()
-                self.overlay_apps.register(self.secure_overlay,self,GLOBAL.do_buddycast,GLOBAL.do_download_help)
+                self.overlay_apps.register(self.secure_overlay,self,GLOBAL.do_buddycast,GLOBAL.do_download_help,GLOBAL.do_torrent_collecting)
                 # It's important we don't start listening to the network until
                 # all higher protocol-handling layers are properly configured.
                 self.overlayswarm.start_listening()

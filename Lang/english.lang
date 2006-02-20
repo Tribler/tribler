@@ -407,6 +407,7 @@ confirmonexit 	= "Confirm on exit program"
 triblersetting  = "Tribler"
 enablerecommender = "Enable Recommender"
 enabledlhelp     = "Enable Download Booster"
+enabledlcollecting = "Enable Torrents Collecting"
 setdefaultfolder = "Set default download folder"
 stripedlist 	= "Striped list"
 
@@ -861,6 +862,7 @@ invalidwinname="This name cannot be used as a Windows file or folder name."
 #Other
 #########
 warningopenfile = "Torrent is not completed yet, are you sure you want to open it?"
+upgradeabc = Your software is outdated.\nWould you like to visit http://tribler.org to upgrade Tribler?
 
 #############
 #Make Torrent

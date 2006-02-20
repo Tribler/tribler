@@ -22,6 +22,7 @@ from random import sample, randint
 from math import sqrt
 from traceback import print_exc
 from sets import Set
+from threading import RLock
 
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import BUDDYCAST
@@ -151,59 +152,6 @@ class BuddyCastWorker:
         self.factory.sendBuddyCastMsg(self.target, buddycast_msg)
         self.data_handler.addToSendBlockList(self.target, self.factory.block_time)
         
-
-class JobQueue:    #TODO: parent class
-    def __init__(self, max_size=10):
-        self.max_size = max_size
-        self._queue = []
-
-    def _addJob(self, target, position=None):    # position = None: append at tail
-        if position is None:
-            if isinstance(target, list):
-                for w in target:
-                    if len(self._queue) < self.max_size:
-                        self._queue.append(w)
-            else:
-                if len(self._queue) < self.max_size:
-                    self._queue.append(target)
-        else:
-            if isinstance(target, list):
-                target.reverse()
-                for w in target:
-                    self._queue.insert(position, w)
-                    if len(self._queue) > self.max_size:
-                        self._queue.pop(len(self._queue)-1)
-                    
-            else:
-                self._queue.insert(position, target)
-                if len(self._queue) > self.max_size:
-                    self._queue.pop(len(self._queue)-1)
-                
-    def addTarget(self, target, priority=0):    # priority: the biger the higher
-        if not target:
-            return
-        if priority == 0:
-            self._addJob(target)
-        elif priority > 0:
-            self._addJob(target, 0)
-            
-    def getTarget(self):
-        if len(self._queue) > 0:
-            return self._queue.pop(0)
-        else:
-            return None
-
-# TODO: implement click and download
-#class CollectTorrentQueue:
-#    def __init__(self, buddycast):
-#        self.metadata_handler = buddycast.metadata_handler
-#        self.data_handler = buddycast.data_handler
-#        self._queue = []
-#        
-#    def 
-#        
-
-
 
 class DataHandler:
     def __init__(self, db_dir=''):
@@ -644,7 +592,6 @@ class BuddyCastFactory:
         
         # --- others ---
         self.registered = False
-        self.metadata_handler = None
         self.rawserver = None
                 
     def getInstance(*args, **kw):
@@ -663,15 +610,12 @@ class BuddyCastFactory:
         #self.collect_torrents = CollectTorrentQueue(self)
         self.data_handler = DataHandler(db_dir=self.db_dir)
         self.buddycast_core = BuddyCastCore(self.data_handler)
-        self.job_queue = JobQueue(self.max_nworkers)
+        self.buddycast_job_queue = JobQueue(self.max_nworkers)
         if isValidPort(port):
             self.data_handler.updatePort(port)
         self.registered = True
         if start:
             self.startup()
-        
-    def registerHandler(self, metadata_handler):
-        self.metadata_handler = metadata_handler
         
     def is_registered(self):
         return self.registered
@@ -720,7 +664,7 @@ class BuddyCastFactory:
             return
         self.data_handler.addToRecvBlockList(target, self.block_time)
         updateDB(buddycast_data)
-        self.job_queue.addTarget(target, priority=1)
+        self.buddycast_job_queue.addJob(target, priority=1)
 
     def _checkPeerConsistency(self, buddycast_data, permid):
         if permid is not None:
@@ -743,7 +687,7 @@ class BuddyCastFactory:
     # ----- interface for external calls -----
     def doBuddyCast(self):
         self.rawserver.add_task(self.doBuddyCast, self.buddycast_interval)
-        target = self.job_queue.getTarget()
+        target = self.buddycast_job_queue.getJob()
         worker = self._createWorker(target)
         if worker is not None:
             worker.work()
@@ -758,7 +702,7 @@ class BuddyCastFactory:
         If target is None, a new target will be selected 
         """
         
-        if self.data_handler.isSendBlocked(target):    # if target is None, it is not blocked
+        if self.data_handler.isSendBlocked(target):    # if target is None, it is not blocked and can go ahead
             return None
         target, tbs, rps = self.buddycast_core.getBuddyCastData(target, self.msg_nbuddies, self.msg_npeers)
         if self.data_handler.validTarget(target):

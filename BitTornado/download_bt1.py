@@ -191,6 +191,8 @@ defaults = [
         "run buddycast recommendation system"),
     ('download_help', GLOBAL.do_download_help,
         "accept download help request"),
+    ('torrent_collecting', GLOBAL.do_torrent_collecting,
+        "automatically collect torrents"),
     ('superpeer', GLOBAL.do_superpeer,
         "run on super peer mode (0 = disabled)"),
     ('das_test', GLOBAL.do_das_test,

@@ -14,8 +14,8 @@ import os
 import wx
 #import hotshot
 
-from threading import Thread
-
+from threading import Thread, Timer
+from time import time, ctime
 from traceback import print_exc, print_stack
 from cStringIO import StringIO
 import urllib
@@ -394,22 +394,26 @@ class ABCFrame(wx.Frame):
         #TODO: check version
         
     def checkVersion(self):
+        t = Timer(3.0, self._checkVersion)
+        t.start()
+        
+    def _checkVersion(self):
         my_version = self.utility.getVersion()
         try:
             curr_status = urllib.urlopen('http://tribler.org/version').read()
             _curr_status = curr_status.split()
             curr_version = float(_curr_status[0])
             if curr_version > my_version:
-                print >> sys.stderr, "Your software is outdated.  Would you like to upgrade Tribler?", curr_version, my_version
+                print >> sys.stderr, "Your software is outdated.  Would you like to upgrade Tribler from tribler.org?", curr_version, my_version
                 self.OnUpgrade()
         except:
-            print >> sys.stderr, "check version failed"
+            print >> sys.stderr, "check version failed", ctime(time())
             print_exc()
             
     def OnUpgrade(self, event=None):
-        str = "Your software is outdated.\nWould you like to upgrade Tribler?"
+        str = self.utility.lang.get('upgradeabc')
         dlg = wx.MessageDialog(self, str,
-                               'Click and Download',
+                               '!',
                                wx.YES_NO|wx.ICON_EXCLAMATION
                                #wx.OK | wx.ICON_INFORMATION |
                                #wx.YES_NO | wx.NO_DEFAULT | wx.CANCEL | wx.ICON_INFORMATION

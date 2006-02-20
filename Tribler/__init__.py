@@ -46,6 +46,7 @@ class GLOBAL:
     do_superpeer = 0
     do_das_test = 0
     do_buddycast_interval = 15
+    do_torrent_collecting = 1
     
 myinfo = {}
 
