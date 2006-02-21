@@ -19,6 +19,8 @@ from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
 
 from safeguiupdate import DelayedEventHandler
 
+from Tribler.Overlay.permid import show_permid
+
 DEBUG = False
 
 
@@ -827,6 +829,7 @@ class ABCEngine(DelayedEventHandler):
                 text = '*Tribler*'
                 friends = FriendDBHandler().getFriends()
                 for friend in friends:
+                    #print "SPEW COMPARING friend",show_permid(friend['permid']),"to spew",show_permid(spew[line]['unauth_permid'])
                     if friend['permid'] == spew[line]['unauth_permid']:
                         text = friend['name']
                         break

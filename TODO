@@ -12,6 +12,9 @@ Now:
 * When using btlaunchmany for seeding, it does not always reuse the 
   pickled Merkle trees stored in <cfg dir>/datacache.
 
+	Arno, 2006-02-20: Only press Ctrl-C once, and then let it
+	shutdown properly appears to solve this.
+
 * Buddycast doesn't attempt to contact any superpeers. Alternative
   is to disable super-peer bootstrapping and just let it talk to the
   peers it meets. I currently do the latter. Could use example torrent
