@@ -1,5 +1,5 @@
 import sys
-from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler
+from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler, PeerDBHandler
 from Tribler.utilities import sortList
 
 
@@ -9,6 +9,7 @@ class TorrentFetcher:
     def __init__(self, size=10, db_dir=''):
         self.size = size
         self.torrent_db = TorrentDBHandler(db_dir=db_dir)
+        self.peer_db = PeerDBHandler(db_dir=db_dir)
         self.todo_cache = {}
         self.done_cache = {}
         
@@ -35,7 +36,8 @@ class TorrentFetcher:
             return None
         torrent = self.todo_cache.keys()[0]
         all_owners = self.todo_cache.pop(torrent)
-        owners = all_owners[:num_owners]  #TODO: sort by last seen
+        ages = self.peer_db.getPeersValue(all_owners, ['last_seen'])
+        owners = sortList(all_owners, ages)[:num_owners]
         self.done_cache[torrent] = None
         return (torrent, owners)
         
@@ -92,8 +94,8 @@ class TorrentCollecting:
             raise RuntimeError, "TorrentCollecting is singleton"
         TorrentCollecting.__single = self 
         self.registered = False   
-        self.collect_interval = 31    # use prime to avoid conflict
-        self.queue_length = 10
+        self.collect_interval = 11    # use prime to avoid conflict
+        self.queue_length = 31
         self.num_owners = 6        # max number of owners of a torrent
         self.job_queue = JobQueue(self.queue_length, self.num_owners, db_dir)
         

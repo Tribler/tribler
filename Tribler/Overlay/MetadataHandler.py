@@ -97,11 +97,14 @@ class MetadataHandler:
         """ lookup torrent file and return torrent path """
         
         data = self.torrent_db.getTorrent(torrent_hash)
-        if data['torrent_name']:
+        if not data:
+            return None
+        try:
             filepath = os.path.join(data['torrent_dir'], data['torrent_name'])
             if os.path.isfile(filepath):
                 return filepath
-        return None
+        except:
+            return None
 
     def read_torrent(self, torrent_path):
         try:
@@ -171,7 +174,7 @@ class MetadataHandler:
         
     def write_torrent(self, metadata, dir, name):
         try:
-            if not os.path.isdir(dir):
+            if not os.access(dir):
                 os.mkdir(dir)
             save_path = os.path.join(dir, name)
             file = open(save_path, 'wb')
