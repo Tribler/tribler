@@ -135,8 +135,8 @@ class ManageFriendsPanel(wx.Panel):
             permid = friend['permid']
             to_remove.append(permid)
             self.friendsdb.deleteFriend(permid)
-            if self.utility.abcbuddyframe is not None:    # update friend frame
-                self.utility.abcbuddyframe.deleteFriend(permid)    
+            ##if self.utility.abcbuddyframe is not None:    # update friend frame
+            ##    self.utility.abcbuddyframe.deleteFriend(permid)    
         if len(selected) > 0:
             self.phoenix()
 

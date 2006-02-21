@@ -327,6 +327,11 @@ class ABCFileFrame(wx.Frame):
        
         self.mypref_db = self.utility.mypref_db
         self.torrent_db = self.utility.torrent_db
+
+
+        # 1. Topbox contains the notebook
+        mainbox = wx.BoxSizer(wx.VERTICAL)
+        topbox = wx.BoxSizer(wx.HORIZONTAL)
         
         self.notebook = wx.Notebook(self, -1)
 
@@ -336,8 +341,21 @@ class ABCFileFrame(wx.Frame):
         self.myPreferencePanel = MyPreferencePanel(self, self.notebook)
         self.notebook.AddPage(self.myPreferencePanel, "My Preference List")
 
+        topbox.Add(self.notebook, 1, wx.EXPAND|wx.ALL, 5)
+
+        # 2. Bottom box contains "Close" button
+        botbox = wx.BoxSizer(wx.HORIZONTAL)
+
+        button = wx.Button(self, -1, self.utility.lang.get('close'), style = wx.BU_EXACTFIT)
+        wx.EVT_BUTTON(self, button.GetId(), self.OnCloseWindow)
+        botbox.Add(button, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+
+        # 3. Pack boxes together
+        mainbox.Add(topbox, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        mainbox.Add(botbox, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 5)
+        self.SetSizerAndFit(mainbox)
+
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
-        
         self.Show()
 
     def updateMyPref(self):

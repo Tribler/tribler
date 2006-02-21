@@ -156,10 +156,10 @@ class HelperMessageHandler:
 
     def call_dlhelp_task(self, torrent_hash, torrent_data):
         if DEBUG:
-            print >> sys.stderr,"helpmsg: Metadata handler reports torrent is in"
+            print >> sys.stderr,"helpmsg: Metadata handler reports torrent is in."
         if not self.metadata_queue.has_key(torrent_hash) or not self.metadata_queue[torrent_hash]:
             if DEBUG:
-                print >> sys.stderr,"helpmsg: Metadata's data not right one!"
+                print >> sys.stderr,"helpmsg: Metadata handler reported a torrent we are not waiting for."
             return
         
         for permid in self.metadata_queue[torrent_hash]:

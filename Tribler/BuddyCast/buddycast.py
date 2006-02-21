@@ -86,7 +86,6 @@ class RandomPeer:
         self.data_handler.setPeerCacheChanged(True)
                      
     def updatePeerDB(self):
-        # according to Arno's suggestion, don't update (ip, port) by buddycast message
         self.data_handler.addPeer(self.permid, self.data)
          
          
@@ -214,6 +213,7 @@ class DataHandler:
         self.torrent_db = TorrentDBHandler(db_dir=db_dir)
         self.mypref_db = MyPreferenceDBHandler(db_dir=db_dir)
         self.pref_db = PreferenceDBHandler(db_dir=db_dir)
+        self.friend_db = FriendDBHandler(db_dir=db_dir)
         self.dbs = [self.my_db, self.peer_db, self.superpeer_db,
                     self.torrent_db, self.mypref_db, self.pref_db]
         self.name = self.my_db.get('name', '')
@@ -250,6 +250,14 @@ class DataHandler:
     # --- write ---
     def addPeer(self, permid, data):
         if permid != self.permid:
+            if permid in self.friend_db.getFriendList():
+                # Arno: if friend, don't update name,ip or port
+                # the latter should be updated only when directly
+                # connecting to eachother via the overlay, not
+                # by some external message.
+                del data['name']
+                del data['ip']
+                del data['port']
             self.peer_db.addPeer(permid, data, update_dns=False)
         
     def addTorrent(self, infohash):
