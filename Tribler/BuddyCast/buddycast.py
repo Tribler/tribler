@@ -526,23 +526,23 @@ class BuddyCastCore:
         block_set = Set(self.data_handler.getSendBlockList())
         tb_list = list(Set(self.tb_list) - block_set)
         tb_ages = self.data_handler.getPeersValue(tb_list, ['last_seen'])
-        tbs = self._sortList(tb_list, tb_ages)
+        tbs = sortList(tb_list, tb_ages)
         rps = list(Set(self.rp_list) - block_set)
         return tbs[:ntb], rps
             
     def _separatePeersForMessage(self, ntb=10):
         self.tb_sims = self.data_handler.getPeersValue(self.tb_list, ['similarity'])
-        tb_list = self._sortList(self.tb_list, self.tb_sims)
+        tb_list = sortList(self.tb_list, self.tb_sims)
         return tb_list[:ntb], tb_list[ntb:]+self.rp_list
         
-    def _sortList(self, list_to_sort, list_key, order='decrease'):
-        nlist = len(list_to_sort)
-        assert nlist == len(list_key), (nlist, len(list_key))
-        aux = [(list_key[i], i) for i in xrange(nlist)]
-        aux.sort()
-        if order == 'decrease':
-            aux.reverse()
-        return [list_to_sort[i] for k, i in aux]
+#    def _sortList(self, list_to_sort, list_key, order='decrease'):
+#        nlist = len(list_to_sort)
+#        assert nlist == len(list_key), (nlist, len(list_key))
+#        aux = [(list_key[i], i) for i in xrange(nlist)]
+#        aux.sort()
+#        if order == 'decrease':
+#            aux.reverse()
+#        return [list_to_sort[i] for k, i in aux]
         
     def _selectTarget(self):
         r = random()
@@ -616,7 +616,7 @@ class BuddyCastCore:
         
     def _updateRecommendedItemList(self, num):
         relevance =  self.data_handler.getTorrentsValue(self.ot_list, ['relevance'])
-        recom_list = self._sortList(self.ot_list, relevance)
+        recom_list = sortList(self.ot_list, relevance)
         return recom_list[:num]
 
 

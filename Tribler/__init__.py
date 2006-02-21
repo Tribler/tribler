@@ -1,4 +1,4 @@
-product_name = 'Tribler'
+product_name = 'ABC'
 version_short = 'Tribler_ABC-3.3.0'
 
 version = version_short + ' (' + product_name + ' - BitTornado 0.3.13'
@@ -47,6 +47,7 @@ class GLOBAL:
     do_das_test = 0
     do_buddycast_interval = 15
     do_torrent_collecting = 1
+    config_dir = '.'+product_name
     
 myinfo = {}
 
@@ -109,6 +110,8 @@ def createPeerID(ins = '---'):
 
 def tribler_init(config_dir = None):
     global myinfo
+    if config_dir:
+        GLOBAL.config_dir = config_dir
     resetPeerIDs()
     permid.init(config_dir)
     load_myinfo(myinfo)

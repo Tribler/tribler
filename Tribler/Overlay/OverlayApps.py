@@ -33,7 +33,9 @@ class OverlayApps:
         return OverlayApps.__single
     getInstance = staticmethod(getInstance)
 
-    def register(self, secure_overlay, launchmany, enable_recommender, enable_dlhelp, enable_collect):
+    def register(self, secure_overlay, launchmany, enable_recommender, 
+                 enable_dlhelp, enable_collect, config_dir):
+        self.config_dir = config_dir
         if enable_dlhelp:
             # Create handler for messages to dlhelp coordinator
             self.coord_handler = CoordinatorMessageHandler(launchmany)
@@ -59,7 +61,7 @@ class OverlayApps:
         if enable_collect or enable_dlhelp:
             # Create handler for metadata messages
             self.metadata_handler = MetadataHandler.getInstance()
-            self.metadata_handler.register(secure_overlay, self.help_handler, launchmany)
+            self.metadata_handler.register(secure_overlay, self.help_handler, launchmany, self.config_dir)
             secure_overlay.registerHandler(MetadataMessages, self.metadata_handler)
             
             if self.help_handler is not None:

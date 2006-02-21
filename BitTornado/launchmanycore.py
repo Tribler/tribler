@@ -263,7 +263,8 @@ class LaunchMany:
                                            self.config, self.exchandler)
                 self.secure_overlay.register(self.overlayswarm)
                 self.overlay_apps = OverlayApps.getInstance()
-                self.overlay_apps.register(self.secure_overlay,self,GLOBAL.do_buddycast,GLOBAL.do_download_help,GLOBAL.do_torrent_collecting)
+                self.overlay_apps.register(self.secure_overlay, self, GLOBAL.do_buddycast, GLOBAL.do_download_help,
+                                            GLOBAL.do_torrent_collecting, GLOBAL.config_dir)
                 # It's important we don't start listening to the network until
                 # all higher protocol-handling layers are properly configured.
                 self.overlayswarm.start_listening()

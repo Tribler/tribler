@@ -298,7 +298,7 @@ class TorrentDBHandler(BasicDBHandler):
 #    def getMyTorrentList(self):
 #        return self.mypref_db._keys()
         
-    def getOthersTorrentList(self, num=-1):
+    def getOthersTorrentList(self, num=-1):    # get the list of torrents which are not in my preference
         all_list = list(Set(self.torrent_db._keys()) - Set(self.mypref_db._keys()))
         if num < 0:
             return all_list
@@ -329,6 +329,20 @@ class TorrentDBHandler(BasicDBHandler):
                 values.append(d)
         
         return values
+        
+    def getNoMetaTorrents(self):    # get the list of torrents which only have an infohash without the metadata
+        def noMetaData(infohash):
+            value = self.torrent_db._get(infohash)
+            name = value.get('torrent_name', None)
+            return not name
+        
+        all_list = self.getOthersTorrentList()
+        return filter(noMetaData, all_list)
+        
+    def hasMetaData(self, infohash):
+        value = self.torrent_db._get(infohash)
+        name = value.get('torrent_name', None)
+        return name
             
     def getOwners(self, infohash):
         return self.owner_db.getItem(infohash)
@@ -338,7 +352,7 @@ class TorrentDBHandler(BasicDBHandler):
             
     def deleteTorrent(self, infohash):
         self.torrent_db._delete(infohash)
-
+        
 
 class MyPreferenceDBHandler(BasicDBHandler):
     

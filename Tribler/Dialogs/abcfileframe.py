@@ -1,4 +1,5 @@
 import wx
+import os
 import images
 from base64 import b64encode
 from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler
@@ -10,6 +11,11 @@ from common import CommonTriblerList
 def showInfoHash(infohash):
     if infohash.startswith('torrent'):    # for testing
         return infohash
+    try:
+        n = int(infohash)
+        return str(n)
+    except:
+        pass
     return b64encode(infohash)
 #    try:
 #        return encodestring(infohash)
@@ -224,7 +230,7 @@ class FileList(CommonTriblerList):
         
     def reloadData(self):
         torrent_list = self.torrent_db.getOthersTorrentList()
-        key = ['infohash', 'torrent_name', 'relevance', 'info']
+        key = ['infohash', 'torrent_name', 'torrent_dir', 'relevance', 'info']
         self.data = self.torrent_db.getTorrents(torrent_list, key)
 
         for i in xrange(len(self.data)):
@@ -261,15 +267,21 @@ class FileList(CommonTriblerList):
         
     def OnActivated(self, event):
         self.curr_idx = event.m_itemIndex
-        infohash = self.data[self.curr_idx]['infohash']
-        str = "Starts downloading " + showInfoHash(infohash)
-        dlg = wx.MessageDialog(self, str,
-                               'Click and Download',
-                               wx.OK | wx.ICON_INFORMATION |
-                               wx.YES_NO | wx.NO_DEFAULT | wx.CANCEL | wx.ICON_INFORMATION
-                               )
-        dlg.ShowModal()
-        dlg.Destroy()
+        src = os.path.join(self.data[self.curr_idx]['torrent_dir'], self.data[self.curr_idx]['torrent_name'])
+        if os.path.isfile(src):
+            infohash = self.data[self.curr_idx]['infohash']
+            str = "Starts downloading " + showInfoHash(infohash)
+            dlg = wx.MessageDialog(self, str,
+                                   'Click and Download',
+                                   #wx.OK | wx.ICON_INFORMATION
+                                   wx.YES_NO | wx.NO_DEFAULT | wx.ICON_INFORMATION
+                                   )
+            result = dlg.ShowModal()
+            dlg.Destroy()
+            if result == 5103:
+                src = os.path.join(self.data[self.curr_idx]['torrent_dir'], self.data[self.curr_idx]['torrent_name'])
+                if os.path.isfile(src):
+                    self.parent.clickAndDownload(src)
 
 
 class MyPreferencePanel(wx.Panel):
@@ -298,6 +310,9 @@ class FilePanel(wx.Panel):
         self.list=FileList(self, frame.window_size)
         self.Fit()
         self.Show(True)
+        
+    def clickAndDownload(self, src):
+        self.utility.queue.addtorrents.AddTorrentFromFile(src, forceasklocation = True)
 
 
 class ABCFileFrame(wx.Frame):

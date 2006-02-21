@@ -3,6 +3,7 @@
 
 from socket import inet_aton, gethostbyname
 from time import time, strftime, gmtime
+import sys
 
 STRICT = False
 
@@ -160,7 +161,13 @@ def sort_dictlist(dict_list, key, order='increase'):
     if order == 'decrease' or order == 1:    # 0 - increase, 1 - decrease
         aux.reverse()
     return [dict_list[i] for x, i in aux]
-    
+
+def sortList(list_to_sort, list_key, order='decrease'):
+        aux = zip(list_key, list_to_sort)
+        aux.sort()
+        if order == 'decrease':
+            aux.reverse()
+        return [i for k, i in aux]    
         
 if __name__=='__main__':
     d = {'a':1,'b':[1,2,3],'c':{'c':2,'d':[3,4],'k':{'c':2,'d':[3,4]}}}

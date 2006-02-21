@@ -34,7 +34,8 @@ HASHPIECE = chr(250)
 
 ## Overlay Swarm Extension
 """
-{'my_preferences':[[infohash]],
+{'preferences':[[infohash]],
+ 'permid': my permid, 
  'ip':current ip,
  'port':current listening port,
  'taste_buddies':[{'preferences':[[infohash]],

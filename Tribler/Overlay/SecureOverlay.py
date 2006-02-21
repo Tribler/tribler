@@ -383,7 +383,8 @@ class SecureOverlay:
                     else:
                         msg = getMessageName(message[0])
                     msg += ' '+currentThread().getName()
-                    print >> sys.stderr,"secover: add PermidOverlayTask", msg
+                    if DEBUG:
+                        print >> sys.stderr,"secover: add PermidOverlayTask", msg
                 task = PermidOverlayTask(self, self.subject_manager, target, message, timeout)
             elif isValidDNS(target):
                 if DEBUG:
@@ -392,7 +393,8 @@ class SecureOverlay:
                     else:
                         msg = getMessageName(message[0])
                     msg += ' '+currentThread().getName()
-                    print >> sys.stderr,"secover: add OverlayTask", msg
+                    if DEBUG:
+                        print >> sys.stderr,"secover: add OverlayTask", msg
                 task = OverlayTask(self, self.subject_manager, target, message, timeout)
             else:
                 self.release() 

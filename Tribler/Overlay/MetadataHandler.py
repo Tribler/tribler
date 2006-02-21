@@ -1,11 +1,16 @@
-# Written by Jie Yang
+# Written by Jie Yang, Arno Bakker
 # see LICENSE.txt for license information
 import sys
 import md5
+import os
+from sha import sha
 from traceback import print_exc
 
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
+from Tribler.utilities import isValidInfohash
+from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler
+from base64 import b64encode
 
 # Python no recursive imports?
 # from overlayswarm import overlay_infohash
@@ -30,10 +35,11 @@ class MetadataHandler:
         return MetadataHandler.__single
     getInstance = staticmethod(getInstance)
         
-    def register(self,secure_overlay,dlhelper,launchmany):
+    def register(self, secure_overlay, dlhelper, launchmany, config_dir):
         self.secure_overlay = secure_overlay
         self.dlhelper = dlhelper
-        #self.file_cache = FileCacheHandler()
+        self.config_dir = os.path.join(config_dir, 'torrent')
+        self.torrent_db = TorrentDBHandler()
         self.arno_file_cache = launchmany.arno_file_cache
 
     def handleMessage(self, permid, message):
@@ -53,16 +59,8 @@ class MetadataHandler:
                 print >> sys.stderr,"metadata: UNKNOWN OVERLAY MESSAGE", ord(t)
             return False
 
-    def request_metadata(self, torrent_hash):
-        # TODO: lookup all candidates who have this torrent_hash
-        #       select a peer according to its upload speed. 
-        #       Request another peer if the previous one failed
-        if DEBUG:
-            print >> sys.stderr,"Request metadata", torrent_hash
-
-
     def send_metadata_request(self, permid, torrent_hash):
-        if not self.valid_torrent_hash(torrent_hash):
+        if not isValidInfohash(torrent_hash):
             return False
         try:
             metadata_request = bencode(torrent_hash)
@@ -77,7 +75,7 @@ class MetadataHandler:
             torrent_hash = bdecode(message[1:])
         except:
             return False
-        if not self.valid_torrent_hash(torrent_hash):
+        if not isValidInfohash(torrent_hash):
             return False
 
         ## ARNO HACK
@@ -122,12 +120,53 @@ class MetadataHandler:
         except:
             return None
 
+
+    def addTorrentToDB(self, src, torrent_hash, metainfo):
+        
+        info = metainfo['info']
+        
+        torrent = {}
+        torrent['torrent_dir'], torrent['torrent_name'] = os.path.split(src)
+        torrent['relevance'] = 100*1000
+        
+        torrent_info = {}
+        torrent_info['name'] = info.get('name', '')
+        length = 0
+        nf = 0
+        if info.has_key('length'):
+            length = info.get('length', 0)
+            nf = 1
+        elif info.has_key('files'):
+            for li in info['files']:
+                nf += 1
+                if li.has_key('length'):
+                    length += li['length']
+        torrent_info['length'] = length
+        torrent_info['num_files'] = nf
+        torrent_info['announce'] = metainfo.get('announce', '')
+        torrent_info['announce-list'] = metainfo.get('announce-list', '')
+        torrent_info['creation date'] = metainfo.get('creation date', 0)
+        torrent['info'] = torrent_info
+        
+        self.torrent_db.addTorrent(self.torrent_hash, torrent)
+        self.torrent_db.sync()
+        
     def save_torrent(self, torrent_hash, metadata):
         if DEBUG:
             print >> sys.stderr,"metadata: Store torrent", torrent_hash, "on disk"
-        torrent_path = '.'
+        #TODO: 
+        file_name = b64encode(torrent_hash) + '.torrent'
+        save_path = os.path.join(self.config_dir, file_name)
+        self.addTorrentToDB(save_path, torrent_hash, metadata)
         return torrent_path
 
+    def valid_metadata(self, torrent_hash, metadata, md5sum):
+        if md5.new(metadata).digest() != md5sum:
+            raise RuntimeError, "md5 sum check failed"
+        infohash = sha(metadata['info']).digest()
+        assert infohash == torrent_hash, "infohash doesn't match the torrent hash"
+        return True
+        
     def got_metadata(self, conn, message):
         try:
             message = bdecode(message[1:])
@@ -137,20 +176,16 @@ class MetadataHandler:
             return False
         try:
             torrent_hash = message['torrent_hash']
-            if not self.valid_torrent_hash(torrent_hash):
+            if not isValidInfohash(torrent_hash):
                 return False
             metadata = message['metadata']
             md5sum = message['md5sum']
-            if md5.new(metadata).digest() != md5sum:
-                raise RuntimeError, "md5 sum check failed"
+            self.valid_metadata(torrent_hash, metadata, md5sum)
             if DEBUG:
                 torrent_size = len(metadata)
                 print >> sys.stderr,"metadata: Recvd torrent", torrent_size, md5.new(metadata).hexdigest()
-            if not metadata:
-                #TODO: try another candidate. If failed, stop requesting this torrent
-                return False
             else:
-                #torrent_path = self.save_torrent(torrent_hash, metadata)
+                self.save_torrent(torrent_hash, metadata)
                 if self.dlhelper is not None:
                     self.dlhelper.call_dlhelp_task(torrent_hash, metadata)
         except Exception, msg:
@@ -159,7 +194,4 @@ class MetadataHandler:
             return False
         
         return True
-        
-    def valid_torrent_hash(self, torrent_hash):
-        return len(torrent_hash) == 20 and torrent_hash != overlay_infohash
         
