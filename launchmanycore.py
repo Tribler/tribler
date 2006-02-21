@@ -210,9 +210,6 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
         if DEBUG:
             print >> sys.stderr,"launchmany: addDownload",currentThread().getName()
 
-        ## ARNO: HACK
-        self.arno_file_cache[ABCTorrentTemp.torrent_hash] = bencode(ABCTorrentTemp.getResponse())
-
         c = self.counter
         self.counter += 1
         x = ''

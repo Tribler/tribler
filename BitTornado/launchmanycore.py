@@ -206,7 +206,6 @@ class LaunchMany:
             GLOBAL.do_superpeer = config['superpeer']
             GLOBAL.do_das_test = config['das_test']
             GLOBAL.do_buddycast_interval = config['buddycast_interval']
-            self.arno_file_cache = { 'bla': 10 }            
 
             self.rawserver = RawServer(self.doneflag,
                                        config['timeout_check_interval'],
@@ -395,9 +394,7 @@ class LaunchMany:
         
         if DEBUG:
             print >> sys.stderr,"BitTornado/launchmany: Adding torrent"
-        ## ARNO: HACK 
-        self.arno_file_cache[hash] = data
-
+        
         c = self.counter
         self.counter += 1
         x = ''

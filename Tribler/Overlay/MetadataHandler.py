@@ -40,7 +40,6 @@ class MetadataHandler:
         self.dlhelper = dlhelper
         self.config_dir = os.path.join(config_dir, 'torrent')
         self.torrent_db = TorrentDBHandler()
-        self.arno_file_cache = launchmany.arno_file_cache
 
     def handleMessage(self, permid, message):
         
@@ -78,13 +77,6 @@ class MetadataHandler:
         if not isValidInfohash(torrent_hash):
             return False
 
-        ## ARNO HACK
-        torrent_data = self.arno_file_cache[torrent_hash]
-        if torrent_data:
-            self.do_send_metadata(conn, torrent_hash, torrent_data)
-            return True
-
-        ## PREVIOUS CODE
         torrent_path = self.find_torrent(torrent_hash)
         if not torrent_path:
             return False
@@ -97,14 +89,17 @@ class MetadataHandler:
         md5sum = md5.new(torrent_data).digest()
         torrent = {'torrent_hash':torrent_hash, 'metadata':torrent_data, 'md5sum':md5sum}
         metadata_request = bencode(torrent)
+        print '***************** send metadata', len(metadata_request)
         self.secure_overlay.addTask(permid,METADATA + metadata_request)
 
     def find_torrent(self, torrent_hash):
         """ lookup torrent file and return torrent path """
         
-        # metadata = self.file_cache.findTorrent(torrent_hash)
-        if metadata:
-            return metadata['torrent_path']    #TODO: handle merkle torrent
+        data = self.torrent_db.getTorrent(torrent_hash)
+        if data['torrent_name']:
+            filepath = os.path.join(data['torrent_dir'], data['torrent_name'])
+            if os.path.isfile(filepath):
+                return filepath
         return None
 
     def read_torrent(self, torrent_path):
