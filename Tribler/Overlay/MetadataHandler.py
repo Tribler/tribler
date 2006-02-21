@@ -107,6 +107,7 @@ class MetadataHandler:
         try:
             file = open(torrent_path, "rb")
             torrent_data = file.read()
+            file.close()
             torrent_size = len(torrent_data)
             print ">>>>> read torrent", torrent_path, torrent_size, hash(torrent_data)
             if torrent_size > Max_Torrent_Size:
@@ -173,7 +174,7 @@ class MetadataHandler:
             if not os.path.isdir(dir):
                 os.mkdir(dir)
             save_path = os.path.join(dir, name)
-            file = open(save_path, 'w')
+            file = open(save_path, 'wb')
             file.write(metadata)
             file.close()
             print ">>>>> write torrent", save_path, len(metadata), hash(metadata)
