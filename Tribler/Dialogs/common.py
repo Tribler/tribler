@@ -59,12 +59,13 @@ class CommonTriblerList(wx.ListCtrl):
         return -1
             
     def OnRightClick(self, event):
-        print "right click", self.getSelectedItems()
+        #print "right click", self.getSelectedItems()
+        pass
         
     
     def OnActivated(self, event):
         self.curr_idx = event.m_itemIndex
-        print "actived", self.curr_idx
+        #print "actived", self.curr_idx
 
     def OnColClick(self, event):
         self.sort_column = event.m_col

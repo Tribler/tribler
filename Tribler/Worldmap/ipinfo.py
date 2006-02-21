@@ -60,7 +60,8 @@ class IPInfo:
             #Known urls: http://www.hostip.info/api/get.html?ip=xxx&position=true 
             #  http://www.melissadata.com/Lookups/iplocation.asp?ipaddress=xxx&submit=submit (using IP2Location database without coordinate)
             
-            # Arno: make this quick because currently RawServer runs it
+            # Arno: make this quick. Not really necessary anymore because the
+            # RawServer no longer runs this (see peer.py), but nice none the less.
             timeout = None
             try:
                 timeout = socket.getdefaulttimeout()

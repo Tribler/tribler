@@ -6,6 +6,7 @@ import sys
 import cPickle
 
 from ipinfo import IPInfo
+from threading import Timer
 
 class MyPeer:
     """ This class presents the user himself """
@@ -40,7 +41,14 @@ class BTPeer:
             self.id = self.ip
         self.ip_info = None
         self.torrent.peer_swarm[self.ip] = self
-        rawserver.add_task(self.lookupIPInfo, 0)
+        ## Arno: using the raw server doesn't work. It delays normal
+        ## communication too much. HACK IT! FIXME if too much timers allocated
+        #rawserver.add_task(self.lookupIPInfo, 0)
+        try:
+            t = Timer(0,self.lookupIPInfo)
+            t.start()
+        except:
+            pass
 
     def updateBTInfo(self, bt_info):
         self.bt_info.update(bt_info)

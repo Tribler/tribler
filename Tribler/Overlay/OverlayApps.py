@@ -11,6 +11,8 @@ from MetadataHandler import MetadataHandler
 from Tribler.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.BuddyCast.TorrentCollecting import TorrentCollecting
 
+DEBUG = False
+
 class OverlayApps:
     # Code to make this a singleton
     __single = None
@@ -40,13 +42,17 @@ class OverlayApps:
             # Create handler for messages to dlhelp helper
             self.help_handler = HelperMessageHandler(launchmany)
             secure_overlay.registerHandler(HelpCoordinatorMessages, self.help_handler)
+        else:
+            secure_overlay.registerHandler(HelpCoordinatorMessages,self)
 
         if enable_recommender:
             # Create handler for Buddycast messages
             self.buddycast = BuddyCastFactory.getInstance()
             self.buddycast.register(secure_overlay, launchmany.rawserver, launchmany.listen_port, launchmany.exchandler)
             secure_overlay.registerHandler(BuddyCastMessages, self.buddycast)
-            
+        else:
+            secure_overlay.registerHandler(BuddyCastMessages,self)
+
         if enable_collect:
             self.collect = TorrentCollecting.getInstance()
 
@@ -58,7 +64,14 @@ class OverlayApps:
             
             if self.help_handler is not None:
                 self.help_handler.register(self.metadata_handler)
-                
+
             if self.collect is not None:
                 self.collect.register(secure_overlay, launchmany.rawserver, self.metadata_handler)
-                
+        else:
+            secure_overlay.registerHandler(MetadataMessages,self)
+
+    def handleMessage(self,permid,message):
+        """ dummy handler for when features are disabled."""
+        if DEBUG:
+            print >> sys.stderr,"olapps: Got",getMessageName(t),"but the feature it belongs to is disabled."
+        return True

@@ -37,7 +37,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = False
+DEBUG = True
 
 Length_of_permid = 0    # 0: no restriction
 
@@ -108,7 +108,7 @@ class OverlayTask:
                 
     def update(self):    # phase 2: overlay connection has been made; send msg now
         if DEBUG:
-            print >> sys.stderr,"secover: task update", self.dns, self
+            print >> sys.stderr,"secover: overlay task update", self.dns, self
         if self.hasExpired():
             return
         if self.callback:    # used by other task
@@ -170,6 +170,8 @@ class PermidOverlayTask:
             self.task.start()
                 
     def update(self):    # phase 2: check permids, and send msg if they match
+        if DEBUG:
+            print >> sys.stderr,"secover: permid task update", self.dns
         if self.dns:
             permid = self.secure_overlay.findPermidByDNS(self.dns)
 
@@ -259,7 +261,7 @@ class IncomingMessageHandler:
         handled = False
         if not self.handlers.has_key(id):
             if DEBUG:
-                print >> sys.stderr,"secover: No handler found for",getMessageName(id)
+                print >> sys.stderr,"secover: No handler found for",getMessageName(id),currentThread().getName()
             return False
         else:
             #if DEBUG:
@@ -334,9 +336,14 @@ class SecureOverlay:
     def _closeConnection(self, permid):
         self.acquire()
         connection = self._findConnByPermid(permid)
-        if connection:
+        if connection is not None:
             connection.close()
-            self.connection_list.pop(permid)
+            ## connectionLost callback is called by connection.close() which
+            ## will remove the conn from the list, but just to be safe:
+            try:
+                self.connection_list.pop(permid)
+            except:
+                pass
         self.release()        
 
     def _findConnByPermid(self, permid):
@@ -471,7 +478,7 @@ class SecureOverlay:
             print >> sys.stderr,"secover: ***** secure overlay connection lost *****", connection.get_ip()
         if self.connection_list.has_key(permid):
             if DEBUG:
-                print >> sys.stderr,"secover: removing lost connection from admin"
+                print >> sys.stderr,"secover: removing lost connection from admin",currentThread().getName()
             dns = self.connection_list[permid]['dns']
             del self.connection_list[permid]
             # TODO: remove subject?

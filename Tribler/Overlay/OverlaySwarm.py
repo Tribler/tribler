@@ -131,14 +131,14 @@ class OverlaySwarm:
             print >> sys.stderr,"overlay: Bare connection",connection.get_myip(),connection.get_myport(),"to",connection.get_ip(),connection.get_port(),"reported by thread",currentThread().getName()
         
 
-        def c(conn = connection):
-            """ Start permid exchange and challenge/response validation """
-            if not connection or self.crs.has_key(connection) and self.crs[connection]:
-                return    # don't start c/r if connection is invalid or permid was exchanged
-            cr = ChallengeResponse(self.myid, self, self.errorfunc)
-            self.crs[connection] = cr
-            cr.start_cr(connection)
-        self.rawserver.add_task(c, 0)
+        #def c(conn = connection):
+        #""" Start permid exchange and challenge/response validation """
+        if not connection or self.crs.has_key(connection) and self.crs[connection]:
+            return    # don't start c/r if connection is invalid or permid was exchanged
+        cr = ChallengeResponse(self.myid, self, self.errorfunc)
+        self.crs[connection] = cr
+        cr.start_cr(connection)
+        #self.rawserver.add_task(c, 0)
             
     def permidSocketMade(self, connection):    # Connecter.Connection. 
         """ phase 2: notify that the connection has been made """

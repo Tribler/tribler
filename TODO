@@ -1,4 +1,3 @@
-
 TODO:
 
 Now:
@@ -12,10 +11,6 @@ Now:
 	
 * When using btlaunchmany for seeding, it does not always reuse the 
   pickled Merkle trees stored in <cfg dir>/datacache.
-  
-* Integrate friends management with peer list.
-
-* cities.txt should be empty or contain a sensible list of cities.
 
 * Buddycast doesn't attempt to contact any superpeers. Alternative
   is to disable super-peer bootstrapping and just let it talk to the
@@ -225,3 +220,9 @@ DONE:
 * Need way/GUI to add friends. Currently list of friends hardcoded into abc.py
  
 * Read friends.txt from $HOME/.ABC if it stays.
+
+* Integrate friends management with peer list.
+
+* cities.txt should be empty or contain a sensible list of cities.
+
+	Arno, 2006-02-20: Empty.
