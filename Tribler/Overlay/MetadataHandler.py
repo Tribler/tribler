@@ -1,6 +1,7 @@
 # Written by Jie Yang, Arno Bakker
 # see LICENSE.txt for license information
 import sys
+import md5
 import os
 from sha import sha
 from traceback import print_exc
@@ -11,8 +12,12 @@ from Tribler.utilities import isValidInfohash
 from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler
 from base64 import b64encode
 
-DEBUG = False
+# Python no recursive imports?
+# from overlayswarm import overlay_infohash
+overlay_infohash = '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
 
+
+DEBUG = False
 ## Arno: FIXME: 8MB too large, IMHO.
 Max_Torrent_Size = 8*1024*1024    # 8MB torrent = about 80G files
 
@@ -82,7 +87,8 @@ class MetadataHandler:
         return True
     
     def do_send_metadata(self, permid, torrent_hash, torrent_data):
-        torrent = {'torrent_hash':torrent_hash, 'metadata':torrent_data}
+        md5sum = md5.new(torrent_data).digest()
+        torrent = {'torrent_hash':torrent_hash, 'metadata':torrent_data, 'md5sum':md5sum}
         metadata_request = bencode(torrent)
         print '***************** send metadata', len(metadata_request)
         self.secure_overlay.addTask(permid,METADATA + metadata_request)
@@ -102,6 +108,7 @@ class MetadataHandler:
             file = open(torrent_path, "rb")
             torrent_data = file.read()
             torrent_size = len(torrent_data)
+            print ">>>>> read torrent", torrent_path, torrent_size, hash(torrent_data)
             if torrent_size > Max_Torrent_Size:
                 return None
             if DEBUG:
@@ -112,12 +119,12 @@ class MetadataHandler:
 
 
     def addTorrentToDB(self, src, torrent_hash, metadata):
+        
         metainfo = bdecode(metadata)
         info = metainfo['info']
         
         torrent = {}
         torrent['torrent_dir'], torrent['torrent_name'] = os.path.split(src)
-        torrent['relevance'] = 100*1000
         
         torrent_info = {}
         torrent_info['name'] = info.get('name', '')
@@ -145,19 +152,42 @@ class MetadataHandler:
         if DEBUG:
             print >> sys.stderr,"metadata: Store torrent", torrent_hash, "on disk"
         #TODO: 
-        file_name = b64encode(torrent_hash) + '.torrent'
+        file_name = self.get_filename(metadata, torrent_hash)
         save_path = os.path.join(self.config_dir, file_name)
         self.addTorrentToDB(save_path, torrent_hash, metadata)
-        return save_path
+        self.write_torrent(metadata, self.config_dir, file_name)
 
-    def valid_metadata(self, torrent_hash, metadata):
+    def get_filename(self, metadata, torrent_hash):
+        metainfo = bdecode(metadata)
         try:
-            dict = bdecode(metadata)
-            infohash = sha(bencode(dict['info'])).digest()
-            assert infohash == torrent_hash, "infohash doesn't match the torrent hash"
-            return True
+            file_name = metainfo['info']['name']
+            _path = os.path.join(self.config_dir, file_name)
+            if os.path.exists(_path):
+                file_name = b64encode(torrent_hash)
         except:
-            return False
+            file_name = str(hash(str(torrent_hash)))
+        return file_name + '.torrent'
+        
+    def write_torrent(self, metadata, dir, name):
+        try:
+            if not os.path.isdir(dir):
+                os.mkdir(dir)
+            save_path = os.path.join(dir, name)
+            file = open(save_path, 'w')
+            file.write(metadata)
+            file.close()
+            print ">>>>> write torrent", save_path, len(metadata), hash(metadata)
+        except:
+            print_exc()
+            print >> sys.stderr, "write torrent failed"
+
+    def valid_metadata(self, torrent_hash, metadata, md5sum):
+        if md5.new(metadata).digest() != md5sum:
+            raise RuntimeError, "md5 sum check failed"
+        metainfo = bdecode(metadata)
+        infohash = sha(bencode(metainfo['info'])).digest()
+        assert infohash == torrent_hash, "infohash doesn't match the torrent hash " + str(len(infohash), len(torrent_hash)) 
+        return True
         
     def got_metadata(self, conn, message):
         try:
@@ -171,10 +201,11 @@ class MetadataHandler:
             if not isValidInfohash(torrent_hash):
                 return False
             metadata = message['metadata']
-            self.valid_metadata(torrent_hash, metadata)
+            md5sum = message['md5sum']
+            self.valid_metadata(torrent_hash, metadata, md5sum)
             if DEBUG:
                 torrent_size = len(metadata)
-                print >> sys.stderr,"metadata: Recvd torrent", torrent_size
+                print >> sys.stderr,"metadata: Recvd torrent", torrent_size, md5.new(metadata).hexdigest()
             else:
                 self.save_torrent(torrent_hash, metadata)
                 if self.dlhelper is not None:
