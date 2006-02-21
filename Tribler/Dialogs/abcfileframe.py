@@ -323,7 +323,7 @@ class ABCFileFrame(wx.Frame):
         width = 600
         height = 500
         self.window_size = wx.Size(width, height)
-        wx.Frame.__init__(self, None, -1, "File Frame", size=wx.Size(width+20, height+60))
+        wx.Frame.__init__(self, None, -1, self.utility.lang.get('tb_file_short'), size=wx.Size(width+20, height+60))
        
         self.mypref_db = self.utility.mypref_db
         self.torrent_db = self.utility.torrent_db
