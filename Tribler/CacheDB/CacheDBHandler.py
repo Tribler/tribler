@@ -187,8 +187,8 @@ class PeerDBHandler(BasicDBHandler):
         
         return values
     
-    def addPeer(self, permid, value):
-        self.peer_db.updateItem(permid, value)
+    def addPeer(self, permid, value, update_dns=True):
+        self.peer_db.updateItem(permid, value, update_dns)
         
     def hasPeer(self, permid):
         return self.peer_db.hasItem(permid)        

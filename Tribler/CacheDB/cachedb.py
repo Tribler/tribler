@@ -398,12 +398,17 @@ class PeerDB(BasicDB):
         return PeerDB.__single
     getInstance = staticmethod(getInstance)
 
-    def updateItem(self, permid, item={}):    # insert a peer; update it if existed
+    def updateItem(self, permid, item={}, update_dns=True):    # insert a peer; update it if existed
 #        if item.has_key('name'):
 #            assert item['name'] != 'qfqf'
         if isValidPermid(permid) and validDict(item):
             if self._has_key(permid):
                 _item = self.getItem(permid)
+                if not update_dns:
+                    if item.has_key('ip'):
+                        item.pop('ip')
+                    if item.has_key('port'):
+                        item.pop('port')
                 _item.update(item)
                 _item.update({'last_seen':int(time())})
                 self._updateItem(permid, _item)

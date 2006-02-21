@@ -34,7 +34,7 @@ from Tribler.__init__ import GLOBAL
 from Tribler.Overlay.OverlaySwarm import OverlaySwarm
 from Tribler.Overlay.SecureOverlay import SecureOverlay
 from Tribler.Overlay.OverlayApps import OverlayApps
-from Tribler.CacheDB.CacheDBHandler import MyDBHandler
+from Tribler.CacheDB.CacheDBHandler import MyDBHandler, TorrentDBHandler, MyPreferenceDBHandler
 # 2fastbt_
 from Tribler.toofastbt.Logger import get_logger, create_logger
 # _2fastbt
@@ -74,6 +74,7 @@ class SingleDownload:
         self.status_err = ['']
         self.status_errtime = 0
         self.status_done = 0.0
+        self.name = ''
 
         #SingleRawServer=LaunchMany.MultiHandler.newRawServer(infohash)
         self.rawserver = controller.handler.newRawServer(hash, self.doneflag)
@@ -102,6 +103,7 @@ class SingleDownload:
 
     def saveAs(self, name, length, saveas, isdir):
         name = self.controller.saveAs(self.hash, name, saveas, isdir)
+        self.name = os.path.abspath(name)
         if DEBUG:
             print >> sys.stderr,"SingleDownload: saveAs name is",name
         return name
@@ -268,7 +270,9 @@ class LaunchMany:
                 # It's important we don't start listening to the network until
                 # all higher protocol-handling layers are properly configured.
                 self.overlayswarm.start_listening()
-
+            
+            self.torrent_db = TorrentDBHandler()
+            self.mypref_db = MyPreferenceDBHandler()
             self.start()
 
         except:
@@ -404,8 +408,49 @@ class LaunchMany:
         d = SingleDownload(self, hash, data['metainfo'], self.config, peer_id)
         self.torrent_list.append(hash)
         self.downloads[hash] = d
+        src = os.path.abspath(data['path'])
+        self.addTorrentToDB(src, hash, data['metainfo'], d.name)
         d.start()
         return d
+    
+    def addTorrentToDB(self, src, torrent_hash, metainfo, dest):
+        
+        info = metainfo['info']
+        
+        torrent = {}
+        torrent['torrent_dir'], torrent['torrent_name'] = os.path.split(src)
+        torrent['relevance'] = 100*1000
+        
+        torrent_info = {}
+        torrent_info['name'] = info.get('name', '')
+        length = 0
+        nf = 0
+        if info.has_key('length'):
+            length = info.get('length', 0)
+            nf = 1
+        elif info.has_key('files'):
+            for li in info['files']:
+                nf += 1
+                if li.has_key('length'):
+                    length += li['length']
+        torrent_info['length'] = length
+        torrent_info['num_files'] = nf
+        torrent_info['announce'] = metainfo.get('announce', '')
+        torrent_info['announce-list'] = metainfo.get('announce-list', '')
+        torrent_info['creation date'] = metainfo.get('creation date', 0)
+        torrent['info'] = torrent_info
+        
+        self.torrent_db.addTorrent(torrent_hash, torrent)
+        self.torrent_db.sync()    
+
+        mypref = {}
+        if dest:
+            mypref['content_dir'], mypref['content_name'] = os.path.split(dest)
+
+        self.mypref_db.addPreference(torrent_hash, mypref)
+        if self.overlay_apps.buddycast is not None:
+            self.overlay_apps.buddycast.addMyPref(torrent_hash)
+
 
     def saveAs(self, hash, name, saveas, isdir):
         x = self.torrent_cache[hash]

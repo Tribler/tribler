@@ -86,6 +86,7 @@ class RandomPeer:
         self.data_handler.setPeerCacheChanged(True)
                      
     def updatePeerDB(self):
+        # according to Arno's suggestion, don't update (ip, port) by buddycast message
         self.data_handler.addPeer(self.permid, self.data)
          
          
@@ -249,7 +250,7 @@ class DataHandler:
     # --- write ---
     def addPeer(self, permid, data):
         if permid != self.permid:
-            self.peer_db.addPeer(permid, data)
+            self.peer_db.addPeer(permid, data, update_dns=False)
         
     def addTorrent(self, infohash):
         self.torrent_db.addTorrent(infohash)
