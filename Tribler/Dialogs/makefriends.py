@@ -222,7 +222,7 @@ class MakeFriendsDialog(wx.Dialog):
         # get current working directory
         # TODO: record the last opened path in config file
         try:
-            path = os.path.join(os.getcwd(), 'icons')
+            path = os.path.join(os.getcwd(), 'icons/mugshots')
         except Exception, msg:
             path = ''
             

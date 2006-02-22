@@ -14,6 +14,8 @@ copy heading.bmp dist\tribler
 copy superpeer.txt dist\tribler
 mkdir dist\tribler\icons
 copy icons\*.bmp dist\tribler\icons
+mkdir dist\tribler\icons\mugshots
+copy icons\mugshots\* dist\tribler\icons\mugshots
 copy icons\*.jpg dist\tribler\icons
 mkdir dist\tribler\lang
 copy lang\*.lang dist\tribler\lang
