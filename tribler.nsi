@@ -33,8 +33,9 @@ SetCompressor "lzma"
 ;Modern UI Configuration
 
  !define MUI_ABORTWARNING
- !define MUI_HEADERIMAGE
  !define MUI_ICON "tribler.ico"
+ !define MUI_UICON "tribler.ico"
+ !define MUI_HEADERIMAGE
  !define MUI_HEADERIMAGE_BITMAP "heading.bmp"
 
 ;--------------------------------
