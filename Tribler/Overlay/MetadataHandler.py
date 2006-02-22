@@ -4,6 +4,7 @@ import sys
 import md5
 import os
 from sha import sha
+from time import time, ctime
 from traceback import print_exc
 
 from BitTornado.bencode import bencode, bdecode
@@ -162,12 +163,13 @@ class MetadataHandler:
         self.write_torrent(metadata, self.config_dir, file_name)
 
     def get_filename(self, metadata, torrent_hash):
+        # assign a name for the torrent. first try the file name, then add a timestamp if it exists.
         metainfo = bdecode(metadata)
         try:
             file_name = metainfo['info']['name']
             _path = os.path.join(self.config_dir, file_name)
             if os.path.exists(_path):
-                file_name = b64encode(torrent_hash)
+                file_name = file_name + '_' + ctime(time())
         except:
             file_name = str(hash(str(torrent_hash)))
         return file_name + '.torrent'

@@ -228,6 +228,32 @@ class FileList(CommonTriblerList):
                 return '-'
         return str(original_data)
         
+    def loadList(self, reload=True):
+
+        if reload:
+            self.reloadData()
+        
+        self.data = sort_dictlist(self.data, self.list_key[self.sort_column], self.orders[self.sort_column])
+        if self.num >= 0:
+            data = self.data[:self.num]
+        else:
+            data = self.data
+        
+        self.DeleteAllItems() 
+        i = 0
+        for i in xrange(len(data)):
+            self.InsertStringItem(i, self.getText(data, i, 0))
+            for j in range(1, len(self.list_key)):
+                self.SetStringItem(i, j, self.getText(data, i, j))
+            src = os.path.join(data[i]['torrent_dir'], data[i]['torrent_name'])
+            if os.path.isfile(src):
+                item = self.GetItem(i)
+                item.SetTextColour(wx.BLUE)
+                self.SetItem(item)
+            i += 1
+            
+        self.Show(True)        
+        
     def reloadData(self):
         torrent_list = self.torrent_db.getOthersTorrentList()
         key = ['infohash', 'torrent_name', 'torrent_dir', 'relevance', 'info']
@@ -282,6 +308,8 @@ class FileList(CommonTriblerList):
                 src = os.path.join(self.data[self.curr_idx]['torrent_dir'], self.data[self.curr_idx]['torrent_name'])
                 if os.path.isfile(src):
                     self.parent.clickAndDownload(src)
+                    self.DeleteItem(self.curr_idx)
+                    self.parent.frame.updateMyPref()
 
 
 class MyPreferencePanel(wx.Panel):
