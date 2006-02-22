@@ -394,7 +394,7 @@ class ABCFrame(wx.Frame):
         #TODO: check version
         
     def checkVersion(self):
-        t = Timer(3.0, self._checkVersion)
+        t = Timer(2.0, self._checkVersion)
         t.start()
         
     def _checkVersion(self):
@@ -402,14 +402,22 @@ class ABCFrame(wx.Frame):
         try:
             curr_status = urllib.urlopen('http://tribler.org/version').read()
             _curr_status = curr_status.split()
-            curr_version = float(_curr_status[0])
-            if curr_version > my_version:
+            curr_version = _curr_status[0]
+            if self.newversion(curr_version, my_version):
                 print >> sys.stderr, "Your software is outdated.  Would you like to upgrade Tribler from tribler.org?", curr_version, my_version
                 self.OnUpgrade()
         except:
             print >> sys.stderr, "check version failed", ctime(time())
             print_exc()
             
+    def newversion(self, curr_version, my_version):
+        curr = curr_version.split('.')
+        my = my_version.split('.')
+        for i in range(len(curr)):
+            if int(curr[i]) > int(my[i]):
+                return True
+        return False
+    
     def OnUpgrade(self, event=None):
         str = self.utility.lang.get('upgradeabc')
         dlg = wx.MessageDialog(self, str,
