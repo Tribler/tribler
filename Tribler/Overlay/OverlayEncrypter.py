@@ -318,7 +318,7 @@ class OverlayEncoder:
             return True
         ## Arno: there is something wrong here, SecureOverlay thinks there is
         ## no connection, but this encoder still thinks there is sometimes.
-        ##
+        ## FIXME
         #for v in self.connections.values():    # avoid duplicated connectiion from a single ip
         #    if v is None:
         #        continue

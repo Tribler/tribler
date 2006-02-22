@@ -174,7 +174,7 @@ class MetadataHandler:
         
     def write_torrent(self, metadata, dir, name):
         try:
-            if not os.access(dir,F_OK):
+            if not os.access(dir,os.F_OK):
                 os.mkdir(dir)
             save_path = os.path.join(dir, name)
             file = open(save_path, 'wb')
