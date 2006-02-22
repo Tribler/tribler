@@ -153,8 +153,8 @@ class TasteBuddyList(CommonTriblerList):
         curr_idx = self.getSelectedItems()
         j = 0
         for i in curr_idx:
-            permid = self.data[i]['permid']
-            if self.data[i]['friend']:
+            permid = self.data[i-j]['permid']
+            if self.data[i-j]['friend']:
                 self.friend_db.deleteFriend(permid)
             self.peer_db.deletePeer(permid)
             self.DeleteItem(i-j)

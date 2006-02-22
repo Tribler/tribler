@@ -4,7 +4,7 @@ set PYTHONPATH="C:\Python\Python23"
 set NSIS="C:\Program Files\NSIS\makensis.exe"
 set IMGCFG="C:\Program Files\Imagecfg\imagecfg.exe"
 
-%PYTHONPATH%\python.exe setuptribler.py py2exe
+%PYTHONPATH%\python.exe -O setuptribler.py py2exe
 REM copy %PYTHONPATH%\msvcr71.dll dist\tribler
 REM copy %PYTHONPATH%\msvcp71.dll dist\tribler
 copy %PYTHONPATH%\msvcp60.dll dist\tribler

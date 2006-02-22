@@ -172,7 +172,7 @@ class MyPreferenceList(CommonTriblerList):
         selected = self.getSelectedItems()
         j = 0
         for i in selected:
-            infohash = self.data[i]['infohash']
+            infohash = self.data[i-j]['infohash']
             self.mypref_db.deletePreference(infohash)
             self.DeleteItem(i-j)
             self.data.pop(i-j)
@@ -272,7 +272,7 @@ class FileList(CommonTriblerList):
         selected = self.getSelectedItems()
         j = 0
         for i in selected:
-            infohash = self.data[i]['infohash']
+            infohash = self.data[i-j]['infohash']
             self.torrent_db.deleteTorrent(infohash)
             self.DeleteItem(i-j)
             self.data.pop(i-j)
