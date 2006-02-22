@@ -15,7 +15,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = False
+DEBUG = True
 
 def toint(s):
     return long(b2a_hex(s), 16)
@@ -26,7 +26,7 @@ def tobinary(i):
 
 class Connection:
     def __init__(self, connection, connecter, dns=None):
-        self.connection = connection
+        self.connection = connection # OverlayEncoder.connection
         self.connecter = connecter
         self.dns = dns
         self.permid = None
@@ -66,7 +66,7 @@ class Connection:
 
     def close(self):
         if DEBUG:
-            print 'olconnctr: connection closed'
+            print 'olconnctr: closing connection',self.dns
         self.closed = True
         self.connection.close()
 

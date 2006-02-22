@@ -90,7 +90,7 @@ class MetadataHandler:
         md5sum = md5.new(torrent_data).digest()
         torrent = {'torrent_hash':torrent_hash, 'metadata':torrent_data, 'md5sum':md5sum}
         metadata_request = bencode(torrent)
-        print '***************** send metadata', len(metadata_request)
+        print >> sys.stderr,"metadata: send metadata", len(metadata_request)
         self.secure_overlay.addTask(permid,METADATA + metadata_request)
 
     def find_torrent(self, torrent_hash):
@@ -112,7 +112,7 @@ class MetadataHandler:
             torrent_data = file.read()
             file.close()
             torrent_size = len(torrent_data)
-            print ">>>>> read torrent", torrent_path, torrent_size, hash(torrent_data)
+            print >> sys.stderr,"metadata: read torrent", torrent_path, torrent_size, hash(torrent_data)
             if torrent_size > Max_Torrent_Size:
                 return None
             if DEBUG:
@@ -174,16 +174,16 @@ class MetadataHandler:
         
     def write_torrent(self, metadata, dir, name):
         try:
-            if not os.access(dir):
+            if not os.access(dir,F_OK):
                 os.mkdir(dir)
             save_path = os.path.join(dir, name)
             file = open(save_path, 'wb')
             file.write(metadata)
             file.close()
-            print ">>>>> write torrent", save_path, len(metadata), hash(metadata)
+            print >> sys.stderr,"metadata: write torrent", save_path, len(metadata), hash(metadata)
         except:
             print_exc()
-            print >> sys.stderr, "write torrent failed"
+            print >> sys.stderr, "metadata: write torrent failed"
 
     def valid_metadata(self, torrent_hash, metadata, md5sum):
         if md5.new(metadata).digest() != md5sum:

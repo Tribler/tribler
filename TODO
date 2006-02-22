@@ -2,6 +2,12 @@ TODO:
 
 Now:
 
+* The administration of overlay connections is broken. Sometimes the
+  secure overlay things there is no connection and calls connectPeer()
+  but the OverlayEncoder still thinks it has a connection and 
+  reuses that. I temporarily disabled the OverlayEncoder reusing
+  existing connections.
+
 * In r529 there was a problem when a single Windows client would connect to
   our text-based seeder (i.e. btlaunchmany) with no other clients present.
   Apparently both the seeder and client would connect to eachother
@@ -47,8 +53,6 @@ Now:
   peer DB, e.g. when a user edits the friends list and there is a torrent
   downloading.
   
-* Look at launchmanycore.py and who creates peer caches
-
 
 
 Short term:

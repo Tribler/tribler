@@ -17,7 +17,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = True
+DEBUG = False
 
 MAX_INCOMPLETE = 8
 
@@ -57,9 +57,9 @@ incompletecounter = IncompleteCounter()
 # header, reserved, download id, my id, [length, message]
 
 class Connection:    # OverlaySocket, a better name for it?
-    def __init__(self, Encoder, connection, id, ext_handshake = False, dns = None):
+    def __init__(self, Encoder, singsock, id, ext_handshake = False, dns = None):
         self.Encoder = Encoder
-        self.connection = connection    # SocketHandler.SingleSocket
+        self.singsock = singsock    # SocketHandler.SingleSocket
         self.connecter_conn = None      # OverlayConnecter.Connection
         self.connecter = Encoder.connecter
         self.id = id
@@ -76,11 +76,11 @@ class Connection:    # OverlaySocket, a better name for it?
         if self.locally_initiated or ext_handshake:
             #if DEBUG:
             #    print >> sys.stderr,"olencoder: writing header"
-            self.connection.write(chr(len(protocol_name)) + protocol_name + 
+            self.singsock.write(chr(len(protocol_name)) + protocol_name + 
                 option_pattern + self.Encoder.download_id)
         if ext_handshake:
             self.Encoder.connecter.external_connection_made += 1
-            self.connection.write(self.Encoder.my_id)
+            self.singsock.write(self.Encoder.my_id)
             self.next_len, self.next_func = 20, self.read_peer_id
         else:
             self.next_len, self.next_func = 1, self.read_header_len
@@ -88,16 +88,16 @@ class Connection:    # OverlaySocket, a better name for it?
         #self.Encoder.raw_server.add_task(self._auto_close, 15)
 
     def get_ip(self, real=False):
-        return self.connection.get_ip(real)
+        return self.singsock.get_ip(real)
 
     def get_port(self, real=False):
-        return self.connection.get_port(real)
+        return self.singsock.get_port(real)
 
     def get_myip(self, real=False):
-        return self.connection.get_myip(real)
+        return self.singsock.get_myip(real)
 
     def get_myport(self, real=False):
-        return self.connection.get_myport(real)
+        return self.singsock.get_myport(real)
 
     def get_id(self):
         return self.id
@@ -109,7 +109,7 @@ class Connection:    # OverlaySocket, a better name for it?
         return self.locally_initiated
 
     def is_flushed(self):
-        return self.connection.is_flushed()
+        return self.singsock.is_flushed()
 
     def set_options(self, s):
         pass    # used by future
@@ -135,7 +135,7 @@ class Connection:    # OverlaySocket, a better name for it?
             return None
         if not self.locally_initiated:
             self.Encoder.connecter.external_connection_made += 1
-            self.connection.write(chr(len(protocol_name)) + protocol_name + 
+            self.singsock.write(chr(len(protocol_name)) + protocol_name + 
                 option_pattern + self.Encoder.download_id + self.Encoder.my_id)
         return 20, self.read_peer_id
 
@@ -152,7 +152,7 @@ class Connection:    # OverlaySocket, a better name for it?
         if not self.version_supported(s[16:18], s[18:20]):    # versioning protocol
             return None
         if self.locally_initiated:
-            self.connection.write(self.Encoder.my_id)
+            self.singsock.write(self.Encoder.my_id)
             incompletecounter.decrement()
         c = self.Encoder.connecter.connection_made(self, self.dns)
         self.keepalive = c.send_keepalive
@@ -199,13 +199,13 @@ class Connection:    # OverlaySocket, a better name for it?
 
     def close(self):
         if not self.closed:
-            self.connection.close()
+            self.singsock.close()
             self.sever()
 
     def sever(self):
         self.closed = True
-        if self.Encoder.connections.has_key(self.connection):
-            del self.Encoder.connections[self.connection]
+        if self.Encoder.connections.has_key(self.singsock):
+            del self.Encoder.connections[self.singsock]
 
         if self.complete:
             self.connecter.connection_lost(self)
@@ -216,7 +216,7 @@ class Connection:    # OverlaySocket, a better name for it?
 
     def send_message_raw(self, message):
         if not self.closed:
-            self.connection.write(message)
+            self.singsock.write(message)
 
     def data_came_in(self, connection, s):
         self.Encoder.measurefunc(len(s))
@@ -242,13 +242,13 @@ class Connection:    # OverlaySocket, a better name for it?
                 return
             self.next_len, self.next_func = x
 
-    def connection_lost(self, connection):
+    def connection_lost(self, singsock):
         if DEBUG:
             print >> sys.stderr,"olencoder: connection_lost", self.dns, ctime(time())
-        if self.Encoder.connections.has_key(connection):
+        if self.Encoder.connections.has_key(singsock):
             self.sever()
 
-    def connection_flushed(self, connection):
+    def connection_flushed(self, singsock):
         if self.complete:
             self.connecter.connection_flushed(self)
             
@@ -316,23 +316,26 @@ class OverlayEncoder:
              or id == self.my_id
              or self.banned.has_key(dns[0])):
             return True
-        for v in self.connections.values():    # avoid duplicated connectiion from a single ip
-            if v is None:
-                continue
-            if id and v.id == id:
-                return True
-            ip = v.get_ip(True)
-            if ip != 'unknown' and ip == dns[0]:    # forbid to setup multiple connection on overlay swarm
-                if DEBUG:
-                    print >> sys.stderr,"olencoder: Using existing connection to",dns
-                return True
+        ## Arno: there is something wrong here, SecureOverlay thinks there is
+        ## no connection, but this encoder still thinks there is sometimes.
+        ##
+        #for v in self.connections.values():    # avoid duplicated connectiion from a single ip
+        #    if v is None:
+        #        continue
+        #    if id and v.id == id:
+        #        return True
+        #    ip = v.get_ip(True)
+        #    if ip != 'unknown' and ip == dns[0]:    # forbid to setup multiple connection on overlay swarm
+        #        if DEBUG:
+        #            print >> sys.stderr,"olencoder: Using existing connection to",dns
+        #        return True
         try:
             if DEBUG:
                 print >> sys.stderr,"olencoder: Setting up new connection to", dns, ctime(time())
-            c = self.raw_server.start_connection(dns)
-            con = Connection(self, c, id, dns = dns)
-            self.connections[c] = con
-            c.set_handler(con)
+            singsock = self.raw_server.start_connection(dns)
+            con = Connection(self, singsock, id, dns = dns)
+            self.connections[singsock] = con
+            singsock.set_handler(con)
         except socketerror:
             return False
         return True
