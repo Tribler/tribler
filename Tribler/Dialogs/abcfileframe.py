@@ -236,9 +236,9 @@ class FileList(CommonTriblerList):
         for i in xrange(len(self.data)):
             info = self.data[i]['info']
             self.data[i]['length'] = info.get('length', 0)
-            self.data[i]['content_name'] = info.get('name', '\xff')
+            self.data[i]['content_name'] = info.get('name', 'unknown')
             if self.data[i]['torrent_name'] == '':
-                self.data[i]['torrent_name'] = '\xff'
+                self.data[i]['torrent_name'] = 'unknown'
             self.data[i]['seeder'] = -1
             self.data[i]['leecher'] = -1
 
@@ -270,7 +270,7 @@ class FileList(CommonTriblerList):
         src = os.path.join(self.data[self.curr_idx]['torrent_dir'], self.data[self.curr_idx]['torrent_name'])
         if os.path.isfile(src):
             infohash = self.data[self.curr_idx]['infohash']
-            str = "Starts downloading " + showInfoHash(infohash)
+            str = "Start downloading " + showInfoHash(infohash) + "?"
             dlg = wx.MessageDialog(self, str,
                                    'Click and Download',
                                    #wx.OK | wx.ICON_INFORMATION
@@ -278,7 +278,7 @@ class FileList(CommonTriblerList):
                                    )
             result = dlg.ShowModal()
             dlg.Destroy()
-            if result == 5103:
+            if result == wx.ID_YES:
                 src = os.path.join(self.data[self.curr_idx]['torrent_dir'], self.data[self.curr_idx]['torrent_name'])
                 if os.path.isfile(src):
                     self.parent.clickAndDownload(src)
@@ -292,9 +292,15 @@ class MyPreferencePanel(wx.Panel):
         self.mypref_db = frame.mypref_db
         self.torrent_db = frame.torrent_db
         wx.Panel.__init__(self, parent, -1)
-        
+
+        mainbox = wx.BoxSizer(wx.VERTICAL)
         self.list=MyPreferenceList(self, frame.window_size)
-        self.Fit()
+        mainbox.Add(self.list, 1, wx.EXPAND|wx.ALL, 5)
+        label = wx.StaticText(self, -1, "Right click on a torrent to assign a 1--5 star rating")
+        mainbox.Add(label, 0, wx.ALIGN_CENTER_VERTICAL)
+        self.SetSizer(mainbox)
+        self.SetAutoLayout(True)
+        #self.Fit()
         self.Show(True)
         
 
@@ -307,8 +313,14 @@ class FilePanel(wx.Panel):
         self.torrent_db = frame.torrent_db
         wx.Panel.__init__(self, parent, -1)
         
+        mainbox = wx.BoxSizer(wx.VERTICAL)
         self.list=FileList(self, frame.window_size)
-        self.Fit()
+        mainbox.Add(self.list, 1, wx.EXPAND|wx.ALL, 5)
+        label = wx.StaticText(self, -1, "Double click on a torrent to start downloading")
+        mainbox.Add(label, 0, wx.ALIGN_CENTER_VERTICAL)
+        self.SetSizer(mainbox)
+        self.SetAutoLayout(True)
+        #self.Fit()
         self.Show(True)
         
     def clickAndDownload(self, src):
@@ -336,10 +348,10 @@ class ABCFileFrame(wx.Frame):
         self.notebook = wx.Notebook(self, -1)
 
         self.filePanel = FilePanel(self, self.notebook)
-        self.notebook.AddPage(self.filePanel, "All File List")
+        self.notebook.AddPage(self.filePanel, "Recommended Torrents")
 
         self.myPreferencePanel = MyPreferencePanel(self, self.notebook)
-        self.notebook.AddPage(self.myPreferencePanel, "My Preference List")
+        self.notebook.AddPage(self.myPreferencePanel, "My Download History")
 
         topbox.Add(self.notebook, 1, wx.EXPAND|wx.ALL, 5)
 

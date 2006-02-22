@@ -175,6 +175,8 @@ class TasteBuddyPanel(wx.Panel):
         colSizer = wx.BoxSizer(wx.VERTICAL)
         self.list=TasteBuddyList(self, frame.window_size)
         colSizer.Add(self.list, 1, wx.EXPAND|wx.ALL, 5)
+        label = wx.StaticText(self, -1, "Right click on a peer to add as a friend or delete it")
+        colSizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL)
         self.SetSizer(colSizer)
         self.SetAutoLayout(True)
         #self.Fit()

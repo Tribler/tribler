@@ -15,7 +15,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = True
+DEBUG = False
 
 def toint(s):
     return long(b2a_hex(s), 16)
@@ -114,7 +114,7 @@ class OverlayConnecter:
 
     def connection_flushed(self, connection):
         if DEBUG:
-            print >> sys.stderr,"___________ connection flused!!!"
+            print >> sys.stderr,"olconnctr: connection flushed!!!!"
         pass    
             
     def got_piece(self, i):

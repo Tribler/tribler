@@ -63,6 +63,8 @@ Short term:
   network traffic). A better solution is to do IP lookup on a separate
   thread.	
 
+	Arno, 2006-02-21: I now use Timer()s to fix this problem.
+
 * Also: make sure that earth map is updated while people are watching it.
 
 * If user is already downloading the torrent when asked to help by a friend
@@ -73,7 +75,7 @@ Short term:
 
 * Preferences: option to clear databases.
 
-* Put text in Dialogs/makefriends.py in lang file.
+* Put text in Tribler/Dialogs/*.py in lang file.
 
 * We now have *unauthenticated* PermID to the detail window's list of peers
   (i.e., spewList). This will need to be replaced with authenticated
