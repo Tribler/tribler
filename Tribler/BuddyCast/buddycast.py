@@ -688,7 +688,8 @@ class BuddyCastFactory:
             self.rawserver.add_task(self.doBuddyCast, self.buddycast_interval)
             self.rawserver.add_task(self.sync, self.sync_interval)
             self.rawserver.add_task(self.recommendateItems, self.recommendate_interval)
-        print >> sys.stderr, "buddycast: BuddyCast starts up"
+        if DEBUG:
+            print >> sys.stderr, "buddycast: BuddyCast starts up"
 
     # ----- message handle -----
     def handleMessage(self, permid, message):

@@ -3,7 +3,7 @@ from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler, PeerDBHandler
 from Tribler.utilities import sortList
 
 
-DEBUG = False    
+DEBUG = False
     
 class TorrentFetcher:
     def __init__(self, size=10, db_dir=''):
@@ -116,7 +116,8 @@ class TorrentCollecting:
     def startup(self):
         #self.job_queue.load()
         if self.registered:
-            print >> sys.stderr, "collect: Torrent collecting starts up"
+            if DEBUG:
+                print >> sys.stderr, "collect: Torrent collecting starts up"
             self.rawserver.add_task(self.collect, self.collect_interval)
     
     def collect(self):

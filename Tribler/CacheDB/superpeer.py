@@ -10,7 +10,7 @@ from CacheDBHandler import SuperPeerDBHandler
 
 superpeer_file = 'superpeer.txt'
 
-DEBUG = True
+DEBUG = False
 
 def init():
     ## FIXME
