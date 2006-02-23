@@ -1,5 +1,5 @@
 product_name = 'ABC'
-version_short = 'Tribler_ABC-3.3.0'
+version_short = 'Tribler_ABC-3.3.1'
 
 version = version_short + ' (' + product_name + ' - BitTornado 0.3.13'
 report_email = 'triblersoft@gmail.com'

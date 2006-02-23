@@ -432,7 +432,7 @@ class ABCFrame(wx.Frame):
             import wx.lib.hyperlink as hl
             self._hyper = hl.HyperLinkCtrl(self, wx.ID_ANY, "Tribler Main Page",
                                         URL="http://tribler.org/")
-            self._hyper.GotoURL("http://www.st.ewi.tudelft.nl/~jyang/tribler/",True, True)
+            self._hyper.GotoURL("http://tribler.org/test_version",True, True)
             
     def onFocus(self, event = None):
         if event is not None:

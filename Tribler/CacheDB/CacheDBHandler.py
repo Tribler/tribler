@@ -221,6 +221,14 @@ class PeerDBHandler(BasicDBHandler):
         
     def deletePeer(self, permid):
         self.peer_db._delete(permid)        
+        
+    def updateTimes(self, permid, key, change):
+        item = self.peer_db.getItem(permid)
+        if not item:
+            return
+        value = item[key]
+        value += change
+        self.peer_db.updateItem(permid, {key:value})
 
 
 class PreferenceDBHandler(BasicDBHandler):

@@ -297,6 +297,9 @@ class DataHandler:
                 old_sim = peer.get('similarity', 0)
                 new_sim = int(old_sim * sim_var)
             self.peer_db.updatePeer(p, 'similarity', new_sim)
+            
+    def increaseBuddyCastTimes(self, permid):
+        self.peer_db.updateTimes(permid, 'buddycast_times', 1)
         
     # --- read ---
     def getPeerPrefList(self, permid, num=0):
@@ -507,8 +510,17 @@ class BuddyCastCore:
         
         def _updateMessage(nbuddies):
             self.msg_tbs, self.msg_rps = self._separatePeersForMessage(nbuddies)
+            self.msg_tbs = _filterUnseenPeers(self.msg_tbs)
+            self.msg_rps = _filterUnseenPeers(self.msg_rps)
             msg_rps_ages = self.data_handler.getPeersValue(self.msg_rps, ['last_seen'])
             self.msg_rps_online = self._getOnlineProb(msg_rps_ages)
+        
+        def _filterUnseenPeers(peer_list):
+            conns = self.data_handler.getPeersValue(peer_list, ['connected_times'])
+            for i in xrange(len(conns)):
+                if conns[i] == 0:
+                    peer_list[i] = None
+            return filter(None, peer_list)
         
         if False:    #not self.data_handler.peerCacheChanged():    # FIXME: peerCacheChanged must be handled by PeerDBHandler
             if target is None:
@@ -521,7 +533,8 @@ class BuddyCastCore:
                 participants.append(target)
             self._removeItems(self.tb_list, participants)
             self._removeItems(self.rp_list, participants)
-            _updateCandidate()
+            if target is None:
+                _updateCandidate()
             _updateMessage(nbuddies)
             self.data_handler.setPeerCacheChanged(False)
 
@@ -701,7 +714,7 @@ class BuddyCastFactory:
         else:
             print >> sys.stderr, "buddycast: wrong message to buddycast", message
             
-    def gotBuddyCastMsg(self, msg, permid=None):
+    def gotBuddyCastMsg(self, msg, permid):
         def updateDB(prefxchg):
             TasteBuddy(self.data_handler, prefxchg).updateDB()
             for b in prefxchg['taste buddies']:
@@ -716,11 +729,13 @@ class BuddyCastFactory:
                 print >> sys.stderr, "buddycast: got buddycast msg", len(msg), buddycast_data['ip']
             validBuddyCastData(buddycast_data, self.msg_nmyprefs, self.msg_nbuddies, self.msg_npeers, self.msg_nbuddyprefs)    # RCP 2            
             if not self._checkPeerConsistency(buddycast_data, permid):
+               print >> sys.stderr, "buddycast: warning: buddycast's permid doens't match sender's permid"
                return
         except:
             print_exc()
             return
         target = buddycast_data['permid']
+        self.data_handler.increaseBuddyCastTimes(target)
         if self.data_handler.isRecvBlocked(target):    # RCP 1
             return
         self.data_handler.addToRecvBlockList(target, self.block_time)
@@ -728,9 +743,8 @@ class BuddyCastFactory:
         self.buddycast_job_queue.addJob(target, priority=1)
 
     def _checkPeerConsistency(self, buddycast_data, permid):
-        if permid is not None:
-            if permid != buddycast_data['permid']:
-                return False
+        if permid != buddycast_data['permid']:
+            return False
 #            raise RuntimeError, "buddycast message permid doesn't match: " + \
 #                hash(permid) + " " + hash(buddycast_data['permid'])
         return True

@@ -42,7 +42,7 @@ from Tribler.BuddyCast.buddycast import BuddyCastFactory
 class Utility:
     def __init__(self, abcpath):
         
-        self.version = "3.3.0"
+        self.version = "3.3.1"
         self.abcpath = abcpath
 
         # Find the directory to save config files, etc.

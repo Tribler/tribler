@@ -74,7 +74,7 @@ class Lang:
             return self.cache[label]
     
         if (label == 'version'):
-            return "3.3.0"
+            return "3.3.1"
         if (label == 'build'):
             return "Build 481"
         if (label == 'build_date'):

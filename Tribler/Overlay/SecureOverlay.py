@@ -425,6 +425,7 @@ class SecureOverlay:
     def _addConnection(self, connection):
         dns = connection.dns
         permid = connection.permid
+        self.peer_db.updateTimes(permid, 'connected_times', 1)
         auth_listen_port = connection.get_auth_listen_port()
         if DEBUG:
             print >> sys.stderr,"secover: add connection in secure overlay", dns, "auth listen port", auth_listen_port

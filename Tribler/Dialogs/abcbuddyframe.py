@@ -25,13 +25,15 @@ class TasteBuddyList(CommonTriblerList):
             ('IP', format, 15),
             ('Similarity', format, 8),
             ('Last Seen', format, 15),
-            ('# Preferences', format, 10)  
+            ('# Preferences', format, 10),
+            ('# Connected', format, 10),
+            ('# Exchanged', format, 10),
             ]
         return columns
 
     def getListKey(self):
         #return ['friend', 'name', 'ip', 'similarity', 'last_seen', 'npref']
-        return ['name', 'ip', 'similarity', 'last_seen', 'npref']
+        return ['name', 'ip', 'similarity', 'last_seen', 'npref', 'connected_times', 'buddycast_times']
 
     def getCurrentSortColumn(self):
         return 1
@@ -60,7 +62,7 @@ class TasteBuddyList(CommonTriblerList):
         
     def reloadData(self):
         peer_list = self.peer_db.getPeerList()
-        key = ['permid', 'name', 'ip', 'similarity', 'last_seen']
+        key = ['permid', 'name', 'ip', 'similarity', 'last_seen', 'connected_times', 'buddycast_times']
         tempdata = self.peer_db.getPeers(peer_list, key)
         self.friend_list = self.friend_db.getFriendList()
 

@@ -28,8 +28,10 @@ PeerDB - (MyFriendDB, PreferenceDB, OwnerDB)
         port: int (0)    # listening port, even behind firewall
         name: str ('unknown')
         last_seen: int (0)
-        #relability (uptime, IP fixed/changing)
         similarity: int (0)    # [0, 1000]
+        connected_times: int(0)
+        failed_times: int(0)
+        #relability (uptime, IP fixed/changing)
         #trust: int (0)    # [0, 100]
         #icon: str ('')    # name + '_' + permid[-4:]
     }
@@ -71,6 +73,7 @@ from random import random
 from sha import sha
 from copy import deepcopy
 from sets import Set
+from traceback import print_exc
 
 #from Tribler.utilities import isValidPermid, isValidInfohash
 
@@ -233,7 +236,12 @@ class BasicDB:    # Should we use delegation instead of inheritance?
         return self._data.items()
     
     def _size(self):
-        return len(self._data)
+        try:
+            return len(self._data)
+        except:
+            print_exc()
+            print >> sys.stderr, "Error: cachedb.BasicDB._size", type(self._data), self._data.__class__
+            return 0
     
     def close(self):
         try:
@@ -387,6 +395,8 @@ class PeerDB(BasicDB):
             'name':'',
             'last_seen':0,
             'similarity':0,
+            'connected_times':0,
+            'buddycast_times':0,
             #'trust':50,
             #'reliability':
             #'icon':'',

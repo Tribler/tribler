@@ -191,18 +191,18 @@ class FileList(CommonTriblerList):
     def getColumns(self):
         format = wx.LIST_FORMAT_CENTER
         columns = [
-            ('Torrent ID', format, 8),
             ('Torrent Name', format, 10),
             ('Content Name', format, 15),
             ('Recommendation', format, 8),
             ('Size', format, 7),
-            ('Seeder', format, 6),
-            ('Leecher', format, 6),  
+            ('Torrent ID', format, 8),
+#            ('Seeder', format, 6),
+#            ('Leecher', format, 6),  
             ]
         return columns
         
     def getListKey(self):
-        return ['infohash', 'torrent_name', 'content_name', 'relevance', 'length', 'seeder', 'leecher']
+        return ['torrent_name', 'content_name', 'relevance', 'length', 'infohash'] #, 'seeder', 'leecher']
         
     def getCurrentSortColumn(self):
         return 3
@@ -258,6 +258,7 @@ class FileList(CommonTriblerList):
         torrent_list = self.torrent_db.getOthersTorrentList()
         key = ['infohash', 'torrent_name', 'torrent_dir', 'relevance', 'info']
         self.data = self.torrent_db.getTorrents(torrent_list, key)
+        self.data = filter(lambda x:x['torrent_name'], self.data)
 
         for i in xrange(len(self.data)):
             info = self.data[i]['info']
