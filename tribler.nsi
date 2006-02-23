@@ -76,7 +76,7 @@ Section "!Main EXE" SecMain
  File LICENSE.txt
  File *.ico
  File readme.txt
- File superpeer.txt
+ File lang\superpeer.txt
  File tribler.exe.manifest
  File tribler.exe
  Delete "$INSTDIR\*.pyd"

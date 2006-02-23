@@ -20,7 +20,7 @@ class TasteBuddyList(CommonTriblerList):
     def getColumns(self):
         format = wx.LIST_FORMAT_CENTER
         columns = [
-            #('Friend', format, 5),
+            ('Friend', format, 5),
             ('Name', format, 10),
             ('IP', format, 15),
             ('Similarity', format, 8),
@@ -33,7 +33,7 @@ class TasteBuddyList(CommonTriblerList):
 
     def getListKey(self):
         #return ['friend', 'name', 'ip', 'similarity', 'last_seen', 'npref']
-        return ['name', 'ip', 'similarity', 'last_seen', 'npref', 'connected_times', 'buddycast_times']
+        return ['friend', 'name', 'ip', 'similarity', 'last_seen', 'npref', 'connected_times', 'buddycast_times']
 
     def getCurrentSortColumn(self):
         return 1
@@ -60,16 +60,21 @@ class TasteBuddyList(CommonTriblerList):
             return friendly_time(original_data)
         return str(original_data)
         
+        
     def reloadData(self):
         peer_list = self.peer_db.getPeerList()
         key = ['permid', 'name', 'ip', 'similarity', 'last_seen', 'connected_times', 'buddycast_times']
         tempdata = self.peer_db.getPeers(peer_list, key)
+        for i in xrange(len(tempdata)):
+            if tempdata[i]['connected_times'] == 0 and tempdata[i]['buddycast_times'] == 0:
+                tempdata[i] = None
+        tempdata = filter(None, tempdata)        
         self.friend_list = self.friend_db.getFriendList()
 
         ## Arno: to make GUI updates simpler, don't show friends in peerlist
         self.data = []
         for peer in tempdata:
-            if peer['permid'] not in self.friend_list:
+            if peer['permid']:
                 self.data.append(peer)
 
         for i in xrange(len(self.data)):
@@ -104,8 +109,8 @@ class TasteBuddyList(CommonTriblerList):
                 
         if add_friend:
             menu.Append(self.addFriendID, "Add the peer as your friend")
-        #if delete_friend:
-        #    menu.Append(self.deleteFriendID, "Remove the peer from your friend list")
+        if delete_friend:
+            menu.Append(self.deleteFriendID, "Remove the peer from your friend list")
         menu.Append(self.deletePeerID, "Delete the peer")
             
         self.PopupMenu(menu, event.GetPosition())
@@ -116,13 +121,15 @@ class TasteBuddyList(CommonTriblerList):
         for i in selected:
             self.addFriend(i)
         self.parent.reaction()
+        self.Update()
 
     def addFriend(self, curr_idx):
         if not self.data[curr_idx]['friend']:
             permid = self.data[curr_idx]['permid']
             self.data[curr_idx]['friend'] = True
-            #self.SetStringItem(curr_idx, 0, '*')
+            self.SetStringItem(curr_idx, 0, '*')
             self.friend_db.addFriend(permid)
+        self.loadList()
 
     def OnDeleteFriend(self, event=None):
         selected = self.getSelectedItems()
@@ -149,7 +156,7 @@ class TasteBuddyList(CommonTriblerList):
             peer['friend'] = False
             self.SetStringItem(curr_idx, 0, '')
             self.friend_db.deleteFriend(permid)
-#        self.parent.parent.friendPanel.deleteFriend(permid)
+        self.parent.frame.friendsPanel.removeFriend(permid)
         
     def OnDeletePeer(self, event=None):
         curr_idx = self.getSelectedItems()
@@ -240,7 +247,7 @@ class ABCBuddyFrame(wx.Frame):
     def addPanels(self):
         self.addFriendsPanel()
         self.addPeerPanel()
-
+        
     def addFriendsPanel(self):
         self.friendsPanel = ManageFriendsPanel(self.notebook, self.utility, self)
         self.notebook.InsertPage(0,self.friendsPanel, self.utility.lang.get('managefriends'))

@@ -47,9 +47,10 @@ class SuperPeerList:
         if not filename:
             filename = self.superpeer_file
         try:
-            file = open(filename, "r")
+            filepath = os.path.abspath(filename)
+            file = open(filepath, "r")
         except IOError:
-            print >> sys.stderr, "cannot open superpeer file", filename
+            print >> sys.stderr, "cannot open superpeer file", filepath
             return []
             
         superpeers = file.readlines()

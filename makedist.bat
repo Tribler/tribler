@@ -11,14 +11,14 @@ copy %PYTHONPATH%\msvcp60.dll dist\tribler
 copy SSLEAY32.dll dist\tribler
 copy LIBEAY32.dll dist\tribler
 copy heading.bmp dist\tribler
-copy superpeer.txt dist\tribler
+mkdir dist\tribler\Lang
+copy superpeer.txt dist\tribler\Lang
 mkdir dist\tribler\icons
 copy icons\*.bmp dist\tribler\icons
 mkdir dist\tribler\icons\mugshots
 copy icons\mugshots\* dist\tribler\icons\mugshots
 copy icons\*.jpg dist\tribler\icons
-mkdir dist\tribler\lang
-copy lang\*.lang dist\tribler\lang
+copy Lang\*.lang dist\tribler\Lang
 cd dist
 move abc.exe tribler.exe
 move *.* tribler

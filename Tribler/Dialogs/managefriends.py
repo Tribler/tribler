@@ -225,6 +225,7 @@ class FriendList(wx.ListCtrl):
         self.utility = parent.utility
 
         self.SetImageList(imgList,wx.IMAGE_LIST_SMALL)
+        self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnActivated)
         self.loadList()
 
     def loadList(self):
@@ -246,9 +247,14 @@ class FriendList(wx.ListCtrl):
             self.addItem(i,friend)
             i += 1
 
+    def OnActivated(self, event):
+        self.parent.editFriend(event)
+
     def addItem(self,i,friend):
         if self.type != wx.LC_REPORT:
             label = friend['name']
+            if not label:
+                label = friend['ip']
             self.InsertImageStringItem(i,label,friend['tempiconindex'])
         else:
             self.InsertStringItem(i, friend['name'])

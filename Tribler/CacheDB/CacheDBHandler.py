@@ -74,10 +74,11 @@ class SuperPeerDBHandler(BasicDBHandler):
         if not isinstance(superpeer, dict) or 'permid' not in superpeer:
             return
         permid = superpeer.pop('permid')
-        self.peer_db.updateItem(permid, superpeer)
-        self.peer_db._sync()
-        self.my_db.addSuperPeer(permid)
-        self.my_db._sync()     
+        if permid not in self.my_db.getSuperPeers():
+            self.peer_db.updateItem(permid, superpeer)
+            self.peer_db._sync()
+            self.my_db.addSuperPeer(permid)
+            self.my_db._sync()     
            
 
 class FriendDBHandler(BasicDBHandler):
@@ -101,10 +102,15 @@ class FriendDBHandler(BasicDBHandler):
         if not isinstance(friend, dict) or 'permid' not in friend:
             return
         permid = friend.pop('permid')
-        self.peer_db.updateItem(permid, friend)
-        self.peer_db._sync()
-        self.my_db.addFriend(permid)
-        self.my_db._sync()
+        if permid not in self.my_db.getFriends():
+            self.peer_db.updateItem(permid, friend)
+            self.peer_db._sync()
+            self.my_db.addFriend(permid)
+            self.my_db._sync()
+        else:
+            self.peer_db.updateItem(permid, friend, update_time=False)
+            self.peer_db._sync()
+            
             
     def getFriendList(self):
         return self.my_db.getFriends()

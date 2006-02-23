@@ -296,8 +296,11 @@ class FileList(CommonTriblerList):
         self.curr_idx = event.m_itemIndex
         src = os.path.join(self.data[self.curr_idx]['torrent_dir'], self.data[self.curr_idx]['torrent_name'])
         if os.path.isfile(src):
-            infohash = self.data[self.curr_idx]['infohash']
-            str = "Start downloading " + showInfoHash(infohash) + "?"
+            if self.data[self.curr_idx]['content_name']:
+                name = self.data[self.curr_idx]['content_name']
+            else:
+                name = showInfoHash(self.data[self.curr_idx]['infohash'])
+            str = "Start downloading " + name + "?"
             dlg = wx.MessageDialog(self, str,
                                    'Click and Download',
                                    #wx.OK | wx.ICON_INFORMATION
@@ -336,6 +339,7 @@ class MyPreferencePanel(wx.Panel):
 class FilePanel(wx.Panel):
     def __init__(self, frame, parent):
         self.parent = parent
+        self.frame = frame
         self.utility = frame.utility
         
         self.mypref_db = frame.mypref_db

@@ -117,12 +117,15 @@ class MakeFriendsDialog(wx.Dialog):
         #label.SetHelpText("")
         box.Add(label, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
 
-        self.icon_path = wx.TextCtrl(self, -1, "", size=(80,-1))
+        if editfriend is not None and editfriend.has_key('icon'):
+            icon = str(editfriend['icon'])
+        else:   
+            icon = ''
+        self.icon_path = wx.TextCtrl(self, -1, icon, size=(80,-1))
         self.icon_path.SetHelpText("Input full path of the friend's icon")
         box.Add(self.icon_path, 3, wx.ALIGN_CENTRE|wx.ALL, 5)
         
         iconbtn = wx.Button(self, -1, label="Browse")
-        iconbtn.SetHelpText("Select an icon")
         box.Add(iconbtn, 1, wx.ALIGN_CENTRE|wx.ALL, 5)
         self.Bind(wx.EVT_BUTTON, self.OnIconButton, iconbtn)
 
@@ -142,13 +145,11 @@ class MakeFriendsDialog(wx.Dialog):
         else:
             lbl = self.utility.lang.get('buttons_update')
         btn = wx.Button(self, wx.ID_OK, label=lbl)
-        btn.SetHelpText("The OK button completes the dialog")
         btn.SetDefault()
         btnsizer.AddButton(btn)
         self.Bind(wx.EVT_BUTTON, self.OnAddFriend, btn)
 
         btn = wx.Button(self, wx.ID_CANCEL)
-        btn.SetHelpText("The Cancel button cancels the dialog. (Cool, huh?)")
         btnsizer.AddButton(btn)
         btnsizer.Realize()
 
@@ -172,9 +173,9 @@ class MakeFriendsDialog(wx.Dialog):
         except:
             port = 0
             
-        if len(name) == 0:
-            self.show_inputerror( 'Name is empty.' )
-        elif len(permid) == 0:
+#        if len(name) == 0:
+#            self.show_inputerror( 'Name is empty.' )
+        if len(permid) == 0:
             self.show_inputerror( 'PermID must be given (in BASE64, single line)' )
         elif port == 0:
             self.show_inputerror( 'Port is not a number' )
@@ -200,7 +201,6 @@ class MakeFriendsDialog(wx.Dialog):
 
             fdb = FriendDBHandler()
             friend = {'permid':permid, 'ip':ip, 'port':port, 'name':name, 'icon':icon}
-
             if self.editfriend is not None:
                 if self.editfriend['permid'] != permid:
                     fdb.deleteFriend(self.editfriend['permid'])
@@ -222,7 +222,8 @@ class MakeFriendsDialog(wx.Dialog):
         # get current working directory
         # TODO: record the last opened path in config file
         try:
-            path = os.path.join(os.getcwd(), 'icons/mugshots')
+            path = os.path.join(os.getcwd(), 'icons')
+            path = os.path.join(path, 'mugshots')
         except Exception, msg:
             path = ''
             
@@ -251,7 +252,7 @@ class FriendList(wx.ListCtrl):
         self.utility = parent.utility
         style = wx.LC_REPORT|wx.LC_VRULES|wx.CLIP_CHILDREN
         wx.ListCtrl.__init__(self, parent, -1, size=wx.Size(300, 200), style=style)
-       
+        
        
 if __name__ == "__main__":
     class Utility:

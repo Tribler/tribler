@@ -517,8 +517,9 @@ class BuddyCastCore:
         
         def _filterUnseenPeers(peer_list):
             conns = self.data_handler.getPeersValue(peer_list, ['connected_times'])
+            buddycasts = self.data_handler.getPeersValue(peer_list, ['buddycast_times'])
             for i in xrange(len(conns)):
-                if conns[i] == 0:
+                if conns[i] == 0 and buddycasts[i] == 0:
                     peer_list[i] = None
             return filter(None, peer_list)
         
