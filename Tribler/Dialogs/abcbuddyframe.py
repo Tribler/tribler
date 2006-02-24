@@ -120,7 +120,7 @@ class TasteBuddyList(CommonTriblerList):
         selected = self.getSelectedItems()
         for i in selected:
             self.addFriend(i)
-        self.parent.reaction()
+        self.parent.phoenix()
         self.Update()
 
     def addFriend(self, curr_idx):
@@ -135,7 +135,7 @@ class TasteBuddyList(CommonTriblerList):
         selected = self.getSelectedItems()
         for i in selected:
             self.deleteFriend(i)
-        self.parent.reaction()        
+        self.parent.phoenix()        
 
     def externalDeleteFriend(self, permid):
         idx = -1
@@ -156,7 +156,6 @@ class TasteBuddyList(CommonTriblerList):
             peer['friend'] = False
             self.SetStringItem(curr_idx, 0, '')
             self.friend_db.deleteFriend(permid)
-        self.parent.frame.friendsPanel.removeFriend(permid)
         
     def OnDeletePeer(self, event=None):
         curr_idx = self.getSelectedItems()
@@ -169,7 +168,7 @@ class TasteBuddyList(CommonTriblerList):
             self.DeleteItem(i-j)
             self.data.pop(i-j)
             j += 1
-        self.parent.reaction()
+        self.parent.phoenix()
         
 
 class TasteBuddyPanel(wx.Panel):
@@ -191,19 +190,19 @@ class TasteBuddyPanel(wx.Panel):
         #self.Fit()
         self.Show(True)
 
-    def reaction(self):
-        self.frame.reaction()
+    def phoenix(self):
+        self.frame.phoenix()
 
-class ABCBuddyFrame(wx.Frame):
-    def __init__(self, parent):
+class ABCBuddyDialog(wx.Dialog):
+    def __init__(self, parent, action):
         self.parent = parent
-        self.parent.utility.abcbuddyframe = self
+        self.action = action
         self.utility = self.parent.utility
 
         width = 640
         height = 300
         self.window_size = wx.Size(width, height)
-        wx.Frame.__init__(self, None, -1, self.utility.lang.get('managefriendspeers'), size=wx.Size(width+20, height+60))
+        wx.Dialog.__init__(self, None, -1, self.utility.lang.get('managefriendspeers'), size=wx.Size(width+20, height+60))
        
         self.friend_db = FriendDBHandler()
         self.peer_db = PeerDBHandler()
@@ -231,7 +230,7 @@ class ABCBuddyFrame(wx.Frame):
         self.SetSizerAndFit(mainbox)
 
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
-        self.Show()
+        ##self.Show()
 
     def updateBuddy(self):
         self.tasteBuddyPanel.list.loadList()
@@ -240,9 +239,7 @@ class ABCBuddyFrame(wx.Frame):
         self.tasteBuddyPanel.list.externalDeleteFriend(permid)
         
     def OnCloseWindow(self, event = None):
-        self.parent.utility.frame.buddyFrame = None
-        self.parent.utility.abcbuddyframe = None
-        self.Destroy()        
+        self.EndModal(wx.ID_OK)
 
     def addPanels(self):
         self.addFriendsPanel()
@@ -257,8 +254,12 @@ class ABCBuddyFrame(wx.Frame):
         self.notebook.InsertPage(1,self.tasteBuddyPanel, self.utility.lang.get('viewpeerlist'))
 
     def reaction(self):
-        cursel = self.notebook.GetSelection()
-        self.notebook.DeletePage(0)
-        self.addFriendsPanel()
-        if cursel != -1:
-            self.notebook.SetSelection(cursel)
+        """ Called by ManageFriendsPanel"""
+        self.phoenix()
+
+    def phoenix(self):
+        """ Easiest way of keeping the info presented to the user up to date:
+            build a new window
+        """
+        self.EndModal(wx.ID_OK)
+        self.action.reaction()

@@ -363,7 +363,6 @@ class FilePanel(wx.Panel):
 class ABCFileFrame(wx.Frame):
     def __init__(self, parent):
         self.utility = parent.utility
-        self.utility.abcfileframe = self
         
         width = 600
         height = 500
