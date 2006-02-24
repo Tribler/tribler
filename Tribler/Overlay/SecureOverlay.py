@@ -30,6 +30,7 @@ from Tribler.CacheDB.CacheDBHandler import PeerDBHandler
 from Tribler.Overlay.permid import show_permid
 from BitTornado.BT1.MessageID import CANCEL, getMessageName
 from Tribler.utilities import *
+from Tribler.__init__ import GLOBAL
 
 try:
     True
@@ -420,6 +421,8 @@ class SecureOverlay:
         dns = self._addConnection(connection)
         if dns:
             self.subject_manager.notifySubject(dns)
+            if GLOBAL.superpeer_log:
+                write_superpeer_log('connectionMade', connection)
         self.release()    
 
     def _addConnection(self, connection):
@@ -486,6 +489,8 @@ class SecureOverlay:
             dns = self.connection_list[permid]['dns']
             del self.connection_list[permid]
             # TODO: remove subject?
+        if GLOBAL.superpeer_log:
+            write_superpeer_log('connectionLost', connection)
         self.release()
 
     def connectPeer(self, dns):    # called by task
@@ -499,12 +504,17 @@ class SecureOverlay:
         self.acquire()
         connection = self._findConnByPermid(permid)
         if connection:
+            if GLOBAL.superpeer_log:
+                write_superpeer_log('sendMessage', permid, message)
             self._extendExpire(permid)
             self.overlayswarm.sendMessage(connection, message)
+        
         self.release()
 
     def gotMessage(self, permid, message):    # connection is type of Connecter.Connection 
-        self.acquire()        
+        self.acquire()
+        if GLOBAL.superpeer_log:
+            write_superpeer_log('gotMessage', permid, message)
         t = message[0]
         if t == CANCEL:    # the only message handled by secure overlay
             self._closeConnection(permid)
@@ -525,6 +535,11 @@ class SecureOverlay:
         self.lock.release()
 
 
+def write_superpeer_log(id, conn_permid, msg=''):
+    if isinstance(conn_permid, str):
+        pass    # TODO: permid, msg
+    else:
+        pass    # connection
 
 def test():            
     so = SecureOverlay.getInstance()
