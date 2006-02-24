@@ -24,8 +24,8 @@ MAX_INCOMPLETE = 8
 protocol_name = 'BitTorrent protocol'
 # Enable Tribler extensions:
 # Left-most bit = Azureus Enhanced Messaging Protocol (AEMP)
-# Left+42 bit = Tribler Overlay swarm extension
-# Left+43 bit = Tribler Simple Merkle Hashes extension
+# Left+42 bit = Tribler Simple Merkle Hashes extension
+# Left+43 bit = Tribler Overlay swarm extension
 # Right-most bit = BitTorrent DHT extension
 #option_pattern = chr(0)*8
 option_pattern = '\x00\x00\x00\x00\x00\x30\x00\x00' 
@@ -175,7 +175,7 @@ class Connection:    # OverlaySocket, a better name for it?
             if cur_ver < CurrentVersion and \
                cur_ver not in SupportedVersions:   # the other's version is not supported
                 return False
-            if cur_ver < CurretVersion:     # set low version as our version
+            if cur_ver < CurrentVersion:     # set low version as our version
                 self.overlay_version = cur_ver
         return True
 

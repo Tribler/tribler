@@ -29,8 +29,8 @@ MAX_INCOMPLETE = 8
 protocol_name = 'BitTorrent protocol'
 # Enable Tribler extensions:
 # Left-most bit = Azureus Enhanced Messaging Protocol (AEMP)
-# Left+42 bit = Tribler Overlay swarm extension
-# Left+43 bit = Tribler Simple Merkle Hashes extension
+# Left+42 bit = Tribler Simple Merkle Hashes extension
+# Left+43 bit = Tribler Overlay swarm extension
 # Right-most bit = BitTorrent DHT extension
 #option_pattern = chr(0)*8
 option_pattern = '\x00\x00\x00\x00\x00\x30\x00\x00'
