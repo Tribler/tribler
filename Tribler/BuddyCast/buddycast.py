@@ -724,6 +724,7 @@ class BuddyCastFactory:
                 RandomPeer(self.data_handler, p).updateDB()
         
         try:
+            print "----->>>", msg
             buddycast_data = bdecode(msg)
             #print_dict(buddycast_data)
             if DEBUG:
@@ -769,7 +770,7 @@ class BuddyCastFactory:
             worker.work()
             del worker
         else:
-            if DEBUG:
+            if DEBUG == 2:
                 print >> sys.stderr, "buddycast: no peer to do buddycast"
 
     def _createWorker(self, target=None):

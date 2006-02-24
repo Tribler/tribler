@@ -3,6 +3,7 @@
 
 from socket import inet_aton, gethostbyname
 from time import time, strftime, gmtime
+from base64 import encodestring
 import sys
 
 STRICT = False
@@ -77,6 +78,12 @@ def isValidName(name):
     except:
         return False
     
+def show_permid(permid):
+    # Full BASE64-encoded 
+    return encodestring(permid).replace("\n","")
+    # Short digest
+    ##return sha(permid).hexdigest()
+
     
 def print_prefxchg_msg(prefxchg_msg):
     def show_permid(permid):

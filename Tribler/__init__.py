@@ -47,6 +47,8 @@ class GLOBAL:
     do_das_test = 0
     do_buddycast_interval = 15
     do_torrent_collecting = 1
+    superpeer_log = ''
+    buddycast_log = ''
     config_dir = '.'+product_name
     
 myinfo = {}

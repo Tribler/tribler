@@ -19,7 +19,7 @@ the task's permid
 - If the target is (ip, port), connect directly and record the peer's permid later on.
 """
 
-from time import time
+from time import time, ctime
 from socket import inet_aton, gethostbyname
 from traceback import print_exc, print_stack
 from threading import RLock, currentThread
@@ -427,6 +427,7 @@ class SecureOverlay:
         permid = connection.permid
         self.peer_db.updateTimes(permid, 'connected_times', 1)
         auth_listen_port = connection.get_auth_listen_port()
+        #print "-----------", show_permid(permid), dns, auth_listen_port, int(time())
         if DEBUG:
             print >> sys.stderr,"secover: add connection in secure overlay", dns, "auth listen port", auth_listen_port
         #

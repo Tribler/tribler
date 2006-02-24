@@ -130,7 +130,6 @@ class OverlaySwarm:
         if DEBUG:
             print >> sys.stderr,"overlay: Bare connection",connection.get_myip(),connection.get_myport(),"to",connection.get_ip(),connection.get_port(),"reported by thread",currentThread().getName()
         
-
         #def c(conn = connection):
         #""" Start permid exchange and challenge/response validation """
         if not connection or self.crs.has_key(connection) and self.crs[connection]:
