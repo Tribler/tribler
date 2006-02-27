@@ -318,7 +318,10 @@ class MyInfoDialog(wx.Dialog):
             ip = myinfo['ip']
         permid_txt = self.utility.lang.get('permid')+": "+permid_for_user(myinfo['permid'])
         ip_txt = self.utility.lang.get('ipaddress')+": "+ip
-        port_txt = self.utility.lang.get('portnumber')+" "+str(self.utility.controller.listen_port)
+
+        # port = self.utility.controller.listen_port
+        port = self.utility.config.Read('minport', 'int')
+        port_txt = self.utility.lang.get('portnumber')+" "+str(port)
 
         if True:
             # Make it copy-and-paste able

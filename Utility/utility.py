@@ -345,6 +345,7 @@ class Utility:
              'enabledlhelp': '1',  
              'enabledlcollecting': '1',
              'minport': '6881',
+             'myname': '',
 #            'skipcheck': '0'
         }
 

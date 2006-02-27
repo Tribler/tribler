@@ -36,8 +36,6 @@ for subver in version_short.split('-')[1].split('.'):
 _idprefix += ('-' * (6-len(_idprefix)))
 _idrandom = [None]
 
-my_ip = ''
-
 class GLOBAL:
     do_cache = 1
     do_overlay = 1
@@ -61,7 +59,6 @@ def is_valid_ip(ip):
     return True
 
 def load_myinfo(myinfo):    # TODO: load more personal infomation
-    global my_ip
     my_permid = str(permid._ec_keypair.pub().get_der())
     name = socket.gethostname()
     host = socket.gethostbyname_ex(name)

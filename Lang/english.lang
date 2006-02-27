@@ -408,6 +408,7 @@ triblersetting  = "Tribler"
 enablerecommender = "Enable Recommender"
 enabledlhelp     = "Enable Download Booster"
 enabledlcollecting = "Enable Torrents Collecting"
+myname		   = "My name (as broadcast to others):"
 setdefaultfolder = "Set default download folder"
 stripedlist 	= "Striped list"
 

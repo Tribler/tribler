@@ -12,6 +12,8 @@ from ABC.GUI.menu import MenuDialog
 from Utility.configreader import ConfigReader
 from Utility.constants import * #IGNORE:W0611
 
+from Tribler.CacheDB.CacheDBHandler import MyDBHandler
+
 
 ################################################################
 #
@@ -1309,6 +1311,11 @@ class TriblerPanel(ABCOptionPanel):
         sizer.Add(self.collect_enable, 0, wx.ALIGN_LEFT|wx.ALL, 5)
         sizer.Add(wx.StaticText(self, -1, self.utility.lang.get('restartabc')), 0, wx.ALIGN_CENTER_VERTICAL)
 
+        name_box = wx.BoxSizer(wx.HORIZONTAL)
+        self.myname = wx.TextCtrl(self, -1, "")
+        name_box.Add(wx.StaticText(self, -1, self.utility.lang.get('myname')), 0, wx.ALIGN_CENTER_VERTICAL)
+        name_box.Add(self.myname, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        sizer.Add(name_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
         self.initTasks()
         
     def loadValues(self, Read = None):
@@ -1318,11 +1325,18 @@ class TriblerPanel(ABCOptionPanel):
         self.rec_enable.SetValue(Read('enablerecommender', "boolean"))
         self.dlhelp_enable.SetValue(Read('enabledlhelp', "boolean"))
         self.collect_enable.SetValue(Read('enabledlcollecting', "boolean"))
+
+        self.my_db = MyDBHandler()
+        name = self.my_db.get('name', '')
+        self.myname.SetValue(name)
               
     def apply(self):       
         self.utility.config.Write('enablerecommender', self.rec_enable.GetValue(), "boolean")
         self.utility.config.Write('enabledlhelp', self.dlhelp_enable.GetValue(), "boolean")          
         self.utility.config.Write('enabledlcollecting', self.collect_enable.GetValue(), "boolean")          
+
+        name = self.myname.GetValue()
+        self.my_db.put('name',name)
 
 
 ################################################################
