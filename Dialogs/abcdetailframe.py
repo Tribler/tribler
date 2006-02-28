@@ -665,49 +665,16 @@ class EarthPanel(wx.Panel):
     points one of the peers, it shows the information of this peer 
     """
 
-    class PopupInfoWindow(wx.PopupWindow):
-        """Adds a bit of text and mouse movement to the wx.PopupWindow"""
-        
+    class PopupInfoWindow(wx.TipWindow):
         def __init__(self, parent, utility, peer, style = wx.SIMPLE_BORDER, colour = "CADET BLUE"):
-            wx.PopupWindow.__init__(self, parent, style)
-            
-            self.SetBackgroundColour(colour)
             self.utility = utility
             self.peer = peer
-            self.enter = False
+            text = self.getPeerInfo()
+            xy = parent.ClientToScreenXY(0,0)
+            rect = wx.Rect(xy[0]-10,xy[1]-10,20,20)
+            wx.TipWindow.__init__(self, parent, text, 1000, rect )
+            self.SetBackgroundColour(colour)
             
-            self.info = self.getPeerInfo()
-            try:
-                st = wx.StaticText(self, -1, self.info, pos=(10,10))
-            except:
-                self.peer.ip_info['city'] = ''
-                self.info = self.getPeerInfo()
-                try:
-                    st = wx.StaticText(self, -1, self.info, pos=(10,10))
-                except:
-    #                print "detailframe: error in getPeerInfo", self.peer.ip, self.info
-                    self.peer.ip_info = no_info
-                    self.info = self.getPeerInfo()
-                    st = wx.StaticText(self, -1, self.info, pos=(10,10))
-    
-            sz = st.GetBestSize()
-            self.SetSize( (sz.width+20, sz.height+20) )
-            
-            self.Bind(wx.EVT_LEFT_DOWN, self.OnMouseLeftDown)
-            self.Bind(wx.EVT_MOTION, self.OnMouseMotion)
-            self.Bind(wx.EVT_LEFT_UP, self.OnMouseLeftUp)
-            self.Bind(wx.EVT_ENTER_WINDOW, self.OnMouseEnter)
-            self.Bind(wx.EVT_LEAVE_WINDOW, self.OnMouseLeave)
-    
-            st.Bind(wx.EVT_LEFT_DOWN, self.OnMouseLeftDown)
-            st.Bind(wx.EVT_MOTION, self.OnMouseMotion)
-            st.Bind(wx.EVT_LEFT_UP, self.OnMouseLeftUp)
-            st.Bind(wx.EVT_ENTER_WINDOW, self.OnMouseEnter)
-            st.Bind(wx.EVT_LEAVE_WINDOW, self.OnMouseLeave)
-            
-            wx.CallAfter(self.Refresh)
-            #TODO: add drag panel, 'fix'/'float' button and 'close' button on the right-top 
-    
         # transfer peer info from dict into string
         def getPeerInfo(self):
     #        try:
@@ -759,56 +726,6 @@ class EarthPanel(wx.Panel):
             
             return info
             
-        def OnMouseLeftDown(self, event):
-            self.Refresh()
-            self.ldPos = event.GetEventObject().ClientToScreen(event.GetPosition())
-            self.wPos = self.ClientToScreen((0,0))
-            self.CaptureMouse()
-    
-        def OnMouseMotion(self, event):
-            if event.Dragging() and event.LeftIsDown():
-                try:
-                    dPos = event.GetEventObject().ClientToScreen(event.GetPosition())
-                    nPos = (self.wPos.x + (dPos.x - self.ldPos.x),
-                            self.wPos.y + (dPos.y - self.ldPos.y))
-                    self.Move(nPos)
-                except:
-                    pass
-    
-        def OnMouseLeftUp(self, event):
-            try:
-                self.ReleaseMouse()
-            except:
-                pass
-    
-        def OnMouseEnter(self, event):
-            self.enter = True
-            oldinfo = self.info
-    
-            self.info = self.getPeerInfo()
-            if oldinfo != self.info:
-                self.DestroyChildren()
-                try:
-                    st = wx.StaticText(self, -1, self.info, pos=(10,10))
-                except:
-                    self.peer.ip_info['city'] = ''
-                    self.info = self.getPeerInfo()
-                    try:
-                        st = wx.StaticText(self, -1, self.info, pos=(10,10))
-                    except:
-    #                    print "detailframe: error in getPeerInfo", self.peer.ip, self.info
-                        self.peer.ip_info = no_info
-                        self.info = self.getPeerInfo()
-                        st = wx.StaticText(self, -1, self.info, pos=(10,10))
-    
-            #TODO: update info -> record actived popup windows, update in abcengine
-    
-        def OnMouseLeave(self, event):
-            self.enter = False
-    #        time.sleep(0.5)     # delay a while before hide the window
-            self.Show(False)
-        
-        
     class PeerPoint(GenButton):
         """ The popup window used to display the infomaion of a peer """
         
