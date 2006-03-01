@@ -11,7 +11,6 @@ from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
 from Tribler.utilities import isValidInfohash
 from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler
-from base64 import b64encode
 
 # Python no recursive imports?
 # from overlayswarm import overlay_infohash

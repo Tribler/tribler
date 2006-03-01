@@ -1,7 +1,7 @@
 import wx
 import os
 import images
-from base64 import b64encode
+from base64 import encodestring
 from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler
 from Tribler.utilities import friendly_time, sort_dictlist
 from common import CommonTriblerList
@@ -16,7 +16,7 @@ def showInfoHash(infohash):
         return str(n)
     except:
         pass
-    return b64encode(infohash)
+    return encodestring(infohash).replace("\n","")
 #    try:
 #        return encodestring(infohash)
 #    except:

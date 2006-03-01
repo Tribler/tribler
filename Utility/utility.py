@@ -349,6 +349,10 @@ class Utility:
 #            'skipcheck': '0'
         }
 
+        if sys.platform != 'win32':
+            defaults['defaultfolder'] = '/tmp'
+            defaults['defaultmovedir']= '/tmp' 
+
         configfilepath = os.path.join(self.getConfigPath(), "abc.conf")
         self.config = ConfigReader(configfilepath, "ABC", defaults)
         #print self.config.items("ABC")
