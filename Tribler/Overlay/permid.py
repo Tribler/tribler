@@ -1,6 +1,7 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
 
+import sys
 import StringIO
 from sha import sha
 from base64 import encodestring
@@ -14,7 +15,7 @@ from BitTornado.BT1.MessageID import *
 DEBUG = False
 
 # Internal constants
-keypair_ecc_curve = EC.NID_sect233k1;
+keypair_ecc_curve = EC.NID_sect233k1
 num_random_bits = 1024*8 # bits
 
 # Protocol states

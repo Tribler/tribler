@@ -724,7 +724,8 @@ class BuddyCastFactory:
                 RandomPeer(self.data_handler, p).updateDB()
         
         try:
-            print "----->>>", msg
+            if DEBUG:
+                print "----->>>", repr(msg)
             buddycast_data = bdecode(msg)
             #print_dict(buddycast_data)
             if DEBUG:

@@ -42,24 +42,6 @@ DEBUG = True
 
 Length_of_permid = 0    # 0: no restriction
 
-def validIP(ip):
-    invalid_ip_heads = [
-        '0.',
-        '127.0.0.1',
-        '192.168.',
-        ]
-    try:
-        ip = gethostbyname(ip)
-        inet_aton(ip)
-        for iphead in invalid_ip_heads:
-            if ip.startswith(iphead):
-                raise RuntimeError, "local ip address behind NAT"
-    except:
-        if DEBUG:
-            print >> sys.stderr,"invalid ip", ip
-        return False
-    return True
-    
 def isValidDNS(dns):
     if isinstance(dns, tuple) and len(dns)==2 and \
        validIP(dns[0]) and isValidPort(dns[1]):
