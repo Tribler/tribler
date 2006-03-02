@@ -292,7 +292,7 @@ class BuddiesAction(ABCAction):
     def __init__(self, utility):
         ABCAction.__init__(self, 
                            utility, 
-                           'buddies.bmp', 
+                           'friends.bmp', 
                            'tb_buddy_short', 
                            menudesc = 'managefriends')
                            
@@ -311,7 +311,7 @@ class FilesAction(ABCAction):
     def __init__(self, utility):
         ABCAction.__init__(self, 
                            utility, 
-                           'files.bmp', 
+                           'recommend.bmp', 
                            'tb_file_short', 
                            menudesc = 'rtorrentdetail')
                            

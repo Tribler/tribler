@@ -10,12 +10,6 @@ from sha import *
 from BitTornado.bencode import *
 from Tribler.Overlay.permid import verify_torrent_signature
 
-NAME, EXT = splitext(basename(argv[0]))
-VERSION = '20030621'
-
-print '%s %s - decode BitTorrent metainfo files' % (NAME, VERSION)
-print
-
 if len(argv) == 1:
     print '%s file1.torrent file2.torrent file3.torrent ...' % argv[0]
     print
