@@ -197,6 +197,10 @@ defaults = [
         "run on super peer mode (0 = disabled)"),
     ('das_test', GLOBAL.do_das_test,
         "test buddycast on das2 (0 = disabled)"),
+    ('superpeer_log', GLOBAL.superpeer_log,
+        "log on super peer mode ('' = disabled)"),
+    ('buddycast_log', GLOBAL.buddycast_log,
+        "log buddycast raw data ('' = disabled)"),
     ('buddycast_interval', GLOBAL.do_buddycast_interval,
         "number of seconds to pause between exchanging preference with a peer in buddycast"),
     ]

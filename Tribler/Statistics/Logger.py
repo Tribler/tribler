@@ -79,7 +79,44 @@ class Logger:
             self.logfile.write('\n')
             self.logfile.flush()
             
+
+class SuperPeerLogger:
+    __single = None
     
+    def __init__(self):
+        if SuperPeerLogger.__single:
+            raise RuntimeError, "SuperPeerLogger is singleton"
+        SuperPeerLogger.__single = self
+
+    def getInstance(*args, **kw):
+        if SuperPeerLogger.__single is None:
+            SuperPeerLogger(*args, **kw)
+        return SuperPeerLogger.__single
+    getInstance = staticmethod(getInstance)
+        
+    def log(self, msg):
+        pass
+
+
+class BuddyCastLogger:
+    __single = None
+    
+    def __init__(self):
+        if BuddyCastLogger.__single:
+            raise RuntimeError, "BuddyCastLogger is singleton"
+        BuddyCastLogger.__single = self
+
+    def getInstance(*args, **kw):
+        if BuddyCastLogger.__single is None:
+            BuddyCastLogger(*args, **kw)
+        return BuddyCastLogger.__single
+    getInstance = staticmethod(getInstance)
+        
+    def log(self, msg):
+        pass
+
+
+            
 #if __name__ == '__main__':
 #    create_logger('test.log')
 #    get_logger().log(1, 'abc' + ' ' + str(['abc', 1, (2,3)]))

@@ -1,5 +1,5 @@
 ##################################################################
-# You can change language here, this is all ABC using variables
+# You can change language here, this is all Tribler using variables
 # Make sure that try to keep text length as the original text
 #
 # Note: text strings can be written as either:
@@ -8,7 +8,7 @@
 # stringname_line1 = "first line of a string"
 # stringname_line2 = "second line of a string"
 #
-# (ABC will automatically add the lines together)
+# (Tribler will automatically add the lines together)
 #
 ##################################################################
 
@@ -49,16 +49,16 @@ done 				= "Done"
 choosefiletosaveas  = "Choose file to save as, pick a partial download to resume"
 choosedirtosaveto 	= "Choose a directory to save to (pick a partial download to resume)"
 enterurl 			= "Enter the URL for the torrent you wish to add:"
-confirmmsg 			= "Do you want to close ABC ?"
+confirmmsg 			= "Do you want to close Tribler ?"
 confirm 			= "Confirm"
-aboutabc 			= "About ABC"
+aboutabc 			= "About Tribler"
 abcpreference 		= "Preferences"
 managefriendspeers         = "Manage Friends/Encountered Peer List"
 managefriends		= "Manage Friends"
 addfriend	      = "Add a friend"
 editfriend	      = "Edit a friend's info"
 viewpeerlist		= "View Encountered Peers"
-showabcwindow 		= "Show ABC Window"
+showabcwindow 		= "Show Tribler Window"
 error 				= "Error"
 warning 			= "Warning"
 cantconnectwebserver_line1 = "Can't connect to web server"
@@ -121,7 +121,7 @@ menu_file			= "&File"
 menuaction 			= "&Action"
 menutools 			= "&Tools"
 menuversion 		= "&Version"
-menuaboutabc 		= "&About ABC"
+menuaboutabc 		= "&About Tribler"
 menuaboutabcmsg 	= "See Credits"
 menuchecklatestversion = "&Check Latest Version"
 menuchecklatestversionmsg = "Check Latest Version"
@@ -166,7 +166,7 @@ tb_stop_long 	= "Stop torrent (release resources)"
 tb_queue_short 	= "Queue"
 tb_queue_long 	= "Force torrent into queue"
 tb_delete_short = "Remove torrent"
-tb_delete_long 	= "Remove torrent only from ABC list"
+tb_delete_long 	= "Remove torrent only from Tribler list"
 tb_spy_short 	= "Current Seed/Peer"
 tb_spy_long 	= "See current number of seed/peer of torrent on the tracker"
 tb_torrentdetail_short = "Torrent Details"
@@ -238,7 +238,7 @@ l_minute 		= "m"
 l_second 		= "s"
 
 ############################################
-# ABC Tweak
+# Tribler Tweak
 ############################################
 up 				= "Up"
 down 			= "Down"
@@ -250,7 +250,7 @@ columnwidth 	= "Column Width :"
 customizetoolbar = "Customize Toolbar"
 
 ##############################################
-# ABC Detail Frame
+# Tribler Detail Frame
 ##############################################
 
 networkinfo 	= "Network Info"
@@ -624,12 +624,12 @@ websetparam			= "Set Parameters"
 webgetparam			= "Get Parameters"
 priority 			= "Priority"
 webclearallcompleted = "Clear all completed"
-webautostart 		= "Auto start web service when launching ABC"
+webautostart 		= "Auto start web service when launching Tribler"
 startservice 		= "Start Service"
 stopservice 		= "Stop Service"
 warningportunder1024_line1 = "Ports below 1024 are normally used for system services"
 warningportunder1024_line2 = "Do you really want to use this port?"
-cantconnectabcwebinterface = "Unable to connect to ABC web service"
+cantconnectabcwebinterface = "Unable to connect to Tribler web service"
 
 ##############################################
 # Scrape Dialog
@@ -665,7 +665,7 @@ connectcalc_bottom 	= " * (Seeds + Peers) + "
 
 errorlanguagefile_line1 = "Your language file is missing at least one string."
 errorlanguagefile_line2 = "Please check to see if an updated version is available."
-restartabc 			= "(takes effect next time ABC is opened)"
+restartabc 			= "(takes effect next time Tribler is opened)"
 
 messagelog 			= "Message Log"
 clearlog 			= "Clear Log"
@@ -674,7 +674,7 @@ date 				= "Date"
 close_title 		= "Closing"
 
 noportavailable 	= "Couldn't find an available port to listen on"
-tryotherport        = "Would you like ABC to try using another port?"
+tryotherport        = "Would you like Tribler to try using another port?"
 
 column4_text 		= "Title"
 column5_text 		= "Progress"
@@ -724,8 +724,8 @@ upnp_1 				= "Mode 1 (Fast)"
 upnp_2 				= "Mode 2 (Slow)"
 
 associate 			= "Associate with .torrent files"
-notassociated_line1 = "ABC is not currently associated with .torrent files"
-notassociated_line2 = "Do you wish to use ABC to open .torrent files?"
+notassociated_line1 = "Tribler is not currently associated with .torrent files"
+notassociated_line2 = "Do you wish to use Tribler to open .torrent files?"
 
 savelog				= "Save Log"
 savelogas			= "Save log file as..."

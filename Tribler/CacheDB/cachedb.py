@@ -67,7 +67,7 @@ OwnerDB - (PeerDB, TorrentDB)
 
 """
 
-import os
+import os, sys
 from time import time, ctime
 from random import random
 from sha import sha
@@ -101,7 +101,7 @@ def setDBPath(db_dir = ''):
         try: 
             os.mkdir(db_dir)
         except os.error, msg:
-            print msg
+            print >> sys.stderr, "cachedb: cannot set db path:", msg
             db_dir = '.'
     return db_dir
 
@@ -139,7 +139,7 @@ def open_db(filename, db_dir='', filetype=db.DB_BTREE):
     try:
         d = dbshelve.open(path, filetype=filetype)
     except Exception, msg:
-        print >> sys.stderr,"cachedb: cannot open dbshelve on", path, msg
+        print >> sys.stderr, "cachedb: cannot open dbshelve on", path, msg
         d = dbshelve.open(filename, filetype=filetype)
     return d
 
@@ -240,7 +240,7 @@ class BasicDB:    # Should we use delegation instead of inheritance?
             return len(self._data)
         except:
             print_exc()
-            print >> sys.stderr, "Error: cachedb.BasicDB._size", type(self._data), self._data.__class__
+            print >> sys.stderr, "cachedb: cachedb.BasicDB._size error", type(self._data), self._data.__class__
             return 0
     
     def close(self):
@@ -353,7 +353,7 @@ class MyDB(BasicDB):
     def addFriend(self, permid):
         if isValidPermid(permid):
             if not 'friends' in self._data.keys():
-                print self._data.keys()
+                print >> sys.stderr, "cachedb: addFriend key error", self._data.keys()
             fr = self._data['friends']
             fr.add(permid)
             self._put('friends', fr)
