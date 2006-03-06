@@ -14,6 +14,29 @@ from BitTornado.BT1.MessageID import RESERVE_PIECES
 MAX_ROUNDS = 200
 DEBUG = True
 
+class SingleDownloadHelperInterface:
+    """ This interface should contain all methods that the PiecePiecker/Helper
+        calls on the SingleDownload class.
+    """
+    def __init__(self):
+        self.frozen_by_helper = False
+
+    def helper_set_freezing(self,val):
+        self.frozen_by_helper = val
+
+    def is_frozen_by_helper(self):
+        return self.frozen_by_helper
+
+    def is_choked(self):
+        pass
+
+    def helper_forces_unchoke(self):
+        pass
+
+    def _request_more(self):
+        pass
+
+
 class Helper:
     def __init__(self, torrent_hash, num_pieces, coordinator_permid, coordinator = None):
         self.secure_overlay = SecureOverlay.getInstance()

@@ -8,11 +8,19 @@ from httplib import HTTPConnection
 from urllib import quote
 from threading import Thread
 from BitTornado.__init__ import product_name,version_short
+# 2fastbt_
+from Tribler.toofastbt.Helper import SingleDownloadHelperInterface
+# _2fastbt
+
 try:
     True
 except:
     True = 1
     False = 0
+
+# 2fastbt_
+DEBUG = False
+# _2fastbt
 
 EXPIRE_TIME = 60 * 60
 
@@ -25,8 +33,13 @@ class haveComplete:
         return True
 haveall = haveComplete()
 
-class SingleDownload:
+# 2fastbt_
+class SingleDownload(SingleDownloadHelperInterface):
+# _2fastbt
     def __init__(self, downloader, url):
+# 2fastbt_
+        SingleDownloadHelperInterface.__init__(self)
+# _2fastbt
         self.downloader = downloader
         self.baseurl = url
         try:
@@ -79,15 +92,29 @@ class SingleDownload:
             return self.downloader.storage.is_unstarted(index)
 
     def download(self):
+# 2fastbt_
+        if DEBUG:
+            print "http-sdownload: download()"
+        if self.is_frozen_by_helper():
+            if DEBUG:
+                print "http-sdownload: blocked, rescheduling"
+            self.resched(1)
+            return
+# _2fastbt    
         self.cancelled = False
         if self.downloader.picker.am_I_complete():
             self.downloader.downloads.remove(self)
             return
-        self.index = self.downloader.picker.next(haveall, self._want)
+        self.index = self.downloader.picker.next(haveall, self._want, self)
+# 2fastbt_
+        if self.index is None and self.frozen_by_helper:
+            self.resched(0.01)
+            return
+# _2fastbt
         if ( self.index is None and not self.endflag
                      and not self.downloader.peerdownloader.has_downloaders() ):
             self.endflag = True
-            self.index = self.downloader.picker.next(haveall, self._want)
+            self.index = self.downloader.picker.next(haveall, self._want, self)
         if self.index is None:
             self.endflag = True
             self.resched()
@@ -189,8 +216,10 @@ class SingleDownload:
         success = True
         while self.requests:
             begin, length = self.requests.pop(0)
-            if not self.downloader.storage.piece_came_in(self.index, begin, 
-                            self.received_data[start:start+length]):
+# 2fastbt_
+            if not self.downloader.storage.piece_came_in(self.index, begin, [],
+                            self.received_data[start:start+length], length):
+# _2fastbt
                 success = False
                 break
             start += length
@@ -217,7 +246,16 @@ class SingleDownload:
             s += ','
         s += str(begin)+'-'+str(begin+length-1)
         return s
-        
+
+# 2fastbt_
+    def helper_forces_unchoke(self):
+        pass
+
+    def helper_set_freezing(self,val):
+        self.frozen_by_helper = val
+# _2fastbt
+
+
     
 class HTTPDownloader:
     def __init__(self, storage, picker, rawserver,

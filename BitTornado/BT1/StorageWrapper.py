@@ -695,7 +695,7 @@ class StorageWrapper:
         self.places[index] = index
         return False
 
-
+    ## Arno: don't think we need length here, FIXME 
     def piece_came_in(self, index, begin, hashlist, piece, length, source = None):
         assert not self.have[index]
         # Merkle: Check that the hashes are valid using the known root_hash

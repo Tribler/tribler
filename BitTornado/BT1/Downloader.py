@@ -7,6 +7,7 @@ from random import shuffle
 from BitTornado.clock import clock
 # 2fastbt_
 from Tribler.toofastbt.Logger import get_logger
+from Tribler.toofastbt.Helper import SingleDownloadHelperInterface
 # _2fastbt
 try:
     True
@@ -54,8 +55,13 @@ class BadDataGuard:
             self.stats.numgood += 1
             self.lastindex = index
 
-class SingleDownload:
+# 2fastbt_
+class SingleDownload(SingleDownloadHelperInterface):
+# _2fastbt
     def __init__(self, downloader, connection):
+# 2fastbt_
+        SingleDownloadHelperInterface.__init__(self)
+# _2fastbt
         self.downloader = downloader
         self.connection = connection
         self.choked = True
@@ -72,7 +78,6 @@ class SingleDownload:
         self.guard = BadDataGuard(self)
 # 2fastbt_
         self.helper = downloader.picker.helper
-        self.frozen_by_helper = False
 # _2fastbt
 
     def _backlog(self, just_unchoked):
@@ -134,14 +139,6 @@ class SingleDownload:
             if self.interested:
                 self._request_more(new_unchoke = True)
             self.last2 = clock()
-
-# 2fastbt_
-    def helper_forces_unchoke(self):
-        self.choked = False
-
-    def helper_set_freezing(self,val):
-        self.frozen_by_helper = val
-# _2fastbt
 
     def is_choked(self):
         return self.choked
@@ -224,11 +221,16 @@ class SingleDownload:
         self.downloader.check_complete(index)
         return self.downloader.storage.do_I_have(index)
 
+# 2fastbt_
+    def helper_forces_unchoke(self):
+        self.choked = False
+# _2fastbt
+
     def _request_more(self, new_unchoke = False):
 # 2fastbt_
         if DEBUG:
             print "Downloader: _request_more()"
-        if self.frozen_by_helper:
+        if self.is_frozen_by_helper():
             if DEBUG:
                 print "Downloader: blocked, returning"
             return
@@ -263,7 +265,7 @@ class SingleDownload:
                                self.downloader.too_many_partials(),
                                self.connection.connection.is_helper_con())
             if DEBUG:
-                print "sdownload: _request_more: next() returned",interest                               
+                print "Downloader: _request_more: next() returned",interest                               
 # _2fastbt
             if interest is None:
                 break
@@ -299,7 +301,7 @@ class SingleDownload:
                                    self.downloader.too_many_partials(),
                                    self.connection.connection.is_helper_con())
                 if DEBUG:                                   
-                    print "sdownload: _request_more: next()2 returned",interest
+                    print "Downloader: _request_more: next()2 returned",interest
 # _2fastbt
                 if interest is None:
                     d.send_not_interested()
