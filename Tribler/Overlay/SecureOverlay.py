@@ -120,7 +120,7 @@ class DNSOverlayTask:
             self.secure_overlay.sendMessage(self.permid, self.message_to_send)
             self.message_to_send = None
             if DEBUG:
-                print >> sys.stderr,"secover: dns task send message", self.dns
+                print >> sys.stderr,"secover: dns task send message", getMessageName(self.message_to_send[0]), self.dns
         self.unregister('done')
         
     def makeConnection(self):
@@ -220,7 +220,7 @@ class Subject:
         self.observers.remove(observer)
         
         if self.isEmpty():
-            self.subject_manager.unregisterSubject(self.dns)
+            self.subject_manager.unregisterSubject(self.dns, reason)
         
         
 class SubjectManager:
@@ -235,10 +235,10 @@ class SubjectManager:
         if not self.subjects.has_key(dns):
             self.subjects[dns] = Subject(dns, self)
                 
-    def unregisterSubject(self, dns):
-        #if DEBUG:
-        #    print >> sys.stderr,"secover: unregister subject", dns
+    def unregisterSubject(self, dns, reason):
         if self.subjects.has_key(dns) and self.subjects[dns].isEmpty():
+            if DEBUG:
+                print >> sys.stderr,"secover: unregister subject", dns, reason
             sbj = self.subjects.pop(dns)
             del sbj
             
@@ -303,8 +303,8 @@ class SecureOverlay:
         self.incoming_handler = IncomingMessageHandler()    # for incoming message
         self.peer_db = PeerDBHandler()
         self.connection_list = {}    # overlay connections. permid:{'c_conn': Connecter.Connection, 'expire':expire, 'dns':(ip, port)}
-        self.timeout = 20    # TODO: adjust it by firewall status. the value is smaller if no firewall
-        self.check_interval = 5
+        self.timeout = 300    # TODO: adjust it by firewall status. the value is smaller if no firewall
+        self.check_interval = 60
         self.my_db = MyDBHandler()
         self.permid = self.my_db.getMyPermid()
         self.ip = self.my_db.getMyIP()
@@ -450,7 +450,11 @@ class SecureOverlay:
                     ## Except that it potentially avoids a concurrency problem of
                     ## multiple threads writing to the same socket.
                     if DEBUG:
-                        print >> sys.stderr,"secover: addTask, adding task to rawserver",currentThread().getName()
+                        if message:
+                            msg_id = getMessageName(message[0])
+                        else:
+                            msg_id = ''
+                        print >> sys.stderr,"secover: add task to rawserver", msg_id, currentThread().getName()
                     self.overlayswarm.rawserver.add_task(task.start, 0)
                     ##task.start()
             except Exception,e:

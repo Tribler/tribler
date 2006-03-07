@@ -22,7 +22,7 @@ overlay_infohash = '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00
 
 from __init__ import CurrentVersion, LowestVersion, SupportedVersions
 
-DEBUG = True
+DEBUG = False
 
 def show(s):
     text = []
@@ -105,7 +105,7 @@ class OverlaySwarm:
             
     def sendMessage(self, connection, message):
         if DEBUG:
-            print >> sys.stderr,"overlay: send message", getMessageName(message[0]), "to", show_permid2(connection.permid)
+            print >> sys.stderr,"overlay: send message", getMessageName(message[0]), "to", connection.get_dns(), show_permid2(connection.permid)
         connection.send_message(message)
 
     def connectionMade(self, connection):
@@ -148,7 +148,7 @@ class OverlaySwarm:
         """ Handle message for overlay swarm and return if the message is valid """
 
         if DEBUG:
-            print >> sys.stderr, "overlay: Got",getMessageName(message[0]),"len",len(message), conn, `conn.permid`
+            print >> sys.stderr, "overlay: Got",getMessageName(message[0]),"len",len(message), show_permid2(conn.permid)
         
         if not conn:
             return False

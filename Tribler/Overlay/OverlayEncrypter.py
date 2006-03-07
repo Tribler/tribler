@@ -93,6 +93,11 @@ class Connection:    # OverlaySocket, a better name for it?
     def get_port(self, real=False):
         return self.singsock.get_port(real)
 
+    def get_dns(self):
+        if not self.dns:
+            self.dns = (self.get_ip(True), self.get_port(True))
+        return self.dns
+    
     def get_myip(self, real=False):
         return self.singsock.get_myip(real)
 
@@ -209,7 +214,7 @@ class Connection:    # OverlaySocket, a better name for it?
         if self.Encoder.connections.has_key(self.singsock):
             del self.Encoder.connections[self.singsock]
 
-        if self.complete:
+        if self.complete and self.connecter_conn:
             self.connecter.connection_lost(self)
         elif self.locally_initiated:
             incompletecounter.decrement()

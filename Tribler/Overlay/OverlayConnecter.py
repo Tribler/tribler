@@ -40,6 +40,11 @@ class Connection:
 
     def get_port(self, real=False):
         return self.connection.get_port(real)
+    
+    def get_dns(self):
+        if not self.dns:
+            self.dns = (self.get_ip(True), self.get_port(True))
+        return self.dns
 
     def get_myip(self, real=False):
         return self.connection.get_myip(real)
@@ -106,7 +111,8 @@ class OverlayConnecter:
     def connection_made(self, connection, dns=None):
         c = Connection(connection, self, dns)
         self.connections[connection] = c
-        print >> sys.stderr,"****olconnctr: connection_add", connection, dns, self.connections
+        if DEBUG:
+            print >> sys.stderr,"olconnctr: connection_made", connection, dns, self.connections
         return c
     
     def connection_lost(self, connection):

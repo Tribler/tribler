@@ -77,19 +77,20 @@ def isValidName(name):
     
 def show_permid(permid):
     # Full BASE64-encoded 
+    if not permid:
+        return ''
     return encodestring(permid).replace("\n","")
     # Short digest
     ##return sha(permid).hexdigest()
 
 def show_permid_short(permid):
+    if not permid:
+        return ''
     s = encodestring(permid).replace("\n","")
     return encodestring(sha(s).digest()).replace("\n","")
 
 def show_permid2(permid):
     return show_permid_short(permid)
-
-        
-
     
 def print_prefxchg_msg(prefxchg_msg):
     def show_permid(permid):
