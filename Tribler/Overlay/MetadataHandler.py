@@ -87,8 +87,7 @@ class MetadataHandler:
         return True
     
     def do_send_metadata(self, permid, torrent_hash, torrent_data):
-        md5sum = md5.new(torrent_data).digest()
-        torrent = {'torrent_hash':torrent_hash, 'metadata':torrent_data, 'md5sum':md5sum}
+        torrent = {'torrent_hash':torrent_hash, 'metadata':torrent_data}
         metadata_request = bencode(torrent)
         print >> sys.stderr,"metadata: send metadata", len(metadata_request)
         self.secure_overlay.addTask(permid,METADATA + metadata_request)
@@ -186,9 +185,7 @@ class MetadataHandler:
             print_exc()
             print >> sys.stderr, "metadata: write torrent failed"
 
-    def valid_metadata(self, torrent_hash, metadata, md5sum):
-        if md5.new(metadata).digest() != md5sum:
-            raise RuntimeError, "md5 sum check failed"
+    def valid_metadata(self, torrent_hash, metadata):
         metainfo = bdecode(metadata)
         infohash = sha(bencode(metainfo['info'])).digest()
         assert infohash == torrent_hash, "infohash doesn't match the torrent hash " + str(len(infohash), len(torrent_hash)) 
@@ -206,8 +203,7 @@ class MetadataHandler:
             if not isValidInfohash(torrent_hash):
                 return False
             metadata = message['metadata']
-            md5sum = message['md5sum']
-            self.valid_metadata(torrent_hash, metadata, md5sum)
+            self.valid_metadata(torrent_hash, metadata)
             if DEBUG:
                 torrent_size = len(metadata)
                 print >> sys.stderr,"metadata: Recvd torrent", torrent_size, md5.new(metadata).hexdigest()
