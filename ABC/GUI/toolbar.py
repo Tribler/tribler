@@ -81,7 +81,6 @@ class ToolBarDialog(wx.Dialog):
 class ToolBarPanel(wx.Panel):
     def __init__(self, parent, toolbar):
         wx.Panel.__init__(self, parent, -1)
-        
         self.parent = parent
         self.utility = parent.utility
         

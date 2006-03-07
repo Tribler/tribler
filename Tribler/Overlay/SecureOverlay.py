@@ -118,9 +118,9 @@ class DNSOverlayTask:
             if not self.permid:
                 self.permid = self.secure_overlay.findPermidByDNS(self.dns)
             self.secure_overlay.sendMessage(self.permid, self.message_to_send)
-            self.message_to_send = None
             if DEBUG:
                 print >> sys.stderr,"secover: dns task send message", getMessageName(self.message_to_send[0]), self.dns
+            self.message_to_send = None
         self.unregister('done')
         
     def makeConnection(self):

@@ -329,8 +329,8 @@ class MyInfoAction(ABCAction):
     def __init__(self, utility):
         ABCAction.__init__(self, 
                            utility, 
-                           'friends.bmp', 
-                           'tb_file_short',
+                           'joe32.bmp', 
+                           'myinfo',
                            menudesc = 'menumyinfo')
                            
     def action(self, event = None):

@@ -128,11 +128,10 @@ class ABCList(ManagedList):
         rank = event.GetColumn()
         colid = self.columns.getIDfromRank(rank)
         if colid == self.lastcolumnsorted:
-            self.reversesort = not self.reversesort
+            self.reversesort = True
         else:
             self.reversesort = False
         self.lastcolumnsorted = colid
-        
         self.utility.queue.sortList(colid, self.reversesort)       
         
     def selectAll(self):
@@ -217,9 +216,9 @@ class ABCPanel(wx.Panel):
 
         colSizer.Add(self.list, 1, wx.EXPAND|wx.ALL, 2)
 
-        self.utility.bottomline2 = ABCBottomBar2(self)
+        #self.utility.bottomline2 = ABCBottomBar2(self)
 
-        colSizer.Add(self.utility.bottomline2, 0, wx.ALL|wx.EXPAND, 3)
+        #colSizer.Add(self.utility.bottomline2, 0, wx.ALL|wx.EXPAND, 3)
         
         self.SetSizer(colSizer)
         self.SetAutoLayout(True)
@@ -400,11 +399,15 @@ class ABCFrame(wx.Frame):
     def _checkVersion(self):
         my_version = self.utility.getVersion()
         try:
-            curr_status = urllib.urlopen('http://tribler.org/version').read()
-            _curr_status = curr_status.split()
-            curr_version = _curr_status[0]
-            if self.newversion(curr_version, my_version):
-                print >> sys.stderr, "Your software is outdated.  Would you like to upgrade Tribler from tribler.org?", curr_version, my_version
+            curr_status = urllib.urlopen('http://tribler.org/version').readlines()
+            line1 = curr_status[0]
+            if len(curr_status) > 1:
+                self.update_url = curr_status[1].strip()
+            else:
+                self.update_url = 'http://tribler.org'
+            _curr_status = line1.split()
+            self.curr_version = _curr_status[0]
+            if self.newversion(self.curr_version, my_version):
                 self.OnUpgrade()
         except:
             print >> sys.stderr, "check version failed", ctime(time())
@@ -420,8 +423,10 @@ class ABCFrame(wx.Frame):
     
     def OnUpgrade(self, event=None):
         str = self.utility.lang.get('upgradeabc')
+        title = self.utility.lang.get('upgradeabctitle')
+        mainpage = self.utility.lang.get('mainpage')
         dlg = wx.MessageDialog(self, str,
-                               '!',
+                               title + self.curr_version,
                                wx.YES_NO|wx.ICON_EXCLAMATION
                                #wx.OK | wx.ICON_INFORMATION |
                                #wx.YES_NO | wx.NO_DEFAULT | wx.CANCEL | wx.ICON_INFORMATION
@@ -430,9 +435,9 @@ class ABCFrame(wx.Frame):
         dlg.Destroy()
         if(result == wx.ID_YES):
             import wx.lib.hyperlink as hl
-            self._hyper = hl.HyperLinkCtrl(self, wx.ID_ANY, "Tribler Main Page",
+            self._hyper = hl.HyperLinkCtrl(self, wx.ID_ANY, mainpage,
                                         URL="http://tribler.org/")
-            self._hyper.GotoURL("http://tribler.org/test_version",True, True)
+            self._hyper.GotoURL(self.update_url,True, True)
             
     def onFocus(self, event = None):
         if event is not None:

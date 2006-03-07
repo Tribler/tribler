@@ -5,6 +5,8 @@ import wx
 import os
 import sys
 from traceback import print_exc
+import urllib
+import webbrowser
 
 from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
 from Tribler.__init__ import myinfo
@@ -316,28 +318,28 @@ class MyInfoDialog(wx.Dialog):
         ip = self.utility.config.Read('bind')
         if ip is None or ip == '':
             ip = myinfo['ip']
-        permid_txt = self.utility.lang.get('permid')+": "+permid_for_user(myinfo['permid'])
-        ip_txt = self.utility.lang.get('ipaddress')+": "+ip
+        self.permid_txt = self.utility.lang.get('permid')+": "+permid_for_user(myinfo['permid'])
+        self.ip_txt = self.utility.lang.get('ipaddress')+": "+ip
 
         # port = self.utility.controller.listen_port
         port = self.utility.config.Read('minport', 'int')
-        port_txt = self.utility.lang.get('portnumber')+" "+str(port)
+        self.port_txt = self.utility.lang.get('portnumber')+" "+str(port)
 
         if True:
             # Make it copy-and-paste able
             self.textctrl = wx.TextCtrl(self, -1, size = (640, 100), style = wx.TE_MULTILINE|wx.TE_DONTWRAP|wx.TE_READONLY)
-            self.textctrl.AppendText( permid_txt + '\n' );
-            self.textctrl.AppendText( ip_txt + '\n' );
-            self.textctrl.AppendText( port_txt + '\n' );
+            self.textctrl.AppendText( self.permid_txt + '\n' );
+            self.textctrl.AppendText( self.ip_txt + '\n' );
+            self.textctrl.AppendText( self.port_txt + '\n' );
             myinfobox.Add( self.textctrl, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         else:
-            label = wx.StaticText(self, -1, permid_txt )
+            label = wx.StaticText(self, -1, self.permid_txt )
             myinfobox.Add( label, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
 
-            label = wx.StaticText(self, -1, ip_txt )
+            label = wx.StaticText(self, -1, self.ip_txt )
             myinfobox.Add( label, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
 
-            label = wx.StaticText(self, -1, port_txt )
+            label = wx.StaticText(self, -1, self.port_txt )
             myinfobox.Add( label, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
 
 
@@ -347,17 +349,37 @@ class MyInfoDialog(wx.Dialog):
         msg = self.utility.lang.get('myinfo_explanation')
         botbox.Add(wx.StaticText(self, -1, msg), 0, wx.EXPAND|wx.ALIGN_LEFT|wx.ALL, 5)
 
-        # 2. Close button
+        # 2. Invitation and Close buttons
+        btnbox = wx.BoxSizer(wx.HORIZONTAL)
+        invitation_btn = wx.Button(self, -1, self.utility.lang.get('invitationbtn'), style = wx.BU_EXACTFIT)
+        #button.SetToolTipString(self.utility.lang.get('stopdlhelp_help'))
+        wx.EVT_BUTTON(self, invitation_btn.GetId(), self.emailFriend)
+        btnbox.Add(invitation_btn, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 3)
+        
         button = wx.Button(self, -1, self.utility.lang.get('close'), style = wx.BU_EXACTFIT)
         #button.SetToolTipString(self.utility.lang.get('stopdlhelp_help'))
         wx.EVT_BUTTON(self, button.GetId(), self.close)
-        botbox.Add(button, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 3)
+        btnbox.Add(button, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 3)
 
         # 3. Show GUI
         mainbox.Add(myinfobox, 0, wx.EXPAND)
         mainbox.Add(botbox, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 5)
+        mainbox.Add(btnbox, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 5)
         self.SetSizerAndFit(mainbox)
 
     def close(self, event = None):
         self.EndModal(wx.ID_OK)
 
+    def emailFriend(self, event):
+        subject = self.utility.lang.get('invitation_subject')
+        invitation_body = self.utility.lang.get('invitation_body')
+        invitation_body += self.permid_txt + '\r\n'
+        invitation_body += self.ip_txt + '\r\n'
+        invitation_body += self.port_txt + '\r\n\r\n\r\n'
+        
+        body = urllib.quote(invitation_body)
+        mailToURL = 'mailto:%s?subject=%s&body=%s'%('', subject, body)
+        webbrowser.open(mailToURL)
+        
+        
+        

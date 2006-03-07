@@ -306,6 +306,9 @@ permid			= "PermID"
 ipaddress		= "IP Address"
 myinfo			= "My info"
 myinfo_explanation	= "Copy and paste this information in an email to your friends, so they can add you to their Friends List in Tribler."
+invitation_body = "Hi Buddy,\r\n\r\nI'm using Tribler. It's really cool!! You can download it freely from http://tribler.org. \r\nPlease add me as your friend in Tribler so that we can have more fun to play it together. \r\nIt's very simple. Just copy and paste the following information to the Manage Friends dialog from the action menu:\r\n" 
+invitation_subject = "Let's Tribler together!"
+invitationbtn = "Invitation"
 dlhelpdisabledstop      = "Download Booster is disabled because the torrent is stopped"
 dlhelpdisabledhelper    = "Download Booster is disabled because you are a helper"
 friends			= "Friends"
@@ -863,7 +866,9 @@ invalidwinname="This name cannot be used as a Windows file or folder name."
 #Other
 #########
 warningopenfile = "Torrent is not completed yet, are you sure you want to open it?"
-upgradeabc = Your software is outdated.\nWould you like to visit http://tribler.org to upgrade Tribler?
+upgradeabc = "Your software is outdated.\nWould you like to visit http://tribler.org to upgrade Tribler?"
+upgradeabctitle = "Update to Tribler "
+mainpage = "Tribler Main Page"
 
 #############
 #Make Torrent
