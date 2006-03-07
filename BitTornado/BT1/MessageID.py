@@ -67,6 +67,10 @@ MetadataMessages = [GET_METADATA, METADATA]
 DOWNLOAD_HELP = chr(246)
 # torrent_hash
 STOP_DOWNLOAD_HELP = chr(245)
+
+ONLINE_EXCHANGE = chr(244)
+FRIENDS_EXCHANGE = chr(243)
+
 # torrent_hash + 1-byte all_or_nothing + bencode([piece num,...])
 RESERVE_PIECES = chr(242)
 # torrent_hash + bencode([piece num,...])
@@ -76,52 +80,39 @@ HelpCoordinatorMessages = [DOWNLOAD_HELP,STOP_DOWNLOAD_HELP,PIECES_RESERVED]
 HelpHelperMessages = [RESERVE_PIECES]
 # _2fastbt
 
-ONLINE_EXCHANGE = chr(244)
-FRIENDS_EXCHANGE = chr(243)
-
 OverlaySwarmMessages= PermIDMessages + BuddyCastMessages + MetadataMessages + HelpCoordinatorMessages + HelpHelperMessages
 
+
+message_map = {
+    CHOKE:"CHOKE",
+    UNCHOKE:"UNCHOKE",
+    INTERESTED:"INTEREST",
+    NOT_INTERESTED:"NOT_INTEREST",
+    HAVE:"HAVE",
+    BITFIELD:"BITFIELD",
+    REQUEST:"REQUEST",
+    CANCEL:"CANCEL",
+    PIECE:"PIECE",
+    
+    CHALLENGE:"CHALLENGE",
+    RESPONSE1:"RESPONSE1",
+    RESPONSE2:"RESPONSE2",
+    HASHPIECE:"HASHPIECE",
+    BUDDYCAST:"BUDDYCAST",
+    GET_METADATA:"GET_METADATA",
+    METADATA:"METADATA",
+    DOWNLOAD_HELP:"DOWNLOAD_HELP",
+    STOP_DOWNLOAD_HELP:"STOP_DOWNLOAD_HELP",
+    PIECES_RESERVED:"PIECES_RESERVED",
+    RESERVE_PIECES:"RESERVE_PIECES",
+    ONLINE_EXCHANGE:"ONLINE_EXCHANGE",
+    FRIENDS_EXCHANGE:"FRIENDS_EXCHANGE",
+}
+
+
 def getMessageName(t):
-    if t == CHOKE:
-        return "CHOKE"
-    elif t == UNCHOKE:
-        return "UNCHOKE"
-    elif t == INTERESTED:
-        return "INTEREST"
-    elif t == NOT_INTERESTED:
-        return "NOT_INTEREST"
-    elif t == HAVE:
-        return "HAVE"
-    elif t == BITFIELD:
-        return "BITFIELD"
-    elif t == REQUEST:
-        return "REQUEST"
-    elif t == CANCEL:
-        return "CANCEL"
-    elif t == PIECE:
-        return "PIECE"
-    elif t == CHALLENGE:
-        return "CHALLENGE"            
-    elif t == RESPONSE1:
-        return "RESPONSE1"
-    elif t == RESPONSE2:
-        return "RESPONSE2"
-    elif t == DOWNLOAD_HELP:
-        return "DOWNLOAD_HELP"
-    elif t == STOP_DOWNLOAD_HELP:
-        return "STOP_DOWNLOAD_HELP"
-    elif t == HASHPIECE:
-        return "HASHPIECE"
-    elif t == BUDDYCAST:
-        return "BUDDYCAST"
-    elif t == GET_METADATA:
-        return "GET_METADATA"
-    elif t == METADATA:
-        return "METADATA"
-    elif t == RESERVE_PIECES:
-        return "RESERVE_PIECES"
-    elif t == PIECES_RESERVED:
-        return "PIECES_RESERVED"
+    if t in message_map:
+        return message_map[t]
     else:
-        return "unknown!"+str(ord(t))
+        return "Unknown_MessageID_"+str(ord(t))
         

@@ -8,6 +8,7 @@ from BitTornado.clock import clock
 from binascii import b2a_hex
 from BitTornado.bencode import bencode,bdecode
 from BitTornado.BT1.MessageID import *
+from traceback import print_exc
 
 try:
     True
@@ -65,10 +66,11 @@ class Connection:
         return self.auth_listen_port
 
     def close(self):
-        if DEBUG:
-            print 'olconnctr: closing connection',self.dns
-        self.closed = True
-        self.connection.close()
+        if not self.closed:
+            if DEBUG:
+                print 'olconnctr: closing connection',self.dns
+            self.closed = True
+            self.connection.close()
 
     def is_locally_initiated(self):
         return self.connection.is_locally_initiated()
@@ -109,8 +111,10 @@ class OverlayConnecter:
     def connection_lost(self, connection):
         if DEBUG:
             print >> sys.stderr,"olconnctr: connection_lost"
-        c = self.connections[connection]
-        del self.connections[connection]
+        try:
+            del self.connections[connection]
+        except:
+            print_exc()
 
     def connection_flushed(self, connection):
         if DEBUG:

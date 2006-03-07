@@ -5,13 +5,15 @@ from threading import Event,currentThread
 from sha import sha
 from time import time
 from struct import pack
+from traceback import print_exc
 
 from BitTornado.__init__ import createPeerID
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
 
 from Tribler.__init__ import GLOBAL
-from permid import ChallengeResponse,show_permid
+from Tribler.utilities import show_permid2
+from permid import ChallengeResponse
 from OverlayEncrypter import OverlayEncoder
 from OverlayConnecter import OverlayConnecter
 
@@ -21,8 +23,6 @@ overlay_infohash = '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00
 from __init__ import CurrentVersion, LowestVersion, SupportedVersions
 
 DEBUG = False
-
-TEST = False
 
 def show(s):
     text = []
@@ -101,27 +101,11 @@ class OverlaySwarm:
         
         if DEBUG:
             print >> sys.stderr,"overlay: Start overlay swarm connection to", dns
-        if TEST:
-            class Conn:
-                def __init__(self, dns):
-                    self.dns = dns
-                    self.permid = 'permid1'
-                    self.closed = False
-                def close(self):
-                    print >> sys.stderr,"connection closed"
-                    self.closed = True
-                    
-            conn = Conn(dns)
-            from time import sleep
-            print >> sys.stderr,"    waiting connection ..."
-            sleep(3)
-            self.permidSocketMade(conn)
-        else:
-            self.encoder.start_connection(dns, 0)
+        self.encoder.start_connection(dns, 0)
             
     def sendMessage(self, connection, message):
         if DEBUG:
-            print >> sys.stderr,"overlay: send message", getMessageName(message[0]), "to",show_permid(connection.permid)
+            print >> sys.stderr,"overlay: send message", getMessageName(message[0]), "to", show_permid2(connection.permid)
         connection.send_message(message)
 
     def connectionMade(self, connection):
@@ -132,7 +116,7 @@ class OverlaySwarm:
         
         #def c(conn = connection):
         #""" Start permid exchange and challenge/response validation """
-        if not connection or self.crs.has_key(connection) and self.crs[connection]:
+        if not connection or self.crs.has_key(connection):
             return    # don't start c/r if connection is invalid or permid was exchanged
         cr = ChallengeResponse(self.myid, self, self.errorfunc)
         self.crs[connection] = cr
@@ -164,18 +148,24 @@ class OverlaySwarm:
         """ Handle message for overlay swarm and return if the message is valid """
 
         if DEBUG:
-            print >> sys.stderr,"overlay: Got",getMessageName(message[0]),"len",len(message)
+            print >> sys.stderr, "overlay: Got",getMessageName(message[0]),"len",len(message)
         
         if not conn:
             return False
         t = message[0]
         
         if t in PermIDMessages:
-            if not self.crs.has_key(conn) or not self.crs[conn]:    # incoming permid exchange
-                cr = ChallengeResponse(self.myid,self,self.errorfunc)
-                self.crs[conn] = cr
-            if self.crs[conn].got_message(conn, message) == False:
-                self.crs.pop(conn)
-                conn.close()
-        elif conn.permid:    # Do not go ahead without permid
-            self.secure_overlay.gotMessage(conn.permid, message)
+            try:
+                if not self.crs.has_key(conn):    # incoming permid exchange
+                    self.crs[conn] = ChallengeResponse(self.myid, self, self.errorfunc)
+                if self.crs[conn].got_message(conn, message) == False:
+                    if conn and self.crs.has_key(conn):
+                        self.crs.pop(conn)
+                        conn.close()
+            except:
+                print_exc()
+        else:
+            if conn.permid:    # Do not go ahead without permid
+                self.secure_overlay.gotMessage(conn.permid, message)
+            else:
+                print >> sys.stderr, "overlay: Got a message but not found the permid"

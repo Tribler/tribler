@@ -203,6 +203,8 @@ class Connection:    # OverlaySocket, a better name for it?
             self.sever()
 
     def sever(self):
+        if self.closed:
+            return
         self.closed = True
         if self.Encoder.connections.has_key(self.singsock):
             del self.Encoder.connections[self.singsock]

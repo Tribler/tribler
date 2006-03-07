@@ -30,11 +30,10 @@ from Tribler.CacheDB.CacheDBHandler import *
 #from Tribler.__init__ import GLOBAL
 from Tribler.utilities import *
 from Tribler.Overlay.SecureOverlay import SecureOverlay
-from Tribler.Overlay.permid import show_permid
 from similarity import P2PSim, P2PSim2, selectByProbability
 
 
-DEBUG = True
+DEBUG = False
 
 def validPeer(peer):
     validPermid(peer['permid'])
@@ -182,7 +181,7 @@ class BuddyCastWorker:
             self.data = {}
             self.data['ip'] = self.data_handler.ip
             self.data['port'] = self.data_handler.port
-            self.data['permid'] = self.data_handler.permid
+            #self.data['permid'] = self.data_handler.permid    # remove it from 3.3.2
             self.data['name'] = self.data_handler.name
             self.data['preferences'] = self.data_handler.getMyPrefList(self.nmyprefs)
             self.data['taste buddies'] = self.data_handler.getTasteBuddies(self.tbs, self.nbuddyprefs)
@@ -660,7 +659,7 @@ class BuddyCastFactory:
         self.msg_nmyprefs = 50    # number of my preferences in buddycast msg
         self.msg_nbuddyprefs = 10 # number of taste buddy's preferences in buddycast msg
         self.buddycast_interval = 15
-        self.recommendate_interval = 6 #60 + 11    # update recommendation interval; use prime number to avoid conflict
+        self.recommendate_interval = 60 + 7    # update recommendation interval; use prime number to avoid conflict
         self.sync_interval = 5*60 + 11    # sync database every 5 min
         self.max_nworkers = self.block_time/self.buddycast_interval
         
@@ -702,8 +701,7 @@ class BuddyCastFactory:
             self.rawserver.add_task(self.doBuddyCast, self.buddycast_interval)
             self.rawserver.add_task(self.sync, self.sync_interval)
             self.rawserver.add_task(self.recommendateItems, self.recommendate_interval)
-        if DEBUG:
-            print >> sys.stderr, "buddycast: BuddyCast starts up"
+        print >> sys.stdout, "buddycast: BuddyCast starts up"
 
     # ----- message handle -----
     def handleMessage(self, permid, message):
@@ -724,12 +722,13 @@ class BuddyCastFactory:
                 RandomPeer(self.data_handler, p).updateDB()
         
         try:
-            if DEBUG:
-                print "----->>>", repr(msg)
+#            if DEBUG:
+#                print "----->>>", repr(msg)
             buddycast_data = bdecode(msg)
             #print_dict(buddycast_data)
             if DEBUG:
                 print >> sys.stderr, "buddycast: got buddycast msg", len(msg), buddycast_data['ip']
+            buddycast_data.update({'permid':permid})
             validBuddyCastData(buddycast_data, self.msg_nmyprefs, self.msg_nbuddies, self.msg_npeers, self.msg_nbuddyprefs)    # RCP 2            
             if not self._checkPeerConsistency(buddycast_data, permid):
                print >> sys.stderr, "buddycast: warning: buddycast's permid doens't match sender's permid"
@@ -754,7 +753,7 @@ class BuddyCastFactory:
 
     def sendBuddyCastMsg(self, target, msg):
         if DEBUG:
-            print >> sys.stderr, "buddycast: send buddycast msg:", show_permid(target), len(msg)
+            print >> sys.stderr, "buddycast: send buddycast msg:", show_permid2(target), len(msg)
         #print "*** blocklist:", len(self.data_handler.send_block_list)
         if not self.data_handler.isSendBlocked(target):
             self.secure_overlay.addTask(target, BUDDYCAST + msg)

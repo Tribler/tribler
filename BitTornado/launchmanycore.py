@@ -203,11 +203,10 @@ class LaunchMany:
             GLOBAL.do_buddycast = config['buddycast']
             GLOBAL.do_download_help = config['download_help']
             GLOBAL.do_torrent_collecting = config['torrent_collecting']
-            GLOBAL.do_superpeer = config['superpeer']
-            GLOBAL.do_das_test = config['das_test']
+            #GLOBAL.do_superpeer = config['superpeer']
+            #GLOBAL.do_das_test = config['das_test']
             GLOBAL.do_buddycast_interval = config['buddycast_interval']
-            GLOBAL.superpeer_log = config['superpeer_log']
-            GLOBAL.buddycast_log = config['buddycast_log']
+            GLOBAL.overlay_log = config['overlay_log']
             
             self.rawserver = RawServer(self.doneflag,
                                        config['timeout_check_interval'],

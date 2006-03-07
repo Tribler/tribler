@@ -333,7 +333,6 @@ class ChallengeResponse:
         permid = self.get_peer_permid()
         conn.set_permid(permid)
         conn.set_auth_peer_id(self.get_auth_peer_id())
-        self.overlay_swarm.permidSocketMade(conn)
      
     def got_response2(self, rdata2, conn):
         self.got_response2_event(rdata2)
@@ -342,7 +341,6 @@ class ChallengeResponse:
             permid = self.get_peer_permid()
             conn.set_permid(permid)
             conn.set_auth_peer_id(self.get_auth_peer_id())
-            self.overlay_swarm.permidSocketMade(conn)
 
     def got_message(self, conn, message):
         """ Handle message for PermID exchange and return if the message is valid """
@@ -379,6 +377,8 @@ class ChallengeResponse:
                     print >> sys.stderr,"permid: Close on bad RESPONSE1: exception",str(e)
                     traceback.print_exc()
                 return False
+            else:
+                self.overlay_swarm.permidSocketMade(conn)
         elif t == RESPONSE2:
             if len(message) < self.get_response2_minlen():
                 if DEBUG:
@@ -392,6 +392,8 @@ class ChallengeResponse:
                     print >> sys.stderr,"permid: Close on bad RESPONSE2: exception",str(e)
                     traceback.print_exc()
                 return False
+            else:
+                self.overlay_swarm.permidSocketMade(conn)
         else:
             return False
         return True

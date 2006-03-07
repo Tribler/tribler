@@ -4,16 +4,13 @@
 from socket import inet_aton, gethostbyname
 from time import time, strftime, gmtime
 from base64 import encodestring
+from sha import sha
 import sys
 
-STRICT = False
+STRICT_CHECK = False
 
-if STRICT:
-    permid_len = 112
-    infohash_len = 20
-else:
-    permid_len = 0
-    infohash_len = 0  #20
+permid_len = 112
+infohash_len = 20
 
 def validName(name):
     if not isinstance(name, str) and len(name) == 0:
@@ -37,14 +34,14 @@ def validIP(ip):
 def validPermid(permid):
     if not isinstance(permid, str):
         raise RuntimeError, "invalid permid: " + permid
-    if permid_len > 0 and len(permid) != permid_len:
+    if STRICT_CHECK and len(permid) != permid_len:
         raise RuntimeError, "invalid permid: " + permid
     return True
 
 def validInfohash(infohash):
     if not isinstance(infohash, str):
         raise RuntimeError, "invalid permid " + permid
-    if infohash_len > 0 and len(infohash) != infohash_len:
+    if STRICT_CHECK and len(infohash) != infohash_len:
         raise RuntimeError, "invalid permid " + permid
     return True
     
@@ -83,6 +80,15 @@ def show_permid(permid):
     return encodestring(permid).replace("\n","")
     # Short digest
     ##return sha(permid).hexdigest()
+
+def show_permid_short(permid):
+    s = encodestring(permid).replace("\n","")
+    return encodestring(sha(s).digest()).replace("\n","")
+
+def show_permid2(permid):
+    return show_permid_short(permid)
+
+        
 
     
 def print_prefxchg_msg(prefxchg_msg):
@@ -175,7 +181,8 @@ def sortList(list_to_sort, list_key, order='decrease'):
         if order == 'decrease':
             aux.reverse()
         return [i for k, i in aux]    
-        
+
+
 if __name__=='__main__':
     d = {'a':1,'b':[1,2,3],'c':{'c':2,'d':[3,4],'k':{'c':2,'d':[3,4]}}}
     print_dict(d)    

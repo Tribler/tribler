@@ -29,8 +29,9 @@ PeerDB - (MyFriendDB, PreferenceDB, OwnerDB)
         name: str ('unknown')
         last_seen: int (0)
         similarity: int (0)    # [0, 1000]
-        connected_times: int(0)
-        failed_times: int(0)
+        connected_times: int(0)    # times to connect the peer successfully
+        tried_times: int(0)        # times to attempt to connect the peer
+        buddycast_times: int(0)    # times to receive buddycast message
         #relability (uptime, IP fixed/changing)
         #trust: int (0)    # [0, 100]
         #icon: str ('')    # name + '_' + permid[-4:]
@@ -396,6 +397,7 @@ class PeerDB(BasicDB):
             'last_seen':0,
             'similarity':0,
             'connected_times':0,
+            'tried_times':0,
             'buddycast_times':0,
             #'trust':50,
             #'reliability':

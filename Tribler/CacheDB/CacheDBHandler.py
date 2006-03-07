@@ -43,7 +43,12 @@ class MyDBHandler(BasicDBHandler):
     def put(self, key, value):
         self.my_db._put(key, value)
     
-
+    def getMyPermid(self):
+        return self.get('permid')
+        
+    def getMyIP(self):
+        return self.get('ip', '127.0.0.1')
+    
 class SuperPeerDBHandler(BasicDBHandler):
     def __init__(self, db_dir=''):
         self.my_db = MyDB.getInstance(db_dir=db_dir)
@@ -232,7 +237,10 @@ class PeerDBHandler(BasicDBHandler):
         item = self.peer_db.getItem(permid)
         if not item:
             return
-        value = item[key]
+        if not item.has_key(key):
+            value = 0
+        else:
+            value = item[key]
         value += change
         self.peer_db.updateItem(permid, {key:value})
 
