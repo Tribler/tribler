@@ -33,7 +33,7 @@ from Tribler.Overlay.SecureOverlay import SecureOverlay
 from similarity import P2PSim, P2PSim2, selectByProbability
 
 
-DEBUG = False
+DEBUG = True
 
 def validPeer(peer):
     validPermid(peer['permid'])
@@ -238,6 +238,9 @@ class DataHandler:
             db.clear()
         self.preflist = []
         self.connected_list = []
+           
+    def __del__(self):
+        self.sync()
             
     def sync(self):
         for db in self.dbs:
@@ -376,7 +379,7 @@ class DataHandler:
         if peer is None:
             return False
         peer['permid'] = target
-        if peer['ip'] == self.ip:    # and peer['port'] == self.port:
+        if self.permid == target or peer['ip'] == self.ip and peer['port'] == self.port:
             return False
         try:
             validPeer(peer)
@@ -658,7 +661,7 @@ class BuddyCastFactory:
         self.msg_npeers = 10      # number of peers in buddycast msg
         self.msg_nmyprefs = 50    # number of my preferences in buddycast msg
         self.msg_nbuddyprefs = 10 # number of taste buddy's preferences in buddycast msg
-        self.buddycast_interval = 15
+        self.buddycast_interval = 2
         self.recommendate_interval = 60 + 7    # update recommendation interval; use prime number to avoid conflict
         self.sync_interval = 5*60 + 11    # sync database every 5 min
         self.max_nworkers = self.block_time/self.buddycast_interval
@@ -753,8 +756,7 @@ class BuddyCastFactory:
 
     def sendBuddyCastMsg(self, target, msg):
         if DEBUG:
-            print >> sys.stderr, "buddycast: send buddycast msg:", show_permid2(target), len(msg)
-        #print "*** blocklist:", len(self.data_handler.send_block_list)
+            print >> sys.stderr, "buddycast: send buddycast msg:", show_permid2(target), len(msg), "blocked?", self.data_handler.isSendBlocked(target)
         if not self.data_handler.isSendBlocked(target):
             self.secure_overlay.addTask(target, BUDDYCAST + msg)
         

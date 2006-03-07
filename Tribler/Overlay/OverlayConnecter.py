@@ -106,12 +106,14 @@ class OverlayConnecter:
     def connection_made(self, connection, dns=None):
         c = Connection(connection, self, dns)
         self.connections[connection] = c
+        print >> sys.stderr,"****olconnctr: connection_add", connection, dns, self.connections
         return c
     
     def connection_lost(self, connection):
         if DEBUG:
             print >> sys.stderr,"olconnctr: connection_lost"
         try:
+            #if self.connections.has_key(connection)
             del self.connections[connection]
         except:
             print_exc()

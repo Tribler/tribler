@@ -228,6 +228,7 @@ class LaunchMany:
                                     upnp = upnp_type, randomizer = config['random_port'])
                     if DEBUG:
                         print >> sys.stderr,"BitTornado/launchmany: Got listen port", self.listen_port
+                    print >> sys.stderr,"BitTornado/launchmany: Got listen port", self.listen_port
                     break
                 except socketerror, e:
                     if upnp_type and e == UPnP_ERROR:

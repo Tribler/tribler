@@ -22,7 +22,7 @@ overlay_infohash = '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00
 
 from __init__ import CurrentVersion, LowestVersion, SupportedVersions
 
-DEBUG = False
+DEBUG = True
 
 def show(s):
     text = []
@@ -148,7 +148,7 @@ class OverlaySwarm:
         """ Handle message for overlay swarm and return if the message is valid """
 
         if DEBUG:
-            print >> sys.stderr, "overlay: Got",getMessageName(message[0]),"len",len(message)
+            print >> sys.stderr, "overlay: Got",getMessageName(message[0]),"len",len(message), conn, `conn.permid`
         
         if not conn:
             return False
@@ -158,6 +158,7 @@ class OverlaySwarm:
             try:
                 if not self.crs.has_key(conn):    # incoming permid exchange
                     self.crs[conn] = ChallengeResponse(self.myid, self, self.errorfunc)
+                    print "created CR"
                 if self.crs[conn].got_message(conn, message) == False:
                     if conn and self.crs.has_key(conn):
                         self.crs.pop(conn)

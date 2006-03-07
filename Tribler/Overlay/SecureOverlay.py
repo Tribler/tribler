@@ -303,8 +303,8 @@ class SecureOverlay:
         self.incoming_handler = IncomingMessageHandler()    # for incoming message
         self.peer_db = PeerDBHandler()
         self.connection_list = {}    # overlay connections. permid:{'c_conn': Connecter.Connection, 'expire':expire, 'dns':(ip, port)}
-        self.timeout = 300    # TODO: adjust it by firewall status. the value is smaller if no firewall
-        self.check_interval = 60
+        self.timeout = 20    # TODO: adjust it by firewall status. the value is smaller if no firewall
+        self.check_interval = 5
         self.my_db = MyDBHandler()
         self.permid = self.my_db.getMyPermid()
         self.ip = self.my_db.getMyIP()
@@ -332,19 +332,15 @@ class SecureOverlay:
 
     def _auto_close(self):
         self.acquire()
-        try:
-            self.overlayswarm.rawserver.add_task(self._auto_close, self.check_interval)
-            self._checkConnections()
-        finally:
-            self.release()    
+        self.overlayswarm.rawserver.add_task(self._auto_close, self.check_interval)
+        self._checkConnections()
+        self.release()    
 
     def _scan_tasks(self):
         self.acquire()
-        try:
-            self.overlayswarm.rawserver.add_task(self._scan_tasks, self.check_interval)
-            self.subject_manager.scanTasks()
-        finally:
-            self.release()    
+        self.overlayswarm.rawserver.add_task(self._scan_tasks, self.check_interval)
+        self.subject_manager.scanTasks()
+        self.release()    
 
     def _checkConnections(self):
         for permid in self.connection_list.keys():
@@ -371,31 +367,27 @@ class SecureOverlay:
     # the central place to close connection
     def _closeConnection(self, connection, reason):
         self.acquire()
-        try:
-            if connection is not None and not connection.closed:
-                permid = connection.permid
-                connection.close()
-                ## connectionLost callback is called by connection.close() which
-                ## will remove the conn from the list, but just to be safe:
-                if permid and self.connection_list.has_key(permid):
-                    if GLOBAL.overlay_log:
-                        write_overlay_log('CONN_DEL', permid, reason=reason)
-                    self.connection_list.pop(permid)
-        finally:
-            self.release()        
-    
-    def _closePermidConnection(self, permid, reason):
-        self.acquire()
-        try:
-            if self.connection_list.has_key(permid):
-                connection = self.connection_list[permid]['c_conn']
-                if connection is not None and not connection.closed:
-                    connection.close()
+        if connection is not None and not connection.closed:
+            permid = connection.permid
+            connection.close()
+            ## connectionLost callback is called by connection.close() which
+            ## will remove the conn from the list, but just to be safe:
+            if permid and self.connection_list.has_key(permid):
                 if GLOBAL.overlay_log:
                     write_overlay_log('CONN_DEL', permid, reason=reason)
                 self.connection_list.pop(permid)
-        finally:
-            self.release()        
+        self.release()        
+    
+    def _closePermidConnection(self, permid, reason):
+        self.acquire()
+        if self.connection_list.has_key(permid):
+            connection = self.connection_list[permid]['c_conn']
+            if connection is not None and not connection.closed:
+                connection.close()
+            if GLOBAL.overlay_log:
+                write_overlay_log('CONN_DEL', permid, reason=reason)
+            self.connection_list.pop(permid)
+        self.release()        
 
     def _findConnByPermid(self, permid):
         if self.connection_list.has_key(permid):
@@ -405,26 +397,22 @@ class SecureOverlay:
         
     def findPermidByDNS(self, dns):    #find permid from connection_list
         self.acquire()
-        try:
-            ret = None
-            for permid, value in self.connection_list.items():
-                if value['dns'] == dns and self._checkConnection(permid):
-                    ret = permid
-                    break
-            return ret
-        finally:
-            self.release()
+        ret = None
+        for permid, value in self.connection_list.items():
+            if value['dns'] == dns and self._checkConnection(permid):
+                ret = permid
+                break
+        self.release()
+        return ret
 
     def findDNSByPermid(self, permid):
         self.acquire()
-        try:
-            ret = None
-            if self._findConnByPermid(permid):
-                ret = self.connection_list[permid]['dns']
-            return ret
-        finally:
-            self.release()
-    
+        ret = None
+        if self._findConnByPermid(permid):
+            ret = self.connection_list[permid]['dns']
+        self.release()
+        return ret
+        
     # Main function to send messages
     def addTask(self, target, message=None, timeout=15):    # target = [permid|(ip,port)]
         """ Command Pattern """
@@ -456,14 +444,13 @@ class SecureOverlay:
                             print >> sys.stderr,"secover: add DNSOverlayTask", target, msg
                     task = DNSOverlayTask(self, self.subject_manager, target, message, timeout)
                 else:
-                    self.release() 
                     return
                 if task and self.overlayswarm.registered:
                     ## Arno: I don't see the need for letting the rawserver do it.
                     ## Except that it potentially avoids a concurrency problem of
                     ## multiple threads writing to the same socket.
-                    #if DEBUG:
-                    #    print >> sys.stderr,"secover: addTask, adding task to rawserver",currentThread().getName()
+                    if DEBUG:
+                        print >> sys.stderr,"secover: addTask, adding task to rawserver",currentThread().getName()
                     self.overlayswarm.rawserver.add_task(task.start, 0)
                     ##task.start()
             except Exception,e:
@@ -476,15 +463,13 @@ class SecureOverlay:
         if DEBUG:
             print >> sys.stderr,"secover: *** secure overlay to %s connection made." % show_permid2(connection.permid), connection.get_ip(), int(time())
         #TODO: schedule it on rawserver task queue?
-        try:
-            dns = self._addConnection(connection)
-            if dns:
-                if GLOBAL.overlay_log:
-                    write_overlay_log('CONN_ADD', connection.permid)
-                self.subject_manager.notifySubject(dns)
-        finally:
-            self.release()    
-            
+        dns = self._addConnection(connection)
+        if dns:
+            if GLOBAL.overlay_log:
+                write_overlay_log('CONN_ADD', connection.permid)
+            self.subject_manager.notifySubject(dns)
+        self.release()    
+        
     def addTryTimes(self, permid):
         self.peer_db.updateTimes(permid, 'tried_times', 1)
             
@@ -546,40 +531,24 @@ class SecureOverlay:
             print >> sys.stderr,"secover: ***** secure overlay connection lost", show_permid2(connection.permid), connection.get_ip(), int(time())
         self.acquire()
         self._closeConnection(connection, 'CON_LOST')
-        # TODO: remove subject?
         self.release()
-
-#    def connectionFailed(self, connection, reason):
-#        self.acquire()
-#        if DEBUG:
-#            print >> sys.stderr,"secover: **** secure overlay 2 %s connection failed for %s." % (show_permid2(connection.permid), reason), connection.get_ip(), int(time())
-#        try:
-#            if GLOBAL.overlay_log:
-#                write_overlay_log('TASK_DEL', connection.permid)
-#            self.subject_manager.notifySubject(dns)
-#        finally:
-#            self.release()    
 
     def connectPeer(self, dns):    # called by task
         self.acquire()
-        try:
-            self.overlayswarm.connectPeer(dns)
-        finally:
-            self.release()    
+        self.overlayswarm.connectPeer(dns)
+        self.release()    
 
     def sendMessage(self, permid, message):
         if not permid:
             return
         self.acquire()
-        try:
-            connection = self._findConnByPermid(permid)
-            if connection:
-                if GLOBAL.overlay_log:
-                    write_overlay_log('SEND_MSG', permid, message)
-                self._extendExpire(permid)
-                self.overlayswarm.sendMessage(connection, message)
-        finally:
-            self.release()
+        connection = self._findConnByPermid(permid)
+        if connection:
+            if GLOBAL.overlay_log:
+                write_overlay_log('SEND_MSG', permid, message)
+            self._extendExpire(permid)
+            self.overlayswarm.sendMessage(connection, message)
+        self.release()
 
     def gotMessage(self, permid, message):    # connection is type of Connecter.Connection 
         self.acquire()
@@ -593,17 +562,18 @@ class SecureOverlay:
                 self._closePermidConnection(permid, 'FAKE_MSG')
             else:
                 self._extendExpire(permid)
-        finally:
-            self.release()
+        except:
+            print_exc()
+        self.release()
 
     def acquire(self):
-        #if DEBUG:
-        #    print >> sys.stderr,"secover: LOCK",currentThread().getName()
+#        if DEBUG:
+#            print >> sys.stderr,"secover: LOCK",currentThread().getName()
         self.lock.acquire()
         
     def release(self):
-        #if DEBUG:
-        #    print >> sys.stderr,"secover: UNLOCK",currentThread().getName()
+#        if DEBUG:
+#            print >> sys.stderr,"secover: UNLOCK",currentThread().getName()
         self.lock.release()
 
 

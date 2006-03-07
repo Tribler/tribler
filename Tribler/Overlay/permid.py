@@ -12,7 +12,7 @@ from M2Crypto import Rand,EC,EVP
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
 
-DEBUG = False
+DEBUG = True
 
 # Internal constants
 keypair_ecc_curve = EC.NID_sect233k1
@@ -350,6 +350,9 @@ class ChallengeResponse:
         t = message[0]
         if message[1:]:
             msg = message[1:]
+            
+        if DEBUG:
+            print >> sys.stderr,"permid: got message", getMessageName(t)
             
         if t == CHALLENGE:
             if len(message) < self.get_challenge_minlen():
