@@ -56,7 +56,13 @@ class RegCheckDialog(wx.Dialog):
         self.EndModal(wx.ID_NO)
         
     def apply(self, register):
-        self.utility.regchecker.updateRegistry(register)
+        try:
+            self.utility.regchecker.updateRegistry(register)
+        except:
+            dlg = wx.MessageDialog(self, self.utility.lang.get('errorassociating'), self.utility.lang.get('invalidinput'), wx.OK | wx.ICON_INFORMATION)
+            dlg.ShowModal()
+            dlg.Destroy()
+            register=False
         
         self.utility.config.Write('associate', register, "boolean")
         self.utility.config.Flush()
