@@ -59,7 +59,7 @@ class RegCheckDialog(wx.Dialog):
         try:
             self.utility.regchecker.updateRegistry(register)
         except:
-            dlg = wx.MessageDialog(self, self.utility.lang.get('errorassociating'), self.utility.lang.get('invalidinput'), wx.OK | wx.ICON_INFORMATION)
+            dlg = wx.MessageDialog(self, self.utility.lang.get('errorassociating'), self.utility.lang.get('error'), wx.OK | wx.ICON_INFORMATION)
             dlg.ShowModal()
             dlg.Destroy()
             register=False
