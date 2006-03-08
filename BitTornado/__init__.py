@@ -1,3 +1,8 @@
+## Arno: FIXME _idprefix is also defined in BitTornado.__init__ and that's the one
+## actually used in connections, so make sure they are defined in one place
+## (here) and correct.
+##
+
 product_name = 'ABC'
 version_short = 'Tribler_ABC-3.3.1'
 
@@ -18,7 +23,9 @@ from base64 import decodestring
     
 mapbase64 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-'
 
-_idprefix = version_short[0]
+# Arno: looking at Azureus BTPeerIDByteDecoder this letter is free
+# 'T' is BitTornado, 'A' is ABC, 'TR' is Transmission
+_idprefix = 'R'
 #for subver in version_short[2:].split('.'):
 for subver in version_short.split('-')[1].split('.'):
     try:
