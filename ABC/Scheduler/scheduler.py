@@ -306,7 +306,11 @@ class ABCScheduler(DelayedEventHandler):
         self.doneflag.clear()
       
     def changeABCParams(self):
-        self.utility.bottomline2.changeSpinners()
+        try:
+            if hasattr(self.utility, "bottomline2"):
+                self.utility.bottomline2.changeSpinners()
+        except wx.PyDeadObjectError:
+            pass
         
         for ABCTorrentTemp in self.utility.torrents["all"]:
             #Local doesn't need to affect with change ABC Params
