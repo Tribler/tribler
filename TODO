@@ -2,6 +2,8 @@ TODO:
 
 Now:
 
+* superpeer.txt must be read from INSTALLPATH not CWD (Linux issue)
+
 * The administration of overlay connections is broken. Sometimes the
   secure overlay things there is no connection and calls connectPeer()
   but the OverlayEncoder still thinks it has a connection and 
@@ -56,6 +58,8 @@ Now:
 
 
 Short term:
+
+* Put debian package-building scripts in Subversion.
 
 * Tribler/Worldmap/ipinfo's lookupIPInfo will now timeout after 1 second to
   prevent it from holding up the RawServer. (I scheduled the lookups as
