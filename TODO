@@ -61,6 +61,10 @@ Short term:
 
 * Put debian package-building scripts in Subversion.
 
+* Sort recommended torrents on recommendation value.
+
+* Make "associate Tribler with .torrent files" work cross-platform.
+
 * Tribler/Worldmap/ipinfo's lookupIPInfo will now timeout after 1 second to
   prevent it from holding up the RawServer. (I scheduled the lookups as
   tasks on the rawserver, but they sometimes take too long, freezing up all
