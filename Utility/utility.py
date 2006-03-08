@@ -17,6 +17,7 @@ from BitTornado.bencode import bdecode
 from BitTornado.download_bt1 import defaults as BTDefaults
 from BitTornado.parseargs import parseargs
 from BitTornado.zurllib import urlopen
+from BitTornado.__init__ import version_id
 
 from ABC.Actions.actions import makeActionList
 
@@ -42,7 +43,7 @@ from Tribler.BuddyCast.buddycast import BuddyCastFactory
 class Utility:
     def __init__(self, abcpath):
         
-        self.version = "3.3.1"
+        self.version = version_id
         self.abcpath = abcpath
 
         # Find the directory to save config files, etc.

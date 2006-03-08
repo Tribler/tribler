@@ -23,6 +23,8 @@ setup(
 #    (Disabling bundle_files for now -- apparently causes some issues with Win98)
 #    options = {"py2exe": {"bundle_files": 1}},
 #    zipfile = None,
+    options = {"py2exe": {"packages": ["encodings"],
+                          "optimize": 2}},
     data_files = [("tribler", ["tribler.exe.manifest", "tribler.nsi", "tribler.ico", "torrenticon.ico", "LICENSE.txt", "readme.txt"])], 
     windows = [target_abc],
 )

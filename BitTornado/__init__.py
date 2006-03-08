@@ -3,8 +3,9 @@
 ## (here) and correct.
 ##
 
+version_id = '3.3.2'
 product_name = 'ABC'
-version_short = 'Tribler_ABC-3.3.1'
+version_short = 'Tribler_ABC-' + version_id
 
 version = version_short + ' (' + product_name + ' - BitTornado 0.3.13'
 report_email = 'triblersoft@gmail.com'

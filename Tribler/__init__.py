@@ -5,11 +5,8 @@
 ## actually used in connections, so make sure they are defined in one place
 ## (here) and correct.
 ##
-product_name = 'ABC'
-version_short = 'Tribler_ABC-3.3.1'
 
-version = version_short + ' (' + product_name + ' - BitTornado 0.3.13'
-report_email = 'triblersoft@gmail.com'
+from BitTornado.__init__ import version_id, version_short, product_name, version, report_email
 
 from types import StringType
 from sha import sha

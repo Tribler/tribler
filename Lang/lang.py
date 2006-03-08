@@ -7,6 +7,7 @@ from cStringIO import StringIO
 
 from Utility.configreader import ConfigReader
 from Utility.helpers import existsAndIsReadable
+from BitTornado.__init__ import version_id
 
 ################################################################
 #
@@ -74,7 +75,7 @@ class Lang:
             return self.cache[label]
     
         if (label == 'version'):
-            return "3.3.1"
+            return version_id
         if (label == 'build'):
             return "Build 703"
         if (label == 'build_date'):

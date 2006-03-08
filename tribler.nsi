@@ -1,5 +1,5 @@
 !define PRODUCT "Tribler"
-!define VERSION "3.3.1"
+!define VERSION "3.3.2"
 
 !include "MUI.nsh"
 
@@ -73,10 +73,8 @@ SetCompressor "lzma"
 Section "!Main EXE" SecMain
  SectionIn RO
  SetOutPath "$INSTDIR"
- File LICENSE.txt
  File *.ico
- File readme.txt
- File lang\superpeer.txt
+ File *.txt
  File tribler.exe.manifest
  File tribler.exe
  Delete "$INSTDIR\*.pyd"
@@ -89,12 +87,16 @@ Section "!Main EXE" SecMain
  CreateDirectory "$INSTDIR\icons"
  SetOutPath "$INSTDIR\icons"
  File icons\*.*
- CreateDirectory "$INSTDIR\lang"
- SetOutPath "$INSTDIR\lang"
+ CreateDirectory "$INSTDIR\icons\mugshots"
+ SetOutPath "$INSTDIR\icons\mugshots"
+ File icons\mugshots\*.*
+ CreateDirectory "$INSTDIR\Lang"
+ SetOutPath "$INSTDIR\Lang"
  IfFileExists user.lang userlang
  File lang\*.*
  userlang:
  File /x user.lang lang\*.*
+ SetOutPath "$INSTDIR"
  WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "DisplayName" "${PRODUCT} (remove only)"
  WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "UninstallString" "$INSTDIR\Uninstall.exe"
 

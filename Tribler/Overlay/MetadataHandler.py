@@ -39,7 +39,7 @@ class MetadataHandler:
     def register(self, secure_overlay, dlhelper, launchmany, config_dir):
         self.secure_overlay = secure_overlay
         self.dlhelper = dlhelper
-        self.config_dir = os.path.join(config_dir, 'torrent')
+        self.config_dir = os.path.join(config_dir, 'torrent2')    #TODO: user can set it
         self.torrent_db = TorrentDBHandler()
 
     def handleMessage(self, permid, message):

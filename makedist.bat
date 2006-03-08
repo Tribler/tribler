@@ -12,11 +12,13 @@ copy SSLEAY32.dll dist\tribler
 copy LIBEAY32.dll dist\tribler
 copy heading.bmp dist\tribler
 mkdir dist\tribler\Lang
-copy superpeer.txt dist\tribler\Lang
+copy superpeer.txt dist
+copy cities.txt dist
+copy LICENSE.txt dist
 mkdir dist\tribler\icons
 copy icons\*.bmp dist\tribler\icons
 mkdir dist\tribler\icons\mugshots
-copy icons\mugshots\* dist\tribler\icons\mugshots
+copy icons\mugshots\*.bmp dist\tribler\icons\mugshots
 copy icons\*.jpg dist\tribler\icons
 copy Lang\*.lang dist\tribler\Lang
 cd dist
