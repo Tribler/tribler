@@ -157,3 +157,6 @@ class DownloadHelperPanel(wx.Panel):
             print >> sys.stderr,"dlhelperframe: before exec: helping friends is",helpingFriends
         self.coordinator.stop_help(remainingFriends, force = False)
         self.coordinator.request_help(helpingFriends, force = False)
+
+    def editFriend(self, event = None):
+        pass

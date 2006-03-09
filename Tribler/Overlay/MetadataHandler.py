@@ -153,7 +153,7 @@ class MetadataHandler:
         
     def save_torrent(self, torrent_hash, metadata):
         if DEBUG:
-            print >> sys.stderr,"metadata: Store torrent", torrent_hash, "on disk"
+            print >> sys.stderr,"metadata: Store torrent", md5.new(torrent_hash).digest(), "on disk"
         #TODO: 
         file_name = self.get_filename(metadata, torrent_hash)
         save_path = os.path.join(self.config_dir, file_name)
@@ -207,10 +207,9 @@ class MetadataHandler:
             if DEBUG:
                 torrent_size = len(metadata)
                 print >> sys.stderr,"metadata: Recvd torrent", torrent_size, md5.new(metadata).hexdigest()
-            else:
-                self.save_torrent(torrent_hash, metadata)
-                if self.dlhelper is not None:
-                    self.dlhelper.call_dlhelp_task(torrent_hash, metadata)
+            self.save_torrent(torrent_hash, metadata)
+            if self.dlhelper is not None:
+                self.dlhelper.call_dlhelp_task(torrent_hash, metadata)
         except Exception, msg:
             print_exc()
             print >> sys.stderr,"metadata: Received metadata is broken", msg

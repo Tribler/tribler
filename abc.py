@@ -38,6 +38,8 @@ from Utility.constants import * #IGNORE:W0611
 
 from Tribler.__init__ import tribler_init, tribler_done
 
+ALLOW_MULTIPLE = False
+
 ################################################################
 #
 # Class: FileDropTarget
@@ -623,7 +625,8 @@ class ABCApp(wx.App):
         return True
 
     def OnExit(self):
-        del self.single_instance_checker
+        if not ALLOW_MULTIPLE:
+            del self.single_instance_checker
         ClientPassParam("Close Connection")
         
         return 0
@@ -646,7 +649,7 @@ def run(params = None):
     # Create single instance semaphore
     single_instance_checker = wx.SingleInstanceChecker("pingpong-abc" + wx.GetUserId())
 
-    if single_instance_checker.IsAnotherRunning():
+    if not ALLOW_MULTIPLE and single_instance_checker.IsAnotherRunning():
         #Send  torrent info to abc single instance
         ClientPassParam(params[0])
     else:
