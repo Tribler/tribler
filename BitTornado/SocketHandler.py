@@ -374,7 +374,6 @@ class SocketHandler:
                 s = self.single_sockets.get(sock)
                 if not s:
                     continue
-                s.connected = True
                 if (event & (POLLHUP | POLLERR)):
                     if DEBUG:
                         print >> sys.stderr,"SocketHandler: Got event, connect socket got error"
@@ -401,6 +400,7 @@ class SocketHandler:
                             self._close_socket(s)
                             continue
                 if (event & POLLOUT) and s.socket and not s.is_flushed():
+		    s.connected = True
                     s.try_write()
                     if s.is_flushed():
                         s.handler.connection_flushed(s)

@@ -40,10 +40,6 @@ for subver in version_short.split('-')[1].split('.'):
         subver = 0
     _idprefix += mapbase64[subver]
 _idprefix += ('-' * (6-len(_idprefix)))
-
-
-print "IDPREFIX IS",_idprefix
-
 _idrandom = [None]
 
 class GLOBAL:
