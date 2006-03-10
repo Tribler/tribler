@@ -329,7 +329,7 @@ class MyInfoAction(ABCAction):
     def __init__(self, utility):
         ABCAction.__init__(self, 
                            utility, 
-                           'joe32.bmp', 
+                           'joe24.bmp', 
                            'myinfo',
                            menudesc = 'menumyinfo')
                            

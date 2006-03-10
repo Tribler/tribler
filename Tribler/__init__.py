@@ -58,7 +58,7 @@ class GLOBAL:
 myinfo = {}
 
 def is_valid_ip(ip):
-    invalid_iphead = ['0.', '127.0.0.1']
+    invalid_iphead = []
     for iphead in invalid_iphead:
         if ip.startswith(iphead):
             return False
@@ -113,7 +113,7 @@ def createPeerID(ins = '---'):
     return _idprefix + ins + _idrandom[0]
 
 
-def tribler_init(config_dir = None):
+def tribler_init(config_dir = None, install_dir = None):
     global myinfo
     if config_dir:
         GLOBAL.config_dir = config_dir
@@ -121,7 +121,7 @@ def tribler_init(config_dir = None):
     permid.init(config_dir)
     load_myinfo(myinfo)
     cachedb.init(config_dir,myinfo)
-    superpeer.init()
+    superpeer.init(install_dir)
     friends.init(config_dir)
 
 def tribler_done(config_dir = None):

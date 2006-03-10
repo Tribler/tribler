@@ -604,7 +604,7 @@ class ABCApp(wx.App):
         self.single_instance_checker = single_instance_checker
 
         self.utility = Utility(abcpath)
-        tribler_init(self.utility.getConfigPath())
+        tribler_init(self.utility.getConfigPath(),self.utility.getPath())
         self.utility.setTriblerVariables()
         
         # Set locale to determine localisation

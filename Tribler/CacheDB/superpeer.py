@@ -12,9 +12,16 @@ superpeer_file = 'superpeer.txt'
 
 DEBUG = False
 
-def init():
+def init(install_dir = None):
     ## FIXME
-    SuperPeerList().updateSuperPeerList()
+    filename = make_filename(install_dir, superpeer_file)
+    SuperPeerList().updateSuperPeerList(filename)
+    
+def make_filename(install_dir,filename):
+    if install_dir is None or not isinstance(install_dir, str):
+        return filename
+    else:
+        return os.path.join(install_dir,filename)    
 
 class SuperPeerList:
     def __init__(self, superpeer_file=superpeer_file, db_dir=''):

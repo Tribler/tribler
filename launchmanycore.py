@@ -77,6 +77,7 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
 
         btconfig['parse_dir_interval'] = None # No parsing done at the moment
         btconfig['saveas_style'] = 1 # must be 1 for security during download helping
+	btconfig['2fastbtlog'] = os.path.join(self.utility.getConfigPath(), "2fastbt.log")
 
         # Enable/disable features
         btconfig['buddycast'] = int(self.utility.config.Read('enablerecommender'))

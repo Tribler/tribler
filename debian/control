@@ -1,0 +1,13 @@
+Source: tribler
+Section: net
+Priority: optional
+Maintainer: Arno Bakker <arno@cs.vu.nl>
+Build-Depends-Indep: python
+Standards-Version: 3.6.2.0
+
+Package: tribler
+Architecture: all
+Depends: ${python:Depends}, wxpython2.6-gtk2-ansi, m2crypto-ec
+Description: The fastest way of social file sharing
+ .
+ Homepage: http://www.tribler.org

@@ -153,8 +153,9 @@ if __name__ == '__main__':
     except ValueError, e:
         print 'error: ' + str(e) + '\nrun with no args for parameter explanations'
         exit(1)
-
-    tribler_init(config['config_path'])
+    
+    install_dir = os.path.dirname(argv[0])
+    tribler_init(config['config_path'],install_dir)
 
     config['text_mode'] = 1
     LaunchMany(config, HeadlessDisplayer())
