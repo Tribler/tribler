@@ -7,5 +7,3 @@ superpeer1.das2.ewi.tudelft.nl, 7001, MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAL2I5yVc1+
 #superpeer6.das2.ewi.tudelft.nl, 7006, MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAfizxRUl7S3Fec2cl1+uML6tORwnUIod5mh3soWVANxmu+flFNp1yayiLPjB+dWQ6Va77FXbHDkw5smd, SuperPeer6@Tribler
 #superpeer7.das2.ewi.tudelft.nl, 7007, MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAFzfWHb/WPL+luFfXfUbtJGRpUnwbmyB0kH7t3UpAVSpKilym4Fzt2rS7HJTZyQ7yCI3c+xTRtMLZ0sc, SuperPeer7@Tribler
 #superpeer8.das2.ewi.tudelft.nl, 7008, MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAIV8h+eS+vQ+0uqZNv3MYYTLo5s0JP+cmkvJ7U4JAHhfRv1wCqZSKIuY7Q+3ESezhRnnmmX4pbOVhKTU, SuperPeer8@Tribler
-
-#130.161.158.51, 6999, MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAYLdCkOU4o89xiw2Cvg9ZIYR1KyQkmDi5PG5TAr8ABkWFAO3ur3c1xjpjrfI06FpfByliT6PnfE5BN6F, jyang2
