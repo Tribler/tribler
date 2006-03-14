@@ -77,9 +77,9 @@ class Lang:
         if (label == 'version'):
             return version_id
         if (label == 'build'):
-            return "Build 703"
+            return "Build 901+"
         if (label == 'build_date'):
-            return "February 23, 2006"
+            return "March 14, 2006"
 
         # see if it exists in 'user.lang'
         if tryuser:

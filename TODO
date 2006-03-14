@@ -2,8 +2,6 @@ TODO:
 
 Now:
 
-* superpeer.txt must be read from INSTALLPATH not CWD (Linux issue)
-
 * The administration of overlay connections is broken. Sometimes the
   secure overlay things there is no connection and calls connectPeer()
   but the OverlayEncoder still thinks it has a connection and 
@@ -16,50 +14,22 @@ Now:
   simultaneously, but not end up with a good connection, halting the client.
   
   	Arno, 2006-02-20: It appears to have disappeared in r611.
+	Arno, 2006-03-10: Reappears in ~r890, fixed in r892. It appears
+	to be a problem of writing to a nonblocking socket before it signalled
+	it is ready for writing, although the evidence is inconclusive.
 	
-* When using btlaunchmany for seeding, it does not always reuse the 
-  pickled Merkle trees stored in <cfg dir>/datacache.
-
-	Arno, 2006-02-20: Only press Ctrl-C once, and then let it
-	shutdown properly appears to solve this.
-
-* Buddycast doesn't attempt to contact any superpeers. Alternative
-  is to disable super-peer bootstrapping and just let it talk to the
-  peers it meets. I currently do the latter. Could use example torrent
-  file to meet other Tribesmen.
-
-	Arno, 2006-02-20: I think this works now?
-
-* Text version may not work as before because I hacked up
-  launchmanycore.py and BitTornado/launchmanycore.py. Need to redo this.
-  
-  	Arno, 2006-1-6: A single friends-assisted download with 1 helper in
-	passive mode appears to work, so it's not that broken.
-
-	Arno, 2006-2-2: The code changed radically since last entry,
-	but the ./btlaunchmany.py works now as seeder.
-
-* Start two clients, each with busy torrent (i.e., many peers) and
-  then asking each to help the other. The DOWNLOAD_HELP requests may not
-  get through. Fix this.
-
-	Arno, 2006-2-7: There were was a concurrency problem between
-	the MainThread and the network thread in the RawServer class.
-	The MainThread via the DL helper GUI would add tasks to the
-	rawserver, while the rawserver would be moving the external
-	task queue to its internal queue. So there may be improvement.
-
-
 * There is a potential concurrency problem between the GUI thread (MainThread)
   and the network thread (ABCLaunchMany) thread. They both write to the
   peer DB, e.g. when a user edits the friends list and there is a torrent
   downloading.
   
 
-
 Short term:
 
-* Put debian package-building scripts in Subversion.
+* Ask Marion to restyle all other icons, so that when people use the
+  "Customize toolbar" feature, all icons have the same style.
+  
+* Python 2.4 support, for easier Linux installs.
 
 * Sort recommended torrents on recommendation value.
 
@@ -121,9 +91,6 @@ Short term:
 		2. Share list of downloaded torrents with friends only
 		3. Share list of downloaded torrents with noone.
 
-* Website/bug reporting facility for Chitraka.
-  
-  	Proposal by Johan: for first period use ABC mailing list
   
   
 * In the current design, after a PREFERENCE_EXCHANGE message, the receiver
@@ -146,11 +113,7 @@ Short term:
 
 Longer term:
 
-* Clearly define what all the planned features for BitTorrent++ and
-  BitTorrent-2 are. Currently they are 1/2 line bullets on a PowerPoint sheet
-  
-* Design an encoding for a Merkle torrent in a URL of less that 2083 bytes.
-
+* See D3.104 for a list of proposed features.
 
 
 DONE:
@@ -243,3 +206,48 @@ DONE:
 * cities.txt should be empty or contain a sensible list of cities.
 
 	Arno, 2006-02-20: Empty.
+
+* superpeer.txt must be read from INSTALLPATH not CWD (Linux issue)
+
+	Arno, 2006-03-10: DONE.
+	
+* When using btlaunchmany for seeding, it does not always reuse the 
+  pickled Merkle trees stored in <cfg dir>/datacache.
+
+	Arno, 2006-02-20: Only press Ctrl-C once, and then let it
+	shutdown properly appears to solve this.
+	
+* Buddycast doesn't attempt to contact any superpeers. Alternative
+  is to disable super-peer bootstrapping and just let it talk to the
+  peers it meets. I currently do the latter. Could use example torrent
+  file to meet other Tribesmen.
+
+	Arno, 2006-02-20: I think this works now?
+
+* Text version may not work as before because I hacked up
+  launchmanycore.py and BitTornado/launchmanycore.py. Need to redo this.
+  
+  	Arno, 2006-1-6: A single friends-assisted download with 1 helper in
+	passive mode appears to work, so it's not that broken.
+
+	Arno, 2006-2-2: The code changed radically since last entry,
+	but the ./btlaunchmany.py works now as seeder.
+
+* Put debian package-building scripts in Subversion.
+	
+	Arno, 2006-03-10: Done in r898
+	
+* Website/bug reporting facility for Tribler.
+  
+  	Proposal by Johan: for first period use ABC mailing list
+	Arno, 2006-03-10: We have SF now.
+
+* Start two clients, each with busy torrent (i.e., many peers) and
+  then asking each to help the other. The DOWNLOAD_HELP requests may not
+  get through. Fix this.
+
+	Arno, 2006-2-7: There were was a concurrency problem between
+	the MainThread and the network thread in the RawServer class.
+	The MainThread via the DL helper GUI would add tasks to the
+	rawserver, while the rawserver would be moving the external
+	task queue to its internal queue. So there may be improvement.
