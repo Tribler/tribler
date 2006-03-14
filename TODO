@@ -26,6 +26,12 @@ Now:
 
 Short term:
 
+* In the next version, however, we should make sure that people cannot
+  disable Torrent Collecting but still enable Buddycast, which is possible
+  in the current GUI. Enabling buddycast and not enabling torrent collecting
+  makes no sense, because you will learn about new torrents, but you can
+  never download them.
+
 * Ask Marion to restyle all other icons, so that when people use the
   "Customize toolbar" feature, all icons have the same style.
   

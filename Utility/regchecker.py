@@ -28,7 +28,7 @@ class RegChecker:
         if (sys.platform != 'win32'):
             return
         
-        abcpath = os.path.join(self.utility.getPath(), "abc.exe")
+        abcpath = os.path.join(self.utility.getPath(), "tribler.exe")
 #        abcpath = os.path.normcase(abcpath)
         iconpath = os.path.join(self.utility.getPath(), "torrenticon.ico")
     
