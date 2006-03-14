@@ -321,7 +321,8 @@ class Utility:
                                  #ACTION_SCRAPE, 
                                  -1,
                                  ACTION_BUDDIES,
-                                 ACTION_FILES
+                                 ACTION_FILES,
+                                 ACTION_MYINFO,
                                  ], 
             'menu_listrightclick': [ACTION_RESUME, 
                                     ACTION_STOP, 

@@ -53,7 +53,6 @@ class FileMenu(ABCActionMenu):
     def __init__(self, utility):
         subactions = [ACTION_ADDTORRENTMENU, 
                       ACTION_MYINFO,
-                      ACTION_BUDDIES,
                       ACTION_PREFERENCES, 
                       -1, 
                       ACTION_EXIT]
@@ -71,7 +70,10 @@ class TorrentActionMenu(ABCActionMenu):
     def __init__(self, utility):
         subactions = [ACTION_STOPALL, 
                       ACTION_UNSTOPALL, 
-                      ACTION_CLEARCOMPLETED]
+                      ACTION_CLEARCOMPLETED,
+                      ACTION_BUDDIES,
+                      ACTION_FILES,
+                      ]
         
         ABCActionMenu.__init__(self, 
                                utility, 

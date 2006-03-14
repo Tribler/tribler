@@ -313,7 +313,7 @@ class FilesAction(ABCAction):
                            utility, 
                            'recommend.bmp', 
                            'tb_file_short', 
-                           menudesc = 'rtorrentdetail')
+                           menudesc = 'recommendatefiles')
                            
     def action(self, event = None):
         if self.utility.frame.fileFrame is None:
