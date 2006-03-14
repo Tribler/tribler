@@ -392,7 +392,6 @@ class ABCFrame(wx.Frame):
                     dialog.Destroy()
 
         self.checkVersion()
-        #TODO: check version
         
     def checkVersion(self):
         t = Timer(2.0, self._checkVersion)
@@ -418,9 +417,23 @@ class ABCFrame(wx.Frame):
     def newversion(self, curr_version, my_version):
         curr = curr_version.split('.')
         my = my_version.split('.')
-        for i in range(len(curr)):
-            if int(curr[i]) > int(my[i]):
+        if len(my) >= len(curr):
+            nversion = len(my)
+        else:
+            nversion = len(curr)
+        for i in range(nversion):
+            if i < len(my):
+                my_v = int(my[i])
+            else:
+                my_v = 0
+            if i < len(curr):
+                curr_v = int(curr[i])
+            else:
+                curr_v = 0
+            if curr_v > my_v:
                 return True
+            elif curr_v < my_v:
+                return False
         return False
     
     def OnUpgrade(self, event=None):
