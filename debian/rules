@@ -60,7 +60,7 @@ binary-indep: build install
 	cp -rf `ls -1d * | grep -v debian | grep -v test` debian/tribler/usr/share/tribler/
 	# add other files
 	mkdir -p debian/tribler/usr/bin
-	cp -f tribler debian/tribler/usr/bin/
+	cp -f tribler.sh debian/tribler/usr/bin/tribler
 	cp -f LICENSE.txt debian/copyright
 	# for the menu
 	mkdir -p debian/tribler/usr/share/pixmaps
