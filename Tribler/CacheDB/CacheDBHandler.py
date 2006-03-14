@@ -415,7 +415,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
         
         return peers
         
-    def removeFakeTorrents(self, items):
+    def removeFakeTorrents(self, items):    #TODO: revise it by filter()
         valid_torrents = []
         for i in xrange(len(items)):
             torrent = items[i][0]

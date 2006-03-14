@@ -465,18 +465,18 @@ class BuddyCastCore:
         - the chance to select a taste buddy or a random peer is 50% respectively
         - Any peer in sending block list cannot be selected as a target
         - select a taste buddy candidate:
-            First get recent 100 taste buddies and then select one based on their similarity
+            First get recent 100 taste buddies and then select one from them based on their similarity
         - select a random peer candidate:
-            Select one peer from random peers based on their last seen timestamp.
+            Select one peer from random peers based on their ages.
         
         Taste buddies and random peers selection algorithm:
-        Taste buddy list - the top 10 similar taste buddies
-        Random peer list - From the rest of peer list (include taste buddies and random peers)
-        randomly select 10 peers based on their online probability.
+        - Taste buddy list: the top 10 similar taste buddies
+        - Random peer list: From the rest of peer list (include taste buddies and random peers)
+            randomly select 10 peers based on their online probability.
         
         Online probability of peers: 
-            Prob_online(Peer_x) = last_seen(Peer_x) - time_stamp_of_7_days_ago
-            set Prob_online(Peer_x) = 0 if Prob_online(Peer_x) > 0.
+            Prob_online(Peer_x) = (last_seen(Peer_x) - time_stamp_of_8_hours_ago) / 300 seconds
+            set Prob_online(Peer_x) = 0 if Prob_online(Peer_x) < 0.
         """
         
         self._updatePeerCache(nbuddies, target)
@@ -740,11 +740,11 @@ class BuddyCastFactory:
             print_exc()
             return
         target = buddycast_data['permid']
-        self.data_handler.increaseBuddyCastTimes(target)
         if self.data_handler.isRecvBlocked(target):    # RCP 1
             return
         self.data_handler.addToRecvBlockList(target, self.block_time)
         updateDB(buddycast_data)
+        self.data_handler.increaseBuddyCastTimes(target)
         self.buddycast_job_queue.addJob(target, priority=1)
 
     def _checkPeerConsistency(self, buddycast_data, permid):
