@@ -525,7 +525,8 @@ class MiscPanel(ABCOptionPanel):
         for filename in dirlist2:
             filepath = os.path.join(langpath, filename)
 
-            config = ConfigReader(filepath, "ABC/language")
+            config = wx.FileConfig(localFilename = filepath)
+            config.SetPath("ABC/language")
             if config.Exists('languagename'):
                 self.utility.languages[config.Read('languagename')] = filename
 

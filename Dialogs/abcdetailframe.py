@@ -1095,7 +1095,9 @@ class ABCDetailFrame(wx.Frame):
         except:
             pass
 
-        self.metainfo = self.torrent.getResponse()
+        #self.metainfo = self.torrent.getResponse()
+        self.metainfo = self.torrent.metainfo
+        
         if self.metainfo is None:
             self.killAdv()
             return

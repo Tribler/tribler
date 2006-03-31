@@ -2,7 +2,7 @@ import wx
 import sys
 import os
 
-from traceback import print_exc
+from traceback import print_exc, print_stack
 from cStringIO import StringIO
 
 from Utility.configreader import ConfigReader
@@ -27,7 +27,7 @@ class Lang:
         
         filename = self.utility.config.Read('language_file')
         
-        langpath = os.path.join(self.utility.getPath(), "Lang")    #_# change lang to Lang for compatiblity on posix
+        langpath = os.path.join(self.utility.getPath(), "Lang")
         
         sys.stdout.write("Setting up languages\n")
         sys.stdout.write("filename: " + str(filename) + "\n")
@@ -43,7 +43,10 @@ class Lang:
         local_filepath = os.path.join(langpath, filename)
         if filename != 'english.lang' and existsAndIsReadable(local_filepath):
             self.local_lang_filename = filename
-            self.local_lang = ConfigReader(local_filepath, "ABC/language")
+            # Modified
+            self.local_lang = wx.FileConfig(localFilename = local_filepath)
+            self.local_lang.SetPath("ABC/language")
+            #self.local_lang = ConfigReader(local_filepath, "ABC/language")
         
         # Set up english language file
         self.english_lang = None
@@ -138,7 +141,7 @@ class Lang:
         return "", False
         
     def getSingleline(self, label, langfile):
-        return langfile.Read(label).decode("string-escape") 
+        return langfile.Read(label)
     
     def getMultiline(self, label, langfile):
         i = 1
@@ -146,7 +149,7 @@ class Lang:
         while (langfile.Exists(label + "_line" + str(i))):
             if (i != 1):
                 text+= "\n"
-            text += langfile.Read(label + "_line" + str(i)).decode("string-escape") 
+            text += langfile.Read(label + "_line" + str(i))
             i += 1
         if not text:
             sys.stdout.write("Got an error reading multiline string\n")
@@ -193,3 +196,4 @@ class Lang:
                 dlg.Destroy()
         sys.stderr.write("\nError reading language file!\n")
         sys.stderr.write("  Cannot find value for variable: " + label + "\n")
+	print_stack()

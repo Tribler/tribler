@@ -151,6 +151,9 @@ class AddTorrents:
             self.AddTorrentFromFile(filepath, forceasklocation)
            
     def AddTorrentFromFile(self, filepath, forceasklocation = False, dotTorrentDuplicate = False, caller = "", dest = None, caller_data = None):
+        if type(filepath) is not unicode:
+            filepath = unicode(filepath, sys.getfilesystemencoding())
+
         # Check to make sure that the source file exists
         sourcefileexists = os.access(filepath, os.R_OK)
         

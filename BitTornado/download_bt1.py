@@ -762,11 +762,21 @@ class BT1Download:
         return False
 
     def startRerequester(self):
-        if self.response.has_key('announce-list'):
+        if self.response.has_key ('announce-list'):
             trackerlist = self.response['announce-list']
+            for tier in range(len(trackerlist)):
+                for t in range(len(trackerlist[tier])):
+                    try:
+                        trackerlist[tier][t] = trackerlist[tier][t].decode('utf_8')
+                    except:
+                        trackerlist[tier][t] = trackerlist[tier][t].decode(sys.getfilesystemencoding())
         else:
-            trackerlist = [[self.response['announce']]]
-
+            try:
+                tracker = self.response['announce'].decode('utf_8')
+            except:
+                tracker = self.response['announce'].decode(sys.getfilesystemencoding())
+            trackerlist = [[tracker]]
+            
         self.rerequest = Rerequester(trackerlist, self.config['rerequest_interval'], 
             self.rawserver.add_task, self.connecter.how_many_connections, 
             self.config['min_peers'], self.encoder.start_connections, 

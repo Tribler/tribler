@@ -18,7 +18,7 @@ def init(install_dir = None):
     SuperPeerList().updateSuperPeerList(filename)
     
 def make_filename(install_dir,filename):
-    if install_dir is None or not isinstance(install_dir, str):
+    if install_dir is None:
         return filename
     else:
         return os.path.join(install_dir,filename)    

@@ -6,7 +6,7 @@ from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler, MyPreferenceDBHandl
 from Tribler.utilities import friendly_time, sort_dictlist
 from common import CommonTriblerList
 
-
+DEBUG = True
 
 def showInfoHash(infohash):
     if infohash.startswith('torrent'):    # for testing
@@ -53,15 +53,20 @@ class MyPreferenceList(CommonTriblerList):
         
     def getText(self, data, row, col):
         key = self.list_key[col]
+        if DEBUG:
+            print "fileframe: getText",key
         original_data = data[row][key]
         if key == 'length':
             length = original_data/1024/1024.0
             return '%.2f MB'%(length)
-        if key == 'last_seen':
+        elif key == 'last_seen':
             if original_data == 0:
                 return 'Never'
             return friendly_time(original_data)
-        return str(original_data)
+        elif isinstance(original_data,unicode):
+            return original_data
+        else:
+            return unicode(original_data)
         
     def reloadData(self):
         myprefs = self.mypref_db.getPrefList()
@@ -71,9 +76,9 @@ class MyPreferenceList(CommonTriblerList):
             info = self.data[i]['info']
             self.data[i]['length'] = info.get('length', 0)
             if self.data[i]['torrent_name'] == '':
-                self.data[i]['torrent_name'] = '\xff'
+                self.data[i]['torrent_name'] = '-'
             if self.data[i]['content_name'] == '':
-                self.data[i]['content_name'] = '\xff'
+                self.data[i]['content_name'] = '-'
         
     def getMenuItems(self, min_rank, max_rank):
         menu_items = {}

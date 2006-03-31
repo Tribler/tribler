@@ -24,15 +24,29 @@ class TorrentFiles:
     def __init__(self, torrent):
         self.torrent = torrent
         self.utility = torrent.utility
-              
-        self.filename = self.torrent.info['name']
+
+        namekey = self.torrent.namekey
         
+        self.filename = self.torrent.info[namekey]
+                      
         # Array to store file priorities
         # Just using a placeholder of 1 (Normal) for now
         if self.isFile():
             numfiles = 1
         else:
             numfiles = len(self.torrent.info['files'])
+            # Change all files to unicode
+            if self.torrent.info['files'][0].has_key('path.utf-8'):
+                pathkey = 'path.utf-8'
+            else:
+                pathkey = 'path'
+            for i in range(numfiles):
+                for j in range(len(self.torrent.info['files'][i]['path'])):
+                    try:
+                        self.torrent.info['files'][i]['path'][j] = self.torrent.info['files'][i][pathkey][j].decode('utf_8')
+                    except:
+                        self.torrent.info['files'][i]['path'][j] = self.torrent.info['files'][i][pathkey][j].decode(sys.getfilesystemencoding())
+                        
         self.filepriorities = [1] * numfiles
 
         self.floattotalsize = float(self.getSize())
@@ -83,9 +97,11 @@ class TorrentFiles:
         
         # Check to make sure that what we're trying to get exists
         if dest is None or not os.access(dest, os.R_OK):
+            if dest is None:
+                dest = "None"
             # Error : file not found
             dialog = wx.MessageDialog(None, 
-                                      str(dest) + '\n\n' + self.utility.lang.get('filenotfound'), 
+                                      dest + '\n\n' + self.utility.lang.get('filenotfound'), 
                                       self.utility.lang.get('error'), 
                                       wx.ICON_ERROR)
             dialog.ShowModal()
@@ -115,11 +131,7 @@ class TorrentFiles:
                 return False
 
         try:
-            if pathonly and (sys.platform == 'win32'):
-                dest = self.getSingleFileDest(index, pathonly = False, checkexists = False)
-                os.popen('explorer.exe /select,"' + dest + '"')
-            else:
-                Thread(target = open_new(dest)).start()
+            Thread(target = open_new(str(dest))).start()
         except:
             pass
             
@@ -130,18 +142,25 @@ class TorrentFiles:
         self.dest = dest
         self.torrent.updateColumns([COL_DEST])
         self.torrent.torrentconfig.writeBasicInfo()
+
+        if rentorrent:
+            # Update torrent name
+            self.torrent.changeTitle(os.path.split(dest)[1])
         
         details = self.torrent.dialogs.details
         if details is not None:
             try:
-                details.fileInfoPanel.opendirbtn.SetLabel(self.torrent.files.getProcDest(pathonly = True, checkexists = False))
+                oldlabel = details.fileInfoPanel.opendirbtn.GetLabel()
+                newlabel = self.torrent.files.getProcDest(pathonly = True, checkexists = False)
+                if oldlabel != newlabel:
+                    details.fileInfoPanel.opendirbtn.SetLabel(newlabel)
+                    # Need to call "Layout" since the new text
+                    # may require a larger button to fit
+                    details.fileInfoPanel.Layout()
+                
                 details.updateTorrentName()
             except wx.PyDeadObjectError:
                 pass
-        
-        if rentorrent:
-            # Update torrent name
-            self.torrent.changeTitle(os.path.split(dest)[1])
             
     def move(self, dest = None):
         if dest is None:

@@ -126,7 +126,7 @@ def init(config_dir, myinfo):
     OwnerDB.getInstance(home_dir)
     
 def make_filename(config_dir,filename):
-    if config_dir is None or not isinstance(config_dir, str):
+    if config_dir is None:
         return filename
     else:
         return os.path.join(config_dir,filename)    

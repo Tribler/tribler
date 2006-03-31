@@ -1,33 +1,28 @@
 # Written by Bram Cohen
 # see LICENSE.txt for license information
 
-from types import StringType, LongType, IntType, ListType, DictType
-import re
+from types import UnicodeType, StringType, LongType, IntType, ListType, DictType
+from re import compile
 
-reg = re.compile(r'^[^/\\.~][^/\\]*$')
+#reg = compile(r'^[^/\\.~][^/\\]*$')
+#reg = compile(r'^[^/\\]*$')
 
 ints = (LongType, IntType)
 
 def check_info(info):
     if type(info) != DictType:
         raise ValueError, 'bad metainfo - not a dictionary'
-    if info.has_key('pieces'):
-        pieces = info.get('pieces')
-        if type(pieces) != StringType or len(pieces) % 20 != 0:
-            raise ValueError, 'bad metainfo - bad pieces key'
-    elif info.has_key('root hash'):
-        # Merkle
-        root_hash = info.get('root hash')
-        if type(root_hash) != StringType or len(root_hash) != 20:
-            raise ValueError, 'bad metainfo - bad root hash key'
+    pieces = info.get('pieces')
+    if type(pieces) != StringType or len(pieces) % 20 != 0:
+        raise ValueError, 'bad metainfo - bad pieces key'
     piecelength = info.get('piece length')
     if type(piecelength) not in ints or piecelength <= 0:
         raise ValueError, 'bad metainfo - illegal piece length'
     name = info.get('name')
-    if type(name) != StringType:
+    if StringType != type(name) != UnicodeType:
         raise ValueError, 'bad metainfo - bad name'
-    if not reg.match(name):
-        raise ValueError, 'name %s disallowed for security reasons' % name
+    #if not reg.match(name):
+    #    raise ValueError, 'name %s disallowed for security reasons' % name
     if info.has_key('files') == info.has_key('length'):
         raise ValueError, 'single/multiple file mix'
     if info.has_key('length'):
@@ -48,10 +43,10 @@ def check_info(info):
             if type(path) != ListType or path == []:
                 raise ValueError, 'bad metainfo - bad path'
             for p in path:
-                if type(p) != StringType:
+                if StringType != type(p) != UnicodeType:
                     raise ValueError, 'bad metainfo - bad path dir'
-                if not reg.match(p):
-                    raise ValueError, 'path %s disallowed for security reasons' % p
+                #if not reg.match(p):
+                #    raise ValueError, 'path %s disallowed for security reasons' % p
         for i in xrange(len(files)):
             for j in xrange(i):
                 if files[i]['path'] == files[j]['path']:
@@ -61,7 +56,7 @@ def check_message(message):
     if type(message) != DictType:
         raise ValueError
     check_info(message.get('info'))
-    if type(message.get('announce')) != StringType:
+    if StringType != type(message.get('announce')) != UnicodeType:
         raise ValueError
 
 def check_peers(message):

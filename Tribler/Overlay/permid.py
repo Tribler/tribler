@@ -30,7 +30,7 @@ _ec_keypair = None
 
 # Exported functions
 def init(config_dir = None):
-    Rand.load_file(get_rand_filename(config_dir), -1) 
+    Rand.load_file(get_rand_filename(config_dir.encode(sys.getfilesystemencoding())), -1) 
     try:
         read_keypair(config_dir)
     except:
@@ -39,7 +39,7 @@ def init(config_dir = None):
         save_pub_key(config_dir)
 
 def exit():
-    Rand.save_file(get_rand_filename(config_dir))
+    Rand.save_file(get_rand_filename(config_dir.encode(sys.getfilesystemencoding())))
 
 def show_permid(permid):
     # Full BASE64-encoded 

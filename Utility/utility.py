@@ -128,7 +128,8 @@ class Utility:
         self.dir_root = configdir.dir_root        
         
     def getConfigPath(self):
-        return self.dir_root
+        # TODO: python 2.3.x has a bug with os.access and unicode
+        return self.dir_root.decode(sys.getfilesystemencoding())
                          
     def setupConfig(self):        
         defaults = {

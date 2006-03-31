@@ -24,7 +24,7 @@ def done(config_dir = None):
     ExternalFriendList(filename).writeFriendList()
     
 def make_filename(config_dir,filename):
-    if config_dir is None or not isinstance(config_dir, str):
+    if config_dir is None:
         return filename
     else:
         return os.path.join(config_dir,filename)    
@@ -72,6 +72,7 @@ class ExternalFriendList:
         try:
             file = open(filename, "r")
         except IOError:
+            print_exc()
             return []
             
         friends = file.readlines()

@@ -70,11 +70,30 @@ class ABCTorrent:
                 
         self.torrentconfig = TorrentConfig(self)
              
+        # check for unicode name
+        if self.metainfo['info'].has_key('name.utf-8'):
+            self.namekey = 'name.utf-8'
+        else:
+            self.namekey = 'name'
+        if self.metainfo.has_key('encoding'):
+            encoding = self.metainfo['encoding']
+            try:
+                self.metainfo['info'][self.namekey] = self.metainfo['info'][self.namekey].decode(encoding)
+            except:
+                self.metainfo['info'][self.namekey] = self.torrentfield2unicode(self.metainfo['info'][self.namekey])
+        else:
+            self.metainfo['info'][self.namekey] = self.torrentfield2unicode(self.metainfo['info'][self.namekey])
+                
         # Check for valid windows filename
         if sys.platform == 'win32':
-            fixedname = self.utility.fixWindowsName(self.metainfo['info']['name'])
-            if fixedname:
-                self.metainfo['info']['name'] = fixedname
+            fixedname = self.utility.fixWindowsName(self.metainfo['info'][self.namekey])
+            if fixedname: 
+                self.metainfo['info'][self.namekey] = fixedname
+                
+        # change metainfo['info']['name'] to metainfo['info'][self.namekey], just in case...
+        # TODO: Never tested the following 2 lines 
+        if self.namekey != 'name':
+            self.metainfo['info']['name'] = self.metainfo['info'][self.namekey ]
         
         self.info = self.metainfo['info']
 
@@ -120,26 +139,36 @@ class ABCTorrent:
         
         self.peer_swarm = {}    # swarm of each torrent, used to display peers on map
         
+    def torrentfield2unicode(self,field):
+        try:
+            return field.decode('utf_8')
+        except:
+            try:
+                return field.decode('iso-8859-1')
+            except:
+                try:
+                    return field.decode(sys.getfilesystemencoding())
+                except:
+                    return field.decode(sys.getfilesystemencoding(), errors = 'replace')
+
     def addTorrentToDB(self):
         
         if self.torrent_db.hasTorrent(self.torrent_hash):
             return
             
-        info = self.metainfo['info']
-        
         torrent = {}
         torrent['torrent_dir'], torrent['torrent_name'] = os.path.split(self.src)
         torrent['relevance'] = 100*1000
         
         torrent_info = {}
-        torrent_info['name'] = info.get('name', '')
+        torrent_info['name'] = self.info.get(self.namekey, '')
         length = 0
         nf = 0
-        if info.has_key('length'):
-            length = info.get('length', 0)
+        if self.info.has_key('length'):
+            length = self.info.get('length', 0)
             nf = 1
-        elif info.has_key('files'):
-            for li in info['files']:
+        elif self.info.has_key('files'):
+            for li in self.info['files']:
                 nf += 1
                 if li.has_key('length'):
                     length += li['length']
@@ -759,7 +788,7 @@ class ABCTorrent:
         title = self.getColumnText(COL_TITLE)
         
         if kind == "original":
-            title = self.metainfo['info']['name']
+            title = self.metainfo['info'][self.namekey]
         elif kind == "torrent":
             torrentfilename = os.path.split(self.src)[1]
             torrentfilename = torrentfilename[:torrentfilename.rfind('.torrent')]
