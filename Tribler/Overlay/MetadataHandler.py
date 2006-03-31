@@ -9,7 +9,7 @@ from traceback import print_exc
 
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
-from Tribler.utilities import isValidInfohash
+from Tribler.utilities import isValidInfohash, show_permid
 from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler
 
 # Python no recursive imports?
@@ -48,7 +48,7 @@ class MetadataHandler:
         
         if t == GET_METADATA:
             if DEBUG:
-                print >> sys.stderr,"metadata: Got GET_METADATA",len(message)
+                print >> sys.stderr,"metadata: Got GET_METADATA",len(message),show_permid(permid)
             return self.send_metadata(permid, message)
         elif t == METADATA:
             if DEBUG:
@@ -74,22 +74,34 @@ class MetadataHandler:
         try:
             torrent_hash = bdecode(message[1:])
         except:
+            print_exc()
+            if DEBUG:
+                print >> sys.stderr,"metadata: GET_METADATA: error becoding"
             return False
         if not isValidInfohash(torrent_hash):
+            if DEBUG:
+                print >> sys.stderr,"metadata: GET_METADATA: invalid hash"
             return False
 
         torrent_path = self.find_torrent(torrent_hash)
         if not torrent_path:
+            if DEBUG:
+                print >> sys.stderr,"metadata: GET_METADATA: not torrent path"
             return False
         torrent_data = self.read_torrent(torrent_path)
         if torrent_data:
             self.do_send_metadata(conn, torrent_hash, torrent_data)
+        else:
+            if DEBUG:
+                print >> sys.stderr,"metadata: GET_METADATA: no torrent data to send"
+            pass
         return True
     
     def do_send_metadata(self, permid, torrent_hash, torrent_data):
         torrent = {'torrent_hash':torrent_hash, 'metadata':torrent_data}
         metadata_request = bencode(torrent)
-        print >> sys.stderr,"metadata: send metadata", len(metadata_request)
+        if DEBUG:
+            print >> sys.stderr,"metadata: send metadata", len(metadata_request)
         self.secure_overlay.addTask(permid,METADATA + metadata_request)
 
     def find_torrent(self, torrent_hash):
@@ -111,7 +123,8 @@ class MetadataHandler:
             torrent_data = file.read()
             file.close()
             torrent_size = len(torrent_data)
-            print >> sys.stderr,"metadata: read torrent", torrent_path, torrent_size, hash(torrent_data)
+            if DEBUG:
+                print >> sys.stderr,"metadata: read torrent", torrent_path, torrent_size
             if torrent_size > Max_Torrent_Size:
                 return None
             if DEBUG:
@@ -161,16 +174,14 @@ class MetadataHandler:
         self.write_torrent(metadata, self.config_dir, file_name)
 
     def get_filename(self, metadata, torrent_hash):
-        # assign a name for the torrent. first try the file name, then add a timestamp if it exists.
+        # assign a name for the torrent. add a timestamp if it exists.
         metainfo = bdecode(metadata)
-        try:
-            file_name = metainfo['info']['name']
-            _path = os.path.join(self.config_dir, file_name)
-            if os.path.exists(_path):
-                file_name = file_name + '_' + ctime(time())
-        except:
-            file_name = str(hash(str(torrent_hash)))
-        return file_name + '.torrent'
+        file_name = sha(torrent_hash).hexdigest()+'.torrent'
+        _path = os.path.join(self.config_dir, file_name)
+        if os.path.exists(_path):
+            file_name = str(time()) + '_' + file_name 
+        return file_name
+        # exceptions will be handled by got_metadata()
         
     def write_torrent(self, metadata, dir, name):
         try:
@@ -180,7 +191,8 @@ class MetadataHandler:
             file = open(save_path, 'wb')
             file.write(metadata)
             file.close()
-            print >> sys.stderr,"metadata: write torrent", save_path, len(metadata), hash(metadata)
+            if DEBUG:
+                print >> sys.stderr,"metadata: write torrent", save_path, len(metadata), hash(metadata)
         except:
             print_exc()
             print >> sys.stderr, "metadata: write torrent failed"
@@ -188,7 +200,7 @@ class MetadataHandler:
     def valid_metadata(self, torrent_hash, metadata):
         metainfo = bdecode(metadata)
         infohash = sha(bencode(metainfo['info'])).digest()
-        assert infohash == torrent_hash, "infohash doesn't match the torrent hash " + str(len(infohash), len(torrent_hash)) 
+        assert infohash == torrent_hash, "infohash doesn't match the torrent hash " + `infohash` + "!=" + `torrent_hash` 
         return True
         
     def got_metadata(self, conn, message):

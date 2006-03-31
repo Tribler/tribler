@@ -353,18 +353,17 @@ class TorrentDBHandler(BasicDBHandler):
         return values
         
     def getNoMetaTorrents(self):    # get the list of torrents which only have an infohash without the metadata
-        def noMetaData(infohash):
-            value = self.torrent_db._get(infohash)
-            name = value.get('torrent_name', None)
-            return not name
-        
         all_list = self.getOthersTorrentList()
-        return filter(noMetaData, all_list)
+	return [item for item in all_list if not self.hasMetaData(item)]
         
     def hasMetaData(self, infohash):
         value = self.torrent_db._get(infohash)
+        if not value:
+            return False
         name = value.get('torrent_name', None)
-        return name
+        if not name:
+            return False
+        return True
             
     def getOwners(self, infohash):
         return self.owner_db.getItem(infohash)

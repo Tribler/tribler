@@ -38,6 +38,12 @@ class ActionHandler:
 
             ABCTorrentTemp.shutdown()
             
+            # Arno: remove torrentinfo file as well
+            try:
+                os.remove(ABCTorrentTemp.torrentconfig.filename)
+            except:
+                pass
+
             if removefiles:
                 ABCTorrentTemp.files.removeFiles()
             

@@ -1,5 +1,5 @@
 !define PRODUCT "Tribler"
-!define VERSION "3.3.4"
+!define VERSION "3.3.6"
 
 !include "MUI.nsh"
 
@@ -65,7 +65,7 @@ SetCompressor "lzma"
  LangString DESC_SecMain ${LANG_ENGLISH} "Install Tribler"
  LangString DESC_SecDesk ${LANG_ENGLISH} "Create Desktop Shortcuts"
  LangString DESC_SecStart ${LANG_ENGLISH} "Create Start Menu Shortcuts"
- LangString DESC_SecDefault ${LANG_ENGLISH} "Associate .torrent files with ABC"
+ LangString DESC_SecDefault ${LANG_ENGLISH} "Associate .torrent files with Tribler"
 
 ;--------------------------------
 ;Installer Sections
@@ -129,7 +129,7 @@ Section "Make Default" SecDefault
    WriteRegBin HKCR bittorrent EditFlags 00000100
    WriteRegStr HKCR "bittorrent\shell" "" open
    WriteRegStr HKCR "bittorrent\shell\open\command" "" '"$INSTDIR\${PRODUCT}.exe" "%1"'
-   WriteRegStr HKCR "bittorrent" "DefaultIcon" "$INSTDIR\torrenticon.ico"
+   WriteRegStr HKCR "bittorrent\DefaultIcon" "" "$INSTDIR\torrenticon.ico"
 SectionEnd
 
 ;--------------------------------
@@ -173,7 +173,7 @@ SectionEnd
 ;Functions Section
 
 Function .onInit
-  System::Call 'kernel32::CreateMutexA(i 0, i 0, t "ABC") i .r1 ?e' 
+  System::Call 'kernel32::CreateMutexA(i 0, i 0, t "Tribler") i .r1 ?e' 
 
   Pop $R0 
 

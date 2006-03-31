@@ -8,12 +8,12 @@ import sys, os
 from random import randint
 
 from Tribler.Overlay.SecureOverlay import SecureOverlay
-from Tribler.Overlay.permid import show_permid
+from Tribler.utilities import show_permid
 from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
 
-DEBUG = True
+DEBUG = False
 
 def get_random_filename(dir):
     while True:

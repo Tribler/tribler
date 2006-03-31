@@ -218,7 +218,8 @@ class FriendList(wx.ListCtrl):
         style = wx.VSCROLL|wx.SIMPLE_BORDER|self.type|wx.LC_VRULES|wx.CLIP_CHILDREN
         if (sys.platform == 'win32'):
             style |= wx.LC_ALIGN_TOP
-        wx.ListCtrl.__init__(self, parent, -1, size=wx.Size(200, 300), style=style)
+        wx.ListCtrl.__init__(self, parent, -1, size=wx.Size(-1, -1), style=style)
+        self.SetMinSize(wx.Size(200, 300))
 
         self.parent = parent
         self.friends = friends

@@ -495,6 +495,12 @@ maxconnectionhint_line3 = "number of open ports."
 maxconnectionhint_line4 = ""
 maxconnectionhint_line5 = "If the client freezes, try setting this to 60 or below."
 
+
+
+recommendinstructions = "Doubleclick on a torrent to start downloading"
+recommendfilter = "Don't show torrents with recommendation value less than"
+recommendfilterall = "(set to 0.0 to see all known torrents)"
+
 ############################################################
 # BTMakeTorrentGUI
 ############################################################

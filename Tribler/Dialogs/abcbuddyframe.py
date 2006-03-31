@@ -27,7 +27,7 @@ class TasteBuddyList(CommonTriblerList):
             ('Last Seen', format, 15),
             ('# Preferences', format, 10),
             ('# Connected', format, 10),
-            ('# Exchanged', format, 10),
+            ('# Exchanged', format, 10)
             ]
         return columns
 
@@ -35,8 +35,11 @@ class TasteBuddyList(CommonTriblerList):
         #return ['friend', 'name', 'ip', 'similarity', 'last_seen', 'npref']
         return ['friend', 'name', 'ip', 'similarity', 'last_seen', 'npref', 'connected_times', 'buddycast_times']
 
+    def getCurrentOrders(self):
+         return [0, 0, 0, 1,  1, 1, 1, 1]
+
     def getCurrentSortColumn(self):
-        return 1
+        return 3
 
     def getMaxNum(self):
         return 500
@@ -199,15 +202,18 @@ class ABCBuddyDialog(wx.Dialog):
         self.action = action
         self.utility = self.parent.utility
 
-        width = 640
+        width = 600
         height = 300
         self.window_size = wx.Size(width, height)
-        wx.Dialog.__init__(self, None, -1, self.utility.lang.get('managefriendspeers'), size=wx.Size(width+20, height+60))
+        #self.window_size = None
+        style = wx.DEFAULT_DIALOG_STYLE | wx.MAXIMIZE_BOX | wx.MINIMIZE_BOX |wx.RESIZE_BORDER
+        #wx.Dialog.__init__(self, None, -1, self.utility.lang.get('managefriendspeers'), size=wx.Size(width+20, height+60))
+        wx.Dialog.__init__(self, parent, -1, self.utility.lang.get('managefriendspeers'), style = style)
        
         self.friend_db = FriendDBHandler()
         self.peer_db = PeerDBHandler()
         self.pref_db = PreferenceDBHandler()
-        
+
         mainbox = wx.BoxSizer(wx.VERTICAL)
 
         # 1. Topbox contains the notebook
@@ -225,8 +231,9 @@ class ABCBuddyDialog(wx.Dialog):
         botbox.Add(button, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
 
         # 3. Pack boxes together
-        mainbox.Add(topbox, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        mainbox.Add(topbox, 1, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL, 5)
         mainbox.Add(botbox, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 5)
+
         self.SetSizerAndFit(mainbox)
 
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)

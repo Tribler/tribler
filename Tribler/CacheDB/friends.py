@@ -50,7 +50,7 @@ class ExternalFriendList:
             friend_file = self.friend_file
         self.friend_list = self.readFriendList(friend_file)
         self.updateDB(self.friend_list)
-        self.clean()
+        #self.clean()
         
     def updateDB(self, friend_list):
         if not friend_list:

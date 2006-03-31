@@ -1,4 +1,8 @@
+# Written by Jie Yang, Arno Bakker
+# see LICENSE.txt for license information
+
 import wx
+from wx.lib import masked
 import os
 import images
 from base64 import encodestring
@@ -7,6 +11,7 @@ from Tribler.utilities import friendly_time, sort_dictlist
 from common import CommonTriblerList
 
 DEBUG = True
+relevance_display_factor = 1000.0
 
 def showInfoHash(infohash):
     if infohash.startswith('torrent'):    # for testing
@@ -34,10 +39,10 @@ class MyPreferenceList(CommonTriblerList):
     def getColumns(self):
         format = wx.LIST_FORMAT_CENTER
         columns = [
-            ('Torrent Name', format, 10),
-            ('Content Name', format, 15),
+            ('Torrent Name', format, 5),
+            ('Content Name', format, 30),
             ('Rank', format, 8),
-            ('Size', format, 8),
+            ('Size', format, 12),
             ('Last Seen', format, 10)  
             ]
         return columns
@@ -49,7 +54,7 @@ class MyPreferenceList(CommonTriblerList):
         return 1
 
     def getMaxNum(self):
-        return 100
+        return 1000
         
     def getText(self, data, row, col):
         key = self.list_key[col]
@@ -191,29 +196,30 @@ class FileList(CommonTriblerList):
         self.torrent_db = parent.torrent_db
         self.min_rank = -1
         self.max_rank = 5
+        self.loadRelevanceThreshold()
         CommonTriblerList.__init__(self, parent, window_size)
 
     def getColumns(self):
         format = wx.LIST_FORMAT_CENTER
         columns = [
-            ('Torrent Name', format, 10),
-            ('Content Name', format, 15),
+            ('Torrent Name', format, 5),
+            ('Content Name', format, 30),
             ('Recommendation', format, 8),
-            ('Size', format, 7),
-            ('Torrent ID', format, 8),
+            ('Size', format, 12)
+#            ('Torrent ID', format, 8),
 #            ('Seeder', format, 6),
 #            ('Leecher', format, 6),  
             ]
         return columns
         
     def getListKey(self):
-        return ['torrent_name', 'content_name', 'relevance', 'length', 'infohash'] #, 'seeder', 'leecher']
+        return ['torrent_name', 'content_name', 'relevance', 'length'] # , 'infohash', 'seeder', 'leecher']
         
     def getCurrentSortColumn(self):
-        return 3
+        return 2
         
     def getCurrentOrders(self):
-         return [0, 0, 0, 1, 0, 0, 0]
+         return [0, 0, 1, 1]
 
     def getMaxNum(self):
         return 1000
@@ -222,7 +228,8 @@ class FileList(CommonTriblerList):
         key = self.list_key[col]
         original_data = data[row][key]
         if key == 'relevance':
-            return '%.2f'%(original_data/1000.0)
+            # should this change, also update
+            return '%.2f'%(original_data/relevance_display_factor)
         if key == 'infohash':
             return showInfoHash(original_data)
         if key == 'length':
@@ -239,6 +246,12 @@ class FileList(CommonTriblerList):
             self.reloadData()
         
         self.data = sort_dictlist(self.data, self.list_key[self.sort_column], self.orders[self.sort_column])
+
+        # remove everything below relevance threshold
+        for i in xrange(len(self.data)-1,-1,-1):
+            if self.data[i]['relevance'] < self.relevance_threshold:
+                del self.data[i]
+
         if self.num >= 0:
             data = self.data[:self.num]
         else:
@@ -318,7 +331,22 @@ class FileList(CommonTriblerList):
                 if os.path.isfile(src):
                     self.parent.clickAndDownload(src)
                     self.DeleteItem(self.curr_idx)
+                    del self.data[self.curr_idx]
                     self.parent.frame.updateMyPref()
+
+    def setRelevanceThreshold(self,value):
+        self.relevance_threshold = value
+
+    def getRelevanceThreshold(self):
+        return self.relevance_threshold
+
+    def loadRelevanceThreshold(self):
+        self.relevance_threshold = self.parent.utility.config.Read( "rec_relevance_threshold", "int" )
+
+    def saveRelevanceThreshold(self):
+        self.parent.utility.config.Write( "rec_relevance_threshold", self.relevance_threshold)
+        self.parent.utility.config.Flush()
+
 
 
 class MyPreferencePanel(wx.Panel):
@@ -339,7 +367,7 @@ class MyPreferencePanel(wx.Panel):
         self.SetAutoLayout(True)
         #self.Fit()
         self.Show(True)
-        
+
 
 class FilePanel(wx.Panel):
     def __init__(self, frame, parent):
@@ -354,15 +382,30 @@ class FilePanel(wx.Panel):
         mainbox = wx.BoxSizer(wx.VERTICAL)
         self.list=FileList(self, frame.window_size)
         mainbox.Add(self.list, 1, wx.EXPAND|wx.ALL, 5)
-        label = wx.StaticText(self, -1, "Double click on a torrent to start downloading")
+        label = wx.StaticText(self, -1, self.utility.lang.get('recommendinstructions'))
         mainbox.Add(label, 0, wx.ALIGN_CENTER_VERTICAL)
+
+        self.relev_ctl = self.utility.makeNumCtrl(self, self.list.getRelevanceThreshold()/relevance_display_factor, min = 0.0, max = 65536.0, fractionWidth = 1)
+        relev_box = wx.BoxSizer(wx.HORIZONTAL)
+        relev_box.Add(wx.StaticText(self, -1, self.utility.lang.get('recommendfilter')), 0, wx.ALIGN_CENTER_VERTICAL)
+        relev_box.Add(self.relev_ctl, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        relev_box.Add(wx.StaticText(self, -1, self.utility.lang.get('recommendfilterall')), 0, wx.ALIGN_CENTER_VERTICAL)
+        mainbox.Add(relev_box, 0, wx.EXPAND|wx.ALL, 5)
+
         self.SetSizer(mainbox)
         self.SetAutoLayout(True)
         #self.Fit()
         self.Show(True)
-        
+
+        self.Bind(masked.EVT_NUM, self.OnSetRelevanceThreshold, self.relev_ctl )
+
     def clickAndDownload(self, src):
-        self.utility.queue.addtorrents.AddTorrentFromFile(src, forceasklocation = True)
+        self.utility.queue.addtorrents.AddTorrentFromFile(src, forceasklocation = False)
+
+    def OnSetRelevanceThreshold(self,event=None):
+        value = self.relev_ctl.GetValue()
+        value = int(value * relevance_display_factor)
+        self.frame.updateFile(value)
 
 
 class ABCFileFrame(wx.Frame):
@@ -370,7 +413,7 @@ class ABCFileFrame(wx.Frame):
         self.utility = parent.utility
         
         width = 600
-        height = 500
+        height = 300
         self.window_size = wx.Size(width, height)
         wx.Frame.__init__(self, None, -1, self.utility.lang.get('tb_file_short'), size=wx.Size(width+20, height+60))
        
@@ -400,7 +443,7 @@ class ABCFileFrame(wx.Frame):
         botbox.Add(button, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
 
         # 3. Pack boxes together
-        mainbox.Add(topbox, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        mainbox.Add(topbox, 1, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL, 5)
         mainbox.Add(botbox, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 5)
         self.SetSizerAndFit(mainbox)
 
@@ -410,10 +453,13 @@ class ABCFileFrame(wx.Frame):
     def updateMyPref(self):
         self.myPreferencePanel.list.loadList()
         
-    def updateFile(self):
+    def updateFile(self,relevance_threshold=0):
+        self.filePanel.list.setRelevanceThreshold(relevance_threshold)
         self.filePanel.list.loadList()
 
     def OnCloseWindow(self, event = None):
+        self.filePanel.list.saveRelevanceThreshold()
+
         self.utility.frame.fileFrame = None
         self.utility.abcfileframe = None
         

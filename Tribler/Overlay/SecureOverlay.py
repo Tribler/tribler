@@ -39,7 +39,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = True
+DEBUG = False
 
 Length_of_permid = 0    # 0: no restriction
 

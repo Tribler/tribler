@@ -51,7 +51,7 @@ class DownloadHelperPanel(wx.Panel):
 
         # 1. Create list of images of all friends
         type = wx.LC_LIST
-        # type = wx.LC_REPORT
+        #type = wx.LC_REPORT
 
         imgList = None
         if type != wx.LC_REPORT:
@@ -92,7 +92,7 @@ class DownloadHelperPanel(wx.Panel):
         #self.leftListCtl.SetToolTipString(self.utility.lang.get('multiannouncehelp'))
         
         friendsbox.Add(self.leftListCtl, 1, wx.EXPAND|wx.TOP, 5)
-        topbox.Add(friendsbox, 0, wx.EXPAND)
+        topbox.Add(friendsbox, 1, wx.EXPAND)
 
         # 4b. +/- buttons in between
         operatorbox = wx.BoxSizer(wx.VERTICAL)
@@ -116,12 +116,14 @@ class DownloadHelperPanel(wx.Panel):
         self.rightListCtl = FriendList(self,helpingFriends,type,imgList)
         #self.rightListCtl.SetToolTipString(self.utility.lang.get('httpseedshelp'))
         helperbox.Add(self.rightListCtl, 1, wx.EXPAND|wx.ALL, 5)
-        topbox.Add(helperbox, 0, wx.EXPAND)      
+        topbox.Add(helperbox, 1, wx.EXPAND)      
 
         # 5. Show GUI
-        mainbox.Add(topbox, 0, wx.EXPAND)
+        mainbox.Add(topbox, 0, wx.EXPAND|wx.ALL)
         mainbox.Add(botbox, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 5)
-        self.SetSizerAndFit(mainbox)
+        #self.SetSizerAndFit(mainbox)
+        self.SetSizer(mainbox)
+        self.SetAutoLayout(True)
 
 
     def add_helper(self, event = None):

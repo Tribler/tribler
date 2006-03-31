@@ -115,6 +115,10 @@ class DownloaderFeedback:
         s['up'] = self.upfunc()
         if self.finflag.isSet():
             s['done'] = self.file_length
+	    s['down'] = 0.0
+	    s['frac'] = 1.0
+	    s['wanted'] = 0
+	    s['time'] = 0
             return s
         s['down'] = self.downfunc()
         obtained, desired = self.leftfunc()

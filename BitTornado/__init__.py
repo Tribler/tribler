@@ -3,7 +3,7 @@
 ## (here) and correct.
 ##
 
-version_id = '3.3.4'
+version_id = '3.3.6'
 product_name = 'ABC'
 version_short = 'Tribler_ABC-' + version_id
 

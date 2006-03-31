@@ -12,7 +12,7 @@ from BitTornado.bencode import bencode
 from BitTornado.BT1.MessageID import RESERVE_PIECES
 
 MAX_ROUNDS = 200
-DEBUG = True
+DEBUG = False
 
 class SingleDownloadHelperInterface:
     """ This interface should contain all methods that the PiecePiecker/Helper

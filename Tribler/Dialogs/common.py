@@ -22,9 +22,14 @@ class CommonTriblerList(wx.ListCtrl):
         self.sort_column = self.getCurrentSortColumn()
         self.orders = self.getCurrentOrders()
         self.num = self.getMaxNum()     # num of items to be showed 
+
+        assert len(self.list_key) == len(self.columns)
+        assert len(self.orders) == len(self.columns)
+        assert self.sort_column < len(self.columns)
         
         style = wx.LC_REPORT|wx.LC_VRULES|wx.CLIP_CHILDREN
-        wx.ListCtrl.__init__(self, parent, -1, size=window_size, style=style)
+        wx.ListCtrl.__init__(self, parent, -1, style=style)
+        self.SetMinSize(window_size)
 
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnRightClick)
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnActivated)

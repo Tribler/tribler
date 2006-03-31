@@ -170,7 +170,7 @@ class AddTorrents:
             # Just return if the source file doesn't exist?
             return "Error=The source file for this torrent doesn't exist"
 
-        print "******** add torrent:", filepath
+        #print "******** add torrent:", filepath
         
         # Make torrent directory if necessary
         self.utility.MakeTorrentDir()

@@ -607,6 +607,8 @@ class MyPreferenceDB(BasicDB):     #  = FileDB
     
     def getRank(self, infohash):
         v = self._get(infohash)
+        if not v:
+            return 0
         return v.get('rank', 0)
         
     

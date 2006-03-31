@@ -1021,7 +1021,8 @@ class StorageWrapper:
         try:
             if data.has_key('merkletree'):
                 try:
-                    print "StorageWrapper: Unpickling Merkle tree!"
+                    if DEBUG:
+                        print "StorageWrapper: Unpickling Merkle tree!"
                     self.merkletree = pickle.loads(data['merkletree'])
                     self.hashes = self.merkletree.get_piece_hashes()
                     self.hashes_unpickled = True

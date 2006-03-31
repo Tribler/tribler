@@ -72,7 +72,7 @@ class TorrentActionMenu(ABCActionMenu):
                       ACTION_UNSTOPALL, 
                       ACTION_CLEARCOMPLETED,
                       ACTION_BUDDIES,
-                      ACTION_FILES,
+                      ACTION_FILES
                       ]
         
         ABCActionMenu.__init__(self, 

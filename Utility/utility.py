@@ -140,7 +140,7 @@ class Utility:
             'maxuploadrate': '0', 
             'maxdownloadrate': '0', 
             'maxseeduploadrate': '0', 
-            'numsimdownload': '2', 
+            'numsimdownload': '5', 
             'uploadoption': '2', 
             'uploadtimeh': '0', 
             'uploadtimem': '30', 
@@ -323,7 +323,7 @@ class Utility:
                                  -1,
                                  ACTION_BUDDIES,
                                  ACTION_FILES,
-                                 ACTION_MYINFO,
+                                 ACTION_MYINFO
                                  ], 
             'menu_listrightclick': [ACTION_RESUME, 
                                     ACTION_STOP, 
@@ -350,6 +350,7 @@ class Utility:
              'enabledlcollecting': '1',
              'minport': '6881',
              'myname': '',
+             'rec_relevance_threshold': '0'
 #            'skipcheck': '0'
         }
 

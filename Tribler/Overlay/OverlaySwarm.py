@@ -158,7 +158,6 @@ class OverlaySwarm:
             try:
                 if not self.crs.has_key(conn):    # incoming permid exchange
                     self.crs[conn] = ChallengeResponse(self.myid, self, self.errorfunc)
-                    print "created CR"
                 if self.crs[conn].got_message(conn, message) == False:
                     if conn and self.crs.has_key(conn):
                         self.crs.pop(conn)
