@@ -130,10 +130,11 @@ def make_meta_file(file, url, params = None, flag = Event(),
         return
     check_info(info)
     h = open(f, 'wb')
-    data = {'info': info, 'announce': strip(url), 'creation date': long(time())}
+    data = {'info': info, 'announce': strip(url), 'encoding': encoding, 'creation date': long(time())}
     
     if 'comment' in params and params['comment']:
         data['comment'] = params['comment']
+        data['comment.utf-8'] = uniconvert(params['comment'],'utf-8')
     
     if 'created by' in params and params['created by']:
         data['created by'] = params['created by']
@@ -177,13 +178,12 @@ def uniconvertl(l, e):
     return r
 
 def uniconvert(s, e):
-    if isinstance(s, unicode):
-   	return s.encode('utf-8')
-    try:
-        s = unicode(s,e)
-    except UnicodeError:
-        raise UnicodeError('bad filename: '+s)
-    return s.encode('utf-8')
+    if not isinstance(s, unicode):
+        try:
+            s = str2unicode(s)
+        except UnicodeError:
+            raise UnicodeError('bad filename: '+s)
+    return s.encode(e)
 
 def makeinfo(file, piece_length, encoding, flag, merkle_torrent, progress, progress_percent=1, gethash = None):
     if gethash is None:
@@ -274,7 +274,8 @@ def makeinfo(file, piece_length, encoding, flag, merkle_torrent, progress, progr
                     progress(a)
                     
             newdict = {'length': size,
-                       'path': uniconvertl(p, encoding) }
+                       'path': uniconvertl(p, encoding),
+                       'path.utf-8': uniconvertl(p, 'utf-8') }
             if gethash['md5']:
                 newdict['md5sum'] = hash_md5.hexdigest()
             if gethash['crc32']:
@@ -287,17 +288,17 @@ def makeinfo(file, piece_length, encoding, flag, merkle_torrent, progress, progr
             h.close()
         if done > 0:
             pieces.append(sh.digest())
+        infodict =  { 'piece length': piece_length, 'files': fs, 
+                'name': uniconvert(split(file)[1], encoding),
+                'name.utf-8': uniconvert(split(file)[1], 'utf-8')}
+
         if merkle_torrent:
             merkletree = MerkleTree(piece_length,long(totalsize),None,pieces)
             root_hash = merkletree.get_root_hash()
-            return {'root hash': root_hash,
-                'piece length': piece_length, 'files': fs, 
-                'name': uniconvert(split(file)[1], encoding) }
+            infodict.update( {'root hash': root_hash } )
         else:
-            return {'pieces': ''.join(pieces), 
-                'piece length': piece_length,
-                'files': fs, 
-                'name': uniconvert(split(file)[1], encoding) }
+            infodict.update( {'pieces': ''.join(pieces) } )
+        return infodict
     else:
         size = getsize(file)
         pieces = []
@@ -357,17 +358,16 @@ def makeinfo(file, piece_length, encoding, flag, merkle_torrent, progress, progr
                 progress(min(piece_length, size - p))
         h.close()
 
+        newdict = { 'piece length': piece_length, 'length': size, 
+                'name': uniconvert(split(file)[1], encoding),
+                'name.utf-8': uniconvert(split(file)[1], 'utf-8')}
+
         if merkle_torrent:
             merkletree = MerkleTree(piece_length,size,None,pieces)
             root_hash = merkletree.get_root_hash()
-            newdict = {'root hash': root_hash,
-                'piece length': piece_length, 'length': size, 
-                'name': uniconvert(split(file)[1], encoding) }
+            newdict.update( {'root hash': root_hash } )
         else:
-            newdict = {'pieces': ''.join(pieces), 
-                   'piece length': piece_length,
-                   'length': size, 
-                   'name': uniconvert(split(file)[1], encoding) }
+            newdict.update( {'pieces': ''.join(pieces) } )
         if gethash['md5']:
             newdict['md5sum'] = hash_md5.hexdigest()
         if gethash['crc32']:

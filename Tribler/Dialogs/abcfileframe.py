@@ -11,7 +11,8 @@ from Tribler.utilities import friendly_time, sort_dictlist
 from Tribler.unicode import str2unicode
 from common import CommonTriblerList
 
-DEBUG = True
+DEBUG = False
+
 relevance_display_factor = 1000.0
 
 def showInfoHash(infohash):

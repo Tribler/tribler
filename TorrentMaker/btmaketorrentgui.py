@@ -20,6 +20,8 @@ from TorrentMaker.btmakemetafile import make_meta_file, completedir
 from Utility.helpers import union
 from Utility.constants import * #IGNORE:W0611
 
+DEBUG = False
+
 
 wxEVT_INVOKE = wx.NewEventType()
 
@@ -611,8 +613,8 @@ class TorrentMaker(wx.Frame):
         self.utility.makerconfig.Flush()
     
     def complete(self, event = None):
-
-        print "complete thread",currentThread()
+        if DEBUG:
+            print "complete thread",currentThread()
 
         filename = self.fileInfoPanel.dirCtl.GetValue()
         if filename == '':
@@ -797,7 +799,8 @@ class CompleteDir:
         self.invokeLater(self.onFile, [torrent])
 
     def onFile(self, torrent):
-        print "onFile thread",currentThread()
+        if DEBUG:
+            print "onFile thread",currentThread()
         self.currentLabel.SetLabel(self.utility.lang.get('building') + torrent)
 
     def onInvoke(self, event):
@@ -813,7 +816,8 @@ class CompleteDir:
             wx.PostEvent(self.frame, InvokeEvent(func, args, kwargs))
 
     def done(self, event):
-        print "done thread",currentThread()
+        if DEBUG:
+            print "done thread",currentThread()
         self.flag.set()
         self.frame.Destroy()
         if self.parent.fileInfoPanel.startnow.GetValue():
