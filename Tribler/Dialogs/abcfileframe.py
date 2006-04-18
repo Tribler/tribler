@@ -8,6 +8,7 @@ import images
 from base64 import encodestring
 from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler
 from Tribler.utilities import friendly_time, sort_dictlist
+from Tribler.unicode import str2unicode
 from common import CommonTriblerList
 
 DEBUG = True
@@ -68,10 +69,7 @@ class MyPreferenceList(CommonTriblerList):
             if original_data == 0:
                 return 'Never'
             return friendly_time(original_data)
-        elif isinstance(original_data,unicode):
-            return original_data
-        else:
-            return unicode(original_data)
+        return str2unicode(original_data)
         
     def reloadData(self):
         myprefs = self.mypref_db.getPrefList()
@@ -238,7 +236,7 @@ class FileList(CommonTriblerList):
         if key == 'seeder' or key == 'leecher':
             if original_data < 0:
                 return '-'
-        return str(original_data)
+        return str2unicode(original_data)
         
     def loadList(self, reload=True):
 

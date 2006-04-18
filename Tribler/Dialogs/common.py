@@ -1,3 +1,4 @@
+
 import wx
 
 def sort_dictlist(dict_list, key, order='increase'):

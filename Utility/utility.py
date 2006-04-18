@@ -434,7 +434,7 @@ class Utility:
         return lastdir
 
     def getPath(self):
-        return self.abcpath
+        return self.abcpath.decode(sys.getfilesystemencoding())
 
     def eta_value(self, n, truncate = 3):
         if n == -1:

@@ -120,7 +120,8 @@ def tribler_init(config_dir = None, install_dir = None):
     resetPeerIDs()
     permid.init(config_dir)
     load_myinfo(myinfo)
-    cachedb.init(config_dir,myinfo)
+    # roee88 says we need to revert to encoded here for the databases
+    cachedb.init(config_dir.encode(sys.getfilesystemencoding()),myinfo)
     superpeer.init(install_dir)
     friends.init(config_dir)
 

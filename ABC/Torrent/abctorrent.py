@@ -17,6 +17,7 @@ from ABC.Torrent.dialogs import TorrentDialogs
 from ABC.Torrent.status import TorrentStatus
 
 from Utility.constants import * #IGNORE:W0611
+from Tribler.unicode import bin2unicode
 
 try:
     True
@@ -80,9 +81,9 @@ class ABCTorrent:
             try:
                 self.metainfo['info'][self.namekey] = self.metainfo['info'][self.namekey].decode(encoding)
             except:
-                self.metainfo['info'][self.namekey] = self.torrentfield2unicode(self.metainfo['info'][self.namekey])
+                self.metainfo['info'][self.namekey] = bin2unicode(self.metainfo['info'][self.namekey])
         else:
-            self.metainfo['info'][self.namekey] = self.torrentfield2unicode(self.metainfo['info'][self.namekey])
+            self.metainfo['info'][self.namekey] = bin2unicode(self.metainfo['info'][self.namekey])
                 
         # Check for valid windows filename
         if sys.platform == 'win32':
@@ -139,18 +140,6 @@ class ABCTorrent:
         
         self.peer_swarm = {}    # swarm of each torrent, used to display peers on map
         
-    def torrentfield2unicode(self,field):
-        try:
-            return field.decode('utf_8')
-        except:
-            try:
-                return field.decode('iso-8859-1')
-            except:
-                try:
-                    return field.decode(sys.getfilesystemencoding())
-                except:
-                    return field.decode(sys.getfilesystemencoding(), errors = 'replace')
-
     def addTorrentToDB(self):
         
         # Arno: Checking for presence in the database causes some problems 
