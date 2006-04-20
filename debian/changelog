@@ -1,3 +1,29 @@
+tribler (3.4.0rc5-1) unstable; urgency=low
+
+  * Now migrates $HOME/.ABC to $HOME/.Tribler to make sure old versions
+    don't choke on the new config files with UTF-8 Byte Order Mark (BOM).
+
+ -- Arno Bakker <arno@cs.vu.nl>  Thu, 20 Apr 2006 09:32:12 +0200
+
+tribler (3.4.0rc4-1) unstable; urgency=low
+
+  * roee88's unicode support. Now we only need to supply m2crypto-ec as
+    a required package and can use the default wx stuff.
+
+ -- Arno Bakker <arno@cs.vu.nl>  Tue, 18 Apr 2006 14:52:38 +0200
+
+tribler (3.3.6-1) unstable; urgency=low
+
+  * New release 
+
+ -- Arno Bakker <arno@cs.vu.nl>  Mon,  3 Apr 2006 10:44:32 +0200
+
+tribler (3.3.4-1) unstable; urgency=low
+
+  * First public release.
+
+ -- Arno Bakker <arno@cs.vu.nl>  Thu, 16 Mar 2006 08:56:42 +0100
+
 tribler (3.3.3-2) unstable; urgency=low
 
   * Forgot to add joe24.bmp

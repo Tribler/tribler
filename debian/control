@@ -7,7 +7,7 @@ Standards-Version: 3.6.2.0
 
 Package: tribler
 Architecture: all
-Depends: ${python:Depends}, wxpython2.6-gtk2-ansi, m2crypto-ec
+Depends: ${python:Depends}, python-wxgtk2.6, m2crypto-ec
 Description: The fastest way of social file sharing
  .
  Homepage: http://www.tribler.org
