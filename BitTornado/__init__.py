@@ -4,7 +4,7 @@
 ##
 
 version_id = '3.4.0'
-product_name = 'ABC'
+product_name = 'Tribler'
 version_short = 'Tribler_ABC-' + version_id
 
 version = version_short + ' (' + product_name + ' - BitTornado 0.3.13'

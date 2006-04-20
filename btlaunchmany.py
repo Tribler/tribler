@@ -108,7 +108,7 @@ if __name__ == '__main__':
         ( 'display_path', 1,
           "whether to display the full path or the torrent contents for each torrent" ),
        ('config_path', '',
-          'directory containing the Tribler config files (default $HOME/.ABC)'),
+          'directory containing the Tribler config files (default $HOME/.Tribler)'),
     ] )
     try:
         # Make sure we can have a directory with config files in a user-chosen
