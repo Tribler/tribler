@@ -8,6 +8,7 @@ from parseargs import defaultargs
 from __init__ import product_name, version_short
 import sys, os
 from time import time, strftime
+import shutil
 
 from binascii import b2a_hex as tohex, a2b_hex as unhex
 
@@ -78,13 +79,24 @@ class ConfigDir:
                 if not os.path.isdir(dir_root):
                     dir_root = os.path.abspath(os.path.dirname(sys.argv[0]))
 
-            dir_root = os.path.join(dir_root, DIRNAME)
-        self.dir_root = dir_root
+            cur_dir_root = os.path.join(dir_root, DIRNAME)
+        self.dir_root = cur_dir_root
+        old_dir_root = os.path.join( dir_root, '.ABC' )
 
+        # Arno: upgrade .ABC to .Tribler, if necessary
+        old_exists = os.path.isdir(old_dir_root)
+        cur_exists = os.path.isdir(cur_dir_root)
+        if old_exists and not cur_exists:
+            # upgrade old to new
+            print "Upgrading 3.3.x config files to new version..."
+            shutil.copytree(old_dir_root,cur_dir_root)
+        self._normal_init(config_ext)
+
+    def _normal_init(self,config_ext):
         if not os.path.isdir(self.dir_root):
             os.mkdir(self.dir_root, 0700)    # exception if failed
 
-        self.dir_icons = os.path.join(dir_root, 'icons')
+        self.dir_icons = os.path.join(self.dir_root, 'icons')
         if not os.path.isdir(self.dir_icons):
             os.mkdir(self.dir_icons)
         for icon in GetIcons():
@@ -93,20 +105,20 @@ class ConfigDir:
                 if not copyfile(os.path.join(OLDICONPATH, icon), i):
                     CreateIcon(icon, self.dir_icons)
 
-        self.dir_torrentcache = os.path.join(dir_root, 'torrentcache')
+        self.dir_torrentcache = os.path.join(self.dir_root, 'torrentcache')
         if not os.path.isdir(self.dir_torrentcache):
             os.mkdir(self.dir_torrentcache)
 
-        self.dir_datacache = os.path.join(dir_root, 'datacache')
+        self.dir_datacache = os.path.join(self.dir_root, 'datacache')
         if not os.path.isdir(self.dir_datacache):
             os.mkdir(self.dir_datacache)
 
-        self.dir_piececache = os.path.join(dir_root, 'piececache')
+        self.dir_piececache = os.path.join(self.dir_root, 'piececache')
         if not os.path.isdir(self.dir_piececache):
             os.mkdir(self.dir_piececache)
 
-        self.configfile = os.path.join(dir_root, 'config'+config_ext+'.ini')
-        self.statefile = os.path.join(dir_root, 'state'+config_ext)
+        self.configfile = os.path.join(self.dir_root, 'config'+config_ext+'.ini')
+        self.statefile = os.path.join(self.dir_root, 'state'+config_ext)
 
         self.TorrentDataBuffer = {}
 
