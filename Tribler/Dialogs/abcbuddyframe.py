@@ -4,6 +4,7 @@
 import wx
 from Tribler.CacheDB.CacheDBHandler import PeerDBHandler, FriendDBHandler, PreferenceDBHandler
 from Tribler.utilities import friendly_time, sort_dictlist
+from Tribler.unicode import str2unicode
 from common import CommonTriblerList
 from managefriends import ManageFriendsPanel
 
@@ -61,7 +62,7 @@ class TasteBuddyList(CommonTriblerList):
             if original_data == 0:
                 return 'Never'
             return friendly_time(original_data)
-        return str(original_data)
+        return str2unicode(original_data)
         
         
     def reloadData(self):

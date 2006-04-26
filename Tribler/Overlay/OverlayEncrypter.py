@@ -10,6 +10,7 @@ from sha import sha
 from time import time, ctime
 from binascii import b2a_hex
 from __init__ import *
+from BitTornado.BT1.Encrypter import protocol_name,option_pattern
 
 try:
     True
@@ -20,15 +21,6 @@ except:
 DEBUG = False
 
 MAX_INCOMPLETE = 8
-
-protocol_name = 'BitTorrent protocol'
-# Enable Tribler extensions:
-# Left-most bit = Azureus Enhanced Messaging Protocol (AEMP)
-# Left+42 bit = Tribler Simple Merkle Hashes extension
-# Left+43 bit = Tribler Overlay swarm extension
-# Right-most bit = BitTorrent DHT extension
-#option_pattern = chr(0)*8
-option_pattern = '\x00\x00\x00\x00\x00\x30\x00\x00' 
 
 def toint(s):
     return long(b2a_hex(s), 16)
@@ -155,6 +147,8 @@ class Connection:    # OverlaySocket, a better name for it?
         if not self.complete:
             return None
         if not self.version_supported(s[16:18], s[18:20]):    # versioning protocol
+            if DEBUG:
+                print >> sys.stderr,"olencoder: We don't support peer's version of the protocol"
             return None
         if self.locally_initiated:
             self.singsock.write(self.Encoder.my_id)

@@ -29,6 +29,7 @@ from BitTornado.BT1.btformats import check_info
 from BitTornado.parseargs import parseargs, formatDefinitions
 from Tribler.Merkle.merkle import MerkleTree
 from Tribler.Overlay.permid import create_torrent_signature
+from Tribler.unicode import str2unicode
 
 defaults = [
     ('announce_list', '', 

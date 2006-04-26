@@ -67,7 +67,7 @@ class OverlaySwarm:
         return OverlaySwarm.__single
     getInstance = staticmethod(getInstance)
 
-    def register(self, listen_port, secure_overlay, multihandler, config, errorfunc):
+    def register(self, listen_port, secure_overlay, multihandler, config):
         # Register overlay_infohash as known swarm with MultiHandler
         
         if self.registered:
@@ -80,8 +80,7 @@ class OverlaySwarm:
         self.rawserver = multihandler.newRawServer(self.infohash, 
                                               self.doneflag,
                                               self.protocol)
-        self.errorfunc = errorfunc
-        
+
         # Create Connecter and Encoder for the swarm. TODO: ratelimiter
         self.connecter = OverlayConnecter(self, self.config)
         self.encoder = OverlayEncoder(self, self.connecter, self.rawserver, 
@@ -118,7 +117,7 @@ class OverlaySwarm:
         #""" Start permid exchange and challenge/response validation """
         if not connection or self.crs.has_key(connection):
             return    # don't start c/r if connection is invalid or permid was exchanged
-        cr = ChallengeResponse(self.myid, self, self.errorfunc)
+        cr = ChallengeResponse(self.myid, self)
         self.crs[connection] = cr
         cr.start_cr(connection)
         #self.rawserver.add_task(c, 0)
@@ -157,7 +156,7 @@ class OverlaySwarm:
         if t in PermIDMessages:
             try:
                 if not self.crs.has_key(conn):    # incoming permid exchange
-                    self.crs[conn] = ChallengeResponse(self.myid, self, self.errorfunc)
+                    self.crs[conn] = ChallengeResponse(self.myid, self)
                 if self.crs[conn].got_message(conn, message) == False:
                     if conn and self.crs.has_key(conn):
                         self.crs.pop(conn)

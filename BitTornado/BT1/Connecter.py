@@ -380,13 +380,21 @@ class Connecter:
                 i = toint(message[1:5])
                 if i >= self.numpieces:
                     if DEBUG:
-                        print "Close on bad HASHPIEC: index out of range"
+                        print "Close on bad HASHPIECE: index out of range"
                     connection.close()
                     return
                 begin = toint(message[5:9])
                 len_hashlist = toint(message[9:13])
                 bhashlist = message[13:13+len_hashlist]
                 hashlist = bdecode(bhashlist)
+                assert(type(hashlist) == ListType)
+                for oh in hashlist:
+                    assert(type(oh) == ListType)
+                    assert(len(oh) == 2)
+                    assert(type(oh[0]) == IntType)
+                    assert(type(oh[0]) == StringType)
+                    assert(len(oh[1])==20)
+                assert(hashlist[0][0] == i)
                 piece = message[13+len_hashlist:]
                 if c.download.got_piece(i, begin, hashlist, piece):
                     self.got_piece(i)

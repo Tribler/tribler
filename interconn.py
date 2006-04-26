@@ -19,10 +19,10 @@ class ServerListener:
     def start(self):
         HOST = '127.0.0.1'       # Symbolic name meaning the local host
 
-        PORT = 56666             # Arbitrary non-privileged port       
+        PORT = 56766             # Arbitrary non-privileged port       
         self.s = getSocket(HOST, PORT, "server")
         if self.s is None:
-            sys.stderr.write('Could not open socket') # No way
+            sys.stderr.write('Tribler-already-running check: Could not open socket') # No way
             sys.exit(1)
         while 1:
             try:
@@ -59,14 +59,14 @@ class ServerListener:
 ################################################################
 def ClientPassParam(params, ignoreError = False):
     HOST = '127.0.0.1'               # The remote host
-    PORT = 56666                     # The same port as used by the server
+    PORT = 56766                     # The same port as used by the server
     # Keep on trying...
     # (at least moreso than before)
     s = getSocket(HOST, PORT, 15)
     if s is None:
         if ignoreError:
             return
-        print 'could not open socket'
+        print 'Tribler-already-running check: could not open socket'
 #        sys.stderr.write("Could not open socket\n")
 #        sys.stderr.write("--Trying to send params: (" + params + ")\n")
         sys.exit(1)        

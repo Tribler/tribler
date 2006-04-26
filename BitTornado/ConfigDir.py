@@ -80,6 +80,9 @@ class ConfigDir:
                     dir_root = os.path.abspath(os.path.dirname(sys.argv[0]))
 
             cur_dir_root = os.path.join(dir_root, DIRNAME)
+        else:
+            cur_dir_root = dir_root
+
         self.dir_root = cur_dir_root
         old_dir_root = os.path.join( dir_root, '.ABC' )
 

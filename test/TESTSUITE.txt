@@ -1,0 +1,67 @@
+TESTSUITE FOR TRIBLER
+=====================
+
+
+Description of tests
+--------------------
+
+Feature: Simple Merkle Hashes
+
+	Create various hashtrees. For each tree, check that the 
+	set of hashes returned is correct for each piece.
+	
+	Create a Merkle torrent. Test that our code correctly reads it.
+
+Feature: PermIDs
+
+	Start a Tribler client, open a socket to it, and test whether
+	it accepts various valid and invalid CHALLENGE messages.
+	
+	Test RESPONSE1
+	
+	Test RESPONSE2
+
+
+Feature: Megacaches/CacheDB
+
+	Jie already made a test suite for this.
+
+Feature: SecureOverlay
+
+	Write a client and a server that use the SecureOverlay API. 
+	Let them exchange messages. In particular:
+	* Test what happens when connections are dropped. Do messages get lost?
+	* Test what happens when the server is down and the client sends.
+
+Feature: Download Helper
+
+	Start a Tribler client, connect to it via the SecureOverlay API.
+	* Test whether it accepts valid and invalid DOWNLOAD_HELP,
+	RESERVE_PIECES, PIECES_RESERVED and STOP_DOWNLOAD_HELP messages.
+	* Test whether the client always stops helping on a STOP_DOWNLOAD_HELP
+	in various situations.
+
+Feature: BuddyCast
+
+	Start a Tribler client, connect to it via the SecureOverlay API.
+	* Test whether it accepts valid and invalid BUDDYCAST messages.
+	
+	Jie already has a test suite for testing the Buddycast algorithm.
+	
+
+Running
+-------
+
+The test suite has not yet been integrated. For buddycast and database
+testing, run
+
+$ python test.py 
+
+from the main dir. For permid, Merkle testing, set PYTHONPATH to the main dir 
+of the source and run
+
+$ python test/test_permid.py
+$ python test/test_permid_response1.py
+$ python test/test_merkle.py
+
+Arno Bakker, 2006-04-26

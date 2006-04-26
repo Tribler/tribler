@@ -3,7 +3,7 @@
 
 from math import log,pow,floor
 from sha import sha
-from BitTornado.bencode import bencode
+import sys
 
 DEBUG = False
 
@@ -50,7 +50,7 @@ class MerkleTree:
         return check_tree_path(self.root_hash,self.treeheight,hashlist)
 
     def update_hash_admin(self,hashlist,piece_hashes):
-        return update_hash_admin(hashlist,self.tree,self.treeheight,piece_hashes)
+        update_hash_admin(hashlist,self.tree,self.treeheight,piece_hashes)
 
     def get_piece_hashes(self):
         """
@@ -116,7 +116,7 @@ def fill_tree(tree,height,npieces,hashes):
         print >> sys.stderr,"merkle: bottom of tree starts at",startoffset
     for offset in range(startoffset,startoffset+npieces):
         #print >> sys.stderr,"merkle: copying",offset
-        #print >> sys.stderr,"merkle: hashes[",offset-startoffset,"=",str(hashes[offset-startoffset])
+        #print >> sys.stderr,"merkle: hashes[",offset-startoffset,"]=",str(hashes[offset-startoffset])
         tree[offset] = hashes[offset-startoffset]
     # 2. Note that unused leaves are NOT filled. It may be a good idea to fill
     # them as hashing 0 values may create a security problem. However, the
@@ -159,7 +159,8 @@ def get_hashes_for_piece(tree,height,index):
         siblingoffset = myoffset+1
     if DEBUG:
         print >> sys.stderr,"merkle: siblingoffset",siblingoffset
-    hashlist.append([siblingoffset,tree[siblingoffset]])
+    if siblingoffset != -1:
+        hashlist.append([siblingoffset,tree[siblingoffset]])
     # 3. Add hashes of uncles
     uncleoffset = myoffset
     for level in range(height,0,-1):
@@ -173,13 +174,20 @@ def get_hashes_for_piece(tree,height,index):
 def check_tree_path(root_hash,height,hashlist):
     """
     The hashes should be in the right order in the hashlist, otherwise
-    the peer will be kicked
+    the peer will be kicked. The hashlist parameter is assumed to be
+    of the right type, and contain values of the right type as well.
+    The exact values should be checked for validity here.
     """
+    maxoffset = int(pow(2,height+1)-2)
     mystartoffset = int(pow(2,height)-1)
     i=0
     a = hashlist[i]
+    if a[0] < 0 or a[0] > maxoffset:
+        return False
     i += 1
     b = hashlist[i]
+    if b[0] < 0 or b[0] > maxoffset:
+        return False
     i += 1
     myindex = a[0]-mystartoffset
     sibindex = b[0]-mystartoffset
@@ -188,6 +196,8 @@ def check_tree_path(root_hash,height,hashlist):
             print >> sys.stderr,"merkle: checking level",level
         a = check_fork(a,b,level)
         b = hashlist[i]
+        if b[0] < 0 or b[0] > maxoffset:
+            return False
         i += 1
     if DEBUG:
         print >> sys.stderr,"merkle: ROOT HASH",`str(root_hash)`,"==",`str(a[1])`
@@ -256,66 +266,3 @@ def get_piece_hashes(tree,height,npieces):
         hashes[offset-startoffset] = tree[offset]
     return hashes
 
-
-def test_get_hashes_for_piece(index,npieces):
-        height = get_tree_height(npieces)
-
-        startoffset = int(pow(2,height)-1)
-        myoffset = startoffset+index
-        if DEBUG:
-            print >> sys.stderr,"merkle: myoffset",myoffset
-        # 1. Add piece's own hash
-        hashlist = [ myoffset ]
-        # 2. Add hash of piece's sibling, left or right
-        if myoffset % 2 == 0:
-            siblingoffset = myoffset-1
-        else:
-            siblingoffset = myoffset+1
-        if DEBUG:
-            print >> sys.stderr,"merkle: siblingoffset",siblingoffset
-        hashlist.append(siblingoffset)
-        # 3. Add hashes of uncles
-        uncleoffset = myoffset
-        for level in range(height,0,-1):
-            uncleoffset = get_uncle_offset(uncleoffset,level)
-            if DEBUG:
-                print >> sys.stderr,"merkle: uncleoffset",uncleoffset
-            hashlist.append( uncleoffset )
-        return hashlist
-
-
-if __name__ == '__main__':
-    npieces = 8
-    hashtree = ['\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00' ] * npieces
-
-    hashlist = test_get_hashes_for_piece(0,npieces)
-    print >> sys.stderr,"merkle: hashlist is",hashlist
-    assert hashlist == [7, 8, 4, 2, 0]
-
-    hashlist = test_get_hashes_for_piece(1,npieces)
-    print >> sys.stderr,"merkle: hashlist is",hashlist
-    assert hashlist == [8, 7, 4, 2, 0]
-
-    hashlist = test_get_hashes_for_piece(2,npieces)
-    print >> sys.stderr,"merkle: hashlist is",hashlist
-    assert hashlist == [9, 10, 3, 2, 0]
-
-    hashlist = test_get_hashes_for_piece(3,npieces)
-    print >> sys.stderr,"merkle: hashlist is",hashlist
-    assert hashlist == [10, 9, 3, 2, 0]
-    
-    hashlist = test_get_hashes_for_piece(4,npieces)
-    print >> sys.stderr,"merkle: hashlist is",hashlist
-    assert hashlist == [11, 12, 6, 1, 0]
-
-    hashlist = test_get_hashes_for_piece(5,npieces)
-    print >> sys.stderr,"merkle: hashlist is",hashlist
-    assert hashlist == [12, 11, 6, 1, 0]
-
-    hashlist = test_get_hashes_for_piece(6,npieces)
-    print >> sys.stderr,"merkle: hashlist is",hashlist
-    assert hashlist == [13, 14, 5, 1, 0]
-
-    hashlist = test_get_hashes_for_piece(7,npieces)
-    print >> sys.stderr,"merkle: hashlist is",hashlist
-    assert hashlist == [14, 13, 5, 1, 0]

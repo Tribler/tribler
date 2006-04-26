@@ -264,7 +264,7 @@ class LaunchMany:
                 self.overlayswarm = OverlaySwarm.getInstance()                
                 self.secure_overlay = SecureOverlay.getInstance()
                 self.overlayswarm.register(self.listen_port, self.secure_overlay, self.handler, 
-                                           self.config, self.exchandler)
+                                           self.config)
                 self.secure_overlay.register(self.overlayswarm)
                 self.overlay_apps = OverlayApps.getInstance()
                 self.overlay_apps.register(self.secure_overlay, self, GLOBAL.do_buddycast, GLOBAL.do_download_help,

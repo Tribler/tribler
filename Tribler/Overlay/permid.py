@@ -96,18 +96,24 @@ def generate_challenge():
     randomB = Rand.rand_bytes(num_random_bits/8)
     return [randomB,bencode(randomB)]
 
-def generate_response1(cdata,peeridB,keypairA):
+def check_challenge(cdata):
     try:
         randomB = bdecode(cdata)
     except:
-        return [None,None,None]
+        return None
+    if len(randomB) != num_random_bits/8:
+        return None
+    else:
+        return randomB
+
+def generate_response1(randomB,peeridB,keypairA):
     randomA = Rand.rand_bytes(num_random_bits/8)
     response1 = {}
     response1['certA'] = str(keypairA.pub().get_der())
     response1['rA'] = randomA
     response1['B'] = peeridB
     response1['SA'] = sign_response(randomA,randomB,peeridB,keypairA)
-    return [randomA,randomB,bencode(response1)]
+    return [randomA,bencode(response1)]
 
 def check_response1(rdata1,randomB,peeridB):
     try:
@@ -212,9 +218,8 @@ class PermIDException(Exception): pass
 class ChallengeResponse:
     """ Exchange Challenge/Response via Overlay Swarm """
 
-    def __init__(self, my_id, overlay_swarm, errorfunc):
+    def __init__(self, my_id, overlay_swarm):
         self.overlay_swarm = overlay_swarm
-        self.errorfunc = errorfunc
 
         self.my_random = None
         self.my_id = my_id
@@ -224,7 +229,7 @@ class ChallengeResponse:
         self.state = STATE_INITIAL
         # Calculate message limits:
         [dummy_random,cdata] = generate_challenge()
-        [dummy_random1,dummy_random2,rdata1] = generate_response1(cdata,my_id,_ec_keypair)
+        [dummy_random1,rdata1] = generate_response1(dummy_random,my_id,_ec_keypair)
         rdata2 = generate_response2(dummy_random,my_id,dummy_random,_ec_keypair)
         self.minchal = 1+len(cdata) # 1+ = message type
         self.minr1 = 1+len(rdata1)
@@ -244,26 +249,31 @@ class ChallengeResponse:
     def got_challenge_event(self,cdata,peer_id):
         if self.state != STATE_INITIAL:
             self.state = STATE_FAILED
-            self.errorfunc("Got unexpected CHALLENGE message")
+            if DEBUG:
+                print >> sys.stderr, "Got unexpected CHALLENGE message"
+            raise PermIDException
+        self.peer_random = check_challenge(cdata)
+        if self.peer_random is None:
+            self.state = STATE_FAILED
+            if DEBUG:
+                print >> sys.stderr,"Got bad CHALLENGE message"
             raise PermIDException
         self.peer_id = peer_id
-        [self.my_random,self.peer_random,rdata1] = generate_response1(cdata,peer_id,_ec_keypair)
-        if self.my_random is None:
-            self.state = STATE_FAILED
-            self.errorfunc("Got bad CHALLENGE message")
-            raise PermIDException
+        [self.my_random,rdata1] = generate_response1(self.peer_random,peer_id,_ec_keypair)
         self.state = STATE_AWAIT_R2
         return rdata1
 
     def got_response1_event(self,rdata1,peer_id):
         if self.state != STATE_AWAIT_R1:
             self.state = STATE_FAILED
-            self.errorfunc("Got unexpected RESPONSE1 message")
+            if DEBUG:
+                print >> sys.stderr,"Got unexpected RESPONSE1 message"
             raise PermIDException
         [randomA,peer_pub] = check_response1(rdata1,self.my_random,self.my_id)
         if randomA is None:
             self.state = STATE_FAILED
-            self.errorfunc("Got bad RESPONSE1 message")
+            if DEBUG:
+                print >> sys.stderr,"Got bad RESPONSE1 message"
             raise PermIDException
         self.peer_id = peer_id
         self.peer_random = randomA
@@ -275,12 +285,14 @@ class ChallengeResponse:
     def got_response2_event(self,rdata2):
         if self.state != STATE_AWAIT_R2:
             self.state = STATE_FAILED
-            self.errorfunc("Got unexpected RESPONSE2 message")
+            if DEBUG:
+                print >> sys.stderr,"Got unexpected RESPONSE2 message"
             raise PermIDException
         self.peer_pub = check_response2(rdata2,self.my_random,self.my_id,self.peer_random,self.peer_id)
         if self.peer_pub is None:
             self.state = STATE_FAILED
-            self.errorfunc("Got bad RESPONSE2 message, authentication failed.")
+            if DEBUG:
+                print >> sys.stderr,"Got bad RESPONSE2 message, authentication failed."
             raise PermIDException
         else:
             self.set_peer_authenticated()
@@ -333,6 +345,7 @@ class ChallengeResponse:
         permid = self.get_peer_permid()
         conn.set_permid(permid)
         conn.set_auth_peer_id(self.get_auth_peer_id())
+        self.overlay_swarm.permidSocketMade(conn)
      
     def got_response2(self, rdata2, conn):
         self.got_response2_event(rdata2)
@@ -341,6 +354,7 @@ class ChallengeResponse:
             permid = self.get_peer_permid()
             conn.set_permid(permid)
             conn.set_auth_peer_id(self.get_auth_peer_id())
+            self.overlay_swarm.permidSocketMade(conn)
 
     def got_message(self, conn, message):
         """ Handle message for PermID exchange and return if the message is valid """
@@ -350,9 +364,6 @@ class ChallengeResponse:
         t = message[0]
         if message[1:]:
             msg = message[1:]
-            
-        if DEBUG:
-            print >> sys.stderr,"permid: got message", getMessageName(t)
             
         if t == CHALLENGE:
             if len(message) < self.get_challenge_minlen():
@@ -380,8 +391,6 @@ class ChallengeResponse:
                     print >> sys.stderr,"permid: Close on bad RESPONSE1: exception",str(e)
                     traceback.print_exc()
                 return False
-            else:
-                self.overlay_swarm.permidSocketMade(conn)
         elif t == RESPONSE2:
             if len(message) < self.get_response2_minlen():
                 if DEBUG:
@@ -395,8 +404,6 @@ class ChallengeResponse:
                     print >> sys.stderr,"permid: Close on bad RESPONSE2: exception",str(e)
                     traceback.print_exc()
                 return False
-            else:
-                self.overlay_swarm.permidSocketMade(conn)
         else:
             return False
         return True
