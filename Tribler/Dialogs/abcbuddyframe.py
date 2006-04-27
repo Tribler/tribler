@@ -211,7 +211,7 @@ class ABCBuddyDialog(wx.Dialog):
         #self.window_size = None
         style = wx.DEFAULT_DIALOG_STYLE | wx.MAXIMIZE_BOX | wx.MINIMIZE_BOX |wx.RESIZE_BORDER
         #wx.Dialog.__init__(self, None, -1, self.utility.lang.get('managefriendspeers'), size=wx.Size(width+20, height+60))
-        wx.Dialog.__init__(self, parent, -1, self.utility.lang.get('managefriendspeers'), style = style)
+        wx.Dialog.__init__(self, parent, -1, self.utility.lang.get('managefriendspeers'), size = self.window_size, style = style)
        
         self.friend_db = FriendDBHandler()
         self.peer_db = PeerDBHandler()

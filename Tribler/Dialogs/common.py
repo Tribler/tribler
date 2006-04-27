@@ -31,7 +31,10 @@ class CommonTriblerList(wx.ListCtrl):
         assert self.sort_column < len(self.columns)
         
         style = wx.LC_REPORT|wx.LC_VRULES|wx.CLIP_CHILDREN
-        wx.ListCtrl.__init__(self, parent, -1, style=style)
+        if window_size is None:
+            wx.ListCtrl.__init__(self, parent, -1, style=style )
+        else:
+            wx.ListCtrl.__init__(self, parent, -1, style=style, size = window_size ) 
         ##self.SetMinSize(window_size)
 
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnRightClick)

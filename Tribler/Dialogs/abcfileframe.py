@@ -388,7 +388,10 @@ class FilePanel(wx.Panel):
         wx.Panel.__init__(self, parent, -1)
         
         mainbox = wx.BoxSizer(wx.VERTICAL)
-        self.list=FileList(self, frame.window_size)
+        #self.list=FileList(self, frame.window_size)
+        # Arno: Somehow the list gets painted over the other controls below it in
+        # the window if we specifiy a size of  the list, so don't.
+        self.list=FileList(self, None)
         mainbox.Add(self.list, 1, wx.EXPAND|wx.ALL, 5)
         label = wx.StaticText(self, -1, self.utility.lang.get('recommendinstructions'))
         mainbox.Add(label, 0, wx.ALIGN_CENTER_VERTICAL)
