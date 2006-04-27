@@ -9,8 +9,4 @@ WXPYTHON=`ls -1d /usr/lib/$PYTHON/site-packages/wx-$WXPYTHONVER* | head -1`
 PYTHONPATH=/usr/share/tribler/:$WXPYTHON
 export PYTHONPATH
 
-if [ ! -d $HOME/.Tribler ];
-then
-	mkdir $HOME/.Tribler
-fi
-exec $PYTHON /usr/share/tribler/abc.py > $HOME/.Tribler/stderr.log 2>&1
+exec $PYTHON /usr/share/tribler/abc.py > /tmp/tribler.log 2>&1
