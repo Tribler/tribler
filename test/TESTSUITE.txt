@@ -52,16 +52,10 @@ Feature: BuddyCast
 Running
 -------
 
-The test suite has not yet been integrated. For buddycast and database
-testing, run
+To run the full test suite, run
 
 $ python test.py 
 
-from the main dir. For permid, Merkle testing, set PYTHONPATH to the main dir 
-of the source and run
+from the main dir. 
 
-$ python test/test_permid.py
-$ python test/test_permid_response1.py
-$ python test/test_merkle.py
-
-Arno Bakker, 2006-04-26
+Arno Bakker, 2006-04-27

@@ -307,7 +307,7 @@ class TestMerkleHashes(unittest.TestCase):
         cstarto = (2 ** level)-1
         return cstarto+diffo
 
-def suite():
+def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestMerkleHashes))
     

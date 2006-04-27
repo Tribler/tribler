@@ -420,7 +420,7 @@ class TestPermIDsResponse1(unittest.TestCase):
             self.assert_(False,"Tribler should have accepted RESPONSE1")
             self.conn.close()
 
-def suite():
+def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestPermIDsResponse1))
     

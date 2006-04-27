@@ -342,7 +342,7 @@ class TestPermIDs(TestAsServer):
         return resp1
 
 
-def suite():
+def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestPermIDs))
     
