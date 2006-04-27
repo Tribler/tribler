@@ -32,7 +32,7 @@ class CommonTriblerList(wx.ListCtrl):
         
         style = wx.LC_REPORT|wx.LC_VRULES|wx.CLIP_CHILDREN
         wx.ListCtrl.__init__(self, parent, -1, style=style)
-        self.SetMinSize(window_size)
+        ##self.SetMinSize(window_size)
 
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnRightClick)
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnActivated)
