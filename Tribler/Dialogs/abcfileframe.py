@@ -40,7 +40,6 @@ class MyPreferenceList(CommonTriblerList):
     def getColumns(self):
         format = wx.LIST_FORMAT_CENTER
         columns = [
-            ('Torrent Name', format, 5),
             ('Content Name', format, 30),
             ('Rank', format, 8),
             ('Size', format, 12),
@@ -49,7 +48,7 @@ class MyPreferenceList(CommonTriblerList):
         return columns
         
     def getListKey(self):
-        return ['torrent_name', 'content_name', 'rank', 'length', 'last_seen']
+        return ['content_name', 'rank', 'length', 'last_seen']
         
     def getCurrentSortColumn(self):
         return 1
@@ -200,14 +199,13 @@ class FileList(CommonTriblerList):
     def getColumns(self):
         format = wx.LIST_FORMAT_CENTER
         columns = [
-            ('Torrent Name', format, 0),
             ('Content Name', format, 30),
             ('Recommendation', format, 8),
             ('#Downloads', format, 8),
             ('Size', format, 12),
             ('#Files', format, 5),
             ('Injected', format, 12),
-            ('Tracker', format, 24),
+            ('Tracker', format, 24)
 #            ('Torrent ID', format, 8),
 #            ('Seeder', format, 6),
 #            ('Leecher', format, 6),  
@@ -215,14 +213,14 @@ class FileList(CommonTriblerList):
         return columns
         
     def getListKey(self):
-        return ['torrent_name', 'content_name', 'relevance', 'num_owners', 'length', 
+        return ['content_name', 'relevance', 'num_owners', 'length', 
                 'num_files', 'date', 'tracker'] # , 'infohash', 'seeder', 'leecher']
         
     def getCurrentSortColumn(self):
-        return 2    # reverse sort by recommendation by default
+        return 1    # reverse sort by recommendation by default
         
     def getCurrentOrders(self):
-         return [0, 0, 1, 0, 1, 0, 0, 0]
+         return [0, 1, 0, 1, 0, 0, 0]
 
     def getMaxNum(self):
         return 500
@@ -430,27 +428,33 @@ class ABCFileFrame(wx.Frame):
         self.mypref_db = self.utility.mypref_db
         self.torrent_db = self.utility.torrent_db
         
-        main_panel = wx.Panel(self)
-        par_nb = main_panel
+        # 1. Topbox contains the notebook
+        mainbox = wx.BoxSizer(wx.VERTICAL)
+        topbox = wx.BoxSizer(wx.HORIZONTAL)
         
-        box = wx.BoxSizer(wx.VERTICAL)
-        
-        self.notebook = wx.Notebook(par_nb, -1)
+        self.notebook = wx.Notebook(self, -1)
+
         self.filePanel = FilePanel(self, self.notebook)
         self.notebook.AddPage(self.filePanel, "Recommended Torrents")
-        self.myPreferencePanel = MyPreferencePanel(self, self.notebook)
-        self.notebook.AddPage(self.myPreferencePanel, "My Download History")        
-        box.Add(self.notebook, 1, wx.EXPAND)
-        
-        button = wx.Button(par_nb, -1, self.utility.lang.get('close'), style = wx.BU_EXACTFIT)
-        wx.EVT_BUTTON(self, button.GetId(), self.OnCloseWindow)
-        box.Add(button, 0, wx.ALIGN_CENTER|wx.ALL, 10)
 
-        par_nb.SetSizer(box)
+        self.myPreferencePanel = MyPreferencePanel(self, self.notebook)
+        self.notebook.AddPage(self.myPreferencePanel, "My Download History")
+
+        topbox.Add(self.notebook, 1, wx.EXPAND|wx.ALL, 5)
+
+        # 2. Bottom box contains "Close" button
+        botbox = wx.BoxSizer(wx.HORIZONTAL)
+
+        button = wx.Button(self, -1, self.utility.lang.get('close'), style = wx.BU_EXACTFIT)
+        wx.EVT_BUTTON(self, button.GetId(), self.OnCloseWindow)
+        botbox.Add(button, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+
+        # 3. Pack boxes together
+        mainbox.Add(topbox, 1, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        mainbox.Add(botbox, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 5)
+        self.SetSizerAndFit(mainbox)
 
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
-        self.SetSize(self.utility.frame.fileFrame_size)
-        self.SetPosition(self.utility.frame.fileFrame_pos)
         self.Show()
 
     def updateMyPref(self):

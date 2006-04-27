@@ -102,7 +102,7 @@ class CommonTriblerList(wx.ListCtrl):
         for i in xrange(self.num):
             self.InsertStringItem(i, self.getText(self.data, i, 0))
             for j in range(1, len(self.list_key)):
-                txt = self.getText(data, i, j)
+                txt = self.getText(self.data, i, j)
                 self.SetStringItem(i, j, txt)
             i += 1
             

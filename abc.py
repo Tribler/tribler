@@ -665,7 +665,7 @@ def run(params = None):
         params = sys.argv[1:]
     
     # Create single instance semaphore
-    single_instance_checker = wx.SingleInstanceChecker("pingpong-abc" + wx.GetUserId())
+    single_instance_checker = wx.SingleInstanceChecker("tribler-" + wx.GetUserId())
 
     if not ALLOW_MULTIPLE and single_instance_checker.IsAnotherRunning():
         #Send  torrent info to abc single instance
