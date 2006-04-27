@@ -301,11 +301,13 @@ class TorrentDBHandler(BasicDBHandler):
             infohash = False
         for torrent in torrent_list:
             p = self.torrent_db.getItem(torrent, default=True)
+            if 'num_owners' in keys:
+                p['num_owners'] = self.owner_db.getNumOwners(torrent)
             if infohash:
                 d = {'infohash':torrent}
             else:
                 d = {}
-            for key in keys:
+            for key in keys:    # TODO: can d = p?
                 d[key] = p[key]
             torrents.append(d)
         

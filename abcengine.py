@@ -1,5 +1,6 @@
 import wx
 import sys
+from socket import inet_aton
 
 #from operator import itemgetter
 from threading import Event, Timer, currentThread
@@ -547,7 +548,7 @@ class ABCEngine(DelayedEventHandler):
             message = self.utility.lang.get('diskfull') + \
                       " (" + self.utility.size_format(spaceleft) + ")"
             self.errormsg(message)
-            self.utility.actionhandler.procSTOP([self.torrent])
+            self.actionhandlerCallback( STATUS_STOP, self.torrent )
     
     #
     # See if there's been a timeout
@@ -637,6 +638,14 @@ class ABCEngine(DelayedEventHandler):
         self.updatePeerCache(spew)    # the real update is in DownloaderFeedback.update*()
         self.updateFileCache(spew)
         
+    def sortSpew(self, spew, sortcol, reversed):
+        tmplist = [(self.getSpewColumnValue(sortcol, line, spew), spew[line]) for \
+                    line in range(len(spew))]
+        tmplist.sort()
+        if reversed:
+            tmplist.reverse()
+        return [x for (_, x) in tmplist]
+        
     def updateSpewList(self, statistics = None, spew = None):
         detailwin = self.torrent.dialogs.details
         if spew is None or detailwin is None or not detailwin.update:
@@ -675,6 +684,10 @@ class ABCEngine(DelayedEventHandler):
     
         tot_uprate = 0.0
         tot_downrate = 0.0
+        
+        sortcol, reversed = spewList.getSortInfo()
+        if sortcol >= 0:
+            spew = self.sortSpew(spew, sortcol, reversed)
         
         # Disabling itemgetter sorts to remain 2.3 compatible
         # Sort by uprate first
@@ -769,6 +782,81 @@ class ABCEngine(DelayedEventHandler):
         except wx.PyDeadObjectError:
             pass
                 
+                
+    def getSpewColumnValue(self, colid, line, spew):
+
+        if colid == SPEW_UNCHOKE:
+            return spew[line]
+            
+        elif colid == SPEW_IP:
+            try:
+                ip = spew[line]['ip']
+                return inet_aton(ip)
+            except:
+                return ''
+                
+            x = s.find('.')
+            if x == -1:
+                return 0
+            iptext = s[:x] + '.' + ''.join(s[x:].split('.'))
+            return eval(iptext)
+            
+        elif colid == SPEW_LR:
+            return spew[line]['direction']
+            
+        elif colid == SPEW_UP:
+            return spew[line]['uprate']
+            
+        elif colid == SPEW_INTERESTED:
+            return spew[line]['uinterested']
+            
+        elif colid == SPEW_CHOKING:
+            return spew[line]['uchoked']
+            
+        elif colid == SPEW_DOWN:
+            return spew[line]['downrate']
+            
+        elif colid == SPEW_INTERESTING:
+            return spew[line]['dinterested']
+            
+        elif colid == SPEW_CHOKED:
+            return spew[line]['dchoked']
+            
+        elif colid == SPEW_SNUBBED:
+            return spew[line]['snubbed']
+            
+        elif colid == SPEW_DLSIZE:
+            return spew[line]['dtotal']
+            
+        elif colid == SPEW_ULSIZE:
+            if spew[line]['utotal'] is not None:
+                return spew[line]['utotal']
+            else:
+                return 0
+                
+        elif colid == SPEW_PEERPROGRESS:
+            return spew[line]['completed']
+            
+        elif colid == SPEW_PEERSPEED:
+            if spew[line]['speed'] is not None:
+                return spew[line]['speed']
+            else:
+                return 0
+
+        elif colid == SPEW_PERMID:
+            if spew[line]['unauth_permid'] is not None:
+                text = '*Tribler*'
+                friends = FriendDBHandler().getFriends()
+                for friend in friends:
+                    #print "SPEW COMPARING friend",show_permid(friend['permid']),"to spew",show_permid(spew[line]['unauth_permid'])
+                    if friend['permid'] == spew[line]['unauth_permid']:
+                        text = friend['name']
+                        break
+                return text
+            else:
+                return ""
+        
+        return 0
             
     def getSpewColumnText(self, colid, line, spew):
         text = None
@@ -790,6 +878,7 @@ class ABCEngine(DelayedEventHandler):
         elif colid == SPEW_UP:
             if spew[line]['uprate'] > 100:
                 text = self.utility.speed_format(spew[line]['uprate'], truncate = 0, stopearly = "KB")
+            
             
         elif colid == SPEW_INTERESTED:
             text = starflag[spew[line]['uinterested']]
@@ -980,7 +1069,7 @@ class ABCEngine(DelayedEventHandler):
     def failed(self):
         if self.utility.config.Read('failbehavior') == '0':
             # Stop      
-            self.utility.actionhandler.procSTOP([self.torrent])
+            self.actionhandlerCallback( STATUS_STOP, self.torrent )
         else:
             # Queue
             self.queueMe()
@@ -1006,7 +1095,20 @@ class ABCEngine(DelayedEventHandler):
 
         if queuethis:
             self.btstatus = self.utility.lang.get('queue')
-            self.utility.actionhandler.procQUEUE([self.torrent])            
+            self.actionhandlerCallback( STATUS_QUEUE, self.torrent )
+
+    def actionhandlerCallback(self,action,torrent):
+        self.invokeLater(self.onActionhandler,[action,torrent])
+
+    def onActionhandler(self,action,torrent):
+        """ as calls to procQUEUE and procSTOP are usually by event handlers
+            executed by the mainthread, let the mainthread call them here as well
+            to prevent GUI update problems.
+        """
+        if action == STATUS_QUEUE:
+            self.utility.actionhandler.procQUEUE([torrent])
+        else:
+            self.utility.actionhandler.procSTOP([torrent])
 
     def getDownloadhelpCoordinator(self):
         return self.dow.coordinator

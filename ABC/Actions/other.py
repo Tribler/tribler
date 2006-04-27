@@ -277,12 +277,11 @@ class Separator(ABCAction):
     def __init__(self, utility):
         ABCAction.__init__(self, 
                            utility, 
+                           'separator.bmp',
                            shortdesc = 'separator')
                                
         self.menudesc = "--------------"
-        mask = wx.Mask(wx.EmptyBitmap(24, 24))
-        self.bitmap = wx.EmptyBitmap(24, 24)
-        self.bitmap.SetMask(mask)
+        # Arno: the EmptyBitmap construction gave giberish on Linux
         
 # -- new functions in Tribler --        
 ################################
@@ -297,9 +296,12 @@ class BuddiesAction(ABCAction):
                            menudesc = 'managefriends')
                            
     def action(self, event = None):
-        dialog = ABCBuddyDialog(self.utility.frame,self)
-        dialog.ShowModal()
-        dialog.Destroy()
+        if self.utility.frame.buddyFrame is None:
+            self.utility.frame.buddyFrame = ABCBuddyDialog(self.utility.frame,self)
+            self.utility.frame.buddyFrame.Show()
+        else:
+            self.utility.frame.buddyFrame.SetFocus()
+            self.utility.frame.buddyFrame.Show()
 
     def reaction(self):
         self.action()
@@ -318,6 +320,9 @@ class FilesAction(ABCAction):
     def action(self, event = None):
         if self.utility.frame.fileFrame is None:
             self.utility.frame.fileFrame = ABCFileFrame(self.utility.frame)
+        else:
+            self.utility.frame.fileFrame.SetFocus()
+            self.utility.frame.fileFrame.Show()
 
 
 ################################

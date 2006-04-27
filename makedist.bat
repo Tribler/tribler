@@ -1,6 +1,6 @@
 call clean.bat
 
-set PYTHONPATH="C:\Python\Python23"
+set PYTHONPATH="D:\Python\Python24"
 set NSIS="C:\Program Files\NSIS\makensis.exe"
 set IMGCFG="C:\Program Files\Imagecfg\imagecfg.exe"
 

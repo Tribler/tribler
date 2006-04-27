@@ -178,11 +178,15 @@ class ABCTorrent:
 
         
     def addMyPref(self):
+        # If this is a helper torrent, don't add it as my preference
+        if self.caller_data is not None:
+            return
+
         self.addTorrentToDB()
         
         if self.mypref_db.hasPreference(self.torrent_hash):
             return
-            
+
         mypref = {}
         if self.files.dest:
             mypref['content_dir'] = self.files.dest    #TODO: check

@@ -22,9 +22,10 @@ from makefriends import MakeFriendsDialog
 #
 ################################################################
 class ManageFriendsPanel(wx.Panel):
-    def __init__(self, parent, utility, action):
+    def __init__(self, parent, utility, action, page_no):
         self.utility = utility
         self.action = action
+        self.page_no = page_no
 
         style = wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
         pos = wx.DefaultPosition
@@ -61,21 +62,19 @@ class ManageFriendsPanel(wx.Panel):
         # 2. Build GUI
         mainbox = wx.BoxSizer(wx.VERTICAL)
         #topbox = wx.BoxSizer(wx.HORIZONTAL)
-        botbox = wx.BoxSizer(wx.HORIZONTAL)
-
+        
         # 3. Friends in top window
         #friendsbox_title = wx.StaticBox(self, -1, self.utility.lang.get('friends'))
         #friendsbox_title = wx.StaticBox(self, -1, '')
         #friendsbox = wx.StaticBoxSizer(friendsbox_title, wx.VERTICAL)
         friendsbox = wx.BoxSizer(wx.VERTICAL)
-
         self.leftListCtl = FriendList(self,friends,type,imgList)
         #self.leftListCtl.SetToolTipString(self.utility.lang.get('multiannouncehelp'))
-        
         friendsbox.Add(self.leftListCtl, 1, wx.EXPAND|wx.TOP, 5)
         #topbox.Add(friendsbox, 0, wx.EXPAND, 5)
 
         # 4. Buttons in lower window
+        botbox = wx.BoxSizer(wx.HORIZONTAL)
         button = wx.Button(self, -1, self.utility.lang.get('buttons_add'), style = wx.BU_EXACTFIT)
         #button.SetToolTipString(self.utility.lang.get('requestdlhelp_help'))
         wx.EVT_BUTTON(self, button.GetId(), self.addFriend)
@@ -97,7 +96,7 @@ class ManageFriendsPanel(wx.Panel):
         ## botbox.Add(button, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
 
         # 5. Show GUI
-        mainbox.Add(friendsbox, 0, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL, 5)
+        mainbox.Add(friendsbox, 1, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL, 5)
         mainbox.Add(botbox, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 5)
         self.SetSizerAndFit(mainbox)
 
@@ -218,7 +217,7 @@ class FriendList(wx.ListCtrl):
         style = wx.VSCROLL|wx.SIMPLE_BORDER|self.type|wx.LC_VRULES|wx.CLIP_CHILDREN
         if (sys.platform == 'win32'):
             style |= wx.LC_ALIGN_TOP
-        wx.ListCtrl.__init__(self, parent, -1, size=wx.Size(-1, -1), style=style)
+        wx.ListCtrl.__init__(self, parent, -1, style=style)
         self.SetMinSize(wx.Size(200, 300))
 
         self.parent = parent

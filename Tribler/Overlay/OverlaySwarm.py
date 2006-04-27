@@ -56,7 +56,7 @@ class OverlaySwarm:
             raise RuntimeError, "OverlaySwarm is singleton"
         OverlaySwarm.__single = self 
         self.myid = createPeerID()
-        self.myid = self.myid[:16] + pack('H', LowestVersion) + pack('H', CurrentVersion)
+        self.myid = self.myid[:16] + pack('<H', LowestVersion) + pack('<H', CurrentVersion)
         self.protocol = protocol_name
         self.crs = {}
         self.registered = False
@@ -73,7 +73,7 @@ class OverlaySwarm:
         if self.registered:
             return
         
-        self.myid = self.myid[:14] + pack('H', listen_port) + self.myid[16:]
+        self.myid = self.myid[:14] + pack('<H', listen_port) + self.myid[16:]
         self.secure_overlay = secure_overlay
         self.config = config
         self.doneflag = Event()

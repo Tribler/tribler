@@ -24,7 +24,8 @@ import CacheDB.cachedb as cachedb
 import CacheDB.superpeer as superpeer
 from base64 import decodestring 
 import CacheDB.friends as friends
-    
+import guessip    
+
 mapbase64 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-'
 
 ## Global initialization
@@ -57,25 +58,24 @@ class GLOBAL:
     
 myinfo = {}
 
-def is_valid_ip(ip):
-    invalid_iphead = []
-    for iphead in invalid_iphead:
-        if ip.startswith(iphead):
-            return False
-    return True
-
 def load_myinfo(myinfo):    # TODO: load more personal infomation
     my_permid = str(permid._ec_keypair.pub().get_der())
     name = socket.gethostname()
-    host = socket.gethostbyname_ex(name)
-    ipaddrlist = host[2]
-    for ip in ipaddrlist:
-        if is_valid_ip(ip):
-            my_ip = ip
-            break
+    my_ip = get_my_ip(name)
     myinfo['permid'] = my_permid
     myinfo['ip'] = my_ip
     myinfo['name'] = name
+
+def get_my_ip(name):
+    ip = guessip.get_my_wan_ip()
+    if ip is None:
+        host = socket.gethostbyname_ex(name)
+        ipaddrlist = host[2]
+        for ip in ipaddrlist:
+            return ip
+        return '127.0.0.1'
+    else:
+        return ip
 
 def resetPeerIDs():
     try:

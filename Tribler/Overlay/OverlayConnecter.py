@@ -64,7 +64,7 @@ class Connection:
     def set_auth_peer_id(self,peer_id):
         # See OverlaySwarm.register()
         bin = peer_id[14:16]
-        tuple = unpack('H', bin)
+        tuple = unpack('<H', bin)
         self.auth_listen_port = tuple[0]
 
     def get_auth_listen_port(self):

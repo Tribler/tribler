@@ -9,6 +9,7 @@ from cStringIO import StringIO
 from wx.lib import masked, colourselect
 
 from ABC.GUI.menu import MenuDialog
+from ABC.GUI.toolbar import ToolBarDialog
 from Utility.configreader import ConfigReader
 from Utility.constants import * #IGNORE:W0611
 
@@ -317,6 +318,10 @@ class DisplayPanel(ABCOptionPanel):
         self.contextmenu = wx.Button(self, -1, self.utility.lang.get('customizecontextmenu') + "...")
         sizer.Add(self.contextmenu, 0, wx.ALL, 5)
         self.Bind(wx.EVT_BUTTON, self.onContextMenuDialog, self.contextmenu)
+
+        self.toolbar = wx.Button(self, -1, self.utility.lang.get('customizetoolbar') + "...")
+        sizer.Add(self.toolbar, 0, wx.ALL, 5)
+        self.Bind(wx.EVT_BUTTON, self.onToolbarDialog, self.toolbar)
         
 #        self.showmenuicons = wx.CheckBox(self, -1, self.utility.lang.get('showmenuicons'))
 #        sizer.Add(self.showmenuicons, 0, wx.ALL, 5)
@@ -327,6 +332,13 @@ class DisplayPanel(ABCOptionPanel):
         dialog = MenuDialog(self, 'menu_listrightclick')
         dialog.ShowModal()
         dialog.Destroy()
+
+
+    def onToolbarDialog(self, event = None):
+        dialog = ToolBarDialog(self.utility.frame.GetToolBar())
+        dialog.ShowModal()
+        dialog.Destroy()
+
         
     def loadValues(self, Read = None):
         if Read is None:

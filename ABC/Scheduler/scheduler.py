@@ -451,17 +451,16 @@ class ABCScheduler(DelayedEventHandler):
             if ABCTorrentTemp.infohash == info_hash:
                 return ABCTorrentTemp
 
-    def doSort(self, colid, mylist):
+    def doSort(self, colid, mylist, reverse):
         tmplist = [(x.getColumnValue(colid, -1.0), x) for x in mylist]
         tmplist.sort()
-        mylist = [x for (key, x) in tmplist]
+        if reverse:
+            tmplist.reverse()
+        return [x for (key, x) in tmplist]
 
     def sortList(self, colid = 4, reverse = False):
         # Sort by uprate first
-        #self.utility.torrents["all"].sort(None, key = lambda x: x.getColumnValue(colid, -1.0))
-        self.doSort(colid, self.utility.torrents["all"])
-        if reverse:
-            self.utility.torrents["all"].reverse()
+        self.utility.torrents["all"] = self.doSort(colid, self.utility.torrents["all"], reverse)
         self.updateListIndex()
 
     def updateListIndex(self, startindex = 0, endindex = None):

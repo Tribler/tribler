@@ -52,11 +52,11 @@ class SingleRawServer:
             if self.handler:
                 self.handler.close_all()
 
-    def _external_connection_made(self, c, options, already_read):
+    def _external_connection_made(self, c, options, msg_remainder):
         if self.running:
             c.set_handler(self.handler)
             self.handler.externally_handshaked_connection_made(
-                c, options, already_read)
+                c, options, msg_remainder)
 
     ### RawServer functions ###
 

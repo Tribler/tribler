@@ -4,7 +4,6 @@
 import wx
 from wx.lib import masked
 import os
-import images
 from base64 import encodestring
 from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler
 from Tribler.utilities import friendly_time, sort_dictlist
@@ -201,10 +200,14 @@ class FileList(CommonTriblerList):
     def getColumns(self):
         format = wx.LIST_FORMAT_CENTER
         columns = [
-            ('Torrent Name', format, 5),
+            ('Torrent Name', format, 0),
             ('Content Name', format, 30),
             ('Recommendation', format, 8),
-            ('Size', format, 12)
+            ('#Downloads', format, 8),
+            ('Size', format, 12),
+            ('#Files', format, 5),
+            ('Injected', format, 12),
+            ('Tracker', format, 24),
 #            ('Torrent ID', format, 8),
 #            ('Seeder', format, 6),
 #            ('Leecher', format, 6),  
@@ -212,17 +215,19 @@ class FileList(CommonTriblerList):
         return columns
         
     def getListKey(self):
-        return ['torrent_name', 'content_name', 'relevance', 'length'] # , 'infohash', 'seeder', 'leecher']
+        return ['torrent_name', 'content_name', 'relevance', 'num_owners', 'length', 
+                'num_files', 'date', 'tracker'] # , 'infohash', 'seeder', 'leecher']
         
     def getCurrentSortColumn(self):
-        return 2
+        return 2    # reverse sort by recommendation by default
         
     def getCurrentOrders(self):
-         return [0, 0, 1, 1]
+         return [0, 0, 1, 0, 1, 0, 0, 0]
 
     def getMaxNum(self):
-        return 1000
+        return 500
         
+    # change display format for item data
     def getText(self, data, row, col):
         key = self.list_key[col]
         original_data = data[row][key]
@@ -234,9 +239,13 @@ class FileList(CommonTriblerList):
         if key == 'length':
             length = original_data/1024/1024.0
             return '%.2f MB'%(length)
-        if key == 'seeder' or key == 'leecher':
-            if original_data < 0:
-                return '-'
+        if key == 'date':
+            if original_data == 0:
+                return 'unknown'
+            return friendly_time(original_data)
+#        if key == 'seeder' or key == 'leecher':
+#            if original_data < 0:
+#                return '-'
         return str2unicode(original_data)
         
     def loadList(self, reload=True):
@@ -251,18 +260,16 @@ class FileList(CommonTriblerList):
             if self.data[i]['relevance'] < self.relevance_threshold:
                 del self.data[i]
 
-        if self.num >= 0:
-            data = self.data[:self.num]
-        else:
-            data = self.data
+        if self.num <= 0 or self.num>len(self.data):
+            self.num = len(self.data)
         
         self.DeleteAllItems() 
         i = 0
-        for i in xrange(len(data)):
-            self.InsertStringItem(i, self.getText(data, i, 0))
+        for i in xrange(self.num):
+            self.InsertStringItem(i, self.getText(self.data, i, 0))
             for j in range(1, len(self.list_key)):
-                self.SetStringItem(i, j, self.getText(data, i, j))
-            src = os.path.join(data[i]['torrent_dir'], data[i]['torrent_name'])
+                self.SetStringItem(i, j, self.getText(self.data, i, j))
+            src = os.path.join(self.data[i]['torrent_dir'], self.data[i]['torrent_name'])
             if os.path.isfile(src):
                 item = self.GetItem(i)
                 item.SetTextColour(wx.BLUE)
@@ -273,9 +280,9 @@ class FileList(CommonTriblerList):
         
     def reloadData(self):
         torrent_list = self.torrent_db.getOthersTorrentList()
-        key = ['infohash', 'torrent_name', 'torrent_dir', 'relevance', 'info']
+        key = ['infohash', 'torrent_name', 'torrent_dir', 'relevance', 'info', 'num_owners']
         self.data = self.torrent_db.getTorrents(torrent_list, key)
-        self.data = filter(lambda x:x['torrent_name'], self.data)
+        self.data = filter(lambda x:x['info'], self.data)
 
         for i in xrange(len(self.data)):
             info = self.data[i]['info']
@@ -283,9 +290,13 @@ class FileList(CommonTriblerList):
             self.data[i]['content_name'] = info.get('name', 'unknown')
             if self.data[i]['torrent_name'] == '':
                 self.data[i]['torrent_name'] = 'unknown'
-            self.data[i]['seeder'] = -1
-            self.data[i]['leecher'] = -1
-
+            self.data[i]['content_name'] = info.get('name', 'unknown')
+#            self.data[i]['seeder'] = -1
+#            self.data[i]['leecher'] = -1
+            self.data[i]['num_files'] = str(info.get('num_files', 0))
+            self.data[i]['date'] = info.get('creation date', 0) #friendly_time(info.get('creation date', 0))
+            self.data[i]['tracker'] = info.get('announce', '')
+            
     def OnDeleteTorrent(self, event=None):
         selected = self.getSelectedItems()
         j = 0
@@ -412,41 +423,34 @@ class ABCFileFrame(wx.Frame):
         self.utility = parent.utility
         
         width = 600
-        height = 300
+        height = 400
         self.window_size = wx.Size(width, height)
         wx.Frame.__init__(self, None, -1, self.utility.lang.get('tb_file_short'), size=wx.Size(width+20, height+60))
        
         self.mypref_db = self.utility.mypref_db
         self.torrent_db = self.utility.torrent_db
-
-
-        # 1. Topbox contains the notebook
-        mainbox = wx.BoxSizer(wx.VERTICAL)
-        topbox = wx.BoxSizer(wx.HORIZONTAL)
         
-        self.notebook = wx.Notebook(self, -1)
-
+        main_panel = wx.Panel(self)
+        par_nb = main_panel
+        
+        box = wx.BoxSizer(wx.VERTICAL)
+        
+        self.notebook = wx.Notebook(par_nb, -1)
         self.filePanel = FilePanel(self, self.notebook)
         self.notebook.AddPage(self.filePanel, "Recommended Torrents")
-
         self.myPreferencePanel = MyPreferencePanel(self, self.notebook)
-        self.notebook.AddPage(self.myPreferencePanel, "My Download History")
-
-        topbox.Add(self.notebook, 1, wx.EXPAND|wx.ALL, 5)
-
-        # 2. Bottom box contains "Close" button
-        botbox = wx.BoxSizer(wx.HORIZONTAL)
-
-        button = wx.Button(self, -1, self.utility.lang.get('close'), style = wx.BU_EXACTFIT)
+        self.notebook.AddPage(self.myPreferencePanel, "My Download History")        
+        box.Add(self.notebook, 1, wx.EXPAND)
+        
+        button = wx.Button(par_nb, -1, self.utility.lang.get('close'), style = wx.BU_EXACTFIT)
         wx.EVT_BUTTON(self, button.GetId(), self.OnCloseWindow)
-        botbox.Add(button, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+        box.Add(button, 0, wx.ALIGN_CENTER|wx.ALL, 10)
 
-        # 3. Pack boxes together
-        mainbox.Add(topbox, 1, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL, 5)
-        mainbox.Add(botbox, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 5)
-        self.SetSizerAndFit(mainbox)
+        par_nb.SetSizer(box)
 
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
+        self.SetSize(self.utility.frame.fileFrame_size)
+        self.SetPosition(self.utility.frame.fileFrame_pos)
         self.Show()
 
     def updateMyPref(self):
@@ -458,7 +462,8 @@ class ABCFileFrame(wx.Frame):
 
     def OnCloseWindow(self, event = None):
         self.filePanel.list.saveRelevanceThreshold()
-
+        self.utility.frame.fileFrame_size = self.GetSize()
+        self.utility.frame.fileFrame_pos = self.GetPosition()
         self.utility.frame.fileFrame = None
         self.utility.abcfileframe = None
         

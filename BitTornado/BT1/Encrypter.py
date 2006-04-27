@@ -34,6 +34,7 @@ protocol_name = 'BitTorrent protocol'
 # Right-most bit = BitTorrent DHT extension
 #option_pattern = chr(0)*8
 option_pattern = '\x00\x00\x00\x00\x00\x30\x00\x00'
+disabled_overlay_option_pattern = '\x00\x00\x00\x00\x00\x20\x00\x00'
 
 def toint(s):
     return long(b2a_hex(s), 16)
@@ -445,7 +446,7 @@ class Encoder:
         connection.set_handler(con)
         return True
 
-    def externally_handshaked_connection_made(self, connection, options, already_read):
+    def externally_handshaked_connection_made(self, connection, options, msg_remainder):
 # 2fastbt_
         if self.paused or len(self.connections) >= self.max_connections:
 # _2fastbt
@@ -461,8 +462,8 @@ class Encoder:
 # _2fastbt
         connection.set_handler(con)
         # after: connection.handler = Encrypter.Connecter
-        if already_read:
-            con.data_came_in(con, already_read)
+        if msg_remainder:
+            con.data_came_in(con, msg_remainder)
         return True
 
     def close_all(self):

@@ -12,6 +12,7 @@ from sha import sha
 DEBUG = False
 
 log_separator = ' - '
+logger = None
 
 # To be compatible with Logger from http://linux.duke.edu/projects/mini/logger/ 
 # for 2fastbt (revision <=825). 

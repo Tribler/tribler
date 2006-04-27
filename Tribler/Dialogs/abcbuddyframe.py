@@ -126,6 +126,7 @@ class TasteBuddyList(CommonTriblerList):
             self.addFriend(i)
         self.parent.phoenix()
         self.Update()
+        self.SetFocus()
 
     def addFriend(self, curr_idx):
         if not self.data[curr_idx]['friend']:
@@ -176,9 +177,10 @@ class TasteBuddyList(CommonTriblerList):
         
 
 class TasteBuddyPanel(wx.Panel):
-    def __init__(self, frame, parent):
+    def __init__(self, frame, parent, page_no):
         self.parent = parent
         self.frame = frame
+        self.page_no = page_no
         self.peer_db = frame.peer_db
         self.friend_db = frame.friend_db
         self.pref_db = frame.pref_db
@@ -195,7 +197,7 @@ class TasteBuddyPanel(wx.Panel):
         self.Show(True)
 
     def phoenix(self):
-        self.frame.phoenix()
+        self.frame.phoenix(self.page_no)
 
 class ABCBuddyDialog(wx.Dialog):
     def __init__(self, parent, action):
@@ -227,8 +229,8 @@ class ABCBuddyDialog(wx.Dialog):
         # 2. Bottom box contains "Close" button
         botbox = wx.BoxSizer(wx.HORIZONTAL)
 
-        button = wx.Button(self, -1, self.utility.lang.get('close'), style = wx.BU_EXACTFIT)
-        wx.EVT_BUTTON(self, button.GetId(), self.OnCloseWindow)
+        button = wx.Button(self, wx.ID_OK, self.utility.lang.get('close'), style = wx.BU_EXACTFIT)
+        #wx.EVT_BUTTON(self, button.GetId(), self.OnCloseWindow)
         botbox.Add(button, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
 
         # 3. Pack boxes together
@@ -237,7 +239,9 @@ class ABCBuddyDialog(wx.Dialog):
 
         self.SetSizerAndFit(mainbox)
 
-        self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
+        self.SetSize(self.utility.frame.buddyFrame_size)
+        self.SetPosition(self.utility.frame.buddyFrame_pos)
+        #self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
         ##self.Show()
 
     def updateBuddy(self):
@@ -246,28 +250,38 @@ class ABCBuddyDialog(wx.Dialog):
     def deleteFriend(self, permid):
         self.tasteBuddyPanel.list.externalDeleteFriend(permid)
         
-    def OnCloseWindow(self, event = None):
-        self.EndModal(wx.ID_OK)
+#    def OnCloseWindow(self, event = None):
+#        self.Close()
 
     def addPanels(self):
         self.addFriendsPanel()
         self.addPeerPanel()
+        self.notebook.SetSelection(self.parent.buddyFrame_page)
         
     def addFriendsPanel(self):
-        self.friendsPanel = ManageFriendsPanel(self.notebook, self.utility, self)
+        self.friendsPanel = ManageFriendsPanel(self.notebook, self.utility, self, 0)
         self.notebook.InsertPage(0,self.friendsPanel, self.utility.lang.get('managefriends'))
 
     def addPeerPanel(self):
-        self.tasteBuddyPanel = TasteBuddyPanel(self, self.notebook)
+        self.tasteBuddyPanel = TasteBuddyPanel(self, self.notebook, 1)
         self.notebook.InsertPage(1,self.tasteBuddyPanel, self.utility.lang.get('viewpeerlist'))
 
     def reaction(self):
         """ Called by ManageFriendsPanel"""
-        self.phoenix()
+        self.phoenix(self.friendsPanel.page_no)
 
-    def phoenix(self):
+    def phoenix(self, page=0):
         """ Easiest way of keeping the info presented to the user up to date:
             build a new window
         """
-        self.EndModal(wx.ID_OK)
+        #self.EndModal(wx.ID_OK)
+        self.utility.frame.buddyFrame_page = page
+        self.utility.frame.buddyFrame = None
+        self.utility.frame.buddyFrame_size = self.GetSize()
+        self.utility.frame.buddyFrame_pos = self.GetPosition()
+        self.Destroy()
         self.action.reaction()
+
+    def OnClose(self, event=None):
+        self.utility.frame.buddyFrame_rect = self.GetClientRect()
+        

@@ -27,6 +27,8 @@ from time import strftime
 from BitTornado.clock import clock
 from BitTornado import createPeerID, version
 from BitTornado.ConfigDir import ConfigDir
+from Tribler.__init__ import GLOBAL
+import BitTornado.BT1.Encrypter as Encrypter
 
 assert sys.version >= '2', "Install Python 2.0 or greater"
 try:
@@ -168,7 +170,12 @@ def run(params):
 
         myid = createPeerID()
         seed(myid)
-        
+
+        # Arno: FIXME: I temporarily disable the overlay swarm for this
+        # short-lived client. In the future we could enable the overlay.
+        GLOBAL.do_overlay = 0
+        Encrypter.option_pattern = Encrypter.disabled_overlay_option_pattern 
+    
         doneflag = Event()
         def disp_exception(text):
             print text
@@ -178,8 +185,9 @@ def run(params):
         upnp_type = UPnP_test(config['upnp_nat_access'])
         while True:
             try:
-                listen_port = rawserver.find_and_bind(config['minport'], config['maxport'],
-                                config['bind'], ipv6_socket_style = config['ipv6_binds_v4'],
+                listen_port = rawserver.find_and_bind(config['minport'], config['minport'], 
+                                config['maxport'], config['bind'], 
+                                ipv6_socket_style = config['ipv6_binds_v4'],
                                 upnp = upnp_type, randomizer = config['random_port'])
                 break
             except socketerror, e:

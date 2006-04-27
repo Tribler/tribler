@@ -280,7 +280,7 @@ class FileInfoPanel(wx.Panel):
             filesinfo = [info]
         else:
             filesinfo = info['files']
-            
+        
         x = 0
         try:
             for tempfile in filesinfo:
@@ -370,6 +370,8 @@ class FileInfoList(ManagedList):
         ManagedList.__init__(self, parent, style, prefix, minid, maxid, exclude, rightalign, centeralign)
         
         self.torrent = parent.torrent
+        self.reversesort = 0
+        self.lastcolumnsorted = -1
 
         self.priorityIDs = [wx.NewId(), wx.NewId(), wx.NewId(), wx.NewId()]
         self.prioritycolors = [ wx.Colour(160, 160, 160), 
@@ -380,6 +382,7 @@ class FileInfoList(ManagedList):
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.onItemSelected)
         self.Bind(wx.EVT_LEFT_DCLICK, self.onOpenFileDest)
         self.Bind(wx.EVT_KEY_DOWN, self.onKeyDown)
+        self.Bind(wx.EVT_LIST_COL_CLICK, self.OnColLeftClick)
 
     def onKeyDown(self, event):
         keycode = event.GetKeyCode()
@@ -398,6 +401,17 @@ class FileInfoList(ManagedList):
 
         event.Skip()     
 
+    def OnColLeftClick(self, event):
+        rank = event.GetColumn()
+        colid = self.columns.getIDfromRank(rank)
+        if colid == self.lastcolumnsorted:
+            self.reversesort = 1 - self.reversesort
+        else:
+            self.reversesort = 0
+        self.lastcolumnsorted = colid
+        self.parent.updateColumns()
+        #TODO: sort file list
+                
     def onOpenFileDest(self, event = None):
         for index in self.getSelected(firstitemonly = True):
             self.torrent.files.onOpenFileDest(index = index)
@@ -658,7 +672,23 @@ class SpewList(ManagedList):
         exclude = []      
 
         ManagedList.__init__(self, parent, style, prefix, minid, maxid, exclude, rightalign, centeralign)
-    
+        self.utility = self.parent.utility
+        self.reversesort = 0
+        self.lastcolumnsorted = -1
+
+        self.Bind(wx.EVT_LIST_COL_CLICK, self.OnColLeftClick)
+
+    def OnColLeftClick(self, event):
+        rank = event.GetColumn()
+        colid = self.columns.getIDfromRank(rank)
+        if colid == self.lastcolumnsorted:
+            self.reversesort = 1 - self.reversesort
+        else:
+            self.reversesort = 0
+        self.lastcolumnsorted = colid
+        
+    def getSortInfo(self):
+        return self.lastcolumnsorted, self.reversesort
 
 class EarthPanel(wx.Panel):
     """ The panel to display world map and peers' locations. When the mouse 

@@ -629,6 +629,16 @@ class OwnerDB(BasicDB):
             OwnerDB(*args, **kw)
         return OwnerDB.__single
     getInstance = staticmethod(getInstance)
+    
+    def getNumOwners(self, infohash):
+        owners = self._get(infohash)
+        if owners is not None:
+            n = len(owners)
+        else:
+            n = 0
+        #print n, `infohash`, owners
+        return n
+        
 
     def addOwner(self, infohash, permid):
         if isValidPermid(permid) and isValidInfohash(infohash):

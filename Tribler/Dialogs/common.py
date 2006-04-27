@@ -1,3 +1,5 @@
+# Written by Jie Yang
+# see LICENSE.txt for license information
 
 import wx
 
@@ -92,15 +94,13 @@ class CommonTriblerList(wx.ListCtrl):
             self.reloadData()
         
         self.data = sort_dictlist(self.data, self.list_key[self.sort_column], self.orders[self.sort_column])
-        if self.num >= 0:
-            data = self.data[:self.num]
-        else:
-            data = self.data
+        if self.num <= 0 or self.num>len(self.data):
+            self.num = len(self.data)
         
         self.DeleteAllItems() 
         i = 0
-        for i in xrange(len(data)):
-            self.InsertStringItem(i, self.getText(data, i, 0))
+        for i in xrange(self.num):
+            self.InsertStringItem(i, self.getText(self.data, i, 0))
             for j in range(1, len(self.list_key)):
                 txt = self.getText(data, i, j)
                 self.SetStringItem(i, j, txt)

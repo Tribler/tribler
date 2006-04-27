@@ -416,6 +416,9 @@ class SecureOverlay:
     # Main function to send messages
     def addTask(self, target, message=None, timeout=15):    # target = [permid|(ip,port)]
         """ Command Pattern """
+
+        if GLOBAL.do_overlay == 0:
+            return
         
         self.acquire()
         #TODO: priority task queue
@@ -445,6 +448,7 @@ class SecureOverlay:
                     task = DNSOverlayTask(self, self.subject_manager, target, message, timeout)
                 else:
                     return
+
                 if task and self.overlayswarm.registered:
                     ## Arno: I don't see the need for letting the rawserver do it.
                     ## Except that it potentially avoids a concurrency problem of

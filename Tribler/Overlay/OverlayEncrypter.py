@@ -164,8 +164,8 @@ class Connection:    # OverlaySocket, a better name for it?
     def version_supported(self, low_ver_str, cur_ver_str):
         """ overlay swarm versioning solution: use last 4 bytes in PeerID """
         
-        low_ver = unpack('H', low_ver_str)[0]
-        cur_ver = unpack('H', cur_ver_str)[0]
+        low_ver = unpack('<H', low_ver_str)[0]
+        cur_ver = unpack('<H', cur_ver_str)[0]
         if cur_ver != CurrentVersion:
             if low_ver > CurrentVersion:    # the other's version is too high
                 return False
@@ -373,15 +373,15 @@ class OverlayEncoder:
         connection.set_handler(con)
         return True
 
-    def externally_handshaked_connection_made(self, connection, options, already_read):
+    def externally_handshaked_connection_made(self, connection, options, msg_remainder):
         if self.paused or len(self.connections) >= self.max_connections:
             connection.close()
             return False
         con = Connection(self, connection, None, True)
         self.connections[connection] = con
         connection.set_handler(con)
-        if already_read:
-            con.data_came_in(con, already_read)
+        if msg_remainder:
+            con.data_came_in(con, msg_remainder)
         return True
 
     def close_all(self):

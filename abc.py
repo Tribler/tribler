@@ -38,7 +38,7 @@ from Utility.constants import * #IGNORE:W0611
 
 from Tribler.__init__ import tribler_init, tribler_done
 
-ALLOW_MULTIPLE = False
+ALLOW_MULTIPLE = True
 
 ################################################################
 #
@@ -91,7 +91,7 @@ class ABCList(ManagedList):
         self.SetDropTarget(dragdroplist)
         
         self.lastcolumnsorted = -1
-        self.reversesort = False
+        self.reversesort = 0
 
         self.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
         self.Bind(wx.EVT_LIST_COL_CLICK, self.OnColLeftClick)
@@ -130,9 +130,9 @@ class ABCList(ManagedList):
         rank = event.GetColumn()
         colid = self.columns.getIDfromRank(rank)
         if colid == self.lastcolumnsorted:
-            self.reversesort = True
+            self.reversesort = 1 - self.reversesort
         else:
-            self.reversesort = False
+            self.reversesort = 0
         self.lastcolumnsorted = colid
         self.utility.queue.sortList(colid, self.reversesort)       
         
@@ -333,6 +333,11 @@ class ABCFrame(wx.Frame):
         
         self.buddyFrame = None
         self.fileFrame = None
+        self.buddyFrame_page = 0
+        self.buddyFrame_size = None
+        self.buddyFrame_pos = None
+        self.fileFrame_size = None
+        self.fileFrame_pos = None
         
         # Menu Events 
         ############################
@@ -410,9 +415,9 @@ class ABCFrame(wx.Frame):
             self.curr_version = _curr_status[0]
             if self.newversion(self.curr_version, my_version):
                 self.OnUpgrade()
-        except:
-            print >> sys.stderr, "check version failed", ctime(time())
-            print_exc()
+        except Exception,e:
+            print >> sys.stderr, "Version check failed", ctime(time()), str(e)
+            #print_exc()
             
     def newversion(self, curr_version, my_version):
         curr = curr_version.split('.')
