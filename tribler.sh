@@ -9,9 +9,9 @@ then
 	echo "Hmmm... No wxPython unicode package found for $PYTHON, cannot run Tribler, sorry"
 	exit -1
 fi	
-WXPYTHON=`ls -1d /usr/lib/$PYTHON/site-packages/wx-$WXPYTHONVER* | head -1`
+WXPYTHON=`ls -1d /usr/lib/$PYTHON/site-packages/wx-$WXPYTHONVER* | grep -v ansi | head -1`
 
 PYTHONPATH=/usr/share/tribler/:$WXPYTHON
 export PYTHONPATH
 
-exec $PYTHON /usr/share/tribler/abc.py > /tmp/tribler.log 2>&1
+exec $PYTHON /usr/share/tribler/abc.py > /tmp/$USER-tribler.log 2>&1
