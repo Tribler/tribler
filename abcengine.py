@@ -403,12 +403,16 @@ class ABCEngine(DelayedEventHandler):
 
         # Update progress in details window
         if statistics is not None:
-            # Arno: slow down file progress by a factor. Otherwise if the 
-            # torrent has many files, the client will come to a halt
+            # Arno: slow down file progress update by a factor for multi-file
+            # torrents. Otherwise if the torrent has many files, the client will 
+            # come to a halt.
             #print "engine: #files in stats",len(statistics.filecomplete)
             if self.fileProgressPostponeCounter == 0:
                 self.torrent.files.updateFileProgress(statistics)
-                self.fileProgressPostponeCounter = int(len(statistics.filecomplete)/1000)
+                if getattr(statistics,"filecomplete",None) is not None:
+                    self.fileProgressPostponeCounter = int(len(statistics.filecomplete)/1000)
+                else:
+                    self.fileProgressPostponeCounter = 0
             else:
                 self.fileProgressPostponeCounter -= 1
 

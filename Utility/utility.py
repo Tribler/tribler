@@ -433,6 +433,9 @@ class Utility:
             
         return lastdir
 
+    def setLastDir(self, operation, dir ):
+        self.lastdir[operation] = dir
+
     def getPath(self):
         return self.abcpath.decode(sys.getfilesystemencoding())
 

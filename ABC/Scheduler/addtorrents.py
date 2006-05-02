@@ -148,6 +148,8 @@ class AddTorrents:
         filelocation = dialog.GetPaths()
 
         for filepath in filelocation:
+            # Arno: remember last dir
+            self.utility.setLastDir("open",os.path.dirname(filepath))
             self.AddTorrentFromFile(filepath, forceasklocation)
            
     def AddTorrentFromFile(self, filepath, forceasklocation = False, dotTorrentDuplicate = False, caller = "", dest = None, caller_data = None):
