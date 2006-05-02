@@ -4,6 +4,7 @@
 from cachedb import *
 from copy import deepcopy
 from sets import Set
+import threading
 
 class BasicDBHandler:
     def __init__(self):
@@ -140,6 +141,7 @@ class PeerDBHandler(BasicDBHandler):
         self.peer_db = PeerDB.getInstance(db_dir=db_dir)
         self.pref_db = PreferenceDB.getInstance(db_dir=db_dir)
         self.dbs = [self.peer_db]
+        self.num_encountered_peers = 0
         
     def __len__(self):
         return self.peer_db._size()
@@ -200,6 +202,7 @@ class PeerDBHandler(BasicDBHandler):
     
     def addPeer(self, permid, value, update_dns=True):
         self.peer_db.updateItem(permid, value, update_dns)
+        self.hasNewEncounteredPeer()
         
     def hasPeer(self, permid):
         return self.peer_db.hasItem(permid)        
@@ -244,7 +247,21 @@ class PeerDBHandler(BasicDBHandler):
         value += change
         self.peer_db.updateItem(permid, {key:value})
 
-
+    def getNumEncounteredPeers(self):
+        if not self.peer_db.new_encountered_peer:
+            return self.num_encountered_peers
+        n = 0
+        for permid in self.peer_db._data:
+            if self.peer_db._data[permid]['connected_times'] > 0 or \
+               self.peer_db._data[permid]['buddycast_times'] > 0:
+                n += 1
+        self.num_encountered_peers = n
+        self.peer_db.hasNewEncounteredPeer(False)
+        return n
+    
+    def hasNewEncounteredPeer(self):
+        self.peer_db.hasNewEncounteredPeer(True)
+        
 class PreferenceDBHandler(BasicDBHandler):
     
     def __init__(self, db_dir=''):
@@ -282,9 +299,12 @@ class TorrentDBHandler(BasicDBHandler):
         self.mypref_db = MyPreferenceDB.getInstance(db_dir=db_dir)
         self.owner_db = OwnerDB.getInstance(db_dir=db_dir)
         self.dbs = [self.torrent_db]
+        self.num_metadata = 0
         
-    def addTorrent(self, infohash, torrent={}):
+    def addTorrent(self, infohash, torrent={}, new_metadata=False):
         self.torrent_db.updateItem(infohash, torrent)
+        if new_metadata:
+            self.hasNewMetadata()
         
     def getTorrent(self, infohash):
         return self.torrent_db.getItem(infohash)
@@ -376,7 +396,20 @@ class TorrentDBHandler(BasicDBHandler):
     def deleteTorrent(self, infohash):
         self.torrent_db._delete(infohash)
         
-
+    def getNumMetadata(self):
+        if not self.torrent_db.new_metadata:
+            return self.num_metadata
+        n = 0
+        for infohash in self.torrent_db._data:
+            if self.torrent_db._data[infohash]['torrent_name']:
+                n += 1
+        self.torrent_db.hasNewMetadata(False)
+        self.num_metadata = n
+        return n
+    
+    def hasNewMetadata(self):
+        self.torrent_db.hasNewMetadata(True)
+    
 class MyPreferenceDBHandler(BasicDBHandler):
     
     def __init__(self, db_dir=''):

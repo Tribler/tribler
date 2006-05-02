@@ -71,12 +71,13 @@ class ExternalFriendList:
             filename = self.friend_file
         try:
             file = open(filename, "r")
-        except IOError:
-            print_exc()
+            friends = file.readlines()
+            file.close()
+        except IOError:    # create a new file
+            file = open(filename, "w")
+            file.close()
             return []
-            
-        friends = file.readlines()
-        file.close()
+        
         friends_info = []
         for friend in friends:
             if friend.strip().startswith("#"):    # skip commended lines

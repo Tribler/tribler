@@ -440,7 +440,7 @@ class LaunchMany:
         torrent_info['creation date'] = metainfo.get('creation date', 0)
         torrent['info'] = torrent_info
         
-        self.torrent_db.addTorrent(torrent_hash, torrent)
+        self.torrent_db.addTorrent(torrent_hash, torrent, new_metadata=True)
         self.torrent_db.sync()    
 
         mypref = {}

@@ -161,7 +161,7 @@ class MetadataHandler:
         torrent_info['creation date'] = metainfo.get('creation date', 0)
         torrent['info'] = torrent_info
         
-        self.torrent_db.addTorrent(torrent_hash, torrent)
+        self.torrent_db.addTorrent(torrent_hash, torrent, new_metadata=True)
         self.torrent_db.sync()
         
     def save_torrent(self, torrent_hash, metadata):

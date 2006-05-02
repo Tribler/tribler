@@ -171,7 +171,7 @@ class ABCTorrent:
         torrent_info['creation date'] = self.metainfo.get('creation date', 0)
         torrent['info'] = torrent_info
         
-        self.torrent_db.addTorrent(self.torrent_hash, torrent)
+        self.torrent_db.addTorrent(self.torrent_hash, torrent, new_metadata=True)
         self.torrent_db.sync()
         if DEBUG:
             print >> sys.stderr, "add torrent to db", self.infohash, torrent_info

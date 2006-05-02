@@ -404,6 +404,7 @@ class PeerDB(BasicDB):
             #'reliability':
             #'icon':'',
         }
+        self.new_encountered_peer = True
         
     def getInstance(*args, **kw):
         if PeerDB.__single is None:
@@ -446,7 +447,9 @@ class PeerDB(BasicDB):
     def hasItem(self, permid):
         return self._has_key(permid)
         
-        
+    def hasNewEncounteredPeer(self, v):
+        self.new_encountered_peer = v
+
 
 class TorrentDB(BasicDB):
     """ Database of all torrent files, including the torrents I don't have yet """
@@ -466,6 +469,7 @@ class TorrentDB(BasicDB):
             'torrent_dir':'',   # dir+name=full path. Default path if the value is '\x01'
             'info':{},   # {name, length, announce, creation date, comment}
         }
+        self.new_metadata = True
         
     def getInstance(*args, **kw):
         if TorrentDB.__single is None:
@@ -492,6 +496,9 @@ class TorrentDB(BasicDB):
             ret = deepcopy(self.default_item)
         return ret
     
+    def hasNewMetadata(self, v):
+        self.new_metadata = v
+        
 
 class PreferenceDB(BasicDB):
     """ Peer * Torrent """

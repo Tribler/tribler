@@ -11,6 +11,7 @@ from Tribler.unicode import str2unicode
 from common import CommonTriblerList
 
 DEBUG = False
+SHOW_TORRENT_NAME = False
 
 relevance_display_factor = 1000.0
 
@@ -45,10 +46,15 @@ class MyPreferenceList(CommonTriblerList):
             ('Size', format, 12),
             ('Last Seen', format, 10)  
             ]
+        if SHOW_TORRENT_NAME:
+            columns.insert(0, ('Torrent Name', format, 8))
         return columns
         
     def getListKey(self):
-        return ['content_name', 'rank', 'length', 'last_seen']
+        ret = ['content_name', 'rank', 'length', 'last_seen']
+        if SHOW_TORRENT_NAME:
+            ret.insert(0, 'torrent_name')
+        return ret
         
     def getCurrentSortColumn(self):
         return 1
@@ -210,17 +216,25 @@ class FileList(CommonTriblerList):
 #            ('Seeder', format, 6),
 #            ('Leecher', format, 6),  
             ]
+        if SHOW_TORRENT_NAME:
+            columns.insert(0, ('Torrent Name', format, 8))
         return columns
         
     def getListKey(self):
-        return ['content_name', 'relevance', 'num_owners', 'length', 
+        ret = ['content_name', 'relevance', 'num_owners', 'length', 
                 'num_files', 'date', 'tracker'] # , 'infohash', 'seeder', 'leecher']
+        if SHOW_TORRENT_NAME:
+            ret.insert(0, 'torrent_name')
+        return ret
         
     def getCurrentSortColumn(self):
         return 1    # reverse sort by recommendation by default
         
     def getCurrentOrders(self):
-         return [0, 1, 0, 1, 0, 0, 0]
+         ret = [0, 1, 0, 1, 0, 0, 0]
+         if SHOW_TORRENT_NAME:
+             ret.insert(0, 1)
+         return ret
 
     def getMaxNum(self):
         return 1000
