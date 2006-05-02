@@ -194,6 +194,7 @@ class BasicDB:    # Should we use delegation instead of inheritance?
         try:
             return self._data.get(key, value)
         except:
+            print_exc()
             return None
         
     def _updateItem(self, key, data):
@@ -416,6 +417,8 @@ class PeerDB(BasicDB):
         if isValidPermid(permid) and validDict(item):
             if self._has_key(permid):
                 _item = self.getItem(permid)
+                if _item is None:  # database error, the key exists, but the data ain't there
+                    return
                 if not update_dns:
                     if item.has_key('ip'):
                         item.pop('ip')

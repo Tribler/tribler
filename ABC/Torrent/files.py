@@ -11,7 +11,7 @@ from webbrowser import open_new
 from Dialogs.dupfiledialog import DupFileDialog
 
 from Utility.constants import * #IGNORE:W0611
-
+from Tribler.unicode import bin2unicode
 
 ################################################################
 #
@@ -42,10 +42,7 @@ class TorrentFiles:
                 pathkey = 'path'
             for i in range(numfiles):
                 for j in range(len(self.torrent.info['files'][i]['path'])):
-                    try:
-                        self.torrent.info['files'][i]['path'][j] = self.torrent.info['files'][i][pathkey][j].decode('utf_8')
-                    except:
-                        self.torrent.info['files'][i]['path'][j] = self.torrent.info['files'][i][pathkey][j].decode(sys.getfilesystemencoding())
+                    self.torrent.info['files'][i]['path'][j] = bin2unicode(self.torrent.info['files'][i][pathkey][j])
                         
         self.filepriorities = [1] * numfiles
 

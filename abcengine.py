@@ -112,6 +112,7 @@ class ABCEngine(DelayedEventHandler):
         
         self.color = 'color_startup'
         self.downloadHelpers = []
+        self.fileProgressPostponeCounter = 0
         
         btconfig = self.utility.getBTParams()
         # 2fastbt_
@@ -402,7 +403,14 @@ class ABCEngine(DelayedEventHandler):
 
         # Update progress in details window
         if statistics is not None:
-            self.torrent.files.updateFileProgress(statistics)
+            # Arno: slow down file progress by a factor. Otherwise if the 
+            # torrent has many files, the client will come to a halt
+            #print "engine: #files in stats",len(statistics.filecomplete)
+            if self.fileProgressPostponeCounter == 0:
+                self.torrent.files.updateFileProgress(statistics)
+                self.fileProgressPostponeCounter = int(len(statistics.filecomplete)/1000)
+            else:
+                self.fileProgressPostponeCounter -= 1
 
         if spew and len(spew) > 0:
             self.updateCaches(spew)

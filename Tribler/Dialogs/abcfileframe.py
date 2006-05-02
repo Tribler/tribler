@@ -223,7 +223,7 @@ class FileList(CommonTriblerList):
          return [0, 1, 0, 1, 0, 0, 0]
 
     def getMaxNum(self):
-        return 500
+        return 1000
         
     # change display format for item data
     def getText(self, data, row, col):
@@ -291,7 +291,7 @@ class FileList(CommonTriblerList):
             self.data[i]['content_name'] = info.get('name', 'unknown')
 #            self.data[i]['seeder'] = -1
 #            self.data[i]['leecher'] = -1
-            self.data[i]['num_files'] = str(info.get('num_files', 0))
+            self.data[i]['num_files'] = info.get('num_files', 0)
             self.data[i]['date'] = info.get('creation date', 0) #friendly_time(info.get('creation date', 0))
             self.data[i]['tracker'] = info.get('announce', '')
             

@@ -38,7 +38,7 @@ from Utility.constants import * #IGNORE:W0611
 
 from Tribler.__init__ import tribler_init, tribler_done
 
-ALLOW_MULTIPLE = True
+ALLOW_MULTIPLE = False
 
 ################################################################
 #

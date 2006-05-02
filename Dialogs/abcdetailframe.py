@@ -9,7 +9,7 @@ from threading import Thread
 from time import time, localtime, strftime
 from webbrowser import open_new
 
-from traceback import print_exc
+from traceback import print_exc, print_stack
 from cStringIO import StringIO
 from wx.lib.buttons import GenButton
 

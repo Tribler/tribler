@@ -35,6 +35,7 @@ from __init__ import createPeerID
 
 from Tribler.Merkle.merkle import create_fake_hashes
 from Tribler.__init__ import GLOBAL
+from Tribler.unicode import bin2unicode
 
 # 2fastbt_
 from Tribler.toofastbt.Coordinator import Coordinator
@@ -766,15 +767,9 @@ class BT1Download:
             trackerlist = self.response['announce-list']
             for tier in range(len(trackerlist)):
                 for t in range(len(trackerlist[tier])):
-                    try:
-                        trackerlist[tier][t] = trackerlist[tier][t].decode('utf_8')
-                    except:
-                        trackerlist[tier][t] = trackerlist[tier][t].decode(sys.getfilesystemencoding())
+                    trackerlist[tier][t] = bin2unicode(trackerlist[tier][t])
         else:
-            try:
-                tracker = self.response['announce'].decode('utf_8')
-            except:
-                tracker = self.response['announce'].decode(sys.getfilesystemencoding())
+            tracker = bin2unicode(self.response['announce'].decode('utf_8'))
             trackerlist = [[tracker]]
             
         self.rerequest = Rerequester(trackerlist, self.config['rerequest_interval'], 

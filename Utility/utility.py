@@ -204,7 +204,7 @@ class Utility:
             'column12_rank': '7', # %U/D Size
             'column12_width': '60', 
             'column13_rank': '9', # Error Message
-            'column13_width': '60', 
+            'column13_width': '150', 
             'column14_rank': '-1', # #Connected Seed
             'column14_width': '60', 
             'column15_rank': '-1', # #Connected Peer
