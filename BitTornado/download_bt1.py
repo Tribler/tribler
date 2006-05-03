@@ -769,7 +769,7 @@ class BT1Download:
                 for t in range(len(trackerlist[tier])):
                     trackerlist[tier][t] = bin2unicode(trackerlist[tier][t])
         else:
-            tracker = bin2unicode(self.response['announce'].decode('utf_8'))
+            tracker = bin2unicode(self.response['announce'])
             trackerlist = [[tracker]]
             
         self.rerequest = Rerequester(trackerlist, self.config['rerequest_interval'], 

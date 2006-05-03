@@ -200,7 +200,10 @@ class MetadataHandler:
     def valid_metadata(self, torrent_hash, metadata):
         metainfo = bdecode(metadata)
         infohash = sha(bencode(metainfo['info'])).digest()
-        assert infohash == torrent_hash, "infohash doesn't match the torrent hash " + `infohash` + "!=" + `torrent_hash` 
+        if infohash != torrent_hash:
+            print >> sys.stderr, "metadata: infohash doesn't match the torrent " + \
+            "hash. Required: " + `torrent_hash` + ", but got: " + `infohash`
+            return False
         return True
         
     def got_metadata(self, conn, message):
@@ -215,7 +218,8 @@ class MetadataHandler:
             if not isValidInfohash(torrent_hash):
                 return False
             metadata = message['metadata']
-            self.valid_metadata(torrent_hash, metadata)
+            if not self.valid_metadata(torrent_hash, metadata):
+                return False
             if DEBUG:
                 torrent_size = len(metadata)
                 print >> sys.stderr,"metadata: Recvd torrent", torrent_size, md5.new(metadata).hexdigest()
