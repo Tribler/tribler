@@ -33,7 +33,7 @@ class SingleDownloadHelperInterface:
     def helper_forces_unchoke(self):
         pass
 
-    def _request_more(self):
+    def _request_more(self, new_unchoke = False):
         pass
 
 
@@ -76,7 +76,7 @@ class Helper:
             self.start_data_connection()   
 
     def test(self):
-        result = self.reserve_piece(10)
+        result = self.reserve_piece(10,None)
         print >> sys.stderr,"reserve piece returned: " + str(result)
         print >> sys.stderr,"Test passed"
 

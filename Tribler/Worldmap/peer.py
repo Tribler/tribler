@@ -1,6 +1,7 @@
 # Written by Jie Yang
 # see LICENSE.txt for license information
 
+import os
 import socket
 import sys
 import cPickle
@@ -126,7 +127,7 @@ class BTBuddy:
     def addTorrent(self, ABCTorrent):
         """ add a torrent into the buddy's torrent list """
         
-        self.peer['lastfile'] = torrent.filename
+        self.peer['lastfile'] = ABCTorrent.filename
         try:
             idx = self.torrents.index(ABCTorrent.id)    # test if this torrent appeared before
             return

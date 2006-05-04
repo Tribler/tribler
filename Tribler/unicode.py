@@ -13,21 +13,21 @@ def bin2unicode(bin):
                 return bin.decode(sys.getdefaultencoding(), errors = 'replace')
 
 
-def str2unicode(str):
+def str2unicode(s):
     try:
-        str = unicode(str)
+        s = unicode(s)
     except: 
         flag = 0
         for encoding in [ 'utf_8', 'iso-8859-1', sys.getfilesystemencoding(), 'unicode-escape' ]:
             try:
-                str = unicode(str, encoding)
+                s = unicode(s, encoding)
                 flag = 1
                 break
             except: 
                 pass
         if flag == 0:
             try:
-                str = unicode(str,sys.getdefaultencoding(), errors = 'replace')
+                s = unicode(s,sys.getdefaultencoding(), errors = 'replace')
             except:
                 pass
-    return str
+    return s

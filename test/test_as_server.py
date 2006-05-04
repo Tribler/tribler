@@ -4,11 +4,9 @@
 import unittest
 
 import os
-import socket
 import tempfile
 import random
 import shutil
-import sha
 import time
 from binascii import b2a_hex
 from struct import pack,unpack

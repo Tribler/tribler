@@ -3,8 +3,9 @@
 #
 # All applications on top of the SecureOverlay should be started here.
 #
+import sys
 
-from BitTornado.BT1.MessageID import HelpCoordinatorMessages,  HelpHelperMessages,  MetadataMessages,  BuddyCastMessages
+from BitTornado.BT1.MessageID import HelpCoordinatorMessages, HelpHelperMessages, MetadataMessages, BuddyCastMessages, getMessageName
 from Tribler.toofastbt.CoordinatorMessageHandler import CoordinatorMessageHandler
 from Tribler.toofastbt.HelperMessageHandler import HelperMessageHandler
 from MetadataHandler import MetadataHandler
@@ -74,6 +75,7 @@ class OverlayApps:
 
     def handleMessage(self,permid,message):
         """ dummy handler for when features are disabled."""
+	t = message[0]
         if DEBUG:
             print >> sys.stderr,"olapps: Got",getMessageName(t),"but the feature it belongs to is disabled."
         return True

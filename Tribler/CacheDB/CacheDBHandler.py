@@ -32,8 +32,9 @@ class BasicDBHandler:
             
             
 class MyDBHandler(BasicDBHandler):
-    
+
     def __init__(self, db_dir=''):
+	BasicDBHandler.__init__(self)
         self.my_db = MyDB.getInstance(db_dir = db_dir)
         self.peer_db = PeerDB.getInstance(db_dir = db_dir)
         self.dbs = [self.my_db, self.peer_db]
@@ -52,6 +53,7 @@ class MyDBHandler(BasicDBHandler):
     
 class SuperPeerDBHandler(BasicDBHandler):
     def __init__(self, db_dir=''):
+	BasicDBHandler.__init__(self)
         self.my_db = MyDB.getInstance(db_dir=db_dir)
         self.peer_db = PeerDB.getInstance(db_dir=db_dir)
         self.dbs = [self.my_db, self.peer_db]
@@ -90,6 +92,7 @@ class SuperPeerDBHandler(BasicDBHandler):
 class FriendDBHandler(BasicDBHandler):
 
     def __init__(self, db_dir=''):
+	BasicDBHandler.__init__(self)
         self.my_db = MyDB.getInstance(db_dir=db_dir)
         self.peer_db = PeerDB.getInstance(db_dir=db_dir)
         self.dbs = [self.my_db, self.peer_db]
@@ -138,6 +141,7 @@ class FriendDBHandler(BasicDBHandler):
 class PeerDBHandler(BasicDBHandler):
     
     def __init__(self, db_dir=''):
+	BasicDBHandler.__init__(self)
         self.peer_db = PeerDB.getInstance(db_dir=db_dir)
         self.pref_db = PreferenceDB.getInstance(db_dir=db_dir)
         self.dbs = [self.peer_db]
@@ -265,6 +269,7 @@ class PeerDBHandler(BasicDBHandler):
 class PreferenceDBHandler(BasicDBHandler):
     
     def __init__(self, db_dir=''):
+	BasicDBHandler.__init__(self)
         self.owner_db = OwnerDB.getInstance(db_dir=db_dir)
         self.pref_db = PreferenceDB.getInstance(db_dir=db_dir)
         self.dbs = [self.pref_db, self.owner_db]
@@ -280,7 +285,7 @@ class PreferenceDBHandler(BasicDBHandler):
         self.owner_db.addOwner(infohash, permid)
 
     def deletePreference(self, permid, infohash):
-        self.torrent_db.deletePreference(permid, infohash)
+        self.pref_db.deletePreference(permid, infohash)
         self.owner_db.deleteOwner(infohash, permid)
         
     def hasPreference(self, permid):
@@ -295,6 +300,7 @@ class PreferenceDBHandler(BasicDBHandler):
 class TorrentDBHandler(BasicDBHandler):
 
     def __init__(self, db_dir=''):
+	BasicDBHandler.__init__(self)
         self.torrent_db = TorrentDB.getInstance(db_dir=db_dir)
         self.mypref_db = MyPreferenceDB.getInstance(db_dir=db_dir)
         self.owner_db = OwnerDB.getInstance(db_dir=db_dir)
@@ -413,6 +419,7 @@ class TorrentDBHandler(BasicDBHandler):
 class MyPreferenceDBHandler(BasicDBHandler):
     
     def __init__(self, db_dir=''):
+	BasicDBHandler.__init__(self)
         self.mypref_db = MyPreferenceDB.getInstance(db_dir=db_dir)
         self.torrent_db = TorrentDB.getInstance(db_dir=db_dir)
         self.dbs = [self.mypref_db, self.torrent_db]
@@ -486,6 +493,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
 class OwnerDBHandler(BasicDBHandler):
     
     def __init__(self, db_dir=''):
+	BasicDBHandler.__init__(self)	
         self.owner_db = OwnerDB.getInstance(db_dir=db_dir)
         self.dbs = [self.owner_db]
         

@@ -8,7 +8,6 @@ from urllib import quote
 from struct import unpack
 from sha import sha
 from time import time, ctime
-from binascii import b2a_hex
 from __init__ import *
 from BitTornado.BT1.Encrypter import protocol_name,option_pattern
 

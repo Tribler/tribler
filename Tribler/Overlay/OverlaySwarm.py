@@ -33,10 +33,7 @@ def show(s):
 def tobinary(i):
     return (chr(i >> 24) + chr((i >> 16) & 0xFF) + 
         chr((i >> 8) & 0xFF) + chr(i & 0xFF))
-        
-def toint(s):
-    return long(b2a_hex(s), 16)        
-        
+  
 def wrap_message(message_id, payload=None):
     if payload is not None:
         ben_payload = bencode(payload)

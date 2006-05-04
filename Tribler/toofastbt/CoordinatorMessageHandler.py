@@ -32,7 +32,7 @@ class CoordinatorMessageHandler:
             all_or_nothing = message[21]
             pieces = bdecode(message[22:])
         except:
-            errorfunc("warning: bad data in RESERVE_PIECES")
+            print >> sys.stderr, "warning: bad data in RESERVE_PIECES"
             return False
 
 # TODO: add smarter concurrency control, see SecureOverlay. Currently has 1 big lock

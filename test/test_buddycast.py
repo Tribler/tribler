@@ -1,3 +1,9 @@
+# Written by Jie Yang
+# see LICENSE.txt for license information
+
+# Arno, pychecker-ing: the addTarget and getTarget methods of JobQueue are
+# no longer there, this code needs to be updated.
+
 import os
 import unittest
 import tempfile
@@ -14,8 +20,6 @@ from Tribler.__init__ import tribler_init
 import hotshot, hotshot.stats
 import math
 from random import random, shuffle
-
-
 
 testdata_file = 'test/testdata.txt'
 myid =  147

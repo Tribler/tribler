@@ -11,7 +11,7 @@ import Tribler.CacheDB.cachedb as cachedb
 class TestBasicDB(unittest.TestCase):
     
     def setUp(self):
-        self.dirname = tempfile.mktemp()
+        self.dirname = tempfile.mkstemp()
         self.d = cachedb.BasicDB(self.dirname)
 
     def tearDown(self):

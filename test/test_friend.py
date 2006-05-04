@@ -89,7 +89,7 @@ class TestFriendList(unittest.TestCase):
         assert friends[0]['permid'] == answer[1]['permid']
 
     def xxtest_normal(self):
-        flist = FriendList()
+        flist = ExternalFriendList()
         flist.updateFriendList()
         friends = flist.getFriends()
         print friends

@@ -1,9 +1,12 @@
 from random import randint, random, sample
 import os
 import string
+from copy import deepcopy
 from bencode import bencode, bdecode
 
 #from BitTornado.BT1.bencode import bencode, bdecode
+from Tribler.CacheDB import MyPreferenceDBHandler
+
 
 num_torrents = 1000
 num_peers = 500

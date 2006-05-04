@@ -2,7 +2,6 @@
 # see LICENSE.txt for license information
 
 import sys
-import StringIO
 from sha import sha
 from base64 import encodestring
 from copy import deepcopy
@@ -38,7 +37,7 @@ def init(config_dir = None):
         save_keypair(config_dir)
         save_pub_key(config_dir)
 
-def exit():
+def exit(config_dir = None):
     Rand.save_file(get_rand_filename(config_dir.encode(sys.getfilesystemencoding())))
 
 def show_permid(permid):

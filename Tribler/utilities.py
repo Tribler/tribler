@@ -40,9 +40,9 @@ def validPermid(permid):
 
 def validInfohash(infohash):
     if not isinstance(infohash, str):
-        raise RuntimeError, "invalid permid " + permid
+        raise RuntimeError, "invalid infohash " + infohash
     if STRICT_CHECK and len(infohash) != infohash_len:
-        raise RuntimeError, "invalid permid " + permid
+        raise RuntimeError, "invalid infohash " + infohash
     return True
     
 def isValidPermid(permid):
