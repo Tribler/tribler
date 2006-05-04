@@ -35,7 +35,7 @@ class MerkleTree:
             if root_hash is None:
                 self.root_hash = self.tree[0]
             else:
-                assert False # if hashes not None, root_hash must be
+                raise AssertionError, "merkle: if hashes not None, root_hash must be"
 
     def get_root_hash(self):
         return self.root_hash

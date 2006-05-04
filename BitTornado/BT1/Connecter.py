@@ -387,14 +387,15 @@ class Connecter:
                 len_hashlist = toint(message[9:13])
                 bhashlist = message[13:13+len_hashlist]
                 hashlist = bdecode(bhashlist)
-                assert(type(hashlist) == ListType)
+                if not isinstance(hashlist, list):
+                    raise AssertionError, "hashlist not list"
                 for oh in hashlist:
-                    assert(type(oh) == ListType)
-                    assert(len(oh) == 2)
-                    assert(type(oh[0]) == IntType)
-                    assert(type(oh[0]) == StringType)
-                    assert(len(oh[1])==20)
-                assert(hashlist[0][0] == i)
+                    if not isinstance(oh,list) or \
+                    not (len(oh) == 2) or \
+                    not isinstance(oh[0],int) or \
+                    not isinstance(oh[1],str) or \
+                    not ((len(oh[1])==20)): \
+                        raise AssertionError, "hashlist entry invalid"
                 piece = message[13+len_hashlist:]
                 if c.download.got_piece(i, begin, hashlist, piece):
                     self.got_piece(i)
