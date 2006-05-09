@@ -269,6 +269,8 @@ class Utility:
             'spew13_width': '72', 
             'spew14_rank': '13', # Peer PermID
             'spew14_width': '72', 
+            'spew_sortedcolumn': '1', # sort order
+            'spew_reversesort': '0',
             'fileinfo0_rank': '0', # Filename
             'fileinfo0_width': '300', 
             'fileinfo1_rank': '1', # Size
@@ -283,6 +285,12 @@ class Utility:
             'fileinfo5_width': '200', 
             'fileinfo6_rank': '-1', # ED2K Hash
             'fileinfo6_width': '200', 
+            'torrent0_rank': '-1',
+            'torrent8_rank': '-1',
+            'torrent9_rank': '-1',
+            'torrent_num': '500',
+            'torrent_sortedcolumn': '2',
+            'torrent_reversesort': '1',
             'color_startup': '000000000', 
             'color_disconnected': '100100100', 
             'color_noconnections': '200000000', 

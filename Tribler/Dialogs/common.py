@@ -2,114 +2,52 @@
 # see LICENSE.txt for license information
 
 import wx
+from ABC.GUI.list import ManagedList
+from tmp import CommonTriblerList
 
 def sort_dictlist(dict_list, key, order='increase'):
+    
     aux = [(dict_list[i][key], i) for i in xrange(len(dict_list))]
     aux.sort()
     if order == 'decrease' or order == 1:    # 0 - increase, 1 - decrease
         aux.reverse()
     return [dict_list[i] for x, i in aux]
 
-class CommonTriblerList(wx.ListCtrl):
-    def __init__(self, parent, window_size):
-        self.parent = parent
-        
-        try:    # get system font width
-            self.fw = wx.SystemSettings_GetFont(wx.SYS_DEFAULT_GUI_FONT).GetPointSize()+1
-        except:
-            self.fw = wx.SystemSettings_GetFont(wx.SYS_SYSTEM_FONT).GetPointSize()+1
-            
-        self.data = []
-        self.list_key = self.getListKey()
-        self.columns = self.getColumns()
-        self.sort_column = self.getCurrentSortColumn()
-        self.orders = self.getCurrentOrders()
-        self.num = self.getMaxNum()     # num of items to be showed 
 
-        assert len(self.list_key) == len(self.columns)
-        assert len(self.orders) == len(self.columns)
-        assert self.sort_column < len(self.columns)
+class CommonTriblerList2(ManagedList):
+    def __init__(self, parent, style, prefix, minid, maxid, exclude = [], rightalign = [], centeralign = []):
+        self.parent = parent
+        self.utility = parent.utility
+        self.prefix = prefix
+        ManagedList.__init__(self, parent, style, prefix, minid, maxid, exclude, rightalign, centeralign)
         
-        style = wx.LC_REPORT|wx.LC_VRULES|wx.CLIP_CHILDREN
-        if window_size is None:
-            wx.ListCtrl.__init__(self, parent, -1, style=style )
-        else:
-            wx.ListCtrl.__init__(self, parent, -1, style=style, size = window_size ) 
-        ##self.SetMinSize(window_size)
+        self.data = []
+        self.lastcolumnsorted, self.reversesort = self.columns.getSortedColumn()
+        self.num = self.getMaxNum()
 
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnRightClick)
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnActivated)
         self.Bind(wx.EVT_LIST_COL_CLICK, self.OnColClick)
         
-        for i in range(len(self.columns)):
-            self.InsertColumn(i, self.columns[i][0], format=self.columns[i][1], width=self.columns[i][2]*self.fw)
-            
         self.loadList()
                     
     def getListKey(self):
-        return ['key1', 'key2']
+        pass
                     
     def getColumns(self):
-        format = wx.LIST_FORMAT_CENTER
-        width = 15
-        columns = [('test title 1', format, width),
-                   ('test title 2', format, width),
-                  ]
-        
-        return columns
+        pass
     
     def getCurrentSortColumn(self):
-        return 0
+        return self.lastcolumnsorted
     
     def getCurrentOrders(self):
-        n = len(self.columns)
-        orders = [0]*n  # 1 - decrease; 0 - increase
-        return orders
+        return self.reversesort
             
     def getMaxNum(self):
-        return -1
+        return self.utility.config.Read(self.prefix + "_num", "int")
             
     def OnRightClick(self, event):
-        #print "right click", self.getSelectedItems()
-        pass
-        
-    
-    def OnActivated(self, event):
-        self.curr_idx = event.m_itemIndex
-        #print "actived", self.curr_idx
-
-    def OnColClick(self, event):
-        self.sort_column = event.m_col
-        self.orders[self.sort_column] = 1 - self.orders[self.sort_column]
-        self.loadList(False)
-        
-    def reloadData(self):
-        self.data = [{'key1': 23, 'key2': 'abc'},
-                     {'key1': 14, 'key2': 'cba'},
-                    ]
-
-    def getText(self, data, row, col):
-        return str(data[row][self.list_key[col]])
-        
-    def loadList(self, reload=True):
-
-        if reload:
-            self.reloadData()
-        
-        self.data = sort_dictlist(self.data, self.list_key[self.sort_column], self.orders[self.sort_column])
-        if self.num <= 0 or self.num>len(self.data):
-            self.num = len(self.data)
-        
-        self.DeleteAllItems() 
-        i = 0
-        for i in xrange(self.num):
-            self.InsertStringItem(i, self.getText(self.data, i, 0))
-            for j in range(1, len(self.list_key)):
-                txt = self.getText(self.data, i, j)
-                self.SetStringItem(i, j, txt)
-            i += 1
-            
-        self.Show(True)
+        print "right click", self.getSelectedItems()
     
     def getSelectedItems(self):
         item = -1
@@ -122,7 +60,60 @@ class CommonTriblerList(wx.ListCtrl):
                 itemList.append(item)
         itemList.sort()
         return itemList
+    
+    def OnActivated(self, event):
+        self.curr_idx = event.m_itemIndex
+        #print "actived", self.curr_idx
 
+    def OnColClick(self, event):
+        col = event.m_col
+        active_columns = self.columns.active
+        if col >= len(active_columns) or col < 0:
+            return
+        else:
+            col = active_columns[col][0]    # the real position
+        if self.lastcolumnsorted == col:
+            self.reversesort = 1 - self.reversesort
+        else:
+            self.reversesort = 0
+        self.lastcolumnsorted = col
+        self.columns.writeSortedColumn(self.lastcolumnsorted, self.reversesort)
+        self.loadList(reload=False, sorted=True)
+        
+    def reloadData(self):
+        pass
+
+    def getText(self, data, row, col):
+        return str(data[row][col])
+        
+    def loadList(self, reload=True, sorted=True):
+
+        active_columns = self.columns.active
+        if not active_columns:
+            return
+        
+        if reload:
+            self.reloadData()
+        
+        if sorted:
+            key = self.keys[self.lastcolumnsorted]
+            self.data = sort_dictlist(self.data, key, self.reversesort)
+            
+        if self.num <= 0 or self.num>len(self.data):
+            num = len(self.data)
+        else:
+            num = self.num
+        
+        self.DeleteAllItems() 
+        
+        first_col = active_columns[0][0]
+        for i in xrange(num):
+            self.InsertStringItem(i, self.getText(self.data, i, first_col))
+            for col,rank in active_columns[1:]:
+                txt = self.getText(self.data, i, col)
+                self.SetStringItem(i, rank, txt)
+        self.Show(True)
+    
 
 class MainWindow(wx.Frame):
     def __init__(self,parent,id, title):

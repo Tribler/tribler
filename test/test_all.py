@@ -53,10 +53,10 @@ def suite():
         test_cachedbhandler,
         test_superpeers,
         test_buddycast,
-	test_sim,
-	test_merkle,
-	test_permid,
-	test_permid_response1
+        test_sim,
+        test_merkle,
+        test_permid,
+        test_permid_response1
         ]
 
     alltests = unittest.TestSuite()

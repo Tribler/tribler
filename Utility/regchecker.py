@@ -37,7 +37,7 @@ class RegChecker:
                           (r".torrent", "Content Type", r"application/x-bittorrent", _winreg.REG_SZ), 
                           (r"MIME\Database\Content Type\application/x-bittorrent", "Extension", ".torrent", _winreg.REG_SZ), 
                           (r"bittorrent", "", "TORRENT File", _winreg.REG_SZ), 
-			  (r"bittorrent\DefaultIcon", "", iconpath,_winreg.REG_SZ),
+                          (r"bittorrent\DefaultIcon", "", iconpath,_winreg.REG_SZ),
                           (r"bittorrent", "EditFlags", chr(0)+chr(0)+chr(1)+chr(0), _winreg.REG_BINARY), 
                           (r"bittorrent\shell", "", "open", _winreg.REG_SZ), 
                           (r"bittorrent\shell\open\command", "", "\"" + abcpath + "\" \"%1\"", _winreg.REG_SZ)]

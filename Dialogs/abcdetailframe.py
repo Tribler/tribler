@@ -673,8 +673,7 @@ class SpewList(ManagedList):
 
         ManagedList.__init__(self, parent, style, prefix, minid, maxid, exclude, rightalign, centeralign)
         self.utility = self.parent.utility
-        self.reversesort = 0
-        self.lastcolumnsorted = -1
+        self.lastcolumnsorted, self.reversesort = self.columns.getSortedColumn()
 
         self.Bind(wx.EVT_LIST_COL_CLICK, self.OnColLeftClick)
 
@@ -686,6 +685,7 @@ class SpewList(ManagedList):
         else:
             self.reversesort = 0
         self.lastcolumnsorted = colid
+        self.columns.writeSortedColumn(self.lastcolumnsorted, self.reversesort)
         
     def getSortInfo(self):
         return self.lastcolumnsorted, self.reversesort

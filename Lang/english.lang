@@ -497,7 +497,7 @@ maxconnectionhint_line5 = "If the client freezes, try setting this to 60 or belo
 
 
 
-recommendinstructions = "Doubleclick on a torrent to start downloading"
+recommendinstructions = "  Double click on a torrent to start downloading; right click to delete or show details of the torrent"
 recommendfilter = "Don't show torrents with recommendation value less than"
 recommendfilterall = "(set to 0.0 to see all known torrents)"
 
@@ -927,3 +927,20 @@ menu_current    = "Current menu items:"
 
 lowuploadstart1 = "Start next torrent if upload speed stays"
 lowuploadstart2 = "below global limit for at least"
+
+
+#############
+#Torrent List
+#############
+torrent0_text	= "Torrent Name"
+torrent1_text	= "Content Name"
+torrent2_text	= "Recommendation"
+torrent3_text	= "Sources"
+torrent4_text	= "Size"
+torrent5_text	= "# Files"
+torrent6_text	= "Injected"
+torrent7_text	= "Tracker"
+torrent8_text	= "# Leechers"
+torrent9_text	= "# Seeders"
+
+configcolumns = "Configure Columns"

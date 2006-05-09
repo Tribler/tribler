@@ -400,7 +400,7 @@ class SocketHandler:
                             self._close_socket(s)
                             continue
                 if (event & POLLOUT) and s.socket and not s.is_flushed():
-		    s.connected = True
+                    s.connected = True
                     s.try_write()
                     if s.is_flushed():
                         s.handler.connection_flushed(s)

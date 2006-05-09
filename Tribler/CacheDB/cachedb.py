@@ -44,6 +44,8 @@ TorrentDB - (PreferenceDB, MyPreference, OwnerDB)
         torrent_name: str ('')    # torrent name
         torrent_dir: str ('')    # path of the torrent (without the file name). '\x01' for default path
         info: dict ({})   # {name, length, announce, creation date, comment, announce-list, num_files}
+        leecher: int (0)
+        seeder: int (0)
     }
 
 PreferenceDB - (PeerDB, TorrentDB)    # other peers' preferences
@@ -75,44 +77,38 @@ from sha import sha
 from copy import deepcopy
 from sets import Set
 from traceback import print_exc
+from threading import currentThread
 
 #from Tribler.utilities import isValidPermid, isValidInfohash
 
 try:
     # For Python 2.3
-    from bsddb import db, dbshelve
+    from bsddb import db, dbshelve, dbutils
 except ImportError:
     # For earlier Pythons w/distutils pybsddb
-    from bsddb3 import db, dbshelve
+    from bsddb3 import db, dbshelve, dbutils
+
+from shelve import BsdDbShelf 
 
 #permid_len = 0  #112
 #infohash_len = 20
 #
-def isValidPermid(permid):    # validate permid in outer layer
-    return True
-    
-def isValidInfohash(infohash):
-    return True
-
-
-def setDBPath(db_dir = ''):
-    if not db_dir:
-        db_dir = '.'
-    if not os.access(db_dir, os.F_OK):
-        try: 
-            os.mkdir(db_dir)
-        except os.error, msg:
-            print >> sys.stderr, "cachedb: cannot set db path:", msg
-            db_dir = '.'
-    return db_dir
 
 home_dir = 'bsddb'
 curr_version = 1
 permid_length = 112
 infohash_length = 20
 torrent_id_length = 20
+MAX_RETRIES = 12
 STRICT_CHECK = False
+DEBUG = False
     
+def isValidPermid(permid):    # validate permid in outer layer
+    return True
+    
+def isValidInfohash(infohash):
+    return True
+
 def init(config_dir, myinfo):
     """ create all databases """
     
@@ -131,7 +127,18 @@ def make_filename(config_dir,filename):
     else:
         return os.path.join(config_dir,filename)    
     
-def open_db(filename, db_dir='', filetype=db.DB_BTREE):
+def setDBPath(db_dir = ''):
+    if not db_dir:
+        db_dir = '.'
+    if not os.access(db_dir, os.F_OK):
+        try: 
+            os.mkdir(db_dir)
+        except os.error, msg:
+            print >> sys.stderr, "cachedb: cannot set db path:", msg
+            db_dir = '.'
+    return db_dir
+
+def open_db2(filename, db_dir='', filetype=db.DB_BTREE):    # backup
     global home_dir
     if not db_dir:
         db_dir = home_dir
@@ -143,6 +150,22 @@ def open_db(filename, db_dir='', filetype=db.DB_BTREE):
         print >> sys.stderr, "cachedb: cannot open dbshelve on", path, msg
         d = dbshelve.open(filename, filetype=filetype)
     return d
+
+def open_db(filename, db_dir='', filetype=db.DB_BTREE, writeback=False):
+    global home_dir
+    if not db_dir:
+        db_dir = home_dir
+    dir = setDBPath(db_dir)
+    path = os.path.join(dir, filename)
+    env = db.DBEnv()
+    # Concurrent Data Store
+    env.open(dir, db.DB_THREAD|db.DB_INIT_CDB|db.DB_INIT_MPOOL|db.DB_CREATE)
+    #d = db.DB(env)
+    #d.open(path, filetype, db.DB_THREAD|db.DB_CREATE)
+    #_db = BsdDbShelf(d, writeback=writeback) 
+    _db = dbshelve.open(filename, flags=db.DB_THREAD|db.DB_CREATE, 
+            filetype=filetype, dbenv=env)
+    return _db
 
 def validDict(data, keylen=0):    # basic requirement for a data item in DB
     if not isinstance(data, dict):
@@ -178,21 +201,34 @@ class BasicDB:    # Should we use delegation instead of inheritance?
     def __del__(self):
         self.close()
         
+    threadnames = {}
+    
     def _put(self, key, value):    # write
         try:
-            self._data.put(key, value)
+            if DEBUG:
+                name = currentThread().getName()
+                if name not in self.threadnames:
+                    self.threadnames[name] = 0
+                self.threadnames[name] += 1
+                print "****bsddb: put", len(self.threadnames), name, \
+                    self.threadnames[name], time(), self.__class__.__name__
+                    
+            dbutils.DeadlockWrap(self._data.put, key, value, max_retries=MAX_RETRIES)
+            #self._data.put(key, value)
         except:
             pass
         
     def _has_key(self, key):    # find a key
         try:
-            return self._data.has_key(key)
+            return dbutils.DeadlockWrap(self._data.has_key, key, max_retries=MAX_RETRIES)
+            #return self._data.has_key(key)
         except:
             return False
     
     def _get(self, key, value=None):    # read
         try:
-            return self._data.get(key, value)
+            return dbutils.DeadlockWrap(self._data.get, key, value, max_retries=MAX_RETRIES)
+            #return self._data.get(key, value)
         except:
             print_exc()
             return None
@@ -206,51 +242,59 @@ class BasicDB:    # Should we use delegation instead of inheritance?
                 x = data
             self._put(key, x)
         except:
-            pass
+            print_exc()
     
-    def _pop(self, key):     # remove
-        value = None
-        try:
-            value = self._data.pop(key)
-        except:
-            return None
-        return value
-
     def _delete(self, key):
         try:
-            self._data.delete(key)
+            if DEBUG:
+                name = currentThread().getName()
+                if name not in self.threadnames:
+                    self.threadnames[name] = 0
+                self.threadnames[name] += 1
+                print "****bsddb: del", len(self.threadnames), name, \
+                    self.threadnames[name], time(), self.__class__.__name__
+                
+            dbutils.DeadlockWrap(self._data.delete, key, max_retries=MAX_RETRIES)
+            #self._data.delete(key)
         except:
             pass
 
     def _sync(self):            # write data from mem to disk
-        self._data.sync()
+        dbutils.DeadlockWrap(self._data.sync, max_retries=MAX_RETRIES)
+        #self._data.sync()
             
     def _clear(self):
-        self._data.clear()
+        dbutils.DeadlockWrap(self._data.clear, max_retries=MAX_RETRIES)
+        #self._data.clear()
     
     def _keys(self):
-        return self._data.keys()
+        return dbutils.DeadlockWrap(self._data.keys, max_retries=MAX_RETRIES)
+        #return self._data.keys()
     
     def _values(self):
-        return self._data.values()
+        return dbutils.DeadlockWrap(self._data.values, max_retries=MAX_RETRIES)
+        #return self._data.values()
     
     def _items(self):
-        return self._data.items()
+        return dbutils.DeadlockWrap(self._data.items, max_retries=MAX_RETRIES)
+        #return self._data.items()
     
     def _size(self):
         try:
-            return len(self._data)
+            return dbutils.DeadlockWrap(len, self._data, max_retries=MAX_RETRIES)
+            #return len(self._data)
         except:
             print_exc()
-            print >> sys.stderr, "cachedb: cachedb.BasicDB._size error", type(self._data), self._data.__class__
+            print >> sys.stderr, "cachedb: cachedb.BasicDB._size error", self.__class__.__name__
             return 0
     
     def close(self):
         try:
-            self._data.sync()
-            self._data.close()
+            self._sync()
+            dbutils.DeadlockWrap(self._data.close, max_retries=MAX_RETRIES)
+            #self._data.close()
         except:
-            pass
+            print_exc()
         
     def updateDB(self, old_version):
         raise NotImplementedError
@@ -328,21 +372,21 @@ class MyDB(BasicDB):
     # superpeers
     def addSuperPeer(self, permid):
         if isValidPermid(permid):
-            sp = self._data['superpeers']
+            sp = self._get('superpeers')
             sp.add(permid)
             self._put('superpeers', sp)
             
     def deleteSuperPeer(self, permid):
         if isValidPermid(permid):
             try:
-                sp = self._data['superpeers']
+                sp = self._get('superpeers')
                 sp.remove(permid)
                 self._put('superpeers', sp)
             except:
                 pass
             
     def isSuperPeer(self, permid):
-        return permid in self._data['superpeers']
+        return permid in self._get('superpeers')
     
     def getSuperPeers(self):
         superpeers = self._get('superpeers')
@@ -354,22 +398,22 @@ class MyDB(BasicDB):
     # friends
     def addFriend(self, permid):
         if isValidPermid(permid):
-            if not 'friends' in self._data.keys():
-                print >> sys.stderr, "cachedb: addFriend key error", self._data.keys()
-            fr = self._data['friends']
+            if not 'friends' in self._keys():
+                print >> sys.stderr, "cachedb: addFriend key error", self._keys()
+            fr = self._get('friends')
             fr.add(permid)
             self._put('friends', fr)
             
     def deleteFriend(self, permid):
         try:
-            fr = self._data['friends']
+            fr = self._get('friends')
             fr.remove(permid)
             self._put('friends', fr)
         except:
             pass
             
     def isFriend(self, permid):
-        return permid in self._data['friends']
+        return permid in self._get('friends')
     
     def getFriends(self):
         friends = self._get('friends')
@@ -481,6 +525,9 @@ class TorrentDB(BasicDB):
         if isValidInfohash(infohash) and validDict(item):
             if self._has_key(infohash):
                 _item = self.getItem(infohash)
+                if not _item:
+                    print >> sys.stderr, "cachedb: Error in cachedb.TorrentDB.updateItem: database inconsistant!", self._has_key(infohash), self.getItem(infohash)
+                    return
                 _item.update(item)
                 self._updateItem(infohash, _item)
             else:
@@ -556,7 +603,7 @@ class PreferenceDB(BasicDB):
             
     def hasPreference(self, permid, infohash):
         if self._has_key(permid):
-            return infohash in self._data[permid]
+            return infohash in self._get(permid)
         else:
             return False
 
@@ -653,7 +700,7 @@ class OwnerDB(BasicDB):
     def addOwner(self, infohash, permid):
         if isValidPermid(permid) and isValidInfohash(infohash):
             if self._has_key(infohash):
-                owners = self._data[infohash]
+                owners = self._get(infohash)
                 owners.add(permid)
                 self._put(infohash, owners)
             else:
@@ -661,7 +708,7 @@ class OwnerDB(BasicDB):
         
     def deleteOwner(self, infohash, permid):
         try:
-            owners = self._data[infohash]
+            owners = self._get(infohash)
             owners.remove(permid)
             if not owners:    # remove the item if it is empty
                 self._delete(infohash)
@@ -672,7 +719,7 @@ class OwnerDB(BasicDB):
         
     def isOwner(self, permid, infohash):
         if self._has_key(infohash):
-            owners = self._data[infohash]
+            owners = self._get(infohash)
             return permid in owners
         else:
             return False

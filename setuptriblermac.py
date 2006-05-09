@@ -10,9 +10,9 @@ import wx
 assert wx.__version__ > "2.6", "You need wxPython 2.6 or higher."
 wx_major,wx_minor = wx.__version__.split(".")[0:2]
 if "unicode" in wx.PlatformInfo:
-	u1,u2 = "unicode", "u"
+    u1,u2 = "unicode", "u"
 else:
-   u1,u2 = "ansi", ""
+    u1,u2 = "ansi", ""
 
 wx_lib="/usr/local/lib/wxPython-%s-%s/lib/libwx_mac%sd-%s.%s.0.dylib" % (
   u1,
@@ -61,4 +61,4 @@ so_dir = "build/Tribler.app/Contents/Resources/ExtensionModules/wx"
 so_files = [x for x in os.listdir( so_dir ) if x.endswith(".so")]
 
 for f in so_files:
-	os.system("install_name_tool -change %s %s %s/%s" % (wx_lib,os.path.basename(wx_lib),so_dir,f))
+    os.system("install_name_tool -change %s %s %s/%s" % (wx_lib,os.path.basename(wx_lib),so_dir,f))

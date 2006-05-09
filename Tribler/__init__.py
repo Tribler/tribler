@@ -108,8 +108,10 @@ def resetPeerIDs():
     _idrandom[0] = s
 
 def createPeerID(ins = '---'):
-    assert type(ins) is StringType
-    assert len(ins) == 3
+    if type(ins) != StringType:
+        raise Exception, "tribler__init__: createPeerID"
+    if len(ins) != 3:
+        raise Exception, "tribler__init__: createPeerID"
     return _idprefix + ins + _idrandom[0]
 
 

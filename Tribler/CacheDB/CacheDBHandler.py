@@ -34,7 +34,7 @@ class BasicDBHandler:
 class MyDBHandler(BasicDBHandler):
 
     def __init__(self, db_dir=''):
-	BasicDBHandler.__init__(self)
+        BasicDBHandler.__init__(self)
         self.my_db = MyDB.getInstance(db_dir = db_dir)
         self.peer_db = PeerDB.getInstance(db_dir = db_dir)
         self.dbs = [self.my_db, self.peer_db]
@@ -53,7 +53,7 @@ class MyDBHandler(BasicDBHandler):
     
 class SuperPeerDBHandler(BasicDBHandler):
     def __init__(self, db_dir=''):
-	BasicDBHandler.__init__(self)
+        BasicDBHandler.__init__(self)
         self.my_db = MyDB.getInstance(db_dir=db_dir)
         self.peer_db = PeerDB.getInstance(db_dir=db_dir)
         self.dbs = [self.my_db, self.peer_db]
@@ -92,7 +92,7 @@ class SuperPeerDBHandler(BasicDBHandler):
 class FriendDBHandler(BasicDBHandler):
 
     def __init__(self, db_dir=''):
-	BasicDBHandler.__init__(self)
+        BasicDBHandler.__init__(self)
         self.my_db = MyDB.getInstance(db_dir=db_dir)
         self.peer_db = PeerDB.getInstance(db_dir=db_dir)
         self.dbs = [self.my_db, self.peer_db]
@@ -141,7 +141,7 @@ class FriendDBHandler(BasicDBHandler):
 class PeerDBHandler(BasicDBHandler):
     
     def __init__(self, db_dir=''):
-	BasicDBHandler.__init__(self)
+        BasicDBHandler.__init__(self)
         self.peer_db = PeerDB.getInstance(db_dir=db_dir)
         self.pref_db = PreferenceDB.getInstance(db_dir=db_dir)
         self.dbs = [self.peer_db]
@@ -165,7 +165,7 @@ class PeerDBHandler(BasicDBHandler):
     def getTasteBuddyList(self):
         return self.pref_db._keys()
 
-    def getRandomPeerList(self):
+    def getRandomPeerList(self):    # Expensive
         # TODO: improve performance 
         return list(Set(self.peer_db._keys()) - Set(self.pref_db._keys()))
         
@@ -211,7 +211,8 @@ class PeerDBHandler(BasicDBHandler):
     def hasPeer(self, permid):
         return self.peer_db.hasItem(permid)        
 
-    def findPeers(self, key, value):
+    def findPeers(self, key, value):    
+        # Warning: if key is not 'permid', then it is a very EXPENSIVE operation. 
         res = []
         if key is 'permid':
             peer = self.getPeer(value)
@@ -234,11 +235,10 @@ class PeerDBHandler(BasicDBHandler):
     def updatePeerIPPort(self, permid, ip, port):
         self.peer_db.updateItem(permid, {'ip':ip, 'port':port})
         
-    def getItems(self):
-        return self.peer_db._items()
-        
     def deletePeer(self, permid):
-        self.peer_db._delete(permid)        
+        self.peer_db._delete(permid)
+        self.pref_db._delete(permid)
+        self.peer_db.hasNewEncounteredPeer(True)
         
     def updateTimes(self, permid, key, change):
         item = self.peer_db.getItem(permid)
@@ -255,9 +255,10 @@ class PeerDBHandler(BasicDBHandler):
         if not self.peer_db.new_encountered_peer:
             return self.num_encountered_peers
         n = 0
-        for permid in self.peer_db._data:
-            if self.peer_db._data[permid]['connected_times'] > 0 or \
-               self.peer_db._data[permid]['buddycast_times'] > 0:
+        for permid in self.peer_db._keys():
+            data = self.peer_db._get(permid)
+            if data and (data['connected_times'] > 0 or \
+                         data['buddycast_times'] > 0):
                 n += 1
         self.num_encountered_peers = n
         self.peer_db.hasNewEncounteredPeer(False)
@@ -269,7 +270,7 @@ class PeerDBHandler(BasicDBHandler):
 class PreferenceDBHandler(BasicDBHandler):
     
     def __init__(self, db_dir=''):
-	BasicDBHandler.__init__(self)
+        BasicDBHandler.__init__(self)
         self.owner_db = OwnerDB.getInstance(db_dir=db_dir)
         self.pref_db = PreferenceDB.getInstance(db_dir=db_dir)
         self.dbs = [self.pref_db, self.owner_db]
@@ -300,7 +301,7 @@ class PreferenceDBHandler(BasicDBHandler):
 class TorrentDBHandler(BasicDBHandler):
 
     def __init__(self, db_dir=''):
-	BasicDBHandler.__init__(self)
+        BasicDBHandler.__init__(self)
         self.torrent_db = TorrentDB.getInstance(db_dir=db_dir)
         self.mypref_db = MyPreferenceDB.getInstance(db_dir=db_dir)
         self.owner_db = OwnerDB.getInstance(db_dir=db_dir)
@@ -310,7 +311,7 @@ class TorrentDBHandler(BasicDBHandler):
     def addTorrent(self, infohash, torrent={}, new_metadata=False):
         self.torrent_db.updateItem(infohash, torrent)
         if new_metadata:
-            self.hasNewMetadata()
+            self.torrent_db.hasNewMetadata(True)
         
     def getTorrent(self, infohash):
         return self.torrent_db.getItem(infohash)
@@ -334,7 +335,8 @@ class TorrentDBHandler(BasicDBHandler):
             else:
                 d = {}
             for key in keys:    # TODO: can d = p?
-                d[key] = p[key]
+                if p.has_key(key):
+                    d[key] = p[key]
             torrents.append(d)
         
         return torrents
@@ -348,9 +350,11 @@ class TorrentDBHandler(BasicDBHandler):
 #    def getMyTorrentList(self):
 #        return self.mypref_db._keys()
         
-    def getOthersTorrentList(self, num=-1):    # get the list of torrents which are not in my preference
+    def getOthersTorrentList(self, num=-1, sorted=True):    # get the list of torrents which are not in my preference
         all_list = list(Set(self.torrent_db._keys()) - Set(self.mypref_db._keys()))
         if num < 0:
+            return all_list
+        if not sorted:        #TODO: seperate sort function from getOthersTorrentList
             return all_list
         values = []
         for torrent in all_list:
@@ -381,8 +385,18 @@ class TorrentDBHandler(BasicDBHandler):
         return values
         
     def getNoMetaTorrents(self):    # get the list of torrents which only have an infohash without the metadata
-        all_list = self.getOthersTorrentList()
-	return [item for item in all_list if not self.hasMetaData(item)]
+        def checkFile(key):
+            data = self.torrent_db._get(key)
+            if not data:
+                return False
+            if not data['torrent_name'] or not data['info']:
+                return True
+            src = os.path.join(data['torrent_dir'], data['torrent_name'])
+            return not os.path.isfile(src)
+        
+        all_keys = self.torrent_db._keys()
+        no_metadata_list = filter(checkFile, all_keys)
+        return no_metadata_list
         
     def hasMetaData(self, infohash):
         value = self.torrent_db._get(infohash)
@@ -399,15 +413,30 @@ class TorrentDBHandler(BasicDBHandler):
     def updateTorrentRelevance(self, torrent, relevance):
         self.torrent_db.updateItem(torrent, {'relevance':relevance})
             
-    def deleteTorrent(self, infohash):
+    def deleteTorrent(self, infohash, delete_file=False):
+        if delete_file:
+            self.eraseTorrentFile(infohash)
         self.torrent_db._delete(infohash)
+        self.owner_db._delete(infohash)
+        self.torrent_db.hasNewMetadata(True)
+            
+    def eraseTorrentFile(self, infohash):
+        data = self.torrent_db._get(infohash)
+        if not data or not data['torrent_name'] or not data['info']:
+            return False
+        src = os.path.join(data['torrent_dir'], data['torrent_name'])
+        try:
+            os.remove(src)
+        except:
+            print >> sys.stderr, "cachedbhandler: failed to erase torrent", src
         
     def getNumMetadata(self):
         if not self.torrent_db.new_metadata:
             return self.num_metadata
         n = 0
-        for infohash in self.torrent_db._data:
-            if self.torrent_db._data[infohash]['torrent_name']:
+        for infohash in self.torrent_db._keys():
+            data = self.torrent_db._get(infohash)
+            if data and (data['torrent_name']):
                 n += 1
         self.torrent_db.hasNewMetadata(False)
         self.num_metadata = n
@@ -419,7 +448,7 @@ class TorrentDBHandler(BasicDBHandler):
 class MyPreferenceDBHandler(BasicDBHandler):
     
     def __init__(self, db_dir=''):
-	BasicDBHandler.__init__(self)
+        BasicDBHandler.__init__(self)
         self.mypref_db = MyPreferenceDB.getInstance(db_dir=db_dir)
         self.torrent_db = TorrentDB.getInstance(db_dir=db_dir)
         self.dbs = [self.mypref_db, self.torrent_db]
@@ -493,7 +522,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
 class OwnerDBHandler(BasicDBHandler):
     
     def __init__(self, db_dir=''):
-	BasicDBHandler.__init__(self)	
+        BasicDBHandler.__init__(self)
         self.owner_db = OwnerDB.getInstance(db_dir=db_dir)
         self.dbs = [self.owner_db]
         

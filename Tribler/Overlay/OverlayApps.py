@@ -75,7 +75,7 @@ class OverlayApps:
 
     def handleMessage(self,permid,message):
         """ dummy handler for when features are disabled."""
-	t = message[0]
+        t = message[0]
         if DEBUG:
             print >> sys.stderr,"olapps: Got",getMessageName(t),"but the feature it belongs to is disabled."
         return True

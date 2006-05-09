@@ -362,7 +362,15 @@ class ColumnManager:
             self.utility.config.Write(self.prefix + str(colid) + "_rank", rank)
         self.utility.config.Flush()
 
-
+    def getSortedColumn(self):
+        sorted_column = self.utility.config.Read(self.prefix + "_sortedcolumn", "int")
+        reversesort = self.utility.config.Read(self.prefix + "_reversesort", "int")
+        return sorted_column, reversesort
+    
+    def writeSortedColumn(self, sorted_column, reversesort):
+        self.utility.config.Write(self.prefix + "_sortedcolumn", sorted_column)
+        self.utility.config.Write(self.prefix + "_reversesort", reversesort)
+    
 ################################################################
 #
 # Class: ManagedList
@@ -372,7 +380,14 @@ class ColumnManager:
 #
 ################################################################       
 class ManagedList(wx.ListCtrl):
-    def __init__(self, parent, style, prefix, minid, maxid, exclude = [], rightalign = [], centeralign = []):        
+    """ 
+    IDs in rightalign and centeralign must be set in Utility.constants;
+    Column labels must be set in the language file;
+    If some columns are not displayed by default, they can be set in 
+    Utility.utility.setupConfig()
+    """
+        
+    def __init__(self, parent, style, prefix, minid, maxid, exclude = [], rightalign = [], centeralign = []):
         wx.ListCtrl.__init__(self, parent, -1, style = style)
         
         self.parent = parent
@@ -510,7 +525,10 @@ class ManagedList(wx.ListCtrl):
             # Column was selected, need to show it
             # Put it after the closest column
             if hasattr(self, 'lastcolumnselected'):
-                newrank = self.lastcolumnselected + 1
+                if self.lastcolumnselected == -1:
+                    newrank = self.GetColumnCount()
+                else:
+                    newrank = self.lastcolumnselected    # + 1
             # (just tack it on the end of the display)
             else:
                 newrank = self.GetColumnCount()

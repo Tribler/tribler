@@ -339,7 +339,7 @@ class StorageWrapper:
                 self.finished()
             return (self.numchecked / self.check_total)
 
-	except Exception, e:
+        except Exception, e:
             self.failed('download corrupted; please restart and resume')
     
     
@@ -808,10 +808,10 @@ class StorageWrapper:
         # Merkle: Get (sub)piece from disk and its associated hashes
         # do_get_piece() returns PieceBuffer
         pb = self.do_get_piece(index,begin,length)
-	if self.merkle_torrent and pb is not None and begin == 0:
+        if self.merkle_torrent and pb is not None and begin == 0:
              hashlist = self.merkletree.get_hashes_for_piece(index)
-	else:
-	     hashlist = []
+        else:
+             hashlist = []
         return [pb,hashlist]
 
     def do_get_piece(self, index, begin, length):

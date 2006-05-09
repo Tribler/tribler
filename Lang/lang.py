@@ -196,4 +196,4 @@ class Lang:
                 dlg.Destroy()
         sys.stderr.write("\nError reading language file!\n")
         sys.stderr.write("  Cannot find value for variable: " + label + "\n")
-	print_stack()
+        print_stack()

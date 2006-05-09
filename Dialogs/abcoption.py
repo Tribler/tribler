@@ -448,7 +448,7 @@ class MiscPanel(ABCOptionPanel):
             self.associate = wx.CheckBox(self, -1, self.utility.lang.get('associate'))
             sizer.Add(self.associate, 0, wx.ALIGN_LEFT|wx.ALL, 5)
 
-		#rename torrent with dest
+        #rename torrent with dest
         self.rtwd = wx.CheckBox(self, -1, self.utility.lang.get('rtwd'))
         self.rtwd.SetValue(self.utility.config.Read('defrentorwithdest', "boolean"))
         sizer.Add(self.rtwd, 0, wx.ALIGN_LEFT|wx.ALL, 5)

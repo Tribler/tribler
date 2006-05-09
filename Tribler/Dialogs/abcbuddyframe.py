@@ -11,12 +11,12 @@ from managefriends import ManageFriendsPanel
 DEBUG = False
 
 class TasteBuddyList(CommonTriblerList):
-    def __init__(self, parent, window_size):
+    def __init__(self, parent):
         self.parent = parent
         self.peer_db = parent.peer_db
         self.friend_db = parent.friend_db
         self.pref_db = parent.pref_db
-        CommonTriblerList.__init__(self, parent, window_size)
+        CommonTriblerList.__init__(self, parent)
 
     def getColumns(self):
         format = wx.LIST_FORMAT_CENTER
@@ -187,7 +187,7 @@ class TasteBuddyPanel(wx.Panel):
         wx.Panel.__init__(self, parent, -1)
         
         colSizer = wx.BoxSizer(wx.VERTICAL)
-        self.list=TasteBuddyList(self, frame.window_size)
+        self.list=TasteBuddyList(self)
         colSizer.Add(self.list, 1, wx.EXPAND|wx.ALL, 5)
         label = wx.StaticText(self, -1, "Right click on a peer to add as a friend or delete it")
         colSizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -205,8 +205,8 @@ class ABCBuddyDialog(wx.Dialog):
         self.action = action
         self.utility = self.parent.utility
 
-        width = 600
-        height = 300
+        width = 800
+        height = 500
         self.window_size = wx.Size(width, height)
         #self.window_size = None
         style = wx.DEFAULT_DIALOG_STYLE | wx.MAXIMIZE_BOX | wx.MINIMIZE_BOX |wx.RESIZE_BORDER
@@ -237,7 +237,7 @@ class ABCBuddyDialog(wx.Dialog):
         mainbox.Add(topbox, 1, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL, 5)
         mainbox.Add(botbox, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 5)
 
-        self.SetSizerAndFit(mainbox)
+        self.SetSizer(mainbox)
 
         self.SetSize(self.utility.frame.buddyFrame_size)
         self.SetPosition(self.utility.frame.buddyFrame_pos)

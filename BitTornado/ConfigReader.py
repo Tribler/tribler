@@ -70,7 +70,7 @@ configFileDefaults = [
 ]
 
 def setwxconfigfiledefaults():
-    CHECKINGCOLOR = ColorToHex(wxSystemSettings_GetColour(wxSYS_COLOUR_3DSHADOW)) 	 
+    CHECKINGCOLOR = ColorToHex(wxSystemSettings_GetColour(wxSYS_COLOUR_3DSHADOW))  
     DOWNLOADCOLOR = ColorToHex(wxSystemSettings_GetColour(wxSYS_COLOUR_ACTIVECAPTION))
     
     configFileDefaults.extend([

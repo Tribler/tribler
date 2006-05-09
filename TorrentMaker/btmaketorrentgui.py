@@ -751,7 +751,7 @@ class CompleteDir:
             else:
                 make_meta_file(self.d, self.a, self.params, self.flag, self.valCallback, progress_percent = 1, fileCallback = self.fileCallback, gethash = self.gethash)
             if not self.flag.isSet():
-	    	self.completeCallback()
+                self.completeCallback()
 
             if self.parent.fileInfoPanel.startnow.GetValue():
                 # When seeding immediately, copy torrents to config dir
@@ -761,11 +761,11 @@ class CompleteDir:
                     torrentfile4seed = os.path.join(self.utility.getConfigPath(), "torrent", split(normpath(torrentfile))[1])
                     list.append(torrentfile4seed)
         except (OSError, IOError), e:
-		self.errorCallback(e)
+            self.errorCallback(e)
 
     def errorCallback(self,e):
-    	self.invokeLater(self.onError,[e])
-	
+        self.invokeLater(self.onError,[e])
+    
     def onError(self,e):
         self.currentLabel.SetLabel(self.utility.lang.get('error'))
         self.button.SetLabel(self.utility.lang.get('close'))
@@ -777,8 +777,8 @@ class CompleteDir:
         dlg.Destroy()
 
     def completeCallback(self):
-    	self.invokeLater(self.onComplete)
-	
+        self.invokeLater(self.onComplete)
+    
     def onComplete(self):
         self.currentLabel.SetLabel(self.utility.lang.get('Done'))
         self.gauge.SetValue(1000)

@@ -43,26 +43,33 @@ def validPeer(peer):
 def validBuddyCastData(prefxchg, nmyprefs=50, nbuddies=10, npeers=10, nbuddyprefs=10):
     
     def validPref(pref, num):
-        assert isinstance(prefxchg, list) or \
-               isinstance(prefxchg, dict)
-        assert len(pref) <= num, len(pref)
+        if not (isinstance(prefxchg, list) or isinstance(prefxchg, dict)):
+            raise Exception, "buddycast: invalid pref type " + str(type(prefxchg))
+        if len(pref) > num:
+            raise Exception, "buddycast: length of pref exceeds " + str((len(pref), num))
         for p in pref:
             validInfohash(p)
             
     validPeer(prefxchg)
-    assert isinstance(prefxchg['name'], str)
+    if not isinstance(prefxchg['name'], str):
+        raise Exception, "buddycast: invalid name type " + str(type(prefxchg['name']))
     validPref(prefxchg['preferences'], nmyprefs)
     
-    assert len(prefxchg['taste buddies']) <= nbuddies, len(prefxchg['taste buddies'])
+    if len(prefxchg['taste buddies']) > nbuddies:
+        raise Exception, "buddycast: length of prefxchg['taste buddies'] exceeds " + \
+                str(len(prefxchg['taste buddies']))
     for b in prefxchg['taste buddies']:
         validPeer(b)
-        assert isinstance(b['age'], int) and b['age'] >= 0
+        if not (isinstance(b['age'], int) and b['age'] >= 0):
+            raise Exception, "buddycast: type of age " + str(type(b['age']))
         validPref(b['preferences'], nbuddyprefs)
         
-    assert len(prefxchg['random peers']) <= npeers, len(prefxchg['random peers'])
+    if len(prefxchg['random peers']) > npeers:
+        raise Exception, "buddycast: length of random peers " + str(len(prefxchg['random peers']))
     for b in prefxchg['random peers']:
         validPeer(b)
-        assert isinstance(b['age'], int) and b['age'] >= 0
+        if not (isinstance(b['age'], int) and b['age'] >= 0):
+            raise Exception, "buddycast: type of age " + str(type(b['age']))
     return True
 
 
@@ -340,7 +347,6 @@ class DataHandler:
             if peers[i]['age'] < 0:
                 peers[i]['age'] = 0
             peers[i]['preferences'] = self.getPeerPrefList(peers[i]['permid'], nbuddyprefs)
-            assert len(peers[i]['preferences']) > 0, peers[i]['permid']
         return peers
 
     def getRandomPeers(self, peerlist):

@@ -208,7 +208,7 @@ class WebDialog(wx.Dialog):
         self.utility.webserver.start()
 
     def stopWebService(self):
-		# Stop Web Service
+        # Stop Web Service
         self.utility.webserver.stop()
         
     def updateLabels(self):
