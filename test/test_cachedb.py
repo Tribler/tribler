@@ -2,6 +2,7 @@ import os
 import tempfile
 import unittest
 import socket
+import shutil
 
 from copy import deepcopy
 from sets import Set
@@ -11,17 +12,15 @@ import Tribler.CacheDB.cachedb as cachedb
 class TestBasicDB(unittest.TestCase):
     
     def setUp(self):
-        self.dirname = tempfile.mkstemp()
+        self.dirname = tempfile.mkdtemp()
         self.d = cachedb.BasicDB(self.dirname)
 
     def tearDown(self):
         self.d.close()
         try:
-            filepath = os.path.join(self.dirname, self.d.db_name)
-            os.remove(filepath)
-            os.rmdir(self.dirname)
+            shutil.rmtree(self.dirname)
         except Exception, msg:
-            print Exception, msg, self.dirname, "not removed"
+            print "tearDown problem:",Exception, msg, self.dirname, "not removed"
         
     def test_basic(self):
         
@@ -148,21 +147,21 @@ class TestPeerDB(unittest.TestCase):
     def test_peerdb(self):
         
         # test updateItem, getItem, deleteItem
-        self.d.updateItem('peer1')
+        self.d.updateItem('peer1',update_time=False)
         assert self.d.getItem('peer1'), self.d.getItem('peer1')
         assert self.d.getItem('peer1') == self.d.default_item, self.d.getItem('peer1')
         
         x = {'ip':'1.2.3.4', 'port':3}
         y = deepcopy(self.d.default_item)
         y.update(x)
-        self.d.updateItem('peer1', x)
+        self.d.updateItem('peer1', x, update_time=False)
         assert self.d.getItem('peer1') == y, self.d.getItem('peer1')
         
         x2 = {'port':7}
         y = deepcopy(self.d.default_item)
         y.update(x)
         y.update(x2)
-        self.d.updateItem('peer1', x2)
+        self.d.updateItem('peer1', x2, update_time=False)
         assert self.d.getItem('peer1') == y, self.d.getItem('peer1')
         
         self.d.deleteItem('peer1')

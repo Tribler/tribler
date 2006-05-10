@@ -29,7 +29,7 @@ test_prefs2 = [('torrent1', {'name':'File 1'}),
 class TestPeerDBHandler(unittest.TestCase):
     
     def setUp(self):
-        self.tmpdirpath = os.path.join(tempfile.gettempdir(), 'testdb')
+        self.tmpdirpath = os.path.join(tempfile.mkdtemp(), 'testdb')
         self.peer_db = PeerDBHandler(db_dir=self.tmpdirpath)
         self.peer_db.clear()
         
@@ -41,13 +41,16 @@ class TestPeerDBHandler(unittest.TestCase):
             self.peer_db.addPeer(permid, value)
         peers = self.peer_db.getPeers(['permid2', 'permid4'], ['ip', 'name'])
         assert len(peers) == 2
-        assert len(peers[1].keys()) == 3
+        assert len(peers[1].keys()) == 2
         #print self.peer_db.peer_db._data
         assert self.peer_db.hasPeer('permid2')
         assert len(self.peer_db) == 4
         res = self.peer_db.findPeers('permid', 'permid2')
         assert len(res) == 1, len(res)
-        assert res[0] == {'permid':'permid2', 'ip':'22.2.3.4', 'port':22342, 'name':'peer22', 'similarity':0, 'last_seen':0}, res
+        # Arno: 'last_seen' is set automatically these days :-(
+        res[0]['last_seen'] = 0
+        expected = {'permid':'permid2', 'ip':'22.2.3.4', 'port':22342, 'name':'peer22', 'similarity':0, 'last_seen':0,'buddycast_times':0,'tried_times':0,'connected_times':0}
+        assert res[0] == expected, res
         res = self.peer_db.findPeers('ip', '3.2.3.4')
         assert len(res) == 2, len(res)
         res = self.peer_db.findPeers('port', 1234)

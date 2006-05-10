@@ -2,6 +2,7 @@ import os
 import tempfile
 import unittest
 from sets import Set
+import base64
 
 from Tribler.CacheDB.friends import ExternalFriendList
 from Tribler.CacheDB.cachedb import MyDB, PeerDB
@@ -55,8 +56,8 @@ class TestFriendList(unittest.TestCase):
         self.my_db = MyDB.getInstance()
         self.peer_db = PeerDB.getInstance()
         assert Set(self.my_db._get('friends')) == Set([
-        'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAc6ebdH+dmvvgKiE7oOZuQba5I4msyuTJmVpJQVPAT+R9Pg8zsLsuJPV6RjU30RKHnCiaJvjtFW6pLXo',
-        'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAWAiRwei5Kw9b2he6qmwh5Hr5fNR3FlgHQ1WhXY0AC4w8RQD59rp4Jbo2NdjyXUGb5y1BCeMCGoRCaFy'
+        base64.decodestring('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAc6ebdH+dmvvgKiE7oOZuQba5I4msyuTJmVpJQVPAT+R9Pg8zsLsuJPV6RjU30RKHnCiaJvjtFW6pLXo\n'),
+        base64.decodestring('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAWAiRwei5Kw9b2he6qmwh5Hr5fNR3FlgHQ1WhXY0AC4w8RQD59rp4Jbo2NdjyXUGb5y1BCeMCGoRCaFy\n')
         ]), self.my_db._get('friends')
         assert self.peer_db._size() == 2
         
@@ -65,22 +66,31 @@ class TestFriendList(unittest.TestCase):
         self.flist.updateFriendList()
         friends = self.flist.getFriends()
         answer = [
-                   {'permid':'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAWAiRwei5Kw9b2he6qmwh5Hr5fNR3FlgHQ1WhXY0AC4w8RQD59rp4Jbo2NdjyXUGb5y1BCeMCGoRCaFy',
+                   {'permid': base64.decodestring('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAWAiRwei5Kw9b2he6qmwh5Hr5fNR3FlgHQ1WhXY0AC4w8RQD59rp4Jbo2NdjyXUGb5y1BCeMCGoRCaFy\n'),
                    'name':'Arno Bakker',
                    'ip':'130.37.193.64', 
                    'port':6881,
                    'similarity':0,
                    'last_seen':0,
+                   'buddycast_times':0,
+                   'tried_times':0,
+                   'connected_times':0
                    },
-                   {'permid':'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAc6ebdH+dmvvgKiE7oOZuQba5I4msyuTJmVpJQVPAT+R9Pg8zsLsuJPV6RjU30RKHnCiaJvjtFW6pLXo',
+                   {'permid':base64.decodestring('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAc6ebdH+dmvvgKiE7oOZuQba5I4msyuTJmVpJQVPAT+R9Pg8zsLsuJPV6RjU30RKHnCiaJvjtFW6pLXo\n'),
                    'name':'Jie Yang',
                    'ip':'130.161.158.51',
                    'port':3966,
                    'similarity':0,
                    'last_seen':0,
+                   'buddycast_times':0,
+                   'tried_times':0,
+                   'connected_times':0
                    },
                    ]
         assert len(friends) == 2, len(friends)
+        # Arno: last_seen is set automatically these days :-(
+        for friend in friends:
+            friend['last_seen'] = 0
         assert friends == answer or (friends[0] == answer[1] and friends[1] == answer[0]), friends
         #self.flist.writeFriendList('tmp.txt')
         self.flist.deleteFriend(answer[0]['permid'])

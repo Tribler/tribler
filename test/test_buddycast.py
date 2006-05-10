@@ -35,7 +35,7 @@ class TestBuddyCast(unittest.TestCase):
     def setUp(self):
         self.tmpdirpath = db_dir = os.path.join(tempfile.gettempdir(), 'testdb')
         db_dir = ''
-        tribler_init()
+        tribler_init(unicode(self.tmpdirpath))
         self.buddycast = BuddyCastFactory.getInstance(db_dir=db_dir)
         self.buddycast.register(None, None, 0, None, False)
         #self.buddycast.data_handler.clear()
