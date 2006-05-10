@@ -32,10 +32,7 @@ class TestBasicDB(unittest.TestCase):
         self.d._put('c', {'1':1,'2':2})
         assert self.d._size() == 2
         
-        # test _pop, _delete
-        x = self.d._pop('a')
-        assert x == 123
-        assert not self.d._has_key('a')
+        # test _delete
         self.d._put('b', 222)
         assert self.d._has_key('b')
         self.d._delete('b')
@@ -60,7 +57,7 @@ class TestBasicDB(unittest.TestCase):
         
     def test_sync(self):            # write data from mem to disk
         self.d._put('k', 10)
-        self.d.close()
+        #self.d.close() # del already closes db
         del self.d
         assert not hasattr(self, 'd')
         self.d = cachedb.BasicDB(self.dirname)

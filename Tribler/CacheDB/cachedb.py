@@ -76,7 +76,7 @@ from random import random
 from sha import sha
 from copy import deepcopy
 from sets import Set
-from traceback import print_exc
+from traceback import print_exc, print_stack
 from threading import currentThread
 
 #from Tribler.utilities import isValidPermid, isValidInfohash
@@ -194,6 +194,7 @@ class BasicDB:    # Should we use delegation instead of inheritance?
         self.default_item = {'d':1, 'e':'abc', 'f':{'k':'v'}, 'g':[1,'2']} # for test
         if self.__class__ == BasicDB:
             self.db_name = 'basic.bsd'    # for testing
+            self.opened = True
             self._data = open_db(self.db_name, db_dir, filetype=db.DB_HASH)
             #raise NotImplementedError, "Cannot create object of class BasicDB"
     
@@ -289,12 +290,14 @@ class BasicDB:    # Should we use delegation instead of inheritance?
             return 0
     
     def close(self):
-        try:
-            self._sync()
-            dbutils.DeadlockWrap(self._data.close, max_retries=MAX_RETRIES)
-            #self._data.close()
-        except:
-            print_exc()
+        if self.opened:
+            try:
+                self._sync()
+                dbutils.DeadlockWrap(self._data.close, max_retries=MAX_RETRIES)
+                #self._data.close()
+            except:
+                print_exc()
+        self.opened = False
         
     def updateDB(self, old_version):
         raise NotImplementedError
@@ -313,6 +316,7 @@ class MyDB(BasicDB):
         if MyDB.__single:
             raise RuntimeError, "MyDB is singleton"
         self.db_name = 'mydata.bsd'
+        self.opened = True
         self._data = open_db(self.db_name, db_dir, filetype=db.DB_HASH)    # dbshelve object
         MyDB.__single = self 
         self.default_data = {
@@ -432,6 +436,7 @@ class PeerDB(BasicDB):
         if PeerDB.__single:
             raise RuntimeError, "PeerDB is singleton"
         self.db_name = 'peers.bsd'
+        self.opened = True
         self._data = open_db(self.db_name, db_dir)    # dbshelve object
         MyDB.checkVersion(self)
         PeerDB.__single = self
@@ -504,6 +509,7 @@ class TorrentDB(BasicDB):
         if TorrentDB.__single:
             raise RuntimeError, "TorrentDB is singleton"
         self.db_name = 'torrents.bsd'
+        self.opened = True
         self._data = open_db(self.db_name, db_dir)    # dbshelve object
         MyDB.checkVersion(self)
         TorrentDB.__single = self
@@ -556,6 +562,7 @@ class PreferenceDB(BasicDB):
         if PreferenceDB.__single:
             raise RuntimeError, "PreferenceDB is singleton"
         self.db_name = 'preferences.bsd'
+        self.opened = True
         self._data = open_db(self.db_name, db_dir)    # dbshelve object
         MyDB.checkVersion(self)
         PreferenceDB.__single = self 
@@ -622,6 +629,7 @@ class MyPreferenceDB(BasicDB):     #  = FileDB
         if MyPreferenceDB.__single:
             raise RuntimeError, "TorrentDB is singleton"
         self.db_name = 'mypreferences.bsd'
+        self.opened = True
         self._data = open_db(self.db_name, db_dir)    # dbshelve object
         MyDB.checkVersion(self)
         MyPreferenceDB.__single = self 
@@ -678,6 +686,7 @@ class OwnerDB(BasicDB):
         if OwnerDB.__single:
             raise RuntimeError, "OwnerDB is singleton"
         self.db_name = 'owners.bsd'
+        self.opened = True
         self._data = open_db(self.db_name, db_dir)    # dbshelve object
         OwnerDB.__single = self 
                 
