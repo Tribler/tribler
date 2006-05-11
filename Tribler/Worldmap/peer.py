@@ -47,6 +47,7 @@ class BTPeer:
         #rawserver.add_task(self.lookupIPInfo, 0)
         try:
             t = Timer(0,self.lookupIPInfo)
+            t.setDaemon(True) # make them stop on exit, don't wait
             t.start()
         except:
             pass

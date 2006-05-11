@@ -8,7 +8,19 @@ from tmp import CommonTriblerList
 def sort_dictlist(dict_list, key, order='increase'):
     
     aux = [(dict_list[i][key], i) for i in xrange(len(dict_list))]
-    aux.sort()
+    try:
+        aux.sort()
+    except UnicodeDecodeError,e:
+        # Arno: there are unicode strings and non-unicode strings in the data.
+        # One of the non-unicode strings contains data that cannot be
+        # decoded into a unicode string for comparison to the other unicode
+        # strings by the default 'ascii' codec. See
+        # http://downloads.egenix.com/python/Unicode-EPC2002-Talk.pdf
+        #
+        # This is a legacy problem, as the new code will store everything as
+        # unicode in the database. I therefore chose a dirty solution, don't
+        # sort 
+        pass
     if order == 'decrease' or order == 1:    # 0 - increase, 1 - decrease
         aux.reverse()
     return [dict_list[i] for x, i in aux]

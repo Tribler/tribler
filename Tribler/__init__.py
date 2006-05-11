@@ -129,3 +129,5 @@ def tribler_init(config_dir = None, install_dir = None):
 
 def tribler_done(config_dir = None):
     friends.done(config_dir)
+    cachedb.done(config_dir)
+    

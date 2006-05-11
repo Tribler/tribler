@@ -121,6 +121,15 @@ def init(config_dir, myinfo):
     MyPreferenceDB.getInstance(home_dir)
     OwnerDB.getInstance(home_dir)
     
+def done(config_dir):
+    MyDB.getInstance().close()
+    MyPreferenceDB.getInstance().close()
+    OwnerDB.getInstance().close()
+    PeerDB.getInstance().close()
+    PreferenceDB.getInstance().close()
+    TorrentDB.getInstance().close()
+
+
 def make_filename(config_dir,filename):
     if config_dir is None:
         return filename
@@ -211,7 +220,7 @@ class BasicDB:    # Should we use delegation instead of inheritance?
                 if name not in self.threadnames:
                     self.threadnames[name] = 0
                 self.threadnames[name] += 1
-                print "****bsddb: put", len(self.threadnames), name, \
+                print >> sys.stderr, "cachedb: put", len(self.threadnames), name, \
                     self.threadnames[name], time(), self.__class__.__name__
                     
             dbutils.DeadlockWrap(self._data.put, key, value, max_retries=MAX_RETRIES)
@@ -231,6 +240,7 @@ class BasicDB:    # Should we use delegation instead of inheritance?
             return dbutils.DeadlockWrap(self._data.get, key, value, max_retries=MAX_RETRIES)
             #return self._data.get(key, value)
         except:
+            print >> sys.stderr, "cachedb: _get EXCEPTION BY",currentThread().getName()
             print_exc()
             return None
         
@@ -252,7 +262,7 @@ class BasicDB:    # Should we use delegation instead of inheritance?
                 if name not in self.threadnames:
                     self.threadnames[name] = 0
                 self.threadnames[name] += 1
-                print "****bsddb: del", len(self.threadnames), name, \
+                print >> sys.stderr, "cachedb: del", len(self.threadnames), name, \
                     self.threadnames[name], time(), self.__class__.__name__
                 
             dbutils.DeadlockWrap(self._data.delete, key, max_retries=MAX_RETRIES)
@@ -290,10 +300,14 @@ class BasicDB:    # Should we use delegation instead of inheritance?
             return 0
     
     def close(self):
+        if DEBUG:
+            print >> sys.stderr, "cachedb: Closing database",self.db_name,currentThread().getName()
         if self.opened:
             try:
                 self._sync()
                 dbutils.DeadlockWrap(self._data.close, max_retries=MAX_RETRIES)
+                if DEBUG:
+                    print >> sys.stderr, "cachedb: Done waiting for database close",self.db_name,currentThread().getName()
                 #self._data.close()
             except:
                 print_exc()
