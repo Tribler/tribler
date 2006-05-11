@@ -499,7 +499,7 @@ class MiscPanel(ABCOptionPanel):
               
     def apply(self):       
         self.utility.config.Write('mintray', self.mintray.GetSelection())
-        self.utility.frame.tbicon.updateIcon()
+        self.utility.frame.tbicon.updateIcon(False)
         
         # FIXME: quick hack to prevent Unicode problem, will still give problems
         # when French, i.e. "fran\,cais" is selected.

@@ -37,6 +37,7 @@ from Utility.utility import Utility
 from Utility.constants import * #IGNORE:W0611
 
 from Tribler.__init__ import tribler_init, tribler_done
+from BitTornado.__init__ import product_name
 
 ALLOW_MULTIPLE = False
 
@@ -258,19 +259,19 @@ class ABCTaskBarIcon(wx.TaskBarIcon):
         self.Bind(wx.EVT_TASKBAR_LEFT_DCLICK, parent.onTaskBarActivate)
         self.Bind(wx.EVT_MENU, parent.onTaskBarActivate, id = self.TBMENU_RESTORE)
                
-        self.updateIcon()
+        self.updateIcon(False)
         
-    def updateIcon(self):
+    def updateIcon(self,iconifying = False):
         remove = True
         
         mintray = self.utility.config.Read('mintray', "int")
-        if (mintray >= 2) or ((mintray >= 1) and self.utility.frame.IsIconized()):
+        if (mintray >= 2) or ((mintray >= 1) and iconifying):
             remove = False
         
         if remove and self.IsIconInstalled():
             self.RemoveIcon()
         elif not remove and not self.IsIconInstalled():
-            self.SetIcon(self.utility.icon, "ABC")
+            self.SetIcon(self.utility.icon, product_name)
         
     def CreatePopupMenu(self):        
         menu = wx.Menu()
@@ -483,7 +484,7 @@ class ABCFrame(wx.Frame):
         self.Raise()
         
         if self.tbicon is not None:
-            self.tbicon.updateIcon()
+            self.tbicon.updateIcon(False)
 
         self.window.list.SetFocus()
 
@@ -491,16 +492,19 @@ class ABCFrame(wx.Frame):
         self.setGUIupdate(True)
 
     def onIconify(self, event = None):
-        if (self.utility.config.Read('mintray', "int") > 0
-            and self.tbicon is not None):
-            self.tbicon.updateIcon()
-            self.Show(False)
-        
-        if event is not None:
-            event.Skip()
+        # This event handler is called both when being minimalized
+        # and when being restored.
+        if event.Iconized():                                                                                                               
+            if (self.utility.config.Read('mintray', "int") > 0
+                and self.tbicon is not None):
+                self.tbicon.updateIcon(True)
+                self.Show(False)
 
-        # Don't update GUI while minimized
-        self.setGUIupdate(not self.GUIupdate)
+            if event is not None:
+                event.Skip()
+
+            # Don't update GUI while minimized
+            self.setGUIupdate(not self.GUIupdate)
         
     def getWindowSettings(self):
         width = self.utility.config.Read("window_width")
@@ -590,6 +594,14 @@ class ABCFrame(wx.Frame):
             pass
 
         try:
+            if self.buddyFrame is not None:
+                self.buddyFrame.Destroy()
+            if self.fileFrame is not None:
+                self.fileFrame.Destroy()
+        except:
+            pass
+
+        try:
             if self.tbicon is not None:
                 self.tbicon.RemoveIcon()
                 self.tbicon.Destroy()
@@ -599,14 +611,13 @@ class ABCFrame(wx.Frame):
             print_exc(file = data)
             sys.stderr.write(data.getvalue())
             pass
-            
-        try:
-            if self.buddyFrame is not None:
-                self.buddyFrame.Destroy()
-            if self.fileFrame is not None:
-                self.fileFrame.Destroy()
-        except:
-            pass
+
+        # Arno: at the moment, Tribler gets a segmentation fault when the
+        # tray icon is always enabled. This SEGV occurs in the wx mainloop
+        # which is entered as soon as we leave this method. Hence I placed
+        # tribler_done() here, so the database are closed properly
+        # before the crash.
+        tribler_done(self.utility.getConfigPath())            
 
 
 ##############################################################
@@ -621,19 +632,34 @@ class ABCApp(wx.App):
         self.params = params
         self.single_instance_checker = single_instance_checker
 
-        self.utility = Utility(abcpath)
-        tribler_init(self.utility.getConfigPath(),self.utility.getPath())
-        self.utility.setTriblerVariables()
-        
-        # Set locale to determine localisation
-        locale.setlocale(locale.LC_ALL, '')
+        self.error = None
+        try:
+            self.utility = Utility(abcpath)
+            tribler_init(self.utility.getConfigPath(),self.utility.getPath())
+            self.utility.setTriblerVariables()
 
-        sys.stdout.write('Client Starting Up.\n')
-        sys.stdout.write('Build: ' + self.utility.lang.get('build') + '\n')
+            # Set locale to determine localisation
+            locale.setlocale(locale.LC_ALL, '')
+
+            sys.stdout.write('Client Starting Up.\n')
+            sys.stdout.write('Build: ' + self.utility.lang.get('build') + '\n')
+        except Exception,e:
+            print_exc()
+            self.error = e
 
         wx.App.__init__(self, x)
         
     def OnInit(self):
+        if self.error is not None:
+            # Don't use language independence stuff, self.utility may not be
+            # valid.
+            msg = "An error occured during Tribler startup, you may have to reboot your computer:"
+            msg += str(self.error)
+            dlg = wx.MessageDialog(None, msg, "Tribler Fatal Error", wx.OK|wx.ICON_ERROR)
+            result = dlg.ShowModal()
+            dlg.Destroy()
+            return False
+
         self.utility.postAppInit()
         self.frame = ABCFrame(-1, self.params, self.utility)
 
@@ -648,9 +674,6 @@ class ABCApp(wx.App):
         ClientPassParam("Close Connection")
         
         return 0
-        
-    def __del__(self):
-        tribler_done(self.utility.getConfigPath())
         
 ##############################################################
 #

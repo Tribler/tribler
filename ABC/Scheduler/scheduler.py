@@ -14,7 +14,7 @@ from ABC.Scheduler.ratemanager import RateManager
 
 from Utility.constants import * #IGNORE:W0611
 from safeguiupdate import DelayedEventHandler
-
+from BitTornado.__init__ import product_name
 
 ################################################################
 #
@@ -170,7 +170,7 @@ class ABCScheduler(DelayedEventHandler):
             # update value in minimize icon
             ###########################################
             if self.utility.frame.tbicon is not None and self.utility.frame.tbicon.IsIconInstalled():
-                icontext = "ABC" + "\n\n" + \
+                icontext = product_name + "\n\n" + \
                            self.utility.lang.get('totaldlspeed') + " " + downloadspeed + "\n" + \
                            self.utility.lang.get('totalulspeed') + " " + uploadspeed + " "
                 self.utility.frame.tbicon.SetIcon(self.utility.icon, icontext)

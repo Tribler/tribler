@@ -23,7 +23,7 @@ from BitTornado.ConfigDir import ConfigDir
 #--- 2fastbt_
 from time import time
 from Tribler.toofastbt.Logger import get_logger
-from Tribler.__init__ import tribler_init
+from Tribler.__init__ import tribler_init, tribler_done
 # _2fastbt
 
 assert sys.version >= '2', "Install Python 2.0 or greater"
@@ -159,6 +159,9 @@ if __name__ == '__main__':
 
     config['text_mode'] = 1
     LaunchMany(config, HeadlessDisplayer())
+
+    tribler_done(config['config_path'])
+
     if Exceptions:
         print '\nEXCEPTION:'
         print Exceptions[0]
