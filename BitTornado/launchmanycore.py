@@ -235,7 +235,10 @@ class LaunchMany:
                         self.Output.message('WARNING: COULD NOT FORWARD VIA UPnP')
                         upnp_type = 0
                         continue
-                    self.failed("Couldn't listen - " + str(e))
+                    msg = "Couldn't not bind to listen port - " + str(e)
+                    self.failed(msg)
+                    if not self.text_mode:
+                        raise socketerror(msg)
                     return
             
 
@@ -277,10 +280,13 @@ class LaunchMany:
             self.mypref_db = MyPreferenceDBHandler()
             self.start()
 
-        except:
+        except Exception,e:
             data = StringIO()
             print_exc(file = data)
             Output.exception(data.getvalue())
+            # Arno: make it go to a warning popup that doesn't stop the program
+            if not self.text_mode:
+                self.utility.frame.onWarning(e)
 
     def start(self):
         try:

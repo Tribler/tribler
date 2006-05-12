@@ -1,5 +1,6 @@
 import wx
 import sys
+import socket
 
 from Utility.helpers import getSocket
 
@@ -13,17 +14,20 @@ from Utility.helpers import getSocket
 ################################################################
 class ServerListener:
     def __init__(self, utility):
-        self.s = None
         self.utility = utility
-        
-    def start(self):
+        self.s = None
         HOST = '127.0.0.1'       # Symbolic name meaning the local host
 
         PORT = 56766             # Arbitrary non-privileged port       
         self.s = getSocket(HOST, PORT, "server")
         if self.s is None:
-            sys.stderr.write('Tribler-already-running check: Could not open socket') # No way
-            sys.exit(1)
+            msg = 'Tribler-already-running check: Could not open socket '+str(PORT)+' on localhost'
+            sys.stderr.write(msg) # No way
+            ## Arno: we now have a popup for startup errors
+            #sys.exit(1)
+            raise socket.error(msg)
+        
+    def start(self):
         while 1:
             try:
                 conn, addr = self.s.accept()

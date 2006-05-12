@@ -305,6 +305,9 @@ class ABCFrame(wx.Frame):
         size, position = self.getWindowSettings()
         style = wx.DEFAULT_FRAME_STYLE | wx.CLIP_CHILDREN
         wx.Frame.__init__(self, None, ID, title, position, size, style = style)
+
+        # Put it here so an error is shown in the startup-error popup
+        self.serverlistener = ServerListener(self.utility)
         
         self.tbicon = None
 
@@ -374,7 +377,6 @@ class ABCFrame(wx.Frame):
 
         # Start single instance server listenner
         ############################################
-        self.serverlistener = ServerListener(self.utility)
         self.serverthread   = Thread(target = self.serverlistener.start)
         self.serverthread.setDaemon(False)
         self.serverthread.start()
@@ -620,6 +622,15 @@ class ABCFrame(wx.Frame):
         tribler_done(self.utility.getConfigPath())            
 
 
+    def onWarning(self,exc):
+        # TODO: here we can use self.utility.lang
+        msg = "An non-fatal error occured during Tribler startup, you may need to change the network Preferences:\n\n"
+        msg += str(exc.__class__)+':'+str(exc)
+        dlg = wx.MessageDialog(None, msg, "Tribler Warning", wx.OK|wx.ICON_WARNING)
+        result = dlg.ShowModal()
+        dlg.Destroy()
+
+
 ##############################################################
 #
 # Class : ABCApp
@@ -651,22 +662,31 @@ class ABCApp(wx.App):
         
     def OnInit(self):
         if self.error is not None:
-            # Don't use language independence stuff, self.utility may not be
-            # valid.
-            msg = "An error occured during Tribler startup, you may have to reboot your computer:"
-            msg += str(self.error)
-            dlg = wx.MessageDialog(None, msg, "Tribler Fatal Error", wx.OK|wx.ICON_ERROR)
-            result = dlg.ShowModal()
-            dlg.Destroy()
+            self.onError()
+            return False
+           
+        try:
+            self.utility.postAppInit()
+            self.frame = ABCFrame(-1, self.params, self.utility)
+
+            self.Bind(wx.EVT_QUERY_END_SESSION, self.frame.OnCloseWindow)
+            self.Bind(wx.EVT_END_SESSION, self.frame.OnCloseWindow)
+        except Exception,e:
+            self.error = e
+            self.onError()
             return False
 
-        self.utility.postAppInit()
-        self.frame = ABCFrame(-1, self.params, self.utility)
-
-        self.Bind(wx.EVT_QUERY_END_SESSION, self.frame.OnCloseWindow)
-        self.Bind(wx.EVT_END_SESSION, self.frame.OnCloseWindow)
-        
         return True
+
+    def onError(self):
+        # Don't use language independence stuff, self.utility may not be
+        # valid.
+        msg = "An error occured during Tribler startup:\n\n"
+        msg += str(self.error.__class__)+':'+str(self.error)
+        dlg = wx.MessageDialog(None, msg, "Tribler Fatal Error", wx.OK|wx.ICON_ERROR)
+        result = dlg.ShowModal()
+        dlg.Destroy()
+
 
     def OnExit(self):
         if not ALLOW_MULTIPLE:

@@ -4,6 +4,7 @@
 from cachedb import *
 from copy import deepcopy
 from sets import Set
+from traceback import print_exc
 import threading
 
 class BasicDBHandler:
@@ -11,7 +12,14 @@ class BasicDBHandler:
         self.dbs = []    # don't include read only database
         
     def __del__(self):
-        self.sync()
+        try:
+            self.sync()
+        except:
+            # Arno: on windows it may happen that tribler_done() is called
+            # before these __del__ statements. tribler_done() closes the
+            # databases, so this indirect call to db._sync() will throw
+            # an exception saying the database has already been closed.
+            print_exc()
         
     def size(self):
         return self.dbs[0]._size()
