@@ -193,13 +193,23 @@ except:
             import win32file
             try:
                 # Win95 OSR2 and up
-                getfreespace = win32file.GetDiskFreeSpaceEx
-                test = getfreespace(".")
+                # Arno: this code was totally broken as the method returns
+                # a list of values indicating 1. free space for the user,
+                # 2. total space for the user and 3. total free space, so
+                # not a single value.
+                test = win32file.GetDiskFreeSpaceEx(".")
+                def getfreespace(path):          
+                    list = win32file.GetDiskFreeSpaceEx(path)
+                    return list[0]
             except:                
                 # Original Win95
                 # (2GB limit on partition size, so this should be
                 #  accurate except for mapped network drives)
-                getfreespace = win32file.GetDiskFreeSpace
+                # Arno: see http://aspn.activestate.com/ASPN/docs/ActivePython/2.4/pywin32/win32file__GetDiskFreeSpace_meth.html
+                def getfreespace(path):
+                    [spc, bps, nfc, tnc] = win32file.GetDiskFreeSpace(path)
+                    return long(nfc) * long(spc) * long(bps)
+                    
         except ImportError:
             # Windows if win32all extensions aren't installed
             # (parse the output from the dir command)
@@ -223,7 +233,7 @@ except:
                     size = long(sizestring)                    
                     
                     if size == 0L:
-                        print path
+                        print "getfreespace: can't determine freespace of ",path
                         print "0?"
                         for line in mystdout:
                             print line
