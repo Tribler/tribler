@@ -40,6 +40,7 @@ from Tribler.__init__ import tribler_init, tribler_done
 from BitTornado.__init__ import product_name
 from safeguiupdate import DelayedInvocation
 
+DEBUG = False
 ALLOW_MULTIPLE = False
 
 ################################################################
@@ -365,6 +366,7 @@ class ABCFrame(wx.Frame,DelayedInvocation):
             pass
         self.Bind(wx.EVT_ICONIZE, self.onIconify)
         self.Bind(wx.EVT_SET_FOCUS, self.onFocus)
+        self.Bind(wx.EVT_SIZE, self.onSize)
         
         # Check webservice for autostart webservice
         #######################################################
@@ -504,20 +506,33 @@ class ABCFrame(wx.Frame,DelayedInvocation):
     def onIconify(self, event = None):
         # This event handler is called both when being minimalized
         # and when being restored.
+        if DEBUG:
+            if event is not None:
+                print "abc: onIconify(",event.Iconized()
+            else:
+                print "abc: onIconify event None"
         if event.Iconized():                                                                                                               
             if (self.utility.config.Read('mintray', "int") > 0
                 and self.tbicon is not None):
                 self.tbicon.updateIcon(True)
                 self.Show(False)
 
-            if event is not None:
-                event.Skip()
-
             # Don't update GUI while minimized
             self.setGUIupdate(False)
         else:
             self.setGUIupdate(True)
-        
+        if event is not None:
+            event.Skip()
+
+    def onSize(self, event = None):
+        # Arno: On Windows when I enable the tray icon and then change
+        # virtual desktop (see MS DeskmanPowerToySetup.exe)
+        # I get a onIconify(event.Iconized()==True) event, but when
+        # I switch back, I don't get an event. As a result the GUIupdate
+        # remains turned off. The wxWidgets wiki on the TaskBarIcon suggests
+        # catching the onSize event. 
+        self.setGUIupdate(True)
+            
     def getWindowSettings(self):
         width = self.utility.config.Read("window_width")
         height = self.utility.config.Read("window_height")

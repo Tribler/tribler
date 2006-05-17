@@ -19,6 +19,8 @@ from ABC.Torrent.status import TorrentStatus
 from Utility.constants import * #IGNORE:W0611
 from Tribler.unicode import bin2unicode
 
+from time import time
+
 try:
     True
 except:
@@ -533,6 +535,8 @@ class ABCTorrent:
                 # Don't do anything if ABC is shutting down
                 # or minimized
                 if self.status.dontupdate or not self.utility.frame.GUIupdate:
+                    if DEBUG:
+                         print "torrent: update cols: not updating cols, GUIupdate is",self.utility.frame.GUIupdate, time()
                     return
 
                 # Only update if this column is currently shown
