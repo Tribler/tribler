@@ -14,7 +14,7 @@ import os
 import wx
 #import hotshot
 
-from threading import Thread, Timer
+from threading import Thread, Timer, Event
 from time import time, ctime
 from traceback import print_exc, print_stack
 from cStringIO import StringIO
@@ -38,6 +38,7 @@ from Utility.constants import * #IGNORE:W0611
 
 from Tribler.__init__ import tribler_init, tribler_done
 from BitTornado.__init__ import product_name
+from safeguiupdate import DelayedInvocation
 
 ALLOW_MULTIPLE = False
 
@@ -292,7 +293,7 @@ class ABCTaskBarIcon(wx.TaskBarIcon):
 # and contains ABCPanel
 #
 ############################################################## 
-class ABCFrame(wx.Frame):
+class ABCFrame(wx.Frame,DelayedInvocation):
     def __init__(self, ID, params, utility):
         self.utility = utility
         self.utility.frame = self
@@ -305,6 +306,8 @@ class ABCFrame(wx.Frame):
         size, position = self.getWindowSettings()
         style = wx.DEFAULT_FRAME_STYLE | wx.CLIP_CHILDREN
         wx.Frame.__init__(self, None, ID, title, position, size, style = style)
+        self.doneflag = Event()
+        DelayedInvocation.__init__(self)
 
         # Put it here so an error is shown in the startup-error popup
         self.serverlistener = ServerListener(self.utility)
@@ -476,6 +479,11 @@ class ABCFrame(wx.Frame):
             for torrent in self.utility.torrents["all"]:
                 torrent.updateColumns()
                 torrent.updateColor()
+
+
+    def taskbarCallback(self):
+        self.invokeLater(self.onTaskBarActivate,[])
+
 
     #######################################
     # minimize to tray bar control

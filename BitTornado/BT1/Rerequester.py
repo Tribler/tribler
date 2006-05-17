@@ -174,7 +174,8 @@ class Rerequester:
             return
         self.lock.reset()
         rq = Thread(target = self._rerequest, args = [s, callback])
-        rq.setDaemon(False)
+        # Arno: make this a daemon thread so the client closes sooner.
+        rq.setDaemon(True)
         rq.start()
 
     def _rerequest(self, s, callback):

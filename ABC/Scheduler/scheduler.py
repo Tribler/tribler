@@ -139,7 +139,7 @@ class ABCScheduler(DelayedEventHandler):
         self.totals_kb['down'] = (totaldownload / 1024.0)
         
         self.totals['connections'] = totalconnections
-        
+
     def updateTrayAndStatusBar(self):
         self.invokeLater(self.onUpdateTrayAndStatusBar)
 
@@ -481,3 +481,7 @@ class ABCScheduler(DelayedEventHandler):
             ABCTorrentTemp.torrentconfig.writeSrc(False)
         
         self.utility.torrentconfig.Flush()
+
+    def addTorrentFromFileCallback(self,data):
+        self.invokeLater(self.addtorrents.AddTorrentFromFile,[data])
+        

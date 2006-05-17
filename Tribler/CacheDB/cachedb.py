@@ -168,7 +168,7 @@ def open_db(filename, db_dir='', filetype=db.DB_BTREE, writeback=False):
     path = os.path.join(dir, filename)
     env = db.DBEnv()
     # Concurrent Data Store
-    env.open(dir, db.DB_THREAD|db.DB_INIT_CDB|db.DB_INIT_MPOOL|db.DB_CREATE)
+    env.open(dir, db.DB_THREAD|db.DB_INIT_CDB|db.DB_INIT_MPOOL|db.DB_CREATE|db.DB_PRIVATE)
     #d = db.DB(env)
     #d.open(path, filetype, db.DB_THREAD|db.DB_CREATE)
     #_db = BsdDbShelf(d, writeback=writeback) 

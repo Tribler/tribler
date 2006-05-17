@@ -41,12 +41,12 @@ class ServerListener:
 #                    # just making sure the connection doesn't timeout...
 #                    pass
                 elif data == "Raise Window":
-                    self.utility.frame.onTaskBarActivate()
+                    self.utility.frame.taskbarCallback()
                 else:
-                    self.utility.queue.addtorrents.AddTorrentFromFile(data)
+                    self.utility.queue.addTorrentFromFileCallback(data)
             except wx.PyDeadObjectError:
-                toosoontext = "\nTried to start ABC again too soon after exiting!\n" + \
-                              "(Wait for ABC to finish shutting down, then try again)\n"
+                toosoontext = "\nTried to start Tribler again too soon after exiting!\n" + \
+                              "(Wait for Tribler to finish shutting down, then try again)\n"
                 sys.stderr.write(toosoontext)
                 break
 #        self.utility.abcdonequitting = True

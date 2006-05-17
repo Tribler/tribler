@@ -86,7 +86,7 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
 
         # btconfig must be set before calling LaunchMany constructor
         Thread.__init__(self)
-        #self.setDaemon(True)
+        self.setDaemon(True)
         self.setName( "ABCLaunchMany"+self.getName() )
         LaunchMany.__init__(self,btconfig,self.output)
         DelayedEventHandler.__init__(self)
