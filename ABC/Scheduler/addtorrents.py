@@ -112,23 +112,23 @@ class AddTorrents:
             if text is not None:
                 if text.startswith("http://") and text.endswith(".torrent"):
                     starturl = text
-        except:
-            pass
         
-        dialog = wx.TextEntryDialog(None, 
-                                    self.utility.lang.get('enterurl'), 
-                                    self.utility.lang.get('addtorrenturl_short'),
-                                    starturl)
+            dialog = wx.TextEntryDialog(None, 
+                                        self.utility.lang.get('enterurl'), 
+                                        self.utility.lang.get('addtorrenturl_short'),
+                                        starturl)
 
-        result = dialog.ShowModal()
-        btlink = dialog.GetValue()
-        dialog.Destroy()
-        
-        if result != wx.ID_OK:
-            return
-        
-        if btlink != "":
-            self.AddTorrentURL(btlink)
+            result = dialog.ShowModal()
+            btlink = dialog.GetValue()
+            dialog.Destroy()
+
+            if result != wx.ID_OK:
+                return
+
+            if btlink != "":
+                self.AddTorrentURL(btlink)
+        except:
+            print_exc()
 
     def AddTorrentNoneDefault(self, event = None):
         self.AddTorrentFile(event, True)

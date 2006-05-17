@@ -514,7 +514,9 @@ class ABCFrame(wx.Frame,DelayedInvocation):
                 event.Skip()
 
             # Don't update GUI while minimized
-            self.setGUIupdate(not self.GUIupdate)
+            self.setGUIupdate(False)
+        else:
+            self.setGUIupdate(True)
         
     def getWindowSettings(self):
         width = self.utility.config.Read("window_width")
