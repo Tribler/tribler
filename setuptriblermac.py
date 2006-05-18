@@ -1,6 +1,10 @@
 from bundlebuilder import buildapp
 from distutils.util import get_platform
 
+import wxversion
+
+wxversion.select('2.6-unicode')
+
 import os,sys
 import wx
 
@@ -28,6 +32,8 @@ sys.path=[
 
 import M2Crypto
 
+from plistlib import Plist
+
 ################################################################
 #
 # *** Important note: ***
@@ -41,11 +47,13 @@ buildapp(
     name='Tribler.app',
     mainprogram='abc.py',
     iconfile='tribler.icns',
+    plist=Plist.fromFile('Info.plist'),
     argv_emulation=1,
-    #strip=1,
-    semi_standalone=1,
+    strip=1,
+    #semi_standalone=1,
+    standalone=1,
     excludeModules=["Tkinter","Tkconstants","tcl"],
-    includeModules=["M2Crypto","wx","wxPython"],
+    includeModules=["M2Crypto","wx","wxPython","encodings.utf_8","encodings.latin_1","argvemulator"],
     libs=[wx_lib],
     files = [("Lang/english.lang","Contents/Resources/Lang/"),
              ("superpeer.txt",    "Contents/Resources/"),
@@ -61,4 +69,7 @@ so_dir = "build/Tribler.app/Contents/Resources/ExtensionModules/wx"
 so_files = [x for x in os.listdir( so_dir ) if x.endswith(".so")]
 
 for f in so_files:
-    os.system("install_name_tool -change %s %s %s/%s" % (wx_lib,os.path.basename(wx_lib),so_dir,f))
+	os.system("install_name_tool -change %s %s %s/%s" % (wx_lib,os.path.basename(wx_lib),so_dir,f))
+
+os.system("rm -f Tribler.dmg")
+os.system("hdiutil create -srcfolder build -format UDZO -fs HFS+ -volname Tribler Tribler.dmg")
