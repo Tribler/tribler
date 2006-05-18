@@ -173,7 +173,9 @@ class ABCScheduler(DelayedEventHandler):
                 icontext = product_name + "\n\n" + \
                            self.utility.lang.get('totaldlspeed') + " " + downloadspeed + "\n" + \
                            self.utility.lang.get('totalulspeed') + " " + uploadspeed + " "
-                self.utility.frame.tbicon.SetIcon(self.utility.icon, icontext)
+
+                if sys.platform != "darwin":
+                    self.utility.frame.tbicon.SetIcon(self.utility.icon, icontext)
 
             # update in status bar
             ##########################################

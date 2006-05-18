@@ -323,8 +323,11 @@ class MyInfoDialog(wx.Dialog):
         invitation_body += self.permid_txt + '\r\n'
         invitation_body += self.ip_txt + '\r\n'
         invitation_body += self.port_txt + '\r\n\r\n\r\n'
-        
-        body = urllib.quote(invitation_body)
+       
+        if sys.platform == "darwin":
+            body = invitation_body.replace('\\r\\n','\r\n')
+        else:
+            body = urllib.quote(invitation_body)
         mailToURL = 'mailto:%s?subject=%s&body=%s'%('', subject, body)
         webbrowser.open(mailToURL)
         

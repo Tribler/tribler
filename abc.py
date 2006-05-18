@@ -389,7 +389,10 @@ class ABCFrame(wx.Frame,DelayedInvocation):
         #if server start with params run it
         #####################################
         if params[0] != "":
-            ClientPassParam(params[0])
+            if sys.platform == "darwin":
+               self.utility.queue.addtorrents.AddTorrentFromFile(params[0])
+            else:
+               ClientPassParam(params[0])
 
         sys.stdout.write('GUI Complete.\n')
 
@@ -692,7 +695,10 @@ class ABCApp(wx.App):
             self.error = e
 
         wx.App.__init__(self, x)
-        
+
+    def MacOpenFile(self,filename):
+        self.utility.queue.addtorrents.AddTorrentFromFile(filename)
+
     def OnInit(self):
         if self.error is not None:
             self.onError()
@@ -725,7 +731,7 @@ class ABCApp(wx.App):
         if not ALLOW_MULTIPLE:
             del self.single_instance_checker
         ClientPassParam("Close Connection")
-        
+
         return 0
         
 ##############################################################
@@ -755,7 +761,7 @@ def run(params = None):
         app = ABCApp(0, params, single_instance_checker, abcpath)
         app.MainLoop()
 
-        
+
 if __name__ == '__main__':
     run()
 

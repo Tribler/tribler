@@ -162,7 +162,8 @@ class Preferences(ABCAction):
     def __init__(self, utility):
         ABCAction.__init__(self, 
                            utility, 
-                           menudesc = 'menuabcpreference')
+                           menudesc = 'menuabcpreference',
+                           id = wx.ID_PREFERENCES)
                            
     def action(self, event = None):
         dialog = ABCOptionDialog(self.utility.frame)
@@ -177,7 +178,8 @@ class About(ABCAction):
     def __init__(self, utility):
         ABCAction.__init__(self, 
                            utility, 
-                           menudesc = 'menuaboutabc')
+                           menudesc = 'menuaboutabc',
+                           id = wx.ID_ABOUT)
                            
     def action(self, event = None):
         dialog = AboutMeDialog(self.utility.frame)
