@@ -14,6 +14,31 @@ from Tribler.Overlay.permid import permid_for_user
 
 from makefriends import MakeFriendsDialog
 
+def createImageList(utility, friends):
+    if len(friends) == 0:
+        return None
+    height = 0
+    width = 0
+    for friend in friends:
+        filename = ''
+        if friend.has_key('icon'):
+            filename = friend['icon']
+        elif friend['name'] is not None:
+            filename = os.path.join(utility.getConfigPath(), 'icons', friend['name']+'.bmp')
+        if not os.access(filename, os.F_OK):
+            # fallback name, don't use nickname2... here
+            filename = os.path.join(utility.getPath(), 'icons', 'joe32.bmp')
+        bm = wx.Bitmap(filename,wx.BITMAP_TYPE_BMP)
+        if bm.GetWidth() > width:
+            width = bm.GetWidth()
+        if bm.GetHeight() > height:
+            height = bm.GetHeight()
+        friend['bmp'] = bm
+    imgList = wx.ImageList(width,height)
+    for f in friends:
+        imgList.Add(f['bmp'])
+    return imgList
+
 ################################################################
 #
 # Class: ManageFriendsPanel
@@ -22,78 +47,44 @@ from makefriends import MakeFriendsDialog
 #
 ################################################################
 class ManageFriendsPanel(wx.Panel):
-    def __init__(self, parent, utility, action, page_no):
+    def __init__(self, parent, utility, frame):
         self.utility = utility
-        self.action = action
-        self.page_no = page_no
-
+        self.frame = frame
+        
         style = wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
         pos = wx.DefaultPosition
         size = wx.Size(530, 420)
         #size, split = self.getWindowSettings()
         
         title = self.utility.lang.get('managefriends')
-        #wx.Dialog.__init__(self, parent, -1, title, size = size, style = style)
         wx.Panel.__init__(self, parent, -1)
 
-        # 0. Read friends from DB, and figure out who's already helping 
+        # 1. Read friends from DB, and figure out who's already helping 
         # for this torrent
-        self.friendsdb= FriendDBHandler()
-        friends = self.friendsdb.getFriends()
-
-        # 1. Create list of images of all friends
-        type = wx.LC_LIST
-        # type = wx.LC_REPORT
-
-        imgList = None
-        if type != wx.LC_REPORT:
-            try:
-                imgList = createImageList(self.utility,friends)
-            except:
-                print_exc()
-                # disable icons
-                type = wx.LC_REPORT
-
-
-        for index in range(len(friends)):
-            friend = friends[index]
-            friend['tempiconindex'] = index
+        self.friendsdb = FriendDBHandler()
 
         # 2. Build GUI
         mainbox = wx.BoxSizer(wx.VERTICAL)
-        #topbox = wx.BoxSizer(wx.HORIZONTAL)
         
         # 3. Friends in top window
         #friendsbox_title = wx.StaticBox(self, -1, self.utility.lang.get('friends'))
-        #friendsbox_title = wx.StaticBox(self, -1, '')
-        #friendsbox = wx.StaticBoxSizer(friendsbox_title, wx.VERTICAL)
         friendsbox = wx.BoxSizer(wx.VERTICAL)
-        self.leftListCtl = FriendList(self,friends,type,imgList)
-        #self.leftListCtl.SetToolTipString(self.utility.lang.get('multiannouncehelp'))
-        friendsbox.Add(self.leftListCtl, 1, wx.EXPAND|wx.TOP, 5)
-        #topbox.Add(friendsbox, 0, wx.EXPAND, 5)
+        self.friendListCtrl = FriendList(self, self.friendsdb)
+        friendsbox.Add(self.friendListCtrl, 1, wx.EXPAND|wx.TOP, 5)
 
         # 4. Buttons in lower window
         botbox = wx.BoxSizer(wx.HORIZONTAL)
         button = wx.Button(self, -1, self.utility.lang.get('buttons_add'), style = wx.BU_EXACTFIT)
-        #button.SetToolTipString(self.utility.lang.get('requestdlhelp_help'))
         wx.EVT_BUTTON(self, button.GetId(), self.addFriend)
         botbox.Add(button, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
 
         button = wx.Button(self, -1, self.utility.lang.get('buttons_edit'), style = wx.BU_EXACTFIT)
-        #button.SetToolTipString(self.utility.lang.get('stopdlhelp_help'))
         wx.EVT_BUTTON(self, button.GetId(), self.editFriend)
         botbox.Add(button, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
 
         button = wx.Button(self, -1, self.utility.lang.get('buttons_remove'), style = wx.BU_EXACTFIT)
-        #button.SetToolTipString(self.utility.lang.get('stopdlhelp_help'))
         wx.EVT_BUTTON(self, button.GetId(), self.removeFriend)
         botbox.Add(button, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
-
-        ## button = wx.Button(self, -1, self.utility.lang.get('close'), style = wx.BU_EXACTFIT)
-        ## #button.SetToolTipString(self.utility.lang.get('stopdlhelp_help'))
-        ## wx.EVT_BUTTON(self, button.GetId(), self.close)
-        ## botbox.Add(button, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
 
         # 5. Show GUI
         mainbox.Add(friendsbox, 1, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL, 5)
@@ -102,23 +93,33 @@ class ManageFriendsPanel(wx.Panel):
 
 
     def addFriend(self, event = None):
-        dialog = MakeFriendsDialog(self.utility.frame)
+        dialog = MakeFriendsDialog(self)
         ret = dialog.ShowModal()
-        dialog.Destroy()
-
         if ret == wx.ID_OK:
-            self.phoenix()
-
+            self.updateView()
+            dialog.Destroy()
+            
     def editFriend(self, event = None):
         selected = self.getSelectedFriends()
-        if len(selected) > 1:
-            self.show_error("Too many friends selected")
-        elif len(selected) == 1:
-            dialog = MakeFriendsDialog(self.utility.frame,selected[0])
-            ret = dialog.ShowModal()
+        if not selected:
+            return
+        dialog = MakeFriendsDialog(self, selected[0])
+        ret = dialog.ShowModal()
+        if ret == wx.ID_OK:
+            self.updateView()
             dialog.Destroy()
-            if ret == wx.ID_OK:
-                self.phoenix()
+
+    def removeFriend(self, event = None):
+        selected = self.getSelectedFriends()
+        if not selected:
+            return
+        to_remove = []
+        for friend in selected:
+            permid = friend['permid']
+            to_remove.append(permid)
+            self.friendsdb.deleteFriend(permid)
+        if len(selected) > 0:
+            self.updateView()
 
     def show_error(self, err_msg):
         dlg = wx.MessageDialog(self, err_msg,
@@ -129,26 +130,16 @@ class ManageFriendsPanel(wx.Panel):
         dlg.ShowModal()
         dlg.Destroy()
 
-    def removeFriend(self, event = None):
-        selected = self.getSelectedFriends()
-        to_remove = []
-        for friend in selected:
-            permid = friend['permid']
-            to_remove.append(permid)
-            self.friendsdb.deleteFriend(permid)
-        if len(selected) > 0:
-            self.phoenix()
-
     def getSelectedFriends(self):
         item = -1
         itemList = []
         while 1:
-            item = self.leftListCtl.GetNextItem(item,wx.LIST_NEXT_ALL,wx.LIST_STATE_SELECTED)
+            item = self.friendListCtrl.GetNextItem(item,wx.LIST_NEXT_ALL,wx.LIST_STATE_SELECTED)
             if item == -1:
                 break
             else:
                 itemList.append(item)
-        friends = self.leftListCtl.getFriends()
+        friends = self.friendListCtrl.getFriends()
         selected = []
         for item in itemList:
             selected.append(friends[item])
@@ -157,49 +148,18 @@ class ManageFriendsPanel(wx.Panel):
     def close(self, event = None):
         self.EndModal(wx.ID_OK)
 
-    def phoenix(self):
+    def updateView(self, updateBuddyFrame=True):
         """ Easiest way of keeping the info presented to the user up to date:
             build a new window
         """
-        ##self.EndModal(wx.ID_OK)
-        self.action.reaction()
+        self.friendListCtrl.updateView()
+        if updateBuddyFrame:
+            self.frame.updateBuddyPanel(self.friendListCtrl.getFriends())
 
     def show_inputerror(self,txt):
         dlg = wx.MessageDialog(self, txt, 'Invalid Input', wx.OK | wx.ICON_INFORMATION)
         dlg.ShowModal()
         dlg.Destroy()
-
-
-################################################################
-#
-#
-################################################################
-
-def createImageList(utility,friends):
-    if len(friends) == 0:
-        return None
-    height = 0
-    width = 0
-    list = []
-    for friend in friends:
-        if friend['name'] is not None:
-            filename = nickname2iconfilename(utility, friend['name'])
-            if not os.access(filename, os.F_OK):
-                # fallback name, don't use nickname2... here
-                filename = os.path.join(utility.getPath(), 'icons', 'joe32.bmp')
-            bm = wx.Bitmap(filename,wx.BITMAP_TYPE_BMP)
-            if bm.GetWidth() > width:
-                width = bm.GetWidth()
-            if bm.GetHeight() > height:
-                height = bm.GetHeight()
-            list.append(bm)
-    imgList = wx.ImageList(width,height)
-    for bm in list:
-        imgList.Add(bm)
-    return imgList
-
-def nickname2iconfilename(utility,name):
-        return os.path.join(utility.getConfigPath(), 'icons', name+'.bmp')
 
 
 ################################################################
@@ -210,85 +170,72 @@ def nickname2iconfilename(utility,name):
 #
 ################################################################
 class FriendList(wx.ListCtrl):
-    def __init__(self, parent, friends, type, imgList):
-
-        self.type = type
-        self.imgList = imgList
-        style = wx.VSCROLL|wx.SIMPLE_BORDER|self.type|wx.LC_VRULES|wx.CLIP_CHILDREN
+    def __init__(self, parent, friendsdb):
+        self.parent = parent
+        self.utility = parent.utility
+        self.friendsdb = friendsdb
+        self.type = wx.LC_LIST
+        style = self.type|wx.VSCROLL|wx.SIMPLE_BORDER|wx.LC_VRULES|wx.CLIP_CHILDREN
         if (sys.platform == 'win32'):
             style |= wx.LC_ALIGN_TOP
         wx.ListCtrl.__init__(self, parent, -1, style=style)
         self.SetMinSize(wx.Size(200, 300))
-
-        self.parent = parent
-        self.friends = friends
-        self.utility = parent.utility
-
-        self.SetImageList(imgList,wx.IMAGE_LIST_SMALL)
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnActivated)
-        self.loadList()
-
-    def loadList(self):
-        if self.type == wx.LC_REPORT:
-            try:    # get system font width
-                fw = wx.SystemSettings_GetFont(wx.SYS_DEFAULT_GUI_FONT).GetPointSize()+1
+        self.updateView()
+    
+    def updateView(self):
+        self.friends = self.friendsdb.getFriends()
+        for index in range(len(self.friends)):
+            self.friends[index]['tempiconindex'] = index
+            if not self.friends[index]['name']:
+                self.friends[index]['name'] = self.friends[index]['ip']
+        
+        self.ClearAll()
+        if self.type != wx.LC_REPORT:
+            try:
+                self.updateImageList()
             except:
-                fw = wx.SystemSettings_GetFont(wx.SYS_SYSTEM_FONT).GetPointSize()+1
+                print_exc()
+                # disable icons
+                self.type = wx.LC_REPORT
+                self.updateReportList()
+        else:
+            self.updateReportList()
+        self.Refresh()
+
+    def updateImageList(self):
+        self.SetWindowStyleFlag(self.type)
+        
+        self.imgList = createImageList(self.utility, self.friends)
+        self.AssignImageList(self.imgList, wx.IMAGE_LIST_SMALL)
+        self.loadList()
+        
+    def updateReportList(self):
+        self.SetWindowStyleFlag(self.type)
+        
+        if not hasattr(self, 'fw'):
+            try:    # get system font width
+                self.fw = wx.SystemSettings_GetFont(wx.SYS_DEFAULT_GUI_FONT).GetPointSize()+1
+            except:
+                self.fw = wx.SystemSettings_GetFont(wx.SYS_SYSTEM_FONT).GetPointSize()+1
             
-            self.InsertColumn(0, self.utility.lang.get('name'), format=wx.LIST_FORMAT_CENTER, width=fw*6)
-
-        self.updateAll()
-        self.Show(True)
-
-    def updateAll(self):
-        self.DeleteAllItems() 
+        self.InsertColumn(0, self.utility.lang.get('name'), format=wx.LIST_FORMAT_CENTER, width=self.fw*20)
+        self.loadList()
+        
+    def loadList(self):
         i = 0;
         for friend in self.friends:
-            self.addItem(i,friend)
+            if self.type != wx.LC_REPORT:
+                self.InsertImageStringItem(i,friend['name'],friend['tempiconindex'])
+            else:
+                self.InsertStringItem(i, friend['name'])
             i += 1
-
+        
     def OnActivated(self, event):
         self.parent.editFriend(event)
 
-    def addItem(self,i,friend):
-        if self.type != wx.LC_REPORT:
-            label = friend['name']
-            if not label:
-                label = friend['ip']
-            self.InsertImageStringItem(i,label,friend['tempiconindex'])
-        else:
-            self.InsertStringItem(i, friend['name'])
-
-    def removeFriends(self,itemList):
-        # Assumption: friends in list are in insert-order, i.e., not sorted afterwards!
-        friendList = []
-        # Make sure item ids stay the same during delete
-        itemList.sort()
-        itemList.reverse()
-        for item in itemList:
-            friend = self.friends[item]
-            friendList.append(friend)
-            del self.friends[item]
-            self.DeleteItem(item)
-        return friendList
-
-    def addFriends(self,friendList):
-        flag = 0
-        i = self.GetItemCount()
-        for friend in friendList:
-            for chum in self.friends:
-                if friend['name'] == chum['name']:
-                    flag = 1
-                    break
-            if flag:
-                continue
-            self.friends.append(friend)
-            self.addItem(i,friend)
-            i += 1
-
     def getFriends(self):
         return self.friends
-
 
 ################################################################
 #

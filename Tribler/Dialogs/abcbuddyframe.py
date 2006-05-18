@@ -2,11 +2,14 @@
 # see LICENSE.txt for license information
 
 import wx
+from socket import inet_aton, inet_ntoa
+
 from Tribler.CacheDB.CacheDBHandler import PeerDBHandler, FriendDBHandler, PreferenceDBHandler
 from Tribler.utilities import friendly_time, sort_dictlist
 from Tribler.unicode import str2unicode
 from common import CommonTriblerList
 from managefriends import ManageFriendsPanel
+from Utility.constants import *
 
 DEBUG = False
 
@@ -16,43 +19,49 @@ class TasteBuddyList(CommonTriblerList):
         self.peer_db = parent.peer_db
         self.friend_db = parent.friend_db
         self.pref_db = parent.pref_db
-        CommonTriblerList.__init__(self, parent)
-
-    def getColumns(self):
-        format = wx.LIST_FORMAT_CENTER
-        columns = [
-            ('Friend', format, 5),
-            ('Name', format, 10),
-            ('IP', format, 15),
-            ('Similarity', format, 8),
-            ('Last Seen', format, 15),
-            ('# Preferences', format, 10),
-            ('# Connected', format, 10),
-            ('# Exchanged', format, 10)
-            ]
-        return columns
-
-    def getListKey(self):
-        #return ['friend', 'name', 'ip', 'similarity', 'last_seen', 'npref']
-        return ['friend', 'name', 'ip', 'similarity', 'last_seen', 'npref', 'connected_times', 'buddycast_times']
-
-    def getCurrentOrders(self):
-         return [0, 0, 0, 1,  1, 1, 1, 1]
-
-    def getCurrentSortColumn(self):
-        return 3
-
-    def getMaxNum(self):
-        return 500
         
+        self.utility = parent.utility
+        self.min_rank = -1
+        self.max_rank = 5
+        self.reversesort = 0
+        self.lastcolumnsorted = -1
+        
+        style = wx.LC_REPORT|wx.LC_HRULES|wx.LC_VRULES
+        
+        prefix = 'buddy'
+        minid = 0
+        maxid = 8
+        rightalign = []
+        centeralign = [
+            BUDDY_FRIEND,
+            BUDDY_NAME,
+            BUDDY_IP,
+            BUDDY_SIM,
+            BUDDY_LASTSEEN,
+            BUDDY_NPREF,
+            BUDDY_NCONN,
+            BUDDY_NEXNG,
+        ]
+        
+        exclude = []
+        
+        self.keys = ['friend', 'name', 'ip', 'similarity', 'last_seen', 
+                      'npref', 'connected_times', 'buddycast_times']
+
+        CommonTriblerList.__init__(self, parent, style, prefix, minid, maxid, 
+                                     exclude, rightalign, centeralign)
+                                     
+
     def getText(self, data, row, col):
-        key = self.list_key[col]
+        key = self.keys[col]
         original_data = data[row][key]
         if key == 'friend':
             if original_data:
                 return '*'
             else:
                 return ''
+        if key == 'ip':
+            return inet_ntoa(original_data)
         if key == 'name':
             if original_data == '~':
                 return 'unknown'
@@ -60,11 +69,10 @@ class TasteBuddyList(CommonTriblerList):
             return '%.2f'%(original_data/1000.0)
         if key == 'last_seen':
             if original_data == 0:
-                return 'Never'
+                return '-'
             return friendly_time(original_data)
         return str2unicode(original_data)
-        
-        
+                
     def reloadData(self):
         peer_list = self.peer_db.getPeerList()
         key = ['permid', 'name', 'ip', 'similarity', 'last_seen', 'connected_times', 'buddycast_times']
@@ -75,7 +83,6 @@ class TasteBuddyList(CommonTriblerList):
         tempdata = filter(None, tempdata)        
         self.friend_list = self.friend_db.getFriendList()
 
-        ## Arno: to make GUI updates simpler, don't show friends in peerlist
         self.data = []
         for peer in tempdata:
             if peer['permid']:
@@ -87,10 +94,12 @@ class TasteBuddyList(CommonTriblerList):
                 self.data[i]['name'] = '~'
             self.data[i]['friend'] = permid in self.friend_list
             self.data[i]['npref'] = self.pref_db.getNumPrefs(permid)
+            self.data[i]['ip'] = inet_aton(self.data[i]['ip'])    # for sort
+            
         
     def OnRightClick(self, event=None):
         curr_idx = self.getSelectedItems()
-
+        
         if not hasattr(self, "addFriendID"): 
             self.addFriendID = wx.NewId()
             self.Bind(wx.EVT_MENU, self.OnAddFriend, id=self.addFriendID)
@@ -102,20 +111,21 @@ class TasteBuddyList(CommonTriblerList):
             self.Bind(wx.EVT_MENU, self.OnDeletePeer, id=self.deletePeerID)
             
         menu = wx.Menu()
-        add_friend = False
-        delete_friend = False
+        include_friend = False
+        all_friends = True
         for i in curr_idx:    
             # if all the selected peers have been friend, don't show add menu
-            if not self.data[i]['friend']:
-                add_friend = True
+            if self.data[i]['friend']:
+                include_friend = True
             else:
-                delete_friend = True
+                all_friends = False
                 
-        if add_friend:
+        if not all_friends:
             menu.Append(self.addFriendID, "Add the peer as your friend")
-        if delete_friend:
+            menu.Append(self.deletePeerID, "Delete the peer")
+        if include_friend:
             menu.Append(self.deleteFriendID, "Remove the peer from your friend list")
-        menu.Append(self.deletePeerID, "Delete the peer")
+        
             
         self.PopupMenu(menu, event.GetPosition())
         menu.Destroy()
@@ -124,9 +134,7 @@ class TasteBuddyList(CommonTriblerList):
         selected = self.getSelectedItems()
         for i in selected:
             self.addFriend(i)
-        self.parent.phoenix()
-        self.Update()
-        self.SetFocus()
+        self.parent.updateFriendPanel()
 
     def addFriend(self, curr_idx):
         if not self.data[curr_idx]['friend']:
@@ -134,14 +142,21 @@ class TasteBuddyList(CommonTriblerList):
             self.data[curr_idx]['friend'] = True
             self.SetStringItem(curr_idx, 0, '*')
             self.friend_db.addFriend(permid)
-        self.loadList()
 
     def OnDeleteFriend(self, event=None):
         selected = self.getSelectedItems()
         for i in selected:
             self.deleteFriend(i)
-        self.parent.phoenix()        
+        self.parent.updateFriendPanel()    
 
+    def deleteFriend(self, curr_idx):
+        if self.data[curr_idx]['friend']:
+            peer = self.data[curr_idx]
+            permid = peer['permid']
+            peer['friend'] = False
+            self.SetStringItem(curr_idx, 0, '')
+            self.friend_db.deleteFriend(permid)
+        
     def externalDeleteFriend(self, permid):
         idx = -1
         for i in xrange(len(self.data)):
@@ -151,16 +166,6 @@ class TasteBuddyList(CommonTriblerList):
         if idx > 0:
             self.data[idx]['friend'] = False
             self.SetStringItem(idx, 0, '')
-        else:
-            self.loadList()
-        
-    def deleteFriend(self, curr_idx):
-        if self.data[curr_idx]['friend']:
-            peer = self.data[curr_idx]
-            permid = peer['permid']
-            peer['friend'] = False
-            self.SetStringItem(curr_idx, 0, '')
-            self.friend_db.deleteFriend(permid)
         
     def OnDeletePeer(self, event=None):
         curr_idx = self.getSelectedItems()
@@ -168,120 +173,105 @@ class TasteBuddyList(CommonTriblerList):
         for i in curr_idx:
             permid = self.data[i-j]['permid']
             if self.data[i-j]['friend']:
-                self.friend_db.deleteFriend(permid)
+                continue
             self.peer_db.deletePeer(permid)
             self.DeleteItem(i-j)
             self.data.pop(i-j)
             j += 1
-        self.parent.phoenix()
-        
+
+    def updateView(self, friends):
+        self.loadList(True)
 
 class TasteBuddyPanel(wx.Panel):
-    def __init__(self, frame, parent, page_no):
+    def __init__(self, frame, parent):
         self.parent = parent
         self.frame = frame
-        self.page_no = page_no
+        self.utility = frame.utility
         self.peer_db = frame.peer_db
         self.friend_db = frame.friend_db
         self.pref_db = frame.pref_db
         wx.Panel.__init__(self, parent, -1)
-        
+
         colSizer = wx.BoxSizer(wx.VERTICAL)
-        self.list=TasteBuddyList(self)
+        self.list = TasteBuddyList(self)
         colSizer.Add(self.list, 1, wx.EXPAND|wx.ALL, 5)
-        label = wx.StaticText(self, -1, "Right click on a peer to add as a friend or delete it")
+        label = wx.StaticText(self, -1, self.utility.lang.get('add_friend_notes'))
         colSizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL)
         self.SetSizer(colSizer)
         self.SetAutoLayout(True)
         #self.Fit()
         self.Show(True)
 
-    def phoenix(self):
-        self.frame.phoenix(self.page_no)
+    def updateFriendPanel(self):
+        self.frame.updateFriendPanel()
+        
+    def updateView(self, friends):
+        self.list.updateView(friends)
 
-class ABCBuddyDialog(wx.Dialog):
-    def __init__(self, parent, action):
-        self.parent = parent
-        self.action = action
-        self.utility = self.parent.utility
+    def updateColumns(self, force=False):
+        self.list.loadList(False, False)
 
-        width = 800
-        height = 500
-        self.window_size = wx.Size(width, height)
-        #self.window_size = None
-        style = wx.DEFAULT_DIALOG_STYLE | wx.MAXIMIZE_BOX | wx.MINIMIZE_BOX |wx.RESIZE_BORDER
-        #wx.Dialog.__init__(self, None, -1, self.utility.lang.get('managefriendspeers'), size=wx.Size(width+20, height+60))
-        wx.Dialog.__init__(self, parent, -1, self.utility.lang.get('managefriendspeers'), size = self.window_size, style = style)
-       
+class ABCBuddyFrame(wx.Frame):
+    def __init__(self, parent):
+        self.utility = parent.utility
+        wx.Frame.__init__(self, None, -1, self.utility.lang.get('tb_buddy_short'), 
+                          size=self.utility.frame.buddyFrame_size, 
+                          pos=self.utility.frame.buddyFrame_pos)
+        self.main_panel = self.createMainPanel()
+        self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
+        self.Show()
+
+    def createMainPanel(self):
+        main_panel = wx.Panel(self)
+        
+        notebook = self.createNoteBook(main_panel)
+        bot_box = self.createBottomBoxer(main_panel)
+        
+        mainbox = wx.BoxSizer(wx.VERTICAL)
+        mainbox.Add(self.notebook, 1, wx.EXPAND|wx.ALL, 5)
+        mainbox.Add(bot_box, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 5)
+        main_panel.SetSizer(mainbox)
+        
+        return main_panel
+
+    def loadDatabase(self):
         self.friend_db = FriendDBHandler()
         self.peer_db = PeerDBHandler()
         self.pref_db = PreferenceDBHandler()
-
-        mainbox = wx.BoxSizer(wx.VERTICAL)
-
-        # 1. Topbox contains the notebook
-        topbox = wx.BoxSizer(wx.HORIZONTAL)
-
-        self.notebook = wx.Notebook(self, -1)
-        self.addPanels()
-        topbox.Add(self.notebook, 1, wx.EXPAND|wx.ALL, 5)
-
-        # 2. Bottom box contains "Close" button
-        botbox = wx.BoxSizer(wx.HORIZONTAL)
-
-        button = wx.Button(self, wx.ID_OK, self.utility.lang.get('close'), style = wx.BU_EXACTFIT)
-        #wx.EVT_BUTTON(self, button.GetId(), self.OnCloseWindow)
-        botbox.Add(button, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
-
-        # 3. Pack boxes together
-        mainbox.Add(topbox, 1, wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL, 5)
-        mainbox.Add(botbox, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 5)
-
-        self.SetSizer(mainbox)
-
-        self.SetSize(self.utility.frame.buddyFrame_size)
-        self.SetPosition(self.utility.frame.buddyFrame_pos)
-        #self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
-        ##self.Show()
-
-    def updateBuddy(self):
-        self.tasteBuddyPanel.list.loadList()
         
-    def deleteFriend(self, permid):
-        self.tasteBuddyPanel.list.externalDeleteFriend(permid)
+    def createNoteBook(self, main_panel):
+        self.loadDatabase()
+        self.notebook = wx.Notebook(main_panel, -1)
         
-#    def OnCloseWindow(self, event = None):
-#        self.Close()
-
-    def addPanels(self):
-        self.addFriendsPanel()
-        self.addPeerPanel()
-        self.notebook.SetSelection(self.parent.buddyFrame_page)
+        self.friendsPanel = ManageFriendsPanel(self.notebook, self.utility, self)
+        self.tasteBuddyPanel = TasteBuddyPanel(self, self.notebook)
         
-    def addFriendsPanel(self):
-        self.friendsPanel = ManageFriendsPanel(self.notebook, self.utility, self, 0)
-        self.notebook.InsertPage(0,self.friendsPanel, self.utility.lang.get('managefriends'))
+        self.notebook.InsertPage(0, self.friendsPanel, self.utility.lang.get('managefriends'))
+        self.notebook.InsertPage(1, self.tasteBuddyPanel, self.utility.lang.get('viewpeerlist'))
+        
+    def createBottomBoxer(self, main_panel):
+        bot_box = wx.BoxSizer(wx.HORIZONTAL)
+        button = wx.Button(main_panel, -1, self.utility.lang.get('close'), style = wx.BU_EXACTFIT)
+        self.Bind(wx.EVT_BUTTON, self.OnCloseWindow, button)
+        bot_box.Add(button, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+        return bot_box
 
-    def addPeerPanel(self):
-        self.tasteBuddyPanel = TasteBuddyPanel(self, self.notebook, 1)
-        self.notebook.InsertPage(1,self.tasteBuddyPanel, self.utility.lang.get('viewpeerlist'))
-
-    def reaction(self):
-        """ Called by ManageFriendsPanel"""
-        self.phoenix(self.friendsPanel.page_no)
-
-    def phoenix(self, page=0):
-        """ Easiest way of keeping the info presented to the user up to date:
-            build a new window
-        """
-        #self.EndModal(wx.ID_OK)
-        self.utility.frame.buddyFrame_page = page
-        self.utility.frame.buddyFrame = None
+    def updateMyPref(self):    # used by buddy List
+        self.myPreferencePanel.list.loadList()
+        
+    def OnCloseWindow(self, event = None):
         self.utility.frame.buddyFrame_size = self.GetSize()
         self.utility.frame.buddyFrame_pos = self.GetPosition()
-        self.Destroy()
-        self.action.reaction()
-
-    def OnClose(self, event=None):
-        self.utility.frame.buddyFrame_rect = self.GetClientRect()
+        self.utility.frame.buddyFrame = None
+        self.utility.abcbuddyframe = None
         
+        self.Destroy()        
+        
+    def externalDeleteFriend(self, permid):    # keep update if user deletes 
+        self.tasteBuddyPanel.list.externalDeleteFriend(permid)
+        
+    def updateFriendPanel(self):
+        self.friendsPanel.updateView(updateBuddyFrame=False)
+        
+    def updateBuddyPanel(self, friends):
+        self.tasteBuddyPanel.updateView(friends)

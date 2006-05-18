@@ -6,7 +6,7 @@ from shutil import copy, move
 from Dialogs.aboutme import AboutMeDialog, VersionDialog
 from Dialogs.abcoption import ABCOptionDialog
 from Dialogs.localupload import LocalSettingDialog
-from Tribler.Dialogs.abcbuddyframe import ABCBuddyDialog
+from Tribler.Dialogs.abcbuddyframe import ABCBuddyFrame
 from Tribler.Dialogs.abcfileframe import ABCFileFrame
 from Tribler.Dialogs.managefriends import MyInfoDialog
 from webservice import WebDialog
@@ -297,8 +297,7 @@ class BuddiesAction(ABCAction):
                            
     def action(self, event = None):
         if self.utility.frame.buddyFrame is None:
-            self.utility.frame.buddyFrame = ABCBuddyDialog(self.utility.frame,self)
-            self.utility.frame.buddyFrame.Show()
+            self.utility.frame.buddyFrame = ABCBuddyFrame(self.utility.frame)
         else:
             self.utility.frame.buddyFrame.SetFocus()
             self.utility.frame.buddyFrame.Show()

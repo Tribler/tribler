@@ -342,9 +342,9 @@ class ABCFrame(wx.Frame,DelayedInvocation):
         self.buddyFrame = None
         self.fileFrame = None
         self.buddyFrame_page = 0
-        self.buddyFrame_size = None
+        self.buddyFrame_size = (800, 500)
         self.buddyFrame_pos = None
-        self.fileFrame_size = None
+        self.fileFrame_size = (800, 500)
         self.fileFrame_pos = None
         
         # Menu Events 

@@ -133,6 +133,28 @@ TORRENT_NLEECHERS = 8
 TORRENT_NSEEDERS = 9
 
 #
+# Constants used for my preference list
+#
+MYPREF_TORRENTNAME = 0
+MYPREF_CONTENTNAME = 1
+MYPREF_RANK = 2
+MYPREF_SIZE = 3
+MYPREF_LASTSEEN = 4
+
+#
+# Constants used for taste buddy list
+#
+BUDDY_FRIEND = 0
+BUDDY_NAME = 1
+BUDDY_IP = 2
+BUDDY_SIM = 3
+BUDDY_LASTSEEN = 4
+BUDDY_NPREF = 5
+BUDDY_NCONN = 6
+BUDDY_NEXNG = 7
+
+
+#
 # Constants used for my download history list
 #
 HISTORY_TORRENTNAME = 0

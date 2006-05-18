@@ -7,10 +7,36 @@ import sys
 from traceback import print_exc
 
 from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
-from managefriends import FriendList, createImageList
+from managefriends import createImageList
 
 DEBUG = False
 
+
+def _createImageList(utility,friends):
+    if len(friends) == 0:
+        return None
+    height = 0
+    width = 0
+    list = []
+    for friend in friends:
+        if friend['name'] is not None:
+            filename = nickname2iconfilename(utility, friend['name'])
+            if not os.access(filename, os.F_OK):
+                # fallback name, don't use nickname2... here
+                filename = os.path.join(utility.getPath(), 'icons', 'joe32.bmp')
+            bm = wx.Bitmap(filename,wx.BITMAP_TYPE_BMP)
+            if bm.GetWidth() > width:
+                width = bm.GetWidth()
+            if bm.GetHeight() > height:
+                height = bm.GetHeight()
+            list.append(bm)
+    imgList = wx.ImageList(width,height)
+    for bm in list:
+        imgList.Add(bm)
+    return imgList
+
+def nickname2iconfilename(utility,name):
+    return os.path.join(utility.getConfigPath(), 'icons', name+'.bmp')
 
 ################################################################
 #
@@ -162,3 +188,91 @@ class DownloadHelperPanel(wx.Panel):
 
     def editFriend(self, event = None):
         pass
+
+################################################################
+#
+# Class: FriendList
+#
+# ListCtrl for managing friends
+#
+################################################################
+class FriendList(wx.ListCtrl):
+    def __init__(self, parent, friends, type, imgList):
+
+        self.type = type
+        self.imgList = imgList
+        style = wx.VSCROLL|wx.SIMPLE_BORDER|self.type|wx.LC_VRULES|wx.CLIP_CHILDREN
+        if (sys.platform == 'win32'):
+            style |= wx.LC_ALIGN_TOP
+        wx.ListCtrl.__init__(self, parent, -1, style=style)
+        self.SetMinSize(wx.Size(200, 300))
+
+        self.parent = parent
+        self.friends = friends
+        self.utility = parent.utility
+
+        self.SetImageList(imgList,wx.IMAGE_LIST_SMALL)
+        self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnActivated)
+        self.loadList()
+
+    def loadList(self):
+        if self.type == wx.LC_REPORT:
+            try:    # get system font width
+                fw = wx.SystemSettings_GetFont(wx.SYS_DEFAULT_GUI_FONT).GetPointSize()+1
+            except:
+                fw = wx.SystemSettings_GetFont(wx.SYS_SYSTEM_FONT).GetPointSize()+1
+            
+            self.InsertColumn(0, self.utility.lang.get('name'), format=wx.LIST_FORMAT_CENTER, width=fw*6)
+
+        self.updateAll()
+        self.Show(True)
+
+    def updateAll(self):
+        self.DeleteAllItems() 
+        i = 0;
+        for friend in self.friends:
+            self.addItem(i,friend)
+            i += 1
+
+    def OnActivated(self, event):
+        self.parent.editFriend(event)
+
+    def addItem(self,i,friend):
+        if self.type != wx.LC_REPORT:
+            label = friend['name']
+            if not label:
+                label = friend['ip']
+            self.InsertImageStringItem(i,label,friend['tempiconindex'])
+        else:
+            self.InsertStringItem(i, friend['name'])
+
+    def removeFriends(self,itemList):
+        # Assumption: friends in list are in insert-order, i.e., not sorted afterwards!
+        friendList = []
+        # Make sure item ids stay the same during delete
+        itemList.sort()
+        itemList.reverse()
+        for item in itemList:
+            friend = self.friends[item]
+            friendList.append(friend)
+            del self.friends[item]
+            self.DeleteItem(item)
+        return friendList
+
+    def addFriends(self,friendList):
+        flag = 0
+        i = self.GetItemCount()
+        for friend in friendList:
+            for chum in self.friends:
+                if friend['name'] == chum['name']:
+                    flag = 1
+                    break
+            if flag:
+                continue
+            self.friends.append(friend)
+            self.addItem(i,friend)
+            i += 1
+
+    def getFriends(self):
+        return self.friends
+    

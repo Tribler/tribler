@@ -19,7 +19,8 @@ class BasicDBHandler:
             # before these __del__ statements. tribler_done() closes the
             # databases, so this indirect call to db._sync() will throw
             # an exception saying the database has already been closed.
-            print_exc()
+            pass
+            #print_exc()
         
     def size(self):
         return self.dbs[0]._size()
@@ -128,7 +129,6 @@ class FriendDBHandler(BasicDBHandler):
             self.peer_db.updateItem(permid, friend, update_time=False)
             self.peer_db._sync()
             
-            
     def getFriendList(self):
         return self.my_db.getFriends()
             
@@ -145,6 +145,9 @@ class FriendDBHandler(BasicDBHandler):
     def deleteFriend(self,permid):
         self.my_db.deleteFriend(permid)
         self.my_db._sync()  
+        
+    def updateFriendIcon(self, permid, icon_path):
+        self.peer_db.updatePeer(permid, 'icon', icon_path)
         
 class PeerDBHandler(BasicDBHandler):
     
@@ -393,17 +396,16 @@ class TorrentDBHandler(BasicDBHandler):
         return values
         
     def getNoMetaTorrents(self):    # get the list of torrents which only have an infohash without the metadata
-        def checkFile(key):
+        def hasNoTorrentFile(key):
             data = self.torrent_db._get(key)
-            if not data:
+            if not data:    # if no record, ignore
                 return False
-            if not data['torrent_name'] or not data['info']:
+            if not data['torrent_name'] or not data['info']:    # if no info, selected
                 return True
-            src = os.path.join(data['torrent_dir'], data['torrent_name'])
-            return not os.path.isfile(src)
+            return False    # if has info but no file, it means the torrent file has been removed. ignore
         
         all_keys = self.torrent_db._keys()
-        no_metadata_list = filter(checkFile, all_keys)
+        no_metadata_list = filter(hasNoTorrentFile, all_keys)
         return no_metadata_list
         
     def hasMetaData(self, infohash):

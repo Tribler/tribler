@@ -10,7 +10,7 @@ import wx
 import wx.lib.imagebrowser as ib
 from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
 from Tribler.Overlay.permid import permid_for_user
-import managefriends
+#from dlhelperframe import nickname2iconfilename
 
 DEBUG = False
 
@@ -147,7 +147,7 @@ class MakeFriendsDialog(wx.Dialog):
         btn = wx.Button(self, wx.ID_OK, label=lbl)
         btn.SetDefault()
         btnsizer.AddButton(btn)
-        self.Bind(wx.EVT_BUTTON, self.OnAddFriend, btn)
+        self.Bind(wx.EVT_BUTTON, self.OnAddEditFriend, btn)
 
         btn = wx.Button(self, wx.ID_CANCEL)
         btnsizer.AddButton(btn)
@@ -158,7 +158,7 @@ class MakeFriendsDialog(wx.Dialog):
         self.SetSizer(sizer)
         sizer.Fit(self)
         
-    def OnAddFriend(self, evn):
+    def OnAddEditFriend(self, event):
         name = self.name_text.GetValue()
         ip = str(self.ip_text.GetValue())
         b64permid = str(self.permid_text.GetValue())
@@ -192,31 +192,30 @@ class MakeFriendsDialog(wx.Dialog):
                     self.show_inputerror( 'Icon file is not BMP' )
                     return
                     
-                # All good
-                try:
-                    copy2(os.path.normpath(icon), managefriends.nickname2iconfilename(self.utility,name))
-                except:
-                    print_exc()
-                icon = ''
+#                # All good
+#                try:
+#                    copy2(os.path.normpath(icon), nickname2iconfilename(self.utility,name))
+#                except:
+#                    print_exc()
 
             fdb = FriendDBHandler()
             friend = {'permid':permid, 'ip':ip, 'port':port, 'name':name, 'icon':icon}
             if self.editfriend is not None:
                 if self.editfriend['permid'] != permid:
                     fdb.deleteFriend(self.editfriend['permid'])
-                elif self.editfriend['name'] != name:
-                    # Renamed the dude, rename icon as well, if present
-                    oldfilename = managefriends.nickname2iconfilename(self.utility,self.editfriend['name'])
-                    newfilename = managefriends.nickname2iconfilename(self.utility,name)
-                    try:
-                        if os.path.exists(oldfilename):
-                            os.rename(oldfilename,newfilename)
-                    except:
-                        print_exc()
-                        pass
-
+#                elif self.editfriend['name'] != name:
+#                    # Renamed the dude, rename icon as well, if present
+#                    oldfilename = nickname2iconfilename(self.utility,self.editfriend['name'])
+#                    newfilename = nickname2iconfilename(self.utility,name)
+#                    try:
+#                        if os.path.exists(oldfilename):
+#                            os.rename(oldfilename,newfilename)
+#                    except:
+#                        print_exc()
+#                        pass
             fdb.addExternalFriend(friend)
-            self.EndModal(wx.ID_OK)
+            event.Skip()    # must be done, otherwise ShowModal() returns wrong error 
+            self.Destroy()
         
     def OnIconButton(self, evt):
         # get current working directory
@@ -244,37 +243,3 @@ class MakeFriendsDialog(wx.Dialog):
         dlg.ShowModal()
         dlg.Destroy()
 
-
-        
-class FriendList(wx.ListCtrl):
-    def __init__(self, parent):
-        self.parent = parent
-        self.utility = parent.utility
-        style = wx.LC_REPORT|wx.LC_VRULES|wx.CLIP_CHILDREN
-        wx.ListCtrl.__init__(self, parent, -1, size=wx.Size(300, 200), style=style)
-        
-       
-if __name__ == "__main__":
-    class Utility:
-        lang = {'makefriend':" Make Friend"}
-
-    class TestFrame(wx.Frame):
-        def __init__(self):
-            self.utility = Utility()
-            size = wx.Size(800, 500)
-            wx.Frame.__init__(self, None, -1, "Test Frame", wx.DefaultPosition, size)
-           
-            self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
-            dialog = MakeFriendsDialog(self)
-            dialog.ShowModal()
-            self.Destroy()
-
-        def OnCloseWindow(self, event = None):
-            self.EndModal(wx.ID_OK)     
-
-if __name__ == '__main__':
-    app = wx.PySimpleApp()
-    frame = TestFrame()
-#    frame = wx.Frame(None, -1).Show()
-    app.MainLoop()
-        

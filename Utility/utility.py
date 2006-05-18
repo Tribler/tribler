@@ -285,12 +285,21 @@ class Utility:
             'fileinfo5_width': '200', 
             'fileinfo6_rank': '-1', # ED2K Hash
             'fileinfo6_width': '200', 
+            # Tribler File List
             'torrent0_rank': '-1',
             'torrent8_rank': '-1',
             'torrent9_rank': '-1',
             'torrent_num': '500',
             'torrent_sortedcolumn': '2',
             'torrent_reversesort': '1',
+            # My Preference List
+            'mypref_sortedcolumn': '2',
+            'mypref_reversesort': '1',
+            # Peer List
+            'buddy_sortedcolumn': '4',
+            'buddy_reversesort': '1',
+            'buddy_num': '500',
+
             'color_startup': '000000000', 
             'color_disconnected': '100100100', 
             'color_noconnections': '200000000', 

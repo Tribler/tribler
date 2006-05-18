@@ -497,7 +497,7 @@ maxconnectionhint_line5 = "If the client freezes, try setting this to 60 or belo
 
 
 
-recommendinstructions = "  Double click on a torrent to start downloading; right click to delete or show details of the torrent"
+recommendinstructions = "Double click on a torrent to start downloading; right click to delete or show details of the torrent"
 recommendfilter = "Don't show torrents with recommendation value less than"
 recommendfilterall = "(set to 0.0 to see all known torrents)"
 
@@ -945,4 +945,33 @@ torrent7_text	= "Tracker"
 torrent8_text	= "# Leechers"
 torrent9_text	= "# Seeders"
 
+#############
+#My Preference List
+#############
+mypref0_text	= "Torrent Name"
+mypref1_text	= "Content Name"
+mypref2_text	= "Rank"
+mypref3_text	= "Size"
+mypref4_text	= "Last Seen"
+
+#############
+#Taste Buddy List
+#############
+buddy0_text	= "Friend"
+buddy1_text = "Name"
+buddy2_text = "IP"
+buddy3_text = "Similarity"
+buddy4_text = "Last Seen"
+buddy5_text = "#downloads"
+buddy6_text = "#Connnected"
+buddy7_text = "#Exchanged"
+
+#############
+#Tribler UI
+#############
 configcolumns = "Configure Columns"
+file_list_title = "Recommended Torrents"
+mypref_list_title = "My Download History"
+click_download = "Click and Download"
+start_downloading = "Start downloading "
+add_friend_notes = "Right click on a peer to add as a friend or delete it"

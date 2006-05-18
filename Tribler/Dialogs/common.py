@@ -26,7 +26,14 @@ def sort_dictlist(dict_list, key, order='increase'):
     return [dict_list[i] for x, i in aux]
 
 
-class CommonTriblerList2(ManagedList):
+class CommonTriblerList(ManagedList):
+    """ 
+    0. Give a unique prefix
+    1. IDs in rightalign and centeralign must be set in Utility.constants;
+    2. Column labels must be set in the language file;
+    3. To set default values, modify Utility.utility.setupConfig()
+    """
+    
     def __init__(self, parent, style, prefix, minid, maxid, exclude = [], rightalign = [], centeralign = []):
         self.parent = parent
         self.utility = parent.utility
@@ -35,7 +42,7 @@ class CommonTriblerList2(ManagedList):
         
         self.data = []
         self.lastcolumnsorted, self.reversesort = self.columns.getSortedColumn()
-        self.num = self.getMaxNum()
+        self.num = self.getMaxNum()    # max num of lines to show
 
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnRightClick)
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnActivated)
@@ -43,18 +50,6 @@ class CommonTriblerList2(ManagedList):
         
         self.loadList()
                     
-    def getListKey(self):
-        pass
-                    
-    def getColumns(self):
-        pass
-    
-    def getCurrentSortColumn(self):
-        return self.lastcolumnsorted
-    
-    def getCurrentOrders(self):
-        return self.reversesort
-            
     def getMaxNum(self):
         return self.utility.config.Read(self.prefix + "_num", "int")
             
@@ -93,10 +88,10 @@ class CommonTriblerList2(ManagedList):
         self.loadList(reload=False, sorted=True)
         
     def reloadData(self):
-        pass
+        raise
 
     def getText(self, data, row, col):
-        return str(data[row][col])
+        raise
         
     def loadList(self, reload=True, sorted=True):
 
@@ -111,11 +106,10 @@ class CommonTriblerList2(ManagedList):
             key = self.keys[self.lastcolumnsorted]
             self.data = sort_dictlist(self.data, key, self.reversesort)
             
-        if self.num <= 0 or self.num>len(self.data):
-            num = len(self.data)
-        else:
+        num = len(self.data)
+        if self.num > 0 and self.num < num:
             num = self.num
-        
+            
         self.DeleteAllItems() 
         
         first_col = active_columns[0][0]
