@@ -7,7 +7,7 @@ import os
 from base64 import encodestring
 from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler
 from Tribler.utilities import friendly_time, sort_dictlist
-from Tribler.unicode import str2unicode
+from Tribler.unicode import str2unicode, dunno2unicode
 from common import CommonTriblerList, CommonTriblerList2
 from Utility.constants import * #IGNORE:W0611
 
@@ -436,10 +436,10 @@ class FileList2(CommonTriblerList2):
         for i in xrange(len(self.data)):
             info = self.data[i]['info']
             self.data[i]['length'] = info.get('length', 0)
-            self.data[i]['content_name'] = info.get('name', 'unknown')
+            self.data[i]['content_name'] = dunno2unicode(info.get('name', 'unknown'))
             if self.data[i]['torrent_name'] == '':
                 self.data[i]['torrent_name'] = 'unknown'
-            self.data[i]['content_name'] = info.get('name', 'unknown')
+#            self.data[i]['content_name'] = info.get('name', 'unknown')
 #            self.data[i]['seeder'] = -1
 #            self.data[i]['leecher'] = -1
             self.data[i]['num_files'] = int(info.get('num_files', 0))
@@ -473,6 +473,8 @@ class FileList2(CommonTriblerList2):
         
     def OnActivated(self, event):
         self.curr_idx = event.m_itemIndex
+        #name = self.data[self.curr_idx]['content_name']
+        #print "name type is",type(name)
         src = os.path.join(self.data[self.curr_idx]['torrent_dir'], self.data[self.curr_idx]['torrent_name'])
         if os.path.isfile(src):
             if self.data[self.curr_idx]['content_name']:

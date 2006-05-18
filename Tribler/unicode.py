@@ -32,6 +32,18 @@ def str2unicode(s):
                 pass
     return s
 
+def dunno2unicode(dunno):
+    newdunno = None
+    if isinstance(dunno,unicode):
+        newdunno = dunno
+    else:
+        try:
+            newdunno = bin2unicode(dunno)
+        except:
+            newdunno = str2unicode(dunno)
+    return newdunno
+
+
 def name2unicode(metadata):
     if metadata['info'].has_key('name.utf-8'):
         namekey = 'name.utf-8'
