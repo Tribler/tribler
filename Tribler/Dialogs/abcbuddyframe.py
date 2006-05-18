@@ -61,7 +61,11 @@ class TasteBuddyList(CommonTriblerList):
             else:
                 return ''
         if key == 'ip':
-            return inet_ntoa(original_data)
+            try:
+                ip = inet_ntoa(original_data)
+            except:
+                ip = original_data
+            return ip
         if key == 'name':
             if original_data == '~':
                 return 'unknown'
@@ -94,7 +98,11 @@ class TasteBuddyList(CommonTriblerList):
                 self.data[i]['name'] = '~'
             self.data[i]['friend'] = permid in self.friend_list
             self.data[i]['npref'] = self.pref_db.getNumPrefs(permid)
-            self.data[i]['ip'] = inet_aton(self.data[i]['ip'])    # for sort
+            try:
+                ip = inet_aton(self.data[i]['ip'])
+            except:
+                ip = self.data[i]['ip']
+            self.data[i]['ip'] = ip    # for sort
             
         
     def OnRightClick(self, event=None):
