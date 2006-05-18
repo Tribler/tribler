@@ -351,28 +351,18 @@ class TorrentDBHandler(BasicDBHandler):
         return torrents
         
     def getRecommendedTorrents(self, keys):     # for abcfileframe
-        if 'num_owners' in keys:
-            num_owners = True
-        else:
-            num_owners = False
-        if 'infohash' in keys:
-            infohash = True
-            keys.remove('infohash')
-        else:
-            infohash = False
         all_list = list(Set(self.torrent_db._keys()) - Set(self.mypref_db._keys()))
         torrents = []
         for torrent in all_list:
             p = self.torrent_db.getItem(torrent, default=True)
             if not p or not p['torrent_name'] or not p['info']:
                 continue
-            if num_owners:
-                p['num_owners'] = self.owner_db.getNumOwners(torrent)
-            if infohash:
-                p['infohash'] = torrent
+            p['infohash'] = torrent
             torrents.append(p)
+        for i in range(len(torrents)):
+            torrents[i]['num_owners'] = self.owner_db.getNumOwners(torrents[i]['infohash'])
         return torrents
-        
+
     def hasTorrent(self, infohash):
         return self.torrent_db._has_key(infohash)
             
