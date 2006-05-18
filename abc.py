@@ -537,7 +537,10 @@ class ABCFrame(wx.Frame,DelayedInvocation):
             else:
                 print "abc: onSize: None"
         self.setGUIupdate(True)
-            
+        if event is not None:
+            event.Skip()
+
+
     def getWindowSettings(self):
         width = self.utility.config.Read("window_width")
         height = self.utility.config.Read("window_height")
