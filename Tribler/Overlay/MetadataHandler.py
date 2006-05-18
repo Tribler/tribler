@@ -11,6 +11,7 @@ from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
 from Tribler.utilities import isValidInfohash, show_permid
 from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler
+from Tribler.unicode import name2unicode
 
 # Python no recursive imports?
 # from overlayswarm import overlay_infohash
@@ -137,13 +138,14 @@ class MetadataHandler:
     def addTorrentToDB(self, src, torrent_hash, metadata):
         
         metainfo = bdecode(metadata)
+        namekey = name2unicode(metainfo)  # convert info['name'] to type(unicode)
         info = metainfo['info']
         
         torrent = {}
         torrent['torrent_dir'], torrent['torrent_name'] = os.path.split(src)
         
         torrent_info = {}
-        torrent_info['name'] = info.get('name', '')
+        torrent_info['name'] = info.get(namekey, '')
         length = 0
         nf = 0
         if info.has_key('length'):

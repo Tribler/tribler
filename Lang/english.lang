@@ -747,6 +747,8 @@ download_normal 	= "Download &Normally"
 download_never 		= "Download Ne&ver"
 download_later 		= "Download &Later"
 download_first 		= "Download &First"
+download_start		= "Start downloading"
+click_and_download	= "Click and Download"
 
 ###
 # Abbreviations in the status bar:

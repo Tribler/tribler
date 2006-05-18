@@ -31,3 +31,24 @@ def str2unicode(s):
             except:
                 pass
     return s
+
+def name2unicode(metadata):
+    if metadata['info'].has_key('name.utf-8'):
+        namekey = 'name.utf-8'
+    else:
+        namekey = 'name'
+    if metadata.has_key('encoding'):
+        encoding = metadata['encoding']
+        try:
+            metadata['info'][namekey] = metadata['info'][namekey].decode(encoding)
+        except:
+            metadata['info'][namekey] = bin2unicode(metadata['info'][namekey])
+    else:
+        metadata['info'][namekey] = bin2unicode(metadata['info'][namekey])
+
+    # change metainfo['info']['name'] to metainfo['info'][namekey], just in case...
+    # roer888 TODO: Never tested the following 2 lines 
+    if namekey != 'name':
+        metadata['info']['name'] = metadata['info'][namekey ]
+
+    return namekey

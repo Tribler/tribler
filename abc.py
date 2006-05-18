@@ -2,7 +2,7 @@
 
 #########################################################################
 #
-# Author : Choopan RATTANAPOKA
+# Author : Choopan RATTANAPOKA, Jie Yang, Arno Bakker
 #
 # Description : Main ABC [Yet Another Bittorrent Client] python script.
 #               you can run from source code by using
@@ -531,6 +531,11 @@ class ABCFrame(wx.Frame,DelayedInvocation):
         # I switch back, I don't get an event. As a result the GUIupdate
         # remains turned off. The wxWidgets wiki on the TaskBarIcon suggests
         # catching the onSize event. 
+        if DEBUG:
+            if event is not None:
+                print "abc: onSize:",event.GetSize()
+            else:
+                print "abc: onSize: None"
         self.setGUIupdate(True)
             
     def getWindowSettings(self):

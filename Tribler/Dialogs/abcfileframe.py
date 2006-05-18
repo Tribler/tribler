@@ -479,9 +479,9 @@ class FileList2(CommonTriblerList2):
                 name = self.data[self.curr_idx]['content_name']
             else:
                 name = showInfoHash(self.data[self.curr_idx]['infohash'])
-            str = "Start downloading " + name + "?"
+            str = self.utility.lang.get('download_start') + u' ' + name + u'?'
             dlg = wx.MessageDialog(self, str,
-                                   'Click and Download',
+                                   self.utility.lang.get('click_and_download'),
                                    #wx.OK | wx.ICON_INFORMATION
                                    wx.YES_NO | wx.NO_DEFAULT | wx.ICON_INFORMATION
                                    )

@@ -17,7 +17,7 @@ from ABC.Torrent.dialogs import TorrentDialogs
 from ABC.Torrent.status import TorrentStatus
 
 from Utility.constants import * #IGNORE:W0611
-from Tribler.unicode import bin2unicode
+from Tribler.unicode import name2unicode
 
 from time import time
 
@@ -74,29 +74,15 @@ class ABCTorrent:
         self.torrentconfig = TorrentConfig(self)
              
         # check for unicode name
-        if self.metainfo['info'].has_key('name.utf-8'):
-            self.namekey = 'name.utf-8'
-        else:
-            self.namekey = 'name'
-        if self.metainfo.has_key('encoding'):
-            encoding = self.metainfo['encoding']
-            try:
-                self.metainfo['info'][self.namekey] = self.metainfo['info'][self.namekey].decode(encoding)
-            except:
-                self.metainfo['info'][self.namekey] = bin2unicode(self.metainfo['info'][self.namekey])
-        else:
-            self.metainfo['info'][self.namekey] = bin2unicode(self.metainfo['info'][self.namekey])
-                
+        self.namekey = name2unicode(self.metainfo)
+
         # Check for valid windows filename
         if sys.platform == 'win32':
             fixedname = self.utility.fixWindowsName(self.metainfo['info'][self.namekey])
             if fixedname: 
                 self.metainfo['info'][self.namekey] = fixedname
-                
-        # change metainfo['info']['name'] to metainfo['info'][self.namekey], just in case...
-        # TODO: Never tested the following 2 lines 
-        if self.namekey != 'name':
-            self.metainfo['info']['name'] = self.metainfo['info'][self.namekey ]
+                # Arno: see name2unicode
+                self.metainfo['info']['name'] = fixedname
         
         self.info = self.metainfo['info']
 
