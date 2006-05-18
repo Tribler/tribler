@@ -3,7 +3,6 @@
 
 import wx
 from ABC.GUI.list import ManagedList
-from tmp import CommonTriblerList
 
 def sort_dictlist(dict_list, key, order='increase'):
     
