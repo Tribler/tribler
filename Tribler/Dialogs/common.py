@@ -47,7 +47,7 @@ class CommonTriblerList(ManagedList):
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnActivated)
         self.Bind(wx.EVT_LIST_COL_CLICK, self.OnColClick)
         
-        self.loadList()
+        #self.loadList()
                     
     def getMaxNum(self):
         return self.utility.config.Read(self.prefix + "_num", "int")
@@ -93,7 +93,6 @@ class CommonTriblerList(ManagedList):
         raise
         
     def loadList(self, reload=True, sorted=True):
-
         active_columns = self.columns.active
         if not active_columns:
             return

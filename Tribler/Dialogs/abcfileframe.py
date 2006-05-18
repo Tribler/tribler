@@ -11,6 +11,7 @@ from Tribler.unicode import str2unicode, dunno2unicode
 from common import CommonTriblerList
 from Utility.constants import * #IGNORE:W0611
 
+
 DEBUG = False
 SHOW_TORRENT_NAME = True
 
@@ -91,7 +92,7 @@ class MyPreferenceList(CommonTriblerList):
                 
     def OnActivated(self, event):
         self.curr_idx = event.m_itemIndex
-        print "mypref list: on active", self.curr_idx
+        
         
     def getMenuItems(self, min_rank, max_rank):
         menu_items = {}
@@ -216,8 +217,8 @@ class MyPreferencePanel(wx.Panel):
         mainbox.Add(label, 0, wx.ALIGN_CENTER_VERTICAL)
         self.SetSizer(mainbox)
         self.SetAutoLayout(True)
-        #self.Fit()
         self.Show(True)
+        self.list.loadList()
 
     def updateColumns(self, force=False):
         self.list.loadList(False, False)
@@ -285,19 +286,18 @@ class FileList(CommonTriblerList):
         return str2unicode(original_data)
         
     def reloadData(self):
-        def checkFile(data):
+        def showFile(data):
             if data['relevance'] < self.relevance_threshold or \
                 not data['torrent_name'] or not data['info']:
                 return False
             src = os.path.join(data['torrent_dir'], data['torrent_name'])
             return os.path.isfile(src)
         
-        torrent_list = self.torrent_db.getOthersTorrentList(sorted=False)
         key = ['infohash', 'torrent_name', 'torrent_dir', 'relevance', 'info', 
                 'num_owners', 'leecher', 'seeder']
-        self.data = self.torrent_db.getTorrents(torrent_list, key)
-        self.data = filter(checkFile, self.data)
-
+        self.data = self.torrent_db.getRecommendedTorrents(key)
+        self.data = filter(showFile, self.data)
+        
         for i in xrange(len(self.data)):
             info = self.data[i]['info']
             self.data[i]['length'] = info.get('length', 0)
@@ -311,6 +311,7 @@ class FileList(CommonTriblerList):
             self.data[i]['tracker'] = info.get('announce', '')
             self.data[i]['leecher'] = self.data[i].get('leecher', 0)
             self.data[i]['seeder'] = self.data[i].get('seeder', 0)
+        
                 
     def OnDeleteTorrent(self, event=None):
         selected = self.getSelectedItems()
@@ -327,23 +328,41 @@ class FileList(CommonTriblerList):
         if not hasattr(self, "deleteTorrentID"):
             self.deleteTorrentID = wx.NewId()
             self.Bind(wx.EVT_MENU, self.OnDeleteTorrent, id=self.deleteTorrentID)
+        if not hasattr(self, "downloadTorrentID"):
+            self.downloadTorrentID = wx.NewId()
+            self.Bind(wx.EVT_MENU, self.OnDownload, id=self.downloadTorrentID)
             
         # menu for change torrent's rank
         sm = wx.Menu()
-        sm.Append(self.deleteTorrentID, 'Delete')
+        sm.Append(self.deleteTorrentID, self.utility.lang.get('delete'))
+        sm.Append(self.downloadTorrentID, self.utility.lang.get('download'))
         
         self.PopupMenu(sm, event.GetPosition())
         sm.Destroy()
         
     def OnActivated(self, event):
         self.curr_idx = event.m_itemIndex
-        src = os.path.join(self.data[self.curr_idx]['torrent_dir'], 
-                            self.data[self.curr_idx]['torrent_name'])
+        self.download(self.curr_idx)
+        
+    def OnDownload(self, event):
+        first_idx = self.GetFirstSelected()
+        if first_idx < 0:
+            return
+        self.download(first_idx)
+        while 1:
+            idx = self.GetNextSelected(first_idx)
+            if idx < 0:
+                break
+            self.download(idx)
+        
+    def download(self, idx):
+        src = os.path.join(self.data[idx]['torrent_dir'], 
+                            self.data[idx]['torrent_name'])
         if os.path.isfile(src):
-            if self.data[self.curr_idx]['content_name']:
-                name = self.data[self.curr_idx]['content_name']
+            if self.data[idx]['content_name']:
+                name = self.data[idx]['content_name']
             else:
-                name = showInfoHash(self.data[self.curr_idx]['infohash'])
+                name = showInfoHash(self.data[idx]['infohash'])
             #start_download = self.utility.lang.get('start_downloading')
             #str = name + "?"
             str = self.utility.lang.get('download_start') + u' ' + name + u'?'
@@ -353,12 +372,12 @@ class FileList(CommonTriblerList):
             result = dlg.ShowModal()
             dlg.Destroy()
             if result == wx.ID_YES:
-                src = os.path.join(self.data[self.curr_idx]['torrent_dir'], 
-                                    self.data[self.curr_idx]['torrent_name'])
+                src = os.path.join(self.data[idx]['torrent_dir'], 
+                                    self.data[idx]['torrent_name'])
                 if os.path.isfile(src):
                     self.parent.clickAndDownload(src)
-                    self.DeleteItem(self.curr_idx)
-                    del self.data[self.curr_idx]
+                    self.DeleteItem(idx)
+                    del self.data[idx]
                     self.parent.frame.updateMyPref()
 
     def setRelevanceThreshold(self,value):
@@ -413,7 +432,6 @@ class FilePanel(wx.Panel):
         
         botbox.Add(relev_box, 1, wx.EXPAND|wx.ALL, 5)
         return botbox
-                
 
     def updateFileList(self,relevance_threshold=0):
         self.list.setRelevanceThreshold(relevance_threshold)
@@ -437,9 +455,11 @@ class ABCFileFrame(wx.Frame):
                           size=self.utility.frame.fileFrame_size, 
                           pos=self.utility.frame.fileFrame_pos)
         self.main_panel = self.createMainPanel()
+        self.loadFileList = False
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
+        self.Bind(wx.EVT_IDLE, self.updateFileList)
         self.Show()
-
+        
     def createMainPanel(self):
         main_panel = wx.Panel(self)
         
@@ -463,7 +483,6 @@ class ABCFileFrame(wx.Frame):
         
         self.filePanel = FilePanel(self, self.notebook)
         self.myPreferencePanel = MyPreferencePanel(self, self.notebook)
-        
         self.notebook.AddPage(self.filePanel, self.utility.lang.get('file_list_title'))
         self.notebook.AddPage(self.myPreferencePanel, self.utility.lang.get('mypref_list_title'))
         
@@ -476,6 +495,11 @@ class ABCFileFrame(wx.Frame):
 
     def updateMyPref(self):    # used by File List
         self.myPreferencePanel.list.loadList()
+        
+    def updateFileList(self, event=None):
+        if not self.loadFileList:
+            self.filePanel.list.loadList()
+            self.Unbind(wx.EVT_IDLE)
         
     def OnCloseWindow(self, event = None):
         self.filePanel.list.saveRelevanceThreshold()

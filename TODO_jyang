@@ -52,13 +52,13 @@ from ManagedList, so that user can customize peer/file list.
 
 [done] Bugfix: Peers in Peer List Window don't change
 
-Database profiling, performance test and improvement
+[done] Database profiling, performance test and improvement
+
+----- release 3.4.0
 
 Track torrents' health
 
 Add Search for file list and peer list
-
------ release 3.4.0
 
 user can set place and limit of torrent2, bsddb
 
