@@ -178,13 +178,13 @@ class Utility:
             'urmdelay': '60', 
             'stripedlist': '0', 
 #            'mode': '1',
-            'window_width': '710', 
-            'window_height': '400', 
+            'window_width': '800', 
+            'window_height': '500', 
             'detailwindow_width': '610', 
             'detailwindow_height': '500', 
-            'prefwindow_width': '530', 
-            'prefwindow_height': '400', 
-            'prefwindow_split': '130', 
+            'prefwindow_width': '640', 
+            'prefwindow_height': '420', 
+            'prefwindow_split': '150', 
             'column4_rank': '0', # Title
             'column4_width': '150', 
             'column5_rank': '1', # Progress

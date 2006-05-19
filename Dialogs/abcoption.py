@@ -438,7 +438,11 @@ class MiscPanel(ABCOptionPanel):
                                     self.trayoptions, 
                                     3, 
                                     wx.RA_SPECIFY_COLS)
-        sizer.Add(self.mintray, 0, wx.ALIGN_LEFT|wx.ALL, 5)
+
+        # On the Mac, the option exists but is not shown, to support
+        # the widget being read & written.
+        if sys.platform != "darwin":
+            sizer.Add(self.mintray, 0, wx.ALIGN_LEFT|wx.ALL, 5)
                
         self.confirmonclose = wx.CheckBox(self, -1, self.utility.lang.get('confirmonexit'))
         sizer.Add(self.confirmonclose, 0, wx.ALIGN_LEFT|wx.ALL, 5)
@@ -669,7 +673,7 @@ class SchedulerRulePanel(ABCOptionPanel):
         # Timeout for contacting tracker
         tracker_val  = ['oo', '5', '10', '15', '30', '45', '60', '120', '180'] #minute
         self.cb_tracker  = wx.ComboBox(self, -1, "", wx.Point(-1, -1), 
-                                       wx.Size(48, -1), tracker_val, wx.CB_DROPDOWN|wx.CB_READONLY)
+                                       wx.Size(65, -1), tracker_val, wx.CB_DROPDOWN|wx.CB_READONLY)
         tracker_box = wx.BoxSizer(wx.HORIZONTAL)
         tracker_box.Add(wx.StaticText(self, -1, self.utility.lang.get('timeout_tracker')), 0, wx.ALIGN_CENTER_VERTICAL)
         tracker_box.Add(self.cb_tracker, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
@@ -679,7 +683,7 @@ class SchedulerRulePanel(ABCOptionPanel):
         # Timeout for downloading
         download_val = ['oo', '10', '20', '30', '60', '90', '120', '150', '180', '210', '240'] #minute
         self.cb_download = wx.ComboBox(self, -1, "", wx.Point(-1, -1), 
-                                       wx.Size(48, -1), download_val, wx.CB_DROPDOWN|wx.CB_READONLY)
+                                       wx.Size(65, -1), download_val, wx.CB_DROPDOWN|wx.CB_READONLY)
         download_box = wx.BoxSizer(wx.HORIZONTAL)
         download_box.Add(wx.StaticText(self, -1, self.utility.lang.get('timeout_download')), 0, wx.ALIGN_CENTER_VERTICAL)
         download_box.Add(self.cb_download, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
@@ -689,7 +693,7 @@ class SchedulerRulePanel(ABCOptionPanel):
         # Timeout for seeding
         upload_val   = ['oo', '0.5', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'] #hour
         self.cb_upload   = wx.ComboBox(self, -1, "", wx.Point(-1, -1), 
-                                       wx.Size(48, -1), upload_val, wx.CB_DROPDOWN|wx.CB_READONLY)
+                                       wx.Size(65, -1), upload_val, wx.CB_DROPDOWN|wx.CB_READONLY)
         upload_box = wx.BoxSizer(wx.HORIZONTAL)
         upload_box.Add(wx.StaticText(self, -1, self.utility.lang.get('timeout_upload')), 0, wx.ALIGN_CENTER_VERTICAL)
         upload_box.Add(self.cb_upload, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
@@ -872,9 +876,9 @@ class SeedingOptionsPanel(ABCOptionPanel):
             htimeval.append(str(i))
             
         self.cbhtime = wx.ComboBox(self, -1, "", wx.Point(-1, -1), 
-                                  wx.Size(37, -1), htimeval, wx.CB_DROPDOWN|wx.CB_READONLY)
+                                  wx.Size(55, -1), htimeval, wx.CB_DROPDOWN|wx.CB_READONLY)
         self.cbmtime = wx.ComboBox(self, -1, "", wx.Point(-1, -1), 
-                                  wx.Size(37, -1), mtimeval, wx.CB_DROPDOWN|wx.CB_READONLY)
+                                  wx.Size(55, -1), mtimeval, wx.CB_DROPDOWN|wx.CB_READONLY)
 
         continuesection.Add(rb1, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
 
@@ -889,7 +893,7 @@ class SeedingOptionsPanel(ABCOptionPanel):
 
         ratioval = ['50', '75', '100', '125', '150', '175', '200', '300', '400', '500']
         self.cbratio = wx.ComboBox(self, -1, "", 
-                                  wx.Point(-1, -1), wx.Size(45, -1), ratioval, wx.CB_DROPDOWN|wx.CB_READONLY)
+                                  wx.Point(-1, -1), wx.Size(65, -1), ratioval, wx.CB_DROPDOWN|wx.CB_READONLY)
        
         percent_sizer = wx.BoxSizer(wx.HORIZONTAL)
         percent_sizer.Add(rb3, 0, wx.ALIGN_CENTER_VERTICAL)

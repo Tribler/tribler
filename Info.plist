@@ -12,7 +12,7 @@
             <string>torrent</string>
          </array>
          <key>CFBundleTypeIconFile</key>
-         <string>DocIcon</string>
+         <string>TriblerDoc</string>
          <key>CFBundleTypeMIMETypes</key>
          <array>
             <string>application/x-bittorrent</string>

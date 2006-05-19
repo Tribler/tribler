@@ -334,6 +334,8 @@ class ABCFrame(wx.Frame,DelayedInvocation):
         # Menu Options
         ############################
         menuBar = ABCMenuBar(self)
+        if sys.platform == "darwin":
+            wx.App.SetMacExitMenuItemId(wx.ID_CLOSE)
         self.SetMenuBar(menuBar)
         
         self.tb = ABCToolBar(self)

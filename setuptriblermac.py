@@ -61,7 +61,8 @@ buildapp(
              ("LICENSE.txt",      "Contents/Resources/"),
              ("readme.txt",       "Contents/Resources/"),
              ("tribler.ico",      "Contents/Resources/"),
-             ("torrenticon.ico",  "Contents/Resources/")]
+             ("torrenticon.ico",  "Contents/Resources/"),
+             ("TriblerDoc.icns",  "Contents/Resources/"),]
 )
 
 # fix library lookup in wx's *.so
