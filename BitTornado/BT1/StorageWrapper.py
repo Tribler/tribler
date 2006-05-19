@@ -148,7 +148,7 @@ class StorageWrapper:
             ['moving data', 1, self.init_movedata, self.movedatafunc], 
             ['allocating disk space', 1, self.init_alloc, self.allocfunc] ]
 
-        self.backfunc(self._bgalloc, 0.1)
+        # Arno: move starting of periodic _bgalloc to init_alloc
         self.backfunc(self._bgsync, max(self.config['auto_flush']*60, 60))
 
     def _bgsync(self):
@@ -211,14 +211,14 @@ class StorageWrapper:
     def init_hashcheck(self):
         if self.flag.isSet():
             if DEBUG:
-                print "init_hashcheck: FLAG IS SET"
+                print "StorageWrapper: init_hashcheck: FLAG IS SET"
             return False
         self.check_list = []
         if not self.hashes or self.amount_left == 0:
             self.check_total = 0
             self.finished()
             if DEBUG:
-                print "init_hashcheck: Download finished"
+                print "StorageWrapper: init_hashcheck: Download finished"
             return False
 
         self.check_targets = {}
@@ -255,8 +255,8 @@ class StorageWrapper:
         self.lastlen = self._piecelen(len(self.hashes) - 1)
         self.numchecked = 0.0
         if DEBUG:
-            print "init_hashcheck: checking",self.check_list
-            print "init_hashcheck: return self.check_total > 0 is ",(self.check_total > 0)
+            print "StorageWrapper: init_hashcheck: checking",self.check_list
+            print "StorageWrapper: init_hashcheck: return self.check_total > 0 is ",(self.check_total > 0)
         return self.check_total > 0
 
     def _markgot(self, piece, pos):
@@ -399,11 +399,17 @@ class StorageWrapper:
             return False
         self.numholes = float(len(self.holes))
         self.alloc_buf = chr(0xFF) * self.piece_size
+        ret = False
         if self.alloc_type == 'pre-allocate':
             self.bgalloc_enabled = True
-            return True
+            ret = True
         if self.alloc_type == 'background':
             self.bgalloc_enabled = True
+        # Arno: only enable this here, eats CPU otherwise
+        if self.bgalloc_enabled:
+            self.backfunc(self._bgalloc, 0.1)
+        if ret:
+            return ret
         if self.blocked_moveout:
             return True
         return False
@@ -470,7 +476,6 @@ class StorageWrapper:
             self.config['alloc_rate'] = 0.1
         self.backfunc(self._bgalloc, 
               float(self.piece_size)/(self.config['alloc_rate']*1048576))
-
 
     def _waspre(self, piece):
         return self.storage.was_preallocated(piece * self.piece_size, self._piecelen(piece))
