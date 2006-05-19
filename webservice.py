@@ -63,7 +63,7 @@ class WebDialog(wx.Dialog):
 
         ipandport_box = wx.BoxSizer(wx.HORIZONTAL)
         ipandport_box.Add(wx.StaticText(self, -1, self.utility.lang.get('webip')), 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
-        self.iptext = wx.ComboBox(self, -1, default_ip, wx.Point(-1, -1), wx.Size(100, -1), ip_choices, wx.CB_DROPDOWN|wx.CB_READONLY)
+        self.iptext = wx.ComboBox(self, -1, default_ip, wx.Point(-1, -1), wx.Size(120, -1), ip_choices, wx.CB_DROPDOWN|wx.CB_READONLY)
         ipandport_box.Add(self.iptext, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
        
         ipandport_box.Add(wx.StaticText(self, -1, self.utility.lang.get('webport')), 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)

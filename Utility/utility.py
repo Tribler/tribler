@@ -180,7 +180,7 @@ class Utility:
 #            'mode': '1',
             'window_width': '800', 
             'window_height': '500', 
-            'detailwindow_width': '610', 
+            'detailwindow_width': '800', 
             'detailwindow_height': '500', 
             'prefwindow_width': '640', 
             'prefwindow_height': '420', 
