@@ -367,7 +367,10 @@ class Utility:
              'enabledlcollecting': '1',
              'minport': '6881',
              'myname': '',
-             'rec_relevance_threshold': '0'
+             'rec_relevance_threshold': '0',
+             'torrent1_width': 200,
+             'mypref0_width': 200,
+             'mypref1_width': 200
 #            'skipcheck': '0'
         }
 

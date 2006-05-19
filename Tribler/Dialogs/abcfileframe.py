@@ -261,7 +261,6 @@ class FileList(CommonTriblerList):
 
         CommonTriblerList.__init__(self, parent, style, prefix, minid, maxid, 
                                      exclude, rightalign, centeralign)
-        
 
     # change display format for item data
     def getText(self, data, row, col):
@@ -455,7 +454,9 @@ class ABCFileFrame(wx.Frame):
                           size=self.utility.frame.fileFrame_size, 
                           pos=self.utility.frame.fileFrame_pos)
         self.main_panel = self.createMainPanel()
+        self.count = 0                          
         self.loadFileList = False
+
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
         self.Bind(wx.EVT_IDLE, self.updateFileList)
         self.Show()
@@ -463,7 +464,7 @@ class ABCFileFrame(wx.Frame):
     def createMainPanel(self):
         main_panel = wx.Panel(self)
         
-        notebook = self.createNoteBook(main_panel)
+        self.createNoteBook(main_panel)
         bot_box = self.createBottomBoxer(main_panel)
         
         mainbox = wx.BoxSizer(wx.VERTICAL)
@@ -486,6 +487,7 @@ class ABCFileFrame(wx.Frame):
         self.notebook.AddPage(self.filePanel, self.utility.lang.get('file_list_title'))
         self.notebook.AddPage(self.myPreferencePanel, self.utility.lang.get('mypref_list_title'))
         
+        
     def createBottomBoxer(self, main_panel):
         bot_box = wx.BoxSizer(wx.HORIZONTAL)
         button = wx.Button(main_panel, -1, self.utility.lang.get('close'), style = wx.BU_EXACTFIT)
@@ -497,9 +499,14 @@ class ABCFileFrame(wx.Frame):
         self.myPreferencePanel.list.loadList()
         
     def updateFileList(self, event=None):
-        if not self.loadFileList:
+        # Arno: on Linux, the list does not get painted properly before this
+        # idle handler is called, which is weird. Hence, I wait for the next
+        # idle event and load the filelist there.
+        self.count += 1
+        if not self.loadFileList and self.count >= 2:
             self.filePanel.list.loadList()
             self.Unbind(wx.EVT_IDLE)
+            self.count = 0
         
     def OnCloseWindow(self, event = None):
         self.filePanel.list.saveRelevanceThreshold()

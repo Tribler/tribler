@@ -5,7 +5,7 @@ import socket
 
 from threading import Event, Semaphore
 from time import sleep
-#from traceback import print_exc
+from traceback import print_exc
 #from cStringIO import StringIO
 
 from wx.lib import masked
@@ -118,6 +118,7 @@ def getClientSocket(host, port):
         try:
             s.connect(sa)
         except socket.error:
+            print_exc()
             s.close()
             s = None
             continue
@@ -136,13 +137,15 @@ def getServerSocket(host, port):
         try:
             s = socket.socket(af, socktype, proto)
         except socket.error:
+            print_exc()
             s = None
             continue
         try:
-            s.bind(sa)
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            s.bind(sa)
             s.listen(1)
         except socket.error:
+            print_exc()
             s.close()
             s = None
             continue

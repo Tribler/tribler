@@ -50,7 +50,6 @@ class TasteBuddyList(CommonTriblerList):
 
         CommonTriblerList.__init__(self, parent, style, prefix, minid, maxid, 
                                      exclude, rightalign, centeralign)
-                                     
 
     def getText(self, data, row, col):
         key = self.keys[col]
@@ -226,7 +225,11 @@ class ABCBuddyFrame(wx.Frame):
                           size=self.utility.frame.buddyFrame_size, 
                           pos=self.utility.frame.buddyFrame_pos)
         self.main_panel = self.createMainPanel()
+        self.count = 0
+        self.loadTasteBuddyList = False
+
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
+        self.Bind(wx.EVT_IDLE, self.updateTasteBuddyList)
         self.Show()
 
     def createMainPanel(self):
@@ -267,6 +270,16 @@ class ABCBuddyFrame(wx.Frame):
     def updateMyPref(self):    # used by buddy List
         self.myPreferencePanel.list.loadList()
         
+    def updateTasteBuddyList(self, event=None):
+        # Arno: on Linux, the list does not get painted properly before this
+        # idle handler is called, which is weird. Hence, I wait for the next
+        # idle event and load the filelist there.
+        self.count += 1
+        if not self.loadTasteBuddyList and self.count >= 2:
+            self.tasteBuddyPanel.list.loadList()
+            self.Unbind(wx.EVT_IDLE)
+            self.count = 0
+
     def OnCloseWindow(self, event = None):
         self.utility.frame.buddyFrame_size = self.GetSize()
         self.utility.frame.buddyFrame_pos = self.GetPosition()
