@@ -46,8 +46,8 @@ from plistlib import Plist
 buildapp(
     name='Tribler.app',
     mainprogram='abc.py',
-    iconfile='tribler.icns',
-    plist=Plist.fromFile('Info.plist'),
+    iconfile='mac/tribler.icns',
+    plist=Plist.fromFile('mac/Info.plist'),
     argv_emulation=1,
     strip=1,
     #semi_standalone=1,
@@ -62,7 +62,7 @@ buildapp(
              ("readme.txt",       "Contents/Resources/"),
              ("tribler.ico",      "Contents/Resources/"),
              ("torrenticon.ico",  "Contents/Resources/"),
-             ("TriblerDoc.icns",  "Contents/Resources/"),]
+             ("mac/TriblerDoc.icns", "Contents/Resources/"),]
 )
 
 # fix library lookup in wx's *.so
