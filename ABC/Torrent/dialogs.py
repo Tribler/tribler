@@ -79,13 +79,25 @@ class TorrentDialogs:
         # What do we do if we don't have a default download location specified
         # and we call this from the webservice?
         ####################################################
+        if sys.platform == "darwin":
+            # Mac requires the original extension to be mentioned explicitly,
+            # since it will override the extension with the first option (even if it's '*')
+            try:
+                # TODO: localise 'files' string
+                extension = self.torrent.files.filename.split(".")[-1]
+                orig_filetype = extension.upper() + " files|*." + extension.lower() + "|"
+            except:
+                orig_filetype = ""
+        else:
+            orig_filetype = ""
+        
         if self.torrent.files.isFile():   #1 file for this torrent
             dialog = wx.FileDialog(None, 
                                    filetext, 
                                    defaultdir, 
                                    self.torrent.files.filename, 
-                                   self.utility.lang.get('allfileswildcard') + ' (*.*)|*.*', 
-                                   wx.SAVE)
+                                   orig_filetype + self.utility.lang.get('allfileswildcard') + ' (*.*)|*.*', 
+                                   wx.SAVE | wx.OVERWRITE_PROMPT)
         else:   # Directory torrent
             dialog = wx.DirDialog(None, 
                                   dirtext, 
