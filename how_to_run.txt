@@ -1,0 +1,9 @@
+How to run Tribler from source codes under WindowsXP
+
+1. Download and install python2.4.3 from http://www.python.org. Assume you install it to C:\Python24\
+2. Download and install wxPython2.6 unicode for python2.4 from http://www.wxpython.org
+3. Download M2Crypto-py24.zip from http://www.tribler.org/win/M2Crypto-py24.zip, and uncompress it to C:\Python24\Lib\site-packages\M2Crypto\
+5. Download Win32OpenSSL-v0.9.8a.exe from http://www.tribler.org/win/Win32OpenSSL-v0.9.8a.exe, and install it.
+4. Download python2.4.exe from http://www.tribler.org/win/python2.4.exe, and save it to C:\Python24\python2.4.exe
+6. Download and uncompress Tribler source codes from http://www.tribler.org. Run C:\Python24\python2.4.exe abc.py from the source code directory.
+
