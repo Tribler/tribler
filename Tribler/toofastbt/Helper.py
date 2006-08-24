@@ -5,7 +5,6 @@ import sys
 from traceback import print_exc, print_stack
 from time import time
 
-from Logger import get_logger
 from Tribler.Overlay.SecureOverlay import SecureOverlay
 from Tribler.CacheDB.CacheDBHandler import PeerDBHandler
 from BitTornado.bencode import bencode

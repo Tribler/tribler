@@ -53,8 +53,11 @@ class GLOBAL:
     do_das_test = 0
     do_buddycast_interval = 15
     do_torrent_collecting = 1
+    do_torrent_checking = 1
     overlay_log = ''
     config_dir = '.'+product_name
+    max_num_torrents = 5000
+    torrent_checking_period = 60
     
 myinfo = {}
 

@@ -94,7 +94,7 @@ class DownloadHelperPanel(wx.Panel):
             friend = friends[index]
             flag = 0
             for helper in helpingFriends:
-                if friend['name'] == helper['name']:
+                if friend['permid'] == helper['permid']:
                     helper['tempiconindex'] = index
                     flag = 1
                     break
@@ -264,7 +264,7 @@ class FriendList(wx.ListCtrl):
         i = self.GetItemCount()
         for friend in friendList:
             for chum in self.friends:
-                if friend['name'] == chum['name']:
+                if friend['permid'] == chum['permid']:    # here we must use 'permid' to distinguish 
                     flag = 1
                     break
             if flag:

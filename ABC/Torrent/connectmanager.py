@@ -57,6 +57,7 @@ class TorrentConnections:
         self.updynstatus = [0] * 5
         
         self.timeout = True
+        self.configdir = None
         
     def changeLocalInfo(self, info):
         # 0 = auto rate
@@ -123,6 +124,14 @@ class TorrentConnections:
 
         self.utility.controller.addDownload(self.torrent)
 
+        # Arno: need to save configdir from the ABCEngine class, because we 
+        # need it to delete the $HOME/.Tribler/datacache entry for this torrent. 
+        # We cannot use self.engine because the removal code first calls procSTOP
+        # and only then procREMOVE, so the engine object is already stopped and
+        # the self.engine variable set to None by launchmanycore.py (still with 
+        # me?) Sigh...
+        self.configdir = self.engine.dow.appdataobj
+
 #    def stopEngine(self, waitForThread = False, update = True):
     def stopEngine(self, update = True):
         if self.torrent.dialogs.details is not None:
@@ -137,6 +146,10 @@ class TorrentConnections:
 #            sleep(0.2)
 #
 #        self.torrent.makeInactive(update)
+
+    def deleteTorrentData(self,infohash):
+        if self.configdir is not None:
+            self.configdir.deleteTorrentData(infohash)
 
     def resetUploadParams(self):
         self.setMaxInitiate()

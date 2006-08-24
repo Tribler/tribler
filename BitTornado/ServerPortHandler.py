@@ -13,7 +13,6 @@ except:
 
 # 2fastbt_
 from BT1.Encrypter import protocol_name
-from Tribler.toofastbt.Logger import get_logger
 # _2fastbt
 
 def toint(s):
@@ -125,11 +124,6 @@ class NewSocketHandler:     # hand a new socket off where it belongs
 
     def read_reserved(self, s):
         self.options = s
-# 2fastbt_
-#        get_logger().log(3, "serverporthandler.newsockethandler socket: '" +
-#            str(self.connection.socket.fileno()) + "' options: '" + 
-#            self.options + "'")
-# _2fastbt
         return 20, self.read_download_id
 
     def read_download_id(self, s):

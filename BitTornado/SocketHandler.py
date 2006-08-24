@@ -15,10 +15,6 @@ import sys
 from random import shuffle, randrange
 from natpunch import UPnP_open_port, UPnP_close_port
 
-# 2fastbt_
-from Tribler.toofastbt.Logger import get_logger
-# _2fastbt
-
 # from BT1.StreamCheck import StreamCheck
 # import inspect
 try:
@@ -368,7 +364,7 @@ class SocketHandler:
                         self._sleep()
 # 2fastbt_
                 else:
-                    get_logger().log(3, "sockethandler.sockethandler too many connects")
+                    print >> sys.stderr,"SocketHandler: too many connects"
 # _2fastbt
             else:
                 s = self.single_sockets.get(sock)

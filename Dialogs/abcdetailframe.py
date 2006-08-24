@@ -18,6 +18,7 @@ from ABC.GUI.list import ManagedList
 from Utility.constants import * #IGNORE:W0611
 from Tribler.Dialogs.dlhelperframe import DownloadHelperPanel
 from Tribler.Worldmap.ipinfo import IPInfo, no_info
+from Tribler.unicode import bin2unicode
 
 try:
     True
@@ -71,7 +72,9 @@ class TorrentInfoPanel(wx.Panel):
         else:
             detailSizer.Add(wx.StaticText(self, -1, '1'))
 
+        encoding = None
         if 'encoding' in metainfo and metainfo['encoding'].strip():
+            encoding = metainfo['encoding']
             detailSizer.Add(wx.StaticText(self, -1, self.utility.lang.get('encoding')))
             detailSizer.Add(wx.StaticText(self, -1, metainfo['encoding']))
 
@@ -139,12 +142,14 @@ class TorrentInfoPanel(wx.Panel):
             detailSizer.Add(wx.StaticText(self, -1, datetext))
 
         if 'created by' in metainfo and metainfo['created by'].strip():
+            dst = bin2unicode(metainfo['created by'],encoding)
             detailSizer.Add(wx.StaticText(self, -1, self.utility.lang.get('createdby')))
-            detailSizer.Add(wx.StaticText(self, -1, metainfo['created by']))
+            detailSizer.Add(wx.StaticText(self, -1, dst))
 
         if 'comment' in metainfo and metainfo['comment'].strip():
+            dst = bin2unicode(metainfo['comment'],encoding)
             detailSizer.Add(wx.StaticText(self, -1, self.utility.lang.get('comment')))
-            detailSizer.Add(wx.TextCtrl(self, -1, metainfo['comment'], style = wx.TE_MULTILINE|wx.HSCROLL|wx.TE_DONTWRAP|wx.TE_READONLY), 1, wx.EXPAND)
+            detailSizer.Add(wx.TextCtrl(self, -1, dst, style = wx.TE_MULTILINE|wx.HSCROLL|wx.TE_DONTWRAP|wx.TE_READONLY), 1, wx.EXPAND)
 
         detailSizer.AddGrowableCol(1)
         colSizer.Add(detailSizer, 0, wx.EXPAND|wx.ALL, 5)
@@ -1147,8 +1152,10 @@ class ABCDetailFrame(wx.Frame):
 
         self.notebook = wx.Notebook(panel, -1)
 
-        self.earthPanel = EarthPanel(self.notebook, self)
-        self.notebook.AddPage(self.earthPanel, self.utility.lang.get('geoinfo'))
+        show_earthpanel = self.utility.config.Read("showearthpanel", "boolean")
+        if show_earthpanel:
+            self.earthPanel = EarthPanel(self.notebook, self)
+            self.notebook.AddPage(self.earthPanel, self.utility.lang.get('geoinfo'))
         
         self.detailPanel = DetailPanel(self.notebook, self)
         self.notebook.AddPage(self.detailPanel, self.utility.lang.get('networkinfo'))

@@ -204,7 +204,7 @@ class AboutMeDialog(MyHtmlDialog):
                      "<TR><TD>&nbsp;</TD><TD>" + \
                          "NoirSoldats (noirsoldats@codemeu.com)" + \
                          "<BR>kratoak5" + \
-                         "<BR>roe88" + \
+                         "<BR>roee88" + \
                          "<BR>Delft University of Technology (<A HREF=mailto:triblersoft@gmail.com>triblersoft@gmail.com</A>)" + \
                          "<BR>Vrije Universiteit Amsterdam" + \
                      "</TD></TR>" + \

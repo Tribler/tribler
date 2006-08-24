@@ -18,6 +18,7 @@ from ABC.Torrent.status import TorrentStatus
 
 from Utility.constants import * #IGNORE:W0611
 from Tribler.unicode import name2unicode
+from Tribler.Category.Category import Category
 
 from time import time
 
@@ -158,9 +159,14 @@ class ABCTorrent:
         torrent_info['announce-list'] = self.metainfo.get('announce-list', '')
         torrent_info['creation date'] = self.metainfo.get('creation date', 0)
         torrent['info'] = torrent_info
+        torrent['category'] = Category.getInstance()\
+                        .calculateCategory(self.metainfo.get('info', {}), torrent_info['name'])            
+#        if (torrent['category'] != []):
+#            print '### one torrent added from abctorrent '+ str(torrent['category']) + '###'
         
-        self.torrent_db.addTorrent(self.torrent_hash, torrent, new_metadata=True)
+        self.torrent_db.addTorrent(self.torrent_hash, torrent, new_metadata=True)  
         self.torrent_db.sync()
+        Category.__reloadFlag = True 
         if DEBUG:
             print >> sys.stderr, "add torrent to db", self.infohash, torrent_info
 
@@ -804,6 +810,19 @@ class ABCTorrent:
         self.updateColumns([COL_PRIO])
         self.torrentconfig.writePriority()
        
+
+    def remove(self,removefiles):
+        # Arno: remove torrentinfo file as well
+        try:
+            os.remove(self.torrentconfig.filename)
+        except:
+            pass
+
+        self.connection.deleteTorrentData(self.torrent_hash)
+        if removefiles:
+            self.files.removeFiles()
+
+
     # Things to do when shutting down a torrent
     def shutdown(self):
         # Set shutdown flag to true

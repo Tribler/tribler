@@ -10,9 +10,6 @@ from select import error
 from threading import Event, RLock
 from clock import clock
 import sys
-# 2fastbt_
-from Tribler.toofastbt.Logger import get_logger
-# _2fastbt
 
 try:
     True
@@ -100,7 +97,6 @@ class RawServer:
 # 2fastbt_
         result = self.sockethandler.find_and_bind(first_try, minport, maxport, bind, reuse, 
                                  ipv6_socket_style, upnp, randomizer)
-        get_logger().log(2, "port = " + str(self.sockethandler.get_stats()['port']))
 # _2fastbt
         return result
 

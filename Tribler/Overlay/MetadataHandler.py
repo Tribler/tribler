@@ -9,9 +9,11 @@ from traceback import print_exc
 
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
-from Tribler.utilities import isValidInfohash, show_permid
-from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler
+from Tribler.utilities import isValidInfohash, show_permid, sort_dictlist
+from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
 from Tribler.unicode import name2unicode
+from Tribler.Category.Category import Category
+from Tribler.__init__ import GLOBAL
 
 # Python no recursive imports?
 # from overlayswarm import overlay_infohash
@@ -41,7 +43,10 @@ class MetadataHandler:
         self.secure_overlay = secure_overlay
         self.dlhelper = dlhelper
         self.config_dir = os.path.join(config_dir, 'torrent2')    #TODO: user can set it
-        self.torrent_db = TorrentDBHandler()
+        self.torrent_db = SynTorrentDBHandler()
+        self.torrent_list = self.torrent_db.getRecommendedTorrents(light=True)
+        self.num_torrents = len(self.torrent_list)
+        self.check_overflow(update=False)    # check at start time
 
     def handleMessage(self, permid, message):
         
@@ -70,7 +75,6 @@ class MetadataHandler:
             return False
         return True
         
-
     def send_metadata(self, conn, message):
         try:
             torrent_hash = bdecode(message[1:])
@@ -162,9 +166,61 @@ class MetadataHandler:
         torrent_info['announce-list'] = metainfo.get('announce-list', '')
         torrent_info['creation date'] = metainfo.get('creation date', 0)
         torrent['info'] = torrent_info
+        torrent['category'] = Category.getInstance().calculateCategory(info, torrent_info['name'])
+        torrent["ignore_number"] = 0
+        torrent["last_check_time"] = long(time())
+        torrent["retry_number"] = 0
+        torrent["seeder"] = 0
+        torrent["leecher"] = 0
+        torrent["status"] = "unknown"
+        #if (torrent['category'] != []):
+        #    print '### one torrent added from MetadataHandler: ' + str(torrent['category']) + ' ' + torrent['torrent_name'] + '###'
         
-        self.torrent_db.addTorrent(torrent_hash, torrent, new_metadata=True)
+        self.torrent_db.addTorrent(torrent_hash, torrent, new_metadata=True, updateFlag=True)
+        self.num_torrents += 1
+        self.check_overflow()
         self.torrent_db.sync()
+        
+    def check_overflow(self, update=True):    # check if torrents are more than enough
+        if self.num_torrents > GLOBAL.max_num_torrents:
+            # get current torrent list again
+            if update:
+                self.torrent_list = self.torrent_db.getRecommendedTorrents(light=True)
+                self.num_torrents = len(self.torrent_list)
+            if self.num_torrents > GLOBAL.max_num_torrents:
+                self.limit_space()
+            
+    def limit_space(self):
+        def get_weight(torrent):
+            # policy of removing torrent:
+            # status*10**7 + retry_number(max 99)*10**5 + (99-relevance(max 99)*10**3 + date (max 999)
+            
+            status_key = torrent.get('status', 'dead')
+            status_value = {'dead':2, 'unknown':1, 'good':0}
+            status = status_value.get(status_key, 2)
+            
+            retry_number = min(torrent.get('retry_number', 0), 99)
+            
+            relevance = min(torrent.get('relevance', 0), 99)
+            
+            info = torrent.get('info', {})
+            date = info.get('creation date', 0)
+            rel_date = min(int((time() - date)/(24*60*60)), 999)
+            
+            weight = status*10**7 + retry_number*10**5 + (99-relevance)*10**3 + rel_date
+            return weight
+        
+        for i in xrange(len(self.torrent_list)):
+            torrent = self.torrent_list[i]
+            torrent['weight'] = get_weight(torrent)
+        self.torrent_list = sort_dictlist(self.torrent_list, 'weight', order='decrease')
+        num_delete = self.num_torrents - GLOBAL.max_num_torrents + GLOBAL.max_num_torrents / 10
+        if num_delete <= 0:
+            num_delete = 1
+        for torrent in self.torrent_list[:num_delete]:
+            infohash = torrent['infohash']
+            self.torrent_db.deleteTorrent(infohash, delete_file=True, updateFlag=True)
+                    
         
     def save_torrent(self, torrent_hash, metadata):
         if DEBUG:
@@ -208,7 +264,7 @@ class MetadataHandler:
             return False
         return True
         
-    def got_metadata(self, conn, message):
+    def got_metadata(self, conn, message):    # receive torrent file from others
         try:
             message = bdecode(message[1:])
         except:

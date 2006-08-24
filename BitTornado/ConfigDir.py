@@ -125,6 +125,12 @@ class ConfigDir:
 
         self.TorrentDataBuffer = {}
 
+        # Arno: delete old log file
+        try:
+            old2fastbtlog = os.path.join(self.dir_root, '2fastbt.log')
+            os.remove(old2fastbtlog)
+        except:
+            pass
 
     ###### CONFIG HANDLING ######
 

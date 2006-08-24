@@ -1,7 +1,6 @@
 # Written by Pawel Garbacki
 # see LICENSE.txt for license information
 
-from Logger import get_logger
 from BitTornado.clock import clock
 
 MIN_CAPACITY = 0.75
@@ -51,7 +50,4 @@ class ExpSmoothRatePredictor(RatePredictor):
             result = True
         else:
             result = (1. - float(self.value) / self.max_rate) > MIN_CAPACITY
-#        get_logger().log(2, "ratepredictor.expsmoothratepredictor: has_capacity value: '" +
-#            str(self.value) + "' max_rate: '" + str(self.max_rate) + "' returning: '" + 
-#            str(result) + "'")
         return result

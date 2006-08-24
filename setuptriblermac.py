@@ -58,7 +58,7 @@ buildapp(
     files = [("Lang/english.lang","Contents/Resources/Lang/"),
              ("superpeer.txt",    "Contents/Resources/"),
              ("icons/",           "Contents/Resources/icons"),
-             ("LICENSE.txt",      "Contents/Resources/"),
+             ("binary-LICENSE.txt",      "Contents/Resources/"),
              ("readme.txt",       "Contents/Resources/"),
              ("tribler.ico",      "Contents/Resources/"),
              ("torrenticon.ico",  "Contents/Resources/"),
@@ -72,5 +72,15 @@ so_files = [x for x in os.listdir( so_dir ) if x.endswith(".so")]
 for f in so_files:
 	os.system("install_name_tool -change %s %s %s/%s" % (wx_lib,os.path.basename(wx_lib),so_dir,f))
 
-os.system("rm -f Tribler.dmg")
+try:
+   os.remove("Tribler.dmg")
+except:
+   pass
+
+try:
+    os.mkdir("build/Sample Friend Icons")
+except:
+    pass
+
+os.system("cp icons/mugshots/*.bmp 'build/Sample Friend Icons'")
 os.system("hdiutil create -srcfolder build -format UDZO -fs HFS+ -volname Tribler Tribler.dmg")

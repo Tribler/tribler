@@ -11,7 +11,6 @@ from BitTornado.bencode import bencode,bdecode
 
 from MessageID import *
 # 2fastbt_
-from Tribler.toofastbt.Logger import get_logger
 from Tribler.CacheDB.CacheDBHandler import PeerDBHandler
 # _2fastbt
 
@@ -402,7 +401,7 @@ class Connecter:
             except Exception,e:
                 if DEBUG:
                     print "Close on bad HASHPIECE: exception",str(e)
-                    traceback.print_exc(file=sys.stdout)
+                    traceback.print_exc(file=sys.stderr)
                 connection.close()
                 return
         else:

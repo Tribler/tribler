@@ -41,7 +41,6 @@ from Tribler.unicode import bin2unicode
 from Tribler.toofastbt.Coordinator import Coordinator
 from Tribler.toofastbt.Helper import Helper
 from Tribler.toofastbt.RatePredictor import ExpSmoothRatePredictor
-from Tribler.toofastbt.Logger import get_logger
 import sys
 from traceback import print_exc
 # _2fastbt
@@ -178,8 +177,6 @@ defaults = [
         "file with the list of friends"),
     ('coordinator_permid', '',
         "PermID of the cooperative download coordinator"),
-    ('2fastbtlog', '2fastbt.log',
-        "log file of the 2fastbt protocol"),
     ('exclude_ips', '',
         "list of IP addresse to be excluded; comma separated"),
 # _2fastbt
@@ -202,6 +199,12 @@ defaults = [
         "log on super peer mode ('' = disabled)"),
     ('buddycast_interval', GLOBAL.do_buddycast_interval,
         "number of seconds to pause between exchanging preference with a peer in buddycast"),
+    ('max_torrents', GLOBAL.max_num_torrents,
+        "max number of torrents to collect"),
+    ('torrent_checking', GLOBAL.do_torrent_checking,
+        "automatically check the health of torrents"),
+    ('torrent_checking_period', GLOBAL.torrent_checking_period,
+        "period for auto torrent checking"),
     ]
 
 argslistheader = 'Arguments are:\n\n'
@@ -430,7 +433,7 @@ class BT1Download:
                              config['rarest_first_priority_cutoff'], helper = self.helper)
         except:
             print_exc()
-            get_logger().log(3, "download_bt1.BT1Download: EXCEPTION in __init__ :'" + str(sys.exc_info()) + "' '")
+            print >> sys.stderr,"download_bt1.BT1Download: EXCEPTION in __init__ :'" + str(sys.exc_info()) + "' '"
 # _2fastbt
 
         self.choker = Choker(config, rawserver.add_task, 

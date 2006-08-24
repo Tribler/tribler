@@ -6,7 +6,6 @@ from BitTornado.bitfield import Bitfield
 from random import shuffle
 from BitTornado.clock import clock
 # 2fastbt_
-from Tribler.toofastbt.Logger import get_logger
 from Tribler.toofastbt.Helper import SingleDownloadHelperInterface
 # _2fastbt
 try:
@@ -187,19 +186,6 @@ class SingleDownload(SingleDownloadHelperInterface):
 
         if self.downloader.storage.do_I_have(index):
             self.downloader.picker.complete(index)
-# 2fastbt_
-###            if self.helper is not None and self.helper.coordinator is None and self.helper.coordinator_data_con is not None:
-###                get_logger().log(3, "downloader.downloader: got_piece sending to coordinator")
-###                tmp_piece = self.downloader.storage.get_piece(index, 0, -1)
-###                tmp_begin = 0
-###                piece_len = len(tmp_piece)
-###                tmp_len = self.helper.coordinator_data_con.upload.max_slice_length
-###                while tmp_begin < piece_len:
-###                    if tmp_begin + tmp_len > piece_len:
-###                        tmp_len = piece_len - tmp_begin
-###                    self.helper.coordinator_data_con.upload.got_request(index, tmp_begin, tmp_len)
-###                    tmp_begin += tmp_len
-# _2fastbt
 
         if self.downloader.endgamemode:
             for d in self.downloader.downloads:

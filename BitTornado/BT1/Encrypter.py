@@ -10,7 +10,6 @@ from sha import sha
 from time import time
 
 # 2fastbt_
-from Tribler.toofastbt.Logger import get_logger
 from traceback import print_exc, extract_stack, print_stack
 import sys
 # _2fastbt
@@ -24,6 +23,7 @@ except:
     False = 0
 
 DEBUG = False
+
 MAX_INCOMPLETE = 8
 
 protocol_name = 'BitTorrent protocol'
@@ -249,6 +249,7 @@ class Connection:
     def close(self):
         if DEBUG:
             print "encoder: closing connection",self.get_ip()
+            print_stack()
         if not self.closed:
             self.connection.close()
             self.sever()

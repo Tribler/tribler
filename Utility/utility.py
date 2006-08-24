@@ -289,7 +289,7 @@ class Utility:
             'torrent0_rank': '-1',
             'torrent8_rank': '-1',
             'torrent9_rank': '-1',
-            'torrent_num': '500',
+            'torrent_num': '-1',
             'torrent_sortedcolumn': '2',
             'torrent_reversesort': '1',
             # My Preference List
@@ -370,7 +370,8 @@ class Utility:
              'rec_relevance_threshold': '0',
              'torrent1_width': 200,
              'mypref0_width': 200,
-             'mypref1_width': 200
+             'mypref1_width': 200,
+             'showearthpanel': '1'
 #            'skipcheck': '0'
         }
 

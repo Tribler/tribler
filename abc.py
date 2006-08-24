@@ -39,6 +39,8 @@ from Utility.constants import * #IGNORE:W0611
 from Tribler.__init__ import tribler_init, tribler_done
 from BitTornado.__init__ import product_name
 from safeguiupdate import DelayedInvocation
+import webbrowser
+
 
 DEBUG = False
 ALLOW_MULTIPLE = False
@@ -182,7 +184,10 @@ class ABCList(ManagedList):
 
     def OnLeftDClick(self, event):
         event.Skip()
-        self.utility.actions[ACTION_DETAILS].action()
+        try:
+            self.utility.actions[ACTION_DETAILS].action()
+        except:
+            print_exc()
 
 
 ##############################################################
@@ -427,7 +432,8 @@ class ABCFrame(wx.Frame,DelayedInvocation):
             _curr_status = line1.split()
             self.curr_version = _curr_status[0]
             if self.newversion(self.curr_version, my_version):
-                self.OnUpgrade()
+                # Arno: we are a separate thread, delegate GUI updates to MainThread
+                self.upgradeCallback()
         except Exception,e:
             print >> sys.stderr, "Version check failed", ctime(time()), str(e)
             #print_exc()
@@ -453,12 +459,15 @@ class ABCFrame(wx.Frame,DelayedInvocation):
             elif curr_v < my_v:
                 return False
         return False
+
+    def upgradeCallback(self):
+        self.invokeLater(self.OnUpgrade)    
     
     def OnUpgrade(self, event=None):
-        str = self.utility.lang.get('upgradeabc')
+        s = self.utility.lang.get('upgradeabc')
         title = self.utility.lang.get('upgradeabctitle')
         mainpage = self.utility.lang.get('mainpage')
-        dlg = wx.MessageDialog(self, str,
+        dlg = wx.MessageDialog(self, s,
                                title + self.curr_version,
                                wx.YES_NO|wx.ICON_EXCLAMATION
                                #wx.OK | wx.ICON_INFORMATION |
@@ -466,11 +475,12 @@ class ABCFrame(wx.Frame,DelayedInvocation):
                                )
         result = dlg.ShowModal()
         dlg.Destroy()
-        if(result == wx.ID_YES):
-            import wx.lib.hyperlink as hl
-            self._hyper = hl.HyperLinkCtrl(self, wx.ID_ANY, mainpage,
-                                        URL="http://tribler.org/")
-            self._hyper.GotoURL(self.update_url,True, True)
+        if result == wx.ID_YES:
+            t = Timer(0.1, self.openBrowserForUpgrade)
+            t.start()
+            
+    def openBrowserForUpgrade(self):
+        webbrowser.open_new(self.update_url)
             
     def onFocus(self, event = None):
         if event is not None:

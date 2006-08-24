@@ -44,8 +44,14 @@ TorrentDB - (PreferenceDB, MyPreference, OwnerDB)
         torrent_name: str ('')    # torrent name
         torrent_dir: str ('')    # path of the torrent (without the file name). '\x01' for default path
         info: dict ({})   # {name, length, announce, creation date, comment, announce-list, num_files}
+        # new keys in database version 2
         leecher: int (0)
         seeder: int (0)
+        category: list ()
+        ignore_number: int (0)
+        last_check_time: long (time())
+        retry_number: int (0)
+        status: str ("unknown")
     }
 
 PreferenceDB - (PeerDB, TorrentDB)    # other peers' preferences
@@ -95,7 +101,7 @@ from shelve import BsdDbShelf
 #
 
 home_dir = 'bsddb'
-curr_version = 1
+curr_version = 2
 permid_length = 112
 infohash_length = 20
 torrent_id_length = 20
@@ -120,6 +126,7 @@ def init(config_dir, myinfo):
     PreferenceDB.getInstance(home_dir)
     MyPreferenceDB.getInstance(home_dir)
     OwnerDB.getInstance(home_dir)
+    MyDB.updateDBVersion(curr_version)
     
 def done(config_dir):
     MyDB.getInstance().close()
@@ -314,7 +321,7 @@ class BasicDB:    # Should we use delegation instead of inheritance?
         self.opened = False
         
     def updateDB(self, old_version):
-        raise NotImplementedError
+        pass
 
     def setDefaultItem(self, item):
         df = deepcopy(self.default_item)
@@ -386,6 +393,11 @@ class MyDB(BasicDB):
         elif old_version > curr_version:
             raise RuntimeError, "The version of database is too high. Please update the software."
     checkVersion = staticmethod(checkVersion)
+    
+    def updateDBVersion(db):
+        MyDB.__single._put('version', curr_version)
+        MyDB.__single._sync()
+    updateDBVersion = staticmethod(updateDBVersion)
     
     # superpeers
     def addSuperPeer(self, permid):
@@ -566,7 +578,20 @@ class TorrentDB(BasicDB):
     def hasNewMetadata(self, v):
         self.new_metadata = v
         
-
+    def updateDB(self, old_version):
+        if old_version == 1:
+            def_newitem = {
+                'category': ['?'],
+                'ignore_number': 0,
+                'last_check_time': long(time()),
+                'retry_number': 0,
+                'seeder': 0,
+                'leecher': 0,
+                'status': "unknown"}
+            keys = self._keys()
+            for key in keys:
+                self._updateItem(key, def_newitem)
+    
 class PreferenceDB(BasicDB):
     """ Peer * Torrent """
     

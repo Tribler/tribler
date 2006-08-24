@@ -3,7 +3,7 @@
 	<assemblyIdentity
 	   version="1.0.0.0"
 	   processorArchitecture="X86"
-	   name="Microsoft.Winweb.abc"
+	   name="Microsoft.Winweb.tribler"
 	   type="win32"
 	/>
 	<description>My Manifest Testing application</description>

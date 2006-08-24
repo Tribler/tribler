@@ -22,7 +22,6 @@ from BitTornado import version, report_email
 from BitTornado.ConfigDir import ConfigDir
 #--- 2fastbt_
 from time import time
-from Tribler.toofastbt.Logger import get_logger
 from Tribler.__init__ import tribler_init, tribler_done
 # _2fastbt
 
@@ -76,12 +75,12 @@ class HeadlessDisplayer:
                     name, status, progress, peers, seeds, seedsmsg, dist,
                     uprate/1000, dnrate/1000, upamt/1024, dnamt/1024, msg, int(delta))
             try:
-                get_logger().log(3, x)
+                print >> sys.stderr,"3, x
             except:
                 pass
             print x
             if status == "seeding":
-                get_logger().log(2, 'total_time = ' + str(delta))
+                print >> sys.stderr,"2, 'total_time = ' + str(delta)
 #                exit(0)
 # _2fastbt
         return False
@@ -165,5 +164,5 @@ if __name__ == '__main__':
     if Exceptions:
         print '\nEXCEPTION:'
         print Exceptions[0]
-        get_logger().log(2, 'btlaunchmany EXCEPTION: ' + str(Exceptions[0]))
+        print >> sys.stderr,"2, 'btlaunchmany EXCEPTION: ' + str(Exceptions[0])
         print 'please report this to '+report_email+'. Thank you!'

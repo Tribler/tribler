@@ -56,6 +56,8 @@ from ManagedList, so that user can customize peer/file list.
 
 ----- release 3.4.0
 
+show loading in recommendation list
+
 Track torrents' health
 
 Add Search for file list and peer list

@@ -21,7 +21,6 @@ class CoordinatorMessageHandler:
         t = message[0]
         #if DEBUG:
         #    print >> sys.stderr,"helpcoord: Got",getMessageName(t)
-#            get_logger().log(3, "connection: got RESERVE_PIECES")
 
         if t == RESERVE_PIECES:
             return self.got_reserve_pieces(permid, message)

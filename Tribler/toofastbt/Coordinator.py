@@ -5,7 +5,6 @@ from traceback import print_exc
 import copy
 import sys
 
-from Tribler.toofastbt.Logger import get_logger
 from Tribler.Overlay.SecureOverlay import SecureOverlay
 from BitTornado.bencode import bencode
 from BitTornado.BT1.MessageID import DOWNLOAD_HELP, STOP_DOWNLOAD_HELP, PIECES_RESERVED
@@ -177,7 +176,6 @@ class Coordinator:
         except Exception, e:
             print_exc()
             print >> sys.stderr,"helpcoord: Exception in reserve_pieces",e
-            #get_logger().log(3, "EXCEPTION: '" + str(e) + "'")
         return new_reserved
 
     def get_reserved(self):

@@ -3,6 +3,8 @@
 
 import wx
 from ABC.GUI.list import ManagedList
+from safeguiupdate import DelayedInvocation
+from threading import Event
 
 def sort_dictlist(dict_list, key, order='increase'):
     
@@ -25,7 +27,7 @@ def sort_dictlist(dict_list, key, order='increase'):
     return [dict_list[i] for x, i in aux]
 
 
-class CommonTriblerList(ManagedList):
+class CommonTriblerList(ManagedList, DelayedInvocation):
     """ 
     0. Give a unique prefix
     1. IDs in rightalign and centeralign must be set in Utility.constants;
@@ -38,16 +40,23 @@ class CommonTriblerList(ManagedList):
         self.utility = parent.utility
         self.prefix = prefix
         ManagedList.__init__(self, parent, style, prefix, minid, maxid, exclude, rightalign, centeralign)
+        DelayedInvocation.__init__(self)
+        self.doneflag = Event()
         
         self.data = []
         self.lastcolumnsorted, self.reversesort = self.columns.getSortedColumn()
+        self.info_dict = {}            # use infohash as the key, used for update
         self.num = self.getMaxNum()    # max num of lines to show
 
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnRightClick)
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnActivated)
         self.Bind(wx.EVT_LIST_COL_CLICK, self.OnColClick)
-        
         #self.loadList()
+        self.DeleteAllItems()
+        self.loading()
+                    
+    def loading(self):    # display "loading ..." 
+        self.InsertStringItem(0, self.utility.lang.get('loading'))
                     
     def getMaxNum(self):
         return self.utility.config.Read(self.prefix + "_num", "int")
@@ -93,6 +102,9 @@ class CommonTriblerList(ManagedList):
         raise
         
     def loadList(self, reload=True, sorted=True):
+        self.DeleteAllItems() 
+        self.loading()
+        
         active_columns = self.columns.active
         if not active_columns:
             return
@@ -108,17 +120,17 @@ class CommonTriblerList(ManagedList):
         if self.num > 0 and self.num < num:
             num = self.num
             
-        self.DeleteAllItems() 
-        
         first_col = active_columns[0][0]
+        # Delete the "Loading... entry before adding the real stuff
+        self.DeleteAllItems()
         for i in xrange(num):
             self.InsertStringItem(i, self.getText(self.data, i, first_col))
             for col,rank in active_columns[1:]:
                 txt = self.getText(self.data, i, col)
                 self.SetStringItem(i, rank, txt)
-        self.Show(True)
-    
 
+	self.Show(True)
+            
 class MainWindow(wx.Frame):
     def __init__(self,parent,id, title):
         wx.Frame.__init__(self,parent,wx.ID_ANY,title,

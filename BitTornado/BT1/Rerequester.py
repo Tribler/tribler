@@ -193,6 +193,11 @@ class Rerequester:
                 for t in range(len(self.trackerlist)):
                     for tr in range(len(self.trackerlist[t])):
                         tracker  = self.trackerlist[t][tr]
+                        # Arno: no udp support yet
+                        if tracker.startswith( 'udp:' ):
+                            if DEBUG:
+                                print "Rerequest tracker: ignoring",tracker
+                            continue
                         if self.rerequest_single(tracker, s, callback):
                             if not self.last_failed and tr != 0:
                                 del self.trackerlist[t][tr]
@@ -228,7 +233,8 @@ class Rerequester:
     def rerequest_single(self, t, s, callback):
         l = self.lock.set()
         rq = Thread(target = self._rerequest_single, args = [t, s+get_key(t), l, callback])
-        rq.setDaemon(False)
+        # Arno: make this a daemon thread so the client closes sooner.
+        rq.setDaemon(True)
         rq.start()
         self.lock.wait()
         if self.lock.success:

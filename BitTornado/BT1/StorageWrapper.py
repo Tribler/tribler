@@ -202,6 +202,8 @@ class StorageWrapper:
                 self.initialize_done()
                 return
             msg, done, init, next = self.initialize_tasks.pop(0)
+            if DEBUG:
+                print "StorageWrapper: _initialize performing task",msg
             if init():
                 self.initialize_status(activity = msg, fractionDone = done)
                 self.initialize_next = next
@@ -340,6 +342,7 @@ class StorageWrapper:
             return (self.numchecked / self.check_total)
 
         except Exception, e:
+            print_exc()
             self.failed('download corrupted; please restart and resume')
     
     
@@ -1007,7 +1010,7 @@ class StorageWrapper:
         if self.merkle_torrent:
             return {'pieces': pieces.tostring(), 'places': places, 'partials': partials, 'merkletree': pickle.dumps(self.merkletree) }
         else:
-            return {'pieces': pieces.tostring(), 'places': places, 'partials': partials,}
+            return {'pieces': pieces.tostring(), 'places': places, 'partials': partials }
 
 
     def unpickle(self, data, valid_places):
@@ -1033,7 +1036,7 @@ class StorageWrapper:
                     self.hashes_unpickled = True
                 except Exception, e:
                     print "StorageWrapper: Exception while unpickling Merkle tree",str(e)
-                    traceback.print_exc(file=sys.stdout)
+                    print_exc()
             if data['pieces'] == 1:     # a seed
                 assert not data.get('places', None)
                 assert not data.get('partials', None)

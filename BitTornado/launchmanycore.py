@@ -11,6 +11,7 @@ from clock import clock
 from __init__ import createPeerID, mapbase64
 from cStringIO import StringIO
 from traceback import print_exc
+from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 
 from BitTornado import PSYCO
 if PSYCO.psyco:
@@ -35,9 +36,6 @@ from Tribler.Overlay.OverlaySwarm import OverlaySwarm
 from Tribler.Overlay.SecureOverlay import SecureOverlay
 from Tribler.Overlay.OverlayApps import OverlayApps
 from Tribler.CacheDB.CacheDBHandler import MyDBHandler, TorrentDBHandler, MyPreferenceDBHandler
-# 2fastbt_
-from Tribler.toofastbt.Logger import get_logger, create_logger
-# _2fastbt
 
 try:
     True
@@ -171,16 +169,13 @@ class SingleDownload:
 class LaunchMany:
     def __init__(self, config, Output):
         try:
-# 2fastbt_
-            create_logger(config['2fastbtlog'])
-# _2fastbt
-
             self.config = config
             self.Output = Output
 
             self.text_mode = config.has_key('text_mode')
             self.torrent_dir = config['torrent_dir']
             self.scan_period = config['parse_dir_interval']
+            self.torrent_checking_period = config['torrent_checking_period']    #### temporary
 
             self.torrent_cache = {}
             self.file_cache = {}
@@ -206,6 +201,8 @@ class LaunchMany:
             #GLOBAL.do_superpeer = config['superpeer']
             #GLOBAL.do_das_test = config['das_test']
             GLOBAL.do_buddycast_interval = config['buddycast_interval']
+            GLOBAL.do_torrent_checking = config['torrent_checking']
+            GLOBAL.max_num_torrents = config['max_torrents']
             GLOBAL.overlay_log = config['overlay_log']
             
             self.rawserver = RawServer(self.doneflag,
@@ -278,6 +275,11 @@ class LaunchMany:
             
             self.torrent_db = TorrentDBHandler()
             self.mypref_db = MyPreferenceDBHandler()
+            
+            # add task for tracker checking
+            if GLOBAL.do_torrent_checking:
+                self.rawserver.add_task(self.torrent_checking, self.torrent_checking_period)
+            
             self.start()
 
         except Exception,e:
@@ -288,6 +290,16 @@ class LaunchMany:
             if not self.text_mode:
                 self.utility.frame.onWarning(e)
 
+    def torrent_checking(self):
+        self.rawserver.add_task(self.torrent_checking, self.torrent_checking_period)
+#        print "torrent_checking start"
+        try:
+            t = TorrentChecking()        
+#            t.setDaemon(True)
+            t.start()
+        except:
+            pass
+        
     def start(self):
         try:
             self.handler.listen_forever()
@@ -353,10 +365,6 @@ class LaunchMany:
                 progress = '%.1f%%' % (d.status_done*100)
             else:
                 stats = d.statsfunc()
-# 2fastbt_
-#                get_logger().log(3, "launchmanycore.launchmany: statsfunc: '" + 
-#                    str(d.statsfunc) + "' dnrate: '" + str(stats['down']) + "'")
-# _2fastbt
                 s = stats['stats']
                 if d.seed:
                     status = 'seeding'
@@ -445,9 +453,17 @@ class LaunchMany:
         torrent_info['announce-list'] = metainfo.get('announce-list', '')
         torrent_info['creation date'] = metainfo.get('creation date', 0)
         torrent['info'] = torrent_info
+        torrent['category'] = Category.getInstance()\
+                        .calculateCategory(info, torrent_info['name'])
+        torrent["ignoreNumber"] = 0
+        torrent["lastCheckTime"] = long(time())
+        torrent["retryNumber"] = 0
+        torrent["seeder"] = 0
+        torrent["leecher"] = 0
+        torrent["status"] = "unknown"
         
         self.torrent_db.addTorrent(torrent_hash, torrent, new_metadata=True)
-        self.torrent_db.sync()    
+        self.torrent_db.sync()     
 
         mypref = {}
         if dest:

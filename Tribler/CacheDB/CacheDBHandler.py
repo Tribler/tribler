@@ -324,8 +324,31 @@ class TorrentDBHandler(BasicDBHandler):
         if new_metadata:
             self.torrent_db.hasNewMetadata(True)
         
-    def getTorrent(self, infohash):
-        return self.torrent_db.getItem(infohash)
+    def updateTorrent(self, infohash, **kw):    # watch the schema of database
+        self.torrent_db.updateItem(infohash, kw)
+        
+    def deleteTorrent(self, infohash, delete_file=False):
+        if delete_file:
+            self.eraseTorrentFile(infohash)
+        self.torrent_db._delete(infohash)
+        self.owner_db._delete(infohash)
+        self.torrent_db.hasNewMetadata(True)
+            
+    def eraseTorrentFile(self, infohash):
+        data = self.torrent_db._get(infohash)
+        if not data or not data['torrent_name'] or not data['info']:
+            return False
+        src = os.path.join(data['torrent_dir'], data['torrent_name'])
+        try:
+            os.remove(src)
+        except:
+            print >> sys.stderr, "cachedbhandler: failed to erase torrent", src
+                
+    def getTorrent(self, infohash, num_owners=False):
+        torrent = self.torrent_db.getItem(infohash)
+        if torrent and num_owners:
+            torrent['num_owners'] = self.owner_db.getNumOwners(infohash)
+        return torrent
         
     def getTorrents(self, torrent_list, keys=None):    # get a list of dictionaries given torrent list
         if not keys:
@@ -350,17 +373,19 @@ class TorrentDBHandler(BasicDBHandler):
             torrents.append(p)
         return torrents
         
-    def getRecommendedTorrents(self, keys):     # for abcfileframe
-        all_list = list(Set(self.torrent_db._keys()) - Set(self.mypref_db._keys()))
+    def getRecommendedTorrents(self, light=False, all=False):     # get torrents on disk but not in my pref
+        all_list = self.torrent_db._keys()
+        if not all:
+            all_list = list(Set(self.torrent_db._keys()) - Set(self.mypref_db._keys()))
         torrents = []
         for torrent in all_list:
             p = self.torrent_db.getItem(torrent, default=True)
-            if not p or not p['torrent_name'] or not p['info']:
+            if not p or not p.get('torrent_name', None) or not p.get('info', None):
                 continue
             p['infohash'] = torrent
+            if not light:    # set light as ture to be faster
+                p['num_owners'] = self.owner_db.getNumOwners(torrent)
             torrents.append(p)
-        for i in range(len(torrents)):
-            torrents[i]['num_owners'] = self.owner_db.getNumOwners(torrents[i]['infohash'])
         return torrents
 
     def hasTorrent(self, infohash):
@@ -434,23 +459,6 @@ class TorrentDBHandler(BasicDBHandler):
     def updateTorrentRelevance(self, torrent, relevance):
         self.torrent_db.updateItem(torrent, {'relevance':relevance})
             
-    def deleteTorrent(self, infohash, delete_file=False):
-        if delete_file:
-            self.eraseTorrentFile(infohash)
-        self.torrent_db._delete(infohash)
-        self.owner_db._delete(infohash)
-        self.torrent_db.hasNewMetadata(True)
-            
-    def eraseTorrentFile(self, infohash):
-        data = self.torrent_db._get(infohash)
-        if not data or not data['torrent_name'] or not data['info']:
-            return False
-        src = os.path.join(data['torrent_dir'], data['torrent_name'])
-        try:
-            os.remove(src)
-        except:
-            print >> sys.stderr, "cachedbhandler: failed to erase torrent", src
-        
     def getNumMetadata(self):
         if not self.torrent_db.new_metadata:
             return self.num_metadata

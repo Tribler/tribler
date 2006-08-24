@@ -4,7 +4,6 @@
 from random import randrange, shuffle
 from BitTornado.clock import clock
 # 2fastbt_
-from Tribler.toofastbt.Logger import get_logger
 from traceback import extract_tb
 import sys
 # _2fastbt
@@ -238,8 +237,8 @@ class PiecePicker:
         else:
             return self._next(haves, wantfunc, complete_first, True)
 #        except:
-#            get_logger().log(3, "piecepicker.piecepicker: EXCEPTION in next: " + 
-#                str(exc_info()[0]) + str(exc_info()[1]) + str(extract_tb(exc_info()[2])))
+#            if DEBUG:
+#                print_exc()
 
     def set_rate_predictor(self, rate_predictor):
         self.rate_predictor = rate_predictor

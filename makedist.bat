@@ -14,7 +14,7 @@ copy heading.bmp dist\tribler
 mkdir dist\tribler\Lang
 copy superpeer.txt dist
 copy cities.txt dist
-copy LICENSE.txt dist
+copy binary-LICENSE.txt dist
 mkdir dist\tribler\icons
 copy icons\*.bmp dist\tribler\icons
 mkdir dist\tribler\icons\mugshots

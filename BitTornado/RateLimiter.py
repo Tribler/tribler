@@ -5,10 +5,6 @@ from clock import clock
 from CurrentRateMeasure import Measure
 from math import sqrt
 
-# 2fastbt_
-from Tribler.toofastbt.Logger import get_logger
-# _2fastbt
-
 try:
     True
 except:
@@ -68,10 +64,6 @@ class RateLimiter:
 
     def queue(self, conn):
         assert conn.next_upload is None
-# 2fastbt_
-        if conn.connection.is_coordinator_con():
-            get_logger().log(3, "retelimiter.ratelimiter adding to queue coordinator request")
-# _2fastbt
         if self.last is None:
             self.last = conn
             conn.next_upload = conn
@@ -82,8 +74,6 @@ class RateLimiter:
 # 2fastbt_
             if not conn.connection.is_coordinator_con():
                 self.last = conn
-#            else:
-#                get_logger().log(2, "retelimiter.ratelimiter adding to queue coordinator request")
 # _2fastbt
 
     def try_send(self, check_time = False):
@@ -108,16 +98,13 @@ class RateLimiter:
                     cur = self.last.next_upload
             else:
 # 2fastbt_
-#                get_logger().log(2, "retelimiter.ratelimiter")
                 if not cur.connection.is_coordinator_con() or not cur.upload.buffer:
-#                    get_logger().log(2, "retelimiter.ratelimiter buffer: '" + str(cur.upload.buffer) + "'")
 # _2fastbt
                     self.last = cur
                     cur = cur.next_upload
 # 2fastbt_
                 else:
                     pass
-#                    get_logger().log(2, "retelimiter.ratelimiter coordinator_con buffer: '" + str(cur.upload.buffer) + "'")
 # _2fastbt
         else:
             self.sched(self.try_send, self.bytes_sent / self.upload_rate)

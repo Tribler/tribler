@@ -1,16 +1,23 @@
 import sys
 
-def bin2unicode(bin):
+def bin2unicode(bin,possible_encoding='utf_8'):
+    if possible_encoding is None:
+        possible_encoding = 'utf_8'
     try:
-        return bin.decode('utf_8')
+        return bin.decode(possible_encoding)
     except:
         try:
-            return bin.decode('iso-8859-1')
+            if possible_encoding == 'utf_8':
+                raise
+            return bin.decode('utf_8')
         except:
             try:
-                return bin.decode(sys.getfilesystemencoding())
+                return bin.decode('iso-8859-1')
             except:
-                return bin.decode(sys.getdefaultencoding(), errors = 'replace')
+                try:
+                    return bin.decode(sys.getfilesystemencoding())
+                except:
+                    return bin.decode(sys.getdefaultencoding(), errors = 'replace')
 
 
 def str2unicode(s):
@@ -51,10 +58,7 @@ def name2unicode(metadata):
         namekey = 'name'
     if metadata.has_key('encoding'):
         encoding = metadata['encoding']
-        try:
-            metadata['info'][namekey] = metadata['info'][namekey].decode(encoding)
-        except:
-            metadata['info'][namekey] = bin2unicode(metadata['info'][namekey])
+        metadata['info'][namekey] = bin2unicode(metadata['info'][namekey],encoding)
     else:
         metadata['info'][namekey] = bin2unicode(metadata['info'][namekey])
 

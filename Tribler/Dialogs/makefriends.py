@@ -16,8 +16,8 @@ DEBUG = False
 
 class MakeFriendsDialog(wx.Dialog):
     def __init__(self, parent, editfriend = None):
-        provider = wx.SimpleHelpProvider()
-        wx.HelpProvider_Set(provider)
+        #provider = wx.SimpleHelpProvider()
+        #wx.HelpProvider_Set(provider)
         
         self.utility = parent.utility
         self.editfriend = editfriend
@@ -45,7 +45,7 @@ class MakeFriendsDialog(wx.Dialog):
         # name
         box = wx.BoxSizer(wx.HORIZONTAL)
 
-        label = wx.StaticText(self, -1, "Name:")
+        label = wx.StaticText(self, -1, self.utility.lang.get('name')+':')
         #label.SetHelpText("")
         box.Add(label, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
 
@@ -54,7 +54,7 @@ class MakeFriendsDialog(wx.Dialog):
         else:   
             name = ''
         self.name_text = wx.TextCtrl(self, -1, name, size=(80,-1))
-        self.name_text.SetHelpText("Input the friend's nickname or whatever you'd like to identify him/her")
+        ##self.name_text.SetHelpText(self.utility.lang.get('nickname_help'))
         box.Add(self.name_text, 1, wx.ALIGN_CENTRE|wx.ALL, 5)
 
         sizer.Add(box, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
@@ -62,7 +62,7 @@ class MakeFriendsDialog(wx.Dialog):
         # ip
         box = wx.BoxSizer(wx.HORIZONTAL)
 
-        label = wx.StaticText(self, -1, "IP:")
+        label = wx.StaticText(self, -1, self.utility.lang.get('ipaddress')+':')
         #label.SetHelpText("")
         box.Add(label, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
 
@@ -71,7 +71,7 @@ class MakeFriendsDialog(wx.Dialog):
         else:   
             ip = ''
         self.ip_text = wx.TextCtrl(self, -1, ip, size=(80,-1))
-        self.ip_text.SetHelpText("Input the friend's IP address, e.g. 202.115.39.65")
+        ##self.ip_text.SetHelpText(self.utility.lang.get('friendsipaddr_help'))
         box.Add(self.ip_text, 1, wx.ALIGN_CENTRE|wx.ALL, 5)
 
         sizer.Add(box, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
@@ -79,7 +79,7 @@ class MakeFriendsDialog(wx.Dialog):
         # port
         box = wx.BoxSizer(wx.HORIZONTAL)
 
-        label = wx.StaticText(self, -1, "Port:")
+        label = wx.StaticText(self, -1, self.utility.lang.get('portnumber'))
         #label.SetHelpText("")
         box.Add(label, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
 
@@ -88,7 +88,7 @@ class MakeFriendsDialog(wx.Dialog):
         else:   
             port_str = ''
         self.port_text = wx.TextCtrl(self, -1, port_str, size=(80,-1))
-        self.port_text.SetHelpText("Input the friend's listening port number")
+        ##self.port_text.SetHelpText(self.utility.lang.get('friendsport_help'))
         box.Add(self.port_text, 1, wx.ALIGN_CENTRE|wx.ALL, 5)
 
         sizer.Add(box, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
@@ -96,7 +96,7 @@ class MakeFriendsDialog(wx.Dialog):
         # permid
         box = wx.BoxSizer(wx.HORIZONTAL)
 
-        label = wx.StaticText(self, -1, "PermID:")
+        label = wx.StaticText(self, -1, self.utility.lang.get('permid')+':')
         #label.SetHelpText("")
         box.Add(label, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
 
@@ -105,7 +105,7 @@ class MakeFriendsDialog(wx.Dialog):
         else:   
             permid = ''
         self.permid_text = wx.TextCtrl(self, -1, permid, size=(80,-1))
-        self.permid_text.SetHelpText("Input the friend's PermID.")
+        ## self.permid_text.SetHelpText(self.utility.lang.get('friendspermid_help'))
         box.Add(self.permid_text, 1, wx.ALIGN_CENTRE|wx.ALL, 5)
 
         sizer.Add(box, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
@@ -113,7 +113,7 @@ class MakeFriendsDialog(wx.Dialog):
         # picture
         box = wx.BoxSizer(wx.HORIZONTAL)
 
-        label = wx.StaticText(self, -1, "Icon (32x32 BMP format):")
+        label = wx.StaticText(self, -1, self.utility.lang.get('icon32bmp'))
         #label.SetHelpText("")
         box.Add(label, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
 
@@ -122,10 +122,10 @@ class MakeFriendsDialog(wx.Dialog):
         else:   
             icon = ''
         self.icon_path = wx.TextCtrl(self, -1, icon, size=(80,-1))
-        self.icon_path.SetHelpText("Input full path of the friend's icon")
+        ## self.icon_path.SetHelpText(self.utility.lang.get('friendsicon_help'))
         box.Add(self.icon_path, 3, wx.ALIGN_CENTRE|wx.ALL, 5)
         
-        iconbtn = wx.Button(self, -1, label="Browse")
+        iconbtn = wx.Button(self, -1, label=self.utility.lang.get('browsebtn'))
         box.Add(iconbtn, 1, wx.ALIGN_CENTRE|wx.ALL, 5)
         self.Bind(wx.EVT_BUTTON, self.OnIconButton, iconbtn)
 
@@ -136,9 +136,9 @@ class MakeFriendsDialog(wx.Dialog):
         sizer.Add(line, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.RIGHT|wx.TOP, 5)
         btnsizer = wx.StdDialogButtonSizer()
         
-        if (sys.platform != 'win32'):
-            btn = wx.ContextHelpButton(self)
-            btnsizer.AddButton(btn)
+        ##if (sys.platform != 'win32'):
+        ##    btn = wx.ContextHelpButton(self)
+        ##    btnsizer.AddButton(btn)
         
         if editfriend is None:
             lbl = self.utility.lang.get('buttons_add')
@@ -173,46 +173,48 @@ class MakeFriendsDialog(wx.Dialog):
         except:
             port = 0
             
-#        if len(name) == 0:
-#            self.show_inputerror( 'Name is empty.' )
-        if len(permid) == 0:
-            self.show_inputerror( 'PermID must be given (in BASE64, single line)' )
+        if len(name) == 0:
+            self.show_inputerror(self.utility.lang.get('nicknameempty_error'))
+        elif len(permid) == 0:
+            self.show_inputerror(self.utility.lang.get('friendspermid_error'))
         elif port == 0:
-            self.show_inputerror( 'Port is not a number' )
+            self.show_inputerror(self.utility.lang.get('friendsport_error'))
         elif icon != '' and not os.path.exists(icon):
-            self.show_inputerror( 'Icon file does not exist' )
+            self.show_inputerror(self.utility.lang.get('fiendsiconnotfound_error'))
         else:
             if icon != '':
                 try:
                     bm = wx.Bitmap(icon,wx.BITMAP_TYPE_BMP)
                     if bm.GetWidth() != 32 or bm.GetHeight() != 32:
-                        self.show_inputerror( 'Icon file is not a 32x32 BMP' )
+                        self.show_inputerror(self.utility.lang.get('friendsiconnot32bmp_error') )
                         return
                 except:
-                    self.show_inputerror( 'Icon file is not BMP' )
+                    self.show_inputerror(self.utility.lang.get('friendsiconnotbmp_error'))
                     return
                     
-#                # All good
-#                try:
-#                    copy2(os.path.normpath(icon), nickname2iconfilename(self.utility,name))
-#                except:
-#                    print_exc()
+                 
+                # Reenable by Arno, All good
+                newiconfilename = nickname2iconfilename(self.utility,name)
+                try:
+                    copy2(os.path.normpath(icon), newiconfilename)
+                except:
+                    print_exc()
 
             fdb = FriendDBHandler()
-            friend = {'permid':permid, 'ip':ip, 'port':port, 'name':name, 'icon':icon}
+            friend = {'permid':permid, 'ip':ip, 'port':port, 'name':name, 'icon':newiconfilename}
             if self.editfriend is not None:
                 if self.editfriend['permid'] != permid:
                     fdb.deleteFriend(self.editfriend['permid'])
-#                elif self.editfriend['name'] != name:
-#                    # Renamed the dude, rename icon as well, if present
-#                    oldfilename = nickname2iconfilename(self.utility,self.editfriend['name'])
-#                    newfilename = nickname2iconfilename(self.utility,name)
-#                    try:
-#                        if os.path.exists(oldfilename):
-#                            os.rename(oldfilename,newfilename)
-#                    except:
-#                        print_exc()
-#                        pass
+                elif self.editfriend['name'] != name:
+                    # Renamed the dude, rename icon as well, if present
+                    oldfilename = nickname2iconfilename(self.utility,self.editfriend['name'])
+                    newfilename = nickname2iconfilename(self.utility,name)
+                    try:
+                        if os.path.exists(oldfilename):
+                            os.rename(oldfilename,newfilename)
+                    except:
+                        print_exc()
+                        pass
             fdb.addExternalFriend(friend)
             event.Skip()    # must be done, otherwise ShowModal() returns wrong error 
             self.Destroy()

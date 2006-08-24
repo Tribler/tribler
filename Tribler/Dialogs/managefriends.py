@@ -17,6 +17,7 @@ from makefriends import MakeFriendsDialog
 def createImageList(utility, friends):
     if len(friends) == 0:
         return None
+    bitmaps = []
     height = 0
     width = 0
     for friend in friends:
@@ -33,10 +34,10 @@ def createImageList(utility, friends):
             width = bm.GetWidth()
         if bm.GetHeight() > height:
             height = bm.GetHeight()
-        friend['bmp'] = bm
+        bitmaps.append(bm)
     imgList = wx.ImageList(width,height)
-    for f in friends:
-        imgList.Add(f['bmp'])
+    for bm in bitmaps:
+        imgList.Add(bm)
     return imgList
 
 ################################################################

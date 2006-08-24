@@ -315,6 +315,9 @@ class DisplayPanel(ABCOptionPanel):
         self.savecolumnwidth = wx.CheckBox(self, -1, self.utility.lang.get('savecolumnwidth'))        
         sizer.Add(self.savecolumnwidth, 0, wx.ALL, 5)
         
+        self.showearthpanel = wx.CheckBox(self, -1, self.utility.lang.get('showearthpanel'))        
+        sizer.Add(self.showearthpanel, 0, wx.ALL, 5)
+        
         self.contextmenu = wx.Button(self, -1, self.utility.lang.get('customizecontextmenu') + "...")
         sizer.Add(self.contextmenu, 0, wx.ALL, 5)
         self.Bind(wx.EVT_BUTTON, self.onContextMenuDialog, self.contextmenu)
@@ -349,7 +352,7 @@ class DisplayPanel(ABCOptionPanel):
         self.stripedlist_button.SetValue(Read('color_stripe', "color"))
         
         self.savecolumnwidth.SetValue(Read('savecolumnwidth', "boolean"))
-        
+        self.showearthpanel.SetValue(Read('showearthpanel', "boolean"))
 #        self.showmenuicons.SetValue(Read('showmenuicons', "boolean"))
         
         # Get font information                          
@@ -358,6 +361,7 @@ class DisplayPanel(ABCOptionPanel):
                
     def apply(self):
         self.utility.config.Write('savecolumnwidth', self.savecolumnwidth.GetValue(), "boolean")
+        self.utility.config.Write('showearthpanel', self.showearthpanel.GetValue(), "boolean")
 #        self.utility.config.Write('showmenuicons', self.showmenuicons.GetValue(), "boolean")
          
         overallchanged = False

@@ -1,5 +1,5 @@
 !define PRODUCT "Tribler"
-!define VERSION "3.4.0"
+!define VERSION "3.5.0"
 
 !include "MUI.nsh"
 
@@ -43,7 +43,7 @@ SetCompressor "lzma"
   !define MUI_LICENSEPAGE_RADIOBUTTONS_TEXT_ACCEPT "I'm cool"
   !define MUI_LICENSEPAGE_RADIOBUTTONS_TEXT_DECLINE "Go away"
 
-  !insertmacro MUI_PAGE_LICENSE "LICENSE.txt"
+  !insertmacro MUI_PAGE_LICENSE "binary-LICENSE.txt"
   !insertmacro MUI_PAGE_COMPONENTS
   !insertmacro MUI_PAGE_DIRECTORY
   !insertmacro MUI_PAGE_INSTFILES
