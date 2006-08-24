@@ -1,6 +1,6 @@
 call clean.bat
 
-set PYTHONPATH="C:\Python24"
+set PYTHONPATH="D:\Python\Python24"
 set NSIS="C:\Program Files\NSIS\makensis.exe"
 set IMGCFG="C:\Program Files\Imagecfg\imagecfg.exe"
 
@@ -14,6 +14,7 @@ copy heading.bmp dist\tribler
 mkdir dist\tribler\Lang
 copy superpeer.txt dist
 copy cities.txt dist
+copy category.conf dist
 copy binary-LICENSE.txt dist
 mkdir dist\tribler\icons
 copy icons\*.bmp dist\tribler\icons

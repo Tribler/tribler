@@ -75,6 +75,7 @@ Section "!Main EXE" SecMain
  SetOutPath "$INSTDIR"
  File *.ico
  File *.txt
+ File category.conf
  File tribler.exe.manifest
  File tribler.exe
  Delete "$INSTDIR\*.pyd"
