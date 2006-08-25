@@ -659,7 +659,6 @@ class FileList(CommonTriblerList):
         elif status == 'dead':
             tem.SetTextColour(wx.RED)
         self.SetItem(item)    
-        print "******** one torrent added"
             
     def loadList(self, reload=True, sorted=True):
         self.DeleteAllItems() 
