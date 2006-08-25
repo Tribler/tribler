@@ -505,7 +505,7 @@ class FileList(CommonTriblerList):
             
         # menu for change torrent's rank
         sm = wx.Menu()
-        sm.Append(self.check, "check status")
+        sm.Append(self.check,self.utility.lang.get('checkstatus'))
         sm.Append(self.downloadTorrentID, self.utility.lang.get('download'))
         sm.Append(self.deleteTorrentID, self.utility.lang.get('delete'))
         
