@@ -278,7 +278,9 @@ class TorrentDataManager:
         rlist = []
         
         for idata in self.data:
-            if categorykey in idata["category"]:
+            if not idata:
+                continue
+            if categorykey in idata.get("category", ["other"]):
                 rlist.append(idata)
         return rlist
 
@@ -796,10 +798,10 @@ class ABCFileFrame(wx.Frame):
         # idle event and load the filelist there.
         self.count += 1
         if not self.loadFileList and self.count >= 2:
+            self.Unbind(wx.EVT_IDLE)
             for panel in self.filePanels:
                 panel.list.loadList()
 #            self.filePanel.list.loadList()
-            self.Unbind(wx.EVT_IDLE)
             self.count = 0
             #self.filePanel.list.Show(True)
         

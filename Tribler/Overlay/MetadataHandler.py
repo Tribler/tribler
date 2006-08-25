@@ -44,9 +44,7 @@ class MetadataHandler:
         self.dlhelper = dlhelper
         self.config_dir = os.path.join(config_dir, 'torrent2')    #TODO: user can set it
         self.torrent_db = SynTorrentDBHandler()
-        self.torrent_list = self.torrent_db.getRecommendedTorrents(light=True)
-        self.num_torrents = len(self.torrent_list)
-        self.check_overflow(update=False)    # check at start time
+        self.num_torrents = -1
 
     def handleMessage(self, permid, message):
         
@@ -177,11 +175,16 @@ class MetadataHandler:
         #    print '### one torrent added from MetadataHandler: ' + str(torrent['category']) + ' ' + torrent['torrent_name'] + '###'
         
         self.torrent_db.addTorrent(torrent_hash, torrent, new_metadata=True, updateFlag=True)
-        self.num_torrents += 1
         self.check_overflow()
         self.torrent_db.sync()
         
     def check_overflow(self, update=True):    # check if torrents are more than enough
+        if self.num_torrents < 0:
+            self.torrent_list = self.torrent_db.getRecommendedTorrents(light=True)
+            self.num_torrents = len(self.torrent_list)
+            self.check_overflow(update=False)    # check at start time
+        
+        self.num_torrents += 1
         if self.num_torrents > GLOBAL.max_num_torrents:
             # get current torrent list again
             if update:
