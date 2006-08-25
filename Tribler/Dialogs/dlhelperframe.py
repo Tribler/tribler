@@ -11,33 +11,6 @@ from managefriends import createImageList
 
 DEBUG = False
 
-
-def _createImageList(utility,friends):
-    if len(friends) == 0:
-        return None
-    height = 0
-    width = 0
-    list = []
-    for friend in friends:
-        if friend['name'] is not None:
-            filename = nickname2iconfilename(utility, friend['name'])
-            if not os.access(filename, os.F_OK):
-                # fallback name, don't use nickname2... here
-                filename = os.path.join(utility.getPath(), 'icons', 'joe32.bmp')
-            bm = wx.Bitmap(filename,wx.BITMAP_TYPE_BMP)
-            if bm.GetWidth() > width:
-                width = bm.GetWidth()
-            if bm.GetHeight() > height:
-                height = bm.GetHeight()
-            list.append(bm)
-    imgList = wx.ImageList(width,height)
-    for bm in list:
-        imgList.Add(bm)
-    return imgList
-
-def nickname2iconfilename(utility,name):
-    return os.path.join(utility.getConfigPath(), 'icons', name+'.bmp')
-
 ################################################################
 #
 # Class: DownloadHelperPanel

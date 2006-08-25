@@ -4,15 +4,21 @@
 import os
 import sys
 import base64
+from sha import sha
 from traceback import print_exc
 from shutil import copy2
 import wx
 import wx.lib.imagebrowser as ib
 from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
 from Tribler.Overlay.permid import permid_for_user
-#from dlhelperframe import nickname2iconfilename
 
 DEBUG = False
+
+
+def permid2iconfilename(utility,permid):
+    safename = sha(permid).hexdigest()
+    return os.path.join(utility.getConfigPath(), 'icons', safename+'.bmp')
+
 
 class MakeFriendsDialog(wx.Dialog):
     def __init__(self, parent, editfriend = None):
@@ -192,9 +198,9 @@ class MakeFriendsDialog(wx.Dialog):
                     self.show_inputerror(self.utility.lang.get('friendsiconnotbmp_error'))
                     return
                     
-                 
-                # Reenable by Arno, All good
-                newiconfilename = nickname2iconfilename(self.utility,name)
+                # All good, save icon in $HOME/.Tribler/icons
+                # Renabled by Arno
+                newiconfilename = permid2iconfilename(self.utility,permid)
                 try:
                     copy2(os.path.normpath(icon), newiconfilename)
                 except:
@@ -205,16 +211,6 @@ class MakeFriendsDialog(wx.Dialog):
             if self.editfriend is not None:
                 if self.editfriend['permid'] != permid:
                     fdb.deleteFriend(self.editfriend['permid'])
-                elif self.editfriend['name'] != name:
-                    # Renamed the dude, rename icon as well, if present
-                    oldfilename = nickname2iconfilename(self.utility,self.editfriend['name'])
-                    newfilename = nickname2iconfilename(self.utility,name)
-                    try:
-                        if os.path.exists(oldfilename):
-                            os.rename(oldfilename,newfilename)
-                    except:
-                        print_exc()
-                        pass
             fdb.addExternalFriend(friend)
             event.Skip()    # must be done, otherwise ShowModal() returns wrong error 
             self.Destroy()

@@ -64,11 +64,17 @@ def get_my_wan_ip_win32():
                         print "ipconfig ignoring IPv6 address",list[-1]
                     pass
             elif list[0] == 'Default' and list[1] == 'Gateway':
-                ingw = 1
+                if list[-1] == ':':
+                    if DEBUG:
+                        print "ipconfig ignoring empty default gateway"
+                    pass
+                else:
+                    ingw = 1
         if ingw >= 1:
-            # Assumption: the "Default Gateway:" list can only have 2 entries,
+            # Assumption: the "Default Gateway" list can only have 2 entries,
             # one for IPv4, one for IPv6. Since we don't know the order, look
             # at both.
+            gwip2 = None
             ingw = (ingw + 1) % 3
             try:
                 socket.getaddrinfo(list[-1],None,socket.AF_INET)

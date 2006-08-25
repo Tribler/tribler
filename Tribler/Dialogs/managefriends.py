@@ -12,7 +12,7 @@ from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
 from Tribler.__init__ import myinfo
 from Tribler.Overlay.permid import permid_for_user
 
-from makefriends import MakeFriendsDialog
+from makefriends import MakeFriendsDialog, permid2iconfilename
 
 def createImageList(utility, friends):
     if len(friends) == 0:
@@ -24,8 +24,8 @@ def createImageList(utility, friends):
         filename = ''
         if friend.has_key('icon'):
             filename = friend['icon']
-        elif friend['name'] is not None:
-            filename = os.path.join(utility.getConfigPath(), 'icons', friend['name']+'.bmp')
+        elif friend['permid'] is not None: # not possible
+            filename = permid2iconfilename(utility,friend['permid'])
         if not os.access(filename, os.F_OK):
             # fallback name, don't use nickname2... here
             filename = os.path.join(utility.getPath(), 'icons', 'joe32.bmp')

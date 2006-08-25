@@ -3,7 +3,6 @@
 from inifile import ini_write, ini_read
 from bencode import bencode, bdecode
 from types import IntType, LongType, StringType, FloatType
-from CreateIcons import GetIcons, CreateIcon
 from parseargs import defaultargs
 from __init__ import product_name, version_short
 import sys, os
@@ -102,11 +101,6 @@ class ConfigDir:
         self.dir_icons = os.path.join(self.dir_root, 'icons')
         if not os.path.isdir(self.dir_icons):
             os.mkdir(self.dir_icons)
-        for icon in GetIcons():
-            i = os.path.join(self.dir_icons, icon)
-            if not os.path.exists(i):
-                if not copyfile(os.path.join(OLDICONPATH, icon), i):
-                    CreateIcon(icon, self.dir_icons)
 
         self.dir_torrentcache = os.path.join(self.dir_root, 'torrentcache')
         if not os.path.isdir(self.dir_torrentcache):
