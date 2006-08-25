@@ -337,7 +337,7 @@ class TorrentDataManager:
                 for fun in self.dict_FunList[key]: # call all functions for a certain key
                     fun(torrent, operate)     # lock is used to avoid dead lock
             except Exception, msg:
-                print "TorrentDataManager update error. Key: %s" % (key), Exception, msg
+                print >> sys.stderr, "TorrentDataManager update error. Key: %s" % (key), Exception, msg
                 print_exc()
         
     def addItem(self, infohash):
@@ -571,15 +571,24 @@ class FileList(CommonTriblerList):
                 index = self.info_dict[torrent["infohash"]]
                 self.data[index] = torrent
                 self.invokeLater(self.updateRow, [index])                
-#                self.updateRow(index)
             except KeyError:
                 pass
             except Exception, msg:
                 print >> sys.stderr, "File List updateFun Error", Exception, msg
                 print_exc()
         elif operate == "add":
-            self.invokeLater(self.loadList, [])            
-#            self.loadList()
+            # avoid one torrent displayed in the File List twice 
+            try:    
+                index = self.info_dict[torrent["infohash"]]
+            except KeyError:
+                pass
+            except Exception, msg:
+                print >> sys.stderr, "File List updateFun Error", Exception, msg
+                print_exc()
+            
+            self.data.append(torrent)
+            index = len(self.data) - 1
+            self.invokeLater(self.addRow, [index])            
         elif operate == "delete":
             self.invokeLater(self.loadList, [])            
 #            self.loadList()
@@ -623,7 +632,35 @@ class FileList(CommonTriblerList):
             if result == wx.ID_YES:
                 infohash = self.data[idx]['infohash']
                 self.data_manager.updateFun(infohash, 'delete')
-           
+     
+    def addRow(self, index):   
+        active_columns = self.columns.active
+        if not active_columns:
+            return
+        
+        num = len(self.data)
+        if self.num > 0 and self.num < num:
+            num = self.num
+        
+        # if reach the limitation of file number displayed in List, return    
+        if index > num - 1:
+            return
+        
+        first_col = active_columns[0][0]
+        self.InsertStringItem(index, self.getText(self.data, index, first_col))
+        for col,rank in active_columns[1:]:
+            txt = self.getText(self.data, index, col)
+            self.SetStringItem(index, rank, txt)
+        self.info_dict[self.data[index]["infohash"]] = index
+        item = self.GetItem(index)
+        status = self.data[index].get('status', 'unknown')
+        if status == 'good':
+            item.SetTextColour(wx.BLUE)
+        elif status == 'dead':
+            tem.SetTextColour(wx.RED)
+        self.SetItem(item)    
+        print "******** one torrent added"
+            
     def loadList(self, reload=True, sorted=True):
         self.DeleteAllItems() 
         self.loading()
