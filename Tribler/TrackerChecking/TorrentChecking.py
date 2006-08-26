@@ -60,7 +60,9 @@ class TorrentChecking(Thread):
                 'leecher': torrent['leecher'],
                 'status': torrent['status'],
                 'ignore_number': torrent['ignore_number'],
-                'retry_number': torrent['retry_number']}
+                'retry_number': torrent['retry_number'],
+                'info': torrent['info']
+                }
             self.torrent_db.updateTorrent(torrent['infohash'], updateFlag=True, **kw)
         else:   
             # unknown list
@@ -95,7 +97,9 @@ class TorrentChecking(Thread):
                 'leecher': torrent['leecher'],
                 'status': torrent['status'],
                 'ignore_number': torrent['ignore_number'],
-                'retry_number': torrent['retry_number']}
+                'retry_number': torrent['retry_number'],
+                'info': torrent['info']
+                }
             self.torrent_db.updateTorrent(torrent['infohash'], updateFlag=True, **kw)
         
         

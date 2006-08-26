@@ -161,6 +161,12 @@ class ABCTorrent:
         torrent['info'] = torrent_info
         torrent['category'] = Category.getInstance()\
                         .calculateCategory(self.metainfo.get('info', {}), torrent_info['name'])            
+        torrent["ignore_number"] = 0
+        torrent["last_check_time"] = long(time())
+        torrent["retry_number"] = 0
+        torrent["seeder"] = 0
+        torrent["leecher"] = 0
+        torrent["status"] = "unknown"
 #        if (torrent['category'] != []):
 #            print '### one torrent added from abctorrent '+ str(torrent['category']) + '###'
         

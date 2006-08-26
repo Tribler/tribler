@@ -13,13 +13,12 @@ def trackerChecking(torrent):
         
 def single_no_thread(torrent):
     
-    (seeder, leecher) = (-2, -2)
+    (seeder, leecher) = (-2, -2)        # default dead
     if ( torrent["info"].get("announce-list", "") == "" ):        # no announce-list
         try:
             announce = torrent["info"]["announce"]                    # get the single tracker
             (seeder, leecher) = singleTrackerStatus(torrent, announce)
         except:
-            print "no tracker"
             pass
     else:                                                # have announce-list
         for announces in torrent["info"]["announce-list"]:
@@ -28,14 +27,18 @@ def single_no_thread(torrent):
                 continue
             if (a_len == 1):                            # length = 1
                 announce = announces[0]
-                (seeder, leecher) = singleTrackerStatus(torrent, announce)
+                (s, l) = singleTrackerStatus(torrent, announce)
+                seeder = max(seeder, s)
+                leecher = max(leecher, l)
             else:                                        # length > 1
                 aindex = torrent["info"]["announce-list"].index(announces)                                    
                 shuffle(announces)
                 for announce in announces:                # for eache announce
-                    (seeder, leecher) = singleTrackerStatus(torrent, announce)
-                    if (seeder != 0 or leecher != 0):
-                        break;
+                    (s, l) = singleTrackerStatus(torrent, announce)
+                    seeder = max(seeder, s)
+                    leecher = max(leecher, l)
+                    if seeder > 0:  # good
+                        break
                 if (seeder > 0 or leecher > 0):        # put the announce\
                     announces.remove(announce)            # in front of the tier
                     announces.insert(0, announce)                    
@@ -54,11 +57,11 @@ def single_no_thread(torrent):
             torrent["status"] = "unknown"
             torrent["seeder"] = 0
             torrent["leecher"] = 0
-        elif (torrent["seeder"] == -1 and torrent["leecher"] == -1):
+        elif (torrent["seeder"] == -1 and torrent["leecher"] == -1):    # unknown
             torrent["status"] = "unknown"
             torrent["seeder"] = 0
             torrent["leecher"] = 0
-        else:
+        else:        # if seeder == -2 and leecher == -2, dead
             torrent["status"] = "dead"
             torrent["seeder"] = 0
             torrent["leecher"] = 0
@@ -77,15 +80,14 @@ def singleTrackerStatus(torrent, announce):
     try:
         (seeder, leecher) = getStatus(url, info_hash)
     except:
-        print "Should Never Be Here"
         (seeder, leecher) = (-2, -2)
     return (seeder, leecher)
 
 # generate the query URL
 def getUrl(announce, info_hash):
-    announce_index = announce.rfind("announce")
     if (announce == -1):                        # tracker url error
         return None                                # return None
+    announce_index = announce.rfind("announce")
     last_index = announce.rfind("/")    
     
     url = announce    

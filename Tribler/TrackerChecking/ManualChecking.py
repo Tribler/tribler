@@ -32,5 +32,7 @@ class SingleManualChecking(Thread):
             'last_check_time': int(time()),
             'seeder': self.torrent['seeder'],
             'leecher': self.torrent['leecher'],
-            'status': self.torrent['status']}
+            'status': self.torrent['status'],
+            'info': self.torrent['info']
+            }
         self.torrent_db.updateTorrent(self.torrent['infohash'], updateFlag=True, **kw)

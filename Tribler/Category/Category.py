@@ -63,7 +63,7 @@ class Category:
                                 | wx.PD_REMAINING_TIME
                                 )
         count = 0
-        step = int(float(max) / 20)
+        step = int(float(max) / 20) + 1
         
         # sort each torrent file
         for i in xrange(len(data)):
@@ -174,11 +174,11 @@ class Category:
                 continue        
                 
             # judge file keywords
-            factor = 0.0
+            factor = 1.0
             for ikeywords in category['keywords'].keys():
                 if filename_list[index].find( ikeywords ) != -1:
-                    factor += category['keywords'][ikeywords]
-            if factor >= 1:
+                    factor *= 1 - category['keywords'][ikeywords]
+            if (1 - factor) > 0.5:
                 # print filename_list[index] + '#######################'
                 matchSize += filesize_list[index]
    
