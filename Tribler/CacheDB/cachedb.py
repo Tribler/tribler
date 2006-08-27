@@ -45,8 +45,8 @@ TorrentDB - (PreferenceDB, MyPreference, OwnerDB)
         torrent_dir: str ('')    # path of the torrent (without the file name). '\x01' for default path
         info: dict ({})   # {name, length, announce, creation date, comment, announce-list, num_files}
         # new keys in database version 2
-        leecher: int (0)
-        seeder: int (0)
+        leecher: int (-1)
+        seeder: int (-1)
         category: list ()
         ignore_number: int (0)
         last_check_time: long (time())
@@ -544,6 +544,13 @@ class TorrentDB(BasicDB):
             'torrent_name':'',   # name of the torrent
             'torrent_dir':'',   # dir+name=full path. Default path if the value is '\x01'
             'info':{},   # {name, length, announce, creation date, comment}
+            'leecher': -1,
+            'seeder': -1,
+            'category': [],
+            'ignore_number': 0,
+            'last_check_time': 0,
+            'retry_number': 0,
+            'status': 'unknown'
         }
         self.new_metadata = True
         

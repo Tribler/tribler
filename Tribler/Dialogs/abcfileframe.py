@@ -285,7 +285,10 @@ class TorrentDataManager:
         for idata in self.data:
             if not idata:
                 continue
-            if categorykey in idata.get("category", ["other"]):
+            categories = idata.get("category", [])
+            if not categories:
+                categories = ["other"]
+            if categorykey in categories:
                 rlist.append(idata)
         return rlist
 
