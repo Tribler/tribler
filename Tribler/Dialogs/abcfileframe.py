@@ -82,6 +82,11 @@ class MyPreferenceList(CommonTriblerList):
             if original_data == 0:
                 return '?'
             return friendly_time(original_data)
+        if key == "seeder" or key == "leecher":
+            if original_data == -1:
+                original_data = "?"
+            elif original_data == -2:
+                original_data = "n/a"
         ret = str2unicode(original_data)
         return ret
         
@@ -385,8 +390,8 @@ class TorrentDataManager:
         torrent['num_files'] = int(info.get('num_files', 0))
         torrent['date'] = info.get('creation date', 0) 
         torrent['tracker'] = info.get('announce', '')
-        torrent['leecher'] = torrent.get('leecher', 0)
-        torrent['seeder'] = torrent.get('seeder', 0)
+        torrent['leecher'] = torrent.get('leecher', -1)
+        torrent['seeder'] = torrent.get('seeder', -1)
         return torrent
          
         
@@ -472,9 +477,11 @@ class FileList(CommonTriblerList):
             if original_data == 0:
                 return '?'
             return friendly_time(original_data)
-#        if key == 'seeder' or key == 'leecher':
-#            if original_data < 0:
-#                return '?'
+        if key == "seeder" or key == "leecher":
+            if original_data == -1:
+                original_data = "?"
+            elif original_data == -2:
+                original_data = "n/a"
         return str2unicode(original_data)
         
     def reloadData(self):

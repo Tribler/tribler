@@ -585,8 +585,8 @@ class TorrentDB(BasicDB):
                 'ignore_number': 0,
                 'last_check_time': long(time()),
                 'retry_number': 0,
-                'seeder': 0,
-                'leecher': 0,
+                'seeder': -1,
+                'leecher': -1,
                 'status': "unknown"}
             keys = self._keys()
             for key in keys:

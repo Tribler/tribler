@@ -458,8 +458,8 @@ class LaunchMany:
         torrent["ignoreNumber"] = 0
         torrent["lastCheckTime"] = long(time())
         torrent["retryNumber"] = 0
-        torrent["seeder"] = 0
-        torrent["leecher"] = 0
+        torrent["seeder"] = -1
+        torrent["leecher"] = -1
         torrent["status"] = "unknown"
         
         self.torrent_db.addTorrent(torrent_hash, torrent, new_metadata=True)

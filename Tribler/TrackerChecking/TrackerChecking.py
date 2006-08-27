@@ -18,6 +18,8 @@ def single_no_thread(torrent):
         try:
             announce = torrent["info"]["announce"]                    # get the single tracker
             (seeder, leecher) = singleTrackerStatus(torrent, announce)
+            seeder = max(seeder, s)
+            leecher = max(leecher, l)
         except:
             pass
     else:                                                # have announce-list
@@ -55,16 +57,16 @@ def single_no_thread(torrent):
             torrent["status"] = "good"
         elif (torrent["seeder"] == 0 and torrent["leecher"] == 0):
             torrent["status"] = "unknown"
-            torrent["seeder"] = 0
-            torrent["leecher"] = 0
+#            torrent["seeder"] = 0
+#            torrent["leecher"] = 0
         elif (torrent["seeder"] == -1 and torrent["leecher"] == -1):    # unknown
             torrent["status"] = "unknown"
-            torrent["seeder"] = 0
-            torrent["leecher"] = 0
+#            torrent["seeder"] = -1
+#            torrent["leecher"] = -1
         else:        # if seeder == -2 and leecher == -2, dead
             torrent["status"] = "dead"
-            torrent["seeder"] = 0
-            torrent["leecher"] = 0
+            torrent["seeder"] = -2
+            torrent["leecher"] = -2
     torrent["last_check_time"] = long(time())
     return torrent
 
@@ -118,7 +120,12 @@ def getStatus(url, info_hash):
     try:
         status = response_dict["files"][info_hash]
         seeder = status["complete"]
+        if seeder < 0:
+            seeder = 0
         leecher = status["incomplete"]
+        if leecher < 0:
+            leecher = 0
+        
     except KeyError:
 #        print "KeyError "  + info_hash + str(response_dict)
         try:

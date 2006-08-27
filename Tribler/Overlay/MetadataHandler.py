@@ -168,8 +168,8 @@ class MetadataHandler:
         torrent["ignore_number"] = 0
         torrent["last_check_time"] = long(time())
         torrent["retry_number"] = 0
-        torrent["seeder"] = 0
-        torrent["leecher"] = 0
+        torrent["seeder"] = -1
+        torrent["leecher"] = -1
         torrent["status"] = "unknown"
         #if (torrent['category'] != []):
         #    print '### one torrent added from MetadataHandler: ' + str(torrent['category']) + ' ' + torrent['torrent_name'] + '###'
