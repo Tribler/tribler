@@ -54,7 +54,6 @@ class Category:
         if not data:
             return False
         
-#        data = data_manager.torrent_db.getRecommendedTorrents(all = True)
 #        self.reSortAll(data)
 #        return True
         torrent = data[0]
