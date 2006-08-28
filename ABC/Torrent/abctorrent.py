@@ -174,7 +174,7 @@ class ABCTorrent:
         self.torrent_db.sync()
         Category.__reloadFlag = True 
         if DEBUG:
-            print >> sys.stderr, "add torrent to db", self.infohash, torrent_info
+            print >> sys.stderr, "abctorrent: add torrent to db", self.infohash, torrent_info
 
         
     def addMyPref(self):
@@ -197,7 +197,7 @@ class ABCTorrent:
             self.utility.abcfileframe.updateMyPref()
         self.utility.buddycast.addMyPref(self.torrent_hash)
         if DEBUG:
-            print >> sys.stderr, "add mypref to db", self.infohash, mypref
+            print >> sys.stderr, "abctorrent: add mypref to db", self.infohash, mypref
         
     #
     # Tasks to perform when first starting adding this torrent to the display
@@ -558,7 +558,7 @@ class ABCTorrent:
                     self.list.SetStringItem(self.listindex, rank, text)
                     
         except wx.PyDeadObjectError, msg:
-            print >> sys.stderr,"error updateColumns:", msg
+            print >> sys.stderr,"abctorrent: error updateColumns:", msg
             pass
                
     #
@@ -579,7 +579,7 @@ class ABCTorrent:
         if DEBUG:
             if threading.currentThread().getName() != "MainThread":
                 print >> sys.stderr,"abctorrent: updateColour thread",threading.currentThread()
-                print >> sys.stderr,"colour NOT MAIN THREAD"
+                print >> sys.stderr,"abctorrent: colour NOT MAIN THREAD"
                 print_stack()
 
         # Don't do anything if ABC is shutting down

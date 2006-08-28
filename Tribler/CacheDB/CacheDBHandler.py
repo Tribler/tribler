@@ -390,13 +390,17 @@ class TorrentDBHandler(BasicDBHandler):
 
     def hasTorrent(self, infohash):
         return self.torrent_db._has_key(infohash)
-            
-#    def getTorrentList(self):    # get the list of all peers' permid
-#        return self.torrent_db._keys()
-#        
-#    def getMyTorrentList(self):
-#        return self.mypref_db._keys()
-        
+    
+    def getLiveTorrents(self, peerlist):
+        ret = []
+        for infohash in peerlist:
+            data = self.torrent_db._get(infohash)
+            if isinstance(data, dict):
+                live = data.get('status', 'unknown')
+                if live != 'dead':
+                    ret.append(infohash)
+        return ret
+    
     def getOthersTorrentList(self, num=-1, sorted=True):    # get the list of torrents which are not in my preference
         all_list = list(Set(self.torrent_db._keys()) - Set(self.mypref_db._keys()))
         if num < 0:

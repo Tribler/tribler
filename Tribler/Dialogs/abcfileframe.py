@@ -345,7 +345,7 @@ class TorrentDataManager:
                 for fun in self.dict_FunList[key]: # call all functions for a certain key
                     fun(torrent, operate)     # lock is used to avoid dead lock
             except Exception, msg:
-                print >> sys.stderr, "TorrentDataManager update error. Key: %s" % (key), Exception, msg
+                print >> sys.stderr, "abcfileframe: TorrentDataManager update error. Key: %s" % (key), Exception, msg
                 print_exc()
         
     def addItem(self, infohash):
@@ -466,7 +466,7 @@ class FileList(CommonTriblerList):
         try:
             original_data = data[row][key]
         except Exception, msg:
-            print >> sys.stderr, "abcfileframe.FileList getText error", Exception, msg, key, data[row]
+            print >> sys.stderr, "abcfileframe: FileList getText error", Exception, msg, key, data[row]
             raise Exception, msg
         if key == 'relevance':
             # should this change, also update
@@ -496,8 +496,7 @@ class FileList(CommonTriblerList):
                 return True
             
         self.data = filter(showFile, self.data)    
-        
-                
+                        
     def OnDeleteTorrent(self, event=None):
         selected = self.getSelectedItems()
         selected_list = [self.data[i]['infohash'] for i in selected]
@@ -520,8 +519,6 @@ class FileList(CommonTriblerList):
         sm.Append(self.check,self.utility.lang.get('checkstatus'))
         sm.Append(self.downloadTorrentID, self.utility.lang.get('download'))
         sm.Append(self.deleteTorrentID, self.utility.lang.get('delete'))
-        
-        
         
         self.PopupMenu(sm, event.GetPosition())
         sm.Destroy()
@@ -584,7 +581,7 @@ class FileList(CommonTriblerList):
             except KeyError:
                 pass
             except Exception, msg:
-                print >> sys.stderr, "File List updateFun Error", Exception, msg
+                print >> sys.stderr, "abcfileframe: File List updateFun Error", Exception, msg
                 print_exc()
         elif operate == "add":
             # avoid one torrent displayed in the File List twice 
@@ -593,7 +590,7 @@ class FileList(CommonTriblerList):
             except KeyError:
                 pass
             except Exception, msg:
-                print >> sys.stderr, "File List updateFun Error", Exception, msg
+                print >> sys.stderr, "abcfileframe: File List updateFun Error", Exception, msg
                 print_exc()
             
             self.data.append(torrent)
@@ -629,10 +626,11 @@ class FileList(CommonTriblerList):
             result = dlg.ShowModal()
             dlg.Destroy()
             if result == wx.ID_YES:
-                self.parent.clickAndDownload(src)
-                self.parent.frame.updateMyPref()
-                infohash = self.data[idx]['infohash']
-                self.data_manager.updateFun(infohash, 'delete')
+                ret = self.parent.clickAndDownload(src)
+                if ret == 'OK':
+                    self.parent.frame.updateMyPref()
+                    infohash = self.data[idx]['infohash']
+                    self.data_manager.updateFun(infohash, 'delete')
         else:
             str = self.utility.lang.get('delete_torrent') % name
             dlg = wx.MessageDialog(self, str, self.utility.lang.get('delete_dead_torrent'), 
@@ -766,7 +764,7 @@ class FilePanel(wx.Panel):
         self.list.loadList()
 
     def clickAndDownload(self, src):
-        self.utility.queue.addtorrents.AddTorrentFromFile(src, forceasklocation = False)
+        return self.utility.queue.addtorrents.AddTorrentFromFile(src, forceasklocation = False)
 
     def OnSetRelevanceThreshold(self,event=None):
         value = self.relev_ctl.GetValue()

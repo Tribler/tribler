@@ -311,8 +311,10 @@ class DataHandler:
         self.peer_db.updateTimes(permid, 'buddycast_times', 1)
         
     # --- read ---
-    def getPeerPrefList(self, permid, num=0):
+    def getPeerPrefList(self, permid, num=0, live=False):
         preflist = self.pref_db.getPrefList(permid)
+        if live:    # remove dead torrents
+            preflist = self.torrent_db.getLiveTorrents(preflist)
         if num > len(preflist):
             return preflist
         if num == 0:
@@ -346,7 +348,7 @@ class DataHandler:
             peers[i]['age'] = int(time()) - peers[i].pop('last_seen')
             if peers[i]['age'] < 0:
                 peers[i]['age'] = 0
-            peers[i]['preferences'] = self.getPeerPrefList(peers[i]['permid'], nbuddyprefs)
+            peers[i]['preferences'] = self.getPeerPrefList(peers[i]['permid'], nbuddyprefs, live=True)
         return peers
 
     def getRandomPeers(self, peerlist):
@@ -738,7 +740,12 @@ class BuddyCastFactory:
             if DEBUG:
                 print >> sys.stderr, "buddycast: got buddycast msg", len(msg), buddycast_data['ip']
             buddycast_data.update({'permid':permid})
-            validBuddyCastData(buddycast_data, self.msg_nmyprefs, self.msg_nbuddies, self.msg_npeers, self.msg_nbuddyprefs)    # RCP 2            
+            try:
+                validBuddyCastData(buddycast_data, self.msg_nmyprefs, 
+                                   self.msg_nbuddies, self.msg_npeers, self.msg_nbuddyprefs)    # RCP 2            
+            except RuntimeError, msg:
+                print >> sys.stderr, "buddycast: gotBuddyCastMsg", msg    # ipv6
+                return
             if not self._checkPeerConsistency(buddycast_data, permid):
                print >> sys.stderr, "buddycast: warning: buddycast's permid doens't match sender's permid"
                return
