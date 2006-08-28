@@ -24,6 +24,7 @@ import CacheDB.cachedb as cachedb
 import CacheDB.superpeer as superpeer
 from base64 import decodestring 
 import CacheDB.friends as friends
+import Category.Category as category
 import guessip    
 
 mapbase64 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-'
@@ -129,6 +130,7 @@ def tribler_init(config_dir = None, install_dir = None):
     cachedb.init(config_dir.encode(sys.getfilesystemencoding()),myinfo)
     superpeer.init(install_dir)
     friends.init(config_dir)
+    category.init(install_dir)
 
 def tribler_done(config_dir = None):
     friends.done(config_dir)

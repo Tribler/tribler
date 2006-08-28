@@ -29,11 +29,9 @@ def getDefault():
     category["minfilesize"] = 0
     category["maxfilesize"] = 10000000
     return category
-                
 
-def getCategoryInfo(config_dir):
+def getCategoryInfo(filename):
     config = ConfigParser.ConfigParser()
-    filename = os.path.join(config_dir, "category.conf")
     config.readfp(open(filename))
 
     cate_list = []

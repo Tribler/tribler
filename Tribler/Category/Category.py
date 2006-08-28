@@ -12,6 +12,17 @@ from copy import deepcopy
 import sys
 import wx
 
+category_file = "category.conf"
+
+def init(config_dir = None):
+    filename = make_filename(config_dir, category_file)
+    Category.getInstance(filename)
+    
+def make_filename(config_dir, filename):
+    if config_dir is None:
+        return filename
+    else:
+        return os.path.join(config_dir,filename)    
 
 class Category:
     
@@ -19,12 +30,12 @@ class Category:
     __single = None
     __size_change = 1024 * 1024
     
-    def __init__(self):
+    def __init__(self, filename):
         if Category.__single:
             raise RuntimeError, "Category is singleton"
         Category.__single = self
         self.torrent_db = SynTorrentDBHandler()
-        self.category_info = getCategoryInfo('.')
+        self.category_info = getCategoryInfo(filename)
         
     # return Category instance    
     def getInstance(*args, **kw):
