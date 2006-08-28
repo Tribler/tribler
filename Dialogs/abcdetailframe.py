@@ -812,7 +812,8 @@ class EarthPanel(wx.Panel):
             btn = event.GetEventObject()
             pos = btn.ClientToScreen( (0,0) )
             sz =  btn.GetSize()
-            self.popup_win.Position(pos, (0, 0))    # Show the popup window at a right position
+            if sys.platform != "darwin":
+                self.popup_win.Position(pos, (0, 0))    # Show the popup window at a right position
     
             self.popup_win.Show(True)
 

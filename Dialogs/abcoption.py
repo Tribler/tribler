@@ -447,6 +447,8 @@ class MiscPanel(ABCOptionPanel):
         # the widget being read & written.
         if sys.platform != "darwin":
             sizer.Add(self.mintray, 0, wx.ALIGN_LEFT|wx.ALL, 5)
+        else:
+            self.mintray.Hide()
                
         self.confirmonclose = wx.CheckBox(self, -1, self.utility.lang.get('confirmonexit'))
         sizer.Add(self.confirmonclose, 0, wx.ALIGN_LEFT|wx.ALL, 5)

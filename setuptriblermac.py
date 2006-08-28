@@ -25,12 +25,16 @@ wx_lib="/usr/local/lib/wxPython-%s-%s/lib/libwx_mac%sd-%s.%s.0.dylib" % (
   wx_major,
   wx_minor )
 
-sys.path=[
-  "m2crypto/build/lib.%s-2.3/" % get_platform(),
-  "bsddb3/build/lib.%s-2.3/" % get_platform()
-  ]+sys.path
+def libdirs( path ):
+	return ["%s/%s" % (path,p)
+	        for p in os.listdir(path)
+	        if p.startswith("lib.")]
+
+sys.path = libdirs("m2crypto/build") + libdirs("bsddb3/build") + sys.path
 
 import M2Crypto
+import M2Crypto.m2
+assert "ec_init" in M2Crypto.m2.__dict__, "Could not import specialistic M2Crypto (imported %s)" % M2Crypto.__file__
 
 from plistlib import Plist
 
@@ -57,6 +61,7 @@ buildapp(
     libs=[wx_lib],
     files = [("Lang/english.lang","Contents/Resources/Lang/"),
              ("superpeer.txt",    "Contents/Resources/"),
+             ("category.conf",    "Contents/Resources/"),
              ("icons/",           "Contents/Resources/icons"),
              ("binary-LICENSE.txt",      "Contents/Resources/"),
              ("readme.txt",       "Contents/Resources/"),
