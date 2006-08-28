@@ -516,7 +516,7 @@ maxconnectionhint_line5 = "If the client freezes, try setting this to 60 or belo
 
 
 
-recommendinstructions = "Double click on a torrent to start downloading; right click to delete or show details of the torrent"
+recommendinstructions = "Double click on a torrent to start downloading; right click to delete or manually check health of the torrent"
 recommendfilter = "Don't show torrents with recommendation value less than"
 recommendfilterall = "(set to 0.0 to see all known torrents)"
 
