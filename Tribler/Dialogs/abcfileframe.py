@@ -65,6 +65,7 @@ class MyPreferenceList(CommonTriblerList):
         exclude = []
         
         self.keys = ['torrent_name', 'content_name', 'rank', 'length', 'last_seen']
+        self.search_key = 'content_name'
 
         CommonTriblerList.__init__(self, parent, style, prefix, minid, maxid, 
                                      exclude, rightalign, centeralign)
@@ -452,9 +453,9 @@ class FileList(CommonTriblerList):
                       'leecher', 'seeder', 'date', 'length', 'num_files', 'tracker',
                      'category'
                     ]
-
         CommonTriblerList.__init__(self, parent, style, prefix, minid, maxid, 
                                      exclude, rightalign, centeralign)
+        self.search_key = 'content_name'
         self.done_init = True
                                      
     def __del__(self):

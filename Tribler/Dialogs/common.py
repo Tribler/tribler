@@ -47,11 +47,18 @@ class CommonTriblerList(ManagedList, DelayedInvocation):
         self.lastcolumnsorted, self.reversesort = self.columns.getSortedColumn()
         self.info_dict = {}            # use infohash as the key, used for update
         self.num = self.getMaxNum()    # max num of lines to show
+        self.curr_pos = -1
 
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnRightClick)
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnActivated)
         self.Bind(wx.EVT_LIST_COL_CLICK, self.OnColClick)
         self.Bind(wx.EVT_KEY_DOWN, self.onKeyDown)
+        
+        # for search
+        self.Bind(wx.EVT_FIND, self.OnFind)
+        self.Bind(wx.EVT_FIND_NEXT, self.OnFind)
+        self.Bind(wx.EVT_FIND_CLOSE, self.OnFindClose)
+        
         #self.loadList()
         self.DeleteAllItems()
         self.loading()
@@ -75,13 +82,87 @@ class CommonTriblerList(ManagedList, DelayedInvocation):
                 # Invert file selection (CTRL-X)
                 self.invertSelection()
             elif keycode == ord('f') or keycode == ord('F'):
-                self.searchFiles()
+                self.OnShowFind(event)
         elif keycode == 399:
             # Open right-click menu (windows menu key)
             self.OnRightClick(event)
             
-    def searchFiles(self):
-        pass
+    def OnShowFind(self, evt):
+        data = wx.FindReplaceData()
+        data.SetFlags(1)
+        dlg = wx.FindReplaceDialog(self, data, "Find")
+        dlg.data = data  # save a reference to it...
+        dlg.Show(True)
+
+    def OnFindClose(self, evt):
+        evt.GetDialog().Destroy()
+            
+    def OnFind(self, evt):
+#        if self.search_key not in self.keys:
+#            return
+        et = evt.GetEventType()
+        flag = evt.GetFlags()    # 1: down, 2: mach whole word only, 4: match case, 6:4+2
+        if not et in (wx.wxEVT_COMMAND_FIND, wx.wxEVT_COMMAND_FIND_NEXT):
+            return
+        if et == wx.wxEVT_COMMAND_FIND:
+            selected = self.getSelectedItems()
+            if selected:
+                self.curr_pos = selected[0]
+            else:
+                self.curr_pos = -1
+        find_str = evt.GetFindString()
+        self.curr_pos = self.findAnItem(find_str, flag)
+        if self.curr_pos == -1:
+            dlg = wx.MessageDialog(self, 'Passed the end of the list!',
+                               'Search Stop',
+                               wx.OK | wx.ICON_INFORMATION
+                               )
+            dlg.ShowModal()
+            dlg.Destroy()
+            pass
+        else:
+            #print "found", self.curr_pos
+            #item = self.GetItem(index)
+            self.SetItemState(self.curr_pos, wx.LIST_STATE_SELECTED, wx.LIST_STATE_SELECTED)
+            self.SetItemState(self.curr_pos, wx.LIST_STATE_FOCUSED, wx.LIST_STATE_FOCUSED)
+        
+    def findAnItem(self, find_str, flag):
+        def match(text, find_str, flag):
+            if flag&2:    #  mach whole word only
+                str_list = text.split()
+            else:
+                str_list = [text]
+            if not flag&4:    # don't match case
+                find_str = find_str.lower()
+                for i in range(len(str_list)):
+                    str_list[i] = str_list[i].lower()
+            for s in str_list:
+                if s.find(find_str) != -1:
+                    return True
+            return False
+        
+        #print "find an item", find_str, flag, self.curr_pos
+        if flag&1:
+            begin = self.curr_pos+1
+            end = len(self.data)
+            step = 1
+        else:
+            if self.curr_pos == -1:
+                begin = len(self.data) -1
+            else:
+                begin = self.curr_pos - 1
+            end = -1
+            step = -1
+        datalist = range(begin, end, step)
+        #print "step:", begin, end, step, datalist
+        for row in datalist:
+            text = self.data[row][self.search_key]
+            text=text.replace('.', ' ')
+            text=text.replace('_', ' ')
+            text=text.replace('-', ' ')
+            if match(text, find_str, flag):
+                return row
+        return -1    # not found
             
     def getSelectedItems(self):
         item = -1

@@ -29,6 +29,7 @@ class TasteBuddyList(CommonTriblerList):
         style = wx.LC_REPORT|wx.LC_HRULES|wx.LC_VRULES
         
         prefix = 'buddy'
+        self.search_key = 'name'
         minid = 0
         maxid = 8
         rightalign = []
