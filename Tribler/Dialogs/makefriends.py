@@ -188,6 +188,7 @@ class MakeFriendsDialog(wx.Dialog):
         elif icon != '' and not os.path.exists(icon):
             self.show_inputerror(self.utility.lang.get('fiendsiconnotfound_error'))
         else:
+            newiconfilename = ''
             if icon != '':
                 try:
                     bm = wx.Bitmap(icon,wx.BITMAP_TYPE_BMP)
