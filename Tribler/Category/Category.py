@@ -9,6 +9,7 @@ from Tribler.unicode import str2unicode, dunno2unicode
 from sets import Set
 from time import time
 from copy import deepcopy
+from traceback import print_exc
 import sys
 import wx
 
@@ -52,6 +53,10 @@ class Category:
             data = data_manager.torrent_db.getRecommendedTorrents(all = True)
         if not data:
             return False
+        
+#        data = data_manager.torrent_db.getRecommendedTorrents(all = True)
+#        self.reSortAll(data)
+#        return True
         torrent = data[0]
         if torrent["category"] == ["?"]:
             data = data_manager.torrent_db.getRecommendedTorrents(all = True)
@@ -105,7 +110,7 @@ class Category:
             data[i]['category'] = category_belong    # should have updated self.data
             self.torrent_db.updateTorrent(data[i]['infohash'], updateFlag=False, category=category_belong)
         self.torrent_db.sync()
-        dlg.Update(count)   
+        dlg.Destroy()   
     
     def getCategoryKeys(self):
         keys = []
@@ -140,7 +145,9 @@ class Category:
                                  
         # filename_list ready
         for category in self.category_info:    # for each category
-            if (self.judge(category, filename_list, filesize_list, display_name) == True):        
+            if (self.judge(category, filename_list, filesize_list, display_name) == True):  
+#                if category["name"] == "xxx":
+#                    print filename_list[0]
                 torrent_category.append(category['name'])
 
         if torrent_category == []:
@@ -153,14 +160,18 @@ class Category:
     def judge(self, category, filename_list, filesize_list, display_name = ''):
     
         # judge file keywords
-        display_name = display_name.lower()
-        factor = 0.0
+        display_name = display_name.lower()                
+        factor = 1.0
+        fileKeywords = self._getWords(display_name)
+        
         for ikeywords in category['keywords'].keys():
-            if display_name.find( ikeywords ) != -1:
-                factor += category['keywords'][ikeywords]
-        if factor >= 1:
-                # print filename_list[index] + '#######################'
-            return True  
+            try:
+                fileKeywords.index(ikeywords)
+                factor *= 1 - category['keywords'][ikeywords]
+            except:
+                pass
+        if (1 - factor) > 0.5:
+            return True
         
         # judge each file
         matchSize = 0
@@ -186,9 +197,19 @@ class Category:
                 
             # judge file keywords
             factor = 1.0
+            fileKeywords = self._getWords(filename_list[index])
+            # special for xxx
+            if category["name"] == "xxx":
+                if filename_list[index].find("xxx") != -1:
+                    factor = 0            
             for ikeywords in category['keywords'].keys():
-                if filename_list[index].find( ikeywords ) != -1:
+#                pass
+                try:
+                    fileKeywords.index(ikeywords)
+#                    print ikeywords
                     factor *= 1 - category['keywords'][ikeywords]
+                except:
+                    pass
             if (1 - factor) > 0.5:
                 # print filename_list[index] + '#######################'
                 matchSize += filesize_list[index]
@@ -199,3 +220,26 @@ class Category:
             
         return False
     
+    def _getWords(self, string):
+        strLen = len(string)
+        strList = []
+        left = -1
+    
+        for index in range(strLen):
+            if left == -1:
+                if string[index].isalnum() == True:
+                    left = index
+                else:
+                    continue
+            if string[index].isalnum() == True:
+                continue
+            else:
+                s = string[left:index]
+                if s != "" and not s.isdigit():
+                    strList.append(s)
+                left = -1
+        if left != -1:
+            s = string[left:index + 1]
+            if s != "" and not s.isdigit():
+                strList.append(s)
+        return strList  
