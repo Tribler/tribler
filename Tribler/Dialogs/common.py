@@ -51,6 +51,7 @@ class CommonTriblerList(ManagedList, DelayedInvocation):
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnRightClick)
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnActivated)
         self.Bind(wx.EVT_LIST_COL_CLICK, self.OnColClick)
+        self.Bind(wx.EVT_KEY_DOWN, self.onKeyDown)
         #self.loadList()
         self.DeleteAllItems()
         self.loading()
@@ -64,6 +65,24 @@ class CommonTriblerList(ManagedList, DelayedInvocation):
     def OnRightClick(self, event):
         print "right click", self.getSelectedItems()
     
+    def onKeyDown(self, event):
+        keycode = event.GetKeyCode()
+        if event.CmdDown():
+            if keycode == ord('a') or keycode == ord('A'):
+                # Select all files (CTRL-A)
+                self.selectAll()
+            elif keycode == ord('x') or keycode == ord('X'):
+                # Invert file selection (CTRL-X)
+                self.invertSelection()
+            elif keycode == ord('f') or keycode == ord('F'):
+                self.searchFiles()
+        elif keycode == 399:
+            # Open right-click menu (windows menu key)
+            self.OnRightClick(event)
+            
+    def searchFiles(self):
+        pass
+            
     def getSelectedItems(self):
         item = -1
         itemList = []

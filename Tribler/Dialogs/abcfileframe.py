@@ -496,7 +496,7 @@ class FileList(CommonTriblerList):
                 return True
             
         self.data = filter(showFile, self.data)    
-                        
+                  
     def OnDeleteTorrent(self, event=None):
         selected = self.getSelectedItems()
         selected_list = [self.data[i]['infohash'] for i in selected]
