@@ -86,6 +86,7 @@ class CommonTriblerList(ManagedList, DelayedInvocation):
         elif keycode == 399:
             # Open right-click menu (windows menu key)
             self.OnRightClick(event)
+        event.Skip()
             
     def OnShowFind(self, evt):
         data = wx.FindReplaceData()

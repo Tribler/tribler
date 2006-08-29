@@ -517,9 +517,12 @@ class FileList(CommonTriblerList):
             self.Bind(wx.EVT_MENU, self.OnCheck, id = self.check)
             
         # menu for change torrent's rank
+        items = self.getSelectedItems()
         sm = wx.Menu()
         sm.Append(self.check,self.utility.lang.get('checkstatus'))
         sm.Append(self.downloadTorrentID, self.utility.lang.get('download'))
+        if len(items) != 1:
+            sm.Enable(self.downloadTorrentID, False)
         sm.Append(self.deleteTorrentID, self.utility.lang.get('delete'))
         
         self.PopupMenu(sm, event.GetPosition())
