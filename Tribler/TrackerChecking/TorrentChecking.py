@@ -14,7 +14,7 @@ class TorrentChecking(Thread):
     
     def __init__(self):
         self.torrentList = TorrentCheckingList.getInstance()
-        self.retryThreshold = 25
+        self.retryThreshold = 10
         self.gnThreashold = 0.9
         self.torrent_db = SynTorrentDBHandler()
         Thread.__init__(self)
@@ -107,8 +107,8 @@ class TorrentChecking(Thread):
     def gnFun(self, g, n):            # judgeing to pop list_good or list_unknown
         if (n == 0):
             return 1
-        total = float(2 * g + n)        # list_good 2x as fast as list_unknown
-        result = (2 * g) / total
+        total = float(g + 2 * n)        # list_unkown 2x as fast as list_good
+        result = g / total
         if (result > self.gnThreashold):
             result = self.gnThreashold
         return result

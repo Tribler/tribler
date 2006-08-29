@@ -339,7 +339,8 @@ class TorrentDataManager:
     def notifyView(self, torrent, operate):        
 #        if torrent["category"] == ["?"]:
 #            torrent["category"] = self.category.calculateCategory(torrent["info"], torrent["info"]['name'])
-        for key in (torrent["category"] + ["All"]):
+        categories = torrent.get('category', ['other']) + ["All"]
+        for key in categories:
 #            if key == '?':
 #                continue
             try:
@@ -544,6 +545,33 @@ class FileList(CommonTriblerList):
         t = ManualChecking(check_list)
         t.start()   
         
+    def addRow(self, index):   
+        active_columns = self.columns.active
+        if not active_columns:
+            return
+        
+        num = len(self.data)
+        if self.num > 0 and self.num < num:
+            num = self.num
+        
+        # if reach the limitation of file number displayed in List, return    
+        if index > num - 1:
+            return
+        
+        first_col = active_columns[0][0]
+        self.InsertStringItem(index, self.getText(self.data, index, first_col))
+        for col,rank in active_columns[1:]:
+            txt = self.getText(self.data, index, col)
+            self.SetStringItem(index, rank, txt)
+        self.info_dict[self.data[index]["infohash"]] = index
+        item = self.GetItem(index)
+        status = self.data[index].get('status', 'unknown')
+        if status == 'good':
+            item.SetTextColour(wx.BLUE)
+        elif status == 'dead':
+            tem.SetTextColour(wx.RED)
+        self.SetItem(item)
+           
     def updateRow(self, index):                 # update a single row
         active_columns = self.columns.active
         if not active_columns:
@@ -570,37 +598,53 @@ class FileList(CommonTriblerList):
                 item.SetTextColour(wx.RED)
             self.SetItem(item)  
             
+    def deleteRow(self, infohash):   
+        try:
+            index = self.info_dict[infohash]
+        except KeyError, msg:
+            print >> sys.stderr, "abcfileframe: File List deleteRow KeyError", msg
+            print_exc()
+            return
+        except Exception, msg:
+            print >> sys.stderr, "abcfileframe: File List deleteRow Error", Exception, msg
+            print_exc()
+            return
+
+        self.DeleteItem(index)
+        old_torrent = self.data[index]
+        self.data.remove(old_torrent)
+        self.info_dict.pop(infohash)
+        for key in self.info_dict.keys():
+            if self.info_dict[key] > index:
+                self.info_dict[key] -= 1     
+                
     def updateFun(self, torrent, operate):    # must pass torrent instead of infohash to avoid reading db
         if not self.done_init:
             return
         #print "*** filelist updateFun", operate, self.categorykey, torrent['info']['name']
+        infohash = torrent["infohash"]
         if operate == "update":
             try:
-                index = self.info_dict[torrent["infohash"]]
+                index = self.info_dict[infohash]
                 self.data[index] = torrent
                 self.invokeLater(self.updateRow, [index])                
-            except KeyError:
-                pass
+            except KeyError, msg:
+                print >> sys.stderr, "abcfileframe: File List update KeyError", msg
+                print_exc()
             except Exception, msg:
                 print >> sys.stderr, "abcfileframe: File List updateFun Error", Exception, msg
                 print_exc()
         elif operate == "add":
             # avoid one torrent displayed in the File List twice 
-            try:    
-                index = self.info_dict[torrent["infohash"]]
-            except KeyError:
-                pass
-            except Exception, msg:
-                print >> sys.stderr, "abcfileframe: File List updateFun Error", Exception, msg
-                print_exc()
-            
+            if self.info_dict.has_key(infohash):
+                return
+                    
             self.data.append(torrent)
             index = len(self.data) - 1
             self.invokeLater(self.addRow, [index])            
         elif operate == "delete":
-            self.invokeLater(self.loadList, [])            
-#            self.loadList()
-    
+            self.invokeLater(self.deleteRow, [infohash])
+
     def OnActivated(self, event):
         self.curr_idx = event.m_itemIndex
         self.download(self.curr_idx)
@@ -642,32 +686,7 @@ class FileList(CommonTriblerList):
                 infohash = self.data[idx]['infohash']
                 self.data_manager.updateFun(infohash, 'delete')
      
-    def addRow(self, index):   
-        active_columns = self.columns.active
-        if not active_columns:
-            return
         
-        num = len(self.data)
-        if self.num > 0 and self.num < num:
-            num = self.num
-        
-        # if reach the limitation of file number displayed in List, return    
-        if index > num - 1:
-            return
-        
-        first_col = active_columns[0][0]
-        self.InsertStringItem(index, self.getText(self.data, index, first_col))
-        for col,rank in active_columns[1:]:
-            txt = self.getText(self.data, index, col)
-            self.SetStringItem(index, rank, txt)
-        self.info_dict[self.data[index]["infohash"]] = index
-        item = self.GetItem(index)
-        status = self.data[index].get('status', 'unknown')
-        if status == 'good':
-            item.SetTextColour(wx.BLUE)
-        elif status == 'dead':
-            tem.SetTextColour(wx.RED)
-        self.SetItem(item)    
             
     def loadList(self, reload=True, sorted=True):
         self.DeleteAllItems() 
