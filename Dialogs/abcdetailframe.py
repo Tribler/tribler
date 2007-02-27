@@ -1151,10 +1151,7 @@ class ABCDetailFrame(wx.Frame):
         self.aboutTitle.SetFont(wx.Font(14, wx.DEFAULT, wx.NORMAL, wx.NORMAL, False))
         sizer.Add(self.aboutTitle, 0, wx.EXPAND|wx.ALIGN_CENTER|wx.ALL, 5)
 
-        #self.notebook = wx.Notebook(panel, -1)
-        import FlatNotebook as FNB
-        self.notebook = FNB.FlatNotebook(panel, -1, style=FNB.FNB_SMART_TABS|FNB.FNB_VC8|FNB.FNB_X_ON_TAB|FNB.FNB_NO_X_BUTTON)
-        
+        self.notebook = wx.Notebook(panel, -1)
 
         show_earthpanel = self.utility.config.Read("showearthpanel", "boolean")
         if show_earthpanel:
