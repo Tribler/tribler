@@ -15,7 +15,7 @@ import wx
 #import hotshot
 
 from threading import Thread, Timer, Event
-from time import time, ctime
+from time import time, ctime, sleep
 from traceback import print_exc, print_stack
 from cStringIO import StringIO
 import urllib
@@ -23,7 +23,7 @@ import urllib
 from interconn import ServerListener, ClientPassParam
 from launchmanycore import ABCLaunchMany
 
-from ABC.Toolbars.toolbars import ABCBottomBar2, ABCStatusBar, ABCMenuBar, ABCToolBar
+from ABC.Toolbars.toolbars import ABCBottomBar2, ABCStatusBar, ABCStatusButtons, ABCMenuBar, ABCToolBar
 from ABC.GUI.menu import ABCMenu
 from ABC.Scheduler.scheduler import ABCScheduler
 
@@ -37,9 +37,11 @@ from Utility.utility import Utility
 from Utility.constants import * #IGNORE:W0611
 
 from Tribler.__init__ import tribler_init, tribler_done
+from Tribler.Dialogs.ContentFrontPanel import *
 from BitTornado.__init__ import product_name
 from safeguiupdate import DelayedInvocation
 import webbrowser
+from Tribler.Dialogs.MugshotManager import MugshotManager
 
 
 DEBUG = False
@@ -218,22 +220,35 @@ class ABCPanel(wx.Panel):
         #Manual Bittorrent Adding UI
         ##############################
         colSizer = wx.BoxSizer(wx.VERTICAL)
+        split = ABCSplitterWindow(self, -1)
+        
+        
+        
 
         # List Control Display UI
         ###############################
-        self.list = ABCList(self)
+        self.list = ABCList(split)
         self.utility.list = self.list
 
-        colSizer.Add(self.list, 1, wx.EXPAND|wx.ALL, 2)
-
-        #self.utility.bottomline2 = ABCBottomBar2(self)
-
-        #colSizer.Add(self.utility.bottomline2, 0, wx.ALL|wx.EXPAND, 3)
+        statbarbox = wx.BoxSizer(wx.HORIZONTAL)
+        self.sb_buttons = ABCStatusButtons(self,self.utility)
+        statbarbox.Add(self.sb_buttons, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 0)
+        self.abc_sb = ABCStatusBar(self,self.utility)
+        statbarbox.Add(self.abc_sb, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 0)
+        colSizer.Add(statbarbox, 0, wx.ALL|wx.EXPAND, 0)
         
+        #colSizer.Add(self.list, 1, wx.EXPAND|wx.ALL|wx.GROW, 1)
+        self.contentPanel = ContentFrontPanel(split)
+        
+        split.SplitHorizontally(self.list, self.contentPanel, 100) #  module dependent
+        
+        colSizer.Add(split, 1, wx.ALL|wx.EXPAND, 3)
+        #colSizer.Add(self.contentPanel, 1, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(colSizer)
         self.SetAutoLayout(True)
         
         self.list.SetFocus()
+        
         
     def getSelectedList(self, event = None):
         return self.list
@@ -246,7 +261,7 @@ class ABCPanel(wx.Panel):
         for ABCTorrentTemp in self.utility.torrents["all"]:
             ABCTorrentTemp.updateColumns(force = force)
  
-   
+      
 ##############################################################
 #
 # Class : ABCTaskBarIcon
@@ -311,18 +326,26 @@ class ABCFrame(wx.Frame,DelayedInvocation):
         # Get window size and position from config file
         size, position = self.getWindowSettings()
         style = wx.DEFAULT_FRAME_STYLE | wx.CLIP_CHILDREN
+        
         wx.Frame.__init__(self, None, ID, title, position, size, style = style)
+        
         self.doneflag = Event()
         DelayedInvocation.__init__(self)
+
+
+        # Singleton for management of user's mugshots (i.e. icons/display pictures)
+        self.mm = MugshotManager.getInstance()
+        self.mm.register(os.path.join(utility.getConfigPath(),'icons'),os.path.join(utility.getPath(), 'icons'))
 
         # Put it here so an error is shown in the startup-error popup
         self.serverlistener = ServerListener(self.utility)
         
         self.tbicon = None
 
-        self.abc_sb = ABCStatusBar(self)
-        self.SetStatusBar(self.abc_sb)
-
+        # Arno: see ABCPanel
+        self.abc_sb = None
+        #self.SetStatusBar(self.abc_sb)
+        
         try:
             self.SetIcon(self.utility.icon)
         except:
@@ -335,6 +358,15 @@ class ABCFrame(wx.Frame,DelayedInvocation):
         self.utility.queue  = ABCScheduler(self.utility)
         
         self.window = ABCPanel(self)
+        self.abc_sb = self.window.abc_sb
+        
+        
+        #self.list = ABCList(self)
+        #self.list.Show(False)
+        #self.utility.list = self.list
+        #self.window = self.sw118c
+        #self.utility.window = self.window
+        #self.utility.window.postponedevents = []
         
         # Menu Options
         ############################
@@ -343,7 +375,7 @@ class ABCFrame(wx.Frame,DelayedInvocation):
             wx.App.SetMacExitMenuItemId(wx.ID_CLOSE)
         self.SetMenuBar(menuBar)
         
-        self.tb = ABCToolBar(self)
+        self.tb = ABCToolBar(self) # new Tribler gui has no toolbar
         self.SetToolBar(self.tb)
         
         self.buddyFrame = None
@@ -383,7 +415,7 @@ class ABCFrame(wx.Frame,DelayedInvocation):
             
         # Start up the controller
         self.utility.controller = ABCLaunchMany(self.utility)
-        #self.utility.controller.start() # done by ABCLaunchMany parent
+        self.utility.controller.start()
         
         self.utility.queue.postInitTasks()
 
@@ -554,6 +586,7 @@ class ABCFrame(wx.Frame,DelayedInvocation):
         self.setGUIupdate(True)
         if event is not None:
             event.Skip()
+            self.window.SetSize(self.GetSize())
 
 
     def getWindowSettings(self):
@@ -671,12 +704,36 @@ class ABCFrame(wx.Frame,DelayedInvocation):
 
 
     def onWarning(self,exc):
-        # TODO: here we can use self.utility.lang
-        msg = "An non-fatal error occured during Tribler startup, you may need to change the network Preferences:\n\n"
+        msg = self.utility.lang.get('tribler_startup_nonfatalerror')
         msg += str(exc.__class__)+':'+str(exc)
-        dlg = wx.MessageDialog(None, msg, "Tribler Warning", wx.OK|wx.ICON_WARNING)
+        dlg = wx.MessageDialog(None, msg, self.utility.lang.get('tribler_warning'), wx.OK|wx.ICON_WARNING)
         result = dlg.ShowModal()
         dlg.Destroy()
+
+    def onUPnPError(self,upnp_type,listenport,error_type,exc=None):
+
+        if error_type == 0:
+            errormsg = unicode(' UPnP mode '+str(upnp_type)+' ')+self.utility.lang.get('tribler_upnp_error1')
+        elif error_type == 1:
+            errormsg = unicode(' UPnP mode '+str(upnp_type)+' ')+self.utility.lang.get('tribler_upnp_error2')+unicode(str(exc))+self.utility.lang.get('tribler_upnp_error2_postfix')
+        elif error_type == 2:
+            errormsg = unicode(' UPnP mode '+str(upnp_type)+' ')+self.utility.lang.get('tribler_upnp_error3')
+        else:
+            errormsg = unicode(' UPnP mode '+str(upnp_type)+' Unknown error')
+
+        msg = self.utility.lang.get('tribler_upnp_error_intro')
+        msg += str(listenport)
+        msg += self.utility.lang.get('tribler_upnp_error_intro_postfix')
+        msg += errormsg
+        msg += self.utility.lang.get('tribler_upnp_error_extro') 
+
+        dlg = wx.MessageDialog(None, msg, self.utility.lang.get('tribler_warning'), wx.OK|wx.ICON_WARNING)
+        result = dlg.ShowModal()
+        dlg.Destroy()
+
+    def onReachable(self,event=None):
+        """ Called by GUI thread """
+        self.window.sb_buttons.setReachable(True)
 
 
 ##############################################################
@@ -719,10 +776,12 @@ class ABCApp(wx.App):
         try:
             self.utility.postAppInit()
             self.frame = ABCFrame(-1, self.params, self.utility)
+            
 
             self.Bind(wx.EVT_QUERY_END_SESSION, self.frame.OnCloseWindow)
             self.Bind(wx.EVT_END_SESSION, self.frame.OnCloseWindow)
         except Exception,e:
+            print_exc(file=sys.stderr)
             self.error = e
             self.onError()
             return False
@@ -736,6 +795,7 @@ class ABCApp(wx.App):
         msg += str(self.error.__class__)+':'+str(self.error)
         dlg = wx.MessageDialog(None, msg, "Tribler Fatal Error", wx.OK|wx.ICON_ERROR)
         result = dlg.ShowModal()
+        print_exc()
         dlg.Destroy()
 
 
@@ -772,6 +832,9 @@ def run(params = None):
         # Launch first abc single instance
         app = ABCApp(0, params, single_instance_checker, abcpath)
         app.MainLoop()
+
+        print "Client shutting down. Sleeping for a few seconds to allow other threads to finish"
+        sleep(4)
 
 
 if __name__ == '__main__':

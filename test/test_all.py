@@ -46,17 +46,30 @@ def suite():
     import test.test_merkle as test_merkle
     import test.test_permid as test_permid
     import test.test_permid_response1 as test_permid_response1
+    import test.test_dialback_request as test_dialback_request
+    import test.test_buddycast2_datahandler as test_buddycast2_datahandler
+    import test.test_extend_hs as test_extend_hs
+    import test.test_extend_hs_t350 as test_extend_hs_t350
     
+    
+    # Legend: 
+    # '#'  = broken
+    # '##' = disable temporarily for testing a specific test
+    #
     test_modules = [
         test_cachedb,
         test_friend,
         test_cachedbhandler,
         test_superpeers,
         #test_buddycast, # Arno: currently not working due to param problem getBuddyCastMsg()
+        test_buddycast2_datahandler,
         test_sim,
         test_merkle,
         test_permid,
-        test_permid_response1
+        test_permid_response1,
+        test_dialback_request
+        test_extend_hs,
+        test_extend_hs_t350
         ]
 
     alltests = unittest.TestSuite()

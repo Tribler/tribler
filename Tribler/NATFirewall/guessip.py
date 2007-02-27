@@ -39,10 +39,10 @@ def get_my_wan_ip_win32():
 
     gwip = None
     for line in os.popen(routecmd).readlines():
-        list = line.split()
-        if len(list) >= 3:
-            if list[0] == 'Default' and list[1] == 'Gateway:':
-                gwip = list[-1]
+        words = line.split()
+        if len(words) >= 3:
+            if words[0] == 'Default' and words[1] == 'Gateway:':
+                gwip = words[-1]
                 if DEBUG:
                     print "netstat found default gateway",gwip
                 break
@@ -51,20 +51,20 @@ def get_my_wan_ip_win32():
     mywanip = None
     ingw = 0
     for line in os.popen(ifcmd).readlines():
-        list = line.split()
-        if len(list) >= 3:
-            if list[0] == 'IP' and list[1] == 'Address.':
+        words = line.split()
+        if len(words) >= 3:
+            if words[0] == 'IP' and words[1] == 'Address.':
                 try:
-                    socket.getaddrinfo(list[-1],None,socket.AF_INET)
-                    myip = list[-1]
+                    socket.getaddrinfo(words[-1],None,socket.AF_INET)
+                    myip = words[-1]
                     if DEBUG:
                         print "ipconfig found IP address",myip
                 except socket.gaierror:
                     if DEBUG:
-                        print "ipconfig ignoring IPv6 address",list[-1]
+                        print "ipconfig ignoring IPv6 address",words[-1]
                     pass
-            elif list[0] == 'Default' and list[1] == 'Gateway':
-                if list[-1] == ':':
+            elif words[0] == 'Default' and words[1] == 'Gateway':
+                if words[-1] == ':':
                     if DEBUG:
                         print "ipconfig ignoring empty default gateway"
                     pass
@@ -77,13 +77,13 @@ def get_my_wan_ip_win32():
             gwip2 = None
             ingw = (ingw + 1) % 3
             try:
-                socket.getaddrinfo(list[-1],None,socket.AF_INET)
-                gwip2 = list[-1]
+                socket.getaddrinfo(words[-1],None,socket.AF_INET)
+                gwip2 = words[-1]
                 if DEBUG:
                     print "ipconfig found default gateway",gwip2
             except socket.gaierror:
                 if DEBUG:
-                    print "ipconfig ignoring IPv6 default gateway",list[-1]
+                    print "ipconfig ignoring IPv6 default gateway",words[-1]
                 pass
             if gwip == gwip2:
                 mywanip = myip
@@ -98,25 +98,25 @@ def get_my_wan_ip_linux():
     gwif = None
     gwip = None
     for line in os.popen(routecmd).readlines():
-        list = line.split()
-        if len(list) >= 3:
-            if list[0] == '0.0.0.0':
-                gwif = list[-1]
-                gwip = list[1]
+        words = line.split()
+        if len(words) >= 3:
+            if words[0] == '0.0.0.0':
+                gwif = words[-1]
+                gwip = words[1]
                 if DEBUG:
                     print "netstat found default gateway",gwip
                 break
 
     mywanip = None
     for line in os.popen(ifcmd).readlines():
-        list = line.split()
-        if len(list) >= 2:
-            if list[0] == gwif:
+        words = line.split()
+        if len(words) >= 2:
+            if words[0] == gwif:
                 flag = True
-            elif list[0] == 'inet' and flag:
-                list2 = list[1].split(':') # "inet addr:130.37.192.1" line
-                if len(list2) == 2:
-                    mywanip = list2[1]
+            elif words[0] == 'inet' and flag:
+                words2 = words[1].split(':') # "inet addr:130.37.192.1" line
+                if len(words2) == 2:
+                    mywanip = words2[1]
                     break
                 else:
                     flag = False
@@ -132,11 +132,11 @@ def get_my_wan_ip_darwin():
     gwif = None
     gwip = None
     for line in os.popen(routecmd).readlines():
-        list = line.split()
-        if len(list) >= 3:
-            if list[0] == 'default':
-                gwif = list[-1]
-                gwip = list[1]
+        words = line.split()
+        if len(words) >= 3:
+            if words[0] == 'default':
+                gwif = words[-1]
+                gwip = words[1]
                 if DEBUG:
                     print "netstat found default gateway",gwip
                 break
@@ -144,12 +144,12 @@ def get_my_wan_ip_darwin():
     mywanip = None
     flag = False
     for line in os.popen(ifcmd).readlines():
-        list = line.split()
-        if len(list) >= 2:
-            if list[0] == "%s:" % gwif:
+        words = line.split()
+        if len(words) >= 2:
+            if words[0] == "%s:" % gwif:
                 flag = True
-            elif list[0] == 'inet' and flag:
-                mywanip = list[1] # "inet 130.37.192.1" line
+            elif words[0] == 'inet' and flag:
+                mywanip = words[1] # "inet 130.37.192.1" line
                 break
     return mywanip
 

@@ -253,13 +253,15 @@ class ABCBuddyFrame(wx.Frame):
         
     def createNoteBook(self, main_panel):
         self.loadDatabase()
-        self.notebook = wx.Notebook(main_panel, -1)
+        #self.notebook = wx.Notebook(main_panel, -1)
+        from Dialogs import FlatNotebook as FNB
+        self.notebook = FNB.FlatNotebook(main_panel, -1, style=FNB.FNB_SMART_TABS|FNB.FNB_VC8|FNB.FNB_X_ON_TAB|FNB.FNB_NO_X_BUTTON)
         
         self.friendsPanel = ManageFriendsPanel(self.notebook, self.utility, self)
         self.tasteBuddyPanel = TasteBuddyPanel(self, self.notebook)
         
-        self.notebook.InsertPage(0, self.friendsPanel, self.utility.lang.get('managefriends'))
-        self.notebook.InsertPage(1, self.tasteBuddyPanel, self.utility.lang.get('viewpeerlist'))
+        self.notebook.InsertPage(0, self.tasteBuddyPanel, self.utility.lang.get('viewpeerlist'))
+        self.notebook.InsertPage(1, self.friendsPanel, self.utility.lang.get('managefriends'))
         
     def createBottomBoxer(self, main_panel):
         bot_box = wx.BoxSizer(wx.HORIZONTAL)
@@ -268,9 +270,6 @@ class ABCBuddyFrame(wx.Frame):
         bot_box.Add(button, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
         return bot_box
 
-    def updateMyPref(self):    # used by buddy List
-        self.myPreferencePanel.list.loadList()
-        
     def updateTasteBuddyList(self, event=None):
         # Arno: on Linux, the list does not get painted properly before this
         # idle handler is called, which is weird. Hence, I wait for the next

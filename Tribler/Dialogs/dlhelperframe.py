@@ -7,9 +7,10 @@ import sys
 from traceback import print_exc
 
 from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
+from Tribler.utilities import show_permid_short
 from managefriends import createImageList
 
-DEBUG = False
+DEBUG = 0
 
 ################################################################
 #
@@ -117,6 +118,11 @@ class DownloadHelperPanel(wx.Panel):
         helperbox.Add(self.rightListCtl, 1, wx.EXPAND|wx.ALL, 5)
         topbox.Add(helperbox, 1, wx.EXPAND)      
 
+        # Keep helpers up-to-date
+        self.timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.OnTimer)
+        self.timer.Start(4000)
+
         # 5. Show GUI
         mainbox.Add(topbox, 0, wx.EXPAND|wx.ALL)
         mainbox.Add(botbox, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 5)
@@ -159,8 +165,30 @@ class DownloadHelperPanel(wx.Panel):
         self.coordinator.stop_help(remainingFriends, force = False)
         self.coordinator.request_help(helpingFriends, force = False)
 
-    def editFriend(self, event = None):
+    def OnActivated(self, event = None):
         pass
+
+    def OnTimer(self, event = None):
+        print >> sys.stderr,"dlhelperframe: ON TIMER"
+        realhelpers = self.coordinator.get_asked_helpers_copy()
+        shownhelpers = self.rightListCtl.getFriends()
+        removehelpers = []
+        removeitems = []
+        for i in range(len(shownhelpers)):
+            shown = shownhelpers[i]
+            found = False
+            for real in realhelpers:
+                if real['permid'] == shown['permid']:
+                    found = True
+                    break
+            if not found:
+                if DEBUG:
+                    print >>sys.stderr,"dlhelperframe: Helper",shown['name'],show_permid_short(shown['permid']),"could not be reached apparently, removing"
+                removehelpers.append(shown)
+                removeitems.append(i)
+        self.rightListCtl.removeFriends(removeitems)
+        self.leftListCtl.addFriends(removehelpers)
+        
 
 ################################################################
 #
@@ -208,7 +236,7 @@ class FriendList(wx.ListCtrl):
             i += 1
 
     def OnActivated(self, event):
-        self.parent.editFriend(event)
+        self.parent.OnActivated(event)
 
     def addItem(self,i,friend):
         if self.type != wx.LC_REPORT:

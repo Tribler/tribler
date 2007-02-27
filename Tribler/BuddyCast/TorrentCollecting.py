@@ -1,7 +1,6 @@
 import sys
 from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler, PeerDBHandler
-from Tribler.utilities import sortList
-
+from Tribler.utilities import sortList,show_permid_short
 
 DEBUG = False
     
@@ -63,18 +62,18 @@ class JobQueue:
     def getJob(self):
         # load a new task if there is a vacancy or all owners have been used or the job has been done
         if DEBUG:
-            print ">>>", self.pointer
+            print >>sys.stderr,"tcollect: getJob: pointer is", self.pointer
         if not self._queue[self.pointer] or not self._queue[self.pointer][1] or \
             self.fetcher.hasMetaData(self._queue[self.pointer][0]):    
             task = self.fetcher.getTask(self.num_owners)
             self._queue[self.pointer] = task
             if DEBUG:
-                if task is None:
-                    print "** new task", task
+                if task is not None:
+                    print >>sys.stderr,"tcollect: getJob: task is None"
                 else:
-                    print "** new task", task[0], task[1][:3]
+                    print >>sys.stderr,"tcollect: getJob: new task",task2string(task)
                 if self._queue[self.pointer]:
-                    print "** ", self.fetcher.hasMetaData(self._queue[self.pointer][0]), self._queue[self.pointer][1][:3]
+                    print >>sys.stderr,"tcollect: getJob: has metadata", self.fetcher.hasMetaData(self._queue[self.pointer][0]), owners2string(self._queue[self.pointer][1])
         task = self._queue[self.pointer]
         self.pointer += 1    
         if self.pointer >= self.maxsize:
@@ -117,7 +116,7 @@ class TorrentCollecting:
         #self.job_queue.load()
         if self.registered:
             if DEBUG:
-                print >> sys.stderr, "collect: Torrent collecting starts up"
+                print >> sys.stderr, "tcollect: Torrent collecting starts up"
             self.rawserver.add_task(self.collect, self.collect_interval)
     
     def collect(self):
@@ -127,19 +126,29 @@ class TorrentCollecting:
             infohash, permid = job
             self.metadata_handler.send_metadata_request(permid, infohash)
             if DEBUG:
-                print "got job: ", permid, infohash
+                print >>sys.stderr,"tcollect: collect: requested",`infohash`,"from",show_permid_short(permid)
+                print >>sys.stderr,"tcollect: collect: showing job queue:"
                 for x in self.job_queue._queue:
-                    if x is None:
-                        print x
-                    else:
-                        id, q = x
-                        print id, len(q), q[:3]
-                print '-------------'
+                    if x is not None:
+                        print >>sys.stderr,"tcollect: collect: queued job is ",task2string(x)
+                print >>sys.stderr,"tcollect: collect: end-of-queue"
             
                 
     def test(self):
         #self.rawserver.add_task(self.test, self.test_interval)
         pass
         
-        
+def task2string(task):
+    torrenthash = task[0]
+    owners = task[1]
+    s = 'infohash='+`torrenthash`
+    s += owners2string(task[1])
+    return s
+
+def owners2string(owners):
+    s = ' owners= '
+    for permid in owners:  
+        s += show_permid_short(permid)+' '
+    return s
+
         

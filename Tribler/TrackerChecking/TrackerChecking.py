@@ -17,7 +17,7 @@ def single_no_thread(torrent):
     if ( torrent["info"].get("announce-list", "") == "" ):        # no announce-list
         try:
             announce = torrent["info"]["announce"]                    # get the single tracker
-            (seeder, leecher) = singleTrackerStatus(torrent, announce)
+            (s, l) = singleTrackerStatus(torrent, announce)
             seeder = max(seeder, s)
             leecher = max(leecher, l)
         except:

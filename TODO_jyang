@@ -1,106 +1,44 @@
+TODO: (+ means finished)
+
+BUDDYCAST:
+    + Put additional secure connection to Cr or Cu
+	+ Moving the raw_server calls back in SecureOverlay
+    + Buddycast message length limit	(max. 10 KB for a full buddycast message)
+    + Removed 'age' item from buddycast for peers of new version
+	Update item relevance
+    New similarity func between users
+
+    Unit Test
+	Log and Log in GUI
+	Setup superpeers
+	Using buddycast2 network to send dialback message
+	Fast torrent collecting from connected peers
+    
+    Improve recommendation function
+    Sign buddycast2 messages
+    Reduce bandwidth usage
+    
+MEGE CACHE:
+	Add a peer given only ip and port.
+
+	Change the absolute path of torrents to relative one
+	Allow user to select the place to save torrents through torrent collecting
+	Remove owners.bsd
+	
+	Reduce or postpone reading db at start time. Improve performance.
+
 GUI:
-
-* We use File Window and Peer Window to represent the window of Manage Friend 
-List/Encountered Peer List and the window of Show Recommendations/Download 
-History respectively.
-
-[done] The Listctrl of Main and Network Info can sort items by user click. 
-
-[done] Change the background of File Window to system default.
-
-[done] Changed Peer Window to a non-Modal dialog.
-
-[done] When user adds/removes a friend from Peer list, the focus will not shift 
-to Manage Friends Window
-
-[done] When File Window or Peer Window restarts, its window's postion and size 
-will not change.
-
-[done] Friend List in Mange Friends Window can be resized.
-
-[done] hide Torrent Name in File List
-
-[done] Add popularity, tracker, injected time, number of files to File List.
-
-[done] Remove images.py. Limit the number of files in File List to 500.
-
------ r1137 6:02pm 26-4 tribler3.4.0 rc9 -------
-
-[done r1185] Number of peers/files in status bar of main window is consistant 
-with the number of peers/files in Peer/File List Window
-
-[done r1212] Rewrite Tribler.Dialogs.common.CommonTriblerList2 by inheriting 
-from ManagedList, so that user can customize peer/file list.
-
-[done r1212] Inherit File List Window from CommonTriblerList2
-
-[done r1212] User can manually erase torrents on disk from file list window
-
-[done r1252 mainbranch] Test bsddb
-
-[done] Remove Configure Columns Button
-
-[done] Replace Buddy Dialog with Frame
-
-[done] Refactor FileFrame
-
-[done] Inherit My Preference List Window from CommonTriblerList2
-
-[done] Inherit Peer List Window from CommonTriblerList2
-	background color [done]
-	ip sort [done]
-
-[done] Bugfix: Peers in Peer List Window don't change
-
-[done] Database profiling, performance test and improvement
-
------ release 3.4.0
-
-show loading in recommendation list
-
-Track torrents' health
-
-Add Search for file list and peer list
-
-user can set place and limit of torrent2, bsddb
-
-record the path of friend images in config.
-
-Separate long list into multiple pages.
-
-Add file type to File List.
-
-Guess language for Recommendated Torrents and add it to File List.
-
-Help and Feature page
-
-Track liveness
-
-Connectablity check
-
-Improve torrent collection policy
-
-Improve buddycast and recommendation
-
------------------------ Big Issues ----------------------
-DATABASE 		
-	DATABASE SELECTION		
-	PERFORMANCE IMPROVE		
-
-BUDDYCAST			
-	EXPERIMENT STUDY	
-	PEER SELECTION	
-	BUDDYCAST MESSAGE COMBINATION
+	+ Remove meanless part at status bar
 	
-TORRENT COLLECTING
-	SPACE LIMITATION
-	METADATA SENDING
-	
-RECOMMENDATION				
-	ALGORITHM SELECTION		
-	PERFORMANCE IMPORVE		
-	
-USER INTERFACE
-	IMPROVE CURRENT GUI		
-	NEW GUI					
-	
+	Click a torrent and recommend similar torrent
+
+	Dutch version
+	Chinese version
+    Visualize buddycast2 networks	
+    
+BUGFIX:    
+	+ Don't always keep connection with superpeers (duplicated index in conn list)
+    + Remove 'looking for new recommendation' in status bar
+    Change firewall status when recv incoming connections
+
+    

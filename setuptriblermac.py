@@ -26,9 +26,9 @@ wx_lib="/usr/local/lib/wxPython-%s-%s/lib/libwx_mac%sd-%s.%s.0.dylib" % (
   wx_minor )
 
 def libdirs( path ):
-	return ["%s/%s" % (path,p)
-	        for p in os.listdir(path)
-	        if p.startswith("lib.")]
+        return ["%s/%s" % (path,p)
+                for p in os.listdir(path)
+                if p.startswith("lib.")]
 
 sys.path = libdirs("m2crypto/build") + libdirs("bsddb3/build") + sys.path
 
@@ -75,7 +75,7 @@ so_dir = "build/Tribler.app/Contents/Resources/ExtensionModules/wx"
 so_files = [x for x in os.listdir( so_dir ) if x.endswith(".so")]
 
 for f in so_files:
-	os.system("install_name_tool -change %s %s %s/%s" % (wx_lib,os.path.basename(wx_lib),so_dir,f))
+        os.system("install_name_tool -change %s %s %s/%s" % (wx_lib,os.path.basename(wx_lib),so_dir,f))
 
 try:
    os.remove("Tribler.dmg")

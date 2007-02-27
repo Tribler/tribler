@@ -21,8 +21,9 @@ import sys, os
 from BitTornado import version, report_email
 from BitTornado.ConfigDir import ConfigDir
 #--- 2fastbt_
-from time import time
+from time import time,sleep
 from Tribler.__init__ import tribler_init, tribler_done
+import BitTornado.BT1.Encrypter as Encrypter
 # _2fastbt
 
 assert sys.version >= '2', "Install Python 2.0 or greater"
@@ -74,27 +75,35 @@ class HeadlessDisplayer:
             x = '"%s": "%s" (%s) - %sP%s%s%.3fD u%0.1fK/s-d%0.1fK/s u%dK-d%dK "%s" %d' % (
                     name, status, progress, peers, seeds, seedsmsg, dist,
                     uprate/1000, dnrate/1000, upamt/1024, dnamt/1024, msg, int(delta))
-            try:
-                print >> sys.stderr,"3, x
-            except:
-                pass
             print x
-            if status == "seeding":
-                print >> sys.stderr,"2, 'total_time = ' + str(delta)
-#                exit(0)
 # _2fastbt
         return False
             
     def message(self, s):
-        print "### "+s
+        pass
+        #print "### "+`s`
 
     def exception(self, s):
         self.message(s)
-        Exceptions.append(s)
+        # Exceptions.append(s)
         self.message('SYSTEM ERROR - EXCEPTION GENERATED')
 
 
 if __name__ == '__main__':
+
+    # ---- Only for buddycast debug version ------
+    DEBUG = 0
+    if DEBUG:
+        peer_db_path = '.Tribler/bsddb/peers.bsd'
+        my_db_path = '.Tribler/bsddb/mydata.bsd'
+        if os.path.exists(peer_db_path):
+            os.remove(peer_db_path)
+            os.remove(my_db_path)
+            print "removed", peer_db_path, os.path.exists(peer_db_path)
+        else:
+            print "cannot remove", peer_db_path, os.path.exists(peer_db_path)
+    # ---- -----------------------------
+    
     if argv[1:] == ['--version']:
         print version
         exit(0)
@@ -108,6 +117,8 @@ if __name__ == '__main__':
           "whether to display the full path or the torrent contents for each torrent" ),
        ('config_path', '',
           'directory containing the Tribler config files (default $HOME/.Tribler)'),
+        ( 'seed_only', 1,
+          "whether to act just as a seeder and not participate in any overlay apps" )
     ] )
     try:
         # Make sure we can have a directory with config files in a user-chosen
@@ -157,12 +168,32 @@ if __name__ == '__main__':
     tribler_init(config['config_path'],install_dir)
 
     config['text_mode'] = 1
-    LaunchMany(config, HeadlessDisplayer())
+    if config['seed_only'] == 1:
+        # This disables all overlay apps, such as Buddycast etc.
+        config['cache'] = 0
+        config['overlay'] = 0
+        # Make sure we don't advertise we understand overlay conns
+        #Encrypter.option_pattern = Encrypter.disabled_overlay_option_pattern 
+
+    lm = LaunchMany(config, HeadlessDisplayer())
+    lm.start()
 
     tribler_done(config['config_path'])
+
+    # Particularly if we're a seeder we need to make sure that the Threads 
+    # started to tell the tracker we're stopping are allowed to run to
+    # completion. Otherwise the tracker admin may get messed up. It gets messed
+    # up if we use different ports on each run and we don't unregister properly.
+    # The tracker will then think the old instance is still running and give it
+    # to peers.
+    #
+    print "Client shutting down. Sleeping a while to allow other threads to finish"
+    sleep(4)
+    print "Client done sleeping, other threads should have finished"
+
 
     if Exceptions:
         print '\nEXCEPTION:'
         print Exceptions[0]
-        print >> sys.stderr,"2, 'btlaunchmany EXCEPTION: ' + str(Exceptions[0])
+        print >> sys.stderr,"btlaunchmany EXCEPTION: " + str(Exceptions[0])
         print 'please report this to '+report_email+'. Thank you!'

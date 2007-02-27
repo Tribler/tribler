@@ -8,8 +8,7 @@ from traceback import print_exc
 import urllib
 import webbrowser
 
-from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
-from Tribler.__init__ import myinfo
+from Tribler.CacheDB.CacheDBHandler import FriendDBHandler,MyDBHandler
 from Tribler.Overlay.permid import permid_for_user
 
 from makefriends import MakeFriendsDialog, permid2iconfilename
@@ -146,9 +145,6 @@ class ManageFriendsPanel(wx.Panel):
             selected.append(friends[item])
         return selected
 
-    def close(self, event = None):
-        self.EndModal(wx.ID_OK)
-
     def updateView(self, updateBuddyFrame=True):
         """ Easiest way of keeping the info presented to the user up to date:
             build a new window
@@ -263,10 +259,12 @@ class MyInfoDialog(wx.Dialog):
         myinfobox_title = wx.StaticBox(self, -1, self.utility.lang.get('myinfo'))
         myinfobox = wx.StaticBoxSizer(myinfobox_title, wx.VERTICAL)
 
+        self.my_db = MyDBHandler()
         ip = self.utility.config.Read('bind')
         if ip is None or ip == '':
-            ip = myinfo['ip']
-        self.permid_txt = self.utility.lang.get('permid')+": "+permid_for_user(myinfo['permid'])
+            ip = self.my_db.getMyIP()
+        permid = self.my_db.getMyPermid()
+        self.permid_txt = self.utility.lang.get('permid')+": "+permid_for_user(permid)
         self.ip_txt = self.utility.lang.get('ipaddress')+": "+ip
 
         # port = self.utility.controller.listen_port

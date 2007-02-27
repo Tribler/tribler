@@ -101,6 +101,10 @@ from shelve import BsdDbShelf
 #
 
 home_dir = 'bsddb'
+# Database schema versions (for all databases)
+# 1 = First
+# 2 = Added keys to TorrentDB:  leecher,seeder,category,ignore_number,last_check_time,retry_number,status
+#
 curr_version = 2
 permid_length = 112
 infohash_length = 20
@@ -120,6 +124,8 @@ def init(config_dir, myinfo):
     
     global home_dir
     home_dir = make_filename(config_dir, 'bsddb')
+    if DEBUG:
+        print "Init database at", home_dir
     MyDB.getInstance(myinfo, home_dir)
     PeerDB.getInstance(home_dir)
     TorrentDB.getInstance(home_dir)
@@ -613,8 +619,8 @@ class PreferenceDB(BasicDB):
         MyDB.checkVersion(self)
         PreferenceDB.__single = self 
         self.default_item = {    # subitem actually
-            'relevance':0,     # relevance from the owner of this torrent
-            'rank':0
+            #'relevance':0,     # relevance from the owner of this torrent
+            #'rank':0
         }
 
     def getInstance(*args, **kw):

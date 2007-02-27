@@ -1,3 +1,6 @@
+# written by Yuan Yuan
+# see LICENSE.txt for license information
+
 from threading import Thread, Lock
 from Tribler.TrackerChecking.TrackerChecking import trackerChecking
 from time import sleep, time

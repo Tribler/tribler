@@ -3,15 +3,18 @@
 
 import traceback,sys
 from sha import sha
+from types import DictType,IntType
 
 from BitTornado.bitfield import Bitfield
 from BitTornado.clock import clock
 from binascii import b2a_hex
 from BitTornado.bencode import bencode,bdecode
+from BitTornado.__init__ import version_short,decodePeerID
 
 from MessageID import *
 # 2fastbt_
 from Tribler.CacheDB.CacheDBHandler import PeerDBHandler
+from Tribler.Overlay.SecureOverlay import SecureOverlay
 # _2fastbt
 
 try:
@@ -21,8 +24,46 @@ except:
     False = 0
 
 DEBUG = False
+DEBUG_NORMAL_MSGS = False
 
 UNAUTH_PERMID_PERIOD = 3600
+
+"""
+Arno: 2007-02-16:
+uTorrent and Bram's BitTorrent now support an extension to the protocol,
+documented on http://www.rasterbar.com/products/libtorrent/extension_protocol.html
+
+The problem is that the bit they use in the options field of the BT handshake
+is the same as we use to indicate a peer supports the overlay-swarm connection.
+The new clients will send an EXTEND message with ID 20 after the handshake to
+inform the otherside what new messages it supports.
+
+As a result, Tribler <= 3.5.0 clients won't be confused, but can't talk to these 
+new clients either or vice versa. The new client will think we understand the 
+message, send it. But because we don't know that message ID, we will close 
+the connection. Our attempts to establish a new overlay connection with the new
+client will gracefully fail, as the new client will not know of infohash=00000...
+and close the connection.
+
+We solve this conflict by adding support for the EXTEND message. We are now be 
+able to receive it, and send our own. Our message will contain one method name, 
+i.e. Tr_OVERLAYSWARM=253. Processing is now as follows:
+
+* If bit 43 is set and the peerID is from an old Tribler (<=3.5.0)
+  peer, we initiate an overlay-swarm connection.
+* If bit 43 is set and the peer's EXTEND hs message contains method Tr_OVERLAYSWARM,
+  it's a new Tribler peer, and we initiate an overlay-swarm connection.
+* If bit 43 is set, and the EXTEND hs message does not contain Tr_OVERLAYSWARM
+  it's not a Tribler client and we do not initiate an overlay-swarm
+  connection.
+
+N.B. The EXTEND message is poorly designed, it lacks protocol versioning
+support which is present in the Azureus Extended Messaging Protocol
+and our overlay-swarm protocol.
+"""
+EXTEND_MSG_HANDSHAKE_ID = chr(0)
+EXTEND_MSG_OVERLAYSWARM = 'Tr_OVERLAYSWARM'
+EXTEND_HANDSHAKE_M_DICT = {EXTEND_MSG_OVERLAYSWARM:ord(CHALLENGE)}
 
 def toint(s):
     return long(b2a_hex(s), 16)
@@ -52,6 +93,8 @@ class Connection:
         self.unauth_permid = None
         self.looked_for_permid = UNAUTH_PERMID_PERIOD-3
         self.closed = False
+        self.extend_m_dict = {}
+        self.initiated_overlay = False
             
     def get_myip(self, real=False):
         return self.connection.get_myip(real)
@@ -120,7 +163,7 @@ class Connection:
     def send_unchoke(self):
         if self.send_choke_queued:
             self.send_choke_queued = False
-            if DEBUG:
+            if DEBUG_NORMAL_MSGS:
                 print 'CHOKE SUPPRESSED'
         else:
             self._send_message(UNCHOKE)
@@ -133,14 +176,14 @@ class Connection:
     def send_request(self, index, begin, length):
         self._send_message(REQUEST + tobinary(index) + 
             tobinary(begin) + tobinary(length))
-        if DEBUG:
+        if DEBUG_NORMAL_MSGS:
             print "sending REQUEST to",self.get_ip()
             print 'sent request: '+str(index)+': '+str(begin)+'-'+str(begin+length)
 
     def send_cancel(self, index, begin, length):
         self._send_message(CANCEL + tobinary(index) + 
             tobinary(begin) + tobinary(length))
-        if DEBUG:
+        if DEBUG_NORMAL_MSGS:
             print 'sent cancel: '+str(index)+': '+str(begin)+'-'+str(begin+length)
 
     def send_bitfield(self, bitfield):
@@ -177,7 +220,7 @@ class Connection:
                 self.partial_message = ''.join((
                             tobinary(len(piece) + 9), PIECE, 
                             tobinary(index), tobinary(begin), piece.tostring()))
-            if DEBUG:
+            if DEBUG_NORMAL_MSGS:
                 print 'sending chunk: '+str(index)+': '+str(begin)+'-'+str(begin+len(piece))
 
         if bytes < len(self.partial_message):
@@ -216,12 +259,59 @@ class Connection:
             self.connecter.ratelimiter.ping(clock() - self.just_unchoked)
             self.just_unchoked = 0
     
+    def got_extend_handshake(self,d):
+        if DEBUG:
+            print >>sys.stderr,"connecter: Got EXTEND handshake:",d
+        if 'm' in d:
+            if type(d['m']) != DictType:
+                raise ValueError('Key m does not map to a dict')
+            m = d['m']
+            for key,val in m.iteritems():
+                if type(val) != IntType:
+                    raise ValueError('Message ID in m-dict not int')
+                
+            self.extend_m_dict.update(d['m'])
+            if EXTEND_MSG_OVERLAYSWARM in self.extend_m_dict:
+                # This peer understands our overlay swarm extension
+                if self.connection.locally_initiated:
+                    if DEBUG:
+                        print >>sys.stderr,"connecter: Peer supports Tr_OVERLAYSWARM, attempt connection"
+                    self.connect_overlay()
+        # 'p' is peer's listen port, 'v' is peer's version, all optional
+
+    def extend_msg_id_to_name(self,ext_id):
+        """ find the name for the given message id """
+        for key,val in self.extend_m_dict.iteritems():
+            if val == ext_id:
+                return key
+        return None
+
+
+    def send_extend_handshake(self):
+        d = {}
+        d['m'] = EXTEND_HANDSHAKE_M_DICT
+        d['p'] = self.connecter.mylistenport
+        ver = version_short.replace('-',' ',1)
+        d['v'] = ver
+        self._send_message(EXTEND + EXTEND_MSG_HANDSHAKE_ID + bencode(d))
+        if DEBUG:
+            print 'sent extend: id=0+',d
+
+    def connect_overlay(self):
+        if DEBUG:
+            print >>sys.stderr,"connecter: Initiating overlay connection"
+        if not self.initiated_overlay:
+            self.initiated_overlay = True
+            so = SecureOverlay.getInstance()
+            so.addTask(self.connection.dns)
+
+
 
 class Connecter:
 # 2fastbt_
     def __init__(self, make_upload, downloader, choker, numpieces,
             totalup, config, ratelimiter, merkle_torrent, sched = None, 
-            coordinator = None, helper = None):
+            coordinator = None, helper = None, mylistenport = None):
 # _2fastbt
         self.downloader = downloader
         self.make_upload = make_upload
@@ -240,6 +330,10 @@ class Connecter:
         self.coordinator = coordinator
         self.helper = helper
         self.round = 0
+        self.mylistenport = mylistenport
+        self.overlay_enabled = 1
+        if 'overlay' in self.config:
+            self.overlay_enabled = self.config['overlay']
         # _2fastbt
 
     def how_many_connections(self):
@@ -248,6 +342,21 @@ class Connecter:
     def connection_made(self, connection):
         c = Connection(connection, self)
         self.connections[connection] = c
+        
+        if self.overlay_enabled and connection.support_olswarm_extend:
+            # The peer either supports our overlay-swarm extension or 
+            # the utorrent extended protocol. And we have overlay swarm enabled.
+            [client,version] = decodePeerID(connection.id)
+            if client == 'R' and version <= '3.5.0' and connection.locally_initiated:
+                # Old Tribler, establish overlay connection
+                if DEBUG:
+                    print >>sys.stderr,"connecter: Peer is previous Tribler version, attempt overlay connection"
+                c.connect_overlay()
+            else:
+                # EXTEND handshake must be sent just after BT handshake, 
+                # before BITFIELD even
+                c.send_extend_handshake()
+                
         #TODO: overlay swarm also needs upload and download to control transferring rate
         c.upload = self.make_upload(c, self.ratelimiter, self.totalup)
         c.download = self.downloader.make_download(c)
@@ -275,6 +384,51 @@ class Connecter:
         # connection: Encrypter.Connection; c: Connecter.Connection
         c = self.connections[connection]    
         t = message[0]
+        # EXTEND handshake will be sent just after BT handshake, 
+        # before BITFIELD even
+        if t == EXTEND:
+            if DEBUG:
+                print >>sys.stderr,"connecter: Got EXTEND message, len",len(message)
+            try:
+                if len(message) < 4:
+                    if DEBUG:
+                        print "Close on bad EXTEND: msg len"
+                    connection.close()
+                    return
+                ext_id = message[1]
+                if ext_id == EXTEND_MSG_HANDSHAKE_ID: # Handshake:
+                    d = bdecode(message[2:])
+                    if type(d) == DictType:
+                        c.got_extend_handshake(d)
+                    else:
+                        if DEBUG:
+                            print "Close on bad EXTEND: payload of handshake is not a dict"
+                        connection.close()
+                        return
+                else:
+                    ext_msg_name = c.extend_msg_id_to_name(ext_id)
+                    if ext_msg_name is None:
+                        if DEBUG:
+                            print "Close on bad EXTEND: peer sent ID it didn't define in handshake"
+                        connection.close()
+                        return
+                    elif ext_msg_name == EXTEND_MSG_OVERLAYSWARM:
+                        if DEBUG:
+                            print "Not closing EXTEND+CHALLENGE: peer didn't read our spec right, be liberal"
+                        pass
+                    else:
+                        if DEBUG:
+                            print "Close on bad EXTEND: peer sent ID that maps to name we don't support"
+                        connection.close()
+                        return
+                return
+            except Exception,e:
+                if DEBUG:
+                    print "Close on bad EXTEND: exception",str(e)
+                    traceback.print_exc(file=sys.stderr)
+                connection.close()
+                return
+        
         if t == BITFIELD and c.got_anything:
             if DEBUG:
                 print "Close on BITFIELD"
@@ -288,11 +442,11 @@ class Connecter:
             connection.close()
             return
         if t == CHOKE:
-            if DEBUG:
+            if DEBUG_NORMAL_MSGS:
                 print "connecter: Got CHOKE from",connection.get_ip()
             c.download.got_choke()
         elif t == UNCHOKE:
-            if DEBUG:
+            if DEBUG_NORMAL_MSGS:
                 print "connecter: Got UNCHOKE from",connection.get_ip()
             c.download.got_unchoke()
         elif t == INTERESTED:
@@ -312,7 +466,7 @@ class Connecter:
                     print "Close on bad HAVE: index out of range"
                 connection.close()
                 return
-            if DEBUG:
+            if DEBUG_NORMAL_MSGS:
                 print "connecter: Got HAVE(",i,") from",connection.get_ip()
             c.download.got_have(i)
         elif t == BITFIELD:
@@ -337,7 +491,7 @@ class Connecter:
                     print "Close on bad REQUEST: index out of range"
                 connection.close()
                 return
-            if DEBUG:
+            if DEBUG_NORMAL_MSGS:
                 print "connecter: Got REQUEST(",i,") from",connection.get_ip()
             c.got_request(i, toint(message[5:9]), toint(message[9:]))
         elif t == CANCEL:
@@ -369,8 +523,8 @@ class Connecter:
             if c.download.got_piece(i, toint(message[5:9]), [], message[9:]):
                 self.got_piece(i)
         elif t == HASHPIECE:
+            # Merkle: Handle pieces with hashes
             try:
-                # Merkle: Handle pieces with hashes
                 if len(message) <= 13:
                     if DEBUG:
                         print "Close on bad HASHPIECE: msg len"

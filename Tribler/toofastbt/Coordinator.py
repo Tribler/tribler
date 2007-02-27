@@ -1,11 +1,13 @@
-# Written by Pawel Garbacki
+# Written by Pawel Garbacki, Arno Bakker
 # see LICENSE.txt for license information
+#
+# TODO: when DOWNLOAD_HELP cannot be sent, mark this in the interface
 
 from traceback import print_exc
 import copy
 import sys
 
-from Tribler.Overlay.SecureOverlay import SecureOverlay
+from Tribler.Overlay.SecureOverlay import SecureOverlay,select_supported_protoversion
 from BitTornado.bencode import bencode
 from BitTornado.BT1.MessageID import DOWNLOAD_HELP, STOP_DOWNLOAD_HELP, PIECES_RESERVED
 
@@ -88,9 +90,34 @@ class Coordinator:
         for peer in peerList:
             peer['round'] = 0
             if DEBUG:
-                print >> sys.stderr,"dlhelp: Coordinator connecting to",peer['name'],peer['ip'],peer['port']," for help"
+                print >> sys.stderr,"dlhelp: Coordinator connecting to",peer['name'],show_permid_short(peer['permid'])," for help"
+            self.secure_overlay.connect(peer['permid'],self.request_help_connect_callback)
+
+    def request_help_connect_callback(self,exc,dns,permid,selversion):
+        if exc is None:
+            if DEBUG:
+                print >> sys.stderr,"dlhelp: Coordinator sending to",show_permid_short(permid)
+            ## Create message according to protocol version
             dlhelp_request = self.torrent_hash
-            self.secure_overlay.addTask(peer['permid'], DOWNLOAD_HELP + dlhelp_request)
+            self.secure_overlay.send(permid, DOWNLOAD_HELP + dlhelp_request,self.request_help_send_callback)
+        else:
+            if DEBUG:
+                print >> sys.stderr,"dlhelp: DOWNLOAD_HELP: error connecting to",show_permid_short(permid),exc
+            self.remove_unreachable_helper(permid)
+
+    def remove_unreachable_helper(self,permid):
+        # Remove peer that we could not connect to from asked helpers
+        newlist = []
+        for peer in self.asked_helpers:
+            if peer['permid'] != permid:
+                newlist.append(peer)
+        self.asked_helpers = newlist
+
+    def request_help_send_callback(self,exc,permid):
+        if exc is not None:
+            if DEBUG:
+                print >> sys.stderr,"dlhelp: DOWNLOAD_HELP: error sending to",show_permid_short(permid),exc
+            self.remove_unreachable_helper(permid)
 
     def stop_help(self,peerList, force = False):
         # print >> sys.stderr,"dlhelp: STOPPING HELP FROM",peerList
@@ -126,13 +153,29 @@ class Coordinator:
     def send_stop_help(self,peerList):
         for peer in peerList:
             if DEBUG:
-                print >> sys.stderr,"dlhelp: Coordinator connecting to",peer['name'],peer['ip'],peer['port']," for stopping help"
+                print >> sys.stderr,"dlhelp: Coordinator connecting to",peer['name'],show_permid_short(peer['permid'])," for stopping help"
+            self.secure_overlay.connect(peer['permid'],self.stop_help_connect_callback)
+
+    def stop_help_connect_callback(self,exc,dns,permid,selversion):
+        if exc is None:
+            ## Create message according to protocol version
             stop_request = self.torrent_hash
-            self.secure_overlay.addTask(peer['permid'],STOP_DOWNLOAD_HELP + stop_request)
+            self.secure_overlay.send(permid,STOP_DOWNLOAD_HELP + stop_request,self.stop_help_send_callback)
+        elif DEBUG:
+            print >> sys.stderr,"dlhelp: STOP_DOWNLOAD_HELP: error connecting to",show_permid_short(permid),exc
+
+    def stop_help_send_callback(self,exc,permid):
+        if exc is not None:
+            if DEBUG:
+                print >> sys.stderr,"dlhelp: STOP_DOWNLOAD_HELP: error sending to",show_permid_short(permid),exc
+            pass
+
 
     def get_asked_helpers_copy(self):
         # returns a COPY of the list. We need 'before' and 'after' info here,
         # so the caller is not allowed to update the current asked_helpers
+        if DEBUG:
+            print >> sys.stderr,"dlhelp: Coordinator: Asked helpers is",self.asked_helpers
         return copy.deepcopy(self.asked_helpers)
 
     def samePeer(self,a,b):
@@ -147,7 +190,7 @@ class Coordinator:
 
 
 ### CoordinatorMessageHandler interface
-    def got_reserve_pieces(self,permid,pieces,all_or_nothing):
+    def got_reserve_pieces(self,permid,pieces,all_or_nothing,selversion):
 
         reserved_pieces = self.reserve_pieces(pieces, all_or_nothing)
         for peer in self.asked_helpers:
@@ -155,7 +198,7 @@ class Coordinator:
                 peer['round'] = (peer['round'] + 1) % MAX_ROUNDS
                 if peer['round'] == 0:
                     reserved_pieces.extend(self.get_reserved())
-        self.send_pieces_reserved(permid,reserved_pieces)
+        self.send_pieces_reserved(permid,reserved_pieces,selversion)
 
     def reserve_pieces(self, pieces, all_or_nothing = False):
         try:
@@ -181,7 +224,14 @@ class Coordinator:
     def get_reserved(self):
         return self.reserved
 
-    def send_pieces_reserved(self, permid, pieces):
+    def send_pieces_reserved(self, permid, pieces, selversion):
+        ## Create message according to protocol version
         payload = self.torrent_hash + bencode(pieces)
-        self.secure_overlay.addTask(permid, PIECES_RESERVED + payload )
+        # Optimization: we know we're connected
+        self.secure_overlay.send(permid, PIECES_RESERVED + payload,self.pieces_reserved_send_callback)
     
+    def pieces_reserved_send_callback(self,exc,permid):
+        if exc is not None:
+            if DEBUG:
+                print >> sys.stderr,"dlhelp: PIECES_RESERVED: error sending to",show_permid_short(permid),exc
+            pass

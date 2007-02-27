@@ -278,7 +278,9 @@ class TorrentDataManager:
 
     def getCategory(self, categorykey):
         
-        if (categorykey == "All"):
+        categorykey = categorykey.lower()
+        
+        if (categorykey == "all"):
             return self.data
         
         rlist = []
@@ -289,7 +291,7 @@ class TorrentDataManager:
             categories = idata.get("category", [])
             if not categories:
                 categories = ["other"]
-            if categorykey in categories:
+            if categorykey in [cat.lower() for cat in categories]:
                 rlist.append(idata)
         return rlist
 
@@ -299,6 +301,7 @@ class TorrentDataManager:
     # register update function
     def register(self, fun, key):
         try:
+            key = key.lower()
             self.dict_FunList[key].index(fun)
             # if no exception, fun already exist!
             print "DBObserver register error. " + str(fun.__name__) + " already exist!"
@@ -314,6 +317,7 @@ class TorrentDataManager:
         
     def unregister(self, fun, key):
         try:
+            key = key.lower()
             self.dict_FunList[key].remove(fun)
         except Exception, msg:
             print "TorrentDataManager unregister error.", Exception, msg
@@ -344,11 +348,13 @@ class TorrentDataManager:
 #            if key == '?':
 #                continue
             try:
+                key = key.lower()
                 for fun in self.dict_FunList[key]: # call all functions for a certain key
                     fun(torrent, operate)     # lock is used to avoid dead lock
             except Exception, msg:
-                print >> sys.stderr, "abcfileframe: TorrentDataManager update error. Key: %s" % (key), Exception, msg
-                print_exc()
+                #print >> sys.stderr, "abcfileframe: TorrentDataManager update error. Key: %s" % (key), Exception, msg
+                #print_exc()
+                pass
         
     def addItem(self, infohash):
         if self.info_dict.has_key(infohash):
@@ -391,7 +397,7 @@ class TorrentDataManager:
         torrent['length'] = info.get('length', 0)
         torrent['content_name'] = dunno2unicode(info.get('name', '?'))
         if torrent['torrent_name'] == '':
-            torrent['torrnt_name'] = '?'
+            torrent['torrent_name'] = '?'
         torrent['num_files'] = int(info.get('num_files', 0))
         torrent['date'] = info.get('creation date', 0) 
         torrent['tracker'] = info.get('announce', '')
@@ -572,7 +578,7 @@ class FileList(CommonTriblerList):
         if status == 'good':
             item.SetTextColour(wx.BLUE)
         elif status == 'dead':
-            tem.SetTextColour(wx.RED)
+            item.SetTextColour(wx.RED)
         self.SetItem(item)
            
     def updateRow(self, index):                 # update a single row
@@ -806,19 +812,22 @@ class ABCFileFrame(wx.Frame):
                           pos=self.utility.frame.fileFrame_pos)    
 
         self.main_panel = self.createMainPanel()
+        self.main_panel.Refresh()
         
         self.count = 0                          
         self.loadFileList = False
 
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
         self.Bind(wx.EVT_IDLE, self.updateFileList)        
-        
+        #self.Refresh()
         self.Show()
         
     def createMainPanel(self):
         main_panel = wx.Panel(self)
         
         self.createNoteBook(main_panel)
+        
+        #self.myPreferencePanel = MyPreferencePanel(self, main_panel)
         bot_box = self.createBottomBoxer(main_panel)
         
         mainbox = wx.BoxSizer(wx.VERTICAL)
@@ -833,9 +842,11 @@ class ABCFileFrame(wx.Frame):
         
     def createNoteBook(self, main_panel):
         self.loadDatabase()
-        self.notebook = wx.Notebook(main_panel, -1)
+        #self.notebook = wx.Notebook(main_panel, -1)
+        from Dialogs import FlatNotebook as FNB
+        self.notebook = FNB.FlatNotebook(main_panel, -1, style=FNB.FNB_SMART_TABS|FNB.FNB_VC8|FNB.FNB_X_ON_TAB|FNB.FNB_NO_X_BUTTON)
         
-#        self.filePanel = AllFilePanel(self, self.notebook)
+        #self.filePanel = AllFilePanel(self, self.notebook)
         keys = Category.getInstance().getCategoryKeys()
         self.filePanels = []
         for key in keys:
@@ -845,7 +856,7 @@ class ABCFileFrame(wx.Frame):
             self.filePanels.append(panel)
             self.notebook.AddPage(panel, key)
         self.myPreferencePanel = MyPreferencePanel(self, self.notebook)
-#        self.notebook.AddPage(self.filePanel, self.utility.lang.get('file_list_title'))
+        #self.notebook.AddPage(self.filePanel, self.utility.lang.get('file_list_title'))
         self.notebook.AddPage(self.myPreferencePanel, self.utility.lang.get('mypref_list_title'))
         
         
@@ -874,6 +885,7 @@ class ABCFileFrame(wx.Frame):
         
     def OnCloseWindow(self, event = None):
         for panel in self.filePanels:
+            if panel:
                 panel.list.saveRelevanceThreshold()
 #        self.filePanel.list.saveRelevanceThreshold()
         self.utility.frame.fileFrame_size = self.GetSize()

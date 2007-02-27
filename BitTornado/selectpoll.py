@@ -1,14 +1,19 @@
 # Written by Bram Cohen
 # see LICENSE.txt for license information
+# Arno,2007-02-23: this poll class is used on win32
 
+import sys
 from select import select
 from time import sleep
 from types import IntType
 from bisect import bisect
+from sets import Set
 POLLIN = 1
 POLLOUT = 2
 POLLERR = 8
 POLLHUP = 16
+
+DEBUG = False
 
 class poll:
     def __init__(self):
@@ -36,8 +41,18 @@ class poll:
     def poll(self, timeout = None):
         if self.rlist or self.wlist:
             try:
-                r, w, e = select(self.rlist, self.wlist, [], timeout)
+                # Arno, 2007-02-23: The original code never checked for errors
+                # on any file descriptors. 
+                elist = Set(self.rlist)
+                elist = elist.union(self.wlist)
+                if DEBUG:
+                    print >>sys.stderr,"selectpoll: elist = ",elist
+                r, w, e = select(self.rlist, self.wlist, elist, timeout)
+                if DEBUG:
+                    print >>sys.stderr,"selectpoll: e = ",e
             except ValueError:
+                if DEBUG:
+                    print >>sys.stderr,"selectpoll: select: bad param"
                 return None
         else:
             sleep(timeout)
@@ -47,6 +62,8 @@ class poll:
             result.append((s, POLLIN))
         for s in w:
             result.append((s, POLLOUT))
+        for s in e:
+            result.append((s, POLLERR))
         return result
 
 def remove(list, item):

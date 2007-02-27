@@ -12,9 +12,9 @@ from time import time
 # 2fastbt_
 from traceback import print_exc, extract_stack, print_stack
 import sys
-# _2fastbt
-
 from Tribler.Overlay.SecureOverlay import SecureOverlay
+from BitTornado.BT1.MessageID import protocol_name,option_pattern
+# _2fastbt
 
 try:
     True
@@ -25,16 +25,6 @@ except:
 DEBUG = False
 
 MAX_INCOMPLETE = 8
-
-protocol_name = 'BitTorrent protocol'
-# Enable Tribler extensions:
-# Left-most bit = Azureus Enhanced Messaging Protocol (AEMP)
-# Left+42 bit = Tribler Simple Merkle Hashes extension
-# Left+43 bit = Tribler Overlay swarm extension
-# Right-most bit = BitTorrent DHT extension
-#option_pattern = chr(0)*8
-option_pattern = '\x00\x00\x00\x00\x00\x30\x00\x00'
-disabled_overlay_option_pattern = '\x00\x00\x00\x00\x00\x20\x00\x00'
 
 def toint(s):
     return long(b2a_hex(s), 16)
@@ -88,7 +78,7 @@ class Connection:
         self.buffer = StringIO()
 # overlay        
         self.dns = dns
-        self.support_overlayswarm = False
+        self.support_olswarm_extend = False
         self.connecter_conn = None
 # _overlay
         self.support_merklehash= False
@@ -98,9 +88,13 @@ class Connection:
         self.create_time = time()
 # _2fastbt
         if self.locally_initiated or ext_handshake:
+            if DEBUG:
+                print >>sys.stderr,"Encoder.Connection: writing protname + swarm-ID"
             self.connection.write(chr(len(protocol_name)) + protocol_name + 
                 option_pattern + self.Encoder.download_id)
         if ext_handshake:
+            if DEBUG:
+                print >>sys.stderr,"Encoder.Connection: writing my peer-ID"
             self.connection.write(self.Encoder.my_id)
             self.next_len, self.next_func = 20, self.read_peer_id
         else:
@@ -138,13 +132,13 @@ class Connection:
 # overlay_
         r = unpack("B", s[5])
         if r[0] & 0x10:    # left + 43 bit
-            self.support_overlayswarm = True
+            self.support_olswarm_extend = True
             if DEBUG:
-                print "Peer supports overlay swarm"
+                print >>sys.stderr,"Peer supports overlay swarm"
         if r[0] & 0x20:    # left + 42 bit
             self.support_merklehash= True
             if DEBUG:
-                print "Peer supports Merkle hashes"
+                print >>sys.stderr,"Peer supports Merkle hashes"
 # _overlay
 
     def read_header_len(self, s):
@@ -159,7 +153,7 @@ class Connection:
 
     def read_reserved(self, s):
         if DEBUG:
-            print "encoder: Reserved bits:", show(s)
+            print >>sys.stderr,"encoder: Reserved bits:", show(s)
         self.set_options(s)
         return 20, self.read_download_id
 
@@ -205,26 +199,29 @@ class Connection:
             self.readable_id = make_readable(s)
         else:    # locat init with remote id
             if s != self.id:
+                if DEBUG:
+                    print >>sys.stderr,"Encoder.Connection: s != self.id, returning None"
                 return None
         self.complete = self.Encoder.got_id(self)
         if not self.complete:
+            if DEBUG:
+                print >>sys.stderr,"Encoder.Connection: self not complete!!!, returning None"
             return None
         if self.locally_initiated:
             self.connection.write(self.Encoder.my_id)
             incompletecounter.decrement()
         c = self.Encoder.connecter.connection_made(self)
         self.keepalive = c.send_keepalive
-# overlay_
-        self.connect_overlay()
-# _overlay
         return 4, self.read_len
 
-# overlay_
     def connect_overlay(self):
         if self.support_overlayswarm and self.dns:
             so = SecureOverlay.getInstance()
-            so.addTask(self.dns)
-# _overlay
+            so.connect_dns(self.dns,self.connect_dns_callback)
+
+    def connect_dns_callback(self,exc,dns,permid,selversion):
+        if exc is not None:
+            print >>sys.stderr,"encoder: peer",dns,"said he supported overlay swarm, but we can't connect to him",exc
 
     def read_len(self, s):
         l = toint(s)
@@ -243,13 +240,13 @@ class Connection:
     def _auto_close(self):
         if not self.complete and not self.is_coordinator_con():
             if DEBUG:
-                print "encoder: autoclosing ",self.get_myip(),self.get_myport(),"to",self.get_ip(),self.get_port()
+                print >>sys.stderr,"encoder: autoclosing ",self.get_myip(),self.get_myport(),"to",self.get_ip(),self.get_port()
             self.close()
 
     def close(self):
         if DEBUG:
-            print "encoder: closing connection",self.get_ip()
-            print_stack()
+            print >>sys.stderr,"encoder: closing connection",self.get_ip()
+            ##print_stack()
         if not self.closed:
             self.connection.close()
             self.sever()
@@ -258,8 +255,8 @@ class Connection:
     def sever(self):
         self.closed = True
         if self.Encoder.connections.has_key(self.connection):
-            del self.Encoder.connections[self.connection]
-        
+            self.Encoder.admin_close(self.connection)
+            
         if self.complete:
             self.connecter.connection_lost(self)
         elif self.locally_initiated:
@@ -290,6 +287,8 @@ class Connection:
                 self.next_len, self.next_func = 1, self.read_dead
                 raise
             if x is None:
+                if DEBUG:
+                    print >>sys.stderr,"encoder: function failed",self.next_func
                 self.close()
                 return
             self.next_len, self.next_func = x
@@ -304,7 +303,7 @@ class Connection:
 # 2fastbt_
     def is_coordinator_con(self):
         #if DEBUG:
-        #    print "encoder: is_coordinator_con: coordinator is ",self.Encoder.coordinator_ip
+        #    print >>sys.stderr,"encoder: is_coordinator_con: coordinator is ",self.Encoder.coordinator_ip
         if self.coord_con:
             return True
         elif self.get_ip() == self.Encoder.coordinator_ip:
@@ -335,17 +334,63 @@ class Encoder:
         self.connections = {}
         self.banned = {}
         self.to_connect = []
+        self.trackertime = 0
         self.paused = False
         if self.config['max_connections'] == 0:
             self.max_connections = 2 ** 30
         else:
             self.max_connections = self.config['max_connections']
+        """
+        In r529 there was a problem when a single Windows client 
+        would connect to our text-based seeder (i.e. btlaunchmany) 
+        with no other clients present. Apparently both the seeder 
+        and client would connect to eachother simultaneously, but 
+        not end up with a good connection, halting the client.
+
+        Arno, 2006-03-10: Reappears in ~r890, fixed in r892. It 
+        appears to be a problem of writing to a nonblocking socket 
+        before it signalled it is ready for writing, although the 
+        evidence is inconclusive. 
+
+        Arno: 2006-12-15: Reappears in r2319. There is some weird
+        socket problem here. Using Python 2.4.4 doesn't solve it.
+        The problem I see here is that as soon as we register
+        at the tracker, the single seeder tries to connect to
+        us. He succeeds, but after a short while the connection
+        appears to be closed by him. We then wind up with no
+        connection at all and have to wait until we recontact
+        the tracker.
+
+        My workaround is to refuse these initial connections from
+        the seeder and wait until I've started connecting to peers
+        based on the info I got from the tracker before accepting
+        remote connections.
+        
+        Arno: 2007-02-16: I think I finally found it. The Tribler 
+        tracker (BitTornado/BT1/track.py) will do a NAT check
+        (BitTornado/BT1/NATCheck) by default, which consists of
+        initiating a connection and then closing it after a good 
+        BT handshake was received.
+        
+        The solution now is to make sure we check IP and port to
+        identify existing connections. I already added that 2006-12-15,
+        so I just removed the restriction on initial connections, 
+        which are superfluous.
+        """
+        self.rerequest = None
 # 2fastbt_
         self.toofast_banned = {}
         self.coordinator_ip = None
+        if 'overlay' in self.config and self.config['overlay'] == 0:
+            # Don't say we support the overlay-swarm connection when it's not
+            # enabled.
+            global option_pattern
+            global disabled_overlay_option_pattern 
+            option_pattern = disabled_overlay_option_pattern
 # _2fastbt        
         schedulefunc(self.send_keepalives, keepalive_delay)
         
+
     def send_keepalives(self):
         self.schedulefunc(self.send_keepalives, self.keepalive_delay)
         if self.paused:
@@ -355,10 +400,11 @@ class Encoder:
 
     def start_connections(self, list):
         if DEBUG:
-            print "encoder: connecting to",len(list),"peers"
+            print >>sys.stderr,"encoder: connecting to",len(list),"peers"
         if not self.to_connect:
             self.raw_server.add_task(self._start_connection_from_queue)
         self.to_connect = list
+        self.trackertime = int(time()) 
 
     def _start_connection_from_queue(self):
         if self.connecter.external_connection_made:
@@ -385,7 +431,7 @@ class Encoder:
              or id == self.my_id
              or self.banned.has_key(dns[0]) ):
             if DEBUG:
-                print "encoder: start_connection: we're paused or too busy"
+                print >>sys.stderr,"encoder: start_connection: we're paused or too busy"
             return True
         for v in self.connections.values():    # avoid duplicated connectiion from a single ip
             if v is None:
@@ -393,20 +439,21 @@ class Encoder:
             if id and v.id == id:
                 return True
             ip = v.get_ip(True)
-            if self.config['security'] and ip != 'unknown' and ip == dns[0]:
+            port = v.get_port(False)
+            if self.config['security'] and ip != 'unknown' and ip == dns[0] and port == dns[1]:
                 if DEBUG:
-                    print "encoder: start_connection: using existing"
+                    print >>sys.stderr,"encoder: start_connection: using existing"",ip,"want port",dns[1],"existing port",port,"id",`id`
                 return True
         try:
             if DEBUG:
-                print "encoder: start_connection: Setting up new to peer", dns
+                print >>sys.stderr,"encoder: start_connection: Setting up new to peer", dns,"id",`id`
             c = self.raw_server.start_connection(dns)
             con = Connection(self, c, id, dns = dns, coord_con = coord_con)
             self.connections[c] = con
             c.set_handler(con)
         except socketerror:
             if DEBUG:
-                print "Encoder.connection failed"
+                print >>sys.stderr,"Encoder.connection failed"
             return False
         return True
 
@@ -423,6 +470,7 @@ class Encoder:
             self.connecter.external_connection_made -= 1
             return False
         ip = connection.get_ip(True)
+        port = connection.get_port(False)
         if self.config['security'] and self.banned.has_key(ip):
             return False
         for v in self.connections.values():
@@ -433,13 +481,17 @@ class Encoder:
 # _2fastbt
                     return False
                 # don't allow multiple connections from the same ip if security is set.
-                if self.config['security'] and ip != 'unknown' and ip == v.get_ip(True):
+                if self.config['security'] and ip != 'unknown' and ip == v.get_ip(True) and port == v.get_port(False):
+                    print >>sys.stderr,"Encoder: got_id: closing duplicate connection"
                     v.close()
         return True
 
     def external_connection_made(self, connection):
         """ Remotely initiated connection """
+        if DEBUG:
+            print >>sys.stderr,"Encoder: external_conn_made"
         if self.paused or len(self.connections) >= self.max_connections:
+            print >>sys.stderr,"Encoder: external_conn_made: paused or too many"
             connection.close()
             return False
         con = Connection(self, connection, None)
@@ -448,6 +500,8 @@ class Encoder:
         return True
 
     def externally_handshaked_connection_made(self, connection, options, msg_remainder):
+        if DEBUG:
+            print >>sys.stderr,"Encoder: external_handshaked_conn_made"
 # 2fastbt_
         if self.paused or len(self.connections) >= self.max_connections:
 # _2fastbt
@@ -469,7 +523,7 @@ class Encoder:
 
     def close_all(self):
         if DEBUG:
-            print "encoder: closing all connections"
+            print >>sys.stderr,"encoder: closing all connections"
         copy = self.connections.values()[:]
         for c in copy:
             c.close()
@@ -485,3 +539,16 @@ class Encoder:
     def set_coordinator_ip(self,ip):
         self.coordinator_ip = ip
 # _2fastbt    
+
+    def set_rerequester(self,rerequest):
+        self.rerequest = rerequest
+
+    def admin_close(self,conn):
+        del self.connections[conn]
+        now = int(time())
+        if DEBUG:
+            print "encoder: admin_close: now-tt is",now-self.trackertime
+        if len(self.connections) == 0 and (now-self.trackertime) < 20:
+            # print "encoder: admin_close: Recontacting tracker, last request got just dead peers: TEMP DISABLED, ARNO WORKING ON IT"
+            ###self.rerequest.encoder_wants_new_peers()
+            pass

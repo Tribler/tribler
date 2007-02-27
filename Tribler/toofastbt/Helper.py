@@ -5,10 +5,13 @@ import sys
 from traceback import print_exc, print_stack
 from time import time
 
-from Tribler.Overlay.SecureOverlay import SecureOverlay
-from Tribler.CacheDB.CacheDBHandler import PeerDBHandler
+
 from BitTornado.bencode import bencode
 from BitTornado.BT1.MessageID import RESERVE_PIECES
+
+from Tribler.Overlay.SecureOverlay import SecureOverlay
+from Tribler.CacheDB.CacheDBHandler import PeerDBHandler
+from Tribler.utilities import show_permid_short
 
 MAX_ROUNDS = 200
 DEBUG = False
@@ -214,9 +217,9 @@ class Helper:
             self.restart(sdownload)
             
             #self.send_reservation()
-            list = self.continuations[:] # copy just to be sure
+            l = self.continuations[:] # copy just to be sure
             self.continuations = []
-            for sdownload in list:
+            for sdownload in l:
                 self.restart(sdownload)
 
     def restart(self,sdownload):
@@ -230,12 +233,27 @@ class Helper:
 
 ## Coordinator comm.       
     def send_reserve_pieces(self, pieces, all_or_nothing = False):
-        if all_or_nothing:
-            all_or_nothing = chr(1)
-        else:
-            all_or_nothing = chr(0)
-        payload = self.torrent_hash + all_or_nothing + bencode(pieces)
-        self.secure_overlay.addTask(self.coordinator_permid, RESERVE_PIECES + payload )
+        self.secure_overlay.connect(self.coordinator_permid,lambda e,d,p,s:self.reserve_pieces_connect_callback(e,d,p,s,pieces,all_or_nothing))
+
+    def reserve_pieces_connect_callback(self,exc,dns,permid,selversion,pieces,all_or_nothing):
+        if exc is None:
+            ## Create message according to protocol version
+            if all_or_nothing:
+                all_or_nothing = chr(1)
+            else:
+                all_or_nothing = chr(0)
+            payload = self.torrent_hash + all_or_nothing + bencode(pieces)
+
+            self.secure_overlay.send(permid, RESERVE_PIECES + payload,self.reserve_pieces_send_callback)
+        elif DEBUG:
+            print >> sys.stderr,"helper: RESERVE_PIECES: error connecting to",show_permid_short(permid),exc
+
+    def reserve_pieces_send_callback(self,exc,permid):
+        if exc is not None:
+            if DEBUG:
+                print >> sys.stderr,"helper: RESERVE_PIECES: error sending to",show_permid_short(permid),exc
+            pass
+
 
 ### HelperMessageHandler interface
     def got_pieces_reserved(self, permid, pieces):

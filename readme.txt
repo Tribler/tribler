@@ -24,8 +24,9 @@ So make sure you have
         Python >= 2.4 
 	OpenSSL >= 0.9.8
 	swig >= 1.3.25
-	wxPython >= 2.6 UNICODE
+	wxPython >= 2.6 UNICODE (i.e., use --enable-unicode to build)
 	M2Crypto >= 0.16
+        pywin32 >= Build 208 (Windows only, for UPnP support)
 
 Note that Tribler only works with wxPython UNICODE, not ANSI.  Python 2.4 is
 prefered, as Python 2.3's unicode support is not perfect, and 2.3's bsddb
@@ -168,3 +169,11 @@ HOW TO BUILD A BINARY DISTRIBUTION ON WINDOWS
 
 10. An installer will be created in \dist under the current directory
 
+
+
+BUILD TIPS
+----------
+
+* Should you want to build Python yourself and want it to use a non-default
+  OpenSSL install, you'll have to edit Python-src/setup.py to include the
+  right install dir in ssl_incs  and ssl_libs.

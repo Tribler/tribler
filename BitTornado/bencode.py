@@ -285,7 +285,7 @@ def bencode(x):
     try:
         encode_func[type(x)](x, r)
     except:
-        print "*** error *** could not encode type %s (value: %s)" % (type(x), x)
+        print "bencode: *** error *** could not encode type %s (value: %s)" % (type(x), x)
         assert 0
     return ''.join(r)
 

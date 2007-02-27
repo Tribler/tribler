@@ -5,13 +5,15 @@
 
 from random import seed
 from socket import error as socketerror
-from threading import Event
+from threading import Event,Thread,currentThread
 import sys, os
 from clock import clock
 from __init__ import createPeerID, mapbase64
 from cStringIO import StringIO
 from traceback import print_exc
-from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
+from time import time
+
+from Tribler.Dialogs.activities import *
 
 from BitTornado import PSYCO
 if PSYCO.psyco:
@@ -23,19 +25,20 @@ if PSYCO.psyco:
         pass
 from download_bt1 import BT1Download
 from RawServer import RawServer 
-from SocketHandler import UPnP_ERROR
 from RateLimiter import RateLimiter
 from ServerPortHandler import MultiHandler
 from parsedir import parsedir
-from natpunch import UPnP_test         
 from BT1.Encrypter import Encoder
 from BT1.Connecter import Connecter
+from natpunch import UPnPWrapper, UPnPError
 
-from Tribler.__init__ import GLOBAL
-from Tribler.Overlay.OverlaySwarm import OverlaySwarm
+import Tribler.Overlay.permid as permid
 from Tribler.Overlay.SecureOverlay import SecureOverlay
 from Tribler.Overlay.OverlayApps import OverlayApps
 from Tribler.CacheDB.CacheDBHandler import MyDBHandler, TorrentDBHandler, MyPreferenceDBHandler
+from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
+from Tribler.Category.Category import Category
+from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 
 try:
     True
@@ -43,7 +46,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = False
+DEBUG = 0
 
 def fmttime(n):
     try:
@@ -191,19 +194,8 @@ class LaunchMany:
             self.hashcheck_queue = []
             self.hashcheck_current = None
             self.torrent_list = []
-            
-            # Tribler extension flags
-            GLOBAL.do_overlay = config['overlay']
-            GLOBAL.do_cache = config['cache']
-            GLOBAL.do_buddycast = config['buddycast']
-            GLOBAL.do_download_help = config['download_help']
-            GLOBAL.do_torrent_collecting = config['torrent_collecting']
-            #GLOBAL.do_superpeer = config['superpeer']
-            #GLOBAL.do_das_test = config['das_test']
-            GLOBAL.do_buddycast_interval = config['buddycast_interval']
-            GLOBAL.do_torrent_checking = config['torrent_checking']
-            GLOBAL.max_num_torrents = config['max_torrents']
-            GLOBAL.overlay_log = config['overlay_log']
+            self.upnp_type = 0
+            self.overlay_apps = None
             
             self.rawserver = RawServer(self.doneflag,
                                        config['timeout_check_interval'],
@@ -211,7 +203,6 @@ class LaunchMany:
                                        ipv6_enable = config['ipv6_enabled'],
                                        failfunc = self.failed,
                                        errorfunc = self.exchandler)
-            upnp_type = UPnP_test(config['upnp_nat_access'])
             self.listen_port = -1
             if config['minport'] != config['maxport']:
                 first_try = MyDBHandler().get('port')
@@ -222,23 +213,18 @@ class LaunchMany:
                                     config['minport'], config['maxport'], config['bind'], 
                                     reuse = True,
                                     ipv6_socket_style = config['ipv6_binds_v4'], 
-                                    upnp = upnp_type, randomizer = config['random_port'])
+                                    randomizer = config['random_port'])
                     if DEBUG:
                         print >> sys.stderr,"BitTornado/launchmany: Got listen port", self.listen_port
                     print "Got listen port", self.listen_port
                     break
                 except socketerror, e:
-                    if upnp_type and e == UPnP_ERROR:
-                        self.Output.message('WARNING: COULD NOT FORWARD VIA UPnP')
-                        upnp_type = 0
-                        continue
                     msg = "Couldn't not bind to listen port - " + str(e)
                     self.failed(msg)
                     if not self.text_mode:
                         raise socketerror(msg)
                     return
             
-
             self.ratelimiter = RateLimiter(self.rawserver.add_task, 
                                            config['upload_unit_size'])
             self.ratelimiter.set_upload_rate(config['max_upload_rate'])
@@ -253,34 +239,31 @@ class LaunchMany:
             self.rawserver.add_task(self.stats, 0)
 
             # do_cache -> do_overlay -> (do_buddycast, do_download_help)
-            if not GLOBAL.do_cache:
-                GLOBAL.do_overlay = 0    # overlay
-            if not GLOBAL.do_overlay:
-                GLOBAL.do_buddycast = 0
-                GLOBAL.do_download_help = 0
+            if not config['cache']:
+                config['overlay'] = 0    # overlay
+            if not config['overlay']:
+                config['buddycast'] = 0
+                config['download_help'] = 0
 
-            if GLOBAL.do_overlay:
+            if config['overlay']:
                 MyDBHandler().put('port', self.listen_port)
-                self.overlayswarm = OverlaySwarm.getInstance()                
                 self.secure_overlay = SecureOverlay.getInstance()
-                self.overlayswarm.register(self.listen_port, self.secure_overlay, self.handler, 
-                                           self.config)
-                self.secure_overlay.register(self.overlayswarm)
+                mykeypair = permid.get_my_keypair()
+                self.secure_overlay.register(self.rawserver,self.handler,self.listen_port,self.config['max_message_length'],mykeypair)
                 self.overlay_apps = OverlayApps.getInstance()
-                self.overlay_apps.register(self.secure_overlay, self, GLOBAL.do_buddycast, GLOBAL.do_download_help,
-                                            GLOBAL.do_torrent_collecting, GLOBAL.config_dir)
+                self.overlay_apps.register(self.secure_overlay, self, self.rawserver, config)
                 # It's important we don't start listening to the network until
                 # all higher protocol-handling layers are properly configured.
-                self.overlayswarm.start_listening()
+                self.secure_overlay.start_listening()
             
             self.torrent_db = TorrentDBHandler()
             self.mypref_db = MyPreferenceDBHandler()
             
             # add task for tracker checking
-            if GLOBAL.do_torrent_checking:
+            if config['torrent_checking']:
                 self.rawserver.add_task(self.torrent_checking, self.torrent_checking_period)
             
-            self.start()
+            ##self.start()
 
         except Exception,e:
             data = StringIO()
@@ -299,21 +282,43 @@ class LaunchMany:
             t.start()
         except:
             pass
-        
+
+      
     def start(self):
+        self.start_upnp()
         try:
             self.handler.listen_forever()
         except:
             data = StringIO()
             print_exc(file=data)
             self.Output.exception(data.getvalue())
-        
+
+        self.shutdown()
+
+    def shutdown(self):        
         self.hashcheck_queue = []
         for hash in self.torrent_list:
             self.Output.message('dropped "'+self.torrent_cache[hash]['path']+'"')
             self.downloads[hash].shutdown()
-                
+
+        self.stop_upnp()
         self.rawserver.shutdown()
+
+    def start_upnp(self):
+        # Arno: as the UPnP discovery and calls to the firewall can be slow,
+        # do it in a separate thread. When it fails, it should report popup
+        # a dialog to inform and help the user. Or report an error in textmode.
+        #
+        # Must save type here, to handle case where user changes the type
+        # In that case we still need to delete the port mapping using the old mechanism
+
+        self.upnp_type = self.config['upnp_nat_access'] 
+        self.upnp_thread = UPnPThread(self.upnp_type,self.listen_port,self.upnp_failed,self)
+        self.upnp_thread.start()
+
+    def stop_upnp(self):
+        if self.upnp_type > 0:
+            self.upnp_thread.shutdown()
 
     def scan(self):
         self.rawserver.add_task(self.scan, self.scan_period)
@@ -333,6 +338,8 @@ class LaunchMany:
             self.remove(hash)
         for hash, data in added.items():
             self.Output.message('added "'+data['path']+'"')
+            if DEBUG:
+                print >>sys.stderr,"launchmany: added "+data['path']
             self.add(hash, data)
             
     def stats(self):
@@ -470,7 +477,7 @@ class LaunchMany:
             mypref['content_dir'], mypref['content_name'] = os.path.split(dest)
 
         self.mypref_db.addPreference(torrent_hash, mypref)
-        if self.overlay_apps.buddycast is not None:
+        if self.overlay_apps is not None and self.overlay_apps.buddycast is not None:
             self.overlay_apps.buddycast.addMyPref(torrent_hash)
 
 
@@ -545,6 +552,9 @@ class LaunchMany:
     def exchandler(self, s):
         self.Output.exception(s)
 
+    def upnp_failed(self,upnp_type,listenport,error_type,exc=None):
+        self.failed("UPnP mode "+str(upnp_type)+" request to firewall failed with error "+str(error_type)+" Try setting a different mode in Preferences. Listen port was "+str(listenport))
+
 # 2fastbt_
     def get_coordinator(self,torrent_hash):
         d = self.get_bt1download(torrent_hash)
@@ -566,3 +576,107 @@ class LaunchMany:
         except KeyError:
             return None
 # _2fastbt
+
+    def reachable_network_callback(self):
+            self.Output.message('Reachability: yes we are reachable')
+
+    def set_activity(self,type,msg=''):
+            self.Output.message('Activity: '+str(type)+" "+msg)
+        
+
+class UPnPThread(Thread):
+    """ Thread to run the UPnP code. Moved out of main startup-
+        sequence for performance. As you can see this thread won't
+        exit until the client exits. This is due to a funky problem
+        with UPnP mode 2. That uses Win32/COM API calls to find and
+        talk to the UPnP-enabled firewall. This mechanism apparently
+        requires all calls to be carried out by the same thread.
+        This means we cannot let the final DeletePortMapping(port) 
+        (==UPnPWrapper.close(port)) be done by a different thread,
+        and we have to make this one wait until client shutdown.
+
+        Arno, 2006-11-12
+    """
+
+    def __init__(self,upnp_type,listen_port,error_func,launchmany):
+        Thread.__init__(self)
+        self.setDaemon(True)
+        self.setName( "UPnP"+self.getName() )
+        
+        self.upnp_type = upnp_type
+        self.listen_port = listen_port
+        self.error_func = error_func
+        self.launchmany = launchmany
+        self.shutdownevent = Event()
+
+    def run(self):
+
+        dmh = DialbackMsgHandler.getInstance()
+        if self.upnp_type > 0:
+
+            self.upnp_wrap = UPnPWrapper.getInstance()
+            wanip = MyDBHandler().getMyIP()
+            self.upnp_wrap.register(wanip)
+
+            self.launchmany.set_activity(ACT_UPNP)
+            if self.upnp_wrap.test(self.upnp_type):
+                try:
+                    shownerror=False
+                    # Get external IP address from firewall
+                    if self.upnp_type != 1: # Mode 1 doesn't support getting the IP address"
+                        ret = self.upnp_wrap.get_ext_ip()
+                        if ret == None:
+                            shownerror=True
+                            self.error_func(self.upnp_type,self.listen_port,0)
+                        else:
+                            self.handle_ext_ip(ret,dmh)
+
+                    # Do open_port irrespective of whether get_ext_ip()
+                    # succeeds, UPnP mode 1 doesn't support get_ext_ip()
+                    # get_ext_ip() must be done first to ensure we have the 
+                    # right IP ASAP.
+                    
+                    # Open port on firewall
+                    ret = self.upnp_wrap.open(self.listen_port)
+                    if ret == False and not shownerror:
+                        self.error_func(self.upnp_type,self.listen_port,0)
+                except UPnPError,e:
+                    self.error_func(self.upnp_type,self.listen_port,1,e)
+            else:
+                self.error_func(self.upnp_type,self.listen_port,2)
+
+        # Now that the firewall is hopefully open, 
+        # initiate dialback message to see what others think our IP address is
+        #
+        dmh.start_active()
+
+        if self.upnp_type > 0:
+            if DEBUG:
+                print >>sys.stderr,"upnp: thread: Waiting till shutdown"
+            self.shutdownevent.wait()
+            # Don't write to sys.stderr, that sometimes doesn't seem to exist
+            # any more?! Python garbage collection funkiness of module sys import?
+            # The GUI is definitely gone, so don't use self.error_func()
+            if DEBUG:
+                print "upnp: thread: Shutting down, closing port on firewall"
+            try:
+                self.upnp_wrap.close(self.listen_port)
+            except Exception,e:
+                print "upnp: thread: close port at shutdown threw",e
+                print_exc()
+
+        # End of UPnPThread
+
+    def handle_ext_ip(self,upnp_ip,dmh):
+        # We learned our external IP address via UPnP
+        dmh.upnp_got_ext_ip(upnp_ip)
+        
+        my_db = MyDBHandler()
+        old_ext_ip = my_db.getMyIP()
+        if old_ext_ip != upnp_ip:
+            print >> sys.stderr,"upnp: firewall reports different IP address",upnp_ip,"than previous",old_ext_ip,", setting to new"
+            ## Warning: another thread writing to database
+            my_db.put('ip',upnp_ip)
+
+    def shutdown(self):
+        self.shutdownevent.set()

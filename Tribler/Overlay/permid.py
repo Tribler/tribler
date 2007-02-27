@@ -11,7 +11,7 @@ from M2Crypto import Rand,EC,EVP
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
 
-DEBUG = False
+DEBUG = 0
 
 # Internal constants
 keypair_ecc_curve = EC.NID_sect233k1
@@ -40,16 +40,28 @@ def init(config_dir = None):
 def exit(config_dir = None):
     Rand.save_file(get_rand_filename(config_dir.encode(sys.getfilesystemencoding())))
 
-def show_permid(permid):
-    # Full BASE64-encoded 
-    return encodestring(permid).replace("\n","")
-    # Short digest
-    ##return sha(permid).hexdigest()
+# def show_permid(permid):
+# See Tribler/utilities.py
 
 def permid_for_user(permid):
     # Full BASE64-encoded 
     return encodestring(permid).replace("\n","")
 
+# For convenience
+def sign_data(plaintext):
+    global _ec_keypair
+    digest = sha(plaintext).digest()
+    return _ec_keypair.sign_dsa_asn1(digest)
+
+def verify_data(plaintext,permid,blob):
+    pubkey = EC.pub_key_from_der(permid)
+    digest = sha(plaintext).digest()
+    return pubkey.verify_dsa_asn1(digest,blob)
+
+def get_my_keypair():
+    global _ec_keypair
+    return _ec_keypair
+    
 
 # Internal functions
 def generate_keypair():
@@ -217,21 +229,22 @@ class PermIDException(Exception): pass
 class ChallengeResponse:
     """ Exchange Challenge/Response via Overlay Swarm """
 
-    def __init__(self, my_id, overlay_swarm):
-        self.overlay_swarm = overlay_swarm
+    def __init__(self, my_keypair, my_id, secure_overlay):
+        self.my_keypair = my_keypair
+        self.my_id = my_id
+        self.secure_overlay = secure_overlay
 
         self.my_random = None
-        self.my_id = my_id
         self.peer_id = None
         self.peer_random = None
         self.peer_pub = None
         self.state = STATE_INITIAL
         # Calculate message limits:
         [dummy_random,cdata] = generate_challenge()
-        [dummy_random1,rdata1] = generate_response1(dummy_random,my_id,_ec_keypair)
-        rdata2 = generate_response2(dummy_random,my_id,dummy_random,_ec_keypair)
+        [dummy_random1,rdata1] = generate_response1(dummy_random,my_id,self.my_keypair)
+        rdata2 = generate_response2(dummy_random,my_id,dummy_random,self.my_keypair)
         self.minchal = 1+len(cdata) # 1+ = message type
-        self.minr1 = 1+len(rdata1)
+        self.minr1 = 1+len(rdata1) - 1 # Arno: hack, also here, just to be on the safe side
         self.minr2 = 1+len(rdata2) - 1 # Arno: hack, sometimes the official minimum is too big
 
     def starting_party(self,locally_initiated):
@@ -258,7 +271,7 @@ class ChallengeResponse:
                 print >> sys.stderr,"Got bad CHALLENGE message"
             raise PermIDException
         self.peer_id = peer_id
-        [self.my_random,rdata1] = generate_response1(self.peer_random,peer_id,_ec_keypair)
+        [self.my_random,rdata1] = generate_response1(self.peer_random,peer_id,self.my_keypair)
         self.state = STATE_AWAIT_R2
         return rdata1
 
@@ -278,7 +291,7 @@ class ChallengeResponse:
         self.peer_random = randomA
         self.peer_pub = peer_pub
         self.set_peer_authenticated()
-        rdata2 = generate_response2(self.peer_random,self.peer_id,self.my_random,_ec_keypair)
+        rdata2 = generate_response2(self.peer_random,self.peer_id,self.my_random,self.my_keypair)
         return rdata2
 
     def got_response2_event(self,rdata2):
@@ -334,26 +347,21 @@ class ChallengeResponse:
         conn.send_message(CHALLENGE + str(cdata) )
 
     def got_challenge(self, cdata, conn):
-        rdata1 = self.got_challenge_event(cdata, conn.connection.id)
+        rdata1 = self.got_challenge_event(cdata, conn.get_unauth_peer_id())
         conn.send_message(RESPONSE1 + rdata1)
 
     def got_response1(self, rdata1, conn):
-        rdata2 = self.got_response1_event(rdata1, conn.connection.id)
+        rdata2 = self.got_response1_event(rdata1, conn.get_unauth_peer_id())
         conn.send_message(RESPONSE2 + rdata2)
         # get_peer_permid() throws exception if auth has failed
-        permid = self.get_peer_permid()
-        conn.set_permid(permid)
-        conn.set_auth_peer_id(self.get_auth_peer_id())
-        self.overlay_swarm.permidSocketMade(conn)
+        self.secure_overlay.got_auth_connection(conn,self.get_peer_permid(),self.get_auth_peer_id())
      
     def got_response2(self, rdata2, conn):
         self.got_response2_event(rdata2)
         if self.get_peer_authenticated():
             #conn.send_message('')    # Send KeepAlive message as reply
-            permid = self.get_peer_permid()
-            conn.set_permid(permid)
-            conn.set_auth_peer_id(self.get_auth_peer_id())
-            self.overlay_swarm.permidSocketMade(conn)
+            self.secure_overlay.got_auth_connection(conn,self.get_peer_permid(),self.get_auth_peer_id())
+
 
     def got_message(self, conn, message):
         """ Handle message for PermID exchange and return if the message is valid """
@@ -367,7 +375,7 @@ class ChallengeResponse:
         if t == CHALLENGE:
             if len(message) < self.get_challenge_minlen():
                 if DEBUG:
-                    print >> sys.stderr,"permid: Close on bad CHALLENGE: msg len"
+                    print >> sys.stderr,"permid: Close on bad CHALLENGE: msg len",len(message)
                 self.state = STATE_FAILED
                 return False
             try:
@@ -380,7 +388,7 @@ class ChallengeResponse:
         elif t == RESPONSE1:
             if len(message) < self.get_response1_minlen():
                 if DEBUG:
-                    print >> sys.stderr,"permid: Close on bad RESPONSE1: msg len"
+                    print >> sys.stderr,"permid: Close on bad RESPONSE1: msg len",len(message)
                 self.state = STATE_FAILED
                 return False
             try:
@@ -393,7 +401,7 @@ class ChallengeResponse:
         elif t == RESPONSE2:
             if len(message) < self.get_response2_minlen():
                 if DEBUG:
-                    print >> sys.stderr,"permid: Close on bad RESPONSE2: msg len"
+                    print >> sys.stderr,"permid: Close on bad RESPONSE2: msg len",len(message)
                 self.state = STATE_FAILED
                 return False
             try:

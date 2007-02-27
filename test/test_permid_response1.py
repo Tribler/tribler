@@ -15,6 +15,7 @@
 #
 import unittest
 
+import sys
 import socket
 import tempfile
 import sha
@@ -134,6 +135,7 @@ class MyServer(Thread):
             self._test_response1(ss, self.create_bad_resp1_sig_by_other_key,False)
 
     def _test_response1(self,ss,gen_resp1,good):
+        print >>sys.stderr,"test: myserver running:",gen_resp1
         conn, addr = ss.accept()
         s = BTConnection('',0,conn)
         s.read_handshake_medium_rare()
@@ -159,7 +161,8 @@ class MyServer(Thread):
             time.sleep(5)
             # the other side should not our bad RESPONSE1 this and close the 
             # connection
-            self.testcase.assertRaises(Exception, s.recv)
+            msg = s.recv()
+            self.testcase.assert_(len(msg)==0)
             s.close()
 
 
@@ -328,6 +331,9 @@ class ConnecterConnection:
     def get_my_id(self):
         return self.s.get_my_id()
 
+    def get_unauth_peer_id(self):
+        return self.s.get_his_id()
+
     def is_locally_initiated(self):
         return True
 
@@ -346,11 +352,11 @@ class ConnecterConnection:
     def close(self):
         self.s.close()
 
-class OverlaySwarm:
+class SecureOverlay:
     def __init__(self):
         pass
 
-    def permidSocketMade(self,conn):
+    def got_auth_connection(self,singsock,permid,peer_id):
         pass
 
 #
@@ -370,7 +376,7 @@ class TestPermIDsResponse1(unittest.TestCase):
         self.server.start()
         time.sleep(1) # allow server to start
 
-        self.overlay = OverlaySwarm()
+        self.overlay = SecureOverlay()
 
     def tearDown(self):
         shutil.rmtree(self.config_path)
@@ -396,7 +402,7 @@ class TestPermIDsResponse1(unittest.TestCase):
         self.conn = ConnecterConnection(self.server_port)
         self.myid = self.conn.get_my_id()
 
-        self.cr = permid.ChallengeResponse(self.myid,self.overlay)
+        self.cr = permid.ChallengeResponse(permid.get_my_keypair(),self.myid,self.overlay)
         self.cr.start_cr(self.conn)
         resp1_data = self.conn.get_message()
         success = self.cr.got_message(self.conn,resp1_data)

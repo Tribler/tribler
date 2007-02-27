@@ -7,6 +7,7 @@ from tempfile import mkstemp
 from threading import Event
 import os
 from types import StringType, IntType, ListType, DictType
+from math import ceil
 
 from Tribler.Merkle.merkle import *
 from TorrentMaker.btmakemetafile import make_meta_file

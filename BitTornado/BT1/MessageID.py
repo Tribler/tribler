@@ -1,6 +1,22 @@
-# Written by Jie Yang
+# Written by Jie Yang, Arno Bakker
 # see LICENSE.txt for license information
-""" All message IDs in BitTorrent Protocol and BT+ Protocol """
+
+""" All message IDs in BitTorrent Protocol and our extensions 
+ 
+    Arno: please don't define stuff until the spec is ready
+"""
+
+protocol_name = 'BitTorrent protocol'
+# Enable Tribler extensions:
+# Left-most bit = Azureus Enhanced Messaging Protocol (AEMP)
+# Left+42 bit = Tribler Simple Merkle Hashes extension
+# Left+43 bit = Tribler Overlay swarm extension
+#               AND uTorrent extended protocol, conflicting. See EXTEND message
+# Right-most bit = BitTorrent DHT extension
+#option_pattern = chr(0)*8
+option_pattern = '\x00\x00\x00\x00\x00\x30\x00\x00'
+disabled_overlay_option_pattern = '\x00\x00\x00\x00\x00\x20\x00\x00'
+
 
 CHOKE = chr(0)
 UNCHOKE = chr(1)
@@ -18,7 +34,10 @@ PIECE = chr(7)
 # index, begin, piece
 CANCEL = chr(8)
 
-## PermID Extension
+# uTorrent and Bram's BitTorrent now support an extended protocol
+EXTEND = chr(20)
+
+## PermID /Overlay Swarm Extension
 # ctxt
 CHALLENGE = chr(253)
 # rdata1
@@ -32,10 +51,12 @@ PermIDMessages = [CHALLENGE, RESPONSE1, RESPONSE2]
 # Merkle: PIECE message with hashes
 HASHPIECE = chr(250)
 
-## Overlay Swarm Extension
+## Buddycast Extension
 """
 {'preferences':[[infohash]],
  #'permid': my permid,     # not used since 3.3.2
+ 'connectable': self connectability, # used since version > 3.5
+ 'name': my name,
  'ip':current ip,
  'port':current listening port,
  'taste_buddies':[{'preferences':[[infohash]],
@@ -52,8 +73,9 @@ HASHPIECE = chr(250)
 }
 """                   
 BUDDYCAST = chr(249)
+KEEP_ALIVE = chr(240)
 
-BuddyCastMessages = [BUDDYCAST]
+BuddyCastMessages = [BUDDYCAST, KEEP_ALIVE]
 
 # torrent_hash
 GET_METADATA = chr(248)
@@ -63,13 +85,17 @@ METADATA = chr(247)
 MetadataMessages = [GET_METADATA, METADATA]
 
 # 2fastbt_
+## Cooperative Download Extension
 # torrent_hash
 DOWNLOAD_HELP = chr(246)
 # torrent_hash
 STOP_DOWNLOAD_HELP = chr(245)
 
-ONLINE_EXCHANGE = chr(244)
-FRIENDS_EXCHANGE = chr(243)
+# For connectability test
+DIALBACK_REQUEST = chr(244)
+DIALBACK_REPLY = chr(243)
+
+DialbackMessages = [DIALBACK_REQUEST,DIALBACK_REPLY]
 
 # torrent_hash + 1-byte all_or_nothing + bencode([piece num,...])
 RESERVE_PIECES = chr(242)
@@ -80,8 +106,8 @@ HelpCoordinatorMessages = [DOWNLOAD_HELP,STOP_DOWNLOAD_HELP,PIECES_RESERVED]
 HelpHelperMessages = [RESERVE_PIECES]
 # _2fastbt
 
-OverlaySwarmMessages= PermIDMessages + BuddyCastMessages + MetadataMessages + HelpCoordinatorMessages + HelpHelperMessages
 
+OverlaySwarmMessages= PermIDMessages + BuddyCastMessages + MetadataMessages + HelpCoordinatorMessages + HelpHelperMessages + DialbackMessages
 
 message_map = {
     CHOKE:"CHOKE",
@@ -105,8 +131,9 @@ message_map = {
     STOP_DOWNLOAD_HELP:"STOP_DOWNLOAD_HELP",
     PIECES_RESERVED:"PIECES_RESERVED",
     RESERVE_PIECES:"RESERVE_PIECES",
-    ONLINE_EXCHANGE:"ONLINE_EXCHANGE",
-    FRIENDS_EXCHANGE:"FRIENDS_EXCHANGE",
+    DIALBACK_REQUEST:"DIALBACK_REQUEST",
+    DIALBACK_REPLY:"DIALBACK_REPLY",
+    KEEP_ALIVE:"KEEP_ALIVE",
 }
 
 

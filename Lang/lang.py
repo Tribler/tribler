@@ -30,7 +30,7 @@ class Lang:
         langpath = os.path.join(self.utility.getPath(), "Lang")
         
         sys.stdout.write("Setting up languages\n")
-        sys.stdout.write("filename: " + str(filename) + "\n")
+        sys.stdout.write("Language file: " + str(filename) + "\n")
         
         # Set up user language file (stored in user's config directory)
         self.user_lang = None
@@ -80,9 +80,9 @@ class Lang:
         if (label == 'version'):
             return version_id
         if (label == 'build'):
-            return "Build 1939"
+            return "Build 2992"
         if (label == 'build_date'):
-            return "Aug 24, 2006"
+            return "Feb 27, 2007"
 
         # see if it exists in 'user.lang'
         if tryuser:
@@ -110,7 +110,7 @@ class Lang:
 
         # if we get to this point, we weren't able to read anything
         if giveerror:
-            sys.stdout.write("Got an error reading anything\n")
+            sys.stdout.write("Language file: Got an error reading anything\n")
             self.error(label)
         return ""
         
@@ -152,7 +152,7 @@ class Lang:
             text += langfile.Read(label + "_line" + str(i))
             i += 1
         if not text:
-            sys.stdout.write("Got an error reading multiline string\n")
+            sys.stdout.write("Language file: Got an error reading multiline string\n")
             self.error(label)
         return text
         
@@ -196,4 +196,3 @@ class Lang:
                 dlg.Destroy()
         sys.stderr.write("\nError reading language file!\n")
         sys.stderr.write("  Cannot find value for variable: " + label + "\n")
-        print_stack()

@@ -1,5 +1,5 @@
-
 # written by Yuan Yuan
+# see LICENSE.txt for license information
 
 import os
 from Tribler.Category.init_category import getCategoryInfo
@@ -15,9 +15,9 @@ import wx
 
 category_file = "category.conf"
 
-def init(config_dir = None):
-    filename = make_filename(config_dir, category_file)
-    Category.getInstance(filename)
+def init(install_dir = None, config_dir = None):
+    filename = make_filename(install_dir, category_file)
+    Category.getInstance(filename, config_dir)
     
 def make_filename(config_dir, filename):
     if config_dir is None:
@@ -29,14 +29,15 @@ class Category:
     
     # Code to make this a singleton
     __single = None
-    __size_change = 1024 * 1024
+    __size_change = 1024 * 1024 
     
-    def __init__(self, filename):
+    def __init__(self, filename, config_dir):
         if Category.__single:
             raise RuntimeError, "Category is singleton"
         Category.__single = self
         self.torrent_db = SynTorrentDBHandler()
         self.category_info = getCategoryInfo(filename)
+        self.config_dir = config_dir
         
     # return Category instance    
     def getInstance(*args, **kw):
@@ -53,6 +54,7 @@ class Category:
             data = data_manager.torrent_db.getRecommendedTorrents(all = True)
         if not data:
             return False
+
 #        data = data_manager.torrent_db.getRecommendedTorrents(all = True)
 #        self.reSortAll(data)
 #        return True
@@ -61,6 +63,14 @@ class Category:
             data = data_manager.torrent_db.getRecommendedTorrents(all = True)
             self.reSortAll(data)
             return True
+        
+        begin = time()
+        for item in data:
+            if len(item['category']) > 1:
+                data = data_manager.torrent_db.getRecommendedTorrents(all = True)
+                self.reSortAll(data)
+                return True
+        print 'Checking of %d torrents costs: %f s' % (len(data), time() - begin)
         return False
         
     # recalculate category of all torrents, remove torrents from db if not existed
@@ -85,8 +95,14 @@ class Category:
             count += 1
             if count % step == 0:
                 dlg.Update(count)
-            try:                                # read the torrent file
+            try:
+                # try alternative dir if bsddb doesnt match with current Tribler install
+                if not os.path.exists(data[i]['torrent_dir']):
+                    data[i]['torrent_dir'] = os.path.join(self.config_dir, "torrent2")
+            
+                                                # read the torrent file
                 filesrc = os.path.join(data[i]['torrent_dir'], data[i]['torrent_name'])
+                
 #                print filesrc
                 f = open(filesrc, "rb")
                 torrentdata = f.read()          # torrent decoded string
@@ -126,7 +142,7 @@ class Category:
                                                 # a torrent file
         
         # return value: list of category the torrent belongs to
-        torrent_category = []
+        torrent_category = None
 
         filename_list = []
         filesize_list = []        
@@ -137,21 +153,27 @@ class Category:
                 pathlen = len(filepath)
                 
                 filename_list.append(filepath[pathlen - 1])
-                filesize_list.append(ifiles['length'] / self.__size_change)               
+                filesize_list.append(ifiles['length'] / float(self.__size_change))               
         except KeyError:                    # single mode
             filename_list.append(torrent_dict["name"])
-            filesize_list.append(torrent_dict['length'] / self.__size_change)        
+            filesize_list.append(torrent_dict['length'] / float(self.__size_change))        
                                  
         # filename_list ready
+        strongest_cat = 0.0
         for category in self.category_info:    # for each category
-            if (self.judge(category, filename_list, filesize_list, display_name) == True):  
-#                if category["name"] == "xxx":
-#                    print filename_list[0]
-                torrent_category.append(category['name'])
-
-        if torrent_category == []:
+            (decision, strength) = self.judge(category, filename_list, filesize_list, display_name)
+            
+            # Either take category xxx or the strongest of the rest
+            if (decision and category['name'].lower() == 'xxx'):
+                return [category['name']]
+            
+            if decision and (strength > strongest_cat):
+                torrent_category = [category['name']]
+                strongest_cat = strength
+        
+        if torrent_category == None:
             torrent_category = ['other']
-
+        
         return torrent_category
 
     # judge whether a torrent file belongs to a certain category
@@ -170,7 +192,7 @@ class Category:
             except:
                 pass
         if (1 - factor) > 0.5:
-            return True
+            return (True, (1- factor))
         
         # judge each file
         matchSize = 0
@@ -215,9 +237,9 @@ class Category:
    
         # match file   
         if (matchSize / totalSize) >= category['matchpercentage']:
-            return True
+            return (True, (matchSize/ totalSize))
             
-        return False
+        return (False, 0)
     
     def _getWords(self, string):
         strLen = len(string)

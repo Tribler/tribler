@@ -4,6 +4,7 @@
 import unittest
 
 import os
+import sys
 import tempfile
 import random
 import shutil
@@ -40,15 +41,18 @@ class HeadlessDisplayer:
 class MyLaunchMany(Thread,LaunchMany):
     def __init__(self,config,display):
         Thread.__init__(self)
+        self.setDaemon(True)
         LaunchMany.__init__(self,config,display)
 
     def run(self):
-        print "MyLaunchMany: run called by",currentThread().getName()
+        print >> sys.stderr,"MyLaunchMany: run called by",currentThread().getName()
         LaunchMany.start(self)
         pass    
 
     def halt(self):
         self.doneflag.set()
+        print >> sys.stderr,"MyLaunchMany: halt called by",currentThread().getName(),"now waiting for us to stop"
+        self.join()
 
     def get_listen_port(self):
         return self.listen_port
@@ -59,34 +63,43 @@ class TestAsServer(unittest.TestCase):
     """
     
     def setUp(self):
-        config_path = tempfile.mkdtemp()
-        configdir = ConfigDir('launchmany',config_path)
+        """ unittest test setup code """
+        self.setUpPreTriblerInit()
+        tribler_init(self.config_path,self.install_path)
+        self.setUpPreLaunchMany()
+        self.lm = MyLaunchMany(self.config, HeadlessDisplayer(self))
+        self.hisport = self.lm.get_listen_port()
+        self.lm.start()
+
+    def setUpPreTriblerInit(self):
+        """ Should set self.config_path and self.config """
+        self.config_path = tempfile.mkdtemp()
+        self.install_path = '.'
+        configdir = ConfigDir('launchmany',self.config_path)
         defaultsToIgnore = ['responsefile', 'url', 'priority']
         configdir.setDefaults(download_bt1.defaults,defaultsToIgnore)
         #configdir.loadConfig()
-        config = configdir.getConfig()
+        self.config = configdir.getConfig()
         # extra defaults
-        config['torrent_dir'] = '.'
-        config['parse_dir_interval'] = 600
+        self.config['torrent_dir'] = os.path.join('test','empty_dir')
+        self.config['parse_dir_interval'] = 600
         # overrides
-        config['config_path'] = config_path
-        config['minport'] = random.randint(10000, 60000)
-        config['text_mode'] = 1
-        config['buddycast'] = 0
-        config['superpeer'] = 0
-        self.setUpWithConfig(config_path,config)
-
-    def setUpWithConfig(self,config_path,config):
-        self.config_path = config_path
-        tribler_init(config_path)
-        self.lm = MyLaunchMany(config, HeadlessDisplayer(self))
-        self.hisport = self.lm.get_listen_port()
-        keypair_filename = os.path.join(config_path,'ec.pem')
-        self.his_keypair = EC.load_key(keypair_filename)
+        self.config['config_path'] = self.config_path
+        self.config['minport'] = random.randint(10000, 60000)
+        self.config['text_mode'] = 1
+        self.config['buddycast'] = 0
+        self.config['superpeer'] = 0
+        self.config['dialback'] = 0
 
         self.my_keypair = EC.gen_params(EC.NID_sect233k1)
         self.my_keypair.gen_key()
 
+    def setUpPreLaunchMany(self):
+        """ Should set self.his_keypair """
+        keypair_filename = os.path.join(self.config_path,'ec.pem')
+        self.his_keypair = EC.load_key(keypair_filename)
+
     def tearDown(self):
+        """ unittest test tear down code """
         shutil.rmtree(self.config_path)
         self.lm.halt()

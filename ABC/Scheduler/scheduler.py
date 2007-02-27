@@ -97,16 +97,9 @@ class ABCScheduler(DelayedEventHandler):
             print "UpdateRunningTorrentCounters thread",currentThread().getName()
             print "counters NOT MAIN THREAD"
             print_stack()
-
+            
         self.CalculateTorrentCounters()
             
-        statusfunc = self.utility.frame.abc_sb.SetStatusText      
-        statusfunc((" " + self.utility.lang.get('abbrev_loaded') + " %u " % len(self.utility.torrents["all"])), 1)
-        statusfunc((" " + self.utility.lang.get('abbrev_running') + " %u " % len(self.utility.torrents["active"])), 2)
-        statusfunc((" " + self.utility.lang.get('abbrev_downloading') + " %u " % len(self.utility.torrents["downloading"])), 3)
-        statusfunc((" " + self.utility.lang.get('abbrev_seeding') + " %u " % len(self.utility.torrents["seeding"])), 4)
-        statusfunc((" " + self.utility.lang.get('abbrev_pause') + " %u " % len(self.utility.torrents["pause"])), 5)
-        
         try:
             if hasattr(self.utility, "bottomline2"):
                 self.utility.bottomline2.updateCounters()
@@ -180,11 +173,10 @@ class ABCScheduler(DelayedEventHandler):
             # update in status bar
             ##########################################
             if self.utility.frame.abc_sb is not None:
-                self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('abbrev_connections') + " " + str(int(self.totals['connections'])), 6)
-                self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('abbrev_down') + " " + downloadspeed, 7)
-                self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('abbrev_up') + " " + uploadspeed, 8)
-                self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('discover_peer') + " " + npeer, 9)
-                self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('discover_file') + " " + nfile, 10)
+                self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('abbrev_down') + " " + downloadspeed, 1)
+                self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('abbrev_up') + " " + uploadspeed, 2)
+                self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('discover_peer') + " " + npeer, 3)
+                self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('discover_file') + " " + nfile, 4)
                 
         except wx.PyDeadObjectError:
             pass

@@ -2,7 +2,7 @@
 # see LICENSE.txt for license information
 
 from bisect import insort
-from SocketHandler import SocketHandler, UPnP_ERROR
+from SocketHandler import SocketHandler
 import socket
 from cStringIO import StringIO
 from traceback import print_exc
@@ -17,7 +17,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = False
+DEBUG = True
 
 def autodetect_ipv6():
     try:
@@ -89,14 +89,14 @@ class RawServer:
         self.sockethandler.scan_for_timeouts()
 
     def bind(self, port, bind = '', reuse = False,
-                        ipv6_socket_style = 1, upnp = False):
-        self.sockethandler.bind(port, bind, reuse, ipv6_socket_style, upnp)
+                        ipv6_socket_style = 1):
+        self.sockethandler.bind(port, bind, reuse, ipv6_socket_style)
 
     def find_and_bind(self, first_try, minport, maxport, bind = '', reuse = False, 
-                      ipv6_socket_style = 1, upnp = 0, randomizer = False):
+                      ipv6_socket_style = 1, randomizer = False):
 # 2fastbt_
         result = self.sockethandler.find_and_bind(first_try, minport, maxport, bind, reuse, 
-                                 ipv6_socket_style, upnp, randomizer)
+                                 ipv6_socket_style, randomizer)
 # _2fastbt
         return result
 

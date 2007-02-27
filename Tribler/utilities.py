@@ -87,7 +87,8 @@ def show_permid_short(permid):
     if not permid:
         return ''
     s = encodestring(permid).replace("\n","")
-    return encodestring(sha(s).digest()).replace("\n","")
+    return s[-10:]
+    #return encodestring(sha(s).digest()).replace("\n","")
 
 def show_permid2(permid):
     return show_permid_short(permid)
@@ -148,8 +149,11 @@ def print_dict(data, level=0):
         
 def friendly_time(old_time):
     curr_time = time()
-    old_time = int(old_time)
-    diff = int(curr_time - old_time)
+    try:
+        old_time = int(old_time)
+        diff = int(curr_time - old_time)
+    except:
+        return ''
     if diff < 1:
         return str(diff) + " sec. ago"
     elif diff < 60:
@@ -176,6 +180,16 @@ def sort_dictlist(dict_list, key, order='increase'):
         aux.reverse()
     return [dict_list[i] for x, i in aux]
 
+def find_content_in_dictlist(dict_list, content, key='content_name'):
+    title = content.get(key)
+    if not title:
+        print 'Error: content had no content_name'
+        return False
+    for i in xrange(len(dict_list)):
+        if title == dict_list[i].get(key):
+            return i
+    return -1
+    
 def sortList(list_to_sort, list_key, order='decrease'):
         aux = zip(list_key, list_to_sort)
         aux.sort()
@@ -183,7 +197,13 @@ def sortList(list_to_sort, list_key, order='decrease'):
             aux.reverse()
         return [i for k, i in aux]    
 
-
+def getPlural( n):
+        if n == 1:
+            return ''
+        else:
+            return 's'
+    
+    
 if __name__=='__main__':
     d = {'a':1,'b':[1,2,3],'c':{'c':2,'d':[3,4],'k':{'c':2,'d':[3,4]}}}
     print_dict(d)    

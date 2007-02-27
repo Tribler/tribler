@@ -36,8 +36,7 @@ class DBObserver(BasicObserver):
         try:
             self.dict_FunList[key].index(fun)
             # if no exception, fun already exist!
-            print >> sys.stderr, "dbobserver: DBObserver register error. " + str(fun.__name__) + " already exist!", Exception, msg
-            print_exc()
+            print >> sys.stderr, "dbobserver: DBObserver register error. " + str(fun.__name__) + " already exist!"
             self.lock.release()
             return
         except KeyError:
@@ -47,7 +46,7 @@ class DBObserver(BasicObserver):
             self.dict_FunList[key].append(fun)
         except Exception, msg:
             print >> sys.stderr, "dbobserver: DBObserver register error. " + str(fun), Exception, msg
-            print_exc()
+            print_exc(file=sys.stderr)
         self.lock.release()
         
     def unregister(self, fun, key = "default"):
@@ -64,7 +63,7 @@ class DBObserver(BasicObserver):
                 fun(*paramenter)     # lock is used to avoid dead lock
         except Exception, msg:
             print >> sys.stderr, "dbobserver: DBObserver update error. ", Exception, msg
-            print_exc()
+            print_exc(file=sys.stderr)
                        
         self.lock.release()
     

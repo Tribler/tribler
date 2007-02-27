@@ -23,7 +23,6 @@ from BT1.PiecePicker import PiecePicker
 from BT1.Statistics import Statistics
 from ConfigDir import ConfigDir
 from bencode import bencode, bdecode
-from natpunch import UPnP_test
 from sha import sha
 from os import path, makedirs, listdir
 from parseargs import parseargs, formatDefinitions, defaultargs
@@ -34,7 +33,6 @@ from clock import clock
 from __init__ import createPeerID
 
 from Tribler.Merkle.merkle import create_fake_hashes
-from Tribler.__init__ import GLOBAL
 from Tribler.unicode import bin2unicode
 
 # 2fastbt_
@@ -100,9 +98,9 @@ defaults = [
          'allow the client to connect to peers via IPv6'),
     ('ipv6_binds_v4', autodetect_socket_style(),
         "set if an IPv6 server socket won't also field IPv4 connections"),
-    ('upnp_nat_access', 1,
+    ('upnp_nat_access', 0,
         'attempt to autoconfigure a UPnP router to forward a server port ' +
-        '(0 = disabled, 1 = mode 1 [fast], 2 = mode 2 [slow])'),
+        '(0 = disabled, 1 = mode 1 [fast,win32], 2 = mode 2 [slow,win32], 3 = mode 3 [any platform])'),
     ('upload_rate_fudge', 5.0, 
         'time equivalent of writing to kernel-level TCP buffer, for rate adjustment'),
     ('tcp_ack_fudge', 0.03,
@@ -168,6 +166,9 @@ defaults = [
         "whether to lock access to files being read"),
     ('auto_flush', 0,
         "minutes between automatic flushes to disk (0 = disabled)"),
+#
+# Tribler extensions
+#
 # 2fastbt_
 #    ('max_control_connections', 0,
 #        "the absolute maximum number of connections with helpers (0 = no limit)"),
@@ -180,31 +181,39 @@ defaults = [
     ('exclude_ips', '',
         "list of IP addresse to be excluded; comma separated"),
 # _2fastbt
-    #BT+ extension
-    ('cache', GLOBAL.do_cache,
+    ('cache', 1,
         "use bsddb to cache peers and preferences"),
-    ('overlay', GLOBAL.do_overlay,
+    ('overlay', 1,
         "create overlay swarm to transfer special messages"),
-    ('buddycast', GLOBAL.do_buddycast,
+    ('buddycast', 1,
         "run buddycast recommendation system"),
-    ('download_help', GLOBAL.do_download_help,
+    ('download_help', 1,
         "accept download help request"),
-    ('torrent_collecting', GLOBAL.do_torrent_collecting,
+    ('torrent_collecting', 1,
         "automatically collect torrents"),
-#    ('superpeer', GLOBAL.do_superpeer,
-#        "run on super peer mode (0 = disabled)"),
-#    ('das_test', GLOBAL.do_das_test,
-#        "test buddycast on das2 (0 = disabled)"),
-    ('overlay_log', GLOBAL.overlay_log,
+    ('superpeer', 0,
+        "run on super peer mode (0 = disabled)"),
+    ('das_test', 0,
+        "test buddycast on TU-Delft's DAS-2 supercomputer (0 = disabled)"),
+    ('overlay_log', '',
         "log on super peer mode ('' = disabled)"),
-    ('buddycast_interval', GLOBAL.do_buddycast_interval,
+    ('buddycast_interval', 15,
         "number of seconds to pause between exchanging preference with a peer in buddycast"),
-    ('max_torrents', GLOBAL.max_num_torrents,
+    ('max_torrents', 5000,
         "max number of torrents to collect"),
-    ('torrent_checking', GLOBAL.do_torrent_checking,
+    ('torrent_checking', 1,
         "automatically check the health of torrents"),
-    ('torrent_checking_period', GLOBAL.torrent_checking_period,
+    ('torrent_checking_period', 60,
         "period for auto torrent checking"),
+    ('dialback', 1,
+        "use other peers to determine external IP address (0 = disabled)"),
+    ('dialback_active', 1,
+        "do active discovery (needed to disable for testing only) (0 = disabled)"),
+    ('dialback_trust_superpeers', 1,
+        "trust superpeer replies (needed to disable for testing only) (0 = disabled)"),
+    ('dialback_interval', 30,
+        "number of seconds to wait for consensus"),
+
     ]
 
 argslistheader = 'Arguments are:\n\n'
@@ -235,7 +244,9 @@ def download(params, filefunc, statusfunc, finfunc, errorfunc, doneflag, cols,
                           config['timeout'], ipv6_enable = config['ipv6_enabled'],
                           failfunc = failed, errorfunc = exchandler)
 
-    upnp_type = UPnP_test(config['upnp_nat_access'])
+    # Arno: disabled, code never used
+    #upnp_type = UPnP_test(config['upnp_nat_access'])
+    upnp_type = 0
     try:
         listen_port = rawserver.find_and_bind(config['minport'], config['maxport'],
                         config['bind'], ipv6_socket_style = config['ipv6_binds_v4'],
@@ -706,7 +717,7 @@ class BT1Download:
         self.connecter = Connecter(self._make_upload, self.downloader, self.choker, 
                             self.len_pieces, self.upmeasure, self.config, 
                             self.ratelimiter, self.info.has_key('root hash'),
-                            self.rawserver.add_task, self.coordinator, self.helper)
+                            self.rawserver.add_task, self.coordinator, self.helper, self.port)
 # _2fastbt
         self.encoder = Encoder(self.connecter, self.rawserver, 
             self.myid, self.config['max_message_length'], self.rawserver.add_task, 

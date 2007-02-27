@@ -2,6 +2,7 @@
 # modified for multitracker operation by John Hoffman
 # see LICENSE.txt for license information
 
+import sys
 from BitTornado.zurllib import urlopen
 from urllib import quote
 from btformats import check_peers
@@ -276,8 +277,17 @@ class Rerequester:
                 data = h.read()
             except (IOError, error), e:
                 err = 'Problem connecting to tracker - ' + str(e)
+                if DEBUG:
+                    print_exc(file=sys.stderr)
             except:
                 err = 'Problem connecting to tracker'
+                if DEBUG:
+                    print_exc(file=sys.stderr)
+                    
+                    
+            if DEBUG:
+                print >>sys.stderr,"rerequest: Got data",data
+                    
             try:
                 h.close()
             except:
@@ -296,10 +306,12 @@ class Rerequester:
             
             try:
                 r = bdecode(data, sloppy=1)
-                check_peers(r)
                 if DEBUG:
                     print "Tracker returns:", r
+                check_peers(r)
             except ValueError, e:
+                if DEBUG:
+                    print_exc(file=sys.stderr)
                 if self.lock.trip(l):
                     self.errorcodes['bad_data'] = 'bad data from tracker - ' + str(e)
                     self.lock.unwait(l)

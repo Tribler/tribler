@@ -282,7 +282,7 @@ class WebListener:
         self.updateLabels()
         
         webservice = Thread(target = self.startThread)
-        webservice.setDaemon(False)
+        webservice.setDaemon(True)
         webservice.start()
         
     def stop(self):

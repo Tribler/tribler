@@ -83,12 +83,12 @@ def make_meta_file(file, url, params = None, flag = Event(),
         piece_len_exp = params['piece_size_pow2']
     else:
         piece_len_exp = default_piece_len_exp
-    merkle_torrent = params.has_key('merkle_torrent')
+    merkle_torrent = 'merkle_torrent' in params and params['merkle_torrent'] == 1
     if merkle_torrent:
         postfix = '.merkle.torrent'
     else:
         postfix = '.torrent'
-    sign = params.has_key('permid signature')
+    sign = 'permid signature' in params and params['permid signature'] == 1
     if 'target' in params and params['target']:
         f = join(params['target'], split(normpath(file))[1] + postfix)
     else:
@@ -398,7 +398,7 @@ def completedir(dir, url, params = None, flag = Event(),
                 vc = lambda x: None, fc = lambda x: None, gethash = None):
     if params is None:
         params = {}
-    merkle_torrent = params.has_key('merkle_torrent')
+    merkle_torrent = 'merkle_torrent' in params and params['merkle_torrent'] == 1
     if merkle_torrent:
         ext = '.merkle.torrent'
     else:
@@ -433,6 +433,9 @@ def completedir(dir, url, params = None, flag = Event(),
         except ValueError:
             print_exc()
 
+def file_callback(orig, torrent):
+    print "Created torrent",torrent,"from",orig
+
 def prog(amount):
     print '%.1f%% complete\r' % (amount * 100), 
 
@@ -449,7 +452,7 @@ if __name__ == '__main__':
     try:
         config, args = parseargs(sys.argv[1:], defaults, 2, None)
         for file in args[1:]:
-            make_meta_file(file, args[0], config, progress = prog)
+            make_meta_file(file, args[0], config, progress = prog, fileCallback = file_callback)
     except ValueError, e:
         print 'error: ' + str(e)
         print 'run with no args for parameter explanations'

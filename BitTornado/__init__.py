@@ -3,11 +3,11 @@
 ## (here) and correct.
 ##
 
-version_id = '3.5.0'
+version_id = '3.5.1'
 product_name = 'Tribler'
-version_short = 'Tribler_ABC-' + version_id
+version_short = 'Tribler-' + version_id
 
-version = version_short + ' (' + product_name + ' - BitTornado 0.3.13'
+version = version_short + ' (' + product_name + ')'
 report_email = 'triblersoft@gmail.com'
 
 from types import StringType
@@ -21,6 +21,8 @@ except ImportError:
     def getpid():
         return 1
 from base64 import decodestring 
+import sys
+from traceback import print_exc
     
 mapbase64 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-'
 
@@ -36,6 +38,9 @@ for subver in version_short.split('-')[1].split('.'):
     _idprefix += mapbase64[subver]
 _idprefix += ('-' * (6-len(_idprefix)))
 _idrandom = [None]
+
+
+
 
 def resetPeerIDs():
     try:
@@ -73,3 +78,26 @@ def createPeerID(ins = '---'):
     assert type(ins) is StringType
     assert len(ins) == 3
     return _idprefix + ins + _idrandom[0]
+
+def decodePeerID(id):
+    client = None
+    version = None
+    try:
+        if id[0] == '-':
+            # Azureus type ID: 
+            client = id[1:3]
+            encversion = id[3:7]
+        else:
+            # Shadow type ID:
+            client = id[0]
+            encversion = id[1:4] 
+        version = ''
+        for i in range(len(encversion)):
+            for j in range(len(mapbase64)):
+                if mapbase64[j] == encversion[i]:
+                    if len(version) > 0:
+                        version += '.'
+                    version += str(j)
+    except:
+        print_exc(file=sys.stderr)
+    return [client,version]

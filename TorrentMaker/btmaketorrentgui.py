@@ -479,9 +479,9 @@ class FileInfoPanel(wx.Panel):
             gethash['sha1'] = True   
         params['gethash'] = gethash
         if self.createmerkletorrent.GetValue():
-            params['merkle_torrent'] = ''
+            params['merkle_torrent'] = 1
         if self.createtorrentsig.GetValue():
-            params['permid signature'] = ''
+            params['permid signature'] = 1
 ##
         for i in range(3):
             if self.savetor[i].GetValue():

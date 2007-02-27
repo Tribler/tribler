@@ -1,6 +1,7 @@
 # Written by John Hoffman
 # see LICENSE.txt for license information
 
+import sys
 from cStringIO import StringIO
 from binascii import b2a_hex, b2a_uu 
 #from RawServer import RawServer
@@ -13,6 +14,7 @@ except:
 
 # 2fastbt_
 from BT1.Encrypter import protocol_name
+from traceback import print_stack
 # _2fastbt
 
 def toint(s):
@@ -20,7 +22,7 @@ def toint(s):
 
 default_task_id = []
 
-DEBUG = False
+DEBUG = 0
 
 def show(s):
     for i in xrange(len(s)): 
@@ -52,6 +54,8 @@ class SingleRawServer:
                 self.handler.close_all()
 
     def _external_connection_made(self, c, options, msg_remainder):
+        if DEBUG:
+            print >> sys.stderr,"SingleRawServer: _external_conn_made, running?",self.running
         if self.running:
             c.set_handler(self.handler)
             self.handler.externally_handshaked_connection_made(
@@ -127,9 +131,15 @@ class NewSocketHandler:     # hand a new socket off where it belongs
         return 20, self.read_download_id
 
     def read_download_id(self, s):
+        if DEBUG:
+            print >>sys.stderr,"NewSocketHandler: Swarm id is",`s`,self.connection.socket.getpeername()
         if self.multihandler.singlerawservers.has_key(s):
             if self.multihandler.singlerawservers[s].protocol == self.protocol:
+                if DEBUG:
+                    print >>sys.stderr,"NewSocketHandler: Found rawserver for swarm id"
                 return True
+        if DEBUG:
+            print >>sys.stderr,"NewSocketHandler: No rawserver found for swarm id",`s`
         return None
 
     def read_dead(self, s):
@@ -156,9 +166,14 @@ class NewSocketHandler:     # hand a new socket off where it belongs
                 self.next_len, self.next_func = 1, self.read_dead
                 raise
             if x is None:
+                if DEBUG:
+                    print >> sys.stderr,"NewSocketHandler:",self.next_func,"returned None"
                 self.close()
                 return
             if x == True:       # ready to process
+                if DEBUG:
+                    print >> sys.stderr,"NewSocketHandler: Reporting connection via",self.multihandler.singlerawservers[m]._external_connection_made
+
                 self.multihandler.singlerawservers[m]._external_connection_made(
                         self.connection, self.options, s)
                 self.complete = True

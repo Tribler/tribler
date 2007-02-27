@@ -59,6 +59,8 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
         self.output = Outputter()
 
         btconfig = utility.getBTParams()
+        btconfig['config_path'] = self.utility.getConfigPath()
+
         # Create dir for helper to put torrents and files in.
         #
         # CAREFUL: Sometimes there are problems when attempting to save 
@@ -87,8 +89,9 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
         Thread.__init__(self)
         self.setDaemon(True)
         self.setName( "ABCLaunchMany"+self.getName() )
-        LaunchMany.__init__(self,btconfig,self.output)
         DelayedEventHandler.__init__(self)
+        LaunchMany.__init__(self,btconfig,self.output)
+        
         
         # set by BitTornado.LaunchMany constructor
         self.utility.listen_port = self.listen_port
@@ -101,6 +104,7 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
         pass
 
     def run(self):
+        self.start_upnp()
         try:
             self.handler.listen_forever()
         except AssertionError:
@@ -117,7 +121,9 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
         for ABCTorrentTemp in self.utility.torrents["active"].keys():
             ABCTorrentTemp.shutdown()
 
+        self.stop_upnp()
         self.rawserver.shutdown()
+
 
     def stop(self):
         self.doneflag.set()
@@ -286,11 +292,25 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
         # (may be left behind when active torrents end)
         gc.collect()
 
+    # override
+    def upnp_failed(self,upnp_type,listenport,error_type,exc=None):
+        self.invokeLater(self.utility.frame.onUPnPError,[upnp_type,listenport,error_type,exc])
+
     def dying_engines_errormsg(self,ABCTorrentTemp,msg,label):
         self.invokeLater(self.dying_engines_errormsg_callback,[ABCTorrentTemp,msg,label])
 
     def dying_engines_errormsg_callback(self,ABCTorrentTemp,msg,label):
         ABCTorrentTemp.changeMessage(msg, label)
+
+    # override
+    def reachable_network_callback(self):
+        """ Called by network thread """
+        self.invokeLater(self.utility.frame.onReachable)
+
+    # override
+    def set_activity(self,type,msg=''):
+        """ Called by network thread """
+        self.invokeLater(self.utility.frame.abc_sb.setActivity,[type,msg])
 
 class Outputter:
     def __init__(self):

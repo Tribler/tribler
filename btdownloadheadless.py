@@ -27,7 +27,6 @@ from time import strftime
 from BitTornado.clock import clock
 from BitTornado import createPeerID, version
 from BitTornado.ConfigDir import ConfigDir
-from Tribler.__init__ import GLOBAL
 import BitTornado.BT1.Encrypter as Encrypter
 
 assert sys.version >= '2', "Install Python 2.0 or greater"
@@ -171,10 +170,8 @@ def run(params):
         myid = createPeerID()
         seed(myid)
 
-        # Arno: FIXME: I temporarily disable the overlay swarm for this
-        # short-lived client. In the future we could enable the overlay.
-        GLOBAL.do_overlay = 0
-        Encrypter.option_pattern = Encrypter.disabled_overlay_option_pattern 
+        config['overlay'] = 0
+        config['overlay] = 0
     
         doneflag = Event()
         def disp_exception(text):

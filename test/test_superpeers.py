@@ -17,7 +17,7 @@ lines = [
 class TestSuperPeerList(unittest.TestCase):
     
     def setUp(self):
-        self.tmpfilepath = tempfile.mktemp()
+        self.tmpfilepath = tempfile.mkstemp()
         self.tmpdirpath = os.path.join(tempfile.gettempdir(), 'testdb')
         self.splist = SuperPeerList(superpeer_file=self.tmpfilepath, db_dir=self.tmpdirpath)
         

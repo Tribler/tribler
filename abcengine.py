@@ -17,10 +17,9 @@ from Utility.helpers import getfreespace
 
 from Tribler.Worldmap.peer import BTPeer
 from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
-
+from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from safeguiupdate import DelayedEventHandler
-
-from Tribler.Overlay.permid import show_permid
+from Tribler.utilities import show_permid_short
 
 DEBUG = False
 
@@ -113,6 +112,7 @@ class ABCEngine(DelayedEventHandler):
         self.color = 'color_startup'
         self.downloadHelpers = []
         self.fileProgressPostponeCounter = 0
+        self.btengine_said_reachable = False
         
         btconfig = self.utility.getBTParams()
         # 2fastbt_
@@ -479,6 +479,13 @@ class ABCEngine(DelayedEventHandler):
                 if not externalConnectionMade and spew is not None:
                     externalConnectionMade = self.getExternalConnectionsMade(spew)
         
+            if externalConnectionMade:
+                # Arno: this means we're externally reachable
+                if not self.btengine_said_reachable:
+                    dmh = DialbackMsgHandler.getInstance()
+                    dmh.btengine_says_reachable()
+                    self.btengine_said_reachable = True
+
         if statistics is None: 
             color = 'color_startup' #Start up
             self.hasConnections = False
@@ -621,11 +628,10 @@ class ABCEngine(DelayedEventHandler):
         and update the position of peers in the earth panel
         note: each torrent has an abcengine
         """
-        
         # set all peers as not alive and then only active all peers in spew
         for ip in self.torrent.peer_swarm.keys():
             self.torrent.peer_swarm[ip].active = False
-            
+        
         for peer_info in spew:
             ip = peer_info['ip']
             if self.torrent.peer_swarm.has_key(ip):  # if the peer exists, active it
@@ -646,7 +652,9 @@ class ABCEngine(DelayedEventHandler):
         """ update peers on earth map, peer cache and file cache """
         
         #print "update caches", len(spew), self
-        self.updatePeersOnEarth(spew)    
+        showearth = self.utility.config.Read('showearthpanel', "boolean")
+        if showearth:
+            self.updatePeersOnEarth(spew)    
         self.updatePeerCache(spew)    # the real update is in DownloaderFeedback.update*()
         self.updateFileCache(spew)
         
@@ -860,7 +868,7 @@ class ABCEngine(DelayedEventHandler):
                 text = '*Tribler*'
                 friends = FriendDBHandler().getFriends()
                 for friend in friends:
-                    #print "SPEW COMPARING friend",show_permid(friend['permid']),"to spew",show_permid(spew[line]['unauth_permid'])
+                    #print "SPEW COMPARING friend",show_permid_short(friend['permid']),"to spew",show_permid_short(spew[line]['unauth_permid'])
                     if friend['permid'] == spew[line]['unauth_permid']:
                         text = friend['name']
                         break
@@ -930,7 +938,7 @@ class ABCEngine(DelayedEventHandler):
                 text = '*Tribler*'
                 friends = FriendDBHandler().getFriends()
                 for friend in friends:
-                    #print "SPEW COMPARING friend",show_permid(friend['permid']),"to spew",show_permid(spew[line]['unauth_permid'])
+                    #print "SPEW COMPARING friend",show_permid_short(friend['permid']),"to spew",show_permid_short(spew[line]['unauth_permid'])
                     if friend['permid'] == spew[line]['unauth_permid']:
                         text = friend['name']
                         break

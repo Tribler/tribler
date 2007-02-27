@@ -34,6 +34,8 @@ except:
     True = 1
     False = 0
 
+DEBUG=False
+
 defaults = [
     ('port', 80, "Port to listen on."),
     ('dfile', None, 'file to store recent downloader info in'),
@@ -873,6 +875,8 @@ class Tracker:
 
 
     def natcheckOK(self, infohash, peerid, ip, port, not_seed):
+        if DEBUG:
+            print >>sys.stderr,"tracker: natcheck: Recorded succes"
         bc = self.becache.setdefault(infohash,[[{}, {}], [{}, {}], [{}, {}]])
         bc[0][not not_seed][peerid] = Bencached(bencode({'ip': ip, 'port': port,
                                               'peer id': peerid}))
@@ -893,6 +897,8 @@ class Tracker:
                  or record['port'] != port ):
             if self.config['log_nat_checks']:
                 self.natchecklog(peerid, ip, port, 404)
+            if DEBUG:
+                print >>sys.stderr,"tracker: natcheck: No record found for tested peer"
             return
         if self.config['log_nat_checks']:
             if result:
@@ -909,6 +915,8 @@ class Tracker:
             self.natcheckOK(downloadid,peerid,ip,port,record['left'])
         elif not result:
             record['nat'] += 1
+            if DEBUG:
+                print >>sys.stderr,"tracker: natcheck: Recorded failed attempt"
 
 
     def remove_from_state(self, *l):

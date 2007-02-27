@@ -5,7 +5,6 @@ from cachedb import *
 from copy import deepcopy
 from sets import Set
 from traceback import print_exc
-import threading
 
 class BasicDBHandler:
     def __init__(self):
@@ -21,6 +20,10 @@ class BasicDBHandler:
             # an exception saying the database has already been closed.
             pass
             #print_exc()
+        
+    def close(self):
+        for db in self.dbs:
+            db.close()
         
     def size(self):
         return self.dbs[0]._size()
@@ -49,7 +52,8 @@ class MyDBHandler(BasicDBHandler):
         self.dbs = [self.my_db, self.peer_db]
         
     def get(self, key, value=''):
-        return self.my_db._get(key, value)
+        ret = self.my_db._get(key, value)
+        return ret
 
     def put(self, key, value):
         self.my_db._put(key, value)
@@ -64,6 +68,7 @@ class SuperPeerDBHandler(BasicDBHandler):
     def __init__(self, db_dir=''):
         BasicDBHandler.__init__(self)
         self.my_db = MyDB.getInstance(db_dir=db_dir)
+        self.superpeers = self.my_db.getSuperPeers()
         self.peer_db = PeerDB.getInstance(db_dir=db_dir)
         self.dbs = [self.my_db, self.peer_db]
         
@@ -72,7 +77,10 @@ class SuperPeerDBHandler(BasicDBHandler):
     
     def printList(self):
         print self.my_db.getSuperPeers()
-        
+
+    def getSuperPeerList(self):
+        return self.my_db.getSuperPeers()        
+
     def getSuperPeers(self):
         sps = self.my_db.getSuperPeers()
         res = []
@@ -85,17 +93,14 @@ class SuperPeerDBHandler(BasicDBHandler):
         
     def addSuperPeer(self, permid):
         self.my_db.addSuperPeer(permid)
-        self.my_db._sync()        
 
     def addExternalSuperPeer(self, superpeer):
         if not isinstance(superpeer, dict) or 'permid' not in superpeer:
             return
         permid = superpeer.pop('permid')
-        if permid not in self.my_db.getSuperPeers():
-            self.peer_db.updateItem(permid, superpeer)
-            self.peer_db._sync()
+        self.peer_db.updateItem(permid, superpeer)
+        if permid not in self.superpeers:
             self.my_db.addSuperPeer(permid)
-            self.my_db._sync()     
            
 
 class FriendDBHandler(BasicDBHandler):
@@ -225,7 +230,7 @@ class PeerDBHandler(BasicDBHandler):
     def findPeers(self, key, value):    
         # Warning: if key is not 'permid', then it is a very EXPENSIVE operation. 
         res = []
-        if key is 'permid':
+        if key == 'permid':
             peer = self.getPeer(value)
             if peer:
                 peer.update({'permid':value})
@@ -320,9 +325,13 @@ class TorrentDBHandler(BasicDBHandler):
         self.num_metadata = 0
         
     def addTorrent(self, infohash, torrent={}, new_metadata=False):
+        # add a new torrent or update an old torrent's info
+        if not torrent and self.hasTorrent(infohash):    # no need to add
+            return False
         self.torrent_db.updateItem(infohash, torrent)
         if new_metadata:
             self.torrent_db.hasNewMetadata(True)
+        return True
         
     def updateTorrent(self, infohash, **kw):    # watch the schema of database
         self.torrent_db.updateItem(infohash, kw)
@@ -542,8 +551,9 @@ class MyPreferenceDBHandler(BasicDBHandler):
             
     def addPreference(self, infohash, data={}):
         if not data and self.hasPreference(infohash):
-            return
+            return False
         self.mypref_db.updateItem(infohash, data)
+        return True
 
     def deletePreference(self, infohash):
         self.mypref_db.deleteItem(infohash)

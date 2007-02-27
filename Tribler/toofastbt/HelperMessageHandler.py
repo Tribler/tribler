@@ -8,7 +8,7 @@ import sys, os
 from random import randint
 
 from Tribler.Overlay.SecureOverlay import SecureOverlay
-from Tribler.utilities import show_permid
+from Tribler.utilities import show_permid_short
 from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
@@ -31,7 +31,7 @@ class HelperMessageHandler:
     def register(self, metadata_handler):
         self.metadata_handler = metadata_handler
 
-    def handleMessage(self,permid,message):
+    def handleMessage(self,permid,selversion,message):
         t = message[0]
         #if DEBUG:
         #    print >> sys.stderr,"helper: Got",getMessageName(t)
@@ -47,33 +47,31 @@ class HelperMessageHandler:
                 break
         if flag == 0:
             if DEBUG:
-                print >> sys.stderr,"helper: Got",getMessageName(t),"from unknown peer",show_permid(permid)
+                print >> sys.stderr,"helper: Got",getMessageName(t),"from unknown peer",show_permid_short(permid)
             return False
         
         if t == DOWNLOAD_HELP:
-            return self.got_dlhelp_request(permid, message)
+            return self.got_dlhelp_request(permid, message, selversion)
         elif t == STOP_DOWNLOAD_HELP:
-            return self.got_stop_dlhelp_request(permid, message)
+            return self.got_stop_dlhelp_request(permid, message, selversion)
         elif t == PIECES_RESERVED:
-            return self.got_pieces_reserved(permid, message)
+            return self.got_pieces_reserved(permid, message, selversion)
 
 
-    def got_dlhelp_request(self, permid, message):
+    def got_dlhelp_request(self, permid, message,selversion):
         try:
             torrent_hash = message[1:]
         except:
-            errorfunc("warning: bad data in dlhelp_request")
+            print >> sys.stderr,"helper: warning: bad data in dlhelp_request"
             return False
         
-# TODO: add smarter concurrency control, see SecureOverlay. Currently has 1 big lock
-
         if not self.can_help(torrent_hash):
             return False
         torrent_path = self.find_torrent(torrent_hash)
         if torrent_path:
             self.do_help(torrent_hash, torrent_path, permid)
         else:
-            self.get_metadata(permid, torrent_hash)
+            self.get_metadata(permid, torrent_hash,selversion)
         return True
 
 
@@ -148,11 +146,11 @@ class HelperMessageHandler:
         # Start new download
         self.launchmany.add(torrent_hash, data)
 
-    def get_metadata(self, permid, torrent_hash):
+    def get_metadata(self, permid, torrent_hash, selversion):
         if not self.metadata_queue.has_key(torrent_hash):
             self.metadata_queue[torrent_hash] = []
         self.metadata_queue[torrent_hash].append(permid)
-        self.metadata_handler.send_metadata_request(permid, torrent_hash)
+        self.metadata_handler.send_metadata_request(permid, torrent_hash, selversion)
 
     def call_dlhelp_task(self, torrent_hash, torrent_data):
         if DEBUG:
@@ -174,11 +172,11 @@ class HelperMessageHandler:
         return None
 
 
-    def got_stop_dlhelp_request(self, permid, message):
+    def got_stop_dlhelp_request(self, permid, message, selversion):
         try:
             torrent_hash = message[1:]
         except:
-            errorfunc("warning: bad data in STOP_DOWNLOAD_HELP")
+            print >> sys.stderr,"helper: warning: bad data in STOP_DOWNLOAD_HELP"
             return False
 
         h = self.launchmany.get_helper(torrent_hash)
@@ -192,15 +190,14 @@ class HelperMessageHandler:
         return True
 
 
-    def got_pieces_reserved(self,permid, message):
+    def got_pieces_reserved(self,permid, message, selversion):
         try:
             torrent_hash = message[1:21]
             pieces = bdecode(message[21:])
         except:
-            errorfunc("warning: bad data in PIECES_RESERVED")
+            print >> sys.stderr,"helper: warning: bad data in PIECES_RESERVED"
             return False
 
-# TODO: add smarter concurrency control, see SecureOverlay. Currently has 1 big lock
 
         h = self.launchmany.get_helper(torrent_hash)
         if h is None:
@@ -214,6 +211,3 @@ class HelperMessageHandler:
         h.notify()
         return True
         
-    def errorfunc(self,msg):
-        if DEBUG:
-            print msg

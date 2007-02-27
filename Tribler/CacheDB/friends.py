@@ -11,16 +11,16 @@ from Tribler.Overlay.permid import permid_for_user
 from CacheDBHandler import FriendDBHandler
 
 
-friend_file = 'friends.txt'
+default_friend_file = 'friends.txt'
 
 DEBUG = False
 
 def init(config_dir = None):
-    filename = make_filename(config_dir, friend_file)
+    filename = make_filename(config_dir, default_friend_file)
     ExternalFriendList(filename).updateFriendList()
     
 def done(config_dir = None):
-    filename = make_filename(config_dir, friend_file)
+    filename = make_filename(config_dir, default_friend_file)
     ExternalFriendList(filename).writeFriendList()
     
 def make_filename(config_dir,filename):
@@ -30,7 +30,7 @@ def make_filename(config_dir,filename):
         return os.path.join(config_dir,filename)    
 
 class ExternalFriendList:
-    def __init__(self, friend_file=friend_file, db_dir=''):
+    def __init__(self, friend_file=default_friend_file, db_dir=''):
         self.friend_file = friend_file
         self.db_dir = db_dir
         self.friend_db = FriendDBHandler(db_dir=self.db_dir)
@@ -42,7 +42,7 @@ class ExternalFriendList:
     def clean(self):    # delete friend file
         try:
             os.remove(self.friend_file)
-        except Exception, msg:
+        except Exception:
             pass
 
     def updateFriendList(self, friend_file=''):

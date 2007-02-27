@@ -33,8 +33,10 @@ class CommonTriblerList(ManagedList, DelayedInvocation):
     1. IDs in rightalign and centeralign must be set in Utility.constants;
     2. Column labels must be set in the language file;
     3. To set default values, modify Utility.utility.setupConfig()
+
+    WARNING: this constructor is called after the subclass already initialized
+    itself, so anything you do here will override the subclass, not initialize it.
     """
-    
     def __init__(self, parent, style, prefix, minid, maxid, exclude = [], rightalign = [], centeralign = []):
         self.parent = parent
         self.utility = parent.utility
@@ -230,7 +232,7 @@ class CommonTriblerList(ManagedList, DelayedInvocation):
                 txt = self.getText(self.data, i, col)
                 self.SetStringItem(i, rank, txt)
 
-	self.Show(True)
+        self.Show(True)
             
 class MainWindow(wx.Frame):
     def __init__(self,parent,id, title):

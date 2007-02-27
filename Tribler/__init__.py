@@ -25,7 +25,7 @@ import CacheDB.superpeer as superpeer
 from base64 import decodestring 
 import CacheDB.friends as friends
 import Category.Category as category
-import guessip    
+from NATFirewall.guessip import get_my_wan_ip
 
 mapbase64 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-'
 
@@ -45,33 +45,21 @@ _idprefix += ('-' * (6-len(_idprefix)))
 
 _idrandom = [None]
 
-class GLOBAL:
-    do_cache = 1
-    do_overlay = 1
-    do_buddycast = 1
-    do_download_help = 1
-    do_superpeer = 0
-    do_das_test = 0
-    do_buddycast_interval = 15
-    do_torrent_collecting = 1
-    do_torrent_checking = 1
-    overlay_log = ''
-    config_dir = '.'+product_name
-    max_num_torrents = 5000
-    torrent_checking_period = 60
-    
-myinfo = {}
+## Moved to BitTornado/download_bt1.py where all config is done
+# class GLOBAL:
 
-def load_myinfo(myinfo):    # TODO: load more personal infomation
+def load_myinfo():    # TODO: load more personal infomation
+    myinfo = {}
     my_permid = str(permid._ec_keypair.pub().get_der())
     name = socket.gethostname()
     my_ip = get_my_ip(name)
     myinfo['permid'] = my_permid
     myinfo['ip'] = my_ip
     myinfo['name'] = name
+    return myinfo
 
 def get_my_ip(name):
-    ip = guessip.get_my_wan_ip()
+    ip = get_my_wan_ip()
     if ip is None:
         host = socket.gethostbyname_ex(name)
         ipaddrlist = host[2]
@@ -120,17 +108,14 @@ def createPeerID(ins = '---'):
 
 
 def tribler_init(config_dir = None, install_dir = None):
-    global myinfo
-    if config_dir:
-        GLOBAL.config_dir = config_dir
     resetPeerIDs()
     permid.init(config_dir)
-    load_myinfo(myinfo)
+    myinfo = load_myinfo()
     # roee88 says we need to revert to encoded here for the databases
     cachedb.init(config_dir.encode(sys.getfilesystemencoding()),myinfo)
     superpeer.init(install_dir)
     friends.init(config_dir)
-    category.init(install_dir)
+    category.init(install_dir, config_dir)
 
 def tribler_done(config_dir = None):
     friends.done(config_dir)

@@ -2,7 +2,7 @@
 # see LICENSE.txt for license information
 
 import socket
-from errno import EWOULDBLOCK
+import errno
 try:
     from select import poll, POLLIN, POLLOUT, POLLERR, POLLHUP
     timemult = 1000
@@ -13,7 +13,8 @@ from time import sleep
 from clock import clock
 import sys
 from random import shuffle, randrange
-from natpunch import UPnP_open_port, UPnP_close_port
+
+from threading import currentThread
 
 # from BT1.StreamCheck import StreamCheck
 # import inspect
@@ -23,11 +24,9 @@ except:
     True = 1
     False = 0
 
-DEBUG = False
+DEBUG = True
 
 all = POLLIN | POLLOUT
-
-UPnP_ERROR = "unable to forward port via UPnP"
 
 class SingleSocket:
     """ 
@@ -116,12 +115,13 @@ class SingleSocket:
         # Arno: fishy concurrency problem, sometimes self.socket is None
         if self.socket is None:
             return
-        assert self.socket is not None
+        #assert self.socket is not None
         self.buffer.append(s)
         if len(self.buffer) == 1:
             self.try_write()
 
     def try_write(self):
+        
         if self.connected:
             dead = False
             try:
@@ -137,6 +137,8 @@ class SingleSocket:
                         break
                     del self.buffer[0]
             except socket.error, e:
+                if DEBUG:
+                    print_exc(file=sys.stderr)
                 try:
                     dead = e[0] != EWOULDBLOCK
                 except:
@@ -166,7 +168,6 @@ class SocketHandler:
         self.single_sockets = {}
         self.dead_from_write = []
         self.max_connects = 1000
-        self.port_forwarded = None
         self.servers = {}
 
     def scan_for_timeouts(self):
@@ -181,7 +182,7 @@ class SocketHandler:
                     print >> sys.stderr,"SocketHandler: scan_timeout closing connection",k.get_ip()
                 self._close_socket(k)
 
-    def bind(self, port, bind = '', reuse = False, ipv6_socket_style = 1, upnp = 0):
+    def bind(self, port, bind = '', reuse = False, ipv6_socket_style = 1):
         port = int(port)
         addrinfos = []
         self.servers = {}
@@ -233,21 +234,10 @@ class SocketHandler:
                 raise socket.error(str(e))
         if not self.servers:
             raise socket.error('unable to open server port')
-        if upnp:
-            if not UPnP_open_port(port):
-                for server in self.servers.values():
-                    try:
-                        server.close()
-                    except:
-                        pass
-                    self.servers = None
-                    self.interfaces = None
-                raise socket.error(UPnP_ERROR)
-            self.port_forwarded = port
         self.port = port
 
     def find_and_bind(self, first_try, minport, maxport, bind = '', reuse = False,
-                      ipv6_socket_style = 1, upnp = 0, randomizer = False):
+                      ipv6_socket_style = 1, randomizer = False):
         e = 'maxport less than minport - no ports to check'
         if maxport-minport < 50 or not randomizer:
             portrange = range(minport, maxport+1)
@@ -263,14 +253,14 @@ class SocketHandler:
         if first_try != 0:    # try 22 first, because TU only opens port 22 for SSH...
             try:
                 self.bind(first_try, bind, reuse = reuse, 
-                               ipv6_socket_style = ipv6_socket_style, upnp = upnp)
+                               ipv6_socket_style = ipv6_socket_style)
                 return first_try
             except socket.error, e:
                 pass
         for listen_port in portrange:
             try:
                 self.bind(listen_port, bind, reuse = reuse,
-                               ipv6_socket_style = ipv6_socket_style, upnp = upnp)
+                               ipv6_socket_style = ipv6_socket_style)
                 return listen_port
             except socket.error, e:
                 pass
@@ -288,7 +278,31 @@ class SocketHandler:
         sock = socket.socket(socktype, socket.SOCK_STREAM)
         sock.setblocking(0)
         try:
-            sock.connect_ex(dns)
+            if DEBUG:
+                print >>sys.stderr,"SocketHandler: Initiate connection to",dns,"with socket #",sock.fileno()
+            # Arno,2007-01-23: http://docs.python.org/lib/socket-objects.html 
+            # says that connect_ex returns an error code (and can still throw 
+            # exceptions). The original code never checked the return code.
+            #
+            err = sock.connect_ex(dns)
+            if DEBUG:
+                if err == 0:
+                    msg = 'No error'
+                else:
+                    msg = errno.errorcode[err]
+                print >>sys.stderr,"SocketHandler: connect_ex on socket #",sock.fileno(),"returned",err,msg
+            if err != 0:
+                if sys.platform == 'win32' and err == 10035:
+                    # Arno, 2007-02-23: win32 always returns WSAEWOULDBLOCK, whether 
+                    # the connect is to a live peer or not. Win32's version 
+                    # of EINPROGRESS
+                    pass
+                elif err == errno.EINPROGRESS: # or err == errno.EALREADY or err == errno.EWOULDBLOCK:
+                    # [Stevens98] says that UNICES return EINPROGRESS when the connect
+                    # does not immediately succeed, which is almost always the case. 
+                    pass
+                else:
+                    raise socket.error((err,errno.errorcode[err]))
         except socket.error, e:
             if DEBUG:
                 print >> sys.stderr,"SocketHandler: SocketError in connect_ex",str(e)
@@ -311,13 +325,20 @@ class SocketHandler:
         if sys.version_info < (2, 2):
             s = self.start_connection_raw(dns, socket.AF_INET, handler)
         else:
-            if self.ipv6_enable:
-                socktype = socket.AF_UNSPEC
-            else:
-                socktype = socket.AF_INET
+#            if self.ipv6_enable:
+#                socktype = socket.AF_UNSPEC
+#            else:
+#                socktype = socket.AF_INET
             try:
-                addrinfos = socket.getaddrinfo(dns[0], int(dns[1]),
-                                               socktype, socket.SOCK_STREAM)
+                try:
+                    # Jie: we attempt to use this socktype to connect ipv6 addresses.
+                    socktype = socket.AF_UNSPEC
+                    addrinfos = socket.getaddrinfo(dns[0], int(dns[1]),
+                                                   socktype, socket.SOCK_STREAM)
+                except:
+                    socktype = socket.AF_INET
+                    addrinfos = socket.getaddrinfo(dns[0], int(dns[1]),
+                                                   socktype, socket.SOCK_STREAM)
             except socket.error, e:
                 raise
             except Exception, e:
@@ -340,6 +361,7 @@ class SocketHandler:
         
     def handle_events(self, events):
         for sock, event in events:
+            #print >>sys.stderr,"SocketHandler: event on sock#",sock
             s = self.servers.get(sock)    # socket.socket
             if s:
                 if event & (POLLHUP | POLLERR) != 0:
@@ -373,6 +395,7 @@ class SocketHandler:
                 if (event & (POLLHUP | POLLERR)):
                     if DEBUG:
                         print >> sys.stderr,"SocketHandler: Got event, connect socket got error"
+                        print >> sys.stderr,"SocketHandler: Got event, connect socket got error",s.ip,s.port
                     self._close_socket(s)
                     continue
                 if (event & POLLIN):
@@ -384,6 +407,9 @@ class SocketHandler:
                                 print >> sys.stderr,"SocketHandler: no-data closing connection",s.get_ip(),s.get_port()
                             self._close_socket(s)
                         else:
+                            if DEBUG:
+                                print >> sys.stderr,"SocketHandler: Got data",s.get_ip(),s.get_port(),"len",len(data)
+
                             # btlaunchmany: NewSocketHandler, btdownloadheadless: Encrypter.Connection
                             s.handler.data_came_in(s, data)
                     except socket.error, e:
@@ -435,8 +461,7 @@ class SocketHandler:
 
     def get_stats(self):
         return { 'interfaces': self.interfaces, 
-                 'port': self.port, 
-                 'upnp': self.port_forwarded is not None }
+                 'port': self.port }
 
 
     def shutdown(self):
@@ -450,6 +475,4 @@ class SocketHandler:
                 server.close()
             except:
                 pass
-        if self.port_forwarded is not None:
-            UPnP_close_port(self.port_forwarded)
 

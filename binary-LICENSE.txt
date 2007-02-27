@@ -344,11 +344,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 All code written by Jie Yang, Pawel Garbacki, Jun Wang, Arno Bakker,
-Jan David Mol and Qin Chen has the following license:
+Jan David Mol, Qin Chen, Yuan Yuan has the following license:
 
     TRIBLER file-sharing library.
 
-    Copyright (c) 2005-2006, Delft University of Technology and Vrije 
+    Copyright (c) 2005-2007, Delft University of Technology and Vrije 
     Universiteit  Amsterdam; All rights reserved.
 
     This library is free software; you can redistribute it and/or

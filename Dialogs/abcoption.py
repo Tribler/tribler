@@ -1037,9 +1037,14 @@ class AdvancedNetworkPanel(ABCOptionPanel):
         datasizer.Add(self.maxconnections_data)
         
         # UPnP Settings
-        self.upnp_choices = [ self.utility.lang.get('upnp_0'), 
-                         self.utility.lang.get('upnp_1'), 
-                         self.utility.lang.get('upnp_2') ]
+        if (sys.platform == 'win32'):
+            self.upnp_choices = [ self.utility.lang.get('upnp_0'), 
+                             self.utility.lang.get('upnp_1'), 
+                             self.utility.lang.get('upnp_2'),
+                             self.utility.lang.get('upnp_3')]
+        else:
+            self.upnp_choices = [ self.utility.lang.get('upnp_0'), 
+                             self.utility.lang.get('upnp_3')]
         self.upnp_data = wx.ComboBox(self, -1, "", wx.Point(-1, -1), wx.Size(-1, -1), self.upnp_choices, wx.CB_DROPDOWN|wx.CB_READONLY)
         datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('upnp')), 1, wx.ALIGN_CENTER_VERTICAL)
         datasizer.Add(self.upnp_data)
@@ -1073,12 +1078,32 @@ class AdvancedNetworkPanel(ABCOptionPanel):
         self.maxconnections_data.SetStringSelection(setval)
         
         upnp_val = self.utility.config.Read('upnp_nat_access', "int")
-        if upnp_val >= len(self.upnp_choices):
-            upnp_val = len(self.upnp_choices) - 1
-        self.upnp_data.SetStringSelection(self.upnp_choices[upnp_val])
+        selected = self.upnp_val2selected(upnp_val)
+        self.upnp_data.SetStringSelection(self.upnp_choices[selected])
 
 #        #self.ipv6bindsv4_data.SetSelection()
         
+    def upnp_val2selected(self,upnp_val):
+        if (sys.platform == 'win32'):
+            selected = upnp_val
+        else:
+            if upnp_val <= 2:
+                selected = 0
+            else:
+                selected = 1
+        return selected
+
+    def selected2upnp_val(self,selected):
+        if (sys.platform == 'win32'):
+            upnp_val = selected
+        else:
+            if selected == 1:
+                upnp_val = 3
+            else:
+                upnp_val = 0
+        return upnp_val
+        
+
     def apply(self):
         #if self.ipv6.GetValue():
         #    self.utility.config.Write('ipv6') = "1"
@@ -1102,12 +1127,10 @@ class AdvancedNetworkPanel(ABCOptionPanel):
 
         self.utility.config.Write('max_initiate', maxinitiate)
         self.utility.config.Write('max_connections', maxconnections)
-        
-        upnp_choices = [ self.utility.lang.get('upnp_0'), 
-                         self.utility.lang.get('upnp_1'), 
-                         self.utility.lang.get('upnp_2') ]
-        selected = upnp_choices.index(self.upnp_data.GetValue())
-        self.utility.config.Write('upnp_nat_access', selected)
+
+        selected = self.upnp_choices.index(self.upnp_data.GetValue())
+        upnp_val = self.selected2upnp_val(selected)
+        self.utility.config.Write('upnp_nat_access',upnp_val)
 
         self.utility.config.Write('ipv6_binds_v4', "1")
 

@@ -1,0 +1,10 @@
+python test_dra.py singtest_good_dreply
+python test_dra.py singtest_bad_not_bdecodable
+python test_dra.py singtest_bad_not_string
+python test_dra.py singtest_bad_not_validip
+python test_dra.py singtest_bad_diff_ips
+python test_dra2.py singtest_good_dreply
+python test_dra2.py singtest_bad_not_bdecodable
+python test_dra2.py singtest_bad_not_string
+python test_dra2.py singtest_bad_not_validip
+python test_dra2.py singtest_bad_diff_ips

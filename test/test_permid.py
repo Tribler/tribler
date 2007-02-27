@@ -4,6 +4,7 @@
 import unittest
 
 import os
+import sys
 import socket
 import tempfile
 import random
@@ -76,6 +77,7 @@ class TestPermIDs(TestAsServer):
         """ 
             test good challenge and response2 messages
         """
+        print >> sys.stderr,"test: good challenge/response"
         s = BTConnection('localhost',self.hisport)
         s.read_handshake()
         [rB,chal_data] = self.create_good_challenge()
@@ -131,7 +133,8 @@ class TestPermIDs(TestAsServer):
         s.send(chal_data)
         time.sleep(5)
         # the other side should not like this and close the connection
-        self.assertRaises(Exception, s.recv)
+        msg = s.recv()
+        self.assert_(len(msg)==0)
         s.close()
 
     def create_not_bdecodable_challenge(self):
@@ -189,6 +192,7 @@ class TestPermIDs(TestAsServer):
         self._test_bad_response2(self.create_resp2_sig_by_other_keypair)
 
     def _test_bad_response2(self,gen_resp2_func):
+        print >> sys.stderr,"test: bad response2",gen_resp2_func
         s = BTConnection('localhost',self.hisport)
         s.read_handshake()
         [rB,chal_data] = self.create_good_challenge()
@@ -200,7 +204,8 @@ class TestPermIDs(TestAsServer):
         s.send(resp2_data)
         time.sleep(5)
         # the other side should not like this and close the connection
-        self.assertRaises(Exception, s.recv)
+        msg = s.recv()
+        self.assert_(len(msg)==0)
         s.close()
 
     def create_resp2_not_bdecodable(self,rB,resp1_dict,hisid):

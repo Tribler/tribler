@@ -339,7 +339,7 @@ class Utility:
                                  #ACTION_SCRAPE, 
                                  -1,
                                  ACTION_BUDDIES,
-                                 ACTION_FILES,
+                                 #ACTION_FILES, # Tribler: Removed recommended files icon because these content is shown in main window now
                                  ACTION_MYINFO
                                  ], 
             'menu_listrightclick': [ACTION_RESUME, 
@@ -639,7 +639,18 @@ class Utility:
         button_btn.SetToolTipString(tooltiptext)
         parent.Bind(wx.EVT_BUTTON, event, button_btn)
         return button_btn
-       
+
+    def makeBitmapButtonFit(self, parent, bitmap, tooltip, event, trans_color = wx.Colour(200, 200, 200)):
+        tooltiptext = self.lang.get(tooltip)
+        
+        button_bmp = self.makeBitmap(bitmap, trans_color)
+        
+        ID_BUTTON = wx.NewId()
+        button_btn = wx.BitmapButton(parent, ID_BUTTON, button_bmp, size=wx.Size(button_bmp.GetWidth(), button_bmp.GetHeight()))
+        button_btn.SetToolTipString(tooltiptext)
+        parent.Bind(wx.EVT_BUTTON, event, button_btn)
+        return button_btn
+    
     def getBTParams(self, skipcheck = False):
         # Construct BT params
         ###########################

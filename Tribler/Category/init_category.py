@@ -1,4 +1,5 @@
 # Written by Yuan Yuan
+# see LICENSE.txt for license information
 
 # give the initial category information
 
