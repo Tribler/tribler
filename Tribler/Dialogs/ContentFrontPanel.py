@@ -6,6 +6,7 @@ from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 from safeguiupdate import DelayedInvocation
 from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.unicode import *
+from copy import deepcopy
 
 BORDER_EXPAND = wx.ALL|wx.GROW
 BORDER = wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.ALIGN_LEFT
@@ -63,6 +64,7 @@ class StaticGridPanel(wx.Panel):
         try:
             hSizer = self.vSizer.GetItem(panelNumber/self.cols).GetSizer()
             panel = hSizer.GetItem(panelNumber % self.cols).GetWindow()
+            
             panel.setData(data)
         except:
             print "Error: Could not set data in panel number %d, with %d cols" % (panelNumber, self.cols)
@@ -446,6 +448,7 @@ class TorrentPanel(wx.Panel):
         self.utility = parent.parent.utility
         self.parent = parent
         self.data = None
+        self.datacopy = None
         self.titleLength = 37 # num characters
         self.selected = False
         self.warningMode = False
@@ -510,7 +513,11 @@ class TorrentPanel(wx.Panel):
                              
     def setData(self, torrent):
         # set bitmap, rating, title
+        if self.datacopy == torrent and torrent != None:
+            return
+        
         self.data = torrent
+        self.datacopy = deepcopy(torrent)
         
         if torrent == None:
             self.vSizer.GetStaticBox().Show(False)
@@ -947,9 +954,11 @@ class DetailPanel(wx.Panel):
             
         
     def onListResize(self, event):
-        self.fileList.SetColumnWidth(1, wx.LIST_AUTOSIZE)
-        self.fileList.SetColumnWidth(0, self.fileList.GetClientSize()[0]-self.fileList.GetColumnWidth(1)-15)
-        self.fileList.ScrollList(-100, 0) # Removes HSCROLLBAR
+        size = self.fileList.GetClientSize()
+        if size[0] > 50 and size[1] > 50:
+            self.fileList.SetColumnWidth(1, wx.LIST_AUTOSIZE)
+            self.fileList.SetColumnWidth(0, self.fileList.GetClientSize()[0]-self.fileList.GetColumnWidth(1)-15)
+            self.fileList.ScrollList(-100, 0) # Removes HSCROLLBAR
         if event:
             event.Skip()
                    
