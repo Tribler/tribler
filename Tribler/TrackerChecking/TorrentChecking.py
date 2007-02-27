@@ -18,6 +18,7 @@ class TorrentChecking(Thread):
         self.gnThreashold = 0.9
         self.torrent_db = SynTorrentDBHandler()
         Thread.__init__(self)
+        self.setDaemon(True)
         
     def run(self):
         self.torrentList.acquire()

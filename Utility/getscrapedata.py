@@ -33,6 +33,7 @@ class ScrapeThread(Thread,DelayedEventHandler):
         self.currentpeer = "?"
 
         self.setName( "Scrape"+self.getName() )
+        self.setDaemon(True)
         
 
     def run(self):

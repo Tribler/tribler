@@ -11,6 +11,7 @@ class ManualChecking(Thread):
     def __init__(self, check_list):
         self.check_list = check_list
         Thread.__init__(self)
+        self.setDaemon(True)
         
     def run(self):
         for torrent in self.check_list:
@@ -25,6 +26,7 @@ class SingleManualChecking(Thread):
         self.torrent = torrent
         self.torrent_db = SynTorrentDBHandler()
         Thread.__init__(self)
+        self.setDaemon(True)
         
     def run(self):        
         try:
