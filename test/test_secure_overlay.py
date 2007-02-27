@@ -239,6 +239,32 @@ class TestSecureOverlay(unittest.TestCase):
 
 
     #
+    # connect() to peer2 which responds, and then connect again
+    #
+    def singtest_connect_twice_to_live_peer(self):
+        print >> sys.stderr,"test: test_connect_to_live_peer"
+        self.wanted = True
+        self.wanted2 = True
+        
+        peer_db = PeerDBHandler()
+        hispermid = self.peer2.my_permid
+        peer_db.updatePeerIPPort(hispermid, "127.0.0.1", 5678)
+
+        self.peer1.secure_overlay.connect(hispermid,self.connect_to_live_peer_callback)
+        sleep(2) # let rawserver thread establish connection, which should succeed
+        self.assert_(len(self.peer1.secure_overlay.iplport2oc) == 1)
+        self.assert_(self.peer1.secure_overlay.iplport2oc.has_key('127.0.0.1:5678'))
+        self.peer1.secure_overlay.connect(hispermid,self.connect_to_live_peer_again_callback)
+
+    def connect_to_live_peer_again_callback(self,exc,dns,permid,selver):
+        print >> sys.stderr,"test: connect_to_live_peer_callback",exc
+        self.assert_(exc is None)
+        self.assert_(dns == ("127.0.0.1", 5678))
+        self.assert_(permid == self.peer2.my_permid)
+        self.got2 = True
+
+
+    #
     # send() over a non-existing connection to peer2
     #
     def singtest_send_unopenedA(self):

@@ -11,6 +11,7 @@ python test_so.py singtest_connect_dns_to_live_peer
 python test_so.py singtest_connect_to_dead_peerA
 python test_so.py singtest_connect_to_dead_peerB
 python test_so.py singtest_connect_to_live_peer
+python test_so.py singtest_connect_twice_to_live_peer
 python test_so.py singtest_send_unopenedA
 python test_so.py singtest_send_unopenedB
 python test_so.py singtest_send_local_close
