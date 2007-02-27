@@ -253,9 +253,7 @@ class ABCBuddyFrame(wx.Frame):
         
     def createNoteBook(self, main_panel):
         self.loadDatabase()
-        #self.notebook = wx.Notebook(main_panel, -1)
-        from Dialogs import FlatNotebook as FNB
-        self.notebook = FNB.FlatNotebook(main_panel, -1, style=FNB.FNB_SMART_TABS|FNB.FNB_VC8|FNB.FNB_X_ON_TAB|FNB.FNB_NO_X_BUTTON)
+        self.notebook = wx.Notebook(main_panel, -1)
         
         self.friendsPanel = ManageFriendsPanel(self.notebook, self.utility, self)
         self.tasteBuddyPanel = TasteBuddyPanel(self, self.notebook)
