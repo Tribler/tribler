@@ -7,9 +7,9 @@ from types import DictType,IntType
 
 from BitTornado.bitfield import Bitfield
 from BitTornado.clock import clock
-from binascii import b2a_hex
 from BitTornado.bencode import bencode,bdecode
-from BitTornado.__init__ import version_short,decodePeerID
+from BitTornado.__init__ import version_short,decodePeerID,TRIBLER_PEERID_LETTER
+from BitTornado.BT1.convert import tobinary,toint
 
 from MessageID import *
 # 2fastbt_
@@ -23,7 +23,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = False
+DEBUG = True
 DEBUG_NORMAL_MSGS = False
 
 UNAUTH_PERMID_PERIOD = 3600
@@ -64,13 +64,6 @@ and our overlay-swarm protocol.
 EXTEND_MSG_HANDSHAKE_ID = chr(0)
 EXTEND_MSG_OVERLAYSWARM = 'Tr_OVERLAYSWARM'
 EXTEND_HANDSHAKE_M_DICT = {EXTEND_MSG_OVERLAYSWARM:ord(CHALLENGE)}
-
-def toint(s):
-    return long(b2a_hex(s), 16)
-
-def tobinary(i):
-    return (chr(i >> 24) + chr((i >> 16) & 0xFF) + 
-        chr((i >> 8) & 0xFF) + chr(i & 0xFF))
 
 def show(s):
     text = []
@@ -303,7 +296,12 @@ class Connection:
         if not self.initiated_overlay:
             self.initiated_overlay = True
             so = SecureOverlay.getInstance()
-            so.addTask(self.connection.dns)
+            so.connect_dns(self.connection.dns,self.connect_dns_callback)
+
+    def connect_dns_callback(self,exc,dns,permid,selversion):
+        if exc is not None:
+            print >>sys.stderr,"encoder: peer",dns,"said he supported overlay swarm, but we can't connect to him",exc
+
 
 
 
@@ -347,7 +345,11 @@ class Connecter:
             # The peer either supports our overlay-swarm extension or 
             # the utorrent extended protocol. And we have overlay swarm enabled.
             [client,version] = decodePeerID(connection.id)
-            if client == 'R' and version <= '3.5.0' and connection.locally_initiated:
+            
+            if DEBUG:
+                print >>sys.stderr,"connecter: Peer is client",client,"version",version
+            
+            if client == TRIBLER_PEERID_LETTER and version <= '3.5.0' and connection.locally_initiated:
                 # Old Tribler, establish overlay connection
                 if DEBUG:
                     print >>sys.stderr,"connecter: Peer is previous Tribler version, attempt overlay connection"

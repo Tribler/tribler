@@ -48,6 +48,17 @@ Feature: BuddyCast
 	
 	Jie already has a test suite for testing the Buddycast algorithm.
 	
+	
+Feature: SecureOverlay V3
+
+	Run 
+		$ python test_so.sh
+		
+Feature: Dialback Message
+
+	Run
+		$ python test_dra.sh
+		$ python test_dch.sh		
 
 Running
 -------
@@ -58,4 +69,4 @@ $ python test.py
 
 from the main dir. 
 
-Arno Bakker, 2006-04-27
+Arno Bakker, 2007-02-27

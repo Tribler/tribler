@@ -14,7 +14,7 @@ from traceback import print_exc,print_stack
 
 from BitTornado.__init__ import createPeerID
 from BitTornado.BT1.MessageID import protocol_name,option_pattern,getMessageName
-from BitTornado.BT1.Connecter import tobinary,toint
+from BitTornado.BT1.convert import tobinary,toint
 
 from Tribler.CacheDB.CacheDBHandler import PeerDBHandler
 from Tribler.Overlay.permid import ChallengeResponse

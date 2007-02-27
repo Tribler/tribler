@@ -142,6 +142,7 @@ from Tribler.CacheDB.CacheDBHandler import *
 from Tribler.utilities import *
 from Tribler.Dialogs.activities import ACT_MEET, ACT_RECOMMEND
 from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
+from Tribler.Overlay.SecureOverlay import OLPROTO_VER_CURRENT
 from similarity import P2PSim
 
 DEBUG = 1
@@ -274,7 +275,7 @@ class BuddyCastCore:
     def __init__(self, secure_overlay, launchmany, data_handler, 
                  buddycast_interval, superpeer):
         self.secure_overlay = secure_overlay
-        self.so_version = self.secure_overlay.olproto_ver_current
+        self.so_version = OLPROTO_VER_CURRENT
         self.launchmany = launchmany
         self.data_handler = data_handler
         self.buddycast_interval = buddycast_interval
@@ -321,7 +322,7 @@ class BuddyCastCore:
         self.last_bootstrapped = 0    # bootstrap time of the last time
         self.start_time = now()
         
-        self.dnsindb = self.secure_overlay.get_dns_from_peerdb
+        self.dnsindb = self.data_handler.get_dns_from_peerdb
             
     def get_peer_info(self, target_permid, include_permid=True):
         if not target_permid:
@@ -1408,5 +1409,21 @@ class DataHandler:
     def increaseBuddyCastTimes(self, peer_permid):
         self.peer_db.updateTimes(peer_permid, 'buddycast_times', 1)
 
+    def get_dns_from_peerdb(self,permid):
+        dns = None
+        peer = self.peer_db.getPeer(permid)
+        if peer:
+            ip = self.to_real_ip(peer['ip'])
+            dns = (ip, int(peer['port']))
+        return dns
+
+    def to_real_ip(self,hostname_or_ip):
+        """ If it's a hostname convert it to IP address first """
+        ip = None
+        try:
+            ip = gethostbyname(hostname_or_ip)
+        except:
+            pass
+        return ip
     
     

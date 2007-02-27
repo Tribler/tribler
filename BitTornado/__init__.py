@@ -28,7 +28,9 @@ mapbase64 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-'
 
 # Arno: looking at Azureus BTPeerIDByteDecoder this letter is free
 # 'T' is BitTornado, 'A' is ABC, 'TR' is Transmission
-_idprefix = 'R'
+TRIBLER_PEERID_LETTER='R'
+_idprefix = TRIBLER_PEERID_LETTER
+
 #for subver in version_short[2:].split('.'):
 for subver in version_short.split('-')[1].split('.'):
     try:

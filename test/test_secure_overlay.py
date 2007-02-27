@@ -49,7 +49,6 @@ class Peer(Thread):
         config['bind'] = ''
         config['ipv6_binds_v4'] = 0
         config['max_message_length'] = 2 ** 23
-        upnp_type = 0
 
         self.rawserver = RawServer(self.doneflag,
                                    config['timeout_check_interval'],
@@ -63,7 +62,7 @@ class Peer(Thread):
                                 config['minport'], config['maxport'], config['bind'], 
                                 reuse = True,
                                 ipv6_socket_style = config['ipv6_binds_v4'], 
-                                upnp = upnp_type, randomizer = config['random_port'])
+                                randomizer = config['random_port'])
                 print >> sys.stderr,"test: Got listen port", self.listen_port
                 break
             except socketerror, e:

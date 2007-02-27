@@ -14,6 +14,7 @@ from traceback import print_exc, extract_stack, print_stack
 import sys
 from Tribler.Overlay.SecureOverlay import SecureOverlay
 from BitTornado.BT1.MessageID import protocol_name,option_pattern
+from BitTornado.BT1.convert import toint
 # _2fastbt
 
 try:
@@ -25,9 +26,6 @@ except:
 DEBUG = False
 
 MAX_INCOMPLETE = 8
-
-def toint(s):
-    return long(b2a_hex(s), 16)
 
 def make_readable(s):
     if not s:
@@ -213,15 +211,6 @@ class Connection:
         c = self.Encoder.connecter.connection_made(self)
         self.keepalive = c.send_keepalive
         return 4, self.read_len
-
-    def connect_overlay(self):
-        if self.support_overlayswarm and self.dns:
-            so = SecureOverlay.getInstance()
-            so.connect_dns(self.dns,self.connect_dns_callback)
-
-    def connect_dns_callback(self,exc,dns,permid,selversion):
-        if exc is not None:
-            print >>sys.stderr,"encoder: peer",dns,"said he supported overlay swarm, but we can't connect to him",exc
 
     def read_len(self, s):
         l = toint(s)
@@ -442,7 +431,7 @@ class Encoder:
             port = v.get_port(False)
             if self.config['security'] and ip != 'unknown' and ip == dns[0] and port == dns[1]:
                 if DEBUG:
-                    print >>sys.stderr,"encoder: start_connection: using existing"",ip,"want port",dns[1],"existing port",port,"id",`id`
+                    print >>sys.stderr,"encoder: start_connection: using existing",ip,"want port",dns[1],"existing port",port,"id",`id`
                 return True
         try:
             if DEBUG:

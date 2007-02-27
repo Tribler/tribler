@@ -96,7 +96,7 @@ class TestExtendHandshakeT350(TestAsServer):
         self.mytrackerport = 4901
         # Must be Tribler version <= 3.5.0. Changing this to 351 makes this test
         # fail, so it's a good test.
-        self.myid = 'R351-----HgUyPu56789'
+        self.myid = 'R350-----HgUyPu56789'
         self.mytracker = MyTracker(self.mytrackerport,self.myid,'127.0.0.1',self.mylistenport)
         self.mytracker.background_serve()
 

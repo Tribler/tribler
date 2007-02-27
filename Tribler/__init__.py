@@ -6,7 +6,7 @@
 ## (here) and correct.
 ##
 
-from BitTornado.__init__ import version_id, version_short, product_name, version, report_email
+from BitTornado.__init__ import resetPeerIDs
 
 from types import StringType
 from sha import sha
@@ -27,23 +27,7 @@ import CacheDB.friends as friends
 import Category.Category as category
 from NATFirewall.guessip import get_my_wan_ip
 
-mapbase64 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-'
-
 ## Global initialization
-
-# Arno: looking at Azureus BTPeerIDByteDecoder this letter is free
-# 'T' is BitTornado, 'A' is ABC, 'TR' is Transmission
-_idprefix = 'R' 
-#for subver in version_short[2:].split('.'):
-for subver in version_short.split('-')[1].split('.'):
-    try:
-        subver = int(subver)
-    except:
-        subver = 0
-    _idprefix += mapbase64[subver]
-_idprefix += ('-' * (6-len(_idprefix)))
-
-_idrandom = [None]
 
 ## Moved to BitTornado/download_bt1.py where all config is done
 # class GLOBAL:
@@ -68,44 +52,6 @@ def get_my_ip(name):
         return '127.0.0.1'
     else:
         return ip
-
-def resetPeerIDs():
-    try:
-        f = open('/dev/urandom', 'rb')
-        x = f.read(20)
-        f.close()
-    except:
-        x = ''
-
-    l1 = 0
-    t = clock()
-    while t == clock():
-        l1 += 1
-    l2 = 0
-    t = long(time()*100)
-    while t == long(time()*100):
-        l2 += 1
-    l3 = 0
-    if l2 < 1000:
-        t = long(time()*10)
-        while t == long(clock()*10):
-            l3 += 1
-    x += ( repr(time()) + '/' + str(time()) + '/'
-           + str(l1) + '/' + str(l2) + '/' + str(l3) + '/'
-           + str(getpid()) )
-
-    s = ''
-    for i in sha(x).digest()[-11:]:
-        s += mapbase64[ord(i) & 0x3F]
-    _idrandom[0] = s
-
-def createPeerID(ins = '---'):
-    if type(ins) != StringType:
-        raise Exception, "tribler__init__: createPeerID"
-    if len(ins) != 3:
-        raise Exception, "tribler__init__: createPeerID"
-    return _idprefix + ins + _idrandom[0]
-
 
 def tribler_init(config_dir = None, install_dir = None):
     resetPeerIDs()
