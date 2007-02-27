@@ -222,27 +222,28 @@ class ABCPanel(wx.Panel):
         colSizer = wx.BoxSizer(wx.VERTICAL)
         split = ABCSplitterWindow(self, -1)
         
-        
-        
-
         # List Control Display UI
         ###############################
         self.list = ABCList(split)
         self.utility.list = self.list
 
-        statbarbox = wx.BoxSizer(wx.HORIZONTAL)
-        self.sb_buttons = ABCStatusButtons(self,self.utility)
-        statbarbox.Add(self.sb_buttons, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 0)
-        self.abc_sb = ABCStatusBar(self,self.utility)
-        statbarbox.Add(self.abc_sb, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 0)
-        colSizer.Add(statbarbox, 0, wx.ALL|wx.EXPAND, 0)
-        
+  
         #colSizer.Add(self.list, 1, wx.EXPAND|wx.ALL|wx.GROW, 1)
         self.contentPanel = ContentFrontPanel(split)
         
         split.SplitHorizontally(self.list, self.contentPanel, 100) #  module dependent
         
         colSizer.Add(split, 1, wx.ALL|wx.EXPAND, 3)
+        
+        # Add status bar
+        statbarbox = wx.BoxSizer(wx.HORIZONTAL)
+        self.sb_buttons = ABCStatusButtons(self,self.utility)
+        statbarbox.Add(self.sb_buttons, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 0)
+        self.abc_sb = ABCStatusBar(self,self.utility)
+        statbarbox.Add(self.abc_sb, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 0)
+        colSizer.Add(statbarbox, 0, wx.ALL|wx.EXPAND, 0)
+
+        
         #colSizer.Add(self.contentPanel, 1, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(colSizer)
         self.SetAutoLayout(True)
