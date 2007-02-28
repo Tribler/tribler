@@ -413,8 +413,8 @@ class SocketHandler:
                                 print >> sys.stderr,"SocketHandler: no-data closing connection",s.get_ip(),s.get_port()
                             self._close_socket(s)
                         else:
-                            if DEBUG:
-                                print >> sys.stderr,"SocketHandler: Got data",s.get_ip(),s.get_port(),"len",len(data)
+                            #if DEBUG:
+                            #    print >> sys.stderr,"SocketHandler: Got data",s.get_ip(),s.get_port(),"len",len(data)
 
                             # btlaunchmany: NewSocketHandler, btdownloadheadless: Encrypter.Connection
                             s.handler.data_came_in(s, data)
@@ -424,7 +424,7 @@ class SocketHandler:
                         code, msg = e
                         if code != SOCKET_BLOCK_ERRORCODE:
                             if DEBUG:
-                                print >> sys.stderr,"SocketHandler: closing connection because not WOULDBLOCK",s.get_ip()
+                                print >> sys.stderr,"SocketHandler: closing connection because not WOULDBLOCK",s.get_ip(),"error",code
                             self._close_socket(s)
                             continue
                 if (event & POLLOUT) and s.socket and not s.is_flushed():

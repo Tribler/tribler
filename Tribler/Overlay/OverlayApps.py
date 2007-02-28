@@ -121,10 +121,9 @@ class OverlayApps:
         if DEBUG:
             print >> sys.stderr,"olapps: handleConnection",exc
 
-        if exc is None:
-            if self.dialback_handler is not None:
-                # overlay-protocol version check done inside
-                self.dialback_handler.handleSecOverlayConnection(permid,selversion,locally_initiated)
+        if self.dialback_handler is not None:
+            # overlay-protocol version check done inside
+            self.dialback_handler.handleSecOverlayConnection(exc,permid,selversion,locally_initiated)
         
         if self.buddycast:
             self.buddycast.handleConnection(exc,permid,selversion,locally_initiated)

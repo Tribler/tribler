@@ -95,10 +95,18 @@ class DialbackMsgHandler:
     # Called from OverlayApps to signal there is an overlay-connection,
     # see if we should ask it to dialback
     #
-    def handleSecOverlayConnection(self,permid,selversion,locally_initiated):
+    def handleSecOverlayConnection(self,exc,permid,selversion,locally_initiated):
         
         if DEBUG:
-            print >> sys.stderr,"dialback: handleConnection v",selversion,locally_initiated
+            print >> sys.stderr,"dialback: handleConnection",exc,"v",selversion,"local",locally_initiated
+        if exc is not None:
+            try:
+                del self.peers_asked[permid]
+            except:
+                if DEBUG:
+                    print >> sys.stderr,"dialback: handleConnection: Got error on connection that we didn't ask for dialback"
+                pass
+            return
         
         if not locally_initiated:
             # Arno: this means we're externally reachable    

@@ -643,7 +643,10 @@ class UPnPThread(Thread):
                 except UPnPError,e:
                     self.error_func(self.upnp_type,self.listen_port,1,e)
             else:
-                self.error_func(self.upnp_type,self.listen_port,2)
+                if self.upnp_type != 3:
+                    self.error_func(self.upnp_type,self.listen_port,2)
+                elif DEBUG:
+                    print >>sys.stderr,"upnp: thread: Initialization failed, but didn't report error because UPnP mode 3 is now enabled by default"
 
         # Now that the firewall is hopefully open, 
         # initiate dialback message to see what others think our IP address is

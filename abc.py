@@ -701,6 +701,14 @@ class ABCFrame(wx.Frame,DelayedInvocation):
         # which is entered as soon as we leave this method. Hence I placed
         # tribler_done() here, so the database are closed properly
         # before the crash.
+        #
+        # Arno, 2007-02-28: Preferably this should be moved to the main 
+        # run() method below, that waits a while to allow threads to finish.
+        # Ideally, the database should still be open while they finish up.
+        # Because of the crash problem with the icontray this is the safer
+        # place.
+        # 
+        # TODO: Check if icon-tray problem is Linux only
         tribler_done(self.utility.getConfigPath())            
 
 

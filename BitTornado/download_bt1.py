@@ -98,7 +98,7 @@ defaults = [
          'allow the client to connect to peers via IPv6'),
     ('ipv6_binds_v4', autodetect_socket_style(),
         "set if an IPv6 server socket won't also field IPv4 connections"),
-    ('upnp_nat_access', 0,
+    ('upnp_nat_access', 3,         # If you change this, look at BitTornado/launchmany/UPnPThread
         'attempt to autoconfigure a UPnP router to forward a server port ' +
         '(0 = disabled, 1 = mode 1 [fast,win32], 2 = mode 2 [slow,win32], 3 = mode 3 [any platform])'),
     ('upload_rate_fudge', 5.0, 
