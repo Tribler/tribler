@@ -28,6 +28,12 @@ DEBUG = True
 
 all = POLLIN | POLLOUT
 
+if sys.platform == 'win32':
+    SOCKET_BLOCK_ERRORCODE=10035    # WSAEWOULDBLOCK
+else:
+    SOCKET_BLOCK_ERRORCODE=EWOULDBLOCK
+
+
 class SingleSocket:
     """ 
     There are two places to create SingleSocket:
@@ -140,7 +146,7 @@ class SingleSocket:
                 if DEBUG:
                     print_exc(file=sys.stderr)
                 try:
-                    dead = e[0] != EWOULDBLOCK
+                    dead = (e[0] != SOCKET_BLOCK_ERRORCODE)
                 except:
                     dead = True
                 self.skipped += 1
@@ -416,7 +422,7 @@ class SocketHandler:
                         if DEBUG:
                             print >> sys.stderr,"SocketHandler: Socket error",str(e)
                         code, msg = e
-                        if code != EWOULDBLOCK:
+                        if code != SOCKET_BLOCK_ERRORCODE:
                             if DEBUG:
                                 print >> sys.stderr,"SocketHandler: closing connection because not WOULDBLOCK",s.get_ip()
                             self._close_socket(s)
