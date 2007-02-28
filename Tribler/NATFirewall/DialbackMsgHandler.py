@@ -88,9 +88,6 @@ class DialbackMsgHandler:
         self.returnconnhand.register_recv_callback(self.handleReturnConnMessage)
         self.returnconnhand.start_listening()
 
-    def start_active(self):
-        pass
-
     #
     # Called from OverlayApps to signal there is an overlay-connection,
     # see if we should ask it to dialback

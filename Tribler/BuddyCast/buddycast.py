@@ -231,6 +231,11 @@ class BuddyCastFactory:
         if self.registered:
             self.rawserver.add_task(self.data_handler.postInit, int(self.buddycast_interval/5))
             self.rawserver.add_task(self.data_handler.updateAllSim, 1811)
+            # Arno, 2007-02-28: BC is now started self.buddycast_interval after client
+            # startup. This is assumed to give enough time for UPnP to open the firewall
+            # if any. So when you change this time, make sure it allows for UPnP to
+            # do its thing, or add explicit coordination between UPnP and BC.
+            # See BitTornado/launchmany.py
             self.rawserver.add_task(self.doBuddyCast, self.buddycast_interval)
             self.rawserver.add_task(self.sync, self.sync_interval)
             print >> sys.stdout, "BuddyCast starts up"

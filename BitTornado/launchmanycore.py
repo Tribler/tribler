@@ -648,10 +648,11 @@ class UPnPThread(Thread):
                 elif DEBUG:
                     print >>sys.stderr,"upnp: thread: Initialization failed, but didn't report error because UPnP mode 3 is now enabled by default"
 
-        # Now that the firewall is hopefully open, 
-        # initiate dialback message to see what others think our IP address is
-        #
-        dmh.start_active()
+        # Now that the firewall is hopefully open, activate other services
+        # here. For Buddycast we don't have an explicit notification that it
+        # can go ahead. It will start 15 seconds after client startup, which
+        # is assumed to be sufficient for UPnP to open the firewall.
+        ## dmh.start_active()
 
         if self.upnp_type > 0:
             if DEBUG:
