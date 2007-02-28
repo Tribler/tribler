@@ -117,7 +117,7 @@ if __name__ == '__main__':
           "whether to display the full path or the torrent contents for each torrent" ),
        ('config_path', '',
           'directory containing the Tribler config files (default $HOME/.Tribler)'),
-        ( 'seed_only', 1,
+        ( 'seed_only', 0,
           "whether to act just as a seeder and not participate in any overlay apps" )
     ] )
     try:

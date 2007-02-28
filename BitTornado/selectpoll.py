@@ -45,6 +45,7 @@ class poll:
                 # on any file descriptors. 
                 elist = Set(self.rlist)
                 elist = elist.union(self.wlist)
+                elist = list(elist)    # in Python2.3, elist must be a list type
                 if DEBUG:
                     print >>sys.stderr,"selectpoll: elist = ",elist
                 r, w, e = select(self.rlist, self.wlist, elist, timeout)

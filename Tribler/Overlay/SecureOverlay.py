@@ -376,13 +376,13 @@ class SecureOverlay:
             ret = False
             
         if ret:
-            oc.dequeue_callbacks()
             if self.userconnhandler is not None:
                 try:
                     self.userconnhandler(None,oc.get_auth_permid(),oc.get_sel_proto_ver(),oc.is_locally_initiated())
                 except:
                     # Catch all
                     print_exc(file=sys.stderr)
+            oc.dequeue_callbacks()
         return ret
 
     def local_close(self,oc):

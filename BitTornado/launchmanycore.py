@@ -272,6 +272,8 @@ class LaunchMany:
             # Arno: make it go to a warning popup that doesn't stop the program
             if not self.text_mode:
                 self.utility.frame.onWarning(e)
+            else:
+                print_exc()
 
     def torrent_checking(self):
         self.rawserver.add_task(self.torrent_checking, self.torrent_checking_period)

@@ -1,8 +1,10 @@
 import sys
 from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler, PeerDBHandler
 from Tribler.utilities import sortList,show_permid_short
+from random import randint
 
 DEBUG = False
+debug = 1
     
 class TorrentFetcher:
     def __init__(self, size=10, db_dir=''):
@@ -151,4 +153,54 @@ def owners2string(owners):
         s += show_permid_short(permid)+' '
     return s
 
+
+
+
+class SimpleTorrentCollecting:
+    """
+        Simplest torrent collecting policy: randomly collect a torrent when received
+        a buddycast message
+    """
+    
+    def __init__(self, metadata_handler):
+        self.torrent_db = TorrentDBHandler()
+        self.metadata_handler = metadata_handler
         
+    def updatePreferences(self, permid, preferences, selversion=-1):
+        torrent = self.selecteTorrentToCollect(preferences)
+        if torrent:
+            self.metadata_handler.send_metadata_request(permid, torrent, selversion)
+        if debug:
+            print "tc: **************** select a torrent to collect", `torrent`, len(preferences)
+    
+    def closeConnection(self, permid):
+        pass
+    
+    def selecteTorrentToCollect(self, preferences):
+        preferences = list(preferences)
+        candidates = []
+        for torrent in preferences:
+            if not self.torrent_db.hasMetaData(torrent):    # check if the torrent has been downloaded
+                candidates.append(torrent)
+        nprefs = len(candidates)
+        if nprefs > 0:
+            idx = randint(1, nprefs)
+            selected = candidates[idx]
+            return selected
+        else:
+            return None
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    

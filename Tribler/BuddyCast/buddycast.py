@@ -144,9 +144,10 @@ from Tribler.Dialogs.activities import ACT_MEET, ACT_RECOMMEND
 from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.Overlay.SecureOverlay import OLPROTO_VER_CURRENT
 from similarity import P2PSim
+from TorrentCollecting import SimpleTorrentCollecting
 
 DEBUG = 1
-debug = 0
+debug = 1
 MAX_BUDDYCAST_LENGTH = 10*1024    # 10 KByte
 
 def now():
@@ -210,7 +211,8 @@ class BuddyCastFactory:
         return BuddyCastFactory.__single
     getInstance = staticmethod(getInstance)
     
-    def register(self, secure_overlay, rawserver, launchmany, port, errorfunc, start=True):    
+    def register(self, secure_overlay, rawserver, launchmany, port, errorfunc, 
+                 start, metadata_handler, torrent_collecting_solution):    
         if self.registered:
             return
         self.secure_overlay = secure_overlay
@@ -224,7 +226,9 @@ class BuddyCastFactory:
             if isValidPort(port):
                 self.data_handler.updatePort(port)
             self.buddycast_core = BuddyCastCore(secure_overlay, launchmany, 
-                   self.data_handler, self.buddycast_interval, self.superpeer)
+                   self.data_handler, self.buddycast_interval, self.superpeer,
+                   metadata_handler, torrent_collecting_solution
+                   )
             self.startup()
     
     def startup(self):
@@ -278,7 +282,8 @@ class BuddyCastFactory:
     
 class BuddyCastCore:
     def __init__(self, secure_overlay, launchmany, data_handler, 
-                 buddycast_interval, superpeer):
+                 buddycast_interval, superpeer, 
+                 metadata_handler, torrent_collecting_solution):
         self.secure_overlay = secure_overlay
         self.so_version = OLPROTO_VER_CURRENT
         self.launchmany = launchmany
@@ -286,7 +291,7 @@ class BuddyCastCore:
         self.buddycast_interval = buddycast_interval
         self.superpeer = superpeer    # change it for superpeers
         self.dialback = DialbackMsgHandler.getInstance()
-        
+
         self.ip = self.data_handler.getMyIp()
         self.port = self.data_handler.getMyPort()
         self.name = self.data_handler.getMyName()
@@ -327,7 +332,15 @@ class BuddyCastCore:
         self.last_bootstrapped = 0    # bootstrap time of the last time
         self.start_time = now()
         
+        # --- dependent modules ---
+        if torrent_collecting_solution == 1:
+            self.torrent_collecting = SimpleTorrentCollecting(metadata_handler)
+
+        # -- misc ---
         self.dnsindb = self.data_handler.get_dns_from_peerdb
+        
+        
+
             
     def get_peer_info(self, target_permid, include_permid=True):
         if not target_permid:
@@ -800,6 +813,10 @@ class BuddyCastCore:
         
         self.blockPeer(sender_permid, self.recv_block_list)
         
+        # update torrent collecting module
+        sender_prefs = self.data_handler.getPeerPrefList(sender_permid, cache=True)
+        self.torrent_collecting.updatePreferences(sender_permid, sender_prefs, selversion)
+        
         if active:
             self.print_debug_info('Active', 21, sender_permid)
         else:
@@ -1032,6 +1049,8 @@ class BuddyCastCore:
                 
             self.data_handler.setPeerLastSeen(peer_permid, now())
             self.connections.pop(peer_permid)
+            
+        self.torrent_collecting.closeConnection(peer_permid)
             
     # -------------- print debug info ---------- #
     def print_debug_info(self, thread, step, target_permid=None, selversion=0, r=0, addto=''):
