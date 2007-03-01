@@ -262,7 +262,12 @@ class AddTorrents:
         ABCTorrentTemp = None
         
         # Check to see the the src file actually exists:
-        if not os.access(src, os.R_OK):
+        try:
+            os_access = os.access(src, os.R_OK)
+        except UnicodeEncodeError:
+            src = src.encode(sys.getfilesystemencoding())
+            os_access = os.access(src, os.R_OK)
+        if not os_access:
             if caller != "web":
                 dlg = wx.MessageDialog(None, 
                                        src + '\n' + self.utility.lang.get('failedtorrentmissing'), 

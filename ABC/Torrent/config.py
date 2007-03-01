@@ -6,6 +6,7 @@ import os
 
 from Utility.configreader import ConfigReader
 from Utility.constants import * #IGNORE:W0611
+from Tribler.unicode import dunno2unicode
 
 ################################################################
 #
@@ -22,7 +23,8 @@ class TorrentConfig(ConfigReader):
         
         basepath = os.path.join(self.utility.getConfigPath(), "torrentinfo")
         self.filename = os.path.split(self.torrent.src)[1] + ".info"
-        configpath = os.path.join(basepath, self.filename)
+        filename = dunno2unicode(self.filename)
+        configpath = os.path.join(basepath, filename)
         ConfigReader.__init__(self, configpath, "TorrentInfo")
         
         self.writeflags = { "src": False, 
