@@ -13,6 +13,7 @@ from time import sleep
 from clock import clock
 import sys
 from random import shuffle, randrange
+from traceback import print_exc
 
 from threading import currentThread
 
@@ -124,6 +125,7 @@ class SingleSocket:
         #assert self.socket is not None
         self.buffer.append(s)
         if len(self.buffer) == 1:
+            #self.connected = False  # Arno: got WSAEWOULDBLOCK on self.socket.send. Perhaps should test for writability each time?
             self.try_write()
 
     def try_write(self):
@@ -145,6 +147,7 @@ class SingleSocket:
             except socket.error, e:
                 if DEBUG:
                     print_exc(file=sys.stderr)
+                    print >>sys.stderr,"SingSock: write to",self.socket.getpeername()
                 try:
                     dead = (e[0] != SOCKET_BLOCK_ERRORCODE)
                 except:
@@ -159,7 +162,7 @@ class SingleSocket:
             self.socket_handler.poll.register(self.socket, all)
         else:
             self.socket_handler.poll.register(self.socket, POLLIN)
-
+        
     def set_handler(self, handler):    # can be: NewSocketHandler, Encoder, En_Connection
         self.handler = handler
 

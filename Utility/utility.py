@@ -121,7 +121,7 @@ class Utility:
         return self.peer_db.getNumEncounteredPeers()#, self.peer_db.size()
         
     def getNumFiles(self):
-        return self.torrent_db.getNumMetadata()#, self.torrent_db.size()
+        return self.torrent_db.getNumMetadataAndLive()#, self.torrent_db.size()
         
     def setupConfigPath(self):
         configdir = ConfigDir()

@@ -894,12 +894,12 @@ class BuddyCastCore:
             added = self.addPeerToConnTB(peer_permid, _now)
             if not added:
                 if self.addPeerToConnRP(peer_permid, _now):
-                    addto = 'Random Peer List'
+                    addto = '(randomly)'
             else:
-                addto = 'Taste Buddy List'
+                addto = '(taste buddy)'
         else:
             if self.addPeerToConnUP(peer_permid, _now):
-                addto = 'Unconnectable Peer List'
+                addto = '(peer deemed unreachable)'
             
         return addto
             
@@ -1027,7 +1027,7 @@ class BuddyCastCore:
             self.data_handler._addPeer(peer_permid, _now)
             addto = self.addPeerToConnList(peer_permid, locally_initiated)    # add connection from secure overlay
             dns = self.get_peer_info(peer_permid, include_permid=False)
-            buf = '%sin %s'%(dns, addto)
+            buf = '%s %s'%(dns, addto)
             self.launchmany.set_activity(ACT_MEET, buf)
             if debug:
                 print >> sys.stdout, "bc: add connection", \

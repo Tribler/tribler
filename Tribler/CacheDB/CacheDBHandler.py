@@ -322,7 +322,7 @@ class TorrentDBHandler(BasicDBHandler):
         self.mypref_db = MyPreferenceDB.getInstance(db_dir=db_dir)
         self.owner_db = OwnerDB.getInstance(db_dir=db_dir)
         self.dbs = [self.torrent_db]
-        self.num_metadata = 0
+        self.num_metadatalive = 0
         
     def addTorrent(self, infohash, torrent={}, new_metadata=False):
         # add a new torrent or update an old torrent's info
@@ -472,16 +472,19 @@ class TorrentDBHandler(BasicDBHandler):
     def updateTorrentRelevance(self, torrent, relevance):
         self.torrent_db.updateItem(torrent, {'relevance':relevance})
             
-    def getNumMetadata(self):
+    def getNumMetadataAndLive(self):
         if not self.torrent_db.new_metadata:
-            return self.num_metadata
+            return self.num_metadatalive
         n = 0
         for infohash in self.torrent_db._keys():
             data = self.torrent_db._get(infohash)
-            if data and (data['torrent_name']):
-                n += 1
+            if data:
+                live = data.get('status', 'unknown')
+                meta = data['torrent_name']
+                if meta and live != 'dead' and live != 'unknown':
+                    n += 1
         self.torrent_db.hasNewMetadata(False)
-        self.num_metadata = n
+        self.num_metadatalive = n
         return n
     
     def hasNewMetadata(self):
