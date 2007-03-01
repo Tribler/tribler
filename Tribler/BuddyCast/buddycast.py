@@ -334,6 +334,7 @@ class BuddyCastCore:
         self.round = 0     # every call to work() is a round
         self.bootstrapped = 0    # bootstrap once every 1 hours
         self.bootstrap_time = 0  # number of times to bootstrap
+        self.total_bootstrapped_time = 0
         self.last_bootstrapped = 0    # bootstrap time of the last time
         self.start_time = now()
         
@@ -427,6 +428,7 @@ class BuddyCastCore:
             self.addConnCandidate(p, last_seen)
             
         self.bootstrap_time += 1
+        self.total_bootstrapped_time += 1
         self.last_bootstrapped = _now
         self.bootstrapped = 0    # reset it to allow read more peers if needed
         return 1
@@ -565,11 +567,10 @@ class BuddyCastCore:
         
         def selectTBTarget():
             # Select the most similar taste buddy 
-            max_sim = (0, None)
+            max_sim = (-1, None)
             for p in self.connection_candidates:
                 sim = self.data_handler.getPeerSim(p)
-                if sim > 0:
-                    max_sim = max(max_sim, (sim, p))
+                max_sim = max(max_sim, (sim, p))
             return max_sim[1]
             
         def selectRPTarget():
@@ -646,7 +647,7 @@ class BuddyCastCore:
 
         else:
             if debug:
-                print >> sys.stdout, "bc: warning - error connecting to",\
+                print >> sys.stdout, "bc: warning - connecting to",\
                     show_permid_short(target_permid),exc,dns, ctime(now())
                     
     def createAndSendBuddyCastMessage(self, target_permid, selversion, active):
@@ -1103,7 +1104,7 @@ class BuddyCastCore:
                     print "bc: *** no peers to bootstrap. Try next time"
                 else:
                     print "bc: *** bootstrapped, got", len(self.connection_candidates), \
-                      "peers in Cc. Times of bootstrapped", self.bootstrap_time
+                      "peers in Cc. Times of bootstrapped", self.total_bootstrapped_time
                     buf = ""
                     for p in self.connection_candidates:
                         buf += "bc: * cand:" + self.get_peer_info(p) + "\n"
@@ -1309,7 +1310,7 @@ class DataHandler:
         """
         
         if cache:
-            preflist = self.preferences[permid]
+            preflist = list(self.preferences.get(permid, []))
         else:
             preflist = self.pref_db.getPrefList(permid)
         if live:    # remove dead torrents

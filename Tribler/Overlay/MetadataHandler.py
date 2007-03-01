@@ -100,6 +100,8 @@ class MetadataHandler:
             if DEBUG:
                 print >> sys.stderr,"metadata: GET_METADATA: error sending to",show_permid_short(permid),exc
             pass
+        else:
+            pass    # TODO: Log
         
     def send_metadata(self, permid, message, selversion):
         try:

@@ -5,13 +5,16 @@ BUDDYCAST:
 	+ Moving the raw_server calls back in SecureOverlay
     + Buddycast message length limit	(max. 10 KB for a full buddycast message)
     + Removed 'age' item from buddycast for peers of new version
+    Using buddycast2 network to send dialback message
+    	+ Simple torrent collecting policy
+    
 	Update item relevance
     New similarity func between users
 
     Unit Test
 	Log and Log in GUI
 	Setup superpeers
-	Using buddycast2 network to send dialback message
+	
 	Fast torrent collecting from connected peers
     
     Improve recommendation function
