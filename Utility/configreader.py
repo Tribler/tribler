@@ -381,7 +381,12 @@ class ConfigReader(ConfigParser):
                         if optval == '""':
                             optval = ''
                         optname = self.optionxform(optname.rstrip())
-                        cursect[optname] = optval.decode(self.encoding)
+                        try:
+                            _opt = optval.decode(self.encoding)
+                        except UnicodeDecodeError:
+                            self.encoding = sys.getfilesystemencoding()
+                            _opt = optval.decode(self.encoding)
+                        cursect[optname] = _opt
                     else:
                         # a non-fatal parsing error occurred.  set up the
                         # exception but keep going. the exception will be

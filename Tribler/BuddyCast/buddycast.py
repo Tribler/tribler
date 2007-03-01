@@ -234,7 +234,7 @@ class BuddyCastFactory:
     
     def startup(self):
         if self.registered:
-            self.rawserver.add_task(self.data_handler.postInit, int(self.buddycast_interval/5))
+            self.rawserver.add_task(self.data_handler.postInit, int(self.buddycast_interval/2))
             self.rawserver.add_task(self.data_handler.updateAllSim, 1811)
             # Arno, 2007-02-28: BC is now started self.buddycast_interval after client
             # startup. This is assumed to give enough time for UPnP to open the firewall
@@ -295,7 +295,11 @@ class BuddyCastCore:
 
         self.ip = self.data_handler.getMyIp()
         self.port = self.data_handler.getMyPort()
-        self.name = self.data_handler.getMyName()
+        # Jie: we must trainsfer my name to unicode here before sent out
+        # because the receiver might not be able to transfer the name to unicode,
+        # but the receiver might be able to display the unicode str correctly
+        # in that he installed the character set and therefore unicode can map it
+        self.name = dunno2unicode(self.data_handler.getMyName())    # encode it to unicode
         
         # --- parameters ---
         self.timeout = 5*60
@@ -340,9 +344,7 @@ class BuddyCastCore:
         # -- misc ---
         self.dnsindb = self.data_handler.get_dns_from_peerdb
         
-        
-
-            
+                    
     def get_peer_info(self, target_permid, include_permid=True):
         if not target_permid:
             return ' None '
@@ -1421,7 +1423,8 @@ class DataHandler:
             new_peer_data['port'] = peer_data['port']
             new_peer_data['last_seen'] = last_seen
             if peer_data.has_key('name'):
-                new_peer_data['name'] = peer_data['name']
+                new_peer_data['name'] = dunno2unicode(peer_data['name'])    # store in db as unicode
+                
             self.peer_db.addPeer(peer_permid, new_peer_data)
         except KeyError:
             print_exc()

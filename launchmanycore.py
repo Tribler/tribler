@@ -131,7 +131,7 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
     # override
     def stats(self):
         for ABCTorrentTemp in self.utility.torrents["active"].keys():
-            engine = ABCTorrentTemp.connection.engine
+            engine = ABCTorrentTemp.connection.getEngine()
             
             if engine is None:
                 continue
@@ -227,7 +227,7 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
             c >>= 6
         peer_id = createPeerID(x)
         engine = ABCEngine(ABCTorrentTemp, peer_id)
-        ABCTorrentTemp.connection.engine = engine
+        ABCTorrentTemp.connection.setEngine(engine)
         self.utility.torrents["active"][ABCTorrentTemp] = 1
 
         # To get coordinators and helpers
@@ -279,7 +279,7 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
             if self.hashcheck_queue:
                 self._hashcheck_start()
 
-        ABCTorrentTemp.connection.engine = None
+        ABCTorrentTemp.connection.setEngine(None)
 
         self.invokeLater(self.make_inactive_callback,[ABCTorrentTemp])
 

@@ -601,6 +601,7 @@ class BT1Download:
                 self.storage = Storage(self.files, self.info['piece length'], 
                                        self.doneflag, self.config, disabled_files)
             except IOError, e:
+                print_exc()
                 self.errorfunc('trouble accessing files - ' + str(e))
                 return None
             if self.doneflag.isSet():

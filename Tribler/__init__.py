@@ -59,6 +59,7 @@ def tribler_init(config_dir = None, install_dir = None):
     myinfo = load_myinfo()
     # roee88 says we need to revert to encoded here for the databases
     cachedb.init(config_dir.encode(sys.getfilesystemencoding()),myinfo)
+    print "Config dir is", config_dir
     superpeer.init(install_dir)
     friends.init(config_dir)
     category.init(install_dir, config_dir)

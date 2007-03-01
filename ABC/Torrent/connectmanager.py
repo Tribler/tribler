@@ -117,6 +117,12 @@ class TorrentConnections:
             dlg.ShowModal()
             dlg.Destroy()
             
+    def setEngine(self, engine):
+        self.engine = engine
+        
+    def getEngine(self):
+        return self.engine
+            
     def startEngine(self, status = STATUS_ACTIVE):
         self.torrent.status.updateStatus(status)
 
@@ -131,7 +137,7 @@ class TorrentConnections:
         # the self.engine variable set to None by launchmanycore.py (still with 
         # me?) Sigh...
         self.configdir = self.engine.dow.appdataobj
-
+        
 #    def stopEngine(self, waitForThread = False, update = True):
     def stopEngine(self, update = True):
         if self.torrent.dialogs.details is not None:

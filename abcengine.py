@@ -165,7 +165,7 @@ class ABCEngine(DelayedEventHandler):
             self.shutdown()
             return
         self._hashcheckfunc = self.dow.initFiles()
-
+        
         if not self._hashcheckfunc:
             self.shutdown()
             return
