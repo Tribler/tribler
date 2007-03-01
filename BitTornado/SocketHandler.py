@@ -145,9 +145,8 @@ class SingleSocket:
                         break
                     del self.buffer[0]
             except socket.error, e:
-                if DEBUG:
-                    print_exc(file=sys.stderr)
-                    print >>sys.stderr,"SingSock: write to",self.socket.getpeername()
+                #if DEBUG:
+                #    print_exc(file=sys.stderr)
                 try:
                     dead = (e[0] != SOCKET_BLOCK_ERRORCODE)
                 except:
