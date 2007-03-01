@@ -184,7 +184,7 @@ class SimpleTorrentCollecting:
                 candidates.append(torrent)
         nprefs = len(candidates)
         if nprefs > 0:
-            idx = randint(1, nprefs)
+            idx = randint(0, nprefs-1)
             selected = candidates[idx]
             return selected
         else:
@@ -192,7 +192,23 @@ class SimpleTorrentCollecting:
     
     
     
-    
+"""
+Traceback (most recent call last):
+  File "E:\Develop\workspace2\mainbranch\Tribler\Overlay\OverlayApps.py", line 121, in handleMessage
+    return self.msg_handlers[id](permid,selversion,message)
+  File "E:\Develop\workspace2\mainbranch\Tribler\BuddyCast\buddycast.py", line 259, in handleMessage
+    return self.gotBuddyCastMessage(message[1:], permid, selversion)
+  File "E:\Develop\workspace2\mainbranch\Tribler\BuddyCast\buddycast.py", line 271, in gotBuddyCastMessage
+    return self.buddycast_core.gotBuddyCastMessage(msg, permid, selversion)
+  File "E:\Develop\workspace2\mainbranch\Tribler\BuddyCast\buddycast.py", line 818, in gotBuddyCastMessage
+    self.torrent_collecting.updatePreferences(sender_permid, sender_prefs, selversion)
+  File "E:\Develop\workspace2\mainbranch\Tribler\BuddyCast\TorrentCollecting.py", line 170, in updatePreferences
+    torrent = self.selecteTorrentToCollect(preferences)
+  File "E:\Develop\workspace2\mainbranch\Tribler\BuddyCast\TorrentCollecting.py", line 188, in selecteTorrentToCollect
+    selected = candidates[idx]
+IndexError: list index out of range
+
+"""    
     
     
     

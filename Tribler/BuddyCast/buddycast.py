@@ -140,6 +140,7 @@ from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import BUDDYCAST, KEEP_ALIVE
 from Tribler.CacheDB.CacheDBHandler import *
 from Tribler.utilities import *
+from Tribler.unicode import dunno2unicode
 from Tribler.Dialogs.activities import ACT_MEET, ACT_RECOMMEND
 from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.Overlay.SecureOverlay import OLPROTO_VER_CURRENT
@@ -826,7 +827,7 @@ class BuddyCastCore:
             self.replyBuddyCast(sender_permid, selversion)    
 
         # show activity
-        buf = unicode('"'+buddycast_data['name']+'"')
+        buf = dunno2unicode('"'+buddycast_data['name']+'"')
         self.launchmany.set_activity(ACT_RECOMMEND, buf)
         self.data_handler.increaseBuddyCastTimes(sender_permid)
         
