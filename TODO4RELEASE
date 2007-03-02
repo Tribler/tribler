@@ -1,12 +1,20 @@
 
 - Make sure database migration from 3.5.x to 3.6.0 works
+	#TODO: checkout 3.5.0 and run
+	#	   using .Tribler for a new 3.6.0 version
+	#	   re-run 3.5.0 on the same .Tribler again (in case that user re-install 
+	#      3.5.0 after a run of 3.6.0)
 
 - Test old clients against new superpeer code
+	#TODO: log of superpeer
+	#	   Run and test
+	#	   check log
 
 - Make sure torrent collecting makes use of the open overlay-swarm
   connection. 
   
-  	Jie is working on this.
+  	#Jie is working on this.
+  	done
   
 - Recommendation value of torrent shown / Allow sorting on most popular
   and recommendation value.

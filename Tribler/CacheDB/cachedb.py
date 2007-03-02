@@ -57,7 +57,7 @@ TorrentDB - (PreferenceDB, MyPreference, OwnerDB)
 PreferenceDB - (PeerDB, TorrentDB)    # other peers' preferences
   preferences.bsd:
     permid:{
-        torrent_id:{'relevance': int (0), 'rank': int (0)}    # re: [0, 1000], rank: [-1, 5]
+        torrent_id:{}
     }
 
 MyPreferenceDB - (TorrentDB)

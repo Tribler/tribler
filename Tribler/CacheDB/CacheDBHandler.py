@@ -79,7 +79,7 @@ class SuperPeerDBHandler(BasicDBHandler):
         print self.my_db.getSuperPeers()
 
     def getSuperPeerList(self):
-        return self.my_db.getSuperPeers()        
+        return self.superpeers
 
     def getSuperPeers(self):
         sps = self.my_db.getSuperPeers()

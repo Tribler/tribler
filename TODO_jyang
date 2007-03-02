@@ -7,6 +7,7 @@ BUDDYCAST:
     + Removed 'age' item from buddycast for peers of new version
     Using buddycast2 network to send dialback message
     	+ Simple torrent collecting policy
+    	
     
 	Update item relevance
     New similarity func between users

@@ -120,7 +120,7 @@ class ABCStatusBar(wx.StatusBar):
             text = unicode( prefix+u' '+msg)
             
         if DEBUG:
-            print "act: Setting activity",text            
+            print "act: Setting activity", `text`
         self.SetStatusText( text, 0)
 
 ##############################################################
