@@ -124,8 +124,6 @@ class SingleSocket:
             return
         #assert self.socket is not None
         self.buffer.append(s)
-        if DEBUG:
-            print >>sys.stderr,"SingSock: buffer length is",len(self.buffer)
         if len(self.buffer) == 1:
             self.try_write()
 
