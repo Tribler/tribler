@@ -339,6 +339,7 @@ class BuddyCastCore:
         self.start_time = now()
         
         # --- dependent modules ---
+        self.torrent_collecting = None
         if torrent_collecting_solution == 1:
             self.torrent_collecting = SimpleTorrentCollecting(metadata_handler)
 
@@ -819,7 +820,8 @@ class BuddyCastCore:
         
         # update torrent collecting module
         sender_prefs = self.data_handler.getPeerPrefList(sender_permid, cache=True)
-        self.torrent_collecting.updatePreferences(sender_permid, sender_prefs, selversion)
+        if self.torrent_collecting:
+            self.torrent_collecting.updatePreferences(sender_permid, sender_prefs, selversion)
         
         if active:
             self.print_debug_info('Active', 21, sender_permid)
@@ -1053,8 +1055,9 @@ class BuddyCastCore:
                 
             self.data_handler.setPeerLastSeen(peer_permid, now())
             self.connections.pop(peer_permid)
-            
-        self.torrent_collecting.closeConnection(peer_permid)
+        
+        if self.torrent_collecting:
+            self.torrent_collecting.closeConnection(peer_permid)
             
     # -------------- print debug info ---------- #
     def print_debug_info(self, thread, step, target_permid=None, selversion=0, r=0, addto=''):

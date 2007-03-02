@@ -20,8 +20,7 @@ DEBUG = 0
 # from overlayswarm import overlay_infohash
 overlay_infohash = '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
 
-## Arno: FIXME: 8MB too large, IMHO.
-Max_Torrent_Size = 8*1024*1024    # 8MB torrent = about 80G files
+Max_Torrent_Size = 2*1024*1024    # 2MB torrent = 6GB ~ 250GB content
 
 class MetadataHandler:
     

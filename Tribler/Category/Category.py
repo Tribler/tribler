@@ -11,7 +11,6 @@ from time import time
 from copy import deepcopy
 from traceback import print_exc
 import sys
-import wx
 
 category_file = "category.conf"
 
@@ -79,6 +78,7 @@ class Category:
         max = len(data)
         if max == 0:
             return
+        import wx
         dlg = wx.ProgressDialog("Upgrading Database",
                                "Upgrading Old Database to New Database",
                                maximum = max,
