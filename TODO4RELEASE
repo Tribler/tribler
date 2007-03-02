@@ -1,9 +1,11 @@
 
 - Make sure database migration from 3.5.x to 3.6.0 works
 	#TODO: checkout 3.5.0 and run
-	#	   using .Tribler for a new 3.6.0 version
-	#	   re-run 3.5.0 on the same .Tribler again (in case that user re-install 
+	#	   using .Tribler of 3.5.0 for a new 3.6.0 version
+	#	   re-run 3.5.0 on the same .Tribler (used by 3.6.0) again (user may re-install 
 	#      3.5.0 after a run of 3.6.0)
+	#Done: Pass all the tests.
+	#      Jie also checked that database upgrades from 3.4.x to 3.6.0
 
 - Test old clients against new superpeer code
 	#TODO: log of superpeer
@@ -14,7 +16,7 @@
   connection. 
   
   	#Jie is working on this.
-  	done
+  	#done: Simple torrent collecting method: per torrent/peer/4 hours
   
 - Recommendation value of torrent shown / Allow sorting on most popular
   and recommendation value.
