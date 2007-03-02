@@ -124,8 +124,9 @@ class SingleSocket:
             return
         #assert self.socket is not None
         self.buffer.append(s)
+        if DEBUG:
+            print >>sys.stderr,"SingSock: buffer length is",len(self.buffer)
         if len(self.buffer) == 1:
-            #self.connected = False  # Arno: got WSAEWOULDBLOCK on self.socket.send. Perhaps should test for writability each time?
             self.try_write()
 
     def try_write(self):
@@ -145,14 +146,17 @@ class SingleSocket:
                         break
                     del self.buffer[0]
             except socket.error, e:
-                #if DEBUG:
-                #    print_exc(file=sys.stderr)
+                if DEBUG:
+                    print_exc(file=sys.stderr)
+                blocked=False
                 try:
-                    dead = (e[0] != SOCKET_BLOCK_ERRORCODE)
+                    blocked = (e[0] == SOCKET_BLOCK_ERRORCODE) 
+                    dead = not blocked
                 except:
                     dead = True
-                self.skipped += 1
-            if self.skipped >= 3:
+                if not blocked:
+                    self.skipped += 1
+            if self.skipped >= 5:
                 dead = True
             if dead:
                 self.socket_handler.dead_from_write.append(self)
