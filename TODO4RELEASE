@@ -1,0 +1,21 @@
+
+- Make sure database migration from 3.5.x to 3.6.0 works
+
+- Test old clients against new superpeer code
+
+- Make sure torrent collecting makes use of the open overlay-swarm
+  connection. 
+  
+  	Jie is working on this.
+  
+- Recommendation value of torrent shown / Allow sorting on most popular
+  and recommendation value.
+
+	Jelle is working on this.
+	
+- Check liveliness of torrent after METADATA message comes in. Only if it's
+  live display "Got torrent XXX" in status bar.
+  
+  	Jelle is working on this.
+	
+	
