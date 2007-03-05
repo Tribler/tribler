@@ -1,3 +1,6 @@
+# Written by Jelle Roozenburg
+# see LICENSE.txt for license information
+
 import wx, math, time, os, sys, threading
 from traceback import print_exc
 from abcfileframe import TorrentDataManager
@@ -396,12 +399,17 @@ class PagerPanel(wx.Panel):
         self.totalItems = len(self.parent.data)
         self.itemsPerPage = self.parent.items
         
+        # if dummy item "Searching for content is shown, do not count it as content
+        if self.totalItems == 1 and self.parent.data[0].get('content_name','no_name') == self.utility.lang.get('searching_content'):
+            self.totalItems = 0
+        
         
         if self.itemsPerPage == 0:
             self.totalPages = 0
         else:
             self.totalPages = int(math.ceil(self.totalItems/float(self.itemsPerPage)))
 
+            
         category = self.parent.parent.categorykey
         self.number.SetLabel('%d %s %s%s / %d %s%s' % (self.totalItems, category.lower(), self.utility.lang.get('item'), getPlural(self.totalItems), self.totalPages, self.utility.lang.get('page'), getPlural(self.totalPages)))
         
@@ -932,7 +940,7 @@ class DetailPanel(wx.Panel):
         try:
             for key, value in torrent.items():
                 if key == 'content_name':
-                    self.title.SetLabel(self.breakup(value))
+                    self.title.SetLabel(self.breakup(value, self.title))
                     self.title.SetMinSize((100, 80))
                 elif key == 'seeder':
                     if value > -1:
@@ -1046,11 +1054,12 @@ class DetailPanel(wx.Panel):
         print item.GetState()
         item.SetState(wx.LIST_STATE_SELECTED)
     
-    def breakup(self, str, depth=0):
+    def breakup(self, str, ctrl, depth=0):
         if depth > 10:
             return str
         
-        begin = self.GetSize()[0] / self.GetCharWidth() - 10 # first part of the string where we break it
+        charWidth = ctrl.GetTextExtent(str)[0]/len(str)
+        begin = self.GetSize()[0] / charWidth - 5 # first part of the string where we break it
         #print 'There should fit %d chars'% begin
         
         if len(str)<=max(begin, 5) or '\n' in str[:begin+1]:
@@ -1059,9 +1068,9 @@ class DetailPanel(wx.Panel):
         for char in [' ', '.','_','[',']','(', '-', ',']:
             i = str.find(char, begin -10)
             if i>0 and i<=begin:
-                return str[:i]+'\n'+self.breakup(str[i:], depth+1)
+                return str[:i]+'\n'+self.breakup(str[i:], ctrl, depth+1)
         
-        return str[:begin]+'\n'+self.breakup(str[begin:], depth+1)
+        return str[:begin]+'\n'+self.breakup(str[begin:], ctrl, depth+1)
             
     def mouseAction(self, event):
         obj = event.GetEventObject()
@@ -1083,7 +1092,7 @@ class DetailPanel(wx.Panel):
             return
         self.oldSize = event.GetSize()
         value = self.data.get('content_name', '')
-        self.title.SetLabel(self.breakup(value))
+        self.title.SetLabel(self.breakup(value, self.title))
         self.title.SetMinSize((100, 80))
         
             
@@ -1123,7 +1132,10 @@ class ImagePanel(wx.Panel):
         else:
             self.path = path
         
-        assert os.path.exists(path), 'Image file: %s does not exist' % path
+        if not os.path.exists(path):
+            print 'Image file: %s does not exist' % path
+            self.bitmap = None
+            return
             
         bm = wx.Bitmap(path,wx.BITMAP_TYPE_ANY)
         
@@ -1204,21 +1216,24 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
     def addData(self, torrent):
         "When a new torrent is discovered, the grid is not directly reordered. The new torrent is added at the end of the gridlist"
         
-        self.neverAnyContent = False
         i = find_content_in_dictlist(self.grid.data, torrent)
         if i != -1:
             self.grid.data[i] = torrent
             self.grid.setData(self.grid.data, False)
+            self.neverAnyContent = False
         else:
-            # Check if we have to remove the dummy content
-            if len(self.grid.data) == 1 and self.grid.data[0].get('content_name') == self.utility.lang.get('searching_content'):
-                del self.grid.data[0]
             if torrent.get('status') == 'good':
+                
+                # Check if we have to remove the dummy content
+                if len(self.grid.data) == 1 and self.grid.data[0].get('content_name') == self.utility.lang.get('searching_content'):
+                    del self.grid.data[0]
+                    self.neverAnyContent = False
+                    print 'Removing dummy content'
+                
                 # Only add healthy torrents to grid
-                torrent['swarmsize'] = torrent.get('leecher', 0) + torrent.get('seeder', 0)
                 self.grid.data.append(torrent)
-            
-            self.grid.setData(self.grid.data, False)
+                
+                self.grid.setData(self.grid.data, False)
     
     def deleteData(self, torrent):
         
@@ -1296,7 +1311,7 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
                     if ret == 'OK':
                         #self.parent.frame.updateMyPref()
                         infohash = torrent['infohash']
-                        self.data_manager.updateFun(infohash, 'delete')
+                        self.data_manager.deleteTorrent(infohash, True)
                 return
         
         # Torrent not found            
@@ -1310,7 +1325,7 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
             self.data_manager.updateFun(infohash, 'delete')
         
     def refresh(self, torrent):
-        print 'refresh %s' % torrent.get('content_name', 'no_name')
+        print 'refresh ' + repr(torrent.get('content_name', 'no_name'))
         check = SingleManualChecking(torrent)
         check.start()
         
@@ -1324,7 +1339,7 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
             str = self.utility.lang.get('delete_sure') % torrent.get('content_name','')+'?'
             dlg = wx.MessageDialog(self, str, self.utility.lang.get('delete'), 
                                         wx.YES_NO|wx.NO_DEFAULT|wx.ICON_INFORMATION)
-            result = dlg.ShowModal(    )
+            result = dlg.ShowModal()
             dlg.Destroy()
             if result == wx.ID_YES:
                 self.data_manager.deleteTorrent(infohash, True)

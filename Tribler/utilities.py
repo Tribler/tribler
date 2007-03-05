@@ -189,6 +189,11 @@ def find_content_in_dictlist(dict_list, content, key='content_name'):
         if title == dict_list[i].get(key):
             return i
     return -1
+
+def remove_torrent_from_list(list, content, key = 'infohash'):
+    index = find_content_in_dictlist(list, content, key)
+    if index != -1:
+        del list[index]
     
 def sortList(list_to_sort, list_key, order='decrease'):
         aux = zip(list_key, list_to_sort)

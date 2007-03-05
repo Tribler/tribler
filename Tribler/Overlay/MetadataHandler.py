@@ -13,8 +13,9 @@ from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
 from Tribler.unicode import name2unicode
 from Tribler.Category.Category import Category
 from Tribler.Dialogs.activities import ACT_GOT_METADATA
+from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 
-DEBUG = 0
+DEBUG = True
 
 # Python no recursive imports?
 # from overlayswarm import overlay_infohash
@@ -216,6 +217,9 @@ class MetadataHandler:
         self.check_overflow()
         self.torrent_db.sync()
         
+        torrent.update({'infohash':torrent_hash})
+        self.refreshTrackerStatus(torrent)
+        
         # Arno: show activity
         self.launchmany.set_activity(ACT_GOT_METADATA,unicode('"'+torrent_info['name']+'"'))
         
@@ -274,7 +278,14 @@ class MetadataHandler:
         save_path = os.path.join(self.config_dir, file_name)
         self.addTorrentToDB(save_path, torrent_hash, metadata)
         self.write_torrent(metadata, self.config_dir, file_name)
-
+        
+    def refreshTrackerStatus(self, torrent):
+        "Upon the reception of a new discovered torrent, directly check its tracker"
+        if DEBUG:
+            print >> sys.stderr, "metadata: checking tracker status of new torrent"
+        check = SingleManualChecking(torrent)
+        check.start()
+        
     def get_filename(self,torrent_hash):
         # assign a name for the torrent. add a timestamp if it exists.
         file_name = sha(torrent_hash).hexdigest()+'.torrent'

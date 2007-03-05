@@ -7,7 +7,7 @@ import os
 import sys
 from traceback import print_exc
 from base64 import encodestring
-from Tribler.utilities import friendly_time, sort_dictlist
+from Tribler.utilities import friendly_time, sort_dictlist, remove_torrent_from_list
 from Tribler.unicode import str2unicode, dunno2unicode
 from common import CommonTriblerList
 from Utility.constants import * #IGNORE:W0611
@@ -389,7 +389,9 @@ class TorrentDataManager:
         if not old_torrent:
             return
         self.info_dict.pop(infohash)
-        self.data.remove(old_torrent)
+        # Replaces remove() function because of unicode error
+        #self.data.remove(old_torrent)
+        remove_torrent_from_list(self.data, old_torrent)
         self.notifyView(old_torrent, 'delete')
 
     def prepareItem(self, torrent):    # change self.data
