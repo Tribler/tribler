@@ -100,7 +100,7 @@ class StaticGridPanel(wx.Panel):
             self.items = self.cols * self.currentRows
         
         if oldRows != self.currentRows: #changed
-            #print 'Size updated to %d rows and %d columns, oldrows: %d'% (self.currentRows, self.cols, oldRows)
+            print 'Size updated to %d rows and %d columns, oldrows: %d'% (self.currentRows, self.cols, oldRows)
             
             self.updatePanel(oldRows, self.currentRows)
             self.parent.gridResized(self.currentRows)
@@ -402,7 +402,8 @@ class PagerPanel(wx.Panel):
         else:
             self.totalPages = int(math.ceil(self.totalItems/float(self.itemsPerPage)))
 
-        self.number.SetLabel('%d %s%s / %d %s%s' % (self.totalItems, self.utility.lang.get('item'), getPlural(self.totalItems), self.totalPages, self.utility.lang.get('page'), getPlural(self.totalPages)))
+        category = self.parent.parent.categorykey
+        self.number.SetLabel('%d %s %s%s / %d %s%s' % (self.totalItems, category.lower(), self.utility.lang.get('item'), getPlural(self.totalItems), self.totalPages, self.utility.lang.get('page'), getPlural(self.totalPages)))
         
         if self.currentPage >= self.totalPages:
             self.currentPage = max(self.totalPages -1, 0)
@@ -482,15 +483,22 @@ class TorrentPanel(wx.Panel):
         self.warningBitmap = "warning.gif"
         self.leecherBitmap = "down.png"
         self.seederPic.SetBitmap(self.seederBitmap)
-        self.leecher = wx.StaticText(self, -1, '')
+        self.leecher = StaticText(self, -1, '')
+        self.leecher.SetBackgroundColour(wx.WHITE)
         self.leecherPic = ImagePanel(self)
         self.leecherPic.SetBackgroundColour(wx.WHITE)
         self.leecherPic.SetBitmap(self.leecherBitmap)
-        self.size = wx.StaticText(self, -1, '')
+        self.size = StaticText(self, -1, '')
+        self.size.SetBackgroundColour(wx.WHITE)
         self.sizePic = ImagePanel(self)
         self.sizePic.SetBackgroundColour(wx.WHITE)
         self.sizePic.SetBitmap("size.png")
-        
+        self.recommPic = ImagePanel(self)
+        self.recommPic.SetBackgroundColour(wx.WHITE)
+        self.recommPic.SetBitmap("love.png")
+        self.recomm = StaticText(self, -1, '')
+        self.recomm.SetBackgroundColour(wx.WHITE)
+                
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.hSizer.Add(self.seederPic, 0, wx.RIGHT, 1)
         self.hSizer.Add(self.seeder, 0, wx.RIGHT, 15)     
@@ -498,6 +506,9 @@ class TorrentPanel(wx.Panel):
         self.hSizer.Add(self.leecher, 0, wx.RIGHT, 15)
         self.hSizer.Add(self.sizePic, 0, wx.RIGHT, 5)
         self.hSizer.Add(self.size, 0, wx.RIGHT, 15)
+        self.hSizer.Add(self.recommPic, 0, wx.RIGHT, 5)
+        self.hSizer.Add(self.recomm, 0, wx.RIGHT, 15)
+        
 
         self.vSizer.Add(self.hSizer, 0, BORDER_EXPAND, 3)
         self.SetBackgroundColour(wx.WHITE)
@@ -513,8 +524,17 @@ class TorrentPanel(wx.Panel):
                              
     def setData(self, torrent):
         # set bitmap, rating, title
-        if self.datacopy == torrent and torrent != None:
-            return
+        
+        
+        try:
+            if self.datacopy['infohash'] == torrent['infohash']:
+                # Do not update torrents that have no new seeders/leechers/size
+                if (self.datacopy['seeder'] == torrent['seeder'] and
+                    self.datacopy['leecher'] == torrent['leecher'] and
+                    self.datacopy['length'] == torrent['length']):
+                    return
+        except:
+            pass
         
         self.data = torrent
         self.datacopy = deepcopy(torrent)
@@ -532,12 +552,15 @@ class TorrentPanel(wx.Panel):
             self.title.SetToolTipString(torrent['content_name'])
         else:
             self.title.SetLabel('')
+            self.title.SetToolTipString('')
+            
         if torrent.get('seeder') != None and torrent.get('leecher') != None and torrent.get('category'): # category means 'not my downloaded files'
             self.seederPic.SetEnabled(True)
-            
+                        
             if torrent['seeder'] < 0:
                 self.leecherPic.SetEnabled(False)
                 self.leecher.SetLabel('')
+                self.leecher.SetToolTipString('')
                 self.seederPic.SetBitmap(self.warningBitmap)
                 if torrent['seeder'] == -1:
                     self.seeder.SetLabel("Outdated swarminfo")
@@ -549,20 +572,35 @@ class TorrentPanel(wx.Panel):
                 self.leecherPic.SetEnabled(True)
                 self.seederPic.SetBitmap(self.seederBitmap)
                 self.seeder.SetLabel(str(torrent['seeder']))
+                self.seeder.SetToolTipString(self.utility.lang.get('seeder_tool'))
                 self.leecher.SetLabel(str(torrent['leecher']))
+                self.leecher.SetToolTipString(self.utility.lang.get('leecher_tool'))
         else:
             self.seeder.SetLabel('')
+            self.seeder.SetToolTipString('')
             self.seederPic.SetEnabled(False)
             self.leecher.SetLabel('')
+            self.leecher.SetToolTipString('')
             self.leecherPic.SetEnabled(False)
             
         if torrent.get('length'):
             self.sizePic.SetEnabled(True)
             self.size.SetLabel(self.utility.size_format(torrent['length']))
+            self.size.SetToolTipString(self.utility.lang.get('size_tool'))
+            
         else:
             self.size.SetLabel('')
+            self.size.SetToolTipString('')
             self.sizePic.SetEnabled(False)
             
+        if torrent.get('relevance'):
+            self.recomm.SetLabel("%.1f" % torrent['relevance'])
+            self.recommPic.SetEnabled(True)
+            self.recomm.SetToolTipString(self.utility.lang.get('recomm_relevance'))
+        else:
+            self.recomm.SetLabel('')
+            self.recomm.SetToolTipString('')
+            self.recommPic.SetEnabled(False)
          # Since we have only one category per torrent, no need to show it
 #        if torrent.get('category'):
 #            self.vSizer.GetStaticBox().SetLabel(' / '.join(torrent['category']))
@@ -622,6 +660,7 @@ class CategoryPanel(wx.Panel):
         wx.Panel.__init__(self, parent, -1)
         self.utility = parent.utility
         self.parent = parent
+        self.myHistorySelected = False
         self.categories = categories
         self.myHistory = myHistory
         self.addComponents()
@@ -639,38 +678,49 @@ class CategoryPanel(wx.Panel):
         # Order types
         self.orderSizer = wx.BoxSizer(wx.HORIZONTAL)
         # Removed ordering, because recommendation is not effective
-        #self.vSizer.Add(self.orderSizer, 0, BORDER_EXPAND, 0)
+                
 #        label1 = wx.StaticText(self, -1, self.utility.lang.get('order_by')+': ')
 #        label1.SetMinSize((100, -1))
 #        self.orderSizer.Add(label1, 0, wx.LEFT|wx.RIGHT, 10)
-#        
-#        self.swarmLabel = StaticText(self, -1, self.utility.lang.get('swarmsize'))
-#        self.swarmLabel.SetToolTipString(self.utility.lang.get('swarmsize_tool'))
-#        self.swarmLabel.SetBackgroundColour(self.GetBackgroundColour())
-#        self.swarmLabel.SetFont(self.selFont)
-#        self.orderSizer.Add(self.swarmLabel, 0, wx.LEFT|wx.RIGHT, 10)
-#        
-#        self.recommLabel = StaticText(self, -1, self.utility.lang.get('recommendation'))
-#        self.recommLabel.SetBackgroundColour(self.GetBackgroundColour())
-#        self.recommLabel.SetFont(self.unselFont)
-#        self.recommLabel.SetToolTipString(self.utility.lang.get('recommendation_tool'))
-#        self.orderSizer.Add(self.recommLabel, 0, wx.LEFT|wx.RIGHT, 10)
-#        self.recommLabel.Bind(wx.EVT_LEFT_UP, self.orderAction)
-#        self.swarmLabel.Bind(wx.EVT_LEFT_UP, self.orderAction)
-#        self.lastOrdering = self.swarmLabel
+        
+        self.swarmLabel = StaticText(self, -1, self.utility.lang.get('swarmsize'))
+        self.swarmLabel.SetToolTipString(self.utility.lang.get('swarmsize_tool'))
+        self.swarmLabel.SetBackgroundColour(self.GetBackgroundColour())
+        self.swarmLabel.SetFont(self.selFont)
+        self.orderSizer.Add(self.swarmLabel, 0, wx.LEFT|wx.RIGHT, 10)
+        
+        self.recommLabel = StaticText(self, -1, self.utility.lang.get('recommended'))
+        self.recommLabel.SetBackgroundColour(self.GetBackgroundColour())
+        self.recommLabel.SetFont(self.unselFont)
+        self.recommLabel.SetToolTipString(self.utility.lang.get('recommendation_tool'))
+        self.orderSizer.Add(self.recommLabel, 1, wx.LEFT|wx.RIGHT, 10)
+        
+        self.myHistoryLabel = StaticText(self, -1, self.myHistory)
+        self.myHistoryLabel.SetBackgroundColour(self.GetBackgroundColour())
+        self.myHistoryLabel.SetFont(self.unselFont)
+        self.myHistoryLabel.SetToolTipString(self.utility.lang.get('myhistory_tool'))
+        self.orderSizer.Add(self.myHistoryLabel, 0, wx.LEFT|wx.RIGHT, 10)
+        
+        self.recommLabel.Bind(wx.EVT_LEFT_UP, self.orderAction)
+        self.swarmLabel.Bind(wx.EVT_LEFT_UP, self.orderAction)
+        self.myHistoryLabel.Bind(wx.EVT_LEFT_UP, self.mouseAction)
+        
+        
+        self.lastOrdering = self.swarmLabel
         
         
         # Categories
         self.catSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.vSizer.Add(self.catSizer, 0, BORDER_EXPAND, 0)
         
+        self.vSizer.Add(self.orderSizer, 0, BORDER_EXPAND, 0)
         # Label that show category header:
 #        label2 =wx.StaticText(self,-1,self.utility.lang.get('categories')+': ')
 #        label2.SetMinSize((100, -1))
 #        self.catSizer.Add(label2, 0, wx.LEFT|wx.RIGHT, 10)
         
         
-        for cat in self.categories+[self.myHistory]:
+        for cat in self.categories:
             label = StaticText(self,-1,cat.title())
             label.SetBackgroundColour(self.GetBackgroundColour())
             label.Bind(wx.EVT_LEFT_UP, self.mouseAction)
@@ -686,18 +736,26 @@ class CategoryPanel(wx.Panel):
         
     def orderAction(self, event):
         obj = event.GetEventObject()
-        if obj == self.lastOrdering:
+        if obj == self.lastOrdering or self.myHistorySelected:
             return
         
         if obj == self.swarmLabel:
-            self.parent.reorder('seeder')
+            self.parent.reorder('swarmsize')
             obj.SetFont(self.selFont)
-            self.recommLabel.SetFont(self.unselFont)
+            
             
         elif obj == self.recommLabel:
             self.parent.reorder('relevance')
             obj.SetFont(self.selFont)
-            self.swarmLabel.SetFont(self.unselFont)
+                        
+#        elif obj == self.myHistoryLabel:
+#            self.parent.loadMyDownloadHistory()
+#            obj.SetFont(self.selFont)
+#            self.hideCategories(True)
+#        
+        
+        if self.lastOrdering:
+            self.lastOrdering.SetFont(self.unselFont)
         self.lastOrdering = obj
         
     def mouseAction(self, event):
@@ -711,14 +769,23 @@ class CategoryPanel(wx.Panel):
             self.setUnselected(self.lastSelected)
         self.parent.setCategory(obj.GetLabel())
         self.lastSelected = obj
+        self.myHistorySelected = (obj == self.myHistoryLabel)
+        self.deselectOrderings(self.myHistorySelected)
         
+    def deselectOrderings(self, des):
+        if des:
+            self.lastOrdering.SetFont(self.unselFont)
+            
+        else:
+            self.lastOrdering.SetFont(self.selFont)
+            
     def setSelected(self, obj):
         obj.SetFont(self.selFont)
-        
+        self.orderSizer.Layout()
     
     def setUnselected(self, obj):
         obj.SetFont(self.unselFont)
-
+        self.orderSizer.Layout()
         
 class DetailPanel(wx.Panel):
     """
@@ -731,7 +798,7 @@ class DetailPanel(wx.Panel):
         self.utility = utility
         self.parent = parent
         self.data = None
-
+        self.oldSize = None
         self.addComponents()
         self.Centre()
         self.Show()
@@ -819,6 +886,15 @@ class DetailPanel(wx.Panel):
         sizeSizer.Add(self.sizeText, 0, wx.LEFT, 10)
         torrentVSizer.Add(sizeSizer, 1, BORDER_EXPAND, 1)
         
+        # Recommendation
+        recommSizer = wx.BoxSizer(wx.HORIZONTAL)
+        recommLabel = wx.StaticText(self.torrentDetailsPanel, -1,self.utility.lang.get('recommendation')+": ")
+        self.recommText = wx.StaticText(self.torrentDetailsPanel, -1,"", style=wx.ALIGN_RIGHT)
+        recommSizer.Add(recommLabel, 1, BORDER_EXPAND, 0)
+        recommSizer.Add(self.recommText, 0, wx.LEFT, 10)
+        torrentVSizer.Add(recommSizer, 1, BORDER_EXPAND, 1)
+        
+        
         self.torrentDetailsPanel.SetSizer(torrentVSizer)
         
         self.vSizer.Add(self.torrentDetailsPanel, 0, BORDER_EXPAND, 1)
@@ -881,6 +957,8 @@ class DetailPanel(wx.Panel):
                         index = self.fileList.InsertStringItem(sys.maxint, f[0])
                         self.fileList.SetStringItem(index, 1, f[1])
                     self.onListResize(None) 
+                elif key == 'relevance':
+                    self.recommText.SetLabel("%.1f" % value)
                     
             if torrent.get('category'):
                 self.refreshButton.SetEnabled(True)
@@ -998,8 +1076,16 @@ class DetailPanel(wx.Panel):
     
     def onResize(self, event):
         # redo set data for new breakup
-        self.setData(self.data)
         event.Skip(True)
+        if self.oldSize and (event.GetSize()[0] == self.oldSize[0]):
+            return
+        if not self.data:
+            return
+        self.oldSize = event.GetSize()
+        value = self.data.get('content_name', '')
+        self.title.SetLabel(self.breakup(value))
+        self.title.SetMinSize((100, 80))
+        
             
 class ImagePanel(wx.Panel):
     def __init__(self, parent, size=None):
@@ -1071,7 +1157,7 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
         self.imagepath = os.path.join(self.utility.getPath(), 'icons')+'/'
         #print self.imagepath
         wx.Panel.__init__(self, parent, -1)
-        self.type = 'seeder'
+        self.type = 'swarmsize'
         DelayedInvocation.__init__(self)
         self.doneflag = threading.Event()
         self.oldCategory = None
@@ -1129,6 +1215,7 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
                 del self.grid.data[0]
             if torrent.get('status') == 'good':
                 # Only add healthy torrents to grid
+                torrent['swarmsize'] = torrent.get('leecher', 0) + torrent.get('seeder', 0)
                 self.grid.data.append(torrent)
             
             self.grid.setData(self.grid.data, False)

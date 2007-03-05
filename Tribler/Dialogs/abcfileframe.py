@@ -403,6 +403,7 @@ class TorrentDataManager:
         torrent['tracker'] = info.get('announce', '')
         torrent['leecher'] = torrent.get('leecher', -1)
         torrent['seeder'] = torrent.get('seeder', -1)
+        torrent['swarmsize'] = torrent['seeder'] + torrent['leecher']
         return torrent
          
         

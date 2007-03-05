@@ -231,6 +231,7 @@ class ABCPanel(wx.Panel):
         #colSizer.Add(self.list, 1, wx.EXPAND|wx.ALL|wx.GROW, 1)
         self.contentPanel = ContentFrontPanel(split)
         
+        
         split.SplitHorizontally(self.list, self.contentPanel, 100) #  module dependent
         
         colSizer.Add(split, 1, wx.ALL|wx.EXPAND, 3)
