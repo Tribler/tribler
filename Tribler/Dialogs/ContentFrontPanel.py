@@ -615,7 +615,7 @@ class TorrentPanel(wx.Panel):
             self.recommPic.SetEnabled(False)
          # Since we have only one category per torrent, no need to show it
 
-        if torrent.get('category') and self.contentFrontPanel.categorykey == self.utility.lang.get('mypref_list_title'):
+        if torrent.get('category') and torrent.get('myDownloadHistory', False):
             self.vSizer.GetStaticBox().SetLabel(' / '.join(torrent['category']))
         else:
             self.vSizer.GetStaticBox().SetLabel('')
