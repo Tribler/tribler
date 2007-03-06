@@ -180,7 +180,7 @@ def sort_dictlist(dict_list, key, order='increase'):
         aux.reverse()
     return [dict_list[i] for x, i in aux]
 
-def find_content_in_dictlist(dict_list, content, key='content_name'):
+def find_content_in_dictlist(dict_list, content, key='infohash'):
     title = content.get(key)
     if not title:
         print 'Error: content had no content_name'

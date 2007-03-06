@@ -383,14 +383,19 @@ class TorrentDBHandler(BasicDBHandler):
         return torrents
         
     def getRecommendedTorrents(self, light=False, all=False):     # get torrents on disk but not in my pref
-        all_list = self.torrent_db._keys()
-        if not all:
+        if all:
+            all_list = self.torrent_db._keys()
+            mypref_set = Set(self.mypref_db._keys())
+        else:
             all_list = list(Set(self.torrent_db._keys()) - Set(self.mypref_db._keys()))
+            
         torrents = []
         for torrent in all_list:
             p = self.torrent_db.getItem(torrent, default=True)
             if not p or not p.get('torrent_name', None) or not p.get('info', None):
                 continue
+            if torrent in mypref_set:
+                p['myDownloadHistory'] = True
             p['infohash'] = torrent
             if not light:    # set light as ture to be faster
                 p['num_owners'] = self.owner_db.getNumOwners(torrent)
@@ -530,17 +535,19 @@ class MyPreferenceDBHandler(BasicDBHandler):
         
         return peers
         
-    def removeFakeTorrents(self, items):    #TODO: revise it by filter()
-        valid_torrents = []
-        for i in xrange(len(items)):
-            torrent = items[i][0]
-            if self.mypref_db.getRank(torrent) >= 0:
-                valid_torrents.append(items[i])
-        return valid_torrents
+    def removeFakeAndDeadTorrents(self, items):
+        def fakeFilter(item):
+            infohash = item[0] # infohash
+            valid = self.mypref_db.getRank(infohash) >= 0
+            torrentdata = self.torrent_db.getItem(infohash, default=True) # defaulttorrent has status 'unknown'
+            alive = torrentdata.get('status', 'unknown') != 'dead'
+            return alive and valid
+        return filter(fakeFilter, items)
+    
             
     def getRecentPrefList(self, num=0):    # num = 0: all files
         all_items = self.mypref_db._items()
-        valid_items = self.removeFakeTorrents(all_items)
+        valid_items = self.removeFakeAndDeadTorrents(all_items)
         prefs = [(item[1]['last_seen'], item[0]) for item in valid_items]
         prefs.sort()
         prefs.reverse()
@@ -575,8 +582,13 @@ class OwnerDBHandler(BasicDBHandler):
 def test_mydb():
     mydb = MyDBHandler()
     
+def test_myprefDB():
+    myprefdb = MyPreferenceDBHandler()
+    print myprefdb.getRecentPrefList()
+    
 def test_all():
     test_mydb()
+    #test_myprefDB()
     
 if __name__ == '__main__':
     test_all()

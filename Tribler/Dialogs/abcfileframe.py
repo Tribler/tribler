@@ -49,7 +49,7 @@ class MyPreferenceList(CommonTriblerList):
         self.lastcolumnsorted = -1
         
         style = wx.LC_REPORT|wx.LC_HRULES|wx.LC_VRULES
-        self.data_manager = TorrentDataManager.getInstance()
+        self.data_manager = TorrentDataManager.getInstance(self.utility)
         prefix = 'mypref'
         minid = 0
         maxid = 5
@@ -246,13 +246,14 @@ class TorrentDataManager:
     # Code to make this a singleton
     __single = None
    
-    def __init__(self):
+    def __init__(self, utility):
         if TorrentDataManager.__single:
             raise RuntimeError, "TorrentDataManager is singleton"
         TorrentDataManager.__single = self
         self.done_init = False
+        self.utility = utility
         self.torrent_db = SynTorrentDBHandler(updateFun=self.updateFun)
-        self.data = self.torrent_db.getRecommendedTorrents()
+        self.data = self.torrent_db.getRecommendedTorrents(all=True) #gets torrents without mypref
         self.category = Category.getInstance()
         updated = self.category.checkResort(self)        
         if updated:
@@ -279,9 +280,18 @@ class TorrentDataManager:
     def getCategory(self, categorykey):
         
         categorykey = categorykey.lower()
+        def noDownloadHistory(torrent):
+            return not torrent.has_key('myDownloadHistory')
         
         if (categorykey == "all"):
-            return self.data
+            return filter(noDownloadHistory, self.data)
+        
+        # See downloaded files also as category
+        if (categorykey == self.utility.lang.get('mypref_list_title').lower()):
+            def myfilter(a):
+                return a.get('myDownloadHistory', False)
+            rlist = filter(myfilter, self.data) 
+            return rlist
         
         rlist = []
         
@@ -293,7 +303,7 @@ class TorrentDataManager:
                 categories = ["other"]
             if categorykey in [cat.lower() for cat in categories]:
                 rlist.append(idata)
-        return rlist
+        return filter(noDownloadHistory, rlist)
 
     def deleteTorrent(self, infohash, delete_file=False):
         self.torrent_db.deleteTorrent(infohash, delete_file=False, updateFlag=True)
@@ -326,7 +336,7 @@ class TorrentDataManager:
     def updateFun(self, infohash, operate):
         if not self.done_init:    # don't call update func before init finished
             return
-        #print "*** torrentdatamanager updateFun", operate
+        print "*** torrentdatamanager updateFun", operate
         if self.info_dict.has_key(infohash):
             if operate == 'add':
                 self.addItem(infohash)
@@ -343,7 +353,12 @@ class TorrentDataManager:
     def notifyView(self, torrent, operate):        
 #        if torrent["category"] == ["?"]:
 #            torrent["category"] = self.category.calculateCategory(torrent["info"], torrent["info"]['name'])
-        categories = torrent.get('category', ['other']) + ["All"]
+        
+        if torrent.get('myDownloadHistory'):
+            categories = [self.utility.lang.get('mypref_list_title')]
+        else:
+            categories = torrent.get('category', ['other']) + ["All"]
+                                            
         for key in categories:
 #            if key == '?':
 #                continue
@@ -368,6 +383,28 @@ class TorrentDataManager:
         self.info_dict[infohash] = item
         self.notifyView(item, 'add')
     
+    
+    def setBelongsToMyDowloadHistory(self, infohash, b):
+        """Set a certain new torrent to be in the download history or not"
+        Should not be changed by updateTorrent calls"""
+        old_torrent = self.info_dict.get(infohash, None)
+        if not old_torrent:
+            return
+        # EventComing up, to let the detailPanel update already
+        if b:
+            old_torrent['eventComingUp'] = 'downloading'
+        else:
+            old_torrent['eventComingUp'] = 'notDownloading'
+        
+        self.notifyView(old_torrent, 'delete')
+        del old_torrent['eventComingUp']
+        if b:
+            old_torrent['myDownloadHistory'] = True
+        else:
+            if old_torrent.has_key('myDownloadHistory'):
+                del old_torrent['myDownloadHistory']
+        self.notifyView(old_torrent, 'add')
+        
     def updateItem(self, infohash):
         old_torrent = self.info_dict.get(infohash, None)
         if not old_torrent:
@@ -379,7 +416,7 @@ class TorrentDataManager:
         item = self.prepareItem(torrent)
         
         #old_torrent.update(item)
-        for key in old_torrent.keys():    # modify reference
+        for key in torrent.keys():    # modify reference
             old_torrent[key] = torrent[key]
     
         self.notifyView(old_torrent, 'update')
@@ -696,7 +733,7 @@ class FileList(CommonTriblerList):
             dlg.Destroy()
             if result == wx.ID_YES:
                 infohash = self.data[idx]['infohash']
-                self.data_manager.updateFun(infohash, 'delete')
+                self.data_manager.deleteTorrent(infohash, delete_file=True)
      
         
             

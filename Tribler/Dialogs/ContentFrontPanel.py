@@ -18,6 +18,8 @@ BORDER = wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.ALIGN_LEFT
 ID_STATICBITMAP = 10000
 ID_TEXT = 10001
 
+DEBUG = True
+
 class ABCSplitterWindow(wx.SplitterWindow):
     def __init__(self, parent, id):
         wx.SplitterWindow.__init__(self, parent, id)
@@ -103,7 +105,8 @@ class StaticGridPanel(wx.Panel):
             self.items = self.cols * self.currentRows
         
         if oldRows != self.currentRows: #changed
-            print 'Size updated to %d rows and %d columns, oldrows: %d'% (self.currentRows, self.cols, oldRows)
+            if DEBUG:
+                print 'Size updated to %d rows and %d columns, oldrows: %d'% (self.currentRows, self.cols, oldRows)
             
             self.updatePanel(oldRows, self.currentRows)
             self.parent.gridResized(self.currentRows)
@@ -454,6 +457,7 @@ class TorrentPanel(wx.Panel):
         
         wx.Panel.__init__(self, parent, -1)
         self.detailPanel = parent.parent.detailPanel
+        self.contentFrontPanel = parent.parent.parent
         self.utility = parent.parent.utility
         self.parent = parent
         self.data = None
@@ -562,7 +566,7 @@ class TorrentPanel(wx.Panel):
             self.title.SetLabel('')
             self.title.SetToolTipString('')
             
-        if torrent.get('seeder') != None and torrent.get('leecher') != None and torrent.get('category'): # category means 'not my downloaded files'
+        if torrent.get('seeder') != None and torrent.get('leecher') != None: # category means 'not my downloaded files'
             self.seederPic.SetEnabled(True)
                         
             if torrent['seeder'] < 0:
@@ -610,14 +614,17 @@ class TorrentPanel(wx.Panel):
             self.recomm.SetToolTipString('')
             self.recommPic.SetEnabled(False)
          # Since we have only one category per torrent, no need to show it
-#        if torrent.get('category'):
-#            self.vSizer.GetStaticBox().SetLabel(' / '.join(torrent['category']))
-#        else:
-#            self.vSizer.GetStaticBox().SetLabel('')
+
+        if torrent.get('category') and self.contentFrontPanel.categorykey == self.utility.lang.get('mypref_list_title'):
+            self.vSizer.GetStaticBox().SetLabel(' / '.join(torrent['category']))
+        else:
+            self.vSizer.GetStaticBox().SetLabel('')
         
+        
+        self.vSizer.Layout()
         self.Layout()
         self.Refresh()
-        
+        self.parent.Refresh()
         
     def select(self):
         self.selected = True
@@ -968,13 +975,10 @@ class DetailPanel(wx.Panel):
                 elif key == 'relevance':
                     self.recommText.SetLabel("%.1f" % value)
                     
-            if torrent.get('category'):
-                self.refreshButton.SetEnabled(True)
-                self.downloadPic.SetEnabled(True)
-            else:
-                self.refreshButton.SetEnabled(False)
+            if (torrent.get('myDownloadHistory', False) and not torrent.get('eventComingUp','') == 'notDownloading') or torrent.get('eventComingUp', '') == 'downloading':
                 self.downloadPic.SetEnabled(False)
-                self.swarmText.SetLabel(self.utility.lang.get('no_information'))
+            else:
+                self.downloadPic.SetEnabled(True)
                 
             self.torrentDetailsPanel.GetSizer().Layout()
             self.vSizer.Layout()
@@ -1037,7 +1041,9 @@ class DetailPanel(wx.Panel):
             return n[:i2]
         else:
             return n
-            
+    
+    def showsTorrent(self, torrent):
+        return self.data != None and self.data.get('infohash', 'no_infohash') == torrent.get('infohash')
         
     def onListResize(self, event):
         size = self.fileList.GetClientSize()
@@ -1176,9 +1182,9 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
         self.neverAnyContent = True
         
         self.categorykey = 'video'  # start showing video files
-        self.data_manager = TorrentDataManager.getInstance()
+        self.data_manager = TorrentDataManager.getInstance(self.utility)
         self.mypref_db = self.utility.mypref_db
-        
+        self.torrent_db = self.utility.torrent_db
         self.addComponents()
         
         self.reloadData()
@@ -1222,7 +1228,7 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
             self.grid.setData(self.grid.data, False)
             self.neverAnyContent = False
         else:
-            if torrent.get('status') == 'good':
+            if torrent.get('status') == 'good' or torrent.get('myDownloadHistory'):
                 
                 # Check if we have to remove the dummy content
                 if len(self.grid.data) == 1 and self.grid.data[0].get('content_name') == self.utility.lang.get('searching_content'):
@@ -1232,15 +1238,18 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
                 
                 # Only add healthy torrents to grid
                 self.grid.data.append(torrent)
-                
+                if DEBUG:
+                    print "Added torrent %s, because status was %s" % (repr(torrent['content_name']), torrent['status'])
+    
                 self.grid.setData(self.grid.data, False)
+            else:
+                if DEBUG:
+                    print "Did not add torrent %s, because status was %s (myDLHist: %s)" % (repr(torrent['content_name']), torrent['status'], torrent.get('myDownloadHistory', 'noMyDownloadHistory'))
     
     def deleteData(self, torrent):
         
-        i = find_content_in_dictlist(self.grid.data, torrent)
-        if i != -1:
-            self.grid.data.remove(torrent)
-            self.grid.setData(self.grid.data, False)
+        remove_torrent_from_list(self.grid.data, torrent)
+        self.grid.setData(self.grid.data, False)
         
         
     def reloadData(self):
@@ -1248,7 +1257,7 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
         if self.oldCategory:
             self.data_manager.unregister(self.updateFun, self.oldCategory)
         
-        if self.categorykey == self.utility.lang.get('mypref_list_title'):
+        if False: #self.categorykey == self.utility.lang.get('mypref_list_title'):
             # load download history
             self.loadMyDownloadHistory()
         else:
@@ -1257,7 +1266,7 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
             self.data = self.data_manager.getCategory(self.categorykey)
             self.filtered = []
             for torrent in self.data:
-                if torrent.get('status') == 'good':
+                if torrent.get('status') == 'good' or torrent.get('myDownloadHistory'):
                     self.filtered.append(torrent)
         
             self.filtered = sort_dictlist(self.filtered, self.type, 'decrease')
@@ -1273,22 +1282,6 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
         self.categorykey = cat
         self.reloadData()
         
-    def loadMyDownloadHistory(self):
-        
-        self.oldCategory = None
-        
-        myprefs = self.mypref_db.getPrefList()
-        keys = ['torrent_dir', 'torrent_name', 'infohash', 'info', 'content_name', 'relevance', 'last_check_time']
-        data = self.mypref_db.getPrefs(myprefs, keys)
-        for i in xrange(len(data)):
-            info = data[i]['info']
-            for field in ['length', 'seeder', 'leecher']:
-                data[i][field] = info.get(field, 0)
-            data[i]['tracker'] = info.get('announce', '')
-
-        self.grid.setData(data)
-                
-                
     def download(self, torrent):
         src1 = os.path.join(torrent['torrent_dir'], 
                             torrent['torrent_name'])
@@ -1299,30 +1292,33 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
             name = showInfoHash(torrent['infohash'])
         #start_download = self.utility.lang.get('start_downloading')
         #str = name + "?"
-        for src in [src1, src2]:
-            if os.path.isfile(src):
-                str = self.utility.lang.get('download_start') + u' ' + name + u'?'
-                dlg = wx.MessageDialog(self, str, self.utility.lang.get('click_and_download'), 
+        if os.path.isfile(src1):
+            src = src1
+        else:
+            src = src2
+            
+        if os.path.isfile(src):
+            str = self.utility.lang.get('download_start') + u' ' + name + u'?'
+            dlg = wx.MessageDialog(self, str, self.utility.lang.get('click_and_download'), 
                                         wx.YES_NO|wx.NO_DEFAULT|wx.ICON_INFORMATION)
-                result = dlg.ShowModal()
-                dlg.Destroy()
-                if result == wx.ID_YES:
-                    ret = self.utility.queue.addtorrents.AddTorrentFromFile(src)
-                    if ret == 'OK':
-                        #self.parent.frame.updateMyPref()
-                        infohash = torrent['infohash']
-                        self.data_manager.deleteTorrent(infohash, True)
-                return
+            result = dlg.ShowModal()
+            dlg.Destroy()
+            if result == wx.ID_YES:
+                ret = self.utility.queue.addtorrents.AddTorrentFromFile(src)
+                if ret == 'OK':
+                    self.setRecommendedToMyDownloadHistory(torrent)
+                    
+        else:
         
-        # Torrent not found            
-        str = self.utility.lang.get('delete_torrent') % name
-        dlg = wx.MessageDialog(self, str, self.utility.lang.get('delete_dead_torrent'), 
+            # Torrent not found            
+            str = self.utility.lang.get('delete_torrent') % name
+            dlg = wx.MessageDialog(self, str, self.utility.lang.get('delete_dead_torrent'), 
                                 wx.YES_NO|wx.NO_DEFAULT|wx.ICON_INFORMATION)
-        result = dlg.ShowModal()
-        dlg.Destroy()
-        if result == wx.ID_YES:
-            infohash = torrent['infohash']
-            self.data_manager.updateFun(infohash, 'delete')
+            result = dlg.ShowModal()
+            dlg.Destroy()
+            if result == wx.ID_YES:
+                infohash = torrent['infohash']
+                self.data_manager.deleteTorrent(infohash, delete_file = True)
         
     def refresh(self, torrent):
         print 'refresh ' + repr(torrent.get('content_name', 'no_name'))
@@ -1334,7 +1330,8 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
         
         infohash = torrent.get('infohash')
         result = None
-        if torrent.has_key('category'):
+        print 'deleting %s' % torrent
+        if not torrent.has_key('myDownloadHistory'):
             # delete in browsed content
             str = self.utility.lang.get('delete_sure') % torrent.get('content_name','')+'?'
             dlg = wx.MessageDialog(self, str, self.utility.lang.get('delete'), 
@@ -1343,35 +1340,39 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
             dlg.Destroy()
             if result == wx.ID_YES:
                 self.data_manager.deleteTorrent(infohash, True)
-        else:
+        else: 
+            # we are deleting a torrent from "my download history"
             str = self.utility.lang.get('delete_mypref_sure') % torrent.get('content_name','')+'?'
             dlg = wx.MessageDialog(self, str, self.utility.lang.get('delete') , 
                                         wx.YES_NO|wx.NO_DEFAULT|wx.ICON_INFORMATION)
             result = dlg.ShowModal(    )
             dlg.Destroy()
             if result == wx.ID_YES:       
-                self.mypref_db.deletePreference(infohash)
-                self.mypref_db.sync()
-                self.data_manager.updateFun(infohash, 'add')
-                self.deleteData(torrent)
-                # automatically refresh the torrent
-                self.refresh(torrent)
+                self.setMyDownloadHistoryToRecommended(torrent)
         
+    def setRecommendedToMyDownloadHistory(self, torrent):
+        infohash = torrent['infohash']
+        self.data_manager.setBelongsToMyDowloadHistory(infohash, True)
+        
+        
+    def setMyDownloadHistoryToRecommended(self, torrent):
+        infohash = torrent['infohash']
+        self.mypref_db.deletePreference(infohash)
+        self.mypref_db.sync()
+        self.data_manager.setBelongsToMyDowloadHistory(infohash, False)
+        self.refresh(torrent)
+                        
     def __del__(self):
         if self.categorykey != self.utility.lang.get('mypref_list_title'):
             self.data_manager.unregister(self.updateFun, self.categorykey)
         
     def updateFun(self, torrent, operate):
-        print 'Updatefun called: %s %s '% (torrent.get('content_name','no_name'), operate)
+        print 'Updatefun called: %s %s (s: %d, l: %d) '% (repr(torrent.get('content_name','no_name')), operate, torrent.get('seeder', -1), torrent.get('leecher', -1))
         # operate = {add, update, delete}
-        if operate == 'update':
-            if self.detailPanel.data['infohash'] == torrent['infohash']:
+        if operate in ['update', 'delete']:
+            if self.detailPanel.showsTorrent(torrent):
                 self.invokeLater(self.detailPanel.setData, [torrent])
         
-        # Do not remove info in detailPanel upon torrent deletion. F.i. when file is downloaded
-        #if operate == 'delete':
-        #    if self.detailPanel.data['infohash'] == torrent['infohash']:
-        #        self.invokeLater(self.detailPanel.setData, [None])
         if operate in ['update', 'add']:
             self.invokeLater(self.addData, [torrent])
         else:
