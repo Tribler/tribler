@@ -8,15 +8,14 @@
 	#      Jie also checked that database upgrades from 3.4.x to 3.6.0
 
 - Test old clients against new superpeer code
-	#TODO: log of superpeer
-	#	   Run and test
-	#	   check log
+	#Done: I upgraded superpeer6 to buddycast2 and test it with old and new clients.
+	#      Both of them work correctly.
 
 - Make sure torrent collecting makes use of the open overlay-swarm
   connection. 
   
   	#Jie is working on this.
-  	#done: Simple torrent collecting method: per torrent/peer/4 hours
+  	#Done: Simple torrent collecting method: per torrent/peer/4 hours
   
 - Recommendation value of torrent shown / Allow sorting on most popular
   and recommendation value.
@@ -27,5 +26,4 @@
   live display "Got torrent XXX" in status bar.
   
   	Jelle is working on this.
-	
 	

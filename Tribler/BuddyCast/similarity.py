@@ -1,6 +1,26 @@
 # Written by Jun Wang, Jie Yang
 # see LICENSE.txt for license information
 
+"""
+Formulas: 
+ P(I|U) = sum{U'<-I} P(U'|U)    # U' has I in his profile
+   P(U'|U) = Sum{I}Pbs(U'|I)Pml(I|U)  # P2PSim
+   Pbs(U|I) = (c(U,I) + mu*Pml(U))/(Sum{U}c(U,I) + mu)   # mu=1 by tuning on tribler dataset
+   Pml(I|U) = c(U,I)/Sum{I}c(U,I)         
+   Pml(U) = Sum{I}c(U,I) / Sum{U,I}c(U,I) 
+   
+Data Structur:
+    preferences - U:{I|c(U,I)>0}, # c(U,I)    # Sum{I}c(U,I) = len(preferences[U])
+    owners - I:{U|c(U,I)>0}    # I:I:Sum{U}c(U,I) = len(owners[I])
+    userSim - U':P(U'|U)
+    itemSim - I:P(I|U)
+    total - Sum{U,I}c(U,I)     # Pml(U) = len(preferences[U])/total
+    
+Test:
+    Using hash(permid) as user id, hash(infohash) as torrent id
+    Incremental change == overall change
+"""
+
 from sets import Set
 
 def P2PSim(pref1, pref2):
@@ -53,3 +73,4 @@ class Recommender:
     def update(self):
         #TODO
         pass
+    

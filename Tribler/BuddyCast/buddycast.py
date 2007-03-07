@@ -146,6 +146,7 @@ from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.Overlay.SecureOverlay import OLPROTO_VER_CURRENT
 from similarity import P2PSim
 from TorrentCollecting import SimpleTorrentCollecting
+#from Tribler.Statistics.Logger import OverlayLogger
 
 DEBUG = 1
 debug = 1
@@ -295,6 +296,7 @@ class BuddyCastCore:
 
         self.ip = self.data_handler.getMyIp()
         self.port = self.data_handler.getMyPort()
+        self.permid = self.data_handler.getMyPermid()
         # Jie: we must trainsfer my name to unicode here before sent out
         # because the receiver might not be able to transfer the name to unicode,
         # but the receiver might be able to display the unicode str correctly
@@ -463,7 +465,8 @@ class BuddyCastCore:
         """ add a peer to connection_candidates, and only keep a number of
             the most fresh peers inside.
         """
-        if self.isBlocked(peer_permid, self.send_block_list):
+        
+        if peer_permid == self.permid or self.isBlocked(peer_permid, self.send_block_list):
             return
         if peer_permid in self.connection_candidates:    # already inside, update last seen
             self.removeConnCandidate(peer_permid)    # remove it and then add it for update
@@ -494,7 +497,8 @@ class BuddyCastCore:
             else:
                 if DEBUG:
                     print >> sys.stderr, "bc: warning - removed peer in Cc, but not in sorted_Cc", \
-                    `new_item`, len(self.connection_candidates), len(self.sorted_new_candidates), "Round", self.round
+                    `new_item`, len(self.connection_candidates), len(self.sorted_new_candidates), \
+                    "Round", self.round
         
     # -------------- routines in each round -------------- #
     def updateSendBlockList(self):
@@ -547,7 +551,8 @@ class BuddyCastCore:
         else:
             self.closeConnection(peer_permid)
             if DEBUG:
-                print >> sys.stderr, "bc: error - send keep alive msg", exc, self.get_peer_info(peer_permid), "Round", self.round
+                print >> sys.stderr, "bc: error - send keep alive msg", exc, \
+                self.get_peer_info(peer_permid), "Round", self.round
         
     def gotKeepAliveMessage(self, peer_permid):
         if self.isConnected(peer_permid):
@@ -556,7 +561,8 @@ class BuddyCastCore:
             return True
         else:
             if DEBUG:
-                print >> sys.stderr, "bc: error - got keep alive from a not connected peer. Round", self.round
+                print >> sys.stderr, "bc: error - got keep alive from a not connected peer. Round", \
+                    self.round
             return False
         
     # -------------- initiate buddycast, active thread -------------- #
@@ -614,6 +620,9 @@ class BuddyCastCore:
         
         if not self.isBlocked(target_permid, self.send_block_list):
             self.secure_overlay.connect(target_permid, self.buddycastConnectCallback)
+#            if GLOBAL.overlay_log:
+#                dns = self.dnsindb(target_permid)
+#                write_overlay_log('CONN_TRY', target_permid, dns)
                         
             self.print_debug_info('Active', 12, target_permid)
             
@@ -787,7 +796,8 @@ class BuddyCastCore:
                 validBuddyCastData(buddycast_data, self.num_myprefs, 
                                    self.num_tbs, self.num_rps, self.num_tb_prefs)    # RCP 2            
             except RuntimeError, msg:
-                print >> sys.stderr, "bc: warning - got invalide BuddyCastMsg", `msg`, "Round", self.round   # ipv6
+                print >> sys.stderr, "bc: warning - got invalide BuddyCastMsg", `msg`, \
+                    "Round", self.round   # ipv6
                 return False
            
             # update sender's ip and port in buddycast
@@ -919,7 +929,7 @@ class BuddyCastCore:
         if peer_permid in tbs:
             return True
         sim = self.data_handler.getPeerSim(peer_permid)
-        if sim > 0:
+        if sim >= 0:    # allow random peers be taste buddies to enhance exploration
             if len(tbs) < self.max_conn_tb:
                 tbs[peer_permid] = conn_time
                 return True
@@ -999,7 +1009,8 @@ class BuddyCastCore:
         """ Reply a buddycast message """
         
         if not self.isConnected(target_permid):
-            print >> sys.stderr, 'buddycast: lost connection while replying buddycast', "Round", self.round
+            print >> sys.stderr, 'buddycast: lost connection while replying buddycast', \
+                "Round", self.round
             return
         
         self.createAndSendBuddyCastMessage(target_permid, selversion, active=False)
@@ -1031,7 +1042,8 @@ class BuddyCastCore:
         if not self.isConnected(peer_permid):
             self.connections[peer_permid] = selversion # add a new connection
             self.data_handler._addPeer(peer_permid, _now)
-            addto = self.addPeerToConnList(peer_permid, locally_initiated)    # add connection from secure overlay
+            # add connection from secure overlay
+            addto = self.addPeerToConnList(peer_permid, locally_initiated)
             dns = self.get_peer_info(peer_permid, include_permid=False)
             buf = '%s %s'%(dns, addto)
             self.launchmany.set_activity(ACT_MEET, buf)
@@ -1457,5 +1469,4 @@ class DataHandler:
         except:
             pass
         return ip
-    
     

@@ -8,10 +8,12 @@ import socket
 from traceback import print_exc
 from base64 import encodestring
 from sha import sha
+from BitTornado.BT1.MessageID import getMessageName
+from Tribler.utilities import show_permid
             
 DEBUG = False
 
-log_separator = ' - '
+log_separator = ' '
 logger = None
 
 # To be compatible with Logger from http://linux.duke.edu/projects/mini/logger/ 
@@ -116,34 +118,40 @@ class OverlayLogger:
     getInstance = staticmethod(getInstance)
         
     def log(self, *msgs):
+        """
+        # MSG must be the last one. Permid should be in the rear to be readable
+       BuddyCast log for superpeer format: (V2)    
+          TIME CONN_TRY IP PORT PERMID
+          TIME CONN_ADD IP PORT SELVERSION PERMID 
+          TIME CONN_DEL IP PORT REASON PERMID
+          TIME SEND_MSG IP PORT MSG_ID SELVERSION PERMID MSG
+          TIME RECV_MSG IP PORT MSG_ID SELVERSION PERMID MSG
+          
+          TIME BUCA_STA xx xx xx ...    # BuddyCast status
+              1  Pr    # nPeer
+              2  Pf    # nPref
+              3  Tr    # nTorrent
+              
+              4  Cc    # nConntionCandidates
+              5  Bs    # nBlockSendList
+              6  Br    # nBlockRecvList
+              
+              7  SO    # nConnectionsInSecureOver
+              8  Co    # nConnectionsInBuddyCast
+              9  Ct    # nTasteConnectionList
+              10  Cr   # nRandomConnectionList
+              11  Cu   # nUnconnectableConnectionList
+        """
+        
         log_msg = ''
         nmsgs = len(msgs)
         if nmsgs == 0:
             return
         else:
-            for i in range(nmsgs-1):
+            for i in range(nmsgs):
                 log_msg += msgs[i]
                 log_msg += log_separator
-            if msgs[nmsgs-1]:
-                log_msg += msgs[nmsgs-1]
         if log_msg:
-            if DEBUG:
-                db_msg = ''
-                if msgs[0].endswith('MSG'):
-                    for i in range(nmsgs-2):
-                        db_msg += msgs[i]
-                        db_msg += log_separator
-                    permid = msgs[nmsgs-2]
-                    s = encodestring(permid).replace("\n","")
-                    db_msg += encodestring(sha(s).digest()).replace("\n","")
-                else:
-                    for i in range(nmsgs-1):
-                        db_msg += msgs[i]
-                        db_msg += log_separator
-                    permid = msgs[nmsgs-1]
-                    s = encodestring(permid).replace("\n","")
-                    db_msg += encodestring(sha(s).digest()).replace("\n","")
-                print >> sys.stderr, "Logger: ", db_msg
             self.write_log(log_msg)
         
     def write_log(self, msg):
@@ -159,9 +167,10 @@ class OverlayLogger:
             
     def make_logger(self):
         hostname = socket.gethostname()
-        return Logger(3, self.file_name, self.file_dir, hostname, True)
+        logger = Logger(3, self.file_name, self.file_dir, hostname, True)
+        logger.Log(3, '# Tribler Log Version 2')    # mention the log version at the first line
+        logger.Log(3, '# BUCA_STA: Pr Pf Tr  Cc Bs Br  SO Co Ct Cr Cu')
         
-            
 if __name__ == '__main__':
     create_logger('test.log')
     get_logger().log(1, 'abc' + ' ' + str(['abc', 1, (2,3)]))
