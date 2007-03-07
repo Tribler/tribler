@@ -24,9 +24,9 @@ class TestBuddyCastDataHandler(unittest.TestCase):
     
     def setUp(self):
         # prepare database
-        testdbpath = './test/testdb/bsddb'
+        testdbpath = os.path.join('.Tribler', 'bsddb')
         self.homepath = mkdtemp()
-        print "\ntest: create tmp dir", self.homepath
+        #print "\ntest: create tmp dir", self.homepath
         self.dbpath = os.path.join(self.homepath, 'bsddb')
         copy_tree(testdbpath, self.dbpath)
         
@@ -36,11 +36,11 @@ class TestBuddyCastDataHandler(unittest.TestCase):
         # self.data_handler.postInit()
         
     def tearDown(self):
-        del self.data_handler
+        #del self.data_handler
         #self.data_handler.close()
         remove_tree(self.homepath)
         
-    def test_getAllPeers(self):
+    def _test_getAllPeers(self):
         # testing to get a number of recently seen peers
         num_peers = 64    #TODO: remove dir problem, right test
         peers = self.data_handler.getAllPeers(num_peers)
@@ -53,11 +53,11 @@ class TestBuddyCastDataHandler(unittest.TestCase):
             oldvls = vls
         assert len(peers) == num_peers, (len(peers), num_peers)
         
-    def test_updateMyPreferences(self):
+    def _test_updateMyPreferences(self):
         self.data_handler.updateMyPreferences()
         assert len(self.data_handler.mypreflist)>0, len(self.data_handler.mypreflist)
         
-    def test_updateAllPref(self):
+    def _test_updateAllPref(self):
         num_peers = 56
         self.data_handler.getAllPeers(num_peers)
         self.data_handler.updateAllPref()
@@ -65,6 +65,19 @@ class TestBuddyCastDataHandler(unittest.TestCase):
         #    print len(self.data_handler.preferences[p]), `p[30:40]`
         assert len(self.data_handler.preferences) == num_peers, (len(self.data_handler.preferences), num_peers)
         
+    def test_updateAllI2ISim(self):
+        self.data_handler.getAllPeers()
+        self.data_handler.updateAllPref()
+        from time import time
+        t = time()
+        torrents = self.data_handler.updateAllI2ISim(ret=True)
+        print "used", time()-t
+        print len(torrents), len(self.data_handler.peers)
+        for t in torrents:
+            print torrents[t]
+            break
+        #for p in self.data_handler.peers:
+        #    print self.data_handler.peers[p]
 
     def xxtest_profile(self):
         def foo(n = 10000):

@@ -167,7 +167,7 @@ class MetadataHandler:
             file.close()
             torrent_size = len(torrent_data)
             if DEBUG:
-                print >> sys.stderr,"metadata: read torrent", torrent_path, torrent_size
+                print >> sys.stderr,"metadata: read torrent", `torrent_path`, torrent_size
             if torrent_size > Max_Torrent_Size:
                 return None
             return torrent_data

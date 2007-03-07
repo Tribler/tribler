@@ -381,6 +381,7 @@ class BuddyCastCore:
             if self.round % self.check_connection_round == 0:
                 self.print_debug_info('Active', 4)
                 self.keepConnections()
+                self.data_handler.checkUpdateItemSim()
                 gc.collect()
                 
             if self.next_initiate > 0:
@@ -709,7 +710,7 @@ class BuddyCastCore:
                 peers[i]['age'] = 0
             peer_permid = peers[i]['permid']
             peers[i]['preferences'] = self.data_handler.getPeerPrefList(peer_permid, 
-                                                    ntbprefs, live=True, cache=True)
+                                                    ntbprefs, live=True)
         return peers
     
     def getRandomPeers(self, nrps, target_permid, selversion):
@@ -829,7 +830,8 @@ class BuddyCastCore:
         self.blockPeer(sender_permid, self.recv_block_list)
         
         # update torrent collecting module
-        sender_prefs = self.data_handler.getPeerPrefList(sender_permid, cache=True)
+        self.data_handler.checkUpdateItemSim()
+        sender_prefs = self.data_handler.getPeerPrefList(sender_permid)
         if self.torrent_collecting:
             self.torrent_collecting.updatePreferences(sender_permid, sender_prefs, selversion)
         
@@ -1258,6 +1260,7 @@ class DataHandler:
         self.updateMyPreferences()
         self.updateAllPeers()
         self.updateAllPref()
+        #self.updateAllI2ISim()
         
     def updateAllSim(self):
         # update similarity to all peers to keep consistent
@@ -1272,6 +1275,7 @@ class DataHandler:
             pref = self.preferences[peer]
             if peer in pref:
                 self.updateSimilarity(peer)
+        self.total_pref_changed += self.update_i2i_threshold
         
     def updateMyPreferences(self):
         self.mypreflist = self.mypref_db.getRecentPrefList()
@@ -1310,7 +1314,7 @@ class DataHandler:
         
         for peer_permid in self.peers:
             # whole pref for sim calculation
-            self.preferences[peer_permid] = Set(self.getPeerPrefList(peer_permid))
+            self.preferences[peer_permid] = Set(self.getPeerPrefList(peer_permid, cache=False))
         
     def getAllPeers(self, num_peers=None):
         """ Get a number of peers from self.peers """
@@ -1319,7 +1323,7 @@ class DataHandler:
             self.updateAllPeers(num_peers)
         return self.peers
     
-    def getPeerPrefList(self, permid, num=0, live=False, cache=False):
+    def getPeerPrefList(self, permid, num=0, live=False, cache=True):
         """ Get a number of peer's preference list. Get all if num==0.
             If live==True, dead torrents won't include
         """
@@ -1400,22 +1404,23 @@ class DataHandler:
             self.torrent_db.addTorrent(torrent)
             
         if changed:
-            self.preferences[peer_permid] = Set(self.getPeerPrefList(peer_permid))
+            self.preferences[peer_permid] = Set(self.getPeerPrefList(peer_permid, cache=False))
             self.updateSimilarity(peer_permid)
             self.total_pref_changed += changed
-            if self.total_pref_changed > self.update_i2i_threshold:
-                self.updateAllI2ISim()
-                self.total_pref_changed = 0
-
         return changed
+            
+    def checkUpdateItemSim(self):
+        if self.total_pref_changed >= self.update_i2i_threshold:
+            self.updateAllI2ISim()
+            self.total_pref_changed = 0
     
     def updateSimilarity(self, peer_permid):
         """ update a peer's similarity """
         
-        sim = self.getSimilarity(peer_permid)
+        sim = self.computeSimilarity(peer_permid)
         self.setPeerSim(peer_permid, sim)
         
-    def getSimilarity(self, peer_permid):
+    def computeSimilarity(self, peer_permid):
         """ calculate the similarity
             PeerSim = int(1000*len(pref1&pref2)/(len(pref1)*len(pref2))**0.5)
         """
@@ -1425,10 +1430,35 @@ class DataHandler:
         sim = P2PSim(pref1, pref2)
         return sim
         
-    def updateAllI2ISim(self):
-        # TODO: update I2I sim
-        pass
-        
+    def updateAllI2ISim(self, ret=False):
+        # A temporary user to item similarity
+        # TODO: incrementally update
+        starttime = time()
+        torrent_sim = {}    # [sim, pop]
+        npref = 0
+        for peer in self.preferences:
+            preflist = self.getPeerPrefList(peer)
+            peer_sim = self.getPeerSim(peer)
+            for torrent in preflist:
+                if torrent not in torrent_sim:
+                    torrent_sim[torrent] = [0, 0]
+                torrent_sim[torrent][0] += peer_sim
+                torrent_sim[torrent][1] += 1
+                npref += 1
+        npeer = len(self.preferences)
+        for torrent in torrent_sim:
+            sim = torrent_sim[torrent][0]
+            pop = torrent_sim[torrent][1]
+            newsim = sim + pop
+            if ret:
+                torrent_sim[torrent].append(newsim)
+            self.torrent_db.updateTorrentRelevance(torrent, newsim)
+        if debug:
+            print "bc: updated All I2I sim", len(torrent_sim), npref, npeer, time()-starttime
+        if ret:
+            return torrent_sim    # for test suit
+        else:
+            del torrent_sim
         
     def _addPeerToDB(self, peer_permid, last_seen, peer_data):
         

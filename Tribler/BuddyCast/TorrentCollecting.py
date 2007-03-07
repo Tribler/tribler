@@ -2,7 +2,7 @@ import sys
 from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler
 from random import randint
 
-DEBUG = False
+DEBUG = True
     
 class SimpleTorrentCollecting:
     """
@@ -22,17 +22,22 @@ class SimpleTorrentCollecting:
     def closeConnection(self, permid):
         pass
     
-    def selecteTorrentToCollect(self, preferences):
+    def selecteTorrentToCollect(self, preferences, random=False):
         preferences = list(preferences)
         candidates = []
         for torrent in preferences:
             if not self.torrent_db.hasMetaData(torrent):    # check if the torrent has been downloaded
                 candidates.append(torrent)
-        nprefs = len(candidates)
-        if nprefs > 0:
+                
+        if not candidates:
+            return None
+        
+        if not random:
+            relevances = self.torrent_db.getTorrentsValue(candidates, 'relevance')
+            idx = relevances.index(max(relevances))
+            return candidates[idx]
+        else:
             idx = randint(0, nprefs-1)
             selected = candidates[idx]
             return selected
-        else:
-            return None
     
