@@ -335,6 +335,8 @@ class TorrentDBHandler(BasicDBHandler):
         
     def updateTorrent(self, infohash, **kw):    # watch the schema of database
         self.torrent_db.updateItem(infohash, kw)
+        # Added to update the statusbar num files after torrent tracker checking
+        self.torrent_db.hasNewMetadata(True)
         
     def deleteTorrent(self, infohash, delete_file=False):
         if delete_file:
@@ -478,6 +480,8 @@ class TorrentDBHandler(BasicDBHandler):
         self.torrent_db.updateItem(torrent, {'relevance':relevance})
             
     def getNumMetadataAndLive(self):
+        # Jelle: Statusbar show number of alive files. Files that are downloaded and live are
+        # included. Files that are downloaded and not live are excluded.
         if not self.torrent_db.new_metadata:
             return self.num_metadatalive
         n = 0
