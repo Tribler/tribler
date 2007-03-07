@@ -124,7 +124,7 @@ class MetadataHandler:
         torrent_data = self.read_torrent(torrent_path)
         if torrent_data:
             if DEBUG:
-                print >> sys.stderr,"metadata: sending torrent", torrent_path, len(torrent_data)
+                print >> sys.stderr,"metadata: sending torrent", `torrent_path`, len(torrent_data)
             self.do_send_metadata(permid, torrent_hash, torrent_data, selversion)
         else:
             if DEBUG:
@@ -304,7 +304,7 @@ class MetadataHandler:
             file.write(metadata)
             file.close()
             if DEBUG:
-                print >> sys.stderr,"metadata: write torrent", save_path, len(metadata), hash(metadata)
+                print >> sys.stderr,"metadata: write torrent", `save_path`, len(metadata), hash(metadata)
         except:
             print_exc(file=sys.stderr)
             print >> sys.stderr, "metadata: write torrent failed"
