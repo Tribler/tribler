@@ -394,7 +394,7 @@ class TorrentDBHandler(BasicDBHandler):
             p = self.torrent_db.getItem(torrent, default=True)
             if not p or not p.get('torrent_name', None) or not p.get('info', None):
                 continue
-            if torrent in mypref_set:
+            if all and torrent in mypref_set:
                 p['myDownloadHistory'] = True
             p['infohash'] = torrent
             if not light:    # set light as ture to be faster

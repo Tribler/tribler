@@ -83,7 +83,8 @@ class StaticGridPanel(wx.Panel):
         
         #print ".",
         self.calculateRows()
-        event.Skip()
+        if event:
+            event.Skip()
         
     def updateSubPanelHeight(self):
         try:
@@ -121,7 +122,7 @@ class StaticGridPanel(wx.Panel):
                     dataPanel = TorrentPanel(self)
                     self.panels[i].append(dataPanel)
                     #dataPanel.SetSize((-1, self.subPanelHeight))
-                    hSizer.Add(dataPanel, 1, wx.ALIGN_CENTER|wx.ALL, 0)
+                    hSizer.Add(dataPanel, 1, wx.ALIGN_CENTER|wx.ALL|wx.GROW, 0)
                 self.vSizer.Add(hSizer, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 0)
         elif newRows < oldRows:
             #print "Destroying row %d up to %d" % (newRows, oldRows-1)
@@ -465,6 +466,7 @@ class TorrentPanel(wx.Panel):
         self.titleLength = 37 # num characters
         self.selected = False
         self.warningMode = False
+        self.oldCategoryLabel = None
         self.addComponents()
         #self.Centre()
         self.Show()
@@ -485,7 +487,7 @@ class TorrentPanel(wx.Panel):
         self.title.SetBackgroundColour(wx.WHITE)
         self.title.SetFont(wx.Font(10,74,90,wx.BOLD,0,"Arial"))
         self.title.SetMinSize((50,20))
-        self.vSizer.Add(self.title, 2, BORDER_EXPAND, 3)
+        self.vSizer.Add(self.title, 0, BORDER_EXPAND, 3)
         
         # Add seeder, leecher, size
         self.seeder = wx.StaticText(self, -1, '')
@@ -522,7 +524,7 @@ class TorrentPanel(wx.Panel):
         self.hSizer.Add(self.recomm, 0, wx.RIGHT, 15)
         
 
-        self.vSizer.Add(self.hSizer, 0, BORDER_EXPAND, 3)
+        self.vSizer.Add(self.hSizer, 0, wx.BOTTOM, 8)
         self.SetBackgroundColour(wx.WHITE)
 
         self.SetSizer(self.vSizer);
@@ -543,7 +545,8 @@ class TorrentPanel(wx.Panel):
                 # Do not update torrents that have no new seeders/leechers/size
                 if (self.datacopy['seeder'] == torrent['seeder'] and
                     self.datacopy['leecher'] == torrent['leecher'] and
-                    self.datacopy['length'] == torrent['length']):
+                    self.datacopy['length'] == torrent['length'] and
+                    self.datacopy.get('myDownloadHistory') == torrent.get('myDownloadHistory')):
                     return
         except:
             pass
@@ -616,12 +619,22 @@ class TorrentPanel(wx.Panel):
          # Since we have only one category per torrent, no need to show it
 
         if torrent.get('category') and torrent.get('myDownloadHistory', False):
-            self.vSizer.GetStaticBox().SetLabel(' / '.join(torrent['category']))
+            categoryLabel = ' / '.join(torrent['category'])
         else:
-            self.vSizer.GetStaticBox().SetLabel('')
+            categoryLabel = ''
+        if self.oldCategoryLabel != categoryLabel:
+            self.vSizer.GetStaticBox().SetLabel(categoryLabel)
+            self.oldCategoryLabel = categoryLabel
+#            box = self.vSizer.GetStaticBox()
+#            box.SetSize((-1, self.vSizer.GetMinSize()[1]))
+##            print "Minsize: %s" % (self.vSizer.GetMinSize())
+#            self.SetSize((-1, self.vSizer.GetMinSize()[1]))
+#            self.vSizer.Show(True, recursive = True)
+#            parentSizer = self.GetContainingSizer()
+#            if parentSizer:
+#                parentSizer.Layout()
+#            box.Refresh()
         
-        
-        self.vSizer.Layout()
         self.Layout()
         self.Refresh()
         self.parent.Refresh()
@@ -865,7 +878,7 @@ class DetailPanel(wx.Panel):
         # Swarm size
         swarmSizer = wx.BoxSizer(wx.HORIZONTAL)
         swarmLabel = wx.StaticText(self.torrentDetailsPanel, -1,self.utility.lang.get('swarm')+": ")
-        self.swarmText = StaticText(self.torrentDetailsPanel, -1,"", style=wx.ALIGN_RIGHT)
+        self.swarmText = StaticText(self.torrentDetailsPanel, -1,"")
         self.swarmText.SetBackgroundColour(wx.WHITE)
         self.swarmText.Bind(wx.EVT_ENTER_WINDOW, self.updateLastCheck)
         swarmSizer.Add(swarmLabel, 1, BORDER_EXPAND, 0)
@@ -1086,6 +1099,8 @@ class DetailPanel(wx.Panel):
             self.parent.download(self.data)
         elif obj == self.refreshButton and self.refreshButton.isEnabled():
             self.swarmText.SetLabel(self.utility.lang.get('refreshing')+'...')
+            self.swarmText.Refresh()
+            
             self.parent.refresh(self.data)
         #print "Clicked"
     
