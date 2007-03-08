@@ -337,6 +337,10 @@ class MetadataHandler:
                 torrent_size = len(metadata)
                 print >> sys.stderr,"metadata: Recvd torrent", sha(torrent_hash).hexdigest(), torrent_size
             self.save_torrent(torrent_hash, metadata)
+            
+            if DEBUG:
+                print >>sys.stderr,"metadata: Was I asked to dlhelp someone",self.dlhelper
+            
             if self.dlhelper is not None:
                 self.dlhelper.call_dlhelp_task(torrent_hash, metadata)
         except Exception, msg:

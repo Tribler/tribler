@@ -256,7 +256,8 @@ class ReturnConnHandler:
     #
     def got_connection(self,oc):
         
-        print >>sys.stderr,"dlbreturn: Got connection from",oc.get_ip(),"listen",oc.get_listen_port()
+        if DEBUG:
+            print >>sys.stderr,"dlbreturn: Got connection from",oc.get_ip(),"listen",oc.get_listen_port()
         
         ret = True
         iplport = ip_and_port2str(oc.get_ip(),oc.get_listen_port())

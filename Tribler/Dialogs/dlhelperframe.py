@@ -169,7 +169,8 @@ class DownloadHelperPanel(wx.Panel):
         pass
 
     def OnTimer(self, event = None):
-        print >> sys.stderr,"dlhelperframe: ON TIMER"
+        if DEBUG:
+            print >> sys.stderr,"dlhelperframe: ON TIMER"
         realhelpers = self.coordinator.get_asked_helpers_copy()
         shownhelpers = self.rightListCtl.getFriends()
         removehelpers = []

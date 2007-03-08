@@ -53,12 +53,12 @@ class OverlayApps:
         secure_overlay.register_recv_callback(self.handleMessage)
         secure_overlay.register_conns_callback(self.handleConnection)
 
-        # Create handler for metadata messages
+        # Create handler for metadata messages in two parts, as 
+        # download help needs to know the metadata_handler and we need
+        # to know the download helper handler.
+        # Part 1:
         self.metadata_handler = MetadataHandler.getInstance()
-        self.metadata_handler.register(secure_overlay, self.help_handler, launchmany, 
-                                       config['config_path'], config['max_torrents'])            
-        self.register_msg_handler(MetadataMessages, self.metadata_handler.handleMessage)
-        
+
         if config['download_help']:
             # Create handler for messages to dlhelp coordinator
             self.coord_handler = CoordinatorMessageHandler(launchmany)
@@ -68,6 +68,12 @@ class OverlayApps:
             self.help_handler = HelperMessageHandler(launchmany)
             self.help_handler.register(self.metadata_handler)
             self.register_msg_handler(HelpCoordinatorMessages, self.help_handler.handleMessage)
+
+        # Part 2:
+        self.metadata_handler.register(secure_overlay, self.help_handler, launchmany, 
+                                       config['config_path'], config['max_torrents'])            
+        self.register_msg_handler(MetadataMessages, self.metadata_handler.handleMessage)
+
         
         if not config['torrent_collecting']:
             self.torrent_collecting_solution = 0
