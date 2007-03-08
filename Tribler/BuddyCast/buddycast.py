@@ -279,7 +279,8 @@ class BuddyCastFactory:
         self.buddycast_core.handleConnection(exc,permid,selversion,locally_initiated)
     
     def addMyPref(self, torrent):
-        self.data_handler.addMyPref(torrent)
+        if self.registered:
+            self.data_handler.addMyPref(torrent)
         
     
 class BuddyCastCore:
