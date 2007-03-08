@@ -405,6 +405,19 @@ class TorrentDataManager:
             if old_torrent.has_key('myDownloadHistory'):
                 del old_torrent['myDownloadHistory']
         self.notifyView(old_torrent, 'add')
+       
+    def addNewPreference(self, infohash): 
+        if self.info_dict.has_key(infohash):
+            return
+        torrent = self.torrent_db.getTorrent(infohash, num_owners=True)
+        if not torrent:
+            return
+        torrent['infohash'] = infohash
+        item = self.prepareItem(torrent)
+        torrent['myDownloadHistory'] = True
+        self.data.append(item)
+        self.info_dict[infohash] = item
+        self.notifyView(item, 'add')
         
     def updateItem(self, infohash):
         old_torrent = self.info_dict.get(infohash, None)

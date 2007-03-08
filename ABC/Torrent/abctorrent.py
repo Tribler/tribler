@@ -19,6 +19,7 @@ from ABC.Torrent.status import TorrentStatus
 from Utility.constants import * #IGNORE:W0611
 from Tribler.unicode import name2unicode
 from Tribler.Category.Category import Category
+from Tribler.Dialogs.abcfileframe import TorrentDataManager
 
 from time import time
 
@@ -50,6 +51,7 @@ class ABCTorrent:
         self.utility = self.queue.utility
         self.mypref_db = self.utility.mypref_db
         self.torrent_db = self.utility.torrent_db
+        self.data_manager = TorrentDataManager.getInstance(self.utility)
         
         self.list = self.utility.list
         self.listindex = len(self.utility.torrents["all"])
@@ -195,6 +197,8 @@ class ABCTorrent:
         self.mypref_db.addPreference(self.torrent_hash, mypref)
         if self.utility.abcfileframe is not None:
             self.utility.abcfileframe.updateMyPref()
+            
+        self.data_manager.addNewPreference(self.torrent_hash)
         self.utility.buddycast.addMyPref(self.torrent_hash)
         if DEBUG:
             print >> sys.stderr, "abctorrent: add mypref to db", self.infohash, mypref

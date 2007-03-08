@@ -1210,7 +1210,7 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
         self.categorykey = 'video'  # start showing video files
         self.data_manager = TorrentDataManager.getInstance(self.utility)
         self.mypref_db = self.utility.mypref_db
-        self.torrent_db = self.utility.torrent_db
+        #self.torrent_db = self.utility.torrent_db
         self.addComponents()
         
         self.reloadData()
