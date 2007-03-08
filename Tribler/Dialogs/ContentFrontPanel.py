@@ -1248,8 +1248,10 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
                 # Check if we have to remove the dummy content
                 if len(self.grid.data) == 1 and self.grid.data[0].get('content_name') == self.utility.lang.get('searching_content'):
                     del self.grid.data[0]
+                    self.detailPanel.setData(torrent)
                     self.neverAnyContent = False
-                    print 'Removing dummy content'
+                    if DEBUG:
+                        print 'Removing dummy content'
                 
                 # Only add healthy torrents to grid
                 self.grid.data.append(torrent)

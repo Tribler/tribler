@@ -220,22 +220,22 @@ class ABCPanel(wx.Panel):
         #Manual Bittorrent Adding UI
         ##############################
         colSizer = wx.BoxSizer(wx.VERTICAL)
-        split = ABCSplitterWindow(self, -1)
         
-        # List Control Display UI
-        ###############################
-        self.list = ABCList(split)
-        self.utility.list = self.list
-
-  
-        #colSizer.Add(self.list, 1, wx.EXPAND|wx.ALL|wx.GROW, 1)
-        self.contentPanel = ContentFrontPanel(split)
+        buddyCastEnabled = int(self.utility.config.Read('enablerecommender'))
+        if (buddyCastEnabled):
+            split = ABCSplitterWindow(self, -1)
+            self.list = ABCList(split)
+            self.utility.list = self.list
+            self.contentPanel = ContentFrontPanel(split)
+            split.SplitHorizontally(self.list, self.contentPanel, 100) #  module dependent
         
+            colSizer.Add(split, 1, wx.ALL|wx.EXPAND, 3)
         
-        split.SplitHorizontally(self.list, self.contentPanel, 100) #  module dependent
-        
-        colSizer.Add(split, 1, wx.ALL|wx.EXPAND, 3)
-        
+        else: # buddycast disabled
+            self.list = ABCList(self)
+            self.utility.list = self.list
+            colSizer.Add(self.list, 1, wx.ALL|wx.EXPAND, 3)
+            
         # Add status bar
         statbarbox = wx.BoxSizer(wx.HORIZONTAL)
         self.sb_buttons = ABCStatusButtons(self,self.utility)
