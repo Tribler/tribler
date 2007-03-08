@@ -15,9 +15,6 @@ BORDER_EXPAND = wx.ALL|wx.GROW
 BORDER = wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.ALIGN_LEFT
 
 
-ID_STATICBITMAP = 10000
-ID_TEXT = 10001
-
 DEBUG = False
 
 class ABCSplitterWindow(wx.SplitterWindow):
@@ -490,7 +487,8 @@ class TorrentPanel(wx.Panel):
         self.vSizer.Add(self.title, 0, BORDER_EXPAND, 3)
         
         # Add seeder, leecher, size
-        self.seeder = wx.StaticText(self, -1, '')
+        self.seeder = StaticText(self, -1, '')
+        self.seeder.SetBackgroundColour(wx.WHITE)
         self.seederPic = ImagePanel(self)
         self.seederPic.SetBackgroundColour(wx.WHITE)
         self.seederBitmap = "up.png"
@@ -524,7 +522,7 @@ class TorrentPanel(wx.Panel):
         self.hSizer.Add(self.recomm, 0, wx.RIGHT, 15)
         
 
-        self.vSizer.Add(self.hSizer, 0, wx.BOTTOM, 8)
+        self.vSizer.Add(self.hSizer, 0, wx.ALL, 3)
         self.SetBackgroundColour(wx.WHITE)
 
         self.SetSizer(self.vSizer);
@@ -573,6 +571,7 @@ class TorrentPanel(wx.Panel):
             
         if torrent.get('seeder') != None and torrent.get('leecher') != None: # category means 'not my downloaded files'
             self.seederPic.SetEnabled(True)
+            self.seeder.Enable(True)
                         
             if torrent['seeder'] < 0:
                 self.leecherPic.SetEnabled(False)
@@ -582,8 +581,10 @@ class TorrentPanel(wx.Panel):
                 self.seederPic.SetBitmap(self.warningBitmap)
                 if torrent['seeder'] == -1:
                     self.seeder.SetLabel("Outdated swarminfo")
+                    self.seeder.SetToolTipString(self.utility.lang.get('swarm_outdated_tool'))
                 elif torrent['seeder'] == -2:
                     self.seeder.SetLabel("Swarm not available")
+                    self.seeder.SetToolTipString(self.utility.lang.get('swarm_unavailable_tool'))
                 else:
                     self.seeder.SetLabel("%d, %d" % (torrent['seeder'], torrent['leecher']))
             else:
@@ -598,6 +599,7 @@ class TorrentPanel(wx.Panel):
         else:
             self.seeder.SetLabel('')
             self.seeder.Enable(False)
+            self.seeder.SetToolTipString('')
             self.seederPic.SetEnabled(False)
             self.leecher.SetLabel('')
             self.leecher.Enable(False)
@@ -628,22 +630,14 @@ class TorrentPanel(wx.Panel):
             self.recommPic.SetEnabled(False)
          # Since we have only one category per torrent, no need to show it
 
-        if torrent.get('category') and torrent.get('myDownloadHistory', False):
-            categoryLabel = ' / '.join(torrent['category'])
-        else:
-            categoryLabel = ''
-        if self.oldCategoryLabel != categoryLabel:
-            self.vSizer.GetStaticBox().SetLabel(categoryLabel)
-            self.oldCategoryLabel = categoryLabel
-#            box = self.vSizer.GetStaticBox()
-#            box.SetSize((-1, self.vSizer.GetMinSize()[1]))
-##            print "Minsize: %s" % (self.vSizer.GetMinSize())
-#            self.SetSize((-1, self.vSizer.GetMinSize()[1]))
-#            self.vSizer.Show(True, recursive = True)
-#            parentSizer = self.GetContainingSizer()
-#            if parentSizer:
-#                parentSizer.Layout()
-#            box.Refresh()
+#        if torrent.get('category') and torrent.get('myDownloadHistory', False):
+#            categoryLabel = ' / '.join(torrent['category'])
+#        else:
+#            categoryLabel = ''
+#        if self.oldCategoryLabel != categoryLabel:
+#            self.vSizer.GetStaticBox().SetLabel(categoryLabel)
+#            self.oldCategoryLabel = categoryLabel
+
         
         self.Layout()
         self.Refresh()
@@ -713,6 +707,9 @@ class CategoryPanel(wx.Panel):
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         self.unselFont = wx.Font(10, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, faceName="Verdana")
         self.selFont = wx.Font(10, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, faceName="Verdana")
+        self.orderUnselFont = wx.Font(10, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_ITALIC, wx.FONTWEIGHT_NORMAL, faceName="Verdana")
+        self.orderSelFont = wx.Font(10, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_ITALIC, wx.FONTWEIGHT_BOLD, faceName="Verdana")
+        
         
         # Order types
         self.orderSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -725,12 +722,12 @@ class CategoryPanel(wx.Panel):
         self.swarmLabel = StaticText(self, -1, self.utility.lang.get('swarmsize'))
         self.swarmLabel.SetToolTipString(self.utility.lang.get('swarmsize_tool'))
         self.swarmLabel.SetBackgroundColour(self.GetBackgroundColour())
-        self.swarmLabel.SetFont(self.selFont)
+        self.swarmLabel.SetFont(self.orderSelFont)
         self.orderSizer.Add(self.swarmLabel, 0, wx.LEFT|wx.RIGHT, 10)
         
         self.recommLabel = StaticText(self, -1, self.utility.lang.get('recommended'))
         self.recommLabel.SetBackgroundColour(self.GetBackgroundColour())
-        self.recommLabel.SetFont(self.unselFont)
+        self.recommLabel.SetFont(self.orderUnselFont)
         self.recommLabel.SetToolTipString(self.utility.lang.get('recommendation_tool'))
         self.orderSizer.Add(self.recommLabel, 1, wx.LEFT|wx.RIGHT, 10)
         
@@ -780,12 +777,12 @@ class CategoryPanel(wx.Panel):
         
         if obj == self.swarmLabel:
             self.parent.reorder('swarmsize')
-            obj.SetFont(self.selFont)
+            obj.SetFont(self.orderSelFont)
             
             
         elif obj == self.recommLabel:
             self.parent.reorder('relevance')
-            obj.SetFont(self.selFont)
+            obj.SetFont(self.orderSelFont)
                         
 #        elif obj == self.myHistoryLabel:
 #            self.parent.loadMyDownloadHistory()
@@ -794,7 +791,7 @@ class CategoryPanel(wx.Panel):
 #        
         
         if self.lastOrdering:
-            self.lastOrdering.SetFont(self.unselFont)
+            self.lastOrdering.SetFont(self.orderUnselFont)
         self.lastOrdering = obj
         
     def mouseAction(self, event):
@@ -813,10 +810,10 @@ class CategoryPanel(wx.Panel):
         
     def deselectOrderings(self, des):
         if des:
-            self.lastOrdering.SetFont(self.unselFont)
+            self.lastOrdering.SetFont(self.orderUnselFont)
             
         else:
-            self.lastOrdering.SetFont(self.selFont)
+            self.lastOrdering.SetFont(self.orderSelFont)
             
     def setSelected(self, obj):
         obj.SetFont(self.selFont)
