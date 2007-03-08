@@ -245,12 +245,10 @@ def download(params, filefunc, statusfunc, finfunc, errorfunc, doneflag, cols,
                           failfunc = failed, errorfunc = exchandler)
 
     # Arno: disabled, code never used
-    #upnp_type = UPnP_test(config['upnp_nat_access'])
-    upnp_type = 0
     try:
         listen_port = rawserver.find_and_bind(config['minport'], config['maxport'],
                         config['bind'], ipv6_socket_style = config['ipv6_binds_v4'],
-                        upnp = upnp_type, randomizer = config['random_port'])
+                        randomizer = config['random_port'])
     except socketerror, e:
         failed("Couldn't listen - " + str(e))
         return

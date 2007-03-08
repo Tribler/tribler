@@ -233,7 +233,6 @@ class Utility:
             'randomport': '1', 
             'savecolumnwidth': '1', 
 #            'forcenewdir': '1', 
-            'upnp_nat_access': '0', 
             'buffer_write' : '4', 
             'buffer_read' : '1', 
             'auto_flush' : '0', 

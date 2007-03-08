@@ -1,3 +1,5 @@
+# Written by Jie Yang
+# see LICENSE.txt for license information
 """
     BuddyCast2 epdemic protocol for p2p recommendation and semantic clustering
     
@@ -148,8 +150,8 @@ from similarity import P2PSim
 from TorrentCollecting import SimpleTorrentCollecting
 #from Tribler.Statistics.Logger import OverlayLogger
 
-DEBUG = 1
-debug = 1
+DEBUG = False
+debug = False
 MAX_BUDDYCAST_LENGTH = 10*1024    # 10 KByte
 
 def now():

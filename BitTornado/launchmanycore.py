@@ -314,7 +314,7 @@ class LaunchMany:
         # Must save type here, to handle case where user changes the type
         # In that case we still need to delete the port mapping using the old mechanism
 
-        self.upnp_type = self.config['upnp_nat_access'] 
+        self.upnp_type = self.config['upnp_nat_access']
         self.upnp_thread = UPnPThread(self.upnp_type,self.listen_port,self.upnp_failed,self)
         self.upnp_thread.start()
 
@@ -612,7 +612,6 @@ class UPnPThread(Thread):
         self.shutdownevent = Event()
 
     def run(self):
-
         dmh = DialbackMsgHandler.getInstance()
         if self.upnp_type > 0:
 

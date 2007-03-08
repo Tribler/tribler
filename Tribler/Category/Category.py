@@ -12,6 +12,7 @@ from copy import deepcopy
 from traceback import print_exc
 import sys
 
+DEBUG=False
 category_file = "category.conf"
 
 def init(install_dir = None, config_dir = None):
@@ -69,7 +70,8 @@ class Category:
                 data = data_manager.torrent_db.getRecommendedTorrents(all = True)
                 self.reSortAll(data)
                 return True
-        print 'Checking of %d torrents costs: %f s' % (len(data), time() - begin)
+        if DEBUG:
+            print 'torrcoll: Checking of %d torrents costs: %f s' % (len(data), time() - begin)
         return False
         
     # recalculate category of all torrents, remove torrents from db if not existed

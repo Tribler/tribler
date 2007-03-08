@@ -20,7 +20,7 @@ from Utility.constants import * #IGNORE:W0611
 
 from Tribler.Dialogs.activities import *
 
-DEBUG = True
+DEBUG = False
 
 ##############################################################
 #

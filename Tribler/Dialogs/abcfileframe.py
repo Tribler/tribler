@@ -336,7 +336,8 @@ class TorrentDataManager:
     def updateFun(self, infohash, operate):
         if not self.done_init:    # don't call update func before init finished
             return
-        print "*** torrentdatamanager updateFun", operate
+        if DEBUG:
+            print "abcfileframe: torrentdatamanager updateFun called, param", operate
         if self.info_dict.has_key(infohash):
             if operate == 'add':
                 self.addItem(infohash)

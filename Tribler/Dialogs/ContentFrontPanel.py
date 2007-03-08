@@ -18,7 +18,7 @@ BORDER = wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.ALIGN_LEFT
 ID_STATICBITMAP = 10000
 ID_TEXT = 10001
 
-DEBUG = True
+DEBUG = False
 
 class ABCSplitterWindow(wx.SplitterWindow):
     def __init__(self, parent, id):
@@ -107,7 +107,7 @@ class StaticGridPanel(wx.Panel):
         
         if oldRows != self.currentRows: #changed
             if DEBUG:
-                print 'Size updated to %d rows and %d columns, oldrows: %d'% (self.currentRows, self.cols, oldRows)
+                print 'contentpanel: Size updated to %d rows and %d columns, oldrows: %d'% (self.currentRows, self.cols, oldRows)
             
             self.updatePanel(oldRows, self.currentRows)
             self.parent.gridResized(self.currentRows)
@@ -1384,7 +1384,8 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
             self.data_manager.unregister(self.updateFun, self.categorykey)
         
     def updateFun(self, torrent, operate):
-        print 'Updatefun called: %s %s (s: %d, l: %d) '% (repr(torrent.get('content_name','no_name')), operate, torrent.get('seeder', -1), torrent.get('leecher', -1))
+        if DEBUG:
+            print 'contentpanel: Updatefun called: %s %s (s: %d, l: %d) '% (repr(torrent.get('content_name','no_name')), operate, torrent.get('seeder', -1), torrent.get('leecher', -1))
         # operate = {add, update, delete}
         if operate in ['update', 'delete']:
             if self.detailPanel.showsTorrent(torrent):
