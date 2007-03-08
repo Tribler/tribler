@@ -562,13 +562,14 @@ class TorrentPanel(wx.Panel):
     
         if torrent.get('content_name'):
             title = torrent['content_name'][:self.titleLength]
+            self.title.Enable(True)
             self.title.SetLabel(title)
             #self.title.Wrap(-1) # no wrap
             self.title.SetToolTipString(torrent['content_name'])
         else:
             self.title.SetLabel('')
             self.title.SetToolTipString('')
-            self.title.SetToolTip(None)
+            self.title.Enable(False)
             
         if torrent.get('seeder') != None and torrent.get('leecher') != None: # category means 'not my downloaded files'
             self.seederPic.SetEnabled(True)
@@ -576,8 +577,8 @@ class TorrentPanel(wx.Panel):
             if torrent['seeder'] < 0:
                 self.leecherPic.SetEnabled(False)
                 self.leecher.SetLabel('')
+                self.leecher.Enable(False)
                 self.leecher.SetToolTipString('')
-                self.leecher.SetToolTip(None)
                 self.seederPic.SetBitmap(self.warningBitmap)
                 if torrent['seeder'] == -1:
                     self.seeder.SetLabel("Outdated swarminfo")
@@ -588,39 +589,42 @@ class TorrentPanel(wx.Panel):
             else:
                 self.leecherPic.SetEnabled(True)
                 self.seederPic.SetBitmap(self.seederBitmap)
+                self.seeder.Enable(True)    
                 self.seeder.SetLabel(str(torrent['seeder']))
                 self.seeder.SetToolTipString(self.utility.lang.get('seeder_tool'))
+                self.leecher.Enable(True)
                 self.leecher.SetLabel(str(torrent['leecher']))
                 self.leecher.SetToolTipString(self.utility.lang.get('leecher_tool'))
         else:
             self.seeder.SetLabel('')
-            self.seeder.SetToolTipString('')
-            self.seeder.SetToolTip(None)
+            self.seeder.Enable(False)
             self.seederPic.SetEnabled(False)
             self.leecher.SetLabel('')
+            self.leecher.Enable(False)
             self.leecher.SetToolTipString('')
-            self.leecher.SetToolTip(None)
             self.leecherPic.SetEnabled(False)
             
         if torrent.get('length'):
             self.sizePic.SetEnabled(True)
+            self.size.Enable(True)
             self.size.SetLabel(self.utility.size_format(torrent['length']))
             self.size.SetToolTipString(self.utility.lang.get('size_tool'))
             
         else:
             self.size.SetLabel('')
             self.size.SetToolTipString('')
-            self.size.SetToolTip(None)
+            self.size.Enable(False)
             self.sizePic.SetEnabled(False)
             
         if torrent.get('relevance'):
             self.recomm.SetLabel("%.1f" % torrent['relevance'])
             self.recommPic.SetEnabled(True)
+            self.recomm.Enable(True)
             self.recomm.SetToolTipString(self.utility.lang.get('recomm_relevance'))
         else:
             self.recomm.SetLabel('')
             self.recomm.SetToolTipString('')
-            self.recomm.SetToolTip(None)
+            self.recomm.Enable(False)
             self.recommPic.SetEnabled(False)
          # Since we have only one category per torrent, no need to show it
 
