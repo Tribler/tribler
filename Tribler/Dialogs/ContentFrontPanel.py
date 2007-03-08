@@ -568,6 +568,7 @@ class TorrentPanel(wx.Panel):
         else:
             self.title.SetLabel('')
             self.title.SetToolTipString('')
+            self.title.SetToolTip(None)
             
         if torrent.get('seeder') != None and torrent.get('leecher') != None: # category means 'not my downloaded files'
             self.seederPic.SetEnabled(True)
@@ -576,6 +577,7 @@ class TorrentPanel(wx.Panel):
                 self.leecherPic.SetEnabled(False)
                 self.leecher.SetLabel('')
                 self.leecher.SetToolTipString('')
+                self.leecher.SetToolTip(None)
                 self.seederPic.SetBitmap(self.warningBitmap)
                 if torrent['seeder'] == -1:
                     self.seeder.SetLabel("Outdated swarminfo")
@@ -593,9 +595,11 @@ class TorrentPanel(wx.Panel):
         else:
             self.seeder.SetLabel('')
             self.seeder.SetToolTipString('')
+            self.seeder.SetToolTip(None)
             self.seederPic.SetEnabled(False)
             self.leecher.SetLabel('')
             self.leecher.SetToolTipString('')
+            self.leecher.SetToolTip(None)
             self.leecherPic.SetEnabled(False)
             
         if torrent.get('length'):
@@ -606,6 +610,7 @@ class TorrentPanel(wx.Panel):
         else:
             self.size.SetLabel('')
             self.size.SetToolTipString('')
+            self.size.SetToolTip(None)
             self.sizePic.SetEnabled(False)
             
         if torrent.get('relevance'):
@@ -615,6 +620,7 @@ class TorrentPanel(wx.Panel):
         else:
             self.recomm.SetLabel('')
             self.recomm.SetToolTipString('')
+            self.recomm.SetToolTip(None)
             self.recommPic.SetEnabled(False)
          # Since we have only one category per torrent, no need to show it
 
