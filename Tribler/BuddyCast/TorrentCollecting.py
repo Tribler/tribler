@@ -2,7 +2,7 @@ import sys
 from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler
 from random import randint
 
-DEBUG = True
+DEBUG = False
     
 class SimpleTorrentCollecting:
     """

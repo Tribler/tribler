@@ -72,8 +72,8 @@ class StaticGridPanel(wx.Panel):
             
             panel.setData(data)
         except:
-            print "Error: Could not set data in panel number %d, with %d cols" % (panelNumber, self.cols)
-            print_exc()
+            print >>sys.stderr,"contentpanel: Error: Could not set data in panel number %d, with %d cols" % (panelNumber, self.cols)
+            print_exc(file=sys.stderr)
     
     def clearAllData(self):
         for i in range(0, self.items):
@@ -107,7 +107,7 @@ class StaticGridPanel(wx.Panel):
         
         if oldRows != self.currentRows: #changed
             if DEBUG:
-                print 'contentpanel: Size updated to %d rows and %d columns, oldrows: %d'% (self.currentRows, self.cols, oldRows)
+                print >>sys.stderr,'contentpanel: Size updated to %d rows and %d columns, oldrows: %d'% (self.currentRows, self.cols, oldRows)
             
             self.updatePanel(oldRows, self.currentRows)
             self.parent.gridResized(self.currentRows)
@@ -665,7 +665,8 @@ class TorrentPanel(wx.Panel):
             key = event.GetKeyCode()
             if (key == wx.WXK_DELETE):
                 if self.data:
-                    print 'deleting'
+                    if DEBUG:
+                        print >>sys.stderr,'contentpanel: deleting'
                     contentPanel = self.parent.parent.parent
                     contentPanel.deleteTorrent(self.data)
         event.Skip()
@@ -1002,9 +1003,9 @@ class DetailPanel(wx.Panel):
             self.torrentDetailsPanel.GetSizer().Layout()
             self.vSizer.Layout()
         except:
-            print 'Could not set data in detailPanel'
-            print_exc()
-            print self.data
+            print >>sys.stderr,'contentpanel: Could not set data in detailPanel'
+            print_exc(file=sys.stderr)
+            print >>sys.stderr,"contentpanel: data to set was",self.data
             
     def getFileList(self, torrent_dir, torrent_file):
         # Get the file(s)data for this torrent
@@ -1015,8 +1016,9 @@ class DetailPanel(wx.Panel):
             
             torrent_filename = os.path.join(torrent_dir, torrent_file)
             
-            if not os.path.exists(torrent_filename):    
-                print "Torrent: %s does not exist" % torrent_filename
+            if not os.path.exists(torrent_filename):
+                if DEBUG:    
+                    print >>sys.stderr,"contentpanel: Torrent: %s does not exist" % torrent_filename
                 return {}
             
             metadata = self.utility.getMetainfo(torrent_filename)
@@ -1041,7 +1043,7 @@ class DetailPanel(wx.Panel):
             
             return filelist
         except:
-            print_exc()
+            print_exc(file=sys.stderr)
             return {}                   
          
     def updateLastCheck(self, event=None):
@@ -1075,8 +1077,9 @@ class DetailPanel(wx.Panel):
                    
     def onListSelected(self, event):
         item = event.GetItem()
-        print item
-        print item.GetState()
+        if DEBUG:
+            print >>sys.stderr,"contentpanel: onListSelected",item
+            print >>sys.stderr,"contentpanel: onListSelected",item.GetState()
         item.SetState(wx.LIST_STATE_SELECTED)
     
     def breakup(self, str, ctrl, depth=0):
@@ -1160,7 +1163,8 @@ class ImagePanel(wx.Panel):
             self.path = path
         
         if not os.path.exists(path):
-            print 'Image file: %s does not exist' % path
+            if DEBUG:
+                print >>sys.stderr,'contentpanel: Image file: %s does not exist' % path
             self.bitmap = None
             return
             
@@ -1257,17 +1261,18 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
                     self.detailPanel.setData(torrent)
                     self.neverAnyContent = False
                     if DEBUG:
-                        print 'Removing dummy content'
+                        print >>sys.stderr,'contentpanel: Removing dummy content'
                 
                 # Only add healthy torrents to grid
                 self.grid.data.append(torrent)
                 if DEBUG:
-                    print "Added torrent %s, because status was %s" % (repr(torrent['content_name']), torrent['status'])
+                    print >>sys.stderr,"contentpanel: Added torrent %s, because status was %s" % (repr(torrent['content_name']), torrent['status'])
     
                 self.grid.setData(self.grid.data, False)
             else:
                 if DEBUG:
-                    print "Did not add torrent %s, because status was %s (myDLHist: %s)" % (repr(torrent['content_name']), torrent['status'], torrent.get('myDownloadHistory', 'noMyDownloadHistory'))
+                    print >>sys.stderr,"contentpanel: Did not add torrent %s, because status was %s (myDLHist: %s)" % (repr(torrent['content_name']), torrent['status'], torrent.get('myDownloadHistory', 'noMyDownloadHistory'))
+                pass
     
     def deleteData(self, torrent):
         
@@ -1344,7 +1349,8 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
                 self.data_manager.deleteTorrent(infohash, delete_file = True)
         
     def refresh(self, torrent):
-        print 'refresh ' + repr(torrent.get('content_name', 'no_name'))
+        if DEBUG:
+            print >>sys.stderr,'contentpanel: refresh ' + repr(torrent.get('content_name', 'no_name'))
         check = SingleManualChecking(torrent)
         check.start()
         
@@ -1353,7 +1359,8 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
         
         infohash = torrent.get('infohash')
         result = None
-        print 'deleting %s' % torrent
+        if DEBUG:
+            print >>sys.stderr,'contentpanel: deleting %s' % torrent
         if not torrent.has_key('myDownloadHistory'):
             # delete in browsed content
             str = self.utility.lang.get('delete_sure') % torrent.get('content_name','')+'?'
@@ -1403,7 +1410,9 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
             self.invokeLater(self.deleteData, [torrent])
             
     def keyTyped(self, event):
-        print 'typed'
+        if DEBUG:
+            print >>sys.stderr,'contentpanel: typed'
+        pass
         
 class MyApp(wx.App):
     

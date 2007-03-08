@@ -15,7 +15,7 @@ from Tribler.Category.Category import Category
 from Tribler.Dialogs.activities import ACT_GOT_METADATA
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 
-DEBUG = True
+DEBUG = False
 
 # Python no recursive imports?
 # from overlayswarm import overlay_infohash
