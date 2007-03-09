@@ -135,6 +135,7 @@ class TestSecureOverlay(unittest.TestCase):
             self.assert_(False,"other callback was not called")
         self.peer1.shutdown()
         self.peer2.shutdown()
+        sleep(5)
 
     #
     # connect_dns() to an address that noone responds at

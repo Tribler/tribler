@@ -145,25 +145,26 @@ class TestDialbackReplyActive(TestAsServer):
             self.assert_(msg[0] == DIALBACK_REQUEST)
             self.check_drequest(msg[1:])
             
-            # Not really necessary, but helps with test_dialback_active2
-            s.close()
-
             # Proper behaviour is to try to send a reply using a new return connection
-            s = BTConnection('localhost',self.hisport,mylistenport=self.mylistenport[i],user_infohash=dialback_infohash)
-            s.read_handshake_medium_rare(close_ok = True)
+            s2 = BTConnection('localhost',self.hisport,mylistenport=self.mylistenport[i],user_infohash=dialback_infohash)
+            s2.read_handshake_medium_rare(close_ok = True)
             if gen_dreply is not None:
                 resp = gen_dreply(i)
                 print >> sys.stderr,"test: sending DIALBACK_REPLY #",i
-                s.send(resp)
+                s2.send(resp)
             time.sleep(2)
             # the other side should always close the 
             # connection, either because we're done or he didn't like our
             # bad DIALBACK_REPLY message
-            msg = s.recv()
+            msg = s2.recv()
             if len(msg) > 0:
                 print >> sys.stderr,"test: Received unexpected data",getMessageName(msg[0])
             self.assert_(len(msg)==0)
+            s2.close()
+
+            # Not really necessary, but helps with test_dialback_active2
             s.close()
+
 
         my_db = MyDBHandler()
         ext_ip = my_db.getMyIP()

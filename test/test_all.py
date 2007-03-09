@@ -51,6 +51,8 @@ def suite():
     import test.test_extend_hs as test_extend_hs
     import test.test_extend_hs_t350 as test_extend_hs_t350
     
+    # SecureOverlay is tested by running test_so.sh from topdir
+    # Extra Dialback message tests can be done with test_dra.sh from topdir
     
     # Legend: 
     # '#'  = broken
