@@ -17,10 +17,9 @@ copy cities.txt dist
 copy category.conf dist
 copy binary-LICENSE.txt dist
 mkdir dist\tribler\icons
-copy icons\*.bmp dist\tribler\icons
+copy icons\*.* dist\tribler\icons
 mkdir dist\tribler\icons\mugshots
-copy icons\mugshots\*.bmp dist\tribler\icons\mugshots
-copy icons\*.jpg dist\tribler\icons
+copy icons\mugshots\*.* dist\tribler\icons\mugshots
 copy Lang\*.lang dist\tribler\Lang
 cd dist
 move abc.exe tribler.exe
