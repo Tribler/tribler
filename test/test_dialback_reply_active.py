@@ -150,7 +150,7 @@ class TestDialbackReplyActive(TestAsServer):
 
             # Proper behaviour is to try to send a reply using a new return connection
             s = BTConnection('localhost',self.hisport,mylistenport=self.mylistenport[i],user_infohash=dialback_infohash)
-            s.read_handshake_medium_rare()
+            s.read_handshake_medium_rare(close_ok = True)
             if gen_dreply is not None:
                 resp = gen_dreply(i)
                 print >> sys.stderr,"test: sending DIALBACK_REPLY #",i

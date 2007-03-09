@@ -157,6 +157,7 @@ class TestExtendHandshakeT350(TestAsServer):
             s.close()
             s2.send('bla')
             s2.close()
+            print >> sys.stderr,"test: Good, Tribler made overlay conn with us"
         except socket.timeout:
             print >> sys.stderr,"test: Bad, Tribler did not attempt to start an overlay conn with us"
             self.assert_(False)

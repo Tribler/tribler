@@ -213,12 +213,12 @@ class TestExtendHandshake(TestAsServer):
         print >> sys.stderr,"\ntest: ",gen_drequest_func
         msg = gen_drequest_func()
         s.send(msg)
-        s.read_handshake_medium_rare()
         time.sleep(5)
         
         # the other side should not like this and close the connection
         try:
             s.s.settimeout(10.0)
+            s.read_handshake_medium_rare(close_ok = True)
             while True:
                 resp = s.recv()
                 if len(resp) > 0:

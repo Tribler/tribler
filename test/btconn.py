@@ -87,8 +87,13 @@ class BTConnection:
         cur_ver = unpack('<H', self.hisid[18:20])[0]
         assert(cur_ver == current_version)
 
-    def read_handshake_medium_rare(self):
+    def read_handshake_medium_rare(self,close_ok = False):
         data = self._readn(68)
+        if len(data) == 0:
+            if close_ok:
+                return
+            else:
+                assert(len(data) > 0)
         assert(data[0] == chr(len(protocol_name)))
         assert(data[1:20] == protocol_name)
         assert(data[20:28] == tribler_option_pattern)
@@ -118,7 +123,13 @@ class BTConnection:
         """ read n bytes from socket stream """
         nwant = n
         while True:
-            data = self.s.recv(nwant)
+            try:
+                data = self.s.recv(nwant)
+            except socket.error, e:
+                if e[0] == 10035: # WSAEWOULDBLOCK on Windows
+                    continue
+                else:
+                    raise e
             if DEBUG:
                 print >> sys.stderr,"btconn: _readn got",len(data),"bytes"
             if len(data) == 0:

@@ -20,7 +20,7 @@ from BitTornado.BT1.MessageID import protocol_name,option_pattern,getMessageName
 from BitTornado.BT1.Connecter import tobinary,toint
 
 
-DEBUG = False
+DEBUG = True
 
 #
 # Public definitions
