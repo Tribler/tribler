@@ -334,7 +334,8 @@ class DialbackMsgHandler:
         if self.consensusip is not None:
             old_ext_ip = self.my_db.getMyIP()
             if old_ext_ip != self.consensusip:
-                print >> sys.stderr,"dialback: DIALBACK_REPLY: I think my IP address is",old_ext_ip,"others say",self.consensusip,", setting it to latter"
+                if DEBUG:
+                    print >> sys.stderr,"dialback: DIALBACK_REPLY: I think my IP address is",old_ext_ip,"others say",self.consensusip,", setting it to latter"
                 self.my_db.put('ip',self.consensusip)
 
         # 9. Notify GUI that we are connectable

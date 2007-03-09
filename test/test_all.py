@@ -57,19 +57,19 @@ def suite():
     # '##' = disable temporarily for testing a specific test
     #
     test_modules = [
-        #test_cachedb,
-        #test_friend,
-        #test_cachedbhandler,
-        #test_superpeers,
-        #test_buddycast, # Arno: currently not working due to param problem getBuddyCastMsg()
+        test_cachedb,
+        test_friend,
+        test_cachedbhandler,
+        test_superpeers,
+        test_buddycast, # Arno: currently not working due to param problem getBuddyCastMsg()
         test_buddycast2_datahandler,
-        #test_sim,
-        #test_merkle,
-        #test_permid,
-        #test_permid_response1,
-        #test_dialback_request,
-        #test_extend_hs,
-        #test_extend_hs_t350
+        test_sim,
+        test_merkle,
+        test_permid,
+        test_permid_response1,
+        test_dialback_request,
+        test_extend_hs,
+        test_extend_hs_t350
         ]
 
     alltests = unittest.TestSuite()
