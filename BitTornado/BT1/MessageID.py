@@ -119,6 +119,7 @@ message_map = {
     REQUEST:"REQUEST",
     CANCEL:"CANCEL",
     PIECE:"PIECE",
+    EXTEND:"EXTEND",
     
     CHALLENGE:"CHALLENGE",
     RESPONSE1:"RESPONSE1",

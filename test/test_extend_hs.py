@@ -213,14 +213,21 @@ class TestExtendHandshake(TestAsServer):
         print >> sys.stderr,"\ntest: ",gen_drequest_func
         msg = gen_drequest_func()
         s.send(msg)
+        s.read_handshake_medium_rare()
         time.sleep(5)
         
         # the other side should not like this and close the connection
         try:
             s.s.settimeout(10.0)
-            resp = s.recv()
-            self.assert_(len(resp)==0)
-            s.close()
+            while True:
+                resp = s.recv()
+                if len(resp) > 0:
+                    print >>sys.stderr,"test: Got",getMessageName(resp[0]),"from peer"
+                    self.assert_(resp[0] == EXTEND or resp[0]==UNCHOKE)
+                else:
+                    self.assert_(len(resp)==0)
+                    s.close()
+                    break
         except socket.timeout:
             print >> sys.stderr,"test: Timeout, bad, peer didn't close connection"
             self.assert_(False)
