@@ -64,8 +64,8 @@ class StaticGridPanel(wx.Panel):
 
     def setData(self, panelNumber, data):
         try:
-            hSizer = self.vSizer.GetItem(panelNumber/self.cols).GetSizer()
-            panel = hSizer.GetItem(panelNumber % self.cols).GetWindow()
+            hSizer = self.vSizer.GetItem(panelNumber%self.currentRows).GetSizer()
+            panel = hSizer.GetItem(panelNumber/ self.currentRows).GetWindow()
             
             panel.setData(data)
         except:
