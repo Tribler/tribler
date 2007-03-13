@@ -66,7 +66,7 @@
         <flag>wxALIGN_LEFT|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="wxPanel" name="torrentFilter" subclass="torrentFilter.torrentFilter">
+        <object class="wxPanel" name="torrentFilter" subclass="Tribler.vwxGUI.torrentFilter.torrentFilter">
           <pos>0,21</pos>
           <size>448,20</size>
         </object>
@@ -75,7 +75,7 @@
         <flag>wxALIGN_LEFT|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="wxPanel" name="torrentTabs" subclass="torrentTabs.torrentTabs">
+        <object class="wxPanel" name="torrentTabs" subclass="Tribler.vwxGUI.torrentTabs.torrentTabs">
           <pos>0,41</pos>
           <size>20,20</size>
         </object>
@@ -84,7 +84,7 @@
         <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>1</option>
-        <object class="wxPanel" name="torrentGrid" subclass="torrentGrid.torrentGrid">
+        <object class="wxPanel" name="torrentGrid" subclass="Tribler.vwxGUI.torrentGrid.torrentGrid">
           <pos>3,64</pos>
           <size>617,235</size>
         </object>
@@ -160,4 +160,3 @@
     </object>
   </object>
 </resource>
-

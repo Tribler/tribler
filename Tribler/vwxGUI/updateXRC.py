@@ -10,16 +10,18 @@ def changeFile(filename):
     
     # Define all used custom classes here and the related wxPython classes. They will be replaced by the regexp.
     # (customClassName, wxClassName, filename for import)
-    customClasses = [('bgPanel', 'wxPanel', 'bgPanel'), 
-                     ('tribler_topButton', 'wxPanel', 'tribler_topButton'),
-                     ('standardOverview', 'wxPanel', 'standardOverview'), 
-                     ('torrentItem', 'wxPanel', 'torrentItem'),
-                     ('standardDetails', 'wxPanel', 'standardDetails'),
-                     ('torrentFilter', 'wxPanel', 'torrentFilter'),
-                     ('torrentTabs', 'wxPanel', 'torrentTabs'), 
-                     ('statusDownloads', 'wxPanel', 'statusDownloads'),
-                     ('torrentGrid', 'wxPanel', 'torrentGrid'),
-                     ('standardStatus', 'wxPanel', 'standardStatus')]
+    customDir = 'Tribler.vwxGUI.'
+    customClasses = [('bgPanel', 'wxPanel', customDir+'bgPanel'), 
+                     ('tribler_topButton', 'wxPanel', customDir+'tribler_topButton'),
+                     ('standardOverview', 'wxPanel', customDir+'standardOverview'), 
+                     ('torrentItem', 'wxPanel', customDir+'torrentItem'),
+                     ('standardDetails', 'wxPanel', customDir+'standardDetails'),
+                     ('torrentFilter', 'wxPanel', customDir+'torrentFilter'),
+                     ('torrentTabs', 'wxPanel', customDir+'torrentTabs'), 
+                     ('statusDownloads', 'wxPanel', customDir+'statusDownloads'),
+                     ('torrentGrid', 'wxPanel', customDir+'torrentGrid'),
+                     ('standardStatus', 'wxPanel', customDir+'standardStatus'),
+                     ('wxFrame', 'wxFrame', 'abc_vwx')]
     
     
     

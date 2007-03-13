@@ -36,13 +36,14 @@ if __name__ == '__main__':
 class GUIUtility:
     __single = None
 
-    def __init__(self, utility = None):
+    def __init__(self, utility = None, params = None):
         if GUIUtility.__single:
             raise RuntimeError, "GUIUtility is singleton"
         GUIUtility.__single = self 
         # do other init
         self.guiObjects = {}
         self.utility = utility
+        self.params = params
             
     def getInstance(*args, **kw):
         if GUIUtility.__single is None:

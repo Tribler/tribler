@@ -60,7 +60,7 @@ class MyFrame(wx.Frame):
         itemmenu = wx.MenuItem(self.menu445,ID_MENU_446,"Options","",0)
         self.menu445.AppendItem(itemmenu)
         self.SetMenuBar(self.fdfs)
-        self.level0 = wx.ScrolledWindow(self,-1,wx.Point(0,0),wx.Size(1024,768),wx.VSCROLL|wx.HSCROLL)
+        self.level0 = wx.ScrolledWindow(self,-1,wx.Point(0,0),wx.Size(1024,768),wx.VSCROLL|wx.HSCROLL|wx.CLIP_CHILDREN)
         self.level0.SetBackgroundColour(wx.Colour(191,216,216))
         self.topbg1 = bgPanel(self.level0, -1, wx.Point(-113,0), wx.Size(614,89))
         self.topbg1.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_SCROLLBAR))

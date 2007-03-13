@@ -1,4 +1,4 @@
-import wx, os, sys
+import wx, os, sys, os.path
 import wx.xrc as xrc
 
 TORRENT_MODE = 1
@@ -44,7 +44,7 @@ class standardOverview(wx.Panel):
     def refreshMode(self):
         # load xrc
         if self.mode == TORRENT_MODE:
-            xrcResource = 'torrentOverview.xrc'
+            xrcResource = os.path.join('Tribler','vwxGUI', 'torrentOverview.xrc')
             panelName = 'torrentOverview'
         else:
             print 'Mode unknown'

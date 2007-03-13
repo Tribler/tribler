@@ -1,8 +1,13 @@
 import os, sys, wx
-from MainXRC import GUIUtility
+from Tribler.vwxGUI.MainXRC import GUIUtility
+from Tribler.Dialogs.ContentFrontPanel import ImagePanel, DetailPanel, TorrentPanel
+from Tribler.utilities import *
+from traceback import print_exc
 
-import wx, os, sys
+import wx, os, sys, math
 import wx.xrc as xrc
+
+DEBUG = True
 
 class torrentGrid(wx.Panel):
     """
@@ -29,15 +34,15 @@ class torrentGrid(wx.Panel):
         # Do all init here
 
         #self.SetSize((500,500))
-        #self.SetBackgroundColour(wx.RED)
+        self.SetBackgroundColour(wx.BLACK)
         self.parent = None
         self.guiUtility = GUIUtility.getInstance()
         self.guiUtility.report(self)
-        self.detailPanel = None #self.parent.detailPanel
         self.utility = self.guiUtility.utility
+        self.detailPanel = DetailPanel(self, self.utility)
         self.cols = 2
         self.items = 0
-        self.data = None
+        self.data = {}
         self.currentData = 0
         
         self.addComponents()
@@ -47,12 +52,13 @@ class torrentGrid(wx.Panel):
         
     def addComponents(self):
         self.Show(False)
+        
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         
         self.staticGrid = StaticGridPanel(self, self.cols)
         self.vSizer.Add(self.staticGrid, 1, wx.ALL, 1)
         self.pagerPanel = PagerPanel(self)
-        self.vSizer.Add(self.pagerPanel, 0, BORDER_EXPAND, 1)
+        self.vSizer.Add(self.pagerPanel, 0, wx.ALL, 1)
         
         self.SetSizer(self.vSizer);
         self.SetAutoLayout(1);
@@ -194,6 +200,7 @@ class StaticGridPanel(wx.Panel):
                 self.panels.append([])
                 for panel in range(0, self.cols):
                     dataPanel = TorrentPanel(self)
+                    #dataPanel = wx.Panel(self, wx.ID_ANY)
                     self.panels[i].append(dataPanel)
                     #dataPanel.SetSize((-1, self.subPanelHeight))
                     hSizer.Add(dataPanel, 1, wx.ALIGN_CENTER|wx.ALL|wx.GROW, 0)
@@ -354,7 +361,7 @@ class PagerPanel(wx.Panel):
         self.number = wx.StaticText(self,-1,"",wx.Point(3,111),wx.Size(49,13))
         self.number.SetLabel('0 %s' % self.utility.lang.get('item')+'s')
         self.number.SetFont(self.normalFont)
-        self.hSizer.Add(self.number, 3, BORDER_EXPAND, 0)
+        self.hSizer.Add(self.number, 3, wx.ALL, 0)
         
         # left arrows
 #        self.leftPages = ImagePanel(self)
@@ -488,7 +495,7 @@ class PagerPanel(wx.Panel):
             self.totalPages = int(math.ceil(self.totalItems/float(self.itemsPerPage)))
 
             
-        category = self.parent.parent.categorykey
+        category = 'test_cat'
         self.number.SetLabel('%d %s %s%s / %d %s%s' % (self.totalItems, category.lower(), self.utility.lang.get('item'), getPlural(self.totalItems), self.totalPages, self.utility.lang.get('page'), getPlural(self.totalPages)))
         
         if self.currentPage >= self.totalPages:
