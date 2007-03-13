@@ -1,0 +1,5 @@
+<border>5</border>
+	<option>0</option>
+    <object class="wxPanel" name="tribler_topButton0" subclass="tribler_topButton.tribler_topButton">
+    <bitmap>images/menu1_1content.png</bitmap>
+    <pos>11,5</pos>

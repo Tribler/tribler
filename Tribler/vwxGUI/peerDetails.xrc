@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
+  <object class="wxPanel" name="peerDetails">
+    <pos>0,0</pos>
+    <size>300,462</size>
+    <object class="wxBoxSizer">
+      <orient>wxVERTICAL</orient>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+        <object class="wxBoxSizer">
+          <orient>wxHORIZONTAL</orient>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>0</option>
+            <object class="wxPanel" name="pn9c">
+              <bitmap>images/triblerpanel_topleft.png</bitmap>
+              <pos>0,0</pos>
+              <size>10,21</size>
+              <bg>#     0</bg>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>1</option>
+            <object class="wxPanel" name="pn10c">
+              <bitmap>images/triblerpanel_topcenter.png</bitmap>
+              <pos>10,0</pos>
+              <size>0,21</size>
+              <bg>#ff3300</bg>
+              <fg>#ffffff</fg>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>4</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="st64c">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>Jan de Vries</label>
+                    <pos>3,3</pos>
+                    <size>234,17</size>
+                  </object>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>0</option>
+            <object class="wxPanel" name="pn11c">
+              <bitmap>images/triblerpanel_topright.png</bitmap>
+              <pos>288,0</pos>
+              <size>10,21</size>
+              <bg>#     0</bg>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>1</option>
+        <object class="wxPanel" name="pn12c">
+          <pos>0,21</pos>
+          <size>298,430</size>
+          <bg>#ffffff</bg>
+          <object class="wxBoxSizer">
+            <orient>wxVERTICAL</orient>
+            <object class="sizeritem">
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+              <object class="wxPanel" name="pn48c">
+                <pos>0,0</pos>
+                <size>290,100</size>
+                <bg>#dbdbdb</bg>
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="sizeritem">
+                    <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                    <border>6</border>
+                    <option>0</option>
+                    <object class="wxPanel" name="pn15cC">
+                      <bitmap>images/2p_90x90.jpg</bitmap>
+                      <style>wxSIMPLE_BORDER</style>
+                      <pos>6,6</pos>
+                      <size>90,90</size>
+                      <bg>#dbdbdb</bg>
+                    </object>
+                  </object>
+                  <object class="sizeritem">
+                    <flag>wxTOP|wxLEFT|wxBOTTOM|wxEXPAND|wxALIGN_BOTTOM|wxFIXED_MINSIZE</flag>
+                    <border>8</border>
+                    <option>0</option>
+                    <object class="wxStaticText" name="st5cCCCCCC">
+                      <label>15 downloads</label>
+                      <pos>105,3</pos>
+                      <size>82,45</size>
+                      <fg>#     0</fg>
+                      <font>
+                        <size>8</size>
+                        <family>modern</family>
+                        <style>normal</style>
+                        <weight>normal</weight>
+                        <underlined>0</underlined>
+                        <face>Tahoma</face>
+                      </font>
+                    </object>
+                  </object>
+                </object>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxBOTTOM|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>6</border>
+              <option>0</option>
+              <object class="wxPanel" name="pn44c">
+                <pos>0,100</pos>
+                <size>20,20</size>
+                <bg>#6e6e6e</bg>
+              </object>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+        <object class="wxBoxSizer">
+          <orient>wxHORIZONTAL</orient>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>0</option>
+            <object class="wxPanel" name="pn9cC">
+              <bitmap>images/triblerpanel_bottomleft.png</bitmap>
+              <pos>3,275</pos>
+              <size>10,28</size>
+              <bg>#     0</bg>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>1</option>
+            <object class="wxPanel" name="pn10cC">
+              <bitmap>images/triblerpanel_bottomcenter.png</bitmap>
+              <pos>13,273</pos>
+              <size>155,28</size>
+              <bg>#     0</bg>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>0</option>
+            <object class="wxPanel" name="pn11cC">
+              <bitmap>images/triblerpanel_bottomright.png</bitmap>
+              <pos>108,432</pos>
+              <size>190,28</size>
+              <bg>#     0</bg>
+            </object>
+          </object>
+        </object>
+      </object>
+    </object>
+  </object>
+</resource>

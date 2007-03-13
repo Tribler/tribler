@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
+  <object class="wxPanel" name="torrentOverview">
+    <pos>0,0</pos>
+    <size>625,430</size>
+    <object class="wxBoxSizer">
+      <orient>wxVERTICAL</orient>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+        <object class="wxBoxSizer">
+          <orient>wxHORIZONTAL</orient>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>0</option>
+            <object class="wxPanel" name="triblerPanel_topleft">
+              <bitmap>images/triblerpanel_topleft.png</bitmap>
+              <pos>0,0</pos>
+              <size>10,21</size>
+              <bg>#     0</bg>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>1</option>
+            <object class="wxPanel" name="pn10c">
+              <bitmap>images/triblerpanel_topcenter.png</bitmap>
+              <pos>10,0</pos>
+              <size>20,21</size>
+              <bg>#ff3300</bg>
+              <fg>#ffffff</fg>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>4</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="st64c">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>Content</label>
+                    <pos>0,4</pos>
+                    <size>194,17</size>
+                    <fg>#ffffff</fg>
+                  </object>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>0</option>
+            <object class="wxPanel" name="triblerPanel_topright">
+              <bitmap>images/triblerpanel_topright.png</bitmap>
+              <pos>613,0</pos>
+              <size>10,21</size>
+              <bg>#     0</bg>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxALIGN_LEFT|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+        <object class="wxPanel" name="torrentFilter" subclass="torrentFilter.torrentFilter">
+          <pos>0,21</pos>
+          <size>448,20</size>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxALIGN_LEFT|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+        <object class="wxPanel" name="torrentTabs" subclass="torrentTabs.torrentTabs">
+          <pos>0,41</pos>
+          <size>20,20</size>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>1</option>
+        <object class="wxPanel" name="torrentGrid" subclass="torrentGrid.torrentGrid">
+          <pos>3,64</pos>
+          <size>617,235</size>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+        <object class="wxBoxSizer">
+          <orient>wxHORIZONTAL</orient>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>0</option>
+            <object class="wxPanel" name="pn9cC">
+              <bitmap>images/triblerpanel_bottomleft.png</bitmap>
+              <pos>0,403</pos>
+              <size>10,28</size>
+              <bg>#     0</bg>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>1</option>
+            <object class="wxPanel" name="pn10cC">
+              <bitmap>images/triblerpanel_bottomcenter.png</bitmap>
+              <pos>10,399</pos>
+              <size>20,28</size>
+              <bg>#     0</bg>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="sizeritem">
+                  <flag>wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                  <object class="wxStaticBitmap" name="bm159c">
+                    <bitmap>images/add.png</bitmap>
+                    <pos>3,3</pos>
+                    <size>16,16</size>
+                    <bg>#ffffff</bg>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
+                  <border>1</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="st158c">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>add friend</label>
+                    <pos>1,1</pos>
+                    <size>279,14</size>
+                    <bg>#ffffff</bg>
+                    <fg>#     0</fg>
+                  </object>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>0</option>
+            <object class="wxPanel" name="pn11cC">
+              <bitmap>images/triblerpanel_bottomright.png</bitmap>
+              <pos>433,400</pos>
+              <size>190,28</size>
+              <bg>#     0</bg>
+            </object>
+          </object>
+        </object>
+      </object>
+    </object>
+  </object>
+</resource>
+
