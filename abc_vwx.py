@@ -12,6 +12,7 @@
 import sys, locale
 import os
 import wx
+from wx import xrc
 #import hotshot
 
 from threading import Thread, Timer, Event
@@ -42,7 +43,7 @@ from BitTornado.__init__ import product_name
 from safeguiupdate import DelayedInvocation
 import webbrowser
 from Tribler.Dialogs.MugshotManager import MugshotManager
-
+from Tribler.vwxGUI.MainXRC import GUIUtility
 
 DEBUG = False
 ALLOW_MULTIPLE = False
@@ -308,17 +309,29 @@ class ABCTaskBarIcon(wx.TaskBarIcon):
         return menu
 
 
-##############################################################
-#
-# Class : ABCFrame
-#
-# Main ABC Frame class that contains menu and menu bar management
-# and contains ABCPanel
-#
-############################################################## 
-class ABCFrame(wx.Frame,DelayedInvocation):
-    def __init__(self, ID, params, utility):
-        self.utility = utility
+# Custom class loaded by XRC
+class wxFrame(wx.Frame, DelayedInvocation):
+    def __init__(self, *args):
+        if len(args) == 0:
+            pre = wx.PreFrame()
+            # the Create step is done by XRC.
+            self.PostCreate(pre)
+            self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
+        else:
+            wx.Frame.__init__(self, args[0], args[1], args[2], args[3])
+            self._PostInit()
+        
+    def OnCreate(self, event):
+        self.Unbind(wx.EVT_WINDOW_CREATE)
+        wx.CallAfter(self._PostInit)
+        event.Skip()
+        return True
+    
+    def _PostInit(self):
+        # Do all init here
+        self.guiUtility = GUIUtility.getInstance()
+        self.utility = self.guiUtility.utility
+        self.params = self.guiUtility.params
         self.utility.frame = self
         
         title = self.utility.lang.get('title') + \
@@ -329,7 +342,10 @@ class ABCFrame(wx.Frame,DelayedInvocation):
         size, position = self.getWindowSettings()
         style = wx.DEFAULT_FRAME_STYLE | wx.CLIP_CHILDREN
         
-        wx.Frame.__init__(self, None, ID, title, position, size, style = style)
+        self.SetSize(size)
+        self.SetPosition(position)
+        self.SetTitle(title)
+        #wx.Frame.__init__(self, None, ID, title, position, size, style = style)
         
         self.doneflag = Event()
         DelayedInvocation.__init__(self)
@@ -337,7 +353,7 @@ class ABCFrame(wx.Frame,DelayedInvocation):
 
         # Singleton for management of user's mugshots (i.e. icons/display pictures)
         self.mm = MugshotManager.getInstance()
-        self.mm.register(os.path.join(utility.getConfigPath(),'icons'),os.path.join(utility.getPath(), 'icons'))
+        self.mm.register(os.path.join(self.utility.getConfigPath(),'icons'),os.path.join(self.utility.getPath(), 'icons'))
 
         # Put it here so an error is shown in the startup-error popup
         self.serverlistener = ServerListener(self.utility)
@@ -345,8 +361,8 @@ class ABCFrame(wx.Frame,DelayedInvocation):
         self.tbicon = None
 
         # Arno: see ABCPanel
-        self.abc_sb = None
-        #self.SetStatusBar(self.abc_sb)
+        self.abc_sb = ABCStatusBar(self,self.utility)
+        self.SetStatusBar(self.abc_sb)
         
         try:
             self.SetIcon(self.utility.icon)
@@ -359,16 +375,23 @@ class ABCFrame(wx.Frame,DelayedInvocation):
         # Start the scheduler before creating the ListCtrl
         self.utility.queue  = ABCScheduler(self.utility)
         
-        self.window = ABCPanel(self)
-        self.abc_sb = self.window.abc_sb
+        #self.window = ABCPanel(self)
+        #self.abc_sb = self.window.abc_sb
         
         
-        #self.list = ABCList(self)
-        #self.list.Show(False)
-        #self.utility.list = self.list
-        #self.window = self.sw118c
-        #self.utility.window = self.window
-        #self.utility.window.postponedevents = []
+        
+        
+        
+        self.window = self.GetChildren()[0]
+        self.window.utility = self.utility
+        self.list = ABCList(self.window)
+        self.list.Show(False)
+        self.utility.list = self.list
+        print self.window.GetName()
+        self.window.list = self.list
+        self.utility.window = self.window
+        
+        self.utility.window.postponedevents = []
         
         # Menu Options
         ############################
@@ -377,8 +400,8 @@ class ABCFrame(wx.Frame,DelayedInvocation):
             wx.App.SetMacExitMenuItemId(wx.ID_CLOSE)
         self.SetMenuBar(menuBar)
         
-        self.tb = ABCToolBar(self) # new Tribler gui has no toolbar
-        self.SetToolBar(self.tb)
+        #self.tb = ABCToolBar(self) # new Tribler gui has no toolbar
+        #self.SetToolBar(self.tb)
         
         self.buddyFrame = None
         self.fileFrame = None
@@ -429,11 +452,11 @@ class ABCFrame(wx.Frame,DelayedInvocation):
 
         #if server start with params run it
         #####################################
-        if params[0] != "":
+        if self.params[0] != "":
             if sys.platform == "darwin":
-               self.utility.queue.addtorrents.AddTorrentFromFile(params[0])
+               self.utility.queue.addtorrents.AddTorrentFromFile(self.params[0])
             else:
-               ClientPassParam(params[0])
+               ClientPassParam(self.params[0])
 
         sys.stdout.write('GUI Complete.\n')
 
@@ -580,6 +603,7 @@ class ABCFrame(wx.Frame,DelayedInvocation):
         # I switch back, I don't get an event. As a result the GUIupdate
         # remains turned off. The wxWidgets wiki on the TaskBarIcon suggests
         # catching the onSize event. 
+        
         if DEBUG:
             if event is not None:
                 print "abc: onSize:",event.GetSize()
@@ -587,9 +611,8 @@ class ABCFrame(wx.Frame,DelayedInvocation):
                 print "abc: onSize: None"
         self.setGUIupdate(True)
         if event is not None:
-            event.Skip()
             #self.window.SetSize(self.GetSize())
-
+            event.Skip()
 
     def getWindowSettings(self):
         width = self.utility.config.Read("window_width")
@@ -785,8 +808,12 @@ class ABCApp(wx.App):
            
         try:
             self.utility.postAppInit()
-            self.frame = ABCFrame(-1, self.params, self.utility)
-            
+            #self.frame = ABCFrame(-1, self.params, self.utility)
+            self.guiUtility = GUIUtility.getInstance(self.utility, self.params)
+            self.res = xrc.XmlResource("Tribler/vwxGUI/MyFrame.xrc")
+            self.frame = self.res.LoadFrame(None, "MyFrame")
+            self.frame.Show(True)
+        
 
             self.Bind(wx.EVT_QUERY_END_SESSION, self.frame.OnCloseWindow)
             self.Bind(wx.EVT_END_SESSION, self.frame.OnCloseWindow)

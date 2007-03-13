@@ -26,7 +26,7 @@ def changeFile(filename):
     
     
     for (customClass, wxClass, customFile) in customClasses:
-        data = re.sub('<object class="%s" name="(.*?)">' % customClass, u'<object class="%s" name="\\1" subclass="%s.%s">' % (wxClass, customFile, customClass), data )
+        data = re.sub('<object class="%s" name="([^"]+)">' % customClass, u'<object class="%s" name="\\1" subclass="%s.%s">' % (wxClass, customFile, customClass), data )
     
     data = re.sub('<bg>0</bg>', u'<bg>#000000</bg>', data)
     if data != olddata:
