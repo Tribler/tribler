@@ -257,6 +257,9 @@ class BuddyCastFactory:
         self.data_handler.sync()
         
     def handleMessage(self, permid, selversion, message):
+        if not self.registered:
+            return False
+        
         t = message[0]
         
         if t == BUDDYCAST:
@@ -272,13 +275,20 @@ class BuddyCastFactory:
             return False
         
     def gotBuddyCastMessage(self, msg, permid, selversion):
-        return self.buddycast_core.gotBuddyCastMessage(msg, permid, selversion)
+        if self.registered:
+            return self.buddycast_core.gotBuddyCastMessage(msg, permid, selversion)
+        else:
+            return False
     
     def gotKeepAliveMessage(self, permid):
-        return self.buddycast_core.gotKeepAliveMessage(permid)
+        if self.registered:
+            return self.buddycast_core.gotKeepAliveMessage(permid)
+        else:
+            return False
     
     def handleConnection(self,exc,permid,selversion,locally_initiated):
-        self.buddycast_core.handleConnection(exc,permid,selversion,locally_initiated)
+        if self.registered:
+            self.buddycast_core.handleConnection(exc,permid,selversion,locally_initiated)
     
     def addMyPref(self, torrent):
         if self.registered:

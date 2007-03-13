@@ -5,11 +5,12 @@ BUDDYCAST:
 	+ Moving the raw_server calls back in SecureOverlay
     + Buddycast message length limit	(max. 10 KB for a full buddycast message)
     + Removed 'age' item from buddycast for peers of new version
-    Using buddycast2 network to send dialback message
+    + Using buddycast2 network to send dialback message	(Arno)
     	+ Simple torrent collecting policy
     	
-    
-	Update item relevance
+	+ Update item relevance
+	
+	Improve connectability test with local subnet
     New similarity func between users
 
     Unit Test
@@ -17,8 +18,8 @@ BUDDYCAST:
 	Setup superpeers
 	
 	Fast torrent collecting from connected peers
+    Reduce memory usage
     
-    Improve recommendation function
     Sign buddycast2 messages
     Reduce bandwidth usage
     
@@ -34,7 +35,16 @@ MEGE CACHE:
 GUI:
 	+ Remove meanless part at status bar
 	
+	+ status bar: #Torrents
+	+ Single click and download
+	+ email: removing "\r\n\r\n"
+	
+	Run tribler after installation
+	
+	Replace recommendation value by stars
+	
 	Click a torrent and recommend similar torrent
+	Remove permid when adding friend
 
 	Dutch version
 	Chinese version
@@ -43,6 +53,4 @@ GUI:
 BUGFIX:    
 	+ Don't always keep connection with superpeers (duplicated index in conn list)
     + Remove 'looking for new recommendation' in status bar
-    Change firewall status when recv incoming connections
-
-    
+    + Change firewall status when recv incoming connections

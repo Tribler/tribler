@@ -28,7 +28,7 @@ from Tribler.Overlay.SecureOverlay import OLPROTO_VER_THIRD
 from Tribler.utilities import *
 from Tribler.Dialogs.activities import *
 
-DEBUG = True
+DEBUG = False
 
 #
 # Constants

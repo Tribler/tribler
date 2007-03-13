@@ -1327,16 +1327,9 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
             src = src2
             
         if os.path.isfile(src):
-            str = self.utility.lang.get('download_start') + u' ' + name + u'?'
-            dlg = wx.MessageDialog(self, str, self.utility.lang.get('click_and_download'), 
-                                        wx.YES_NO|wx.NO_DEFAULT|wx.ICON_INFORMATION)
-            result = dlg.ShowModal()
-            dlg.Destroy()
-            if result == wx.ID_YES:
-                ret = self.utility.queue.addtorrents.AddTorrentFromFile(src)
-                if ret == 'OK':
-                    self.setRecommendedToMyDownloadHistory(torrent)
-                    
+            ret = self.utility.queue.addtorrents.AddTorrentFromFile(src)
+            if ret == 'OK':
+                self.setRecommendedToMyDownloadHistory(torrent)
         else:
         
             # Torrent not found            
