@@ -475,7 +475,7 @@ class TorrentPanel(wx.Panel):
         self.Show(False)
         #self.SetMinSize((50,50))
         self.selectedColour = wx.Colour(245,208,120)
-        self.unselectedColour = wx.WHITE
+        self.unselectedColour = None
         
         self.vSizer = wx.StaticBoxSizer(wx.StaticBox(self,-1,""),wx.VERTICAL)
         
@@ -484,7 +484,7 @@ class TorrentPanel(wx.Panel):
         
         # Add title
         self.title =StaticText(self,-1,"")
-        self.title.SetBackgroundColour(self.GetBackgroundColour())
+        #self.title.SetBackgroundColour(self.GetBackgroundColour())
         font = self.title.GetFont()
         font.SetWeight(wx.BOLD)
         self.title.SetFont(font)
@@ -713,11 +713,19 @@ class CategoryPanel(wx.Panel):
         #self.SetMinSize((50,50))
         self.SetBackgroundColour(wx.Colour(197,220,241))
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
-        self.unselFont = wx.Font(10, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, faceName="Verdana")
-        self.selFont = wx.Font(10, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, faceName="Verdana")
-        self.orderUnselFont = wx.Font(10, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_ITALIC, wx.FONTWEIGHT_NORMAL, faceName="Verdana")
-        self.orderSelFont = wx.Font(10, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_ITALIC, wx.FONTWEIGHT_BOLD, faceName="Verdana")
         
+        self.unselFont = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
+        self.unselFont.SetPointSize(self.unselFont.GetPointSize()+3)
+        self.selFont = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
+        self.selFont.SetPointSize(self.unselFont.GetPointSize())
+        self.selFont.SetWeight(wx.BOLD)
+        self.orderUnselFont = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
+        self.orderUnselFont.SetPointSize(self.unselFont.GetPointSize())
+        self.orderUnselFont.SetStyle(wx.FONTSTYLE_ITALIC)
+        self.orderSelFont = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
+        self.orderSelFont.SetPointSize(self.unselFont.GetPointSize())
+        self.orderSelFont.SetStyle(wx.FONTSTYLE_ITALIC)
+        self.orderSelFont.SetWeight(wx.BOLD)
         
         # Order types
         self.orderSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -730,6 +738,8 @@ class CategoryPanel(wx.Panel):
         self.swarmLabel = StaticText(self, -1, self.utility.lang.get('swarmsize'))
         self.swarmLabel.SetToolTipString(self.utility.lang.get('swarmsize_tool'))
         self.swarmLabel.SetBackgroundColour(self.GetBackgroundColour())
+        
+        
         self.swarmLabel.SetFont(self.orderSelFont)
         self.orderSizer.Add(self.swarmLabel, 0, wx.LEFT|wx.RIGHT, 10)
         
@@ -856,10 +866,10 @@ class DetailPanel(wx.Panel):
         
         # Set title
         self.title = StaticText(self,-1,"",wx.Point(3,111),wx.Size(49,13))
-        fontinfo = self.utility.getInfoFromFont(None)
-        fontinfo['size']+=3
-        fontinfo['weight'] = wx.BOLD
-        self.title.SetFont(self.utility.getFontFromInfo(fontinfo))
+        font = self.title.GetFont()
+        font.SetWeight(wx.BOLD)
+        font.SetPointSize(font.GetPointSize()+3)
+        self.title.SetFont(font)
         self.title.SetBackgroundColour(wx.Colour(245,208,120))
         self.vSizer.Add(self.title, 0, BORDER_EXPAND, 5)
         
