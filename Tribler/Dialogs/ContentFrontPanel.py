@@ -484,10 +484,13 @@ class TorrentPanel(wx.Panel):
         
         # Add title
         self.title =StaticText(self,-1,"")
-        self.title.SetBackgroundColour(wx.WHITE)
-        fontinfo = self.utility.getInfoFromFont(None)
-        fontinfo['weight'] = wx.BOLD
-        self.title.SetFont(self.utility.getFontFromInfo(fontinfo))
+        self.title.SetBackgroundColour(self.GetBackgroundColour())
+        font = self.title.GetFont()
+        font.SetWeight(wx.BOLD)
+        self.title.SetFont(font)
+        #fontinfo = self.utility.getInfoFromFont(None)
+        #fontinfo['weight'] = wx.BOLD
+        #self.title.SetFont(self.utility.getFontFromInfo(fontinfo))
         #self.title.SetMinSize((50,20))
         self.vSizer.Add(self.title, 0, BORDER_EXPAND, 5)
         
