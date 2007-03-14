@@ -508,7 +508,8 @@ class TorrentPanel(wx.Panel):
         self.recommPic.SetBitmap("love.png")
         self.recomm = StaticText(self, -1, '')
                 
-        if self.unselectedColour == wx.WHITE:
+        if self.unselectedColour == wx.WHITE or sys.platform == 'win32':
+            self.unselectedColour = wx.WHITE
             self.seeder.SetBackgroundColour(wx.WHITE)
             self.seederPic.SetBackgroundColour(wx.WHITE)
             self.leecher.SetBackgroundColour(wx.WHITE)
