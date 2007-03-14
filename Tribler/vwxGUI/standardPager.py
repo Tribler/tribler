@@ -1,0 +1,1 @@
+#   self.orange_pager = bgPanel(self, -1, wx.Point(10,0), wx.Size(183,28))

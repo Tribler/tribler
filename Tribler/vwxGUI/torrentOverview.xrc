@@ -105,7 +105,7 @@
             <border>3</border>
             <option>1</option>
             <object class="wxPanel" name="orange_bottom_center" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
-              <pos>10,400</pos>
+              <pos>10,394</pos>
               <size>20,20</size>
             </object>
           </object>
@@ -113,8 +113,8 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>3</border>
             <option>0</option>
-            <object class="wxPanel" name="orange_pager" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
-              <pos>440,400</pos>
+            <object class="wxPanel" name="standardPager" subclass="Tribler.vwxGUI.standardPager.standardPager">
+              <pos>437,397</pos>
               <size>183,28</size>
             </object>
           </object>

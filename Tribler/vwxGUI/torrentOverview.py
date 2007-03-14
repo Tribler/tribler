@@ -6,6 +6,7 @@ from bgPanel import *
 from torrentFilter import *
 from torrentTabs import *
 from torrentGrid import *
+from standardPager import *
 #[inc]add your include files here
 
 #[inc]end your include
@@ -45,9 +46,10 @@ class torrentOverview(wx.Panel):
         self.torrentTabs.SetDimensions(0,46,20,20)
         self.torrentGrid = torrentGrid(self,-1,wxDefaultPosition,wxDefaultSize)
         self.torrentGrid.SetDimensions(0,66,617,235)
-        self.orange_pager = bgPanel(self, -1, wx.Point(440,400), wx.Size(183,28))
         self.orange_bottom_left = bgPanel(self, -1, wx.Point(0,400), wx.Size(10,28))
-        self.orange_bottom_center = bgPanel(self, -1, wx.Point(10,400), wx.Size(20,20))
+        self.orange_bottom_center = bgPanel(self, -1, wx.Point(10,394), wx.Size(20,20))
+        self.standardPager = standardPager(self,-1,wxDefaultPosition,wxDefaultSize)
+        self.standardPager.SetDimensions(437,397,183,28)
         self.sz3s = wx.BoxSizer(wx.VERTICAL)
         self.header = wx.BoxSizer(wx.HORIZONTAL)
         self.footer = wx.BoxSizer(wx.HORIZONTAL)
@@ -63,7 +65,7 @@ class torrentOverview(wx.Panel):
         self.header.Add(self.orange_top_right,0,wx.FIXED_MINSIZE,3)
         self.footer.Add(self.orange_bottom_left,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.footer.Add(self.orange_bottom_center,1,wx.EXPAND|wx.FIXED_MINSIZE,3)
-        self.footer.Add(self.orange_pager,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
+        self.footer.Add(self.standardPager,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.sz65s.Add(self.st64c,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,4)
         self.SetSizer(self.sz3s);self.SetAutoLayout(1);self.Layout();
         self.pn10c.SetSizer(self.sz65s);self.pn10c.SetAutoLayout(1);self.pn10c.Layout();
