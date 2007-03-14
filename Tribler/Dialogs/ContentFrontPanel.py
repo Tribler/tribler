@@ -476,7 +476,7 @@ class TorrentPanel(wx.Panel):
         #self.SetMinSize((50,50))
         self.SetBackgroundColour(wx.WHITE)
         self.selectedColour = wx.Colour(245,208,120)
-        self.unselectedColour = wx.WHITE
+        self.unselectedColour = (0,0,0,0)
         
         self.vSizer = wx.StaticBoxSizer(wx.StaticBox(self,-1,""),wx.VERTICAL)
         
