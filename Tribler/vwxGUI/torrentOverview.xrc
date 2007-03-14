@@ -12,14 +12,12 @@
         <object class="wxBoxSizer">
           <orient>wxHORIZONTAL</orient>
           <object class="sizeritem">
-            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <flag>wxFIXED_MINSIZE</flag>
             <border>3</border>
             <option>0</option>
-            <object class="wxPanel" name="triblerPanel_topleft">
-              <bitmap>images/triblerpanel_topleft.png</bitmap>
+            <object class="wxPanel" name="orange_top_left" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
               <pos>0,0</pos>
               <size>10,21</size>
-              <bg>#     0</bg>
             </object>
           </object>
           <object class="sizeritem">
@@ -50,42 +48,40 @@
             </object>
           </object>
           <object class="sizeritem">
-            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <flag>wxFIXED_MINSIZE</flag>
             <border>3</border>
             <option>0</option>
-            <object class="wxPanel" name="triblerPanel_topright">
-              <bitmap>images/triblerpanel_topright.png</bitmap>
+            <object class="wxPanel" name="orange_top_right" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
               <pos>613,0</pos>
               <size>10,21</size>
-              <bg>#     0</bg>
             </object>
           </object>
         </object>
       </object>
       <object class="sizeritem">
-        <flag>wxALIGN_LEFT|wxFIXED_MINSIZE</flag>
+        <flag>wxEXPAND|wxALIGN_LEFT|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
         <object class="wxPanel" name="torrentFilter" subclass="Tribler.vwxGUI.torrentFilter.torrentFilter">
-          <pos>0,21</pos>
+          <pos>0,26</pos>
           <size>448,20</size>
         </object>
       </object>
       <object class="sizeritem">
-        <flag>wxALIGN_LEFT|wxFIXED_MINSIZE</flag>
+        <flag>wxEXPAND|wxALIGN_LEFT|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
         <object class="wxPanel" name="torrentTabs" subclass="Tribler.vwxGUI.torrentTabs.torrentTabs">
-          <pos>0,41</pos>
+          <pos>0,46</pos>
           <size>20,20</size>
         </object>
       </object>
       <object class="sizeritem">
-        <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>1</option>
         <object class="wxPanel" name="torrentGrid" subclass="Tribler.vwxGUI.torrentGrid.torrentGrid">
-          <pos>3,64</pos>
+          <pos>0,66</pos>
           <size>617,235</size>
         </object>
       </object>
@@ -99,60 +95,27 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>3</border>
             <option>0</option>
-            <object class="wxPanel" name="pn9cC">
-              <bitmap>images/triblerpanel_bottomleft.png</bitmap>
-              <pos>0,403</pos>
+            <object class="wxPanel" name="orange_bottom_left" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+              <pos>0,400</pos>
               <size>10,28</size>
-              <bg>#     0</bg>
             </object>
           </object>
           <object class="sizeritem">
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>3</border>
             <option>1</option>
-            <object class="wxPanel" name="pn10cC">
-              <bitmap>images/triblerpanel_bottomcenter.png</bitmap>
-              <pos>10,399</pos>
-              <size>20,28</size>
-              <bg>#     0</bg>
-              <object class="wxBoxSizer">
-                <orient>wxHORIZONTAL</orient>
-                <object class="sizeritem">
-                  <flag>wxFIXED_MINSIZE</flag>
-                  <border>3</border>
-                  <option>0</option>
-                  <object class="wxStaticBitmap" name="bm159c">
-                    <bitmap>images/add.png</bitmap>
-                    <pos>3,3</pos>
-                    <size>16,16</size>
-                    <bg>#ffffff</bg>
-                  </object>
-                </object>
-                <object class="sizeritem">
-                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
-                  <border>1</border>
-                  <option>0</option>
-                  <object class="wxStaticText" name="st158c">
-                    <style>wxST_NO_AUTORESIZE</style>
-                    <label>add friend</label>
-                    <pos>1,1</pos>
-                    <size>279,14</size>
-                    <bg>#ffffff</bg>
-                    <fg>#     0</fg>
-                  </object>
-                </object>
-              </object>
+            <object class="wxPanel" name="orange_bottom_center" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+              <pos>10,400</pos>
+              <size>20,20</size>
             </object>
           </object>
           <object class="sizeritem">
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>3</border>
             <option>0</option>
-            <object class="wxPanel" name="pn11cC">
-              <bitmap>images/triblerpanel_bottomright.png</bitmap>
-              <pos>433,400</pos>
-              <size>190,28</size>
-              <bg>#     0</bg>
+            <object class="wxPanel" name="orange_pager" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+              <pos>440,400</pos>
+              <size>183,28</size>
             </object>
           </object>
         </object>
