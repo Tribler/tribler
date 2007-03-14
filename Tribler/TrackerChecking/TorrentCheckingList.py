@@ -137,7 +137,8 @@ class TorrentCheckingList:
 #        print "dead len", len(self.list_dead)
         
     def _readDB(self):
-        self.data = self.torrent_db.getRecommendedTorrents(light=True)
+        # Also check torrents in my download history
+        self.data = self.torrent_db.getRecommendedTorrents(all=True, light=True)
         
         
     def acquire(self):

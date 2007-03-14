@@ -623,7 +623,7 @@ class TorrentPanel(wx.Panel):
             self.size.Enable(False)
             self.sizePic.SetEnabled(False)
             
-        if torrent.get('relevance'):
+        if torrent.get('relevance', 0.0) >= 50:
             self.recomm.SetLabel("%.1f" % (torrent['relevance']/1000.0))
             self.recommPic.SetEnabled(True)
             self.recomm.Enable(True)
