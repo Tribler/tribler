@@ -270,12 +270,9 @@ class PagerPanel(wx.Panel):
 
     def addComponents(self):
         self.SetBackgroundColour(wx.WHITE)
-        fontinfo = self.utility.getInfoFromFont(None);
-        #fontinfo['size']-=2
-        self.normalFont = self.utility.getFontFromInfo(fontinfo)
-        fontinfo['size']+=1
-        fontinfo['weight'] = wx.BOLD
-        self.boldFont  = self.utility.getFontFromInfo(fontinfo)
+        self.normalFont = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
+        self.boldFont  = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
+        self.boldFont.SetWeight(wx.BOLD)
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
         self.number = wx.StaticText(self,-1,"",wx.Point(3,111),wx.Size(49,13))
