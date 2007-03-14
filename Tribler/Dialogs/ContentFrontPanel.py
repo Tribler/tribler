@@ -474,8 +474,9 @@ class TorrentPanel(wx.Panel):
     def addComponents(self):
         self.Show(False)
         #self.SetMinSize((50,50))
+        self.SetBackgroundColour(wx.WHITE)
         self.selectedColour = wx.Colour(245,208,120)
-        self.unselectedColour = None
+        self.unselectedColour = wx.WHITE
         
         self.vSizer = wx.StaticBoxSizer(wx.StaticBox(self,-1,""),wx.VERTICAL)
         
@@ -715,7 +716,7 @@ class CategoryPanel(wx.Panel):
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         
         self.unselFont = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
-        self.unselFont.SetPointSize(self.unselFont.GetPointSize()+3)
+        self.unselFont.SetPointSize(self.unselFont.GetPointSize()+2)
         self.selFont = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
         self.selFont.SetPointSize(self.unselFont.GetPointSize())
         self.selFont.SetWeight(wx.BOLD)
