@@ -1,4 +1,4 @@
-import sys, re, os
+import sys, re, os, os.path
 
 
 def changeFile(filename):
@@ -43,15 +43,19 @@ def changeFile(filename):
     
 def main(args):
     # find all xrc files in this dir
+    try:
+        dir = args[0]
+    except:
+        dir = '.'
     xrcs = []
-    for filename in os.listdir('.'):
+    for filename in os.listdir(dir):
         if filename.lower().endswith('.xrc'):
             xrcs.append(filename)
         
     print 'Found %d xrc files in the current directory:' % len(xrcs)
     
     for filename in xrcs:
-        print '\t%s (%s)' % (filename, changeFile(filename))
+        print '\t%s (%s)' % (filename, changeFile(os.path.join(dir,filename)))
         
 
     print 'Updated xrc files and wrote backup files (.old) if changed.'

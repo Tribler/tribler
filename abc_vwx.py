@@ -44,6 +44,7 @@ from safeguiupdate import DelayedInvocation
 import webbrowser
 from Tribler.Dialogs.MugshotManager import MugshotManager
 from Tribler.vwxGUI.MainXRC import GUIUtility
+import Tribler.vwxGUI.updateXRC as updateXRC
 
 DEBUG = False
 ALLOW_MULTIPLE = False
@@ -810,6 +811,7 @@ class ABCApp(wx.App):
             self.utility.postAppInit()
             #self.frame = ABCFrame(-1, self.params, self.utility)
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params)
+            updateXRC.main(['Tribler/vwxGUI/'])
             self.res = xrc.XmlResource("Tribler/vwxGUI/MyFrame.xrc")
             self.frame = self.res.LoadFrame(None, "MyFrame")
             self.frame.Show(True)
