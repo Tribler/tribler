@@ -270,12 +270,15 @@ class PagerPanel(wx.Panel):
 
     def addComponents(self):
         self.SetBackgroundColour(wx.WHITE)
-        self.normalFont = wx.Font(8,74,90,90,0,"Arial")
-        self.boldFont  = wx.Font(10,74,90,wx.BOLD,1,"Arial")
+        fontinfo = self.utility.getInfoFromFont(None);
+        #fontinfo['size']-=2
+        self.normalFont = self.utility.getFontFromInfo(fontinfo)
+        fontinfo['size']+=1
+        fontinfo['weight'] = wx.BOLD
+        self.boldFont  = self.utility.getFontFromInfo(fontinfo)
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
         self.number = wx.StaticText(self,-1,"",wx.Point(3,111),wx.Size(49,13))
-        self.number.SetLabel('0 %s' % self.utility.lang.get('item')+'s')
         self.number.SetFont(self.normalFont)
         self.hSizer.Add(self.number, 3, BORDER_EXPAND, 0)
         
@@ -482,9 +485,11 @@ class TorrentPanel(wx.Panel):
         # Add title
         self.title =StaticText(self,-1,"")
         self.title.SetBackgroundColour(wx.WHITE)
-        self.title.SetFont(wx.Font(10,74,90,wx.BOLD,0,"Arial"))
-        self.title.SetMinSize((50,20))
-        self.vSizer.Add(self.title, 0, BORDER_EXPAND, 3)
+        fontinfo = self.utility.getInfoFromFont(None)
+        fontinfo['weight'] = wx.BOLD
+        self.title.SetFont(self.utility.getFontFromInfo(fontinfo))
+        #self.title.SetMinSize((50,20))
+        self.vSizer.Add(self.title, 0, BORDER_EXPAND, 5)
         
         # Add seeder, leecher, size
         self.seeder = StaticText(self, -1, '')
@@ -619,7 +624,7 @@ class TorrentPanel(wx.Panel):
             self.sizePic.SetEnabled(False)
             
         if torrent.get('relevance'):
-            self.recomm.SetLabel("%.1f" % torrent['relevance'])
+            self.recomm.SetLabel("%.1f" % (torrent['relevance']/1000.0))
             self.recommPic.SetEnabled(True)
             self.recomm.Enable(True)
             self.recomm.SetToolTipString(self.utility.lang.get('recomm_relevance'))
@@ -848,7 +853,10 @@ class DetailPanel(wx.Panel):
         
         # Set title
         self.title = StaticText(self,-1,"",wx.Point(3,111),wx.Size(49,13))
-        self.title.SetFont(wx.Font(11,74,90,wx.BOLD,0,"Verdana"))
+        fontinfo = self.utility.getInfoFromFont(None)
+        fontinfo['size']+=3
+        fontinfo['weight'] = wx.BOLD
+        self.title.SetFont(self.utility.getFontFromInfo(fontinfo))
         self.title.SetBackgroundColour(wx.Colour(245,208,120))
         self.vSizer.Add(self.title, 0, BORDER_EXPAND, 5)
         
@@ -994,7 +1002,7 @@ class DetailPanel(wx.Panel):
                         self.fileList.SetStringItem(index, 1, f[1])
                     self.onListResize(None) 
                 elif key == 'relevance':
-                    self.recommText.SetLabel("%.1f" % value)
+                    self.recommText.SetLabel("%.1f" % (value/1000.0))
                     
             if (torrent.get('myDownloadHistory', False) and not torrent.get('eventComingUp','') == 'notDownloading') or torrent.get('eventComingUp', '') == 'downloading':
                 self.downloadPic.SetEnabled(False)
@@ -1408,16 +1416,4 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
             print >>sys.stderr,'contentpanel: typed'
         pass
         
-class MyApp(wx.App):
-    
-    def OnInit(self):
-        wx.InitAllImageHandlers()
-        frame = wx.Frame( None, -1, "Tribler wxPrototype", [20,20], [800,600] )
-        frame.window = DetailPanel(frame)
-        frame.Show(True)
-        print "Started"
-        return True
 
-if __name__ == '__main__':
-    app = MyApp(0)
-    app.MainLoop()
