@@ -476,7 +476,10 @@ class TorrentPanel(wx.Panel):
         #self.SetMinSize((50,50))
         self.SetBackgroundColour(wx.WHITE)
         self.selectedColour = wx.Colour(245,208,120)
-        self.unselectedColour = (0,0,0,0)
+        try:
+            self.unselectedColour = wx.Colour(0,0,0,0)
+        except:
+            self.unselectedColour = wx.WHITE
         
         self.vSizer = wx.StaticBoxSizer(wx.StaticBox(self,-1,""),wx.VERTICAL)
         
@@ -489,37 +492,35 @@ class TorrentPanel(wx.Panel):
         font = self.title.GetFont()
         font.SetWeight(wx.BOLD)
         self.title.SetFont(font)
-        #fontinfo = self.utility.getInfoFromFont(None)
-        #fontinfo['weight'] = wx.BOLD
-        #self.title.SetFont(self.utility.getFontFromInfo(fontinfo))
-        #self.title.SetMinSize((50,20))
         self.vSizer.Add(self.title, 0, BORDER_EXPAND, 5)
         
         # Add seeder, leecher, size
         self.seeder = StaticText(self, -1, '')
-        self.seeder.SetBackgroundColour(wx.WHITE)
         self.seederPic = ImagePanel(self)
-        self.seederPic.SetBackgroundColour(wx.WHITE)
         self.seederBitmap = "up.png"
         self.warningBitmap = "warning.gif"
         self.leecherBitmap = "down.png"
         self.seederPic.SetBitmap(self.seederBitmap)
         self.leecher = StaticText(self, -1, '')
-        self.leecher.SetBackgroundColour(wx.WHITE)
         self.leecherPic = ImagePanel(self)
-        self.leecherPic.SetBackgroundColour(wx.WHITE)
         self.leecherPic.SetBitmap(self.leecherBitmap)
         self.size = StaticText(self, -1, '')
-        self.size.SetBackgroundColour(wx.WHITE)
         self.sizePic = ImagePanel(self)
-        self.sizePic.SetBackgroundColour(wx.WHITE)
         self.sizePic.SetBitmap("size.png")
         self.recommPic = ImagePanel(self)
-        self.recommPic.SetBackgroundColour(wx.WHITE)
         self.recommPic.SetBitmap("love.png")
         self.recomm = StaticText(self, -1, '')
-        self.recomm.SetBackgroundColour(wx.WHITE)
                 
+        if self.unselectedColour == wx.WHITE:
+            self.seeder.SetBackgroundColour(wx.WHITE)
+            self.seederPic.SetBackgroundColour(wx.WHITE)
+            self.leecher.SetBackgroundColour(wx.WHITE)
+            self.leecherPic.SetBackgroundColour(wx.WHITE)
+            self.size.SetBackgroundColour(wx.WHITE)
+            self.sizePic.SetBackgroundColour(wx.WHITE)
+            self.recommPic.SetBackgroundColour(wx.WHITE)
+            self.recomm.SetBackgroundColour(wx.WHITE)
+            
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.hSizer.Add(self.seederPic, 0, wx.RIGHT, 1)
         self.hSizer.Add(self.seeder, 0, wx.RIGHT, 15)     
