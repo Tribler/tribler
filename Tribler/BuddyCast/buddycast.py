@@ -148,7 +148,7 @@ from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.Overlay.SecureOverlay import OLPROTO_VER_CURRENT
 from similarity import P2PSim
 from TorrentCollecting import SimpleTorrentCollecting
-#from Tribler.Statistics.Logger import OverlayLogger
+from Tribler.Statistics.Logger import OverlayLogger
 
 DEBUG = False
 debug = False
@@ -169,26 +169,26 @@ def validBuddyCastData(prefxchg, nmyprefs=50, nbuddies=10, npeers=10, nbuddypref
     
     def validPref(pref, num):
         if not (isinstance(prefxchg, list) or isinstance(prefxchg, dict)):
-            raise Exception, "bc: invalid pref type " + str(type(prefxchg))
+            raise RuntimeError, "bc: invalid pref type " + str(type(prefxchg))
         if len(pref) > num:
-            raise Exception, "bc: length of pref exceeds " + str((len(pref), num))
+            raise RuntimeError, "bc: length of pref exceeds " + str((len(pref), num))
         for p in pref:
             validInfohash(p)
             
     validPeer(prefxchg)
     if not isinstance(prefxchg['name'], str):
-        raise Exception, "bc: invalid name type " + str(type(prefxchg['name']))
+        raise RuntimeError, "bc: invalid name type " + str(type(prefxchg['name']))
     validPref(prefxchg['preferences'], nmyprefs)
     
     if len(prefxchg['taste buddies']) > nbuddies:
-        raise Exception, "bc: length of prefxchg['taste buddies'] exceeds " + \
+        raise RuntimeError, "bc: length of prefxchg['taste buddies'] exceeds " + \
                 str(len(prefxchg['taste buddies']))
     for b in prefxchg['taste buddies']:
         validPeer(b)
         validPref(b['preferences'], nbuddyprefs)
         
     if len(prefxchg['random peers']) > npeers:
-        raise Exception, "bc: length of random peers " + \
+        raise RuntimeError, "bc: length of random peers " + \
                 str(len(prefxchg['random peers']))
     for b in prefxchg['random peers']:
         validPeer(b)
@@ -197,7 +197,7 @@ def validBuddyCastData(prefxchg, nmyprefs=50, nbuddies=10, npeers=10, nbuddypref
 class BuddyCastFactory:
     __single = None
     
-    def __init__(self, db_dir='', superpeer=False):
+    def __init__(self, db_dir='', superpeer=False, log=''):
         if BuddyCastFactory.__single:
             raise RuntimeError, "BuddyCastFactory is singleton"
         BuddyCastFactory.__single = self 
@@ -206,6 +206,7 @@ class BuddyCastFactory:
         self.buddycast_interval = 15    # MOST IMPORTANT PARAMETER
         self.sync_interval = 20*self.buddycast_interval
         self.superpeer = superpeer
+        self.log = log
         if self.superpeer:
             print "Start as SuperPeer mode"
         
@@ -231,7 +232,7 @@ class BuddyCastFactory:
                 self.data_handler.updatePort(port)
             self.buddycast_core = BuddyCastCore(secure_overlay, launchmany, 
                    self.data_handler, self.buddycast_interval, self.superpeer,
-                   metadata_handler, torrent_collecting_solution
+                   metadata_handler, torrent_collecting_solution, self.log
                    )
             self.startup()
     
@@ -298,13 +299,14 @@ class BuddyCastFactory:
 class BuddyCastCore:
     def __init__(self, secure_overlay, launchmany, data_handler, 
                  buddycast_interval, superpeer, 
-                 metadata_handler, torrent_collecting_solution):
+                 metadata_handler, torrent_collecting_solution, log=''):
         self.secure_overlay = secure_overlay
         self.so_version = OLPROTO_VER_CURRENT
         self.launchmany = launchmany
         self.data_handler = data_handler
         self.buddycast_interval = buddycast_interval
         self.superpeer = superpeer    # change it for superpeers
+        self.log = log
         self.dialback = DialbackMsgHandler.getInstance()
 
         self.ip = self.data_handler.getMyIp()
@@ -360,7 +362,8 @@ class BuddyCastCore:
 
         # -- misc ---
         self.dnsindb = self.data_handler.get_dns_from_peerdb
-        
+        if self.log:
+            self.overlay_log = OverlayLogger(self.log)
                     
     def get_peer_info(self, target_permid, include_permid=True):
         if not target_permid:
@@ -387,6 +390,9 @@ class BuddyCastCore:
         try:
             self.round += 1
             self.print_debug_info('Active', 2)
+            if self.log:
+                nPeer, nPref, nCc, nBs, nBr, nSO, nCo, nCt, nCr, nCu = self.get_stats()
+                self.overlay_log('BUCA_STA', (nPeer,nPref,nCc), (nBs,nBr), (nSO,nCo), (nCt,nCr,nCu))
         
             self.print_debug_info('Active', 3)
             self.updateSendBlockList()
@@ -397,6 +403,13 @@ class BuddyCastCore:
                 self.data_handler.checkUpdateItemSim()
                 gc.collect()
                 
+#                if self.log:
+#                    conns = []
+#                    for p in self.connections:
+#                        s_pid = show_permid_short(p)
+#                        conns.append(s_pid)
+#                    self.overlay_log('BUCA_CON', conns)
+                    
             if self.next_initiate > 0:
                 # It replied some meesages in the last rounds, so it doesn't initiate Buddycast
                 self.print_debug_info('Active', 6)
@@ -563,7 +576,7 @@ class BuddyCastCore:
             if debug:
                 print "bc: got keep alive msg from", self.get_peer_info(peer_permid)
         else:
-            self.closeConnection(peer_permid)
+            self.closeConnection(peer_permid, 'keepalive:'+str(exc))
             if DEBUG:
                 print >> sys.stderr, "bc: error - send keep alive msg", exc, \
                 self.get_peer_info(peer_permid), "Round", self.round
@@ -634,11 +647,13 @@ class BuddyCastCore:
         
         if not self.isBlocked(target_permid, self.send_block_list):
             self.secure_overlay.connect(target_permid, self.buddycastConnectCallback)
-#            if GLOBAL.overlay_log:
-#                dns = self.dnsindb(target_permid)
-#                write_overlay_log('CONN_TRY', target_permid, dns)
                         
             self.print_debug_info('Active', 12, target_permid)
+            if self.log:
+                dns = self.dnsindb(target_permid)
+                if dns:
+                    ip,port = dns
+                    self.overlay_log('CONN_TRY', ip, port, show_permid(target_permid))
             
             # always block the target for a while not matter succeeded or not
             self.blockPeer(target_permid, self.send_block_list, self.short_block_interval)
@@ -688,7 +703,18 @@ class BuddyCastCore:
             self.print_debug_info('Active', 17, target_permid)
         else:
             self.print_debug_info('Passive', 7, target_permid)
-
+            
+        if self.log:
+            dns = self.dnsindb(target_permid)
+            if dns:
+                ip,port = dns
+                if active:
+                    MSG_ID = 'ACTIVE_BC'
+                else:
+                    MSG_ID = 'PASSIVE_BC'
+                msg = repr(readableBuddyCastMsg(buddycast_data))    # from utilities
+                self.overlay_log('SEND_MSG', ip, port, show_permid(target_permid), selversion, MSG_ID, msg)
+                
     def createBuddyCastMessage(self, target_permid, selversion):
         """ Create a buddycast message for a target peer on selected protocol version """
         
@@ -754,7 +780,7 @@ class BuddyCastCore:
                 print "bc: *** msg was sent successfully to peer", \
                     self.get_peer_info(target_permid)
         else:
-            self.closeConnection(target_permid)
+            self.closeConnection(target_permid, 'buddycast:'+str(exc))
             if debug:
                 print "bc: *** warning - error in sending msg to",\
                         self.get_peer_info(target_permid), exc
@@ -802,7 +828,8 @@ class BuddyCastCore:
             self.print_debug_info('Active', 18, sender_permid)
         else:
             self.print_debug_info('Passive', 2, sender_permid)
-        
+            
+        buddycast_data = {}
         try:
             buddycast_data = bdecode(recv_msg)
             buddycast_data.update({'permid':sender_permid})
@@ -810,9 +837,14 @@ class BuddyCastCore:
                 validBuddyCastData(buddycast_data, self.num_myprefs, 
                                    self.num_tbs, self.num_rps, self.num_tb_prefs)    # RCP 2            
             except RuntimeError, msg:
-                print >> sys.stderr, "bc: warning - got invalide BuddyCastMsg", `msg`, \
+                try:
+                    errmsg = str(msg)
+                except:
+                    errmsg = repr(msg)
+                print >> sys.stderr, "bc: warning, got invalide BuddyCastMsg:", errmsg, \
                     "Round", self.round   # ipv6
                 return False
+           
            
             # update sender's ip and port in buddycast
             dns = self.dnsindb(sender_permid)
@@ -820,6 +852,15 @@ class BuddyCastCore:
             sender_port = dns[1]
             buddycast_data.update({'ip':sender_ip})
             buddycast_data.update({'port':sender_port})
+            
+            if self.log:
+                if active:
+                    MSG_ID = 'ACTIVE_BC'
+                else:
+                    MSG_ID = 'PASSIVE_BC'
+                msg = repr(readableBuddyCastMsg(buddycast_data))    # from utilities
+                self.overlay_log('RECV_MSG', sender_ip, sender_port, show_permid(sender_permid), selversion, MSG_ID, msg)
+            
             # store discovered peers/preferences/torrents to cache and db
             conn = self.handleBuddyCastMessage(sender_permid, buddycast_data, selversion)
             
@@ -1050,7 +1091,7 @@ class BuddyCastCore:
         if exc is None:    # add a connection
             self.addConnection(permid, selversion, locally_initiated)
         else:
-            self.closeConnection(permid)
+            self.closeConnection(permid, 'overlayswarm:'+str(exc))
         
     def addConnection(self, peer_permid, selversion, locally_initiated):
         _now = now()
@@ -1065,8 +1106,13 @@ class BuddyCastCore:
             if debug:
                 print >> sys.stdout, "bc: add connection", \
                     self.get_peer_info(peer_permid), "to", addto
+            if self.log:
+                dns = self.dnsindb(peer_permid)
+                if dns:
+                    ip,port = dns
+                    self.overlay_log('CONN_ADD', ip, port, show_permid(peer_permid), selversion)
 
-    def closeConnection(self, peer_permid):
+    def closeConnection(self, peer_permid, reason):
         """ Close connection with a peer, and remove it from connection lists """
         
         if debug:
@@ -1086,7 +1132,26 @@ class BuddyCastCore:
         if self.torrent_collecting:
             self.torrent_collecting.closeConnection(peer_permid)
             
+        if self.log:
+            dns = self.dnsindb(peer_permid)
+            if dns:
+                ip,port = dns
+                self.overlay_log('CONN_DEL', ip, port, show_permid(peer_permid), reason)
+            
     # -------------- print debug info ---------- #
+    def get_stats(self):
+        nPeer = len(self.data_handler.peers)
+        nPref = len(self.data_handler.preferences)
+        nCc = len(self.connection_candidates)
+        nBs = len(self.send_block_list)
+        nBr = len(self.recv_block_list)
+        nSO = len(self.secure_overlay.debug_get_live_connections())
+        nCo = len(self.connections)
+        nCt = len(self.connected_taste_buddies)
+        nCr = len(self.connected_random_peers)
+        nCu = len(self.connected_unconnectable_peers)
+        return nPeer, nPref, nCc, nBs, nBr, nSO, nCo, nCt, nCr, nCu
+    
     def print_debug_info(self, thread, step, target_permid=None, selversion=0, r=0, addto=''):
         if not debug:
             return
@@ -1095,18 +1160,9 @@ class BuddyCastCore:
             if step == 2:
                 print "Working:", now() - self.start_time, \
                     "seconds since start. Round", self.round, "Time:", ctime(now())
-                nPeer = len(self.data_handler.peers)
-                nPref = len(self.data_handler.preferences)
-                nCc = len(self.connection_candidates)
-                nBs = len(self.send_block_list)
-                nBr = len(self.recv_block_list)
-                nSO = len(self.secure_overlay.debug_get_live_connections())
-                nCo = len(self.connections)
-                nCt = len(self.connected_taste_buddies)
-                nCr = len(self.connected_random_peers)
-                nCu = len(self.connected_unconnectable_peers)
+                nPeer, nPref, nCc, nBs, nBr, nSO, nCo, nCt, nCr, nCu = self.get_stats()
                 print "bc: *** Status: nPeer nPref nCc: %d %d %d  nBs nBr: %d %d  nSO nCo nCt nCr nCu: %d %d %d %d %d" % \
-                                      (nPeer,nPref,nCc,           nBs,nBr,        nSO,nCo,nCt,nCr,nCu)
+                                      (nPeer,nPref,nCc,           nBs,nBr,        nSO,nCo, nCt,nCr,nCu)
                 if nSO != nCo:
                     print "bc: warning - nSo and nCo is inconsistent"
                 if nCc > self.max_conn_cand or nCt > self.max_conn_tb or nCr > self.max_conn_rp or nCu > self.max_conn_up:
@@ -1115,7 +1171,7 @@ class BuddyCastCore:
                 for p in self.connections:
                     buf += "bc: * conn: " + self.get_peer_info(p) + "version: " + str(self.connections[p]) + "\n"
                 print buf
-                
+
             elif step == 3:
                 print "check blocked peers: Round", self.round
                 

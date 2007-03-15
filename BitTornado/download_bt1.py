@@ -193,8 +193,6 @@ defaults = [
         "automatically collect torrents"),
     ('superpeer', 0,
         "run on super peer mode (0 = disabled)"),
-    ('das_test', 0,
-        "test buddycast on TU-Delft's DAS-2 supercomputer (0 = disabled)"),
     ('overlay_log', '',
         "log on super peer mode ('' = disabled)"),
     ('buddycast_interval', 15,

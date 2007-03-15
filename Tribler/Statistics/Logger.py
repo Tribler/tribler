@@ -6,10 +6,6 @@ import os
 import time
 import socket
 from traceback import print_exc
-from base64 import encodestring
-from sha import sha
-from BitTornado.BT1.MessageID import getMessageName
-from Tribler.utilities import show_permid
             
 DEBUG = False
 
@@ -32,7 +28,6 @@ def get_logger():
         
     return logger
 
-
 def get_today():    # UTC based
     return time.gmtime(time.time())[:3]
 
@@ -54,6 +49,7 @@ class Logger:
                  prefix_date = False, open_mode = 'a+b'):
         
         self.threshold = threshold            
+        self.Log = self.log
         if file_name == '':
             self.logfile = sys.stderr
         else:
@@ -83,12 +79,13 @@ class Logger:
             date = ''
         return os.path.join(file_dir, prefix + date + file_name)
     
-    def log(self, level, msg):
+    def log(self, level, msg, showtime=True):
         if level <= self.threshold:
             if self.logfile is None: 
                 return
-            time_stamp = "%.03f"%time.time()
-            self.logfile.write(time_stamp + log_separator)
+            if showtime:
+                time_stamp = "%.01f"%time.time()
+                self.logfile.write(time_stamp + log_separator)
             if isinstance(msg, str):
                 self.logfile.write(msg)
             else:
@@ -110,24 +107,28 @@ class OverlayLogger:
         self.file_name = file_name
         self.file_dir = file_dir
         OverlayLogger.__single = self
+        self.Log = self.log
+        self.__call__ = self.log
 
     def getInstance(*args, **kw):
         if OverlayLogger.__single is None:
             OverlayLogger(*args, **kw)
         return OverlayLogger.__single
     getInstance = staticmethod(getInstance)
-        
+    
     def log(self, *msgs):
         """
         # MSG must be the last one. Permid should be in the rear to be readable
-       BuddyCast log for superpeer format: (V2)    
-          TIME CONN_TRY IP PORT PERMID
-          TIME CONN_ADD IP PORT SELVERSION PERMID 
-          TIME CONN_DEL IP PORT REASON PERMID
-          TIME SEND_MSG IP PORT MSG_ID SELVERSION PERMID MSG
-          TIME RECV_MSG IP PORT MSG_ID SELVERSION PERMID MSG
+        BuddyCast log for superpeer format: (V2)    
+          CONN_TRY IP PORT PERMID
+          CONN_ADD IP PORT PERMID SELVERSION
+          CONN_DEL IP PORT PERMID REASON
+          SEND_MSG IP PORT PERMID SELVERSION MSG_ID MSG
+          RECV_MSG IP PORT PERMID SELVERSION MSG_ID MSG
           
-          TIME BUCA_STA xx xx xx ...    # BuddyCast status
+          #BUCA_CON Permid1, Permid2, ...
+          
+          BUCA_STA xx xx xx ...    # BuddyCast status
               1  Pr    # nPeer
               2  Pf    # nPref
               3  Tr    # nTorrent
@@ -138,6 +139,7 @@ class OverlayLogger:
               
               7  SO    # nConnectionsInSecureOver
               8  Co    # nConnectionsInBuddyCast
+              
               9  Ct    # nTasteConnectionList
               10  Cr   # nRandomConnectionList
               11  Cu   # nUnconnectableConnectionList
@@ -145,35 +147,65 @@ class OverlayLogger:
         
         log_msg = ''
         nmsgs = len(msgs)
-        if nmsgs == 0:
+        if nmsgs < 2:
+            print >> sys.stderr, "Error message for log", msgs
             return
+        
         else:
             for i in range(nmsgs):
-                log_msg += msgs[i]
-                log_msg += log_separator
+                if isinstance(msgs[i], tuple) or isinstance(msgs[i], list):
+                    for msg in msgs[i]:
+                        try:
+                            log_msg += str(msg)
+                        except:
+                            log_msg += repr(msg)
+                        log_msg += log_separator
+                    log_msg += log_separator
+                else:
+                    try:
+                        log_msg += str(msgs[i])
+                    except:
+                        log_msg += repr(msgs[i])
+                    log_msg += log_separator
+                
         if log_msg:
-            self.write_log(log_msg)
+            self._write_log(log_msg)
         
-    def write_log(self, msg):
+    def _write_log(self, msg):
         # one logfile per day. 
         today = get_today()
         if not hasattr(self, 'today'):
             self.today = today
-            self.logger = self.make_logger()
+            self.logger = self._make_logger()
         elif today != self.today:    # make a new log if a new day comes
             self.logger.close()
-            self.logger = self.make_logger()
+            self.logger = self._make_logger()
         self.logger.log(3, msg)
             
-    def make_logger(self):
+    def _make_logger(self):
         hostname = socket.gethostname()
         logger = Logger(3, self.file_name, self.file_dir, hostname, True)
-        logger.Log(3, '# Tribler Log Version 2')    # mention the log version at the first line
-        logger.Log(3, '# BUCA_STA: Pr Pf Tr  Cc Bs Br  SO Co Ct Cr Cu')
+        logger.log(3, '# Tribler Overlay Log Version 2', showtime=False)    # mention the log version at the first line
+        logger.log(3, '# BUCA_STA: nPeer nPref nTorrent   ' + \
+                   'nConntionCandidates nBlockSendList nBlockRecvList   ' + \
+                   'nConnectionsInSecureOver nConnectionsInBuddyCast  ' + \
+                   'nTasteConnectionList nRandomConnectionList nUnconnectableConnectionList', 
+                   showtime=False)
+        logger.log(3, '# BUCA_STA: Pr Pf Tr  Cc Bs Br  SO Co  Ct Cr Cu', showtime=False)
+        return logger
         
 if __name__ == '__main__':
     create_logger('test.log')
     get_logger().log(1, 'abc' + ' ' + str(['abc', 1, (2,3)]))
     get_logger().log(0, [1,'a',{(2,3):'asfadf'}])
     #get_logger().log(1, open('log').read())
+    
+    ol = OverlayLogger('overlay.log')
+    ol.log('CONN_TRY', '123.34.3.45', 34, 'asdfasdfasdfasdfsadf')
+    ol.log('CONN_ADD', '123.34.3.45', 36, 'asdfasdfasdfasdfsadf', 3)
+    ol.log('CONN_DEL', '123.34.3.45', 38, 'asdfasdfasdfasdfsadf', 'asbc')
+    ol.log('SEND_MSG', '123.34.3.45', 39, 'asdfasdfasdfasdfsadf', 2, 'BC', 'abadsfasdfasf')
+    ol.log('RECV_MSG', '123.34.3.45', 30, 'asdfasdfasdfasdfsadf', 3, 'BC', 'bbbbbbbbbbbbb')
+    ol.log('BUCA_STA', (1,2,3), (4,5,6), (7,8), (9,10,11))
+    ol.log('BUCA_CON', ['asfd','bsdf','wevs','wwrewv'])
     

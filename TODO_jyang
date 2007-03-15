@@ -10,16 +10,15 @@ BUDDYCAST:
     	
 	+ Update item relevance
 	
-	Improve connectability test with local subnet
-    New similarity func between users
-
-    Unit Test
 	Log and Log in GUI
+    Unit Test
 	Setup superpeers
 	
-	Fast torrent collecting from connected peers
+    New similarity func between users
     Reduce memory usage
+	Fast torrent collecting from connected peers
     
+	Improve connectability test with local subnet
     Sign buddycast2 messages
     Reduce bandwidth usage
     
@@ -45,10 +44,12 @@ GUI:
 	
 	Click a torrent and recommend similar torrent
 	Remove permid when adding friend
+	Disable XXX
 
 	Dutch version
 	Chinese version
     Visualize buddycast2 networks	
+    
     
 BUGFIX:    
 	+ Don't always keep connection with superpeers (duplicated index in conn list)
