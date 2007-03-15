@@ -571,7 +571,7 @@ class BuddyCastCore:
     def isConnected(self, peer_permid):
         return peer_permid in self.connections
     
-    def keepaliveSendCallback(self, exc, peer_permid):        
+    def keepaliveSendCallback(self, exc, peer_permid, other=0):        
         if exc is None:
             if debug:
                 print "bc: got keep alive msg from", self.get_peer_info(peer_permid)
@@ -774,7 +774,7 @@ class BuddyCastCore:
         else:
             return 0
 
-    def buddycastSendCallback(self, exc, target_permid):
+    def buddycastSendCallback(self, exc, target_permid, other=0):
         if exc is None:
             if debug:
                 print "bc: *** msg was sent successfully to peer", \
