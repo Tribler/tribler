@@ -7,6 +7,7 @@ from torrentFilter import *
 from torrentTabs import *
 from torrentGrid import *
 from standardPager import *
+from standardOverview import *
 #[inc]add your include files here
 
 #[inc]end your include
@@ -49,6 +50,7 @@ class torrentOverview(wx.Panel):
         self.orange_bottom_left = bgPanel(self, -1, wx.Point(0,400), wx.Size(10,28))
         self.orange_bottom_center = bgPanel(self, -1, wx.Point(10,394), wx.Size(20,20))
         self.standardPager = standardPager(self,-1,wx.Point(440,394),wx.Size(183,28))
+        self.standardOverview203c = standardOverview(self,-1,wx.Point(0,0),wx.Size(20,20))
         self.sz3s = wx.BoxSizer(wx.VERTICAL)
         self.header = wx.BoxSizer(wx.HORIZONTAL)
         self.footer = wx.BoxSizer(wx.HORIZONTAL)

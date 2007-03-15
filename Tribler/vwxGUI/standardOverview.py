@@ -36,9 +36,9 @@ class standardOverview(wx.Panel):
         
         
     def addComponents(self):
-        self.vSizer = wx.BoxSizer(wx.VERTICAL)
-        self.SetSizer(self.vSizer)
-        self.SetSizer(self.vSizer);
+        self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.SetSizer(self.hSizer)
+        self.SetSizer(self.hSizer);
         self.SetAutoLayout(1);
         
     def refreshMode(self):
@@ -52,5 +52,5 @@ class standardOverview(wx.Panel):
         self.res = xrc.XmlResource(xrcResource)
         # create panel
         self.panel = self.res.LoadPanel(self, panelName)
-        self.vSizer.Add(self.panel, 1, wx.ALL, 0)
+        self.hSizer.Add(self.panel, 1, wx.ALL|wx.EXPAND, 0)
         
