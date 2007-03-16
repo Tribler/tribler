@@ -736,19 +736,19 @@ class CategoryPanel(wx.Panel):
 #        label1.SetMinSize((100, -1))
 #        self.orderSizer.Add(label1, 0, wx.LEFT|wx.RIGHT, 10)
         
-        self.swarmLabel = StaticText(self, -1, self.utility.lang.get('swarmsize'))
+        self.swarmLabel = StaticText(self, -1, self.utility.lang.get('swarmsize')+'  ')
         self.swarmLabel.SetToolTipString(self.utility.lang.get('swarmsize_tool'))
         self.swarmLabel.SetBackgroundColour(self.GetBackgroundColour())
-        self.grow(self.swarmLabel)
+        #self.grow(self.swarmLabel)
         
         self.swarmLabel.SetFont(self.orderSelFont)
         self.orderSizer.Add(self.swarmLabel, 0, wx.LEFT|wx.RIGHT, 10)
         
-        self.recommLabel = StaticText(self, -1, self.utility.lang.get('recommended'))
+        self.recommLabel = StaticText(self, -1, self.utility.lang.get('recommended')+'  ')
         self.recommLabel.SetBackgroundColour(self.GetBackgroundColour())
         self.recommLabel.SetFont(self.orderUnselFont)
         self.recommLabel.SetToolTipString(self.utility.lang.get('recommendation_tool'))
-        self.grow(self.recommLabel)
+        #self.grow(self.recommLabel)
         self.orderSizer.Add(self.recommLabel, 1, wx.LEFT|wx.RIGHT, 10)
         
         self.myHistoryLabel = StaticText(self, -1, self.myHistory)
@@ -804,13 +804,13 @@ class CategoryPanel(wx.Panel):
         if obj == self.swarmLabel:
             self.parent.reorder('swarmsize')
             obj.SetFont(self.orderSelFont)
-            self.grow(obj)
+            #self.grow(obj)
             obj.Refresh()
             
         elif obj == self.recommLabel:
             self.parent.reorder('relevance')
             obj.SetFont(self.orderSelFont)
-            self.grow(obj)
+            #self.grow(obj)
             obj.Refresh()
 #        elif obj == self.myHistoryLabel:
 #            self.parent.loadMyDownloadHistory()
@@ -820,7 +820,7 @@ class CategoryPanel(wx.Panel):
         
         if self.lastOrdering:
             self.lastOrdering.SetFont(self.orderUnselFont)
-            self.grow(self.lastOrdering)
+            #self.grow(self.lastOrdering)
         self.lastOrdering = obj
         
     def mouseAction(self, event):
