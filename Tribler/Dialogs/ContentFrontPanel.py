@@ -1423,6 +1423,7 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
             self.data_manager.unregister(self.updateFun, self.categorykey)
         
     def updateFun(self, torrent, operate):
+        
         if DEBUG:
             print 'contentpanel: Updatefun called: %s %s (s: %d, l: %d) '% (repr(torrent.get('content_name','no_name')), operate, torrent.get('seeder', -1), torrent.get('leecher', -1))
         # operate = {add, update, delete}

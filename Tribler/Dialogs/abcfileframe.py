@@ -386,6 +386,7 @@ class TorrentDataManager:
     
     
     def setBelongsToMyDowloadHistory(self, infohash, b):
+        
         """Set a certain new torrent to be in the download history or not"
         Should not be changed by updateTorrent calls"""
         old_torrent = self.info_dict.get(infohash, None)

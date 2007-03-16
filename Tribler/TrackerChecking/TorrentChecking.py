@@ -10,6 +10,7 @@ from threading import Thread
 from random import random
 from time import time, asctime
 
+DEBUG = False
 
 class TorrentChecking(Thread):
     
@@ -38,7 +39,8 @@ class TorrentChecking(Thread):
             self.torrentList.release()
             if not torrent:
                 return
-            #print asctime(), "Get From Good", repr(torrent["info"]["name"])
+            if DEBUG:
+                print asctime(), "Get From Good", repr(torrent["info"]["name"])
             # whether to ignore
             if (torrent["ignore_number"] > 0):    
                 torrent["ignore_number"] -= 1

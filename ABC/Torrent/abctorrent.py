@@ -141,7 +141,7 @@ class ABCTorrent:
             
         torrent = {}
         torrent['torrent_dir'], torrent['torrent_name'] = os.path.split(self.src)
-        torrent['relevance'] = 100*1000
+        #torrent['relevance'] = 100*1000
         
         torrent_info = {}
         torrent_info['name'] = self.info.get(self.namekey, '')
@@ -199,6 +199,8 @@ class ABCTorrent:
             self.utility.abcfileframe.updateMyPref()
             
         self.data_manager.addNewPreference(self.torrent_hash)
+        self.data_manager.setBelongsToMyDowloadHistory(self.torrent_hash, True)
+        
         self.utility.buddycast.addMyPref(self.torrent_hash)
         if DEBUG:
             print >> sys.stderr, "abctorrent: add mypref to db", self.infohash, mypref

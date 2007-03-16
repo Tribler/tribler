@@ -90,7 +90,7 @@ class ABCStatusBar(wx.StatusBar):
         
         wx.StatusBar.__init__(self, parent, -1, style = style)
         self.SetFieldsCount(5)
-        self.SetStatusWidths([-1, 120, 120, 100, 120])
+        self.SetStatusWidths([-1, 130, 130, 120, 140])
 
     def setActivity(self,type,msg=u''):
     
