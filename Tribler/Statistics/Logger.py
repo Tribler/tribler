@@ -154,13 +154,13 @@ class OverlayLogger:
         else:
             for i in range(nmsgs):
                 if isinstance(msgs[i], tuple) or isinstance(msgs[i], list):
+                    log_msg += log_separator
                     for msg in msgs[i]:
                         try:
                             log_msg += str(msg)
                         except:
                             log_msg += repr(msg)
                         log_msg += log_separator
-                    log_msg += log_separator
                 else:
                     try:
                         log_msg += str(msgs[i])
@@ -186,12 +186,12 @@ class OverlayLogger:
         hostname = socket.gethostname()
         logger = Logger(3, self.file_name, self.file_dir, hostname, True)
         logger.log(3, '# Tribler Overlay Log Version 2', showtime=False)    # mention the log version at the first line
-        logger.log(3, '# BUCA_STA: nPeer nPref nTorrent   ' + \
+        logger.log(3, '# BUCA_STA: nRound   nPeer nPref nTorrent   ' + \
                    'nConntionCandidates nBlockSendList nBlockRecvList   ' + \
                    'nConnectionsInSecureOver nConnectionsInBuddyCast  ' + \
                    'nTasteConnectionList nRandomConnectionList nUnconnectableConnectionList', 
                    showtime=False)
-        logger.log(3, '# BUCA_STA: Pr Pf Tr  Cc Bs Br  SO Co  Ct Cr Cu', showtime=False)
+        logger.log(3, '# BUCA_STA: Rd  Pr Pf Tr  Cc Bs Br  SO Co  Ct Cr Cu', showtime=False)
         return logger
         
 if __name__ == '__main__':

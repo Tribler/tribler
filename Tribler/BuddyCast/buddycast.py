@@ -392,7 +392,7 @@ class BuddyCastCore:
             self.print_debug_info('Active', 2)
             if self.log:
                 nPeer, nPref, nCc, nBs, nBr, nSO, nCo, nCt, nCr, nCu = self.get_stats()
-                self.overlay_log('BUCA_STA', (nPeer,nPref,nCc), (nBs,nBr), (nSO,nCo), (nCt,nCr,nCu))
+                self.overlay_log('BUCA_STA', self.round, (nPeer,nPref,nCc), (nBs,nBr), (nSO,nCo), (nCt,nCr,nCu))
         
             self.print_debug_info('Active', 3)
             self.updateSendBlockList()
@@ -538,8 +538,7 @@ class BuddyCastCore:
                     print "bc: *** unblock peer in send block list" + self.get_peer_info(p) + \
                         "expiration:", ctime(self.send_block_list[p])
                 self.send_block_list.pop(p)
-                
-    
+                    
     def keepConnections(self):
         """ Close expired connections, and extend the expiration of 
             peers in connection lists
