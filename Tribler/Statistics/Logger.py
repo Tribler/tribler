@@ -175,14 +175,14 @@ class OverlayLogger:
         # one logfile per day. 
         today = get_today()
         if not hasattr(self, 'today'):
-            self.today = today
-            self.logger = self._make_logger()
+            self.logger = self._make_logger(today)
         elif today != self.today:    # make a new log if a new day comes
             self.logger.close()
-            self.logger = self._make_logger()
+            self.logger = self._make_logger(today)
         self.logger.log(3, msg)
             
-    def _make_logger(self):
+    def _make_logger(self, today):
+        self.today = today
         hostname = socket.gethostname()
         logger = Logger(3, self.file_name, self.file_dir, hostname, True)
         logger.log(3, '# Tribler Overlay Log Version 2', showtime=False)    # mention the log version at the first line
