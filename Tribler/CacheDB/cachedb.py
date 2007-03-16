@@ -397,6 +397,7 @@ class MyDB(BasicDB):
         elif old_version < curr_version:
             db.updateDB(old_version)
         elif old_version > curr_version:
+            #FIXME: user first install 3.4.0, then 3.5.0. Now he cannot reinstall 3.4.0 anymore
             raise RuntimeError, "The version of database is too high. Please update the software."
     checkVersion = staticmethod(checkVersion)
     

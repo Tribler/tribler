@@ -16,7 +16,7 @@ from sha import sha
 
 class DBReader:
     def __init__(self):
-        self.open_type_list = ['dbshelve', 'bsddb.db', 'pickle', 'file']
+        self.open_type_list = ['bsddb.db', 'dbshelve', 'pickle', 'file']
 
     def loadTreeData(self, db_path, data):
         self.sb.SetStatusText('loading '+db_path, 2)
@@ -56,6 +56,46 @@ class DBReader:
             else:
                 self.tree.AppendItem(parentItem, `items`)
             
+    def print_dict(self, data, level=0, comm=False):
+        
+        if isinstance(data, dict):
+            for i in data:
+                try:
+                    show = str(i)
+                except:
+                    show = repr(i)
+                if not show.isalpha():
+                    show = repr(i)
+                print "  "*level, show  + ':'
+                self.print_dict(data[i], level+1)
+        elif isinstance(data, list) or isinstance(data, Set) or isinstance(data, tuple):
+            data = list(data)
+            if not data:
+                print "  "*level, "[]"
+            #else:
+            #    print
+            for i in xrange(len(data)):
+                print "  "*level, '[' + str(i) + ']:',
+                if isinstance(data[i], dict) or \
+                   isinstance(data[i], list) or \
+                   isinstance(data[i], Set) or \
+                   isinstance(data[i], tuple):
+                    newlevel = level + 1
+                    print
+                else:
+                    newlevel = 0
+                self.print_dict(data[i], newlevel)
+        else:
+            try:
+                show = str(data)
+            except:
+                show = repr(data)
+            if not show.isalpha():
+                show = repr(data)
+            if comm:
+                print "  "*level, show + ':'
+            else:
+                print "  "*level, show
     
     def openFile(self, db_path):
         print >> sys.stderr, "Try to open coded", repr(db_path)
@@ -63,7 +103,24 @@ class DBReader:
         print >> sys.stderr, "Open Type:", self.open_type_list[self.open_type]
         print >> sys.stderr, "File Size:", len(`data`)
         #self.loadTreeData(db_path, data)
-        print data
+        print 'open db:', repr(db_path)
+        print
+        item = data.first()
+        num = 0
+        while item:
+            key,value = item
+            unpack = None
+            try:
+                unpack = loads(value)
+            except:
+                unpack = None
+            self.print_dict(key, 0, True)
+            self.print_dict(unpack, 1)
+            item = data.next()
+            num += 1
+        print >> sys.stderr, "Opened items", num
+            
+        #print data
             
     def openDB(self, db_path):
         #open_type = self.db_type_rb.GetSelection()
@@ -86,7 +143,7 @@ class DBReader:
     def _openDB(self, db_path, open_type):
         print >> sys.stderr, "..Try to open by", self.open_type_list[open_type]
         d = None
-        if open_type == 0:    # 'bsddb.dbshelve'
+        if open_type == 1:    # 'bsddb.dbshelve'
             db_types = [db.DB_BTREE, db.DB_HASH]
             for dbtype in db_types:
                 try:
@@ -97,13 +154,14 @@ class DBReader:
 #                except:
 #                    print_exc()
             if d is not None:
-                data = dict(d.items())
-                d.close()
-                return data
+                return d.cursor()
+#                data = dict(d.items())
+#                d.close()
+#                return data
             else:
                 return d
             
-        elif open_type == 1:    # 'bsddb.db'
+        elif open_type == 0:    # 'bsddb.db'
             try:
                 d = db.DB()
                 d.open(db_path, db.DB_UNKNOWN)
@@ -111,9 +169,10 @@ class DBReader:
                 d = None
 #                print_exc()
             if d is not None:
-                data = dict(d.items())
-                d.close()
-                return data
+                return d.cursor()
+#                data = dict(d.items())
+#                d.close()
+#                return data
             else:
                 return d
                     
