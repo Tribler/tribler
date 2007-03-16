@@ -10,11 +10,12 @@ BUDDYCAST:
     	
 	+ Update item relevance
 	
-	Log and Log in GUI
-    Unit Test
+	+ Log and Log in GUI
 	Setup superpeers
 	
+    Unit Test
     New similarity func between users
+    Test peer connectability
     Reduce memory usage
 	Fast torrent collecting from connected peers
     
@@ -49,10 +50,6 @@ GUI:
 	Dutch version
 	Chinese version
     Visualize buddycast2 networks	
-    
-SUPERPEERS:
-	Superpeers don't send keep alive
-	Superpeers don't collect torrents
     
     
 BUGFIX:    
