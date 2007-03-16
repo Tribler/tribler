@@ -379,7 +379,8 @@ class TorrentFiles:
         if not self.isFile():
             ## see if we're saving to a subdirectory or not
             existing = 0
-            if os.path.exists(dest):
+            try:
+              if os.path.exists(dest):
                 if not os.path.isdir(dest):
                     dest = None
                 if os.listdir(dest):  # if it's not empty
@@ -388,6 +389,8 @@ class TorrentFiles:
                             existing = 1
                     if not existing:
                         dest = os.path.join(dest, self.filename)
+            except UnicodeEncodeError:
+                return dest
         elif pathonly:
             # Strip out just the path for a regular torrent
             dest = os.path.dirname(self.dest)
@@ -548,10 +551,11 @@ class TorrentFiles:
     #
     def getSpaceAllocated(self):
         allocated = 0L
-        if self.isFile():
+        try:
+          if self.isFile():
             if os.path.exists(self.dest):
                 allocated = os.path.getsize(self.dest)
-        else:
+          else:
             count = 0
             for f in self.torrent.info['files']:
                 # Don't include space taken by disabled files
@@ -562,7 +566,8 @@ class TorrentFiles:
                     if os.path.exists(filename):
                         allocated += os.path.getsize(filename)
                 count += 1
-                    
+        except UnicodeEncodeError:
+            pass
         return allocated
     
     #

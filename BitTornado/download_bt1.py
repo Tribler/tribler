@@ -518,6 +518,9 @@ class BT1Download:
         except OSError, e:
             self.errorfunc("Couldn't allocate dir - " + str(e))
             return None
+        except UnicodeEncodeError, e:
+            self.errorfunc("Couldn't create dir named by unknown characters - " + str(e))
+            return None
 
         self.filename = file
         self.files = files

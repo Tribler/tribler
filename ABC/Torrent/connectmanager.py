@@ -136,7 +136,8 @@ class TorrentConnections:
         # and only then procREMOVE, so the engine object is already stopped and
         # the self.engine variable set to None by launchmanycore.py (still with 
         # me?) Sigh...
-        self.configdir = self.engine.dow.appdataobj
+        if self.engine and self.engine.dow:
+            self.configdir = self.engine.dow.appdataobj
         
 #    def stopEngine(self, waitForThread = False, update = True):
     def stopEngine(self, update = True):
