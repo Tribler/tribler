@@ -6,6 +6,7 @@ from traceback import print_exc
 from abcfileframe import TorrentDataManager
 from Tribler.utilities import *
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
+from Tribler.Dialogs.abcfileframe import relevance_display_factor
 from safeguiupdate import DelayedInvocation
 from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.unicode import *
@@ -627,7 +628,7 @@ class TorrentPanel(wx.Panel):
             self.sizePic.SetEnabled(False)
             
         if torrent.get('relevance', 0.0) >= 50 and not torrent.get('myDownloadHistory', False):
-            self.recomm.SetLabel("%.1f" % (torrent['relevance']/1000.0))
+            self.recomm.SetLabel("%.1f" % (torrent['relevance']/relevance_display_factor))
             self.recommPic.SetEnabled(True)
             self.recomm.Enable(True)
             self.recomm.SetToolTipString(self.utility.lang.get('recomm_relevance'))
@@ -796,12 +797,12 @@ class CategoryPanel(wx.Panel):
         if obj == self.swarmLabel:
             self.parent.reorder('swarmsize')
             obj.SetFont(self.orderSelFont)
-            
+            obj.Refresh()
             
         elif obj == self.recommLabel:
             self.parent.reorder('relevance')
             obj.SetFont(self.orderSelFont)
-                        
+            obj.Refresh()
 #        elif obj == self.myHistoryLabel:
 #            self.parent.loadMyDownloadHistory()
 #            obj.SetFont(self.selFont)
@@ -1015,7 +1016,7 @@ class DetailPanel(wx.Panel):
                         self.fileList.SetStringItem(index, 1, f[1])
                     self.onListResize(None) 
                 elif key == 'relevance':
-                    self.recommText.SetLabel("%.1f" % (value/1000.0))
+                    self.recommText.SetLabel("%.1f" % (value/relevance_display_factor))
                     
             if (torrent.get('myDownloadHistory', False) and not torrent.get('eventComingUp','') == 'notDownloading') or torrent.get('eventComingUp', '') == 'downloading':
                 self.downloadPic.SetEnabled(False)
