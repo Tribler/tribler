@@ -586,6 +586,7 @@ class ABCFrame(wx.Frame,DelayedInvocation):
             else:
                 print "abc: onSize: None"
         self.setGUIupdate(True)
+        self.abc_sb.Refresh()
         if event is not None:
             event.Skip()
             #self.window.SetSize(self.GetSize())
