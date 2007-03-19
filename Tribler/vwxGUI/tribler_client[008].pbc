@@ -10,7 +10,7 @@ ProjectBuild=0
 CountConfComp=2
 nomifileEsi=
 idmax=639
-idmaxFile=100190
+idmaxFile=100192
 idIncCmp=2104
 isfuncClsName=0
 funcNamePreF=VwXnew_
@@ -523,7 +523,7 @@ contenitor=0
 [Project/GroupsName]
 count=1
 item0name=Save Project
-item0id=1002,1016,1068
+item0id=
 [VwXScript]
 count=0
 [File0]
@@ -599,7 +599,7 @@ ws_dir=.\\
 s_tipoFile=21
 s_tipoComp=0
 ClsparentCompTipo=0
-i_FileIdent=100182
+i_FileIdent=100191
 i_FileIdentPar=2
 wx_WindowFileADD=1635087209
 l_ProtettoDesigne=0
@@ -614,6 +614,7 @@ fileSrcName=torrentItem.py
 fileIncName=torrentItem.h
 fileAllInit=1
 i_numImag=20
+i_numLine=46
 idIncCmpFilCmp=1091
 [File4]
 ws_name=torrentDetails.pfr
@@ -636,7 +637,6 @@ fileSrcName=torrentDetails.py
 fileIncName=torrentDetails.h
 fileAllInit=1
 i_numImag=20
-i_numLine=213
 idIncCmpFilCmp=1068
 [File5]
 ws_name=peerItem.pfr
@@ -754,7 +754,7 @@ ws_dir=.\\
 s_tipoFile=28
 s_tipoComp=0
 ClsparentCompTipo=700500
-i_FileIdent=100167
+i_FileIdent=100192
 i_FileIdentPar=2
 wx_WindowFileADD=208
 l_ProtettoDesigne=0
@@ -769,6 +769,7 @@ fileSrcName=standardTab.py
 fileIncName=standardTab.h
 fileAllInit=1
 i_numImag=20
+i_numLine=14
 idIncCmpFilCmp=2003
 [File11]
 ws_name=VwX files
