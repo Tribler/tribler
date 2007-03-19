@@ -4,9 +4,13 @@
 # single torrent checking without Thread
 from BitTornado.bencode import bdecode
 from random import shuffle
-from urllib import urlopen
+import urllib, httplib
+import socket
+import timeoutsocket
 from time import time
+from traceback import print_exc
 
+HTTP_TIMEOUT = 30 # seconds
 
 def trackerChecking(torrent):    
     single_no_thread(torrent)              
@@ -80,7 +84,11 @@ def singleTrackerStatus(torrent, announce):
     if (url == None):                            # tracker url error
         return (-2, -2)                            # use announce instead
     try:
+        #print 'Checking url: %s' % url
         (seeder, leecher) = getStatus(url, info_hash)
+        #(nseeder, nleecher) = getStatus(url, info_hash, useHttplib = True)
+        #if nseeder != seeder or nleecher != leecher:
+        #    print 'New returned: (%d, %d), normal returned (%d, %d)' % (nseeder, nleecher, seeder, leecher)
     except:
         (seeder, leecher) = (-2, -2)
     return (seeder, leecher)
@@ -99,20 +107,53 @@ def getUrl(announce, info_hash):
 #    print url
     return url
 
-def getStatus(url, info_hash):
+def getUrlUsingHttpLib(url, info_hash):
+    first_slash = url.find('/', 7)
+    host = url[7: first_slash]
+    path = url[first_slash: url.find('?')]
+    params = urllib.urlencode({'info_hash':info_hash})
+    #print 'Host: %s, Path: %s, Params: %s' % (host, path, params)
+            
+    conn = httplib.HTTPConnection(host)
+    conn.connect()
+    conn.sock.set_timeout(HTTP_TIMEOUT)
+    # The notifier of timeoutsocket states that socket may still block because
+    # the timeout is set after te socket is connected. This however cannot be
+    # done differently
+    conn.request("GET", path+'?'+params)
+    resp = conn.getresponse()
+    conn.close()
+    return resp
+            
+def getStatus(url, info_hash, useHttplib = False):
     try:
-        connection = urlopen(url)    
-        response = connection.read()    
+        if useHttplib:
+            resp = getUrlUsingHttpLib(url, info_hash)
+            if resp.status == 302:
+                newlocation = resp.getheader('location')
+                resp = getUrlUsingHttpLib(newlocation, info_hash)
+                #print response[:200]
+            #print resp.status, resp.reason
+            response = resp.read()
+
+            #print response[:200]
+        else:
+        #print 'Response: %s' % response
+            connection = urllib.urlopen(url)    
+            response = connection.read()
+            #print response[:200]
     except IOError:
 #        print "IOError"
         return (-1, -1)                    # unknown
     except AttributeError:
 #        print "AttributeError"
         return (-2, -2)                    # dead
+    except:
+        print_exc()
     
     try:
         response_dict = bdecode(response)
-#        print response
+
     except:
 #        print "DeCode Error "  + response
         return (-2, -2)                    # dead
