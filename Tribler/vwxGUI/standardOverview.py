@@ -29,8 +29,6 @@ class standardOverview(wx.Panel):
         self.mode = TORRENT_MODE
         self.addComponents()
         self.refreshMode()
-        
-        self.Layout()
         self.Refresh()
         
         
@@ -38,11 +36,12 @@ class standardOverview(wx.Panel):
     def addComponents(self):
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.SetSizer(self.hSizer)
-        self.SetSizer(self.hSizer);
-        self.SetAutoLayout(1);
+        self.SetAutoLayout(1)
+        self.Layout()
         
     def refreshMode(self):
         # load xrc
+        self.Show(False)
         if self.mode == TORRENT_MODE:
             xrcResource = os.path.join('Tribler','vwxGUI', 'torrentOverview.xrc')
             panelName = 'torrentOverview'
@@ -54,3 +53,6 @@ class standardOverview(wx.Panel):
         self.panel = self.res.LoadPanel(self, panelName)
         self.hSizer.Add(self.panel, 1, wx.ALL|wx.EXPAND, 0)
         
+        self.hSizer.Layout()
+        self.panel.Refresh()
+        self.Show(True)

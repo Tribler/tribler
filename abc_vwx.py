@@ -391,6 +391,7 @@ class wxFrame(wx.Frame, DelayedInvocation):
         print self.window.GetName()
         self.window.list = self.list
         self.utility.window = self.window
+        self.window.sb_buttons = ABCStatusButtons(self.abc_sb,self.utility)
         
         self.utility.window.postponedevents = []
         
@@ -543,7 +544,7 @@ class wxFrame(wx.Frame, DelayedInvocation):
     def onFocus(self, event = None):
         if event is not None:
             event.Skip()
-        self.window.getSelectedList(event).SetFocus()
+        #self.window.getSelectedList(event).SetFocus()
         
     def setGUIupdate(self, update):
         oldval = self.GUIupdate
@@ -814,6 +815,8 @@ class ABCApp(wx.App):
             updateXRC.main(['Tribler/vwxGUI/'])
             self.res = xrc.XmlResource("Tribler/vwxGUI/MyFrame.xrc")
             self.frame = self.res.LoadFrame(None, "MyFrame")
+            self.frame.Refresh()
+            self.frame.Layout()
             self.frame.Show(True)
         
 

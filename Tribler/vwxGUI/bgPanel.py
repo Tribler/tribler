@@ -68,7 +68,8 @@ class bgPanel(wx.Panel):
         
     def OnPaint(self, evt):
         dc = wx.PaintDC(self)
-        
+        dc.SetBackground(wx.Brush(wx.Colour(102,102,102)))
+        dc.Clear()
         if self.bitmap:
             # Tile bitmap
             rec=wx.Rect()

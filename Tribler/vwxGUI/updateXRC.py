@@ -20,6 +20,7 @@ def changeFile(filename):
                      ('torrentTabs', 'wxPanel', customDir+'torrentTabs'), 
                      ('statusDownloads', 'wxPanel', customDir+'statusDownloads'),
                      ('torrentGrid', 'wxPanel', customDir+'torrentGrid'),
+                     ('torrentTabs', 'wxPanel', customDir+'torrentTabs'),
                      ('standardStatus', 'wxPanel', customDir+'standardStatus'),
                      ('standardPager', 'wxPanel', customDir+'standardPager'),
                      ('wxFrame', 'wxFrame', 'abc_vwx')]

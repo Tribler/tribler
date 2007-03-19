@@ -1,10 +1,14 @@
-
 import wx, os, sys
+
+from Tribler.vwxGUI.MainXRC import GUIUtility
+from wx.lib.stattext import GenStaticText as StaticText
 
 class torrentTabs(wx.Panel):
     """
-    Panel with automatic backgroundimage control.
+    StandardTab shows the content categories and delegates the ContentFrontPanel
+    to load the right torrent data in the gridPanel
     """
+
     def __init__(self, *args):
         if len(args) == 0:
             pre = wx.PrePanel()
@@ -21,59 +25,70 @@ class torrentTabs(wx.Panel):
         event.Skip()
         return True
     
+
     def _PostInit(self):
-        # Do all init here
-        self.searchBitmap()
-        self.createBackgroundImage()
+         
+        self.guiUtility = GUIUtility.getInstance()
+        self.guiUtility.report(self)
+        self.utility = self.guiUtility.utility
+        self.categories = self.guiUtility.getCategories()
+        self.addComponents()
+        self.Centre()
+        self.Show()
+
+    def addComponents(self):
+        self.Show(False)
+        #self.SetMinSize((50,50))
+        self.SetBackgroundColour(wx.WHITE)
+        self.vSizer = wx.BoxSizer(wx.VERTICAL)
+        self.unselFont = wx.Font(10, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, faceName="Verdana")
+        self.selFont = wx.Font(10, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, faceName="Verdana")
+        self.orderUnselFont = wx.Font(10, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_ITALIC, wx.FONTWEIGHT_NORMAL, faceName="Verdana")
+        self.orderSelFont = wx.Font(10, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_ITALIC, wx.FONTWEIGHT_BOLD, faceName="Verdana")
         
-        self.Refresh(True)
-        self.Update()
+        # Categories
+        self.catSizer = wx.BoxSizer(wx.HORIZONTAL)
         
+        for cat in self.categories:
+            catPanel = wx.Panel(self, -1)
+            catPanel.SetBackgroundColour(wx.Colour(212, 208, 200))
+            catSizer = wx.BoxSizer(wx.HORIZONTAL)
+            label = StaticText(catPanel,-1,cat.title())
+            label.Bind(wx.EVT_LEFT_UP, self.mouseAction)
+            label.SetFont(self.unselFont)
+            catSizer.Add(label, 0, wx.LEFT|wx.RIGHT, 15)
+            catPanel.SetSizer(catSizer)
+            catPanel.SetAutoLayout(True)
+            catPanel.Layout()
+            self.catSizer.Add(catPanel, 0, wx.LEFT|wx.RIGHT|wx.TOP, 4)
+            if cat == self.categories[0]:
+                self.setSelected(label)
+                self.lastSelected = label      
+            
         
+        self.SetSizer(self.catSizer);self.SetAutoLayout(1);self.Layout();
+        self.Refresh()
         
-    def searchBitmap(self):
-        self.bitmap = None
-        
-        # get the image directory
-        abcpath = os.path.abspath(os.path.dirname(sys.argv[0]))
-        self.imagedir = os.path.join(abcpath, 'Tribler','vwxGUI', 'images')
-        if not os.path.isdir(self.imagedir):
-            olddir = self.imagedir
-            # Started app.py in vwxDir?
-            self.imagedir = os.path.join(abcpath, 'images')
-        if not os.path.isdir(self.imagedir):
-            print 'Error: no image directory found in %s and %s' % (olddir, self.imagedir)
+           
+    def mouseAction(self, event):
+         
+        obj = event.GetEventObject()
+        #print 'Clicked on %s' % obj.GetLabel()
+        if obj == self.lastSelected:
             return
+        self.setSelected(obj)
+        if self.lastSelected:
+            self.setUnselected(self.lastSelected)
+        self.guiUtility.setCategory(obj.GetLabel())
+        self.lastSelected = obj
         
-        # find a file with same name as this panel
-        self.bitmapPath = os.path.join(self.imagedir, self.GetName()+'.png')
-        print 'Trying image: %s' % self.bitmapPath
-        
-        if os.path.isfile(self.bitmapPath):
-            self.bitmap = wx.Bitmap(self.bitmapPath, wx.BITMAP_TYPE_ANY)
-        
-        
-    def createBackgroundImage(self):
-        if self.bitmap:
-            wx.EVT_PAINT(self, self.OnPaint)
-            self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnErase)
-        
+       
+            
+    def setSelected(self, obj):
+        obj.SetFont(self.selFont)
         
     
-    def OnErase(self, event):
-        pass
-        #event.Skip()
+    def setUnselected(self, obj):
+        obj.SetFont(self.unselFont)
         
-    def OnPaint(self, evt):
-        dc = wx.PaintDC(self)
-        
-        if self.bitmap:
-            # Tile bitmap
-            rec=wx.Rect()
-            rec=self.GetClientRect()
-            for y in range(0,rec.GetHeight(),self.bitmap.GetHeight()):
-                for x in range(0,rec.GetWidth(),self.bitmap.GetWidth()):
-                    dc.DrawBitmap(self.bitmap,x,y,0)
-            # Do not tile
-            #dc.DrawBitmap(self.bitmap, 0,0, True)
         

@@ -47,11 +47,11 @@ class standardStatus(wx.Panel):
         
         # find a file with same name as this panel
         self.bitmapPath = os.path.join(self.imagedir, self.GetName()+'.png')
-        print 'Trying image: %s' % self.bitmapPath
-        
+                
         if os.path.isfile(self.bitmapPath):
             self.bitmap = wx.Bitmap(self.bitmapPath, wx.BITMAP_TYPE_ANY)
-        
+        else:
+            print 'Could not load image: %s' % self.bitmapPath
         
     def createBackgroundImage(self):
         if self.bitmap:

@@ -58,10 +58,19 @@ class GUIUtility:
             print '%s reported' % name
     
     def request(self, name):
+        if name == 'standardGrid':
+            name = 'torrentGrid'
         obj = self.guiObjects.get(name)
         if obj:
             return obj
         else:
             if DEBUG:
-                print "GUIUtility could not offer object %s.\nIt has only %s" % (name, self.guiObjects)
+                print "GUIUtility could not offer object %s.\nIt has only %s" % (name, [obj.__class__.__name__ for obj in self.guiObjects.values()])
             return None
+        
+    def getCategories(self):
+        return ['aap', 'noot', 'mies']
+  
+    def setCategory(self, cat):
+        print 'Category set to %s' % cat
+    
