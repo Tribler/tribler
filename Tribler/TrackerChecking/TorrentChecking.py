@@ -10,7 +10,7 @@ from threading import Thread
 from random import random
 from time import time, asctime
 
-DEBUG = False
+DEBUG = True
 
 class TorrentChecking(Thread):
     
@@ -20,6 +20,9 @@ class TorrentChecking(Thread):
         self.gnThreashold = 0.9
         self.torrent_db = SynTorrentDBHandler()
         Thread.__init__(self)
+        self.setName('TorrentChecking'+self.getName())
+        if DEBUG:
+            print 'Started torrentchecking'
         self.setDaemon(True)
         
     def run(self):
@@ -78,7 +81,8 @@ class TorrentChecking(Thread):
             self.torrentList.release()
             if not torrent:
                 return
-            #print asctime(), "Get from Unknown", repr(torrent["info"]["name"])
+            if DEBUG:
+                print asctime(), "Get from Unknown", repr(torrent["info"]["name"])
             # whether to ignore
             if (torrent["ignore_number"] > 0):    
                 torrent["ignore_number"] -= 1

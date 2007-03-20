@@ -474,9 +474,12 @@ class TorrentPanel(wx.Panel):
         #self.SetMinSize((50,50))
         self.SetBackgroundColour(wx.WHITE)
         self.selectedColour = wx.Colour(245,208,120)
-        try:
-            self.unselectedColour = wx.Colour(0,0,0,0)
-        except:
+        if sys.platform.find('darwin') != -1:
+            try:
+                self.unselectedColour = wx.Colour(0,0,0,0)
+            except:
+                self.unselectedColour = wx.WHITE
+        else:
             self.unselectedColour = wx.WHITE
         
         self.vSizer = wx.StaticBoxSizer(wx.StaticBox(self,-1,""),wx.VERTICAL)
@@ -509,8 +512,7 @@ class TorrentPanel(wx.Panel):
         self.recommPic.SetBitmap("love.png")
         self.recomm = StaticText(self, -1, '')
                 
-        if self.unselectedColour == wx.WHITE or sys.platform == 'win32':
-            self.unselectedColour = wx.WHITE
+        if self.unselectedColour == wx.WHITE:
             self.seeder.SetBackgroundColour(wx.WHITE)
             self.seederPic.SetBackgroundColour(wx.WHITE)
             self.leecher.SetBackgroundColour(wx.WHITE)

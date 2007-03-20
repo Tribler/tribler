@@ -104,27 +104,11 @@ def getUrl(announce, info_hash):
 #    print url
     return url
 
-def getUrlUsingHttpLib(url, info_hash):
-    first_slash = url.find('/', 7)
-    host = url[7: first_slash]
-    path = url[first_slash: url.find('?')]
-    params = urllib.urlencode({'info_hash':info_hash})
-    #print 'Host: %s, Path: %s, Params: %s' % (host, path, params)
-            
-    conn = httplib.HTTPConnection(host)
-    conn.connect()
-    conn.sock.set_timeout(HTTP_TIMEOUT)
-    # The notifier of timeoutsocket states that socket may still block because
-    # the timeout is set after te socket is connected. This however cannot be
-    # done differently
-    conn.request("GET", path+'?'+params)
-    resp = conn.getresponse()
-    conn.close()
-    return resp
+
             
 def getStatus(url, info_hash):
     try:
-        resp = timeouturlopen.urlOpenTimeout(url,timeout=30)
+        resp = timeouturlopen.urlOpenTimeout(url,timeout=HTTP_TIMEOUT)
         response = resp.read()
         
     except IOError:
