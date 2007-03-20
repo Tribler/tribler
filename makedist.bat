@@ -1,12 +1,14 @@
 call clean.bat
 
-set PYTHONPATH="D:\Python\Python24"
+set PYTHONPATH="C:\Python24"
 set NSIS="C:\Program Files\NSIS\makensis.exe"
 set IMGCFG="C:\Program Files\Imagecfg\imagecfg.exe"
 
 %PYTHONPATH%\python.exe -O setuptribler.py py2exe
 REM copy %PYTHONPATH%\msvcr71.dll dist\tribler
-REM copy %PYTHONPATH%\msvcp71.dll dist\tribler
+REM For Vista. This works only when building on XP
+REM as Vista doesn't have this DLL by default.
+copy %SystemRoot%\system32\msvcp71.dll dist\tribler
 copy %PYTHONPATH%\msvcp60.dll dist\tribler
 copy SSLEAY32.dll dist\tribler
 copy LIBEAY32.dll dist\tribler
