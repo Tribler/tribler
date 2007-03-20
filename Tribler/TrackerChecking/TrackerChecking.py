@@ -86,9 +86,6 @@ def singleTrackerStatus(torrent, announce):
     try:
         #print 'Checking url: %s' % url
         (seeder, leecher) = getStatus(url, info_hash)
-        (nseeder, nleecher) = getStatus(url, info_hash, useHttplib = True)
-        if nseeder != seeder or nleecher != leecher:
-            print 'New returned: (%d, %d), normal returned (%d, %d)' % (nseeder, nleecher, seeder, leecher)
     except:
         (seeder, leecher) = (-2, -2)
     return (seeder, leecher)
@@ -125,25 +122,17 @@ def getUrlUsingHttpLib(url, info_hash):
     conn.close()
     return resp
             
-def getStatus(url, info_hash, useHttplib = False):
+def getStatus(url, info_hash):
     try:
-        if useHttplib:
-            resp = timeouturlopen.urlOpenTimeout(url,timeout=30)
-            response = resp.read()
-            #print response[:200]
-        else:
-            #print 'Response: %s' % response
-            connection = urllib.urlopen(url)    
-            response = connection.read()
-            #print response[:200]
+        resp = timeouturlopen.urlOpenTimeout(url,timeout=30)
+        response = resp.read()
+        
     except IOError:
 #        print "IOError"
         return (-1, -1)                    # unknown
     except AttributeError:
 #        print "AttributeError"
         return (-2, -2)                    # dead
-    except:
-        print_exc()
     
     try:
         response_dict = bdecode(response)
