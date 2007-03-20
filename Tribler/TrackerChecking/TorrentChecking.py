@@ -22,7 +22,7 @@ class TorrentChecking(Thread):
         Thread.__init__(self)
         self.setName('TorrentChecking'+self.getName())
         if DEBUG:
-            print 'Started torrentchecking'
+            print 'TorrentChecking: Started torrentchecking'
         self.setDaemon(True)
         
     def run(self):
@@ -43,7 +43,7 @@ class TorrentChecking(Thread):
             if not torrent:
                 return
             if DEBUG:
-                print asctime(), "Get From Good", repr(torrent["info"]["name"])
+                print "TorrentChecking: ", asctime(), "Get From Good", repr(torrent["info"]["name"])
             # whether to ignore
             if (torrent["ignore_number"] > 0):    
                 torrent["ignore_number"] -= 1
@@ -82,7 +82,7 @@ class TorrentChecking(Thread):
             if not torrent:
                 return
             if DEBUG:
-                print asctime(), "Get from Unknown", repr(torrent["info"]["name"])
+                print "TorrentChecking: ", asctime(), "Get from Unknown", repr(torrent["info"]["name"])
             # whether to ignore
             if (torrent["ignore_number"] > 0):    
                 torrent["ignore_number"] -= 1
