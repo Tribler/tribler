@@ -53,12 +53,12 @@ def get_my_ip(name):
     else:
         return ip
 
-def tribler_init(config_dir = None, install_dir = None):
+def tribler_init(config_dir = None, install_dir = None, db_exception_handler = None):
     resetPeerIDs()
     permid.init(config_dir)
     myinfo = load_myinfo()
     # roee88 says we need to revert to encoded here for the databases
-    cachedb.init(config_dir.encode(sys.getfilesystemencoding()),myinfo)
+    cachedb.init(config_dir.encode(sys.getfilesystemencoding()),myinfo,db_exception_handler = db_exception_handler)
     superpeer.init(install_dir)
     friends.init(config_dir)
     category.init(install_dir, config_dir)

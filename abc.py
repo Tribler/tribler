@@ -762,7 +762,7 @@ class ABCApp(wx.App):
         self.error = None
         try:
             self.utility = Utility(abcpath)
-            tribler_init(self.utility.getConfigPath(),self.utility.getPath())
+            tribler_init(self.utility.getConfigPath(),self.utility.getPath(),self.db_exception_handler)
             self.utility.setTriblerVariables()
 
             # Set locale to determine localisation
@@ -799,11 +799,15 @@ class ABCApp(wx.App):
 
         return True
 
-    def onError(self):
+    def onError(self,source=None):
         # Don't use language independence stuff, self.utility may not be
         # valid.
-        msg = "An error occured during Tribler startup:\n\n"
+        msg = "Unfortunately, Tribler ran into an internal error:\n\n"
+        if source is not None:
+            msg += source
         msg += str(self.error.__class__)+':'+str(self.error)
+        msg += '\n'
+        msg += 'Please see the FAQ on www.tribler.org on how to act.'
         dlg = wx.MessageDialog(None, msg, "Tribler Fatal Error", wx.OK|wx.ICON_ERROR)
         result = dlg.ShowModal()
         print_exc()
@@ -816,6 +820,13 @@ class ABCApp(wx.App):
         ClientPassParam("Close Connection")
 
         return 0
+        
+        
+    def db_exception_handler(self,e):
+        if DEBUG:
+            print "abc: Database Exception handler called"
+        self.error = e
+        self.onError(source="The database layer reported: ")
         
 ##############################################################
 #
