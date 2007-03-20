@@ -37,4 +37,4 @@ def urlOpenTimeout(url,timeout=30,*data):
                                   urllib2.HTTPRedirectHandler)
     return opener.open(url,*data)
 
-s = urlOpenTimeout("http://www.google.com",timeout=30)
+#s = urlOpenTimeout("http://www.google.com",timeout=30)

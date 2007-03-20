@@ -6,7 +6,7 @@ from BitTornado.bencode import bdecode
 from random import shuffle
 import urllib, httplib
 import socket
-import timeoutsocket
+import timeouturlopen
 from time import time
 from traceback import print_exc
 
@@ -86,9 +86,9 @@ def singleTrackerStatus(torrent, announce):
     try:
         #print 'Checking url: %s' % url
         (seeder, leecher) = getStatus(url, info_hash)
-        #(nseeder, nleecher) = getStatus(url, info_hash, useHttplib = True)
-        #if nseeder != seeder or nleecher != leecher:
-        #    print 'New returned: (%d, %d), normal returned (%d, %d)' % (nseeder, nleecher, seeder, leecher)
+        (nseeder, nleecher) = getStatus(url, info_hash, useHttplib = True)
+        if nseeder != seeder or nleecher != leecher:
+            print 'New returned: (%d, %d), normal returned (%d, %d)' % (nseeder, nleecher, seeder, leecher)
     except:
         (seeder, leecher) = (-2, -2)
     return (seeder, leecher)
@@ -128,17 +128,11 @@ def getUrlUsingHttpLib(url, info_hash):
 def getStatus(url, info_hash, useHttplib = False):
     try:
         if useHttplib:
-            resp = getUrlUsingHttpLib(url, info_hash)
-            if resp.status == 302:
-                newlocation = resp.getheader('location')
-                resp = getUrlUsingHttpLib(newlocation, info_hash)
-                #print response[:200]
-            #print resp.status, resp.reason
+            resp = timeouturlopen.urlOpenTimeout(url,timeout=30)
             response = resp.read()
-
             #print response[:200]
         else:
-        #print 'Response: %s' % response
+            #print 'Response: %s' % response
             connection = urllib.urlopen(url)    
             response = connection.read()
             #print response[:200]
