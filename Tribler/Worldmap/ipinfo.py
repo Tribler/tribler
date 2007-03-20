@@ -9,8 +9,7 @@ except:
 
 DEBUG = False
 
-import socket
-import urllib2
+import Tribler.TrackerChecking.timeouturlopen as timeouturlopen
 try:
     import GeoIP
     geoip_installed = True
@@ -60,16 +59,10 @@ class IPInfo:
             #Known urls: http://www.hostip.info/api/get.html?ip=xxx&position=true 
             #  http://www.melissadata.com/Lookups/iplocation.asp?ipaddress=xxx&submit=submit (using IP2Location database without coordinate)
             
-            # Arno: make this quick. Not really necessary anymore because the
-            # RawServer no longer runs this (see peer.py), but nice none the less.
-            timeout = None
             try:
-                timeout = socket.getdefaulttimeout()
-                socket.setdefaulttimeout(1.0)
-                ip_info = urllib2.urlopen(url).read()
-                socket.setdefaulttimeout(timeout)
+		file = timeouturlopen.urlOpenTimeout(url,timeout=2)
+		ip_info = file.read()
             except:
-                socket.setdefaulttimeout(timeout)
                 if DEBUG:
                     print >> sys.stderr,"ipinfo: getIPInfoByURL failed: cannot access", url
                 raise Exception
