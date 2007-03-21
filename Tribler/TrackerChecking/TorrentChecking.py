@@ -10,7 +10,7 @@ from threading import Thread
 from random import random
 from time import time, asctime
 
-DEBUG = True
+DEBUG = False
 
 class TorrentChecking(Thread):
     
