@@ -1,8 +1,7 @@
 import wx, os, sys, os.path
 import wx.xrc as xrc
+from Tribler.vwxGUI.GuiUtility import GUIUtility
 
-TORRENT_MODE = 1
-PERSON_MODE = 2
 
 class standardOverview(wx.Panel):
     """
@@ -26,11 +25,13 @@ class standardOverview(wx.Panel):
     
     def _PostInit(self):
         # Do all init here
-        self.mode = TORRENT_MODE
+        self.mode = 'torrentMode'
         self.addComponents()
+        self.panel = None
         self.refreshMode()
         self.Refresh()
-        
+        self.guiUtility = GUIUtility.getInstance()
+        self.guiUtility.report(self)
         
         
     def addComponents(self):
@@ -39,18 +40,32 @@ class standardOverview(wx.Panel):
         self.SetAutoLayout(1)
         self.Layout()
         
+    def setMode(self, mode):
+        self.mode = mode
+        self.refreshMode()
+            
     def refreshMode(self):
         # load xrc
+        self.oldpanel = self.panel
         self.Show(False)
-        if self.mode == TORRENT_MODE:
+        if self.mode == 'torrentMode':
             xrcResource = os.path.join('Tribler','vwxGUI', 'torrentOverview.xrc')
             panelName = 'torrentOverview'
+        elif self.mode == 'personsMode':
+            xrcResource = os.path.join('Tribler','vwxGUI', 'personsOverview.xrc')
+            panelName = 'personsOverview'
+        
         else:
             print 'Mode unknown'
             return
         self.res = xrc.XmlResource(xrcResource)
         # create panel
         self.panel = self.res.LoadPanel(self, panelName)
+        
+        if self.oldpanel:
+            self.hSizer.Detach(self.oldpanel)
+            self.oldpanel.Destroy()
+        
         self.hSizer.Add(self.panel, 1, wx.ALL|wx.EXPAND, 0)
         
         self.hSizer.Layout()

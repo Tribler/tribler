@@ -43,7 +43,7 @@ from BitTornado.__init__ import product_name
 from safeguiupdate import DelayedInvocation
 import webbrowser
 from Tribler.Dialogs.MugshotManager import MugshotManager
-from Tribler.vwxGUI.MainXRC import GUIUtility
+from Tribler.vwxGUI.GuiUtility import GUIUtility
 import Tribler.vwxGUI.updateXRC as updateXRC
 
 DEBUG = False
@@ -814,6 +814,7 @@ class ABCApp(wx.App):
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params)
             updateXRC.main(['Tribler/vwxGUI/'])
             self.res = xrc.XmlResource("Tribler/vwxGUI/MyFrame.xrc")
+            self.guiUtility.xrcResource = self.res
             self.frame = self.res.LoadFrame(None, "MyFrame")
             self.frame.Refresh()
             self.frame.Layout()

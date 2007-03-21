@@ -24,12 +24,12 @@
           <object class="sizeritem">
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>3</border>
-            <option>0</option>
+            <option>1</option>
             <object class="wxPanel" name="pn10c">
               <bitmap>images/triblerpanel_topcenter.png</bitmap>
               <pos>10,0</pos>
-              <size>200,21</size>
-              <bg>#3299cc</bg>
+              <size>280,21</size>
+              <bg>#000000</bg>
               <fg>#ffffff</fg>
             </object>
           </object>

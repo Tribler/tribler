@@ -1,6 +1,5 @@
 import wx
 from wx import xrc
-from tribler_topButton import *
 from bgPanel import *
 import updateXRC
 
@@ -16,6 +15,7 @@ class GUIUtility:
         GUIUtility.__single = self 
         # do other init
         self.guiObjects = {}
+        self.xrcResource = None
         self.utility = utility
         self.params = params
             
@@ -27,14 +27,27 @@ class GUIUtility:
     
     def report(self, object):
         name = object.__class__.__name__
-        self.guiObjects[name] = object
+        try:
+            instanceName = object.GetName()
+        except:
+            instanceName = ''
+            
+        self.guiObjects[(name, instanceName)] = object
         if DEBUG:
             print '%s reported' % name
+        self.checkAllLoaded()
+        
+    def checkAllLoaded(self):
+        if DEBUG:
+            print self.guiObjects.keys()
+        if len(self.guiObjects) == 5:
+            self.initGUI()
+            
     
     def request(self, name):
         if name == 'standardGrid':
             name = 'torrentGrid'
-        obj = self.guiObjects.get(name)
+        obj = self.guiObjects.get((name, name))
         if obj:
             return obj
         else:
@@ -49,6 +62,29 @@ class GUIUtility:
         print 'Category set to %s' % cat
         
     def buttonClicked(self, event):
-        print 'Button clicked';
-        print event;
+        if DEBUG:
+            print 'Button clicked'
+            print event;
+        obj = event.GetEventObject()
+        try:
+            name = obj.GetName()
+            overview = self.request('standardOverview')
+            if name == 'tribler_topButton0':
+                overview.setMode('torrentMode')
+            elif name == 'tribler_topButton1':
+                overview.setMode('personsMode')
+                
+        except:
+            pass
+    
+    def initGUI(self):
+        "This function initializes all gui tak"
+        if DEBUG:
+            print 'Init business logic'
+            print self.guiObjects
+        # Do stuff like:
+        # - loading first mode
+        # - set detailpanel data
+        # - init other stuff
+        
     

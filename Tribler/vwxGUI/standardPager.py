@@ -1,4 +1,4 @@
-from Tribler.vwxGUI.MainXRC import GUIUtility
+from Tribler.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Dialogs.ContentFrontPanel import ImagePanel
 from wx.lib.stattext import GenStaticText as StaticText
 import wx, os, sys, os.path, math
@@ -26,13 +26,12 @@ class standardPager(wx.Panel):
     def _PostInit(self):
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
-        self.guiUtility.report(self)
         self.searchBitmap()
         self.createBackgroundImage()
         self.initPager()
         self.Refresh(True)
         self.Show()        
-        
+        self.guiUtility.report(self)
         
     def initPager(self, numPages=10):
         

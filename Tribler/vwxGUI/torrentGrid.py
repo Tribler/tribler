@@ -1,5 +1,5 @@
 import os, sys, wx
-from Tribler.vwxGUI.MainXRC import GUIUtility
+from Tribler.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Dialogs.ContentFrontPanel import ImagePanel, DetailPanel, TorrentPanel
 from Tribler.utilities import *
 from traceback import print_exc
@@ -37,7 +37,6 @@ class torrentGrid(wx.Panel):
         self.SetBackgroundColour(wx.BLACK)
         self.parent = None
         self.guiUtility = GUIUtility.getInstance()
-        self.guiUtility.report(self)
         self.utility = self.guiUtility.utility
         self.cols = 2
         self.items = 0
@@ -52,7 +51,7 @@ class torrentGrid(wx.Panel):
         for word in ['Jelle', 'is', 'very', 'cool', 'jade', 'jade', 'weird', 'Katja']:
             torrents.append({'content_name':word})
         self.setData(torrents)
-        
+        self.guiUtility.report(self)
         
     def addComponents(self):
         self.Show(False)

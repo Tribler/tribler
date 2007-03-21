@@ -1,6 +1,7 @@
 import wx, os, sys
 import wx.xrc as xrc
-from Tribler.vwxGUI.MainXRC import GUIUtility
+from Tribler.vwxGUI.GuiUtility import GUIUtility
+
 TORRENT_MODE = 1
 PERSONS_MODE = 2
 
@@ -30,11 +31,10 @@ class standardDetails(wx.Panel):
         self.addComponents()
         self.refreshMode()
         self.guiUtility = GUIUtility.getInstance()
-        self.guiUtility.report(self)
         self.data = None
         self.Layout()
         self.Refresh()
-        
+        self.guiUtility.report(self)
         
         
     def addComponents(self):

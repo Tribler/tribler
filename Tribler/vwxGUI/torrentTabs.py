@@ -1,6 +1,6 @@
 import wx, os, sys
 
-from Tribler.vwxGUI.MainXRC import GUIUtility
+from Tribler.vwxGUI.GuiUtility import GUIUtility
 from wx.lib.stattext import GenStaticText as StaticText
 
 class torrentTabs(wx.Panel):
@@ -29,13 +29,13 @@ class torrentTabs(wx.Panel):
     def _PostInit(self):
          
         self.guiUtility = GUIUtility.getInstance()
-        self.guiUtility.report(self)
         self.utility = self.guiUtility.utility
         self.categories = self.guiUtility.getCategories()
         self.addComponents()
         self.Centre()
         self.Show()
-
+        self.guiUtility.report(self)
+        
     def addComponents(self):
         self.Show(False)
         #self.SetMinSize((50,50))

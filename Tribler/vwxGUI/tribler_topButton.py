@@ -1,5 +1,6 @@
 import wx, os, sys
 from traceback import print_exc
+from Tribler.vwxGUI.GuiUtility import GUIUtility
 
 class tribler_topButton(wx.Panel):
     """
@@ -26,7 +27,9 @@ class tribler_topButton(wx.Panel):
     
     def _PostInit(self):
         # Do all init here
+        self.guiUtility = GUIUtility.getInstance()
         self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+        self.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
         self.searchBitmaps()
         self.createBackgroundImage()
         
