@@ -613,6 +613,7 @@ class UPnPThread(Thread):
 
     def run(self):
         dmh = DialbackMsgHandler.getInstance()
+		
         if self.upnp_type > 0:
 
             self.upnp_wrap = UPnPWrapper.getInstance()

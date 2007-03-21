@@ -569,7 +569,6 @@ class configReader:
                         self.config['win32_taskbar_icon']=int(self.win32_taskbar_icon_checkbox.GetValue())
         #                self.config['upnp_nat_access']=int(self.upnp_checkbox.GetValue())
                         self.config['upnp_nat_access']=self.upnp_data.GetSelection()
-        
                     if self.advancedConfig:
                         for key, val in self.advancedConfig.items():
                             self.config[key] = val
