@@ -16,7 +16,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>0</border>
             <option>0</option>
-            <object class="wxPanel" name="orange_top_left" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="wxPanel" name="black_top_left" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
               <pos>0,0</pos>
               <size>10,21</size>
             </object>
@@ -24,34 +24,20 @@
           <object class="sizeritem">
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>3</border>
-            <option>1</option>
+            <option>0</option>
             <object class="wxPanel" name="pn10c">
               <bitmap>images/triblerpanel_topcenter.png</bitmap>
-              <pos>16,0</pos>
-              <size>218,21</size>
-              <bg>#ff3300</bg>
+              <pos>10,0</pos>
+              <size>200,21</size>
+              <bg>#3299cc</bg>
               <fg>#ffffff</fg>
-              <object class="wxBoxSizer">
-                <orient>wxHORIZONTAL</orient>
-                <object class="sizeritem">
-                  <flag>wxTOP|wxEXPAND</flag>
-                  <border>4</border>
-                  <option>1</option>
-                  <object class="wxStaticText" name="st64c">
-                    <style>wxST_NO_AUTORESIZE</style>
-                    <label>The sony bravia commercial</label>
-                    <pos>0,4</pos>
-                    <size>194,17</size>
-                  </object>
-                </object>
-              </object>
             </object>
           </object>
           <object class="sizeritem">
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>0</border>
             <option>0</option>
-            <object class="wxPanel" name="orange_top_right" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="wxPanel" name="black_top_right" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
               <pos>288,0</pos>
               <size>10,21</size>
             </object>
@@ -63,7 +49,7 @@
         <border>3</border>
         <option>0</option>
         <object class="wxPanel" name="6_160x90" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
-          <pos>0,26</pos>
+          <pos>0,21</pos>
           <size>302,170</size>
         </object>
       </object>
