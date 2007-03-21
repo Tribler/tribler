@@ -12,7 +12,7 @@ from standardOverview import *
 
 #[inc]end your include
 
-class torrentOverview(wx.Panel):
+class personsOverview(wx.Panel):
     def __init__(self,parent,id = -1,pos = wx.Point(0,0),size = wx.Size(625,430),style = wx.TAB_TRAVERSAL,name = 'panel'):
         pre=wx.PrePanel()
         self.OnPreCreate()
@@ -41,12 +41,12 @@ class torrentOverview(wx.Panel):
         self.st64c.SetForegroundColour(wx.Colour(255,255,255))
         self.orange_top_right = bgPanel(self, -1, wx.Point(613,0), wx.Size(10,21))
         self.orange_top_left = bgPanel(self, -1, wx.Point(0,0), wx.Size(10,21))
-        self.torrentFilter = torrentFilter(self,-1,wxDefaultPosition,wxDefaultSize)
-        self.torrentFilter.SetDimensions(0,21,448,20)
-        self.torrentTabs = torrentTabs(self,-1,wxDefaultPosition,wxDefaultSize)
-        self.torrentTabs.SetDimensions(0,41,20,20)
-        self.torrentGrid = torrentGrid(self,-1,wxDefaultPosition,wxDefaultSize)
-        self.torrentGrid.SetDimensions(0,61,617,235)
+        self.personsFilter = torrentFilter(self,-1,wxDefaultPosition,wxDefaultSize)
+        self.personsFilter.SetDimensions(0,21,448,20)
+        self.personsTabs = torrentTabs(self,-1,wxDefaultPosition,wxDefaultSize)
+        self.personsTabs.SetDimensions(0,41,20,20)
+        self.personsGrid = torrentGrid(self,-1,wxDefaultPosition,wxDefaultSize)
+        self.personsGrid.SetDimensions(0,61,617,235)
         self.orange_bottom_left = bgPanel(self, -1, wx.Point(0,400), wx.Size(10,28))
         self.orange_bottom_center = bgPanel(self, -1, wx.Point(10,400), wx.Size(20,20))
         self.standardPager = standardPager(self,-1,wx.Point(440,400),wx.Size(183,28))
@@ -56,9 +56,9 @@ class torrentOverview(wx.Panel):
         self.footer = wx.BoxSizer(wx.HORIZONTAL)
         self.sz65s = wx.BoxSizer(wx.HORIZONTAL)
         self.sz3s.Add(self.header,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
-        self.sz3s.Add(self.torrentFilter,0,wx.EXPAND|wx.ALIGN_LEFT|wx.FIXED_MINSIZE,3)
-        self.sz3s.Add(self.torrentTabs,0,wx.EXPAND|wx.ALIGN_LEFT|wx.FIXED_MINSIZE,3)
-        self.sz3s.Add(self.torrentGrid,1,wx.EXPAND|wx.FIXED_MINSIZE,3)
+        self.sz3s.Add(self.personsFilter,0,wx.EXPAND|wx.ALIGN_LEFT|wx.FIXED_MINSIZE,3)
+        self.sz3s.Add(self.personsTabs,0,wx.EXPAND|wx.ALIGN_LEFT|wx.FIXED_MINSIZE,3)
+        self.sz3s.Add(self.personsGrid,1,wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.sz3s.Add(self.footer,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.header.Add(self.orange_top_left,0,wx.FIXED_MINSIZE,3)
         self.header.Add(self.pn10c,1,wx.EXPAND|wx.FIXED_MINSIZE,3)

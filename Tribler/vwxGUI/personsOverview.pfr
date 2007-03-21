@@ -20,7 +20,7 @@ strTree=00it=3 01it=8 02it=196 02it=10 03it=133 04it=134 02it=197 01it=188 01it=
 n=12
 [Form]
 n=1
-ws_name=torrentOverview.pfr
+ws_name=personsOverview.pfr
 ws_dir=.\\
 i_id=203
 s_tipoFile=21

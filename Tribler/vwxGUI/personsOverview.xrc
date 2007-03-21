@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
+  <object class="wxPanel" name="personsOverview">
+    <pos>0,0</pos>
+    <size>625,430</size>
+    <object class="wxBoxSizer">
+      <orient>wxVERTICAL</orient>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+        <object class="wxBoxSizer">
+          <orient>wxHORIZONTAL</orient>
+          <object class="sizeritem">
+            <flag>wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>0</option>
+            <object class="bgPanel" name="orange_top_left">
+              <pos>0,0</pos>
+              <size>10,21</size>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>1</option>
+            <object class="wxPanel" name="pn10c">
+              <bitmap>images/triblerpanel_topcenter.png</bitmap>
+              <pos>10,0</pos>
+              <size>20,21</size>
+              <bg>#ff3300</bg>
+              <fg>#ffffff</fg>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>4</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="st64c">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>Content</label>
+                    <pos>0,4</pos>
+                    <size>194,17</size>
+                    <fg>#ffffff</fg>
+                  </object>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>0</option>
+            <object class="bgPanel" name="orange_top_right">
+              <pos>613,0</pos>
+              <size>10,21</size>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxALIGN_LEFT|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+        <object class="torrentFilter" name="personsFilter">
+          <pos>0,21</pos>
+          <size>448,20</size>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxALIGN_LEFT|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+        <object class="torrentTabs" name="personsTabs">
+          <pos>0,41</pos>
+          <size>20,20</size>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>1</option>
+        <object class="torrentGrid" name="personsGrid">
+          <pos>0,61</pos>
+          <size>617,235</size>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+        <object class="wxBoxSizer">
+          <orient>wxHORIZONTAL</orient>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>0</option>
+            <object class="bgPanel" name="orange_bottom_left">
+              <pos>0,400</pos>
+              <size>10,28</size>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>1</option>
+            <object class="bgPanel" name="orange_bottom_center">
+              <pos>10,400</pos>
+              <size>20,20</size>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>0</option>
+            <object class="standardPager" name="standardPager">
+              <pos>440,400</pos>
+              <size>183,28</size>
+            </object>
+          </object>
+        </object>
+      </object>
+    </object>
+    <object class="standardOverview" name="standardOverview203c">
+      <pos>0,0</pos>
+      <size>20,20</size>
+    </object>
+  </object>
+</resource>
