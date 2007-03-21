@@ -88,10 +88,10 @@ class tribler_topButton(wx.Panel):
         elif event.ButtonUp():
             self.ClickedButton()
         #event.Skip()
-        
+        """
     def ClickedButton(self):
         print 'Click'
-        
+        """
                 
     def getParentBitmap(self):
         try:
