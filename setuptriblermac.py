@@ -3,7 +3,7 @@ from distutils.util import get_platform
 
 import wxversion
 
-wxversion.select('2.6-unicode')
+wxversion.select('2.8-unicode')
 
 import os,sys
 import wx
@@ -30,7 +30,7 @@ def libdirs( path ):
                 for p in os.listdir(path)
                 if p.startswith("lib.")]
 
-sys.path = libdirs("m2crypto/build") + libdirs("bsddb3/build") + sys.path
+sys.path = libdirs("m2crypto/build") + sys.path
 
 import M2Crypto
 import M2Crypto.m2
@@ -57,7 +57,7 @@ buildapp(
     #semi_standalone=1,
     standalone=1,
     excludeModules=["Tkinter","Tkconstants","tcl"],
-    includeModules=["M2Crypto","wx","wxPython","encodings.utf_8","encodings.latin_1","argvemulator"],
+    includeModules=["M2Crypto","wx","wxPython","encodings.utf_8","encodings.latin_1","argvemulator","_xmlplus.sax"],
     libs=[wx_lib],
     files = [("Lang/english.lang","Contents/Resources/Lang/"),
              ("superpeer.txt",    "Contents/Resources/"),
