@@ -99,7 +99,7 @@ class MyFrame(wx.Frame):
         self.tribler_topButton5 = tribler_topButton(self.topbg1, -1, wx.Point(371,5), wx.Size(60,72))
         self.tribler_topButton5.Bind(wx.EVT_ERASE_BACKGROUND,self.VwXtribler_topButton5_VwXEvOnEraseBackground)
         self.backButton = tribler_topButton(self.topbg1, -1, wx.Point(0,59), wx.Size(25,29))
-        self.standardOverview = standardOverview(self.level0,-1,wx.Point(9,98),wx.Size(515,540))
+        self.standardOverview = standardOverview(self.level0,-1,wx.Point(9,98),wx.Size(688,522))
         self.standardDetails = standardDetails(self.level0,-1,wxDefaultPosition,wxDefaultSize)
         self.standardDetails.SetDimensions(715,98,300,462)
         self.standardStatus = standardStatus(self.level0,-1,wxDefaultPosition,wxDefaultSize)

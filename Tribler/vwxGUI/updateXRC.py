@@ -13,16 +13,17 @@ def changeFile(filename):
     customDir = 'Tribler.vwxGUI.'
     customClasses = [('bgPanel', 'wxPanel', customDir+'bgPanel'), 
                      ('tribler_topButton', 'wxPanel', customDir+'tribler_topButton'),
-                     ('standardOverview', 'wxPanel', customDir+'standardOverview'), 
-                     ('torrentItem', 'wxPanel', customDir+'torrentItem'),
-                     ('standardDetails', 'wxPanel', customDir+'standardDetails'),
-                     ('torrentFilter', 'wxPanel', customDir+'torrentFilter'),
-                     ('torrentTabs', 'wxPanel', customDir+'torrentTabs'), 
                      ('statusDownloads', 'wxPanel', customDir+'statusDownloads'),
-                     ('torrentGrid', 'wxPanel', customDir+'torrentGrid'),
-                     ('torrentTabs', 'wxPanel', customDir+'torrentTabs'),
+                     ('standardOverview', 'wxPanel', customDir+'standardOverview'), 
+                     ('standardDetails', 'wxPanel', customDir+'standardDetails'),
                      ('standardStatus', 'wxPanel', customDir+'standardStatus'),
                      ('standardPager', 'wxPanel', customDir+'standardPager'),
+                     ('torrentOverview', 'wxPanel', customDir+'torrentOverview'),
+                     ('torrentItem', 'wxPanel', customDir+'torrentItem'),                     
+                     ('torrentFilter', 'wxPanel', customDir+'torrentFilter'),
+                     ('torrentTabs', 'wxPanel', customDir+'torrentTabs'), 
+                     ('torrentGrid', 'wxPanel', customDir+'torrentGrid'),
+                     ('torrentTabs', 'wxPanel', customDir+'torrentTabs'),                     
                      ('wxFrame', 'wxFrame', 'abc_vwx')]
     
     

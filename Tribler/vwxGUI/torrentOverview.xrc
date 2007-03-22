@@ -41,7 +41,7 @@
                     <label>Content</label>
                     <pos>0,4</pos>
                     <size>269,15</size>
-                    <bg>#3299cc</bg>
+                    <bg>#ff3300</bg>
                     <fg>#ffffff</fg>
                   </object>
                 </object>
@@ -111,6 +111,15 @@
             </object>
           </object>
           <object class="sizeritem">
+            <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>0</option>
+            <object class="wxPanel" name="torrentFilter206c" subclass="Tribler.vwxGUI.torrentFilter.torrentFilter">
+              <pos>417,403</pos>
+              <size>20,20</size>
+            </object>
+          </object>
+          <object class="sizeritem">
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>3</border>
             <option>0</option>
@@ -121,10 +130,6 @@
           </object>
         </object>
       </object>
-    </object>
-    <object class="wxPanel" name="standardOverview203c" subclass="Tribler.vwxGUI.standardOverview.standardOverview">
-      <pos>0,0</pos>
-      <size>20,20</size>
     </object>
   </object>
 </resource>

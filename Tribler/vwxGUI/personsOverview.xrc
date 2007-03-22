@@ -38,7 +38,7 @@
                   <option>0</option>
                   <object class="wxStaticText" name="st64c">
                     <style>wxST_NO_AUTORESIZE</style>
-                    <label>Content</label>
+                    <label>Persons</label>
                     <pos>0,4</pos>
                     <size>194,17</size>
                     <fg>#ffffff</fg>

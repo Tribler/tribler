@@ -4,20 +4,6 @@
     <pos>0,0</pos>
     <size>300,550</size>
     <fg>#d8d8bf</fg>
-    <object class="wxMenuBar" name="fdfs">
-      <object class="wxMenu" name="menu443">
-        <label>File</label>
-        <object class="wxMenuItem" name="Item444">
-          <label>Exit</label>
-        </object>
-      </object>
-      <object class="wxMenu" name="menu445">
-        <label>Options</label>
-        <object class="wxMenuItem" name="Item446">
-          <label>Options</label>
-        </object>
-      </object>
-    </object>
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>
       <object class="sizeritem">

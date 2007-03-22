@@ -1,4 +1,5 @@
 import wx, os, sys
+import wx.xrc as xrc
 
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from wx.lib.stattext import GenStaticText as StaticText
