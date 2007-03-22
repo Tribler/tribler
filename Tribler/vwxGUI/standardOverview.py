@@ -69,7 +69,6 @@ class standardOverview(wx.Panel):
         print 'Grid:', self.grid
 
         self.currentPanel.GetSizer().Layout()
-        self.currentPanel.Bind(wx.EVT_SIZE, self.panelOnResize)
         self.currentPanel.Enable(True)
         self.currentPanel.Show(True)
         
@@ -85,9 +84,6 @@ class standardOverview(wx.Panel):
         self.currentPanel.Refresh()
         self.Show(True)
         
-    def panelOnResize(self, event):
-        event.Skip()
-        self.currentPanel.SetSize(self.currentPanel.GetSize())
         
     def getPanelReferences(self):
         self.grid = xrc.XRCCTRL(self.currentPanel, 'torrentGrid')

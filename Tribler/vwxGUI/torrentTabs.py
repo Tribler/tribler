@@ -48,7 +48,7 @@ class torrentTabs(wx.Panel):
         self.catSizer = wx.BoxSizer(wx.HORIZONTAL)
         
         for cat in self.categories:
-            catPanel = wx.Panel(self, -1)
+            catPanel = wx.Panel(self, -1, size=wx.Size(50,50))
             catPanel.SetBackgroundColour(wx.Colour(212, 208, 200))
             catSizer = wx.BoxSizer(wx.HORIZONTAL)
             label = StaticText(catPanel,-1,cat.title())
@@ -63,13 +63,13 @@ class torrentTabs(wx.Panel):
                 self.setSelected(label)
                 self.lastSelected = label      
             
-        
         self.SetSizer(self.catSizer);
         self.SetAutoLayout(1);
+        self.Show(True)
         self.Layout()
         self.Refresh(True)
-        self.Show()
-        
+        self.Update()
+        self.Enable()
            
     def mouseAction(self, event):
          

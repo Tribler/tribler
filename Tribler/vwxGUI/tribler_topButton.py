@@ -9,14 +9,14 @@ class tribler_topButton(wx.Panel):
     a variable self.bitmap.
     """
 
-    def __init__(self, *args):    
+    def __init__(self, *args, **kw):    
         if len(args) == 0:
             pre = wx.PrePanel()
             # the Create step is done by XRC.
             self.PostCreate(pre)
             self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
         else:
-            wx.Panel.__init__(self, args[0], args[1], args[2], args[3])
+            wx.Panel.__init__(self, *args, **kw)
             self._PostInit()
         
     def OnCreate(self, event):
@@ -32,7 +32,8 @@ class tribler_topButton(wx.Panel):
         self.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
         self.searchBitmaps()
         self.createBackgroundImage()
-        
+        if self.bitmaps[0]:
+            self.SetSize(self.bitmaps[0].GetSize())
         self.Refresh(True)
         self.Update()
         
@@ -106,9 +107,11 @@ class tribler_topButton(wx.Panel):
         
         if bitmap:
             location = self.GetPosition()
-            location[0] -= parent.GetPosition()[0]
-            location[1] -= parent.GetPosition()[1]
+            #location[0] -= parent.GetPosition()[0]
+            #location[1] -= parent.GetPosition()[1]
+            print 'Mypos: %s, Parentpos: %s' % (self.GetPosition(), parent.GetPosition())
             rect = [location[0], location[1], self.GetClientSize()[0], self.GetClientSize()[1]]
+            print 'Slicing rect(%d,%d) size(%s) from parent image size(%s)' % (location[0], location[1], str(self.GetClientSize()), str(bitmap.GetSize()))
             bitmap = self.getBitmapSlice(bitmap, rect)
             return bitmap
         else:

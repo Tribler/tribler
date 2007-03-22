@@ -1,6 +1,9 @@
 from Tribler.vwxGUI.GuiUtility import GUIUtility
+from Tribler.vwxGUI.tribler_topButton import tribler_topButton
 from Tribler.Dialogs.ContentFrontPanel import ImagePanel
+
 from wx.lib.stattext import GenStaticText as StaticText
+
 import wx, os, sys, os.path, math
 
 class standardPager(wx.Panel):
@@ -101,7 +104,8 @@ class standardPager(wx.Panel):
 
     def addComponents(self):
         self.Show(False)
-        #self.SetMinSize((150, -1))
+        self.SetMinSize((183, 28))
+        self.SetSize((183, 28))
         self.normalFont = wx.Font(8,74,90,90,0,"Arial")
         self.boldFont  = wx.Font(10,74,90,wx.BOLD,1,"Arial")
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -115,25 +119,23 @@ class standardPager(wx.Panel):
 #        self.leftPages = ImagePanel(self)
 #        self.leftPages.SetBitmap(wx.Bitmap("prev2.gif",wx.BITMAP_TYPE_GIF))
 #        self.hSizer.Add(self.leftPages, 0, BORDER_EXPAND, 0)
-        self.left = ImagePanel(self)
-        self.left.SetBackgroundColour(wx.WHITE)
-        self.left.SetBitmap("left.png")
+        self.left = tribler_topButton(self, name='pager_left')
         self.left.Bind(wx.EVT_LEFT_UP, self.mouseAction)
-        self.hSizer.Add(self.left, 0, wx.LEFT|wx.RIGHT, 10)
+        self.hSizer.AddSpacer(25)
+        self.hSizer.Add(self.left, 0, wx.TOP, 10)
         
         #page numbers
         self.refreshPageNumbers()
         
         
-        self.right = ImagePanel(self)
-        self.right.SetBackgroundColour(wx.WHITE)
-        self.right.SetBitmap("right.png")
+        self.right = tribler_topButton(self, name='pager_right')
         self.right.Bind(wx.EVT_LEFT_UP, self.mouseAction)
-        self.hSizer.Add(self.right, 0, wx.LEFT|wx.RIGHT, 10)
+        self.hSizer.AddSpacer(5)
+        self.hSizer.Add(self.right, 0, wx.TOP, 10)
         
        
         
-        self.hSizer.SetMinSize((50,50))
+        #self.hSizer.SetMinSize((50,50))
         self.SetSizer(self.hSizer);self.SetAutoLayout(1);self.Layout();
         self.Refresh()
         self.Show()
@@ -170,10 +172,12 @@ class standardPager(wx.Panel):
         if number > currentPageNumber:
             while (len(self.pageNumbers) < number):
                 text = StaticText(self, -1, "")
-                text.SetBackgroundColour(self.GetBackgroundColour())
+                text.SetForegroundColour(wx.WHITE)
+                text.SetBackgroundColour(wx.Colour(255, 51, 0))
                 text.Bind(wx.EVT_LEFT_UP, self.mouseAction)
                 self.pageNumbers.append(text)
-                self.hSizer.Insert(len(self.pageNumbers)+1, text, 0, wx.LEFT|wx.RIGHT, 10)
+                self.hSizer.Insert(len(self.pageNumbers*2)+1, text, 0, wx.TOP, 10)
+                self.hSizer.InsertSpacer(len(self.pageNumbers*2)+2, 3)
             refresh = True
         elif number < currentPageNumber:
             for i in range(number, currentPageNumber):
@@ -188,7 +192,7 @@ class standardPager(wx.Panel):
             dots = wx.StaticText(self, -1, "...")
             extra =  int(bool(self.currentDots[0]))
             
-            self.hSizer.Insert(len(self.pageNumbers)+2+extra, dots, 0, wx.LEFT|wx.RIGHT, 2)
+            self.hSizer.Insert(len(self.pageNumbers)+1+extra, dots, 0, wx.LEFT|wx.RIGHT, 2)
             self.currentDots[1] = dots
             refresh = True
         

@@ -49,7 +49,7 @@ class torrentGrid(wx.Panel):
         self.Centre()
         self.Show()
         torrents = []
-        for word in ['Jelle', 'is', 'very', 'cool', 'jade', 'jade', 'weird', 'Katja']:
+        for word in 10*['Jelle', 'is', 'very', 'cool', 'jade', 'jade', 'weird', 'Katja']:
             torrents.append({'content_name':word})
         self.setData(torrents)
         self.guiUtility.report(self)
