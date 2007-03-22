@@ -20,7 +20,7 @@ strTree=00it=3 01it=4 01it=5 01it=22 02it=24 02it=9 02it=23 02it=16 01it=17 02it
 n=12
 [Form]
 n=1
-ws_name=torrentItem.pfr
+ws_name=personsItem.pfr
 ws_dir=.\\
 i_id=24
 s_tipoFile=21
@@ -34,7 +34,7 @@ i_stylePN=16
 idIncCmpFilCmp=1091
 i_tipoComp=21
 validator=
-s_name=torrentItem
+s_name=personsItem
 i_index=-1
 i_left=0
 i_top=0

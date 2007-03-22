@@ -20,7 +20,7 @@ strTree=00it=3 01it=4 02it=5 02it=6 03it=65 04it=66 02it=7 01it=8 02it=9 03it=10
 n=13
 [Form]
 n=1
-ws_name=peerDetails.pfr
+ws_name=personsDetails.pfr
 ws_dir=.\\
 i_id=66
 s_tipoFile=21
@@ -34,7 +34,7 @@ i_stylePN=16
 idIncCmpFilCmp=1391
 i_tipoComp=21
 validator=
-s_name=peerDetails
+s_name=personsDetails
 i_index=-1
 i_left=0
 i_top=0
