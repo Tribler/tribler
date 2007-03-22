@@ -6,7 +6,7 @@ import wx
 
 #[inc]end your include
 
-class personsItem(wx.Panel):
+class peerItem(wx.Panel):
     def __init__(self,parent,id = -1,pos = wx.Point(0,0),size = wx.Size(82,155),style = wx.TAB_TRAVERSAL,name = 'panel'):
         pre=wx.PrePanel()
         self.OnPreCreate()
@@ -63,7 +63,7 @@ class personsItem(wx.Panel):
         return
 
     def Ddel(self): #init function
-        #[41b]Code VwX...Don't modify[41b]#
+        #[764]Code VwX...Don't modify[764]#
         #add your code here
 
         return #end function

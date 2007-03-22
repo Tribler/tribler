@@ -6,7 +6,7 @@ import wx
 
 #[inc]end your include
 
-class personsDetails(wx.Panel):
+class peerDetails(wx.Panel):
     def __init__(self,parent,id = -1,pos = wx.Point(0,0),size = wx.Size(300,462),style = wx.TAB_TRAVERSAL,name = 'panel'):
         pre=wx.PrePanel()
         self.OnPreCreate()
@@ -165,51 +165,53 @@ class personsDetails(wx.Panel):
         event.Skip(False)
 
         return
+
 #[win]add your code here
+
     def pn9cC_VwXEvOnEraseBackground(self,event): #init function
-        #[ c7]Code event VwX...Don't modify[ c7]#
+        #[ 40]Code event VwX...Don't modify[ 40]#
         #add your code here
         event.Skip()
 
         return #end function
 
     def pn9c_VwXEvOnEraseBackground(self,event): #init function
-        #[ c3]Code event VwX...Don't modify[ c3]#
+        #[ 3c]Code event VwX...Don't modify[ 3c]#
         #add your code here
         event.Skip()
 
         return #end function
 
     def pn15cC_VwXEvOnEraseBackground(self,event): #init function
-        #[ c6]Code event VwX...Don't modify[ c6]#
+        #[ 3f]Code event VwX...Don't modify[ 3f]#
         #add your code here
         event.Skip()
 
         return #end function
 
     def pn11cC_VwXEvOnEraseBackground(self,event): #init function
-        #[ c9]Code event VwX...Don't modify[ c9]#
+        #[ 42]Code event VwX...Don't modify[ 42]#
         #add your code here
         event.Skip()
 
         return #end function
 
     def pn11c_VwXEvOnEraseBackground(self,event): #init function
-        #[ c5]Code event VwX...Don't modify[ c5]#
+        #[ 3e]Code event VwX...Don't modify[ 3e]#
         #add your code here
         event.Skip()
 
         return #end function
 
     def pn10cC_VwXEvOnEraseBackground(self,event): #init function
-        #[ c8]Code event VwX...Don't modify[ c8]#
+        #[ 41]Code event VwX...Don't modify[ 41]#
         #add your code here
         event.Skip()
 
         return #end function
 
     def pn10c_VwXEvOnEraseBackground(self,event): #init function
-        #[ c4]Code event VwX...Don't modify[ c4]#
+        #[ 3d]Code event VwX...Don't modify[ 3d]#
         #add your code here
         event.Skip()
 
@@ -231,12 +233,9 @@ class personsDetails(wx.Panel):
         return
 
     def Ddel(self): #init function
-        #[ c2]Code VwX...Don't modify[ c2]#
+        #[ 3b]Code VwX...Don't modify[ 3b]#
         #add your code here
 
         return #end function
-
-
-
 
 #[win]end your code
