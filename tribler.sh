@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Debian people haven't made python2.4-wxgtk2.6 available, hack around that
-PYTHON=python2.3
+PYTHON=python2.4
 EXECPYTHON=python2.4
 
 # don't care about gtk/x11/whatever. Currently (3.4.0) must be unicode
