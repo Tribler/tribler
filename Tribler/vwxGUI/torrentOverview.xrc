@@ -111,15 +111,6 @@
             </object>
           </object>
           <object class="sizeritem">
-            <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-            <border>3</border>
-            <option>0</option>
-            <object class="wxPanel" name="torrentFilter206c" subclass="Tribler.vwxGUI.torrentFilter.torrentFilter">
-              <pos>417,403</pos>
-              <size>20,20</size>
-            </object>
-          </object>
-          <object class="sizeritem">
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>3</border>
             <option>0</option>
