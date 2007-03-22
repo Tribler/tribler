@@ -32,7 +32,12 @@ class torrentTabs(wx.Panel):
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.categories = self.guiUtility.getCategories()
-        self.addComponents()
+        #self.addComponents()
+        self.SetBackgroundColour(wx.GREEN)
+        self.SetMinSize((-1, 30))
+        self.Show()
+        self.Refresh()
+        self.Update()
         self.guiUtility.report(self)
         
     def addComponents(self):

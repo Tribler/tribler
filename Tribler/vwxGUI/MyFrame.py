@@ -43,7 +43,7 @@ class MyFrame(wx.Frame):
         self.tribler_topButton1Img0=self.fileImgBuf[2];
         self.tribler_topButton2Img0=self.fileImgBuf[3];
         self.tribler_topButton3Img0=self.fileImgBuf[4];
-        self.topbg2Img0=self.fileImgBuf[5];
+        self.topbg2_greyImg0=self.fileImgBuf[5];
         self.topbg3Img0=self.fileImgBuf[6];
         self.tribler_topButton4Img0=self.fileImgBuf[7];
         self.tribler_topButton5Img0=self.fileImgBuf[8];
@@ -73,12 +73,12 @@ class MyFrame(wx.Frame):
         self.tribler_topButton0.Bind(wx.EVT_ERASE_BACKGROUND,self.VwXtribler_topButton0_VwXEvOnEraseBackground)
         self.tribler_topButton1 = tribler_topButton(self.topbg1, -1, wx.Point(89,5), wx.Size(60,72))
         self.tribler_topButton1.Bind(wx.EVT_ERASE_BACKGROUND,self.VwXtribler_topButton1_VwXEvOnEraseBackground)
-        self.tribler_topButton2 = tribler_topButton(self.topbg1, -1, wx.Point(173,5), wx.Size(60,72))
+        self.tribler_topButton2 = tribler_topButton(self.topbg1, -1, wx.Point(191,5), wx.Size(60,72))
         self.tribler_topButton2.Bind(wx.EVT_ERASE_BACKGROUND,self.VwXtribler_topButton2_VwXEvOnEraseBackground)
         self.tribler_topButton3 = tribler_topButton(self.topbg1, -1, wx.Point(251,5), wx.Size(60,72))
         self.tribler_topButton3.Bind(wx.EVT_ERASE_BACKGROUND,self.VwXtribler_topButton3_VwXEvOnEraseBackground)
-        self.topbg2 = bgPanel(self.level0, -1, wx.Point(614,0), wx.Size(21,89))
-        self.topbg2.Bind(wx.EVT_ERASE_BACKGROUND,self.VwXtopbg2_VwXEvOnEraseBackground)
+        self.topbg2_grey = bgPanel(self.level0, -1, wx.Point(614,0), wx.Size(21,89))
+        self.topbg2_grey.Bind(wx.EVT_ERASE_BACKGROUND,self.VwXtopbg2_grey_VwXEvOnEraseBackground)
         self.topbg3 = bgPanel(self.level0, -1, wx.Point(803,0), wx.Size(269,89))
         self.topbg3.SetBackgroundColour(wx.Colour(0,0,0))
         self.topbg3.Bind(wx.EVT_ERASE_BACKGROUND,self.VwXtopbg3_VwXEvOnEraseBackground)
@@ -117,7 +117,8 @@ class MyFrame(wx.Frame):
         self.sz102sC.Add(self.sizerTopMenu,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.sz102sC.Add(self.sz11sCCCCCC,1,wx.BOTTOM|wx.EXPAND|wx.FIXED_MINSIZE,4)
         self.sizerTopMenu.Add(self.topbg1,0,wx.FIXED_MINSIZE,3)
-        self.sizerTopMenu.Add(self.topbg2,1,wx.EXPAND|wx.FIXED_MINSIZE,3)
+        self.sizerTopMenu.Add(self.topbg2_grey,1,wx.EXPAND|wx.FIXED_MINSIZE,3)
+        self.sizerTopMenu.SetItemMinSize(self.topbg2_grey,20,10)
         self.sizerTopMenu.Add(self.topbg3,0,wx.FIXED_MINSIZE,3)
         self.sz11sCCCCCC.Add(self.standardOverview,1,wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,9)
         self.sz11sCCCCCC.Add(self.sz135s,0,wx.TOP|wx.LEFT|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,9)
@@ -203,9 +204,9 @@ class MyFrame(wx.Frame):
         event.Skip(False)
 
         return
-    def VwXtopbg2_VwXEvOnEraseBackground(self,event):
-        self.VwXDrawBackImg(event,self.topbg2,self.topbg2Img0,2)
-        self.topbg2_VwXEvOnEraseBackground(event)
+    def VwXtopbg2_grey_VwXEvOnEraseBackground(self,event):
+        self.VwXDrawBackImg(event,self.topbg2_grey,self.topbg2_greyImg0,2)
+        self.topbg2_grey_VwXEvOnEraseBackground(event)
         event.Skip(False)
 
         return
@@ -246,7 +247,7 @@ class MyFrame(wx.Frame):
 
 
 
-    def topbg2_VwXEvOnEraseBackground(self,event): #init function
+    def topbg2_grey_VwXEvOnEraseBackground(self,event): #init function
         #[16b]Code event VwX...Don't modify[16b]#
         #add your code here
         event.Skip()

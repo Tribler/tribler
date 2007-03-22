@@ -182,6 +182,7 @@ class tribler_topButton(wx.Panel):
         
     def OnPaint(self, evt):
         dc = wx.PaintDC(self)
+        dc.SetBackground(wx.Brush(wx.Colour(102,102,102)))
         dc.Clear()
         if self.parentBitmap:
             dc.DrawBitmap(self.parentBitmap, 0,0, True)

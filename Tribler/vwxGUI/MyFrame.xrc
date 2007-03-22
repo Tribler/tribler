@@ -99,7 +99,7 @@
                     <option>0</option>
                     <object class="wxPanel" name="tribler_topButton2" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
                       <bitmap>images/tribler_topbutton2.png</bitmap>
-                      <pos>173,5</pos>
+                      <pos>191,5</pos>
                       <size>60,72</size>
                     </object>
                   </object>
@@ -140,7 +140,7 @@
               <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>3</border>
               <option>1</option>
-              <object class="wxPanel" name="topbg2" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+              <object class="wxPanel" name="topbg2_grey" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
                 <bitmap>images/topbg2.png</bitmap>
                 <pos>614,0</pos>
                 <size>21,89</size>
