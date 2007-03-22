@@ -30,8 +30,9 @@ class standardPager(wx.Panel):
         self.createBackgroundImage()
         self.initPager()
         self.Refresh(True)
-        self.Show()        
+        self.Update()
         self.guiUtility.report(self)
+        
         
     def initPager(self, numPages=10):
         
@@ -45,12 +46,10 @@ class standardPager(wx.Panel):
         
         self.pageNumbers = []
         self.grid = None
-        self.SetMinSize((183, self.GetCharHeight()))
+        #self.SetMinSize((183, self.GetCharHeight()))
         self.utility = self.guiUtility.utility
         self.addComponents()
-        self.Centre()
-        self.Show()
-
+                
     def searchBitmap(self):
         self.bitmap = None
         
@@ -137,6 +136,7 @@ class standardPager(wx.Panel):
         self.hSizer.SetMinSize((50,50))
         self.SetSizer(self.hSizer);self.SetAutoLayout(1);self.Layout();
         self.Refresh()
+        self.Show()
    
    
     def refreshPageNumbers(self):

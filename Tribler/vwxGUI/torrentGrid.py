@@ -26,6 +26,7 @@ class torrentGrid(wx.Panel):
     def OnCreate(self, event):
         self.Unbind(wx.EVT_WINDOW_CREATE)
         wx.CallAfter(self._PostInit)
+        self.Show()
         event.Skip()
         return True
     
@@ -64,7 +65,8 @@ class torrentGrid(wx.Panel):
         self.SetSizer(self.vSizer);
         self.SetAutoLayout(1);
         self.Layout();
-        self.Refresh()
+        self.Refresh(True)
+        self.Update()
         #print "vSizer: %s, Panel: %s"% (self.vSizer.GetSize(), self.GetSize())
 
     def setData(self, dataList, resetPages = True):

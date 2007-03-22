@@ -32,13 +32,10 @@ class torrentTabs(wx.Panel):
         self.utility = self.guiUtility.utility
         self.categories = self.guiUtility.getCategories()
         self.addComponents()
-        self.Centre()
-        self.Show()
         self.guiUtility.report(self)
         
     def addComponents(self):
         self.Show(False)
-        #self.SetMinSize((50,50))
         self.SetBackgroundColour(wx.WHITE)
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         self.unselFont = wx.Font(10, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, faceName="Verdana")
@@ -66,8 +63,11 @@ class torrentTabs(wx.Panel):
                 self.lastSelected = label      
             
         
-        self.SetSizer(self.catSizer);self.SetAutoLayout(1);self.Layout();
-        self.Refresh()
+        self.SetSizer(self.catSizer);
+        self.SetAutoLayout(1);
+        self.Layout()
+        self.Refresh(True)
+        self.Show()
         
            
     def mouseAction(self, event):

@@ -40,12 +40,10 @@ class standardDetails(wx.Panel):
     def addComponents(self):
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.SetSizer(self.hSizer)
-        self.SetSizer(self.hSizer);
         self.SetAutoLayout(1);
         
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(self.vSizer)
-        self.SetSizer(self.vSizer);
         self.SetAutoLayout(1);
         
     def refreshMode(self):

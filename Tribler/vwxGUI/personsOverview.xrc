@@ -121,9 +121,5 @@
         </object>
       </object>
     </object>
-    <object class="wxPanel" name="standardOverview203c" subclass="Tribler.vwxGUI.standardOverview.standardOverview">
-      <pos>0,0</pos>
-      <size>20,20</size>
-    </object>
   </object>
 </resource>

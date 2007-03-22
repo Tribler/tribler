@@ -816,6 +816,9 @@ class ABCApp(wx.App):
             self.res = xrc.XmlResource("Tribler/vwxGUI/MyFrame.xrc")
             self.guiUtility.xrcResource = self.res
             self.frame = self.res.LoadFrame(None, "MyFrame")
+            self.scrollWindow = xrc.XRCCTRL(self.frame, "level0")
+            self.guiUtility.mainSizer = self.scrollWindow.GetSizer()
+            self.scrollWindow.SetScrollbars(1,1,1024,768)
             self.frame.Refresh()
             self.frame.Layout()
             self.frame.Show(True)
