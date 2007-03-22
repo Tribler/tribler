@@ -3,7 +3,7 @@
   <object class="wxPanel" name="torrentItem">
     <pos>0,0</pos>
     <size>125,190</size>
-    <bg>5</bg>
+    <bg>#000000</bg>
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>
       <object class="sizeritem">
@@ -15,7 +15,7 @@
           <style>wxSIMPLE_BORDER</style>
           <pos>0,0</pos>
           <size>125,70</size>
-          <bg>2</bg>
+          <bg>#000000</bg>
         </object>
       </object>
       <object class="sizeritem">

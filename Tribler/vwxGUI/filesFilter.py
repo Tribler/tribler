@@ -2,7 +2,7 @@ import wx, os, sys
 import wx.xrc as xrc
 
 
-class torrentFilter(wx.Panel):
+class filesFilter(wx.Panel):
     """
     Panel with automatic backgroundimage control.
     """

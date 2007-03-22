@@ -2,6 +2,7 @@ import wx, os, sys, os.path
 import wx.xrc as xrc
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 
+OVERVIEW_MODES = ['filesMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionMode', 'messageMode']
 
 class standardOverview(wx.Panel):
     """
@@ -26,7 +27,10 @@ class standardOverview(wx.Panel):
     def _PostInit(self):
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
-        self.mode = 'torrentMode'
+        self.mode = OVERVIEW_MODES[0]
+        self.data = {}
+        for mode in OVERVIEW_MODES:
+            self.data[mode] = {}
         self.addComponents()
         self.currentPanel = None
         self.panels={}
@@ -41,10 +45,12 @@ class standardOverview(wx.Panel):
         self.SetAutoLayout(1)
         self.Layout()
         
-    def setMode(self, mode):
+    def setMode(self, mode, datalist):
         if self.mode != mode:
             self.mode = mode
+            self.data[self.mode]['list'] = datalist
             self.refreshMode()
+            self.data[self.mode]['grid'].setData(datalist)
             
     def refreshMode(self):
         # load xrc
@@ -52,9 +58,9 @@ class standardOverview(wx.Panel):
         self.Show(False)
         self.currentPanel = self.panels.get(self.mode)
         if not self.currentPanel:
-            if self.mode == 'torrentMode':
-                xrcResource = os.path.join('Tribler','vwxGUI', 'torrentOverview.xrc')
-                panelName = 'torrentOverview'
+            if self.mode == 'filesMode':
+                xrcResource = os.path.join('Tribler','vwxGUI', 'filesOverview.xrc')
+                panelName = 'filesOverview'
             elif self.mode == 'personsMode':
                 xrcResource = os.path.join('Tribler','vwxGUI', 'personsOverview.xrc')
                 panelName = 'personsOverview'
@@ -64,10 +70,10 @@ class standardOverview(wx.Panel):
             self.res = xrc.XmlResource(xrcResource)
             # create panel
             self.currentPanel = self.panels[self.mode] = self.res.LoadPanel(self, panelName)
+            
+            self.data[self.mode]['grid'] = xrc.XRCCTRL(self.currentPanel, self.mode[:-4]+'Grid')
         
-        self.getPanelReferences()
-        print 'Grid:', self.grid
-
+     
         self.currentPanel.GetSizer().Layout()
         self.currentPanel.Enable(True)
         self.currentPanel.Show(True)
@@ -85,7 +91,6 @@ class standardOverview(wx.Panel):
         self.Show(True)
         
         
-    def getPanelReferences(self):
-        self.grid = xrc.XRCCTRL(self.currentPanel, 'torrentGrid')
+    
         
         

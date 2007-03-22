@@ -18,12 +18,12 @@ def changeFile(filename):
                      ('standardDetails', 'wxPanel', customDir+'standardDetails'),
                      ('standardStatus', 'wxPanel', customDir+'standardStatus'),
                      ('standardPager', 'wxPanel', customDir+'standardPager'),
-                     ('torrentOverview', 'wxPanel', customDir+'torrentOverview'),
-                     ('torrentItem', 'wxPanel', customDir+'torrentItem'),                     
-                     ('torrentFilter', 'wxPanel', customDir+'torrentFilter'),
-                     ('torrentTabs', 'wxPanel', customDir+'torrentTabs'), 
-                     ('torrentGrid', 'wxPanel', customDir+'torrentGrid'),
-                     ('torrentTabs', 'wxPanel', customDir+'torrentTabs'),                     
+                     ('filesOverview', 'wxPanel', customDir+'filesOverview'),
+                     ('filesItem', 'wxPanel', customDir+'filesItem'),                     
+                     ('filesFilter', 'wxPanel', customDir+'filesFilter'),
+                     ('filesTabs', 'wxPanel', customDir+'filesTabs'), 
+                     ('filesGrid', 'wxPanel', customDir+'filesGrid'),
+                     ('filesTabs', 'wxPanel', customDir+'filesTabs'),                     
                      ('wxFrame', 'wxFrame', 'abc_vwx')]
     
     
@@ -31,7 +31,7 @@ def changeFile(filename):
     for (customClass, wxClass, customFile) in customClasses:
         data = re.sub('<object class="%s" name="([^"]+)">' % customClass, u'<object class="%s" name="\\1" subclass="%s.%s">' % (wxClass, customFile, customClass), data )
     
-    data = re.sub('<bg>0</bg>', u'<bg>#000000</bg>', data)
+    data = re.sub('<bg>\d</bg>', u'<bg>#000000</bg>', data)
     if data != olddata:
         # save file)
         f_bak = file(filename+'.old', 'w')

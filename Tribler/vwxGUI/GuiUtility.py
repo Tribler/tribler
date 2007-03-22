@@ -2,6 +2,8 @@ import wx
 from wx import xrc
 from bgPanel import *
 import updateXRC
+from Tribler.Dialogs.abcfileframe import TorrentDataManager
+from Tribler.utilities import *
 
 DEBUG = True
 
@@ -18,6 +20,8 @@ class GUIUtility:
         self.xrcResource = None
         self.utility = utility
         self.params = params
+        self.data_manager = TorrentDataManager.getInstance(self.utility)
+        self.data_manager.register(self.updateFun, 'all')
             
     def getInstance(*args, **kw):
         if GUIUtility.__single is None:
@@ -62,21 +66,59 @@ class GUIUtility:
         print 'Category set to %s' % cat
         
     def buttonClicked(self, event):
+        "One of the buttons in the GUI has been clicked"
+        obj = event.GetEventObject()
         if DEBUG:
             print 'Button clicked'
-            print event;
-        obj = event.GetEventObject()
+        
         try:
             name = obj.GetName()
-            overview = self.request('standardOverview')
-            if name == 'tribler_topButton0':
-                overview.setMode('torrentMode')
-            elif name == 'tribler_topButton1':
-                overview.setMode('personsMode')
-                
         except:
-            pass
-    
+            print 'Error: Could not get name of buttonObject: %s' % obj
+        if name == 'mainButtonFiles':
+            self.standardFilesOverview()
+        elif name == 'mainButtonPersons':
+            self.standardPersonsOverview()
+        elif name == 'mainButtonProfile':
+            self.standardProfileOverview()
+        elif name == 'mainButtonLibrary':
+            self.standardLibraryOverview()
+        elif name == 'mainButtonFriends':
+            self.standardFriendsOverview()
+        elif name == 'mainButtonMessages':
+            self.standardMessagesOverview()
+        else:
+            print 'A button was clicked, but no action is defined for: %s' % name
+                
+        
+    def standardFilesOverview(self):
+        torrentList = self.reloadData()
+        overview = self.request('standardOverview')
+        overview.setMode('filesMode', torrentList)
+        
+    def standardPersonsOverview(self):
+        personsList = self.reloadData()
+        overview = self.request('standardOverview')
+        overview.setMode('personsMode', personsList)
+        
+
+    def reloadData(self):
+        
+        # load content category
+        self.categorykey = 'all'
+        self.data = self.data_manager.getCategory(self.categorykey)
+        self.filtered = []
+        for torrent in self.data:
+            if torrent.get('status') == 'good' or torrent.get('myDownloadHistory'):
+                self.filtered.append(torrent)
+        
+        self.filtered = sort_dictlist(self.filtered, 'swarmsize', 'decrease')
+        print self.filtered
+        return self.filtered
+        
+    def updateFun(self, torrent, operate):    
+        print "Updatefun called"
+        
     def initGUI(self):
         "This function initializes all gui tak"
         if DEBUG:

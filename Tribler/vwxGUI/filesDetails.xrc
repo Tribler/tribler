@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
-  <object class="wxPanel" name="torrentDetails">
+  <object class="wxPanel" name="filesDetails">
     <pos>0,0</pos>
     <size>300,550</size>
     <fg>#d8d8bf</fg>

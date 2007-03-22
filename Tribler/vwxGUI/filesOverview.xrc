@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
-  <object class="wxPanel" name="torrentOverview">
+  <object class="wxPanel" name="filesOverview">
     <pos>0,0</pos>
     <size>625,430</size>
     <object class="wxBoxSizer">
@@ -63,7 +63,7 @@
         <flag>wxEXPAND|wxALIGN_LEFT|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="wxPanel" name="torrentFilter" subclass="Tribler.vwxGUI.torrentFilter.torrentFilter">
+        <object class="wxPanel" name="filesFilter" subclass="Tribler.vwxGUI.filesFilter.filesFilter">
           <pos>0,21</pos>
           <size>448,20</size>
         </object>
@@ -72,7 +72,7 @@
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="wxPanel" name="torrentTabs" subclass="Tribler.vwxGUI.torrentTabs.torrentTabs">
+        <object class="wxPanel" name="filesTabs" subclass="Tribler.vwxGUI.filesTabs.filesTabs">
           <pos>0,41</pos>
           <size>20,20</size>
         </object>
@@ -81,7 +81,7 @@
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>1</option>
-        <object class="wxPanel" name="torrentGrid" subclass="Tribler.vwxGUI.torrentGrid.torrentGrid">
+        <object class="wxPanel" name="filesGrid" subclass="Tribler.vwxGUI.filesGrid.filesGrid">
           <pos>0,61</pos>
           <size>623,429</size>
         </object>

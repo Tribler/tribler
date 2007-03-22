@@ -4,7 +4,7 @@ import wx.xrc as xrc
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from wx.lib.stattext import GenStaticText as StaticText
 
-class torrentTabs(wx.Panel):
+class filesTabs(wx.Panel):
     """
     StandardTab shows the content categories and delegates the ContentFrontPanel
     to load the right torrent data in the gridPanel

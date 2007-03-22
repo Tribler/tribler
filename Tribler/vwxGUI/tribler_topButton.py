@@ -2,6 +2,8 @@ import wx, os, sys
 from traceback import print_exc
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 
+DEBUG = False
+
 class tribler_topButton(wx.Panel):
     """
     Button that changes the image shown if you move your mouse over it.
@@ -109,9 +111,11 @@ class tribler_topButton(wx.Panel):
             location = self.GetPosition()
             #location[0] -= parent.GetPosition()[0]
             #location[1] -= parent.GetPosition()[1]
-            print 'Mypos: %s, Parentpos: %s' % (self.GetPosition(), parent.GetPosition())
+            if DEBUG:
+                print 'Mypos: %s, Parentpos: %s' % (self.GetPosition(), parent.GetPosition())
             rect = [location[0], location[1], self.GetClientSize()[0], self.GetClientSize()[1]]
-            print 'Slicing rect(%d,%d) size(%s) from parent image size(%s)' % (location[0], location[1], str(self.GetClientSize()), str(bitmap.GetSize()))
+            if DEBUG:
+                print 'Slicing rect(%d,%d) size(%s) from parent image size(%s)' % (location[0], location[1], str(self.GetClientSize()), str(bitmap.GetSize()))
             bitmap = self.getBitmapSlice(bitmap, rect)
             return bitmap
         else:

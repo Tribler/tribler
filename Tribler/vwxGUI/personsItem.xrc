@@ -14,7 +14,7 @@
           <style>wxSIMPLE_BORDER</style>
           <pos>0,0</pos>
           <size>82,82</size>
-          <bg>2</bg>
+          <bg>#000000</bg>
         </object>
       </object>
       <object class="sizeritem">

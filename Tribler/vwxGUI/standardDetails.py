@@ -49,8 +49,8 @@ class standardDetails(wx.Panel):
     def refreshMode(self):
         # load xrc
         if self.mode == TORRENT_MODE:
-            xrcResource = os.path.join('Tribler','vwxGUI', 'torrentDetails.xrc')
-            panelName = 'torrentDetails'
+            xrcResource = os.path.join('Tribler','vwxGUI', 'filesDetails.xrc')
+            panelName = 'filesDetails'
         else:
             print 'Mode unknown'
             return
