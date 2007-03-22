@@ -43,6 +43,11 @@ class standardDetails(wx.Panel):
         self.SetSizer(self.hSizer);
         self.SetAutoLayout(1);
         
+        self.vSizer = wx.BoxSizer(wx.VERTICAL)
+        self.SetSizer(self.vSizer)
+        self.SetSizer(self.vSizer);
+        self.SetAutoLayout(1);
+        
     def refreshMode(self):
         # load xrc
         if self.mode == TORRENT_MODE:
@@ -54,7 +59,10 @@ class standardDetails(wx.Panel):
         self.res = xrc.XmlResource(xrcResource)
         # create panel
         self.panel = self.res.LoadPanel(self, panelName)
-        self.hSizer.Add(self.panel, 1, wx.ALL|wx.EXPAND, 0)
+        
+        #self.hSizer.Add(self.vSizer, 1, wx.ALL|wx.EXPAND, 0)
+        self.vSizer.Add(self.panel, 1, wx.ALL|wx.EXPAND, 0)
+        #self.hSizer.vSizer.Add(self.panel, 1, wx.All|wx.EXPAND|wx.STRETCH, 0)
     
     def setData(self, data):
         pass

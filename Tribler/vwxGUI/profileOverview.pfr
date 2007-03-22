@@ -13,14 +13,14 @@ s_tipoFile=21
 ClsparentCompTipo=0
 l_framTipo=0
 VisualWxVersion=0.87.2.5
-VisualWxIdent=8725
+VisualWxIdent=8724
 l_hasAutoSize=1
 strTree=00it=3 01it=8 02it=196 02it=10 03it=133 04it=134 02it=197 01it=188 01it=191 01it=195 01it=13 02it=199 02it=200 02it=201 00it=203 
 [Controlli]
 n=12
 [Form]
 n=1
-ws_name=personsOverview.pfr
+ws_name=profileOverview.pfr
 ws_dir=.\\
 i_id=203
 s_tipoFile=21

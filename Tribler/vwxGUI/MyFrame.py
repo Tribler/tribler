@@ -121,7 +121,7 @@ class MyFrame(wx.Frame):
         self.sizerTopMenu.Add(self.topbg3,0,wx.FIXED_MINSIZE,3)
         self.sz11sCCCCCC.Add(self.standardOverview,1,wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,9)
         self.sz11sCCCCCC.Add(self.sz135s,0,wx.TOP|wx.LEFT|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,9)
-        self.sz135s.Add(self.standardDetails,0,wx.EXPAND|wx.FIXED_MINSIZE,9)
+        self.sz135s.Add(self.standardDetails,1,wx.EXPAND|wx.FIXED_MINSIZE,9)
         self.sz135s.Add(self.standardStatus,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,9)
         self.sz164sC.Add(self.sz213s,0,wx.FIXED_MINSIZE,3)
         self.sz164sC.Add(self.tribler_topButton0,0,wx.TOP|wx.BOTTOM|wx.FIXED_MINSIZE,5)

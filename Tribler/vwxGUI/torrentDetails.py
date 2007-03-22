@@ -8,7 +8,7 @@ from bgPanel import *
 #[inc]end your include
 
 class torrentDetails(wx.Panel):
-    def __init__(self,parent,id = -1,pos = wx.Point(0,0),size = wx.Size(300,462),style = wx.TAB_TRAVERSAL,name = 'panel'):
+    def __init__(self,parent,id = -1,pos = wx.Point(0,0),size = wx.Size(300,550),style = wx.TAB_TRAVERSAL,name = 'panel'):
         pre=wx.PrePanel()
         self.OnPreCreate()
         pre.Create(parent,id,pos,size,style,name)
@@ -28,14 +28,15 @@ class torrentDetails(wx.Panel):
         self.pn10cImg0=self.fileImgBuf[0];
         self.Show(True)
         self.SetForegroundColour(wx.Colour(216,216,191))
-        self.pn10c = wx.Panel(self,-1,wx.Point(10,0),wx.Size(200,21))
+        self.pn10c = wx.Panel(self,-1,wx.Point(10,0),wx.Size(280,21))
         self.pn10c.SetForegroundColour(wx.Colour(255,255,255))
-        self.pn10c.SetBackgroundColour(wx.Colour(50,153,204))
+        self.pn10c.SetBackgroundColour(wx.Colour(0,0,0))
         self.pn10c.Bind(wx.EVT_ERASE_BACKGROUND,self.VwXpn10c_VwXEvOnEraseBackground)
-        self.playbackControls = bgPanel(self, -1, wx.Point(0,196), wx.Size(20,20))
+        self.playbackControls = bgPanel(self, -1, wx.Point(0,191), wx.Size(20,20))
+        self.playbackControls.SetBackgroundColour(wx.Colour(0,0,0))
         self.6_160x90 = bgPanel(self, -1, wx.Point(0,21), wx.Size(302,170))
-        self.tabs = wx.Panel(self,-1,wx.Point(0,162),wx.Size(20,20))
-        self.tabs.SetBackgroundColour(wx.Colour(110,110,110))
+        self.tabs = wx.Panel(self,-1,wx.Point(0,211),wx.Size(20,20))
+        self.tabs.SetBackgroundColour(wx.Colour(0,0,0))
         self.pn39cCCC = wx.Panel(self.tabs,-1,wx.Point(3,3),wx.Size(40,15))
         self.pn39cCCC.SetBackgroundColour(wx.Colour(255,255,255))
         self.st60cCC = wx.StaticText(self.pn39cCCC,-1,"",wx.Point(5,0),wx.Size(20,10),wx.ST_NO_AUTORESIZE)
@@ -45,11 +46,11 @@ class torrentDetails(wx.Panel):
         self.st60cCC = wx.StaticText(self.pn39cCC2C,-1,"",wx.Point(5,0),wx.Size(49,13),wx.ST_NO_AUTORESIZE)
         self.st60cCC.SetLabel("comments")
         self.st60cCC.SetForegroundColour(wx.Colour(0,0,0))
-        self.details = wx.Panel(self,-1,wx.Point(0,242),wx.Size(20,20))
+        self.details = wx.Panel(self,-1,wx.Point(0,231),wx.Size(298,348))
         self.details.SetBackgroundColour(wx.Colour(255,255,255))
-        self.white_bottom = bgPanel(self, -1, wx.Point(3,437), wx.Size(302,5))
+        self.white_bottom = bgPanel(self, -1, wx.Point(0,493), wx.Size(300,5))
         self.black_top_left = bgPanel(self, -1, wx.Point(0,0), wx.Size(10,21))
-        self.black_top_right = bgPanel(self, -1, wx.Point(288,0), wx.Size(10,21))
+        self.black_top_right = bgPanel(self, -1, wx.Point(210,0), wx.Size(10,21))
         self.sz3s = wx.BoxSizer(wx.VERTICAL)
         self.header = wx.BoxSizer(wx.HORIZONTAL)
         self.tabsCCC = wx.BoxSizer(wx.HORIZONTAL)
@@ -58,7 +59,7 @@ class torrentDetails(wx.Panel):
         self.sz3s.Add(self.header,0,wx.EXPAND|wx.FIXED_MINSIZE,0)
         self.sz3s.Add(self.6_160x90,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.sz3s.Add(self.playbackControls,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
-        self.sz3s.Add(self.tabs,0,wx.BOTTOM|wx.EXPAND|wx.FIXED_MINSIZE,6)
+        self.sz3s.Add(self.tabs,0,wx.EXPAND|wx.FIXED_MINSIZE,6)
         self.sz3s.Add(self.details,1,wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.sz3s.Add(self.white_bottom,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.header.Add(self.black_top_left,0,wx.EXPAND|wx.FIXED_MINSIZE,0)

@@ -2,8 +2,22 @@
 <resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
   <object class="wxPanel" name="torrentDetails">
     <pos>0,0</pos>
-    <size>300,462</size>
+    <size>300,550</size>
     <fg>#d8d8bf</fg>
+    <object class="wxMenuBar" name="fdfs">
+      <object class="wxMenu" name="menu443">
+        <label>File</label>
+        <object class="wxMenuItem" name="Item444">
+          <label>Exit</label>
+        </object>
+      </object>
+      <object class="wxMenu" name="menu445">
+        <label>Options</label>
+        <object class="wxMenuItem" name="Item446">
+          <label>Options</label>
+        </object>
+      </object>
+    </object>
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>
       <object class="sizeritem">
@@ -24,12 +38,12 @@
           <object class="sizeritem">
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>3</border>
-            <option>1</option>
+            <option>0</option>
             <object class="wxPanel" name="pn10c">
               <bitmap>images/triblerpanel_topcenter.png</bitmap>
               <pos>10,0</pos>
               <size>280,21</size>
-              <bg>#000000</bg>
+              <bg>#     0</bg>
               <fg>#ffffff</fg>
             </object>
           </object>
@@ -38,7 +52,7 @@
             <border>0</border>
             <option>0</option>
             <object class="wxPanel" name="black_top_right" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
-              <pos>288,0</pos>
+              <pos>210,0</pos>
               <size>10,21</size>
             </object>
           </object>
@@ -58,18 +72,19 @@
         <border>3</border>
         <option>0</option>
         <object class="wxPanel" name="playbackControls" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
-          <pos>0,196</pos>
+          <pos>0,191</pos>
           <size>20,20</size>
+          <bg>#     0</bg>
         </object>
       </object>
       <object class="sizeritem">
-        <flag>wxBOTTOM|wxEXPAND|wxFIXED_MINSIZE</flag>
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>6</border>
         <option>0</option>
         <object class="wxPanel" name="tabs">
-          <pos>0,162</pos>
+          <pos>0,211</pos>
           <size>20,20</size>
-          <bg>#6e6e6e</bg>
+          <bg>#     0</bg>
           <object class="wxBoxSizer">
             <orient>wxHORIZONTAL</orient>
             <object class="sizeritem">
@@ -129,8 +144,8 @@
         <border>3</border>
         <option>1</option>
         <object class="wxPanel" name="details">
-          <pos>0,242</pos>
-          <size>20,20</size>
+          <pos>0,231</pos>
+          <size>298,348</size>
           <bg>#ffffff</bg>
         </object>
       </object>
@@ -139,8 +154,8 @@
         <border>3</border>
         <option>0</option>
         <object class="wxPanel" name="white_bottom" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
-          <pos>3,437</pos>
-          <size>302,5</size>
+          <pos>0,493</pos>
+          <size>300,5</size>
         </object>
       </object>
     </object>

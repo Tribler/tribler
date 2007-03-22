@@ -12,7 +12,7 @@ from standardOverview import *
 
 #[inc]end your include
 
-class personsOverview(wx.Panel):
+class profileOverview(wx.Panel):
     def __init__(self,parent,id = -1,pos = wx.Point(0,0),size = wx.Size(625,430),style = wx.TAB_TRAVERSAL,name = 'panel'):
         pre=wx.PrePanel()
         self.OnPreCreate()
@@ -46,7 +46,7 @@ class personsOverview(wx.Panel):
         self.personsTabs = torrentTabs(self,-1,wxDefaultPosition,wxDefaultSize)
         self.personsTabs.SetDimensions(0,41,20,20)
         self.personsGrid = torrentGrid(self,-1,wxDefaultPosition,wxDefaultSize)
-        self.personsGrid.SetDimensions(0,61,623,429)
+        self.personsGrid.SetDimensions(0,61,617,235)
         self.orange_bottom_left = bgPanel(self, -1, wx.Point(0,400), wx.Size(10,28))
         self.orange_bottom_center = bgPanel(self, -1, wx.Point(10,400), wx.Size(20,20))
         self.standardPager = standardPager(self,-1,wx.Point(440,400),wx.Size(183,28))
@@ -104,14 +104,8 @@ class personsOverview(wx.Panel):
 
 #[win]add your code here
 
-    def bla(self):
-        pass
-        
-
-
-
     def pn10c_VwXEvOnEraseBackground(self,event): #init function
-        #[ c0]Code event VwX...Don't modify[ c0]#
+        #[175]Code event VwX...Don't modify[175]#
         #add your code here
         event.Skip()
 
@@ -133,7 +127,7 @@ class personsOverview(wx.Panel):
         return
 
     def Ddel(self): #init function
-        #[ bf]Code VwX...Don't modify[ bf]#
+        #[174]Code VwX...Don't modify[174]#
         #add your code here
 
         return #end function
