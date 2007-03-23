@@ -121,7 +121,7 @@ class standardPager(wx.Panel):
 #        self.hSizer.Add(self.leftPages, 0, BORDER_EXPAND, 0)
         self.left = tribler_topButton(self, name='pager_left')
         self.left.Bind(wx.EVT_LEFT_UP, self.mouseAction)
-        self.hSizer.AddSpacer(25)
+        self.hSizer.AddSpacer(wx.Size(25))
         self.hSizer.Add(self.left, 0, wx.TOP, 10)
         
         #page numbers
@@ -130,7 +130,7 @@ class standardPager(wx.Panel):
         
         self.right = tribler_topButton(self, name='pager_right')
         self.right.Bind(wx.EVT_LEFT_UP, self.mouseAction)
-        self.hSizer.AddSpacer(5)
+        self.hSizer.AddSpacer(wx.Size(5))
         self.hSizer.Add(self.right, 0, wx.TOP, 10)
         
        
@@ -177,7 +177,7 @@ class standardPager(wx.Panel):
                 text.Bind(wx.EVT_LEFT_UP, self.mouseAction)
                 self.pageNumbers.append(text)
                 self.hSizer.Insert(len(self.pageNumbers*2)+1, text, 0, wx.TOP, 10)
-                self.hSizer.InsertSpacer(len(self.pageNumbers*2)+2, 3)
+                self.hSizer.InsertSpacer(len(self.pageNumbers*2)+2, wx.Size(3))
             refresh = True
         elif number < currentPageNumber:
             for i in range(number, currentPageNumber):
