@@ -46,12 +46,11 @@ class filesGrid(wx.Panel):
         self.standardPager = None
         self.detailPanel = None
         self.addComponents()
-        self.Centre()
         self.Show()
-        torrents = []
-        for word in 10*['Jelle', 'is', 'very', 'cool', 'jade', 'jade', 'weird', 'Katja']:
-            torrents.append({'content_name':word})
-        self.setData(torrents)
+        #torrents = []
+        #for word in 10*['Jelle', 'is', 'very', 'cool', 'jade', 'jade', 'weird', 'Katja']:
+        #    torrents.append({'content_name':word})
+        #self.setData(torrents)
         self.guiUtility.report(self)
         
     def addComponents(self):

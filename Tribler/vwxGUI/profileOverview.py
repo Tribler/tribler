@@ -3,11 +3,10 @@
 
 import wx
 from bgPanel import *
-from torrentFilter import *
-from torrentTabs import *
-from torrentGrid import *
+from filesFilter import *
+from filesTabs import *
+from filesGrid import *
 from standardPager import *
-from standardOverview import *
 #[inc]add your include files here
 
 #[inc]end your include
@@ -37,28 +36,28 @@ class profileOverview(wx.Panel):
         self.pn10c.SetBackgroundColour(wx.Colour(255,51,0))
         self.pn10c.Bind(wx.EVT_ERASE_BACKGROUND,self.VwXpn10c_VwXEvOnEraseBackground)
         self.st64c = wx.StaticText(self.pn10c,-1,"",wx.Point(0,4),wx.Size(194,17),wx.ST_NO_AUTORESIZE)
-        self.st64c.SetLabel("Content")
+        self.st64c.SetLabel("Profile")
         self.st64c.SetForegroundColour(wx.Colour(255,255,255))
         self.orange_top_right = bgPanel(self, -1, wx.Point(613,0), wx.Size(10,21))
         self.orange_top_left = bgPanel(self, -1, wx.Point(0,0), wx.Size(10,21))
-        self.personsFilter = torrentFilter(self,-1,wxDefaultPosition,wxDefaultSize)
-        self.personsFilter.SetDimensions(0,21,448,20)
-        self.personsTabs = torrentTabs(self,-1,wxDefaultPosition,wxDefaultSize)
-        self.personsTabs.SetDimensions(0,41,20,20)
-        self.personsGrid = torrentGrid(self,-1,wxDefaultPosition,wxDefaultSize)
-        self.personsGrid.SetDimensions(0,61,617,235)
+        self.profileFilter = filesFilter(self,-1,wxDefaultPosition,wxDefaultSize)
+        self.profileFilter.SetDimensions(0,21,448,20)
+        self.profileTabs = filesTabs(self,-1,wxDefaultPosition,wxDefaultSize)
+        self.profileTabs.SetDimensions(0,41,20,20)
+        self.profileGrid = filesGrid(self,-1,wxDefaultPosition,wxDefaultSize)
+        self.profileGrid.SetDimensions(0,61,617,235)
         self.orange_bottom_left = bgPanel(self, -1, wx.Point(0,400), wx.Size(10,28))
         self.orange_bottom_center = bgPanel(self, -1, wx.Point(10,400), wx.Size(20,20))
-        self.standardPager = standardPager(self,-1,wx.Point(440,400),wx.Size(183,28))
-        self.standardOverview203c = standardOverview(self,-1,wx.Point(0,0),wx.Size(20,20))
+        self.standardPager = standardPager(self,-1,wxDefaultPosition,wxDefaultSize)
+        self.standardPager.SetDimensions(440,400,183,28)
         self.sz3s = wx.BoxSizer(wx.VERTICAL)
         self.header = wx.BoxSizer(wx.HORIZONTAL)
         self.footer = wx.BoxSizer(wx.HORIZONTAL)
         self.sz65s = wx.BoxSizer(wx.HORIZONTAL)
         self.sz3s.Add(self.header,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
-        self.sz3s.Add(self.personsFilter,0,wx.EXPAND|wx.ALIGN_LEFT|wx.FIXED_MINSIZE,3)
-        self.sz3s.Add(self.personsTabs,0,wx.EXPAND|wx.ALIGN_LEFT|wx.FIXED_MINSIZE,3)
-        self.sz3s.Add(self.personsGrid,1,wx.EXPAND|wx.FIXED_MINSIZE,3)
+        self.sz3s.Add(self.profileFilter,0,wx.EXPAND|wx.ALIGN_LEFT|wx.FIXED_MINSIZE,3)
+        self.sz3s.Add(self.profileTabs,0,wx.EXPAND|wx.ALIGN_LEFT|wx.FIXED_MINSIZE,3)
+        self.sz3s.Add(self.profileGrid,1,wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.sz3s.Add(self.footer,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.header.Add(self.orange_top_left,0,wx.FIXED_MINSIZE,3)
         self.header.Add(self.pn10c,1,wx.EXPAND|wx.FIXED_MINSIZE,3)

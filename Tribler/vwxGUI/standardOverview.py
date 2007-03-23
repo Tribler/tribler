@@ -64,6 +64,18 @@ class standardOverview(wx.Panel):
             elif self.mode == 'personsMode':
                 xrcResource = os.path.join('Tribler','vwxGUI', 'personsOverview.xrc')
                 panelName = 'personsOverview'
+            elif self.mode == 'profileMode':
+                xrcResource = os.path.join('Tribler','vwxGUI', 'profileOverview.xrc')
+                panelName = 'profileOverview'
+            elif self.mode == 'libraryMode':
+                xrcResource = os.path.join('Tribler','vwxGUI', 'libraryOverview.xrc')
+                panelName = 'libraryOverview'
+            elif self.mode == 'friendsMode':
+                xrcResource = os.path.join('Tribler','vwxGUI', 'friendsOverview.xrc')
+                panelName = 'friendsOverview'
+            elif self.mode == 'messagesMode':
+                xrcResource = os.path.join('Tribler','vwxGUI', 'messagesOverview.xrc')
+                panelName = 'messagesOverview'                                                   
             else:
                 print 'Mode unknown'
                 return

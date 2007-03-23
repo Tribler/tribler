@@ -20,7 +20,7 @@ strTree=00it=3 01it=12 02it=13 02it=14 03it=43 04it=42 02it=15 01it=16 02it=44 0
 n=8
 [Form]
 n=1
-ws_name=downloadStatus.pfr
+ws_name=statusDownloads.pfr
 ws_dir=.\\
 i_id=46
 s_tipoFile=28
@@ -47,7 +47,7 @@ l_foreColorSys=
 b_show=true
 b_showD=true
 b_Enable=true
-s_tipoWxClasse=
+s_tipoWxClasse=wxPanel
 isfuncClsName=0
 funcClsName=
 i_massindex=
@@ -572,7 +572,7 @@ i_tipoComp=600051
 validator=
 s_name=st46c
 i_index=-1
-i_left=308
+i_left=233
 i_top=0
 i_height=269
 i_width=42

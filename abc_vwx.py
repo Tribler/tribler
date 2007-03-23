@@ -822,6 +822,10 @@ class ABCApp(wx.App):
             self.frame.Refresh()
             self.frame.Layout()
             self.frame.Show(True)
+            # GUI start
+            # - load myFrame 
+            # - load standardGrid
+            # - gui utility > button mainButtonFiles = clicked
         
 
             self.Bind(wx.EVT_QUERY_END_SESSION, self.frame.OnCloseWindow)

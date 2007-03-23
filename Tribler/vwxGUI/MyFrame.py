@@ -103,7 +103,7 @@ class MyFrame(wx.Frame):
         self.standardDetails = standardDetails(self.level0,-1,wxDefaultPosition,wxDefaultSize)
         self.standardDetails.SetDimensions(715,98,300,462)
         self.standardStatus = standardStatus(self.level0,-1,wxDefaultPosition,wxDefaultSize)
-        self.standardStatus.SetDimensions(715,569,300,75)
+        self.standardStatus.SetDimensions(715,689,300,75)
         self.sz102sC = wx.BoxSizer(wx.VERTICAL)
         self.sizerTopMenu = wx.BoxSizer(wx.HORIZONTAL)
         self.sz11sCCCCCC = wx.BoxSizer(wx.HORIZONTAL)

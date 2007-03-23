@@ -100,7 +100,26 @@ class GUIUtility:
         personsList = self.reloadData()
         overview = self.request('standardOverview')
         overview.setMode('personsMode', personsList)
+    
+    def standardProfileOverview(self):
+        profileList = self.reloadData()
+        overview = self.request('standardOverview')
+        overview.setMode('profileMode', profileList)
         
+    def standardLibraryOverview(self):
+        libraryList = self.reloadData()
+        overview = self.request('standardOverview')
+        overview.setMode('libraryMode', libraryList)
+        
+    def standardFriendsOverview(self):
+        friendsList = self.reloadData()
+        overview = self.request('standardOverview')
+        overview.setMode('friendsMode', friendsList)
+         
+    def standardMessagesOverview(self):
+        messagesList = self.reloadData()
+        overview = self.request('standardOverview')
+        overview.setMode('messagesMode', messagesList)       
 
     def reloadData(self):
         
@@ -113,7 +132,7 @@ class GUIUtility:
                 self.filtered.append(torrent)
         
         self.filtered = sort_dictlist(self.filtered, 'swarmsize', 'decrease')
-        print self.filtered
+        #print self.filtered
         return self.filtered
         
     def updateFun(self, torrent, operate):    

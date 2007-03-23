@@ -6,7 +6,7 @@ import wx
 
 #[inc]end your include
 
-class peerItem(wx.Panel):
+class personsItem(wx.Panel):
     def __init__(self,parent,id = -1,pos = wx.Point(0,0),size = wx.Size(82,155),style = wx.TAB_TRAVERSAL,name = 'panel'):
         pre=wx.PrePanel()
         self.OnPreCreate()
