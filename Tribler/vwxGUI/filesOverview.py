@@ -3,15 +3,15 @@
 
 import wx
 from bgPanel import *
-from torrentFilter import *
-from torrentGrid import *
+from filesFilter import *
+from filesGrid import *
 from standardPager import *
-from torrentTabs import *
+from filesTabs import *
 #[inc]add your include files here
 
 #[inc]end your include
 
-class torrentOverview(wx.Panel):
+class filesOverview(wx.Panel):
     def __init__(self,parent,id = -1,pos = wx.Point(0,0),size = wx.Size(625,430),style = wx.TAB_TRAVERSAL,name = 'panel'):
         pre=wx.PrePanel()
         self.OnPreCreate()
@@ -41,24 +41,24 @@ class torrentOverview(wx.Panel):
         self.st64c.SetBackgroundColour(wx.Colour(255,51,0))
         self.orange_top_right = bgPanel(self, -1, wx.Point(613,0), wx.Size(10,21))
         self.orange_top_left = bgPanel(self, -1, wx.Point(0,0), wx.Size(10,21))
-        self.torrentFilter = torrentFilter(self,-1,wxDefaultPosition,wxDefaultSize)
-        self.torrentFilter.SetDimensions(0,21,448,20)
-        self.torrentGrid = torrentGrid(self,-1,wxDefaultPosition,wxDefaultSize)
-        self.torrentGrid.SetDimensions(0,61,623,429)
+        self.filesFilter = filesFilter(self,-1,wxDefaultPosition,wxDefaultSize)
+        self.filesFilter.SetDimensions(0,21,448,20)
+        self.filesGrid = filesGrid(self,-1,wxDefaultPosition,wxDefaultSize)
+        self.filesGrid.SetDimensions(0,61,623,429)
         self.orange_bottom_left = bgPanel(self, -1, wx.Point(0,400), wx.Size(10,28))
         self.orange_bottom_center = bgPanel(self, -1, wx.Point(10,370), wx.Size(20,20))
         self.standardPager = standardPager(self,-1,wxDefaultPosition,wxDefaultSize)
         self.standardPager.SetDimensions(440,400,183,28)
-        self.torrentTabs = torrentTabs(self,-1,wxDefaultPosition,wxDefaultSize)
-        self.torrentTabs.SetDimensions(0,41,20,20)
+        self.filesTabs = filesTabs(self,-1,wxDefaultPosition,wxDefaultSize)
+        self.filesTabs.SetDimensions(0,41,20,20)
         self.sz3s = wx.BoxSizer(wx.VERTICAL)
         self.header = wx.BoxSizer(wx.HORIZONTAL)
         self.footer = wx.BoxSizer(wx.HORIZONTAL)
         self.size_title = wx.BoxSizer(wx.HORIZONTAL)
         self.sz3s.Add(self.header,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
-        self.sz3s.Add(self.torrentFilter,0,wx.EXPAND|wx.ALIGN_LEFT|wx.FIXED_MINSIZE,3)
-        self.sz3s.Add(self.torrentTabs,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
-        self.sz3s.Add(self.torrentGrid,1,wx.EXPAND|wx.FIXED_MINSIZE,3)
+        self.sz3s.Add(self.filesFilter,0,wx.EXPAND|wx.ALIGN_LEFT|wx.FIXED_MINSIZE,3)
+        self.sz3s.Add(self.filesTabs,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
+        self.sz3s.Add(self.filesGrid,1,wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.sz3s.Add(self.footer,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.header.Add(self.orange_top_left,0,wx.FIXED_MINSIZE,3)
         self.header.Add(self.pn10c,1,wx.EXPAND|wx.FIXED_MINSIZE,3)

@@ -41,7 +41,7 @@
                 <bitmap>images/topbg1.png</bitmap>
                 <pos>0,0</pos>
                 <size>614,89</size>
-                <bg>#     0</bg>
+                <bg>#000000</bg>
                 <object class="wxBoxSizer">
                   <orient>wxHORIZONTAL</orient>
                   <object class="sizeritem">
@@ -71,7 +71,7 @@
                     <flag>wxTOP|wxBOTTOM|wxFIXED_MINSIZE</flag>
                     <border>5</border>
                     <option>0</option>
-                    <object class="wxPanel" name="tribler_topButton0" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <object class="wxPanel" name="mainButtonFiles" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
                       <bitmap>images/tribler_topbutton0.png</bitmap>
                       <pos>29,5</pos>
                       <size>60,72</size>
@@ -81,7 +81,7 @@
                     <flag>wxTOP|wxBOTTOM|wxFIXED_MINSIZE</flag>
                     <border>5</border>
                     <option>0</option>
-                    <object class="wxPanel" name="tribler_topButton1" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <object class="wxPanel" name="mainButtonPersons" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
                       <bitmap>images/tribler_topbutton1.png</bitmap>
                       <pos>89,5</pos>
                       <size>60,72</size>
@@ -97,7 +97,7 @@
                     <flag>wxTOP|wxBOTTOM|wxFIXED_MINSIZE</flag>
                     <border>5</border>
                     <option>0</option>
-                    <object class="wxPanel" name="tribler_topButton2" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <object class="wxPanel" name="mainButtonProfile" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
                       <bitmap>images/tribler_topbutton2.png</bitmap>
                       <pos>191,5</pos>
                       <size>60,72</size>
@@ -107,7 +107,7 @@
                     <flag>wxTOP|wxBOTTOM|wxFIXED_MINSIZE</flag>
                     <border>5</border>
                     <option>0</option>
-                    <object class="wxPanel" name="tribler_topButton3" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <object class="wxPanel" name="mainButtonLibrary" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
                       <bitmap>images/tribler_topbutton3.png</bitmap>
                       <pos>251,5</pos>
                       <size>60,72</size>
@@ -117,7 +117,7 @@
                     <flag>wxTOP|wxBOTTOM|wxFIXED_MINSIZE</flag>
                     <border>5</border>
                     <option>0</option>
-                    <object class="wxPanel" name="tribler_topButton4" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <object class="wxPanel" name="mainButtonFriends" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
                       <bitmap>images/tribler_topbutton4.png</bitmap>
                       <pos>311,5</pos>
                       <size>60,72</size>
@@ -127,7 +127,7 @@
                     <flag>wxTOP|wxBOTTOM|wxFIXED_MINSIZE</flag>
                     <border>5</border>
                     <option>0</option>
-                    <object class="wxPanel" name="tribler_topButton5" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <object class="wxPanel" name="mainButtonMessages" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
                       <bitmap>images/tribler_topbutton5.png</bitmap>
                       <pos>371,5</pos>
                       <size>60,72</size>

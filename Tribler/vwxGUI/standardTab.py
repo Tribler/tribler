@@ -33,7 +33,9 @@ class wxcus29232f(wx.Panel):
         return
     def VwXDelComp(self):
         return
+
 #[win]add your code here
+
     def OnPreCreate(self):
         #add your code here
 
@@ -54,8 +56,5 @@ class wxcus29232f(wx.Panel):
         #add your code here
 
         return #end function
-
-
-
 
 #[win]end your code
