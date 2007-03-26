@@ -163,10 +163,10 @@
               <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>10</border>
               <option>0</option>
-              <object class="wxStaticText" name="st188c">
+              <object class="wxStaticText" name="description">
                 <style>wxST_NO_AUTORESIZE</style>
                 <label>...</label>
-                <pos>0,22</pos>
+                <pos>10,22</pos>
                 <size>265,73</size>
               </object>
             </object>
@@ -185,6 +185,96 @@
                 </object>
               </object>
             </object>
+            <object class="sizeritem">
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                  <object class="wxStaticBitmap" name="bm197c">
+                    <pos>3,118</pos>
+                    <size>55,60</size>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>1</option>
+                  <object class="wxBoxSizer">
+                    <orient>wxVERTICAL</orient>
+                    <object class="sizeritem">
+                      <flag>wxLEFT|wxRIGHT|wxFIXED_MINSIZE</flag>
+                      <border>10</border>
+                      <option>0</option>
+                      <object class="wxStaticText" name="descriptionC">
+                        <style>wxST_NO_AUTORESIZE</style>
+                        <label>no injector known</label>
+                        <pos>171,115</pos>
+                        <size>120,27</size>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                      <border>3</border>
+                      <option>1</option>
+                      <object class="wxBoxSizer">
+                        <orient>wxHORIZONTAL</orient>
+                        <object class="sizeritem">
+                          <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
+                          <border>3</border>
+                          <option>0</option>
+                          <object class="tribler_topButton" name="subscribe_20x20">
+                            <pos>67,148</pos>
+                            <size>20,20</size>
+                          </object>
+                        </object>
+                        <object class="sizeritem">
+                          <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                          <border>3</border>
+                          <option>0</option>
+                          <object class="wxStaticText" name="subscribeText">
+                            <style>wxST_NO_AUTORESIZE</style>
+                            <label>subscribe</label>
+                            <pos>93,148</pos>
+                            <size>174,19</size>
+                          </object>
+                        </object>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+              <object class="btn_DetailsHeader" name="PeopleWho">
+                <pos>0,188</pos>
+                <size>20,20</size>
+                <object class="wxStaticText" name="st202cC">
+                  <style>wxST_NO_AUTORESIZE</style>
+                  <label>People who like this also like</label>
+                  <pos>10,0</pos>
+                  <size>204,18</size>
+                </object>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>10</border>
+              <option>0</option>
+              <object class="wxStaticText" name="st188cCC">
+                <style>wxST_NO_AUTORESIZE</style>
+                <label>...</label>
+                <pos>3,211</pos>
+                <size>265,73</size>
+              </object>
+            </object>
           </object>
         </object>
       </object>
@@ -197,6 +287,11 @@
           <size>300,5</size>
         </object>
       </object>
+    </object>
+    <object class="wxStaticText" name="st203c">
+      <style>wxST_NO_AUTORESIZE</style>
+      <pos>0,0</pos>
+      <size>49,13</size>
     </object>
   </object>
 </resource>

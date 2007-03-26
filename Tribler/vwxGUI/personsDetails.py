@@ -3,6 +3,7 @@
 
 import wx
 from bgPanel import *
+from btn_DetailsHeader import *
 #[inc]add your include files here
 
 #[inc]end your include
@@ -51,11 +52,21 @@ class personsDetails(wx.Panel):
         self.white_bottom = bgPanel(self, -1, wx.Point(0,493), wx.Size(300,5))
         self.black_top_left = bgPanel(self, -1, wx.Point(0,0), wx.Size(10,21))
         self.black_top_right = bgPanel(self, -1, wx.Point(210,0), wx.Size(10,21))
+        self.st188c = wx.StaticText(self.details,-1,"",wx.Point(3,25),wx.Size(290,73),wx.ST_NO_AUTORESIZE)
+        self.st188c.SetLabel("...")
+        self.btn_DetailsHeader201c = btn_DetailsHeader(self.details,-1,wxDefaultPosition,wxDefaultSize)
+        self.btn_DetailsHeader201c.SetDimensions(3,124,20,20)
+        self.st202c = wx.StaticText(self.btn_DetailsHeader201c,-1,"",wx.Point(0,0),wx.Size(249,18),wx.ST_NO_AUTORESIZE)
+        self.st202c.SetLabel("injected by")
         self.sz3s = wx.BoxSizer(wx.VERTICAL)
         self.header = wx.BoxSizer(wx.HORIZONTAL)
         self.tabsCCC = wx.BoxSizer(wx.HORIZONTAL)
         self.sz61sCC = wx.BoxSizer(wx.HORIZONTAL)
         self.sz61sCC = wx.BoxSizer(wx.HORIZONTAL)
+        self.sz184s = wx.BoxSizer(wx.VERTICAL)
+        self.sz185s = wx.BoxSizer(wx.HORIZONTAL)
+        self.sz186s = wx.BoxSizer(wx.VERTICAL)
+        self.sz187s = wx.BoxSizer(wx.VERTICAL)
         self.sz3s.Add(self.header,0,wx.EXPAND|wx.FIXED_MINSIZE,0)
         self.sz3s.Add(self.6_160x90,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.sz3s.Add(self.playbackControls,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
@@ -71,10 +82,16 @@ class personsDetails(wx.Panel):
         self.sz61sCC.Add(self.st60cCC,0,wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,5)
         self.sz61sCC.SetItemMinSize(self.st60cCC,20,10)
         self.sz61sCC.Add(self.st60cCC,0,wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,5)
+        self.sz184s.Add(self.sz185s,0,wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,3)
+        self.sz184s.Add(self.st188c,0,wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,3)
+        self.sz184s.Add(self.btn_DetailsHeader201c,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
+        self.sz185s.Add(self.sz186s,0,wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,3)
+        self.sz185s.Add(self.sz187s,0,wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.SetSizer(self.sz3s);self.SetAutoLayout(1);self.Layout();
         self.tabs.SetSizer(self.tabsCCC);self.tabs.SetAutoLayout(1);self.tabs.Layout();
         self.pn39cCCC.SetSizer(self.sz61sCC);self.pn39cCCC.SetAutoLayout(1);self.pn39cCCC.Layout();
         self.pn39cCC2C.SetSizer(self.sz61sCC);self.pn39cCC2C.SetAutoLayout(1);self.pn39cCC2C.Layout();
+        self.details.SetSizer(self.sz184s);self.details.SetAutoLayout(1);self.details.Layout();
         self.Refresh()
         return
     def VwXDrawBackImg(self,event,win,bitMap,opz):

@@ -13,6 +13,7 @@ def changeFile(filename):
     customDir = 'Tribler.vwxGUI.'
     customClasses = [('bgPanel', 'wxPanel', customDir+'bgPanel'), 
                      ('tribler_topButton', 'wxPanel', customDir+'tribler_topButton'),
+                     ('btn_DetailsHeader', 'wxPanel', customDir+'btn_DetailsHeader'),
                      ('statusDownloads', 'wxPanel', customDir+'statusDownloads'),
                      ('standardOverview', 'wxPanel', customDir+'standardOverview'), 
                      ('standardDetails', 'wxPanel', customDir+'standardDetails'),

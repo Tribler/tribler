@@ -4,9 +4,9 @@
 import wx
 from bgPanel import *
 from filesFilter import *
+from filesTabs import *
 from filesGrid import *
 from standardPager import *
-from filesTabs import *
 #[inc]add your include files here
 
 #[inc]end your include
@@ -31,6 +31,7 @@ class filesOverview(wx.Panel):
         self.fileImgBuf[0] = wx.Bitmap("images/triblerpanel_topcenter.png",wx.BITMAP_TYPE_PNG)
         self.pn10cImg0=self.fileImgBuf[0];
         self.Show(True)
+        self.orange_top_left = bgPanel(self, -1, wx.Point(0,0), wx.Size(10,21))
         self.pn10c = wx.Panel(self,-1,wx.Point(135,0),wx.Size(20,21))
         self.pn10c.SetForegroundColour(wx.Colour(255,255,255))
         self.pn10c.SetBackgroundColour(wx.Colour(255,51,0))
@@ -40,21 +41,22 @@ class filesOverview(wx.Panel):
         self.st64c.SetForegroundColour(wx.Colour(255,255,255))
         self.st64c.SetBackgroundColour(wx.Colour(255,51,0))
         self.orange_top_right = bgPanel(self, -1, wx.Point(613,0), wx.Size(10,21))
-        self.orange_top_left = bgPanel(self, -1, wx.Point(0,0), wx.Size(10,21))
         self.filesFilter = filesFilter(self,-1,wxDefaultPosition,wxDefaultSize)
         self.filesFilter.SetDimensions(0,21,448,20)
+        self.filesTabs = filesTabs(self,-1,wxDefaultPosition,wxDefaultSize)
+        self.filesTabs.SetDimensions(0,41,20,20)
         self.filesGrid = filesGrid(self,-1,wxDefaultPosition,wxDefaultSize)
         self.filesGrid.SetDimensions(0,61,623,429)
         self.orange_bottom_left = bgPanel(self, -1, wx.Point(0,400), wx.Size(10,28))
-        self.orange_bottom_center = bgPanel(self, -1, wx.Point(10,370), wx.Size(20,20))
-        self.standardPager = standardPager(self,-1,wxDefaultPosition,wxDefaultSize)
-        self.standardPager.SetDimensions(440,400,183,28)
-        self.filesTabs = filesTabs(self,-1,wxDefaultPosition,wxDefaultSize)
-        self.filesTabs.SetDimensions(0,41,20,20)
+        self.orange_bottom_center = bgPanel(self, -1, wx.Point(10,400), wx.Size(20,20))
+        self.bgPanel209c = bgPanel(self, -1, wx.Point(440,400), wx.Size(183,28))
+        self.standardPager = standardPager(self.bgPanel209c,-1,wxDefaultPosition,wxDefaultSize)
+        self.standardPager.SetDimensions(0,0,183,28)
         self.sz3s = wx.BoxSizer(wx.VERTICAL)
         self.header = wx.BoxSizer(wx.HORIZONTAL)
         self.footer = wx.BoxSizer(wx.HORIZONTAL)
         self.size_title = wx.BoxSizer(wx.HORIZONTAL)
+        self.sz211s = wx.BoxSizer(wx.HORIZONTAL)
         self.sz3s.Add(self.header,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.sz3s.Add(self.filesFilter,0,wx.EXPAND|wx.ALIGN_LEFT|wx.FIXED_MINSIZE,3)
         self.sz3s.Add(self.filesTabs,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
@@ -66,10 +68,12 @@ class filesOverview(wx.Panel):
         self.header.Add(self.orange_top_right,0,wx.FIXED_MINSIZE,3)
         self.footer.Add(self.orange_bottom_left,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.footer.Add(self.orange_bottom_center,1,wx.EXPAND|wx.FIXED_MINSIZE,3)
-        self.footer.Add(self.standardPager,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
+        self.footer.Add(self.bgPanel209c,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.size_title.Add(self.st64c,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,4)
+        self.sz211s.Add(self.standardPager,1,wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.SetSizer(self.sz3s);self.SetAutoLayout(1);self.Layout();
         self.pn10c.SetSizer(self.size_title);self.pn10c.SetAutoLayout(1);self.pn10c.Layout();
+        self.bgPanel209c.SetSizer(self.sz211s);self.bgPanel209c.SetAutoLayout(1);self.bgPanel209c.Layout();
         self.Refresh()
         return
     def VwXDrawBackImg(self,event,win,bitMap,opz):
