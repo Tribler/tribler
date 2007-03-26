@@ -30,17 +30,10 @@ class standardPager(wx.Panel):
     def _PostInit(self):
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
-        #self.inheritBackground()
         self.initPager()
         self.Refresh(True)
         self.Update()
         
-    def inheritBackground(self):
-        try:
-            self.Bind(wx.EVT_PAINT, self.GetParent().OnPaint)
-            self.bitmap = self.GetParent().bitmap
-        except:
-            print 'Error: could not inherit background'
         
     def initPager(self, numPages=10):
         
@@ -77,6 +70,7 @@ class standardPager(wx.Panel):
 #        self.hSizer.Add(self.leftPages, 0, BORDER_EXPAND, 0)
         self.left = tribler_topButton(self, name='pager_left')
         self.left.Bind(wx.EVT_LEFT_UP, self.mouseAction)
+        self.left.setBackground(self.triblerRed)
         #self.hSizer.AddSpacer(wx.Size(25))
         self.hSizer.Add(self.left, 0, wx.TOP, 0)
         
@@ -86,6 +80,7 @@ class standardPager(wx.Panel):
         
         self.right = tribler_topButton(self, name='pager_right')
         self.right.Bind(wx.EVT_LEFT_UP, self.mouseAction)
+        self.right.setBackground(self.triblerRed)
         self.hSizer.AddSpacer(wx.Size(5))
         self.hSizer.Add(self.right, 0, wx.TOP, 0)
         

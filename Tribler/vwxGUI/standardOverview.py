@@ -4,6 +4,7 @@ from Tribler.vwxGUI.GuiUtility import GUIUtility
 from traceback import print_exc
 
 OVERVIEW_MODES = ['filesMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionMode', 'messageMode']
+DEBUG = True
 
 class standardOverview(wx.Panel):
     """
@@ -28,16 +29,15 @@ class standardOverview(wx.Panel):
     def _PostInit(self):
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
-        self.mode = OVERVIEW_MODES[0]
+        self.mode = None
         self.data = {}
         for mode in OVERVIEW_MODES:
             self.data[mode] = {}
         self.currentPanel = None
         self.addComponents()
-        self.refreshMode()
         self.Refresh()
         self.guiUtility.report(self)
-        
+        self.guiUtility.initStandardOverview(self)
         
     def addComponents(self):
         self.hSizer = wx.BoxSizer(wx.VERTICAL)

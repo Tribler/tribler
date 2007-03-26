@@ -16,6 +16,7 @@ class filesGrid(wx.Panel):
     def __init__(self, *args):
         if len(args) == 0:
             self.initReady = False
+            self.data = None
             pre = wx.PrePanel()
             # the Create step is done by XRC.
             self.PostCreate(pre)
@@ -42,7 +43,6 @@ class filesGrid(wx.Panel):
         self.utility = self.guiUtility.utility
         self.cols = 2
         self.items = 0
-        self.data = {}
         self.currentData = 0
         self.standardPager = None
         self.detailPanel = None
@@ -50,6 +50,8 @@ class filesGrid(wx.Panel):
         self.Show()
         self.guiUtility.report(self)
         self.initReady = True
+        if self.data:
+            self.setData(self.data)
                 
     def addComponents(self):
         self.Show(False)
@@ -67,11 +69,18 @@ class filesGrid(wx.Panel):
         #print "vSizer: %s, Panel: %s"% (self.vSizer.GetSize(), self.GetSize())
 
     def setData(self, dataList, resetPages = True):
-        #print 'SetData by thread: %s' % threading.currentThread()
-        if not self.initReady:
-            return
+        if DEBUG:
+            if dataList == None:
+                datalength = 0
+            else:
+                datalength = len(dataList)
+            print 'SetData called: init: %s, datalength: %d' % (self.initReady, datalength)
         
         self.data = dataList
+        
+        if not self.initReady:
+            return
+                
         if resetPages:
             self.currentData = 0
             if self.getStandardPager():

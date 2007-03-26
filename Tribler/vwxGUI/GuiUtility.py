@@ -93,8 +93,7 @@ class GUIUtility:
         
     def standardFilesOverview(self):
         torrentList = self.reloadData()
-        overview = self.request('standardOverview')
-        overview.setMode('filesMode', torrentList)
+        self.standardOverview.setMode('filesMode', torrentList)
         
     def standardPersonsOverview(self):
         personsList = self.reloadData()
@@ -138,14 +137,13 @@ class GUIUtility:
     def updateFun(self, torrent, operate):    
         print "Updatefun called"
         
-    def initGUI(self):
-        "This function initializes all gui tak"
-        if DEBUG:
-            print 'Init business logic'
-            print self.guiObjects
-        # Do stuff like:
-        # - loading first mode
-        # - set detailpanel data
-        # - init other stuff
+    
+    def initStandardOverview(self, standardOverview):
+        self.standardOverview = standardOverview
+        self.standardFilesOverview()
         
+    def initStandardDetails(self, standardDetails):
+        self.standardDetails = standardDetails
+        self.standardDetails.setMode('filesMode', None)
+        self.standardDetails.refreshStatusPanel(True)
     
