@@ -60,12 +60,97 @@
         </object>
       </object>
       <object class="sizeritem">
-        <flag>wxEXPAND|wxALIGN_LEFT|wxFIXED_MINSIZE</flag>
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="wxPanel" name="filesFilter" subclass="Tribler.vwxGUI.filesFilter.filesFilter">
+        <object class="wxPanel" name="pn214c">
           <pos>0,21</pos>
-          <size>448,20</size>
+          <size>623,35</size>
+          <bg>#999999</bg>
+          <object class="wxBoxSizer">
+            <orient>wxHORIZONTAL</orient>
+            <object class="sizeritem">
+              <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>1</option>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                  <object class="wxChoice" name="chc215cC">
+                    <content>
+                      <item>video</item>
+                      <item>audio</item>
+                      <item>pictures</item>
+                      <item>other</item>
+                      <item>xxx</item>
+                    </content>
+                    <pos>3,3</pos>
+                    <size>100,21</size>
+                    <font>
+                      <size>8</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>normal</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                  <object class="wxChoice" name="chc215c">
+                    <content>
+                      <item>most popular</item>
+                      <item>top rated</item>
+                      <item>recommended</item>
+                      <item>from network</item>
+                    </content>
+                    <pos>109,3</pos>
+                    <size>95,21</size>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                  <object class="wxChoice" name="chc215cCC">
+                    <content>
+                      <item>today</item>
+                      <item>this week</item>
+                      <item>this month</item>
+                      <item>all time</item>
+                    </content>
+                    <pos>210,3</pos>
+                    <size>100,21</size>
+                  </object>
+                </object>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxALIGN_RIGHT|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+              <object class="wxTextCtrl" name="tx220c">
+                <label>search a file</label>
+                <pos>490,3</pos>
+                <size>100,22</size>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+              <object class="wxPanel" name="searchIcon" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                <pos>596,3</pos>
+                <size>22,22</size>
+              </object>
+            </object>
+          </object>
         </object>
       </object>
       <object class="sizeritem">

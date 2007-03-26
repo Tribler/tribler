@@ -13,72 +13,88 @@
         <object class="wxBoxSizer">
           <orient>wxHORIZONTAL</orient>
           <object class="sizeritem">
-            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <flag>wxFIXED_MINSIZE</flag>
             <border>0</border>
             <option>0</option>
             <object class="wxPanel" name="black_top_left" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
-              <pos>3,3</pos>
-              <size>10,21</size>
+              <pos>0,0</pos>
+              <size>10,20</size>
             </object>
           </object>
           <object class="sizeritem">
-            <flag>wxFIXED_MINSIZE</flag>
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>3</border>
             <option>1</option>
             <object class="wxPanel" name="pn10c">
               <bitmap>images/triblerpanel_topcenter.png</bitmap>
               <pos>10,0</pos>
-              <size>100,21</size>
+              <size>100,20</size>
               <bg>#     0</bg>
               <fg>#ffffff</fg>
               <object class="wxBoxSizer">
                 <orient>wxHORIZONTAL</orient>
                 <object class="sizeritem">
-                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>3</border>
                   <option>0</option>
                   <object class="wxStaticText" name="st28c">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>Downloading ...</label>
-                    <pos>3,3</pos>
-                    <size>204,13</size>
+                    <pos>0,3</pos>
+                    <size>114,15</size>
+                    <bg>#     0</bg>
                   </object>
                 </object>
                 <object class="sizeritem">
-                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxALIGN_RIGHT|wxFIXED_MINSIZE</flag>
+                  <flag>wxTOP|wxEXPAND|wxALIGN_RIGHT|wxFIXED_MINSIZE</flag>
                   <border>3</border>
                   <option>0</option>
                   <object class="wxStaticText" name="st30c">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>down: 30 KB/s | up: 20 KB/s</label>
-                    <pos>198,3</pos>
-                    <size>49,13</size>
+                    <pos>114,3</pos>
+                    <size>134,15</size>
+                    <bg>#     0</bg>
                   </object>
                 </object>
               </object>
             </object>
           </object>
           <object class="sizeritem">
-            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <flag>wxFIXED_MINSIZE</flag>
             <border>0</border>
             <option>0</option>
             <object class="wxPanel" name="black_top_right" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
-              <pos>59,3</pos>
-              <size>10,21</size>
+              <pos>288,0</pos>
+              <size>10,20</size>
             </object>
           </object>
         </object>
       </object>
       <object class="sizeritem">
-        <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+        <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>10</border>
+        <option>1</option>
+        <object class="wxPanel" name="pn34c">
+          <pos>0,30</pos>
+          <size>298,70</size>
+          <bg>#ffffff</bg>
+          <object class="wxStaticText" name="st32c">
+            <style>wxST_NO_AUTORESIZE</style>
+            <label>download text etc.
+</label>
+            <pos>1,1</pos>
+            <size>292,53</size>
+          </object>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="wxStaticText" name="st32c">
-          <style>wxST_NO_AUTORESIZE</style>
-          <label>download text etc.
-</label>
-          <pos>3,24</pos>
-          <size>292,133</size>
+        <object class="wxPanel" name="white_bottom" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+          <pos>3,118</pos>
+          <size>300,5</size>
         </object>
       </object>
     </object>

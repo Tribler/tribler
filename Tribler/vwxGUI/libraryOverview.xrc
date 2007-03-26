@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
-  <object class="wxPanel" name="personsOverview">
+  <object class="wxPanel" name="libraryOverview">
     <pos>0,0</pos>
     <size>625,430</size>
     <object class="wxBoxSizer">
@@ -38,7 +38,7 @@
                   <option>0</option>
                   <object class="wxStaticText" name="st64c">
                     <style>wxST_NO_AUTORESIZE</style>
-                    <label>Persons</label>
+                    <label>Profile</label>
                     <pos>0,4</pos>
                     <size>194,17</size>
                     <fg>#ffffff</fg>
@@ -62,7 +62,7 @@
         <flag>wxEXPAND|wxALIGN_LEFT|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="wxPanel" name="personsFilter" subclass="Tribler.vwxGUI.filesFilter.filesFilter">
+        <object class="wxPanel" name="profileFilter" subclass="Tribler.vwxGUI.filesFilter.filesFilter">
           <pos>0,21</pos>
           <size>448,20</size>
         </object>
@@ -71,7 +71,7 @@
         <flag>wxEXPAND|wxALIGN_LEFT|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="wxPanel" name="personsTabs" subclass="Tribler.vwxGUI.filesTabs.filesTabs">
+        <object class="wxPanel" name="profileTabs" subclass="Tribler.vwxGUI.filesTabs.filesTabs">
           <pos>0,41</pos>
           <size>20,20</size>
         </object>
@@ -80,7 +80,7 @@
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>1</option>
-        <object class="wxPanel" name="personsGrid" subclass="Tribler.vwxGUI.filesGrid.filesGrid">
+        <object class="wxPanel" name="profileGrid" subclass="Tribler.vwxGUI.filesGrid.filesGrid">
           <pos>0,61</pos>
           <size>617,235</size>
         </object>
