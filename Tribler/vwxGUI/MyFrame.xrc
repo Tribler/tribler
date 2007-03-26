@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
-  <object class="wxFrame" name="MyFrame" subclass="abc_vwx.wxFrame">
+  <object class="wxFrame" name="MyFrame">
     <tooltip>d</tooltip>
     <hidden>1</hidden>
     <pos>1,1</pos>
@@ -37,11 +37,11 @@
               <flag>wxFIXED_MINSIZE</flag>
               <border>3</border>
               <option>0</option>
-              <object class="wxPanel" name="topbg1" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+              <object class="bgPanel" name="topbg1">
                 <bitmap>images/topbg1.png</bitmap>
                 <pos>0,0</pos>
                 <size>614,89</size>
-                <bg>#000000</bg>
+                <bg>1</bg>
                 <object class="wxBoxSizer">
                   <orient>wxHORIZONTAL</orient>
                   <object class="sizeritem">
@@ -60,7 +60,7 @@
                         <flag>wxFIXED_MINSIZE</flag>
                         <border>3</border>
                         <option>0</option>
-                        <object class="wxPanel" name="backButton" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                        <object class="tribler_topButton" name="backButton">
                           <pos>0,59</pos>
                           <size>25,29</size>
                         </object>
@@ -71,7 +71,7 @@
                     <flag>wxTOP|wxBOTTOM|wxFIXED_MINSIZE</flag>
                     <border>5</border>
                     <option>0</option>
-                    <object class="wxPanel" name="mainButtonFiles" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <object class="tribler_topButton" name="mainButtonFiles">
                       <bitmap>images/tribler_topbutton0.png</bitmap>
                       <pos>29,5</pos>
                       <size>60,72</size>
@@ -81,7 +81,7 @@
                     <flag>wxTOP|wxBOTTOM|wxFIXED_MINSIZE</flag>
                     <border>5</border>
                     <option>0</option>
-                    <object class="wxPanel" name="mainButtonPersons" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <object class="tribler_topButton" name="mainButtonPersons">
                       <bitmap>images/tribler_topbutton1.png</bitmap>
                       <pos>89,5</pos>
                       <size>60,72</size>
@@ -97,7 +97,7 @@
                     <flag>wxTOP|wxBOTTOM|wxFIXED_MINSIZE</flag>
                     <border>5</border>
                     <option>0</option>
-                    <object class="wxPanel" name="mainButtonProfile" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <object class="tribler_topButton" name="mainButtonProfile">
                       <bitmap>images/tribler_topbutton2.png</bitmap>
                       <pos>191,5</pos>
                       <size>60,72</size>
@@ -107,7 +107,7 @@
                     <flag>wxTOP|wxBOTTOM|wxFIXED_MINSIZE</flag>
                     <border>5</border>
                     <option>0</option>
-                    <object class="wxPanel" name="mainButtonLibrary" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <object class="tribler_topButton" name="mainButtonLibrary">
                       <bitmap>images/tribler_topbutton3.png</bitmap>
                       <pos>251,5</pos>
                       <size>60,72</size>
@@ -117,7 +117,7 @@
                     <flag>wxTOP|wxBOTTOM|wxFIXED_MINSIZE</flag>
                     <border>5</border>
                     <option>0</option>
-                    <object class="wxPanel" name="mainButtonFriends" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <object class="tribler_topButton" name="mainButtonFriends">
                       <bitmap>images/tribler_topbutton4.png</bitmap>
                       <pos>311,5</pos>
                       <size>60,72</size>
@@ -127,7 +127,7 @@
                     <flag>wxTOP|wxBOTTOM|wxFIXED_MINSIZE</flag>
                     <border>5</border>
                     <option>0</option>
-                    <object class="wxPanel" name="mainButtonMessages" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <object class="tribler_topButton" name="mainButtonMessages">
                       <bitmap>images/tribler_topbutton5.png</bitmap>
                       <pos>371,5</pos>
                       <size>60,72</size>
@@ -140,7 +140,7 @@
               <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>3</border>
               <option>1</option>
-              <object class="wxPanel" name="topbg2_grey" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+              <object class="bgPanel" name="topbg2_grey">
                 <bitmap>images/topbg2.png</bitmap>
                 <pos>614,0</pos>
                 <size>21,89</size>
@@ -150,7 +150,7 @@
               <flag>wxFIXED_MINSIZE</flag>
               <border>3</border>
               <option>0</option>
-              <object class="wxPanel" name="topbg3" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+              <object class="bgPanel" name="topbg3">
                 <bitmap>images/topbg3.png</bitmap>
                 <pos>803,0</pos>
                 <size>269,89</size>
@@ -262,7 +262,7 @@
               <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>9</border>
               <option>1</option>
-              <object class="wxPanel" name="standardOverview" subclass="Tribler.vwxGUI.standardOverview.standardOverview">
+              <object class="standardOverview" name="standardOverview">
                 <pos>9,98</pos>
                 <size>688,522</size>
               </object>
@@ -277,18 +277,9 @@
                   <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>9</border>
                   <option>1</option>
-                  <object class="wxPanel" name="standardDetails" subclass="Tribler.vwxGUI.standardDetails.standardDetails">
+                  <object class="standardDetails" name="standardDetails">
                     <pos>715,98</pos>
-                    <size>300,462</size>
-                  </object>
-                </object>
-                <object class="sizeritem">
-                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
-                  <border>9</border>
-                  <option>0</option>
-                  <object class="wxPanel" name="standardStatus" subclass="Tribler.vwxGUI.standardStatus.standardStatus">
-                    <pos>715,569</pos>
-                    <size>300,75</size>
+                    <size>300,412</size>
                   </object>
                 </object>
               </object>

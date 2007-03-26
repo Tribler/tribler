@@ -6,7 +6,6 @@ from bgPanel import *
 from tribler_topButton import *
 from standardOverview import *
 from standardDetails import *
-from standardStatus import *
 [ID_MENU_444,ID_MENU_446] = 444,446
 #[inc]add your include files here
 
@@ -101,9 +100,7 @@ class MyFrame(wx.Frame):
         self.backButton = tribler_topButton(self.topbg1, -1, wx.Point(0,59), wx.Size(25,29))
         self.standardOverview = standardOverview(self.level0,-1,wx.Point(9,98),wx.Size(688,522))
         self.standardDetails = standardDetails(self.level0,-1,wxDefaultPosition,wxDefaultSize)
-        self.standardDetails.SetDimensions(715,98,300,462)
-        self.standardStatus = standardStatus(self.level0,-1,wxDefaultPosition,wxDefaultSize)
-        self.standardStatus.SetDimensions(715,689,300,75)
+        self.standardDetails.SetDimensions(715,98,300,412)
         self.sz102sC = wx.BoxSizer(wx.VERTICAL)
         self.sizerTopMenu = wx.BoxSizer(wx.HORIZONTAL)
         self.sz11sCCCCCC = wx.BoxSizer(wx.HORIZONTAL)
@@ -123,7 +120,6 @@ class MyFrame(wx.Frame):
         self.sz11sCCCCCC.Add(self.standardOverview,1,wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,9)
         self.sz11sCCCCCC.Add(self.sz135s,0,wx.TOP|wx.LEFT|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,9)
         self.sz135s.Add(self.standardDetails,1,wx.EXPAND|wx.FIXED_MINSIZE,9)
-        self.sz135s.Add(self.standardStatus,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,9)
         self.sz164sC.Add(self.sz213s,0,wx.FIXED_MINSIZE,3)
         self.sz164sC.Add(self.mainButtonFiles,0,wx.TOP|wx.BOTTOM|wx.FIXED_MINSIZE,5)
         self.sz164sC.Add(self.mainButtonPersons,0,wx.TOP|wx.BOTTOM|wx.FIXED_MINSIZE,5)
