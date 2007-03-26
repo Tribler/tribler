@@ -112,7 +112,7 @@
           </object>
           <object class="sizeritem">
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-            <border>3</border>
+            <border>0</border>
             <option>0</option>
             <object class="wxPanel" name="pagerBottomRight" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
               <pos>440,400</pos>
@@ -121,23 +121,23 @@
                 <orient>wxHORIZONTAL</orient>
                 <object class="spacer">
                   <size>25,28</size>
-                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>3</border>
                   <option>0</option>
                 </object>
                 <object class="sizeritem">
-                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <flag>wxTOP|wxEXPAND</flag>
                   <border>5</border>
                   <option>1</option>
                   <object class="wxPanel" name="standardPager" subclass="Tribler.vwxGUI.standardPager.standardPager">
-                    <pos>31,5</pos>
+                    <pos>25,5</pos>
                     <size>150,23</size>
                   </object>
                 </object>
                 <object class="spacer">
                   <size>8,28</size>
-                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                  <border>3</border>
+                  <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>0</border>
                   <option>0</option>
                 </object>
               </object>

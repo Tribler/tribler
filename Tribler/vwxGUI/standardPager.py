@@ -44,6 +44,7 @@ class standardPager(wx.Panel):
         
     def initPager(self, numPages=10):
         
+        self.triblerRed = wx.Colour(255, 51, 0)
         self.beginPage = 0
         self.currentPage = 0
         self.numPages = numPages
@@ -54,14 +55,13 @@ class standardPager(wx.Panel):
         
         self.pageNumbers = []
         self.grid = None
-        #self.SetMinSize((183, self.GetCharHeight()))
         self.utility = self.guiUtility.utility
         self.addComponents()
         self.initReady = True
    
     def addComponents(self):
         self.Show(False)
-        
+        self.SetBackgroundColour(self.triblerRed)
         self.normalFont = wx.Font(8,74,90,90,0,"Arial")
         self.boldFont  = wx.Font(10,74,90,wx.BOLD,1,"Arial")
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -78,7 +78,7 @@ class standardPager(wx.Panel):
         self.left = tribler_topButton(self, name='pager_left')
         self.left.Bind(wx.EVT_LEFT_UP, self.mouseAction)
         #self.hSizer.AddSpacer(wx.Size(25))
-        self.hSizer.Add(self.left, 0, wx.TOP, 10)
+        self.hSizer.Add(self.left, 0, wx.TOP, 0)
         
         #page numbers
         self.refreshPageNumbers()
@@ -87,7 +87,7 @@ class standardPager(wx.Panel):
         self.right = tribler_topButton(self, name='pager_right')
         self.right.Bind(wx.EVT_LEFT_UP, self.mouseAction)
         self.hSizer.AddSpacer(wx.Size(5))
-        self.hSizer.Add(self.right, 0, wx.TOP, 10)
+        self.hSizer.Add(self.right, 0, wx.TOP, 0)
         
        
         
@@ -129,10 +129,10 @@ class standardPager(wx.Panel):
             while (len(self.pageNumbers) < number):
                 text = StaticText(self, -1, "")
                 text.SetForegroundColour(wx.WHITE)
-                text.SetBackgroundColour(wx.Colour(255, 51, 0))
+                text.SetBackgroundColour(self.triblerRed)
                 text.Bind(wx.EVT_LEFT_UP, self.mouseAction)
                 self.pageNumbers.append(text)
-                self.hSizer.Insert(len(self.pageNumbers*2)+1, text, 0, wx.TOP, 10)
+                self.hSizer.Insert(len(self.pageNumbers*2)+1, text, 0, wx.TOP, 0)
                 self.hSizer.InsertSpacer(len(self.pageNumbers*2)+2, wx.Size(3))
             refresh = True
         elif number < currentPageNumber:
