@@ -3,6 +3,7 @@
   <object class="wxPanel" name="statusDownloads">
     <pos>0,0</pos>
     <size>300,155</size>
+    <bg>#ffffff</bg>
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>
       <object class="sizeritem">
@@ -66,6 +67,18 @@
               <size>10,21</size>
             </object>
           </object>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+        <object class="wxStaticText" name="st32c">
+          <style>wxST_NO_AUTORESIZE</style>
+          <label>download text etc.
+</label>
+          <pos>3,24</pos>
+          <size>292,133</size>
         </object>
       </object>
     </object>

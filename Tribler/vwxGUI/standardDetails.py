@@ -68,7 +68,7 @@ class standardDetails(wx.Panel):
             self.oldpanel.Hide()
             self.oldpanel.Disable()
         
-        self.hSizer.Insert(0, self.currentPanel, 1, wx.ALL|wx.EXPAND, 0)
+        self.hSizer.Insert(0, self.currentPanel, 0, wx.ALL|wx.EXPAND, 0)
         
             
             
@@ -85,7 +85,7 @@ class standardDetails(wx.Panel):
                 self.data['status']['panel'] = statusPanel
             statusPanel.Enable()
             statusPanel.Show()
-            self.hSizer.Insert(1, statusPanel, 1, wx.ALL|wx.EXPAND, 0)
+            self.hSizer.Insert(1, statusPanel, 0, wx.ALL|wx.EXPAND, 0)
             self.hSizer.Layout()
         else:
             # Remove statusPanel if necessary

@@ -188,9 +188,10 @@
                         <border>7</border>
                         <option>0</option>
                         <object class="wxStaticText" name="st176cCC">
+                          <hidden>1</hidden>
                           <style>wxST_NO_AUTORESIZE</style>
                           <label>downloading:</label>
-                          <pos>89,10</pos>
+                          <pos>89,15</pos>
                           <size>119,13</size>
                           <fg>#ffffff</fg>
                         </object>
@@ -200,6 +201,7 @@
                         <border>1</border>
                         <option>0</option>
                         <object class="wxStaticText" name="st177cCC">
+                          <hidden>1</hidden>
                           <style>wxST_NO_AUTORESIZE</style>
                           <label>uploading:</label>
                           <pos>89,29</pos>
@@ -212,6 +214,7 @@
                         <border>1</border>
                         <option>0</option>
                         <object class="wxStaticText" name="st178cCC">
+                          <hidden>1</hidden>
                           <style>wxST_NO_AUTORESIZE</style>
                           <label>discovered content:</label>
                           <pos>89,43</pos>
@@ -224,6 +227,7 @@
                         <border>1</border>
                         <option>0</option>
                         <object class="wxStaticText" name="st179cCC">
+                          <hidden>1</hidden>
                           <style>wxST_NO_AUTORESIZE</style>
                           <label>discovered peers:</label>
                           <pos>89,57</pos>
@@ -279,7 +283,7 @@
                   <option>1</option>
                   <object class="wxPanel" name="standardDetails" subclass="Tribler.vwxGUI.standardDetails.standardDetails">
                     <pos>715,98</pos>
-                    <size>300,412</size>
+                    <size>300,492</size>
                   </object>
                 </object>
               </object>
