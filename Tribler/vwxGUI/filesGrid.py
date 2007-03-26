@@ -41,11 +41,10 @@ class filesGrid(wx.Panel):
         self.parent = None
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
+        self.detailPanel = None
         self.cols = 2
         self.items = 0
         self.currentData = 0
-        self.standardPager = None
-        self.detailPanel = None
         self.addComponents()
         self.Show()
         self.guiUtility.report(self)
@@ -119,10 +118,15 @@ class filesGrid(wx.Panel):
             self.refreshPanels()
         
     def getStandardPager(self):
-        if self.standardPager:
-            return True
+        print 'getStandardPager called: %s' % self.standardPager
+        try:
+            if self.standardPager:
+                return True
+        except:
+            return False
         
-    def setPager(self, pager):    
+    def setPager(self, pager):
+        print 'setPager called: %s' % pager
         self.standardPager = pager
        
  

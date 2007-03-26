@@ -32,8 +32,8 @@ class filesTabs(wx.Panel):
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.categories = self.guiUtility.getCategories()
-        #self.addComponents()
-        self.SetBackgroundColour(wx.GREEN)
+        self.addComponents()
+        #self.SetBackgroundColour(wx.GREEN)
         self.SetMinSize((-1, 30))
         self.Show()
         self.Refresh()

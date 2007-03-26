@@ -32,6 +32,7 @@ class tribler_topButton(wx.Panel):
         self.guiUtility = GUIUtility.getInstance()
         self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
         self.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
+        self.selected = False
         self.searchBitmaps()
         self.createBackgroundImage()
         if self.bitmaps[0]:
@@ -82,6 +83,13 @@ class tribler_topButton(wx.Panel):
     def OnErase(self, event):
         pass
         #event.Skip()
+        
+    def setSelected(self, sel):
+        self.selected = sel
+        self.Refresh()
+        
+    def isSelected(self):
+        return self.selected
         
     def mouseAction(self, event):
         if event.Entering():
@@ -189,7 +197,7 @@ class tribler_topButton(wx.Panel):
         self.backgroundColor = wxColor
         
     def OnPaint(self, evt):
-        dc = wx.PaintDC(self)
+        dc = wx.BufferedPaintDC(self)
         dc.SetBackground(wx.Brush(self.backgroundColor))
         dc.Clear()
         if self.parentBitmap:
@@ -201,7 +209,7 @@ class tribler_topButton(wx.Panel):
         
         if self.bitmaps[0]:
             dc.DrawBitmap(self.bitmaps[0], 0,0, True)
-        if self.mouseOver and self.bitmaps[1]:
+        if (self.mouseOver or self.selected) and self.bitmaps[1]:
             dc.DrawBitmap(self.bitmaps[1], 0,0, True)
         
 

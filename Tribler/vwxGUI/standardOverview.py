@@ -35,7 +35,7 @@ class standardOverview(wx.Panel):
             self.data[mode] = {}
         self.currentPanel = None
         self.addComponents()
-        self.Refresh()
+        #self.Refresh()
         self.guiUtility.report(self)
         self.guiUtility.initStandardOverview(self)
         
@@ -54,25 +54,25 @@ class standardOverview(wx.Panel):
     def refreshMode(self):
         # load xrc
         self.oldpanel = self.currentPanel
-        self.Show(False)
+        #self.Show(False)
         
         self.currentPanel = self.loadPanel()
         assert self.currentPanel, "Panel could not be loaded"
         self.setData()
-        self.currentPanel.GetSizer().Layout()
-        self.currentPanel.Enable(True)
+        #self.currentPanel.GetSizer().Layout()
+        #self.currentPanel.Enable(True)
         self.currentPanel.Show(True)
         
         if self.oldpanel:
             self.hSizer.Detach(self.oldpanel)
             self.oldpanel.Hide()
-            self.oldpanel.Disable()
+            #self.oldpanel.Disable()
         
         self.hSizer.Add(self.currentPanel, 1, wx.ALL|wx.EXPAND, 0)
         
         self.hSizer.Layout()
-        self.currentPanel.Refresh()
-        self.Show(True)
+        #self.currentPanel.Refresh()
+        #self.Show(True)
         
         
     def loadPanel(self):

@@ -47,10 +47,10 @@ class standardPager(wx.Panel):
         self.currentDots = [None, None]
         
         self.pageNumbers = []
-        self.grid = None
         self.utility = self.guiUtility.utility
         self.addComponents()
         self.initReady = True
+        self.refresh()
    
     def addComponents(self):
         self.Show(False)
@@ -72,7 +72,7 @@ class standardPager(wx.Panel):
         self.left.Bind(wx.EVT_LEFT_UP, self.mouseAction)
         self.left.setBackground(self.triblerRed)
         #self.hSizer.AddSpacer(wx.Size(25))
-        self.hSizer.Add(self.left, 0, wx.TOP, 0)
+        self.hSizer.Add(self.left, 0, wx.TOP, 5)
         
         #page numbers
         self.refreshPageNumbers()
@@ -82,7 +82,7 @@ class standardPager(wx.Panel):
         self.right.Bind(wx.EVT_LEFT_UP, self.mouseAction)
         self.right.setBackground(self.triblerRed)
         self.hSizer.AddSpacer(wx.Size(5))
-        self.hSizer.Add(self.right, 0, wx.TOP, 0)
+        self.hSizer.Add(self.right, 0, wx.TOP, 5)
         
        
         
@@ -127,8 +127,8 @@ class standardPager(wx.Panel):
                 text.SetBackgroundColour(self.triblerRed)
                 text.Bind(wx.EVT_LEFT_UP, self.mouseAction)
                 self.pageNumbers.append(text)
-                self.hSizer.Insert(len(self.pageNumbers*2)+1, text, 0, wx.TOP, 0)
-                self.hSizer.InsertSpacer(len(self.pageNumbers*2)+2, wx.Size(3))
+                self.hSizer.Insert(len(self.pageNumbers), text, 0, wx.TOP|wx.LEFT|wx.RIGHT, 4)
+
             refresh = True
         elif number < currentPageNumber:
             for i in range(number, currentPageNumber):
@@ -186,7 +186,9 @@ class standardPager(wx.Panel):
     
     def refresh(self):
         "Called by Grid if size or data changes"
+        
         if not self.hasGrid() or not self.initReady:
+            print 'StandardPager: no refresh, not ready yet'
             return
         
         grid = self.grid
@@ -240,10 +242,14 @@ class standardPager(wx.Panel):
         self.refreshPageNumbers()
         
     def hasGrid(self):
-        if self.grid:
-            return True
+        try:
+            if self.grid:
+                return True
+        except:
+            return False
         
     def setGrid(self, grid):
+        print 'setGrid called: %s' % grid
         self.grid = grid
         self.grid.setPager(self)
       

@@ -22,6 +22,7 @@ class GUIUtility:
         self.params = params
         self.data_manager = TorrentDataManager.getInstance(self.utility)
         self.data_manager.register(self.updateFun, 'all')
+        self.selectedMainButton = None
             
     def getInstance(*args, **kw):
         if GUIUtility.__single is None:
@@ -39,13 +40,7 @@ class GUIUtility:
         self.guiObjects[(name, instanceName)] = object
         if DEBUG:
             print '%s reported' % name
-        self.checkAllLoaded()
         
-    def checkAllLoaded(self):
-        if DEBUG:
-            print self.guiObjects.keys()
-        if len(self.guiObjects) == 5:
-            self.initGUI()
             
     
     def request(self, name):
@@ -75,6 +70,10 @@ class GUIUtility:
             name = obj.GetName()
         except:
             print 'Error: Could not get name of buttonObject: %s' % obj
+        if name.startswith('mainButton'):
+            self.selectMainButton(obj)
+            
+            
         if name == 'mainButtonFiles':
             self.standardFilesOverview()
         elif name == 'mainButtonPersons':
@@ -138,9 +137,19 @@ class GUIUtility:
         print "Updatefun called"
         
     
+    def selectMainButton(self, button):
+        if not button.isSelected():
+            if self.selectedMainButton:
+                self.selectedMainButton.setSelected(False)
+            button.setSelected(True)
+            self.selectedMainButton = button
+
     def initStandardOverview(self, standardOverview):
         self.standardOverview = standardOverview
         self.standardFilesOverview()
+        filesButton = xrc.XRCCTRL(self.frame, 'mainButtonFiles')
+        #print 'FilesButton', filesButton
+        self.selectMainButton(filesButton)
         
     def initStandardDetails(self, standardDetails):
         self.standardDetails = standardDetails
