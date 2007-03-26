@@ -85,7 +85,7 @@ class standardDetails(wx.Panel):
                 self.data['status']['panel'] = statusPanel
             statusPanel.Enable()
             statusPanel.Show()
-            self.hSizer.Insert(1, statusPanel, 0, wx.ALL|wx.EXPAND, 0)
+            self.hSizer.Insert(1, statusPanel, 0, wx.TOP|wx.EXPAND, 6)
             self.hSizer.Layout()
         else:
             # Remove statusPanel if necessary
@@ -105,8 +105,11 @@ class standardDetails(wx.Panel):
             xrcResource = os.path.join('Tribler','vwxGUI', modeString+'Details.xrc')
             panelName = modeString+'Details'
             currentPanel = self.loadXRCPanel(xrcResource, panelName)
+            
             # Save paneldata in self.data
             self.data[self.mode]['panel'] = currentPanel
+            titlePanel = xrc.XRCCTRL(currentPanel, 'titlePanel')
+            self.data[self.mode]['title'] = xrc.XRCCTRL(titlePanel, 'titleField')
         return currentPanel
     
     def loadStatusPanel(self):
@@ -131,6 +134,9 @@ class standardDetails(wx.Panel):
     def setData(self):
         #self.currentPanel.setData(self.data[self.mode].get('data'))
         # filesDetails.xrc has no setData yet
+        titleField = self.data[self.mode].get('title')
+        titleField.SetLabel('hallo')
+        
         pass
         
         

@@ -25,12 +25,21 @@
             <flag>wxFIXED_MINSIZE</flag>
             <border>3</border>
             <option>1</option>
-            <object class="wxPanel" name="pn10c">
+            <object class="wxPanel" name="titlePanel">
               <bitmap>images/triblerpanel_topcenter.png</bitmap>
               <pos>10,0</pos>
               <size>100,21</size>
               <bg>#     0</bg>
               <fg>#ffffff</fg>
+              <object class="wxStaticText" name="titleField">
+                <style>wxST_NO_AUTORESIZE</style>
+                <label>Title
+</label>
+                <pos>5,2</pos>
+                <size>49,13</size>
+                <bg>#     0</bg>
+                <fg>#ffffff</fg>
+              </object>
             </object>
           </object>
           <object class="sizeritem">
