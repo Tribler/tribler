@@ -1,6 +1,7 @@
 import wx, os, sys, os.path
 import wx.xrc as xrc
 from Tribler.vwxGUI.GuiUtility import GUIUtility
+from traceback import print_exc
 
 OVERVIEW_MODES = ['filesMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionMode', 'messageMode']
 
@@ -15,7 +16,7 @@ class standardOverview(wx.Panel):
             self.PostCreate(pre)
             self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
         else:
-            wx.Panel.__init__(self, args[0], args[1], args[2], args[3])
+            wx.Panel.__init__(self, *args)
             self._PostInit()
         
     def OnCreate(self, event):
@@ -31,9 +32,8 @@ class standardOverview(wx.Panel):
         self.data = {}
         for mode in OVERVIEW_MODES:
             self.data[mode] = {}
-        self.addComponents()
         self.currentPanel = None
-        self.panels={}
+        self.addComponents()
         self.refreshMode()
         self.Refresh()
         self.guiUtility.report(self)
@@ -48,44 +48,17 @@ class standardOverview(wx.Panel):
     def setMode(self, mode, datalist):
         if self.mode != mode:
             self.mode = mode
-            self.data[self.mode]['list'] = datalist
+            self.data[self.mode]['data'] = datalist
             self.refreshMode()
-            self.data[self.mode]['grid'].setData(datalist)
             
     def refreshMode(self):
         # load xrc
         self.oldpanel = self.currentPanel
         self.Show(False)
-        self.currentPanel = self.panels.get(self.mode)
-        if not self.currentPanel:
-            if self.mode == 'filesMode':
-                xrcResource = os.path.join('Tribler','vwxGUI', 'filesOverview.xrc')
-                panelName = 'filesOverview'
-            elif self.mode == 'personsMode':
-                xrcResource = os.path.join('Tribler','vwxGUI', 'personsOverview.xrc')
-                panelName = 'personsOverview'
-            elif self.mode == 'profileMode':
-                xrcResource = os.path.join('Tribler','vwxGUI', 'profileOverview.xrc')
-                panelName = 'profileOverview'
-            elif self.mode == 'libraryMode':
-                xrcResource = os.path.join('Tribler','vwxGUI', 'libraryOverview.xrc')
-                panelName = 'libraryOverview'
-            elif self.mode == 'friendsMode':
-                xrcResource = os.path.join('Tribler','vwxGUI', 'friendsOverview.xrc')
-                panelName = 'friendsOverview'
-            elif self.mode == 'messagesMode':
-                xrcResource = os.path.join('Tribler','vwxGUI', 'messagesOverview.xrc')
-                panelName = 'messagesOverview'                                                   
-            else:
-                print 'Mode unknown'
-                return
-            self.res = xrc.XmlResource(xrcResource)
-            # create panel
-            self.currentPanel = self.panels[self.mode] = self.res.LoadPanel(self, panelName)
-            
-            self.data[self.mode]['grid'] = xrc.XRCCTRL(self.currentPanel, self.mode[:-4]+'Grid')
         
-     
+        self.currentPanel = self.loadPanel()
+        assert self.currentPanel, "Panel could not be loaded"
+        self.setData()
         self.currentPanel.GetSizer().Layout()
         self.currentPanel.Enable(True)
         self.currentPanel.Show(True)
@@ -97,12 +70,42 @@ class standardOverview(wx.Panel):
         
         self.hSizer.Add(self.currentPanel, 1, wx.ALL|wx.EXPAND, 0)
         
-        #self.guiUtility.mainSizer.Layout()
         self.hSizer.Layout()
         self.currentPanel.Refresh()
         self.Show(True)
         
         
-    
+    def loadPanel(self):
+        currentPanel = self.data[self.mode].get('panel',None)
+        modeString = self.mode[:-4]
+        if not currentPanel:
+            xrcResource = os.path.join('Tribler','vwxGUI', modeString+'Overview.xrc')
+            panelName = modeString+'Overview'
+            try:
+                currentPanel = grid = pager = None
+                res = xrc.XmlResource(xrcResource)
+                # create panel
+                currentPanel = res.LoadPanel(self, panelName)
+                grid = xrc.XRCCTRL(currentPanel, modeString+'Grid')
+                pager = xrc.XRCCTRL(currentPanel, 'standardPager')
+                if not currentPanel or not grid or not pager:
+                    raise Exception()
+                
+                # Save paneldata in self.data
+                self.data[self.mode]['panel'] = currentPanel
+                self.data[self.mode]['grid'] = grid
+                self.data[self.mode]['pager'] = pager
+                pager.setGrid(grid)
+            except:
+                print 'Error: Could not load panel, grid and pager for mode %s' % self.mode
+                print 'Tried panel: %s=%s, grid: %s=%s, pager: %s=%s' % (panelName, currentPanel, modeString+'Grid', grid, 'standardPager', pager)
+                print_exc()
+        return currentPanel
+     
+    def setData(self):
+        grid = self.data[self.mode].get('grid')
+        if grid:
+            grid.setData(self.data[self.mode].get('data'))
+        
         
         

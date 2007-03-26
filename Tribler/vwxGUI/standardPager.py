@@ -12,6 +12,7 @@ class standardPager(wx.Panel):
     """
     def __init__(self, *args):
         if len(args) == 0:
+            self.initReady = False
             pre = wx.PrePanel()
             # the Create step is done by XRC.
             self.PostCreate(pre)
@@ -29,13 +30,17 @@ class standardPager(wx.Panel):
     def _PostInit(self):
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
-        self.searchBitmap()
-        self.createBackgroundImage()
+        #self.inheritBackground()
         self.initPager()
         self.Refresh(True)
         self.Update()
-        self.guiUtility.report(self)
         
+    def inheritBackground(self):
+        try:
+            self.Bind(wx.EVT_PAINT, self.GetParent().OnPaint)
+            self.bitmap = self.GetParent().bitmap
+        except:
+            print 'Error: could not inherit background'
         
     def initPager(self, numPages=10):
         
@@ -52,60 +57,11 @@ class standardPager(wx.Panel):
         #self.SetMinSize((183, self.GetCharHeight()))
         self.utility = self.guiUtility.utility
         self.addComponents()
-                
-    def searchBitmap(self):
-        self.bitmap = None
-        
-        # get the image directory
-        abcpath = os.path.abspath(os.path.dirname(sys.argv[0]))
-        self.imagedir = os.path.join(abcpath, 'Tribler','vwxGUI', 'images')
-        if not os.path.isdir(self.imagedir):
-            olddir = self.imagedir
-            # Started app.py in vwxDir?
-            self.imagedir = os.path.join(abcpath, 'images')
-        if not os.path.isdir(self.imagedir):
-            print 'Error: no image directory found in %s and %s' % (olddir, self.imagedir)
-            return
-        
-        # find a file with same name as this panel
-        self.bitmapPath = os.path.join(self.imagedir, self.GetName()+'.png')
-                
-        if os.path.isfile(self.bitmapPath):
-            self.bitmap = wx.Bitmap(self.bitmapPath, wx.BITMAP_TYPE_ANY)
-        else:
-            print 'Could not load image: %s' % self.bitmapPath
-        
-    def createBackgroundImage(self):
-        if self.bitmap:
-            wx.EVT_PAINT(self, self.OnPaint)
-            self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnErase)
-        
-        
-    
-    def OnErase(self, event):
-        pass
-        #event.Skip()
-        
-    def OnPaint(self, evt):
-        dc = wx.PaintDC(self)
-        dc.SetBackground(wx.Brush(wx.Colour(102, 102, 102)))
-        dc.Clear()
-        if self.bitmap:
-            # Tile bitmap
-            rec=wx.Rect()
-            rec=self.GetClientRect()
-            for y in range(0,rec.GetHeight(),self.bitmap.GetHeight()):
-                for x in range(0,rec.GetWidth(),self.bitmap.GetWidth()):
-                    dc.DrawBitmap(self.bitmap,x,y,0)
-            # Do not tile
-            #dc.DrawBitmap(self.bitmap, 0,0, True)
-  
-
-
+        self.initReady = True
+   
     def addComponents(self):
         self.Show(False)
-        self.SetMinSize((183, 28))
-        self.SetSize((183, 28))
+        
         self.normalFont = wx.Font(8,74,90,90,0,"Arial")
         self.boldFont  = wx.Font(10,74,90,wx.BOLD,1,"Arial")
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -121,7 +77,7 @@ class standardPager(wx.Panel):
 #        self.hSizer.Add(self.leftPages, 0, BORDER_EXPAND, 0)
         self.left = tribler_topButton(self, name='pager_left')
         self.left.Bind(wx.EVT_LEFT_UP, self.mouseAction)
-        self.hSizer.AddSpacer(wx.Size(25))
+        #self.hSizer.AddSpacer(wx.Size(25))
         self.hSizer.Add(self.left, 0, wx.TOP, 10)
         
         #page numbers
@@ -235,12 +191,17 @@ class standardPager(wx.Panel):
     
     def refresh(self):
         "Called by Grid if size or data changes"
-        if not self.hasGrid():
+        if not self.hasGrid() or not self.initReady:
             return
         
         grid = self.grid
-        self.totalItems = len(grid.data)
-        self.itemsPerPage = grid.items
+        try:
+            self.totalItems = len(grid.data)
+            self.itemsPerPage = grid.items
+        except:
+            self.totalItems = 0
+            self.itemsPerPage = 0
+        
         
         # if dummy item "Searching for content is shown, do not count it as content
         if self.totalItems == 1 and grid.data[0].get('content_name','no_name') == self.utility.lang.get('searching_content'):
@@ -286,7 +247,8 @@ class standardPager(wx.Panel):
     def hasGrid(self):
         if self.grid:
             return True
-        self.grid = self.guiUtility.request('standardGrid')
-        return self.grid != None
-
+        
+    def setGrid(self, grid):
+        self.grid = grid
+        self.grid.setPager(self)
       

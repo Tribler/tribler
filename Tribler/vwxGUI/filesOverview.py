@@ -49,9 +49,9 @@ class filesOverview(wx.Panel):
         self.filesGrid.SetDimensions(0,61,623,429)
         self.orange_bottom_left = bgPanel(self, -1, wx.Point(0,400), wx.Size(10,28))
         self.orange_bottom_center = bgPanel(self, -1, wx.Point(10,400), wx.Size(20,20))
-        self.bgPanel209c = bgPanel(self, -1, wx.Point(440,400), wx.Size(183,28))
-        self.standardPager = standardPager(self.bgPanel209c,-1,wxDefaultPosition,wxDefaultSize)
-        self.standardPager.SetDimensions(0,0,183,28)
+        self.pagerBottomRight = bgPanel(self, -1, wx.Point(440,400), wx.Size(183,28))
+        self.standardPager = standardPager(self.pagerBottomRight,-1,wxDefaultPosition,wxDefaultSize)
+        self.standardPager.SetDimensions(31,5,150,23)
         self.sz3s = wx.BoxSizer(wx.VERTICAL)
         self.header = wx.BoxSizer(wx.HORIZONTAL)
         self.footer = wx.BoxSizer(wx.HORIZONTAL)
@@ -68,12 +68,14 @@ class filesOverview(wx.Panel):
         self.header.Add(self.orange_top_right,0,wx.FIXED_MINSIZE,3)
         self.footer.Add(self.orange_bottom_left,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.footer.Add(self.orange_bottom_center,1,wx.EXPAND|wx.FIXED_MINSIZE,3)
-        self.footer.Add(self.bgPanel209c,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
+        self.footer.Add(self.pagerBottomRight,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.size_title.Add(self.st64c,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,4)
-        self.sz211s.Add(self.standardPager,1,wx.EXPAND|wx.FIXED_MINSIZE,3)
+        self.sz211s.Add([25,22],0,wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,3)
+        self.sz211s.Add(self.standardPager,1,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,5)
+        self.sz211s.Add([8,28],0,wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.SetSizer(self.sz3s);self.SetAutoLayout(1);self.Layout();
         self.pn10c.SetSizer(self.size_title);self.pn10c.SetAutoLayout(1);self.pn10c.Layout();
-        self.bgPanel209c.SetSizer(self.sz211s);self.bgPanel209c.SetAutoLayout(1);self.bgPanel209c.Layout();
+        self.pagerBottomRight.SetSizer(self.sz211s);self.pagerBottomRight.SetAutoLayout(1);self.pagerBottomRight.Layout();
         self.Refresh()
         return
     def VwXDrawBackImg(self,event,win,bitMap,opz):

@@ -15,6 +15,7 @@ class filesGrid(wx.Panel):
     """
     def __init__(self, *args):
         if len(args) == 0:
+            self.initReady = False
             pre = wx.PrePanel()
             # the Create step is done by XRC.
             self.PostCreate(pre)
@@ -47,12 +48,9 @@ class filesGrid(wx.Panel):
         self.detailPanel = None
         self.addComponents()
         self.Show()
-        #torrents = []
-        #for word in 10*['Jelle', 'is', 'very', 'cool', 'jade', 'jade', 'weird', 'Katja']:
-        #    torrents.append({'content_name':word})
-        #self.setData(torrents)
         self.guiUtility.report(self)
-        
+        self.initReady = True
+                
     def addComponents(self):
         self.Show(False)
         #self.SetBackgroundColour(wx.BLUE)
@@ -70,6 +68,9 @@ class filesGrid(wx.Panel):
 
     def setData(self, dataList, resetPages = True):
         #print 'SetData by thread: %s' % threading.currentThread()
+        if not self.initReady:
+            return
+        
         self.data = dataList
         if resetPages:
             self.currentData = 0
@@ -111,9 +112,9 @@ class filesGrid(wx.Panel):
     def getStandardPager(self):
         if self.standardPager:
             return True
-        self.standardPager = self.guiUtility.request('standardPager')
-        return self.standardPager != None
-            
+        
+    def setPager(self, pager):    
+        self.standardPager = pager
        
  
 

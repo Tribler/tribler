@@ -67,7 +67,8 @@ class bgPanel(wx.Panel):
         #event.Skip()
         
     def OnPaint(self, evt):
-        dc = wx.PaintDC(self)
+        obj = evt.GetEventObject()
+        dc = wx.PaintDC(obj)
         dc.SetBackground(wx.Brush(wx.Colour(102,102,102)))
         dc.Clear()
         if self.bitmap:

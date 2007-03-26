@@ -42,6 +42,7 @@ class tribler_topButton(wx.Panel):
         
         
     def searchBitmaps(self):
+        self.backgroundColor = wx.Colour(102,102,102)
         self.bitmaps = [None, None]
         self.parentBitmap = None
         self.mouseOver = False
@@ -184,9 +185,12 @@ class tribler_topButton(wx.Panel):
             return None
                                             
         
+    def setBackground(self, wxColor):
+        self.backgroundColor = wxColor
+        
     def OnPaint(self, evt):
         dc = wx.PaintDC(self)
-        dc.SetBackground(wx.Brush(wx.Colour(102,102,102)))
+        dc.SetBackground(wx.Brush(self.backgroundColor))
         dc.Clear()
         if self.parentBitmap:
             dc.DrawBitmap(self.parentBitmap, 0,0, True)
