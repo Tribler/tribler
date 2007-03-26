@@ -16,7 +16,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>0</border>
             <option>0</option>
-            <object class="wxPanel" name="black_top_left" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="bgPanel" name="black_top_left">
               <pos>0,0</pos>
               <size>10,21</size>
             </object>
@@ -37,7 +37,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>0</border>
             <option>0</option>
-            <object class="wxPanel" name="black_top_right" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="bgPanel" name="black_top_right">
               <pos>210,0</pos>
               <size>10,21</size>
             </object>
@@ -48,7 +48,7 @@
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="wxPanel" name="6_160x90" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+        <object class="bgPanel" name="6_160x90">
           <pos>0,21</pos>
           <size>302,170</size>
         </object>
@@ -57,7 +57,7 @@
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="wxPanel" name="playbackControls" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+        <object class="bgPanel" name="playbackControls">
           <pos>0,191</pos>
           <size>20,20</size>
           <bg>#     0</bg>
@@ -133,13 +133,66 @@
           <pos>0,231</pos>
           <size>298,348</size>
           <bg>#ffffff</bg>
+          <object class="wxBoxSizer">
+            <orient>wxVERTICAL</orient>
+            <object class="sizeritem">
+              <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                  <object class="wxBoxSizer">
+                    <orient>wxVERTICAL</orient>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                  <object class="wxBoxSizer">
+                    <orient>wxVERTICAL</orient>
+                  </object>
+                </object>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>10</border>
+              <option>0</option>
+              <object class="wxStaticText" name="st188c">
+                <style>wxST_NO_AUTORESIZE</style>
+                <label>...</label>
+                <pos>0,22</pos>
+                <size>265,73</size>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+              <object class="btn_DetailsHeader" name="injectedBy">
+                <pos>0,95</pos>
+                <size>20,20</size>
+                <object class="wxStaticText" name="st202c">
+                  <style>wxST_NO_AUTORESIZE</style>
+                  <label>injected by</label>
+                  <pos>10,0</pos>
+                  <size>114,18</size>
+                </object>
+              </object>
+            </object>
+          </object>
         </object>
       </object>
       <object class="sizeritem">
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="wxPanel" name="white_bottom" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+        <object class="bgPanel" name="white_bottom">
           <pos>0,493</pos>
           <size>300,5</size>
         </object>
