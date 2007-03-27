@@ -4,7 +4,7 @@
     <tooltip>d</tooltip>
     <hidden>1</hidden>
     <pos>1,1</pos>
-    <size>1024,768</size>
+    <size>1500,768</size>
     <bg>#d4d0c8</bg>
     <object class="wxMenuBar" name="fdfs">
       <object class="wxMenu" name="menu443">
@@ -162,37 +162,37 @@
               <option>0</option>
               <object class="bgPanel" name="topBG3">
                 <bitmap>images/topbg3.png</bitmap>
-                <pos>729,0</pos>
-                <size>275,89</size>
-                <bg>#     0</bg>
+                <pos>532,0</pos>
+                <size>287,89</size>
+                <bg>#d8d8bf</bg>
                 <object class="wxBoxSizer">
                   <orient>wxHORIZONTAL</orient>
+                  <object class="spacer">
+                    <size>87,83</size>
+                    <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                    <border>3</border>
+                    <option>0</option>
+                  </object>
                   <object class="sizeritem">
                     <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
                     <border>3</border>
                     <option>1</option>
                     <object class="wxBoxSizer">
                       <orient>wxVERTICAL</orient>
-                      <object class="spacer">
-                        <size>260,5</size>
-                        <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
-                        <border>3</border>
-                        <option>0</option>
-                      </object>
                       <object class="sizeritem">
-                        <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
+                        <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
                         <border>3</border>
                         <option>0</option>
                         <object class="wxBoxSizer">
-                          <orient>wxVERTICAL</orient>
+                          <orient>wxHORIZONTAL</orient>
                           <object class="sizeritem">
                             <flag>wxLEFT|wxFIXED_MINSIZE</flag>
                             <border>8</border>
                             <option>0</option>
                             <object class="wxTextCtrl" name="tx220cCC">
                               <title>search a file</title>
-                              <pos>11,14</pos>
-                              <size>166,22</size>
+                              <pos>98,3</pos>
+                              <size>151,22</size>
                               <font>
                                 <size>10</size>
                                 <family>modern</family>
@@ -203,20 +203,10 @@
                               </font>
                             </object>
                           </object>
-                          <object class="sizeritem">
-                            <flag>wxLEFT|wxRIGHT|wxFIXED_MINSIZE</flag>
-                            <border>8</border>
-                            <option>0</option>
-                            <object class="tribler_topButton" name="searchIcon">
-                              <hidden>1</hidden>
-                              <pos>8,49</pos>
-                              <size>22,22</size>
-                            </object>
-                          </object>
                         </object>
                       </object>
                       <object class="sizeritem">
-                        <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
+                        <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
                         <border>3</border>
                         <option>0</option>
                         <object class="wxBoxSizer">
@@ -227,7 +217,7 @@
                             <option>0</option>
                             <object class="wxButton" name="bt257c">
                               <label>files</label>
-                              <pos>11,42</pos>
+                              <pos>42,42</pos>
                               <size>55,20</size>
                             </object>
                           </object>
@@ -237,25 +227,21 @@
                             <option>0</option>
                             <object class="wxButton" name="bt258c">
                               <label>persons</label>
-                              <pos>71,42</pos>
+                              <pos>102,42</pos>
                               <size>55,20</size>
                             </object>
                           </object>
                         </object>
                       </object>
+                      <object class="spacer">
+                        <size>200,5</size>
+                        <flag>wxFIXED_MINSIZE</flag>
+                        <border>3</border>
+                        <option>0</option>
+                      </object>
                     </object>
                   </object>
                 </object>
-              </object>
-            </object>
-            <object class="sizeritem">
-              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-              <border>3</border>
-              <option>0</option>
-              <object class="bgPanel" name="topBG4_grey">
-                <pos>1080,0</pos>
-                <size>20,20</size>
-                <bg>#  ff00</bg>
               </object>
             </object>
           </object>
@@ -297,7 +283,7 @@
               <border>3</border>
               <option>0</option>
               <object class="wxPanel" name="pn237c">
-                <pos>965,89</pos>
+                <pos>1004,89</pos>
                 <size>20,20</size>
               </object>
             </object>
