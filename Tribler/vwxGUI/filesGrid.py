@@ -1,6 +1,7 @@
 import os, sys, wx
 from Tribler.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Dialogs.ContentFrontPanel import ImagePanel, DetailPanel, TorrentPanel
+from Tribler.vwxGUI.filesItemPanel import FilesItemPanel
+from Tribler.Dialogs.ContentFrontPanel import ImagePanel, DetailPanel
 from Tribler.utilities import *
 from traceback import print_exc
 
@@ -216,6 +217,9 @@ class StaticGridPanel(wx.Panel):
             self.updatePanel(oldRows, self.currentRows)
             self.parent.gridResized(self.currentRows)
             
+    def getSubPanel(self):
+        return FilesItemPanel(self)
+    
     def updatePanel(self, oldRows, newRows):
         #
         if newRows > oldRows:
@@ -223,7 +227,7 @@ class StaticGridPanel(wx.Panel):
                 hSizer = wx.BoxSizer(wx.HORIZONTAL)
                 self.panels.append([])
                 for panel in range(0, self.cols):
-                    dataPanel = TorrentPanel(self)
+                    dataPanel = self.getSubPanel()
                     #dataPanel = wx.Panel(self, wx.ID_ANY)
                     self.panels[i].append(dataPanel)
                     #dataPanel.SetSize((-1, self.subPanelHeight))

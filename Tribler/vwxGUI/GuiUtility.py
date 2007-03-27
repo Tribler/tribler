@@ -131,7 +131,7 @@ class GUIUtility:
         
         self.filtered = sort_dictlist(self.filtered, 'swarmsize', 'decrease')
         #print self.filtered
-        return self.filtered
+        return self.data # no filtering
         
     def updateFun(self, torrent, operate):    
         print "Updatefun called"

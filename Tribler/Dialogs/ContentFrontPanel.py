@@ -1154,8 +1154,29 @@ class ImagePanel(wx.Panel):
     def isEnabled(self):
         return self.enabled
     
-    def SetBitmap(self, filename):
+    def SetBitmap(self, filename, bitmap=None):
+    
+        if bitmap:
+            bm = bitmap
+        else:
+            bm = self.getBitmapFromFile(filename)
+            
+        if self.size != None and bm != None:
+            
+            image = wx.ImageFromBitmap(bm)
+            image.Rescape(self.size[0], self.size[1])
+            bm = image.ConvertToBitmap()
         
+        self.bitmap = bm
+        if self.bitmap:
+            self.SetMinSize(self.bitmap.GetSize())
+        else:
+            self.SetMinSize((0,0))
+        
+        
+        #self.Refresh() # Do not refresh before panel is shown and inited
+    
+    def getBitmapFromFile(self, filename):
         path = os.path.join(self.utility.getPath(), 'icons', filename)
         
         if self.path == path:
@@ -1169,23 +1190,9 @@ class ImagePanel(wx.Panel):
             self.bitmap = None
             return
             
-        bm = wx.Bitmap(path,wx.BITMAP_TYPE_ANY)
+        return wx.Bitmap(path,wx.BITMAP_TYPE_ANY)
         
-        if self.size != None and bm != None:
             
-            image = wx.ImageFromBitmap(bm)
-            image.Rescape(self.size[0], self.size[1])
-            bm = image.ConvertToBitmap()
-        
-        self.bitmap = bm
-        if self.bitmap:
-            self.SetMinSize(self.bitmap.GetSize())
-        else:
-            self.SetMinSize((0,0))
-
-        
-        #self.Refresh() # Do not refresh before panel is shown and inited
-        
     def OnPaint(self, evt):
         dc = wx.PaintDC(self)
         if self.bitmap and self.enabled:
