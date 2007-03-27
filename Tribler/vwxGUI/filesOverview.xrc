@@ -3,6 +3,7 @@
   <object class="wxPanel" name="filesOverview">
     <pos>0,0</pos>
     <size>625,430</size>
+    <bg>#ffffff</bg>
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>
       <object class="sizeritem">
@@ -69,14 +70,20 @@
           <bg>#999999</bg>
           <object class="wxBoxSizer">
             <orient>wxHORIZONTAL</orient>
+            <object class="spacer">
+              <size>8,60</size>
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+            </object>
             <object class="sizeritem">
-              <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>3</border>
               <option>1</option>
               <object class="wxBoxSizer">
                 <orient>wxHORIZONTAL</orient>
                 <object class="sizeritem">
-                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <flag>wxTOP|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>3</border>
                   <option>0</option>
                   <object class="wxChoice" name="chc215cC">
@@ -87,10 +94,10 @@
                       <item>other</item>
                       <item>xxx</item>
                     </content>
-                    <pos>3,3</pos>
-                    <size>100,21</size>
+                    <pos>10,3</pos>
+                    <size>120,21</size>
                     <font>
-                      <size>8</size>
+                      <size>10</size>
                       <family>modern</family>
                       <style>normal</style>
                       <weight>normal</weight>
@@ -110,8 +117,16 @@
                       <item>recommended</item>
                       <item>from network</item>
                     </content>
-                    <pos>109,3</pos>
-                    <size>95,21</size>
+                    <pos>116,3</pos>
+                    <size>120,21</size>
+                    <font>
+                      <size>10</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>normal</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
                   </object>
                 </object>
                 <object class="sizeritem">
@@ -125,8 +140,16 @@
                       <item>this month</item>
                       <item>all time</item>
                     </content>
-                    <pos>210,3</pos>
-                    <size>100,21</size>
+                    <pos>222,3</pos>
+                    <size>120,21</size>
+                    <font>
+                      <size>10</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>normal</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
                   </object>
                 </object>
               </object>
@@ -136,19 +159,35 @@
               <border>3</border>
               <option>0</option>
               <object class="wxTextCtrl" name="tx220c">
+                <hidden>1</hidden>
                 <label>search a file</label>
-                <pos>490,3</pos>
-                <size>100,22</size>
+                <pos>453,3</pos>
+                <size>130,22</size>
+                <font>
+                  <size>10</size>
+                  <family>modern</family>
+                  <style>normal</style>
+                  <weight>normal</weight>
+                  <underlined>0</underlined>
+                  <face>Verdana</face>
+                </font>
               </object>
             </object>
             <object class="sizeritem">
-              <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
+              <flag>wxTOP|wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
               <border>3</border>
               <option>0</option>
               <object class="wxPanel" name="searchIcon" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                <pos>596,3</pos>
+                <hidden>1</hidden>
+                <pos>589,3</pos>
                 <size>22,22</size>
               </object>
+            </object>
+            <object class="spacer">
+              <size>10,60</size>
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
             </object>
           </object>
         </object>
@@ -158,16 +197,17 @@
         <border>3</border>
         <option>0</option>
         <object class="wxPanel" name="filesTabs" subclass="Tribler.vwxGUI.filesTabs.filesTabs">
-          <pos>0,41</pos>
+          <hidden>1</hidden>
+          <pos>0,56</pos>
           <size>20,20</size>
         </object>
       </object>
       <object class="sizeritem">
-        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-        <border>3</border>
+        <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>10</border>
         <option>1</option>
         <object class="wxPanel" name="filesGrid" subclass="Tribler.vwxGUI.filesGrid.filesGrid">
-          <pos>0,61</pos>
+          <pos>10,56</pos>
           <size>623,429</size>
         </object>
       </object>
@@ -201,7 +241,7 @@
             <option>0</option>
             <object class="wxPanel" name="pagerBottomRight" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
               <pos>440,400</pos>
-              <size>183,28</size>
+              <size>271,28</size>
               <object class="wxBoxSizer">
                 <orient>wxHORIZONTAL</orient>
                 <object class="spacer">
