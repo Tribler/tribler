@@ -240,7 +240,7 @@
             <border>0</border>
             <option>0</option>
             <object class="wxPanel" name="pagerBottomRight" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
-              <pos>440,400</pos>
+              <pos>352,400</pos>
               <size>271,28</size>
               <object class="wxBoxSizer">
                 <orient>wxHORIZONTAL</orient>
@@ -256,7 +256,7 @@
                   <option>1</option>
                   <object class="wxPanel" name="standardPager" subclass="Tribler.vwxGUI.standardPager.standardPager">
                     <pos>25,5</pos>
-                    <size>150,23</size>
+                    <size>238,23</size>
                   </object>
                 </object>
                 <object class="spacer">

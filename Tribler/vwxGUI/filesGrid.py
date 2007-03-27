@@ -43,7 +43,7 @@ class filesGrid(wx.Panel):
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.detailPanel = None
-        self.cols = 2
+        self.cols = 5
         self.items = 0
         self.currentData = 0
         self.addComponents()
