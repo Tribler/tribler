@@ -19,9 +19,8 @@ class FilesItemPanel(wx.Panel):
         global TORRENTPANEL_BACKGROUND
         
         wx.Panel.__init__(self, parent, -1)
-        self.detailPanel = parent.parent.detailPanel
-        self.contentFrontPanel = parent.parent.parent
-        self.utility = parent.parent.utility
+        self.guiUtility = GUIUtility.getInstance()
+        self.utility = self.guiUtility.utility
         self.parent = parent
         self.data = None
         self.datacopy = None
@@ -30,8 +29,9 @@ class FilesItemPanel(wx.Panel):
         self.warningMode = False
         self.oldCategoryLabel = None
         self.addComponents()
-        #self.Centre()
         self.Show()
+        self.Refresh()
+        self.Layout()
 
     def addComponents(self):
         self.Show(False)
@@ -46,7 +46,7 @@ class FilesItemPanel(wx.Panel):
         
         # Add title
         self.thumb = ThumbnailViewer(self)
-        self.thumb.setBackground(wx.RED)
+        self.thumb.setBackground(wx.BLACK)
         self.thumb.SetSize((125,70))
         self.vSizer.Add(self.thumb, 0, wx.ALL, 0)
         self.title =StaticText(self,-1,"")
@@ -212,7 +212,7 @@ class FilesItemPanel(wx.Panel):
         
         self.Layout()
         self.Refresh()
-        self.parent.Refresh()
+        #self.parent.Refresh()
         
           
         
@@ -238,22 +238,14 @@ class FilesItemPanel(wx.Panel):
                 if self.data:
                     if DEBUG:
                         print >>sys.stderr,'contentpanel: deleting'
-                    contentPanel = self.parent.parent.parent
-                    contentPanel.deleteTorrent(self.data)
+                    self.guiUtility.deleteTorrent(self.data)
         event.Skip()
         
     def mouseAction(self, event):
         
         self.SetFocus()
         if self.data:
-            try:
-                title = self.detailPanel.data['content_name']
-            except:
-                title = None
-            if self.data.get('content_name','') != title:
-                self.detailPanel.setData(self.data)
-                #print "Clicked"
-                self.parent.updateSelection()
+            self.guiUtility.selectTorrent(self.data)
                 
                 
 DEFAULT_THUMB = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'defaultThumb.png'))

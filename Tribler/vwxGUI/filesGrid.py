@@ -29,7 +29,6 @@ class filesGrid(wx.Panel):
     def OnCreate(self, event):
         self.Unbind(wx.EVT_WINDOW_CREATE)
         wx.CallAfter(self._PostInit)
-        self.Show()
         event.Skip()
         return True
     
@@ -154,7 +153,7 @@ class StaticGridPanel(wx.Panel):
         self.Bind(wx.EVT_SIZE, self.onResize)
         
         self.addComponents()
-        self.Centre()
+        #self.Centre()
         self.Show()
         self.Layout();
         self.Refresh()
@@ -165,10 +164,9 @@ class StaticGridPanel(wx.Panel):
         self.Show(False)
         self.SetBackgroundColour(wx.WHITE)
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
-        self.calculateRows()
         self.SetSizer(self.vSizer);
         self.SetAutoLayout(1);
-        
+        #self.calculateRows()        
 
     def setData(self, panelNumber, data):
         try:
@@ -186,8 +184,8 @@ class StaticGridPanel(wx.Panel):
             
     def onResize(self, event=None):
         
-        #print ".",
-        self.calculateRows()
+        print "event: %s" % event
+        self.calculateRows(event)
         if event:
             event.Skip()
         
@@ -198,16 +196,17 @@ class StaticGridPanel(wx.Panel):
             #print 'Could not get subpanelheight'
             pass
         
-    def calculateRows(self):
+    def calculateRows(self, event=None):
     
-        size = self.GetSize()
+        size = event.GetSize()
         oldRows = self.currentRows
         self.updateSubPanelHeight()
         if size[1] < 50 or self.subPanelHeight == 0:
             self.currentRows = 0
             self.items = 0
-        else:
+        else:            
             self.currentRows = size[1] / self.subPanelHeight
+            print >> sys.stderr, 'filesGrid: Height: %d, single panel is %d, so %d rows' % (size[1], self.subPanelHeight, self.currentRows)
             self.items = self.cols * self.currentRows
         
         if oldRows != self.currentRows: #changed

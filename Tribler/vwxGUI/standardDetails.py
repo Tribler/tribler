@@ -131,11 +131,11 @@ class standardDetails(wx.Panel):
             return None
             
      
-    def setData(self):
+    def setData(self, torrent):
         #self.currentPanel.setData(self.data[self.mode].get('data'))
         # filesDetails.xrc has no setData yet
         titleField = self.data[self.mode].get('title')
-        titleField.SetLabel('hallo')
+        titleField.SetLabel(torrent.get('content_name'))
         
         pass
         

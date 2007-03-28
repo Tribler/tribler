@@ -107,5 +107,10 @@ class standardOverview(wx.Panel):
         if grid:
             grid.setData(self.data[self.mode].get('data'))
         
+    def updateSelection(self):
+        grid = self.data[self.mode].get('grid')
+        if grid:
+            grid.staticGrid.updateSelection()
+        
         
         

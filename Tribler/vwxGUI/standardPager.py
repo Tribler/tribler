@@ -122,9 +122,7 @@ class standardPager(wx.Panel):
         currentPageNumber = len(self.pageNumbers)
         if number > currentPageNumber:
             while (len(self.pageNumbers) < number):
-                text = StaticText(self, -1, "")
-                text.SetForegroundColour(wx.WHITE)
-                text.SetBackgroundColour(self.triblerRed)
+                text = self.getDefaultTextField()
                 text.Bind(wx.EVT_LEFT_UP, self.mouseAction)
                 self.pageNumbers.append(text)
                 self.hSizer.Insert(len(self.pageNumbers), text, 0, wx.TOP|wx.LEFT|wx.RIGHT, 4)
@@ -140,7 +138,7 @@ class standardPager(wx.Panel):
           
         # Manage dots before and after page numbers
         if rightDots and not self.currentDots[1]:
-            dots = wx.StaticText(self, -1, "...")
+            dots = self.getDefaultTextField('...')
             extra =  int(bool(self.currentDots[0]))
             
             self.hSizer.Insert(len(self.pageNumbers)+1+extra, dots, 0, wx.LEFT|wx.RIGHT, 2)
@@ -154,9 +152,9 @@ class standardPager(wx.Panel):
             refresh = True
         
         if leftDots and not self.currentDots[0]:
-            dots = wx.StaticText(self, -1, "...")
+            dots = self.getDefaultTextField('...')
             
-            self.hSizer.Insert(2, dots, 0, wx.LEFT|wx.RIGHT, 2)
+            self.hSizer.Insert(1, dots, 0, wx.LEFT|wx.RIGHT, 2)
             self.currentDots[0] = dots
             refresh = True
         
@@ -183,6 +181,12 @@ class standardPager(wx.Panel):
             else:
                 panel.SetFont(self.normalFont)
             page+=1
+    
+    def getDefaultTextField(self, t=""):
+        text = StaticText(self, -1, t)
+        text.SetForegroundColour(wx.WHITE)
+        text.SetBackgroundColour(self.triblerRed)
+        return text
     
     def refresh(self):
         "Called by Grid if size or data changes"

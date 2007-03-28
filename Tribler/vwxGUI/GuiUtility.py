@@ -155,4 +155,13 @@ class GUIUtility:
         self.standardDetails = standardDetails
         self.standardDetails.setMode('filesMode', None)
         self.standardDetails.refreshStatusPanel(True)
+        
+    def deleteTorrent(self, torrent):
+        pass
+    
+    def selectTorrent(self, torrent):
+        "User clicked on torrent. Has to be selected in detailPanel"
+        self.standardDetails.setData(torrent)
+        self.standardOverview.updateSelection()
+            
     
