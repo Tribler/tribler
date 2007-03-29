@@ -73,7 +73,7 @@ class standardDetails(wx.Panel):
             
             
         self.hSizer.Layout()
-        #self.currentPanel.Refresh()
+        self.currentPanel.Refresh()
         #self.Show(True)
         
         
@@ -83,7 +83,7 @@ class standardDetails(wx.Panel):
             if not statusPanel:
                 statusPanel = self.loadStatusPanel()
                 self.data['status']['panel'] = statusPanel
-            statusPanel.Enable()
+            #statusPanel.Enable()
             statusPanel.Show()
             self.hSizer.Insert(1, statusPanel, 0, wx.TOP|wx.EXPAND, 6)
             self.hSizer.Layout()
@@ -94,7 +94,7 @@ class standardDetails(wx.Panel):
                 try:
                     self.hSizer.Detach(statusPanel)
                     statusPanel.Hide()
-                    statusPanel.Disable()
+                    #statusPanel.Disable()
                 except:
                     print_exc()
         
@@ -108,8 +108,8 @@ class standardDetails(wx.Panel):
             
             # Save paneldata in self.data
             self.data[self.mode]['panel'] = currentPanel
-            titlePanel = xrc.XRCCTRL(currentPanel, 'titlePanel')
-            self.data[self.mode]['title'] = xrc.XRCCTRL(titlePanel, 'titleField')
+            #titlePanel = xrc.XRCCTRL(currentPanel, 'titlePanel')
+            self.data[self.mode]['title'] = xrc.XRCCTRL(currentPanel, 'titleField')
         return currentPanel
     
     def loadStatusPanel(self):
