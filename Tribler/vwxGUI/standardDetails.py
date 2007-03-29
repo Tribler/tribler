@@ -58,8 +58,10 @@ class standardDetails(wx.Panel):
         
         self.currentPanel = self.loadPanel()
         assert self.currentPanel, "Panel could not be loaded"
-        self.setData()
-        self.currentPanel.GetSizer().Layout()
+        self.currentPanel.Layout()
+        self.currentPanel.SetAutoLayout(1)
+        self.currentPanel.SetSizer(self.data[self.mode]['sizer'])
+        self.currentPanel.Bind(wx.EVT_SIZE, self.onResize)
         #self.currentPanel.Enable(True)
         self.currentPanel.Show(True)
         
@@ -110,6 +112,7 @@ class standardDetails(wx.Panel):
             self.data[self.mode]['panel'] = currentPanel
             #titlePanel = xrc.XRCCTRL(currentPanel, 'titlePanel')
             self.data[self.mode]['title'] = xrc.XRCCTRL(currentPanel, 'titleField')
+            self.data[self.mode]['sizer'] = xrc.XRCCTRL(currentPanel, 'mainSizer')
         return currentPanel
     
     def loadStatusPanel(self):
@@ -136,7 +139,12 @@ class standardDetails(wx.Panel):
         # filesDetails.xrc has no setData yet
         titleField = self.data[self.mode].get('title')
         titleField.SetLabel(torrent.get('content_name'))
-        
+        titleField.Wrap(-1)
         pass
         
+        
+    def onResize(self, event):
+        print 'details resize'
+        self.currentPanel.SetSize(self.currentPanel.GetSize())
+        self.currentPanel.Refresh()
         

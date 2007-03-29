@@ -39,7 +39,7 @@ class FilesItemPanel(wx.Panel):
         self.selectedColour = wx.Colour(245,208,120)
         self.unselectedColour = wx.WHITE
         
-        self.vSizer = wx.StaticBoxSizer(wx.StaticBox(self,-1,""),wx.VERTICAL)
+        self.vSizer = wx.BoxSizer(wx.VERTICAL)
         
         self.Bind(wx.EVT_LEFT_UP, self.mouseAction)
         self.Bind(wx.EVT_KEY_UP, self.keyTyped)
@@ -49,50 +49,13 @@ class FilesItemPanel(wx.Panel):
         self.thumb.setBackground(wx.BLACK)
         self.thumb.SetSize((125,70))
         self.vSizer.Add(self.thumb, 0, wx.ALL, 0)
-        self.title =StaticText(self,-1,"")
+        self.title =wx.StaticText(self,-1,"")
         self.title.SetBackgroundColour(wx.WHITE)
-        self.title.SetFont(wx.Font(10,74,90,wx.BOLD,0,"Arial"))
-        self.title.SetMinSize((50,20))
+        self.title.SetFont(wx.Font(10,74,90,wx.NORMAL,0,"Arial"))
+        self.title.SetMinSize((125,40))
         self.vSizer.Add(self.title, 0, wx.ALL|wx.EXPAND, 3)
         
-        # Add seeder, leecher, size
-        self.seeder = StaticText(self, -1, '')
-        self.seeder.SetBackgroundColour(wx.WHITE)
-        self.seederPic = ImagePanel(self)
-        self.seederPic.SetBackgroundColour(wx.WHITE)
-        self.seederBitmap = "up.png"
-        self.warningBitmap = "warning.gif"
-        self.leecherBitmap = "down.png"
-        self.seederPic.SetBitmap(self.seederBitmap)
-        self.leecher = StaticText(self, -1, '')
-        self.leecher.SetBackgroundColour(wx.WHITE)
-        self.leecherPic = ImagePanel(self)
-        self.leecherPic.SetBackgroundColour(wx.WHITE)
-        self.leecherPic.SetBitmap(self.leecherBitmap)
-        self.size = StaticText(self, -1, '')
-        self.size.SetBackgroundColour(wx.WHITE)
-        self.sizePic = ImagePanel(self)
-        self.sizePic.SetBackgroundColour(wx.WHITE)
-        self.sizePic.SetBitmap("size.png")
-        self.recommPic = ImagePanel(self)
-        self.recommPic.SetBackgroundColour(wx.WHITE)
-        self.recommPic.SetBitmap("love.png")
-        self.recomm = StaticText(self, -1, '')
-        self.recomm.SetBackgroundColour(wx.WHITE)
-                
-        self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.hSizer.Add(self.seederPic, 0, wx.RIGHT, 1)
-        self.hSizer.Add(self.seeder, 0, wx.RIGHT, 15)     
-        self.hSizer.Add(self.leecherPic, 0, wx.RIGHT, 1)
-        self.hSizer.Add(self.leecher, 0, wx.RIGHT, 15)
-        self.hSizer.Add(self.sizePic, 0, wx.RIGHT, 5)
-        self.hSizer.Add(self.size, 0, wx.RIGHT, 15)
-        self.hSizer.Add(self.recommPic, 0, wx.RIGHT, 5)
-        self.hSizer.Add(self.recomm, 0, wx.RIGHT, 15)
-        
-
-        self.vSizer.Add(self.hSizer, 0, wx.ALL, 3)
-        self.SetBackgroundColour(wx.WHITE)
+      
 
         self.SetSizer(self.vSizer);
         self.SetAutoLayout(1);
@@ -105,7 +68,6 @@ class FilesItemPanel(wx.Panel):
                              
     def setData(self, torrent):
         # set bitmap, rating, title
-        
         
         try:
             if self.datacopy['infohash'] == torrent['infohash']:
@@ -122,94 +84,22 @@ class FilesItemPanel(wx.Panel):
         self.datacopy = deepcopy(torrent)
         
         if torrent == None:
-            self.vSizer.GetStaticBox().Show(False)
             torrent = {}
-        else:
-            self.vSizer.GetStaticBox().Show(True)
-    
+        
         if torrent.get('content_name'):
             title = torrent['content_name'][:self.titleLength]
             self.title.Enable(True)
             self.title.SetLabel(title)
-            #self.title.Wrap(-1) # no wrap
+            self.title.Wrap(self.title.GetSize()[0])
             self.title.SetToolTipString(torrent['content_name'])
         else:
             self.title.SetLabel('')
             self.title.SetToolTipString('')
             self.title.Enable(False)
             
-        if torrent.get('seeder') != None and torrent.get('leecher') != None: # category means 'not my downloaded files'
-            self.seederPic.SetEnabled(True)
-            self.seeder.Enable(True)
-                        
-            if torrent['seeder'] < 0:
-                self.leecherPic.SetEnabled(False)
-                self.leecher.SetLabel('')
-                self.leecher.Enable(False)
-                self.leecher.SetToolTipString('')
-                self.seederPic.SetBitmap(self.warningBitmap)
-                if torrent['seeder'] == -1:
-                    self.seeder.SetLabel("Outdated swarminfo")
-                    self.seeder.SetToolTipString(self.utility.lang.get('swarm_outdated_tool'))
-                elif torrent['seeder'] == -2:
-                    self.seeder.SetLabel("Swarm not available")
-                    self.seeder.SetToolTipString(self.utility.lang.get('swarm_unavailable_tool'))
-                else:
-                    self.seeder.SetLabel("%d, %d" % (torrent['seeder'], torrent['leecher']))
-            else:
-                self.leecherPic.SetEnabled(True)
-                self.seederPic.SetBitmap(self.seederBitmap)
-                self.seeder.Enable(True)    
-                self.seeder.SetLabel(str(torrent['seeder']))
-                self.seeder.SetToolTipString(self.utility.lang.get('seeder_tool'))
-                self.leecher.Enable(True)
-                self.leecher.SetLabel(str(torrent['leecher']))
-                self.leecher.SetToolTipString(self.utility.lang.get('leecher_tool'))
-        else:
-            self.seeder.SetLabel('')
-            self.seeder.Enable(False)
-            self.seeder.SetToolTipString('')
-            self.seederPic.SetEnabled(False)
-            self.leecher.SetLabel('')
-            self.leecher.Enable(False)
-            self.leecher.SetToolTipString('')
-            self.leecherPic.SetEnabled(False)
-            
-        if torrent.get('length'):
-            self.sizePic.SetEnabled(True)
-            self.size.Enable(True)
-            self.size.SetLabel(self.utility.size_format(torrent['length']))
-            self.size.SetToolTipString(self.utility.lang.get('size_tool'))
-            
-        else:
-            self.size.SetLabel('')
-            self.size.SetToolTipString('')
-            self.size.Enable(False)
-            self.sizePic.SetEnabled(False)
-            
-        if torrent.get('relevance'):
-            self.recomm.SetLabel("%.1f" % torrent['relevance'])
-            self.recommPic.SetEnabled(True)
-            self.recomm.Enable(True)
-            self.recomm.SetToolTipString(self.utility.lang.get('recomm_relevance'))
-        else:
-            self.recomm.SetLabel('')
-            self.recomm.SetToolTipString('')
-            self.recomm.Enable(False)
-            self.recommPic.SetEnabled(False)
-            
+       
         self.thumb.setTorrent(torrent)
-         # Since we have only one category per torrent, no need to show it
-
-#        if torrent.get('category') and torrent.get('myDownloadHistory', False):
-#            categoryLabel = ' / '.join(torrent['category'])
-#        else:
-#            categoryLabel = ''
-#        if self.oldCategoryLabel != categoryLabel:
-#            self.vSizer.GetStaticBox().SetLabel(categoryLabel)
-#            self.oldCategoryLabel = categoryLabel
-
-        
+               
         self.Layout()
         self.Refresh()
         #self.parent.Refresh()
