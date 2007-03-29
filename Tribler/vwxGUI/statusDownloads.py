@@ -44,7 +44,7 @@ class statusDownloads(wx.Panel):
         self.pn34c.SetBackgroundColour(wx.Colour(255,255,255))
         self.st32c = wx.StaticText(self.pn34c,-1,"",wx.Point(1,1),wx.Size(292,53),wx.ST_NO_AUTORESIZE)
         self.st32c.SetLabel("download text etc.\r\n")
-        self.white_bottom = bgPanel(self, -1, wx.Point(3,118), wx.Size(300,5))
+        self.white_bottom = bgPanel(self, -1, wx.Point(0,148), wx.Size(300,5))
         self.sz23s = wx.BoxSizer(wx.VERTICAL)
         self.header = wx.BoxSizer(wx.HORIZONTAL)
         self.sz29s = wx.BoxSizer(wx.HORIZONTAL)

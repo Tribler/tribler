@@ -28,7 +28,7 @@
             <object class="wxPanel" name="titlePanel">
               <bitmap>images/triblerpanel_topcenter.png</bitmap>
               <pos>10,0</pos>
-              <size>100,21</size>
+              <size>280,21</size>
               <bg>#     0</bg>
               <fg>#ffffff</fg>
               <object class="wxStaticText" name="titleField">
@@ -59,7 +59,7 @@
         <option>0</option>
         <object class="wxPanel" name="6_160x90" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
           <pos>0,21</pos>
-          <size>302,170</size>
+          <size>300,170</size>
         </object>
       </object>
       <object class="sizeritem">
@@ -68,7 +68,7 @@
         <option>0</option>
         <object class="wxPanel" name="playbackControls" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
           <pos>0,191</pos>
-          <size>20,20</size>
+          <size>300,20</size>
           <bg>#     0</bg>
         </object>
       </object>
@@ -78,7 +78,7 @@
         <option>0</option>
         <object class="wxPanel" name="tabs">
           <pos>0,211</pos>
-          <size>20,20</size>
+          <size>300,20</size>
           <bg>#     0</bg>
           <object class="wxBoxSizer">
             <orient>wxHORIZONTAL</orient>
@@ -122,7 +122,7 @@
                     <option>0</option>
                     <object class="wxStaticText" name="st60cCC">
                       <style>wxST_NO_AUTORESIZE</style>
-                      <label>comments</label>
+                      <label>Comments</label>
                       <pos>5,0</pos>
                       <size>49,13</size>
                       <fg>#     0</fg>
@@ -140,7 +140,7 @@
         <option>1</option>
         <object class="wxPanel" name="details">
           <pos>0,231</pos>
-          <size>298,348</size>
+          <size>300,348</size>
           <bg>#ffffff</bg>
           <object class="wxBoxSizer">
             <orient>wxVERTICAL</orient>
