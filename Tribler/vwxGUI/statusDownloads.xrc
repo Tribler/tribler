@@ -93,7 +93,7 @@
         <border>3</border>
         <option>0</option>
         <object class="wxPanel" name="white_bottom" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
-          <pos>3,118</pos>
+          <pos>0,148</pos>
           <size>300,5</size>
         </object>
       </object>
