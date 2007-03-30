@@ -113,6 +113,7 @@ class standardDetails(wx.Panel):
             #titlePanel = xrc.XRCCTRL(currentPanel, 'titlePanel')
             self.data[self.mode]['title'] = xrc.XRCCTRL(currentPanel, 'titleField')
             self.data[self.mode]['sizer'] = xrc.XRCCTRL(currentPanel, 'mainSizer')
+            self.data[self.mode]['thumb'] = xrc.XRCCTRL(currentPanel, 'thumbField')
         return currentPanel
     
     def loadStatusPanel(self):
@@ -135,11 +136,17 @@ class standardDetails(wx.Panel):
             
      
     def setData(self, torrent):
+        
         #self.currentPanel.setData(self.data[self.mode].get('data'))
         # filesDetails.xrc has no setData yet
         titleField = self.data[self.mode].get('title')
         titleField.SetLabel(torrent.get('content_name'))
         titleField.Wrap(-1)
+        
+        thumbField = self.data[self.mode].get('thumb')        
+        thumbField.SetBackgroundColour(wx.Colour(255,51,0))        
+        thumbField.Refresh()
+        
         pass
         
         

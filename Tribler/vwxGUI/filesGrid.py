@@ -145,7 +145,7 @@ class StaticGridPanel(wx.Panel):
         self.parent = parent
         self.cols = cols
         self.currentRows = 0
-        self.subPanelHeight = 100 # This will be update after first refresh
+        self.subPanelHeight = 116 # This will be update after first refresh
         self.detailPanel = None
         
         self.panels = []
@@ -155,8 +155,9 @@ class StaticGridPanel(wx.Panel):
         self.addComponents()
         #self.Centre()
         self.Show()
-        self.Layout();
+        self.Layout()
         self.Refresh()
+        #self.calculateRows() # recalculate rows //tb
         #print "vSizer: %s, Panel: %s"% (self.vSizer.GetSize(), self.GetSize())
         
         
@@ -182,9 +183,8 @@ class StaticGridPanel(wx.Panel):
         for i in range(0, self.items):
             self.setData(i, None)
             
-    def onResize(self, event=None):
-        
-        print "event: %s" % event
+    def onResize(self, event=None):        
+        print "event: %s" % event       
         self.calculateRows(event)
         if event:
             event.Skip()
@@ -196,6 +196,8 @@ class StaticGridPanel(wx.Panel):
             #print 'Could not get subpanelheight'
             pass
         
+        
+        
     def calculateRows(self, event=None):
     
         size = event.GetSize()
@@ -205,7 +207,7 @@ class StaticGridPanel(wx.Panel):
             self.currentRows = 0
             self.items = 0
         else:            
-            self.currentRows = size[1] / self.subPanelHeight
+            self.currentRows = size[1] / self.subPanelHeight 
             print >> sys.stderr, 'filesGrid: Height: %d, single panel is %d, so %d rows' % (size[1], self.subPanelHeight, self.currentRows)
             self.items = self.cols * self.currentRows
         
@@ -216,11 +218,14 @@ class StaticGridPanel(wx.Panel):
             self.updatePanel(oldRows, self.currentRows)
             self.parent.gridResized(self.currentRows)
             
+        
+        
+            
     def getSubPanel(self):
         return FilesItemPanel(self)
     
     def updatePanel(self, oldRows, newRows):
-        #
+        # put torrent items in grid 
         if newRows > oldRows:
             for i in range(oldRows, newRows):
                 hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -244,6 +249,9 @@ class StaticGridPanel(wx.Panel):
                 assert self.panels[row] == [], 'We deleted all panels, still the row is %s' % self.panels[row]
                 del self.panels[row]
                 self.vSizer.Detach(row) # detach hSizer of the row
+                
+       
+        
           
     
     def updateSelection(self):

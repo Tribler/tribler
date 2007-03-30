@@ -48,14 +48,12 @@ class FilesItemPanel(wx.Panel):
         self.thumb = ThumbnailViewer(self)
         self.thumb.setBackground(wx.BLACK)
         self.thumb.SetSize((125,70))
-        self.vSizer.Add(self.thumb, 0, wx.ALL, 0)
-        self.title =wx.StaticText(self,-1,"")
+        self.vSizer.Add(self.thumb, 0, wx.ALL, 0)        
+        self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(125,15))        
         self.title.SetBackgroundColour(wx.WHITE)
-        self.title.SetFont(wx.Font(10,74,90,wx.NORMAL,0,"Arial"))
+        self.title.SetFont(wx.Font(10,74,90,wx.NORMAL,0,"Verdana"))
         self.title.SetMinSize((125,40))
-        self.vSizer.Add(self.title, 0, wx.ALL|wx.EXPAND, 3)
-        
-      
+        self.vSizer.Add(self.title, 0, wx.ALL|wx.EXPAND, 3)     
 
         self.SetSizer(self.vSizer);
         self.SetAutoLayout(1);

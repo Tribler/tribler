@@ -57,9 +57,11 @@
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="wxPanel" name="6_160x90" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+        <object class="wxPanel" name="thumbField">
+          <bitmap>images/5_160x90.jpg</bitmap>
           <pos>0,21</pos>
           <size>300,170</size>
+          <bg>#3299cc</bg>
         </object>
       </object>
       <object class="sizeritem">

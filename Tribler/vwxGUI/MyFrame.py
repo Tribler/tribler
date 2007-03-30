@@ -136,7 +136,7 @@ class MyFrame(wx.Frame):
         self.vertical1.Add(self.horziontal1,0,wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.vertical1.Add(self.horizontal2,0,wx.FIXED_MINSIZE,3)
         self.horziontal1.Add(self.verticalC,1,wx.FIXED_MINSIZE,3)
-        self.horziontal1.Add([5,60],1,wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,3)
+        self.horziontal1.Add([134,60],1,wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.horizontal2.Add([287,5],0,wx.FIXED_MINSIZE,3)
         self.verticalC.Add(self.horizontalC,0,wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.FIXED_MINSIZE,3)
         self.verticalC.Add(self.horizontal2C,0,wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.FIXED_MINSIZE,3)
