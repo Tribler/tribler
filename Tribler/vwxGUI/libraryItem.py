@@ -22,22 +22,14 @@ class libraryItem(wx.Panel):
 
 
     def VwXinit(self):
-        self.fileImgBuf=[None] * 2
-        self.fileImgBuf[0] = wx.Bitmap("images/6.jpg",wx.BITMAP_TYPE_JPEG)
-        self.fileImgBuf[1] = wx.Bitmap("images/contentrating.png",wx.BITMAP_TYPE_PNG)
-        self.bm4cImg0=self.fileImgBuf[0];
-        self.bm15cImg0=self.fileImgBuf[1];
         self.Show(True)
         self.SetBackgroundColour(wx.Colour(255,255,255))
-        self.bm4c = wx.StaticBitmap(self,-1,self.bm4cImg0,wx.Point(3,3),wx.Size(55,35),wx.SIMPLE_BORDER)
-        self.bm4c.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_ACTIVECAPTION))
         self.st5c = wx.StaticText(self,-1,"",wx.Point(58,3),wx.Size(162,14),wx.ST_NO_AUTORESIZE)
         self.st5c.SetLabel("NOS 8 Uur Journaal van...")
         self.st5c.SetFont(wx.Font(8,74,90,90,0,"Verdana"))
         self.st13c = wx.StaticText(self,-1,"",wx.Point(61,20),wx.Size(49,13),wx.ST_NO_AUTORESIZE)
         self.st13c.SetLabel("video (avi) 01m32")
         self.st13c.SetForegroundColour(wx.Colour(128,128,128))
-        self.bm15c = wx.StaticBitmap(self,-1,self.bm15cImg0,wx.Point(226,3),wx.Size(77,17))
         self.st5cCC = wx.StaticText(self,-1,"",wx.Point(306,13),wx.Size(87,15),wx.ST_NO_AUTORESIZE)
         self.st5cCC.SetLabel("progress pic")
         self.st5cCC.SetForegroundColour(wx.Colour(255,85,0))
@@ -57,9 +49,7 @@ class libraryItem(wx.Panel):
         self.sz14s = wx.BoxSizer(wx.VERTICAL)
         self.sz16s = wx.BoxSizer(wx.HORIZONTAL)
         self.sz16sC = wx.BoxSizer(wx.HORIZONTAL)
-        self.sz3s.Add(self.bm4c,0,wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_CENTER_HORIZONTAL|wx.FIXED_MINSIZE,3)
         self.sz3s.Add(self.sz12s,0,wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.FIXED_MINSIZE,3)
-        self.sz3s.Add(self.bm15c,0,wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.FIXED_MINSIZE,3)
         self.sz3s.Add(self.st5cCC,0,wx.TOP|wx.LEFT|wx.ALIGN_CENTER_VERTICAL|wx.FIXED_MINSIZE,3)
         self.sz3s.Add(self.sz14s,0,wx.FIXED_MINSIZE,3)
         self.sz3s.Add(self.st5cCCC,0,wx.ALIGN_CENTER_VERTICAL|wx.FIXED_MINSIZE,3)

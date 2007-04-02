@@ -78,7 +78,7 @@ class MyFrame(wx.Frame):
         self.mainButtonProfile.Bind(wx.EVT_ERASE_BACKGROUND,self.VwXmainButtonProfile_VwXEvOnEraseBackground)
         self.mainButtonLibrary = tribler_topButton(self.topBG1, -1, wx.Point(251,5), wx.Size(60,72))
         self.mainButtonLibrary.Bind(wx.EVT_ERASE_BACKGROUND,self.VwXmainButtonLibrary_VwXEvOnEraseBackground)
-        self.mainButtonRss = tribler_topButton(self.topBG1, -1, wx.Point(431,5), wx.Size(60,72))
+        self.mainButtonRss = tribler_topButton(self.topBG1, -1, wx.Point(311,5), wx.Size(60,72))
         self.mainButtonRss.Bind(wx.EVT_ERASE_BACKGROUND,self.VwXmainButtonRss_VwXEvOnEraseBackground)
         self.mainButtonFriends = tribler_topButton(self.topBG1, -1, wx.Point(311,5), wx.Size(60,72))
         self.mainButtonFriends.Bind(wx.EVT_ERASE_BACKGROUND,self.VwXmainButtonFriends_VwXEvOnEraseBackground)

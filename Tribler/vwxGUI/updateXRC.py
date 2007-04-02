@@ -23,7 +23,8 @@ def changeFile(filename):
                      ('filesFilter', 'wxPanel', customDir+'filesFilter'),
                      ('filesTabs', 'wxPanel', customDir+'filesTabs'), 
                      ('filesGrid', 'wxPanel', customDir+'filesGrid'),
-                     ('filesTabs', 'wxPanel', customDir+'filesTabs'),                     
+                     ('filesTabs', 'wxPanel', customDir+'filesTabs'),
+                     ('libraryGrid', 'wxPanel', customDir+'libraryGrid'),                     
                      ('wxFrame', 'wxFrame', 'abc_vwx')]
     
     

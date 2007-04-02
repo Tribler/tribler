@@ -7,18 +7,6 @@
     <object class="wxBoxSizer">
       <orient>wxHORIZONTAL</orient>
       <object class="sizeritem">
-        <flag>wxEXPAND|wxALIGN_CENTER_VERTICAL|wxALIGN_CENTER_HORIZONTAL|wxFIXED_MINSIZE</flag>
-        <border>3</border>
-        <option>0</option>
-        <object class="wxStaticBitmap" name="bm4c">
-          <bitmap>images/6.jpg</bitmap>
-          <style>wxSIMPLE_BORDER</style>
-          <pos>3,3</pos>
-          <size>55,35</size>
-          <bg>#000000</bg>
-        </object>
-      </object>
-      <object class="sizeritem">
         <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
@@ -55,16 +43,6 @@
               <fg>#808080</fg>
             </object>
           </object>
-        </object>
-      </object>
-      <object class="sizeritem">
-        <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxALIGN_CENTER_VERTICAL|wxFIXED_MINSIZE</flag>
-        <border>3</border>
-        <option>0</option>
-        <object class="wxStaticBitmap" name="bm15c">
-          <bitmap>images/contentrating.png</bitmap>
-          <pos>226,3</pos>
-          <size>77,17</size>
         </object>
       </object>
       <object class="sizeritem">
