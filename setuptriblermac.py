@@ -1,6 +1,9 @@
 from bundlebuilder import buildapp
 from distutils.util import get_platform
 
+if __debug__:
+    print "WARNING: Non optimised python bytecode (.pyc) will be produced. Run with -OO instead to produce and bundle .pyo files."
+
 import wxversion
 
 wxversion.select('2.8-unicode')
