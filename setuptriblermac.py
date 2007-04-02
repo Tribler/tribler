@@ -47,6 +47,20 @@ from plistlib import Plist
 #
 ################################################################
 
+def includedir( path ):
+    """ Recursive directory listing, filtering out svn files. """
+
+    total = []
+
+    for root,dirs,files in os.walk( path ):
+        if '.svn' in dirs:
+            dirs.remove('.svn')
+
+        for f in files:
+            total.append( "%s/%s" % (root,f) )
+
+    return [(x,"Contents/Resources/%s" % x) for x in total]
+
 buildapp(
     name='Tribler.app',
     mainprogram='abc.py',
@@ -62,12 +76,11 @@ buildapp(
     files = [("Lang/english.lang","Contents/Resources/Lang/"),
              ("superpeer.txt",    "Contents/Resources/"),
              ("category.conf",    "Contents/Resources/"),
-             ("icons/",           "Contents/Resources/icons"),
              ("binary-LICENSE.txt",      "Contents/Resources/"),
              ("readme.txt",       "Contents/Resources/"),
              ("tribler.ico",      "Contents/Resources/"),
              ("torrenticon.ico",  "Contents/Resources/"),
-             ("mac/TriblerDoc.icns", "Contents/Resources/"),]
+             ("mac/TriblerDoc.icns", "Contents/Resources/"),] + includedir( "icons" )
 )
 
 # fix library lookup in wx's *.so
