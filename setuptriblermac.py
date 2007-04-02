@@ -1,20 +1,32 @@
 from bundlebuilder import buildapp
 from distutils.util import get_platform
+import sys,os
+
+# ----- some basic checks
 
 if __debug__:
     print "WARNING: Non optimised python bytecode (.pyc) will be produced. Run with -OO instead to produce and bundle .pyo files."
+
+if sys.platform != "darwin":
+    print "WARNING: You do not seem to be running Mac OS/X." 
+
+if get_platform().split("-")[2] != "fat":
+    print "WARNING: Not using and thus not shipping a Universal Binary of Python. This leads to a slower Tribler on Intel Macs."
+
+# ----- import and verify wxPython
 
 import wxversion
 
 wxversion.select('2.8-unicode')
 
-import os,sys
 import wx
 
 # For now, assume a specific location for the wxPython libraries until
 # someone finds a better way of discovering it.
 
-assert wx.__version__ > "2.6", "You need wxPython 2.6 or higher."
+if wx.__version__ < "2.6":
+    print "WARNING: You need wxPython 2.6 or higher but are using %s." % wx.__version__
+
 wx_major,wx_minor = wx.__version__.split(".")[0:2]
 if "unicode" in wx.PlatformInfo:
     u1,u2 = "unicode", "u"
@@ -28,6 +40,8 @@ wx_lib="/usr/local/lib/wxPython-%s-%s/lib/libwx_mac%sd-%s.%s.0.dylib" % (
   wx_major,
   wx_minor )
 
+# ----- import and verify M2Crypto
+
 def libdirs( path ):
         return ["%s/%s" % (path,p)
                 for p in os.listdir(path)
@@ -37,7 +51,8 @@ sys.path = libdirs("m2crypto/build") + sys.path
 
 import M2Crypto
 import M2Crypto.m2
-assert "ec_init" in M2Crypto.m2.__dict__, "Could not import specialistic M2Crypto (imported %s)" % M2Crypto.__file__
+if "ec_init" not in M2Crypto.m2.__dict__:
+    print "WARNING: Could not import specialistic M2Crypto (imported %s)" % M2Crypto.__file__
 
 from plistlib import Plist
 
@@ -64,6 +79,8 @@ def includedir( path ):
 
     return [(x,"Contents/Resources/%s" % x) for x in total]
 
+# ----- build the app bundle
+
 buildapp(
     name='Tribler.app',
     mainprogram='abc.py',
@@ -86,22 +103,28 @@ buildapp(
              ("mac/TriblerDoc.icns", "Contents/Resources/"),] + includedir( "icons" )
 )
 
-# fix library lookup in wx's *.so
+# ----- post-process app bundle
+
+# fix library lookup in wx's *.so to use relative paths
 so_dir = "build/Tribler.app/Contents/Resources/ExtensionModules/wx"
 so_files = [x for x in os.listdir( so_dir ) if x.endswith(".so")]
 
 for f in so_files:
-        os.system("install_name_tool -change %s %s %s/%s" % (wx_lib,os.path.basename(wx_lib),so_dir,f))
+    os.system("install_name_tool -change %s %s %s/%s" % (wx_lib,os.path.basename(wx_lib),so_dir,f))
 
-try:
-   os.remove("Tribler.dmg")
-except:
-   pass
-
+# ----- add some extra files outside the app bundle
 try:
     os.mkdir("build/Sample Friend Icons")
 except:
     pass
 
 os.system("cp icons/mugshots/*.bmp 'build/Sample Friend Icons'")
+
+# ----- create the Tribler.dmg disk image
+try:
+   os.remove("Tribler.dmg")
+except:
+   pass
+
 os.system("hdiutil create -srcfolder build -format UDZO -fs HFS+ -volname Tribler Tribler.dmg")
+
