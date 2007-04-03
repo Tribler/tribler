@@ -1,6 +1,6 @@
 from bundlebuilder import buildapp
 from distutils.util import get_platform
-import sys,os
+import sys,os,platform
 
 # ----- some basic checks
 
@@ -11,7 +11,10 @@ if sys.platform != "darwin":
     print "WARNING: You do not seem to be running Mac OS/X." 
 
 if get_platform().split("-")[2] != "fat":
-    print "WARNING: Not using and thus not shipping a Universal Binary of Python. This leads to a slower Tribler on Intel Macs."
+    if platform.processor() == "i386":
+        print "WARNING: You are using an Intel Mac but not a Universal Binary of Python. The produced bundle will not run on PPC Macs."
+    else:
+        print "WARNING: Not using and thus not shipping a Universal Binary of Python. This leads to a slower Tribler on Intel Macs."
 
 # ----- import and verify wxPython
 
