@@ -93,6 +93,8 @@ class ABCList(ManagedList):
                       COL_TOTALSPEED]
 
         ManagedList.__init__(self, parent, style, prefix, minid, maxid, exclude, rightalign)
+
+        
         
         dragdroplist = FileDropTarget(self.utility)
         self.SetDropTarget(dragdroplist)
@@ -163,6 +165,7 @@ class ABCList(ManagedList):
             ABCTorrentTemp = queue.getABCTorrent(index = index)
             if ABCTorrentTemp is not None:
                 torrentselected.append(ABCTorrentTemp)
+               
         return torrentselected
 
     def OnItemSelected(self, event = None):
@@ -260,6 +263,7 @@ class ABCPanel(wx.Panel):
     ######################################
     def updateColumns(self, force = False):
         # Update display in column for inactive torrent
+
         for ABCTorrentTemp in self.utility.torrents["all"]:
             ABCTorrentTemp.updateColumns(force = force)
  
@@ -430,9 +434,9 @@ class ABCFrame(wx.Frame,DelayedInvocation):
         #if server start with params run it
         #####################################
         if params[0] != "":
-            if sys.platform == "darwin":
+            if sys.platform == "darwin":               
                self.utility.queue.addtorrents.AddTorrentFromFile(params[0])
-            else:
+            else:               
                ClientPassParam(params[0])
 
         sys.stdout.write('GUI Complete.\n')

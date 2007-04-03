@@ -44,7 +44,7 @@ class libraryGrid(wx.Panel):
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.detailPanel = None
-        self.cols = 5
+        self.cols = 1
         self.items = 0
         self.currentData = 0
         self.addComponents()
@@ -225,8 +225,8 @@ class StaticGridPanel(wx.Panel):
             
     def getSubPanel(self):
         #return FilesItemPanel(self)
-        #return LibraryItemPanel(self)
-        return libraryItem(self)
+        return LibraryItemPanel(self)
+        #return libraryItem(self)
     
     def updatePanel(self, oldRows, newRows):
         # put torrent items in grid 

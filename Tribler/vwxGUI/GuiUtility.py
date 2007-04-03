@@ -58,7 +58,9 @@ class GUIUtility:
         return ['aap', 'noot', 'mies']
   
     def setCategory(self, cat):
-        print 'Category set to %s' % cat
+        print 'Category set to %s' % cat            
+        self.categorykey = cat
+        return self.reloadData()
         
     def buttonClicked(self, event):
         "One of the buttons in the GUI has been clicked"
@@ -90,11 +92,16 @@ class GUIUtility:
             print 'A button was clicked, but no action is defined for: %s' % name
                 
         
-    def standardFilesOverview(self):
+    def standardFilesOverview(self):        
+        self.categorykey = 'all'
         torrentList = self.reloadData()
         self.standardOverview.setMode('filesMode', torrentList)
         
     def standardPersonsOverview(self):
+        self.categorykey = self.utility.lang.get('mypref_list_title')
+        #self.utility.lang.get('mypref_list_title')
+        #personsList = self.setCategory('video')
+        #personsList = self.setCategory('myDownloadHistory')
         personsList = self.reloadData()
         overview = self.request('standardOverview')
         overview.setMode('personsMode', personsList)
@@ -104,7 +111,8 @@ class GUIUtility:
         overview = self.request('standardOverview')
         overview.setMode('profileMode', profileList)
         
-    def standardLibraryOverview(self):
+    def standardLibraryOverview(self):        
+        self.categorykey = self.utility.lang.get('mypref_list_title')
         libraryList = self.reloadData()
         overview = self.request('standardOverview')
         overview.setMode('libraryMode', libraryList)
@@ -122,7 +130,7 @@ class GUIUtility:
     def reloadData(self):
         
         # load content category
-        self.categorykey = 'all'
+        #self.categorykey = 'all'
         self.data = self.data_manager.getCategory(self.categorykey)
         self.filtered = []
         for torrent in self.data:

@@ -375,7 +375,6 @@ class wxFrame(wx.Frame, DelayedInvocation):
 
         # Start the scheduler before creating the ListCtrl
         self.utility.queue  = ABCScheduler(self.utility)
-        
         #self.window = ABCPanel(self)
         #self.abc_sb = self.window.abc_sb
         

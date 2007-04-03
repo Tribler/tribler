@@ -50,7 +50,7 @@ class ABCScheduler(DelayedEventHandler):
         # Read old list from torrent.lst
         ####################################
         self.addtorrents.readTorrentList()
-
+        
         # Wait until after creating the list and adding torrents
         # to start CyclicalTasks in the scheduler
         self.CyclicalTasks()

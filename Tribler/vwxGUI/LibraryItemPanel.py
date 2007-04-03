@@ -39,7 +39,7 @@ class LibraryItemPanel(wx.Panel):
         self.selectedColour = wx.Colour(245,208,120)
         self.unselectedColour = wx.WHITE
         
-        self.vSizer = wx.BoxSizer(wx.VERTICAL)
+        self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
         self.Bind(wx.EVT_LEFT_UP, self.mouseAction)
         self.Bind(wx.EVT_KEY_UP, self.keyTyped)
@@ -47,15 +47,15 @@ class LibraryItemPanel(wx.Panel):
         # Add title
         self.thumb = ThumbnailViewer(self)
         self.thumb.setBackground(wx.BLACK)
-        self.thumb.SetSize((125,70))
-        self.vSizer.Add(self.thumb, 0, wx.ALL, 0)        
+        self.thumb.SetSize((66,37))
+        self.hSizer.Add(self.thumb, 0, wx.ALL, 0)        
         self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(125,15))        
         self.title.SetBackgroundColour(wx.WHITE)
         self.title.SetFont(wx.Font(10,74,90,wx.NORMAL,0,"Verdana"))
         self.title.SetMinSize((125,40))
-        self.vSizer.Add(self.title, 0, wx.ALL|wx.EXPAND, 3)     
+        self.hSizer.Add(self.title, 0, wx.ALL|wx.EXPAND, 3)     
 
-        self.SetSizer(self.vSizer);
+        self.SetSizer(self.hSizer);
         self.SetAutoLayout(1);
         self.Layout();
         self.Refresh()

@@ -692,6 +692,7 @@ class MyPreferenceDB(BasicDB):     #  = FileDB
             'content_dir':'',   # dir + name = full path
             'last_seen':0,
         }
+
                 
     def getInstance(*args, **kw):
         if MyPreferenceDB.__single is None:

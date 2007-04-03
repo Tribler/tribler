@@ -1294,7 +1294,7 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
             self.data_manager.unregister(self.updateFun, self.oldCategory)
         
         if False: #self.categorykey == self.utility.lang.get('mypref_list_title'):
-            # load download history
+            # load download history            
             self.loadMyDownloadHistory()
         else:
             # load content category
