@@ -1060,3 +1060,9 @@ searching_content = "Searching for Tribler content..."
 delete_sure = "Are you sure you want to delete %s"
 delete_mypref_sure = "Are you sure you want to remove %s from your download history"
 recomm_relevance = "How much is it related to your taste"
+
+###################
+# Notification
+###################
+notify_doneseeding = "Finished seeding"
+notify_downloadcomplete = "Download complete"

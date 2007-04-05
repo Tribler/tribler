@@ -1,6 +1,9 @@
-from bundlebuilder import buildapp
+import bundlebuilder
 from distutils.util import get_platform
 import sys,os,platform
+
+# modules to include into bundle
+includeModules=["M2Crypto","wx","wxPython","encodings.utf_8","encodings.latin_1","argvemulator","_xmlplus.sax"]
 
 # ----- some basic checks
 
@@ -57,6 +60,14 @@ import M2Crypto.m2
 if "ec_init" not in M2Crypto.m2.__dict__:
     print "WARNING: Could not import specialistic M2Crypto (imported %s)" % M2Crypto.__file__
 
+# ----- import Growl
+try:
+    import Growl
+
+    includeModules += ["Growl"]
+except:
+    print "WARNING: Not including Growl support."
+
 from plistlib import Plist
 
 ################################################################
@@ -82,9 +93,16 @@ def includedir( path ):
 
     return [(x,"Contents/Resources/%s" % x) for x in total]
 
+# ----- ugly hack to be able to use .pyo files
+
+if not __debug__:
+    s = bundlebuilder.BOOTSTRAP_SCRIPT.split("\n")
+    s.insert(-2,'os.environ["PYTHONOPTIMIZE"] = "2"')
+    bundlebuilder.BOOTSTRAP_SCRIPT = "\n".join(s)
+
 # ----- build the app bundle
 
-buildapp(
+bundlebuilder.buildapp(
     name='Tribler.app',
     mainprogram='abc.py',
     iconfile='mac/tribler.icns',
@@ -92,9 +110,10 @@ buildapp(
     argv_emulation=1,
     strip=1,
     #semi_standalone=1,
+    optimize=3*int(not __debug__),
     standalone=1,
     excludeModules=["Tkinter","Tkconstants","tcl"],
-    includeModules=["M2Crypto","wx","wxPython","encodings.utf_8","encodings.latin_1","argvemulator","_xmlplus.sax"],
+    includeModules=includeModules,
     libs=[wx_lib],
     files = [("Lang/english.lang","Contents/Resources/Lang/"),
              ("superpeer.txt",    "Contents/Resources/"),
