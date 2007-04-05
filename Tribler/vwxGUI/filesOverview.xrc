@@ -2,7 +2,7 @@
 <resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
   <object class="wxPanel" name="filesOverview">
     <pos>0,0</pos>
-    <size>625,430</size>
+    <size>623,35</size>
     <bg>#ffffff</bg>
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>
@@ -39,7 +39,7 @@
                   <option>0</option>
                   <object class="wxStaticText" name="st64c">
                     <style>wxST_NO_AUTORESIZE</style>
-                    <label>Content</label>
+                    <label>Files</label>
                     <pos>0,4</pos>
                     <size>269,15</size>
                     <bg>#ff3300</bg>
@@ -64,103 +64,9 @@
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="wxPanel" name="pn214c">
-          <pos>0,21</pos>
-          <size>623,35</size>
-          <bg>#999999</bg>
-          <object class="wxBoxSizer">
-            <orient>wxHORIZONTAL</orient>
-            <object class="spacer">
-              <size>8,30</size>
-              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-              <border>3</border>
-              <option>0</option>
-            </object>
-            <object class="sizeritem">
-              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-              <border>3</border>
-              <option>1</option>
-              <object class="wxBoxSizer">
-                <orient>wxHORIZONTAL</orient>
-                <object class="sizeritem">
-                  <flag>wxTOP|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                  <border>3</border>
-                  <option>0</option>
-                  <object class="wxChoice" name="chc215cC">
-                    <content>
-                      <item>video</item>
-                      <item>audio</item>
-                      <item>pictures</item>
-                      <item>other</item>
-                      <item>xxx</item>
-                    </content>
-                    <pos>8,3</pos>
-                    <size>120,21</size>
-                    <font>
-                      <size>10</size>
-                      <family>modern</family>
-                      <style>normal</style>
-                      <weight>normal</weight>
-                      <underlined>0</underlined>
-                      <face>Verdana</face>
-                    </font>
-                  </object>
-                </object>
-                <object class="sizeritem">
-                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                  <border>3</border>
-                  <option>0</option>
-                  <object class="wxChoice" name="chc215c">
-                    <content>
-                      <item>most popular</item>
-                      <item>top rated</item>
-                      <item>recommended</item>
-                      <item>from network</item>
-                    </content>
-                    <pos>134,3</pos>
-                    <size>120,21</size>
-                    <font>
-                      <size>10</size>
-                      <family>modern</family>
-                      <style>normal</style>
-                      <weight>normal</weight>
-                      <underlined>0</underlined>
-                      <face>Verdana</face>
-                    </font>
-                  </object>
-                </object>
-                <object class="sizeritem">
-                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                  <border>3</border>
-                  <option>0</option>
-                  <object class="wxChoice" name="chc215cCC">
-                    <content>
-                      <item>today</item>
-                      <item>this week</item>
-                      <item>this month</item>
-                      <item>all time</item>
-                    </content>
-                    <pos>260,3</pos>
-                    <size>120,21</size>
-                    <font>
-                      <size>10</size>
-                      <family>modern</family>
-                      <style>normal</style>
-                      <weight>normal</weight>
-                      <underlined>0</underlined>
-                      <face>Verdana</face>
-                    </font>
-                  </object>
-                </object>
-              </object>
-            </object>
-            <object class="spacer">
-              <size>10,10</size>
-              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-              <border>3</border>
-              <option>0</option>
-            </object>
-          </object>
+        <object class="wxPanel" name="filesFilter225c" subclass="Tribler.vwxGUI.filesFilter.filesFilter">
+          <pos>0,59</pos>
+          <size>617,35</size>
         </object>
       </object>
       <object class="sizeritem">
@@ -168,7 +74,7 @@
         <border>10</border>
         <option>1</option>
         <object class="wxPanel" name="filesGrid" subclass="Tribler.vwxGUI.filesGrid.filesGrid">
-          <pos>10,51</pos>
+          <pos>10,97</pos>
           <size>623,10</size>
         </object>
       </object>

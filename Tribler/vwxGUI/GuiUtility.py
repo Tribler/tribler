@@ -2,6 +2,9 @@ import wx
 from wx import xrc
 from bgPanel import *
 import updateXRC
+
+#from Tribler.vwxGUI.filesFilter import filesFilter
+
 from Tribler.Dialogs.abcfileframe import TorrentDataManager
 from Tribler.utilities import *
 
@@ -16,8 +19,10 @@ class GUIUtility:
             raise RuntimeError, "GUIUtility is singleton"
         GUIUtility.__single = self 
         # do other init
+        self.type = 'swarmsize'
         self.guiObjects = {}
         self.xrcResource = None
+        self.filesFilter = None
         self.utility = utility
         self.params = params
         self.data_manager = TorrentDataManager.getInstance(self.utility)
@@ -77,6 +82,9 @@ class GUIUtility:
             
             
         if name == 'mainButtonFiles':
+            # reques filesFilter its state 
+            #filter1String = self.filesFilter.getFilterSelected()                       
+            
             self.standardFilesOverview()
         elif name == 'mainButtonPersons':
             self.standardPersonsOverview()
@@ -92,10 +100,21 @@ class GUIUtility:
             print 'A button was clicked, but no action is defined for: %s' % name
                 
         
-    def standardFilesOverview(self):        
-        self.categorykey = 'all'
+    def standardFilesOverview(self, filter1String = ""):        
+        #self.categorykey = 'all'
+        print 'Files > filter1String='+filter1String
+        #if filesFilter1:
+        if filter1String == "" :
+            filter1String = self.filesFilter
+        else:    
+            self.filesFilter = filter1String
+        
+        torrentList = self.setCategory(filter1String)        
+        #self.categorykey = 'all'
         torrentList = self.reloadData()
-        self.standardOverview.setMode('filesMode', torrentList)
+        overview = self.request('standardOverview')
+        overview.setMode('filesMode', filter1String, torrentList)
+        
         
     def standardPersonsOverview(self):
         self.categorykey = self.utility.lang.get('mypref_list_title')
@@ -104,29 +123,37 @@ class GUIUtility:
         #personsList = self.setCategory('myDownloadHistory')
         personsList = self.reloadData()
         overview = self.request('standardOverview')
-        overview.setMode('personsMode', personsList)
+        #overview.setMode('personsMode', personsList)
     
     def standardProfileOverview(self):
         profileList = self.reloadData()
         overview = self.request('standardOverview')
-        overview.setMode('profileMode', profileList)
+        #overview.setMode('profileMode', profileList)
         
-    def standardLibraryOverview(self):        
+    def standardLibraryOverview(self, filter1String="audio"):       
+        print 'Library > filter1String='+filter1String 
+        
         self.categorykey = self.utility.lang.get('mypref_list_title')
         libraryList = self.reloadData()
         overview = self.request('standardOverview')
-        overview.setMode('libraryMode', libraryList)
+        overview.setMode('libraryMode', filter1String, libraryList)
+        
         
     def standardFriendsOverview(self):
         friendsList = self.reloadData()
         overview = self.request('standardOverview')
-        overview.setMode('friendsMode', friendsList)
+        #overview.setMode('friendsMode', friendsList)
          
     def standardMessagesOverview(self):
         messagesList = self.reloadData()
         overview = self.request('standardOverview')
-        overview.setMode('messagesMode', messagesList)       
-
+        #overview.setMode('messagesMode', messagesList)       
+        
+    def reorder(self, type):
+        print 'reorder function'
+        self.type = type
+        self.reloadData()
+        
     def reloadData(self):
         
         # load content category
@@ -137,7 +164,11 @@ class GUIUtility:
             if torrent.get('status') == 'good' or torrent.get('myDownloadHistory'):
                 self.filtered.append(torrent)
         
+        #self.filtered = sort_dictlist(self.filtered, self.type, 'decrease')
         self.filtered = sort_dictlist(self.filtered, 'swarmsize', 'decrease')
+
+        #self.standardOverview.setData()
+        #self.standardOverview.setMode()
         #print self.filtered
         return self.data # no filtering
         
@@ -154,9 +185,9 @@ class GUIUtility:
 
     def initStandardOverview(self, standardOverview):
         self.standardOverview = standardOverview
-        self.standardFilesOverview()
+        self.standardFilesOverview('video')
         filesButton = xrc.XRCCTRL(self.frame, 'mainButtonFiles')
-        #print 'FilesButton', filesButton
+        #print 'FilesButton', filesButton        
         self.selectMainButton(filesButton)
         
     def initStandardDetails(self, standardDetails):

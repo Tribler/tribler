@@ -262,12 +262,12 @@ class ThumbnailViewer(wx.Panel):
         
     def mouseAction(self, event):
         if event.Entering():
-            print 'enter' 
+            #print 'enter' 
             self.mouseOver = True
             self.Refresh()
         elif event.Leaving():
             self.mouseOver = False
-            print 'leave'
+            #print 'leave'
             self.Refresh()
         elif event.ButtonUp():
             self.ClickedButton()

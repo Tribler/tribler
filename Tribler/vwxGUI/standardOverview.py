@@ -30,6 +30,8 @@ class standardOverview(wx.Panel):
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
         self.mode = None
+        self.filter1 = None
+        self.filter2 = None
         self.data = {}
         for mode in OVERVIEW_MODES:
             self.data[mode] = {}
@@ -45,11 +47,20 @@ class standardOverview(wx.Panel):
         self.SetAutoLayout(1)
         self.Layout()
         
-    def setMode(self, mode, datalist):
-        if self.mode != mode:
+    def setMode(self, mode, filter1, datalist):
+        print 'in SetMode'
+        if self.mode != mode:        
+            print 'if 1'
             self.mode = mode
-            self.data[self.mode]['data'] = datalist
+            self.filter1 = filter1
+            self.data[self.mode]['data'] = datalist               
             self.refreshMode()
+        elif self.mode == mode and self.filter1 != filter1:
+            print 'if 2'
+            self.mode = mode            
+            self.filter1 = filter1           
+            self.data[self.mode]['data'] = datalist
+            self.setData()   
             
     def refreshMode(self):
         # load xrc

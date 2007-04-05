@@ -165,6 +165,7 @@ class StaticGridPanel(wx.Panel):
         self.Show(False)
         self.SetBackgroundColour(wx.WHITE)
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
+        #self.vSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.SetSizer(self.vSizer);
         self.SetAutoLayout(1);
         #self.calculateRows()        
