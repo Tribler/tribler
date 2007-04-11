@@ -147,7 +147,7 @@ class StaticGridPanel(wx.Panel):
         self.parent = parent
         self.cols = cols
         self.currentRows = 0
-        self.subPanelHeight = 116 # This will be update after first refresh
+        self.subPanelHeight = 46 # This will be update after first refresh
         self.detailPanel = None
         
         self.panels = []

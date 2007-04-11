@@ -19,10 +19,12 @@ class GUIUtility:
             raise RuntimeError, "GUIUtility is singleton"
         GUIUtility.__single = self 
         # do other init
-        self.type = 'swarmsize'
+        
         self.guiObjects = {}
         self.xrcResource = None
-        self.filesFilter = None
+        self.type = 'swarmsize'
+        self.filesFilter1 = None
+        self.filesFilter2 = None
         self.utility = utility
         self.params = params
         self.data_manager = TorrentDataManager.getInstance(self.utility)
@@ -62,9 +64,10 @@ class GUIUtility:
     def getCategories(self):
         return ['aap', 'noot', 'mies']
   
-    def setCategory(self, cat):
+    def setCategory(self, cat, sort):
         print 'Category set to %s' % cat            
         self.categorykey = cat
+        self.type = sort
         return self.reloadData()
         
     def buttonClicked(self, event):
@@ -100,20 +103,24 @@ class GUIUtility:
             print 'A button was clicked, but no action is defined for: %s' % name
                 
         
-    def standardFilesOverview(self, filter1String = ""):        
+    def standardFilesOverview(self, filter1String = "", filter2String = ""):        
         #self.categorykey = 'all'
         print 'Files > filter1String='+filter1String
+        print 'Files > filter2String='+filter2String
         #if filesFilter1:
         if filter1String == "" :
-            filter1String = self.filesFilter
+            filter1String = self.filesFilter1
+        if filter2String == "" :
+            filter2String = self.filesFilter2
         else:    
-            self.filesFilter = filter1String
+            self.filesFilter1 = filter1String
+            self.filesFilter2 = filter2String
         
-        torrentList = self.setCategory(filter1String)        
+        torrentList = self.setCategory(filter1String, filter2String)        
         #self.categorykey = 'all'
         torrentList = self.reloadData()
         overview = self.request('standardOverview')
-        overview.setMode('filesMode', filter1String, torrentList)
+        overview.setMode('filesMode', filter1String, filter2String, torrentList)
         
         
     def standardPersonsOverview(self):
@@ -130,13 +137,13 @@ class GUIUtility:
         overview = self.request('standardOverview')
         #overview.setMode('profileMode', profileList)
         
-    def standardLibraryOverview(self, filter1String="audio"):       
+    def standardLibraryOverview(self, filter1String="audio", filter2String="swarmsize"):       
         print 'Library > filter1String='+filter1String 
         
         self.categorykey = self.utility.lang.get('mypref_list_title')
         libraryList = self.reloadData()
         overview = self.request('standardOverview')
-        overview.setMode('libraryMode', filter1String, libraryList)
+        overview.setMode('libraryMode', filter1String, filter2String, libraryList)
         
         
     def standardFriendsOverview(self):
@@ -164,13 +171,14 @@ class GUIUtility:
             if torrent.get('status') == 'good' or torrent.get('myDownloadHistory'):
                 self.filtered.append(torrent)
         
-        #self.filtered = sort_dictlist(self.filtered, self.type, 'decrease')
-        self.filtered = sort_dictlist(self.filtered, 'swarmsize', 'decrease')
+        self.filtered = sort_dictlist(self.filtered, self.type, 'decrease')
+        #self.filtered = sort_dictlist(self.filtered, 'swarmsize', 'decrease')
 
         #self.standardOverview.setData()
         #self.standardOverview.setMode()
         #print self.filtered
-        return self.data # no filtering
+        #return self.data # no filtering
+        return self.filtered
         
     def updateFun(self, torrent, operate):    
         print "Updatefun called"
@@ -185,7 +193,7 @@ class GUIUtility:
 
     def initStandardOverview(self, standardOverview):
         self.standardOverview = standardOverview
-        self.standardFilesOverview('video')
+        self.standardFilesOverview('video', 'swarmsize')
         filesButton = xrc.XRCCTRL(self.frame, 'mainButtonFiles')
         #print 'FilesButton', filesButton        
         self.selectMainButton(filesButton)

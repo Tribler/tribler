@@ -47,7 +47,7 @@ class standardOverview(wx.Panel):
         self.SetAutoLayout(1)
         self.Layout()
         
-    def setMode(self, mode, filter1, datalist):
+    def setMode(self, mode, filter1, filter2, datalist):
         print 'in SetMode'
         if self.mode != mode:        
             print 'if 1'
@@ -55,12 +55,19 @@ class standardOverview(wx.Panel):
             self.filter1 = filter1
             self.data[self.mode]['data'] = datalist               
             self.refreshMode()
-        elif self.mode == mode and self.filter1 != filter1:
+        elif self.mode == mode and self.filter1 != filter1:        
             print 'if 2'
             self.mode = mode            
-            self.filter1 = filter1           
+            self.filter1 = filter1                           
+            self.data[self.mode]['data'] = datalist
+            self.setData()                   
+        elif self.mode == mode and self.filter2 != filter2:
+            print 'if 3'
+            self.mode = mode            
+            self.filter2 = filter2
             self.data[self.mode]['data'] = datalist
             self.setData()   
+            
             
     def refreshMode(self):
         # load xrc

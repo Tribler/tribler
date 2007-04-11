@@ -49,10 +49,10 @@ class LibraryItemPanel(wx.Panel):
         self.thumb.setBackground(wx.BLACK)
         self.thumb.SetSize((66,37))
         self.hSizer.Add(self.thumb, 0, wx.ALL, 0)        
-        self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(125,15))        
+        self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(225,15))        
         self.title.SetBackgroundColour(wx.WHITE)
         self.title.SetFont(wx.Font(10,74,90,wx.NORMAL,0,"Verdana"))
-        self.title.SetMinSize((125,40))
+        self.title.SetMinSize((225,40))
         self.hSizer.Add(self.title, 0, wx.ALL|wx.EXPAND, 3)     
 
         self.SetSizer(self.hSizer);

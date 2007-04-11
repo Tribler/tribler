@@ -36,8 +36,9 @@ class FilesItemPanel(wx.Panel):
     def addComponents(self):
         self.Show(False)
         #self.SetMinSize((50,50))
-        self.selectedColour = wx.Colour(245,208,120)
+        self.selectedColour = wx.Colour(245,208,120)       
         self.unselectedColour = wx.WHITE
+        
         
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         
@@ -105,6 +106,7 @@ class FilesItemPanel(wx.Panel):
           
         
     def select(self):
+        print 'item selected'
         self.selected = True
         old = self.title.GetBackgroundColour()
         if old != self.selectedColour:
@@ -133,6 +135,7 @@ class FilesItemPanel(wx.Panel):
         
         self.SetFocus()
         if self.data:
+            # torrent data is sent to guiUtility > standardDetails.setData
             self.guiUtility.selectTorrent(self.data)
                 
                 

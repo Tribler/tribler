@@ -41,7 +41,7 @@ class filesGrid(wx.Panel):
         self.parent = None
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
-        self.detailPanel = None
+        self.detailPanel = None       
         self.cols = 5
         self.items = 0
         self.currentData = 0
@@ -259,6 +259,8 @@ class StaticGridPanel(wx.Panel):
         """Deselect all torrentPanels, but the one selected in detailPanel
         If no torrent is selected in detailPanel, let first in grid be selected
         """
+        
+        
         if not self.hasDetailPanel():
             return
         
@@ -276,7 +278,8 @@ class StaticGridPanel(wx.Panel):
         
         if self.detailPanel.data:
             title = self.detailPanel.data.get('content_name')
-
+            print 'title= '
+            print title
             
         
         for row in self.panels:
@@ -287,8 +290,10 @@ class StaticGridPanel(wx.Panel):
                     paneltitle = None
                     
                 if paneltitle != title or paneltitle == None:
+                    #print 'item deselected2'
                     pan.deselect()
                 else:
+                    print 'item selected2'
                     pan.select()
         
     def hasDetailPanel(self):
