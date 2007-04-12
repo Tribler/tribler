@@ -155,12 +155,13 @@ class GUIUtility:
         messagesList = self.reloadData()
         overview = self.request('standardOverview')
         #overview.setMode('messagesMode', messagesList)       
-        
-    def reorder(self, type):
-        print 'reorder function'
-        self.type = type
-        self.reloadData()
-        
+    
+#    
+#    def reorder(self, type):
+#        print 'reorder function'
+#        self.type = type
+#        self.reloadData()
+#        
     def reloadData(self):
         
         # load content category

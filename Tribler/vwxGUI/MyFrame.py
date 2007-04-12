@@ -27,7 +27,7 @@ class MyFrame(wx.Frame):
 
 
     def VwXinit(self):
-        self.fileImgBuf=[None] * 9
+        self.fileImgBuf=[None] * 8
         self.fileImgBuf[0] = wx.Bitmap("images/topbg1.png",wx.BITMAP_TYPE_PNG)
         self.fileImgBuf[1] = wx.Bitmap("images/tribler_topbutton0.png",wx.BITMAP_TYPE_PNG)
         self.fileImgBuf[2] = wx.Bitmap("images/tribler_topbutton1.png",wx.BITMAP_TYPE_PNG)
@@ -36,7 +36,6 @@ class MyFrame(wx.Frame):
         self.fileImgBuf[5] = wx.Bitmap("images/tribler_topbutton5.png",wx.BITMAP_TYPE_PNG)
         self.fileImgBuf[6] = wx.Bitmap("images/tribler_topbutton4.png",wx.BITMAP_TYPE_PNG)
         self.fileImgBuf[7] = wx.Bitmap("images/topbg2.png",wx.BITMAP_TYPE_PNG)
-        self.fileImgBuf[8] = wx.Bitmap("images/topbg3.png",wx.BITMAP_TYPE_PNG)
         self.topBG1Img0=self.fileImgBuf[0];
         self.mainButtonFilesImg0=self.fileImgBuf[1];
         self.mainButtonPersonsImg0=self.fileImgBuf[2];
@@ -44,9 +43,7 @@ class MyFrame(wx.Frame):
         self.mainButtonLibraryImg0=self.fileImgBuf[4];
         self.mainButtonRssImg0=self.fileImgBuf[5];
         self.mainButtonFriendsImg0=self.fileImgBuf[6];
-        self.mainButtonMessagesImg0=self.fileImgBuf[5];
         self.topBG2_greyImg0=self.fileImgBuf[7];
-        self.topBG3Img0=self.fileImgBuf[8];
         self.SetToolTipString('d')
         self.Show(False)
         self.SetBackgroundColour(wx.Colour(212,208,200))
@@ -82,13 +79,10 @@ class MyFrame(wx.Frame):
         self.mainButtonRss.Bind(wx.EVT_ERASE_BACKGROUND,self.VwXmainButtonRss_VwXEvOnEraseBackground)
         self.mainButtonFriends = tribler_topButton(self.topBG1, -1, wx.Point(311,5), wx.Size(60,72))
         self.mainButtonFriends.Bind(wx.EVT_ERASE_BACKGROUND,self.VwXmainButtonFriends_VwXEvOnEraseBackground)
-        self.mainButtonMessages = tribler_topButton(self.topBG1, -1, wx.Point(371,5), wx.Size(60,72))
-        self.mainButtonMessages.Bind(wx.EVT_ERASE_BACKGROUND,self.VwXmainButtonMessages_VwXEvOnEraseBackground)
-        self.topBG2_grey = bgPanel(self.level0, -1, wx.Point(614,0), wx.Size(267,89))
+        self.topBG2_grey = bgPanel(self.level0, -1, wx.Point(614,0), wx.Size(112,89))
         self.topBG2_grey.Bind(wx.EVT_ERASE_BACKGROUND,self.VwXtopBG2_grey_VwXEvOnEraseBackground)
         self.topBG3 = bgPanel(self.level0, -1, wx.Point(881,0), wx.Size(287,89))
         self.topBG3.SetBackgroundColour(wx.Colour(216,216,191))
-        self.topBG3.Bind(wx.EVT_ERASE_BACKGROUND,self.VwXtopBG3_VwXEvOnEraseBackground)
         self.tx220cCCC = wx.TextCtrl(self.topBG3,-1,"",wx.Point(14,6),wx.Size(151,22))
         self.tx220cCCC.SetLabel('search a file')
         self.tx220cCCC.SetFont(wx.Font(10,74,90,90,0,"Verdana"))
@@ -115,9 +109,8 @@ class MyFrame(wx.Frame):
         self.sz102sC.Add(self.sizerTopMenu,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.sz102sC.Add(self.sz11sCCCCCC,1,wx.BOTTOM|wx.EXPAND|wx.FIXED_MINSIZE,4)
         self.sizerTopMenu.Add(self.topBG1,0,wx.FIXED_MINSIZE,3)
-        self.sizerTopMenu.Add(self.topBG2_grey,1,wx.EXPAND|wx.FIXED_MINSIZE,3)
-        self.sizerTopMenu.SetItemMinSize(self.topBG2_grey,20,10)
-        self.sizerTopMenu.Add(self.topBG3,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
+        self.sizerTopMenu.Add(self.topBG2_grey,1,wx.EXPAND,3)
+        self.sizerTopMenu.Add(self.topBG3,0,wx.EXPAND,3)
         self.sz11sCCCCCC.Add(self.standardOverview,1,wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,9)
         self.sz11sCCCCCC.Add(self.sz135s,0,wx.TOP|wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,9)
         self.sz11sCCCCCC.Add(self.pn237c,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
@@ -130,7 +123,6 @@ class MyFrame(wx.Frame):
         self.sz164sC.Add(self.mainButtonLibrary,0,wx.TOP|wx.BOTTOM|wx.FIXED_MINSIZE,5)
         self.sz164sC.Add(self.mainButtonRss,0,wx.TOP|wx.BOTTOM|wx.FIXED_MINSIZE,5)
         self.sz164sC.Add(self.mainButtonFriends,0,wx.TOP|wx.BOTTOM|wx.FIXED_MINSIZE,5)
-        self.sz164sC.Add(self.mainButtonMessages,0,wx.TOP|wx.BOTTOM|wx.FIXED_MINSIZE,5)
         self.sz213s.Add([29,59],0,wx.FIXED_MINSIZE,3)
         self.sz213s.Add(self.backButton,0,wx.FIXED_MINSIZE,3)
         self.vertical1.Add(self.horziontal1,0,wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,3)
@@ -215,21 +207,9 @@ class MyFrame(wx.Frame):
         event.Skip(False)
 
         return
-    def VwXmainButtonMessages_VwXEvOnEraseBackground(self,event):
-        self.VwXDrawBackImg(event,self.mainButtonMessages,self.mainButtonMessagesImg0,0)
-        self.mainButtonMessages_VwXEvOnEraseBackground(event)
-        event.Skip(False)
-
-        return
     def VwXtopBG2_grey_VwXEvOnEraseBackground(self,event):
         self.VwXDrawBackImg(event,self.topBG2_grey,self.topBG2_greyImg0,2)
         self.topBG2_grey_VwXEvOnEraseBackground(event)
-        event.Skip(False)
-
-        return
-    def VwXtopBG3_VwXEvOnEraseBackground(self,event):
-        self.VwXDrawBackImg(event,self.topBG3,self.topBG3Img0,2)
-        self.topBG3_VwXEvOnEraseBackground(event)
         event.Skip(False)
 
         return
@@ -250,13 +230,6 @@ class MyFrame(wx.Frame):
 
         return #end function
 
-
-    def mainButtonMessages_VwXEvOnEraseBackground(self,event): #init function
-        #[5b3]Code event VwX...Don't modify[5b3]#
-        #add your code here
-        event.Skip()
-
-        return #end function
 
     def mainButtonFriends_VwXEvOnEraseBackground(self,event): #init function
         #[5b2]Code event VwX...Don't modify[5b2]#

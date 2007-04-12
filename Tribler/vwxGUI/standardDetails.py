@@ -113,6 +113,8 @@ class standardDetails(wx.Panel):
             #titlePanel = xrc.XRCCTRL(currentPanel, 'titlePanel')
             self.data[self.mode]['title'] = xrc.XRCCTRL(currentPanel, 'titleField')
             self.data[self.mode]['sizer'] = xrc.XRCCTRL(currentPanel, 'mainSizer')
+            self.data[self.mode]['creationdate'] = xrc.XRCCTRL(currentPanel, 'creationdateField')
+            self.data[self.mode]['description'] = xrc.XRCCTRL(currentPanel, 'descriptionField')
             self.data[self.mode]['thumb'] = xrc.XRCCTRL(currentPanel, 'thumbField')
         return currentPanel
     
@@ -136,12 +138,21 @@ class standardDetails(wx.Panel):
             
      
     def setData(self, torrent):
-        
+        print 'torrentData='
+        print torrent
         #self.currentPanel.setData(self.data[self.mode].get('data'))
         # filesDetails.xrc has no setData yet
         titleField = self.data[self.mode].get('title')
         titleField.SetLabel(torrent.get('content_name'))
         titleField.Wrap(-1)
+        
+#        descriptionField = self.data[self.mode].get('description')
+#        descriptionField.SetLabel(torrent.get('Description'))
+#        descriptionField.Wrap(-1)        
+        
+#        creationdateField = self.data[self.mode].get('creationdate')
+#        creationdateField.SetLabel(torrent.get('creation date'))
+#        creationdateField.Wrap(-1) 
         
         thumbField = self.data[self.mode].get('thumb')        
         thumbField.SetBackgroundColour(wx.Colour(255,51,0))        

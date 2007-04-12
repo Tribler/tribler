@@ -119,7 +119,7 @@
                     <option>0</option>
                     <object class="wxPanel" name="mainButtonRss" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
                       <bitmap>images/tribler_topbutton5.png</bitmap>
-                      <pos>431,5</pos>
+                      <pos>311,5</pos>
                       <size>60,72</size>
                     </object>
                   </object>
@@ -133,16 +133,6 @@
                       <size>60,72</size>
                     </object>
                   </object>
-                  <object class="sizeritem">
-                    <flag>wxTOP|wxBOTTOM|wxFIXED_MINSIZE</flag>
-                    <border>5</border>
-                    <option>0</option>
-                    <object class="wxPanel" name="mainButtonMessages" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                      <bitmap>images/tribler_topbutton5.png</bitmap>
-                      <pos>371,5</pos>
-                      <size>60,72</size>
-                    </object>
-                  </object>
                 </object>
               </object>
             </object>
@@ -153,15 +143,14 @@
               <object class="wxPanel" name="topBG2_grey" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
                 <bitmap>images/topbg2.png</bitmap>
                 <pos>614,0</pos>
-                <size>267,89</size>
+                <size>128,89</size>
               </object>
             </object>
             <object class="sizeritem">
-              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <flag>wxEXPAND</flag>
               <border>3</border>
               <option>0</option>
               <object class="wxPanel" name="topBG3" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
-                <bitmap>images/topbg3.png</bitmap>
                 <pos>881,0</pos>
                 <size>287,89</size>
                 <bg>#d8d8bf</bg>
