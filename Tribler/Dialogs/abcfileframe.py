@@ -253,11 +253,11 @@ class TorrentDataManager:
         self.done_init = False
         self.utility = utility
         self.torrent_db = SynTorrentDBHandler(updateFun=self.updateFun)
-        self.data = self.torrent_db.getRecommendedTorrents(all=True) #gets torrents without mypref
+        self.data = self.torrent_db.getRecommendedTorrents(all=True) #gets torrents with mypref
         self.category = Category.getInstance()
         updated = self.category.checkResort(self)        
         if updated:
-            self.data = self.torrent_db.getRecommendedTorrents()
+            self.data = self.torrent_db.getRecommendedTorrents(all=True)
         self.prepareData()
         self.dict_FunList = {}
         self.done_init = True
@@ -457,6 +457,9 @@ class TorrentDataManager:
         torrent['leecher'] = torrent.get('leecher', -1)
         torrent['seeder'] = torrent.get('seeder', -1)
         torrent['swarmsize'] = torrent['seeder'] + torrent['leecher']
+        
+        # Thumbnail is read from file only when it is shown on screen by
+        # thumbnailViewer or detailsPanel
         return torrent
          
         

@@ -26,7 +26,7 @@ except:
     True = 1
     False = 0
     
-DEBUG = False
+DEBUG = True
 
 mapbase64 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-'
 keys = {}

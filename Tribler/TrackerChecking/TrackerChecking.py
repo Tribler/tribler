@@ -4,9 +4,10 @@
 # single torrent checking without Thread
 from BitTornado.bencode import bdecode
 from random import shuffle
-from urllib import urlopen
+from urllib import urlopen, quote
 from time import time
 
+DEBUG=False
 
 def trackerChecking(torrent):    
     single_no_thread(torrent)              
@@ -95,8 +96,9 @@ def getUrl(announce, info_hash):
     url = announce    
     if (last_index +1 == announce_index):        # srape supprot
         url = url.replace("announce","scrape")
-    url += "?info_hash=" + info_hash
-#    print url
+    url += "?info_hash=" + quote(info_hash)
+    if DEBUG:
+        print url
     return url
 
 def getStatus(url, info_hash):
@@ -104,17 +106,21 @@ def getStatus(url, info_hash):
         connection = urlopen(url)    
         response = connection.read()    
     except IOError:
-#        print "IOError"
+        if DEBUG:
+            print "IOError"
         return (-1, -1)                    # unknown
     except AttributeError:
-#        print "AttributeError"
+        if DEBUG:
+            print "AttributeError"
         return (-2, -2)                    # dead
     
     try:
         response_dict = bdecode(response)
-#        print response
+        if DEBUG:
+            print response
     except:
-#        print "DeCode Error "  + response
+        if DEBUG:
+            print "DeCode Error "  + response
         return (-2, -2)                    # dead
     
     try:
@@ -127,15 +133,17 @@ def getStatus(url, info_hash):
             leecher = 0
         
     except KeyError:
-#        print "KeyError "  + info_hash + str(response_dict)
+        if DEBUG:
+            print "KeyError "  + info_hash + str(response_dict)
         try:
             if response_dict.has_key("flags"): # may be interval problem        
                 if response_dict["flags"].has_key("min_request_interval"):
-#                    print "interval problem"
+                    print "interval problem"
                     return (-3 ,-3)
         except:
             pass
-#        print "KeyError "  + info_hash + str(response_dict)
+        if DEBUG:
+            print "KeyError "  + info_hash + str(response_dict)
         return (-2, -2)                    # dead
     
     return (seeder, leecher)

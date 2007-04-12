@@ -98,7 +98,8 @@ class FilesItemPanel(wx.Panel):
             
        
         self.thumb.setTorrent(torrent)
-               
+        self.torrentBitmap = self.thumb.torrentBitmap
+        
         self.Layout()
         self.Refresh()
         #self.parent.Refresh()
@@ -206,25 +207,30 @@ class ThumbnailViewer(wx.Panel):
     def getThumbnail(self, torrent):
         # Get the file(s)data for this torrent
         try:
-            torrent_dir = torrent['torrent_dir']
-            torrent_file = torrent['torrent_name']
-            
-            if not os.path.exists(torrent_dir):
-                torrent_dir = os.path.join(self.utility.getConfigPath(), "torrent2")
-            
-            torrent_filename = os.path.join(torrent_dir, torrent_file)
-            
-            if not os.path.exists(torrent_filename):
-                if DEBUG:    
-                    print >>sys.stderr,"contentpanel: Torrent: %s does not exist" % torrent_filename
-                return None
-            
-            metadata = self.utility.getMetainfo(torrent_filename)
-            if not metadata:
-                return None
-            
-            thumbnailString = metadata.get('azureus_properties', {}).get('Content',{}).get('Thumbnail')
-            #print 'Azureus_thumb: %s' % thumbnailString
+            # Check if we have already read the thumbnail and metadata information from this torrent file
+            if torrent.get('metadata', None) != None:
+                thumbnailString = torrent.get('metadata', {}).get('Thumbnail')
+            else:
+                torrent_dir = torrent['torrent_dir']
+                torrent_file = torrent['torrent_name']
+                
+                if not os.path.exists(torrent_dir):
+                    torrent_dir = os.path.join(self.utility.getConfigPath(), "torrent2")
+                
+                torrent_filename = os.path.join(torrent_dir, torrent_file)
+                
+                if not os.path.exists(torrent_filename):
+                    if DEBUG:    
+                        print >>sys.stderr,"contentpanel: Torrent: %s does not exist" % torrent_filename
+                    return None
+                
+                metadata = self.utility.getMetainfo(torrent_filename)
+                if not metadata:
+                    return None
+                
+                torrent['metadata'] = metadata.get('azureus_properties', {}).get('Content',{})
+                #print 'Azureus_thumb: %s' % thumbnailString
+                thumbnailString = torrent.get('metadata', {}).get('Thumbnail')
             
             if thumbnailString:
                 #print 'Found thumbnail: %s' % thumbnailString
