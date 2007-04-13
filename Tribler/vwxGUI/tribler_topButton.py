@@ -35,12 +35,14 @@ class tribler_topButton(wx.Panel):
         self.selected = False
         self.searchBitmaps()
         self.createBackgroundImage()
-        if self.bitmaps[0]:
-            self.SetSize(self.bitmaps[0].GetSize())
+        #if self.bitmaps[0]:
+        #    self.SetSize(self.bitmaps[0].GetSize())
+#        print self.Name
+#        print 'size'
+#        print self.Size
+        
         self.Refresh(True)
         self.Update()
-        
-        
         
     def searchBitmaps(self):
         self.backgroundColor = wx.Colour(102,102,102)

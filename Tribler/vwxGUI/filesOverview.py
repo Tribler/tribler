@@ -11,7 +11,7 @@ from filesFilter import *
 #[inc]end your include
 
 class filesOverview(wx.Panel):
-    def __init__(self,parent,id = -1,pos = wx.Point(0,0),size = wx.Size(623,35),style = wx.TAB_TRAVERSAL,name = 'panel'):
+    def __init__(self,parent,id = -1,pos = wx.Point(0,0),size = wx.Size(623,485),style = wx.TAB_TRAVERSAL,name = 'panel'):
         pre=wx.PrePanel()
         self.OnPreCreate()
         pre.Create(parent,id,pos,size,style,name)
@@ -30,7 +30,7 @@ class filesOverview(wx.Panel):
         self.fileImgBuf[0] = wx.Bitmap("images/triblerpanel_topcenter.png",wx.BITMAP_TYPE_PNG)
         self.pn10cImg0=self.fileImgBuf[0];
         self.Show(True)
-        self.SetBackgroundColour(wx.Colour(153,153,153))
+        self.SetBackgroundColour(wx.Colour(255,255,255))
         self.orange_top_left = bgPanel(self, -1, wx.Point(0,0), wx.Size(10,21))
         self.pn10c = wx.Panel(self,-1,wx.Point(135,0),wx.Size(20,21))
         self.pn10c.SetForegroundColour(wx.Colour(255,255,255))
@@ -42,14 +42,14 @@ class filesOverview(wx.Panel):
         self.st64c.SetBackgroundColour(wx.Colour(255,51,0))
         self.orange_top_right = bgPanel(self, -1, wx.Point(613,0), wx.Size(10,21))
         self.filesGrid = filesGrid(self,-1,wxDefaultPosition,wxDefaultSize)
-        self.filesGrid.SetDimensions(10,97,623,10)
+        self.filesGrid.SetDimensions(10,66,623,10)
         self.orange_bottom_left = bgPanel(self, -1, wx.Point(0,400), wx.Size(10,28))
-        self.orange_bottom_center = bgPanel(self, -1, wx.Point(10,400), wx.Size(20,20))
+        self.orange_bottom_center = bgPanel(self, -1, wx.Point(10,455), wx.Size(20,20))
         self.pagerBottomRight = bgPanel(self, -1, wx.Point(352,400), wx.Size(271,28))
         self.standardPager = standardPager(self.pagerBottomRight,-1,wxDefaultPosition,wxDefaultSize)
         self.standardPager.SetDimensions(25,5,238,23)
         self.filesFilter225c = filesFilter(self,-1,wxDefaultPosition,wxDefaultSize)
-        self.filesFilter225c.SetDimensions(0,59,617,35)
+        self.filesFilter225c.SetDimensions(0,21,617,35)
         self.vertical = wx.BoxSizer(wx.VERTICAL)
         self.header = wx.BoxSizer(wx.HORIZONTAL)
         self.footer = wx.BoxSizer(wx.HORIZONTAL)

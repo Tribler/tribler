@@ -17,6 +17,10 @@ class bgPanel(wx.Panel):
         
     def OnCreate(self, event):
         self.Unbind(wx.EVT_WINDOW_CREATE)
+#        print self.Name
+#        print '>> size'
+#        print self.Size
+#        print self.Position
         wx.CallAfter(self._PostInit)
         event.Skip()
         return True
@@ -25,6 +29,11 @@ class bgPanel(wx.Panel):
         # Do all init here
         self.searchBitmap()
         self.createBackgroundImage()
+        
+#        print self.Name
+#        print '> size'
+#        print self.Size
+#        print self.Position
         
         self.Refresh(True)
         self.Update()

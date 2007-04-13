@@ -121,9 +121,10 @@ class GUIUtility:
         torrentList = self.reloadData()
         overview = self.request('standardOverview')
         overview.setMode('filesMode', filter1String, filter2String, torrentList)
+        #self.standardDetails.setMode('filesMode', None)
         
         
-    def standardPersonsOverview(self):
+    def standardPersonsOverview(self, filter1String = "", filter2String = ""):
         self.categorykey = self.utility.lang.get('mypref_list_title')
         #self.utility.lang.get('mypref_list_title')
         #personsList = self.setCategory('video')
@@ -131,6 +132,8 @@ class GUIUtility:
         personsList = self.reloadData()
         overview = self.request('standardOverview')
         #overview.setMode('personsMode', personsList)
+        overview.setMode('personsMode', filter1String, filter2String, personsList)
+        self.standardDetails.setMode('personsMode', None)
     
     def standardProfileOverview(self):
         profileList = self.reloadData()

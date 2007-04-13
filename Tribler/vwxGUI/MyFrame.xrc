@@ -40,7 +40,7 @@
               <object class="wxPanel" name="topBG1" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
                 <bitmap>images/topbg1.png</bitmap>
                 <pos>0,0</pos>
-                <size>614,89</size>
+                <size>449,89</size>
                 <bg>#000000</bg>
                 <object class="wxBoxSizer">
                   <orient>wxHORIZONTAL</orient>
@@ -137,96 +137,98 @@
               </object>
             </object>
             <object class="sizeritem">
-              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <flag>wxEXPAND</flag>
               <border>3</border>
               <option>1</option>
               <object class="wxPanel" name="topBG2_grey" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
                 <bitmap>images/topbg2.png</bitmap>
-                <pos>614,0</pos>
+                <pos>449,0</pos>
                 <size>128,89</size>
               </object>
             </object>
             <object class="sizeritem">
-              <flag>wxEXPAND</flag>
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>3</border>
               <option>0</option>
               <object class="wxPanel" name="topBG3" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
-                <pos>881,0</pos>
+                <pos>577,0</pos>
                 <size>287,89</size>
                 <bg>#d8d8bf</bg>
                 <object class="wxBoxSizer">
                   <orient>wxVERTICAL</orient>
                   <object class="sizeritem">
-                    <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                    <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
                     <border>3</border>
                     <option>0</option>
                     <object class="wxBoxSizer">
                       <orient>wxHORIZONTAL</orient>
-                      <object class="sizeritem">
+                      <object class="spacer">
+                        <size>70,10</size>
                         <flag>wxFIXED_MINSIZE</flag>
                         <border>3</border>
-                        <option>1</option>
-                        <object class="wxBoxSizer">
-                          <orient>wxVERTICAL</orient>
-                          <object class="sizeritem">
-                            <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
-                            <border>3</border>
-                            <option>0</option>
-                            <object class="wxBoxSizer">
-                              <orient>wxHORIZONTAL</orient>
-                              <object class="sizeritem">
-                                <flag>wxLEFT|wxALIGN_LEFT|wxFIXED_MINSIZE</flag>
-                                <border>8</border>
-                                <option>0</option>
-                                <object class="wxTextCtrl" name="tx220cCCC">
-                                  <title>search a file</title>
-                                  <pos>14,6</pos>
-                                  <size>151,22</size>
-                                  <font>
-                                    <size>10</size>
-                                    <family>modern</family>
-                                    <style>normal</style>
-                                    <weight>normal</weight>
-                                    <underlined>0</underlined>
-                                    <face>Verdana</face>
-                                  </font>
-                                </object>
-                              </object>
-                            </object>
-                          </object>
-                          <object class="sizeritem">
-                            <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
-                            <border>3</border>
-                            <option>0</option>
-                            <object class="wxBoxSizer">
-                              <orient>wxHORIZONTAL</orient>
-                              <object class="sizeritem">
-                                <flag>wxLEFT|wxEXPAND|wxALIGN_LEFT|wxFIXED_MINSIZE</flag>
-                                <border>8</border>
-                                <option>0</option>
-                                <object class="wxButton" name="bt257cC">
-                                  <label>files</label>
-                                  <pos>96,37</pos>
-                                  <size>55,20</size>
-                                </object>
-                              </object>
-                              <object class="sizeritem">
-                                <flag>wxLEFT|wxEXPAND|wxALIGN_LEFT|wxFIXED_MINSIZE</flag>
-                                <border>5</border>
-                                <option>0</option>
-                                <object class="wxButton" name="bt258cC">
-                                  <label>persons</label>
-                                  <pos>159,37</pos>
-                                  <size>55,20</size>
-                                </object>
-                              </object>
-                            </object>
-                          </object>
+                        <option>0</option>
+                      </object>
+                      <object class="sizeritem">
+                        <flag>wxTOP|wxLEFT|wxFIXED_MINSIZE</flag>
+                        <border>4</border>
+                        <option>0</option>
+                        <object class="wxTextCtrl" name="tx220cCCC">
+                          <title>search a file</title>
+                          <pos>82,3</pos>
+                          <size>151,22</size>
+                          <font>
+                            <size>10</size>
+                            <family>modern</family>
+                            <style>normal</style>
+                            <weight>normal</weight>
+                            <underlined>0</underlined>
+                            <face>Verdana</face>
+                          </font>
                         </object>
                       </object>
                       <object class="spacer">
-                        <size>5,60</size>
-                        <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                        <size>10,10</size>
+                        <flag>wxFIXED_MINSIZE</flag>
+                        <border>3</border>
+                        <option>1</option>
+                      </object>
+                    </object>
+                  </object>
+                  <object class="sizeritem">
+                    <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
+                    <border>3</border>
+                    <option>0</option>
+                    <object class="wxBoxSizer">
+                      <orient>wxHORIZONTAL</orient>
+                      <object class="spacer">
+                        <size>70,10</size>
+                        <flag>wxFIXED_MINSIZE</flag>
+                        <border>3</border>
+                        <option>0</option>
+                      </object>
+                      <object class="sizeritem">
+                        <flag>wxLEFT|wxFIXED_MINSIZE</flag>
+                        <border>4</border>
+                        <option>0</option>
+                        <object class="wxButton" name="bt257cC">
+                          <label>files</label>
+                          <pos>82,35</pos>
+                          <size>55,20</size>
+                        </object>
+                      </object>
+                      <object class="sizeritem">
+                        <flag>wxLEFT|wxFIXED_MINSIZE</flag>
+                        <border>4</border>
+                        <option>0</option>
+                        <object class="wxButton" name="bt258cC">
+                          <label>persons</label>
+                          <pos>138,35</pos>
+                          <size>55,20</size>
+                        </object>
+                      </object>
+                      <object class="spacer">
+                        <size>10,10</size>
+                        <flag>wxFIXED_MINSIZE</flag>
                         <border>3</border>
                         <option>1</option>
                       </object>
@@ -239,12 +241,18 @@
                     <object class="wxBoxSizer">
                       <orient>wxHORIZONTAL</orient>
                       <object class="spacer">
-                        <size>287,5</size>
+                        <size>287,10</size>
                         <flag>wxFIXED_MINSIZE</flag>
                         <border>3</border>
                         <option>0</option>
                       </object>
                     </object>
+                  </object>
+                  <object class="spacer">
+                    <size>10,10</size>
+                    <flag>wxFIXED_MINSIZE</flag>
+                    <border>3</border>
+                    <option>1</option>
                   </object>
                 </object>
               </object>
@@ -277,7 +285,7 @@
                   <border>9</border>
                   <option>1</option>
                   <object class="wxPanel" name="standardDetails" subclass="Tribler.vwxGUI.standardDetails.standardDetails">
-                    <pos>848,98</pos>
+                    <pos>704,98</pos>
                     <size>300,222</size>
                   </object>
                 </object>
