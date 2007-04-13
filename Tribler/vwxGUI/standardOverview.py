@@ -96,9 +96,11 @@ class standardOverview(wx.Panel):
     def loadPanel(self):
         currentPanel = self.data[self.mode].get('panel',None)
         modeString = self.mode[:-4]
+        print 'modeString='+modeString
         if not currentPanel:
             xrcResource = os.path.join('Tribler','vwxGUI', modeString+'Overview.xrc')
             panelName = modeString+'Overview'
+            print panelName
             try:
                 currentPanel = grid = pager = None
                 res = xrc.XmlResource(xrcResource)

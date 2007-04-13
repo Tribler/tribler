@@ -118,9 +118,9 @@
                   <option>0</option>
                 </object>
                 <object class="sizeritem">
-                  <flag>wxTOP|wxEXPAND</flag>
+                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>5</border>
-                  <option>1</option>
+                  <option>0</option>
                   <object class="wxPanel" name="standardPager" subclass="Tribler.vwxGUI.standardPager.standardPager">
                     <pos>25,5</pos>
                     <size>238,23</size>

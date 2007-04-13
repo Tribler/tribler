@@ -4,8 +4,8 @@
 import wx
 from bgPanel import *
 from filesGrid import *
-from standardPager import *
 from filesFilter import *
+from standardPager import *
 #[inc]add your include files here
 
 #[inc]end your include
@@ -43,13 +43,13 @@ class filesOverview(wx.Panel):
         self.orange_top_right = bgPanel(self, -1, wx.Point(613,0), wx.Size(10,21))
         self.filesGrid = filesGrid(self,-1,wxDefaultPosition,wxDefaultSize)
         self.filesGrid.SetDimensions(10,66,623,10)
-        self.orange_bottom_left = bgPanel(self, -1, wx.Point(0,400), wx.Size(10,28))
+        self.orange_bottom_left = bgPanel(self, -1, wx.Point(0,455), wx.Size(10,28))
         self.orange_bottom_center = bgPanel(self, -1, wx.Point(10,455), wx.Size(20,20))
         self.pagerBottomRight = bgPanel(self, -1, wx.Point(352,400), wx.Size(271,28))
-        self.standardPager = standardPager(self.pagerBottomRight,-1,wxDefaultPosition,wxDefaultSize)
-        self.standardPager.SetDimensions(25,5,238,23)
         self.filesFilter225c = filesFilter(self,-1,wxDefaultPosition,wxDefaultSize)
         self.filesFilter225c.SetDimensions(0,21,617,35)
+        self.standardPager = standardPager(self.pagerBottomRight,-1,wxDefaultPosition,wxDefaultSize)
+        self.standardPager.SetDimensions(25,5,238,23)
         self.vertical = wx.BoxSizer(wx.VERTICAL)
         self.header = wx.BoxSizer(wx.HORIZONTAL)
         self.footer = wx.BoxSizer(wx.HORIZONTAL)
@@ -68,7 +68,7 @@ class filesOverview(wx.Panel):
         self.footer.Add(self.pagerBottomRight,0,wx.EXPAND|wx.FIXED_MINSIZE,0)
         self.size_title.Add(self.st64c,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,4)
         self.sz211s.Add([25,28],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
-        self.sz211s.Add(self.standardPager,1,wx.TOP|wx.EXPAND,5)
+        self.sz211s.Add(self.standardPager,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,5)
         self.sz211s.Add([8,28],0,wx.EXPAND|wx.FIXED_MINSIZE,0)
         self.SetSizer(self.vertical);self.SetAutoLayout(1);self.Layout();
         self.pn10c.SetSizer(self.size_title);self.pn10c.SetAutoLayout(1);self.pn10c.Layout();
