@@ -121,7 +121,8 @@ class GUIUtility:
         torrentList = self.reloadData()
         overview = self.request('standardOverview')
         overview.setMode('filesMode', filter1String, filter2String, torrentList)
-        #self.standardDetails.setMode('filesMode', None)
+        if self.standardDetails:
+            self.standardDetails.setMode('filesMode', None)
         
         
     def standardPersonsOverview(self, filter1String = "", filter2String = ""):

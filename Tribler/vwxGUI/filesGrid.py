@@ -118,7 +118,7 @@ class filesGrid(wx.Panel):
             self.refreshPanels()
         
     def getStandardPager(self):
-        print 'getStandardPager called: %s' % self.standardPager
+        print 'getStandardPager called' 
         try:
             if self.standardPager:
                 return True

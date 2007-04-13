@@ -1,5 +1,6 @@
 import wx, math, time, os, sys, threading
 from traceback import print_exc
+from threading import Thread, Lock
 from Tribler.utilities import *
 from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.Dialogs.ContentFrontPanel import ImagePanel
@@ -80,7 +81,10 @@ class FilesItemPanel(wx.Panel):
             pass
         
         self.data = torrent
-        self.datacopy = deepcopy(torrent)
+        try:
+            self.datacopy = deepcopy(torrent)
+        except:
+            print 'Error: could not datacopy: %s' % torrent
         
         if torrent == None:
             torrent = {}
@@ -141,6 +145,8 @@ class FilesItemPanel(wx.Panel):
                 
                 
 DEFAULT_THUMB = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'defaultThumb.png'))
+MASK_BITMAP = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'itemMask.png'))
+        
 
 class ThumbnailViewer(wx.Panel):
     """
@@ -166,7 +172,8 @@ class ThumbnailViewer(wx.Panel):
     def _PostInit(self):
         # Do all init here
         self.backgroundColor = wx.WHITE
-        self.torrentBitmap = self.maskBitmap = None
+        self.torrentBitmap = None
+        self.torrentLock = Lock()
         self.torrent = None
         self.mouseOver = False
         self.guiUtility = GUIUtility.getInstance()
@@ -191,72 +198,93 @@ class ThumbnailViewer(wx.Panel):
                 
         if torrent != self.torrent:
             self.torrent = torrent
-            self.torrentBitmap = self.getThumbnail(torrent)
-            # If failed, choose standard thumb
-            if not self.torrentBitmap:
-                self.torrentBitmap = DEFAULT_THUMB
-            # Recalculate image placement
-            w, h = self.GetSize()
-            iw, ih = self.torrentBitmap.GetSize()
-            self.xpos, self.ypos = (w-iw)/2, (h-ih)/2
-        if not self.maskBitmap:
-            self.maskBitmap = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'itemMask.png'))
-        self.Refresh()
+            self.setThumbnail(torrent)
                                         
     
-    def getThumbnail(self, torrent):
+    def setThumbnail(self, torrent):
         # Get the file(s)data for this torrent
         try:
+            bmp = DEFAULT_THUMB
             # Check if we have already read the thumbnail and metadata information from this torrent file
-            if torrent.get('metadata', None) != None:
-                thumbnailString = torrent.get('metadata', {}).get('Thumbnail')
+            if torrent.get('metadata'):
+                bmp = torrent['metadata'].get('ThumbnailBitmap')
+                if not bmp:
+                    print 'ThumbnailViewer: Error: thumbnailBitmap not found in torrent %s' % torrent
+                    bmp = DEFAULT_THUMB
             else:
-                torrent_dir = torrent['torrent_dir']
-                torrent_file = torrent['torrent_name']
-                
-                if not os.path.exists(torrent_dir):
-                    torrent_dir = os.path.join(self.utility.getConfigPath(), "torrent2")
-                
-                torrent_filename = os.path.join(torrent_dir, torrent_file)
-                
-                if not os.path.exists(torrent_filename):
-                    if DEBUG:    
-                        print >>sys.stderr,"contentpanel: Torrent: %s does not exist" % torrent_filename
-                    return None
-                
-                metadata = self.utility.getMetainfo(torrent_filename)
-                if not metadata:
-                    return None
-                
-                torrent['metadata'] = metadata.get('azureus_properties', {}).get('Content',{})
-                #print 'Azureus_thumb: %s' % thumbnailString
-                thumbnailString = torrent.get('metadata', {}).get('Thumbnail')
+                # Do the loading of metadata and thumbnail in new thread
+                # so that navigation is not slowed down
+                Thread(target = self.loadMetadata, args=(torrent,)).start()
             
-            if thumbnailString:
-                #print 'Found thumbnail: %s' % thumbnailString
-                stream = cStringIO.StringIO(thumbnailString)
-                img =  wx.ImageFromStream( stream )
-                iw, ih = img.GetSize()
-                w, h = self.GetSize()
-                if (iw/float(ih)) > (w/float(h)):
-                    nw = w
-                    nh = int(ih * w/float(iw))
-                else:
-                    nh = h
-                    nw = int(iw * h/float(ih))
-                if nw != iw or nh != ih:
-                    print 'Rescale from (%d, %d) to (%d, %d)' % (iw, ih, nw, nh)
-                    img.Rescale(nw, nh)
-                bmp = wx.BitmapFromImage(img)
-                # Rescale the image so that its
-                return bmp
+            self.setBitmap(bmp)
+            self.Refresh()
+            
         except:
             print_exc(file=sys.stderr)
             return {}           
         
-                       
+         
+    def setBitmap(self, bmp):
+        # Recalculate image placement
+        w, h = self.GetSize()
+        iw, ih = bmp.GetSize()
+                
+        self.torrentLock.acquire()
+        self.torrentBitmap = bmp
+        self.xpos, self.ypos = (w-iw)/2, (h-ih)/2
+        self.torrentLock.release()
         
-    
+        
+    def loadMetadata(self, torrent):
+         torrent_dir = torrent['torrent_dir']
+         torrent_file = torrent['torrent_name']
+        
+         if not os.path.exists(torrent_dir):
+             torrent_dir = os.path.join(self.utility.getConfigPath(), "torrent2")
+        
+         torrent_filename = os.path.join(torrent_dir, torrent_file)
+        
+         if not os.path.exists(torrent_filename):
+             if DEBUG:    
+                 print >>sys.stderr,"contentpanel: Torrent: %s does not exist" % torrent_filename
+             return None
+        
+         metadata = self.utility.getMetainfo(torrent_filename)
+         if not metadata:
+             return None
+        
+         self.torrentLock.acquire()
+         torrent['metadata'] = metadata.get('azureus_properties', {}).get('Content',{})
+         self.torrentLock.release()
+         
+         #print 'Azureus_thumb: %s' % thumbnailString
+         thumbnailString = torrent.get('metadata', {}).get('Thumbnail')
+         
+         if thumbnailString:
+             #print 'Found thumbnail: %s' % thumbnailString
+             stream = cStringIO.StringIO(thumbnailString)
+             img =  wx.ImageFromStream( stream )
+             iw, ih = img.GetSize()
+             w, h = self.GetSize()
+             if (iw/float(ih)) > (w/float(h)):
+                 nw = w
+                 nh = int(ih * w/float(iw))
+             else:
+                 nh = h
+                 nw = int(iw * h/float(ih))
+             if nw != iw or nh != ih:
+                 #print 'Rescale from (%d, %d) to (%d, %d)' % (iw, ih, nw, nh)
+                 img.Rescale(nw, nh)
+             bmp = wx.BitmapFromImage(img)
+            
+             
+             self.torrentLock.acquire()
+             torrent['metadata']['ThumbnailBitmap'] = bmp
+             self.setBitmap(bmp)
+             
+             # should this be done by the GUI thread??
+             self.Refresh()
+             
     
     def OnErase(self, event):
         pass
@@ -296,9 +324,9 @@ class ThumbnailViewer(wx.Panel):
         
         if self.torrentBitmap:
             dc.DrawBitmap(self.torrentBitmap, self.xpos,self.ypos, True)
-        if (self.mouseOver or self.selected) and self.maskBitmap:
+        if (self.mouseOver or self.selected):
             dc.SetFont(wx.Font(6, wx.SWISS, wx.NORMAL, wx.BOLD, True))
-            dc.DrawBitmap(self.maskBitmap,0 ,0, True)
+            dc.DrawBitmap(MASK_BITMAP,0 ,0, True)
             dc.SetTextForeground(wx.WHITE)
             dc.DrawText('rating', 5, 40)
         

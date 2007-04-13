@@ -24,6 +24,7 @@ def changeFile(filename):
                      ('filesTabs', 'wxPanel', customDir+'filesTabs'), 
                      ('filesGrid', 'wxPanel', customDir+'filesGrid'),
                      ('filesTabs', 'wxPanel', customDir+'filesTabs'),
+                     ('personsGrid', 'wxPanel', customDir+'personsGrid'),
                      ('libraryGrid', 'wxPanel', customDir+'libraryGrid'),                     
                      ('wxFrame', 'wxFrame', 'abc_vwx')]
     
