@@ -171,8 +171,17 @@
                           <object class="wxStaticText" name="st209cCCC">
                             <style>wxST_NO_AUTORESIZE</style>
                             <label>fit to taste:</label>
-                            <pos>8,25</pos>
-                            <size>79,18</size>
+                            <pos>8,7</pos>
+                            <size>79,16</size>
+                          </object>
+                        </object>
+                        <object class="sizeritem">
+                          <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
+                          <border>3</border>
+                          <option>0</option>
+                          <object class="TasteHeart" name="TasteHeart">
+                            <pos>90,10</pos>
+                            <size>14,14</size>
                           </object>
                         </object>
                         <object class="sizeritem">
@@ -182,8 +191,8 @@
                           <object class="wxStaticText" name="recommendationField">
                             <style>wxST_NO_AUTORESIZE</style>
                             <label>unknown</label>
-                            <pos>87,25</pos>
-                            <size>131,18</size>
+                            <pos>107,7</pos>
+                            <size>71,21</size>
                           </object>
                         </object>
                       </object>

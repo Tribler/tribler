@@ -52,7 +52,7 @@
         <object class="wxStaticText" name="st5cCC">
           <style>wxST_NO_AUTORESIZE</style>
           <label>progress pic</label>
-          <pos>306,13</pos>
+          <pos>171,10</pos>
           <size>87,15</size>
           <fg>#ff5500</fg>
         </object>
@@ -75,7 +75,7 @@
                 <option>0</option>
                 <object class="wxCheckBox" name="ck17c">
                   <checked>0</checked>
-                  <pos>396,3</pos>
+                  <pos>258,3</pos>
                   <size>13,13</size>
                 </object>
               </object>
@@ -86,7 +86,7 @@
                 <object class="wxStaticText" name="st5cC">
                   <style>wxST_NO_AUTORESIZE</style>
                   <label>archive</label>
-                  <pos>409,3</pos>
+                  <pos>274,3</pos>
                   <size>77,15</size>
                   <fg>#808080</fg>
                 </object>
@@ -105,7 +105,7 @@
                 <option>0</option>
                 <object class="wxCheckBox" name="ck17cC">
                   <checked>0</checked>
-                  <pos>393,18</pos>
+                  <pos>258,18</pos>
                   <size>13,13</size>
                 </object>
               </object>
@@ -126,15 +126,52 @@
         </object>
       </object>
       <object class="sizeritem">
+        <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+        <object class="wxBoxSizer">
+          <orient>wxVERTICAL</orient>
+          <object class="sizeritem">
+            <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>0</option>
+            <object class="wxGauge" name="pb">
+              <pos>362,6</pos>
+              <size>99,12</size>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>0</option>
+            <object class="wxStaticText" name="pbText">
+              <style>wxST_NO_AUTORESIZE</style>
+              <label>text</label>
+              <pos>362,18</pos>
+              <size>49,13</size>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="sizeritem">
         <flag>wxALIGN_CENTER_VERTICAL|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
         <object class="wxStaticText" name="st5cCCC">
           <style>wxST_NO_AUTORESIZE</style>
           <label>&gt; play</label>
-          <pos>535,0</pos>
-          <size>137,13</size>
+          <pos>468,10</pos>
+          <size>72,13</size>
           <fg>#ff5500</fg>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+        <object class="wxPanel" name="pause" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+          <pos>542,3</pos>
+          <size>15,15</size>
         </object>
       </object>
     </object>

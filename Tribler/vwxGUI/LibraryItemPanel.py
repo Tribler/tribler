@@ -5,6 +5,7 @@ from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.Dialogs.ContentFrontPanel import ImagePanel
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from Tribler.unicode import *
+from tribler_topButton import *
 from copy import deepcopy
 import cStringIO
 
@@ -44,17 +45,55 @@ class LibraryItemPanel(wx.Panel):
         self.Bind(wx.EVT_LEFT_UP, self.mouseAction)
         self.Bind(wx.EVT_KEY_UP, self.keyTyped)
         
-        # Add title
+        # Add thumb
         self.thumb = ThumbnailViewer(self)
         self.thumb.setBackground(wx.BLACK)
         self.thumb.SetSize((66,37))
         self.hSizer.Add(self.thumb, 0, wx.ALL, 0)        
-        self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(225,15))        
+        # Add title
+        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(225,15))        
         self.title.SetBackgroundColour(wx.WHITE)
         self.title.SetFont(wx.Font(10,74,90,wx.NORMAL,0,"Verdana"))
         self.title.SetMinSize((225,40))
-        self.hSizer.Add(self.title, 0, wx.ALL|wx.EXPAND, 3)     
+        self.hSizer.Add(self.title, 0, wx.ALL|wx.EXPAND, 3)             
+        # Add checkBox -Private & -Archive
+        self.cbPrivate = wx.CheckBox(self,-1,"",wx.Point(258,3),wx.Size(13,13))
+        self.cbPrivateLabel = wx.StaticText(self,-1,"",wx.Point(274,3),wx.Size(77,15),wx.ST_NO_AUTORESIZE)
+        self.cbPrivateLabel.SetLabel("archive")
+        self.cbPrivateSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.cbPrivateSizer.Add(self.cbPrivate, 0, wx.LEFT|wx.EXPAND, 3)     
+        self.cbPrivateSizer.Add(self.cbPrivateLabel, 0, wx.LEFT|wx.EXPAND, 3)     
 
+        self.cbArchive = wx.CheckBox(self,-1,"",wx.Point(258,18),wx.Size(13,13))
+        self.cbArchiveLabel = wx.StaticText(self,-1,"",wx.Point(274,3),wx.Size(77,15),wx.ST_NO_AUTORESIZE)
+        self.cbArchiveLabel.SetLabel("private")
+        self.cbArchiveSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.cbArchiveSizer.Add(self.cbArchive, 0, wx.LEFT|wx.EXPAND, 3)     
+        self.cbArchiveSizer.Add(self.cbArchiveLabel, 0, wx.LEFT|wx.EXPAND, 3)     
+        
+        self.cbSizer = wx.BoxSizer(wx.VERTICAL)
+        self.cbSizer.Add(self.cbPrivateSizer,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,3)
+        self.cbSizer.Add(self.cbArchiveSizer,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,3)
+        self.hSizer.Add(self.cbSizer, 0, wx.ALL|wx.EXPAND, 3)     
+        # Add Gauge/progressbar
+        self.pb = wx.Gauge(self,-1,100,wx.Point(359,0),wx.Size(100,15),wx.GA_HORIZONTAL)
+        self.pause = tribler_topButton(self, -1, wx.Point(542,3), wx.Size(17,17),name='pause' )
+        self.delete = tribler_topButton(self, -1, wx.Point(542,3), wx.Size(17,17),name='delete')        
+        self.pauseStopSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.pauseStopSizer.Add(self.pb,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,6)
+        self.pauseStopSizer.Add(self.pause,0,wx.TOP|wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,6)
+        self.pauseStopSizer.Add(self.delete,0,wx.TOP|wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,6)
+        
+        self.pbLabel = wx.StaticText(self,-1,"10min30",wx.Point(274,3),wx.Size(100,15),wx.ST_NO_AUTORESIZE|wx.ALIGN_CENTRE)                        
+        self.pbSizer = wx.BoxSizer(wx.VERTICAL)
+        self.pbSizer.Add(self.pauseStopSizer,0,wx.EXPAND|wx.FIXED_MINSIZE)
+        self.pbSizer.Add(self.pbLabel,0,wx.TOP|wx.FIXED_MINSIZE,3)
+        
+        self.hSizer.Add(self.pbSizer, 0, wx.ALL|wx.EXPAND, 3)         
+        # Add message        
+        self.messageLabel = wx.StaticText(self,-1,"message",wx.Point(274,3),wx.Size(130,15),wx.ST_NO_AUTORESIZE|wx.ALIGN_CENTRE)        
+        self.hSizer.Add(self.messageLabel, 0, wx.ALL|wx.EXPAND, 8) 
+        # Add Refresh
         self.SetSizer(self.hSizer);
         self.SetAutoLayout(1);
         self.Layout();
