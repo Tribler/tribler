@@ -4,7 +4,7 @@
 import wx
 from bgPanel import *
 from btn_DetailsHeader import *
-from tasteHeart import *
+from TasteHeart import *
 from tribler_topButton import *
 from TextButton import *
 #[inc]add your include files here
@@ -27,11 +27,9 @@ class personsDetails(wx.Panel):
 
 
     def VwXinit(self):
-        self.fileImgBuf=[None] * 2
+        self.fileImgBuf=[None] * 1
         self.fileImgBuf[0] = wx.Bitmap("images/triblerpanel_topcenter.png",wx.BITMAP_TYPE_PNG)
-        self.fileImgBuf[1] = wx.Bitmap("images/5_160x90.jpg",wx.BITMAP_TYPE_JPEG)
         self.titlePanelImg0=self.fileImgBuf[0];
-        self.thumbFieldImg0=self.fileImgBuf[1];
         self.Show(True)
         self.SetForegroundColour(wx.Colour(216,216,191))
         self.black_top_left = bgPanel(self, -1, wx.Point(0,0), wx.Size(10,21))
@@ -69,16 +67,14 @@ class personsDetails(wx.Panel):
         self.white_bottom = bgPanel(self, -1, wx.Point(0,543), wx.Size(300,5))
         self.pn240c = wx.Panel(self,-1,wx.Point(0,21),wx.Size(20,106))
         self.pn240c.SetBackgroundColour(wx.Colour(0,0,0))
-        self.thumbField = wx.Panel(self.pn240c,-1,wx.Point(10,3),wx.Size(100,100))
-        self.thumbField.SetBackgroundColour(wx.Colour(50,153,204))
-        self.thumbField.Bind(wx.EVT_ERASE_BACKGROUND,self.VwXthumbField_VwXEvOnEraseBackground)
         self.TasteHeart = TasteHeart(self.detailsC,-1,wxDefaultPosition,wxDefaultSize)
         self.TasteHeart.SetDimensions(90,10,14,14)
         self.addAsFriend = tribler_topButton(self.detailsC, -1, wx.Point(191,7), wx.Size(55,55))
         self.info_detailsTab = TextButton(self.tabs,-1,wxDefaultPosition,wxDefaultSize)
-        self.info_detailsTab.SetDimensions(171,3,75,18)
+        self.info_detailsTab.SetDimensions(10,0,75,18)
         self.advanced_detailsTab = TextButton(self.tabs,-1,wxDefaultPosition,wxDefaultSize)
-        self.advanced_detailsTab.SetDimensions(263,0,75,18)
+        self.advanced_detailsTab.SetDimensions(95,0,75,18)
+        self.thumbfield = wx.StaticBitmap(self.pn240c,-1,wx.NullBitmap,wx.Point(10,3),wx.Size(100,100))
         self.sz3s = wx.BoxSizer(wx.VERTICAL)
         self.headerC = wx.BoxSizer(wx.HORIZONTAL)
         self.sz226s = wx.BoxSizer(wx.HORIZONTAL)
@@ -114,7 +110,7 @@ class personsDetails(wx.Panel):
         self.recommendationSizer.Add(self.recommendationField,0,wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,10)
         self.downloadSizer.Add(self.addAsFriend,0,wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.sz241s.Add([10,104],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
-        self.sz241s.Add(self.thumbField,0,wx.TOP|wx.BOTTOM|wx.FIXED_MINSIZE,3)
+        self.sz241s.Add(self.thumbfield,0,wx.TOP|wx.BOTTOM|wx.FIXED_MINSIZE,3)
         self.SetSizer(self.sz3s);self.SetAutoLayout(1);self.Layout();
         self.titlePanel.SetSizer(self.sz226s);self.titlePanel.SetAutoLayout(1);self.titlePanel.Layout();
         self.tabs.SetSizer(self.tabsCCCC);self.tabs.SetAutoLayout(1);self.tabs.Layout();
@@ -151,22 +147,8 @@ class personsDetails(wx.Panel):
         event.Skip(False)
 
         return
-    def VwXthumbField_VwXEvOnEraseBackground(self,event):
-        self.VwXDrawBackImg(event,self.thumbField,self.thumbFieldImg0,0)
-        self.thumbField_VwXEvOnEraseBackground(event)
-        event.Skip(False)
-
-        return
 
 #[win]add your code here
-
-    def thumbField_VwXEvOnEraseBackground(self,event): #init function
-        #[75f]Code event VwX...Don't modify[75f]#
-        #add your code here
-        event.Skip()
-
-        return #end function
-
 
     def titlePanel_VwXEvOnEraseBackground(self,event): #init function
         #[32a]Code event VwX...Don't modify[32a]#

@@ -9,9 +9,9 @@ ckscr=0
 ProjectBuild=0
 CountConfComp=2
 nomifileEsi=
-idmax=819
+idmax=820
 idmaxFile=100343
-idIncCmp=2429
+idIncCmp=2430
 isfuncClsName=0
 funcNamePreF=VwXnew_
 s_includeNewCtor=
@@ -543,7 +543,7 @@ libreriaAdd=
 resourceAdd=
 contenitor=1
 [Project/comVirt/21]
-include=from tasteHeart import *
+include=from TasteHeart import *
 ctor=(parent,id,pos,size,style,name)
 assign=(self,-1,wxDefaultPosition,wxDefaultSize,style)
 nclass=TasteHeart
@@ -573,7 +573,7 @@ contenitor=0
 [Project/GroupsName]
 count=1
 item0name=Save Project
-item0id=1002,1490,2120,1391,2415
+item0id=
 [VwXScript]
 count=0
 [File0]
@@ -752,6 +752,7 @@ fileSrcName=personsDetails.py
 fileIncName=personsDetails.h
 fileAllInit=1
 i_numImag=20
+i_numLine=129
 idIncCmpFilCmp=1391
 [File8]
 ws_name=personsItem.pfr

@@ -89,7 +89,7 @@
         <object class="wxPanel" name="tabs">
           <pos>0,211</pos>
           <size>300,18</size>
-          <bg>#bfd8d8</bg>
+          <bg>#     0</bg>
           <object class="wxBoxSizer">
             <orient>wxHORIZONTAL</orient>
             <object class="sizeritem">
@@ -106,7 +106,7 @@
               <border>10</border>
               <option>0</option>
               <object class="wxStaticText" name="files_detailsTab" subclass="Tribler.vwxGUI.TextButton.TextButton">
-                <pos>95,0</pos>
+                <pos>80,0</pos>
                 <size>75,18</size>
               </object>
             </object>
