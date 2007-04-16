@@ -155,7 +155,7 @@ class GUIUtility:
     def standardFriendsOverview(self):
         friendsList = self.reloadData()
         overview = self.request('standardOverview')
-        #overview.setMode('friendsMode', friendsList)
+        overview.setMode('friendsMode', '','', friendsList)
          
     def standardMessagesOverview(self):
         messagesList = self.reloadData()

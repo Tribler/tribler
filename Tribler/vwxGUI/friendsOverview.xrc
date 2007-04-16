@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
-  <object class="wxPanel" name="personsOverview">
+  <object class="wxPanel" name="friendsOverview">
     <pos>0,0</pos>
     <size>625,430</size>
     <object class="wxBoxSizer">
@@ -80,7 +80,7 @@
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>1</option>
-        <object class="wxPanel" name="personsGrid" subclass="Tribler.vwxGUI.filesGrid.filesGrid">
+        <object class="wxPanel" name="friendsGrid" subclass="Tribler.vwxGUI.filesGrid.filesGrid">
           <pos>0,61</pos>
           <size>617,235</size>
         </object>

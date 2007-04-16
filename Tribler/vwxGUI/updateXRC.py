@@ -19,6 +19,7 @@ def changeFile(filename):
                      ('standardDetails', 'wxPanel', customDir+'standardDetails'),                     
                      ('standardPager', 'wxPanel', customDir+'standardPager'),
                      ('filesOverview', 'wxPanel', customDir+'filesOverview'),
+                     ('friendsOverview', 'wxPanel', customDir+'friendsOverview'),
                      ('filesItem', 'wxPanel', customDir+'filesItem'),                     
                      ('filesFilter', 'wxPanel', customDir+'filesFilter'),
                      ('filesTabs', 'wxPanel', customDir+'filesTabs'), 

@@ -15,12 +15,14 @@ DEBUG = True
         
 class standardGrid(wx.Panel):
     """
-    Panel with automatic backgroundimage control.
+    Panel which shows a grid with static number of columns and dynamic number
+    of rows
     """
-    def __init__(self, cols):
+    def __init__(self, cols, orientation='horizontal'):
         self.initReady = False
         self.data = None
         self.cols = cols
+        self.orientation = orientation
         pre = wx.PrePanel()
         # the Create step is done by XRC.
         self.PostCreate(pre)
@@ -173,9 +175,9 @@ class StaticGridPanel(wx.Panel):
         #self.calculateRows()        
 
     def setData(self, panelNumber, data):
-        orientation = 'horizontal'
+        
         try:
-            if orientation == 'vertical':
+            if self.parent.orientation == 'vertical':
                 hSizer = self.vSizer.GetItem(panelNumber%self.currentRows).GetSizer()
                 panel = hSizer.GetItem(panelNumber/ self.currentRows).GetWindow()
             else:
@@ -312,7 +314,7 @@ class StaticGridPanel(wx.Panel):
 class filesGrid(standardGrid):
     def __init__(self):
         columns = 5
-        standardGrid.__init__(self, columns)
+        standardGrid.__init__(self, columns, orientation='horizontal')
         
     def getSubPanel(self):
         return FilesItemPanel(self.staticGrid)
@@ -320,7 +322,7 @@ class filesGrid(standardGrid):
 class personsGrid(standardGrid):
     def __init__(self):
         columns = 5
-        standardGrid.__init__(self, columns)
+        standardGrid.__init__(self, columns, orientation='horizontal')
         
     def getSubPanel(self):
         return PersonsItemPanel(self.staticGrid)
@@ -328,7 +330,7 @@ class personsGrid(standardGrid):
 class friendsGrid(standardGrid):
     def __init__(self):
         columns = 5
-        standardGrid.__init__(self, columns)
+        standardGrid.__init__(self, columns, orientation='horizontal')
         
     def getSubPanel(self):
         return PersonsItemPanel(self.staticGrid)
@@ -336,7 +338,7 @@ class friendsGrid(standardGrid):
 class libraryGrid(standardGrid):
     def __init__(self):
         columns = 1
-        standardGrid.__init__(self, columns)
+        standardGrid.__init__(self, columns, orientation='horizontal')
         
     def getSubPanel(self):
         return LibraryItemPanel(self.staticGrid)
