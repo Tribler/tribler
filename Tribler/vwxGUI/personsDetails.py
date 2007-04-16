@@ -3,9 +3,10 @@
 
 import wx
 from bgPanel import *
-from tribler_topButton import *
 from btn_DetailsHeader import *
 from tasteHeart import *
+from tribler_topButton import *
+from TextButton import *
 #[inc]add your include files here
 
 #[inc]end your include
@@ -45,14 +46,6 @@ class personsDetails(wx.Panel):
         self.black_top_right = bgPanel(self, -1, wx.Point(288,0), wx.Size(10,21))
         self.tabs = wx.Panel(self,-1,wx.Point(0,211),wx.Size(300,18))
         self.tabs.SetBackgroundColour(wx.Colour(0,0,0))
-        self.info = tribler_topButton(self.tabs, -1, wx.Point(3,3), wx.Size(75,18))
-        self.st230c = wx.StaticText(self.info,-1,"",wx.Point(4,1),wx.Size(64,13),wx.ST_NO_AUTORESIZE)
-        self.st230c.SetLabel("info")
-        self.st230c.SetBackgroundColour(wx.Colour(203,203,203))
-        self.files = tribler_topButton(self.tabs, -1, wx.Point(81,3), wx.Size(75,18))
-        self.st230cC = wx.StaticText(self.files,-1,"",wx.Point(4,1),wx.Size(64,13),wx.ST_NO_AUTORESIZE)
-        self.st230cC.SetLabel("advanced")
-        self.st230cC.SetBackgroundColour(wx.Colour(203,203,203))
         self.detailsC = wx.Panel(self,-1,wx.Point(0,145),wx.Size(298,238))
         self.detailsC.SetBackgroundColour(wx.Colour(255,255,255))
         self.st209cCCC = wx.StaticText(self.detailsC,-1,"",wx.Point(8,7),wx.Size(79,16),wx.ST_NO_AUTORESIZE)
@@ -66,7 +59,7 @@ class personsDetails(wx.Panel):
         self.descriptionField.SetLabel("no common files available")
         self.descriptionField.SetFont(wx.Font(8,74,93,90,0,"Verdana"))
         self.Peop = btn_DetailsHeader(self.detailsC,-1,wxDefaultPosition,wxDefaultSize)
-        self.Peop.SetDimensions(0,179,20,20)
+        self.Peop.SetDimensions(0,162,20,20)
         self.st202cC = wx.StaticText(self.Peop,-1,"",wx.Point(10,0),wx.Size(204,18),wx.ST_NO_AUTORESIZE)
         self.st202cC.SetLabel("Also downloaded")
         self.st202cC.SetBackgroundColour(wx.Colour(203,203,203))
@@ -82,6 +75,10 @@ class personsDetails(wx.Panel):
         self.TasteHeart = TasteHeart(self.detailsC,-1,wxDefaultPosition,wxDefaultSize)
         self.TasteHeart.SetDimensions(90,10,14,14)
         self.addAsFriend = tribler_topButton(self.detailsC, -1, wx.Point(191,7), wx.Size(55,55))
+        self.info_detailsTab = TextButton(self.tabs,-1,wxDefaultPosition,wxDefaultSize)
+        self.info_detailsTab.SetDimensions(171,3,75,18)
+        self.advanced_detailsTab = TextButton(self.tabs,-1,wxDefaultPosition,wxDefaultSize)
+        self.advanced_detailsTab.SetDimensions(263,0,75,18)
         self.sz3s = wx.BoxSizer(wx.VERTICAL)
         self.headerC = wx.BoxSizer(wx.HORIZONTAL)
         self.sz226s = wx.BoxSizer(wx.HORIZONTAL)
@@ -102,8 +99,8 @@ class personsDetails(wx.Panel):
         self.headerC.SetItemMinSize(self.titlePanel,20,10)
         self.headerC.Add(self.black_top_right,0,wx.EXPAND|wx.FIXED_MINSIZE,0)
         self.sz226s.Add(self.titleField,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,3)
-        self.tabsCCCC.Add(self.info,0,wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,10)
-        self.tabsCCCC.Add(self.files,0,wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,8)
+        self.tabsCCCC.Add(self.info_detailsTab,0,wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,10)
+        self.tabsCCCC.Add(self.advanced_detailsTab,0,wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,10)
         self.vert_sz184s.Add(self.sz237s,0,wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.vert_sz184s.Add(self.Desc,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.vert_sz184s.Add(self.descriptionField,0,wx.TOP|wx.LEFT|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,6)
