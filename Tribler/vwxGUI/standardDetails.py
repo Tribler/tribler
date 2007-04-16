@@ -62,7 +62,6 @@ class standardDetails(wx.Panel):
         assert self.currentPanel, "Panel could not be loaded"
         self.currentPanel.Layout()
         self.currentPanel.SetAutoLayout(1)
-        self.currentPanel.SetSizer(self.data[self.mode]['sizer'])
         self.currentPanel.Bind(wx.EVT_SIZE, self.onResize)
         #self.currentPanel.Enable(True)
         self.currentPanel.Show(True)
@@ -113,13 +112,13 @@ class standardDetails(wx.Panel):
             # Save paneldata in self.data
             self.data[self.mode]['panel'] = currentPanel
             #titlePanel = xrc.XRCCTRL(currentPanel, 'titlePanel')
-            self.data[self.mode]['title'] = xrc.XRCCTRL(currentPanel, 'titleField')
-            self.data[self.mode]['sizer'] = xrc.XRCCTRL(currentPanel, 'mainSizer')
-            self.data[self.mode]['creationdate'] = xrc.XRCCTRL(currentPanel, 'creationdateField')
-            self.data[self.mode]['popularity'] = xrc.XRCCTRL(currentPanel, 'popularityField')
-            self.data[self.mode]['description'] = xrc.XRCCTRL(currentPanel, 'descriptionField')
-            self.data[self.mode]['size'] = xrc.XRCCTRL(currentPanel, 'sizeField')
-            self.data[self.mode]['thumb'] = xrc.XRCCTRL(currentPanel, 'thumbField')
+            filesDetailsElements = ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 'popularityField', 'descriptionField', 'sizeField', 'thumbField', 'up', 'down']
+            for element in filesDetailsElements:
+                xrcElement = xrc.XRCCTRL(currentPanel, element)
+                if not xrcElement:
+                    print 'standardDetails: Error: Could not identify xrc element: %s' % element
+                self.data[self.mode][element] = xrcElement
+
         return currentPanel
     
     def loadStatusPanel(self):
@@ -144,30 +143,35 @@ class standardDetails(wx.Panel):
     def setData(self, item):
         if self.mode == 'filesMode':
             torrent = item
-            titleField = self.data[self.mode].get('title')
+            titleField = self.data[self.mode].get('titleField')
             titleField.SetLabel(torrent.get('content_name'))
             titleField.Wrap(-1)
         
             if torrent.has_key('description'):
-                descriptionField = self.data[self.mode].get('description')
+                descriptionField = self.data[self.mode].get('descriptionField')
                 descriptionField.SetLabel(torrent.get('Description'))
                 descriptionField.Wrap(-1)        
 
             if torrent.has_key('length'):
-                sizeField = self.data[self.mode].get('size')
+                sizeField = self.data[self.mode].get('sizeField')
                 sizeField.SetLabel(self.utility.size_format(torrent['length']))
             
             if torrent.get('info', {}).get('creation date'):
-                creationField = self.data[self.mode].get('creationdate')
+                creationField = self.data[self.mode].get('creationdateField')
                 creationField.SetLabel(friendly_time(torrent['info']['creation date']))\
                 
             if torrent.has_key('seeder'):
                 seeders = torrent['seeder']
-                popularity = self.data[self.mode].get('popularity')
+                seedersField = self.data[self.mode].get('popularityField1')
+                leechersField = self.data[self.mode].get('popularityField2')
+                self.data[self.mode].get('up').setBackground(wx.WHITE)
+                self.data[self.mode].get('down').setBackground(wx.WHITE)
                 if seeders > -1:
-                    popularity.SetLabel('%d %s%s + %d %s%s' % (seeders, self.utility.lang.get('seeder'), getPlural(seeders), torrent['leecher'], self.utility.lang.get('leecher'), getPlural(torrent['leecher'])))
+                    seedersField.SetLabel('%d' % seeders)
+                    leechersField.SetLabel('%d' % torrent['leecher'])
                 else:
-                    popularity.SetLabel(self.utility.lang.get('no_info'))
+                    seedersField.SetLabel('?')
+                    leechersField.SetLabel('?')
             
         elif self.mode in ['personsMode', 'friendsMode']:
             pass

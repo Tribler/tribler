@@ -29,7 +29,7 @@ class bgPanel(wx.Panel):
         # Do all init here
         self.searchBitmap()
         self.createBackgroundImage()
-        
+        self.backgroundColour = wx.Colour(102,102,102)
 #        print self.Name
 #        print '> size'
 #        print self.Size
@@ -39,6 +39,9 @@ class bgPanel(wx.Panel):
         self.Update()
         
         
+    def setBackground(self, color):
+        self.backgroundColour = color
+        self.Refresh()
         
     def searchBitmap(self):
         self.bitmap = None
@@ -78,7 +81,7 @@ class bgPanel(wx.Panel):
     def OnPaint(self, evt):
         obj = evt.GetEventObject()
         dc = wx.BufferedPaintDC(obj)
-        dc.SetBackground(wx.Brush(wx.Colour(102,102,102)))
+        dc.SetBackground(wx.Brush(self.backgroundColour))
         dc.Clear()
         if self.bitmap:
             # Tile bitmap

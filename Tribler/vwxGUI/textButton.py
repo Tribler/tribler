@@ -4,7 +4,7 @@ from Tribler.vwxGUI.GuiUtility import GUIUtility
 
 DEBUG = False
 
-class tribler_topButton(wx.Panel):
+class textButton(wx.StaticText):
     """
     Button that changes the image shown if you move your mouse over it.
     It redraws the background of the parent Panel, if this is an imagepanel with
@@ -33,15 +33,12 @@ class tribler_topButton(wx.Panel):
         self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
         self.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
         self.selected = False
-        self.searchBitmaps()
-        self.createBackgroundImage()
-        #if self.bitmaps[0]:
-        #    self.SetSize(self.bitmaps[0].GetSize())
-#        print self.Name
-#        print 'size'
-#        print self.Size
-        
-       
+        if '_' in self.GetName():
+            label = self.GetName()[:self.GetName().find('_')]
+        else:
+            label = self.GetName()
+        self.SetLabel(label)
+            
         self.Refresh(True)
         self.Update()
         

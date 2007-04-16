@@ -6,11 +6,11 @@ DEBUG = False
 
 # find the heart bitmaps
 
-NUM_HEARTS = 4 #??
+NUM_HEARTS = 5 #??
 BITMAPS = []
 IMAGEDIR = os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])), 'Tribler','vwxGUI', 'images')
 for i in xrange(NUM_HEARTS):
-    filename = os.path.join(IMAGEDIR, 'heart%d.png' % i)
+    filename = os.path.join(IMAGEDIR, 'heart%d.png' % (i+1))
     if os.path.isfile(filename):
         BITMAPS.append(wx.Bitmap(filename, wx.BITMAP_TYPE_ANY))
     else:
@@ -42,9 +42,9 @@ class TasteHeart(wx.Panel):
         self.guiUtility = GUIUtility.getInstance()
         self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
         self.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
-        self.heartIndex = 0
         self.searchBitmaps()
         self.createBackgroundImage()
+        self.setHeartIndex(0)
         #if self.bitmaps[0]:
         #    self.SetSize(self.bitmaps[0].GetSize())
 #        print self.Name
