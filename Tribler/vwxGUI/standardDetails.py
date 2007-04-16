@@ -2,6 +2,7 @@ import wx, os, sys, os.path
 import wx.xrc as xrc
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from traceback import print_exc
+from Tribler.utilities import *
 
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionMode', 'messageMode']
 DEBUG = True
@@ -29,6 +30,7 @@ class standardDetails(wx.Panel):
     def _PostInit(self):
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
+        self.utility = self.guiUtility.utility
         self.mode = None
         self.data = {}
         for mode in DETAILS_MODES+['status']:
@@ -115,6 +117,7 @@ class standardDetails(wx.Panel):
             self.data[self.mode]['sizer'] = xrc.XRCCTRL(currentPanel, 'mainSizer')
             self.data[self.mode]['creationdate'] = xrc.XRCCTRL(currentPanel, 'creationdateField')
             self.data[self.mode]['description'] = xrc.XRCCTRL(currentPanel, 'descriptionField')
+            self.data[self.mode]['size'] = xrc.XRCCTRL(currentPanel, 'sizeField')
             self.data[self.mode]['thumb'] = xrc.XRCCTRL(currentPanel, 'thumbField')
         return currentPanel
     
@@ -137,28 +140,43 @@ class standardDetails(wx.Panel):
             return None
             
      
-    def setData(self, torrent):
-        print 'torrentData='
-        print torrent
-        #self.currentPanel.setData(self.data[self.mode].get('data'))
-        # filesDetails.xrc has no setData yet
-        titleField = self.data[self.mode].get('title')
-        titleField.SetLabel(torrent.get('content_name'))
-        titleField.Wrap(-1)
+    def setData(self, item):
+        if self.mode == 'filesMode':
+            torrent = item
+            titleField = self.data[self.mode].get('title')
+            titleField.SetLabel(torrent.get('content_name'))
+            titleField.Wrap(-1)
         
-#        descriptionField = self.data[self.mode].get('description')
-#        descriptionField.SetLabel(torrent.get('Description'))
-#        descriptionField.Wrap(-1)        
+            if torrent.has_key('description'):
+                descriptionField = self.data[self.mode].get('description')
+                descriptionField.SetLabel(torrent.get('Description'))
+                descriptionField.Wrap(-1)        
+
+            if torrent.has_key('length'):
+                sizeField = self.data[self.mode].get('size')
+                sizeField.SetLabel(self.utility.size_format(torrent['length']))
+            
+            if torrent.get('info', {}).get('creation date'):
+                creationField = self.data[self.mode].get('creationdate')
+                creationField.SetLabel(friendly_time(torrent['info']['creation date']))\
+                
+        elif self.mode in ['personsMode', 'friendsMode']:
+            pass
+        elif self.mode == 'libraryMode':
+            pass
+        elif self.mode == 'subscriptionMode':
+            pass
         
+
 #        creationdateField = self.data[self.mode].get('creationdate')
-#        creationdateField.SetLabel(torrent.get('creation date'))
+#        creationdateField.SetLabel(item.get('creation date'))
 #        creationdateField.Wrap(-1) 
         
-        thumbField = self.data[self.mode].get('thumb')        
-        thumbField.SetBackgroundColour(wx.Colour(255,51,0))        
-        thumbField.Refresh()
+#        thumbField = self.data[self.mode].get('thumb')        
+#        thumbField.SetBackgroundColour(wx.Colour(255,51,0))        
+#        thumbField.Refresh()
         
-        pass
+       
         
         
     def onResize(self, event):
