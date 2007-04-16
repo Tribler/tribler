@@ -116,6 +116,7 @@ class standardDetails(wx.Panel):
             self.data[self.mode]['title'] = xrc.XRCCTRL(currentPanel, 'titleField')
             self.data[self.mode]['sizer'] = xrc.XRCCTRL(currentPanel, 'mainSizer')
             self.data[self.mode]['creationdate'] = xrc.XRCCTRL(currentPanel, 'creationdateField')
+            self.data[self.mode]['popularity'] = xrc.XRCCTRL(currentPanel, 'popularityField')
             self.data[self.mode]['description'] = xrc.XRCCTRL(currentPanel, 'descriptionField')
             self.data[self.mode]['size'] = xrc.XRCCTRL(currentPanel, 'sizeField')
             self.data[self.mode]['thumb'] = xrc.XRCCTRL(currentPanel, 'thumbField')
@@ -160,6 +161,14 @@ class standardDetails(wx.Panel):
                 creationField = self.data[self.mode].get('creationdate')
                 creationField.SetLabel(friendly_time(torrent['info']['creation date']))\
                 
+            if torrent.has_key('seeder'):
+                seeders = torrent['seeder']
+                popularity = self.data[self.mode].get('popularity')
+                if seeders > -1:
+                    popularity.SetLabel('%d %s%s + %d %s%s' % (seeders, self.utility.lang.get('seeder'), getPlural(seeders), torrent['leecher'], self.utility.lang.get('leecher'), getPlural(torrent['leecher'])))
+                else:
+                    popularity.SetLabel(self.utility.lang.get('no_info'))
+            
         elif self.mode in ['personsMode', 'friendsMode']:
             pass
         elif self.mode == 'libraryMode':

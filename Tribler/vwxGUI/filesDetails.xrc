@@ -230,7 +230,7 @@
                           <flag>wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
                           <border>10</border>
                           <option>0</option>
-                          <object class="wxStaticText" name="creationdateFieldC">
+                          <object class="wxStaticText" name="popularityField">
                             <style>wxST_NO_AUTORESIZE</style>
                             <label>unknown</label>
                             <pos>90,42</pos>
