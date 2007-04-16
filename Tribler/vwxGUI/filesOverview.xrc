@@ -73,7 +73,7 @@
         <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>10</border>
         <option>1</option>
-        <object class="wxPanel" name="filesGrid" subclass="Tribler.vwxGUI.filesGrid.filesGrid">
+        <object class="wxPanel" name="filesGrid" subclass="Tribler.vwxGUI.standardGrid.filesGrid">
           <pos>10,66</pos>
           <size>623,10</size>
         </object>

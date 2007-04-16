@@ -167,7 +167,7 @@
         <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>10</border>
         <option>1</option>
-        <object class="wxPanel" name="libraryGrid" subclass="Tribler.vwxGUI.libraryGrid.libraryGrid">
+        <object class="wxPanel" name="libraryGrid" subclass="Tribler.vwxGUI.standardGrid.libraryGrid">
           <pos>3,59</pos>
           <size>20,20</size>
         </object>

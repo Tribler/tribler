@@ -72,7 +72,7 @@
         <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>10</border>
         <option>1</option>
-        <object class="personsGrid" name="personsGrid">
+        <object class="wxPanel" name="personsGrid" subclass="Tribler.vwxGUI.standardGrid.personsGrid">
           <pos>10,66</pos>
           <size>20,20</size>
         </object>

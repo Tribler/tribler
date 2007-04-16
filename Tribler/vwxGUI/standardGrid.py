@@ -1,6 +1,8 @@
 import os, sys, wx
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from Tribler.vwxGUI.filesItemPanel import FilesItemPanel
+from Tribler.vwxGUI.LibraryItemPanel import LibraryItemPanel
+from Tribler.vwxGUI.PersonsItemPanel import PersonsItemPanel
 from Tribler.Dialogs.ContentFrontPanel import ImagePanel, DetailPanel
 from Tribler.utilities import *
 from traceback import print_exc
@@ -10,21 +12,19 @@ import wx.xrc as xrc
 
 DEBUG = True
 
-class filesGrid(wx.Panel):
+        
+class standardGrid(wx.Panel):
     """
     Panel with automatic backgroundimage control.
     """
-    def __init__(self, *args):
-        if len(args) == 0:
-            self.initReady = False
-            self.data = None
-            pre = wx.PrePanel()
-            # the Create step is done by XRC.
-            self.PostCreate(pre)
-            self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
-        else:
-            wx.Panel.__init__(self, args[0], args[1], args[2], args[3])
-            self._PostInit()
+    def __init__(self, cols):
+        self.initReady = False
+        self.data = None
+        self.cols = cols
+        pre = wx.PrePanel()
+        # the Create step is done by XRC.
+        self.PostCreate(pre)
+        self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
         
     def OnCreate(self, event):
         self.Unbind(wx.EVT_WINDOW_CREATE)
@@ -42,7 +42,7 @@ class filesGrid(wx.Panel):
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.detailPanel = None       
-        self.cols = 5
+        #self.cols = 5
         self.items = 0
         self.currentData = 0
         self.addComponents()
@@ -129,7 +129,9 @@ class filesGrid(wx.Panel):
         print 'setPager called: %s' % pager
         self.standardPager = pager
        
- 
+    def getSubPanel(self):
+        raise NotImplementedError('Method getSubPanel should be subclassed')
+    
 
 
 class StaticGridPanel(wx.Panel):
@@ -171,14 +173,19 @@ class StaticGridPanel(wx.Panel):
         #self.calculateRows()        
 
     def setData(self, panelNumber, data):
+        orientation = 'horizontal'
         try:
-            hSizer = self.vSizer.GetItem(panelNumber%self.currentRows).GetSizer()
-            panel = hSizer.GetItem(panelNumber/ self.currentRows).GetWindow()
-            
+            if orientation == 'vertical':
+                hSizer = self.vSizer.GetItem(panelNumber%self.currentRows).GetSizer()
+                panel = hSizer.GetItem(panelNumber/ self.currentRows).GetWindow()
+            else:
+                hSizer = self.vSizer.GetItem(panelNumber/self.cols).GetSizer()
+                panel = hSizer.GetItem(panelNumber % self.cols).GetWindow()
             panel.setData(data)
         except:
             print >>sys.stderr,"contentpanel: Error: Could not set data in panel number %d, with %d cols" % (panelNumber, self.cols)
             print_exc(file=sys.stderr)
+    
     
     def clearAllData(self):
         for i in range(0, self.items):
@@ -222,8 +229,6 @@ class StaticGridPanel(wx.Panel):
         
         
             
-    def getSubPanel(self):
-        return FilesItemPanel(self)
     
     def updatePanel(self, oldRows, newRows):
         # put torrent items in grid 
@@ -232,7 +237,7 @@ class StaticGridPanel(wx.Panel):
                 hSizer = wx.BoxSizer(wx.HORIZONTAL)
                 self.panels.append([])
                 for panel in range(0, self.cols):
-                    dataPanel = self.getSubPanel()
+                    dataPanel = self.parent.getSubPanel()
                     #dataPanel = wx.Panel(self, wx.ID_ANY)
                     self.panels[i].append(dataPanel)
                     #dataPanel.SetSize((-1, self.subPanelHeight))
@@ -302,3 +307,36 @@ class StaticGridPanel(wx.Panel):
         self.detailPanel = self.parent.guiUtility.request('standardDetails')
         return self.detailPanel != None
     
+
+
+class filesGrid(standardGrid):
+    def __init__(self):
+        columns = 5
+        standardGrid.__init__(self, columns)
+        
+    def getSubPanel(self):
+        return FilesItemPanel(self.staticGrid)
+    
+class personsGrid(standardGrid):
+    def __init__(self):
+        columns = 5
+        standardGrid.__init__(self, columns)
+        
+    def getSubPanel(self):
+        return PersonsItemPanel(self.staticGrid)
+
+class friendsGrid(standardGrid):
+    def __init__(self):
+        columns = 5
+        standardGrid.__init__(self, columns)
+        
+    def getSubPanel(self):
+        return PersonsItemPanel(self.staticGrid)
+    
+class libraryGrid(standardGrid):
+    def __init__(self):
+        columns = 1
+        standardGrid.__init__(self, columns)
+        
+    def getSubPanel(self):
+        return LibraryItemPanel(self.staticGrid)

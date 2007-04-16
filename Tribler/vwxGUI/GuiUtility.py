@@ -121,9 +121,11 @@ class GUIUtility:
         torrentList = self.reloadData()
         overview = self.request('standardOverview')
         overview.setMode('filesMode', filter1String, filter2String, torrentList)
-        if self.standardDetails:
-            self.standardDetails.setMode('filesMode', None)
-        
+        try:
+            if self.standardDetails:
+                self.standardDetails.setMode('filesMode', None)
+        except:
+            pass
         
     def standardPersonsOverview(self, filter1String = "", filter2String = ""):
         self.categorykey = self.utility.lang.get('mypref_list_title')

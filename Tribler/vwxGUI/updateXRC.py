@@ -22,10 +22,11 @@ def changeFile(filename):
                      ('filesItem', 'wxPanel', customDir+'filesItem'),                     
                      ('filesFilter', 'wxPanel', customDir+'filesFilter'),
                      ('filesTabs', 'wxPanel', customDir+'filesTabs'), 
-                     ('filesGrid', 'wxPanel', customDir+'filesGrid'),
                      ('filesTabs', 'wxPanel', customDir+'filesTabs'),
-                     ('personsGrid', 'wxPanel', customDir+'personsGrid'),
-                     ('libraryGrid', 'wxPanel', customDir+'libraryGrid'),                     
+                     ('filesGrid', 'wxPanel', customDir+'standardGrid'),
+                     ('personsGrid', 'wxPanel', customDir+'standardGrid'),
+                     ('libraryGrid', 'wxPanel', customDir+'standardGrid'),
+                     ('friendsGrid', 'wxPanel', customDir+'standardGrid'),
                      ('wxFrame', 'wxFrame', 'abc_vwx')]
     
     
