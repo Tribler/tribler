@@ -5,6 +5,7 @@ import wx
 from bgPanel import *
 from tribler_topButton import *
 from btn_DetailsHeader import *
+from tasteHeart import *
 #[inc]add your include files here
 
 #[inc]end your include
@@ -54,11 +55,10 @@ class personsDetails(wx.Panel):
         self.st230cC.SetBackgroundColour(wx.Colour(203,203,203))
         self.detailsC = wx.Panel(self,-1,wx.Point(0,145),wx.Size(298,238))
         self.detailsC.SetBackgroundColour(wx.Colour(255,255,255))
-        self.st209cCCC = wx.StaticText(self.detailsC,-1,"",wx.Point(8,25),wx.Size(79,18),wx.ST_NO_AUTORESIZE)
+        self.st209cCCC = wx.StaticText(self.detailsC,-1,"",wx.Point(8,7),wx.Size(79,16),wx.ST_NO_AUTORESIZE)
         self.st209cCCC.SetLabel("fit to taste:")
-        self.recommendationField = wx.StaticText(self.detailsC,-1,"",wx.Point(87,25),wx.Size(131,18),wx.ST_NO_AUTORESIZE)
+        self.recommendationField = wx.StaticText(self.detailsC,-1,"",wx.Point(107,7),wx.Size(71,21),wx.ST_NO_AUTORESIZE)
         self.recommendationField.SetLabel("unknown")
-        self.addAsFriend = tribler_topButton(self.detailsC, -1, wx.Point(231,7), wx.Size(55,55))
         self.Desc = wx.StaticText(self.detailsC,-1,"",wx.Point(0,85),wx.Size(241,15),wx.ST_NO_AUTORESIZE)
         self.Desc.SetLabel("   Common files")
         self.Desc.SetBackgroundColour(wx.Colour(203,203,203))
@@ -79,6 +79,9 @@ class personsDetails(wx.Panel):
         self.thumbField = wx.Panel(self.pn240c,-1,wx.Point(10,3),wx.Size(100,100))
         self.thumbField.SetBackgroundColour(wx.Colour(50,153,204))
         self.thumbField.Bind(wx.EVT_ERASE_BACKGROUND,self.VwXthumbField_VwXEvOnEraseBackground)
+        self.TasteHeart = TasteHeart(self.detailsC,-1,wxDefaultPosition,wxDefaultSize)
+        self.TasteHeart.SetDimensions(90,10,14,14)
+        self.addAsFriend = tribler_topButton(self.detailsC, -1, wx.Point(191,7), wx.Size(55,55))
         self.sz3s = wx.BoxSizer(wx.VERTICAL)
         self.headerC = wx.BoxSizer(wx.HORIZONTAL)
         self.sz226s = wx.BoxSizer(wx.HORIZONTAL)
@@ -110,8 +113,9 @@ class personsDetails(wx.Panel):
         self.sz237s.Add(self.downloadSizer,0,wx.TOP|wx.FIXED_MINSIZE,4)
         self.vert_sz238s.Add(self.recommendationSizer,0,wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,5)
         self.recommendationSizer.Add(self.st209cCCC,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
+        self.recommendationSizer.Add(self.TasteHeart,0,wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.FIXED_MINSIZE,3)
         self.recommendationSizer.Add(self.recommendationField,0,wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,10)
-        self.downloadSizer.Add(self.addAsFriend,0,wx.LEFT|wx.EXPAND|wx.ALIGN_RIGHT|wx.FIXED_MINSIZE,3)
+        self.downloadSizer.Add(self.addAsFriend,0,wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.sz241s.Add([10,104],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.sz241s.Add(self.thumbField,0,wx.TOP|wx.BOTTOM|wx.FIXED_MINSIZE,3)
         self.SetSizer(self.sz3s);self.SetAutoLayout(1);self.Layout();

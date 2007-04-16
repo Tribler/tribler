@@ -9,9 +9,9 @@ ckscr=0
 ProjectBuild=0
 CountConfComp=2
 nomifileEsi=
-idmax=807
+idmax=815
 idmaxFile=100343
-idIncCmp=2417
+idIncCmp=2425
 isfuncClsName=0
 funcNamePreF=VwXnew_
 s_includeNewCtor=
@@ -119,7 +119,7 @@ filename=wx/msw/wx.rc
 18=0
 19=0
 [Project/comVirt]
-iN=20
+iN=22
 [Project/comVirt/1]
 include=from filesOverview import *
 ctor=(parent,id,pos,size,style,name)
@@ -542,6 +542,34 @@ styleNum=0
 libreriaAdd=
 resourceAdd=
 contenitor=1
+[Project/comVirt/21]
+include=from tasteHeart import *
+ctor=(parent,id,pos,size,style,name)
+assign=(self,-1,wxDefaultPosition,wxDefaultSize,style)
+nclass=TasteHeart
+idSTR=14:51:051632007
+id=1
+filenameDll=
+enableDll=0
+eventNum=0
+styleNum=0
+libreriaAdd=
+resourceAdd=
+contenitor=0
+[Project/comVirt/22]
+include=from TextButton import *
+ctor=(parent,id,pos,size,style,name)
+assign=(self,-1,wxDefaultPosition,wxDefaultSize,style)
+nclass=TextButton
+idSTR=16:05:351632007
+id=1
+filenameDll=
+enableDll=0
+eventNum=0
+styleNum=0
+libreriaAdd=
+resourceAdd=
+contenitor=0
 [Project/GroupsName]
 count=1
 item0name=Save Project
