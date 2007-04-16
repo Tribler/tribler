@@ -38,8 +38,13 @@ class standardDetails(wx.Panel):
         self.currentPanel = None
         self.addComponents()
         #self.Refresh()
+        self.modeElements = {'filesMode': ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
+                                            'descriptionField', 'sizeField', 'thumbField', 'up', 'down'],
+                             'personsMode': ['TasteHeart']
+                             }
         self.guiUtility.report(self)
         self.guiUtility.initStandardDetails(self)
+
         
     def addComponents(self):
         self.hSizer = wx.BoxSizer(wx.VERTICAL)
@@ -112,11 +117,11 @@ class standardDetails(wx.Panel):
             # Save paneldata in self.data
             self.data[self.mode]['panel'] = currentPanel
             #titlePanel = xrc.XRCCTRL(currentPanel, 'titlePanel')
-            filesDetailsElements = ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 'popularityField', 'descriptionField', 'sizeField', 'thumbField', 'up', 'down']
-            for element in filesDetailsElements:
+            
+            for element in self.modeElements[self.mode]:
                 xrcElement = xrc.XRCCTRL(currentPanel, element)
                 if not xrcElement:
-                    print 'standardDetails: Error: Could not identify xrc element: %s' % element
+                    print 'standardDetails: Error: Could not identify xrc element: %s for mode %s' % (element, self.mode)
                 self.data[self.mode][element] = xrcElement
 
         return currentPanel
@@ -174,7 +179,7 @@ class standardDetails(wx.Panel):
                     leechersField.SetLabel('?')
             
         elif self.mode in ['personsMode', 'friendsMode']:
-            pass
+            self.data[self.mode].get('TasteHeart').setHeartIndex(3)
         elif self.mode == 'libraryMode':
             pass
         elif self.mode == 'subscriptionMode':

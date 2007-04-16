@@ -28,7 +28,8 @@ def changeFile(filename):
                      ('personsGrid', 'wxPanel', customDir+'standardGrid'),
                      ('libraryGrid', 'wxPanel', customDir+'standardGrid'),
                      ('friendsGrid', 'wxPanel', customDir+'standardGrid'),
-                     ('TasteHeart', 'wxStaticText', customDir+'TasteHeart'),
+                     ('TasteHeart', 'wxPanel', customDir+'TasteHeart'),
+                     ('TextButton', 'wxStaticText', customDir+'textButton'),
                      ('wxFrame', 'wxFrame', 'abc_vwx')]
     
     

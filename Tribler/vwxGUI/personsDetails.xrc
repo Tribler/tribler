@@ -179,7 +179,7 @@
                           <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
                           <border>3</border>
                           <option>0</option>
-                          <object class="wxStaticText" name="TasteHeart" subclass="Tribler.vwxGUI.TasteHeart.TasteHeart">
+                          <object class="wxPanel" name="TasteHeart" subclass="Tribler.vwxGUI.TasteHeart.TasteHeart">
                             <pos>90,10</pos>
                             <size>14,14</size>
                           </object>

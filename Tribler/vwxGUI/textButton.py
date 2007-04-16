@@ -4,7 +4,7 @@ from Tribler.vwxGUI.GuiUtility import GUIUtility
 
 DEBUG = False
 
-class textButton(wx.StaticText):
+class TextButton(wx.StaticText):
     """
     Button that changes the image shown if you move your mouse over it.
     It redraws the background of the parent Panel, if this is an imagepanel with
