@@ -1,4 +1,4 @@
-import wx, os, sys, os.path
+import wx, os, sys, os.path, random
 import wx.xrc as xrc
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from traceback import print_exc
@@ -40,7 +40,7 @@ class standardDetails(wx.Panel):
         #self.Refresh()
         self.modeElements = {'filesMode': ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down'],
-                             'personsMode': ['TasteHeart']
+                             'personsMode': ['TasteHeart', 'recommendationField']
                              }
         self.guiUtility.report(self)
         self.guiUtility.initStandardDetails(self)
@@ -179,7 +179,10 @@ class standardDetails(wx.Panel):
                     leechersField.SetLabel('?')
             
         elif self.mode in ['personsMode', 'friendsMode']:
-            self.data[self.mode].get('TasteHeart').setHeartIndex(3)
+            recomm = random.randint(0,4)
+            self.data[self.mode].get('TasteHeart').setHeartIndex(recomm)
+            self.data[self.mode].get('recommendationField').SetLabel("%d" % recomm)
+            
         elif self.mode == 'libraryMode':
             pass
         elif self.mode == 'subscriptionMode':
@@ -202,3 +205,5 @@ class standardDetails(wx.Panel):
         self.currentPanel.SetSize(self.currentPanel.GetSize())
         self.currentPanel.Refresh()
         
+    def tabClicked(self, name):
+        print 'Tabclicked: %s' % name

@@ -12,14 +12,10 @@ class TextButton(wx.StaticText):
     """
 
     def __init__(self, *args, **kw):    
-        if len(args) == 0:
-            pre = wx.PrePanel()
-            # the Create step is done by XRC.
-            self.PostCreate(pre)
-            self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
-        else:
-            wx.Panel.__init__(self, *args, **kw)
-            self._PostInit()
+        pre = wx.PreStaticText()
+        # the Create step is done by XRC.
+        self.PostCreate(pre)
+        self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
         
     def OnCreate(self, event):
         self.Unbind(wx.EVT_WINDOW_CREATE)
@@ -40,6 +36,7 @@ class TextButton(wx.StaticText):
         else:
             label = self.GetName()
         self.SetLabel(label)
+        self.SetMinSize((60,-1))
         self.SetBackgroundColour(self.colours[0])    
         self.Refresh(True)
         self.Update()

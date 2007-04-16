@@ -99,6 +99,8 @@ class GUIUtility:
             self.standardFriendsOverview()
         elif name == 'mainButtonMessages':
             self.standardMessagesOverview()
+        elif name.lower().find('detailstab') > -1:
+            self.detailsTabClicked(name)
         else:
             print 'A button was clicked, but no action is defined for: %s' % name
                 
@@ -218,4 +220,6 @@ class GUIUtility:
         self.standardDetails.setData(torrent)
         self.standardOverview.updateSelection()
             
-    
+    def detailsTabClicked(self, name):
+        "A tab in the detailsPanel was clicked"
+        self.standardDetails.tabClicked(name)
