@@ -81,8 +81,8 @@
               <flag>wxTOP|wxBOTTOM|wxFIXED_MINSIZE</flag>
               <border>3</border>
               <option>0</option>
-              <object class="wxStaticBitmap" name="bm248c">
-                <pos>110,3</pos>
+              <object class="wxStaticBitmap" name="thumbfield">
+                <pos>10,3</pos>
                 <size>100,100</size>
               </object>
             </object>
