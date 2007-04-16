@@ -96,8 +96,8 @@
               <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>10</border>
               <option>0</option>
-              <object class="wxStaticText" name="info_detailsTab" subclass="Tribler.vwxGUI.textButton.TextButton">
-                <pos>10,0</pos>
+              <object class="wxStaticText" name="info_detailsTab" subclass="Tribler.vwxGUI.TextButton.TextButton">
+                <pos>180,0</pos>
                 <size>75,18</size>
               </object>
             </object>
@@ -105,7 +105,7 @@
               <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>10</border>
               <option>0</option>
-              <object class="wxStaticText" name="files_detailsTab" subclass="Tribler.vwxGUI.textButton.TextButton">
+              <object class="wxStaticText" name="files_detailsTab" subclass="Tribler.vwxGUI.TextButton.TextButton">
                 <pos>95,0</pos>
                 <size>75,18</size>
               </object>

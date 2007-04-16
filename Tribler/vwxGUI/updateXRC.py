@@ -32,7 +32,7 @@ def changeFile(filename):
                      ('friendsOverview', 'wxPanel', customDir+'friendsOverview'),
                      ('TasteHeart', 'wxStaticText', customDir+'TasteHeart'),
                      ('TasteHeart', 'wxPanel', customDir+'TasteHeart'),
-                     ('TextButton', 'wxStaticText', customDir+'textButton'),
+                     ('TextButton', 'wxStaticText', customDir+'TextButton'),
                      ('wxFrame', 'wxFrame', 'abc_vwx')]
     
     
