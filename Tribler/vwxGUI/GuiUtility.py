@@ -211,6 +211,8 @@ class GUIUtility:
         self.standardDetails = standardDetails
         self.standardDetails.setMode('filesMode', None)
         self.standardDetails.refreshStatusPanel(True)
+        firstItem = self.standardOverview.getFirstItem()
+        self.standardDetails.setData(firstItem)
         
     def deleteTorrent(self, torrent):
         pass
@@ -223,3 +225,8 @@ class GUIUtility:
     def detailsTabClicked(self, name):
         "A tab in the detailsPanel was clicked"
         self.standardDetails.tabClicked(name)
+        
+    def refreshOnResize(self):
+        self.standardDetails.Refresh()
+        self.standardOverview.Refresh()
+        self.frame.topBackgroundRight.Refresh()

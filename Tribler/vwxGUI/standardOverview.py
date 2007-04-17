@@ -133,4 +133,11 @@ class standardOverview(wx.Panel):
             grid.staticGrid.updateSelection()
         
         
+    def getFirstItem(self):
+        data = self.data[self.mode]['data']
+        if len(data) > 0:
+            return data[0]
+        else:
+            print 'standardOverview: Error, could not return firstItem, data=%s' % data
+            return None
         

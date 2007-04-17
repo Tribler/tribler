@@ -432,6 +432,7 @@ class wxFrame(wx.Frame, DelayedInvocation):
         self.Bind(wx.EVT_ICONIZE, self.onIconify)
         self.Bind(wx.EVT_SET_FOCUS, self.onFocus)
         self.Bind(wx.EVT_SIZE, self.onSize)
+        #self.Bind(wx.EVT_IDLE, self.onIdle)
         
         # Check webservice for autostart webservice
         #######################################################
@@ -615,6 +616,19 @@ class wxFrame(wx.Frame, DelayedInvocation):
             #self.window.SetSize(self.GetSize())
             event.Skip()
 
+        # Refresh subscreens
+        self.refreshNeeded = True
+        self.guiUtility.refreshOnResize()
+        
+    def onIdle(self, event = None):
+        """
+        Only refresh screens (especially detailsPanel) when resizes are finished
+        This gives less flickering, but doesnt look pretty, so i commented it out
+        """
+        if self.refreshNeeded:
+            self.guiUtility.refreshOnResize()
+            self.refreshNeeder = False
+        
     def getWindowSettings(self):
         width = self.utility.config.Read("window_width")
         height = self.utility.config.Read("window_height")
@@ -818,6 +832,7 @@ class ABCApp(wx.App):
             self.guiUtility.frame = self.frame
             self.scrollWindow = xrc.XRCCTRL(self.frame, "level0")
             self.guiUtility.mainSizer = self.scrollWindow.GetSizer()
+            self.frame.topBackgroundRight = xrc.XRCCTRL(self.frame, "topBG3")
             self.scrollWindow.SetScrollbars(1,1,1024,768)
             
             

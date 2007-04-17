@@ -35,7 +35,7 @@ class TextButton(wx.StaticText):
             label = self.GetName()[:self.GetName().find('_')]
         else:
             label = self.GetName()
-        self.SetLabel(label)
+        self.SetLabel('  '+label)
         self.SetMinSize((60,-1))
         #self.SetSize(75,18)
         self.SetBackgroundColour(self.colours[0])    

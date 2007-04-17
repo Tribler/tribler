@@ -188,7 +188,8 @@ class standardDetails(wx.Panel):
         elif self.mode == 'subscriptionMode':
             pass
         
-
+        
+        
 #        creationdateField = self.data[self.mode].get('creationdate')
 #        creationdateField.SetLabel(item.get('creation date'))
 #        creationdateField.Wrap(-1) 
@@ -197,13 +198,14 @@ class standardDetails(wx.Panel):
 #        thumbField.SetBackgroundColour(wx.Colour(255,51,0))        
 #        thumbField.Refresh()
         
-       
-        
+        self.currentPanel.Refresh()
         
     def onResize(self, event):
         print 'details resize'
         self.currentPanel.SetSize(self.currentPanel.GetSize())
         self.currentPanel.Refresh()
+        if event:
+            event.Skip()
         
     def tabClicked(self, name):
         print 'Tabclicked: %s' % name
