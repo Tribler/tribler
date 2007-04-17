@@ -39,7 +39,7 @@ class PersonsItemPanel(wx.Panel):
         self.selectedColour = wx.Colour(245,208,120)
         self.unselectedColour = wx.WHITE
         
-        self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.vSizer = wx.BoxSizer(wx.VERTICAL)
         
         self.Bind(wx.EVT_LEFT_UP, self.mouseAction)
         self.Bind(wx.EVT_KEY_UP, self.keyTyped)
@@ -47,15 +47,15 @@ class PersonsItemPanel(wx.Panel):
         # Add title
         self.thumb = ThumbnailViewer(self)
         self.thumb.setBackground(wx.BLACK)
-        self.thumb.SetSize((66,37))
-        self.hSizer.Add(self.thumb, 0, wx.ALL, 0)        
-        self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(225,15))        
+        self.thumb.SetSize((80,80))
+        self.vSizer.Add(self.thumb, 0, wx.ALL, 0)        
+        self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(80,15))        
         self.title.SetBackgroundColour(wx.WHITE)
         self.title.SetFont(wx.Font(10,74,90,wx.NORMAL,0,"Verdana"))
-        self.title.SetMinSize((225,40))
-        self.hSizer.Add(self.title, 0, wx.ALL|wx.EXPAND, 3)     
+        self.title.SetMinSize((80,30))
+        self.vSizer.Add(self.title, 0, wx.ALL, 3)     
 
-        self.SetSizer(self.hSizer);
+        self.SetSizer(self.vSizer);
         self.SetAutoLayout(1);
         self.Layout();
         self.Refresh()
@@ -136,7 +136,7 @@ class PersonsItemPanel(wx.Panel):
             self.guiUtility.selectTorrent(self.data)
                 
                 
-DEFAULT_THUMB = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'defaultThumb.png'))
+DEFAULT_THUMB = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'defaultThumbPeer.png'))
 
 class ThumbnailViewer(wx.Panel):
     """

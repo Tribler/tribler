@@ -230,7 +230,7 @@
                             <style>wxST_NO_AUTORESIZE</style>
                             <label>?</label>
                             <pos>102,43</pos>
-                            <size>11,18</size>
+                            <size>21,18</size>
                           </object>
                         </object>
                         <object class="sizeritem">
@@ -250,8 +250,8 @@
                           <object class="wxStaticText" name="popularityField2">
                             <style>wxST_NO_AUTORESIZE</style>
                             <label>?</label>
-                            <pos>145,43</pos>
-                            <size>11,18</size>
+                            <pos>139,43</pos>
+                            <size>21,18</size>
                           </object>
                         </object>
                       </object>
@@ -358,7 +358,7 @@
                   <style>wxST_NO_AUTORESIZE</style>
                   <label>People who like this also like</label>
                   <pos>10,0</pos>
-                  <size>204,18</size>
+                  <size>204,14</size>
                   <bg>#cbcbcb</bg>
                 </object>
               </object>

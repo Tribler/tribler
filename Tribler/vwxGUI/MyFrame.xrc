@@ -212,18 +212,34 @@
                         <option>0</option>
                         <object class="wxButton" name="bt257cC">
                           <label>files</label>
-                          <pos>82,35</pos>
-                          <size>55,20</size>
+                          <pos>77,35</pos>
+                          <size>65,20</size>
+                          <font>
+                            <size>8</size>
+                            <family>modern</family>
+                            <style>normal</style>
+                            <weight>normal</weight>
+                            <underlined>0</underlined>
+                            <face>Verdana</face>
+                          </font>
                         </object>
                       </object>
                       <object class="sizeritem">
                         <flag>wxLEFT|wxFIXED_MINSIZE</flag>
-                        <border>4</border>
+                        <border>6</border>
                         <option>0</option>
                         <object class="wxButton" name="bt258cC">
                           <label>persons</label>
-                          <pos>138,35</pos>
-                          <size>55,20</size>
+                          <pos>146,35</pos>
+                          <size>75,20</size>
+                          <font>
+                            <size>8</size>
+                            <family>modern</family>
+                            <style>normal</style>
+                            <weight>normal</weight>
+                            <underlined>0</underlined>
+                            <face>Verdana</face>
+                          </font>
                         </object>
                       </object>
                       <object class="spacer">
@@ -291,15 +307,11 @@
                 </object>
               </object>
             </object>
-            <object class="sizeritem">
+            <object class="spacer">
+              <size>20,60</size>
               <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>3</border>
               <option>0</option>
-              <object class="wxPanel" name="pn237c">
-                <pos>1004,89</pos>
-                <size>20,20</size>
-                <bg>#666666</bg>
-              </object>
             </object>
           </object>
         </object>

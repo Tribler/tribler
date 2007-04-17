@@ -321,7 +321,7 @@ class filesGrid(standardGrid):
     
 class personsGrid(standardGrid):
     def __init__(self):
-        columns = 5
+        columns = 8
         standardGrid.__init__(self, columns, orientation='horizontal')
         
     def getSubPanel(self):

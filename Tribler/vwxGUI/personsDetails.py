@@ -58,7 +58,7 @@ class personsDetails(wx.Panel):
         self.descriptionField.SetFont(wx.Font(8,74,93,90,0,"Verdana"))
         self.Peop = btn_DetailsHeader(self.detailsC,-1,wxDefaultPosition,wxDefaultSize)
         self.Peop.SetDimensions(0,162,20,20)
-        self.st202cC = wx.StaticText(self.Peop,-1,"",wx.Point(10,0),wx.Size(204,18),wx.ST_NO_AUTORESIZE)
+        self.st202cC = wx.StaticText(self.Peop,-1,"",wx.Point(10,0),wx.Size(204,14),wx.ST_NO_AUTORESIZE)
         self.st202cC.SetLabel("Also downloaded")
         self.st202cC.SetBackgroundColour(wx.Colour(203,203,203))
         self.peoplewhoField = wx.StaticText(self.detailsC,-1,"",wx.Point(6,186),wx.Size(265,73),wx.ST_NO_AUTORESIZE)

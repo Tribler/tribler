@@ -244,7 +244,7 @@
                   <style>wxST_NO_AUTORESIZE</style>
                   <label>Also downloaded</label>
                   <pos>10,0</pos>
-                  <size>204,18</size>
+                  <size>204,14</size>
                   <bg>#cbcbcb</bg>
                 </object>
               </object>
