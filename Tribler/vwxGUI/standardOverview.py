@@ -3,7 +3,7 @@ import wx.xrc as xrc
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from traceback import print_exc
 
-OVERVIEW_MODES = ['filesMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionMode', 'messageMode', 'libraryMode']
+OVERVIEW_MODES = ['filesMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionsMode', 'messageMode', 'libraryMode']
 DEBUG = True
 
 class standardOverview(wx.Panel):

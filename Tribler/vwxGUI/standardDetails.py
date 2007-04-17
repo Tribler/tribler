@@ -40,7 +40,7 @@ class standardDetails(wx.Panel):
         self.addComponents()
         #self.Refresh()
         self.modeElements = {'filesMode': ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
-                                            'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'files_detailsTab'],
+                                            'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 'files_detailsTab'],
                              'personsMode': ['TasteHeart', 'recommendationField']
                              }
         self.guiUtility.report(self)
@@ -182,6 +182,7 @@ class standardDetails(wx.Panel):
                 leechersField = torrentData.get('popularityField2')
                 torrentData.get('up').setBackground(wx.WHITE)
                 torrentData.get('down').setBackground(wx.WHITE)
+                torrentData.get('refresh').setBackground(wx.WHITE)
                 if seeders > -1:
                     seedersField.SetLabel('%d' % seeders)
                     leechersField.SetLabel('%d' % torrent['leecher'])

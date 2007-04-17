@@ -97,6 +97,8 @@ class GUIUtility:
             self.standardLibraryOverview()
         elif name == 'mainButtonFriends':
             self.standardFriendsOverview()
+        elif name == 'mainButtonRss':
+            self.standardSubscriptionsOverview()
         elif name == 'mainButtonMessages':
             self.standardMessagesOverview()
         elif name.lower().find('detailstab') > -1:
@@ -143,7 +145,7 @@ class GUIUtility:
     def standardProfileOverview(self):
         profileList = self.reloadData()
         overview = self.request('standardOverview')
-        #overview.setMode('profileMode', profileList)
+        overview.setMode('profileMode', '','', profileList)
         
     def standardLibraryOverview(self, filter1String="audio", filter2String="swarmsize"):       
         print 'Library > filter1String='+filter1String 
@@ -153,6 +155,10 @@ class GUIUtility:
         overview = self.request('standardOverview')
         overview.setMode('libraryMode', filter1String, filter2String, libraryList)
         
+    def standardSubscriptionsOverview(self, filter1String="audio", filter2String="swarmsize"):       
+        subscriptionsList = self.reloadData()         
+        overview = self.request('standardOverview')
+        overview.setMode('subscriptionsMode', '','', subscriptionsList)        
         
     def standardFriendsOverview(self):
         friendsList = self.reloadData()
