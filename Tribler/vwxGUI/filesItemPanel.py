@@ -5,6 +5,7 @@ from Tribler.utilities import *
 from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.Dialogs.ContentFrontPanel import ImagePanel
 from Tribler.vwxGUI.GuiUtility import GUIUtility
+from safeguiupdate import DelayedInvocation
 from Tribler.unicode import *
 from copy import deepcopy
 import cStringIO
@@ -148,7 +149,7 @@ DEFAULT_THUMB = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'defaultTh
 MASK_BITMAP = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'itemMask.png'))
         
 
-class ThumbnailViewer(wx.Panel):
+class ThumbnailViewer(wx.Panel, DelayedInvocation):
     """
     Show thumbnail and mast with info on mouseOver
     """
@@ -171,6 +172,7 @@ class ThumbnailViewer(wx.Panel):
     
     def _PostInit(self):
         # Do all init here
+        DelayedInvocation.__init__(self)
         self.backgroundColor = wx.WHITE
         self.torrentBitmap = None
         self.torrentLock = Lock()
@@ -280,10 +282,12 @@ class ThumbnailViewer(wx.Panel):
              
              self.torrentLock.acquire()
              torrent['metadata']['ThumbnailBitmap'] = bmp
+             self.torrentLock.release()
              self.setBitmap(bmp)
              
+             
              # should this be done by the GUI thread??
-             self.Refresh()
+             self.invokeLater(self.Refresh)
              
     
     def OnErase(self, event):
