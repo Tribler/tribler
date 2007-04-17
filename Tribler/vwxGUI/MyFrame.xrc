@@ -298,6 +298,7 @@
               <object class="wxPanel" name="pn237c">
                 <pos>1004,89</pos>
                 <size>20,20</size>
+                <bg>#666666</bg>
               </object>
             </object>
           </object>

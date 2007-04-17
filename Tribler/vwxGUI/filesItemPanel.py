@@ -41,7 +41,7 @@ class FilesItemPanel(wx.Panel):
         self.selectedColour = wx.Colour(245,208,120)       
         self.unselectedColour = wx.WHITE
         
-        
+        self.SetBackgroundColour(self.unselectedColour)
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         
         self.Bind(wx.EVT_LEFT_UP, self.mouseAction)

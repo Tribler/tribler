@@ -47,6 +47,7 @@ class standardDetails(wx.Panel):
 
         
     def addComponents(self):
+        self.SetBackgroundColour(wx.Colour(102,102,102))
         self.hSizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(self.hSizer)
         self.SetAutoLayout(1)
