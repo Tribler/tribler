@@ -2,7 +2,7 @@ import wx, math, time, os, sys, threading
 from traceback import print_exc
 from threading import Thread, Lock
 from Tribler.utilities import *
-from wx.lib.stattext import GenStaticText as StaticText
+#from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.Dialogs.ContentFrontPanel import ImagePanel
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from safeguiupdate import DelayedInvocation
@@ -113,19 +113,10 @@ class FilesItemPanel(wx.Panel):
         
     def select(self):
         print 'item selected'
-        self.selected = True
-        old = self.title.GetBackgroundColour()
-        if old != self.selectedColour:
-            self.title.SetBackgroundColour(self.selectedColour)
-            self.Refresh()
-        
+        self.thumb.setSelected(True)
         
     def deselect(self):
-        self.selected = False
-        old = self.title.GetBackgroundColour()
-        if old != self.unselectedColour:
-            self.title.SetBackgroundColour(self.unselectedColour)
-            self.Refresh()
+        self.thumb.setSelected(False)
     
     def keyTyped(self, event):
         if self.selected:
@@ -147,7 +138,7 @@ class FilesItemPanel(wx.Panel):
                 
 DEFAULT_THUMB = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'defaultThumb.png'))
 MASK_BITMAP = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'itemMask.png'))
-        
+
 
 class ThumbnailViewer(wx.Panel, DelayedInvocation):
     """
@@ -185,7 +176,7 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnErase)
         self.selected = False
-        
+        self.border = None
         
         
     
@@ -219,6 +210,9 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
                 Thread(target = self.loadMetadata, args=(torrent,)).start()
             
             self.setBitmap(bmp)
+            width, height = self.GetSize()
+            d = 1
+            self.border = [wx.Point(0,d), wx.Point(width-d, d), wx.Point(width-d, height-d), wx.Point(d,height-d), wx.Point(d,0)]
             self.Refresh()
             
         except:
@@ -328,10 +322,13 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
         
         if self.torrentBitmap:
             dc.DrawBitmap(self.torrentBitmap, self.xpos,self.ypos, True)
-        if (self.mouseOver or self.selected):
+        if self.mouseOver:
             dc.SetFont(wx.Font(6, wx.SWISS, wx.NORMAL, wx.BOLD, True))
             dc.DrawBitmap(MASK_BITMAP,0 ,0, True)
             dc.SetTextForeground(wx.WHITE)
             dc.DrawText('rating', 5, 40)
+        if (self.selected and self.border):
+            dc.SetPen(wx.Pen(wx.Colour(255,51,0), 2))
+            dc.DrawLines(self.border)
         
 

@@ -48,21 +48,18 @@ class standardOverview(wx.Panel):
         self.Layout()
         
     def setMode(self, mode, filter1, filter2, datalist):
-        print 'in SetMode'
+        
         if self.mode != mode:        
-            print 'if 1'
             self.mode = mode
             self.filter1 = filter1
             self.data[self.mode]['data'] = datalist               
             self.refreshMode()
         elif self.mode == mode and self.filter1 != filter1:        
-            print 'if 2'
             self.mode = mode            
             self.filter1 = filter1                           
             self.data[self.mode]['data'] = datalist
             self.setData()                   
         elif self.mode == mode and self.filter2 != filter2:
-            print 'if 3'
             self.mode = mode            
             self.filter2 = filter2
             self.data[self.mode]['data'] = datalist
@@ -100,7 +97,6 @@ class standardOverview(wx.Panel):
         if not currentPanel:
             xrcResource = os.path.join('Tribler','vwxGUI', modeString+'Overview.xrc')
             panelName = modeString+'Overview'
-            print panelName
             try:
                 currentPanel = grid = pager = None
                 res = xrc.XmlResource(xrcResource)

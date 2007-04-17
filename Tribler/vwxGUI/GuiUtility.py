@@ -227,6 +227,9 @@ class GUIUtility:
         self.standardDetails.tabClicked(name)
         
     def refreshOnResize(self):
-        self.standardDetails.Refresh()
-        self.standardOverview.Refresh()
-        self.frame.topBackgroundRight.Refresh()
+        try:
+            self.standardDetails.Refresh()
+            self.standardOverview.Refresh()
+            self.frame.topBackgroundRight.Refresh()
+        except:
+            pass # When resize is done before panels are loaded: no refresh

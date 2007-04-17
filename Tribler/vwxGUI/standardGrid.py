@@ -128,7 +128,7 @@ class standardGrid(wx.Panel):
             return False
         
     def setPager(self, pager):
-        print 'setPager called: %s' % pager
+        #print 'setPager called: %s' % pager
         self.standardPager = pager
        
     def getSubPanel(self):
@@ -194,7 +194,7 @@ class StaticGridPanel(wx.Panel):
             self.setData(i, None)
             
     def onResize(self, event=None):        
-        print "event: %s" % event       
+        #print "event: %s" % event       
         self.calculateRows(event)
         if event:
             event.Skip()
@@ -271,7 +271,6 @@ class StaticGridPanel(wx.Panel):
         if not self.hasDetailPanel():
             return
         
-        
         title = None
         # Select first item
         if not self.detailPanel.data:
@@ -284,19 +283,17 @@ class StaticGridPanel(wx.Panel):
                 pass
         
         if self.detailPanel.data:
-            title = self.detailPanel.data.get('content_name')
-            print 'title= '
-            print title
+            info_hash = self.detailPanel.getData().get('infohash')
             
         
         for row in self.panels:
             for pan in row:
                 try:
-                    paneltitle = pan.data['content_name']
+                    panel_info_hash = pan.data['infohash']
                 except:
-                    paneltitle = None
+                    panel_info_hash = None
                     
-                if paneltitle != title or paneltitle == None:
+                if panel_info_hash != info_hash or  panel_info_hash == None:
                     #print 'item deselected2'
                     pan.deselect()
                 else:

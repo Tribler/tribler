@@ -32,6 +32,7 @@ class standardDetails(wx.Panel):
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.mode = None
+        self.item = None
         self.data = {}
         for mode in DETAILS_MODES+['status']:
             self.data[mode] = {}
@@ -39,7 +40,7 @@ class standardDetails(wx.Panel):
         self.addComponents()
         #self.Refresh()
         self.modeElements = {'filesMode': ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
-                                            'descriptionField', 'sizeField', 'thumbField', 'up', 'down'],
+                                            'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'files_detailsTab'],
                              'personsMode': ['TasteHeart', 'recommendationField']
                              }
         self.guiUtility.report(self)
@@ -146,38 +147,48 @@ class standardDetails(wx.Panel):
             return None
             
      
+    def getData(self):
+        return self.item
+    
     def setData(self, item):
+        self.item = item
         if self.mode == 'filesMode':
             torrent = item
-            titleField = self.data[self.mode].get('titleField')
+            if not torrent:
+                return
+            
+            torrentData = self.data[self.mode]
+            
+            titleField = torrentData.get('titleField')
             titleField.SetLabel(torrent.get('content_name'))
             titleField.Wrap(-1)
         
             if torrent.has_key('description'):
-                descriptionField = self.data[self.mode].get('descriptionField')
+                descriptionField = torrentData.get('descriptionField')
                 descriptionField.SetLabel(torrent.get('Description'))
                 descriptionField.Wrap(-1)        
 
             if torrent.has_key('length'):
-                sizeField = self.data[self.mode].get('sizeField')
+                sizeField = torrentData.get('sizeField')
                 sizeField.SetLabel(self.utility.size_format(torrent['length']))
             
             if torrent.get('info', {}).get('creation date'):
-                creationField = self.data[self.mode].get('creationdateField')
+                creationField = torrentData.get('creationdateField')
                 creationField.SetLabel(friendly_time(torrent['info']['creation date']))\
                 
             if torrent.has_key('seeder'):
                 seeders = torrent['seeder']
-                seedersField = self.data[self.mode].get('popularityField1')
-                leechersField = self.data[self.mode].get('popularityField2')
-                self.data[self.mode].get('up').setBackground(wx.WHITE)
-                self.data[self.mode].get('down').setBackground(wx.WHITE)
+                seedersField = torrentData.get('popularityField1')
+                leechersField = torrentData.get('popularityField2')
+                torrentData.get('up').setBackground(wx.WHITE)
+                torrentData.get('down').setBackground(wx.WHITE)
                 if seeders > -1:
                     seedersField.SetLabel('%d' % seeders)
                     leechersField.SetLabel('%d' % torrent['leecher'])
                 else:
                     seedersField.SetLabel('?')
                     leechersField.SetLabel('?')
+                    
             
         elif self.mode in ['personsMode', 'friendsMode']:
             recomm = random.randint(0,4)
