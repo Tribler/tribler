@@ -135,9 +135,11 @@ class FriendDBHandler(BasicDBHandler):
             self.peer_db._sync()
             
     def getFriendList(self):
+        """returns a list of permids"""
         return self.my_db.getFriends()
             
     def getFriends(self):
+        """returns a list of peer infos including permid"""
         ids = self.my_db.getFriends()
         friends = []
         for id in ids:
@@ -146,6 +148,9 @@ class FriendDBHandler(BasicDBHandler):
                 peer.update({'permid':id})
                 friends.append(peer)
         return friends
+    
+    def isFriend(self, permid):
+        return self.my_db.isFriend(permid)
             
     def deleteFriend(self,permid):
         self.my_db.deleteFriend(permid)
@@ -592,7 +597,7 @@ def test_myprefDB():
     
 def test_all():
     test_mydb()
-    #test_myprefDB()
+    test_myprefDB()
     
 if __name__ == '__main__':
     test_all()

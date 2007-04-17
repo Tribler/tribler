@@ -282,7 +282,7 @@ class StaticGridPanel(wx.Panel):
             except:
                 pass
         
-        if self.detailPanel.data:
+        if self.detailPanel.data!=None:
             info_hash = self.detailPanel.getData().get('infohash')
             
         

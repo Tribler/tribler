@@ -64,39 +64,39 @@ class PersonsItemPanel(wx.Panel):
             window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
             window.Bind(wx.EVT_KEY_UP, self.keyTyped)
                              
-    def setData(self, torrent):
+    def setData(self, peer_data):
         # set bitmap, rating, title
         
         try:
-            if self.datacopy['infohash'] == torrent['infohash']:
-                # Do not update torrents that have no new seeders/leechers/size
-                if (self.datacopy['seeder'] == torrent['seeder'] and
-                    self.datacopy['leecher'] == torrent['leecher'] and
-                    self.datacopy['length'] == torrent['length'] and
-                    self.datacopy.get('myDownloadHistory') == torrent.get('myDownloadHistory')):
+            if self.datacopy['permid'] == peer_data['permid']:
+                if (self.datacopy['last_seen'] == peer['last_seen'] and
+                    self.datacopy['similarity'] == peer['similarity'] and
+                    self.datacopy['name'] == peer['name'] and
+                    self.datacopy['content_name'] == peer['content_name'] and
+                    self.datacopy.get('friend') == peer.get('friend')):
                     return
         except:
             pass
         
-        self.data = torrent
-        self.datacopy = deepcopy(torrent)
+        self.data = peer_data
+        self.datacopy = deepcopy(peer_data)
         
-        if torrent == None:
-            torrent = {}
+        if peer_data == None:
+            peer_data = {}
         
-        if torrent.get('content_name'):
-            title = torrent['content_name'][:self.titleLength]
+        if peer_data.get('content_name'):
+            title = peer_data['content_name'][:self.titleLength]
             self.title.Enable(True)
             self.title.SetLabel(title)
             self.title.Wrap(self.title.GetSize()[0])
-            self.title.SetToolTipString(torrent['content_name'])
+            self.title.SetToolTipString(peer_data['content_name'])
         else:
             self.title.SetLabel('')
             self.title.SetToolTipString('')
             self.title.Enable(False)
             
        
-        self.thumb.setTorrent(torrent)
+        self.thumb.setData(peer_data)
                
         self.Layout()
         self.Refresh()
@@ -126,14 +126,14 @@ class PersonsItemPanel(wx.Panel):
                 if self.data:
                     if DEBUG:
                         print >>sys.stderr,'contentpanel: deleting'
-                    self.guiUtility.deleteTorrent(self.data)
+#                    self.guiUtility.deleteTorrent(self.data)
         event.Skip()
         
     def mouseAction(self, event):
-        
+        print "set focus"
         self.SetFocus()
         if self.data:
-            self.guiUtility.selectTorrent(self.data)
+            self.guiUtility.selectPeer(self.data)
                 
                 
 DEFAULT_THUMB = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'defaultThumbPeer.png'))
@@ -162,8 +162,8 @@ class ThumbnailViewer(wx.Panel):
     def _PostInit(self):
         # Do all init here
         self.backgroundColor = wx.WHITE
-        self.torrentBitmap = self.maskBitmap = None
-        self.torrent = None
+        self.dataBitmap = self.maskBitmap = None
+        self.data = None
         self.mouseOver = False
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
@@ -176,8 +176,8 @@ class ThumbnailViewer(wx.Panel):
         
         
     
-    def setTorrent(self, torrent):
-        if not torrent:
+    def setData(self, data):
+        if not data:
             self.Hide()
             self.Refresh()
             return
@@ -185,22 +185,24 @@ class ThumbnailViewer(wx.Panel):
         if not self.IsShown():
                 self.Show()
                 
-        if torrent != self.torrent:
-            self.torrent = torrent
-            self.torrentBitmap = self.getThumbnail(torrent)
+        if data != self.data:
+            self.data = data
+            self.dataBitmap = self.getThumbnail(data)
             # If failed, choose standard thumb
-            if not self.torrentBitmap:
-                self.torrentBitmap = DEFAULT_THUMB
+            if not self.dataBitmap:
+                self.dataBitmap = DEFAULT_THUMB
             # Recalculate image placement
             w, h = self.GetSize()
-            iw, ih = self.torrentBitmap.GetSize()
+            iw, ih = self.dataBitmap.GetSize()
             self.xpos, self.ypos = (w-iw)/2, (h-ih)/2
         if not self.maskBitmap:
             self.maskBitmap = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'itemMask.png'))
         self.Refresh()
                                         
     
-    def getThumbnail(self, torrent):
+    def getThumbnail(self, data):
+        """should find an inteligent way to get user's picture..."""
+        return None
         # Get the file(s)data for this torrent
         try:
             torrent_dir = torrent['torrent_dir']
@@ -285,8 +287,8 @@ class ThumbnailViewer(wx.Panel):
         dc.SetBackground(wx.Brush(self.backgroundColor))
         dc.Clear()
         
-        if self.torrentBitmap:
-            dc.DrawBitmap(self.torrentBitmap, self.xpos,self.ypos, True)
+        if self.dataBitmap:
+            dc.DrawBitmap(self.dataBitmap, self.xpos,self.ypos, True)
         if (self.mouseOver or self.selected) and self.maskBitmap:
             dc.SetFont(wx.Font(6, wx.SWISS, wx.NORMAL, wx.BOLD, True))
             dc.DrawBitmap(self.maskBitmap,0 ,58, True)

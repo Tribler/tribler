@@ -6,11 +6,11 @@ import updateXRC
 #from Tribler.vwxGUI.filesFilter import filesFilter
 
 from Tribler.Dialogs.abcfileframe import TorrentDataManager
+from peermanager import PeerDataManager
 from Tribler.utilities import *
 
 DEBUG = True
 
-    
 class GUIUtility:
     __single = None
 
@@ -29,6 +29,7 @@ class GUIUtility:
         self.params = params
         self.data_manager = TorrentDataManager.getInstance(self.utility)
         self.data_manager.register(self.updateFun, 'all')
+        self.peer_manager = PeerDataManager() #should also have the updateFun function
         self.selectedMainButton = None
             
     def getInstance(*args, **kw):
@@ -136,7 +137,11 @@ class GUIUtility:
         #self.utility.lang.get('mypref_list_title')
         #personsList = self.setCategory('video')
         #personsList = self.setCategory('myDownloadHistory')
-        personsList = self.reloadData()
+        personsList = self.reloadPeers()
+        if personsList != None:
+            print "persons list has",len(personsList),"elements"
+        else:
+            print "persons list has no elements"
         overview = self.request('standardOverview')
         #overview.setMode('personsMode', personsList)
         overview.setMode('personsMode', filter1String, filter2String, personsList)
@@ -177,7 +182,6 @@ class GUIUtility:
 #        self.reloadData()
 #        
     def reloadData(self):
-        
         # load content category
         #self.categorykey = 'all'
         self.data = self.data_manager.getCategory(self.categorykey)
@@ -194,7 +198,10 @@ class GUIUtility:
         #print self.filtered
         #return self.data # no filtering
         return self.filtered
-        
+            
+    def reloadPeers(self):
+        return self.peer_manager.sortData()
+                
     def updateFun(self, torrent, operate):    
         print "Updatefun called"
         
@@ -226,6 +233,11 @@ class GUIUtility:
     def selectTorrent(self, torrent):
         "User clicked on torrent. Has to be selected in detailPanel"
         self.standardDetails.setData(torrent)
+        self.standardOverview.updateSelection()
+
+    def selectPeer(self, peer_data):
+        "User clicked on peer. Has to be selected in detailPanel"
+        self.standardDetails.setData(peer_data)
         self.standardOverview.updateSelection()
             
     def detailsTabClicked(self, name):

@@ -119,13 +119,14 @@ def isValidPermid(permid):    # validate permid in outer layer
 def isValidInfohash(infohash):
     return True
 
-def init(config_dir, myinfo):
+def init(config_dir, myinfo, db_exception_handler = None):
     """ create all databases """
     
     global home_dir
     home_dir = make_filename(config_dir, 'bsddb')
     if DEBUG:
         print "Init database at", home_dir
+    BasicDB.exception_handler = db_exception_handler
     MyDB.getInstance(myinfo, home_dir)
     PeerDB.getInstance(home_dir)
     TorrentDB.getInstance(home_dir)
@@ -212,6 +213,8 @@ def validList(data, keylen=0):
 # Abstract base calss    
 class BasicDB:    # Should we use delegation instead of inheritance?
         
+    exception_handler = None
+        
     def __init__(self, db_dir=''):
         self.default_item = {'d':1, 'e':'abc', 'f':{'k':'v'}, 'g':[1,'2']} # for test
         if self.__class__ == BasicDB:
@@ -252,9 +255,10 @@ class BasicDB:    # Should we use delegation instead of inheritance?
         try:
             return dbutils.DeadlockWrap(self._data.get, key, value, max_retries=MAX_RETRIES)
             #return self._data.get(key, value)
-        except:
+        except Exception,e:
             print >> sys.stderr, "cachedb: _get EXCEPTION BY",currentThread().getName()
             print_exc()
+            self.report_exception(e)
             return value
         
     def _updateItem(self, key, data):
@@ -334,6 +338,10 @@ class BasicDB:    # Should we use delegation instead of inheritance?
         df.update(item)
         return df
     
+    def report_exception(self,e):
+        if BasicDB.exception_handler is not None:
+            BasicDB.exception_handler(e)
+    
     
 class MyDB(BasicDB):
     
@@ -397,6 +405,7 @@ class MyDB(BasicDB):
         elif old_version < curr_version:
             db.updateDB(old_version)
         elif old_version > curr_version:
+            #FIXME: user first install 3.4.0, then 3.5.0. Now he cannot reinstall 3.4.0 anymore
             raise RuntimeError, "The version of database is too high. Please update the software."
     checkVersion = staticmethod(checkVersion)
     
@@ -692,7 +701,6 @@ class MyPreferenceDB(BasicDB):     #  = FileDB
             'content_dir':'',   # dir + name = full path
             'last_seen':0,
         }
-
                 
     def getInstance(*args, **kw):
         if MyPreferenceDB.__single is None:

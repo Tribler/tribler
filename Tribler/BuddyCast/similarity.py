@@ -34,43 +34,65 @@ def P2PSim(pref1, pref2):
     sim = int(_sim*1000)    # use integer for bencode
     return sim
 
+def getCooccurrence(pref1, pref2):    # pref1 and pref2 are sorted
+    i = 0
+    j = 0
+    co = 0
+    size1 = len(pref1)
+    size2 = len(pref2)
+    if size1 == 0 or size2 == 0:
+        return 0
+    while 1:
+        if (i>= size1) or (j>=size2): break
+        Curr_ID1 = pref1[i]
+        Curr_ID2 = pref2[j]
+        if Curr_ID1 < Curr_ID2 :
+            i=i+1
+        elif Curr_ID1 > Curr_ID2 :
+            j=j+1
+        else:
+            co +=1
+            i+=1
+            j+=1
+    return co    
 
-class Recommender:
-    def __init__(self, preferences, mypreflist):
-        self.preferences = preferences  # {user: Set(prefs)}
-        self.mypreflist = mypreflist    # [prefs]
-        self.new_added_items = 0
-        self.owners = {}                # {item_id: Set(users_id)}
-        self.items = {}    # {hash(item): item}
-        self.users = {}    # {hash(user): user}
-        # after added some many (user, item) pairs, update sim of item to item
-        self.update_threshold = 50  
-        
-#        # hash(torrent_id)<I'>: {hash(torrent_id)<I>: P(I'|I)} 
-#        # P(I'|I)=sum_u{n(u,i,i')}/sum_u{n(u,i)} 
-#        # where n(u,i) means u has item i, n(u,i,i') means user has both item i and i'.
-#        # Sim(I',I) = (P(I'|I)*P(I|I'))**0.5
-#        self.PII = {}
-
-    def addUser(self, user_id, user):
-        self.users[user_id] = user
+def P2PSimSorted(pref1, pref2):
+    """ Calculate similarity between peers """
     
-    def addItem(self, item_id, item):
-        self.items[item_id] = item
-        
-    def addOwner(self, item_id, user_id):
-        if not self.owners.has_key(item_id):
-            self.owners[item_id] = Set()
-        if peer_id not in self.owners[item_id]:
-            self.owners[item_id].add(peer_id)
-            self.new_added_items += 1
+    cooccurrence = getCooccurrence(pref1, pref2)
+    if cooccurrence == 0:
+        return 0
+    normValue = (len(pref1)*len(pref2))**0.5
+    _sim = cooccurrence/normValue
+    sim = int(_sim*1000)    # use integer for bencode
+    return sim
 
-    def checkUpdate(self):
-        if self.new_added_items > self.update_threshold:
-            self.update()
-            self.new_added_items = 0
-            
-    def update(self):
-        #TODO
-        pass
+
+def P2PSimLM(peer_permid, my_pref, peer_pref, owners, total_prefs, mu):
+    """
+        P(U'|U) = Sum{I}Pbs(U'|I)Pml(I|U)
+        Pbs(U|I) = (c(U,I) + mu*Pml(U))/(Sum{U}c(U,I) + mu)  
+        Pml(U) = Sum{I}c(U,I) / Sum{U,I}c(U,I) 
+        Pml(I|U) = c(U,I)/Sum{I}c(U,I) 
+    """
+
+    npeerprefs = len(peer_pref)
+    if npeerprefs == 0:
+        return 0
+
+    nmyprefs = len(my_pref)
+    if nmyprefs == 0:
+        return 0
+        
+    PmlU = float(npeerprefs) / total_prefs
+    peer_sim = 0.0
+    for torrent_hash in owners:
+        nowners = len(owners[torrent_hash]) + 1    # add myself
+        PmlIU = 1.0 / nmyprefs
+        cUI = torrent_hash in peer_pref
+        PbsUI = float(cUI + mu*PmlU)/(nowners + mu)
+        peer_sim += PbsUI*PmlIU
+    return peer_sim * 100000
+    
+    
     
