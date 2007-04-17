@@ -6,7 +6,7 @@ from Tribler.vwxGUI.GuiUtility import GUIUtility
 #from Tribler.vwxGUI.filesGrid import filesGrid
 
 
-class filesFilter(wx.Panel):
+class personsFilter(wx.Panel):
     """
     Panel with automatic backgroundimage control.
     """
@@ -56,7 +56,7 @@ class filesFilter(wx.Panel):
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
         # filter 1 is making a selection                                                                                
-        self.filter1 = wx.ComboBox(self,-1,'Video', wx.Point(8,3),wx.Size(120,21),['Persons Fitler','VideoClips','Audio','Picture','Compressed','Document','Other','XXX'], wx.CB_DROPDOWN|wx.CB_READONLY)       
+        self.filter1 = wx.ComboBox(self,-1,'Video', wx.Point(8,3),wx.Size(120,21),['Persons Filter','one more'], wx.CB_DROPDOWN|wx.CB_READONLY)       
         self.filter1.SetFont(wx.Font(10,74,90,90,0,"Verdana"))
         self.filter1.SetBackgroundColour(wx.WHITE)
         self.filter1.Bind(wx.EVT_COMBOBOX, self.mouseAction)
@@ -97,6 +97,6 @@ class filesFilter(wx.Panel):
         elif filter2String == self.filter2.GetString(1):
             filter2String = 'relevance'        
         
-        self.guiUtility.standardFilesOverview(filter1String, filter2String)        
+        self.guiUtility.standardPersonsOverview(filter1String, filter2String)        
         self.lastOrdering = filter1String + filter2String
         

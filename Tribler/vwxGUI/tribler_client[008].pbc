@@ -9,9 +9,9 @@ ckscr=0
 ProjectBuild=0
 CountConfComp=2
 nomifileEsi=
-idmax=821
-idmaxFile=100348
-idIncCmp=2431
+idmax=822
+idmaxFile=100349
+idIncCmp=2432
 isfuncClsName=0
 funcNamePreF=VwXnew_
 s_includeNewCtor=
@@ -119,7 +119,7 @@ filename=wx/msw/wx.rc
 18=0
 19=0
 [Project/comVirt]
-iN=22
+iN=23
 [Project/comVirt/1]
 include=from filesOverview import *
 ctor=(parent,id,pos,size,style,name)
@@ -570,10 +570,24 @@ styleNum=0
 libreriaAdd=
 resourceAdd=
 contenitor=0
+[Project/comVirt/23]
+include=from personsFilter import *
+ctor=(parent,id,pos,size,style,name)
+assign=(self,-1,wxDefaultPosition,wxDefaultSize,style)
+nclass=personsFilter
+idSTR=14:24:431732007
+id=1
+filenameDll=
+enableDll=0
+eventNum=0
+styleNum=0
+libreriaAdd=
+resourceAdd=
+contenitor=0
 [Project/GroupsName]
 count=1
 item0name=Save Project
-item0id=1002,1091,2120,1391,2119
+item0id=1002,1091,2120,1391,2119,1016
 [VwXScript]
 count=0
 [File0]
@@ -649,7 +663,7 @@ ws_dir=.\\
 s_tipoFile=21
 s_tipoComp=0
 ClsparentCompTipo=0
-i_FileIdent=100333
+i_FileIdent=100349
 i_FileIdentPar=2
 wx_WindowFileADD=1635087209
 l_ProtettoDesigne=0

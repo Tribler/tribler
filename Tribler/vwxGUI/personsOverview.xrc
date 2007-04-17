@@ -60,12 +60,12 @@
         </object>
       </object>
       <object class="sizeritem">
-        <flag>wxEXPAND|wxALIGN_LEFT|wxFIXED_MINSIZE</flag>
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="wxPanel" name="personsFilter" subclass="Tribler.vwxGUI.filesFilter.filesFilter">
+        <object class="wxPanel" name="personsFilter" subclass="Tribler.vwxGUI.personsFilter.personsFilter">
           <pos>0,21</pos>
-          <size>448,35</size>
+          <size>20,35</size>
         </object>
       </object>
       <object class="sizeritem">
