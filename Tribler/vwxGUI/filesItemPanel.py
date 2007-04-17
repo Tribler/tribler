@@ -38,7 +38,7 @@ class FilesItemPanel(wx.Panel):
     def addComponents(self):
         self.Show(False)
         #self.SetMinSize((50,50))
-        self.selectedColour = wx.Colour(245,208,120)       
+        self.selectedColour = wx.Colour(255,200,187)       
         self.unselectedColour = wx.WHITE
         
         self.SetBackgroundColour(self.unselectedColour)
@@ -55,9 +55,9 @@ class FilesItemPanel(wx.Panel):
         self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(125,15), wx.ST_NO_AUTORESIZE)        
         self.title.SetBackgroundColour(wx.WHITE)
         self.title.SetFont(wx.Font(10,74,90,wx.NORMAL,0,"Verdana"))
-        self.title.SetMinSize((125,50))
-        self.vSizer.Add(self.title, 0, wx.ALL, 3)     
-
+        self.title.SetMinSize((125,30))
+        self.vSizer.Add(self.title, 0, wx.TOP|wx.BOTTOM, 3)     
+        self.vSizer.Add(wx.Panel(self, size=(100,20)))
         self.SetSizer(self.vSizer);
         self.SetAutoLayout(1);
         self.Layout();
@@ -114,10 +114,14 @@ class FilesItemPanel(wx.Panel):
     def select(self):
         print 'item selected'
         self.thumb.setSelected(True)
+        self.title.SetBackgroundColour(self.selectedColour)
+        self.title.Refresh()
         
     def deselect(self):
         self.thumb.setSelected(False)
-    
+        self.title.SetBackgroundColour(self.unselectedColour)
+        self.title.Refresh()
+        
     def keyTyped(self, event):
         if self.selected:
             key = event.GetKeyCode()
