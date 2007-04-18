@@ -3,6 +3,7 @@ import wx.xrc as xrc
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from traceback import print_exc
 from Tribler.utilities import *
+from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionMode', 'messageMode']
 DEBUG = True
@@ -40,9 +41,10 @@ class standardDetails(wx.Panel):
         self.addComponents()
         #self.Refresh()
         self.modeElements = {'filesMode': ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
-                                            'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 'files_detailsTab'],
+                                            'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 'download', 'files_detailsTab'],
                              'personsMode': ['TasteHeart', 'recommendationField']
                              }
+
         self.guiUtility.report(self)
         self.guiUtility.initStandardDetails(self)
 
@@ -182,7 +184,13 @@ class standardDetails(wx.Panel):
                 leechersField = torrentData.get('popularityField2')
                 torrentData.get('up').setBackground(wx.WHITE)
                 torrentData.get('down').setBackground(wx.WHITE)
-                torrentData.get('refresh').setBackground(wx.WHITE)
+                self.refreshButton =  torrentData.get('refresh')
+                self.refreshButton.setBackground(wx.WHITE)
+                self.refreshButton.Bind(wx.EVT_LEFT_UP, self.mouseAction)
+                self.downloadButton =  torrentData.get('download')
+                self.downloadButton.Bind(wx.EVT_LEFT_UP, self.mouseAction)
+                #torrentData.get('refresh').setBackground(wx.WHITE)
+                #torrentData.get('refresh').Bind(wx.EVT_LEFT_UP, self.mouseAction)
                 if seeders > -1:
                     seedersField.SetLabel('%d' % seeders)
                     leechersField.SetLabel('%d' % torrent['leecher'])
@@ -222,3 +230,70 @@ class standardDetails(wx.Panel):
         
     def tabClicked(self, name):
         print 'Tabclicked: %s' % name
+        
+    def mouseAction(self, event):
+        print 'mouseAction'
+        
+        obj = event.GetEventObject()
+        print obj
+        
+        if not self.data:
+            return
+        if obj == self.downloadButton:
+            self.download(self.data)
+        elif obj == self.refreshButton: 
+            #and self.refreshButton.isEnabled():
+            print "refresh seeders and leechers"
+            #self.swarmText.SetLabel(self.utility.lang.get('refreshing')+'...')
+            #self.swarmText.Refresh()
+            
+            self.refresh(self.data)
+            
+    def refresh(self, torrent):
+        if DEBUG:
+            print >>sys.stderr,'contentpanel: refresh ' + repr(torrent.get('content_name', 'no_name'))
+        check = SingleManualChecking(torrent)
+        check.start()
+            
+#    def isEnabled(self):
+#        return self.enabled
+
+    def download(self, torrent):
+        src1 = os.path.join(torrent['torrent_dir'], 
+                            torrent['torrent_name'])
+        src2 = os.path.join(self.utility.getConfigPath(), 'torrent2', torrent['torrent_name'])
+        if torrent['content_name']:
+            name = torrent['content_name']
+        else:
+            name = showInfoHash(torrent['infohash'])
+        #start_download = self.utility.lang.get('start_downloading')
+        #str = name + "?"
+        if os.path.isfile(src1):
+            src = src1
+        else:
+            src = src2
+            
+        if os.path.isfile(src):
+            str = self.utility.lang.get('download_start') + u' ' + name + u'?'
+            dlg = wx.MessageDialog(self, str, self.utility.lang.get('click_and_download'), 
+                                        wx.YES_NO|wx.NO_DEFAULT|wx.ICON_INFORMATION)
+            result = dlg.ShowModal()
+            dlg.Destroy()
+            if result == wx.ID_YES:
+                ret = self.utility.queue.addtorrents.AddTorrentFromFile(src)
+                if ret == 'OK':
+                    self.setRecommendedToMyDownloadHistory(torrent)
+                    
+        else:
+        
+            # Torrent not found            
+            str = self.utility.lang.get('delete_torrent') % name
+            dlg = wx.MessageDialog(self, str, self.utility.lang.get('delete_dead_torrent'), 
+                                wx.YES_NO|wx.NO_DEFAULT|wx.ICON_INFORMATION)
+            result = dlg.ShowModal()
+            dlg.Destroy()
+            if result == wx.ID_YES:
+                infohash = torrent['infohash']
+                self.data_manager.deleteTorrent(infohash, delete_file = True)
+            
+            
