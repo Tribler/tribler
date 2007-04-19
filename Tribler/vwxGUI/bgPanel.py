@@ -5,12 +5,19 @@ class bgPanel(wx.Panel):
     """
     Panel with automatic backgroundimage control.
     """
-    def __init__(self, *args):
-        self.backgroundColour = wx.Colour(102,102,102)
-        pre = wx.PrePanel()
-        # the Create step is done by XRC.
-        self.PostCreate(pre)
-        self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
+            
+    def __init__(self, *args, **kw):
+        if len(args) == 0: 
+            self.backgroundColour = wx.Colour(102,102,102) 
+            pre = wx.PrePanel() 
+            # the Create step is done by XRC. 
+            self.PostCreate(pre) 
+            self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate) 
+        else:
+            self.backgroundColour = wx.Colour(102,102,102) 
+            wx.Panel.__init__(self, *args, **kw) 
+            self._PostInit()     
+            
         
     def OnCreate(self, event):
         self.Unbind(wx.EVT_WINDOW_CREATE)
@@ -35,8 +42,8 @@ class bgPanel(wx.Panel):
         self.Update()
         
         
-    def setBackground(self, color):
-        self.backgroundColour = color
+    def setBackground(self, colour):
+        self.backgroundColour = colour
         self.Refresh()
         
     def searchBitmap(self):

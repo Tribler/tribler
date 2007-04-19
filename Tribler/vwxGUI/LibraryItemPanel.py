@@ -44,10 +44,10 @@ class LibraryItemPanel(wx.Panel):
         self.Bind(wx.EVT_KEY_UP, self.keyTyped)
         
         # Add thumb        
-        self.thumbnail = bgPanel(self, -1, wx.Point(0,0), wx.Size(66,37))
+        self.thumbnail = bgPanel(self, name="defaultThumb")
         self.thumbnail.setBackground(wx.BLACK)
         self.thumbnail.SetSize((66,37))
-        #self.hSizer.Add(self.thumbnail, 0, wx.ALL|wx.EXPAND, 0)        
+        self.hSizer.Add(self.thumbnail, 0, wx.ALL|wx.EXPAND, 0)        
         # Add title
         self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(225,15))        
         self.title.SetBackgroundColour(wx.WHITE)
@@ -83,20 +83,42 @@ class LibraryItemPanel(wx.Panel):
         self.pauseStopSizer.Add(self.pause,0,wx.TOP|wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,6)
         self.pauseStopSizer.Add(self.delete,0,wx.TOP|wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,6)
        
-        self.pbLabel = wx.StaticText(self,-1,"10min30",wx.Point(274,3),wx.Size(100,15),wx.ST_NO_AUTORESIZE|wx.ALIGN_CENTRE)                        
- 
+        self.pbLabel = wx.StaticText(self,-1,"12%   |   10min30",wx.Point(274,3),wx.Size(140,15),wx.ST_NO_AUTORESIZE)                        
+                    #|wx.ALIGN_CENTRE 
         self.pbSizer = wx.BoxSizer(wx.VERTICAL)
         self.pbSizer.Add(self.pauseStopSizer,0,wx.EXPAND|wx.FIXED_MINSIZE)
         
         self.pbSizer.Add(self.pbLabel,0,wx.TOP|wx.FIXED_MINSIZE,3)        
         self.hSizer.Add(self.pbSizer, 0, wx.ALL|wx.EXPAND, 3)         
         
-        # Upload speed
-        #self.pbLabel = wx.StaticText(self,-1,"10min30",wx.Point(274,3),wx.Size(100,15),wx.ST_NO_AUTORESIZE|wx.ALIGN_CENTRE)                        
+        # Up/Down text speed
+        self.speedUp   = wx.StaticText(self,-1,"up:",wx.Point(274,3),wx.Size(35,15),wx.ST_NO_AUTORESIZE)                        
+        self.speedDown = wx.StaticText(self,-1,"down:",wx.Point(274,3),wx.Size(35,15),wx.ST_NO_AUTORESIZE)                                
+        
+        self.speedSizer = wx.BoxSizer(wx.VERTICAL)
+        self.speedSizer.Add(self.speedUp,0,wx.TOP|wx.LEFT|wx.FIXED_MINSIZE,6)        
+        self.speedSizer.Add(self.speedDown, 0, wx.LEFT|wx.FIXED_MINSIZE, 6)                
+        self.hSizer.Add(self.speedSizer, 0, wx.ALL|wx.EXPAND, 3)         
+        
+        # Up/Down data
+        self.speedUp2   = wx.StaticText(self,-1,"10 KB/s",wx.Point(274,3),wx.Size(40,15),wx.ST_NO_AUTORESIZE)                        
+        self.speedDown2 = wx.StaticText(self,-1,"12 KB/s",wx.Point(274,3),wx.Size(40,15),wx.ST_NO_AUTORESIZE)                                
+        
+        self.speedSizer2 = wx.BoxSizer(wx.VERTICAL)
+        self.speedSizer2.Add(self.speedUp2,0,wx.TOP|wx.FIXED_MINSIZE,6)        
+        self.speedSizer2.Add(self.speedDown2, 0, wx.TOP|wx.FIXED_MINSIZE, 1)                
+        self.hSizer.Add(self.speedSizer2, 0, wx.ALL|wx.EXPAND, 3)                 
 
         # Add message        
         self.messageLabel = wx.StaticText(self,-1,"message",wx.Point(274,3),wx.Size(130,15),wx.ST_NO_AUTORESIZE|wx.ALIGN_CENTRE)        
         self.hSizer.Add(self.messageLabel, 0, wx.ALL|wx.EXPAND, 8) 
+        
+        # Play Fast
+        self.playFast = bgPanel(self, name="playFast")
+        self.playFast.setBackground(wx.BLACK)
+        self.playFast.SetSize((84,37))
+        self.hSizer.Add(self.playFast, 0, wx.ALL|wx.EXPAND, 0) 
+        
         # Add Refresh        
         self.SetSizer(self.hSizer);
         self.SetAutoLayout(1);
