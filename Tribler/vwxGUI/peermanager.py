@@ -1,6 +1,7 @@
 from Tribler.CacheDB.SynDBHandler import SynPeerDBHandler
 from Tribler.CacheDB import CacheDBHandler
 from Tribler.utilities import show_permid_short,sort_dictlist
+from Tribler.unicode import *
 import time
 
 DEBUG = True
@@ -65,7 +66,7 @@ class PeerDataManager:
                          tempdata[i]['buddycast_times'] > 0):
                 peer_data = tempdata[i]
                 if peer_data['name']!=None and len(peer_data['name'])>0:
-                    peer_data['content_name']=str(peer_data['name'])
+                    peer_data['content_name']=dunno2unicode(peer_data['name'])
                 else:
                     peer_data['content_name']= 'peer %s' % show_permid_short(peer_data['permid'])#'[%s:%s]' % (localdata[i]['ip'],str(localdata[i]['port']))
                 peer_data['friend'] = self.frienddb.isFriend(peer_data['permid'])#permid in self.friend_list
