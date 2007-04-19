@@ -137,7 +137,9 @@ class FilesItemPanel(wx.Panel):
         if self.data:
             # torrent data is sent to guiUtility > standardDetails.setData
             self.guiUtility.selectTorrent(self.data)
-                
+          
+    def getIdentifier(self):
+        return self.data['infohash']
                 
 DEFAULT_THUMB = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'defaultThumb.png'))
 MASK_BITMAP = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'itemMask.png'))

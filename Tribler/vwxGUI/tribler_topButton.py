@@ -13,6 +13,7 @@ class tribler_topButton(wx.Panel):
 
     def __init__(self, *args, **kw):    
         if len(args) == 0:
+            self.backgroundColor = wx.Colour(102,102,102)
             pre = wx.PrePanel()
             # the Create step is done by XRC.
             self.PostCreate(pre)
@@ -48,7 +49,6 @@ class tribler_topButton(wx.Panel):
         
         
     def searchBitmaps(self):
-        self.backgroundColor = wx.Colour(102,102,102)
         self.bitmaps = [None, None]
         self.parentBitmap = None
         self.mouseOver = False
@@ -200,6 +200,7 @@ class tribler_topButton(wx.Panel):
         
     def setBackground(self, wxColor):
         self.backgroundColor = wxColor
+        self.Refresh()
         
     def OnPaint(self, evt):
         dc = wx.BufferedPaintDC(self)

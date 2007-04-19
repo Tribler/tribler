@@ -127,7 +127,14 @@ class standardDetails(wx.Panel):
                 if not xrcElement:
                     print 'standardDetails: Error: Could not identify xrc element: %s for mode %s' % (element, self.mode)
                 self.data[self.mode][element] = xrcElement
-
+            
+            # do extra init
+            if modeString == 'files':
+                print 'extra files init'
+                self.data[self.mode].get('up').setBackground(wx.WHITE)
+                self.data[self.mode].get('down').setBackground(wx.WHITE)
+                self.data[self.mode].get('refresh').setBackground(wx.WHITE)
+                
         return currentPanel
     
     def loadStatusPanel(self):
@@ -153,10 +160,15 @@ class standardDetails(wx.Panel):
         return self.item
     
     def getIdentifier(self):
-        if self.mode == 'filesMode':
-            return self.item['infohash']
-        elif self.mode == 'personsMode':
-            return self.item['permid']
+        if not self.item:
+            return None
+        try:
+            if self.mode == 'filesMode':
+                return self.item['infohash']
+            elif self.mode == 'personsMode':
+                return self.item['permid']
+        except:
+            print 'standardDetails: Error in getIdentifier, item=%s' % self.item
         
     def setData(self, item):
         self.item = item
@@ -188,15 +200,7 @@ class standardDetails(wx.Panel):
                 seeders = torrent['seeder']
                 seedersField = torrentData.get('popularityField1')
                 leechersField = torrentData.get('popularityField2')
-                torrentData.get('up').setBackground(wx.WHITE)
-                torrentData.get('down').setBackground(wx.WHITE)
-                self.refreshButton =  torrentData.get('refresh')
-                self.refreshButton.setBackground(wx.WHITE)
-                self.refreshButton.Bind(wx.EVT_LEFT_UP, self.mouseAction)
-                self.downloadButton =  torrentData.get('download')
-                self.downloadButton.Bind(wx.EVT_LEFT_UP, self.mouseAction)
-                #torrentData.get('refresh').setBackground(wx.WHITE)
-                #torrentData.get('refresh').Bind(wx.EVT_LEFT_UP, self.mouseAction)
+                
                 if seeders > -1:
                     seedersField.SetLabel('%d' % seeders)
                     leechersField.SetLabel('%d' % torrent['leecher'])
