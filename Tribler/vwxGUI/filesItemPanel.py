@@ -1,6 +1,6 @@
 import wx, math, time, os, sys, threading
 from traceback import print_exc
-from threading import Thread, Lock
+from threading import Thread, Lock, Event
 from Tribler.utilities import *
 #from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.Dialogs.ContentFrontPanel import ImagePanel
@@ -14,8 +14,7 @@ DEBUG=True
 
 class FilesItemPanel(wx.Panel):
     """
-    TorrentPanel shows one content item inside the StaticGridPanel
-    Currently, TorrentPanel only shows torretname, seeders, leechers and size
+    This Panel shows one content item inside the GridPanel
     """
     def __init__(self, parent):
         global TORRENTPANEL_BACKGROUND
@@ -182,6 +181,7 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnErase)
         self.selected = False
         self.border = None
+        self.doneflag = Event()
         
         
     

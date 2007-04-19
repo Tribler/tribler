@@ -12,10 +12,6 @@ import cStringIO
 DEBUG=True
 
 class LibraryItemPanel(wx.Panel):
-    """
-    TorrentPanel shows one content item inside the StaticGridPanel
-    Currently, TorrentPanel only shows torretname, seeders, leechers and size
-    """
     def __init__(self, parent):
         global TORRENTPANEL_BACKGROUND
         

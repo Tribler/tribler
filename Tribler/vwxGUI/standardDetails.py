@@ -152,6 +152,12 @@ class standardDetails(wx.Panel):
     def getData(self):
         return self.item
     
+    def getIdentifier(self):
+        if self.mode == 'filesMode':
+            return self.item['infohash']
+        elif self.mode == 'personsMode':
+            return self.item['permid']
+        
     def setData(self, item):
         self.item = item
         if self.mode == 'filesMode':

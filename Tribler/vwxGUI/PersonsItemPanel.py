@@ -14,8 +14,7 @@ DEBUG=True
 
 class PersonsItemPanel(wx.Panel):
     """
-    TorrentPanel shows one content item inside the StaticGridPanel
-    Currently, TorrentPanel only shows torretname, seeders, leechers and size
+    PersonsItemPanel shows one persons item inside the PersonsGridPanel
     """
     def __init__(self, parent):
         global TORRENTPANEL_BACKGROUND

@@ -40,15 +40,26 @@ class standardGrid(wx.Panel):
 
         #self.SetSize((500,500))
         self.SetBackgroundColour(wx.BLACK)
-        self.parent = None
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.detailPanel = None       
         #self.cols = 5
         self.items = 0
         self.currentData = 0
+        self.currentRows = 0
+        self.subPanelHeight = 116 # This will be update after first refresh
+        self.detailPanel = None
+        
+        self.panels = []
+        self.currentData = 0
+        self.Bind(wx.EVT_SIZE, self.onResize)
+        
         self.addComponents()
+        self.calculateRows()
         self.Show()
+        self.Layout()
+        self.Refresh()
+
         self.guiUtility.report(self)
         self.initReady = True
         if self.data:
@@ -56,17 +67,15 @@ class standardGrid(wx.Panel):
                 
     def addComponents(self):
         self.Show(False)
-        #self.SetBackgroundColour(wx.BLUE)
+
+        self.SetBackgroundColour(wx.WHITE)
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         
-        self.staticGrid = StaticGridPanel(self, self.cols)
-        self.vSizer.Add(self.staticGrid, 1, wx.ALL|wx.EXPAND, 0)
-                
         self.SetSizer(self.vSizer);
         self.SetAutoLayout(1);
-        self.Layout();
-        self.Refresh(True)
-        self.Update()
+        #self.Layout();
+        #self.Refresh(True)
+        #self.Update()
         #print "vSizer: %s, Panel: %s"% (self.vSizer.GetSize(), self.GetSize())
 
     def setData(self, dataList, resetPages = True):
@@ -95,16 +104,16 @@ class standardGrid(wx.Panel):
             self.standardPager.refresh()
                 
         if self.data == None:
-            self.staticGrid.clearAllData()
+            self.clearAllData()
         else:
             for i in range(0, self.items):
                 dataIndex = i+ self.currentData
                 if dataIndex < len(self.data):
-                    self.staticGrid.setData(i, self.data[dataIndex])
+                    self.setDataOfPanel(i, self.data[dataIndex])
                 else:
-                    self.staticGrid.setData(i, None)
+                    self.setDataOfPanel(i, None)
         
-        self.staticGrid.updateSelection()
+        self.updateSelection()
     
     def gridResized(self, rows):
         self.items = self.cols * rows
@@ -134,50 +143,10 @@ class standardGrid(wx.Panel):
     def getSubPanel(self):
         raise NotImplementedError('Method getSubPanel should be subclassed')
     
-
-
-class StaticGridPanel(wx.Panel):
-    """
-    A panel that shows subpanels with a static column count
-    and a rowcount dependend on the size of the StaticGridPanel
-    
-    """
-    def __init__(self, parent, cols):
-        wx.Panel.__init__(self, parent, -1, size=wx.DefaultSize)
-        #self.SetSize((500,500))
-        
-        self.parent = parent
-        self.cols = cols
-        self.currentRows = 0
-        self.subPanelHeight = 116 # This will be update after first refresh
-        self.detailPanel = None
-        
-        self.panels = []
-        self.currentData = 0
-        self.Bind(wx.EVT_SIZE, self.onResize)
-        
-        self.addComponents()
-        #self.Centre()
-        self.Show()
-        self.Layout()
-        self.Refresh()
-        #self.calculateRows() # recalculate rows //tb
-        #print "vSizer: %s, Panel: %s"% (self.vSizer.GetSize(), self.GetSize())
-        
-        
-    def addComponents(self):
-        self.Show(False)
-        self.SetBackgroundColour(wx.WHITE)
-        self.vSizer = wx.BoxSizer(wx.VERTICAL)
-        #self.vSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.SetSizer(self.vSizer);
-        self.SetAutoLayout(1);
-        #self.calculateRows()        
-
-    def setData(self, panelNumber, data):
+    def setDataOfPanel(self, panelNumber, data):
         
         try:
-            if self.parent.orientation == 'vertical':
+            if self.orientation == 'vertical':
                 hSizer = self.vSizer.GetItem(panelNumber%self.currentRows).GetSizer()
                 panel = hSizer.GetItem(panelNumber/ self.currentRows).GetWindow()
             else:
@@ -210,7 +179,7 @@ class StaticGridPanel(wx.Panel):
         
     def calculateRows(self, event=None):
     
-        size = event.GetSize()
+        size = self.GetSize()
         oldRows = self.currentRows
         self.updateSubPanelHeight()
         if size[1] < 50 or self.subPanelHeight == 0:
@@ -226,7 +195,7 @@ class StaticGridPanel(wx.Panel):
                 print >>sys.stderr,'contentpanel: Size updated to %d rows and %d columns, oldrows: %d'% (self.currentRows, self.cols, oldRows)
             
             self.updatePanel(oldRows, self.currentRows)
-            self.parent.gridResized(self.currentRows)
+            self.gridResized(self.currentRows)
             
         
         
@@ -239,7 +208,7 @@ class StaticGridPanel(wx.Panel):
                 hSizer = wx.BoxSizer(wx.HORIZONTAL)
                 self.panels.append([])
                 for panel in range(0, self.cols):
-                    dataPanel = self.parent.getSubPanel()
+                    dataPanel = self.getSubPanel()
                     #dataPanel = wx.Panel(self, wx.ID_ANY)
                     self.panels[i].append(dataPanel)
                     #dataPanel.SetSize((-1, self.subPanelHeight))
@@ -267,43 +236,32 @@ class StaticGridPanel(wx.Panel):
         If no torrent is selected in detailPanel, let first in grid be selected
         """
         
-        
         if not self.hasDetailPanel():
             return
         
         title = None
-        # Select first item
-        if not self.detailPanel.data:
-            try:
-                firstItem = self.panels[0][0].data
-                if firstItem:
-                    self.detailPanel.setData(firstItem)
-                    title = self.detailPanel.data.get('content_name')
-            except:
-                pass
         
         if self.detailPanel.data!=None:
-            info_hash = self.detailPanel.getData().get('infohash')
+            id = self.detailPanel.getIdentifier()
             
         
         for row in self.panels:
             for pan in row:
                 try:
-                    panel_info_hash = pan.data['infohash']
+                    panel_id = pan.getIdentifier()
                 except:
-                    panel_info_hash = None
+                    panel_id = None
                     
-                if panel_info_hash != info_hash or  panel_info_hash == None:
+                if panel_id != id or  panel_id == None:
                     #print 'item deselected2'
                     pan.deselect()
                 else:
-                    print 'item selected2'
                     pan.select()
         
     def hasDetailPanel(self):
         if self.detailPanel:
             return True
-        self.detailPanel = self.parent.guiUtility.request('standardDetails')
+        self.detailPanel = self.guiUtility.request('standardDetails')
         return self.detailPanel != None
     
 
@@ -314,7 +272,7 @@ class filesGrid(standardGrid):
         standardGrid.__init__(self, columns, orientation='horizontal')
         
     def getSubPanel(self):
-        return FilesItemPanel(self.staticGrid)
+        return FilesItemPanel(self)
     
 class personsGrid(standardGrid):
     def __init__(self):
@@ -322,7 +280,7 @@ class personsGrid(standardGrid):
         standardGrid.__init__(self, columns, orientation='horizontal')
         
     def getSubPanel(self):
-        return PersonsItemPanel(self.staticGrid)
+        return PersonsItemPanel(self)
 
 class friendsGrid(standardGrid):
     def __init__(self):
@@ -330,7 +288,7 @@ class friendsGrid(standardGrid):
         standardGrid.__init__(self, columns, orientation='horizontal')
         
     def getSubPanel(self):
-        return PersonsItemPanel(self.staticGrid)
+        return PersonsItemPanel(self)
     
 class libraryGrid(standardGrid):
     def __init__(self):
@@ -338,4 +296,4 @@ class libraryGrid(standardGrid):
         standardGrid.__init__(self, columns, orientation='horizontal')
         
     def getSubPanel(self):
-        return LibraryItemPanel(self.staticGrid)
+        return LibraryItemPanel(self)

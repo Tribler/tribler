@@ -126,7 +126,7 @@ class standardOverview(wx.Panel):
     def updateSelection(self):
         grid = self.data[self.mode].get('grid')
         if grid:
-            grid.staticGrid.updateSelection()
+            grid.updateSelection()
         
         
     def getFirstItem(self):
