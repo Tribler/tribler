@@ -1,8 +1,10 @@
 from Tribler.CacheDB.SynDBHandler import SynPeerDBHandler
 from Tribler.CacheDB import CacheDBHandler
-from Tribler.utilities import show_permid_short,sort_dictlist
+from Tribler.utilities import show_permid_short,sort_dictlist,remove_data_from_list,find_content_in_dictlist
 from Tribler.unicode import *
 import time
+from safeguiupdate import *
+import threading
 
 DEBUG = True
 def debug(message):
@@ -27,8 +29,15 @@ def getAgeingValue(old_time):
     else:   
         return 0
     
-class PeerDataManager:
-    def __init__(self):
+class PeerDataManager(DelayedEventHandler):
+    """offers a sync view of the peer database, in an usable form for the
+    persons view and not only.
+    it adds, deletes and updates data as soon as it is changed in database
+    using the notifications system, and then informs the GUI of the changes
+    that only has to use the data given by the manager; no new interrogation is needed"""
+    def __init__(self, updateFunc=None):
+        DelayedEventHandler.__init__(self)
+        self.doneflag = threading.Event()
         # for that, create a separate ordered list with only the first 20 most similar peers
         self.top20similar = []
 #        self.count_AddData = 0
@@ -37,6 +46,7 @@ class PeerDataManager:
         self.MIN_CALLBACK_INT = 1 #min callback interval: minimum time in seconds between two invocations on the gui from the callback
         self.start_callback_int = -1 #init the time variable for the callback function
         self.callback_dict = {} #empty list for events
+        self.guiCallbackFunc = updateFunc #callback function from the parent, the creator object
         self.peersdb = SynPeerDBHandler(updateFun = self.callbackPeerChange)#CacheDBHandler.PeerDBHandler()
 #        self.prefdb = CacheDBHandler.PreferenceDBHandler()
 #        self.mydb = CacheDBHandler.MyPreferenceDBHandler()
@@ -114,8 +124,8 @@ class PeerDataManager:
             for k,v in treat_dict.iteritems():
                 del self.callback_dict[k]
             #send the callback event
-            self.treatCallback(treat_dict)
-#            self.invokeLater(self.treatCallback, [treat_dict])
+            #self.treatCallback(treat_dict)
+            self.invokeLater(self.treatCallback, [treat_dict])
             #reset the start time
             self.start_callback_int = start_time
             #self.callback_dict = {}
@@ -137,7 +147,25 @@ class PeerDataManager:
                     peer_data['permid'] = permid
                 #arrange the data some more: add content_name, rank and so on
                 self.preparePeer(peer_data)
+            #update local snapshot
+            if mode == 'delete':
+                remove_data_from_list(self.grid.data, permid)
+            elif mode in ['update', 'add']:
+                i = find_content_in_dictlist(self.data, peer_data, 'permid')
+                if i != -1:
+                    #update the data in local snapshot
+                    self.data[i] = peer_data
+                    #should reorder the data?
+                else:
+                    # shouldn't I insert the data at their place based on rank value... ?
+                    self.data.append(peer_data)
+                
             #inform the GuiUtility of operation
+            try:
+                if self.guiCallbackFunc!=None:
+                    self.guiCallbackFunc(peer_data, mode)
+            except:
+                print "error calling GUI callback function for data change"
 #            debug( "new operation to be done for %s in GuiUtility!" % peer_data['content_name'])
 #===============================================================================
 #            if mode in ['update', 'delete']:
@@ -246,3 +274,14 @@ class PeerDataManager:
 #            filtered.append(searchingContentStub)
         self.data = filtered
         return filtered
+
+    def getRank(self, permid):
+        """looks for the current data in the top 20 list and returns the index starting from 1"""
+        try:
+            for i in range(len(self.top20similar)):
+                if self.top20similar[i]['permid'] == permid:
+                    return (i+1)
+        except:
+            pass
+#            print "error on getting rank"
+        return -1

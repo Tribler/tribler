@@ -191,6 +191,9 @@ def find_content_in_dictlist(dict_list, content, key='infohash'):
     return -1
 
 def remove_torrent_from_list(list, content, key = 'infohash'):
+    remove_data_from_list(list, content, key)
+
+def remove_data_from_list(list, content, key = 'infohash'):
     index = find_content_in_dictlist(list, content, key)
     if index != -1:
         del list[index]

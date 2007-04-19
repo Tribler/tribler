@@ -210,16 +210,37 @@ class standardDetails(wx.Panel):
                     
             
         elif self.mode in ['personsMode', 'friendsMode']:
-            recomm = random.randint(0,4)
-            self.data[self.mode].get('TasteHeart').setHeartIndex(recomm)
-            self.data[self.mode].get('recommendationField').SetLabel("%d" % recomm)
+            print "<mluc> details for person"
+            #recomm = random.randint(0,4)
+            rank = self.guiUtility.peer_manager.getRank(item['permid'])
+            #because of the fact that hearts are coded so that lower index means higher ranking, then:
+            if rank > 0 and rank <= 5:
+                recomm = 0
+            elif rank > 5 and rank <= 10:
+                recomm = 1
+            elif rank > 10 and rank <= 15:
+                recomm = 2
+            elif rank > 15 and rank <= 20:
+                recomm = 3
+            else:
+                recomm = 4
+            if rank != -1:
+                self.getGuiObj('recommendationField').SetLabel("%d" % rank)
+            else:
+                self.getGuiObj('recommendationField').SetLabel("")
+            if recomm != -1:
+                self.getGuiObj('TasteHeart').setHeartIndex(recomm)
+            else:
+                self.getGuiObj('TasteHeart').setHeartIndex(0)
             
         elif self.mode == 'libraryMode':
             pass
         elif self.mode == 'subscriptionMode':
             pass
         
-        
+    def getGuiObj(self, obj_name):
+        """handy function to retrive an object based on it's name for the current mode"""
+        return self.data[self.mode].get(obj_name)
         
 #        creationdateField = self.data[self.mode].get('creationdate')
 #        creationdateField.SetLabel(item.get('creation date'))
