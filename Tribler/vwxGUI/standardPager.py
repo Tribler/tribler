@@ -84,11 +84,12 @@ class standardPager(wx.Panel):
         self.hSizer.AddSpacer(wx.Size(5))
         self.hSizer.Add(self.right, 0, wx.TOP, 5)
        
-        #self.hSizer.SetMinSize((50,50))
+        
         self.SetSizer(self.hSizer);self.SetAutoLayout(1);self.Layout();
         self.Refresh()
         self.Show()
-   
+        print 'pagersize: %s' % self.GetSize()
+        
    
     def refreshPageNumbers(self):
         
@@ -113,7 +114,7 @@ class standardPager(wx.Panel):
         Highlight current page number
         """
         
-        #print 'Begin %d, number %d, current %d' % (begin, number, current)
+        print 'Pagenumbers: Begin %d, number %d, current %d' % (begin, number, current)
         
         refresh = False
         # Guarantee right amount of statictexts
@@ -179,6 +180,10 @@ class standardPager(wx.Panel):
             else:
                 panel.SetFont(self.normalFont)
             page+=1
+        
+        print 'hSizer size: %s' % self.hSizer.GetSize()
+            
+        
     
     def getDefaultTextField(self, t=""):
         text = StaticText(self, -1, t)
@@ -192,10 +197,12 @@ class standardPager(wx.Panel):
         if not self.hasGrid() or not self.initReady:
             print 'StandardPager: no refresh, not ready yet or no grid'
             try:
-                print 'grid: %s' % self.grid
+                print 'grid: %s, initReady: %s' % (self.grid, self.initReady)
             except:
                 pass
             return
+        
+        print 'pager: good refresh'
         
         grid = self.grid
         try:
@@ -223,6 +230,9 @@ class standardPager(wx.Panel):
         if self.currentPage >= self.totalPages:
             self.currentPage = max(self.totalPages -1, 0)
         self.refreshPageNumbers()
+        print 'pagersize: %s' % self.GetSize()
+        print 'position: %s' % self.left.GetPosition()
+        print 'self.position: %s' % self.GetPosition()
 
 #    def imageClicked(self, event):
 #        obj = event.GetEventObject()

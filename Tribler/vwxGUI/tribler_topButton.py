@@ -11,12 +11,16 @@ class tribler_topButton(wx.Panel):
     a variable self.bitmap.
     """
 
-    def __init__(self, *args, **kw):    
-        self.backgroundColor = wx.Colour(102,102,102)
-        pre = wx.PrePanel()
-        # the Create step is done by XRC.
-        self.PostCreate(pre)
-        self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
+    def __init__(self, *args, **kw):
+        if len(args) == 0: 
+            self.backgroundColor = wx.Colour(102,102,102) 
+            pre = wx.PrePanel() 
+            # the Create step is done by XRC. 
+            self.PostCreate(pre) 
+            self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate) 
+        else: 
+            wx.Panel.__init__(self, *args, **kw) 
+            self._PostInit()     
         
     def OnCreate(self, event):
         self.Unbind(wx.EVT_WINDOW_CREATE)
@@ -32,6 +36,7 @@ class tribler_topButton(wx.Panel):
         self.selected = False
         self.searchBitmaps()
         self.createBackgroundImage()
+        
         #<mluc> on mac, the button doesn't get a size
         if self.bitmaps[0] and self.GetSize()==(0,0):
             self.SetSize(self.bitmaps[0].GetSize())
