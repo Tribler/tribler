@@ -48,7 +48,7 @@ class filesOverview(wx.Panel):
         self.orange_bottom_left = bgPanel(self, -1, wx.Point(0,400), wx.Size(10,28))
         self.orange_bottom_center = bgPanel(self, -1, wx.Point(10,370), wx.Size(20,20))
         self.standardPager = standardPager(self,-1,wxDefaultPosition,wxDefaultSize)
-        self.standardPager.SetDimensions(440,400,183,28)
+        self.standardPager.SetDimensions(440,400,233,28)
         self.torrentTabs = filesTabs(self,-1,wxDefaultPosition,wxDefaultSize)
         self.torrentTabs.SetDimensions(0,41,20,20)
         self.sz3s = wx.BoxSizer(wx.VERTICAL)

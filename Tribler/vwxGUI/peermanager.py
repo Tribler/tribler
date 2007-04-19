@@ -1,6 +1,7 @@
 from Tribler.CacheDB.SynDBHandler import SynPeerDBHandler
 from Tribler.CacheDB import CacheDBHandler
 from Tribler.utilities import show_permid_short,sort_dictlist
+import time
 
 DEBUG = True
 def debug(message):
@@ -60,7 +61,8 @@ class PeerDataManager:
         localdata = []
         #select only tribler peers
         for i in xrange(len(tempdata)):
-            if tempdata[i].get('permid'):
+            if tempdata[i].get('permid') and (tempdata[i]['connected_times'] > 0 or \
+                         tempdata[i]['buddycast_times'] > 0):
                 peer_data = tempdata[i]
                 if peer_data['name']!=None and len(peer_data['name'])>0:
                     peer_data['content_name']=str(peer_data['name'])
@@ -74,6 +76,8 @@ class PeerDataManager:
                         self.MaxSimilarityValue = peer_data['similarity']
                 else:
                     peer_data['similarity']=0
+                #add infohash to be used by standardGrid.updateSelection
+                peer_data['infohash']=peer_data['permid']
                 localdata.append(peer_data)
         
         # compute similarity rank based on similarity with this peer relative to the greatest similarity value
@@ -88,7 +92,7 @@ class PeerDataManager:
         """callback function to be notified when changes are made in the peers database
             mode is add, update or delete
         """
-        start_time = time()
+        start_time = time.time()
         #get updated peer data from database
         # mode = {add, update, delete}
         #return
@@ -109,10 +113,12 @@ class PeerDataManager:
             for k,v in treat_dict.iteritems():
                 del self.callback_dict[k]
             #send the callback event
-            self.invokeLater(self.treatCallback, [treat_dict])
+            self.treatCallback(treat_dict)
+#            self.invokeLater(self.treatCallback, [treat_dict])
             #reset the start time
             self.start_callback_int = start_time
             #self.callback_dict = {}
+            debug( "callback for %d persons" % len(treat_dict))
         return
 
     def treatCallback(self, permid_dict):
@@ -122,22 +128,25 @@ class PeerDataManager:
             if mode in ['update', 'add']:
                 #first get the new data from database
                 peer_data = self.peersdb.getPeer(permid)
+                #check if is a valid peer
+                if (peer_data['connected_times'] == 0 and peer_data['buddycast_times'] == 0):
+                    continue #skip this peer as it is of no interrest
                 #extra check, the permid should already be there
                 if peer_data.get('permid')==None:
                     peer_data['permid'] = permid
                 #arrange the data some more: add content_name, rank and so on
                 self.preparePeer(peer_data)
             #inform the GuiUtility of operation
-            debug( "new operation to be done for %s in GuiUtility!" % peer_data['content_name'])
+#            debug( "new operation to be done for %s in GuiUtility!" % peer_data['content_name'])
 #===============================================================================
-# #            if mode in ['update', 'delete']:
-# #                if self.detailPanel.showsPeer(permid):
-# #                    self.detailPanel.setData(peer_data)
-# #            
-# #            if mode in ['update', 'add']:
-# #                self.addData(peer_data)
-# #            else:
-# #                self.deleteData(permid)
+#            if mode in ['update', 'delete']:
+#                 if self.detailPanel.showsPeer(permid):
+#                     self.detailPanel.setData(peer_data)
+#             
+#            if mode in ['update', 'add']:
+#                 self.addData(peer_data)
+#            else:
+#                 self.deleteData(permid)
 #===============================================================================
 
     def preparePeer(self, peer_data):
@@ -159,6 +168,8 @@ class PeerDataManager:
         peer_data['similarity_percent'] = int(peer_data['similarity']*100.0/self.MaxSimilarityValue)
         #recompute rank
         peer_data['rank_value'] = self.compute_rankval(peer_data)
+        #add infohash to be used by standardGrid.updateSelection
+        peer_data['infohash']=peer_data['permid']
         #check to see if top20 needs to be updated
         j = 0
         while j<len(self.top20similar):

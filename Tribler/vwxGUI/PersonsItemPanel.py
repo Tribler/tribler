@@ -4,9 +4,11 @@ from Tribler.utilities import *
 from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.Dialogs.ContentFrontPanel import ImagePanel
 from Tribler.vwxGUI.GuiUtility import GUIUtility
+from safeguiupdate import DelayedInvocation
 from Tribler.unicode import *
 from copy import deepcopy
 import cStringIO
+from threading import Lock
 
 DEBUG=True
 
@@ -105,19 +107,15 @@ class PersonsItemPanel(wx.Panel):
           
         
     def select(self):
-        self.selected = True
-        old = self.title.GetBackgroundColour()
-        if old != self.selectedColour:
-            self.title.SetBackgroundColour(self.selectedColour)
-            self.Refresh()
-        
+        print 'person selected'
+        self.thumb.setSelected(True)
+        self.title.SetBackgroundColour(self.selectedColour)
+        self.title.Refresh()
         
     def deselect(self):
-        self.selected = False
-        old = self.title.GetBackgroundColour()
-        if old != self.unselectedColour:
-            self.title.SetBackgroundColour(self.unselectedColour)
-            self.Refresh()
+        self.thumb.setSelected(False)
+        self.title.SetBackgroundColour(self.unselectedColour)
+        self.title.Refresh()
     
     def keyTyped(self, event):
         if self.selected:
@@ -137,8 +135,9 @@ class PersonsItemPanel(wx.Panel):
                 
                 
 DEFAULT_THUMB = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'defaultThumbPeer.png'))
+MASK_BITMAP = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'itemMask.png'))
 
-class ThumbnailViewer(wx.Panel):
+class ThumbnailViewer(wx.Panel, DelayedInvocation):
     """
     Show thumbnail and mast with info on mouseOver
     """
@@ -161,9 +160,11 @@ class ThumbnailViewer(wx.Panel):
     
     def _PostInit(self):
         # Do all init here
+        DelayedInvocation.__init__(self)
         self.backgroundColor = wx.WHITE
         self.dataBitmap = self.maskBitmap = None
         self.data = None
+        self.dataLock = Lock()
         self.mouseOver = False
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
@@ -172,7 +173,7 @@ class ThumbnailViewer(wx.Panel):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnErase)
         self.selected = False
-        
+        self.border = None
         
         
     
@@ -187,17 +188,20 @@ class ThumbnailViewer(wx.Panel):
                 
         if data != self.data:
             self.data = data
-            self.dataBitmap = self.getThumbnail(data)
-            # If failed, choose standard thumb
-            if not self.dataBitmap:
-                self.dataBitmap = DEFAULT_THUMB
-            # Recalculate image placement
-            w, h = self.GetSize()
-            iw, ih = self.dataBitmap.GetSize()
-            self.xpos, self.ypos = (w-iw)/2, (h-ih)/2
-        if not self.maskBitmap:
-            self.maskBitmap = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'itemMask.png'))
-        self.Refresh()
+            self.setThumbnail(data)
+#===============================================================================
+#            self.dataBitmap = self.getThumbnail(data)
+#            # If failed, choose standard thumb
+#            if not self.dataBitmap:
+#                self.dataBitmap = DEFAULT_THUMB
+#            # Recalculate image placement
+#            w, h = self.GetSize()
+#            iw, ih = self.dataBitmap.GetSize()
+#            self.xpos, self.ypos = (w-iw)/2, (h-ih)/2
+#        if not self.maskBitmap:
+#            self.maskBitmap = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'itemMask.png'))
+#        self.Refresh()
+#===============================================================================
                                         
     
     def getThumbnail(self, data):
@@ -248,6 +252,42 @@ class ThumbnailViewer(wx.Panel):
             return {}           
         
                        
+    def setThumbnail(self, data):
+        # Get the file(s)data for this torrent
+        try:
+            bmp = DEFAULT_THUMB
+            # Check if we have already read the thumbnail and metadata information from this torrent file
+            if data.get('metadata'):
+                bmp = data['metadata'].get('ThumbnailBitmap')
+                if not bmp:
+                    print 'ThumbnailViewer: Error: thumbnailBitmap not found in torrent %s' % torrent
+                    bmp = DEFAULT_THUMB
+            else:
+                # Do the loading of metadata and thumbnail in new thread
+                # so that navigation is not slowed down
+                pass
+#                Thread(target = self.loadMetadata, args=(torrent,)).start()
+            
+            self.setBitmap(bmp)
+            width, height = self.GetSize()
+            d = 1
+            self.border = [wx.Point(0,d), wx.Point(width-d, d), wx.Point(width-d, height-d), wx.Point(d,height-d), wx.Point(d,0)]
+            self.Refresh()
+            
+        except:
+            print_exc(file=sys.stderr)
+            return {}           
+        
+         
+    def setBitmap(self, bmp):
+        # Recalculate image placement
+        w, h = self.GetSize()
+        iw, ih = bmp.GetSize()
+                
+        self.dataLock.acquire()
+        self.dataBitmap = bmp
+        self.xpos, self.ypos = (w-iw)/2, (h-ih)/2
+        self.dataLock.release()
         
     
     
@@ -289,10 +329,15 @@ class ThumbnailViewer(wx.Panel):
         
         if self.dataBitmap:
             dc.DrawBitmap(self.dataBitmap, self.xpos,self.ypos, True)
-        if (self.mouseOver or self.selected) and self.maskBitmap:
+        if self.mouseOver:
             dc.SetFont(wx.Font(6, wx.SWISS, wx.NORMAL, wx.BOLD, True))
-            dc.DrawBitmap(self.maskBitmap,0 ,58, True)
+            dc.DrawBitmap(MASK_BITMAP,0 ,56, True)
             dc.SetTextForeground(wx.WHITE)
             dc.DrawText('rating', 5, 60)
+            dc.SetTextForeground(wx.BLACK)
+            #dc.DrawText('rating', 8, 50)
+        if (self.selected and self.border):
+            dc.SetPen(wx.Pen(wx.Colour(255,51,0), 2))
+            dc.DrawLines(self.border)
         
 
