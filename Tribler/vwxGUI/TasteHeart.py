@@ -22,14 +22,11 @@ class TasteHeart(wx.Panel):
     """
 
     def __init__(self, *args, **kw):    
-        if len(args) == 0:
-            pre = wx.PrePanel()
-            # the Create step is done by XRC.
-            self.PostCreate(pre)
-            self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
-        else:
-            wx.Panel.__init__(self, *args, **kw)
-            self._PostInit()
+        self.backgroundColor = wx.Colour(102,102,102)
+        pre = wx.PrePanel()
+        # the Create step is done by XRC.
+        self.PostCreate(pre)
+        self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
         
     def OnCreate(self, event):
         self.Unbind(wx.EVT_WINDOW_CREATE)
@@ -55,7 +52,6 @@ class TasteHeart(wx.Panel):
         self.Update()
         
     def searchBitmaps(self):
-        self.backgroundColor = wx.Colour(102,102,102)
         self.parentBitmap = None
         self.mouseOver = False
         

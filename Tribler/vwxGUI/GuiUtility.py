@@ -2,6 +2,7 @@ import wx
 from wx import xrc
 from bgPanel import *
 import updateXRC
+from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 
 #from Tribler.vwxGUI.filesFilter import filesFilter
 
@@ -38,33 +39,7 @@ class GUIUtility:
         return GUIUtility.__single
     getInstance = staticmethod(getInstance)
     
-    def report(self, object):
-        name = object.__class__.__name__
-        try:
-            instanceName = object.GetName()
-        except:
-            instanceName = ''
-            
-        self.guiObjects[(name, instanceName)] = object
-        if DEBUG:
-            print '%s reported' % name
-        
-            
     
-    def request(self, name):
-        if name == 'standardGrid':
-            name = 'torrentGrid'
-        obj = self.guiObjects.get((name, name))
-        if obj:
-            return obj
-        else:
-            if DEBUG:
-                print "GUIUtility could not offer object %s.\nIt has only %s" % (name, [obj.__class__.__name__ for obj in self.guiObjects.values()])
-            return None
-        
-    def getCategories(self):
-        return ['aap', 'noot', 'mies']
-  
     def setCategory(self, cat, sort):
         print 'Category set to %s' % cat            
         self.categorykey = cat
@@ -73,22 +48,37 @@ class GUIUtility:
         
     def buttonClicked(self, event):
         "One of the buttons in the GUI has been clicked"
-        obj = event.GetEventObject()
+        
         if DEBUG:
             print 'Button clicked'
-        
+            
+        obj = event.GetEventObject()
         try:
             name = obj.GetName()
         except:
             print 'Error: Could not get name of buttonObject: %s' % obj
+        
         if name.startswith('mainButton'):
-            self.selectMainButton(obj)
-            
-            
+            self.mainButtonClicked(name, obj)
+        elif name.lower().find('detailstab') > -1:
+            self.detailsTabClicked(name)
+        elif name == 'refresh':
+            self.refreshTracker()
+        else:
+            print 'A button was clicked, but no action is defined for: %s' % name
+                
+        
+    def mainButtonClicked(self, name, button):
+        "One of the mainbuttons in the top has been clicked"
+        
+        if not button.isSelected():
+            if self.selectedMainButton:
+                self.selectedMainButton.setSelected(False)
+            button.setSelected(True)
+            self.selectedMainButton = button
+
+        
         if name == 'mainButtonFiles':
-            # reques filesFilter its state 
-            #filter1String = self.filesFilter.getFilterSelected()                       
-            
             self.standardFilesOverview()
         elif name == 'mainButtonPersons':
             self.standardPersonsOverview()
@@ -102,12 +92,7 @@ class GUIUtility:
             self.standardSubscriptionsOverview()
         elif name == 'mainButtonMessages':
             self.standardMessagesOverview()
-        elif name.lower().find('detailstab') > -1:
-            self.detailsTabClicked(name)
-        else:
-            print 'A button was clicked, but no action is defined for: %s' % name
-                
-        
+            
     def standardFilesOverview(self, filter1String = "", filter2String = ""):        
         #self.categorykey = 'all'
         print 'Files > filter1String='+filter1String
@@ -142,9 +127,8 @@ class GUIUtility:
             print "persons list has",len(personsList),"elements"
         else:
             print "persons list has no elements"
-        overview = self.request('standardOverview')
-        #overview.setMode('personsMode', personsList)
-        overview.setMode('personsMode', filter1String, filter2String, personsList)
+        
+        self.standardOverview.setMode('personsMode', filter1String, filter2String, personsList)
         self.standardDetails.setMode('personsMode', None)
     
     def standardProfileOverview(self):
@@ -157,30 +141,20 @@ class GUIUtility:
         
         self.categorykey = self.utility.lang.get('mypref_list_title')
         libraryList = self.reloadData()
-        overview = self.request('standardOverview')
-        overview.setMode('libraryMode', filter1String, filter2String, libraryList)
+        self.standardOverview.setMode('libraryMode', filter1String, filter2String, libraryList)
         
     def standardSubscriptionsOverview(self, filter1String="audio", filter2String="swarmsize"):       
         subscriptionsList = self.reloadData()         
-        overview = self.request('standardOverview')
-        overview.setMode('subscriptionsMode', '','', subscriptionsList)        
+        self.standardOverview.setMode('subscriptionsMode', '','', subscriptionsList)        
         
     def standardFriendsOverview(self):
         friendsList = self.reloadData()
-        overview = self.request('standardOverview')
-        overview.setMode('friendsMode', '','', friendsList)
+        self.standardOverview.setMode('friendsMode', '','', friendsList)
          
     def standardMessagesOverview(self):
         messagesList = self.reloadData()
-        overview = self.request('standardOverview')
-        #overview.setMode('messagesMode', messagesList)       
-    
-#    
-#    def reorder(self, type):
-#        print 'reorder function'
-#        self.type = type
-#        self.reloadData()
-#        
+        #self.standardOverview.setMode('messagesMode', messagesList)       
+         
     def reloadData(self):
         # load content category
         #self.categorykey = 'all'
@@ -205,15 +179,8 @@ class GUIUtility:
     def updateFun(self, torrent, operate):    
         print "Updatefun called"
         
-    
-    def selectMainButton(self, button):
-        if not button.isSelected():
-            if self.selectedMainButton:
-                self.selectedMainButton.setSelected(False)
-            button.setSelected(True)
-            self.selectedMainButton = button
-
     def initStandardOverview(self, standardOverview):
+        "Called by standardOverview when ready with init"
         self.standardOverview = standardOverview
         self.standardFilesOverview('video', 'swarmsize')
         filesButton = xrc.XRCCTRL(self.frame, 'mainButtonFiles')
@@ -221,6 +188,7 @@ class GUIUtility:
         self.selectMainButton(filesButton)
         
     def initStandardDetails(self, standardDetails):
+        "Called by standardDetails when ready with init"
         self.standardDetails = standardDetails
         self.standardDetails.setMode('filesMode', None)
         self.standardDetails.refreshStatusPanel(True)
@@ -251,3 +219,12 @@ class GUIUtility:
             self.frame.topBackgroundRight.Refresh()
         except:
             pass # When resize is done before panels are loaded: no refresh
+        
+    def refreshTracker(self):
+        torrent = self.standardDetails.getData()
+        if DEBUG:
+            print >>sys.stderr,'GUIUtility: refresh ' + repr(torrent.get('content_name', 'no_name'))
+        if torrent:
+            check = SingleManualChecking(torrent)
+            check.start()
+    

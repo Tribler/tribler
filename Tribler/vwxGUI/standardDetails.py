@@ -41,7 +41,8 @@ class standardDetails(wx.Panel):
         self.addComponents()
         #self.Refresh()
         self.modeElements = {'filesMode': ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
-                                            'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 'download', 'files_detailsTab'],
+                                            'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
+                                            'download', 'files_detailsTab', 'TasteHeart'],
                              'personsMode': ['TasteHeart', 'recommendationField']
                              }
 
@@ -71,7 +72,6 @@ class standardDetails(wx.Panel):
         assert self.currentPanel, "Panel could not be loaded"
         self.currentPanel.Layout()
         self.currentPanel.SetAutoLayout(1)
-        self.currentPanel.Bind(wx.EVT_SIZE, self.onResize)
         #self.currentPanel.Enable(True)
         self.currentPanel.Show(True)
         
@@ -134,6 +134,7 @@ class standardDetails(wx.Panel):
                 self.data[self.mode].get('up').setBackground(wx.WHITE)
                 self.data[self.mode].get('down').setBackground(wx.WHITE)
                 self.data[self.mode].get('refresh').setBackground(wx.WHITE)
+                self.data[self.mode].get('TasteHeart').setBackground(wx.WHITE)
                 
         return currentPanel
     
@@ -252,12 +253,6 @@ class standardDetails(wx.Panel):
         
         self.currentPanel.Refresh()
         
-    def onResize(self, event):
-        print 'details resize'
-        self.currentPanel.SetSize(self.currentPanel.GetSize())
-        self.currentPanel.Refresh()
-        if event:
-            event.Skip()
         
     def tabClicked(self, name):
         print 'Tabclicked: %s' % name
