@@ -74,20 +74,21 @@ class LibraryItemPanel(wx.Panel):
         self.cbSizer.Add(self.cbArchiveSizer,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.hSizer.Add(self.cbSizer, 0, wx.ALL|wx.EXPAND, 3)     
         # Add Gauge/progressbar
-        self.pb = wx.Gauge(self,-1,100,wx.Point(359,0),wx.Size(100,15),wx.EXPAND|wx.GA_HORIZONTAL)
+        self.pb = wx.Gauge(self,-1,100,wx.Point(359,0),wx.Size(100,15),wx.GA_HORIZONTAL)
         self.pause = tribler_topButton(self, -1, wx.Point(542,3), wx.Size(17,17),name='pause' )
         self.delete = tribler_topButton(self, -1, wx.Point(542,3), wx.Size(17,17),name='delete')        
-        self.pauseStopSizer = wx.BoxSizer(wx.HORIZONTAL|wx.EXPAND)
-        self.pauseStopSizer.Add(self.pb,0,wx.TOP|wx.FIXED_MINSIZE,3)
-        self.pauseStopSizer.Add(self.pause,0,wx.TOP|wx.EXPAND|wx.LEFT|wx.FIXED_MINSIZE,3)
-        self.pauseStopSizer.Add(self.delete,0,wx.TOP|wx.EXPAND|wx.LEFT|wx.FIXED_MINSIZE,3)
+        
+        self.pauseStopSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.pauseStopSizer.Add(self.pb,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,6)
+        self.pauseStopSizer.Add(self.pause,0,wx.TOP|wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,6)
+        self.pauseStopSizer.Add(self.delete,0,wx.TOP|wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,6)
        
         self.pbLabel = wx.StaticText(self,-1,"10min30",wx.Point(274,3),wx.Size(100,15),wx.ST_NO_AUTORESIZE|wx.ALIGN_CENTRE)                        
+ 
+        self.pbSizer = wx.BoxSizer(wx.VERTICAL)
+        self.pbSizer.Add(self.pauseStopSizer,0,wx.EXPAND|wx.FIXED_MINSIZE)
         
-        self.pbSizer = wx.BoxSizer(wx.VERTICAL|wx.EXPAND)
-        self.pbSizer.Add(self.pauseStopSizer,0,wx.FIXED_MINSIZE)
-        self.pbSizer.Add(self.pbLabel,0,wx.TOP|wx.FIXED_MINSIZE,3)
-        
+        self.pbSizer.Add(self.pbLabel,0,wx.TOP|wx.FIXED_MINSIZE,3)        
         self.hSizer.Add(self.pbSizer, 0, wx.ALL|wx.EXPAND, 3)         
         
         # Upload speed
