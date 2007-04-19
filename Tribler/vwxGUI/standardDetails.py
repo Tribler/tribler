@@ -4,9 +4,12 @@ from Tribler.vwxGUI.GuiUtility import GUIUtility
 from traceback import print_exc
 from Tribler.utilities import *
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
+import cStringIO
 
+DEFAULT_THUMB = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'thumbField.png'))
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionMode', 'messageMode']
 DEBUG = True
+
 
 class standardDetails(wx.Panel):
     """
@@ -210,7 +213,8 @@ class standardDetails(wx.Panel):
                 else:
                     seedersField.SetLabel('?')
                     leechersField.SetLabel('?')
-                    
+            
+            self.setTorrentThumb(torrent, torrentData.get('thumbField'))        
             
         elif self.mode in ['personsMode', 'friendsMode']:
             print "<mluc> details for person"
@@ -324,4 +328,36 @@ class standardDetails(wx.Panel):
                 infohash = torrent['infohash']
                 self.data_manager.deleteTorrent(infohash, delete_file = True)
             
+    def setTorrentThumb(self, torrent, thumbPanel):
+        
+        if not thumbPanel:
+            return 
+        
+        thumbBitmap = torrent.get('metadata',{}).get('ThumbnailBitmapLarge')
+        thumbnailString = torrent.get('metadata', {}).get('Thumbnail')
+        
+        if thumbBitmap:
+            thumbPanel.setBitmap(thumbBitmap)
+            
+        elif thumbnailString:
+            #print 'Found thumbnail: %s' % thumbnailString
+            stream = cStringIO.StringIO(thumbnailString)
+            img =  wx.ImageFromStream( stream )
+            iw, ih = img.GetSize()
+            w, h = thumbPanel.GetSize()
+            if (iw/float(ih)) > (w/float(h)):
+                nw = w
+                nh = int(ih * w/float(iw))
+            else:
+                nh = h
+                nw = int(iw * h/float(ih))
+            if nw != iw or nh != ih:
+                #print 'Rescale from (%d, %d) to (%d, %d)' % (iw, ih, nw, nh)
+                img.Rescale(nw, nh)
+            bmp = wx.BitmapFromImage(img)
+             
+            thumbPanel.setBitmap(bmp)
+            torrent['metadata']['ThumbnailBitmapLarge'] = bmp
+        else:
+             thumbPanel.setBitmap(DEFAULT_THUMB)
             

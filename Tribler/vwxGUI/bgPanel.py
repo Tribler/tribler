@@ -64,12 +64,15 @@ class bgPanel(wx.Panel):
         
         
     def createBackgroundImage(self):
-        if self.bitmap:
-            wx.EVT_PAINT(self, self.OnPaint)
-            self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnErase)
+        wx.EVT_PAINT(self, self.OnPaint)
+        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnErase)
         
         
     
+    def setBitmap(self, bitmap):
+        self.bitmap = bitmap
+        self.Refresh()
+        
     def OnErase(self, event):
         pass
         #event.Skip()
