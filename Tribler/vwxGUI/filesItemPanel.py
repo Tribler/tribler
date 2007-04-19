@@ -333,8 +333,8 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
             #dc.DrawText('rating', 8, 50)
         if self.mouseOver:
             dc.SetFont(wx.Font(6, wx.SWISS, wx.NORMAL, wx.BOLD, True))
-            dc.DrawBitmap(MASK_BITMAP,0 ,56, True)
-            dc.DrawBitmap(HEART_BITMAP,5 ,56, True)
+            dc.DrawBitmap(MASK_BITMAP,0 ,52, True)
+            dc.DrawBitmap(HEART_BITMAP,5 ,54, True)
             dc.SetTextForeground(wx.BLACK)
             #dc.DrawText('rating', 8, 50)
         if (self.selected and self.border):
