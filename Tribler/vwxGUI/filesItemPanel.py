@@ -216,7 +216,7 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
                 # so that navigation is not slowed down
                 Thread(target = self.loadMetadata, args=(torrent,)).start()
             
-            self.setBitmap(bmp)
+            self.setBitmap(bmp, torrent['infohash'])
             width, height = self.GetSize()
             d = 1
             self.border = [wx.Point(0,d), wx.Point(width-d, d), wx.Point(width-d, height-d), wx.Point(d,height-d), wx.Point(d,0)]
@@ -227,14 +227,15 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
             return {}           
         
          
-    def setBitmap(self, bmp):
+    def setBitmap(self, bmp, infohash):
         # Recalculate image placement
         w, h = self.GetSize()
         iw, ih = bmp.GetSize()
                 
         self.torrentLock.acquire()
-        self.torrentBitmap = bmp
-        self.xpos, self.ypos = (w-iw)/2, (h-ih)/2
+        if self.torrent['infohash'] == infohash:
+            self.torrentBitmap = bmp
+            self.xpos, self.ypos = (w-iw)/2, (h-ih)/2
         self.torrentLock.release()
         
         
@@ -284,7 +285,7 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
              self.torrentLock.acquire()
              torrent['metadata']['ThumbnailBitmap'] = bmp
              self.torrentLock.release()
-             self.setBitmap(bmp)
+             self.setBitmap(bmp, torrent['infohash'])
              
              
              # should this be done by the GUI thread??
