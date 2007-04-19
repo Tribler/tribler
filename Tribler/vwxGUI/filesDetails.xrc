@@ -256,7 +256,7 @@
                           <border>25</border>
                           <option>0</option>
                           <object class="wxPanel" name="refresh" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                            <pos>201,43</pos>
+                            <pos>204,43</pos>
                             <size>11,12</size>
                           </object>
                         </object>
@@ -304,17 +304,23 @@
                   </object>
                 </object>
                 <object class="sizeritem">
-                  <flag>wxTOP|wxFIXED_MINSIZE</flag>
+                  <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>4</border>
-                  <option>0</option>
+                  <option>1</option>
                   <object class="wxBoxSizer">
                     <orient>wxHORIZONTAL</orient>
+                    <object class="spacer">
+                      <size>10,10</size>
+                      <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                      <border>3</border>
+                      <option>1</option>
+                    </object>
                     <object class="sizeritem">
-                      <flag>wxLEFT|wxEXPAND|wxALIGN_RIGHT|wxFIXED_MINSIZE</flag>
+                      <flag>wxLEFT|wxALIGN_RIGHT|wxFIXED_MINSIZE</flag>
                       <border>3</border>
                       <option>0</option>
                       <object class="wxPanel" name="download" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                        <pos>231,7</pos>
+                        <pos>238,7</pos>
                         <size>55,55</size>
                       </object>
                     </object>
@@ -329,7 +335,7 @@
               <object class="wxStaticText" name="Desc">
                 <style>wxST_NO_AUTORESIZE</style>
                 <label>   Description</label>
-                <pos>0,71</pos>
+                <pos>0,87</pos>
                 <size>199,15</size>
                 <bg>#cbcbcb</bg>
               </object>

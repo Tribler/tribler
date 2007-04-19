@@ -184,17 +184,23 @@
                   </object>
                 </object>
                 <object class="sizeritem">
-                  <flag>wxTOP|wxFIXED_MINSIZE</flag>
+                  <flag>wxFIXED_MINSIZE</flag>
                   <border>4</border>
-                  <option>0</option>
+                  <option>1</option>
                   <object class="wxBoxSizer">
                     <orient>wxHORIZONTAL</orient>
+                    <object class="spacer">
+                      <size>10,10</size>
+                      <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                      <border>3</border>
+                      <option>1</option>
+                    </object>
                     <object class="sizeritem">
                       <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
                       <border>3</border>
                       <option>0</option>
                       <object class="wxPanel" name="addAsFriend" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                        <pos>191,7</pos>
+                        <pos>201,7</pos>
                         <size>55,55</size>
                       </object>
                     </object>
