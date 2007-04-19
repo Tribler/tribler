@@ -88,7 +88,7 @@ class standardPager(wx.Panel):
         self.SetSizer(self.hSizer);self.SetAutoLayout(1);self.Layout();
         self.Refresh()
         self.Show()
-        print 'pagersize: %s' % self.GetSize()
+        
         
    
     def refreshPageNumbers(self):
@@ -114,7 +114,7 @@ class standardPager(wx.Panel):
         Highlight current page number
         """
         
-        print 'Pagenumbers: Begin %d, number %d, current %d' % (begin, number, current)
+        #print 'Pagenumbers: Begin %d, number %d, current %d' % (begin, number, current)
         
         refresh = False
         # Guarantee right amount of statictexts
@@ -181,7 +181,7 @@ class standardPager(wx.Panel):
                 panel.SetFont(self.normalFont)
             page+=1
         
-        print 'hSizer size: %s' % self.hSizer.GetSize()
+        
             
         
     
@@ -196,14 +196,9 @@ class standardPager(wx.Panel):
         
         if not self.hasGrid() or not self.initReady:
             print 'StandardPager: no refresh, not ready yet or no grid'
-            try:
-                print 'grid: %s, initReady: %s' % (self.grid, self.initReady)
-            except:
-                pass
             return
         
-        print 'pager: good refresh'
-        
+                
         grid = self.grid
         try:
             self.totalItems = len(grid.data)
@@ -230,10 +225,7 @@ class standardPager(wx.Panel):
         if self.currentPage >= self.totalPages:
             self.currentPage = max(self.totalPages -1, 0)
         self.refreshPageNumbers()
-        print 'pagersize: %s' % self.GetSize()
-        print 'position: %s' % self.left.GetPosition()
-        print 'self.position: %s' % self.GetPosition()
-
+        
 #    def imageClicked(self, event):
 #        obj = event.GetEventObject()
 #        self.mouseAction(obj, event)
@@ -260,14 +252,14 @@ class standardPager(wx.Panel):
     def hasGrid(self):
         try:
             if self.grid:
-                print 'pager has grid'
+                #print 'pager has grid'
                 return True
         except:
-            print 'pager has no grid'
+            #print 'pager has no grid'
             return False
         
     def setGrid(self, grid):
-        print 'setGrid called: %s' % grid
+        #print 'setGrid called: %s' % grid
         self.grid = grid
         self.grid.setPager(self)
       

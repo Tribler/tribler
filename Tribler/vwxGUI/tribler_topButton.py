@@ -18,7 +18,8 @@ class tribler_topButton(wx.Panel):
             # the Create step is done by XRC. 
             self.PostCreate(pre) 
             self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate) 
-        else: 
+        else:
+            self.backgroundColor = wx.Colour(102,102,102) 
             wx.Panel.__init__(self, *args, **kw) 
             self._PostInit()     
         
