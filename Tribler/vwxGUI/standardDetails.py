@@ -135,6 +135,8 @@ class standardDetails(wx.Panel):
                 self.data[self.mode].get('down').setBackground(wx.WHITE)
                 self.data[self.mode].get('refresh').setBackground(wx.WHITE)
                 self.data[self.mode].get('TasteHeart').setBackground(wx.WHITE)
+            elif modeString == 'persons':
+                self.data[self.mode].get('TasteHeart').setBackground(wx.WHITE)
                 
         return currentPanel
     
