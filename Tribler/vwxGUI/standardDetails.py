@@ -353,7 +353,7 @@ class standardDetails(wx.Panel):
                 nw = int(iw * h/float(ih))
             if nw != iw or nh != ih:
                 #print 'Rescale from (%d, %d) to (%d, %d)' % (iw, ih, nw, nh)
-                img.Rescale(nw, nh)
+                img.Rescale(nw, nh, quality = wx.IMAGE_QUALITY_HIGH)
             bmp = wx.BitmapFromImage(img)
              
             thumbPanel.setBitmap(bmp)

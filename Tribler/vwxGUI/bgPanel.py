@@ -86,6 +86,7 @@ class bgPanel(wx.Panel):
             # Tile bitmap
             rec=wx.Rect()
             rec=self.GetClientRect()
+            
             for y in range(0,rec.GetHeight(),self.bitmap.GetHeight()):
                 for x in range(0,rec.GetWidth(),self.bitmap.GetWidth()):
                     dc.DrawBitmap(self.bitmap,x,y,0)
