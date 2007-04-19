@@ -239,6 +239,11 @@ class standardDetails(wx.Panel):
             else:
                 self.getGuiObj('TasteHeart').setHeartIndex(0)
             
+            if item['friend']:
+                self.getGuiObj('addAsFriend').Show(False)
+            else:
+                self.getGuiObj('addAsFriend').Show(True)
+            
         elif self.mode == 'libraryMode':
             pass
         elif self.mode == 'subscriptionMode':
