@@ -38,7 +38,6 @@ class standardOverview(wx.Panel):
         self.currentPanel = None
         self.addComponents()
         #self.Refresh()
-        self.guiUtility.report(self)
         self.guiUtility.initStandardOverview(self)
         
     def addComponents(self):

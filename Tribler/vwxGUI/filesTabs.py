@@ -38,7 +38,6 @@ class filesTabs(wx.Panel):
         self.Show()
         self.Refresh()
         self.Update()
-        self.guiUtility.report(self)
         
     def addComponents(self):
         self.Show(False)

@@ -110,8 +110,7 @@ class GUIUtility:
         torrentList = self.setCategory(filter1String, filter2String)        
         #self.categorykey = 'all'
         torrentList = self.reloadData()
-        overview = self.request('standardOverview')
-        overview.setMode('filesMode', filter1String, filter2String, torrentList)
+        self.standardOverview.setMode('filesMode', filter1String, filter2String, torrentList)
         try:
             if self.standardDetails:
                 self.standardDetails.setMode('filesMode', None)
@@ -134,8 +133,7 @@ class GUIUtility:
     
     def standardProfileOverview(self):
         profileList = self.reloadData()
-        overview = self.request('standardOverview')
-        overview.setMode('profileMode', '','', profileList)
+        self.standardOverview.setMode('profileMode', '','', profileList)
         
     def standardLibraryOverview(self, filter1String="audio", filter2String="swarmsize"):       
         print 'Library > filter1String='+filter1String 
@@ -184,17 +182,19 @@ class GUIUtility:
         "Called by standardOverview when ready with init"
         self.standardOverview = standardOverview
         self.standardFilesOverview('video', 'swarmsize')
+
+        # Preselect mainButtonFiles
         filesButton = xrc.XRCCTRL(self.frame, 'mainButtonFiles')
-        #print 'FilesButton', filesButton        
-        self.selectMainButton(filesButton)
+        filesButton.setSelected(True)
+        self.selectedMainButton = filesButton 
+        
         
     def initStandardDetails(self, standardDetails):
         "Called by standardDetails when ready with init"
         self.standardDetails = standardDetails
-        self.standardDetails.setMode('filesMode', None)
-        self.standardDetails.refreshStatusPanel(True)
         firstItem = self.standardOverview.getFirstItem()
-        self.standardDetails.setData(firstItem)
+        self.standardDetails.setMode('filesMode', firstItem)
+        self.standardDetails.refreshStatusPanel(True)    
         
     def deleteTorrent(self, torrent):
         pass

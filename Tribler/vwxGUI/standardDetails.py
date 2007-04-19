@@ -46,7 +46,6 @@ class standardDetails(wx.Panel):
                              'personsMode': ['TasteHeart', 'recommendationField']
                              }
 
-        self.guiUtility.report(self)
         self.guiUtility.initStandardDetails(self)
 
         
@@ -57,11 +56,12 @@ class standardDetails(wx.Panel):
         self.SetAutoLayout(1)
         self.Layout()
         
-    def setMode(self, mode, data):
+    def setMode(self, mode, item = None):
         if self.mode != mode:
             self.mode = mode
-            self.data[self.mode]['data'] = data
             self.refreshMode()
+        if item:
+            self.setData(item)
             
     def refreshMode(self):
         # load xrc

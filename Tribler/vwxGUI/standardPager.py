@@ -83,9 +83,7 @@ class standardPager(wx.Panel):
         self.right.setBackground(self.triblerRed)
         self.hSizer.AddSpacer(wx.Size(5))
         self.hSizer.Add(self.right, 0, wx.TOP, 5)
-        
        
-        
         #self.hSizer.SetMinSize((50,50))
         self.SetSizer(self.hSizer);self.SetAutoLayout(1);self.Layout();
         self.Refresh()
@@ -192,7 +190,11 @@ class standardPager(wx.Panel):
         "Called by Grid if size or data changes"
         
         if not self.hasGrid() or not self.initReady:
-            print 'StandardPager: no refresh, not ready yet'
+            print 'StandardPager: no refresh, not ready yet or no grid'
+            try:
+                print 'grid: %s' % self.grid
+            except:
+                pass
             return
         
         grid = self.grid
@@ -248,8 +250,10 @@ class standardPager(wx.Panel):
     def hasGrid(self):
         try:
             if self.grid:
+                print 'pager has grid'
                 return True
         except:
+            print 'pager has no grid'
             return False
         
     def setGrid(self, grid):

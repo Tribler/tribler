@@ -60,7 +60,6 @@ class standardGrid(wx.Panel):
         self.Layout()
         self.Refresh()
 
-        self.guiUtility.report(self)
         self.initReady = True
         if self.data:
             self.setData(self.data)
@@ -137,7 +136,7 @@ class standardGrid(wx.Panel):
             return False
         
     def setPager(self, pager):
-        #print 'setPager called: %s' % pager
+        print 'setPager called: %s' % pager
         self.standardPager = pager
        
     def getSubPanel(self):
@@ -261,7 +260,7 @@ class standardGrid(wx.Panel):
     def hasDetailPanel(self):
         if self.detailPanel:
             return True
-        self.detailPanel = self.guiUtility.request('standardDetails')
+        self.detailPanel = self.guiUtility.standardDetails
         return self.detailPanel != None
     
 

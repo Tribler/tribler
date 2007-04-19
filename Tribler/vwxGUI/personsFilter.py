@@ -42,7 +42,6 @@ class personsFilter(wx.Panel):
         self.currentData = 0
         self.addComponents()
         self.Show()
-        self.guiUtility.report(self)
         self.initReady = True
             
         self.Refresh(True)
