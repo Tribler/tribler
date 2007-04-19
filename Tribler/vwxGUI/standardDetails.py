@@ -46,7 +46,7 @@ class standardDetails(wx.Panel):
         self.modeElements = {'filesMode': ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
                                             'download', 'files_detailsTab', 'TasteHeart'],
-                             'personsMode': ['TasteHeart', 'recommendationField']
+                             'personsMode': ['TasteHeart', 'recommendationField','addAsFriend']
                              }
 
         self.guiUtility.initStandardDetails(self)
@@ -217,7 +217,6 @@ class standardDetails(wx.Panel):
             self.setTorrentThumb(torrent, torrentData.get('thumbField'))        
             
         elif self.mode in ['personsMode', 'friendsMode']:
-            print "<mluc> details for person"
             #recomm = random.randint(0,4)
             rank = self.guiUtility.peer_manager.getRank(item['permid'])
             #because of the fact that hearts are coded so that lower index means higher ranking, then:

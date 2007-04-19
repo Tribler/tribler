@@ -9,6 +9,7 @@ from Tribler.unicode import *
 from copy import deepcopy
 import cStringIO
 from threading import Lock
+import TasteHeart
 
 DEBUG=True
 
@@ -131,6 +132,10 @@ class PersonsItemPanel(wx.Panel):
         self.SetFocus()
         if self.data:
             self.guiUtility.selectPeer(self.data)
+            
+    def getIdentifier(self):
+        if self.data:
+            return self.data['permid']
                 
                 
 DEFAULT_THUMB = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'defaultThumbPeer.png'))
@@ -175,6 +180,8 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnErase)
         self.selected = False
         self.border = None
+        #create the heart
+        #I will use TasteHeart.BITMAPS to paint the right one
         
         
     
@@ -204,54 +211,55 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
 #        self.Refresh()
 #===============================================================================
                                         
-    
-    def getThumbnail(self, data):
-        """should find an inteligent way to get user's picture..."""
-        return None
-        # Get the file(s)data for this torrent
-        try:
-            torrent_dir = torrent['torrent_dir']
-            torrent_file = torrent['torrent_name']
-            
-            if not os.path.exists(torrent_dir):
-                torrent_dir = os.path.join(self.utility.getConfigPath(), "torrent2")
-            
-            torrent_filename = os.path.join(torrent_dir, torrent_file)
-            
-            if not os.path.exists(torrent_filename):
-                if DEBUG:    
-                    print >>sys.stderr,"contentpanel: Torrent: %s does not exist" % torrent_filename
-                return None
-            
-            metadata = self.utility.getMetainfo(torrent_filename)
-            if not metadata:
-                return None
-            
-            thumbnailString = metadata.get('azureus_properties', {}).get('Content',{}).get('Thumbnail')
-            #print 'Azureus_thumb: %s' % thumbnailString
-            
-            if thumbnailString:
-                #print 'Found thumbnail: %s' % thumbnailString
-                stream = cStringIO.StringIO(thumbnailString)
-                img =  wx.ImageFromStream( stream )
-                iw, ih = img.GetSize()
-                w, h = self.GetSize()
-                if (iw/float(ih)) > (w/float(h)):
-                    nw = w
-                    nh = int(ih * w/float(iw))
-                else:
-                    nh = h
-                    nw = int(iw * h/float(ih))
-                if nw != iw or nh != ih:
-                    print 'Rescale from (%d, %d) to (%d, %d)' % (iw, ih, nw, nh)
-                    img.Rescale(nw, nh)
-                bmp = wx.BitmapFromImage(img)
-                # Rescale the image so that its
-                return bmp
-        except:
-            print_exc(file=sys.stderr)
-            return {}           
-        
+#===============================================================================
+#    
+#    def getThumbnail(self, data):
+#        """should find an inteligent way to get user's picture..."""
+#        return None
+#        # Get the file(s)data for this torrent
+#        try:
+#            torrent_dir = torrent['torrent_dir']
+#            torrent_file = torrent['torrent_name']
+#            
+#            if not os.path.exists(torrent_dir):
+#                torrent_dir = os.path.join(self.utility.getConfigPath(), "torrent2")
+#            
+#            torrent_filename = os.path.join(torrent_dir, torrent_file)
+#            
+#            if not os.path.exists(torrent_filename):
+#                if DEBUG:    
+#                    print >>sys.stderr,"contentpanel: Torrent: %s does not exist" % torrent_filename
+#                return None
+#            
+#            metadata = self.utility.getMetainfo(torrent_filename)
+#            if not metadata:
+#                return None
+#            
+#            thumbnailString = metadata.get('azureus_properties', {}).get('Content',{}).get('Thumbnail')
+#            #print 'Azureus_thumb: %s' % thumbnailString
+#            
+#            if thumbnailString:
+#                #print 'Found thumbnail: %s' % thumbnailString
+#                stream = cStringIO.StringIO(thumbnailString)
+#                img =  wx.ImageFromStream( stream )
+#                iw, ih = img.GetSize()
+#                w, h = self.GetSize()
+#                if (iw/float(ih)) > (w/float(h)):
+#                    nw = w
+#                    nh = int(ih * w/float(iw))
+#                else:
+#                    nh = h
+#                    nw = int(iw * h/float(ih))
+#                if nw != iw or nh != ih:
+#                    print 'Rescale from (%d, %d) to (%d, %d)' % (iw, ih, nw, nh)
+#                    img.Rescale(nw, nh)
+#                bmp = wx.BitmapFromImage(img)
+#                # Rescale the image so that its
+#                return bmp
+#        except:
+#            print_exc(file=sys.stderr)
+#            return {}           
+#===============================================================================
                        
     def setThumbnail(self, data):
         # Get the file(s)data for this torrent
@@ -330,16 +338,33 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
         
         if self.dataBitmap:
             dc.DrawBitmap(self.dataBitmap, self.xpos,self.ypos, True)
-        if self.mouseOver:
-            dc.SetFont(wx.Font(6, wx.SWISS, wx.NORMAL, wx.BOLD, True))
-            dc.DrawBitmap(MASK_BITMAP,0 ,62, True)
-            dc.DrawBitmap(HEART_BITMAP,5 ,64, True)            
+#        if self.mouseOver:
+        dc.SetFont(wx.Font(6, wx.SWISS, wx.NORMAL, wx.BOLD, True))
+        dc.DrawBitmap(MASK_BITMAP,0 ,62, True)
+        rank = self.guiUtility.peer_manager.getRank(self.data['permid'])
+        #because of the fact that hearts are coded so that lower index means higher ranking, then:
+        if rank > 0 and rank <= 5:
+            recomm = 0
+        elif rank > 5 and rank <= 10:
+            recomm = 1
+        elif rank > 10 and rank <= 15:
+            recomm = 2
+        elif rank > 15 and rank <= 20:
+            recomm = 3
+        else:
+            recomm = 4
+#        if rank != -1:
+#            self.getGuiObj('recommendationField').SetLabel("%d" % rank)
+#        else:
+#            self.getGuiObj('recommendationField').SetLabel("")
+        dc.DrawBitmap(TasteHeart.BITMAPS[recomm],5 ,64, True)
+        if self.data['friend']:
             dc.DrawBitmap(FRIEND_BITMAP,60 ,65, True)            
-            
-            dc.SetTextForeground(wx.WHITE)
-            #dc.DrawText('rating', 5, 60)
-            dc.SetTextForeground(wx.BLACK)
-            #dc.DrawText('rating', 8, 50)
+        
+        dc.SetTextForeground(wx.WHITE)
+        #dc.DrawText('rating', 5, 60)
+        dc.SetTextForeground(wx.BLACK)
+        #dc.DrawText('rating', 8, 50)
         if (self.selected and self.border):
             dc.SetPen(wx.Pen(wx.Colour(255,51,0), 2))
             dc.DrawLines(self.border)
