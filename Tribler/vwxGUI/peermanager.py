@@ -5,6 +5,7 @@ from Tribler.unicode import *
 import time
 from safeguiupdate import *
 import threading
+from traceback import print_exc
 
 DEBUG = True
 def debug(message):
@@ -35,7 +36,14 @@ class PeerDataManager(DelayedEventHandler):
     it adds, deletes and updates data as soon as it is changed in database
     using the notifications system, and then informs the GUI of the changes
     that only has to use the data given by the manager; no new interrogation is needed"""
-    def __init__(self, updateFunc=None):
+    # Code to make this a singleton
+    __single = None
+   
+    def __init__(self):
+        if PeerDataManager.__single:
+            raise RuntimeError, "PeerDataManager is singleton"
+        PeerDataManager.__single = self
+        self.done_init = False
         DelayedEventHandler.__init__(self)
         self.doneflag = threading.Event()
         # for that, create a separate ordered list with only the first 20 most similar peers
@@ -46,7 +54,8 @@ class PeerDataManager(DelayedEventHandler):
         self.MIN_CALLBACK_INT = 1 #min callback interval: minimum time in seconds between two invocations on the gui from the callback
         self.start_callback_int = -1 #init the time variable for the callback function
         self.callback_dict = {} #empty list for events
-        self.guiCallbackFunc = updateFunc #callback function from the parent, the creator object
+        self.dict_guiCallbackFuncList = {}#callback function list from the parent, the creator object
+#        self.guiCallbackFunc = updateFunc 
         self.peersdb = SynPeerDBHandler(updateFun = self.callbackPeerChange)#CacheDBHandler.PeerDBHandler()
 #        self.prefdb = CacheDBHandler.PreferenceDBHandler()
 #        self.mydb = CacheDBHandler.MyPreferenceDBHandler()
@@ -56,7 +65,14 @@ class PeerDataManager(DelayedEventHandler):
         self.MAX_MAX_PEERS_NUMBER = 2100
 
         self.data = self.prepareData()
-
+        self.done_init = True
+        
+    def getInstance(*args, **kw):
+        if PeerDataManager.__single is None:
+            PeerDataManager(*args, **kw)       
+        return PeerDataManager.__single
+    getInstance = staticmethod(getInstance)
+    
         
     def prepareData(self):
         """prepares the data first time this manager is initialized
@@ -162,8 +178,9 @@ class PeerDataManager(DelayedEventHandler):
                 
             #inform the GuiUtility of operation
             try:
-                if self.guiCallbackFunc!=None:
-                    self.guiCallbackFunc(peer_data, mode)
+                self.notifyGui(peer_data, mode)
+#                if self.guiCallbackFunc!=None:
+#                    self.guiCallbackFunc(peer_data, mode)
             except:
                 print "error calling GUI callback function for data change"
 #            debug( "new operation to be done for %s in GuiUtility!" % peer_data['content_name'])
@@ -177,6 +194,11 @@ class PeerDataManager(DelayedEventHandler):
 #            else:
 #                 self.deleteData(permid)
 #===============================================================================
+    def notifyGui(self, peer_data, mode):
+        """notifies all registered gui objects of the callback after the data is updated in database"""
+        key = 'all' #the only type of key acceptable
+        for func in self.dict_guiCallbackFuncList[key]:
+            func(peer_data, mode)
 
     def preparePeer(self, peer_data):
         """when a peer is updated, prepare it for use inside the view
@@ -285,3 +307,28 @@ class PeerDataManager(DelayedEventHandler):
             pass
 #            print "error on getting rank"
         return -1
+    
+    # register update function
+    def register(self, func, key):
+        try:
+            key = key.lower()
+            self.dict_guiCallbackFuncList[key].index(func)
+            # if no exception, fun already exist!
+            print "DBObserver register error. " + str(func.__name__) + " already exist!"
+            return
+        except KeyError:
+            self.dict_guiCallbackFuncList[key] = []
+            self.dict_guiCallbackFuncList[key].append(func)
+        except ValueError:
+            self.dict_guiCallbackFuncList[key].append(func)
+        except Exception, msg:
+            print "PeerDataManager unregister error.", Exception, msg
+            print_exc()
+        
+    def unregister(self, func, key):
+        try:
+            key = key.lower()
+            self.dict_guiCallbackFuncList[key].remove(func)
+        except Exception, msg:
+            print "PeerDataManager unregister error.", Exception, msg
+            print_exc()
