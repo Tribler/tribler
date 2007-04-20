@@ -90,8 +90,8 @@ class LibraryItemPanel(wx.Panel):
         self.hSizer.Add(self.pbMessage, 0, wx.LEFT|wx.EXPAND, 2)         
                 
         # V Line                
-        self.vLine = wx.StaticLine(self,-1,wx.Point(362,37),wx.Size(2,32),wx.LI_VERTICAL)
-        self.hSizer.Add(self.vLine, 0, wx.LEFT|wx.TOP, 6)
+#        self.vLine = wx.StaticLine(self,-1,wx.Point(362,37),wx.Size(2,32),wx.LI_VERTICAL)
+#        self.hSizer.Add(self.vLine, 0, wx.LEFT|wx.TOP, 6)
 
         # Add checkBox -Private & -Archive
         self.cbPrivate = wx.CheckBox(self,-1,"",wx.Point(258,3),wx.Size(13,13))
@@ -114,8 +114,8 @@ class LibraryItemPanel(wx.Panel):
         self.hSizer.Add(self.cbSizer, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)                
         
         # V Line                        
-        self.vLine2 = wx.StaticLine(self,-1,wx.Point(362,37),wx.Size(2,32),wx.LI_VERTICAL)
-        self.hSizer.Add(self.vLine2, 0, wx.LEFT|wx.TOP, 6)
+#        self.vLine2 = wx.StaticLine(self,-1,wx.Point(362,37),wx.Size(2,32),wx.LI_VERTICAL)
+#        self.hSizer.Add(self.vLine2, 0, wx.LEFT|wx.TOP, 6)
 
         # Play Fast
         self.playFast = bgPanel(self, name="playFast")
