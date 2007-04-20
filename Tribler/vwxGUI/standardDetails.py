@@ -232,7 +232,7 @@ class standardDetails(wx.Panel):
             else:
                 recomm = 4
             if rank != -1:
-                self.getGuiObj('recommendationField').SetLabel("%d" % rank)
+                self.getGuiObj('recommendationField').SetLabel("%d" % rank + " of 20")
             else:
                 self.getGuiObj('recommendationField').SetLabel("")
             if recomm != -1:

@@ -7,6 +7,7 @@ from btn_DetailsHeader import *
 from TasteHeart import *
 from tribler_topButton import *
 from TextButton import *
+from tribler_List import *
 #[inc]add your include files here
 
 #[inc]end your include
@@ -47,7 +48,7 @@ class personsDetails(wx.Panel):
         self.detailsC = wx.Panel(self,-1,wx.Point(0,145),wx.Size(298,238))
         self.detailsC.SetBackgroundColour(wx.Colour(255,255,255))
         self.st209cCCC = wx.StaticText(self.detailsC,-1,"",wx.Point(8,7),wx.Size(79,16),wx.ST_NO_AUTORESIZE)
-        self.st209cCCC.SetLabel("fit to taste:")
+        self.st209cCCC.SetLabel("similar taste:")
         self.recommendationField = wx.StaticText(self.detailsC,-1,"",wx.Point(107,7),wx.Size(71,21),wx.ST_NO_AUTORESIZE)
         self.recommendationField.SetLabel("unknown")
         self.Desc = wx.StaticText(self.detailsC,-1,"",wx.Point(0,85),wx.Size(241,15),wx.ST_NO_AUTORESIZE)
@@ -69,7 +70,10 @@ class personsDetails(wx.Panel):
         self.advanced_detailsTab = TextButton(self.tabs,-1,wxDefaultPosition,wxDefaultSize)
         self.advanced_detailsTab.SetDimensions(95,0,75,18)
         self.thumbfield = wx.StaticBitmap(self.pn240c,-1,wx.NullBitmap,wx.Point(10,3),wx.Size(100,100))
-        self.commonFilesField = wx.ListCtrl(self.detailsC,-1,wx.Point(6,85),wx.Size(20,20))
+        self.commonFilesField = tribler_List(self.detailsC,-1,wxDefaultPosition,wxDefaultSize)
+        self.commonFilesField.SetDimensions(6,85,284,65)
+        self.alsoDownloadedField = tribler_List(self.detailsC,-1,wxDefaultPosition,wxDefaultSize)
+        self.alsoDownloadedField.SetDimensions(6,201,284,65)
         self.sz3s = wx.BoxSizer(wx.VERTICAL)
         self.headerC = wx.BoxSizer(wx.HORIZONTAL)
         self.sz226s = wx.BoxSizer(wx.HORIZONTAL)
@@ -96,11 +100,12 @@ class personsDetails(wx.Panel):
         self.vert_sz184s.Add(self.Desc,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.vert_sz184s.Add(self.commonFilesField,0,wx.TOP|wx.LEFT|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,6)
         self.vert_sz184s.Add(self.Peop,0,wx.EXPAND|wx.FIXED_MINSIZE,10)
+        self.vert_sz184s.Add(self.alsoDownloadedField,0,wx.TOP|wx.LEFT|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,6)
         self.sz237s.Add(self.vert_sz238s,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,4)
         self.sz237s.Add(self.downloadSizer,1,wx.FIXED_MINSIZE,4)
         self.vert_sz238s.Add(self.recommendationSizer,0,wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,5)
         self.recommendationSizer.Add(self.st209cCCC,0,wx.EXPAND|wx.FIXED_MINSIZE,3)
-        self.recommendationSizer.Add(self.TasteHeart,0,wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.FIXED_MINSIZE,3)
+        self.recommendationSizer.Add(self.TasteHeart,0,wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.FIXED_MINSIZE,3)
         self.recommendationSizer.Add(self.recommendationField,0,wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,10)
         self.downloadSizer.Add([47,55],1,wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.downloadSizer.Add(self.addAsFriend,0,wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,3)

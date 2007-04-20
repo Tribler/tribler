@@ -293,6 +293,9 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
                 dc.DrawBitmap(MASK_BITMAP,0 ,62, True)
             if recomm >=0:
                 dc.DrawBitmap(TasteHeart.BITMAPS[recomm],5 ,64, True)
+                dc.SetFont(wx.Font(7, wx.SWISS, wx.NORMAL, wx.BOLD, False))
+                text = repr(rank)                
+                dc.DrawText(text, 22, 66)
             if self.data.get('friend'):
                 dc.DrawBitmap(FRIEND_BITMAP,60 ,65, True)            
         

@@ -160,7 +160,7 @@
                           </object>
                         </object>
                         <object class="sizeritem">
-                          <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
+                          <flag>wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
                           <border>3</border>
                           <option>0</option>
                           <object class="wxPanel" name="TasteHeart" subclass="Tribler.vwxGUI.TasteHeart.TasteHeart">
