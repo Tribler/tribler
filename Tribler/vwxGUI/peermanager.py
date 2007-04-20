@@ -57,7 +57,7 @@ class PeerDataManager(DelayedEventHandler):
         self.dict_guiCallbackFuncList = {}#callback function list from the parent, the creator object
 #        self.guiCallbackFunc = updateFunc 
         self.peersdb = SynPeerDBHandler(updateFun = self.callbackPeerChange)#CacheDBHandler.PeerDBHandler()
-#        self.prefdb = CacheDBHandler.PreferenceDBHandler()
+        self.prefdb = CacheDBHandler.PreferenceDBHandler()
 #        self.mydb = CacheDBHandler.MyPreferenceDBHandler()
 #        self.tordb = CacheDBHandler.TorrentDBHandler()
         self.frienddb = CacheDBHandler.FriendDBHandler()
@@ -373,3 +373,7 @@ class PeerDataManager(DelayedEventHandler):
         except Exception, msg:
             print "PeerDataManager unregister error.", Exception, msg
             print_exc()
+            
+    def getPeerHistFiles(self, permid):
+        """returns a list of hashes for the files this peer has in it's download history"""
+        return self.prefdb.getPrefList(permid)

@@ -47,7 +47,7 @@ class standardDetails(wx.Panel):
         self.modeElements = {'filesMode': ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
                                             'download', 'files_detailsTab', 'TasteHeart'],
-                             'personsMode': ['TasteHeart', 'recommendationField','addAsFriend']
+                             'personsMode': ['TasteHeart', 'recommendationField','addAsFriend', 'commonFilesField', 'alsoDownloadedField']
                              }
 
         self.guiUtility.initStandardDetails(self)
@@ -249,16 +249,13 @@ class standardDetails(wx.Panel):
             else:
                 self.getGuiObj('addAsFriend').switchBack()
                 self.getGuiObj('addAsFriend').Enable(True)
+                
+            self.fillTorrentLists()
             
         elif self.mode == 'libraryMode':
             pass
         elif self.mode == 'subscriptionMode':
             pass
-        
-    def getGuiObj(self, obj_name):
-        """handy function to retrive an object based on it's name for the current mode"""
-        return self.data[self.mode].get(obj_name)
-        
 #        creationdateField = self.data[self.mode].get('creationdate')
 #        creationdateField.SetLabel(item.get('creation date'))
 #        creationdateField.Wrap(-1) 
@@ -269,6 +266,71 @@ class standardDetails(wx.Panel):
         
         self.currentPanel.Refresh()
         
+    def getGuiObj(self, obj_name):
+        """handy function to retrive an object based on it's name for the current mode"""
+        return self.data[self.mode].get(obj_name)
+        
+    def fillTorrentLists(self):
+        ofList = self.getGuiObj("alsoDownloadedField")
+        cfList = self.getGuiObj("commonFilesField")
+        try:
+            if self.mode != "personsMode" or self.item==None or self.item['permid']==None:
+                return
+            permid = self.item['permid']
+            hash_list = self.guiUtility.peer_manager.getPeerHistFiles(permid)
+            torrents_info = self.guiUtility.data_manager.getTorrents(hash_list)
+#            # get my download history
+#            hist_torr = self.parent.mydb.getPrefList()
+#            #print hist_torr
+#            files = self.parent.prefdb.getPrefList(self.data['permid'])
+#            #live_files = self.torrent_db.getLiveTorrents(files)
+#            #get informations about each torrent file based on it's hash
+#            torrents_info = self.parent.tordb.getTorrents(files)
+#            for torrent in torrents_info[:]:
+#                if (not 'info' in torrent) or (len(torrent['info']) == 0) or (not 'name' in torrent['info']):
+#                    torrents_info.remove(torrent)
+#            #sort torrents based on status: { downloading (green), seeding (yellow),} good (blue), unknown(black), dead (red); 
+#            torrents_info.sort(self.status_sort)
+#            torrents_info = filter( lambda torrent: not torrent['status'] == 'dead', torrents_info)
+            #tempdata[i]['torrents_list'] = torrents_info
+            ofList.DeleteAllItems()
+            cfList.DeleteAllItems()
+            for f in torrents_info:
+                #print f
+                the_list = None
+                if f.get('myDownloadHistory', False):
+                    the_list = cfList
+                else:
+                    the_list = ofList
+                index = the_list.InsertStringItem(sys.maxint, f['info']['name'])
+                color = "black"
+                if f['status'] == 'good':
+                    color = "blue"
+                elif f['status'] == 'unknown':
+                    color = "black"
+                elif f['status'] == 'dead':
+                    color = "red"
+                the_list.SetItemTextColour(index, color)
+                #self.ofList.SetStringItem(index, 1, f[1])
+            if cfList.GetItemCount() == 0:
+                index = cfList.InsertStringItem(sys.maxint, "No common files with this person.")
+                font = cfList.GetItemFont(index)
+                font.SetStyle(wx.FONTSTYLE_ITALIC)
+                cfList.SetItemFont(index, font)
+                cfList.SetItemTextColour(index, "#f0c930")
+            if ofList.GetItemCount() == 0:
+                index = ofList.InsertStringItem(sys.maxint, "No files advertised by this person.")
+                font = ofList.GetItemFont(index)
+                font.SetStyle(wx.FONTSTYLE_ITALIC)
+                ofList.SetItemFont(index, font)
+                ofList.SetItemTextColour(index, "#f0c930")
+#            self.onListResize(None) 
+        except Exception, e:
+            print_exc(e)
+            ofList.DeleteAllItems()
+            cfList.DeleteAllItems()
+            index = ofList.InsertStringItem(sys.maxint, "Error getting files list")
+            ofList.SetItemTextColour(index, "dark red")
         
     def tabClicked(self, name):
         print 'Tabclicked: %s' % name

@@ -305,6 +305,15 @@ class TorrentDataManager:
                 rlist.append(idata)
         return filter(noDownloadHistory, rlist)
 
+    def getTorrents(self, hash_list):
+        """builds a list with torrents that have the infohash in the list provided as an input parameter"""
+        torrents_list = []
+        for torrent_data in self.data:
+            if torrent_data['infohash'] in hash_list:
+                torrents_list.append(torrent_data)
+        return torrents_list
+            
+
     def deleteTorrent(self, infohash, delete_file=False):
         self.torrent_db.deleteTorrent(infohash, delete_file=False, updateFlag=True)
 
