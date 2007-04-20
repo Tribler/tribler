@@ -47,23 +47,23 @@ class LibraryItemPanel(wx.Panel):
         self.thumbnail = bgPanel(self, name="defaultThumb")
         self.thumbnail.setBackground(wx.BLACK)
         self.thumbnail.SetSize((66,37))
-        self.hSizer.Add(self.thumbnail, 0, wx.ALL|wx.EXPAND, 0)        
+        self.hSizer.Add(self.thumbnail, 0, wx.ALL, 0)        
         # Add title
-        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(225,15))        
+        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(160,15))        
         self.title.SetBackgroundColour(wx.WHITE)
-        self.title.SetFont(wx.Font(10,74,90,wx.NORMAL,0,"Verdana"))
-        self.title.SetMinSize((225,40))
+        self.title.SetFont(wx.Font(8,74,90,wx.NORMAL,0,"Verdana"))
+        self.title.SetMinSize((160,40))
         self.hSizer.Add(self.title, 0, wx.ALL|wx.EXPAND, 3)             
         # Add checkBox -Private & -Archive
         self.cbPrivate = wx.CheckBox(self,-1,"",wx.Point(258,3),wx.Size(13,13))
-        self.cbPrivateLabel = wx.StaticText(self,-1,"",wx.Point(274,3),wx.Size(77,15),wx.ST_NO_AUTORESIZE)
+        self.cbPrivateLabel = wx.StaticText(self,-1,"",wx.Point(274,3),wx.Size(35,15),wx.ST_NO_AUTORESIZE)
         self.cbPrivateLabel.SetLabel("archive")
         self.cbPrivateSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.cbPrivateSizer.Add(self.cbPrivate, 0, wx.LEFT|wx.EXPAND, 3)     
         self.cbPrivateSizer.Add(self.cbPrivateLabel, 0, wx.LEFT|wx.EXPAND, 3)     
 
         self.cbArchive = wx.CheckBox(self,-1,"",wx.Point(258,18),wx.Size(13,13))
-        self.cbArchiveLabel = wx.StaticText(self,-1,"",wx.Point(274,3),wx.Size(77,15),wx.ST_NO_AUTORESIZE)
+        self.cbArchiveLabel = wx.StaticText(self,-1,"",wx.Point(274,3),wx.Size(35,15),wx.ST_NO_AUTORESIZE)
         self.cbArchiveLabel.SetLabel("private")
         self.cbArchiveSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.cbArchiveSizer.Add(self.cbArchive, 0, wx.LEFT|wx.EXPAND, 3)     
@@ -72,52 +72,66 @@ class LibraryItemPanel(wx.Panel):
         self.cbSizer = wx.BoxSizer(wx.VERTICAL)
         self.cbSizer.Add(self.cbPrivateSizer,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.cbSizer.Add(self.cbArchiveSizer,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,3)
-        self.hSizer.Add(self.cbSizer, 0, wx.ALL|wx.EXPAND, 3)     
+        self.hSizer.Add(self.cbSizer, 0, wx.ALL|wx.EXPAND, 3)
+        # V Line                
+        self.vLine3 = wx.StaticLine(self,-1,wx.Point(362,37),wx.Size(2,32),wx.LI_VERTICAL)
+        self.hSizer.Add(self.vLine3, 0, wx.LEFT|wx.RIGHT|wx.TOP, 6)     
         # Add Gauge/progressbar
-        self.pb = wx.Gauge(self,-1,100,wx.Point(359,0),wx.Size(100,15),wx.GA_HORIZONTAL)
-        self.pause = tribler_topButton(self, -1, wx.Point(542,3), wx.Size(17,17),name='pause' )
-        self.delete = tribler_topButton(self, -1, wx.Point(542,3), wx.Size(17,17),name='delete')        
-        
-        self.pauseStopSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.pauseStopSizer.Add(self.pb,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,6)
-        self.pauseStopSizer.Add(self.pause,0,wx.TOP|wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,6)
-        self.pauseStopSizer.Add(self.delete,0,wx.TOP|wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,6)
-       
-        self.pbLabel = wx.StaticText(self,-1,"12%   |   10min30",wx.Point(274,3),wx.Size(140,15),wx.ST_NO_AUTORESIZE)                        
-                    #|wx.ALIGN_CENTRE 
+        self.pb = wx.Gauge(self,-1,50,wx.Point(359,0),wx.Size(80,18),wx.GA_HORIZONTAL)
+        self.pbLabel = wx.StaticText(self,-1,"12% | 10min30",wx.Point(274,3),wx.Size(80,15),wx.ST_NO_AUTORESIZE)                        
         self.pbSizer = wx.BoxSizer(wx.VERTICAL)
-        self.pbSizer.Add(self.pauseStopSizer,0,wx.EXPAND|wx.FIXED_MINSIZE)
-        
+        self.pbSizer.Add(self.pb,0,wx.EXPAND|wx.FIXED_MINSIZE)        
         self.pbSizer.Add(self.pbLabel,0,wx.TOP|wx.FIXED_MINSIZE,3)        
         self.hSizer.Add(self.pbSizer, 0, wx.ALL|wx.EXPAND, 3)         
         
+        self.pause = tribler_topButton(self, -1, wx.Point(542,3), wx.Size(17,17),name='pause' )
+        self.delete = tribler_topButton(self, -1, wx.Point(542,3), wx.Size(17,17),name='delete')        
+        self.pauseStopSizer = wx.BoxSizer(wx.VERTICAL)
+        self.pauseStopSizer.Add(self.pause,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,2)
+        self.pauseStopSizer.Add(self.delete,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,2)
+        self.hSizer.Add(self.pauseStopSizer, 0, wx.LEFT|wx.EXPAND, 2)         
+        
+        # V Line                
+        self.vLine = wx.StaticLine(self,-1,wx.Point(362,37),wx.Size(2,32),wx.LI_VERTICAL)
+        self.hSizer.Add(self.vLine, 0, wx.LEFT|wx.TOP, 6)
+        
         # Up/Down text speed
-        self.speedUp   = wx.StaticText(self,-1,"up:",wx.Point(274,3),wx.Size(35,15),wx.ST_NO_AUTORESIZE)                        
-        self.speedDown = wx.StaticText(self,-1,"down:",wx.Point(274,3),wx.Size(35,15),wx.ST_NO_AUTORESIZE)                                
+        self.speedUp = bgPanel(self, name="up")
+        self.speedUp.setBackground(wx.WHITE)
+        self.speedUp.SetSize((11,14))
+        self.speedDown = bgPanel(self, name="down")
+        self.speedDown.setBackground(wx.WHITE)
+        self.speedDown.SetSize((11,14))
+        #self.speedUp   = wx.StaticText(self,-1,"up:",wx.Point(274,3),wx.Size(35,15),wx.ST_NO_AUTORESIZE)                        
+        #self.speedDown = wx.StaticText(self,-1,"down:",wx.Point(274,3),wx.Size(35,15),wx.ST_NO_AUTORESIZE)                                
         
         self.speedSizer = wx.BoxSizer(wx.VERTICAL)
-        self.speedSizer.Add(self.speedUp,0,wx.TOP|wx.LEFT|wx.FIXED_MINSIZE,6)        
-        self.speedSizer.Add(self.speedDown, 0, wx.LEFT|wx.FIXED_MINSIZE, 6)                
+        self.speedSizer.Add(self.speedUp,0,wx.TOP|wx.LEFT|wx.FIXED_MINSIZE,4)        
+        self.speedSizer.Add(self.speedDown, 0, wx.LEFT|wx.TOP|wx.FIXED_MINSIZE, 4)               
         self.hSizer.Add(self.speedSizer, 0, wx.ALL|wx.EXPAND, 3)         
         
         # Up/Down data
-        self.speedUp2   = wx.StaticText(self,-1,"10 KB/s",wx.Point(274,3),wx.Size(40,15),wx.ST_NO_AUTORESIZE)                        
-        self.speedDown2 = wx.StaticText(self,-1,"12 KB/s",wx.Point(274,3),wx.Size(40,15),wx.ST_NO_AUTORESIZE)                                
+        self.speedUp2   = wx.StaticText(self,-1,"10 KB/s",wx.Point(274,3),wx.Size(37,15),wx.ST_NO_AUTORESIZE)                        
+        self.speedDown2 = wx.StaticText(self,-1,"12 KB/s",wx.Point(274,3),wx.Size(37,15),wx.ST_NO_AUTORESIZE)                                
         
         self.speedSizer2 = wx.BoxSizer(wx.VERTICAL)
-        self.speedSizer2.Add(self.speedUp2,0,wx.TOP|wx.FIXED_MINSIZE,6)        
+        self.speedSizer2.Add(self.speedUp2,0,wx.TOP|wx.FIXED_MINSIZE,4)        
         self.speedSizer2.Add(self.speedDown2, 0, wx.TOP|wx.FIXED_MINSIZE, 1)                
         self.hSizer.Add(self.speedSizer2, 0, wx.ALL|wx.EXPAND, 3)                 
+        
+        # V Line                        
+        self.vLine2 = wx.StaticLine(self,-1,wx.Point(362,37),wx.Size(2,32),wx.LI_VERTICAL)
+        self.hSizer.Add(self.vLine2, 0, wx.LEFT|wx.TOP, 6)
 
         # Add message        
-        self.messageLabel = wx.StaticText(self,-1,"message",wx.Point(274,3),wx.Size(130,15),wx.ST_NO_AUTORESIZE|wx.ALIGN_CENTRE)        
-        self.hSizer.Add(self.messageLabel, 0, wx.ALL|wx.EXPAND, 8) 
+        self.messageLabel = wx.StaticText(self,-1,"message",wx.Point(274,3),wx.Size(70,15),wx.ST_NO_AUTORESIZE)        
+        self.hSizer.Add(self.messageLabel, 0, wx.ALL|wx.EXPAND, 4) 
         
         # Play Fast
         self.playFast = bgPanel(self, name="playFast")
         self.playFast.setBackground(wx.BLACK)
         self.playFast.SetSize((84,37))
-        self.hSizer.Add(self.playFast, 0, wx.ALL|wx.EXPAND, 0) 
+        self.hSizer.Add(self.playFast, 0, wx.TOP, 2) 
         
         # Add Refresh        
         self.SetSizer(self.hSizer);
