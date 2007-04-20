@@ -154,7 +154,7 @@
                           <option>0</option>
                           <object class="wxStaticText" name="st209cCCC">
                             <style>wxST_NO_AUTORESIZE</style>
-                            <label>fit to taste:</label>
+                            <label>similar taste:</label>
                             <pos>8,7</pos>
                             <size>79,16</size>
                           </object>
