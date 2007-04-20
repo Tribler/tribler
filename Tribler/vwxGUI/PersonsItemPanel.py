@@ -197,70 +197,7 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
         if data != self.data:
             self.data = data
             self.setThumbnail(data)
-#===============================================================================
-#            self.dataBitmap = self.getThumbnail(data)
-#            # If failed, choose standard thumb
-#            if not self.dataBitmap:
-#                self.dataBitmap = DEFAULT_THUMB
-#            # Recalculate image placement
-#            w, h = self.GetSize()
-#            iw, ih = self.dataBitmap.GetSize()
-#            self.xpos, self.ypos = (w-iw)/2, (h-ih)/2
-#        if not self.maskBitmap:
-#            self.maskBitmap = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'itemMask.png'))
-#        self.Refresh()
-#===============================================================================
-                                        
-#===============================================================================
-#    
-#    def getThumbnail(self, data):
-#        """should find an inteligent way to get user's picture..."""
-#        return None
-#        # Get the file(s)data for this torrent
-#        try:
-#            torrent_dir = torrent['torrent_dir']
-#            torrent_file = torrent['torrent_name']
-#            
-#            if not os.path.exists(torrent_dir):
-#                torrent_dir = os.path.join(self.utility.getConfigPath(), "torrent2")
-#            
-#            torrent_filename = os.path.join(torrent_dir, torrent_file)
-#            
-#            if not os.path.exists(torrent_filename):
-#                if DEBUG:    
-#                    print >>sys.stderr,"contentpanel: Torrent: %s does not exist" % torrent_filename
-#                return None
-#            
-#            metadata = self.utility.getMetainfo(torrent_filename)
-#            if not metadata:
-#                return None
-#            
-#            thumbnailString = metadata.get('azureus_properties', {}).get('Content',{}).get('Thumbnail')
-#            #print 'Azureus_thumb: %s' % thumbnailString
-#            
-#            if thumbnailString:
-#                #print 'Found thumbnail: %s' % thumbnailString
-#                stream = cStringIO.StringIO(thumbnailString)
-#                img =  wx.ImageFromStream( stream )
-#                iw, ih = img.GetSize()
-#                w, h = self.GetSize()
-#                if (iw/float(ih)) > (w/float(h)):
-#                    nw = w
-#                    nh = int(ih * w/float(iw))
-#                else:
-#                    nh = h
-#                    nw = int(iw * h/float(ih))
-#                if nw != iw or nh != ih:
-#                    print 'Rescale from (%d, %d) to (%d, %d)' % (iw, ih, nw, nh)
-#                    img.Rescale(nw, nh)
-#                bmp = wx.BitmapFromImage(img)
-#                # Rescale the image so that its
-#                return bmp
-#        except:
-#            print_exc(file=sys.stderr)
-#            return {}           
-#===============================================================================
-                       
+                      
     def setThumbnail(self, data):
         # Get the file(s)data for this torrent
         try:
@@ -339,6 +276,7 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
         if self.dataBitmap:
             dc.DrawBitmap(self.dataBitmap, self.xpos,self.ypos, True)
 #        if self.mouseOver:
+#        if self.data!=None and type(self.data)==type({}) and self.data.get('permid'):
         dc.SetFont(wx.Font(6, wx.SWISS, wx.NORMAL, wx.BOLD, True))
         dc.DrawBitmap(MASK_BITMAP,0 ,62, True)
         rank = self.guiUtility.peer_manager.getRank(self.data['permid'])

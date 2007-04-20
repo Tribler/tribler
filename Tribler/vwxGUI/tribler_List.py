@@ -14,13 +14,13 @@ class tribler_List(wx.ListCtrl):
     def __init__(self, *args, **kw):
         if len(args) == 0: 
             self.backgroundColor = wx.Colour(102,102,102) 
-            pre = wx.PrePanel() 
+            pre = wx.PreListCtrl() 
             # the Create step is done by XRC. 
             self.PostCreate(pre) 
             self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate) 
         else:
             self.backgroundColor = wx.Colour(102,102,102) 
-            wx.Panel.__init__(self, *args, **kw) 
+            wx.ListCtrl.__init__(self, *args, **kw) 
             self._PostInit()     
         
     def OnCreate(self, event):

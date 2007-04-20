@@ -30,7 +30,7 @@ class GUIUtility:
         self.params = params
         self.data_manager = TorrentDataManager.getInstance(self.utility)
         self.data_manager.register(self.updateFun, 'all')
-        self.peer_manager = PeerDataManager() #the updateFunc is called after the data is updated in the peer manager so that the GUI has the newest information
+        self.peer_manager = PeerDataManager.getInstance() #the updateFunc is called after the data is updated in the peer manager so that the GUI has the newest information
         self.peer_manager.register(self.updateFun, 'all')
         self.selectedMainButton = None
             
