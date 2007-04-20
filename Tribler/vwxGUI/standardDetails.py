@@ -66,6 +66,9 @@ class standardDetails(wx.Panel):
             self.refreshMode()
         if item:
             self.setData(item)
+    
+    def getMode(self):
+        return self.mode
             
     def refreshMode(self):
         # load xrc

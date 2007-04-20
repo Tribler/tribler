@@ -65,6 +65,7 @@ class PeerDataManager(DelayedEventHandler):
         self.MAX_MAX_PEERS_NUMBER = 2100
 
         self.data = self.prepareData()
+        print "<mluc> have data"
         self.done_init = True
         
     def getInstance(*args, **kw):
@@ -73,6 +74,35 @@ class PeerDataManager(DelayedEventHandler):
         return PeerDataManager.__single
     getInstance = staticmethod(getInstance)
     
+    def getPeerData(self, permid):
+        print "<mluc> check data"
+        for i in xrange(len(self.data)):
+            if self.data[i]['permid'] == permid:
+                return self.data[i]
+        return None
+    
+    def isFriend(self, permid):
+        peer_data = self.getPeerData(permid)
+        if peer_data!=None and peer_data['friend']:
+            return True
+        return False
+#        return self.frienddb.isFriend(permid)
+    
+    def addFriend(self, permid):
+        peer_data = self.getPeerData(permid)
+        if peer_data!=None:
+            peer_data['friend']=True
+            self.frienddb.addFriend(permid)
+        else:
+            "Could not add as friend because not in cache"
+
+    def deleteFriend(self, permid):
+        peer_data = self.getPeerData(permid)
+        if peer_data!=None:
+            peer_data['friend']=False
+            self.frienddb.deleteFriend(permid)
+        else:
+            "Could not delete friend because not in cache"
         
     def prepareData(self):
         """prepares the data first time this manager is initialized
