@@ -75,7 +75,6 @@ class PeerDataManager(DelayedEventHandler):
     getInstance = staticmethod(getInstance)
     
     def getPeerData(self, permid):
-        print "<mluc> check data"
         for i in xrange(len(self.data)):
             if self.data[i]['permid'] == permid:
                 return self.data[i]
@@ -87,6 +86,18 @@ class PeerDataManager(DelayedEventHandler):
             return True
         return False
 #        return self.frienddb.isFriend(permid)
+    
+    def addFriendwData(self, peer_data):
+        permid = peer_data['permid']
+        peer_d = self.getPeerData(permid)
+        if peer_d!=None:
+            peer_d['friend']=True
+            peer_data['friend']=True
+            self.frienddb.addFriend(permid)
+            return True
+        else:
+            "Could not add as friend because not in cache"
+        return False
     
     def addFriend(self, permid):
         peer_data = self.getPeerData(permid)
