@@ -90,6 +90,12 @@ def show_permid_short(permid):
     return s[-10:]
     #return encodestring(sha(s).digest()).replace("\n","")
 
+def show_permid_shorter(permid):
+    if not permid:
+        return ''
+    s = encodestring(permid).replace("\n","")
+    return s[-5:]
+
 def show_permid2(permid):
     return show_permid_short(permid)
     

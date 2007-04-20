@@ -276,32 +276,29 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
         if self.dataBitmap:
             dc.DrawBitmap(self.dataBitmap, self.xpos,self.ypos, True)
 #        if self.mouseOver:
-#        if self.data!=None and type(self.data)==type({}) and self.data.get('permid'):
-        dc.SetFont(wx.Font(6, wx.SWISS, wx.NORMAL, wx.BOLD, True))
-        dc.DrawBitmap(MASK_BITMAP,0 ,62, True)
-        rank = self.guiUtility.peer_manager.getRank(self.data['permid'])
-        #because of the fact that hearts are coded so that lower index means higher ranking, then:
-        if rank > 0 and rank <= 5:
-            recomm = 0
-        elif rank > 5 and rank <= 10:
-            recomm = 1
-        elif rank > 10 and rank <= 15:
-            recomm = 2
-        elif rank > 15 and rank <= 20:
-            recomm = 3
-        else:
-            recomm = 4
-#        if rank != -1:
-#            self.getGuiObj('recommendationField').SetLabel("%d" % rank)
-#        else:
-#            self.getGuiObj('recommendationField').SetLabel("")
-        dc.DrawBitmap(TasteHeart.BITMAPS[recomm],5 ,64, True)
-        if self.data['friend']:
-            dc.DrawBitmap(FRIEND_BITMAP,60 ,65, True)            
+        if self.data!=None and type(self.data)==type({}) and self.data.get('permid'):
+            rank = self.guiUtility.peer_manager.getRank(self.data['permid'])
+            #because of the fact that hearts are coded so that lower index means higher ranking, then:
+            if rank > 0 and rank <= 5:
+                recomm = 0
+            elif rank > 5 and rank <= 10:
+                recomm = 1
+            elif rank > 10 and rank <= 15:
+                recomm = 2
+            elif rank > 15 and rank <= 20:
+                recomm = 3
+            else:
+                recomm = -1
+            if recomm >=0 or self.data.get('friend'):
+                dc.DrawBitmap(MASK_BITMAP,0 ,62, True)
+            if recomm >=0:
+                dc.DrawBitmap(TasteHeart.BITMAPS[recomm],5 ,64, True)
+            if self.data.get('friend'):
+                dc.DrawBitmap(FRIEND_BITMAP,60 ,65, True)            
         
-        dc.SetTextForeground(wx.WHITE)
+#        dc.SetTextForeground(wx.WHITE)
         #dc.DrawText('rating', 5, 60)
-        dc.SetTextForeground(wx.BLACK)
+#        dc.SetTextForeground(wx.BLACK)
         #dc.DrawText('rating', 8, 50)
         if (self.selected and self.border):
             dc.SetPen(wx.Pen(wx.Colour(255,51,0), 2))

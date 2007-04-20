@@ -35,6 +35,7 @@ class tribler_topButton(wx.Panel):
         self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
         self.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
         self.selected = False
+        self.old_bitmaps = None #bitmaps that were initially loaded on the button with searchBitmaps function, and now have been changed to some provisory ones using switchTo
         self.searchBitmaps()
         self.createBackgroundImage()
         
@@ -79,7 +80,23 @@ class tribler_topButton(wx.Panel):
             else:
                 print 'Could not find image: %s' % img
                 
-                       
+    def switchTo(self, normalBitmap, selectedBitmap=None):
+        if self.old_bitmaps!=None:
+            if DEBUG:
+                print "First should switchBack..."
+        else:
+            #save the initial bitmaps
+            self.old_bitmaps = self.bitmaps
+        self.bitmaps=[normalBitmap,selectedBitmap]
+        #should Refresh?
+    
+    def switchBack(self):
+        if self.old_bitmaps!=None:
+            self.bitmaps = self.old_bitmaps
+            self.old_bitmaps=None
+        else:
+            if DEBUG:
+                print "Nothing to switch back to..."
         
     def createBackgroundImage(self):
         if self.bitmaps[0]:

@@ -1,6 +1,6 @@
 from Tribler.CacheDB.SynDBHandler import SynPeerDBHandler
 from Tribler.CacheDB import CacheDBHandler
-from Tribler.utilities import show_permid_short,sort_dictlist,remove_data_from_list,find_content_in_dictlist
+from Tribler.utilities import show_permid_shorter,sort_dictlist,remove_data_from_list,find_content_in_dictlist
 from Tribler.unicode import *
 import time
 from safeguiupdate import *
@@ -94,7 +94,7 @@ class PeerDataManager(DelayedEventHandler):
                 if peer_data['name']!=None and len(peer_data['name'])>0:
                     peer_data['content_name']=dunno2unicode(peer_data['name'])
                 else:
-                    peer_data['content_name']= 'peer %s' % show_permid_short(peer_data['permid'])#'[%s:%s]' % (localdata[i]['ip'],str(localdata[i]['port']))
+                    peer_data['content_name']= 'peer %s' % show_permid_shorter(peer_data['permid'])#'[%s:%s]' % (localdata[i]['ip'],str(localdata[i]['port']))
                 peer_data['friend'] = self.frienddb.isFriend(peer_data['permid'])#permid in self.friend_list
                 # compute the maximal value for similarity
                 # in order to be able to compute top-n persons based on similarity
@@ -207,7 +207,7 @@ class PeerDataManager(DelayedEventHandler):
         if peer_data['name']!=None and len(peer_data['name'])>0:
             peer_data['content_name']=str(peer_data['name'])
         else:
-            peer_data['content_name']= 'peer %s' % show_permid_short(peer_data['permid'])#'[%s:%s]' % (localdata[i]['ip'],str(localdata[i]['port']))
+            peer_data['content_name']= 'peer %s' % show_permid_shorter(peer_data['permid'])#'[%s:%s]' % (localdata[i]['ip'],str(localdata[i]['port']))
         peer_data['friend'] = self.frienddb.isFriend(peer_data['permid'])#permid in self.friend_list
         # compute the maximal value for similarity
         # in order to be able to compute top-n persons based on similarity

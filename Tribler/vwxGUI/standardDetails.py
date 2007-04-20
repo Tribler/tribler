@@ -10,6 +10,7 @@ DEFAULT_THUMB = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'thumbFiel
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionMode', 'messageMode']
 DEBUG = True
 
+ISFRIEND_BITMAP = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'isfriend.png'))
 
 class standardDetails(wx.Panel):
     """
@@ -240,9 +241,11 @@ class standardDetails(wx.Panel):
                 self.getGuiObj('TasteHeart').setHeartIndex(0)
             
             if item['friend']:
-                self.getGuiObj('addAsFriend').Show(False)
+                self.getGuiObj('addAsFriend').Enable(False)
+                self.getGuiObj('addAsFriend').switchTo(ISFRIEND_BITMAP)
             else:
-                self.getGuiObj('addAsFriend').Show(True)
+                self.getGuiObj('addAsFriend').switchBack()
+                self.getGuiObj('addAsFriend').Enable(True)
             
         elif self.mode == 'libraryMode':
             pass
