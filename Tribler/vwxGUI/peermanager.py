@@ -315,7 +315,7 @@ class PeerDataManager(DelayedEventHandler):
 #            friendly_time(peer_data['last_seen']),"resulting rank value:",rank_value
         return rank_value
 
-    def sortData(self):
+    def sortData(self, type=None):
         """ 
             gets the data, it orders it and if there is no data shows the 'searching_content' stub
             the ordering method is not based on only one criterion, but several
@@ -328,6 +328,10 @@ class PeerDataManager(DelayedEventHandler):
             peer['rank_value'] = self.compute_rankval(peer)
             
         filtered = sort_dictlist(filtered, 'rank_value', 'decrease')
+        
+        #if type is not none, use it
+        if type == "friends":
+            filtered = [item for item in filtered if item['friend']]
         
         self.top20similar = []
         for i in xrange(len(filtered)):

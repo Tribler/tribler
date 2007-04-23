@@ -146,6 +146,12 @@ class GUIUtility:
         
         self.standardOverview.setMode('personsMode', filter1String, filter2String, personsList)
         self.standardDetails.setMode('personsMode', None)
+        
+    def standardFriendsOverview(self):
+        self.categorykey = "friends"
+        friendsList = self.reloadPeers()
+        self.standardOverview.setMode('friendsMode', '', '', friendsList)
+        self.standardOverview.setMode('friendsMode', '','', friendsList)
     
     def standardProfileOverview(self):
         #profileList = self.reloadData()
@@ -160,10 +166,6 @@ class GUIUtility:
     def standardSubscriptionsOverview(self, filter1String="audio", filter2String="swarmsize"):       
         subscriptionsList = self.reloadData()         
         self.standardOverview.setMode('subscriptionsMode', '','', subscriptionsList)        
-        
-    def standardFriendsOverview(self):
-        friendsList = self.reloadData()
-        self.standardOverview.setMode('friendsMode', '','', friendsList)
          
     def standardMessagesOverview(self):
         messagesList = self.reloadData()
@@ -183,7 +185,7 @@ class GUIUtility:
         return self.filtered
             
     def reloadPeers(self):
-        return self.peer_manager.sortData()
+        return self.peer_manager.sortData(self.categorykey)
     
     def loadLibrary(self):
         # Get infohashes of current downloads

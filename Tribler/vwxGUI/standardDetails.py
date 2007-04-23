@@ -157,7 +157,7 @@ class standardDetails(wx.Panel):
                 self.getGuiObj('refresh').setBackground(wx.WHITE)
                 self.getGuiObj('TasteHeart').setBackground(wx.WHITE)
                 self.getGuiObj('info_detailsTab').setSelected(True)
-            elif modeString == 'persons':
+            elif modeString == 'persons' or modeString == 'friends':
                 self.getGuiObj('TasteHeart').setBackground(wx.WHITE)
                 #get the list in the right mode for viewing
                 self.setListAspect2OneColumn("alsoDownloadedField")

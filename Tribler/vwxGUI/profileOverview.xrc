@@ -16,7 +16,7 @@
             <flag>wxFIXED_MINSIZE</flag>
             <border>3</border>
             <option>0</option>
-            <object class="bgPanel" name="orange_top_left">
+            <object class="wxPanel" name="orange_top_left" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
               <pos>0,0</pos>
               <size>10,21</size>
             </object>
@@ -51,7 +51,7 @@
             <flag>wxFIXED_MINSIZE</flag>
             <border>3</border>
             <option>0</option>
-            <object class="bgPanel" name="orange_top_right">
+            <object class="wxPanel" name="orange_top_right" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
               <pos>613,0</pos>
               <size>10,21</size>
             </object>
@@ -89,7 +89,7 @@
             <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>15</border>
             <option>0</option>
-            <object class="bgPanel" name="thumb">
+            <object class="wxPanel" name="thumb" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
               <pos>15,63</pos>
               <size>80,80</size>
             </object>
@@ -191,7 +191,7 @@
               <flag>wxTOP|wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
               <border>15</border>
               <option>0</option>
-              <object class="bgPanel" name="perf_Overall">
+              <object class="wxPanel" name="perf_Overall" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
                 <pos>15,15</pos>
                 <size>45,55</size>
               </object>
@@ -233,7 +233,7 @@
               <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
               <border>15</border>
               <option>0</option>
-              <object class="bgPanel" name="icon_Overall">
+              <object class="wxPanel" name="icon_Overall" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
                 <pos>351,15</pos>
                 <size>55,55</size>
               </object>
@@ -261,7 +261,7 @@
               <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
               <border>5</border>
               <option>0</option>
-              <object class="bgPanel" name="perf_Quality">
+              <object class="wxPanel" name="perf_Quality" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
                 <pos>15,5</pos>
                 <size>25,30</size>
               </object>
@@ -308,7 +308,7 @@
               <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
               <border>5</border>
               <option>0</option>
-              <object class="bgPanel" name="perf_Files">
+              <object class="wxPanel" name="perf_Files" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
                 <pos>15,5</pos>
                 <size>25,30</size>
               </object>
@@ -355,7 +355,7 @@
               <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
               <border>5</border>
               <option>0</option>
-              <object class="bgPanel" name="perf_Persons">
+              <object class="wxPanel" name="perf_Persons" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
                 <pos>15,5</pos>
                 <size>25,30</size>
               </object>
@@ -402,7 +402,7 @@
               <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
               <border>5</border>
               <option>0</option>
-              <object class="bgPanel" name="perf_Download">
+              <object class="wxPanel" name="perf_Download" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
                 <pos>15,5</pos>
                 <size>25,30</size>
               </object>
@@ -450,7 +450,7 @@
               <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
               <border>5</border>
               <option>0</option>
-              <object class="bgPanel" name="perf_Presence">
+              <object class="wxPanel" name="perf_Presence" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
                 <pos>15,5</pos>
                 <size>25,30</size>
               </object>
@@ -493,7 +493,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>3</border>
             <option>0</option>
-            <object class="bgPanel" name="orange_bottom_left">
+            <object class="wxPanel" name="orange_bottom_left" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
               <pos>0,399</pos>
               <size>10,28</size>
             </object>
@@ -502,7 +502,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>3</border>
             <option>1</option>
-            <object class="bgPanel" name="orange_bottom_center">
+            <object class="wxPanel" name="orange_bottom_center" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
               <pos>10,399</pos>
               <size>20,20</size>
             </object>
@@ -511,7 +511,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>0</border>
             <option>0</option>
-            <object class="bgPanel" name="pagerBottomRight">
+            <object class="wxPanel" name="pagerBottomRight" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
               <pos>600,403</pos>
               <size>271,28</size>
               <object class="wxBoxSizer">
@@ -526,7 +526,7 @@
                   <flag>wxTOP|wxEXPAND</flag>
                   <border>5</border>
                   <option>1</option>
-                  <object class="standardPager" name="standardPager">
+                  <object class="wxPanel" name="standardPager" subclass="Tribler.vwxGUI.standardPager.standardPager">
                     <pos>25,5</pos>
                     <size>238,23</size>
                   </object>
