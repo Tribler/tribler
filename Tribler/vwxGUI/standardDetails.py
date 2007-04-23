@@ -4,7 +4,6 @@ from Tribler.vwxGUI.GuiUtility import GUIUtility
 from traceback import print_exc
 from Tribler.utilities import *
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
-from Tribler.unicode import *
 import cStringIO
 
 DEFAULT_THUMB = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'thumbField.png'))
@@ -47,9 +46,10 @@ class standardDetails(wx.Panel):
         #self.Refresh()
         self.modeElements = {'filesMode': ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
-                                            'download', 'files_detailsTab', 'info_detailsTab', 'TasteHeart', 'details'],
+                                            'download', 'files_detailsTab', 'info_detailsTab', 'TasteHeart', 'details',],
                              'personsMode': ['TasteHeart', 'recommendationField','addAsFriend', 'commonFilesField', 'alsoDownloadedField']
                              }
+        self.tabElements = {'filesTab_files': ['includedFilesField', 'download', 'includedFiles']}
 
         self.guiUtility.initStandardDetails(self)
 
@@ -152,12 +152,15 @@ class standardDetails(wx.Panel):
     def loadStatusPanel(self):
         return self.loadXRCPanel(os.path.join('Tribler','vwxGUI', 'statusDownloads.xrc'), 'statusDownloads')
     
-    def loadXRCPanel(self, filename, panelName):
+    def loadXRCPanel(self, filename, panelName, parent=None):
         try:
             currentPanel = None
             res = xrc.XmlResource(filename)
             # create panel
-            currentPanel = res.LoadPanel(self, panelName)
+            if parent:
+                currentPanel = res.LoadPanel(parent, panelName)
+            else:
+                currentPanel = res.LoadPanel(self, panelName)
             if not currentPanel:
                 raise Exception()
             return currentPanel
@@ -223,8 +226,9 @@ class standardDetails(wx.Panel):
                         leechersField.SetLabel('?')
             
             elif self.getGuiObj('files_detailsTab').isSelected():
-                filesPanel = self.getGuiObj('filesTabPanel')
-                fileList = filesPanel.setData(torrent)
+                filesList = self.getGuiObj('includedFiles', tab = 'filesTab_files')
+                
+                filesList.setData(torrent)
                 
             else:
                 print 'standardDetails: error: unknown tab selected'
@@ -269,13 +273,17 @@ class standardDetails(wx.Panel):
 
         self.currentPanel.Refresh()
         
-    def getGuiObj(self, obj_name):
+    def getGuiObj(self, obj_name, tab=None):
         """handy function to retreive an object based on it's name for the current mode"""
+        if tab:
+            obj_name = tab+'_'+obj_name
         return self.data[self.mode].get(obj_name)
         
     def fillTorrentLists(self):
         ofList = self.getGuiObj("alsoDownloadedField")
+        ofList.SetWindowStyleFlag(wx.LC_LIST)
         cfList = self.getGuiObj("commonFilesField")
+        cfList.SetWindowStyleFlag(wx.LC_LIST)
         try:
             if self.mode != "personsMode" or self.item==None or self.item['permid']==None:
                 return
@@ -351,17 +359,17 @@ class standardDetails(wx.Panel):
             tabInfo.setSelected(False)
             infoPanel = self.getGuiObj('details')
             sizer = infoPanel.GetContainingSizer()
-            filesPanel = self.getFilesTabPanel()
-            self.swapPanel(sizer, 4, infoPanel, filesPanel)
+            filesPanel = self.getAlternativeTabPanel('filesTab_files')
+            self.swapPanel(sizer, 3, infoPanel, filesPanel)
             
         elif name == 'info_detailsTab' and not tabInfo.isSelected():
             tabFiles.setSelected(False)
             tabInfo.setSelected(True)
             
-            filesPanel = self.getGuiObj('filesTabPanel')
+            filesPanel = self.getGuiObj('filesTab_files')
             sizer = filesPanel.GetContainingSizer()
             infoPanel = self.getGuiObj('details')
-            self.swapPanel(sizer, 4, filesPanel, infoPanel)
+            self.swapPanel(sizer, 3, filesPanel, infoPanel)
             
         else:
             print 'standardDetails: Unknown tabs'
@@ -382,14 +390,25 @@ class standardDetails(wx.Panel):
         newpanel.GetParent().Refresh()
         
         
-    def getFilesTabPanel(self):
-        panel = self.getGuiObj('filesTabPanel')
+    def getAlternativeTabPanel(self, name):
+        "Load a tabPanel that was not loaded as default"
+        panel = self.getGuiObj(name)
         if panel:
             return panel
         else:
             # generate new panel
-            panel = FilesTabPanel(self.currentPanel)
-            self.data[self.mode]['filesTabPanel'] = panel
+            xrcResource = os.path.join('Tribler','vwxGUI', name+'.xrc')
+            panelName = name
+            panel = self.loadXRCPanel(xrcResource, panelName, parent=self.currentPanel)
+            
+            for element in self.tabElements[name]:
+                xrcElement = xrc.XRCCTRL(panel, element)
+                if not xrcElement:
+                    print 'standardDetails: Error: Could not identify xrc element: %s for mode %s' % (element, self.mode)
+                self.data[self.mode][name+'_'+element] = xrcElement
+                            
+            self.data[self.mode][name] = panel
+                
             return panel
         
     def mouseAction(self, event):
