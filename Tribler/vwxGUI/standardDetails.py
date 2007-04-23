@@ -118,6 +118,17 @@ class standardDetails(wx.Panel):
                 except:
                     print_exc()
         
+    def setListAspect2OneColumn(self, list_name):
+        ofList = self.getGuiObj(list_name)
+        ofList.ClearAll()
+        ofList.SetSingleStyle(wx.NO_BORDER)
+        ofList.SetSingleStyle(wx.LC_REPORT)
+        ofList.SetSingleStyle(wx.LC_NO_HEADER)
+        ofList.SetSingleStyle(wx.LC_SINGLE_SEL)
+#                ofList.SetWindowStyleFlag(wx.LC_REPORT|wx.NO_BORDER|wx.LC_NO_HEADER|wx.LC_SINGLE_SEL) #it doesn't work
+        ofList.InsertColumn(0, "Torrent")
+#        ofList.SetColumnWidth(0,wx.LIST_AUTOSIZE)
+        
     def loadPanel(self):
         currentPanel = self.data[self.mode].get('panel',None)
         modeString = self.mode[:-4]
@@ -146,6 +157,9 @@ class standardDetails(wx.Panel):
                 self.getGuiObj('info_detailsTab').setSelected(True)
             elif modeString == 'persons':
                 self.getGuiObj('TasteHeart').setBackground(wx.WHITE)
+                #get the list in the right mode for viewing
+                self.setListAspect2OneColumn("alsoDownloadedField")
+                self.setListAspect2OneColumn("commonFilesField")
                 
         return currentPanel
     
@@ -281,9 +295,9 @@ class standardDetails(wx.Panel):
         
     def fillTorrentLists(self):
         ofList = self.getGuiObj("alsoDownloadedField")
-        ofList.SetWindowStyleFlag(wx.LC_LIST)
+#        ofList.SetWindowStyleFlag(wx.LC_LIST)
         cfList = self.getGuiObj("commonFilesField")
-        cfList.SetWindowStyleFlag(wx.LC_LIST)
+#        cfList.SetWindowStyleFlag(wx.LC_LIST)
         try:
             if self.mode != "personsMode" or self.item==None or self.item['permid']==None:
                 return
@@ -342,6 +356,12 @@ class standardDetails(wx.Panel):
             cfList.DeleteAllItems()
             index = ofList.InsertStringItem(sys.maxint, "Error getting files list")
             ofList.SetItemTextColour(index, "dark red")
+        try:
+            ofList.onListResize() #SetColumnWidth(0,wx.LIST_AUTOSIZE)
+            cfList.onListResize() #SetColumnWidth(0,wx.LIST_AUTOSIZE)
+        except:
+            if DEBUG:
+                print "could not resize lists in person detail panel"
         
     def tabClicked(self, name):
         print 'Tabclicked: %s' % name

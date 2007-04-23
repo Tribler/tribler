@@ -33,9 +33,18 @@ class tribler_List(wx.ListCtrl):
     
     def _PostInit(self):
         # Do all init here
-        pass
+        self.Bind(wx.EVT_SIZE, self.onListResize)
+#        pass
 
-
+    def onListResize(self, event=None):
+        if event!=None:
+            event.Skip()
+        if not self.InReportView() or self.GetColumnCount()==0:
+            return
+        size = self.GetClientSize()
+        self.SetColumnWidth( 0, size.width-10) #vertical scrollbar width
+        self.ScrollList(-100, 0) # Removes HSCROLLBAR
+        print "<mluc> here"
 
 class TorrentList(tribler_List):
     def __init__(self):
