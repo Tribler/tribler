@@ -72,40 +72,44 @@
       </object>
       <object class="sizeritem">
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-        <border>3</border>
-        <option>0</option>
-        <object class="wxPanel" name="playbackControls" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
-          <pos>0,191</pos>
-          <size>300,20</size>
-          <bg>#     0</bg>
-        </object>
-      </object>
-      <object class="sizeritem">
-        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>6</border>
         <option>0</option>
         <object class="wxPanel" name="tabs">
           <pos>0,211</pos>
-          <size>300,18</size>
+          <size>300,28</size>
           <bg>#     0</bg>
           <object class="wxBoxSizer">
-            <orient>wxHORIZONTAL</orient>
-            <object class="sizeritem">
-              <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
-              <border>10</border>
+            <orient>wxVERTICAL</orient>
+            <object class="spacer">
+              <size>290,10</size>
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
               <option>0</option>
-              <object class="wxStaticText" name="info_detailsTab" subclass="Tribler.vwxGUI.TextButton.TextButton">
-                <pos>10,0</pos>
-                <size>75,18</size>
-              </object>
             </object>
             <object class="sizeritem">
-              <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
-              <border>10</border>
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
               <option>0</option>
-              <object class="wxStaticText" name="files_detailsTab" subclass="Tribler.vwxGUI.TextButton.TextButton">
-                <pos>80,0</pos>
-                <size>75,18</size>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="sizeritem">
+                  <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>10</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="info_detailsTab" subclass="Tribler.vwxGUI.TextButton.TextButton">
+                    <pos>10,10</pos>
+                    <size>75,18</size>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>10</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="files_detailsTab" subclass="Tribler.vwxGUI.TextButton.TextButton">
+                    <pos>95,10</pos>
+                    <size>75,18</size>
+                  </object>
+                </object>
               </object>
             </object>
           </object>
@@ -318,7 +322,7 @@
                       <border>3</border>
                       <option>0</option>
                       <object class="wxPanel" name="download" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                        <pos>238,7</pos>
+                        <pos>238,3</pos>
                         <size>55,55</size>
                       </object>
                     </object>
@@ -345,7 +349,7 @@
               <object class="wxStaticText" name="descriptionField">
                 <style>wxST_NO_AUTORESIZE</style>
                 <label>no description available</label>
-                <pos>6,92</pos>
+                <pos>6,108</pos>
                 <size>265,73</size>
                 <font>
                   <size>8</size>
@@ -390,89 +394,6 @@
                   <underlined>0</underlined>
                   <face>Verdana</face>
                 </font>
-              </object>
-            </object>
-            <object class="sizeritem">
-              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-              <border>3</border>
-              <option>0</option>
-              <object class="wxPanel" name="Inje" subclass="Tribler.vwxGUI.btn_DetailsHeader.btn_DetailsHeader">
-                <hidden>1</hidden>
-                <pos>0,258</pos>
-                <size>20,20</size>
-                <object class="wxStaticText" name="st202c">
-                  <style>wxST_NO_AUTORESIZE</style>
-                  <label>injected by</label>
-                  <pos>10,0</pos>
-                  <size>114,18</size>
-                </object>
-              </object>
-            </object>
-            <object class="sizeritem">
-              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-              <border>3</border>
-              <option>0</option>
-              <object class="wxBoxSizer">
-                <orient>wxHORIZONTAL</orient>
-                <object class="sizeritem">
-                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                  <border>3</border>
-                  <option>0</option>
-                  <object class="wxStaticBitmap" name="bm197c">
-                    <pos>3,162</pos>
-                    <size>55,60</size>
-                  </object>
-                </object>
-                <object class="sizeritem">
-                  <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-                  <border>3</border>
-                  <option>1</option>
-                  <object class="wxBoxSizer">
-                    <orient>wxVERTICAL</orient>
-                    <object class="sizeritem">
-                      <flag>wxLEFT|wxRIGHT|wxFIXED_MINSIZE</flag>
-                      <border>10</border>
-                      <option>0</option>
-                      <object class="wxStaticText" name="descriptionC">
-                        <hidden>1</hidden>
-                        <style>wxST_NO_AUTORESIZE</style>
-                        <label>no injector known</label>
-                        <pos>171,115</pos>
-                        <size>120,27</size>
-                      </object>
-                    </object>
-                    <object class="sizeritem">
-                      <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                      <border>3</border>
-                      <option>1</option>
-                      <object class="wxBoxSizer">
-                        <orient>wxHORIZONTAL</orient>
-                        <object class="sizeritem">
-                          <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
-                          <border>3</border>
-                          <option>0</option>
-                          <object class="wxPanel" name="subscribe_20x20" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                            <hidden>1</hidden>
-                            <pos>67,148</pos>
-                            <size>20,20</size>
-                          </object>
-                        </object>
-                        <object class="sizeritem">
-                          <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                          <border>3</border>
-                          <option>0</option>
-                          <object class="wxStaticText" name="subscribeText">
-                            <hidden>1</hidden>
-                            <style>wxST_NO_AUTORESIZE</style>
-                            <label>subscribe</label>
-                            <pos>93,148</pos>
-                            <size>174,19</size>
-                          </object>
-                        </object>
-                      </object>
-                    </object>
-                  </object>
-                </object>
               </object>
             </object>
           </object>
