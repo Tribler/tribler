@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
-  <object class="wxPanel" name="pnl17013f">
+  <object class="wxPanel" name="filesTab_files">
     <pos>0,0</pos>
     <size>300,348</size>
     <object class="wxBoxSizer">
