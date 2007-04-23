@@ -47,7 +47,6 @@ class standardGrid(wx.Panel):
         self.items = 0
         self.currentData = 0
         self.currentRows = 0
-        self.subPanelHeight = 116 # This will be update after first refresh
         self.detailPanel = None
         
         self.panels = []
@@ -269,6 +268,7 @@ class standardGrid(wx.Panel):
 class filesGrid(standardGrid):
     def __init__(self):
         columns = 5
+        self.subPanelHeight = 116 # This will be update after first refresh
         standardGrid.__init__(self, columns, orientation='horizontal')
         
     def getSubPanel(self):
@@ -277,6 +277,7 @@ class filesGrid(standardGrid):
 class personsGrid(standardGrid):
     def __init__(self):
         columns = 6
+        self.subPanelHeight = 116 # This will be update after first refresh
         standardGrid.__init__(self, columns, orientation='horizontal')
         
     def getSubPanel(self):
@@ -285,6 +286,7 @@ class personsGrid(standardGrid):
 class friendsGrid(standardGrid):
     def __init__(self):
         columns = 5
+        self.subPanelHeight = 116 # This will be update after first refresh
         standardGrid.__init__(self, columns, orientation='horizontal')
         
     def getSubPanel(self):
@@ -293,6 +295,7 @@ class friendsGrid(standardGrid):
 class libraryGrid(standardGrid):
     def __init__(self):
         columns = 1
+        self.subPanelHeight = 30 # This will be update after first refresh
         standardGrid.__init__(self, columns, orientation='horizontal')
         
     def getSubPanel(self):

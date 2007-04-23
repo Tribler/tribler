@@ -77,7 +77,7 @@ class tribler_topButton(wx.Panel):
             if os.path.isfile(img):
                 self.bitmaps[i] = wx.Bitmap(img, wx.BITMAP_TYPE_ANY)
                 i+=1
-            else:
+            elif DEBUG:
                 print 'Could not find image: %s' % img
                 
     def switchTo(self, normalBitmap, selectedBitmap=None):

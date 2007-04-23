@@ -154,9 +154,7 @@ class GUIUtility:
         
     def standardLibraryOverview(self, filter1String="audio", filter2String="swarmsize"):       
         print 'Library > filter1String='+filter1String 
-        
-        self.categorykey = self.utility.lang.get('mypref_list_title')
-        libraryList = self.reloadData()
+        libraryList = self.loadLibrary()
         self.standardOverview.setMode('libraryMode', filter1String, filter2String, libraryList)
         
     def standardSubscriptionsOverview(self, filter1String="audio", filter2String="swarmsize"):       
@@ -181,17 +179,32 @@ class GUIUtility:
                 self.filtered.append(torrent)
         
         self.filtered = sort_dictlist(self.filtered, self.type, 'decrease')
-        #self.filtered = sort_dictlist(self.filtered, 'swarmsize', 'decrease')
-
-        #self.standardOverview.setData()
-        #self.standardOverview.setMode()
-        #print self.filtered
-        #return self.data # no filtering
+        
         return self.filtered
             
     def reloadPeers(self):
         return self.peer_manager.sortData()
-                
+    
+    def loadLibrary(self):
+        # Get infohashes of current downloads
+        activeInfohashes = {}
+        active = []
+        inactive = []
+        for torrent in self.utility.torrents['active']:
+            activeInfohashes[torrent.torrent_hash] = torrent
+            
+        self.categorykey = self.utility.lang.get('mypref_list_title')
+        libraryList = self.reloadData()
+        for torrent in libraryList:
+            infohash = torrent.get('infohash')
+            if infohash in activeInfohashes:
+                active.append(torrent)
+                torrent['abctorrent'] = activeInfohashes[infohash]
+            else:
+                inactive.append(torrent)
+        
+        return active+inactive
+        
     def updateFun(self, torrent, operate):    
         print "Updatefun called"
         

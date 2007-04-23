@@ -4,10 +4,12 @@ from Tribler.utilities import *
 from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.Dialogs.ContentFrontPanel import ImagePanel
 from Tribler.vwxGUI.GuiUtility import GUIUtility
+from Tribler.vwxGUI.TriblerProgressbar import TriblerProgressbar
 from Tribler.unicode import *
 from tribler_topButton import *
 from copy import deepcopy
 from bgPanel import *
+from Utility.constants import * 
 import cStringIO
 
 DEBUG=True
@@ -70,7 +72,8 @@ class LibraryItemPanel(wx.Panel):
         self.hSizer.Add(self.vSizerTitle, 0, wx.ALL|wx.EXPAND, 3)     
         
         # Add Gauge/progressbar
-        self.pb = wx.Gauge(self,-1,50,wx.Point(359,0),wx.Size(80,15),wx.GA_HORIZONTAL)
+        self.pb = TriblerProgressbar(self,-1,wx.Point(359,0),wx.Size(80,15))
+        #self.pb = wx.Panel(self)
         self.pause = tribler_topButton(self, -1, wx.Point(542,3), wx.Size(17,17),name='pause' )
         self.delete = tribler_topButton(self, -1, wx.Point(542,3), wx.Size(17,17),name='delete')        
         # >> Drawn in progressbar
@@ -136,23 +139,24 @@ class LibraryItemPanel(wx.Panel):
     def setData(self, torrent):
         # set bitmap, rating, title
         
-        try:
-            if self.datacopy['infohash'] == torrent['infohash']:
-                # Do not update torrents that have no new seeders/leechers/size
-                if (self.datacopy['seeder'] == torrent['seeder'] and
-                    self.datacopy['leecher'] == torrent['leecher'] and
-                    self.datacopy['length'] == torrent['length'] and
-                    self.datacopy.get('myDownloadHistory') == torrent.get('myDownloadHistory')):
-                    return
-        except:
-            pass
-        
         self.data = torrent
-        self.datacopy = deepcopy(torrent)
         
         if torrent == None:
             torrent = {}
+            self.Hide()
+        else:
+            self.Show()
+            
         
+        if torrent.get('abctorrent'):
+            print '%s is an active torrent' % torrent['content_name']
+            abctorrent = torrent['abctorrent']
+            progress = abctorrent.getColumnText(COL_PROGRESS)
+            self.pb.setPercentage(float(progress[:-1]))
+            eta = abctorrent.getColumnText(COL_ETA)
+            self.pb.setETA(eta)
+            
+            
         if torrent.get('content_name'):
             title = torrent['content_name'][:self.titleLength]
             self.title.Enable(True)
@@ -164,7 +168,6 @@ class LibraryItemPanel(wx.Panel):
             self.title.SetToolTipString('')
             self.title.Enable(False)
             
-       
         #self.thumb.setTorrent(torrent)
                
         self.Layout()
