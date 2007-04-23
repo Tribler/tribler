@@ -121,11 +121,13 @@ class standardDetails(wx.Panel):
     def setListAspect2OneColumn(self, list_name):
         ofList = self.getGuiObj(list_name)
         ofList.ClearAll()
-        ofList.SetSingleStyle(wx.NO_BORDER)
-        ofList.SetSingleStyle(wx.LC_REPORT)
-        ofList.SetSingleStyle(wx.LC_NO_HEADER)
-        ofList.SetSingleStyle(wx.LC_SINGLE_SEL)
-#                ofList.SetWindowStyleFlag(wx.LC_REPORT|wx.NO_BORDER|wx.LC_NO_HEADER|wx.LC_SINGLE_SEL) #it doesn't work
+        if sys.platform == 'win32':
+            ofList.SetWindowStyleFlag(wx.LC_REPORT|wx.NO_BORDER|wx.LC_NO_HEADER|wx.LC_SINGLE_SEL) #it doesn't work
+        else:
+            ofList.SetSingleStyle(wx.NO_BORDER)
+            ofList.SetSingleStyle(wx.LC_REPORT)
+            ofList.SetSingleStyle(wx.LC_NO_HEADER)
+            ofList.SetSingleStyle(wx.LC_SINGLE_SEL)
         ofList.InsertColumn(0, "Torrent")
 #        ofList.SetColumnWidth(0,wx.LIST_AUTOSIZE)
         
