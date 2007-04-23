@@ -4,6 +4,7 @@ from Tribler.vwxGUI.GuiUtility import GUIUtility
 from traceback import print_exc
 from Tribler.utilities import *
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
+from Tribler.unicode import *
 import cStringIO
 
 DEFAULT_THUMB = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'thumbField.png'))
@@ -191,34 +192,44 @@ class standardDetails(wx.Panel):
             titleField = self.getGuiObj('titleField')
             titleField.SetLabel(torrent.get('content_name'))
             titleField.Wrap(-1)
-        
-            if torrent.has_key('description'):
-                descriptionField = self.getGuiObj('descriptionField')
-                descriptionField.SetLabel(torrent.get('Description'))
-                descriptionField.Wrap(-1)        
-
-            if torrent.has_key('length'):
-                sizeField = self.getGuiObj('sizeField')
-                sizeField.SetLabel(self.utility.size_format(torrent['length']))
-            
-            if torrent.get('info', {}).get('creation date'):
-                creationField = self.getGuiObj('creationdateField')
-                creationField.SetLabel(friendly_time(torrent['info']['creation date']))\
-                
-            if torrent.has_key('seeder'):
-                seeders = torrent['seeder']
-                seedersField = self.getGuiObj('popularityField1')
-                leechersField = self.getGuiObj('popularityField2')
-                
-                if seeders > -1:
-                    seedersField.SetLabel('%d' % seeders)
-                    leechersField.SetLabel('%d' % torrent['leecher'])
-                else:
-                    seedersField.SetLabel('?')
-                    leechersField.SetLabel('?')
             
             self.setTorrentThumb(torrent, self.getGuiObj('thumbField'))        
             
+            if self.getGuiObj('info_detailsTab').isSelected():
+                # The info tab is selected, show normal torrent info
+                if torrent.has_key('description'):
+                    descriptionField = self.getGuiObj('descriptionField')
+                    descriptionField.SetLabel(torrent.get('Description'))
+                    descriptionField.Wrap(-1)        
+    
+                if torrent.has_key('length'):
+                    sizeField = self.getGuiObj('sizeField')
+                    sizeField.SetLabel(self.utility.size_format(torrent['length']))
+                
+                if torrent.get('info', {}).get('creation date'):
+                    creationField = self.getGuiObj('creationdateField')
+                    creationField.SetLabel(friendly_time(torrent['info']['creation date']))\
+                    
+                if torrent.has_key('seeder'):
+                    seeders = torrent['seeder']
+                    seedersField = self.getGuiObj('popularityField1')
+                    leechersField = self.getGuiObj('popularityField2')
+                    
+                    if seeders > -1:
+                        seedersField.SetLabel('%d' % seeders)
+                        leechersField.SetLabel('%d' % torrent['leecher'])
+                    else:
+                        seedersField.SetLabel('?')
+                        leechersField.SetLabel('?')
+            
+            elif self.getGuiObj('files_detailsTab').isSelected():
+                filesPanel = self.getGuiObj('filesTabPanel')
+                fileList = filesPanel.setData(torrent)
+                
+            else:
+                print 'standardDetails: error: unknown tab selected'
+            
+                        
         elif self.mode in ['personsMode', 'friendsMode']:
             #recomm = random.randint(0,4)
             rank = self.guiUtility.peer_manager.getRank(item['permid'])
@@ -354,7 +365,9 @@ class standardDetails(wx.Panel):
             
         else:
             print 'standardDetails: Unknown tabs'
+            return
         
+        self.setData(self.item)
         
             
     def swapPanel(self, sizer, index, oldpanel, newpanel):
@@ -487,8 +500,8 @@ class FilesTabPanel(wx.Panel):
     def addComponents(self):
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         
-        someText = wx.StaticText(self, -1, self.utility.lang.get('torrent_files') % 0)
-        self.vSizer.Add(someText, 0, wx.EXPAND, 0)
+        self.numFilesField = wx.StaticText(self, -1, self.utility.lang.get('torrent_files') % 0)
+        self.vSizer.Add(self.numFilesField, 0, wx.EXPAND|wx.ALL, 10)
         
         self.fileList = wx.ListCtrl( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LC_REPORT|wx.SUNKEN_BORDER|wx.LC_SINGLE_SEL )
         self.fileList.InsertColumn(0, self.utility.lang.get('file'))
@@ -509,6 +522,59 @@ class FilesTabPanel(wx.Panel):
         self.SetBackgroundColour(wx.WHITE)
         self.SetMinSize((-1, 348)) # set same size as default info panel
         self.Refresh()
+        
+    def setData(self, torrent):
+        # Get the file(s)data for this torrent
+        
+        print 'setData of FilesTabPanel called'
+        torrent_dir = torrent.get('torrent_dir')
+        torrent_file = torrent.get('torrent_name')
+        try:
+            
+            if not os.path.exists(torrent_dir):
+                torrent_dir = os.path.join(self.utility.getConfigPath(), "torrent2")
+            
+            torrent_filename = os.path.join(torrent_dir, torrent_file)
+            
+            if not os.path.exists(torrent_filename):
+                if DEBUG:    
+                    print >>sys.stderr,"contentpanel: Torrent: %s does not exist" % torrent_filename
+                return {}
+            
+            metadata = self.utility.getMetainfo(torrent_filename)
+            if not metadata:
+                return {}
+            info = metadata.get('info')
+            if not info:
+                return {}
+            
+            #print metadata.get('comment', 'no comment')
+                
+                
+            filedata = info.get('files')
+            if not filedata:
+                filelist = [(dunno2unicode(info.get('name')),self.utility.size_format(info.get('length')))]
+            else:
+                filelist = []
+                for f in filedata:
+                    filelist.append((dunno2unicode('/'.join(f.get('path'))), self.utility.size_format(f.get('length')) ))
+                filelist.sort()
+                
+            
+            # Add the filelist to the fileListComponent
+            self.fileList.DeleteAllItems()
+            for f in filelist:
+                index = self.fileList.InsertStringItem(sys.maxint, f[0])
+                self.fileList.SetStringItem(index, 1, f[1])
+            self.onListResize(None)
+            
+            # update number of files
+            self.numFilesField.SetLabel(self.utility.lang.get('torrent_files') % len(filelist))
+            
+        except:
+            print 'standardDetails: error getting list of files in torrent'
+            print_exc(file=sys.stderr)
+            return {}                 
         
     def onListResize(self, event):
         size = self.fileList.GetClientSize()
