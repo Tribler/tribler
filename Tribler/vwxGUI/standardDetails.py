@@ -46,7 +46,7 @@ class standardDetails(wx.Panel):
         #self.Refresh()
         self.modeElements = {'filesMode': ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
-                                            'download', 'files_detailsTab', 'TasteHeart'],
+                                            'download', 'files_detailsTab', 'info_detailsTab', 'TasteHeart', 'details'],
                              'personsMode': ['TasteHeart', 'recommendationField','addAsFriend', 'commonFilesField', 'alsoDownloadedField']
                              }
 
@@ -138,12 +138,13 @@ class standardDetails(wx.Panel):
             # do extra init
             if modeString == 'files':
                 print 'extra files init'
-                self.data[self.mode].get('up').setBackground(wx.WHITE)
-                self.data[self.mode].get('down').setBackground(wx.WHITE)
-                self.data[self.mode].get('refresh').setBackground(wx.WHITE)
-                self.data[self.mode].get('TasteHeart').setBackground(wx.WHITE)
+                self.getGuiObj('up').setBackground(wx.WHITE)
+                self.getGuiObj('down').setBackground(wx.WHITE)
+                self.getGuiObj('refresh').setBackground(wx.WHITE)
+                self.getGuiObj('TasteHeart').setBackground(wx.WHITE)
+                self.getGuiObj('info_detailsTab').setSelected(True)
             elif modeString == 'persons':
-                self.data[self.mode].get('TasteHeart').setBackground(wx.WHITE)
+                self.getGuiObj('TasteHeart').setBackground(wx.WHITE)
                 
         return currentPanel
     
@@ -187,29 +188,27 @@ class standardDetails(wx.Panel):
             if not torrent:
                 return
             
-            torrentData = self.data[self.mode]
-            
-            titleField = torrentData.get('titleField')
+            titleField = self.getGuiObj('titleField')
             titleField.SetLabel(torrent.get('content_name'))
             titleField.Wrap(-1)
         
             if torrent.has_key('description'):
-                descriptionField = torrentData.get('descriptionField')
+                descriptionField = self.getGuiObj('descriptionField')
                 descriptionField.SetLabel(torrent.get('Description'))
                 descriptionField.Wrap(-1)        
 
             if torrent.has_key('length'):
-                sizeField = torrentData.get('sizeField')
+                sizeField = self.getGuiObj('sizeField')
                 sizeField.SetLabel(self.utility.size_format(torrent['length']))
             
             if torrent.get('info', {}).get('creation date'):
-                creationField = torrentData.get('creationdateField')
+                creationField = self.getGuiObj('creationdateField')
                 creationField.SetLabel(friendly_time(torrent['info']['creation date']))\
                 
             if torrent.has_key('seeder'):
                 seeders = torrent['seeder']
-                seedersField = torrentData.get('popularityField1')
-                leechersField = torrentData.get('popularityField2')
+                seedersField = self.getGuiObj('popularityField1')
+                leechersField = self.getGuiObj('popularityField2')
                 
                 if seeders > -1:
                     seedersField.SetLabel('%d' % seeders)
@@ -218,7 +217,7 @@ class standardDetails(wx.Panel):
                     seedersField.SetLabel('?')
                     leechersField.SetLabel('?')
             
-            self.setTorrentThumb(torrent, torrentData.get('thumbField'))        
+            self.setTorrentThumb(torrent, self.getGuiObj('thumbField'))        
             
         elif self.mode in ['personsMode', 'friendsMode']:
             #recomm = random.randint(0,4)
@@ -256,18 +255,11 @@ class standardDetails(wx.Panel):
             pass
         elif self.mode == 'subscriptionMode':
             pass
-#        creationdateField = self.data[self.mode].get('creationdate')
-#        creationdateField.SetLabel(item.get('creation date'))
-#        creationdateField.Wrap(-1) 
-        
-#        thumbField = self.data[self.mode].get('thumb')        
-#        thumbField.SetBackgroundColour(wx.Colour(255,51,0))        
-#        thumbField.Refresh()
-        
+
         self.currentPanel.Refresh()
         
     def getGuiObj(self, obj_name):
-        """handy function to retrive an object based on it's name for the current mode"""
+        """handy function to retreive an object based on it's name for the current mode"""
         return self.data[self.mode].get(obj_name)
         
     def fillTorrentLists(self):
@@ -334,6 +326,58 @@ class standardDetails(wx.Panel):
         
     def tabClicked(self, name):
         print 'Tabclicked: %s' % name
+        
+        # currently, only tabs in filesDetailspanel work
+        if self.mode != 'filesMode':
+            print 'standardDetails: Tabs for !filesDetails not yet implement'
+            return
+        
+        tabFiles = self.getGuiObj('files_detailsTab')
+        tabInfo = self.getGuiObj('info_detailsTab')
+        
+        if name == 'files_detailsTab' and not tabFiles.isSelected():
+            tabFiles.setSelected(True)
+            tabInfo.setSelected(False)
+            infoPanel = self.getGuiObj('details')
+            sizer = infoPanel.GetContainingSizer()
+            filesPanel = self.getFilesTabPanel()
+            self.swapPanel(sizer, 4, infoPanel, filesPanel)
+            
+        elif name == 'info_detailsTab' and not tabInfo.isSelected():
+            tabFiles.setSelected(False)
+            tabInfo.setSelected(True)
+            
+            filesPanel = self.getGuiObj('filesTabPanel')
+            sizer = filesPanel.GetContainingSizer()
+            infoPanel = self.getGuiObj('details')
+            self.swapPanel(sizer, 4, filesPanel, infoPanel)
+            
+        else:
+            print 'standardDetails: Unknown tabs'
+        
+        
+            
+    def swapPanel(self, sizer, index, oldpanel, newpanel):
+        # remove info tab panel
+        sizer.Detach(oldpanel)
+        oldpanel.Hide()
+        # add files tab panel
+        sizer.Insert(index, newpanel, 1, wx.EXPAND, 3)
+        if not newpanel.IsShown():
+            newpanel.Show()
+        sizer.Layout()
+        newpanel.GetParent().Refresh()
+        
+        
+    def getFilesTabPanel(self):
+        panel = self.getGuiObj('filesTabPanel')
+        if panel:
+            return panel
+        else:
+            # generate new panel
+            panel = FilesTabPanel(self.currentPanel)
+            self.data[self.mode]['filesTabPanel'] = panel
+            return panel
         
     def mouseAction(self, event):
         print 'mouseAction'
@@ -433,3 +477,44 @@ class standardDetails(wx.Panel):
         else:
              thumbPanel.setBitmap(DEFAULT_THUMB)
             
+class FilesTabPanel(wx.Panel):
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent, -1)
+        self.guiUtility = GUIUtility.getInstance()
+        self.utility = self.guiUtility.utility
+        self.addComponents()
+        
+    def addComponents(self):
+        self.vSizer = wx.BoxSizer(wx.VERTICAL)
+        
+        someText = wx.StaticText(self, -1, self.utility.lang.get('torrent_files') % 0)
+        self.vSizer.Add(someText, 0, wx.EXPAND, 0)
+        
+        self.fileList = wx.ListCtrl( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LC_REPORT|wx.SUNKEN_BORDER|wx.LC_SINGLE_SEL )
+        self.fileList.InsertColumn(0, self.utility.lang.get('file'))
+        self.fileList.InsertColumn(1, self.utility.lang.get('size'))
+        self.fileList.Bind(wx.EVT_SIZE, self.onListResize)
+                
+        if sys.platform == 'win32':
+            #print 'Using windows code'
+            self.vSizer.Add(self.fileList, 1, wx.ALL|wx.EXPAND, 1)
+        else:
+            #print 'Using unix code'
+            self.fileListSizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.fileListSizer.Add(self.fileList, 1, BORDER_EXPAND, 0)
+            self.vSizer.Add(self.fileListSizer, 1, BORDER_EXPAND, 1)
+        
+
+        self.SetSizer(self.vSizer);self.SetAutoLayout(1);self.Layout();
+        self.SetBackgroundColour(wx.WHITE)
+        self.SetMinSize((-1, 348)) # set same size as default info panel
+        self.Refresh()
+        
+    def onListResize(self, event):
+        size = self.fileList.GetClientSize()
+        if size[0] > 50 and size[1] > 50:
+            self.fileList.SetColumnWidth(1, wx.LIST_AUTOSIZE)
+            self.fileList.SetColumnWidth(0, self.fileList.GetClientSize()[0]-self.fileList.GetColumnWidth(1)-15)
+            self.fileList.ScrollList(-100, 0) # Removes HSCROLLBAR
+        if event:
+            event.Skip()

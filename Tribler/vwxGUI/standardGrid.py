@@ -10,7 +10,7 @@ from traceback import print_exc
 import wx, os, sys, math
 import wx.xrc as xrc
 
-DEBUG = True
+DEBUG = False
 
         
 class standardGrid(wx.Panel):
@@ -186,7 +186,8 @@ class standardGrid(wx.Panel):
             self.items = 0
         else:            
             self.currentRows = size[1] / self.subPanelHeight 
-            print >> sys.stderr, 'filesGrid: Height: %d, single panel is %d, so %d rows' % (size[1], self.subPanelHeight, self.currentRows)
+            if DEBUG:
+                print >> sys.stderr, 'standardGrid: Height: %d, single panel is %d, so %d rows' % (size[1], self.subPanelHeight, self.currentRows)
             self.items = self.cols * self.currentRows
         
         if oldRows != self.currentRows: #changed

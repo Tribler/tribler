@@ -12,6 +12,8 @@ class TextButton(wx.StaticText):
     """
 
     def __init__(self, *args, **kw):    
+        self.selected = False
+        self.colours = [wx.Colour(102,102,102), wx.WHITE]
         pre = wx.PreStaticText()
         # the Create step is done by XRC.
         self.PostCreate(pre)
@@ -26,11 +28,8 @@ class TextButton(wx.StaticText):
     def _PostInit(self):
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
-        self.colours = [wx.Colour(102,102,102), wx.WHITE]
-        
         self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
         self.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
-        self.selected = False
         if '_' in self.GetName():
             label = self.GetName()[:self.GetName().find('_')]
         else:
@@ -38,7 +37,7 @@ class TextButton(wx.StaticText):
         self.SetLabel('  '+label)
         self.SetMinSize((60,-1))
         #self.SetSize(75,18)
-        self.SetBackgroundColour(self.colours[0])    
+        self.SetBackgroundColour(self.colours[int(self.selected)])    
         self.Refresh(True)
         self.Update()
         
@@ -54,11 +53,11 @@ class TextButton(wx.StaticText):
         return self.selected
         
     def mouseAction(self, event):
-        if event.Entering():
+        if event.Entering() and not self.selected:
             #print 'enter' 
             self.SetBackgroundColour(self.colours[1])
             self.Refresh()
-        elif event.Leaving():
+        elif event.Leaving() and not self.selected:
             self.SetBackgroundColour(self.colours[0])
             self.Refresh()
         
