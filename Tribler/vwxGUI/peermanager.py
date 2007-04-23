@@ -87,6 +87,20 @@ class PeerDataManager(DelayedEventHandler):
         return False
 #        return self.frienddb.isFriend(permid)
     
+    def setOnline(self, permid, bOnline):
+        """sets online status for a peer given its permid"""
+        peer_data = self.getPeerData(permid) 
+        if peer_data == None:
+            print "tried to set online status for",show_permid_shorter(permid),"to online?",bOnline
+            return
+        peer_data['online']=bOnline
+        debug("%s is online? %s" %(peer_data['content_name'],peer_data['online']))
+        if bOnline:
+            mode="online"
+        else:
+            mode="offline"
+        self.notifyGui(peer_data, mode)
+        
     def addFriendwData(self, peer_data):
         permid = peer_data['permid']
         peer_d = self.getPeerData(permid)

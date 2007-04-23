@@ -12,10 +12,12 @@ class tribler_List(wx.ListCtrl):
     """
 
     def __init__(self, *args, **kw):
+        # self.SetWindowStyle(wx.LC_REPORT|wx.NO_BORDER|wx.LC_NO_HEADER|wx.LC_SINGLE_SEL)
         if len(args) == 0: 
             self.backgroundColor = wx.Colour(102,102,102) 
             pre = wx.PreListCtrl() 
             # the Create step is done by XRC. 
+            pre.SetWindowStyle(wx.LC_REPORT|wx.NO_BORDER|wx.LC_NO_HEADER|wx.LC_SINGLE_SEL)
             self.PostCreate(pre) 
             self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate) 
         else:

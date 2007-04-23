@@ -513,6 +513,7 @@ class FilesTabPanel(wx.Panel):
             self.vSizer.Add(self.fileList, 1, wx.ALL|wx.EXPAND, 1)
         else:
             #print 'Using unix code'
+            BORDER_EXPAND = wx.ALL|wx.GROW
             self.fileListSizer = wx.BoxSizer(wx.HORIZONTAL)
             self.fileListSizer.Add(self.fileList, 1, BORDER_EXPAND, 0)
             self.vSizer.Add(self.fileListSizer, 1, BORDER_EXPAND, 1)

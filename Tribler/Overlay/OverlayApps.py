@@ -15,6 +15,8 @@ from Tribler.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.Overlay.SecureOverlay import OLPROTO_VER_SECOND
 from Tribler.utilities import show_permid_short
+from Tribler.vwxGUI.peermanager import PeerDataManager
+from traceback import print_exc
 
 DEBUG = 0
 
@@ -140,6 +142,14 @@ class OverlayApps:
         if self.dialback_handler is not None:
             # overlay-protocol version check done inside
             self.dialback_handler.handleSecOverlayConnection(exc,permid,selversion,locally_initiated)
+        try:
+            if exc==None:
+                bOnline = True
+            else:
+                bOnline = False
+            PeerDataManager.getInstance().setOnline(permid, bOnline)
+        except:
+            print_exc()
         
         if self.buddycast:
             self.buddycast.handleConnection(exc,permid,selversion,locally_initiated)

@@ -289,7 +289,7 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
                 recomm = 3
             else:
                 recomm = -1
-            if recomm >=0 or self.data.get('friend'):
+            if recomm >=0 or self.data.get('friend') or self.data.get('online'):
                 dc.DrawBitmap(MASK_BITMAP,0 ,62, True)
             if recomm >=0:
                 dc.DrawBitmap(TasteHeart.BITMAPS[recomm],5 ,64, True)
@@ -298,11 +298,13 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
                 dc.DrawText(text, 22, 66)
             if self.data.get('friend'):
                 dc.DrawBitmap(FRIEND_BITMAP,60 ,65, True)            
+            if self.data.get('online'):
+                dc.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, False))
+                dc.SetTextForeground('#007303')
+                dc.DrawText('online', 26, 66)
         
 #        dc.SetTextForeground(wx.WHITE)
         #dc.DrawText('rating', 5, 60)
-#        dc.SetTextForeground(wx.BLACK)
-        #dc.DrawText('rating', 8, 50)
         if (self.selected and self.border):
             dc.SetPen(wx.Pen(wx.Colour(255,51,0), 2))
             dc.DrawLines(self.border)
