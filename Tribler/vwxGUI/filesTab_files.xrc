@@ -38,7 +38,7 @@
                 <flag>wxLEFT|wxALIGN_RIGHT|wxFIXED_MINSIZE</flag>
                 <border>3</border>
                 <option>0</option>
-                <object class="tribler_topButton" name="download">
+                <object class="wxPanel" name="download" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
                   <pos>240,3</pos>
                   <size>55,55</size>
                 </object>
@@ -51,7 +51,7 @@
         <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>1</option>
-        <object class="tribler_List" name="includedFiles">
+        <object class="wxListCtrl" name="includedFiles" subclass="Tribler.vwxGUI.tribler_List.tribler_List">
           <pos>3,64</pos>
           <size>292,70</size>
         </object>

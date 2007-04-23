@@ -260,7 +260,7 @@ class PeerDataManager(DelayedEventHandler):
         creates content_name, similarity_percent, rank_value
         updates the global maximal similarity value and the list of top 20 most similar peers"""
         if peer_data['name']!=None and len(peer_data['name'])>0:
-            peer_data['content_name']=str(peer_data['name'])
+            peer_data['content_name']=dunno2unicode(peer_data['name'])
         else:
             peer_data['content_name']= 'peer %s' % show_permid_shorter(peer_data['permid'])#'[%s:%s]' % (localdata[i]['ip'],str(localdata[i]['port']))
         peer_data['friend'] = self.frienddb.isFriend(peer_data['permid'])#permid in self.friend_list

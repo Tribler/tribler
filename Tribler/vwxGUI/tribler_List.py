@@ -17,7 +17,7 @@ class tribler_List(wx.ListCtrl):
             self.backgroundColor = wx.Colour(102,102,102) 
             pre = wx.PreListCtrl() 
             # the Create step is done by XRC. 
-            pre.SetWindowStyle(wx.LC_REPORT|wx.NO_BORDER|wx.LC_NO_HEADER|wx.LC_SINGLE_SEL)
+            #pre.SetWindowStyle(wx.LC_REPORT|wx.NO_BORDER|wx.LC_NO_HEADER|wx.LC_SINGLE_SEL)
             self.PostCreate(pre) 
             self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate) 
         else:
