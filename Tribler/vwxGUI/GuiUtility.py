@@ -148,7 +148,8 @@ class GUIUtility:
         self.standardDetails.setMode('personsMode', None)
     
     def standardProfileOverview(self):
-        profileList = self.reloadData()
+        #profileList = self.reloadData()
+        profileList = ""
         self.standardOverview.setMode('profileMode', '','', profileList)
         
     def standardLibraryOverview(self, filter1String="audio", filter2String="swarmsize"):       

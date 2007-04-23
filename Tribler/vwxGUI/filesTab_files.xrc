@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
+  <object class="wxPanel" name="pnl17013f">
+    <pos>0,0</pos>
+    <size>300,348</size>
+    <object class="wxBoxSizer">
+      <orient>wxVERTICAL</orient>
+      <object class="sizeritem">
+        <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+        <object class="wxBoxSizer">
+          <orient>wxHORIZONTAL</orient>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>4</border>
+            <option>1</option>
+            <object class="wxBoxSizer">
+              <orient>wxHORIZONTAL</orient>
+              <object class="sizeritem">
+                <flag>wxLEFT|wxFIXED_MINSIZE</flag>
+                <border>8</border>
+                <option>0</option>
+                <object class="wxStaticText" name="includedFilesField">
+                  <style>wxST_NO_AUTORESIZE</style>
+                  <label>included files (*):</label>
+                  <pos>3,3</pos>
+                  <size>168,20</size>
+                </object>
+              </object>
+              <object class="spacer">
+                <size>10,10</size>
+                <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>3</border>
+                <option>1</option>
+              </object>
+              <object class="sizeritem">
+                <flag>wxLEFT|wxALIGN_RIGHT|wxFIXED_MINSIZE</flag>
+                <border>3</border>
+                <option>0</option>
+                <object class="tribler_topButton" name="download">
+                  <pos>240,3</pos>
+                  <size>55,55</size>
+                </object>
+              </object>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>1</option>
+        <object class="tribler_List" name="includedFiles">
+          <pos>3,64</pos>
+          <size>292,70</size>
+        </object>
+      </object>
+    </object>
+  </object>
+</resource>
