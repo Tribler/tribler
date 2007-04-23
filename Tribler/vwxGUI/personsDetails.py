@@ -64,7 +64,7 @@ class personsDetails(wx.Panel):
         self.pn240c.SetBackgroundColour(wx.Colour(0,0,0))
         self.TasteHeart = TasteHeart(self.detailsC,-1,wxDefaultPosition,wxDefaultSize)
         self.TasteHeart.SetDimensions(90,10,14,14)
-        self.addAsFriend = tribler_topButton(self.detailsC, -1, wx.Point(201,7), wx.Size(55,55))
+        self.addAsFriend = tribler_topButton(self.detailsC, -1, wx.Point(238,3), wx.Size(55,55))
         self.info_detailsTab = TextButton(self.tabs,-1,wxDefaultPosition,wxDefaultSize)
         self.info_detailsTab.SetDimensions(10,0,75,18)
         self.advanced_detailsTab = TextButton(self.tabs,-1,wxDefaultPosition,wxDefaultSize)

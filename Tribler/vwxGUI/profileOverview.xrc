@@ -2,7 +2,7 @@
 <resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
   <object class="wxPanel" name="profileOverview">
     <pos>0,0</pos>
-    <size>625,430</size>
+    <size>625,600</size>
     <bg>#ffffff</bg>
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>
@@ -16,7 +16,7 @@
             <flag>wxFIXED_MINSIZE</flag>
             <border>3</border>
             <option>0</option>
-            <object class="wxPanel" name="orange_top_left" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="bgPanel" name="orange_top_left">
               <pos>0,0</pos>
               <size>10,21</size>
             </object>
@@ -51,7 +51,7 @@
             <flag>wxFIXED_MINSIZE</flag>
             <border>3</border>
             <option>0</option>
-            <object class="wxPanel" name="orange_top_right" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="bgPanel" name="orange_top_right">
               <pos>613,0</pos>
               <size>10,21</size>
             </object>
@@ -89,7 +89,7 @@
             <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>15</border>
             <option>0</option>
-            <object class="wxPanel" name="thumb" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="bgPanel" name="thumb">
               <pos>10,63</pos>
               <size>80,80</size>
             </object>
@@ -191,7 +191,7 @@
               <flag>wxTOP|wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
               <border>15</border>
               <option>0</option>
-              <object class="wxPanel" name="perf" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+              <object class="bgPanel" name="perfL3">
                 <pos>15,15</pos>
                 <size>45,55</size>
               </object>
@@ -233,7 +233,7 @@
               <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
               <border>15</border>
               <option>0</option>
-              <object class="wxPanel" name="bgPanel246c" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+              <object class="bgPanel" name="bgPanel246c">
                 <pos>370,10</pos>
                 <size>55,55</size>
               </object>
@@ -247,17 +247,23 @@
         <option>0</option>
         <object class="wxPanel" name="pn248c">
           <pos>0,299</pos>
-          <size>623,60</size>
+          <size>623,40</size>
           <bg>#cbcbcb</bg>
           <object class="wxBoxSizer">
             <orient>wxHORIZONTAL</orient>
-            <object class="sizeritem">
-              <flag>wxTOP|wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
-              <border>15</border>
+            <object class="spacer">
+              <size>15,10</size>
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
               <option>0</option>
-              <object class="wxPanel" name="bgPanel247cC" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
-                <pos>15,15</pos>
-                <size>30,30</size>
+            </object>
+            <object class="sizeritem">
+              <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
+              <border>5</border>
+              <option>0</option>
+              <object class="bgPanel" name="perfM2">
+                <pos>15,5</pos>
+                <size>25,30</size>
               </object>
             </object>
             <object class="sizeritem">
@@ -266,21 +272,243 @@
               <option>0</option>
               <object class="wxBoxSizer">
                 <orient>wxVERTICAL</orient>
-                <object class="spacer">
-                  <size>255,25</size>
-                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                  <border>3</border>
-                  <option>0</option>
-                </object>
                 <object class="sizeritem">
-                  <flag>wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                  <border>11</border>
+                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>15</border>
                   <option>0</option>
                   <object class="wxStaticText" name="st241cC">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>Quality of tribler recommendations</label>
-                    <pos>59,24</pos>
+                    <pos>48,18</pos>
                     <size>239,16</size>
+                    <font>
+                      <size>10</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>normal</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
+              </object>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>23</border>
+        <option>0</option>
+        <object class="wxPanel" name="pn248cC">
+          <pos>3,405</pos>
+          <size>623,40</size>
+          <bg>#ffffff</bg>
+          <object class="wxBoxSizer">
+            <orient>wxHORIZONTAL</orient>
+            <object class="spacer">
+              <size>15,10</size>
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+            </object>
+            <object class="sizeritem">
+              <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
+              <border>5</border>
+              <option>0</option>
+              <object class="bgPanel" name="perfM2C">
+                <pos>18,3</pos>
+                <size>25,30</size>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+              <object class="wxBoxSizer">
+                <orient>wxVERTICAL</orient>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>15</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="st241cCC">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>Quality of tribler recommendations</label>
+                    <pos>51,6</pos>
+                    <size>239,16</size>
+                    <font>
+                      <size>10</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>normal</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
+              </object>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>23</border>
+        <option>0</option>
+        <object class="wxPanel" name="pn248cCC">
+          <pos>3,405</pos>
+          <size>623,40</size>
+          <bg>#cbcbcb</bg>
+          <object class="wxBoxSizer">
+            <orient>wxHORIZONTAL</orient>
+            <object class="spacer">
+              <size>15,10</size>
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+            </object>
+            <object class="sizeritem">
+              <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
+              <border>5</border>
+              <option>0</option>
+              <object class="bgPanel" name="perfM2CC">
+                <pos>18,3</pos>
+                <size>25,30</size>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+              <object class="wxBoxSizer">
+                <orient>wxVERTICAL</orient>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>15</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="st241cCCC">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>Quality of tribler recommendations</label>
+                    <pos>51,6</pos>
+                    <size>239,16</size>
+                    <font>
+                      <size>10</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>normal</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
+              </object>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>23</border>
+        <option>0</option>
+        <object class="wxPanel" name="pn248cCCC">
+          <pos>0,419</pos>
+          <size>623,40</size>
+          <bg>#ffffff</bg>
+          <object class="wxBoxSizer">
+            <orient>wxHORIZONTAL</orient>
+            <object class="spacer">
+              <size>15,10</size>
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+            </object>
+            <object class="sizeritem">
+              <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
+              <border>5</border>
+              <option>0</option>
+              <object class="bgPanel" name="perfM2CCC">
+                <pos>18,3</pos>
+                <size>25,30</size>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+              <object class="wxBoxSizer">
+                <orient>wxVERTICAL</orient>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>15</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="st241cCCCC">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>Quality of tribler recommendations</label>
+                    <pos>51,6</pos>
+                    <size>239,16</size>
+                    <font>
+                      <size>10</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>normal</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
+              </object>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>23</border>
+        <option>0</option>
+        <object class="wxPanel" name="pn248cCCCC">
+          <pos>3,475</pos>
+          <size>623,40</size>
+          <bg>#cbcbcb</bg>
+          <object class="wxBoxSizer">
+            <orient>wxHORIZONTAL</orient>
+            <object class="spacer">
+              <size>15,10</size>
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+            </object>
+            <object class="sizeritem">
+              <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
+              <border>5</border>
+              <option>0</option>
+              <object class="bgPanel" name="perfM2CCCC">
+                <pos>18,3</pos>
+                <size>25,30</size>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+              <object class="wxBoxSizer">
+                <orient>wxVERTICAL</orient>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>15</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="st241cCCCCC">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>Quality of tribler recommendations</label>
+                    <pos>51,6</pos>
+                    <size>239,16</size>
+                    <font>
+                      <size>10</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>normal</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
                   </object>
                 </object>
               </object>
@@ -289,7 +517,7 @@
         </object>
       </object>
       <object class="spacer">
-        <size>105,60</size>
+        <size>105,5</size>
         <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>1</option>
@@ -304,7 +532,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>3</border>
             <option>0</option>
-            <object class="wxPanel" name="orange_bottom_left" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="bgPanel" name="orange_bottom_left">
               <pos>0,399</pos>
               <size>10,28</size>
             </object>
@@ -313,7 +541,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>3</border>
             <option>1</option>
-            <object class="wxPanel" name="orange_bottom_center" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="bgPanel" name="orange_bottom_center">
               <pos>10,399</pos>
               <size>20,20</size>
             </object>
@@ -322,7 +550,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>0</border>
             <option>0</option>
-            <object class="wxPanel" name="pagerBottomRight" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="bgPanel" name="pagerBottomRight">
               <pos>600,403</pos>
               <size>271,28</size>
               <object class="wxBoxSizer">
@@ -337,7 +565,7 @@
                   <flag>wxTOP|wxEXPAND</flag>
                   <border>5</border>
                   <option>1</option>
-                  <object class="wxPanel" name="standardPager" subclass="Tribler.vwxGUI.standardPager.standardPager">
+                  <object class="standardPager" name="standardPager">
                     <pos>25,5</pos>
                     <size>238,23</size>
                   </object>

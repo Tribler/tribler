@@ -124,7 +124,7 @@ total number of exchanges:</label>
                 <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
                 <border>3</border>
                 <option>0</option>
-                <object class="tribler_topButton" name="addAsFriend">
+                <object class="wxPanel" name="addAsFriend" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
                   <pos>272,6</pos>
                   <size>55,55</size>
                 </object>
