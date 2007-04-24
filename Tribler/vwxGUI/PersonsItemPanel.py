@@ -107,7 +107,6 @@ class PersonsItemPanel(wx.Panel):
           
         
     def select(self):
-        print 'person selected'
         self.thumb.setSelected(True)
         self.title.SetBackgroundColour(self.selectedColour)
         self.title.Refresh()
@@ -250,12 +249,10 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
         
     def mouseAction(self, event):
         if event.Entering():
-            print 'enter' 
             self.mouseOver = True
             self.Refresh()
         elif event.Leaving():
             self.mouseOver = False
-            print 'leave'
             self.Refresh()
         elif event.ButtonUp():
             self.ClickedButton()

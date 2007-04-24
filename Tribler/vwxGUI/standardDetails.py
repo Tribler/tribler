@@ -47,9 +47,12 @@ class standardDetails(wx.Panel):
         self.modeElements = {'filesMode': ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
                                             'download', 'files_detailsTab', 'info_detailsTab', 'TasteHeart', 'details',],
-                             'personsMode': ['TasteHeart', 'recommendationField','addAsFriend', 'commonFilesField', 'alsoDownloadedField']
+                             'personsMode': ['TasteHeart', 'recommendationField','addAsFriend', 'commonFilesField',
+                                              'alsoDownloadedField', 'info_detailsTab', 'advanced_detailsTab','detailsC',
+                                              'titleField']
                              }
-        self.tabElements = {'filesTab_files': ['includedFilesField', 'download', 'includedFiles']}
+        self.tabElements = {'filesTab_files': ['includedFilesField', 'download', 'includedFiles'],
+                            'personsTab_advanced': ['lastExchangeField', 'noExchangeField', 'timesConnectedField','addAsFriend']}
 
         self.guiUtility.initStandardDetails(self)
 
@@ -159,6 +162,8 @@ class standardDetails(wx.Panel):
                 self.getGuiObj('info_detailsTab').setSelected(True)
             elif modeString == 'persons' or modeString == 'friends':
                 self.getGuiObj('TasteHeart').setBackground(wx.WHITE)
+                self.getGuiObj('info_detailsTab').setSelected(True)
+                self.getGuiObj('advanced_detailsTab').SetLabel(" advanced")
                 #get the list in the right mode for viewing
                 self.setListAspect2OneColumn("alsoDownloadedField")
                 self.setListAspect2OneColumn("commonFilesField")
@@ -203,10 +208,13 @@ class standardDetails(wx.Panel):
         
     def setData(self, item):
         self.item = item
+        if not item:
+            return
         if self.mode == 'filesMode':
+            #check if this is a corresponding item from type point of view
+            if item.get('infohash')==None:
+                return #no valid torrent
             torrent = item
-            if not torrent:
-                return
             
             titleField = self.getGuiObj('titleField')
             titleField.SetLabel(torrent.get('content_name'))
@@ -251,36 +259,66 @@ class standardDetails(wx.Panel):
             
                         
         elif self.mode in ['personsMode', 'friendsMode']:
-            #recomm = random.randint(0,4)
-            rank = self.guiUtility.peer_manager.getRank(item['permid'])
-            #because of the fact that hearts are coded so that lower index means higher ranking, then:
-            if rank > 0 and rank <= 5:
-                recomm = 0
-            elif rank > 5 and rank <= 10:
-                recomm = 1
-            elif rank > 10 and rank <= 15:
-                recomm = 2
-            elif rank > 15 and rank <= 20:
-                recomm = 3
-            else:
-                recomm = 4
-            if rank != -1:
-                self.getGuiObj('recommendationField').SetLabel("%d" % rank + " of 20")
-            else:
-                self.getGuiObj('recommendationField').SetLabel("")
-            if recomm != -1:
-                self.getGuiObj('TasteHeart').setHeartIndex(recomm)
-            else:
-                self.getGuiObj('TasteHeart').setHeartIndex(0)
+            #check if this is a corresponding item from type point of view
+            if item.get('permid')==None:
+                return #no valid torrent
             
-            if item['friend']:
-                self.getGuiObj('addAsFriend').Enable(False)
-                self.getGuiObj('addAsFriend').switchTo(ISFRIEND_BITMAP)
-            else:
-                self.getGuiObj('addAsFriend').switchBack()
-                self.getGuiObj('addAsFriend').Enable(True)
+            titleField = self.getGuiObj('titleField')
+            titleField.SetLabel(item.get('content_name'))
+            titleField.Wrap(-1)
+
+            if self.getGuiObj('info_detailsTab').isSelected():
+                #recomm = random.randint(0,4)
+                rank = self.guiUtility.peer_manager.getRank(item['permid'])
+                #because of the fact that hearts are coded so that lower index means higher ranking, then:
+                if rank > 0 and rank <= 5:
+                    recomm = 0
+                elif rank > 5 and rank <= 10:
+                    recomm = 1
+                elif rank > 10 and rank <= 15:
+                    recomm = 2
+                elif rank > 15 and rank <= 20:
+                    recomm = 3
+                else:
+                    recomm = 4
+                if rank != -1:
+                    self.getGuiObj('recommendationField').SetLabel("%d" % rank + " of 20")
+                else:
+                    self.getGuiObj('recommendationField').SetLabel("")
+                if recomm != -1:
+                    self.getGuiObj('TasteHeart').setHeartIndex(recomm)
+                else:
+                    self.getGuiObj('TasteHeart').setHeartIndex(0)
                 
-            self.fillTorrentLists()
+                if item['friend']:
+                    self.getGuiObj('addAsFriend').Enable(False)
+                    self.getGuiObj('addAsFriend').switchTo(ISFRIEND_BITMAP)
+                else:
+                    self.getGuiObj('addAsFriend').switchBack()
+                    self.getGuiObj('addAsFriend').Enable(True)
+                    
+                self.fillTorrentLists()
+            elif self.getGuiObj('advanced_detailsTab').isSelected():
+                if item.get('last_seen')!=None:
+                    if item['last_seen'] < 0:
+                        self.getGuiObj('lastExchangeField', tab = 'personsTab_advanced').SetLabel("never seen online")
+                    else:
+                        self.getGuiObj('lastExchangeField', tab = 'personsTab_advanced').SetLabel('%s %s'%(friendly_time(item['last_seen']),'ago'))
+                else:
+                    self.getGuiObj('lastExchangeField', tab = 'personsTab_advanced').SetLabel('')
+                if item.get("connected_times")!=None:
+                    self.getGuiObj('timesConnectedField', tab = 'personsTab_advanced').SetLabel(str(item["connected_times"]))
+                else:
+                    item.getGuiObj('timesConnectedField', tab = 'personsTab_advanced').SetLabel("")
+                
+                addAsFriend = self.getGuiObj('addAsFriend', tab = 'personsTab_advanced')
+                if addAsFriend.initDone:
+                    if item['friend']:
+                        addAsFriend.Enable(False)
+                        addAsFriend.switchTo(ISFRIEND_BITMAP)
+                    else:
+                        addAsFriend.switchBack()
+                        addAsFriend.Enable(True)
             
         elif self.mode == 'libraryMode':
             pass
@@ -369,48 +407,80 @@ class standardDetails(wx.Panel):
         print 'Tabclicked: %s' % name
         
         # currently, only tabs in filesDetailspanel work
-        if self.mode != 'filesMode':
-            print 'standardDetails: Tabs for !filesDetails not yet implement'
-            return
+        if self.mode == 'filesMode':
         
-        tabFiles = self.getGuiObj('files_detailsTab')
-        tabInfo = self.getGuiObj('info_detailsTab')
-        
-        if name == 'files_detailsTab' and not tabFiles.isSelected():
-            tabFiles.setSelected(True)
-            tabInfo.setSelected(False)
-            infoPanel = self.getGuiObj('details')
-            sizer = infoPanel.GetContainingSizer()
-            filesPanel = self.getAlternativeTabPanel('filesTab_files')
-            self.swapPanel(sizer, 3, infoPanel, filesPanel)
+            tabFiles = self.getGuiObj('files_detailsTab')
+            tabInfo = self.getGuiObj('info_detailsTab')
             
-        elif name == 'info_detailsTab' and not tabInfo.isSelected():
-            tabFiles.setSelected(False)
-            tabInfo.setSelected(True)
+            if name == 'files_detailsTab' and not tabFiles.isSelected():
+                tabFiles.setSelected(True)
+                tabInfo.setSelected(False)
+                infoPanel = self.getGuiObj('details')
+                sizer = infoPanel.GetContainingSizer()
+                filesPanel = self.getAlternativeTabPanel('filesTab_files')
+                self.swapPanel(sizer, infoPanel, filesPanel, 3)
+                
+            elif name == 'info_detailsTab' and not tabInfo.isSelected():
+                tabFiles.setSelected(False)
+                tabInfo.setSelected(True)
+                
+                filesPanel = self.getGuiObj('filesTab_files')
+                sizer = filesPanel.GetContainingSizer()
+                infoPanel = self.getGuiObj('details')
+                self.swapPanel(sizer, filesPanel, infoPanel, 3)
+                
+            else:
+                print '%s: Unknown tab %s' % (self.mode,name)
+                return
+        elif self.mode in ["personsMode","friendsMode"]:
+            tabAdvanced = self.getGuiObj('advanced_detailsTab')
+            tabInfo = self.getGuiObj('info_detailsTab')
             
-            filesPanel = self.getGuiObj('filesTab_files')
-            sizer = filesPanel.GetContainingSizer()
-            infoPanel = self.getGuiObj('details')
-            self.swapPanel(sizer, 3, filesPanel, infoPanel)
-            
+            if name == 'advanced_detailsTab' and not tabAdvanced.isSelected():
+                tabAdvanced.setSelected(True)
+                tabInfo.setSelected(False)
+                infoPanel = self.getGuiObj('detailsC')
+                sizer = infoPanel.GetContainingSizer()
+                advancedPanel = self.getAlternativeTabPanel('personsTab_advanced')
+                self.swapPanel(sizer, infoPanel, advancedPanel)
+            elif name == 'info_detailsTab' and not tabInfo.isSelected():
+                tabAdvanced.setSelected(False)
+                tabInfo.setSelected(True)
+                advancedPanel = self.getGuiObj('personsTab_advanced')
+                sizer = advancedPanel.GetContainingSizer()
+                infoPanel = self.getGuiObj('detailsC')
+                self.swapPanel(sizer, advancedPanel, infoPanel)
+            else:
+                print '%s: Unknown tab %s' % (self.mode,name)
+                return
+            print "<mluc> advanced tab has label:",tabAdvanced.GetLabel()
         else:
-            print 'standardDetails: Unknown tabs'
+            print 'standardDetails: Tabs for this mode (%s) not yet implemented' % self.mode
             return
         
         self.setData(self.item)
         
             
-    def swapPanel(self, sizer, index, oldpanel, newpanel):
+    def swapPanel(self, sizer, oldpanel, newpanel, index=-1):
+        """replaces in a sizer a panel with another one to simulate tabs"""
+        #if index not given, use sizer's own replace method
+        if index == -1:
+            index = 0
+            for panel in sizer.GetChildren():
+                if panel.GetWindow() == oldpanel:
+                    break
+                index = index + 1
+#            sizerItem = sizer.Replace(oldpanel, newpanel)
+            print "found index is:",index,"number of children in sizer:",len(sizer.GetChildren())
         # remove info tab panel
         sizer.Detach(oldpanel)
-        oldpanel.Hide()
         # add files tab panel
         sizer.Insert(index, newpanel, 1, wx.EXPAND, 3)
+        oldpanel.Hide()
         if not newpanel.IsShown():
             newpanel.Show()
         sizer.Layout()
         newpanel.GetParent().Refresh()
-        
         
     def getAlternativeTabPanel(self, name):
         "Load a tabPanel that was not loaded as default"

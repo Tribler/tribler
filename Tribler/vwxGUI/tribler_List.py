@@ -44,7 +44,6 @@ class tribler_List(wx.ListCtrl):
         size = self.GetClientSize()
         self.SetColumnWidth( 0, size.width-10) #vertical scrollbar width
         self.ScrollList(-100, 0) # Removes HSCROLLBAR
-        print "<mluc> here"
 
 class TorrentList(tribler_List):
     def __init__(self):

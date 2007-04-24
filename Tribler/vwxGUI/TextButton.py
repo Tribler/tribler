@@ -48,6 +48,7 @@ class TextButton(wx.StaticText):
             self.selected = sel
             self.SetBackgroundColour(self.colours[int(sel)])
             self.Refresh()
+        print "<mluc> label:",self.GetLabel(),"and name:",self.GetName()
         
     def isSelected(self):
         return self.selected

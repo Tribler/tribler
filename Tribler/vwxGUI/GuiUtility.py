@@ -151,7 +151,6 @@ class GUIUtility:
         self.categorykey = "friends"
         friendsList = self.reloadPeers()
         self.standardOverview.setMode('friendsMode', '', '', friendsList)
-        self.standardOverview.setMode('friendsMode', '','', friendsList)
     
     def standardProfileOverview(self):
         #profileList = self.reloadData()

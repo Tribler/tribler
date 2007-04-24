@@ -159,7 +159,7 @@ class PeerDataManager(DelayedEventHandler):
                 else:
                     peer_data['similarity']=0
                 #add infohash to be used by standardGrid.updateSelection
-                peer_data['infohash']=peer_data['permid']
+                #peer_data['infohash']=peer_data['permid']
                 localdata.append(peer_data)
         
         # compute similarity rank based on similarity with this peer relative to the greatest similarity value
@@ -275,7 +275,7 @@ class PeerDataManager(DelayedEventHandler):
         #recompute rank
         peer_data['rank_value'] = self.compute_rankval(peer_data)
         #add infohash to be used by standardGrid.updateSelection
-        peer_data['infohash']=peer_data['permid']
+        #peer_data['infohash']=peer_data['permid']
         #check to see if top20 needs to be updated
         j = 0
         while j<len(self.top20similar):
