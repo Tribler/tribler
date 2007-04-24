@@ -72,7 +72,7 @@ class LibraryItemPanel(wx.Panel):
         self.hSizer.Add(self.vSizerTitle, 0, wx.ALL|wx.EXPAND, 3)     
         
         # Add Gauge/progressbar
-        self.pb = TriblerProgressbar(self,-1,wx.Point(359,0),wx.Size(80,15))
+        self.pb = TriblerProgressbar(self,-1,wx.Point(359,0),wx.Size(80,15),wx.SIMPLE_BORDER)
         #self.pb = wx.Panel(self)
         self.pause = tribler_topButton(self, -1, wx.Point(542,3), wx.Size(17,17),name='pause' )
         self.delete = tribler_topButton(self, -1, wx.Point(542,3), wx.Size(17,17),name='delete')        

@@ -3,6 +3,7 @@
   <object class="wxPanel" name="personsTab_advanced">
     <pos>0,0</pos>
     <size>300,350</size>
+    <bg>#ffffff</bg>
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>
       <object class="sizeritem">
