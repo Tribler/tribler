@@ -20,19 +20,25 @@ def changeFile(filename):
                      ('standardOverview', 'wxPanel', customDir+'standardOverview'), 
                      ('standardDetails', 'wxPanel', customDir+'standardDetails'),                     
                      ('standardPager', 'wxPanel', customDir+'standardPager'),
+                     
                      ('filesOverview', 'wxPanel', customDir+'filesOverview'),                     
                      ('filesFilter', 'wxPanel', customDir+'filesFilter'),
                      ('filesItem', 'wxPanel', customDir+'filesItem'),    
                      ('filesTabs', 'wxPanel', customDir+'filesTabs'), 
                      ('filesDetails', 'wxPanel', customDir+'filesDetails'), 
                      ('filesGrid', 'wxPanel', customDir+'standardGrid'),
+                     
                      ('personsOverview', 'wxPanel', customDir+'personsOverview'),
                      ('personsFilter', 'wxPanel', customDir+'personsFilter'),                     
                      ('personsGrid', 'wxPanel', customDir+'standardGrid'),
-                     ('personsDetails', 'wxPanel', customDir+'personsDetails'), 
+                     ('personsDetails', 'wxPanel', customDir+'personsDetails'),
+                      
                      ('libraryGrid', 'wxPanel', customDir+'standardGrid'),
+                     ('libraryDetails', 'wxPanel', customDir+'libraryDetails'),
+                     
                      ('friendsGrid', 'wxPanel', customDir+'standardGrid'),
-                     ('friendsOverview', 'wxPanel', customDir+'friendsOverview'),                     
+                     ('friendsOverview', 'wxPanel', customDir+'friendsOverview'), 
+                                         
                      ('subscriptionsOverview', 'wxPanel', customDir+'subscriptionsOverview'),                     
                      ('TasteHeart', 'wxPanel', customDir+'TasteHeart'),
                      ('TextButton', 'wxStaticText', customDir+'TextButton'),

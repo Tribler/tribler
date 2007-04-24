@@ -19,7 +19,7 @@
             <object class="wxStaticText" name="st5c">
               <style>wxST_NO_AUTORESIZE</style>
               <label>NOS 8 Uur Journaal van...</label>
-              <pos>58,3</pos>
+              <pos>3,3</pos>
               <size>162,14</size>
               <font>
                 <size>8</size>
@@ -83,7 +83,7 @@
                 <flag>wxTOP|wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
                 <border>3</border>
                 <option>0</option>
-                <object class="wxStaticText" name="st5cC">
+                <object class="wxStaticText" name="archive">
                   <style>wxST_NO_AUTORESIZE</style>
                   <label>archive</label>
                   <pos>274,3</pos>
@@ -137,7 +137,7 @@
             <option>0</option>
             <object class="wxGauge" name="pb">
               <pos>362,6</pos>
-              <size>99,12</size>
+              <size>39,12</size>
             </object>
           </object>
           <object class="sizeritem">
@@ -151,16 +151,25 @@
               <size>49,13</size>
             </object>
           </object>
+          <object class="sizeritem">
+            <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>0</option>
+            <object class="wxStaticLine" name="vLine">
+              <pos>362,37</pos>
+              <size>2,2</size>
+            </object>
+          </object>
         </object>
       </object>
       <object class="sizeritem">
         <flag>wxALIGN_CENTER_VERTICAL|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="wxStaticText" name="st5cCCC">
-          <style>wxST_NO_AUTORESIZE</style>
+        <object class="wxStaticText" name="play">
+          <style>wxSIMPLE_BORDER|wxST_NO_AUTORESIZE</style>
           <label>&gt; play</label>
-          <pos>468,10</pos>
+          <pos>417,10</pos>
           <size>72,13</size>
           <fg>#ff5500</fg>
         </object>

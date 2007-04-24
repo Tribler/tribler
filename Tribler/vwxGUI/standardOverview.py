@@ -117,7 +117,7 @@ class standardOverview(wx.Panel):
                 print_exc()
         return currentPanel
      
-    def setData(self):
+    def setData(self):        
         grid = self.data[self.mode].get('grid')
         if grid:
             grid.setData(self.data[self.mode].get('data'))

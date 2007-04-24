@@ -162,6 +162,8 @@ class GUIUtility:
         libraryList = self.loadLibrary()
         self.standardOverview.setMode('libraryMode', filter1String, filter2String, libraryList)
         
+        self.standardDetails.setMode('libraryMode', None)
+        
     def standardSubscriptionsOverview(self, filter1String="audio", filter2String="swarmsize"):       
         subscriptionsList = self.reloadData()         
         self.standardOverview.setMode('subscriptionsMode', '','', subscriptionsList)        

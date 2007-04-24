@@ -30,8 +30,7 @@
                     <option>0</option>
                     <object class="wxStaticText" name="st209cCC">
                       <style>wxST_NO_AUTORESIZE</style>
-                      <label>last info exchange:
-total number of exchanges:</label>
+                      <label>last info exchange:</label>
                       <pos>8,7</pos>
                       <size>150,18</size>
                     </object>
@@ -62,7 +61,7 @@ total number of exchanges:</label>
                     <object class="wxStaticText" name="st209c">
                       <style>wxST_NO_AUTORESIZE</style>
                       <label>total number of exchanges:</label>
-                      <pos>8,25</pos>
+                      <pos>28,95</pos>
                       <size>150,18</size>
                     </object>
                   </object>
@@ -126,7 +125,7 @@ total number of exchanges:</label>
                 <border>3</border>
                 <option>0</option>
                 <object class="wxPanel" name="addAsFriend" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                  <pos>272,6</pos>
+                  <pos>240,3</pos>
                   <size>55,55</size>
                 </object>
               </object>

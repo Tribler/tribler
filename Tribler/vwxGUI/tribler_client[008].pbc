@@ -9,17 +9,17 @@ ckscr=0
 ProjectBuild=0
 CountConfComp=2
 nomifileEsi=
-idmax=978
-idmaxFile=100368
-idIncCmp=2678
+idmax=1014
+idmaxFile=100379
+idIncCmp=2728
 isfuncClsName=0
 funcNamePreF=VwXnew_
 s_includeNewCtor=
 l_compTipo=1
 l_framTipo=0
 imageAllH=0
-numFile=31
-numForm=20
+numFile=32
+numForm=21
 numSource=12
 [Project/conf0]
 name=Release
@@ -119,7 +119,7 @@ filename=wx/msw/wx.rc
 18=0
 19=0
 [Project/comVirt]
-iN=26
+iN=27
 [Project/comVirt/1]
 include=from filesOverview import *
 ctor=(parent,id,pos,size,style,name)
@@ -626,10 +626,24 @@ styleNum=0
 libreriaAdd=
 resourceAdd=
 contenitor=0
+[Project/comVirt/27]
+include=from friendsGrid import *
+ctor=(parent,id,pos,size,style,name)
+assign=(self,-1,wxDefaultPosition,wxDefaultSize,style)
+nclass=friendsGrid
+idSTR=14:14:392432007
+id=1
+filenameDll=
+enableDll=0
+eventNum=0
+styleNum=0
+libreriaAdd=
+resourceAdd=
+contenitor=0
 [Project/GroupsName]
 count=1
 item0name=Save Project
-item0id=
+item0id=2119,2413,2681,2120
 [VwXScript]
 count=0
 [File0]
@@ -727,7 +741,7 @@ ws_dir=.\\
 s_tipoFile=21
 s_tipoComp=0
 ClsparentCompTipo=0
-i_FileIdent=100362
+i_FileIdent=100379
 i_FileIdentPar=2
 wx_WindowFileADD=1635087209
 l_ProtettoDesigne=0
@@ -749,7 +763,7 @@ ws_dir=.\\
 s_tipoFile=21
 s_tipoComp=0
 ClsparentCompTipo=0
-i_FileIdent=100363
+i_FileIdent=100369
 i_FileIdentPar=2
 wx_WindowFileADD=543521385
 l_ProtettoDesigne=0
@@ -793,7 +807,7 @@ ws_dir=.\\
 s_tipoFile=21
 s_tipoComp=0
 ClsparentCompTipo=0
-i_FileIdent=100348
+i_FileIdent=100375
 i_FileIdentPar=2
 wx_WindowFileADD=1635087209
 l_ProtettoDesigne=0
@@ -815,7 +829,7 @@ ws_dir=.\\
 s_tipoFile=21
 s_tipoComp=0
 ClsparentCompTipo=0
-i_FileIdent=100367
+i_FileIdent=100370
 i_FileIdentPar=2
 wx_WindowFileADD=1635087209
 l_ProtettoDesigne=0
@@ -859,7 +873,7 @@ ws_dir=.\\
 s_tipoFile=21
 s_tipoComp=0
 ClsparentCompTipo=0
-i_FileIdent=100364
+i_FileIdent=100373
 i_FileIdentPar=2
 wx_WindowFileADD=543521385
 l_ProtettoDesigne=0
@@ -903,7 +917,7 @@ ws_dir=.\\
 s_tipoFile=21
 s_tipoComp=0
 ClsparentCompTipo=0
-i_FileIdent=100366
+i_FileIdent=100372
 i_FileIdentPar=2
 wx_WindowFileADD=858791987
 l_ProtettoDesigne=0
@@ -942,12 +956,34 @@ fileAllInit=1
 i_numImag=20
 idIncCmpFilCmp=2152
 [File14]
+ws_name=libraryDetails.pfr
+ws_dir=.\\
+s_tipoFile=21
+s_tipoComp=0
+ClsparentCompTipo=0
+i_FileIdent=100378
+i_FileIdentPar=2
+wx_WindowFileADD=543521385
+l_ProtettoDesigne=0
+l_ReadOnly=0
+l_compilare=0
+l_syncCompil=
+l_linkare=0
+l_tipoCompilatore=1
+l_RigeneraSempre=0
+priorityNum=5000
+fileSrcName=libraryDetails.py
+fileIncName=libraryDetails.h
+fileAllInit=1
+i_numImag=20
+idIncCmpFilCmp=2681
+[File15]
 ws_name=libraryItem.pfr
 ws_dir=.\\
 s_tipoFile=21
 s_tipoComp=0
 ClsparentCompTipo=0
-i_FileIdent=100360
+i_FileIdent=100371
 i_FileIdentPar=2
 wx_WindowFileADD=19
 l_ProtettoDesigne=0
@@ -964,7 +1000,7 @@ fileAllInit=1
 i_numImag=20
 i_numLine=39
 idIncCmpFilCmp=1490
-[File15]
+[File16]
 ws_name=messageItem.pfr
 ws_dir=.\\
 s_tipoFile=28
@@ -986,7 +1022,7 @@ fileIncName=messageItem.h
 fileAllInit=1
 i_numImag=20
 idIncCmpFilCmp=1476
-[File16]
+[File17]
 ws_name=standardTab.pfr
 ws_dir=.\\
 s_tipoFile=28
@@ -1009,13 +1045,13 @@ fileAllInit=1
 i_numImag=20
 i_numLine=12
 idIncCmpFilCmp=2003
-[File17]
+[File18]
 ws_name=friendsOverview.pfr
 ws_dir=.\\
 s_tipoFile=21
 s_tipoComp=0
 ClsparentCompTipo=0
-i_FileIdent=100339
+i_FileIdent=100377
 i_FileIdentPar=2
 wx_WindowFileADD=1635087209
 l_ProtettoDesigne=0
@@ -1031,7 +1067,7 @@ fileIncName=friendsOverview.h
 fileAllInit=1
 i_numImag=20
 idIncCmpFilCmp=2413
-[File18]
+[File19]
 ws_name=subscriptionsOverview.pfr
 ws_dir=.\\
 s_tipoFile=21
@@ -1053,7 +1089,7 @@ fileIncName=subscriptionsOverview.h
 fileAllInit=1
 i_numImag=20
 idIncCmpFilCmp=2415
-[File19]
+[File20]
 ws_name=VwX files
 ws_dir=
 s_tipoFile=-1000
@@ -1076,7 +1112,7 @@ fileIncName=
 fileAllInit=1
 i_numImag=33
 idIncCmpFilCmp=1003
-[File20]
+[File21]
 ws_name=tribler_topButton.py
 ws_dir=.\\
 s_tipoFile=0
@@ -1098,7 +1134,7 @@ fileIncName=
 fileAllInit=1
 i_numImag=6
 idIncCmpFilCmp=1329
-[File21]
+[File22]
 ws_name=standardGrid.py
 ws_dir=.\\
 s_tipoFile=0
@@ -1120,7 +1156,7 @@ fileIncName=
 fileAllInit=1
 i_numImag=6
 idIncCmpFilCmp=1999
-[File22]
+[File23]
 ws_name=standardPager.py
 ws_dir=.\\
 s_tipoFile=0
@@ -1142,7 +1178,7 @@ fileIncName=
 fileAllInit=1
 i_numImag=6
 idIncCmpFilCmp=2000
-[File23]
+[File24]
 ws_name=filesFilter.py
 ws_dir=.\\
 s_tipoFile=0
@@ -1164,7 +1200,7 @@ fileIncName=
 fileAllInit=1
 i_numImag=6
 idIncCmpFilCmp=2001
-[File24]
+[File25]
 ws_name=filesTabs.py
 ws_dir=.\\
 s_tipoFile=0
@@ -1186,7 +1222,7 @@ fileIncName=
 fileAllInit=1
 i_numImag=6
 idIncCmpFilCmp=1998
-[File25]
+[File26]
 ws_name=standardOverview.py
 ws_dir=.\\
 s_tipoFile=0
@@ -1208,7 +1244,7 @@ fileIncName=
 fileAllInit=1
 i_numImag=6
 idIncCmpFilCmp=2015
-[File26]
+[File27]
 ws_name=standardDetails.py
 ws_dir=.\\
 s_tipoFile=0
@@ -1230,7 +1266,7 @@ fileIncName=
 fileAllInit=1
 i_numImag=6
 idIncCmpFilCmp=2023
-[File27]
+[File28]
 ws_name=filesGrid.py
 ws_dir=.\\
 s_tipoFile=0
@@ -1252,7 +1288,7 @@ fileIncName=
 fileAllInit=1
 i_numImag=6
 idIncCmpFilCmp=2026
-[File28]
+[File29]
 ws_name=standardStatus.py
 ws_dir=.\\
 s_tipoFile=0
@@ -1274,7 +1310,7 @@ fileIncName=
 fileAllInit=1
 i_numImag=6
 idIncCmpFilCmp=2029
-[File29]
+[File30]
 ws_name=standardPager.py
 ws_dir=.\\
 s_tipoFile=0
@@ -1296,7 +1332,7 @@ fileIncName=
 fileAllInit=1
 i_numImag=6
 idIncCmpFilCmp=2098
-[File30]
+[File31]
 ws_name=btn_DetailsHeader.py
 ws_dir=.\\
 s_tipoFile=0
@@ -1319,7 +1355,7 @@ fileAllInit=1
 i_numImag=6
 i_numLine=27
 idIncCmpFilCmp=2128
-[File31]
+[File32]
 ws_name=libraryGrid.py
 ws_dir=.\\
 s_tipoFile=0
