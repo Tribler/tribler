@@ -57,7 +57,7 @@ class bgPanel(wx.Panel):
             # Started app.py in vwxDir?
             self.imagedir = os.path.join(abcpath, 'images')
         if not os.path.isdir(self.imagedir):
-            print 'Error: no image directory found in %s and %s' % (olddir, self.imagedir)
+            print '[bgPanel] Error: no image directory found in %s and %s' % (olddir, self.imagedir)
             return
         
         # find a file with same name as this panel
@@ -67,7 +67,7 @@ class bgPanel(wx.Panel):
         if os.path.isfile(self.bitmapPath):
             self.bitmap = wx.Bitmap(self.bitmapPath, wx.BITMAP_TYPE_ANY)
         else:
-            print 'Could not load image: %s' % self.bitmapPath
+            print '[bgPanel] Could not load image: %s' % self.bitmapPath
         
         
     def createBackgroundImage(self):

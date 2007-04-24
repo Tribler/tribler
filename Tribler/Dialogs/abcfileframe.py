@@ -277,6 +277,11 @@ class TorrentDataManager:
             torrent = self.prepareItem(torrent)
             self.info_dict[torrent["infohash"]] = torrent    
 
+    def getDownloadHistCount(self):
+        def isDownloadHistory(torrent):
+            return torrent.has_key('myDownloadHistory')
+        return len(filter(isDownloadHistory,self.data))
+        
     def getCategory(self, categorykey):
         
         categorykey = categorykey.lower()

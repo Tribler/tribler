@@ -42,7 +42,7 @@ class standardStatus(wx.Panel):
             # Started app.py in vwxDir?
             self.imagedir = os.path.join(abcpath, 'images')
         if not os.path.isdir(self.imagedir):
-            print 'Error: no image directory found in %s and %s' % (olddir, self.imagedir)
+            print '[standardStatus] Error: no image directory found in %s and %s' % (olddir, self.imagedir)
             return
         
         # find a file with same name as this panel
@@ -51,7 +51,7 @@ class standardStatus(wx.Panel):
         if os.path.isfile(self.bitmapPath):
             self.bitmap = wx.Bitmap(self.bitmapPath, wx.BITMAP_TYPE_ANY)
         else:
-            print 'Could not load image: %s' % self.bitmapPath
+            print '[standardStatus] Could not load image: %s' % self.bitmapPath
         
     def createBackgroundImage(self):
         if self.bitmap:

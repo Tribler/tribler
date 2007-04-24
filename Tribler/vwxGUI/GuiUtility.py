@@ -135,7 +135,7 @@ class GUIUtility:
     
     def standardProfileOverview(self):
         #profileList = self.reloadData()
-        profileList = ""
+        profileList = []
         self.standardOverview.setMode('profileMode', '','', profileList)
         self.standardDetails.setMode('profileMode')
         

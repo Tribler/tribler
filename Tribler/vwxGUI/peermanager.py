@@ -66,7 +66,6 @@ class PeerDataManager(DelayedEventHandler):
         self.mode = 'all persons'
 
         self.data = self.prepareData()
-        print "<mluc> have data"
         self.done_init = True
         
     def getInstance(*args, **kw):
@@ -401,3 +400,10 @@ class PeerDataManager(DelayedEventHandler):
     def getPeerHistFiles(self, permid):
         """returns a list of hashes for the files this peer has in it's download history"""
         return self.prefdb.getPrefList(permid)
+    
+    def getCountOfSimilarPeers(self):
+        count = 0
+        for peer_data in self.data:
+            if peer_data['similarity'] > 20:
+                count = count + 1
+        return count

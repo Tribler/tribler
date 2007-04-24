@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
-  <object class="wxPanel" name="profileOverview">
+  <object class="wxPanel" name="profileOverview" subclass="Tribler.vwxGUI.profileOverview.ProfileOverviewPanel">
     <pos>0,0</pos>
     <size>625,600</size>
     <bg>#ffffff</bg>
@@ -191,7 +191,7 @@
               <flag>wxTOP|wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
               <border>15</border>
               <option>0</option>
-              <object class="wxPanel" name="perf_Overall" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+              <object class="wxPanel" name="perf_Overall" subclass="Tribler.vwxGUI.perfBar.BigPerfBar">
                 <pos>15,15</pos>
                 <size>45,55</size>
               </object>
@@ -233,7 +233,7 @@
               <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
               <border>15</border>
               <option>0</option>
-              <object class="wxPanel" name="icon_Overall" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+              <object class="wxPanel" name="icon_Overall" subclass="Tribler.vwxGUI.perfBar.TriblerGrade">
                 <pos>351,15</pos>
                 <size>55,55</size>
               </object>
@@ -261,7 +261,7 @@
               <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
               <border>5</border>
               <option>0</option>
-              <object class="wxPanel" name="perf_Quality" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+              <object class="wxPanel" name="perf_Quality" subclass="Tribler.vwxGUI.perfBar.SmallPerfBar">
                 <pos>15,5</pos>
                 <size>25,30</size>
               </object>
@@ -308,7 +308,7 @@
               <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
               <border>5</border>
               <option>0</option>
-              <object class="wxPanel" name="perf_Files" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+              <object class="wxPanel" name="perf_Files" subclass="Tribler.vwxGUI.perfBar.SmallPerfBar">
                 <pos>15,5</pos>
                 <size>25,30</size>
               </object>
@@ -355,7 +355,7 @@
               <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
               <border>5</border>
               <option>0</option>
-              <object class="wxPanel" name="perf_Persons" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+              <object class="wxPanel" name="perf_Persons" subclass="Tribler.vwxGUI.perfBar.SmallPerfBar">
                 <pos>15,5</pos>
                 <size>25,30</size>
               </object>
@@ -402,7 +402,7 @@
               <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
               <border>5</border>
               <option>0</option>
-              <object class="wxPanel" name="perf_Download" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+              <object class="wxPanel" name="perf_Download" subclass="Tribler.vwxGUI.perfBar.SmallPerfBar">
                 <pos>15,5</pos>
                 <size>25,30</size>
               </object>
@@ -450,7 +450,7 @@
               <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
               <border>5</border>
               <option>0</option>
-              <object class="wxPanel" name="perf_Presence" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+              <object class="wxPanel" name="perf_Presence" subclass="Tribler.vwxGUI.perfBar.SmallPerfBar">
                 <pos>15,5</pos>
                 <size>25,30</size>
               </object>
