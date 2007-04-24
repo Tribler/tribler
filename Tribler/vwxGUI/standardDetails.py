@@ -161,7 +161,7 @@ class standardDetails(wx.Panel):
                 self.data[self.mode][element] = xrcElement
             
             # do extra init
-            if modeString == 'files':
+            if modeString == 'files' or modeString == 'library':
                 self.getGuiObj('up').setBackground(wx.WHITE)
                 self.getGuiObj('down').setBackground(wx.WHITE)
                 self.getGuiObj('refresh').setBackground(wx.WHITE)
