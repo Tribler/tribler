@@ -41,6 +41,7 @@ class PersonsItemPanel(wx.Panel):
         self.selectedColour = wx.Colour(255,200,187)       
         self.unselectedColour = wx.WHITE
         
+        self.SetBackgroundColour(self.unselectedColour)
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         
         self.Bind(wx.EVT_LEFT_UP, self.mouseAction)
