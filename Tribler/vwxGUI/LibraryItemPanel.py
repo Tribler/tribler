@@ -220,7 +220,7 @@ class LibraryItemPanel(wx.Panel):
                     obj.switchBack()
                 else:
                     abctorrent.actions.pause()
-                    playBitmap = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'defaultThumb.png'))
+                    playBitmap = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'play.png'))
                     obj.switchTo(playBitmap)
             
                 

@@ -93,14 +93,17 @@ class tribler_topButton(wx.Panel):
             self.old_bitmaps = self.bitmaps
         self.bitmaps=[normalBitmap,selectedBitmap]
         #should Refresh?
+        self.Refresh()
     
     def switchBack(self):
         if self.old_bitmaps!=None:
             self.bitmaps = self.old_bitmaps
             self.old_bitmaps=None
+            self.Refresh()
         else:
             if DEBUG:
                 print "Nothing to switch back to..."
+        
         
     def createBackgroundImage(self):
         if self.bitmaps[0]:
