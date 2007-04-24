@@ -207,10 +207,28 @@ class LibraryItemPanel(wx.Panel):
         event.Skip()
         
     def mouseAction(self, event):
-        
+        if self.data.get('abctorrent'):
+            obj = event.GetEventObject()
+            name = obj.GetName()
+            abctorrent = self.data.get('abctorrent')
+            if name == 'delete':
+                abctorrent.actions.stop()
+                
+            elif name == 'pause':
+                if abctorrent.status.value == STATUS_PAUSE:
+                    abctorrent.actions.pauseResume()
+                    obj.switchBack()
+                else:
+                    abctorrent.actions.pause()
+                    playBitmap = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'defaultThumb.png'))
+                    obj.switchTo(playBitmap)
+            
+                
+            
         self.SetFocus()
         if self.data:
             self.guiUtility.selectTorrent(self.data)
+        event.Skip()
                 
                 
 DEFAULT_THUMB = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'defaultThumb.png'))

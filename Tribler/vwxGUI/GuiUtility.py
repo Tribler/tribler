@@ -66,21 +66,9 @@ class GUIUtility:
         elif name == 'refresh':
             self.refreshTracker()
         elif name == "addAsFriend":
-            # a little bit weird to have it here, but anyway
-            # add the current user selected in details panel as a friend
-            if self.standardDetails.getMode() == "personsMode":
-                peer_data = self.standardDetails.getData()
-                if peer_data!=None and peer_data.get('permid'):
-                    #update the database
-#                    if not self.peer_manager.isFriend(peer_data['permid']):
-#                        self.contentFrontPanel.frienddb.deleteFriend(self.data['permid'])
-#                    else:
-                    bAdded = self.peer_manager.addFriendwData(peer_data)
-                    print "added",peer_data['content_name'],"as friend:",bAdded
-                    
-                    #should refresh?
-                    self.selectPeer(peer_data)
-
+            self.standardDetails.addAsFriend()
+        elif name == 'download':
+            self.standardDetails.download()
         else:
             print 'A button was clicked, but no action is defined for: %s' % name
                 

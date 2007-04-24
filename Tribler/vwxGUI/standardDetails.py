@@ -426,7 +426,7 @@ class standardDetails(wx.Panel):
         print 'Tabclicked: %s' % name
         
         # currently, only tabs in filesDetailspanel work
-        if self.mode == 'filesMode':
+        if self.mode in ['filesMode', 'libraryMode']:
         
             tabFiles = self.getGuiObj('files_detailsTab')
             tabInfo = self.getGuiObj('info_detailsTab')
@@ -545,7 +545,8 @@ class standardDetails(wx.Panel):
 #    def isEnabled(self):
 #        return self.enabled
 
-    def download(self, torrent):
+    def download(self):
+        torrent = self.item
         src1 = os.path.join(torrent['torrent_dir'], 
                             torrent['torrent_name'])
         src2 = os.path.join(self.utility.getConfigPath(), 'torrent2', torrent['torrent_name'])
@@ -569,7 +570,7 @@ class standardDetails(wx.Panel):
             if result == wx.ID_YES:
                 ret = self.utility.queue.addtorrents.AddTorrentFromFile(src)
                 if ret == 'OK':
-                    self.setRecommendedToMyDownloadHistory(torrent)
+                    print 'standardDetails: download started'
                     
         else:
         
@@ -615,4 +616,18 @@ class standardDetails(wx.Panel):
             torrent['metadata']['ThumbnailBitmapLarge'] = bmp
         else:
              thumbPanel.setBitmap(DEFAULT_THUMB)
-            
+     
+    def addAsFriend(self):
+        # add the current user selected in details panel as a friend
+        if self.mode == "personsMode":
+            peer_data = self.item
+            if peer_data!=None and peer_data.get('permid'):
+                #update the database
+#                    if not self.peer_manager.isFriend(peer_data['permid']):
+#                        self.contentFrontPanel.frienddb.deleteFriend(self.data['permid'])
+#                    else:
+                bAdded = self.guiUtility.peer_manager.addFriendwData(peer_data)
+                print "added",peer_data['content_name'],"as friend:",bAdded
+                
+                #should refresh?
+                self.guiUtility.selectPeer(peer_data)
