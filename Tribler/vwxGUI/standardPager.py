@@ -261,5 +261,6 @@ class standardPager(wx.Panel):
     def setGrid(self, grid):
         #print 'setGrid called: %s' % grid
         self.grid = grid
-        self.grid.setPager(self)
+        if grid:
+            self.grid.setPager(self)
       

@@ -123,38 +123,32 @@ class GUIUtility:
         
     def standardPersonsOverview(self, filter1String = "", filter2String = ""):
         self.categorykey = self.utility.lang.get('mypref_list_title')
-        #self.utility.lang.get('mypref_list_title')
-        #personsList = self.setCategory('video')
-        #personsList = self.setCategory('myDownloadHistory')
         personsList = self.reloadPeers()
-        if personsList != None:
-            print "persons list has",len(personsList),"elements"
-        else:
-            print "persons list has no elements"
-        
         self.standardOverview.setMode('personsMode', filter1String, filter2String, personsList)
-        self.standardDetails.setMode('personsMode', None)
+        self.standardDetails.setMode('personsMode')
         
     def standardFriendsOverview(self):
         self.categorykey = "friends"
         friendsList = self.reloadPeers()
         self.standardOverview.setMode('friendsMode', '', '', friendsList)
+        self.standardDetails.setMode('personsMode')
     
     def standardProfileOverview(self):
         #profileList = self.reloadData()
         profileList = ""
         self.standardOverview.setMode('profileMode', '','', profileList)
-        #self.standardDetails.setMode('profileMode', None)
+        self.standardDetails.setMode('profileMode')
         
     def standardLibraryOverview(self, filter1String="audio", filter2String="swarmsize"):       
         print 'Library > filter1String='+filter1String 
         libraryList = self.loadLibrary()
         self.standardOverview.setMode('libraryMode', filter1String, filter2String, libraryList)        
-        self.standardDetails.setMode('libraryMode', None)
+        self.standardDetails.setMode('libraryMode')
         
     def standardSubscriptionsOverview(self, filter1String="audio", filter2String="swarmsize"):       
         subscriptionsList = self.reloadData()         
         self.standardOverview.setMode('subscriptionsMode', '','', subscriptionsList)        
+        self.standardDetails.setMode('subscriptionsMode')
          
     def standardMessagesOverview(self):
         messagesList = self.reloadData()
@@ -225,6 +219,11 @@ class GUIUtility:
     def deleteTorrent(self, torrent):
         pass
     
+    def selectData(self, data):
+        "User clicked on item. Has to be selected in detailPanel"
+        self.standardDetails.setData(data)
+        self.standardOverview.updateSelection()
+        
     def selectTorrent(self, torrent):
         "User clicked on torrent. Has to be selected in detailPanel"
         self.standardDetails.setData(torrent)

@@ -7,7 +7,7 @@ from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 import cStringIO
 
 DEFAULT_THUMB = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'thumbField.png'))
-DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'subscriptionMode', 'messageMode']
+DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'subscriptionsMode', 'messageMode']
 DEBUG = True
 
 ISFRIEND_BITMAP = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'isfriend.png'))
@@ -38,26 +38,31 @@ class standardDetails(wx.Panel):
         self.utility = self.guiUtility.utility
         self.mode = None
         self.item = None
-        self.data = {}
+        self.lastItemSelected = {} #keeps the last item selected for each mode
+        self.data = {} #keeps gui elements for each mode
         for mode in DETAILS_MODES+['status']:
-            self.data[mode] = {}
+            self.data[mode] = {} #each mode has a dictionary of gui elements with name and reference
+            self.lastItemSelected[mode] = None
         self.currentPanel = None
         self.addComponents()
+        
         #self.Refresh()
-        self.modeElements = {'filesMode': ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
+        self.modeElements = {}
+        for elem in DETAILS_MODES:
+            self.modeElements[elem] = []
+        self.modeElements['filesMode'] = ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
-                                            'download', 'tabs', ('files_detailsTab','tabs'), ('info_detailsTab','tabs'), 'TasteHeart', 'details',],
-                             'personsMode': ['TasteHeart', 'recommendationField','addAsFriend', 'commonFilesField',
+                                            'download', 'tabs', ('files_detailsTab','tabs'), ('info_detailsTab','tabs'), 'TasteHeart', 'details',]
+        self.modeElements['personsMode'] = ['TasteHeart', 'recommendationField','addAsFriend', 'commonFilesField',
                                             'alsoDownloadedField', 'info_detailsTab', 'advanced_detailsTab','detailsC',
-                                            'titleField'],
-                             'libraryMode': ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
+                                            'titleField']
+        self.modeElements['libraryMode'] = ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
-                                            'download', 'files_detailsTab', 'info_detailsTab', 'TasteHeart', 'details',],
-                             }
+                                            'download', 'files_detailsTab', 'info_detailsTab', 'TasteHeart', 'details',]
         
         self.tabElements = {'filesTab_files': [ 'download', 'includedFiles', 'filesField'],                            
                             'personsTab_advanced': ['lastExchangeField', 'noExchangeField', 'timesConnectedField','addAsFriend'],
-                            'libraryTab_files': [ 'download', 'includedFiles'],}
+                            'libraryTab_files': [ 'download', 'includedFiles']}
             
 
         self.guiUtility.initStandardDetails(self)
@@ -72,10 +77,14 @@ class standardDetails(wx.Panel):
         
     def setMode(self, mode, item = None):
         if self.mode != mode:
+            #change the mode, so save last item selected
+            self.lastItemSelected[self.mode] = self.item
             self.mode = mode
             self.refreshMode()
         if item:
             self.setData(item)
+        elif self.lastItemSelected[self.mode]:
+            self.guiUtility.selectData(self.lastItemSelected[self.mode])
         else:
             self.setData(None)
     
@@ -139,7 +148,7 @@ class standardDetails(wx.Panel):
             ofList.SetSingleStyle(wx.LC_REPORT)
             ofList.SetSingleStyle(wx.LC_NO_HEADER)
             ofList.SetSingleStyle(wx.LC_SINGLE_SEL)
-        ofList.InsertColumn(0, "Torrent")
+        ofList.InsertColumn(0, "Torrent") #essential code
 #        ofList.SetColumnWidth(0,wx.LIST_AUTOSIZE)
         
     def loadPanel(self):
@@ -149,12 +158,13 @@ class standardDetails(wx.Panel):
             xrcResource = os.path.join('Tribler','vwxGUI', modeString+'Details.xrc')
             panelName = modeString+'Details'
             currentPanel = self.loadXRCPanel(xrcResource, panelName)
-            
             # Save paneldata in self.data
             self.data[self.mode]['panel'] = currentPanel
             #titlePanel = xrc.XRCCTRL(currentPanel, 'titlePanel')
             
             for element in self.modeElements[self.mode]:
+                xrcElement = None
+                name = None
                 if type(element) == str:
                     xrcElement = xrc.XRCCTRL(currentPanel, element)
                     name = element
@@ -163,8 +173,8 @@ class standardDetails(wx.Panel):
                     xrcElement = xrc.XRCCTRL(self.getGuiObj(element[1]), name)
                 if not xrcElement:
                     print 'standardDetails: Error: Could not identify xrc element: %s for mode %s' % (element, self.mode)
-                
-                self.data[self.mode][name] = xrcElement
+                if name:
+                    self.data[self.mode][name] = xrcElement
             
             # do extra init
             if modeString == 'files' or modeString == 'library':
@@ -194,12 +204,15 @@ class standardDetails(wx.Panel):
     def loadXRCPanel(self, filename, panelName, parent=None):
         try:
             currentPanel = None
+            if not os.path.exists(filename):
+                dummyFile = os.path.join('Tribler','vwxGUI', 'dummy.xrc')
+                filename = dummyFile
+                panelName = "dummy"
             res = xrc.XmlResource(filename)
             # create panel
-            if parent:
-                currentPanel = res.LoadPanel(parent, panelName)
-            else:
-                currentPanel = res.LoadPanel(self, panelName)
+            if parent==None:
+                parent = self
+            currentPanel = res.LoadPanel(parent, panelName)
             if not currentPanel:
                 raise Exception()
             return currentPanel

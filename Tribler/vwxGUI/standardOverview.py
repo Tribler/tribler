@@ -32,9 +32,9 @@ class standardOverview(wx.Panel):
         self.mode = None
         self.filter1 = None
         self.filter2 = None
-        self.data = {}
+        self.data = {} #keeps gui elements for each mode
         for mode in OVERVIEW_MODES:
-            self.data[mode] = {}
+            self.data[mode] = {} #each mode has a dictionary of gui elements with name and reference
         self.currentPanel = None
         self.addComponents()
         #self.Refresh()
@@ -48,7 +48,7 @@ class standardOverview(wx.Panel):
         
     def setMode(self, mode, filter1, filter2, datalist):
         
-        if self.mode != mode:        
+        if self.mode != mode: 
             self.mode = mode
             self.filter1 = filter1
             self.data[self.mode]['data'] = datalist               
@@ -104,7 +104,14 @@ class standardOverview(wx.Panel):
                 currentPanel = res.LoadPanel(self, panelName)
                 grid = xrc.XRCCTRL(currentPanel, modeString+'Grid')
                 pager = xrc.XRCCTRL(currentPanel, 'standardPager')
-                if not currentPanel or not grid or not pager:
+                if not currentPanel:
+                    #load dummy panel
+                    dummyFile = os.path.join('Tribler','vwxGUI', 'dummyOverview.xrc')
+                    dummy_res = xrc.XmlResource(dummyFile)
+                    currentPanel = dummy_res.LoadPanel(self, 'dummyOverview')
+                    grid = xrc.XRCCTRL(currentPanel, 'dummyGrid')
+                    pager = xrc.XRCCTRL(currentPanel, 'standardPager')
+                if not currentPanel: # or not grid or not pager:
                     raise Exception('standardOverview: Could not find panel, grid or pager')
                 
                 # Save paneldata in self.data
