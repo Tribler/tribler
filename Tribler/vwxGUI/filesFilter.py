@@ -54,11 +54,12 @@ class filesFilter(wx.Panel):
         #self.SetBackgroundColour(wx.BLUE)
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
-        self.filesFilter_Cat = {'video':'Video', 'videoclips':'Video clips','audio':'Audio','picture':'Pictures','document':'Documents','other':'Other','xxx':'XXX'}
+        #self.filesFilter_Cat = {'video':'Video', 'videoclips':'Video clips','audio':'Audio','picture':'Pictures','document':'Documents','other':'Other','xxx':'XXX'}
+        #self.filesFilter_Cat = {('video','Video'), ('videoclips':'Video clips','audio':'Audio','picture':'Pictures','document':'Documents','other':'Other','xxx':'XXX'}
         
         # filter 1 is making a selection                                                                                
-        self.filter1 = wx.ComboBox(self,-1,'Video', wx.Point(8,3),wx.Size(120,21),self.filesFilter_Cat.values(), wx.CB_DROPDOWN|wx.CB_READONLY)
-        #self.filter1 = wx.ComboBox(self,-1,'Video', wx.Point(8,3),wx.Size(120,21),['Video','VideoClips','Audio','Picture','Compressed','Document','Other','XXX'], wx.CB_DROPDOWN|wx.CB_READONLY)       
+        #self.filter1 = wx.ComboBox(self,-1,'Video', wx.Point(8,3),wx.Size(120,21),self.filesFilter_Cat.values(), wx.CB_DROPDOWN|wx.CB_READONLY)
+        self.filter1 = wx.ComboBox(self,-1,'Video', wx.Point(8,3),wx.Size(120,21),['Video','VideoClips','Audio','Picture','Compressed','Document','Other','XXX'], wx.CB_DROPDOWN|wx.CB_READONLY)       
         self.filter1.SetFont(wx.Font(10,74,90,90,0,"Verdana"))
         self.filter1.SetBackgroundColour(wx.WHITE)
         self.filter1.Bind(wx.EVT_COMBOBOX, self.mouseAction)
