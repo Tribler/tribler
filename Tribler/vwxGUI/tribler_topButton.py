@@ -12,7 +12,7 @@ class tribler_topButton(wx.Panel):
     """
 
     def __init__(self, *args, **kw):
-        print "<mluc> tribler_topButton in init"
+#        print "<mluc> tribler_topButton in init"
         self.initDone = False
         if len(args) == 0: 
             self.backgroundColor = wx.Colour(102,102,102) 
@@ -26,14 +26,14 @@ class tribler_topButton(wx.Panel):
             self._PostInit()     
         
     def OnCreate(self, event):
-        print "<mluc> tribler_topButton in OnCreate"
+#        print "<mluc> tribler_topButton in OnCreate"
         self.Unbind(wx.EVT_WINDOW_CREATE)
         wx.CallAfter(self._PostInit)
         event.Skip()
         return True
     
     def _PostInit(self):
-        print "<mluc> tribler_topButton in _PostInit"
+#        print "<mluc> tribler_topButton in _PostInit"
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
         self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)

@@ -51,7 +51,7 @@ class standardDetails(wx.Panel):
                                               'alsoDownloadedField', 'info_detailsTab', 'advanced_detailsTab','detailsC',
                                               'titleField']
                              }
-        self.tabElements = {'filesTab_files': ['includedFilesField', 'download', 'includedFiles'],
+        self.tabElements = {'filesTab_files': [ 'download', 'includedFiles'],
                             'personsTab_advanced': ['lastExchangeField', 'noExchangeField', 'timesConnectedField','addAsFriend']}
 
         self.guiUtility.initStandardDetails(self)
@@ -94,7 +94,7 @@ class standardDetails(wx.Panel):
         self.hSizer.Insert(0, self.currentPanel, 0, wx.ALL|wx.EXPAND, 0)
         
             
-            
+#        self.currentPanel.Layout()
         self.hSizer.Layout()
         self.currentPanel.Refresh()
         #self.Show(True)
@@ -154,12 +154,13 @@ class standardDetails(wx.Panel):
             
             # do extra init
             if modeString == 'files':
-                print 'extra files init'
                 self.getGuiObj('up').setBackground(wx.WHITE)
                 self.getGuiObj('down').setBackground(wx.WHITE)
                 self.getGuiObj('refresh').setBackground(wx.WHITE)
                 self.getGuiObj('TasteHeart').setBackground(wx.WHITE)
                 self.getGuiObj('info_detailsTab').setSelected(True)
+                self.getAlternativeTabPanel('filesTab_files', parent=currentPanel).Hide()
+                
             elif modeString == 'persons' or modeString == 'friends':
                 self.getGuiObj('TasteHeart').setBackground(wx.WHITE)
                 self.getGuiObj('info_detailsTab').setSelected(True)
@@ -167,6 +168,7 @@ class standardDetails(wx.Panel):
                 #get the list in the right mode for viewing
                 self.setListAspect2OneColumn("alsoDownloadedField")
                 self.setListAspect2OneColumn("commonFilesField")
+                self.getAlternativeTabPanel('personsTab_advanced', parent=currentPanel).Hide()
                 
         return currentPanel
     
@@ -411,49 +413,40 @@ class standardDetails(wx.Panel):
         
             tabFiles = self.getGuiObj('files_detailsTab')
             tabInfo = self.getGuiObj('info_detailsTab')
+            infoPanel = self.getGuiObj('details')
+#            sizer = infoPanel.GetContainingSizer()
+            filesPanel = self.getGuiObj('filesTab_files')
             
             if name == 'files_detailsTab' and not tabFiles.isSelected():
                 tabFiles.setSelected(True)
                 tabInfo.setSelected(False)
-                infoPanel = self.getGuiObj('details')
-                sizer = infoPanel.GetContainingSizer()
-                filesPanel = self.getAlternativeTabPanel('filesTab_files')
-                self.swapPanel(sizer, infoPanel, filesPanel, 3)
+                self.swapPanel( infoPanel, filesPanel)#, sizer, 3)
                 
             elif name == 'info_detailsTab' and not tabInfo.isSelected():
                 tabFiles.setSelected(False)
                 tabInfo.setSelected(True)
-                
-                filesPanel = self.getGuiObj('filesTab_files')
-                sizer = filesPanel.GetContainingSizer()
-                infoPanel = self.getGuiObj('details')
-                self.swapPanel(sizer, filesPanel, infoPanel, 3)
-                
+                self.swapPanel( filesPanel, infoPanel)#, sizer, 3)
             else:
                 print '%s: Unknown tab %s' % (self.mode,name)
                 return
+
         elif self.mode in ["personsMode","friendsMode"]:
             tabAdvanced = self.getGuiObj('advanced_detailsTab')
             tabInfo = self.getGuiObj('info_detailsTab')
-            
+            infoPanel = self.getGuiObj('detailsC')
+            advancedPanel = self.getGuiObj('personsTab_advanced')
             if name == 'advanced_detailsTab' and not tabAdvanced.isSelected():
                 tabAdvanced.setSelected(True)
                 tabInfo.setSelected(False)
-                infoPanel = self.getGuiObj('detailsC')
-                sizer = infoPanel.GetContainingSizer()
-                advancedPanel = self.getAlternativeTabPanel('personsTab_advanced')
-                self.swapPanel(sizer, infoPanel, advancedPanel)
+                self.swapPanel( infoPanel, advancedPanel)
             elif name == 'info_detailsTab' and not tabInfo.isSelected():
                 tabAdvanced.setSelected(False)
                 tabInfo.setSelected(True)
-                advancedPanel = self.getGuiObj('personsTab_advanced')
-                sizer = advancedPanel.GetContainingSizer()
-                infoPanel = self.getGuiObj('detailsC')
-                self.swapPanel(sizer, advancedPanel, infoPanel)
+                self.swapPanel( advancedPanel, infoPanel)
             else:
                 print '%s: Unknown tab %s' % (self.mode,name)
                 return
-            print "<mluc> advanced tab has label:",tabAdvanced.GetLabel()
+#            print "<mluc> advanced tab has label:",tabAdvanced.GetLabel()
         else:
             print 'standardDetails: Tabs for this mode (%s) not yet implemented' % self.mode
             return
@@ -461,8 +454,10 @@ class standardDetails(wx.Panel):
         self.setData(self.item)
         
             
-    def swapPanel(self, sizer, oldpanel, newpanel, index=-1):
+    def swapPanel(self, oldpanel, newpanel, sizer=None, index=-1):
         """replaces in a sizer a panel with another one to simulate tabs"""
+        if sizer == None:
+            sizer = oldpanel.GetContainingSizer()
         #if index not given, use sizer's own replace method
         if index == -1:
             index = 0
@@ -471,18 +466,19 @@ class standardDetails(wx.Panel):
                     break
                 index = index + 1
 #            sizerItem = sizer.Replace(oldpanel, newpanel)
-            print "found index is:",index,"number of children in sizer:",len(sizer.GetChildren())
-        # remove info tab panel
-        sizer.Detach(oldpanel)
-        # add files tab panel
-        sizer.Insert(index, newpanel, 1, wx.EXPAND, 3)
-        oldpanel.Hide()
-        if not newpanel.IsShown():
-            newpanel.Show()
-        sizer.Layout()
-        newpanel.GetParent().Refresh()
+#            print "found index is:",index,"number of children in sizer:",len(sizer.GetChildren())
+            # remove info tab panel
+            sizer.Detach(oldpanel)
+            oldpanel.Hide()
+            # add files tab panel
+            sizer.Insert(index, newpanel, 1, wx.EXPAND, 3)
+            if not newpanel.IsShown():
+                newpanel.Show()
+            newpanel.Layout()
+            sizer.Layout()
+            newpanel.GetParent().Refresh()
         
-    def getAlternativeTabPanel(self, name):
+    def getAlternativeTabPanel(self, name, parent=None):
         "Load a tabPanel that was not loaded as default"
         panel = self.getGuiObj(name)
         if panel:
@@ -491,7 +487,9 @@ class standardDetails(wx.Panel):
             # generate new panel
             xrcResource = os.path.join('Tribler','vwxGUI', name+'.xrc')
             panelName = name
-            panel = self.loadXRCPanel(xrcResource, panelName, parent=self.currentPanel)
+            if parent==None:
+                parent = self.currentPanel
+            panel = self.loadXRCPanel(xrcResource, panelName, parent=parent)
             
             for element in self.tabElements[name]:
                 xrcElement = xrc.XRCCTRL(panel, element)
