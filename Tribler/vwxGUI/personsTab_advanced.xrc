@@ -121,7 +121,7 @@
                 <option>1</option>
               </object>
               <object class="sizeritem">
-                <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                <flag>wxLEFT|wxFIXED_MINSIZE</flag>
                 <border>3</border>
                 <option>0</option>
                 <object class="wxPanel" name="addAsFriend" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">

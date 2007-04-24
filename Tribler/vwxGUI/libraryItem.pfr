@@ -622,7 +622,7 @@ Theme=0
 5=1
 13=1
 [Windows9]
-style=wxSIMPLE_BORDER|wxST_NO_AUTORESIZE
+style=wxSIMPLE_BORDER
 Estyle=
 i_stylePN=20
 idIncCmpFilCmp=0
@@ -662,7 +662,7 @@ t_idIdentCmp=1
 i_idPArent=3
 i_id=14
 parCompID=0
-i_sizeGrow=0
+i_sizeGrow=1
 i_border=3
 is_parent=0
 is_siz=0
@@ -685,7 +685,6 @@ dataObj\\panelfitInsS=0
 IndexOfS=4
 [Windows9/style]
 1=1
-20=1
 [Windows9/i_width]
 [Windows9/i_width/Windows9]
 Theme=0

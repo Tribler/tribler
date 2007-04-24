@@ -156,12 +156,12 @@ class GUIUtility:
         #profileList = self.reloadData()
         profileList = ""
         self.standardOverview.setMode('profileMode', '','', profileList)
+        #self.standardDetails.setMode('profileMode', None)
         
     def standardLibraryOverview(self, filter1String="audio", filter2String="swarmsize"):       
         print 'Library > filter1String='+filter1String 
         libraryList = self.loadLibrary()
-        self.standardOverview.setMode('libraryMode', filter1String, filter2String, libraryList)
-        
+        self.standardOverview.setMode('libraryMode', filter1String, filter2String, libraryList)        
         self.standardDetails.setMode('libraryMode', None)
         
     def standardSubscriptionsOverview(self, filter1String="audio", filter2String="swarmsize"):       

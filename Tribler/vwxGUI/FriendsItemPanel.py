@@ -8,6 +8,7 @@ from safeguiupdate import DelayedInvocation
 from Tribler.unicode import *
 from copy import deepcopy
 import cStringIO
+from tribler_topButton import *
 from threading import Lock
 import TasteHeart
 
@@ -42,23 +43,49 @@ class FriendsItemPanel(wx.Panel):
         self.unselectedColour = wx.WHITE
         
         self.SetBackgroundColour(self.unselectedColour)
-        self.vSizer = wx.BoxSizer(wx.VERTICAL)
+        self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
         self.Bind(wx.EVT_LEFT_UP, self.mouseAction)
         self.Bind(wx.EVT_KEY_UP, self.keyTyped)
         
-        # Add title
+        # Add thumb
         self.thumb = ThumbnailViewer(self)
         self.thumb.setBackground(wx.BLACK)
-        self.thumb.SetSize((80,80))
-        self.vSizer.Add(self.thumb, 0, wx.ALL, 0)        
+        self.thumb.SetSize((37,37))
+        self.hSizer.Add(self.thumb, 0, wx.ALL, 3)        
+        # Add title
         self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(80,15))        
         self.title.SetBackgroundColour(wx.WHITE)
-        self.title.SetFont(wx.Font(16,74,90,wx.NORMAL,0,"Verdana"))
-        self.title.SetMinSize((80,30))
-        self.vSizer.Add(self.title, 0, wx.BOTTOM, 3)     
+        self.title.SetFont(wx.Font(12,74,90,wx.NORMAL,0,"Verdana"))
+        self.title.SetMinSize((80,16))
+       # self.hSizer.Add(self.title, 1, wx.BOTTOM, 3)     
+        # Add status
+        self.status =wx.StaticText(self,-1,";l",wx.Point(0,0),wx.Size(80,15))        
+        self.status.SetBackgroundColour(wx.WHITE)
+        self.status.SetFont(wx.Font(9,74,90,wx.NORMAL,0,"Verdana"))
+        self.status.SetForegroundColour(wx.Colour(128,128,128))        
+        self.status.SetMinSize((80,12))
+        self.status.SetLabel('blabla')
+        
+        self.vSizer = wx.BoxSizer(wx.VERTICAL)
+        self.vSizer.Add(self.title,0,wx.TOP,2,wx.EXPAND)
+        self.vSizer.Add(self.status,0,wx.ALL,0)
+        
+        self.hSizer.Add(self.vSizer, 1, wx.BOTTOM, 0)
+        # Add Taste similarity
+        self.taste =wx.StaticText(self,-1,";l",wx.Point(0,0),wx.Size(80,15))        
+        self.taste.SetBackgroundColour(wx.WHITE)
+        self.taste.SetFont(wx.Font(10,74,90,wx.NORMAL,0,"Verdana"))
+        self.taste.SetMinSize((80,30))
+        self.taste.SetLabel('here comes the rank')
+        self.hSizer.Add(self.taste, 1, wx.BOTTOM, 3)
+        
+        # Add delete button
+        self.delete = tribler_topButton(self, -1, wx.Point(542,3), wx.Size(17,17),name='delete')                
+        self.hSizer.Add(self.delete, 0, wx.TOP|wx.RIGHT, 3)
+        
 
-        self.SetSizer(self.vSizer);
+        self.SetSizer(self.hSizer);
         self.SetAutoLayout(1);
         self.Layout();
         self.Refresh()
@@ -274,7 +301,8 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
         if self.dataBitmap:
             dc.DrawBitmap(self.dataBitmap, self.xpos,self.ypos, True)
 #        if self.mouseOver:
-        if self.data!=None and type(self.data)==type({}) and self.data.get('permid'):
+        if self.data!=None and type(self.data)==type({}) and self.data.get('permid'):            
+            self.Parent.status.SetLabel('status unknown')
             rank = self.guiUtility.peer_manager.getRank(self.data['permid'])
             #because of the fact that hearts are coded so that lower index means higher ranking, then:
             if rank > 0 and rank <= 5:
@@ -296,10 +324,13 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
                 dc.DrawText(text, 22, 66)
             if self.data.get('friend'):
                 dc.DrawBitmap(FRIEND_BITMAP,60 ,65, True)            
-            if self.data.get('online'):
+            if self.data.get('online'):                
+                self.status.SetLabel('online')
                 dc.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, False))
                 dc.SetTextForeground('#007303')
                 dc.DrawText('online', 26, 66)
+
+                
         
 #        dc.SetTextForeground(wx.WHITE)
         #dc.DrawText('rating', 5, 60)

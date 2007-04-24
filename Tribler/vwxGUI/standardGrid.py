@@ -285,14 +285,12 @@ class personsGrid(standardGrid):
         return PersonsItemPanel(self)
 
 class friendsGrid(standardGrid):
-    def __init__(self):
-        print 'tbb'   
+    def __init__(self):   
         columns = 2
         self.subPanelHeight = 116 # This will be update after first refresh
-        standardGrid.__init__(self, columns, orientation='horizontal')
+        standardGrid.__init__(self, columns, orientation='vertical')
         
     def getSubPanel(self):
-        print 'tb          '
         return FriendsItemPanel(self)
     
 class libraryGrid(standardGrid):
