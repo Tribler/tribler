@@ -75,7 +75,6 @@ class libraryDetails(wx.Panel):
         self.TasteHeart.SetDimensions(90,64,14,14)
         self.recommendationField = wx.StaticText(self.details,-1,"",wx.Point(107,64),wx.Size(101,12),wx.ST_NO_AUTORESIZE)
         self.recommendationField.SetLabel("unknown")
-        self.download = tribler_topButton(self.details, -1, wx.Point(270,6), wx.Size(55,55))
         self.Desc = wx.StaticText(self.details,-1,"",wx.Point(0,105),wx.Size(199,15),wx.ST_NO_AUTORESIZE)
         self.Desc.SetLabel("   Description")
         self.Desc.SetBackgroundColour(wx.Colour(203,203,203))
@@ -154,8 +153,7 @@ class libraryDetails(wx.Panel):
         self.recommendationSizer.Add(self.st209cCCC,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.recommendationSizer.Add(self.TasteHeart,0,wx.TOP|wx.BOTTOM|wx.RIGHT|wx.FIXED_MINSIZE,3)
         self.recommendationSizer.Add(self.recommendationField,0,wx.TOP|wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,3)
-        self.downloadSizer.Add([11,72],1,wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,3)
-        self.downloadSizer.Add(self.download,0,wx.LEFT|wx.ALIGN_RIGHT|wx.FIXED_MINSIZE,3)
+        self.downloadSizer.Add([69,72],1,wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.SetSizer(self.sz3s);self.SetAutoLayout(1);self.Layout();
         self.titlePanel.SetSizer(self.sz226s);self.titlePanel.SetAutoLayout(1);self.titlePanel.Layout();
         self.tabs.SetSizer(self.sz259s);self.tabs.SetAutoLayout(1);self.tabs.Layout();

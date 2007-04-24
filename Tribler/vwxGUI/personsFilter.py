@@ -55,14 +55,14 @@ class personsFilter(wx.Panel):
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
         # filter 1 is making a selection                                                                                
-        self.filter1 = wx.ComboBox(self,-1,'Video', wx.Point(8,3),wx.Size(120,21),['Persons Filter','one more'], wx.CB_DROPDOWN|wx.CB_READONLY)       
+        self.filter1 = wx.ComboBox(self,-1,'Video', wx.Point(8,3),wx.Size(120,21),['Recommended','Friends', 'Online'], wx.CB_DROPDOWN|wx.CB_READONLY)       
         self.filter1.SetFont(wx.Font(10,74,90,90,0,"Verdana"))
         self.filter1.SetBackgroundColour(wx.WHITE)
         self.filter1.Bind(wx.EVT_COMBOBOX, self.mouseAction)
         #self.filter1.Bind(wx.EVT_CHOICE, self.mouseAction)
 
         # filter 2 is reordering
-        self.filter2 = wx.ComboBox(self,-1,'Popular',wx.Point(8,3),wx.Size(120,21),[r'Popular',r'Recommended',r'Creation date',r'Etc.'], wx.CB_DROPDOWN|wx.CB_READONLY)
+        self.filter2 = wx.ComboBox(self,-1,'Popular',wx.Point(8,3),wx.Size(120,21),[r'-',r'-',r'-',r'-'], wx.CB_DROPDOWN|wx.CB_READONLY)
         self.filter2.SetFont(wx.Font(10,74,90,90,0,"Verdana"))
         self.filter2.SetBackgroundColour(wx.WHITE)        
         self.filter2.Bind(wx.EVT_COMBOBOX, self.mouseAction)

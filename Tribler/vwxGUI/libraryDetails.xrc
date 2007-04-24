@@ -316,15 +316,6 @@
                       <border>3</border>
                       <option>1</option>
                     </object>
-                    <object class="sizeritem">
-                      <flag>wxLEFT|wxALIGN_RIGHT|wxFIXED_MINSIZE</flag>
-                      <border>3</border>
-                      <option>0</option>
-                      <object class="wxPanel" name="download" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                        <pos>270,6</pos>
-                        <size>55,55</size>
-                      </object>
-                    </object>
                   </object>
                 </object>
               </object>

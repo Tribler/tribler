@@ -9,9 +9,9 @@ ckscr=0
 ProjectBuild=0
 CountConfComp=2
 nomifileEsi=
-idmax=1014
-idmaxFile=100382
-idIncCmp=2728
+idmax=1016
+idmaxFile=100383
+idIncCmp=2731
 isfuncClsName=0
 funcNamePreF=VwXnew_
 s_includeNewCtor=
@@ -643,7 +643,7 @@ contenitor=0
 [Project/GroupsName]
 count=1
 item0name=Save Project
-item0id=2119,2413,2681,2120,2550,1490,2618
+item0id=2119,2413,2681,2120,2550,1490,2618,1391
 [VwXScript]
 count=0
 [File0]
@@ -829,7 +829,7 @@ ws_dir=.\\
 s_tipoFile=21
 s_tipoComp=0
 ClsparentCompTipo=0
-i_FileIdent=100370
+i_FileIdent=100383
 i_FileIdentPar=2
 wx_WindowFileADD=1635087209
 l_ProtettoDesigne=0

@@ -63,6 +63,7 @@ class PeerDataManager(DelayedEventHandler):
         self.frienddb = CacheDBHandler.FriendDBHandler()
         self.MAX_MIN_PEERS_NUMBER = 1900
         self.MAX_MAX_PEERS_NUMBER = 2100
+        self.mode = 'all persons'
 
         self.data = self.prepareData()
         print "<mluc> have data"
@@ -131,7 +132,7 @@ class PeerDataManager(DelayedEventHandler):
         
     def prepareData(self):
         """prepares the data first time this manager is initialized
-        for a peer it does the same things as preparePeer by duplicating the code for the moment"""
+        for a peer it does the same things as preparePeer by duplicating the code for the moment"""        
         # first, obtain values
         ##update
         #myprefs = self.mydb.getPrefList()
@@ -330,8 +331,12 @@ class PeerDataManager(DelayedEventHandler):
         filtered = sort_dictlist(filtered, 'rank_value', 'decrease')
         
         #if type is not none, use it
-        if type == "friends":
+        if type == "friends" and self.mode != 'friends':
             filtered = [item for item in filtered if item['friend']]
+#            self.mode = 'friends'
+#        elif type != "friends" and self.mode == 'friends':
+#            filtered = self.data = self.prepareData()
+#            self.mode = 'all persons'
         
         self.top20similar = []
         for i in xrange(len(filtered)):
@@ -353,7 +358,8 @@ class PeerDataManager(DelayedEventHandler):
 #        elif self.neverAnyContent:
 #            searchingContentStub = {'content_name':self.utility.lang.get('searching_content')}
 #            filtered.append(searchingContentStub)
-        self.data = filtered
+        
+        #self.data = filtered
         return filtered
 
     def getRank(self, permid):
