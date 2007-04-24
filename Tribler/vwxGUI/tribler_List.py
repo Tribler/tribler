@@ -99,6 +99,7 @@ class FilesList(tribler_List):
                 
             
             # Add the filelist to the fileListComponent
+            self.filelist = filelist
             self.DeleteAllItems()
             for f in filelist:
                 index = self.InsertStringItem(sys.maxint, f[0])
@@ -109,6 +110,12 @@ class FilesList(tribler_List):
             print 'standardDetails: error getting list of files in torrent'
             print_exc(file=sys.stderr)
             return {}                 
+       
+    def getNumFiles(self):
+        try:
+            return len(self.filelist)
+        except:
+            return 0
         
     def onListResize(self, event):
         size = self.GetClientSize()
