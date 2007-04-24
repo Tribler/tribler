@@ -218,7 +218,12 @@ class GUIUtility:
         filesButton = xrc.XRCCTRL(self.frame, 'mainButtonFiles')
         filesButton.setSelected(True)
         self.selectedMainButton = filesButton 
-        
+     
+    def getOverviewElement(self):
+        """should get the last selected item for the current standard overview, or
+        the first one if none was previously selected"""
+        firstItem = self.standardOverview.getFirstItem()
+        return firstItem
         
     def initStandardDetails(self, standardDetails):
         "Called by standardDetails when ready with init"

@@ -70,6 +70,8 @@ class standardDetails(wx.Panel):
             self.refreshMode()
         if item:
             self.setData(item)
+        else:
+            self.setData(None)
     
     def getMode(self):
         return self.mode
@@ -201,12 +203,12 @@ class standardDetails(wx.Panel):
         if not self.item:
             return None
         try:
-            if self.mode == 'filesMode':
+            if self.mode in ['filesMode','libraryMode']:
                 return self.item['infohash']
-            elif self.mode == 'personsMode':
+            elif self.mode in ['personsMode','friendsMode']:
                 return self.item['permid']
         except:
-            print 'standardDetails: Error in getIdentifier, item=%s' % self.item
+            print 'standardDetails: Error in getIdentifier for mode %s, item=%s' % (self.mode,self.item)
         
     def setData(self, item):
         self.item = item
