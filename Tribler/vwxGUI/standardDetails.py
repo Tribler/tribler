@@ -48,11 +48,17 @@ class standardDetails(wx.Panel):
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
                                             'download', 'files_detailsTab', 'info_detailsTab', 'TasteHeart', 'details',],
                              'personsMode': ['TasteHeart', 'recommendationField','addAsFriend', 'commonFilesField',
-                                              'alsoDownloadedField', 'info_detailsTab', 'advanced_detailsTab','detailsC',
-                                              'titleField']
+                                            'alsoDownloadedField', 'info_detailsTab', 'advanced_detailsTab','detailsC',
+                                            'titleField'],
+                             'libraryMode': ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
+                                            'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
+                                            'download', 'files_detailsTab', 'info_detailsTab', 'TasteHeart', 'details',],
                              }
-        self.tabElements = {'filesTab_files': [ 'download', 'includedFiles'],
-                            'personsTab_advanced': ['lastExchangeField', 'noExchangeField', 'timesConnectedField','addAsFriend']}
+        
+        self.tabElements = {'filesTab_files': [ 'download', 'includedFiles'],                            
+                            'personsTab_advanced': ['lastExchangeField', 'noExchangeField', 'timesConnectedField','addAsFriend'],
+                            'libraryTab_files': [ 'download', 'includedFiles'],}
+            
 
         self.guiUtility.initStandardDetails(self)
 
