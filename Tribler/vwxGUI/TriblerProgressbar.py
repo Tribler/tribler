@@ -7,7 +7,7 @@ class TriblerProgressbar(wx.Panel):
     """
     def __init__(self, *args, **kw):
         if len(args) == 0: 
-            self.backgroundColour = wx.Colour(102,102,102) 
+            self.backgroundColour = wx.WHITE 
             self.percentage = 0.0
             self.eta = '?'
             pre = wx.PrePanel() 
@@ -15,7 +15,7 @@ class TriblerProgressbar(wx.Panel):
             self.PostCreate(pre) 
             self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate) 
         else:
-            self.backgroundColour = wx.Colour(102,102,102) 
+            self.backgroundColour = wx.WHITE
             self.percentage = 0
             self.eta = '?'
             wx.Panel.__init__(self, *args, **kw) 
@@ -60,12 +60,26 @@ class TriblerProgressbar(wx.Panel):
         dc.Clear()
         size = self.GetSize()
         fillwidth = int((size[0])*self.percentage/100.0)
+        
+        # draw around rect
         dc.SetPen(wx.BLACK_PEN)
-        dc.SetBrush(wx.BLUE_BRUSH)
-        dc.DrawRoundedRectangle(0,0,fillwidth, size[1], 3)
-        dc.SetFont(wx.Font(6, wx.SWISS, wx.NORMAL, wx.NORMAL, False))
-        dc.DrawText('%.1f %%' % self.percentage, 3, 3)
-        dc.DrawText(self.eta, size[0]-50, 3)
+        dc.SetBrush(wx.NullBrush)
+        dc.DrawRectangle(0,0, size[0], size[1])
+        # draw progression rect
+        dc.SetPen(wx.NullPen)
+        dc.SetBrush(wx.Brush(wx.Colour(213,213,213)))
+        dc.DrawRectangle(0,0,fillwidth, size[1])
+        dc.SetPen(wx.Pen(wx.Colour(102,102,102), 1))
+        dc.DrawLine(fillwidth-1, 0, fillwidth-1, size[1])
+        
+        # print text
+        dc.SetFont(wx.Font(7, wx.DEFAULT, wx.NORMAL, wx.NORMAL, False))
+        percString = '%.1f%%' % self.percentage 
+        textSize = dc.GetTextExtent(percString)
+        dc.DrawText(percString, 3, (size[1]-textSize[1])/2)
+        if self.eta.find('unknown') == -1 and not '?' in self.eta:
+            etaSize = dc.GetTextExtent(self.eta)
+            dc.DrawText(self.eta, size[0]-3-etaSize[0], (size[1]-etaSize[1])/2)
         evt.Skip()
         
 

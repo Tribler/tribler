@@ -500,7 +500,7 @@ class standardDetails(wx.Panel):
                 self.data[self.mode][name+'_'+element] = xrcElement
                             
             self.data[self.mode][name] = panel
-                
+            
             return panel
         
     def mouseAction(self, event):

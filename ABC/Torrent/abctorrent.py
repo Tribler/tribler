@@ -392,10 +392,10 @@ class ABCTorrent:
                         text = "(oo)"
                     else:
                         value = self.connection.seedingtimeleft
-                        text = "(" + self.utility.eta_value(value) + ")"
+                        text = "(" + self.utility.eta_value(value, truncate=2) + ")"
                 elif self.connection.engine.eta is not None:
                     value = self.connection.engine.eta
-                    text = self.utility.eta_value(value)
+                    text = self.utility.eta_value(value, truncate=2)
 
             elif colid == COL_SIZE: # Size                            
                 # Some file pieces are set to "download never"
