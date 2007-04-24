@@ -3,6 +3,7 @@
   <object class="wxPanel" name="filesTab_files">
     <pos>0,0</pos>
     <size>300,348</size>
+    <bg>#ffffff</bg>
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>
       <object class="sizeritem">
@@ -18,14 +19,25 @@
             <object class="wxBoxSizer">
               <orient>wxHORIZONTAL</orient>
               <object class="sizeritem">
-                <flag>wxLEFT|wxFIXED_MINSIZE</flag>
-                <border>8</border>
+                <flag>wxTOP|wxLEFT|wxFIXED_MINSIZE</flag>
+                <border>5</border>
                 <option>0</option>
-                <object class="wxStaticText" name="includedFilesField">
+                <object class="wxStaticText" name="st209cCC">
                   <style>wxST_NO_AUTORESIZE</style>
-                  <label>included files (*):</label>
-                  <pos>3,3</pos>
-                  <size>168,20</size>
+                  <label>number of included files:</label>
+                  <pos>8,8</pos>
+                  <size>129,18</size>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <flag>wxTOP|wxFIXED_MINSIZE</flag>
+                <border>5</border>
+                <option>0</option>
+                <object class="wxStaticText" name="filesField">
+                  <style>wxST_NO_AUTORESIZE</style>
+                  <label>unknown</label>
+                  <pos>137,8</pos>
+                  <size>66,18</size>
                 </object>
               </object>
               <object class="spacer">
@@ -51,9 +63,9 @@
         <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>1</option>
-        <object class="wxListCtrl" name="includedFiles" subclass="Tribler.vwxGUI.tribler_List.TorrentList">
+        <object class="wxListCtrl" name="includedFiles" subclass="Tribler.vwxGUI.tribler_List.FilesList">
           <pos>3,64</pos>
-          <size>292,70</size>
+          <size>292,155</size>
         </object>
       </object>
     </object>

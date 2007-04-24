@@ -13,7 +13,7 @@ from tribler_List import *
 #[inc]end your include
 
 class personsDetails(wx.Panel):
-    def __init__(self,parent,id = -1,pos = wx.Point(0,0),size = wx.Size(300,420),style = wx.TAB_TRAVERSAL,name = 'panel'):
+    def __init__(self,parent,id = -1,pos = wx.Point(0,0),size = wx.Size(300,620),style = wx.TAB_TRAVERSAL,name = 'panel'):
         pre=wx.PrePanel()
         self.OnPreCreate()
         pre.Create(parent,id,pos,size,style,name)
@@ -71,9 +71,9 @@ class personsDetails(wx.Panel):
         self.advanced_detailsTab.SetDimensions(95,0,75,18)
         self.thumbfield = wx.StaticBitmap(self.pn240c,-1,wx.NullBitmap,wx.Point(10,3),wx.Size(100,100))
         self.commonFilesField = tribler_List(self.detailsC,-1,wxDefaultPosition,wxDefaultSize)
-        self.commonFilesField.SetDimensions(6,85,284,65)
+        self.commonFilesField.SetDimensions(6,85,284,85)
         self.alsoDownloadedField = tribler_List(self.detailsC,-1,wxDefaultPosition,wxDefaultSize)
-        self.alsoDownloadedField.SetDimensions(6,201,284,65)
+        self.alsoDownloadedField.SetDimensions(6,196,284,160)
         self.sz3s = wx.BoxSizer(wx.VERTICAL)
         self.headerC = wx.BoxSizer(wx.HORIZONTAL)
         self.sz226s = wx.BoxSizer(wx.HORIZONTAL)

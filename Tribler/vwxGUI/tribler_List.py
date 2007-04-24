@@ -45,7 +45,7 @@ class tribler_List(wx.ListCtrl):
         self.SetColumnWidth( 0, size.width-10) #vertical scrollbar width
         self.ScrollList(-100, 0) # Removes HSCROLLBAR
 
-class TorrentList(tribler_List):
+class FilesList(tribler_List):
     def __init__(self):
         self.initReady = False
         tribler_List.__init__(self)
