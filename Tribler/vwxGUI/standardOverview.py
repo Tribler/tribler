@@ -85,7 +85,8 @@ class standardOverview(wx.Panel):
         self.hSizer.Add(self.currentPanel, 1, wx.ALL|wx.EXPAND, 0)
         
         self.hSizer.Layout()
-        #self.currentPanel.Refresh()
+        wx.CallAfter(self.hSizer.Layout)
+        wx.CallAfter(self.currentPanel.Refresh)
         #self.Show(True)
         
         
@@ -104,7 +105,7 @@ class standardOverview(wx.Panel):
                 grid = xrc.XRCCTRL(currentPanel, modeString+'Grid')
                 pager = xrc.XRCCTRL(currentPanel, 'standardPager')
                 if not currentPanel or not grid or not pager:
-                    raise Exception()
+                    raise Exception('standardOverview: Could not find panel, grid or pager')
                 
                 # Save paneldata in self.data
                 self.data[self.mode]['panel'] = currentPanel

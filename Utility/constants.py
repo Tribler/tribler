@@ -36,6 +36,9 @@ COL_DEST          = 22
 COL_SEEDTIME      = 23
 COL_CONNECTIONS   = 24
 COL_SEEDOPTION    = 25
+# only for tribler GUI:
+COL_DLANDTOTALSIZE = 30
+
 
 #
 # Constants used for the column headings in the spew list

@@ -46,7 +46,7 @@ class standardDetails(wx.Panel):
         #self.Refresh()
         self.modeElements = {'filesMode': ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
-                                            'download', 'files_detailsTab', 'info_detailsTab', 'TasteHeart', 'details',],
+                                            'download', 'tabs', ('files_detailsTab','tabs'), ('info_detailsTab','tabs'), 'TasteHeart', 'details',],
                              'personsMode': ['TasteHeart', 'recommendationField','addAsFriend', 'commonFilesField',
                                             'alsoDownloadedField', 'info_detailsTab', 'advanced_detailsTab','detailsC',
                                             'titleField'],
@@ -55,7 +55,7 @@ class standardDetails(wx.Panel):
                                             'download', 'files_detailsTab', 'info_detailsTab', 'TasteHeart', 'details',],
                              }
         
-        self.tabElements = {'filesTab_files': [ 'download', 'includedFiles'],                            
+        self.tabElements = {'filesTab_files': [ 'download', 'includedFiles', 'filesField'],                            
                             'personsTab_advanced': ['lastExchangeField', 'noExchangeField', 'timesConnectedField','addAsFriend'],
                             'libraryTab_files': [ 'download', 'includedFiles'],}
             
@@ -103,8 +103,8 @@ class standardDetails(wx.Panel):
         
             
 #        self.currentPanel.Layout()
-        self.hSizer.Layout()
-        self.currentPanel.Refresh()
+        wx.CallAfter(self.hSizer.Layout)
+        wx.CallAfter(self.currentPanel.Refresh)
         #self.Show(True)
         
         
@@ -155,10 +155,16 @@ class standardDetails(wx.Panel):
             #titlePanel = xrc.XRCCTRL(currentPanel, 'titlePanel')
             
             for element in self.modeElements[self.mode]:
-                xrcElement = xrc.XRCCTRL(currentPanel, element)
+                if type(element) == str:
+                    xrcElement = xrc.XRCCTRL(currentPanel, element)
+                    name = element
+                elif type(element) == tuple:
+                    name = element[0]
+                    xrcElement = xrc.XRCCTRL(self.getGuiObj(element[1]), name)
                 if not xrcElement:
                     print 'standardDetails: Error: Could not identify xrc element: %s for mode %s' % (element, self.mode)
-                self.data[self.mode][element] = xrcElement
+                
+                self.data[self.mode][name] = xrcElement
             
             # do extra init
             if modeString == 'files' or modeString == 'library':
@@ -166,8 +172,10 @@ class standardDetails(wx.Panel):
                 self.getGuiObj('down').setBackground(wx.WHITE)
                 self.getGuiObj('refresh').setBackground(wx.WHITE)
                 self.getGuiObj('TasteHeart').setBackground(wx.WHITE)
-                self.getGuiObj('info_detailsTab').setSelected(True)
+                infoTab = self.getGuiObj('info_detailsTab')
+                infoTab.setSelected(True)
                 self.getAlternativeTabPanel('filesTab_files', parent=currentPanel).Hide()
+                
                 
             elif modeString == 'persons' or modeString == 'friends':
                 self.getGuiObj('TasteHeart').setBackground(wx.WHITE)
@@ -261,8 +269,9 @@ class standardDetails(wx.Panel):
             
             elif self.getGuiObj('files_detailsTab').isSelected():
                 filesList = self.getGuiObj('includedFiles', tab = 'filesTab_files')
-                
                 filesList.setData(torrent)
+                self.getGuiObj('filesField', tab = 'filesTab_files').SetLabel('%d' % filesList.getNumFiles())
+                
                 
             else:
                 print 'standardDetails: error: unknown tab selected'
@@ -607,98 +616,3 @@ class standardDetails(wx.Panel):
         else:
              thumbPanel.setBitmap(DEFAULT_THUMB)
             
-class FilesTabPanel(wx.Panel):
-    def __init__(self, parent):
-        wx.Panel.__init__(self, parent, -1)
-        self.guiUtility = GUIUtility.getInstance()
-        self.utility = self.guiUtility.utility
-        self.addComponents()
-        
-    def addComponents(self):
-        self.vSizer = wx.BoxSizer(wx.VERTICAL)
-        
-        self.numFilesField = wx.StaticText(self, -1, self.utility.lang.get('torrent_files') % 0)
-        self.vSizer.Add(self.numFilesField, 0, wx.EXPAND|wx.ALL, 10)
-        
-        self.fileList = wx.ListCtrl( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LC_REPORT|wx.SUNKEN_BORDER|wx.LC_SINGLE_SEL )
-        self.fileList.InsertColumn(0, self.utility.lang.get('file'))
-        self.fileList.InsertColumn(1, self.utility.lang.get('size'))
-        self.fileList.Bind(wx.EVT_SIZE, self.onListResize)
-                
-        if sys.platform == 'win32':
-            #print 'Using windows code'
-            self.vSizer.Add(self.fileList, 1, wx.ALL|wx.EXPAND, 1)
-        else:
-            #print 'Using unix code'
-            BORDER_EXPAND = wx.ALL|wx.GROW
-            self.fileListSizer = wx.BoxSizer(wx.HORIZONTAL)
-            self.fileListSizer.Add(self.fileList, 1, BORDER_EXPAND, 0)
-            self.vSizer.Add(self.fileListSizer, 1, BORDER_EXPAND, 1)
-        
-
-        self.SetSizer(self.vSizer);self.SetAutoLayout(1);self.Layout();
-        self.SetBackgroundColour(wx.WHITE)
-        self.SetMinSize((-1, 348)) # set same size as default info panel
-        self.Refresh()
-        
-    def setData(self, torrent):
-        # Get the file(s)data for this torrent
-        
-        print 'setData of FilesTabPanel called'
-        torrent_dir = torrent.get('torrent_dir')
-        torrent_file = torrent.get('torrent_name')
-        try:
-            
-            if not os.path.exists(torrent_dir):
-                torrent_dir = os.path.join(self.utility.getConfigPath(), "torrent2")
-            
-            torrent_filename = os.path.join(torrent_dir, torrent_file)
-            
-            if not os.path.exists(torrent_filename):
-                if DEBUG:    
-                    print >>sys.stderr,"contentpanel: Torrent: %s does not exist" % torrent_filename
-                return {}
-            
-            metadata = self.utility.getMetainfo(torrent_filename)
-            if not metadata:
-                return {}
-            info = metadata.get('info')
-            if not info:
-                return {}
-            
-            #print metadata.get('comment', 'no comment')
-                
-                
-            filedata = info.get('files')
-            if not filedata:
-                filelist = [(dunno2unicode(info.get('name')),self.utility.size_format(info.get('length')))]
-            else:
-                filelist = []
-                for f in filedata:
-                    filelist.append((dunno2unicode('/'.join(f.get('path'))), self.utility.size_format(f.get('length')) ))
-                filelist.sort()
-                
-            
-            # Add the filelist to the fileListComponent
-            self.fileList.DeleteAllItems()
-            for f in filelist:
-                index = self.fileList.InsertStringItem(sys.maxint, f[0])
-                self.fileList.SetStringItem(index, 1, f[1])
-            self.onListResize(None)
-            
-            # update number of files
-            self.numFilesField.SetLabel(self.utility.lang.get('torrent_files') % len(filelist))
-            
-        except:
-            print 'standardDetails: error getting list of files in torrent'
-            print_exc(file=sys.stderr)
-            return {}                 
-        
-    def onListResize(self, event):
-        size = self.fileList.GetClientSize()
-        if size[0] > 50 and size[1] > 50:
-            self.fileList.SetColumnWidth(1, wx.LIST_AUTOSIZE)
-            self.fileList.SetColumnWidth(0, self.fileList.GetClientSize()[0]-self.fileList.GetColumnWidth(1)-15)
-            self.fileList.ScrollList(-100, 0) # Removes HSCROLLBAR
-        if event:
-            event.Skip()

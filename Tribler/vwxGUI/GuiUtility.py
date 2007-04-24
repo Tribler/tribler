@@ -253,6 +253,8 @@ class GUIUtility:
         
     def refreshOnResize(self):
         try:
+            #if DEBUG:
+            #    print'GuiUtility: explicit refresh'
             self.standardDetails.Refresh()
             self.standardOverview.Refresh()
             self.frame.topBackgroundRight.Refresh()

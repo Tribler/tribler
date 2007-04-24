@@ -16,7 +16,7 @@ class bgPanel(wx.Panel):
         else:
             self.backgroundColour = wx.Colour(102,102,102) 
             wx.Panel.__init__(self, *args, **kw) 
-            self._PostInit()     
+            self._PostInit()
             
         
     def OnCreate(self, event):

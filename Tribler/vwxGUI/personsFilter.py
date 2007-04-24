@@ -18,7 +18,7 @@ class personsFilter(wx.Panel):
             self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
         else:
             wx.Panel.__init__(self, args[0], args[1], args[2], args[3])
-            self._PostInit()
+            wx.CallAfter(self._PostInit)
         
     def OnCreate(self, event):
         self.Unbind(wx.EVT_WINDOW_CREATE)

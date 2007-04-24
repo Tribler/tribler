@@ -231,7 +231,7 @@ class standardPager(wx.Panel):
 #        self.mouseAction(obj, event)
 #        
     def mouseAction(self, event):
-        
+        print 'pager: mouseaction'
         obj = event.GetEventObject()
         
         old = self.currentPage

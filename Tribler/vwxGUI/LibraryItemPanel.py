@@ -2,7 +2,7 @@ import wx, math, time, os, sys, threading
 from traceback import print_exc
 from Tribler.utilities import *
 from wx.lib.stattext import GenStaticText as StaticText
-from Tribler.Dialogs.ContentFrontPanel import ImagePanel
+from Tribler.vwxGUI.tribler_topButton import tribler_topButton
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from Tribler.vwxGUI.TriblerProgressbar import TriblerProgressbar
 from Tribler.unicode import *
@@ -23,6 +23,7 @@ class LibraryItemPanel(wx.Panel):
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.parent = parent
+        self.triblerGrey = wx.Colour(128,128,128)
         self.data = None
         self.datacopy = None
         self.titleLength = 37 # num characters
@@ -58,9 +59,9 @@ class LibraryItemPanel(wx.Panel):
         
         # Up/Down text speed
         self.speedUp2   = wx.StaticText(self,-1,"up: 10 KB/s",wx.Point(274,3),wx.Size(70,15),wx.ST_NO_AUTORESIZE)                        
-        self.speedUp2.SetForegroundColour(wx.Colour(128,128,128))
+        self.speedUp2.SetForegroundColour(self.triblerGrey)
         self.speedDown2 = wx.StaticText(self,-1,"down: 12 KB/s",wx.Point(274,3),wx.Size(80,15),wx.ST_NO_AUTORESIZE)                                
-        self.speedDown2.SetForegroundColour(wx.Colour(128,128,128))        
+        self.speedDown2.SetForegroundColour(self.triblerGrey)        
         self.speedSizer = wx.BoxSizer(wx.HORIZONTAL)
 #        self.speedSizer.Add(self.speedUp,0,wx.TOP|wx.LEFT|wx.FIXED_MINSIZE,4)                
         self.speedSizer.Add(self.speedUp2,0,wx.TOP|wx.FIXED_MINSIZE,4)
@@ -86,10 +87,11 @@ class LibraryItemPanel(wx.Panel):
         self.pbSizer.Add(self.delete,0,wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,2)        
 
         # Add message        
-        self.message = wx.StaticText(self,-1,"message",wx.Point(274,3),wx.Size(70,15),wx.ST_NO_AUTORESIZE)        
+        self.fileProgress = wx.StaticText(self,-1,"?/?",wx.Point(274,3),wx.Size(70,15),wx.ST_NO_AUTORESIZE)
+        self.fileProgress.SetForegroundColour(self.triblerGrey)
         self.pbMessage = wx.BoxSizer(wx.VERTICAL)
         self.pbMessage.Add(self.pbSizer,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,2)
-        self.pbMessage.Add(self.message,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,1)
+        self.pbMessage.Add(self.fileProgress,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,1)
         self.hSizer.Add(self.pbMessage, 0, wx.LEFT|wx.EXPAND, 2)         
                 
         # V Line                
@@ -97,31 +99,31 @@ class LibraryItemPanel(wx.Panel):
 #        self.hSizer.Add(self.vLine, 0, wx.LEFT|wx.TOP, 6)
 
         # Add checkBox -Private & -Archive
-        self.cbPrivate = wx.CheckBox(self,-1,"",wx.Point(258,3),wx.Size(13,13))
-        self.cbPrivateLabel = wx.StaticText(self,-1,"",wx.Point(274,3),wx.Size(35,15),wx.ST_NO_AUTORESIZE)
-        self.cbPrivateLabel.SetLabel("archive")
-        self.cbPrivateSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.cbPrivateSizer.Add(self.cbPrivate, 0, wx.LEFT|wx.EXPAND, 1)     
-        self.cbPrivateSizer.Add(self.cbPrivateLabel, 0, wx.LEFT|wx.EXPAND, 3)     
-
-        self.cbArchive = wx.CheckBox(self,-1,"",wx.Point(258,18),wx.Size(13,13))
-        self.cbArchiveLabel = wx.StaticText(self,-1,"",wx.Point(274,3),wx.Size(35,15),wx.ST_NO_AUTORESIZE)
-        self.cbArchiveLabel.SetLabel("private")
-        self.cbArchiveSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.cbArchiveSizer.Add(self.cbArchive, 0, wx.LEFT|wx.EXPAND, 1)     
-        self.cbArchiveSizer.Add(self.cbArchiveLabel, 0, wx.LEFT|wx.EXPAND, 2)     
-        
-        self.cbSizer = wx.BoxSizer(wx.VERTICAL)
-        self.cbSizer.Add(self.cbPrivateSizer,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,3)
-        self.cbSizer.Add(self.cbArchiveSizer,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,1)
-        self.hSizer.Add(self.cbSizer, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)                
+#        self.cbPrivate = wx.CheckBox(self,-1,"",wx.Point(258,3),wx.Size(13,13))
+#        self.cbPrivateLabel = wx.StaticText(self,-1,"",wx.Point(274,3),wx.Size(35,15),wx.ST_NO_AUTORESIZE)
+#        self.cbPrivateLabel.SetLabel("archive")
+#        self.cbPrivateSizer = wx.BoxSizer(wx.HORIZONTAL)
+#        self.cbPrivateSizer.Add(self.cbPrivate, 0, wx.LEFT|wx.EXPAND, 1)     
+#        self.cbPrivateSizer.Add(self.cbPrivateLabel, 0, wx.LEFT|wx.EXPAND, 3)     
+#
+#        self.cbArchive = wx.CheckBox(self,-1,"",wx.Point(258,18),wx.Size(13,13))
+#        self.cbArchiveLabel = wx.StaticText(self,-1,"",wx.Point(274,3),wx.Size(35,15),wx.ST_NO_AUTORESIZE)
+#        self.cbArchiveLabel.SetLabel("private")
+#        self.cbArchiveSizer = wx.BoxSizer(wx.HORIZONTAL)
+#        self.cbArchiveSizer.Add(self.cbArchive, 0, wx.LEFT|wx.EXPAND, 1)     
+#        self.cbArchiveSizer.Add(self.cbArchiveLabel, 0, wx.LEFT|wx.EXPAND, 2)     
+#        
+#        self.cbSizer = wx.BoxSizer(wx.VERTICAL)
+#        self.cbSizer.Add(self.cbPrivateSizer,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,3)
+#        self.cbSizer.Add(self.cbArchiveSizer,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,1)
+#        self.hSizer.Add(self.cbSizer, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)                
         
         # V Line                        
 #        self.vLine2 = wx.StaticLine(self,-1,wx.Point(362,37),wx.Size(2,32),wx.LI_VERTICAL)
 #        self.hSizer.Add(self.vLine2, 0, wx.LEFT|wx.TOP, 6)
 
         # Play Fast
-        self.playFast = bgPanel(self, name="playFast")
+        self.playFast = tribler_topButton(self, name="playFast")
         self.playFast.setBackground(wx.BLACK)
         self.playFast.SetSize((84,37))
         self.hSizer.Add(self.playFast, 0, wx.TOP, 2) 
@@ -151,12 +153,14 @@ class LibraryItemPanel(wx.Panel):
         if torrent.get('abctorrent'):
             print '%s is an active torrent' % torrent['content_name']
             abctorrent = torrent['abctorrent']
-            progress = abctorrent.getColumnText(COL_PROGRESS)
-            self.pb.setPercentage(float(progress[:-1]))
-            #self.pb.setPercentage(50.0)
-            eta = abctorrent.getColumnText(COL_ETA)
-            self.pb.setETA(eta)
-            
+            abctorrent.setLibraryPanel(self)
+            self.pb.setEnabled(True)
+            self.playFast.Show()
+        else:
+            self.pb.setEnabled(False)
+            self.speedUp2.Hide()
+            self.speedDown2.Hide()
+            self.playFast.Hide()
             
         if torrent.get('content_name'):
             title = torrent['content_name'][:self.titleLength]

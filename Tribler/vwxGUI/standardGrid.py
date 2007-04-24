@@ -261,7 +261,10 @@ class standardGrid(wx.Panel):
     def hasDetailPanel(self):
         if self.detailPanel:
             return True
-        self.detailPanel = self.guiUtility.standardDetails
+        try:
+            self.detailPanel = self.guiUtility.standardDetails
+        except:
+            pass
         return self.detailPanel != None
     
 

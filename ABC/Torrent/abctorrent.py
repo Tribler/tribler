@@ -130,6 +130,7 @@ class ABCTorrent:
         self.totalseeds = "?"
         
         self.peer_swarm = {}    # swarm of each torrent, used to display peers on map
+        self.libraryPanel = None
         
     def addTorrentToDB(self):
         
@@ -462,6 +463,10 @@ class ABCTorrent:
 
             elif colid == COL_DLSIZE: # Download Size
                 text = self.utility.size_format(self.files.downsize)
+                
+            elif colid == COL_DLANDTOTALSIZE: # Download Size
+                text = self.utility.size_format(self.files.downsize, truncate=1) +'/'+\
+                       self.utility.size_format(self.files.floattotalsize, truncate =1)
 
             elif colid == COL_ULSIZE: # Upload Size
                 text = self.utility.size_format(self.files.upsize)
@@ -514,6 +519,56 @@ class ABCTorrent:
             text = ""
             
         return text
+
+    #
+    # Update multiple columns in the display
+    # if columnlist is None, update all columns
+    # (only visible columns will be updated)
+    #
+    def updateColumnsInLibrary(self, columnlist = None, force = False):
+
+        if DEBUG:
+            if threading.currentThread().getName() != "MainThread":
+                print >> sys.stderr,"abctorrent: updateColumns thread",threading.currentThread()
+                print >> sys.stderr,"abctorrent: NOT MAIN THREAD"
+                print_stack()
+
+        if not self.libraryPanel or not self.libraryPanel.IsShown():
+            #print 'abctorrent: error, no libraryPanel found. Not updating'
+            return
+        
+        if columnlist is None:
+            columnlist = range(self.list.columns.minid, self.list.columns.maxid)
+        
+        try:
+            for colid in columnlist:
+                #print colid,
+                # Don't do anything if ABC is shutting down
+                # or minimized
+                if self.status.dontupdate or not self.utility.frame.GUIupdate:
+                    if DEBUG:
+                         print "torrent: update cols: not updating cols, GUIupdate is",self.utility.frame.GUIupdate, time()
+                    return
+
+                # Get right label from library panel
+                text = self.getColumnText(colid)
+                
+                if colid == COL_DLSPEED:
+                    self.libraryPanel.speedDown2.SetLabel(self.utility.lang.get('down')+': '+text) 
+                elif colid == COL_ULSPEED:
+                    self.libraryPanel.speedUp2.SetLabel(self.utility.lang.get('up')+': '+text)
+                elif colid == COL_PROGRESS:
+                    self.libraryPanel.pb.setPercentage(float(text[:-1]))
+                elif colid == COL_ETA:
+                    self.libraryPanel.pb.setETA(text)
+                elif colid == COL_DLANDTOTALSIZE:
+                    self.libraryPanel.fileProgress.SetLabel(text)
+            
+                
+                                    
+        except wx.PyDeadObjectError, msg:
+            print >> sys.stderr,"abctorrent: error updateColumns:", msg
+            pass
 
     #
     # Update multiple columns in the display
@@ -866,3 +921,7 @@ class ABCTorrent:
                     self.utility.torrents["all"].remove(self)        
 
         del self.utility.torrents["inactive"][self]
+        
+        
+    def setLibraryPanel(self, panel):
+        self.libraryPanel = panel
