@@ -20,7 +20,7 @@ from Tribler.CacheDB.CacheDBHandler import PeerDBHandler
 from Tribler.Overlay.permid import ChallengeResponse
 from Tribler.utilities import show_permid_short
 
-DEBUG = True
+DEBUG = False
 
 #
 # Public definitions
