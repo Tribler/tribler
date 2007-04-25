@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
+  <object class="wxFrame" name="MyPlayer" subclass="abc_vwx.wxFrame">
+    <pos>0,0</pos>
+    <size>800,600</size>
+    <object class="wxBoxSizer">
+      <orient>wxVERTICAL</orient>
+      <object class="sizeritem">
+        <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+        <object class="wxPanel" name="playerPanel">
+          <pos>3,3</pos>
+          <size>588,475</size>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+        <object class="wxBoxSizer">
+          <orient>wxHORIZONTAL</orient>
+          <object class="sizeritem">
+            <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>1</option>
+            <object class="wxPanel" name="playerBG" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+              <pos>3,484</pos>
+              <size>20,85</size>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="spacer">
+                  <size>80,60</size>
+                  <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>1</option>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                  <object class="wxPanel" name="playerPrevious" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <pos>286,0</pos>
+                    <size>70,85</size>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                  <object class="wxPanel" name="playerPlay" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <pos>356,0</pos>
+                    <size>75,85</size>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                  <object class="wxPanel" name="playerNext" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <pos>431,0</pos>
+                    <size>70,85</size>
+                  </object>
+                </object>
+                <object class="spacer">
+                  <size>80,60</size>
+                  <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>1</option>
+                </object>
+              </object>
+            </object>
+          </object>
+        </object>
+      </object>
+    </object>
+  </object>
+</resource>
