@@ -108,7 +108,7 @@ HelpHelperMessages = [RESERVE_PIECES]
 
 
 ## Social-Network feature 
-SOCIAL_OVERLAP = chr(240)
+SOCIAL_OVERLAP = chr(239)
 
 SocialNetworkMessages = [SOCIAL_OVERLAP]
 
