@@ -24,13 +24,13 @@ class LibraryItemPanel(wx.Panel):
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.parent = parent
+        self.guiserver = parent.guiserver
         self.triblerGrey = wx.Colour(128,128,128)
         self.data = None
         self.datacopy = None
         self.titleLength = 37 # num characters
         self.selected = False
         self.warningMode = False
-        self.guiserver = parent.guiserver
         self.oldCategoryLabel = None
         self.addComponents()
         self.Show()
@@ -48,14 +48,15 @@ class LibraryItemPanel(wx.Panel):
         self.Bind(wx.EVT_LEFT_UP, self.mouseAction)
         self.Bind(wx.EVT_KEY_UP, self.keyTyped)
         
-        # Add thumb        
+        # Add thumb
         self.thumb = ThumbnailViewer(self)
         self.thumb.setBackground(wx.BLACK)
         self.thumb.SetSize((66,37))
         #self.thumb = bgPanel(self, name="defaultThumb")
         #self.thumb.setBackground(wx.BLACK)
         #self.thumb.SetSize((66,37))
-        self.hSizer.Add(self.thumb, 0, wx.ALL, 0)        
+        self.hSizer.Add(self.thumb, 0, wx.ALL, 0)
+        
         # Add title
         self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(160,12))        
         self.title.SetBackgroundColour(wx.WHITE)
@@ -142,34 +143,14 @@ class LibraryItemPanel(wx.Panel):
         for window in self.GetChildren():
             window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
             window.Bind(wx.EVT_KEY_UP, self.keyTyped)
-                             
+                  
+    def refreshData(self):
+        self.setData(self.data)
+        
     def setData(self, torrent):
         # set bitmap, rating, title
 
-        """
-        if self.datacopy is not None and torrent is not None and self.datacopy['infohash'] == torrent['infohash']:
-            # Do not update torrents that have no new eta/havedigest
-            if 'stats' in torrent:
-                if (self.datacopy['eta'] == torrent['stats']['eta']):
-                    return
-        """
         self.data = torrent
-
-        if torrent is not None and 'metadata' in torrent:
-            print "lip: setData: Got metadata",torrent['metadata']
-        else:
-            print "lip: setData: No metadata"
-
-        """
-        if torrent is not None:
-            # deepcopy no longer works with 'ThumnailBitmap' on board
-            self.datacopy = {}
-            self.datacopy['infohash'] = torrent['infohash']
-            if 'stats' in torrent:
-                self.datacopy['eta'] = torrent['stats']['eta']
-            else:
-                self.datacopy['eta'] = None
-        """
         
         if torrent is None:
             torrent = {}
@@ -179,16 +160,31 @@ class LibraryItemPanel(wx.Panel):
             
         
         if torrent.get('abctorrent'):
-            print '%s is an active torrent' % torrent['content_name']
+            #print '%s is an active torrent' % torrent['content_name']
             abctorrent = torrent['abctorrent']
             abctorrent.setLibraryPanel(self)
             self.pb.setEnabled(True)
             self.playFast.Show()
+            self.fileProgress.Show()
+            self.speedUp2.Show()
+            self.speedDown2.Show()
+            
+            dls = abctorrent.getColumnText(COL_DLSPEED)
+            self.speedDown2.SetLabel(self.utility.lang.get('down')+': '+dls) 
+            uls = abctorrent.getColumnText(COL_ULSPEED)
+            self.speedUp2.SetLabel(self.utility.lang.get('up')+': '+uls)
+            progress = abctorrent.getColumnText(COL_PROGRESS)[:-1]
+            self.pb.setPercentage(float(progress))
+            eta = abctorrent.getColumnText(COL_ETA)
+            self.pb.setETA(eta)
+            dlsize = abctorrent.getColumnText(COL_DLANDTOTALSIZE)
+            self.fileProgress.SetLabel(dlsize)
         else:
             self.pb.setEnabled(False)
             self.speedUp2.Hide()
             self.speedDown2.Hide()
             self.playFast.Hide()
+            self.fileProgress.Hide()
             
         if torrent.get('content_name'):
             title = torrent['content_name'][:self.titleLength]
@@ -200,7 +196,6 @@ class LibraryItemPanel(wx.Panel):
             self.title.SetLabel('')
             self.title.SetToolTipString('')
             self.title.Enable(False)
-        
         self.thumb.setTorrent(torrent)
                
         self.Layout()
@@ -228,7 +223,7 @@ class LibraryItemPanel(wx.Panel):
             if (key == wx.WXK_DELETE):
                 if self.data:
                     if DEBUG:
-                        print >>sys.stderr,'lip: deleting'
+                        print >>sys.stderr,'lib: deleting'
                     self.guiUtility.deleteTorrent(self.data)
         event.Skip()
         
@@ -256,4 +251,6 @@ class LibraryItemPanel(wx.Panel):
             self.guiUtility.selectTorrent(self.data)
         event.Skip()
                 
+                
+DEFAULT_THUMB = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'defaultThumb.png'))
 

@@ -71,7 +71,7 @@ class PersonsItemPanel(wx.Panel):
     def setData(self, peer_data):
         # set bitmap, rating, title
         
-        if self.datacopy is not None and self.datacopy['permid'] == peer_data['permid']:
+        if self.datacopy is not None and peer_data is not None and self.datacopy['permid'] == peer_data['permid']:
             if (self.datacopy['last_seen'] == peer_data['last_seen'] and
                 self.datacopy['similarity'] == peer_data['similarity'] and
                 self.datacopy['name'] == peer_data['name'] and

@@ -143,3 +143,8 @@ class standardOverview(wx.Panel):
         else:
             print 'standardOverview: Error, could not return firstItem, data=%s' % data
             return None
+        
+    def refreshTorrentStats(self):
+        if self.mode == 'libraryMode':
+            grid = self.data[self.mode].get('grid')
+            grid.refreshData()

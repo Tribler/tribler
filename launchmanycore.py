@@ -31,6 +31,7 @@ from safeguiupdate import DelayedEventHandler
 
 from abcengine import ABCEngine
 from Tribler.Video.Progress import BufferInfo
+from Tribler.vwxGUI.GuiUtility import GUIUtility
 
 try:
     True
@@ -58,6 +59,7 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
     def __init__(self, utility):
         self.utility = utility        
         self.output = Outputter()
+        self.guiUtility = GUIUtility.getInstance()
 
         btconfig = utility.getBTParams()
         btconfig['config_path'] = self.utility.getConfigPath()
@@ -184,6 +186,7 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
                     #self.all_peers_cache.updateSpew(ABCTorrentTemp.torrent_hash, spew)
     
                 engine.onUpdateStatus(progress, t, dnrate, uprate, status, s, spew, havedigest)
+            self.guiUtility.refreshTorrentStats()
             self.rawserver.add_task(self.stats, self.stats_period)
         except:
             print_exc()

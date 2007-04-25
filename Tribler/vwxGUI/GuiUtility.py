@@ -255,4 +255,11 @@ class GUIUtility:
         if torrent:
             check = SingleManualChecking(torrent)
             check.start()
+            
+    def refreshTorrentStats(self):
+        "Called from launchmanycore to refresh statistics of downloading torrents"
+        try:
+            self.standardOverview.refreshTorrentStats()
+        except:
+            print 'GuiUtility: Error refreshing stats'
     

@@ -422,13 +422,7 @@ class ABCEngine(DelayedEventHandler):
                                     COL_ULSPEED, 
                                     COL_MESSAGE])
         
-        self.torrent.updateColumnsInLibrary([COL_PROGRESS, 
-                                             COL_BTSTATUS, 
-                                             COL_ETA, 
-                                             COL_DLSPEED, 
-                                             COL_ULSPEED, 
-                                             COL_DLANDTOTALSIZE])
-        
+               
         
         if statistics is not None:
             # Share Ratio, #Seed, #Peer, #Copies, #Peer Avg Progress,

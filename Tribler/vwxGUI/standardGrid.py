@@ -82,6 +82,9 @@ class standardGrid(wx.Panel):
         #self.Update()
         #print "vSizer: %s, Panel: %s"% (self.vSizer.GetSize(), self.GetSize())
 
+    def refreshData(self):
+        self.setData(self.data, resetPages = False)
+        
     def setData(self, dataList, resetPages = True):
         
         if DEBUG:
@@ -102,6 +105,25 @@ class standardGrid(wx.Panel):
                 self.standardPager.currentPage = 0
         self.refreshPanels()
         
+        
+    def updateItem(self, item):
+        "Add or update an item in the grid"
+        
+        # Get key to compare this item to others
+        key = None
+        for tempkey in ['infohash', 'permid', 'content_name']:
+            if item.has_key('infohash'):
+                key = tempkey
+        if not key:
+            print 'standardGrid: Error, could not find key to compare item: %s' % item
+            return
+        
+        i = find_content_in_dictlist(self.data, item, key)
+        if i != -1:
+            self.data[i] = item
+        else:
+            self.data.append(item)
+        self.setData(self.data, resetPages = False)
         
     def refreshPanels(self):
         "Refresh TorrentPanels with correct data and refresh pagerPanel"
@@ -134,7 +156,6 @@ class standardGrid(wx.Panel):
             self.refreshPanels()
         
     def getStandardPager(self):
-        print 'getStandardPager called' 
         try:
             if self.standardPager:
                 return True

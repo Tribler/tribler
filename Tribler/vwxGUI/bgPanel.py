@@ -7,14 +7,13 @@ class bgPanel(wx.Panel):
     """
             
     def __init__(self, *args, **kw):
+        self.backgroundColour = wx.Colour(102,102,102) 
         if len(args) == 0: 
-            self.backgroundColour = wx.Colour(102,102,102) 
             pre = wx.PrePanel() 
             # the Create step is done by XRC. 
             self.PostCreate(pre) 
             self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate) 
         else:
-            self.backgroundColour = wx.Colour(102,102,102) 
             wx.Panel.__init__(self, *args, **kw) 
             self._PostInit()
             
