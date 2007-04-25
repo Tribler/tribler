@@ -36,6 +36,11 @@ def changeFile(filename):
                      ('libraryGrid', 'wxPanel', customDir+'standardGrid'),
                      ('libraryDetails', 'wxPanel', customDir+'libraryDetails'),
                      
+                     ('SmallPerfBar', 'wxPanel', customDir+'perfBar'),                   
+                     ('BigPerfBar', 'wxPanel', customDir+'perfBar'),                   
+                     ('TriblerGrade', 'wxPanel', customDir+'perfBar'),                   
+                     
+                     
                      ('friendsGrid', 'wxPanel', customDir+'standardGrid'),
                      ('friendsOverview', 'wxPanel', customDir+'friendsOverview'), 
                                          

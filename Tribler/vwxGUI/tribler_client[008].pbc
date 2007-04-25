@@ -9,9 +9,9 @@ ckscr=0
 ProjectBuild=0
 CountConfComp=2
 nomifileEsi=
-idmax=1023
-idmaxFile=100385
-idIncCmp=2742
+idmax=1031
+idmaxFile=100386
+idIncCmp=2750
 isfuncClsName=0
 funcNamePreF=VwXnew_
 s_includeNewCtor=
@@ -119,7 +119,7 @@ filename=wx/msw/wx.rc
 18=0
 19=0
 [Project/comVirt]
-iN=27
+iN=30
 [Project/comVirt/1]
 include=from filesOverview import *
 ctor=(parent,id,pos,size,style,name)
@@ -640,10 +640,52 @@ styleNum=0
 libreriaAdd=
 resourceAdd=
 contenitor=0
+[Project/comVirt/28]
+include=from perfBar import SmallPerfBar
+ctor=(parent,id,pos,size,style,name)
+assign=(self,-1,wxDefaultPosition,wxDefaultSize,style)
+nclass=SmallPerfBar
+idSTR=15:29:382532007
+id=1
+filenameDll=
+enableDll=0
+eventNum=0
+styleNum=0
+libreriaAdd=
+resourceAdd=
+contenitor=0
+[Project/comVirt/29]
+include=from perfBar import BigPerfBar
+ctor=(parent,id,pos,size,style,name)
+assign=(self,-1,wxDefaultPosition,wxDefaultSize,style)
+nclass=BigPerfBar
+idSTR=15:30:142532007
+id=1
+filenameDll=
+enableDll=0
+eventNum=0
+styleNum=0
+libreriaAdd=
+resourceAdd=
+contenitor=0
+[Project/comVirt/30]
+include=from perfBar import TriblerGrade
+ctor=(parent,id,pos,size,style,name)
+assign=(self,-1,wxDefaultPosition,wxDefaultSize,style)
+nclass=TriblerGrade
+idSTR=15:30:482532007
+id=1
+filenameDll=
+enableDll=0
+eventNum=0
+styleNum=0
+libreriaAdd=
+resourceAdd=
+contenitor=0
 [Project/GroupsName]
 count=1
 item0name=Save Project
-item0id=2732,1002
+item0id=2732,1002,2113
 [VwXScript]
 count=0
 [File0]
@@ -917,7 +959,7 @@ ws_dir=.\\
 s_tipoFile=21
 s_tipoComp=0
 ClsparentCompTipo=0
-i_FileIdent=100361
+i_FileIdent=100386
 i_FileIdentPar=2
 wx_WindowFileADD=1635087209
 l_ProtettoDesigne=0
