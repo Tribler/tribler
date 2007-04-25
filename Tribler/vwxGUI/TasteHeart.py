@@ -8,13 +8,6 @@ DEBUG = False
 
 NUM_HEARTS = 5 #??
 BITMAPS = []
-IMAGEDIR = os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])), 'Tribler','vwxGUI', 'images')
-for i in xrange(NUM_HEARTS):
-    filename = os.path.join(IMAGEDIR, 'heart%d.png' % (i+1))
-    if os.path.isfile(filename):
-        BITMAPS.append(wx.Bitmap(filename, wx.BITMAP_TYPE_ANY))
-    else:
-        print 'Could not find image: %s' % filename
                 
 class TasteHeart(wx.Panel):
     """
@@ -192,3 +185,12 @@ class TasteHeart(wx.Panel):
         #    dc.DrawBitmap(self.bitmaps[1], 0,0, True)
         
 
+def set_tasteheart_bitmaps(syspath):
+    global BITMAPS
+    imagedir = os.path.join(syspath, 'Tribler','vwxGUI', 'images')
+    for i in xrange(NUM_HEARTS):
+        filename = os.path.join(imagedir, 'heart%d.png' % (i+1))
+        if os.path.isfile(filename):
+            BITMAPS.append(wx.Bitmap(filename, wx.BITMAP_TYPE_ANY))
+        else:
+            print >>sys.stderr,'TasteHeart: Could not find image: %s' % filename

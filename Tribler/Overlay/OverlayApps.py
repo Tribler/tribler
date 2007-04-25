@@ -149,7 +149,7 @@ class OverlayApps:
             # overlay-protocol version check done inside
             self.dialback_handler.handleSecOverlayConnection(exc,permid,selversion,locally_initiated)
         try:
-            if exc==None:
+            if exc is None:
                 bOnline = True
             else:
                 bOnline = False

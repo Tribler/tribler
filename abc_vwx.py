@@ -63,6 +63,8 @@ import Tribler.vwxGUI.updateXRC as updateXRC
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Video.VideoServer import VideoHTTPServer
 from Tribler.Dialogs.GUIServer import GUIServer
+from Tribler.vwxGUI.TasteHeart import set_tasteheart_bitmaps
+from Tribler.vwxGUI.perfBar import set_perfBar_bitmaps
 
 DEBUG = False
 ALLOW_MULTIPLE = False
@@ -866,6 +868,10 @@ class ABCApp(wx.App,DelayedInvocation):
             # Singleton for management of user's mugshots (i.e. icons/display pictures)
             self.mm = MugshotManager.getInstance()
             self.mm.register(self.utility.getConfigPath(),self.utility.getPath())
+
+            # H4x0r a bit
+            set_tasteheart_bitmaps(self.utility.getPath())
+            set_perfBar_bitmaps(self.utility.getPath())
     
             # Put it here so an error is shown in the startup-error popup
             self.serverlistener = ServerListener(self.utility)

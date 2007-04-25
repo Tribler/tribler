@@ -11,24 +11,6 @@ NUM_GRADES = 5 #nuber of tribler grades
 BITMAPS_BIG = []
 BITMAPS_SMALL = []
 TRIBLER_GRADES = []
-IMAGEDIR = os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])), 'Tribler','vwxGUI', 'images')
-for i in xrange(NUM_PERFS):
-    filename = os.path.join(IMAGEDIR, 'perfL%d.png' % i)
-    if os.path.isfile(filename):
-        BITMAPS_BIG.append(wx.Bitmap(filename, wx.BITMAP_TYPE_ANY))
-    else:
-        print 'Could not find image: %s' % filename
-    filename = os.path.join(IMAGEDIR, 'perfM%d.png' % i)
-    if os.path.isfile(filename):
-        BITMAPS_SMALL.append(wx.Bitmap(filename, wx.BITMAP_TYPE_ANY))
-    else:
-        print 'Could not find image: %s' % filename
-for i in xrange(NUM_GRADES):
-    filename = os.path.join(IMAGEDIR, 'Level%d.png' % (i+1))
-    if os.path.isfile(filename):
-        TRIBLER_GRADES.append(wx.Bitmap(filename, wx.BITMAP_TYPE_ANY))
-    else:
-        print 'Could not find image: %s' % filename
         
 class ProgressIcon(wx.Panel):
     """
@@ -129,3 +111,27 @@ class TriblerGrade(ProgressIcon):
     def __init__(self, *args, **kw):
         self.bitmapsList = TRIBLER_GRADES
         ProgressIcon.__init__(self)
+
+
+def set_perfBar_bitmaps(syspath):
+    global BITMAPS_BIG
+    global BITMAPS_SMALL
+    global TRIBLER_GRADES
+    IMAGEDIR = os.path.join(syspath, 'Tribler','vwxGUI', 'images')
+    for i in xrange(NUM_PERFS):
+        filename = os.path.join(IMAGEDIR, 'perfL%d.png' % i)
+        if os.path.isfile(filename):
+            BITMAPS_BIG.append(wx.Bitmap(filename, wx.BITMAP_TYPE_ANY))
+        else:
+            print >>sys.stderr,'perfBar: Could not find image: %s' % filename
+        filename = os.path.join(IMAGEDIR, 'perfM%d.png' % i)
+        if os.path.isfile(filename):
+            BITMAPS_SMALL.append(wx.Bitmap(filename, wx.BITMAP_TYPE_ANY))
+        else:
+            print >>sys.stderr,'perfBar: Could not find image: %s' % filename
+    for i in xrange(NUM_GRADES):
+        filename = os.path.join(IMAGEDIR, 'Level%d.png' % (i+1))
+        if os.path.isfile(filename):
+            TRIBLER_GRADES.append(wx.Bitmap(filename, wx.BITMAP_TYPE_ANY))
+        else:
+            print >>sys.stderr,'perfBar: Could not find image: %s' % filename
