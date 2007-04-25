@@ -118,7 +118,7 @@ class FriendsItemPanel(wx.Panel):
             self.datacopy['content_name'] = peer_data['content_name']
             self.datacopy['friend'] = peer_data.get('friend')
 
-        if peer_data == None:
+        if peer_data is None:
             peer_data = {}
         
         if peer_data.get('content_name'):

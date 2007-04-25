@@ -84,7 +84,7 @@ class ProfileOverviewPanel(wx.Panel):
             elem.setIndex(new_index)
             bShouldRefresh = True
         #set the overall ranking to a random number
-        new_index = random.randint(0,4) #used only for testing
+        new_index = random.randint(0,3) #used only for testing
         elem = self.getGuiElement("icon_Overall")
         if new_index != elem.getIndex():
             elem.setIndex(new_index)

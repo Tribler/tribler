@@ -230,7 +230,6 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 infoTab.setSelected(True)
                 self.getAlternativeTabPanel('filesTab_files', parent=currentPanel).Hide()
                 
-                
             elif modeString == 'persons' or modeString == 'friends':
                 self.getGuiObj('TasteHeart').setBackground(wx.WHITE)
                 self.getGuiObj('info_detailsTab').setSelected(True)
@@ -239,6 +238,10 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 self.setListAspect2OneColumn("alsoDownloadedField")
                 self.setListAspect2OneColumn("commonFilesField")
                 self.getAlternativeTabPanel('personsTab_advanced', parent=currentPanel).Hide()
+            
+            elif modeString == "profile":
+                pass
+                #self.getAlternativeTabPanel('profileDetails_Quality').Hide() #parent is self because it is not a tab, it replaces the details panel
                 
         return currentPanel
     
@@ -539,7 +542,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             
     def swapPanel(self, oldpanel, newpanel, sizer=None, index=-1):
         """replaces in a sizer a panel with another one to simulate tabs"""
-        if sizer == None:
+        if sizer is None:
             sizer = oldpanel.GetContainingSizer()
         #if index not given, use sizer's own replace method
         if index == -1:
@@ -548,18 +551,20 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 if panel.GetWindow() == oldpanel:
                     break
                 index = index + 1
+            if index == len(sizer.GetChildren()):
+                return #error: index not found so nothing to change
 #            sizerItem = sizer.Replace(oldpanel, newpanel)
 #            print "found index is:",index,"number of children in sizer:",len(sizer.GetChildren())
-            # remove info tab panel
-            sizer.Detach(oldpanel)
-            oldpanel.Hide()
-            # add files tab panel
-            sizer.Insert(index, newpanel, 1, wx.EXPAND, 3)
-            if not newpanel.IsShown():
-                newpanel.Show()
-            newpanel.Layout()
-            sizer.Layout()
-            newpanel.GetParent().Refresh()
+        # remove info tab panel
+        sizer.Detach(oldpanel)
+        oldpanel.Hide()
+        # add files tab panel
+        sizer.Insert(index, newpanel, 1, wx.EXPAND, 3)
+        if not newpanel.IsShown():
+            newpanel.Show()
+        newpanel.Layout()
+        sizer.Layout()
+        newpanel.GetParent().Refresh()
         
     def getAlternativeTabPanel(self, name, parent=None):
         "Load a tabPanel that was not loaded as default"

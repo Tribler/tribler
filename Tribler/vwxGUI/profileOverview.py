@@ -220,8 +220,52 @@ class profileOverview(wx.Panel):
         #[55f]Code event VwX...Don't modify[55f]#
         #add your code here
         event.Skip()
+<<<<<<< .mine
+        return True
+    
+    def _PostInit(self):
+#        print "<mluc> tribler_topButton in _PostInit"
+        # Do all init here
+        self.guiUtility = GUIUtility.getInstance()
+#        self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+        self.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
+        
+        for element in self.elementsName:
+            xrcElement = xrc.XRCCTRL(self, element)
+            if not xrcElement:
+                print 'profileOverviewPanel: Error: Could not identify xrc element:',element
+            self.elements[element] = xrcElement
+=======
+>>>>>>> .r3603
 
+<<<<<<< .mine
+        #add click event for panels in this panel:
+        self.getGuiElement('bgPanel_Quality').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
+        self.getGuiElement('bgPanel_Files').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
+        self.getGuiElement('bgPanel_Persons').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
+        self.getGuiElement('bgPanel_Download').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
+        self.getGuiElement('bgPanel_Presence').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
+        #also set alternative background color:
+#===============================================================================
+#        bgpanels = ['bgPanel_Quality', 'bgPanel_Files', 'bgPanel_Persons', 'bgPanel_Download', 'bgPanel_Presence']
+#        light_color = 'LIGHT_GREY'
+#        darker_color = 'GREY'
+#        color = light_color
+#        for panel_name in bgpanels:
+#            self.getGuiElement(panel_name).SetBackgroundColour(color)
+#            if color == light_color:
+#                color = darker_color
+#            else:
+#                color = light_color
+#===============================================================================
+        self.initDone = True
+        self.Refresh(True)
+#        self.Update()
+        self.timer = None
+        wx.CallAfter(self.reloadData)
+=======
         return #end function
+>>>>>>> .r3603
 
     def OnPreCreate(self):
         #add your code here

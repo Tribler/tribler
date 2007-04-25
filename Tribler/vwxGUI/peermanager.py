@@ -90,7 +90,7 @@ class PeerDataManager(DelayedEventHandler):
     def setOnline(self, permid, bOnline):
         """sets online status for a peer given its permid"""
         peer_data = self.getPeerData(permid) 
-        if peer_data == None:
+        if peer_data is None:
             print "tried to set online status for",show_permid_shorter(permid),"to online?",bOnline
             return
         peer_data['online']=bOnline

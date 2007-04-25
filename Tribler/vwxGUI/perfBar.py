@@ -7,7 +7,7 @@ DEBUG = False
 # find the heart bitmaps
 
 NUM_PERFS = 7 #number of performance states for vertical bar
-NUM_GRADES = 5 #nuber of tribler grades
+NUM_GRADES = 4 #nuber of tribler grades
 BITMAPS_BIG = []
 BITMAPS_SMALL = []
 TRIBLER_GRADES = []
@@ -19,6 +19,9 @@ class ProgressIcon(wx.Panel):
     """
 
     def __init__(self, *args, **kw):    
+#        check if bitmaps list field was created
+        if self.__dict__['bitmapsList'] is None:
+            self.bitmapsList = []
         self.backgroundColor = wx.Colour(102,102,102)
         pre = wx.PrePanel()
         # the Create step is done by XRC.
@@ -91,7 +94,7 @@ class ProgressIcon(wx.Panel):
 #        dc.SetBackground(wx.Brush(self.backgroundColor))
         dc.Clear()
         
-        if self.bitmapsList[self.index]:
+        if self.index >= 0 and self.index < len(self.bitmapsList) and self.bitmapsList[self.index]:
             dc.DrawBitmap(self.bitmapsList[self.index], 0,0, True)
         #if (self.mouseOver or self.selected) and self.bitmaps[1]:
         #    dc.DrawBitmap(self.bitmaps[1], 0,0, True)

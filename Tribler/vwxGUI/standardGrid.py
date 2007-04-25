@@ -88,7 +88,7 @@ class standardGrid(wx.Panel):
     def setData(self, dataList, resetPages = True):
         
         if DEBUG:
-            if dataList == None:
+            if dataList is None:
                 datalength = 0
             else:
                 datalength = len(dataList)
@@ -130,7 +130,7 @@ class standardGrid(wx.Panel):
         if self.getStandardPager():
             self.standardPager.refresh()
                 
-        if self.data == None:
+        if self.data is None:
             self.clearAllData()
         else:
             for i in range(0, self.items):
@@ -276,7 +276,7 @@ class standardGrid(wx.Panel):
                 except:
                     panel_id = None
                     
-                if panel_id != id or  panel_id == None:
+                if panel_id != id or  panel_id is None:
                     #print 'item deselected2'
                     pan.deselect()
                 else:
