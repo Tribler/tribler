@@ -6,7 +6,7 @@ import wx
 import re
 import urllib
 from threading import currentThread,Event
-from traceback import print_exc
+from traceback import print_exc,print_stack
 
 from safeguiupdate import DelayedInvocation
 from Utility.regchecker import Win32RegChecker
@@ -196,9 +196,15 @@ class VideoPlayer:
             
 
     def vod_started(self,ABCTorrentTemp): 
-
+        """ Called by network thread """
+        
         if DEBUG:
             print >>sys.stderr,"videplay: Engine said VOD started"
+            
+        if currentThread().getName() == "MainThread":
+            print >>sys.stderr,"videoplay: vod_started called by MainThread, expected ABCLauncMany"
+            print_stack()
+            
         progressinf = ABCTorrentTemp.get_progressinf()
         videoinfo = ABCTorrentTemp.get_videoinfo()
         
@@ -224,9 +230,13 @@ class VideoPlayer:
         videoserver.set_movietransport(mtwrap)
 
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
-            self.parentwindow.swapin_videopanel(cmd,play=False,progressinf=progressinf)
+            self.parentwindow.invokeLater(self.swapin_videopanel_gui_callback,[cmd],{'play':False,'progressinf':progressinf})
         else:
             self.parentwindow.invokeLater(self.progress4ext_gui_callback,[progressinf,cmd])
+
+    def swapin_videopanel_gui_callback(self,cmd,play=False,progressinf=None):
+        """ Called by GUI thread """
+        self.parentwindow.swapin_videopanel(cmd,play=False,progressinf=progressinf)
 
     def progress4ext_gui_callback(self,progressinf,cmd):
         """ Called by GUI thread """
@@ -234,8 +244,14 @@ class VideoPlayer:
         
 
     def vod_stopped(self,ABCTorrentTemp):
+        """ Called by GUI thread """
         if DEBUG:
             print >>sys.stderr,"videoplay: VOD stopped"
+        
+        if currentThread().getName() != "MainThread":
+            print >>sys.stderr,"videoplay: vod_stopped called by nonMainThread!",currentThread().getName()
+            print_stack()
+
         
         ABCTorrentTemp.disable_on_demand_download()
         

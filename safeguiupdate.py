@@ -64,3 +64,8 @@ class FlaglessDelayedInvocation:
             func(*args,**kwargs)
         else:
             wx.PostEvent(self, InvokeEvent(func, args, kwargs))
+
+class FlaglessDelayedEventHandler(FlaglessDelayedInvocation,wx.EvtHandler):
+    def __init__(self):
+        wx.EvtHandler.__init__(self)
+        DelayedInvocation.__init__(self)

@@ -8,6 +8,7 @@ from Tribler.utilities import *
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 import cStringIO
 from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
+from safeguiupdate import FlaglessDelayedInvocation
 import time
 
 DEFAULT_THUMB = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'thumbField.png'))
@@ -16,7 +17,7 @@ DEBUG = True
 
 ISFRIEND_BITMAP = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'isfriend.png'))
 
-class standardDetails(wx.Panel):
+class standardDetails(wx.Panel,FlaglessDelayedInvocation):
     """
     Wrappers around details xrc panels
     """
@@ -38,6 +39,8 @@ class standardDetails(wx.Panel):
     
     def _PostInit(self):
         # Do all init here
+        FlaglessDelayedInvocation.__init__(self)
+        
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.mode = None

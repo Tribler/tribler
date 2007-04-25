@@ -146,9 +146,6 @@ class PersonsItemPanel(wx.Panel):
     def getIdentifier(self):
         if self.data:
             return self.data['permid']
-                
-HEART_BITMAP = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'heart1.png'))
-FRIEND_BITMAP = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'friend.png'))
 
 class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
     """
@@ -333,7 +330,8 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                 text = repr(rank)                
                 dc.DrawText(text, 22, 66)
             if self.data.get('friend'):
-                dc.DrawBitmap(FRIEND_BITMAP,60 ,65, True)            
+                friend = self.mm.get_default('personsMode','FRIEND_BITMAP')
+                dc.DrawBitmap(friend,60 ,65, True)            
             if self.data.get('online'):
                 dc.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, False))
                 dc.SetTextForeground('#007303')

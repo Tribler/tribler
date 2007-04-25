@@ -5,6 +5,7 @@ from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.vwxGUI.tribler_topButton import tribler_topButton
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from Tribler.vwxGUI.TriblerProgressbar import TriblerProgressbar
+from Tribler.vwxGUI.filesItemPanel import ThumbnailViewer
 from Tribler.unicode import *
 from tribler_topButton import *
 from copy import deepcopy
@@ -29,6 +30,7 @@ class LibraryItemPanel(wx.Panel):
         self.titleLength = 37 # num characters
         self.selected = False
         self.warningMode = False
+        self.guiserver = parent.guiserver
         self.oldCategoryLabel = None
         self.addComponents()
         self.Show()
@@ -47,10 +49,13 @@ class LibraryItemPanel(wx.Panel):
         self.Bind(wx.EVT_KEY_UP, self.keyTyped)
         
         # Add thumb        
-        self.thumbnail = bgPanel(self, name="defaultThumb")
-        self.thumbnail.setBackground(wx.BLACK)
-        self.thumbnail.SetSize((66,37))
-        self.hSizer.Add(self.thumbnail, 0, wx.ALL, 0)        
+        self.thumb = ThumbnailViewer(self)
+        self.thumb.setBackground(wx.BLACK)
+        self.thumb.SetSize((66,37))
+        #self.thumb = bgPanel(self, name="defaultThumb")
+        #self.thumb.setBackground(wx.BLACK)
+        #self.thumb.SetSize((66,37))
+        self.hSizer.Add(self.thumb, 0, wx.ALL, 0)        
         # Add title
         self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(160,12))        
         self.title.SetBackgroundColour(wx.WHITE)
@@ -150,6 +155,11 @@ class LibraryItemPanel(wx.Panel):
         """
         self.data = torrent
 
+        if torrent is not None and 'metadata' in torrent:
+            print "lip: setData: Got metadata",torrent['metadata']
+        else:
+            print "lip: setData: No metadata"
+
         """
         if torrent is not None:
             # deepcopy no longer works with 'ThumnailBitmap' on board
@@ -190,7 +200,8 @@ class LibraryItemPanel(wx.Panel):
             self.title.SetLabel('')
             self.title.SetToolTipString('')
             self.title.Enable(False)
-        #self.thumb.setTorrent(torrent)
+        
+        self.thumb.setTorrent(torrent)
                
         self.Layout()
         self.Refresh()
@@ -217,7 +228,7 @@ class LibraryItemPanel(wx.Panel):
             if (key == wx.WXK_DELETE):
                 if self.data:
                     if DEBUG:
-                        print >>sys.stderr,'contentpanel: deleting'
+                        print >>sys.stderr,'lip: deleting'
                     self.guiUtility.deleteTorrent(self.data)
         event.Skip()
         
@@ -245,6 +256,4 @@ class LibraryItemPanel(wx.Panel):
             self.guiUtility.selectTorrent(self.data)
         event.Skip()
                 
-                
-DEFAULT_THUMB = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'defaultThumb.png'))
 

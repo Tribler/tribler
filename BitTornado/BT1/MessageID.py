@@ -106,7 +106,7 @@ HelpCoordinatorMessages = [DOWNLOAD_HELP,STOP_DOWNLOAD_HELP,PIECES_RESERVED]
 HelpHelperMessages = [RESERVE_PIECES]
 # _2fastbt
 
-
+# Note: SecureOverlay's KEEP_ALIVE is 240
 ## Social-Network feature 
 SOCIAL_OVERLAP = chr(239)
 

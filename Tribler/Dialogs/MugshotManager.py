@@ -44,7 +44,9 @@ class MugshotManager:
         self.defaults['personsMode'] = {}
         self.defaults['personsMode']['DEFAULT_THUMB'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'defaultThumbPeer.png'))
         self.defaults['personsMode']['MASK_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'itemMask.png'))
-        
+        self.defaults['personsMode']['HEART_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'heart1.png'))
+        self.defaults['personsMode']['FRIEND_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'friend.png'))
+ 
 
     def create_wxImageList(self,peerswpermid,setindex=False):
         """ peerswpermid is a list of dictionaries that contain the

@@ -213,6 +213,8 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                 if not os.path.exists(torrent_dir):
                     torrent_dir = os.path.join(self.utility.getConfigPath(), "torrent2")
                 torrent_filename = os.path.join(torrent_dir, torrent_file)
+                
+                print "fip: Scheduling read of thumbnail for",torrent_filename
                 self.GetParent().guiserver.add_task(lambda:self.loadMetadata(torrent,torrent_filename),0)
             
             self.setBitmap(bmp)
