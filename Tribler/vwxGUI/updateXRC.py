@@ -36,6 +36,7 @@ def changeFile(filename):
                      ('libraryGrid', 'wxPanel', customDir+'standardGrid'),
                      ('libraryDetails', 'wxPanel', customDir+'libraryDetails'),
                      
+                     #('profileOverview', 'wxPanel', customDir+'ProfileOverviewPanel'),
                      ('SmallPerfBar', 'wxPanel', customDir+'perfBar'),                   
                      ('BigPerfBar', 'wxPanel', customDir+'perfBar'),                   
                      ('TriblerGrade', 'wxPanel', customDir+'perfBar'),                   
@@ -49,10 +50,16 @@ def changeFile(filename):
                      ('TextButton', 'wxStaticText', customDir+'TextButton'),
                      ('wxFrame', 'wxFrame', 'abc_vwx')]
     
+    # Define all used custom classes here and the related wxPython classes. They will be replaced by the regexp.
+    # (objectName, subClassName)
+    customSubClasses = [('profileOverview', customDir+'profileOverviewPanel.ProfileOverviewPanel')]
     
     
     for (customClass, wxClass, customFile) in customClasses:
         data = re.sub('<object class="%s" name="([^"]+)">' % customClass, u'<object class="%s" name="\\1" subclass="%s.%s">' % (wxClass, customFile, customClass), data )
+    
+    for (objectName, subClass) in customSubClasses:
+        data = re.sub('<object class="([^"]+)" name="%s">' % objectName, u'<object class="\\1" name="%s" subclass="%s">' % (objectName, subClass), data )
     
     data = re.sub('<bg>\d</bg>', u'<bg>#000000</bg>', data)
     if data != olddata:
