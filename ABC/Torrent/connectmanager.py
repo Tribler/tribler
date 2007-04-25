@@ -141,7 +141,7 @@ class TorrentConnections:
 #    def stopEngine(self, waitForThread = False, update = True):
     def stopEngine(self, update = True):
         if self.torrent.dialogs.details is not None:
-            self.torrent.dialogs.details.onStop()
+            self.torrent.dialogs.details.onStop() #GUI
 
         if self.engine is not None:
             self.engine.shutdown()
@@ -306,3 +306,11 @@ class TorrentConnections:
             
         self.setlastexternalannounce(externalurl)
         self.reannounce(arg = "special")
+
+    def get_moviestreamtransport(self):
+        print >>sys.stderr,"abcengine: Getting OnDemandTransport from engine",self.engine
+        if self.engine is None:
+            return None
+        else:
+            return self.engine.get_moviestreamtransport()
+        

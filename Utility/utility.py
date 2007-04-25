@@ -31,6 +31,7 @@ from Utility.constants import * #IGNORE:W0611
 from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler, PreferenceDBHandler
 from Tribler.CacheDB.CacheDBHandler import PeerDBHandler, FriendDBHandler
 from Tribler.BuddyCast.buddycast import BuddyCastFactory
+from Tribler.utilities import find_prog_in_PATH  
   
 ################################################################
 #
@@ -142,15 +143,11 @@ class Utility:
             'maxdownloadrate': '0', 
             'maxseeduploadrate': '0', 
             'numsimdownload': '5', 
-            'uploadoption': '2', 
+            'uploadoption': '0', 
             'uploadtimeh': '0', 
             'uploadtimem': '30', 
             'uploadratio': '100', 
             'removetorrent': '0', 
-            'setdefaultfolder': '0', 
-            'defaultfolder': 'c:\\', 
-            'defaultmovedir': 'c:\\', 
-            'mintray': '0', 
             'trigwhenfinishseed': '1', 
             'confirmonclose': '1', 
             'kickban': '1', 
@@ -163,9 +160,9 @@ class Utility:
             'alloc_rate': '2', 
             'max_files_open': '50', 
             'max_connections': '0', 
-            'lock_files': '1', 
+            'lock_files': '0', 
             'lock_while_reading': '0', 
-            'double_check': '1', 
+            'double_check': '0', 
             'triple_check': '0', 
             'timeouttracker': '15', 
             'timeoutdownload': '30', 
@@ -331,18 +328,25 @@ class Utility:
                                  #ACTION_ADDTORRENTNONDEFAULT, 
                                  #ACTION_ADDTORRENTURL, 
                                  -1, 
+                                 ACTION_PLAY,
+                                 -1,
+                                 ACTION_BUDDIES,
+                                 #ACTION_FILES, # Tribler: Removed recommended files icon because these content is shown in main window now
+                                 ACTION_MYINFO,
+                                 -1,
                                  ACTION_RESUME, 
                                  ACTION_PAUSE, 
                                  ACTION_STOP, 
                                  #ACTION_QUEUE, 
                                  ACTION_REMOVE, 
                                  #ACTION_SCRAPE, 
-                                 -1,
-                                 ACTION_BUDDIES,
-                                 #ACTION_FILES, # Tribler: Removed recommended files icon because these content is shown in main window now
-                                 ACTION_MYINFO
                                  ], 
-            'menu_listrightclick': [ACTION_RESUME, 
+            'menu_listrightclick': [ACTION_ADDTORRENT, 
+                                    ACTION_DETAILS,
+                                    ACTION_ADDTORRENTURL, 
+                                    -1, 
+                                    ACTION_PLAY,
+                                    ACTION_RESUME, 
                                     ACTION_STOP, 
                                     ACTION_PAUSE, 
                                     ACTION_QUEUE, 
@@ -362,22 +366,52 @@ class Utility:
                                     -1, 
                                     ACTION_SCRAPE, 
                                     ACTION_DETAILS],
-             'enablerecommender': '1',
-             'enabledlhelp': '1',  
-             'enabledlcollecting': '1',
+             'enablerecommender': '0',
+             'enabledlhelp': '0',  
+             'enabledlcollecting': '0',
              'minport': '6881',
              'myname': '',
              'rec_relevance_threshold': '0',
              'torrent1_width': 200,
              'mypref0_width': 200,
              'mypref1_width': 200,
-             'showearthpanel': '1'
+             'showearthpanel': '0',
+             'videoplaybackmode':'0',
+             'askeduploadbw':'0'
 #            'skipcheck': '0'
         }
 
-        if sys.platform != 'win32':
+        if sys.platform == 'win32':
+            profiledir = os.path.expandvars('${USERPROFILE}')
+            tempdir = os.path.join(profiledir,'Desktop','TriblerDownloads')
+            defaults['setdefaultfolder']= '1'
+            defaults['defaultfolder'] = tempdir 
+            defaults['defaultmovedir'] = tempdir
+            defaults['mintray'] = '2'
+            # Don't use double quotes here, those are lost when this string is stored in the
+            # abc.conf file in INI-file format. The code that starts the player will add quotes
+            # if there is a space in this string.
+            progfilesdir = os.path.expandvars('${PROGRAMFILES}')
+            #defaults['videoplayerpath'] = progfilesdir+'\\VideoLAN\\VLC\\vlc.exe'
+            # Path also valid on MS Vista
+            defaults['videoplayerpath'] = progfilesdir+'\\Windows Media Player\\wmplayer.exe'
+            defaults['videoanalyserpath'] = self.getPath()+'\\ffmpeg.exe'
+        else:
+            defaults['setdefaultfolder']= '1' 
             defaults['defaultfolder'] = '/tmp'
             defaults['defaultmovedir']= '/tmp' 
+            defaults['mintray'] = '0'  # Still crashes on Linux sometimes 
+            vlcpath = find_prog_in_PATH("vlc")
+            if vlcpath is None:
+                defaults['videoplayerpath'] = "vlc"
+            else:
+                defaults['videoplayerpath'] = vlcpath
+            ffmpegpath = find_prog_in_PATH("ffmpeg")
+            if ffmpegpath is None:
+                defaults['videoanalyserpath'] = "ffmpeg"
+            else:
+                defaults['videoanalyserpath'] = ffmpegpath
+
 
         configfilepath = os.path.join(self.getConfigPath(), "abc.conf")
         self.config = ConfigReader(configfilepath, "ABC", defaults)
@@ -629,13 +663,13 @@ class Utility:
         button_bmp.SetMask(button_mask)
         return button_bmp
 
-    def makeBitmapButton(self, parent, bitmap, tooltip, event, trans_color = wx.Colour(200, 200, 200)):
+    def makeBitmapButton(self, parent, bitmap, tooltip, event, trans_color = wx.Colour(200, 200, 200), padx=18, pady=4):
         tooltiptext = self.lang.get(tooltip)
         
         button_bmp = self.makeBitmap(bitmap, trans_color)
         
         ID_BUTTON = wx.NewId()
-        button_btn = wx.BitmapButton(parent, ID_BUTTON, button_bmp, size=wx.Size(button_bmp.GetWidth()+18, button_bmp.GetHeight()+4))
+        button_btn = wx.BitmapButton(parent, ID_BUTTON, button_bmp, size=wx.Size(button_bmp.GetWidth()+padx, button_bmp.GetHeight()+pady))
         button_btn.SetToolTipString(tooltiptext)
         parent.Bind(wx.EVT_BUTTON, event, button_btn)
         return button_btn

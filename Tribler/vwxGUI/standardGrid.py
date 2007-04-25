@@ -5,8 +5,10 @@ from Tribler.vwxGUI.LibraryItemPanel import LibraryItemPanel
 from Tribler.vwxGUI.PersonsItemPanel import PersonsItemPanel
 from Tribler.vwxGUI.FriendsItemPanel import FriendsItemPanel
 from Tribler.Dialogs.ContentFrontPanel import ImagePanel, DetailPanel
+from Tribler.Dialogs.GUIServer import GUIServer
+from Tribler.Dialogs.MugshotManager import MugshotManager
 from Tribler.utilities import *
-from traceback import print_exc
+from traceback import print_exc,print_stack
 
 import wx, os, sys, math
 import wx.xrc as xrc
@@ -28,6 +30,9 @@ class standardGrid(wx.Panel):
         # the Create step is done by XRC.
         self.PostCreate(pre)
         self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
+        
+        self.guiserver = GUIServer.getInstance()
+        self.mm = MugshotManager.getInstance()
         
     def OnCreate(self, event):
         self.Unbind(wx.EVT_WINDOW_CREATE)
@@ -78,6 +83,7 @@ class standardGrid(wx.Panel):
         #print "vSizer: %s, Panel: %s"% (self.vSizer.GetSize(), self.GetSize())
 
     def setData(self, dataList, resetPages = True):
+        
         if DEBUG:
             if dataList == None:
                 datalength = 0
@@ -141,7 +147,7 @@ class standardGrid(wx.Panel):
        
     def getSubPanel(self):
         raise NotImplementedError('Method getSubPanel should be subclassed')
-    
+
     def setDataOfPanel(self, panelNumber, data):
         
         try:
@@ -155,7 +161,6 @@ class standardGrid(wx.Panel):
         except:
             print >>sys.stderr,"contentpanel: Error: Could not set data in panel number %d, with %d cols" % (panelNumber, self.cols)
             print_exc(file=sys.stderr)
-    
     
     def clearAllData(self):
         for i in range(0, self.items):
@@ -173,8 +178,6 @@ class standardGrid(wx.Panel):
         except:
             #print 'Could not get subpanelheight'
             pass
-        
-        
         
     def calculateRows(self, event=None):
     

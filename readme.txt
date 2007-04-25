@@ -66,7 +66,27 @@ INSTALLING ON LINUX
 INSTALLING ON WINDOWS
 ---------------------
 
-There is a problem with using OpenSSL 0.9.8 with Python 2.4. The problem and
+To run Tribler from the source on Windows it is easiest to use binary distribution
+of all packages. As of Python 2.4.4 the problem with interfacing with OpenSSL has 
+disappeared. So the procedure is simply:
+
+1. Download and install Python in e.g. C:\Python24
+
+2. Download and install wxPython UNICODE for Python 2.4
+
+3. Download and install OpenSSL >= 0.9.8 in e.g. C:\OpenSSL
+
+4. Download and install M2Crypto for Python 2.4 
+
+5. Download and uncompress Tribler source codes 
+
+6. Run 
+	C:\Python24\python2.4.exe abc.py
+   from the source code directory.
+
+***** Only if you need to use an older Python, read on ****
+
+There is a problem with using OpenSSL 0.9.8 with Python <= 2.4.3 The problem and
 its solution is described in the following links to the pycrypto mailing list, 
 and involves recompiling Python yourself :-(
 
@@ -132,7 +152,7 @@ below. Be warned, however, because the
 OpenSSL problem resurfaces there, and you need to recompile py2exe yourself,
 as detailed in the above links to the pycrypto mailing list.
 
-Arno Bakker, Jie Yang, 2006-06-28
+Arno Bakker, Jie Yang, 2007-04-19
 
 
 
@@ -176,4 +196,5 @@ BUILD TIPS
 
 * Should you want to build Python yourself and want it to use a non-default
   OpenSSL install, you'll have to edit Python-src/setup.py to include the
-  right install dir in ssl_incs  and ssl_libs.
+  right install dir in ssl_incs  and ssl_libs. As of M2Crypto-0.17 setup.py
+  understands a --openssl=/ssldir parameter.

@@ -100,11 +100,14 @@ class ActionHandler:
             self.queue.UpdateRunningTorrentCounters()
        
     def procRESUME(self, workinglist = None, skipcheck = False):
+        print >>sys.stderr,"ActionHandler: procRESUME: enter",workinglist
         fulllist = self.utility.torrents["inactive"].keys()
         if workinglist is None:
             workinglist = fulllist
         else:
             workinglist = intersection(fulllist, workinglist)
+            
+        print >>sys.stderr,"ActionHandler: procRESUME: list to resume",workinglist
         
         update = [1 for ABCTorrentTemp in workinglist if ABCTorrentTemp.actions.resume(skipcheck)]
 

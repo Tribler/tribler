@@ -48,7 +48,11 @@ defaults = [
     ('created by', '',
         "optional information on who made the torrent"),
     ('merkle_torrent', 0, 
-        "create a Merkle torrent instead of a regular torrent")
+        "create a Merkle torrent instead of a regular torrent"),
+    ('playtime', '',
+        "optional play time for video torrents, format [h+:]mm:ss"),
+    ('videodim', '',
+        "optional dimensions for video torrents, format WIDTHxHEIHT")	
     ]
 
 default_piece_len_exp = 18
@@ -75,8 +79,8 @@ def print_announcelist_details():
     print ('            url[|url...]')
 
 def make_meta_file(file, url, params = None, flag = Event(), 
-                   progress = lambda x: None, progress_percent = 1, fileCallback = lambda x: None, gethash = None):
-        
+                   progress = lambda x: None, progress_percent = 1, fileCallback = lambda x: None, gethash = None, extradata = {}):
+    """ extradata is a dict that is added to the top-level (i.e. metainfo) dict of the torrent """
     if params is None:
         params = {}
     if 'piece_size_pow2' in params:
@@ -126,20 +130,29 @@ def make_meta_file(file, url, params = None, flag = Event(),
     if not encoding:
         encoding = 'ascii'
     
-    info = makeinfo(file, piece_length, encoding, flag, merkle_torrent, progress, progress_percent, gethash = gethash)
+    playtime = None
+    if 'playtime' in params and params['playtime']:
+        playtime = params['playtime']
+
+    videodim = None
+    if 'videodim' in params and params['videodim']:
+        videodim = params['videodim']
+
+    info = makeinfo(file, piece_length, encoding, flag, merkle_torrent, progress, progress_percent, gethash = gethash, playtime = playtime, videodim = videodim)
     if flag.isSet():
         return
     check_info(info)
     h = open(f, 'wb')
     data = {'info': info, 'announce': strip(url), 'encoding': encoding, 'creation date': long(time())}
-    
+    data.update(extradata)
+
     if 'comment' in params and params['comment']:
         data['comment'] = params['comment']
         data['comment.utf-8'] = uniconvert(params['comment'],'utf-8')
     
     if 'created by' in params and params['created by']:
         data['created by'] = params['created by']
-    
+
     if 'real_announce_list' in params:    # shortcut for progs calling in from outside
         data['announce-list'] = params['real_announce_list']
     elif 'announce_list' in params and params['announce_list']:
@@ -186,7 +199,7 @@ def uniconvert(s, e):
             raise UnicodeError('bad filename: '+s)
     return s.encode(e)
 
-def makeinfo(file, piece_length, encoding, flag, merkle_torrent, progress, progress_percent=1, gethash = None):
+def makeinfo(file, piece_length, encoding, flag, merkle_torrent, progress, progress_percent=1, gethash = None, playtime = None, videodim = None):
     if gethash is None:
         gethash = {}
     
@@ -362,6 +375,11 @@ def makeinfo(file, piece_length, encoding, flag, merkle_torrent, progress, progr
         newdict = { 'piece length': piece_length, 'length': size, 
                 'name': uniconvert(split(file)[1], encoding),
                 'name.utf-8': uniconvert(split(file)[1], 'utf-8')}
+        if playtime is not None:
+            newdict['playtime'] = playtime
+
+        if videodim is not None:
+            newdict['videodim'] = videodim
 
         if merkle_torrent:
             merkletree = MerkleTree(piece_length,size,None,pieces)

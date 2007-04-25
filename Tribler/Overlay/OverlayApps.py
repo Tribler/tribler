@@ -7,13 +7,13 @@ import sys
 from traceback import print_exc
 
 from BitTornado.BT1.MessageID import HelpCoordinatorMessages, HelpHelperMessages, \
-        MetadataMessages, BuddyCastMessages, DIALBACK_REQUEST, getMessageName
+        MetadataMessages, BuddyCastMessages, DIALBACK_REQUEST, SocialNetworkMessages, getMessageName
 from Tribler.toofastbt.CoordinatorMessageHandler import CoordinatorMessageHandler
 from Tribler.toofastbt.HelperMessageHandler import HelperMessageHandler
 from MetadataHandler import MetadataHandler
 from Tribler.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
-from Tribler.Overlay.SecureOverlay import OLPROTO_VER_SECOND
+from Tribler.SocialNetwork.SocialNetworkMsgHandler import SocialNetworkMsgHandler
 from Tribler.utilities import show_permid_short
 from Tribler.vwxGUI.peermanager import PeerDataManager
 from traceback import print_exc
@@ -34,6 +34,7 @@ class OverlayApps:
         self.buddycast = None
         self.collect = None
         self.dialback_handler = None
+        self.socnet_handler = None
         self.msg_handlers = {}
         
         self.torrent_collecting_solution = 1    # TODO: read from config
@@ -101,6 +102,11 @@ class OverlayApps:
             self.register_msg_handler([DIALBACK_REQUEST],
                                       self.dialback_handler.handleSecOverlayMessage)
 
+        if config['socnet']:
+            self.socnet_handler = SocialNetworkMsgHandler.getInstance()
+            self.socnet_handler.register(secure_overlay, launchmany.rawserver, config)
+            self.register_msg_handler(SocialNetworkMessages,self.socnet_handler.handleMessage)
+
     def register_msg_handler(self, ids, handler):
         """ 
         ids is the [ID1, ID2, ..] where IDn is a sort of message ID in overlay
@@ -163,3 +169,7 @@ class OverlayApps:
                     nconn += 1
                     print >> sys.stdout, "***", nconn, _permid, conns[peer_permid]
 
+        if self.socnet_handler is not None:
+            # overlay-protocol version check done inside
+            self.socnet_handler.handleConnection(exc,permid,selversion,locally_initiated)
+            

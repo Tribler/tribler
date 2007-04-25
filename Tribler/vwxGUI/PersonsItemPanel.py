@@ -4,14 +4,12 @@ from Tribler.utilities import *
 from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.Dialogs.ContentFrontPanel import ImagePanel
 from Tribler.vwxGUI.GuiUtility import GUIUtility
-from safeguiupdate import DelayedInvocation
+from safeguiupdate import FlaglessDelayedInvocation
 from Tribler.unicode import *
-from copy import deepcopy
 import cStringIO
-from threading import Lock
 import TasteHeart
 
-DEBUG=True
+DEBUG=False
 
 class PersonsItemPanel(wx.Panel):
     """
@@ -30,10 +28,13 @@ class PersonsItemPanel(wx.Panel):
         self.selected = False
         self.warningMode = False
         self.oldCategoryLabel = None
+        self.guiserver = parent.guiserver
+        self.mm = parent.mm
         self.addComponents()
         self.Show()
         self.Refresh()
         self.Layout()
+        
 
     def addComponents(self):
         self.Show(False)
@@ -70,19 +71,25 @@ class PersonsItemPanel(wx.Panel):
     def setData(self, peer_data):
         # set bitmap, rating, title
         
-        try:
-            if self.datacopy['permid'] == peer_data['permid']:
-                if (self.datacopy['last_seen'] == peer['last_seen'] and
-                    self.datacopy['similarity'] == peer['similarity'] and
-                    self.datacopy['name'] == peer['name'] and
-                    self.datacopy['content_name'] == peer['content_name'] and
-                    self.datacopy.get('friend') == peer.get('friend')):
-                    return
-        except:
-            pass
+        if self.datacopy is not None and self.datacopy['permid'] == peer_data['permid']:
+            if (self.datacopy['last_seen'] == peer_data['last_seen'] and
+                self.datacopy['similarity'] == peer_data['similarity'] and
+                self.datacopy['name'] == peer_data['name'] and
+                self.datacopy['content_name'] == peer_data['content_name'] and
+                self.datacopy.get('friend') == peer_data.get('friend')):
+                return
         
         self.data = peer_data
-        self.datacopy = deepcopy(peer_data)
+
+        if peer_data is not None:
+            # deepcopy no longer works with 'ThumnailBitmap' on board
+            self.datacopy = {}
+            self.datacopy['permid'] = peer_data['permid']
+            self.datacopy['last_seen'] = peer_data['last_seen']
+            self.datacopy['similarity'] = peer_data['similarity']
+            self.datacopy['name'] = peer_data['name']
+            self.datacopy['content_name'] = peer_data['content_name']
+            self.datacopy['friend'] = peer_data.get('friend')
         
         if peer_data == None:
             peer_data = {}
@@ -108,6 +115,8 @@ class PersonsItemPanel(wx.Panel):
           
         
     def select(self):
+        if DEBUG:
+            print 'pip: person selected'
         self.thumb.setSelected(True)
         self.title.SetBackgroundColour(self.selectedColour)
         self.title.Refresh()
@@ -123,12 +132,13 @@ class PersonsItemPanel(wx.Panel):
             if (key == wx.WXK_DELETE):
                 if self.data:
                     if DEBUG:
-                        print >>sys.stderr,'contentpanel: deleting'
+                        print >>sys.stderr,'pip: deleting'
 #                    self.guiUtility.deleteTorrent(self.data)
         event.Skip()
         
     def mouseAction(self, event):
-        print "set focus"
+        if DEBUG:
+            print "pip: set focus"
         self.SetFocus()
         if self.data:
             self.guiUtility.selectPeer(self.data)
@@ -137,13 +147,10 @@ class PersonsItemPanel(wx.Panel):
         if self.data:
             return self.data['permid']
                 
-                
-DEFAULT_THUMB = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'defaultThumbPeer.png'))
-MASK_BITMAP = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'itemMask.png'))
 HEART_BITMAP = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'heart1.png'))
 FRIEND_BITMAP = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'friend.png'))
 
-class ThumbnailViewer(wx.Panel, DelayedInvocation):
+class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
     """
     Show thumbnail and mast with info on mouseOver
     """
@@ -166,11 +173,10 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
     
     def _PostInit(self):
         # Do all init here
-        DelayedInvocation.__init__(self)
+        FlaglessDelayedInvocation.__init__(self)
         self.backgroundColor = wx.WHITE
         self.dataBitmap = self.maskBitmap = None
         self.data = None
-        self.dataLock = Lock()
         self.mouseOver = False
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
@@ -182,10 +188,12 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
         self.border = None
         #create the heart
         #I will use TasteHeart.BITMAPS to paint the right one
-        
+
+        self.mm = self.GetParent().parent.mm
         
     
     def setData(self, data):
+        
         if not data:
             self.Hide()
             self.Refresh()
@@ -193,26 +201,21 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
         
         if not self.IsShown():
                 self.Show()
-                
         if data != self.data:
             self.data = data
             self.setThumbnail(data)
-                      
+
     def setThumbnail(self, data):
         # Get the file(s)data for this torrent
         try:
-            bmp = DEFAULT_THUMB
+            bmp = self.mm.get_default('personsMode','DEFAULT_THUMB')
             # Check if we have already read the thumbnail and metadata information from this torrent file
             if data.get('metadata'):
                 bmp = data['metadata'].get('ThumbnailBitmap')
                 if not bmp:
-                    print 'ThumbnailViewer: Error: thumbnailBitmap not found in torrent %s' % torrent
-                    bmp = DEFAULT_THUMB
+                    bmp = self.mm.get_default('personsMode','DEFAULT_THUMB')
             else:
-                # Do the loading of metadata and thumbnail in new thread
-                # so that navigation is not slowed down
-                pass
-#                Thread(target = self.loadMetadata, args=(torrent,)).start()
+                self.GetParent().guiserver.add_task(lambda:self.loadMetadata(data),0)
             
             self.setBitmap(bmp)
             width, height = self.GetSize()
@@ -230,11 +233,41 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
         w, h = self.GetSize()
         iw, ih = bmp.GetSize()
                 
-        self.dataLock.acquire()
         self.dataBitmap = bmp
         self.xpos, self.ypos = (w-iw)/2, (h-ih)/2
-        self.dataLock.release()
         
+
+    def loadMetadata(self,data):
+        """ Called by non-GUI thread """
+        
+        if DEBUG:
+            print "pip: ThumbnailViewer: loadMetadata: Peer",show_permid_short(permid),name
+        # We can't do any wx stuff here apparently, so the only thing we can do is to
+        # read the data from the file and create the wxBitmap in the GUI callback.
+        [mimetype,bmpdata] = self.mm.load_data(data['permid'],data['name'])
+        #print "PersonsItemPanel: ThumbnailViewer: loadMetadata: Got",show_permid_short(permid),mimetype
+
+        self.invokeLater(self.metadata_thread_gui_callback,[data,mimetype,bmpdata])
+             
+    def metadata_thread_gui_callback(self,data,mimetype,bmpdata):
+        """ Called by GUI thread """
+
+        metadata = {}
+        if mimetype is not None:
+            metadata['ThumbnailBitmap'] = self.mm.data2wxBitmap(mimetype,bmpdata)
+        else:
+            metadata['ThumbnailBitmap'] = None
+
+        if DEBUG:
+            print "pip: ThumbnailViewer: GUI callback"
+        data['metadata'] = metadata
+        
+        # This item may be displaying another person right now, only show the icon
+        # when it's still the same person
+        if data['permid'] == self.data['permid']:
+            if 'ThumbnailBitmap' in metadata and metadata['ThumbnailBitmap'] is not None:
+                self.setBitmap(metadata['ThumbnailBitmap'])
+            self.Refresh()
     
     
     def OnErase(self, event):
@@ -250,10 +283,14 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
         
     def mouseAction(self, event):
         if event.Entering():
+            if DEBUG:
+                print 'pip: enter' 
             self.mouseOver = True
             self.Refresh()
         elif event.Leaving():
             self.mouseOver = False
+            if DEBUG:
+                print 'pip: leave'
             self.Refresh()
         elif event.ButtonUp():
             self.ClickedButton()
@@ -288,7 +325,8 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
             else:
                 recomm = -1
             if recomm >=0 or self.data.get('friend') or self.data.get('online'):
-                dc.DrawBitmap(MASK_BITMAP,0 ,62, True)
+                mask = self.mm.get_default('personsMode','MASK_BITMAP')
+                dc.DrawBitmap(mask,0 ,62, True)
             if recomm >=0:
                 dc.DrawBitmap(TasteHeart.BITMAPS[recomm],5 ,64, True)
                 dc.SetFont(wx.Font(7, wx.SWISS, wx.NORMAL, wx.BOLD, False))

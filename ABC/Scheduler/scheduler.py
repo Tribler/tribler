@@ -46,10 +46,10 @@ class ABCScheduler(DelayedEventHandler):
 
         self.UpdateRunningTorrentCounters()
 
-    def postInitTasks(self):
+    def postInitTasks(self,argv):
         # Read old list from torrent.lst
         ####################################
-        self.addtorrents.readTorrentList()
+        self.addtorrents.readTorrentList(argv)
         
         # Wait until after creating the list and adding torrents
         # to start CyclicalTasks in the scheduler
@@ -251,8 +251,14 @@ class ABCScheduler(DelayedEventHandler):
 
         torrents_inactive = self.utility.torrents["inactive"].keys()
 
+        #print >>sys.stderr,"scheduler: getInactive: torrents['inactive'] are",torrents_inactive
+        #for ABCTorrentTemp in torrents_inactive:
+        #    print >>sys.stderr,"scheduler: getInactive: status is",ABCTorrentTemp.status.value
+
         # Find which torrents are queued:
         inactivetorrents = [ABCTorrentTemp for ABCTorrentTemp in torrents_inactive if (ABCTorrentTemp.status.value == STATUS_QUEUE)]
+
+        #print >>sys.stderr,"scheduler: getInactive: torrents inactive and queued",inactivetorrents
 
         inactivelength = len(inactivetorrents)
 
@@ -284,10 +290,14 @@ class ABCScheduler(DelayedEventHandler):
            
         inactivestarted = 0
             
+        #print >>sys.stderr,"scheduler: Scheduler: torrents to start is",torrentstostart,numsimdownload,self.getProcCount()
+            
         # Start torrents
         inactivetorrents = self.getInactiveTorrents(torrentstostart)
                            
         for ABCTorrentTemp in inactivetorrents:
+            print >>sys.stderr,"scheduler: resuming",ABCTorrentTemp.infohash
+            play_video = ABCTorrentTemp.clear_newly_added()
             change = ABCTorrentTemp.actions.resume()
             if change:
                 inactivestarted += 1
@@ -476,6 +486,6 @@ class ABCScheduler(DelayedEventHandler):
         
         self.utility.torrentconfig.Flush()
 
-    def addTorrentFromFileCallback(self,data):
-        self.invokeLater(self.addtorrents.AddTorrentFromFile,[data])
+    def addTorrentFromFileCallback(self,data,caller=''):
+        self.invokeLater(self.addtorrents.AddTorrentFromFile,[data],{'caller':caller})
         

@@ -864,7 +864,7 @@ class FilePanel(wx.Panel):
         self.list.loadList()
 
     def clickAndDownload(self, src):
-        return self.utility.queue.addtorrents.AddTorrentFromFile(src, forceasklocation = False)
+        return self.utility.queue.addtorrents.AddTorrentFromFile(src, forceasklocation = False,caller='recommender')
 
     def OnSetRelevanceThreshold(self,event=None):
         value = self.relev_ctl.GetValue()

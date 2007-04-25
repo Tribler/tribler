@@ -62,6 +62,17 @@ class MiscInfoPanel(wx.Panel):
         outerbox.Add(wx.StaticText(self, -1, self.utility.lang.get('comment')), 0, wx.EXPAND|wx.ALL, 5)
         self.commentCtl = wx.TextCtrl(self, -1, size = (-1, 75), style = wx.TE_MULTILINE|wx.HSCROLL|wx.TE_DONTWRAP)        
         outerbox.Add(self.commentCtl, 0, wx.EXPAND|wx.ALL, 5)
+
+        # Playtime:        
+        outerbox.Add(wx.StaticText(self, -1, self.utility.lang.get('playtime')), 0, wx.EXPAND|wx.ALL, 5)
+        self.playtCtl = wx.TextCtrl(self, -1)
+        outerbox.Add(self.playtCtl, 0, wx.EXPAND|wx.ALL, 5)
+
+        # Video dimensions:        
+        outerbox.Add(wx.StaticText(self, -1, self.utility.lang.get('videodim')), 0, wx.EXPAND|wx.ALL, 5)
+        self.videodimCtl = wx.TextCtrl(self, -1)
+        outerbox.Add(self.videodimCtl, 0, wx.EXPAND|wx.ALL, 5)
+
       
         self.SetSizerAndFit(outerbox)
         
@@ -80,6 +91,14 @@ class MiscInfoPanel(wx.Panel):
         
     def getParams(self):
         params = {}
+
+        videodim = self.videodimCtl.GetValue()
+        if videodim != '':
+            params['videodim'] = videodim
+
+        playt = self.playtCtl.GetValue()
+        if playt != '':
+            params['playtime'] = playt
         
         comment = self.commentCtl.GetValue()
         if comment != '':
@@ -825,4 +844,4 @@ class CompleteDir:
             for list in self.files:
                 orig = list[0]
                 torrentfile4seed = list[2]
-                self.utility.queue.addtorrents.AddTorrentFromFile(torrentfile4seed, dest = orig)
+                self.utility.queue.addtorrents.AddTorrentFromFile(torrentfile4seed, dest = orig, caller='torrentmaker')

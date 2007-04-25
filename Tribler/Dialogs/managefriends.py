@@ -13,6 +13,13 @@ from Tribler.Overlay.permid import permid_for_user
 
 from makefriends import MakeFriendsDialog, permid2iconfilename
 
+
+#
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#   THIS IS OBSOLETE, PLEASE USE MugshotManager.py
+#
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#
 def createImageList(utility, friends):
     if len(friends) == 0:
         return None

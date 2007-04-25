@@ -1,16 +1,15 @@
 import wx, math, time, os, sys, threading
-from traceback import print_exc
-from threading import Thread, Lock, Event
+from traceback import print_exc,print_stack
 from Tribler.utilities import *
 #from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.Dialogs.ContentFrontPanel import ImagePanel
 from Tribler.vwxGUI.GuiUtility import GUIUtility
-from safeguiupdate import DelayedInvocation
+from safeguiupdate import FlaglessDelayedInvocation
 from Tribler.unicode import *
 from copy import deepcopy
 import cStringIO
 
-DEBUG=True
+DEBUG=False
 
 class FilesItemPanel(wx.Panel):
     """
@@ -29,6 +28,7 @@ class FilesItemPanel(wx.Panel):
         self.selected = False
         self.warningMode = False
         self.oldCategoryLabel = None
+        self.guiserver = parent.guiserver
         self.addComponents()
         self.Show()
         self.Refresh()
@@ -68,27 +68,29 @@ class FilesItemPanel(wx.Panel):
                              
     def setData(self, torrent):
         # set bitmap, rating, title
-        
-        try:
-            if self.datacopy['infohash'] == torrent['infohash']:
-                # Do not update torrents that have no new seeders/leechers/size
-                if (self.datacopy['seeder'] == torrent['seeder'] and
-                    self.datacopy['leecher'] == torrent['leecher'] and
-                    self.datacopy['length'] == torrent['length'] and
-                    self.datacopy.get('myDownloadHistory') == torrent.get('myDownloadHistory')):
-                    return
-        except:
-            pass
-        
+        if self.datacopy is not None and self.datacopy['infohash'] == torrent['infohash']:
+            # Do not update torrents that have no new seeders/leechers/size
+            if (self.datacopy['seeder'] == torrent['seeder'] and
+                self.datacopy['leecher'] == torrent['leecher'] and
+                self.datacopy['length'] == torrent['length'] and
+                self.datacopy.get('myDownloadHistory') == torrent.get('myDownloadHistory')):
+                return
+
         self.data = torrent
-        try:
-            self.datacopy = deepcopy(torrent)
-        except:
-            print 'Error: could not datacopy: %s' % torrent
-        
-        if torrent == None:
+
+        if torrent is not None:
+            # deepcopy no longer works with 'ThumnailBitmap' on board
+            self.datacopy = {}
+            self.datacopy['infohash'] = torrent['infohash']
+            self.datacopy['seeder'] = torrent['seeder']
+            self.datacopy['leecher'] = torrent['leecher']
+            self.datacopy['length'] = torrent['length']
+            self.datacopy['myDownloadHistory'] = torrent.get('myDownloadHistory')
+
+
+        if torrent is None:
             torrent = {}
-        
+
         if torrent.get('content_name'):
             title = torrent['content_name'][:self.titleLength]
             self.title.Enable(True)
@@ -102,16 +104,15 @@ class FilesItemPanel(wx.Panel):
             
        
         self.thumb.setTorrent(torrent)
-        self.torrentBitmap = self.thumb.torrentBitmap
         
         self.Layout()
         self.Refresh()
         #self.parent.Refresh()
         
           
-        
     def select(self):
-        print 'item selected'
+        if DEBUG:
+            print 'fip: item selected'
         self.thumb.setSelected(True)
         self.title.SetBackgroundColour(self.selectedColour)
         self.title.Refresh()
@@ -127,7 +128,7 @@ class FilesItemPanel(wx.Panel):
             if (key == wx.WXK_DELETE):
                 if self.data:
                     if DEBUG:
-                        print >>sys.stderr,'contentpanel: deleting'
+                        print >>sys.stderr,'fip: deleting'
                     self.guiUtility.deleteTorrent(self.data)
         event.Skip()
         
@@ -141,12 +142,7 @@ class FilesItemPanel(wx.Panel):
     def getIdentifier(self):
         return self.data['infohash']
                 
-DEFAULT_THUMB = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'defaultThumb.png'))
-MASK_BITMAP = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'itemMask.png'))
-HEART_BITMAP = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'heart1.png'))
-
-
-class ThumbnailViewer(wx.Panel, DelayedInvocation):
+class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
     """
     Show thumbnail and mast with info on mouseOver
     """
@@ -169,10 +165,9 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
     
     def _PostInit(self):
         # Do all init here
-        DelayedInvocation.__init__(self)
+        FlaglessDelayedInvocation.__init__(self)
         self.backgroundColor = wx.WHITE
         self.torrentBitmap = None
-        self.torrentLock = Lock()
         self.torrent = None
         self.mouseOver = False
         self.guiUtility = GUIUtility.getInstance()
@@ -183,8 +178,7 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnErase)
         self.selected = False
         self.border = None
-        self.doneflag = Event()
-        
+        self.mm = self.GetParent().parent.mm
         
     
     def setTorrent(self, torrent):
@@ -194,7 +188,7 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
             return
         
         if not self.IsShown():
-                self.Show()
+            self.Show()
                 
         if torrent != self.torrent:
             self.torrent = torrent
@@ -204,19 +198,24 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
     def setThumbnail(self, torrent):
         # Get the file(s)data for this torrent
         try:
-            bmp = DEFAULT_THUMB
+            bmp = self.mm.get_default('filesMode','DEFAULT_THUMB')
             # Check if we have already read the thumbnail and metadata information from this torrent file
             if torrent.get('metadata'):
                 bmp = torrent['metadata'].get('ThumbnailBitmap')
                 if not bmp:
-                    print 'ThumbnailViewer: Error: thumbnailBitmap not found in torrent %s' % torrent
-                    bmp = DEFAULT_THUMB
+                    #print 'fip: ThumbnailViewer: Error: thumbnailBitmap not found in torrent %s' % torrent
+                    bmp = self.mm.get_default('filesMode','DEFAULT_THUMB')
             else:
-                # Do the loading of metadata and thumbnail in new thread
-                # so that navigation is not slowed down
-                Thread(target = self.loadMetadata, args=(torrent,)).start()
+                #print "fip: ThumbnailViewer: set: Scheduling read of metadata"
+                torrent_dir = torrent['torrent_dir']
+                torrent_file = torrent['torrent_name']
+        
+                if not os.path.exists(torrent_dir):
+                    torrent_dir = os.path.join(self.utility.getConfigPath(), "torrent2")
+                torrent_filename = os.path.join(torrent_dir, torrent_file)
+                self.GetParent().guiserver.add_task(lambda:self.loadMetadata(torrent,torrent_filename),0)
             
-            self.setBitmap(bmp, torrent['infohash'])
+            self.setBitmap(bmp)
             width, height = self.GetSize()
             d = 1
             self.border = [wx.Point(0,d), wx.Point(width-d, d), wx.Point(width-d, height-d), wx.Point(d,height-d), wx.Point(d,0)]
@@ -227,69 +226,69 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
             return {}           
         
          
-    def setBitmap(self, bmp, infohash):
+    def setBitmap(self, bmp):
         # Recalculate image placement
         w, h = self.GetSize()
         iw, ih = bmp.GetSize()
                 
-        self.torrentLock.acquire()
-        if self.torrent['infohash'] == infohash:
-            self.torrentBitmap = bmp
-            self.xpos, self.ypos = (w-iw)/2, (h-ih)/2
-        self.torrentLock.release()
+        self.torrentBitmap = bmp
+        self.xpos, self.ypos = (w-iw)/2, (h-ih)/2
         
         
-    def loadMetadata(self, torrent):
-         torrent_dir = torrent['torrent_dir']
-         torrent_file = torrent['torrent_name']
+    def loadMetadata(self, torrent,torrent_filename):
+        """ Called by separate non-GUI thread """
         
-         if not os.path.exists(torrent_dir):
-             torrent_dir = os.path.join(self.utility.getConfigPath(), "torrent2")
+        if DEBUG:
+            print "fip: ThumbnailViewer: loadMetadata",torrent_filename
+        if not os.path.exists(torrent_filename):
+            if DEBUG:    
+                print >>sys.stderr,"fip: ThumbnailViewer: loadMetadata: %s does not exist" % torrent_filename
+            return None
+
+        # We can't do any wx stuff here apparently, so the only thing we can do is to
+        # read the data from the torrent file and create the wxBitmap in the GUI callback.
         
-         torrent_filename = os.path.join(torrent_dir, torrent_file)
+        metadata = self.utility.getMetainfo(torrent_filename)
+        if not metadata:
+            return None
         
-         if not os.path.exists(torrent_filename):
-             if DEBUG:    
-                 print >>sys.stderr,"contentpanel: Torrent: %s does not exist" % torrent_filename
-             return None
-        
-         metadata = self.utility.getMetainfo(torrent_filename)
-         if not metadata:
-             return None
-        
-         self.torrentLock.acquire()
-         torrent['metadata'] = metadata.get('azureus_properties', {}).get('Content',{})
-         self.torrentLock.release()
+        metadata = metadata.get('azureus_properties', {}).get('Content',{})
+      
+        self.invokeLater(self.metadata_thread_gui_callback,[torrent,metadata])
+             
+    def metadata_thread_gui_callback(self,torrent,metadata):
+        """ Called by GUI thread """
+
+        #print 'Azureus_thumb: %s' % thumbnailString
+        thumbnailString = metadata.get('Thumbnail')
          
-         #print 'Azureus_thumb: %s' % thumbnailString
-         thumbnailString = torrent.get('metadata', {}).get('Thumbnail')
-         
-         if thumbnailString:
-             #print 'Found thumbnail: %s' % thumbnailString
-             stream = cStringIO.StringIO(thumbnailString)
-             img =  wx.ImageFromStream( stream )
-             iw, ih = img.GetSize()
-             w, h = self.GetSize()
-             if (iw/float(ih)) > (w/float(h)):
-                 nw = w
-                 nh = int(ih * w/float(iw))
-             else:
-                 nh = h
-                 nw = int(iw * h/float(ih))
-             if nw != iw or nh != ih:
-                 #print 'Rescale from (%d, %d) to (%d, %d)' % (iw, ih, nw, nh)
-                 img.Rescale(nw, nh)
-             bmp = wx.BitmapFromImage(img)
+        if thumbnailString:
+            #print 'Found thumbnail: %s' % thumbnailString
+            stream = cStringIO.StringIO(thumbnailString)
+            img =  wx.ImageFromStream( stream )
+            iw, ih = img.GetSize()
+            w, h = self.GetSize()
+            if (iw/float(ih)) > (w/float(h)):
+                nw = w
+                nh = int(ih * w/float(iw))
+            else:
+                nh = h
+                nw = int(iw * h/float(ih))
+            if nw != iw or nh != ih:
+                #print 'Rescale from (%d, %d) to (%d, %d)' % (iw, ih, nw, nh)
+                img.Rescale(nw, nh)
+            bmp = wx.BitmapFromImage(img)
             
-             
-             self.torrentLock.acquire()
-             torrent['metadata']['ThumbnailBitmap'] = bmp
-             self.torrentLock.release()
-             self.setBitmap(bmp, torrent['infohash'])
-             
-             
-             # should this be done by the GUI thread??
-             self.invokeLater(self.Refresh)
+            metadata['ThumbnailBitmap'] = bmp
+          
+        torrent['metadata'] = metadata
+        
+        # This item may be displaying another torrent right now, only show the icon
+        # when it's still the same torrent
+        if torrent['infohash'] == self.torrent['infohash']:
+            if 'ThumbnailBitmap' in metadata:
+                self.setBitmap(metadata['ThumbnailBitmap'])
+            self.Refresh()
              
     
     def OnErase(self, event):
@@ -336,12 +335,12 @@ class ThumbnailViewer(wx.Panel, DelayedInvocation):
             #dc.DrawText('rating', 8, 50)
         if self.mouseOver:
             dc.SetFont(wx.Font(6, wx.SWISS, wx.NORMAL, wx.BOLD, True))
-            dc.DrawBitmap(MASK_BITMAP,0 ,52, True)
-            dc.DrawBitmap(HEART_BITMAP,5 ,54, True)
+            mask = self.mm.get_default('filesMode','MASK_BITMAP')
+            heart = self.mm.get_default('filesMode','HEART_BITMAP')
+            dc.DrawBitmap(mask,0 ,52, True)
+            dc.DrawBitmap(heart,5 ,54, True)
             dc.SetTextForeground(wx.BLACK)
             #dc.DrawText('rating', 8, 50)
         if (self.selected and self.border):
             dc.SetPen(wx.Pen(wx.Colour(255,51,0), 2))
             dc.DrawLines(self.border)
-        
-

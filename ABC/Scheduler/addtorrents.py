@@ -9,14 +9,18 @@ from urllib import quote, unquote
 from sha import sha
 from traceback import print_exc, print_stack
 #from cStringIO import StringIO
+from threading import currentThread
 
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.zurllib import urlopen
+from Tribler.Video.VideoPlayer import is_video_torrent
 
 from ABC.Torrent.abctorrent import ABCTorrent
 
 from Utility.compat import convertOldList
 from Utility.constants import * #IGNORE:W0611
+
+DEBUG = True
 
 #
 # Get a .torrent file from a url
@@ -83,19 +87,19 @@ class AddTorrents:
             else:
                 return "Error=Invalid torrent file"
             
-        torrentsrc = os.path.join(self.utility.getConfigPath(), "torrent", filename)
+        destfile = os.path.join(self.utility.getConfigPath(), "torrent", filename)
 
-        fileexists = os.access(torrentsrc, os.R_OK)
+        destfileexists = os.access(destfile, os.R_OK)
 
-        if not fileexists:
-            f = open(torrentsrc, "wb")
+        if not destfileexists:
+            f = open(destfile, "wb")
             f.write(btmetafile)
             f.close()
         
         # Torrent either already existed or should exist now
         dotTorrentDuplicate = True
         
-        return self.AddTorrentFromFile(torrentsrc, False, dotTorrentDuplicate, caller = caller)
+        return self.AddTorrentFromFile(destfile, False, dotTorrentDuplicate, caller = caller)
     
     def AddTorrentLink(self, event = None):
         starturl = ""
@@ -128,7 +132,7 @@ class AddTorrents:
             if btlink != "":
                 self.AddTorrentURL(btlink)
         except:
-            print_exc()
+            print_exc(file=sys.stderr)
 
     def AddTorrentNoneDefault(self, event = None):
         self.AddTorrentFile(event, True)
@@ -147,23 +151,21 @@ class AddTorrents:
         
         filelocation = dialog.GetPaths()
 
-        for filepath in filelocation:
+        for sourcefile in filelocation:
             # Arno: remember last dir
-            self.utility.setLastDir("open",os.path.dirname(filepath))
-            self.AddTorrentFromFile(filepath, forceasklocation)
+            self.utility.setLastDir("open",os.path.dirname(sourcefile))
+            self.AddTorrentFromFile(sourcefile, forceasklocation)
            
-    def AddTorrentFromFile(self, filepath, forceasklocation = False, dotTorrentDuplicate = False, caller = "", dest = None, caller_data = None):
-        if type(filepath) is not unicode:
-            filepath = unicode(filepath, sys.getfilesystemencoding())
+    def AddTorrentFromFile(self, sourcefile, forceasklocation = False, dotTorrentDuplicate = False, caller = "", dest = None, caller_data = None):
+        if type(sourcefile) is not unicode:
+            sourcefile = unicode(sourcefile, sys.getfilesystemencoding())
 
         # Check to make sure that the source file exists
-        sourcefileexists = os.access(filepath, os.R_OK)
-        
-        
+        sourcefileexists = os.access(sourcefile, os.R_OK)
         if not sourcefileexists:
             if caller != "web":
                 dlg = wx.MessageDialog(None, 
-                                       filepath + '\n' + self.utility.lang.get('failedtorrentmissing'), 
+                                       sourcefile + '\n' + self.utility.lang.get('failedtorrentmissing'), 
                                        self.utility.lang.get('error'), 
                                        wx.OK|wx.ICON_ERROR)
                 result = dlg.ShowModal()
@@ -172,29 +174,55 @@ class AddTorrents:
             # Just return if the source file doesn't exist?
             return "Error=The source file for this torrent doesn't exist"
 
-        # Make torrent directory if necessary
+        metainfo = self.utility.getMetainfo(sourcefile)
+        if metainfo is None:
+            dlg = wx.MessageDialog(None, 
+               sourcefile + '\n' + \
+               self.utility.lang.get('failedinvalidtorrent') + '\n' + \
+               self.utility.lang.get('error'), 
+               wx.OK|wx.ICON_ERROR)
+            dlg.ShowModal()
+            dlg.Destroy()
+            return "Error=Invalid torrent file"
+        
+        hexinfohash = sha(bencode(metainfo['info'])).hexdigest()
+
+        # Make directory for torrent copies ($HOME/.Tribler/torrent) if necessary
         self.utility.MakeTorrentDir()
       
-        torrentpath = os.path.join(self.utility.getConfigPath(), "torrent")    
-        filename     = os.path.split(filepath)[1]
-        torrentsrc   = os.path.join(torrentpath, filename)
+        torrentdir = os.path.join(self.utility.getConfigPath(), "torrent")    
+        filename     = os.path.split(sourcefile)[1]
+        destfile   = os.path.join(torrentdir, filename)
         dontremove = False
 
-        fileexists = os.access(torrentsrc, os.R_OK)
+        destfileexists = os.access(destfile, os.R_OK)
         
         # If the two files are identical, just point to the
         # .torrent file in the /torrent directory
-        sametorrent = self.isSameTorrent(filepath, torrentsrc)
+        sametorrent = self.isSameTorrent(sourcefile, destfile)
         if sametorrent:
-            filepath = torrentsrc
+            sourcefile = destfile
         
         # Is the torrent already present in the list?
-        torrentinlist = self.checkForDuplicateInList(src = filepath)
+        torrentinlist = self.checkForDuplicateInList(infohash = hexinfohash)
         if torrentinlist:
-            self.dupFileInList(filepath, caller)
-            return "Error=This torrent is duplicate"
-        
-        if fileexists and not dotTorrentDuplicate:
+            if DEBUG:
+                print >>sys.stderr,"addtorrents: duplicate torrent"
+            if True: # is_video_torrent(metainfo):
+                for ABCTorrentTemp in self.utility.torrents["all"]:
+                    if hexinfohash == ABCTorrentTemp.infohash:
+                        if DEBUG:
+                            print >>sys.stderr,"addtorrents: trying to reactivate duplicate torrent",hexinfohash
+                        self.activate_deactivate(ABCTorrentTemp,True,False)
+                        return "OK"
+                return "Error=Torrent already loaded, but could not reactivate torrent"
+            else:
+                if DEBUG:
+                    print >>sys.stderr,"addtorrents: duplicate torrent, but not video",hexinfohash
+                self.dupFileInList(sourcefile, caller)
+                return "Error=This torrent is duplicate"
+
+        if destfileexists and not dotTorrentDuplicate:
             if caller != "web":
                 # ignore if the src and dest files are the same
                 # this means that files in the torrent directory
@@ -203,7 +231,7 @@ class AddTorrents:
                 # (dotTorrentDuplicate stays False and the check to
                 #  see if it's in the list is performed in addNewProc)
                 ##############################################
-                if (filepath == torrentsrc):
+                if (sourcefile == destfile):
                     # If addNewProc finds that the torrent is already in the proctab,
                     # we don't want to remove it otherwise the torrent that is running
                     # will be in trouble
@@ -229,19 +257,15 @@ class AddTorrents:
             dotTorrentDuplicate = False
 
         # No need to copy if we're just copying the file onto itself
-        if (filepath != torrentsrc):
-            copy2(filepath, torrentsrc)
-        success, mesg, torrent = self.addNewProc(torrentsrc, 
-                                                 dest = dest,
-                                                 forceasklocation = forceasklocation, 
-                                                 dotTorrentDuplicate = dotTorrentDuplicate, 
-                                                 dontremove = dontremove, 
-                                                 caller = caller,
-                                                 caller_data = caller_data)
-        if success:
-            return "OK"
-        else:
-            return "Error=" + mesg
+        if (sourcefile != destfile):
+            copy2(sourcefile, destfile)
+        return self.addNewProc(destfile, 
+                             dest = dest,
+                             forceasklocation = forceasklocation, 
+                             dotTorrentDuplicate = dotTorrentDuplicate, 
+                             dontremove = dontremove, 
+                             caller = caller,
+                             caller_data = caller_data)
 
 
     #
@@ -251,7 +275,7 @@ class AddTorrents:
     #   from URL
     #   autoadd (command line)
     #
-    def addNewProc(self, src, dest = None, forceasklocation = False, dotTorrentDuplicate = False, dontremove = False, caller = "", doupdate = True, caller_data = None):
+    def addNewProc(self, src, dest = None, forceasklocation = False, dotTorrentDuplicate = False, dontremove = False, caller = "", doupdate = True, caller_data = None, newhexinfohash = None):
         #from file, URL maybe down torrent.lst from addProc
         # change at onChooseFile make sure they choose dest
         # dotTorrentDuplicate : To avoid asking the user twice about duplicate (for torrent file name and torrent name)
@@ -293,6 +317,12 @@ class AddTorrents:
                     if (result == wx.ID_NO):
                         dontremove = True
                 error = "Invalid torrent file"
+            elif ABCTorrentTemp.infohash == newhexinfohash:
+                # This is an attempt to reactivate the new torrent again, ignore
+                # This means the torrent was already in the list when the client was
+                # started with the same torrent on the cmd line.
+                error = "Activating new torrent twice"
+                dontremove = True
                     
             # If the torrent doesn't have anywhere to save to, return with an error
             elif ABCTorrentTemp.files.dest is None:
@@ -325,39 +355,100 @@ class AddTorrents:
                     pass
             ABCTorrentTemp = None
             return False, error, ABCTorrentTemp
-       
-        if doupdate and ABCTorrentTemp is not None:
-            ABCTorrentTemp.postInitTasks()
-            
-            # Update torrent.list
-            ABCTorrentTemp.torrentconfig.writeSrc(False)
-            self.utility.torrentconfig.Flush()
-            
-            self.queue.updateAndInvoke()
+
+        if DEBUG:
+            print >>sys.stderr,"addtorrents: torrent",ABCTorrentTemp.metainfo['info']['name'],"caller is",caller
+        self.activate_deactivate(ABCTorrentTemp,doupdate,True,caller!=CALLER_ARGV)
         
         return True, self.utility.lang.get('ok'), ABCTorrentTemp
+        
+
+    def activate_deactivate(self,ABCTorrentTemp,doupdate,newtorrent,writetorrentlist=True):
+        """ If doupdate == True, then we're recreating old ABCTorrents 
+            after startup 
+        """
+        if doupdate and ABCTorrentTemp is not None:
+            
+            # Arno: 1. Current policy stop all other torrents, except new one if already exists
+            if ABCTorrentTemp.get_on_demand_download():
+                # Make a copy here, st*pid &#(*&$(%&$
+                copyworkinglist = self.utility.torrents["all"][:]
+                # Arno: 2007-01-06: User may have closed VideoLan client and reclicks on URL.
+                #if ABCTorrentTemp in copyworkinglist:
+                #    copyworkinglist.remove(ABCTorrentTemp)
+                self.utility.actionhandler.procSTOP(copyworkinglist)
+
+            if DEBUG:
+                print >>sys.stderr,"addtorrents: act/deact: thread is",currentThread().getName()
+
+            # 2. Start torrent if new, reactivate if old
+            if newtorrent:
+                if DEBUG:
+                    print >>sys.stderr,"addtorrents: activating new torrent",ABCTorrentTemp.infohash
+                if ABCTorrentTemp.get_on_demand_download():
+                    ABCTorrentTemp.set_newly_added()
+                ABCTorrentTemp.postInitTasks()
+                # If info on disk says that torrent was stopped, it now should be
+                if ABCTorrentTemp.status.value != STATUS_QUEUE:
+                    if DEBUG:
+                        print >>sys.stderr,"addtorrents: changing status of new torrent from STOP to QUEUED"
+                    ABCTorrentTemp.status.value = STATUS_QUEUE
+                
+                if DEBUG:
+                    print >>sys.stderr,"addtorrents: post init tasks, inactive is",self.utility.torrents["inactive"][ABCTorrentTemp]
+            else:
+                if DEBUG:
+                    print >>sys.stderr,"addtorrents: activating old torrent",ABCTorrentTemp.infohash
+                self.utility.actionhandler.procRESUME([ABCTorrentTemp],skipcheck = True, play_video = True)
+                
+            if writetorrentlist:
+                # Update torrent.list
+                ABCTorrentTemp.torrentconfig.writeSrc(False)
+                self.utility.torrentconfig.Flush()
+                
+            self.queue.updateAndInvoke()
         
     #
     # Add a torrent that's already been loaded into the list
     #
-    def addOldProc(self, src):       
+    def addOldProc(self, src, newisvideo = False, newhexinfohash = None):       
         # Torrent information
         filename = os.path.join(self.utility.getConfigPath(), "torrent", src)
+
+        if DEBUG:
+            print >>sys.stderr,"addtorrents: reviving old torrent",filename
         
-        success, error, ABCTorrentTemp = self.addNewProc(filename, dest = None, doupdate = False)
+        success, error, ABCTorrentTemp = self.addNewProc(filename, dest = None, doupdate = False, newhexinfohash = newhexinfohash)
         
         if not success:
             # Didn't get a valid ABCTorrent object
+            if DEBUG:
+                print >>sys.stderr,"addtorrents: addOldProc: Failure adding",src,"error",error
             return False
         
-        ABCTorrentTemp.postInitTasks()
+        if DEBUG:
+            print >>sys.stderr,"addtorrents: addOldProc: succesfully added",ABCTorrentTemp.infohash,"newisvideo",newisvideo
+
+        ABCTorrentTemp.postInitTasks(activate=(not newisvideo))
         
         return True
              
     #
     # Load torrents from the torrent.list file
     #
-    def readTorrentList(self):
+    def readTorrentList(self, argv):
+        
+        # See if we have a torrent on the command line, and if so, whether
+        # it is a video torrent.
+        newisvideo = False
+        newhexinfohash = None
+        if argv[0] != "":
+            metainfo = self.utility.getMetainfo(argv[0])
+            if metainfo is not None and True: # is_video_torrent(metainfo):
+                # So we're being started with a video torrent 
+                newisvideo = True
+                newhexinfohash = sha(bencode(metainfo['info'])).hexdigest()
+        
         # Convert list in older format if necessary
         convertOldList(self.utility)
         
@@ -374,6 +465,7 @@ class AddTorrents:
         
         oldprocs = []
         for index, src in self.utility.torrentconfig.Items():
+            #print >>sys.stderr,"Addtorrents: Items(): adding",index,src
             try:
                 index = int(index)
                 oldprocs.append((index, src))
@@ -382,7 +474,8 @@ class AddTorrents:
         oldprocs.sort()
         
         for index, src in oldprocs:
-            self.addOldProc(src)
+            #print >>sys.stderr,"Addtorrents: readTorrentList: adding",index,src
+            self.addOldProc(src,newisvideo,newhexinfohash)
             
         self.queue.updateAndInvoke()
 

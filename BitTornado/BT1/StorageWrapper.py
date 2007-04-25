@@ -24,6 +24,8 @@ from bisect import insort
 DEBUG = False
 
 STATS_INTERVAL = 0.2
+RARE_RAWSERVER_TASKID = -481  # This must be a rawserver task ID that is never valid.
+
 
 def dummy_status(fractionDone = None, activity = None):
     pass
@@ -178,19 +180,62 @@ class StorageWrapper:
 
 
     def initialize(self, donefunc, statusfunc = None):
+        if DEBUG:
+            print >>sys.stderr,"StorageWrapper: initialize: enter, backfunc is",self.backfunc
+        
         self.initialize_done = donefunc
         if statusfunc is None:
             statusfunc = self.statusfunc
         self.initialize_status = statusfunc
         self.initialize_next = None
             
-        self.backfunc(self._initialize)
+        """
+        Arno: 2007-01-02:
+        This next line used to read:
+            self.backfunc(self._initialize)
+        So without the task ID. I've changed this to accomodate the
+        following situation. In video-on-demand, it may occur that
+        a torrent is stopped and then immediately after it is
+        restarted. In particular, we use this when a user selects
+        a torrent from the mainwin to be played (again). Because the
+        torrent does not necessarily use a VOD-piecepicker we have
+        to stop the current DL process and start a new one. 
+        
+        When stopping and starting a torrent quickly a problem occurs.
+        When a torrent is stopped, its infohash is registered in kill list 
+        of the (real) RawServer class. The next time the rawserver looks 
+        for tasks to execute it will first check the kill list. If it's not
+        empty it will remove all tasks that have the given infohash as taskID.
+        This mechanism ensures that when a torrent is stopped, any outstanding
+        tasks belonging to the torrent are removed from the rawserver task queue.
+        
+        It can occur that we've stopped the torrent and the
+        infohash is on the kill list, but the queue has not yet been cleared of
+        old entries because the thread that runs the rawserver did not get to
+        executing new tasks yet. This causes a problem right here, because
+        we now want to schedule a new task on behalf of the new download process.
+        If it is enqueued now, it will be removed the next time the rawserver 
+        checks its task list and because the infohash is on the kill list be
+        deleted.
+        
+        My fix is to schedule this first task of the new torrent under a 
+        different task ID. Hence, when the rawserver checks its queue it
+        will not delete it, thinking it belonged to the old download
+        process. The really clean solution is to stop using infohash as
+        taskid, and use a unique ID for a download process. This will
+        take a bit of work to ensure it works correctly, so in the mean
+        time we'll use this fix.
+        """
+        self.backfunc(self._initialize, id = RARE_RAWSERVER_TASKID)
 
     def _initialize(self):
+        
+        if DEBUG:
+            print >>sys.stderr,"StorageWrapper: _initialize: enter"
         if not self.unpauseflag.isSet():
             self.backfunc(self._initialize, 1)
             return
-        
+
         if self.initialize_next:
             x = self.initialize_next()
             if x is None:
@@ -203,7 +248,7 @@ class StorageWrapper:
                 return
             msg, done, init, next = self.initialize_tasks.pop(0)
             if DEBUG:
-                print "StorageWrapper: _initialize performing task",msg
+                print >>sys.stderr,"StorageWrapper: _initialize performing task",msg
             if init():
                 self.initialize_status(activity = msg, fractionDone = done)
                 self.initialize_next = next
@@ -213,14 +258,14 @@ class StorageWrapper:
     def init_hashcheck(self):
         if self.flag.isSet():
             if DEBUG:
-                print "StorageWrapper: init_hashcheck: FLAG IS SET"
+                print >>sys.stderr,"StorageWrapper: init_hashcheck: FLAG IS SET"
             return False
         self.check_list = []
         if not self.hashes or self.amount_left == 0:
             self.check_total = 0
             self.finished()
             if DEBUG:
-                print "StorageWrapper: init_hashcheck: Download finished"
+                print >>sys.stderr,"StorageWrapper: init_hashcheck: Download finished"
             return False
 
         self.check_targets = {}
@@ -542,7 +587,7 @@ class StorageWrapper:
         return self.hashes[index]
 
     def get_stats(self):
-        return self.amount_obtained, self.amount_desired
+        return self.amount_obtained, self.amount_desired, self.have
 
     def new_request(self, index):
         # returns (begin, length)

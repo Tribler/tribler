@@ -14,6 +14,9 @@ from Utility.configreader import ConfigReader
 from Utility.constants import * #IGNORE:W0611
 
 from Tribler.CacheDB.CacheDBHandler import MyDBHandler
+from Tribler.Video.VideoPlayer import *
+
+DEBUG = False
 
 
 ################################################################
@@ -1333,6 +1336,8 @@ class AdvancedDiskPanel(ABCOptionPanel):
         self.utility.config.Write('auto_flush', flushval)
 
 
+
+
 ################################################################
 #
 # Class: TriblerPanel
@@ -1362,6 +1367,7 @@ class TriblerPanel(ABCOptionPanel):
         name_box.Add(wx.StaticText(self, -1, self.utility.lang.get('myname')), 0, wx.ALIGN_CENTER_VERTICAL)
         name_box.Add(self.myname, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
         sizer.Add(name_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        
         self.initTasks()
         
     def loadValues(self, Read = None):
@@ -1375,7 +1381,7 @@ class TriblerPanel(ABCOptionPanel):
         self.my_db = MyDBHandler()
         name = self.my_db.get('name', '')
         self.myname.SetValue(name)
-              
+
     def apply(self):       
         self.utility.config.Write('enablerecommender', self.rec_enable.GetValue(), "boolean")
         self.utility.config.Write('enabledlhelp', self.dlhelp_enable.GetValue(), "boolean")          
@@ -1385,6 +1391,144 @@ class TriblerPanel(ABCOptionPanel):
         self.my_db.put('name',name)
 
 
+################################################################
+#
+# Class: VideoPanel
+#
+# Contains settings for video features
+#
+################################################################
+class VideoPanel(ABCOptionPanel):
+    def __init__(self, parent, dialog):
+        ABCOptionPanel.__init__(self, parent, dialog)
+        sizer = self.sizer
+
+        playbackbox = wx.BoxSizer(wx.HORIZONTAL)
+        feasible = return_feasible_playback_modes()
+        playback_choices = []
+        self.playback_indices = []
+        if PLAYBACKMODE_INTERNAL in feasible:
+            playback_choices.append(self.utility.lang.get('playback_internal'))
+            self.playback_indices.append(PLAYBACKMODE_INTERNAL)
+        if PLAYBACKMODE_EXTERNAL_DEFAULT in feasible:
+            playback_choices.append(self.utility.lang.get('playback_external_default'))
+            self.playback_indices.append(PLAYBACKMODE_EXTERNAL_DEFAULT)
+        if PLAYBACKMODE_EXTERNAL_MIME in feasible:
+            playback_choices.append(self.utility.lang.get('playback_external_mime'))
+            self.playback_indices.append(PLAYBACKMODE_EXTERNAL_MIME)
+        self.playback_chooser=wx.Choice(self, -1, wx.Point(-1, -1), wx.Size(-1, -1), playback_choices)
+
+        playbackbox.Add(wx.StaticText(self, -1, self.utility.lang.get('playback_mode')), 1, wx.ALIGN_CENTER_VERTICAL)
+        playbackbox.Add(self.playback_chooser)
+        sizer.Add(playbackbox, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        
+        player_box = wx.BoxSizer(wx.HORIZONTAL)
+        self.player = wx.TextCtrl(self, -1, "")
+        player_box.Add(wx.StaticText(self, -1, self.utility.lang.get('videoplayer_default_path')), 0, wx.ALIGN_CENTER_VERTICAL)
+        player_box.Add(self.player, 1, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        #browsebtn = wx.Button(self, -1, "...", style = wx.BU_EXACTFIT)
+        browsebtn = wx.Button(self, -1, "...")
+        self.Bind(wx.EVT_BUTTON, self.onBrowsePlayer, browsebtn)
+        player_box.Add(browsebtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        sizer.Add(player_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT|wx.EXPAND, 5)
+
+        analyser_box = wx.BoxSizer(wx.HORIZONTAL)
+        self.analyser = wx.TextCtrl(self, -1, "")
+        analyser_box.Add(wx.StaticText(self, -1, self.utility.lang.get('videoanalyserpath')), 0, wx.ALIGN_CENTER_VERTICAL)
+        analyser_box.Add(self.analyser, 1, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        #browsebtn = wx.Button(self, -1, "...", style = wx.BU_EXACTFIT)
+        browsebtn = wx.Button(self, -1, "...")
+        self.Bind(wx.EVT_BUTTON, self.onBrowseAnalyser, browsebtn)
+        analyser_box.Add(browsebtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        sizer.Add(analyser_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT|wx.EXPAND, 5)
+
+        
+        if sys.platform == 'win32':
+            self.quote = '"'
+        else:
+            self.quote = "'"
+        
+        self.initTasks()
+        
+    def loadValues(self, Read = None):
+        if Read is None:
+            Read = self.utility.config.Read
+
+        mode = Read('videoplaybackmode', "int")
+        for index in self.playback_indices:
+            if self.playback_indices[index] == mode:
+                self.playback_chooser.SetSelection(index)
+        
+        value = Read('videoplayerpath')
+        qvalue = self.quote_path(value)
+        self.player.SetValue(qvalue)
+
+        value = Read('videoanalyserpath')
+        qvalue = self.quote_path(value)
+        self.analyser.SetValue(qvalue)
+
+              
+    def apply(self):       
+        
+        value = self.playback_chooser.GetSelection()
+        mode = self.playback_indices(value)
+        self.utility.config.Write('videoplaybackmode',mode)
+
+        for widget,mainmsg in [(self.player,self.utility.lang.get('videoplayernotfound')),(self.analyser,self.utility.lang.get('videoanalysernotfound'))]:
+            qvalue = widget.GetValue()
+            value = self.unquote_path(qvalue)
+            if not os.access(value,os.F_OK):
+                self.onError(mainmsg,value)
+                return
+
+        if DEBUG:
+            print "abcoptions: VideoPanel: Writing videoplayerpath",value
+        self.utility.config.Write('videoplayerpath',value)
+        self.utility.config.Write('videoanalyserpath',value)
+
+
+    def unquote_path(self,value):
+        value.strip()
+        if value[0] == self.quote:
+            idx = value.find(self.quote,1)
+            return value[1:idx]
+        else:
+            return value
+
+    def quote_path(self,value):
+        value.strip()
+        if value.find(' ') != -1:
+            return self.quote+value+self.quote
+        else:
+            return value
+        
+        
+    def onError(self,mainmsg,path):
+        msg = mainmsg
+        msg += '\n'
+        msg += path
+        msg += '\n'
+        dlg = wx.MessageDialog(None, msg, self.utility.lang.get('videoplayererrortitle'), wx.OK|wx.ICON_ERROR)
+        result = dlg.ShowModal()
+        dlg.Destroy()
+
+    def onBrowsePlayer(self, event = None):
+        self.onBrowse(self.utility.lang.get('choosevideoplayer'),self.player)
+        
+    def onBrowseAnalyser(self, event = None):
+        self.onBrowse(self.utility.lang.get('choosevideoanalyser'),self.analyser)
+        
+    def onBrowse(self,widget,title):
+        dlg = wx.FileDialog(self.utility.frame, 
+                           title, 
+                           style = wx.OPEN | wx.FILE_MUST_EXIST)
+        if dlg.ShowModal() == wx.ID_OK:
+            value = dlg.GetPath()
+            qvalue = self.quote_path(value)
+            widget.SetValue(qvalue)
+        dlg.Destroy()
+
+        
 ################################################################
 #
 # Class: ABCTree
@@ -1422,6 +1566,9 @@ class ABCTree(wx.TreeCtrl):
 
         self.tribler = self.AppendItem(self.root, self.utility.lang.get('triblersetting'))
 
+        self.video = self.AppendItem(self.root, self.utility.lang.get('videosetting'))
+
+
         self.treeMap = {self.ratelimits : self.dialog.rateLimitPanel, 
                         self.seedingoptions : self.dialog.seedingOptionsPanel, 
                         self.queuesetting : self.dialog.queuePanel, 
@@ -1429,6 +1576,7 @@ class ABCTree(wx.TreeCtrl):
                         self.network : self.dialog.networkPanel, 
                         self.misc : self.dialog.miscPanel,
                         self.tribler : self.dialog.triblerPanel,
+                        self.video : self.dialog.videoPanel,
                         self.display : self.dialog.displayPanel, 
                         self.colors : self.dialog.colorPanel, 
                         self.disk : self.dialog.diskPanel }
@@ -1499,6 +1647,7 @@ class ABCOptionDialog(wx.Dialog):
         self.networkPanel = NetworkPanel(self.splitter, self)
         self.miscPanel = MiscPanel(self.splitter, self)
         self.triblerPanel = TriblerPanel(self.splitter, self)
+        self.videoPanel = VideoPanel(self.splitter, self)
         self.displayPanel = DisplayPanel(self.splitter, self)
         self.colorPanel = ColorPanel(self.splitter, self)
         self.diskPanel = DiskPanel(self.splitter, self)

@@ -30,6 +30,7 @@ from Utility.constants import * #IGNORE:W0611
 from safeguiupdate import DelayedEventHandler
 
 from abcengine import ABCEngine
+from Tribler.Video.Progress import BufferInfo
 
 try:
     True
@@ -37,7 +38,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = False
+DEBUG = True
 
 def fmttime(n):
     try:
@@ -130,51 +131,62 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
 
     # override
     def stats(self):
-        for ABCTorrentTemp in self.utility.torrents["active"].keys():
-            engine = ABCTorrentTemp.connection.getEngine()
-            
-            if engine is None:
-                continue
-            
-            progress = 0.0
-            t = 0
-            uprate = 0.0
-            dnrate = 0.0
-            spew = None
-            s = None
-            
-            if engine.is_dead():
-                status = self.utility.lang.get('stop')
-            elif engine.waiting:
-                status = self.utility.lang.get('waiting')
-            elif engine.checking:
-                status = engine.btstatus
-                progress = engine.status_done
-            else:
-                stats = engine.statsfunc()    # call DownloaderFeedback.gather() actually
+        try:
+            for ABCTorrentTemp in self.utility.torrents["active"].keys():
+                engine = ABCTorrentTemp.connection.getEngine()
                 
-                s = stats['stats']
-                spew = stats['spew']
-                if engine.seed:
-                    status = self.utility.lang.get('completedseeding')
-                    progress = 1.0
+                if engine is None:
+                    continue
+                
+                progress = 0.0
+                t = 0
+                uprate = 0.0
+                dnrate = 0.0
+                spew = None
+                s = None
+                havedigest = None
+    
+                if engine.is_dead():
+                    status = self.utility.lang.get('stop')
+                elif engine.waiting:
+                    status = self.utility.lang.get('waiting')
+                elif engine.checking:
+                    status = engine.btstatus
+                    progress = engine.status_done
                 else:
-                    if s.numSeeds + s.numPeers:
-                        t = stats['time']
-                        if t == 0:  # unlikely
-                            t = 0.01
-                        status = self.utility.lang.get('working')
+                    stats = engine.statsfunc()    # call DownloaderFeedback.gather() actually
+                    if stats is None:
+                        continue
+                    
+                    s = stats['stats']
+                    spew = stats['spew']
+                    if engine.seed:
+                        status = self.utility.lang.get('completedseeding')
+                        progress = 1.0
                     else:
-                        t = -1
-                        status = self.utility.lang.get('connectingtopeers')
-                    dnrate = stats['down']
-                    progress = stats['frac']
-                uprate = stats['up']
-                #self.all_peers_cache.updateSpew(ABCTorrentTemp.torrent_hash, spew)
-
-            engine.onUpdateStatus(progress, t, dnrate, uprate, status, s, spew)
-        self.rawserver.add_task(self.stats, self.stats_period)
-
+                        if s.numSeeds + s.numPeers:
+                            t = stats['time']
+                            if t == 0:  # unlikely
+                                t = 0.01
+                            status = self.utility.lang.get('working')
+                        else:
+                            t = -1
+                            status = self.utility.lang.get('connectingtopeers')
+                        dnrate = stats['down']
+                        progress = stats['frac']
+                    uprate = stats['up']
+                    if 'have' in stats:
+                        # At this moment stats['have'] is the actual BitField that
+                        # StorageWrapper works on. Let's digest it here, before
+                        # we go to the GUI thread.
+                        #
+                        havedigest = self.havebitfield2bufferinfo(stats['have'])
+                    #self.all_peers_cache.updateSpew(ABCTorrentTemp.torrent_hash, spew)
+    
+                engine.onUpdateStatus(progress, t, dnrate, uprate, status, s, spew, havedigest)
+            self.rawserver.add_task(self.stats, self.stats_period)
+        except:
+            print_exc()
 
     def remove(self,torrent_hash):
         # Arno: at the moment I just stop the torrent, as removal from GUI list 
@@ -232,8 +244,9 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
 
         # To get coordinators and helpers
         self.downloads[ABCTorrentTemp.torrent_hash] = engine.dow
-
         engine.start()
+
+
 
     # override
     def hashchecksched(self, ABCTorrentTemp = None):
@@ -312,13 +325,24 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
         """ Called by network thread """
         self.invokeLater(self.utility.frame.abc_sb.setActivity,[type,msg])
 
+    def havebitfield2bufferinfo(self,havebitfield):
+        bi = BufferInfo()
+        bi.set_numpieces(havebitfield.length)
+        for piece in range(havebitfield.length):
+            if havebitfield.array[piece]:
+                bi.complete(piece)
+        return bi
+    
 class Outputter:
     def __init__(self):
-        pass
+        self.out = sys.stderr
         
     def exception(self, message):
-        sys.stderr.write(message)
+        self.out.write(message)
+        self.out.flush()
     
     def message(self, message):
         message = "-----------------------\n" + message + "\n-----------------------\n"
-        sys.stderr.write(message)
+        self.out.write(message)
+        self.out.flush()
+        

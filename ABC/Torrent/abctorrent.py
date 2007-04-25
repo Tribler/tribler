@@ -20,6 +20,7 @@ from Utility.constants import * #IGNORE:W0611
 from Tribler.unicode import name2unicode
 from Tribler.Category.Category import Category
 from Tribler.Dialogs.abcfileframe import TorrentDataManager
+from Tribler.Video.VideoPlayer import VideoPlayer
 
 from time import time
 
@@ -65,6 +66,9 @@ class ABCTorrent:
         self.dialogs = TorrentDialogs(self)
         self.connection = TorrentConnections(self)
 
+        if DEBUG:
+            print >>sys.stderr,"abctorrent: forceask is",forceasklocation
+
         #########
         self.metainfo = self.getResponse()
         if self.metainfo is None:
@@ -90,6 +94,7 @@ class ABCTorrent:
         self.info = self.metainfo['info']
 
         self.title = None
+        self.newlyadded = False
                       
         # Initialize values to defaults
 
@@ -132,6 +137,13 @@ class ABCTorrent:
         self.peer_swarm = {}    # swarm of each torrent, used to display peers on map
         self.libraryPanel = None
         
+
+        self.download_on_demand = False
+        self.videoinfo = None
+        self.vodreadycallback = None
+        self.progressinf = None
+        self.prevactivetorrenst = None
+
     def addTorrentToDB(self):
         
         # Arno: Checking for presence in the database causes some problems 
@@ -207,12 +219,15 @@ class ABCTorrent:
     #
     # Tasks to perform when first starting adding this torrent to the display
     #
-    def postInitTasks(self):        
+    def postInitTasks(self,activate=True):        
         self.utility.torrents["all"].append(self)
         self.utility.torrents["inactive"][self] = 1
         
         # Read extra information about the torrent
         self.torrentconfig.readAll()
+        
+        if not activate:
+            self.status.value = STATUS_STOP
     
         # Add a new item to the list
         self.list.InsertStringItem(self.listindex, "")
@@ -906,6 +921,10 @@ class ABCTorrent:
 #        # (if it's currently active, wait for it to stop)
 #        self.connection.stopEngine(waitForThread = True)
         self.connection.stopEngine()
+        if self.get_on_demand_download():
+            # We was VOD-ing
+            videoplayer = VideoPlayer.getInstance()
+            videoplayer.vod_stopped(self)
 
         # If this is a helper torrent, remove all traces
         if self.caller_data is not None:
@@ -925,3 +944,48 @@ class ABCTorrent:
         
     def setLibraryPanel(self, panel):
         self.libraryPanel = panel
+
+    def set_newly_added(self):
+        self.newlyadded = True
+    
+    def clear_newly_added(self):
+        ret = self.newlyadded
+        self.newlyadded = False
+        return ret
+
+    def enable_on_demand_download(self):
+        self.download_on_demand = True
+        
+    def disable_on_demand_download(self):
+        self.download_on_demand = False
+        
+    def get_on_demand_download(self):
+        return self.download_on_demand
+    
+    def set_videoinfo(self,info):
+        self.videoinfo = info
+        
+    def get_videoinfo(self):
+        return self.videoinfo
+    
+    def get_moviestreamtransport(self):
+        return self.connection.get_moviestreamtransport()    
+
+    def set_progressinf(self,progressinf):
+        self.progressinf = progressinf
+
+    def get_progressinf(self):
+        return self.progressinf
+    
+    def set_vod_started_callback(self,method):
+        self.vodreadycallback = method
+        
+    def engine_started(self):
+        if self.get_on_demand_download() and self.vodreadycallback is not None:
+            self.vodreadycallback(self)
+            
+    def set_previously_active_torrents(self,activetorrents):
+        self.prevactivetorrents = activetorrents
+        
+    def get_previously_active_torrents(self):
+        return self.prevactivetorrents

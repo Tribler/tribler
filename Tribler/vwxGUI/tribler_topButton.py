@@ -49,6 +49,7 @@ class tribler_topButton(wx.Panel):
 #        print self.Name
 #        print 'size'
 #        print self.Size
+        self.backgroundColor = 'WHITE'
         
         self.initDone = True
         self.Refresh(True)

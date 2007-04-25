@@ -2,7 +2,6 @@ import sys
 
 from Utility.constants import * #IGNORE:W0611
 
-
 ################################################################
 #
 # Class: TorrentStatus
@@ -19,6 +18,7 @@ class TorrentStatus:
         self.value = STATUS_QUEUE
         self.completed = False
         self.dontupdate = True # Don't update until the list item is created
+        self.havedigest = None
 
     def getStatusText(self):
         value = self.value
@@ -103,7 +103,7 @@ class TorrentStatus:
             # Was finished before, but isn't now
             self.value = STATUS_QUEUE
             
-        self.torrent.updateColumns([COL_BTSTATUS])
+        self.torrent.updateColumns([COL_BTSTATUS]) #GUI
         
         return finished
         
@@ -113,3 +113,8 @@ class TorrentStatus:
             if update:
                 self.torrent.torrentconfig.writeStatus()
         
+    def setHaveDigest(selfs,havedigest):
+        self.havedigest = havedigest
+        
+    def getHaveDigest(self):
+        return self.havedigest

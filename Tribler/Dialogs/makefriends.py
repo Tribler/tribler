@@ -15,6 +15,12 @@ from Tribler.Overlay.permid import permid_for_user
 DEBUG = False
 
 
+#
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#   THIS IS OBSOLETE, PLEASE USE MugshotManager.py
+#
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#
 def permid2iconfilename(utility,permid):
     safename = sha(permid).hexdigest()
     return os.path.join(utility.getConfigPath(), 'icons', safename+'.bmp')

@@ -9,7 +9,7 @@ from btformats import check_peers
 from BitTornado.bencode import bdecode
 from threading import Thread, Lock
 from cStringIO import StringIO
-from traceback import print_exc
+from traceback import print_exc,print_stack
 from socket import error, gethostbyname
 from random import shuffle
 from sha import sha
@@ -70,6 +70,9 @@ class Rerequester:
         self.lastsuccessful = ''
         self.rejectedmessage = 'rejected by tracker - '
         
+        if DEBUG:
+            print >>sys.stderr,"Rerequest tracker: inofhash is",`infohash`
+
         self.url = ('?info_hash=%s&peer_id=%s&port=%s' %
             (quote(infohash), quote(myid), str(port)))
         self.ip = ip
@@ -98,6 +101,7 @@ class Rerequester:
         self.lock = SuccessLock()
         self.special = None
         self.stopped = False
+        self.schedid = 'arno481'
 
     def start(self):
         self.sched(self.c, self.interval/2)
@@ -128,6 +132,13 @@ class Rerequester:
         else:
             self.sched(self.d, self.announce_interval)
 
+    def encoder_wants_new_peers(self):
+        """ The list of peers we gave to the encoder via self.connect()
+        did not give any live connections, reconnect to get some more.
+        Officially we should cancel the outstanding
+            self.sched(self.d,self.announce_interval)
+        """
+        self.d(0)
 
     def announce(self, event = 3, callback = lambda: None, specialurl = None):
 
@@ -341,6 +352,10 @@ class Rerequester:
             self.errorfunc('warning from tracker - ' + r['warning message'])
         self.announce_interval = r.get('interval', self.announce_interval)
         self.interval = r.get('min interval', self.interval)
+        
+        if DEBUG:
+            print >> sys.stderr,"Rerequester: announce min is",self.announce_interval,self.interval
+        
         self.trackerid = r.get('tracker id', self.trackerid)
         self.last = r.get('last')
 #        ps = len(r['peers']) + self.howmany()

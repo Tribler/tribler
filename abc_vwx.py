@@ -9,13 +9,28 @@
 #               >python abc.py
 #               need Python, WxPython in order to run from source code.
 #########################################################################
+
+# Arno: G*dd*mn M2Crypto overrides the method for https:// in the
+# standard Python libraries. This causes msnlib to fail and makes Tribler
+# freakout when "http://www.tribler.org/version" is redirected to
+# "https://www.tribler.org/version/" (which happened during our website
+# changeover) Until M2Crypto 0.16 is patched I'll restore the method to the
+# original, as follows.
+#
+# This must be done in the first python file that is started.
+#
+import urllib
+original_open_https = urllib.URLopener.open_https
+import M2Crypto
+urllib.URLopener.open_https = original_open_https
+
 import sys, locale
 import os
 import wx
 from wx import xrc
 #import hotshot
 
-from threading import Thread, Timer, Event
+from threading import Thread, Timer, Event,currentThread
 from time import time, ctime, sleep
 from traceback import print_exc, print_stack
 from cStringIO import StringIO
@@ -45,6 +60,9 @@ import webbrowser
 from Tribler.Dialogs.MugshotManager import MugshotManager
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 import Tribler.vwxGUI.updateXRC as updateXRC
+from Tribler.Video.VideoPlayer import VideoPlayer
+from Tribler.Video.VideoServer import VideoHTTPServer
+from Tribler.Dialogs.GUIServer import GUIServer
 
 DEBUG = False
 ALLOW_MULTIPLE = False
@@ -223,7 +241,8 @@ class ABCPanel(wx.Panel):
         ##############################
         colSizer = wx.BoxSizer(wx.VERTICAL)
         
-        buddyCastEnabled = int(self.utility.config.Read('enablerecommender'))
+        #buddyCastEnabled = int(self.utility.config.Read('enablerecommender'))
+        buddyCastEnabled = False
         if (buddyCastEnabled):
             split = ABCSplitterWindow(self, -1)
             self.list = ABCList(split)
@@ -310,6 +329,40 @@ class ABCTaskBarIcon(wx.TaskBarIcon):
         return menu
 
 
+##############################################################
+#
+# Class : ABCFrame
+#
+# Main ABC Frame class that contains menu and menu bar management
+# and contains ABCPanel
+#
+############################################################## 
+class ABCFrame(wx.Frame,DelayedInvocation):
+    def __init__(self, ID, params, utility):
+        self.utility = utility
+        #self.utility.frame = self
+        
+        title = "Old Interface"
+        # Get window size and position from config file
+        size = (400,400)
+        style = wx.DEFAULT_FRAME_STYLE | wx.CLIP_CHILDREN
+        
+        wx.Frame.__init__(self, None, ID, title, size = size, style = style)
+        
+        self.doneflag = Event()
+        DelayedInvocation.__init__(self)
+
+        self.GUIupdate = True
+
+        self.window = ABCPanel(self)
+        self.Bind(wx.EVT_SET_FOCUS, self.onFocus)
+            
+    def onFocus(self, event = None):
+        if event is not None:
+            event.Skip()
+        self.window.getSelectedList(event).SetFocus()
+
+
 # Custom class loaded by XRC
 class wxFrame(wx.Frame, DelayedInvocation):
     def __init__(self, *args):
@@ -351,14 +404,6 @@ class wxFrame(wx.Frame, DelayedInvocation):
         self.doneflag = Event()
         DelayedInvocation.__init__(self)
 
-
-        # Singleton for management of user's mugshots (i.e. icons/display pictures)
-        self.mm = MugshotManager.getInstance()
-        self.mm.register(os.path.join(self.utility.getConfigPath(),'icons'),os.path.join(self.utility.getPath(), 'icons'))
-
-        # Put it here so an error is shown in the startup-error popup
-        self.serverlistener = ServerListener(self.utility)
-        
         self.tbicon = None
 
         # Arno: see ABCPanel
@@ -379,17 +424,22 @@ class wxFrame(wx.Frame, DelayedInvocation):
         #self.abc_sb = self.window.abc_sb
         
         
-        
-        
+        self.oldframe = ABCFrame(-1, self.params, self.utility)
+        self.oldframe.Refresh()
+        self.oldframe.Layout()
+        self.oldframe.Show(True)
         
         self.window = self.GetChildren()[0]
         self.window.utility = self.utility
+        
+        """
         self.list = ABCList(self.window)
         self.list.Show(False)
         self.utility.list = self.list
         print self.window.GetName()
         self.window.list = self.list
         self.utility.window = self.window
+        """
         self.window.sb_buttons = ABCStatusButtons(self.abc_sb,self.utility)
         
         self.utility.window.postponedevents = []
@@ -434,31 +484,25 @@ class wxFrame(wx.Frame, DelayedInvocation):
         self.Bind(wx.EVT_SIZE, self.onSize)
         #self.Bind(wx.EVT_IDLE, self.onIdle)
         
-        # Check webservice for autostart webservice
-        #######################################################
-        WebListener(self.utility)
-        if self.utility.webconfig.Read("webautostart", "boolean"):
-            self.utility.webserver.start()
-            
         # Start up the controller
         self.utility.controller = ABCLaunchMany(self.utility)
         self.utility.controller.start()
         
-        self.utility.queue.postInitTasks()
-
-        # Start single instance server listenner
-        ############################################
-        self.serverthread   = Thread(target = self.serverlistener.start)
-        self.serverthread.setDaemon(False)
-        self.serverthread.start()
-
         #if server start with params run it
         #####################################
+        
+        if DEBUG:
+            print >>sys.stderr,"abc: wxFrame: params is",self.params
+        
         if self.params[0] != "":
-            if sys.platform == "darwin":
-               self.utility.queue.addtorrents.AddTorrentFromFile(self.params[0])
-            else:
-               ClientPassParam(self.params[0])
+            success, msg, ABCTorrentTemp = self.utility.queue.addtorrents.AddTorrentFromFile(self.params[0],caller=CALLER_ARGV)
+
+        self.utility.queue.postInitTasks(self.params)
+
+        if self.params[0] != "":
+            # Update torrent.list, but after having read the old list of torrents, otherwise we get interference
+            ABCTorrentTemp.torrentconfig.writeSrc(False)
+            self.utility.torrentconfig.Flush()
 
         sys.stdout.write('GUI Complete.\n')
 
@@ -474,6 +518,7 @@ class wxFrame(wx.Frame, DelayedInvocation):
                     dialog.Destroy()
 
         self.checkVersion()
+
         
     def checkVersion(self):
         t = Timer(2.0, self._checkVersion)
@@ -572,7 +617,7 @@ class wxFrame(wx.Frame, DelayedInvocation):
         if self.tbicon is not None:
             self.tbicon.updateIcon(False)
 
-        self.window.list.SetFocus()
+        #self.window.list.SetFocus()
 
         # Resume updating GUI
         self.setGUIupdate(True)
@@ -661,10 +706,11 @@ class wxFrame(wx.Frame, DelayedInvocation):
     ##################################
                
     def OnCloseWindow(self, event = None):
+        
         # Don't do anything if the event gets called twice for some reason
         if self.utility.abcquitting:
             return
-        
+
         # Check to see if we can veto the shutdown
         # (might not be able to in case of shutting down windows)
         if event is not None:
@@ -711,10 +757,8 @@ class wxFrame(wx.Frame, DelayedInvocation):
             self.onTaskBarActivate()
             self.saveWindowSettings()
         except:
-            data = StringIO()
-            print_exc(file = data)
-            sys.stderr.write(data.getvalue())
-            pass
+            #print_exc(file=sys.stderr)
+            print_exc()
 
         try:
             if self.buddyFrame is not None:
@@ -723,6 +767,8 @@ class wxFrame(wx.Frame, DelayedInvocation):
                 self.fileFrame.Destroy()
         except:
             pass
+
+        self.oldframe.Destroy()
 
         try:
             if self.tbicon is not None:
@@ -748,7 +794,8 @@ class wxFrame(wx.Frame, DelayedInvocation):
         # place.
         # 
         # TODO: Check if icon-tray problem is Linux only
-        tribler_done(self.utility.getConfigPath())            
+        if sys.platform == 'linux2':
+            tribler_done(self.utility.getConfigPath())            
 
 
     def onWarning(self,exc):
@@ -791,38 +838,55 @@ class wxFrame(wx.Frame, DelayedInvocation):
 # Main ABC application class that contains ABCFrame Object
 #
 ##############################################################
-class ABCApp(wx.App):
+class ABCApp(wx.App,DelayedInvocation):
     def __init__(self, x, params, single_instance_checker, abcpath):
         self.params = params
         self.single_instance_checker = single_instance_checker
-
-        self.error = None
+        self.abcpath = abcpath
+        wx.App.__init__(self, x)
+        
+    def OnInit(self):
         try:
-            self.utility = Utility(abcpath)
-            tribler_init(self.utility.getConfigPath(),self.utility.getPath())
-            self.utility.setTriblerVariables()
-
+            self.utility = Utility(self.abcpath)
             # Set locale to determine localisation
             locale.setlocale(locale.LC_ALL, '')
 
             sys.stdout.write('Client Starting Up.\n')
             sys.stdout.write('Build: ' + self.utility.lang.get('build') + '\n')
-        except Exception,e:
-            print_exc()
-            self.error = e
 
-        wx.App.__init__(self, x)
-
-    def MacOpenFile(self,filename):
-        self.utility.queue.addtorrents.AddTorrentFromFile(filename)
-
-    def OnInit(self):
-        if self.error is not None:
-            self.onError()
-            return False
-           
-        try:
+            tribler_init(self.utility.getConfigPath(),self.utility.getPath())
+            self.utility.setTriblerVariables()
             self.utility.postAppInit()
+            
+            # Singleton for executing tasks that are too long for GUI thread and
+            # network thread
+            self.guiserver = GUIServer.getInstance()
+            self.guiserver.register()
+    
+            # Singleton for management of user's mugshots (i.e. icons/display pictures)
+            self.mm = MugshotManager.getInstance()
+            self.mm.register(self.utility.getConfigPath(),self.utility.getPath())
+    
+            # Put it here so an error is shown in the startup-error popup
+            self.serverlistener = ServerListener(self.utility)
+            
+            # Check webservice for autostart webservice
+            #######################################################
+            WebListener(self.utility)
+            if self.utility.webconfig.Read("webautostart", "boolean"):
+                self.utility.webserver.start()
+                
+            # Start single instance server listenner
+            ############################################
+            self.serverthread   = Thread(target = self.serverlistener.start)
+            self.serverthread.setDaemon(False)
+            self.serverthread.start()
+    
+            self.videoplayer = VideoPlayer.getInstance()
+            self.videoplayer.register(self.utility)
+            self.videoserver = VideoHTTPServer.getInstance()
+            self.videoserver.background_serve()
+    
             #self.frame = ABCFrame(-1, self.params, self.utility)
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params)
             updateXRC.main(['Tribler/vwxGUI/'])
@@ -848,6 +912,7 @@ class ABCApp(wx.App):
             self.Bind(wx.EVT_QUERY_END_SESSION, self.frame.OnCloseWindow)
             self.Bind(wx.EVT_END_SESSION, self.frame.OnCloseWindow)
         except Exception,e:
+            print "THREAD",currentThread().getName()
             print_exc(file=sys.stderr)
             self.error = e
             self.onError()
@@ -865,6 +930,8 @@ class ABCApp(wx.App):
         print_exc()
         dlg.Destroy()
 
+    def MacOpenFile(self,filename):
+        self.utility.queue.addtorrents.AddTorrentFromFile(filename)
 
     def OnExit(self):
         if not ALLOW_MULTIPLE:
@@ -872,6 +939,19 @@ class ABCApp(wx.App):
         ClientPassParam("Close Connection")
 
         return 0
+        
+    def getConfigPath(self):
+        return self.utility.getConfigPath()
+    
+        
+class DummySingleInstanceChecker:
+    
+    def __init__(self,basename):
+        pass
+
+    def IsAnotherRunning(self):
+        return False
+        
         
 ##############################################################
 #
@@ -886,7 +966,14 @@ def run(params = None):
         params = sys.argv[1:]
     
     # Create single instance semaphore
-    single_instance_checker = wx.SingleInstanceChecker("tribler-" + wx.GetUserId())
+    # Arno: On Linux and wxPython-2.8.1.1 the SingleInstanceChecker appears
+    # to mess up stderr, i.e., I get IOErrors when writing to it via print_exc()
+    #
+    # TEMPORARILY DISABLED on Linux
+    if sys.platform != 'linux2':
+        single_instance_checker = wx.SingleInstanceChecker("tribler-" + wx.GetUserId())
+    else:
+        single_instance_checker = DummySingleInstanceChecker("tribler-" + os.getlogin())
 
     if not ALLOW_MULTIPLE and single_instance_checker.IsAnotherRunning():
         #Send  torrent info to abc single instance
@@ -898,10 +985,17 @@ def run(params = None):
 
         # Launch first abc single instance
         app = ABCApp(0, params, single_instance_checker, abcpath)
+        configpath = app.getConfigPath()
         app.MainLoop()
 
         print "Client shutting down. Sleeping for a few seconds to allow other threads to finish"
         sleep(4)
+
+        # This is the right place to close the database, unfortunately Linux has
+        # a problem, see ABCFrame.OnCloseWindow
+        #
+        if sys.platform != 'linux2':
+            tribler_done(configpath)
 
 
 if __name__ == '__main__':

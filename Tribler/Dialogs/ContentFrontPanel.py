@@ -11,6 +11,7 @@ from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.unicode import *
 from copy import deepcopy
 
+
 BORDER_EXPAND = wx.ALL|wx.GROW
 BORDER = wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.ALIGN_LEFT
 
@@ -22,8 +23,14 @@ class ABCSplitterWindow(wx.SplitterWindow):
         wx.SplitterWindow.__init__(self, parent, id)
         self.utility = parent.utility
         self.SetMinimumPaneSize(50) # Disables the doubleClick=Unsplit functionality
+        self.listwindow = None
         
-       
+    def set_listwindow(self,listwindow):
+        self.listwindow = listwindow
+        
+    def updateColumns(self, force = False):
+       self.listwindow.updateColumns(force)
+        
         
 class StaticGridPanel(wx.Panel):
     """
@@ -1237,17 +1244,16 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
             if cat not in categories:
                 ourCategories.remove(cat)
         self.categoryPanel = CategoryPanel(self, ourCategories, self.utility.lang.get('mypref_list_title'))
-        vSizer = wx.BoxSizer(wx.VERTICAL)
-        vSizer.Add(self.categoryPanel, 0, BORDER_EXPAND, 1)
-        vSizer.Add(self.grid, 1, BORDER_EXPAND, 1)
+        self.vSizer = wx.BoxSizer(wx.VERTICAL)
+        self.vSizer.Add(self.categoryPanel, 0, BORDER_EXPAND, 1)
+        self.vSizer.Add(self.grid, 1, BORDER_EXPAND, 1)
         
-        self.hSizer.Add(vSizer, 3, BORDER_EXPAND, 1)
+        self.hSizer.Add(self.vSizer, 3, BORDER_EXPAND|wx.EXPAND, 1)
         self.hSizer.Add(self.detailPanel, 1, BORDER_EXPAND, 1)
         
         self.SetSizer(self.hSizer);self.SetAutoLayout(1);self.Layout();
         self.Refresh()
-        
-        
+
     def reorder(self, type):
         self.type = type
         self.reloadData()

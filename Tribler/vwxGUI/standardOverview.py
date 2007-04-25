@@ -143,5 +143,3 @@ class standardOverview(wx.Panel):
         else:
             print 'standardOverview: Error, could not return firstItem, data=%s' % data
             return None
-        
-        

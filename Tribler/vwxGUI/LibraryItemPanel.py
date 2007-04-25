@@ -140,10 +140,28 @@ class LibraryItemPanel(wx.Panel):
                              
     def setData(self, torrent):
         # set bitmap, rating, title
-        
+
+        """
+        if self.datacopy is not None and torrent is not None and self.datacopy['infohash'] == torrent['infohash']:
+            # Do not update torrents that have no new eta/havedigest
+            if 'stats' in torrent:
+                if (self.datacopy['eta'] == torrent['stats']['eta']):
+                    return
+        """
         self.data = torrent
+
+        """
+        if torrent is not None:
+            # deepcopy no longer works with 'ThumnailBitmap' on board
+            self.datacopy = {}
+            self.datacopy['infohash'] = torrent['infohash']
+            if 'stats' in torrent:
+                self.datacopy['eta'] = torrent['stats']['eta']
+            else:
+                self.datacopy['eta'] = None
+        """
         
-        if torrent == None:
+        if torrent is None:
             torrent = {}
             self.Hide()
         else:
@@ -172,14 +190,11 @@ class LibraryItemPanel(wx.Panel):
             self.title.SetLabel('')
             self.title.SetToolTipString('')
             self.title.Enable(False)
-            
         #self.thumb.setTorrent(torrent)
                
         self.Layout()
         self.Refresh()
         #self.parent.Refresh()
-        
-          
         
     def select(self):
         self.selected = True

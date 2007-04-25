@@ -4,6 +4,9 @@ set PYTHONPATH="D:\Python\Python24"
 set NSIS="C:\Program Files\NSIS\makensis.exe"
 set IMGCFG="C:\Program Files\Imagecfg\imagecfg.exe"
 
+REM Arno: When adding files here, make sure tribler.nsi actually
+REM packs them in the installer .EXE
+
 %PYTHONPATH%\python.exe -O setuptribler.py py2exe
 REM copy %PYTHONPATH%\msvcr71.dll dist\tribler
 REM copy %PYTHONPATH%\msvcp71.dll dist\tribler
@@ -21,6 +24,7 @@ copy icons\*.* dist\tribler\icons
 mkdir dist\tribler\icons\mugshots
 copy icons\mugshots\*.* dist\tribler\icons\mugshots
 copy Lang\*.lang dist\tribler\Lang
+copy ffmpeg.exe dist\tribler
 cd dist
 move abc.exe tribler.exe
 move *.* tribler

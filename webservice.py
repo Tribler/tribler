@@ -553,7 +553,11 @@ class WebServiceCmd:
         # What do we do if we don't have a default download location specified
         # and we call this from the webservice?
         ####################################################
-        retmsg = self.utility.queue.addtorrents.AddTorrentURL(info, "web")
+        success, msg, ABCTorrentTemp = self.utility.queue.addtorrents.AddTorrentURL(info, "web")
+        if success:
+            retmsg = "OK"
+        else:
+            retmsg = "Error="+msg
         conn.send("Feedback\n"+retmsg)
             
     def cmdDelete(self, info):

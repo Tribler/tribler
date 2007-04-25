@@ -13,6 +13,10 @@ class FileSelector:
     def __init__(self, files, piece_length, bufferdir,
                  storage, storagewrapper, sched, failfunc):
         self.files = files
+
+        # JD: Store piece length
+        self.piece_length = piece_length
+
         self.storage = storage
         self.storagewrapper = storagewrapper
         self.sched = sched

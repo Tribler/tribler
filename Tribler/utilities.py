@@ -6,6 +6,7 @@ from time import time, strftime, gmtime
 from base64 import encodestring
 from sha import sha
 import sys
+import os
 
 STRICT_CHECK = False
 
@@ -216,6 +217,18 @@ def getPlural( n):
             return ''
         else:
             return 's'
+
+
+def find_prog_in_PATH(prog):
+    envpath = os.path.expandvars('${PATH}')
+    paths = envpath.split(':')
+    foundat = None
+    for path in paths:
+        fullpath = os.path.join(path,prog)
+        if os.access(fullpath,os.R_OK|os.X_OK):
+            foundat = fullpath
+            break
+    return foundat
     
     
 if __name__=='__main__':

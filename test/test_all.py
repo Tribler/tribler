@@ -50,6 +50,8 @@ def suite():
     import test.test_buddycast2_datahandler as test_buddycast2_datahandler
     import test.test_extend_hs as test_extend_hs
     import test.test_extend_hs_t350 as test_extend_hs_t350
+    import test_social_overlap as test_social_overlap
+    import test_gui_server as test_gui_server
     
     # SecureOverlay is tested by running test_so.sh from topdir
     # Extra Dialback message tests can be done with test_dra.sh from topdir
@@ -59,19 +61,21 @@ def suite():
     # '##' = disable temporarily for testing a specific test
     #
     test_modules = [
-        test_cachedb,
-        test_friend,
-        test_cachedbhandler,
-        test_superpeers,
+        #test_cachedb,
+        #test_friend,
+        #test_cachedbhandler,
+        #test_superpeers,
         #test_buddycast, # Arno: currently not working due to param problem getBuddyCastMsg()
         #test_buddycast2_datahandler,
         #test_sim,
-        test_merkle,
-        test_permid,
-        test_permid_response1,
-        test_dialback_request,
-        test_extend_hs,
-        test_extend_hs_t350
+        #test_merkle,
+        #test_permid,
+        #test_permid_response1,
+        #test_dialback_request,
+        #test_extend_hs,
+        #test_extend_hs_t350,
+        #test_social_overlap,
+        test_gui_server
         ]
 
     alltests = unittest.TestSuite()

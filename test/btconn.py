@@ -9,7 +9,7 @@ from StringIO import StringIO
 
 DEBUG=True
 
-current_version = 3
+current_version = 4
 lowest_version = 2
 
 protocol_name = "BitTorrent protocol"

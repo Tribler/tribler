@@ -1,10 +1,14 @@
 import wx, os, sys, os.path, random
 import wx.xrc as xrc
+from binascii import hexlify
+from time import sleep
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from traceback import print_exc
 from Tribler.utilities import *
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 import cStringIO
+from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
+import time
 
 DEFAULT_THUMB = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'thumbField.png'))
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'subscriptionsMode', 'messageMode']
@@ -64,18 +68,55 @@ class standardDetails(wx.Panel):
                             'personsTab_advanced': ['lastExchangeField', 'noExchangeField', 'timesConnectedField','addAsFriend'],
                             'libraryTab_files': [ 'download', 'includedFiles']}
             
-
         self.guiUtility.initStandardDetails(self)
 
+        try:
+            self.embedplayer_enabled = False
+            feasible = return_feasible_playback_modes()
+            if PLAYBACKMODE_INTERNAL in feasible:
+                self.embedplayer_enabled = True
+                videoplayer = VideoPlayer.getInstance()
+                videoplayer.set_parentwindow(self)
+                
+                oldcwd = os.getcwd()
+                if sys.platform == 'win32':
+                    vlcinstalldir = os.path.join(self.utility.getPath(),"vlc")
+                    os.chdir(vlcinstalldir)
         
+                self.showingvideo = False
+                from Tribler.Video.EmbeddedPlayer import EmbeddedPlayer
+                self.videopanel = EmbeddedPlayer(self, -1, self, False, self.utility)
+                self.videopanel.Hide()
+                # Arno, 2007-04-02: There is a weird problem with stderr when using VLC on Linux
+                # see Tribler\Video\vlcmedia.py:VLCMediaCtrl. Solution is to sleep 1 sec here.
+                # Arno: 2007-04-23: Appears to have been cause by wx.SingleInstanceChecker
+                # in wxPython-2.8.1.1.
+                #
+                #if sys.platform == 'linux2':
+                #    print "Sleeping for a few seconds to allow VLC to initialize"
+                #    sleep(5)
+                    
+                if sys.platform == 'win32':
+                    os.chdir(oldcwd)
+            else:
+                self.showingvideo = False
+                self.videopanel = None
+        except Exception,e:
+            print "EXCEPTION IN STANDARDA",str(e)
+            print_exc()
+
     def addComponents(self):
         self.SetBackgroundColour(wx.Colour(102,102,102))
         self.hSizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(self.hSizer)
         self.SetAutoLayout(1)
         self.Layout()
+    
         
     def setMode(self, mode, item = None):
+        
+        print >>sys.stderr,"standardDetails: setMode called, new mode is",mode,"old",self.mode,"###########"
+        
         if self.mode != mode:
             #change the mode, so save last item selected
             self.lastItemSelected[self.mode] = self.item
@@ -116,7 +157,7 @@ class standardDetails(wx.Panel):
         wx.CallAfter(self.currentPanel.Refresh)
         #self.Show(True)
         
-        
+
     def refreshStatusPanel(self, show):
         if show:
             statusPanel = self.data['status'].get('panel')
@@ -238,6 +279,10 @@ class standardDetails(wx.Panel):
             print 'standardDetails: Error in getIdentifier for mode %s, item=%s' % (self.mode,self.item)
         
     def setData(self, item):
+        
+        
+        print >>sys.stderr,"standardDetails: setData called, mode is",self.mode,"###########"
+        
         self.item = item
         if not item:
             return
@@ -353,7 +398,12 @@ class standardDetails(wx.Panel):
                         addAsFriend.Enable(True)
             
         elif self.mode == 'libraryMode':
-            pass
+            #check if this is a corresponding item from type point of view
+            if item.get('infohash')==None:
+                return #no valid torrent
+            torrent = item
+            
+            self.play(torrent)
         elif self.mode == 'subscriptionMode':
             pass
 
@@ -596,6 +646,14 @@ class standardDetails(wx.Panel):
             if result == wx.ID_YES:
                 infohash = torrent['infohash']
                 self.data_manager.deleteTorrent(infohash, delete_file = True)
+
+    def play(self,torrent):
+            infohash = torrent['infohash']
+            for ABCTorrentTemp in self.utility.torrents["all"]:
+                print >>sys.stderr,"standardDetails: play: comparing",hexlify(ABCTorrentTemp.torrent_hash),hexlify(infohash)
+                if ABCTorrentTemp.torrent_hash == infohash:
+                    videoplayer = VideoPlayer.getInstance()
+                    videoplayer.play(ABCTorrentTemp)
             
     def setTorrentThumb(self, torrent, thumbPanel):
         
@@ -644,3 +702,43 @@ class standardDetails(wx.Panel):
                 
                 #should refresh?
                 self.guiUtility.selectPeer(peer_data)
+
+    def swapin_videopanel(self,url,play=True,progressinf=None):
+        if not self.showingvideo:
+            self.showingvideo = True
+            thumbField = self.getGuiObj('thumbField')
+            sizer = thumbField.GetContainingSizer()
+            sizer.Replace(thumbField,self.videopanel)
+            thumbField.Hide()
+            self.videopanel.Show()
+            sizer.RecalcSizes()
+            sizer.Layout()
+            
+            self.Layout()
+            self.Refresh()            
+
+        from Tribler.Video.EmbeddedPlayer import VideoItem
+        self.item = VideoItem(url)
+        self.videopanel.SetItem(self.item,play=play,progressinf=progressinf)
+
+    def swapout_videopanel(self):
+
+        self.videopanel.reset()
+        
+        if self.showingvideo:
+            self.showingvideo = False
+
+            thumbField = self.getGuiObj('thumbField')
+            sizer = self.videopanel.GetContainingSizer()
+            sizer.Replace(self.videopanel,thumbField)
+            self.videopanel.Hide()
+            thumbField.Show()
+
+            self.Layout()
+            self.Refresh()            
+
+    def get_video_progressinf(self):
+        return self.videopanel
+
+    def reset_videopanel(self):
+        self.videopanel.reset()

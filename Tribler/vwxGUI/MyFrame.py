@@ -5,7 +5,12 @@ import wx
 from bgPanel import *
 from tribler_topButton import *
 from standardOverview import *
-from standardDetails import *
+try:
+    from standardDetails import *
+except Exception,e:
+    print "ERROR IMPORTING STANDARD DETAILS",e
+    
+    
 [ID_MENU_444,ID_MENU_446] = 444,446
 #[inc]add your include files here
 

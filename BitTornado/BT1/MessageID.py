@@ -107,7 +107,12 @@ HelpHelperMessages = [RESERVE_PIECES]
 # _2fastbt
 
 
-OverlaySwarmMessages= PermIDMessages + BuddyCastMessages + MetadataMessages + HelpCoordinatorMessages + HelpHelperMessages + DialbackMessages
+## Social-Network feature 
+SOCIAL_OVERLAP = chr(240)
+
+SocialNetworkMessages = [SOCIAL_OVERLAP]
+
+OverlaySwarmMessages= PermIDMessages + BuddyCastMessages + MetadataMessages + HelpCoordinatorMessages + HelpHelperMessages + SocialNetworkMessages
 
 message_map = {
     CHOKE:"CHOKE",
@@ -135,6 +140,7 @@ message_map = {
     DIALBACK_REQUEST:"DIALBACK_REQUEST",
     DIALBACK_REPLY:"DIALBACK_REPLY",
     KEEP_ALIVE:"KEEP_ALIVE",
+    SOCIAL_OVERLAP:"SOCIAL_OVERLAP"
 }
 
 

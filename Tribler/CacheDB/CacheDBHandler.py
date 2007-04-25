@@ -63,6 +63,10 @@ class MyDBHandler(BasicDBHandler):
         
     def getMyIP(self):
         return self.get('ip', '127.0.0.1')
+
+    def getMyPeerInfo(self):
+        return {'name':self.get('name'),'ip':self.get('ip','127.0.0.1'),'port':self.get('port', 0)}
+
     
 class SuperPeerDBHandler(BasicDBHandler):
     def __init__(self, db_dir=''):

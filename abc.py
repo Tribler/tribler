@@ -9,6 +9,21 @@
 #               >python abc.py
 #               need Python, WxPython in order to run from source code.
 #########################################################################
+
+# Arno: G*dd*mn M2Crypto overrides the method for https:// in the
+# standard Python libraries. This causes msnlib to fail and makes Tribler
+# freakout when "http://www.tribler.org/version" is redirected to
+# "https://www.tribler.org/version/" (which happened during our website
+# changeover) Until M2Crypto 0.16 is patched I'll restore the method to the
+# original, as follows.
+#
+# This must be done in the first python file that is started.
+#
+import urllib
+original_open_https = urllib.URLopener.open_https
+import M2Crypto
+urllib.URLopener.open_https = original_open_https
+
 import sys, locale
 import os
 import wx
@@ -42,7 +57,11 @@ from BitTornado.__init__ import product_name
 from safeguiupdate import DelayedInvocation
 import webbrowser
 from Tribler.Dialogs.MugshotManager import MugshotManager
+from Tribler.Dialogs.BandwidthSelector import BandwidthSelector
 
+from Tribler.Video.VideoPlayer import VideoPlayer
+from Tribler.Video.VideoServer import VideoHTTPServer
+from Tribler.Video.EmbeddedPlayer import EmbeddedPlayer,VideoItem
 
 DEBUG = False
 ALLOW_MULTIPLE = False
@@ -63,7 +82,7 @@ class FileDropTarget(wx.FileDropTarget):
       
     def OnDropFiles(self, x, y, filenames):
         for filename in filenames:
-            self.utility.queue.addtorrents.AddTorrentFromFile(filename)
+            self.utility.queue.addtorrents.AddTorrentFromFile(filename,caller="dragndrop")
         return True
 
 
@@ -190,6 +209,15 @@ class ABCList(ManagedList):
     def OnLeftDClick(self, event):
         event.Skip()
         try:
+            # Arno: play video if it is a video torrent
+            """
+            list = self.utility.window.getSelectedList()
+            if len(list) == 1:
+                for ABCTorrentTemp in list.getTorrentSelected():
+                    if ABCTorrentTemp.status.isActive():
+                        if ABCTorrentTemp.connection.engine.dow.videoplayback is not None:
+            """
+
             self.utility.actions[ACTION_DETAILS].action()
         except:
             print_exc()
@@ -203,7 +231,7 @@ class ABCList(ManagedList):
 #
 ############################################################## 
 class ABCPanel(wx.Panel):
-    def __init__(self, parent):
+    def __init__(self, parent, params):
         style = wx.CLIP_CHILDREN
         wx.Panel.__init__(self, parent, -1, style = style)
 
@@ -238,7 +266,7 @@ class ABCPanel(wx.Panel):
             self.list = ABCList(self)
             self.utility.list = self.list
             colSizer.Add(self.list, 1, wx.ALL|wx.EXPAND, 3)
-            
+
         # Add status bar
         statbarbox = wx.BoxSizer(wx.HORIZONTAL)
         self.sb_buttons = ABCStatusButtons(self,self.utility)
@@ -255,6 +283,8 @@ class ABCPanel(wx.Panel):
         self.list.SetFocus()
         
         
+        
+        
     def getSelectedList(self, event = None):
         return self.list
 
@@ -267,7 +297,8 @@ class ABCPanel(wx.Panel):
         for ABCTorrentTemp in self.utility.torrents["all"]:
             ABCTorrentTemp.updateColumns(force = force)
  
-      
+ 
+
 ##############################################################
 #
 # Class : ABCTaskBarIcon
@@ -337,7 +368,7 @@ class ABCFrame(wx.Frame,DelayedInvocation):
         
         self.doneflag = Event()
         DelayedInvocation.__init__(self)
-
+        
 
         # Singleton for management of user's mugshots (i.e. icons/display pictures)
         self.mm = MugshotManager.getInstance()
@@ -363,7 +394,7 @@ class ABCFrame(wx.Frame,DelayedInvocation):
         # Start the scheduler before creating the ListCtrl
         self.utility.queue  = ABCScheduler(self.utility)
         
-        self.window = ABCPanel(self)
+        self.window = ABCPanel(self,params)
         self.abc_sb = self.window.abc_sb
         
         
@@ -395,15 +426,15 @@ class ABCFrame(wx.Frame,DelayedInvocation):
         # Menu Events 
         ############################
 
-        self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
+        self.Bind(wx.EVT_CLOSE, self.OnCloseWindow1)
 #        self.Bind(wx.EVT_MENU, self.OnMenuExit, id = wx.ID_CLOSE)
 
         # leaving here for the time being:
         # wxMSW apparently sends the event to the App object rather than
         # the top-level Frame, but there seemed to be some possibility of
         # change
-        self.Bind(wx.EVT_QUERY_END_SESSION, self.OnCloseWindow)
-        self.Bind(wx.EVT_END_SESSION, self.OnCloseWindow)
+        self.Bind(wx.EVT_QUERY_END_SESSION, self.OnCloseWindow2)
+        self.Bind(wx.EVT_END_SESSION, self.OnCloseWindow3)
         
         try:
             self.tbicon = ABCTaskBarIcon(self)
@@ -423,34 +454,50 @@ class ABCFrame(wx.Frame,DelayedInvocation):
         self.utility.controller = ABCLaunchMany(self.utility)
         self.utility.controller.start()
         
-        self.utility.queue.postInitTasks()
-
         # Start single instance server listenner
         ############################################
         self.serverthread   = Thread(target = self.serverlistener.start)
-        self.serverthread.setDaemon(False)
+        self.serverthread.setDaemon(True)
         self.serverthread.start()
 
         #if server start with params run it
         #####################################
+        
         if params[0] != "":
-            if sys.platform == "darwin":               
-               self.utility.queue.addtorrents.AddTorrentFromFile(params[0])
-            else:               
-               ClientPassParam(params[0])
+            success, msg, ABCTorrentTemp = self.utility.queue.addtorrents.AddTorrentFromFile(params[0],caller=CALLER_ARGV)
+
+        self.utility.queue.postInitTasks(params)
+
+        if params[0] != "":
+            # Update torrent.list, but after having read the old list of torrents, otherwise we get interference
+            ABCTorrentTemp.torrentconfig.writeSrc(False)
+            self.utility.torrentconfig.Flush()
 
         sys.stdout.write('GUI Complete.\n')
 
-        self.Show(True)
+        # Arno: see what we are:
+        if DEBUG:
+            print >>sys.stderr,"abcframe: param are",params
+        if len(params) == 1 and params[0] == '':
+            self.Show(True)
+        else:
+            # Postpone till we know if streaming torrent
+            self.Show(False)
         
         # Check to see if ABC is associated with torrents
         #######################################################
+        """
         if (sys.platform == 'win32'):
             if self.utility.config.Read('associate', "boolean"):
                 if not self.utility.regchecker.testRegistry():
                     dialog = RegCheckDialog(self)
                     dialog.ShowModal()
                     dialog.Destroy()
+        """
+        self.videoplayer = VideoPlayer.getInstance()
+        self.videoplayer.register(self.utility,self)
+        self.videoserver = VideoHTTPServer.getInstance()
+        self.videoserver.background_serve()
 
         self.checkVersion()
         
@@ -474,7 +521,7 @@ class ABCFrame(wx.Frame,DelayedInvocation):
                 self.upgradeCallback()
         except Exception,e:
             print >> sys.stderr, "Version check failed", ctime(time()), str(e)
-            #print_exc()
+            print_exc(file=sys.stderr)
             
     def newversion(self, curr_version, my_version):
         curr = curr_version.split('.')
@@ -626,10 +673,42 @@ class ABCFrame(wx.Frame,DelayedInvocation):
     # Close Program
     ##################################
                
+    def OnJustTheWindowNotTheAppClose(self, event = None):
+        self.Iconize(True)
+
+
+    def OnCloseWindow1(self, event = None):
+        if DEBUG:
+            print >>sys.stderr,"abc: onclose ONE"
+        self.OnCloseWindow(event)
+
+    def OnCloseWindow2(self, event = None):
+        if DEBUG:
+            print >>sys.stderr,"abc: onclose TWO"
+        self.OnCloseWindow(event)
+
+    def OnCloseWindow3(self, event = None):
+        if DEBUG:
+            print >>sys.stderr,"abc: onclose THREE"
+        self.OnCloseWindow(event)
+
+    def OnCloseWindow4(self, event = None):
+        if DEBUG:
+            print >>sys.stderr,"abc: onclose FOUR"
+        self.OnCloseWindow(event)
+
+    def OnCloseWindow5(self, event = None):
+        if DEBUG:
+            print >>sys.stderr,"abc: onclose FIVE"
+        self.OnCloseWindow(event)
+
+
     def OnCloseWindow(self, event = None):
         # Don't do anything if the event gets called twice for some reason
         if self.utility.abcquitting:
             return
+        
+        #self.utility.frame.Show(True)
         
         # Check to see if we can veto the shutdown
         # (might not be able to in case of shutting down windows)
@@ -701,6 +780,9 @@ class ABCFrame(wx.Frame,DelayedInvocation):
             sys.stderr.write(data.getvalue())
             pass
 
+        self.window.stop_video()
+        self.videoserver.shutdown()
+
         # Arno: at the moment, Tribler gets a segmentation fault when the
         # tray icon is always enabled. This SEGV occurs in the wx mainloop
         # which is entered as soon as we leave this method. Hence I placed
@@ -714,7 +796,8 @@ class ABCFrame(wx.Frame,DelayedInvocation):
         # place.
         # 
         # TODO: Check if icon-tray problem is Linux only
-        tribler_done(self.utility.getConfigPath())            
+        if sys.platform == 'linux2':
+            tribler_done(self.utility.getConfigPath())            
 
 
     def onWarning(self,exc):
@@ -757,7 +840,7 @@ class ABCFrame(wx.Frame,DelayedInvocation):
 # Main ABC application class that contains ABCFrame Object
 #
 ##############################################################
-class ABCApp(wx.App):
+class ABCApp(wx.App,DelayedInvocation):
     def __init__(self, x, params, single_instance_checker, abcpath):
         self.params = params
         self.single_instance_checker = single_instance_checker
@@ -778,9 +861,12 @@ class ABCApp(wx.App):
             self.error = e
 
         wx.App.__init__(self, x)
+        # for self.invokeLater
+        DelayedInvocation.__init__(self)
+        self.doneflag = Event()
 
     def MacOpenFile(self,filename):
-        self.utility.queue.addtorrents.AddTorrentFromFile(filename)
+        self.utility.queue.addtorrents.AddTorrentFromFile(filename,caller='mac-macopenfile')
 
     def OnInit(self):
         if self.error is not None:
@@ -792,8 +878,21 @@ class ABCApp(wx.App):
             self.frame = ABCFrame(-1, self.params, self.utility)
             
 
-            self.Bind(wx.EVT_QUERY_END_SESSION, self.frame.OnCloseWindow)
-            self.Bind(wx.EVT_END_SESSION, self.frame.OnCloseWindow)
+            self.Bind(wx.EVT_QUERY_END_SESSION, self.frame.OnCloseWindow4)
+            self.Bind(wx.EVT_END_SESSION, self.frame.OnCloseWindow5)
+            
+            asked = self.utility.config.Read('askeduploadbw', 'boolean')
+            if not asked:
+                dlg = BandwidthSelector(self.frame,self.utility)
+                result = dlg.ShowModal()
+                if result == wx.ID_OK:
+                    ulbw = dlg.getUploadBandwidth()
+                    self.utility.config.Write('maxuploadrate',ulbw)
+                    self.utility.config.Write('maxseeduploadrate',ulbw)
+                    self.utility.config.Write('askeduploadbw','1')
+                dlg.Destroy()
+
+            
         except Exception,e:
             print_exc(file=sys.stderr)
             self.error = e
@@ -820,6 +919,16 @@ class ABCApp(wx.App):
 
         return 0
         
+        
+    def db_exception_handler(self,e):
+        if DEBUG:
+            print "abc: Database Exception handler called"
+        self.error = e
+        self.invokeLater(self.onError,[],{'source':"The database layer reported: "})
+        
+    def getConfigPath(self):
+        return self.utility.getConfigPath()
+    
 ##############################################################
 #
 # Main Program Start Here
@@ -845,10 +954,17 @@ def run(params = None):
 
         # Launch first abc single instance
         app = ABCApp(0, params, single_instance_checker, abcpath)
+        configpath = app.getConfigPath()
         app.MainLoop()
 
         print "Client shutting down. Sleeping for a few seconds to allow other threads to finish"
         sleep(4)
+        
+        # This is the right place to close the database, unfortunately Linux has
+        # a problem, see ABCFrame.OnCloseWindow
+        #
+        if sys.platform != 'linux2':
+            tribler_done(configpath)
 
 
 if __name__ == '__main__':
