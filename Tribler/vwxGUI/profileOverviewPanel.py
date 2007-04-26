@@ -50,7 +50,7 @@ class ProfileOverviewPanel(wx.Panel):
             if elem_name.startswith("bgPanel_"):
                 self.buttons.append(elem_name)
                 but_elem = self.getGuiElement(elem_name)
-                but_elem.SetBackgroundColour(wx.Colour(203,203,203))
+                but_elem.setBackground(wx.Colour(203,203,203))
                 suffix = elem_name[8:]
                 text_elem = self.getGuiElement('text_%s' % suffix)
                 perf_elem = self.getGuiElement('perf_%s' % suffix)
