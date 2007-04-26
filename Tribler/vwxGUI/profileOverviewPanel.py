@@ -50,10 +50,10 @@ class ProfileOverviewPanel(wx.Panel):
         #add click event for panels in this panel:
         
 #        self.getGuiElement('bgPanel_Quality').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
-#        self.getGuiElement('bgPanel_Files').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
-#        self.getGuiElement('bgPanel_Persons').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
-#        self.getGuiElement('bgPanel_Download').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
-#        self.getGuiElement('bgPanel_Presence').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
+        self.getGuiElement('bgPanel_Files').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
+        self.getGuiElement('bgPanel_Persons').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
+        self.getGuiElement('bgPanel_Download').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
+        self.getGuiElement('bgPanel_Presence').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
 
         #also set alternative background color:
 #===============================================================================
@@ -68,7 +68,7 @@ class ProfileOverviewPanel(wx.Panel):
 #            else:
 #                color = light_color
 #===============================================================================
-        print "full name for a panel is",self.getGuiElement('bgPanel_Quality').GetParent().GetName()+self.getGuiElement('bgPanel_Quality').GetName()
+        print "<mluc> full name for a panel is",self.getGuiElement('bgPanel_Quality').GetName(),"[",self.getGuiElement('bgPanel_Quality').GetParent().GetName(),"]"
         self.initDone = True
         self.Refresh(True)
 #        self.Update()

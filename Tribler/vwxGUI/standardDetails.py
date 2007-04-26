@@ -243,8 +243,12 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 self.getAlternativeTabPanel('personsTab_advanced', parent=currentPanel).Hide()
             
             elif modeString == "profile":
-                pass
-                self.getAlternativeTabPanel('profileDetails_Quality').Hide() #parent is self because it is not a tab, it replaces the details panel
+                self.item = "panel" #the name of the panel that's currently selected
+                self.getAlternativeTabPanel('profileDetails_Quality', parent=self).Hide() #parent is self because it is not a tab, it replaces the details panel
+                self.getAlternativeTabPanel('profileDetails_Files', parent=self).Hide() #parent is self because it is not a tab, it replaces the details panel
+                self.getAlternativeTabPanel('profileDetails_Persons', parent=self).Hide() #parent is self because it is not a tab, it replaces the details panel
+                self.getAlternativeTabPanel('profileDetails_Download', parent=self).Hide() #parent is self because it is not a tab, it replaces the details panel
+                self.getAlternativeTabPanel('profileDetails_Presence', parent=self).Hide() #parent is self because it is not a tab, it replaces the details panel
                 
         return currentPanel
     
@@ -537,12 +541,24 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 #            print "<mluc> advanced tab has label:",tabAdvanced.GetLabel()
 
         elif self.mode == "profileMode":
-            if name == "bgPanel_Quality":
-                name = "profileDetails_Quality"
-            panel1 = self.getGuiObj('panel')
+            print "<mluc> try to switch to",name
+            if name.startswith("bgPanel"):
+                name = "profileDetails"+name[7:]
+            print "<mluc> current panel is:",self.item
+            if self.item is None:
+                self.item = 'panel'
+            panel1 = self.getGuiObj(self.item)
             panel2 = self.getGuiObj(name)
-            print "<mluc> switch from %s[%s] to %s[%s]" % (panel1.GetName(), panel1.GetParent().GetName(), panel2.GetName(), panel2.GetParent().GetName())
-            self.swapPanel(panel1, panel2)
+            if panel1 is not None and panel2 is not None and panel1 != panel2:
+                print "<mluc> switch from %s[%s] to %s[%s]" % (panel1.GetName(), panel1.GetParent().GetName(), panel2.GetName(), panel2.GetParent().GetName())
+                if panel1.__class__.__name__.endswith("tribler_topButton"):
+                    panel1.setSelected(False)
+                if panel2.__class__.__name__.endswith("tribler_topButton"):
+                    panel2.setSelected(True)
+                self.swapPanel(panel1, panel2)
+                self.item = name
+            else:
+                print "<mluc> can't switch, one of the panel is None or the same panel"
         else:
             print 'standardDetails: Tabs for this mode (%s) not yet implemented' % self.mode
             return
@@ -584,12 +600,12 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         else:
             # generate new panel
             xrcResource = os.path.join('Tribler','vwxGUI', name+'.xrc')
-            panelName = name
-            if parent==None:
-                parent = self.currentPanel
-            panel = self.loadXRCPanel(xrcResource, panelName, parent=parent)
-            
-            if self.tabElements.has_key(name):
+            if os.path.exists(xrcResource):
+                panelName = name
+                if parent==None:
+                    parent = self.currentPanel
+                panel = self.loadXRCPanel(xrcResource, panelName, parent=parent)
+            if panel is not None and self.tabElements.has_key(name):
                 for element in self.tabElements[name]:
                     xrcElement = xrc.XRCCTRL(panel, element)
                     if not xrcElement:
