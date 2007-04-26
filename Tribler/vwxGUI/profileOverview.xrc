@@ -184,7 +184,7 @@
         <object class="wxPanel" name="bgPanel_Overall">
           <pos>0,191</pos>
           <size>623,85</size>
-          <bg>#cbcbcb</bg>
+          <bg>#ffffff</bg>
           <object class="wxBoxSizer">
             <orient>wxHORIZONTAL</orient>
             <object class="sizeritem">
@@ -247,11 +247,12 @@
         <option>0</option>
         <object class="wxPanel" name="bgPanel_Quality" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
           <pos>0,276</pos>
-          <size>20,40</size>
+          <size>417,40</size>
+          <bg>#cbcbcb</bg>
           <object class="wxBoxSizer">
             <orient>wxHORIZONTAL</orient>
             <object class="spacer">
-              <size>15,10</size>
+              <size>15,27</size>
               <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>3</border>
               <option>0</option>
@@ -266,14 +267,14 @@
               </object>
             </object>
             <object class="sizeritem">
-              <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <flag>wxTOP|wxFIXED_MINSIZE</flag>
               <border>15</border>
               <option>0</option>
               <object class="wxStaticText" name="text_Quality">
                 <style>wxST_NO_AUTORESIZE</style>
                 <label>Quality of tribler recommendations</label>
                 <pos>45,15</pos>
-                <size>474,25</size>
+                <size>335,25</size>
                 <bg>#cbcbcb</bg>
                 <font>
                   <size>10</size>
@@ -289,13 +290,12 @@
         </object>
       </object>
       <object class="sizeritem">
-        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-        <border>23</border>
+        <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>2</border>
         <option>0</option>
-        <object class="wxPanel" name="bgPanel_Files">
-          <pos>0,339</pos>
-          <size>623,40</size>
-          <bg>#ffffff</bg>
+        <object class="wxPanel" name="bgPanel_Files" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+          <pos>0,316</pos>
+          <size>20,40</size>
           <object class="wxBoxSizer">
             <orient>wxHORIZONTAL</orient>
             <object class="spacer">
@@ -322,6 +322,7 @@
                 <label>Discovered files that fit your taste</label>
                 <pos>45,15</pos>
                 <size>379,16</size>
+                <bg>#cbcbcb</bg>
                 <font>
                   <size>10</size>
                   <family>modern</family>
@@ -336,13 +337,12 @@
         </object>
       </object>
       <object class="sizeritem">
-        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-        <border>23</border>
+        <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>2</border>
         <option>0</option>
-        <object class="wxPanel" name="bgPanel_Persons">
-          <pos>0,379</pos>
-          <size>623,40</size>
-          <bg>#cbcbcb</bg>
+        <object class="wxPanel" name="bgPanel_Persons" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+          <pos>3,359</pos>
+          <size>20,40</size>
           <object class="wxBoxSizer">
             <orient>wxHORIZONTAL</orient>
             <object class="spacer">
@@ -369,6 +369,7 @@
                 <label>Discovered persons similar to your taste</label>
                 <pos>45,15</pos>
                 <size>419,16</size>
+                <bg>#cbcbcb</bg>
                 <font>
                   <size>10</size>
                   <family>modern</family>
@@ -383,13 +384,12 @@
         </object>
       </object>
       <object class="sizeritem">
-        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-        <border>23</border>
+        <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>2</border>
         <option>0</option>
-        <object class="wxPanel" name="bgPanel_Download">
-          <pos>0,419</pos>
-          <size>623,40</size>
-          <bg>#ffffff</bg>
+        <object class="wxPanel" name="bgPanel_Download" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+          <pos>3,365</pos>
+          <size>20,40</size>
           <object class="wxBoxSizer">
             <orient>wxHORIZONTAL</orient>
             <object class="spacer">
@@ -417,6 +417,7 @@
 </label>
                 <pos>45,15</pos>
                 <size>384,23</size>
+                <bg>#cbcbcb</bg>
                 <font>
                   <size>10</size>
                   <family>modern</family>
@@ -431,13 +432,12 @@
         </object>
       </object>
       <object class="sizeritem">
-        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-        <border>23</border>
+        <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>2</border>
         <option>0</option>
-        <object class="wxPanel" name="bgPanel_Presence">
-          <pos>0,436</pos>
-          <size>623,40</size>
-          <bg>#cbcbcb</bg>
+        <object class="wxPanel" name="bgPanel_Presence" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+          <pos>3,391</pos>
+          <size>20,40</size>
           <object class="wxBoxSizer">
             <orient>wxHORIZONTAL</orient>
             <object class="spacer">
@@ -464,6 +464,7 @@
                 <label>Social presence</label>
                 <pos>45,15</pos>
                 <size>339,16</size>
+                <bg>#cbcbcb</bg>
                 <font>
                   <size>10</size>
                   <family>modern</family>
