@@ -244,7 +244,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 self.getAlternativeTabPanel('personsTab_advanced', parent=currentPanel).Hide()
             
             elif modeString == "profile":
-                self.item = "panel" #the name of the panel that's currently selected
+                self.data[self.mode]['profileDetails_Overall'] = currentPanel #also add first panel as an named element in the data list
+#                self.item = "profileDetails_Overall" #the name of the panel that's currently selected
                 self.getAlternativeTabPanel('profileDetails_Quality', parent=self).Hide() #parent is self because it is not a tab, it replaces the details panel
                 self.getAlternativeTabPanel('profileDetails_Files', parent=self).Hide() #parent is self because it is not a tab, it replaces the details panel
                 self.getAlternativeTabPanel('profileDetails_Persons', parent=self).Hide() #parent is self because it is not a tab, it replaces the details panel
@@ -545,12 +546,12 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 #            print "<mluc> try to switch to",name
             if name.startswith("bgPanel"):
                 name = "profileDetails"+name[7:]
-            if name == "profileDetails_Overall":
-                name = 'panel'
+#            if name == "profileDetails_Overall":
+#                name = 'panel'
 #            print "<mluc> current panel is:",self.item
-            if self.item is None:
-                self.item = 'panel'
-            panel1 = self.getGuiObj(self.item)
+#            if self.item is None:
+#                self.item = 'panel'
+            panel1 = self.currentPanel #getGuiObj(self.item)
             panel2 = self.getGuiObj(name)
             if panel1 is not None and panel2 is not None and panel1 != panel2:
 #===============================================================================
@@ -567,7 +568,11 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 #                    print "<mluc> panel2 ",panel2.GetName()," is of type ",panel2.__class__.__name__
 #===============================================================================
                 self.swapPanel(panel1, panel2)
-                self.item = name
+                #each time the panel changes, update the 'panel' reference in data list
+                self.data[self.mode]['panel'] = panel2
+                #actually, update the currentPanel reference
+                self.currentPanel = panel2
+#                self.item = name
 #            else:
 #                print "<mluc> can't switch, one of the panel is None or the same panel"
         else:
@@ -581,6 +586,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         """replaces in a sizer a panel with another one to simulate tabs"""
         if sizer is None:
             sizer = oldpanel.GetContainingSizer()
+            if not sizer:
+                return #could not swap
         #if index not given, use sizer's own replace method
         if index == -1:
             index = 0

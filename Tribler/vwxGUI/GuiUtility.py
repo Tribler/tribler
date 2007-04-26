@@ -52,6 +52,8 @@ class GUIUtility:
         
         if DEBUG:
             print 'Button clicked'
+
+        event.Skip(True) #should let other handlers use this event!!!!!!!
             
         obj = event.GetEventObject()
         try:
@@ -70,10 +72,10 @@ class GUIUtility:
         elif name == 'download':
             self.standardDetails.download()
         elif name.startswith('bgPanel') and obj.GetParent().GetName() == "profileOverview":
+            self.standardOverview.currentPanel.sendClick(event)
             self.detailsTabClicked(name) #a panel was clicked in the profile overview and this is the most elegant so far method of informing the others
         else:
             print 'A button was clicked, but no action is defined for: %s' % name
-            event.Skip()
                 
         
     def mainButtonClicked(self, name, button):

@@ -61,31 +61,15 @@ class ProfileOverviewPanel(wx.Panel):
                     if perf_elem:
                         perf_elem.Bind(wx.EVT_MOUSE_EVENTS, but_elem.mouseAction)
                     if icon_elem:
-                        icon_elem.Bind(wx.EVT_MOUSE_EVENTS, but_elem.mouseAction)
+                        icon_elem.Bind(wx. EVT_MOUSE_EVENTS, but_elem.mouseAction)
                 else:
                     but_elem.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
                 if text_elem:
                     text_elem.Bind(wx.EVT_LEFT_UP, self.sendClick)
                 if perf_elem:
                     perf_elem.Bind(wx.EVT_LEFT_UP, self.sendClick)
-                but_elem.Bind(wx.EVT_LEFT_UP, self.sendClick)
-        #add click event for panels in this panel:
-        
-
-        #also set alternative background color:
-#===============================================================================
-#        bgpanels = ['bgPanel_Quality', 'bgPanel_Files', 'bgPanel_Persons', 'bgPanel_Download', 'bgPanel_Presence']
-#        light_color = 'LIGHT_GREY'
-#        darker_color = 'GREY'
-#        color = light_color
-#        for panel_name in bgpanels:
-#            self.getGuiElement(panel_name).SetBackgroundColour(color)
-#            if color == light_color:
-#                color = darker_color
-#            else:
-#                color = light_color
-#===============================================================================
-#        print "<mluc> full name for a panel is",self.getGuiElement('bgPanel_Quality').GetName(),"[",self.getGuiElement('bgPanel_Quality').GetParent().GetName(),"]"
+                if icon_elem:
+                    icon_elem.Bind(wx.EVT_LEFT_UP, self.sendClick)
         self.initDone = True
         self.Refresh(True)
 #        self.Update()
@@ -105,7 +89,6 @@ class ProfileOverviewPanel(wx.Panel):
             event.SetEventObject(new_owner)
             wx.PostEvent( new_owner, event)
         elif source_name.startswith('bgPanel_'):
-            print "<mluc> here"
             self.selectNewButton(source_name)
 
     def selectNewButton(self, sel_but):
@@ -119,7 +102,7 @@ class ProfileOverviewPanel(wx.Panel):
 
     def getGuiElement(self, name):
         if not self.elements.has_key(name) or not self.elements[name]:
-            print "[profileOverviewPanel] gui element %s not available" % name
+#            print "[profileOverviewPanel] gui element %s not available" % name
             return None
         return self.elements[name]
     
@@ -136,11 +119,13 @@ class ProfileOverviewPanel(wx.Panel):
             elem.setIndex(new_index)
             bShouldRefresh = True
         #set the overall ranking to a random number
-        new_index = random.randint(0,3) #used only for testing
-        elem = self.getGuiElement("icon_Overall")
-        if elem and new_index != elem.getIndex():
-            elem.setIndex(new_index)
-            bShouldRefresh = True
+#===============================================================================
+#        new_index = random.randint(0,3) #used only for testing
+#        elem = self.getGuiElement("icon_Overall")
+#        if elem and new_index != elem.getIndex():
+#            elem.setIndex(new_index)
+#            bShouldRefresh = True
+#===============================================================================
         
         #get the number of downloads for this user
         count = self.guiUtility.data_manager.getDownloadHistCount()
