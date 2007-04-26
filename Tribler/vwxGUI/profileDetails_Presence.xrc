@@ -2,7 +2,7 @@
 <resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
   <object class="wxPanel" name="profileDetails_Presence">
     <pos>0,0</pos>
-    <size>300,500</size>
+    <size>300,660</size>
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>
       <object class="sizeritem">
@@ -63,10 +63,10 @@
       <object class="sizeritem">
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
-        <option>1</option>
+        <option>0</option>
         <object class="wxPanel" name="details">
-          <pos>3,24</pos>
-          <size>300,348</size>
+          <pos>0,21</pos>
+          <size>298,618</size>
           <bg>#ffffff</bg>
           <object class="wxBoxSizer">
             <orient>wxVERTICAL</orient>
@@ -77,22 +77,18 @@
               <option>0</option>
             </object>
             <object class="sizeritem">
-              <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
-              <object class="wxStaticText" name="descriptionField">
+              <object class="wxStaticText" name="descriptionFieldCC">
                 <style>wxST_NO_AUTORESIZE</style>
-                <label>&lt;&lt;
-* Less then average
-* Runner up
-* Addict
-* Leader!</label>
-                <pos>3,17</pos>
-                <size>284,223</size>
+                <label>Tribler is all about seeing and being seen. If you want to increase your social presence, just follow the instructions.</label>
+                <pos>6,14</pos>
+                <size>284,63</size>
                 <font>
                   <size>8</size>
                   <family>modern</family>
-                  <style>italic</style>
+                  <style>normal</style>
                   <weight>normal</weight>
                   <underlined>0</underlined>
                   <face>Verdana</face>
@@ -100,26 +96,241 @@
               </object>
             </object>
             <object class="sizeritem">
-              <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-              <border>6</border>
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
               <option>0</option>
-              <object class="wxStaticText" name="descriptionFieldC">
-                <style>wxST_NO_AUTORESIZE</style>
-                <label>&lt;&lt;
-* Less then average
-* Runner up
-* Addict
-* Leader!</label>
-                <pos>6,249</pos>
-                <size>284,223</size>
-                <font>
-                  <size>8</size>
-                  <family>modern</family>
-                  <style>italic</style>
-                  <weight>normal</weight>
-                  <underlined>0</underlined>
-                  <face>Verdana</face>
-                </font>
+              <object class="wxBoxSizer">
+                <orient>wxVERTICAL</orient>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="DescC">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>   Number of friends</label>
+                    <pos>3,238</pos>
+                    <size>241,15</size>
+                    <bg>#cbcbcb</bg>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="descriptionFieldCCCC">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>At the moment you have 8 friends. The more friends you have in the 	Tribler network, the easier it will be to further expand your social network and share interests with more like-minded users. </label>
+                    <pos>6,101</pos>
+                    <size>284,73</size>
+                    <font>
+                      <size>8</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>normal</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="descriptionFieldCCCCC">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>How to improve</label>
+                    <pos>3,325</pos>
+                    <size>284,18</size>
+                    <font>
+                      <size>8</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>bold</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="descriptionF">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>Invite your friends, family, and colleagues to start using Tribler too, and add them to your list of friends. 
+
+&lt;button&gt; Take me there! &lt;button&gt;
+</label>
+                    <pos>6,192</pos>
+                    <size>284,83</size>
+                    <font>
+                      <size>8</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>normal</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+              <object class="wxBoxSizer">
+                <orient>wxVERTICAL</orient>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="Desc">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>   Sharing ratio</label>
+                    <pos>0,278</pos>
+                    <size>241,15</size>
+                    <bg>#cbcbcb</bg>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="descriptionFieldCC">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>Your overall sharing ratio is 0.82. This means that you take more from others than you give back to them. </label>
+                    <pos>6,299</pos>
+                    <size>284,48</size>
+                    <font>
+                      <size>8</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>normal</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="descriptionFieldCC">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>How to improve</label>
+                    <pos>3,152</pos>
+                    <size>284,18</size>
+                    <font>
+                      <size>8</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>bold</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="descriptionFieldCCC">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>To reach a fair sharing ratio, you should share more interesting files for a longer period of time. 
+</label>
+                    <pos>6,365</pos>
+                    <size>284,38</size>
+                    <font>
+                      <size>8</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>normal</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+              <object class="wxBoxSizer">
+                <orient>wxVERTICAL</orient>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="DescCC">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>   Version update</label>
+                    <pos>0,406</pos>
+                    <size>241,15</size>
+                    <bg>#cbcbcb</bg>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="descriptionFieldCCCCCC">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>You are using an old version of Tribler and are not discovering as many files and persons as you could do. </label>
+                    <pos>6,427</pos>
+                    <size>284,48</size>
+                    <font>
+                      <size>8</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>normal</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="descriptionFieldCCCCCC">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>How to improve</label>
+                    <pos>3,513</pos>
+                    <size>284,18</size>
+                    <font>
+                      <size>8</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>bold</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="descriptionFC">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>Update to the newest version 4.0.
+
+&lt;button&gt; Take me there! &lt;button&gt;
+</label>
+                    <pos>6,498</pos>
+                    <size>284,53</size>
+                    <font>
+                      <size>8</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>normal</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
               </object>
             </object>
           </object>

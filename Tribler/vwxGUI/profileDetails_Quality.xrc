@@ -63,7 +63,7 @@
       <object class="sizeritem">
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
-        <option>1</option>
+        <option>0</option>
         <object class="wxPanel" name="details">
           <pos>0,21</pos>
           <size>300,348</size>
@@ -82,18 +82,33 @@
               <option>0</option>
               <object class="wxStaticText" name="descriptionField">
                 <style>wxST_NO_AUTORESIZE</style>
-                <label>&lt;&lt;
-* Less then average
-* Runner up
-* Addict
-* Leader!</label>
+                <label>Based on the files you have downloaded over time, Tribler recommends other files that are likely to be interesting to you. The quality of these recommendations will increase with the number of downloads. So far you have only downloaded 5 non-private files.</label>
                 <pos>6,20</pos>
-                <size>284,223</size>
+                <size>284,98</size>
                 <font>
                   <size>8</size>
                   <family>modern</family>
-                  <style>italic</style>
+                  <style>normal</style>
                   <weight>normal</weight>
+                  <underlined>0</underlined>
+                  <face>Verdana</face>
+                </font>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>6</border>
+              <option>0</option>
+              <object class="wxStaticText" name="descriptionFieldCCCCC">
+                <style>wxST_NO_AUTORESIZE</style>
+                <label>How to improve</label>
+                <pos>6,118</pos>
+                <size>284,18</size>
+                <font>
+                  <size>8</size>
+                  <family>modern</family>
+                  <style>normal</style>
+                  <weight>bold</weight>
                   <underlined>0</underlined>
                   <face>Verdana</face>
                 </font>
@@ -105,17 +120,13 @@
               <option>0</option>
               <object class="wxStaticText" name="descriptionFieldC">
                 <style>wxST_NO_AUTORESIZE</style>
-                <label>&lt;&lt;
-* Less then average
-* Runner up
-* Addict
-* Leader!</label>
-                <pos>3,246</pos>
-                <size>284,223</size>
+                <label>You need at least 10 non-private files in your download history to get a higher quality of recommendations. Of course more than 10 would improve them even more. You can find interesting files to download in the files view.</label>
+                <pos>6,142</pos>
+                <size>284,93</size>
                 <font>
                   <size>8</size>
                   <family>modern</family>
-                  <style>italic</style>
+                  <style>normal</style>
                   <weight>normal</weight>
                   <underlined>0</underlined>
                   <face>Verdana</face>

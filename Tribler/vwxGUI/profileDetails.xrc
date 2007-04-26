@@ -63,9 +63,9 @@
       <object class="sizeritem">
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
-        <option>1</option>
+        <option>0</option>
         <object class="wxPanel" name="details">
-          <pos>3,24</pos>
+          <pos>0,21</pos>
           <size>300,348</size>
           <bg>#ffffff</bg>
           <object class="wxBoxSizer">
@@ -82,16 +82,40 @@
               <option>0</option>
               <object class="wxStaticText" name="descriptionField">
                 <style>wxST_NO_AUTORESIZE</style>
-                <label>You just have started using tribler. By using the different facets of tribler your overall performance will improve. In this way your status can grow from starter to leader</label>
-                <pos>6,20</pos>
-                <size>284,148</size>
-                <bg>#     0</bg>
-                <fg>#ffffff</fg>
+                <label>Your overall performance influences your Tribler membership level. You have reached the level of 'Beginner'.
+
+- Beginner
+- Experienced
+- Top User
+- Master</label>
+                <pos>6,55</pos>
+                <size>284,113</size>
+                <bg>#ffffff</bg>
+                <fg>#     0</fg>
                 <font>
                   <size>8</size>
                   <family>modern</family>
-                  <style>italic</style>
+                  <style>normal</style>
                   <weight>normal</weight>
+                  <underlined>0</underlined>
+                  <face>Verdana</face>
+                </font>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>6</border>
+              <option>0</option>
+              <object class="wxStaticText" name="descriptionFieldCCCCC">
+                <style>wxST_NO_AUTORESIZE</style>
+                <label>How to improve</label>
+                <pos>3,343</pos>
+                <size>284,18</size>
+                <font>
+                  <size>8</size>
+                  <family>modern</family>
+                  <style>normal</style>
+                  <weight>bold</weight>
                   <underlined>0</underlined>
                   <face>Verdana</face>
                 </font>
@@ -103,13 +127,20 @@
               <option>0</option>
               <object class="wxStaticText" name="descriptionFieldC">
                 <style>wxST_NO_AUTORESIZE</style>
-                <label></label>
-                <pos>6,174</pos>
-                <size>284,208</size>
+                <label>If you want to increase your membership level, just follow the instructions for all five aspects that define your overall performance:
+ 	
+- Quality of Tribler recommendations
+- Discovered persons similar to your taste
+- Discovered files that fit your taste
+- Maximum download speed
+- Social presence
+</label>
+                <pos>6,157</pos>
+                <size>284,138</size>
                 <font>
                   <size>8</size>
                   <family>modern</family>
-                  <style>italic</style>
+                  <style>normal</style>
                   <weight>normal</weight>
                   <underlined>0</underlined>
                   <face>Verdana</face>

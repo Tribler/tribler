@@ -63,9 +63,9 @@
       <object class="sizeritem">
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
-        <option>1</option>
+        <option>0</option>
         <object class="wxPanel" name="details">
-          <pos>3,24</pos>
+          <pos>0,21</pos>
           <size>300,348</size>
           <bg>#ffffff</bg>
           <object class="wxBoxSizer">
@@ -82,18 +82,36 @@
               <option>0</option>
               <object class="wxStaticText" name="descriptionField">
                 <style>wxST_NO_AUTORESIZE</style>
-                <label>&lt;&lt;
-* Less then average
-* Runner up
-* Addict
-* Leader!</label>
-                <pos>3,17</pos>
-                <size>284,223</size>
+                <label>Over time your Tribler client will discover more and more files. You can influence what type of files are found. This will help you to filter out uninteresting files. 
+
+So far, you have discovered 122 files that (more or less) fit your taste. If you want to discover more, just follow the instructions. 
+</label>
+                <pos>6,20</pos>
+                <size>284,113</size>
                 <font>
                   <size>8</size>
                   <family>modern</family>
-                  <style>italic</style>
+                  <style>normal</style>
                   <weight>normal</weight>
+                  <underlined>0</underlined>
+                  <face>Verdana</face>
+                </font>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>6</border>
+              <option>0</option>
+              <object class="wxStaticText" name="descriptionFieldCCCCC">
+                <style>wxST_NO_AUTORESIZE</style>
+                <label>How to improve</label>
+                <pos>3,258</pos>
+                <size>284,18</size>
+                <font>
+                  <size>8</size>
+                  <family>modern</family>
+                  <style>normal</style>
+                  <weight>bold</weight>
                   <underlined>0</underlined>
                   <face>Verdana</face>
                 </font>
@@ -105,17 +123,13 @@
               <option>0</option>
               <object class="wxStaticText" name="descriptionFieldC">
                 <style>wxST_NO_AUTORESIZE</style>
-                <label>&lt;&lt;
-* Less then average
-* Runner up
-* Addict
-* Leader!</label>
-                <pos>3,246</pos>
-                <size>284,223</size>
+                <label>First of all, stay online longer and you will discover more files. Secondly, download more files so Tribler will understand your taste better. </label>
+                <pos>6,182</pos>
+                <size>284,73</size>
                 <font>
                   <size>8</size>
                   <family>modern</family>
-                  <style>italic</style>
+                  <style>normal</style>
                   <weight>normal</weight>
                   <underlined>0</underlined>
                   <face>Verdana</face>

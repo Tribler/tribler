@@ -261,8 +261,8 @@
                 <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
                 <border>3</border>
                 <option>0</option>
-                <object class="wxPanel" name="pn334c">
-                  <pos>617,224</pos>
+                <object class="wxPanel" name="icon_Overall">
+                  <pos>600,239</pos>
                   <size>20,40</size>
                   <bg>#e6e6e6</bg>
                 </object>
