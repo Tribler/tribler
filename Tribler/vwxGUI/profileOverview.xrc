@@ -273,7 +273,8 @@
                 <style>wxST_NO_AUTORESIZE</style>
                 <label>Quality of tribler recommendations</label>
                 <pos>45,15</pos>
-                <size>419,16</size>
+                <size>474,25</size>
+                <bg>#cbcbcb</bg>
                 <font>
                   <size>10</size>
                   <family>modern</family>
@@ -434,7 +435,7 @@
         <border>23</border>
         <option>0</option>
         <object class="wxPanel" name="bgPanel_Presence">
-          <pos>0,459</pos>
+          <pos>0,436</pos>
           <size>623,40</size>
           <bg>#cbcbcb</bg>
           <object class="wxBoxSizer">
@@ -541,10 +542,6 @@
           </object>
         </object>
       </object>
-    </object>
-    <object class="ProfileOverviewPanel" name="ProfileOverviewPanel291c">
-      <pos>0,0</pos>
-      <size>20,20</size>
     </object>
   </object>
 </resource>

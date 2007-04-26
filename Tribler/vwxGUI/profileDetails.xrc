@@ -15,7 +15,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>0</border>
             <option>0</option>
-            <object class="wxPanel" name="black_top_left" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="bgPanel" name="black_top_left">
               <pos>3,3</pos>
               <size>10,21</size>
             </object>
@@ -53,7 +53,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>0</border>
             <option>0</option>
-            <object class="wxPanel" name="black_top_right" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="bgPanel" name="black_top_right">
               <pos>275,3</pos>
               <size>10,21</size>
             </object>
@@ -82,7 +82,7 @@
               <option>0</option>
               <object class="wxStaticText" name="descriptionField">
                 <style>wxST_NO_AUTORESIZE</style>
-                <label></label>
+                <label>You just have started using tribler. By using the different facets of tribler your overall performance will improve. In this way your status can grow from starter to leader</label>
                 <pos>6,20</pos>
                 <size>284,148</size>
                 <bg>#     0</bg>
@@ -104,8 +104,8 @@
               <object class="wxStaticText" name="descriptionFieldC">
                 <style>wxST_NO_AUTORESIZE</style>
                 <label></label>
-                <pos>6,249</pos>
-                <size>284,223</size>
+                <pos>6,174</pos>
+                <size>284,208</size>
                 <font>
                   <size>8</size>
                   <family>modern</family>
@@ -123,7 +123,7 @@
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="wxPanel" name="white_bottom" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+        <object class="bgPanel" name="white_bottom">
           <pos>3,275</pos>
           <size>300,5</size>
         </object>
