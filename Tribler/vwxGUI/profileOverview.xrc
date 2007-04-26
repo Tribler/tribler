@@ -179,67 +179,109 @@
       </object>
       <object class="sizeritem">
         <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
-        <border>18</border>
+        <border>29</border>
         <option>0</option>
-        <object class="wxPanel" name="bgPanel_Overall" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-          <pos>0,191</pos>
-          <size>20,85</size>
-          <bg>#bfd8d8</bg>
-          <object class="wxBoxSizer">
-            <orient>wxHORIZONTAL</orient>
-            <object class="sizeritem">
-              <flag>wxTOP|wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
-              <border>15</border>
-              <option>0</option>
-              <object class="wxPanel" name="perf_Overall1" subclass="Tribler.vwxGUI.perfBar.BigPerfBar">
-                <pos>15,15</pos>
-                <size>45,55</size>
-              </object>
-            </object>
-            <object class="sizeritem">
-              <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-              <border>3</border>
-              <option>0</option>
+        <object class="wxBoxSizer">
+          <orient>wxHORIZONTAL</orient>
+          <object class="sizeritem">
+            <flag>wxFIXED_MINSIZE</flag>
+            <border>18</border>
+            <option>0</option>
+            <object class="wxPanel" name="bgPanel_Overall" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+              <pos>0,202</pos>
+              <size>600,85</size>
+              <bg>#bfd8d8</bg>
               <object class="wxBoxSizer">
-                <orient>wxVERTICAL</orient>
+                <orient>wxHORIZONTAL</orient>
+                <object class="sizeritem">
+                  <flag>wxLEFT|wxFIXED_MINSIZE</flag>
+                  <border>15</border>
+                  <option>0</option>
+                  <object class="wxPanel" name="perf_Overall1" subclass="Tribler.vwxGUI.perfBar.BigPerfBar">
+                    <pos>15,0</pos>
+                    <size>70,85</size>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                  <object class="wxBoxSizer">
+                    <orient>wxVERTICAL</orient>
+                    <object class="spacer">
+                      <size>435,49</size>
+                      <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                      <border>3</border>
+                      <option>0</option>
+                    </object>
+                    <object class="sizeritem">
+                      <flag>wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
+                      <border>6</border>
+                      <option>0</option>
+                      <object class="wxStaticText" name="text_Overall1">
+                        <style>wxST_NO_AUTORESIZE</style>
+                        <label>overall performance</label>
+                        <pos>91,49</pos>
+                        <size>439,26</size>
+                        <bg>#e6e6e6</bg>
+                        <font>
+                          <size>14</size>
+                          <family>modern</family>
+                          <style>normal</style>
+                          <weight>normal</weight>
+                          <underlined>0</underlined>
+                          <face>Verdana</face>
+                        </font>
+                      </object>
+                    </object>
+                  </object>
+                </object>
                 <object class="spacer">
-                  <size>269,25</size>
+                  <size>68,85</size>
                   <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>3</border>
                   <option>1</option>
                 </object>
-                <object class="sizeritem">
-                  <flag>wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
-                  <border>6</border>
-                  <option>0</option>
-                  <object class="wxStaticText" name="text_Overall1">
-                    <style>wxST_NO_AUTORESIZE</style>
-                    <label>overall performance</label>
-                    <pos>69,50</pos>
-                    <size>264,26</size>
-                    <font>
-                      <size>14</size>
-                      <family>modern</family>
-                      <style>normal</style>
-                      <weight>normal</weight>
-                      <underlined>0</underlined>
-                      <face>Verdana</face>
-                    </font>
-                  </object>
-                </object>
               </object>
             </object>
-            <object class="sizeritem">
-              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-              <border>3</border>
-              <option>0</option>
-              <object class="wxPanel" name="icon_Overall1" subclass="Tribler.vwxGUI.perfBar.TriblerGrade">
-                <pos>336,0</pos>
-                <size>90,90</size>
+          </object>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>1</option>
+            <object class="wxBoxSizer">
+              <orient>wxVERTICAL</orient>
+              <object class="spacer">
+                <size>105,37</size>
+                <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>3</border>
+                <option>0</option>
+              </object>
+              <object class="sizeritem">
+                <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>3</border>
+                <option>0</option>
+                <object class="wxPanel" name="pn334c">
+                  <pos>617,224</pos>
+                  <size>20,40</size>
+                  <bg>#e6e6e6</bg>
+                </object>
+              </object>
+              <object class="spacer">
+                <size>6,0</size>
+                <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>3</border>
+                <option>1</option>
               </object>
             </object>
           </object>
         </object>
+      </object>
+      <object class="spacer">
+        <size>105,29</size>
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
       </object>
       <object class="sizeritem">
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
@@ -480,7 +522,7 @@
       </object>
       <object class="spacer">
         <size>105,5</size>
-        <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>1</option>
       </object>
