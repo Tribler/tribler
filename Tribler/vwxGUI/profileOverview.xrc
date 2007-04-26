@@ -197,7 +197,7 @@
                   <flag>wxLEFT|wxFIXED_MINSIZE</flag>
                   <border>15</border>
                   <option>0</option>
-                  <object class="wxPanel" name="perf_Overall1" subclass="Tribler.vwxGUI.perfBar.BigPerfBar">
+                  <object class="wxPanel" name="perf_Overall" subclass="Tribler.vwxGUI.perfBar.BigPerfBar">
                     <pos>15,0</pos>
                     <size>70,85</size>
                   </object>
@@ -218,7 +218,7 @@
                       <flag>wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
                       <border>6</border>
                       <option>0</option>
-                      <object class="wxStaticText" name="text_Overall1">
+                      <object class="wxStaticText" name="text_Overall">
                         <style>wxST_NO_AUTORESIZE</style>
                         <label>overall performance</label>
                         <pos>91,49</pos>
