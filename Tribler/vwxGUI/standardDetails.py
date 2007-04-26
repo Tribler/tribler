@@ -60,13 +60,14 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             self.modeElements[elem] = []
         self.modeElements['filesMode'] = ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
-                                            'download', 'tabs', ('files_detailsTab','tabs'), ('info_detailsTab','tabs'), 'TasteHeart', 'details',]
+                                            'download', 'tabs', ('files_detailsTab','tabs'), ('info_detailsTab','tabs'), 'TasteHeart', 'details']
         self.modeElements['personsMode'] = ['TasteHeart', 'recommendationField','addAsFriend', 'commonFilesField',
                                             'alsoDownloadedField', 'info_detailsTab', 'advanced_detailsTab','detailsC',
                                             'titleField']
         self.modeElements['libraryMode'] = ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
-                                            'download', 'files_detailsTab', 'info_detailsTab', 'TasteHeart', 'details',]
+                                            'download', 'files_detailsTab', 'info_detailsTab', 'TasteHeart', 'details']
+        self.modeElements['profileMode'] = ['descriptionField']
         
         self.tabElements = {'filesTab_files': [ 'download', 'includedFiles', 'filesField'],                            
                             'personsTab_advanced': ['lastExchangeField', 'noExchangeField', 'timesConnectedField','addAsFriend','similarityValueField'],
@@ -452,6 +453,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     count = item['taste_files']
             text = self.utility.lang.get("profileDetails_Files_description", giveerror=False)
             self.getGuiObj('descriptionField', tab = 'profileDetails_Files').SetLabel(text % count)
+
+            text = self.utility.lang.get("profileDetails_Overall_description", giveerror=False)
+            self.getGuiObj('descriptionField').SetLabel(text % item.get('overall_rank'))
 
         self.currentPanel.Refresh()
         

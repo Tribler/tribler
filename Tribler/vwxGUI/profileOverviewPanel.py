@@ -116,13 +116,6 @@ class ProfileOverviewPanel(wx.Panel):
         if not self.IsShown(): #should not update data if not shown
             return
         bShouldRefresh = False
-
-        #set the overall performance to a random number
-        new_index = random.randint(0,5) #used only for testing
-        elem = self.getGuiElement("perf_Overall")
-        if elem and new_index != elem.getIndex():
-            elem.setIndex(new_index)
-            bShouldRefresh = True
         #set the overall ranking to a random number
 #===============================================================================
 #        new_index = random.randint(0,3) #used only for testing
@@ -131,6 +124,7 @@ class ProfileOverviewPanel(wx.Panel):
 #            elem.setIndex(new_index)
 #            bShouldRefresh = True
 #===============================================================================
+        overall_index = 0
         
         #get the number of downloads for this user
         count = self.guiUtility.data_manager.getDownloadHistCount()
@@ -140,6 +134,7 @@ class ProfileOverviewPanel(wx.Panel):
         if aux_count < 0:
             aux_count = 0
         new_index = int((aux_count-1)/20)+1
+        overall_index = overall_index + new_index
         qualityElem = self.getGuiElement("perf_Quality")
         if qualityElem and new_index != qualityElem.getIndex():
             qualityElem.setIndex(new_index)
@@ -154,6 +149,7 @@ class ProfileOverviewPanel(wx.Panel):
         if aux_count < 0:
             aux_count = 0
         new_index = int((aux_count-1)/100)+1
+        overall_index = overall_index + new_index
         elem = self.getGuiElement("perf_Persons")
         if elem and new_index != elem.getIndex():
             elem.setIndex(new_index)
@@ -168,10 +164,29 @@ class ProfileOverviewPanel(wx.Panel):
         if aux_count < 0:
             aux_count = 0
         new_index = int((aux_count-1)/20)+1
+        overall_index = overall_index + new_index
         elem = self.getGuiElement("perf_Files")
         if elem and new_index != elem.getIndex():
             elem.setIndex(new_index)
             self.data['taste_files'] = count
+            bShouldRefresh = True
+
+        overall_index = int(overall_index)
+        if overall_index > 6:
+            overall_index = 6
+        #set the overall performance to a random number
+        new_index = overall_index #random.randint(0,5) #used only for testing
+        elem = self.getGuiElement("perf_Overall")
+        if elem and new_index != elem.getIndex():
+            elem.setIndex(new_index)
+            if new_index < 2:
+                self.data['overall_rank'] = "beginner"
+            elif new_index < 4:
+                self.data['overall_rank'] = "experienced"
+            elif new_index < 6:
+                self.data['overall_rank'] = "top user"
+            else:
+                self.data['overall_rank'] = "master"
             bShouldRefresh = True
         
         if bShouldRefresh:
