@@ -609,7 +609,7 @@ IndexOfS=1
 [Windows8/i_width/Windows8]
 Theme=0
 [Windows8/i_propN]
-0=You just have started using tribler. By using the different facets of tribler your overall performance will improve. In this way your status can grow from ‘starter’ to ‘leader’\r\n\r\n* Starter \r\n* Less then average\r\n* Runner up\r\n* Addict\r\n* Leader!
+0=You just have started using tribler. By using the different facets of tribler your overall performance will improve. In this way your status can grow from starter to leader
 [Windows8/sizerProp]
 0=1
 1=1
@@ -626,8 +626,8 @@ validator=
 s_name=descriptionFieldC
 i_index=-1
 i_left=6
-i_top=249
-i_height=223
+i_top=174
+i_height=208
 i_width=284
 l_backColor=
 l_foreColor=
