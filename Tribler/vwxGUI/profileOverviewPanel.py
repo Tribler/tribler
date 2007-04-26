@@ -2,15 +2,18 @@ import wx
 import wx.xrc as xrc
 import random
 from Tribler.vwxGUI.GuiUtility import GUIUtility
+from Tribler.vwxGUI.tribler_topButton import tribler_topButton
 
 class ProfileOverviewPanel(wx.Panel):
     def __init__(self, *args, **kw):
 #        print "<mluc> tribler_topButton in init"
         self.initDone = False
-        self.elementsName = [ 'perf_Overall', 'text_Overall', 'icon_Overall', 'bgPanel_Quality', 'perf_Quality',
-                          'text_Quality', 'bgPanel_Files', 'perf_Files', 'text_Files', 'bgPanel_Persons',
-                          'perf_Persons', 'text_Persons', 'bgPanel_Download', 'perf_Download', 'text_Download', 
-                          'bgPanel_Presence', 'perf_Presence', 'text_Presence']
+        self.elementsName = [ 'bgPanel_Overall', 'perf_Overall', 'icon_Overall', 'text_Overall', 
+                             'bgPanel_Quality', 'perf_Quality', 'text_Quality', 
+                             'bgPanel_Files', 'perf_Files', 'text_Files', 
+                             'bgPanel_Persons', 'perf_Persons', 'text_Persons', 
+                             'bgPanel_Download', 'perf_Download', 'text_Download', 
+                             'bgPanel_Presence', 'perf_Presence', 'text_Presence']
         self.elements = {}
         if len(args) == 0: 
             pre = wx.PrePanel() 
@@ -41,19 +44,33 @@ class ProfileOverviewPanel(wx.Panel):
                 print 'profileOverviewPanel: Error: Could not identify xrc element:',element
             self.elements[element] = xrcElement
 
+        self.buttons = []
         #add mouse over text and progress icon
         for elem_name in self.elementsName:
-            if elem_name.startswith("bgPanel_") and self.getGuiElement(elem_name).__class__.__name__.endswith("tribler_topButton") :
+            if elem_name.startswith("bgPanel_"):
+                self.buttons.append(elem_name)
+                but_elem = self.getGuiElement(elem_name)
+                but_elem.SetBackgroundColour(wx.Colour(203,203,203))
                 suffix = elem_name[8:]
-                self.getGuiElement('text_%s' % suffix).Bind(wx.EVT_MOUSE_EVENTS, self.getGuiElement(elem_name).mouseAction)
-                self.getGuiElement('perf_%s' % suffix).Bind(wx.EVT_MOUSE_EVENTS, self.getGuiElement(elem_name).mouseAction)
+                text_elem = self.getGuiElement('text_%s' % suffix)
+                perf_elem = self.getGuiElement('perf_%s' % suffix)
+                icon_elem = self.getGuiElement('icon_%s' % suffix)
+                if isinstance(self.getGuiElement(elem_name),tribler_topButton) :
+                    if text_elem:
+                        text_elem.Bind(wx.EVT_MOUSE_EVENTS, but_elem.mouseAction)
+                    if perf_elem:
+                        perf_elem.Bind(wx.EVT_MOUSE_EVENTS, but_elem.mouseAction)
+                    if icon_elem:
+                        icon_elem.Bind(wx.EVT_MOUSE_EVENTS, but_elem.mouseAction)
+                else:
+                    but_elem.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
+                if text_elem:
+                    text_elem.Bind(wx.EVT_LEFT_UP, self.sendClick)
+                if perf_elem:
+                    perf_elem.Bind(wx.EVT_LEFT_UP, self.sendClick)
+                but_elem.Bind(wx.EVT_LEFT_UP, self.sendClick)
         #add click event for panels in this panel:
         
-#        self.getGuiElement('bgPanel_Quality').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
-        self.getGuiElement('bgPanel_Files').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
-        self.getGuiElement('bgPanel_Persons').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
-        self.getGuiElement('bgPanel_Download').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
-        self.getGuiElement('bgPanel_Presence').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
 
         #also set alternative background color:
 #===============================================================================
@@ -68,16 +85,42 @@ class ProfileOverviewPanel(wx.Panel):
 #            else:
 #                color = light_color
 #===============================================================================
-        print "<mluc> full name for a panel is",self.getGuiElement('bgPanel_Quality').GetName(),"[",self.getGuiElement('bgPanel_Quality').GetParent().GetName(),"]"
+#        print "<mluc> full name for a panel is",self.getGuiElement('bgPanel_Quality').GetName(),"[",self.getGuiElement('bgPanel_Quality').GetParent().GetName(),"]"
         self.initDone = True
         self.Refresh(True)
 #        self.Update()
         self.timer = None
         wx.CallAfter(self.reloadData)
+        
+    def sendClick(self, event):
+        source = event.GetEventObject()
+        source_name = source.GetName()
+#        print "<mluc> send event from",source_name
+        if source_name.startswith('text_') or source_name.startswith('perf_') or source_name.startswith('icon_'):
+            #send event to background button
+            but_name = 'bgPanel_'+source_name[5:]
+            self.selectNewButton(but_name)
+#            print "<mluc> send event to",but_name
+            new_owner = self.getGuiElement(but_name)
+            event.SetEventObject(new_owner)
+            wx.PostEvent( new_owner, event)
+        elif source_name.startswith('bgPanel_'):
+            print "<mluc> here"
+            self.selectNewButton(source_name)
+
+    def selectNewButton(self, sel_but):
+        for button in self.buttons:
+            butElem = self.getGuiElement(button)
+            if button == sel_but:
+                if isinstance(butElem,tribler_topButton):
+                    butElem.setSelected(True)
+            elif isinstance(butElem, tribler_topButton) and butElem.isSelected():
+                butElem.setSelected(False)
 
     def getGuiElement(self, name):
-        if not self.elements[name]:
+        if not self.elements.has_key(name) or not self.elements[name]:
             print "[profileOverviewPanel] gui element %s not available" % name
+            return None
         return self.elements[name]
     
     def reloadData(self, event=None):

@@ -73,6 +73,7 @@ class GUIUtility:
             self.detailsTabClicked(name) #a panel was clicked in the profile overview and this is the most elegant so far method of informing the others
         else:
             print 'A button was clicked, but no action is defined for: %s' % name
+            event.Skip()
                 
         
     def mainButtonClicked(self, name, button):

@@ -10,6 +10,7 @@ import cStringIO
 from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
 from safeguiupdate import FlaglessDelayedInvocation
 import time
+#from Tribler.vwxGUI.tribler_topButton import tribler_topButton
 
 DEFAULT_THUMB = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'thumbField.png'))
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'subscriptionsMode', 'messageMode']
@@ -541,24 +542,34 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 #            print "<mluc> advanced tab has label:",tabAdvanced.GetLabel()
 
         elif self.mode == "profileMode":
-            print "<mluc> try to switch to",name
+#            print "<mluc> try to switch to",name
             if name.startswith("bgPanel"):
                 name = "profileDetails"+name[7:]
-            print "<mluc> current panel is:",self.item
+            if name == "profileDetails_Overall":
+                name = 'panel'
+#            print "<mluc> current panel is:",self.item
             if self.item is None:
                 self.item = 'panel'
             panel1 = self.getGuiObj(self.item)
             panel2 = self.getGuiObj(name)
             if panel1 is not None and panel2 is not None and panel1 != panel2:
-                print "<mluc> switch from %s[%s] to %s[%s]" % (panel1.GetName(), panel1.GetParent().GetName(), panel2.GetName(), panel2.GetParent().GetName())
-                if panel1.__class__.__name__.endswith("tribler_topButton"):
-                    panel1.setSelected(False)
-                if panel2.__class__.__name__.endswith("tribler_topButton"):
-                    panel2.setSelected(True)
+#===============================================================================
+#                print "<mluc> switch from %s[%s] to %s[%s]" % (panel1.GetName(), panel1.GetParent().GetName(), panel2.GetName(), panel2.GetParent().GetName())
+#                if isinstance(panel1,tribler_topButton):
+#                    print "<mluc> set unselected for",panel1.GetName()
+#                    panel1.setSelected(False)
+#                else:
+#                    print "<mluc> panel1 ",panel1.GetName()," is of type ",panel1.__class__.__name__
+#                if panel2.__class__.__name__.endswith("tribler_topButton"):
+#                    print "<mluc> set selected for",panel2.GetName()
+#                    panel2.setSelected(True)
+#                else:
+#                    print "<mluc> panel2 ",panel2.GetName()," is of type ",panel2.__class__.__name__
+#===============================================================================
                 self.swapPanel(panel1, panel2)
                 self.item = name
-            else:
-                print "<mluc> can't switch, one of the panel is None or the same panel"
+#            else:
+#                print "<mluc> can't switch, one of the panel is None or the same panel"
         else:
             print 'standardDetails: Tabs for this mode (%s) not yet implemented' % self.mode
             return
