@@ -15,7 +15,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>0</border>
             <option>0</option>
-            <object class="wxPanel" name="black_top_left" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="bgPanel" name="black_top_left">
               <pos>3,3</pos>
               <size>10,21</size>
             </object>
@@ -40,7 +40,7 @@
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>Overall performance
 </label>
-                    <pos>0,3</pos>
+                    <pos>3,3</pos>
                     <size>280,18</size>
                     <bg>#     0</bg>
                     <fg>#ffffff</fg>
@@ -53,7 +53,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>0</border>
             <option>0</option>
-            <object class="wxPanel" name="black_top_right" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="bgPanel" name="black_top_right">
               <pos>275,3</pos>
               <size>10,21</size>
             </object>
@@ -65,7 +65,7 @@
         <border>3</border>
         <option>1</option>
         <object class="wxPanel" name="details">
-          <pos>0,21</pos>
+          <pos>3,24</pos>
           <size>300,348</size>
           <bg>#ffffff</bg>
           <object class="wxBoxSizer">
@@ -82,12 +82,29 @@
               <option>0</option>
               <object class="wxStaticText" name="descriptionField">
                 <style>wxST_NO_AUTORESIZE</style>
-                <label>&lt;&lt;
-* Less then average
-* Runner up
-* Addict
-* Leader!</label>
-                <pos>6,6</pos>
+                <label></label>
+                <pos>6,20</pos>
+                <size>284,148</size>
+                <bg>#     0</bg>
+                <fg>#ffffff</fg>
+                <font>
+                  <size>8</size>
+                  <family>modern</family>
+                  <style>italic</style>
+                  <weight>normal</weight>
+                  <underlined>0</underlined>
+                  <face>Verdana</face>
+                </font>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>6</border>
+              <option>0</option>
+              <object class="wxStaticText" name="descriptionFieldC">
+                <style>wxST_NO_AUTORESIZE</style>
+                <label></label>
+                <pos>6,249</pos>
                 <size>284,223</size>
                 <font>
                   <size>8</size>
@@ -106,8 +123,8 @@
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="wxPanel" name="white_bottom" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
-          <pos>3,475</pos>
+        <object class="bgPanel" name="white_bottom">
+          <pos>3,275</pos>
           <size>300,5</size>
         </object>
       </object>

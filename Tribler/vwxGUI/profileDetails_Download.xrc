@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
-  <object class="wxPanel" name="pnl20346f">
+  <object class="wxPanel" name="profileDetails_Download">
     <pos>0,0</pos>
     <size>300,500</size>
     <object class="wxBoxSizer">
@@ -38,7 +38,7 @@
                   <option>0</option>
                   <object class="wxStaticText" name="titleField">
                     <style>wxST_NO_AUTORESIZE</style>
-                    <label>Quality of recommendations
+                    <label>Maximum download speed
 </label>
                     <pos>0,3</pos>
                     <size>280,18</size>
@@ -65,7 +65,7 @@
         <border>3</border>
         <option>1</option>
         <object class="wxPanel" name="details">
-          <pos>0,21</pos>
+          <pos>3,24</pos>
           <size>300,348</size>
           <bg>#ffffff</bg>
           <object class="wxBoxSizer">
@@ -87,7 +87,7 @@
 * Runner up
 * Addict
 * Leader!</label>
-                <pos>6,20</pos>
+                <pos>3,17</pos>
                 <size>284,223</size>
                 <font>
                   <size>8</size>

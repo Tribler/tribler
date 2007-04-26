@@ -40,7 +40,7 @@ def changeFile(filename):
                      ('SmallPerfBar', 'wxPanel', customDir+'perfBar'),                   
                      ('BigPerfBar', 'wxPanel', customDir+'perfBar'),                   
                      ('TriblerGrade', 'wxPanel', customDir+'perfBar'),                   
-                     
+                     ('profileDetails', 'wxPanel', customDir+'profileDetails'),
                      
                      ('friendsGrid', 'wxPanel', customDir+'standardGrid'),
                      ('friendsOverview', 'wxPanel', customDir+'friendsOverview'), 
