@@ -134,11 +134,12 @@ class ProfileOverviewPanel(wx.Panel):
         
         #get the number of downloads for this user
         count = self.guiUtility.data_manager.getDownloadHistCount()
-        if count > 100:
-            count = 100
-        if count < 0:
-            count = 0
-        new_index = int((count-1)/20)+1
+        aux_count = count
+        if aux_count > 100:
+            aux_count = 101
+        if aux_count < 0:
+            aux_count = 0
+        new_index = int((aux_count-1)/20)+1
         qualityElem = self.getGuiElement("perf_Quality")
         if qualityElem and new_index != qualityElem.getIndex():
             qualityElem.setIndex(new_index)
@@ -147,11 +148,12 @@ class ProfileOverviewPanel(wx.Panel):
         
         #get the number of similar peers
         count = self.guiUtility.peer_manager.getCountOfSimilarPeers()
-        if count > 500:
-            count = 500
-        if count < 0:
-            count = 0
-        new_index = int((count-1)/100)+1
+        aux_count = count
+        if aux_count > 500:
+            aux_count = 501
+        if aux_count < 0:
+            aux_count = 0
+        new_index = int((aux_count-1)/100)+1
         elem = self.getGuiElement("perf_Persons")
         if elem and new_index != elem.getIndex():
             elem.setIndex(new_index)
@@ -160,11 +162,12 @@ class ProfileOverviewPanel(wx.Panel):
         
         #get the number of similar files (tasteful)
         count = self.guiUtility.data_manager.getRecommendFilesCount()
-        if count > 100:
-            count = 100
-        if count < 0:
-            count = 0
-        new_index = int((count-1)/20)+1
+        aux_count = count
+        if aux_count > 100:
+            aux_count = 101
+        if aux_count < 0:
+            aux_count = 0
+        new_index = int((aux_count-1)/20)+1
         elem = self.getGuiElement("perf_Files")
         if elem and new_index != elem.getIndex():
             elem.setIndex(new_index)
