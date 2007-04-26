@@ -260,8 +260,8 @@
               <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
               <border>5</border>
               <option>0</option>
-              <object class="wxPanel" name="perf_QualityC" subclass="Tribler.vwxGUI.perfBar.SmallPerfBar">
-                <pos>18,3</pos>
+              <object class="wxPanel" name="perf_Quality" subclass="Tribler.vwxGUI.perfBar.SmallPerfBar">
+                <pos>15,5</pos>
                 <size>25,30</size>
               </object>
             </object>
@@ -269,10 +269,10 @@
               <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>15</border>
               <option>0</option>
-              <object class="wxStaticText" name="text_QualityC">
+              <object class="wxStaticText" name="text_Quality">
                 <style>wxST_NO_AUTORESIZE</style>
                 <label>Quality of tribler recommendations</label>
-                <pos>48,3</pos>
+                <pos>45,15</pos>
                 <size>419,16</size>
                 <font>
                   <size>10</size>
