@@ -206,19 +206,22 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             self.data[self.mode]['panel'] = currentPanel
             #titlePanel = xrc.XRCCTRL(currentPanel, 'titlePanel')
             
-            for element in self.modeElements[self.mode]:
-                xrcElement = None
-                name = None
-                if type(element) == str:
-                    xrcElement = xrc.XRCCTRL(currentPanel, element)
-                    name = element
-                elif type(element) == tuple:
-                    name = element[0]
-                    xrcElement = xrc.XRCCTRL(self.getGuiObj(element[1]), name)
-                if not xrcElement:
-                    print 'standardDetails: Error: Could not identify xrc element: %s for mode %s' % (element, self.mode)
-                if name:
-                    self.data[self.mode][name] = xrcElement
+            if self.modeElements.has_key(self.mode):
+                for element in self.modeElements[self.mode]:
+                    xrcElement = None
+                    name = None
+                    if type(element) == str:
+                        xrcElement = xrc.XRCCTRL(currentPanel, element)
+                        name = element
+                    elif type(element) == tuple:
+                        name = element[0]
+                        xrcElement = xrc.XRCCTRL(self.getGuiObj(element[1]), name)
+                    if not xrcElement:
+                        print 'standardDetails: Error: Could not identify xrc element: %s for mode %s' % (element, self.mode)
+                    if name:
+                        self.data[self.mode][name] = xrcElement
+            else:
+                self.modeElements[self.mode] = []
             
             # do extra init
             if modeString == 'files' or modeString == 'library':
@@ -241,7 +244,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             
             elif modeString == "profile":
                 pass
-                #self.getAlternativeTabPanel('profileDetails_Quality').Hide() #parent is self because it is not a tab, it replaces the details panel
+                self.getAlternativeTabPanel('profileDetails_Quality').Hide() #parent is self because it is not a tab, it replaces the details panel
                 
         return currentPanel
     
@@ -496,7 +499,6 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         
         # currently, only tabs in filesDetailspanel work
         if self.mode in ['filesMode', 'libraryMode']:
-        
             tabFiles = self.getGuiObj('files_detailsTab')
             tabInfo = self.getGuiObj('info_detailsTab')
             infoPanel = self.getGuiObj('details')
@@ -533,6 +535,14 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 print '%s: Unknown tab %s' % (self.mode,name)
                 return
 #            print "<mluc> advanced tab has label:",tabAdvanced.GetLabel()
+
+        elif self.mode == "profileMode":
+            if name == "bgPanel_Quality":
+                name = "profileDetails_Quality"
+            panel1 = self.getGuiObj('panel')
+            panel2 = self.getGuiObj(name)
+            print "<mluc> switch from %s[%s] to %s[%s]" % (panel1.GetName(), panel1.GetParent().GetName(), panel2.GetName(), panel2.GetParent().GetName())
+            self.swapPanel(panel1, panel2)
         else:
             print 'standardDetails: Tabs for this mode (%s) not yet implemented' % self.mode
             return
@@ -579,11 +589,12 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 parent = self.currentPanel
             panel = self.loadXRCPanel(xrcResource, panelName, parent=parent)
             
-            for element in self.tabElements[name]:
-                xrcElement = xrc.XRCCTRL(panel, element)
-                if not xrcElement:
-                    print 'standardDetails: Error: Could not identify xrc element: %s for mode %s' % (element, self.mode)
-                self.data[self.mode][name+'_'+element] = xrcElement
+            if self.tabElements.has_key(name):
+                for element in self.tabElements[name]:
+                    xrcElement = xrc.XRCCTRL(panel, element)
+                    if not xrcElement:
+                        print 'standardDetails: Error: Could not identify xrc element: %s for mode %s' % (element, self.mode)
+                    self.data[self.mode][name+'_'+element] = xrcElement
                             
             self.data[self.mode][name] = panel
             

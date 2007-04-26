@@ -41,12 +41,20 @@ class ProfileOverviewPanel(wx.Panel):
                 print 'profileOverviewPanel: Error: Could not identify xrc element:',element
             self.elements[element] = xrcElement
 
+        #add mouse over text and progress icon
+        for elem_name in self.elementsName:
+            if elem_name.startswith("bgPanel_") and self.getGuiElement(elem_name).__class__.__name__.endswith("tribler_topButton") :
+                suffix = elem_name[8:]
+                self.getGuiElement('text_%s' % suffix).Bind(wx.EVT_MOUSE_EVENTS, self.getGuiElement(elem_name).mouseAction)
+                self.getGuiElement('perf_%s' % suffix).Bind(wx.EVT_MOUSE_EVENTS, self.getGuiElement(elem_name).mouseAction)
         #add click event for panels in this panel:
-        self.getGuiElement('bgPanel_Quality').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
-        self.getGuiElement('bgPanel_Files').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
-        self.getGuiElement('bgPanel_Persons').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
-        self.getGuiElement('bgPanel_Download').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
-        self.getGuiElement('bgPanel_Presence').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
+        
+#        self.getGuiElement('bgPanel_Quality').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
+#        self.getGuiElement('bgPanel_Files').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
+#        self.getGuiElement('bgPanel_Persons').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
+#        self.getGuiElement('bgPanel_Download').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
+#        self.getGuiElement('bgPanel_Presence').Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
+
         #also set alternative background color:
 #===============================================================================
 #        bgpanels = ['bgPanel_Quality', 'bgPanel_Files', 'bgPanel_Persons', 'bgPanel_Download', 'bgPanel_Presence']
@@ -60,6 +68,7 @@ class ProfileOverviewPanel(wx.Panel):
 #            else:
 #                color = light_color
 #===============================================================================
+        print "full name for a panel is",self.getGuiElement('bgPanel_Quality').GetParent().GetName()+self.getGuiElement('bgPanel_Quality').GetName()
         self.initDone = True
         self.Refresh(True)
 #        self.Update()
@@ -80,13 +89,13 @@ class ProfileOverviewPanel(wx.Panel):
         #set the overall performance to a random number
         new_index = random.randint(0,5) #used only for testing
         elem = self.getGuiElement("perf_Overall")
-        if new_index != elem.getIndex():
+        if elem and new_index != elem.getIndex():
             elem.setIndex(new_index)
             bShouldRefresh = True
         #set the overall ranking to a random number
         new_index = random.randint(0,3) #used only for testing
         elem = self.getGuiElement("icon_Overall")
-        if new_index != elem.getIndex():
+        if elem and new_index != elem.getIndex():
             elem.setIndex(new_index)
             bShouldRefresh = True
         
@@ -98,7 +107,7 @@ class ProfileOverviewPanel(wx.Panel):
             count = 0
         new_index = int((count-1)/20)+1
         qualityElem = self.getGuiElement("perf_Quality")
-        if new_index != qualityElem.getIndex():
+        if qualityElem and new_index != qualityElem.getIndex():
             qualityElem.setIndex(new_index)
             bShouldRefresh = True
         
@@ -110,7 +119,7 @@ class ProfileOverviewPanel(wx.Panel):
             count = 0
         new_index = int((count-1)/100)+1
         elem = self.getGuiElement("perf_Persons")
-        if new_index != elem.getIndex():
+        if elem and new_index != elem.getIndex():
             elem.setIndex(new_index)
             bShouldRefresh = True
         

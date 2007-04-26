@@ -69,6 +69,8 @@ class GUIUtility:
             self.standardDetails.addAsFriend()
         elif name == 'download':
             self.standardDetails.download()
+        elif name.startswith('bgPanel') and obj.GetParent().GetName() == "profileOverview":
+            self.detailsTabClicked(name) #a panel was clicked in the profile overview and this is the most elegant so far method of informing the others
         else:
             print 'A button was clicked, but no action is defined for: %s' % name
                 
