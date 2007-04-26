@@ -278,9 +278,18 @@ class TorrentDataManager:
             self.info_dict[torrent["infohash"]] = torrent    
 
     def getDownloadHistCount(self):
+        #[mluc]{26.04.2007} ATTENTION: data is not updated when a new download starts, although it should
         def isDownloadHistory(torrent):
             return torrent.has_key('myDownloadHistory')
         return len(filter(isDownloadHistory,self.data))
+    
+    def getRecommendFilesCount(self):
+        count = 0
+        for torrent in self.data:
+            if torrent.has_key('relevance'):
+                if torrent['relevance']> 5: #minmal value for a file to be considered tasteful
+                    count = count + 1
+        return count
         
     def getCategory(self, categorykey):
         

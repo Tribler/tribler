@@ -1116,3 +1116,11 @@ vodprogress = "Progress:"
 launchvideoplayer = "Launch Video Player"
 videoserverservefailure = "Error serving video to player, probably the player does not understand the video format or cannot play it from the network."
 videoserverservefailureadvice = "Please wait until the download is complete and try again, or select a different player in Preferences/Video."
+
+#############
+#Tribler UI - Profile View, Tribler 4.0.0
+#############
+profileDetails_Quality_description = "Based on the files you have downloaded over time, Tribler recommends other files that are likely to be interesting to you. The quality of these recommendations will increase with the number of downloads. So far you have%s downloaded %d non-private files."
+profileDetails_Quality_descriptionz_onlyword = " only"
+profileDetails_Persons_description = "Over time your Tribler client will discover more and more persons that might be interesting to you. You can influence what types of persons are found.\r\n So far, you have discovered %d persons that have tastes similar to yours. If you want to discover more, just follow the instructions."
+profileDetails_Files_description = "Over time your Tribler client will discover more and more files. You can influence what type of files are found. This will help you to filter out uninteresting files. \r\nSo far, you have discovered %d files that (more or less) fit your taste. If you want to discover more, just follow the instructions. "

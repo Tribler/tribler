@@ -69,8 +69,11 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                                             'download', 'files_detailsTab', 'info_detailsTab', 'TasteHeart', 'details',]
         
         self.tabElements = {'filesTab_files': [ 'download', 'includedFiles', 'filesField'],                            
-                            'personsTab_advanced': ['lastExchangeField', 'noExchangeField', 'timesConnectedField','addAsFriend'],
-                            'libraryTab_files': [ 'download', 'includedFiles']}
+                            'personsTab_advanced': ['lastExchangeField', 'noExchangeField', 'timesConnectedField','addAsFriend','similarityValueField'],
+                            'libraryTab_files': [ 'download', 'includedFiles'],
+                            'profileDetails_Quality': ['descriptionField'],
+                            'profileDetails_Files': ['descriptionField'],
+                            'profileDetails_Persons': ['descriptionField']}
             
         self.guiUtility.initStandardDetails(self)
 
@@ -401,7 +404,11 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 if item.get("connected_times")!=None:
                     self.getGuiObj('timesConnectedField', tab = 'personsTab_advanced').SetLabel(str(item["connected_times"]))
                 else:
-                    item.getGuiObj('timesConnectedField', tab = 'personsTab_advanced').SetLabel("")
+                    self.getGuiObj('timesConnectedField', tab = 'personsTab_advanced').SetLabel("")
+                if item.get("similarity")!=None:
+                    self.getGuiObj('similarityValueField', tab = 'personsTab_advanced').SetLabel(str(item["similarity"]))
+                else:
+                    self.getGuiObj('similarityValueField', tab = 'personsTab_advanced').SetLabel("")
                 
                 addAsFriend = self.getGuiObj('addAsFriend', tab = 'personsTab_advanced')
                 if addAsFriend.initDone:
@@ -421,6 +428,30 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             self.play(torrent)
         elif self.mode == 'subscriptionMode':
             pass
+        
+        elif self.mode == 'profileMode':
+            count = 0
+            if item is not None:
+                if item.has_key('downloaded_files'):
+                    count = item['downloaded_files']
+            text = self.utility.lang.get("profileDetails_Quality_description", giveerror=False)
+            if count < 10:
+                only = self.utility.lang.get("profileDetails_Quality_description_onlyword", giveerror=False)
+            else:
+                only=""
+            self.getGuiObj('descriptionField', tab = 'profileDetails_Quality').SetLabel(text % (only,count))
+            count = 0
+            if item is not None:
+                if item.has_key('similar_peers'):
+                    count = item['similar_peers']
+            text = self.utility.lang.get("profileDetails_Persons_description", giveerror=False)
+            self.getGuiObj('descriptionField', tab = 'profileDetails_Persons').SetLabel(text % count)
+            count = 0
+            if item is not None:
+                if item.has_key('taste_files'):
+                    count = item['taste_files']
+            text = self.utility.lang.get("profileDetails_Files_description", giveerror=False)
+            self.getGuiObj('descriptionField', tab = 'profileDetails_Files').SetLabel(text % count)
 
         self.currentPanel.Refresh()
         

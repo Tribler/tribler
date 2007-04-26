@@ -106,6 +106,35 @@
                   </object>
                 </object>
               </object>
+              <object class="sizeritem">
+                <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>5</border>
+                <option>0</option>
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="sizeritem">
+                    <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                    <border>3</border>
+                    <option>0</option>
+                    <object class="wxStaticText" name="st209cCC">
+                      <style>wxST_NO_AUTORESIZE</style>
+                      <label>similarity value:</label>
+                      <pos>8,75</pos>
+                      <size>150,18</size>
+                    </object>
+                  </object>
+                  <object class="sizeritem">
+                    <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                    <border>4</border>
+                    <option>0</option>
+                    <object class="wxStaticText" name="similarityValueField">
+                      <label>unknown</label>
+                      <pos>158,75</pos>
+                      <size>60,18</size>
+                    </object>
+                  </object>
+                </object>
+              </object>
             </object>
           </object>
           <object class="sizeritem">

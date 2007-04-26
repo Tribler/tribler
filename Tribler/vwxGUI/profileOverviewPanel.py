@@ -3,6 +3,7 @@ import wx.xrc as xrc
 import random
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from Tribler.vwxGUI.tribler_topButton import tribler_topButton
+from Tribler.CacheDB.CacheDBHandler import MyDBHandler
 
 class ProfileOverviewPanel(wx.Panel):
     def __init__(self, *args, **kw):
@@ -13,8 +14,10 @@ class ProfileOverviewPanel(wx.Panel):
                              'bgPanel_Files', 'perf_Files', 'text_Files', 
                              'bgPanel_Persons', 'perf_Persons', 'text_Persons', 
                              'bgPanel_Download', 'perf_Download', 'text_Download', 
-                             'bgPanel_Presence', 'perf_Presence', 'text_Presence']
+                             'bgPanel_Presence', 'perf_Presence', 'text_Presence',
+                             'st229c']
         self.elements = {}
+        self.data = {} #data related to profile information, to be used in details panel
         if len(args) == 0: 
             pre = wx.PrePanel() 
             # the Create step is done by XRC. 
@@ -36,13 +39,15 @@ class ProfileOverviewPanel(wx.Panel):
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
 #        self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
-        self.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
-        
+#        self.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
         for element in self.elementsName:
             xrcElement = xrc.XRCCTRL(self, element)
             if not xrcElement:
                 print 'profileOverviewPanel: Error: Could not identify xrc element:',element
             self.elements[element] = xrcElement
+
+        my_db = MyDBHandler()
+        self.getGuiElement('st229c').SetLabel(my_db.get('name', ''))
 
         self.buttons = []
         #add mouse over text and progress icon
@@ -137,6 +142,7 @@ class ProfileOverviewPanel(wx.Panel):
         qualityElem = self.getGuiElement("perf_Quality")
         if qualityElem and new_index != qualityElem.getIndex():
             qualityElem.setIndex(new_index)
+            self.data['downloaded_files'] = count
             bShouldRefresh = True
         
         #get the number of similar peers
@@ -149,17 +155,30 @@ class ProfileOverviewPanel(wx.Panel):
         elem = self.getGuiElement("perf_Persons")
         if elem and new_index != elem.getIndex():
             elem.setIndex(new_index)
+            self.data['similar_peers'] = count
+            bShouldRefresh = True
+        
+        #get the number of similar files (tasteful)
+        count = self.guiUtility.data_manager.getRecommendFilesCount()
+        if count > 100:
+            count = 100
+        if count < 0:
+            count = 0
+        new_index = int((count-1)/20)+1
+        elem = self.getGuiElement("perf_Files")
+        if elem and new_index != elem.getIndex():
+            elem.setIndex(new_index)
+            self.data['taste_files'] = count
             bShouldRefresh = True
         
         if bShouldRefresh:
             self.Refresh()
+            #also set data for details panel
+            self.guiUtility.selectData(self.data)
         #wx.CallAfter(self.reloadData) #should be called from time to time
         if not self.timer:
             self.timer = wx.Timer(self, -1)
             self.Bind(wx.EVT_TIMER, self.reloadData, self.timer)
-            self.timer.Start(2000)
+            self.timer.Start(5000)
         
-    def mouseAction(self, event):
-        pass
-#        print "mouse event in panel"
         

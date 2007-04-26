@@ -330,12 +330,14 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                 text = repr(rank)                
                 dc.DrawText(text, 22, 66)
             if self.data.get('friend'):
-                friend = self.mm.get_default('personsMode','FRIEND_BITMAP')
+                if self.data.get('online'):
+                    friend = self.mm.get_default('personsMode','FRIEND_ONLINE_BITMAP')
+                else:
+                    friend = self.mm.get_default('personsMode','FRIEND_OFFLINE_BITMAP')
                 dc.DrawBitmap(friend,60 ,65, True)            
-            if self.data.get('online'):
-                dc.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, False))
-                dc.SetTextForeground('#007303')
-                dc.DrawText('online', 26, 66)
+#                dc.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, False))
+#                dc.SetTextForeground('#007303')
+#                dc.DrawText('online', 26, 66)
         
 #        dc.SetTextForeground(wx.WHITE)
         #dc.DrawText('rating', 5, 60)
