@@ -152,7 +152,7 @@ class GUIUtility:
         
     def standardSubscriptionsOverview(self, filter1String="audio", filter2String="swarmsize"):       
         subscriptionsList = self.reloadData()         
-        self.standardOverview.setMode('subscriptionsMode', '','', subscriptionsList)        
+        self.standardOverview.setMode('subscriptionsMode', filter1String, filter2String, subscriptionsList)        
         self.standardDetails.setMode('subscriptionsMode')
          
     def standardMessagesOverview(self):

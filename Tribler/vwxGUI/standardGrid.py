@@ -4,6 +4,7 @@ from Tribler.vwxGUI.filesItemPanel import FilesItemPanel
 from Tribler.vwxGUI.LibraryItemPanel import LibraryItemPanel
 from Tribler.vwxGUI.PersonsItemPanel import PersonsItemPanel
 from Tribler.vwxGUI.FriendsItemPanel import FriendsItemPanel
+from Tribler.vwxGUI.SubscriptionsItemPanel import SubscriptionsItemPanel
 from Tribler.Dialogs.ContentFrontPanel import ImagePanel, DetailPanel
 from Tribler.Dialogs.GUIServer import GUIServer
 from Tribler.Dialogs.MugshotManager import MugshotManager
@@ -313,8 +314,8 @@ class personsGrid(standardGrid):
 
 class friendsGrid(standardGrid):
     def __init__(self):   
-        columns = 2
-        self.subPanelHeight = 43 # This will be update after first refresh
+        columns = 1
+        self.subPanelHeight = 49 # This will be update after first refresh
         standardGrid.__init__(self, columns, orientation='vertical')
         
     def getSubPanel(self):
@@ -328,3 +329,12 @@ class libraryGrid(standardGrid):
         
     def getSubPanel(self):
         return LibraryItemPanel(self)
+    
+class subscriptionsGrid(standardGrid):
+    def __init__(self):
+        columns = 1
+        self.subPanelHeight = 30 # This will be update after first refresh
+        standardGrid.__init__(self, columns, orientation='horizontal')
+        
+    def getSubPanel(self):
+        return SubscriptionsItemPanel(self)

@@ -39,7 +39,7 @@
                   <option>0</option>
                   <object class="wxStaticText" name="st64cC">
                     <style>wxST_NO_AUTORESIZE</style>
-                    <label>subscriptions</label>
+                    <label>Subscriptions</label>
                     <pos>0,4</pos>
                     <size>269,15</size>
                     <bg>#ff3300</bg>
@@ -64,8 +64,8 @@
         <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>10</border>
         <option>1</option>
-        <object class="wxPanel" name="subscriptionsGrid" subclass="Tribler.vwxGUI.standardGrid.libraryGrid">
-          <pos>10,66</pos>
+        <object class="wxPanel" name="subscriptionsGrid" subclass="Tribler.vwxGUI.standardGrid.subscriptionsGrid">
+          <pos>10,31</pos>
           <size>20,20</size>
         </object>
       </object>

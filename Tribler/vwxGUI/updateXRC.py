@@ -46,6 +46,9 @@ def changeFile(filename):
                      ('friendsOverview', 'wxPanel', customDir+'friendsOverview'), 
                                          
                      ('subscriptionsOverview', 'wxPanel', customDir+'subscriptionsOverview'),                     
+                     ('subscriptionsDetails', 'wxPanel', customDir+'subscriptionsDetails'),                     
+                     ('subscriptionsGrid', 'wxPanel', customDir+'standardGrid'),
+                     
                      ('TasteHeart', 'wxPanel', customDir+'TasteHeart'),
                      ('TextButton', 'wxStaticText', customDir+'TextButton'),
                      ('wxFrame', 'wxFrame', 'abc_vwx')]

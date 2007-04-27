@@ -158,11 +158,9 @@
                   <object class="wxStaticText" name="descriptionFieldCCC">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>Increase the upload speed limit in your preferences (for -Direct Play- and -Video on Demand- you need at least 89 KB/s). 
-
-&lt;button&gt; Take me there! &lt;button&gt;
 </label>
                     <pos>6,167</pos>
-                    <size>284,68</size>
+                    <size>284,48</size>
                     <font>
                       <size>8</size>
                       <family>modern</family>
@@ -171,6 +169,15 @@
                       <underlined>0</underlined>
                       <face>Verdana</face>
                     </font>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxPanel" name="takeMeThere0" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <pos>6,235</pos>
+                    <size>120,21</size>
                   </object>
                 </object>
               </object>
@@ -237,12 +244,9 @@
                   <option>0</option>
                   <object class="wxStaticText" name="descriptionF">
                     <style>wxST_NO_AUTORESIZE</style>
-                    <label>Invite your friends, family, and colleagues to start using Tribler too, and add them to your list of friends. 
-
-&lt;button&gt; Take me there! &lt;button&gt;
-</label>
-                    <pos>6,340</pos>
-                    <size>284,83</size>
+                    <label>Invite your friends, family, and colleagues to start using Tribler too, and add them to your list of friends. </label>
+                    <pos>6,347</pos>
+                    <size>284,48</size>
                     <font>
                       <size>8</size>
                       <family>modern</family>
@@ -251,6 +255,15 @@
                       <underlined>0</underlined>
                       <face>Verdana</face>
                     </font>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxPanel" name="takeMeThere1" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <pos>6,450</pos>
+                    <size>120,21</size>
                   </object>
                 </object>
               </object>
@@ -280,7 +293,7 @@
                   <object class="wxStaticText" name="descriptionFieldCCCCCC">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>You have to open a port on your modem/router to enable other users to connect to you. If you do so the communication between you and your peers will be faster. </label>
-                    <pos>6,447</pos>
+                    <pos>6,446</pos>
                     <size>284,63</size>
                     <font>
                       <size>8</size>
@@ -318,7 +331,7 @@
                   <object class="wxStaticText" name="descriptionFC">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>Read more on &lt;URL&gt; for instructions.</label>
-                    <pos>6,528</pos>
+                    <pos>6,527</pos>
                     <size>284,18</size>
                     <font>
                       <size>8</size>

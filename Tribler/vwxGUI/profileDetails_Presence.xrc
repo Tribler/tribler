@@ -157,12 +157,9 @@
                   <option>0</option>
                   <object class="wxStaticText" name="descriptionF">
                     <style>wxST_NO_AUTORESIZE</style>
-                    <label>Invite your friends, family, and colleagues to start using Tribler too, and add them to your list of friends. 
-
-&lt;button&gt; Take me there! &lt;button&gt;
-</label>
+                    <label>Invite your friends, family, and colleagues to start using Tribler too, and add them to your list of friends. </label>
                     <pos>6,192</pos>
-                    <size>284,83</size>
+                    <size>284,48</size>
                     <font>
                       <size>8</size>
                       <family>modern</family>
@@ -171,6 +168,15 @@
                       <underlined>0</underlined>
                       <face>Verdana</face>
                     </font>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxPanel" name="takeMeThere0" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <pos>3,278</pos>
+                    <size>120,21</size>
                   </object>
                 </object>
               </object>
@@ -200,7 +206,7 @@
                   <object class="wxStaticText" name="descriptionFieldCC">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>Your overall sharing ratio is 0.82. This means that you take more from others than you give back to them. </label>
-                    <pos>6,299</pos>
+                    <pos>6,291</pos>
                     <size>284,48</size>
                     <font>
                       <size>8</size>
@@ -239,7 +245,7 @@
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>To reach a fair sharing ratio, you should share more interesting files for a longer period of time. 
 </label>
-                    <pos>6,365</pos>
+                    <pos>6,357</pos>
                     <size>284,38</size>
                     <font>
                       <size>8</size>
@@ -316,11 +322,9 @@
                   <object class="wxStaticText" name="descriptionFC">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>Update to the newest version 4.0.
-
-&lt;button&gt; Take me there! &lt;button&gt;
 </label>
-                    <pos>6,498</pos>
-                    <size>284,53</size>
+                    <pos>6,485</pos>
+                    <size>284,18</size>
                     <font>
                       <size>8</size>
                       <family>modern</family>
@@ -329,6 +333,15 @@
                       <underlined>0</underlined>
                       <face>Verdana</face>
                     </font>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxPanel" name="takeMeThere1" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <pos>6,538</pos>
+                    <size>120,21</size>
                   </object>
                 </object>
               </object>

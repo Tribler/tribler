@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
+  <object class="wxPanel" name="subscriptionsDetails">
+    <pos>0,0</pos>
+    <size>300,600</size>
+    <object class="wxBoxSizer">
+      <orient>wxVERTICAL</orient>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>0</border>
+        <option>0</option>
+        <object class="wxBoxSizer">
+          <orient>wxHORIZONTAL</orient>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>0</border>
+            <option>0</option>
+            <object class="wxPanel" name="black_top_left" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+              <pos>3,3</pos>
+              <size>10,21</size>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>1</option>
+            <object class="wxPanel" name="titlePanel">
+              <bitmap>images/triblerpanel_topcenter.png</bitmap>
+              <pos>13,3</pos>
+              <size>280,21</size>
+              <bg>#     0</bg>
+              <fg>#ffffff</fg>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="titleField">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>Title
+</label>
+                    <pos>3,3</pos>
+                    <size>280,18</size>
+                    <bg>#     0</bg>
+                    <fg>#ffffff</fg>
+                  </object>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>0</border>
+            <option>0</option>
+            <object class="wxPanel" name="black_top_right" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+              <pos>275,3</pos>
+              <size>10,21</size>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>1</option>
+        <object class="wxPanel" name="detailsC">
+          <pos>0,145</pos>
+          <size>298,238</size>
+          <bg>#ffffff</bg>
+          <object class="wxBoxSizer">
+            <orient>wxVERTICAL</orient>
+            <object class="sizeritem">
+              <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>10</border>
+              <option>0</option>
+              <object class="wxStaticText" name="DescC">
+                <style>wxST_NO_AUTORESIZE</style>
+                <label>   All received files are included in your files overview.</label>
+                <pos>0,10</pos>
+                <size>296,25</size>
+                <bg>#ffffff</bg>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+              <object class="wxStaticText" name="receivedToday">
+                <style>wxST_NO_AUTORESIZE</style>
+                <label>   Today (12)</label>
+                <pos>0,38</pos>
+                <size>296,15</size>
+                <bg>#cbcbcb</bg>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>6</border>
+              <option>0</option>
+              <object class="wxListCtrl" name="subscrTodayField" subclass="Tribler.vwxGUI.tribler_List.tribler_List">
+                <pos>6,59</pos>
+                <size>284,155</size>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+              <object class="wxStaticText" name="receivedYesterday">
+                <style>wxST_NO_AUTORESIZE</style>
+                <label>   Yesterday (4)</label>
+                <pos>0,217</pos>
+                <size>296,15</size>
+                <bg>#cbcbcb</bg>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>6</border>
+              <option>0</option>
+              <object class="wxListCtrl" name="subscrYesterdayField" subclass="Tribler.vwxGUI.tribler_List.tribler_List">
+                <pos>6,240</pos>
+                <size>284,160</size>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxTOP|wxBOTTOM|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>10</border>
+              <option>0</option>
+              <object class="wxPanel" name="Peop" subclass="Tribler.vwxGUI.btn_DetailsHeader.btn_DetailsHeader">
+                <pos>0,398</pos>
+                <size>20,20</size>
+                <object class="wxStaticText" name="receivedTotal">
+                  <style>wxST_NO_AUTORESIZE</style>
+                  <label>Show all received files (213)</label>
+                  <pos>10,0</pos>
+                  <size>204,14</size>
+                  <bg>#cbcbcb</bg>
+                </object>
+              </object>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+        <object class="wxPanel" name="white_bottom" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+          <pos>3,275</pos>
+          <size>300,5</size>
+        </object>
+      </object>
+    </object>
+  </object>
+</resource>

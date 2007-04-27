@@ -464,7 +464,7 @@ Theme=0
 5=1
 13=1
 [Windows7]
-style=wxST_NO_AUTORESIZE
+style=
 Estyle=
 i_stylePN=20
 idIncCmpFilCmp=0
@@ -474,7 +474,7 @@ s_name=descriptionField
 i_index=-1
 i_left=6
 i_top=20
-i_height=98
+i_height=88
 i_width=284
 l_backColor=
 l_foreColor=
@@ -531,8 +531,6 @@ dataObj\\SizRowPos=0
 dataObj\\SizColPos=0
 dataObj\\panelfitInsS=0
 IndexOfS=1
-[Windows7/style]
-20=1
 [Windows7/i_width]
 [Windows7/i_width/Windows7]
 Theme=0
@@ -688,7 +686,7 @@ Theme=0
 style=wxST_NO_AUTORESIZE
 Estyle=
 i_stylePN=20
-idIncCmpFilCmp=2952
+idIncCmpFilCmp=0
 i_tipoComp=600051
 validator=
 s_name=descriptionFieldC
@@ -769,7 +767,7 @@ Theme=0
 style=wxST_NO_AUTORESIZE
 Estyle=
 i_stylePN=20
-idIncCmpFilCmp=2971
+idIncCmpFilCmp=0
 i_tipoComp=600051
 validator=
 s_name=descriptionFieldCCCCC

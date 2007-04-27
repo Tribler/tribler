@@ -101,14 +101,14 @@
             <object class="wxBoxSizer">
               <orient>wxVERTICAL</orient>
               <object class="sizeritem">
-                <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                <border>3</border>
+                <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>6</border>
                 <option>0</option>
                 <object class="wxStaticText" name="st227c">
                   <style>wxST_NO_AUTORESIZE</style>
                   <label>nickname:</label>
-                  <pos>106,69</pos>
-                  <size>94,13</size>
+                  <pos>110,69</pos>
+                  <size>64,23</size>
                 </object>
               </object>
             </object>
@@ -126,8 +126,16 @@
                 <object class="wxStaticText" name="myNameField">
                   <style>wxST_NO_AUTORESIZE</style>
                   <label>Maarten</label>
-                  <pos>213,66</pos>
-                  <size>169,13</size>
+                  <pos>202,66</pos>
+                  <size>169,23</size>
+                  <font>
+                    <size>11</size>
+                    <family>modern</family>
+                    <style>normal</style>
+                    <weight>bold</weight>
+                    <underlined>0</underlined>
+                    <face>Tahoma</face>
+                  </font>
                 </object>
               </object>
             </object>
@@ -168,7 +176,7 @@
             <object class="wxPanel" name="bgPanel_Overall" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
               <pos>0,202</pos>
               <size>600,85</size>
-              <bg>#bfd8d8</bg>
+              <bg>#ffffff</bg>
               <object class="wxBoxSizer">
                 <orient>wxHORIZONTAL</orient>
                 <object class="sizeritem">
