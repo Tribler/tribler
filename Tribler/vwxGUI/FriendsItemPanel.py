@@ -27,7 +27,7 @@ class FriendsItemPanel(wx.Panel):
         self.parent = parent
         self.data = None
         self.datacopy = None
-        self.titleLength = 37 # num characters
+        self.titleLength = 77 # num characters
         self.selected = False
         self.warningMode = False
         self.guiserver = parent.guiserver
@@ -55,13 +55,13 @@ class FriendsItemPanel(wx.Panel):
         self.thumb.SetSize((37,37))
         self.hSizer.Add(self.thumb, 0, wx.ALL, 3)        
         # Add title
-        self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(80,15))        
+        self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(100,15))        
         self.title.SetBackgroundColour(wx.WHITE)
-        self.title.SetFont(wx.Font(12,74,90,wx.NORMAL,0,"Verdana"))
-        self.title.SetMinSize((80,16))
-       # self.hSizer.Add(self.title, 1, wx.BOTTOM, 3)     
+        self.title.SetFont(wx.Font(11,74,90,wx.NORMAL,0,"Verdana"))
+        self.title.SetMinSize((100,15))        
+        self.title.SetLabel('blabla')
         # Add status
-        self.status =wx.StaticText(self,-1,";l",wx.Point(0,0),wx.Size(80,15))        
+        self.status =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(80,12))        
         self.status.SetBackgroundColour(wx.WHITE)
         self.status.SetFont(wx.Font(9,74,90,wx.NORMAL,0,"Verdana"))
         self.status.SetForegroundColour(wx.Colour(128,128,128))        
@@ -69,20 +69,20 @@ class FriendsItemPanel(wx.Panel):
         self.status.SetLabel('blabla')
         
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
-        self.vSizer.Add(self.title,0,wx.TOP,2,wx.EXPAND)
-        self.vSizer.Add(self.status,0,wx.ALL,0)
+        self.vSizer.Add(self.title,1,wx.TOP|wx.EXPAND,3)
+        self.vSizer.Add(self.status,1,wx.TOP|wx.EXPAND,3)
         
-        self.hSizer.Add(self.vSizer, 1, wx.BOTTOM, 0)
+        self.hSizer.Add(self.vSizer, 1, wx.RIGHT|wx.EXPAND, 5)
         # Add Taste similarity
-        self.taste =wx.StaticText(self,-1,";l",wx.Point(0,0),wx.Size(80,15))        
+        self.taste =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(40,15))        
         self.taste.SetBackgroundColour(wx.WHITE)
         self.taste.SetFont(wx.Font(10,74,90,wx.NORMAL,0,"Verdana"))
-        self.taste.SetMinSize((80,30))
-        self.taste.SetLabel('here comes the rank')
-        self.hSizer.Add(self.taste, 1, wx.BOTTOM, 3)
+        self.taste.SetMinSize((40,15))
+        self.taste.SetLabel('heart')
+        self.hSizer.Add(self.taste, 0, wx.TOP|wx.RIGHT, 5)
         
         # Add delete button
-        self.delete = tribler_topButton(self, -1, wx.Point(542,3), wx.Size(17,17),name='delete')                
+        self.delete = tribler_topButton(self, -1, wx.Point(0,0), wx.Size(17,17),name='delete')                
         self.hSizer.Add(self.delete, 0, wx.TOP|wx.RIGHT, 3)
         
 
@@ -170,6 +170,8 @@ class FriendsItemPanel(wx.Panel):
     def getIdentifier(self):
         if self.data:
             return self.data['permid']
+        
+        
                 
 
 class FriendThumbnailViewer(ThumbnailViewer):
@@ -210,7 +212,7 @@ class FriendThumbnailViewer(ThumbnailViewer):
                 friend = self.mm.get_default('personsMode','MASK_BITMAP')
                 dc.DrawBitmap(friend,60 ,65, True)            
             if self.data.get('online'):                
-                self.status.SetLabel('online')
+                self.Parent.status.SetLabel('online')
                 dc.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, False))
                 dc.SetTextForeground('#007303')
                 dc.DrawText('online', 26, 66)

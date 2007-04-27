@@ -378,7 +378,14 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 else:
                     recomm = 4
                 if rank != -1:
-                    self.getGuiObj('recommendationField').SetLabel("%d" % rank + " of 20")
+                    if rank == 1:
+                        self.getGuiObj('recommendationField').SetLabel("%d" % rank + "st of top 20")
+                    if rank == 2:
+                        self.getGuiObj('recommendationField').SetLabel("%d" % rank + "nd of top 20")                        
+                    if rank == 3:
+                        self.getGuiObj('recommendationField').SetLabel("%d" % rank + "rd of top 20")
+                    else:
+                        self.getGuiObj('recommendationField').SetLabel("%d" % rank + "th of top 20")
                 else:
                     self.getGuiObj('recommendationField').SetLabel("")
                 if recomm != -1:
