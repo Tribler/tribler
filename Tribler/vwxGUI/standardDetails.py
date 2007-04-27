@@ -455,6 +455,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             self.getGuiObj('descriptionField', tab = 'profileDetails_Files').SetLabel(text % count)
 
             text = self.utility.lang.get("profileDetails_Overall_description", giveerror=False)
+            print "<mluc> overall rank:",item.get('overall_rank')
             self.getGuiObj('descriptionField').SetLabel(text % item.get('overall_rank'))
 
         self.currentPanel.Refresh()

@@ -133,8 +133,8 @@ class ProfileOverviewPanel(wx.Panel):
             aux_count = 101
         if aux_count < 0:
             aux_count = 0
-        new_index = int((aux_count-1)/20)+1
-        overall_index = overall_index + new_index
+        new_index = int((aux_count-1)/20)+1 #from 0 to 6
+        overall_index = overall_index + new_index*0.1667
         qualityElem = self.getGuiElement("perf_Quality")
         if qualityElem and new_index != qualityElem.getIndex():
             qualityElem.setIndex(new_index)
@@ -148,8 +148,8 @@ class ProfileOverviewPanel(wx.Panel):
             aux_count = 501
         if aux_count < 0:
             aux_count = 0
-        new_index = int((aux_count-1)/100)+1
-        overall_index = overall_index + new_index
+        new_index = int((aux_count-1)/100)+1 #from 0 to 6
+        overall_index = overall_index + new_index*0.1667
         elem = self.getGuiElement("perf_Persons")
         if elem and new_index != elem.getIndex():
             elem.setIndex(new_index)
@@ -163,8 +163,8 @@ class ProfileOverviewPanel(wx.Panel):
             aux_count = 101
         if aux_count < 0:
             aux_count = 0
-        new_index = int((aux_count-1)/20)+1
-        overall_index = overall_index + new_index
+        new_index = int((aux_count-1)/20)+1 #from 0 to 6
+        overall_index = overall_index + new_index*0.1667
         elem = self.getGuiElement("perf_Files")
         if elem and new_index != elem.getIndex():
             elem.setIndex(new_index)
@@ -177,7 +177,7 @@ class ProfileOverviewPanel(wx.Panel):
         #set the overall performance to a random number
         new_index = overall_index #random.randint(0,5) #used only for testing
         elem = self.getGuiElement("perf_Overall")
-        if elem and new_index != elem.getIndex():
+        if elem and new_index != elem.getIndex() or self.data.get('overall_rank') is None:
             elem.setIndex(new_index)
             if new_index < 2:
                 self.data['overall_rank'] = "beginner"
