@@ -23,6 +23,7 @@ import urllib
 original_open_https = urllib.URLopener.open_https
 import M2Crypto
 urllib.URLopener.open_https = original_open_https
+from Tribler.vwxGUI.GuiUtility import GUIUtility
 
 import sys, locale
 import os
@@ -831,6 +832,7 @@ class wxFrame(wx.Frame, DelayedInvocation):
     def onReachable(self,event=None):
         """ Called by GUI thread """
         self.window.sb_buttons.setReachable(True)
+        GUIUtility.getInstance().isReachable = True
 
 
 ##############################################################

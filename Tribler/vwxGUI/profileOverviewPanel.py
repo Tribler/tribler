@@ -135,6 +135,7 @@ class ProfileOverviewPanel(wx.Panel):
             aux_count = 0
         new_index = int((aux_count-1)/20)+1 #from 0 to 6
         overall_index = overall_index + new_index*0.1667
+#        print "<mluc> [after quality] overall=",overall_index
         qualityElem = self.getGuiElement("perf_Quality")
         if qualityElem and new_index != qualityElem.getIndex():
             qualityElem.setIndex(new_index)
@@ -150,6 +151,7 @@ class ProfileOverviewPanel(wx.Panel):
             aux_count = 0
         new_index = int((aux_count-1)/100)+1 #from 0 to 6
         overall_index = overall_index + new_index*0.1667
+#        print "<mluc> [after similar peers] overall=",overall_index
         elem = self.getGuiElement("perf_Persons")
         if elem and new_index != elem.getIndex():
             elem.setIndex(new_index)
@@ -165,15 +167,79 @@ class ProfileOverviewPanel(wx.Panel):
             aux_count = 0
         new_index = int((aux_count-1)/20)+1 #from 0 to 6
         overall_index = overall_index + new_index*0.1667
+#        print "<mluc> [after taste files] overall=",overall_index
         elem = self.getGuiElement("perf_Files")
         if elem and new_index != elem.getIndex():
             elem.setIndex(new_index)
             self.data['taste_files'] = count
             bShouldRefresh = True
 
+
+        #set the download stuff
+        dvalue = 0
+        #get upload rate, download rate, upload slots: maxupload': '5', 'maxuploadrate': '0', 'maxdownloadrate': '0'
+        maxuploadrate = self.guiUtility.utility.config.Read('maxuploadrate', 'int') #kB/s
+        maxuploadslots = self.guiUtility.utility.config.Read('maxupload', "int")
+        maxdownloadrate = self.guiUtility.utility.config.Read('maxdownloadrate', "int")
+        value = 0
+        if maxuploadrate == 0:
+            value = 20
+        else:
+            value = maxuploadrate
+            if maxuploadrate > 2000:
+                value = 2000
+            if maxuploadrate < 0:
+                value = 0
+            value = int(value/100)
+        dvalue = dvalue + value
+        value = 0
+        if maxdownloadrate == 0:
+            value = 20
+        else:
+            value = maxdownloadrate
+            if maxdownloadrate > 2000:
+                value = 2000
+            if maxdownloadrate < 0:
+                value = 0
+            value = int(value/100)
+        dvalue = dvalue + value
+        value = 0
+        if maxuploadslots == 0:
+            value = 10
+        else:
+            value = maxuploadslots
+            if maxuploadslots > 10:
+                value = 10
+            if maxuploadslots < 0:
+                value = 0
+            value = int(value)
+        dvalue = dvalue + value
+        #set the reachability value
+        value = 0
+        if self.guiUtility.isReachable:
+            value = 20
+        dvalue = dvalue + value
+        #and the number of friends
+        value = self.guiUtility.peer_manager.getCountOfFriends()
+        self.data['friends_count'] = value
+        if value > 20:
+            value = 20
+        if value < 0:
+            value = 0
+        dvalue = dvalue + value #from 0 to 90
+        new_index  = int((dvalue-1)*0.0667+1) #from 0 to 6
+        overall_index = overall_index + dvalue/60.0
+#        print "<mluc> [after downloads] overall=",overall_index
+        elem = self.getGuiElement("perf_Download")
+        if elem and new_index != elem.getIndex():
+            elem.setIndex(new_index)
+            bShouldRefresh = True
+
+#        print "<mluc> [before] overall index is",overall_index
         overall_index = int(overall_index)
         if overall_index > 6:
             overall_index = 6
+#        print "<mluc> [after] overall index is",overall_index
         #set the overall performance to a random number
         new_index = overall_index #random.randint(0,5) #used only for testing
         elem = self.getGuiElement("perf_Overall")

@@ -33,6 +33,7 @@ class GUIUtility:
         self.peer_manager = PeerDataManager.getInstance() #the updateFunc is called after the data is updated in the peer manager so that the GUI has the newest information
         self.peer_manager.register(self.updateFun, 'all')
         self.selectedMainButton = None
+        self.isReachable = False #reachability flag / port forwarding enabled / accessible from the internet
             
     def getInstance(*args, **kw):
         if GUIUtility.__single is None:

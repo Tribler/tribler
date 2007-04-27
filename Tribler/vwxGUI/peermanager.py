@@ -407,3 +407,10 @@ class PeerDataManager(DelayedEventHandler):
             if peer_data['similarity'] > 20:
                 count = count + 1
         return count
+    
+    def getCountOfFriends(self):
+        count = 0
+        for peer_data in self.data:
+            if peer_data['friend']:
+                count = count + 1
+        return count    
