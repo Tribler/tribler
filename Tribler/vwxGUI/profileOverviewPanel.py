@@ -15,7 +15,7 @@ class ProfileOverviewPanel(wx.Panel):
                              'bgPanel_Persons', 'perf_Persons', 'text_Persons', 
                              'bgPanel_Download', 'perf_Download', 'text_Download', 
                              'bgPanel_Presence', 'perf_Presence', 'text_Presence',
-                             'st229c']
+                             'myNameField']
         self.elements = {}
         self.data = {} #data related to profile information, to be used in details panel
         if len(args) == 0: 
@@ -47,7 +47,7 @@ class ProfileOverviewPanel(wx.Panel):
             self.elements[element] = xrcElement
 
         my_db = MyDBHandler()
-        self.getGuiElement('st229c').SetLabel(my_db.get('name', ''))
+        self.getGuiElement('myNameField').SetLabel(my_db.get('name', ''))
 
         self.buttons = []
         #add mouse over text and progress icon

@@ -111,17 +111,6 @@
                   <size>94,13</size>
                 </object>
               </object>
-              <object class="sizeritem">
-                <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                <border>3</border>
-                <option>0</option>
-                <object class="wxStaticText" name="fdsfds">
-                  <style>wxST_NO_AUTORESIZE</style>
-                  <label>e-mail address:</label>
-                  <pos>106,85</pos>
-                  <size>94,18</size>
-                </object>
-              </object>
             </object>
           </object>
           <object class="sizeritem">
@@ -134,22 +123,11 @@
                 <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
                 <border>3</border>
                 <option>0</option>
-                <object class="wxStaticText" name="st229c">
+                <object class="wxStaticText" name="myNameField">
                   <style>wxST_NO_AUTORESIZE</style>
                   <label>Maarten</label>
-                  <pos>206,69</pos>
+                  <pos>213,66</pos>
                   <size>169,13</size>
-                </object>
-              </object>
-              <object class="sizeritem">
-                <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                <border>3</border>
-                <option>0</option>
-                <object class="wxStaticText" name="st230c">
-                  <style>wxST_NO_AUTORESIZE</style>
-                  <label>maartentenbrinke@gmail.com</label>
-                  <pos>206,85</pos>
-                  <size>169,18</size>
                 </object>
               </object>
             </object>
@@ -162,8 +140,8 @@
         <option>0</option>
         <object class="wxStaticText" name="st219cC">
           <style>wxST_NO_AUTORESIZE</style>
-          <label>   Statistics</label>
-          <pos>0,161</pos>
+          <label>   Performance</label>
+          <pos>0,155</pos>
           <size>617,18</size>
           <bg>#     0</bg>
           <fg>#ffffff</fg>
