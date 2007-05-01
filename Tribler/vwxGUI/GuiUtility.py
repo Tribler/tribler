@@ -9,6 +9,7 @@ from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 from Tribler.Dialogs.abcfileframe import TorrentDataManager
 from peermanager import PeerDataManager
 from Tribler.utilities import *
+from Utility.constants import *
 
 DEBUG = True
 
@@ -75,6 +76,21 @@ class GUIUtility:
         elif name.startswith('bgPanel') and obj.GetParent().GetName() == "profileOverview":
             self.standardOverview.currentPanel.sendClick(event)
             self.detailsTabClicked(name) #a panel was clicked in the profile overview and this is the most elegant so far method of informing the others
+        elif name == "takeMeThere0" : #a button to go to preferences was clicked
+            panel_name = self.standardDetails.currentPanel.GetName()
+            if panel_name == "profileDetails_Download":
+                self.utility.actions[ACTION_PREFERENCES].action()
+            elif panel_name == "profileDetails_Presence":
+                self.mainButtonClicked( 'mainButtonPersons', self.frame.mainButtonPersons)
+            #generate event to change page -> this should be done as a parameter to action because is modal
+            #event = wx.TreeEvent(wx.EVT_TREE_ITEM_ACTIVATED)
+            #wx.PostEvent()
+        elif name == "takeMeThere1": #switch to another view
+            panel_name = self.standardDetails.currentPanel.GetName()
+            if panel_name == "profileDetails_Download":
+                self.mainButtonClicked( 'mainButtonPersons', self.frame.mainButtonPersons)
+            else:
+                print 'A button was clicked, but no action is defined for: %s' % name
         else:
             print 'A button was clicked, but no action is defined for: %s' % name
                 

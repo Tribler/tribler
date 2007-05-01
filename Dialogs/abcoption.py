@@ -1456,7 +1456,7 @@ class VideoPanel(ABCOptionPanel):
 
         mode = Read('videoplaybackmode', "int")
         for index in self.playback_indices:
-            if self.playback_indices[index] == mode:
+            if index == mode:
                 self.playback_chooser.SetSelection(index)
         
         value = Read('videoplayerpath')
@@ -1593,6 +1593,7 @@ class ABCTree(wx.TreeCtrl):
         if self.dialog.closing or event is None:
             return
 
+        print "<mluc> event type:", event.GetEventType()
         newitem = event.GetItem()
         newpanel = None
         foundnew = False
