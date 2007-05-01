@@ -39,7 +39,7 @@
                   <flag>wxFIXED_MINSIZE</flag>
                   <border>3</border>
                   <option>0</option>
-                  <object class="tribler_topButton" name="playerPlay">
+                  <object class="tribler_topButton" name="playerPause">
                     <pos>356,0</pos>
                     <size>75,85</size>
                   </object>
