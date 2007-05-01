@@ -22,7 +22,7 @@ class GUIUtility:
         GUIUtility.__single = self 
         # do other init
         
-        self.guiObjects = {}
+        self.categorykey = None
         self.xrcResource = None
         self.type = 'swarmsize'
         self.filesFilter1 = None
@@ -30,9 +30,9 @@ class GUIUtility:
         self.utility = utility
         self.params = params
         self.data_manager = TorrentDataManager.getInstance(self.utility)
-        self.data_manager.register(self.updateFun, 'all')
+
         self.peer_manager = PeerDataManager.getInstance() #the updateFunc is called after the data is updated in the peer manager so that the GUI has the newest information
-        self.peer_manager.register(self.updateFun, 'all')
+        self.peer_manager.register(self.updateFunPersons, 'all')
         self.selectedMainButton = None
         self.isReachable = False #reachability flag / port forwarding enabled / accessible from the internet
             
@@ -44,8 +44,15 @@ class GUIUtility:
     
     
     def setCategory(self, cat, sort):
-        print 'Category set to %s' % cat            
+        print 'Category set to %s' % cat
+        
+        # Unregister for old category
+        if self.categorykey:
+            self.data_manager.unregister(self.updateFunTorrents, self.categorykey)
+        
+        # Register for new one    
         self.categorykey = cat
+        self.data_manager.register(self.updateFunTorrents, self.categorykey)
         self.type = sort
         return self.reloadData()
         
@@ -212,9 +219,7 @@ class GUIUtility:
         
         return active+inactive
         
-    def updateFun(self, torrent, operate):    
-        print "Updatefun called"
-        
+   
     def initStandardOverview(self, standardOverview):
         "Called by standardOverview when ready with init"
         self.standardOverview = standardOverview
@@ -284,4 +289,11 @@ class GUIUtility:
             self.standardOverview.refreshTorrentStats()
         except:
             print 'GuiUtility: Error refreshing stats'
+   
+    def updateFunTorrents(self, torrent, operate):    
+        print "UpdatefunTorrents called"
+        
+    def updateFunPersons(self, torrent, operate):    
+        print "UpdatefunPersons called"
     
+         

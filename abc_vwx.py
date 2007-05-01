@@ -334,13 +334,13 @@ class ABCTaskBarIcon(wx.TaskBarIcon):
 
 ##############################################################
 #
-# Class : ABCFrame
+# Class : ABColdFrame
 #
 # Main ABC Frame class that contains menu and menu bar management
 # and contains ABCPanel
 #
 ############################################################## 
-class ABCFrame(wx.Frame,DelayedInvocation):
+class ABCOldFrame(wx.Frame,DelayedInvocation):
     def __init__(self, ID, params, utility):
         self.utility = utility
         #self.utility.frame = self
@@ -367,7 +367,7 @@ class ABCFrame(wx.Frame,DelayedInvocation):
 
 
 # Custom class loaded by XRC
-class wxFrame(wx.Frame, DelayedInvocation):
+class ABCFrame(wx.Frame, DelayedInvocation):
     def __init__(self, *args):
         if len(args) == 0:
             pre = wx.PreFrame()
@@ -427,7 +427,7 @@ class wxFrame(wx.Frame, DelayedInvocation):
         #self.abc_sb = self.window.abc_sb
         
         
-        self.oldframe = ABCFrame(-1, self.params, self.utility)
+        self.oldframe = ABCOldFrame(-1, self.params, self.utility)
         self.oldframe.Refresh()
         self.oldframe.Layout()
         self.oldframe.Show(True)

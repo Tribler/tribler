@@ -113,8 +113,9 @@ class standardGrid(wx.Panel):
         # Get key to compare this item to others
         key = None
         for tempkey in ['infohash', 'permid', 'content_name']:
-            if item.has_key('infohash'):
+            if item.has_key(tempkey):
                 key = tempkey
+                break
         if not key:
             print 'standardGrid: Error, could not find key to compare item: %s' % item
             return

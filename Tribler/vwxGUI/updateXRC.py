@@ -21,19 +21,16 @@ def changeFile(filename):
                      ('standardDetails', 'wxPanel', customDir+'standardDetails'),                     
                      ('standardPager', 'wxPanel', customDir+'standardPager'),
                      
-                     ('filesOverview', 'wxPanel', customDir+'filesOverview'),                     
-                     ('filesFilter', 'wxPanel', customDir+'filesFilter'),
-                     ('filesItem', 'wxPanel', customDir+'filesItem'),    
-                     ('filesTabs', 'wxPanel', customDir+'filesTabs'), 
+                     ('filesFilter', 'wxPanel', customDir+'standardFilter'),
                      ('filesDetails', 'wxPanel', customDir+'filesDetails'), 
                      ('filesGrid', 'wxPanel', customDir+'standardGrid'),
                      
-                     ('personsOverview', 'wxPanel', customDir+'personsOverview'),
-                     ('personsFilter', 'wxPanel', customDir+'personsFilter'),                     
-                     ('personsGrid', 'wxPanel', customDir+'standardGrid'),
+                     ('personsFilter', 'wxPanel', customDir+'standardFilter'),                     
                      ('personsDetails', 'wxPanel', customDir+'personsDetails'),
+                     ('personsGrid', 'wxPanel', customDir+'standardGrid'),
                       
                      ('libraryGrid', 'wxPanel', customDir+'standardGrid'),
+                     ('libraryFilter', 'wxPanel', customDir+'standardFilter'),
                      ('libraryDetails', 'wxPanel', customDir+'libraryDetails'),
                      
                      #('profileOverview', 'wxPanel', customDir+'ProfileOverviewPanel'),
@@ -43,19 +40,20 @@ def changeFile(filename):
                      ('profileDetails', 'wxPanel', customDir+'profileDetails'),
                      
                      ('friendsGrid', 'wxPanel', customDir+'standardGrid'),
-                     ('friendsOverview', 'wxPanel', customDir+'friendsOverview'), 
+                     ('friendsFilter', 'wxPanel', customDir+'standardFilter'), 
                                          
                      ('subscriptionsOverview', 'wxPanel', customDir+'subscriptionsOverview'),                     
                      ('subscriptionsDetails', 'wxPanel', customDir+'subscriptionsDetails'),                     
                      ('subscriptionsGrid', 'wxPanel', customDir+'standardGrid'),
                      
                      ('TasteHeart', 'wxPanel', customDir+'TasteHeart'),
-                     ('TextButton', 'wxStaticText', customDir+'TextButton'),
-                     ('wxFrame', 'wxFrame', 'abc_vwx')]
+                     ('TextButton', 'wxStaticText', customDir+'TextButton')
+                     ]
     
     # Define all used custom classes here and the related wxPython classes. They will be replaced by the regexp.
     # (objectName, subClassName)
-    customSubClasses = [('profileOverview', customDir+'profileOverviewPanel.ProfileOverviewPanel')]
+    customSubClasses = [('profileOverview', customDir+'profileOverviewPanel.ProfileOverviewPanel'),
+                        ('MyFrame', 'abc_vwx.ABCFrame')] # no customDir, abc_vwx.py is in root dir
     
     
     for (customClass, wxClass, customFile) in customClasses:
