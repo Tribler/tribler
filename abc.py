@@ -495,7 +495,7 @@ class ABCFrame(wx.Frame,DelayedInvocation):
                     dialog.Destroy()
         """
         self.videoplayer = VideoPlayer.getInstance()
-        self.videoplayer.register(self.utility,self)
+        self.videoplayer.register(self.utility)
         self.videoserver = VideoHTTPServer.getInstance()
         self.videoserver.background_serve()
 
