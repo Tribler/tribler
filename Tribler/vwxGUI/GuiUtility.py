@@ -3,6 +3,8 @@ from wx import xrc
 from bgPanel import *
 import updateXRC
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
+from traceback import print_exc,print_stack
+from threading import Event
 
 #from Tribler.vwxGUI.filesFilter import filesFilter
 
@@ -35,6 +37,7 @@ class GUIUtility:
         self.peer_manager.register(self.updateFunPersons, 'all')
         self.selectedMainButton = None
         self.isReachable = False #reachability flag / port forwarding enabled / accessible from the internet
+        self.guiOpen = Event()
             
     def getInstance(*args, **kw):
         if GUIUtility.__single is None:
@@ -204,7 +207,7 @@ class GUIUtility:
         activeInfohashes = {}
         active = []
         inactive = []
-        for torrent in self.utility.torrents['active']:
+        for torrent in self.utility.torrents['all']:
             activeInfohashes[torrent.torrent_hash] = torrent
             
         self.categorykey = self.utility.lang.get('mypref_list_title')
@@ -228,7 +231,8 @@ class GUIUtility:
         # Preselect mainButtonFiles
         filesButton = xrc.XRCCTRL(self.frame, 'mainButtonFiles')
         filesButton.setSelected(True)
-        self.selectedMainButton = filesButton 
+        self.selectedMainButton = filesButton
+        self.guiOpen.set()
      
     def getOverviewElement(self):
         """should get the last selected item for the current standard overview, or
@@ -284,16 +288,16 @@ class GUIUtility:
             check.start()
             
     def refreshTorrentStats(self):
-        "Called from launchmanycore to refresh statistics of downloading torrents"
+        "Called from launchmanycore by network thread to refresh statistics of downloading torrents"
         try:
-            self.standardOverview.refreshTorrentStats()
+            if self.guiOpen.isSet():
+                self.standardOverview.refreshTorrentStats_network_callback()
         except:
             print 'GuiUtility: Error refreshing stats'
+            print_exc()
    
     def updateFunTorrents(self, torrent, operate):    
-        print "UpdatefunTorrents called"
+        print "GUIUtility: UpdatefunTorrents called"
         
     def updateFunPersons(self, torrent, operate):    
-        print "UpdatefunPersons called"
-    
-         
+        print "GUIUtility: UpdatefunPersons called"

@@ -222,9 +222,6 @@ class ABCEngine(DelayedEventHandler):
         #    self.shutdown()
         #    return
 
-        
-        self.torrent.engine_started()
-
         self.dow.startRerequester()
 
         self.statsfunc = self.dow.startStats()
@@ -463,6 +460,10 @@ class ABCEngine(DelayedEventHandler):
 #            # or is destroyed first
 #            print Exception, msg
 #        
+
+        # Save summary of map of downloaded pieces
+        self.torrent.status.setHaveDigest(havedigest)
+
         if self.torrent.status.value == STATUS_HASHCHECK and self.working:
             # Skip on ahead to the normal procedure if the torrent was active
             # before doing the hashcheck
@@ -473,9 +474,6 @@ class ABCEngine(DelayedEventHandler):
                 return
             else:
                 self.torrent.status.updateStatus(STATUS_ACTIVE)
-        
-            # Save summary of map of downloaded pieces
-            self.torrent.status.setHaveDigest(havedigest)
         
         
     # TODO: Workaround for multiport not reporting

@@ -1,11 +1,13 @@
 import wx, math, time, os, sys, threading
-from traceback import print_exc
+from traceback import print_exc,print_stack
 from Tribler.utilities import *
 from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.vwxGUI.tribler_topButton import tribler_topButton
 from Tribler.vwxGUI.GuiUtility import GUIUtility
-from Tribler.vwxGUI.TriblerProgressbar import TriblerProgressbar
+#from Tribler.vwxGUI.TriblerProgressbar import TriblerProgressbar
 from Tribler.vwxGUI.filesItemPanel import ThumbnailViewer
+from Tribler.Video.VideoPlayer import VideoPlayer
+from Tribler.Video.Progress import ProgressBar
 from Tribler.unicode import *
 from tribler_topButton import *
 from copy import deepcopy
@@ -79,7 +81,8 @@ class LibraryItemPanel(wx.Panel):
         self.hSizer.Add(self.vSizerTitle, 0, wx.ALL|wx.EXPAND, 3)     
         
         # Add Gauge/progressbar
-        self.pb = TriblerProgressbar(self,-1,wx.Point(359,0),wx.Size(80,15))
+        #self.pb = TriblerProgressbar(self,-1,wx.Point(359,0),wx.Size(80,15))
+        self.pb = ProgressBar(self,pos=wx.Point(359,0),size=wx.Size(100,15))
         #self.pb = wx.Panel(self)
         self.pause = tribler_topButton(self, -1, wx.Point(542,3), wx.Size(17,17),name='pause' )
         self.delete = tribler_topButton(self, -1, wx.Point(542,3), wx.Size(17,17),name='delete')        
@@ -132,7 +135,15 @@ class LibraryItemPanel(wx.Panel):
         self.playFast = tribler_topButton(self, name="playFast")
         self.playFast.setBackground(wx.BLACK)
         self.playFast.SetSize((84,37))
+        self.playFast.Hide()
         self.hSizer.Add(self.playFast, 0, wx.TOP, 2) 
+
+        # Play
+        self.playerPlay = tribler_topButton(self, name="playerPlay")
+        self.playerPlay.setBackground(wx.BLACK)
+        self.playerPlay.SetSize((84,37))
+        self.playerPlay.Hide()
+        self.hSizer.Add(self.playerPlay, 0, wx.TOP, 2) 
         
         # Add Refresh        
         self.SetSizer(self.hSizer);
@@ -149,6 +160,11 @@ class LibraryItemPanel(wx.Panel):
         
     def setData(self, torrent):
         # set bitmap, rating, title
+        
+        if threading.currentThread().getName() != "MainThread":
+            print >>sys.stderr,"lip: setData called by nonMainThread!",threading.currentThread().getName()
+            print_stack()
+
 
         self.data = torrent
         
@@ -163,8 +179,7 @@ class LibraryItemPanel(wx.Panel):
             #print '%s is an active torrent' % torrent['content_name']
             abctorrent = torrent['abctorrent']
             abctorrent.setLibraryPanel(self)
-            self.pb.setEnabled(True)
-            self.playFast.Show()
+            #self.pb.setEnabled(True)
             self.fileProgress.Show()
             self.speedUp2.Show()
             self.speedDown2.Show()
@@ -173,14 +188,59 @@ class LibraryItemPanel(wx.Panel):
             self.speedDown2.SetLabel(self.utility.lang.get('down')+': '+dls) 
             uls = abctorrent.getColumnText(COL_ULSPEED)
             self.speedUp2.SetLabel(self.utility.lang.get('up')+': '+uls)
-            progress = abctorrent.getColumnText(COL_PROGRESS)[:-1]
-            self.pb.setPercentage(float(progress))
-            eta = abctorrent.getColumnText(COL_ETA)
-            self.pb.setETA(eta)
+            progresstxt = abctorrent.getColumnText(COL_PROGRESS)[:-1]
+            progress = float(progresstxt)
+            #self.pb.setPercentage(progress)
+            #eta = abctorrent.getColumnText(COL_ETA)
+            #self.pb.setETA(eta)
+            
+            #print >>sys.stderr,"lip: Progress is",progress,torrent['content_name']
+            
+            switchable = False
+            playable = False
+            havedigest = None
+            statustxt = abctorrent.status.getStatusText()
+            if statustxt != self.utility.lang.get('waiting'):
+                if abctorrent.get_on_demand_download():
+                    progressinf = abctorrent.get_progressinf()
+                    havedigest = abctorrent.status.getHaveDigest()
+                    havedigest2 = progressinf.get_bufferinfo()
+                    playable = havedigest2.get_playable()
+                    switchable = False
+                else:
+                    havedigest = abctorrent.status.getHaveDigest()
+                    playable = (progress == 100.0)
+                    if not playable:
+                        switchable = True
+                    
+            if havedigest is not None:
+                self.pb.set_blocks(havedigest.get_blocks())
+                self.pb.Refresh()
+            elif progress == 100.0:
+                self.pb.reset(colour=2) # Show as complete
+                self.pb.Refresh()
+            elif progress > 0:
+                self.pb.reset(colour=1) # Show as having some
+                self.pb.Refresh()
+            else:
+                self.pb.reset(colour=0) # Show has having none
+                self.pb.Refresh()
+                
+            if playable:
+                self.playerPlay.Show()
+                
+            if switchable:
+                self.playFast.Show()
+            else:                
+                self.playFast.Hide()
+                
+                
             dlsize = abctorrent.getColumnText(COL_DLANDTOTALSIZE)
             self.fileProgress.SetLabel(dlsize)
         else:
-            self.pb.setEnabled(False)
+            #self.pb.setEnabled(False)
+            self.pb.reset()
+            self.pb.Refresh()
             self.speedUp2.Hide()
             self.speedDown2.Hide()
             self.playFast.Hide()
@@ -243,8 +303,12 @@ class LibraryItemPanel(wx.Panel):
                     abctorrent.actions.pause()
                     playBitmap = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'play.png'))
                     obj.switchTo(playBitmap)
-            
-                
+            elif name == 'playFast':
+                self.switch_to_vod(abctorrent)
+            elif name == 'playerPlay':
+                self.play(abctorrent)
+          
+        print >>sys.stderr,"lip: mouseaction: name",event.GetEventObject().GetName()
             
         self.SetFocus()
         if self.data:
@@ -252,5 +316,15 @@ class LibraryItemPanel(wx.Panel):
         event.Skip()
                 
                 
-DEFAULT_THUMB = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'defaultThumb.png'))
+    def switch_to_vod(self,ABCTorrentTemp):
+        videoplayer = VideoPlayer.getInstance()
+        videoplayer.play(ABCTorrentTemp)
+                        
+    def play(self,ABCTorrentTemp):
+        videoplayer = VideoPlayer.getInstance()
+        if ABCTorrentTemp.get_on_demand_download():
+            videoplayer.vod_start_playing(ABCTorrentTemp)
+        else:
+            videoplayer.play(ABCTorrentTemp)
 
+        

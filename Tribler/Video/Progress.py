@@ -14,10 +14,12 @@ class BufferInfo:
     SOMEFILL = ".-+="
     ALLFILL = "#"
 
-    def __init__(self,numbuckets=100):
+    def __init__(self,numbuckets=100,full=False):
         self.numbuckets = numbuckets
         self.playable = False
         self.movieselector = None
+        if full == True:
+            self.tricolore = [2] * self.numbuckets
     
     def set_numpieces(self,numpieces):
         self.numpieces = numpieces
@@ -86,6 +88,9 @@ class BufferInfo:
         else:
             return 0.0
 
+    def get_blocks(self):
+        return self.tricolore
+
 
 class ProgressInf:
     def __init__(self):
@@ -110,16 +115,16 @@ class ProgressBar(wx.Control):
         self.colours = colours
         self.pens    = [wx.Pen(c,0) for c in self.colours]
         self.brushes = [wx.Brush(c) for c in self.colours]
-        self.blocks = [0] * 100
+        self.reset()
 
         style = wx.NO_BORDER
         wx.Control.__init__(self, parent, -1, style=style)
-        self.SetMaxSize((-1,20))
-        self.SetMinSize((50,20))
+        self.SetMaxSize((-1,15))
+        self.SetMinSize((100,15))
         self.SetBackgroundColour(wx.WHITE)
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.SetSize((-1,20))
+        self.SetSize((-1,15))
 
         self.progressinf = None
 
@@ -154,3 +159,6 @@ class ProgressBar(wx.Control):
     def set_blocks(self,blocks):
         """ Called by MainThread """
         self.blocks = blocks
+
+    def reset(self,colour=0):
+        self.blocks = [colour] * 100

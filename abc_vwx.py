@@ -23,7 +23,6 @@ import urllib
 original_open_https = urllib.URLopener.open_https
 import M2Crypto
 urllib.URLopener.open_https = original_open_https
-from Tribler.vwxGUI.GuiUtility import GUIUtility
 
 import sys, locale
 import os
@@ -56,12 +55,12 @@ from Utility.constants import * #IGNORE:W0611
 from Tribler.__init__ import tribler_init, tribler_done
 from Tribler.Dialogs.ContentFrontPanel import *
 from BitTornado.__init__ import product_name
-from safeguiupdate import DelayedInvocation
+from safeguiupdate import DelayedInvocation,FlaglessDelayedInvocation
 import webbrowser
 from Tribler.Dialogs.MugshotManager import MugshotManager
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 import Tribler.vwxGUI.updateXRC as updateXRC
-from Tribler.Video.VideoPlayer import VideoPlayer
+from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
 from Tribler.Video.VideoServer import VideoHTTPServer
 from Tribler.Dialogs.GUIServer import GUIServer
 from Tribler.vwxGUI.TasteHeart import set_tasteheart_bitmaps
@@ -340,7 +339,7 @@ class ABCTaskBarIcon(wx.TaskBarIcon):
 # and contains ABCPanel
 #
 ############################################################## 
-class ABCOldFrame(wx.Frame,DelayedInvocation):
+class ABCOldFrame(wx.Frame,FlaglessDelayedInvocation):
     def __init__(self, ID, params, utility):
         self.utility = utility
         #self.utility.frame = self
@@ -352,8 +351,7 @@ class ABCOldFrame(wx.Frame,DelayedInvocation):
         
         wx.Frame.__init__(self, None, ID, title, size = size, style = style)
         
-        self.doneflag = Event()
-        DelayedInvocation.__init__(self)
+        FlaglessDelayedInvocation.__init__(self)
 
         self.GUIupdate = True
 
@@ -506,6 +504,23 @@ class ABCFrame(wx.Frame, DelayedInvocation):
             # Update torrent.list, but after having read the old list of torrents, otherwise we get interference
             ABCTorrentTemp.torrentconfig.writeSrc(False)
             self.utility.torrentconfig.Flush()
+
+        self.videoFrame = None
+        try:
+            feasible = return_feasible_playback_modes()
+            if PLAYBACKMODE_INTERNAL in feasible:
+                # This means vlc is available
+                from Tribler.Video.EmbeddedPlayer import VideoFrame
+                self.videoFrame = VideoFrame(self)
+
+                #self.videores = xrc.XmlResource("Tribler/vwxGUI/MyPlayer.xrc")
+                #self.videoframe = self.videores.LoadFrame(None, "MyPlayer")
+                #self.videoframe.Show()
+                
+                videoplayer = VideoPlayer.getInstance()
+                videoplayer.set_parentwindow(self.videoFrame)
+        except:
+            print_exc()
 
         sys.stdout.write('GUI Complete.\n')
 
@@ -842,7 +857,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
 # Main ABC application class that contains ABCFrame Object
 #
 ##############################################################
-class ABCApp(wx.App,DelayedInvocation):
+class ABCApp(wx.App,FlaglessDelayedInvocation):
     def __init__(self, x, params, single_instance_checker, abcpath):
         self.params = params
         self.single_instance_checker = single_instance_checker
@@ -858,7 +873,7 @@ class ABCApp(wx.App,DelayedInvocation):
             sys.stdout.write('Client Starting Up.\n')
             sys.stdout.write('Build: ' + self.utility.lang.get('build') + '\n')
 
-            tribler_init(self.utility.getConfigPath(),self.utility.getPath())
+            tribler_init(self.utility.getConfigPath(),self.utility.getPath(),self.db_exception_handler)
             self.utility.setTriblerVariables()
             self.utility.postAppInit()
             
@@ -929,11 +944,15 @@ class ABCApp(wx.App,DelayedInvocation):
 
         return True
 
-    def onError(self):
+    def onError(self,source=None):
         # Don't use language independence stuff, self.utility may not be
         # valid.
-        msg = "An error occured during Tribler startup:\n\n"
+        msg = "Unfortunately, Tribler ran into an internal error:\n\n"
+        if source is not None:
+            msg += source
         msg += str(self.error.__class__)+':'+str(self.error)
+        msg += '\n'
+        msg += 'Please see the FAQ on www.tribler.org on how to act.'
         dlg = wx.MessageDialog(None, msg, "Tribler Fatal Error", wx.OK|wx.ICON_ERROR)
         result = dlg.ShowModal()
         print_exc()
@@ -948,7 +967,13 @@ class ABCApp(wx.App,DelayedInvocation):
         ClientPassParam("Close Connection")
 
         return 0
-        
+    
+    def db_exception_handler(self,e):
+        if DEBUG:
+            print "abc: Database Exception handler called"
+        self.error = e
+        self.invokeLater(self.onError,[],{'source':"The database layer reported: "})
+    
     def getConfigPath(self):
         return self.utility.getConfigPath()
     

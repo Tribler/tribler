@@ -432,9 +432,14 @@ class MovieOnDemandTransporter(MovieTransport):
 
         # number of pieces in buffer
         self.pieces_in_buffer = 0
+        #
+        # Arno, 2007-05-01: TODO: clean up. I now use the StorageWrapper info
+        # on which pieces are in directly as for non-VOD torrents. The only
+        # part of progress inf used here is to see when things become playable.
+        # 
         self.progressinf = progressinf
         self.bufferinfo = progressinf.get_bufferinfo()
-        self.bufferinfo.set_numpieces(self.movieselector.num_movie_pieces())
+        #self.bufferinfo.set_numpieces(self.movieselector.num_movie_pieces())
         self.bufferinfo.set_movieselector(movieselector)
         self.progressinf.bufferinfo_updated_callback()
 
@@ -673,8 +678,8 @@ class MovieOnDemandTransporter(MovieTransport):
             print >>sys.stderr,"vod: trans: Complete piece %d (absolute: %d, offset %d)" % (piece,abspiece, bpiece)
         """
 
-        self.bufferinfo.complete( piece )
-        self.progressinf.bufferinfo_updated_callback()
+        #self.bufferinfo.complete( piece )
+        #self.progressinf.bufferinfo_updated_callback()
 
         if downloaded:
             self.downloadrate.update_rate( self.movieselector.piece_length )
@@ -986,5 +991,5 @@ class MovieOnDemandTransporter(MovieTransport):
 
     def notify_playable(self):
         self.bufferinfo.set_playable()
-        self.progressinf.bufferinfo_updated_callback()
+        #self.progressinf.bufferinfo_updated_callback()
 

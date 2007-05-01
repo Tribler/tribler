@@ -113,7 +113,7 @@ class TorrentStatus:
             if update:
                 self.torrent.torrentconfig.writeStatus()
         
-    def setHaveDigest(selfs,havedigest):
+    def setHaveDigest(self,havedigest):
         self.havedigest = havedigest
         
     def getHaveDigest(self):

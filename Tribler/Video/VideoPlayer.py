@@ -189,20 +189,18 @@ class VideoPlayer:
             # The resume procedure does not start the BT1Download class right away,
             # it must wait for the hashchecks scheduled on the network thread to
             # finish.    
-            ABCTorrentTemp.set_vod_started_callback(self.vod_started)
+            #ABCTorrentTemp.set_vod_started_callback(self.vod_started)
             self.utility.actionhandler.procRESUME([ABCTorrentTemp])
-        else:
-            self.vod_started(ABCTorrentTemp)
             
 
-    def vod_started(self,ABCTorrentTemp): 
-        """ Called by network thread """
+    def vod_start_playing(self,ABCTorrentTemp): 
+        """ Called by GUI thread """
         
         if DEBUG:
-            print >>sys.stderr,"videplay: Engine said VOD started"
+            print >>sys.stderr,"videoplay: VOD started"
             
-        if currentThread().getName() == "MainThread":
-            print >>sys.stderr,"videoplay: vod_started called by MainThread, expected ABCLauncMany"
+        if currentThread().getName() != "MainThread":
+            print >>sys.stderr,"videoplay: vod_play called by non-MainThread!",currentThread().getName()
             print_stack()
             
         progressinf = ABCTorrentTemp.get_progressinf()
@@ -228,21 +226,21 @@ class VideoPlayer:
             mtwrap = movietransport
 
         videoserver.set_movietransport(mtwrap)
-
+ 
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
-            self.parentwindow.invokeLater(self.swapin_videopanel_gui_callback,[cmd],{'play':False,'progressinf':progressinf})
+            self.parentwindow.invokeLater(self.swapin_videopanel_gui_callback,[cmd],{'play':True,'progressinf':progressinf})
         else:
             self.parentwindow.invokeLater(self.progress4ext_gui_callback,[progressinf,cmd])
-
+ 
     def swapin_videopanel_gui_callback(self,cmd,play=False,progressinf=None):
         """ Called by GUI thread """
-        self.parentwindow.swapin_videopanel(cmd,play=False,progressinf=progressinf)
-
+        self.parentwindow.swapin_videopanel(cmd,play=play,progressinf=progressinf)
+ 
     def progress4ext_gui_callback(self,progressinf,cmd):
         """ Called by GUI thread """
         self.extprogress = ProgressForExternalPlayerDialog(self.parentwindow,self.utility,progressinf,self,cmd)
-        
 
+ 
     def vod_stopped(self,ABCTorrentTemp):
         """ Called by GUI thread """
         if DEBUG:
@@ -252,7 +250,6 @@ class VideoPlayer:
             print >>sys.stderr,"videoplay: vod_stopped called by nonMainThread!",currentThread().getName()
             print_stack()
 
-        
         ABCTorrentTemp.disable_on_demand_download()
         
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
@@ -260,15 +257,21 @@ class VideoPlayer:
         else:
             # TODO: Close separate progress window
             pass
-
+ 
 
     def vod_failed(self,ABCTorrentTemp):
+        """ Called by network thread """
         if DEBUG:
             print >>sys.stderr,"videoplay: VOD failed"
-        self.vod_stopped(ABCTorrentTemp)
+        self.parentwindow.invokeLater(self.vod_stopped,[ABCTorrentTemp])
 
     def vod_download_completed(self,ABCTorrentTemp):
         """ The video is in """
+
+        if currentThread().getName() != "MainThread":
+            print >>sys.stderr,"videoplay: vod_download_completed called by nonMainThread!",currentThread().getName()
+            print_stack()
+        
         prevactivetorrents = ABCTorrentTemp.get_previously_active_torrents()
         if prevactivetorrents is not None:
             if DEBUG:

@@ -1,12 +1,13 @@
 import wx, os, sys, os.path
 import wx.xrc as xrc
 from Tribler.vwxGUI.GuiUtility import GUIUtility
+from safeguiupdate import FlaglessDelayedInvocation
 from traceback import print_exc
 
 OVERVIEW_MODES = ['filesMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionsMode', 'messageMode', 'libraryMode']
 DEBUG = True
 
-class standardOverview(wx.Panel):
+class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     """
     Panel that shows one of the overview panels
     """
@@ -28,6 +29,7 @@ class standardOverview(wx.Panel):
     
     def _PostInit(self):
         # Do all init here
+        FlaglessDelayedInvocation.__init__(self)
         self.guiUtility = GUIUtility.getInstance()
         self.mode = None
         self.filter1 = None
@@ -143,6 +145,10 @@ class standardOverview(wx.Panel):
         else:
             print 'standardOverview: Error, could not return firstItem, data=%s' % data
             return None
+        
+    def refreshTorrentStats_network_callback(self):
+        """ Called by network thread """
+        self.invokeLater(self.refreshTorrentStats)
         
     def refreshTorrentStats(self):
         if self.mode == 'libraryMode':

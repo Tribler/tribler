@@ -176,6 +176,7 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
                             status = self.utility.lang.get('connectingtopeers')
                         dnrate = stats['down']
                         progress = stats['frac']
+                        
                     uprate = stats['up']
                     if 'have' in stats:
                         # At this moment stats['have'] is the actual BitField that
@@ -183,6 +184,8 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
                         # we go to the GUI thread.
                         #
                         havedigest = self.havebitfield2bufferinfo(stats['have'])
+                    elif progress == 1.0:
+                        havedigest = self.create_full_bufferinfo()
                     #self.all_peers_cache.updateSpew(ABCTorrentTemp.torrent_hash, spew)
     
                 engine.onUpdateStatus(progress, t, dnrate, uprate, status, s, spew, havedigest)
@@ -335,6 +338,10 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
             if havebitfield.array[piece]:
                 bi.complete(piece)
         return bi
+
+    def create_full_bufferinfo(self):
+        return BufferInfo(full=True)
+
     
 class Outputter:
     def __init__(self):

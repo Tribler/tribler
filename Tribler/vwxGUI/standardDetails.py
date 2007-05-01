@@ -7,7 +7,6 @@ from traceback import print_exc
 from Tribler.utilities import *
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 import cStringIO
-from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
 from safeguiupdate import FlaglessDelayedInvocation
 import time
 #from Tribler.vwxGUI.tribler_topButton import tribler_topButton
@@ -80,40 +79,6 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             
         self.guiUtility.initStandardDetails(self)
 
-        try:
-            self.embedplayer_enabled = False
-            feasible = return_feasible_playback_modes()
-            if PLAYBACKMODE_INTERNAL in feasible:
-                self.embedplayer_enabled = True
-                videoplayer = VideoPlayer.getInstance()
-                videoplayer.set_parentwindow(self)
-                
-                oldcwd = os.getcwd()
-                if sys.platform == 'win32':
-                    vlcinstalldir = os.path.join(self.utility.getPath(),"vlc")
-                    os.chdir(vlcinstalldir)
-        
-                self.showingvideo = False
-                from Tribler.Video.EmbeddedPlayer import EmbeddedPlayer
-                self.videopanel = EmbeddedPlayer(self, -1, self, False, self.utility)
-                self.videopanel.Hide()
-                # Arno, 2007-04-02: There is a weird problem with stderr when using VLC on Linux
-                # see Tribler\Video\vlcmedia.py:VLCMediaCtrl. Solution is to sleep 1 sec here.
-                # Arno: 2007-04-23: Appears to have been cause by wx.SingleInstanceChecker
-                # in wxPython-2.8.1.1.
-                #
-                #if sys.platform == 'linux2':
-                #    print "Sleeping for a few seconds to allow VLC to initialize"
-                #    sleep(5)
-                    
-                if sys.platform == 'win32':
-                    os.chdir(oldcwd)
-            else:
-                self.showingvideo = False
-                self.videopanel = None
-        except Exception,e:
-            print "EXCEPTION IN STANDARDA",str(e)
-            print_exc()
 
     def addComponents(self):
         self.SetBackgroundColour(wx.Colour(102,102,102))
@@ -272,7 +237,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 panelName = "dummy"
             res = xrc.XmlResource(filename)
             # create panel
-            if parent==None:
+            if parent is None:
                 parent = self
             currentPanel = res.LoadPanel(parent, panelName)
             if not currentPanel:
@@ -309,7 +274,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             return
         if self.mode == 'filesMode':
             #check if this is a corresponding item from type point of view
-            if item.get('infohash')==None:
+            if item.get('infohash') is None:
                 return #no valid torrent
             torrent = item
             
@@ -358,7 +323,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                         
         elif self.mode in ['personsMode', 'friendsMode']:
             #check if this is a corresponding item from type point of view
-            if item.get('permid')==None:
+            if item.get('permid') is None:
                 return #no valid torrent
             
             titleField = self.getGuiObj('titleField')
@@ -430,12 +395,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                         addAsFriend.Enable(True)
             
         elif self.mode == 'libraryMode':
-            #check if this is a corresponding item from type point of view
-            if item.get('infohash')==None:
-                return #no valid torrent
-            torrent = item
-            
-            self.play(torrent)
+            pass
         elif self.mode == 'subscriptionMode':
             pass
         
@@ -519,7 +479,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         cfList = self.getGuiObj("commonFilesField")
 #        cfList.SetWindowStyleFlag(wx.LC_LIST)
         try:
-            if self.mode != "personsMode" or self.item==None or self.item['permid']==None:
+            if self.mode != "personsMode" or self.item is None or self.item['permid'] is None:
                 return
             permid = self.item['permid']
             hash_list = self.guiUtility.peer_manager.getPeerHistFiles(permid)
@@ -703,7 +663,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             xrcResource = os.path.join('Tribler','vwxGUI', name+'.xrc')
             if os.path.exists(xrcResource):
                 panelName = name
-                if parent==None:
+                if parent is None:
                     parent = self.currentPanel
                 panel = self.loadXRCPanel(xrcResource, panelName, parent=parent)
             if panel is not None and self.tabElements.has_key(name):
@@ -783,14 +743,6 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 infohash = torrent['infohash']
                 self.data_manager.deleteTorrent(infohash, delete_file = True)
 
-    def play(self,torrent):
-            infohash = torrent['infohash']
-            for ABCTorrentTemp in self.utility.torrents["all"]:
-                print >>sys.stderr,"standardDetails: play: comparing",hexlify(ABCTorrentTemp.torrent_hash),hexlify(infohash)
-                if ABCTorrentTemp.torrent_hash == infohash:
-                    videoplayer = VideoPlayer.getInstance()
-                    videoplayer.play(ABCTorrentTemp)
-            
     def setTorrentThumb(self, torrent, thumbPanel):
         
         if not thumbPanel:
@@ -839,42 +791,3 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 #should refresh?
                 self.guiUtility.selectPeer(peer_data)
 
-    def swapin_videopanel(self,url,play=True,progressinf=None):
-        if not self.showingvideo:
-            self.showingvideo = True
-            thumbField = self.getGuiObj('thumbField')
-            sizer = thumbField.GetContainingSizer()
-            sizer.Replace(thumbField,self.videopanel)
-            thumbField.Hide()
-            self.videopanel.Show()
-            sizer.RecalcSizes()
-            sizer.Layout()
-            
-            self.Layout()
-            self.Refresh()            
-
-        from Tribler.Video.EmbeddedPlayer import VideoItem
-        self.item = VideoItem(url)
-        self.videopanel.SetItem(self.item,play=play,progressinf=progressinf)
-
-    def swapout_videopanel(self):
-
-        self.videopanel.reset()
-        
-        if self.showingvideo:
-            self.showingvideo = False
-
-            thumbField = self.getGuiObj('thumbField')
-            sizer = self.videopanel.GetContainingSizer()
-            sizer.Replace(self.videopanel,thumbField)
-            self.videopanel.Hide()
-            thumbField.Show()
-
-            self.Layout()
-            self.Refresh()            
-
-    def get_video_progressinf(self):
-        return self.videopanel
-
-    def reset_videopanel(self):
-        self.videopanel.reset()

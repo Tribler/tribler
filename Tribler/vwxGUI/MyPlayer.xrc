@@ -11,7 +11,7 @@
         <option>1</option>
         <object class="wxPanel" name="playerPanel">
           <pos>0,0</pos>
-          <size>588,475</size>
+          <size>800,650</size>
         </object>
       </object>
       <object class="sizeritem">
@@ -24,7 +24,7 @@
             <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxFIXED_MINSIZE</flag>
             <border>3</border>
             <option>1</option>
-            <object class="bgPanel" name="playerBG">
+            <object class="wxPanel" name="playerBG" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
               <pos>3,484</pos>
               <size>20,85</size>
               <object class="wxBoxSizer">
@@ -39,7 +39,7 @@
                   <flag>wxFIXED_MINSIZE</flag>
                   <border>3</border>
                   <option>0</option>
-                  <object class="tribler_topButton" name="playerPause">
+                  <object class="wxPanel" name="playerPause" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
                     <pos>356,0</pos>
                     <size>75,85</size>
                   </object>

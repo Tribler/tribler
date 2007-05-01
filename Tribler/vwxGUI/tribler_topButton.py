@@ -86,9 +86,9 @@ class tribler_topButton(wx.Panel):
                 print 'Could not find image: %s' % img
                 
     def switchTo(self, normalBitmap, selectedBitmap=None):
-        if self.old_bitmaps!=None:
+        if self.old_bitmaps is not None:
             if DEBUG:
-                print "First should switchBack..."
+                print "tribler_TopButton: First should switchBack..."
         else:
             #save the initial bitmaps
             self.old_bitmaps = self.bitmaps

@@ -11,8 +11,11 @@ from time import sleep
 from tempfile import mkstemp
 from threading import currentThread,Event
 from traceback import print_stack,print_exc
-from safeguiupdate import DelayedInvocation
+from safeguiupdate import FlaglessDelayedInvocation
 from Progress import ProgressBar
+from Tribler.vwxGUI.tribler_topButton import *
+
+
 
 # Fabian: can't use the constants from wx.media since 
 # those all yield 0 (for my wx)
@@ -23,6 +26,7 @@ MEDIASTATE_STOPPED = 3
 
 DEBUG = True
 
+
 class VideoItem:
     
     def __init__(self,path):
@@ -32,17 +36,84 @@ class VideoItem:
         return self.path
 
 
-class EmbeddedPlayer(wx.Panel,DelayedInvocation):
+class VideoFrame(wx.Frame):
+    
+    def __init__(self,parent):
+        self.utility = parent.utility
+        wx.Frame.__init__(self, None, -1, self.utility.lang.get('tb_video_short'), 
+                          size=(800,650))
+        self.createMainPanel()
+
+        self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
+
+    def createMainPanel(self):
+        oldcwd = os.getcwd()
+        if sys.platform == 'win32':
+            vlcinstalldir = os.path.join(self.utility.getPath(),"vlc")
+            os.chdir(vlcinstalldir)
+
+        self.showingvideo = False
+        self.videopanel = EmbeddedPlayer(self, -1, self, False, self.utility)
+        #self.videopanel.Hide()
+        self.Hide()
+        # Arno, 2007-04-02: There is a weird problem with stderr when using VLC on Linux
+        # see Tribler\Video\vlcmedia.py:VLCMediaCtrl. Solution is to sleep 1 sec here.
+        # Arno: 2007-04-23: Appears to have been cause by wx.SingleInstanceChecker
+        # in wxPython-2.8.1.1.
+        #
+        #if sys.platform == 'linux2':
+        #    print "Sleeping for a few seconds to allow VLC to initialize"
+        #    sleep(5)
+            
+        if sys.platform == 'win32':
+            os.chdir(oldcwd)
+
+    def OnCloseWindow(self, event = None):
+        self.swapout_videopanel()        
+        
+
+    def swapin_videopanel(self,url,play=True,progressinf=None):
+        
+        print >>sys.stderr,"videoframe: Swap IN videopanel"
+        
+        if not self.showingvideo:
+            self.showingvideo = True
+            self.Show()
+
+        self.item = VideoItem(url)
+        self.videopanel.SetItem(self.item,play=play,progressinf=progressinf)
+
+    def swapout_videopanel(self):
+        
+        print >>sys.stderr,"videoframe: Swap OUT videopanel"
+        
+        self.videopanel.reset()
+        if self.showingvideo:
+            self.showingvideo = False
+            self.Hide()
+
+    def get_video_progressinf(self):
+        return self.videopanel
+
+    def reset_videopanel(self):
+        self.videopanel.reset()
+        
+        
+    def invokeLater(self,*args,**kwargs):
+        self.videopanel.invokeLater(*args,**kwargs)
+
+
+
+class EmbeddedPlayer(wx.Panel,FlaglessDelayedInvocation):
 
     def __init__(self, parent, id, closehandler, allowclose, utility):
         wx.Panel.__init__(self, parent, id)
-        DelayedInvocation.__init__(self)
-        self.doneflag = Event()
+        FlaglessDelayedInvocation.__init__(self)
         self.item = None
 
         self.closehandler = closehandler
         self.utility = utility
-        self.SetBackgroundColour(wx.WHITE)
+        self.SetBackgroundColour(wx.BLACK)
 
         #logofilename = os.path.join(self.utility.getPath(),'icons','logo4video.png')
         logofilename = None
@@ -51,13 +122,16 @@ class EmbeddedPlayer(wx.Panel,DelayedInvocation):
         self.mediactrl = VLCMediaCtrl(self, -1,logofilename)
         ctrlsizer = wx.BoxSizer(wx.HORIZONTAL)        
         self.slider = wx.Slider(self, -1)
+        #self.slider.SetBackgroundColor(wx.BLACK)
         self.slider.Bind(wx.EVT_SCROLL_THUMBRELEASE, self.Seek)
         self.slider.Bind(wx.EVT_SCROLL_THUMBTRACK, self.stopSliderUpdate)
         self.slider.SetRange(0,1)
         self.slider.SetValue(0)
-        ctrlsizer.Add(self.slider, 0, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
+        ctrlsizer.Add(self.slider, 1, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
         
+        #self.ppbtn = tribler_topButton(self, name="playerPause")
         self.ppbtn = wx.Button(self, -1, self.utility.lang.get('playprompt'))
+        #self.ppbtn.setBackground(wx.BLACK)
         self.ppbtn.Bind(wx.EVT_BUTTON, self.PlayPause)
 
         self.volumebox = wx.BoxSizer(wx.HORIZONTAL)
@@ -72,10 +146,10 @@ class EmbeddedPlayer(wx.Panel,DelayedInvocation):
         self.fsbtn.Bind(wx.EVT_BUTTON, self.FullScreen)
 
         ctrlsizer.Add(self.ppbtn, 0, wx.ALIGN_CENTER_VERTICAL)
-        ctrlsizer.Add(self.volumebox, 0, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
+        ctrlsizer.Add(self.volumebox, 1, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
         ctrlsizer.Add(self.fsbtn, 0, wx.ALIGN_CENTER_VERTICAL)
-        mainbox.Add(self.mediactrl, 3, wx.EXPAND, 1)
-        mainbox.Add(ctrlsizer, 1, wx.ALIGN_BOTTOM, 1)
+        mainbox.Add(self.mediactrl, 1, wx.EXPAND, 1)
+        mainbox.Add(ctrlsizer, 0, wx.ALIGN_BOTTOM|wx.EXPAND, 1)
         self.SetSizerAndFit(mainbox)
         
         self.playtimer = None
@@ -191,7 +265,8 @@ class EmbeddedPlayer(wx.Panel,DelayedInvocation):
     def Stop(self):
         self.ppbtn.SetLabel(self.utility.lang.get('playprompt'))
         self.mediactrl.Stop()
-        self.timer.Stop()
+        if self.timer is not None:
+            self.timer.Stop()
         self.bitrateset = False
 
     def __del__(self):

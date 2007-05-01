@@ -140,7 +140,6 @@ class ABCTorrent:
 
         self.download_on_demand = False
         self.videoinfo = None
-        self.vodreadycallback = None
         self.progressinf = None
         self.prevactivetorrenst = None
 
@@ -929,13 +928,6 @@ class ABCTorrent:
     def get_progressinf(self):
         return self.progressinf
     
-    def set_vod_started_callback(self,method):
-        self.vodreadycallback = method
-        
-    def engine_started(self):
-        if self.get_on_demand_download() and self.vodreadycallback is not None:
-            self.vodreadycallback(self)
-            
     def set_previously_active_torrents(self,activetorrents):
         self.prevactivetorrents = activetorrents
         
