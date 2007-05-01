@@ -2048,7 +2048,7 @@ IndexOfS=2
 [Windows28/i_width/Windows28]
 Theme=0
 [Windows28/i_propN]
-0=Maximum download speed\r\n
+0=Optimal download speed\r\n
 [Windows28/sizerProp]
 0=1
 5=1
@@ -3524,7 +3524,7 @@ l_nComInSiz=2
 i_idPArent=3
 i_id=329
 i_sizeGrow=0
-i_border=29
+i_border=7
 is_parent=0
 is_siz=1
 s_tipoWxClasse=wxBoxSizer

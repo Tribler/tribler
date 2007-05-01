@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
-  <object class="wxFrame" name="MyFrame" subclass="abc_vwx.wxFrame">
+  <object class="wxFrame" name="MyFrame" subclass="abc_vwx.ABCFrame">
     <tooltip>d</tooltip>
     <hidden>1</hidden>
     <pos>1,1</pos>
@@ -129,7 +129,7 @@
                     <option>0</option>
                     <object class="wxPanel" name="mainButtonFriends" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
                       <bitmap>images/tribler_topbutton4.png</bitmap>
-                      <pos>311,5</pos>
+                      <pos>371,5</pos>
                       <size>60,72</size>
                     </object>
                   </object>
@@ -286,8 +286,8 @@
               <border>9</border>
               <option>1</option>
               <object class="wxPanel" name="standardOverview" subclass="Tribler.vwxGUI.standardOverview.standardOverview">
-                <pos>9,98</pos>
-                <size>531,641</size>
+                <pos>-31,68</pos>
+                <size>660,560</size>
               </object>
             </object>
             <object class="sizeritem">

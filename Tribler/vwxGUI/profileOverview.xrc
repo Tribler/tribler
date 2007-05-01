@@ -165,7 +165,7 @@
       </object>
       <object class="sizeritem">
         <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
-        <border>29</border>
+        <border>7</border>
         <option>0</option>
         <object class="wxBoxSizer">
           <orient>wxHORIZONTAL</orient>
