@@ -3,6 +3,10 @@ import wx.xrc as xrc
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from safeguiupdate import FlaglessDelayedInvocation
 from traceback import print_exc
+from Tribler.vwxGUI.torrentManager import TorrentDataManager
+from Tribler.utilities import *
+from Utility.constants import *
+from peermanager import PeerDataManager
 
 OVERVIEW_MODES = ['filesMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionsMode', 'messageMode', 'libraryMode']
 DEBUG = True
@@ -12,6 +16,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     Panel that shows one of the overview panels
     """
     def __init__(self, *args):
+        
         if len(args) == 0:
             pre = wx.PrePanel()
             # the Create step is done by XRC.
@@ -31,9 +36,12 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         # Do all init here
         FlaglessDelayedInvocation.__init__(self)
         self.guiUtility = GUIUtility.getInstance()
+        self.utility = self.guiUtility.utility
+        self.categorykey = None
+        self.data_manager = TorrentDataManager.getInstance(self.utility)
+        self.peer_manager = PeerDataManager.getInstance() #the updateFunc is called after the data is updated in the peer manager so that the GUI has the newest information
+        self.peer_manager.register(self.updateFunPersons, 'all')
         self.mode = None
-        self.filter1 = None
-        self.filter2 = None
         self.data = {} #keeps gui elements for each mode
         for mode in OVERVIEW_MODES:
             self.data[mode] = {} #each mode has a dictionary of gui elements with name and reference
@@ -48,23 +56,10 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         self.SetAutoLayout(1)
         self.Layout()
         
-    def setMode(self, mode, filter1, filter2, datalist):
-        
+    def setMode(self, mode):
         if self.mode != mode: 
             self.mode = mode
-            self.filter1 = filter1
-            self.data[self.mode]['data'] = datalist               
             self.refreshMode()
-        elif self.mode == mode and self.filter1 != filter1:        
-            self.mode = mode            
-            self.filter1 = filter1                           
-            self.data[self.mode]['data'] = datalist
-            self.setData()                   
-        elif self.mode == mode and self.filter2 != filter2:
-            self.mode = mode            
-            self.filter2 = filter2
-            self.data[self.mode]['data'] = datalist
-            self.setData()   
             
             
     def refreshMode(self):
@@ -74,7 +69,6 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         
         self.currentPanel = self.loadPanel()
         assert self.currentPanel, "Panel could not be loaded"
-        self.setData()
         #self.currentPanel.GetSizer().Layout()
         #self.currentPanel.Enable(True)
         self.currentPanel.Show(True)
@@ -127,7 +121,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 print_exc()
         return currentPanel
      
-    def setData(self):        
+    def refreshData(self):        
         grid = self.data[self.mode].get('grid')
         if grid:
             grid.setData(self.data[self.mode].get('data'))
@@ -139,8 +133,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         
         
     def getFirstItem(self):
-        data = self.data[self.mode]['data']
-        if len(data) > 0:
+        data = self.data[self.mode].get('data')
+        if data and len(data) > 0:
             return data[0]
         else:
             print 'standardOverview: Error, could not return firstItem, data=%s' % data
@@ -154,3 +148,109 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         if self.mode == 'libraryMode':
             grid = self.data[self.mode].get('grid')
             grid.refreshData()
+    
+    def filterChanged(self, filterState):
+        oldFilterState = self.data[self.mode].get('filterState')
+        if self.mode == 'filesMode':
+            if not oldFilterState or filterState[0] != oldFilterState[0]: # category changed
+                self.loadTorrentData(filterState[0], filterState[1])
+                
+            elif filterState[1] != oldFilterState[1]: # order type changed
+                self.loadTorrentData(None, filterState[1])
+            else:
+                print 'standardOverview: filters not changed. Do nothing'
+        
+        elif self.mode == 'personsMode':
+            self.loadPersonsData(filterState[0], filterState[1])
+        
+        elif self.mode == 'libraryMode':
+            self.loadLibraryData(filterState[0], filterState[1])
+        else:
+            print 'standardOverview: Filters not yet implemented in this mode'
+            return
+        
+        
+        self.refreshData()
+        self.data[self.mode]['filterState'] = filterState
+                
+            
+    def loadTorrentData(self, cat, sort):
+        print 'Category set to %s, %s' % (str(cat), str(sort))
+        
+        if cat != None:
+            # Unregister for old category
+            if self.categorykey:
+                self.data_manager.unregister(self.updateFunTorrents, self.categorykey)
+            
+            # Register for new one    
+            self.categorykey = cat
+            self.data_manager.register(self.updateFunTorrents, self.categorykey)
+            self.type = sort
+            
+            data = self.data_manager.getCategory(self.categorykey)
+        
+            self.filtered = []
+            for torrent in data:
+                if torrent.get('status') == 'good' or torrent.get('myDownloadHistory'):
+                    self.filtered.append(torrent)
+            
+        
+        self.filtered = sort_dictlist(self.filtered, sort, 'decrease')
+        
+        self.data[self.mode]['data'] = self.filtered
+    
+    
+    def loadPersonsData(self, cat, sort):
+        """ 
+        Category and sorting not yet used
+        """       
+    
+        self.data[self.mode]['data'] = self.peer_manager.sortData(None)
+    
+    def loadLibraryData(self, cat, sort):
+        # Get infohashes of current downloads
+        if DEBUG:
+            print 'standardOverview: Loaded library data list'
+        activeInfohashes = {}
+        active = []
+        inactive = []
+        for torrent in self.utility.torrents['all']:
+            activeInfohashes[torrent.torrent_hash] = torrent
+            
+        self.loadTorrentData(self.utility.lang.get('mypref_list_title'), 'date')
+        libraryList = self.data[self.mode]['data']
+        for torrent in libraryList:
+            infohash = torrent.get('infohash')
+            if infohash in activeInfohashes:
+                active.append(torrent)
+                torrent['abctorrent'] = activeInfohashes[infohash]
+            else:
+                inactive.append(torrent)
+        
+        self.data[self.mode]['data'] = active+inactive
+        
+        
+    def updateFunTorrents(self, torrent, operate):    
+        print "UpdatefunTorrents called: %s" % operate
+        try:
+            detailsPanel = self.guiUtility.standardDetails
+        except:
+            detailsPanel = None
+            print 'standardOverview: Error could not find standardDetailsPanel'
+            
+        if operate in ['update', 'delete']:
+            if detailsPanel and detailsPanel.getIdentifier() == torrent['infohash']:
+                self.invokeLater(detailsPanel.setData, [torrent])
+        
+        torrentGrid = self.data['filesMode']['grid']
+        assert torrentGrid, 'standardOverview: could not find filesGrid'
+        
+        if operate in ['update', 'add']:
+            self.invokeLater(torrentGrid.updateItem, [torrent])
+        else:
+            self.invokeLater(torrentGrid.updateItem, [torrent], {'delete':True})
+        
+    def updateFunPersons(self, torrent, operate):    
+        print "UpdatefunPersons called"
+    
+    

@@ -86,14 +86,17 @@ class standardGrid(wx.Panel):
     def refreshData(self):
         self.setData(self.data, resetPages = False)
         
+    def getData(self):
+        return self.data
+    
     def setData(self, dataList, resetPages = True):
         
-        if DEBUG:
-            if dataList is None:
-                datalength = 0
-            else:
-                datalength = len(dataList)
-            print 'SetData called: init: %s, datalength: %d' % (self.initReady, datalength)
+        if dataList is None:
+            datalength = 0
+        else:
+            datalength = len(dataList)
+        
+        #print 'SetData called: init: %s, datalength: %d' % (self.initReady, datalength)
         
         self.data = dataList
         
@@ -107,7 +110,7 @@ class standardGrid(wx.Panel):
         self.refreshPanels()
         
         
-    def updateItem(self, item):
+    def updateItem(self, item, delete = False):
         "Add or update an item in the grid"
         
         # Get key to compare this item to others
@@ -122,7 +125,10 @@ class standardGrid(wx.Panel):
         
         i = find_content_in_dictlist(self.data, item, key)
         if i != -1:
-            self.data[i] = item
+            if not delete:
+                self.data[i] = item
+            else:
+                self.data.remove(item)
         else:
             self.data.append(item)
         self.setData(self.data, resetPages = False)
@@ -187,7 +193,7 @@ class standardGrid(wx.Panel):
     
     def clearAllData(self):
         for i in range(0, self.items):
-            self.setData(i, None)
+            self.setDataOfPanel(i, None)
             
     def onResize(self, event=None):        
         #print "event: %s" % event       
