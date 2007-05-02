@@ -8,8 +8,8 @@ from threading import Event
 
 #from Tribler.vwxGUI.filesFilter import filesFilter
 
-from Tribler.Dialogs.abcfileframe import TorrentDataManager
-from peermanager import PeerDataManager
+
+
 from Tribler.utilities import *
 from Utility.constants import *
 
@@ -24,17 +24,9 @@ class GUIUtility:
         GUIUtility.__single = self 
         # do other init
         
-        self.categorykey = None
         self.xrcResource = None
-        self.type = 'swarmsize'
-        self.filesFilter1 = None
-        self.filesFilter2 = None
         self.utility = utility
         self.params = params
-        self.data_manager = TorrentDataManager.getInstance(self.utility)
-
-        self.peer_manager = PeerDataManager.getInstance() #the updateFunc is called after the data is updated in the peer manager so that the GUI has the newest information
-        self.peer_manager.register(self.updateFunPersons, 'all')
         self.selectedMainButton = None
         self.isReachable = False #reachability flag / port forwarding enabled / accessible from the internet
         self.guiOpen = Event()
@@ -46,18 +38,7 @@ class GUIUtility:
     getInstance = staticmethod(getInstance)
     
     
-    def setCategory(self, cat, sort):
-        print 'Category set to %s' % cat
-        
-        # Unregister for old category
-        if self.categorykey:
-            self.data_manager.unregister(self.updateFunTorrents, self.categorykey)
-        
-        # Register for new one    
-        self.categorykey = cat
-        self.data_manager.register(self.updateFunTorrents, self.categorykey)
-        self.type = sort
-        return self.reloadData()
+    
         
     def buttonClicked(self, event):
         "One of the buttons in the GUI has been clicked"
@@ -83,7 +64,7 @@ class GUIUtility:
             self.standardDetails.addAsFriend()
         elif name == 'download':
             self.standardDetails.download()
-        elif (name.startswith('bgPanel') or name == 'edit') and obj.GetParent().GetName() == "profileOverview":
+        elif name.startswith('bgPanel') and obj.GetParent().GetName() == "profileOverview":
             self.standardOverview.currentPanel.sendClick(event)
             self.detailsTabClicked(name) #a panel was clicked in the profile overview and this is the most elegant so far method of informing the others
         elif name == "takeMeThere0" : #a button to go to preferences was clicked
@@ -100,9 +81,9 @@ class GUIUtility:
             if panel_name == "profileDetails_Download":
                 self.mainButtonClicked( 'mainButtonPersons', self.frame.mainButtonPersons)
             else:
-                print 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
+                print 'A button was clicked, but no action is defined for: %s' % name
         else:
-            print 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
+            print 'A button was clicked, but no action is defined for: %s' % name
                 
         
     def mainButtonClicked(self, name, button):
@@ -130,33 +111,20 @@ class GUIUtility:
         elif name == 'mainButtonMessages':
             self.standardMessagesOverview()
             
-    def standardFilesOverview(self, filter1String = "", filter2String = ""):        
-        #self.categorykey = 'all'
-        print 'Files > filter1String='+filter1String
-        print 'Files > filter2String='+filter2String
-        #if filesFilter1:
-        if filter1String == "" :
-            filter1String = self.filesFilter1
-        if filter2String == "" :
-            filter2String = self.filesFilter2
-        else:    
-            self.filesFilter1 = filter1String
-            self.filesFilter2 = filter2String
+    def standardFilesOverview(self, filters = ['video', 'swarmsize']):        
         
-        torrentList = self.setCategory(filter1String, filter2String)        
-        #self.categorykey = 'all'
-        torrentList = self.reloadData()
-        self.standardOverview.setMode('filesMode', filter1String, filter2String, torrentList)
+        self.standardOverview.setMode('filesMode')
+        self.standardOverview.filterChanged(filters)
         try:
             if self.standardDetails:
                 self.standardDetails.setMode('filesMode', None)
         except:
             pass
         
-    def standardPersonsOverview(self, filter1String = "", filter2String = ""):
-        self.categorykey = self.utility.lang.get('mypref_list_title')
-        personsList = self.reloadPeers()
-        self.standardOverview.setMode('personsMode', filter1String, filter2String, personsList)
+    def standardPersonsOverview(self, filters = ['', '']):
+        
+        self.standardOverview.setMode('personsMode')
+        self.standardOverview.filterChanged(filters)
         self.standardDetails.setMode('personsMode')
         
     def standardFriendsOverview(self):
@@ -168,13 +136,12 @@ class GUIUtility:
     def standardProfileOverview(self):
         #profileList = self.reloadData()
         profileList = []
-        self.standardOverview.setMode('profileMode', '','', profileList)
+        self.standardOverview.setMode('profileMode')
         self.standardDetails.setMode('profileMode')
         
-    def standardLibraryOverview(self, filter1String="audio", filter2String="swarmsize"):       
-        print 'Library > filter1String='+filter1String 
-        libraryList = self.loadLibrary()
-        self.standardOverview.setMode('libraryMode', filter1String, filter2String, libraryList)        
+    def standardLibraryOverview(self, filters = ['','']):       
+        self.standardOverview.setMode('libraryMode')        
+        self.standardOverview.filterChanged(filters)
         self.standardDetails.setMode('libraryMode')
         
     def standardSubscriptionsOverview(self, filter1String="audio", filter2String="swarmsize"):       
@@ -186,47 +153,17 @@ class GUIUtility:
         messagesList = self.reloadData()
         #self.standardOverview.setMode('messagesMode', messagesList)       
          
-    def reloadData(self):
-        # load content category
-        #self.categorykey = 'all'
-        self.data = self.data_manager.getCategory(self.categorykey)
-        self.filtered = []
-        for torrent in self.data:
-            if torrent.get('status') == 'good' or torrent.get('myDownloadHistory'):
-                self.filtered.append(torrent)
-        
-        self.filtered = sort_dictlist(self.filtered, self.type, 'decrease')
-        
-        return self.filtered
+  
             
-    def reloadPeers(self):
-        return self.peer_manager.sortData(self.categorykey)
     
-    def loadLibrary(self):
-        # Get infohashes of current downloads
-        activeInfohashes = {}
-        active = []
-        inactive = []
-        for torrent in self.utility.torrents['all']:
-            activeInfohashes[torrent.torrent_hash] = torrent
-            
-        self.categorykey = self.utility.lang.get('mypref_list_title')
-        libraryList = self.reloadData()
-        for torrent in libraryList:
-            infohash = torrent.get('infohash')
-            if infohash in activeInfohashes:
-                active.append(torrent)
-                torrent['abctorrent'] = activeInfohashes[infohash]
-            else:
-                inactive.append(torrent)
-        
-        return active+inactive
+   
         
    
     def initStandardOverview(self, standardOverview):
         "Called by standardOverview when ready with init"
         self.standardOverview = standardOverview
-        self.standardFilesOverview('video', 'swarmsize')
+        self.peer_manager = standardOverview.peer_manager
+        self.standardFilesOverview()
 
         # Preselect mainButtonFiles
         filesButton = xrc.XRCCTRL(self.frame, 'mainButtonFiles')
@@ -296,8 +233,6 @@ class GUIUtility:
             print 'GuiUtility: Error refreshing stats'
             print_exc()
    
-    def updateFunTorrents(self, torrent, operate):    
-        print "GUIUtility: UpdatefunTorrents called"
-        
-    def updateFunPersons(self, torrent, operate):    
-        print "GUIUtility: UpdatefunPersons called"
+   
+    
+         
