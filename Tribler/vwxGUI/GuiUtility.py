@@ -134,7 +134,6 @@ class GUIUtility:
         self.standardDetails.setMode('personsMode')
     
     def standardProfileOverview(self):
-        #profileList = self.reloadData()
         profileList = []
         self.standardOverview.setMode('profileMode')
         self.standardDetails.setMode('profileMode')
@@ -144,15 +143,13 @@ class GUIUtility:
         self.standardOverview.filterChanged(filters)
         self.standardDetails.setMode('libraryMode')
         
-    def standardSubscriptionsOverview(self, filter1String="audio", filter2String="swarmsize"):       
-        subscriptionsList = self.reloadData()         
-        self.standardOverview.setMode('subscriptionsMode', filter1String, filter2String, subscriptionsList)        
+    def standardSubscriptionsOverview(self, filters = ['','']):       
+        self.standardOverview.setMode('subscriptionsMode')
+        self.standardOverview.filterChanged(filters)
         self.standardDetails.setMode('subscriptionsMode')
          
     def standardMessagesOverview(self):
-        messagesList = self.reloadData()
-        #self.standardOverview.setMode('messagesMode', messagesList)       
-         
+        print 'Not yet implemented;'
   
             
     
