@@ -41,8 +41,7 @@ class LibraryItemPanel(wx.Panel):
 
     def addComponents(self):
         self.Show(False)
-        #self.SetMinSize((50,50))
-        self.selectedColour = wx.Colour(245,208,120)
+        self.selectedColour = wx.Colour(255,200,187)       
         self.unselectedColour = wx.WHITE
         
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -269,20 +268,18 @@ class LibraryItemPanel(wx.Panel):
         #self.parent.Refresh()
         
     def select(self):
-        self.selected = True
-        old = self.title.GetBackgroundColour()
-        if old != self.selectedColour:
-            self.title.SetBackgroundColour(self.selectedColour)
-            self.Refresh()
+        self.thumb.setSelected(True)
+        self.title.SetBackgroundColour(self.selectedColour)
+        self.SetBackgroundColour(self.selectedColour)
+        self.Refresh()
         
         
     def deselect(self):
-        self.selected = False
-        old = self.title.GetBackgroundColour()
-        if old != self.unselectedColour:
-            self.title.SetBackgroundColour(self.unselectedColour)
-            self.Refresh()
-    
+        self.thumb.setSelected(False)
+        self.title.SetBackgroundColour(self.unselectedColour)
+        self.SetBackgroundColour(self.unselectedColour)
+        self.Refresh()
+        
     def keyTyped(self, event):
         if self.selected:
             key = event.GetKeyCode()
@@ -321,7 +318,12 @@ class LibraryItemPanel(wx.Panel):
             self.guiUtility.selectTorrent(self.data)
         event.Skip()
                 
-                
+    def getIdentifier(self):
+        if self.data:
+            return self.data.get('infohash')
+        else:
+            return None
+        
     def switch_to_vod(self,ABCTorrentTemp):
         videoplayer = VideoPlayer.getInstance()
         videoplayer.play(ABCTorrentTemp)

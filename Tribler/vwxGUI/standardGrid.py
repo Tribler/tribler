@@ -113,6 +113,9 @@ class standardGrid(wx.Panel):
     def updateItem(self, item, delete = False):
         "Add or update an item in the grid"
         
+        if not item:
+            return
+        
         # Get key to compare this item to others
         key = None
         for tempkey in ['infohash', 'permid', 'content_name']:
@@ -268,13 +271,13 @@ class standardGrid(wx.Panel):
         If no torrent is selected in detailPanel, let first in grid be selected
         """
         
+        print 'standardGrid: update selection'
         if not self.hasDetailPanel():
             return
         
         title = None
         
-        if self.detailPanel.data!=None:
-            id = self.detailPanel.getIdentifier()
+        id = self.detailPanel.getIdentifier()
             
         
         for row in self.panels:

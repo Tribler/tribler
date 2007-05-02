@@ -59,14 +59,14 @@ class FriendsItemPanel(wx.Panel):
         self.title.SetBackgroundColour(wx.WHITE)
         self.title.SetFont(wx.Font(11,74,90,wx.NORMAL,0,"Verdana"))
         self.title.SetMinSize((100,15))        
-        self.title.SetLabel('blabla')
+        self.title.SetLabel('')
         # Add status
         self.status =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(80,12))        
         self.status.SetBackgroundColour(wx.WHITE)
         self.status.SetFont(wx.Font(9,74,90,wx.NORMAL,0,"Verdana"))
         self.status.SetForegroundColour(wx.Colour(128,128,128))        
         self.status.SetMinSize((80,12))
-        self.status.SetLabel('blabla')
+        self.status.SetLabel('')
         
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         self.vSizer.Add(self.title,1,wx.TOP|wx.EXPAND,3)
@@ -78,7 +78,7 @@ class FriendsItemPanel(wx.Panel):
         self.taste.SetBackgroundColour(wx.WHITE)
         self.taste.SetFont(wx.Font(10,74,90,wx.NORMAL,0,"Verdana"))
         self.taste.SetMinSize((40,15))
-        self.taste.SetLabel('heart')
+        self.taste.SetLabel('')
         self.hSizer.Add(self.taste, 0, wx.TOP|wx.RIGHT, 5)
         
         # Add delete button
@@ -98,7 +98,7 @@ class FriendsItemPanel(wx.Panel):
     def setData(self, peer_data):
         # set bitmap, rating, title
         
-        if self.datacopy is not None and self.datacopy['permid'] == peer_data['permid']:
+        if self.datacopy is not None and peer_data and self.datacopy['permid'] == peer_data['permid']:
             if (self.datacopy['last_seen'] == peer_data['last_seen'] and
                 self.datacopy['similarity'] == peer_data['similarity'] and
                 self.datacopy['name'] == peer_data['name'] and
@@ -117,6 +117,8 @@ class FriendsItemPanel(wx.Panel):
             self.datacopy['name'] = peer_data['name']
             self.datacopy['content_name'] = peer_data['content_name']
             self.datacopy['friend'] = peer_data.get('friend')
+        else:
+            self.datacopy = {}
 
         if peer_data is None:
             peer_data = {}
@@ -127,11 +129,12 @@ class FriendsItemPanel(wx.Panel):
             self.title.SetLabel(title)
             self.title.Wrap(self.title.GetSize()[0])
             self.title.SetToolTipString(peer_data['content_name'])
+            self.delete.Show()
         else:
             self.title.SetLabel('')
             self.title.SetToolTipString('')
             self.title.Enable(False)
-            
+            self.delete.Hide()
        
         self.thumb.setData(peer_data)
                

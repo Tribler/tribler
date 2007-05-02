@@ -289,12 +289,12 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
     def setData(self, item):
         
         
-        #print >>sys.stderr,"standardDetails: setData called, mode is",self.mode,"###########"
+        print >>sys.stderr,"standardDetails: setData called, mode is",self.mode,"###########"
         
         self.item = item
         if not item:
             return
-        if self.mode == 'filesMode':
+        if self.mode in ['filesMode', 'libraryMode']:
             #check if this is a corresponding item from type point of view
             if item.get('infohash') is None:
                 return #no valid torrent
@@ -332,12 +332,25 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     else:
                         seedersField.SetLabel('?')
                         leechersField.SetLabel('?')
-            
+                
+                # Show or hide download button in detailstab
+                downloadButton = self.getGuiObj('download')
+                if self.showDownloadbutton(self.mode, torrent):
+                    downloadButton.Show()
+                else:
+                    downloadButton.Hide()
+                
             elif self.getGuiObj('files_detailsTab').isSelected():
                 filesList = self.getGuiObj('includedFiles', tab = 'filesTab_files')
                 filesList.setData(torrent)
                 self.getGuiObj('filesField', tab = 'filesTab_files').SetLabel('%d' % filesList.getNumFiles())
-                
+                # Remove download button for libraryview
+                downloadButton = self.getGuiObj('download', tab='filesTab_files')
+                if self.showDownloadbutton(self.mode, torrent):
+                    downloadButton.Show()
+                else:
+                    downloadButton.Hide()
+                    
                 
             else:
                 print 'standardDetails: error: unknown tab selected'
@@ -418,8 +431,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                         addAsFriend.switchBack()
                         addAsFriend.Enable(True)
             
-        elif self.mode == 'libraryMode':
-            pass
+#        elif self.mode == 'libraryMode':
+#            pass
         elif self.mode == 'subscriptionMode':
             pass
         
@@ -490,7 +503,12 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             
             
         self.currentPanel.Refresh()
-        
+    
+    def showDownloadbutton(self, mode, torrent):
+        return (self.mode == 'filesMode' and not torrent.get('eventComingUp') == 'downloading') or \
+               (self.mode == 'libraryMode' and torrent.get('eventComingUp') == 'notDownloading')
+               
+                 
     def getGuiObj(self, obj_name, tab=None):
         """handy function to retreive an object based on it's name for the current mode"""
         if tab:

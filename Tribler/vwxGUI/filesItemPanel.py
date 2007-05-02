@@ -79,7 +79,7 @@ class FilesItemPanel(wx.Panel):
                 self.datacopy['length'] == torrent['length'] and
                 self.datacopy.get('myDownloadHistory') == torrent.get('myDownloadHistory')):
                 return
-
+        
         self.data = torrent
 
         if torrent:
@@ -90,7 +90,8 @@ class FilesItemPanel(wx.Panel):
             self.datacopy['leecher'] = torrent['leecher']
             self.datacopy['length'] = torrent['length']
             self.datacopy['myDownloadHistory'] = torrent.get('myDownloadHistory')
-
+        else:
+            self.datacopy = {}
 
         
 

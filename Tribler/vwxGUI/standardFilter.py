@@ -108,9 +108,11 @@ class filesFilter(standardFilter):
                        ],
                        [('swarmsize', 'Popular'),
                         ('relevance','Recommended'),
-                        ('','Creation date'),
-                        ('size', 'Size'),
-                        ('', 'Etc.')
+                        ('date','Creation date'),
+                        ('length', 'Size'),
+                        (('content_name', 'increase'), 'Name'),
+                        ('tracker', 'Tracker'),
+                        ('num_owners', 'Often received')
                         ]
                       ]
         standardFilter.__init__(self, filterData = filterData)
@@ -118,16 +120,16 @@ class filesFilter(standardFilter):
 class personsFilter(standardFilter):
     def __init__(self):
         filterData = [
-                      [('menu1', 'Persons filter test')
-                       ],
-                       [('menu2', 'Persons filter2')
+                      [('last_seen', 'Recently connected'),
+                        ('relevance', 'Similar taste'),
+                        (('content_name','increase'), 'Name'),
                         ]
-                       ]
+                      ]
         standardFilter.__init__(self, filterData = filterData)
         
 class libraryFilter(standardFilter):
     pass
 
-class friendsFilter(standardFilter):
+class friendsFilter(personsFilter):
     pass
 

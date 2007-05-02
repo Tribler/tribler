@@ -113,6 +113,7 @@ class TorrentDataManager:
 
     # register update function
     def register(self, fun, key):
+        print 'Registered for key: %s' % key
         try:
             key = key.lower()
             self.dict_FunList[key].index(fun)
@@ -125,10 +126,12 @@ class TorrentDataManager:
         except ValueError:
             self.dict_FunList[key].append(fun)
         except Exception, msg:
-            print "TorrentDataManager unregister error.", Exception, msg
+            print "TorrentDataManager register error.", Exception, msg
             print_exc()
         
+        
     def unregister(self, fun, key):
+        print 'Unregistered for key: %s' % key
         try:
             key = key.lower()
             self.dict_FunList[key].remove(fun)

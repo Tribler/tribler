@@ -130,6 +130,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         grid = self.data[self.mode].get('grid')
         if grid:
             grid.updateSelection()
+        else:
+            print 'standardOverview: Could not update selection: No grid'
         
         
     def getFirstItem(self):
@@ -152,14 +154,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     def filterChanged(self, filterState):
         oldFilterState = self.data[self.mode].get('filterState')
         if self.mode == 'filesMode':
-            if not oldFilterState or filterState[0] != oldFilterState[0]: # category changed
-                self.loadTorrentData(filterState[0], filterState[1])
-                
-            elif filterState[1] != oldFilterState[1]: # order type changed
-                self.loadTorrentData(None, filterState[1])
-            else:
-                print 'standardOverview: filters not changed. Do nothing'
-        
+            self.loadTorrentData(filterState[0], filterState[1])
+            
         elif self.mode == 'personsMode':
             self.loadPersonsData(filterState[0], filterState[1])
         
@@ -198,7 +194,10 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                     self.filtered.append(torrent)
             
         
-        self.filtered = sort_dictlist(self.filtered, sort, 'decrease')
+        if type(sort) == str:
+            self.filtered = sort_dictlist(self.filtered, sort, 'decrease')
+        elif type(sort) == tuple:
+            self.filtered = sort_dictlist(self.filtered, sort[0], sort[1])
         
         self.data[self.mode]['data'] = self.filtered
     
@@ -208,7 +207,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         Category and sorting not yet used
         """       
     
-        self.data[self.mode]['data'] = self.peer_manager.sortData(None)
+        self.data[self.mode]['data'] = self.peer_manager.sortData(cat)
     
     def loadLibraryData(self, cat, sort):
         # Get infohashes of current downloads
@@ -220,6 +219,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         for torrent in self.utility.torrents['all']:
             activeInfohashes[torrent.torrent_hash] = torrent
             
+        
         self.loadTorrentData(self.utility.lang.get('mypref_list_title'), 'date')
         libraryList = self.data[self.mode]['data']
         for torrent in libraryList:

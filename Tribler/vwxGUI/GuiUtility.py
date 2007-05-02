@@ -136,7 +136,6 @@ class GUIUtility:
         self.standardDetails.setMode('personsMode')
         
     def standardFriendsOverview(self, filters = ['friends','']):
-        self.categorykey = "friends"
         self.standardOverview.setMode('friendsMode')
         self.standardOverview.filterChanged(filters)
         self.standardDetails.setMode('personsMode')
