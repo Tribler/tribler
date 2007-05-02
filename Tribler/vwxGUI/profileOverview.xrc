@@ -111,6 +111,21 @@
                   <size>64,23</size>
                 </object>
               </object>
+              <object class="spacer">
+                <size>10,10</size>
+                <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>3</border>
+                <option>1</option>
+              </object>
+              <object class="sizeritem">
+                <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>3</border>
+                <option>0</option>
+                <object class="wxPanel" name="edit" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                  <pos>110,123</pos>
+                  <size>20,20</size>
+                </object>
+              </object>
             </object>
           </object>
           <object class="sizeritem">
