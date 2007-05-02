@@ -30,7 +30,7 @@ class LibraryItemPanel(wx.Panel):
         self.triblerGrey = wx.Colour(128,128,128)
         self.data = None
         self.datacopy = None
-        self.titleLength = 37 # num characters
+        self.titleLength = 23 # num characters
         self.selected = False
         self.warningMode = False
         self.oldCategoryLabel = None
@@ -179,7 +179,8 @@ class LibraryItemPanel(wx.Panel):
             abctorrent = torrent['abctorrent']
             abctorrent.setLibraryPanel(self)
             #self.pb.setEnabled(True)
-            self.fileProgress.Show()
+            if not self.fileProgress.IsShown():
+                self.fileProgress.Show()
             self.speedUp2.Show()
             self.speedDown2.Show()
             
