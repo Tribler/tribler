@@ -40,7 +40,7 @@ class ProfileOverviewPanel(wx.Panel):
 #        print "<mluc> tribler_topButton in _PostInit"
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
-        self.utility = self.guiUtility.utility
+        self.data_manager = self.guiUtility.standardOverview.data_manager
 #        self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 #        self.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
         for element in self.elementsName:
@@ -152,7 +152,7 @@ class ProfileOverviewPanel(wx.Panel):
         overall_index = 0
         
         #get the number of downloads for this user
-        count = self.guiUtility.data_manager.getDownloadHistCount()
+        count = self.data_manager.getDownloadHistCount()
         aux_count = count
         if aux_count > 100:
             aux_count = 101
@@ -184,7 +184,7 @@ class ProfileOverviewPanel(wx.Panel):
             bShouldRefresh = True
         
         #get the number of similar files (tasteful)
-        count = self.guiUtility.data_manager.getRecommendFilesCount()
+        count = self.data_manager.getRecommendFilesCount()
         aux_count = count
         if aux_count > 100:
             aux_count = 101
