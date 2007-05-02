@@ -69,8 +69,7 @@ class GUIUtility:
             self.standardDetails.addAsFriend()
         elif name == 'download':
             self.standardDetails.download()
-        elif name == 'addFriends':
-            print "PARENT IS",obj.GetParent().GetName() # obj.GetParent().GetName() == "friendsOverview":
+        elif name == 'inviteFriends':
             self.emailFriend(event)
         elif (name == 'edit' or name.startswith('bgPanel')) and obj.GetParent().GetName() == "profileOverview":
             self.standardOverview.currentPanel.sendClick(event)

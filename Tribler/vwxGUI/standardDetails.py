@@ -817,7 +817,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             thumbPanel.setBitmap(bmp)
             torrent['metadata']['ThumbnailBitmapLarge'] = bmp
         else:
-            default = self.mm.get_default('personsMode','DEFAULT_THUMB')
+            default = self.mm.get_default('filesMode','DEFAULT_THUMB')
             thumbPanel.setBitmap(default)
      
     def addAsFriend(self):
