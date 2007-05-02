@@ -343,7 +343,8 @@ class VLCMediaCtrl(wx.Window):
         #
         [loghandle,logfilename] = mkstemp("vlc-log")
         os.close(loghandle)
-        self.media = vlc.MediaControl(["--verbose","0","--logfile",logfilename,"--key-fullscreen","Esc"])
+        #self.media = vlc.MediaControl(["--verbose","0","--logfile",logfilename,"--key-fullscreen","Esc"])
+        self.media = vlc.MediaControl()
         self.visinit = False
 
         

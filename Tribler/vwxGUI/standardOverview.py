@@ -165,6 +165,9 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         
         elif self.mode == 'libraryMode':
             self.loadLibraryData(filterState[0], filterState[1])
+        elif self.mode == 'friendsMode':
+            self.loadPersonsData(filterState[0], filterState[1])
+            
         else:
             print 'standardOverview: Filters not yet implemented in this mode'
             return

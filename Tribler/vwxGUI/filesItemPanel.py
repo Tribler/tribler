@@ -316,9 +316,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             self.mouseOver = False
             #print 'leave'
             self.Refresh()
-        elif event.ButtonUp():
-            self.ClickedButton()
-        #event.Skip()
+        
         """
     def ClickedButton(self):
         print 'Click'

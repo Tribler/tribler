@@ -19,7 +19,7 @@ from ABC.Torrent.status import TorrentStatus
 from Utility.constants import * #IGNORE:W0611
 from Tribler.unicode import name2unicode
 from Tribler.Category.Category import Category
-from Tribler.Dialogs.abcfileframe import TorrentDataManager
+from Tribler.vwxGUI.torrentManager import TorrentDataManager
 from Tribler.Video.VideoPlayer import VideoPlayer
 
 from time import time

@@ -1495,7 +1495,7 @@ class VideoPanel(ABCOptionPanel):
     def apply(self):       
         
         value = self.playback_chooser.GetSelection()
-        mode = self.playback_indices(value)
+        mode = self.playback_indices[value]
         self.utility.config.Write('videoplaybackmode',mode)
 
         for widget,mainmsg in [(self.player,self.utility.lang.get('videoplayernotfound')),(self.analyser,self.utility.lang.get('videoanalysernotfound'))]:
