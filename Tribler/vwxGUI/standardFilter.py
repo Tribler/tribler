@@ -2,7 +2,7 @@ import wx, os, sys
 import wx.xrc as xrc
 
 from Tribler.vwxGUI.GuiUtility import GUIUtility
-
+from traceback import print_exc
 #from Tribler.vwxGUI.filesGrid import filesGrid
 
 
@@ -52,9 +52,14 @@ class standardFilter(wx.Panel):
         #self.SetBackgroundColour(wx.BLUE)
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.filters = []
+        self.filterState = []
         # filter 1 is making a selection
         for pullDownData in self.filterData:
             titles = [item[1] for item in pullDownData]
+            try:
+                self.filterState.append(pullDownData[0][0])
+            except:
+                print 'standardFilter: Error getting default filterState, data: %s' % pullDownData
             filter = wx.ComboBox(self,-1,titles[0], wx.Point(8,3),wx.Size(120,21),titles, wx.CB_DROPDOWN|wx.CB_READONLY)
             filter.SetFont(wx.Font(10,74,90,90,0,"Verdana"))
             filter.SetBackgroundColour(wx.WHITE)
@@ -71,30 +76,23 @@ class standardFilter(wx.Panel):
         self.Update()
         
     def mouseAction(self, event):
-        print 'selected'
-        print self.filter1.GetStringSelection()
         
-        filter1String = self.filter1.GetStringSelection()
-        filter2String = self.filter2.GetStringSelection()
-        
-        if filter1String + filter2String == self.lastOrdering:
-            return
-        
-        if filter2String == self.filter2.GetString(0):
-            filter2String = 'swarmsize'
+        filterIndex = [filter.GetSelection() for filter in self.filters]
+        filterState = []
+        for filterNum in range(len(self.filters)):
+            filterState.append(self.filterData[filterNum][filterIndex[filterNum]][0])
             
-        elif filter2String == self.filter2.GetString(1):
-            filter2String = 'relevance'        
-        
-        filterState = [filter.GetStringSelection() for filter in self.filters]
-        
+        print filterState
         if filterState != self.filterState:
             self.filterChanged(filterState)
             self.filterState = filterState
             
     def filterChanged(self, state):
-        raise NotImplementedError('Method filterChanged should be subclassed')
-
+        try:
+            self.guiUtility.standardOverview.filterChanged(state)
+        except:
+            print 'standardFilter: Error could not call standardOverview.filterChanged()'
+            print_exc()
 
 class filesFilter(standardFilter):
     def __init__(self):
@@ -116,13 +114,17 @@ class filesFilter(standardFilter):
                         ]
                       ]
         standardFilter.__init__(self, filterData = filterData)
-
-    def filterChanged(self, state):
-        self.guiUtility.filesFilterAction(state)
         
 class personsFilter(standardFilter):
-    pass
-
+    def __init__(self):
+        filterData = [
+                      [('menu1', 'Persons filter test')
+                       ],
+                       [('menu2', 'Persons filter2')
+                        ]
+                       ]
+        standardFilter.__init__(self, filterData = filterData)
+        
 class libraryFilter(standardFilter):
     pass
 
