@@ -183,11 +183,11 @@ class tribler_topButton(wx.Panel):
             rect[0] %= bitmapSize[0]
             rect[1] %= bitmapSize[1]
             rects = [rect]
-            if rect[0]+rect[2] >= bitmapSize[0]:
+            if rect[0]+rect[2] > bitmapSize[0]:
                 rect1 = (rect[0], rect[1], bitmapSize[0]-rect[0], rect[3])
                 rect2 = (0, rect[1], rect[0]+rect[2] - bitmapSize[0], rect[3])
                 rects = [rect1, rect2]
-            if rect[1]+ rect[3] >= bitmapSize[1]:
+            if rect[1]+ rect[3] > bitmapSize[1]:
                 rects2 = []
                 for r in rects:
                     r1 = (r[0], r[1], r[2], bitmapSize[1] - r[3])
@@ -200,7 +200,9 @@ class tribler_topButton(wx.Panel):
                 #print "Result: %s" % rects
                 image = wx.EmptyImage(rect[2], rect[3])
                 for r in rects:    
-                    subBitmap = bitmap.GetSubBitmap(wx.Rect(r[0], r[1], r[2], r[3]))
+                    rect = wx.Rect(r[0], r[1], r[2], r[3])
+                    #print 'Trying to get rect: %s from bitmap: %s' % (rect, bitmap.GetSize())
+                    subBitmap = bitmap.GetSubBitmap(rect)
                     subImage = subBitmap.ConvertToImage()
                     if r == rects[0]:
                         place = (0,0)
