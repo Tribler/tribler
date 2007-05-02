@@ -7,6 +7,7 @@ from traceback import print_exc
 from Tribler.utilities import *
 from Tribler.Dialogs.MugshotManager import MugshotManager
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
+from Tribler.vwxGUI.torrentManager import TorrentDataManager
 import cStringIO
 from safeguiupdate import FlaglessDelayedInvocation
 import time
@@ -41,6 +42,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
+        self.data_manager = TorrentDataManager.getInstance(self.utility)
         self.mm = MugshotManager.getInstance()
         self.mode = None
         self.item = None
@@ -267,7 +269,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
     def setData(self, item):
         
         
-        print >>sys.stderr,"standardDetails: setData called, mode is",self.mode,"###########"
+        #print >>sys.stderr,"standardDetails: setData called, mode is",self.mode,"###########"
         
         self.item = item
         if not item:
@@ -485,7 +487,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 return
             permid = self.item['permid']
             hash_list = self.guiUtility.peer_manager.getPeerHistFiles(permid)
-            torrents_info = self.guiUtility.data_manager.getTorrents(hash_list)
+            torrents_info = self.data_manager.getTorrents(hash_list)
 #            # get my download history
 #            hist_torr = self.parent.mydb.getPrefList()
 #            #print hist_torr
@@ -723,15 +725,16 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             src = src2
             
         if os.path.isfile(src):
-            str = self.utility.lang.get('download_start') + u' ' + name + u'?'
-            dlg = wx.MessageDialog(self, str, self.utility.lang.get('click_and_download'), 
-                                        wx.YES_NO|wx.NO_DEFAULT|wx.ICON_INFORMATION)
-            result = dlg.ShowModal()
-            dlg.Destroy()
-            if result == wx.ID_YES:
-                ret = self.utility.queue.addtorrents.AddTorrentFromFile(src)
-                if ret == 'OK':
-                    print 'standardDetails: download started'
+#            str = self.utility.lang.get('download_start') + u' ' + name + u'?'
+#            dlg = wx.MessageDialog(self, str, self.utility.lang.get('click_and_download'), 
+#                                        wx.YES_NO|wx.NO_DEFAULT|wx.ICON_INFORMATION)
+#            result = dlg.ShowModal()
+#            dlg.Destroy()
+#            if result == wx.ID_YES:
+            ret = self.utility.queue.addtorrents.AddTorrentFromFile(src)
+            if ret and ret[0]:
+                print 'standardDetails: download started'
+                self.data_manager.setBelongsToMyDowloadHistory(torrent['infohash'], True)
                     
         else:
         
