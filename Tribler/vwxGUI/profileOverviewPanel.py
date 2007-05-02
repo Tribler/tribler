@@ -49,11 +49,7 @@ class ProfileOverviewPanel(wx.Panel):
                 print 'profileOverviewPanel: Error: Could not identify xrc element:',element
             self.elements[element] = xrcElement
 
-        my_db = MyDBHandler()
-        myname = my_db.get('name', '')
-        self.getGuiElement('myNameField').SetLabel(myname)
-
-        self.getMugshot()
+        self.getNameMugshot()
 
         self.buttons = []
         #add mouse over text and progress icon
@@ -82,16 +78,17 @@ class ProfileOverviewPanel(wx.Panel):
                 if icon_elem:
                     icon_elem.Bind(wx.EVT_LEFT_UP, self.sendClick)
                     
-        #self.getGuiElement('edit').
-                    
+        self.getGuiElement('myNameField').SetLabel('')
+
         self.initDone = True
         self.Refresh(True)
 #        self.Update()
         self.timer = None
         wx.CallAfter(self.reloadData)
 
-    def getMugshot(self):
+    def getNameMugshot(self):
         my_db = MyDBHandler()
+        self.myname = my_db.get('name', '')
         mypermid = my_db.getMyPermid()
         mm = MugshotManager.getInstance()
         self.mugshot = mm.load_wxBitmap(mypermid)
@@ -99,7 +96,8 @@ class ProfileOverviewPanel(wx.Panel):
             print "profileOverviewPanel: Bitmap for mypermid not found"
             self.mugshot = mm.get_default('personsMode','DEFAULT_THUMB')
         
-    def showMugshot(self):
+    def showNameMugshot(self):
+        self.getGuiElement('myNameField').SetLabel(self.myname)
         thumbpanel = self.getGuiElement('thumb')
         thumbpanel.setBitmap(self.mugshot)
         
@@ -138,7 +136,7 @@ class ProfileOverviewPanel(wx.Panel):
     def reloadData(self, event=None):
         """updates the fields in the panel with new data if it has changed"""
         
-        self.showMugshot()
+        self.showNameMugshot()
         
         if not self.IsShown(): #should not update data if not shown
             return
@@ -299,5 +297,5 @@ class ProfileOverviewPanel(wx.Panel):
     def WizardFinished(self,wizard):
         wizard.Destroy()
 
-        self.getMugshot()
-        self.showMugshot()
+        self.getNameMugshot()
+        self.showNameMugshot()

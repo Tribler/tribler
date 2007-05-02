@@ -291,7 +291,6 @@ class GUIUtility:
         "Called from launchmanycore by network thread to refresh statistics of downloading torrents"
         try:
             if self.guiOpen.isSet():
-                print "GUIUtility: Calling stats callback"
                 self.standardOverview.refreshTorrentStats_network_callback()
         except:
             print 'GuiUtility: Error refreshing stats'

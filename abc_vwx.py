@@ -816,8 +816,9 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         # TODO: Check if icon-tray problem is Linux only
         if sys.platform == 'linux2':
             tribler_done(self.utility.getConfigPath())            
-            
-        print "abc: OnCloseWindow END"
+        
+        if DEBUG:    
+            print >>sys.stderr,"abc: OnCloseWindow END"
 
 
     def onWarning(self,exc):
@@ -966,14 +967,9 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
         self.utility.queue.addtorrents.AddTorrentFromFile(filename)
 
     def OnExit(self):
-        print "abc: OnExit ENTER"
-        
         if not ALLOW_MULTIPLE:
             del self.single_instance_checker
         ClientPassParam("Close Connection")
-
-        print "abc: OnExit END"
-
         return 0
     
     def db_exception_handler(self,e):
