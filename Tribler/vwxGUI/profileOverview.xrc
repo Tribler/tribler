@@ -118,12 +118,12 @@
                 <option>1</option>
               </object>
               <object class="sizeritem">
-                <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                <flag>wxFIXED_MINSIZE</flag>
                 <border>3</border>
                 <option>0</option>
                 <object class="wxPanel" name="edit" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
                   <pos>110,123</pos>
-                  <size>20,20</size>
+                  <size>34,14</size>
                 </object>
               </object>
             </object>
@@ -547,7 +547,7 @@
             <border>3</border>
             <option>1</option>
             <object class="wxPanel" name="orange_bottom_center" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
-              <pos>10,399</pos>
+              <pos>10,570</pos>
               <size>20,20</size>
             </object>
           </object>
@@ -556,7 +556,7 @@
             <border>0</border>
             <option>0</option>
             <object class="wxPanel" name="pagerBottomRight" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
-              <pos>600,403</pos>
+              <pos>352,570</pos>
               <size>271,28</size>
               <object class="wxBoxSizer">
                 <orient>wxHORIZONTAL</orient>

@@ -97,8 +97,20 @@
             <border>3</border>
             <option>1</option>
             <object class="wxPanel" name="orange_bottom_center" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
-              <pos>29,403</pos>
+              <pos>10,400</pos>
               <size>20,20</size>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="sizeritem">
+                  <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                  <object class="wxPanel" name="addFriends" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <pos>3,3</pos>
+                    <size>200,15</size>
+                  </object>
+                </object>
+              </object>
             </object>
           </object>
           <object class="sizeritem">

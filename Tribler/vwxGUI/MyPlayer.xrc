@@ -8,10 +8,54 @@
       <object class="sizeritem">
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
+        <option>0</option>
+        <object class="wxBoxSizer">
+          <orient>wxHORIZONTAL</orient>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>1</option>
+            <object class="wxPanel" name="header" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+              <pos>0,0</pos>
+              <size>20,20</size>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>0</option>
+            <object class="wxPanel" name="playerTopRight" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+              <pos>20,0</pos>
+              <size>54,30</size>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="spacer">
+                  <size>10,10</size>
+                  <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>1</option>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                  <object class="wxPanel" name="close" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <pos>111,0</pos>
+                    <size>20,20</size>
+                  </object>
+                </object>
+              </object>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
         <option>1</option>
         <object class="wxPanel" name="playerPanel">
           <pos>0,0</pos>
-          <size>800,650</size>
+          <size>588,475</size>
         </object>
       </object>
       <object class="sizeritem">
@@ -25,7 +69,7 @@
             <border>3</border>
             <option>1</option>
             <object class="wxPanel" name="playerBG" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
-              <pos>3,484</pos>
+              <pos>3,487</pos>
               <size>20,85</size>
               <object class="wxBoxSizer">
                 <orient>wxHORIZONTAL</orient>
@@ -36,6 +80,29 @@
                   <option>1</option>
                 </object>
                 <object class="sizeritem">
+                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                  <object class="wxBoxSizer">
+                    <orient>wxVERTICAL</orient>
+                    <object class="spacer">
+                      <size>20,40</size>
+                      <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                      <border>3</border>
+                      <option>0</option>
+                    </object>
+                    <object class="sizeritem">
+                      <flag>wxFIXED_MINSIZE</flag>
+                      <border>3</border>
+                      <option>0</option>
+                      <object class="wxSlider" name="volumeSliderC">
+                        <pos>98,43</pos>
+                        <size>290,24</size>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+                <object class="sizeritem">
                   <flag>wxFIXED_MINSIZE</flag>
                   <border>3</border>
                   <option>0</option>
@@ -44,11 +111,52 @@
                     <size>75,85</size>
                   </object>
                 </object>
+                <object class="sizeritem">
+                  <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                  <object class="wxPanel" name="volume" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <pos>361,0</pos>
+                    <size>70,85</size>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                  <object class="wxBoxSizer">
+                    <orient>wxVERTICAL</orient>
+                    <object class="spacer">
+                      <size>20,40</size>
+                      <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                      <border>3</border>
+                      <option>0</option>
+                    </object>
+                    <object class="sizeritem">
+                      <flag>wxFIXED_MINSIZE</flag>
+                      <border>3</border>
+                      <option>0</option>
+                      <object class="wxSlider" name="volumeSlider">
+                        <pos>504,43</pos>
+                        <size>150,24</size>
+                      </object>
+                    </object>
+                  </object>
+                </object>
                 <object class="spacer">
                   <size>80,60</size>
                   <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>3</border>
                   <option>1</option>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                  <object class="wxPanel" name="fullscreen" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <pos>713,0</pos>
+                    <size>70,85</size>
+                  </object>
                 </object>
               </object>
             </object>
