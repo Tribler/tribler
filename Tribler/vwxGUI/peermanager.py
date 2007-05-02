@@ -322,6 +322,8 @@ class PeerDataManager(DelayedEventHandler):
             based on the compute_rankval function
             it also limits the number of peers to 2000
             and after sorting it creates the top of 20st most similar peers
+            
+            type can either be 'friends' or other. 
         """
         filtered = self.data
         for peer in filtered:

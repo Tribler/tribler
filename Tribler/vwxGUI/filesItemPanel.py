@@ -67,8 +67,12 @@ class FilesItemPanel(wx.Panel):
             window.Bind(wx.EVT_KEY_UP, self.keyTyped)
                              
     def setData(self, torrent):
+        
+        if torrent is None:
+            torrent = {}
+            
         # set bitmap, rating, title
-        if self.datacopy is not None and self.datacopy['infohash'] == torrent['infohash']:
+        if self.datacopy and torrent and self.datacopy['infohash'] == torrent['infohash']:
             # Do not update torrents that have no new seeders/leechers/size
             if (self.datacopy['seeder'] == torrent['seeder'] and
                 self.datacopy['leecher'] == torrent['leecher'] and
@@ -78,7 +82,7 @@ class FilesItemPanel(wx.Panel):
 
         self.data = torrent
 
-        if torrent is not None:
+        if torrent:
             # deepcopy no longer works with 'ThumnailBitmap' on board
             self.datacopy = {}
             self.datacopy['infohash'] = torrent['infohash']
@@ -88,8 +92,7 @@ class FilesItemPanel(wx.Panel):
             self.datacopy['myDownloadHistory'] = torrent.get('myDownloadHistory')
 
 
-        if torrent is None:
-            torrent = {}
+        
 
         if torrent.get('content_name'):
             title = torrent['content_name'][:self.titleLength]
