@@ -16,7 +16,7 @@
             <flag>wxFIXED_MINSIZE</flag>
             <border>0</border>
             <option>0</option>
-            <object class="wxPanel" name="black_top_left" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="bgPanel" name="black_top_left">
               <pos>0,0</pos>
               <size>10,20</size>
             </object>
@@ -64,7 +64,7 @@
             <flag>wxFIXED_MINSIZE</flag>
             <border>0</border>
             <option>0</option>
-            <object class="wxPanel" name="black_top_right" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="bgPanel" name="black_top_right">
               <pos>288,0</pos>
               <size>10,20</size>
             </object>
@@ -83,7 +83,7 @@
             <option>1</option>
             <object class="wxStaticText" name="download1">
               <style>wxST_NO_AUTORESIZE</style>
-              <label>download text etc.
+              <label>
 </label>
               <pos>10,20</pos>
               <size>170,18</size>
@@ -95,9 +95,8 @@
             <option>0</option>
             <object class="wxStaticText" name="percent1">
               <style>wxST_NO_AUTORESIZE</style>
-              <label>- %</label>
-              <pos>261,20</pos>
-              <size>27,19</size>
+              <pos>256,20</pos>
+              <size>42,19</size>
             </object>
           </object>
         </object>
@@ -114,8 +113,6 @@
             <option>1</option>
             <object class="wxStaticText" name="download2">
               <style>wxST_NO_AUTORESIZE</style>
-              <label>download text etc.
-</label>
               <pos>10,39</pos>
               <size>170,18</size>
             </object>
@@ -126,9 +123,8 @@
             <option>0</option>
             <object class="wxStaticText" name="percent2">
               <style>wxST_NO_AUTORESIZE</style>
-              <label>- %</label>
-              <pos>261,39</pos>
-              <size>27,19</size>
+              <pos>246,39</pos>
+              <size>42,19</size>
             </object>
           </object>
         </object>
@@ -145,8 +141,6 @@
             <option>1</option>
             <object class="wxStaticText" name="download3">
               <style>wxST_NO_AUTORESIZE</style>
-              <label>download text etc.
-</label>
               <pos>10,58</pos>
               <size>170,18</size>
             </object>
@@ -157,9 +151,8 @@
             <option>0</option>
             <object class="wxStaticText" name="percent3">
               <style>wxST_NO_AUTORESIZE</style>
-              <label>- %</label>
-              <pos>261,58</pos>
-              <size>27,19</size>
+              <pos>246,58</pos>
+              <size>42,19</size>
             </object>
           </object>
         </object>
@@ -176,8 +169,6 @@
             <option>1</option>
             <object class="wxStaticText" name="download4">
               <style>wxST_NO_AUTORESIZE</style>
-              <label>download text etc.
-</label>
               <pos>10,77</pos>
               <size>170,18</size>
             </object>
@@ -188,9 +179,8 @@
             <option>0</option>
             <object class="wxStaticText" name="percent4">
               <style>wxST_NO_AUTORESIZE</style>
-              <label>- %</label>
-              <pos>261,77</pos>
-              <size>27,19</size>
+              <pos>246,77</pos>
+              <size>42,19</size>
             </object>
           </object>
         </object>
@@ -199,7 +189,7 @@
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="wxPanel" name="white_bottom" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+        <object class="bgPanel" name="white_bottom">
           <pos>0,148</pos>
           <size>300,5</size>
         </object>
