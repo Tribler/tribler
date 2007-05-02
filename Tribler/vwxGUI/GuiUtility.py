@@ -1,10 +1,15 @@
 import wx
 from wx import xrc
+from traceback import print_exc,print_stack
+from threading import Event
+import urllib
+import webbrowser
+
 from bgPanel import *
 import updateXRC
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
-from traceback import print_exc,print_stack
-from threading import Event
+from Tribler.CacheDB.CacheDBHandler import MyDBHandler
+from Tribler.Overlay.permid import permid_for_user
 
 #from Tribler.vwxGUI.filesFilter import filesFilter
 
@@ -64,7 +69,10 @@ class GUIUtility:
             self.standardDetails.addAsFriend()
         elif name == 'download':
             self.standardDetails.download()
-        elif name.startswith('bgPanel') and obj.GetParent().GetName() == "profileOverview":
+        elif name == 'addFriends':
+            print "PARENT IS",obj.GetParent().GetName() # obj.GetParent().GetName() == "friendsOverview":
+            self.emailFriend(event)
+        elif (name == 'edit' or name.startswith('bgPanel')) and obj.GetParent().GetName() == "profileOverview":
             self.standardOverview.currentPanel.sendClick(event)
             self.detailsTabClicked(name) #a panel was clicked in the profile overview and this is the most elegant so far method of informing the others
         elif name == "takeMeThere0" : #a button to go to preferences was clicked
@@ -166,7 +174,6 @@ class GUIUtility:
         filesButton = xrc.XRCCTRL(self.frame, 'mainButtonFiles')
         filesButton.setSelected(True)
         self.selectedMainButton = filesButton
-        self.guiOpen.set()
      
     def getOverviewElement(self):
         """should get the last selected item for the current standard overview, or
@@ -180,6 +187,7 @@ class GUIUtility:
         firstItem = self.standardOverview.getFirstItem()
         self.standardDetails.setMode('filesMode', firstItem)
         self.standardDetails.refreshStatusPanel(True)    
+        self.guiOpen.set()
         
     def deleteTorrent(self, torrent):
         pass
@@ -226,10 +234,49 @@ class GUIUtility:
         try:
             if self.guiOpen.isSet():
                 self.standardOverview.refreshTorrentStats_network_callback()
+                self.standardDetails.refreshTorrentStats_network_callback()
         except:
             print 'GuiUtility: Error refreshing stats'
             print_exc()
+
+
+    def refreshTorrentTotalStats(self,*args,**kwargs):
+        "Called from ABCScheduler by network thread to refresh statistics of downloading torrents"
+        try:
+            if self.guiOpen.isSet():
+                self.standardDetails.refreshTorrentTotalStats_network_callback(*args,**kwargs)
+        except:
+            print 'GuiUtility: Error refreshing total stats'
+            print_exc()
    
    
-    
-         
+    def emailFriend(self, event):
+        
+        my_db = MyDBHandler()
+        ip = self.utility.config.Read('bind')
+        if ip is None or ip == '':
+            ip = my_db.getMyIP()
+        mypermid = my_db.getMyPermid()
+        permid_txt = self.utility.lang.get('permid')+": "+permid_for_user(mypermid)
+        ip_txt = self.utility.lang.get('ipaddress')+": "+ip
+
+        # port = self.utility.controller.listen_port
+        port = self.utility.config.Read('minport', 'int')
+        port_txt = self.utility.lang.get('portnumber')+" "+str(port)
+
+        
+        subject = self.utility.lang.get('invitation_subject')
+        invitation_body = self.utility.lang.get('invitation_body')
+        invitation_body = invitation_body.replace('\\n', '\n')
+        invitation_body += permid_txt + '\n'
+        invitation_body += ip_txt + '\n'
+        invitation_body += port_txt + '\n\n\n'
+       
+        if sys.platform == "darwin":
+            body = invitation_body.replace('\\r','\r')
+            body = invitation_body.replace('\\n','\n')
+        else:
+            body = urllib.quote(invitation_body)
+        mailToURL = 'mailto:%s?subject=%s&body=%s'%('', subject, body)
+        webbrowser.open(mailToURL)
+        

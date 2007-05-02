@@ -16,7 +16,7 @@ BMP_MIME_TYPE = 'image/bmp'
 
 ICON_MAX_DIM = 80
 
-DEBUG = True
+DEBUG = False
 
 class MugshotManager:
 

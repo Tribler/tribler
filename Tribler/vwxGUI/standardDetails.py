@@ -12,6 +12,8 @@ import cStringIO
 from safeguiupdate import FlaglessDelayedInvocation
 import time
 #from Tribler.vwxGUI.tribler_topButton import tribler_topButton
+from Utility.constants import COL_PROGRESS
+
 
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'subscriptionsMode', 'messageMode']
 DEBUG = True
@@ -77,6 +79,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                             'profileDetails_Persons': ['descriptionField'],
                             'profileDetails_Download': ['descriptionFieldCC','descriptionField','takeMeThere0','descriptionFieldCCCC','takeMeThere1','descriptionFieldCCCCCC','descriptionFC'],
                             'profileDetails_Presence': ['descriptionFieldCCCC', 'takeMeThere0', 'descriptionFieldCC', 'descriptionFieldCCCCCC', 'descriptionFC', 'takeMeThere1']}
+            
+        self.statdlElements = ['st28c','st30c','download1','percent1','download2','percent2','download3','percent3','download4','percent4']
             
         self.guiUtility.initStandardDetails(self)
         
@@ -228,7 +232,23 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         return currentPanel
     
     def loadStatusPanel(self):
-        return self.loadXRCPanel(os.path.join('Tribler','vwxGUI', 'statusDownloads.xrc'), 'statusDownloads')
+        currentPanel = self.loadXRCPanel(os.path.join('Tribler','vwxGUI', 'statusDownloads.xrc'), 'statusDownloads')
+        mode = 'status'
+        for element in self.statdlElements:
+            xrcElement = None
+            name = None
+            if type(element) == str:
+                xrcElement = xrc.XRCCTRL(currentPanel, element)
+                name = element
+            elif type(element) == tuple:
+                name = element[0]
+                xrcElement = xrc.XRCCTRL(self.data[mode][element[1]],name)
+            if not xrcElement:
+                print 'standardDetails: Error: Could not identify xrc element: %s for mode %s' % (element, mode)
+            if name:
+                self.data[mode][name] = xrcElement
+        return currentPanel
+
     
     def loadXRCPanel(self, filename, panelName, parent=None):
         try:
@@ -797,3 +817,70 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 #should refresh?
                 self.guiUtility.selectPeer(peer_data)
 
+
+
+    def refreshTorrentStats_network_callback(self):
+        """ Called by network thread """
+        self.invokeLater(self.refreshTorrentStats)
+        
+    def refreshTorrentStats(self):
+        """ Called by GUI thread """
+        active = self.utility.torrents["active"]
+        
+        tl = []
+        for ABCTorrentTemp in active:
+            progresstxt = ABCTorrentTemp.getColumnText(COL_PROGRESS)[:-1]
+            progress = float(progresstxt)
+            if progress < 100.0:
+                tl.append([progress,ABCTorrentTemp])
+            
+        # Reverse sort on percentage done, get top 4 
+        tl.sort(revtcmp)
+        ml = min(len(tl),4)
+        newtl = tl[:ml]
+        
+        for i in range(4):
+            if i < ml:
+                elem = newtl[i]
+                progresstxt = str(elem[0])+'%'
+                ABCTorrentTemp = elem[1]
+                file = ABCTorrentTemp.info['name']
+            else:
+                progresstxt = ''
+                file = ''
+            tname = 'download'+str(i+1)
+            pname = 'percent'+str(i+1)
+            tlabel = self.data['status'][tname]
+            plabel = self.data['status'][pname]
+            #print "Setting",pname,"to",progresstxt
+            tlabel.SetLabel(file)
+            plabel.SetLabel(progresstxt)
+        statdlpanel = self.data['status']['panel']
+        statdlpanel.Refresh()
+
+
+
+    def refreshTorrentTotalStats_network_callback(self,*args,**kwargs):
+        """ Called by network thread """
+        self.invokeLater(self.refreshTorrentTotalStats,args,kwargs)
+        
+    def refreshTorrentTotalStats(self,totaldlspeed='',totalulspeed=''):
+        """ Called by GUI thread """
+        active = self.utility.torrents["active"]
+        
+        leftlabel = self.data['status']['st28c']
+        rightlabel = self.data['status']['st30c']
+        
+        lefttext = self.utility.lang.get('downloading')+' ('+str(len(active))+')'
+        righttxt = 'down: '+totaldlspeed + ' | up: ' + totalulspeed
+        leftlabel.SetLabel(lefttext)
+        rightlabel.SetLabel(righttxt)
+        
+            
+def revtcmp(a,b):
+    if a[0] < b[0]:
+        return 1
+    elif a[0] == b[0]:
+        return 0
+    else:
+        return -1

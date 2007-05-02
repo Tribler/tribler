@@ -15,6 +15,8 @@ from ABC.Scheduler.ratemanager import RateManager
 from Utility.constants import * #IGNORE:W0611
 from safeguiupdate import DelayedEventHandler
 from BitTornado.__init__ import product_name
+from Tribler.vwxGUI.GuiUtility import GUIUtility
+
 
 ################################################################
 #
@@ -45,6 +47,7 @@ class ABCScheduler(DelayedEventHandler):
                            'down': 0.0 }
 
         self.UpdateRunningTorrentCounters()
+        self.guiUtility = GUIUtility.getInstance()
 
     def postInitTasks(self,argv):
         # Read old list from torrent.lst
@@ -144,6 +147,7 @@ class ABCScheduler(DelayedEventHandler):
         else:
             upspeed = self.utility.size_format(self.totals['up'], truncate = 1, stopearly = "KB", applylabel = False)
             upratecap = self.utility.speed_format((maxuprate * 1024), truncate = 0, stopearly = "KB")
+        upspeed2 = self.utility.speed_format(self.totals['up'], truncate = 0)
         uploadspeed = upspeed + " / " + upratecap
 
         maxdownrate = self.ratemanager.MaxRate("down")
@@ -153,6 +157,7 @@ class ABCScheduler(DelayedEventHandler):
         else:
             downspeed = self.utility.size_format(self.totals['down'], truncate = 1, stopearly = "KB", applylabel = False)
             downratecap = self.utility.speed_format((maxdownrate * 1024), truncate = 0, stopearly = "KB")
+        downspeed2 = self.utility.speed_format(self.totals['down'], truncate = 0)
         downloadspeed = downspeed + " / " + downratecap
         
         
@@ -173,11 +178,13 @@ class ABCScheduler(DelayedEventHandler):
             # update in status bar
             ##########################################
             if self.utility.frame.abc_sb is not None:
-                self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('abbrev_down') + " " + downloadspeed, 1)
-                self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('abbrev_up') + " " + uploadspeed, 2)
-                self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('discover_peer') + " " + npeer, 3)
-                self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('discover_file') + " " + nfile, 4)
+                self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('abbrev_down') + " " + downloadspeed, 2)
+                self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('abbrev_up') + " " + uploadspeed, 3)
+                self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('discover_peer') + " " + npeer, 4)
+                self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('discover_file') + " " + nfile, 5)
                 
+                
+            self.guiUtility.refreshTorrentTotalStats(totaldlspeed=downspeed2,totalulspeed=upspeed2)
         except wx.PyDeadObjectError:
             pass
                                 

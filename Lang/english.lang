@@ -1081,6 +1081,7 @@ videoanalysernotfound = "Could not find video analyser:"
 videoanalyserwhereset = "Set it to FFMPEG in the Preferences / Video menu"
 videonotcomplete = "The video cannot yet be played as it has not been completely downloaded:"
 notvideotorrent = "Nothing to play, no video files found in torrent"
+videoplaycontentnotfound = "Cannot find video file on disk"
 selectvideofiletitle = "Select video file"
 selectvideofile = "Select which video file to play:"
 videoplayer_default_path = "Path to default video player:"
@@ -1119,6 +1120,7 @@ vodprogress = "Progress:"
 launchvideoplayer = "Launch Video Player"
 videoserverservefailure = "Error serving video to player, probably the player does not understand the video format or cannot play it from the network."
 videoserverservefailureadvice = "Please wait until the download is complete and try again, or select a different player in Preferences/Video."
+downloading = "Downloading"
 
 #############
 #Tribler UI - Profile View, Tribler 4.0.0

@@ -65,6 +65,7 @@ from Tribler.Video.VideoServer import VideoHTTPServer
 from Tribler.Dialogs.GUIServer import GUIServer
 from Tribler.vwxGUI.TasteHeart import set_tasteheart_bitmaps
 from Tribler.vwxGUI.perfBar import set_perfBar_bitmaps
+from Tribler.Dialogs.BandwidthSelector import BandwidthSelector
 
 DEBUG = False
 ALLOW_MULTIPLE = False
@@ -259,6 +260,7 @@ class ABCPanel(wx.Panel):
             self.utility.list = self.list
             colSizer.Add(self.list, 1, wx.ALL|wx.EXPAND, 3)
             
+        """
         # Add status bar
         statbarbox = wx.BoxSizer(wx.HORIZONTAL)
         self.sb_buttons = ABCStatusButtons(self,self.utility)
@@ -266,7 +268,7 @@ class ABCPanel(wx.Panel):
         self.abc_sb = ABCStatusBar(self,self.utility)
         statbarbox.Add(self.abc_sb, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 0)
         colSizer.Add(statbarbox, 0, wx.ALL|wx.EXPAND, 0)
-
+        """
         
         #colSizer.Add(self.contentPanel, 1, wx.ALL|wx.EXPAND, 3)
         self.SetSizer(colSizer)
@@ -410,6 +412,18 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         # Arno: see ABCPanel
         self.abc_sb = ABCStatusBar(self,self.utility)
         self.SetStatusBar(self.abc_sb)
+
+        """
+        # Add status bar
+        statbarbox = wx.BoxSizer(wx.HORIZONTAL)
+        self.sb_buttons = ABCStatusButtons(self,self.utility)
+        statbarbox.Add(self.sb_buttons, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 0)
+        self.abc_sb = ABCStatusBar(self,self.utility)
+        statbarbox.Add(self.abc_sb, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 0)
+        #colSizer.Add(statbarbox, 0, wx.ALL|wx.EXPAND, 0)
+        self.SetStatusBar(statbarbox)
+        """
+        
         
         try:
             self.SetIcon(self.utility.icon)
@@ -940,6 +954,20 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
 
             self.Bind(wx.EVT_QUERY_END_SESSION, self.frame.OnCloseWindow)
             self.Bind(wx.EVT_END_SESSION, self.frame.OnCloseWindow)
+            
+            
+            asked = self.utility.config.Read('askeduploadbw', 'boolean')
+            if not asked:
+                dlg = BandwidthSelector(self.frame,self.utility)
+                result = dlg.ShowModal()
+                if result == wx.ID_OK:
+                    ulbw = dlg.getUploadBandwidth()
+                    self.utility.config.Write('maxuploadrate',ulbw)
+                    self.utility.config.Write('maxseeduploadrate',ulbw)
+                    self.utility.config.Write('askeduploadbw','1')
+                dlg.Destroy()
+
+            
         except Exception,e:
             print "THREAD",currentThread().getName()
             print_exc(file=sys.stderr)

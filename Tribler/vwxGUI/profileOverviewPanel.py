@@ -40,6 +40,7 @@ class ProfileOverviewPanel(wx.Panel):
 #        print "<mluc> tribler_topButton in _PostInit"
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
+        self.utility = self.guiUtility.utility
         self.data_manager = self.guiUtility.standardOverview.data_manager
 #        self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 #        self.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)

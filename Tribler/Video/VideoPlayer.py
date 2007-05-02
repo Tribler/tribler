@@ -287,6 +287,10 @@ class VideoPlayer:
                 print >>sys.stderr,"videoplay: Torrent contains no video"
             return None
         elif len(fileindexlist) == 1:
+            videoinfo = fileindexlist[0]
+            if videoinfo[3] is None:
+                self.onWarning(self.utility.lang.get('videoplaycontentnotfound'),videoinfo[1])
+                return None
             return fileindexlist[0]
         else:
             return self.ask_user_to_select(fileindexlist)
@@ -472,7 +476,15 @@ class VideoPlayer:
         filelist = []
         
         for i in range(len(fileindexlist)):
-            filelist.append(fileindexlist[i][1])
+            videoinfo = fileindexlist[i]
+            if videoinfo[3] is not None:
+                filelist.append(fileindexlist[i][1])
+            
+        if len(filelist) == 0:
+            self.onWarning(self.utility.lang.get('videoplaycontentnotfound'),videoinfo[1])
+            return None
+            
+            
         dlg = VideoChooser(self.parentwindow,self.utility,filelist)
         result = dlg.ShowModal()
         index = None
@@ -522,7 +534,8 @@ class VideoChooser(wx.Dialog):
         self.utility = utility
         self.filelist = filelist
 
-        print >>sys.stderr,"VideoChooser: filelist",self.filelist
+        if DEBUG:
+            print >>sys.stderr,"VideoChooser: filelist",self.filelist
         
         style = wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
         title = self.utility.lang.get('selectvideofiletitle')

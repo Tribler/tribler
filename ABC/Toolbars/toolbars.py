@@ -89,8 +89,10 @@ class ABCStatusBar(wx.StatusBar):
         style = wx.ST_SIZEGRIP | wx.CLIP_CHILDREN
         
         wx.StatusBar.__init__(self, parent, -1, style = style)
-        self.SetFieldsCount(5)
-        self.SetStatusWidths([-1, 120, 120, 100, 100])
+        self.SetFieldsCount(6)
+        #self.SetStatusWidths([-1, 120, 120, 100, 100])
+        self.SetStatusWidths([20, -1, 130, 130, 120, 140])
+        self.SetStatusText( '', 0)
 
     def setActivity(self,type,msg=u''):
     
@@ -121,7 +123,7 @@ class ABCStatusBar(wx.StatusBar):
             
         if DEBUG:
             print "act: Setting activity", `text`
-        self.SetStatusText( text, 0)
+        self.SetStatusText( text, 1)
 
 ##############################################################
 #
