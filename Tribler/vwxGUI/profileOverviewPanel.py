@@ -4,6 +4,8 @@ import random
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from Tribler.vwxGUI.tribler_topButton import tribler_topButton
 from Tribler.CacheDB.CacheDBHandler import MyDBHandler
+from Tribler.Dialogs.MugshotManager import MugshotManager
+from Tribler.Dialogs.socnetmyinfo import MyInfoWizard
 
 class ProfileOverviewPanel(wx.Panel):
     def __init__(self, *args, **kw):
@@ -15,7 +17,7 @@ class ProfileOverviewPanel(wx.Panel):
                              'bgPanel_Persons', 'perf_Persons', 'text_Persons', 
                              'bgPanel_Download', 'perf_Download', 'text_Download', 
                              'bgPanel_Presence', 'perf_Presence', 'text_Presence',
-                             'myNameField']
+                             'myNameField', 'thumb', 'edit']
         self.elements = {}
         self.data = {} #data related to profile information, to be used in details panel
         if len(args) == 0: 
@@ -38,6 +40,7 @@ class ProfileOverviewPanel(wx.Panel):
 #        print "<mluc> tribler_topButton in _PostInit"
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
+        self.utility = self.guiUtility.utility
 #        self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 #        self.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
         for element in self.elementsName:
@@ -47,7 +50,10 @@ class ProfileOverviewPanel(wx.Panel):
             self.elements[element] = xrcElement
 
         my_db = MyDBHandler()
-        self.getGuiElement('myNameField').SetLabel(my_db.get('name', ''))
+        myname = my_db.get('name', '')
+        self.getGuiElement('myNameField').SetLabel(myname)
+
+        self.getMugshot()
 
         self.buttons = []
         #add mouse over text and progress icon
@@ -75,11 +81,27 @@ class ProfileOverviewPanel(wx.Panel):
                     perf_elem.Bind(wx.EVT_LEFT_UP, self.sendClick)
                 if icon_elem:
                     icon_elem.Bind(wx.EVT_LEFT_UP, self.sendClick)
+                    
+        #self.getGuiElement('edit').
+                    
         self.initDone = True
         self.Refresh(True)
 #        self.Update()
         self.timer = None
         wx.CallAfter(self.reloadData)
+
+    def getMugshot(self):
+        my_db = MyDBHandler()
+        mypermid = my_db.getMyPermid()
+        mm = MugshotManager.getInstance()
+        self.mugshot = mm.load_wxBitmap(mypermid)
+        if self.mugshot is None:
+            print "profileOverviewPanel: Bitmap for mypermid not found"
+            self.mugshot = mm.get_default('personsMode','DEFAULT_THUMB')
+        
+    def showMugshot(self):
+        thumbpanel = self.getGuiElement('thumb')
+        thumbpanel.setBitmap(self.mugshot)
         
     def sendClick(self, event):
         source = event.GetEventObject()
@@ -95,6 +117,8 @@ class ProfileOverviewPanel(wx.Panel):
             wx.PostEvent( new_owner, event)
         elif source_name.startswith('bgPanel_'):
             self.selectNewButton(source_name)
+        elif source_name == "edit":
+            self.OnMyInfoWizard(event)
 
     def selectNewButton(self, sel_but):
         for button in self.buttons:
@@ -113,6 +137,9 @@ class ProfileOverviewPanel(wx.Panel):
     
     def reloadData(self, event=None):
         """updates the fields in the panel with new data if it has changed"""
+        
+        self.showMugshot()
+        
         if not self.IsShown(): #should not update data if not shown
             return
         bShouldRefresh = False
@@ -265,4 +292,12 @@ class ProfileOverviewPanel(wx.Panel):
             self.Bind(wx.EVT_TIMER, self.reloadData, self.timer)
             self.timer.Start(5000)
         
-        
+    def OnMyInfoWizard(self, event = None):
+        wizard = MyInfoWizard(self)
+        wizard.RunWizard(wizard.getFirstPage())
+
+    def WizardFinished(self,wizard):
+        wizard.Destroy()
+
+        self.getMugshot()
+        self.showMugshot()

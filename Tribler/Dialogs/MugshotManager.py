@@ -14,6 +14,8 @@ ICON_MAX_SIZE = 10*1024
 BMP_EXT = '.bmp'
 BMP_MIME_TYPE = 'image/bmp'
 
+ICON_MAX_DIM = 80
+
 DEBUG = True
 
 class MugshotManager:
@@ -47,6 +49,7 @@ class MugshotManager:
         self.defaults['personsMode']['HEART_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'heart1.png'))
         self.defaults['personsMode']['FRIEND_ONLINE_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'friend.png'))
         self.defaults['personsMode']['FRIEND_OFFLINE_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'friend_offline.png'))
+        self.defaults['personsMode']['ISFRIEND_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'isFriend.png'))
  
 
     def create_wxImageList(self,peerswpermid,setindex=False):
@@ -159,6 +162,17 @@ class MugshotManager:
                 print_exc()
             pass
 
+    def create_from_file(self,permid,srcfilename):
+        """ srcfilename must point to an image file processable by wx.Image """
+        dstfilename = self._permid2iconfilename(permid)
+        try:
+            sim = wx.Image(srcfilename).Scale(ICON_MAX_DIM,ICON_MAX_DIM)
+            sim.SaveFile(dstfilename,wx.BITMAP_TYPE_BMP)
+        except:
+            if DEBUG:
+                print_exc()
+            pass
+
     def load_wxBitmap(self,permid,name=None):
         filename = self.find_filename(permid,name)
         if filename is None:
@@ -168,7 +182,7 @@ class MugshotManager:
     def load_wxBitmap_from_file(self,filename):
         try:
             im = wx.Image(filename)
-            bm = wx.BitmapFromImage(im.Scale(64,64),-1)
+            bm = wx.BitmapFromImage(im.Scale(ICON_MAX_DIM,ICON_MAX_DIM),-1)
             return bm
         except:
             if DEBUG:
@@ -192,7 +206,7 @@ class MugshotManager:
             else:
                 im = wx.ImageFromStreamMime(mi,type)
             
-            bm = wx.BitmapFromImage(im.Scale(64,64),-1)
+            bm = wx.BitmapFromImage(im.Scale(ICON_MAX_DIM,ICON_MAX_DIM),-1)
             return bm
         except:
             if DEBUG:

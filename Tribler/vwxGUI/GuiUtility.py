@@ -83,7 +83,7 @@ class GUIUtility:
             self.standardDetails.addAsFriend()
         elif name == 'download':
             self.standardDetails.download()
-        elif name.startswith('bgPanel') and obj.GetParent().GetName() == "profileOverview":
+        elif (name.startswith('bgPanel') or name == 'edit') and obj.GetParent().GetName() == "profileOverview":
             self.standardOverview.currentPanel.sendClick(event)
             self.detailsTabClicked(name) #a panel was clicked in the profile overview and this is the most elegant so far method of informing the others
         elif name == "takeMeThere0" : #a button to go to preferences was clicked
@@ -100,9 +100,9 @@ class GUIUtility:
             if panel_name == "profileDetails_Download":
                 self.mainButtonClicked( 'mainButtonPersons', self.frame.mainButtonPersons)
             else:
-                print 'A button was clicked, but no action is defined for: %s' % name
+                print 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
         else:
-            print 'A button was clicked, but no action is defined for: %s' % name
+            print 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
                 
         
     def mainButtonClicked(self, name, button):
@@ -291,6 +291,7 @@ class GUIUtility:
         "Called from launchmanycore by network thread to refresh statistics of downloading torrents"
         try:
             if self.guiOpen.isSet():
+                print "GUIUtility: Calling stats callback"
                 self.standardOverview.refreshTorrentStats_network_callback()
         except:
             print 'GuiUtility: Error refreshing stats'

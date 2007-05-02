@@ -200,7 +200,13 @@ class LibraryItemPanel(wx.Panel):
             playable = False
             havedigest = None
             statustxt = abctorrent.status.getStatusText()
-            if statustxt != self.utility.lang.get('waiting'):
+            
+            initstates = [self.utility.lang.get('checkingdata'), 
+                           self.utility.lang.get('allocatingspace'), 
+                           self.utility.lang.get('movingdata'),
+                           self.utility.lang.get('waiting')]
+            
+            if not (statustxt in initstates):
                 if abctorrent.get_on_demand_download():
                     progressinf = abctorrent.get_progressinf()
                     havedigest = abctorrent.status.getHaveDigest()

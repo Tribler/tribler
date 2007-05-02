@@ -110,7 +110,7 @@ class Lang:
 
         # if we get to this point, we weren't able to read anything
         if giveerror:
-            sys.stdout.write("Language file: Got an error reading anything\n")
+            sys.stdout.write("Language file: Got an error finding: "+label)
             self.error(label)
         return ""
         

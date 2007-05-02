@@ -5,17 +5,15 @@ from time import sleep
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from traceback import print_exc
 from Tribler.utilities import *
+from Tribler.Dialogs.MugshotManager import MugshotManager
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 import cStringIO
 from safeguiupdate import FlaglessDelayedInvocation
 import time
 #from Tribler.vwxGUI.tribler_topButton import tribler_topButton
 
-DEFAULT_THUMB = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'thumbField.png'))
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'subscriptionsMode', 'messageMode']
 DEBUG = True
-
-ISFRIEND_BITMAP = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'isfriend.png'))
 
 class standardDetails(wx.Panel,FlaglessDelayedInvocation):
     """
@@ -43,6 +41,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
+        self.mm = MugshotManager.getInstance()
         self.mode = None
         self.item = None
         self.lastItemSelected = {} #keeps the last item selected for each mode
@@ -78,6 +77,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                             'profileDetails_Presence': ['descriptionFieldCCCC', 'takeMeThere0', 'descriptionFieldCC', 'descriptionFieldCCCCCC', 'descriptionFC', 'takeMeThere1']}
             
         self.guiUtility.initStandardDetails(self)
+        
 
 
     def addComponents(self):
@@ -362,7 +362,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 
                 if item['friend']:
                     self.getGuiObj('addAsFriend').Enable(False)
-                    self.getGuiObj('addAsFriend').switchTo(ISFRIEND_BITMAP)
+                    isfriend = self.mm.get_default('personsMode','ISFRIEND_BITMAP')
+                    self.getGuiObj('addAsFriend').switchTo(isfriend)
                 else:
                     self.getGuiObj('addAsFriend').switchBack()
                     self.getGuiObj('addAsFriend').Enable(True)
@@ -389,7 +390,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 if addAsFriend.initDone:
                     if item['friend']:
                         addAsFriend.Enable(False)
-                        addAsFriend.switchTo(ISFRIEND_BITMAP)
+                        isfriend = self.mm.get_default('personsMode','ISFRIEND_BITMAP')
+                        addAsFriend.switchTo(isfriend)
                     else:
                         addAsFriend.switchBack()
                         addAsFriend.Enable(True)
@@ -774,7 +776,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             thumbPanel.setBitmap(bmp)
             torrent['metadata']['ThumbnailBitmapLarge'] = bmp
         else:
-             thumbPanel.setBitmap(DEFAULT_THUMB)
+            default = self.mm.get_default('personsMode','DEFAULT_THUMB')
+            thumbPanel.setBitmap(default)
      
     def addAsFriend(self):
         # add the current user selected in details panel as a friend

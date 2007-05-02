@@ -783,6 +783,8 @@ class ABCFrame(wx.Frame, DelayedInvocation):
                 self.buddyFrame.Destroy()
             if self.fileFrame is not None:
                 self.fileFrame.Destroy()
+            if self.videoFrame is not None:
+                self.videoFrame.Destroy()
         except:
             pass
 
@@ -814,6 +816,8 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         # TODO: Check if icon-tray problem is Linux only
         if sys.platform == 'linux2':
             tribler_done(self.utility.getConfigPath())            
+            
+        print "abc: OnCloseWindow END"
 
 
     def onWarning(self,exc):
@@ -962,9 +966,13 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
         self.utility.queue.addtorrents.AddTorrentFromFile(filename)
 
     def OnExit(self):
+        print "abc: OnExit ENTER"
+        
         if not ALLOW_MULTIPLE:
             del self.single_instance_checker
         ClientPassParam("Close Connection")
+
+        print "abc: OnExit END"
 
         return 0
     
@@ -1007,7 +1015,7 @@ def run(params = None):
     if sys.platform != 'linux2':
         single_instance_checker = wx.SingleInstanceChecker("tribler-" + wx.GetUserId())
     else:
-        single_instance_checker = DummySingleInstanceChecker("tribler-" + os.getlogin())
+        single_instance_checker = DummySingleInstanceChecker("tribler-")
 
     if not ALLOW_MULTIPLE and single_instance_checker.IsAnotherRunning():
         #Send  torrent info to abc single instance
@@ -1030,7 +1038,7 @@ def run(params = None):
         #
         if sys.platform != 'linux2':
             tribler_done(configpath)
-
+        #os._exit(0)
 
 if __name__ == '__main__':
     run()

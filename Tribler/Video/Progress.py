@@ -124,7 +124,7 @@ class ProgressBar(wx.Control):
         self.SetBackgroundColour(wx.WHITE)
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.SetSize((-1,15))
+        self.SetSize((100,15))
 
         self.progressinf = None
 

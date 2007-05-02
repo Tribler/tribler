@@ -13,8 +13,10 @@ from ABC.GUI.toolbar import ToolBarDialog
 from Utility.configreader import ConfigReader
 from Utility.constants import * #IGNORE:W0611
 
+from Tribler.Dialogs.socnetmyinfo import MyInfoWizard
 from Tribler.CacheDB.CacheDBHandler import MyDBHandler
 from Tribler.Video.VideoPlayer import *
+from Tribler.Overlay.permid import permid_for_user
 
 DEBUG = False
 
@@ -1349,7 +1351,7 @@ class TriblerPanel(ABCOptionPanel):
     def __init__(self, parent, dialog):
         ABCOptionPanel.__init__(self, parent, dialog)
         sizer = self.sizer
-        
+
         self.rec_enable = wx.CheckBox(self, -1, self.utility.lang.get('enablerecommender'))
         sizer.Add(self.rec_enable, 0, wx.ALIGN_LEFT|wx.ALL, 5)
         sizer.Add(wx.StaticText(self, -1, self.utility.lang.get('restartabc')), 0, wx.ALIGN_CENTER_VERTICAL)
@@ -1362,11 +1364,32 @@ class TriblerPanel(ABCOptionPanel):
         sizer.Add(self.collect_enable, 0, wx.ALIGN_LEFT|wx.ALL, 5)
         sizer.Add(wx.StaticText(self, -1, self.utility.lang.get('restartabc')), 0, wx.ALIGN_CENTER_VERTICAL)
 
+        """
         name_box = wx.BoxSizer(wx.HORIZONTAL)
         self.myname = wx.TextCtrl(self, -1, "")
         name_box.Add(wx.StaticText(self, -1, self.utility.lang.get('myname')), 0, wx.ALIGN_CENTER_VERTICAL)
         name_box.Add(self.myname, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
         sizer.Add(name_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        """
+
+        # Show PermID
+        mypermid = MyDBHandler().getMyPermid()
+        pb64 = permid_for_user(mypermid)
+        if True:
+            # Make it copy-and-paste able
+            permid_box = wx.BoxSizer(wx.HORIZONTAL)
+            self.permidctrl = wx.TextCtrl(self, -1, pb64, size = (400, 30), style = wx.TE_READONLY)
+            permid_box.Add(wx.StaticText(self, -1, self.utility.lang.get('mypermid')), 0, wx.ALIGN_CENTER_VERTICAL)
+            permid_box.Add(self.permidctrl, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+            sizer.Add(permid_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        else:
+            permid_txt = self.utility.lang.get('mypermid')+": "+pb64
+            label = wx.StaticText(self, -1, self.permid_txt )
+            sizer.Add( label, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        
+        self.myinfo = wx.Button(self, -1, self.utility.lang.get('myinfo') + "...")
+        sizer.Add(self.myinfo, 0, wx.ALL, 5)
+        self.Bind(wx.EVT_BUTTON, self.OnMyInfoWizard, self.myinfo)
         
         self.initTasks()
         
@@ -1378,17 +1401,18 @@ class TriblerPanel(ABCOptionPanel):
         self.dlhelp_enable.SetValue(Read('enabledlhelp', "boolean"))
         self.collect_enable.SetValue(Read('enabledlcollecting', "boolean"))
 
-        self.my_db = MyDBHandler()
-        name = self.my_db.get('name', '')
-        self.myname.SetValue(name)
-
     def apply(self):       
         self.utility.config.Write('enablerecommender', self.rec_enable.GetValue(), "boolean")
         self.utility.config.Write('enabledlhelp', self.dlhelp_enable.GetValue(), "boolean")          
         self.utility.config.Write('enabledlcollecting', self.collect_enable.GetValue(), "boolean")          
 
-        name = self.myname.GetValue()
-        self.my_db.put('name',name)
+    def OnMyInfoWizard(self, event = None):
+        wizard = MyInfoWizard(self)
+        wizard.RunWizard(wizard.getFirstPage())
+
+    def WizardFinished(self,wizard):
+        wizard.Destroy()
+
 
 
 ################################################################
