@@ -15,6 +15,7 @@ BMP_EXT = '.bmp'
 BMP_MIME_TYPE = 'image/bmp'
 
 ICON_MAX_DIM = 80
+SMALL_ICON_MAX_DIM = 32
 
 DEBUG = False
 
@@ -58,29 +59,23 @@ class MugshotManager:
         """
         if len(peerswpermid) == 0:
             return None
-        height = 0
-        width = 0
         list = []
         for peer in peerswpermid:
             filename = self.find_filename(peer['permid'],peer['name'])
-            if filename is None:
-                # Fallback icon
-                filename = self.get_defaulticon_filename()
             bm = None
-            try:
-                bm = wx.Bitmap(filename,wx.BITMAP_TYPE_BMP)
-            except:
+            if filename is None:
+                bm = self.get_default('personsMode','DEFAULT_THUMB')
+            else:
                 try:
-                    filename = self.get_defaulticon_filename()
-                    bm = wx.Bitmap(filename,wx.BITMAP_TYPE_BMP)
+                    im = wx.Image(filename)
+                    bm = wx.BitmapFromImage(im.Scale(SMALL_ICON_MAX_DIM,SMALL_ICON_MAX_DIM),-1)
                 except:
-                    return None
-            if bm.GetWidth() > width:
-                width = bm.GetWidth()
-            if bm.GetHeight() > height:
-                height = bm.GetHeight()
+                    try:
+                        bm = self.get_default('personsMode','DEFAULT_THUMB')
+                    except:
+                        return None
             list.append(bm)
-        imgList = wx.ImageList(width,height)
+        imgList = wx.ImageList(SMALL_ICON_MAX_DIM,SMALL_ICON_MAX_DIM)
         if imgList is None:
             return None
         for peer in peerswpermid:
@@ -168,10 +163,11 @@ class MugshotManager:
         try:
             sim = wx.Image(srcfilename).Scale(ICON_MAX_DIM,ICON_MAX_DIM)
             sim.SaveFile(dstfilename,wx.BITMAP_TYPE_BMP)
+            return True
         except:
             if DEBUG:
                 print_exc()
-            pass
+            return False
 
     def load_wxBitmap(self,permid,name=None):
         filename = self.find_filename(permid,name)

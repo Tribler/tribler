@@ -1372,6 +1372,7 @@ class TriblerPanel(ABCOptionPanel):
         sizer.Add(name_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
         """
 
+        """
         # Show PermID
         mypermid = MyDBHandler().getMyPermid()
         pb64 = permid_for_user(mypermid)
@@ -1386,6 +1387,7 @@ class TriblerPanel(ABCOptionPanel):
             permid_txt = self.utility.lang.get('mypermid')+": "+pb64
             label = wx.StaticText(self, -1, self.permid_txt )
             sizer.Add( label, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        """
         
         self.myinfo = wx.Button(self, -1, self.utility.lang.get('myinfo') + "...")
         sizer.Add(self.myinfo, 0, wx.ALL, 5)

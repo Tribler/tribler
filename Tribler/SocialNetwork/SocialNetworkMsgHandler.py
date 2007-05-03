@@ -6,7 +6,7 @@ import sys
 from time import time
 
 from BitTornado.BT1.MessageID import *
-from Tribler.Overlay.SecureOverlay import OLPROTO_VER_FOURTH
+from Tribler.Overlay.SecureOverlay import OLPROTO_VER_FIFTH
 from Tribler.SocialNetwork.OverlapMsgHandler import OverlapMsgHandler
 from Tribler.CacheDB.CacheDBHandler import MyDBHandler, PeerDBHandler, SuperPeerDBHandler
 
@@ -75,7 +75,7 @@ class SocialNetworkMsgHandler:
         if exc is not None:
             return
         
-        if selversion < OLPROTO_VER_FOURTH:
+        if selversion < OLPROTO_VER_FIFTH:
             return True
 
         if self.config['superpeer']:

@@ -209,7 +209,7 @@ class ABCMenuBar(wx.MenuBar):
             menu.Destroy()
         
         items = [ACTION_FILEMENU, 
-                 ACTION_TORRENTACTIONMENU, 
+                 #ACTION_TORRENTACTIONMENU, 
                  ACTION_TOOLSMENU, 
                  ACTION_VERSIONMENU]
         for item in items:

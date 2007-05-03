@@ -44,6 +44,15 @@ class VideoFrame(wx.Frame):
                           size=(800,650))
         self.createMainPanel()
 
+
+        iconpath = os.path.join(self.utility.getPath(),'tribler.ico')
+        # Giving it the whole bundle throws an exception about image 6
+        #self.icons = wx.IconBundle()
+        #self.icons.AddIconFromFile(iconpath,wx.BITMAP_TYPE_ICO)
+        #self.SetIcons(self.icons)
+        self.icon = wx.Icon(iconpath,wx.BITMAP_TYPE_ICO,16,16)
+        self.SetIcon(self.icon)
+
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
 
     def createMainPanel(self):
@@ -79,6 +88,7 @@ class VideoFrame(wx.Frame):
         if not self.showingvideo:
             self.showingvideo = True
             self.Show()
+            self.Raise()
             self.SetFocus()
 
         self.item = VideoItem(url)

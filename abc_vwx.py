@@ -359,6 +359,10 @@ class ABCOldFrame(wx.Frame,FlaglessDelayedInvocation):
 
         self.window = ABCPanel(self)
         self.Bind(wx.EVT_SET_FOCUS, self.onFocus)
+        
+        self.tb = ABCToolBar(self) # new Tribler gui has no toolbar
+        self.SetToolBar(self.tb)
+
             
     def onFocus(self, event = None):
         if event is not None:
@@ -520,21 +524,18 @@ class ABCFrame(wx.Frame, DelayedInvocation):
             self.utility.torrentconfig.Flush()
 
         self.videoFrame = None
-        try:
-            feasible = return_feasible_playback_modes()
-            if PLAYBACKMODE_INTERNAL in feasible:
-                # This means vlc is available
-                from Tribler.Video.EmbeddedPlayer import VideoFrame
-                self.videoFrame = VideoFrame(self)
+        feasible = return_feasible_playback_modes()
+        if PLAYBACKMODE_INTERNAL in feasible:
+            # This means vlc is available
+            from Tribler.Video.EmbeddedPlayer import VideoFrame
+            self.videoFrame = VideoFrame(self)
 
-                #self.videores = xrc.XmlResource("Tribler/vwxGUI/MyPlayer.xrc")
-                #self.videoframe = self.videores.LoadFrame(None, "MyPlayer")
-                #self.videoframe.Show()
-                
-                videoplayer = VideoPlayer.getInstance()
-                videoplayer.set_parentwindow(self.videoFrame)
-        except:
-            print_exc()
+            #self.videores = xrc.XmlResource("Tribler/vwxGUI/MyPlayer.xrc")
+            #self.videoframe = self.videores.LoadFrame(None, "MyPlayer")
+            #self.videoframe.Show()
+            
+            videoplayer = VideoPlayer.getInstance()
+            videoplayer.set_parentwindow(self.videoFrame)
 
         sys.stdout.write('GUI Complete.\n')
 

@@ -181,7 +181,7 @@ class AboutMeDialog(MyHtmlDialog):
                      "<P><TABLE BORDER=0 CELLSPACING=0>" + \
                      "<TR>" + \
                          "<TD>Author:</TD>" + \
-                         "<TD>Choopan Rattanapoka (choopanr@hotmail.com)</TD>" + \
+                         "<TD>Tribler Team &amp; Choopan Rattanapoka (choopanr@hotmail.com)</TD>" + \
                      "</TR>" + \
                      "<TR>" + \
                          "<TD>Date:</TD>" + \
@@ -189,13 +189,11 @@ class AboutMeDialog(MyHtmlDialog):
                      "</TR>" + \
                      "<TR>" + \
                          "<TD>Homepage:</TD>" + \
-                         "<TD><A HREF=http://pingpong-abc.sourceforge.net>ABC Homepage</A></TD>" + \
-                             " | <A HREF=http://www.tribler.org>Tribler Homepage</A></TD>" + \
+                         "<TD><A HREF=http://www.tribler.org>Tribler Homepage</A></TD>" + \
                      "</TR>" + \
                      "<TR>" + \
                          "<TD>Forums:</TD>" + \
-                         "<TD><A HREF=http://sourceforge.net/forum/?group_id=88285>ABC Forums</A>" + \
-                                  " |  <A HREF=http://sourceforge.net/forum/?group_id=159448>Tribler Forums</A></TD>" + \
+                         "<TD><A HREF=http://sourceforge.net/forum/?group_id=159448>Tribler Forums</A></TD>" + \
                      "</TR>" + \
                      "<TR>" + \
                          "<TD>Additional Code:</TD>" + \

@@ -335,10 +335,11 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 
                 # Show or hide download button in detailstab
                 downloadButton = self.getGuiObj('download')
-                if self.showDownloadbutton(self.mode, torrent):
-                    downloadButton.Show()
-                else:
-                    downloadButton.Hide()
+                if downloadButton is not None:
+                    if self.showDownloadbutton(self.mode, torrent):
+                        downloadButton.Show()
+                    else:
+                        downloadButton.Hide()
                 
             elif self.getGuiObj('files_detailsTab').isSelected():
                 filesList = self.getGuiObj('includedFiles', tab = 'filesTab_files')

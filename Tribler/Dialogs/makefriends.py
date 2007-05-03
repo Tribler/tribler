@@ -11,6 +11,7 @@ import wx
 import wx.lib.imagebrowser as ib
 from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
 from Tribler.Overlay.permid import permid_for_user
+from Tribler.Dialogs.MugshotManager import MugshotManager
 
 DEBUG = False
 
@@ -27,11 +28,11 @@ def permid2iconfilename(utility,permid):
 
 
 class MakeFriendsDialog(wx.Dialog):
-    def __init__(self, parent, editfriend = None):
+    def __init__(self, parent, utility, editfriend = None):
         #provider = wx.SimpleHelpProvider()
         #wx.HelpProvider_Set(provider)
         
-        self.utility = parent.utility
+        self.utility = utility
         self.editfriend = editfriend
 
         style = wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
@@ -125,7 +126,7 @@ class MakeFriendsDialog(wx.Dialog):
         # picture
         box = wx.BoxSizer(wx.HORIZONTAL)
 
-        label = wx.StaticText(self, -1, self.utility.lang.get('icon32bmp'))
+        label = wx.StaticText(self, -1, self.utility.lang.get('icon'))
         #label.SetHelpText("")
         box.Add(label, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
 
@@ -167,6 +168,9 @@ class MakeFriendsDialog(wx.Dialog):
 
         sizer.Add(btnsizer, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
 
+
+        self.mm = MugshotManager.getInstance()
+
         self.SetSizer(sizer)
         sizer.Fit(self)
         
@@ -196,22 +200,10 @@ class MakeFriendsDialog(wx.Dialog):
         else:
             newiconfilename = ''
             if icon != '':
-                try:
-                    bm = wx.Bitmap(icon,wx.BITMAP_TYPE_BMP)
-                    if bm.GetWidth() != 32 or bm.GetHeight() != 32:
-                        self.show_inputerror(self.utility.lang.get('friendsiconnot32bmp_error') )
-                        return
-                except:
+                ret = self.mm.create_from_file(permid,icon)
+                if not ret:
                     self.show_inputerror(self.utility.lang.get('friendsiconnotbmp_error'))
                     return
-                    
-                # All good, save icon in $HOME/.Tribler/icons
-                # Renabled by Arno
-                newiconfilename = permid2iconfilename(self.utility,permid)
-                try:
-                    copy2(os.path.normpath(icon), newiconfilename)
-                except:
-                    print_exc()
 
             fdb = FriendDBHandler()
             friend = {'permid':permid, 'ip':ip, 'port':port, 'name':name, 'icon':newiconfilename}

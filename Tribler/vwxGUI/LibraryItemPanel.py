@@ -144,6 +144,9 @@ class LibraryItemPanel(wx.Panel):
         self.playerPlay.Hide()
         self.hSizer.Add(self.playerPlay, 0, wx.TOP, 2) 
         
+        self.dlbooster = tribler_topButton(self, -1, wx.Point(542,3), wx.Size(17,17),name='dlbooster')
+        self.hSizer.Add(self.dlbooster, 0, wx.TOP, 2) 
+                
         # Add Refresh        
         self.SetSizer(self.hSizer);
         self.SetAutoLayout(1);

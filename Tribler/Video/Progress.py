@@ -111,13 +111,15 @@ class ProgressInf:
 
 class ProgressBar(wx.Control):
     #def __init__(self, parent, colours = ["#cfcfcf","#d7ffd7","#00ff00"], *args, **kwargs ):
-    def __init__(self, parent, colours = ["#cfcfcf","#0000dd","#00ff00"], *args, **kwargs ):
+    #def __init__(self, parent, colours = ["#cfcfcf","#fde72d","#00ff00"], *args, **kwargs ):
+    #def __init__(self, parent, colours = ["#ffffff","#fde72d","#00ff00"], *args, **kwargs ):
+    def __init__(self, parent, colours = ["#ffffff","#305100","#ff3300"], *args, **kwargs ):
         self.colours = colours
         self.pens    = [wx.Pen(c,0) for c in self.colours]
         self.brushes = [wx.Brush(c) for c in self.colours]
         self.reset()
 
-        style = wx.NO_BORDER
+        style = wx.SIMPLE_BORDER
         wx.Control.__init__(self, parent, -1, style=style)
         self.SetMaxSize((-1,15))
         self.SetMinSize((100,15))
@@ -139,6 +141,7 @@ class ProgressBar(wx.Control):
         
         # define condition
         x,y,maxw,maxh = self.GetClientRect()
+        #dc.DrawRectangle(x,y,)
         
         arrowsize = 6
         arrowspace = 1

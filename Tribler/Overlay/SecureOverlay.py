@@ -31,10 +31,12 @@ overlay_infohash = '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00
 OLPROTO_VER_FIRST  = 1  # Internally used only.
 OLPROTO_VER_SECOND = 2  # First public release, >= 3.3.4
 OLPROTO_VER_THIRD  = 3  # Second public release, > 3.5.0, Dialback
-OLPROTO_VER_FOURTH = 4  # Third public release, > 3.6.0, SOCIAL_OVERLAP
+OLPROTO_VER_FOURTH = 4  # Third public release, >= 3.7.0, BuddyCast3
+OLPROTO_VER_FIFTH = 5   # Fourth public release, >= 4.0.0, SOCIAL_OVERLAP
+
 
 # Overlay-swarm protocol version numbers
-OLPROTO_VER_CURRENT = OLPROTO_VER_FOURTH
+OLPROTO_VER_CURRENT = OLPROTO_VER_FIFTH
 OLPROTO_VER_LOWEST = OLPROTO_VER_SECOND
 SupportedVersions = range(OLPROTO_VER_LOWEST, OLPROTO_VER_CURRENT+1)
 

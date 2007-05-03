@@ -100,7 +100,7 @@ class ManageFriendsPanel(wx.Panel):
 
 
     def addFriend(self, event = None):
-        dialog = MakeFriendsDialog(self)
+        dialog = MakeFriendsDialog(self,self.utility)
         ret = dialog.ShowModal()
         if ret == wx.ID_OK:
             self.updateView()
