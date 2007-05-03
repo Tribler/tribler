@@ -399,7 +399,7 @@ class AddTorrents:
             else:
                 if DEBUG:
                     print >>sys.stderr,"addtorrents: activating old torrent",ABCTorrentTemp.infohash
-                self.utility.actionhandler.procRESUME([ABCTorrentTemp],skipcheck = True, play_video = True)
+                self.utility.actionhandler.procRESUME([ABCTorrentTemp],skipcheck = True)
                 
             if writetorrentlist:
                 # Update torrent.list

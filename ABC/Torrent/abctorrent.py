@@ -892,6 +892,10 @@ class ABCTorrent:
 
         del self.utility.torrents["inactive"][self]
         
+        # Remove abctorrent from librarypanel
+        if self.libraryPanel:
+            self.libraryPanel.abcTorrentShutdown(self.infohash)
+        
         
     def setLibraryPanel(self, panel):
         self.libraryPanel = panel

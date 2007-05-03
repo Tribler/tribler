@@ -101,6 +101,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 grid = xrc.XRCCTRL(currentPanel, modeString+'Grid')
                 pager = xrc.XRCCTRL(currentPanel, 'standardPager')
                 if not currentPanel:
+                    raise Exception('standardOverview: Could not find panel, grid or pager')
                     #load dummy panel
                     dummyFile = os.path.join('Tribler','vwxGUI', 'dummyOverview.xrc')
                     dummy_res = xrc.XmlResource(dummyFile)
@@ -124,7 +125,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     def refreshData(self):        
         grid = self.data[self.mode].get('grid')
         if grid:
-            grid.setData(self.data[self.mode].get('data'))
+            grid.setData(self.data[self.mode].get('data'), resetPages = False)
         
     def updateSelection(self):
         grid = self.data[self.mode].get('grid')
@@ -153,6 +154,9 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     
     def filterChanged(self, filterState):
         oldFilterState = self.data[self.mode].get('filterState')
+        if filterState == None:
+            filterState = oldFilterState
+            
         if self.mode == 'filesMode':
             self.loadTorrentData(filterState[0], filterState[1])
             
@@ -231,10 +235,11 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 inactive.append(torrent)
         
         self.data[self.mode]['data'] = active+inactive
+        print 'Loaded %d library items' % len(self.data[self.mode]['data'])
         
         
     def updateFunTorrents(self, torrent, operate):    
-        print "UpdatefunTorrents called: %s" % operate
+        print "UpdatefunTorrents called: %s, %s" % (operate, str(torrent))
         try:
             detailsPanel = self.guiUtility.standardDetails
         except:
@@ -245,13 +250,23 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             if detailsPanel and detailsPanel.getIdentifier() == torrent['infohash']:
                 self.invokeLater(detailsPanel.setData, [torrent])
         
-        torrentGrid = self.data['filesMode']['grid']
-        assert torrentGrid, 'standardOverview: could not find filesGrid'
+        torrentGrid = self.data[self.mode]['grid']
+        assert torrentGrid, 'standardOverview: could not find Grid of %s' % self.mode
         
-        if operate in ['update', 'add']:
+        if self.mode == 'libraryMode':
+            # Reload whole library to make sorting ok
+            self.invokeLater(self.filterChanged, [None])
+            return
+            
+        if operate == 'update':
+            # unhealthy torrents are also updated
             self.invokeLater(torrentGrid.updateItem, [torrent])
-        else:
+        elif operate == 'add' and torrent.get('status') == 'good' or torrent.get('myDownloadHistory'):
+            # new torrents are only added when healthy
+            self.invokeLater(torrentGrid.updateItem, [torrent])
+        elif operate == 'delete':
             self.invokeLater(torrentGrid.updateItem, [torrent], {'delete':True})
+            
         
     def updateFunPersons(self, torrent, operate):    
         print "UpdatefunPersons called"

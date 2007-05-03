@@ -334,13 +334,12 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                         leechersField.SetLabel('?')
                 
                 # Show or hide download button in detailstab
-                downloadButton = self.getGuiObj('download')
-                if downloadButton is not None:
-                    if self.showDownloadbutton(self.mode, torrent):
-                        downloadButton.Show()
-                    else:
-                        downloadButton.Hide()
-                
+#                downloadButton = self.getGuiObj('download')
+#                if self.showDownloadbutton(self.mode, torrent):
+#                    downloadButton.Show()
+#                else:
+#                    downloadButton.Hide()
+#                
             elif self.getGuiObj('files_detailsTab').isSelected():
                 filesList = self.getGuiObj('includedFiles', tab = 'filesTab_files')
                 filesList.setData(torrent)

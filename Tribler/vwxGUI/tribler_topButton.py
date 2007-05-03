@@ -14,6 +14,7 @@ class tribler_topButton(wx.Panel):
     def __init__(self, *args, **kw):
 #        print "<mluc> tribler_topButton in init"
         self.initDone = False
+        self.enabled = True
         if len(args) == 0: 
             self.backgroundColor = wx.Colour(102,102,102) 
             pre = wx.PrePanel() 
@@ -37,7 +38,7 @@ class tribler_topButton(wx.Panel):
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
         self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
-        self.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
+        self.Bind(wx.EVT_LEFT_UP, self.ClickedButton)
         self.selected = False
         self.old_bitmaps = None #bitmaps that were initially loaded on the button with searchBitmaps function, and now have been changed to some provisory ones using switchTo
         self.searchBitmaps()
@@ -132,11 +133,11 @@ class tribler_topButton(wx.Panel):
             self.mouseOver = False
             #print 'leave'
             self.Refresh()
-        elif event.ButtonUp():
-            self.ClickedButton()
-        #event.Skip()
-    def ClickedButton(self):
-        print 'Click'
+
+
+    def ClickedButton(self, event):
+        if self.enabled:
+            self.guiUtility.buttonClicked(event)
                 
     def getParentBitmap(self):
         try:
@@ -224,6 +225,9 @@ class tribler_topButton(wx.Panel):
             print_exc()
             return None
                                             
+    def setEnabled(self, e):
+        self.enabled = e
+        self.Refresh()
         
     def setBackground(self, wxColor):
         self.backgroundColor = wxColor
@@ -233,6 +237,7 @@ class tribler_topButton(wx.Panel):
         dc = wx.BufferedPaintDC(self)
         dc.SetBackground(wx.Brush(self.backgroundColor))
         dc.Clear()
+        
         if self.parentBitmap:
             dc.DrawBitmap(self.parentBitmap, 0,0, True)
         else:
@@ -240,9 +245,61 @@ class tribler_topButton(wx.Panel):
             if self.parentBitmap:
                 dc.DrawBitmap(self.parentBitmap, 0,0, True)
         
+        if not self.enabled:
+            return
+        
         if self.bitmaps[0]:
             dc.DrawBitmap(self.bitmaps[0], 0,0, True)
         if (self.mouseOver or self.selected) and self.bitmaps[1]:
             dc.DrawBitmap(self.bitmaps[1], 0,0, True)
         
 
+class SwitchButton(tribler_topButton):
+        
+    def searchBitmaps(self):
+        self.selected = False
+        self.allBitmaps = [None, None, None, None]
+        self.parentBitmap = None
+        self.mouseOver = False
+                
+        # get the image directory
+        abcpath = os.path.abspath(os.path.dirname(sys.argv[0]))
+        self.imagedir = os.path.join(abcpath, 'Tribler','vwxGUI', 'images')
+        if not os.path.isdir(self.imagedir):
+            olddir = self.imagedir
+            # Started app.py in vwxDir?
+            self.imagedir = os.path.join(abcpath, 'images')
+            
+        if not os.path.isdir(self.imagedir):
+            print 'Error: no image directory found in %s and %s' % (olddir, self.imagedir)
+            return
+        
+        # find a file with same name as this panel
+        self.bitmapPath = [os.path.join(self.imagedir, self.GetName()+'.png'), 
+                        os.path.join(self.imagedir, self.GetName()+'_clicked.png'),
+                        os.path.join(self.imagedir, self.GetName()+'Enabled.png'), 
+                        os.path.join(self.imagedir, self.GetName()+'Enabled_clicked.png')
+                        ]
+        
+        i = 0
+        for img in self.bitmapPath:
+            if os.path.isfile(img):
+                self.allBitmaps[i] = wx.Bitmap(img, wx.BITMAP_TYPE_ANY)
+                i+=1
+            elif DEBUG:
+                print 'Could not find image: %s' % img
+                
+        self.bitmaps = self.allBitmaps[:2]
+                
+    def setToggled(self, b):
+        self.selected = b
+        if b:
+            self.bitmaps=self.allBitmaps[1:]
+        else:
+            self.bitmaps=self.allBitmaps[:2]
+        #should Refresh?
+        self.Refresh()
+        
+    def isToggled(self):
+        return self.selected
+    
