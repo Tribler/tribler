@@ -14,6 +14,7 @@ from Utility.constants import * #IGNORE:W0611
 from Tribler.Category.Category import Category
 from Tribler.TrackerChecking.ManualChecking import ManualChecking
 from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
+from Tribler.vwxGUI.torrentManager import TorrentDataManager
 from copy import deepcopy
 from traceback import print_exc
 from time import time

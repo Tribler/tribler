@@ -116,7 +116,7 @@ class FriendsItemPanel(wx.Panel):
                 return
         
         self.data = peer_data
-
+        
         if peer_data is not None:
             # deepcopy no longer works with 'ThumnailBitmap' on board
             self.datacopy = {}

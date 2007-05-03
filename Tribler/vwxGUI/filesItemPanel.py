@@ -9,7 +9,7 @@ from Tribler.unicode import *
 from copy import deepcopy
 import cStringIO
 
-DEBUG=False
+DEBUG=True
 
 class FilesItemPanel(wx.Panel):
     """
@@ -93,8 +93,6 @@ class FilesItemPanel(wx.Panel):
         else:
             self.datacopy = {}
 
-        
-
         if torrent.get('content_name'):
             title = torrent['content_name'][:self.titleLength]
             self.title.Enable(True)
@@ -116,7 +114,8 @@ class FilesItemPanel(wx.Panel):
           
     def select(self):
         if DEBUG:
-            print 'fip: item selected'
+            print 'fip: item selected',self.data.keys()
+            
         self.thumb.setSelected(True)
         self.title.SetBackgroundColour(self.selectedColour)
         self.title.Refresh()

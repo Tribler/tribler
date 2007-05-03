@@ -176,7 +176,7 @@ class MetadataHandler:
             return None
 
 
-    def addTorrentToDB(self, src, torrent_hash, metadata):
+    def addTorrentToDB(self, src, torrent_hash, metadata, hack=False):
         
         metainfo = bdecode(metadata)
         namekey = name2unicode(metainfo)  # convert info['name'] to type(unicode)
@@ -207,9 +207,14 @@ class MetadataHandler:
         torrent["ignore_number"] = 0
         torrent["last_check_time"] = long(time())
         torrent["retry_number"] = 0
-        torrent["seeder"] = -1
-        torrent["leecher"] = -1
-        torrent["status"] = "unknown"
+        if hack:
+            torrent["seeder"] = 1
+            torrent["leecher"] = 1
+            torrent["status"] = "good"
+        else:
+            torrent["seeder"] = -1
+            torrent["leecher"] = -1
+            torrent["status"] = "unknown"
         #if (torrent['category'] != []):
         #    print '### one torrent added from MetadataHandler: ' + str(torrent['category']) + ' ' + torrent['torrent_name'] + '###'
         

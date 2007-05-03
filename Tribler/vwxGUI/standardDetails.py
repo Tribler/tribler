@@ -287,10 +287,6 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             print 'standardDetails: Error in getIdentifier for mode %s, item=%s' % (self.mode,self.item)
         
     def setData(self, item):
-        
-        
-        print >>sys.stderr,"standardDetails: setData called, mode is",self.mode,"###########"
-        
         self.item = item
         if not item:
             return
@@ -305,6 +301,15 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             titleField.Wrap(-1)
             
             self.setTorrentThumb(torrent, self.getGuiObj('thumbField'))        
+
+            descrobj = self.getGuiObj('descriptionField')
+            descrtxt = ''
+            if 'metadata' in torrent:
+                metadata = torrent['metadata']
+                if 'Description' in metadata: # If vuze torrent
+                    descrtxt = metadata['Description']
+            descrobj.SetLabel(descrtxt)
+            
             
             if self.getGuiObj('info_detailsTab').isSelected():
                 # The info tab is selected, show normal torrent info
