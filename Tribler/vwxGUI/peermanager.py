@@ -148,10 +148,7 @@ class PeerDataManager(DelayedEventHandler):
             filterFunc,cmpFunc = self.filtered_func[type]
             if filterFunc is None or filterFunc(peer_data):
                 print "adding peer",peer_data['content_name'],"to filter",type
-                if cmpFunc is None:
-                    list.append(peer_data)
-                else:
-                    self.insertInPlace(list, cmpFunc, peer_data)
+                self.insertInPlace(list, peer_data, cmpFunc)
             
     def removeFromFilters(self, permid):
         """inserts in each filtered data the value at the right position based on the comparing function
@@ -179,6 +176,9 @@ class PeerDataManager(DelayedEventHandler):
             return None
         data = self.filtered_data[filter_name] 
         for i in xrange(len(data)):
+            if data[i].get('permid') is None:
+                print "<mluc> ERROR: peer has no permid!!!!"
+                print "<mluc> ERROR: peer name is",data[i]['content_name']
             if data[i]['permid'] == permid:
                 return data[i]
         return None
@@ -301,7 +301,7 @@ class PeerDataManager(DelayedEventHandler):
         if self.start_callback_int == -1:
             self.start_callback_int = start_time
         self.callback_dict[permid] = mode
-        if start_time - self.start_callback_int > self.MIN_CALLBACK_INT and not self.isDataPrepared:
+        if start_time - self.start_callback_int > self.MIN_CALLBACK_INT and self.isDataPrepared:
             treat_dict = {}
             count = 0
             for k,v in self.callback_dict.iteritems():
@@ -331,7 +331,7 @@ class PeerDataManager(DelayedEventHandler):
                 if (peer_data['connected_times'] == 0 and peer_data['buddycast_times'] == 0):
                     continue #skip this peer as it is of no interrest
                 #extra check, the permid should already be there
-                if peer_data.get('permid')==None:
+                if peer_data.get('permid') is None:
                     peer_data['permid'] = permid
                 #arrange the data some more: add content_name, rank and so on
                 self.preparePeer(peer_data)
@@ -341,7 +341,8 @@ class PeerDataManager(DelayedEventHandler):
                 for key, list in self.filtered_data.iteritems():
                     remove_data_from_list(list, permid)
             elif mode in ['update', 'add']:
-                self.insertInFilters(peer_data)
+                if peer_data is not None:
+                    self.insertInFilters(peer_data)
 #===============================================================================
 #                i = find_content_in_dictlist(self.data, peer_data, 'permid')
 #                if i != -1:
@@ -378,8 +379,9 @@ class PeerDataManager(DelayedEventHandler):
     def notifyGui(self, peer_data, mode):
         """notifies all registered gui objects of the callback after the data is updated in database"""
         key = 'all' #the only type of key acceptable
-        for func in self.dict_guiCallbackFuncList[key]:
-            func(peer_data, mode)
+        if self.dict_guiCallbackFuncList.has_key(key):
+            for func in self.dict_guiCallbackFuncList[key]:
+                func(peer_data, mode)
   
     def updateTopList(self, data_list, top_list, key, equal_key='permid', max_list_length=20):
         """for each element in data_list, add it to top_list ordered descending based on the key
@@ -417,6 +419,11 @@ class PeerDataManager(DelayedEventHandler):
         #print len(top_list), [ elem['content_name'] for elem in top_list]
         return bChange
 
+    def updatePeer(self, old_value, new_value):
+        """updates an existing peer data dictionary with values from a new one while keeping the old reference"""
+        for key,value in new_value.iteritems():
+            old_value[key] = value
+            
     def preparePeer(self, peer_data):
         """when a peer is updated, prepare it for use inside the view
         creates content_name, similarity_percent, rank_value
@@ -622,7 +629,7 @@ class PeerDataManager(DelayedEventHandler):
             return True
         return False
         
-    def insertInPlace(self, list, cmpFunc, new_value, equalFunc=peerEqualFunc):
+    def insertInPlace(self, list, new_value, cmpFunc=None, equalFunc=peerEqualFunc):
         """iterate through the list to check two things: if the item is already in list
         and where it should be inserted based on the cmpFunc return value
         returns True if the list is changed, False otherwise
@@ -634,25 +641,32 @@ class PeerDataManager(DelayedEventHandler):
         indexInsertAt = llen
         indexIsAt = -1
         while index < llen:
-            if equalFunc(top_list[index],new_value):
+            if equalFunc(list[index],new_value):
                 indexIsAt = index
-            if cmpFunc(new_value,top_list[index])>0:
+            if cmpFunc is not None and cmpFunc(new_value,list[index])>0:
                 indexInsertAt = index
-            if indexIsAt != -1 and indexInsertAt < llen:
+            if indexIsAt != -1 and ( cmpFunc is None or indexInsertAt < llen ):
                 break #both indexes are computed so no reason to continue
             index = index + 1
+        if indexIsAt != -1:
+            #update the content of the value
+            old_value = list[indexIsAt]
+            #update with data from new_value
+            self.updatePeer(old_value, new_value)
+            new_value = old_value
         if indexInsertAt != indexIsAt: #if on the same position, do nothing
-            if indexIsAt != -1 and indexIsAt < llen-1 and equalFunc(element, top_list[indexIsAt+1]):
+            if indexIsAt != -1 and indexIsAt < llen-1 and equalFunc(new_value, list[indexIsAt+1]):
                 return False #if is equal with the ones until insertion point, no need to do it
+            old_value = None
             if indexIsAt != -1:
                 #move from one position to another
-                top_list.pop(indexIsAt)
+                list.pop(indexIsAt)
                 if indexIsAt < indexInsertAt:
                     indexInsertAt = indexInsertAt - 1
                 bChange = True #there is a change in the list
-            if indexInsertAt < max_list_length: #don't insert an element that will be removed
-                top_list.insert(indexInsertAt, element)
-                bChange = True #there is a change in the list
+#            if indexInsertAt < max_list_length: #don't insert an element that will be removed
+            list.insert(indexInsertAt, new_value)
+            bChange = True #there is a change in the list
         return bChange
     
     def getFilteredData(self, filter_name = 'all'):
