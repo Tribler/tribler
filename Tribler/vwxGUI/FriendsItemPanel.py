@@ -189,8 +189,18 @@ class FriendThumbnailViewer(ThumbnailViewer):
         if self.dataBitmap:
             dc.DrawBitmap(self.dataBitmap, self.xpos,self.ypos, True)
 #        if self.mouseOver:
-        if self.data!=None and type(self.data)==type({}) and self.data.get('permid'):            
-            self.Parent.status.SetLabel('status unknown')
+        if self.data is not None and type(self.data)==type({}) and self.data.get('permid'):
+
+            helping = None
+            if self.data.get('friend'):
+                torrentname = self.is_helping(self.data.get('permid'))
+                print >>sys.stderr,"fip: Friend",self.data['name'],"is helping with torrent",torrentname
+                if torrentname is not None:
+                    helping = "helping with "+torrentname
+            if helping is None:
+                self.Parent.status.SetLabel('status unknown')
+            else:
+                self.Parent.status.SetLabel(helping)
             rank = self.guiUtility.peer_manager.getRank(self.data['permid'])
             #because of the fact that hearts are coded so that lower index means higher ranking, then:
             if rank > 0 and rank <= 5:
@@ -214,8 +224,11 @@ class FriendThumbnailViewer(ThumbnailViewer):
             if self.data.get('friend'):
                 friend = self.mm.get_default('personsMode','MASK_BITMAP')
                 dc.DrawBitmap(friend,60 ,65, True)            
-            if self.data.get('online'):                
-                self.Parent.status.SetLabel('online')
+            if self.data.get('online'):
+                label = 'online'
+                if helping is not None:
+                    label = 'online,'+helping
+                self.Parent.status.SetLabel(label)
                 dc.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, False))
                 dc.SetTextForeground('#007303')
                 dc.DrawText('online', 26, 66)
@@ -229,3 +242,15 @@ class FriendThumbnailViewer(ThumbnailViewer):
             dc.DrawLines(self.border)
         
 
+    def is_helping(self,permid):
+        utility = self.GetParent().utility
+        for ABCTorrentTemp in self.utility.torrents["active"]:
+            engine = ABCTorrentTemp.connection.engine
+            if engine is not None:
+                coordinator = engine.getDownloadhelpCoordinator()
+                if coordinator is not None:
+                    helpingFriends = coordinator.get_asked_helpers_copy()
+                    if permid in helpingFriends:
+                        return ABCTorrentTemp.info['name']
+        return None
+                
