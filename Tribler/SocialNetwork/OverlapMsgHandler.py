@@ -231,8 +231,8 @@ def isValidIconData(data):
     if not isinstance(data,str):
         return False
     
-    if DEBUG:
-        print >>sys.stderr,"socnet: SOCIAL_*: persinfo: IconData length is",len(data)
+#    if DEBUG:
+#        print >>sys.stderr,"socnet: SOCIAL_*: persinfo: IconData length is",len(data)
     
     return len(data) <= ICON_MAX_SIZE
 

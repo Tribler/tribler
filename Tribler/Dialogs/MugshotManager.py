@@ -11,7 +11,7 @@ from traceback import print_exc
 
 from Tribler.utilities import show_permid_short
 
-ICON_MAX_SIZE = 10*1024
+ICON_MAX_SIZE = 32*1024
 BMP_EXT = '.bmp'
 BMP_MIME_TYPE = 'image/bmp'
 
