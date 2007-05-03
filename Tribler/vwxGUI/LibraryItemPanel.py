@@ -3,7 +3,7 @@ from traceback import print_exc,print_stack
 from Tribler.utilities import *
 from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.vwxGUI.tribler_topButton import tribler_topButton, SwitchButton
-
+from Tribler.Dialogs.dlhelperframe import DownloadHelperFrame
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 #from Tribler.vwxGUI.TriblerProgressbar import TriblerProgressbar
 from Tribler.vwxGUI.filesItemPanel import ThumbnailViewer
@@ -254,6 +254,7 @@ class LibraryItemPanel(wx.Panel):
             self.playerPlay.setToggled(playable)
             self.playFast.setToggled(not switchable)
             self.boost.setEnabled(showBoostAndPlayFast)
+            self.boost.setToggled(self.is_boosted())
             self.playFast.setEnabled(showBoostAndPlayFast)
             
         else:
@@ -286,6 +287,9 @@ class LibraryItemPanel(wx.Panel):
     def select(self):
         self.thumb.setSelected(True)
         self.title.SetBackgroundColour(self.selectedColour)
+        self.playFast.setBackground(self.selectedColour)
+        self.boost.setBackground(self.selectedColour)
+        self.playerPlay.setBackground(self.selectedColour)
         self.SetBackgroundColour(self.selectedColour)
         self.playerPlay.setBackground(self.selectedColour)
         self.Refresh()
@@ -295,6 +299,8 @@ class LibraryItemPanel(wx.Panel):
         self.thumb.setSelected(False)
         self.title.SetBackgroundColour(self.unselectedColour)
         self.SetBackgroundColour(self.unselectedColour)
+        self.playFast.setBackground(self.unselectedColour)
+        self.boost.setBackground(self.unselectedColour)
         self.playerPlay.setBackground(self.unselectedColour)
         self.Refresh()
         
@@ -329,16 +335,12 @@ class LibraryItemPanel(wx.Panel):
                     self.vodMode = True
                     self.switch_to_vod(abctorrent)
                 else:
-                    # disable vod?
+                    self.switch_to_standard_dlmode(abctorrent)
                     self.vodMode = False
                 self.playFast.setToggled(self.vodMode)
                 
             elif name == 'boost':
-                if not self.boost.isToggled():
-                    self.switch_to_boost(abctorrent)
-                else:
-                    # disable vod?
-                    self.boost.setSelected(False)
+                self.show_boost(abctorrent)
                     
             elif name == 'libraryPlay':
                 self.play(abctorrent)
@@ -360,8 +362,14 @@ class LibraryItemPanel(wx.Panel):
         videoplayer = VideoPlayer.getInstance()
         videoplayer.play(ABCTorrentTemp)
       
-    def switch_to_boost(self, ABCTorrentTemp):
-        pass
+    def show_boost(self, ABCTorrentTemp):
+        if ABCTorrentTemp is not None:
+            #print >>sys.stderr,"GUIUtil: buttonClicked: dlbooster: Torrent is",ABCTorrentTemp.files.dest
+            engine = ABCTorrentTemp.connection.engine
+            if engine is not None and engine.getDownloadhelpCoordinator() is not None:
+                self.dlhelperframe = DownloadHelperFrame(self,self.utility,engine)
+                self.dlhelperframe.Show()
+                
     
     def play(self,ABCTorrentTemp):
         videoplayer = VideoPlayer.getInstance()
@@ -370,6 +378,30 @@ class LibraryItemPanel(wx.Panel):
         else:
             videoplayer.play(ABCTorrentTemp)
     
+    def switch_to_standard_dlmode(self,ABCTorrentTemp): 
+        videoplayer = VideoPlayer.getInstance() 
+        videoplayer.vod_back_to_standard_dlmode(ABCTorrentTemp) 
+        
+    def is_boosted(self): 
+        if self.data is None: 
+            return False 
+                  
+        ABCTorrentTemp = self.data.get('abctorrent') 
+        if ABCTorrentTemp is None: 
+            return False 
+                  
+        engine = ABCTorrentTemp.connection.engine 
+        if engine is None: 
+            return False 
+                  
+        coordinator = engine.getDownloadhelpCoordinator() 
+        if coordinator is None: 
+            return False 
+                  
+        helpingFriends = coordinator.get_asked_helpers_copy() 
+                  
+        return len(helpingFriends) > 0
+             
     def abcTorrentShutdown(self, infohash):
         """
         The abctorrent related to this panel was shutdown
@@ -377,4 +409,4 @@ class LibraryItemPanel(wx.Panel):
         if self.data.get('infohash') == infohash and self.data.get('abctorrent'):
             del self.data['abctorrent']
             
-        
+    

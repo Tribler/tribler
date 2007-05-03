@@ -271,7 +271,7 @@ class standardGrid(wx.Panel):
         If no torrent is selected in detailPanel, let first in grid be selected
         """
         
-        print 'standardGrid: update selection'
+        #print 'standardGrid: update selection'
         if not self.hasDetailPanel():
             return
         

@@ -251,6 +251,7 @@ class tribler_topButton(wx.Panel):
         if self.bitmaps[0]:
             dc.DrawBitmap(self.bitmaps[0], 0,0, True)
         if (self.mouseOver or self.selected) and self.bitmaps[1]:
+            print 'bitmap2: %s' % self.bitmaps[1]
             dc.DrawBitmap(self.bitmaps[1], 0,0, True)
         
 
@@ -294,7 +295,7 @@ class SwitchButton(tribler_topButton):
     def setToggled(self, b):
         self.selected = b
         if b:
-            self.bitmaps=self.allBitmaps[1:]
+            self.bitmaps=self.allBitmaps[2:]
         else:
             self.bitmaps=self.allBitmaps[:2]
         #should Refresh?
