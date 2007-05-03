@@ -1143,3 +1143,7 @@ profileDetails_Download_Visible = "You have to open a port on your modem/router 
 profileDetails_Download_VisibleYes = "You are currently accessible by other persons."
 profileDetails_Download_VisibleNo = "You can't be accessed by others."
 profileDetails_Presence_Friends = "At the moment you have %d friends. The more friends you have in the Tribler network, the easier it will be to further expand your social network and share interests with more like-minded users."
+#############
+#Tribler UI - Persons View, Tribler 4.0.0
+#############
+persons_view_no_data = "No persons available yet"

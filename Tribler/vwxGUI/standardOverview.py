@@ -39,8 +39,11 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         self.utility = self.guiUtility.utility
         self.categorykey = None
         self.data_manager = TorrentDataManager.getInstance(self.utility)
-        self.peer_manager = PeerDataManager.getInstance() #the updateFunc is called after the data is updated in the peer manager so that the GUI has the newest information
-        self.peer_manager.register(self.updateFunPersons, 'all')
+        self.peer_manager = PeerDataManager.getInstance(self.utility) #the updateFunc is called after the data is updated in the peer manager so that the GUI has the newest information
+#        self.peer_manager.register(self.updateFun, 'all')
+        def filterFuncFriend(peer_data):
+            return peer_data.get('friend')
+        self.peer_manager.registerFilter( 'friends', filterFuncFriend)
         self.mode = None
         self.data = {} #keeps gui elements for each mode
         for mode in OVERVIEW_MODES:
@@ -211,7 +214,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         Category and sorting not yet used
         """       
     
-        self.data[self.mode]['data'] = self.peer_manager.sortData(cat)
+        self.data[self.mode]['data'] = self.peer_manager.getFilteredData(cat)
     
     def loadLibraryData(self, cat, sort):
         # Get infohashes of current downloads

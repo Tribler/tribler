@@ -11,6 +11,8 @@ from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 from Tribler.CacheDB.CacheDBHandler import MyDBHandler
 from Tribler.Overlay.permid import permid_for_user
 from Tribler.Dialogs.makefriends import MakeFriendsDialog
+from torrentManager import TorrentDataManager
+from peermanager import PeerDataManager
 
 
 #from Tribler.vwxGUI.filesFilter import filesFilter
@@ -141,7 +143,7 @@ class GUIUtility:
         except:
             pass
         
-    def standardPersonsOverview(self, filters = ['', '']):
+    def standardPersonsOverview(self, filters = ['all', '']):
         
         self.standardOverview.setMode('personsMode')
         self.standardOverview.filterChanged(filters)
@@ -171,14 +173,15 @@ class GUIUtility:
         print 'Not yet implemented;'
   
             
-    
-   
+    def reloadPeers(self):
+        return self.peer_manager.getFilteredData('all') #sortData(self.categorykey)
         
    
     def initStandardOverview(self, standardOverview):
         "Called by standardOverview when ready with init"
         self.standardOverview = standardOverview
         self.peer_manager = standardOverview.peer_manager
+        self.data_manager = standardOverview.data_manager
         self.standardFilesOverview()
 
         # Preselect mainButtonFiles

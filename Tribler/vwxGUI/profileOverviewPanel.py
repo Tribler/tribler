@@ -261,6 +261,23 @@ class ProfileOverviewPanel(wx.Panel):
             elem.setIndex(new_index)
             bShouldRefresh = True
 
+        
+        #get the number of similar files (tasteful)
+        count = self.guiUtility.peer_manager.getCountOfFriends()
+        aux_count = count
+        if aux_count > 100:
+            aux_count = 101
+        if aux_count < 0:
+            aux_count = 0
+        new_index = int((aux_count-1)/20)+1 #from 0 to 6
+        overall_index = overall_index + new_index*0.1667
+#        print "<mluc> [after taste files] overall=",overall_index
+        elem = self.getGuiElement("perf_Presence")
+        if elem and new_index != elem.getIndex():
+            elem.setIndex(new_index)
+            bShouldRefresh = True
+
+
 #        print "<mluc> [before] overall index is",overall_index
         overall_index = int(overall_index)
         if overall_index > 6:
