@@ -6,6 +6,8 @@ from Tribler.Dialogs.ContentFrontPanel import ImagePanel
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from Tribler.vwxGUI.PersonsItemPanel import ThumbnailViewer
 from Tribler.unicode import *
+from Tribler.utilities import show_permid_short
+
 from copy import deepcopy
 import cStringIO
 from tribler_topButton import *
@@ -194,7 +196,8 @@ class FriendThumbnailViewer(ThumbnailViewer):
             helping = None
             if self.data.get('friend'):
                 torrentname = self.is_helping(self.data.get('permid'))
-                print >>sys.stderr,"fip: Friend",self.data['name'],"is helping with torrent",torrentname
+                if DEBUG:
+                    print >>sys.stderr,"fip: Friend",self.data['name'],"is helping with torrent",torrentname
                 if torrentname is not None:
                     helping = "helping with "+torrentname
             if helping is None:
@@ -250,7 +253,8 @@ class FriendThumbnailViewer(ThumbnailViewer):
                 coordinator = engine.getDownloadhelpCoordinator()
                 if coordinator is not None:
                     helpingFriends = coordinator.get_asked_helpers_copy()
-                    if permid in helpingFriends:
-                        return ABCTorrentTemp.info['name']
+                    for rec in helpingFriends:
+                        if permid == rec['permid']:
+                            return ABCTorrentTemp.info['name']
         return None
                 
