@@ -968,6 +968,18 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
                     self.utility.config.Write('askeduploadbw','1')
                 dlg.Destroy()
 
+            # Arno, 2007-05-03: wxWidgets 2.8.3.0 and earlier have the MIME-type for .bmp 
+            # files set to 'image/x-bmp' whereas 'image/bmp' is the official one.
+            bmphand = None
+            hands = wx.Image.GetHandlers()
+            for hand in hands:
+                #print "Handler",hand.GetExtension(),hand.GetType(),hand.GetMimeType()
+                if hand.GetMimeType() == 'image/x-bmp':
+                    bmphand = hand
+                    break
+            #wx.Image.AddHandler()
+            if bmphand is not None:
+                bmphand.SetMimeType('image/bmp')
             
         except Exception,e:
             print "THREAD",currentThread().getName()

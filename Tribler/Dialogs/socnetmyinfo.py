@@ -73,7 +73,7 @@ class MyInfoWizard(Wizard):
         my_db.put('name',name)
         mm = MugshotManager.getInstance()
         if iconpath is None:
-            iconpath = mm.get_defaulticon_filename()
+            return
         mypermid = my_db.getMyPermid()
         oldiconpath = mm.find_filename(mypermid,name)
         if oldiconpath != iconpath:

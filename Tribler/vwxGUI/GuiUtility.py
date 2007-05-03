@@ -72,7 +72,7 @@ class GUIUtility:
         elif name == 'download':
             self.standardDetails.download()
         elif name == 'addFriend':
-            print >>sys.stderr,"GUIUtil: buttonClicked: parent is",obj.GetParent().GetName()
+            #print >>sys.stderr,"GUIUtil: buttonClicked: parent is",obj.GetParent().GetName()
             dialog = MakeFriendsDialog(obj,self.utility)
             ret = dialog.ShowModal()
             if ret == wx.ID_OK:
@@ -81,18 +81,18 @@ class GUIUtility:
         elif name == 'inviteFriends':
             self.emailFriend(event)
         elif name == 'dlbooster':
-            print >>sys.stderr,"GUIUtil: buttonClicked: parent is",obj.GetParent().GetName()
-            print >>sys.stderr,"GUIUtil: buttonClicked: parent is",obj.GetParent()
+            #print >>sys.stderr,"GUIUtil: buttonClicked: parent is",obj.GetParent().GetName()
+            #print >>sys.stderr,"GUIUtil: buttonClicked: parent is",obj.GetParent()
             lip = obj.GetParent()
             ABCTorrentTemp = lip.data.get('abctorrent')
             if ABCTorrentTemp is not None:
-                print >>sys.stderr,"GUIUtil: buttonClicked: dlbooster: Torrent is",ABCTorrentTemp.files.dest
+                #print >>sys.stderr,"GUIUtil: buttonClicked: dlbooster: Torrent is",ABCTorrentTemp.files.dest
                 engine = ABCTorrentTemp.connection.engine
                 if engine is not None and engine.getDownloadhelpCoordinator() is not None:
                     self.dlhelperframe = DownloadHelperFrame(obj.GetParent(),self.utility,engine)
                     self.dlhelperframe.Show()
-            else:
-                print >>sys.stderr,"GUIUtil: buttonClicked: dlbooster: Torrent is None"
+            #else:
+            #    print >>sys.stderr,"GUIUtil: buttonClicked: dlbooster: Torrent is None"
             
         elif (name == 'edit' or name.startswith('bgPanel')) and obj.GetParent().GetName() == "profileOverview":
             self.standardOverview.currentPanel.sendClick(event)
