@@ -138,9 +138,9 @@ class MugshotManager:
         
         try:
             
-            f = open("maarten.bmp","wb")
-            f.write(data)
-            f.close()
+            #f = open("maarten.bmp","wb")
+            #f.write(data)
+            #f.close()
             
             mi = StringIO(data)
             # St*pid wx says "No handler for image/bmp defined" while this
@@ -151,7 +151,7 @@ class MugshotManager:
             else:
                 im = wx.ImageFromStreamMime(mi,type)
             im.SaveMimeFile(filename,BMP_MIME_TYPE)
-            f = open(filename,"w")
+            f = open(filename,"wb")
             f.write(data)
             f.close()
             return True
