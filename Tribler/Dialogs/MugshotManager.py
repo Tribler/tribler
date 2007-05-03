@@ -3,6 +3,7 @@
 
 import wx
 import os
+import sys
 from cStringIO import StringIO
 from sha import sha
 from shutil import copy2
@@ -17,7 +18,7 @@ BMP_MIME_TYPE = 'image/bmp'
 ICON_MAX_DIM = 80
 SMALL_ICON_MAX_DIM = 32
 
-DEBUG = False
+DEBUG = True
 
 class MugshotManager:
 
@@ -101,29 +102,29 @@ class MugshotManager:
     def load_data(self,permid,name=None):
 
         if DEBUG:
-            print "mm: load_data permid",show_permid_short(permid),"name",name
+            print >>sys.stderr,"mugmgr: load_data permid",show_permid_short(permid),"name",name
 
         filename = self.find_filename(permid,name)
         if filename is None:
             
             if DEBUG:
-                print "mm: load_data: filename is None"
+                print >>sys.stderr,"mugmgr: load_data: filename is None"
             
             return [None,None]
         try:
-            f = open(filename,"r")
+            f = open(filename,"rb")
             data = f.read(-1)
             f.close()
         except:
             if DEBUG:
-                print "mm: load_data: Error reading"
+                print >>sys.stderr,"mugmgr: load_data: Error reading"
 
             
             return [None,None]
         if data == '' or len(data) > ICON_MAX_SIZE:
             
             if DEBUG:
-                print "mm: load_data: data 0 or too big",len(data)
+                print >>sys.stderr,"mugmgr: load_data: data 0 or too big",len(data)
  
             return [None,None]
         else:
@@ -132,9 +133,23 @@ class MugshotManager:
 
     def save_data(self,permid,type,data):
         filename = self._permid2iconfilename(permid)
+        
+        print >>sys.stderr,"mugmgr: save_data: filename is",filename,type
+        
         try:
+            
+            f = open("maarten.bmp","wb")
+            f.write(data)
+            f.close()
+            
             mi = StringIO(data)
-            #im = wx.ImageFromStreamMime(mi,type)
+            # St*pid wx says "No handler for image/bmp defined" while this
+            # is the image handler that is guaranteed to always be there,
+            # according to the docs :-(
+            if type == 'image/bmp':
+                im = wx.ImageFromStream(mi,wx.BITMAP_TYPE_BMP)
+            else:
+                im = wx.ImageFromStreamMime(mi,type)
             im.SaveMimeFile(filename,BMP_MIME_TYPE)
             f = open(filename,"w")
             f.write(data)
@@ -149,7 +164,7 @@ class MugshotManager:
         """ srcfilename must point to a .BMP file """
         dstfilename = self._permid2iconfilename(permid)
         if DEBUG:
-            print "mugmgr: copying icon",srcfilename,"to",dstfilename
+            print >>sys.stderr,"mugmgr: copying icon",srcfilename,"to",dstfilename
         try:
             copy2(os.path.normpath(srcfilename),dstfilename)
         except:

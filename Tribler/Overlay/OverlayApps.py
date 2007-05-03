@@ -18,7 +18,7 @@ from Tribler.utilities import show_permid_short
 from Tribler.vwxGUI.peermanager import PeerDataManager
 from traceback import print_exc
 
-DEBUG = 0
+DEBUG = True
 
 class OverlayApps:
     # Code to make this a singleton
@@ -143,7 +143,7 @@ class OverlayApps:
         """ An overlay-connection was established. Notify interested parties. """
 
         if DEBUG:
-            print >> sys.stderr,"olapps: handleConnection",exc
+            print >> sys.stderr,"olapps: handleConnection",exc,selversion,locally_initiated
 
         if self.dialback_handler is not None:
             # overlay-protocol version check done inside

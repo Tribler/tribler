@@ -86,12 +86,16 @@ class ConfigDir:
         old_dir_root = os.path.join( dir_root, '.ABC' )
 
         # Arno: upgrade .ABC to .Tribler, if necessary
+        # Arno,2007-05-03: disabled
+        """
         old_exists = os.path.isdir(old_dir_root)
         cur_exists = os.path.isdir(cur_dir_root)
         if old_exists and not cur_exists:
             # upgrade old to new
             print "Upgrading 3.3.x config files to new version..."
             shutil.copytree(old_dir_root,cur_dir_root)
+        """
+            
         self._normal_init(config_ext)
 
     def _normal_init(self,config_ext):

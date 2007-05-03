@@ -74,8 +74,8 @@ def suite():
         #test_dialback_request,
         #test_extend_hs,
         #test_extend_hs_t350,
-        #test_social_overlap,
-        test_gui_server
+        test_social_overlap,
+        #test_gui_server
         ]
 
     alltests = unittest.TestSuite()

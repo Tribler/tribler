@@ -5,10 +5,13 @@ import unittest
 import os
 import sys
 import time
+import wx
 from sha import sha
 from random import randint,shuffle
 from traceback import print_exc
 from types import StringType, ListType, DictType
+from threading import Thread
+from time import sleep
 from M2Crypto import Rand,EC
 
 from test_as_server import TestAsServer
@@ -18,7 +21,16 @@ from BitTornado.BT1.MessageID import *
 
 from Tribler.Dialogs.MugshotManager import MugshotManager,ICON_MAX_SIZE
 
-DEBUG=False
+DEBUG=True
+
+class wxServer(Thread):
+    def __init__(self):
+        Thread.__init__(self)
+        self.setDaemon(True)
+        
+        app = wx.App(0)
+        app.MainLoop()
+
 
 class TestSocialOverlap(TestAsServer):
     """ 
@@ -28,7 +40,7 @@ class TestSocialOverlap(TestAsServer):
     def setUp(self):
         """ override TestAsServer """
         TestAsServer.setUp(self)
-        Rand.load_file('randpool.dat', -1) 
+        Rand.load_file('randpool.dat', -1)
 
     def setUpPreTriblerInit(self):
         """ override TestAsServer """
@@ -40,8 +52,13 @@ class TestSocialOverlap(TestAsServer):
         """ override TestAsServer """
         TestAsServer.setUpPreLaunchMany(self)
 
+        self.wxs = wxServer()
+        self.wxs.start()
+        print "Sleeping to allow wxServer to start"
+        sleep(4)
+
         self.mm = MugshotManager.getInstance()
-        self.mm.register(os.path.join(self.config_path,'icons'),os.path.join(os.getcwd(), 'icons'))
+        self.mm.register(self.config_path,os.getcwd())
 
         self.mypermid = str(self.my_keypair.pub().get_der())
         self.hispermid = str(self.his_keypair.pub().get_der())        
@@ -72,13 +89,16 @@ class TestSocialOverlap(TestAsServer):
         # 1. test good SOCIAL_OVERLAP
         self.subtest_good_soverlap()
 
+        """
         # 2. test various bad SOCIAL_OVERLAP messages
         self.subtest_bad_not_bdecodable()
         self.subtest_bad_not_dict1()
         self.subtest_bad_not_dict2()
         self.subtest_bad_empty_dict()
         self.subtest_bad_wrong_dict_keys()
+        """
         self.subtest_bad_persinfo()
+        
 
     #
     # Good SOCIAL_OVERLAP
@@ -161,6 +181,7 @@ class TestSocialOverlap(TestAsServer):
         self.assert_(idx != -1)
         self.assert_(idx == ridx)
         self.assert_(len(icondata) <= ICON_MAX_SIZE)
+        print "check_usericon: len icon is",len(icondata)
 
     # Bad soverlap
     #    
@@ -185,14 +206,14 @@ class TestSocialOverlap(TestAsServer):
     def subtest_bad_persinfo(self):
         """ Cut a corner """
         methods = [
-            self.make_persinfo_not_dict1,
-            self.make_persinfo_not_dict2,
-            self.make_persinfo_empty_dict,
-            self.make_persinfo_wrong_dict_keys,
-            self.make_persinfo_name_not_str,
-            self.make_persinfo_icontype_not_str,
-            self.make_persinfo_icontype_noslash,
-            self.make_persinfo_icondata_not_str,
+            #self.make_persinfo_not_dict1,
+            #self.make_persinfo_not_dict2,
+            #self.make_persinfo_empty_dict,
+            #self.make_persinfo_wrong_dict_keys,
+            #self.make_persinfo_name_not_str,
+            #self.make_persinfo_icontype_not_str,
+            #self.make_persinfo_icontype_noslash,
+            #self.make_persinfo_icondata_not_str,
             self.make_persinfo_icondata_too_big ]
         for method in methods:
             # Hmmm... let's get dirty

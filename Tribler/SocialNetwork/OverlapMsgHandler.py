@@ -230,6 +230,10 @@ def isValidIconType(type):
 def isValidIconData(data):
     if not isinstance(data,str):
         return False
+    
+    if DEBUG:
+        print >>sys.stderr,"socnet: SOCIAL_*: persinfo: IconData length is",len(data)
+    
     return len(data) <= ICON_MAX_SIZE
 
 def add_icon_persinfo(mm,permid,persinfo,short):
@@ -254,6 +258,10 @@ def save_ssocnet_peer(self,permid,record,persinfo_ignore,hrwidinfo_ignore,ipinfo
     # 1. Save persinfo
     if not persinfo_ignore:
         persinfo = record['persinfo']
+        
+        if DEBUG:
+            print >>sys.stderr,"socnet: Got persinfo",persinfo.keys()
+        
         if self.peer_db.hasPeer(permid):
             self.peer_db.updatePeer(permid,'name',persinfo['name'])
         else:

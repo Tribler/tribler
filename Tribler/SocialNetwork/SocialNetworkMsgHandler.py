@@ -12,7 +12,7 @@ from Tribler.CacheDB.CacheDBHandler import MyDBHandler, PeerDBHandler, SuperPeer
 
 from Tribler.utilities import show_permid_short
 
-DEBUG = False
+DEBUG = True
 
 class SocialNetworkMsgHandler:
     
