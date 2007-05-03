@@ -102,7 +102,7 @@ class PeerDataManager(DelayedEventHandler):
         self.filtered_data = { 'all':self.data}
         #there should anways be no filtering function for this all data
         self.filtered_func = { 'all':(None,None) } #a sorting function can be added later
-        noDataStub = {'content_name':self.utility.lang.get('persons_view_no_data'), 'permid':'000001'}
+        noDataStub = {'content_name':self.utility.lang.get('persons_view_no_data'), 'permid':'000001'}#, 'similarity':0}
         self.data.append(noDataStub)
 
         #this initialization can be done in another place also
@@ -160,7 +160,7 @@ class PeerDataManager(DelayedEventHandler):
             peer_index = self.getPeerDataIndex(permid, type)
             if peer_index != -1:
                 #check if it stays in the list
-                filterFunc = self.filtered_func[type]
+                filterFunc = self.filtered_func[type][0]
                 if filterFunc is not None and not filterFunc(list[peer_index]):
                     #remove it from this filtered list
                     list.pop(peer_index)
@@ -211,7 +211,7 @@ class PeerDataManager(DelayedEventHandler):
             peer_d['friend']=True
             peer_data['friend']=True
             self.frienddb.addFriend(permid)
-            self.insertInFilters(peer_data)
+            self.insertInFilters(peer_d)
             return True
         else:
             "Could not add as friend because not in cache"
@@ -231,8 +231,23 @@ class PeerDataManager(DelayedEventHandler):
         if peer_data!=None:
             peer_data['friend']=False
             self.frienddb.deleteFriend(permid)
+            self.removeFromFilters(permid)
         else:
             "Could not delete friend because not in cache"
+
+    def deleteFriendwData(self, peer_data):
+        permid = peer_data['permid']
+        peer_d = self.getPeerData(permid)
+        if peer_d!=None:
+            peer_d['friend']=False
+            peer_data['friend']=False
+            self.frienddb.deleteFriend(permid)
+            self.removeFromFilters(permid)
+            return True
+        else:
+            "Could not delete friend because not in cache"
+        return False
+        
         
     def prepareData(self, peer_list=None):
         """it receives an optional peer_list parameter with the list of permids that should be the peers
@@ -278,7 +293,7 @@ class PeerDataManager(DelayedEventHandler):
         """
         start_time = time.time()
         #get updated peer data from database
-        # mode = {add, update, delete}
+        # mode = {add, update, delete, hide}
         #return
         # instead of treating each message when it arrives, just put them in a hash
         # that has the permid as key and mode as value and when some time passed
@@ -556,6 +571,8 @@ class PeerDataManager(DelayedEventHandler):
     def getCountOfSimilarPeers(self):
         count = 0
         for peer_data in self.data:
+            if peer_data.get('similarity',None) is None:
+                print "peer ",peer_data['content_name'],"has no similarity!!!!"
             if peer_data['similarity'] > 20:
                 count = count + 1
         return count

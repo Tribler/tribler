@@ -401,12 +401,13 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     self.getGuiObj('TasteHeart').setHeartIndex(0)
                 
                 if item['friend']:
-                    self.getGuiObj('addAsFriend').Enable(False)
+#                    self.getGuiObj('addAsFriend').Enable(False)
                     isfriend = self.mm.get_default('personsMode','ISFRIEND_BITMAP')
-                    self.getGuiObj('addAsFriend').switchTo(isfriend)
+                    isfriend_clicked = self.mm.get_default('personsMode','ISFRIEND_CLICKED_BITMAP')
+                    self.getGuiObj('addAsFriend').switchTo(isfriend,isfriend_clicked)
                 else:
                     self.getGuiObj('addAsFriend').switchBack()
-                    self.getGuiObj('addAsFriend').Enable(True)
+#                    self.getGuiObj('addAsFriend').Enable(True)
                     
                 self.fillTorrentLists()
             elif self.getGuiObj('advanced_detailsTab').isSelected():
@@ -429,12 +430,11 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 addAsFriend = self.getGuiObj('addAsFriend', tab = 'personsTab_advanced')
                 if addAsFriend.initDone:
                     if item['friend']:
-                        addAsFriend.Enable(False)
                         isfriend = self.mm.get_default('personsMode','ISFRIEND_BITMAP')
-                        addAsFriend.switchTo(isfriend)
+                        isfriend_clicked = self.mm.get_default('personsMode','ISFRIEND_CLICKED_BITMAP')
+                        self.getGuiObj('addAsFriend').switchTo(isfriend,isfriend_clicked)
                     else:
-                        addAsFriend.switchBack()
-                        addAsFriend.Enable(True)
+                        self.getGuiObj('addAsFriend').switchBack()
             
 #        elif self.mode == 'libraryMode':
 #            pass
@@ -827,15 +827,19 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
      
     def addAsFriend(self):
         # add the current user selected in details panel as a friend
-        if self.mode == "personsMode":
+        if self.mode in ["personsMode","friendsMode"]:
             peer_data = self.item
             if peer_data!=None and peer_data.get('permid'):
                 #update the database
 #                    if not self.peer_manager.isFriend(peer_data['permid']):
 #                        self.contentFrontPanel.frienddb.deleteFriend(self.data['permid'])
 #                    else:
-                bAdded = self.guiUtility.peer_manager.addFriendwData(peer_data)
-                print "added",peer_data['content_name'],"as friend:",bAdded
+                if self.guiUtility.peer_manager.isFriend(peer_data['permid']):
+                    bRemoved = self.guiUtility.peer_manager.deleteFriendwData(peer_data)
+                    print "removed friendship with",peer_data['content_name'],":",bRemoved
+                else:
+                    bAdded = self.guiUtility.peer_manager.addFriendwData(peer_data)
+                    print "added",peer_data['content_name'],"as friend:",bAdded
                 
                 #should refresh?
                 self.guiUtility.selectPeer(peer_data)

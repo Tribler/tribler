@@ -25,6 +25,7 @@ class standardGrid(wx.Panel):
     def __init__(self, cols, orientation='horizontal'):
         self.initReady = False
         self.data = None
+        self.detailPanel = None       
         self.cols = cols
         self.orientation = orientation
         pre = wx.PrePanel()
@@ -49,12 +50,10 @@ class standardGrid(wx.Panel):
         self.SetBackgroundColour(wx.BLACK)
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
-        self.detailPanel = None       
         #self.cols = 5
         self.items = 0
         self.currentData = 0
         self.currentRows = 0
-        self.detailPanel = None
         
         self.panels = []
         self.currentData = 0

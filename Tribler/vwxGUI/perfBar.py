@@ -6,10 +6,9 @@ DEBUG = False
 
 # find the heart bitmaps
 
-NUM_PERFS = 7 #number of performance states for vertical bar
-NUM_GRADES = 4 #nuber of tribler grades
-BITMAPS_BIG = []
-BITMAPS_SMALL = []
+NUM_PERFS = 6 #number of performance states for vertical bar
+NUM_GRADES = 7 #nuber of tribler grades
+BITMAPS_PERFS = []
 TRIBLER_GRADES = []
         
 class ProgressIcon(wx.Panel):
@@ -102,38 +101,33 @@ class ProgressIcon(wx.Panel):
 
 class SmallPerfBar(ProgressIcon):                
     def __init__(self, *args, **kw):
-        self.bitmapsList = BITMAPS_SMALL
+        self.bitmapsList = BITMAPS_PERFS
         ProgressIcon.__init__(self)
 
 class BigPerfBar(ProgressIcon):                
     def __init__(self, *args, **kw):
-        self.bitmapsList = BITMAPS_BIG
-        ProgressIcon.__init__(self)
-
-class TriblerGrade(ProgressIcon):
-    def __init__(self, *args, **kw):
         self.bitmapsList = TRIBLER_GRADES
         ProgressIcon.__init__(self)
 
+#class TriblerGrade(ProgressIcon):
+#    def __init__(self, *args, **kw):
+#        self.bitmapsList = TRIBLER_GRADES
+#        ProgressIcon.__init__(self)
+
 
 def set_perfBar_bitmaps(syspath):
-    global BITMAPS_BIG
-    global BITMAPS_SMALL
+    global BITMAPS_PERFS
     global TRIBLER_GRADES
+#    global TRIBLER_GRADES
     IMAGEDIR = os.path.join(syspath, 'Tribler','vwxGUI', 'images')
     for i in xrange(NUM_PERFS):
-        filename = os.path.join(IMAGEDIR, 'perfL%d.png' % i)
-        if os.path.isfile(filename):
-            BITMAPS_BIG.append(wx.Bitmap(filename, wx.BITMAP_TYPE_ANY))
-        else:
-            print >>sys.stderr,'perfBar: Could not find image: %s' % filename
         filename = os.path.join(IMAGEDIR, 'perfM%d.png' % i)
         if os.path.isfile(filename):
-            BITMAPS_SMALL.append(wx.Bitmap(filename, wx.BITMAP_TYPE_ANY))
+            BITMAPS_PERFS.append(wx.Bitmap(filename, wx.BITMAP_TYPE_ANY))
         else:
             print >>sys.stderr,'perfBar: Could not find image: %s' % filename
     for i in xrange(NUM_GRADES):
-        filename = os.path.join(IMAGEDIR, 'Level%d.png' % (i+1))
+        filename = os.path.join(IMAGEDIR, 'perfL%d.png' % i)
         if os.path.isfile(filename):
             TRIBLER_GRADES.append(wx.Bitmap(filename, wx.BITMAP_TYPE_ANY))
         else:
