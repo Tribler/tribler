@@ -28,8 +28,9 @@ class HelperMessageHandler:
         self.launchmany = launchmany
         self.helpdir = launchmany.torrent_dir
 
-    def register(self, metadata_handler):
+    def register(self, metadata_handler,secure_overlay):
         self.metadata_handler = metadata_handler
+        self.secure_overlay = secure_overlay
 
     def handleMessage(self,permid,selversion,message):
         t = message[0]
@@ -187,6 +188,9 @@ class HelperMessageHandler:
             return False
 
         self.launchmany.remove(torrent_hash)
+        
+        self.secure_overlay.close(permid)
+        
         return True
 
 

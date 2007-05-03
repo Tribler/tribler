@@ -199,6 +199,8 @@ class LibraryItemPanel(wx.Panel):
             
             #print >>sys.stderr,"lip: Progress is",progress,torrent['content_name']
             
+            #print >>sys.stderr,"lip:",torrent['content_name'],"is boosted?",self.is_boosted()
+            
             switchable = False
             playable = False
             havedigest = None
@@ -339,4 +341,26 @@ class LibraryItemPanel(wx.Panel):
         else:
             videoplayer.play(ABCTorrentTemp)
 
+    def switch_to_standard_dlmode(self,ABCTorrentTemp):
+        videoplayer = VideoPlayer.getInstance()
+        videoplayer.vod_back_to_standard_dlmode(ABCTorrentTemp)
+
+    def is_boosted(self):
+        if self.data is None:
+            return False
         
+        ABCTorrentTemp = self.data.get('abctorrent')
+        if ABCTorrentTemp is None:
+            return False
+        
+        engine = ABCTorrentTemp.connection.engine
+        if engine is None:
+            return False
+        
+        coordinator = engine.getDownloadhelpCoordinator()
+        if coordinator is None:
+            return False
+        
+        helpingFriends = coordinator.get_asked_helpers_copy()
+        
+        return len(helpingFriends) > 0

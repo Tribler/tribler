@@ -28,7 +28,7 @@ class DownloadHelperFrame(wx.Frame):
     def __init__(self,parent,utility,engine):
         self.utility = utility
         wx.Frame.__init__(self, None, -1, self.utility.lang.get('tb_dlhelp_short'), 
-                          size=(640,440))
+                          size=(640,480))
         
         main_panel = wx.Panel(self)
         self.downloadHelperPanel = self.createMainPanel(main_panel,engine)
@@ -170,6 +170,12 @@ class DownloadHelperPanel(wx.Panel):
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.OnTimer)
         self.timer.Start(4000)
+
+
+        howtotext = wx.StaticText(self, -1, self.utility.lang.get('dlhelphowto'))
+        howtotext.Wrap(500)
+        botbox.Add(howtotext, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5)
+
 
         # 5. Show GUI
         mainbox.Add(topbox, 0, wx.EXPAND|wx.ALL)

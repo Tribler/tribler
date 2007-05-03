@@ -279,6 +279,13 @@ class VideoPlayer:
                     print >>sys.stderr,"videoplay: download_completed: Reactivating",t.files.dest
             self.utility.actionhandler.procRESUME(prevactivetorrents)
 
+
+    def vod_back_to_standard_dlmode(self,ABCTorrentTemp):
+        self.vod_download_completed(ABCTorrentTemp)
+        self.vod_stopped(ABCTorrentTemp)
+        self.utility.actionhandler.procSTOP([ABCTorrentTemp])
+        self.utility.actionhandler.procRESUME([ABCTorrentTemp])
+
     def select_video(self,ABCTorrentTemp,enc=False):        
         fileindexlist = find_video_on_disk(ABCTorrentTemp,enc)
         if len(fileindexlist) == 0:

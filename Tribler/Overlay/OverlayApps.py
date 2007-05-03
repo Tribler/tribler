@@ -69,7 +69,7 @@ class OverlayApps:
 
             # Create handler for messages to dlhelp helper
             self.help_handler = HelperMessageHandler(launchmany)
-            self.help_handler.register(self.metadata_handler)
+            self.help_handler.register(self.metadata_handler,secure_overlay)
             self.register_msg_handler(HelpCoordinatorMessages, self.help_handler.handleMessage)
 
         # Part 2:
