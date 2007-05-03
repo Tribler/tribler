@@ -2,7 +2,8 @@ import wx, math, time, os, sys, threading
 from traceback import print_exc,print_stack
 from Tribler.utilities import *
 from wx.lib.stattext import GenStaticText as StaticText
-from Tribler.vwxGUI.tribler_topButton import tribler_topButton
+from Tribler.vwxGUI.tribler_topButton import tribler_topButton, SwitchButton
+
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 #from Tribler.vwxGUI.TriblerProgressbar import TriblerProgressbar
 from Tribler.vwxGUI.filesItemPanel import ThumbnailViewer
@@ -31,6 +32,7 @@ class LibraryItemPanel(wx.Panel):
         self.data = None
         self.datacopy = None
         self.titleLength = 23 # num characters
+        self.vodMode = False
         self.selected = False
         self.warningMode = False
         self.oldCategoryLabel = None
@@ -65,9 +67,9 @@ class LibraryItemPanel(wx.Panel):
         self.title.SetMinSize((180,12))
         
         # Up/Down text speed
-        self.speedUp2   = wx.StaticText(self,-1,"up: 10 KB/s",wx.Point(274,3),wx.Size(70,15),wx.ST_NO_AUTORESIZE)                        
+        self.speedUp2   = wx.StaticText(self,-1,"up: 0 KB/s",wx.Point(274,3),wx.Size(70,15),wx.ST_NO_AUTORESIZE)                        
         self.speedUp2.SetForegroundColour(self.triblerGrey)
-        self.speedDown2 = wx.StaticText(self,-1,"down: 12 KB/s",wx.Point(274,3),wx.Size(80,15),wx.ST_NO_AUTORESIZE)                                
+        self.speedDown2 = wx.StaticText(self,-1,"down: 0 KB/s",wx.Point(274,3),wx.Size(80,15),wx.ST_NO_AUTORESIZE)                                
         self.speedDown2.SetForegroundColour(self.triblerGrey)        
         self.speedSizer = wx.BoxSizer(wx.HORIZONTAL)
 #        self.speedSizer.Add(self.speedUp,0,wx.TOP|wx.LEFT|wx.FIXED_MINSIZE,4)                
@@ -84,7 +86,7 @@ class LibraryItemPanel(wx.Panel):
         self.pb = ProgressBar(self,pos=wx.Point(359,0),size=wx.Size(100,15))
         #self.pb = wx.Panel(self)
         self.pause = tribler_topButton(self, -1, wx.Point(542,3), wx.Size(17,17),name='pause' )
-        self.delete = tribler_topButton(self, -1, wx.Point(542,3), wx.Size(17,17),name='delete')        
+        
         # >> Drawn in progressbar
         #self.pbLabel = wx.StaticText(self,-1,"12% |ETA:10min30",wx.Point(274,3),wx.Size(80,15),wx.ST_NO_AUTORESIZE)                                
         #self.pbSizer.Add(self.pbLabel,0,wx.TOP|wx.FIXED_MINSIZE,3)        
@@ -92,61 +94,66 @@ class LibraryItemPanel(wx.Panel):
         self.pbSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.pbSizer.Add(self.pb,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,2)        
         self.pbSizer.Add(self.pause,0,wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,2)        
-        self.pbSizer.Add(self.delete,0,wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,2)        
+        
 
-        # Add message        
-        self.fileProgress = wx.StaticText(self,-1,"?/?",wx.Point(274,3),wx.Size(70,15),wx.ST_NO_AUTORESIZE)
-        self.fileProgress.SetForegroundColour(self.triblerGrey)
+        # Text under progressbar
+        self.percentage = wx.StaticText(self,-1,"?%")
+        self.percentage.SetForegroundColour(self.triblerGrey)
+        self.eta = wx.StaticText(self,-1,"?")
+        self.eta.SetForegroundColour(self.triblerGrey)
+        
+        self.fileProgressSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.fileProgressSizer.Add(self.percentage, 1, wx.EXPAND, 0)
+        self.fileProgressSizer.Add(self.eta, 0, wx.EXPAND|wx.ALIGN_RIGHT, 0)
+        
         self.pbMessage = wx.BoxSizer(wx.VERTICAL)
         self.pbMessage.Add(self.pbSizer,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,2)
-        self.pbMessage.Add(self.fileProgress,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,1)
+        self.pbMessage.Add(self.fileProgressSizer,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,1)
+        
+        vLine = wx.StaticLine(self,-1,wx.Point(362,37),wx.Size(2,32),wx.LI_VERTICAL)
+        self.hSizer.Add(vLine, 0, wx.LEFT|wx.TOP, 6)
+        
         self.hSizer.Add(self.pbMessage, 0, wx.LEFT|wx.EXPAND, 2)         
-                
+        
         # V Line                
-#        self.vLine = wx.StaticLine(self,-1,wx.Point(362,37),wx.Size(2,32),wx.LI_VERTICAL)
-#        self.hSizer.Add(self.vLine, 0, wx.LEFT|wx.TOP, 6)
+        self.addLine()
 
-        # Add checkBox -Private & -Archive
-#        self.cbPrivate = wx.CheckBox(self,-1,"",wx.Point(258,3),wx.Size(13,13))
-#        self.cbPrivateLabel = wx.StaticText(self,-1,"",wx.Point(274,3),wx.Size(35,15),wx.ST_NO_AUTORESIZE)
-#        self.cbPrivateLabel.SetLabel("archive")
-#        self.cbPrivateSizer = wx.BoxSizer(wx.HORIZONTAL)
-#        self.cbPrivateSizer.Add(self.cbPrivate, 0, wx.LEFT|wx.EXPAND, 1)     
-#        self.cbPrivateSizer.Add(self.cbPrivateLabel, 0, wx.LEFT|wx.EXPAND, 3)     
-#
-#        self.cbArchive = wx.CheckBox(self,-1,"",wx.Point(258,18),wx.Size(13,13))
-#        self.cbArchiveLabel = wx.StaticText(self,-1,"",wx.Point(274,3),wx.Size(35,15),wx.ST_NO_AUTORESIZE)
-#        self.cbArchiveLabel.SetLabel("private")
-#        self.cbArchiveSizer = wx.BoxSizer(wx.HORIZONTAL)
-#        self.cbArchiveSizer.Add(self.cbArchive, 0, wx.LEFT|wx.EXPAND, 1)     
-#        self.cbArchiveSizer.Add(self.cbArchiveLabel, 0, wx.LEFT|wx.EXPAND, 2)     
-#        
-#        self.cbSizer = wx.BoxSizer(wx.VERTICAL)
-#        self.cbSizer.Add(self.cbPrivateSizer,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,3)
-#        self.cbSizer.Add(self.cbArchiveSizer,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,1)
-#        self.hSizer.Add(self.cbSizer, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)                
-        
-        # V Line                        
-#        self.vLine2 = wx.StaticLine(self,-1,wx.Point(362,37),wx.Size(2,32),wx.LI_VERTICAL)
-#        self.hSizer.Add(self.vLine2, 0, wx.LEFT|wx.TOP, 6)
-
+       
         # Play Fast
-        self.playFast = tribler_topButton(self, name="playFast")
-        self.playFast.setBackground(wx.BLACK)
-        self.playFast.SetSize((84,37))
-        self.playFast.Hide()
-        self.hSizer.Add(self.playFast, 0, wx.TOP, 2) 
-
-        # Play
-        self.playerPlay = tribler_topButton(self, name="playerPlay")
-        self.playerPlay.setBackground(wx.BLACK)
-        self.playerPlay.SetSize((84,37))
-        self.playerPlay.Hide()
-        self.hSizer.Add(self.playerPlay, 0, wx.TOP, 2) 
+        self.playFast = SwitchButton(self, name="playFast")
+        self.playFast.setBackground(wx.WHITE)
+        self.playFast.SetSize((82,18))
+        self.playFast.setEnabled(False)
+        self.boost = SwitchButton(self, name="boost")
+        self.boost.setBackground(wx.WHITE)
+        self.boost.SetSize((82,18))
+        self.boost.setEnabled(False)
+        buttonSizer = wx.BoxSizer(wx.VERTICAL)
+        buttonSizer.Add(self.playFast, 1, wx.ALL, 2)
+        buttonSizer.Add(self.boost, 1, wx.ALL, 2)
         
-        self.dlbooster = tribler_topButton(self, -1, wx.Point(542,3), wx.Size(17,17),name='dlbooster')
-        self.hSizer.Add(self.dlbooster, 0, wx.TOP, 2) 
-                
+        self.hSizer.Add(buttonSizer, 1, wx.ALIGN_CENTER|wx.TOP, 2) 
+
+        self.addLine()
+        
+        # Status message
+        self.statusField = wx.StaticText(self, -1, '')
+        self.statusField.SetMinSize((50,-1))
+        self.hSizer.Add(self.statusField, 1, wx.ALL|wx.EXPAND, 5)
+        
+        # Play
+        self.playerPlay = SwitchButton(self, name="libraryPlay")
+        self.playerPlay.setBackground(wx.WHITE)
+        self.playerPlay.SetSize((38,38))
+        self.playerPlay.setEnabled(False)
+        self.hSizer.Add(self.playerPlay, 0, wx.ALL, 2) 
+        
+        # Delete button
+        self.delete = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(17,17),name='delete')
+        self.delete.setBackground(wx.WHITE)
+        
+        self.hSizer.Add(self.delete,0,wx.FIXED_MINSIZE|wx.ALIGN_TOP,2)        
+    
         # Add Refresh        
         self.SetSizer(self.hSizer);
         self.SetAutoLayout(1);
@@ -160,6 +167,10 @@ class LibraryItemPanel(wx.Panel):
     def refreshData(self):
         self.setData(self.data)
         
+    def addLine(self):
+        vLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(2,32),wx.LI_VERTICAL)
+        self.hSizer.Add(vLine, 0, wx.LEFT|wx.TOP, 6)
+        
     def setData(self, torrent):
         # set bitmap, rating, title
         
@@ -167,23 +178,19 @@ class LibraryItemPanel(wx.Panel):
             print >>sys.stderr,"lip: setData called by nonMainThread!",threading.currentThread().getName()
             print_stack()
 
-
+        self.vodMode = False
         self.data = torrent
         
         if torrent is None:
             torrent = {}
-            self.Hide()
-        else:
-            self.Show()
-            
+
         
         if torrent.get('abctorrent'):
             #print '%s is an active torrent' % torrent['content_name']
             abctorrent = torrent['abctorrent']
             abctorrent.setLibraryPanel(self)
             #self.pb.setEnabled(True)
-            if not self.fileProgress.IsShown():
-                self.fileProgress.Show()
+            self.pb.Show()
             self.speedUp2.Show()
             self.speedDown2.Show()
             
@@ -191,19 +198,20 @@ class LibraryItemPanel(wx.Panel):
             self.speedDown2.SetLabel(self.utility.lang.get('down')+': '+dls) 
             uls = abctorrent.getColumnText(COL_ULSPEED)
             self.speedUp2.SetLabel(self.utility.lang.get('up')+': '+uls)
-            progresstxt = abctorrent.getColumnText(COL_PROGRESS)[:-1]
-            progress = float(progresstxt)
-            #self.pb.setPercentage(progress)
-            #eta = abctorrent.getColumnText(COL_ETA)
-            #self.pb.setETA(eta)
+            progresstxt = abctorrent.getColumnText(COL_PROGRESS)
+            progress = float(progresstxt[:-1])
+            self.percentage.SetLabel(progresstxt)
+            eta = 'ETA: '+abctorrent.getColumnText(COL_ETA)
+            if not eta == 'ETA: ' or eta.find('unknown') != -1 or progress == 100.0:
+                eta = ''
+            self.eta.SetLabel(eta)
             
-            #print >>sys.stderr,"lip: Progress is",progress,torrent['content_name']
-            
-            #print >>sys.stderr,"lip:",torrent['content_name'],"is boosted?",self.is_boosted()
-            
+            self.statusField.SetLabel(abctorrent.getColumnText(COL_BTSTATUS))
             switchable = False
             playable = False
             havedigest = None
+            showBoostAndPlayFast = False
+            showPlayButton = False
             statustxt = abctorrent.status.getStatusText()
             
             initstates = [self.utility.lang.get('checkingdata'), 
@@ -212,12 +220,16 @@ class LibraryItemPanel(wx.Panel):
                            self.utility.lang.get('waiting')]
             
             if not (statustxt in initstates):
+                showBoostAndPlayFast = (progress < 100.0)
+                
                 if abctorrent.get_on_demand_download():
+                    self.vodMode = True
                     progressinf = abctorrent.get_progressinf()
                     havedigest = abctorrent.status.getHaveDigest()
                     havedigest2 = progressinf.get_bufferinfo()
                     playable = havedigest2.get_playable()
                     switchable = False
+                    showPlayButton = True
                 else:
                     havedigest = abctorrent.status.getHaveDigest()
                     playable = (progress == 100.0)
@@ -237,25 +249,22 @@ class LibraryItemPanel(wx.Panel):
                 self.pb.reset(colour=0) # Show has having none
                 self.pb.Refresh()
                 
-            if playable:
-                self.playerPlay.Show()
-                
-            if switchable:
-                self.playFast.Show()
-            else:                
-                self.playFast.Hide()
-                
-                
-            dlsize = abctorrent.getColumnText(COL_DLANDTOTALSIZE)
-            self.fileProgress.SetLabel(dlsize)
+            
+            self.playerPlay.setEnabled(showPlayButton or playable)
+            self.playerPlay.setToggled(playable)
+            self.playFast.setToggled(not switchable)
+            self.boost.setEnabled(showBoostAndPlayFast)
+            self.playFast.setEnabled(showBoostAndPlayFast)
+            
         else:
             #self.pb.setEnabled(False)
             self.pb.reset()
             self.pb.Refresh()
             self.speedUp2.Hide()
             self.speedDown2.Hide()
-            self.playFast.Hide()
-            self.fileProgress.Hide()
+            self.playFast.setEnabled(False)
+            self.boost.setEnabled(False)
+            self.pb.Hide()
             
         if torrent.get('content_name'):
             title = torrent['content_name'][:self.titleLength]
@@ -271,12 +280,14 @@ class LibraryItemPanel(wx.Panel):
                
         self.Layout()
         self.Refresh()
+        self.GetContainingSizer().Layout()
         #self.parent.Refresh()
         
     def select(self):
         self.thumb.setSelected(True)
         self.title.SetBackgroundColour(self.selectedColour)
         self.SetBackgroundColour(self.selectedColour)
+        self.playerPlay.setBackground(self.selectedColour)
         self.Refresh()
         
         
@@ -284,6 +295,7 @@ class LibraryItemPanel(wx.Panel):
         self.thumb.setSelected(False)
         self.title.SetBackgroundColour(self.unselectedColour)
         self.SetBackgroundColour(self.unselectedColour)
+        self.playerPlay.setBackground(self.unselectedColour)
         self.Refresh()
         
     def keyTyped(self, event):
@@ -313,8 +325,22 @@ class LibraryItemPanel(wx.Panel):
                     playBitmap = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'play.png'))
                     obj.switchTo(playBitmap)
             elif name == 'playFast':
-                self.switch_to_vod(abctorrent)
-            elif name == 'playerPlay':
+                if not self.vodMode:
+                    self.vodMode = True
+                    self.switch_to_vod(abctorrent)
+                else:
+                    # disable vod?
+                    self.vodMode = False
+                self.playFast.setToggled(self.vodMode)
+                
+            elif name == 'boost':
+                if not self.boost.isToggled():
+                    self.switch_to_boost(abctorrent)
+                else:
+                    # disable vod?
+                    self.boost.setSelected(False)
+                    
+            elif name == 'libraryPlay':
                 self.play(abctorrent)
           
         print >>sys.stderr,"lip: mouseaction: name",event.GetEventObject().GetName()
@@ -333,34 +359,22 @@ class LibraryItemPanel(wx.Panel):
     def switch_to_vod(self,ABCTorrentTemp):
         videoplayer = VideoPlayer.getInstance()
         videoplayer.play(ABCTorrentTemp)
-                        
+      
+    def switch_to_boost(self, ABCTorrentTemp):
+        pass
+    
     def play(self,ABCTorrentTemp):
         videoplayer = VideoPlayer.getInstance()
         if ABCTorrentTemp.get_on_demand_download():
             videoplayer.vod_start_playing(ABCTorrentTemp)
         else:
             videoplayer.play(ABCTorrentTemp)
-
-    def switch_to_standard_dlmode(self,ABCTorrentTemp):
-        videoplayer = VideoPlayer.getInstance()
-        videoplayer.vod_back_to_standard_dlmode(ABCTorrentTemp)
-
-    def is_boosted(self):
-        if self.data is None:
-            return False
+    
+    def abcTorrentShutdown(self, infohash):
+        """
+        The abctorrent related to this panel was shutdown
+        """
+        if self.data.get('infohash') == infohash and self.data.get('abctorrent'):
+            del self.data['abctorrent']
+            
         
-        ABCTorrentTemp = self.data.get('abctorrent')
-        if ABCTorrentTemp is None:
-            return False
-        
-        engine = ABCTorrentTemp.connection.engine
-        if engine is None:
-            return False
-        
-        coordinator = engine.getDownloadhelpCoordinator()
-        if coordinator is None:
-            return False
-        
-        helpingFriends = coordinator.get_asked_helpers_copy()
-        
-        return len(helpingFriends) > 0
