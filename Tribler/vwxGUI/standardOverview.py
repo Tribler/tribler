@@ -172,7 +172,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     
     def filterChanged(self, filterState, setgui = False):
         oldFilterState = self.data[self.mode].get('filterState')
-        if filterState is None:
+        if filterState is None or len(filterState) == 0:
             filterState = oldFilterState
         if filterState is None:
             return
