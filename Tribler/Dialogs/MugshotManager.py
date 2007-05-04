@@ -54,6 +54,9 @@ class MugshotManager:
         self.defaults['personsMode']['ISFRIEND_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'isFriend.png'))
         self.defaults['personsMode']['ISFRIEND_CLICKED_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'isFriend_clicked.png'))
         self.defaults['personsMode']['SUPERPEER_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'Level4.png'))
+        self.defaults['subscriptionsMode'] = {}
+        self.defaults['subscriptionsMode']['DEFAULT_THUMB'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'favicon.png'))
+        self.defaults['subscriptionsMode']['BUDDYCAST_THUMB'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'bcicon.png'))
 
     def create_wxImageList(self,peerswpermid,setindex=False):
         """ peerswpermid is a list of dictionaries that contain the
@@ -207,7 +210,7 @@ class MugshotManager:
         return os.path.join(self.usericonpath, safename+NETW_EXT)
  
 
-    def data2wxBitmap(self,type,data):
+    def data2wxBitmap(self,type,data,dim=ICON_MAX_DIM):
         try:
             mi = StringIO(data)
             # St*pid wx says "No handler for image/bmp defined" while this
@@ -218,12 +221,13 @@ class MugshotManager:
             else:
                 im = wx.ImageFromStreamMime(mi,type)
             
-            bm = wx.BitmapFromImage(im.Scale(ICON_MAX_DIM,ICON_MAX_DIM),-1)
+            bm = wx.BitmapFromImage(im.Scale(dim,dim),-1)
             return bm
         except:
             if DEBUG:
                 print_exc()
             return None
+
 
     def get_default(self,mode,name):
         return self.defaults[mode][name]

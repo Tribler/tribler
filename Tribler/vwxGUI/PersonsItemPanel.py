@@ -241,7 +241,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         """ Called by non-GUI thread """
         
         if DEBUG:
-            print "pip: ThumbnailViewer: loadMetadata: Peer",show_permid_short(permid),name
+            print "pip: ThumbnailViewer: loadMetadata: Peer",show_permid_short(data['permid']),data['name']
         # We can't do any wx stuff here apparently, so the only thing we can do is to
         # read the data from the file and create the wxBitmap in the GUI callback.
         [mimetype,bmpdata] = self.mm.load_data(data['permid'],data['name'])

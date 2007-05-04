@@ -4,12 +4,13 @@ from Tribler.utilities import *
 from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.Dialogs.ContentFrontPanel import ImagePanel
 from Tribler.vwxGUI.GuiUtility import GUIUtility
-from Tribler.vwxGUI.PersonsItemPanel import ThumbnailViewer
+from safeguiupdate import FlaglessDelayedInvocation
 from Tribler.unicode import *
 from copy import deepcopy
 import cStringIO
 from tribler_topButton import *
-from threading import Lock
+from urlparse import urlparse
+from Tribler.timeouturlopen import urlOpenTimeout
 import TasteHeart
 
 DEBUG=True
@@ -27,10 +28,11 @@ class SubscriptionsItemPanel(wx.Panel):
         self.parent = parent
         self.data = None
         self.datacopy = None
-        self.titleLength = 37 # num characters
+        self.titleLength = 42 # num characters
         self.selected = False
         self.warningMode = False
         self.guiserver = parent.guiserver
+        self.torrentfeed = parent.torrentfeed
         self.oldCategoryLabel = None
         self.addComponents()
         self.Show()
@@ -55,7 +57,7 @@ class SubscriptionsItemPanel(wx.Panel):
         self.hSizer.Add(self.cB, 0, wx.ALL, 3)        
         
         # Add thumb / favicon from website?
-        self.thumb = FriendThumbnailViewer(self)
+        self.thumb = FavicoThumbnailViewer(self)
         self.thumb.setBackground(wx.BLACK)
         self.thumb.SetSize((16,16))
         self.hSizer.Add(self.thumb, 0, wx.ALL, 3)        
@@ -89,12 +91,12 @@ class SubscriptionsItemPanel(wx.Panel):
     def setData(self, peer_data):
         # set bitmap, rating, title
         
-        if self.datacopy is not None and self.datacopy['permid'] == peer_data['permid']:
-            if (self.datacopy['last_seen'] == peer_data['last_seen'] and
-                self.datacopy['similarity'] == peer_data['similarity'] and
-                self.datacopy['name'] == peer_data['name'] and
-                self.datacopy['content_name'] == peer_data['content_name'] and
-                self.datacopy.get('friend') == peer_data.get('friend')):
+        print "subip: setData called",peer_data
+        if peer_data is None:
+            self.datacopy = None
+        
+        if self.datacopy is not None and self.datacopy['url'] == peer_data['url']:
+            if (self.datacopy['status'] == peer_data['status']):
                 return
         
         self.data = peer_data
@@ -102,27 +104,32 @@ class SubscriptionsItemPanel(wx.Panel):
         if peer_data is not None:
             # deepcopy no longer works with 'ThumnailBitmap' on board
             self.datacopy = {}
-            self.datacopy['permid'] = peer_data['permid']
-            self.datacopy['last_seen'] = peer_data['last_seen']
-            self.datacopy['similarity'] = peer_data['similarity']
-            self.datacopy['name'] = peer_data['name']
-            self.datacopy['content_name'] = peer_data['content_name']
-            self.datacopy['friend'] = peer_data.get('friend')
-
+            self.datacopy['url'] = peer_data['url']
+            self.datacopy['status'] = peer_data['status']
+        else:
+            peer_data = {}
+        
         if peer_data is None:
             peer_data = {}
         
-        if peer_data.get('content_name'):
-            title = peer_data['content_name'][:self.titleLength]
+        if peer_data.get('url'):
+            title = peer_data['url'][:self.titleLength]
             self.title.Enable(True)
             self.title.SetLabel(title)
             self.title.Wrap(self.title.GetSize()[0])
-            self.title.SetToolTipString(peer_data['content_name'])
+            #self.title.SetToolTipString(peer_data['url'])
+            self.cB.SetValue(peer_data['status'] == "active")
+            if 'persistent' in self.data:
+                self.delete.Disable()
+            else:
+                self.delete.Enable()
         else:
             self.title.SetLabel('')
-            self.title.SetToolTipString('')
+            #self.title.SetToolTipString('')
             self.title.Enable(False)
-            
+            self.cB.SetValue(False)
+            self.cB.Enable(False)
+            self.delete.Enable(False)
        
         self.thumb.setData(peer_data)
                
@@ -133,11 +140,13 @@ class SubscriptionsItemPanel(wx.Panel):
           
         
     def select(self):
+        #print >>sys.stderr,'subip: selected',self.data
         self.thumb.setSelected(True)
         self.title.SetBackgroundColour(self.selectedColour)
         self.title.Refresh()
         
     def deselect(self):
+        #print >>sys.stderr,'subip: deselected',self.data
         self.thumb.setSelected(False)
         self.title.SetBackgroundColour(self.unselectedColour)
         self.title.Refresh()
@@ -148,26 +157,198 @@ class SubscriptionsItemPanel(wx.Panel):
             if (key == wx.WXK_DELETE):
                 if self.data:
                     if DEBUG:
-                        print >>sys.stderr,'contentpanel: deleting'
+                        print >>sys.stderr,'subip: deleting'
 #                    self.guiUtility.deleteTorrent(self.data)
         event.Skip()
         
     def mouseAction(self, event):
-        print "set focus"
-        self.SetFocus()
-        if self.data:
-            self.guiUtility.selectPeer(self.data)
+        print "subip: mouseAction",event.ButtonUp()
+        obj = event.GetEventObject()
+        name = obj.GetName()
+        print "subip: mouseAction: name is",name
+        if self.data is not None:
+            if name == 'check':
+                newstatus = not self.cB.GetValue()
+                #self.cB.SetValue(newstatus)
+                if 'persistent' in self.data:
+                    self.toggleBuddycast(newstatus)
+                else:
+                    self.torrentfeed.setURLStatus(self.data['url'],newstatus)
+            elif name == 'delete':
+                self.torrentfeed.deleteURL(self.data['url'])
+                # TODO: refresh view, hack it
+                self.setData(None)
             
     def getIdentifier(self):
         if self.data:
-            return self.data['permid']
+            return self.data['url']
         
-        
-                
+    def toggleBuddycast(self,status):
+        self.utility.config.Write('enablerecommender',status, "boolean")                
 
-class FriendThumbnailViewer(ThumbnailViewer):
+
+
+class FavicoThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
+    """
+    Show thumbnail and mast with info on mouseOver
+    """
+
     def __init__(self, *args, **kw):    
-        ThumbnailViewer.__init__(self, *args, **kw)
+        if len(args) == 0:
+            pre = wx.PrePanel()
+            # the Create step is done by XRC.
+            self.PostCreate(pre)
+            self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
+        else:
+            wx.Panel.__init__(self, *args, **kw)
+            self._PostInit()
+        
+    def OnCreate(self, event):
+        self.Unbind(wx.EVT_WINDOW_CREATE)
+        wx.CallAfter(self._PostInit)
+        event.Skip()
+        return True
+    
+    def _PostInit(self):
+        # Do all init here
+        FlaglessDelayedInvocation.__init__(self)
+        self.backgroundColor = wx.WHITE
+        self.dataBitmap = self.maskBitmap = None
+        self.data = None
+        self.mouseOver = False
+        self.guiUtility = GUIUtility.getInstance()
+        self.utility = self.guiUtility.utility
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnErase)
+        self.selected = False
+        self.border = None
+    
+        self.mm = self.GetParent().parent.mm
+        
+    def setData(self, data):
+        
+        if not data:
+            self.Hide()
+            self.Refresh()
+            return
+        
+        if not self.IsShown():
+                self.Show()
+        if data != self.data:
+            self.data = data
+            self.setThumbnail(data)
+
+    def setThumbnail(self, data):
+        # Get the file(s)data for this torrent
+        try:
+            bmp = self.mm.get_default('subscriptionsMode','DEFAULT_THUMB')
+            # Check if we have already read the thumbnail and metadata information from this torrent file
+            if data.get('metadata'):
+                bmp = data['metadata'].get('ThumbnailBitmap')
+                if not bmp:
+                    bmp = self.mm.get_default('subscriptionMode','DEFAULT_THUMB')
+            else:
+                self.GetParent().guiserver.add_task(lambda:self.loadMetadata(data),0)
+            
+            self.setBitmap(bmp)
+            width, height = self.GetSize()
+            d = 1
+            self.border = [wx.Point(0,d), wx.Point(width-d, d), wx.Point(width-d, height-d), wx.Point(d,height-d), wx.Point(d,0)]
+            self.Refresh()
+            
+        except:
+            print_exc(file=sys.stderr)
+            return {}           
+        
+         
+    def setBitmap(self, bmp):
+        # Recalculate image placement
+        w, h = self.GetSize()
+        iw, ih = bmp.GetSize()
+                
+        self.dataBitmap = bmp
+        self.xpos, self.ypos = (w-iw)/2, (h-ih)/2
+        
+
+    def loadMetadata(self,data):
+        """ Called by non-GUI thread """
+        
+        if DEBUG:
+            print "subip: ThumbnailViewer: loadMetadata: url",data['url']
+        mimetype = None
+        bmpdata = None
+        if not ('persistent' in data):
+            try:
+                t = urlparse(data['url'])
+                print "subip: ThumbnailViewer: loadMetadata: parsed url",t
+                newurl = t[0]+'://'+t[1]+'/'+'favicon.ico'
+                print "subip: ThumbnailViewer: loadMetadata: newurl",newurl
+                stream = urlOpenTimeout(newurl,timeout=5)
+                mimetype = 'image/x-ico' # 'image/vnd.microsoft.icon' # 'image/ico'
+                bmpdata = stream.read()
+                stream.close()
+            except:
+                print_exc()
+        
+        self.invokeLater(self.metadata_thread_gui_callback,[data,mimetype,bmpdata])
+             
+    def metadata_thread_gui_callback(self,data,mimetype,bmpdata):
+        """ Called by GUI thread """
+
+        if DEBUG:
+            print "pip: ThumbnailViewer: GUI callback"
+
+        metadata = {}
+        if 'persistent' in data:
+            metadata['ThumbnailBitmap'] = self.mm.get_default('subscriptionsMode','BUDDYCAST_THUMB')
+        else:
+            if mimetype is not None:
+                metadata['ThumbnailBitmap'] = self.mm.data2wxBitmap(mimetype,bmpdata,dim=16)
+            else:
+                metadata['ThumbnailBitmap'] = None
+
+        data['metadata'] = metadata
+        
+        # This item may be displaying another subscription right now, only show the icon
+        # when it's still the same person
+        if data['url'] == self.data['url']:
+            if 'ThumbnailBitmap' in metadata and metadata['ThumbnailBitmap'] is not None:
+                self.setBitmap(metadata['ThumbnailBitmap'])
+            self.Refresh()
+    
+    
+    def OnErase(self, event):
+        pass
+        #event.Skip()
+        
+    def setSelected(self, sel):
+        self.selected = sel
+        self.Refresh()
+        
+    def isSelected(self):
+        return self.selected
+        
+    def mouseAction(self, event):
+        if event.Entering():
+            if DEBUG:
+                print 'pip: enter' 
+            self.mouseOver = True
+            self.Refresh()
+        elif event.Leaving():
+            self.mouseOver = False
+            if DEBUG:
+                print 'pip: leave'
+            self.Refresh()
+        elif event.ButtonUp():
+            self.ClickedButton()
+        #event.Skip()
+        """
+    def ClickedButton(self):
+        print 'Click'
+        """
+                
+    def setBackground(self, wxColor):
+        self.backgroundColor = wxColor
         
     def OnPaint(self, evt):
         dc = wx.BufferedPaintDC(self)
@@ -175,45 +356,5 @@ class FriendThumbnailViewer(ThumbnailViewer):
         dc.Clear()
         
         if self.dataBitmap:
-            dc.DrawBitmap(self.dataBitmap, self.xpos,self.ypos, True)
-#        if self.mouseOver:
-        if self.data!=None and type(self.data)==type({}) and self.data.get('permid'):            
-            self.Parent.status.SetLabel('status unknown')
-            rank = self.guiUtility.peer_manager.getRank(self.data['permid'])
-            #because of the fact that hearts are coded so that lower index means higher ranking, then:
-            if rank > 0 and rank <= 5:
-                recomm = 0
-            elif rank > 5 and rank <= 10:
-                recomm = 1
-            elif rank > 10 and rank <= 15:
-                recomm = 2
-            elif rank > 15 and rank <= 20:
-                recomm = 3
-            else:
-                recomm = -1
-            if recomm >=0 or self.data.get('friend') or self.data.get('online'):
-                mask = self.mm.get_default('personsMode','MASK_BITMAP')
-                dc.DrawBitmap(mask,0 ,62, True)
-            if recomm >=0:
-                dc.DrawBitmap(TasteHeart.BITMAPS[recomm],5 ,64, True)
-                dc.SetFont(wx.Font(7, wx.SWISS, wx.NORMAL, wx.BOLD, False))
-                text = repr(rank)                
-                dc.DrawText(text, 22, 66)
-            if self.data.get('friend'):
-                friend = self.mm.get_default('personsMode','MASK_BITMAP')
-                dc.DrawBitmap(friend,60 ,65, True)            
-            if self.data.get('online'):                
-                self.status.SetLabel('online')
-                dc.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, False))
-                dc.SetTextForeground('#007303')
-                dc.DrawText('online', 26, 66)
-
-                
-        
-#        dc.SetTextForeground(wx.WHITE)
-        #dc.DrawText('rating', 5, 60)
-        if (self.selected and self.border):
-            dc.SetPen(wx.Pen(wx.Colour(255,51,0), 2))
-            dc.DrawLines(self.border)
-        
-
+            #dc.DrawBitmap(self.dataBitmap, self.xpos,self.ypos, True)
+            dc.DrawBitmap(self.dataBitmap, 0, 0, True)

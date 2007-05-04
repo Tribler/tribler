@@ -7,6 +7,8 @@ from Tribler.vwxGUI.torrentManager import TorrentDataManager
 from Tribler.utilities import *
 from Utility.constants import *
 from peermanager import PeerDataManager
+from Tribler.Subscriptions.rss_client import TorrentFeedThread
+
 
 OVERVIEW_MODES = ['filesMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionsMode', 'messageMode', 'libraryMode']
 DEBUG = True
@@ -123,8 +125,14 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 self.data[self.mode]['search'] = search
                 self.data[self.mode]['filter'] = filter
                 #search.Bind(wx.EVT_COMMAND_TEXT_ENTER, self.OnSearchKeyDown)
-                search.Bind(wx.EVT_KEY_DOWN, self.guiUtility.OnSearchKeyDown)
+                if search is not None:
+                    search.Bind(wx.EVT_KEY_DOWN, self.guiUtility.OnSearchKeyDown)
+                    
                 pager.setGrid(grid)
+                
+                if self.mode == 'subscriptionsMode':
+                    rssurlctrl = xrc.XRCCTRL(currentPanel,'pasteUrl')
+                    self.data[self.mode]['rssurlctrl'] = rssurlctrl
             except:
                 print 'Error: Could not load panel, grid and pager for mode %s' % self.mode
                 print 'Tried panel: %s=%s, grid: %s=%s, pager: %s=%s' % (panelName, currentPanel, modeString+'Grid', grid, 'standardPager', pager)
@@ -177,6 +185,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         elif self.mode == 'friendsMode':
             self.loadPersonsData(filterState[0], filterState[1])
             
+        elif self.mode == 'subscriptionsMode':
+            self.loadSubscriptionData()
         else:
             print 'standardOverview: Filters not yet implemented in this mode'
             return
@@ -253,6 +263,19 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         print 'Loaded %d library items' % len(self.data[self.mode]['data'])
         
         
+    def loadSubscriptionData(self):
+        torrentfeed = TorrentFeedThread.getInstance()
+        urls = torrentfeed.getURLs()
+        reclist = []
+        record = {'url':"Discover content via other Tribler users",'status':'active','persistent':True}
+        reclist.append(record)
+        for url in urls:
+            record = {}
+            record['url'] = url
+            record['status'] = urls[url]
+            reclist.append(record)
+        self.data[self.mode]['data'] = reclist
+        
     def updateFunTorrents(self, torrent, operate):    
         print "UpdatefunTorrents called: %s, %s" % (operate, str(torrent))
         try:
@@ -302,4 +325,5 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         return self.data[self.mode]['search']
 
         
-        
+    def getRSSUrlCtrl(self):
+        return self.data[self.mode]['rssurlctrl']

@@ -6,19 +6,20 @@
 
 #usage: make a torrentfeedreader instance and call refresh whenevey you would like to check that feed for new torrents. e.g. every 15 minutes.
 
+import os
 import sys
 import traceback
 from Tribler.timeouturlopen import urlOpenTimeout
 import re
 import urlparse
 from xml.dom.minidom import parseString
-from threading import Thread        
+from threading import Thread,RLock
 from time import sleep
 from sha import sha
 
 from BitTornado.bencode import bdecode,bencode
 from Tribler.Overlay.MetadataHandler import MetadataHandler
-
+from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler
 
 
 class TorrentFeedThread(Thread):
@@ -32,37 +33,116 @@ class TorrentFeedThread(Thread):
         Thread.__init__(self)
         self.setDaemon(True)
 
+        self.urls = {}
+        self.feeds = []
+        self.lock = RLock()
+
     def getInstance(*args, **kw):
         if TorrentFeedThread.__single is None:
             TorrentFeedThread(*args, **kw)
         return TorrentFeedThread.__single
     getInstance = staticmethod(getInstance)
         
-    def register(self):
+    def register(self,utility):
         self.metahandler = MetadataHandler()
+        self.torrent_db = TorrentDBHandler()
     
-        self.urls = ['http://www.vuze.com/syndication/browse/AZHOT/ALL/X/X/26/X/_/_/X/X/feed.xml']
-        self.feeds = []
+        self.utility = utility
+        filename = self.getfilename()
+        try:
+            f = open(filename,"rb")
+            for line in f.readlines():
+                for key in ['active','inactive']:
+                    if line.startswith(key):
+                        url = line[len(key)+1:-2] # remove \r\n
+                        print "subscrip: Add from file URL",url,"EOU"
+                        self.addURL(url,dowrite=False,status=key)
+            f.close()        
+        except:
+            traceback.print_exc()
+    
+        #self.addURL('http://www.vuze.com/syndication/browse/AZHOT/ALL/X/X/26/X/_/_/X/X/feed.xml')
+        
+    def addURL(self,url,dowrite=True,status="active"):
+        self.lock.acquire()
+        if url not in self.urls:
+            self.urls[url] = status
+            if status == "active":
+                feed = TorrentFeedReader(url)
+                self.feeds.append(feed)
+            if dowrite:
+                self.writefile()
+        self.lock.release()
+
+    def writefile(self):
+        filename = self.getfilename()
+        f = open(filename,"wb")
         for url in self.urls:
-            feed = TorrentFeedReader(url)
-            self.feeds.append(feed)
+            val = self.urls[url]
+            f.write(val+' '+url+'\r\n')
+        f.close()
+        
+    def getfilename(self):
+        return os.path.join(self.utility.getConfigPath(),"subscriptions.txt")
+        
+    def getURLs(self):
+        return self.urls # doesn't need to be locked
+        
+    def setURLStatus(self,url,newstatus):
+        self.lock.acquire()
+        print >>sys.stderr,"subscrip: setURLStatus",url,newstatus
+        newtxt = "active"
+        if newstatus == False:
+            newtxt = "inactive"
+        print >>sys.stderr,"subscrip: setURLStatus: newstatus set to",url,newtxt
+        if url in self.urls:
+            self.urls[url] = newtxt
+            self.writefile()
+        else:
+            print >>sys.stderr,"subscrip: setURLStatus: unknown URL?",url
+        self.lock.release()
+    
+    def deleteURL(self,url):
+        self.lock.acquire()
+        if url in self.urls:
+            del self.urls[url]
+            for i in range(len(self.feeds)):
+                feed = self.feeds[i]
+                if feed.feed_url == url:
+                    del self.feeds[i]
+                    break
+            self.writefile()
+        self.lock.release()
         
     def run(self):
-        for feed in self.feeds:
-            pairs = feed.refresh()
-            for title,urlopenobj in pairs:
-                print >>sys.stderr,"$$$$$ subscrip: Retrieving",`title`,urlopenobj
-                try:
-                    if urlopenobj is not None:
-                        bdata = urlopenobj.read()
-                        urlopenobj.close()
-
-                        data = bdecode(bdata)
-                        torrent_hash = sha(bencode(data['info'])).digest()
-                        self.metahandler.save_torrent(torrent_hash,bdata)
-                except:
-                    traceback.print_exc()
-                
+        while True:
+            self.lock.acquire()
+            cfeeds = self.feeds[:]
+            self.lock.release()
+            
+            for feed in cfeeds:
+                rssurl = feed.feed_url
+                print >>sys.stderr,"suscrip: Opening RSS feed",rssurl
+                pairs = feed.refresh()
+                for title,urlopenobj in pairs:
+                    print >>sys.stderr,"$$$$$ subscrip: Retrieving",`title`,"from",rssurl
+                    try:
+                        if urlopenobj is not None:
+                            bdata = urlopenobj.read()
+                            urlopenobj.close()
+    
+                            data = bdecode(bdata)
+                            torrent_hash = sha(bencode(data['info'])).digest()
+                            if not self.torrent_db.hasTorrent(torrent_hash):
+                                print >>sys.stderr,"subscript: Storing",`title`
+                                self.metahandler.save_torrent(torrent_hash,bdata)
+                            else:
+                                print >>sys.stderr,"subscript: Not storing",`title`,"already have it"
+                                
+                    except:
+                        traceback.print_exc()
+                        
+                    sleep(15) # TODO: make user configable
         sleep(15*60)
 
 

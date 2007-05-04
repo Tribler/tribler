@@ -2,7 +2,7 @@ import wx
 from wx import xrc
 from traceback import print_exc,print_stack
 from threading import Event
-import urllib
+import urllib,urllib2
 import webbrowser
 from sets import Set
 
@@ -14,7 +14,7 @@ from Tribler.Overlay.permid import permid_for_user
 from Tribler.Dialogs.makefriends import MakeFriendsDialog
 from torrentManager import TorrentDataManager
 from peermanager import PeerDataManager
-
+from Tribler.Subscriptions.rss_client import TorrentFeedThread
 
 #from Tribler.vwxGUI.filesFilter import filesFilter
 
@@ -108,6 +108,8 @@ class GUIUtility:
         elif name == "search": # search files/persons button
             print 'GUIUtil: search button clicked'
             self.dosearch()
+        elif name == 'subscribe':
+            self.subscribe()
         else:
             print 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
                 
@@ -355,3 +357,19 @@ class GUIUtility:
         if keycode == wx.WXK_RETURN:
             self.dosearch()
         event.Skip()     
+
+    def subscribe(self):
+        rssurlctrl = self.standardOverview.getRSSUrlCtrl()
+        url = rssurlctrl.GetValue()
+        print "GUIUtil: subscribe:",url
+        try:
+            stream = urllib2.urlopen(url)
+            stream.close()
+        except Exception,e:
+            dlg = wx.MessageDialog(self.standardOverview, "Invalid URL"+str(e), 'Tribler Warning',wx.OK | wx.ICON_WARNING)
+            result = dlg.ShowModal()
+            dlg.Destroy()
+            return
+        
+        torrentfeed = TorrentFeedThread.getInstance()
+        torrentfeed.addURL(url)

@@ -982,7 +982,7 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             bmphand = None
             hands = wx.Image.GetHandlers()
             for hand in hands:
-                #print "Handler",hand.GetExtension(),hand.GetType(),hand.GetMimeType()
+                print "Handler",hand.GetExtension(),hand.GetType(),hand.GetMimeType()
                 if hand.GetMimeType() == 'image/x-bmp':
                     bmphand = hand
                     break
@@ -992,8 +992,8 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             
             # Must be after ABCLaunchMany is created
             self.torrentfeed = TorrentFeedThread.getInstance()
-            self.torrentfeed.register()
-            #self.torrentfeed.start()
+            self.torrentfeed.register(self.utility)
+            self.torrentfeed.start()
             
             
         except Exception,e:
