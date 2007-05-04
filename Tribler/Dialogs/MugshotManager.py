@@ -18,7 +18,7 @@ NETW_MIME_TYPE = 'image/jpeg'
 ICON_MAX_DIM = 80
 SMALL_ICON_MAX_DIM = 32
 
-DEBUG = True
+DEBUG = False
 
 class MugshotManager:
 

@@ -105,13 +105,12 @@ class GUIUtility:
                 self.mainButtonClicked( 'mainButtonPersons', self.frame.mainButtonPersons)
             else:
                 print 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
-        elif name == "search": # search files button
-            print 'GUIUtil: search files button clicked'
-            print >>sys.stderr,"GUIUtil: buttonClicked: parent is",obj.GetParent().GetName()
-            self.searchFiles()
-        elif name == "bt258cC": # search persons button
-            print 'GUIUtil: search persons button clicked'
-            self.searchPersons()
+        elif name == "search": # search files/persons button
+            print 'GUIUtil: search button clicked'
+            if self.standardOverview.mode == "filesMode":
+                self.searchFiles()
+            else:
+                self.searchPersons()
         else:
             print 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
                 
@@ -309,7 +308,7 @@ class GUIUtility:
         if sf is None:
             return
         input = sf.GetValue()
-        print "Search for files",input
+        print "GUIUtil: searchFiles:",input
         low = input.lower()
         wantkeywords = low.split(' ')
         wantkeywords += low.split('-')
@@ -323,6 +322,25 @@ class GUIUtility:
         self.standardOverview.filterChanged(['search','swarmsize'],setgui=True)
         
     def searchPersons(self):
-        input = self.frame.searchtxtctrl.GetValue()
-        print "Search for persons",input
+        sf = self.standardOverview.getSearchField()
+        if sf is None:
+            return
+        input = sf.GetValue()
+        print "GUIUtil: searchPersons:",input
+        low = input.lower()
+        wantkeywords = low.split(' ')
+        wantkeywords += low.split('-')
+        wantkeywords += low.split('_')
+        wantkeywords += low.split('.')
+        zet = Set(wantkeywords)
+        wantkeywords = list(zet)
+        print "GUIUtil: searchPersons: keywords",wantkeywords
+        def searchFilterFunc(peer_data):
+            low = peer_data['content_name'].lower()
+            for wantkw in wantkeywords:
+                if low.find(wantkw) != -1:
+                    return True
+            return False
+        self.peer_manager.registerFilter("search",searchFilterFunc)
+        self.standardOverview.filterChanged(['search','last_seen'],setgui=True)
         

@@ -72,6 +72,10 @@ class PersonsItemPanel(wx.Panel):
     def setData(self, peer_data):
         # set bitmap, rating, title
         
+        #print "pip: setData:",peer_data
+        if peer_data is None:
+            self.datacopy = None
+        
         if self.datacopy is not None and peer_data is not None and self.datacopy['permid'] == peer_data['permid']:
             if (self.datacopy['last_seen'] == peer_data['last_seen'] and
                 self.datacopy['similarity'] == peer_data['similarity'] and
@@ -91,8 +95,7 @@ class PersonsItemPanel(wx.Panel):
             self.datacopy['name'] = peer_data['name']
             self.datacopy['content_name'] = peer_data['content_name']
             self.datacopy['friend'] = peer_data.get('friend')
-        
-        if peer_data is None:
+        else:
             peer_data = {}
         
         if peer_data.get('content_name'):
@@ -105,7 +108,6 @@ class PersonsItemPanel(wx.Panel):
             self.title.SetLabel('')
             self.title.SetToolTipString('')
             self.title.Enable(False)
-            
        
         self.thumb.setData(peer_data)
                
@@ -323,7 +325,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         if self.dataBitmap:
             dc.DrawBitmap(self.dataBitmap, self.xpos,self.ypos, True)
 #        if self.mouseOver:
-        if self.data!=None and type(self.data)==type({}) and self.data.get('permid'):
+        if self.data is not None and type(self.data)==type({}) and self.data.get('permid'):
             rank = self.guiUtility.peer_manager.getRank(self.data['permid'])
             #because of the fact that hearts are coded so that lower index means higher ranking, then:
             if rank > 0 and rank <= 5:
@@ -350,7 +352,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                 else:
                     friend = self.mm.get_default('personsMode','FRIEND_OFFLINE_BITMAP')
                 dc.DrawBitmap(friend,60 ,65, True)   
-            else:         
+            elif self.data.get('online'):         
                 dc.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, False))
                 dc.SetTextForeground('#007303')
                 dc.DrawText('online', 30, 66)

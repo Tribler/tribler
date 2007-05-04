@@ -94,11 +94,13 @@ class standardFilter(wx.Panel):
             print 'standardFilter: Error could not call standardOverview.filterChanged()'
             print_exc()
 
-    def setSelectionToFilter(self,filter):
-        for i in range(len(self.filterData[0])):
-            if filter == self.filterData[0][i][0]:
-                self.filters[0].SetSelection(i)
-                break
+    def setSelectionToFilter(self,filterState):
+        for j in range(len(filterState)):
+            for i in range(len(self.filterData[j])):
+                if filterState[j] == self.filterData[j][i][0]:
+                    self.filters[j].SetSelection(i)
+                    break
+        self.filterState = filterState
 
 
 class filesFilter(standardFilter):
@@ -128,6 +130,9 @@ class filesFilter(standardFilter):
 class personsFilter(standardFilter):
     def __init__(self):
         filterData = [
+                      [('all', 'All'),
+                       ('search', 'Search Results')
+                       ],
                       [('last_seen', 'Recently connected'),
                         ('relevance', 'Similar taste'),
                         (('content_name','increase'), 'Name'),

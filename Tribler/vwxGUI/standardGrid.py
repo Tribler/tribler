@@ -97,7 +97,7 @@ class standardGrid(wx.Panel):
         else:
             datalength = len(dataList)
         
-        #print 'SetData called: init: %s, datalength: %d' % (self.initReady, datalength)
+        print 'standardGrid: SetData called: init: %s, datalength: %d' % (self.initReady, datalength)
         
         self.data = dataList
         
@@ -190,6 +190,7 @@ class standardGrid(wx.Panel):
             else:
                 hSizer = self.vSizer.GetItem(panelNumber/self.cols).GetSizer()
                 panel = hSizer.GetItem(panelNumber % self.cols).GetWindow()
+                
             panel.setData(data)
         except:
             print >>sys.stderr,"contentpanel: Error: Could not set data in panel number %d, with %d cols" % (panelNumber, self.cols)

@@ -69,7 +69,7 @@ class FilesItemPanel(wx.Panel):
     def setData(self, torrent):
         
         if torrent is None:
-            torrent = {}
+            self.datacopy = None
             
         # set bitmap, rating, title
         if self.datacopy and torrent and self.datacopy['infohash'] == torrent['infohash']:
@@ -82,7 +82,7 @@ class FilesItemPanel(wx.Panel):
         
         self.data = torrent
 
-        if torrent:
+        if torrent is not None:
             # deepcopy no longer works with 'ThumnailBitmap' on board
             self.datacopy = {}
             self.datacopy['infohash'] = torrent['infohash']
@@ -91,7 +91,7 @@ class FilesItemPanel(wx.Panel):
             self.datacopy['length'] = torrent['length']
             self.datacopy['myDownloadHistory'] = torrent.get('myDownloadHistory')
         else:
-            self.datacopy = {}
+            torrent = {}
 
         if torrent.get('content_name'):
             title = torrent['content_name'][:self.titleLength]

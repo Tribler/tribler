@@ -105,9 +105,6 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 pager = xrc.XRCCTRL(currentPanel, 'standardPager')
                 search = xrc.XRCCTRL(currentPanel, 'searchField')
                 filter = xrc.XRCCTRL(currentPanel, modeString+'Filter')
-                
-                print "$$$$$$$$$$$$$$$ standardOverview: filter is",filter
-                
                 if not currentPanel:
                     raise Exception('standardOverview: Could not find panel, grid or pager')
                     #load dummy panel
@@ -164,7 +161,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     
     def filterChanged(self, filterState, setgui = False):
         oldFilterState = self.data[self.mode].get('filterState')
-        if filterState == None:
+        if filterState is None:
             filterState = oldFilterState
             
         if self.mode == 'filesMode':
@@ -185,10 +182,13 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         if setgui:
             filter = self.data[self.mode]['filter']
             if filter is not None:
-                filter.setSelectionToFilter(filterState[0])
+                filter.setSelectionToFilter(filterState)
         
         self.refreshData()
         self.data[self.mode]['filterState'] = filterState
+        
+        print "$$$$$$$$$$$$$$$$$$$$$$$$ standardOverview: old",oldFilterState,"new",filterState,"mode",self.mode
+        print len(self.data[self.mode]['data'])
                 
             
     def loadTorrentData(self, cat, sort):
@@ -224,7 +224,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         """ 
         Category and sorting not yet used
         """       
-        if self.mode in [ "persons","friends"]:
+        if self.mode in [ "personsMode","friendsMode"]:
             self.data[self.mode]['data'] = self.peer_manager.getFilteredData(cat)
         else:
             print "<mluc> not correct standard overview mode for loading peers:",self.mode

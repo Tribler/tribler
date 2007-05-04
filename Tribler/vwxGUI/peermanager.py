@@ -438,7 +438,7 @@ class PeerDataManager(DelayedEventHandler):
         """when a peer is updated, prepare it for use inside the view
         creates content_name, similarity_percent, rank_value
         updates the global maximal similarity value and the list of top 20 most similar peers"""
-        if peer_data['name']!=None and len(peer_data['name'])>0:
+        if peer_data['name'] is not None and len(peer_data['name'])>0:
             peer_data['content_name']=dunno2unicode(peer_data['name'])
         else:
             peer_data['content_name']= 'peer %s' % show_permid_shorter(peer_data['permid'])#'[%s:%s]' % (localdata[i]['ip'],str(localdata[i]['port']))
