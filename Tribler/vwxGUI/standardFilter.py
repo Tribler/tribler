@@ -133,9 +133,9 @@ class personsFilter(standardFilter):
                       [('all', 'All'),
                        ('search', 'Search Results')
                        ],
-                      [('last_seen', 'Recently connected'),
-                        ('relevance', 'Similar taste'),
-                        (('content_name','increase'), 'Name'),
+                      [(('content_name','increase'), 'Name'),
+                       ('relevance', 'Similar taste'),                        
+                       ('last_seen', 'Recently connected'),                        
                       ]
                   ]
         standardFilter.__init__(self, filterData = filterData)
