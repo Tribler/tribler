@@ -100,7 +100,7 @@ class standardGrid(wx.Panel):
         else:
             datalength = len(dataList)
         
-        print 'standardGrid: SetData called: init: %s, datalength: %d' % (self.initReady, datalength)
+        #print 'standardGrid: SetData called: init: %s, datalength: %d' % (self.initReady, datalength)
         
         self.data = dataList
         

@@ -208,6 +208,8 @@ class EmbeddedPlayer(wx.Panel,FlaglessDelayedInvocation):
 
 
     def disableInput(self):
+        return # Not currently used
+        
         self.ppbtn.Disable()
         self.slider.Disable()
         self.fsbtn.Disable()
