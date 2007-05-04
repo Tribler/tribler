@@ -126,7 +126,13 @@ class standardGrid(wx.Panel):
         if not key:
             print 'standardGrid: Error, could not find key to compare item: %s' % item
             return
-        
+        #get the current data source
+        if len(self.data)>0 and self.data[0].has_key("permid"):
+            print "\n*****************************************************\n\
+*                   big problem                     *\n\
+*     in torrentGrid, working on peer data!!!!!     *\n\
+*                                                   *\n\
+*****************************************************\n"
         i = find_content_in_dictlist(self.data, item, key)
         if i != -1:
             if not delete:

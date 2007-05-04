@@ -116,6 +116,7 @@ class PeerDataManager(DelayedEventHandler):
         data = self.prepareData()
         self.sortData(data)
         self.applyFilters(data)
+        print "<mluc> ################### size of data is ",len(self.filtered_data['all'])
         self.isDataPrepared = True
         self.done_init = True
         
@@ -187,7 +188,7 @@ class PeerDataManager(DelayedEventHandler):
         data = self.filtered_data[filter_name] 
         for i in xrange(len(data)):
             if data[i].get('permid') is None:
-                print "<mluc> ERROR: peer has no permid!!!!"
+                print "<mluc> ERROR: peer has no permid!!!! at position",i,"out of",len(data)
                 print "<mluc> ERROR: peer name is",data[i]['content_name']
             if data[i]['permid'] == permid:
                 return data[i]
@@ -588,9 +589,11 @@ class PeerDataManager(DelayedEventHandler):
     def getCountOfSimilarPeers(self):
         count = 0
         all_data = self.filtered_data['all']
+        index = 0
         for peer_data in all_data:
             if peer_data.get('similarity',None) is None:
-                print "peer ",peer_data['content_name'],"has no similarity!!!!"
+                print "peer ",peer_data['content_name'],"has no similarity!!!! at position",index,"out of",len(all_data)
+            index = index + 1
             if peer_data['similarity'] > 20:
                 count = count + 1
         return count

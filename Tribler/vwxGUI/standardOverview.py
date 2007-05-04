@@ -188,9 +188,6 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         
         self.refreshData()
         self.data[self.mode]['filterState'] = filterState
-        
-        #print "standardOverview: old",oldFilterState,"new",filterState,"mode",self.mode
-        #print len(self.data[self.mode]['data'])
                 
             
     def loadTorrentData(self, cat, sort):
@@ -269,6 +266,13 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 self.invokeLater(detailsPanel.setData, [torrent])
         
         torrentGrid = self.data[self.mode]['grid']
+        if self.mode in [ "personsMode", "friendsMode"]:
+            print "\n*****************************************************\n\
+*                   big problem                     *\n\
+*     in updateFunTorrents, calling",self.mode,"!!!!!     *\n\
+*                                                   *\n\
+*****************************************************\n"
+            
         assert torrentGrid, 'standardOverview: could not find Grid of %s' % self.mode
         
         if self.mode == 'libraryMode':
