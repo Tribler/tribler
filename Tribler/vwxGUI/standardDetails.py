@@ -66,7 +66,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                                             'download', 'tabs', ('files_detailsTab','tabs'), ('info_detailsTab','tabs'), 'TasteHeart', 'details']
         self.modeElements['personsMode'] = ['TasteHeart', 'recommendationField','addAsFriend', 'commonFilesField',
                                             'alsoDownloadedField', 'info_detailsTab', 'advanced_detailsTab','detailsC',
-                                            'titleField']
+                                            'titleField','statusField']
         self.modeElements['libraryMode'] = ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
                                             'download', 'files_detailsTab', 'info_detailsTab', 'TasteHeart', 'details']
@@ -396,9 +396,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 if rank != -1:
                     if rank == 1:
                         self.getGuiObj('recommendationField').SetLabel("%d" % rank + "st of top 20")
-                    if rank == 2:
+                    elif rank == 2:
                         self.getGuiObj('recommendationField').SetLabel("%d" % rank + "nd of top 20")                        
-                    if rank == 3:
+                    elif rank == 3:
                         self.getGuiObj('recommendationField').SetLabel("%d" % rank + "rd of top 20")
                     else:
                         self.getGuiObj('recommendationField').SetLabel("%d" % rank + "th of top 20")
@@ -409,6 +409,11 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 else:
                     self.getGuiObj('TasteHeart').setHeartIndex(0)
                 
+                if item.get('online'):
+                    self.getGuiObj('statusField').SetLabel( 'online')
+                else:
+                    self.getGuiObj('statusField').SetLabel('seen > %s' % friendly_time(item['last_seen']))
+                
                 if item['friend']:
 #                    self.getGuiObj('addAsFriend').Enable(False)
                     isfriend = self.mm.get_default('personsMode','ISFRIEND_BITMAP')
@@ -417,6 +422,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 else:
                     self.getGuiObj('addAsFriend').switchBack()
 #                    self.getGuiObj('addAsFriend').Enable(True)
+#                if item.get('online'):
                     
                 self.fillTorrentLists()
             elif self.getGuiObj('advanced_detailsTab').isSelected():

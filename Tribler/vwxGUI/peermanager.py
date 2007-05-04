@@ -66,7 +66,49 @@ def peerEqualFunc(peer1, peer2):
     if peer1['permid'] == peer2['permid']:
         return True
     return False
-    
+
+def cmpFuncSimilarity( val1, val2):
+    """compare function that sorts on similarity value
+    greater value ahead"""
+    if val1['similarity'] > val2['similarity']:
+        return 1
+    if val1['similarity'] < val2['similarity']:
+        return -1
+    return 0    
+
+def cmpFuncNameDesc( val1, val2):
+    """compare function that sorts on name descending case insensitive"""
+    if val1['content_name'].lower() > val2['content_name'].lower():
+        return 1
+    if val1['content_name'].lower() < val2['content_name'].lower():
+        return -1
+    return 0    
+
+def cmpFuncNameAsc( val1, val2):
+    """compare function that sorts on name ascending case insensitive"""
+    if val1['content_name'].lower() < val2['content_name'].lower():
+        return 1
+    if val1['content_name'].lower() > val2['content_name'].lower():
+        return -1
+    return 0
+
+def cmpFuncConnectivity( val1, val2):
+    """compares based on online status and also last seen
+    first are the online peers, and then ordered ascending by last_seen"""
+    if val1.get('online') and not val2.get('online'):
+        return 1
+    if val2.get('online') and not val1.get('online'):
+        return -1
+    #they both are online or offline, so compare by last seen
+    now = time.time()
+    ls1 = now-val1['last_seen']
+    ls2 = now-val2['last_seen']
+    if ls1 < ls2:
+        return 1
+    if ls1 > ls2:
+        return -1
+    return 0
+
 class PeerDataManager(DelayedEventHandler):
     """offers a sync view of the peer database, in an usable form for the
     persons view and not only.
@@ -108,7 +150,7 @@ class PeerDataManager(DelayedEventHandler):
         all_data = [] #this all data can also be stored in a separate variable for easier usage
         self.filtered_data = { 'all':all_data}
         #there should anways be no filtering function for this all data
-        self.filtered_func = { 'all':(None,None) } #a sorting function can be added later
+        self.filtered_func = { 'all':[None,None] } #a sorting function can be added later
         noDataStub = {'content_name':self.utility.lang.get('persons_view_no_data'), 'permid':'000001'}#, 'similarity':0}
         all_data.append(noDataStub)
 
@@ -420,7 +462,7 @@ class PeerDataManager(DelayedEventHandler):
                     if indexIsAt < indexInsertAt:
                         indexInsertAt = indexInsertAt - 1
                     bChange = True #there is a change in the list
-                if indexInsertAt < max_list_length: #don't insert an element that will be removed
+                if indexInsertAt < max_list_length and element[key]>0: #don't insert an element that will be removed and also that has a 0 value
                     top_list.insert(indexInsertAt, element)
                     bChange = True #there is a change in the list
             #reduce the size of the list
@@ -492,14 +534,6 @@ class PeerDataManager(DelayedEventHandler):
 #            "friend, with a similarity of",peer_data['similarity_percent'],"%, and last seen",\
 #            friendly_time(peer_data['last_seen']),"resulting rank value:",rank_value
         return rank_value
-
-    def cmpFuncSimilarity( val1, val2):
-        """compare function that sorts on similarity value"""
-        if val1['similarity'] > val2['similarity']:
-            return 1
-        elif val1['similarity'] < val2['similarity']:
-            return -1
-        return 0
     
     def sortData(self, localdata=None, filter='all'):
         """ 
@@ -543,7 +577,7 @@ class PeerDataManager(DelayedEventHandler):
         returns a reference to the list"""
         if name != 'all':
             self.filtered_data[name] = []
-            self.filtered_func[name] = (filterFunc,cmpFunc)
+            self.filtered_func[name] = [filterFunc,cmpFunc]
             self.applyFilter(name)
             if cmpFunc!=None:
                 self.sortData(name)
@@ -571,9 +605,14 @@ class PeerDataManager(DelayedEventHandler):
     def setCmpFunc(self, cmp_func, filter_name='all'):
         """changes the comparing function, should that mean a resorting?"""
         if self.filtered_func.has_key(filter_name):
-            self.filtered_func[1] = cmp_func
+            print "<mluc> set compare function for",filter_name,"to",cmp_func.__name__
+            self.filtered_func[filter_name][1] = cmp_func
             self.sortData(filter=filter_name)
-        
+    
+    def getCmpFunc(self, filter_name="all"):
+        if self.filtered_func.has_key(filter_name):
+            return self.filtered_func[filter_name][1]
+    
     def unregister(self, func, key):
         try:
             key = key.lower()
@@ -629,8 +668,8 @@ class PeerDataManager(DelayedEventHandler):
             #select a pivot index (e.g. pivotIndex = left)
             pivotIndex = left
             pivotNewIndex = self.partition(array, left, right, pivotIndex, cmpFunc)
-            quicksort(array, left, pivotNewIndex-1, cmpFunc)
-            quicksort(array, pivotNewIndex+1, right, cmpFunc)
+            self.quicksort(array, left, pivotNewIndex-1, cmpFunc)
+            self.quicksort(array, pivotNewIndex+1, right, cmpFunc)
      
     """cmpFunc(val1, val2) should return 1 if val1 > val2, 0 if val1 == val2, and -1 if val1 < val2"""
     def sortInPlace(self, list, cmpFunc):

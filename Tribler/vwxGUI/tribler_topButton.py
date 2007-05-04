@@ -2,7 +2,7 @@ import wx, os, sys
 from traceback import print_exc
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 
-DEBUG = True
+DEBUG = False
 
 class tribler_topButton(wx.Panel):
     """
@@ -222,7 +222,8 @@ class tribler_topButton(wx.Panel):
             else:
                 return bitmap.GetSubBitmap(wx.Rect(rect[0], rect[1], rect[2], rect[3]))
         except:
-            print_exc()
+            if DEBUG:
+                print_exc()
             return None
                                             
     def setEnabled(self, e):
@@ -251,7 +252,8 @@ class tribler_topButton(wx.Panel):
         if self.bitmaps[0]:
             dc.DrawBitmap(self.bitmaps[0], 0,0, True)
         if (self.mouseOver or self.selected) and self.bitmaps[1]:
-            print 'bitmap2: %s' % self.bitmaps[1]
+            if DEBUG:
+                print 'bitmap2: %s' % self.bitmaps[1]
             dc.DrawBitmap(self.bitmaps[1], 0,0, True)
         
 

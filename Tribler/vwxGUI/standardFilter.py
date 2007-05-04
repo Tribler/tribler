@@ -12,6 +12,8 @@ class standardFilter(wx.Panel):
     """
     def __init__(self, filterData = []):
         self.filterData = filterData
+        self.filterState = None
+        self.filters = []
         pre = wx.PrePanel()
         # the Create step is done by XRC.
         self.PostCreate(pre)
@@ -51,18 +53,18 @@ class standardFilter(wx.Panel):
         
         #self.SetBackgroundColour(wx.BLUE)
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.filters = []
-        self.filterState = []
         # filter 1 is making a selection
         for pullDownData in self.filterData:
             titles = [item[1] for item in pullDownData]
             try:
+                if self.filterState is None:
+                    self.filterState = []
                 self.filterState.append(pullDownData[0][0])
             except:
                 print 'standardFilter: Error getting default filterState, data: %s' % pullDownData
             filter = wx.ComboBox(self,-1,titles[0], wx.Point(8,3),wx.Size(180,21),titles, wx.CB_DROPDOWN|wx.CB_READONLY)
             filter.SetFont(wx.Font(10,74,90,90,0,"Verdana"))
-            filter.SetBackgroundColour(wx.WHITE)
+#            filter.SetBackgroundColour(wx.WHITE)
             filter.Bind(wx.EVT_COMBOBOX, self.mouseAction)
             self.filters.append(filter)
             self.hSizer.Add(filter, 0, wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,3)
@@ -74,6 +76,7 @@ class standardFilter(wx.Panel):
         self.Layout();
         self.Refresh(True)
         self.Update()
+        wx.CallAfter(self.mouseAction,[None])
         
     def mouseAction(self, event):
         
@@ -101,6 +104,11 @@ class standardFilter(wx.Panel):
                     self.filters[j].SetSelection(i)
                     break
         self.filterState = filterState
+    
+    def getState(self):
+        if self.filterState is None:
+            return [self.filterData[0][0][0],self.filterData[1][0][0]]
+        return self.filterState
 
 
 class filesFilter(standardFilter):
@@ -134,7 +142,7 @@ class personsFilter(standardFilter):
                        ('search', 'Search Results')
                        ],
                       [(('content_name','increase'), 'Name'),
-                       ('relevance', 'Similar taste'),                        
+                       ('similarity', 'Similar taste'),                        
                        ('last_seen', 'Recently connected'),                        
                       ]
                   ]
@@ -143,6 +151,16 @@ class personsFilter(standardFilter):
 class libraryFilter(standardFilter):
     pass
 
-class friendsFilter(personsFilter):
-    pass
+class friendsFilter(standardFilter):
+    def __init__(self):
+        filterData = [
+                      [('friends', 'All'),
+                       ('search_friends', 'Search Results')
+                       ],
+                      [(('content_name','increase'), 'Name'),
+                       ('similarity', 'Similar taste'),                        
+                       ('last_seen', 'Recently connected'),                        
+                      ]
+                  ]
+        standardFilter.__init__(self, filterData = filterData)
 

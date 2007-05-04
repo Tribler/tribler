@@ -7,6 +7,7 @@ from Tribler.vwxGUI.torrentManager import TorrentDataManager
 from Tribler.utilities import *
 from Utility.constants import *
 from peermanager import PeerDataManager
+import peermanager
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 
 
@@ -173,6 +174,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         oldFilterState = self.data[self.mode].get('filterState')
         if filterState is None:
             filterState = oldFilterState
+        if filterState is None:
+            return
             
         if self.mode == 'filesMode':
             self.loadTorrentData(filterState[0], filterState[1])
@@ -230,11 +233,26 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     
     
     def loadPersonsData(self, cat, sort):
-        """ 
-        Category and sorting not yet used
-        """       
+        print '<mluc>[',self.mode,'view] Category set to %s, %s' % (str(cat), str(sort))
+
         if self.mode in [ "personsMode","friendsMode"]:
             self.data[self.mode]['data'] = self.peer_manager.getFilteredData(cat)
+            #check the current sorting for current filter
+            currentSortFunc = self.peer_manager.getCmpFunc(cat)
+            newSortFunc = None
+            if type(sort) == str:
+                if sort == 'similarity':
+                    newSortFunc = peermanager.cmpFuncSimilarity
+                elif sort == 'last_seen':
+                    newSortFunc = peermanager.cmpFuncConnectivity
+            elif type(sort) == tuple:
+                if sort[0] == "content_name":
+                    if sort[1] == "increase":
+                        newSortFunc = peermanager.cmpFuncNameAsc
+                    else:
+                        newSortFunc = peermanager.cmpFuncNameDesc
+            if currentSortFunc != newSortFunc:
+                self.peer_manager.setCmpFunc(newSortFunc, cat)
         else:
             print "<mluc> not correct standard overview mode for loading peers:",self.mode
     
@@ -323,6 +341,9 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     
     def getSearchField(self):
         return self.data[self.mode]['search']
+    
+    def getFilter(self):
+        return self.data[self.mode]['filter']
 
         
     def getRSSUrlCtrl(self):

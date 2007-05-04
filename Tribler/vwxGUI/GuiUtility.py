@@ -151,15 +151,18 @@ class GUIUtility:
         except:
             pass
         
-    def standardPersonsOverview(self, filters = ['all', '']):
+    def standardPersonsOverview(self):
         
         self.standardOverview.setMode('personsMode')
-        self.standardOverview.filterChanged(filters)
+        #should read the current filters, not put some default ones that have nothing to do with the ones in the combo boxes in the filter gui
+        self.standardOverview.filterChanged(self.standardOverview.getFilter().getState())
         self.standardDetails.setMode('personsMode')
         
-    def standardFriendsOverview(self, filters = ['friends','']):
+    def standardFriendsOverview(self):
         self.standardOverview.setMode('friendsMode')
-        self.standardOverview.filterChanged(filters)
+        filterState = self.standardOverview.getFilter().getState()
+        print "standardFriendsOverview, filter state:",filterState
+        self.standardOverview.filterChanged(filterState)
         self.standardDetails.setMode('personsMode')
     
     def standardProfileOverview(self):
@@ -305,8 +308,10 @@ class GUIUtility:
     def dosearch(self):
         if self.standardOverview.mode == "filesMode":
             self.searchFiles()
-        else:
+        elif self.standardOverview.mode == "personsMode":
             self.searchPersons()
+        elif self.standardOverview.mode == "friendsMode":
+            self.searchFriends()
 
         
     def searchFiles(self):
@@ -348,7 +353,40 @@ class GUIUtility:
                     return True
             return False
         self.peer_manager.registerFilter("search",searchFilterFunc)
-        self.standardOverview.filterChanged(['search','last_seen'],setgui=True)
+        filterState = self.standardOverview.getFilter().getState()
+        sort = None
+        if filterState is not None and type(filterState) == 'list' and len(filterState) == 2 and filterState[1] is not None:
+            sort = filterState[1]
+        self.standardOverview.filterChanged(['search',sort],setgui=True)
+        
+    def searchFriends(self):
+        sf = self.standardOverview.getSearchField()
+        if sf is None:
+            return
+        input = sf.GetValue()
+        print "GUIUtil: searchFriends:",input
+        low = input.lower()
+        wantkeywords = low.split(' ')
+        wantkeywords += low.split('-')
+        wantkeywords += low.split('_')
+        wantkeywords += low.split('.')
+        zet = Set(wantkeywords)
+        wantkeywords = list(zet)
+        print "GUIUtil: searchPersons: keywords",wantkeywords
+        def searchFriendsFilterFunc(peer_data):
+            if not peer_data.get('friend',False):
+                return False
+            low = peer_data['content_name'].lower()
+            for wantkw in wantkeywords:
+                if low.find(wantkw) != -1:
+                    return True
+            return False
+        self.peer_manager.registerFilter("search_friends",searchFriendsFilterFunc)
+        filterState = self.standardOverview.getFilter().getState()
+        sort = None
+        if filterState is not None and type(filterState) == 'list' and len(filterState) == 2 and filterState[1] is not None:
+            sort = filterState[1]
+        self.standardOverview.filterChanged(['search_friends',sort],setgui=True)
 
     def OnSearchKeyDown(self,event):
         keycode = event.GetKeyCode()
