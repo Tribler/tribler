@@ -60,7 +60,7 @@ class standardFilter(wx.Panel):
                 self.filterState.append(pullDownData[0][0])
             except:
                 print 'standardFilter: Error getting default filterState, data: %s' % pullDownData
-            filter = wx.ComboBox(self,-1,titles[0], wx.Point(8,3),wx.Size(120,21),titles, wx.CB_DROPDOWN|wx.CB_READONLY)
+            filter = wx.ComboBox(self,-1,titles[0], wx.Point(8,3),wx.Size(180,21),titles, wx.CB_DROPDOWN|wx.CB_READONLY)
             filter.SetFont(wx.Font(10,74,90,90,0,"Verdana"))
             filter.SetBackgroundColour(wx.WHITE)
             filter.Bind(wx.EVT_COMBOBOX, self.mouseAction)
@@ -116,13 +116,13 @@ class filesFilter(standardFilter):
                        ('xxx', 'XXX'),
                        ('search', 'Search Results')
                        ],
-                       [('swarmsize', 'Popular'),
+                       [(('content_name', 'increase'), 'Name'),
+                        ('swarmsize', 'Popular'),
                         ('relevance','Recommended'),
                         ('date','Creation date'),
-                        ('length', 'Size'),
-                        (('content_name', 'increase'), 'Name'),
-                        ('tracker', 'Tracker'),
-                        ('num_owners', 'Often received')
+                        ('length', 'Size'),                        
+                        #('tracker', 'Tracker'),
+                        #('num_owners', 'Often received')
                         ]
                       ]
         standardFilter.__init__(self, filterData = filterData)
@@ -136,8 +136,8 @@ class personsFilter(standardFilter):
                       [('last_seen', 'Recently connected'),
                         ('relevance', 'Similar taste'),
                         (('content_name','increase'), 'Name'),
-                        ]
                       ]
+                  ]
         standardFilter.__init__(self, filterData = filterData)
         
 class libraryFilter(standardFilter):
