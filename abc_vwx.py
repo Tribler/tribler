@@ -66,6 +66,7 @@ from Tribler.Dialogs.GUIServer import GUIServer
 from Tribler.vwxGUI.TasteHeart import set_tasteheart_bitmaps
 from Tribler.vwxGUI.perfBar import set_perfBar_bitmaps
 from Tribler.Dialogs.BandwidthSelector import BandwidthSelector
+from Tribler.Subscriptions.rss_client import TorrentFeedThread
 
 DEBUG = False
 ALLOW_MULTIPLE = False
@@ -988,6 +989,12 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             #wx.Image.AddHandler()
             if bmphand is not None:
                 bmphand.SetMimeType('image/bmp')
+            
+            # Must be after ABCLaunchMany is created
+            self.torrentfeed = TorrentFeedThread.getInstance()
+            self.torrentfeed.register()
+            #self.torrentfeed.start()
+            
             
         except Exception,e:
             print "THREAD",currentThread().getName()

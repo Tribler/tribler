@@ -122,6 +122,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 self.data[self.mode]['pager'] = pager
                 self.data[self.mode]['search'] = search
                 self.data[self.mode]['filter'] = filter
+                #search.Bind(wx.EVT_COMMAND_TEXT_ENTER, self.OnSearchKeyDown)
+                search.Bind(wx.EVT_KEY_DOWN, self.guiUtility.OnSearchKeyDown)
                 pager.setGrid(grid)
             except:
                 print 'Error: Could not load panel, grid and pager for mode %s' % self.mode
@@ -187,8 +189,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         self.refreshData()
         self.data[self.mode]['filterState'] = filterState
         
-        print "$$$$$$$$$$$$$$$$$$$$$$$$ standardOverview: old",oldFilterState,"new",filterState,"mode",self.mode
-        print len(self.data[self.mode]['data'])
+        #print "standardOverview: old",oldFilterState,"new",filterState,"mode",self.mode
+        #print len(self.data[self.mode]['data'])
                 
             
     def loadTorrentData(self, cat, sort):
@@ -290,3 +292,6 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     
     def getSearchField(self):
         return self.data[self.mode]['search']
+
+        
+        

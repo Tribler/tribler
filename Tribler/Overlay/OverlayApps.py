@@ -163,11 +163,11 @@ class OverlayApps:
             if DEBUG:
                 nconn = 0
                 conns = self.buddycast.buddycast_core.connections
-                print >> sys.stdout, "\n****** conn in buddycast"
+                print >> sys.stdout, "\nbc: conn in buddycast"
                 for peer_permid in conns:
                     _permid = show_permid_short(peer_permid)
                     nconn += 1
-                    print >> sys.stdout, "***", nconn, _permid, conns[peer_permid]
+                    print >> sys.stdout, "bc: ", nconn, _permid, conns[peer_permid]
 
         if self.socnet_handler is not None:
             # overlay-protocol version check done inside

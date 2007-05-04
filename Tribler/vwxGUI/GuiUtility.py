@@ -107,10 +107,7 @@ class GUIUtility:
                 print 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
         elif name == "search": # search files/persons button
             print 'GUIUtil: search button clicked'
-            if self.standardOverview.mode == "filesMode":
-                self.searchFiles()
-            else:
-                self.searchPersons()
+            self.dosearch()
         else:
             print 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
                 
@@ -303,6 +300,13 @@ class GUIUtility:
         mailToURL = 'mailto:%s?subject=%s&body=%s'%('', subject, body)
         webbrowser.open(mailToURL)
         
+    def dosearch(self):
+        if self.standardOverview.mode == "filesMode":
+            self.searchFiles()
+        else:
+            self.searchPersons()
+
+        
     def searchFiles(self):
         sf = self.standardOverview.getSearchField()
         if sf is None:
@@ -343,4 +347,11 @@ class GUIUtility:
             return False
         self.peer_manager.registerFilter("search",searchFilterFunc)
         self.standardOverview.filterChanged(['search','last_seen'],setgui=True)
-        
+
+    def OnSearchKeyDown(self,event):
+        keycode = event.GetKeyCode()
+        #if event.CmdDown():
+        #print "OnSearchKeyDown: keycode",keycode
+        if keycode == wx.WXK_RETURN:
+            self.dosearch()
+        event.Skip()     
