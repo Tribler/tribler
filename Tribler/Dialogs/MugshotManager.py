@@ -11,9 +11,9 @@ from traceback import print_exc
 
 from Tribler.utilities import show_permid_short
 
-ICON_MAX_SIZE = 32*1024
-BMP_EXT = '.bmp'
-BMP_MIME_TYPE = 'image/bmp'
+ICON_MAX_SIZE = 10*1024
+NETW_EXT = '.jpg'
+NETW_MIME_TYPE = 'image/jpeg'
 
 ICON_MAX_DIM = 80
 SMALL_ICON_MAX_DIM = 32
@@ -53,7 +53,7 @@ class MugshotManager:
         self.defaults['personsMode']['FRIEND_OFFLINE_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'friend_offline.png'))
         self.defaults['personsMode']['ISFRIEND_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'isFriend.png'))
         self.defaults['personsMode']['ISFRIEND_CLICKED_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'isFriend_clicked.png'))
- 
+        self.defaults['personsMode']['SUPERPEER_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'Level4.png'))
 
     def create_wxImageList(self,peerswpermid,setindex=False):
         """ peerswpermid is a list of dictionaries that contain the
@@ -93,7 +93,7 @@ class MugshotManager:
         if not os.access(filename,os.R_OK):
             if name is not None:
                 # Old style, < 3.5.0
-                filename = os.path.join(self.usericonpath,name+BMP_EXT)
+                filename = os.path.join(self.usericonpath,name+NETW_EXT)
                 if not os.access(filename,os.R_OK):
                     return None
             else:
@@ -103,7 +103,7 @@ class MugshotManager:
     def load_data(self,permid,name=None):
 
         if DEBUG:
-            print >>sys.stderr,"mugmgr: load_data permid",show_permid_short(permid),"name",name
+            print >>sys.stderr,"mugmgr: load_data permid",show_permid_short(permid),"name",`name`
 
         filename = self.find_filename(permid,name)
         if filename is None:
@@ -129,7 +129,7 @@ class MugshotManager:
  
             return [None,None]
         else:
-            return [BMP_MIME_TYPE,data]
+            return [NETW_MIME_TYPE,data]
 
 
     def save_data(self,permid,type,data):
@@ -151,7 +151,7 @@ class MugshotManager:
                 im = wx.ImageFromStream(mi,wx.BITMAP_TYPE_BMP)
             else:
                 im = wx.ImageFromStreamMime(mi,type)
-            im.SaveMimeFile(filename,BMP_MIME_TYPE)
+            im.SaveMimeFile(filename,NETW_MIME_TYPE)
             f = open(filename,"wb")
             f.write(data)
             f.close()
@@ -162,7 +162,7 @@ class MugshotManager:
             return False
 
     def copy_file(self,permid,srcfilename):
-        """ srcfilename must point to a .BMP file """
+        """ srcfilename must point to a .JPG file """
         dstfilename = self._permid2iconfilename(permid)
         if DEBUG:
             print >>sys.stderr,"mugmgr: copying icon",srcfilename,"to",dstfilename
@@ -178,7 +178,7 @@ class MugshotManager:
         dstfilename = self._permid2iconfilename(permid)
         try:
             sim = wx.Image(srcfilename).Scale(ICON_MAX_DIM,ICON_MAX_DIM)
-            sim.SaveFile(dstfilename,wx.BITMAP_TYPE_BMP)
+            sim.SaveFile(dstfilename,wx.BITMAP_TYPE_JPEG)
             return True
         except:
             if DEBUG:
@@ -204,7 +204,7 @@ class MugshotManager:
 
     def _permid2iconfilename(self,permid):
         safename = sha(permid).hexdigest()
-        return os.path.join(self.usericonpath, safename+BMP_EXT)
+        return os.path.join(self.usericonpath, safename+NETW_EXT)
  
 
     def data2wxBitmap(self,type,data):

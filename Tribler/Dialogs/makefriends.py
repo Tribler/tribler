@@ -16,17 +16,6 @@ from Tribler.Dialogs.MugshotManager import MugshotManager
 DEBUG = False
 
 
-#
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-#   THIS IS OBSOLETE, PLEASE USE MugshotManager.py
-#
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-#
-def permid2iconfilename(utility,permid):
-    safename = sha(permid).hexdigest()
-    return os.path.join(utility.getConfigPath(), 'icons', safename+'.bmp')
-
-
 class MakeFriendsDialog(wx.Dialog):
     def __init__(self, parent, utility, editfriend = None):
         #provider = wx.SimpleHelpProvider()
@@ -123,6 +112,7 @@ class MakeFriendsDialog(wx.Dialog):
 
         sizer.Add(box, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
 
+        """
         # picture
         box = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -143,6 +133,7 @@ class MakeFriendsDialog(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.OnIconButton, iconbtn)
 
         sizer.Add(box, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        """  
         
         box = wx.BoxSizer(wx.HORIZONTAL)
         line = wx.StaticLine(self, -1, size=(20,-1), style=wx.LI_HORIZONTAL)
@@ -183,7 +174,7 @@ class MakeFriendsDialog(wx.Dialog):
         except:
             print_exc()
             permid = ''
-        icon = self.icon_path.GetValue()
+        #icon = self.icon_path.GetValue()
         try:
             port = int(self.port_text.GetValue())
         except:
@@ -195,6 +186,18 @@ class MakeFriendsDialog(wx.Dialog):
             self.show_inputerror(self.utility.lang.get('friendspermid_error'))
         elif port == 0:
             self.show_inputerror(self.utility.lang.get('friendsport_error'))
+        else:
+            fdb = FriendDBHandler()
+            #friend = {'permid':permid, 'ip':ip, 'port':port, 'name':name, 'icon':newiconfilename}
+            friend = {'permid':permid, 'ip':ip, 'port':port, 'name':name}
+            if self.editfriend is not None:
+                if self.editfriend['permid'] != permid:
+                    fdb.deleteFriend(self.editfriend['permid'])
+            fdb.addExternalFriend(friend)
+            event.Skip()    # must be done, otherwise ShowModal() returns wrong error 
+            self.Destroy()
+
+        """            
         elif icon != '' and not os.path.exists(icon):
             self.show_inputerror(self.utility.lang.get('fiendsiconnotfound_error'))
         else:
@@ -204,15 +207,8 @@ class MakeFriendsDialog(wx.Dialog):
                 if not ret:
                     self.show_inputerror(self.utility.lang.get('friendsiconnotbmp_error'))
                     return
+        """
 
-            fdb = FriendDBHandler()
-            friend = {'permid':permid, 'ip':ip, 'port':port, 'name':name, 'icon':newiconfilename}
-            if self.editfriend is not None:
-                if self.editfriend['permid'] != permid:
-                    fdb.deleteFriend(self.editfriend['permid'])
-            fdb.addExternalFriend(friend)
-            event.Skip()    # must be done, otherwise ShowModal() returns wrong error 
-            self.Destroy()
         
     def OnIconButton(self, evt):
         # get current working directory

@@ -11,40 +11,7 @@ import webbrowser
 from Tribler.CacheDB.CacheDBHandler import FriendDBHandler,MyDBHandler
 from Tribler.Overlay.permid import permid_for_user
 
-from makefriends import MakeFriendsDialog, permid2iconfilename
-
-
-#
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-#   THIS IS OBSOLETE, PLEASE USE MugshotManager.py
-#
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-#
-def createImageList(utility, friends):
-    if len(friends) == 0:
-        return None
-    bitmaps = []
-    height = 0
-    width = 0
-    for friend in friends:
-        filename = ''
-        if friend.has_key('icon'):
-            filename = friend['icon']
-        elif friend['permid'] is not None: # not possible
-            filename = permid2iconfilename(utility,friend['permid'])
-        if not os.access(filename, os.F_OK):
-            # fallback name, don't use nickname2... here
-            filename = os.path.join(utility.getPath(), 'icons', 'joe32.bmp')
-        bm = wx.Bitmap(filename,wx.BITMAP_TYPE_BMP)
-        if bm.GetWidth() > width:
-            width = bm.GetWidth()
-        if bm.GetHeight() > height:
-            height = bm.GetHeight()
-        bitmaps.append(bm)
-    imgList = wx.ImageList(width,height)
-    for bm in bitmaps:
-        imgList.Add(bm)
-    return imgList
+from makefriends import MakeFriendsDialog
 
 ################################################################
 #

@@ -943,6 +943,14 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             self.scrollWindow.SetScrollbars(1,1,1024,768)
             self.frame.mainButtonPersons = xrc.XRCCTRL(self.frame, "mainButtonPersons")
             
+            """
+            searchfilebut = xrc.XRCCTRL(self.frame, "bt257cC")
+            searchfilebut.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
+            searchpersbut = xrc.XRCCTRL(self.frame, "bt258cC")
+            searchpersbut.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)     
+            
+            self.frame.searchtxtctrl = xrc.XRCCTRL(self.frame, "tx220cCCC")
+            """
             
             self.frame.Refresh()
             self.frame.Layout()

@@ -82,7 +82,7 @@ class standardFilter(wx.Panel):
         for filterNum in range(len(self.filters)):
             filterState.append(self.filterData[filterNum][filterIndex[filterNum]][0])
             
-        print filterState
+        print "standardFilter: filterState is",filterState
         if filterState != self.filterState:
             self.filterChanged(filterState)
             self.filterState = filterState
@@ -94,6 +94,13 @@ class standardFilter(wx.Panel):
             print 'standardFilter: Error could not call standardOverview.filterChanged()'
             print_exc()
 
+    def setSelectionToFilter(self,filter):
+        for i in range(len(self.filterData[0])):
+            if filter == self.filterData[0][i][0]:
+                self.filters[0].SetSelection(i)
+                break
+
+
 class filesFilter(standardFilter):
     def __init__(self):
         filterData = [
@@ -104,7 +111,8 @@ class filesFilter(standardFilter):
                        ('compressed', 'Compressed'),
                        ('document','Document'),
                        ('other', 'Other'),
-                       ('xxx', 'XXX')
+                       ('xxx', 'XXX'),
+                       ('search', 'Search Results')
                        ],
                        [('swarmsize', 'Popular'),
                         ('relevance','Recommended'),

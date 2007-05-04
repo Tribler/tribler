@@ -27,6 +27,7 @@ class TorrentDataManager:
         self.loadData()
         self.dict_FunList = {}
         self.done_init = True
+        self.searchkeywords = []
         print 'torrentManager: ready init'
         
     def getInstance(*args, **kw):
@@ -75,8 +76,11 @@ class TorrentDataManager:
         def noDownloadHistory(torrent):
             return not torrent.has_key('myDownloadHistory')
         
-        if (categorykey == "all"):
+        if categorykey == "all":
             return filter(noDownloadHistory, self.data)
+        
+        if categorykey == "search":
+            return self.search()
         
         # See downloaded files also as category
         if (categorykey == self.utility.lang.get('mypref_list_title').lower()):
@@ -268,3 +272,18 @@ class TorrentDataManager:
         # thumbnailViewer or detailsPanel
         return torrent
          
+    def setSearchKeywords(self,wantkeywords):
+        self.searchkeywords = wantkeywords
+         
+    def search(self):
+        print >>sys.stderr,"tdm: search: Want",self.searchkeywords
+        hits = []
+        if len(self.searchkeywords) == 0:
+            return hits
+        for torrent in self.data:
+            low = torrent['content_name'].lower()
+            for wantkw in self.searchkeywords:
+                if low.find(wantkw) != -1:
+                    print "tdm: search: Got hit",wantkw,"found in",torrent['content_name']
+                    hits.append(torrent)
+        return hits

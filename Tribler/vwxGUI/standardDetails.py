@@ -8,6 +8,7 @@ from Tribler.utilities import *
 from Tribler.Dialogs.MugshotManager import MugshotManager
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 from Tribler.vwxGUI.torrentManager import TorrentDataManager
+from Tribler.unicode import bin2unicode
 import cStringIO
 from safeguiupdate import FlaglessDelayedInvocation
 import time
@@ -302,21 +303,29 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             
             self.setTorrentThumb(torrent, self.getGuiObj('thumbField'))        
 
-            descrobj = self.getGuiObj('descriptionField')
-            descrtxt = ''
-            if 'metadata' in torrent:
-                metadata = torrent['metadata']
-                if 'Description' in metadata: # If vuze torrent
-                    descrtxt = metadata['Description']
-            descrobj.SetLabel(descrtxt)
-            
-            
+    
             if self.getGuiObj('info_detailsTab').isSelected():
                 # The info tab is selected, show normal torrent info
-                if torrent.has_key('description'):
-                    descriptionField = self.getGuiObj('descriptionField')
-                    descriptionField.SetLabel(torrent.get('Description'))
-                    descriptionField.Wrap(-1)        
+                descriptionField = self.getGuiObj('descriptionField')
+                descrtxt = ''
+                if 'metadata' in torrent:
+                    metadata = torrent['metadata']
+
+                    encoding = None
+                    if 'encoding' in metadata and metadata['encoding'].strip():
+                        encoding = metadata['encoding']
+
+                    for key in ['comment','comment-utf8','Description']: # reverse priority
+                        if key in metadata: # If vuze torrent
+                            tdescrtxt = metadata[key]
+                            if key == 'comment-utf8':
+                                tencoding = 'utf_8'
+                            else:
+                                tencoding = encoding
+                            descrtxt = bin2unicode(tdescrtxt,tencoding)
+
+                descriptionField.SetLabel(descrtxt)
+                descriptionField.Wrap(-1)        
     
                 if torrent.has_key('length'):
                     sizeField = self.getGuiObj('sizeField')

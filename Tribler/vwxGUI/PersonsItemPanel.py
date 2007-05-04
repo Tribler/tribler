@@ -30,6 +30,7 @@ class PersonsItemPanel(wx.Panel):
         self.oldCategoryLabel = None
         self.guiserver = parent.guiserver
         self.mm = parent.mm
+        self.superpeer_db = parent.superpeer_db
         self.addComponents()
         self.Show()
         self.Refresh()
@@ -187,7 +188,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         #I will use TasteHeart.BITMAPS to paint the right one
 
         self.mm = self.GetParent().parent.mm
-        
+        self.superpeer_db = self.GetParent().parent.superpeer_db
     
     def setData(self, data):
         
@@ -253,7 +254,21 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         if mimetype is not None:
             metadata['ThumbnailBitmap'] = self.mm.data2wxBitmap(mimetype,bmpdata)
         else:
-            metadata['ThumbnailBitmap'] = None
+            superpeers = self.superpeer_db.getSuperPeerList()
+            
+            """
+            if data['name'].lower().startswith("superpeer"):
+                print >>sys.stderr,"pip: Name is superpeer",data['name'],"permid",show_permid_short(data['permid'])
+                for speer in superpeers:
+                    print >>sys.stderr,"pip: Comparing to superpeer",show_permid_short(speer)
+            """
+            if data['permid'] in superpeers:
+                bm = self.mm.get_default('personsMode','SUPERPEER_BITMAP')
+                metadata['ThumbnailBitmap'] = bm
+            else:
+                metadata['ThumbnailBitmap'] = None
+                
+            #print >>sys.stderr,"pip: Netresult is",metadata['ThumbnailBitmap']
 
         if DEBUG:
             print "pip: ThumbnailViewer: GUI callback"

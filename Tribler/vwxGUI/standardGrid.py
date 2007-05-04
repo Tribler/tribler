@@ -8,6 +8,7 @@ from Tribler.vwxGUI.SubscriptionsItemPanel import SubscriptionsItemPanel
 from Tribler.Dialogs.ContentFrontPanel import ImagePanel, DetailPanel
 from Tribler.Dialogs.GUIServer import GUIServer
 from Tribler.Dialogs.MugshotManager import MugshotManager
+from Tribler.CacheDB.CacheDBHandler import SuperPeerDBHandler
 from Tribler.utilities import *
 from traceback import print_exc,print_stack
 
@@ -35,6 +36,7 @@ class standardGrid(wx.Panel):
         
         self.guiserver = GUIServer.getInstance()
         self.mm = MugshotManager.getInstance()
+        self.superpeer_db = SuperPeerDBHandler()
         
     def OnCreate(self, event):
         self.Unbind(wx.EVT_WINDOW_CREATE)

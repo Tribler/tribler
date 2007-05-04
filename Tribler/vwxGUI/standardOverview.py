@@ -103,6 +103,11 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 currentPanel = res.LoadPanel(self, panelName)
                 grid = xrc.XRCCTRL(currentPanel, modeString+'Grid')
                 pager = xrc.XRCCTRL(currentPanel, 'standardPager')
+                search = xrc.XRCCTRL(currentPanel, 'searchField')
+                filter = xrc.XRCCTRL(currentPanel, modeString+'Filter')
+                
+                print "$$$$$$$$$$$$$$$ standardOverview: filter is",filter
+                
                 if not currentPanel:
                     raise Exception('standardOverview: Could not find panel, grid or pager')
                     #load dummy panel
@@ -118,6 +123,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 self.data[self.mode]['panel'] = currentPanel
                 self.data[self.mode]['grid'] = grid
                 self.data[self.mode]['pager'] = pager
+                self.data[self.mode]['search'] = search
+                self.data[self.mode]['filter'] = filter
                 pager.setGrid(grid)
             except:
                 print 'Error: Could not load panel, grid and pager for mode %s' % self.mode
@@ -155,7 +162,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             grid = self.data[self.mode].get('grid')
             grid.refreshData()
     
-    def filterChanged(self, filterState):
+    def filterChanged(self, filterState, setgui = False):
         oldFilterState = self.data[self.mode].get('filterState')
         if filterState == None:
             filterState = oldFilterState
@@ -175,6 +182,10 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             print 'standardOverview: Filters not yet implemented in this mode'
             return
         
+        if setgui:
+            filter = self.data[self.mode]['filter']
+            if filter is not None:
+                filter.setSelectionToFilter(filterState[0])
         
         self.refreshData()
         self.data[self.mode]['filterState'] = filterState
@@ -277,3 +288,5 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         print "UpdatefunPersons called"
     
     
+    def getSearchField(self):
+        return self.data[self.mode]['search']

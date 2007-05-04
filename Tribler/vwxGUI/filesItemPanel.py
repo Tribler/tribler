@@ -257,9 +257,13 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         if not metadata:
             return None
         
-        metadata = metadata.get('azureus_properties', {}).get('Content',{})
+        newmetadata = metadata.get('azureus_properties', {}).get('Content',{})
+        for key in ['encoding','comment','comment-utf8']: # 'created by'
+            if key in metadata:
+                newmetadata[key] = metadata[key]
       
-        self.invokeLater(self.metadata_thread_gui_callback,[torrent,metadata])
+        self.invokeLater(self.metadata_thread_gui_callback,[torrent,newmetadata])
+
              
     def metadata_thread_gui_callback(self,torrent,metadata):
         """ Called by GUI thread """

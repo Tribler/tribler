@@ -4,6 +4,7 @@ from traceback import print_exc,print_stack
 from threading import Event
 import urllib
 import webbrowser
+from sets import Set
 
 from bgPanel import *
 import updateXRC
@@ -103,9 +104,16 @@ class GUIUtility:
             if panel_name == "profileDetails_Download":
                 self.mainButtonClicked( 'mainButtonPersons', self.frame.mainButtonPersons)
             else:
-                print 'A button was clicked, but no action is defined for: %s' % name
+                print 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
+        elif name == "search": # search files button
+            print 'GUIUtil: search files button clicked'
+            print >>sys.stderr,"GUIUtil: buttonClicked: parent is",obj.GetParent().GetName()
+            self.searchFiles()
+        elif name == "bt258cC": # search persons button
+            print 'GUIUtil: search persons button clicked'
+            self.searchPersons()
         else:
-            print 'A button was clicked, but no action is defined for: %s' % name
+            print 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
                 
         
     def mainButtonClicked(self, name, button):
@@ -132,6 +140,8 @@ class GUIUtility:
             self.standardSubscriptionsOverview()
         elif name == 'mainButtonMessages':
             self.standardMessagesOverview()
+        elif DEBUG:
+            print >>sys.stderr,"GUIUtil: MainButtonClicked: unhandled name",name
             
     def standardFilesOverview(self, filters = ['video', 'swarmsize']):        
         
@@ -293,4 +303,26 @@ class GUIUtility:
             body = urllib.quote(invitation_body)
         mailToURL = 'mailto:%s?subject=%s&body=%s'%('', subject, body)
         webbrowser.open(mailToURL)
+        
+    def searchFiles(self):
+        sf = self.standardOverview.getSearchField()
+        if sf is None:
+            return
+        input = sf.GetValue()
+        print "Search for files",input
+        low = input.lower()
+        wantkeywords = low.split(' ')
+        wantkeywords += low.split('-')
+        wantkeywords += low.split('_')
+        wantkeywords += low.split('.')
+        zet = Set(wantkeywords)
+        wantkeywords = list(zet)
+        print "GUIUtil: searchFiles: keywords",wantkeywords
+        #self.peer_manager = standardOverview.peer_manager
+        self.data_manager.setSearchKeywords(wantkeywords)
+        self.standardOverview.filterChanged(['search','swarmsize'],setgui=True)
+        
+    def searchPersons(self):
+        input = self.frame.searchtxtctrl.GetValue()
+        print "Search for persons",input
         
