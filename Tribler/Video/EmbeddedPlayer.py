@@ -2,9 +2,12 @@
 # see LICENSE.txt for license information
 
 import wx
-import vlc
-import os
 import sys
+
+if sys.platform != "darwin":
+    import vlc
+
+import os
 import time
 import traceback
 from time import sleep
