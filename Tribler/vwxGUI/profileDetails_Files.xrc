@@ -80,11 +80,11 @@
               <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
-              <object class="wxStaticText" name="descriptionField">
+              <object class="wxStaticText" name="descriptionField0">
                 <style>wxST_NO_AUTORESIZE</style>
                 <label>So far, you have discovered 122 files. 
 </label>
-                <pos>6,100</pos>
+                <pos>6,20</pos>
                 <size>284,33</size>
                 <font>
                   <size>8</size>
@@ -100,10 +100,10 @@
               <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
-              <object class="wxStaticText" name="descriptionFieldCCCCC">
+              <object class="wxStaticText" name="howToImprove">
                 <style>wxST_NO_AUTORESIZE</style>
                 <label>How to improve</label>
-                <pos>3,258</pos>
+                <pos>6,53</pos>
                 <size>284,18</size>
                 <font>
                   <size>8</size>
@@ -119,7 +119,7 @@
               <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
-              <object class="wxStaticText" name="descriptionFieldC">
+              <object class="wxStaticText" name="descriptionField1">
                 <style>wxST_NO_AUTORESIZE</style>
                 <label>Stay online longer to discover more files.
 
@@ -141,7 +141,7 @@ You have set your maximum on 2000 files. Set it higher to discover more files. <
               <border>6</border>
               <option>0</option>
               <object class="wxPanel" name="takeMeThere0" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                <pos>3,143</pos>
+                <pos>6,140</pos>
                 <size>120,21</size>
               </object>
             </object>

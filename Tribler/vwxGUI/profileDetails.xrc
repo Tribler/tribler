@@ -80,7 +80,7 @@
               <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
-              <object class="wxStaticText" name="descriptionField">
+              <object class="wxStaticText" name="descriptionField0">
                 <label>Your overall performance influences your Tribler membership level. You have reached the level of 'Beginner'.
 
 - Beginner
@@ -105,10 +105,10 @@
               <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
-              <object class="wxStaticText" name="descriptionFieldCCCCC">
+              <object class="wxStaticText" name="howToImprove">
                 <style>wxST_NO_AUTORESIZE</style>
                 <label>How to improve</label>
-                <pos>3,343</pos>
+                <pos>6,133</pos>
                 <size>284,18</size>
                 <font>
                   <size>8</size>
@@ -124,7 +124,7 @@
               <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
-              <object class="wxStaticText" name="descriptionFieldC">
+              <object class="wxStaticText" name="descriptionField1">
                 <style>wxST_NO_AUTORESIZE</style>
                 <label>If you want to increase your membership level, just follow the instructions for all five aspects that define your overall performance:
  	

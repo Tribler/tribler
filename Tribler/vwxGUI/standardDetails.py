@@ -70,16 +70,16 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         self.modeElements['libraryMode'] = ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
                                             'download', 'files_detailsTab', 'info_detailsTab', 'TasteHeart', 'details']
-        self.modeElements['profileMode'] = ['descriptionField']
+        self.modeElements['profileMode'] = ['descriptionField0']
         
         self.tabElements = {'filesTab_files': [ 'download', 'includedFiles', 'filesField'],                            
                             'personsTab_advanced': ['lastExchangeField', 'noExchangeField', 'timesConnectedField','addAsFriend','similarityValueField'],
                             'libraryTab_files': [ 'download', 'includedFiles'],
-                            'profileDetails_Quality': ['descriptionField'],
-                            'profileDetails_Files': ['descriptionField'],
-                            'profileDetails_Persons': ['descriptionField'],
-                            'profileDetails_Download': ['descriptionFieldCC','descriptionField','takeMeThere0','descriptionFieldCCCC','takeMeThere1','descriptionFieldCCCCCC','descriptionFC'],
-                            'profileDetails_Presence': ['descriptionFieldCCCC', 'takeMeThere0', 'descriptionFieldCC', 'descriptionFieldCCCCCC', 'descriptionFC', 'takeMeThere1']}
+                            'profileDetails_Quality': ['descriptionField0','descriptionField1'],
+                            'profileDetails_Files': ['descriptionField0','descriptionField1','takeMeThere0'],
+                            'profileDetails_Persons': ['descriptionField0','descriptionField1','takeMeThere0'],
+                            'profileDetails_Download': ['descriptionField','descriptionField0','descriptionField1','descriptionField2','descriptionField3','descriptionField4','descriptionField5','takeMeThere0','takeMeThere1'],
+                            'profileDetails_Presence': ['descriptionField','descriptionField0','descriptionField1','descriptionField2','descriptionField3','descriptionField4','descriptionField5', 'takeMeThere0']}
             
         self.statdlElements = ['st28c','st30c','download1','percent1','download2','percent2','download3','percent3','download4','percent4']
             
@@ -451,71 +451,124 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             pass
         
         elif self.mode == 'profileMode':
-            count = 0
-            if item is not None:
-                if item.has_key('downloaded_files'):
-                    count = item['downloaded_files']
-            text = self.utility.lang.get("profileDetails_Quality_description", giveerror=False)
-            if count < 10:
-                only = self.utility.lang.get("profileDetails_Quality_description_onlyword", giveerror=False)
-            else:
-                only=""
-            self.getGuiObj('descriptionField', tab = 'profileDetails_Quality').SetLabel(text % (only,count))
-            count = 0
-            if item is not None:
-                if item.has_key('similar_peers'):
-                    count = item['similar_peers']
-            text = self.utility.lang.get("profileDetails_Persons_description", giveerror=False)
-            self.getGuiObj('descriptionField', tab = 'profileDetails_Persons').SetLabel(text % count)
-            count = 0
-            if item is not None:
-                if item.has_key('taste_files'):
-                    count = item['taste_files']
-            text = self.utility.lang.get("profileDetails_Files_description", giveerror=False)
-            self.getGuiObj('descriptionField', tab = 'profileDetails_Files').SetLabel(text % count)
+            # --------------------------------------------------------------------------------------------------------------------------------------------------------
+            ## --- Overall performance  !!!! we'll leave it probably out!!!
+            if self.currentPanel == self.getGuiObj('profileDetails'):
+                text = self.utility.lang.get("profileDetails_Overall_description", giveerror=False)
+                print "<mluc> overall rank:",item.get('overall_rank')
+                #self.getGuiObj('descriptionField0').SetLabel(text % item.get('overall_rank'))            
+            # --------------------------------------------------------------------------------------------------------------------------------------------------------
+            # --- Quality of tribler recommendations    
+            elif self.currentPanel == self.getGuiObj('profileDetails_Quality'):
+                count = 0            
+                if item is not None:
+                    if item.has_key('downloaded_files'):
+                        count = item['downloaded_files']
+                text = self.utility.lang.get("profileDetails_Quality_description", giveerror=False)
+                text1 = self.utility.lang.get("profileDetails_Quality_improve", giveerror=False)
+                if count < 10:
+                    only = self.utility.lang.get("profileDetails_Quality_description_onlyword", giveerror=False)
+                else:
+                    only=""
+                self.getGuiObj('descriptionField0', tab = 'profileDetails_Quality').SetLabel(text % (only,count))
+                self.getGuiObj('descriptionField1', tab = 'profileDetails_Quality').SetLabel(text1)
+            # --------------------------------------------------------------------------------------------------------------------------------------------------------
+            # --- Discovered Files
+            elif self.currentPanel == self.getGuiObj('profileDetails_Files'):                
+                count = 0            
+                if item is not None:
+                    if item.has_key('taste_files'):
+                        count = item['taste_files']
+                text = self.utility.lang.get("profileDetails_Files_description", giveerror=False)
+                text1 = self.utility.lang.get("profileDetails_Files_improve", giveerror=False)
+                self.getGuiObj('descriptionField0', tab = 'profileDetails_Files').SetLabel(text % count)
+                self.getGuiObj('descriptionField1', tab = 'profileDetails_Files').SetLabel(text1)            
+            # --------------------------------------------------------------------------------------------------------------------------------------------------------
+            # --- Discovered Persons
+            elif self.currentPanel == self.getGuiObj('profileDetails_Persons'):
+                count = 0            
+                if item is not None:
+                    if item.has_key('similar_peers'):
+                        count = item['similar_peers']
+                text = self.utility.lang.get("profileDetails_Persons_description", giveerror=False)
+                text1 = self.utility.lang.get("profileDetails_Persons_improve", giveerror=False)
+                self.getGuiObj('descriptionField0', tab = 'profileDetails_Persons').SetLabel(text % count)
+                self.getGuiObj('descriptionField1', tab = 'profileDetails_Persons').SetLabel(text1)  
+            # --------------------------------------------------------------------------------------------------------------------------------------------------------
+            ## --- Optimal download speed    
+            elif self.currentPanel == self.getGuiObj('profileDetails_Download'):    
+                text = self.utility.lang.get("profileDetails_Download_info", giveerror=False)
+                self.getGuiObj('descriptionField', tab = 'profileDetails_Download').SetLabel(text)
 
-            text = self.utility.lang.get("profileDetails_Overall_description", giveerror=False)
-            print "<mluc> overall rank:",item.get('overall_rank')
-            self.getGuiObj('descriptionField').SetLabel(text % item.get('overall_rank'))
+                maxuploadrate = self.guiUtility.utility.config.Read('maxuploadrate', 'int') #kB/s
+                if ( maxuploadrate == 0 ):
+                    text1 = self.utility.lang.get("profileDetails_Download_UpSpeedMax", giveerror=False)
+                else:
+                    text1 = self.utility.lang.get("profileDetails_Download_UpSpeed", giveerror=False)
+                    text1 = text1 % maxuploadrate                    
+    #            maxuploadslots = self.guiUtility.utility.config.Read('maxupload', "int")
+    #            if ( maxuploadslots == 0 ):
+    #                text2 = self.utility.lang.get("profileDetails_Download_UpSlotsMax", giveerror=False)
+    #            else:
+    #                text2 = self.utility.lang.get("profileDetails_Download_UpSlots", giveerror=False)
+    #                text2 = text2 % maxuploadslots
+    #            maxdownloadrate = self.guiUtility.utility.config.Read('maxdownloadrate', "int")
+    #            if ( maxdownloadrate == 0 ):
+    #                text3 = self.utility.lang.get("profileDetails_Download_DlSpeedMax", giveerror=False)
+    #            else:
+    #                text3 = self.utility.lang.get("profileDetails_Download_DlSpeed", giveerror=False)
+    #                text3 = text3 % maxdownloadrate
+    #            text = "%s\n%s\n%s" % (text1,text2,text3)
+                text = "%s" % (text1)
+                self.getGuiObj('descriptionField0', tab = 'profileDetails_Download').SetLabel( text)            
+                text = self.utility.lang.get("profileDetails_Download_UpSpeed_improve", giveerror=False)
+                self.getGuiObj('descriptionField1', tab = 'profileDetails_Download').SetLabel(text)
+                #
+                count = 0
+                if item is not None:
+                    if item.has_key('friends_count'):
+                        count = item['friends_count']
+                text = self.utility.lang.get("profileDetails_Download_Friends", giveerror=False)
+                self.getGuiObj('descriptionField2', tab = 'profileDetails_Download').SetLabel(text % count)
+                text = self.utility.lang.get("profileDetails_Download_Friends_improve", giveerror=False)
+                self.getGuiObj('descriptionField3', tab = 'profileDetails_Download').SetLabel(text)
+                
+                if self.guiUtility.isReachable:
+                    text1 = self.utility.lang.get("profileDetails_Download_VisibleYes", giveerror=False)
+                    #text2 = self.utility.lang.get("profileDetails_Download_VisibleYes", giveerror=False)
+                    self.getGuiObj('descriptionField4', tab = 'profileDetails_Download').SetLabel(text1)
+                    self.getGuiObj('descriptionField5', tab = 'profileDetails_Download').SetLabel("")
+                else:
+                    text1 = self.utility.lang.get("profileDetails_Download_VisibleNo", giveerror=False)
+                    text2 = self.utility.lang.get("profileDetails_Download_Visible_improve", giveerror=False)
+                    self.getGuiObj('descriptionField4', tab = 'profileDetails_Download').SetLabel(text1)
+                    self.getGuiObj('descriptionField5', tab = 'profileDetails_Download').SetLabel(text2)
+            # --------------------------------------------------------------------------------------------------------------------------------------------------------        
+            ## --- Optimal download speed
+            elif self.currentPanel == self.getGuiObj('profileDetails_Presence'):    
+                text = self.utility.lang.get("profileDetails_Presence_info", giveerror=False)
+                self.getGuiObj('descriptionField', tab = 'profileDetails_Presence').SetLabel(text)
+                
+                count = 0
+                if item is not None:
+                    if item.has_key('friends_count'):
+                        count = item['friends_count']
+                # use text that is also used in 'optimal download details        
+                text = self.utility.lang.get("profileDetails_Download_Friends", giveerror=False)
+                self.getGuiObj('descriptionField0', tab = 'profileDetails_Presence').SetLabel(text % count)
+                text = self.utility.lang.get("profileDetails_Download_Friends_improve", giveerror=False)
+                self.getGuiObj('descriptionField1', tab = 'profileDetails_Presence').SetLabel(text)
+                
+                text = self.utility.lang.get("profileDetails_Presence_Sharingratio", giveerror=False)
+                self.getGuiObj('descriptionField2', tab = 'profileDetails_Presence').SetLabel(text % count)
+                text = self.utility.lang.get("profileDetails_Presence_Sharingratio_improve", giveerror=False)
+                self.getGuiObj('descriptionField3', tab = 'profileDetails_Presence').SetLabel(text)
 
-            maxuploadrate = self.guiUtility.utility.config.Read('maxuploadrate', 'int') #kB/s
-            if ( maxuploadrate == 0 ):
-                text1 = self.utility.lang.get("profileDetails_Download_UpSpeedMax", giveerror=False)
-            else:
-                text1 = self.utility.lang.get("profileDetails_Download_UpSpeed", giveerror=False)
-                text1 = text1 % maxuploadrate
-            maxuploadslots = self.guiUtility.utility.config.Read('maxupload', "int")
-            if ( maxuploadslots == 0 ):
-                text2 = self.utility.lang.get("profileDetails_Download_UpSlotsMax", giveerror=False)
-            else:
-                text2 = self.utility.lang.get("profileDetails_Download_UpSlots", giveerror=False)
-                text2 = text2 % maxuploadslots
-            maxdownloadrate = self.guiUtility.utility.config.Read('maxdownloadrate', "int")
-            if ( maxdownloadrate == 0 ):
-                text3 = self.utility.lang.get("profileDetails_Download_DlSpeedMax", giveerror=False)
-            else:
-                text3 = self.utility.lang.get("profileDetails_Download_DlSpeed", giveerror=False)
-                text3 = text3 % maxdownloadrate
-            text = "%s\n%s\n%s" % (text1,text2,text3)
-            self.getGuiObj('descriptionFieldCC', tab = 'profileDetails_Download').SetLabel( text)
-            count = 0
-            if item is not None:
-                if item.has_key('friends_count'):
-                    count = item['friends_count']
-            text = self.utility.lang.get("profileDetails_Download_Friends", giveerror=False)
-            self.getGuiObj('descriptionFieldCCCC', tab = 'profileDetails_Download').SetLabel(text % count)
-            text = self.utility.lang.get("profileDetails_Presence_Friends", giveerror=False)
-            self.getGuiObj('descriptionFieldCCCC', tab = 'profileDetails_Presence').SetLabel(text % count)
-            if self.guiUtility.isReachable:
-                text1 = self.utility.lang.get("profileDetails_Download_Visible", giveerror=False)
-                text2 = self.utility.lang.get("profileDetails_Download_VisibleYes", giveerror=False)
-                self.getGuiObj('descriptionFieldCCCCCC', tab = 'profileDetails_Download').SetLabel("%s\n%s" % (text1, text2))
-            else:
-                text1 = self.utility.lang.get("profileDetails_Download_Visible", giveerror=False)
-                text2 = self.utility.lang.get("profileDetails_Download_VisibleNo", giveerror=False)
-                self.getGuiObj('descriptionFieldCCCCCC', tab = 'profileDetails_Download').SetLabel("%s\n%s" % (text1, text2))
-            
-            
+                text = self.utility.lang.get("profileDetails_Presence_VersionNo", giveerror=False)
+                self.getGuiObj('descriptionField4', tab = 'profileDetails_Presence').SetLabel(text)
+                text = self.utility.lang.get("profileDetails_Presence_VersionNo_improve", giveerror=False)
+                self.getGuiObj('descriptionField5', tab = 'profileDetails_Presence').SetLabel(text)
+                
         self.currentPanel.Refresh()
     
     def showDownloadbutton(self, mode, torrent):

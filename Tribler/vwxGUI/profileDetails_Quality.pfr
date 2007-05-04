@@ -470,7 +470,7 @@ i_stylePN=20
 idIncCmpFilCmp=0
 i_tipoComp=600051
 validator=
-s_name=descriptionField
+s_name=descriptionField0
 i_index=-1
 i_left=6
 i_top=20
@@ -531,6 +531,8 @@ dataObj\\SizRowPos=0
 dataObj\\SizColPos=0
 dataObj\\panelfitInsS=0
 IndexOfS=1
+[Windows7/style]
+20=1
 [Windows7/i_width]
 [Windows7/i_width/Windows7]
 Theme=0
@@ -689,11 +691,11 @@ i_stylePN=20
 idIncCmpFilCmp=0
 i_tipoComp=600051
 validator=
-s_name=descriptionFieldC
+s_name=descriptionField1
 i_index=-1
 i_left=6
-i_top=142
-i_height=93
+i_top=132
+i_height=43
 i_width=284
 l_backColor=
 l_foreColor=
@@ -756,7 +758,7 @@ IndexOfS=3
 [Windows10/i_width/Windows10]
 Theme=0
 [Windows10/i_propN]
-0=You need at least 10 non-private files in your download history to get a higher quality of recommendations. Of course more than 10 would improve them even more. You can find interesting files to download in the files view.
+0=Download more files to increase the quality of Tribler recommendations.\r\n
 [Windows10/sizerProp]
 0=1
 1=1
@@ -770,10 +772,10 @@ i_stylePN=20
 idIncCmpFilCmp=0
 i_tipoComp=600051
 validator=
-s_name=descriptionFieldCCCCC
+s_name=howToImprove
 i_index=-1
 i_left=6
-i_top=118
+i_top=108
 i_height=18
 i_width=284
 l_backColor=

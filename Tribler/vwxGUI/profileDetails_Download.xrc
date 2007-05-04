@@ -105,10 +105,10 @@
                   <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>3</border>
                   <option>0</option>
-                  <object class="wxStaticText" name="Desc">
+                  <object class="wxStaticText" name="Desc0">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>   Upload limit</label>
-                    <pos>0,86</pos>
+                    <pos>0,55</pos>
                     <size>241,15</size>
                     <bg>#cbcbcb</bg>
                   </object>
@@ -117,9 +117,9 @@
                   <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>6</border>
                   <option>0</option>
-                  <object class="wxStaticText" name="descriptionFieldCC">
+                  <object class="wxStaticText" name="descriptionField0">
                     <style>wxST_NO_AUTORESIZE</style>
-                    <label>Your upload speed is set to 22 KB/s. Limiting your upload speed also limits your download speed. </label>
+                    <label>At the moment you have 8 friends. If you make more friends you can help in boosting each others download speeds. </label>
                     <pos>6,76</pos>
                     <size>284,48</size>
                     <font>
@@ -136,10 +136,10 @@
                   <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>6</border>
                   <option>0</option>
-                  <object class="wxStaticText" name="descriptionFieldC">
+                  <object class="wxStaticText" name="howToImprove0">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>How to improve</label>
-                    <pos>0,155</pos>
+                    <pos>6,124</pos>
                     <size>284,18</size>
                     <font>
                       <size>8</size>
@@ -155,7 +155,7 @@
                   <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>6</border>
                   <option>0</option>
-                  <object class="wxStaticText" name="descriptionFieldCCC">
+                  <object class="wxStaticText" name="descriptionField1">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>Increase the upload speed limit in your preferences (for -Play Fast- mode you need at least 89 KB/s). 
 </label>
@@ -192,10 +192,10 @@
                   <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>3</border>
                   <option>0</option>
-                  <object class="wxStaticText" name="DescC">
+                  <object class="wxStaticText" name="Desc1">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>   Number of friends</label>
-                    <pos>0,238</pos>
+                    <pos>0,220</pos>
                     <size>241,15</size>
                     <bg>#cbcbcb</bg>
                   </object>
@@ -204,7 +204,7 @@
                   <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>6</border>
                   <option>0</option>
-                  <object class="wxStaticText" name="descriptionFieldCCCC">
+                  <object class="wxStaticText" name="descriptionField2">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>At the moment you have 8 friends. If you make more friends you can help in boosting each others download speeds. </label>
                     <pos>6,241</pos>
@@ -223,10 +223,10 @@
                   <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>6</border>
                   <option>0</option>
-                  <object class="wxStaticText" name="descriptionFieldCCCCC">
+                  <object class="wxStaticText" name="howToImprove1">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>How to improve</label>
-                    <pos>6,322</pos>
+                    <pos>6,289</pos>
                     <size>284,18</size>
                     <font>
                       <size>8</size>
@@ -242,7 +242,7 @@
                   <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>6</border>
                   <option>0</option>
-                  <object class="wxStaticText" name="descriptionF">
+                  <object class="wxStaticText" name="descriptionField3">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>Invite your friends, family, and colleagues to start using Tribler too, and add them to your list of friends. </label>
                     <pos>6,307</pos>
@@ -278,7 +278,7 @@
                   <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>3</border>
                   <option>0</option>
-                  <object class="wxStaticText" name="DescCC">
+                  <object class="wxStaticText" name="Desc2">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>   Connectability</label>
                     <pos>0,385</pos>
@@ -290,7 +290,7 @@
                   <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>6</border>
                   <option>0</option>
-                  <object class="wxStaticText" name="descriptionFieldCCCCCC">
+                  <object class="wxStaticText" name="descriptionField4">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>You have to open a port on your modem/router to enable other users to connect to you. If you do so the communication between you and your peers will be faster. </label>
                     <pos>6,406</pos>
@@ -309,10 +309,10 @@
                   <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>6</border>
                   <option>0</option>
-                  <object class="wxStaticText" name="descriptionFieldCCCCCC">
+                  <object class="wxStaticText" name="howToImprove2">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>How to improve</label>
-                    <pos>3,513</pos>
+                    <pos>6,469</pos>
                     <size>284,18</size>
                     <font>
                       <size>8</size>
@@ -328,10 +328,10 @@
                   <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>6</border>
                   <option>0</option>
-                  <object class="wxStaticText" name="descriptionFC">
+                  <object class="wxStaticText" name="descriptionField5">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>Read more on &lt;URL&gt; for instructions.</label>
-                    <pos>6,527</pos>
+                    <pos>6,487</pos>
                     <size>284,18</size>
                     <font>
                       <size>8</size>

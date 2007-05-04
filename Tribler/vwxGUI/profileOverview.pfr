@@ -13,7 +13,7 @@ s_tipoFile=21
 ClsparentCompTipo=0
 l_framTipo=0
 VisualWxVersion=0.87.2.5
-VisualWxIdent=8724
+VisualWxIdent=8725
 l_hasAutoSize=1
 strTree=00it=3 01it=8 02it=196 02it=10 03it=133 04it=134 02it=197 01it=219 01it=220 02it=221 02it=223 03it=227 03it=342 03it=341 02it=226 03it=229 01it=239 01it=329 02it=321 03it=322 04it=340 04it=324 05it=325 05it=339 04it=336 02it=332 03it=333 03it=334 03it=335 01it=338 01it=292 02it=293 03it=294 03it=295 03it=296 01it=301 02it=305 03it=306 03it=307 03it=308 01it=302 02it=309 03it=310 03it=311 03it=312 01it=303 02it=313 03it=314 03it=315 03it=316 01it=304 02it=317 03it=318 03it=319 03it=320 01it=240 01it=211 02it=212 02it=213 02it=214 03it=215 04it=216 04it=217 04it=218 
 [Controlli]
@@ -1476,7 +1476,7 @@ IndexOfS=2
 [Windows20/i_width/Windows20]
 Theme=0
 [Windows20/i_propN]
-0=Discovered files that fit your taste
+0=Discovered files (*)
 [Windows20/sizerProp]
 0=1
 5=1
@@ -1762,7 +1762,7 @@ IndexOfS=2
 [Windows24/i_width/Windows24]
 Theme=0
 [Windows24/i_propN]
-0=Discovered persons similar to your taste
+0=Discovered persons (*)
 [Windows24/sizerProp]
 0=1
 5=1
@@ -2334,7 +2334,7 @@ IndexOfS=2
 [Windows32/i_width/Windows32]
 Theme=0
 [Windows32/i_propN]
-0=Social presence
+0=Network reach
 [Windows32/sizerProp]
 0=1
 5=1
@@ -3229,7 +3229,7 @@ IndexOfS=1
 [Windows45/i_width/Windows45]
 Theme=0
 [Windows45/i_propN]
-0=overall performance
+0=overall performance (*)
 [Windows45/sizerProp]
 1=1
 2=1
@@ -3306,15 +3306,15 @@ Theme=0
 style=
 Estyle=
 i_stylePN=16
-idIncCmpFilCmp=3051
+idIncCmpFilCmp=0
 i_tipoComp=690504
 validator=
 s_name=edit
 i_index=-1
 i_left=110
-i_top=123
-i_height=20
-i_width=20
+i_top=129
+i_height=14
+i_width=34
 l_backColor=
 l_foreColor=
 l_backColorSys=
@@ -3347,7 +3347,7 @@ i_sizeGrow=0
 i_border=3
 is_parent=0
 is_siz=0
-siz_style=40960
+siz_style=32768
 l_enWinSizeMin=0
 b_ItmsizeMinAb=0
 i_ItminSizeH=10
@@ -3368,13 +3368,12 @@ IndexOfS=2
 [Windows47/i_width/Windows47]
 Theme=0
 [Windows47/sizerProp]
-5=1
 13=1
 [Windows48]
 style=
 Estyle=
 i_stylePN=16
-idIncCmpFilCmp=3052
+idIncCmpFilCmp=0
 i_tipoComp=600069
 validator=
 s_name=Spacer

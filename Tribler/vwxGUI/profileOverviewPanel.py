@@ -290,12 +290,16 @@ class ProfileOverviewPanel(wx.Panel):
             elem.setIndex(new_index)
             if new_index < 2:
                 self.data['overall_rank'] = "beginner"
+                self.getGuiElement('text_Overall').SetLabel("Overall performance (beginner)")
             elif new_index < 4:
                 self.data['overall_rank'] = "experienced"
+                self.getGuiElement('text_Overall').SetLabel("Overall performance (experienced)")
             elif new_index < 6:
                 self.data['overall_rank'] = "top user"
+                self.getGuiElement('text_Overall').SetLabel("Overall performance (top user)")
             else:
                 self.data['overall_rank'] = "master"
+                self.getGuiElement('text_Overall').SetLabel("Overall performance (master)")
             bShouldRefresh = True
         
         if bShouldRefresh:
