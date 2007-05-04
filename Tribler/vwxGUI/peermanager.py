@@ -59,6 +59,13 @@ def getAgeingValue(old_time):
 #    """apply a sorting algorithm without creating a new list"""
 #    quicksort(list, 0, len(list)-1, key, orderMode)
 #===============================================================================
+        
+def peerEqualFunc(peer1, peer2):
+    if not peer1.has_key('permid') or not peer2.has_key('permid'):
+        return False
+    if peer1['permid'] == peer2['permid']:
+        return True
+    return False
     
 class PeerDataManager(DelayedEventHandler):
     """offers a sync view of the peer database, in an usable form for the
@@ -98,19 +105,17 @@ class PeerDataManager(DelayedEventHandler):
         self.MAX_MAX_PEERS_NUMBER = 2100
 
         #there should always be an all key that contains all data
-        self.data = [] #this all data can also be stored in a separate variable for easier usage
-        self.filtered_data = { 'all':self.data}
+        all_data = [] #this all data can also be stored in a separate variable for easier usage
+        self.filtered_data = { 'all':all_data}
         #there should anways be no filtering function for this all data
         self.filtered_func = { 'all':(None,None) } #a sorting function can be added later
         noDataStub = {'content_name':self.utility.lang.get('persons_view_no_data'), 'permid':'000001'}#, 'similarity':0}
-        self.data.append(noDataStub)
+        all_data.append(noDataStub)
 
         #this initialization can be done in another place also
         data = self.prepareData()
         self.sortData(data)
-        #self.filtered_data['all'] = data
         self.applyFilters(data)
-#        self.data = self.filtered_data['all'] 
         self.isDataPrepared = True
         self.done_init = True
         
@@ -138,8 +143,8 @@ class PeerDataManager(DelayedEventHandler):
         for type in self.filtered_data.keys():
             #filter data
             self.applyFilter(type, localdata)
-            if type == 'all':
-                self.data = self.filtered_data['all']
+#            if type == 'all':
+#                all_data = self.filtered_data['all']
             
     def insertInFilters(self, peer_data):
         """inserts in each filtered data the value at the right position based on the comparing function
@@ -150,17 +155,22 @@ class PeerDataManager(DelayedEventHandler):
                 print "adding peer",peer_data['content_name'],"to filter",type
                 self.insertInPlace(list, peer_data, cmpFunc)
             
-    def removeFromFilters(self, permid):
-        """inserts in each filtered data the value at the right position based on the comparing function
-        if compare function is None, append at the end"""
+    def removeFromFilters(self, permid, check_filter=True):
+        """if value doesn't corresponds any more to the filter function, remove it from list
+        if the check_filter flag is False, remove it without checking"""
         for type,list in self.filtered_data.iteritems():
             peer_index = self.getPeerDataIndex(permid, type)
             if peer_index != -1:
-                #check if it stays in the list
-                filterFunc = self.filtered_func[type][0]
-                if filterFunc is not None and not filterFunc(list[peer_index]):
-                    #remove it from this filtered list
-                    list.pop(peer_index)
+                bShouldRemove = False
+                if check_filter:
+                    #check if it stays in the list
+                    filterFunc = self.filtered_func[type][0]
+                    if filterFunc is not None and not filterFunc(list[peer_index]):
+                        #remove it from this filtered list
+                        bShouldRemove = True
+                else: #remove it without checking
+                    bShouldRemove = True
+                list.pop(peer_index)
     
     def getPeerDataIndex(self, permid, filter_name='all'):
         if self.filtered_data.get(filter_name) is None:
@@ -328,7 +338,7 @@ class PeerDataManager(DelayedEventHandler):
                 #first get the new data from database
                 peer_data = self.peersdb.getPeer(permid)
                 #check if is a valid peer
-                if (peer_data['connected_times'] == 0 and peer_data['buddycast_times'] == 0):
+                if peer_data['connected_times'] == 0 :
                     continue #skip this peer as it is of no interrest
                 #extra check, the permid should already be there
                 if peer_data.get('permid') is None:
@@ -338,8 +348,7 @@ class PeerDataManager(DelayedEventHandler):
             #update local snapshot
             if mode in ['delete', 'hide']:
                 #remove from all lists
-                for key, list in self.filtered_data.iteritems():
-                    remove_data_from_list(list, permid)
+                self.removeFromFilters(list, permid, check_fiter=False)
             elif mode in ['update', 'add']:
                 if peer_data is not None:
                     self.insertInFilters(peer_data)
@@ -419,10 +428,11 @@ class PeerDataManager(DelayedEventHandler):
         #print len(top_list), [ elem['content_name'] for elem in top_list]
         return bChange
 
-    def updatePeer(self, old_value, new_value):
+    def updatePeer(self, old_value, new_value, equalFunc=peerEqualFunc):
         """updates an existing peer data dictionary with values from a new one while keeping the old reference"""
-        for key,value in new_value.iteritems():
-            old_value[key] = value
+        if equalFunc(old_value, new_value):
+            for key,value in new_value.iteritems():
+                old_value[key] = value
             
     def preparePeer(self, peer_data):
         """when a peer is updated, prepare it for use inside the view
@@ -577,7 +587,8 @@ class PeerDataManager(DelayedEventHandler):
     
     def getCountOfSimilarPeers(self):
         count = 0
-        for peer_data in self.data:
+        all_data = self.filtered_data['all']
+        for peer_data in all_data:
             if peer_data.get('similarity',None) is None:
                 print "peer ",peer_data['content_name'],"has no similarity!!!!"
             if peer_data['similarity'] > 20:
@@ -586,7 +597,8 @@ class PeerDataManager(DelayedEventHandler):
     
     def getCountOfFriends(self):
         count = 0
-        for peer_data in self.data:
+        all_data = self.filtered_data['all']
+        for peer_data in all_data:
             if peer_data['friend']:
                 count = count + 1
         return count    
@@ -622,13 +634,6 @@ class PeerDataManager(DelayedEventHandler):
         """apply a sorting algorithm without creating a new list"""
         self.quicksort(list, 0, len(list)-1, cmpFunc)
         
-    def peerEqualFunc(peer1, peer2):
-        if not peer1.has_key('permid') or not peer2.has_key('permid'):
-            return False
-        if peer1['permid'] == peer2['permid']:
-            return True
-        return False
-        
     def insertInPlace(self, list, new_value, cmpFunc=None, equalFunc=peerEqualFunc):
         """iterate through the list to check two things: if the item is already in list
         and where it should be inserted based on the cmpFunc return value
@@ -652,10 +657,10 @@ class PeerDataManager(DelayedEventHandler):
             #update the content of the value
             old_value = list[indexIsAt]
             #update with data from new_value
-            self.updatePeer(old_value, new_value)
+            self.updatePeer(old_value, new_value, equalFunc)
             new_value = old_value
         if indexInsertAt != indexIsAt: #if on the same position, do nothing
-            if indexIsAt != -1 and indexIsAt < llen-1 and equalFunc(new_value, list[indexIsAt+1]):
+            if indexIsAt != -1 and indexIsAt < llen-1 and ( cmpFunc is None or cmpFunc(new_value, list[indexIsAt+1]) == 0):
                 return False #if is equal with the ones until insertion point, no need to do it
             old_value = None
             if indexIsAt != -1:

@@ -213,8 +213,10 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         """ 
         Category and sorting not yet used
         """       
-    
-        self.data[self.mode]['data'] = self.peer_manager.getFilteredData(cat)
+        if self.mode in [ "persons","friends"]:
+            self.data[self.mode]['data'] = self.peer_manager.getFilteredData(cat)
+        else:
+            print "<mluc> not correct standard overview mode for loading peers:",self.mode
     
     def loadLibraryData(self, cat, sort):
         # Get infohashes of current downloads

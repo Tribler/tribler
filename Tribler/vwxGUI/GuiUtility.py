@@ -173,8 +173,8 @@ class GUIUtility:
         print 'Not yet implemented;'
   
             
-    def reloadPeers(self):
-        return self.peer_manager.getFilteredData('all') #sortData(self.categorykey)
+#    def reloadPeers(self):
+#        return self.peer_manager.getFiltered Data('all') #sortData(self.categorykey)
         
    
     def initStandardOverview(self, standardOverview):

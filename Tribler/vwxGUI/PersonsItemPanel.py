@@ -334,10 +334,11 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                     friend = self.mm.get_default('personsMode','FRIEND_ONLINE_BITMAP')
                 else:
                     friend = self.mm.get_default('personsMode','FRIEND_OFFLINE_BITMAP')
-                dc.DrawBitmap(friend,60 ,65, True)            
-#                dc.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, False))
-#                dc.SetTextForeground('#007303')
-#                dc.DrawText('online', 26, 66)
+                dc.DrawBitmap(friend,60 ,65, True)   
+            else:         
+                dc.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, False))
+                dc.SetTextForeground('#007303')
+                dc.DrawText('online', 30, 66)
         
 #        dc.SetTextForeground(wx.WHITE)
         #dc.DrawText('rating', 5, 60)
