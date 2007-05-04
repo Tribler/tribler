@@ -82,12 +82,10 @@
               <option>0</option>
               <object class="wxStaticText" name="descriptionField">
                 <style>wxST_NO_AUTORESIZE</style>
-                <label>Over time your Tribler client will discover more and more persons that might be 	interesting to you. You can influence what types of persons are found. 
-
-So far, you have discovered 153 persons that have tastes similar to yours. If you want to discover more, just follow the instructions. 
+                <label>You have discovered 153 persons. Stay online longer to discover more persons. 
 </label>
                 <pos>6,20</pos>
-                <size>284,128</size>
+                <size>284,43</size>
                 <font>
                   <size>8</size>
                   <family>modern</family>
@@ -123,9 +121,13 @@ So far, you have discovered 153 persons that have tastes similar to yours. If yo
               <option>0</option>
               <object class="wxStaticText" name="descriptionFieldC">
                 <style>wxST_NO_AUTORESIZE</style>
-                <label>First of all, stay online longer and you will discover more persons. Secondly, download more files so Tribler will understand your taste better. </label>
-                <pos>6,307</pos>
-                <size>284,128</size>
+                <label>Stay online longer and you will discover more persons.
+
+You have set your maximum to 2000 persons. Set it higher to discover more persons. 
+
+</label>
+                <pos>6,87</pos>
+                <size>284,88</size>
                 <font>
                   <size>8</size>
                   <family>modern</family>
@@ -134,6 +136,15 @@ So far, you have discovered 153 persons that have tastes similar to yours. If yo
                   <underlined>0</underlined>
                   <face>Verdana</face>
                 </font>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
+              <border>6</border>
+              <option>0</option>
+              <object class="wxPanel" name="takeMeThere0" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                <pos>3,178</pos>
+                <size>120,21</size>
               </object>
             </object>
           </object>

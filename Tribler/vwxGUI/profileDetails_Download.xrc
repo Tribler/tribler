@@ -38,7 +38,7 @@
                   <option>0</option>
                   <object class="wxStaticText" name="titleField">
                     <style>wxST_NO_AUTORESIZE</style>
-                    <label>Maximum download speed
+                    <label>Optimal download speed
 </label>
                     <pos>0,3</pos>
                     <size>280,18</size>
@@ -82,9 +82,9 @@
               <option>0</option>
               <object class="wxStaticText" name="descriptionField">
                 <style>wxST_NO_AUTORESIZE</style>
-                <label>You are not using your possible download speed to the max. If you want to increase your download speed, just follow the instructions.</label>
-                <pos>6,20</pos>
-                <size>284,63</size>
+                <label>You are not using your download speed optimally. To increase, follow the instructions.</label>
+                <pos>6,14</pos>
+                <size>284,38</size>
                 <font>
                   <size>8</size>
                   <family>modern</family>
@@ -120,7 +120,7 @@
                   <object class="wxStaticText" name="descriptionFieldCC">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>Your upload speed is set to 22 KB/s. Limiting your upload speed also limits your download speed. </label>
-                    <pos>6,101</pos>
+                    <pos>6,76</pos>
                     <size>284,48</size>
                     <font>
                       <size>8</size>
@@ -157,9 +157,9 @@
                   <option>0</option>
                   <object class="wxStaticText" name="descriptionFieldCCC">
                     <style>wxST_NO_AUTORESIZE</style>
-                    <label>Increase the upload speed limit in your preferences (for -Direct Play- and -Video on Demand- you need at least 89 KB/s). 
+                    <label>Increase the upload speed limit in your preferences (for -Play Fast- mode you need at least 89 KB/s). 
 </label>
-                    <pos>6,167</pos>
+                    <pos>6,142</pos>
                     <size>284,48</size>
                     <font>
                       <size>8</size>
@@ -176,7 +176,7 @@
                   <border>6</border>
                   <option>0</option>
                   <object class="wxPanel" name="takeMeThere0" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                    <pos>6,235</pos>
+                    <pos>6,190</pos>
                     <size>120,21</size>
                   </object>
                 </object>
@@ -206,9 +206,9 @@
                   <option>0</option>
                   <object class="wxStaticText" name="descriptionFieldCCCC">
                     <style>wxST_NO_AUTORESIZE</style>
-                    <label>At the moment you have 8 friends. The more friends you have in the Tribler network, the more you can help each other in increasing your download speeds. </label>
-                    <pos>6,259</pos>
-                    <size>284,63</size>
+                    <label>At the moment you have 8 friends. If you make more friends you can help in boosting each others download speeds. </label>
+                    <pos>6,241</pos>
+                    <size>284,48</size>
                     <font>
                       <size>8</size>
                       <family>modern</family>
@@ -245,7 +245,7 @@
                   <object class="wxStaticText" name="descriptionF">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>Invite your friends, family, and colleagues to start using Tribler too, and add them to your list of friends. </label>
-                    <pos>6,347</pos>
+                    <pos>6,307</pos>
                     <size>284,48</size>
                     <font>
                       <size>8</size>
@@ -262,7 +262,7 @@
                   <border>6</border>
                   <option>0</option>
                   <object class="wxPanel" name="takeMeThere1" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                    <pos>6,450</pos>
+                    <pos>6,355</pos>
                     <size>120,21</size>
                   </object>
                 </object>
@@ -280,8 +280,8 @@
                   <option>0</option>
                   <object class="wxStaticText" name="DescCC">
                     <style>wxST_NO_AUTORESIZE</style>
-                    <label>   Port forwarding</label>
-                    <pos>0,426</pos>
+                    <label>   Connectability</label>
+                    <pos>0,385</pos>
                     <size>241,15</size>
                     <bg>#cbcbcb</bg>
                   </object>
@@ -293,7 +293,7 @@
                   <object class="wxStaticText" name="descriptionFieldCCCCCC">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>You have to open a port on your modem/router to enable other users to connect to you. If you do so the communication between you and your peers will be faster. </label>
-                    <pos>6,446</pos>
+                    <pos>6,406</pos>
                     <size>284,63</size>
                     <font>
                       <size>8</size>

@@ -27,7 +27,7 @@
             <option>1</option>
             <object class="wxPanel" name="pn10cC">
               <bitmap>images/triblerpanel_topcenter.png</bitmap>
-              <pos>13,405</pos>
+              <pos>10,0</pos>
               <size>20,21</size>
               <bg>#ff3300</bg>
               <fg>#ffffff</fg>
@@ -56,6 +56,43 @@
             <object class="wxPanel" name="orange_top_right" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
               <pos>613,0</pos>
               <size>10,21</size>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+        <object class="wxPanel" name="pn232c">
+          <pos>0,21</pos>
+          <size>617,35</size>
+          <bg>#999999</bg>
+          <object class="wxBoxSizer">
+            <orient>wxHORIZONTAL</orient>
+            <object class="spacer">
+              <size>10,10</size>
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+            </object>
+            <object class="sizeritem">
+              <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
+              <border>6</border>
+              <option>0</option>
+              <object class="wxTextCtrl" name="pasteUrl">
+                <pos>10,6</pos>
+                <size>415,23</size>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
+              <border>6</border>
+              <option>0</option>
+              <object class="wxPanel" name="subscribe" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                <pos>431,6</pos>
+                <size>23,23</size>
+              </object>
             </object>
           </object>
         </object>

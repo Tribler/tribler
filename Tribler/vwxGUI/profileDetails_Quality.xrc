@@ -81,10 +81,9 @@
               <border>6</border>
               <option>0</option>
               <object class="wxStaticText" name="descriptionField">
-                <style>wxST_NO_AUTORESIZE</style>
                 <label>Based on the files you have downloaded over time, Tribler recommends other files that are likely to be interesting to you. The quality of these recommendations will increase with the number of downloads. So far you have only downloaded 5 non-private files.</label>
                 <pos>6,20</pos>
-                <size>284,98</size>
+                <size>284,88</size>
                 <font>
                   <size>8</size>
                   <family>modern</family>
@@ -120,9 +119,10 @@
               <option>0</option>
               <object class="wxStaticText" name="descriptionFieldC">
                 <style>wxST_NO_AUTORESIZE</style>
-                <label>You need at least 10 non-private files in your download history to get a higher quality of recommendations. Of course more than 10 would improve them even more. You can find interesting files to download in the files view.</label>
-                <pos>6,142</pos>
-                <size>284,93</size>
+                <label>Download more files to increase the quality of Tribler recommendations.
+</label>
+                <pos>6,132</pos>
+                <size>284,43</size>
                 <font>
                   <size>8</size>
                   <family>modern</family>

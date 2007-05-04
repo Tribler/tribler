@@ -40,7 +40,7 @@
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>Overall performance
 </label>
-                    <pos>3,3</pos>
+                    <pos>0,3</pos>
                     <size>280,18</size>
                     <bg>#     0</bg>
                     <fg>#ffffff</fg>
@@ -81,14 +81,13 @@
               <border>6</border>
               <option>0</option>
               <object class="wxStaticText" name="descriptionField">
-                <style>wxST_NO_AUTORESIZE</style>
                 <label>Your overall performance influences your Tribler membership level. You have reached the level of 'Beginner'.
 
 - Beginner
 - Experienced
 - Top User
 - Master</label>
-                <pos>6,55</pos>
+                <pos>6,20</pos>
                 <size>284,113</size>
                 <bg>#ffffff</bg>
                 <fg>#     0</fg>

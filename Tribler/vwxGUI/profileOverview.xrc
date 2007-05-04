@@ -122,7 +122,7 @@
                 <border>3</border>
                 <option>0</option>
                 <object class="wxPanel" name="edit" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                  <pos>110,123</pos>
+                  <pos>110,129</pos>
                   <size>34,14</size>
                 </object>
               </object>
@@ -221,7 +221,7 @@
                       <option>0</option>
                       <object class="wxStaticText" name="text_Overall">
                         <style>wxST_NO_AUTORESIZE</style>
-                        <label>overall performance</label>
+                        <label>overall performance (*)</label>
                         <pos>91,49</pos>
                         <size>439,26</size>
                         <bg>#e6e6e6</bg>
@@ -362,7 +362,7 @@
               <option>0</option>
               <object class="wxStaticText" name="text_Files">
                 <style>wxST_NO_AUTORESIZE</style>
-                <label>Discovered files that fit your taste</label>
+                <label>Discovered files (*)</label>
                 <pos>45,15</pos>
                 <size>379,16</size>
                 <bg>#cbcbcb</bg>
@@ -409,7 +409,7 @@
               <option>0</option>
               <object class="wxStaticText" name="text_Persons">
                 <style>wxST_NO_AUTORESIZE</style>
-                <label>Discovered persons similar to your taste</label>
+                <label>Discovered persons (*)</label>
                 <pos>45,15</pos>
                 <size>419,16</size>
                 <bg>#cbcbcb</bg>
@@ -504,7 +504,7 @@
               <option>0</option>
               <object class="wxStaticText" name="text_Presence">
                 <style>wxST_NO_AUTORESIZE</style>
-                <label>Social presence</label>
+                <label>Network reach</label>
                 <pos>45,15</pos>
                 <size>339,16</size>
                 <bg>#cbcbcb</bg>

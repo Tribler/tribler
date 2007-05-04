@@ -38,7 +38,7 @@
                   <option>0</option>
                   <object class="wxStaticText" name="titleField">
                     <style>wxST_NO_AUTORESIZE</style>
-                    <label>Social presence
+                    <label>Network reach
 </label>
                     <pos>0,3</pos>
                     <size>280,18</size>
@@ -82,9 +82,9 @@
               <option>0</option>
               <object class="wxStaticText" name="descriptionFieldCC">
                 <style>wxST_NO_AUTORESIZE</style>
-                <label>Tribler is all about seeing and being seen. If you want to increase your social presence, just follow the instructions.</label>
+                <label>If you want to increase your network reach, follow the instructions.</label>
                 <pos>6,14</pos>
-                <size>284,63</size>
+                <size>284,33</size>
                 <font>
                   <size>8</size>
                   <family>modern</family>
@@ -119,8 +119,8 @@
                   <option>0</option>
                   <object class="wxStaticText" name="descriptionFieldCCCC">
                     <style>wxST_NO_AUTORESIZE</style>
-                    <label>At the moment you have 8 friends. The more friends you have in the 	Tribler network, the easier it will be to further expand your social network and share interests with more like-minded users. </label>
-                    <pos>6,101</pos>
+                    <label>same as in download speed</label>
+                    <pos>6,71</pos>
                     <size>284,73</size>
                     <font>
                       <size>8</size>
@@ -157,8 +157,8 @@
                   <option>0</option>
                   <object class="wxStaticText" name="descriptionF">
                     <style>wxST_NO_AUTORESIZE</style>
-                    <label>Invite your friends, family, and colleagues to start using Tribler too, and add them to your list of friends. </label>
-                    <pos>6,192</pos>
+                    <label>same as in download speed</label>
+                    <pos>6,162</pos>
                     <size>284,48</size>
                     <font>
                       <size>8</size>
@@ -205,8 +205,8 @@
                   <option>0</option>
                   <object class="wxStaticText" name="descriptionFieldCC">
                     <style>wxST_NO_AUTORESIZE</style>
-                    <label>Your overall sharing ratio is 0.82. This means that you take more from others than you give back to them. </label>
-                    <pos>6,291</pos>
+                    <label>Your overall sharing ratio is 0.82. This means that you download more from others than you upload to them. </label>
+                    <pos>6,261</pos>
                     <size>284,48</size>
                     <font>
                       <size>8</size>
@@ -243,9 +243,9 @@
                   <option>0</option>
                   <object class="wxStaticText" name="descriptionFieldCCC">
                     <style>wxST_NO_AUTORESIZE</style>
-                    <label>To reach a fair sharing ratio, you should share more interesting files for a longer period of time. 
+                    <label>To reach a fair sharing ratio, you should share your files longer. 
 </label>
-                    <pos>6,357</pos>
+                    <pos>6,327</pos>
                     <size>284,38</size>
                     <font>
                       <size>8</size>
@@ -283,9 +283,11 @@
                   <option>0</option>
                   <object class="wxStaticText" name="descriptionFieldCCCCCC">
                     <style>wxST_NO_AUTORESIZE</style>
-                    <label>You are using an old version of Tribler and are not discovering as many files and persons as you could do. </label>
-                    <pos>6,427</pos>
-                    <size>284,48</size>
+                    <label>You are using an old version of Tribler and not taking advantage of the new features available. 
+
+You are up to date!</label>
+                    <pos>6,354</pos>
+                    <size>284,73</size>
                     <font>
                       <size>8</size>
                       <family>modern</family>
@@ -321,9 +323,9 @@
                   <option>0</option>
                   <object class="wxStaticText" name="descriptionFC">
                     <style>wxST_NO_AUTORESIZE</style>
-                    <label>Update to the newest version 4.0.
+                    <label>Update to the newest version 4.0 at &lt;url&gt;.
 </label>
-                    <pos>6,485</pos>
+                    <pos>6,480</pos>
                     <size>284,18</size>
                     <font>
                       <size>8</size>
@@ -333,15 +335,6 @@
                       <underlined>0</underlined>
                       <face>Verdana</face>
                     </font>
-                  </object>
-                </object>
-                <object class="sizeritem">
-                  <flag>wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
-                  <border>6</border>
-                  <option>0</option>
-                  <object class="wxPanel" name="takeMeThere1" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                    <pos>6,538</pos>
-                    <size>120,21</size>
                   </object>
                 </object>
               </object>
