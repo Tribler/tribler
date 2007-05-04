@@ -16,7 +16,7 @@
             <flag>wxFIXED_MINSIZE</flag>
             <border>3</border>
             <option>0</option>
-            <object class="wxPanel" name="orange_top_left" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="bgPanel" name="orange_top_left">
               <pos>0,0</pos>
               <size>10,21</size>
             </object>
@@ -53,7 +53,7 @@
             <flag>wxFIXED_MINSIZE</flag>
             <border>3</border>
             <option>0</option>
-            <object class="wxPanel" name="orange_top_right" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="bgPanel" name="orange_top_right">
               <pos>613,0</pos>
               <size>10,21</size>
             </object>
@@ -64,16 +64,70 @@
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="wxPanel" name="filesFilter" subclass="Tribler.vwxGUI.standardFilter.filesFilter">
-          <pos>0,21</pos>
-          <size>617,35</size>
+        <object class="wxBoxSizer">
+          <orient>wxHORIZONTAL</orient>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>1</option>
+            <object class="filesFilter" name="filesFilter">
+              <pos>0,21</pos>
+              <size>371,35</size>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>0</option>
+            <object class="wxPanel" name="searchPanel">
+              <pos>411,21</pos>
+              <size>210,35</size>
+              <bg>#999999</bg>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="spacer">
+                  <size>10,10</size>
+                  <flag>wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>1</option>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxLEFT|wxFIXED_MINSIZE</flag>
+                  <border>4</border>
+                  <option>0</option>
+                  <object class="wxTextCtrl" name="searchField">
+                    <title>search a file</title>
+                    <pos>31,4</pos>
+                    <size>151,22</size>
+                    <font>
+                      <size>10</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>normal</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                  <object class="tribler_topButton" name="search">
+                    <pos>185,3</pos>
+                    <size>20,22</size>
+                  </object>
+                </object>
+              </object>
+            </object>
+          </object>
         </object>
       </object>
       <object class="sizeritem">
         <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>10</border>
         <option>1</option>
-        <object class="wxPanel" name="filesGrid" subclass="Tribler.vwxGUI.standardGrid.filesGrid">
+        <object class="filesGrid" name="filesGrid">
           <pos>10,66</pos>
           <size>623,10</size>
         </object>
@@ -88,7 +142,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>3</border>
             <option>0</option>
-            <object class="wxPanel" name="orange_bottom_left" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="bgPanel" name="orange_bottom_left">
               <pos>0,455</pos>
               <size>10,28</size>
             </object>
@@ -97,7 +151,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>3</border>
             <option>1</option>
-            <object class="wxPanel" name="orange_bottom_center" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="bgPanel" name="orange_bottom_center">
               <pos>10,455</pos>
               <size>20,20</size>
             </object>
@@ -106,7 +160,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>0</border>
             <option>0</option>
-            <object class="wxPanel" name="pagerBottomRight" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="bgPanel" name="pagerBottomRight">
               <pos>352,400</pos>
               <size>271,28</size>
               <object class="wxBoxSizer">
@@ -121,7 +175,7 @@
                   <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>5</border>
                   <option>0</option>
-                  <object class="wxPanel" name="standardPager" subclass="Tribler.vwxGUI.standardPager.standardPager">
+                  <object class="standardPager" name="standardPager">
                     <pos>25,5</pos>
                     <size>238,23</size>
                   </object>
