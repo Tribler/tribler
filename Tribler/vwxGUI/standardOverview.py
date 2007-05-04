@@ -265,7 +265,11 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             if detailsPanel and detailsPanel.getIdentifier() == torrent['infohash']:
                 self.invokeLater(detailsPanel.setData, [torrent])
         
-        torrentGrid = self.data[self.mode]['grid']
+        #<mluc>[04.05.2007]: using self.mode corrupts the data in peermanager if the 
+        #current view selected is persons or friends, so, the solution would be to
+        #always try to update the data in filesMode
+        # PLEASE, DON'T REMOVE ALERT MESSAGE UNTIL A CORRECT SOLUTION IS FOUND!!!!
+        torrentGrid = self.data["filesMode"]['grid']
         if self.mode in [ "personsMode", "friendsMode"]:
             print "\n*****************************************************\n\
 *                   big problem                     *\n\
