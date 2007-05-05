@@ -7,6 +7,7 @@ from safeguiupdate import *
 import threading
 from traceback import print_exc
 
+
 DEBUG = True
 def debug(message):
     if DEBUG:
@@ -74,6 +75,22 @@ def cmpFuncSimilarity( val1, val2):
         return 1
     if val1['similarity'] < val2['similarity']:
         return -1
+    #if values are equal, check the order in the similarity top
+    manager = PeerDataManager.getInstance()
+    pos1=pos2=-1
+    for i in range(len(manager.top20similar)):
+        if manager.top20similar[i]['permid'] == val1['permid']:
+            pos1 = i
+        if manager.top20similar[i]['permid'] == val2['permid']:
+            pos2 = i
+    if pos1 >= 0 and pos2 == -1:
+        return 1
+    if pos2 >=0 and pos1 == -1:
+        return -1
+    if pos1 < pos2:
+        return 1
+    if pos2 < pos1:
+        return -1
     return 0    
 
 def cmpFuncNameDesc( val1, val2):
@@ -118,7 +135,7 @@ class PeerDataManager(DelayedEventHandler):
     # Code to make this a singleton
     __single = None
    
-    def __init__(self, utility):
+    def __init__(self, utility=None):
         if PeerDataManager.__single:
             raise RuntimeError, "PeerDataManager is singleton"
         PeerDataManager.__single = self
@@ -126,7 +143,6 @@ class PeerDataManager(DelayedEventHandler):
         DelayedEventHandler.__init__(self)
         self.doneflag = threading.Event()
         self.isDataPrepared = False
-        self.utility = utility
         # for that, create a separate ordered list with only the first 20 most similar peers
         self.top20similar = []
         self.MaxSimilarityValue = 0 #maximal value for similarity as maintained 
@@ -151,7 +167,10 @@ class PeerDataManager(DelayedEventHandler):
         self.filtered_data = { 'all':all_data}
         #there should anways be no filtering function for this all data
         self.filtered_func = { 'all':[None,None] } #a sorting function can be added later
-        noDataStub = {'content_name':self.utility.lang.get('persons_view_no_data'), 'permid':'000001'}#, 'similarity':0}
+        stubCN = "no data"
+        if utility is not None:
+            stubCN = utility.lang.get('persons_view_no_data')
+        noDataStub = {'content_name':stubCN, 'permid':'000001'}#, 'similarity':0}
         all_data.append(noDataStub)
 
         #this initialization can be done in another place also
@@ -441,20 +460,21 @@ class PeerDataManager(DelayedEventHandler):
         bChange = False
         for element in data_list:
             #check where to add the element, and also where is already inserted
+#            print "<mluc> check similarity for %s is: %f" % (unicode2str(element['content_name']),element['similarity'])
             index = 0
             llen = len(top_list)
             indexInsertAt = llen
             indexIsAt = -1
             while index < llen:
-                if top_list[index][equal_key] == element[equal_key]:
+                if indexIsAt==-1 and top_list[index][equal_key] == element[equal_key]:
                     indexIsAt = index
-                if top_list[index][key] < element[key]:
+                if indexInsertAt == llen and top_list[index][key] < element[key]:
                     indexInsertAt = index
                 if indexIsAt != -1 and indexInsertAt < llen:
                     break #both indexes are computed so no reason to continue
                 index = index + 1
             if indexInsertAt != indexIsAt: #if on the same position, do nothing
-                if indexIsAt != -1 and indexIsAt < llen-1 and element[key] == top_list[indexIsAt+1][key]:
+                if indexIsAt != -1 and indexIsAt < llen-1 and indexIsAt<indexInsertAt and element[key] == top_list[indexIsAt+1][key]:
                     continue #if is equal with the ones until insertion point, no need to do it
                 if indexIsAt != -1:
                     #move from one position to another
@@ -505,6 +525,12 @@ class PeerDataManager(DelayedEventHandler):
         #check to see if top20 needs to be updated
         if self.updateTopList([peer_data], self.top20similar, 'similarity'):
             #refresh the grid
+            #dump the new list
+#            print "#===============================================================================#"
+#            print "#             dump top 20 most similar peers                                    #"
+#            for i in range(len(self.top20similar)):
+#                print "#     %d. %s     %f" % ((i+1),unicode2str(self.top20similar[i]['content_name']),self.top20similar[i]['similarity'])
+#            print "#===============================================================================#"
             pass
 
     def compute_rankval(self, peer_data):
@@ -688,9 +714,9 @@ class PeerDataManager(DelayedEventHandler):
         indexInsertAt = llen
         indexIsAt = -1
         while index < llen:
-            if equalFunc(list[index],new_value):
+            if indexIsAt == -1 and equalFunc(list[index],new_value):
                 indexIsAt = index
-            if cmpFunc is not None and cmpFunc(new_value,list[index])>0:
+            if indexInsertAt == llen and cmpFunc is not None and cmpFunc(new_value,list[index])>0:
                 indexInsertAt = index
             if indexIsAt != -1 and ( cmpFunc is None or indexInsertAt < llen ):
                 break #both indexes are computed so no reason to continue
@@ -702,7 +728,7 @@ class PeerDataManager(DelayedEventHandler):
             self.updatePeer(old_value, new_value, equalFunc)
             new_value = old_value
         if indexInsertAt != indexIsAt: #if on the same position, do nothing
-            if indexIsAt != -1 and indexIsAt < llen-1 and ( cmpFunc is None or cmpFunc(new_value, list[indexIsAt+1]) == 0):
+            if indexIsAt != -1 and indexIsAt < llen-1 and indexIsAt<indexInsertAt and ( cmpFunc is None or cmpFunc(new_value, list[indexIsAt+1]) == 0):
                 return False #if is equal with the ones until insertion point, no need to do it
             old_value = None
             if indexIsAt != -1:
