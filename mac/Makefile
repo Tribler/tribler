@@ -24,6 +24,10 @@ distclean:		clean
 
 # ----- Tribler
 
+build/sla.r:		SLAResources.rsrc
+	mkdir -p build
+	/Developer/Tools/DeRez -useDF $< > $@
+
 imagecontents/:		${SITEPACKAGES}/M2Crypto/ ${SITEPACKAGES}/Growl.py
 	rm -rf $@
 	mkdir -p $@
@@ -44,12 +48,12 @@ imagecontents/:		${SITEPACKAGES}/M2Crypto/ ${SITEPACKAGES}/Growl.py
 
 	touch $@
 
-Tribler.dmg:		imagecontents/
+Tribler.dmg:		imagecontents/ build/sla.r
 	rm -f $@
 	mkdir -p build
 
 	# create image
-	hdiutil create -srcfolder $< -format UDRW -scrub -imagekey zlib-level=9 -volname Tribler $@
+	hdiutil create -srcfolder $< -format UDRW -scrub -volname Tribler $@
 
 	# open it
 	hdiutil attach -readwrite -noverify -noautoopen $@ -mountpoint build/mnt
@@ -85,15 +89,20 @@ Tribler.dmg:		imagecontents/
 	-e "   end tell" \
 	-e "   -- Sync" \
 	-e "   delay 5" \
-	-e "end tell" || true # Make sure we don't make the build bots fail
+	-e "end tell" || true
 
 	# close
 	hdiutil detach build/mnt
 
 	# make read-only
 	mv $@ build/rw.dmg
-	hdiutil convert build/rw.dmg -format UDZO -o $@
+	hdiutil convert build/rw.dmg -format UDZO -imagekey zlib-level=9 -o $@
 	rm -f build/rw.dmg
+
+	# add EULA
+	hdiutil unflatten $@
+	/Developer/Tools/Rez -a build/sla.r -o $@
+	hdiutil flatten $@
 
 # ----- Growl bindings
 
