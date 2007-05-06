@@ -30,14 +30,70 @@ imagecontents/:		${SITEPACKAGES}/M2Crypto/ ${SITEPACKAGES}/Growl.py
 
 	cd .. && PYTHONPATH=mac/${SITEPACKAGES} ${PYTHON} -OO - < mac/setuptriblermac.py build
 	mv ../build/* $@
+
+	# Sample Friend Icons
 	mkdir -p $@"/Sample Friend Icons"
 	cp ../icons/mugshots/*.bmp $@"/Sample Friend Icons"
+
+	# Background
+	mkdir -p $@/.background
+	cp background.png $@/.background
+
+	# Shortcut to /Applications
+	ln -s /Applications $@/Applications
 
 	touch $@
 
 Tribler.dmg:		imagecontents/
 	rm -f $@
-	hdiutil create -srcfolder $< -format UDZO -fs HFS+ -volname Tribler $@
+	mkdir -p build
+
+	# create image
+	hdiutil create -srcfolder $< -format UDRW -scrub -imagekey zlib-level=9 -volname Tribler $@
+
+	# open it
+	hdiutil attach -readwrite -noverify -noautoopen $@ -mountpoint build/mnt
+
+	# make sure root folder is opened when image is
+	bless --folder build/mnt --openfolder build/mnt
+	# hack: wait for completion
+	sleep 1
+
+	# position items
+	osascript -e "tell application \"Finder\"" \
+	-e "   set f to POSIX file (\""`pwd`"/build/mnt\" as string) as alias" \
+	-e "   tell folder f" \
+	-e "       open" \
+	-e "       tell container window" \
+	-e "          set toolbar visible to false" \
+	-e "          set statusbar visible to false" \
+	-e "          set current view to icon view" \
+	-e "          delay 1 -- Sync" \
+	-e "          set the bounds to {50, 100, 1000, 1000} -- Big size so the finder won't do silly things" \
+	-e "       end tell" \
+	-e "       delay 1 -- Sync" \
+	-e "       set icon size of the icon view options of container window to 128" \
+	-e "       set arrangement of the icon view options of container window to not arranged" \
+	-e "       set background picture of the icon view options of container window to file \".background:background.png\"" \
+	-e "       set position of item \"Tribler.app\" to {150, 140}" \
+	-e "       set position of item \"Applications\" to {410, 140}" \
+	-e "       set position of item \"Sample Friend Icons\" to {300, 400}" \
+	-e "       set the bounds of the container window to {50, 100, 600, 400}" \
+	-e "       update without registering applications" \
+	-e "       delay 5 -- Sync" \
+	-e "       close" \
+	-e "   end tell" \
+	-e "   -- Sync" \
+	-e "   delay 5" \
+	-e "end tell" || true # Make sure we don't make the build bots fail
+
+	# close
+	hdiutil detach build/mnt
+
+	# make read-only
+	mv $@ build/rw.dmg
+	hdiutil convert build/rw.dmg -format UDZO -o $@
+	rm -f build/rw.dmg
 
 # ----- Growl bindings
 

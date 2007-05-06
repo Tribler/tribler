@@ -11,6 +11,11 @@ import sys,os,platform
 # modules to include into bundle
 includeModules=["M2Crypto","wx","wxPython","encodings.utf_8","encodings.latin_1","argvemulator","_xmlplus.sax"]
 
+# gui panels to include
+includePanels=[
+     "standardOverview","standardDetails","standardGrid","standardPager","standardFilter",
+     "TextButton","btn_DetailsHeader","tribler_List","profileOverviewPanel"]
+
 # ----- some basic checks
 
 if __debug__:
@@ -115,7 +120,7 @@ bundlebuilder.buildapp(
     optimize=3*int(not __debug__),
     standalone=1,
     excludeModules=["Tkinter","Tkconstants","tcl"],
-    includeModules=includeModules,
+    includeModules=includeModules + ["Tribler.vwxGUI.%s" % x for x in includePanels],
     libs=[wx_lib],
     files = ([("Lang/english.lang","Contents/Resources/Lang/"),
              ("superpeer.txt",    "Contents/Resources/"),
