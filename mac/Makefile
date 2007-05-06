@@ -28,7 +28,7 @@ imagecontents/:		${SITEPACKAGES}/M2Crypto/ ${SITEPACKAGES}/Growl.py
 	rm -rf $@
 	mkdir -p $@
 
-	cd .. && PYTHONPATH=mac/${SITEPACKAGES} ${PYTHON} -OO mac/setuptriblermac.py build
+	cd .. && PYTHONPATH=mac/${SITEPACKAGES} ${PYTHON} -OO - < mac/setuptriblermac.py build
 	mv ../build/* $@
 	mkdir -p $@"/Sample Friend Icons"
 	cp ../icons/mugshots/*.bmp $@"/Sample Friend Icons"

@@ -328,7 +328,7 @@ class LibraryItemPanel(wx.Panel):
                     obj.switchBack()
                 else:
                     abctorrent.actions.pause()
-                    playBitmap = wx.Bitmap(os.path.join('Tribler', 'vwxGUI', 'images', 'play.png'))
+                    playBitmap = wx.Bitmap(os.path.join(self.utility.getPath(),'Tribler', 'vwxGUI', 'images', 'play.png'))
                     obj.switchTo(playBitmap)
             elif name == 'playFast':
                 if not self.vodMode:

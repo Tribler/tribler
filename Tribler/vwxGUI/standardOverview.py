@@ -97,7 +97,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         modeString = self.mode[:-4]
         print 'modeString='+modeString
         if not currentPanel:
-            xrcResource = os.path.join('Tribler','vwxGUI', modeString+'Overview.xrc')
+            xrcResource = os.path.join(self.utility.getPath(),'Tribler','vwxGUI', modeString+'Overview.xrc')
             panelName = modeString+'Overview'
             try:
                 currentPanel = grid = pager = None
@@ -111,7 +111,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 if not currentPanel:
                     raise Exception('standardOverview: Could not find panel, grid or pager')
                     #load dummy panel
-                    dummyFile = os.path.join('Tribler','vwxGUI', 'dummyOverview.xrc')
+                    dummyFile = os.path.join(self.utility.getPath(),'Tribler','vwxGUI', 'dummyOverview.xrc')
                     dummy_res = xrc.XmlResource(dummyFile)
                     currentPanel = dummy_res.LoadPanel(self, 'dummyOverview')
                     grid = xrc.XRCCTRL(currentPanel, 'dummyGrid')

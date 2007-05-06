@@ -178,7 +178,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         currentPanel = self.data[self.mode].get('panel',None)
         modeString = self.mode[:-4]
         if not currentPanel:
-            xrcResource = os.path.join('Tribler','vwxGUI', modeString+'Details.xrc')
+            xrcResource = os.path.join(self.utility.getPath(),'Tribler','vwxGUI', modeString+'Details.xrc')
             panelName = modeString+'Details'
             currentPanel = self.loadXRCPanel(xrcResource, panelName)
             # Save paneldata in self.data
@@ -233,7 +233,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         return currentPanel
     
     def loadStatusPanel(self):
-        currentPanel = self.loadXRCPanel(os.path.join('Tribler','vwxGUI', 'statusDownloads.xrc'), 'statusDownloads')
+        currentPanel = self.loadXRCPanel(os.path.join(self.utility.getPath(),'Tribler','vwxGUI', 'statusDownloads.xrc'), 'statusDownloads')
         mode = 'status'
         for element in self.statdlElements:
             xrcElement = None
@@ -255,7 +255,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         try:
             currentPanel = None
             if not os.path.exists(filename):
-                dummyFile = os.path.join('Tribler','vwxGUI', 'dummy.xrc')
+                dummyFile = os.path.join(self.utility.getPath(),'Tribler','vwxGUI', 'dummy.xrc')
                 filename = dummyFile
                 panelName = "dummy"
             res = xrc.XmlResource(filename)
@@ -775,7 +775,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             return panel
         else:
             # generate new panel
-            xrcResource = os.path.join('Tribler','vwxGUI', name+'.xrc')
+            xrcResource = os.path.join(self.utility.getPath(),'Tribler','vwxGUI', name+'.xrc')
             if os.path.exists(xrcResource):
                 panelName = name
                 if parent is None:

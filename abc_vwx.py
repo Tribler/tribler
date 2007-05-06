@@ -933,8 +933,8 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
     
             #self.frame = ABCFrame(-1, self.params, self.utility)
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params)
-            updateXRC.main(['Tribler/vwxGUI/'])
-            self.res = xrc.XmlResource("Tribler/vwxGUI/MyFrame.xrc")
+            updateXRC.main([os.path.join(self.utility.getPath(),'Tribler','vwxGUI')])
+            self.res = xrc.XmlResource(os.path.join(self.utility.getPath(),'Tribler','vwxGUI','MyFrame.xrc'))
             self.guiUtility.xrcResource = self.res
             self.frame = self.res.LoadFrame(None, "MyFrame")
             self.guiUtility.frame = self.frame

@@ -92,6 +92,9 @@ def includedir( path ):
 
     return [(x,"Contents/Resources/%s" % x) for x in total]
 
+def filterincludes( l, f ):
+    return [(x,y) for (x,y) in l if f(x)]
+
 # ----- ugly hack to be able to use .pyo files
 
 if not __debug__:
@@ -103,7 +106,7 @@ if not __debug__:
 
 bundlebuilder.buildapp(
     name='Tribler.app',
-    mainprogram='abc.py',
+    mainprogram='abc_vwx.py',
     iconfile='mac/tribler.icns',
     plist=Plist.fromFile('mac/Info.plist'),
     argv_emulation=1,
@@ -114,14 +117,18 @@ bundlebuilder.buildapp(
     excludeModules=["Tkinter","Tkconstants","tcl"],
     includeModules=includeModules,
     libs=[wx_lib],
-    files = [("Lang/english.lang","Contents/Resources/Lang/"),
+    files = ([("Lang/english.lang","Contents/Resources/Lang/"),
              ("superpeer.txt",    "Contents/Resources/"),
              ("category.conf",    "Contents/Resources/"),
              ("binary-LICENSE.txt",      "Contents/Resources/"),
              ("readme.txt",       "Contents/Resources/"),
              ("tribler.ico",      "Contents/Resources/"),
              ("torrenticon.ico",  "Contents/Resources/"),
-             ("mac/TriblerDoc.icns", "Contents/Resources/"),] + includedir( "icons" )
+             ("mac/TriblerDoc.icns", "Contents/Resources/"),]
+           + includedir( "icons" )
+           + filterincludes( includedir( "Tribler/vwxGUI" ), lambda x: x.endswith(".xrc") )
+           + includedir( "Tribler/vwxGUI/images" )
+            )
 )
 
 # ----- post-process app bundle
