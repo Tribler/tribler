@@ -140,7 +140,7 @@ class SubscriptionsItemPanel(wx.Panel):
           
         
     def select(self):
-        #print >>sys.stderr,'subip: selected',self.data
+        print >>sys.stderr,'subip: selected',self.data
         self.thumb.setSelected(True)
         self.title.SetBackgroundColour(self.selectedColour)
         self.title.Refresh()
@@ -171,6 +171,13 @@ class SubscriptionsItemPanel(wx.Panel):
         obj = event.GetEventObject()
         name = obj.GetName()
         print "subip: mouseAction: name is",name
+        
+        
+        self.SetFocus()
+        if self.data:
+            self.guiUtility.selectSubscription(self.data)
+
+        
         if self.data is not None:
             if name == 'check':
                 newstatus = not self.cB.GetValue()

@@ -287,3 +287,13 @@ class TorrentDataManager:
                     print "tdm: search: Got hit",`wantkw`,"found in",`torrent['content_name']`
                     hits.append(torrent)
         return hits
+
+
+    def getFromSource(self,source):
+        hits = []
+        for torrent in self.data:
+            if torrent['source'] == source:
+                hits.append(torrent)
+        return hits
+    
+        

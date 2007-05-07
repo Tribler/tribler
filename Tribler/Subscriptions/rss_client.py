@@ -166,7 +166,7 @@ class TorrentFeedThread(Thread):
                             if not self.torrent_db.hasTorrent(torrent_hash):
                                 if DEBUG:
                                     print >>sys.stderr,"subscript: Storing",`title`
-                                self.metahandler.save_torrent(torrent_hash,bdata)
+                                self.metahandler.save_torrent(torrent_hash,bdata,source=rssurl)
                             elif DEBUG:
                                 print >>sys.stderr,"subscript: Not storing",`title`,"already have it"
                         # Sleep in between torrent retrievals        
@@ -175,6 +175,14 @@ class TorrentFeedThread(Thread):
                     traceback.print_exc()
                 
             # Sleep in between refreshes
+            """
+            statscopy = {}
+            self.lock.acquire()
+            for feed in self.feeds:
+                statscopy[feed.feed_url] = feed.urls_already_seen.copy()
+                self.process_statscopy(statscopy)
+            self.lock.release()
+            """
             sleep(15*60)
 
 
@@ -188,6 +196,18 @@ class TorrentFeedThread(Thread):
         for feed in cfeeds:
             feed.shutdown()
 
+"""
+    def process_statscopy(self,statscopy):
+        today = []
+        yesterday = []
+        now = int(time())
+        sotoday = math.floor(now / (24*3600.0))*24*3600.0
+        soyester = sotday - (24*3600.0)
+        for rss in statscopy:
+            for url,t in statscopy[rss]:
+                if t > sotoday:
+                    today.append(url)
+"""        
 
 class TorrentFeedReader:
     def __init__(self,feed_url,histfilename):
@@ -365,3 +385,6 @@ class URLHistory:
         except:
             traceback.print_exc()
 
+    def copy(self):
+        return self.urls.copy()
+    

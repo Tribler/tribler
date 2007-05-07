@@ -236,6 +236,11 @@ class GUIUtility:
         "User clicked on peer. Has to be selected in detailPanel"
         self.standardDetails.setData(peer_data)
         self.standardOverview.updateSelection()
+
+    def selectSubscription(self, sub_data):
+        "User clicked on subscription. Has to be selected in detailPanel"
+        self.standardDetails.setData(sub_data)
+        self.standardOverview.updateSelection()
             
     def detailsTabClicked(self, name):
         "A tab in the detailsPanel was clicked"

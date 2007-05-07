@@ -312,7 +312,7 @@ class standardGrid(wx.Panel):
             self.detailPanel = self.guiUtility.standardDetails
         except:
             pass
-        return self.detailPanel != None
+        return self.detailPanel is not None
     
 
 

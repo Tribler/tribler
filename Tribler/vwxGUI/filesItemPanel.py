@@ -93,6 +93,9 @@ class FilesItemPanel(wx.Panel):
         else:
             torrent = {}
 
+        if 'source' in torrent:
+            print "fip: Source of torrent",torrent['content_name'],"is",torrent['source']
+
         if torrent.get('content_name'):
             title = torrent['content_name'][:self.titleLength]
             self.title.Enable(True)

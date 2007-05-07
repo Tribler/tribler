@@ -52,6 +52,8 @@ TorrentDB - (PreferenceDB, MyPreference, OwnerDB)
         last_check_time: long (time())
         retry_number: int (0)
         status: str ("unknown")
+        source: str("")
+        inserttime: long (time())
     }
 
 PreferenceDB - (PeerDB, TorrentDB)    # other peers' preferences
@@ -104,8 +106,9 @@ home_dir = 'bsddb'
 # Database schema versions (for all databases)
 # 1 = First
 # 2 = Added keys to TorrentDB:  leecher,seeder,category,ignore_number,last_check_time,retry_number,status
+# 3 = Added keys to TorrentDB: source,inserttime
 #
-curr_version = 2
+curr_version = 3
 permid_length = 112
 infohash_length = 20
 torrent_id_length = 20
@@ -571,7 +574,9 @@ class TorrentDB(BasicDB):
             'ignore_number': 0,
             'last_check_time': 0,
             'retry_number': 0,
-            'status': 'unknown'
+            'status': 'unknown',
+            'source': '',
+            'inserttime': 0
         }
         self.new_metadata = True
         
@@ -619,6 +624,15 @@ class TorrentDB(BasicDB):
             keys = self._keys()
             for key in keys:
                 self._updateItem(key, def_newitem)
+        if old_version == 1 or old_version == 2:
+            def_newitem = {
+                'source': '',
+                'inserttime': 0}
+            keys = self._keys()
+            for key in keys:
+                self._updateItem(key, def_newitem)
+
+
     
 class PreferenceDB(BasicDB):
     """ Peer * Torrent """

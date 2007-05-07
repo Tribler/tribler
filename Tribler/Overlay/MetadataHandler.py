@@ -176,7 +176,7 @@ class MetadataHandler:
             return None
 
 
-    def addTorrentToDB(self, src, torrent_hash, metadata, hack=False):
+    def addTorrentToDB(self, src, torrent_hash, metadata, source, hack=False):
         
         metainfo = bdecode(metadata)
         namekey = name2unicode(metainfo)  # convert info['name'] to type(unicode)
@@ -215,6 +215,8 @@ class MetadataHandler:
             torrent["seeder"] = -1
             torrent["leecher"] = -1
             torrent["status"] = "unknown"
+        torrent["source"] = source
+        torrent["inserttime"] = long(time())
         #if (torrent['category'] != []):
         #    print '### one torrent added from MetadataHandler: ' + str(torrent['category']) + ' ' + torrent['torrent_name'] + '###'
         
@@ -275,13 +277,13 @@ class MetadataHandler:
             self.torrent_db.deleteTorrent(infohash, delete_file=True, updateFlag=True)
                     
         
-    def save_torrent(self, torrent_hash, metadata):
+    def save_torrent(self, torrent_hash, metadata, source='BC'):
         file_name = self.get_filename(torrent_hash)
         if DEBUG:
             print >> sys.stderr,"metadata: Storing torrent", sha(torrent_hash).hexdigest(),"in",file_name
         #TODO: 
         save_path = os.path.join(self.config_dir, file_name)
-        self.addTorrentToDB(save_path, torrent_hash, metadata)
+        self.addTorrentToDB(save_path, torrent_hash, metadata,source=source)
         self.write_torrent(metadata, self.config_dir, file_name)
         
     def refreshTrackerStatus(self, torrent):
