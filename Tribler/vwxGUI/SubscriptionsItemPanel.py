@@ -65,13 +65,13 @@ class SubscriptionsItemPanel(wx.Panel):
         self.hSizer.Add(self.thumb, 0, wx.ALL, 3)        
         # Add title
         self.title =wx.StaticText(self,-1,"Tribler discovery through other Tribler Users",wx.Point(0,0),wx.Size(550,20))        
-        self.title.SetBackgroundColour(wx.BLUE)
+        #self.title.SetBackgroundColour(wx.BLUE)
         self.title.SetFont(wx.Font(12,74,90,wx.NORMAL,0,"Verdana"))
         self.title.SetMinSize((550,20))
         self.hSizer.Add(self.title, 1, wx.BOTTOM|wx.TOP, 3)     
         # Add title
         self.today =wx.StaticText(self,-1,"today: 10 files",wx.Point(0,0),wx.Size(140,18))        
-        self.today.SetBackgroundColour(wx.WHITE)
+        #self.today.SetBackgroundColour(wx.WHITE)
         self.today.SetFont(wx.Font(10,74,90,wx.NORMAL,0,"Verdana"))
         self.today.SetMinSize((140,18))
         self.hSizer.Add(self.today, 0, wx.BOTTOM|wx.TOP|wx.RIGHT, 3)
@@ -144,6 +144,7 @@ class SubscriptionsItemPanel(wx.Panel):
           
         
     def select(self):
+        colour = self.guiUtility.selectedColour
         print >>sys.stderr,'subip: selected',self.data
         self.thumb.setSelected(True)
         self.SetBackgroundColour(self.selectedColour)
