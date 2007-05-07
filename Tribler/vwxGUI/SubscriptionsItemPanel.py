@@ -181,7 +181,7 @@ class SubscriptionsItemPanel(wx.Panel):
         print "subip: mouseAction: name is",name
         
         
-        self.SetFocus()
+        #self.SetFocus()
         if self.data:
             self.guiUtility.selectSubscription(self.data)
 

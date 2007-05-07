@@ -177,13 +177,13 @@ class ABCScheduler(DelayedEventHandler):
 
             # update in status bar
             ##########################################
-            if self.utility.frame.abc_sb is not None:
-                self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('abbrev_down') + " " + downloadspeed, 2)
-                self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('abbrev_up') + " " + uploadspeed, 3)
-                self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('discover_peer') + " " + npeer, 4)
-                self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('discover_file') + " " + nfile, 5)
+            #if self.utility.frame.abc_sb is not None:
+            #    self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('abbrev_down') + " " + downloadspeed, 2)
+            #    self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('abbrev_up') + " " + uploadspeed, 3)
+            
                 
-                
+            self.utility.frame.numberPersons.SetLabel(npeer)
+            self.utility.frame.numberFiles.SetLabel(nfile)
             self.guiUtility.refreshTorrentTotalStats(totaldlspeed=downspeed2,totalulspeed=upspeed2)
         except wx.PyDeadObjectError:
             pass

@@ -1149,3 +1149,4 @@ profileDetails_Presence_Friends = "At the moment you have %d friends. The more f
 persons_view_no_data = "No persons available yet"
 
 torrentcollectsleep = "Time to wait between downloading torrents from RSS:"
+buddycastsubscription = "Discover content via other Tribler users"

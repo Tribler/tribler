@@ -1,17 +1,18 @@
 import wx, os, sys, os.path, random
 import wx.xrc as xrc
 from binascii import hexlify
-from time import sleep
-from Tribler.vwxGUI.GuiUtility import GUIUtility
+from time import sleep,time
+import math
 from traceback import print_exc
+import cStringIO
+
+from Tribler.vwxGUI.GuiUtility import GUIUtility
 from Tribler.utilities import *
 from Tribler.Dialogs.MugshotManager import MugshotManager
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 from Tribler.vwxGUI.torrentManager import TorrentDataManager
 from Tribler.unicode import bin2unicode
-import cStringIO
 from safeguiupdate import FlaglessDelayedInvocation
-import time
 #from Tribler.vwxGUI.tribler_topButton import tribler_topButton
 from Utility.constants import COL_PROGRESS
 
@@ -71,6 +72,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
                                             'download', 'files_detailsTab', 'info_detailsTab', 'TasteHeart', 'details']
         self.modeElements['profileMode'] = ['descriptionField0']
+        
+        
+        self.modeElements['subscriptionsMode'] = ['titleField', 'receivedToday', 'subscrTodayField', 'receivedYesterday', 'subscrYesterdayField', 'receivedTotal']
         
         self.tabElements = {'filesTab_files': [ 'download', 'includedFiles', 'filesField'],                            
                             'personsTab_advanced': ['lastExchangeField', 'noExchangeField', 'timesConnectedField','addAsFriend','similarityValueField'],
@@ -284,6 +288,10 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 return self.item['infohash']
             elif self.mode in ['personsMode','friendsMode']:
                 return self.item['permid']
+            elif self.mode in ['subscriptionsMode']:
+                return self.item['url']
+            else:
+                print 'standardDetails: Error in getIdentifier for mode %s, item=%s' % (self.mode,self.item)
         except:
             print 'standardDetails: Error in getIdentifier for mode %s, item=%s' % (self.mode,self.item)
         
@@ -426,18 +434,18 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     
                 self.fillTorrentLists()
             elif self.getGuiObj('advanced_detailsTab').isSelected():
-                if item.get('last_seen')!=None:
+                if item.get('last_seen') is not None:
                     if item['last_seen'] < 0:
                         self.getGuiObj('lastExchangeField', tab = 'personsTab_advanced').SetLabel("never seen online")
                     else:
                         self.getGuiObj('lastExchangeField', tab = 'personsTab_advanced').SetLabel('%s %s'%(friendly_time(item['last_seen']),'ago'))
                 else:
                     self.getGuiObj('lastExchangeField', tab = 'personsTab_advanced').SetLabel('')
-                if item.get("connected_times")!=None:
+                if item.get("connected_times") is not None:
                     self.getGuiObj('timesConnectedField', tab = 'personsTab_advanced').SetLabel(str(item["connected_times"]))
                 else:
                     self.getGuiObj('timesConnectedField', tab = 'personsTab_advanced').SetLabel("")
-                if item.get("similarity")!=None:
+                if item.get("similarity") is not None:
                     self.getGuiObj('similarityValueField', tab = 'personsTab_advanced').SetLabel(str(item["similarity"]))
                 else:
                     self.getGuiObj('similarityValueField', tab = 'personsTab_advanced').SetLabel("")
@@ -453,8 +461,62 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             
 #        elif self.mode == 'libraryMode':
 #            pass
-        elif self.mode == 'subscriptionMode':
-            pass
+        elif self.mode == 'subscriptionsMode':
+            if item.get('url') is None:
+                return #no valid url
+            subscrip = item
+            rssurl = subscrip.get('url')
+            
+            titleField = self.getGuiObj('titleField')
+            titleField.SetLabel(rssurl)
+            titleField.Wrap(-1)
+
+            bcsub = self.utility.lang.get('buddycastsubscription')
+            if rssurl == bcsub:
+                rssurl = 'BC'
+            
+            # Gather data for views
+            torrents = self.data_manager.getFromSource(rssurl)
+            todayl = []
+            yesterdayl = []
+            now = long(time())
+            sotoday = long(math.floor(now / (24*3600.0))*24*3600.0)
+            soyester = long(sotoday - (24*3600.0))
+            for torrent in torrents:
+                    if torrent['inserttime'] > sotoday:
+                        todayl.append(torrent)
+                    elif torrent['inserttime'] > soyester:
+                        yesterdayl.append(torrent)
+            
+            todayl.sort(reverse_torrent_insertime_cmp)
+            yesterdayl.sort(reverse_torrent_insertime_cmp)
+            
+            # Update Today view
+            todayField = self.getGuiObj('receivedToday')
+            todaystr = "Today ("+str(len(todayl))+")"
+            todayField.SetLabel(todaystr)
+
+            todayList = self.getGuiObj('subscrTodayField')
+            todayList.SetWindowStyle(wx.LC_REPORT|wx.NO_BORDER|wx.LC_SINGLE_SEL|wx.LC_NO_HEADER)
+            if todayList.GetColumnCount() == 0:
+                todayList.InsertColumn(0, "Torrent")
+            todayList.DeleteAllItems()
+            for torrent in todayl:
+                todayList.Append([torrent['content_name']])
+
+            # Update Yesterday view
+            ydayField = self.getGuiObj('receivedYesterday')
+            ydaystr = "Yesterday ("+str(len(yesterdayl))+")"
+            ydayField.SetLabel(ydaystr)
+
+            ydayList = self.getGuiObj('subscrYesterdayField')
+            ydayList.SetWindowStyle(wx.LC_REPORT|wx.NO_BORDER|wx.LC_SINGLE_SEL|wx.LC_NO_HEADER)
+            if ydayList.GetColumnCount() == 0:
+                ydayList.InsertColumn(0, "Torrent")
+            ydayList.DeleteAllItems()
+            for torrent in yesterdayl:
+                yList.Append([torrent['content_name']])
+
         
         elif self.mode == 'profileMode':
             # --------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -574,7 +636,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 self.getGuiObj('descriptionField4', tab = 'profileDetails_Presence').SetLabel(text)
                 text = self.utility.lang.get("profileDetails_Presence_VersionNo_improve", giveerror=False)
                 self.getGuiObj('descriptionField5', tab = 'profileDetails_Presence').SetLabel(text)
-                
+        else:
+            print "standardDetails: setData: No entry for mode",self.mode
+                    
         self.currentPanel.Refresh()
     
     def showDownloadbutton(self, mode, torrent):
@@ -898,7 +962,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         # add the current user selected in details panel as a friend
         if self.mode in ["personsMode","friendsMode"]:
             peer_data = self.item
-            if peer_data!=None and peer_data.get('permid'):
+            if peer_data is not None and peer_data.get('permid'):
                 #update the database
 #                    if not self.peer_manager.isFriend(peer_data['permid']):
 #                        self.contentFrontPanel.frienddb.deleteFriend(self.data['permid'])
@@ -977,6 +1041,14 @@ def revtcmp(a,b):
     if a[0] < b[0]:
         return 1
     elif a[0] == b[0]:
+        return 0
+    else:
+        return -1
+
+def reverse_torrent_insertime_cmp(a,b):
+    if a['inserttime'] < b['inserttime']:
+        return 1
+    elif a['inserttime'] == b['inserttime']:
         return 0
     else:
         return -1

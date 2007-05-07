@@ -1414,7 +1414,7 @@ class TriblerPanel(ABCOptionPanel):
         self.utility.config.Write('enabledlhelp', self.dlhelp_enable.GetValue(), "boolean")          
         self.utility.config.Write('enabledlcollecting', self.collect_enable.GetValue(), "boolean")          
 
-        minport = int(self.timectrl.GetValue())
+        t = int(self.timectrl.GetValue())
         if t  > 3600:
             t = 3600
 

@@ -329,7 +329,7 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
     # override
     def set_activity(self,type,msg=''):
         """ Called by network thread """
-        self.invokeLater(self.utility.frame.abc_sb.setActivity,[type,msg])
+        self.invokeLater(self.utility.frame.setActivity,[type,msg])
 
     def havebitfield2bufferinfo(self,havebitfield):
         bi = BufferInfo()

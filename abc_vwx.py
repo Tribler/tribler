@@ -67,6 +67,7 @@ from Tribler.vwxGUI.TasteHeart import set_tasteheart_bitmaps
 from Tribler.vwxGUI.perfBar import set_perfBar_bitmaps
 from Tribler.Dialogs.BandwidthSelector import BandwidthSelector
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
+from Tribler.Dialogs.activities import *
 
 DEBUG = False
 ALLOW_MULTIPLE = False
@@ -415,8 +416,8 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         self.tbicon = None
 
         # Arno: see ABCPanel
-        self.abc_sb = ABCStatusBar(self,self.utility)
-        self.SetStatusBar(self.abc_sb)
+        #self.abc_sb = ABCStatusBar(self,self.utility)
+        #self.SetStatusBar(self.abc_sb)
 
         """
         # Add status bar
@@ -460,7 +461,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         self.window.list = self.list
         self.utility.window = self.window
         """
-        self.window.sb_buttons = ABCStatusButtons(self.abc_sb,self.utility)
+        self.window.sb_buttons = ABCStatusButtons(self,self.utility)
         
         self.utility.window.postponedevents = []
         
@@ -871,6 +872,39 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         GUIUtility.getInstance().isReachable = True
 
 
+    def setActivity(self,type,msg=u''):
+    
+        if currentThread().getName() != "MainThread":
+            print "setActivity thread",currentThread().getName(),"is NOT MAIN THREAD"
+            print_stack()
+    
+        if type == ACT_NONE:
+            prefix = u''
+            msg = u''
+        elif type == ACT_UPNP:
+            prefix = self.utility.lang.get('act_upnp')
+        elif type == ACT_REACHABLE:
+            prefix = self.utility.lang.get('act_reachable')
+        elif type == ACT_GET_EXT_IP_FROM_PEERS:
+            prefix = self.utility.lang.get('act_get_ext_ip_from_peers')
+        elif type == ACT_MEET:
+            prefix = self.utility.lang.get('act_meet')
+        elif type == ACT_GOT_METADATA:
+           prefix = self.utility.lang.get('act_got_metadata')
+        elif type == ACT_RECOMMEND:
+           prefix = self.utility.lang.get('act_recommend')
+
+        if msg == u'':
+            text = prefix
+        else:
+            text = unicode( prefix+u' '+msg)
+            
+        if DEBUG:
+            print "act: Setting activity", `text`
+        self.messageField.SetLabel(text)
+
+
+
 ##############################################################
 #
 # Class : ABCApp
@@ -943,6 +977,11 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             self.frame.topBackgroundRight = xrc.XRCCTRL(self.frame, "topBG3")
             self.scrollWindow.SetScrollbars(1,1,1024,768)
             self.frame.mainButtonPersons = xrc.XRCCTRL(self.frame, "mainButtonPersons")
+
+
+            self.frame.numberPersons = xrc.XRCCTRL(self.frame, "numberPersons")
+            self.frame.numberFiles = xrc.XRCCTRL(self.frame, "numberFiles")
+            self.frame.messageField = xrc.XRCCTRL(self.frame, "messageField")
             
             """
             searchfilebut = xrc.XRCCTRL(self.frame, "bt257cC")

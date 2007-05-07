@@ -284,8 +284,11 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     def loadSubscriptionData(self):
         torrentfeed = TorrentFeedThread.getInstance()
         urls = torrentfeed.getURLs()
+        
+        bcsub = self.utility.lang.get('buddycastsubscription')
+        
         reclist = []
-        record = {'url':"Discover content via other Tribler users",'status':'active','persistent':True}
+        record = {'url':bcsub,'status':'active','persistent':True}
         reclist.append(record)
         for url in urls:
             record = {}
