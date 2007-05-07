@@ -141,8 +141,9 @@ class TorrentFeedThread(Thread):
                                 
                     except:
                         traceback.print_exc()
-                        
-                    sleep(15) # TODO: make user configable
+
+            sleep(15) # TODO: make user configable
+
         sleep(15*60)
 
 
