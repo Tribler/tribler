@@ -2,7 +2,7 @@
 <resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
   <object class="wxPanel" name="filesDetails">
     <pos>0,0</pos>
-    <size>300,620</size>
+    <size>298,170</size>
     <fg>#d8d8bf</fg>
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>
@@ -65,7 +65,7 @@
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="wxPanel" name="thumbField" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+        <object class="ImagePanel" name="thumbField">
           <pos>0,21</pos>
           <size>300,170</size>
         </object>

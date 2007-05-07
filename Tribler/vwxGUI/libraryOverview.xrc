@@ -70,7 +70,7 @@
         </object>
       </object>
       <object class="sizeritem">
-        <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+        <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>10</border>
         <option>1</option>
         <object class="wxPanel" name="libraryGrid" subclass="Tribler.vwxGUI.standardGrid.libraryGrid">

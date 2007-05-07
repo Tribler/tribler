@@ -48,6 +48,7 @@ class LibraryItemPanel(wx.Panel):
         
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
+        self.hSizer.Add([8,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)        
         
         # Add thumb
         self.thumb = ThumbnailViewer(self)
@@ -153,7 +154,9 @@ class LibraryItemPanel(wx.Panel):
         self.delete = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='delete')
         self.delete.setBackground(wx.WHITE)
         
-        self.hSizer.Add(self.delete,0,wx.TOP|wx.LEFT|wx.FIXED_MINSIZE|wx.ALIGN_TOP,3)        
+        self.hSizer.Add(self.delete,0,wx.TOP|wx.LEFT|wx.FIXED_MINSIZE|wx.ALIGN_TOP,3)       
+        
+        self.hSizer.Add([8,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)         
     
         # Add Refresh        
         self.SetSizer(self.hSizer);

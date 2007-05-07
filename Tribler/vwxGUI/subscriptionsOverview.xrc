@@ -99,11 +99,11 @@
         </object>
       </object>
       <object class="sizeritem">
-        <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+        <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>10</border>
         <option>1</option>
         <object class="wxPanel" name="subscriptionsGrid" subclass="Tribler.vwxGUI.standardGrid.subscriptionsGrid">
-          <pos>10,31</pos>
+          <pos>0,66</pos>
           <size>20,20</size>
         </object>
       </object>

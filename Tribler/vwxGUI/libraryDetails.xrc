@@ -64,8 +64,8 @@
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="wxPanel" name="thumbField" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
-          <pos>3,24</pos>
+        <object class="ImagePanel" name="thumbField">
+          <pos>0,21</pos>
           <size>300,170</size>
         </object>
       </object>
@@ -351,7 +351,7 @@
               <object class="wxCheckBox" name="archiveField">
                 <title>archive</title>
                 <checked>0</checked>
-                <pos>8,123</pos>
+                <pos>8,128</pos>
                 <size>160,18</size>
                 <fg>#     0</fg>
               </object>

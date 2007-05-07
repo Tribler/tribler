@@ -149,7 +149,30 @@ class personsFilter(standardFilter):
         standardFilter.__init__(self, filterData = filterData)
         
 class libraryFilter(standardFilter):
-    pass
+    def __init__(self):
+        filterData = [
+                      [('all', '*All'),
+                       ('video', 'Video Files'),
+                       ('videoclips', 'VideoClips'),
+                       ('audio', 'Audio'),
+                       ('picture', 'Picture'),
+                       ('compressed', 'Compressed'),
+                       ('document','Document'),
+                       ('other', 'Other'),
+                       ('xxx', 'XXX'),
+                       ('search', 'Search Results')
+                       ],
+                       [('latest', '*Latest downloaded'),
+                        (('content_name', 'increase'), 'Name'),
+                        ('swarmsize', 'Popular'),
+                        ('relevance','Recommended'),
+                        ('date','Creation date'),
+                        ('length', 'Size'),                        
+                        #('tracker', 'Tracker'),
+                        #('num_owners', 'Often received')
+                        ]
+                      ]
+        standardFilter.__init__(self, filterData = filterData)
 
 class friendsFilter(standardFilter):
     def __init__(self):

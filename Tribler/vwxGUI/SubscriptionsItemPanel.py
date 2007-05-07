@@ -51,6 +51,8 @@ class SubscriptionsItemPanel(wx.Panel):
         self.Bind(wx.EVT_LEFT_UP, self.mouseAction)
         self.Bind(wx.EVT_KEY_UP, self.keyTyped)
         
+        # Add Spacer
+        self.hSizer.Add([8,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)        
         # Add Checkbox turn on/off
         self.cB = wx.CheckBox(self,-1,"",wx.Point(8,128),wx.Size(10,18))        
         self.cB.SetForegroundColour(wx.Colour(0,0,0))
@@ -76,8 +78,10 @@ class SubscriptionsItemPanel(wx.Panel):
        
         
         # Add delete button
-        self.delete = tribler_topButton(self, -1, wx.Point(0,0), wx.Size(17,17),name='delete')                
+        self.delete = tribler_topButton(self, -1, wx.Point(0,0), wx.Size(16,16),name='delete')                
         self.hSizer.Add(self.delete, 0, wx.TOP|wx.RIGHT, 3)        
+        # Add Spacer
+        self.hSizer.Add([8,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)        
 
         self.SetSizer(self.hSizer);
         self.SetAutoLayout(1);
@@ -142,8 +146,8 @@ class SubscriptionsItemPanel(wx.Panel):
     def select(self):
         print >>sys.stderr,'subip: selected',self.data
         self.thumb.setSelected(True)
-        self.title.SetBackgroundColour(self.selectedColour)
-        self.title.Refresh()
+        self.SetBackgroundColour(self.selectedColour)
+        self.Refresh()
         
     def deselect(self, number = 0):
         #print >>sys.stderr,'subip: deselected',self.data
@@ -153,8 +157,8 @@ class SubscriptionsItemPanel(wx.Panel):
             colour = self.guiUtility.unselectedColour2
             
         self.thumb.setSelected(False)
-        self.title.SetBackgroundColour(colour)
-        self.title.Refresh()
+        self.SetBackgroundColour(colour)
+        self.Refresh()
     
     def keyTyped(self, event):
         if self.selected:
