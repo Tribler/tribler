@@ -324,6 +324,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     if 'encoding' in metadata and metadata['encoding'].strip():
                         encoding = metadata['encoding']
 
+                    flag = False
                     for key in ['comment','comment-utf8','Description']: # reverse priority
                         if key in metadata: # If vuze torrent
                             tdescrtxt = metadata[key]
@@ -332,6 +333,13 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                             else:
                                 tencoding = encoding
                             descrtxt = bin2unicode(tdescrtxt,tencoding)
+                            flag = True
+                    if not flag:
+                        if 'source' in torrent:
+                            s = torrent['source']
+                            if s == 'BC':
+                                s = 'Received from other user'
+                            descrtxt = "Source: "+s
 
                 descriptionField.SetLabel(descrtxt)
                 descriptionField.Wrap(-1)        

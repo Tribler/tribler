@@ -55,6 +55,7 @@ TorrentDB - (PreferenceDB, MyPreference, OwnerDB)
         source: str("")
         inserttime: long (time())
         progress: float
+        destdir: str("")
     }
 
 PreferenceDB - (PeerDB, TorrentDB)    # other peers' preferences
@@ -578,7 +579,8 @@ class TorrentDB(BasicDB):
             'status': 'unknown',
             'source': '',
             'inserttime': 0,
-            'progress': 0.0
+            'progress': 0.0,
+            'destdir':''
         }
         self.new_metadata = True
         
@@ -630,7 +632,8 @@ class TorrentDB(BasicDB):
             def_newitem = {
                 'source': '',
                 'inserttime': 0,
-                'progress': 0.0}
+                'progress': 0.0,
+                'destdir':''}
             keys = self._keys()
             for key in keys:
                 self._updateItem(key, def_newitem)

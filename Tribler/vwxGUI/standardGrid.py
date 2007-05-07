@@ -297,11 +297,11 @@ class standardGrid(wx.Panel):
             for pan in row:
                 try:
                     panel_id = pan.getIdentifier()
-                    #print "standardGrid: updateSelection: panel has id",panel_id
+                    print "standardGrid: updateSelection: panel has id",`panel_id`
                 except:
                     panel_id = None
                     
-                if panel_id != id or  panel_id is None:
+                if panel_id is None or panel_id != id:
                     #print 'item deselected2'
                     pan.deselect(number = number)
                 else:
