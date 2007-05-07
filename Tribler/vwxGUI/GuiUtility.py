@@ -40,6 +40,11 @@ class GUIUtility:
         self.selectedMainButton = None
         self.isReachable = False #reachability flag / port forwarding enabled / accessible from the internet
         self.guiOpen = Event()
+        
+        self.selectedColour = wx.Colour(255,200,187)       
+        self.unselectedColour = wx.WHITE
+        self.unselectedColour2 = wx.Colour(230,230,230)
+        
             
     def getInstance(*args, **kw):
         if GUIUtility.__single is None:

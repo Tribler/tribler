@@ -7,6 +7,7 @@ from Tribler.Dialogs.dlhelperframe import DownloadHelperFrame
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 #from Tribler.vwxGUI.TriblerProgressbar import TriblerProgressbar
 from Tribler.vwxGUI.filesItemPanel import ThumbnailViewer
+#from Dialogs.abcdetailframe import ABCDetailFrame
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Video.Progress import ProgressBar
 from Tribler.unicode import *
@@ -36,6 +37,7 @@ class LibraryItemPanel(wx.Panel):
         self.selected = False
         self.warningMode = False
         self.oldCategoryLabel = None
+        self.torrentDetailsFrame = None
         self.addComponents()
         self.Show()
         self.Refresh()
@@ -43,13 +45,9 @@ class LibraryItemPanel(wx.Panel):
 
     def addComponents(self):
         self.Show(False)
-        self.selectedColour = wx.Colour(255,200,187)       
-        self.unselectedColour = wx.WHITE
         
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
-        self.Bind(wx.EVT_LEFT_UP, self.mouseAction)
-        self.Bind(wx.EVT_KEY_UP, self.keyTyped)
         
         # Add thumb
         self.thumb = ThumbnailViewer(self)
@@ -132,10 +130,10 @@ class LibraryItemPanel(wx.Panel):
         self.boost.SetSize((81,16))
         self.boost.setEnabled(False)
         buttonSizer = wx.BoxSizer(wx.VERTICAL)
-        buttonSizer.Add(self.playFast, 1, wx.ALL, 2)
-        buttonSizer.Add(self.boost, 1, wx.RIGHT|wx.LEFT, 2)
+        buttonSizer.Add(self.playFast, 1, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 2)
+        buttonSizer.Add(self.boost, 1, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 2)
         
-        self.hSizer.Add(buttonSizer, 1, wx.ALIGN_CENTER|wx.TOP, 2) 
+        self.hSizer.Add(buttonSizer, 1, wx.TOP, 0) 
 
         self.addLine()
         
@@ -163,8 +161,9 @@ class LibraryItemPanel(wx.Panel):
         self.Layout();
         self.Refresh()
         
-        for window in self.GetChildren():
+        for window in [self]+self.GetChildren():
             window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
+            window.Bind(wx.EVT_LEFT_DCLICK, self.doubleClicked)
             window.Bind(wx.EVT_KEY_UP, self.keyTyped)
                   
     def refreshData(self):
@@ -211,7 +210,7 @@ class LibraryItemPanel(wx.Panel):
             
             self.statusField.SetLabel(abctorrent.getColumnText(COL_BTSTATUS))
             switchable = False
-            playable = False
+            self.playable = False
             havedigest = None
             showBoostAndPlayFast = False
             showPlayButton = False
@@ -230,13 +229,13 @@ class LibraryItemPanel(wx.Panel):
                     progressinf = abctorrent.get_progressinf()
                     havedigest = abctorrent.status.getHaveDigest()
                     havedigest2 = progressinf.get_bufferinfo()
-                    playable = havedigest2.get_playable()
+                    self.playable = havedigest2.get_playable()
                     switchable = False
                     showPlayButton = True
                 else:
                     havedigest = abctorrent.status.getHaveDigest()
-                    playable = (progress == 100.0)
-                    if not playable:
+                    self.playable = (progress == 100.0)
+                    if not self.playable:
                         switchable = True
                     
             if havedigest is not None:
@@ -253,13 +252,19 @@ class LibraryItemPanel(wx.Panel):
                 self.pb.Refresh()
                 
             
-            self.playerPlay.setEnabled(showPlayButton or playable)
-            self.playerPlay.setToggled(playable)
+            self.playerPlay.setEnabled(showPlayButton or self.playable)
+            self.playerPlay.setToggled(self.playable)
             self.playFast.setToggled(not switchable)
             self.boost.setEnabled(showBoostAndPlayFast)
             self.boost.setToggled(self.is_boosted())
             self.playFast.setEnabled(showBoostAndPlayFast)
             
+            # Update stats in detailsFrame
+            if self.torrentDetailsFrame and self.torrentDetailsFrame.IsShown():
+                self.torrentDetailsFrame.detailPanel.updateFromABCTorrent()
+                # Normally this is only updated when log changes
+                self.torrentDetailsFrame.messageLogPanel.updateMessageLog()
+                
         else:
             #self.pb.setEnabled(False)
             self.pb.reset()
@@ -288,23 +293,29 @@ class LibraryItemPanel(wx.Panel):
         #self.parent.Refresh()
         
     def select(self):
+        colour = self.guiUtility.selectedColour
         self.thumb.setSelected(True)
-        self.title.SetBackgroundColour(self.selectedColour)
-        self.playFast.setBackground(self.selectedColour)
-        self.boost.setBackground(self.selectedColour)
-        self.playerPlay.setBackground(self.selectedColour)
-        self.SetBackgroundColour(self.selectedColour)
-        self.playerPlay.setBackground(self.selectedColour)
+        self.title.SetBackgroundColour(colour)
+        self.playFast.setBackground(colour)
+        self.boost.setBackground(colour)
+        self.playerPlay.setBackground(colour)
+        self.SetBackgroundColour(colour)
+        self.playerPlay.setBackground(colour)
         self.Refresh()
         
         
-    def deselect(self):
+    def deselect(self, number = 0):
+        if number % 2 == 0:
+            colour = self.guiUtility.unselectedColour
+        else:
+            colour = self.guiUtility.unselectedColour2
+            
         self.thumb.setSelected(False)
-        self.title.SetBackgroundColour(self.unselectedColour)
-        self.SetBackgroundColour(self.unselectedColour)
-        self.playFast.setBackground(self.unselectedColour)
-        self.boost.setBackground(self.unselectedColour)
-        self.playerPlay.setBackground(self.unselectedColour)
+        self.title.SetBackgroundColour(colour)
+        self.SetBackgroundColour(colour)
+        self.playFast.setBackground(colour)
+        self.boost.setBackground(colour)
+        self.playerPlay.setBackground(colour)
         self.Refresh()
         
     def keyTyped(self, event):
@@ -318,9 +329,18 @@ class LibraryItemPanel(wx.Panel):
         event.Skip()
         
     def mouseAction(self, event):
+        obj = event.GetEventObject()
+        name = obj.GetName()
+        
+        # buttons that are switched off, should not generate events
+        try:
+            if not obj.isEnabled():
+                return
+        except:
+            pass
+            
         if self.data.get('abctorrent'):
-            obj = event.GetEventObject()
-            name = obj.GetName()
+                
             abctorrent = self.data.get('abctorrent')
             if name == 'delete':
                 abctorrent.actions.stop()
@@ -346,7 +366,9 @@ class LibraryItemPanel(wx.Panel):
                 self.show_boost(abctorrent)
                     
             elif name == 'libraryPlay':
-                self.play(abctorrent)
+                if self.playable:
+                    self.play(abctorrent)
+                
           
         print >>sys.stderr,"lip: mouseaction: name",event.GetEventObject().GetName()
             
@@ -354,7 +376,15 @@ class LibraryItemPanel(wx.Panel):
         if self.data:
             self.guiUtility.selectTorrent(self.data)
         event.Skip()
-                
+       
+    def doubleClicked(self, event):
+        # open torrent details frame
+        abctorrent = self.data.get('abctorrent')
+        if abctorrent:
+            abctorrent.dialogs.advancedDetails()
+            
+        event.Skip()
+        
     def getIdentifier(self):
         if self.data:
             return self.data.get('infohash')
@@ -411,5 +441,6 @@ class LibraryItemPanel(wx.Panel):
         """
         if self.data.get('infohash') == infohash and self.data.get('abctorrent'):
             del self.data['abctorrent']
-            
+    
+        
     

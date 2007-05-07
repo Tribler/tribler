@@ -290,7 +290,7 @@ class standardGrid(wx.Panel):
         
         id = self.detailPanel.getIdentifier()
             
-        
+        number = 0
         for row in self.panels:
             for pan in row:
                 try:
@@ -300,9 +300,10 @@ class standardGrid(wx.Panel):
                     
                 if panel_id != id or  panel_id is None:
                     #print 'item deselected2'
-                    pan.deselect()
+                    pan.deselect(number = number)
                 else:
                     pan.select()
+                number += 1
         
     def hasDetailPanel(self):
         if self.detailPanel:

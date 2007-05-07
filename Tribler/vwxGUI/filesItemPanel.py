@@ -115,14 +115,16 @@ class FilesItemPanel(wx.Panel):
     def select(self):
         if DEBUG:
             print 'fip: item selected',self.data.keys()
-            
+        colour = self.guiUtility.selectedColour
         self.thumb.setSelected(True)
-        self.title.SetBackgroundColour(self.selectedColour)
+        self.title.SetBackgroundColour(colour)
         self.title.Refresh()
         
-    def deselect(self):
+    def deselect(self, number = 0):
+        colour = self.guiUtility.unselectedColour
+            
         self.thumb.setSelected(False)
-        self.title.SetBackgroundColour(self.unselectedColour)
+        self.title.SetBackgroundColour(colour)
         self.title.Refresh()
         
     def keyTyped(self, event):

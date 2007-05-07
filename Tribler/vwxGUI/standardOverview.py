@@ -348,3 +348,5 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         
     def getRSSUrlCtrl(self):
         return self.data[self.mode]['rssurlctrl']
+    
+        

@@ -158,9 +158,11 @@ class FriendsItemPanel(wx.Panel):
         self.title.SetBackgroundColour(self.selectedColour)
         self.title.Refresh()
         
-    def deselect(self):
+    def deselect(self, number = 0):
+        colour = self.guiUtility.unselectedColour
+        
         self.thumb.setSelected(False)
-        self.title.SetBackgroundColour(self.unselectedColour)
+        self.title.SetBackgroundColour(colour)
         self.title.Refresh()
     
     def keyTyped(self, event):
