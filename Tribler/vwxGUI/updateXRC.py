@@ -21,6 +21,7 @@ def changeFile(filename):
                      ('standardOverview', 'wxPanel', customDir+'standardOverview'), 
                      ('standardDetails', 'wxPanel', customDir+'standardDetails'),                     
                      ('standardPager', 'wxPanel', customDir+'standardPager'),
+                     ('SwitchButton', 'wxPanel', customDir+'tribler_topButton'),
                      
                      ('filesFilter', 'wxPanel', customDir+'standardFilter'),
                      ('filesDetails', 'wxPanel', customDir+'filesDetails'), 

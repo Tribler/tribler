@@ -199,7 +199,7 @@
                                     <object class="wxStaticText" name="files">
                                       <style>wxST_NO_AUTORESIZE</style>
                                       <label>discovered files</label>
-                                      <pos>87,8</pos>
+                                      <pos>87,7</pos>
                                       <size>118,13</size>
                                       <bg>#  4454</bg>
                                       <fg>#ffffff</fg>
@@ -233,8 +233,8 @@
                                     <object class="wxStaticText" name="numberFiles">
                                       <style>wxST_NO_AUTORESIZE</style>
                                       <label>200</label>
-                                      <pos>210,8</pos>
-                                      <size>49,13</size>
+                                      <pos>209,7</pos>
+                                      <size>40,13</size>
                                       <bg>#  4454</bg>
                                       <fg>#ffffff</fg>
                                     </object>
@@ -247,11 +247,20 @@
                                       <style>wxST_NO_AUTORESIZE</style>
                                       <label>300</label>
                                       <pos>209,22</pos>
-                                      <size>49,13</size>
+                                      <size>40,13</size>
                                       <bg>#  4454</bg>
                                       <fg>#ffffff</fg>
                                     </object>
                                   </object>
+                                </object>
+                              </object>
+                              <object class="sizeritem">
+                                <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
+                                <border>3</border>
+                                <option>0</option>
+                                <object class="wxPanel" name="firewallStatus" subclass="Tribler.vwxGUI.tribler_topButton.SwitchButton">
+                                  <pos>254,8</pos>
+                                  <size>20,20</size>
                                 </object>
                               </object>
                             </object>
@@ -271,9 +280,10 @@
                             <option>0</option>
                             <object class="wxStaticText" name="messageField">
                               <style>wxST_NO_AUTORESIZE</style>
-                              <label>message</label>
+                              <label>message
+message</label>
                               <pos>87,41</pos>
-                              <size>175,23</size>
+                              <size>175,28</size>
                               <bg>#305100</bg>
                               <fg>#ffffff</fg>
                             </object>
