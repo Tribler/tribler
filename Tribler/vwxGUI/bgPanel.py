@@ -1,15 +1,16 @@
 import wx, os, sys
 import wx.xrc as xrc
 
-class bgPanel(wx.Panel):
+
+class ImagePanelBasic(wx.Panel):
     """
     Panel with automatic backgroundimage control.
     """
             
-    def __init__(self, *args, **kw):
+    def __init__(self, tile, *args, **kw):
         self.backgroundColour = wx.Colour(102,102,102)
         self.xpos = self.ypos = 0
-        self.tile = True
+        self.tile = tile
         if len(args) == 0: 
             pre = wx.PrePanel() 
             # the Create step is done by XRC. 
@@ -110,3 +111,14 @@ class bgPanel(wx.Panel):
                 dc.DrawBitmap(self.bitmap, self.xpos,self.ypos, True)
         
 
+
+class bgPanel(ImagePanelBasic):
+    def __init__(self, *args, **kw):
+        tile = True
+        ImagePanelBasic.__init__(self, tile, *args, **kw)
+        
+class ImagePanel(ImagePanelBasic):
+    def __init__(self, *args, **kw):
+        tile = False
+        ImagePanelBasic.__init__(self, tile, *args, **kw)
+    

@@ -65,7 +65,7 @@
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="ImagePanel" name="thumbField">
+        <object class="wxPanel" name="thumbField" subclass="Tribler.vwxGUI.bgPanel.ImagePanel">
           <pos>0,21</pos>
           <size>300,170</size>
         </object>

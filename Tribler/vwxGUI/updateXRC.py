@@ -12,6 +12,7 @@ def changeFile(filename):
     # (customClassName, wxClassName, filename for import)
     customDir = 'Tribler.vwxGUI.'
     customClasses = [('bgPanel', 'wxPanel', customDir+'bgPanel'), 
+                     ('ImagePanel', 'wxPanel', customDir+'bgPanel'),
                      ('tribler_topButton', 'wxPanel', customDir+'tribler_topButton'),                     
                      ('tribler_List', 'wxListCtrl', customDir+'tribler_List'),                     
                      ('FilesList', 'wxListCtrl', customDir+'tribler_List'),                     

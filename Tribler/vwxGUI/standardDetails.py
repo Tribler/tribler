@@ -864,6 +864,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         if not thumbPanel:
             return 
         
+        thumbPanel.setBackground(wx.BLACK)
         thumbBitmap = torrent.get('metadata',{}).get('ThumbnailBitmapLarge')
         thumbnailString = torrent.get('metadata', {}).get('Thumbnail')
         
