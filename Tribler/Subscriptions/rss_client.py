@@ -44,7 +44,7 @@ class TorrentFeedThread(Thread):
     getInstance = staticmethod(getInstance)
         
     def register(self,utility):
-        self.metahandler = MetadataHandler()
+        self.metahandler = MetadataHandler.getInstance()
         self.torrent_db = TorrentDBHandler()
     
         self.utility = utility
