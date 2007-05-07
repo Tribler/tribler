@@ -7,7 +7,9 @@ class bgPanel(wx.Panel):
     """
             
     def __init__(self, *args, **kw):
-        self.backgroundColour = wx.Colour(102,102,102) 
+        self.backgroundColour = wx.Colour(102,102,102)
+        self.xpos = self.ypos = 0
+        self.tile = True
         if len(args) == 0: 
             pre = wx.PrePanel() 
             # the Create step is done by XRC. 
@@ -64,7 +66,7 @@ class bgPanel(wx.Panel):
         
         
         if os.path.isfile(self.bitmapPath):
-            self.bitmap = wx.Bitmap(self.bitmapPath, wx.BITMAP_TYPE_ANY)
+            self.setBitmap(wx.Bitmap(self.bitmapPath, wx.BITMAP_TYPE_ANY))
         else:
             print '[bgPanel] Could not load image: %s' % self.bitmapPath
         
@@ -73,10 +75,15 @@ class bgPanel(wx.Panel):
         wx.EVT_PAINT(self, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnErase)
         
-        
+
     
     def setBitmap(self, bitmap):
         self.bitmap = bitmap
+        
+        w, h = self.GetSize()
+        iw, ih = self.bitmap.GetSize()
+                
+        self.xpos, self.ypos = (w-iw)/2, (h-ih)/2
         self.Refresh()
         
     def OnErase(self, event):
@@ -93,10 +100,13 @@ class bgPanel(wx.Panel):
             rec=wx.Rect()
             rec=self.GetClientRect()
             
-            for y in range(0,rec.GetHeight(),self.bitmap.GetHeight()):
-                for x in range(0,rec.GetWidth(),self.bitmap.GetWidth()):
-                    dc.DrawBitmap(self.bitmap,x,y,0)
-            # Do not tile
-            #dc.DrawBitmap(self.bitmap, 0,0, True)
+            if self.tile:
+                for y in range(0,rec.GetHeight(),self.bitmap.GetHeight()):
+                    for x in range(0,rec.GetWidth(),self.bitmap.GetWidth()):
+                        dc.DrawBitmap(self.bitmap,x,y,0)
+            else:
+                # Do not tile
+                
+                dc.DrawBitmap(self.bitmap, self.xpos,self.ypos, True)
         
 
