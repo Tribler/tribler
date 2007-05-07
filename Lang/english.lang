@@ -1163,6 +1163,11 @@ profileDetails_Presence_VersionYes = "*-*You are up to date!"
 profileDetails_Presence_VersionNo_improve = "*-*Update to the newest version 4.0 at <url>."
 
 
+#################
+# Notification  #
+#################
+notification_download_complete = "Download Complete"
+notification_finished_seeding  = "Finished Seeding"
 
 #############
 #Tribler UI - Persons View, Tribler 4.0.0
@@ -1172,3 +1177,4 @@ persons_view_no_data = "No persons available yet"
 torrentcollectsleep = "Time to wait between downloading torrents from RSS:"
 buddycastsubscription = "Discover content via other Tribler users"
 download_inactive = "inactive"
+

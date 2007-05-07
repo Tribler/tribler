@@ -19,6 +19,7 @@ from Utility.helpers import getfreespace
 from Tribler.Worldmap.peer import BTPeer
 from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
 from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
+from Tribler.notification import notify, DOWNLOAD_COMPLETE, DONE_SEEDING
 
 from safeguiupdate import DelayedEventHandler
 from Tribler.utilities import show_permid_short
@@ -1093,6 +1094,7 @@ class ABCEngine(DelayedEventHandler):
         self.torrent.status.completed = True
         self.progress = 100.0
 
+        notify( DONE_SEEDING, self.utility.lang.get("notification_finished_seeding"), self.torrent.getTitle() )
         self.torrent.connection.stopEngine()
         
         self.queue.updateAndInvoke()
@@ -1109,6 +1111,9 @@ class ABCEngine(DelayedEventHandler):
         # change:   5:Progress  6:BT Status
         # clear :   8:ETA 10:DLSpeed  
         #####################################################
+        if self.dow.storagewrapper.stat_numdownloaded > 0:
+            # only notify if we finished downloading the last piece
+            notify( DOWNLOAD_COMPLETE, self.utility.lang.get("download_complete"), self.torrent.getTitle() )
         self.torrent.status.completed = True
         self.progress = 100.0
         self.torrent.files.updateProgress()

@@ -69,6 +69,8 @@ from Tribler.Dialogs.BandwidthSelector import BandwidthSelector
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Dialogs.activities import *
 
+from Tribler.notification import init as notification_init
+
 DEBUG = False
 ALLOW_MULTIPLE = False
 
@@ -971,6 +973,8 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             self.videoplayer.register(self.utility)
             self.videoserver = VideoHTTPServer.getInstance()
             self.videoserver.background_serve()
+
+            notification_init( self.utility )
     
             #self.frame = ABCFrame(-1, self.params, self.utility)
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params)
