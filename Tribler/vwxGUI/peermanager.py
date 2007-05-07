@@ -369,9 +369,11 @@ class PeerDataManager(DelayedEventHandler):
         localdata = []
         #select only tribler peers
         for i in xrange(len(tempdata)):
-            if tempdata[i].get('permid') and tempdata[i]['connected_times'] > 0:
+            permid = tempdata[i].get('permid')
+            isFriend = self.frienddb.isFriend(permid)
+            if tempdata[i]['connected_times'] > 0 or isFriend:
                 peer_data = tempdata[i]
-                self.preparePeer(peer_data)
+                self.preparePeer(peer_data,isFriend)
                 localdata.append(peer_data)
         #save the data information
         return localdata

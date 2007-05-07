@@ -223,6 +223,10 @@ class GUIUtility:
     def deleteTorrent(self, torrent):
         pass
     
+    def deleteSubscription(self,subscrip):
+        self.standardOverview.loadSubscriptionData()
+        self.standardOverview.refreshData()
+    
     def selectData(self, data):
         "User clicked on item. Has to be selected in detailPanel"
         self.standardDetails.setData(data)
@@ -428,6 +432,7 @@ class GUIUtility:
         
         torrentfeed = TorrentFeedThread.getInstance()
         torrentfeed.addURL(url)
+        self.standardOverview.loadSubscriptionData()
         self.standardOverview.refreshData()
 
     def firewallStatusClick(self,event=None):

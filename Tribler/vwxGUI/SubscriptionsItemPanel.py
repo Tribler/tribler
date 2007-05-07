@@ -129,16 +129,17 @@ class SubscriptionsItemPanel(wx.Panel):
             self.cB.Enable(True)
             self.cB.SetValue(peer_data['status'] == "active")
             if 'persistent' in self.data:
-                self.delete.Disable()
+                self.delete.Hide()
             else:
-                self.delete.Enable()
+                self.delete.Show()
         else:
             self.title.SetLabel('')
             #self.title.SetToolTipString('')
             self.title.Enable(False)
             self.cB.SetValue(False)
             self.cB.Enable(False)
-            self.delete.Enable(False)
+            #self.delete.Enable(False)
+            self.delete.Hide()
        
         self.thumb.setData(peer_data)
                
@@ -173,7 +174,7 @@ class SubscriptionsItemPanel(wx.Panel):
                 if self.data:
                     if DEBUG:
                         print >>sys.stderr,'subip: deleting'
-#                    self.guiUtility.deleteTorrent(self.data)
+                    self.guiUtility.deleteSubscription(self.data)
         event.Skip()
         
     def mouseAction(self, event):
@@ -198,8 +199,7 @@ class SubscriptionsItemPanel(wx.Panel):
                     self.torrentfeed.setURLStatus(self.data['url'],newstatus)
             elif name == 'delete':
                 self.torrentfeed.deleteURL(self.data['url'])
-                # TODO: refresh view, hack it
-                self.setData(None)
+                self.guiUtility.deleteSubscription(self.data)
             
         event.Skip()
             
