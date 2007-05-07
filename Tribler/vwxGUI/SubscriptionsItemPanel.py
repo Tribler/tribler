@@ -58,6 +58,9 @@ class SubscriptionsItemPanel(wx.Panel):
         self.cB.SetForegroundColour(wx.Colour(0,0,0))
         self.hSizer.Add(self.cB, 0, wx.ALL, 3)        
         
+        # Add Spacer
+        self.hSizer.Add([5,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)        
+        
         # Add thumb / favicon from website?
         self.thumb = FavicoThumbnailViewer(self)
         self.thumb.setBackground(wx.BLACK)

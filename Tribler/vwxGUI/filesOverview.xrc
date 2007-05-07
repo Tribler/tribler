@@ -112,12 +112,18 @@
                 </object>
                 <object class="sizeritem">
                   <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
-                  <border>3</border>
+                  <border>4</border>
                   <option>0</option>
                   <object class="wxPanel" name="search" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                    <pos>185,3</pos>
-                    <size>20,22</size>
+                    <pos>175,3</pos>
+                    <size>22,22</size>
                   </object>
+                </object>
+                <object class="spacer">
+                  <size>10,27</size>
+                  <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
                 </object>
               </object>
             </object>

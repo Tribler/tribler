@@ -48,6 +48,7 @@ class LibraryItemPanel(wx.Panel):
         
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
+        # Add Spacer
         self.hSizer.Add([8,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)        
         
         # Add thumb

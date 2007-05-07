@@ -53,6 +53,8 @@ class standardFilter(wx.Panel):
         
         #self.SetBackgroundColour(wx.BLUE)
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        # Add Sizer
+        self.hSizer.Add([8,10],0,wx.EXPAND|wx.FIXED_MINSIZE,0)        
         # filter 1 is making a selection
         for pullDownData in self.filterData:
             titles = [item[1] for item in pullDownData]
@@ -70,6 +72,7 @@ class standardFilter(wx.Panel):
             self.hSizer.Add(filter, 0, wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,3)
                 
         self.hSizer.Add([8,33],0,wx.EXPAND|wx.FIXED_MINSIZE,2)
+        
         
         self.SetSizer(self.hSizer);
         self.SetAutoLayout(1);
@@ -177,9 +180,9 @@ class libraryFilter(standardFilter):
 class friendsFilter(standardFilter):
     def __init__(self):
         filterData = [
-#                      [('friends', 'All'),
-#                       ('search_friends', 'Search Results')
-#                       ],
+                      [('friends', 'All'),
+                       #('search_friends', 'Search Results')
+                       ],
                       [(('content_name','increase'), 'Name'),
                        ('similarity', 'Similar taste'),                        
                        ('last_seen', 'Recently connected'),                        
