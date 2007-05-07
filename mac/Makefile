@@ -43,6 +43,9 @@ imagecontents/:		${SITEPACKAGES}/M2Crypto/ ${SITEPACKAGES}/Growl.py
 	mkdir -p $@/.background
 	cp background.png $@/.background
 
+	# Volume Icon
+	cp VolumeIcons.icns $@/.VolumeIcon.icns
+
 	# Shortcut to /Applications
 	ln -s /Applications $@/Applications
 
@@ -90,6 +93,9 @@ Tribler.dmg:		imagecontents/ build/sla.r
 	-e "   -- Sync" \
 	-e "   delay 5" \
 	-e "end tell" || true
+
+	# turn on custom volume icon
+	/Developer/Tools/SetFile -a C build/mnt
 
 	# close
 	hdiutil detach build/mnt
