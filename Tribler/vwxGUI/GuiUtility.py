@@ -159,7 +159,6 @@ class GUIUtility:
             pass
         
     def standardPersonsOverview(self):
-        
         self.standardOverview.setMode('personsMode')
         #should read the current filters, not put some default ones that have nothing to do with the ones in the combo boxes in the filter gui
         self.standardOverview.filterChanged(self.standardOverview.getFilter().getState())

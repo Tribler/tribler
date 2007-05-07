@@ -15,6 +15,7 @@ from Tribler.unicode import bin2unicode
 from safeguiupdate import FlaglessDelayedInvocation
 #from Tribler.vwxGUI.tribler_topButton import tribler_topButton
 from Utility.constants import COL_PROGRESS
+from Tribler.Dialogs.GUIServer import GUIServer
 
 
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'subscriptionsMode', 'messageMode']
@@ -67,7 +68,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                                             'download', 'tabs', ('files_detailsTab','tabs'), ('info_detailsTab','tabs'), 'TasteHeart', 'details']
         self.modeElements['personsMode'] = ['TasteHeart', 'recommendationField','addAsFriend', 'commonFilesField',
                                             'alsoDownloadedField', 'info_detailsTab', 'advanced_detailsTab','detailsC',
-                                            'titleField','statusField']
+                                            'titleField','statusField','thumbField']
         self.modeElements['libraryMode'] = ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
                                             'download', 'files_detailsTab', 'info_detailsTab', 'TasteHeart', 'details']
@@ -386,10 +387,32 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             titleField = self.getGuiObj('titleField')
             titleField.SetLabel(item.get('content_name'))
             titleField.Wrap(-1)
-
+            
+            #set the picture
+            try:
+                bmp = self.mm.get_default('personsMode','DEFAULT_THUMB')
+                # Check if we have already read the thumbnail and metadata information from this torrent file
+                if item.get('metadata'):
+                    bmp = item['metadata'].get('ThumbnailBitmap')
+                    if not bmp:
+                        bmp = self.mm.get_default('personsMode','DEFAULT_THUMB')
+                else:
+                    guiserver = GUIServer.getInstance()
+                    guiserver.add_task(lambda:self.loadMetadata(item),0)
+                
+                thumbField = self.getGuiObj("thumbField")
+                thumbField.setBitmap(bmp)
+                width, height = thumbField.GetSize()
+                d = 1
+                thumbField.border = [wx.Point(0,d), wx.Point(width-d, d), wx.Point(width-d, height-d), wx.Point(d,height-d), wx.Point(d,0)]
+                thumbField.Refresh()
+                
+            except:
+                print_exc(file=sys.stderr)
+            
             if self.getGuiObj('info_detailsTab').isSelected():
                 #recomm = random.randint(0,4)
-                rank = self.guiUtility.peer_manager.getRank(item['permid'])
+                rank = self.guiUtility.peer_manager.getRank(peer_data=item)#['permid'])
                 #because of the fact that hearts are coded so that lower index means higher ranking, then:
                 if rank > 0 and rank <= 5:
                     recomm = 0

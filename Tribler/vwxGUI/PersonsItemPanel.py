@@ -326,7 +326,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             dc.DrawBitmap(self.dataBitmap, self.xpos,self.ypos, True)
 #        if self.mouseOver:
         if self.data is not None and type(self.data)==type({}) and self.data.get('permid'):
-            rank = self.guiUtility.peer_manager.getRank(self.data['permid'])
+            rank = self.guiUtility.peer_manager.getRank(peer_data = self.data)#['permid'])
             #because of the fact that hearts are coded so that lower index means higher ranking, then:
             if rank > 0 and rank <= 5:
                 recomm = 0
@@ -338,7 +338,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                 recomm = 3
             else:
                 recomm = -1
-            if recomm >=0 or self.data.get('friend') or self.data.get('online'):
+            if recomm >=0 or self.data.get('friend') or self.data.get('online') or self.mouseOver:
                 mask = self.mm.get_default('personsMode','MASK_BITMAP')
                 dc.DrawBitmap(mask,0 ,62, True)
             if recomm >=0:
@@ -359,7 +359,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         
 #        dc.SetTextForeground(wx.WHITE)
         #dc.DrawText('rating', 5, 60)
-        if (self.selected and self.border):
+        if ((self.selected or self.mouseOver) and self.border):
             dc.SetPen(wx.Pen(wx.Colour(255,51,0), 2))
             dc.DrawLines(self.border)
         

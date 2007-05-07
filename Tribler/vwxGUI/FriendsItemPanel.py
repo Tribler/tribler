@@ -213,7 +213,7 @@ class FriendThumbnailViewer(ThumbnailViewer):
                 self.Parent.status.SetLabel('status unknown')
             else:
                 self.Parent.status.SetLabel(helping)
-            rank = self.guiUtility.peer_manager.getRank(self.data['permid'])
+            rank = self.guiUtility.peer_manager.getRank(peer_data = self.data)#['permid'])
             #because of the fact that hearts are coded so that lower index means higher ranking, then:
             if rank > 0 and rank <= 5:
                 recomm = 0

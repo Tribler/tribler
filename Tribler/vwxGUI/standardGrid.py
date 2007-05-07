@@ -56,8 +56,8 @@ class standardGrid(wx.Panel):
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         #self.cols = 5
-        self.items = 0
-        self.currentData = 0
+        self.items = 0 #number of items that are currently visible 
+        self.currentData = 0 #current starting index in the list for visible items
         self.currentRows = 0
         
         self.panels = []

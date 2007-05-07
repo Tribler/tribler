@@ -9,6 +9,7 @@ from Utility.constants import *
 from peermanager import PeerDataManager
 import peermanager
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
+from Tribler.unicode import *
 
 
 OVERVIEW_MODES = ['filesMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionsMode', 'messageMode', 'libraryMode']
@@ -47,6 +48,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         def filterFuncFriend(peer_data):
             return peer_data.get('friend')
         self.peer_manager.registerFilter( 'friends', filterFuncFriend)
+        #register for gui events
+        self.peer_manager.registerGui(self.updateFunPersons) #no matter which of the two, persons or friends, is on, the same function is used
         self.mode = None
         self.data = {} #keeps gui elements for each mode
         for mode in OVERVIEW_MODES:
@@ -339,9 +342,30 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             self.invokeLater(torrentGrid.updateItem, [torrent], {'delete':True})
             
         
-    def updateFunPersons(self, torrent, operate):    
-        print "UpdatefunPersons called"
-    
+    def updateFunPersons(self, peer_data, operate):    
+        print "UpdatefunPersons called for ",peer_data['content_name']
+        grid = None
+        if self.mode in ["personsMode","friendsMode"]:
+            grid = self.data[self.mode]['grid']
+        if grid is not None:
+            try:
+                #check if the changed peer_data is in the list of visible ones
+                for index in range(grid.currentData,grid.currentData+grid.items):
+                    if grid.data[index]['permid'] == peer_data['permid']:
+                        if operate in ["update","add"]:
+                            self.invokeLater(grid.setDataOfPanel,[index-grid.currentData, grid.data[index]])
+                        elif operate in ["delete","hide"]:
+                            self.invokeLater(grid.setData,[grid.data,False])
+                        elif operate.endswith("and top_changed"):
+                            self.invokeLater(grid.refreshPanels)
+                print "#===============================================================================#"
+                print "#                         dump visible peers                                    #"
+                for index in range(grid.currentData,grid.currentData+grid.items):
+                    print "#     %d. %s     %f" % (grid.data[index]['simTop'],unicode2str(grid.data[index]['content_name']),grid.data[index]['similarity'])
+                print "#===============================================================================#"
+            except:
+                print_exc()
+                self.invokeLater(grid.refreshPanels)
     
     def getSearchField(self):
         return self.data[self.mode]['search']

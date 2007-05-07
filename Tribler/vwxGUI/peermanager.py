@@ -7,29 +7,35 @@ from safeguiupdate import *
 import threading
 from traceback import print_exc
 
+#===============================================================================
+# TODO:
+# update top list and the sorting after removal of elements
+#===============================================================================
 
 DEBUG = True
 def debug(message):
     if DEBUG:
         print message
 
-def getAgeingValue(old_time):
-    try:    
-        old_time = int(old_time)
-        if old_time < 0 :
-            return 0
-        curr_time = time()
-        diff = int(curr_time - old_time)
-    except: 
-        return 0
-    if diff < 60:
-        return 6048 - diff
-    elif diff < 3600:
-        return 6048 - 60 + 6 - int(diff/10)
-    if diff < 604800:
-        return 6048 - 360 + 36 - int(diff/100)
-    else:   
-        return 0
+#===============================================================================
+# def getAgeingValue(old_time):
+#    try:    
+#        old_time = int(old_time)
+#        if old_time < 0 :
+#            return 0
+#        curr_time = time()
+#        diff = int(curr_time - old_time)
+#    except: 
+#        return 0
+#    if diff < 60:
+#        return 6048 - diff
+#    elif diff < 3600:
+#        return 6048 - 60 + 6 - int(diff/10)
+#    if diff < 604800:
+#        return 6048 - 360 + 36 - int(diff/100)
+#    else:   
+#        return 0
+#===============================================================================
     
 #===============================================================================
 # def swap(array, index1, index2):
@@ -78,11 +84,15 @@ def cmpFuncSimilarity( val1, val2):
     #if values are equal, check the order in the similarity top
     manager = PeerDataManager.getInstance()
     pos1=pos2=-1
-    for i in range(len(manager.top20similar)):
-        if manager.top20similar[i]['permid'] == val1['permid']:
-            pos1 = i
-        if manager.top20similar[i]['permid'] == val2['permid']:
-            pos2 = i
+#===============================================================================
+#    for i in range(len(manager.top20similar)):
+#        if manager.top20similar[i]['permid'] == val1['permid']:
+#            pos1 = i
+#        if manager.top20similar[i]['permid'] == val2['permid']:
+#            pos2 = i
+#===============================================================================
+    pos1 = val1['simTop']
+    pos2 = val2['simTop']
     if pos1 >= 0 and pos2 == -1:
         return 1
     if pos2 >=0 and pos1 == -1:
@@ -153,7 +163,7 @@ class PeerDataManager(DelayedEventHandler):
         self.MIN_CALLBACK_INT = 1 #min callback interval: minimum time in seconds between two invocations on the gui from the callback
         self.start_callback_int = -1 #init the time variable for the callback function
         self.callback_dict = {} #empty list for events
-        self.dict_guiCallbackFuncList = {}#callback function list from the parent, the creator object
+        self.guiCallbackFuncList = []#callback function list from the parent, the creator object
         self.peersdb = SynPeerDBHandler(updateFun = self.callbackPeerChange)#CacheDBHandler.PeerDBHandler()
         self.prefdb = CacheDBHandler.PreferenceDBHandler()
 #        self.mydb = CacheDBHandler.MyPreferenceDBHandler()
@@ -232,9 +242,13 @@ class PeerDataManager(DelayedEventHandler):
                         bShouldRemove = True
                 else: #remove it without checking
                     bShouldRemove = True
-                list.pop(peer_index)
+                if bShouldRemove:
+                    list.pop(peer_index)
     
     def getPeerDataIndex(self, permid, filter_name='all'):
+        """same as getPeerData only that returns the index of the item in the
+        list provided by filter_name
+        useful for index optimization"""
         if self.filtered_data.get(filter_name) is None:
             return -1
         data = self.filtered_data[filter_name] 
@@ -244,6 +258,10 @@ class PeerDataManager(DelayedEventHandler):
         return -1
     
     def getPeerData(self, permid, filter_name='all'):
+        """iterates through all peers found in the local snapshot and returns the
+        first one that has the desired permid.
+        if filter_name is not none, then the search is done only in the list provided
+        by that filter"""
         if self.filtered_data.get(filter_name) is None:
             return None
         data = self.filtered_data[filter_name] 
@@ -256,6 +274,7 @@ class PeerDataManager(DelayedEventHandler):
         return None
     
     def isFriend(self, permid):
+        """checks the local snapshot for friendship status of a peer based on it's permid"""
         peer_data = self.getPeerData(permid)
         if peer_data!=None and peer_data['friend']:
             return True
@@ -277,6 +296,10 @@ class PeerDataManager(DelayedEventHandler):
         self.notifyGui(peer_data, mode)
         
     def addFriendwData(self, peer_data):
+        """adds the peer obtained from the permid field of the peer_data dictionary
+        as a friend in the database and in the local snapshot. Also it updates the
+        peer_data because this is only a copy of peer information found in the local
+        snapshot"""
         permid = peer_data['permid']
         peer_d = self.getPeerData(permid)
         if peer_d!=None:
@@ -284,30 +307,39 @@ class PeerDataManager(DelayedEventHandler):
             peer_data['friend']=True
             self.frienddb.addFriend(permid)
             self.insertInFilters(peer_d)
+            self.notifyGui(peer_d, "add")
             return True
         else:
             "Could not add as friend because not in cache"
         return False
     
     def addFriend(self, permid):
+        """same as addFriendwData only that it has no peer_data copy to update"""
         peer_data = self.getPeerData(permid)
         if peer_data!=None:
             peer_data['friend']=True
             self.frienddb.addFriend(permid)
             self.insertInFilters(peer_data)
+            self.notifyGui(peer_data, "add")
         else:
             "Could not add as friend because not in cache"
 
     def deleteFriend(self, permid):
+        """same as deleteFriendwData only that it has no peer_data copy to update"""
         peer_data = self.getPeerData(permid)
         if peer_data!=None:
             peer_data['friend']=False
             self.frienddb.deleteFriend(permid)
             self.removeFromFilters(permid)
+            self.notifyGui(peer_data, "delete")
         else:
             "Could not delete friend because not in cache"
 
     def deleteFriendwData(self, peer_data):
+        """deletes the peer obtained from the permid field of the peer_data dictionary
+        as a friend in the database and in the local snapshot. Also it updates the
+        peer_data because this is only a copy of peer information found in the local
+        snapshot"""
         permid = peer_data['permid']
         peer_d = self.getPeerData(permid)
         if peer_d!=None:
@@ -315,6 +347,7 @@ class PeerDataManager(DelayedEventHandler):
             peer_data['friend']=False
             self.frienddb.deleteFriend(permid)
             self.removeFromFilters(permid)
+            self.notifyGui(peer_d, "delete")
             return True
         else:
             "Could not delete friend because not in cache"
@@ -340,16 +373,6 @@ class PeerDataManager(DelayedEventHandler):
                 peer_data = tempdata[i]
                 self.preparePeer(peer_data)
                 localdata.append(peer_data)
-    
-        #compute the top similarity list
-        self.updateTopList(localdata, self.top20similar, 'similarity')
-        # compute similarity rank based on similarity with this peer relative to the greatest similarity value
-        #compute the similarity rank
-#===============================================================================
-#        for i in xrange(len(localdata)):
-#            #compute the similarity percent
-#            localdata[i]['similarity_percent'] = int(localdata[i]['similarity']*100.0/self.MaxSimilarityValue)
-#===============================================================================
         #save the data information
         return localdata
 
@@ -395,18 +418,20 @@ class PeerDataManager(DelayedEventHandler):
     def treatCallback(self, permid_dict):
 #        debug("treat callback with %d peers" % (len(permid_dict)))
         for permid, mode in permid_dict.iteritems():
+            bTopChanged = False #indicates that the top 20 similar peer has changed due to this peer, so a refresh of the page is probably neccessary
             peer_data = None
             if mode in ['update', 'add']:
                 #first get the new data from database
                 peer_data = self.peersdb.getPeer(permid)
+                isFriend = self.frienddb.isFriend(permid)
                 #check if is a valid peer
-                if peer_data['connected_times'] == 0 :
+                if peer_data['connected_times'] == 0 and not isFriend:
                     continue #skip this peer as it is of no interrest
                 #extra check, the permid should already be there
                 if peer_data.get('permid') is None:
                     peer_data['permid'] = permid
                 #arrange the data some more: add content_name, rank and so on
-                self.preparePeer(peer_data)
+                bTopChanged = self.preparePeer(peer_data, isFriend=isFriend)
             #update local snapshot
             if mode in ['delete', 'hide']:
                 #remove from all lists
@@ -431,6 +456,8 @@ class PeerDataManager(DelayedEventHandler):
                 
             #inform the GuiUtility of operation
             try:
+                if bTopChanged:
+                    mode = mode+" and top_changed"
                 self.notifyGui(peer_data, mode)
 #                if self.guiCallbackFunc!=None:
 #                    self.guiCallbackFunc(peer_data, mode)
@@ -449,10 +476,8 @@ class PeerDataManager(DelayedEventHandler):
 #===============================================================================
     def notifyGui(self, peer_data, mode):
         """notifies all registered gui objects of the callback after the data is updated in database"""
-        key = 'all' #the only type of key acceptable
-        if self.dict_guiCallbackFuncList.has_key(key):
-            for func in self.dict_guiCallbackFuncList[key]:
-                func(peer_data, mode)
+        for func in self.guiCallbackFuncList:
+            func(peer_data, mode)
   
     def updateTopList(self, data_list, top_list, key, equal_key='permid', max_list_length=20):
         """for each element in data_list, add it to top_list ordered descending based on the key
@@ -478,7 +503,8 @@ class PeerDataManager(DelayedEventHandler):
                     continue #if is equal with the ones until insertion point, no need to do it
                 if indexIsAt != -1:
                     #move from one position to another
-                    top_list.pop(indexIsAt)
+                    elem = top_list.pop(indexIsAt)
+                    elem['simTop'] = -1
                     if indexIsAt < indexInsertAt:
                         indexInsertAt = indexInsertAt - 1
                     bChange = True #there is a change in the list
@@ -487,8 +513,13 @@ class PeerDataManager(DelayedEventHandler):
                     bChange = True #there is a change in the list
             #reduce the size of the list
             while len(top_list)>max_list_length:
-                top_list.pop()
+                elem = top_list.pop()
+                elem["simTop"] = -1
         #print len(top_list), [ elem['content_name'] for elem in top_list]
+        if bChange:
+            #update the "simTop" field for all elements
+            for pos in range(len(top_list)):
+                top_list[pos]["simTop"] = (pos+1)
         return bChange
 
     def updatePeer(self, old_value, new_value, equalFunc=peerEqualFunc):
@@ -497,7 +528,7 @@ class PeerDataManager(DelayedEventHandler):
             for key,value in new_value.iteritems():
                 old_value[key] = value
             
-    def preparePeer(self, peer_data):
+    def preparePeer(self, peer_data, isFriend=None):
         """when a peer is updated, prepare it for use inside the view
         creates content_name, similarity_percent, rank_value
         updates the global maximal similarity value and the list of top 20 most similar peers"""
@@ -505,7 +536,10 @@ class PeerDataManager(DelayedEventHandler):
             peer_data['content_name']=dunno2unicode(peer_data['name'])
         else:
             peer_data['content_name']= 'peer %s' % show_permid_shorter(peer_data['permid'])#'[%s:%s]' % (localdata[i]['ip'],str(localdata[i]['port']))
-        peer_data['friend'] = self.frienddb.isFriend(peer_data['permid'])#permid in self.friend_list
+        if isFriend is not None:
+            peer_data['friend'] = isFriend
+        else:
+            peer_data['friend'] = self.frienddb.isFriend(peer_data['permid'])#permid in self.friend_list
         # compute the maximal value for similarity
         # in order to be able to compute top-n persons based on similarity
         if peer_data.get('similarity'):
@@ -513,6 +547,7 @@ class PeerDataManager(DelayedEventHandler):
                 self.MaxSimilarityValue = peer_data['similarity'] #should recompute percents
         else:
             peer_data['similarity']=0
+        peer_data["simTop"] = -1
 #===============================================================================
 #        if self.isDataPrepared:
 #            if self.MaxSimilarityValue > 0:
@@ -529,9 +564,10 @@ class PeerDataManager(DelayedEventHandler):
 #            print "#===============================================================================#"
 #            print "#             dump top 20 most similar peers                                    #"
 #            for i in range(len(self.top20similar)):
-#                print "#     %d. %s     %f" % ((i+1),unicode2str(self.top20similar[i]['content_name']),self.top20similar[i]['similarity'])
+#                print "#     %d. %s     %f" % (self.top20similar[i]['simTop'],unicode2str(self.top20similar[i]['content_name']),self.top20similar[i]['similarity'])
 #            print "#===============================================================================#"
-            pass
+            return True
+        return False
 
     def compute_rankval(self, peer_data):
         """computes a rank value for a peer used for ordering the peers based on
@@ -586,14 +622,17 @@ class PeerDataManager(DelayedEventHandler):
             while len(filtered)>self.MAX_MIN_PEERS_NUMBER:
                 filtered.pop()
         
-    def getRank(self, permid):
+    def getRank(self, permid=None, peer_data=None):
         """looks for the current data in the top 20 list and returns the index starting from 1"""
-        try:
-            for i in range(len(self.top20similar)):
-                if self.top20similar[i]['permid'] == permid:
-                    return (i+1)
-        except:
-            pass
+        if permid is not None:
+            try:
+                for i in range(len(self.top20similar)):
+                    if self.top20similar[i]['permid'] == permid:
+                        return (i+1)
+            except:
+                pass
+        elif peer_data is not None:
+            return peer_data['simTop']
 #            print "error on getting rank"
         return -1
     
@@ -609,29 +648,43 @@ class PeerDataManager(DelayedEventHandler):
                 self.sortData(name)
         return self.filtered_data[name]
         
-    # register update function
-    def register(self, func, key, filterFunc=None, cmpFunc=None):
-        """when updates are made to data, inform the registered handlers"""
-        self.registerFilter( key, filterFunc, cmpFunc)
+    def registerGui(self, func):
+        """register a Gui for update events on the list.
+        the func is called with the new peer_data as parameter"""
         try:
-            key = key.lower()
-            self.dict_guiCallbackFuncList[key].index(func)
+            self.guiCallbackFuncList.index(func)
             # if no exception, fun already exist!
-            print "DBObserver register error. " + str(func.__name__) + " already exist!"
+            debug("PeerDataManager register Gui Func error. " + str(func.__name__) + " already exist!")
             return
-        except KeyError:
-            self.dict_guiCallbackFuncList[key] = []
-            self.dict_guiCallbackFuncList[key].append(func)
         except ValueError:
-            self.dict_guiCallbackFuncList[key].append(func)
+            self.guiCallbackFuncList.append(func)
         except Exception, msg:
-            print "PeerDataManager unregister error.", Exception, msg
+            print "PeerDataManager register error.", Exception, msg
             print_exc()
+#            
+#    # register update function
+#    def register(self, func, key, filterFunc=None, cmpFunc=None):
+#        """when updates are made to data, inform the registered handlers"""
+#        self.registerFilter( key, filterFunc, cmpFunc)
+#        try:
+#            key = key.lower()
+#            self.dict_guiCallbackFuncList[key].index(func)
+#            # if no exception, fun already exist!
+#            print "DBObserver register error. " + str(func.__name__) + " already exist!"
+#            return
+#        except KeyError:
+#            self.dict_guiCallbackFuncList[key] = []
+#            self.dict_guiCallbackFuncList[key].append(func)
+#        except ValueError:
+#            self.dict_guiCallbackFuncList[key].append(func)
+#        except Exception, msg:
+#            print "PeerDataManager register error.", Exception, msg
+#            print_exc()
         
     def setCmpFunc(self, cmp_func, filter_name='all'):
         """changes the comparing function, should that mean a resorting?"""
         if self.filtered_func.has_key(filter_name):
-            print "<mluc> set compare function for",filter_name,"to",cmp_func.__name__
+#            print "<mluc> set compare function for",filter_name,"to",cmp_func.__name__
             self.filtered_func[filter_name][1] = cmp_func
             self.sortData(filter=filter_name)
     
@@ -639,12 +692,14 @@ class PeerDataManager(DelayedEventHandler):
         if self.filtered_func.has_key(filter_name):
             return self.filtered_func[filter_name][1]
     
-    def unregister(self, func, key):
+    def unregisterGui(self, func):
+        """unregisters a gui function.
+        useful when the gui isn't visible any more, so that it would be bothered with update events.
+        when it becomes visible, it should update all items though."""
         try:
-            key = key.lower()
-            self.dict_guiCallbackFuncList[key].remove(func)
+            self.guiCallbackFuncList.remove(func)
         except Exception, msg:
-            print "PeerDataManager unregister error.", Exception, msg
+            print "PeerDataManager unregister Gui Func error.", Exception, msg
             print_exc()
             
     def getPeerHistFiles(self, permid):
