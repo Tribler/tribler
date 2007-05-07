@@ -58,7 +58,7 @@ class LibraryItemPanel(wx.Panel):
         #self.thumb = bgPanel(self, name="defaultThumb")
         #self.thumb.setBackground(wx.BLACK)
         #self.thumb.SetSize((66,37))
-        self.hSizer.Add(self.thumb, 0, wx.ALL, 0)
+        self.hSizer.Add(self.thumb, 0, wx.LEFT|wx.TOP|wx.BOTTOM, 3)
         
         # Add title
         self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(160,12))        
@@ -79,7 +79,7 @@ class LibraryItemPanel(wx.Panel):
         self.vSizerTitle = wx.BoxSizer(wx.VERTICAL)
         self.vSizerTitle.Add (self.title, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)
         self.vSizerTitle.Add (self.speedSizer, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)                           
-        self.hSizer.Add(self.vSizerTitle, 0, wx.ALL|wx.EXPAND, 3)     
+        self.hSizer.Add(self.vSizerTitle, 0, wx.LEFT|wx.RIGHT|wx.TOP|wx.EXPAND, 3)     
         
         # Add Gauge/progressbar
         #self.pb = TriblerProgressbar(self,-1,wx.Point(359,0),wx.Size(80,15))
@@ -112,8 +112,9 @@ class LibraryItemPanel(wx.Panel):
         self.pbMessage.Add(self.pbSizer,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,2)
         self.pbMessage.Add(self.fileProgressSizer,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,1)
         
-        vLine = wx.StaticLine(self,-1,wx.Point(362,37),wx.Size(2,32),wx.LI_VERTICAL)
-        self.hSizer.Add(vLine, 0, wx.LEFT|wx.TOP, 6)
+        self.addLine()
+        #vLine = wx.StaticLine(self,-1,wx.Point(362,37),wx.Size(2,32),wx.LI_VERTICAL)
+        #self.hSizer.Add(vLine, 0, wx.LEFT, 6)
         
         self.hSizer.Add(self.pbMessage, 0, wx.LEFT|wx.EXPAND, 2)         
         
@@ -124,15 +125,15 @@ class LibraryItemPanel(wx.Panel):
         # Play Fast
         self.playFast = SwitchButton(self, name="playFast")
         self.playFast.setBackground(wx.WHITE)
-        self.playFast.SetSize((82,18))
+        self.playFast.SetSize((81,16))
         self.playFast.setEnabled(False)
         self.boost = SwitchButton(self, name="boost")
         self.boost.setBackground(wx.WHITE)
-        self.boost.SetSize((82,18))
+        self.boost.SetSize((81,16))
         self.boost.setEnabled(False)
         buttonSizer = wx.BoxSizer(wx.VERTICAL)
         buttonSizer.Add(self.playFast, 1, wx.ALL, 2)
-        buttonSizer.Add(self.boost, 1, wx.ALL, 2)
+        buttonSizer.Add(self.boost, 1, wx.RIGHT|wx.LEFT, 2)
         
         self.hSizer.Add(buttonSizer, 1, wx.ALIGN_CENTER|wx.TOP, 2) 
 
@@ -140,21 +141,21 @@ class LibraryItemPanel(wx.Panel):
         
         # Status message
         self.statusField = wx.StaticText(self, -1, '')
-        self.statusField.SetMinSize((50,-1))
-        self.hSizer.Add(self.statusField, 1, wx.ALL|wx.EXPAND, 5)
+        self.statusField.SetMinSize((37,-1))
+        self.hSizer.Add(self.statusField, 1, wx.TOP|wx.EXPAND, 4)
         
         # Play
         self.playerPlay = SwitchButton(self, name="libraryPlay")
         self.playerPlay.setBackground(wx.WHITE)
-        self.playerPlay.SetSize((38,38))
+        self.playerPlay.SetSize((37,37))
         self.playerPlay.setEnabled(False)
-        self.hSizer.Add(self.playerPlay, 0, wx.ALL, 2) 
+        self.hSizer.Add(self.playerPlay, 0, wx.TOP|wx.BOTTOM, 3) 
         
         # Delete button
         self.delete = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='delete')
         self.delete.setBackground(wx.WHITE)
         
-        self.hSizer.Add(self.delete,0,wx.FIXED_MINSIZE|wx.ALIGN_TOP,2)        
+        self.hSizer.Add(self.delete,0,wx.TOP|wx.LEFT|wx.FIXED_MINSIZE|wx.ALIGN_TOP,3)        
     
         # Add Refresh        
         self.SetSizer(self.hSizer);
@@ -171,7 +172,7 @@ class LibraryItemPanel(wx.Panel):
         
     def addLine(self):
         vLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(2,32),wx.LI_VERTICAL)
-        self.hSizer.Add(vLine, 0, wx.LEFT|wx.TOP, 6)
+        self.hSizer.Add(vLine, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)
         
     def setData(self, torrent):
         # set bitmap, rating, title
