@@ -83,9 +83,10 @@ class LibraryItemPanel(wx.Panel):
         
         # Add Gauge/progressbar
         #self.pb = TriblerProgressbar(self,-1,wx.Point(359,0),wx.Size(80,15))
-        self.pb = ProgressBar(self,pos=wx.Point(359,0),size=wx.Size(100,15))
+        self.pb = ProgressBar(self,pos=wx.Point(359,0),size=wx.Size(100,16))
         #self.pb = wx.Panel(self)
-        self.pause = tribler_topButton(self, -1, wx.Point(542,3), wx.Size(17,17),name='pause' )
+        self.pause = tribler_topButton(self, -1, wx.Point(542,3), wx.Size(16,16),name='pause' )
+        self.stop = tribler_topButton(self, -1, wx.Point(542,3), wx.Size(16,16),name='stop' )
         
         # >> Drawn in progressbar
         #self.pbLabel = wx.StaticText(self,-1,"12% |ETA:10min30",wx.Point(274,3),wx.Size(80,15),wx.ST_NO_AUTORESIZE)                                
@@ -93,7 +94,8 @@ class LibraryItemPanel(wx.Panel):
         # <<
         self.pbSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.pbSizer.Add(self.pb,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,2)        
-        self.pbSizer.Add(self.pause,0,wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,2)        
+        self.pbSizer.Add(self.pause,0,wx.TOP|wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,2)        
+        self.pbSizer.Add(self.stop,0,wx.TOP|wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,2)        
         
 
         # Text under progressbar
@@ -149,7 +151,7 @@ class LibraryItemPanel(wx.Panel):
         self.hSizer.Add(self.playerPlay, 0, wx.ALL, 2) 
         
         # Delete button
-        self.delete = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(17,17),name='delete')
+        self.delete = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='delete')
         self.delete.setBackground(wx.WHITE)
         
         self.hSizer.Add(self.delete,0,wx.FIXED_MINSIZE|wx.ALIGN_TOP,2)        
