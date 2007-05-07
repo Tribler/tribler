@@ -133,6 +133,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 
                 if self.mode == 'subscriptionsMode':
                     rssurlctrl = xrc.XRCCTRL(currentPanel,'pasteUrl')
+                    rssurlctrl.Bind(wx.EVT_KEY_DOWN, self.guiUtility.OnSubscribeKeyDown)
                     self.data[self.mode]['rssurlctrl'] = rssurlctrl
             except:
                 print 'Error: Could not load panel, grid and pager for mode %s' % self.mode

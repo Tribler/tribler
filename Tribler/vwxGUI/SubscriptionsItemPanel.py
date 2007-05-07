@@ -28,7 +28,7 @@ class SubscriptionsItemPanel(wx.Panel):
         self.parent = parent
         self.data = None
         self.datacopy = None
-        self.titleLength = 42 # num characters
+        self.titleLength = 80 # num characters
         self.selected = False
         self.warningMode = False
         self.guiserver = parent.guiserver
@@ -73,11 +73,12 @@ class SubscriptionsItemPanel(wx.Panel):
         self.title.SetMinSize((550,20))
         self.hSizer.Add(self.title, 1, wx.BOTTOM|wx.TOP, 3)     
         # Add title
-        self.today =wx.StaticText(self,-1,"today: 10 files",wx.Point(0,0),wx.Size(140,18))        
+        
+        #self.today =wx.StaticText(self,-1,"today: 10 files",wx.Point(0,0),wx.Size(140,18))        
         #self.today.SetBackgroundColour(wx.WHITE)
-        self.today.SetFont(wx.Font(10,74,90,wx.NORMAL,0,"Verdana"))
-        self.today.SetMinSize((140,18))
-        self.hSizer.Add(self.today, 0, wx.BOTTOM|wx.TOP|wx.RIGHT, 3)
+        #self.today.SetFont(wx.Font(10,74,90,wx.NORMAL,0,"Verdana"))
+        #self.today.SetMinSize((140,18))
+        #self.hSizer.Add(self.today, 0, wx.BOTTOM|wx.TOP|wx.RIGHT, 3)
        
         
         # Add delete button
@@ -125,6 +126,7 @@ class SubscriptionsItemPanel(wx.Panel):
             self.title.SetLabel(title)
             self.title.Wrap(self.title.GetSize()[0])
             #self.title.SetToolTipString(peer_data['url'])
+            self.cB.Enable(True)
             self.cB.SetValue(peer_data['status'] == "active")
             if 'persistent' in self.data:
                 self.delete.Disable()
@@ -198,6 +200,8 @@ class SubscriptionsItemPanel(wx.Panel):
                 self.torrentfeed.deleteURL(self.data['url'])
                 # TODO: refresh view, hack it
                 self.setData(None)
+            
+        event.Skip()
             
     def getIdentifier(self):
         if self.data:

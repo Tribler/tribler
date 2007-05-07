@@ -115,6 +115,8 @@ class GUIUtility:
             self.dosearch()
         elif name == 'subscribe':
             self.subscribe()
+        elif name == 'firewallStatus':
+            self.firewallStatusClick()
         else:
             print 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
                 
@@ -406,6 +408,12 @@ class GUIUtility:
             self.dosearch()
         event.Skip()     
 
+    def OnSubscribeKeyDown(self,event):
+        keycode = event.GetKeyCode()
+        if keycode == wx.WXK_RETURN:
+            self.subscribe()
+        event.Skip()     
+
     def subscribe(self):
         rssurlctrl = self.standardOverview.getRSSUrlCtrl()
         url = rssurlctrl.GetValue()
@@ -421,3 +429,18 @@ class GUIUtility:
         
         torrentfeed = TorrentFeedThread.getInstance()
         torrentfeed.addURL(url)
+        self.standardOverview.refreshData()
+
+    def firewallStatusClick(self,event=None):
+        if self.isReachable:
+            title = self.utility.lang.get('tribler_information')
+            type = wx.ICON_INFORMATION
+            msg = self.utility.lang.get('reachable_tooltip')
+        else:
+            title = self.utility.lang.get('tribler_warning')
+            type = wx.ICON_WARNING
+            msg = self.utility.lang.get('tribler_unreachable_explanation')
+            
+        dlg = wx.MessageDialog(None, msg, title, wx.OK|type)
+        result = dlg.ShowModal()
+        dlg.Destroy()

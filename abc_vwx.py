@@ -39,7 +39,7 @@ import urllib
 from interconn import ServerListener, ClientPassParam
 from launchmanycore import ABCLaunchMany
 
-from ABC.Toolbars.toolbars import ABCBottomBar2, ABCStatusBar, ABCStatusButtons, ABCMenuBar, ABCToolBar
+from ABC.Toolbars.toolbars import ABCBottomBar2, ABCStatusBar, ABCMenuBar, ABCToolBar
 from ABC.GUI.menu import ABCMenu
 from ABC.Scheduler.scheduler import ABCScheduler
 
@@ -461,7 +461,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         self.window.list = self.list
         self.utility.window = self.window
         """
-        self.window.sb_buttons = ABCStatusButtons(self,self.utility)
+        #self.window.sb_buttons = ABCStatusButtons(self,self.utility)
         
         self.utility.window.postponedevents = []
         
@@ -868,8 +868,15 @@ class ABCFrame(wx.Frame, DelayedInvocation):
 
     def onReachable(self,event=None):
         """ Called by GUI thread """
-        self.window.sb_buttons.setReachable(True)
-        GUIUtility.getInstance().isReachable = True
+        if self.firewallStatus is not None:
+            self.firewallStatus.setToggled(True)
+            tt = self.firewallStatus.GetToolTip()
+            if tt is not None:
+                if reach:
+                    tt.SetTip(self.utility.lang.get('reachable_tooltip'))
+                else:
+                    tt.SetTip(self.utility.lang.get('unknownreac_tooltip'))
+            GUIUtility.getInstance().isReachable = True
 
 
     def setActivity(self,type,msg=u''):
@@ -982,6 +989,10 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             self.frame.numberPersons = xrc.XRCCTRL(self.frame, "numberPersons")
             self.frame.numberFiles = xrc.XRCCTRL(self.frame, "numberFiles")
             self.frame.messageField = xrc.XRCCTRL(self.frame, "messageField")
+            self.frame.firewallStatus = xrc.XRCCTRL(self.frame, "firewallStatus")
+            tt = self.frame.firewallStatus.GetToolTip()
+            if tt is not None:
+                SetTip(self.utility.lang.get('unknownreac_tooltip'))
             
             """
             searchfilebut = xrc.XRCCTRL(self.frame, "bt257cC")

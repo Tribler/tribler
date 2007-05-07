@@ -54,6 +54,7 @@ TorrentDB - (PreferenceDB, MyPreference, OwnerDB)
         status: str ("unknown")
         source: str("")
         inserttime: long (time())
+        progress: float
     }
 
 PreferenceDB - (PeerDB, TorrentDB)    # other peers' preferences
@@ -576,7 +577,8 @@ class TorrentDB(BasicDB):
             'retry_number': 0,
             'status': 'unknown',
             'source': '',
-            'inserttime': 0
+            'inserttime': 0,
+            'progress': 0.0
         }
         self.new_metadata = True
         
@@ -627,7 +629,8 @@ class TorrentDB(BasicDB):
         if old_version == 1 or old_version == 2:
             def_newitem = {
                 'source': '',
-                'inserttime': 0}
+                'inserttime': 0,
+                'progress': 0.0}
             keys = self._keys()
             for key in keys:
                 self._updateItem(key, def_newitem)
