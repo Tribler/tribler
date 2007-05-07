@@ -17,6 +17,7 @@ from Tribler.Dialogs.socnetmyinfo import MyInfoWizard
 from Tribler.CacheDB.CacheDBHandler import MyDBHandler
 from Tribler.Video.VideoPlayer import *
 from Tribler.Overlay.permid import permid_for_user
+from Tribler.Overlay.MetadataHandler import MetadataHandler
 
 DEBUG = False
 
@@ -1397,6 +1398,12 @@ class TriblerPanel(ABCOptionPanel):
         self.myinfo = wx.Button(self, -1, self.utility.lang.get('myinfo') + "...")
         sizer.Add(self.myinfo, 0, wx.ALL, 5)
         self.Bind(wx.EVT_BUTTON, self.OnMyInfoWizard, self.myinfo)
+
+        ntorrents_box = wx.BoxSizer(wx.HORIZONTAL)
+        self.ntorrents = wx.TextCtrl(self, -1, "")
+        ntorrents_box.Add(wx.StaticText(self, -1, self.utility.lang.get('maxntorrents')), 0, wx.ALIGN_CENTER_VERTICAL)
+        ntorrents_box.Add(self.ntorrents, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        sizer.Add(ntorrents_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
         
         self.initTasks()
         
@@ -1408,11 +1415,18 @@ class TriblerPanel(ABCOptionPanel):
         self.dlhelp_enable.SetValue(Read('enabledlhelp', "boolean"))
         self.collect_enable.SetValue(Read('enabledlcollecting', "boolean"))
         self.timectrl.SetValue(Read('torrentcollectsleep', 'int'))
+        value = str(Read('maxntorrents', "string"))
+        self.ntorrents.SetValue(value)
 
     def apply(self):       
         self.utility.config.Write('enablerecommender', self.rec_enable.GetValue(), "boolean")
         self.utility.config.Write('enabledlhelp', self.dlhelp_enable.GetValue(), "boolean")          
-        self.utility.config.Write('enabledlcollecting', self.collect_enable.GetValue(), "boolean")          
+        self.utility.config.Write('enabledlcollecting', self.collect_enable.GetValue(), "boolean")
+        maxntorrents = self.ntorrents.GetValue()
+        self.utility.config.Write('maxntorrents', maxntorrents, "string")          
+        mh = MetadataHandler.getInstance()
+        mh.set_overflow(int(maxntorrents))
+        mh.delayed_check_overflow(1)
 
         t = int(self.timectrl.GetValue())
         if t  > 3600:

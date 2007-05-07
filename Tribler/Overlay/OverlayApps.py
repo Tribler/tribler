@@ -6,6 +6,7 @@
 import sys
 from traceback import print_exc
 
+from time import time
 from BitTornado.BT1.MessageID import HelpCoordinatorMessages, HelpHelperMessages, \
         MetadataMessages, BuddyCastMessages, DIALBACK_REQUEST, SocialNetworkMessages, getMessageName
 from Tribler.toofastbt.CoordinatorMessageHandler import CoordinatorMessageHandler
@@ -37,11 +38,10 @@ class OverlayApps:
         self.socnet_handler = None
         self.msg_handlers = {}
         
-        self.torrent_collecting_solution = 1    # TODO: read from config
+        self.torrent_collecting_solution = 2    # TODO: read from config
         # 1: simplest solution: per torrent/buddycasted peer/4hours
-        # 2: simple and efficent solution: random collecting on group base
-        # 3: advanced solution: personlized collecting on group base
-
+        # 2: tig for tag on group base
+        
     def getInstance(*args, **kw):
         if OverlayApps.__single is None:
             OverlayApps(*args, **kw)
@@ -49,7 +49,6 @@ class OverlayApps:
     getInstance = staticmethod(getInstance)
 
     def register(self, secure_overlay, launchmany, rawserver, config):
-        
         self.secure_overlay = secure_overlay
         
         # OverlayApps gets all messages, and demultiplexes 
@@ -74,9 +73,8 @@ class OverlayApps:
 
         # Part 2:
         self.metadata_handler.register(secure_overlay, self.help_handler, launchmany, 
-                                       config['config_path'], config['max_torrents'])            
+                                       config)
         self.register_msg_handler(MetadataMessages, self.metadata_handler.handleMessage)
-
         
         if not config['torrent_collecting']:
             self.torrent_collecting_solution = 0

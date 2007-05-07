@@ -340,6 +340,10 @@ class Utility:
                                  #ACTION_QUEUE, 
                                  ACTION_REMOVE, 
                                  #ACTION_SCRAPE, 
+                                 -1,
+                                 ACTION_BUDDIES,
+                                 ACTION_FILES, # Tribler: Removed recommended files icon because these content is shown in main window now
+                                 ACTION_MYINFO
                                  ], 
             'menu_listrightclick': [ACTION_ADDTORRENT, 
                                     ACTION_DETAILS,
@@ -369,6 +373,7 @@ class Utility:
              'enablerecommender': '1',
              'enabledlhelp': '1',  
              'enabledlcollecting': '1',
+             'maxntorrents': 5000,
              'minport': '6881',
              'myname': '',
              'rec_relevance_threshold': '0',

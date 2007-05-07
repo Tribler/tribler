@@ -1,24 +1,113 @@
-TODO: (+ means finished)
+TODO and IDEAS: (+ means finished)
+
+TODO for Tribler 4.0
+
+Tig4Tag Torrent Collecting
+
+
++ Fast bootstrapping
+
+	The fixed 15 seconds BuddyCast interval will be made dynamic and vary between 1 and 60 seconds. Buddycast will run into 4 different modes : 
+	
+	1 second rounds; Bootstrap mode 
+	Only used once, the 15 minutes directly after the software is installed.
+	
+	5 second rounds; Accelerated mode 
+	Used 30 minutes directly after the software is restarted. (Also following Bootstrap mode) 
+	15 second rounds; Normal mode 
+	Default operation 
+	60 second rounds; Slow mode 
+	Entered when Tribler has been running for more than 24 hours 
+
+Reduce memory usage
+	+ keep up to 2K peers
+	+ combine self.peers with self.preferences
+	
++ New recommendation algorithm
+
++ User can configure Tribler disk usage
+	User can configure Tribler disk place and usage
+		Transfer parameter to the core
+		GUI support
+		Policy of deleting torrents 
+
++ New message layout
+  No preferences in taste buddies; combine taste and random peers to one list and attach their similarity;
+  Only include my new preference (+ delete) since last buddycast with that peer
++ Include tracker status in torrent collecting
+
+torrent collecting
+
+replacing of megacache + User can configure the place to save torrents (./collected_torrents)
+ (look for old .Trilber->use that; if not found create ./Tribler_data in install dir)
+** linux?
+
+Active ping
+Automatic Update
+Light torrent collecting
+
+incrementally update
+
+----------------------
+database update: 
+#	PreferenceDB - remove {'relevance': int (0), 'rank': int (0)} 
+	PeerDB - add 'last_buddycast'
+	ActionDB (RecNo) - record user's actions
+	
+buddycast update:
+	new message layout (** how to distinguish download history and rated items?)
+	#don't accept taste buddies' preferences
+	
+fast torrent collecting:
+	tit-for-tat policy
+	dynamic torrents cache
+	torrents selection policy
+	adjustable speed of torrent collecting
+
+
+
++ PeerName: Peer_ + permid[5:]
+
++ IPv6 support
+
++ BUGFIX:
+	buddycast: not include the same ip/permid to the sender
+	secureoverlay: check ip/permid when connects to or is being connected by a peer 
+	permid: check my permid and the other's permid
+	
+DISCUSS:
+	a peer can change other peers ip/port in my database by including wrong info in buddycast message
+
+reduce updated All I2I sim performance
+limit max # peers/torrents in db
+
+Unit Test
+
+Combine Ct and Cr. When it is full, remove the oldest peer from the 11th-21th most similar peers.
+
+Remove owner.bsd
+User can configure the size of database, i.e., the number of peers or torrents
 
 BUDDYCAST:
     + Put additional secure connection to Cr or Cu
 	+ Moving the raw_server calls back in SecureOverlay
     + Buddycast message length limit	(max. 10 KB for a full buddycast message)
     + Removed 'age' item from buddycast for peers of new version
-    Using buddycast2 network to send dialback message
+    + Using buddycast2 network to send dialback message	(Arno)
     	+ Simple torrent collecting policy
     	
-    
-	Update item relevance
-    New similarity func between users
-
-    Unit Test
-	Log and Log in GUI
-	Setup superpeers
+	+ Update item relevance
 	
+	+ Log and Log in GUI
+	+ Setup superpeers
+	
+    Reduce memory usage: Remove self.preferences from buddycast.DataHandler
+    Unit Test
+    New similarity func between users
+    Test peer connectability
 	Fast torrent collecting from connected peers
     
-    Improve recommendation function
+	Improve connectability test with local subnet
     Sign buddycast2 messages
     Reduce bandwidth usage
     
@@ -34,15 +123,25 @@ MEGE CACHE:
 GUI:
 	+ Remove meanless part at status bar
 	
+	+ status bar: #Torrents
+	+ Single click and download
+	+ email: removing "\r\n\r\n"
+	
+	remind version update using bubble dialog
+	Run tribler after installation
+	
+	Replace recommendation value by stars
+	
 	Click a torrent and recommend similar torrent
+	Remove permid when adding friend
+	Be able to disable XXX
 
 	Dutch version
 	Chinese version
     Visualize buddycast2 networks	
     
+    
 BUGFIX:    
 	+ Don't always keep connection with superpeers (duplicated index in conn list)
     + Remove 'looking for new recommendation' in status bar
-    Change firewall status when recv incoming connections
-
-    
+    + Change firewall status when recv incoming connections

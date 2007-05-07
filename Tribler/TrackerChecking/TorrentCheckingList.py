@@ -46,14 +46,16 @@ class TorrentCheckingList:
     def getFirstGood(self):
         if (self.list_good != []):
             torrent = self.list_good.pop(0)
-            del self.info_dict[torrent["infohash"]]
+            if self.info_dict.has_key(torrent["infohash"]):
+                del self.info_dict[torrent["infohash"]]
             return deepcopy(torrent)
         return None                  
         
     def getFirstUnknown(self):
         if (self.list_unknown != []):
             torrent = self.list_unknown.pop(0)
-            del self.info_dict[torrent["infohash"]]
+            if self.info_dict.has_key(torrent["infohash"]):
+                del self.info_dict[torrent["infohash"]]
             return deepcopy(torrent)
         return None     
     

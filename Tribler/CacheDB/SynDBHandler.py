@@ -36,13 +36,9 @@ class SynTorrentDBHandler(TorrentDBHandler):
         
     def addTorrent(self, infohash, torrent={}, new_metadata=False, updateFlag=True):
         # Be ware: the torrent could already be in DB, so it is an update actually
-        existed = TorrentDBHandler.getTorrent(self, infohash)
         TorrentDBHandler.addTorrent(self, infohash, torrent, new_metadata)  
         if (updateFlag == True):
-            if existed:
-                self.notifyObserver(infohash, "update")
-            else:
-                self.notifyObserver(infohash, "add")
+            self.notifyObserver(infohash, "add")
 
     def updateTorrent(self, infohash, updateFlag=True, **kw):
         TorrentDBHandler.updateTorrent(self, infohash, **kw)
@@ -108,4 +104,8 @@ class SynPeerDBHandler(PeerDBHandler):
         if (updateFlag == True):
             self.notifyObserver(permid, "delete")
             
+    def hidePeer(self, permid, updateFlag=True):
+        # this func is currently only used by buddycast & peer view
+        if (updateFlag == True):
+            self.notifyObserver(permid, "hide")
             

@@ -1,7 +1,7 @@
 # Written by Jie Yang
 # see LICENSE.txt for license information
 
-from socket import inet_aton, gethostbyname
+from socket import inet_aton, gethostbyname, getaddrinfo
 from time import time, strftime, gmtime
 from base64 import encodestring
 from sha import sha
@@ -26,9 +26,10 @@ def validPort(port):
 
 def validIP(ip):
     try:
-        ip = gethostbyname(ip)
-        inet_aton(ip)
+        getaddrinfo(ip, None)
     except:
+        if ip.find(':') >= 0:    # ipv6
+            return True
         raise RuntimeError, "invalid IP address: " + ip
     return True
     
@@ -160,7 +161,10 @@ def friendly_time(old_time):
         old_time = int(old_time)
         diff = int(curr_time - old_time)
     except:
-        return ''
+        if isinstance(old_time, str):
+            return old_time
+        else:
+            return '?'
     if diff < 1:
         return str(diff) + " sec. ago"
     elif diff < 60:

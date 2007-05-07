@@ -17,6 +17,7 @@ copy heading.bmp dist\tribler
 mkdir dist\tribler\Lang
 copy superpeer.txt dist
 copy cities.txt dist
+copy FAQ.txt dist
 copy category.conf dist
 copy binary-LICENSE.txt dist
 mkdir dist\tribler\icons

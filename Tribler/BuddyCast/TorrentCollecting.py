@@ -1,6 +1,8 @@
 import sys
 from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler
+from Tribler.utilities import show_permid
 from random import randint
+from time import time
 
 DEBUG = False
     
@@ -40,4 +42,38 @@ class SimpleTorrentCollecting:
             idx = randint(0, nprefs-1)
             selected = candidates[idx]
             return selected
+    
+class TiT4TaTTorrentCollecting(SimpleTorrentCollecting):
+    """
+    """
+    
+    def __init__(self, metadata_handler, rawserver):
+        SimpleTorrentCollecting.__init__(self, metadata_handler)
+        self.rawserver = rawserver
+        self.peers = {}
+        self.starttime = time()
+        self.ntorrents = self.torrent_db.getNumMetadataAndLive()
+        self.work()
+        
+    def work(self):
+        interval = self.getCurrrentInterval()
+        self.rawserver.add_task(self.work, interval)
+        if not self.peers:
+            return
+        
+    def _work(self):
+         self.ntorrents += 1
+    
+    def getCurrrentInterval(self):
+        if self.ntorrents < 20:
+            return 3
+        now = time()
+        if now - self.starttime < 5*60:
+            return 5
+         
+    def closeConnection(self, permid):
+        try:
+            self.peers.pop(permid)
+        except KeyError:
+            print >> sys.stderr, "tc: close not existed connection", show_permid(permid)
     

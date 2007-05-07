@@ -1,6 +1,11 @@
 # Written by Jie Yang
 # see LICENSE.txt for license information
 
+## TODO: update database V3:
+# TorrentDB: clean relevance, insert time
+# PeerDB: clean similarity, insert time
+# PreferenceDB: clean  permid:torrent_id:{}
+
 """
 Database design
 Value in bracket is the default value
@@ -29,9 +34,11 @@ PeerDB - (MyFriendDB, PreferenceDB, OwnerDB)
         name: str ('unknown')
         last_seen: int (0)
         similarity: int (0)    # [0, 1000]
+        oversion: int(0)    # overlay version, added in 3.7.1
         connected_times: int(0)    # times to connect the peer successfully
-        tried_times: int(0)        # times to attempt to connect the peer
+        #tried_times: int(0)        # times to attempt to connect the peer, removed from 3.7.1
         buddycast_times: int(0)    # times to receive buddycast message
+        last_buddycast_time: int (0)    # from buddycast 3/tribler 3.7
         #relability (uptime, IP fixed/changing)
         #trust: int (0)    # [0, 100]
         #icon: str ('')    # name + '_' + permid[-4:]
@@ -61,7 +68,9 @@ TorrentDB - (PreferenceDB, MyPreference, OwnerDB)
 PreferenceDB - (PeerDB, TorrentDB)    # other peers' preferences
   preferences.bsd:
     permid:{
-        torrent_id:{}
+        torrent_id:{
+        # 'relevance': int (0), 'rank': int (0), removed from 3.6
+        }
     }
 
 MyPreferenceDB - (TorrentDB)
@@ -221,7 +230,7 @@ class BasicDB:    # Should we use delegation instead of inheritance?
     exception_handler = None
         
     def __init__(self, db_dir=''):
-        self.default_item = {'d':1, 'e':'abc', 'f':{'k':'v'}, 'g':[1,'2']} # for test
+        self.default_item = {}    #{'d':1, 'e':'abc', 'f':{'k':'v'}, 'g':[1,'2']} # for test
         if self.__class__ == BasicDB:
             self.db_name = 'basic.bsd'    # for testing
             self.opened = True
@@ -264,8 +273,8 @@ class BasicDB:    # Should we use delegation instead of inheritance?
             #return self._data.get(key, value)
         except Exception,e:
             print >> sys.stderr, "cachedb: _get EXCEPTION BY",currentThread().getName()
-            print_exc()
-            self.report_exception(e)
+            #print_stack()
+            #self.report_exception(e)
             return value
         
     def _updateItem(self, key, data):
@@ -417,9 +426,9 @@ class MyDB(BasicDB):
             MyDB.__single._put('version', curr_version)
         elif old_version < curr_version:
             db.updateDB(old_version)
-        elif old_version > curr_version:
+        #elif old_version > curr_version:
             #FIXME: user first install 3.4.0, then 3.5.0. Now he cannot reinstall 3.4.0 anymore
-            raise RuntimeError, "The version of database is too high. Please update the software."
+        #    raise RuntimeError, "The version of database is too high. Please update the software."
     checkVersion = staticmethod(checkVersion)
     
     def updateDBVersion(db):
@@ -494,6 +503,7 @@ class PeerDB(BasicDB):
         self._data = open_db(self.db_name, db_dir)    # dbshelve object
         MyDB.checkVersion(self)
         PeerDB.__single = self
+        self.num_encountered_peers = -100
         self.default_item = {
             'ip':'',
             'port':0,
@@ -501,13 +511,13 @@ class PeerDB(BasicDB):
             'last_seen':0,
             'similarity':0,
             'connected_times':0,
-            'tried_times':0,
+            'oversion':0,   # overlay version
             'buddycast_times':0,
+            'last_buddycast_time':0,
             #'trust':50,
             #'reliability':
             #'icon':'',
         }
-        self.new_encountered_peer = True
         
     def getInstance(*args, **kw):
         if PeerDB.__single is None:
@@ -550,9 +560,6 @@ class PeerDB(BasicDB):
     def hasItem(self, permid):
         return self._has_key(permid)
         
-    def hasNewEncounteredPeer(self, v):
-        self.new_encountered_peer = v
-
 
 class TorrentDB(BasicDB):
     """ Database of all torrent files, including the torrents I don't have yet """
@@ -584,7 +591,7 @@ class TorrentDB(BasicDB):
             'progress': 0.0,
             'destdir':''
         }
-        self.new_metadata = True
+        self.num_metadatalive = -100
         
     def getInstance(*args, **kw):
         if TorrentDB.__single is None:
@@ -614,9 +621,6 @@ class TorrentDB(BasicDB):
             ret = deepcopy(self.default_item)
         return ret
     
-    def hasNewMetadata(self, v):
-        self.new_metadata = v
-        
     def updateDB(self, old_version):
         if old_version == 1:
             def_newitem = {
@@ -832,3 +836,29 @@ class OwnerDB(BasicDB):
         else:
             return []
                     
+
+class ActionDB(BasicDB):
+    
+    __single = None
+    
+    def __init__(self, db_dir=''):
+        if ActionDB.__single:
+            raise RuntimeError, "ActionDB is singleton"
+        self.db_name = 'actions.bsd'
+        self.opened = True
+        env = db.DBEnv()
+        # Concurrent Data Store
+        env.open(db_dir, db.DB_THREAD|db.DB_INIT_CDB|db.DB_INIT_MPOOL|db.DB_CREATE|db.DB_PRIVATE)
+        self._data = db.DB(dbEnv=env)
+        self._data.open(self.filename, db.DB_RECNO, db.DB_CREATE)
+        ActionDB.__single = self 
+                
+    def getInstance(*args, **kw):
+        if ActionDB.__single is None:
+            ActionDB(*args, **kw)
+        return ActionDB.__single
+    getInstance = staticmethod(getInstance)
+    
+    
+        
+        

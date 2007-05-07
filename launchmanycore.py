@@ -87,6 +87,7 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
         btconfig['buddycast'] = int(self.utility.config.Read('enablerecommender'))
         btconfig['download_help'] = int(self.utility.config.Read('enabledlhelp'))
         btconfig['torrent_collecting'] = int(self.utility.config.Read('enabledlcollecting'))
+        btconfig['max_torrents'] = int(self.utility.config.Read('maxntorrents'))
 
         # btconfig must be set before calling LaunchMany constructor
         Thread.__init__(self)

@@ -62,6 +62,7 @@ class Category:
         if torrent["category"] == ["?"]:
             data = data_manager.torrent_db.getRecommendedTorrents(all = True)
             self.reSortAll(data)
+            del data
             return True
         
         begin = time()
@@ -69,6 +70,7 @@ class Category:
             if len(item['category']) > 1:
                 data = data_manager.torrent_db.getRecommendedTorrents(all = True)
                 self.reSortAll(data)
+                del data
                 return True
         if DEBUG:
             print 'torrcoll: Checking of %d torrents costs: %f s' % (len(data), time() - begin)

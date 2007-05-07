@@ -65,7 +65,8 @@ def suite():
         #test_friend,
         #test_cachedbhandler,
         #test_superpeers,
-        #test_buddycast, # Arno: currently not working due to param problem getBuddyCastMsg()
+        # currently not working due to unfinished test functions
+        #test_buddycast, 
         #test_buddycast2_datahandler,
         #test_sim,
         #test_merkle,

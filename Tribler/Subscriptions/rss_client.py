@@ -77,7 +77,8 @@ class TorrentFeedThread(Thread):
                         self.addURL(url,dowrite=False,status=key)
             f.close()        
         except:
-            traceback.print_exc()
+            pass
+            #traceback.print_exc()
     
         #self.addURL('http://www.vuze.com/syndication/browse/AZHOT/ALL/X/X/26/X/_/_/X/X/feed.xml')
         

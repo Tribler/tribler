@@ -170,7 +170,6 @@ class PeerDBHandler(BasicDBHandler):
         self.peer_db = PeerDB.getInstance(db_dir=db_dir)
         self.pref_db = PreferenceDB.getInstance(db_dir=db_dir)
         self.dbs = [self.peer_db]
-        self.num_encountered_peers = 0
         
     def __len__(self):
         return self.peer_db._size()
@@ -230,8 +229,16 @@ class PeerDBHandler(BasicDBHandler):
         return values
     
     def addPeer(self, permid, value, update_dns=True):
+        
+        if value.has_key('last_seen'):    # get the latest last_seen
+            old_last_seen = 0
+            old_data = self.getPeer(permid)
+            if old_data:
+                old_last_seen = old_data.get('last_seen', 0)
+            last_seen = value['last_seen']
+            value['last_seen'] = max(last_seen, old_last_seen)
+
         self.peer_db.updateItem(permid, value, update_dns)
-        self.hasNewEncounteredPeer()
         
     def hasPeer(self, permid):
         return self.peer_db.hasItem(permid)        
@@ -261,9 +268,11 @@ class PeerDBHandler(BasicDBHandler):
         self.peer_db.updateItem(permid, {'ip':ip, 'port':port})
         
     def deletePeer(self, permid):
+        data = self.peer_db._get(permid)
+        if data and data['connected_times'] > 0:
+            self.peer_db.num_encountered_peers -= 1
         self.peer_db._delete(permid)
         self.pref_db._delete(permid)
-        self.peer_db.hasNewEncounteredPeer(True)
         
     def updateTimes(self, permid, key, change):
         item = self.peer_db.getItem(permid)
@@ -275,22 +284,22 @@ class PeerDBHandler(BasicDBHandler):
             value = item[key]
         value += change
         self.peer_db.updateItem(permid, {key:value})
+        
+        if key == 'connected_times':    # a new encounter peer
+            if value == 1:
+                self.peer_db.num_encountered_peers += 1
 
-    def getNumEncounteredPeers(self):
-        if not self.peer_db.new_encountered_peer:
-            return self.num_encountered_peers
-        n = 0
-        for permid in self.peer_db._keys():
-            data = self.peer_db._get(permid)
-            if data and (data['connected_times'] > 0 or \
-                         data['buddycast_times'] > 0):
-                n += 1
-        self.num_encountered_peers = n
-        self.peer_db.hasNewEncounteredPeer(False)
-        return n
-    
-    def hasNewEncounteredPeer(self):
-        self.peer_db.hasNewEncounteredPeer(True)
+    def getNumEncounteredPeers(self):    #TODO:
+        if self.peer_db.num_encountered_peers % 473 == 0:
+            self.peer_db.num_encountered_peers = -1    # sync
+        if self.peer_db.num_encountered_peers < 0:
+            n = 0
+            for permid in self.peer_db._keys():
+                data = self.peer_db._get(permid)
+                if data and data['connected_times'] > 0:
+                    n += 1
+            self.peer_db.num_encountered_peers = n
+        return self.peer_db.num_encountered_peers
         
 class PreferenceDBHandler(BasicDBHandler):
     
@@ -331,7 +340,6 @@ class TorrentDBHandler(BasicDBHandler):
         self.mypref_db = MyPreferenceDB.getInstance(db_dir=db_dir)
         self.owner_db = OwnerDB.getInstance(db_dir=db_dir)
         self.dbs = [self.torrent_db]
-        self.num_metadatalive = 0
         
     def addTorrent(self, infohash, torrent={}, new_metadata=False):
         # add a new torrent or update an old torrent's info
@@ -339,20 +347,26 @@ class TorrentDBHandler(BasicDBHandler):
             return False
         self.torrent_db.updateItem(infohash, torrent)
         if new_metadata:
-            self.torrent_db.hasNewMetadata(True)
+            self.torrent_db.num_metadatalive += 1
         return True
         
     def updateTorrent(self, infohash, **kw):    # watch the schema of database
         self.torrent_db.updateItem(infohash, kw)
-        # Added to update the statusbar num files after torrent tracker checking
-        self.torrent_db.hasNewMetadata(True)
         
     def deleteTorrent(self, infohash, delete_file=False):
         if delete_file:
-            self.eraseTorrentFile(infohash)
-        self.torrent_db._delete(infohash)
-        self.owner_db._delete(infohash)
-        self.torrent_db.hasNewMetadata(True)
+            data = self.torrent_db._get(infohash)
+            if data and data['torrent_name']:
+                live = data.get('status', 'unknown')
+                if live != 'dead' and live != 'unknown':
+                    self.torrent_db.num_metadatalive -= 1
+            deleted = self.eraseTorrentFile(infohash)
+        else:
+            deleted = True
+        
+        if deleted:
+            self.torrent_db._delete(infohash)
+            self.owner_db._delete(infohash)
             
     def eraseTorrentFile(self, infohash):
         data = self.torrent_db._get(infohash)
@@ -361,8 +375,10 @@ class TorrentDBHandler(BasicDBHandler):
         src = os.path.join(data['torrent_dir'], data['torrent_name'])
         try:
             os.remove(src)
-        except:
-            print >> sys.stderr, "cachedbhandler: failed to erase torrent", src
+        except Exception, msg:
+            print >> sys.stderr, "cachedbhandler: failed to erase torrent", src, Exception, msg
+            return False
+        return True
                 
     def getTorrent(self, infohash, num_owners=False):
         torrent = self.torrent_db.getItem(infohash)
@@ -393,15 +409,23 @@ class TorrentDBHandler(BasicDBHandler):
             torrents.append(p)
         return torrents
         
-    def getRecommendedTorrents(self, light=False, all=False):     # get torrents on disk but not in my pref
+    def getAllTorrents(self):
+        return self.torrent_db._keys()
+        
+    def getRecommendedTorrents(self, light=True, all=False):     
+        # get torrents on disk but not in my pref
+        # BE AWARE: the returned object of this call may consume lots of memory.
+        # You should delete the object when possible
         if all:
             all_list = self.torrent_db._keys()
             mypref_set = Set(self.mypref_db._keys())
         else:
-            all_list = list(Set(self.torrent_db._keys()) - Set(self.mypref_db._keys()))
+            all_list = Set(self.torrent_db._keys()) - Set(self.mypref_db._keys())
             
         torrents = []
         for torrent in all_list:
+            #if not self.hasMetaData(torrent):
+            #    continue
             p = self.torrent_db.getItem(torrent, default=True)
             if not p or not p.get('torrent_name', None) or not p.get('info', None):
                 continue
@@ -411,8 +435,39 @@ class TorrentDBHandler(BasicDBHandler):
             if not light:    # set light as ture to be faster
                 p['num_owners'] = self.owner_db.getNumOwners(torrent)
             torrents.append(p)
+        del all_list
+        
         return torrents
-
+    
+    def getCollectedTorrents(self, light=True):     
+        all_list = Set(self.torrent_db._keys()) - Set(self.mypref_db._keys())
+            
+        torrents = []
+        for torrent in all_list:
+            p = self.torrent_db.getItem(torrent, default=True)
+            if not p or not p.get('torrent_name', None) or not p.get('info', None):
+                continue
+            if light:
+                del p
+                torrents.append(torrent)
+            else:
+                item = {}
+                item['infohash'] = torrent
+                                
+                info = p.get('info', {})
+                try:
+                    date = int(info.get('creation date', 0))
+                except:
+                    date = 0
+                item['creation date'] = date
+                        
+                for key in ['status','leecher','seeder','retry_number','relevance']:
+                    item[key] = p.get(key, None)
+                
+                del p
+                torrents.append(item)
+        return torrents
+    
     def hasTorrent(self, infohash):
         return self.torrent_db._has_key(infohash)
     
@@ -488,28 +543,25 @@ class TorrentDBHandler(BasicDBHandler):
     def updateTorrentRelevance(self, torrent, relevance):
         self.torrent_db.updateItem(torrent, {'relevance':relevance})
             
-    def getNumMetadataAndLive(self):
+            
+    def getNumMetadataAndLive(self):    # TODO
         # Jelle: Statusbar show number of alive files. Files that are downloaded and live are
         # included. Files that are downloaded and not live are excluded.
-        if not self.torrent_db.new_metadata:
-            return self.num_metadatalive
-        n = 0
-        for infohash in self.torrent_db._keys():
-            data = self.torrent_db._get(infohash)
-            if data:
-                try:
+        
+        if self.torrent_db.num_metadatalive % 173 == 0:    # sync
+            self.torrent_db.num_metadatalive = -1
+        if self.torrent_db.num_metadatalive < 0:
+            n = 0
+            all_list = list(Set(self.torrent_db._keys()) - Set(self.mypref_db._keys()))
+            for infohash in all_list:
+                data = self.torrent_db._get(infohash)
+                if data and data.get('torrent_name',''):
                     live = data.get('status', 'unknown')
-                    meta = data['torrent_name']
-                    if meta and live != 'dead' and live != 'unknown':
+                    if live != 'dead' and live != 'unknown':
                         n += 1
-                except:
-                    print 'Torrent with error: %s' % data
-        self.torrent_db.hasNewMetadata(False)
-        self.num_metadatalive = n
-        return n
-    
-    def hasNewMetadata(self):
-        self.torrent_db.hasNewMetadata(True)
+            self.torrent_db.num_metadatalive = n
+        
+        return self.torrent_db.num_metadatalive
     
 class MyPreferenceDBHandler(BasicDBHandler):
     
@@ -593,7 +645,72 @@ class OwnerDBHandler(BasicDBHandler):
     def __init__(self, db_dir=''):
         BasicDBHandler.__init__(self)
         self.owner_db = OwnerDB.getInstance(db_dir=db_dir)
-        self.dbs = [self.owner_db]
+        self.pref_db = PreferenceDB.getInstance(db_dir=db_dir)
+        self.torrent_db = TorrentDB.getInstance(db_dir=db_dir)
+        self.dbs = [self.owner_db, self.pref_db, self.torrent_db]
+        self.sim_cache = {}    # used to cache the getSimItems
+        
+    def getTorrents(self):
+        return self.owner_db._keys()
+        
+    def getSimItems(self, torrent_hash, num=15):
+        """ Get a list of similar torrents given a torrent hash. The torrents
+        must exist and be not dead.
+        Input
+           torrent_hash: the infohash of a torrent
+           num: the number of similar torrents to get
+        output: 
+           if name is False, return a list of infohashes, sorted by similarity,
+           otherwise return a list of tuples, each of which contains a torrent's 
+           infohash and content name.
+        """
+        
+        if torrent_hash in self.sim_cache:
+            return self.sim_cache[torrent_hash]
+        
+        owners = self.owner_db._get(torrent_hash)
+        nowners = len(owners)
+        if not owners or nowners < 1:
+            return []
+        co_torrents = {}    # torrents have co
+        for owner in owners:
+            prefs = self.pref_db.getItem(owner)
+            for torrent in prefs:
+                if torrent not in co_torrents:
+                    co_torrents[torrent] = 1
+                else:
+                    co_torrents[torrent] += 1
+        if torrent_hash in co_torrents:
+            co_torrents.pop(torrent_hash)
+        
+        sim_items = []
+        for torrent in co_torrents:
+            
+            # check if the torrent is collected and live
+            value = self.torrent_db._get(torrent)
+            if not value:
+                continue
+            info = value.get('info', {})
+            name = info.get('name', None)
+            if not name:
+                continue
+            live = value.get('status', 'unknown')
+            if live == 'dead':
+                continue
+            
+            co = co_torrents[torrent]
+            nowners2 = self.owner_db.getNumOwners(torrent)
+            if nowners2 == 0:    # sth. is wrong
+                continue
+            sim = co/(nowners*nowners2)**0.5
+            sim_items.append((sim, name, torrent))
+            
+        sim_items.sort()
+        sim_items.reverse()
+        sim_torrents = [(torrent, name, sim) for sim, name, torrent in sim_items[:num]]
+        
+        self.sim_cache[torrent_hash] = sim_torrents
+        return sim_torrents
         
 def test_mydb():
     mydb = MyDBHandler()
@@ -606,5 +723,39 @@ def test_all():
     test_mydb()
     test_myprefDB()
     
+from time import time    
+    
+def test_getSimItems(db_dir):
+    owner_db = OwnerDBHandler(db_dir)
+    torrent_db = TorrentDBHandler(db_dir)
+    torrents = owner_db.getTorrents()
+    for torrent in torrents:
+        value = torrent_db.getTorrent(torrent)
+        if not value:
+                continue
+        info = value.get('info', {})
+        name = info.get('name', None)
+        if not name:
+            continue
+        live = value.get('status', 'unknown')
+        if live == 'dead':
+            continue
+        start = time()
+        simtorrents = owner_db.getSimItems(torrent)
+        if len(simtorrents) > 0:
+            try:
+                print "------", name, "------"
+            except:
+                print "------", `name`, "------"
+        for infohash, torrent_name, sim in simtorrents:
+            print "  ",
+            try:
+                print torrent_name, sim, time()-start
+            except:
+                print `torrent_name`
+    
 if __name__ == '__main__':
-    test_all()
+    db_dir = sys.argv[1]
+    test_getSimItems(db_dir)
+
+    

@@ -77,7 +77,7 @@ def P2PSimLM(peer_permid, my_pref, peer_pref, owners, total_prefs, mu):
     """
 
     npeerprefs = len(peer_pref)
-    if npeerprefs == 0:
+    if npeerprefs == 0 or total_prefs == 0:
         return 0
 
     nmyprefs = len(my_pref)

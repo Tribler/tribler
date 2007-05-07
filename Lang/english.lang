@@ -437,9 +437,10 @@ removebackuptorrent = "Remove .torrent backup file when using remove"
 confirmonexit 	= "Confirm on exit program"
 triblersetting  = "Tribler"
 enablerecommender = "Enable Recommender"
-enabledlhelp     = "Enable Download Booster"
+enabledlhelp    = "Enable Download Booster"
 enabledlcollecting = "Enable Torrents Collecting"
-myname		   = "My name (as broadcast to others):"
+myname		    = "My name (as broadcast to others):"
+maxntorrents    = "Max number of torrents to collect:"
 myicon		   = "My Tribler icon (as broadcast to others):"
 setdefaultfolder = "Set default download folder"
 stripedlist 	= "Striped list"
@@ -1040,6 +1041,7 @@ act_recommend = "Discovered more peers and torrents from"
 #Tribler UI - ContentFrontPanel, Tribler 3.6
 #############
 item = "item"
+person_item = "person"
 page = "page"
 order_by = "Order by"
 swarmsize = "Popular"
@@ -1137,7 +1139,7 @@ profileDetails_Files_description = "*-*So far, you have discovered %d files."
 profileDetails_Files_improve = "*-*Stay online longer to discover more files. \n\n You have set your maximum on *** files. If you have reached this limit please set it higher."
 # --- Discoverd Persons
 profileDetails_Persons_description = "*-*So far, you have discovered %d persons."
-profileDetails_Persons_improve = "*-*Stay online longer and you will discover more persons. \n\n You have set your maximum to *** persons. Set it higher to discover more persons." 
+profileDetails_Persons_improve = "*-*Stay online longer and you will discover more persons. \n\n You have set your maximum to *** persons. Set it higher to discover more persons."
 # --- Optimal Download Speed
 profileDetails_Download_info = "*-*You are not using your download speed optimally. To increase, follow the instructions."
 profileDetails_Download_UpSpeed = "*-*Your upload speed is set to %d KB/s. Limiting your upload speed also limits your download speed."
@@ -1162,6 +1164,17 @@ profileDetails_Presence_VersionNo = "*-*You are using an old version of Tribler 
 profileDetails_Presence_VersionYes = "*-*You are up to date!"
 profileDetails_Presence_VersionNo_improve = "*-*Update to the newest version 4.0 at <url>."
 
+###############
+# Tribler UI - persons.py, Tribler 3.7
+##############
+peer_status_tooltip = "Status of person based on last time seen"
+peer_friend_tooltip = "This person is a friend of yours. Click to remove friendship."
+peer_nofriend_tooltip = "Click to make this person your friend."
+peer_connected_times_tooltip = "Successful connections made to this person."
+peer_buddycast_times_tooltip = "Specific Tribler messages exchanged with this person."
+peer_similarity_tooltip = "Similarity between you and this person based on the download history."
+peer_common_files_tooltip = "Files that you and this person have in common."
+peer_other_files_tooltip = "Other files that this person has downloaded."
 
 #################
 # Notification  #

@@ -96,9 +96,9 @@ class ABCStatusBar(wx.StatusBar):
 
     def setActivity(self,type,msg=u''):
     
-        if currentThread().getName() != "MainThread":
-            print "setActivity thread",currentThread().getName(),"is NOT MAIN THREAD"
-            print_stack()
+#        if currentThread().getName() != "MainThread":
+#            print "setActivity thread",currentThread().getName(),"is NOT MAIN THREAD"
+#            print_stack()
     
         if type == ACT_NONE:
             prefix = u''

@@ -48,6 +48,7 @@ class ABCScheduler(DelayedEventHandler):
 
         self.UpdateRunningTorrentCounters()
         self.guiUtility = GUIUtility.getInstance()
+        self.cycleTime = 0
 
     def postInitTasks(self,argv):
         # Read old list from torrent.lst
@@ -160,9 +161,12 @@ class ABCScheduler(DelayedEventHandler):
         downspeed2 = self.utility.speed_format(self.totals['down'], truncate = 0)
         downloadspeed = downspeed + " / " + downratecap
         
-        
-        npeer = str(self.utility.getNumPeers())
-        nfile = str(self.utility.getNumFiles())
+        if self.cycleTime < 1:
+            nfile = npeer = 'loading..'
+            self.cycleTime += 1
+        else:
+            npeer = str(self.utility.getNumPeers())
+            nfile = str(self.utility.getNumFiles())
         
         try:
             # update value in minimize icon
@@ -213,7 +217,7 @@ class ABCScheduler(DelayedEventHandler):
 
         # Start Timer
         ##########################################
-        self.timers['frequent'] = Timer(2, self.CyclicalTasks)
+        self.timers['frequent'] = Timer(4, self.CyclicalTasks)
         self.timers['frequent'].start()
             
     def InfrequentCyclicalTasks(self, update = True):
