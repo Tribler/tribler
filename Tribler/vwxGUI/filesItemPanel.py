@@ -47,7 +47,7 @@ class FilesItemPanel(wx.Panel):
         self.Bind(wx.EVT_KEY_UP, self.keyTyped)
         
         # Add title
-        self.thumb = ThumbnailViewer(self)
+        self.thumb = ThumbnailViewer(self, 'filesMode')
         self.thumb.setBackground(wx.BLACK)
         self.thumb.SetSize((125,70))
         self.vSizer.Add(self.thumb, 0, wx.ALL, 0)        
@@ -94,7 +94,7 @@ class FilesItemPanel(wx.Panel):
             torrent = {}
 
         if 'source' in torrent:
-            print "fip: Source of torrent",torrent['content_name'],"is",torrent['source']
+            print "fip: Source of torrent",`torrent['content_name']`,"is",`torrent['source']`
 
         if torrent.get('content_name'):
             title = torrent['content_name'][:self.titleLength]
@@ -155,15 +155,10 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
     Show thumbnail and mast with info on mouseOver
     """
 
-    def __init__(self, *args, **kw):    
-        if len(args) == 0:
-            pre = wx.PrePanel()
-            # the Create step is done by XRC.
-            self.PostCreate(pre)
-            self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
-        else:
-            wx.Panel.__init__(self, *args, **kw)
-            self._PostInit()
+    def __init__(self, parent, mode, **kw):    
+        wx.Panel.__init__(self, parent, **kw)
+        self.mode = mode
+        self._PostInit()
         
     def OnCreate(self, event):
         self.Unbind(wx.EVT_WINDOW_CREATE)
@@ -178,6 +173,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         self.torrentBitmap = None
         self.torrent = None
         self.mouseOver = False
+        self.triblerGrey = wx.Colour(128,128,128)
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
@@ -206,7 +202,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
     def setThumbnail(self, torrent):
         # Get the file(s)data for this torrent
         try:
-            bmp = self.mm.get_default('filesMode','DEFAULT_THUMB')
+            bmp = self.mm.get_default(self.mode,'DEFAULT_THUMB')
             # Check if we have already read the thumbnail and metadata information from this torrent file
             if torrent.get('metadata'):
                 bmp = torrent['metadata'].get('ThumbnailBitmap')
@@ -354,6 +350,9 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             dc.DrawBitmap(heart,5 ,54, True)
             dc.SetTextForeground(wx.BLACK)
             #dc.DrawText('rating', 8, 50)
-        if (self.selected and self.border):
-            dc.SetPen(wx.Pen(wx.Colour(255,51,0), 2))
+        if self.border:
+            if self.selected:
+                dc.SetPen(wx.Pen(wx.Colour(255,51,0), 2))
+            else:
+                dc.SetPen(wx.Pen(self.triblerGrey, 2))
             dc.DrawLines(self.border)

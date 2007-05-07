@@ -497,10 +497,13 @@ class TorrentDBHandler(BasicDBHandler):
         for infohash in self.torrent_db._keys():
             data = self.torrent_db._get(infohash)
             if data:
-                live = data.get('status', 'unknown')
-                meta = data['torrent_name']
-                if meta and live != 'dead' and live != 'unknown':
-                    n += 1
+                try:
+                    live = data.get('status', 'unknown')
+                    meta = data['torrent_name']
+                    if meta and live != 'dead' and live != 'unknown':
+                        n += 1
+                except:
+                    print 'Torrent with error: %s' % data
         self.torrent_db.hasNewMetadata(False)
         self.num_metadatalive = n
         return n

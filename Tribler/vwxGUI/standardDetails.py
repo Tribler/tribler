@@ -310,7 +310,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             titleField.SetLabel(torrent.get('content_name'))
             titleField.Wrap(-1)
             
-            self.setTorrentThumb(torrent, self.getGuiObj('thumbField'))        
+            self.setTorrentThumb(self.mode, torrent, self.getGuiObj('thumbField'))        
 
     
             if self.getGuiObj('info_detailsTab').isSelected():
@@ -418,6 +418,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             except:
                 print_exc(file=sys.stderr)
             
+
             if self.getGuiObj('info_detailsTab').isSelected():
                 #recomm = random.randint(0,4)
                 rank = self.guiUtility.peer_manager.getRank(peer_data=item)#['permid'])
@@ -491,8 +492,6 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                         addAsFriend.switchBack()
 #                        self.getGuiObj('addAsFriend').switchBack()
             
-#        elif self.mode == 'libraryMode':
-#            pass
         elif self.mode == 'subscriptionsMode':
             if item.get('url') is None:
                 return #no valid url
@@ -915,8 +914,10 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 #    def isEnabled(self):
 #        return self.enabled
 
-    def download(self):
-        torrent = self.item
+    def download(self, torrent = None, dest = None):
+        if torrent == None:
+            torrent = self.item
+            
         src1 = os.path.join(torrent['torrent_dir'], 
                             torrent['torrent_name'])
         src2 = os.path.join(self.utility.getConfigPath(), 'torrent2', torrent['torrent_name'])
@@ -938,7 +939,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 #            result = dlg.ShowModal()
 #            dlg.Destroy()
 #            if result == wx.ID_YES:
-            ret = self.utility.queue.addtorrents.AddTorrentFromFile(src)
+            ret = self.utility.queue.addtorrents.AddTorrentFromFile(src, dest = dest)
             if ret and ret[0]:
                 print 'standardDetails: download started'
                 self.data_manager.setBelongsToMyDowloadHistory(torrent['infohash'], True)
@@ -955,41 +956,50 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 infohash = torrent['infohash']
                 self.data_manager.deleteTorrent(infohash, delete_file = True)
 
-    def setTorrentThumb(self, torrent, thumbPanel):
+    def setTorrentThumb(self, mode, torrent, thumbPanel):
         
         if not thumbPanel:
             return 
         
         thumbPanel.setBackground(wx.BLACK)
-        thumbBitmap = torrent.get('metadata',{}).get('ThumbnailBitmapLarge')
-        thumbnailString = torrent.get('metadata', {}).get('Thumbnail')
-        
-        if thumbBitmap:
-            thumbPanel.setBitmap(thumbBitmap)
+        if mode in  ['filesMode', 'libraryMode']:
+            thumbBitmap = torrent.get('metadata',{}).get('ThumbnailBitmapLarge')
+            thumbnailString = torrent.get('metadata', {}).get('Thumbnail')
             
-        elif thumbnailString:
-            #print 'Found thumbnail: %s' % thumbnailString
-            stream = cStringIO.StringIO(thumbnailString)
-            img =  wx.ImageFromStream( stream )
-            iw, ih = img.GetSize()
-            w, h = thumbPanel.GetSize()
-            if (iw/float(ih)) > (w/float(h)):
-                nw = w
-                nh = int(ih * w/float(iw))
+            if thumbBitmap:
+                thumbPanel.setBitmap(thumbBitmap)
+                
+            elif thumbnailString:
+                #print 'Found thumbnail: %s' % thumbnailString
+                stream = cStringIO.StringIO(thumbnailString)
+                img =  wx.ImageFromStream( stream )
+                iw, ih = img.GetSize()
+                w, h = thumbPanel.GetSize()
+                if (iw/float(ih)) > (w/float(h)):
+                    nw = w
+                    nh = int(ih * w/float(iw))
+                else:
+                    nh = h
+                    nw = int(iw * h/float(ih))
+                if nw != iw or nh != ih:
+                    #print 'Rescale from (%d, %d) to (%d, %d)' % (iw, ih, nw, nh)
+                    img.Rescale(nw, nh, quality = wx.IMAGE_QUALITY_HIGH)
+                bmp = wx.BitmapFromImage(img)
+                 
+                thumbPanel.setBitmap(bmp)
+                torrent['metadata']['ThumbnailBitmapLarge'] = bmp
             else:
-                nh = h
-                nw = int(iw * h/float(ih))
-            if nw != iw or nh != ih:
-                #print 'Rescale from (%d, %d) to (%d, %d)' % (iw, ih, nw, nh)
-                img.Rescale(nw, nh, quality = wx.IMAGE_QUALITY_HIGH)
-            bmp = wx.BitmapFromImage(img)
-             
-            thumbPanel.setBitmap(bmp)
-            torrent['metadata']['ThumbnailBitmapLarge'] = bmp
-        else:
-            default = self.mm.get_default('filesMode','DEFAULT_THUMB')
-            thumbPanel.setBitmap(default)
-     
+                default = self.mm.get_default('filesMode','BIG_DEFAULT_THUMB')
+                thumbPanel.setBitmap(default)
+                
+        elif mode in ['personsMode', 'friendMode']:
+            # get thumbimage of person
+            if False:
+                pass
+            else:
+                default = self.mm.get_default('personsMode','DEFAULT_THUMB')
+                thumbPanel.setBitmap(default)
+                
     def addAsFriend(self):
         # add the current user selected in details panel as a friend
         if self.mode in ["personsMode","friendsMode"]:

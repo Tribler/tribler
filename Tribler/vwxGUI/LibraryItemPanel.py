@@ -52,7 +52,7 @@ class LibraryItemPanel(wx.Panel):
         self.hSizer.Add([8,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)        
         
         # Add thumb
-        self.thumb = ThumbnailViewer(self)
+        self.thumb = ThumbnailViewer(self, 'libraryMode')
         self.thumb.setBackground(wx.BLACK)
         self.thumb.SetSize((66,37))
         #self.thumb = bgPanel(self, name="defaultThumb")
@@ -85,9 +85,8 @@ class LibraryItemPanel(wx.Panel):
         #self.pb = TriblerProgressbar(self,-1,wx.Point(359,0),wx.Size(80,15))
         self.pb = ProgressBar(self,pos=wx.Point(359,0),size=wx.Size(100,16))
         #self.pb = wx.Panel(self)
-        self.pause = tribler_topButton(self, -1, wx.Point(542,3), wx.Size(16,16),name='pause' )
-        self.stop = tribler_topButton(self, -1, wx.Point(542,3), wx.Size(16,16),name='stop' )
-        
+        self.pause = SwitchButton(self, -1, wx.Point(542,3), wx.Size(16,16),name='pause' )
+                
         # >> Drawn in progressbar
         #self.pbLabel = wx.StaticText(self,-1,"12% |ETA:10min30",wx.Point(274,3),wx.Size(80,15),wx.ST_NO_AUTORESIZE)                                
         #self.pbSizer.Add(self.pbLabel,0,wx.TOP|wx.FIXED_MINSIZE,3)        
@@ -95,8 +94,7 @@ class LibraryItemPanel(wx.Panel):
         self.pbSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.pbSizer.Add(self.pb,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,2)        
         self.pbSizer.Add(self.pause,0,wx.TOP|wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,2)        
-        self.pbSizer.Add(self.stop,0,wx.TOP|wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,2)        
-        
+                
 
         # Text under progressbar
         self.percentage = wx.StaticText(self,-1,"?%")
@@ -188,7 +186,13 @@ class LibraryItemPanel(wx.Panel):
         self.data = torrent
         
         if torrent is None:
+            for child in self.GetChildren():
+                child.Hide()
             torrent = {}
+        else:
+            for child in self.GetChildren():
+                child.Show()
+            
 
         
         if torrent.get('abctorrent'):
@@ -208,7 +212,7 @@ class LibraryItemPanel(wx.Panel):
             progress = float(progresstxt[:-1])
             self.percentage.SetLabel(progresstxt)
             eta = 'ETA: '+abctorrent.getColumnText(COL_ETA)
-            if not eta == 'ETA: ' or eta.find('unknown') != -1 or progress == 100.0:
+            if eta == 'ETA: ' or eta.find('unknown') != -1 or progress == 100.0:
                 eta = ''
             self.eta.SetLabel(eta)
             
@@ -219,6 +223,7 @@ class LibraryItemPanel(wx.Panel):
             showBoostAndPlayFast = False
             showPlayButton = False
             statustxt = abctorrent.status.getStatusText()
+            active = abctorrent.status.isActive(pause = False)
             
             initstates = [self.utility.lang.get('checkingdata'), 
                            self.utility.lang.get('allocatingspace'), 
@@ -226,7 +231,7 @@ class LibraryItemPanel(wx.Panel):
                            self.utility.lang.get('waiting')]
             
             if not (statustxt in initstates):
-                showBoostAndPlayFast = (progress < 100.0)
+                showBoostAndPlayFast = active and (progress < 100.0)
                 
                 if abctorrent.get_on_demand_download():
                     self.vodMode = True
@@ -262,33 +267,46 @@ class LibraryItemPanel(wx.Panel):
             self.boost.setEnabled(showBoostAndPlayFast)
             self.boost.setToggled(self.is_boosted())
             self.playFast.setEnabled(showBoostAndPlayFast)
-            
-            # Update stats in detailsFrame
-            if self.torrentDetailsFrame and self.torrentDetailsFrame.IsShown():
-                self.torrentDetailsFrame.detailPanel.updateFromABCTorrent()
-                # Normally this is only updated when log changes
-                self.torrentDetailsFrame.messageLogPanel.updateMessageLog()
+            self.pause.setToggled(not active)
+                        
                 
-        else:
+        elif torrent: # inactive torrent
+            
             #self.pb.setEnabled(False)
-            self.pb.reset()
-            self.pb.Refresh()
             self.speedUp2.Hide()
             self.speedDown2.Hide()
+            
+            # Only show playbutton
             self.playFast.setEnabled(False)
             self.boost.setEnabled(False)
-            self.pb.Hide()
+            self.pause.setEnabled(True)
+            self.pause.setToggled(True)
+            self.statusField.SetLabel(self.utility.lang.get('download_inactive'))
+            self.eta.SetLabel('')
+            
+            if torrent.get('progress'):
+                self.percentage.SetLabel('%0.2f%%' % torrent['progress'])
+                self.pb.setNormalPercentage(torrent['progress'])
+            else:
+                self.percentage.SetLabel('?')
+                self.pb.reset()
+            
+            self.pb.Show()
+            self.pb.Refresh()
             
         if torrent.get('content_name'):
             title = torrent['content_name'][:self.titleLength]
-            self.title.Enable(True)
+            self.title.Show()
             self.title.SetLabel(title)
             self.title.Wrap(self.title.GetSize()[0])
             self.title.SetToolTipString(torrent['content_name'])
         else:
             self.title.SetLabel('')
             self.title.SetToolTipString('')
-            self.title.Enable(False)
+            self.title.Hide()
+            
+        
+            
         self.thumb.setTorrent(torrent)
                
         self.Layout()
@@ -333,12 +351,18 @@ class LibraryItemPanel(wx.Panel):
         event.Skip()
         
     def mouseAction(self, event):
+        event.Skip()
         obj = event.GetEventObject()
         name = obj.GetName()
         
+        self.SetFocus()
+        if self.data:
+            self.guiUtility.selectTorrent(self.data)
+            
         # buttons that are switched off, should not generate events
         try:
             if not obj.isEnabled():
+                #print 'Button %s was not enabled' % name
                 return
         except:
             pass
@@ -347,16 +371,19 @@ class LibraryItemPanel(wx.Panel):
                 
             abctorrent = self.data.get('abctorrent')
             if name == 'delete':
-                abctorrent.actions.stop()
+                removeFiles = False
+                self.utility.actionhandler.procREMOVE([abctorrent], removefiles = removeFiles)
                 
             elif name == 'pause':
-                if abctorrent.status.value == STATUS_PAUSE:
-                    abctorrent.actions.pauseResume()
-                    obj.switchBack()
+                if abctorrent.status.value in [STATUS_PAUSE, STATUS_STOP, STATUS_QUEUE ]:
+                    self.utility.actionhandler.procRESUME([abctorrent])
+                    obj.setToggled(False)
                 else:
-                    abctorrent.actions.pause()
-                    playBitmap = wx.Bitmap(os.path.join(self.utility.getPath(),'Tribler', 'vwxGUI', 'images', 'play.png'))
-                    obj.switchTo(playBitmap)
+                    self.utility.actionhandler.procSTOP([abctorrent])
+                    obj.setToggled(True)
+                    
+                
+                
             elif name == 'playFast':
                 if not self.vodMode:
                     self.vodMode = True
@@ -372,14 +399,24 @@ class LibraryItemPanel(wx.Panel):
             elif name == 'libraryPlay':
                 if self.playable:
                     self.play(abctorrent)
+        else: # no abctorrent
+            if name == 'pause':
+                 #playbutton
+                 dest_dir = self.data.get('dest_dir')
+                 if  dest_dir != None:
+                     # Start torrent again
+                     print 'starting torrent %s with data in dir %s' % (repr(self.data['content_name']), dest_dir)
+                     self.guiUtility.standardDetails.download(self.data, dest = dest_dir)
+                 
+                 else:
+                     print 'LibraryItemPanel: Could not make abctorrent active, no dest_dir in dictionary: %s' % self.data
+                
                 
           
         print >>sys.stderr,"lip: mouseaction: name",event.GetEventObject().GetName()
             
-        self.SetFocus()
-        if self.data:
-            self.guiUtility.selectTorrent(self.data)
-        event.Skip()
+        
+       
        
     def doubleClicked(self, event):
         # open torrent details frame
@@ -444,7 +481,17 @@ class LibraryItemPanel(wx.Panel):
         The abctorrent related to this panel was shutdown
         """
         if self.data.get('infohash') == infohash and self.data.get('abctorrent'):
+            print 'abcTorrentShutdown with right infohash'
+            
+            abctorrent = self.data.get('abctorrent')
+            progresstxt = abctorrent.getColumnText(COL_PROGRESS)
+            progress = float(progresstxt[:-1])
+            # store the progress of this torrent
+            self.data['progress'] = progress
+            self.data['dest_dir'] = abctorrent.files.dest
+            
+            print 'Save destination?: %s' % self.data['dest_dir']
+            self.utility.torrent_db.updateTorrent(infohash, item = self.data)
+            # Now delete the abctorrent object reference
             del self.data['abctorrent']
-    
-        
     

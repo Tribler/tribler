@@ -861,6 +861,13 @@ class ABCTorrent:
         
         self.torrentconfig.writeAll()
         
+        print 'abctorrent shutdown'
+        # Remove abctorrent from librarypanel
+        if self.libraryPanel:
+            self.libraryPanel.abcTorrentShutdown(self.torrent_hash)
+        else:
+            print 'abctorrent has no libraryPanel'
+            
         # Delete Detail Window
         ########################
         try:
@@ -892,9 +899,7 @@ class ABCTorrent:
 
         del self.utility.torrents["inactive"][self]
         
-        # Remove abctorrent from librarypanel
-        if self.libraryPanel:
-            self.libraryPanel.abcTorrentShutdown(self.infohash)
+        
         
         
     def setLibraryPanel(self, panel):

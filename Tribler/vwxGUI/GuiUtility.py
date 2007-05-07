@@ -258,11 +258,14 @@ class GUIUtility:
             self.standardDetails.Refresh()
             self.standardOverview.Refresh()
             self.frame.topBackgroundRight.Refresh()
+            #self.frame.topBackgroundRight.GetSizer.Layout()
         except:
             pass # When resize is done before panels are loaded: no refresh
         
     def refreshTracker(self):
         torrent = self.standardDetails.getData()
+        if not torrent:
+            return
         if DEBUG:
             print >>sys.stderr,'GUIUtility: refresh ' + repr(torrent.get('content_name', 'no_name'))
         if torrent:

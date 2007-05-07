@@ -243,7 +243,9 @@ class BasicDB:    # Should we use delegation instead of inheritance?
                 self.threadnames[name] += 1
                 print >> sys.stderr, "cachedb: put", len(self.threadnames), name, \
                     self.threadnames[name], time(), self.__class__.__name__
-                    
+            if not value and type(value) == dict:
+                raise Exception('Warning someone tries to insert empty data in db: %s:%s'% (key, value))
+            
             dbutils.DeadlockWrap(self._data.put, key, value, max_retries=MAX_RETRIES)
             #self._data.put(key, value)
         except:

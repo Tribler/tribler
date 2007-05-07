@@ -170,8 +170,11 @@ class ProgressBar(wx.Control):
 
     def set_blocks(self,blocks):
         """ Called by MainThread """
-        
         self.blocks = blocks
+        
+    def setNormalPercentage(self, perc):
+        perc = int(perc)
+        self.blocks = ([2]*perc)+([0]* (100-perc))
 
     def reset(self,colour=0):
         self.blocks = [colour] * 100

@@ -1003,9 +1003,10 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             self.frame.searchtxtctrl = xrc.XRCCTRL(self.frame, "tx220cCCC")
             """
             
-            self.frame.Refresh()
-            self.frame.Layout()
-            self.frame.Show(True)
+            #self.frame.Refresh()
+            #self.frame.Layout()
+            #self.frame.Show(True)
+            
             # GUI start
             # - load myFrame 
             # - load standardGrid
