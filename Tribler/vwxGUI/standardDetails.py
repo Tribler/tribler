@@ -469,7 +469,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 else:
                     self.getGuiObj('timesConnectedField', tab = 'personsTab_advanced').SetLabel("")
                 if item.get("similarity") is not None:
-                    self.getGuiObj('similarityValueField', tab = 'personsTab_advanced').SetLabel(str(item["similarity"]))
+                    self.getGuiObj('similarityValueField', tab = 'personsTab_advanced').SetLabel("%.1f" % item["similarity"])
                 else:
                     self.getGuiObj('similarityValueField', tab = 'personsTab_advanced').SetLabel("")
                 
@@ -478,9 +478,10 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     if item['friend']:
                         isfriend = self.mm.get_default('personsMode','ISFRIEND_BITMAP')
                         isfriend_clicked = self.mm.get_default('personsMode','ISFRIEND_CLICKED_BITMAP')
-                        self.getGuiObj('addAsFriend').switchTo(isfriend,isfriend_clicked)
+                        addAsFriend.switchTo(isfriend,isfriend_clicked)
                     else:
-                        self.getGuiObj('addAsFriend').switchBack()
+                        addAsFriend.switchBack()
+#                        self.getGuiObj('addAsFriend').switchBack()
             
 #        elif self.mode == 'libraryMode':
 #            pass
