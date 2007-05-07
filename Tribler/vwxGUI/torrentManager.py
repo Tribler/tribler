@@ -284,6 +284,6 @@ class TorrentDataManager:
             low = torrent['content_name'].lower()
             for wantkw in self.searchkeywords:
                 if low.find(wantkw) != -1:
-                    print "tdm: search: Got hit",wantkw,"found in",torrent['content_name']
+                    print "tdm: search: Got hit",`wantkw`,"found in",`torrent['content_name']`
                     hits.append(torrent)
         return hits

@@ -1023,6 +1023,9 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
         self.utility.queue.addtorrents.AddTorrentFromFile(filename)
 
     def OnExit(self):
+        
+        self.torrentfeed.shutdown()
+        
         if not ALLOW_MULTIPLE:
             del self.single_instance_checker
         ClientPassParam("Close Connection")

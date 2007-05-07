@@ -9,7 +9,7 @@ from Tribler.unicode import *
 from copy import deepcopy
 import cStringIO
 
-DEBUG=True
+DEBUG=False
 
 class FilesItemPanel(wx.Panel):
     """
@@ -217,7 +217,8 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                     torrent_dir = os.path.join(self.utility.getConfigPath(), "torrent2")
                 torrent_filename = os.path.join(torrent_dir, torrent_file)
                 
-                print "fip: Scheduling read of thumbnail for",torrent_filename
+                if DEBUG:
+                    print "fip: Scheduling read of thumbnail for",torrent_filename
                 self.GetParent().guiserver.add_task(lambda:self.loadMetadata(torrent,torrent_filename),0)
             
             self.setBitmap(bmp)
@@ -227,7 +228,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             self.Refresh()
             
         except:
-            print_exc(file=sys.stderr)
+            print_exc()
             return {}           
         
          

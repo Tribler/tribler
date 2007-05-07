@@ -1364,6 +1364,13 @@ class TriblerPanel(ABCOptionPanel):
         sizer.Add(self.collect_enable, 0, wx.ALIGN_LEFT|wx.ALL, 5)
         sizer.Add(wx.StaticText(self, -1, self.utility.lang.get('restartabc')), 0, wx.ALIGN_CENTER_VERTICAL)
 
+        self.timectrl = self.utility.makeNumCtrl(self, 1, min = 1, max = 3600)
+        time_box = wx.BoxSizer(wx.HORIZONTAL)
+        time_box.Add(wx.StaticText(self, -1, self.utility.lang.get('torrentcollectsleep')), 0, wx.ALIGN_CENTER_VERTICAL)
+        time_box.Add(self.timectrl, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        time_box.Add(wx.StaticText(self, -1, self.utility.lang.get('restartabc')), 0, wx.ALIGN_CENTER_VERTICAL)
+        sizer.Add(time_box, 0, wx.EXPAND|wx.ALL, 5)
+
         """
         name_box = wx.BoxSizer(wx.HORIZONTAL)
         self.myname = wx.TextCtrl(self, -1, "")
@@ -1400,11 +1407,19 @@ class TriblerPanel(ABCOptionPanel):
         self.rec_enable.SetValue(Read('enablerecommender', "boolean"))
         self.dlhelp_enable.SetValue(Read('enabledlhelp', "boolean"))
         self.collect_enable.SetValue(Read('enabledlcollecting', "boolean"))
+        self.timectrl.SetValue(Read('torrentcollectsleep', 'int'))
 
     def apply(self):       
         self.utility.config.Write('enablerecommender', self.rec_enable.GetValue(), "boolean")
         self.utility.config.Write('enabledlhelp', self.dlhelp_enable.GetValue(), "boolean")          
         self.utility.config.Write('enabledlcollecting', self.collect_enable.GetValue(), "boolean")          
+
+        minport = int(self.timectrl.GetValue())
+        if t  > 3600:
+            t = 3600
+
+        tchanged = self.utility.config.Write('torrentcollectsleep', t)
+
 
     def OnMyInfoWizard(self, event = None):
         wizard = MyInfoWizard(self)

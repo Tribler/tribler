@@ -106,6 +106,10 @@ class ConfigDir:
         if not os.path.isdir(self.dir_icons):
             os.mkdir(self.dir_icons)
 
+        self.dir_subscrip = os.path.join(self.dir_root, 'subscriptions')
+        if not os.path.isdir(self.dir_subscrip):
+            os.mkdir(self.dir_subscrip)
+
         self.dir_torrentcache = os.path.join(self.dir_root, 'torrentcache')
         if not os.path.isdir(self.dir_torrentcache):
             os.mkdir(self.dir_torrentcache)

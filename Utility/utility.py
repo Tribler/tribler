@@ -377,7 +377,8 @@ class Utility:
              'mypref1_width': 200,
              'showearthpanel': '0',
              'videoplaybackmode':'0',
-             'askeduploadbw':'0'
+             'askeduploadbw':'0',
+             'torrentcollectsleep':'15'
 #            'skipcheck': '0'
         }
 
