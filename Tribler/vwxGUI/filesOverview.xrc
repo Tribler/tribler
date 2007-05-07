@@ -34,7 +34,7 @@
               <object class="wxBoxSizer">
                 <orient>wxHORIZONTAL</orient>
                 <object class="sizeritem">
-                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <flag>wxTOP|wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>4</border>
                   <option>0</option>
                   <object class="wxStaticText" name="st64cew">
@@ -85,20 +85,14 @@
               <bg>#999999</bg>
               <object class="wxBoxSizer">
                 <orient>wxHORIZONTAL</orient>
-                <object class="spacer">
-                  <size>10,10</size>
-                  <flag>wxFIXED_MINSIZE</flag>
-                  <border>3</border>
-                  <option>1</option>
-                </object>
                 <object class="sizeritem">
-                  <flag>wxTOP|wxLEFT|wxFIXED_MINSIZE</flag>
+                  <flag>wxTOP|wxFIXED_MINSIZE</flag>
                   <border>4</border>
                   <option>0</option>
                   <object class="wxTextCtrl" name="searchField">
                     <title>search a file</title>
                     <style>wxTE_PROCESS_ENTER</style>
-                    <pos>21,4</pos>
+                    <pos>0,0</pos>
                     <size>151,22</size>
                     <font>
                       <size>10</size>

@@ -60,7 +60,7 @@
                         <flag>wxFIXED_MINSIZE</flag>
                         <border>3</border>
                         <option>0</option>
-                        <object class="wxPanel" name="backButton" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                        <object class="wxPanel" name="nonbackButton" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
                           <pos>0,59</pos>
                           <size>25,29</size>
                         </object>
@@ -194,7 +194,7 @@
                                   <orient>wxVERTICAL</orient>
                                   <object class="sizeritem">
                                     <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
-                                    <border>3</border>
+                                    <border>2</border>
                                     <option>0</option>
                                     <object class="wxStaticText" name="files">
                                       <style>wxST_NO_AUTORESIZE</style>
@@ -207,12 +207,12 @@
                                   </object>
                                   <object class="sizeritem">
                                     <flag>wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
-                                    <border>3</border>
+                                    <border>2</border>
                                     <option>0</option>
                                     <object class="wxStaticText" name="persons">
                                       <style>wxST_NO_AUTORESIZE</style>
                                       <label>discovered persons</label>
-                                      <pos>87,27</pos>
+                                      <pos>87,22</pos>
                                       <size>118,13</size>
                                       <bg>#  4454</bg>
                                       <fg>#ffffff</fg>
@@ -228,12 +228,12 @@
                                   <orient>wxVERTICAL</orient>
                                   <object class="sizeritem">
                                     <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                                    <border>3</border>
+                                    <border>2</border>
                                     <option>0</option>
                                     <object class="wxStaticText" name="numberFiles">
                                       <style>wxST_NO_AUTORESIZE</style>
                                       <label>200</label>
-                                      <pos>211,8</pos>
+                                      <pos>210,8</pos>
                                       <size>49,13</size>
                                       <bg>#  4454</bg>
                                       <fg>#ffffff</fg>
@@ -241,12 +241,12 @@
                                   </object>
                                   <object class="sizeritem">
                                     <flag>wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                                    <border>3</border>
+                                    <border>2</border>
                                     <option>0</option>
                                     <object class="wxStaticText" name="numberPersons">
                                       <style>wxST_NO_AUTORESIZE</style>
                                       <label>300</label>
-                                      <pos>211,24</pos>
+                                      <pos>209,22</pos>
                                       <size>49,13</size>
                                       <bg>#  4454</bg>
                                       <fg>#ffffff</fg>
@@ -258,7 +258,7 @@
                           </object>
                           <object class="sizeritem">
                             <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
-                            <border>3</border>
+                            <border>1</border>
                             <option>0</option>
                             <object class="wxStaticLine" name="hLine">
                               <pos>87,43</pos>
@@ -272,8 +272,8 @@
                             <object class="wxStaticText" name="messageField">
                               <style>wxST_NO_AUTORESIZE</style>
                               <label>message</label>
-                              <pos>87,48</pos>
-                              <size>175,13</size>
+                              <pos>87,41</pos>
+                              <size>175,23</size>
                               <bg>#305100</bg>
                               <fg>#ffffff</fg>
                             </object>

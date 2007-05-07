@@ -88,7 +88,7 @@
               <option>0</option>
               <object class="wxStaticText" name="receivedToday">
                 <style>wxST_NO_AUTORESIZE</style>
-                <label>   Today (12)</label>
+                <label>   Today</label>
                 <pos>0,38</pos>
                 <size>296,15</size>
                 <bg>#cbcbcb</bg>
@@ -109,7 +109,7 @@
               <option>0</option>
               <object class="wxStaticText" name="receivedYesterday">
                 <style>wxST_NO_AUTORESIZE</style>
-                <label>   Yesterday (4)</label>
+                <label>   Yesterday</label>
                 <pos>0,217</pos>
                 <size>296,15</size>
                 <bg>#cbcbcb</bg>
@@ -120,24 +120,8 @@
               <border>6</border>
               <option>0</option>
               <object class="wxListCtrl" name="subscrYesterdayField" subclass="Tribler.vwxGUI.tribler_List.tribler_List">
-                <pos>6,240</pos>
+                <pos>6,238</pos>
                 <size>284,160</size>
-              </object>
-            </object>
-            <object class="sizeritem">
-              <flag>wxTOP|wxBOTTOM|wxEXPAND|wxFIXED_MINSIZE</flag>
-              <border>10</border>
-              <option>0</option>
-              <object class="wxPanel" name="Peop" subclass="Tribler.vwxGUI.btn_DetailsHeader.btn_DetailsHeader">
-                <pos>0,398</pos>
-                <size>20,20</size>
-                <object class="wxStaticText" name="receivedTotal">
-                  <style>wxST_NO_AUTORESIZE</style>
-                  <label>Show all received files (213)</label>
-                  <pos>10,0</pos>
-                  <size>204,14</size>
-                  <bg>#cbcbcb</bg>
-                </object>
               </object>
             </object>
           </object>

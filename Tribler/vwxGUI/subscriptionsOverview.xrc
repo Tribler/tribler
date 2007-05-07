@@ -34,7 +34,7 @@
               <object class="wxBoxSizer">
                 <orient>wxHORIZONTAL</orient>
                 <object class="sizeritem">
-                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <flag>wxTOP|wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>4</border>
                   <option>0</option>
                   <object class="wxStaticText" name="st64cC">
@@ -81,6 +81,7 @@
               <border>6</border>
               <option>0</option>
               <object class="wxTextCtrl" name="pasteUrl">
+                <style>wxTE_PROCESS_ENTER</style>
                 <label>  paste your url here</label>
                 <pos>10,6</pos>
                 <size>415,23</size>

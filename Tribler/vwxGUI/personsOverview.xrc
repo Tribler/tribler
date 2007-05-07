@@ -34,13 +34,13 @@
               <object class="wxBoxSizer">
                 <orient>wxHORIZONTAL</orient>
                 <object class="sizeritem">
-                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <flag>wxTOP|wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>4</border>
                   <option>0</option>
                   <object class="wxStaticText" name="st64c">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>Persons</label>
-                    <pos>0,4</pos>
+                    <pos>4,4</pos>
                     <size>194,17</size>
                     <fg>#ffffff</fg>
                   </object>
@@ -84,14 +84,8 @@
               <bg>#999999</bg>
               <object class="wxBoxSizer">
                 <orient>wxHORIZONTAL</orient>
-                <object class="spacer">
-                  <size>10,10</size>
-                  <flag>wxFIXED_MINSIZE</flag>
-                  <border>3</border>
-                  <option>1</option>
-                </object>
                 <object class="sizeritem">
-                  <flag>wxTOP|wxLEFT|wxFIXED_MINSIZE</flag>
+                  <flag>wxTOP|wxFIXED_MINSIZE</flag>
                   <border>4</border>
                   <option>0</option>
                   <object class="wxTextCtrl" name="searchField">
@@ -111,12 +105,18 @@
                 </object>
                 <object class="sizeritem">
                   <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
-                  <border>3</border>
+                  <border>4</border>
                   <option>0</option>
                   <object class="wxPanel" name="search" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                    <pos>598,3</pos>
-                    <size>20,22</size>
+                    <pos>159,3</pos>
+                    <size>22,22</size>
                   </object>
+                </object>
+                <object class="spacer">
+                  <size>10,10</size>
+                  <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
                 </object>
               </object>
             </object>

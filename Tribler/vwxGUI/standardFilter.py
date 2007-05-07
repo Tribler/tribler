@@ -181,7 +181,7 @@ class friendsFilter(standardFilter):
     def __init__(self):
         filterData = [
                       [('friends', 'All'),
-                       #('search_friends', 'Search Results')
+                       ('search_friends', 'Search Results')
                        ],
                       [(('content_name','increase'), 'Name'),
                        ('similarity', 'Similar taste'),                        

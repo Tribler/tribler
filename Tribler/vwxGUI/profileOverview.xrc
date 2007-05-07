@@ -34,7 +34,7 @@
               <object class="wxBoxSizer">
                 <orient>wxHORIZONTAL</orient>
                 <object class="sizeritem">
-                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <flag>wxTOP|wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>4</border>
                   <option>0</option>
                   <object class="wxStaticText" name="st64c">
