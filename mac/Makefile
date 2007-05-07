@@ -44,7 +44,7 @@ imagecontents/:		${SITEPACKAGES}/M2Crypto/ ${SITEPACKAGES}/Growl.py
 	cp background.png $@/.background
 
 	# Volume Icon
-	cp VolumeIcons.icns $@/.VolumeIcon.icns
+	cp VolumeIcon.icns $@/.VolumeIcon.icns
 
 	# Shortcut to /Applications
 	ln -s /Applications $@/Applications
