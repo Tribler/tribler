@@ -154,7 +154,7 @@ class personsFilter(standardFilter):
 class libraryFilter(standardFilter):
     def __init__(self):
         filterData = [
-                      [('all', '*All'),
+                      [('all', 'All'),
                        ('video', 'Video Files'),
                        ('videoclips', 'VideoClips'),
                        ('audio', 'Audio'),
@@ -165,7 +165,7 @@ class libraryFilter(standardFilter):
                        ('xxx', 'XXX'),
                        ('search', 'Search Results')
                        ],
-                       [('latest', '*Latest downloaded'),
+                       [('latest', 'Latest downloaded'),
                         (('content_name', 'increase'), 'Name'),
                         ('swarmsize', 'Popular'),
                         ('relevance','Recommended'),

@@ -1127,22 +1127,43 @@ downloading = "Downloading"
 #############
 #Tribler UI - Profile View, Tribler 4.0.0
 #############
-profileDetails_Quality_description = "Based on the files you have downloaded over time, Tribler recommends other files that are likely to be interesting to you. The quality of these recommendations will increase with the number of downloads. So far you have%s downloaded %d non-private files."
+profileDetails_Overall_description = "*-*You are a: -current level- \n- Beginner\n- Experienced\n- Top User\n- Master"
+# --- Recommendation quality
+profileDetails_Quality_description = "*-*Based on the files you have downloaded over time, Tribler recommends other files that are likely to be interesting to you. So far you have%s downloaded %d non-private files."
 profileDetails_Quality_descriptionz_onlyword = " only"
-profileDetails_Persons_description = "Over time your Tribler client will discover more and more persons that might be interesting to you. You can influence what types of persons are found.\r\n So far, you have discovered %d persons that have tastes similar to yours. If you want to discover more, just follow the instructions."
-profileDetails_Files_description = "Over time your Tribler client will discover more and more files. You can influence what type of files are found. This will help you to filter out uninteresting files. \r\nSo far, you have discovered %d files that (more or less) fit your taste. If you want to discover more, just follow the instructions. "
-profileDetails_Overall_description = "Your overall performance influences your Tribler membership level. You have reached the level of '%s'.\r\n- Beginner\r\n- Experienced\r\n- Top User\r\n- Master"
-profileDetails_Download_UpSpeed = "Your upload speed is set to %d KB/s. Limiting your upload speed also limits your download speed."
-profileDetails_Download_UpSpeedMax = "Your upload speed is set to unlimited. That's good."
-profileDetails_Download_UpSlots = "You set up a number of %d slots for upload."
-profileDetails_Download_UpSlotsMax = "You set up an unlimited number of slots for upload. That's good."
-profileDetails_Download_DlSpeed = "Your download speed is set to %d KB/s."
-profileDetails_Download_DlSpeedMax = "Your download speed is set to unlimited. That's good."
-profileDetails_Download_Friends = "At the moment you have %d friends. The more friends you have in the Tribler network, the more you can help each other in increasing your download speeds."
-profileDetails_Download_Visible = "You have to open a port on your modem/router to enable other users to connect to you. If you do so the communication between you and other persons will be faster."
-profileDetails_Download_VisibleYes = "You are currently accessible by other persons."
-profileDetails_Download_VisibleNo = "You can't be accessed by others."
-profileDetails_Presence_Friends = "At the moment you have %d friends. The more friends you have in the Tribler network, the easier it will be to further expand your social network and share interests with more like-minded users."
+profileDetails_Quality_improve = "*-*Download more files to increase the quality of Tribler recommendations."
+# --- Discoverd Files
+profileDetails_Files_description = "*-*So far, you have discovered %d files."
+profileDetails_Files_improve = "*-*Stay online longer to discover more files. \n\n You have set your maximum on *** files. If you have reached this limit please set it higher."
+# --- Discoverd Persons
+profileDetails_Persons_description = "*-*So far, you have discovered %d persons."
+profileDetails_Persons_improve = "*-*Stay online longer and you will discover more persons. \n\n You have set your maximum to *** persons. Set it higher to discover more persons." 
+# --- Optimal Download Speed
+profileDetails_Download_info = "*-*You are not using your download speed optimally. To increase, follow the instructions."
+profileDetails_Download_UpSpeed = "*-*Your upload speed is set to %d KB/s. Limiting your upload speed also limits your download speed."
+profileDetails_Download_UpSpeedMax = "*-*Your upload speed is set to unlimited. That's good."
+profileDetails_Download_UpSpeed_improve = "*-*Increase the upload speed limit in your preferences (for -Play Fast- mode you need at least 89 KB/s). "
+#  profileDetails_Download_UpSlots = "*-*You set up a number of %d slots for upload."
+#  profileDetails_Download_UpSlotsMax = "*-*You set up an unlimited number of slots for upload. That's good."
+#  profileDetails_Download_DlSpeed = "*-*Your download speed is set to %d KB/s."
+#  profileDetails_Download_DlSpeedMax = "*-*Your download speed is set to unlimited. That's good."
+profileDetails_Download_Friends = "*-*At the moment you have %d friends. If you make more friends you can help in boosting each others download speeds."
+profileDetails_Download_Friends_improve = "*-*Invite your friends, family, and colleagues by e-mail, to start tribler too and let them add you as a friend"
+profileDetails_Download_VisibleYes = "*-*You are currently accessible by other persons."
+profileDetails_Download_VisibleNo = "*-**-*Other users are not able to connect to you, because your modem/router blocks them."
+profileDetails_Download_Visible_improve = "*-*You have to open a port on your modem/router to enable other users to connect to you. This will almost double your possible download speed. Read more on <URL> for instructions."
+# --- Network Reach
+profileDetails_Presence_info = "*-*If you want to increase your network reach, follow the instructions."
+#profileDetails_Presence_Friends = profileDetails_Download_Friends
+#profileDetails_Presence_Friends_improve = profileDetails_Download_Friends_improve
+profileDetails_Presence_Sharingratio = "*-*Your overall sharing ratio is %d. This means that you download more from others than you upload to them."
+profileDetails_Presence_Sharingratio_improve = "*-*To reach a fair sharing ratio, you should share your files longer. "
+profileDetails_Presence_VersionNo = "*-*You are using an old version of Tribler and not taking advantage of the new features available. "
+profileDetails_Presence_VersionYes = "*-*You are up to date!"
+profileDetails_Presence_VersionNo_improve = "*-*Update to the newest version 4.0 at <url>."
+
+
+
 #############
 #Tribler UI - Persons View, Tribler 4.0.0
 #############
