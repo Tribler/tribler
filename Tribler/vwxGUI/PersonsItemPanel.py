@@ -338,7 +338,15 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                 recomm = 3
             else:
                 recomm = -1
-            if recomm >=0 or self.data.get('friend') or self.data.get('online') or self.mouseOver:
+            if self.mouseOver:
+                mask = self.mm.get_default('personsMode','MASK_BITMAP_CLEAN')
+                y_pos = 0
+                m_height = mask.GetSize()[1]
+                y_height = self.GetSize()[1]
+                while y_pos<y_height:
+                    dc.DrawBitmap(mask,0 ,y_pos, True)
+                    y_pos = y_pos + m_height
+            if recomm >=0 or self.data.get('friend') or self.data.get('online'):
                 mask = self.mm.get_default('personsMode','MASK_BITMAP')
                 dc.DrawBitmap(mask,0 ,62, True)
             if recomm >=0:

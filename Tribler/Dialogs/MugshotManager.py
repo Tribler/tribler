@@ -48,6 +48,7 @@ class MugshotManager:
         self.defaults['personsMode'] = {}
         self.defaults['personsMode']['DEFAULT_THUMB'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'defaultThumbPeer.png'))
         self.defaults['personsMode']['MASK_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'itemMask.png'))
+        self.defaults['personsMode']['MASK_BITMAP_CLEAN'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'itemMask_clean.png'))
         self.defaults['personsMode']['HEART_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'heart1.png'))
         self.defaults['personsMode']['FRIEND_ONLINE_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'friend.png'))
         self.defaults['personsMode']['FRIEND_OFFLINE_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'friend_offline.png'))
