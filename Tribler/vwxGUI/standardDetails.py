@@ -541,7 +541,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             todayList = self.getGuiObj('subscrTodayField')
             todayList.SetWindowStyle(wx.LC_REPORT|wx.NO_BORDER|wx.LC_SINGLE_SEL|wx.LC_NO_HEADER)
             if todayList.GetColumnCount() == 0:
-                todayList.InsertColumn(0, "Torrent")
+                todayList.InsertColumn(0, "Torrent",wx.LIST_FORMAT_LEFT,280)
             todayList.DeleteAllItems()
             for torrent in todayl:
                 todayList.Append([torrent['content_name']])
@@ -554,7 +554,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             ydayList = self.getGuiObj('subscrYesterdayField')
             ydayList.SetWindowStyle(wx.LC_REPORT|wx.NO_BORDER|wx.LC_SINGLE_SEL|wx.LC_NO_HEADER)
             if ydayList.GetColumnCount() == 0:
-                ydayList.InsertColumn(0, "Torrent")
+                ydayList.InsertColumn(0, "Torrent",wx.LIST_FORMAT_LEFT,280)
             ydayList.DeleteAllItems()
             for torrent in yesterdayl:
                 ydayList.Append([torrent['content_name']])
