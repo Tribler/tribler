@@ -65,13 +65,13 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             self.modeElements[elem] = []
         self.modeElements['filesMode'] = ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
-                                            'download', 'tabs', ('files_detailsTab','tabs'), ('info_detailsTab','tabs'), 'TasteHeart', 'details']
+                                            'download', 'tabs', ('files_detailsTab','tabs'), ('info_detailsTab','tabs'), 'TasteHeart', 'details', 'peopleWhoField']
         self.modeElements['personsMode'] = ['TasteHeart', 'recommendationField','addAsFriend', 'commonFilesField',
                                             'alsoDownloadedField', 'info_detailsTab', 'advanced_detailsTab','detailsC',
                                             'titleField','statusField','thumbField']
         self.modeElements['libraryMode'] = ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
-                                            'download', 'files_detailsTab', 'info_detailsTab', 'TasteHeart', 'details']
+                                            'download', 'files_detailsTab', 'info_detailsTab', 'TasteHeart', 'details', 'peopleWhoField']
         self.modeElements['profileMode'] = ['descriptionField0']
         
         
@@ -364,6 +364,11 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     else:
                         seedersField.SetLabel('?')
                         leechersField.SetLabel('?')
+                
+                # Call a function to retrieve similar torrent data
+                # Hi Jie
+                peopleWhoLikeThisList = self.getGuiObj('peopleWhoField')
+                print peopleWhoLikeThisList 
                 
                 # Show or hide download button in detailstab
 #                downloadButton = self.getGuiObj('download')
@@ -947,6 +952,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             ret = self.utility.queue.addtorrents.AddTorrentFromFile(src, dest = dest)
             if ret and ret[0]:
                 print 'standardDetails: download started'
+                # save start download time.
+                torrent['download_started'] = time()
                 self.data_manager.setBelongsToMyDowloadHistory(torrent['infohash'], True)
                     
         else:
