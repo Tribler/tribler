@@ -1136,10 +1136,10 @@ profileDetails_Quality_descriptionz_onlyword = " only"
 profileDetails_Quality_improve = "*-*Download more files to increase the quality of Tribler recommendations."
 # --- Discoverd Files
 profileDetails_Files_description = "*-*So far, you have discovered %d files."
-profileDetails_Files_improve = "*-*Stay online longer to discover more files. \n\n You have set your maximum on *** files. If you have reached this limit please set it higher."
+profileDetails_Files_improve = '*-*Stay online longer to discover more files. \n\n You have set your maximum on *** files. If you have reached this limit please set it higher.'
 # --- Discoverd Persons
-profileDetails_Persons_description = "*-*So far, you have discovered %d persons."
-profileDetails_Persons_improve = "*-*Stay online longer and you will discover more persons. \n\n You have set your maximum to *** persons. Set it higher to discover more persons."
+profileDetails_Persons_description = "*-*So far, you have discovered %d people."
+profileDetails_Persons_improve = '*-*Stay online longer and you will discover more people. \n\n You have set your maximum to *** people. Set it higher to discover more people.' 
 # --- Optimal Download Speed
 profileDetails_Download_info = "*-*You are not using your download speed optimally. To increase, follow the instructions."
 profileDetails_Download_UpSpeed = "*-*Your upload speed is set to %d KB/s. Limiting your upload speed also limits your download speed."
@@ -1151,7 +1151,7 @@ profileDetails_Download_UpSpeed_improve = "*-*Increase the upload speed limit in
 #  profileDetails_Download_DlSpeedMax = "*-*Your download speed is set to unlimited. That's good."
 profileDetails_Download_Friends = "*-*At the moment you have %d friends. If you make more friends you can help in boosting each others download speeds."
 profileDetails_Download_Friends_improve = "*-*Invite your friends, family, and colleagues by e-mail, to start tribler too and let them add you as a friend"
-profileDetails_Download_VisibleYes = "*-*You are currently accessible by other persons."
+profileDetails_Download_VisibleYes = "*-*You are currently accessible by other people."
 profileDetails_Download_VisibleNo = "*-**-*Other users are not able to connect to you, because your modem/router blocks them."
 profileDetails_Download_Visible_improve = "*-*You have to open a port on your modem/router to enable other users to connect to you. This will almost double your possible download speed. Read more on <URL> for instructions."
 # --- Network Reach
@@ -1185,7 +1185,7 @@ notification_finished_seeding  = "Finished Seeding"
 #############
 #Tribler UI - Persons View, Tribler 4.0.0
 #############
-persons_view_no_data = "No persons available yet"
+persons_view_no_data = "No people encountered yet"
 
 torrentcollectsleep = "Time to wait between downloading torrents from RSS:"
 buddycastsubscription = "Discover content via other Tribler users"

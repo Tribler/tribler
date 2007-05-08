@@ -282,31 +282,36 @@ class standardGrid(wx.Panel):
         If no torrent is selected in detailPanel, let first in grid be selected
         """
         
-        #print 'standardGrid: update selection'
-        if not self.hasDetailPanel():
-            return
-        
-        title = None
-        
-        id = self.detailPanel.getIdentifier()
-        
-        #print "standardGrid: updateSelection: detailsPanel has id",id,self.detailPanel
+        try:
+            #print 'standardGrid: update selection'
+            if not self.hasDetailPanel():
+                return
             
-        number = 0
-        for row in self.panels:
-            for pan in row:
-                try:
-                    panel_id = pan.getIdentifier()
-                    #print "standardGrid: updateSelection: panel has id",`panel_id`
-                except:
-                    panel_id = None
-                    
-                if panel_id is None or panel_id != id:
-                    #print 'item deselected2'
-                    pan.deselect(number = number)
-                else:
-                    pan.select()
-                number += 1
+            title = None
+            
+            id = self.detailPanel.getIdentifier()
+            
+            #print "standardGrid: updateSelection: detailsPanel has id",id,self.detailPanel
+                
+            number = 0
+            for row in self.panels:
+                for pan in row:
+                    try:
+                        panel_id = pan.getIdentifier()
+                        #print "standardGrid: updateSelection: panel has id",`panel_id`
+                    except:
+                        panel_id = None
+                        
+                    if panel_id is None or panel_id != id:
+                        #print 'item deselected2'
+                        pan.deselect(number = number)
+                    else:
+                        pan.select()
+                    number += 1
+        except:
+            # I sometimes get UnicodeErrors here somewhere
+            print_exc()
+
         
     def hasDetailPanel(self):
         if self.detailPanel:

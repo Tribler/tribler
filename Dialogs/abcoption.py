@@ -1527,17 +1527,15 @@ class VideoPanel(ABCOptionPanel):
         mode = self.playback_indices[value]
         self.utility.config.Write('videoplaybackmode',mode)
 
-        for widget,mainmsg in [(self.player,self.utility.lang.get('videoplayernotfound')),(self.analyser,self.utility.lang.get('videoanalysernotfound'))]:
+        for key,widget,mainmsg in [('videoplayerpath',self.player,self.utility.lang.get('videoplayernotfound')),('videoanalyserpath',self.analyser,self.utility.lang.get('videoanalysernotfound'))]:
             qvalue = widget.GetValue()
             value = self.unquote_path(qvalue)
             if not os.access(value,os.F_OK):
                 self.onError(mainmsg,value)
                 return
-
-        if DEBUG:
-            print "abcoptions: VideoPanel: Writing videoplayerpath",value
-        self.utility.config.Write('videoplayerpath',value)
-        self.utility.config.Write('videoanalyserpath',value)
+            if DEBUG:
+                print >>sys.stderr,"abcoptions: VideoPanel: Writing",key,value
+            self.utility.config.Write(key,value)
 
 
     def unquote_path(self,value):

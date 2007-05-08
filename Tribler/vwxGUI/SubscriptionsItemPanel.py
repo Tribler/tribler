@@ -126,7 +126,7 @@ class SubscriptionsItemPanel(wx.Panel):
             self.title.SetLabel(title)
             self.title.Wrap(self.title.GetSize()[0])
             #self.title.SetToolTipString(peer_data['url'])
-            self.cB.Enable(True)
+            self.cB.Show()
             self.cB.SetValue(peer_data['status'] == "active")
             if 'persistent' in self.data:
                 self.delete.Hide()
@@ -137,7 +137,7 @@ class SubscriptionsItemPanel(wx.Panel):
             #self.title.SetToolTipString('')
             self.title.Enable(False)
             self.cB.SetValue(False)
-            self.cB.Enable(False)
+            self.cB.Hide()
             #self.delete.Enable(False)
             self.delete.Hide()
        
@@ -151,7 +151,7 @@ class SubscriptionsItemPanel(wx.Panel):
         
     def select(self):
         colour = self.guiUtility.selectedColour
-        print >>sys.stderr,'subip: selected',self.data
+        print >>sys.stderr,'subip: selected'
         self.thumb.setSelected(True)
         self.SetBackgroundColour(self.selectedColour)
         self.Refresh()

@@ -357,10 +357,13 @@ class VLCMediaCtrl(wx.Window):
         # What appears to work is to have the MainThread sleep 1 second after it
         # created the VLC control and using "--verbose 0 --logile X" as parameters.
         #
-        [loghandle,logfilename] = mkstemp("vlc-log")
-        os.close(loghandle)
+        # Arno, 2007-05-08: The problem with stderr appears to be caused by wx.SingleInstanceChecker
+        # for wxWidgets 2.8.0.1
+        #
+        #[loghandle,logfilename] = mkstemp("vlc-log")
+        #os.close(loghandle)
         #self.media = vlc.MediaControl(["--verbose","0","--logfile",logfilename,"--key-fullscreen","Esc"])
-        self.media = vlc.MediaControl()
+        self.media = vlc.MediaControl(["--key-fullscreen","Esc"])
         self.visinit = False
 
         

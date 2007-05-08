@@ -90,6 +90,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             
         self.guiUtility.initStandardDetails(self)
         
+        self.subscr_old_source = None
 
 
     def addComponents(self):
@@ -497,6 +498,11 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 return #no valid url
             subscrip = item
             rssurl = subscrip.get('url')
+            
+            if self.subscr_old_source is not None and self.subscr_old_source == rssurl:
+                print >>sys.stderr,"standardDetails: setData: subscriptionMode: Not refreshing"
+                return # no need to refresh
+            self.subscr_old_source = rssurl
             
             titleField = self.getGuiObj('titleField')
             titleField.SetLabel(rssurl)
@@ -1077,7 +1083,21 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         righttxt = 'down: '+totaldlspeed + ' | up: ' + totalulspeed
         leftlabel.SetLabel(lefttext)
         rightlabel.SetLabel(righttxt)
-        
+
+    """
+    def subscrNeedsGUIUpdate(self,todayl,yesterdayl):
+        update = True
+        if len(todayl) > 0:
+            if self.subscrDataCopy_today_top is not None and self.subscrDataCopy_today_top == todayl[0]:
+               update = False
+            self.subscrDataCopy_today_top = todayl[0]
+            
+        if len(yesterdayl) > 0:
+            if self.subscrDataCopy_yday_top is not None and self.subscrDataCopy_yday_top == yesterdayl[0]:
+               update = False
+            self.subscrDataCopy_yday_top = yesterdayl[0]
+        return update
+    """
             
 def revtcmp(a,b):
     if a[0] < b[0]:

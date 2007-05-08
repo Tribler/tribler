@@ -117,7 +117,7 @@ class FilesItemPanel(wx.Panel):
           
     def select(self):
         if DEBUG:
-            print 'fip: item selected',self.data.keys()
+            print 'fip: item selected'
         colour = self.guiUtility.selectedColour
         self.thumb.setSelected(True)
         self.title.SetBackgroundColour(colour)

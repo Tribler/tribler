@@ -238,8 +238,7 @@ class VideoPlayer:
  
     def progress4ext_gui_callback(self,progressinf,cmd):
         """ Called by GUI thread """
-        self.extprogress = ProgressForExternalPlayerDialog(self.parentwindow,self.utility,progressinf,self,cmd)
-
+        self.launch_video_player(cmd)
  
     def vod_stopped(self,ABCTorrentTemp):
         """ Called by GUI thread """
@@ -308,28 +307,33 @@ class VideoPlayer:
         mimetype = 'video/mpeg'
         video_player_path = self.utility.config.Read('videoplayerpath')
 
+        print "videoplay: Default player is",video_player_path
+
         if sys.platform == 'win32':
             # TODO: Use Python's mailcap facility on Linux to find player
             [mimetype,playcmd] = self.win32_retrieve_video_play_command(ext,videourl)
             if mimetype is None:
                 mimetype = 'video/mpeg'
+            print "videoplay: Win32 reg said playcmd is",playcmd
 
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
             return [mimetype,videourl]
         elif self.playbackmode == PLAYBACKMODE_EXTERNAL_MIME and sys.platform == 'win32':
-            if playcmd is None:
-                playcmd = video_player_path+' '+videourl
+            if playcmd is not None:
+                cmd = 'start /B "TriblerVideo" '+playcmd
+                return [mimetype,cmd]
+
+        print >>sys.stderr,"videoplay: Defaulting to default player",video_player_path
+        qprogpath = self.quote_program_path(video_player_path)
+        print >>sys.stderr,"videoplay: Defaulting to quoted prog",qprogpath
+        if qprogpath is None:
+            return [None,None]
+        qvideourl = self.escape_path(videourl)
+        playcmd = qprogpath+' '+qvideourl
+        if sys.platform == 'win32':
             cmd = 'start /B "TriblerVideo" '+playcmd
         else:
-            qprogpath = self.quote_program_path(video_player_path)
-            if qprogpath is None:
-                return [None,None]
-            qvideourl = self.escape_path(videourl)
-            playcmd = qprogpath+' '+qvideourl
-            if sys.platform == 'win32':
-                cmd = 'start /B "TriblerVideo" '+playcmd
-            else:
-                cmd = playcmd
+            cmd = playcmd
         return [mimetype,cmd]
 
             
@@ -413,8 +417,8 @@ class VideoPlayer:
             if not os.access(progpath,os.R_OK):
                 if DEBUG:
                     print >>sys.stderr,"videoplay: Could not find assumed progpath",progpath
-                    return None
-                return '"'+progpath+'"'
+                return None
+            return '"'+progpath+'"'
         else:
             return progpath
 
@@ -642,66 +646,6 @@ class VODWarningDialog(wx.Dialog):
         return idx
 
 
-class ProgressForExternalPlayerDialog(wx.Dialog,DelayedInvocation):
-    
-    def __init__(self,parent,utility,progressinf,videoplayer,cmd):
-        
-        self.utility = utility
-        self.progressinf = progressinf
-        self.videoplayer = videoplayer
-        self.cmd = cmd
-        
-        style = wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
-        title = self.utility.lang.get('vodprogress')
-        #wx.Frame.__init__(self,None,-1,title)
-        wx.Dialog.__init__(self,parent,-1,title,style=style)
-        DelayedInvocation.__init__(self)
-        self.doneflag = Event()
-        self.SetBackgroundColour(wx.WHITE)
-
-        
-        sizer = wx.BoxSizer(wx.VERTICAL)
-
-        probox = wx.BoxSizer(wx.HORIZONTAL)
-        self.progtext = wx.StaticText(self, -1, self.utility.lang.get('vodprogress'))
-        self.progress = ProgressBar(self)
-        probox.Add(self.progtext, 0, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
-        probox.Add(self.progress, 0, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
-        sizer.Add(probox, 0, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND|wx.ALL,5)
-        
-        buttonbox = wx.BoxSizer(wx.HORIZONTAL)
-        self.gobtn = wx.Button(self, -1, label=self.utility.lang.get('launchvideoplayer'), style = wx.BU_EXACTFIT)
-        self.gobtn.Disable()
-        self.gobtn.Bind(wx.EVT_BUTTON, self.OnPlay)
-        buttonbox.Add(self.gobtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
-
-        self.closebtn = wx.Button(self, -1, label=self.utility.lang.get('close'), style = wx.BU_EXACTFIT)
-        buttonbox.Add(self.closebtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
-        self.closebtn.Bind(wx.EVT_BUTTON, self.OnCloseWindow)
-        sizer.Add(buttonbox, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
-
-        self.SetSizerAndFit(sizer)
-
-        self.progressinf.set_callback(self.bufferinfo_updated_network_callback)
-        self.progress.set_blocks(self.progressinf.get_bufferinfo().tricolore)
-        self.Show()
-
-    def bufferinfo_updated_network_callback(self):
-        """ Called by network thread """
-        self.invokeLater(self.bufferinfo_updated_gui_callback)
-        
-    def bufferinfo_updated_gui_callback(self):
-        """ Called by GUI thread """
-        self.progress.Refresh()
-        if not self.gobtn.IsEnabled() and self.progressinf.get_bufferinfo().get_playable():
-            self.gobtn.Enable()
-
-    def OnPlay(self,evt=None):
-        self.videoplayer.launch_video_player(self.cmd)
-        
-    def OnCloseWindow(self,evt=None):
-        self.Destroy()
-        
         
 def is_movie(filename,enc=False):
     # filter movies
