@@ -18,6 +18,16 @@ if len(argv) == 1:
 for metainfo_name in argv[1:]:
     metainfo_file = open(metainfo_name, 'rb')
     metainfo = bdecode(metainfo_file.read())
+    print "metainfo:",metainfo.keys()
+    if 'azureus_properties' in metainfo:
+        azprop = metainfo['azureus_properties']
+        print "azprop:",azprop.keys()
+        if 'Content' in azprop:
+                content = azprop['Content']
+                print "content:",content.keys()
+                for key in content.keys():
+                        if key.lower() != 'thumbnail':
+                                print key,"=",content[key]
 #    print metainfo
     info = metainfo['info']
     info_hash = sha(bencode(info))

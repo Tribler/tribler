@@ -569,6 +569,8 @@ yes 				= "Yes"
 yestoall			= "Yes to All"
 no 					= "No"
 notoall				= "No to All"
+playtime			= "Duration of video ([hh:]mm:ss)"
+addthumbnail		= "Thumbnail"
 
 ###########################################################
 # BTcompletedirgui
@@ -1034,7 +1036,7 @@ loading = "Loading ..."
 act_upnp = "Opening firewall (if any) via UPnP"
 act_reachable = "Seeing if not firewalled"
 act_get_ext_ip_from_peers = "Asking peers for my IP address"
-act_meet = "Met person\n"
+act_meet = "Met user\n"
 act_got_metadata = "Found file\n"
 act_recommend = "Discovered more persons and files from"
 

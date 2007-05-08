@@ -137,7 +137,7 @@ class NameIconWizardPage(WizardPageSimple):
 
     def OnIconButton(self, evt):
         try:
-            path = os.path.join(os.getcwd(), 'icons')
+            path = os.path.join(self.utility.getPath(), 'icons')
             path = os.path.join(path, 'mugshots')
         except Exception, msg:
             path = ''

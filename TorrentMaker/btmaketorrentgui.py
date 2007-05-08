@@ -7,11 +7,14 @@
 
 import sys
 import wx
+import wx.lib.imagebrowser as ib
 import os
+import cStringIO
 
 from os.path import join, isdir, exists, normpath, split
 from threading import Event, Thread, currentThread
 from shutil import copy2
+from tempfile import mkstemp
 
 from traceback import print_exc
 
@@ -68,11 +71,15 @@ class MiscInfoPanel(wx.Panel):
         self.playtCtl = wx.TextCtrl(self, -1)
         outerbox.Add(self.playtCtl, 0, wx.EXPAND|wx.ALL, 5)
 
-        # Video dimensions:        
-        outerbox.Add(wx.StaticText(self, -1, self.utility.lang.get('videodim')), 0, wx.EXPAND|wx.ALL, 5)
-        self.videodimCtl = wx.TextCtrl(self, -1)
-        outerbox.Add(self.videodimCtl, 0, wx.EXPAND|wx.ALL, 5)
-
+        # Thumbnail:
+        xbox = wx.BoxSizer(wx.HORIZONTAL)
+        xbox.Add(wx.StaticText(self, -1, self.utility.lang.get('addthumbnail')), 0, wx.EXPAND|wx.ALL, 5)
+        self.thumbCtl = wx.TextCtrl(self, -1)
+        xbox.Add(self.thumbCtl, 0, wx.EXPAND|wx.ALL, 5)
+        browsebtn = wx.Button(self, -1, "...")
+        self.Bind(wx.EVT_BUTTON, self.onBrowseThumb, browsebtn)
+        xbox.Add(browsebtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        outerbox.Add(xbox, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT|wx.EXPAND, 5)
       
         self.SetSizerAndFit(outerbox)
         
@@ -92,9 +99,23 @@ class MiscInfoPanel(wx.Panel):
     def getParams(self):
         params = {}
 
-        videodim = self.videodimCtl.GetValue()
-        if videodim != '':
-            params['videodim'] = videodim
+        thumbfn = self.thumbCtl.GetValue()
+        jpgdata = None
+        try:
+            im = wx.Image(thumbfn)
+            ims = im.Scale(171,96)
+
+            [thumbhandle,thumbfilename] = mkstemp("torrent-thumb")
+            os.close(thumbhandle)
+            ims.SaveFile(thumbfilename,wx.BITMAP_TYPE_JPEG)
+            f = open(thumbfilename,"rb")
+            jpgdata = f.read()
+            f.close()
+        except:
+            print_exc()
+        
+        if jpgdata is not None:
+            params['thumb'] = jpgdata
 
         playt = self.playtCtl.GetValue()
         if playt != '':
@@ -109,6 +130,34 @@ class MiscInfoPanel(wx.Panel):
             params['created by'] = createdby
             
         return params
+
+
+    def onBrowseThumb(self, evt):
+        path = ''
+            
+        # open the image browser dialog
+        dlg = ib.ImageDialog(self, path)
+        dlg.Centre()
+        if dlg.ShowModal() == wx.ID_OK:
+            iconpath = dlg.GetFile()
+
+            try:
+                im = wx.Image(iconpath)
+                if im is None:
+                    self.show_inputerror(self.utility.lang.get('cantopenfile'))
+                else:
+                    self.thumbCtl.SetValue(iconpath)
+            except:
+                self.show_inputerror(self.utility.lang.get('iconbadformat'))
+        else:
+            pass
+
+        dlg.Destroy()        
+
+    def show_inputerror(self,txt):
+        dlg = wx.MessageDialog(self, txt, self.utility.lang.get('invalidinput'), wx.OK | wx.ICON_INFORMATION)
+        dlg.ShowModal()
+        dlg.Destroy()
 
 
 ################################################################

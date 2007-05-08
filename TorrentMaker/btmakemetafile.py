@@ -51,8 +51,8 @@ defaults = [
         "create a Merkle torrent instead of a regular torrent"),
     ('playtime', '',
         "optional play time for video torrents, format [h+:]mm:ss"),
-    ('videodim', '',
-        "optional dimensions for video torrents, format WIDTHxHEIHT")	
+    ('thumb', '',
+        "image for video torrents, format: 171x96 JPEG")	
     ]
 
 default_piece_len_exp = 18
@@ -134,11 +134,7 @@ def make_meta_file(file, url, params = None, flag = Event(),
     if 'playtime' in params and params['playtime']:
         playtime = params['playtime']
 
-    videodim = None
-    if 'videodim' in params and params['videodim']:
-        videodim = params['videodim']
-
-    info = makeinfo(file, piece_length, encoding, flag, merkle_torrent, progress, progress_percent, gethash = gethash, playtime = playtime, videodim = videodim)
+    info = makeinfo(file, piece_length, encoding, flag, merkle_torrent, progress, progress_percent, gethash = gethash, playtime = playtime)
     if flag.isSet():
         return
     check_info(info)
@@ -168,6 +164,23 @@ def make_meta_file(file, url, params = None, flag = Event(),
         
     if sign:
         create_torrent_signature(data)
+
+    if 'thumb' in params and len(params['thumb']) > 0:
+        thumb = params['thumb']
+        mdict = {}
+        mdict['Publisher'] = 'Tribler'
+        mdict['Description'] = ''
+        mdict['Progressive'] = 0
+        mdict['Title'] = data['info']['name']
+        mdict['Creation Date'] = long(time())
+        # Azureus client source code doesn't tell what this is, so just put in random value from real torrent
+        mdict['Content Hash'] = 'PT3GQCPW4NPT6WRKKT25IQD4MU5HM4UY'
+        mdict['Revision Date'] = long(time())
+        mdict['Thumbnail'] = thumb
+        cdict = {}
+        cdict['Content'] = mdict
+        data['azureus_properties'] = cdict
+        data['thumb'] = thumb
 
     h.write(bencode(data))
     h.close()
@@ -199,7 +212,7 @@ def uniconvert(s, e):
             raise UnicodeError('bad filename: '+s)
     return s.encode(e)
 
-def makeinfo(file, piece_length, encoding, flag, merkle_torrent, progress, progress_percent=1, gethash = None, playtime = None, videodim = None):
+def makeinfo(file, piece_length, encoding, flag, merkle_torrent, progress, progress_percent=1, gethash = None, playtime = None):
     if gethash is None:
         gethash = {}
     
@@ -298,7 +311,7 @@ def makeinfo(file, piece_length, encoding, flag, merkle_torrent, progress, progr
                 newdict['sha1'] = hash_sha1.digest()
                     
             fs.append(newdict)
-                    
+                
             h.close()
         if done > 0:
             pieces.append(sh.digest())
@@ -312,6 +325,7 @@ def makeinfo(file, piece_length, encoding, flag, merkle_torrent, progress, progr
             infodict.update( {'root hash': root_hash } )
         else:
             infodict.update( {'pieces': ''.join(pieces) } )
+
         return infodict
     else:
         size = getsize(file)
@@ -375,11 +389,6 @@ def makeinfo(file, piece_length, encoding, flag, merkle_torrent, progress, progr
         newdict = { 'piece length': piece_length, 'length': size, 
                 'name': uniconvert(split(file)[1], encoding),
                 'name.utf-8': uniconvert(split(file)[1], 'utf-8')}
-        if playtime is not None:
-            newdict['playtime'] = playtime
-
-        if videodim is not None:
-            newdict['videodim'] = videodim
 
         if merkle_torrent:
             merkletree = MerkleTree(piece_length,size,None,pieces)
@@ -393,8 +402,13 @@ def makeinfo(file, piece_length, encoding, flag, merkle_torrent, progress, progr
             newdict['crc32'] = "%08X" % hash_crc32
         if gethash['sha1']:
             newdict['sha1'] = hash_sha1.digest()
-                   
+
+        if playtime is not None:
+            newdict['playtime'] = playtime
+
         return newdict
+
+
 
 
 
