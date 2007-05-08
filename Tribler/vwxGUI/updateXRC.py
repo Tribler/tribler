@@ -16,6 +16,7 @@ def changeFile(filename):
                      ('tribler_topButton', 'wxPanel', customDir+'tribler_topButton'),                     
                      ('SwitchButton', 'wxPanel', customDir+'tribler_topButton'),                     
                      ('tribler_List', 'wxListCtrl', customDir+'tribler_List'),                     
+                     ('DLFilesList', 'wxListCtrl', customDir+'tribler_List'),                     
                      ('FilesList', 'wxListCtrl', customDir+'tribler_List'),                     
                      ('btn_DetailsHeader', 'wxPanel', customDir+'btn_DetailsHeader'),
                      ('statusDownloads', 'wxPanel', customDir+'statusDownloads'),

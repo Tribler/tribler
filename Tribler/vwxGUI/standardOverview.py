@@ -293,7 +293,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 return diff
             
         libraryList.sort(librarySort)
-        print 'Loading libraryList: %s' % [(self.isTorrentFinished(t), t['download_started']) for t in libraryList]
+        print 'Loading libraryList: %s' % [(self.isTorrentFinished(t), t.get('download_started',False)) for t in libraryList]
         self.data[self.mode]['data'] = libraryList
         print 'Loaded %d library items' % len(self.data[self.mode]['data'])
         

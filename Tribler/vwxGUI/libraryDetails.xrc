@@ -407,8 +407,8 @@
               <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
-              <object class="wxListCtrl" name="peopleWhoField" subclass="Tribler.vwxGUI.tribler_List.tribler_List">
-                <pos>3,266</pos>
+              <object class="wxListCtrl" name="peopleWhoField" subclass="Tribler.vwxGUI.tribler_List.DLFilesList">
+                <pos>6,269</pos>
                 <size>284,125</size>
               </object>
             </object>
