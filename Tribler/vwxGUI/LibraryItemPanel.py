@@ -150,7 +150,7 @@ class LibraryItemPanel(wx.Panel):
         self.hSizer.Add(self.playerPlay, 0, wx.TOP|wx.BOTTOM, 3) 
         
         # Delete button
-        self.delete = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='delete')
+        self.delete = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='deleteLibraryitem')
         self.delete.setBackground(wx.WHITE)
         
         self.hSizer.Add(self.delete,0,wx.TOP|wx.LEFT|wx.FIXED_MINSIZE|wx.ALIGN_TOP,3)       
