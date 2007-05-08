@@ -371,12 +371,13 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 print peopleWhoLikeThisList 
                 
                 # Show or hide download button in detailstab
-#                downloadButton = self.getGuiObj('download')
-#                if self.showDownloadbutton(self.mode, torrent):
-#                    downloadButton.Show()
-#                else:
-#                    downloadButton.Hide()
-#                
+                if self.mode == 'filesMode':
+                    downloadButton = self.getGuiObj('download')
+                    if self.showDownloadbutton(self.mode, torrent):
+                        downloadButton.Show()
+                    else:
+                        downloadButton.Hide()
+                
             elif self.getGuiObj('files_detailsTab').isSelected():
                 filesList = self.getGuiObj('includedFiles', tab = 'filesTab_files')
                 filesList.setData(torrent)
@@ -988,6 +989,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 print 'standardDetails: download started'
                 # save start download time.
                 torrent['download_started'] = time()
+                torrent['progress'] = 0.0
                 self.data_manager.setBelongsToMyDowloadHistory(torrent['infohash'], True)
                     
         else:

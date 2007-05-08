@@ -39,6 +39,7 @@ class LibraryItemPanel(wx.Panel):
         self.oldCategoryLabel = None
         self.torrentDetailsFrame = None
         self.addComponents()
+        self.SetMinSize((-1, 37+6))
         self.Show()
         self.Refresh()
         self.Layout()
@@ -281,7 +282,7 @@ class LibraryItemPanel(wx.Panel):
             self.boost.setEnabled(False)
             self.pause.setEnabled(True)
             self.pause.setToggled(True)
-            self.statusField.SetLabel(self.utility.lang.get('download_inactive'))
+            self.statusField.SetLabel(self.utility.lang.get('stop'))
             self.eta.SetLabel('')
             
             if torrent.get('progress'):
@@ -352,6 +353,10 @@ class LibraryItemPanel(wx.Panel):
         
     def mouseAction(self, event):
         event.Skip()
+        
+        if not self.data:
+            return
+        
         obj = event.GetEventObject()
         name = obj.GetName()
         
@@ -370,10 +375,10 @@ class LibraryItemPanel(wx.Panel):
         if self.data.get('abctorrent'):
                 
             abctorrent = self.data.get('abctorrent')
-            if name == 'delete':
+            if name == 'deleteLibraryitem':
                 removeFiles = False
                 self.utility.actionhandler.procREMOVE([abctorrent], removefiles = removeFiles)
-                
+                            
             elif name == 'pause':
                 if abctorrent.status.value in [STATUS_PAUSE, STATUS_STOP, STATUS_QUEUE ]:
                     self.utility.actionhandler.procRESUME([abctorrent])
@@ -382,8 +387,6 @@ class LibraryItemPanel(wx.Panel):
                     self.utility.actionhandler.procSTOP([abctorrent])
                     obj.setToggled(True)
                     
-                
-                
             elif name == 'playFast':
                 if not self.vodMode:
                     self.vodMode = True
@@ -402,17 +405,20 @@ class LibraryItemPanel(wx.Panel):
         else: # no abctorrent
             if name == 'pause':
                  #playbutton
-                 dest_dir = self.data.get('dest_dir')
+                 dest_dir = self.data.get('destdir')
                  if  dest_dir != None:
                      # Start torrent again
                      print 'starting torrent %s with data in dir %s' % (repr(self.data['content_name']), dest_dir)
                      self.guiUtility.standardDetails.download(self.data, dest = dest_dir)
                  
                  else:
-                     print 'LibraryItemPanel: Could not make abctorrent active, no dest_dir in dictionary: %s' % self.data
+                     print 'LibraryItemPanel: Could not make abctorrent active, no destdir in dictionary: %s' % repr(self.data.get('content_name'))
                 
                 
-          
+        if name == 'deleteLibraryitem':
+            # delete works for active and inactive torrents
+            self.guiUtility.standardOverview.removeTorrentFromLibrary(self.data)
+                
         print >>sys.stderr,"lip: mouseaction: name",event.GetEventObject().GetName()
             
         
@@ -487,11 +493,12 @@ class LibraryItemPanel(wx.Panel):
             progresstxt = abctorrent.getColumnText(COL_PROGRESS)
             progress = float(progresstxt[:-1])
             # store the progress of this torrent
-            self.data['progress'] = progress
-            self.data['dest_dir'] = abctorrent.files.dest
+            newdata = {'progress':progress, 'destdir':abctorrent.files.dest}
+            self.data.update(newdata)
             
-            print 'Save destination?: %s' % self.data['dest_dir']
-            self.utility.torrent_db.updateTorrent(infohash, item = self.data)
+            print 'Save destination?: %s' % self.data['destdir']
+            # only save new data (progression and destdir, no other data or torrent
+            self.utility.torrent_db.updateTorrent(infohash, item = newdata)
             # Now delete the abctorrent object reference
             del self.data['abctorrent']
     

@@ -19,6 +19,7 @@ class TorrentStatus:
         self.completed = False
         self.dontupdate = True # Don't update until the list item is created
         self.havedigest = None
+        self.lastStopped = 0
 
     def getStatusText(self):
         value = self.value

@@ -189,6 +189,7 @@ class ABCScheduler(DelayedEventHandler):
             self.utility.frame.numberPersons.SetLabel(npeer)
             self.utility.frame.numberFiles.SetLabel(nfile)
             self.guiUtility.refreshTorrentTotalStats(totaldlspeed=downspeed2,totalulspeed=upspeed2)
+            
         except wx.PyDeadObjectError:
             pass
                                 
@@ -198,7 +199,10 @@ class ABCScheduler(DelayedEventHandler):
         self.updateTrayAndStatusBar()
 
         self.ratemanager.RunTasks()
-   
+        
+        # check if stopped torrents will be shutdown
+        self.checkAutoShutdownTorrents()
+                
         try:
             # Run postponed deleting events
             while self.utility.window.postponedevents:
@@ -499,4 +503,7 @@ class ABCScheduler(DelayedEventHandler):
 
     def addTorrentFromFileCallback(self,data,caller=''):
         self.invokeLater(self.addtorrents.AddTorrentFromFile,[data],{'caller':caller})
+        
+    def checkAutoShutdownTorrents(self):
+        self.invokeLater(self.utility.actionhandler.procCHECK_AUTOSHUTDOWN)
         

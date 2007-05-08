@@ -272,17 +272,46 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         
         self.loadTorrentData(self.utility.lang.get('mypref_list_title'), 'date')
         libraryList = self.data[self.mode]['data']
+        # Add abctorrents to library data
         for torrent in libraryList:
             infohash = torrent.get('infohash')
             if infohash in activeInfohashes:
-                active.append(torrent)
                 torrent['abctorrent'] = activeInfohashes[infohash]
-            else:
-                inactive.append(torrent)
         
-        self.data[self.mode]['data'] = active+inactive
+        def librarySort(x, y):
+            xFin = self.isTorrentFinished(x)
+            yFin = self.isTorrentFinished(y)
+            if xFin and not yFin:
+                return 1
+            elif not xFin and yFin:
+                return -1
+            else:
+                xDate = x.get('download_started', 0)
+                yDate = y.get('download_started', 0)
+                diff = int(yDate - xDate)
+                assert type(diff) == int, 'Difference should be a int value'
+                return diff
+            
+        libraryList.sort(librarySort)
+        print 'Loading libraryList: %s' % [(self.isTorrentFinished(t), t['download_started']) for t in libraryList]
+        self.data[self.mode]['data'] = libraryList
         print 'Loaded %d library items' % len(self.data[self.mode]['data'])
         
+    def isTorrentFinished(self, torrent):
+        "Is this torrent ready downloading (active or inactive)"
+        abctorrent = torrent.get('abctorrent')
+        progression = torrent.get('progress')
+        if abctorrent == None:
+            if progression != None:
+                return (progression == 100.0)
+            else:
+                print 'Could not get progression'
+                #print 'standardOverview: Error could not get progression of torrent: %s' % torrent
+                return False
+        else:
+            progresstxt = abctorrent.getColumnText(COL_PROGRESS)
+            progress = float(progresstxt[:-1])
+            return (progress == 100.0)
         
     def loadSubscriptionData(self):
         torrentfeed = TorrentFeedThread.getInstance()
@@ -316,14 +345,12 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         #current view selected is persons or friends, so, the solution would be to
         #always try to update the data in filesMode
         # PLEASE, DON'T REMOVE ALERT MESSAGE UNTIL A CORRECT SOLUTION IS FOUND!!!!
-        torrentGrid = self.data["filesMode"]['grid']
+
         if self.mode in [ "personsMode", "friendsMode"]:
-            print "\n*****************************************************\n\
-*                   big problem                     *\n\
-*     in updateFunTorrents, calling",self.mode,"!!!!!     *\n\
-*                                                   *\n\
-*****************************************************\n"
-            
+            raise Exception("big problem in updateFunTorrents, calling",self.mode,"!!!!!")
+            return
+        
+        torrentGrid = self.data[self.mode]['grid']
         assert torrentGrid, 'standardOverview: could not find Grid of %s' % self.mode
         
         if self.mode == 'libraryMode':
@@ -377,4 +404,11 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     def getRSSUrlCtrl(self):
         return self.data[self.mode]['rssurlctrl']
     
+        
+    def removeTorrentFromLibrary(self, torrent):
+        "Remove torrent from the library. Add it to discovered files?"
+        infohash = torrent['infohash']
+        self.utility.mypref_db.deletePreference(infohash)
+        self.utility.mypref_db.sync()
+        self.data_manager.setBelongsToMyDowloadHistory(infohash, False)
         

@@ -95,6 +95,10 @@ class TorrentActions:
             videoplayer = VideoPlayer.getInstance()
             videoplayer.vod_stopped(torrent)
 
+        if torrent.status.value != STATUS_STOP:
+            # Save last stopped
+            torrent.status.lastStopped = time()
+            
         if torrent.status.isDoneUploading():
             return True
         

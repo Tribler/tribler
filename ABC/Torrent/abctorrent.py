@@ -856,6 +856,14 @@ class ABCTorrent:
             self.files.removeFiles()
 
 
+    def checkAutoShutdown(self, autoShutdownTime):
+        # Check if this torrent is in stop state for more than autoShutdownTime
+        
+        if self.status.value == STATUS_STOP and self.status.lastStopped != 0:
+            return (time() - self.status.lastStopped) > autoShutdownTime
+        else:
+            return False
+        
     # Things to do when shutting down a torrent
     def shutdown(self):
         # Set shutdown flag to true

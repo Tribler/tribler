@@ -17,7 +17,7 @@ from traceback import print_exc,print_stack
 import wx, os, sys, math
 import wx.xrc as xrc
 
-DEBUG = True
+DEBUG = False
 
         
 class standardGrid(wx.Panel):
@@ -100,7 +100,8 @@ class standardGrid(wx.Panel):
         else:
             datalength = len(dataList)
         
-        print 'standardGrid: SetData called: init: %s, datalength: %d' % (self.initReady, datalength)
+        if DEBUG:
+            print 'standardGrid: SetData called: init: %s, datalength: %d' % (self.initReady, datalength)
         
         self.data = dataList
         
@@ -112,7 +113,8 @@ class standardGrid(wx.Panel):
             if self.getStandardPager():
                 self.standardPager.currentPage = 0
         self.refreshPanels()
-        print '<mluc>start pos:',self.currentData,'columns:',self.cols,'rows:',self.currentRows,'items:',self.items
+        if DEBUG:
+            print '<mluc>start pos:',self.currentData,'columns:',self.cols,'rows:',self.currentRows,'items:',self.items
         
         
     def updateItem(self, item, delete = False):
@@ -303,7 +305,7 @@ class standardGrid(wx.Panel):
                     except:
                         panel_id = None
                         
-                    if panel_id is None or panel_id != id:
+                    if panel_id is None or repr(panel_id) != repr(id):
                         #print 'item deselected2'
                         pan.deselect(number = number)
                     else:

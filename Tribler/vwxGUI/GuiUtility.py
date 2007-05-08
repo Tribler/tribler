@@ -451,3 +451,5 @@ class GUIUtility:
         dlg = wx.MessageDialog(None, msg, title, wx.OK|type)
         result = dlg.ShowModal()
         dlg.Destroy()
+
+        

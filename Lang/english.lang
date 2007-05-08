@@ -1190,5 +1190,4 @@ persons_view_no_data = "No people encountered yet"
 
 torrentcollectsleep = "Time to wait between downloading torrents from RSS:"
 buddycastsubscription = "Discover content via other Tribler users"
-download_inactive = "inactive"
 

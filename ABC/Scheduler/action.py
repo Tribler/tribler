@@ -131,3 +131,18 @@ class ActionHandler:
         
         if update:
             self.queue.updateAndInvoke()
+
+    def procCHECK_AUTOSHUTDOWN(self, workinglist = None, autoShutdownTime = 60*60): # shutdown after 1 hour
+        if workinglist is None:
+            workinglist = self.utility.torrents["all"]
+        
+        shutdownList = []
+        for ABCTorrentTemp in workinglist:
+            if ABCTorrentTemp.checkAutoShutdown(autoShutdownTime):
+                shutdownList.append(ABCTorrentTemp)
+                
+        #print '%d torrent autoshutdown' % len(shutdownList)
+        
+        if shutdownList:
+            self.procREMOVE(shutdownList)
+            

@@ -431,6 +431,9 @@ class TorrentDBHandler(BasicDBHandler):
                 continue
             if all and torrent in mypref_set:
                 p['myDownloadHistory'] = True
+                mypref_obj = self.mypref_db.getItem(torrent)
+                if mypref_obj:
+                    p['download_started'] = mypref_obj['created_time']
             p['infohash'] = torrent
             if not light:    # set light as ture to be faster
                 p['num_owners'] = self.owner_db.getNumOwners(torrent)

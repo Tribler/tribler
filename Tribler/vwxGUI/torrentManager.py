@@ -85,7 +85,7 @@ class TorrentDataManager:
         # See downloaded files also as category
         if (categorykey == self.utility.lang.get('mypref_list_title').lower()):
             def myfilter(a):
-                return a.get('myDownloadHistory', False)
+                return a.get('myDownloadHistory', False) and a.get('eventComingUp', '') != 'notDownloading'
             rlist = filter(myfilter, self.data) 
             print '>>>getCategory: returns mydlhistory: %s' % str([t['content_name'] for t in rlist])
             return rlist
@@ -201,6 +201,7 @@ class TorrentDataManager:
         old_torrent = self.info_dict.get(infohash, None)
         if not old_torrent:
             return
+        
         # EventComing up, to let the detailPanel update already
         if b:
             old_torrent['eventComingUp'] = 'downloading'
@@ -208,14 +209,16 @@ class TorrentDataManager:
             old_torrent['eventComingUp'] = 'notDownloading'
         
         self.notifyView(old_torrent, 'delete')
+        
         del old_torrent['eventComingUp']
         if b:
             old_torrent['myDownloadHistory'] = True
         else:
             if old_torrent.has_key('myDownloadHistory'):
                 del old_torrent['myDownloadHistory']
+            
         self.notifyView(old_torrent, 'add')
-       
+                
     def addNewPreference(self, infohash): 
         if self.info_dict.has_key(infohash):
             return
