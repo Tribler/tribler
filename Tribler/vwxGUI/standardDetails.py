@@ -701,6 +701,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             #check to see it it's worth trying to reposition elements
             if len(list)>1:
                 prevElement = self.getGuiObj(list[0], tab)
+                prevElement.Wrap(284)
                 print "<mluc> first element",list[0],"is at",prevElement.GetPosition().y,"and has height",prevElement.GetSize().height
                 for index in range(1,len(list)):
                     currentElement = self.getGuiObj(list[index], tab)

@@ -81,7 +81,6 @@
               <border>6</border>
               <option>0</option>
               <object class="wxStaticText" name="descriptionField0">
-                <style>wxST_NO_AUTORESIZE</style>
                 <label>Download more files to increase the quality of Tribler recommendations.
 </label>
                 <pos>6,20</pos>
