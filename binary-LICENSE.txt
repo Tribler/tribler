@@ -338,6 +338,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   code and/or adjust the licensing conditions notice accordingly.
 
 ------------------------------VideoLAN Client---------------------------------
+
 		    GNU GENERAL PUBLIC LICENSE
 		       Version 2, June 1991
 
@@ -680,13 +681,27 @@ library.  If this is what you want to do, use the GNU Library General
 Public License instead of this License.
 
 
+-------------------------------FFMPEG-----------------------------------------
+
+FFMPEG Licensing
+----------------
+
+* Read the file COPYING. ffmpeg and the associated libraries EXCEPT
+  liba52 and libpostproc are licensed under the Lesser GNU General
+  Public License.
+
+* liba52 and libpostproc are distributed under the GNU General Public
+  License and their compilation and use is optional in ffmpeg.
+
+Fabrice Bellard.
+
+
 ------------------------------Tribler-----------------------------------------
 
 
-
 All code written by Jie Yang, Pawel Garbacki, Jun Wang, Arno Bakker,
-Jan David Mol, Qin Chen, Yuan Yuan, Jelle Roozenburg has the following 
-license:
+Jan David Mol, Qin Chen, Yuan Yuan, Jelle Roozenburg, Freek Zindel,
+Fabian van der Werf has the following license:
 
     TRIBLER file-sharing library.
 
