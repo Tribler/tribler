@@ -1049,7 +1049,8 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             self.torrentfeed = TorrentFeedThread.getInstance()
             self.torrentfeed.register(self.utility)
             self.torrentfeed.start()
-            
+
+            wx.CallAfter(self.startWithRightView)            
             
         except Exception,e:
             print "THREAD",currentThread().getName()
@@ -1094,6 +1095,10 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
     
     def getConfigPath(self):
         return self.utility.getConfigPath()
+
+    def startWithRightView(self):
+        if self.params[0] != "":
+            self.guiUtility.standardLibraryOverview()
     
         
 class DummySingleInstanceChecker:

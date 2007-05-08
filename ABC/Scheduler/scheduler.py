@@ -502,7 +502,13 @@ class ABCScheduler(DelayedEventHandler):
         self.utility.torrentconfig.Flush()
 
     def addTorrentFromFileCallback(self,data,caller=''):
-        self.invokeLater(self.addtorrents.AddTorrentFromFile,[data],{'caller':caller})
+        self.invokeLater(self.doAddTorrentFromFile,[data],{'caller':caller})
+
+    def doAddTorrentFromFile(self,data,caller=''):
+        self.addtorrents.AddTorrentFromFile(data,caller=caller)
+        guiUtility = GUIUtility.getInstance()
+        # Switch to Library view
+        guiUtility.standardLibraryOverview()
         
     def checkAutoShutdownTorrents(self):
         self.invokeLater(self.utility.actionhandler.procCHECK_AUTOSHUTDOWN)

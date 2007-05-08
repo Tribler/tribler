@@ -5,7 +5,6 @@ from traceback import print_exc
 
 from Utility.helpers import getSocket
 
-
 ################################################################
 #
 # Class: ServerListener
