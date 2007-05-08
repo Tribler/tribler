@@ -14,7 +14,7 @@ from tribler_topButton import *
 from threading import Lock
 import TasteHeart
 
-DEBUG=True
+DEBUG=False
 
 class FriendsItemPanel(wx.Panel):
     """
@@ -84,7 +84,7 @@ class FriendsItemPanel(wx.Panel):
         self.hSizer.Add(self.taste, 0, wx.TOP|wx.RIGHT, 5)
         
         # Add delete button
-        self.delete = tribler_topButton(self, -1, wx.Point(0,0), wx.Size(17,17),name='delete')                
+        self.delete = tribler_topButton(self, -1, wx.Point(0,0), wx.Size(17,17),name='deleteFriend')                
         self.hSizer.Add(self.delete, 0, wx.TOP|wx.RIGHT, 3)
         
 
@@ -177,6 +177,7 @@ class FriendsItemPanel(wx.Panel):
         
     def mouseAction(self, event):
         print "set focus"
+        event.Skip()
         self.SetFocus()
         if self.data:
             self.guiUtility.selectPeer(self.data)

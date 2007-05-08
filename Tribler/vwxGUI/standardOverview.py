@@ -342,12 +342,12 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             
         
     def updateFunPersons(self, peer_data, operate):    
-        print "UpdatefunPersons called for ",peer_data['content_name']
         grid = None
         if self.mode in ["personsMode","friendsMode"]:
             grid = self.data[self.mode]['grid']
         if grid is not None:
             try:
+                print "UpdatefunPersons called for ",peer_data['content_name']
                 #check if the changed peer_data is in the list of visible ones
                 for index in range(grid.currentData,grid.currentData+grid.items):
                     if index<len(grid.data) and grid.data[index]['permid'] == peer_data['permid']:

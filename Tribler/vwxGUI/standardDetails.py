@@ -560,7 +560,6 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             ## --- Overall performance  !!!! we'll leave it probably out!!!
             if self.currentPanel == self.getGuiObj('profileDetails'):
                 text = self.utility.lang.get("profileDetails_Overall_description", giveerror=False)
-                print "<mluc> overall rank:",item.get('overall_rank')
                 #self.getGuiObj('descriptionField0').SetLabel(text % item.get('overall_rank'))            
             # --------------------------------------------------------------------------------------------------------------------------------------------------------
             # --- Quality of tribler recommendations    

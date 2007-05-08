@@ -12,7 +12,7 @@ from traceback import print_exc
 # update top list and the sorting after removal of elements
 #===============================================================================
 
-DEBUG = True
+DEBUG = False
 def debug(message):
     if DEBUG:
         print message
@@ -225,7 +225,7 @@ class PeerDataManager(DelayedEventHandler):
         for type,list in self.filtered_data.iteritems():
             filterFunc,cmpFunc = self.filtered_func[type]
             if filterFunc is None or filterFunc(peer_data):
-                print "adding peer",`peer_data['content_name']`,"to filter",type
+#                print "adding peer",`peer_data['content_name']`,"to filter",type
                 self.insertInPlace(list, peer_data, cmpFunc)
             
     def removeFromFilters(self, permid, check_filter=True):

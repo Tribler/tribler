@@ -75,7 +75,7 @@ class GUIUtility:
             self.detailsTabClicked(name)
         elif name == 'refresh':
             self.refreshTracker()
-        elif name == "addAsFriend":
+        elif name == "addAsFriend" or name == 'deleteFriend':
             self.standardDetails.addAsFriend()
         elif name == 'download':
             self.standardDetails.download()

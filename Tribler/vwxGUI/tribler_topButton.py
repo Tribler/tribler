@@ -137,6 +137,7 @@ class tribler_topButton(wx.Panel):
 
 
     def ClickedButton(self, event):
+        event.Skip()
         if self.enabled:
             self.guiUtility.buttonClicked(event)
                 
