@@ -776,6 +776,7 @@ tribler_upnp_error2_postfix     = "'. "
 tribler_upnp_error3		= "was enabled, but initialization failed."
 tribler_upnp_error_extro	= "    If the listen port is not open on the firewall you will suffer slower downloads, less recommendations and won't be able to use the download booster. Try setting a different listen port or UPnP mode in (advanced) network Preferences."
 tribler_unreachable_explanation = "Your Tribler does not seem to be reachable from the Internet. As a result, you will suffer slower downloads, less recommendations and won't be able to use the download booster. Try setting a different listen port or enable UPnP in (advanced) network Preferences."
+currentdiscoveredipaddress = "Your discovered IP address"
 
 associate 			= "Associate with .torrent files"
 notassociated_line1 = "Tribler is not currently associated with .torrent files"

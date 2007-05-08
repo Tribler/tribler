@@ -81,6 +81,15 @@ class NetworkPanel(ABCOptionPanel):
         ABCOptionPanel.__init__(self, parent, dialog)
         sizer = self.sizer
 
+        my_db = MyDBHandler()
+        ip = self.utility.config.Read('bind')
+        if ip is None or ip == '':
+            ip = my_db.getMyIP()
+        ip_txt = self.utility.lang.get('currentdiscoveredipaddress')+": "+ip
+        label = wx.StaticText(self, -1, ip_txt )
+        sizer.Add( label, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+
+
         self.minport = self.utility.makeNumCtrl(self, 1, min = 1, max = 65536)
         port_box = wx.BoxSizer(wx.HORIZONTAL)
         port_box.Add(wx.StaticText(self, -1, self.utility.lang.get('portnumber')), 0, wx.ALIGN_CENTER_VERTICAL)
@@ -1084,8 +1093,13 @@ class AdvancedNetworkPanel(ABCOptionPanel):
         self.maxconnections_data.SetStringSelection(setval)
         
         upnp_val = self.utility.config.Read('upnp_nat_access', "int")
+        
+        print >>sys.stderr,"abcoptions: UPnP read",upnp_val
+        
         selected = self.upnp_val2selected(upnp_val)
         self.upnp_data.SetStringSelection(self.upnp_choices[selected])
+
+        print >>sys.stderr,"abcoptions: UPnP translates to",self.upnp_choices[selected]
 
 #        #self.ipv6bindsv4_data.SetSelection()
         

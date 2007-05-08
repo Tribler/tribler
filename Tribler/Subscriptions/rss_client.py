@@ -15,11 +15,14 @@
 #       of sites unnecessarily and uses Java session IDs (";jsessionid") in the URLs, which renders
 #       our do-not-visit-if-recently-visited useless.
 #
+# 2007-05-08: vuze appears to have added a ;jsessionid to the <enclosure> tag. I now strip that for
+# the URLHistory, but use it in requests. So don't be alarmed by the ;jsessionid in the debug messages.
 
 import os
 import sys
 import traceback
 from Tribler.timeouturlopen import urlOpenTimeout
+#from BitTornado.zurllib import urlopen
 import re
 import urlparse
 from xml.dom.minidom import parseString
@@ -184,7 +187,7 @@ class TorrentFeedThread(Thread):
                 self.process_statscopy(statscopy)
             self.lock.release()
             """
-            sleep(15*60)
+            sleep(60*60)
 
 
     def shutdown(self):
@@ -236,6 +239,7 @@ class TorrentFeedReader:
         
         feed_socket = urlOpenTimeout(self.feed_url,timeout=5)
         feed_xml = feed_socket.read()
+        feed_socket.close()
         
         feed_dom = parseString(feed_xml)
 
@@ -323,7 +327,6 @@ class TorrentFeedReader:
                 traceback.print_exc()
                 yield title,None
 
-
     def shutdown(self):
         self.urls_already_seen.write()
         
@@ -335,10 +338,12 @@ class URLHistory:
         self.filename = filename
         self.readed = False
         
-    def add(self,url):
+    def add(self,dirtyurl):
+        url = self.clean_link(dirtyurl)
         self.urls[url] = time()
                     
-    def contains(self,url):
+    def contains(self,dirtyurl):
+        url = self.clean_link(dirtyurl)
         
         # Poor man's filter
         if url.endswith(".jpg") or url.endswith(".JPG"):
@@ -388,4 +393,13 @@ class URLHistory:
 
     def copy(self):
         return self.urls.copy()
+    
+
+    def clean_link(self,link):
+        """ Special vuze case """
+        idx = link.find(';jsessionid')
+        if idx == -1:
+            return link
+        else:
+            return link[:idx]
     
