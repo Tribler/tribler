@@ -63,7 +63,7 @@
       <object class="sizeritem">
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
-        <option>0</option>
+        <option>1</option>
         <object class="wxPanel" name="details">
           <pos>0,21</pos>
           <size>300,348</size>
@@ -122,7 +122,7 @@
                 <style>wxST_NO_AUTORESIZE</style>
                 <label>Download more files to increase the quality of Tribler recommendations.
 </label>
-                <pos>6,132</pos>
+                <pos>6,87</pos>
                 <size>284,43</size>
                 <font>
                   <size>8</size>
