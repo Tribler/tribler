@@ -351,18 +351,19 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             try:
                 #check if the changed peer_data is in the list of visible ones
                 for index in range(grid.currentData,grid.currentData+grid.items):
-                    if grid.data[index]['permid'] == peer_data['permid']:
+                    if index<len(grid.data) and grid.data[index]['permid'] == peer_data['permid']:
                         if operate in ["update","add"]:
                             self.invokeLater(grid.setDataOfPanel,[index-grid.currentData, grid.data[index]])
                         elif operate in ["delete","hide"]:
                             self.invokeLater(grid.setData,[grid.data,False])
                         elif operate.endswith("and top_changed"):
                             self.invokeLater(grid.refreshPanels)
-                print "#===============================================================================#"
-                print "#                         dump visible peers                                    #"
-                for index in range(grid.currentData,grid.currentData+grid.items):
-                    print "#     %d. %s     %f" % (grid.data[index]['simTop'],unicode2str(grid.data[index]['content_name']),grid.data[index]['similarity'])
-                print "#===============================================================================#"
+#                print "#===============================================================================#"
+#                print "#                         dump visible peers                                    #"
+#                for index in range(grid.currentData,grid.currentData+grid.items):
+#                    if index<len(grid.data):
+#                        print "#     %d. %s     %f" % (grid.data[index]['simTop'],unicode2str(grid.data[index]['content_name']),grid.data[index]['similarity'])
+#                print "#===============================================================================#"
             except:
                 print_exc()
                 self.invokeLater(grid.refreshPanels)

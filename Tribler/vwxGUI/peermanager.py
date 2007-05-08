@@ -512,6 +512,7 @@ class PeerDataManager(DelayedEventHandler):
                     bChange = True #there is a change in the list
                 if indexInsertAt < max_list_length and element[key]>0: #don't insert an element that will be removed and also that has a 0 value
                     top_list.insert(indexInsertAt, element)
+                    element['simTop']=(indexInsertAt+1)
                     bChange = True #there is a change in the list
             #reduce the size of the list
             while len(top_list)>max_list_length:
