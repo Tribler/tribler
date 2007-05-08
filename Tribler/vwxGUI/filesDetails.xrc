@@ -2,7 +2,7 @@
 <resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
   <object class="wxPanel" name="filesDetails">
     <pos>0,0</pos>
-    <size>298,170</size>
+    <size>298,575</size>
     <fg>#d8d8bf</fg>
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>
@@ -229,16 +229,16 @@
                           <option>0</option>
                           <object class="wxStaticText" name="popularityField1">
                             <label>?</label>
-                            <pos>97,43</pos>
-                            <size>21,18</size>
+                            <pos>102,43</pos>
+                            <size>46,18</size>
                           </object>
                         </object>
                         <object class="sizeritem">
                           <flag>wxLEFT|wxFIXED_MINSIZE</flag>
-                          <border>20</border>
+                          <border>4</border>
                           <option>0</option>
                           <object class="wxPanel" name="down" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
-                            <pos>138,43</pos>
+                            <pos>155,43</pos>
                             <size>11,14</size>
                             <bg>#ffffff</bg>
                           </object>
@@ -249,16 +249,16 @@
                           <option>0</option>
                           <object class="wxStaticText" name="popularityField2">
                             <label>?</label>
-                            <pos>153,43</pos>
-                            <size>21,18</size>
+                            <pos>162,43</pos>
+                            <size>56,18</size>
                           </object>
                         </object>
                         <object class="sizeritem">
                           <flag>wxLEFT|wxFIXED_MINSIZE</flag>
-                          <border>25</border>
+                          <border>2</border>
                           <option>0</option>
                           <object class="wxPanel" name="refresh" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                            <pos>204,43</pos>
+                            <pos>225,43</pos>
                             <size>11,12</size>
                           </object>
                         </object>
@@ -386,7 +386,7 @@
         <border>3</border>
         <option>0</option>
         <object class="wxPanel" name="white_bottom" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
-          <pos>0,493</pos>
+          <pos>0,163</pos>
           <size>300,5</size>
         </object>
       </object>

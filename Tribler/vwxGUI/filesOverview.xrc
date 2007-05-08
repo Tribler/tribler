@@ -92,7 +92,8 @@
                   <object class="wxTextCtrl" name="searchField">
                     <title>search a file</title>
                     <style>wxTE_PROCESS_ENTER</style>
-                    <pos>0,0</pos>
+                    <label>search a file</label>
+                    <pos>-85,4</pos>
                     <size>151,22</size>
                     <font>
                       <size>10</size>
@@ -114,7 +115,7 @@
                   </object>
                 </object>
                 <object class="spacer">
-                  <size>10,27</size>
+                  <size>10,10</size>
                   <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>3</border>
                   <option>0</option>
