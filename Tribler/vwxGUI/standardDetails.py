@@ -80,7 +80,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         self.tabElements = {'filesTab_files': [ 'download', 'includedFiles', 'filesField'],                            
                             'personsTab_advanced': ['lastExchangeField', 'noExchangeField', 'timesConnectedField','addAsFriend','similarityValueField'],
                             'libraryTab_files': [ 'download', 'includedFiles'],
-                            'profileDetails_Quality': ['descriptionField0','descriptionField1'],
+                            'profileDetails_Quality': ['descriptionField0','howToImprove','descriptionField1'],
                             'profileDetails_Files': ['descriptionField0','descriptionField1','takeMeThere0'],
                             'profileDetails_Persons': ['descriptionField0','descriptionField1','takeMeThere0'],
                             'profileDetails_Download': ['descriptionField','descriptionField0','descriptionField1','descriptionField2','descriptionField3','descriptionField4','descriptionField5','takeMeThere0','takeMeThere1'],
@@ -581,6 +581,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     only=""
                 self.getGuiObj('descriptionField0', tab = 'profileDetails_Quality').SetLabel(text % (only,count))
                 self.getGuiObj('descriptionField1', tab = 'profileDetails_Quality').SetLabel(text1)
+                if self.reHeightToFit(tab = 'profileDetails_Quality'):
+                    self.currentPanel.Layout()
             # --------------------------------------------------------------------------------------------------------------------------------------------------------
             # --- Discovered Files
             elif self.currentPanel == self.getGuiObj('profileDetails_Files'):                
@@ -681,6 +683,37 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             print "standardDetails: setData: No entry for mode",self.mode
                     
         self.currentPanel.Refresh()
+    
+    def reHeightToFit(self, tab=None):
+        """the ideea is to itterate through all object mentioned in the list of 
+        object for current tab and to reposition them on y axis so that all of
+        them are fully visible
+        returns true if elements have been repositioned so that the layout be redone"""
+        print "<mluc> trying to reheight panel for mode",self.mode,"and tab",tab
+        VERTICAL_SPACER=3
+        bElementsMoved = False
+        try:
+            if tab is None:
+                list = self.modeElements[self.mode]
+            else:
+                list = self.tabElements[tab]
+            print "<mluc> there are",len(list),"elements waiting to be moved"
+            #check to see it it's worth trying to reposition elements
+            if len(list)>1:
+                prevElement = self.getGuiObj(list[0], tab)
+                print "<mluc> first element",list[0],"is at",prevElement.GetPosition().y,"and has height",prevElement.GetSize().height
+                for index in range(1,len(list)):
+                    currentElement = self.getGuiObj(list[index], tab)
+                    print "<mluc> element",list[index],"is at",currentElement.GetPosition().y,"and has height",currentElement.GetSize().height
+                    if currentElement.GetPosition().y < prevElement.GetPosition().y + prevElement.GetSize().height + VERTICAL_SPACER:
+                        bElementsMoved = True
+                        print "<mluc> moving",list[index],"from",currentElement.GetPosition().y,"to",(prevElement.GetPosition().y + prevElement.GetSize().height + VERTICAL_SPACER)
+                        #reposition element as it overlaps the one above
+                        currentElement.SetPosition(wx.Point(currentElement.GetPosition().x,prevElement.GetPosition().y + prevElement.GetSize().height + VERTICAL_SPACER))
+                    prevElement = currentElement
+        except:
+            print_exc()
+        return bElementsMoved
     
     def showDownloadbutton(self, mode, torrent):
         return (self.mode == 'filesMode' and not torrent.get('eventComingUp') == 'downloading') or \
