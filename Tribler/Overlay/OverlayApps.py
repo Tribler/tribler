@@ -19,7 +19,7 @@ from Tribler.utilities import show_permid_short
 from Tribler.vwxGUI.peermanager import PeerDataManager
 from traceback import print_exc
 
-DEBUG = True
+DEBUG = False
 
 class OverlayApps:
     # Code to make this a singleton

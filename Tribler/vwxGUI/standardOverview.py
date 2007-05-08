@@ -178,25 +178,24 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         oldFilterState = self.data[self.mode].get('filterState')
         if filterState is None or len(filterState) == 0:
             filterState = oldFilterState
-        if filterState is None:
-            return
+        if filterState is not None:
+                
+            if self.mode == 'filesMode':
+                self.loadTorrentData(filterState[0], filterState[1])
+                
+            elif self.mode == 'personsMode':
+                self.loadPersonsData(filterState[0], filterState[1])
             
-        if self.mode == 'filesMode':
-            self.loadTorrentData(filterState[0], filterState[1])
-            
-        elif self.mode == 'personsMode':
-            self.loadPersonsData(filterState[0], filterState[1])
-        
-        elif self.mode == 'libraryMode':
-            self.loadLibraryData(filterState[0], filterState[1])
-        elif self.mode == 'friendsMode':
-            self.loadPersonsData(filterState[0], filterState[1])
-            
-        elif self.mode == 'subscriptionsMode':
-            self.loadSubscriptionData()
-        else:
-            print 'standardOverview: Filters not yet implemented in this mode'
-            return
+            elif self.mode == 'libraryMode':
+                self.loadLibraryData(filterState[0], filterState[1])
+            elif self.mode == 'friendsMode':
+                self.loadPersonsData(filterState[0], filterState[1])
+                
+            elif self.mode == 'subscriptionsMode':
+                self.loadSubscriptionData()
+            else:
+                print 'standardOverview: Filters not yet implemented in this mode'
+                return
         
         if setgui:
             filter = self.data[self.mode]['filter']

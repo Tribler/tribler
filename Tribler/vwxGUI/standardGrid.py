@@ -100,7 +100,7 @@ class standardGrid(wx.Panel):
         else:
             datalength = len(dataList)
         
-        #print 'standardGrid: SetData called: init: %s, datalength: %d' % (self.initReady, datalength)
+        print 'standardGrid: SetData called: init: %s, datalength: %d' % (self.initReady, datalength)
         
         self.data = dataList
         
@@ -112,6 +112,7 @@ class standardGrid(wx.Panel):
             if self.getStandardPager():
                 self.standardPager.currentPage = 0
         self.refreshPanels()
+        print '<mluc>start pos:',self.currentData,'columns:',self.cols,'rows:',self.currentRows,'items:',self.items
         
         
     def updateItem(self, item, delete = False):
@@ -287,9 +288,9 @@ class standardGrid(wx.Panel):
             if not self.hasDetailPanel():
                 return
             
-            title = None
+#            title = None
             
-            id = self.detailPanel.getIdentifier()
+#            id = self.detailPanel.getIdentifier()
             
             #print "standardGrid: updateSelection: detailsPanel has id",id,self.detailPanel
                 
@@ -312,7 +313,6 @@ class standardGrid(wx.Panel):
             # I sometimes get UnicodeErrors here somewhere
             print_exc()
 
-        
     def hasDetailPanel(self):
         if self.detailPanel:
             return True

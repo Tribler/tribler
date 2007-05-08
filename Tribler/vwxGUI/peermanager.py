@@ -182,14 +182,15 @@ class PeerDataManager(DelayedEventHandler):
             stubCN = utility.lang.get('persons_view_no_data')
         noDataStub = {'content_name':stubCN, 'permid':'000001'}#, 'similarity':0}
         all_data.append(noDataStub)
+        self.done_init = True
 
         #this initialization can be done in another place also
         data = self.prepareData()
-        self.sortData(data)
+#        self.sortData(data)
         self.applyFilters(data)
-        print "<mluc> ################### size of data is ",len(self.filtered_data['all'])
+#        print "<mluc> ################### size of data is ",len(self.filtered_data['all'])
         self.isDataPrepared = True
-        self.done_init = True
+        
         
     def getInstance(*args, **kw):
         if PeerDataManager.__single is None:
