@@ -184,14 +184,6 @@ class PeerDataManager(DelayedEventHandler):
         all_data.append(noDataStub)
         self.done_init = True
 
-        #this initialization can be done in another place also
-        data = self.prepareData()
-#        self.sortData(data)
-        self.applyFilters(data)
-#        print "<mluc> ################### size of data is ",len(self.filtered_data['all'])
-        self.isDataPrepared = True
-        
-        
     def getInstance(*args, **kw):
         if PeerDataManager.__single is None:
             PeerDataManager(*args, **kw)       

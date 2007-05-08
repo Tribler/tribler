@@ -10,6 +10,7 @@ from peermanager import PeerDataManager
 import peermanager
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.unicode import *
+from threading import Thread,currentThread
 
 
 OVERVIEW_MODES = ['filesMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionsMode', 'messageMode', 'libraryMode']
@@ -43,6 +44,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         self.utility = self.guiUtility.utility
         self.categorykey = None
         self.data_manager = TorrentDataManager.getInstance(self.utility)
+
         self.peer_manager = PeerDataManager.getInstance(self.utility) #the updateFunc is called after the data is updated in the peer manager so that the GUI has the newest information
 #        self.peer_manager.register(self.updateFun, 'all')
         def filterFuncFriend(peer_data):
@@ -50,6 +52,29 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         self.peer_manager.registerFilter( 'friends', filterFuncFriend)
         #register for gui events
         self.peer_manager.registerGui(self.updateFunPersons) #no matter which of the two, persons or friends, is on, the same function is used
+
+        class PeerDataLoadingThread(Thread):
+            def __init__(self,owner):
+                Thread.__init__(self, name="PeerDataLoadingThread")
+                self.owner = owner
+
+            def run(self):
+                self.owner.utility.buddycast.data_ready_evt.wait()   # called by buddycast
+                # get the peer list in buddycast. Actually it is a dict, but it can be used
+                buddycast_peer_list = self.owner.utility.buddycast.data_handler.peers    
+                print "***** buddycast loaded, start GUI threat ", len(buddycast_peer_list), currentThread().getName()
+#                self.owner.sortData(self.owner.prepareData(buddycast_peer_list))
+                #this initialization can be done in another place also
+                data = self.owner.peer_manager.prepareData()
+        #        self.sortData(data)
+                self.owner.peer_manager.applyFilters(data)
+        #        print "<mluc> ################### size of data is ",len(self.filtered_data['all'])
+                self.owner.peer_manager.isDataPrepared = True
+
+        thr1=PeerDataLoadingThread(self)
+        thr1.setDaemon(True)
+        thr1.start()
+
         self.mode = None
         self.data = {} #keeps gui elements for each mode
         for mode in OVERVIEW_MODES:
