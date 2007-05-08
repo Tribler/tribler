@@ -96,7 +96,7 @@ def getUrl(announce, info_hash):
     url = announce    
     if (last_index +1 == announce_index):        # srape supprot
         url = url.replace("announce","scrape")
-    url += "?info_hash=" + quote(info_hash)
+    url += "?info_hash=" + urllib.quote(info_hash)
     if DEBUG:
         print url
     return url

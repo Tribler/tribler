@@ -38,11 +38,11 @@ class TorrentDataManager:
 
     def loadData(self):
         self.torrent_db = SynTorrentDBHandler(updateFun=self.updateFun)
-        self.data = self.torrent_db.getRecommendedTorrents(all=True) #gets torrents with mypref
+        self.data = self.torrent_db.getRecommendedTorrents(light=False,all=True) #gets torrents with mypref
         self.category = Category.getInstance()
         updated = self.category.checkResort(self)        
         if updated:
-            self.data = self.torrent_db.getRecommendedTorrents(all=True)
+            self.data = self.torrent_db.getRecommendedTorrents(light=False,all=True)
         self.prepareData()
         
     def prepareData(self):
