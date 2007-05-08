@@ -2,7 +2,7 @@
 <resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
   <object class="wxPanel" name="profileDetails_Quality">
     <pos>0,0</pos>
-    <size>300,500</size>
+    <size>300,280</size>
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>
       <object class="sizeritem">
@@ -65,8 +65,8 @@
         <border>3</border>
         <option>1</option>
         <object class="wxPanel" name="details">
-          <pos>0,21</pos>
-          <size>300,348</size>
+          <pos>3,29</pos>
+          <size>298,2</size>
           <bg>#ffffff</bg>
           <object class="wxBoxSizer">
             <orient>wxVERTICAL</orient>

@@ -363,7 +363,7 @@
               <object class="wxStaticText" name="Desc">
                 <style>wxST_NO_AUTORESIZE</style>
                 <label>   Description</label>
-                <pos>0,105</pos>
+                <pos>0,149</pos>
                 <size>199,15</size>
                 <bg>#cbcbcb</bg>
               </object>

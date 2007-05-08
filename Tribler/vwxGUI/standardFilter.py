@@ -167,9 +167,9 @@ class libraryFilter(standardFilter):
                        ],
                        [('latest', 'Latest downloaded'),
                         (('content_name', 'increase'), 'Name'),
-                        ('swarmsize', 'Popular'),
-                        ('relevance','Recommended'),
-                        ('date','Creation date'),
+                        #('swarmsize', 'Popular'),
+                        #('relevance','Recommended'),
+                        #('date','Creation date'),
                         ('length', 'Size'),                        
                         #('tracker', 'Tracker'),
                         #('num_owners', 'Often received')

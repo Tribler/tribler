@@ -139,7 +139,7 @@
                   <object class="wxStaticText" name="howToImprove0">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>How to improve</label>
-                    <pos>6,144</pos>
+                    <pos>6,104</pos>
                     <size>284,18</size>
                     <font>
                       <size>8</size>
@@ -194,7 +194,7 @@
                   <object class="wxStaticText" name="Desc1">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>   Sharing ratio</label>
-                    <pos>0,240</pos>
+                    <pos>0,180</pos>
                     <size>241,15</size>
                     <bg>#cbcbcb</bg>
                   </object>

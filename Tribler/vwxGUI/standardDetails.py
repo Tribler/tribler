@@ -109,6 +109,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         self.SetSizer(self.hSizer)
         self.SetAutoLayout(1)
         self.Layout()
+        print "tb"
+        print self.GetSize()
     
         
     def setMode(self, mode, item = None):
@@ -941,6 +943,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             return
         
         self.setData(self.item)
+        print "tb"
+        print self.GetSize()
         
             
     def swapPanel(self, oldpanel, newpanel, sizer=None, index=-1):

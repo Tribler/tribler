@@ -322,7 +322,7 @@ IndexOfS=0
 [Windows4/i_width/Windows4]
 Theme=0
 [Windows4/i_propN]
-0=Discovered persons similar to your taste\r\n
+0=Discovered persons\r\n
 [Windows4/sizerProp]
 0=1
 5=1
@@ -849,7 +849,7 @@ Theme=0
 style=
 Estyle=
 i_stylePN=16
-idIncCmpFilCmp=3109
+idIncCmpFilCmp=0
 i_tipoComp=690504
 validator=
 s_name=takeMeThere0

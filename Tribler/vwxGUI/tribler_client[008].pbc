@@ -9,17 +9,17 @@ ckscr=0
 ProjectBuild=0
 CountConfComp=2
 nomifileEsi=
-idmax=1320
-idmaxFile=100485
-idIncCmp=3215
+idmax=1336
+idmaxFile=100498
+idIncCmp=3238
 isfuncClsName=0
 funcNamePreF=VwXnew_
 s_includeNewCtor=
 l_compTipo=1
 l_framTipo=0
 imageAllH=0
-numFile=40
-numForm=28
+numFile=41
+numForm=29
 numSource=13
 [Project/conf0]
 name=Release
@@ -797,7 +797,7 @@ contenitor=0
 [Project/GroupsName]
 count=1
 item0name=Save Project
-item0id=
+item0id=2618,2769,2841,2869,1002,1016,2120,2681
 [VwXScript]
 count=0
 [File0]
@@ -829,7 +829,7 @@ ws_dir=.\\
 s_tipoFile=4
 s_tipoComp=0
 ClsparentCompTipo=0
-i_FileIdent=100481
+i_FileIdent=100495
 i_FileIdentPar=2
 wx_WindowFileADD=-1163005939
 l_ProtettoDesigne=0
@@ -844,7 +844,6 @@ fileSrcName=MyFrame.py
 fileIncName=MyFrame.h
 fileAllInit=1
 i_numImag=20
-i_numLine=54
 idIncCmpFilCmp=1002
 [File2]
 ws_name=MyPlayer.pfr
@@ -896,7 +895,7 @@ ws_dir=.\\
 s_tipoFile=21
 s_tipoComp=0
 ClsparentCompTipo=0
-i_FileIdent=100475
+i_FileIdent=100496
 i_FileIdentPar=2
 wx_WindowFileADD=1635087209
 l_ProtettoDesigne=0
@@ -918,7 +917,7 @@ ws_dir=.\\
 s_tipoFile=21
 s_tipoComp=0
 ClsparentCompTipo=0
-i_FileIdent=100479
+i_FileIdent=100497
 i_FileIdentPar=2
 wx_WindowFileADD=1635087209
 l_ProtettoDesigne=0
@@ -1116,7 +1115,7 @@ ws_dir=.\\
 s_tipoFile=21
 s_tipoComp=0
 ClsparentCompTipo=0
-i_FileIdent=100482
+i_FileIdent=100486
 i_FileIdentPar=2
 wx_WindowFileADD=858791987
 l_ProtettoDesigne=0
@@ -1138,7 +1137,7 @@ ws_dir=.\\
 s_tipoFile=21
 s_tipoComp=0
 ClsparentCompTipo=0
-i_FileIdent=100441
+i_FileIdent=100492
 i_FileIdentPar=2
 wx_WindowFileADD=543521385
 l_ProtettoDesigne=0
@@ -1160,7 +1159,7 @@ ws_dir=.\\
 s_tipoFile=21
 s_tipoComp=0
 ClsparentCompTipo=0
-i_FileIdent=100440
+i_FileIdent=100493
 i_FileIdentPar=2
 wx_WindowFileADD=1684300125
 l_ProtettoDesigne=0
@@ -1204,7 +1203,7 @@ ws_dir=.\\
 s_tipoFile=21
 s_tipoComp=0
 ClsparentCompTipo=0
-i_FileIdent=100443
+i_FileIdent=100494
 i_FileIdentPar=2
 wx_WindowFileADD=1600484457
 l_ProtettoDesigne=0
@@ -1249,7 +1248,7 @@ ws_dir=.\\
 s_tipoFile=21
 s_tipoComp=0
 ClsparentCompTipo=0
-i_FileIdent=100483
+i_FileIdent=100498
 i_FileIdentPar=2
 wx_WindowFileADD=543521385
 l_ProtettoDesigne=0
@@ -1422,6 +1421,28 @@ fileAllInit=1
 i_numImag=6
 idIncCmpFilCmp=3050
 [File28]
+ws_name=CustomControl29.pfr
+ws_dir=.\\
+s_tipoFile=28
+s_tipoComp=0
+ClsparentCompTipo=700500
+i_FileIdent=100491
+i_FileIdentPar=2
+wx_WindowFileADD=543521385
+l_ProtettoDesigne=0
+l_ReadOnly=0
+l_compilare=0
+l_syncCompil=
+l_linkare=0
+l_tipoCompilatore=1
+l_RigeneraSempre=0
+priorityNum=5000
+fileSrcName=CustomControl29.py
+fileIncName=
+fileAllInit=1
+i_numImag=20
+idIncCmpFilCmp=3222
+[File29]
 ws_name=VwX files
 ws_dir=
 s_tipoFile=-1000
@@ -1444,7 +1465,7 @@ fileIncName=
 fileAllInit=1
 i_numImag=33
 idIncCmpFilCmp=1003
-[File29]
+[File30]
 ws_name=tribler_topButton.py
 ws_dir=.\\
 s_tipoFile=0
@@ -1466,7 +1487,7 @@ fileIncName=
 fileAllInit=1
 i_numImag=6
 idIncCmpFilCmp=1329
-[File30]
+[File31]
 ws_name=standardGrid.py
 ws_dir=.\\
 s_tipoFile=0
@@ -1488,7 +1509,7 @@ fileIncName=
 fileAllInit=1
 i_numImag=6
 idIncCmpFilCmp=1999
-[File31]
+[File32]
 ws_name=standardPager.py
 ws_dir=.\\
 s_tipoFile=0
@@ -1510,7 +1531,7 @@ fileIncName=
 fileAllInit=1
 i_numImag=6
 idIncCmpFilCmp=2000
-[File32]
+[File33]
 ws_name=filesFilter.py
 ws_dir=.\\
 s_tipoFile=0
@@ -1532,7 +1553,7 @@ fileIncName=
 fileAllInit=1
 i_numImag=6
 idIncCmpFilCmp=2001
-[File33]
+[File34]
 ws_name=filesTabs.py
 ws_dir=.\\
 s_tipoFile=0
@@ -1554,7 +1575,7 @@ fileIncName=
 fileAllInit=1
 i_numImag=6
 idIncCmpFilCmp=1998
-[File34]
+[File35]
 ws_name=standardOverview.py
 ws_dir=.\\
 s_tipoFile=0
@@ -1576,7 +1597,7 @@ fileIncName=
 fileAllInit=1
 i_numImag=6
 idIncCmpFilCmp=2015
-[File35]
+[File36]
 ws_name=standardDetails.py
 ws_dir=.\\
 s_tipoFile=0
@@ -1598,7 +1619,7 @@ fileIncName=
 fileAllInit=1
 i_numImag=6
 idIncCmpFilCmp=2023
-[File36]
+[File37]
 ws_name=filesGrid.py
 ws_dir=.\\
 s_tipoFile=0
@@ -1620,7 +1641,7 @@ fileIncName=
 fileAllInit=1
 i_numImag=6
 idIncCmpFilCmp=2026
-[File37]
+[File38]
 ws_name=standardStatus.py
 ws_dir=.\\
 s_tipoFile=0
@@ -1642,7 +1663,7 @@ fileIncName=
 fileAllInit=1
 i_numImag=6
 idIncCmpFilCmp=2029
-[File38]
+[File39]
 ws_name=standardPager.py
 ws_dir=.\\
 s_tipoFile=0
@@ -1664,7 +1685,7 @@ fileIncName=
 fileAllInit=1
 i_numImag=6
 idIncCmpFilCmp=2098
-[File39]
+[File40]
 ws_name=btn_DetailsHeader.py
 ws_dir=.\\
 s_tipoFile=0
@@ -1687,7 +1708,7 @@ fileAllInit=1
 i_numImag=6
 i_numLine=27
 idIncCmpFilCmp=2128
-[File40]
+[File41]
 ws_name=libraryGrid.py
 ws_dir=.\\
 s_tipoFile=0

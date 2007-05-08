@@ -360,12 +360,20 @@
               <object class="wxPanel" name="Peop" subclass="Tribler.vwxGUI.btn_DetailsHeader.btn_DetailsHeader">
                 <pos>0,165</pos>
                 <size>20,20</size>
-                <object class="wxStaticText" name="st202cC">
-                  <style>wxST_NO_AUTORESIZE</style>
-                  <label>People who like this also like</label>
-                  <pos>10,0</pos>
-                  <size>204,14</size>
-                  <bg>#cbcbcb</bg>
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="sizeritem">
+                    <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                    <border>10</border>
+                    <option>0</option>
+                    <object class="wxStaticText" name="st202cCC">
+                      <style>wxST_NO_AUTORESIZE</style>
+                      <label>People who like this also like</label>
+                      <pos>0,0</pos>
+                      <size>204,14</size>
+                      <bg>#cbcbcb</bg>
+                    </object>
+                  </object>
                 </object>
               </object>
             </object>

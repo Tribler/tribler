@@ -157,6 +157,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
 
     def __init__(self, *args, **kw):
         self.triblerGrey = wx.Colour(128,128,128)   
+        self.triblerLightGrey = wx.Colour(203,203,203)   
         if len(args) == 0:
             pre = wx.PrePanel()
             # the Create step is done by XRC.
@@ -373,7 +374,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             if self.selected:
                 dc.SetPen(wx.Pen(wx.Colour(255,51,0), 2))
             else:
-                dc.SetPen(wx.Pen(self.triblerGrey, 2))
+                dc.SetPen(wx.Pen(self.triblerLightGrey, 2))
             dc.DrawLines(self.border)
         
 
