@@ -671,7 +671,7 @@ class OwnerDBHandler(BasicDBHandler):
         if torrent_hash in self.sim_cache:
             return self.sim_cache[torrent_hash]
         
-        owners = self.owner_db._get(torrent_hash)
+        owners = self.owner_db._get(torrent_hash, Set())
         nowners = len(owners)
         if not owners or nowners < 1:
             return []

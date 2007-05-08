@@ -214,6 +214,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 self.getGuiObj('down').setBackground(wx.WHITE)
                 self.getGuiObj('refresh').setBackground(wx.WHITE)
                 self.getGuiObj('TasteHeart').setBackground(wx.WHITE)
+                self.setListAspect2OneColumn("peopleWhoField")
                 infoTab = self.getGuiObj('info_detailsTab')
                 infoTab.setSelected(True)
                 self.getAlternativeTabPanel('filesTab_files', parent=currentPanel).Hide()
@@ -366,10 +367,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                         leechersField.SetLabel('?')
                 
                 # Call a function to retrieve similar torrent data
-                # Hi Jie
-                peopleWhoLikeThisList = self.getGuiObj('peopleWhoField')
-                print peopleWhoLikeThisList 
-                
+                self.fillSimTorrentsList(item['infohash'])
+
                 # Show or hide download button in detailstab
                 if self.mode == 'filesMode':
                     downloadButton = self.getGuiObj('download')
@@ -727,6 +726,42 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         if tab:
             obj_name = tab+'_'+obj_name
         return self.data[self.mode].get(obj_name)
+     
+    def fillSimTorrentsList(self, infohash):
+        sim_torrent_list = self.getGuiObj('peopleWhoField')
+        try:
+            sim_torrents = self.data_manager.getSimItems(infohash, 8)
+            sim_torrent_list.DeleteAllItems()
+            for torrent,name,sim in sim_torrents:
+                index = sim_torrent_list.InsertStringItem(sys.maxint, name)
+                color = "black"
+                f = self.data_manager.getTorrent(torrent)
+                if f['status'] == 'good':
+                    color = "blue"
+                elif f['status'] == 'unknown':
+                    color = "black"
+                elif f['status'] == 'dead':
+                    color = "red"
+                sim_torrent_list.SetItemTextColour(index, color)
+                
+            if sim_torrent_list.GetItemCount() == 0:
+                index = sim_torrent_list.InsertStringItem(sys.maxint, "No similar files found yet.")
+                font = sim_torrent_list.GetItemFont(index)
+                font.SetStyle(wx.FONTSTYLE_ITALIC)
+                sim_torrent_list.SetItemFont(index, font)
+                sim_torrent_list.SetItemTextColour(index, "#f0c930")
+                
+        except Exception, e:
+            print_exc()
+            sim_torrent_list.DeleteAllItems()
+            index = sim_torrent_list.InsertStringItem(0, "Error getting similar files list")
+            sim_torrent_list.SetItemTextColour(index, "dark red")
+        try:
+            sim_torrent_list.onListResize() #SetColumnWidth(0,wx.LIST_AUTOSIZE)
+        except:
+            if DEBUG:
+                print "could not resize lists in sim_torrent_list panel" 
+        
         
     def fillTorrentLists(self):
         ofList = self.getGuiObj("alsoDownloadedField")

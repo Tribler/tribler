@@ -8,6 +8,7 @@ from Utility.constants import * #IGNORE:W0611
 from Tribler.Category.Category import Category
 from Tribler.TrackerChecking.ManualChecking import ManualChecking
 from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
+from Tribler.CacheDB.CacheDBHandler import OwnerDBHandler
 from copy import deepcopy
 from traceback import print_exc
 from time import time
@@ -38,6 +39,7 @@ class TorrentDataManager:
 
     def loadData(self):
         self.torrent_db = SynTorrentDBHandler(updateFun=self.updateFun)
+        self.owner_db = OwnerDBHandler()
         self.data = self.torrent_db.getRecommendedTorrents(light=False,all=True) #gets torrents with mypref
         self.category = Category.getInstance()
         updated = self.category.checkResort(self)        
@@ -111,6 +113,8 @@ class TorrentDataManager:
                 torrents_list.append(torrent_data)
         return torrents_list
             
+    def getTorrent(self, infohash):
+        return self.torrent_db.getTorrent(infohash)
 
     def deleteTorrent(self, infohash, delete_file=False):
         self.torrent_db.deleteTorrent(infohash, delete_file=False, updateFlag=True)
@@ -299,4 +303,6 @@ class TorrentDataManager:
                 hits.append(torrent)
         return hits
     
+    def getSimItems(self, infohash, num=15):
+        return self.owner_db.getSimItems(infohash, num)
         
