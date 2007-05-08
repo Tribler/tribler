@@ -81,9 +81,11 @@
               <border>6</border>
               <option>0</option>
               <object class="wxStaticText" name="descriptionField0">
-                <label>Based on the files you have downloaded over time, Tribler recommends other files that are likely to be interesting to you. The quality of these recommendations will increase with the number of downloads. So far you have only downloaded 5 non-private files.</label>
+                <style>wxST_NO_AUTORESIZE</style>
+                <label>Download more files to increase the quality of Tribler recommendations.
+</label>
                 <pos>6,20</pos>
-                <size>284,88</size>
+                <size>284,43</size>
                 <font>
                   <size>8</size>
                   <family>modern</family>
@@ -98,10 +100,10 @@
               <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
-              <object class="wxStaticText" name="descriptionFieldCCCCC">
+              <object class="wxStaticText" name="howToImprove">
                 <style>wxST_NO_AUTORESIZE</style>
                 <label>How to improve</label>
-                <pos>6,118</pos>
+                <pos>6,108</pos>
                 <size>284,18</size>
                 <font>
                   <size>8</size>

@@ -230,7 +230,7 @@
                           <object class="wxStaticText" name="popularityField1">
                             <label>?</label>
                             <pos>102,43</pos>
-                            <size>46,18</size>
+                            <size>36,18</size>
                           </object>
                         </object>
                         <object class="sizeritem">
@@ -249,8 +249,8 @@
                           <option>0</option>
                           <object class="wxStaticText" name="popularityField2">
                             <label>?</label>
-                            <pos>162,43</pos>
-                            <size>56,18</size>
+                            <pos>157,43</pos>
+                            <size>36,18</size>
                           </object>
                         </object>
                         <object class="sizeritem">
@@ -258,7 +258,7 @@
                           <border>2</border>
                           <option>0</option>
                           <object class="wxPanel" name="refresh" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                            <pos>225,43</pos>
+                            <pos>210,43</pos>
                             <size>11,12</size>
                           </object>
                         </object>

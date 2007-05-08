@@ -1033,8 +1033,8 @@ loading = "Loading ..."
 act_upnp = "Opening firewall (if any) via UPnP"
 act_reachable = "Seeing if not firewalled"
 act_get_ext_ip_from_peers = "Asking peers for my IP address"
-act_meet = "Met person"
-act_got_metadata = "Found file"
+act_meet = "Met person\n"
+act_got_metadata = "Found file\n"
 act_recommend = "Discovered more persons and files from"
 
 #############

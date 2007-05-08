@@ -24,9 +24,10 @@ class MakeFriendsDialog(wx.Dialog):
         self.utility = utility
         self.editfriend = editfriend
 
-        style = wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
+        style = wx.DEFAULT_DIALOG_STYLE 
+        #| wx.RESIZE_BORDER
         pos = wx.DefaultPosition
-        size = wx.Size(530, 420)
+        size = wx.Size(600, 200)
         #size, split = self.getWindowSettings()
 
         if editfriend is None:
@@ -47,7 +48,7 @@ class MakeFriendsDialog(wx.Dialog):
         # name
         box = wx.BoxSizer(wx.HORIZONTAL)
 
-        label = wx.StaticText(self, -1, self.utility.lang.get('name')+':')
+        label = wx.StaticText(self, -1, self.utility.lang.get('name')+':',wx.DefaultPosition,wx.Size(40,18))
         #label.SetHelpText("")
         box.Add(label, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
 
@@ -55,16 +56,16 @@ class MakeFriendsDialog(wx.Dialog):
             name = editfriend['name']
         else:   
             name = ''
-        self.name_text = wx.TextCtrl(self, -1, name, size=(80,-1))
+        self.name_text = wx.TextCtrl(self, -1, name, size=(140,-1))
         ##self.name_text.SetHelpText(self.utility.lang.get('nickname_help'))
-        box.Add(self.name_text, 1, wx.ALIGN_CENTRE|wx.ALL, 5)
+        box.Add(self.name_text, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
 
         sizer.Add(box, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
 
         # ip
         box = wx.BoxSizer(wx.HORIZONTAL)
 
-        label = wx.StaticText(self, -1, self.utility.lang.get('ipaddress')+':')
+        label = wx.StaticText(self, -1, self.utility.lang.get('ipaddress')+':',wx.DefaultPosition,wx.Size(40,18))
         #label.SetHelpText("")
         box.Add(label, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
 
@@ -72,16 +73,16 @@ class MakeFriendsDialog(wx.Dialog):
             ip = editfriend['ip']
         else:   
             ip = ''
-        self.ip_text = wx.TextCtrl(self, -1, ip, size=(80,-1))
+        self.ip_text = wx.TextCtrl(self, -1, ip, size=(140,-1))
         ##self.ip_text.SetHelpText(self.utility.lang.get('friendsipaddr_help'))
-        box.Add(self.ip_text, 1, wx.ALIGN_CENTRE|wx.ALL, 5)
+        box.Add(self.ip_text, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
 
-        sizer.Add(box, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        sizer.Add(box, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT|wx.BOTTOM, 5)
 
         # port
         box = wx.BoxSizer(wx.HORIZONTAL)
 
-        label = wx.StaticText(self, -1, self.utility.lang.get('portnumber'))
+        label = wx.StaticText(self, -1, self.utility.lang.get('portnumber'),wx.DefaultPosition,wx.Size(40,18))
         #label.SetHelpText("")
         box.Add(label, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
 
@@ -89,16 +90,16 @@ class MakeFriendsDialog(wx.Dialog):
             port_str = str(editfriend['port'])
         else:   
             port_str = ''
-        self.port_text = wx.TextCtrl(self, -1, port_str, size=(80,-1))
+        self.port_text = wx.TextCtrl(self, -1, port_str, size=(140,-1))
         ##self.port_text.SetHelpText(self.utility.lang.get('friendsport_help'))
-        box.Add(self.port_text, 1, wx.ALIGN_CENTRE|wx.ALL, 5)
+        box.Add(self.port_text, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
 
-        sizer.Add(box, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        sizer.Add(box, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT|wx.BOTTOM, 5)
 
         # permid
         box = wx.BoxSizer(wx.HORIZONTAL)
 
-        label = wx.StaticText(self, -1, self.utility.lang.get('permid')+':')
+        label = wx.StaticText(self, -1, self.utility.lang.get('permid')+':',wx.DefaultPosition,wx.Size(40,18))
         #label.SetHelpText("")
         box.Add(label, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
 
@@ -106,9 +107,9 @@ class MakeFriendsDialog(wx.Dialog):
             permid = permid_for_user(editfriend['permid'])
         else:   
             permid = ''
-        self.permid_text = wx.TextCtrl(self, -1, permid, size=(80,-1))
+        self.permid_text = wx.TextCtrl(self, -1, permid, size=(300,-1))
         ## self.permid_text.SetHelpText(self.utility.lang.get('friendspermid_help'))
-        box.Add(self.permid_text, 1, wx.ALIGN_CENTRE|wx.ALL, 5)
+        box.Add(self.permid_text, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
 
         sizer.Add(box, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
 
@@ -157,7 +158,8 @@ class MakeFriendsDialog(wx.Dialog):
         btnsizer.AddButton(btn)
         btnsizer.Realize()
 
-        sizer.Add(btnsizer, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        #sizer.Add(btnsizer, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        sizer.Add(btnsizer, 0, wx.ALIGN_CENTER|wx.ALL, 5)
 
 
         self.mm = MugshotManager.getInstance()
