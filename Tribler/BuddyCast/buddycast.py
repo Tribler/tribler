@@ -234,6 +234,7 @@ class BuddyCastFactory:
         self.sync_interval = int(20.3*self.buddycast_interval)
         self.superpeer = superpeer
         self.log = log
+        self.running = False
         self.data_ready_evt = Event()    # used for buddycast to notify peer view the peer list is ready
         if self.superpeer:
             print "Start as SuperPeer mode"
@@ -273,6 +274,7 @@ class BuddyCastFactory:
             # if any. So when you change this time, make sure it allows for UPnP to
             # do its thing, or add explicit coordination between UPnP and BC.
             # See BitTornado/launchmany.py
+            self.running = True
             self.rawserver.add_task(self.data_handler.postInit, 0)    # avoid flash crawd
             self.rawserver.add_task(self.doBuddyCast, 2)
             self.rawserver.add_task(self.data_handler.updateAllSim, randint(60,5*60))
@@ -280,9 +282,19 @@ class BuddyCastFactory:
             print >> sys.stdout, "BuddyCast starts up"
             
     def doBuddyCast(self):
+        if not self.running:
+            return
         buddycast_interval = self.getCurrrentInterval()
         self.rawserver.add_task(self.doBuddyCast, buddycast_interval)
         self.buddycast_core.work()
+        
+    def pauseBuddyCast(self):
+        self.running = False
+        
+    def restartBuddyCast(self):
+        if self.registered and not self.running:
+            self.running = True
+            self.doBuddyCast()
         
     def getCurrrentInterval(self):
         """
@@ -291,6 +303,7 @@ class BuddyCastFactory:
         start > 24hour: interval = 60
         other: interval = 15
         """
+        
         past = now() - self.start_time
         if past < 2*60:
             if self.data_handler.npeers == 0:
@@ -310,7 +323,7 @@ class BuddyCastFactory:
         self.data_handler.sync()
         
     def handleMessage(self, permid, selversion, message):
-        if not self.registered:
+        if not self.registered or not self.running:
             return False
         
         t = message[0]
@@ -328,20 +341,21 @@ class BuddyCastFactory:
             return False
         
     def gotBuddyCastMessage(self, msg, permid, selversion):
-        if self.registered:
+        if self.registered and self.running:
             return self.buddycast_core.gotBuddyCastMessage(msg, permid, selversion)
         else:
             return False
     
     def gotKeepAliveMessage(self, permid):
-        if self.registered:
+        if self.registered and self.running:
             return self.buddycast_core.gotKeepAliveMessage(permid)
         else:
             return False
     
     def handleConnection(self,exc,permid,selversion,locally_initiated):
         if self.registered:
-            self.buddycast_core.handleConnection(exc,permid,selversion,locally_initiated)
+            if self.running or exc is not None:    # if not running, only close connection
+                self.buddycast_core.handleConnection(exc,permid,selversion,locally_initiated)
     
     def addMyPref(self, torrent):
         if self.registered:

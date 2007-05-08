@@ -18,6 +18,7 @@ class tribler_List(wx.ListCtrl):
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.backgroundColor = wx.Colour(102,102,102) 
+        self.isEmpty = True    # used for DLFilesList.onListDClick
         
         pre = wx.PreListCtrl() 
         # the Create step is done by XRC. 
@@ -151,9 +152,13 @@ class DLFilesList(tribler_List):
                 infohash = self.infohash_List[item] 
                 torrent = self.guiUtility.data_manager.getTorrent(infohash)
                 torrent['infohash'] = infohash
-                self.infohash_List.pop(item)
-                self.DeleteItem(item)
-                if self.other_List is not None:
-                    self.other_List.InsertStringItem(sys.maxint, torrent['info']['name'])
-                self.guiUtility.standardDetails.download(torrent)
+                ret = self.guiUtility.standardDetails.download(torrent)
+                if ret:
+                    self.infohash_List.pop(item)
+                    self.DeleteItem(item)
+                    if self.other_List is not None:
+                        if self.other_List.isEmpty:
+                            self.other_List.DeleteAllItems()
+                        self.other_List.InsertStringItem(sys.maxint, torrent['info']['name'])
+                        self.other_List.isEmpty = False
             event.Skip()

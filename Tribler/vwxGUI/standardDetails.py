@@ -840,6 +840,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 font.SetStyle(wx.FONTSTYLE_ITALIC)
                 cfList.SetItemFont(index, font)
                 cfList.SetItemTextColour(index, "#222222")
+                cfList.isEmpty = True    # used by DLFilesList to remove "No common files with this person."
+            else:
+                cfList.isEmpty = False
             if ofList.GetItemCount() == 0:
                 index = ofList.InsertStringItem(sys.maxint, "No files advertised by this person.")
                 font = ofList.GetItemFont(index)
@@ -1060,7 +1063,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 torrent['download_started'] = time()
                 torrent['progress'] = 0.0
                 self.data_manager.setBelongsToMyDowloadHistory(torrent['infohash'], True)
-                    
+                return True        
+            else:
+                return False
         else:
         
             # Torrent not found            
@@ -1072,6 +1077,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             if result == wx.ID_YES:
                 infohash = torrent['infohash']
                 self.data_manager.deleteTorrent(infohash, delete_file = True)
+                return True
+            else:
+                return False
 
     def setTorrentThumb(self, mode, torrent, thumbPanel):
         
