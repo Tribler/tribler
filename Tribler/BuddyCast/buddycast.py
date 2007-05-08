@@ -1078,10 +1078,10 @@ class BuddyCastCore:
         
         if connectable == 1:
             self.addPeerToConnCP(peer_permid, _now)
-            addto = '(reachable person)'
+            addto = '(reachable peer)'
         else:
             self.addPeerToConnUP(peer_permid, _now)
-            addto = '(person seems unreachable)'
+            addto = '(peer deemed unreachable)'
             
         return addto
            
