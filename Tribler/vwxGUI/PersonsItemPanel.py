@@ -155,7 +155,8 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
     Show thumbnail and mast with info on mouseOver
     """
 
-    def __init__(self, *args, **kw):    
+    def __init__(self, *args, **kw):
+        self.triblerGrey = wx.Colour(128,128,128)   
         if len(args) == 0:
             pre = wx.PrePanel()
             # the Create step is done by XRC.
@@ -367,8 +368,12 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         
 #        dc.SetTextForeground(wx.WHITE)
         #dc.DrawText('rating', 5, 60)
-        if ((self.selected or self.mouseOver) and self.border):
-            dc.SetPen(wx.Pen(wx.Colour(255,51,0), 2))
+
+        if self.border:
+            if self.selected:
+                dc.SetPen(wx.Pen(wx.Colour(255,51,0), 2))
+            else:
+                dc.SetPen(wx.Pen(self.triblerGrey, 2))
             dc.DrawLines(self.border)
         
 

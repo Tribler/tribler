@@ -546,7 +546,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 ydayList.InsertColumn(0, "Torrent")
             ydayList.DeleteAllItems()
             for torrent in yesterdayl:
-                yList.Append([torrent['content_name']])
+                ydayList.Append([torrent['content_name']])
 
         
         elif self.mode == 'profileMode':

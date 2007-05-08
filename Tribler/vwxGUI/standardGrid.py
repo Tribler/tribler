@@ -297,7 +297,7 @@ class standardGrid(wx.Panel):
             for pan in row:
                 try:
                     panel_id = pan.getIdentifier()
-                    print "standardGrid: updateSelection: panel has id",`panel_id`
+                    #print "standardGrid: updateSelection: panel has id",`panel_id`
                 except:
                     panel_id = None
                     
