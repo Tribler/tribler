@@ -290,7 +290,7 @@ class standardGrid(wx.Panel):
             
 #            title = None
             
-#            id = self.detailPanel.getIdentifier()
+            id = self.detailPanel.getIdentifier()
             
             #print "standardGrid: updateSelection: detailsPanel has id",id,self.detailPanel
                 
