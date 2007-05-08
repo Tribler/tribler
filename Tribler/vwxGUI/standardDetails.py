@@ -237,6 +237,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 self.setListAspect2OneColumn("alsoDownloadedField")
                 self.setListAspect2OneColumn("commonFilesField")
                 self.getAlternativeTabPanel('personsTab_advanced', parent=currentPanel).Hide()
+                ofList = self.getGuiObj("alsoDownloadedField")
+                cfList = self.getGuiObj("commonFilesField")
+                ofList.setOtherList(cfList)
             
             elif modeString == "profile":
                 self.data[self.mode]['profileDetails_Overall'] = currentPanel #also add first panel as an named element in the data list
@@ -747,22 +750,22 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             for torrent,name,sim in sim_torrents:
                 index = sim_torrent_list.InsertStringItem(sys.maxint, name)
                 alist.append(torrent)
-                color = "black"
-                f = self.data_manager.getTorrent(torrent)
-                if f['status'] == 'good':
-                    color = "blue"
-                elif f['status'] == 'unknown':
-                    color = "black"
-                elif f['status'] == 'dead':
-                    color = "red"
-                sim_torrent_list.SetItemTextColour(index, color)
+#                color = "black"
+#                f = self.data_manager.getTorrent(torrent)
+#                if f['status'] == 'good':
+#                    color = "blue"
+#                elif f['status'] == 'unknown':
+#                    color = "black"
+#                elif f['status'] == 'dead':
+#                    color = "red"
+#                sim_torrent_list.SetItemTextColour(index, color)
                 
             if sim_torrent_list.GetItemCount() == 0:
                 index = sim_torrent_list.InsertStringItem(sys.maxint, "No similar files found yet.")
                 font = sim_torrent_list.GetItemFont(index)
                 font.SetStyle(wx.FONTSTYLE_ITALIC)
                 sim_torrent_list.SetItemFont(index, font)
-                sim_torrent_list.SetItemTextColour(index, "#f0c930")
+                sim_torrent_list.SetItemTextColour(index, "#222222")
             else:
                 sim_torrent_list.setInfoHashList(alist)
                 
@@ -816,30 +819,31 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     the_list = cfList
                 else:
                     the_list = ofList
-                index = the_list.InsertStringItem(sys.maxint, f['info']['name'])
-                if the_list == ofList:
-                    alist.append(infohash)
-                color = "black"
-                if f['status'] == 'good':
-                    color = "blue"
-                elif f['status'] == 'unknown':
-                    color = "black"
-                elif f['status'] == 'dead':
-                    color = "red"
-                the_list.SetItemTextColour(index, color)
+                if f['status'] != 'dead':
+                    index = the_list.InsertStringItem(sys.maxint, f['info']['name'])
+                    if the_list == ofList:
+                        alist.append(infohash)
+#                color = "black"
+#                if f['status'] == 'good':
+#                    color = "blue"
+#                elif f['status'] == 'unknown':
+#                    color = "black"
+#                elif f['status'] == 'dead':
+#                    color = "red"
+#                the_list.SetItemTextColour(index, color)
                 #self.ofList.SetStringItem(index, 1, f[1])
             if cfList.GetItemCount() == 0:
                 index = cfList.InsertStringItem(sys.maxint, "No common files with this person.")
                 font = cfList.GetItemFont(index)
                 font.SetStyle(wx.FONTSTYLE_ITALIC)
                 cfList.SetItemFont(index, font)
-                cfList.SetItemTextColour(index, "#f0c930")
+                cfList.SetItemTextColour(index, "#222222")
             if ofList.GetItemCount() == 0:
                 index = ofList.InsertStringItem(sys.maxint, "No files advertised by this person.")
                 font = ofList.GetItemFont(index)
                 font.SetStyle(wx.FONTSTYLE_ITALIC)
                 ofList.SetItemFont(index, font)
-                ofList.SetItemTextColour(index, "#f0c930")
+                ofList.SetItemTextColour(index, "#222222")
             else:
                 ofList.setInfoHashList(alist)
 #            self.onListResize(None) 
@@ -849,7 +853,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             cfList.DeleteAllItems()
             ofList.setInfoHashList(None)
             index = ofList.InsertStringItem(sys.maxint, "Error getting files list")
-            ofList.SetItemTextColour(index, "dark red")
+            ofList.SetItemTextColour(index, "#222222")
         try:
             ofList.onListResize() #SetColumnWidth(0,wx.LIST_AUTOSIZE)
             cfList.onListResize() #SetColumnWidth(0,wx.LIST_AUTOSIZE)

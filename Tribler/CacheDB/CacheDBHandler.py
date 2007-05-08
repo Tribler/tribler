@@ -649,6 +649,7 @@ class OwnerDBHandler(BasicDBHandler):
         BasicDBHandler.__init__(self)
         self.owner_db = OwnerDB.getInstance(db_dir=db_dir)
         self.pref_db = PreferenceDB.getInstance(db_dir=db_dir)
+        self.mypref_db = MyPreferenceDB.getInstance(db_dir=db_dir)
         self.torrent_db = TorrentDB.getInstance(db_dir=db_dir)
         self.dbs = [self.owner_db, self.pref_db, self.torrent_db]
         self.sim_cache = {}    # used to cache the getSimItems
@@ -668,10 +669,13 @@ class OwnerDBHandler(BasicDBHandler):
            infohash and content name.
         """
         
-        if torrent_hash in self.sim_cache:
-            return self.sim_cache[torrent_hash]
+#         if torrent_hash in self.sim_cache:
+#            oldrec = self.sim_cache[torrent_hash]
+#            oldrec -= mypref_set
+#            self.sim_cache[torrent_hash] = oldrec
+#            return oldrec
         
-        owners = self.owner_db._get(torrent_hash, Set())
+        owners = Set(self.owner_db._get(torrent_hash, Set()))       
         nowners = len(owners)
         if not owners or nowners < 1:
             return []
@@ -685,6 +689,10 @@ class OwnerDBHandler(BasicDBHandler):
                     co_torrents[torrent] += 1
         if torrent_hash in co_torrents:
             co_torrents.pop(torrent_hash)
+        mypref_list = self.mypref_db._keys()
+        for torrent_hash in mypref_list:
+            if torrent_hash in co_torrents:
+                co_torrents.pop(torrent_hash)
         
         sim_items = []
         for torrent in co_torrents:
@@ -712,7 +720,7 @@ class OwnerDBHandler(BasicDBHandler):
         sim_items.reverse()
         sim_torrents = [(torrent, name, sim) for sim, name, torrent in sim_items[:num]]
         
-        self.sim_cache[torrent_hash] = sim_torrents
+#        self.sim_cache[torrent_hash] = sim_torrents
         return sim_torrents
         
 def test_mydb():

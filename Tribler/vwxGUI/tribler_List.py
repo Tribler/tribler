@@ -130,6 +130,7 @@ class DLFilesList(tribler_List):
     """ File List with downloadable items """
     def __init__(self):
         self.infohash_List = None #list of infohashes for current items in the gui list
+        self.other_List = None #the other list that should received the downloaded item
         tribler_List.__init__(self)
         
     def _PostInit(self):
@@ -138,6 +139,10 @@ class DLFilesList(tribler_List):
         
     def setInfoHashList(self, alist):
         self.infohash_List = alist
+        
+    def setOtherList(self, olist):
+        """the other list that should received the downloaded item"""
+        self.other_List = olist
 
     def onListDClick(self, event):
         if self.infohash_List:
@@ -146,5 +151,9 @@ class DLFilesList(tribler_List):
                 infohash = self.infohash_List[item] 
                 torrent = self.guiUtility.data_manager.getTorrent(infohash)
                 torrent['infohash'] = infohash
+                self.infohash_List.pop(item)
+                self.DeleteItem(item)
+                if self.other_List is not None:
+                    self.other_List.InsertStringItem(sys.maxint, torrent['info']['name'])
                 self.guiUtility.standardDetails.download(torrent)
             event.Skip()
