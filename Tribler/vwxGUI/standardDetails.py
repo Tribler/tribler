@@ -471,7 +471,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 if item.get('online'):
                     self.getGuiObj('statusField').SetLabel( 'online')
                 else:
-                    self.getGuiObj('statusField').SetLabel('seen > %s' % friendly_time(item['last_seen']))
+                    self.getGuiObj('statusField').SetLabel('connected  %s' % friendly_time(item['last_seen']))
                 
                 if item['friend']:
 #                    self.getGuiObj('addAsFriend').Enable(False)
@@ -548,7 +548,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             
             # Update Today view
             todayField = self.getGuiObj('receivedToday')
-            todaystr = "Today ("+str(len(todayl))+")"
+            todaystr = "   Today ("+str(len(todayl))+")"
             todayField.SetLabel(todaystr)
 
             todayList = self.getGuiObj('subscrTodayField')
@@ -561,7 +561,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 
             # Update Yesterday view
             ydayField = self.getGuiObj('receivedYesterday')
-            ydaystr = "Yesterday ("+str(len(yesterdayl))+")"
+            ydaystr = "   Yesterday ("+str(len(yesterdayl))+")"
             ydayField.SetLabel(ydaystr)
 
             ydayList = self.getGuiObj('subscrYesterdayField')

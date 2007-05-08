@@ -364,7 +364,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             elif self.data.get('online'):         
                 dc.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, False))
                 dc.SetTextForeground('#007303')
-                dc.DrawText('online', 30, 66)
+                dc.DrawText('online', 38, 64)
         
 #        dc.SetTextForeground(wx.WHITE)
         #dc.DrawText('rating', 5, 60)
