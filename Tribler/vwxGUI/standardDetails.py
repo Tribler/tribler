@@ -21,6 +21,16 @@ from Tribler.Dialogs.GUIServer import GUIServer
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'subscriptionsMode', 'messageMode']
 DEBUG = True
 
+def showInfoHash(infohash):
+    if infohash.startswith('torrent'):    # for testing
+        return infohash
+    try:
+        n = int(infohash)
+        return str(n)
+    except:
+        pass
+    return encodestring(infohash).replace("\n","")
+            
 class standardDetails(wx.Panel,FlaglessDelayedInvocation):
     """
     Wrappers around details xrc panels
@@ -732,8 +742,11 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         try:
             sim_torrents = self.data_manager.getSimItems(infohash, 8)
             sim_torrent_list.DeleteAllItems()
+            sim_torrent_list.setInfoHashList(None)
+            alist = []
             for torrent,name,sim in sim_torrents:
                 index = sim_torrent_list.InsertStringItem(sys.maxint, name)
+                alist.append(torrent)
                 color = "black"
                 f = self.data_manager.getTorrent(torrent)
                 if f['status'] == 'good':
@@ -750,10 +763,13 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 font.SetStyle(wx.FONTSTYLE_ITALIC)
                 sim_torrent_list.SetItemFont(index, font)
                 sim_torrent_list.SetItemTextColour(index, "#f0c930")
+            else:
+                sim_torrent_list.setInfoHashList(alist)
                 
         except Exception, e:
             print_exc()
             sim_torrent_list.DeleteAllItems()
+            sim_torrent_list.setInfoHashList(None)
             index = sim_torrent_list.InsertStringItem(0, "Error getting similar files list")
             sim_torrent_list.SetItemTextColour(index, "dark red")
         try:
@@ -790,14 +806,19 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             #tempdata[i]['torrents_list'] = torrents_info
             ofList.DeleteAllItems()
             cfList.DeleteAllItems()
+            ofList.setInfoHashList(None)
+            alist = []
             for f in torrents_info:
                 #print f
                 the_list = None
+                infohash = f.get('infohash')
                 if f.get('myDownloadHistory', False):
                     the_list = cfList
                 else:
                     the_list = ofList
                 index = the_list.InsertStringItem(sys.maxint, f['info']['name'])
+                if the_list == ofList:
+                    alist.append(infohash)
                 color = "black"
                 if f['status'] == 'good':
                     color = "blue"
@@ -819,11 +840,14 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 font.SetStyle(wx.FONTSTYLE_ITALIC)
                 ofList.SetItemFont(index, font)
                 ofList.SetItemTextColour(index, "#f0c930")
+            else:
+                ofList.setInfoHashList(alist)
 #            self.onListResize(None) 
-        except Exception, e:
-            print_exc(e)
+        except:
+            print_exc()
             ofList.DeleteAllItems()
             cfList.DeleteAllItems()
+            ofList.setInfoHashList(None)
             index = ofList.InsertStringItem(sys.maxint, "Error getting files list")
             ofList.SetItemTextColour(index, "dark red")
         try:
@@ -1001,8 +1025,10 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         src1 = os.path.join(torrent['torrent_dir'], 
                             torrent['torrent_name'])
         src2 = os.path.join(self.utility.getConfigPath(), 'torrent2', torrent['torrent_name'])
-        if torrent['content_name']:
+        if torrent.get('content_name'):
             name = torrent['content_name']
+        elif torrent.get('info') and torrent['info'].get('name'):
+            name = torrent['info']['name']
         else:
             name = showInfoHash(torrent['infohash'])
         #start_download = self.utility.lang.get('start_downloading')

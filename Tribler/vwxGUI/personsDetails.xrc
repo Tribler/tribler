@@ -279,7 +279,7 @@
               <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
-              <object class="wxListCtrl" name="alsoDownloadedField" subclass="Tribler.vwxGUI.tribler_List.tribler_List">
+              <object class="wxListCtrl" name="alsoDownloadedField" subclass="Tribler.vwxGUI.tribler_List.DLFilesList">
                 <pos>6,196</pos>
                 <size>284,160</size>
               </object>

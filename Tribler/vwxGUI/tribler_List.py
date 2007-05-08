@@ -125,3 +125,26 @@ class FilesList(tribler_List):
             self.ScrollList(-100, 0) # Removes HSCROLLBAR
         if event:
             event.Skip()
+
+class DLFilesList(tribler_List):
+    """ File List with downloadable items """
+    def __init__(self):
+        self.infohash_List = None #list of infohashes for current items in the gui list
+        tribler_List.__init__(self)
+        
+    def _PostInit(self):
+        tribler_List._PostInit(self)
+        self.Bind(wx.EVT_LEFT_DCLICK, self.onListDClick)
+        
+    def setInfoHashList(self, alist):
+        self.infohash_List = alist
+
+    def onListDClick(self, event):
+        if self.infohash_List:
+            item = self.GetFirstSelected()
+            if item != -1 and item < len(self.infohash_List):
+                infohash = self.infohash_List[item] 
+                torrent = self.guiUtility.data_manager.getTorrent(infohash)
+                torrent['infohash'] = infohash
+                self.guiUtility.standardDetails.download(torrent)
+            event.Skip()
