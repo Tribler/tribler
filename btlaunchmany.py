@@ -59,9 +59,10 @@ class HeadlessDisplayer:
 # _2fastbt
     
     def display(self, data):
-        print ''
         if not data:
             self.message('no torrents')
+        else:
+            print ''
         for x in data:
             ( name, status, progress, peers, seeds, seedsmsg, dist,
               uprate, dnrate, upamt, dnamt, size, t, msg ) = x

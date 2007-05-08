@@ -6,6 +6,7 @@ from traceback import print_exc
 from Tribler.vwxGUI.torrentManager import TorrentDataManager
 from Tribler.utilities import *
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
+from Tribler.Dialogs.abcfileframe import relevance_display_factor
 from safeguiupdate import DelayedInvocation
 from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.unicode import *
@@ -277,12 +278,12 @@ class PagerPanel(wx.Panel):
 
     def addComponents(self):
         self.SetBackgroundColour(wx.WHITE)
-        self.normalFont = wx.Font(8,74,90,90,0,"Arial")
-        self.boldFont  = wx.Font(10,74,90,wx.BOLD,1,"Arial")
+        self.normalFont = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
+        self.boldFont  = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
+        self.boldFont.SetWeight(wx.BOLD)
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
         self.number = wx.StaticText(self,-1,"",wx.Point(3,111),wx.Size(49,13))
-        self.number.SetLabel('0 %s' % self.utility.lang.get('item')+'s')
         self.number.SetFont(self.normalFont)
         self.hSizer.Add(self.number, 3, BORDER_EXPAND, 0)
         
@@ -478,8 +479,15 @@ class TorrentPanel(wx.Panel):
     def addComponents(self):
         self.Show(False)
         #self.SetMinSize((50,50))
+        self.SetBackgroundColour(wx.WHITE)
         self.selectedColour = wx.Colour(245,208,120)
-        self.unselectedColour = wx.WHITE
+        if sys.platform.find('darwin') != -1:
+            try:
+                self.unselectedColour = wx.Colour(0,0,0,0)
+            except:
+                self.unselectedColour = wx.WHITE
+        else:
+            self.unselectedColour = wx.WHITE
         
         self.vSizer = wx.StaticBoxSizer(wx.StaticBox(self,-1,""),wx.VERTICAL)
         
@@ -488,36 +496,39 @@ class TorrentPanel(wx.Panel):
         
         # Add title
         self.title =StaticText(self,-1,"")
-        self.title.SetBackgroundColour(wx.WHITE)
-        self.title.SetFont(wx.Font(10,74,90,wx.BOLD,0,"Arial"))
-        self.title.SetMinSize((50,20))
-        self.vSizer.Add(self.title, 0, BORDER_EXPAND, 3)
+        #self.title.SetBackgroundColour(self.GetBackgroundColour())
+        font = self.title.GetFont()
+        font.SetWeight(wx.BOLD)
+        self.title.SetFont(font)
+        self.vSizer.Add(self.title, 0, BORDER_EXPAND, 5)
         
         # Add seeder, leecher, size
         self.seeder = StaticText(self, -1, '')
-        self.seeder.SetBackgroundColour(wx.WHITE)
         self.seederPic = ImagePanel(self)
-        self.seederPic.SetBackgroundColour(wx.WHITE)
         self.seederBitmap = "up.png"
         self.warningBitmap = "warning.gif"
         self.leecherBitmap = "down.png"
         self.seederPic.SetBitmap(self.seederBitmap)
         self.leecher = StaticText(self, -1, '')
-        self.leecher.SetBackgroundColour(wx.WHITE)
         self.leecherPic = ImagePanel(self)
-        self.leecherPic.SetBackgroundColour(wx.WHITE)
         self.leecherPic.SetBitmap(self.leecherBitmap)
         self.size = StaticText(self, -1, '')
-        self.size.SetBackgroundColour(wx.WHITE)
         self.sizePic = ImagePanel(self)
-        self.sizePic.SetBackgroundColour(wx.WHITE)
         self.sizePic.SetBitmap("size.png")
         self.recommPic = ImagePanel(self)
-        self.recommPic.SetBackgroundColour(wx.WHITE)
         self.recommPic.SetBitmap("love.png")
         self.recomm = StaticText(self, -1, '')
-        self.recomm.SetBackgroundColour(wx.WHITE)
                 
+        if self.unselectedColour == wx.WHITE:
+            self.seeder.SetBackgroundColour(wx.WHITE)
+            self.seederPic.SetBackgroundColour(wx.WHITE)
+            self.leecher.SetBackgroundColour(wx.WHITE)
+            self.leecherPic.SetBackgroundColour(wx.WHITE)
+            self.size.SetBackgroundColour(wx.WHITE)
+            self.sizePic.SetBackgroundColour(wx.WHITE)
+            self.recommPic.SetBackgroundColour(wx.WHITE)
+            self.recomm.SetBackgroundColour(wx.WHITE)
+            
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.hSizer.Add(self.seederPic, 0, wx.RIGHT, 1)
         self.hSizer.Add(self.seeder, 0, wx.RIGHT, 15)     
@@ -625,8 +636,8 @@ class TorrentPanel(wx.Panel):
             self.size.Enable(False)
             self.sizePic.SetEnabled(False)
             
-        if torrent.get('relevance'):
-            self.recomm.SetLabel("%.1f" % torrent['relevance'])
+        if torrent.get('relevance', 0.0) >= 50 and not torrent.get('myDownloadHistory', False):
+            self.recomm.SetLabel("%.1f" % (torrent['relevance']/relevance_display_factor))
             self.recommPic.SetEnabled(True)
             self.recomm.Enable(True)
             self.recomm.SetToolTipString(self.utility.lang.get('recomm_relevance'))
@@ -712,11 +723,19 @@ class CategoryPanel(wx.Panel):
         #self.SetMinSize((50,50))
         self.SetBackgroundColour(wx.Colour(197,220,241))
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
-        self.unselFont = wx.Font(10, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, faceName="Verdana")
-        self.selFont = wx.Font(10, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, faceName="Verdana")
-        self.orderUnselFont = wx.Font(10, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_ITALIC, wx.FONTWEIGHT_NORMAL, faceName="Verdana")
-        self.orderSelFont = wx.Font(10, wx.FONTFAMILY_MODERN, wx.FONTSTYLE_ITALIC, wx.FONTWEIGHT_BOLD, faceName="Verdana")
         
+        self.unselFont = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
+        self.unselFont.SetPointSize(self.unselFont.GetPointSize()+2)
+        self.selFont = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
+        self.selFont.SetPointSize(self.unselFont.GetPointSize())
+        self.selFont.SetWeight(wx.BOLD)
+        self.orderUnselFont = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
+        self.orderUnselFont.SetPointSize(self.unselFont.GetPointSize())
+        self.orderUnselFont.SetStyle(wx.FONTSTYLE_ITALIC)
+        self.orderSelFont = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
+        self.orderSelFont.SetPointSize(self.unselFont.GetPointSize())
+        self.orderSelFont.SetStyle(wx.FONTSTYLE_ITALIC)
+        self.orderSelFont.SetWeight(wx.BOLD)
         
         # Order types
         self.orderSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -726,16 +745,19 @@ class CategoryPanel(wx.Panel):
 #        label1.SetMinSize((100, -1))
 #        self.orderSizer.Add(label1, 0, wx.LEFT|wx.RIGHT, 10)
         
-        self.swarmLabel = StaticText(self, -1, self.utility.lang.get('swarmsize'))
+        self.swarmLabel = StaticText(self, -1, self.utility.lang.get('swarmsize')+'  ')
         self.swarmLabel.SetToolTipString(self.utility.lang.get('swarmsize_tool'))
         self.swarmLabel.SetBackgroundColour(self.GetBackgroundColour())
+        #self.grow(self.swarmLabel)
+        
         self.swarmLabel.SetFont(self.orderSelFont)
         self.orderSizer.Add(self.swarmLabel, 0, wx.LEFT|wx.RIGHT, 10)
         
-        self.recommLabel = StaticText(self, -1, self.utility.lang.get('recommended'))
+        self.recommLabel = StaticText(self, -1, self.utility.lang.get('recommended')+'  ')
         self.recommLabel.SetBackgroundColour(self.GetBackgroundColour())
         self.recommLabel.SetFont(self.orderUnselFont)
         self.recommLabel.SetToolTipString(self.utility.lang.get('recommendation_tool'))
+        #self.grow(self.recommLabel)
         self.orderSizer.Add(self.recommLabel, 1, wx.LEFT|wx.RIGHT, 10)
         
         self.myHistoryLabel = StaticText(self, -1, self.myHistory)
@@ -777,6 +799,12 @@ class CategoryPanel(wx.Panel):
         self.SetSizer(self.vSizer);self.SetAutoLayout(1);self.Layout();
         self.Refresh()
         
+    def grow(self, obj):
+        (x,y) = obj.GetSize()
+        #print (x,y)
+        obj.SetSize((x+10, y))
+        #print obj.GetSize()
+                       
     def orderAction(self, event):
         obj = event.GetEventObject()
         if obj == self.lastOrdering or self.myHistorySelected:
@@ -785,12 +813,14 @@ class CategoryPanel(wx.Panel):
         if obj == self.swarmLabel:
             self.parent.reorder('swarmsize')
             obj.SetFont(self.orderSelFont)
-            
+            #self.grow(obj)
+            obj.Refresh()
             
         elif obj == self.recommLabel:
             self.parent.reorder('relevance')
             obj.SetFont(self.orderSelFont)
-                        
+            #self.grow(obj)
+            obj.Refresh()
 #        elif obj == self.myHistoryLabel:
 #            self.parent.loadMyDownloadHistory()
 #            obj.SetFont(self.selFont)
@@ -799,6 +829,7 @@ class CategoryPanel(wx.Panel):
         
         if self.lastOrdering:
             self.lastOrdering.SetFont(self.orderUnselFont)
+            #self.grow(self.lastOrdering)
         self.lastOrdering = obj
         
     def mouseAction(self, event):
@@ -855,7 +886,10 @@ class DetailPanel(wx.Panel):
         
         # Set title
         self.title = StaticText(self,-1,"",wx.Point(3,111),wx.Size(49,13))
-        self.title.SetFont(wx.Font(11,74,90,wx.BOLD,0,"Verdana"))
+        font = self.title.GetFont()
+        font.SetWeight(wx.BOLD)
+        font.SetPointSize(font.GetPointSize()+3)
+        self.title.SetFont(font)
         self.title.SetBackgroundColour(wx.Colour(245,208,120))
         self.vSizer.Add(self.title, 0, BORDER_EXPAND, 5)
         
@@ -1001,7 +1035,7 @@ class DetailPanel(wx.Panel):
                         self.fileList.SetStringItem(index, 1, f[1])
                     self.onListResize(None) 
                 elif key == 'relevance':
-                    self.recommText.SetLabel("%.1f" % value)
+                    self.recommText.SetLabel("%.1f" % (value/relevance_display_factor))
                     
             if (torrent.get('myDownloadHistory', False) and not torrent.get('eventComingUp','') == 'notDownloading') or torrent.get('eventComingUp', '') == 'downloading':
                 self.downloadPic.SetEnabled(False)
@@ -1340,16 +1374,9 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
             src = src2
             
         if os.path.isfile(src):
-            str = self.utility.lang.get('download_start') + u' ' + name + u'?'
-            dlg = wx.MessageDialog(self, str, self.utility.lang.get('click_and_download'), 
-                                        wx.YES_NO|wx.NO_DEFAULT|wx.ICON_INFORMATION)
-            result = dlg.ShowModal()
-            dlg.Destroy()
-            if result == wx.ID_YES:
-                ret = self.utility.queue.addtorrents.AddTorrentFromFile(src)
-                if ret == 'OK':
-                    self.setRecommendedToMyDownloadHistory(torrent)
-                    
+            ret = self.utility.queue.addtorrents.AddTorrentFromFile(src)
+            if ret == 'OK':
+                self.setRecommendedToMyDownloadHistory(torrent)
         else:
         
             # Torrent not found            
@@ -1411,6 +1438,7 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
             self.data_manager.unregister(self.updateFun, self.categorykey)
         
     def updateFun(self, torrent, operate):
+        
         if DEBUG:
             print 'contentpanel: Updatefun called: %s %s (s: %d, l: %d) '% (repr(torrent.get('content_name','no_name')), operate, torrent.get('seeder', -1), torrent.get('leecher', -1))
         # operate = {add, update, delete}
@@ -1428,16 +1456,4 @@ class ContentFrontPanel(wx.Panel, DelayedInvocation):
             print >>sys.stderr,'contentpanel: typed'
         pass
         
-class MyApp(wx.App):
-    
-    def OnInit(self):
-        wx.InitAllImageHandlers()
-        frame = wx.Frame( None, -1, "Tribler wxPrototype", [20,20], [800,600] )
-        frame.window = DetailPanel(frame)
-        frame.Show(True)
-        print "Started"
-        return True
 
-if __name__ == '__main__':
-    app = MyApp(0)
-    app.MainLoop()

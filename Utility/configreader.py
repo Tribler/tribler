@@ -7,6 +7,7 @@ from cStringIO import StringIO
 from ConfigParser import ConfigParser, MissingSectionHeaderError, NoSectionError, ParsingError, DEFAULTSECT
 
 from BitTornado.bencode import bencode, bdecode
+from BitTornado.download_bt1 import defaults as bt1_defaults
 
 ################################################################
 #
@@ -220,6 +221,14 @@ class ConfigReader(ConfigParser):
             param = param.lower()
             value = self.defaults.get(param, None)
 #            sys.stderr.write("Error while reading parameter: (" + str(param) + ")\n")
+            # Arno, 2007-03-21: The ABCOptions dialog tries to read config values
+            # via this mechanism. However, that doesn't take into account the
+            # values from BitTornado/download_bt1.py defaults. I added that.
+            if value is None:
+                for k,v,d in bt1_defaults:
+                    if k == param:
+                        value = v
+                        break
 #            data = StringIO()
 #            print_exc(file = data)
 #            sys.stderr.write(data.getvalue())

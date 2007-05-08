@@ -62,6 +62,7 @@ def tribler_init(config_dir = None, install_dir = None, db_exception_handler = N
     superpeer.init(install_dir)
     friends.init(config_dir)
     category.init(install_dir, config_dir)
+    print 'Reading configuration from: ', repr(config_dir)
 
 def tribler_done(config_dir = None):
     friends.done(config_dir)

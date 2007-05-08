@@ -5,6 +5,7 @@ from socket import inet_aton, gethostbyname, getaddrinfo
 from time import time, strftime, gmtime
 from base64 import encodestring
 from sha import sha
+from copy import deepcopy
 import sys
 import os
 
@@ -100,6 +101,45 @@ def show_permid_shorter(permid):
 
 def show_permid2(permid):
     return show_permid_short(permid)
+    
+def readableBuddyCastMsg(buddycast_data):
+    # convert msg to readable format
+    prefxchg_msg = deepcopy(buddycast_data)
+    
+    if prefxchg_msg.has_key('permid'):
+        prefxchg_msg.pop('permid')
+    if prefxchg_msg.has_key('ip'):
+        prefxchg_msg.pop('ip')
+    if prefxchg_msg.has_key('port'):
+        prefxchg_msg.pop('port')
+        
+    name = repr(prefxchg_msg['name'])    # avoid coding error
+    prefs = []
+    if prefxchg_msg['preferences']:
+        for pref in prefxchg_msg['preferences']:
+            prefs.append(show_permid(pref))
+    prefxchg_msg['preferences'] = prefs
+        
+    if prefxchg_msg.get('taste buddies', []):
+        buddies = []
+        for buddy in prefxchg_msg['taste buddies']:
+            buddy['permid'] = show_permid(buddy['permid'])
+            if buddy.get('preferences', []):
+                prefs = []
+                for pref in buddy['preferences']:
+                    prefs.append(show_permid(pref))
+                buddy['preferences'] = prefs
+            buddies.append(buddy)
+        prefxchg_msg['taste buddies'] = buddies
+        
+    if prefxchg_msg.get('random peers', []):
+        peers = []
+        for peer in prefxchg_msg['random peers']:
+            peer['permid'] = show_permid(peer['permid'])
+            peers.append(peer)
+        prefxchg_msg['random peers'] = peers
+        
+    return prefxchg_msg
     
 def print_prefxchg_msg(prefxchg_msg):
     def show_permid(permid):

@@ -8,7 +8,9 @@ from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
 
 from threading import Thread
 from random import random
-from time import time
+from time import time, asctime
+
+DEBUG = False
 
 class TorrentChecking(Thread):
     
@@ -18,6 +20,9 @@ class TorrentChecking(Thread):
         self.gnThreashold = 0.9
         self.torrent_db = SynTorrentDBHandler()
         Thread.__init__(self)
+        self.setName('TorrentChecking'+self.getName())
+        if DEBUG:
+            print 'TorrentChecking: Started torrentchecking'
         self.setDaemon(True)
         
     def run(self):
@@ -37,7 +42,8 @@ class TorrentChecking(Thread):
             self.torrentList.release()
             if not torrent:
                 return
-#            print "Get From Good", torrent["info"]["name"]
+            if DEBUG:
+                print "TorrentChecking: ", asctime(), "Get From Good", repr(torrent["info"]["name"])
             # whether to ignore
             if (torrent["ignore_number"] > 0):    
                 torrent["ignore_number"] -= 1
@@ -75,7 +81,8 @@ class TorrentChecking(Thread):
             self.torrentList.release()
             if not torrent:
                 return
-#            print "Get from Unknown", torrent["info"]["name"]
+            if DEBUG:
+                print "TorrentChecking: ", asctime(), "Get from Unknown", repr(torrent["info"]["name"])
             # whether to ignore
             if (torrent["ignore_number"] > 0):    
                 torrent["ignore_number"] -= 1
