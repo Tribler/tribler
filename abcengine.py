@@ -1113,7 +1113,7 @@ class ABCEngine(DelayedEventHandler):
         #####################################################
         if self.dow.storagewrapper.stat_numdownloaded > 0:
             # only notify if we finished downloading the last piece
-            notify( DOWNLOAD_COMPLETE, self.utility.lang.get("download_complete"), self.torrent.getTitle() )
+            notify( DOWNLOAD_COMPLETE, self.utility.lang.get("notification_download_complete"), self.torrent.getTitle() )
         self.torrent.status.completed = True
         self.progress = 100.0
         self.torrent.files.updateProgress()
