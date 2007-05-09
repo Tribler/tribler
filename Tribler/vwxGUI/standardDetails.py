@@ -434,12 +434,12 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     print "<mluc> set default persons thumb for details view"
                 
                 thumbField = self.getGuiObj("thumbField")
-                thumbField.setBitmap(bmp,True)
+                thumbField.setBitmap(bmp)
                 width, height = thumbField.GetSize()
                 d = 1
                 thumbField.border = [wx.Point(0,d), wx.Point(width-d, d), wx.Point(width-d, height-d), wx.Point(d,height-d), wx.Point(d,0)]
                 thumbField.Refresh()
-                wx.CallAfter(thumbField.Refresh)
+#                wx.CallAfter(thumbField.Refresh)
                 
             except:
                 print_exc(file=sys.stderr)
