@@ -180,7 +180,7 @@ class PeerDataManager(DelayedEventHandler):
         stubCN = "no data"
         if utility is not None:
             stubCN = utility.lang.get('persons_view_no_data')
-        noDataStub = {'content_name':stubCN, 'permid':'000001'}#, 'similarity':0}
+        noDataStub = {'content_name':stubCN, 'permid':'000001', 'last_seen':-1, 'similarity':0, 'friend':False, 'name':''}
         all_data.append(noDataStub)
         self.done_init = True
 

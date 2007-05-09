@@ -61,11 +61,11 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             def run(self):
                 self.owner.utility.buddycast.data_ready_evt.wait()   # called by buddycast
                 # get the peer list in buddycast. Actually it is a dict, but it can be used
-                buddycast_peer_list = self.owner.utility.buddycast.data_handler.peers    
+                buddycast_peer_list = self.owner.utility.buddycast.data_handler.peers
                 print "***** buddycast loaded, start GUI threat ", len(buddycast_peer_list), currentThread().getName()
 #                self.owner.sortData(self.owner.prepareData(buddycast_peer_list))
                 #this initialization can be done in another place also
-                data = self.owner.peer_manager.prepareData()
+                data = self.owner.peer_manager.prepareData(buddycast_peer_list)
         #        self.sortData(data)
                 self.owner.peer_manager.applyFilters(data)
         #        print "<mluc> ################### size of data is ",len(self.filtered_data['all'])
@@ -410,7 +410,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     def updateFunPersons(self, peer_data, operate):    
         grid = None
         if self.mode in ["personsMode","friendsMode"]:
-            grid = self.data[self.mode]['grid']
+            grid = self.data[self.mode].get('grid')
         if grid is not None:
             try:
                 print "UpdatefunPersons called for ",peer_data['content_name']
