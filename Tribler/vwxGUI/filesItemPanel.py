@@ -89,11 +89,8 @@ class FilesItemPanel(wx.Panel):
             self.datacopy['infohash'] = torrent['infohash']
             self.datacopy['seeder'] = torrent['seeder']
             self.datacopy['leecher'] = torrent['leecher']
-            self.datacopy['length'] = torrent.get('length')
+            self.datacopy['length'] = torrent['length']
             self.datacopy['myDownloadHistory'] = torrent.get('myDownloadHistory')
-            #web2.0 item elements
-            self.datacopy['web2'] = torrent.get('web2')
-            self.datacopy['web2'] = torrent.get('preview')
         else:
             torrent = {}
 
@@ -111,6 +108,7 @@ class FilesItemPanel(wx.Panel):
             self.title.SetToolTipString('')
             self.title.Enable(False)
             
+       
         self.thumb.setTorrent(torrent)
         
         self.Layout()
@@ -207,9 +205,6 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                                         
     
     def setThumbnail(self, torrent):
-        #if torrent.get('web2'):
-            #import pdb
-            #pdb.set_trace()
         # Get the file(s)data for this torrent
         try:
             bmp = self.mm.get_default(self.mode,'DEFAULT_THUMB')
@@ -221,20 +216,16 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                     bmp = self.mm.get_default('filesMode','DEFAULT_THUMB')
             else:
                 #print "fip: ThumbnailViewer: set: Scheduling read of metadata"
-                # web2.0 elements already have the thumbnail stored at key 'preview'
-                if not torrent.get('preview'):
-                    torrent_dir = torrent['torrent_dir']
-                    torrent_file = torrent['torrent_name']
+                torrent_dir = torrent['torrent_dir']
+                torrent_file = torrent['torrent_name']
+        
+                if not os.path.exists(torrent_dir):
+                    torrent_dir = os.path.join(self.utility.getConfigPath(), "torrent2")
+                torrent_filename = os.path.join(torrent_dir, torrent_file)
                 
-                    if not os.path.exists(torrent_dir):
-                        torrent_dir = os.path.join(self.utility.getConfigPath(), "torrent2")
-                    torrent_filename = os.path.join(torrent_dir, torrent_file)
-                    
-                    if DEBUG:
-                        print "fip: Scheduling read of thumbnail for",torrent_filename
-                    self.GetParent().guiserver.add_task(lambda:self.loadMetadata(torrent,torrent_filename),0)
-                else:
-                    self.GetParent().guiserver.add_task(lambda:self.loadMetadata(torrent,None),0)
+                if DEBUG:
+                    print "fip: Scheduling read of thumbnail for",torrent_filename
+                self.GetParent().guiserver.add_task(lambda:self.loadMetadata(torrent,torrent_filename),0)
             
             self.setBitmap(bmp)
             width, height = self.GetSize()
@@ -261,26 +252,22 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         
         if DEBUG:
             print "fip: ThumbnailViewer: loadMetadata",torrent_filename
-        if not torrent.get('preview'):
-            if not os.path.exists(torrent_filename):
-                if DEBUG:    
-                    print >>sys.stderr,"fip: ThumbnailViewer: loadMetadata: %s does not exist" % torrent_filename
-                return None
+        if not os.path.exists(torrent_filename):
+            if DEBUG:    
+                print >>sys.stderr,"fip: ThumbnailViewer: loadMetadata: %s does not exist" % torrent_filename
+            return None
 
-            # We can't do any wx stuff here apparently, so the only thing we can do is to
-            # read the data from the torrent file and create the wxBitmap in the GUI callback.
-            
-            metadata = self.utility.getMetainfo(torrent_filename)
-            if not metadata:
-                return None
-            
-            newmetadata = metadata.get('azureus_properties', {}).get('Content',{})
-            for key in ['encoding','comment','comment-utf8']: # 'created by'
-                if key in metadata:
-                    newmetadata[key] = metadata[key]
-        else:
-            newmetadata = { 'Thumbnail' : torrent['preview'] }
-
+        # We can't do any wx stuff here apparently, so the only thing we can do is to
+        # read the data from the torrent file and create the wxBitmap in the GUI callback.
+        
+        metadata = self.utility.getMetainfo(torrent_filename)
+        if not metadata:
+            return None
+        
+        newmetadata = metadata.get('azureus_properties', {}).get('Content',{})
+        for key in ['encoding','comment','comment-utf8']: # 'created by'
+            if key in metadata:
+                newmetadata[key] = metadata[key]
       
         self.invokeLater(self.metadata_thread_gui_callback,[torrent,newmetadata])
 

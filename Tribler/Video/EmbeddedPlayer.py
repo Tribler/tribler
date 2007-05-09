@@ -61,7 +61,6 @@ class VideoFrame(wx.Frame):
     def createMainPanel(self):
         oldcwd = os.getcwd()
         if sys.platform == 'win32':
-            global vlcinstalldir
             vlcinstalldir = os.path.join(self.utility.getPath(),"vlc")
             os.chdir(vlcinstalldir)
 
@@ -366,17 +365,9 @@ class VLCMediaCtrl(wx.Window):
         #os.close(loghandle)
         #self.media = vlc.MediaControl(["--verbose","0","--logfile",logfilename,"--key-fullscreen","Esc"])
         #self.media = vlc.MediaControl(["--key-fullscreen","Esc"])
-        #self.media = vlc.MediaControl()
-        self.getVlcMediaCtrl()
-
-    def getVlcMediaCtrl(self):
-	#import pdb
-	#pdb.set_trace()
-        cwd = os.getcwd()
-        os.chdir(vlcinstalldir)
-        self.media = vlc.MediaControl(["--key-fullscreen","Esc"])
+        self.media = vlc.MediaControl()
         self.visinit = False
-        os.chdir(cwd)
+
         
 
     # Be sure that this window is visible before
@@ -426,12 +417,8 @@ class VLCMediaCtrl(wx.Window):
 
 
     def Load(self,url):
-        self.media.exit()
-	self.getVlcMediaCtrl()
-        #self.Stop()
-        #self.media.playlist_clear()
-        #self.visinit = False
-        #self.media = vlc.MediaControl()# ["--key-fullscreen","Esc"])
+        self.Stop()
+        self.media.playlist_clear()
         self.media.playlist_add_item(url)
 
 

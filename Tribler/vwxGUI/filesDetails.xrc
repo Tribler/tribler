@@ -141,9 +141,6 @@
                       <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
                       <border>5</border>
                       <option>0</option>
-
-                      <object class="wxPanel" name="size">
-
                       <object class="wxBoxSizer">
                         <orient>wxHORIZONTAL</orient>
                         <object class="sizeritem">
@@ -169,9 +166,6 @@
                           </object>
                         </object>
                       </object>
-
-                      </object>
-
                     </object>
                     <object class="sizeritem">
                       <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
@@ -206,10 +200,6 @@
                       <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
                       <border>5</border>
                       <option>0</option>
-
-                      <!-- put popularity on a panel -->
-                      <object class="wxPanel" name="popularity">
-
                       <object class="wxBoxSizer">
                         <orient>wxHORIZONTAL</orient>
                         <object class="sizeritem">
@@ -273,53 +263,7 @@
                           </object>
                         </object>
                       </object>
-                      
-                      <!-- end popularity panel -->
-                      </object>
-
                     </object>
-
-
-
-
-                    <!-- added views -->
-                    <object class="sizeritem">
-                      <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                      <border>5</border>
-                      <option>0</option>
-                      <object class="wxPanel" name="views">
-                        <object class="wxBoxSizer">
-                          <orient>wxHORIZONTAL</orient>
-                          <object class="sizeritem">
-                            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-                            <border>6</border>
-                            <option>0</option>
-                            <object class="wxStaticText" name="blablabla">
-                              <style>wxST_NO_AUTORESIZE</style>
-                              <label>popularity:</label>
-                              <pos>8,25</pos>
-                              <size>79,18</size>
-                            </object>
-                          </object>
-                          <object class="sizeritem">
-                            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-                            <border>10</border>
-                            <option>0</option>
-                            <object class="wxStaticText" name="viewsField">
-                              <label>unknown</label>
-                              <pos>87,25</pos>
-                              <size>131,18</size>
-                            </object>
-                          </object>
-                        </object>
-                      </object>
-                    </object>
-
-                    <!-- end views -->
-
-
-
-
                     <object class="sizeritem">
                       <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
                       <border>5</border>

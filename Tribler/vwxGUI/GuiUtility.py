@@ -221,8 +221,6 @@ class GUIUtility:
         self.guiOpen.set()
         
     def deleteTorrent(self, torrent):
-        if torrent.get('web2'):
-            return
         pass
     
     def deleteSubscription(self,subscrip):

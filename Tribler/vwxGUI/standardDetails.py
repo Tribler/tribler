@@ -15,7 +15,6 @@ from Tribler.unicode import bin2unicode
 from safeguiupdate import FlaglessDelayedInvocation
 #from Tribler.vwxGUI.tribler_topButton import tribler_topButton
 from Utility.constants import COL_PROGRESS
-from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Dialogs.GUIServer import GUIServer
 
 
@@ -68,15 +67,14 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             self.data[mode] = {} #each mode has a dictionary of gui elements with name and reference
             self.lastItemSelected[mode] = None
         self.currentPanel = None
-        self.videoplayer = VideoPlayer.getInstance()
         self.addComponents()
         
         #self.Refresh()
         self.modeElements = {}
         for elem in DETAILS_MODES:
             self.modeElements[elem] = []
-        self.modeElements['filesMode'] = ['titleField', 'popularity', 'popularityField1', 'popularityField2', 'creationdateField', 
-                                            'descriptionField', 'size', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 'views', 'viewsField',
+        self.modeElements['filesMode'] = ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
+                                            'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
                                             'download', 'tabs', ('files_detailsTab','tabs'), ('info_detailsTab','tabs'), 'TasteHeart', 'details', 'peopleWhoField']
         self.modeElements['personsMode'] = ['TasteHeart', 'recommendationField','addAsFriend', 'commonFilesField',
                                             'alsoDownloadedField', 'info_detailsTab', 'advanced_detailsTab','detailsC',
@@ -101,6 +99,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         self.statdlElements = ['st28c','st30c','download1','percent1','download2','percent2','download3','percent3','download4','percent4']
             
         self.guiUtility.initStandardDetails(self)
+        
         self.subscr_old_source = None
 
 
@@ -225,9 +224,6 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             
             # do extra init
             if modeString == 'files' or modeString == 'library':
-                self.getGuiObj('popularity').SetBackgroundColour(wx.WHITE)
-                self.getGuiObj('size').SetBackgroundColour(wx.WHITE)
-                self.getGuiObj('views').SetBackgroundColour(wx.WHITE)
                 self.getGuiObj('up').setBackground(wx.WHITE)
                 self.getGuiObj('down').setBackground(wx.WHITE)
                 self.getGuiObj('refresh').setBackground(wx.WHITE)
@@ -339,81 +335,53 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             if self.getGuiObj('info_detailsTab').isSelected():
                 # The info tab is selected, show normal torrent info
                 descriptionField = self.getGuiObj('descriptionField')
-
                 descrtxt = ''
-                flag = False
-                if not torrent.get('web2'):
-                    if 'metadata' in torrent:
-                        metadata = torrent['metadata']
+                if 'metadata' in torrent:
+                    metadata = torrent['metadata']
 
-                        encoding = None
-                        if 'encoding' in metadata and metadata['encoding'].strip():
-                            encoding = metadata['encoding']
+                    encoding = None
+                    if 'encoding' in metadata and metadata['encoding'].strip():
+                        encoding = metadata['encoding']
 
-                        for key in ['comment','comment-utf8','Description']: # reverse priority
-                            if key in metadata: # If vuze torrent
-                                tdescrtxt = metadata[key]
-                                if key == 'comment-utf8':
-                                    tencoding = 'utf_8'
-                                else:
-                                    tencoding = encoding
-                                descrtxt = bin2unicode(tdescrtxt,tencoding)
-
-                                flag = True
-                else:
-                    descrtxt = torrent['description']
-                    flag = True
-                 
-                if not flag:
-                    if 'source' in torrent:
-                        s = torrent['source']
-                        if s == 'BC':
-                            s = 'Received from other user'
-                        descrtxt = "Source: "+s
+                    flag = False
+                    for key in ['comment','comment-utf8','Description']: # reverse priority
+                        if key in metadata: # If vuze torrent
+                            tdescrtxt = metadata[key]
+                            if key == 'comment-utf8':
+                                tencoding = 'utf_8'
+                            else:
+                                tencoding = encoding
+                            descrtxt = bin2unicode(tdescrtxt,tencoding)
+                            flag = True
+                    if not flag:
+                        if 'source' in torrent:
+                            s = torrent['source']
+                            if s == 'BC':
+                                s = 'Received from other user'
+                            descrtxt = "Source: "+s
 
                 descriptionField.SetLabel(descrtxt)
                 descriptionField.Wrap(-1)        
     
-                sizeField = self.getGuiObj('sizeField')
-                if not torrent.get('web2'):
+                if torrent.has_key('length'):
+                    sizeField = self.getGuiObj('sizeField')
                     sizeField.SetLabel(self.utility.size_format(torrent['length']))
-                else:
-                    sizeField.SetLabel(torrent['length'])
-
                 
                 if torrent.get('info', {}).get('creation date'):
                     creationField = self.getGuiObj('creationdateField')
-                    creationField.SetLabel(friendly_time(torrent['info']['creation date']))
-
+                    creationField.SetLabel(friendly_time(torrent['info']['creation date']))\
                     
-                if torrent.get('web2'):
-                    view = self.getGuiObj('views')
-                    view.Show()
-                    pop = self.getGuiObj('popularity')
-                    pop.Hide()
-                    pop.GetParent().Layout()
-
-                    viewsField = self.getGuiObj('viewsField')
-                    viewsField.SetLabel(str(torrent['views']) + " views")
-
-                else:
-                    view = self.getGuiObj('views')
-                    view.Hide()
-                    pop = self.getGuiObj('popularity')
-                    pop.Show()
-                    pop.GetParent().Layout()
-
-                    if torrent.has_key('seeder'):
-                        seeders = torrent['seeder']
-                        seedersField = self.getGuiObj('popularityField1')
-                        leechersField = self.getGuiObj('popularityField2')
-                        
-                        if seeders > -1:
-                            seedersField.SetLabel('%d' % seeders)
-                            leechersField.SetLabel('%d' % torrent['leecher'])
-                        else:
-                            seedersField.SetLabel('?')
-                            leechersField.SetLabel('?')
+                if torrent.has_key('seeder'):
+                    seeders = torrent['seeder']
+                    seedersField = self.getGuiObj('popularityField1')
+                    leechersField = self.getGuiObj('popularityField2')
+                    
+                    if seeders > -1:
+                        seedersField.SetLabel('%d' % seeders)
+                        leechersField.SetLabel('%d' % torrent['leecher'])
+                    else:
+                        seedersField.SetLabel('?')
+                        leechersField.SetLabel('?')
                 
                 # Call a function to retrieve similar torrent data
                 self.fillSimTorrentsList(item['infohash'])
@@ -422,14 +390,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 if self.mode == 'filesMode':
                     downloadButton = self.getGuiObj('download')
                     if self.showDownloadbutton(self.mode, torrent):
-                        if torrent.get('web2'):
-                            downloadButton.setToggled(True)
-                        else:
-                            downloadButton.setToggled(False)
                         downloadButton.Show()
                     else:
                         downloadButton.Hide()
-
                 
             elif self.getGuiObj('files_detailsTab').isSelected():
                 filesList = self.getGuiObj('includedFiles', tab = 'filesTab_files')
@@ -1112,12 +1075,6 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         if torrent == None:
             torrent = self.item
             
-        if torrent.get('web2'):
-            if DEBUG:
-                print "PLAY WEB2 VIDEO: " + torrent['url']
-            self.videoplayer.parentwindow.swapin_videopanel(torrent['url'])
-            return
-
         src1 = os.path.join(torrent['torrent_dir'], 
                             torrent['torrent_name'])
         src2 = os.path.join(self.utility.getConfigPath(), 'torrent2', torrent['torrent_name'])

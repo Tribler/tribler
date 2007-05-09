@@ -8,7 +8,6 @@ from sha import sha
 from copy import deepcopy
 import sys
 import os
-import copy
 
 STRICT_CHECK = False
 
@@ -206,9 +205,7 @@ def friendly_time(old_time):
             return old_time
         else:
             return '?'
-    if diff < 0:
-        return '?'
-    elif diff < 1:
+    if diff < 1:
         return str(diff) + " sec. ago"
     elif diff < 60:
         return str(diff) + " secs. ago"
@@ -233,39 +230,6 @@ def sort_dictlist(dict_list, key, order='increase'):
     if order == 'decrease' or order == 1:    # 0 - increase, 1 - decrease
         aux.reverse()
     return [dict_list[i] for x, i in aux]
-
-
-def dict_compare(a, b, keys):
-    #import pdb
-    #pdb.set_trace()
-    for key in keys:
-        order = 'increase'
-        if type(key) == tuple:
-            skey, order = key
-        else:
-            skey = key
-
-        if a.get(skey) > b.get(skey):
-            if order == 'decrease' or order == 1:
-                return -1
-            else:
-                return 1
-        elif a.get(skey) < b.get(skey):
-            if order == 'decrease' or order == 1:
-                return 1
-            else:
-                return -1
-
-    return 0
-
-
-def multisort_dictlist(dict_list, keys):
-
-    listcopy = copy.copy(dict_list)
-    cmp = partial(dict_compare,keys=keys)
-    listcopy.sort(cmp=cmp)
-    return listcopy
-
 
 def find_content_in_dictlist(dict_list, content, key='infohash'):
     title = content.get(key)
@@ -310,30 +274,7 @@ def find_prog_in_PATH(prog):
             break
     return foundat
     
-
-# from the Python Library Reference
-# http://docs.python.org/lib/module-functools.html
-def partial(func, *args, **keywords):
-    def newfunc(*fargs, **fkeywords):
-        newkeywords = keywords.copy()
-        newkeywords.update(fkeywords)
-        return func(*(args + fargs), **newkeywords)
-    newfunc.func = func
-    newfunc.args = args
-    newfunc.keywords = keywords
-    return newfunc
-
     
 if __name__=='__main__':
-
-    torrenta = {'name':'a', 'swarmsize' : 12}
-    torrentb = {'name':'b', 'swarmsize' : 24}
-    torrentc = {'name':'c', 'swarmsize' : 18, 'Web2' : True}
-    torrentd = {'name':'b', 'swarmsize' : 36, 'Web2' : True}
-
-    torrents = [torrenta, torrentb, torrentc, torrentd]
-    print multisort_dictlist(torrents, ["Web2", ("swarmsize", "decrease")])
-
-
-    #d = {'a':1,'b':[1,2,3],'c':{'c':2,'d':[3,4],'k':{'c':2,'d':[3,4]}}}
-    #print_dict(d)    
+    d = {'a':1,'b':[1,2,3],'c':{'c':2,'d':[3,4],'k':{'c':2,'d':[3,4]}}}
+    print_dict(d)    
