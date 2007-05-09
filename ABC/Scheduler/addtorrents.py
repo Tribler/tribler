@@ -357,7 +357,7 @@ class AddTorrents:
             return False, error, ABCTorrentTemp
 
         if DEBUG:
-            print >>sys.stderr,"addtorrents: torrent",ABCTorrentTemp.metainfo['info']['name'],"caller is",caller
+            print >>sys.stderr,"addtorrents: torrent",`ABCTorrentTemp.metainfo['info']['name']`,"caller is",caller
         self.activate_deactivate(ABCTorrentTemp,doupdate,True,caller!=CALLER_ARGV)
         
         return True, self.utility.lang.get('ok'), ABCTorrentTemp

@@ -615,6 +615,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 #                    self.currentPanel.SetSize(the_size)
 #                    self.currentPanel.SetBackgroundColour("red")
 #                    self.currentPanel.Layout()
+#                    self.currentPanel.GetSizer().Layout()
             # --------------------------------------------------------------------------------------------------------------------------------------------------------
             # --- Discovered Files
             elif self.currentPanel == self.getGuiObj('profileDetails_Files'):  
@@ -1099,8 +1100,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             if ret and ret[0]:
                 print 'standardDetails: download started'
                 # save start download time.
-                torrent['download_started'] = time()
-                torrent['progress'] = 0.0
+                #torrent['download_started'] = time()
+                #torrent['progress'] = 0.0
                 self.data_manager.setBelongsToMyDowloadHistory(torrent['infohash'], True)
                 return True        
             else:

@@ -312,8 +312,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             elif not xFin and yFin:
                 return -1
             else:
-                xDate = x.get('download_started', 0)
-                yDate = y.get('download_started', 0)
+                xDate = self.getDownloadStartedTime(x)
+                yDate = self.getDownloadStartedTime(y)
                 diff = int(yDate - xDate)
                 assert type(diff) == int, 'Difference should be a int value'
                 return diff
@@ -323,6 +323,19 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         self.data[self.mode]['data'] = libraryList
         print 'Loaded %d library items' % len(self.data[self.mode]['data'])
         
+    def getDownloadStartedTime(self, torrent):
+        if torrent.get('download_started'):
+            return torrent['download_started']
+        else:
+            # get from mypref db
+            t = self.utility.mypref_db.getCreationTime(torrent['infohash'])
+            if t:
+                torrent['download_started'] = t
+                return t
+            else:
+                raise Exception('standardOverview: cannot get downloadStartedTime')
+                return 0
+            
     def isTorrentFinished(self, torrent):
         "Is this torrent ready downloading (active or inactive)"
         abctorrent = torrent.get('abctorrent')

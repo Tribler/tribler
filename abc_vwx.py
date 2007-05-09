@@ -1009,7 +1009,7 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             
             #self.frame.Refresh()
             #self.frame.Layout()
-            #self.frame.Show(True)
+            self.frame.Show(True)
             
             # GUI start
             # - load myFrame 

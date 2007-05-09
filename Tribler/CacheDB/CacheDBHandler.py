@@ -442,6 +442,7 @@ class TorrentDBHandler(BasicDBHandler):
         
         return torrents
     
+        
     def getCollectedTorrents(self, light=True):     
         all_list = Set(self.torrent_db._keys()) - Set(self.mypref_db._keys())
             
@@ -587,6 +588,14 @@ class MyPreferenceDBHandler(BasicDBHandler):
             
     def getPrefList(self):
         return self.mypref_db._keys()
+        
+    def getCreationTime(self, infohash):
+        "Return creation time. Used for sorting in library view"
+        item = self.mypref_db.getItem(infohash, default=False)
+        if item:
+            return item.get('created_time')
+        else:
+            return None
         
     def getPrefs(self, pref_list, keys):    # get a list of dictionaries given peer list
         peers = []
