@@ -83,7 +83,7 @@
               <object class="wxStaticText" name="descriptionField">
                 <label>You are not using your download speed optimally. To increase, follow the instructions.</label>
                 <pos>6,14</pos>
-                <size>284,38</size>
+                <size>284,-1</size>
                 <font>
                   <size>8</size>
                   <family>modern</family>
@@ -108,7 +108,7 @@
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>   Upload limit</label>
                     <pos>0,55</pos>
-                    <size>241,15</size>
+                    <size>241,-1</size>
                     <bg>#cbcbcb</bg>
                   </object>
                 </object>
@@ -118,8 +118,8 @@
                   <option>0</option>
                   <object class="wxStaticText" name="descriptionField0">
                     <label>At the moment you have 8 friends. If you make more friends you can help in boosting each others download speeds. </label>
-                    <pos>6,76</pos>
-                    <size>284,23</size>
+                    <pos>6,51</pos>
+                    <size>284,-1</size>
                     <font>
                       <size>8</size>
                       <family>modern</family>
@@ -137,7 +137,7 @@
                   <object class="wxStaticText" name="howToImprove0">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>How to improve</label>
-                    <pos>6,99</pos>
+                    <pos>6,64</pos>
                     <size>284,18</size>
                     <font>
                       <size>8</size>
@@ -156,8 +156,8 @@
                   <object class="wxStaticText" name="descriptionField1">
                     <label>Increase the upload speed limit in your preferences (for -Play Fast- mode you need at least 89 KB/s). 
 </label>
-                    <pos>6,117</pos>
-                    <size>284,28</size>
+                    <pos>6,82</pos>
+                    <size>284,-1</size>
                     <font>
                       <size>8</size>
                       <family>modern</family>
@@ -169,11 +169,11 @@
                   </object>
                 </object>
                 <object class="sizeritem">
-                  <flag>wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
+                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
                   <border>6</border>
                   <option>0</option>
                   <object class="wxPanel" name="takeMeThere0" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                    <pos>6,145</pos>
+                    <pos>6,114</pos>
                     <size>120,21</size>
                   </object>
                 </object>
@@ -203,8 +203,8 @@
                   <option>0</option>
                   <object class="wxStaticText" name="descriptionField2">
                     <label>At the moment you have 8 friends. If you make more friends you can help in boosting each others download speeds. </label>
-                    <pos>6,196</pos>
-                    <size>284,38</size>
+                    <pos>6,165</pos>
+                    <size>284,-1</size>
                     <font>
                       <size>8</size>
                       <family>modern</family>
@@ -222,7 +222,7 @@
                   <object class="wxStaticText" name="howToImprove1">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>How to improve</label>
-                    <pos>6,234</pos>
+                    <pos>6,178</pos>
                     <size>284,18</size>
                     <font>
                       <size>8</size>
@@ -240,8 +240,8 @@
                   <option>0</option>
                   <object class="wxStaticText" name="descriptionField3">
                     <label>Invite your friends, family, and colleagues to start using Tribler too, and add them to your list of friends. </label>
-                    <pos>6,252</pos>
-                    <size>284,33</size>
+                    <pos>6,196</pos>
+                    <size>284,-1</size>
                     <font>
                       <size>8</size>
                       <family>modern</family>
@@ -253,11 +253,11 @@
                   </object>
                 </object>
                 <object class="sizeritem">
-                  <flag>wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
+                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
                   <border>6</border>
                   <option>0</option>
                   <object class="wxPanel" name="takeMeThere1" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                    <pos>6,355</pos>
+                    <pos>6,254</pos>
                     <size>120,21</size>
                   </object>
                 </object>
@@ -287,8 +287,8 @@
                   <option>0</option>
                   <object class="wxStaticText" name="descriptionField4">
                     <label>You have to open a port on your modem/router to enable other users to connect to you. If you do so the communication between you and your peers will be faster. </label>
-                    <pos>6,336</pos>
-                    <size>284,38</size>
+                    <pos>6,266</pos>
+                    <size>284,-1</size>
                     <font>
                       <size>8</size>
                       <family>modern</family>
@@ -306,7 +306,7 @@
                   <object class="wxStaticText" name="howToImprove2">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>How to improve</label>
-                    <pos>6,374</pos>
+                    <pos>6,279</pos>
                     <size>284,18</size>
                     <font>
                       <size>8</size>
@@ -324,8 +324,8 @@
                   <option>0</option>
                   <object class="wxStaticText" name="descriptionField5">
                     <label>Read more on &lt;URL&gt; for instructions.</label>
-                    <pos>6,392</pos>
-                    <size>284,28</size>
+                    <pos>6,297</pos>
+                    <size>284,-1</size>
                     <font>
                       <size>8</size>
                       <family>modern</family>

@@ -84,7 +84,7 @@
                 <label>You have discovered 153 persons. Stay online longer to discover more persons. 
 </label>
                 <pos>6,20</pos>
-                <size>284,43</size>
+                <size>284,-1</size>
                 <font>
                   <size>8</size>
                   <family>modern</family>
@@ -119,13 +119,9 @@
               <border>6</border>
               <option>0</option>
               <object class="wxStaticText" name="descriptionField1">
-                <label>Stay online longer and you will discover more persons.
-
-You have set your maximum to 2000 persons. Set it higher to discover more persons. 
-
-</label>
+                <label>Stay online longer and you will discover more persons.</label>
                 <pos>6,87</pos>
-                <size>284,88</size>
+                <size>315,-1</size>
                 <font>
                   <size>8</size>
                   <family>modern</family>
@@ -134,15 +130,6 @@ You have set your maximum to 2000 persons. Set it higher to discover more person
                   <underlined>0</underlined>
                   <face>Verdana</face>
                 </font>
-              </object>
-            </object>
-            <object class="sizeritem">
-              <flag>wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
-              <border>6</border>
-              <option>0</option>
-              <object class="wxPanel" name="takeMeThere0" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                <pos>6,175</pos>
-                <size>120,21</size>
               </object>
             </object>
           </object>

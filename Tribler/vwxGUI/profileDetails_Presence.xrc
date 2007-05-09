@@ -95,241 +95,208 @@
               </object>
             </object>
             <object class="sizeritem">
-              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>3</border>
               <option>0</option>
-              <object class="wxBoxSizer">
-                <orient>wxVERTICAL</orient>
-                <object class="sizeritem">
-                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
-                  <border>3</border>
-                  <option>0</option>
-                  <object class="wxStaticText" name="Desc0">
-                    <style>wxST_NO_AUTORESIZE</style>
-                    <label>   Number of friends</label>
-                    <pos>0,50</pos>
-                    <size>241,15</size>
-                    <bg>#cbcbcb</bg>
-                  </object>
-                </object>
-                <object class="sizeritem">
-                  <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                  <border>6</border>
-                  <option>0</option>
-                  <object class="wxStaticText" name="descriptionField0">
-                    <label>same as in download speed</label>
-                    <pos>6,71</pos>
-                    <size>284,18</size>
-                    <font>
-                      <size>8</size>
-                      <family>modern</family>
-                      <style>normal</style>
-                      <weight>normal</weight>
-                      <underlined>0</underlined>
-                      <face>Verdana</face>
-                    </font>
-                  </object>
-                </object>
-                <object class="sizeritem">
-                  <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                  <border>6</border>
-                  <option>0</option>
-                  <object class="wxStaticText" name="howToImprove0">
-                    <style>wxST_NO_AUTORESIZE</style>
-                    <label>How to improve</label>
-                    <pos>6,89</pos>
-                    <size>284,18</size>
-                    <font>
-                      <size>8</size>
-                      <family>modern</family>
-                      <style>normal</style>
-                      <weight>bold</weight>
-                      <underlined>0</underlined>
-                      <face>Verdana</face>
-                    </font>
-                  </object>
-                </object>
-                <object class="sizeritem">
-                  <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                  <border>6</border>
-                  <option>0</option>
-                  <object class="wxStaticText" name="descriptionField1">
-                    <label>same as in download speed</label>
-                    <pos>6,107</pos>
-                    <size>284,18</size>
-                    <font>
-                      <size>8</size>
-                      <family>modern</family>
-                      <style>normal</style>
-                      <weight>normal</weight>
-                      <underlined>0</underlined>
-                      <face>Verdana</face>
-                    </font>
-                  </object>
-                </object>
-                <object class="sizeritem">
-                  <flag>wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
-                  <border>6</border>
-                  <option>0</option>
-                  <object class="wxPanel" name="takeMeThere0" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                    <pos>6,125</pos>
-                    <size>120,21</size>
-                  </object>
-                </object>
+              <object class="wxStaticText" name="Desc0">
+                <style>wxST_NO_AUTORESIZE</style>
+                <label>   Number of friends</label>
+                <pos>0,50</pos>
+                <size>241,15</size>
+                <bg>#cbcbcb</bg>
               </object>
             </object>
             <object class="sizeritem">
-              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>6</border>
+              <option>0</option>
+              <object class="wxStaticText" name="descriptionField0">
+                <label>same as in download speed</label>
+                <pos>6,71</pos>
+                <size>284,-1</size>
+                <font>
+                  <size>8</size>
+                  <family>modern</family>
+                  <style>normal</style>
+                  <weight>normal</weight>
+                  <underlined>0</underlined>
+                  <face>Verdana</face>
+                </font>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>6</border>
+              <option>0</option>
+              <object class="wxStaticText" name="howToImprove0">
+                <style>wxST_NO_AUTORESIZE</style>
+                <label>How to improve</label>
+                <pos>6,84</pos>
+                <size>284,18</size>
+                <font>
+                  <size>8</size>
+                  <family>modern</family>
+                  <style>normal</style>
+                  <weight>bold</weight>
+                  <underlined>0</underlined>
+                  <face>Verdana</face>
+                </font>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>6</border>
+              <option>0</option>
+              <object class="wxStaticText" name="descriptionField1">
+                <label>same as in download speed</label>
+                <pos>6,102</pos>
+                <size>284,-1</size>
+                <font>
+                  <size>8</size>
+                  <family>modern</family>
+                  <style>normal</style>
+                  <weight>normal</weight>
+                  <underlined>0</underlined>
+                  <face>Verdana</face>
+                </font>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>3</border>
               <option>0</option>
-              <object class="wxBoxSizer">
-                <orient>wxVERTICAL</orient>
-                <object class="sizeritem">
-                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
-                  <border>3</border>
-                  <option>0</option>
-                  <object class="wxStaticText" name="Desc1">
-                    <style>wxST_NO_AUTORESIZE</style>
-                    <label>   Sharing ratio</label>
-                    <pos>0,155</pos>
-                    <size>241,15</size>
-                    <bg>#cbcbcb</bg>
-                  </object>
-                </object>
-                <object class="sizeritem">
-                  <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                  <border>6</border>
-                  <option>0</option>
-                  <object class="wxStaticText" name="descriptionField2">
-                    <label>Your overall sharing ratio is 0.82. This means that you download more from others than you upload to them. </label>
-                    <pos>6,176</pos>
-                    <size>284,-1</size>
-                    <font>
-                      <size>8</size>
-                      <family>modern</family>
-                      <style>normal</style>
-                      <weight>normal</weight>
-                      <underlined>0</underlined>
-                      <face>Verdana</face>
-                    </font>
-                  </object>
-                </object>
-                <object class="sizeritem">
-                  <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                  <border>6</border>
-                  <option>0</option>
-                  <object class="wxStaticText" name="howToImprove1">
-                    <style>wxST_NO_AUTORESIZE</style>
-                    <label>How to improve</label>
-                    <pos>6,224</pos>
-                    <size>284,18</size>
-                    <font>
-                      <size>8</size>
-                      <family>modern</family>
-                      <style>normal</style>
-                      <weight>bold</weight>
-                      <underlined>0</underlined>
-                      <face>Verdana</face>
-                    </font>
-                  </object>
-                </object>
-                <object class="sizeritem">
-                  <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                  <border>6</border>
-                  <option>0</option>
-                  <object class="wxStaticText" name="descriptionField3">
-                    <label>To reach a fair sharing ratio, you should share your files longer. 
+              <object class="wxStaticText" name="Desc1">
+                <style>wxST_NO_AUTORESIZE</style>
+                <label>   Sharing ratio</label>
+                <pos>0,155</pos>
+                <size>241,15</size>
+                <bg>#cbcbcb</bg>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>6</border>
+              <option>0</option>
+              <object class="wxStaticText" name="descriptionField2">
+                <label>Your overall sharing ratio is 0.82. This means that you download more from others than you upload to them. </label>
+                <pos>6,139</pos>
+                <size>284,-1</size>
+                <font>
+                  <size>8</size>
+                  <family>modern</family>
+                  <style>normal</style>
+                  <weight>normal</weight>
+                  <underlined>0</underlined>
+                  <face>Verdana</face>
+                </font>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>6</border>
+              <option>0</option>
+              <object class="wxStaticText" name="howToImprove1">
+                <style>wxST_NO_AUTORESIZE</style>
+                <label>How to improve</label>
+                <pos>6,187</pos>
+                <size>284,18</size>
+                <font>
+                  <size>8</size>
+                  <family>modern</family>
+                  <style>normal</style>
+                  <weight>bold</weight>
+                  <underlined>0</underlined>
+                  <face>Verdana</face>
+                </font>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>6</border>
+              <option>0</option>
+              <object class="wxStaticText" name="descriptionField3">
+                <label>To reach a fair sharing ratio, you should share your files longer. 
 </label>
-                    <pos>6,242</pos>
-                    <size>284,-1</size>
-                    <font>
-                      <size>8</size>
-                      <family>modern</family>
-                      <style>normal</style>
-                      <weight>normal</weight>
-                      <underlined>0</underlined>
-                      <face>Verdana</face>
-                    </font>
-                  </object>
-                </object>
+                <pos>6,205</pos>
+                <size>284,-1</size>
+                <font>
+                  <size>8</size>
+                  <family>modern</family>
+                  <style>normal</style>
+                  <weight>normal</weight>
+                  <underlined>0</underlined>
+                  <face>Verdana</face>
+                </font>
               </object>
             </object>
             <object class="sizeritem">
-              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>3</border>
               <option>0</option>
-              <object class="wxBoxSizer">
-                <orient>wxVERTICAL</orient>
-                <object class="sizeritem">
-                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
-                  <border>3</border>
-                  <option>0</option>
-                  <object class="wxStaticText" name="Desc2">
-                    <style>wxST_NO_AUTORESIZE</style>
-                    <label>   Version update</label>
-                    <pos>0,283</pos>
-                    <size>241,15</size>
-                    <bg>#cbcbcb</bg>
-                  </object>
-                </object>
-                <object class="sizeritem">
-                  <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                  <border>6</border>
-                  <option>0</option>
-                  <object class="wxStaticText" name="descriptionField4">
-                    <label>You are using an old version of Tribler and not taking advantage of the new features available. 
+              <object class="wxStaticText" name="Desc2">
+                <style>wxST_NO_AUTORESIZE</style>
+                <label>   Version update</label>
+                <pos>0,283</pos>
+                <size>241,15</size>
+                <bg>#cbcbcb</bg>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>6</border>
+              <option>0</option>
+              <object class="wxStaticText" name="descriptionField4">
+                <label>You are using an old version of Tribler and not taking advantage of the new features available. 
 
 You are up to date!</label>
-                    <pos>6,298</pos>
-                    <size>284,38</size>
-                    <font>
-                      <size>8</size>
-                      <family>modern</family>
-                      <style>normal</style>
-                      <weight>normal</weight>
-                      <underlined>0</underlined>
-                      <face>Verdana</face>
-                    </font>
-                  </object>
-                </object>
-                <object class="sizeritem">
-                  <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                  <border>6</border>
-                  <option>0</option>
-                  <object class="wxStaticText" name="howToImprove2">
-                    <style>wxST_NO_AUTORESIZE</style>
-                    <label>How to improve</label>
-                    <pos>6,336</pos>
-                    <size>284,18</size>
-                    <font>
-                      <size>8</size>
-                      <family>modern</family>
-                      <style>normal</style>
-                      <weight>bold</weight>
-                      <underlined>0</underlined>
-                      <face>Verdana</face>
-                    </font>
-                  </object>
-                </object>
-                <object class="sizeritem">
-                  <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                  <border>6</border>
-                  <option>0</option>
-                  <object class="wxStaticText" name="descriptionField5">
-                    <label>Update to the newest version 4.0 at &lt;url&gt;.
+                <pos>6,261</pos>
+                <size>284,-1</size>
+                <font>
+                  <size>8</size>
+                  <family>modern</family>
+                  <style>normal</style>
+                  <weight>normal</weight>
+                  <underlined>0</underlined>
+                  <face>Verdana</face>
+                </font>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>6</border>
+              <option>0</option>
+              <object class="wxStaticText" name="howToImprove2">
+                <style>wxST_NO_AUTORESIZE</style>
+                <label>How to improve</label>
+                <pos>6,300</pos>
+                <size>284,18</size>
+                <font>
+                  <size>8</size>
+                  <family>modern</family>
+                  <style>normal</style>
+                  <weight>bold</weight>
+                  <underlined>0</underlined>
+                  <face>Verdana</face>
+                </font>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>6</border>
+              <option>0</option>
+              <object class="wxStaticText" name="descriptionField5">
+                <label>Update to the newest version 4.0 at &lt;url&gt;.
 </label>
-                    <pos>6,354</pos>
-                    <size>284,13</size>
-                    <font>
-                      <size>8</size>
-                      <family>modern</family>
-                      <style>normal</style>
-                      <weight>normal</weight>
-                      <underlined>0</underlined>
-                      <face>Verdana</face>
-                    </font>
-                  </object>
-                </object>
+                <pos>6,318</pos>
+                <size>284,-1</size>
+                <font>
+                  <size>8</size>
+                  <family>modern</family>
+                  <style>normal</style>
+                  <weight>normal</weight>
+                  <underlined>0</underlined>
+                  <face>Verdana</face>
+                </font>
               </object>
             </object>
           </object>

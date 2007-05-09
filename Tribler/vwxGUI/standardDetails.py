@@ -92,9 +92,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                             'libraryTab_files': [ 'download', 'includedFiles'],
                             'profileDetails_Quality': ['descriptionField0','howToImprove','descriptionField1'],
                             'profileDetails_Files': ['descriptionField0','howToImprove','descriptionField1','takeMeThere0'],
-                            'profileDetails_Persons': ['descriptionField0','howToImprove','descriptionField1','takeMeThere0'],
+                            'profileDetails_Persons': ['descriptionField0','howToImprove','descriptionField1'],
                             'profileDetails_Download': ['descriptionField','Desc0','descriptionField0','howToImprove0','descriptionField1','takeMeThere0','Desc1','descriptionField2','howToImprove1','descriptionField3','takeMeThere1','Desc2','descriptionField4','howToImprove2','descriptionField5'],
-                            'profileDetails_Presence': ['descriptionField','Desc0','descriptionField0','howToImprove0','descriptionField1','takeMeThere0','Desc1','descriptionField2','howToImprove1','descriptionField3','Desc2','descriptionField4','howToImprove2','descriptionField5']}
+                            'profileDetails_Presence': ['descriptionField','Desc0','descriptionField0','howToImprove0','descriptionField1','Desc1','descriptionField2','howToImprove1','descriptionField3','Desc2','descriptionField4','howToImprove2','descriptionField5']}
             
         self.statdlElements = ['st28c','st30c','download1','percent1','download2','percent2','download3','percent3','download4','percent4']
             
@@ -142,7 +142,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         self.currentPanel.Layout()
         self.currentPanel.SetAutoLayout(1)
         #self.currentPanel.Enable(True)
-        self.currentPanel.SetBackgroundColour("red")
+#        self.currentPanel.SetBackgroundColour("red")
         
         self.currentPanel.Show(True)
         
@@ -720,13 +720,14 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 tab = "error"
             if tab != "error":
                 if self.reHeightToFit(tab):
-                    self.currentPanel.Layout()
+                    print "<mluc> do panel ",tab,"relayouting"
                     self.currentPanel.SetAutoLayout(1)
+                    self.currentPanel.Layout()
                     self.hSizer.Layout()
         else:
             print "standardDetails: setData: No entry for mode",self.mode
                     
-        self.currentPanel.Refresh()
+#        self.currentPanel.Refresh()
     
     def reHeightToFit(self, tab=None):
         """the ideea is to iterate through all object mentioned in the list of 
@@ -764,6 +765,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 #            ofList.SetSingleStyle(wx.LC_NO_HEADER)
 #            ofList.SetSingleStyle(wx.LC_SINGLE_SEL)
                             currentElement.Wrap(284)
+                            bElementMoved = True
+                    prevElement = None
                     if prevElement is not None:
                         prevPos = prevElement.GetPosition().y
                         prevHeight = prevElement.GetSize().height
@@ -771,11 +774,10 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
     #                    print "<mluc> element",list[index],"is at",currentElement.GetPosition().y,"and has height",currentElement.GetSize().height
                         if new_pos != currentElement.GetPosition().y:
     #                        bElementsMoved = True
-    #                        print "<mluc> moving",list[index],"from",currentElement.GetPosition().y,"to",new_pos
+                            print "<mluc> moving",elementName,"from",currentElement.GetPosition().y,"to",new_pos
                             #reposition element as it overlaps the one above
                             currentElement.SetPosition(wx.Point(currentElement.GetPosition().x,new_pos))
-    #                        print "<mluc> moved",list[index],"to",currentElement.GetPosition().y
-                            bElementMoved = True
+                            print "<mluc> moved",elementName,"to",currentElement.GetPosition().y
                     prevElement = currentElement
         except:
             print_exc()
@@ -979,7 +981,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 #                self.item = name
 #            else:
 #                print "<mluc> can't switch, one of the panel is None or the same panel"
-
+#                self.currentPanel.Layout()
+#                self.currentPanel.SetAutoLayout(1)
+#                self.hSizer.Layout()
                 print "<mluc> switch from %s[%s] to %s[%s]" % (panel1.GetName(), panel1.GetParent().GetName(), panel2.GetName(), panel2.GetParent().GetName())
         else:
             print 'standardDetails: Tabs for this mode (%s) not yet implemented' % self.mode
@@ -1008,17 +1012,14 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         # remove info tab panel
         sizer.Detach(oldpanel)
         oldpanel.Hide()
-        print "<mluc> found sizer equal to hSizer?",(sizer==self.hSizer)
+#        print "<mluc> found sizer equal to hSizer?",(sizer==self.hSizer)
         # add files tab panel
-        sizer.Insert(index, newpanel, 0, wx.ALL|wx.EXPAND, 0)
+        newpanel.SetAutoLayout(1)
+        newpanel.Layout()
         if not newpanel.IsShown():
             newpanel.Show()
-#        newpanel.Layout()
-        self.currentPanel.Layout()
-        self.currentPanel.SetAutoLayout(1)
-        #wx.CallAfter(self.hSizer.Layout)
+        sizer.Insert(index, newpanel, 0, wx.ALL|wx.EXPAND, 0)
         sizer.Layout()
-#        newpanel.GetParent().Refresh()
         
     def getAlternativeTabPanel(self, name, parent=None):
         "Load a tabPanel that was not loaded as default"

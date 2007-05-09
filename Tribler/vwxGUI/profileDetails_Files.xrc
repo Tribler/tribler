@@ -15,7 +15,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>0</border>
             <option>0</option>
-            <object class="wxPanel" name="black_top_left" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="bgPanel" name="black_top_left">
               <pos>3,3</pos>
               <size>10,21</size>
             </object>
@@ -53,7 +53,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>0</border>
             <option>0</option>
-            <object class="wxPanel" name="black_top_right" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="bgPanel" name="black_top_right">
               <pos>275,3</pos>
               <size>10,21</size>
             </object>
@@ -84,7 +84,7 @@
                 <label>So far, you have discovered 122 files. 
 </label>
                 <pos>6,20</pos>
-                <size>284,33</size>
+                <size>284,-1</size>
                 <font>
                   <size>8</size>
                   <family>modern</family>
@@ -123,7 +123,7 @@
 
 You have set your maximum on 2000 files. Set it higher to discover more files. </label>
                 <pos>6,77</pos>
-                <size>284,63</size>
+                <size>284,-1</size>
                 <font>
                   <size>8</size>
                   <family>modern</family>
@@ -138,7 +138,7 @@ You have set your maximum on 2000 files. Set it higher to discover more files. <
               <flag>wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
-              <object class="wxPanel" name="takeMeThere0" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+              <object class="tribler_topButton" name="takeMeThere0">
                 <pos>6,140</pos>
                 <size>120,21</size>
               </object>
@@ -150,7 +150,7 @@ You have set your maximum on 2000 files. Set it higher to discover more files. <
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="wxPanel" name="white_bottom" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+        <object class="bgPanel" name="white_bottom">
           <pos>3,475</pos>
           <size>300,5</size>
         </object>
