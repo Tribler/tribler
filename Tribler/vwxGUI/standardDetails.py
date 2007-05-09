@@ -91,9 +91,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                             'personsTab_advanced': ['lastExchangeField', 'noExchangeField', 'timesConnectedField','addAsFriend','similarityValueField'],
                             'libraryTab_files': [ 'download', 'includedFiles'],
                             'profileDetails_Quality': ['descriptionField0','howToImprove','descriptionField1'],
-                            'profileDetails_Files': ['descriptionField0','descriptionField1','takeMeThere0'],
+                            'profileDetails_Files': ['descriptionField0','howToImprove','descriptionField1','takeMeThere0'],
                             'profileDetails_Persons': ['descriptionField0','descriptionField1','takeMeThere0'],
-                            'profileDetails_Download': ['descriptionField','descriptionField0','descriptionField1','descriptionField2','descriptionField3','descriptionField4','descriptionField5','takeMeThere0','takeMeThere1'],
+                            'profileDetails_Download': ['descriptionField','Desc0','descriptionField0','howToImprove0','descriptionField1','takeMeThere0','Desc1','descriptionField2','howToImprove1','descriptionField3','takeMeThere1','Desc2','descriptionField4','howToImprove2','descriptionField5'],
                             'profileDetails_Presence': ['descriptionField','descriptionField0','descriptionField1','descriptionField2','descriptionField3','descriptionField4','descriptionField5', 'takeMeThere0']}
             
         self.statdlElements = ['st28c','st30c','download1','percent1','download2','percent2','download3','percent3','download4','percent4']
@@ -742,19 +742,19 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 list = self.tabElements[tab]
 #            print "<mluc> there are",len(list),"elements waiting to be moved"
             #check to see it it's worth trying to reposition elements
-            if len(list)>1:
-                prevElement = self.getGuiObj(list[0], tab)
+            if len(list)>0:
+                prevElement = None
 #                print "<mluc> first element",list[0],"is at",prevElement.GetPosition().y,"and has height",prevElement.GetSize().height
-                for index in range(1,len(list)):
-                    currentElement = self.getGuiObj(list[index], tab)
-                    if isinstance(prevElement,wx.StaticText):
-                        style = prevElement.GetWindowStyle()
-                        print "<mluc> element",list[index],"has style",style
+                for elementName in list:
+                    currentElement = self.getGuiObj(elementName, tab)
+                    if isinstance(currentElement,wx.StaticText):
+                        style = currentElement.GetWindowStyle()
+                        print "<mluc> element",elementName,"has style",style
                         if (style & wx.ST_NO_AUTORESIZE)>0 :
                             #remove the no autoresize flag
                             style = style ^ wx.ST_NO_AUTORESIZE
-                            prevElement.SetWindowStyle(style)
-                            print "<mluc> element",list[index],"changed style to",style
+                            currentElement.SetWindowStyle(style)
+                            print "<mluc> element",elementName,"changed style to",style
 #        if sys.platform == 'win32':
 #            ofList.SetWindowStyleFlag(wx.LC_REPORT|wx.NO_BORDER|wx.LC_NO_HEADER|wx.LC_SINGLE_SEL) #it doesn't work
 #        else:
@@ -762,19 +762,19 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 #            ofList.SetSingleStyle(wx.LC_REPORT)
 #            ofList.SetSingleStyle(wx.LC_NO_HEADER)
 #            ofList.SetSingleStyle(wx.LC_SINGLE_SEL)
-#                        if prevElement.
-                        prevElement.Wrap(284)
-                    prevPos = prevElement.GetPosition().y
-                    prevHeight = prevElement.GetSize().height
-                    new_pos = prevPos + prevHeight + VERTICAL_SPACE
-#                    print "<mluc> element",list[index],"is at",currentElement.GetPosition().y,"and has height",currentElement.GetSize().height
-                    if new_pos != currentElement.GetPosition().y:
-#                        bElementsMoved = True
-#                        print "<mluc> moving",list[index],"from",currentElement.GetPosition().y,"to",new_pos
-                        #reposition element as it overlaps the one above
-                        currentElement.SetPosition(wx.Point(currentElement.GetPosition().x,new_pos))
-#                        print "<mluc> moved",list[index],"to",currentElement.GetPosition().y
-                        bElementMoved = True
+                        currentElement.Wrap(284)
+                    if prevElement is not None:
+                        prevPos = prevElement.GetPosition().y
+                        prevHeight = prevElement.GetSize().height
+                        new_pos = prevPos + prevHeight + VERTICAL_SPACE
+    #                    print "<mluc> element",list[index],"is at",currentElement.GetPosition().y,"and has height",currentElement.GetSize().height
+                        if new_pos != currentElement.GetPosition().y:
+    #                        bElementsMoved = True
+    #                        print "<mluc> moving",list[index],"from",currentElement.GetPosition().y,"to",new_pos
+                            #reposition element as it overlaps the one above
+                            currentElement.SetPosition(wx.Point(currentElement.GetPosition().x,new_pos))
+    #                        print "<mluc> moved",list[index],"to",currentElement.GetPosition().y
+                            bElementMoved = True
                     prevElement = currentElement
         except:
             print_exc()
