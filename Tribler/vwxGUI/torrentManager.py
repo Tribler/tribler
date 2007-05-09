@@ -212,9 +212,9 @@ class TorrentDataManager:
             return
         
         # EventComing up, to let the detailPanel update already
-        if b:
+        if b:    # add to my pref
             old_torrent['eventComingUp'] = 'downloading'
-        else:
+        else:    # remove from my pref
             old_torrent['eventComingUp'] = 'notDownloading'
         
         self.notifyView(old_torrent, 'delete')
@@ -227,6 +227,13 @@ class TorrentDataManager:
                 del old_torrent['myDownloadHistory']
             
         self.notifyView(old_torrent, 'add')
+        
+        if b:    # update buddycast after view was updated
+            #self.utility.buddycast.addMyPref(infohash)    # will be called somewhere
+            pass
+        else:
+            self.utility.buddycast.delMyPref(infohash)
+
                 
     def addNewPreference(self, infohash): 
         if self.info_dict.has_key(infohash):

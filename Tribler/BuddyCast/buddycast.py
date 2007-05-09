@@ -361,6 +361,9 @@ class BuddyCastFactory:
         if self.registered:
             self.data_handler.addMyPref(torrent)
         
+    def delMyPref(self, torrent):
+        if self.registered:
+            self.data_handler.delMyPref(torrent)
     
 class BuddyCastCore:
     def __init__(self, secure_overlay, launchmany, data_handler, 
@@ -1541,7 +1544,16 @@ class DataHandler:
             torrent_hash = hash(torrent)
             insort(self.myprefhash, torrent_hash)
             self.updateOwners(torrent)
-            self.rawserver.add_task(self.updateAllSim, 7)
+            self.rawserver.add_task(self.updateAllSim, 5)
+            self.total_pref_changed += self.update_i2i_threshold
+            
+    def delMyPref(self, torrent):
+        if torrent in self.mypreflist:
+            self.mypreflist.remove(torrent)
+            torrent_hash = hash(torrent)
+            self.myprefhash.remove(torrent_hash)
+            self.owners.pop(torrent_hash)
+            self.rawserver.add_task(self.updateAllSim, 10)
             self.total_pref_changed += self.update_i2i_threshold
 
     def updateOwners(self, torrent):
