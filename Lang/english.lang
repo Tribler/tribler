@@ -1139,10 +1139,10 @@ profileDetails_Quality_descriptionz_onlyword = " only"
 profileDetails_Quality_improve = "Download more files to increase the quality of Tribler recommendations."
 # --- Discoverd Files
 profileDetails_Files_description = "So far, you have discovered %d files."
-profileDetails_Files_improve = "Stay online longer to discover more files. \n\nYou have set your maximum on *** files. If you have reached this limit please set it higher."
+profileDetails_Files_improve = 'Stay online longer to discover more files. \n\nYou have set your maximum on *** files. If you have reached this limit please set it higher.'
 # --- Discoverd Persons
 profileDetails_Persons_description = "So far, you have discovered %d people."
-profileDetails_Persons_improve = "Stay online longer and you will discover more people. \n\nYou have set your maximum to *** people. Set it higher to discover more people." 
+profileDetails_Persons_improve = 'Stay online longer and you will discover more people. \n\nYou have set your maximum to *** people. Set it higher to discover more people.'
 # --- Optimal Download Speed
 profileDetails_Download_info = "You are not using your download speed optimally. To increase, follow the instructions."
 profileDetails_Download_UpSpeed = "Your upload speed is set to %d KB/s. Limiting your upload speed also limits your download speed."

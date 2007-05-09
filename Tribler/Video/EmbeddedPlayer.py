@@ -91,8 +91,9 @@ class VideoFrame(wx.Frame):
         if not self.showingvideo:
             self.showingvideo = True
             self.Show()
-            self.Raise()
-            self.SetFocus()
+            
+        self.Raise()
+        self.SetFocus()
 
         self.item = VideoItem(url)
         self.videopanel.SetItem(self.item,play=play,progressinf=progressinf)

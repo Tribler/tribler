@@ -659,7 +659,9 @@ def is_movie(filename,enc=False):
 
 
 def find_video_on_disk(ABCTorrentTemp,enc=False):
-    """ Returns the paths of the video files found on the local disk """
+    """ Returns four tuple [index,printname,bitrate,filenameasondisk] of the video files 
+    found on the local disk 
+    """
     # TODO: let user select if multiple
     
     metainfo = ABCTorrentTemp.metainfo

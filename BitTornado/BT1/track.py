@@ -369,7 +369,7 @@ class Tracker:
         if self.aggregate_password is not None:
             url += '&password='+self.aggregate_password
         rq = Thread(target = self._aggregate_senddata, args = [url])
-        rq.setDaemon(False)
+        rq.setDaemon(True)
         rq.start()
 
     def _aggregate_senddata(self, url):     # just send, don't attempt to error check,

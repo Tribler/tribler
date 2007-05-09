@@ -17,7 +17,7 @@ class ManualChecking(Thread):
     def run(self):
         for torrent in self.check_list:
             t = SingleManualChecking(torrent)
-#            t.setDaemon(True)
+            t.setDaemon(True)
             t.start()
             sleep(1)
             

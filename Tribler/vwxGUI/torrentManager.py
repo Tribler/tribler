@@ -288,6 +288,8 @@ class TorrentDataManager:
         if len(self.searchkeywords) == 0:
             return hits
         for torrent in self.data:
+            if torrent.has_key('myDownloadHistory'):
+                continue
             low = torrent['content_name'].lower()
             for wantkw in self.searchkeywords:
                 # only search in alive torrents

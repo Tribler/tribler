@@ -8,7 +8,9 @@ from Tribler.vwxGUI.GuiUtility import GUIUtility
 #from Tribler.vwxGUI.TriblerProgressbar import TriblerProgressbar
 from Tribler.vwxGUI.filesItemPanel import ThumbnailViewer
 #from Dialogs.abcdetailframe import ABCDetailFrame
-from Tribler.Video.VideoPlayer import VideoPlayer
+from Tribler.Video.__init__ import stat
+from Tribler.Video.VideoPlayer import VideoPlayer,find_video_on_disk
+
 from Tribler.Video.Progress import ProgressBar
 from Tribler.unicode import *
 from tribler_topButton import *
@@ -221,7 +223,8 @@ class LibraryItemPanel(wx.Panel):
             switchable = False
             self.playable = False
             havedigest = None
-            showBoostAndPlayFast = False
+            showBoost = False
+            showPlayFast = False            
             showPlayButton = False
             statustxt = abctorrent.status.getStatusText()
             active = abctorrent.status.isActive(pause = False)
@@ -232,7 +235,9 @@ class LibraryItemPanel(wx.Panel):
                            self.utility.lang.get('waiting')]
             
             if not (statustxt in initstates):
-                showBoostAndPlayFast = active and (progress < 100.0)
+                showBoost = active and (progress < 100.0)
+                if showBoost and len(find_video_on_disk(abctorrent,stat(abctorrent))) > 0:
+                    showPlayFast = True
                 
                 if abctorrent.get_on_demand_download():
                     self.vodMode = True
@@ -264,10 +269,13 @@ class LibraryItemPanel(wx.Panel):
             
             self.playerPlay.setEnabled(showPlayButton or self.playable)
             self.playerPlay.setToggled(self.playable)
+            
+            self.playFast.setEnabled(showPlayFast)
             self.playFast.setToggled(not switchable)
-            self.boost.setEnabled(showBoostAndPlayFast)
+
+            self.boost.setEnabled(showBoost)
             self.boost.setToggled(self.is_boosted())
-            self.playFast.setEnabled(showBoostAndPlayFast)
+            
             self.pause.setToggled(not active)
                         
                 
