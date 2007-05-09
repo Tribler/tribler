@@ -205,7 +205,9 @@ def friendly_time(old_time):
             return old_time
         else:
             return '?'
-    if diff < 1:
+    if diff < 0:
+        return '?'
+    elif diff < 2:
         return str(diff) + " sec. ago"
     elif diff < 60:
         return str(diff) + " secs. ago"

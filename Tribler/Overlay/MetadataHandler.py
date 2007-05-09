@@ -62,7 +62,7 @@ class MetadataHandler:
         """
 
         if DEBUG:
-            print >> sys.stderr, "metadata: checking_upload_queue", len(self.upload_queue), self.check_interval, "now:", ctime(time()), "next check:", ctime(self.next_upload_time)
+            print >> sys.stderr, "metadata: checking_upload_queue, length:", len(self.upload_queue), "now:", ctime(time()), "next check:", ctime(self.next_upload_time)
         if int(time()) >= self.next_upload_time and len(self.upload_queue) > 0:
             task = self.upload_queue.pop(0)
             permid = task['permid']
