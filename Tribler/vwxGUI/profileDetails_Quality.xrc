@@ -102,7 +102,7 @@
               <object class="wxStaticText" name="howToImprove">
                 <style>wxST_NO_AUTORESIZE</style>
                 <label>How to improve</label>
-                <pos>6,63</pos>
+                <pos>6,80</pos>
                 <size>284,18</size>
                 <font>
                   <size>8</size>

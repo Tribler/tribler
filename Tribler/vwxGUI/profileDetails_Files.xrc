@@ -38,7 +38,7 @@
                   <option>0</option>
                   <object class="wxStaticText" name="titleField">
                     <style>wxST_NO_AUTORESIZE</style>
-                    <label>Discovered files that fit to your taste
+                    <label>Discovered files
 </label>
                     <pos>0,3</pos>
                     <size>280,18</size>
@@ -81,7 +81,6 @@
               <border>6</border>
               <option>0</option>
               <object class="wxStaticText" name="descriptionField0">
-                <style>wxST_NO_AUTORESIZE</style>
                 <label>So far, you have discovered 122 files. 
 </label>
                 <pos>6,20</pos>
@@ -120,7 +119,6 @@
               <border>6</border>
               <option>0</option>
               <object class="wxStaticText" name="descriptionField1">
-                <style>wxST_NO_AUTORESIZE</style>
                 <label>Stay online longer to discover more files.
 
 You have set your maximum on 2000 files. Set it higher to discover more files. </label>

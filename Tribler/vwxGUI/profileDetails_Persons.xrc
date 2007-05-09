@@ -38,7 +38,7 @@
                   <option>0</option>
                   <object class="wxStaticText" name="titleField">
                     <style>wxST_NO_AUTORESIZE</style>
-                    <label>Discovered persons similar to your taste
+                    <label>Discovered persons
 </label>
                     <pos>0,3</pos>
                     <size>280,18</size>
@@ -81,7 +81,6 @@
               <border>6</border>
               <option>0</option>
               <object class="wxStaticText" name="descriptionField0">
-                <style>wxST_NO_AUTORESIZE</style>
                 <label>You have discovered 153 persons. Stay online longer to discover more persons. 
 </label>
                 <pos>6,20</pos>
@@ -120,7 +119,6 @@
               <border>6</border>
               <option>0</option>
               <object class="wxStaticText" name="descriptionField1">
-                <style>wxST_NO_AUTORESIZE</style>
                 <label>Stay online longer and you will discover more persons.
 
 You have set your maximum to 2000 persons. Set it higher to discover more persons. 
@@ -143,7 +141,7 @@ You have set your maximum to 2000 persons. Set it higher to discover more person
               <border>6</border>
               <option>0</option>
               <object class="wxPanel" name="takeMeThere0" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                <pos>3,178</pos>
+                <pos>6,175</pos>
                 <size>120,21</size>
               </object>
             </object>

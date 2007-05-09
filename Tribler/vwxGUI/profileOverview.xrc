@@ -140,8 +140,8 @@
                 <option>0</option>
                 <object class="wxStaticText" name="myNameField">
                   <style>wxST_NO_AUTORESIZE</style>
-                  <label>Maarten</label>
-                  <pos>202,66</pos>
+                  <label>_</label>
+                  <pos>177,66</pos>
                   <size>169,23</size>
                   <font>
                     <size>11</size>

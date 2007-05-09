@@ -625,7 +625,7 @@ i_tipoComp=600051
 validator=
 s_name=myNameField
 i_index=-1
-i_left=202
+i_left=177
 i_top=66
 i_height=23
 i_width=169
@@ -690,7 +690,7 @@ IndexOfS=0
 [Windows9/i_width/Windows9]
 Theme=0
 [Windows9/i_propN]
-0=Maarten
+0=_
 [Windows9/sizerProp]
 0=1
 1=1
