@@ -1,0 +1,389 @@
+# $Id: AUTHORS 16773 2006-09-21 18:46:25Z hartman $
+# 
+# The format of this file was inspired by the Linux kernel CREDITS file.
+# Authors are listed alphabetically.
+# 
+# The fields are: name (N), email (E), web-address (W), CVS account login (C),
+# PGP key ID and fingerprint (P), description (D), and snail-mail address (S).
+
+N: Laurent Aimar
+E: fenrir_AT_via.ecp.fr
+C: fenrir
+D: input and decoders core improvements
+D: avi, asf/wmv/wma, mp4/mov, mp3, aac, wav demultiplexers
+D: MPEG-4, Div & OpenDivX and various decoders (ffmpeg)
+D: AAC decoder (libfaad2)
+D: cinepak, adpcm, araw, musepack decoders
+D: Subtile file parser.
+D: mms, ftp access
+D: Stream output
+D: VLM
+S: France
+
+N: Marc Ariberti
+E: marcari_AT_via.ecp.fr
+C: marcari
+D: communication with channel server
+D: YOPY port
+S: France
+
+N: Stephan Assmus
+E: stippi_AT_yellowbites.com
+C: stippi
+D: BeOS module fixes and enhancements
+S: Germany
+
+N: Olivier Aubert
+E: oaubert at lisi dot univ-lyon1 dot fr
+D: CORBA interface
+S: France
+
+N: Sigmund Augdal Helberg
+E: dnumgis_AT_videolan.org
+C: sigmunau
+D: lirc plugin
+D: aalib plugin
+D: Subtitles and freetype
+D: Hotkeys
+D: Shoutcast discovery module and b4s playlist parser
+D: wxWidgets preferences
+D: File-Info and metadata handling
+S: Norway
+
+N: Pierre Baillet
+E: oct_AT_zoy.org
+C: octplane
+D: SDL audio and video output
+S: France
+
+N: Gildas Bazin
+E: gbazin_AT_videolan.org
+C: gbazin
+D: Core improvements, decoders API
+D: Win32 port, win32 VCD/CDDA input and win32 ipv6 code
+D: DirectX audio/video output, win32 WaveOut audio output
+D: DirectShow input
+D: a52, dts, vorbis, speex, flac and theora decoders/packetizers
+D: mpeg1/2 video decoder (libmpeg2), bandlimited resampling
+D: Ogg and Raw DV demultiplexers
+D: Configuration file infrastructure
+D: wxWindows and http interfaces
+D: Pocket PC port
+S: France
+
+N: Rocky Bernstein
+E: rocky_AT_panix.com
+C: rocky
+D: Navigation-enabled VCD (via libvcdinfo) enhanced CDDA (via libcdio)
+D: SVCD/CVD subtitles
+S: USA
+
+N: Johan Bilien
+E: jobi_AT_via.ecp.fr
+C: jobi
+D: VCD input
+D: Satellite input
+D: libdvbpsi support
+S: France
+
+N: Stéphane Borel
+E: stef_AT_via.ecp.fr
+C: stef
+D: MPEG video decoder
+D: DVD input, IFO parsing, CSS decryption
+D: DVD navigation
+S: France
+
+N: Arnaud de Bossoreille de Ribou
+E: bozo_AT_via.ecp.fr
+C: bozo
+D: SDL video output
+S: France
+
+N: Filippo Carone 
+E: filippo[dontspam]_AT_carone.org
+D: Java bindings
+S: Italy
+
+N: Tony Castley
+E: tony_AT_castley.net
+C: tcastley
+D: BeOS interface, BeOS Video
+S: Australia
+
+N: Antoine Cellerier
+E: dionoea_AT_videolan.org
+C: dionoea
+D: Video Filters: mosaic, gradient and edge detection, magnify, rss
+D: Podcast demux
+D: HTTP interface pages
+S: France
+
+N: Renaud Dartus
+E: reno_AT_via.ecp.fr
+C: reno
+D: AC3 decoder
+S: France
+
+N: Cyril Deguet
+E: asmax_AT_via.ecp.fr
+C: asmax
+D: Audio output
+D: skins module (X11 port)
+D: skins2 module (core and X11 port)
+D: JACK audio output
+S: France
+
+N: Rémi Denis-Courmont
+E: rem#videolan.org
+C: courmisch
+D: SSL/TLS support (core, HTTP server, HTTP input)
+D: VOC files demultiplexer
+S: France
+
+N: Colin Delacroix
+E: colin_AT_zoy.org
+C: colin
+D: MacOS X sound support
+S: France
+
+N: Boris Dorès
+E: babal(at)via.ecp.fr
+C: babal
+D: Win32 network input
+D: Win32 interface
+D: Headphone channel mixer, Dolby Surround decoder
+D: Audio output core enhancements
+S: France
+
+N: Jean-Marc Dressler
+E: polux_AT_via.ecp.fr
+C: polux
+D: BeOS port
+D: MPEG video decoder
+S: France
+
+N: Henri Fallon
+E: henri_AT_via.ecp.fr
+C: henri
+D: ALSA audio output
+D: MPEG TS input
+D: Decoder modularization
+S: USA
+
+N: Andrew Flintham
+E: amf_AT_cus.org.uk
+D: text subtitler and font scripts
+S: United Kingdom
+
+N: Damien Fouilleul
+E: Damien.Fouilleul_AT_laposte.net
+C: Quovodis
+D: ActiveX control
+D: Safari/Firefox plugin for MacOS X
+S: Ireland
+
+N: Alexis Guillard
+E: alexis.guillard_AT_bt.com
+D: IPv6 support
+S: United Kingdom
+
+N: Gerald Hansink
+E: gerald.hansink_AT_ordina.nl
+D: Qt Embedded Video Output
+S: Netherlands
+
+N: Shane Harper
+E: shanegh_AT_optusnet.com.au
+D: SDL plugin fixes and enhancements
+D: XVideo video output
+D: Gnome and Gtk+ interface enhancements
+S: United Kingdom
+
+N: Derk-Jan Hartman
+E: hartman_AT_videolan.org
+C: hartman
+D: Mac OS X interface
+D: Dutch translation
+D: Directory input
+D: Mac OS X Video Output
+D: Mac OS X Audio Output
+D: Kasenna client support
+S: Netherlands
+
+N: Gaël Hendryckx
+E: jimmy_AT_via.ecp.fr
+C: jimmy
+D: IDCT and YUV transforms
+S: France
+
+N: Samuel Hocevar
+E: sam_AT_zoy.org
+C: sam
+D: playlist and modules system
+D: Gnome and Gtk+ interfaces
+D: Glide, fb, and caca video outputs
+D: Esound audio output
+D: DVD subtitles decoder
+D: Video output
+D: Mozilla plug-in
+S: France
+
+N: Eugenio Jarosiewicz
+E: ej0_AT_cise.ufl.edu
+C: ej
+D: MacOS X interface, and various fixes
+S: USA, Florida
+
+N: Jon Lech Johansen
+E: jon-vl_AT_nanocrew.net
+C: jlj
+D: PS input fixes
+D: Win32 DVD input port
+D: QNX RTOS plug-in
+D: MacOS X port
+D: norwegian translation
+D: MP4 DRMS support
+S: France
+
+N: Michel Kaempf
+E: maxx_AT_via.ecp.fr
+C: maxx
+D: audio output
+D: AC3 decoder
+D: MPEG audio decoder
+S: France
+
+N: Felix Kühne
+E: fkuehne_AT_users.sourceforge.net
+C: fkuehne
+D: MacOS X Interface (Wizard, structure, extended controls panel, bookmarks window)
+D: German translation
+S: Germany
+
+N: Simon Latapie
+E: garf_AT_via.ecp.fr
+C: garf
+D: contrast/HSB, and logo video filters
+D: HTTP interface
+D: VLM
+S: France
+
+N: Pascal Levesque
+E: pascal.levesque_AT_mindready.com
+D: QNX RTOS video output and audio output
+S: Canada, Québec
+
+N: Christophe Massiot
+E: massiot_AT_via.ecp.fr
+C: massiot
+D: decoder and input core functions
+D: audio output
+D: MPEG video decoder
+D: Many ports (Mac OS X, iPAQ, *BSD, Solaris...)
+D: DVB input
+D: mosaic
+D: TS muxer/demuxer improvements
+D: documentation
+S: France
+
+N: Loïc Minier
+E: lool_AT_via.ecp.fr
+C: lool
+D: Gtk/gnome enhancements
+D: xosd interface plug-in
+D: SLP
+S: France
+
+N: Florian G. Pflug
+E: fgp_AT_phlo.org
+C: fgp
+D: MacOS X port
+S: Austria
+
+N: Heiko Panther
+E: heiko.panther_AT_web.de
+D: Mac OS X audio device selection framework
+S: Germany
+
+N: Eric Petit
+E: titer_AT_videolan.org
+C: titer
+D: BeOS module fixes and enhancements
+D: Stream output
+D: Mac OS X OpenGL video output
+S: France
+
+N: Benjamin Pracht
+E: bigben+spam_AT_videolan.org
+C: bigben
+D: MacOS X Interface (playlist)
+D: documentation
+S: France / Germany
+
+N: Emmanuel Puig
+E: karibu_AT_videolan.org
+C: karibu
+D: skins module (core and win32 port)
+S: France
+
+N: Frédéric RUGET
+E: frederic.ruget_AT_free.fr
+D: Portaudio audio output
+S: France
+
+N: Jean-Paul Saman
+E: jp_dot_saman#videolan_dot_nl
+D: libmad plug-in
+D: iPAQ port
+D: PDA (Familiar Linux) interface 
+D: Dutch Translation
+D: DVB-S/C/T on v4l2 API
+D: HD1000 port 
+D: OSD menu
+D: Digital Video (Firewire/IEEE1394/I-Link)
+S: Netherlands
+
+N: Arnaud Schauly
+E: gitan_AT_via.ecp.fr
+C: gitan
+D: SAP module
+S: France
+
+N: Vincent Seguin
+E: seguin_AT_via.ecp.fr
+C: seguin
+D: core VLC structure
+D: interface and message queue
+D: video output
+D: YUV transforms
+D: X11 and GGI video outputs
+S: France
+
+N: Richard Shepherd
+E: richard_AT_rshepherd.demon.co.uk
+C: richards
+D: BeOS video output (BBitmap and Overlay)
+S: United Kingdom
+
+N: Clément Stenac
+E: zorglub_AT_videolan.org
+C: zorglub
+D: Playlist core and demuxers, SAP parser
+D: wxWidgets and joystick interfaces
+D: Announce system
+D: visualisation, volume normalizer
+S: France
+
+N: Peter Surda
+E: shurdeek_AT_panorama.sth.ac.at
+D: rc plugin for VLC control through /dev/stdin
+S: Austria
+
+N: Olivier Teulière
+E: ipkiss_AT_via.ecp.fr
+C: ipkiss
+D: Win32 interface
+D: skins module (core and win32 port)
+D: skins2 module (core and win32 port)
+S: France

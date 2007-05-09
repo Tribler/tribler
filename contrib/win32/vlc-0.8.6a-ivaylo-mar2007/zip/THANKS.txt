@@ -1,0 +1,162 @@
+$Id: THANKS 18225 2006-12-03 15:53:10Z xtophe $
+
+VLC makes extensive use of the following persons' code:
+
+Aaron Holtzman <aholtzma at ess.engr.uvic.ca> - AC3 decoder, MPEG video decoder
+Michel Lespinasse <walken at zoy.org> - AC3 decoder, MPEG audio and video decoders
+
+
+The VideoLAN team would like to thank the following contributors:
+
+Alex Antropoff <alant at transtelecom dot md> - RFC3016 (LATM) RTP packetizer extension
+Alexander Didebulidze <alexander.didebulidze at stusta dot mhn dot de> - Georgian localization
+Alexander Gall <gall at switch dot ch> - Solaris fixes and CDDB fixes
+Alex Izvorski <aizvorski at gmail dot com> - some more x264 options
+André de Barros Martins Ribeiro <andrerib at ajato.com.br> - Brazilian portuguese localization
+Andre Pang <adre.pang at csiro dot au> - Annodex support
+Andres Krapf <dae at via.ecp.fr> - FreeBSD port and tests, KDE interface
+Andrey Brilevskiy <director at macwest.ru> - Russian translation
+Andrea Guzzo <xant at xant dot net> - Digital cameras support (dc1394)
+Andy Lindsay <andy_vl at ananam.com> - fixes in the TS demux
+Arkadiusz Lipiec <A.Lipiec at elka.pw.edu.pl> - Polish translation
+Arkadiusz Miskiewicz <misiek at pld.ORG.PL> - autoconf and Makefile patches
+Arnaud Gomes-do-Vale <arnaud at carrosse.frmug.org> - autoconf patches
+Arwed v. Merkatz <v.merkatz at gmx dot net> - Gamma correction for adjust filter
+Aurelien - Patch for modules/stream_output/rtp.c proper test for NULL
+Basil Achermann <vlc at acherma dot com> - Patch to handle esc and space key events from VLCControl (OSX)
+Barak Ori <barakori at gmail dot com> - Bidi fixes
+Benjamin Mironer <bmironer at noos.fr> - Mac OS X fixes
+Benoit Steiner <benny at via.ecp.fr> - MPEG system input, network input
+Bill Eldridge <bill at rfa.org> - documentation
+Bob Maguire <maguirer at rjmaguire dot com> - addition of some controls to the OSX interface
+Brian Robb <vascy at hotmail dot com> - win32 CD/DVD drive detection in wx, bug fixes
+Brieuc Jeunhomme <bbp at via.ecp.fr> - bug fixes
+Bruno Vella <allevb at tin.it> - Italian localization
+Carlo Calabrò <murray at via.ecp.fr> - Italian localization
+Carsten Gottbehüt <gottbehuet at active-elements dot de> - v4l hotplug fix
+Chris Clepper - OpenGL fix
+Christian Henz - libupnp service discovery plugin, CyberLink UPnP fixes
+Christof Baumgaertner - dbox web intf
+Christophe Mutricy <xtophe at nxtelevision dot com> - many fixes (preferences, M3U, ...)
+Christopher Johnson <cjohnson at mint.net> - Qt fix in vlc.spec
+Colin Simmonds <colin_simmonds at Mac.lover.org> - compile fix for Mac OS X
+Damian Ivereigh <damian at cisco.com> - ac3dec uninitialized data structure fix
+Damien Fouilleul <damien.fouilleul at laposte.net> - DirectShow input improvements
+Daniel Fischer <dan at subsignal dot org> - Shoutcast output support
+Daniel Stränger <vlc at schmaller d0t de> - M3U, xtag and playlist improvements. Meta information core fixes. XSPF playlist support
+David Kennedy <dkennedy at tinytoad.com> - X11 fullscreen patch
+Daniel Dreibrodt, aka aLtgLasS <daniel d.t dreibrodt -_AT_t- gmx d0t de> - VLC 0.8.5 default skin
+Daniel Nylander <info_AT_danielnylander at se> - Swedish translation
+David Weber <david_weber at gmx.de> - Mac OS X interface design & graphics (v0.5.0)
+Davor Orel <syntheticamac at yahoo.it> - Mac OS X icons
+Dennis van Amerongen <Dennis dot vanAmerongen at nob dot nl> - x264 options unification
+Dennis Lou <dlou99 at yahoo dot com> - ATSC support in the DVB module
+Diego Petteno <flameeyes at gentoo dot org> - remove usage of internal ffmpeg symbols
+DirektX <direktx at freemail.hu> - Hungarian translation
+Dugal Harris - DirectShow fixes and MJPEG patches
+Emmanuel Blindauer <manu at agat.net> - aRts audio output
+Enrico Gueli <e_gueli at yahoo.it> - Brightness threshold in adjust video filter
+Espen Skoglund <esk at ira.uka.de> - FreeBSD autoconf and Makefile patches
+Ethan C. Baldridge <BaldridgeE at cadmus.com> - directory browsing code
+Eurodata Computer Club <retron.info> - VLC icon design (v0.8.4)
+François Seingier <francois.seingier at club-internet.fr> - TTL setting in the wx stream output dialog
+Frank Chao <frank0624 at gmail.com> - Chinese Traditional translation
+Fumio Nakayama <endymion at ca2.so-net.ne.jp> - Japanese translation
+Gabor Kelemen <kelemeng at gnome.hu> - Hungarian translation
+Georgi Chorbadzhiyski <gf at unixsol dot org> - HTTP access error handling fix
+Greg Farrell <greg at gregfarell dot org> - rc interface "enqueue" command
+Gregory Hazel <ghazel at gmail dot com> - wxWidgets fixes and improvements
+Goetz Waschk <waschk at informatik.uni-rostock dot de> - Mandrake packages
+Haakon Meland Eriksen - Norwegian translation
+Han HoJoong <0demon0 at paran dot com> - Korean translation
+Hans-Peter Jansen <hpj at urpla.net> - patch for module options handling
+Ilkka Ollakka - SDP bitrate patch
+Jan Gerber <j at v2v dot org> - patch theora decoding aspect ratio
+Jan Van Boghout <vlc at macrabbit.com> - iTunes like slider for OSX intf
+Javier Varela <tonxabar at hotmail.com> - Spanish translation
+Jean-Alexis Montignies <ja at sente.ch> - coreaudio multiple streams fix
+Jean-Baptiste le Stang <jp.lestand at lestang.org> - Equalizer-GUI-fixes (OSX)
+Jean-Philippe Grimaldi <jeanphi at via.ecp.fr> - bug fixes
+Jean-Pierre Kuypers <Kuypers at sri.ucl.ac.be> - French translation
+Jeffrey Baker <jwbaker at acm.org> - port of the ALSA plugin to the ALSA 1.0 API
+Jeroen Massar <jeroen at unfix dot org> - IPv6 hostname resolution fix
+Jérôme Guilbaud - Update of the WinAmp 5 VLC skin
+Joel Arvidsson <dogai at privat.utfors.se> - Swedish translation
+Joeri van Dooren <joeri at van.dooren.be> - OS X icon (v0.4.0)
+Johen Michael Zorko <zorko at att.net> - fix for delay issues in udp sout
+John Paul Lorenti <jpl31 at columbia.edu> - ALSA device selection patch
+Jonas Larsen <jonas at vrt.dk> - Danish translation
+Julien Blache <jb at technologeek.org> - disc ejection code
+Kang Jeong-Hee <keizie 4t gmail d0t com> - Korean l10n
+kty0ne - WinAmp 5 skin for VLC
+Kevin H. Patterson <kevpatt at khptech dot com> - Theora framesize calculation patch by Kevin H. Patterson (kevpatt at khptech dot com
+Laurent Jonqueres <laurent_jonqueres at yahoo.fr> - Occitan localization
+Laurent Mutricy <laurent.mutricy at ecl2005 dot ec-lyon dot fr> - HTTP interface fixes
+Lorena Gomes - Catalan translation
+Mahrazi Mohd Kamal <mahrazi at gmail.com> - Malay Translation
+Marc Nolette <nolette at videotron.ca> - PVR support in DirectShow input
+Marco Munderloh <Marco.Munderloh at web.de> - HTTP fix for Win32 to URL filenames
+Marián Hikaník <podnety _at_ mojepreklady _dot_ net> - Slovak localisation
+Mark Gritter <mgritter at kealia.com> - fix for netlist packet leak in demuxPSI
+Markus Kern <markus-kern at gmx dot net> - video output window fixes (win32)
+Markus Kuespert <ltlBeBoy at beosmail.com> - BeOS CSS support
+Matej Urbančič <matej.urban at gmail.com> - Slovenian translation
+Mathias C. Berens | welcome-soft <berens at welcome-soft.de> - German translation
+Mathias Kretschmer <mathias at research.att.com> - IP Multicast support
+Mats Rojestal <mats.rojestal at bredband dot net> - compilation fixes for Solaris 9
+Matthieu Lochegnies <lochegm1 at cti.ecp.fr> - MPEG audio emphasis fix
+Max Rudberg <max_08 at mac.com> - Mac OS X controller art (v0.7.0)
+Michael Mondragon <mammon at lokmail.net> - ncurses compilation fix
+Mickael Hoerdt <hoerdt at clarinet.u-strasbg.fr> - IPv6 SSM multicast patch
+Mike Schrag <mschrag at pobox dot com> - directx device selection
+Michel Lanners <mlan at cpu.lu> - fixed typos and AltiVec detection
+Miroslav Oujeský <oujesky at mail dot muni dot cz> - Czech translation
+Moritz Bunkus <moritz at bunkus dot org> - Matroska patches
+Morten Brix Pedersen <morten at wtf.dk> - Danish translation
+Nilmoni Deb <ndeb at ece.cmu.edu> - autoconf and Makefile fixes
+Olivier Aubert <oaubert at bat710.univ-lyon1.fr> - clone list patch
+Olivier Pomel <pomel at via.ecp.fr> - original VLC code
+Ondrej Kuda aka Albert <kuda at natur dot cuni dot cz> - HTTP interface tips and fixes
+Øyvind Kolbu <oyvindk at world-online.no> - FreeBSD patches
+Patrick Horn <patrickd0thorn at mindspring d0t com> - DirectShow patch
+Paul Mackerras <paulus at linuxcare.com.au> - AltiVec IDCT and motion
+Pavlov Konstantin “thresh” - several Linux build system fixes
+Petr Vacek - FTP cleartext authentication
+Philippe Van Hecke <philippe at belnet dot be> - SAP header hash patch
+Pierre Marc Dumuid <pierre.dumuid at adelaide dot edu dot au> - Playlist patches
+Pittayakom Sa-ingtong <develop5 at datawiz dot co dot th> - Thaï localisation
+Régis Duchesne <regis at via.ecp.fr> - original VLC code
+Remco Poortinga <poortinga at telin.nl> - IPv6 multicast patch
+Rene Gollent <rgollent at u.arizona.edu> - BeOS interface fix
+Roine Gustafsson <roine at popstar.com> - spudec bug fixes
+Rudolf Cornelissen <rag.cornelissen at inter.nl.net> - BeOS fixes
+Scott Caudle <dorkmanzcot at gmail dot com> - Visualization, WX 
+improvements
+Sebastien Chaumat <Sebastien.Chaumat at ens-lyon.fr> - YOPY port tests
+Simon Damkjær Andersen <simondamkjaer at gmail.com> - playmode icons and the entire Fullscreen Panel design for the OSX GUI (v0.8.6)
+Steve Lhomme <steve dot lhomme at free dot fr> - MSVC fixes and Matroska enhancements
+Steve Brown <sbrown at cortland.com> - fix for optional PES size bug
+Steven M. Schultz <sms at TO.GD-ES.COM> - BSD/OS port
+Steven Sheehy - wxWidgets interface fix
+Tadashi Jokagi <elf2000 at users.sourceforge dot net> - Japanese translation
+Tim 'O Callaghan <tim.ocallaghan at limestudios dot com> - pvr input cleaning patch
+Thomas Graf <tgraf at europe.com> - gettext support, German translation
+Thomas L. Wood <twood at lucent.com> - fixed a bug in QuantMatrixExtension
+Tong Ka Man <kmtong at cwbase dot com> - playlist_Clear addition
+Udo Richter <udo underscore richter at gmx dot de> - Trancode padding / cropping
+Valek Filippov <frob at df.ru> - Russian translation
+Vicente Jimenez Aguilar <vice at v1ce.net> - Spanish translation
+Vincent van den Heuvel <heuvel_AT_mac.com> - OSX about window artwork (v0.8.4)
+Vincenzo Reale <smart2128 at baslug dot org> - Italian localisation
+Vitalijus Slavinskas <Vitalijus.Slavinskas at stud.ktu dot lt> - nsv patches
+Vitaly V. Bursov <vitalyvb at ukr dot net>
+Vladimir Chernyshov - MMX motion optimizations
+Wade Majors <guru at startrek.com> - BeOS icon integration, debugging and fixes
+Wallace Wadge <wwadge at gmail.com> - multiple programs TS mux
+Watanabe Go <go at dsl.gr.jp> - fix for non-ASCII filenames
+Wei Mingzhi <whistler_wmz at users.sourceforge.net> - Simplied Chinese translation
+Xavier Maillard <zedek at fxgsproject.org> - audio converters
+Xavier Marchesini <xav at alarue.net> - Win32 fixes
+Xènia Albà Cantero <xenia_alba at hotmail.com> - Catalan translation
+Yves Duret <yves at zarb.org> - RPM packages
+Ye zhang <yzhang90003 _at_ gmail dot com> - Fix for VLM RTSP concurent LEAVE make VLC crash

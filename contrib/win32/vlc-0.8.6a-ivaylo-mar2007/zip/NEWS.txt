@@ -1,0 +1,1271 @@
+$Id: NEWS 18491 2007-01-03 18:23:24Z fkuehne $
+
+Changes between 0.8.6 and 0.8.6a:
+--------------------------------
+
+CDDA / VCDX plugins:
+ * Security updates (VideoLAN-SA-0701)
+
+Mac OS X Interface:
+ * Fullscreen controller improvements
+
+
+Changes between 0.8.5 and 0.8.6:
+--------------------------------
+
+Playlist:
+ * Shoutcast TV listings support
+
+Input:
+ * Support for RTSP authentication
+ * Support for adding subtitles on the fly
+ * Fixed MPEG-PS duration calculation
+ * ATSC support for DVB input
+ * Partial reading support for DVR-ms recordings
+ * Partial reading support for MXF and GXF fileformat
+ * Improved support for Flash Video files
+
+Decoders:
+ * Native WMV9/VC-1 support
+ * WMA Speech support (through binary codecs)
+ * VP5/VP6 - Flash Video support (not VP61)
+ * The True Audio Lossless codec support
+ * Matroska WavPack support
+ * Improved H.264 support (interlaced, speed improvements etc but no PAFF)
+ * Fixed a problem with MPEG2 field pictures
+ * Fixed swapped colors on DVB subtitles
+ 
+Video output:
+ * Additional OpenGL effects (cylinder, torus, sphere, ...)
+ * Experimental Direct3D 9 video output (win32). Best served on Vista :)
+ * Improved libcaca support
+
+Interfaces:
+ * All
+   * New hotkeys for crop and zoom
+   * Support for snapshots from the HTTP interface
+ * Windows
+   * Systray support in skins
+ * OS X
+   * Support for Apple Remote control
+   * Fullscreen controller panel (artwork by Simon Damkjær Andersen)
+   * New playmode buttons (artwork by Simon Damkjær Andersen)
+   * right/ctrl-click menu in video outputs
+   * Main Menu uses autohide when playing videos in fullscreen mode
+ * Linux
+   * Notifications using notification-daemon
+
+Windows port:
+ * Support for Unicode filenames (Windows NT and above)
+   Windows 9x/ME users: 
+     - Please note that these versions of Windows are not officially supported
+     - Unicode support for Windows 9x/ME applications is available through the
+       Microsoft Layer for Unicode available from the following location:
+       http://www.microsoft.com.nsatc.net/globaldev/handson/dev/mslu_announce.mspx
+       Download the MSLU package (unicows) and extract the content into the folder
+       C:\Windows\System
+ * Fixed IPv6 support on the client side
+ * Fixed disable screensaver (Direct3D and DirectX video output)
+
+Localization:
+ * Add Czech
+ * Add Slovak
+ * Add Malay
+ * Add Slovenian
+
+Developers:
+ * Updates to the libvlc API
+ * Fixes for the mozilla and activeX plugins
+
+
+Changes between 0.8.4a and 0.8.5:
+----------------------------------
+
+Core support:
+ * Statistics collection (bitrates, packets, connections, ...)
+ * Support for downloading updates
+ * Updated strings
+
+Input:
+ * Initial support for RTSP-over-HTTP (to allow NAT traversal)
+ * Linux DV (Digital Video - Firewire) input
+ * Improvements to the Audio CD input
+     - Separate playlist entries for the tracks 
+     - Support for CDDB 
+ * Support for more DVB (satellite) encryption modules
+ * Improved subtitles encoding support
+ * Improved support for playing MP4 files from the Web
+
+Decoders:
+ * Cook (Real audio) support
+
+Playlist / Services discovery:
+ * XSPF playlist support
+ * Podcast support
+ * Updated Shoutcast to use new listing
+
+Audio output:
+ * New JACK audio output
+
+Video output:
+ * New video filters: 
+    - magnify: allows you to zoom on part of the image
+    - gradient and edge detection: "cartoon-like" effect
+    - bluescreen: overlay parts of a video transparently on another one
+ * Logo video filter: can now loop through multiple images
+ * RSS video filter: display feed images. Support for Atom feeds.
+ * Improvements to the subtitles rendering
+
+Stream output:
+ * Initial support for throttling users on VOD streams
+
+Interfaces:
+ * System to inform the user and request information 
+    - HTTP authentication
+    - Fatal errors
+    - ...
+ * wxWidgets
+    - VLM (VideoLAN Media Manager) control panel
+    - Improved media information panel (shows statistics, metadata, ...)
+    - Drag & Drop support in the playlist
+ * Skins2 
+    - New default skin
+    - Support for Winamp 2 skins
+    - Improved playlist handling
+    - Support for popup menus, animated bitmaps, equalizer, ...
+ * OS X
+    - Embedded Video output
+    - new Go-To-Specific-Time feature
+    - Video cropping and aspect ratio changing while playing
+    - Improved media information panel (shows statistics, metadata, ...)
+    - support for processing multiple items with the wizard in a single run
+    - option to save selections in the wizard for a session (default enabled)
+ * HTTP
+    - New default interface pages for VLC and VLM (including a mosaic wizard)
+    - A bunch of new RPN functions
+
+Windows Port:
+ * MSN messenger "Now playing" support
+
+OS X Port:
+ * Mac-Intel compatibility
+ * Enhanced support of various audio output devices 
+ * Growl "Now playing" support
+
+*Nix port:
+ * Ability to log to syslog
+ * Root wrapper to avoid running VLC as root
+
+Developers:
+ * New libvlc API (not finished yet)
+ * Java bindings
+ * A bit more automatic testing
+
+Changes between 0.8.4 and 0.8.4a:
+---------------------------------
+
+Audio output:
+ * Fix a52 over spdif in alsa
+ * SPDIF output available again in the Mac OS X Audio menu.
+
+Decoder:
+ * Add support for new BMP and Cook (RealAudio G2) decoders in ffmpeg
+ * Add support for some non-standard FOURCCs used for H.264/H.263
+
+Demux:
+ * Fix bug with some HE-AAC audio tracks
+
+Services Discovery:
+ * HAL fixes, should now work with new API
+ * SAP, fix 20 second freeze on windows
+ * UPnP fixes
+ * Avahi 0.6 support
+ 
+Interfaces:
+ * Mac OS X
+    - fixed encoding of H.264/H.263 content when using the wizard 
+
+Changes between 0.8.2 and 0.8.4:
+--------------------------------
+
+Core support:
+ * Internal strings handling is now UTF-8 based
+ * New OSD system
+
+Video output:
+ * Fixed problems with OpenGL output
+ * New --monitor-par (pixel aspect ratio) option
+ * Fixed display problems with HDTV-1080 format
+
+Input:
+ * Improved DVB support for satellite bands other than Ku-band
+ * IPv6 and Extended passive mode support for FTP
+ * IPv6 Source Specific Multicast support
+ * GnomeVFS input module
+ * Support for RTP packet reordering
+ * Fixed syntax for FTP URLs
+
+Decoders:
+ * Support for libSDL_image to import different image types
+ * Musepack decoder using libmpdec
+ * QDM2 audio support (needs ffmpeg from 19th Oct 2005 or later)
+
+Services discovery:
+ * UPnP service discovery (Linux only at the moment)
+ * Bonjour service discovery using avahi (Linux only)
+
+Video filters:
+ * RSS feed overlay
+
+Audio filters:
+* Fixes, enhancements and new options related to the Headphone Channel
+  Mixer and Dolby Surround
+
+Stream output:
+ * New shout output module to forward streams to icecast servers
+ * Fixed several SAP and SDP announcement bugs
+ * Fixed MTU handling to avoid IP fragments
+ 
+Interfaces:
+- new cone icon by Richard ¯iestad (Eurodata, retron.info)
+ * Mac OS X
+    - New streaming and transcoding wizard
+    - New extended controls panel
+    - New bookmarks window
+    - Fixed playlist sorting
+    - Fixed drag-and-drop inside the playlist
+ * wxWidgets
+    - Rename wxWindows interface in wxWidgets.
+    - All the --wxwin-* options are now --wx-*
+    - Support for RTP streaming in Stream Ouput dialog
+    - Now require wx2.6 with Unicode support
+ * Skins2
+    - Tree playlist
+ * HTTP
+    - New RPN functions to control VLC features (see play-howto)
+    - Facilities to correctly handle non-ASCII characters and spaces in
+      the names of files
+    - Include macro to include other files
+    - CGI 1.0 support
+
+ActiveX plugin:
+* Should now work outside IE as well
+
+Mac OS X port:
+* New script to delete the preferences automatically
+
+Windows port:
+* Fixed bandwidth problems of HTTP streaming
+* Fixed audio problems with DirectX audio output
+
+Translations:
+ The following languages were added:
+ * Galician
+ * Korean
+ * Romanian
+ * Simplified Chinese
+ The following languages were re-added:
+ * Swedish
+
+Changes between 0.8.1 and 0.8.2:
+--------------------------------
+
+Core support:
+ * Rewrite of the playlist
+    - Tree structure
+    - Input preparsing (for meta-data)
+    - Grouping (by artist, ...) support 
+ * Preferences improvements: 
+    - New organization, designed to improve usability
+    - New configuration types (list of modules, ...)
+ * XML parsers
+ * Core image manipulation support
+ * Client-side SSL/TLS support
+ * SSL Client certificates checking support (allows for secure VoD)
+ * Renamed --spu-channel to --sub-track
+ * Renamed --spumargin to --sub-margin
+ * Renamed --audio-channel to --audio-track
+ * Renamed --filter to --vout-filter
+ * filters, extra interfaces, visualizations and service discovery modules are
+   now separated by ':' instead of ','
+ * Access filter architecture
+ * Track selection based on preferred language (--sub-language and --audio-language)
+ * Zsh autocompletion for VLC's arguments
+ * Many bugfixes...
+
+Input/Demuxers:
+ * Support for SOCKS proxy
+ * Support for Shoutcast Meta-data
+ * Support for (HE-)AAC raw-audio streams
+ * Support for images on a HTTP server that get refreshed on the server
+ * Better support for Kasenna streams
+ * RTSP UDP->TCP rollover support
+ * Massive Matroska improvements
+ * Support for XA and VOC audio files
+ * TiVo demuxer
+ * Samba (Windows shares) access module
+ * Improved CDDAX module (uses several playlist items)
+ * Fixes to Linux DVB support
+ * Fix the "negative subtitles delay" bug
+ * Support for FTP over IPv6
+
+Decoders / Encoders:
+ * Dirac decoder and encoder
+ * PNG decoder/encoder
+ * Improvements to DVB subtitles encoder
+ * Support for Apple Lossless Audio Codec
+
+Access filters:
+ * New Record and Timeshift filters
+
+Services discovery:
+ * New type of modules, that add items to the playlist
+ * Brand new SAP module
+     * To enable SAP, you now need to use "-S sap" or add SAP in 
+       the "Manage->Services Discovery" menu
+     ( IPv6 SAP is now enabled by default )
+     * Non-standard support for HTTP streams SAP announces removed
+ * HAL (Hardware Abstraction Layer) discovery
+ * DAAP (iTunes shares) support
+ * Shoutcast
+
+Audio output:
+ * Support for 20/24 bits LPCM
+
+Video output:
+ * Video snapshot support (png or jpg)
+ * Image file video output (png)
+ * Motion detection filter (can trigger playlist actions)
+ * Improvements to wall video filter
+ * Support for font color and opacity
+
+Stream output:
+ * Muxers
+    - ASF improvements
+ * VLM / VoD
+    - Ability to load a configuration file on startup
+    - Seeking support in VoD streams
+ * Mosaic (picture-in-picture system)
+
+Interfaces:
+ * wxWidgets
+    - Redesigned playlist : add playlist, add directory, ...
+    - Improved preferences
+    - Improvements to the wizard
+    - DVD, VCD and Audio CD navigation buttons
+ * MacOS X
+    - Redesigned playlist
+    - Improved preferences
+ * Skins
+    - Support for multiple actions
+    - Fixes
+ * HTTP
+    - Support for the new playlist system
+ * Lirc
+    - Now uses new config settings. See doc/lirc/example.lirc
+
+Windows port:
+ * Screensaver disabling fix
+ * DirectShow tuner configuration
+ * Support for no-decoration windows
+
+MacOS X port:
+ * Many Mac OS X 10.4 Tiger related fixes
+ * The OpenGL video output is back
+ * A new audio module that should work more reliable for analog audio output in various configurations.
+   - Supports multichannel discrete analog output
+   - Digital audio output requires you to change a preference setting because it
+     is not yet available in the new module
+   - Please read the README.MacOSX.rtf file for more information.
+
+BeOS port:
+ * Support for single-buffered overlay
+
+Pocket PC port:
+ * Many fixes
+ * New interface
+ * New video output
+
+Mozilla Plugin:
+ * Javascript fixes
+ * Mozilla plugin for MacOS X is back (not yet distributed)
+
+IE Plugin:
+ * Brand new Internet Explorer ActiveX plugin
+
+Translations:
+ The following languages were added:
+ * Catalan
+ * Danish
+ * Turkish
+
+
+Changes between 0.8.0 and 0.8.1:
+-----------------------------------------------------
+
+Core support:
+ * Include TLS/SSL API (on plattforms where libgnutls is available)
+ * SSL support in the HTTP daemon (HTTP stream output and HTTP interface)
+
+Windows port:
+ * Fixed win32 multichannel audio output support (which was broken in 0.8.0)
+ * Fixed DV and MPEG (WinTV PVR 250/350) support in the dshow input
+ * Fixed spurious taskbar item after switching to fullscreen
+
+WinCE port:
+ * A few more updates (we still miss an interface and a fast video output).
+
+Audio Output:
+ * Portaudio audio output plugin improvements
+
+Video Output:
+ * Proper subpictures scaling using the aspect-ratio info when available
+
+Demuxers:
+ * Fixed crash with ODML avi files
+ * Fixed autodetection of VCD/SVCD bin files
+ * Supports Kasenna VoD (MPEG2 only) and simulcast streaming
+
+Stream Output:
+ * Encoders:
+   * Fixed aspect ratio and interlaced support in ffmpeg encoder module
+ * Stream output:
+   * Support of playlist group announcement
+
+Changes between 0.7.2 and 0.8.0:
+-----------------------------------------------------
+
+Core support:
+ * Major work on libvlc. Changed/renamed/added functions
+ * Complete switch to the new input core (better seeking, multi-input, ...)
+ * New plugins cache to speed up launch time
+ * New --play-and-stop feature which stops the playlist after each played item
+ * Daemon mode (to run vlc in the background)
+ * Major improvements to the subtitle/OSD subsystem
+
+Input:
+ * New screen capture input plugin for X11, Win32, BeOS and Mac OS X 
+    (Stream your desktop)
+ * Improved DVD support:
+    - uses libdvdnav for playing DVDs with menus support
+    - uses libdvdread for simple playback with menus (eg. for streaming)
+ * Experimental multi-input support ( use --input-slave to play with it )
+ * Automatic MTU discovery for UDP streams
+ * More powerful MRL syntax for DVD/VCD/CDDA access 
+    (selection of titles/chapters).
+
+Demuxers:
+ * Support for iTunes Music Store previews
+ * Support for MJPEG webcams (i.e. AXIS cams)
+ * Added initial mp4 and mpeg-ts text track support
+ * Windows Media Server RTSP support
+ * Support for MPEG TS streams with error correction (204/192 bytes TS packets)
+ * Support for DTS audio in MPEG TS (ETSI TS 102 154 Annex G)
+ * Skins2 .vlt file loader (only when skins2 is the current interface)
+ * Improved Ogg demuxer
+ * Support for MPEG PS streams with MPEG 4 video.
+ * Support for so called AACPlus webstreams
+
+Codecs:
+ * G.726 audio support
+ * 14496-17 MPEG TS text support
+ * MPEG-4 text support
+ * Vastly improved DVB subtitles decoder (ETS 300 743)
+ * Enabled color in DVB subtitles rendering
+ * VobSub supported both externally and in Matroska
+
+Stream Output:
+ Encoders:
+  * Re-use audio/video/spu decoders in transcoder module. From now on,
+     everything that is playable by VLC should be transcodable as well
+  * Subtitles overlaying in transcoder
+  * Subpictures overlaying in transcoder (see video output)
+  * Frame rate selection in the transcoder
+  * DVB subtitles encoder
+  * MPEG 1 layer 2 audio encoder using libtoolame
+  * Improved vorbis/theora encoding
+ Muxers: 
+  * Text track muxing for mp4
+  * Multipart mjpeg muxing. Your video is directly viewable in a Mozilla Browser
+  * 14496-17 text track muxing for MPEG TS
+  * Support for DTS audio in MPEG TS (ETSI TS 102 154 Annex G)
+  * Teletext (0x56 descriptor) streaming support in MPEG TS.
+  * New WAV muxer (supports multi-channel audio)
+  * Improved ASF muxer
+ Misc:
+  * H.263 RTP streaming support
+  * SDP generation outputs more compliant SDPs and can create SDP files now
+  * Improved RTSP and VoD server (experimental)
+
+Audio Output:
+ * New audio equalizer filter
+ * Very trivial volume normalizer
+ * True channel downmixing when playing 5:1 material on Stereo
+ * More gradual resampling which should improve the pitch changing effect
+ * New audio output plugin using portaudio v19
+
+Video Output:
+ * Roku HD1000 Video output
+ * Experimental generic OpenGL video output (X11, Win32, MacOS X)
+   with support for effects.
+ * Improved filter and subpictures support :
+	- New filters can be streamed.
+	- "Subpicture filters" to overlay subpictures on video 
+	- Centralized scaling and blending
+ * New filters : 
+	- "time", to display current time 
+	- "marq", to display a marquee
+
+Interfaces:
+ * OSD sliders for volume and postition information
+ * OSD icons for Play and Pause
+ * New Streaming Wizard for Windows and Linux default interfaces (wxWindows)
+ * A few skins2 improvements
+ * Added search, volume, loop and random functions to the ncurses interface
+ * Added a filesystem browser to the ncurses interface
+ * The remote control interface can now listen for commands on sockets
+ * Improved CORBA control module
+
+Mac OS X port:
+ * Fixed the "cannot set buffersize:[nope]" coreaudio problem
+ * Major speed improvements to the Quartz video output
+ * The Mac OS X interface is no longer required to display video
+
+Linux port:
+ * New galaktos visualization plugin (MilkDrop-compatible)
+ * Experimental SVG rendering module
+ * Support for DVB CAM modules.
+
+Windows port:
+ * DirectX Media Object decoder (allows playing some media types, like WMV3)
+ * DirectX Media Object audio and video encoder
+ * Fixed long standing win32 thread handles leak
+ * Fixed problem with CPU usage with subtitles rendering
+ * Wallpaper mode for the DirectX video output (only in overlay mode)
+
+WinCE port:
+ * Massive update (we still miss an interface and a fast video output).
+
+Mozilla plugin:
+ * Added a lot of Javascript accessible funtionality
+ * Volume, position, length, seek etc etc etc.
+
+Misc:
+ * Server/client network synchronization module
+ * VBrick streams fully supported
+ * Cisco IP/TV streams supported
+ * VLM enhancements
+
+Changes between 0.7.1 and 0.7.2:
+--------------------------------
+
+Core support:
+ * Bookmarks feature for easier seeking/access inside medias.
+ * Support for video output embedded in interfaces.
+ * Improved HTTP daemon.
+ * Saved playlists now remember VLC-specific options.
+
+Codecs:
+ * New Continuous Media Markup Language (CMML) codec.
+   (http://www.annodex.net/overview.html)
+ * New H.261 video decoder using openmash.
+ * H264 encoder, demuxer and packetizer.
+ * Packetizer interfaces between demux and codec when needed
+   (allows using ffmpeg plugin to decode MPEG streams and better aac decoding).
+ * Support for Theora alpha3 (both decoding and encoding).
+
+Input:
+ * --start-time <sec> and --stop-time <sec> to start and stop playing a 
+   file at the specified amount of seconds. Only works with a few
+   fileformats (avi, mov, mkv, mp4 )
+ * Improved directory access module.
+ * New "file-cat" option to play truncated movies.
+ * Better handling of meta info (title, author, description, etc...).
+ * New options to pass meta info to the input.
+ * It is now possible to stream programs from a DVB-S/C/T stream
+   (satellite, cable, or digital terestrial television)
+
+Demux:
+ * Annodex (http://www.annodex.net) support.
+ * mmsh streaming fixes.
+ * Fixed infinite loop in the AVI demux on broken/incomplete files.
+
+Subtitles:
+ * Subviewer and subviewer v2 subtitles support.
+ * Ability to choose autodetected subtitles path.
+ * Subtitles delay can be changed in real time with hotkeys.
+
+Stream output:
+ * Improved session announcement system.
+ * Minimize threads usage by default.
+ * Added faster than realtime stream output (limited by CPU) for file output.
+ * Improved MOV/MP4 muxer.
+ * Improved MPEG TS muxer.
+ * Improved transrater.
+ * Meta info options used by the muxers.
+ * New configuration system.
+ * Better audio channels downmixing when transcoding.
+
+VideoLAN manager:
+ * New videolan (media) manager (vlm): a little manager designed to launch
+   and manage multiple streams from within one instance of VLC.
+ * Supports live streams and VoD.
+ * Supports scheduling.
+ * Telnet interface for vlm.
+ * HTTP interface for vlm.
+
+Interfaces:
+ * Skins II (Windows and Linux only)
+    - Ability to embed video output.
+    - Support for bitmap fonts.
+    - Lots of improvements.
+ * wxWindows (default Windows and Linux interface)
+    - New design and set of icons.
+    - Ability to embed video output.
+    - Support for hotkeys.
+    - Support for bookmarks.
+ * Mac OS X
+    - Support for 'groups' and playlist item properties.
+    - Better hotkeys handling.
+
+Mac OS X port:
+ * OpenGL video output is now the default when available.
+ * Added FAAC encoder (mp4a).
+ * Audio output fix to work with multiple streams on a HAL device.
+ * Possible fix for conflict with CodeTek VirtualDesktop (untested).
+
+Win32 port:
+ * DirectShow input plugin should work with more devices.
+ * Disable monitor power down when watching movies.
+ * Improved Windows installer.
+
+Linux port:
+ * PowerPC fixes.
+
+Misc:
+ * Improvements to the Goom visualisation plugin.
+ * Roku HD1000 audio output.
+
+Changes between 0.7.1 and 0.7.1a:
+---------------------------------
+
+Mac OS X:
+ * Fixed the infamous 'mp3 takes twice the CPU it should take' bug
+ * Playing MOD files is working now.
+
+
+Changes between 0.7.0 and 0.7.1:
+---------------------------------
+
+Core support:
+ * Fixed a nasty bug that causes preferences not to be saved some times.
+ * IGMPv3 support for VLC under Windows XP and Linux.
+
+Codecs:
+ * Brand new DTS Coherent Acoustics audio decoder based on libdts
+   (http://www.videolan.org/dtsdec.html)
+ * Fixed DTS S/PDIF output
+ * SVCD (Philips OGT) and CVD subtitles
+
+Playlist:
+ * Internal improvments
+ * Improved import/export
+
+Input:
+ * Experimental support for Nullsoft streaming video(.nsv) and real media(.rm)
+   container formars.
+ * New demux module that uses libavformat from ffmpeg. Adds support for many
+   small and strange formats.
+ * New PVA demux.
+ * New MOD audio demux.
+ * Support for DTS and A52/AC3 wav files.
+ * Support for DTS and A52/AC3 audio CD.
+ * New and experimental DVD input plugin with menus support (using libdvdnav).
+ * Added back DV audio support in raw DV demuxer.
+
+Stream output:
+ * MP4/MOV muxer improvements (fast-start, aac in mov, etc...).
+ * Fixed a nasty bug in the mpeg video packetizer.
+ * Improved transcoding (multithreading, more tuning, etc...).
+
+Service discovery:
+ * Fixed sdp in SAP.
+
+Mac OS X port:
+ * New opengl video output plugin.
+
+Win32 port:
+ * A few improvements to the DirectShow input plugin.
+ * Fixed ipv6 name resolution.
+
+Changes between 0.6.2 and 0.7.0:
+---------------------------------
+
+Core support:
+ * Brand new decoder/packetizer api.
+   Adds a lot more flexibility while also simplifying the decoder plugins.
+ * New encoder api (Ffmpeg, Vorbis, Theora, Flac and Speex encoders available).
+ * Video outputs are recycled if possible.
+   This removes any 'flicker' between two similiar video files.
+ * Fixed the video filters. Video should no longer go black when using filters.
+ * New input core. Advantages are: better seeking, more responsive, support for
+   subtitle files at the core, and much much more.
+
+Playlist:
+ * Added a repeat mode to repeat a single file over and over.
+ * Playlist sorting 
+
+Input:
+ * RTP/RTSP support.
+ * Fixed annoying seeking problem with Ogg files (seeking would take ages).
+ * Support for Flac in Ogg files.
+ * MPEG TS demuxer also handles A52 and AAC audio in DVB streams.
+ * Rewrite of the Flac demuxer.
+ * cddax and vcdx plugins using libcdio, libvcd and libvcdinfo. (Linux only)
+ * Reworked DVB tuning.
+ * Better Icecast support.
+ * New MPEG video elementary streams demuxer.
+ * New DTS audio elementary streams demuxer.
+
+Codecs:
+ * Support for Theora video encoding.
+ * Support for Speex audio decoding/encoding.
+ * Rewrite of the Flac decoder + encoding support.
+ * Support for MPEG2 422 decoding which was recently added to libmpeg2 (cvs).
+ * Support for AAC + SBR and proper multi-channel re-ordering.
+ * MPEG 2.5 audio support.
+ * Removed deprecated decoders (a52_old, mpeg_video and mpeg_audio).
+
+Stream output:
+ * Improvements to the MPEG TS muxer.
+ * New transrating module for MPEG2 video.
+ * Added packetization for MPEG AAC ADTS streams.
+ * Added packetizers for Flac, Speex, Theora, LPCM, DTS and SPU streams.
+ * Improved mp4 muxing and added AAC/MP4V support when transcoding.
+ * Improved Ogg muxing and added Theora, Speex, Flac and subtitles support.
+ * MPEG TS muxer follows the ATSC/DVB specs for embedded A52 audio.
+ * --sout-keep option to keep the stream open while changing input.
+ * Preliminary RTP support.
+ * Fixes to SAP announces.
+
+Interface:
+ * Skins:
+    - Bugfixes
+    - misc improvements (eg, "stay on top" option).
+ * New standardized and customizable hotkeys.
+ * wxWindows
+    - Playlist improvements (Sort, Search, mode buttons).
+    - Improvements and help in preferences
+    - New streaming wizard
+    - Revised Disc Open menu
+ * HTTP
+    - Improvements of the standard pages
+    - Support for new commands
+ * OSD ( OS X and hotkeys only atm ).
+
+Service discovery:
+ * Many fixes to the SAP module
+ * SAP now supports HTTP streams
+
+Subtitles:
+ * Text subtitles now have a black outline.
+ * Text subtitles autodetection.
+ * Text subtitles charset autodetection.
+ * Text subtitles for all videofiles. Results may vary.
+ * Text subtitles in Hebrew are supported. Arabic partially.
+ * Automatic fontsize selection for text subtitles.
+ * Fixed SAMI text subtitles support.
+ * Support for subtitles in Matroska files.
+ * Support for subtitles in DVB streams.
+
+Mac OS X port:
+ * New controller designed by Max Rudberg from www.maxthemes.com
+ * Save playlist.
+ * Works on 10.1.x again. Apologies for that problem.
+ * Support for Panther.
+ * Support for raw dumping of streams to disk.
+ * Mozilla plugin for Mac OS X (experimental).
+
+Win32 port:
+ * New DirectShow input module (for video acquisition cards, webcams, PVRs...).
+ * VLC can be installed as a Windows NT service.
+ * Allow on the fly switching of the main interface.
+ * Support for 3F2R in audio output.
+ * New --one-instance option to "force" only one running instance of VLC.
+ * Mozilla plugin for Windows (experimental).
+ * Multimonitor support (untested).
+ * Fixed nasty timing bug on some dual-cpu / P4 with hyperthreading systems.
+
+Linux port:
+ * Improved Video4Linux input. Also added support for an audio only input.
+ * Support for real-time priority when running with root privileges.
+ * Allow on the fly switching of the main interface.
+
+iPaq port: 
+ * Brand new Gtk 2 interface
+
+Miscellaneous:
+ * Audio visual effects filters (spectrum, scope and random).
+ * Audio visual effects filter using goom.
+ * Spanish, Portuguese Brazilian and Hungarian translations.
+ * libcaca video output (colored ascii)
+
+Changes between 0.6.1 and 0.6.2:
+---------------------------------
+
+Core support:
+ * Fixed a nasty regression in 0.6.1 which made some streams unplayable.
+
+Stream output:
+ * Transcoder now generates proper pts/dts thus should work a lot better.
+ * Improved MPEG TS muxer.
+
+Access input:
+ * Support for DVB-S/C/T cards using v4l2 API for Linux 2.6.x kernels.
+ * Few fixes to the VCD navigation.
+
+Interfaces:
+ * Support for DVD menus navigation added to the wxWindows interface.
+
+UNIX ports:
+ * ALSA multi-channel support fixed and tested.
+ * Fixed fullscreen with gnome metacity.
+
+Win32 port:
+ * Fixed VCD support which was broken on some machines.
+
+iPaq port:
+ * Familiar interface with Gtk+-1.2 and GPE support removed (deprecreated).
+
+Miscellaneous:
+ * Text subtitles now centered on the picture.
+ * Ffmpeg decoder now generates proper pts and can be used to play
+   mpeg1/2 videos.
+
+Changes between 0.6.0 and 0.6.1:
+---------------------------------
+
+Core support:
+ * There should be less bogus resampling, particularly on DVDs.
+ * VLC will now wait for the medium to wake up before starting its clock
+   after a pause.
+
+Stream output:
+ * Added vorbis audio support in Ogg streaming.
+ * Added vorbis audio transcoding support.
+ * Added mp3 audio transcoding support (when ffmpeg is compiled with mp3lame).
+UNIX ports:
+ * ALSA multi-channel support fixed and tested.
+ * Fixed fullscreen with gnome metacity.
+
+Win32 port:
+ * Fixed VCD support which was broken on some machines.
+
+iPaq port:
+ * Familiar interface with Gtk+-1.2 and GPE support removed (deprecreated).
+
+Miscellaneous:
+ * Text subtitles now centered on the picture.
+ * Ffmpeg decoder now generates proper pts and can be used to play
+   mpeg1/2 videos.
+
+Changes between 0.6.0 and 0.6.1:
+---------------------------------
+
+Core support:
+ * There should be less bogus resampling, particularly on DVDs.
+ * VLC will now wait for the medium to wake up before starting its clock
+   after a pause.
+
+Stream output:
+ * Added vorbis audio support in Ogg streaming.
+ * Added vorbis audio transcoding support.
+ * Added mp3 audio transcoding support (when ffmpeg is compiled with mp3lame).
+ * PS muxer can create mpeg1 files now and produce streams with system headers.
+ * You can transcode a52 with more than two channels to mpga now.
+
+Win32 port:
+ * Fixed DVD support which was partly broken due to a bug in libdvdcss
+ * Fixed 5.1 audio support for the sblive/audigy soundcards.
+ * Fixed sound on Windows NT.
+
+UNIX ports:
+ * Fixed/improved ALSA support and enabled multi-channel audio output.
+ * X11/Xvideo: Should now work on big endian machines, and you can now
+   use the arrow keys to browse through the DVD menus.
+
+iPaq port:
+ * Gtk+2 interface called PDA
+ * Familiar Gtk+ is now deprecreated
+ * Codec a52, Faad2 and flac added
+ * Video4Linux enabled (demux and transcode)
+ * Stream Out with transcode support enabled (use codecs: HuffYuvv and A-law).
+
+Interfaces:
+ * Small updates/fixes to the wxWindows interface.
+ * Improved HTTP remote control interface. You can now create your own HTML pages.
+ * A new CORBA control plugin.
+
+Input demux:
+ * Improved support for the Matroska container format.
+
+Miscellaneous:
+ * Improved build system.
+ * New video filter plugin to overlay logos.
+ * Added support for Winamp 3 B4S files.
+ * New subtitle module which uses freetype2 to render arbitrary fonts in any size.
+   Should also work with languages like russion for instance.
+
+
+Changes between 0.5.3 and 0.6.0:
+---------------------------------
+
+Core Support:
+ * Channel Server support was removed (was deprecated)
+
+Input access:
+ * Fixed a big bug in ftp and http access that prevented many platforms (OSX most prominently) to view ftp and http streams.
+ * Fixed large file support on Windows
+ * Video 4 Linux support
+ * CD Digital Audio support
+ * Fixed IPv6 multicasting on Windows and OSX.
+
+Input demux:
+ * Better detection of AAC and mp3 files
+ * Support for OpenDML avi files
+ * More complete .mp4/.mov support
+ * Very early support for the Matroska container format (don't complain if it doesn't work ;)
+
+Codecs:
+ * VLC's own MPEG1/2 decoder has been replaced with libmpeg2
+ * Support for Sorenson 3 (SVQ3 or Quicktime content) via ffmpeg
+ * OSX support for QDM2 and QDMC sound, often used in QT content.
+ * Fixed a bug which was causing artefacts in DivX video (ffmpeg)
+ * Updated our theora decoder to use the alpha 2 release of libtheora
+ * If ffmpeg cannot keep up, skip and try to recover instead of stopping altogether
+ * Indeo Video 3 (IV32) support for little-endian computers. (so not for OSX)
+
+Interfaces:
+ * The wxWindows interface is now fully useable as well as Unicode safe
+ * New HTTP remote control interface
+
+Stream output:
+ * New stream output scheme. It is now possible to build a chain of stream outputs allowing for instance to stream and display some content at the same time.
+ * The stream output now allows to transcode content on the fly.
+ * Fixed major bug that prevented streaming mpeg 1/2 video with pulldown content.
+ * SAP/SDP announcing support. (both IPv4 and IPv6)
+
+Miscellaneous:
+ * New reset option for the preferences
+ * You can set your language in the prefences
+ * New video chroma conversion module using ffmpeg
+ * Added a Gentoo ebuild to the distribution
+ * Added a new smaller subtitles font (now the default) + scripts to generate your own
+ * SAP/SDP IPv6 support
+
+UNIX ports:
+ * Basic support for the X11 Xinerama extension.
+ * New skinable interface ported to X11.
+ * Run opie-vlc and zaurus-vlc as GuiServer
+
+Mac OS X port:
+ * When you add several items to the playlist, they are sorted alphabetically.
+ * New about panel and revamped preferences panel.
+ * Fixed the deinterlace menu.
+ * Float on top, Fit to Screen and a Transparency option for video out.
+ * New output dialog for transcode and display while stream capabilities.
+ * New icons by Davor Orel.
+ * New audio resampler. Should make VLC much faster.
+ * Fixed disappearing and crackling sound (PTS is out of range bug)
+ * We no longer automatically save the preferences when you quit the application
+ * Arrow keys are now use to browse the menus in a DVD
+
+Win32 port:
+ * the wxWindows interface is now the default interface
+ * The keyboard shortcuts are now identical to the linux version
+ * Fixed the "no sound" problem on NT4
+ * Improved skinnable interface (it now uses the wxWindows interface dialogs).
+ * Added support for compressed skins files (.vlt files)
+ * Fixed SVCD chapters support.
+ * Fixed memory leak with 5.1 audio.
+
+BeOS port:
+ * Interface localization
+ * Screensaver disabled if playing in fullscreen
+ * A few new keyboard shortcuts
+ * New full-featured Preferences window
+
+Changes between 0.5.2 and 0.5.3:
+---------------------------------
+
+Core Support:
+ * fixed DTS S/PDIF output on little-endian machines
+ * support for skins at the interface level
+ * new OSD module using Freetype2
+ * video outputs are now destroyed when the associated input ends
+ * the video output takes into account the caching delay introduced at the
+   input level before dropping out of date frames.
+ * configuration option to disable the translation of the interface
+
+Input access:
+ * fixed HTTP redirects
+ * support for opening an entire directory
+ * EOF should be detected more reliably
+ * new video4linux access plug-in
+ * new kfir access plug-in designed to work around a bug in the kfir driver
+
+Input demux:
+ * added stream type for some Motorola MPEG-2 video encoders
+ * fix for some ogg web radio streams
+ * fixed reading TS streams over HTTP
+
+Codecs:
+ * support for 3ivx D4 (not previous versions)
+ * support for '3ivd' and '3vid' encodings
+ * support for 'MSS1' codec ( same as WMV2 )
+ * support for SAMI subtitles (untested and incomplete)
+ * better SSA4 subtitles recognition
+ * new codec for raw I420 video
+ * improvements to the libmpeg2-based MPEG video decoder
+
+Interfaces:
+ * improvements to wxWindows based interface
+   (although it still misses some important features)
+ * skeleton for a Gnome2/GTK2 plug-in
+
+Stream output:
+ * new HTTP output support
+ * fixed a segfault in the AVI muxer
+ * fixed AV synchronization issues
+
+Miscellaneous:
+ * support for oldstyle id3 genres
+
+UNIX ports:
+ * the SDL vout plug-in will now work on big-endian machines
+
+Mac OS X port:
+ * reorderable playlist
+ * fixed the hiding of the mouse on multiple monitors
+ * fixed a big issue with some USB speakers
+ * support for mono audio output devices
+ * reset the audio-device to its default mode before quitting VLC
+ * fixed several cosmetic issues
+ * you can drag the controller window by its background (as it should be)
+ * the messages window remembers more lines
+ * delay and fps can now be overruled with subtitles files
+ * http and ogg stream output options
+ * Apple menu and friends will now be translated as well
+
+Win32 port:
+ * new skinnable interface
+ * the directx video output doesn't crash anymore on ctrl+alt+del events.
+
+iPAQ familiar Linux port:
+ * support for FLAC audio format
+ * the interface adapts to the screen size/rotation
+ * playlist
+ * network tab in the interface
+ * "apply" handling in preferences
+
+
+Changes between 0.5.1a and 0.5.2:
+---------------------------------
+
+Core support:
+ * advanced config options are now hidden by default
+ * new --spdif option to use the S/PDIF audio output by default
+ * fixed a 'clicking' sound when switching between streams
+ * new bandlimited resampler that should improve audio quality on primarily
+   Mac OS X
+ * fixed a problem with audio over http that caused some web radios to not work
+ * DTS S/PDIF support
+
+Codecs:
+ * support for DV audio through the ffmpeg library
+ * support for FLAC audio through libflac
+ * new but basic MPEG video decoder based on libmpeg2
+ * fixed a major bug in LPCM code (fixes a problem with iDVD disks)
+
+Stream output:
+ * support for streaming DivX 1/2/3, wmv1/2, h/i263 over MPEG-2 TS
+ * new --ttl option for Time To Live
+
+DVD support:
+ * fixed quite a few problems with the dvd menu support
+
+UNIX ports:
+ * fixed the GNU-pth support
+
+Win32 port:
+ * multi-channel audio and S/PDIF support for both the DirectX and Waveout
+   plugins
+ * localization support via gettext is now fully working
+ * rc interface is now fully useable
+ * fixed the MSVC project files generation
+
+Mac OS X port:
+ * several fixes for multi channel audio devices. AC3 over SPDIF with
+   M-Audio Sonica Theater still does not work. this is most likely a driver
+   bug and has been reported to M-Audio. (Sonica, Revolution, Delta, Griffin
+   iMate and MOTU firewire devices should work)
+ * VLC now uses the default audio device
+ * new info panel
+ * very preliminary support for VLC control via applescript
+ * support for mouse gestures
+ * new priority scheme allowing to avoid lock-ups on low-end machines
+
+Linupy port:
+ * there is a whole new port for the linupy distribution used by o.a. the
+   YOPY PDA. It is still experimental, please test it
+
+Miscellaneous:
+ * improved ID3 tag detection
+ * changed several errors into warnings ; the frequently reported "this is
+   not a PS stream, continuing" is one of these
+ * mouse gestures work on windows and osx, but there still isn't any useful
+   gestures
+ * some support for .pls playlists used by shoutcast
+
+
+Changes between 0.5.1 and 0.5.1a:
+---------------------------------
+
+Mac OS X port:
+ * fixed a problem that caused VLC to select the wrong language when
+   English was set as the preferred language
+
+
+Changes between 0.5.0 and 0.5.1:
+--------------------------------
+
+Core support:
+ * new mouse gesture interface
+ * audio volume can now be changed at any time, even when no file is
+   playing
+
+Input access:
+ * various minor fixes on the network inputs
+ * fixed some weird URL parsing problems (/Volumes/toto:tata/harry_AT_coin.mpg)
+ * VCD: fixed track number and chapter indexing
+
+Input demux:
+ * fixed a bad initialization in the mp4 plug-in
+ * new --buggy-psi option for TS streams which do not update their
+   continuity counter
+
+Codecs:
+ * support for MPEG-2 intra slice refresh (aka. Slice-I) streams
+
+DVD support:
+ * fixed a bug which turned the default interface command-line only
+   without the user consent
+
+UNIX ports:
+ * GTK: fixed a crash when going fullscreen or changing volume from the
+   popup menu
+ * X11: new screen saver disabling plug-in (--extraintf screensaver)
+ * KDE: fixed compilation with KDE 3.1
+ * ALSA: fixed mono files output
+
+Mac OS X port:
+ * fixed a crash on start-up on some localized systems
+ * lowered real-time priorities to avoid lock-ups on slow machines
+ * VLC can now be made the handler of ftp http mms and udp URLs
+ * playlist enhancements
+ * added half, normal and double video window menu items
+ * new step forward/step backward commands
+ * the dock should no longer be visible in fullscreen mode
+ * the Mac OS X binary is now compiled with Ogg/Theora support
+ * vlc.app is now VLC.app
+
+Win32 port:
+ * fixed the "RichEdit line insertion error" bug
+ * VLC can now be run from outside its installation directory
+ * fixed a bug that prevented to find the default subtitle font
+
+BeOS port:
+ * smarter BeOS priorities to avoid lock-ups
+ * few enhancements in the interface (especially the Settings window)
+
+Opie port:
+ * native video output is working again
+ * only commandline interface support
+ * support for MPEG4, DivX through ffmpeg package
+
+
+Changes between 0.4.6 and 0.5.0:
+--------------------------------
+
+Core structure:
+  * object structure which allows for full re-entrancy, known as libvlc
+  * new audio output architecture based on filter pipelines, providing
+    S/PDIF and multi-channel support
+  * localization support via gettext on most architectures
+  * new stream output architecture, allowing to use VLC to unicast,
+    multicast or broadcast a stream to another VLC (only MPEG 1, 2 and 4
+    and A/52 streams are supported)
+  * build system now uses autoconf/automake/autopoint
+
+Input access:
+  * mms:// support
+  * ftp:// support
+  * stability fixes in the HTTP access
+  * auto-detection of RTP encapsulation
+  * VCD entry points support
+  * VCD image file support
+
+Input demux:
+  * support for *.asf format
+  * improved support for *.avi, especially over an HTTP connection
+  * support for *.mp4 and *.mov format
+  * support for ogg encapsulation
+  * support for raw DV format
+  * support for *.wav format
+  * new demuxdump demux allowing to save a stream to a file
+  * raw AAC support
+
+Stream discovery & playlists:
+  * support for the SAP/SDP and SLP protocols
+  * support for .m3u file format
+  * support for .asx file format
+  * hack to find the streaming sources in html-pages with embedded wmp
+
+Codecs:
+  * support for the microdvd, subrip, ssa1, ssa2-4 subtitles file formats
+    (only available with the .avi demux)
+  * support for ADPCM audio codec
+  * support for raw PCM data
+  * support for Cinepak video codec
+  * support for DV video codec via libdv or ffmpeg
+  * support for AAC audio codec via libfaad2
+  * support for Xvid codec
+  * support for Xiph.org's Vorbis audio codec
+  * support for Xiph.org's Tremor audio codec (when compiling from sources)
+  * support for Xiph.org's Tarkin and Theora video codecs (when compiling
+    from sources)
+  * new codecs supported by latest ffmpeg versions: WMV, WMA, SVQ 1, H263,
+    H263i, MJPEG A/B
+  * fixed an endianness bug in LPCM codec
+
+DVD support:
+  * experimental preliminary support for DVD menus via libdvdplay
+
+Miscellaneous:
+  * new WxWindows interface
+  * all interfaces allow to dynamically change the volume, the audio
+    device and the channels configuration
+  * headphone channel mixer with virtual spatialization effect
+  * Mozilla plugin based on libvlc for embedded playback in webpages of any
+    format that VLC can play
+  * new swedish translation
+  * enhancements of the playlist window
+  * new messages window to see debug info
+  * fixed a few crashes
+
+iPaq port:
+  * slider bar in GTK+/GPE Familiar interface
+  * fixed crash on directory change in Familiar interface
+  * added qte_main module for use in all modules that need Opie or Qte support
+  * native video output module for Qt Embedded/Opie is not working
+
