@@ -92,9 +92,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                             'libraryTab_files': [ 'download', 'includedFiles'],
                             'profileDetails_Quality': ['descriptionField0','howToImprove','descriptionField1'],
                             'profileDetails_Files': ['descriptionField0','howToImprove','descriptionField1','takeMeThere0'],
-                            'profileDetails_Persons': ['descriptionField0','descriptionField1','takeMeThere0'],
+                            'profileDetails_Persons': ['descriptionField0','howToImprove','descriptionField1','takeMeThere0'],
                             'profileDetails_Download': ['descriptionField','Desc0','descriptionField0','howToImprove0','descriptionField1','takeMeThere0','Desc1','descriptionField2','howToImprove1','descriptionField3','takeMeThere1','Desc2','descriptionField4','howToImprove2','descriptionField5'],
-                            'profileDetails_Presence': ['descriptionField','descriptionField0','descriptionField1','descriptionField2','descriptionField3','descriptionField4','descriptionField5', 'takeMeThere0']}
+                            'profileDetails_Presence': ['descriptionField','Desc0','descriptionField0','howToImprove0','descriptionField1','takeMeThere0','Desc1','descriptionField2','howToImprove1','descriptionField3','Desc2','descriptionField4','howToImprove2','descriptionField5']}
             
         self.statdlElements = ['st28c','st30c','download1','percent1','download2','percent2','download3','percent3','download4','percent4']
             
