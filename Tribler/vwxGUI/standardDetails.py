@@ -751,11 +751,11 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     if isinstance(currentElement,wx.StaticText):
                         style = currentElement.GetWindowStyle()
                         print "<mluc> element",elementName,"has style",style
-                        if (style & wx.ST_NO_AUTORESIZE)>0 :
+                        if (style & wx.ST_NO_AUTORESIZE)==0 :
                             #remove the no autoresize flag
-                            style = style ^ wx.ST_NO_AUTORESIZE
-                            currentElement.SetWindowStyle(style)
-                            print "<mluc> element",elementName,"changed style to",style
+#                            style = style ^ wx.ST_NO_AUTORESIZE
+#                            currentElement.SetWindowStyle(style)
+#                            print "<mluc> element",elementName,"changed style to",style
 #        if sys.platform == 'win32':
 #            ofList.SetWindowStyleFlag(wx.LC_REPORT|wx.NO_BORDER|wx.LC_NO_HEADER|wx.LC_SINGLE_SEL) #it doesn't work
 #        else:
@@ -763,7 +763,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 #            ofList.SetSingleStyle(wx.LC_REPORT)
 #            ofList.SetSingleStyle(wx.LC_NO_HEADER)
 #            ofList.SetSingleStyle(wx.LC_SINGLE_SEL)
-                        currentElement.Wrap(284)
+                            currentElement.Wrap(284)
                     if prevElement is not None:
                         prevPos = prevElement.GetPosition().y
                         prevHeight = prevElement.GetSize().height
