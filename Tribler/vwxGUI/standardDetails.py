@@ -142,6 +142,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         self.currentPanel.Layout()
         self.currentPanel.SetAutoLayout(1)
         #self.currentPanel.Enable(True)
+        self.currentPanel.SetBackgroundColour("red")
+        
         self.currentPanel.Show(True)
         
         if self.oldpanel:
@@ -154,7 +156,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             
 #        self.currentPanel.Layout()
         wx.CallAfter(self.hSizer.Layout)
-        wx.CallAfter(self.currentPanel.Refresh)
+#        wx.CallAfter(self.currentPanel.Refresh)
         #self.Show(True)
         
 
@@ -576,6 +578,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 
         
         elif self.mode == 'profileMode':
+            tab = None
             # --------------------------------------------------------------------------------------------------------------------------------------------------------
             ## --- Overall performance  !!!! we'll leave it probably out!!!
             if self.currentPanel == self.getGuiObj('profileDetails'):
@@ -584,6 +587,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             # --------------------------------------------------------------------------------------------------------------------------------------------------------
             # --- Quality of tribler recommendations    
             elif self.currentPanel == self.getGuiObj('profileDetails_Quality'):
+                tab = 'profileDetails_Quality'
                 count = 0            
                 if item is not None:
                     if item.has_key('downloaded_files'):
@@ -596,11 +600,10 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     only=""
                 self.getGuiObj('descriptionField0', tab = 'profileDetails_Quality').SetLabel(text % (only,count))
                 self.getGuiObj('descriptionField1', tab = 'profileDetails_Quality').SetLabel(text1)
-                if self.reHeightToFit(tab = 'profileDetails_Quality'):
-                    self.currentPanel.Layout()
             # --------------------------------------------------------------------------------------------------------------------------------------------------------
             # --- Discovered Files
-            elif self.currentPanel == self.getGuiObj('profileDetails_Files'):                
+            elif self.currentPanel == self.getGuiObj('profileDetails_Files'):  
+                tab = 'profileDetails_Files'              
                 count = 0            
                 if item is not None:
                     if item.has_key('taste_files'):
@@ -612,6 +615,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             # --------------------------------------------------------------------------------------------------------------------------------------------------------
             # --- Discovered Persons
             elif self.currentPanel == self.getGuiObj('profileDetails_Persons'):
+                tab = 'profileDetails_Persons'
                 count = 0            
                 if item is not None:
                     if item.has_key('similar_peers'):
@@ -623,6 +627,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             # --------------------------------------------------------------------------------------------------------------------------------------------------------
             ## --- Optimal download speed    
             elif self.currentPanel == self.getGuiObj('profileDetails_Download'):    
+                tab = 'profileDetails_Download'
                 text = self.utility.lang.get("profileDetails_Download_info", giveerror=False)
                 self.getGuiObj('descriptionField', tab = 'profileDetails_Download').SetLabel(text)
 
@@ -672,6 +677,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             # --------------------------------------------------------------------------------------------------------------------------------------------------------        
             ## --- Optimal download speed
             elif self.currentPanel == self.getGuiObj('profileDetails_Presence'):    
+                tab = 'profileDetails_Presence'
                 text = self.utility.lang.get("profileDetails_Presence_info", giveerror=False)
                 self.getGuiObj('descriptionField', tab = 'profileDetails_Presence').SetLabel(text)
                 
@@ -694,6 +700,13 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 self.getGuiObj('descriptionField4', tab = 'profileDetails_Presence').SetLabel(text)
                 text = self.utility.lang.get("profileDetails_Presence_VersionNo_improve", giveerror=False)
                 self.getGuiObj('descriptionField5', tab = 'profileDetails_Presence').SetLabel(text)
+            else:
+                tab = "error"
+            if tab != "error":
+                if self.reHeightToFit(tab):
+                    self.currentPanel.Layout()
+                    self.currentPanel.SetAutoLayout(1)
+                    self.hSizer.Layout()
         else:
             print "standardDetails: setData: No entry for mode",self.mode
                     
@@ -941,14 +954,14 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 #                self.item = name
 #            else:
 #                print "<mluc> can't switch, one of the panel is None or the same panel"
+
+                print "<mluc> switch from %s[%s] to %s[%s]" % (panel1.GetName(), panel1.GetParent().GetName(), panel2.GetName(), panel2.GetParent().GetName())
         else:
             print 'standardDetails: Tabs for this mode (%s) not yet implemented' % self.mode
             return
         
         self.setData(self.item)
-        print "tb"
-        print self.GetSize()
-        
+
             
     def swapPanel(self, oldpanel, newpanel, sizer=None, index=-1):
         """replaces in a sizer a panel with another one to simulate tabs"""
@@ -970,13 +983,17 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         # remove info tab panel
         sizer.Detach(oldpanel)
         oldpanel.Hide()
+        print "<mluc> found sizer equal to hSizer?",(sizer==self.hSizer)
         # add files tab panel
-        sizer.Insert(index, newpanel, 1, wx.EXPAND, 3)
+        sizer.Insert(index, newpanel, 0, wx.ALL|wx.EXPAND, 0)
         if not newpanel.IsShown():
             newpanel.Show()
-        newpanel.Layout()
+#        newpanel.Layout()
+        self.currentPanel.Layout()
+        self.currentPanel.SetAutoLayout(1)
+        #wx.CallAfter(self.hSizer.Layout)
         sizer.Layout()
-        newpanel.GetParent().Refresh()
+#        newpanel.GetParent().Refresh()
         
     def getAlternativeTabPanel(self, name, parent=None):
         "Load a tabPanel that was not loaded as default"

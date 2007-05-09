@@ -63,9 +63,9 @@
       <object class="sizeritem">
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
-        <option>1</option>
+        <option>0</option>
         <object class="wxPanel" name="details">
-          <pos>3,29</pos>
+          <pos>0,21</pos>
           <size>298,2</size>
           <bg>#ffffff</bg>
           <object class="wxBoxSizer">
@@ -84,7 +84,7 @@
                 <label>Download more files to increase the quality of Tribler recommendations.
 </label>
                 <pos>6,20</pos>
-                <size>284,43</size>
+                <size>284,-1</size>
                 <font>
                   <size>8</size>
                   <family>modern</family>
@@ -123,7 +123,7 @@
                 <label>Download more files to increase the quality of Tribler recommendations.
 </label>
                 <pos>6,87</pos>
-                <size>284,43</size>
+                <size>-1,-1</size>
                 <font>
                   <size>8</size>
                   <family>modern</family>
