@@ -44,7 +44,7 @@ class MugshotManager:
         self.defaults['filesMode'] = {}        
         self.defaults['filesMode']['DEFAULT_THUMB'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'defaultThumb.png'))
         self.defaults['filesMode']['BIG_DEFAULT_THUMB'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'defaultThumbL.png'))
-        self.defaults['filesMode']['MASK_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'itemMask.png'))
+        self.defaults['filesMode']['MASK_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'fileItemMask_clean.png'))
         self.defaults['filesMode']['HEART_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'heart1.png'))
         self.defaults['libraryMode'] = {}
         self.defaults['libraryMode']['DEFAULT_THUMB'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'defaultThumbLibrary.png'))

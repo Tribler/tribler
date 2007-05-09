@@ -350,10 +350,10 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         if self.mouseOver:
             dc.SetFont(wx.Font(6, wx.SWISS, wx.NORMAL, wx.BOLD, True))
             mask = self.mm.get_default('filesMode','MASK_BITMAP')
-            heart = self.mm.get_default('filesMode','HEART_BITMAP')
-            dc.DrawBitmap(mask,0 ,52, True)
-            dc.DrawBitmap(heart,5 ,54, True)
-            dc.SetTextForeground(wx.BLACK)
+            #heart = self.mm.get_default('filesMode','HEART_BITMAP')
+            dc.DrawBitmap(mask,0 ,0, True)
+            #dc.DrawBitmap(heart,5 ,54, True)
+            #dc.SetTextForeground(wx.BLACK)
             #dc.DrawText('rating', 8, 50)
         if self.border:
             if self.selected:

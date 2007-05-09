@@ -185,6 +185,30 @@ class TasteHeart(wx.Panel):
         #    dc.DrawBitmap(self.bitmaps[1], 0,0, True)
         
 
+def getHeartBitmap(rank):
+    global BITMAPS
+    #because of the fact that hearts are coded so that lower index means higher ranking, then:
+    if rank > 0 and rank <= 5:
+        recomm = 0
+    elif rank > 5 and rank <= 10:
+        recomm = 1
+    elif rank > 10 and rank <= 15:
+        recomm = 2
+    elif rank > 15 and rank <= 20:
+        recomm = 3
+    else:
+        recomm = -1
+        
+    if recomm >= 0:
+        b = BITMAPS[recomm]
+        if not b:
+            raise Exception('No heart bitmap: %s' % BITMAPS)
+        else:
+            return b
+        
+    else:
+        return None
+                
 def set_tasteheart_bitmaps(syspath):
     global BITMAPS
     imagedir = os.path.join(syspath, 'Tribler','vwxGUI', 'images')

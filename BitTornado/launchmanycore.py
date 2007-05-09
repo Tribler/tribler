@@ -442,7 +442,7 @@ class LaunchMany:
         
         torrent = {}
         torrent['torrent_dir'], torrent['torrent_name'] = os.path.split(src)
-        torrent['relevance'] = 100*1000
+        #torrent['relevance'] = 100*1000
         
         torrent_info = {}
         torrent_info['name'] = info.get('name', '')

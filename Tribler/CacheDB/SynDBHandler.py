@@ -16,7 +16,7 @@ class SynTorrentDBHandler(TorrentDBHandler):
         multiple modules when one module updated the torrent db.
         For example, when torrent collecting module received a new torrent,
         it will call this instance and therefore update ABC GUI.
-        To use it, a moulde must register updateFun() 
+        To use it, a module must register updateFun() 
     """
 
     def __init__(self, db_dir='', updateFun = None):        

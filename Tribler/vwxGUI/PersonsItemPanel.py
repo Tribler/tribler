@@ -330,16 +330,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         if self.data is not None and type(self.data)==type({}) and self.data.get('permid'):
             rank = self.guiUtility.peer_manager.getRank(peer_data = self.data)#['permid'])
             #because of the fact that hearts are coded so that lower index means higher ranking, then:
-            if rank > 0 and rank <= 5:
-                recomm = 0
-            elif rank > 5 and rank <= 10:
-                recomm = 1
-            elif rank > 10 and rank <= 15:
-                recomm = 2
-            elif rank > 15 and rank <= 20:
-                recomm = 3
-            else:
-                recomm = -1
+            heartBitmap = TasteHeart.getHeartBitmap(rank)
             if self.mouseOver:
                 mask = self.mm.get_default('personsMode','MASK_BITMAP_CLEAN')
                 y_pos = 0
@@ -348,11 +339,11 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                 while y_pos<y_height:
                     dc.DrawBitmap(mask,0 ,y_pos, True)
                     y_pos = y_pos + m_height
-            if recomm >=0 or self.data.get('friend') or self.data.get('online'):
+            if heartBitmap or self.data.get('friend') or self.data.get('online'):
                 mask = self.mm.get_default('personsMode','MASK_BITMAP')
                 dc.DrawBitmap(mask,0 ,62, True)
-            if recomm >=0:
-                dc.DrawBitmap(TasteHeart.BITMAPS[recomm],5 ,64, True)
+            if heartBitmap:
+                dc.DrawBitmap(heartBitmap,5 ,64, True)
                 dc.SetFont(wx.Font(7, wx.SWISS, wx.NORMAL, wx.BOLD, False))
                 text = repr(rank)                
                 dc.DrawText(text, 22, 66)
