@@ -308,8 +308,8 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             if DEBUG:
                 print 'pip: leave'
             self.Refresh()
-        elif event.ButtonUp():
-            self.ClickedButton()
+#        elif event.ButtonUp():
+#            self.ClickedButton()
         #event.Skip()
         """
     def ClickedButton(self):

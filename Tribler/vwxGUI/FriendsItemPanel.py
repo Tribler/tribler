@@ -106,6 +106,8 @@ class FriendsItemPanel(wx.Panel):
         
 #        if not self.IsShown():
 #                self.Show()
+        if peer_data is None:
+            self.datacopy = None
                         
         if self.datacopy is not None and peer_data is not None and self.datacopy['permid'] == peer_data['permid']:
             if (self.datacopy['last_seen'] == peer_data['last_seen'] and
@@ -127,11 +129,8 @@ class FriendsItemPanel(wx.Panel):
             self.datacopy['content_name'] = peer_data['content_name']
             self.datacopy['friend'] = peer_data.get('friend')
         else:
-            self.datacopy = {}
-
-        if peer_data is None:
             peer_data = {}
-        
+
         if peer_data.get('content_name'):
             title = peer_data['content_name'][:self.titleLength]
             self.title.Enable(True)

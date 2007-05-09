@@ -11,6 +11,7 @@ class ImagePanelBasic(wx.Panel):
         self.backgroundColour = wx.Colour(102,102,102)
         self.xpos = self.ypos = 0
         self.tile = tile
+        self.bitmap = None
         if len(args) == 0: 
             pre = wx.PrePanel() 
             # the Create step is done by XRC. 
@@ -33,7 +34,8 @@ class ImagePanelBasic(wx.Panel):
     
     def _PostInit(self):
         # Do all init here
-        self.searchBitmap()
+        if self.bitmap is None: #mluc: search for bitmap only if not already set; it may happen as the setBitmap might be called before the _PostInit
+            self.searchBitmap()
         self.createBackgroundImage()
         #        print self.Name
 #        print '> size'
@@ -70,7 +72,6 @@ class ImagePanelBasic(wx.Panel):
             self.setBitmap(wx.Bitmap(self.bitmapPath, wx.BITMAP_TYPE_ANY))
         else:
             print '[bgPanel] Could not load image: %s' % self.bitmapPath
-        
         
     def createBackgroundImage(self):
         wx.EVT_PAINT(self, self.OnPaint)
