@@ -65,6 +65,7 @@ class FilesItemPanel(wx.Panel):
         for window in self.GetChildren():
             window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
             window.Bind(wx.EVT_KEY_UP, self.keyTyped)
+            window.Bind(wx.EVT_LEFT_DCLICK, self.doubleClicked)
                              
     def setData(self, torrent):
         
@@ -146,7 +147,10 @@ class FilesItemPanel(wx.Panel):
         if self.data:
             # torrent data is sent to guiUtility > standardDetails.setData
             self.guiUtility.selectTorrent(self.data)
-          
+
+    def doubleClicked(self, event):
+        self.guiUtility.standardDetails.download(self.data)
+        
     def getIdentifier(self):
         return self.data['infohash']
                 
