@@ -12,6 +12,7 @@ from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.unicode import *
 from threading import Thread,currentThread
 
+import web2
 
 OVERVIEW_MODES = ['filesMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionsMode', 'messageMode', 'libraryMode']
 DEBUG = True
@@ -245,19 +246,30 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             self.type = sort
             
             data = self.data_manager.getCategory(self.categorykey)
+
+            if type(data) == list:
+                self.filtered = []
+                for torrent in data:
+                    if torrent.get('status') == 'good' or torrent.get('myDownloadHistory'):
+                        self.filtered.append(torrent)
+            elif data.isDod():
+                data.addFilter(lambda x:x.get('status') == 'good' or x.get('myDownloadHistory'))
+
+        if type(data) == list:
+            if type(sort) == str:
+                self.filtered = sort_dictlist(self.filtered, sort, 'decrease')
+            elif type(sort) == tuple:
+                self.filtered = sort_dictlist(self.filtered, sort[0], sort[1])
         
-            self.filtered = []
-            for torrent in data:
-                if torrent.get('status') == 'good' or torrent.get('myDownloadHistory'):
-                    self.filtered.append(torrent)
-            
-        
-        if type(sort) == str:
-            self.filtered = sort_dictlist(self.filtered, sort, 'decrease')
-        elif type(sort) == tuple:
-            self.filtered = sort_dictlist(self.filtered, sort[0], sort[1])
-        
-        self.data[self.mode]['data'] = self.filtered
+            self.data[self.mode]['data'] = self.filtered
+        elif data.isDod():
+            keysort = ["web2"]
+            if type(sort) == str:
+                keysort.append((sort, 'decrease'))
+            elif type(sort) == tuple:
+                keysort.append(sort)
+            data.setSort(partial(multisort_dictlist, keys=keysort))
+            self.data[self.mode]['data'] = data
     
     
     def loadPersonsData(self, cat, sort):

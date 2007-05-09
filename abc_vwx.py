@@ -1046,9 +1046,9 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
                 bmphand.SetMimeType('image/bmp')
             
             # Must be after ABCLaunchMany is created
-            self.torrentfeed = TorrentFeedThread.getInstance()
-            self.torrentfeed.register(self.utility)
-            self.torrentfeed.start()
+            #self.torrentfeed = TorrentFeedThread.getInstance()
+            #self.torrentfeed.register(self.utility)
+            #self.torrentfeed.start()
 
             wx.CallAfter(self.startWithRightView)            
             

@@ -13,6 +13,8 @@ from copy import deepcopy
 from traceback import print_exc
 from time import time
 
+import web2
+
 DEBUG = False
 
 class TorrentDataManager:
@@ -82,7 +84,9 @@ class TorrentDataManager:
             return filter(noDownloadHistory, self.data)
         
         if categorykey == "search":
-            return self.search()
+            dod = web2.DataOnDemandWeb2(" ".join(self.searchkeywords))
+            dod.addItems(self.search())
+            return dod
         
         # See downloaded files also as category
         if (categorykey == self.utility.lang.get('mypref_list_title').lower()):
@@ -298,7 +302,6 @@ class TorrentDataManager:
                     hits.append(torrent)
         return hits
 
-
     def getFromSource(self,source):
         hits = []
         for torrent in self.data:
@@ -308,4 +311,3 @@ class TorrentDataManager:
     
     def getSimItems(self, infohash, num=15):
         return self.owner_db.getSimItems(infohash, num)
-        

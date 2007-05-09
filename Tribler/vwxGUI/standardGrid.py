@@ -17,6 +17,8 @@ from traceback import print_exc,print_stack
 import wx, os, sys, math
 import wx.xrc as xrc
 
+import web2
+
 DEBUG = False
 
         
@@ -28,6 +30,7 @@ class standardGrid(wx.Panel):
     def __init__(self, cols, orientation='horizontal'):
         self.initReady = False
         self.data = None
+        self.dod = None
         self.detailPanel = None       
         self.cols = cols
         self.orientation = orientation
@@ -90,20 +93,40 @@ class standardGrid(wx.Panel):
     def refreshData(self):
         self.setData(self.data, resetPages = False)
         
+
     def getData(self):
         return self.data
+
+
+    def updateDod(self):
+        print "WEB2.0 -> updateDod"
+        self.data = self.dod.getData()
+        wx.CallAfter(self.refreshPanels)
     
     def setData(self, dataList, resetPages = True):
         
-        if dataList is None:
-            datalength = 0
-        else:
-            datalength = len(dataList)
+        #if dataList is None:
+            #datalength = 0
+        #else:
+            #datalength = len(dataList)
         
-        if DEBUG:
-            print 'standardGrid: SetData called: init: %s, datalength: %d' % (self.initReady, datalength)
+        #if DEBUG:
+            #print 'standardGrid: SetData called: init: %s, datalength: %d' % (self.initReady, datalength)
         
-        self.data = dataList
+        if type(dataList) == list:
+            self.data = dataList
+            if self.dod != None:
+                self.dod.unregister(self.updateDod)
+            self.dod = None
+        elif dataList.isDod():
+            if self.dod != dataList and self.dod != None:
+                self.dod.unregister(self.updateDod)
+                self.dod.stop()
+
+            self.data = dataList.getData()
+            self.dod = dataList
+            self.dod.register(self.updateDod)
+            self.moreData()
         
         if not self.initReady:
             return
@@ -169,6 +192,8 @@ class standardGrid(wx.Panel):
     def gridResized(self, rows):
         self.items = self.cols * rows
         self.refreshPanels()
+
+        self.moreData()
         
     def setPageNumber(self, page):
         if not self.data:
@@ -178,6 +203,8 @@ class standardGrid(wx.Panel):
             self.currentData = self.items*page
         if old != self.currentData:
             self.refreshPanels()
+
+        self.moreData()
         
     def getStandardPager(self):
         try:
@@ -323,6 +350,15 @@ class standardGrid(wx.Panel):
         except:
             pass
         return self.detailPanel is not None
+
+    def moreData(self):
+
+        if self.dod:
+            needed = self.items * 3 + self.currentData # 3 -> load 2 pages in advance
+
+            if needed > 0:
+                print "Web2.0: ", needed
+                self.dod.request(needed)
     
 
 
