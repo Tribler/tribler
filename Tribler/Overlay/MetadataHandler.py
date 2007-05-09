@@ -5,6 +5,7 @@ import os
 from sha import sha
 from time import time, ctime
 from traceback import print_exc
+from sets import Set
 
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
@@ -48,12 +49,16 @@ class MetadataHandler:
         config_dir = self.config['config_path']
         self.config_dir = os.path.join(config_dir, 'torrent2')    #TODO: user can set it
         self.max_num_torrents = int(self.config['max_torrents'])
+        self.upload_rate = 1024 * int(self.config['torrent_collecting_rate'])   # 5KB/s
         self.torrent_db = SynTorrentDBHandler()
         self.num_torrents = -10
         self.recently_collected_torrents = []
-        self.upload_rate = 5*1024   # 5KB/s
         self.upload_queue = []
+        self.requested_torrents = Set()
         self.next_upload_time = 0
+
+    def set_rate(self, rate):
+        self.upload_rate = rate * 1024
 
     def checking_upload_queue(self):
         """ check the upload queue every 5 seconds, and send torrent out if the queue 
@@ -63,7 +68,7 @@ class MetadataHandler:
 
         if DEBUG:
             print >> sys.stderr, "metadata: checking_upload_queue, length:", len(self.upload_queue), "now:", ctime(time()), "next check:", ctime(self.next_upload_time)
-        if int(time()) >= self.next_upload_time and len(self.upload_queue) > 0:
+        if self.upload_rate > 0 and int(time()) >= self.next_upload_time and len(self.upload_queue) > 0:
             task = self.upload_queue.pop(0)
             permid = task['permid']
             torrent_hash = task['torrent_hash']
@@ -87,7 +92,7 @@ class MetadataHandler:
             return self.send_metadata(permid, message, selversion)
         elif t == METADATA:     # the other peer sends me a torrent
             if DEBUG:
-                print >> sys.stderr,"metadata: Got METADATA",len(message)
+                print >> sys.stderr,"metadata: Got METADATA",len(message),show_permid_short(permid),selversion
             return self.got_metadata(message, selversion)
         else:
             if DEBUG:
@@ -110,6 +115,7 @@ class MetadataHandler:
                 self.secure_overlay.connect(permid,lambda e,d,p,s:self.get_metadata_connect_callback(e,d,p,s,torrent_hash))
             else:
                 self.get_metadata_connect_callback(None,None,permid,selversion,torrent_hash)
+            
         except:
             print_exc(file=sys.stderr)
             return False
@@ -137,6 +143,7 @@ class MetadataHandler:
             try:
                 metadata_request = bencode(torrent_hash)
                 self.secure_overlay.send(permid, GET_METADATA + metadata_request,self.get_metadata_send_callback)
+                self.requested_torrents.add(torrent_hash)
             except:
                 print_exc(file=sys.stderr)
         elif DEBUG:
@@ -148,7 +155,7 @@ class MetadataHandler:
                 print >> sys.stderr,"metadata: GET_METADATA: error sending to",show_permid_short(permid),exc
             pass
         else:
-            pass    # TODO: Log
+            pass
         
     def send_metadata(self, permid, message, selversion):
         try:
@@ -370,8 +377,8 @@ class MetadataHandler:
         if DEBUG:
             print >> sys.stderr,"metadata: Storing torrent", sha(torrent_hash).hexdigest(),"in",file_name
         save_path = os.path.join(self.config_dir, file_name)
-        self.addTorrentToDB(save_path, torrent_hash, metadata, source=source, extra_info=extra_info)
         self.write_torrent(metadata, self.config_dir, file_name)
+        self.addTorrentToDB(save_path, torrent_hash, metadata, source=source, extra_info=extra_info)
         
     def refreshTrackerStatus(self, torrent):
         "Upon the reception of a new discovered torrent, directly check its tracker"
@@ -418,6 +425,9 @@ class MetadataHandler:
             return False
         
     def got_metadata(self, message, selversion):    # receive torrent file from others
+        if self.upload_rate <= 0:    # if no upload, no download, that's the game
+            return True    # don't close connection
+        
         try:
             message = bdecode(message[1:])
         except:
@@ -429,6 +439,12 @@ class MetadataHandler:
             torrent_hash = message['torrent_hash']
             if not isValidInfohash(torrent_hash):
                 return False
+
+            if not torrent_hash in self.requested_torrents:    # got a torrent which was not requested
+                return True
+            if self.torrent_db.hasMetaData(torrent_hash):
+                return True
+            
             metadata = message['metadata']
             if not self.valid_metadata(torrent_hash, metadata):
                 return False
@@ -449,6 +465,7 @@ class MetadataHandler:
                     extra_info = {}
                 
             self.save_torrent(torrent_hash, metadata, extra_info=extra_info)
+            self.requested_torrents.remove(torrent_hash)
             
             if DEBUG:
                 print >>sys.stderr,"metadata: Was I asked to dlhelp someone",self.dlhelper
@@ -458,7 +475,6 @@ class MetadataHandler:
         except Exception, msg:
             print_exc(file=sys.stderr)
             print >> sys.stderr,"metadata: Received metadata is broken", msg
-            return False
         
         return True
         

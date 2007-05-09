@@ -374,6 +374,7 @@ class Utility:
              'enabledlhelp': '1',  
              'enabledlcollecting': '1',
              'maxntorrents': 5000,
+             'torrentcollectingrate': 5,
              'minport': '6881',
              'myname': '',
              'rec_relevance_threshold': '0',

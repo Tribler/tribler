@@ -6,7 +6,6 @@ from Tribler.utilities import friendly_time, sort_dictlist, remove_torrent_from_
 from Tribler.unicode import str2unicode, dunno2unicode
 from Utility.constants import * #IGNORE:W0611
 from Tribler.Category.Category import Category
-from Tribler.TrackerChecking.ManualChecking import ManualChecking
 from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
 from Tribler.CacheDB.CacheDBHandler import OwnerDBHandler
 from copy import deepcopy
@@ -330,7 +329,7 @@ class TorrentDataManager:
         while len(self.rankList) > 20:
                 self.rankList.pop(0)
         
-        self.updateRankedItems()
+        #self.updateRankedItems()    # Jie: it's too heave: whenever SynDBHandler got an operation, it calls 20 updates
         #print 'RankList is now: %s' % self.rankList
         
     def updateRankedItems(self):
@@ -341,7 +340,7 @@ class TorrentDataManager:
                 torrent['simRank'] = rank
                 self.notifyView(torrent, 'update')
             else:
-                print 'Not found infohash: %s in info_dict.' % infohash
+                print 'Not found infohash: %s in info_dict.' % repr(infohash)
             rank -= 1
             
     def recompleteRankList(self):

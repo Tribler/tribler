@@ -12,7 +12,6 @@ import wx, math, time, os, sys, threading
 from traceback import print_exc
 #from abcfileframe import TorrentDataManager
 from Tribler.utilities import *
-from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 from safeguiupdate import DelayedInvocation
 from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.unicode import *

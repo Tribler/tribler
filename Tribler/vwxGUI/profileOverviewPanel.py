@@ -193,7 +193,7 @@ class ProfileOverviewPanel(wx.Panel):
             aux_count = 0
         new_index = int((aux_count-1)/20)+1 #from 0 to 6
         if new_index >= 5:
-            new_index = 6
+            new_index = 5
         overall_index = overall_index + new_index*0.1667
 #        print "<mluc> [after taste files] overall=",overall_index
         elem = self.getGuiElement("perf_Files")    # Discovered files

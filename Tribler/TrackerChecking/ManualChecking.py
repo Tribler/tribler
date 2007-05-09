@@ -29,7 +29,7 @@ class SingleManualChecking(Thread):
         Thread.__init__(self)
         self.setDaemon(True)
         self.setName('SingleManualChecking-'+self.getName())
-        
+
     def run(self):        
         try:
             trackerChecking(self.torrent)

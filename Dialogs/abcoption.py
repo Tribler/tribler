@@ -1413,15 +1413,23 @@ class TriblerPanel(ABCOptionPanel):
         sizer.Add(self.myinfo, 0, wx.ALL, 5)
         self.Bind(wx.EVT_BUTTON, self.OnMyInfoWizard, self.myinfo)
 
-        ntorrents_box = wx.BoxSizer(wx.HORIZONTAL)
+        ntorrents_box = wx.BoxSizer(wx.HORIZONTAL)    # set the max num of torrents to collect
         self.ntorrents = wx.TextCtrl(self, -1, "")
         ntorrents_box.Add(wx.StaticText(self, -1, self.utility.lang.get('maxntorrents')), 0, wx.ALIGN_CENTER_VERTICAL)
         ntorrents_box.Add(self.ntorrents, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
         sizer.Add(ntorrents_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
         
+        tc_rate_box = wx.BoxSizer(wx.HORIZONTAL)    # set the rate of torrent collecting
+        self.tc_rate = wx.TextCtrl(self, -1, "")
+        tc_rate_box.Add(wx.StaticText(self, -1, self.utility.lang.get('torrentcollectingrate')), 0, wx.ALIGN_CENTER_VERTICAL)
+        tc_rate_box.Add(self.tc_rate, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        sizer.Add(tc_rate_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        
         self.initTasks()
         
     def loadValues(self, Read = None):
+        """ Loading values from configure file """
+        
         if Read is None:
             Read = self.utility.config.Read
         
@@ -1429,19 +1437,55 @@ class TriblerPanel(ABCOptionPanel):
         self.dlhelp_enable.SetValue(Read('enabledlhelp', "boolean"))
         self.collect_enable.SetValue(Read('enabledlcollecting', "boolean"))
         self.timectrl.SetValue(Read('torrentcollectsleep', 'int'))
+        
         value = str(Read('maxntorrents', "string"))
-        self.ntorrents.SetValue(value)
+        try:    # check if the input is correct
+            int_value = int(value)
+            if int_value < 0:
+                raise
+            self.ntorrents.SetValue(str(int_value))
+        except:
+            print_exc()
+            
+        value = str(Read('torrentcollectingrate', "string"))
+        try:    # check if the input is correct
+            int_value = int(value)
+            if int_value < 0:
+                raise
+            self.tc_rate.SetValue(str(int_value))
+        except:
+            print_exc()
 
     def apply(self):       
+        """ do sth. when user click apply of OK button """
+        
         self.utility.config.Write('enablerecommender', self.rec_enable.GetValue(), "boolean")
         self.utility.config.Write('enabledlhelp', self.dlhelp_enable.GetValue(), "boolean")          
         self.utility.config.Write('enabledlcollecting', self.collect_enable.GetValue(), "boolean")
-        maxntorrents = self.ntorrents.GetValue()
-        self.utility.config.Write('maxntorrents', maxntorrents, "string")          
-        mh = MetadataHandler.getInstance()
-        mh.set_overflow(int(maxntorrents))
-        mh.delayed_check_overflow(1)
-
+        
+        try:    # check if the input is correct
+            maxntorrents = self.ntorrents.GetValue()
+            int_value = int(maxntorrents)
+            if int_value < 0:
+                raise
+            self.utility.config.Write('maxntorrents', maxntorrents, "string")
+            mh = MetadataHandler.getInstance()
+            mh.set_overflow(int_value)
+            mh.delayed_check_overflow(1)
+        except:
+            print_exc()
+            
+        try:    # check if the input is correct
+            tc_rate_value = self.tc_rate.GetValue()
+            int_value = int(tc_rate_value)
+            if int_value < 0:
+                raise
+            self.utility.config.Write('torrentcollectingrate', tc_rate_value, "string")
+            mh = MetadataHandler.getInstance()
+            mh.set_rate(int_value)
+        except:
+            print_exc()
+        
         t = int(self.timectrl.GetValue())
         if t  > 3600:
             t = 3600

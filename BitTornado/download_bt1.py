@@ -201,6 +201,8 @@ defaults = [
         "number of seconds to pause between exchanging preference with a peer in buddycast"),
     ('max_torrents', 5000,
         "max number of torrents to collect"),
+    ('torrent_collecting_rate', 5,
+        "max rate of torrent collecting (Kbps)"),
     ('torrent_checking', 1,
         "automatically check the health of torrents"),
     ('torrent_checking_period', 60,

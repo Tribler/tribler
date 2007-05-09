@@ -369,7 +369,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         self.data[self.mode]['data'] = reclist
         
     def updateFunTorrents(self, torrent, operate):    
-        print "UpdatefunTorrents called: %s, %s" % (operate, str(torrent))
+        print >> sys.stderr, "UpdatefunTorrents called: %s, %s" % (operate, torrent.get('torrent_name','?'))
         try:
             detailsPanel = self.guiUtility.standardDetails
         except:
