@@ -15,14 +15,14 @@ l_framTipo=0
 VisualWxVersion=0.87.2.5
 VisualWxIdent=8724
 l_hasAutoSize=1
-strTree=00it=3 01it=4 02it=5 02it=6 03it=7 04it=8 02it=9 01it=10 02it=11 03it=12 03it=13 03it=19 04it=16 04it=35 04it=14 04it=18 04it=31 03it=20 04it=23 04it=22 04it=25 04it=24 04it=34 03it=26 04it=27 04it=28 04it=29 04it=30 01it=15 
+strTree=00it=3 01it=4 02it=5 02it=6 03it=7 04it=8 02it=9 01it=10 02it=11 03it=12 03it=13 03it=19 04it=16 04it=35 04it=14 04it=18 04it=31 03it=20 04it=23 04it=22 04it=25 04it=24 04it=34 03it=26 04it=27 04it=28 04it=29 04it=30 04it=36 01it=15 
 [Controlli]
-n=23
+n=24
 [Form]
 n=1
 ws_name=profileDetails_Download.pfr
 ws_dir=.\\
-i_id=35
+i_id=36
 s_tipoFile=21
 s_tipoComp=0
 wx_WindowFileADD=917538
@@ -406,7 +406,7 @@ s_name=details
 i_index=-1
 i_left=0
 i_top=21
-i_height=618
+i_height=550
 i_width=298
 l_backColor=255,255,255
 l_foreColor=
@@ -536,7 +536,7 @@ Theme=0
 5=1
 13=1
 [Windows8]
-style=wxST_NO_AUTORESIZE
+style=
 Estyle=
 i_stylePN=20
 idIncCmpFilCmp=0
@@ -546,7 +546,7 @@ s_name=descriptionField
 i_index=-1
 i_left=6
 i_top=14
-i_height=38
+i_height=-1
 i_width=284
 l_backColor=
 l_foreColor=
@@ -603,13 +603,11 @@ dataObj\\SizRowPos=0
 dataObj\\SizColPos=0
 dataObj\\panelfitInsS=0
 IndexOfS=1
-[Windows8/style]
-20=1
 [Windows8/i_width]
 [Windows8/i_width/Windows8]
 Theme=0
 [Windows8/i_propN]
-0=You are not using your download speed optimally. To increase, follow the instructions.
+0=< no info >
 [Windows8/sizerProp]
 1=1
 3=1
@@ -622,10 +620,10 @@ i_stylePN=20
 idIncCmpFilCmp=0
 i_tipoComp=600051
 validator=
-s_name=howToImprove
-i_index=0
+s_name=howToImprove0
+i_index=-1
 i_left=6
-i_top=124
+i_top=64
 i_height=18
 i_width=284
 l_backColor=
@@ -644,7 +642,7 @@ b_Enable=true
 s_tipoWxClasse=wxStaticText
 isfuncClsName=0
 funcClsName=
-i_massindex=3
+i_massindex=
 idSTR=
 isVirtual=0
 id=0
@@ -706,7 +704,7 @@ s_name=Desc0
 i_index=-1
 i_left=0
 i_top=55
-i_height=15
+i_height=-1
 i_width=241
 l_backColor=203,203,203
 l_foreColor=
@@ -769,7 +767,7 @@ Theme=0
 5=1
 13=1
 [Windows11]
-style=wxST_NO_AUTORESIZE
+style=
 Estyle=
 i_stylePN=20
 idIncCmpFilCmp=0
@@ -778,8 +776,8 @@ validator=
 s_name=descriptionField1
 i_index=-1
 i_left=6
-i_top=142
-i_height=48
+i_top=88
+i_height=-1
 i_width=284
 l_backColor=
 l_foreColor=
@@ -836,13 +834,11 @@ dataObj\\SizRowPos=0
 dataObj\\SizColPos=0
 dataObj\\panelfitInsS=0
 IndexOfS=3
-[Windows11/style]
-20=1
 [Windows11/i_width]
 [Windows11/i_width/Windows11]
 Theme=0
 [Windows11/i_propN]
-0=Increase the upload speed limit in your preferences (for -Play Fast- mode you need at least 89 KB/s). \r\n
+0=< no info >
 [Windows11/sizerProp]
 1=1
 3=1
@@ -917,7 +913,7 @@ Theme=0
 5=1
 13=1
 [Windows13]
-style=wxST_NO_AUTORESIZE
+style=
 Estyle=
 i_stylePN=20
 idIncCmpFilCmp=0
@@ -926,8 +922,8 @@ validator=
 s_name=descriptionField2
 i_index=-1
 i_left=6
-i_top=241
-i_height=48
+i_top=171
+i_height=-1
 i_width=284
 l_backColor=
 l_foreColor=
@@ -967,7 +963,7 @@ i_sizeGrow=0
 i_border=6
 is_parent=0
 is_siz=0
-siz_style=41072
+siz_style=41200
 l_enWinSizeMin=0
 b_ItmsizeMinAb=0
 i_ItminSizeH=10
@@ -984,16 +980,15 @@ dataObj\\SizRowPos=0
 dataObj\\SizColPos=0
 dataObj\\panelfitInsS=0
 IndexOfS=1
-[Windows13/style]
-20=1
 [Windows13/i_width]
 [Windows13/i_width/Windows13]
 Theme=0
 [Windows13/i_propN]
-0=At the moment you have 8 friends. If you make more friends you can help in boosting each others download speeds. 
+0=< no info >
 [Windows13/sizerProp]
 0=1
 1=1
+2=1
 3=1
 5=1
 13=1
@@ -1007,7 +1002,7 @@ validator=
 s_name=Desc1
 i_index=-1
 i_left=0
-i_top=220
+i_top=175
 i_height=15
 i_width=241
 l_backColor=203,203,203
@@ -1071,7 +1066,7 @@ Theme=0
 5=1
 13=1
 [Windows15]
-style=wxST_NO_AUTORESIZE
+style=
 Estyle=
 i_stylePN=20
 idIncCmpFilCmp=0
@@ -1080,8 +1075,8 @@ validator=
 s_name=descriptionField3
 i_index=-1
 i_left=6
-i_top=307
-i_height=48
+i_top=208
+i_height=-1
 i_width=284
 l_backColor=
 l_foreColor=
@@ -1138,13 +1133,11 @@ dataObj\\SizRowPos=0
 dataObj\\SizColPos=0
 dataObj\\panelfitInsS=0
 IndexOfS=3
-[Windows15/style]
-20=1
 [Windows15/i_width]
 [Windows15/i_width/Windows15]
 Theme=0
 [Windows15/i_propN]
-0=Invite your friends, family, and colleagues to start using Tribler too, and add them to your list of friends. 
+0=< no info >
 [Windows15/sizerProp]
 1=1
 3=1
@@ -1157,10 +1150,10 @@ i_stylePN=20
 idIncCmpFilCmp=0
 i_tipoComp=600051
 validator=
-s_name=howToImprove
-i_index=1
+s_name=howToImprove1
+i_index=-1
 i_left=6
-i_top=289
+i_top=178
 i_height=18
 i_width=284
 l_backColor=
@@ -1179,7 +1172,7 @@ b_Enable=true
 s_tipoWxClasse=wxStaticText
 isfuncClsName=0
 funcClsName=
-i_massindex=3
+i_massindex=
 idSTR=
 isVirtual=0
 id=0
@@ -1240,7 +1233,7 @@ validator=
 s_name=Desc2
 i_index=-1
 i_left=0
-i_top=385
+i_top=315
 i_height=15
 i_width=241
 l_backColor=203,203,203
@@ -1304,7 +1297,7 @@ Theme=0
 5=1
 13=1
 [Windows18]
-style=wxST_NO_AUTORESIZE
+style=
 Estyle=
 i_stylePN=20
 idIncCmpFilCmp=0
@@ -1313,8 +1306,8 @@ validator=
 s_name=descriptionField4
 i_index=-1
 i_left=6
-i_top=406
-i_height=63
+i_top=278
+i_height=-1
 i_width=284
 l_backColor=
 l_foreColor=
@@ -1354,7 +1347,7 @@ i_sizeGrow=0
 i_border=6
 is_parent=0
 is_siz=0
-siz_style=41072
+siz_style=41200
 l_enWinSizeMin=0
 b_ItmsizeMinAb=0
 i_ItminSizeH=10
@@ -1371,16 +1364,15 @@ dataObj\\SizRowPos=0
 dataObj\\SizColPos=0
 dataObj\\panelfitInsS=0
 IndexOfS=1
-[Windows18/style]
-20=1
 [Windows18/i_width]
 [Windows18/i_width/Windows18]
 Theme=0
 [Windows18/i_propN]
-0=You have to open a port on your modem/router to enable other users to connect to you. If you do so the communication between you and your peers will be faster. 
+0=< no info >
 [Windows18/sizerProp]
 0=1
 1=1
+2=1
 3=1
 5=1
 13=1
@@ -1391,10 +1383,10 @@ i_stylePN=20
 idIncCmpFilCmp=0
 i_tipoComp=600051
 validator=
-s_name=howToImprove
-i_index=2
+s_name=howToImprove2
+i_index=-1
 i_left=6
-i_top=469
+i_top=279
 i_height=18
 i_width=284
 l_backColor=
@@ -1413,7 +1405,7 @@ b_Enable=true
 s_tipoWxClasse=wxStaticText
 isfuncClsName=0
 funcClsName=
-i_massindex=3
+i_massindex=
 idSTR=
 isVirtual=0
 id=0
@@ -1465,7 +1457,7 @@ Theme=0
 5=1
 13=1
 [Windows20]
-style=wxST_NO_AUTORESIZE
+style=
 Estyle=
 i_stylePN=20
 idIncCmpFilCmp=0
@@ -1474,8 +1466,8 @@ validator=
 s_name=descriptionField5
 i_index=-1
 i_left=6
-i_top=487
-i_height=18
+i_top=315
+i_height=-1
 i_width=284
 l_backColor=
 l_foreColor=
@@ -1532,13 +1524,11 @@ dataObj\\SizRowPos=0
 dataObj\\SizColPos=0
 dataObj\\panelfitInsS=0
 IndexOfS=3
-[Windows20/style]
-20=1
 [Windows20/i_width]
 [Windows20/i_width/Windows20]
 Theme=0
 [Windows20/i_propN]
-0=Read more on <URL> for instructions.
+0=< no info >
 [Windows20/sizerProp]
 1=1
 3=1
@@ -1554,7 +1544,7 @@ validator=
 s_name=takeMeThere0
 i_index=-1
 i_left=6
-i_top=190
+i_top=114
 i_height=21
 i_width=120
 l_backColor=
@@ -1589,7 +1579,7 @@ i_sizeGrow=0
 i_border=6
 is_parent=0
 is_siz=0
-siz_style=32912
+siz_style=32976
 l_enWinSizeMin=0
 b_ItmsizeMinAb=0
 i_ItminSizeH=10
@@ -1610,6 +1600,7 @@ IndexOfS=4
 [Windows21/i_width/Windows21]
 Theme=0
 [Windows21/sizerProp]
+0=1
 1=1
 2=1
 13=1
@@ -1617,13 +1608,13 @@ Theme=0
 style=
 Estyle=
 i_stylePN=16
-idIncCmpFilCmp=3110
+idIncCmpFilCmp=0
 i_tipoComp=690504
 validator=
 s_name=takeMeThere1
 i_index=-1
 i_left=6
-i_top=355
+i_top=227
 i_height=21
 i_width=120
 l_backColor=
@@ -1658,7 +1649,7 @@ i_sizeGrow=0
 i_border=6
 is_parent=0
 is_siz=0
-siz_style=32912
+siz_style=32976
 l_enWinSizeMin=0
 b_ItmsizeMinAb=0
 i_ItminSizeH=10
@@ -1679,21 +1670,22 @@ IndexOfS=4
 [Windows22/i_width/Windows22]
 Theme=0
 [Windows22/sizerProp]
+0=1
 1=1
 2=1
 13=1
 [Windows23]
-style=wxST_NO_AUTORESIZE
+style=
 Estyle=
 i_stylePN=20
-idIncCmpFilCmp=3137
+idIncCmpFilCmp=0
 i_tipoComp=600051
 validator=
 s_name=descriptionField0
 i_index=-1
 i_left=6
-i_top=76
-i_height=48
+i_top=51
+i_height=-1
 i_width=284
 l_backColor=
 l_foreColor=
@@ -1733,7 +1725,7 @@ i_sizeGrow=0
 i_border=6
 is_parent=0
 is_siz=0
-siz_style=41072
+siz_style=41200
 l_enWinSizeMin=0
 b_ItmsizeMinAb=0
 i_ItminSizeH=10
@@ -1750,18 +1742,87 @@ dataObj\\SizRowPos=0
 dataObj\\SizColPos=0
 dataObj\\panelfitInsS=0
 IndexOfS=1
-[Windows23/style]
-20=1
 [Windows23/i_width]
 [Windows23/i_width/Windows23]
 Theme=0
 [Windows23/i_propN]
-0=At the moment you have 8 friends. If you make more friends you can help in boosting each others download speeds. 
+0=< no info >
 [Windows23/sizerProp]
 0=1
 1=1
+2=1
 3=1
 5=1
+13=1
+[Windows24]
+style=
+Estyle=
+i_stylePN=16
+idIncCmpFilCmp=3257
+i_tipoComp=690504
+validator=
+s_name=takeMeThere2
+i_index=-1
+i_left=6
+i_top=334
+i_height=21
+i_width=120
+l_backColor=
+l_foreColor=
+l_backColorSys=
+l_foreColorSys=
+b_show=true
+b_showD=true
+b_Enable=true
+s_tipoWxClasse=tribler_topButton
+isfuncClsName=0
+funcClsName=
+i_massindex=
+idSTR=16:18:372202007
+isVirtual=1
+id=0
+TabOrderEn=0
+TabOrderId=0
+b_NOparentDes=0
+b_NOparentDesComp=0
+b_nocreate=0
+ClsMtr=*virtual*
+ClsTypF=
+npaint=0
+idIdentCmp=11342
+s_idIdentCmp=ID_CMP_1342
+t_idIdentCmp=1
+i_idPArent=26
+i_id=36
+parCompID=10
+i_sizeGrow=0
+i_border=6
+is_parent=0
+is_siz=0
+siz_style=32976
+l_enWinSizeMin=0
+b_ItmsizeMinAb=0
+i_ItminSizeH=10
+i_ItminSizeW=20
+iconNum=25
+s_info=
+s_funcPrima=
+s_funcDopo=
+s_funcNewCtor=
+s_includeNewCtor=
+dataObj\\SizRowSpan=1
+dataObj\\SizColSpan=1
+dataObj\\SizRowPos=0
+dataObj\\SizColPos=0
+dataObj\\panelfitInsS=0
+IndexOfS=4
+[Windows24/i_width]
+[Windows24/i_width/Windows24]
+Theme=0
+[Windows24/sizerProp]
+0=1
+1=1
+2=1
 13=1
 [sizer]
 nSiz=7
@@ -2077,7 +2138,7 @@ i_tipoComp=600002
 b_sizeMinAb=0
 i_minSizeH=0
 i_minSizeW=0
-l_nComInSiz=4
+l_nComInSiz=5
 i_idPArent=11
 i_id=26
 i_sizeGrow=0
@@ -2106,12 +2167,13 @@ SizeSpaceH=20
 idIncCmpFilCmp=2975
 IndexOfS=4
 siz_style=40960
-childSiz=27:28:29:30
+childSiz=27:28:29:30:36
 [sizerWin7/id]
 0=27
 1=28
 2=29
 3=30
+4=36
 [sizerWin7/sizerProp]
 5=1
 13=1

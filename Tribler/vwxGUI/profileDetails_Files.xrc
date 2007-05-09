@@ -81,8 +81,7 @@
               <border>6</border>
               <option>0</option>
               <object class="wxStaticText" name="descriptionField0">
-                <label>So far, you have discovered 122 files. 
-</label>
+                <label>&lt; no info &gt;</label>
                 <pos>6,20</pos>
                 <size>284,-1</size>
                 <font>
@@ -96,13 +95,13 @@
               </object>
             </object>
             <object class="sizeritem">
-              <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
               <object class="wxStaticText" name="howToImprove">
                 <style>wxST_NO_AUTORESIZE</style>
                 <label>How to improve</label>
-                <pos>6,53</pos>
+                <pos>6,52</pos>
                 <size>284,18</size>
                 <font>
                   <size>8</size>
@@ -115,14 +114,12 @@
               </object>
             </object>
             <object class="sizeritem">
-              <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
               <object class="wxStaticText" name="descriptionField1">
-                <label>Stay online longer to discover more files.
-
-You have set your maximum on 2000 files. Set it higher to discover more files. </label>
-                <pos>6,77</pos>
+                <label>&lt; no info &gt;</label>
+                <pos>6,70</pos>
                 <size>284,-1</size>
                 <font>
                   <size>8</size>
@@ -135,11 +132,11 @@ You have set your maximum on 2000 files. Set it higher to discover more files. <
               </object>
             </object>
             <object class="sizeritem">
-              <flag>wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
+              <flag>wxTOP|wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
               <object class="wxPanel" name="takeMeThere0" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                <pos>6,140</pos>
+                <pos>6,115</pos>
                 <size>120,21</size>
               </object>
             </object>

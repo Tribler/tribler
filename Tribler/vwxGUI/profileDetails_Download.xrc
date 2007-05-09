@@ -81,7 +81,7 @@
               <border>6</border>
               <option>0</option>
               <object class="wxStaticText" name="descriptionField">
-                <label>You are not using your download speed optimally. To increase, follow the instructions.</label>
+                <label>&lt; no info &gt;</label>
                 <pos>6,14</pos>
                 <size>284,-1</size>
                 <font>
@@ -113,11 +113,11 @@
                   </object>
                 </object>
                 <object class="sizeritem">
-                  <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>6</border>
                   <option>0</option>
                   <object class="wxStaticText" name="descriptionField0">
-                    <label>At the moment you have 8 friends. If you make more friends you can help in boosting each others download speeds. </label>
+                    <label>&lt; no info &gt;</label>
                     <pos>6,51</pos>
                     <size>284,-1</size>
                     <font>
@@ -154,9 +154,8 @@
                   <border>6</border>
                   <option>0</option>
                   <object class="wxStaticText" name="descriptionField1">
-                    <label>Increase the upload speed limit in your preferences (for -Play Fast- mode you need at least 89 KB/s). 
-</label>
-                    <pos>6,82</pos>
+                    <label>&lt; no info &gt;</label>
+                    <pos>6,88</pos>
                     <size>284,-1</size>
                     <font>
                       <size>8</size>
@@ -198,12 +197,12 @@
                   </object>
                 </object>
                 <object class="sizeritem">
-                  <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>6</border>
                   <option>0</option>
                   <object class="wxStaticText" name="descriptionField2">
-                    <label>At the moment you have 8 friends. If you make more friends you can help in boosting each others download speeds. </label>
-                    <pos>6,165</pos>
+                    <label>&lt; no info &gt;</label>
+                    <pos>6,171</pos>
                     <size>284,-1</size>
                     <font>
                       <size>8</size>
@@ -239,8 +238,8 @@
                   <border>6</border>
                   <option>0</option>
                   <object class="wxStaticText" name="descriptionField3">
-                    <label>Invite your friends, family, and colleagues to start using Tribler too, and add them to your list of friends. </label>
-                    <pos>6,196</pos>
+                    <label>&lt; no info &gt;</label>
+                    <pos>6,208</pos>
                     <size>284,-1</size>
                     <font>
                       <size>8</size>
@@ -257,7 +256,7 @@
                   <border>6</border>
                   <option>0</option>
                   <object class="wxPanel" name="takeMeThere1" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                    <pos>6,254</pos>
+                    <pos>6,227</pos>
                     <size>120,21</size>
                   </object>
                 </object>
@@ -282,12 +281,12 @@
                   </object>
                 </object>
                 <object class="sizeritem">
-                  <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>6</border>
                   <option>0</option>
                   <object class="wxStaticText" name="descriptionField4">
-                    <label>You have to open a port on your modem/router to enable other users to connect to you. If you do so the communication between you and your peers will be faster. </label>
-                    <pos>6,266</pos>
+                    <label>&lt; no info &gt;</label>
+                    <pos>6,278</pos>
                     <size>284,-1</size>
                     <font>
                       <size>8</size>
@@ -323,8 +322,8 @@
                   <border>6</border>
                   <option>0</option>
                   <object class="wxStaticText" name="descriptionField5">
-                    <label>Read more on &lt;URL&gt; for instructions.</label>
-                    <pos>6,297</pos>
+                    <label>&lt; no info &gt;</label>
+                    <pos>6,315</pos>
                     <size>284,-1</size>
                     <font>
                       <size>8</size>
@@ -334,6 +333,15 @@
                       <underlined>0</underlined>
                       <face>Verdana</face>
                     </font>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxPanel" name="takeMeThere2" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <pos>6,334</pos>
+                    <size>120,21</size>
                   </object>
                 </object>
               </object>

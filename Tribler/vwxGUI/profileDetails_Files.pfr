@@ -22,7 +22,7 @@ n=12
 n=1
 ws_name=profileDetails_Files.pfr
 ws_dir=.\\
-i_id=77
+i_id=78
 s_tipoFile=21
 s_tipoComp=0
 wx_WindowFileADD=543521385
@@ -536,7 +536,7 @@ Theme=0
 5=1
 13=1
 [Windows8]
-style=wxST_NO_AUTORESIZE
+style=
 Estyle=
 i_stylePN=20
 idIncCmpFilCmp=0
@@ -546,7 +546,7 @@ s_name=descriptionField0
 i_index=-1
 i_left=6
 i_top=20
-i_height=33
+i_height=-1
 i_width=284
 l_backColor=
 l_foreColor=
@@ -603,13 +603,11 @@ dataObj\\SizRowPos=0
 dataObj\\SizColPos=0
 dataObj\\panelfitInsS=0
 IndexOfS=1
-[Windows8/style]
-20=1
 [Windows8/i_width]
 [Windows8/i_width/Windows8]
 Theme=0
 [Windows8/i_propN]
-0=So far, you have discovered 122 files. \r\n
+0=< no info >
 [Windows8/sizerProp]
 0=1
 1=1
@@ -617,7 +615,7 @@ Theme=0
 5=1
 13=1
 [Windows9]
-style=wxST_NO_AUTORESIZE
+style=
 Estyle=
 i_stylePN=20
 idIncCmpFilCmp=0
@@ -626,8 +624,8 @@ validator=
 s_name=descriptionField1
 i_index=-1
 i_left=6
-i_top=77
-i_height=63
+i_top=70
+i_height=-1
 i_width=284
 l_backColor=
 l_foreColor=
@@ -667,7 +665,7 @@ i_sizeGrow=0
 i_border=6
 is_parent=0
 is_siz=0
-siz_style=41072
+siz_style=41008
 l_enWinSizeMin=0
 b_ItmsizeMinAb=0
 i_ItminSizeH=10
@@ -684,15 +682,12 @@ dataObj\\SizRowPos=0
 dataObj\\SizColPos=0
 dataObj\\panelfitInsS=0
 IndexOfS=3
-[Windows9/style]
-20=1
 [Windows9/i_width]
 [Windows9/i_width/Windows9]
 Theme=0
 [Windows9/i_propN]
-0=Stay online longer to discover more files.\r\n\r\nYou have set your maximum on 2000 files. Set it higher to discover more files. 
+0=< no info >
 [Windows9/sizerProp]
-0=1
 1=1
 3=1
 5=1
@@ -775,7 +770,7 @@ validator=
 s_name=howToImprove
 i_index=-1
 i_left=6
-i_top=53
+i_top=52
 i_height=18
 i_width=284
 l_backColor=
@@ -816,7 +811,7 @@ i_sizeGrow=0
 i_border=6
 is_parent=0
 is_siz=0
-siz_style=41008
+siz_style=41072
 l_enWinSizeMin=0
 b_ItmsizeMinAb=0
 i_ItminSizeH=10
@@ -841,6 +836,7 @@ Theme=0
 [Windows11/i_propN]
 0=How to improve
 [Windows11/sizerProp]
+0=1
 1=1
 3=1
 5=1
@@ -855,7 +851,7 @@ validator=
 s_name=takeMeThere0
 i_index=-1
 i_left=6
-i_top=140
+i_top=115
 i_height=21
 i_width=120
 l_backColor=
@@ -890,7 +886,7 @@ i_sizeGrow=0
 i_border=6
 is_parent=0
 is_siz=0
-siz_style=32912
+siz_style=32976
 l_enWinSizeMin=0
 b_ItmsizeMinAb=0
 i_ItminSizeH=10
@@ -911,6 +907,7 @@ IndexOfS=4
 [Windows12/i_width/Windows12]
 Theme=0
 [Windows12/sizerProp]
+0=1
 1=1
 2=1
 13=1

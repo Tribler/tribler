@@ -77,12 +77,11 @@
               <option>0</option>
             </object>
             <object class="sizeritem">
-              <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
               <object class="wxStaticText" name="descriptionField0">
-                <label>You have discovered 153 persons. Stay online longer to discover more persons. 
-</label>
+                <label>&lt; no info &gt;</label>
                 <pos>6,20</pos>
                 <size>284,-1</size>
                 <font>
@@ -102,7 +101,7 @@
               <object class="wxStaticText" name="howToImprove">
                 <style>wxST_NO_AUTORESIZE</style>
                 <label>How to improve</label>
-                <pos>6,63</pos>
+                <pos>6,52</pos>
                 <size>284,18</size>
                 <font>
                   <size>8</size>
@@ -115,13 +114,13 @@
               </object>
             </object>
             <object class="sizeritem">
-              <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <flag>wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
               <object class="wxStaticText" name="descriptionField1">
-                <label>Stay online longer and you will discover more persons.</label>
-                <pos>6,87</pos>
-                <size>315,-1</size>
+                <label>&lt; no info &gt;</label>
+                <pos>6,70</pos>
+                <size>284,-1</size>
                 <font>
                   <size>8</size>
                   <family>modern</family>

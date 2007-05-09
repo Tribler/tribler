@@ -69,82 +69,62 @@
           <size>300,348</size>
           <bg>#ffffff</bg>
           <object class="wxBoxSizer">
-            <orient>wxVERTICAL</orient>
+            <orient>wxHORIZONTAL</orient>
             <object class="spacer">
-              <size>105,8</size>
+              <size>71,120</size>
+              <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>1</option>
+            </object>
+            <object class="sizeritem">
               <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>3</border>
               <option>0</option>
-            </object>
-            <object class="sizeritem">
-              <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-              <border>6</border>
-              <option>0</option>
-              <object class="wxStaticText" name="descriptionField0">
-                <label>Your overall performance influences your Tribler membership level. You have reached the level of 'Beginner'.
-
-- Beginner
-- Experienced
-- Top User
-- Master</label>
-                <pos>6,20</pos>
-                <size>284,113</size>
-                <bg>#ffffff</bg>
-                <fg>#     0</fg>
-                <font>
-                  <size>8</size>
-                  <family>modern</family>
-                  <style>normal</style>
-                  <weight>normal</weight>
-                  <underlined>0</underlined>
-                  <face>Verdana</face>
-                </font>
+              <object class="wxBoxSizer">
+                <orient>wxVERTICAL</orient>
+                <object class="spacer">
+                  <size>76,18</size>
+                  <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                  <object class="wxPanel" name="level0" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+                    <pos>83,24</pos>
+                    <size>130,282</size>
+                    <bg>#ffffff</bg>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="descriptionField0">
+                    <label>beginner</label>
+                    <pos>86,315</pos>
+                    <size>84,40</size>
+                    <bg>#ffffff</bg>
+                    <fg>#     0</fg>
+                    <font>
+                      <size>16</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>normal</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
               </object>
             </object>
-            <object class="sizeritem">
-              <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-              <border>6</border>
-              <option>0</option>
-              <object class="wxStaticText" name="howToImprove">
-                <style>wxST_NO_AUTORESIZE</style>
-                <label>How to improve</label>
-                <pos>6,133</pos>
-                <size>284,18</size>
-                <font>
-                  <size>8</size>
-                  <family>modern</family>
-                  <style>normal</style>
-                  <weight>bold</weight>
-                  <underlined>0</underlined>
-                  <face>Verdana</face>
-                </font>
-              </object>
-            </object>
-            <object class="sizeritem">
-              <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-              <border>6</border>
-              <option>0</option>
-              <object class="wxStaticText" name="descriptionField1">
-                <style>wxST_NO_AUTORESIZE</style>
-                <label>If you want to increase your membership level, just follow the instructions for all five aspects that define your overall performance:
- 	
-- Quality of Tribler recommendations
-- Discovered persons similar to your taste
-- Discovered files that fit your taste
-- Maximum download speed
-- Social presence
-</label>
-                <pos>6,157</pos>
-                <size>284,138</size>
-                <font>
-                  <size>8</size>
-                  <family>modern</family>
-                  <style>normal</style>
-                  <weight>normal</weight>
-                  <underlined>0</underlined>
-                  <face>Verdana</face>
-                </font>
-              </object>
+            <object class="spacer">
+              <size>77,66</size>
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>1</option>
             </object>
           </object>
         </object>

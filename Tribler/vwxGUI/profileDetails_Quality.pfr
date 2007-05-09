@@ -13,7 +13,7 @@ s_tipoFile=21
 ClsparentCompTipo=0
 l_framTipo=0
 VisualWxVersion=0.87.2.5
-VisualWxIdent=8725
+VisualWxIdent=8724
 l_hasAutoSize=1
 strTree=00it=3 01it=4 02it=5 02it=6 03it=7 04it=8 02it=9 01it=58 02it=59 03it=60 03it=61 03it=62 03it=63 01it=46 
 [Controlli]
@@ -613,7 +613,7 @@ validator=
 s_name=descriptionField0
 i_index=-1
 i_left=6
-i_top=20
+i_top=14
 i_height=-1
 i_width=284
 l_backColor=
@@ -654,7 +654,7 @@ i_sizeGrow=0
 i_border=6
 is_parent=0
 is_siz=0
-siz_style=41072
+siz_style=41008
 l_enWinSizeMin=0
 b_ItmsizeMinAb=0
 i_ItminSizeH=10
@@ -677,9 +677,8 @@ IndexOfS=1
 [Windows9/i_width/Windows9]
 Theme=0
 [Windows9/i_propN]
-0=Download more files to increase the quality of Tribler recommendations.\r\n
+0=< no info >\r\n
 [Windows9/sizerProp]
-0=1
 1=1
 3=1
 5=1
@@ -694,7 +693,7 @@ validator=
 s_name=howToImprove
 i_index=-1
 i_left=6
-i_top=63
+i_top=80
 i_height=18
 i_width=284
 l_backColor=
@@ -735,7 +734,7 @@ i_sizeGrow=0
 i_border=6
 is_parent=0
 is_siz=0
-siz_style=41008
+siz_style=41072
 l_enWinSizeMin=0
 b_ItmsizeMinAb=0
 i_ItminSizeH=10
@@ -760,12 +759,13 @@ Theme=0
 [Windows10/i_propN]
 0=How to improve
 [Windows10/sizerProp]
+0=1
 1=1
 3=1
 5=1
 13=1
 [Windows11]
-style=wxST_NO_AUTORESIZE
+style=
 Estyle=
 i_stylePN=20
 idIncCmpFilCmp=0
@@ -774,7 +774,7 @@ validator=
 s_name=descriptionField1
 i_index=-1
 i_left=6
-i_top=104
+i_top=98
 i_height=-1
 i_width=284
 l_backColor=
@@ -815,7 +815,7 @@ i_sizeGrow=0
 i_border=6
 is_parent=0
 is_siz=0
-siz_style=41072
+siz_style=41136
 l_enWinSizeMin=0
 b_ItmsizeMinAb=0
 i_ItminSizeH=10
@@ -832,16 +832,14 @@ dataObj\\SizRowPos=0
 dataObj\\SizColPos=0
 dataObj\\panelfitInsS=0
 IndexOfS=3
-[Windows11/style]
-20=1
 [Windows11/i_width]
 [Windows11/i_width/Windows11]
 Theme=0
 [Windows11/i_propN]
-0=Download more files to increase the quality of Tribler recommendations.\r\n
+0=< no info >\r\n
 [Windows11/sizerProp]
-0=1
 1=1
+2=1
 3=1
 5=1
 13=1

@@ -81,7 +81,7 @@
               <border>6</border>
               <option>0</option>
               <object class="wxStaticText" name="descriptionField0">
-                <label>Download more files to increase the quality of Tribler recommendations.
+                <label>&lt; no info &gt;
 </label>
                 <pos>6,14</pos>
                 <size>284,-1</size>
@@ -96,13 +96,13 @@
               </object>
             </object>
             <object class="sizeritem">
-              <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
               <object class="wxStaticText" name="howToImprove">
                 <style>wxST_NO_AUTORESIZE</style>
                 <label>How to improve</label>
-                <pos>6,74</pos>
+                <pos>6,80</pos>
                 <size>284,18</size>
                 <font>
                   <size>8</size>
@@ -115,13 +115,13 @@
               </object>
             </object>
             <object class="sizeritem">
-              <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <flag>wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
               <object class="wxStaticText" name="descriptionField1">
-                <label>Download more files to increase the quality of Tribler recommendations.
+                <label>&lt; no info &gt;
 </label>
-                <pos>6,92</pos>
+                <pos>6,98</pos>
                 <size>284,-1</size>
                 <font>
                   <size>8</size>

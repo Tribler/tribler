@@ -77,11 +77,11 @@
               <option>0</option>
             </object>
             <object class="sizeritem">
-              <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <flag>wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
               <object class="wxStaticText" name="descriptionField">
-                <label>If you want to increase your network reach, follow the instructions.</label>
+                <label>&lt; no info &gt;</label>
                 <pos>6,14</pos>
                 <size>284,-1</size>
                 <font>
@@ -107,12 +107,12 @@
               </object>
             </object>
             <object class="sizeritem">
-              <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
               <object class="wxStaticText" name="descriptionField0">
-                <label>same as in download speed</label>
-                <pos>6,71</pos>
+                <label>&lt; no info &gt;</label>
+                <pos>6,77</pos>
                 <size>284,-1</size>
                 <font>
                   <size>8</size>
@@ -144,12 +144,12 @@
               </object>
             </object>
             <object class="sizeritem">
-              <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <flag>wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
               <object class="wxStaticText" name="descriptionField1">
-                <label>same as in download speed</label>
-                <pos>6,102</pos>
+                <label>&lt; no info &gt;</label>
+                <pos>6,114</pos>
                 <size>284,-1</size>
                 <font>
                   <size>8</size>
@@ -174,12 +174,12 @@
               </object>
             </object>
             <object class="sizeritem">
-              <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
               <object class="wxStaticText" name="descriptionField2">
-                <label>Your overall sharing ratio is 0.82. This means that you download more from others than you upload to them. </label>
-                <pos>6,139</pos>
+                <label>&lt; no info &gt;</label>
+                <pos>6,157</pos>
                 <size>284,-1</size>
                 <font>
                   <size>8</size>
@@ -211,13 +211,12 @@
               </object>
             </object>
             <object class="sizeritem">
-              <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <flag>wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
               <object class="wxStaticText" name="descriptionField3">
-                <label>To reach a fair sharing ratio, you should share your files longer. 
-</label>
-                <pos>6,205</pos>
+                <label>&lt; no info &gt;</label>
+                <pos>6,229</pos>
                 <size>284,-1</size>
                 <font>
                   <size>8</size>
@@ -242,14 +241,12 @@
               </object>
             </object>
             <object class="sizeritem">
-              <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <flag>wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
               <object class="wxStaticText" name="descriptionField4">
-                <label>You are using an old version of Tribler and not taking advantage of the new features available. 
-
-You are up to date!</label>
-                <pos>6,261</pos>
+                <label>&lt; no info &gt;</label>
+                <pos>6,291</pos>
                 <size>284,-1</size>
                 <font>
                   <size>8</size>
@@ -285,9 +282,8 @@ You are up to date!</label>
               <border>6</border>
               <option>0</option>
               <object class="wxStaticText" name="descriptionField5">
-                <label>Update to the newest version 4.0 at &lt;url&gt;.
-</label>
-                <pos>6,318</pos>
+                <label>&lt; no info &gt;</label>
+                <pos>6,354</pos>
                 <size>284,-1</size>
                 <font>
                   <size>8</size>
@@ -297,6 +293,15 @@ You are up to date!</label>
                   <underlined>0</underlined>
                   <face>Verdana</face>
                 </font>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxTOP|wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
+              <border>6</border>
+              <option>0</option>
+              <object class="wxPanel" name="takeMeThere0" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                <pos>6,368</pos>
+                <size>120,21</size>
               </object>
             </object>
           </object>

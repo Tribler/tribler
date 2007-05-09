@@ -13,7 +13,7 @@ s_tipoFile=21
 ClsparentCompTipo=0
 l_framTipo=0
 VisualWxVersion=0.87.2.5
-VisualWxIdent=8725
+VisualWxIdent=8724
 l_hasAutoSize=1
 strTree=00it=3 01it=193 02it=194 02it=195 03it=196 04it=197 02it=198 01it=240 02it=241 03it=243 03it=260 01it=201 02it=202 03it=246 03it=247 01it=207 02it=208 03it=209 04it=210 05it=220 06it=221 06it=244 06it=222 05it=257 06it=258 06it=259 04it=223 05it=249 05it=245 03it=225 03it=255 03it=227 04it=228 03it=262 01it=239 
 [Controlli]
@@ -1729,7 +1729,7 @@ Theme=0
 style=
 Estyle=
 i_stylePN=16
-idIncCmpFilCmp=3215
+idIncCmpFilCmp=0
 i_tipoComp=690538
 validator=
 s_name=alsoDownloadedField
