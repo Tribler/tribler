@@ -290,7 +290,8 @@ class TorrentDataManager:
         for torrent in self.data:
             low = torrent['content_name'].lower()
             for wantkw in self.searchkeywords:
-                if low.find(wantkw) != -1:
+                # only search in alive torrents
+                if low.find(wantkw) != -1 and torrent['status'] == 'good':
                     print "tdm: search: Got hit",`wantkw`,"found in",`torrent['content_name']`
                     hits.append(torrent)
         return hits
