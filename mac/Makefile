@@ -8,27 +8,28 @@
 
 OPENSSL_VER=0.9.8e
 PYTHON_VER=2.5
+PWD:=${shell pwd}
 
-all:	clean Tribler.dmg
+all:	clean dirs Tribler.dmg
 
 clean:
-	rm -rf imagecontents/ Tribler.dmg
+	rm -rf build/imagecontents/ Tribler.dmg
 
-SITEPACKAGES=Library/Frameworks/Python.framework/Versions/${PYTHON_VER}/lib/python${PYTHON_VER}/site-packages
+SITEPACKAGES=build/lib/Library/Frameworks/Python.framework/Versions/${PYTHON_VER}/lib/python${PYTHON_VER}/site-packages
 PYTHON=python${PYTHON_VER}
 
-distclean:		clean
-	rm -rf m2crypto/ build/ openssl/ growl/ Library/ openssl-${OPENSSL_VER}.tar.gz
+distclean:
+	rm -rf build/ Tribler.dmg
+	make dirs
 
-.PHONY: 		all clean distclean
+dirs:
+	mkdir -p build/temp build/lib
+
+.PHONY: 		all clean distclean dirs
 
 # ----- Tribler
 
-build/sla.r:		SLAResources.rsrc
-	mkdir -p build
-	/Developer/Tools/DeRez -useDF $< > $@
-
-imagecontents/:		${SITEPACKAGES}/M2Crypto/ ${SITEPACKAGES}/Growl.py
+build/imagecontents/:	${SITEPACKAGES}/M2Crypto/ ${SITEPACKAGES}/Growl.py
 	rm -rf $@
 	mkdir -p $@
 
@@ -51,24 +52,23 @@ imagecontents/:		${SITEPACKAGES}/M2Crypto/ ${SITEPACKAGES}/Growl.py
 
 	touch $@
 
-Tribler.dmg:		imagecontents/ build/sla.r
+Tribler.dmg:		build/imagecontents/ SLAResources.rsrc
 	rm -f $@
-	mkdir -p build
 
 	# create image
 	hdiutil create -srcfolder $< -format UDRW -scrub -volname Tribler $@
 
 	# open it
-	hdiutil attach -readwrite -noverify -noautoopen $@ -mountpoint build/mnt
+	hdiutil attach -readwrite -noverify -noautoopen $@ -mountpoint build/temp/mnt
 
 	# make sure root folder is opened when image is
-	bless --folder build/mnt --openfolder build/mnt
+	bless --folder build/temp/mnt --openfolder build/temp/mnt
 	# hack: wait for completion
 	sleep 1
 
 	# position items
 	osascript -e "tell application \"Finder\"" \
-	-e "   set f to POSIX file (\""`pwd`"/build/mnt\" as string) as alias" \
+	-e "   set f to POSIX file (\""${PWD}"/build/temp/mnt\" as string) as alias" \
 	-e "   tell folder f" \
 	-e "       open" \
 	-e "       tell container window" \
@@ -95,64 +95,78 @@ Tribler.dmg:		imagecontents/ build/sla.r
 	-e "end tell" || true
 
 	# turn on custom volume icon
-	/Developer/Tools/SetFile -a C build/mnt
+	/Developer/Tools/SetFile -a C build/temp/mnt
 
 	# close
-	hdiutil detach build/mnt
+	hdiutil detach build/temp/mnt
 
 	# make read-only
-	mv $@ build/rw.dmg
-	hdiutil convert build/rw.dmg -format UDZO -imagekey zlib-level=9 -o $@
-	rm -f build/rw.dmg
+	mv $@ build/temp/rw.dmg
+	hdiutil convert build/temp/rw.dmg -format UDZO -imagekey zlib-level=9 -o $@
+	rm -f build/temp/rw.dmg
 
 	# add EULA
 	hdiutil unflatten $@
-	/Developer/Tools/Rez -a build/sla.r -o $@
+	/Developer/Tools/DeRez -useDF SLAResources.rsrc > build/temp/sla.r
+	/Developer/Tools/Rez -a build/temp/sla.r -o $@
 	hdiutil flatten $@
 
 # ----- Growl bindings
 
-growl-bindings/:
-	svn co http://src.growl.info/growl/trunk/Bindings/python $@
+${SITEPACKAGES}/Growl.py:
+	svn co http://src.growl.info/growl/trunk/Bindings/python build/temp/growl-bindings
+	cd build/temp/growl-bindings && ${PYTHON} setup.py install --root ${PWD}/build/lib
 
-${SITEPACKAGES}/Growl.py:	growl-bindings/
-	cd $< && ${PYTHON} setup.py install --root ..
+# ----- OpenSSL and M2Crypto
+
+${SITEPACKAGES}/M2Crypto/:
+	curl http://www.openssl.org/source/openssl-0.9.8e.tar.gz -o build/temp/openssl-${OPENSSL_VER}.tar.gz
+
+	mkdir -p build/temp/openssl-i386
+	mkdir -p build/temp/openssl-ppc
+
+	cd build/temp && tar xfz openssl-${OPENSSL_VER}.tar.gz
+	mv build/temp/openssl-${OPENSSL_VER} build/temp/openssl
+
+	cd build/temp/openssl && make clean
+	cd build/temp/openssl && ./Configure 386 darwin-i386-cc
+	cd build/temp/openssl && make build_libs "CC=cc -arch i386"
+	mv build/temp/openssl/*.a build/temp/openssl-i386
+
+	cd build/temp/openssl && make clean
+	cd build/temp/openssl && ./Configure darwin-ppc-cc
+	cd build/temp/openssl && make build_libs "CC=cc -arch ppc"
+	mv build/temp/openssl/*.a build/temp/openssl-ppc
+
+	lipo -create -output build/temp/openssl/libcrypto.a build/temp/openssl-*/libcrypto.a
+	ranlib build/temp/openssl/libcrypto.a
+
+	lipo -create -output build/temp/openssl/libssl.a build/temp/openssl-*/libssl.a
+	ranlib build/temp/openssl/libssl.a
+
+	svn co http://svn.tribler.org/m2crypto/branches/main build/temp/m2crypto
+	cd build/temp/m2crypto && ${PYTHON} setup.py install --root ${PWD}/build/lib
+
+# ----- VLC
+
+build/temp/vlc/:
+	svn co svn://svn.videolan.org/vlc/trunk $@
+	cd $@/extras/contrib && ./bootstrap
+	cd $@/extras/contrib && make src
+	cd $@ && ./bootstrap
+	cd $@ && ./configure --enable-debug --disable-x11 --disable-xvideo --disable-glx --enable-sdl --enable-mad --enable-libdvbpsi --enable-a52 --disable-dvdplay --enable-dvdnav --enable-dvdread --enable-ffmpeg --enable-faad --enable-flac --enable-vorbis --enable-speex --enable-theora --enable-ogg --enable-shout --enable-cddb --disable-cddax --enable-vcdx --disable-skins --disable-skins2 --disable-wxwidgets --enable-freetype --enable-fribidi --enable-caca --enable-live555 --enable-dca --enable-goom --enable-modplug --enable-gnutls --enable-daap --enable-ncurses --enable-libtwolame --enable-x264 --enable-png --enable-realrtsp --disable-libtool --prefix=${PWD}/$@/install-root
+	cd $@ && patch -p0 < `pwd`/vlc-macosx.patch
+	cd $@ && ./compile
+	cd $@ && make install
+	cd $@/bindings/python && python2.3 setup.py build
 	touch $@
 
-# ----- M2Crypto
+build/vlc/:		vlc/
+	mkdir -p $@
+	cp vlc/bindings/python/build/lib*/vlc.so build/vlc
+	cp vlc/extras/contrib/vlc-lib/vlc_libintl.dylib build/vlc
+	install_name_tool -change @executable_path/lib/vlc_libintl.dylib vlc_libintl.dylib build/vlc/vlc.so
 
-m2crypto/:
-	svn co http://svn.tribler.org/m2crypto/branches/main $@
 
-${SITEPACKAGES}/M2Crypto/:	m2crypto/ openssl/libssl.a openssl/libcrypto.a
-	cd m2crypto && ${PYTHON} setup.py install --root ..
-	touch $@
-	
-# ----- OpenSSL
-
-openssl-${OPENSSL_VER}.tar.gz:
-	curl http://www.openssl.org/source/openssl-0.9.8e.tar.gz -o openssl-${OPENSSL_VER}.tar.gz
-
-openssl/:			openssl-${OPENSSL_VER}.tar.gz
-	tar xfz openssl-${OPENSSL_VER}.tar.gz
-	mv openssl-${OPENSSL_VER} openssl
-
-openssl/libcrypto.a openssl/libssl.a:	openssl/
-	mkdir -p build/openssl-i386
-	mkdir -p build/openssl-ppc
-
-	cd openssl && make clean
-	cd openssl && ./Configure 386 darwin-i386-cc
-	cd openssl && make build_libs "CC=cc -arch i386"
-	mv openssl/*.a build/openssl-i386
-
-	cd openssl && make clean
-	cd openssl && ./Configure darwin-ppc-cc
-	cd openssl && make build_libs "CC=cc -arch ppc"
-	mv openssl/*.a build/openssl-ppc
-
-	lipo -create -output openssl/libcrypto.a build/openssl-*/libcrypto.a
-	ranlib openssl/libcrypto.a
-
-	lipo -create -output openssl/libssl.a build/openssl-*/libssl.a
-	ranlib openssl/libssl.a
+changes:
+	for i in `find . -name "*.dylib"`; do otool -L $$i | perl -ne 'print "install_name_tool -change $$1 lib/$$2 '$$i'\n" if m#(\@executable_path/lib/(\S+))#;'; done
