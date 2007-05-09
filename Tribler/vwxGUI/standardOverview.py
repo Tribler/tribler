@@ -261,7 +261,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     
     
     def loadPersonsData(self, cat, sort):
-        print '<mluc>[',self.mode,'view] Category set to %s, %s' % (str(cat), str(sort))
+#        print '<mluc>[',self.mode,'view] Category set to %s, %s' % (str(cat), str(sort))
 
         if self.mode in [ "personsMode","friendsMode"]:
             self.data[self.mode]['data'] = self.peer_manager.getFilteredData(cat)
@@ -282,7 +282,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             if currentSortFunc != newSortFunc:
                 self.peer_manager.setCmpFunc(newSortFunc, cat)
         else:
-            print "<mluc> not correct standard overview mode for loading peers:",self.mode
+            if DEBUG:
+                print "<mluc> not correct standard overview mode for loading peers:",self.mode
     
     def loadLibraryData(self, cat, sort):
         # Get infohashes of current downloads

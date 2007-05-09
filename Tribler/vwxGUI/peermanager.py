@@ -627,7 +627,7 @@ class PeerDataManager(DelayedEventHandler):
                         return (i+1)
             except:
                 pass
-        elif peer_data is not None:
+        elif peer_data is not None and peer_data.has_key('simTop'):
             return peer_data['simTop']
 #            print "error on getting rank"
         return -1

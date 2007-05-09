@@ -317,8 +317,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         
     def setData(self, item):
         self.item = item
-        if not item:
-            return
+        if item is None:
+            item = {}
         if self.mode in ['filesMode', 'libraryMode']:
             #check if this is a corresponding item from type point of view
             if item.get('infohash') is None:
@@ -412,31 +412,33 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                         
         elif self.mode in ['personsMode', 'friendsMode']:
             #check if this is a corresponding item from type point of view
-            if item.get('permid') is None:
-                return #no valid torrent
+#            if item.get('permid') is None:
+#                return #no valid torrent
             
             titleField = self.getGuiObj('titleField')
-            titleField.SetLabel(item.get('content_name'))
+            titleField.SetLabel(item.get('content_name',''))
             titleField.Wrap(-1)
             
             #set the picture
             try:
-                bmp = self.mm.get_default('personsMode','DEFAULT_THUMB')
+                bmp = None
                 # Check if we have already read the thumbnail and metadata information from this torrent file
                 if item.get('metadata'):
                     bmp = item['metadata'].get('ThumbnailBitmap')
-                    if not bmp:
-                        bmp = self.mm.get_default('personsMode','DEFAULT_THUMB')
                 else:
-                    guiserver = GUIServer.getInstance()
-                    guiserver.add_task(lambda:self.loadMetadata(item),0)
+                    pass
+#                    guiserver = GUIServer.getInstance()
+#                    guiserver.add_task(lambda:self.loadMetadata(item),0)
+                if not bmp:
+                    bmp = self.mm.get_default('personsMode','DEFAULT_THUMB')
+                    print "<mluc> set default persons thumb for details view"
                 
                 thumbField = self.getGuiObj("thumbField")
                 thumbField.setBitmap(bmp)
                 width, height = thumbField.GetSize()
                 d = 1
                 thumbField.border = [wx.Point(0,d), wx.Point(width-d, d), wx.Point(width-d, height-d), wx.Point(d,height-d), wx.Point(d,0)]
-                thumbField.Refresh()
+                wx.CallAfter(thumbField.Refresh)
                 
             except:
                 print_exc(file=sys.stderr)
@@ -474,18 +476,21 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 
                 if item.get('online'):
                     self.getGuiObj('statusField').SetLabel( 'online')
+                elif item.get('last_seen') is not None:
+                    if item['last_seen'] < 0:
+                        self.getGuiObj('statusField').SetLabel('never seen')
+                    else:
+                        self.getGuiObj('statusField').SetLabel('connected  %s' % friendly_time(item['last_seen']))
                 else:
-                    self.getGuiObj('statusField').SetLabel('connected  %s' % friendly_time(item['last_seen']))
+                    self.getGuiObj('statusField').SetLabel( 'unknown')
                 
-                if item['friend']:
-#                    self.getGuiObj('addAsFriend').Enable(False)
-                    isfriend = self.mm.get_default('personsMode','ISFRIEND_BITMAP')
-                    isfriend_clicked = self.mm.get_default('personsMode','ISFRIEND_CLICKED_BITMAP')
-                    self.getGuiObj('addAsFriend').switchTo(isfriend,isfriend_clicked)
-                else:
-                    self.getGuiObj('addAsFriend').switchBack()
-#                    self.getGuiObj('addAsFriend').Enable(True)
-#                if item.get('online'):
+                if item.get('friend') is not None:
+                    if item['friend']:
+                        isfriend = self.mm.get_default('personsMode','ISFRIEND_BITMAP')
+                        isfriend_clicked = self.mm.get_default('personsMode','ISFRIEND_CLICKED_BITMAP')
+                        self.getGuiObj('addAsFriend').switchTo(isfriend,isfriend_clicked)
+                    else:
+                        self.getGuiObj('addAsFriend').switchBack()
                     
                 self.fillTorrentLists()
             elif self.getGuiObj('advanced_detailsTab').isSelected():
@@ -507,13 +512,13 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 
                 addAsFriend = self.getGuiObj('addAsFriend', tab = 'personsTab_advanced')
                 if addAsFriend.initDone:
-                    if item['friend']:
-                        isfriend = self.mm.get_default('personsMode','ISFRIEND_BITMAP')
-                        isfriend_clicked = self.mm.get_default('personsMode','ISFRIEND_CLICKED_BITMAP')
-                        addAsFriend.switchTo(isfriend,isfriend_clicked)
-                    else:
-                        addAsFriend.switchBack()
-#                        self.getGuiObj('addAsFriend').switchBack()
+                    if item.get('friend') is not None:
+                        if item['friend']:
+                            isfriend = self.mm.get_default('personsMode','ISFRIEND_BITMAP')
+                            isfriend_clicked = self.mm.get_default('personsMode','ISFRIEND_CLICKED_BITMAP')
+                            addAsFriend.switchTo(isfriend,isfriend_clicked)
+                        else:
+                            addAsFriend.switchBack()
             
         elif self.mode == 'subscriptionsMode':
             if item.get('url') is None:
@@ -578,6 +583,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 
         
         elif self.mode == 'profileMode':
+            if len(item) == 0:
+                return
             tab = None
             # --------------------------------------------------------------------------------------------------------------------------------------------------------
             ## --- Overall performance  !!!! we'll leave it probably out!!!
@@ -600,6 +607,14 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     only=""
                 self.getGuiObj('descriptionField0', tab = 'profileDetails_Quality').SetLabel(text % (only,count))
                 self.getGuiObj('descriptionField1', tab = 'profileDetails_Quality').SetLabel(text1)
+#                diff_height = self.reHeightToFit(tab = 'profileDetails_Quality')
+#                if diff_height!=0:
+#                    print "<mluc> the panel should increase in size with",diff_height
+#                    the_size = self.currentPanel.GetSize()
+#                    the_size.SetHeight(the_size.GetHeight()+diff_height)
+#                    self.currentPanel.SetSize(the_size)
+#                    self.currentPanel.SetBackgroundColour("red")
+#                    self.currentPanel.Layout()
             # --------------------------------------------------------------------------------------------------------------------------------------------------------
             # --- Discovered Files
             elif self.currentPanel == self.getGuiObj('profileDetails_Files'):  
@@ -713,36 +728,57 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         self.currentPanel.Refresh()
     
     def reHeightToFit(self, tab=None):
-        """the ideea is to itterate through all object mentioned in the list of 
+        """the ideea is to iterate through all object mentioned in the list of 
         object for current tab and to reposition them on y axis so that all of
         them are fully visible
         returns true if elements have been repositioned so that the layout be redone"""
         print "<mluc> trying to reheight panel for mode",self.mode,"and tab",tab
-        VERTICAL_SPACER=3
-        bElementsMoved = False
+        bElementMoved = False
+        VERTICAL_SPACE = 3
         try:
             if tab is None:
                 list = self.modeElements[self.mode]
             else:
                 list = self.tabElements[tab]
-            print "<mluc> there are",len(list),"elements waiting to be moved"
+#            print "<mluc> there are",len(list),"elements waiting to be moved"
             #check to see it it's worth trying to reposition elements
             if len(list)>1:
                 prevElement = self.getGuiObj(list[0], tab)
-                prevElement.Wrap(284)
-                print "<mluc> first element",list[0],"is at",prevElement.GetPosition().y,"and has height",prevElement.GetSize().height
+#                print "<mluc> first element",list[0],"is at",prevElement.GetPosition().y,"and has height",prevElement.GetSize().height
                 for index in range(1,len(list)):
                     currentElement = self.getGuiObj(list[index], tab)
-                    print "<mluc> element",list[index],"is at",currentElement.GetPosition().y,"and has height",currentElement.GetSize().height
-                    if currentElement.GetPosition().y < prevElement.GetPosition().y + prevElement.GetSize().height + VERTICAL_SPACER:
-                        bElementsMoved = True
-                        print "<mluc> moving",list[index],"from",currentElement.GetPosition().y,"to",(prevElement.GetPosition().y + prevElement.GetSize().height + VERTICAL_SPACER)
+                    if isinstance(prevElement,wx.StaticText):
+                        style = prevElement.GetWindowStyle()
+                        print "<mluc> element",list[index],"has style",style
+                        if (style & wx.ST_NO_AUTORESIZE)>0 :
+                            #remove the no autoresize flag
+                            style = style ^ wx.ST_NO_AUTORESIZE
+                            prevElement.SetWindowStyle(style)
+                            print "<mluc> element",list[index],"changed style to",style
+#        if sys.platform == 'win32':
+#            ofList.SetWindowStyleFlag(wx.LC_REPORT|wx.NO_BORDER|wx.LC_NO_HEADER|wx.LC_SINGLE_SEL) #it doesn't work
+#        else:
+#            ofList.SetSingleStyle(wx.NO_BORDER)
+#            ofList.SetSingleStyle(wx.LC_REPORT)
+#            ofList.SetSingleStyle(wx.LC_NO_HEADER)
+#            ofList.SetSingleStyle(wx.LC_SINGLE_SEL)
+#                        if prevElement.
+                        prevElement.Wrap(284)
+                    prevPos = prevElement.GetPosition().y
+                    prevHeight = prevElement.GetSize().height
+                    new_pos = prevPos + prevHeight + VERTICAL_SPACE
+#                    print "<mluc> element",list[index],"is at",currentElement.GetPosition().y,"and has height",currentElement.GetSize().height
+                    if new_pos != currentElement.GetPosition().y:
+#                        bElementsMoved = True
+#                        print "<mluc> moving",list[index],"from",currentElement.GetPosition().y,"to",new_pos
                         #reposition element as it overlaps the one above
-                        currentElement.SetPosition(wx.Point(currentElement.GetPosition().x,prevElement.GetPosition().y + prevElement.GetSize().height + VERTICAL_SPACER))
+                        currentElement.SetPosition(wx.Point(currentElement.GetPosition().x,new_pos))
+#                        print "<mluc> moved",list[index],"to",currentElement.GetPosition().y
+                        bElementMoved = True
                     prevElement = currentElement
         except:
             print_exc()
-        return bElementsMoved
+        return bElementMoved
     
     def showDownloadbutton(self, mode, torrent):
         return (self.mode == 'filesMode' and not torrent.get('eventComingUp') == 'downloading') or \
@@ -756,6 +792,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         return self.data[self.mode].get(obj_name)
      
     def fillSimTorrentsList(self, infohash):
+        """fills the list of torrents from library or file view with the files that are similar to the currently selected one"""
         sim_torrent_list = self.getGuiObj('peopleWhoField')
         try:
             sim_torrents = self.data_manager.getSimItems(infohash, 8)
@@ -798,36 +835,22 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         
         
     def fillTorrentLists(self):
+        """fills the lists of torrents from persons detail view with common and history files for the selected person"""
         ofList = self.getGuiObj("alsoDownloadedField")
 #        ofList.SetWindowStyleFlag(wx.LC_LIST)
         cfList = self.getGuiObj("commonFilesField")
 #        cfList.SetWindowStyleFlag(wx.LC_LIST)
         try:
-            if self.mode != "personsMode" or self.item is None or self.item['permid'] is None:
+            ofList.DeleteAllItems()
+            cfList.DeleteAllItems()
+            ofList.setInfoHashList(None)
+            if self.mode != "personsMode" or self.item is None or self.item.get('permid') is None:
                 return
             permid = self.item['permid']
             hash_list = self.guiUtility.peer_manager.getPeerHistFiles(permid)
             torrents_info = self.data_manager.getTorrents(hash_list)
-#            # get my download history
-#            hist_torr = self.parent.mydb.getPrefList()
-#            #print hist_torr
-#            files = self.parent.prefdb.getPrefList(self.data['permid'])
-#            #live_files = self.torrent_db.getLiveTorrents(files)
-#            #get informations about each torrent file based on it's hash
-#            torrents_info = self.parent.tordb.getTorrents(files)
-#            for torrent in torrents_info[:]:
-#                if (not 'info' in torrent) or (len(torrent['info']) == 0) or (not 'name' in torrent['info']):
-#                    torrents_info.remove(torrent)
-#            #sort torrents based on status: { downloading (green), seeding (yellow),} good (blue), unknown(black), dead (red); 
-#            torrents_info.sort(self.status_sort)
-#            torrents_info = filter( lambda torrent: not torrent['status'] == 'dead', torrents_info)
-            #tempdata[i]['torrents_list'] = torrents_info
-            ofList.DeleteAllItems()
-            cfList.DeleteAllItems()
-            ofList.setInfoHashList(None)
             alist = []
             for f in torrents_info:
-                #print f
                 the_list = None
                 infohash = f.get('infohash')
                 if f.get('myDownloadHistory', False):
@@ -864,7 +887,6 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 ofList.SetItemTextColour(index, "#222222")
             else:
                 ofList.setInfoHashList(alist)
-#            self.onListResize(None) 
         except:
             print_exc()
             ofList.DeleteAllItems()
@@ -873,8 +895,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             index = ofList.InsertStringItem(sys.maxint, "Error getting files list")
             ofList.SetItemTextColour(index, "#222222")
         try:
-            ofList.onListResize() #SetColumnWidth(0,wx.LIST_AUTOSIZE)
-            cfList.onListResize() #SetColumnWidth(0,wx.LIST_AUTOSIZE)
+            ofList.onListResize()
+            cfList.onListResize()
         except:
             if DEBUG:
                 print "could not resize lists in person detail panel"
