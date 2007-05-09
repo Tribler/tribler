@@ -162,7 +162,7 @@ class ProfileOverviewPanel(wx.Panel):
         new_index = int((aux_count-1)/20)+1 #from 0 to 6
         overall_index = overall_index + new_index*0.1667
 #        print "<mluc> [after quality] overall=",overall_index
-        qualityElem = self.getGuiElement("perf_Quality")
+        qualityElem = self.getGuiElement("perf_Quality")    # Quality of tribler recommendation
         if qualityElem and new_index != qualityElem.getIndex():
             qualityElem.setIndex(new_index)
             self.data['downloaded_files'] = count
@@ -178,7 +178,7 @@ class ProfileOverviewPanel(wx.Panel):
         new_index = int((aux_count-1)/100)+1 #from 0 to 6
         overall_index = overall_index + new_index*0.1667
 #        print "<mluc> [after similar peers] overall=",overall_index
-        elem = self.getGuiElement("perf_Persons")
+        elem = self.getGuiElement("perf_Persons")    # Discovered persons
         if elem and new_index != elem.getIndex():
             elem.setIndex(new_index)
             self.data['similar_peers'] = count
@@ -192,9 +192,11 @@ class ProfileOverviewPanel(wx.Panel):
         if aux_count < 0:
             aux_count = 0
         new_index = int((aux_count-1)/20)+1 #from 0 to 6
+        if new_index >= 5:
+            new_index = 6
         overall_index = overall_index + new_index*0.1667
 #        print "<mluc> [after taste files] overall=",overall_index
-        elem = self.getGuiElement("perf_Files")
+        elem = self.getGuiElement("perf_Files")    # Discovered files
         if elem and new_index != elem.getIndex():
             elem.setIndex(new_index)
             self.data['taste_files'] = count
@@ -256,7 +258,7 @@ class ProfileOverviewPanel(wx.Panel):
         new_index  = int((dvalue-1)*0.0667+1) #from 0 to 6
         overall_index = overall_index + dvalue/60.0
 #        print "<mluc> [after downloads] overall=",overall_index
-        elem = self.getGuiElement("perf_Download")
+        elem = self.getGuiElement("perf_Download")    # Optimal download speed
         if elem and new_index != elem.getIndex():
             elem.setIndex(new_index)
             bShouldRefresh = True
@@ -272,7 +274,7 @@ class ProfileOverviewPanel(wx.Panel):
         new_index = int((aux_count-1)/20)+1 #from 0 to 6
         overall_index = overall_index + new_index*0.1667
 #        print "<mluc> [after taste files] overall=",overall_index
-        elem = self.getGuiElement("perf_Presence")
+        elem = self.getGuiElement("perf_Presence")    # Network reach
         if elem and new_index != elem.getIndex():
             elem.setIndex(new_index)
             bShouldRefresh = True
@@ -285,7 +287,7 @@ class ProfileOverviewPanel(wx.Panel):
 #        print "<mluc> [after] overall index is",overall_index
         #set the overall performance to a random number
         new_index = overall_index #random.randint(0,5) #used only for testing
-        elem = self.getGuiElement("perf_Overall")
+        elem = self.getGuiElement("perf_Overall")    # Overall performance
         if elem and new_index != elem.getIndex() or self.data.get('overall_rank') is None:
             elem.setIndex(new_index)
             if new_index < 2:

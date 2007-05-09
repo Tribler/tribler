@@ -800,7 +800,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             sim_torrent_list.DeleteAllItems()
             sim_torrent_list.setInfoHashList(None)
             alist = []
-            for torrent,name,sim in sim_torrents:
+            for torrent in sim_torrents:
+                f = self.data_manager.getTorrent(torrent)
+                name = f.get('info',{}).get('name','unknown')
                 index = sim_torrent_list.InsertStringItem(sys.maxint, name)
                 alist.append(torrent)
 #                color = "black"

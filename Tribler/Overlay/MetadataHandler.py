@@ -16,7 +16,7 @@ from Tribler.Category.Category import Category
 from Tribler.Dialogs.activities import ACT_GOT_METADATA
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 
-DEBUG = False
+DEBUG = True
 
 # Python no recursive imports?
 # from overlayswarm import overlay_infohash
@@ -41,6 +41,7 @@ class MetadataHandler:
         
     def register(self, secure_overlay, dlhelper, launchmany, config):
         self.secure_overlay = secure_overlay
+        self.rawserver = secure_overlay.rawserver
         self.dlhelper = dlhelper
         self.launchmany = launchmany
         self.config = config
@@ -50,7 +51,28 @@ class MetadataHandler:
         self.torrent_db = SynTorrentDBHandler()
         self.num_torrents = -10
         self.recently_collected_torrents = []
-        #self.check_overflow()
+        self.upload_rate = 5*1024   # 5KB/s
+        self.upload_queue = []
+        self.next_upload_time = 0
+
+    def checking_upload_queue(self):
+        """ check the upload queue every 5 seconds, and send torrent out if the queue 
+            is not empty and the max upload rate is not reached.
+            It is used for rate control
+        """
+
+        if DEBUG:
+            print >> sys.stderr, "metadata: checking_upload_queue", len(self.upload_queue), self.check_interval, "now:", ctime(time()), "next check:", ctime(self.next_upload_time)
+        if int(time()) >= self.next_upload_time and len(self.upload_queue) > 0:
+            task = self.upload_queue.pop(0)
+            permid = task['permid']
+            torrent_hash = task['torrent_hash']
+            torrent_path = task['torrent_path']
+            selversion = task['selversion']
+            sent_size = self.read_and_send_metadata(permid, torrent_hash, torrent_path, selversion)
+            idel = sent_size / self.upload_rate + 1
+            self.next_upload_time = int(time()) + idel
+            self.rawserver.add_task(self.checking_upload_queue, idel)
 
     def getRecentlyCollectedTorrents(self, num):
         return self.recently_collected_torrents[-1*num:]    # get the last ones
@@ -59,11 +81,11 @@ class MetadataHandler:
         
         t = message[0]
         
-        if t == GET_METADATA:
+        if t == GET_METADATA:   # the other peer requests a torrent
             if DEBUG:
                 print >> sys.stderr,"metadata: Got GET_METADATA",len(message),show_permid_short(permid)
             return self.send_metadata(permid, message, selversion)
-        elif t == METADATA:
+        elif t == METADATA:     # the other peer sends me a torrent
             if DEBUG:
                 print >> sys.stderr,"metadata: Got METADATA",len(message)
             return self.got_metadata(message, selversion)
@@ -143,7 +165,7 @@ class MetadataHandler:
 
         data = self.torrent_db.getTorrent(torrent_hash)
         if not data or not data['torrent_name']:
-            return False
+            return True     # don't close connection
         
         torrent_path = None
         try:
@@ -156,8 +178,16 @@ class MetadataHandler:
         if not torrent_path:
             if DEBUG:
                 print >> sys.stderr,"metadata: GET_METADATA: not torrent path"
-            return False
+            return True
         
+        task = {'permid':permid, 'torrent_hash':torrent_hash, 'torrent_path':torrent_path, 'selversion':selversion}
+        self.upload_queue.append(task)
+        if int(time()) >= self.next_upload_time:
+            self.checking_upload_queue()
+        
+        return True
+
+    def read_and_send_metadata(self, permid, torrent_hash, torrent_path, selversion):
         torrent_data = self.read_torrent(torrent_path)
         if torrent_data:
             if DEBUG:
@@ -165,6 +195,7 @@ class MetadataHandler:
             torrent = {'torrent_hash':torrent_hash, 
                        'metadata':torrent_data}
             if selversion >= OLPROTO_VER_FOURTH:
+                data = self.torrent_db.getTorrent(torrent_hash)
                 nleechers = data.get('leecher', -1)
                 nseeders = data.get('seeder', -1)
                 last_check_time = int(time()) - data.get('last_check_time', 0)
@@ -174,19 +205,20 @@ class MetadataHandler:
                                 'seeder':nseeders,
                                 'last_check_time':last_check_time,
                                 'status':status})
-            self.do_send_metadata(permid, torrent, selversion)
+
+            return self.do_send_metadata(permid, torrent, selversion)
         else:
             if DEBUG:
                 print >> sys.stderr,"metadata: GET_METADATA: no torrent data to send"
-            pass
-        return True
-    
+            return 0
+
     def do_send_metadata(self, permid, torrent, selversion):
         metadata_request = bencode(torrent)
         if DEBUG:
             print >> sys.stderr,"metadata: send metadata", len(metadata_request)
         ## Optimization: we know we're currently connected
         self.secure_overlay.send(permid,METADATA + metadata_request,self.metadata_send_callback)
+        return len(metadata_request)
 
     def metadata_send_callback(self,exc,permid):
         if exc is not None:

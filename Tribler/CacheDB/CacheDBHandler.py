@@ -5,6 +5,7 @@ from cachedb import *
 from copy import deepcopy
 from sets import Set
 from traceback import print_exc
+from time import time
 
 class BasicDBHandler:
     def __init__(self):
@@ -660,7 +661,7 @@ class OwnerDBHandler(BasicDBHandler):
         self.pref_db = PreferenceDB.getInstance(db_dir=db_dir)
         self.mypref_db = MyPreferenceDB.getInstance(db_dir=db_dir)
         self.torrent_db = TorrentDB.getInstance(db_dir=db_dir)
-        self.dbs = [self.owner_db, self.pref_db, self.torrent_db]
+        self.dbs = [self.owner_db]
         self.sim_cache = {}    # used to cache the getSimItems
         
     def getTorrents(self):
@@ -677,14 +678,18 @@ class OwnerDBHandler(BasicDBHandler):
            otherwise return a list of tuples, each of which contains a torrent's 
            infohash and content name.
         """
+
+        start = time()
+        mypref_list = self.mypref_db._keys()
+        if torrent_hash in self.sim_cache:
+            mypref_set = Set(mypref_list)
+            oldrec = self.sim_cache[torrent_hash]
+            for item in oldrec[:]:    # remove common torrents
+                if item in mypref_set:
+                    oldrec.remove(item)
+            return oldrec
         
-#         if torrent_hash in self.sim_cache:
-#            oldrec = self.sim_cache[torrent_hash]
-#            oldrec -= mypref_set
-#            self.sim_cache[torrent_hash] = oldrec
-#            return oldrec
-        
-        owners = Set(self.owner_db._get(torrent_hash, Set()))       
+        owners = self.owner_db._get(torrent_hash, {})
         nowners = len(owners)
         if not owners or nowners < 1:
             return []
@@ -698,13 +703,15 @@ class OwnerDBHandler(BasicDBHandler):
                     co_torrents[torrent] += 1
         if torrent_hash in co_torrents:
             co_torrents.pop(torrent_hash)
-        mypref_list = self.mypref_db._keys()
-        for torrent_hash in mypref_list:
-            if torrent_hash in co_torrents:
-                co_torrents.pop(torrent_hash)
+        for infohash in mypref_list:
+            if infohash in co_torrents:
+                co_torrents.pop(infohash)
         
         sim_items = []
         for torrent in co_torrents:
+            co = co_torrents[torrent]
+#            if co <= 1:
+#                continue
             
             # check if the torrent is collected and live
             value = self.torrent_db._get(torrent)
@@ -718,18 +725,17 @@ class OwnerDBHandler(BasicDBHandler):
             if live == 'dead':
                 continue
             
-            co = co_torrents[torrent]
             nowners2 = self.owner_db.getNumOwners(torrent)
             if nowners2 == 0:    # sth. is wrong
                 continue
             sim = co/(nowners*nowners2)**0.5
-            sim_items.append((sim, name, torrent))
+            sim_items.append((sim, torrent))
             
         sim_items.sort()
         sim_items.reverse()
-        sim_torrents = [(torrent, name, sim) for sim, name, torrent in sim_items[:num]]
+        sim_torrents = [torrent for sim, torrent in sim_items[:num]]
         
-#        self.sim_cache[torrent_hash] = sim_torrents
+        self.sim_cache[torrent_hash] = sim_torrents
         return sim_torrents
         
 def test_mydb():
