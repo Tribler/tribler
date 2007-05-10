@@ -143,7 +143,8 @@ class MugshotManager:
     def save_data(self,permid,type,data):
         filename = self._permid2iconfilename(permid)
         
-        print >>sys.stderr,"mugmgr: save_data: filename is",filename,type
+        if DEBUG:
+            print >>sys.stderr,"mugmgr: save_data: filename is",filename,type
         
         try:
             

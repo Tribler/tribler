@@ -151,7 +151,7 @@ class GUIUtility:
     def standardFilesOverview(self, filters = ['video', 'swarmsize']):        
         
         self.standardOverview.setMode('filesMode')
-        self.standardOverview.filterChanged(filters)
+        self.standardOverview.filterChanged(filters,setgui=True)
         try:
             if self.standardDetails:
                 self.standardDetails.setMode('filesMode', None)

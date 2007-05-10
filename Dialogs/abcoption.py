@@ -1669,9 +1669,9 @@ class ABCTree(wx.TreeCtrl):
         self.disk = self.AppendItem(self.root, self.utility.lang.get('disksettings'))
         self.advanceddisk = self.AppendItem(self.disk, self.utility.lang.get('advanced'))
 
-        self.display = self.AppendItem(self.root, self.utility.lang.get('displaysetting'))
+        #self.display = self.AppendItem(self.root, self.utility.lang.get('displaysetting'))
 
-        self.colors = self.AppendItem(self.display, self.utility.lang.get('torrentcolors'))
+        #self.colors = self.AppendItem(self.display, self.utility.lang.get('torrentcolors'))
                 
         self.misc = self.AppendItem(self.root, self.utility.lang.get('miscsetting'))
 
@@ -1688,8 +1688,8 @@ class ABCTree(wx.TreeCtrl):
                         self.misc : self.dialog.miscPanel,
                         self.tribler : self.dialog.triblerPanel,
                         self.video : self.dialog.videoPanel,
-                        self.display : self.dialog.displayPanel, 
-                        self.colors : self.dialog.colorPanel, 
+                        #self.display : self.dialog.displayPanel, 
+                        #self.colors : self.dialog.colorPanel, 
                         self.disk : self.dialog.diskPanel }
 
         self.treeMap[self.advancednetwork] = self.dialog.advancedNetworkPanel
@@ -1760,8 +1760,8 @@ class ABCOptionDialog(wx.Dialog):
         self.miscPanel = MiscPanel(self.splitter, self)
         self.triblerPanel = TriblerPanel(self.splitter, self)
         self.videoPanel = VideoPanel(self.splitter, self)
-        self.displayPanel = DisplayPanel(self.splitter, self)
-        self.colorPanel = ColorPanel(self.splitter, self)
+        #self.displayPanel = DisplayPanel(self.splitter, self)
+        #self.colorPanel = ColorPanel(self.splitter, self)
         self.diskPanel = DiskPanel(self.splitter, self)
         
         self.advancedNetworkPanel = AdvancedNetworkPanel(self.splitter, self)

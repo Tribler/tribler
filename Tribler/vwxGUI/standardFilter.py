@@ -106,11 +106,14 @@ class standardFilter(wx.Panel):
             print_exc()
 
     def setSelectionToFilter(self,filterState):
-        for j in range(len(filterState)):
-            for i in range(len(self.filterData[j])):
-                if filterState[j] == self.filterData[j][i][0]:
-                    self.filters[j].SetSelection(i)
-                    break
+        try:
+            for j in range(len(filterState)):
+                for i in range(len(self.filterData[j])):
+                    if filterState[j] == self.filterData[j][i][0]:
+                        self.filters[j].SetSelection(i)
+                        break
+        except:
+            pass
         self.filterState = filterState
     
     def getState(self):

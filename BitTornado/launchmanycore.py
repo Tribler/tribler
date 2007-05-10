@@ -615,7 +615,6 @@ class UPnPThread(Thread):
         dmh = DialbackMsgHandler.getInstance()
 		
         if self.upnp_type > 0:
-
             self.upnp_wrap = UPnPWrapper.getInstance()
             wanip = MyDBHandler().getMyIP()
             self.upnp_wrap.register(wanip)

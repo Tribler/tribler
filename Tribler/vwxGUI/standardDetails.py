@@ -91,7 +91,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         self.modeElements['subscriptionsMode'] = ['titleField', 'receivedToday', 'subscrTodayField', 'receivedYesterday', 'subscrYesterdayField', 'receivedTotal']
         
         self.tabElements = {'filesTab_files': [ 'download', 'includedFiles', 'filesField'],                            
-                            'personsTab_advanced': ['lastExchangeField', 'noExchangeField', 'timesConnectedField','addAsFriend','similarityValueField'],
+                            'personsTab_advanced': ['lastExchangeField', 'timesConnectedField','addAsFriend','similarityValueField'],
                             'libraryTab_files': [ 'download', 'includedFiles'],
                             'profileDetails_Quality': ['descriptionField0','howToImprove','descriptionField1'],
                             'profileDetails_Files': ['descriptionField0','howToImprove','descriptionField1','takeMeThere0'],

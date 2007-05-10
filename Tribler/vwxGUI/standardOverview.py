@@ -2,7 +2,7 @@ import wx, os, sys, os.path
 import wx.xrc as xrc
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from safeguiupdate import FlaglessDelayedInvocation
-from traceback import print_exc
+from traceback import print_exc,print_stack
 from Tribler.vwxGUI.torrentManager import TorrentDataManager
 from Tribler.utilities import *
 from Utility.constants import *
@@ -15,7 +15,7 @@ from threading import Thread,currentThread
 
 OVERVIEW_MODES = ['filesMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionsMode', 'messageMode', 'libraryMode']
 
-DEBUG = False
+DEBUG = True
 
 class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     """
@@ -60,22 +60,25 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 self.owner = owner
 
             def run(self):
-                peer_list = None
-                #wait for buddycast list only if the recommender is enabled
-                bcactive = self.owner.utility.config.Read('enablerecommender', "boolean")
-                if bcactive:
-                    self.owner.utility.buddycast.data_ready_evt.wait()   # called by buddycast
-                    # get the peer list in buddycast. Actually it is a dict, but it can be used
-                    peer_list = self.owner.utility.buddycast.data_handler.peers
-                    if DEBUG:
-                        print >>sys.stderr,"standardOverview: Buddycast signals it has loaded, release data for GUI thread", len(buddycast_peer_list), currentThread().getName()
-#                self.owner.sortData(self.owner.prepareData(buddycast_peer_list))
-                #this initialization can be done in another place also
-                data = self.owner.peer_manager.prepareData(peer_list)
-        #        self.sortData(data)
-                self.owner.peer_manager.applyFilters(data)
-        #        print "<mluc> ################### size of data is ",len(self.filtered_data['all'])
-                self.owner.peer_manager.isDataPrepared = True
+                try:
+                    peer_list = None
+                    #wait for buddycast list only if the recommender is enabled
+                    bcactive = self.owner.utility.config.Read('enablerecommender', "boolean")
+                    if bcactive:
+                        self.owner.utility.buddycast.data_ready_evt.wait()   # called by buddycast
+                        # get the peer list in buddycast. Actually it is a dict, but it can be used
+                        peer_list = self.owner.utility.buddycast.data_handler.peers
+                        if DEBUG:
+                            print >>sys.stderr,"standardOverview: Buddycast signals it has loaded, release data for GUI thread", len(peer_list), currentThread().getName()
+    #                self.owner.sortData(self.owner.prepareData(buddycast_peer_list))
+                    #this initialization can be done in another place also
+                    data = self.owner.peer_manager.prepareData(peer_list)
+            #        self.sortData(data)
+                    self.owner.peer_manager.applyFilters(data)
+            #        print "<mluc> ################### size of data is ",len(self.filtered_data['all'])
+                    self.owner.peer_manager.isDataPrepared = True
+                except:
+                    print_exc()
 
         thr1=PeerDataLoadingThread(self)
         thr1.setDaemon(True)
@@ -213,6 +216,10 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     
     def filterChanged(self, filterState, setgui = False):
         oldFilterState = self.data[self.mode].get('filterState')
+        
+        if DEBUG:
+            print >>sys.stderr,"standardOverview: filterChanged: from",oldFilterState,"to",filterState
+        
         if filterState is None or len(filterState) == 0:
             filterState = oldFilterState
         if filterState is not None:

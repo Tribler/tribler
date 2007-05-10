@@ -142,6 +142,7 @@ class FriendsItemPanel(wx.Panel):
             self.title.SetLabel('')
             self.title.SetToolTipString('')
             self.title.Enable(False)
+            self.status.SetLabel('')
             self.delete.Hide()
        
         self.thumb.setData(peer_data)
@@ -202,6 +203,8 @@ class FriendThumbnailViewer(ThumbnailViewer):
 #        if self.mouseOver:
         if self.data is not None and type(self.data)==type({}) and self.data.get('permid'):
 
+            print "DATA IS",self.data
+
             helping = None
             if self.data.get('friend'):
                 torrentname = self.is_helping(self.data.get('permid'))
@@ -244,7 +247,6 @@ class FriendThumbnailViewer(ThumbnailViewer):
                 dc.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, False))
                 dc.SetTextForeground('#007303')
                 dc.DrawText('online', 26, 66)
-
                 
         
 #        dc.SetTextForeground(wx.WHITE)
