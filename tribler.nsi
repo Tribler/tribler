@@ -80,6 +80,8 @@ Section "!Main EXE" SecMain
  File category.conf
  File tribler.exe.manifest
  File tribler.exe
+ File ffmpeg.exe
+ File /r vlc
  Delete "$INSTDIR\*.pyd"
  File *.pyd
  Delete "$INSTDIR\python*.dll"
