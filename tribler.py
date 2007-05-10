@@ -74,6 +74,7 @@ from Tribler.notification import init as notification_init
 DEBUG = False
 ALLOW_MULTIPLE = False
 start_time = 0
+start_time2 = 0
 
 ################################################################
 #
@@ -932,9 +933,9 @@ class ABCFrame(wx.Frame, DelayedInvocation):
 ##############################################################
 class ABCApp(wx.App,FlaglessDelayedInvocation):
     def __init__(self, x, params, single_instance_checker, abcpath):
-        global start_time
-        start_time = time()
-        print "[StartUpDebug]----------- from ABCApp.__init__ ----------Tribler starts up at", ctime(start_time)
+        global start_time, start_time2
+        start_time2 = time()
+        print "[StartUpDebug]----------- from ABCApp.__init__ ----------Tribler starts up at", ctime(start_time2), "after", start_time2 - start_time
         self.params = params
         self.single_instance_checker = single_instance_checker
         self.abcpath = abcpath
@@ -1022,11 +1023,11 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             #self.frame.Refresh()
             #self.frame.Layout()
             self.frame.Show(True)
-            global start_time
+            global start_time2
             current_time = time()
             print "\n\n[StartUpDebug]-----------------------------------------"
             print "[StartUpDebug]"
-            print "[StartUpDebug]----------- from ABCApp.OnInit ----------Tribler frame is shown after", current_time-start_time
+            print "[StartUpDebug]----------- from ABCApp.OnInit ----------Tribler frame is shown after", current_time-start_time2
             print "[StartUpDebug]"
             print "[StartUpDebug]-----------------------------------------\n\n"
             
@@ -1133,7 +1134,9 @@ class DummySingleInstanceChecker:
 # Main Program Start Here
 #
 ##############################################################
-def run(params = None):  
+def run(params = None):
+    global start_time
+    start_time = time()
     if params is None:
         params = [""]
     
@@ -1150,9 +1153,11 @@ def run(params = None):
     else:
         single_instance_checker = DummySingleInstanceChecker("tribler-")
 
+    print "[StartUpDebug]---------------- 1", time()-start_time
     if not ALLOW_MULTIPLE and single_instance_checker.IsAnotherRunning():
         #Send  torrent info to abc single instance
         ClientPassParam(params[0])
+        print "[StartUpDebug]---------------- 2", time()-start_time
     else:
         abcpath = os.path.abspath(os.path.dirname(sys.argv[0]))
         # Arno: don't chdir to allow testing as other user from other dir.
@@ -1160,7 +1165,9 @@ def run(params = None):
 
         # Launch first abc single instance
         app = ABCApp(0, params, single_instance_checker, abcpath)
+        print "[StartUpDebug]---------------- 3", time()-start_time
         configpath = app.getConfigPath()
+        print "[StartUpDebug]---------------- 4", time()-start_time
         app.MainLoop()
 
         print "Client shutting down. Sleeping for a few seconds to allow other threads to finish"

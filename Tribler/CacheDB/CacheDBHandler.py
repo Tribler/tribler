@@ -204,7 +204,9 @@ class PeerDBHandler(BasicDBHandler):
         else:
             permid = False
         for peer in peer_list:
-            p = self.peer_db.getItem(peer, default=True)
+            p = self.peer_db.getItem(peer)
+            if not p:
+                break    # database is closed
             if permid:
                 d = {'permid':peer}
             else:
@@ -419,7 +421,7 @@ class TorrentDBHandler(BasicDBHandler):
            You should delete the object when possible
         """
         
-        start_time = time()
+#        start_time = time()
         
         if all:
             all_list = self.torrent_db._keys()
@@ -469,9 +471,9 @@ class TorrentDBHandler(BasicDBHandler):
         del all_list
         del setOfInfohashes
         
-        from traceback import print_stack
-        print_stack()
-        print >> sys.stderr, '[StartUpDebug]----------- from getRecommendedTorrents ----------', time()-start_time, currentThread().getName(), '\n\n'
+#        from traceback import print_stack
+#        print_stack()
+#        print >> sys.stderr, '[StartUpDebug]----------- from getRecommendedTorrents ----------', time()-start_time, currentThread().getName(), '\n\n'
         
         self.torrent_db.num_metadatalive = num_live_torrents
         print 'Returning %d torrents' % len(torrents)
@@ -481,7 +483,7 @@ class TorrentDBHandler(BasicDBHandler):
     def getCollectedTorrents(self, light=True): 
         """ get torrents on disk but not in my pref """
                     
-        start_time = time()
+        #start_time = time()
         
         all_list = Set(self.torrent_db._keys()) - Set(self.mypref_db._keys())
             
@@ -512,9 +514,9 @@ class TorrentDBHandler(BasicDBHandler):
                 del p
                 torrents.append(item)
         
-        from traceback import print_stack
-        print_stack()
-        print >> sys.stderr, '[StartUpDebug]----------- from getCollectedTorrents ----------', time()-start_time, currentThread().getName(), '\n\n'
+#        from traceback import print_stack
+#        print_stack()
+#        print >> sys.stderr, '[StartUpDebug]----------- from getCollectedTorrents ----------', time()-start_time, currentThread().getName(), '\n\n'
         
         return torrents
     

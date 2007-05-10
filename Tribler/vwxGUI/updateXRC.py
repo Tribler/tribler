@@ -1,6 +1,7 @@
 import sys, re, os, os.path
 
-DEBUG = False
+DEBUG = True
+ENABLED = False
 
 def changeFile(filename):
     f_in = file(filename, 'r')
@@ -82,6 +83,8 @@ def changeFile(filename):
     
 def main(args):
     # find all xrc files in this dir
+    if not ENABLED:
+        return
     try:
         dir = args[0]
     except:
