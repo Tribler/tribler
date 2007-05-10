@@ -78,7 +78,6 @@ copy Tribler\vwxGUI\*.xrc dist\tribler\Tribler\vwxGUI
 copy Tribler\vwxGUI\images\*.* dist\tribler\Tribler\vwxGUI\images
 
 cd dist
-move abc_vwx.exe tribler.exe
 move *.* tribler
 cd tribler
 

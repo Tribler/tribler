@@ -111,7 +111,7 @@ if not __debug__:
 
 bundlebuilder.buildapp(
     name='Tribler.app',
-    mainprogram='abc_vwx.py',
+    mainprogram='tribler.py',
     iconfile='mac/tribler.icns',
     plist=Plist.fromFile('mac/Info.plist'),
     argv_emulation=1,
