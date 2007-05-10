@@ -101,7 +101,7 @@ class standardGrid(wx.Panel):
             datalength = len(dataList)
         
         if DEBUG:
-            print 'standardGrid: SetData called: init: %s, datalength: %d' % (self.initReady, datalength)
+            print >>sys.stderr,'standardGrid: SetData called: init: %s, datalength: %d' % (self.initReady, datalength)
         
         self.data = dataList
         
@@ -114,7 +114,7 @@ class standardGrid(wx.Panel):
                 self.standardPager.currentPage = 0
         self.refreshPanels()
         if DEBUG:
-            print '<mluc>start pos:',self.currentData,'columns:',self.cols,'rows:',self.currentRows,'items:',self.items
+            print >>sys.stderr,'standardGrid: <mluc>start pos:',self.currentData,'columns:',self.cols,'rows:',self.currentRows,'items:',self.items
         
         
     def updateItem(self, item, delete = False):
@@ -130,11 +130,12 @@ class standardGrid(wx.Panel):
                 key = tempkey
                 break
         if not key:
-            print 'standardGrid: Error, could not find key to compare item: %s' % item
+            if DEBUG:
+                print >>sys.stderr,'standardGrid: Error, could not find key to compare item: %s' % item
             return
         #get the current data source
         if len(self.data)>0 and self.data[0].has_key("permid"):
-            print "\n*****************************************************\n\
+            print >>sys.stderr,"\n*****************************************************\n\
 *                   big problem                     *\n\
 *     in torrentGrid, working on peer data!!!!!     *\n\
 *                                                   *\n\
@@ -187,7 +188,8 @@ class standardGrid(wx.Panel):
             return False
         
     def setPager(self, pager):
-        print 'setPager called: %s' % pager
+        if DEBUG:
+            print >>sys.stderr,'standardGrid: setPager called: %s' % pager
         self.standardPager = pager
        
     def getSubPanel(self):
@@ -205,8 +207,9 @@ class standardGrid(wx.Panel):
                 
             panel.setData(data)
         except:
-            print >>sys.stderr,"contentpanel: Error: Could not set data in panel number %d, with %d cols" % (panelNumber, self.cols)
-            print_exc(file=sys.stderr)
+            if DEBUG:
+                print >>sys.stderr,"standardGrid: Error: Could not set data in panel number %d, with %d cols" % (panelNumber, self.cols)
+            print_exc()
     
     def clearAllData(self):
         for i in range(0, self.items):
@@ -241,7 +244,7 @@ class standardGrid(wx.Panel):
         
         if oldRows != self.currentRows: #changed
             if DEBUG:
-                print >>sys.stderr,'contentpanel: Size updated to %d rows and %d columns, oldrows: %d'% (self.currentRows, self.cols, oldRows)
+                print >>sys.stderr,'standardGrid: Size updated to %d rows and %d columns, oldrows: %d'% (self.currentRows, self.cols, oldRows)
             
             self.updatePanel(oldRows, self.currentRows)
             self.gridResized(self.currentRows)

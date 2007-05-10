@@ -19,7 +19,8 @@ from Tribler.Dialogs.GUIServer import GUIServer
 
 
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'subscriptionsMode', 'messageMode']
-DEBUG = True
+
+DEBUG = False
 
 def showInfoHash(infohash):
     if infohash.startswith('torrent'):    # for testing
@@ -109,13 +110,14 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         self.SetSizer(self.hSizer)
         self.SetAutoLayout(1)
         self.Layout()
-        print "tb"
-        print self.GetSize()
+        #print "tb"
+        #print self.GetSize()
     
         
     def setMode(self, mode, item = None):
         
-        print >>sys.stderr,"standardDetails: setMode called, new mode is",mode,"old",self.mode,"###########"
+        if DEBUG:
+            print >>sys.stderr,"standardDetails: setMode called, new mode is",mode,"old",self.mode
         
         if self.mode != mode:
             #change the mode, so save last item selected
@@ -216,7 +218,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                         name = element[0]
                         xrcElement = xrc.XRCCTRL(self.getGuiObj(element[1]), name)
                     if not xrcElement:
-                        print 'standardDetails: Error: Could not identify xrc element: %s for mode %s' % (element, self.mode)
+                        if DEBUG:
+                            print  >> sys.stderr,'standardDetails: Error: Could not identify xrc element: %s for mode %s' % (element, self.mode)
+                        pass
                     if name:
                         self.data[self.mode][name] = xrcElement
             else:
@@ -269,7 +273,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 name = element[0]
                 xrcElement = xrc.XRCCTRL(self.data[mode][element[1]],name)
             if not xrcElement:
-                print 'standardDetails: Error: Could not identify xrc element: %s for mode %s' % (element, mode)
+                if DEBUG:
+                    print >> sys.stderr,'standardDetails: Error: Could not identify xrc element: %s for mode %s' % (element, mode)
+                pass
             if name:
                 self.data[mode][name] = xrcElement
         return currentPanel
@@ -291,8 +297,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 raise Exception()
             return currentPanel
         except:
-            print 'Error: Could not load panel from XRC-file %s' % filename
-            print 'Tried panel: %s=%s' % (panelName, currentPanel)
+            if DEBUG:
+                print >> sys.stderr,'standardDetails: Error: Could not load panel from XRC-file %s' % filename
+                print >> sys.stderr,'standardDetails: Tried panel: %s=%s' % (panelName, currentPanel)
             print_exc()
             return None
             
@@ -310,10 +317,12 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 return self.item['permid']
             elif self.mode in ['subscriptionsMode']:
                 return self.item['url']
-            else:
-                print 'standardDetails: Error in getIdentifier for mode %s, item=%s' % (self.mode,self.item)
+            elif DEBUG:
+                print >> sys.stderr,'standardDetails: Error in getIdentifier for mode %s, item=%s' % (self.mode,self.item)
         except:
-            print 'standardDetails: Error in getIdentifier for mode %s, item=%s' % (self.mode,self.item)
+            if DEBUG:
+                print >> sys.stderr,'standardDetails: Error in getIdentifier for mode %s, item=%s' % (self.mode,self.item)
+            print_exc()
         
     def setData(self, item):
         self.item = item
@@ -406,8 +415,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     downloadButton.Hide()
                     
                 
-            else:
-                print 'standardDetails: error: unknown tab selected'
+            elif DEBUG:
+                print >> sys.stderr,'standardDetails: error: unknown tab selected'
             
                         
         elif self.mode in ['personsMode', 'friendsMode']:
@@ -431,7 +440,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 #                    guiserver.add_task(lambda:self.loadMetadata(item),0)
                 if not bmp:
                     bmp = self.mm.get_default('personsMode','DEFAULT_THUMB')
-                    print "<mluc> set default persons thumb for details view"
+                    if DEBUG:
+                        print >> sys.stderr,"standardDetails: <mluc> set default persons thumb for details view"
                 
                 thumbField = self.getGuiObj("thumbField")
                 thumbField.setBitmap(bmp)
@@ -442,7 +452,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 #                wx.CallAfter(thumbField.Refresh)
                 
             except:
-                print_exc(file=sys.stderr)
+                print_exc()
             
 
             if self.getGuiObj('info_detailsTab').isSelected():
@@ -528,7 +538,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             rssurl = subscrip.get('url')
             
             if self.subscr_old_source is not None and self.subscr_old_source == rssurl:
-                print >>sys.stderr,"standardDetails: setData: subscriptionMode: Not refreshing"
+                if DEBUG:
+                    print >>sys.stderr,"standardDetails: setData: subscriptionMode: Not refreshing"
                 return # no need to refresh
             self.subscr_old_source = rssurl
             
@@ -725,8 +736,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     self.currentPanel.SetAutoLayout(1)
                     self.currentPanel.Layout()
                     self.hSizer.Layout()
-        else:
-            print "standardDetails: setData: No entry for mode",self.mode
+        elif DEBUG:
+            print >> sys.stderr,"standardDetails: setData: No entry for mode",self.mode
                     
 #        self.currentPanel.Refresh()
     
@@ -735,7 +746,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         object for current tab and to reposition them on y axis so that all of
         them are fully visible
         returns true if elements have been repositioned so that the layout be redone"""
-        print "<mluc> trying to reheight panel for mode",self.mode,"and tab",tab
+        if DEBUG:
+            print >> sys.stderr,"standardDetails: <mluc> trying to reheight panel for mode",self.mode,"and tab",tab
         bElementMoved = False
         VERTICAL_SPACE = 3
         try:
@@ -752,7 +764,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     currentElement = self.getGuiObj(elementName, tab)
                     if isinstance(currentElement,wx.StaticText):
                         style = currentElement.GetWindowStyle()
-                        print "<mluc> element",elementName,"has style",style
+                        if DEBUG:
+                            print >> sys.stderr,"standardDetails: <mluc> element",elementName,"has style",style
                         if (style & wx.ST_NO_AUTORESIZE)==0 :
                             #remove the no autoresize flag
 #                            style = style ^ wx.ST_NO_AUTORESIZE
@@ -837,7 +850,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             sim_torrent_list.onListResize() #SetColumnWidth(0,wx.LIST_AUTOSIZE)
         except:
             if DEBUG:
-                print "could not resize lists in sim_torrent_list panel" 
+                print >> sys.stderr,"standardDetails: could not resize lists in sim_torrent_list panel" 
         
         
     def fillTorrentLists(self):
@@ -905,10 +918,11 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             cfList.onListResize()
         except:
             if DEBUG:
-                print "could not resize lists in person detail panel"
+                print >> sys.stderr,"standardDetails: could not resize lists in person detail panel"
         
     def tabClicked(self, name):
-        print 'Tabclicked: %s' % name
+        if DEBUG:
+            print >> sys.stderr,'standardDetails: tabClicked: %s' % name
         
         # currently, only tabs in filesDetailspanel work
         if self.mode in ['filesMode', 'libraryMode']:
@@ -928,7 +942,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 tabInfo.setSelected(True)
                 self.swapPanel( filesPanel, infoPanel)#, sizer, 3)
             else:
-                print '%s: Unknown tab %s' % (self.mode,name)
+                if DEBUG:
+                    print >> sys.stderr,'standardDetails: %s: Unknown tab %s' % (self.mode,name)
                 return
 
         elif self.mode in ["personsMode","friendsMode"]:
@@ -945,7 +960,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 tabInfo.setSelected(True)
                 self.swapPanel( advancedPanel, infoPanel)
             else:
-                print '%s: Unknown tab %s' % (self.mode,name)
+                if DEBUG:
+                    print >>sys.stderr,'standardDetails: %s: Unknown tab %s' % (self.mode,name)
                 return
 #            print "<mluc> advanced tab has label:",tabAdvanced.GetLabel()
 
@@ -985,9 +1001,11 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 #                self.currentPanel.Layout()
 #                self.currentPanel.SetAutoLayout(1)
 #                self.hSizer.Layout()
-                print "<mluc> switch from %s[%s] to %s[%s]" % (panel1.GetName(), panel1.GetParent().GetName(), panel2.GetName(), panel2.GetParent().GetName())
+                if DEBUG:
+                    print >>sys.stderr,"standardDetails: <mluc> switch from %s[%s] to %s[%s]" % (panel1.GetName(), panel1.GetParent().GetName(), panel2.GetName(), panel2.GetParent().GetName())
         else:
-            print 'standardDetails: Tabs for this mode (%s) not yet implemented' % self.mode
+            if DEBUG:
+                print >>sys.stderr,'standardDetails: Tabs for this mode (%s) not yet implemented' % self.mode
             return
         
         self.setData(self.item)
@@ -1013,7 +1031,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         # remove info tab panel
         sizer.Detach(oldpanel)
         oldpanel.Hide()
-#        print "<mluc> found sizer equal to hSizer?",(sizer==self.hSizer)
+        #print >>sys.stderr,"standardDetails: <mluc> found sizer equal to hSizer?",(sizer==self.hSizer)
         # add files tab panel
         newpanel.SetAutoLayout(1)
         newpanel.Layout()
@@ -1039,7 +1057,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 for element in self.tabElements[name]:
                     xrcElement = xrc.XRCCTRL(panel, element)
                     if not xrcElement:
-                        print 'standardDetails: Error: Could not identify xrc element: %s for mode %s' % (element, self.mode)
+                        if DEBUG:
+                            print >>sys.stderr,'standardDetails: Error: Could not identify xrc element: %s for mode %s' % (element, self.mode)
+                        pass
                     self.data[self.mode][name+'_'+element] = xrcElement
                             
             self.data[self.mode][name] = panel
@@ -1047,10 +1067,11 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             return panel
         
     def mouseAction(self, event):
-        print 'mouseAction'
+        if DEBUG:
+            print >>sys.stderr,'standardDetails: mouseAction'
         
         obj = event.GetEventObject()
-        print obj
+        #print obj
         
         if not self.data:
             return
@@ -1058,7 +1079,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             self.download(self.data)
         elif obj == self.refreshButton: 
             #and self.refreshButton.isEnabled():
-            print "refresh seeders and leechers"
+            if DEBUG:
+                print >>sys.stderr,"standardDetails: refresh seeders and leechers"
             #self.swarmText.SetLabel(self.utility.lang.get('refreshing')+'...')
             #self.swarmText.Refresh()
             
@@ -1066,7 +1088,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             
     def refresh(self, torrent):
         if DEBUG:
-            print >>sys.stderr,'contentpanel: refresh ' + repr(torrent.get('content_name', 'no_name'))
+            print >>sys.stderr,'standardDetails: refresh ' + repr(torrent.get('content_name', 'no_name'))
         check = SingleManualChecking(torrent)
         check.start()
             
@@ -1102,7 +1124,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 #            if result == wx.ID_YES:
             ret = self.utility.queue.addtorrents.AddTorrentFromFile(src, dest = dest)
             if ret and ret[0]:
-                print 'standardDetails: download started'
+                if DEBUG:
+                    print >>sys.stderr,'standardDetails: download started'
                 # save start download time.
                 #torrent['download_started'] = time()
                 #torrent['progress'] = 0.0
@@ -1180,10 +1203,12 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 #                    else:
                 if self.guiUtility.peer_manager.isFriend(peer_data['permid']):
                     bRemoved = self.guiUtility.peer_manager.deleteFriendwData(peer_data)
-                    print "removed friendship with",peer_data['content_name'],":",bRemoved
+                    if DEBUG:
+                        print >>sys.stderr,"standardDetails: removed friendship with",`peer_data['content_name']`,":",bRemoved
                 else:
                     bAdded = self.guiUtility.peer_manager.addFriendwData(peer_data)
-                    print "added",peer_data['content_name'],"as friend:",bAdded
+                    if DEBUG:
+                        print >>sys.stderr,"standardDetails: added",`peer_data['content_name']`,"as friend:",bAdded
                 
                 #should refresh?
                 self.guiUtility.selectPeer(peer_data)

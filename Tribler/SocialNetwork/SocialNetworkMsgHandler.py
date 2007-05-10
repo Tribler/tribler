@@ -12,7 +12,7 @@ from Tribler.CacheDB.CacheDBHandler import MyDBHandler, PeerDBHandler, SuperPeer
 
 from Tribler.utilities import show_permid_short
 
-DEBUG = True
+DEBUG = False
 
 class SocialNetworkMsgHandler:
     
@@ -38,7 +38,8 @@ class SocialNetworkMsgHandler:
         
 
     def register(self,secure_overlay,rawserver,config):
-        print >> sys.stderr,"socnet: register"
+        if DEBUG:
+            print >> sys.stderr,"socnet: register"
         self.secure_overlay = secure_overlay
         self.rawserver = rawserver
         self.config = config

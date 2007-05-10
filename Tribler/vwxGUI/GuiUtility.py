@@ -23,7 +23,7 @@ from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.utilities import *
 from Utility.constants import *
 
-DEBUG = True
+DEBUG = False
 
 class GUIUtility:
     __single = None
@@ -59,7 +59,7 @@ class GUIUtility:
         "One of the buttons in the GUI has been clicked"
         
         if DEBUG:
-            print 'Button clicked'
+            print >>sys.stderr,'GUIUtil: Button clicked'
 
         event.Skip(True) #should let other handlers use this event!!!!!!!
             
@@ -167,7 +167,8 @@ class GUIUtility:
     def standardFriendsOverview(self):
         self.standardOverview.setMode('friendsMode')
         filterState = self.standardOverview.getFilter().getState()
-        print "standardFriendsOverview, filter state:",filterState
+        if DEBUG:
+            print >>sys.stderr,"standardFriendsOverview, filter state:",filterState
         self.standardOverview.filterChanged(filterState)
         self.standardDetails.setMode('personsMode')
     
@@ -187,7 +188,8 @@ class GUIUtility:
         self.standardDetails.setMode('subscriptionsMode')
          
     def standardMessagesOverview(self):
-        print 'Not yet implemented;'
+        if DEBUG:
+            print >>sys.stderr,'GUIUtil: standardMessagesOverview: Not yet implemented;'
   
             
 #    def reloadPeers(self):
@@ -337,7 +339,8 @@ class GUIUtility:
         if sf is None:
             return
         input = sf.GetValue()
-        print "GUIUtil: searchFiles:",input
+        if DEBUG:
+            print >>sys.stderr,"GUIUtil: searchFiles:",input
         low = input.lower()
         wantkeywords = low.split(' ')
         wantkeywords += low.split('-')
@@ -345,7 +348,6 @@ class GUIUtility:
         wantkeywords += low.split('.')
         zet = Set(wantkeywords)
         wantkeywords = list(zet)
-        print "GUIUtil: searchFiles: keywords",wantkeywords
         #self.peer_manager = standardOverview.peer_manager
         self.data_manager.setSearchKeywords(wantkeywords)
         self.standardOverview.filterChanged(['search','swarmsize'],setgui=True)
@@ -355,7 +357,8 @@ class GUIUtility:
         if sf is None:
             return
         input = sf.GetValue()
-        print "GUIUtil: searchPersons:",input
+        if DEBUG:
+            print >>sys.stderr,"GUIUtil: searchPersons:",input
         low = input.lower()
         wantkeywords = low.split(' ')
         wantkeywords += low.split('-')
@@ -363,7 +366,6 @@ class GUIUtility:
         wantkeywords += low.split('.')
         zet = Set(wantkeywords)
         wantkeywords = list(zet)
-        print "GUIUtil: searchPersons: keywords",wantkeywords
         def searchFilterFunc(peer_data):
             low = peer_data['content_name'].lower()
             for wantkw in wantkeywords:
@@ -382,7 +384,8 @@ class GUIUtility:
         if sf is None:
             return
         input = sf.GetValue()
-        print "GUIUtil: searchFriends:",input
+        if DEBUG:
+            print "GUIUtil: searchFriends:",input
         low = input.lower()
         wantkeywords = low.split(' ')
         wantkeywords += low.split('-')
@@ -390,7 +393,6 @@ class GUIUtility:
         wantkeywords += low.split('.')
         zet = Set(wantkeywords)
         wantkeywords = list(zet)
-        print "GUIUtil: searchPersons: keywords",wantkeywords
         def searchFriendsFilterFunc(peer_data):
             if not peer_data.get('friend',False):
                 return False
@@ -423,7 +425,8 @@ class GUIUtility:
     def subscribe(self):
         rssurlctrl = self.standardOverview.getRSSUrlCtrl()
         url = rssurlctrl.GetValue()
-        print "GUIUtil: subscribe:",url
+        if DEBUG:
+            print >>sys.stderr,"GUIUtil: subscribe:",url
         try:
             stream = urllib2.urlopen(url)
             stream.close()

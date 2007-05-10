@@ -30,7 +30,8 @@ class TorrentDataManager:
         self.dict_FunList = {}
         self.done_init = True
         self.searchkeywords = []
-        print 'torrentManager: ready init'
+        if DEBUG:
+            print >>sys.stderr,'torrentManager: ready init'
         
     def getInstance(*args, **kw):
         if TorrentDataManager.__single is None:
@@ -90,7 +91,8 @@ class TorrentDataManager:
             def myfilter(a):
                 return a.get('myDownloadHistory', False) and a.get('eventComingUp', '') != 'notDownloading'
             rlist = filter(myfilter, self.data) 
-            print '>>>getCategory: returns mydlhistory: %s' % str([t['content_name'] for t in rlist])
+            if DEBUG:
+                print >>sys.stderr,'torrentManager: getCategory: returns mydlhistory: %s' % str([t['content_name'] for t in rlist])
             return rlist
         
         rlist = []
@@ -122,12 +124,14 @@ class TorrentDataManager:
 
     # register update function
     def register(self, fun, key):
-        print 'Registered for key: %s' % key
+        if DEBUG:
+            print >>sys.stderr,'torrentManager: Registered for key: %s' % key
         try:
             key = key.lower()
             self.dict_FunList[key].index(fun)
             # if no exception, fun already exist!
-            print "DBObserver register error. " + str(fun.__name__) + " already exist!"
+            if DEBUG:
+                print >>sys.stderr,"torrentManager: DBObserver register error. " + str(fun.__name__) + " already exist!"
             return
         except KeyError:
             self.dict_FunList[key] = []
@@ -135,24 +139,27 @@ class TorrentDataManager:
         except ValueError:
             self.dict_FunList[key].append(fun)
         except Exception, msg:
-            print "TorrentDataManager register error.", Exception, msg
+            if DEBUG:
+                print >>sys.stderr,"torrentDataManager: register error.", Exception, msg
             print_exc()
         
         
     def unregister(self, fun, key):
-        print 'Unregistered for key: %s' % key
+        if DEBUG:
+            print >>sys.stderr,'torrentDataManager: Unregistered for key: %s' % key
         try:
             key = key.lower()
             self.dict_FunList[key].remove(fun)
         except Exception, msg:
-            print "TorrentDataManager unregister error.", Exception, msg
+            if DEBUG:
+                print >>sys.stderr,"torrentDataManager: unregister error.", Exception, msg
             print_exc()
         
     def updateFun(self, infohash, operate):
         if not self.done_init:    # don't call update func before init finished
             return
         if DEBUG:
-            print "abcfileframe: torrentdatamanager updateFun called, param", operate
+            print "torrentDataManager: updateFun called, param", operate
         if self.info_dict.has_key(infohash):
             if operate == 'add':
                 self.addItem(infohash)
@@ -376,7 +383,8 @@ class TorrentDataManager:
         self.searchkeywords = wantkeywords
          
     def search(self):
-        print >>sys.stderr,"tdm: search: Want",self.searchkeywords
+        if DEBUG:
+            print >>sys.stderr,"torrentDataManager: search: Want",self.searchkeywords
         hits = []
         if len(self.searchkeywords) == 0:
             return hits
@@ -387,7 +395,8 @@ class TorrentDataManager:
             for wantkw in self.searchkeywords:
                 # only search in alive torrents
                 if low.find(wantkw) != -1 and torrent['status'] == 'good':
-                    print "tdm: search: Got hit",`wantkw`,"found in",`torrent['content_name']`
+                    if DEBUG:
+                        print >>sys.stderr,"torrentDataManager: search: Got hit",`wantkw`,"found in",`torrent['content_name']`
                     hits.append(torrent)
         return hits
 

@@ -14,7 +14,8 @@ from threading import Thread,currentThread
 
 
 OVERVIEW_MODES = ['filesMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionsMode', 'messageMode', 'libraryMode']
-DEBUG = True
+
+DEBUG = False
 
 class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     """
@@ -62,7 +63,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 self.owner.utility.buddycast.data_ready_evt.wait()   # called by buddycast
                 # get the peer list in buddycast. Actually it is a dict, but it can be used
                 buddycast_peer_list = self.owner.utility.buddycast.data_handler.peers
-                print "***** buddycast loaded, start GUI threat ", len(buddycast_peer_list), currentThread().getName()
+                if DEBUG:
+                    print >>sys.stderr,"standardOverview: Buddycast signals it has loaded, release data for GUI thread", len(buddycast_peer_list), currentThread().getName()
 #                self.owner.sortData(self.owner.prepareData(buddycast_peer_list))
                 #this initialization can be done in another place also
                 data = self.owner.peer_manager.prepareData(buddycast_peer_list)
@@ -123,7 +125,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     def loadPanel(self):
         currentPanel = self.data[self.mode].get('panel',None)
         modeString = self.mode[:-4]
-        print 'modeString='+modeString
+        if DEBUG:
+            print >>sys.stderr,'standardOverview: loadPanel: modeString='+modeString
         if not currentPanel:
             xrcResource = os.path.join(self.utility.getPath(),'Tribler','vwxGUI', modeString+'Overview.xrc')
             panelName = modeString+'Overview'
@@ -164,8 +167,9 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                     rssurlctrl.Bind(wx.EVT_KEY_DOWN, self.guiUtility.OnSubscribeKeyDown)
                     self.data[self.mode]['rssurlctrl'] = rssurlctrl
             except:
-                print 'Error: Could not load panel, grid and pager for mode %s' % self.mode
-                print 'Tried panel: %s=%s, grid: %s=%s, pager: %s=%s' % (panelName, currentPanel, modeString+'Grid', grid, 'standardPager', pager)
+                if DEBUG:
+                    print >>sys.stderr,'standardOverview: Error: Could not load panel, grid and pager for mode %s' % self.mode
+                    print >>sys.stderr,'standardOverview: Tried panel: %s=%s, grid: %s=%s, pager: %s=%s' % (panelName, currentPanel, modeString+'Grid', grid, 'standardPager', pager)
                 print_exc()
         return currentPanel
      
@@ -178,8 +182,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         grid = self.data[self.mode].get('grid')
         if grid:
             grid.updateSelection()
-        else:
-            print 'standardOverview: Could not update selection: No grid'
+        elif DEBUG:
+            print >>sys.stderr,'standardOverview: Could not update selection: No grid'
         
         
     def getFirstItem(self):
@@ -187,7 +191,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         if data and len(data) > 0:
             return data[0]
         else:
-            print 'standardOverview: Error, could not return firstItem, data=%s' % data
+            if DEBUG:
+                print >>sys.stderr,'standardOverview: Error, could not return firstItem, data=%s' % data
             return None
         
     def refreshTorrentStats_network_callback(self):
@@ -219,7 +224,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             elif self.mode == 'subscriptionsMode':
                 self.loadSubscriptionData()
             else:
-                print 'standardOverview: Filters not yet implemented in this mode'
+                if DEBUG:
+                    print >>sys.stderr,'standardOverview: Filters not yet implemented in this mode'
                 return
         
         if setgui:
@@ -232,7 +238,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 
             
     def loadTorrentData(self, cat, sort):
-        print 'Category set to %s, %s' % (str(cat), str(sort))
+        if DEBUG:
+            print >>sys.stderr,'standardOverview: loadTorrentData: Category set to %s, %s' % (str(cat), str(sort))
         
         if cat != None:
             # Unregister for old category
@@ -283,12 +290,12 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 self.peer_manager.setCmpFunc(newSortFunc, cat)
         else:
             if DEBUG:
-                print "<mluc> not correct standard overview mode for loading peers:",self.mode
+                print >>sys.stderr,"standardOverview: loadPersonsData: <mluc> not correct standard overview mode for loading peers:",self.mode
     
     def loadLibraryData(self, cat, sort):
         # Get infohashes of current downloads
         if DEBUG:
-            print 'standardOverview: Loaded library data list'
+            print >>sys.stderr,'standardOverview: Loaded library data list'
         activeInfohashes = {}
         active = []
         inactive = []
@@ -319,9 +326,11 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 return diff
             
         libraryList.sort(librarySort)
-        print 'Loading libraryList: %s' % [(self.isTorrentFinished(t), t.get('download_started',False)) for t in libraryList]
+        if DEBUG:
+            print >>sys.stderr,'standardOverview: Loading libraryList: %s' % [(self.isTorrentFinished(t), t.get('download_started',False)) for t in libraryList]
         self.data[self.mode]['data'] = libraryList
-        print 'Loaded %d library items' % len(self.data[self.mode]['data'])
+        if DEBUG:
+            print >>sys.stderr,'standardOverview: Loaded %d library items' % len(self.data[self.mode]['data'])
         
     def getDownloadStartedTime(self, torrent):
         if torrent.get('download_started'):
@@ -344,7 +353,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             if progression != None:
                 return (progression == 100.0)
             else:
-                print 'Could not get progression'
+                if DEBUG:
+                    print >>sys.stderr,'standardOverview: isTorrentFinished: Could not get progression'
                 #print 'standardOverview: Error could not get progression of torrent: %s' % torrent
                 return False
         else:
@@ -357,9 +367,21 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         urls = torrentfeed.getURLs()
         
         bcsub = self.utility.lang.get('buddycastsubscription')
+        web2sub = self.utility.lang.get('web2subscription')
+        
+        bcactive = self.utility.config.Read('enablerecommender', "boolean")
+        bcstatus = 'inactive'
+        if bcactive:
+            bcstatus = 'active'
+        web2active = self.utility.config.Read('enableweb2search', "boolean")
+        web2status = 'inactive'
+        if web2active:
+            web2status = 'active'
         
         reclist = []
-        record = {'url':bcsub,'status':'active','persistent':True}
+        record = {'url':bcsub,'status':bcstatus,'persistent':'BC'}
+        reclist.append(record)
+        record = {'url':web2sub,'status':web2status,'persistent':'Web2.0'}
         reclist.append(record)
         for url in urls:
             record = {}
@@ -369,12 +391,14 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         self.data[self.mode]['data'] = reclist
         
     def updateFunTorrents(self, torrent, operate):    
-        print >> sys.stderr, "UpdatefunTorrents called: %s, %s" % (operate, torrent.get('torrent_name','?'))
+        if DEBUG:
+            print >>sys.stderr,"standardOverview: updateFunTorrents called: %s, %s" % (operate, str(torrent))
         try:
             detailsPanel = self.guiUtility.standardDetails
         except:
             detailsPanel = None
-            print 'standardOverview: Error could not find standardDetailsPanel'
+            if DEBUG:
+                print >>sys.stderr,'standardOverview: Error could not find standardDetailsPanel'
             
         if operate in ['update', 'delete']:
             if detailsPanel and detailsPanel.getIdentifier() == torrent['infohash']:
@@ -413,7 +437,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             grid = self.data[self.mode].get('grid')
         if grid is not None:
             try:
-                print "UpdatefunPersons called for ",peer_data['content_name']
+                if DEBUG:
+                    print >>sys.stderr,"standardOverview: updateFunPersons called for ",peer_data['content_name']
                 #check if the changed peer_data is in the list of visible ones
                 for index in range(grid.currentData,grid.currentData+grid.items):
                     if index<len(grid.data) and grid.data[index]['permid'] == peer_data['permid']:

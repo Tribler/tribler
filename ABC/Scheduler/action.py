@@ -7,6 +7,8 @@ import os
 from Utility.constants import * #IGNORE:W0611
 from Utility.helpers import intersection
 
+DEBUG = False
+
 ################################################################
 #
 # Class: ActionHandler
@@ -100,14 +102,16 @@ class ActionHandler:
             self.queue.UpdateRunningTorrentCounters()
        
     def procRESUME(self, workinglist = None, skipcheck = False):
-        print >>sys.stderr,"ActionHandler: procRESUME: enter",workinglist
+        if DEBUG:
+            print >>sys.stderr,"ActionHandler: procRESUME: enter",workinglist
         fulllist = self.utility.torrents["inactive"].keys()
         if workinglist is None:
             workinglist = fulllist
         else:
             workinglist = intersection(fulllist, workinglist)
             
-        print >>sys.stderr,"ActionHandler: procRESUME: list to resume",workinglist
+        if DEBUG:
+            print >>sys.stderr,"ActionHandler: procRESUME: list to resume",workinglist
         
         update = [1 for ABCTorrentTemp in workinglist if ABCTorrentTemp.actions.resume(skipcheck)]
 

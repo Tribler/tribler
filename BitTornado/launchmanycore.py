@@ -46,7 +46,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = 0
+DEBUG = False
 
 def fmttime(n):
     try:

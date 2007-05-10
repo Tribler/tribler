@@ -15,7 +15,7 @@ from traceback import print_exc
 DEBUG = False
 def debug(message):
     if DEBUG:
-        print message
+        print >>sys.stderr,"peermanager:",message
 
 #===============================================================================
 # def getAgeingValue(old_time):
@@ -260,8 +260,9 @@ class PeerDataManager(DelayedEventHandler):
         data = self.filtered_data[filter_name] 
         for i in xrange(len(data)):
             if data[i].get('permid') is None:
-                print "<mluc> ERROR: peer has no permid!!!! at position",i,"out of",len(data)
-                print "<mluc> ERROR: peer name is",data[i]['content_name']
+                if DEBUG:
+                    print >>sys.stderr,"peermanager: <mluc> ERROR: peer has no permid!!!! at position",i,"out of",len(data)
+                    print >>sys.stderr,"peermanager: <mluc> ERROR: peer name is",data[i]['content_name']
             if data[i]['permid'] == permid:
                 return data[i]
         return None
@@ -278,7 +279,8 @@ class PeerDataManager(DelayedEventHandler):
         """sets online status for a peer given its permid"""
         peer_data = self.getPeerData(permid) 
         if peer_data is None:
-            print "tried to set online status for",show_permid_shorter(permid),"to online?",bOnline
+            if DEBUG:
+                print >>sys.stderr,"peermanager: tried to set online status for",show_permid_shorter(permid),"to online?",bOnline
             return
         peer_data['online']=bOnline
         debug("%s is online? %s" %(peer_data['content_name'],peer_data['online']))
@@ -655,7 +657,8 @@ class PeerDataManager(DelayedEventHandler):
         except ValueError:
             self.guiCallbackFuncList.append(func)
         except Exception, msg:
-            print "PeerDataManager register error.", Exception, msg
+            if DEBUG:
+                print >>sys.stderr,"peermanager: register error.", Exception, msg
             print_exc()
 #            
 #    # register update function
@@ -695,7 +698,8 @@ class PeerDataManager(DelayedEventHandler):
         try:
             self.guiCallbackFuncList.remove(func)
         except Exception, msg:
-            print "PeerDataManager unregister Gui Func error.", Exception, msg
+            if DEBUG:
+                print >>sys.stderr,"peermanager: unregister Gui Func error.", Exception, msg
             print_exc()
             
     def getPeerHistFiles(self, permid):
@@ -707,8 +711,8 @@ class PeerDataManager(DelayedEventHandler):
         all_data = self.filtered_data['all']
         index = 0
         for peer_data in all_data:
-            if peer_data.get('similarity',None) is None:
-                print "peer ",peer_data['content_name'],"has no similarity!!!! at position",index,"out of",len(all_data)
+            if peer_data.get('similarity',None) is None and DEBUG:
+                print >>sys.stderr,"peermanager: peer ",peer_data['content_name'],"has no similarity!!!! at position",index,"out of",len(all_data)
             index = index + 1
             if peer_data['similarity'] > 20:
                 count = count + 1

@@ -64,7 +64,8 @@ class FilesList(tribler_List):
         if not self.initReady:
             self._PostInit()
             
-        print 'setData of FilesTabPanel called'
+        if DEBUG:
+            print >>sys.stderr,'tribler_List: setData of FilesTabPanel called'
         torrent_dir = torrent.get('torrent_dir')
         torrent_file = torrent.get('torrent_name')
         try:
@@ -76,7 +77,7 @@ class FilesList(tribler_List):
             
             if not os.path.exists(torrent_filename):
                 if DEBUG:    
-                    print >>sys.stderr,"contentpanel: Torrent: %s does not exist" % torrent_filename
+                    print >>sys.stderr,"tribler_List: Torrent: %s does not exist" % torrent_filename
                 return {}
             
             metadata = self.utility.getMetainfo(torrent_filename)
@@ -108,8 +109,9 @@ class FilesList(tribler_List):
             self.onListResize(None)
             
         except:
-            print 'standardDetails: error getting list of files in torrent'
-            print_exc(file=sys.stderr)
+            if DEBUG:
+                print >>sys.stderr,'tribler_List: error getting list of files in torrent'
+            print_exc()
             return {}                 
        
     def getNumFiles(self):

@@ -1,7 +1,6 @@
 import wx, os, sys
 import wx.xrc as xrc
 
-
 class ImagePanelBasic(wx.Panel):
     """
     Panel with automatic backgroundimage control.
@@ -71,7 +70,7 @@ class ImagePanelBasic(wx.Panel):
         if os.path.isfile(self.bitmapPath):
             self.setBitmap(wx.Bitmap(self.bitmapPath, wx.BITMAP_TYPE_ANY))
         else:
-            print '[bgPanel] Could not load image: %s' % self.bitmapPath
+            print 'bgPanel: Could not load image: %s' % self.bitmapPath
         
     def createBackgroundImage(self):
         wx.EVT_PAINT(self, self.OnPaint)

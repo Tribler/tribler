@@ -373,6 +373,7 @@ class Utility:
              'enablerecommender': '1',
              'enabledlhelp': '1',  
              'enabledlcollecting': '1',
+             'enableweb2search':'1',
              'maxntorrents': 5000,
              'torrentcollectingrate': 5,
              'minport': '6881',

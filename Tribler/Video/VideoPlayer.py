@@ -18,7 +18,7 @@ from Tribler.unicode import unicode2str
 # Filename extensions for video and audio files
 EXTENSIONS = ['aac','asf','avi','dv','divx','flc','mpeg','mpeg4','mpg4','mp3','mp4','mpg','mkv','mov','ogm','qt','rm','swf','vob','wmv','wav']
 
-DEBUG = True
+DEBUG = False
 
 
 PLAYBACKMODE_INTERNAL = 0

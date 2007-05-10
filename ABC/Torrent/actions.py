@@ -9,6 +9,8 @@ from Utility.constants import * #IGNORE:W0611
 from Tribler.Video.VideoPlayer import VideoPlayer
 
 
+DEBUG = False
+
 ################################################################
 #
 # Class: TorrentActions
@@ -138,24 +140,28 @@ class TorrentActions:
         
         ################### Resume for On-Hold State ###########################
         if torrent.status.value == STATUS_PAUSE:
-            print >>sys.stderr,"actions resume: pause resume"
+            if DEBUG:
+                print >>sys.stderr,"actions: resume: pause resume"
             return self.pauseResume()
 
         ################## Resume for Other inactive States ##############################
         
         # Don't resume if done uploading or currently active
         if torrent.status.isDoneUploading():
-            print >>sys.stderr,"actions resume: done uploading"
+            if DEBUG:
+                print >>sys.stderr,"actions: resume: done uploading"
             return True
         
         if torrent.status.isActive():
-            print >>sys.stderr,"actions resume: is active"
+            if DEBUG:
+                print >>sys.stderr,"actions: resume: is active"
             return False
             
         # If the file is complete and it's finished uploading,
         # don't need to resume
         if self.torrent.status.isDoneUploading():
-            print >>sys.stderr,"actions resume: update single item"
+            if DEBUG:
+                print >>sys.stderr,"actions: resume: update single item"
             self.torrent.updateSingleItemStatus()
             # This may indicate that something has changed, so return True
             return True
@@ -164,7 +170,8 @@ class TorrentActions:
 #        torrent.files.skipcheck = skipcheck
         
         torrent.connection.startEngine()
-        print >>sys.stderr,"actions resume: started engine"
+        if DEBUG:
+            print >>sys.stderr,"actions: resume: started engine"
         return True
 
     def hashCheck(self):

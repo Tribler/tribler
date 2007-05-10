@@ -450,7 +450,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         self.oldframe = ABCOldFrame(-1, self.params, self.utility)
         self.oldframe.Refresh()
         self.oldframe.Layout()
-        self.oldframe.Show(True)
+        #self.oldframe.Show(True)
         
         self.window = self.GetChildren()[0]
         self.window.utility = self.utility
@@ -576,7 +576,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
                 # Arno: we are a separate thread, delegate GUI updates to MainThread
                 self.upgradeCallback()
         except Exception,e:
-            print >> sys.stderr, "Version check failed", ctime(time()), str(e)
+            print >> sys.stderr, "abc: Version check failed", ctime(time()), str(e)
             #print_exc()
             
     def newversion(self, curr_version, my_version):
@@ -664,9 +664,9 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         # and when being restored.
         if DEBUG:
             if event is not None:
-                print "abc: onIconify(",event.Iconized()
+                print  >> sys.stderr,"abc: onIconify(",event.Iconized()
             else:
-                print "abc: onIconify event None"
+                print  >> sys.stderr,"abc: onIconify event None"
         if event.Iconized():                                                                                                               
             if (self.utility.config.Read('mintray', "int") > 0
                 and self.tbicon is not None):
@@ -690,9 +690,9 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         
         if DEBUG:
             if event is not None:
-                print "abc: onSize:",event.GetSize()
+                print  >> sys.stderr,"abc: onSize:",event.GetSize()
             else:
-                print "abc: onSize: None"
+                print  >> sys.stderr,"abc: onSize: None"
         self.setGUIupdate(True)
         if event is not None:
             #self.window.SetSize(self.GetSize())
@@ -831,10 +831,15 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         # Ideally, the database should still be open while they finish up.
         # Because of the crash problem with the icontray this is the safer
         # place.
-        # 
-        # TODO: Check if icon-tray problem is Linux only
-        if sys.platform == 'linux2':
-            tribler_done(self.utility.getConfigPath())            
+        #
+        # Arno, 2007-08-10: When a torrentfile is passed on the command line,
+        # the client will crash just after this point due to unknown reasons
+        # (it even does it when we don't look at the cmd line args at all!)
+        # Hence, for safety, I close the DB here already. 
+        #if sys.platform == 'linux2':
+        #
+        
+        tribler_done(self.utility.getConfigPath())            
         
         if DEBUG:    
             print >>sys.stderr,"abc: OnCloseWindow END"
@@ -884,7 +889,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
     def setActivity(self,type,msg=u''):
     
         if currentThread().getName() != "MainThread":
-            print "setActivity thread",currentThread().getName(),"is NOT MAIN THREAD"
+            print  >> sys.stderr,"abc: setActivity thread",currentThread().getName(),"is NOT MAIN THREAD"
             print_stack()
     
         if type == ACT_NONE:
@@ -909,7 +914,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
             text = unicode( prefix+u' '+msg)
             
         if DEBUG:
-            print "act: Setting activity", `text`
+            print  >> sys.stderr,"abc: Setting activity", `text`
         self.messageField.SetLabel(text)
 
 
@@ -1037,7 +1042,7 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             bmphand = None
             hands = wx.Image.GetHandlers()
             for hand in hands:
-                print "Handler",hand.GetExtension(),hand.GetType(),hand.GetMimeType()
+                #print "Handler",hand.GetExtension(),hand.GetType(),hand.GetMimeType()
                 if hand.GetMimeType() == 'image/x-bmp':
                     bmphand = hand
                     break
@@ -1053,8 +1058,7 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             wx.CallAfter(self.startWithRightView)            
             
         except Exception,e:
-            print "THREAD",currentThread().getName()
-            print_exc(file=sys.stderr)
+            print_exc()
             self.error = e
             self.onError()
             return False
@@ -1089,7 +1093,7 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
     
     def db_exception_handler(self,e):
         if DEBUG:
-            print "abc: Database Exception handler called"
+            print >> sys.stderr,"abc: Database Exception handler called",e
         self.error = e
         self.invokeLater(self.onError,[],{'source':"The database layer reported: "})
     
@@ -1151,8 +1155,8 @@ def run(params = None):
         # This is the right place to close the database, unfortunately Linux has
         # a problem, see ABCFrame.OnCloseWindow
         #
-        if sys.platform != 'linux2':
-            tribler_done(configpath)
+        #if sys.platform != 'linux2':
+        #    tribler_done(configpath)
         #os._exit(0)
 
 if __name__ == '__main__':

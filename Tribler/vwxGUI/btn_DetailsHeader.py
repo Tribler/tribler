@@ -84,12 +84,14 @@ class btn_DetailsHeader(wx.Panel):
         
     def mouseAction(self, event):
         if event.Entering():
-            print 'enter' 
+            if DEBUG:
+                print >>sys.stderr,'btn_DetailsHeader: enter' 
             self.mouseOver = True
             self.Refresh()
         elif event.Leaving():
             self.mouseOver = False
-            print 'leave'
+            if DEBUG:
+                print >>sys.stderr,'btn_DetailsHeader: leave'
             self.Refresh()
         elif event.ButtonUp():
             self.ClickedButton()

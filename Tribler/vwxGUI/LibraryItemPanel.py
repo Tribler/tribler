@@ -8,8 +8,7 @@ from Tribler.vwxGUI.GuiUtility import GUIUtility
 #from Tribler.vwxGUI.TriblerProgressbar import TriblerProgressbar
 from Tribler.vwxGUI.filesItemPanel import ThumbnailViewer
 #from Dialogs.abcdetailframe import ABCDetailFrame
-from Tribler.Video.__init__ import stat
-from Tribler.Video.VideoPlayer import VideoPlayer,find_video_on_disk
+from Tribler.Video.VideoPlayer import VideoPlayer
 
 from Tribler.Video.Progress import ProgressBar
 from Tribler.unicode import *
@@ -19,7 +18,7 @@ from bgPanel import *
 from Utility.constants import * 
 import cStringIO
 
-DEBUG=True
+DEBUG=False
 
 class LibraryItemPanel(wx.Panel):
     def __init__(self, parent):
@@ -236,7 +235,7 @@ class LibraryItemPanel(wx.Panel):
             
             if not (statustxt in initstates):
                 showBoost = active and (progress < 100.0)
-                if showBoost and len(find_video_on_disk(abctorrent,stat(abctorrent))) > 0:
+                if showBoost and abctorrent.is_vodable():
                     showPlayFast = True
                 
                 if abctorrent.get_on_demand_download():
@@ -360,6 +359,10 @@ class LibraryItemPanel(wx.Panel):
         event.Skip()
         
     def mouseAction(self, event):
+
+        if DEBUG:
+            print >>sys.stderr,"lip: mouseaction: name",event.GetEventObject().GetName()
+
         event.Skip()
         
         if not self.data:
@@ -414,21 +417,20 @@ class LibraryItemPanel(wx.Panel):
             if name == 'pause':
                  #playbutton
                  dest_dir = self.data.get('destdir')
-                 if  dest_dir != None:
+                 if  dest_dir is not None:
                      # Start torrent again
-                     print 'starting torrent %s with data in dir %s' % (repr(self.data['content_name']), dest_dir)
+                     if DEBUG:
+                         print >>sys.stderr,'lip: starting torrent %s with data in dir %s' % (repr(self.data['content_name']), dest_dir)
                      self.guiUtility.standardDetails.download(self.data, dest = dest_dir)
                  
-                 else:
-                     print 'LibraryItemPanel: Could not make abctorrent active, no destdir in dictionary: %s' % repr(self.data.get('content_name'))
+                 elif DEBUG:
+                     print >>sys.stderr,'lip: Could not make abctorrent active, no destdir in dictionary: %s' % repr(self.data.get('content_name'))
                 
                 
         if name == 'deleteLibraryitem':
             # delete works for active and inactive torrents
             self.guiUtility.standardOverview.removeTorrentFromLibrary(self.data)
-                
-        print >>sys.stderr,"lip: mouseaction: name",event.GetEventObject().GetName()
-            
+             
         
        
        
@@ -495,7 +497,8 @@ class LibraryItemPanel(wx.Panel):
         The abctorrent related to this panel was shutdown
         """
         if self.data.get('infohash') == infohash and self.data.get('abctorrent'):
-            print 'abcTorrentShutdown with right infohash'
+            if DEBUG:
+                print >>sys.stderr,'lip: abcTorrentShutdown with right infohash'
             
             abctorrent = self.data.get('abctorrent')
             progresstxt = abctorrent.getColumnText(COL_PROGRESS)
@@ -504,7 +507,8 @@ class LibraryItemPanel(wx.Panel):
             newdata = {'progress':progress, 'destdir':abctorrent.files.dest}
             self.data.update(newdata)
             
-            print 'Save destination?: %s' % self.data['destdir']
+            if DEBUG:
+                print >>sys.stderr,'lip: Save destination?: %s' % self.data['destdir']
             # only save new data (progression and destdir, no other data or torrent
             self.utility.torrent_db.updateTorrent(infohash, item = newdata)
             # Now delete the abctorrent object reference

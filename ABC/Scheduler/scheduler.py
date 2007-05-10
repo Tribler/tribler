@@ -17,6 +17,8 @@ from safeguiupdate import DelayedEventHandler
 from BitTornado.__init__ import product_name
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 
+DEBUG = False
+
 
 ################################################################
 #
@@ -311,7 +313,8 @@ class ABCScheduler(DelayedEventHandler):
         inactivetorrents = self.getInactiveTorrents(torrentstostart)
                            
         for ABCTorrentTemp in inactivetorrents:
-            print >>sys.stderr,"scheduler: resuming",ABCTorrentTemp.infohash
+            if DEBUG:
+                print >>sys.stderr,"scheduler: resuming",ABCTorrentTemp.infohash
             play_video = ABCTorrentTemp.clear_newly_added()
             change = ABCTorrentTemp.actions.resume()
             if change:

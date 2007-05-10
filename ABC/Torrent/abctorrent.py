@@ -19,8 +19,9 @@ from ABC.Torrent.status import TorrentStatus
 from Utility.constants import * #IGNORE:W0611
 from Tribler.unicode import name2unicode
 from Tribler.Category.Category import Category
+from Tribler.Video.__init__ import stat
 from Tribler.vwxGUI.torrentManager import TorrentDataManager
-from Tribler.Video.VideoPlayer import VideoPlayer
+from Tribler.Video.VideoPlayer import VideoPlayer,find_video_on_disk
 
 from time import time
 
@@ -142,6 +143,9 @@ class ABCTorrent:
         self.videoinfo = None
         self.progressinf = None
         self.prevactivetorrenst = None
+
+        self.vodable = (len(find_video_on_disk(self,stat(self))) > 0)
+
 
     def addTorrentToDB(self):
         
@@ -739,7 +743,7 @@ class ABCTorrent:
         self.updateColumns([COL_SEEDS, COL_PEERS])
         if message != "":
             if DEBUG:
-                print >> sys.stderr,"message: " + message
+                print >> sys.stderr,"abctorrent: message: " + message
             
             if message == self.utility.lang.get('scraping'):
                 msgtype = "status"
@@ -871,12 +875,13 @@ class ABCTorrent:
         
         self.torrentconfig.writeAll()
         
-        print 'abctorrent shutdown'
+        if DEBUG:
+            print >>sys.stderr,'abctorrent shutdown'
         # Remove abctorrent from librarypanel
         if self.libraryPanel:
             self.libraryPanel.abcTorrentShutdown(self.torrent_hash)
-        else:
-            print 'abctorrent has no libraryPanel'
+        elif DEBUG:
+            print 'abctorrent: has no libraryPanel'
             
         # Delete Detail Window
         ########################
@@ -952,3 +957,6 @@ class ABCTorrent:
         
     def get_previously_active_torrents(self):
         return self.prevactivetorrents
+
+    def is_vodable(self):
+        return self.vodable

@@ -11,7 +11,7 @@ from BitTornado.BT1.MessageID import *
 from Tribler.Dialogs.MugshotManager import MugshotManager,ICON_MAX_SIZE
 from Tribler.utilities import *
 
-DEBUG = True
+DEBUG = False
 
 MIN_OVERLAP_WAIT = 12.0*3600.0 # half a day in seconds
 
@@ -27,7 +27,8 @@ class OverlapMsgHandler:
         self.recentpeers = {}
 
     def register(self, secure_overlay, rawserver):
-        print >> sys.stderr,"socnet: bootstrap: overlap"
+        if DEBUG:
+            print >> sys.stderr,"socnet: bootstrap: overlap"
         self.secure_overlay = secure_overlay
         self.rawserver = rawserver
 

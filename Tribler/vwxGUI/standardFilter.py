@@ -5,6 +5,7 @@ from Tribler.vwxGUI.GuiUtility import GUIUtility
 from traceback import print_exc
 #from Tribler.vwxGUI.filesGrid import filesGrid
 
+DEBUG = False
 
 class standardFilter(wx.Panel):
     """
@@ -63,7 +64,9 @@ class standardFilter(wx.Panel):
                     self.filterState = []
                 self.filterState.append(pullDownData[0][0])
             except:
-                print 'standardFilter: Error getting default filterState, data: %s' % pullDownData
+                if DEBUG:
+                    print >>sys.stderr,'standardFilter: Error getting default filterState, data: %s' % pullDownData
+                pass
             filter = wx.ComboBox(self,-1,titles[0], wx.Point(8,3),wx.Size(180,21),titles, wx.CB_DROPDOWN|wx.CB_READONLY)
             filter.SetFont(wx.Font(10,74,90,90,0,"Verdana"))
 #            filter.SetBackgroundColour(wx.WHITE)
@@ -88,7 +91,8 @@ class standardFilter(wx.Panel):
         for filterNum in range(len(self.filters)):
             filterState.append(self.filterData[filterNum][filterIndex[filterNum]][0])
             
-        print "standardFilter: filterState is",filterState
+        if DEBUG:
+            print >>sys.stderr,"standardFilter: filterState is",filterState
         if filterState != self.filterState:
             self.filterChanged(filterState)
             self.filterState = filterState
@@ -97,7 +101,8 @@ class standardFilter(wx.Panel):
         try:
             self.guiUtility.standardOverview.filterChanged(state)
         except:
-            print 'standardFilter: Error could not call standardOverview.filterChanged()'
+            if DEBUG:
+                print >>sys.stderr,'standardFilter: Error could not call standardOverview.filterChanged()'
             print_exc()
 
     def setSelectionToFilter(self,filterState):

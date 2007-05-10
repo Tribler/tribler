@@ -94,9 +94,6 @@ class FilesItemPanel(wx.Panel):
         else:
             torrent = {}
 
-        if 'source' in torrent:
-            print "fip: Source of torrent",`torrent['content_name']`,"is",`torrent['source']`
-
         if torrent.get('content_name'):
             title = torrent['content_name'][:self.titleLength]
             self.title.Enable(True)
@@ -118,7 +115,7 @@ class FilesItemPanel(wx.Panel):
           
     def select(self):
         if DEBUG:
-            print 'fip: item selected'
+            print >>sys.stderr,'fip: item selected'
         colour = self.guiUtility.selectedColour
         self.thumb.setSelected(True)
         self.title.SetBackgroundColour(colour)
@@ -224,7 +221,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                 torrent_filename = os.path.join(torrent_dir, torrent_file)
                 
                 if DEBUG:
-                    print "fip: Scheduling read of thumbnail for",torrent_filename
+                    print >>sys.stderr,"fip: Scheduling read of thumbnail for",torrent_filename
                 self.GetParent().guiserver.add_task(lambda:self.loadMetadata(torrent,torrent_filename),0)
             
             self.setBitmap(bmp)
@@ -251,7 +248,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         """ Called by separate non-GUI thread """
         
         if DEBUG:
-            print "fip: ThumbnailViewer: loadMetadata",torrent_filename
+            print >>sys.stderr,"fip: ThumbnailViewer: loadMetadata",torrent_filename
         if not os.path.exists(torrent_filename):
             if DEBUG:    
                 print >>sys.stderr,"fip: ThumbnailViewer: loadMetadata: %s does not exist" % torrent_filename

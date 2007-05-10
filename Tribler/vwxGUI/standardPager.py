@@ -6,6 +6,8 @@ from wx.lib.stattext import GenStaticText as StaticText
 
 import wx, os, sys, os.path, math
 
+DEBUG = False
+
 class standardPager(wx.Panel):
     """
     Panel with automatic backgroundimage control.
@@ -195,7 +197,8 @@ class standardPager(wx.Panel):
         "Called by Grid if size or data changes"
         
         if not self.hasGrid() or not self.initReady:
-            print 'StandardPager: no refresh, not ready yet or no grid'
+            if DEBUG:
+                print >>sys.stderr,'standardPager: no refresh, not ready yet or no grid'
             return
         
                 
@@ -231,7 +234,8 @@ class standardPager(wx.Panel):
 #        self.mouseAction(obj, event)
 #        
     def mouseAction(self, event):
-        print 'pager: mouseaction'
+        if DEBUG:
+            print >>sys.stderr,'standardPager: mouseaction'
         obj = event.GetEventObject()
         
         old = self.currentPage

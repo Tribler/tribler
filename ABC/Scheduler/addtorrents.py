@@ -20,7 +20,7 @@ from ABC.Torrent.abctorrent import ABCTorrent
 from Utility.compat import convertOldList
 from Utility.constants import * #IGNORE:W0611
 
-DEBUG = True
+DEBUG = False
 
 #
 # Get a .torrent file from a url

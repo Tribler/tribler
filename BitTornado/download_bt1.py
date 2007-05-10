@@ -221,7 +221,7 @@ defaults = [
 
 argslistheader = 'Arguments are:\n\n'
 
-DEBUG = True
+DEBUG = False
 
 def _failfunc(x):
     print x

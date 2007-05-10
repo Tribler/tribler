@@ -4,6 +4,7 @@ from Tribler.utilities import *
 from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.Dialogs.ContentFrontPanel import ImagePanel
 from Tribler.vwxGUI.GuiUtility import GUIUtility
+from Tribler.BuddyCast.buddycast import BuddyCastFactory
 from safeguiupdate import FlaglessDelayedInvocation
 from Tribler.unicode import *
 from copy import deepcopy
@@ -13,7 +14,7 @@ from urlparse import urlparse
 from Tribler.timeouturlopen import urlOpenTimeout
 import TasteHeart
 
-DEBUG=True
+DEBUG = False
 
 class SubscriptionsItemPanel(wx.Panel):
     """
@@ -99,7 +100,13 @@ class SubscriptionsItemPanel(wx.Panel):
     def setData(self, peer_data):
         # set bitmap, rating, title
         
-        print "subip: setData called",peer_data
+        if DEBUG:
+            print >>sys.stderr,"subip: setData called",peer_data
+            
+        if peer_data is not None and 'content_name' in peer_data:
+            print >>sys.stderr,"subip: ERROR! setData called with torrent data!"
+            peer_data = None
+            
         if peer_data is None:
             self.datacopy = None
         
@@ -151,7 +158,8 @@ class SubscriptionsItemPanel(wx.Panel):
         
     def select(self):
         colour = self.guiUtility.selectedColour
-        print >>sys.stderr,'subip: selected'
+        if DEBUG:
+            print >>sys.stderr,'subip: selected'
         self.thumb.setSelected(True)
         self.SetBackgroundColour(self.selectedColour)
         self.Refresh()
@@ -178,11 +186,11 @@ class SubscriptionsItemPanel(wx.Panel):
         event.Skip()
         
     def mouseAction(self, event):
-        print "subip: mouseAction",event.ButtonUp()
+        if DEBUG:
+            print >>sys.stderr,"subip: mouseAction"
         obj = event.GetEventObject()
         name = obj.GetName()
-        print "subip: mouseAction: name is",name
-        
+        #print "subip: mouseAction: name is",name
         
         #self.SetFocus()
         if self.data:
@@ -194,7 +202,10 @@ class SubscriptionsItemPanel(wx.Panel):
                 newstatus = not self.cB.GetValue()
                 #self.cB.SetValue(newstatus)
                 if 'persistent' in self.data:
-                    self.toggleBuddycast(newstatus)
+                    if self.data['persistent'] == 'BC':
+                        self.toggleBuddycast(newstatus)
+                    elif self.data['persistent'] == 'Web2.0':
+                        self.toggleWeb2Search(newstatus)
                 else:
                     self.torrentfeed.setURLStatus(self.data['url'],newstatus)
             elif name == 'delete':
@@ -208,8 +219,15 @@ class SubscriptionsItemPanel(wx.Panel):
             return self.data['url']
         
     def toggleBuddycast(self,status):
-        self.utility.config.Write('enablerecommender',status, "boolean")                
+        self.utility.config.Write('enablerecommender',status, "boolean")
+        bcfac = BuddyCastFactory.getInstance()
+        if status == True:
+            bcfac.restartBuddyCast()
+        else:
+            bcfac.pauseBuddyCast()
 
+    def toggleWeb2Search(self,status):
+        self.utility.config.Write('enableweb2search',status, "boolean")
 
 
 class FavicoThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
@@ -281,7 +299,7 @@ class FavicoThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             self.Refresh()
             
         except:
-            print_exc(file=sys.stderr)
+            print_exc()
             return {}           
         
          
@@ -298,15 +316,16 @@ class FavicoThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         """ Called by non-GUI thread """
         
         if DEBUG:
-            print "subip: ThumbnailViewer: loadMetadata: url",data['url']
+            print >>sys.stderr,"subip: ThumbnailViewer: loadMetadata: url",data['url']
         mimetype = None
         bmpdata = None
         if not ('persistent' in data):
             try:
                 t = urlparse(data['url'])
-                print "subip: ThumbnailViewer: loadMetadata: parsed url",t
+                #print >>sys.stderr,"subip: ThumbnailViewer: loadMetadata: parsed url",t
                 newurl = t[0]+'://'+t[1]+'/'+'favicon.ico'
-                print "subip: ThumbnailViewer: loadMetadata: newurl",newurl
+                if DEBUG:
+                    print >>sys.stderr,"subip: ThumbnailViewer: loadMetadata: newurl",newurl
                 stream = urlOpenTimeout(newurl,timeout=5)
                 mimetype = 'image/x-ico' # 'image/vnd.microsoft.icon' # 'image/ico'
                 bmpdata = stream.read()
@@ -320,7 +339,7 @@ class FavicoThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         """ Called by GUI thread """
 
         if DEBUG:
-            print "pip: ThumbnailViewer: GUI callback"
+            print "subip: ThumbnailViewer: GUI callback"
 
         metadata = {}
         if 'persistent' in data:
@@ -355,13 +374,13 @@ class FavicoThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
     def mouseAction(self, event):
         if event.Entering():
             if DEBUG:
-                print 'pip: enter' 
+                print 'subip: enter' 
             self.mouseOver = True
             self.Refresh()
         elif event.Leaving():
             self.mouseOver = False
             if DEBUG:
-                print 'pip: leave'
+                print 'subip: leave'
             self.Refresh()
         elif event.ButtonUp():
             self.ClickedButton()

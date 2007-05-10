@@ -36,7 +36,7 @@ from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler
 
 URLHIST_TIMEOUT = 7*24*3600.0 # Don't revisit links for this time
 
-DEBUG = True
+DEBUG = False
 
 
 class TorrentFeedThread(Thread):
@@ -76,7 +76,7 @@ class TorrentFeedThread(Thread):
                     if line.startswith(key):
                         url = line[len(key)+1:-2] # remove \r\n
                         if DEBUG:
-                            print "subscrip: Add from file URL",url,"EOU"
+                            print >>sys.stderr,"subscrip: Add from file URL",url,"EOU"
                         self.addURL(url,dowrite=False,status=key)
             f.close()        
         except:

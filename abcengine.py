@@ -25,7 +25,7 @@ from safeguiupdate import DelayedEventHandler
 from Tribler.utilities import show_permid_short
 from Tribler.Video.VideoPlayer import VideoPlayer
 
-DEBUG = True
+DEBUG = False
 
 
 ################################################################

@@ -1,5 +1,6 @@
 import sys, re, os, os.path
 
+DEBUG = False
 
 def changeFile(filename):
     f_in = file(filename, 'r')
@@ -90,13 +91,14 @@ def main(args):
         if filename.lower().endswith('.xrc'):
             xrcs.append(filename)
         
-    print 'Found %d xrc files in the current directory:' % len(xrcs)
+    if DEBUG:
+        print 'updateXRC: Found %d xrc files in the current directory:' % len(xrcs)
     
-    for filename in xrcs:
-        print '\t%s (%s)' % (filename, changeFile(os.path.join(dir,filename)))
+        for filename in xrcs:
+            print '\t%s (%s)' % (filename, changeFile(os.path.join(dir,filename)))
         
 
-    print 'Updated xrc files and wrote backup files (.old) if changed.'
+        print 'Updated xrc files and wrote backup files (.old) if changed.'
 
 
 

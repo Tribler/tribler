@@ -1093,13 +1093,8 @@ class AdvancedNetworkPanel(ABCOptionPanel):
         self.maxconnections_data.SetStringSelection(setval)
         
         upnp_val = self.utility.config.Read('upnp_nat_access', "int")
-        
-        print >>sys.stderr,"abcoptions: UPnP read",upnp_val
-        
         selected = self.upnp_val2selected(upnp_val)
         self.upnp_data.SetStringSelection(self.upnp_choices[selected])
-
-        print >>sys.stderr,"abcoptions: UPnP translates to",self.upnp_choices[selected]
 
 #        #self.ipv6bindsv4_data.SetSelection()
         
@@ -1424,6 +1419,11 @@ class TriblerPanel(ABCOptionPanel):
         tc_rate_box.Add(wx.StaticText(self, -1, self.utility.lang.get('torrentcollectingrate')), 0, wx.ALIGN_CENTER_VERTICAL)
         tc_rate_box.Add(self.tc_rate, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
         sizer.Add(tc_rate_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+
+        self.debug = wx.Button(self, -1, 'Debug')
+        sizer.Add(self.debug, 0, wx.ALL, 5)
+        self.Bind(wx.EVT_BUTTON, self.OnDebug, self.debug)
+
         
         self.initTasks()
         
@@ -1500,6 +1500,8 @@ class TriblerPanel(ABCOptionPanel):
     def WizardFinished(self,wizard):
         wizard.Destroy()
 
+    def OnDebug(self,event):
+        self.utility.frame.oldframe.Show()
 
 
 ################################################################
