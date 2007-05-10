@@ -8,6 +8,7 @@ from safeguiupdate import FlaglessDelayedInvocation
 from Tribler.unicode import *
 from copy import deepcopy
 import cStringIO
+import TasteHeart
 
 DEBUG=False
 
@@ -338,6 +339,9 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         dc.SetBackground(wx.Brush(self.backgroundColor))
         dc.Clear()
         
+        rank = self.torrent.get('simRank', -1)
+        heartBitmap = TasteHeart.getHeartBitmap(rank)
+        
         if self.torrentBitmap:
             dc.DrawBitmap(self.torrentBitmap, self.xpos,self.ypos, True)
 #            dc.SetFont(wx.Font(6, wx.SWISS, wx.NORMAL, wx.BOLD, True))
@@ -347,11 +351,18 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         if self.mouseOver:
             dc.SetFont(wx.Font(6, wx.SWISS, wx.NORMAL, wx.BOLD, True))
             mask = self.mm.get_default('filesMode','MASK_BITMAP')
-            #heart = self.mm.get_default('filesMode','HEART_BITMAP')
             dc.DrawBitmap(mask,0 ,0, True)
-            #dc.DrawBitmap(heart,5 ,54, True)
-            #dc.SetTextForeground(wx.BLACK)
-            #dc.DrawText('rating', 8, 50)
+        
+        if heartBitmap:
+            mask = self.mm.get_default('filesMode','MASK_BITMAP_BOTTOM')
+            margin = 52
+            dc.DrawBitmap(mask,0 ,margin, True)
+            dc.DrawBitmap(heartBitmap,5 ,margin+2, True)
+            dc.SetFont(wx.Font(7, wx.SWISS, wx.NORMAL, wx.BOLD, False))
+            text = repr(rank)                
+            dc.DrawText(text, 22, margin+4)
+                
+            
         if self.border:
             if self.selected:
                 dc.SetPen(wx.Pen(wx.Colour(255,51,0), 2))

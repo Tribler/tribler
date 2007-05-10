@@ -76,13 +76,15 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             self.modeElements[elem] = []
         self.modeElements['filesMode'] = ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
-                                            'download', 'tabs', ('files_detailsTab','tabs'), ('info_detailsTab','tabs'), 'TasteHeart', 'details', 'peopleWhoField']
+                                            'download', 'tabs', ('files_detailsTab','tabs'), ('info_detailsTab','tabs'), 
+                                            'TasteHeart', 'details', 'peopleWhoField', 'recommendationField']
         self.modeElements['personsMode'] = ['TasteHeart', 'recommendationField','addAsFriend', 'commonFilesField',
                                             'alsoDownloadedField', 'info_detailsTab', 'advanced_detailsTab','detailsC',
                                             'titleField','statusField','thumbField']
         self.modeElements['libraryMode'] = ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
-                                            'download', 'files_detailsTab', 'info_detailsTab', 'TasteHeart', 'details', 'peopleWhoField']
+                                            'download', 'files_detailsTab', 'info_detailsTab', 'TasteHeart', 'details', 
+                                            'peopleWhoField', 'recommendationField']
         self.modeElements['profileMode'] = ['levelPic','descriptionField0']
         
         
@@ -391,6 +393,11 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     else:
                         seedersField.SetLabel('?')
                         leechersField.SetLabel('?')
+                        
+                
+                rank = torrent.get('simRank', -1)
+                self.getGuiObj('TasteHeart').setRank(rank)
+                self.setRankToRecommendationField(rank)
                 
                 # Call a function to retrieve similar torrent data
                 self.fillSimTorrentsList(item['infohash'])
@@ -454,34 +461,10 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             
 
             if self.getGuiObj('info_detailsTab').isSelected():
-                #recomm = random.randint(0,4)
                 rank = self.guiUtility.peer_manager.getRank(peer_data=item)#['permid'])
-                #because of the fact that hearts are coded so that lower index means higher ranking, then:
-                if rank > 0 and rank <= 5:
-                    recomm = 0
-                elif rank > 5 and rank <= 10:
-                    recomm = 1
-                elif rank > 10 and rank <= 15:
-                    recomm = 2
-                elif rank > 15 and rank <= 20:
-                    recomm = 3
-                else:
-                    recomm = 4
-                if rank != -1:
-                    if rank == 1:
-                        self.getGuiObj('recommendationField').SetLabel("%d" % rank + "st of top 20")
-                    elif rank == 2:
-                        self.getGuiObj('recommendationField').SetLabel("%d" % rank + "nd of top 20")                        
-                    elif rank == 3:
-                        self.getGuiObj('recommendationField').SetLabel("%d" % rank + "rd of top 20")
-                    else:
-                        self.getGuiObj('recommendationField').SetLabel("%d" % rank + "th of top 20")
-                else:
-                    self.getGuiObj('recommendationField').SetLabel("")
-                if recomm != -1:
-                    self.getGuiObj('TasteHeart').setHeartIndex(recomm)
-                else:
-                    self.getGuiObj('TasteHeart').setHeartIndex(0)
+                
+                self.setRankToRecommendationField(rank)
+                self.getGuiObj('TasteHeart').setRank(rank)
                 
                 if item.get('online'):
                     self.getGuiObj('statusField').SetLabel( 'online')
@@ -753,6 +736,23 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     
 #        self.currentPanel.Refresh()
     
+    def setRankToRecommendationField(self, rank):
+        recommField = self.getGuiObj('recommendationField')
+        assert recommField, "No recommendationField found"
+            
+        if rank != -1:
+            
+            if rank == 1:
+                recommField.SetLabel("%d" % rank + "st of top 20")
+            elif rank == 2:
+                recommField.SetLabel("%d" % rank + "nd of top 20")                        
+            elif rank == 3:
+                recommField.SetLabel("%d" % rank + "rd of top 20")
+            else:
+                recommField.SetLabel("%d" % rank + "th of top 20")
+        else:
+            recommField.SetLabel("")
+        
     def reHeightToFit(self, tab=None):
         """the ideea is to iterate through all object mentioned in the list of 
         object for current tab and to reposition them on y axis so that all of

@@ -1,6 +1,5 @@
 import os
 import sys
-from traceback import print_exc
 from base64 import encodestring
 from Tribler.utilities import friendly_time, sort_dictlist, remove_torrent_from_list
 from Tribler.unicode import str2unicode, dunno2unicode
@@ -9,7 +8,7 @@ from Tribler.Category.Category import Category
 from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
 from Tribler.CacheDB.CacheDBHandler import OwnerDBHandler
 from copy import deepcopy
-from traceback import print_exc
+from traceback import print_exc, print_stack
 from time import time
 from bisect import insort
 
@@ -56,7 +55,9 @@ class TorrentDataManager:
         for torrent in self.data:      
             # prepare to display
             torrent = self.prepareItem(torrent)
-            self.info_dict[torrent["infohash"]] = torrent    
+            self.info_dict[torrent["infohash"]] = torrent
+            self.updateRankList(torrent, 'add', initializing = True)
+        #self.printRankList()
 
     def getDownloadHistCount(self):
         #[mluc]{26.04.2007} ATTENTION: data is not updated when a new download starts, although it should
@@ -203,8 +204,8 @@ class TorrentDataManager:
         torrent['infohash'] = infohash
         item = self.prepareItem(torrent)
         self.data.append(item)
-        self.updateRankList(item, 'add')
         self.info_dict[infohash] = item
+        self.updateRankList(item, 'add')
         self.notifyView(item, 'add')
     
     
@@ -231,6 +232,8 @@ class TorrentDataManager:
                 del old_torrent['myDownloadHistory']
             
         self.notifyView(old_torrent, 'add')
+        
+        self.updateRankList(old_torrent, 'update')
         
         if b:    # update buddycast after view was updated
             #self.utility.buddycast.addMyPref(infohash)    # will be called somewhere
@@ -292,65 +295,102 @@ class TorrentDataManager:
         torrent['leecher'] = torrent.get('leecher', -1)
         torrent['seeder'] = torrent.get('seeder', -1)
         torrent['swarmsize'] = torrent['seeder'] + torrent['leecher']
-        
-        self.updateRankList(torrent, 'add')
+        if torrent.has_key('simRank'):
+            raise Exception('simRank in database!')
+            del torrent['simRank']
         # Thumbnail is read from file only when it is shown on screen by
         # thumbnailViewer or detailsPanel
         return torrent
          
-    def updateRankList(self, torrent, operate):
+    def updateRankList(self, torrent, operate, initializing = False):
         "Update the ranking list, so that it always shows the top20 most similar torrents"
         
-        #print 'UpdateRankList called for: %s' % torrent
+        #print 'UpdateRankList: %s, for: %s' % (operate, repr(torrent.get('content_name')))
+        
         sim = torrent.get('relevance')
         good = torrent.get('status') == 'good' and not torrent.get('myDownloadHistory', False)
         infohash = torrent.get('infohash')
         updated = False
+        dataTuple = (sim, infohash)
         
         if operate == 'add' and good:
-            insort(self.rankList, (sim, infohash))
+            insort(self.rankList, dataTuple)
             
         
         elif operate == 'update':
             # Check if not already there
-            for (s, infohashRanked) in self.rankList:
-                if infohash == infohashRanked:
-                    self.rankList.remove((s, infohashRanked))
-                    self.recompleteRankList()
-                    
-            if not good:
-                sim  = 0
-            # Now insort the new item
-            insort(self.rankList, (sim, infohash))
-            
-        elif operate == 'delete':
-            for (s, infohashRanked) in self.rankList:
+            for rankedTuple in self.rankList:
+                infohashRanked = rankedTuple[1]
                 if infohash == infohashRanked:
                     updated = True
-                    self.rankList.remove((s, infohashRanked))
+                    self.rankList.remove(rankedTuple)
+                    self.updateRemovedItem(infohash, initializing)
+                    self.recompleteRankList()
+                    break
+                    
+            if good:
+                # be sure that ungood torrents are at the bottom of the list
+                insort(self.rankList, dataTuple)
+            
+        elif operate == 'delete':
+            for rankedTuple in self.rankList:
+                infohashRanked = rankedTuple[1]
+                if infohash == infohashRanked:
+                    updated = True
+                    self.rankList.remove(rankedTuple)
+                    self.updateRemovedItem(infohash, initializing)
                     self.recompleteRankList()
                     break
                 
                 
         # Always leave rankList with <=20 items
-        while len(self.rankList) > 20:
-                self.rankList.pop(0)
+        assert initializing or len(self.rankList) in [20,21],'torrentManager: Error, ranklist had length: %d' % len(self.rankList)
         
-        if updated or (sim, infohash) in self.rankList:
+        droppedItemInfohash = None
+        if len(self.rankList) == 21:
+            (sim, droppedItemInfohash) = self.rankList.pop(0)
+
+            
+        if updated or dataTuple in self.rankList:
             # Only update the items when something changed in the ranking list
-            self.updateRankedItems()
-            #print 'RankList is now: %s' % self.rankList
+
+            if droppedItemInfohash:
+                # if we have added a new ranked item, one is dropped out of the list
+                # the rank of this one will be removed
+                self.updateRemovedItem(droppedItemInfohash, initializing)
+                
+            self.updateRankedItems(initializing)
+#            if not initializing:
+#                print 'RankList is now: %s' % self.rankList
         
-    def updateRankedItems(self):
-        rank = 20
+        #self.printRankList()
+        
+    def updateRemovedItem(self, infohash, initializing):
+        if self.info_dict.has_key(infohash):
+            torrent = self.info_dict[infohash]
+            #print 'Del rank %d of %s' % (torrent.get('simRank', -1), repr(torrent.get('content_name')))
+            if torrent.has_key('simRank'):
+                del torrent['simRank']
+            if not initializing:
+                self.notifyView(torrent, 'update')
+        else:
+            raise Exception('(removeRank) Not found infohash: %s in info_dict.' % repr(infohash))
+            
+    
+    def updateRankedItems(self, initializing):
+        rank = len(self.rankList)
         for (sim, infohash) in self.rankList:
             if self.info_dict.has_key(infohash):
                 torrent = self.info_dict[infohash]
+                #print 'Give rank %d to %s' % (rank, repr(torrent.get('content_name')))
                 torrent['simRank'] = rank
-                self.notifyView(torrent, 'update')
+                if not initializing:
+                    self.notifyView(torrent, 'update')
             else:
-                print 'Not found infohash: %s in info_dict.' % repr(infohash)
+                raise Exception('Not found infohash: %s in info_dict.' % repr(infohash))
             rank -= 1
+        
+            
             
     def recompleteRankList(self):
         """
@@ -371,15 +411,39 @@ class TorrentDataManager:
                     
         insort(self.rankList, (highest_sim, highest_infohash))
         
-    def getRank(self, torrent):
-        infohash = torrent['infohash']
-        rank = 20
-        for (s, infohashRanked) in self.rankList:
+    def printRankList(self):
+        self.rankList.reverse()
+        print 'Ranklist:'
+        rank = 1
+        
+        for (sim, infohash) in self.rankList:
+            if self.info_dict.has_key(infohash):
+                torrent = self.info_dict[infohash]
+                print '%d: %.2f, %s' % (rank, torrent.get('relevance', -1), repr(torrent.get('content_name', 'no name')))
+            else:
+                print_stack()
+                print 'Not found infohash: %s in info_dict.' % repr(infohash)
+            rank += 1
+        
+        self.rankList.reverse()
+        
+        print 'Checking all torrents'
+        wrong = right = 0
+        for infohash, torrent in self.info_dict.items():
+            inRankList = False
+            for (s, infohashRanked) in self.rankList:
                 if infohash == infohashRanked:
-                    return rank
-                rank -= 1
-        return -1
-                    
+                    inRankList = True
+            if not inRankList:
+                if torrent.has_key('simRank'):
+                    wrong += 1
+                    print 'Torrent %s was not in ranklist: sim: %f, rank: %d' % (repr(torrent.get('content_name')), torrent.get('relevance'), torrent['simRank'])
+                else:
+                    right+=1
+        print '%d right, %d wrong torrents' % (right, wrong)
+        if wrong > 0:
+            raise Exception('wrong torrents')
+            
     def setSearchKeywords(self,wantkeywords):
         self.searchkeywords = wantkeywords
          
