@@ -263,45 +263,6 @@
                         </object>
                       </object>
                     </object>
-                    <object class="sizeritem">
-                      <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                      <border>5</border>
-                      <option>0</option>
-                      <object class="wxBoxSizer">
-                        <orient>wxHORIZONTAL</orient>
-                        <object class="sizeritem">
-                          <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
-                          <border>3</border>
-                          <option>0</option>
-                          <object class="wxStaticText" name="st209cCCC">
-                            <style>wxST_NO_AUTORESIZE</style>
-                            <label>fit to taste:</label>
-                            <pos>11,64</pos>
-                            <size>79,15</size>
-                          </object>
-                        </object>
-                        <object class="sizeritem">
-                          <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
-                          <border>3</border>
-                          <option>0</option>
-                          <object class="wxPanel" name="TasteHeart" subclass="Tribler.vwxGUI.TasteHeart.TasteHeart">
-                            <pos>90,64</pos>
-                            <size>14,14</size>
-                          </object>
-                        </object>
-                        <object class="sizeritem">
-                          <flag>wxTOP|wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                          <border>3</border>
-                          <option>0</option>
-                          <object class="wxStaticText" name="recommendationField">
-                            <style>wxST_NO_AUTORESIZE</style>
-                            <label>unknown</label>
-                            <pos>107,64</pos>
-                            <size>101,12</size>
-                          </object>
-                        </object>
-                      </object>
-                    </object>
                   </object>
                 </object>
                 <object class="sizeritem">

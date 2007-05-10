@@ -642,7 +642,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             # --- Discovered Files
             elif self.currentPanel == self.getGuiObj('profileDetails_Files'):  
                 tab = 'profileDetails_Files'              
-                count = 0            
+                count = 0           
+                print 'tb'
+                print self.utility.getNumFiles() 
                 if item is not None:
                     if item.has_key('taste_files'):
                         count = item['taste_files']
