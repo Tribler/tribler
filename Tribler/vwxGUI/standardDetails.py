@@ -20,7 +20,7 @@ from Tribler.Dialogs.GUIServer import GUIServer
 
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'subscriptionsMode', 'messageMode']
 
-DEBUG = False
+DEBUG = True
 
 def showInfoHash(infohash):
     if infohash.startswith('torrent'):    # for testing
@@ -83,8 +83,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                                             'titleField','statusField','thumbField']
         self.modeElements['libraryMode'] = ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
-                                            'download', 'files_detailsTab', 'info_detailsTab', 'TasteHeart', 'details', 
-                                            'peopleWhoField', 'recommendationField']
+                                            'download', 'files_detailsTab', 'info_detailsTab', 'details', 
+                                            'peopleWhoField']
         self.modeElements['profileMode'] = ['levelPic','descriptionField0']
         
         
@@ -229,17 +229,18 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 self.modeElements[self.mode] = []
             
             # do extra init
-            if modeString == 'files' or modeString == 'library':
+            if modeString in ['files','library']:
                 self.getGuiObj('up').setBackground(wx.WHITE)
                 self.getGuiObj('down').setBackground(wx.WHITE)
                 self.getGuiObj('refresh').setBackground(wx.WHITE)
-                self.getGuiObj('TasteHeart').setBackground(wx.WHITE)
                 self.setListAspect2OneColumn("peopleWhoField")
                 infoTab = self.getGuiObj('info_detailsTab')
                 infoTab.setSelected(True)
                 self.getAlternativeTabPanel('filesTab_files', parent=currentPanel).Hide()
-                
-            elif modeString == 'persons' or modeString == 'friends':
+                if modeString == 'files':
+                    self.getGuiObj('TasteHeart').setBackground(wx.WHITE)
+                    
+            elif modeString in ['persons','friends']:
                 self.getGuiObj('TasteHeart').setBackground(wx.WHITE)
                 self.getGuiObj('info_detailsTab').setSelected(True)
                 self.getGuiObj('advanced_detailsTab').SetLabel(" advanced")
@@ -324,6 +325,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         except:
             if DEBUG:
                 print >> sys.stderr,'standardDetails: Error in getIdentifier for mode %s, item=%s' % (self.mode,self.item)
+                
             print_exc()
         
     def setData(self, item):
@@ -395,9 +397,6 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                         leechersField.SetLabel('?')
                         
                 
-                rank = torrent.get('simRank', -1)
-                self.getGuiObj('TasteHeart').setRank(rank)
-                self.setRankToRecommendationField(rank)
                 
                 # Call a function to retrieve similar torrent data
                 self.fillSimTorrentsList(item['infohash'])
@@ -409,6 +408,11 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                         downloadButton.Show()
                     else:
                         downloadButton.Hide()
+                    
+                    # Set tastheart and ranking
+                    rank = torrent.get('simRank', -1)
+                    self.getGuiObj('TasteHeart').setRank(rank)
+                    self.setRankToRecommendationField(rank)
                 
             elif self.getGuiObj('files_detailsTab').isSelected():
                 filesList = self.getGuiObj('includedFiles', tab = 'filesTab_files')

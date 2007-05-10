@@ -398,6 +398,7 @@ class TorrentDataManager:
         and insort it in ranklist
         """
         highest_sim = 0
+        highest_infohash = None
         for torrent in self.data:
             sim = torrent.get('relevance')
             good = torrent.get('status') == 'good' and not torrent.get('myDownloadHistory', False)
@@ -409,7 +410,8 @@ class TorrentDataManager:
                     highest_sim = sim
                     highest_infohash = infohash
                     
-        insort(self.rankList, (highest_sim, highest_infohash))
+        if highest_infohash:
+            insort(self.rankList, (highest_sim, highest_infohash))
         
     def printRankList(self):
         self.rankList.reverse()
