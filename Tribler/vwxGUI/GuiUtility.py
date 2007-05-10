@@ -296,7 +296,6 @@ class GUIUtility:
    
    
     def emailFriend(self, event):
-        
         my_db = MyDBHandler()
         ip = self.utility.config.Read('bind')
         if ip is None or ip == '':
@@ -309,17 +308,16 @@ class GUIUtility:
         port = self.utility.config.Read('minport', 'int')
         port_txt = self.utility.lang.get('portnumber')+" "+str(port)
 
-        
         subject = self.utility.lang.get('invitation_subject')
         invitation_body = self.utility.lang.get('invitation_body')
         invitation_body = invitation_body.replace('\\n', '\n')
-        invitation_body += permid_txt + '\n'
-        invitation_body += ip_txt + '\n'
-        invitation_body += port_txt + '\n\n\n'
+        invitation_body += ip_txt + '\n\r'
+        invitation_body += port_txt + '\n\r'
+        invitation_body += permid_txt + '\n\r\n\r\n\r'
        
         if sys.platform == "darwin":
-            body = invitation_body.replace('\\r','\r')
-            body = invitation_body.replace('\\n','\n')
+            body = invitation_body.replace('\\r','')
+            body = body.replace('\r','')
         else:
             body = urllib.quote(invitation_body)
         mailToURL = 'mailto:%s?subject=%s&body=%s'%('', subject, body)
