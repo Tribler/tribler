@@ -941,6 +941,10 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 if DEBUG:
                     print >> sys.stderr,'standardDetails: %s: Unknown tab %s' % (self.mode,name)
                 return
+            #relayout the details panel to accomodate the new panel
+            self.currentPanel.SetAutoLayout(1)
+            self.currentPanel.Layout()
+            self.hSizer.Layout()
 
         elif self.mode in ["personsMode","friendsMode"]:
             tabAdvanced = self.getGuiObj('advanced_detailsTab')
@@ -960,6 +964,11 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     print >>sys.stderr,'standardDetails: %s: Unknown tab %s' % (self.mode,name)
                 return
 #            print "<mluc> advanced tab has label:",tabAdvanced.GetLabel()
+
+            #relayout the details panel to accomodate the new panel
+            self.currentPanel.SetAutoLayout(1)
+            self.currentPanel.Layout()
+            self.hSizer.Layout()
 
         elif self.mode == "profileMode":
 #            print "<mluc> try to switch to",name
