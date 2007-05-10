@@ -144,6 +144,7 @@
                 <bitmap>images/topbg2.png</bitmap>
                 <pos>449,0</pos>
                 <size>128,89</size>
+                <bg>#     0</bg>
               </object>
             </object>
             <object class="sizeritem">
@@ -153,7 +154,7 @@
               <object class="wxPanel" name="topBG3" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
                 <pos>737,0</pos>
                 <size>287,89</size>
-                <bg>#d8d8bf</bg>
+                <bg>#     0</bg>
                 <object class="wxBoxSizer">
                   <orient>wxVERTICAL</orient>
                   <object class="spacer">
@@ -233,7 +234,7 @@
                                     <object class="wxStaticText" name="numberFiles">
                                       <style>wxST_NO_AUTORESIZE</style>
                                       <label>200</label>
-                                      <pos>209,5</pos>
+                                      <pos>219,5</pos>
                                       <size>35,13</size>
                                       <bg>#  4454</bg>
                                       <fg>#ffffff</fg>

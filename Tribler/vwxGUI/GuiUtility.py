@@ -97,20 +97,32 @@ class GUIUtility:
             self.detailsTabClicked(name) #a panel was clicked in the profile overview and this is the most elegant so far method of informing the others
         elif name == "takeMeThere0" : #a button to go to preferences was clicked
             panel_name = self.standardDetails.currentPanel.GetName()
+            if panel_name == "profileDetails_Files":
+                #self.utility.actions[ACTION_PREFERENCES].action()
+                self.utility.actions[ACTION_PREFERENCES].action(openname=self.utility.lang.get('triblersetting'))
             if panel_name == "profileDetails_Download":
                 #self.utility.actions[ACTION_PREFERENCES].action(openname=self.utility.lang.get('triblersetting'))
                 self.utility.actions[ACTION_PREFERENCES].action()
-            elif panel_name == "profileDetails_Presence":
-                self.mainButtonClicked( 'mainButtonPersons', self.frame.mainButtonPersons)
+            elif panel_name == "profileDetails_Presence": 
+                URL = 'http://www.tribler.org/'
+                webbrowser.open(URL)  
+                #self.mainButtonClicked( 'mainButtonPersons', self.frame.mainButtonPersons)
             #generate event to change page -> this should be done as a parameter to action because is modal
             #event = wx.TreeEvent(wx.EVT_TREE_ITEM_ACTIVATED)
             #wx.PostEvent()
         elif name == "takeMeThere1": #switch to another view
             panel_name = self.standardDetails.currentPanel.GetName()
             if panel_name == "profileDetails_Download":
-                self.mainButtonClicked( 'mainButtonPersons', self.frame.mainButtonPersons)
+                self.emailFriend(event)
+                #self.mainButtonClicked( 'mainButtonPersons', self.frame.mainButtonPersons)
             else:
                 print 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
+                
+        elif name == "takeMeThere2": #switch to another view
+            panel_name = self.standardDetails.currentPanel.GetName()
+            if panel_name == "profileDetails_Download":
+                URL = 'http://www.tribler.org/'
+                webbrowser.open(URL)                
         elif name == "search": # search files/persons button
             print 'GUIUtil: search button clicked'
             self.dosearch()

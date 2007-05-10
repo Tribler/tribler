@@ -6,6 +6,7 @@ import math
 from traceback import print_exc
 import cStringIO
 
+
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from Tribler.utilities import *
 from Tribler.Dialogs.MugshotManager import MugshotManager
@@ -16,7 +17,7 @@ from safeguiupdate import FlaglessDelayedInvocation
 #from Tribler.vwxGUI.tribler_topButton import tribler_topButton
 from Utility.constants import COL_PROGRESS
 from Tribler.Dialogs.GUIServer import GUIServer
-
+from Tribler.CacheDB.CacheDBHandler import MyPreferenceDBHandler
 
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'subscriptionsMode', 'messageMode']
 
@@ -60,6 +61,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         self.utility = self.guiUtility.utility
         self.data_manager = TorrentDataManager.getInstance(self.utility)
         self.mm = MugshotManager.getInstance()
+        self.mydb = MyPreferenceDBHandler()                    
         self.mode = None
         self.item = None
         self.lastItemSelected = {} #keeps the last item selected for each mode
@@ -604,10 +606,11 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             # --- Quality of tribler recommendations    
             elif self.currentPanel == self.getGuiObj('profileDetails_Quality'):
                 tab = 'profileDetails_Quality'
-                count = 0            
-                if item is not None:
-                    if item.has_key('downloaded_files'):
-                        count = item['downloaded_files']
+                count = 0
+                count = len(self.mydb.getPrefList())            
+#                if item is not None:
+#                    if item.has_key('downloaded_files'):
+#                        count = item['downloaded_files']
                 text = self.utility.lang.get("profileDetails_Quality_description", giveerror=False)
                 text1 = self.utility.lang.get("profileDetails_Quality_improve", giveerror=False)
                 if count < 10:
@@ -630,23 +633,29 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             elif self.currentPanel == self.getGuiObj('profileDetails_Files'):  
                 tab = 'profileDetails_Files'              
                 count = 0           
-                print 'tb'
-                print self.utility.getNumFiles() 
-                if item is not None:
-                    if item.has_key('taste_files'):
-                        count = item['taste_files']
+                count = int(self.utility.getNumFiles())
+                count2 = self.utility.config.Read('maxntorrents','int')
+#                if item is not None:
+#                    if item.has_key('taste_files'):
+#                        count = item['taste_files']
                 text = self.utility.lang.get("profileDetails_Files_description", giveerror=False)
                 text1 = self.utility.lang.get("profileDetails_Files_improve", giveerror=False)
                 self.getGuiObj('descriptionField0', tab = 'profileDetails_Files').SetLabel(text % count)
-                self.getGuiObj('descriptionField1', tab = 'profileDetails_Files').SetLabel(text1)            
+                self.getGuiObj('descriptionField1', tab = 'profileDetails_Files').SetLabel(text1 % count2)  
+                # max number of torrents download pref
+                
+                
+                
+                          
             # --------------------------------------------------------------------------------------------------------------------------------------------------------
             # --- Discovered Persons
             elif self.currentPanel == self.getGuiObj('profileDetails_Persons'):
                 tab = 'profileDetails_Persons'
-                count = 0            
-                if item is not None:
-                    if item.has_key('similar_peers'):
-                        count = item['similar_peers']
+                count = 0 
+                count = str(self.utility.getNumPeers())                           
+#                if item is not None:
+#                    if item.has_key('similar_peers'):
+#                        count = item['similar_peers']
                 text = self.utility.lang.get("profileDetails_Persons_description", giveerror=False)
                 text1 = self.utility.lang.get("profileDetails_Persons_improve", giveerror=False)
                 self.getGuiObj('descriptionField0', tab = 'profileDetails_Persons').SetLabel(text % count)
@@ -702,7 +711,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     self.getGuiObj('descriptionField4', tab = 'profileDetails_Download').SetLabel(text1)
                     self.getGuiObj('descriptionField5', tab = 'profileDetails_Download').SetLabel(text2)
             # --------------------------------------------------------------------------------------------------------------------------------------------------------        
-            ## --- Optimal download speed
+            ## --- Reachability
             elif self.currentPanel == self.getGuiObj('profileDetails_Presence'):    
                 tab = 'profileDetails_Presence'
                 text = self.utility.lang.get("profileDetails_Presence_info", giveerror=False)

@@ -362,7 +362,7 @@
               <option>0</option>
               <object class="wxStaticText" name="text_Files">
                 <style>wxST_NO_AUTORESIZE</style>
-                <label>Discovered files (*)</label>
+                <label>Discovered files</label>
                 <pos>45,15</pos>
                 <size>379,16</size>
                 <bg>#cbcbcb</bg>
@@ -409,7 +409,7 @@
               <option>0</option>
               <object class="wxStaticText" name="text_Persons">
                 <style>wxST_NO_AUTORESIZE</style>
-                <label>Discovered persons (*)</label>
+                <label>Discovered persons</label>
                 <pos>45,15</pos>
                 <size>419,16</size>
                 <bg>#cbcbcb</bg>

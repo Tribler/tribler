@@ -214,17 +214,17 @@
                           </object>
                         </object>
                         <object class="sizeritem">
-                          <flag>wxFIXED_MINSIZE</flag>
+                          <flag>wxRIGHT|wxFIXED_MINSIZE</flag>
                           <border>3</border>
                           <option>0</option>
                           <object class="wxPanel" name="up" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
-                            <pos>108,43</pos>
+                            <pos>87,43</pos>
                             <size>11,14</size>
                             <bg>#ffffff</bg>
                           </object>
                         </object>
                         <object class="sizeritem">
-                          <flag>wxLEFT|wxEXPAND</flag>
+                          <flag>wxEXPAND</flag>
                           <border>4</border>
                           <option>0</option>
                           <object class="wxStaticText" name="popularityField1">
@@ -277,7 +277,7 @@
                           <object class="wxStaticText" name="st209cCCC">
                             <style>wxST_NO_AUTORESIZE</style>
                             <label>fit to taste:</label>
-                            <pos>8,61</pos>
+                            <pos>8,64</pos>
                             <size>79,15</size>
                           </object>
                         </object>
@@ -382,7 +382,7 @@
               <border>6</border>
               <option>0</option>
               <object class="wxListCtrl" name="peopleWhoField" subclass="Tribler.vwxGUI.tribler_List.DLFilesList">
-                <pos>6,207</pos>
+                <pos>56,442</pos>
                 <size>284,125</size>
               </object>
             </object>
