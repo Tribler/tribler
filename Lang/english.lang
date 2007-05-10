@@ -779,7 +779,7 @@ tribler_upnp_error2		= "request to firewall returned:  '"
 tribler_upnp_error2_postfix     = "'. "
 tribler_upnp_error3		= "was enabled, but initialization failed."
 tribler_upnp_error_extro	= "    If the listen port is not open on the firewall you will suffer slower downloads, less recommendations and won't be able to use the download booster. Try setting a different listen port or UPnP mode in (advanced) network Preferences."
-tribler_unreachable_explanation = "Your Tribler does not seem to be reachable from the Internet. As a result, you will suffer slower downloads, less recommendations and won't be able to use the download booster. Try setting a different listen port or enable UPnP in (advanced) network Preferences."
+tribler_unreachable_explanation = "Others cannot contact you over the Internet. This will hurt the performance of Tribler.\n\nTo fix this, configure your firewall/router/modem or try different UPnP settings in the advanced network preferences."
 currentdiscoveredipaddress = "Your discovered IP address"
 
 associate 			= "Associate with .torrent files"
@@ -804,8 +804,8 @@ delete_dead_torrent = "Remove Torrent"
 # Abbreviations in the status bar:
 ###
 
-reachable_tooltip	= "Your Tribler is reachable from the Internet, i.e. not firewalled. This is good"
-unknownreach_tooltip	= "Your Tribler may not be reachable from the Internet. This is not good. Click to learn more."
+reachable_tooltip	= "Others can reach you, i.e. you are not firewalled. This is good"
+unknownreach_tooltip	= "Others cannot reach you. This is not good. Click to learn more."
 abbrev_loaded		= "L:"
 abbrev_running		= "R:"
 abbrev_pause		= "P:"
