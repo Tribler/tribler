@@ -83,9 +83,7 @@ class TorrentDataManager:
             return filter(noDownloadHistory, self.data)
         
         if categorykey == "search":
-            dod = web2.DataOnDemandWeb2(" ".join(self.searchkeywords))
-            dod.addItems(self.search())
-            return dod
+            return self.search()
         
         # See downloaded files also as category
         if (categorykey == self.utility.lang.get('mypref_list_title').lower()):
@@ -295,15 +293,15 @@ class TorrentDataManager:
          
     def updateRankList(self, torrent, operate):
         "Update the ranking list, so that it always shows the top20 most similar torrents"
-        #print 'UpdateRankList called for: %s' % torrent
+        print 'UpdateRankList called for: %s' % torrent
         sim = torrent.get('relevance')
         good = torrent.get('status') == 'good' and not torrent.get('myDownloadHistory', False)
         infohash = torrent.get('infohash')
+        updated = False
         
         if operate == 'add' and good:
             insort(self.rankList, (sim, infohash))
-            while len(self.rankList) > 20:
-                self.rankList.pop(0)
+            
         
         elif operate == 'update':
             # Check if not already there
@@ -320,6 +318,7 @@ class TorrentDataManager:
         elif operate == 'delete':
             for (s, infohashRanked) in self.rankList:
                 if infohash == infohashRanked:
+                    updated = True
                     self.rankList.remove((s, infohashRanked))
                     self.recompleteRankList()
                     break
@@ -329,8 +328,10 @@ class TorrentDataManager:
         while len(self.rankList) > 20:
                 self.rankList.pop(0)
         
-        #self.updateRankedItems()    # Jie: it's too heave: whenever SynDBHandler got an operation, it calls 20 updates
-        #print 'RankList is now: %s' % self.rankList
+        if updated or (sim, infohash) in self.rankList:
+            # Only update the items when something changed in the ranking list
+            self.updateRankedItems()
+            print 'RankList is now: %s' % self.rankList
         
     def updateRankedItems(self):
         rank = 20
@@ -354,7 +355,7 @@ class TorrentDataManager:
             good = torrent.get('status') == 'good' and not torrent.get('myDownloadHistory', False)
             infohash = torrent.get('infohash')
             
-            if sim > 0 and good and self.rankList.find((sim, infohash)) != -1:
+            if sim > 0 and good and (sim, infohash) not in self.rankList:
                 # item is not in rankList
                 if sim > highest_sim:
                     highest_sim = sim
