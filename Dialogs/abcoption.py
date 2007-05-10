@@ -1704,7 +1704,8 @@ class ABCTree(wx.TreeCtrl):
         if self.dialog.closing or event is None:
             return
 
-        print "<mluc> event type:", event.GetEventType()
+        if DEBUG:
+            print >>sys.stderr,"abcoption: <mluc> event type:", event.GetEventType()
         newitem = event.GetItem()
         newpanel = None
         foundnew = False
@@ -1730,6 +1731,31 @@ class ABCTree(wx.TreeCtrl):
                 # (splitter.GetWindow2() sometimes appears to
                 #  return an Object rather than wx.Window)
 
+    def open(self,name):
+        rootid = self.GetRootItem()
+        if rootid.IsOk():
+            #print "root is",self.GetItemText(rootid)
+            [firstid,cookie] = self.GetFirstChild(rootid)
+            if firstid.IsOk():
+                print "first is",self.GetItemText(firstid)
+                if not self.doopen(name,firstid):
+                    while True:
+                        [childid,cookie] = self.GetNextChild(firstid,cookie)
+                        if childid.IsOk():
+                            if self.doopen(name,childid):
+                                break
+                        else:
+                            break
+
+    def doopen(self,wantname,childid):
+        gotname = self.GetItemText(childid)
+        print "gotname is",gotname
+        if gotname == wantname:
+            self.SelectItem(childid)
+            return True
+        else:
+            return False
+
 
 ################################################################
 #
@@ -1739,7 +1765,7 @@ class ABCTree(wx.TreeCtrl):
 #
 ################################################################        
 class ABCOptionDialog(wx.Dialog):
-    def __init__(self, parent):
+    def __init__(self, parent,openname=None):
         self.utility = parent.utility
 
         style = wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
@@ -1812,6 +1838,8 @@ class ABCOptionDialog(wx.Dialog):
 #        self.Fit()
         
         self.closing = False
+        if openname is not None:
+            self.tree.open(openname)
         
     def getWindowSettings(self):
         width = self.utility.config.Read("prefwindow_width", "int")
@@ -1857,3 +1885,4 @@ class ABCOptionDialog(wx.Dialog):
             self.saveWindowSettings()
             
             self.EndModal(wx.ID_OK)
+

@@ -165,8 +165,8 @@ class Preferences(ABCAction):
                            menudesc = 'menuabcpreference',
                            id = wx.ID_PREFERENCES)
                            
-    def action(self, event = None):
-        dialog = ABCOptionDialog(self.utility.frame)
+    def action(self, event = None, openname = None):
+        dialog = ABCOptionDialog(self.utility.frame,openname=openname)
         dialog.ShowModal()
         dialog.Destroy()
         

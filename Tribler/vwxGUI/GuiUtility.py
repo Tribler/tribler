@@ -98,6 +98,7 @@ class GUIUtility:
         elif name == "takeMeThere0" : #a button to go to preferences was clicked
             panel_name = self.standardDetails.currentPanel.GetName()
             if panel_name == "profileDetails_Download":
+                #self.utility.actions[ACTION_PREFERENCES].action(openname=self.utility.lang.get('triblersetting'))
                 self.utility.actions[ACTION_PREFERENCES].action()
             elif panel_name == "profileDetails_Presence":
                 self.mainButtonClicked( 'mainButtonPersons', self.frame.mainButtonPersons)
