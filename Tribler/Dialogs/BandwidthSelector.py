@@ -12,12 +12,11 @@ class BandwidthSelector(wx.Dialog):
 
         style = wx.DEFAULT_DIALOG_STYLE
         title = self.utility.lang.get('selectbandwidthtitle')
-        wx.Dialog.__init__(self,parent,-1,title,style=style,size=(500,250))
+        wx.Dialog.__init__(self,parent,-1,title,style=style,size=(470,180))
         
-        sizer = wx.GridBagSizer(7,3)
+        sizer = wx.GridBagSizer(5,20)
 
         self.bwctrl = BWControl(self)
-        sizer.Add( self.bwctrl, (3,2) )
 
         buttonbox = wx.BoxSizer(wx.HORIZONTAL)
         okbtn = wx.Button(self, wx.ID_OK, label=self.utility.lang.get('ok'), style = wx.BU_EXACTFIT)
@@ -32,8 +31,9 @@ class BandwidthSelector(wx.Dialog):
         prompt.Wrap( 450 )
 
         sizer.Add( explain, (1,1), span=(1,2) )
-        sizer.Add( prompt, (3,1) )
-        sizer.Add( buttonbox, (5,1), span=(2,1) )
+        sizer.Add( prompt, (2,1) )
+        sizer.Add( self.bwctrl, (2,2) )
+        sizer.Add( buttonbox, (3,1), span=(2,1) )
 
         self.SetSizer(sizer)
 
