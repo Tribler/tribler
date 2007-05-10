@@ -1609,7 +1609,7 @@ class DataHandler:
         # used to notify peer view that peer list is ready
         #print "**** buddycast update all peers", len(self.peers), num_peers
 
-        #print "******* buddycast thread:", currentThread().getName()
+        print "******* buddycast thread:", currentThread().getName()
         BuddyCastFactory.getInstance().data_ready_evt.set()    
         return self.peers
     

@@ -73,6 +73,7 @@ from Tribler.notification import init as notification_init
 
 DEBUG = False
 ALLOW_MULTIPLE = False
+start_time = 0
 
 ################################################################
 #
@@ -931,6 +932,9 @@ class ABCFrame(wx.Frame, DelayedInvocation):
 ##############################################################
 class ABCApp(wx.App,FlaglessDelayedInvocation):
     def __init__(self, x, params, single_instance_checker, abcpath):
+        global start_time
+        start_time = time()
+        print "[StartUpDebug]----------- from ABCApp.__init__ ----------Tribler starts up at", ctime(start_time)
         self.params = params
         self.single_instance_checker = single_instance_checker
         self.abcpath = abcpath
@@ -1018,6 +1022,13 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             #self.frame.Refresh()
             #self.frame.Layout()
             self.frame.Show(True)
+            global start_time
+            current_time = time()
+            print "\n\n[StartUpDebug]-----------------------------------------"
+            print "[StartUpDebug]"
+            print "[StartUpDebug]----------- from ABCApp.OnInit ----------Tribler frame is shown after", current_time-start_time
+            print "[StartUpDebug]"
+            print "[StartUpDebug]-----------------------------------------\n\n"
             
             # GUI start
             # - load myFrame 

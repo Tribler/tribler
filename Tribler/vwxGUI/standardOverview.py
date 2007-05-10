@@ -11,7 +11,7 @@ import peermanager
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.unicode import *
 from threading import Thread,currentThread
-
+from time import time
 
 OVERVIEW_MODES = ['filesMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionsMode', 'messageMode', 'libraryMode']
 
@@ -45,7 +45,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         self.utility = self.guiUtility.utility
         self.categorykey = None
         self.data_manager = TorrentDataManager.getInstance(self.utility)
-
+        
         self.peer_manager = PeerDataManager.getInstance(self.utility) #the updateFunc is called after the data is updated in the peer manager so that the GUI has the newest information
 #        self.peer_manager.register(self.updateFun, 'all')
         def filterFuncFriend(peer_data):
@@ -54,13 +54,18 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         #register for gui events
         self.peer_manager.registerGui(self.updateFunPersons) #no matter which of the two, persons or friends, is on, the same function is used
 
-        class PeerDataLoadingThread(Thread):
+        class DataLoadingThread(Thread):
             def __init__(self,owner):
-                Thread.__init__(self, name="PeerDataLoadingThread")
+                Thread.__init__(self, name="DataLoadingThread")
                 self.owner = owner
 
             def run(self):
                 try:
+                    print >> sys.stderr, '[StartUpDebug]----------- thread data loading started'
+                    #first load torrent data from database
+                    self.owner.data_manager.loadData()
+                    print >> sys.stderr, '[StartUpDebug]----------- thread torrent data loaded'
+                    #then load the peer data
                     peer_list = None
                     #wait for buddycast list only if the recommender is enabled
                     bcactive = self.owner.utility.config.Read('enablerecommender', "boolean")
@@ -77,10 +82,12 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                     self.owner.peer_manager.applyFilters(data)
             #        print "<mluc> ################### size of data is ",len(self.filtered_data['all'])
                     self.owner.peer_manager.isDataPrepared = True
+                    print >> sys.stderr, '[StartUpDebug]----------- thread peer data loaded'
                 except:
                     print_exc()
+                wx.CallAfter(self.owner.filterChanged)
 
-        thr1=PeerDataLoadingThread(self)
+        thr1=DataLoadingThread(self)
         thr1.setDaemon(True)
         thr1.start()
 
@@ -92,6 +99,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         self.addComponents()
         #self.Refresh()
         self.guiUtility.initStandardOverview(self)
+        print >> sys.stderr, '[StartUpDebug]----------- standardOverview is in postinit ----------', currentThread().getName(), '\n\n'
+        
         
     def addComponents(self):
         self.hSizer = wx.BoxSizer(wx.VERTICAL)
@@ -214,7 +223,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             grid = self.data[self.mode].get('grid')
             grid.refreshData()
     
-    def filterChanged(self, filterState, setgui = False):
+    def filterChanged(self, filterState = None, setgui = False):
         oldFilterState = self.data[self.mode].get('filterState')
         
         if DEBUG:

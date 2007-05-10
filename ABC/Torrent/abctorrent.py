@@ -53,8 +53,7 @@ class ABCTorrent:
         self.utility = self.queue.utility
         self.mypref_db = self.utility.mypref_db
         self.torrent_db = self.utility.torrent_db
-        self.data_manager = TorrentDataManager.getInstance(self.utility)
-        
+                
         self.list = self.utility.list
         self.listindex = len(self.utility.torrents["all"])
 
@@ -214,6 +213,7 @@ class ABCTorrent:
         if self.utility.abcfileframe is not None:
             self.utility.abcfileframe.updateMyPref()
             
+        self.data_manager = TorrentDataManager.getInstance(self.utility)
         self.data_manager.addNewPreference(self.torrent_hash)
         self.data_manager.setBelongsToMyDowloadHistory(self.torrent_hash, True)
         

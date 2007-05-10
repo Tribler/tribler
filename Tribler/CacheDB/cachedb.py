@@ -262,8 +262,8 @@ class BasicDB:    # Should we use delegation instead of inheritance?
         
     def _has_key(self, key):    # find a key
         try:
-            return dbutils.DeadlockWrap(self._data.has_key, key, max_retries=MAX_RETRIES)
-            #return self._data.has_key(key)
+            #return dbutils.DeadlockWrap(self._data.has_key, key, max_retries=MAX_RETRIES)
+            return self._data.has_key(key)
         except:
             return False
     
@@ -273,7 +273,7 @@ class BasicDB:    # Should we use delegation instead of inheritance?
             #return self._data.get(key, value)
         except Exception,e:
             print >> sys.stderr, "cachedb: _get EXCEPTION BY",currentThread().getName()
-            #print_stack()
+            print_stack()
             #self.report_exception(e)
             return value
         
@@ -318,7 +318,7 @@ class BasicDB:    # Should we use delegation instead of inheritance?
         except Exception,e:
             print >> sys.stderr, "cachedb: _keys EXCEPTION BY",currentThread().getName()
             print_exc()
-            self.report_exception(e)
+            #self.report_exception(e)
             return []
     
     def _values(self):

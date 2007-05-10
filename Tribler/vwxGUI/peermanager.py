@@ -377,6 +377,14 @@ class PeerDataManager(DelayedEventHandler):
         #save the data information
         return localdata
 
+    def getNumEncounteredPeers(self):
+        """waits first for another thread or function to initialize the database
+        on the first read"""
+        if not self.isDataPrepared:    #
+            return -1
+#            return self.peersdb.getNumEncounteredPeers()    
+        return len(self.filtered_data['all'])
+    
     def computeSimilarityPercent(self, similarity_value):
         """used to get a live value for similarity percent as it shouldn't be stored in the peer data"""
         if self.MaxSimilarityValue > 0:

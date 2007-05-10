@@ -163,12 +163,25 @@ class ABCScheduler(DelayedEventHandler):
         downspeed2 = self.utility.speed_format(self.totals['down'], truncate = 0)
         downloadspeed = downspeed + " / " + downratecap
         
-        if self.cycleTime < 1:
+        if self.cycleTime < 0:
             nfile = npeer = 'loading..'
             self.cycleTime += 1
         else:
-            npeer = str(self.utility.getNumPeers())
-            nfile = str(self.utility.getNumFiles())
+            gui_utility = GUIUtility.getInstance()
+            if not gui_utility.peer_manager:
+                npeer = 'loading..'
+            else:
+                npeer = gui_utility.peer_manager.getNumEncounteredPeers()
+                if npeer < 0:
+                    npeer = 'loading..'
+                else:
+                    npeer = str(npeer)
+            
+            nfile = self.utility.getNumFiles()
+            if nfile < 0:
+                nfile = 'loading..'
+            else:
+                nfile = str(nfile)
         
         try:
             # update value in minimize icon

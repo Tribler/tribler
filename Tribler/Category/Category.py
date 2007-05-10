@@ -50,8 +50,10 @@ class Category:
     # return bool
     def checkResort(self, data_manager):
         data = data_manager.data
-        if not data:
-            data = data_manager.torrent_db.getRecommendedTorrents(all = True)
+#===============================================================================
+#        if not data:
+#            data = data_manager.torrent_db.getRecommendedTorrents(all = True)
+#===============================================================================
         if not data:
             return False
 
@@ -60,17 +62,17 @@ class Category:
 #        return True
         torrent = data[0]
         if torrent["category"] == ["?"]:
-            data = data_manager.torrent_db.getRecommendedTorrents(all = True)
+            #data = data_manager.torrent_db.getRecommendedTorrents(all = True)
             self.reSortAll(data)
-            del data
+#            del data
             return True
         
         begin = time()
         for item in data:
             if len(item['category']) > 1:
-                data = data_manager.torrent_db.getRecommendedTorrents(all = True)
+                #data = data_manager.torrent_db.getRecommendedTorrents(all = True)
                 self.reSortAll(data)
-                del data
+#                del data
                 return True
         if DEBUG:
             print 'torrcoll: Checking of %d torrents costs: %f s' % (len(data), time() - begin)

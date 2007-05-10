@@ -327,7 +327,8 @@ class MetadataHandler:
         
     def check_overflow(self):    # check if torrents are more than enough
         if self.num_torrents < 0:
-            self.num_torrents = len(self.torrent_db.getCollectedTorrents())
+            collected_torrents = self.torrent_db.getCollectedTorrents()
+            self.num_torrents = len(collected_torrents)
             #print >> sys.stderr, "** torrent collectin self.num_torrents=", self.num_torrents
         
         if self.num_torrents > self.max_num_torrents:
@@ -359,18 +360,18 @@ class MetadataHandler:
             weight = status*1000 + retry_number*100 + rel_date - relevance/10 - leechers - 3*seeders
             return weight
         
-        torrent_list = self.torrent_db.getCollectedTorrents(light=False)
-        self.num_torrents = len(torrent_list)    # sync point
-        for i in xrange(len(torrent_list)):
-            torrent = torrent_list[i]
+        collected_torrents = self.torrent_db.getCollectedTorrents(light=False)
+        self.num_torrents = len(collected_torrents)    # sync point
+        for i in xrange(self.num_torrents):
+            torrent = collected_torrents[i]
             torrent['weight'] = get_weight(torrent)
-        torrent_list = sort_dictlist(torrent_list, 'weight', order='decrease')
+        collected_torrents = sort_dictlist(collected_torrents, 'weight', order='decrease')
         
-        for torrent in torrent_list[:num_delete]:
+        for torrent in collected_torrents[:num_delete]:
             infohash = torrent['infohash']
             self.torrent_db.deleteTorrent(infohash, delete_file=True, updateFlag=True)
             self.num_torrents -= 1
-        del torrent_list
+        del collected_torrents
         
     def save_torrent(self, torrent_hash, metadata, source='BC', extra_info={}):
         file_name = self.get_filename(torrent_hash)

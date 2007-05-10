@@ -39,6 +39,8 @@ class GUIUtility:
         self.params = params
         self.selectedMainButton = None
         self.isReachable = False #reachability flag / port forwarding enabled / accessible from the internet
+        self.peer_manager = None
+        self.data_manager = None
         self.guiOpen = Event()
         
         self.selectedColour = wx.Colour(255,200,187)       
@@ -270,7 +272,7 @@ class GUIUtility:
     def refreshOnResize(self):
         try:
             #if DEBUG:
-            #    print'GuiUtility: explicit refresh'
+#            print'GuiUtility: explicit refresh'
             self.standardDetails.Refresh()
             self.standardOverview.Refresh()
             self.frame.topBackgroundRight.Refresh()

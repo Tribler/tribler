@@ -5,7 +5,9 @@ from cachedb import *
 from copy import deepcopy
 from sets import Set
 from traceback import print_exc
+from threading import currentThread
 from time import time
+
 
 class BasicDBHandler:
     def __init__(self):
@@ -290,9 +292,7 @@ class PeerDBHandler(BasicDBHandler):
             if value == 1:
                 self.peer_db.num_encountered_peers += 1
 
-    def getNumEncounteredPeers(self):    #TODO:
-        if self.peer_db.num_encountered_peers % 473 == 0:
-            self.peer_db.num_encountered_peers = -1    # sync
+    def getNumEncounteredPeers(self):
         if self.peer_db.num_encountered_peers < 0:
             n = 0
             for permid in self.peer_db._keys():
@@ -414,34 +414,47 @@ class TorrentDBHandler(BasicDBHandler):
         return self.torrent_db._keys()
         
     def getRecommendedTorrents(self, light=True, all=False):     
-        # get torrents on disk but not in my pref
-        # BE AWARE: the returned object of this call may consume lots of memory.
-        # You should delete the object when possible
+        """ get torrents on disk but not in my pref
+           BE AWARE: the returned object of this call may consume lots of memory.
+           You should delete the object when possible
+        """
+        
+        start_time = time()
+        
         if all:
             all_list = self.torrent_db._keys()
             mypref_set = Set(self.mypref_db._keys())
         else:
             all_list = Set(self.torrent_db._keys()) - Set(self.mypref_db._keys())
         
-        wrong = 0
-        for torrent in all_list:
-            for torrent2 in all_list:
-                if torrent is torrent2:
-                    continue
-                if torrent == torrent2:
-                    print 'Double hash: %s, %s' % (torrent, torrent2)
-                    wrong+=1
-        print 'CacheDB: %d (div by 2) double items of %d total' % (wrong, len(all_list))
+#        wrong = 0
+#        for torrent in all_list:
+#            for torrent2 in all_list:
+#                if torrent is torrent2:
+#                    continue
+#                if torrent == torrent2:
+#                    print 'Double hash: %s, %s' % (torrent, torrent2)
+#                    wrong+=1
+#        print 'CacheDB: %d (div by 2) double items of %d total' % (wrong, len(all_list))
+
         torrents = []
+        num_live_torrents = 0 
         setOfInfohashes = Set()
         for torrent in all_list:
             #if not self.hasMetaData(torrent):
             #    continue
             if torrent in setOfInfohashes: # do not add 2 torrents with same infohash
                 continue
-            p = self.torrent_db.getItem(torrent, default=True)
-            if not p or not p.get('torrent_name', None) or not p.get('info', None):
+            p = self.torrent_db.getItem(torrent)
+            if not p:
+                break #database not available any more
+            if not p.get('torrent_name', None) or not p.get('info', None):
                 continue
+            
+            live = p.get('status', 'unknown')
+            if live != 'dead' and live != 'unknown':
+                num_live_torrents += 1
+                    
             if all and torrent in mypref_set:
                 p['myDownloadHistory'] = True
                 mypref_obj = self.mypref_db.getItem(torrent)
@@ -452,21 +465,32 @@ class TorrentDBHandler(BasicDBHandler):
             if not light:    # set light as ture to be faster
                 p['num_owners'] = self.owner_db.getNumOwners(torrent)
             torrents.append(p)
+            
         del all_list
         del setOfInfohashes
         
+        from traceback import print_stack
+        print_stack()
+        print >> sys.stderr, '[StartUpDebug]----------- from getRecommendedTorrents ----------', time()-start_time, currentThread().getName(), '\n\n'
+        
+        self.torrent_db.num_metadatalive = num_live_torrents
         print 'Returning %d torrents' % len(torrents)
         
         return torrents
-    
+            
+    def getCollectedTorrents(self, light=True): 
+        """ get torrents on disk but not in my pref """
+                    
+        start_time = time()
         
-    def getCollectedTorrents(self, light=True):     
         all_list = Set(self.torrent_db._keys()) - Set(self.mypref_db._keys())
             
         torrents = []
         for torrent in all_list:
-            p = self.torrent_db.getItem(torrent, default=True)
-            if not p or not p.get('torrent_name', None) or not p.get('info', None):
+            p = self.torrent_db.getItem(torrent)
+            if not p:    # database is closed
+                break
+            if not p.get('torrent_name', None) or not p.get('info', None):
                 continue
             if light:
                 del p
@@ -487,6 +511,11 @@ class TorrentDBHandler(BasicDBHandler):
                 
                 del p
                 torrents.append(item)
+        
+        from traceback import print_stack
+        print_stack()
+        print >> sys.stderr, '[StartUpDebug]----------- from getCollectedTorrents ----------', time()-start_time, currentThread().getName(), '\n\n'
+        
         return torrents
     
     def hasTorrent(self, infohash):
@@ -569,18 +598,24 @@ class TorrentDBHandler(BasicDBHandler):
         # Jelle: Statusbar show number of alive files. Files that are downloaded and live are
         # included. Files that are downloaded and not live are excluded.
         
-        if self.torrent_db.num_metadatalive % 173 == 0:    # sync
-            self.torrent_db.num_metadatalive = -1
-        if self.torrent_db.num_metadatalive < 0:
-            n = 0
-            all_list = list(Set(self.torrent_db._keys()) - Set(self.mypref_db._keys()))
-            for infohash in all_list:
-                data = self.torrent_db._get(infohash)
-                if data and data.get('torrent_name',''):
-                    live = data.get('status', 'unknown')
-                    if live != 'dead' and live != 'unknown':
-                        n += 1
-            self.torrent_db.num_metadatalive = n
+#===============================================================================
+#        start_time = time()
+#        
+#        if self.torrent_db.num_metadatalive < 0:
+#            n = 0
+#            all_list = list(Set(self.torrent_db._keys()) - Set(self.mypref_db._keys()))
+#            for infohash in all_list:
+#                data = self.torrent_db._get(infohash)
+#                if data and data.get('torrent_name',''):
+#                    live = data.get('status', 'unknown')
+#                    if live != 'dead' and live != 'unknown':
+#                        n += 1
+#            self.torrent_db.num_metadatalive = n
+#        
+#        from traceback import print_stack
+#        print_stack()
+#        print >> sys.stderr, '[StartUpDebug]----------- from getNumMetadataAndLive ----------', time()-start_time, currentThread().getName(), '\n\n'
+#===============================================================================
         
         return self.torrent_db.num_metadatalive
     

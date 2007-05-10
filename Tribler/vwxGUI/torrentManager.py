@@ -26,7 +26,10 @@ class TorrentDataManager:
         self.done_init = False
         self.utility = utility
         self.rankList = []
-        self.loadData()
+        self.isDataPrepared = False
+        self.data = []
+        self.initDBs()
+#        self.loadData()
         self.dict_FunList = {}
         self.done_init = True
         self.searchkeywords = []
@@ -39,15 +42,25 @@ class TorrentDataManager:
         return TorrentDataManager.__single
     getInstance = staticmethod(getInstance)
 
-    def loadData(self):
+    def initDBs(self):
+        time1 = time()
         self.torrent_db = SynTorrentDBHandler(updateFun=self.updateFun)
         self.owner_db = OwnerDBHandler()
-        self.data = self.torrent_db.getRecommendedTorrents(light=False,all=True) #gets torrents with mypref
         self.category = Category.getInstance()
-        updated = self.category.checkResort(self)        
+        
+    def loadData(self):
+        time1 = time()
+        print "***************** start loading data in torrent manager 1"
+        self.data = self.torrent_db.getRecommendedTorrents(light=False,all=True) #gets torrents with mypref
+        print "***************** start loading data in torrent manager 2"
+        updated = self.category.checkResort(self) # the database is uprageded from v1 to v2
         if updated:
             self.data = self.torrent_db.getRecommendedTorrents(light=False,all=True)
+        print "***************** start loading data in torrent manager 3"
         self.prepareData()
+        self.isDataPrepared = True
+        time2 = time()
+        print "****************************************************torrent data loading took", time2-time1
         
     def prepareData(self):
         # initialize the cate_dict
@@ -161,6 +174,8 @@ class TorrentDataManager:
         
     def updateFun(self, infohash, operate):
         if not self.done_init:    # don't call update func before init finished
+            return
+        if not self.isDataPrepared:
             return
         if DEBUG:
             print "torrentDataManager: updateFun called, param", operate
