@@ -62,6 +62,11 @@ class MakeFriendsDialog(wx.Dialog):
 
         sizer.Add(box, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
 
+        # text about e-mail invitation
+        label = wx.StaticText(self, -1, self.utility.lang.get('pasteinvitationemail'),wx.DefaultPosition)
+        label.Wrap( 500 )
+        sizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+
         # ip
         box = wx.BoxSizer(wx.HORIZONTAL)
 
