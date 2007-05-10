@@ -201,6 +201,10 @@ class LibraryItemPanel(wx.Panel):
             #print '%s is an active torrent' % torrent['content_name']
             abctorrent = torrent['abctorrent']
             abctorrent.setLibraryPanel(self)
+            
+            # Check if torrent just finished for resort
+            abctorrent.status.checkJustFinished()
+            
             #self.pb.setEnabled(True)
             self.pb.Show()
             self.speedUp2.Show()

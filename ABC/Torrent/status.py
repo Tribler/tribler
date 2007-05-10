@@ -20,6 +20,7 @@ class TorrentStatus:
         self.dontupdate = True # Don't update until the list item is created
         self.havedigest = None
         self.lastStopped = 0
+        self.lastCheckFinished = None
 
     def getStatusText(self):
         value = self.value
@@ -111,15 +112,22 @@ class TorrentStatus:
     def updateStatus(self, value, update = True):
         if value != self.value:
             self.value = value
-            print 'Status updated'
+            print 'Status updated to', self.getStatusText()
             if update:
                 self.torrent.torrentconfig.writeStatus()
-            if self.value == STATUS_FINISHED:
-                print 'Torrent finished'
-                # inform library that download is finished so that it sorts
-                libraryPanel = self.torrent.libraryPanel
-                if libraryPanel:
-                    libraryPanel.abctorrentFinished(self.torrent.torrent_hash)
+                        
+    def checkJustFinished(self):
+        "Check if the torrent finished between the last check and now"
+        #print 'check finished'
+        completedStates = [STATUS_SUPERSEED, STATUS_FINISHED]
+        if self.value in completedStates and self.lastCheckFinished != None and self.lastCheckFinished not in completedStates:
+            print 'Torrent just finished'
+            # inform library that download is finished so that it sorts
+            libraryPanel = self.torrent.libraryPanel
+            if libraryPanel:
+                libraryPanel.abctorrentFinished(self.torrent.torrent_hash)
+        
+        self.lastCheckFinished = self.value
         
     def setHaveDigest(self,havedigest):
         self.havedigest = havedigest
