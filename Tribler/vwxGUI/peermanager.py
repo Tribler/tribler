@@ -436,7 +436,7 @@ class PeerDataManager(DelayedEventHandler):
             #update local snapshot
             if mode in ['delete', 'hide']:
                 #remove from all lists
-                self.removeFromFilters(list, permid, check_fiter=False)
+                self.removeFromFilters(list, permid, check_filter=False)
             elif mode in ['update', 'add']:
                 if peer_data is not None:
                     self.insertInFilters(peer_data)
