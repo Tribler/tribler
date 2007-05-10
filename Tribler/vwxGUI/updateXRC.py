@@ -58,7 +58,7 @@ def changeFile(filename):
     # Define all used custom classes here and the related wxPython classes. They will be replaced by the regexp.
     # (objectName, subClassName)
     customSubClasses = [('profileOverview', customDir+'profileOverviewPanel.ProfileOverviewPanel'),
-                        ('MyFrame', 'abc_vwx.ABCFrame')] # no customDir, abc_vwx.py is in root dir
+                        ('MyFrame', 'tribler.ABCFrame')] # no customDir, tribler.py is in root dir
     
     
     for (customClass, wxClass, customFile) in customClasses:

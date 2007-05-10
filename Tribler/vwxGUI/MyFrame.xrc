@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
-  <object class="wxFrame" name="MyFrame" subclass="abc_vwx.ABCFrame">
+  <object class="wxFrame" name="MyFrame" subclass="tribler.ABCFrame">
     <tooltip>d</tooltip>
     <hidden>1</hidden>
     <pos>1,1</pos>

@@ -363,6 +363,7 @@ class ABCOldFrame(wx.Frame,FlaglessDelayedInvocation):
 
         self.window = ABCPanel(self)
         self.Bind(wx.EVT_SET_FOCUS, self.onFocus)
+        self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
         
         self.tb = ABCToolBar(self) # new Tribler gui has no toolbar
         self.SetToolBar(self.tb)
@@ -373,6 +374,8 @@ class ABCOldFrame(wx.Frame,FlaglessDelayedInvocation):
             event.Skip()
         self.window.getSelectedList(event).SetFocus()
 
+    def OnCloseWindow(self, event = None):
+        self.Hide()
 
 # Custom class loaded by XRC
 class ABCFrame(wx.Frame, DelayedInvocation):

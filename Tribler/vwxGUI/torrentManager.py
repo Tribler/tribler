@@ -300,7 +300,8 @@ class TorrentDataManager:
          
     def updateRankList(self, torrent, operate):
         "Update the ranking list, so that it always shows the top20 most similar torrents"
-        print 'UpdateRankList called for: %s' % torrent
+        
+        #print 'UpdateRankList called for: %s' % torrent
         sim = torrent.get('relevance')
         good = torrent.get('status') == 'good' and not torrent.get('myDownloadHistory', False)
         infohash = torrent.get('infohash')
@@ -338,7 +339,7 @@ class TorrentDataManager:
         if updated or (sim, infohash) in self.rankList:
             # Only update the items when something changed in the ranking list
             self.updateRankedItems()
-            print 'RankList is now: %s' % self.rankList
+            #print 'RankList is now: %s' % self.rankList
         
     def updateRankedItems(self):
         rank = 20
