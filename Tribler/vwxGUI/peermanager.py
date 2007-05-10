@@ -358,8 +358,12 @@ class PeerDataManager(DelayedEventHandler):
         #myprefs = self.mydb.getPrefList()
         if peer_list is None:
             peer_list = self.peersdb.getPeerList()
+        #make sure we have only unique items
+        unique_peer_list = set(peer_list)
+        #add the list of friends
+        unique_peer_list = unique_peer_list | set(self.frienddb.getFriendList())
         key = ['permid', 'name', 'ip', 'similarity', 'last_seen', 'connected_times', 'buddycast_times', 'port']
-        tempdata = self.peersdb.getPeers(peer_list, key)
+        tempdata = self.peersdb.getPeers(unique_peer_list, key)
 
         localdata = []
         #select only tribler peers

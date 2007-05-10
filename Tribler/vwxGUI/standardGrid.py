@@ -31,6 +31,9 @@ class standardGrid(wx.Panel):
         self.detailPanel = None       
         self.cols = cols
         self.orientation = orientation
+        self.items = 0 #number of items that are currently visible 
+        self.currentData = 0 #current starting index in the list for visible items
+        self.currentRows = 0
         pre = wx.PrePanel()
         # the Create step is done by XRC.
         self.PostCreate(pre)
@@ -56,12 +59,8 @@ class standardGrid(wx.Panel):
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         #self.cols = 5
-        self.items = 0 #number of items that are currently visible 
-        self.currentData = 0 #current starting index in the list for visible items
-        self.currentRows = 0
         
         self.panels = []
-        self.currentData = 0
         self.Bind(wx.EVT_SIZE, self.onResize)
         
         self.addComponents()

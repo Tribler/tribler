@@ -60,14 +60,18 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 self.owner = owner
 
             def run(self):
-                self.owner.utility.buddycast.data_ready_evt.wait()   # called by buddycast
-                # get the peer list in buddycast. Actually it is a dict, but it can be used
-                buddycast_peer_list = self.owner.utility.buddycast.data_handler.peers
-                if DEBUG:
-                    print >>sys.stderr,"standardOverview: Buddycast signals it has loaded, release data for GUI thread", len(buddycast_peer_list), currentThread().getName()
+                peer_list = None
+                #wait for buddycast list only if the recommender is enabled
+                bcactive = self.owner.utility.config.Read('enablerecommender', "boolean")
+                if bcactive:
+                    self.owner.utility.buddycast.data_ready_evt.wait()   # called by buddycast
+                    # get the peer list in buddycast. Actually it is a dict, but it can be used
+                    peer_list = self.owner.utility.buddycast.data_handler.peers
+                    if DEBUG:
+                        print >>sys.stderr,"standardOverview: Buddycast signals it has loaded, release data for GUI thread", len(buddycast_peer_list), currentThread().getName()
 #                self.owner.sortData(self.owner.prepareData(buddycast_peer_list))
                 #this initialization can be done in another place also
-                data = self.owner.peer_manager.prepareData(buddycast_peer_list)
+                data = self.owner.peer_manager.prepareData(peer_list)
         #        self.sortData(data)
                 self.owner.peer_manager.applyFilters(data)
         #        print "<mluc> ################### size of data is ",len(self.filtered_data['all'])

@@ -440,8 +440,6 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 #                    guiserver.add_task(lambda:self.loadMetadata(item),0)
                 if not bmp:
                     bmp = self.mm.get_default('personsMode','DEFAULT_THUMB')
-                    if DEBUG:
-                        print >> sys.stderr,"standardDetails: <mluc> set default persons thumb for details view"
                 
                 thumbField = self.getGuiObj("thumbField")
                 thumbField.setBitmap(bmp)
@@ -756,7 +754,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
     def reHeightToFit(self, tab=None):
         """the ideea is to iterate through all object mentioned in the list of 
         object for current tab and to reposition them on y axis so that all of
-        them are fully visible
+        them are fully visible -> update, the repositioning should be done automatically by 
+        autolayouting the sizer, all that has to be done is wrap the elements that don't
+        have the ST_NO_AUTORESIZE flag set
         returns true if elements have been repositioned so that the layout be redone"""
         if DEBUG:
             print >> sys.stderr,"standardDetails: <mluc> trying to reheight panel for mode",self.mode,"and tab",tab
@@ -767,11 +767,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 list = self.modeElements[self.mode]
             else:
                 list = self.tabElements[tab]
-#            print "<mluc> there are",len(list),"elements waiting to be moved"
             #check to see it it's worth trying to reposition elements
             if len(list)>0:
                 prevElement = None
-#                print "<mluc> first element",list[0],"is at",prevElement.GetPosition().y,"and has height",prevElement.GetSize().height
                 for elementName in list:
                     currentElement = self.getGuiObj(elementName, tab)
                     if isinstance(currentElement,wx.StaticText):
@@ -779,17 +777,6 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                         if DEBUG:
                             print >> sys.stderr,"standardDetails: <mluc> element",elementName,"has style",style
                         if (style & wx.ST_NO_AUTORESIZE)==0 :
-                            #remove the no autoresize flag
-#                            style = style ^ wx.ST_NO_AUTORESIZE
-#                            currentElement.SetWindowStyle(style)
-#                            print "<mluc> element",elementName,"changed style to",style
-#        if sys.platform == 'win32':
-#            ofList.SetWindowStyleFlag(wx.LC_REPORT|wx.NO_BORDER|wx.LC_NO_HEADER|wx.LC_SINGLE_SEL) #it doesn't work
-#        else:
-#            ofList.SetSingleStyle(wx.NO_BORDER)
-#            ofList.SetSingleStyle(wx.LC_REPORT)
-#            ofList.SetSingleStyle(wx.LC_NO_HEADER)
-#            ofList.SetSingleStyle(wx.LC_SINGLE_SEL)
                             currentElement.Wrap(284)
                             bElementMoved = True
                     prevElement = None
@@ -799,11 +786,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                         new_pos = prevPos + prevHeight + VERTICAL_SPACE
     #                    print "<mluc> element",list[index],"is at",currentElement.GetPosition().y,"and has height",currentElement.GetSize().height
                         if new_pos != currentElement.GetPosition().y:
-    #                        bElementsMoved = True
-                            print "<mluc> moving",elementName,"from",currentElement.GetPosition().y,"to",new_pos
                             #reposition element as it overlaps the one above
                             currentElement.SetPosition(wx.Point(currentElement.GetPosition().x,new_pos))
-                            print "<mluc> moved",elementName,"to",currentElement.GetPosition().y
                     prevElement = currentElement
         except:
             print_exc()
