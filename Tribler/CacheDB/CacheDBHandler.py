@@ -422,11 +422,23 @@ class TorrentDBHandler(BasicDBHandler):
             mypref_set = Set(self.mypref_db._keys())
         else:
             all_list = Set(self.torrent_db._keys()) - Set(self.mypref_db._keys())
-            
+        
+        wrong = 0
+        for torrent in all_list:
+            for torrent2 in all_list:
+                if torrent is torrent2:
+                    continue
+                if torrent == torrent2:
+                    print 'Double hash: %s, %s' % (torrent, torrent2)
+                    wrong+=1
+        print 'CacheDB: %d (div by 2) double items of %d total' % (wrong, len(all_list))
         torrents = []
+        setOfInfohashes = Set()
         for torrent in all_list:
             #if not self.hasMetaData(torrent):
             #    continue
+            if torrent in setOfInfohashes: # do not add 2 torrents with same infohash
+                continue
             p = self.torrent_db.getItem(torrent, default=True)
             if not p or not p.get('torrent_name', None) or not p.get('info', None):
                 continue
@@ -436,10 +448,14 @@ class TorrentDBHandler(BasicDBHandler):
                 if mypref_obj:
                     p['download_started'] = mypref_obj['created_time']
             p['infohash'] = torrent
+            setOfInfohashes.add(torrent)
             if not light:    # set light as ture to be faster
                 p['num_owners'] = self.owner_db.getNumOwners(torrent)
             torrents.append(p)
         del all_list
+        del setOfInfohashes
+        
+        print 'Returning %d torrents' % len(torrents)
         
         return torrents
     

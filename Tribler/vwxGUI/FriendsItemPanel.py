@@ -41,7 +41,7 @@ class FriendsItemPanel(wx.Panel):
 
     def addComponents(self):
         self.Show(False)
-        #self.SetMinSize((50,50))
+        self.SetMinSize((137,37))
         self.selectedColour = wx.Colour(255,200,187)       
         self.unselectedColour = wx.WHITE
         

@@ -13,6 +13,7 @@ from time import time
 from bisect import insort
 
 DEBUG = False
+DEBUG_RANKING = False
 
 class TorrentDataManager:
     # Code to make this a singleton
@@ -58,6 +59,8 @@ class TorrentDataManager:
             self.info_dict[torrent["infohash"]] = torrent
             self.updateRankList(torrent, 'add', initializing = True)
         #self.printRankList()
+        
+        
 
     def getDownloadHistCount(self):
         #[mluc]{26.04.2007} ATTENTION: data is not updated when a new download starts, although it should
@@ -305,10 +308,11 @@ class TorrentDataManager:
     def updateRankList(self, torrent, operate, initializing = False):
         "Update the ranking list, so that it always shows the top20 most similar torrents"
         
-        #print 'UpdateRankList: %s, for: %s' % (operate, repr(torrent.get('content_name')))
+        if DEBUG_RANKING:
+            print 'UpdateRankList: %s, for: %s' % (operate, repr(torrent.get('content_name')))
         
         sim = torrent.get('relevance')
-        good = torrent.get('status') == 'good' and not torrent.get('myDownloadHistory', False)
+        good = sim > 0 and torrent.get('status') == 'good' and not torrent.get('myDownloadHistory', False)
         infohash = torrent.get('infohash')
         updated = False
         dataTuple = (sim, infohash)
@@ -344,7 +348,7 @@ class TorrentDataManager:
                 
                 
         # Always leave rankList with <=20 items
-        assert initializing or len(self.rankList) in [20,21],'torrentManager: Error, ranklist had length: %d' % len(self.rankList)
+        #assert initializing or len(self.data) < 20 or len(self.rankList) in [20,21],'torrentManager: Error, ranklist had length: %d' % len(self.rankList)
         
         droppedItemInfohash = None
         if len(self.rankList) == 21:
@@ -363,12 +367,14 @@ class TorrentDataManager:
 #            if not initializing:
 #                print 'RankList is now: %s' % self.rankList
         
-        #self.printRankList()
+        if DEBUG_RANKING:
+            self.printRankList()
         
     def updateRemovedItem(self, infohash, initializing):
         if self.info_dict.has_key(infohash):
             torrent = self.info_dict[infohash]
-            #print 'Del rank %d of %s' % (torrent.get('simRank', -1), repr(torrent.get('content_name')))
+            if DEBUG_RANKING:
+                print 'Del rank %d of %s' % (torrent.get('simRank', -1), repr(torrent.get('content_name')))
             if torrent.has_key('simRank'):
                 del torrent['simRank']
             if not initializing:
@@ -382,7 +388,8 @@ class TorrentDataManager:
         for (sim, infohash) in self.rankList:
             if self.info_dict.has_key(infohash):
                 torrent = self.info_dict[infohash]
-                #print 'Give rank %d to %s' % (rank, repr(torrent.get('content_name')))
+                if DEBUG_RANKING:
+                    print 'Give rank %d to %s' % (rank, repr(torrent.get('content_name')))
                 torrent['simRank'] = rank
                 if not initializing:
                     self.notifyView(torrent, 'update')

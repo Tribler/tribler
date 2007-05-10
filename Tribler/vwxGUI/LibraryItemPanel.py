@@ -248,7 +248,8 @@ class LibraryItemPanel(wx.Panel):
                     showPlayButton = True
                 else:
                     havedigest = abctorrent.status.getHaveDigest()
-                    self.playable = (progress == 100.0)
+                    isVideo = abctorrent.is_vodable()
+                    self.playable = (progress == 100.0) and isVideo
                     if not self.playable:
                         switchable = True
                     
@@ -514,3 +515,13 @@ class LibraryItemPanel(wx.Panel):
             # Now delete the abctorrent object reference
             del self.data['abctorrent']
     
+    def abctorrentFinished(self, infohash):
+        """
+        The download just finished. Call standardOverview to resort.
+        """
+        print 'abctorrentFinished called()'
+        if self.data.get('infohash') == infohash:
+            standardOverview = self.guiUtility.standardOverview
+            if standardOverview.mode == 'libraryMode':
+                standardOverview.filterChanged(None)
+                print 'filterChanged()called'

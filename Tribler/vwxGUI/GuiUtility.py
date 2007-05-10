@@ -202,6 +202,7 @@ class GUIUtility:
         self.peer_manager = standardOverview.peer_manager
         self.data_manager = standardOverview.data_manager
         self.standardFilesOverview()
+        wx.CallAfter(self.refreshOnResize)
 
         # Preselect mainButtonFiles
         filesButton = xrc.XRCCTRL(self.frame, 'mainButtonFiles')

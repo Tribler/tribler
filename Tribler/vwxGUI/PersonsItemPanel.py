@@ -39,7 +39,7 @@ class PersonsItemPanel(wx.Panel):
 
     def addComponents(self):
         self.Show(False)
-        #self.SetMinSize((50,50))
+        self.SetMinSize((80,110))
         self.selectedColour = wx.Colour(255,200,187)       
         self.unselectedColour = wx.WHITE
         

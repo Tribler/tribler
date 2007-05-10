@@ -17,7 +17,7 @@ from traceback import print_exc,print_stack
 import wx, os, sys, math
 import wx.xrc as xrc
 
-DEBUG = False
+DEBUG = True
 
         
 class standardGrid(wx.Panel):
@@ -103,6 +103,7 @@ class standardGrid(wx.Panel):
             print >>sys.stderr,'standardGrid: SetData called: init: %s, datalength: %d' % (self.initReady, datalength)
         
         self.data = dataList
+
         
         if not self.initReady:
             return
@@ -114,7 +115,8 @@ class standardGrid(wx.Panel):
         self.refreshPanels()
         if DEBUG:
             print >>sys.stderr,'standardGrid: <mluc>start pos:',self.currentData,'columns:',self.cols,'rows:',self.currentRows,'items:',self.items
-        
+
+        self.Layout()
         
     def updateItem(self, item, delete = False):
         "Add or update an item in the grid"
@@ -147,7 +149,7 @@ class standardGrid(wx.Panel):
                 self.data.remove(item)
         else:
             self.data.append(item)
-        self.setData(self.data, resetPages = False)
+        self.refreshData()
         
     def refreshPanels(self):
         "Refresh TorrentPanels with correct data and refresh pagerPanel"
@@ -331,7 +333,7 @@ class standardGrid(wx.Panel):
 class filesGrid(standardGrid):
     def __init__(self):
         columns = 5
-        self.subPanelHeight = 116 # This will be update after first refresh
+        self.subPanelHeight = 118 # This will be update after first refresh
         standardGrid.__init__(self, columns, orientation='horizontal')
         
     def getSubPanel(self):
@@ -340,7 +342,7 @@ class filesGrid(standardGrid):
 class personsGrid(standardGrid):
     def __init__(self):
         columns = 6
-        self.subPanelHeight = 116 # This will be update after first refresh
+        self.subPanelHeight = 113 # This will be update after first refresh
         standardGrid.__init__(self, columns, orientation='horizontal')
         
     def getSubPanel(self):
@@ -358,7 +360,7 @@ class friendsGrid(standardGrid):
 class libraryGrid(standardGrid):
     def __init__(self):
         columns = 1
-        self.subPanelHeight = 40 # This will be update after first refresh
+        self.subPanelHeight = 43 # This will be update after first refresh
         standardGrid.__init__(self, columns, orientation='horizontal')
         
     def getSubPanel(self):

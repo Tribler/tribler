@@ -111,8 +111,15 @@ class TorrentStatus:
     def updateStatus(self, value, update = True):
         if value != self.value:
             self.value = value
+            print 'Status updated'
             if update:
                 self.torrent.torrentconfig.writeStatus()
+            if self.value == STATUS_FINISHED:
+                print 'Torrent finished'
+                # inform library that download is finished so that it sorts
+                libraryPanel = self.torrent.libraryPanel
+                if libraryPanel:
+                    libraryPanel.abctorrentFinished(self.torrent.torrent_hash)
         
     def setHaveDigest(self,havedigest):
         self.havedigest = havedigest
