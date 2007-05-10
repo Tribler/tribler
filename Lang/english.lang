@@ -631,18 +631,18 @@ opendest 			= "Open Destination..."
 # BT status
 ################################
 completed 			= "completed"
-completedseeding 	= "completed/seeding"
+completedseeding 	= "completed/sharing"
 working 			= "working"
 superseeding 		= "super-seeding"
 waiting 			= "waiting.."
 pause 				= "pause"
 queue 				= "queue"
 stopping 			= "stopping.."
-stop 				= "stop"
+stop 				= "stopped"
 checkingdata		= "checking existing data"
 allocatingspace		= "allocating disk space"
 movingdata			= "moving data"
-connectingtopeers	= "connecting to peers"
+connectingtopeers	= "connecting to others"
 
 ##############################################
 # Web Interface Service
