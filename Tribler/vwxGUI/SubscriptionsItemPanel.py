@@ -29,7 +29,7 @@ class SubscriptionsItemPanel(wx.Panel):
         self.parent = parent
         self.data = None
         self.datacopy = None
-        self.titleLength = 80 # num characters
+        self.titleLength = 72 # num characters
         self.selected = False
         self.warningMode = False
         self.guiserver = parent.guiserver
@@ -83,7 +83,7 @@ class SubscriptionsItemPanel(wx.Panel):
        
         
         # Add delete button
-        self.delete = tribler_topButton(self, -1, wx.Point(0,0), wx.Size(16,16),name='delete')                
+        self.delete = tribler_topButton(self, -1, wx.Point(0,0), wx.Size(16,16),name='deleteSubscriptionItem')                
         self.hSizer.Add(self.delete, 0, wx.TOP|wx.RIGHT, 3)        
         # Add Spacer
         self.hSizer.Add([8,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)        
@@ -208,7 +208,7 @@ class SubscriptionsItemPanel(wx.Panel):
                         self.toggleWeb2Search(newstatus)
                 else:
                     self.torrentfeed.setURLStatus(self.data['url'],newstatus)
-            elif name == 'delete':
+            elif name == 'deleteSubscriptionItem':
                 self.torrentfeed.deleteURL(self.data['url'])
                 self.guiUtility.deleteSubscription(self.data)
             
