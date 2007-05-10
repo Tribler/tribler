@@ -453,4 +453,10 @@ class GUIUtility:
         result = dlg.ShowModal()
         dlg.Destroy()
 
-        
+    def OnSearchMouseAction(self,event):
+        sf = self.standardOverview.getSearchField()
+        if sf is None:
+            return
+        # TODO: smarter behavior
+        sf.SetSelection(-1,-1)
+        event.Skip()

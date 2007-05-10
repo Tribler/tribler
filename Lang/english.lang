@@ -23,7 +23,7 @@ translate = ""
 
 # All ABC Variables
 #######################
-title = "Tribler [The Social-Based ABC Client]"
+title = "Tribler"
 
 superseederrornotcompleted = "Super-seed can only be enabled for completed torrents"
 superseedmustruntorrentbefore = "This torrent must be running before using Super-Seed mode"
@@ -1167,7 +1167,7 @@ profileDetails_Presence_Sharingratio = "Your overall sharing ratio is %d. This m
 profileDetails_Presence_Sharingratio_improve = "* To reach a fair sharing ratio, you should share your files longer. "
 profileDetails_Presence_VersionNo = "You are using an old version of Tribler and not taking advantage of the new features available. "
 profileDetails_Presence_VersionYes = "You are up to date!"
-profileDetails_Presence_VersionNo_improve = "* Update to the newest version 4.0 at <url>."
+profileDetails_Presence_VersionNo_improve = "* Update to the newest version 4.0 at http://www.tribler.org/"
 
 ###############
 # Tribler UI - persons.py, Tribler 3.7
@@ -1195,3 +1195,4 @@ persons_view_no_data = "No people encountered yet"
 torrentcollectsleep = "Time to wait between downloading torrents from RSS:"
 buddycastsubscription = "Discover content via other Tribler users"
 web2subscription = "Discover content from YouTube and LiveLeak"
+filesdefaultsearchtxt = "search files, YouTube and LiveLeak"

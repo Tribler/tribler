@@ -1260,8 +1260,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             tlabel = self.data['status'][tname]
             plabel = self.data['status'][pname]
             #print "Setting",pname,"to",progresstxt
-            tlabel.SetLabel(file)
-            plabel.SetLabel(progresstxt)
+            tlabel.SetLabel(file[:45])
+            plabel.SetLabel(progresstxt[:45])
         statdlpanel = self.data['status']['panel']
         statdlpanel.Refresh()
 

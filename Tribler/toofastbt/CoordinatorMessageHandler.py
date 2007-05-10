@@ -8,7 +8,7 @@ from BitTornado.BT1.MessageID import *
 from Tribler.utilities import show_permid_short
 from Tribler.CacheDB.CacheDBHandler import PeerDBHandler
 
-DEBUG = True
+DEBUG = False
 
 class CoordinatorMessageHandler:
     def __init__(self,launchmany):

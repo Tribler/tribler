@@ -163,6 +163,9 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 #search.Bind(wx.EVT_COMMAND_TEXT_ENTER, self.OnSearchKeyDown)
                 if search is not None:
                     search.Bind(wx.EVT_KEY_DOWN, self.guiUtility.OnSearchKeyDown)
+                    if modeString == "files":
+                        search.SetValue(self.utility.lang.get('filesdefaultsearchtxt'))
+                        search.Bind(wx.EVT_LEFT_UP, self.guiUtility.OnSearchMouseAction)
                     
                 pager.setGrid(grid)
                 
@@ -245,7 +248,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         if DEBUG:
             print >>sys.stderr,'standardOverview: loadTorrentData: Category set to %s, %s' % (str(cat), str(sort))
         
-        if cat != None:
+        if cat is not None:
             # Unregister for old category
             if self.categorykey:
                 self.data_manager.unregister(self.updateFunTorrents, self.categorykey)
@@ -413,8 +416,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         #always try to update the data in filesMode
         # PLEASE, DON'T REMOVE ALERT MESSAGE UNTIL A CORRECT SOLUTION IS FOUND!!!!
 
-        if self.mode in [ "personsMode", "friendsMode"]:
-            raise Exception("big problem in updateFunTorrents, calling",self.mode,"!!!!!")
+        if self.mode in [ "personsMode", "friendsMode", "subscriptionsMode"]:
+            raise Exception("standardOverview: updateFunTorrents called while in non-torrent mode",self.mode,"!!!!!")
             return
         
         torrentGrid = self.data[self.mode]['grid']
