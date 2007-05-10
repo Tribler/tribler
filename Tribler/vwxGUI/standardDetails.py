@@ -83,7 +83,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         self.modeElements['libraryMode'] = ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
                                             'download', 'files_detailsTab', 'info_detailsTab', 'TasteHeart', 'details', 'peopleWhoField']
-        self.modeElements['profileMode'] = ['level0','descriptionField0']
+        self.modeElements['profileMode'] = ['levelPic','descriptionField0']
         
         
         self.modeElements['subscriptionsMode'] = ['titleField', 'receivedToday', 'subscrTodayField', 'receivedYesterday', 'subscrYesterdayField', 'receivedTotal']
@@ -600,9 +600,21 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             tab = None
             # --------------------------------------------------------------------------------------------------------------------------------------------------------
             ## --- Overall performance  !!!! we'll leave it probably out!!!
-            if self.currentPanel == self.getGuiObj('profileDetails'):
-                text = self.utility.lang.get("profileDetails_Overall_description", giveerror=False)
-                #self.getGuiObj('descriptionField0').SetLabel(text % item.get('overall_rank'))            
+            if self.currentPanel == self.getGuiObj('profileDetails_Overall'):  
+                #text = "%s"
+                #text = self.utility.lang.get("profileDetails_Overall_description", giveerror=False)
+                self.getGuiObj('descriptionField0').SetLabel(item.get('overall_rank'))            
+                
+                picture = self.getGuiObj("levelPic")                
+                if item.get('overall_rank') == "beginner": 
+                    picture.setIndex(0)
+                if item.get('overall_rank') == "experienced": 
+                    picture.setIndex(1)
+                if item.get('overall_rank') == "top user": 
+                    picture.setIndex(2)
+                if item.get('overall_rank') == "master": 
+                    picture.setIndex(3)
+                               
             # --------------------------------------------------------------------------------------------------------------------------------------------------------
             # --- Quality of tribler recommendations    
             elif self.currentPanel == self.getGuiObj('profileDetails_Quality'):

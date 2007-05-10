@@ -8,8 +8,10 @@ DEBUG = False
 
 NUM_PERFS = 6 #number of performance states for vertical bar
 NUM_GRADES = 7 #nuber of tribler grades
+NUM_LEVELS = 4 #nuber of tribler grades
 BITMAPS_PERFS = []
 TRIBLER_GRADES = []
+TRIBLER_LEVELS = []
         
 class ProgressIcon(wx.Panel):
     """
@@ -109,10 +111,10 @@ class BigPerfBar(ProgressIcon):
         self.bitmapsList = TRIBLER_GRADES
         ProgressIcon.__init__(self)
 
-#class TriblerGrade(ProgressIcon):
-#    def __init__(self, *args, **kw):
-#        self.bitmapsList = TRIBLER_GRADES
-#        ProgressIcon.__init__(self)
+class TriblerLevel(ProgressIcon):
+    def __init__(self, *args, **kw):
+        self.bitmapsList = TRIBLER_LEVELS
+        ProgressIcon.__init__(self)
 
 
 def set_perfBar_bitmaps(syspath):
@@ -130,5 +132,11 @@ def set_perfBar_bitmaps(syspath):
         filename = os.path.join(IMAGEDIR, 'perfL%d.png' % i)
         if os.path.isfile(filename):
             TRIBLER_GRADES.append(wx.Bitmap(filename, wx.BITMAP_TYPE_ANY))
+        else:
+            print >>sys.stderr,'perfBar: Could not find image: %s' % filename
+    for i in xrange(NUM_LEVELS):
+        filename = os.path.join(IMAGEDIR, 'level%d.png' % i)
+        if os.path.isfile(filename):
+            TRIBLER_LEVELS.append(wx.Bitmap(filename, wx.BITMAP_TYPE_ANY))
         else:
             print >>sys.stderr,'perfBar: Could not find image: %s' % filename

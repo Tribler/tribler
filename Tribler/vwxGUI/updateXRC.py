@@ -41,7 +41,7 @@ def changeFile(filename):
                      #('profileOverview', 'wxPanel', customDir+'ProfileOverviewPanel'),
                      ('SmallPerfBar', 'wxPanel', customDir+'perfBar'),                   
                      ('BigPerfBar', 'wxPanel', customDir+'perfBar'),                   
-                     ('TriblerGrade', 'wxPanel', customDir+'perfBar'),                   
+                     ('TriblerLevel', 'wxPanel', customDir+'perfBar'),                   
                      ('profileDetails', 'wxPanel', customDir+'profileDetails'),
                      
                      ('friendsGrid', 'wxPanel', customDir+'standardGrid'),
@@ -58,7 +58,7 @@ def changeFile(filename):
     # Define all used custom classes here and the related wxPython classes. They will be replaced by the regexp.
     # (objectName, subClassName)
     customSubClasses = [('profileOverview', customDir+'profileOverviewPanel.ProfileOverviewPanel'),
-                        ('MyFrame', 'tribler.ABCFrame')] # no customDir, tribler.py is in root dir
+                        ('MyFrame', 'tribler.ABCFrame')] # no customDir, abc_vwx.py is in root dir
     
     
     for (customClass, wxClass, customFile) in customClasses:
@@ -94,10 +94,13 @@ def main(args):
     if DEBUG:
         print 'updateXRC: Found %d xrc files in the current directory:' % len(xrcs)
     
-        for filename in xrcs:
-            print '\t%s (%s)' % (filename, changeFile(os.path.join(dir,filename)))
+    for filename in xrcs:
+        isChanged = changeFile(os.path.join(dir,filename))
+        if DEBUG:
+            print '\t%s (%s)' % (filename, isChanged)
         
 
+    if DEBUG:
         print 'Updated xrc files and wrote backup files (.old) if changed.'
 
 
