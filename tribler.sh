@@ -16,4 +16,4 @@ WXPYTHON=`ls -1d /usr/lib/$PYTHON/site-packages/wx-$WXPYTHONVER* | grep -v ansi 
 PYTHONPATH=/usr/share/tribler/:$WXPYTHON
 export PYTHONPATH
 
-exec $EXECPYTHON /usr/share/tribler/abc.py > /tmp/$USER-tribler.log 2>&1
+exec $EXECPYTHON /usr/share/tribler/tribler.py > /tmp/$USER-tribler.log 2>&1
