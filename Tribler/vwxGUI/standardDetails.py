@@ -629,7 +629,14 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             todayField.SetLabel(todaystr)
 
             todayList = self.getGuiObj('subscrTodayField')
-            todayList.SetWindowStyle(wx.LC_REPORT|wx.NO_BORDER|wx.LC_SINGLE_SEL|wx.LC_NO_HEADER)
+            if sys.platform == 'win32':
+                todayList.SetWindowStyleFlag(wx.LC_REPORT|wx.NO_BORDER|wx.LC_NO_HEADER|wx.LC_SINGLE_SEL) #it doesn't work on mac
+            else:
+                todayList.SetSingleStyle(wx.NO_BORDER)
+                todayList.SetSingleStyle(wx.LC_REPORT)
+                todayList.SetSingleStyle(wx.LC_NO_HEADER)
+                todayList.SetSingleStyle(wx.LC_SINGLE_SEL)
+#            todayList.SetWindowStyle(wx.LC_REPORT|wx.NO_BORDER|wx.LC_SINGLE_SEL|wx.LC_NO_HEADER)
             if todayList.GetColumnCount() == 0:
                 todayList.InsertColumn(0, "Torrent",wx.LIST_FORMAT_LEFT,280)
             todayList.DeleteAllItems()
@@ -642,7 +649,13 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             ydayField.SetLabel(ydaystr)
 
             ydayList = self.getGuiObj('subscrYesterdayField')
-            ydayList.SetWindowStyle(wx.LC_REPORT|wx.NO_BORDER|wx.LC_SINGLE_SEL|wx.LC_NO_HEADER)
+            if sys.platform == 'win32':
+                ydayList.SetWindowStyleFlag(wx.LC_REPORT|wx.NO_BORDER|wx.LC_NO_HEADER|wx.LC_SINGLE_SEL) #it doesn't work on mac
+            else:
+                ydayList.SetSingleStyle(wx.NO_BORDER)
+                ydayList.SetSingleStyle(wx.LC_REPORT)
+                ydayList.SetSingleStyle(wx.LC_NO_HEADER)
+                ydayList.SetSingleStyle(wx.LC_SINGLE_SEL)
             if ydayList.GetColumnCount() == 0:
                 ydayList.InsertColumn(0, "Torrent",wx.LIST_FORMAT_LEFT,280)
             ydayList.DeleteAllItems()

@@ -240,7 +240,8 @@ class TorrentFeedReader:
         feed_socket = urlOpenTimeout(self.feed_url,timeout=5)
         feed_xml = feed_socket.read()
         feed_socket.close()
-        
+        if DEBUG:
+            print "<mluc> feed.refresh read xml:",feed_xml
         feed_dom = parseString(feed_xml)
 
         entries = [(title,link) for title,link in
