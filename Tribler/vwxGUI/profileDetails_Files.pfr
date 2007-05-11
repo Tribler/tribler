@@ -603,6 +603,8 @@ dataObj\\SizRowPos=0
 dataObj\\SizColPos=0
 dataObj\\panelfitInsS=0
 IndexOfS=1
+[Windows8/style]
+20=1
 [Windows8/i_width]
 [Windows8/i_width/Windows8]
 Theme=0
@@ -624,7 +626,7 @@ validator=
 s_name=descriptionField1
 i_index=-1
 i_left=6
-i_top=70
+i_top=57
 i_height=-1
 i_width=284
 l_backColor=
@@ -682,6 +684,8 @@ dataObj\\SizRowPos=0
 dataObj\\SizColPos=0
 dataObj\\panelfitInsS=0
 IndexOfS=3
+[Windows9/style]
+20=1
 [Windows9/i_width]
 [Windows9/i_width/Windows9]
 Theme=0
@@ -851,7 +855,7 @@ validator=
 s_name=takeMeThere0
 i_index=-1
 i_left=6
-i_top=115
+i_top=76
 i_height=21
 i_width=120
 l_backColor=

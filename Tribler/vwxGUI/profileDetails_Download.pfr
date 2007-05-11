@@ -603,6 +603,8 @@ dataObj\\SizRowPos=0
 dataObj\\SizColPos=0
 dataObj\\panelfitInsS=0
 IndexOfS=1
+[Windows8/style]
+20=1
 [Windows8/i_width]
 [Windows8/i_width/Windows8]
 Theme=0
@@ -834,6 +836,8 @@ dataObj\\SizRowPos=0
 dataObj\\SizColPos=0
 dataObj\\panelfitInsS=0
 IndexOfS=3
+[Windows11/style]
+20=1
 [Windows11/i_width]
 [Windows11/i_width/Windows11]
 Theme=0
@@ -980,6 +984,8 @@ dataObj\\SizRowPos=0
 dataObj\\SizColPos=0
 dataObj\\panelfitInsS=0
 IndexOfS=1
+[Windows13/style]
+20=1
 [Windows13/i_width]
 [Windows13/i_width/Windows13]
 Theme=0
@@ -1133,6 +1139,8 @@ dataObj\\SizRowPos=0
 dataObj\\SizColPos=0
 dataObj\\panelfitInsS=0
 IndexOfS=3
+[Windows15/style]
+20=1
 [Windows15/i_width]
 [Windows15/i_width/Windows15]
 Theme=0
@@ -1364,6 +1372,8 @@ dataObj\\SizRowPos=0
 dataObj\\SizColPos=0
 dataObj\\panelfitInsS=0
 IndexOfS=1
+[Windows18/style]
+20=1
 [Windows18/i_width]
 [Windows18/i_width/Windows18]
 Theme=0
@@ -1524,6 +1534,8 @@ dataObj\\SizRowPos=0
 dataObj\\SizColPos=0
 dataObj\\panelfitInsS=0
 IndexOfS=3
+[Windows20/style]
+20=1
 [Windows20/i_width]
 [Windows20/i_width/Windows20]
 Theme=0
@@ -1742,6 +1754,8 @@ dataObj\\SizRowPos=0
 dataObj\\SizColPos=0
 dataObj\\panelfitInsS=0
 IndexOfS=1
+[Windows23/style]
+20=1
 [Windows23/i_width]
 [Windows23/i_width/Windows23]
 Theme=0
@@ -1758,13 +1772,13 @@ Theme=0
 style=
 Estyle=
 i_stylePN=16
-idIncCmpFilCmp=3257
+idIncCmpFilCmp=0
 i_tipoComp=690504
 validator=
 s_name=takeMeThere2
 i_index=-1
 i_left=6
-i_top=334
+i_top=319
 i_height=21
 i_width=120
 l_backColor=

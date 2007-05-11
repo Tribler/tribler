@@ -247,7 +247,7 @@
                                     <object class="wxStaticText" name="numberPersons">
                                       <style>wxST_NO_AUTORESIZE</style>
                                       <label>300</label>
-                                      <pos>209,20</pos>
+                                      <pos>219,20</pos>
                                       <size>35,13</size>
                                       <bg>#  4454</bg>
                                       <fg>#ffffff</fg>
