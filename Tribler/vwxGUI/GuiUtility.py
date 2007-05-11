@@ -164,9 +164,10 @@ class GUIUtility:
         elif DEBUG:
             print >>sys.stderr,"GUIUtil: MainButtonClicked: unhandled name",name
             
-    def standardFilesOverview(self, filters = ['video', 'swarmsize']):        
+    def standardFilesOverview(self ):        
         
         self.standardOverview.setMode('filesMode')
+        filters = self.standardOverview.getFilter().getState()
         self.standardOverview.filterChanged(filters,setgui=True)
         try:
             if self.standardDetails:
@@ -176,7 +177,6 @@ class GUIUtility:
         
     def standardPersonsOverview(self):
         self.standardOverview.setMode('personsMode')
-        #should read the current filters, not put some default ones that have nothing to do with the ones in the combo boxes in the filter gui
         self.standardOverview.filterChanged(self.standardOverview.getFilter().getState())
         self.standardDetails.setMode('personsMode')
         
@@ -193,9 +193,10 @@ class GUIUtility:
         self.standardOverview.setMode('profileMode')
         self.standardDetails.setMode('profileMode')
         
-    def standardLibraryOverview(self, filters = ['all','latest']):       
-        self.standardOverview.setMode('libraryMode')        
-        self.standardOverview.filterChanged(filters)
+    def standardLibraryOverview(self):       
+        self.standardOverview.setMode('libraryMode')
+        filters = self.standardOverview.getFilter().getState()        
+        self.standardOverview.filterChanged(filters, setgui = True)
         self.standardDetails.setMode('libraryMode')
         
     def standardSubscriptionsOverview(self, filters = ['','']):       

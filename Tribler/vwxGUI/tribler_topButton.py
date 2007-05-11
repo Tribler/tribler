@@ -2,7 +2,7 @@ import wx, os, sys
 from traceback import print_exc
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 
-DEBUG = False
+DEBUG = True
 
 class tribler_topButton(wx.Panel):
     """
@@ -154,10 +154,10 @@ class tribler_topButton(wx.Panel):
             #location[0] -= parent.GetPosition()[0]
             #location[1] -= parent.GetPosition()[1]
             if DEBUG:
-                print 'Mypos: %s, Parentpos: %s' % (self.GetPosition(), parent.GetPosition())
+                print '(button %s) Mypos: %s, Parentpos: %s' % (self.GetName(), self.GetPosition(), parent.GetPosition())
             rect = [location[0], location[1], self.GetClientSize()[0], self.GetClientSize()[1]]
             if DEBUG:
-                print 'Slicing rect(%d,%d) size(%s) from parent image size(%s)' % (location[0], location[1], str(self.GetClientSize()), str(bitmap.GetSize()))
+                print '(button %s) Slicing rect(%d,%d) size(%s) from parent image size(%s)' % (self.GetName(), location[0], location[1], str(self.GetClientSize()), str(bitmap.GetSize()))
             bitmap = self.getBitmapSlice(bitmap, rect)
             return bitmap
         else:
@@ -200,26 +200,34 @@ class tribler_topButton(wx.Panel):
                 rects = rects2
             images = []
             if len(rects) > 1:
-                #print "Result: %s" % rects
+                if DEBUG:
+                    print "(button %s) Result: %s" % (self.GetName(), rects)
                 image = wx.EmptyImage(rect[2], rect[3])
                 for r in rects:    
                     rect = wx.Rect(r[0], r[1], r[2], r[3])
-                    #print 'Trying to get rect: %s from bitmap: %s' % (rect, bitmap.GetSize())
+                    if DEBUG:
+                        print '(button %s) Trying to get rect: %s from bitmap: %s' % (self.GetName(), rect, bitmap.GetSize())
                     subBitmap = bitmap.GetSubBitmap(rect)
                     subImage = subBitmap.ConvertToImage()
-                    if r == rects[0]:
-                        place = (0,0)
-                    elif r == rects[1]:
-                        if len(rects) == 4:
-                            place = (0, bitmapSize[1]-rect[1])
-                        elif len(rects) == 2:
-                            place = (bitmapSize[0]-rect[0], 0)
-                    elif r == rects[2]:
-                        place = (bitmapSize[0] - rect[0], 0)
-                    elif r == rects[3]:
-                        place = (bitmapSize[0] - rect[0], bitmapSize[1] - rect[1])
-                    #print "Place: %s" % str(place)
+                    if len(rects) == 2:
+                        if r == rects[0]:
+                            place = (0,0)
+                        elif r == rects[1]:
+                            place = (rects[0][2], 0)
+                    elif len(rects) == 4:
+                        if r == rects[0]:
+                            place = (0,0)
+                        elif r == rects[1]:
+                            place = (0, rects[0][3])
+                        elif r == rects[2]:
+                            place = (rects[0][2],0)
+                        elif r == rects[3]:
+                            place = (rects[0][2], rects[0][3])
+                    if DEBUG:
+                        print "(button %s) Place subbitmap: %s" % (self.GetName(), str(place))
                     self.joinImage(image, subImage, place[0], place[1])
+                if DEBUG:
+                    print '(button %s) Result img size: %s' % (self.GetName(), str(image.GetSize()))
                 return image.ConvertToBitmap()
             else:
                 return bitmap.GetSubBitmap(wx.Rect(rect[0], rect[1], rect[2], rect[3]))
