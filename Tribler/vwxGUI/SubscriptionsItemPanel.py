@@ -166,7 +166,7 @@ class SubscriptionsItemPanel(wx.Panel):
         
     def deselect(self, rowIndex, colIndex):
         #print >>sys.stderr,'subip: deselected',self.data
-        if number % 2 == 0:
+        if rowIndex % 2 == 0:
             colour = self.guiUtility.unselectedColour
         else:
             colour = self.guiUtility.unselectedColour2
