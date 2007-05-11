@@ -140,7 +140,7 @@ class TorrentCheckingList:
         
     def _readDB(self):
         # Also check torrents in my download history
-        self.data = self.torrent_db.getRecommendedTorrents(all=True, light=True)
+        self.data = self.torrent_db.getCollectedTorrents(all=True, light=False)
         
         
     def acquire(self):

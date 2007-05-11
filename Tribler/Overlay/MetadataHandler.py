@@ -330,7 +330,8 @@ class MetadataHandler:
             collected_torrents = self.torrent_db.getCollectedTorrents()
             self.num_torrents = len(collected_torrents)
             #print >> sys.stderr, "** torrent collectin self.num_torrents=", self.num_torrents
-        
+
+        #print "------"*5, "check overflow is called", "current", self.num_torrents, "max", self.max_num_torrents
         if self.num_torrents > self.max_num_torrents:
             num_delete = int(self.num_torrents - self.max_num_torrents*0.95)
             #print >> sys.stderr, "** limit space::", self.num_torrents, self.max_num_torrents, num_delete
@@ -360,8 +361,10 @@ class MetadataHandler:
             weight = status*1000 + retry_number*100 + rel_date - relevance/10 - leechers - 3*seeders
             return weight
         
+        #print "---------"*5, "limit space called", self.num_torrents, self.max_num_torrents
         collected_torrents = self.torrent_db.getCollectedTorrents(light=False)
         self.num_torrents = len(collected_torrents)    # sync point
+        #print "---------"*5, "collected torrents", self.num_torrents
         for i in xrange(self.num_torrents):
             torrent = collected_torrents[i]
             torrent['weight'] = get_weight(torrent)
@@ -369,8 +372,10 @@ class MetadataHandler:
         
         for torrent in collected_torrents[:num_delete]:
             infohash = torrent['infohash']
-            self.torrent_db.deleteTorrent(infohash, delete_file=True, updateFlag=True)
-            self.num_torrents -= 1
+            deleted = self.torrent_db.deleteTorrent(infohash, delete_file=True, updateFlag=True)
+            if deleted:
+                self.num_torrents -= 1
+            #print "---------"*5, "delete torrent, succeeded?", deleted, self.num_torrents
         del collected_torrents
         
     def save_torrent(self, torrent_hash, metadata, source='BC', extra_info={}):
@@ -479,3 +484,5 @@ class MetadataHandler:
         
         return True
         
+    def get_num_torrents(self):
+        return self.num_torrents

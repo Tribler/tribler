@@ -7,6 +7,7 @@ from Utility.constants import * #IGNORE:W0611
 from Tribler.Category.Category import Category
 from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
 from Tribler.CacheDB.CacheDBHandler import OwnerDBHandler
+from Tribler.Overlay.MetadataHandler import MetadataHandler
 from copy import deepcopy
 from traceback import print_exc, print_stack
 from time import time
@@ -36,6 +37,7 @@ class TorrentDataManager:
         self.dict_FunList = {}
         self.done_init = True
         self.searchkeywords = []
+        self.metadata_handler = MetadataHandler.getInstance()
         if DEBUG:
             print >>sys.stderr,'torrentManager: ready init'
         
@@ -52,18 +54,12 @@ class TorrentDataManager:
         self.category = Category.getInstance()
         
     def loadData(self):
-        time1 = time()
-        print "***************** start loading data in torrent manager 1"
         self.data = self.torrent_db.getRecommendedTorrents(light=False,all=True) #gets torrents with mypref
-        print "***************** start loading data in torrent manager 2"
         updated = self.category.checkResort(self) # the database is uprageded from v1 to v2
         if updated:
             self.data = self.torrent_db.getRecommendedTorrents(light=False,all=True)
-        print "***************** start loading data in torrent manager 3"
         self.prepareData()
         self.isDataPrepared = True
-        time2 = time()
-        print "****************************************************torrent data loading took", time2-time1
         
     def prepareData(self):
         # initialize the cate_dict
@@ -511,3 +507,13 @@ class TorrentDataManager:
     
     def getSimItems(self, infohash, num=15):
         return self.owner_db.getSimItems(infohash, num)
+
+    def getNumDiscoveredFiles(self):
+        if not self.isDataPrepared:
+            return -1
+        else:
+            ntorrents = self.metadata_handler.get_num_torrents()
+            if ntorrents < 0:    # metadatahandler is not ready to load torents yet
+                ntorrents = len(self.data)
+            return ntorrents
+            

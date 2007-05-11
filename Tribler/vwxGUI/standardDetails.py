@@ -894,6 +894,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             alist = []
             for torrent in sim_torrents:
                 f = self.data_manager.getTorrent(torrent)
+                if not f:
+                    continue
                 name = f.get('info',{}).get('name','unknown')
                 index = sim_torrent_list.InsertStringItem(sys.maxint, name)
                 alist.append(torrent)

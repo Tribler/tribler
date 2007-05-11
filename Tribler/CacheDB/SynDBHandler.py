@@ -51,10 +51,10 @@ class SynTorrentDBHandler(TorrentDBHandler):
             self.notifyObserver(infohash, "update")
         
     def deleteTorrent(self, infohash, delete_file=False, updateFlag=True):
-        TorrentDBHandler.deleteTorrent(self, infohash, delete_file)
-        if (updateFlag == True):
+        deleted = TorrentDBHandler.deleteTorrent(self, infohash, delete_file)
+        if updateFlag == True and deleted:
             self.notifyObserver(infohash, "delete")
-            
+        return deleted
 
 class SynPeerDBHandler(PeerDBHandler):
     """ This is a variant of PeerDBHandler, which is used to notice 

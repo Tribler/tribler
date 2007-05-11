@@ -43,7 +43,8 @@ class TorrentChecking(Thread):
             if not torrent:
                 return
             if DEBUG:
-                print "TorrentChecking: ", asctime(), "Get From Good", repr(torrent["info"]["name"])
+                #print "TorrentChecking: ", asctime(), "Get From Good", repr(torrent["info"]["name"])
+                pass
             # whether to ignore
             if (torrent["ignore_number"] > 0):    
                 torrent["ignore_number"] -= 1
@@ -68,7 +69,7 @@ class TorrentChecking(Thread):
                 'status': torrent['status'],
                 'ignore_number': torrent['ignore_number'],
                 'retry_number': torrent['retry_number'],
-                'info': torrent['info']
+                #'info': torrent['info']
                 }
             self.torrent_db.updateTorrent(torrent['infohash'], updateFlag=True, **kw)
         else:   
@@ -82,7 +83,8 @@ class TorrentChecking(Thread):
             if not torrent:
                 return
             if DEBUG:
-                print "TorrentChecking: ", asctime(), "Get from Unknown", repr(torrent["info"]["name"])
+                #print "TorrentChecking: ", asctime(), "Get from Unknown", repr(torrent["info"]["name"])
+                pass
             # whether to ignore
             if (torrent["ignore_number"] > 0):    
                 torrent["ignore_number"] -= 1
@@ -106,7 +108,7 @@ class TorrentChecking(Thread):
                 'status': torrent['status'],
                 'ignore_number': torrent['ignore_number'],
                 'retry_number': torrent['retry_number'],
-                'info': torrent['info']
+                #'info': torrent['info']
                 }
             self.torrent_db.updateTorrent(torrent['infohash'], updateFlag=True, **kw)
         

@@ -358,29 +358,37 @@ class TorrentDBHandler(BasicDBHandler):
         
     def deleteTorrent(self, infohash, delete_file=False):
         if delete_file:
-            data = self.torrent_db._get(infohash)
-            if data and data['torrent_name']:
-                live = data.get('status', 'unknown')
-                if live != 'dead' and live != 'unknown':
-                    self.torrent_db.num_metadatalive -= 1
+#            data = self.torrent_db._get(infohash)
+#            if data and data['torrent_name']:
+#                live = data.get('status', 'unknown')
+#                if live != 'dead' and live != 'unknown':
             deleted = self.eraseTorrentFile(infohash)
+            if deleted:
+                # may remove dead torrents, so this number is not consistent
+                self.torrent_db.num_metadatalive -= 1    
         else:
             deleted = True
         
         if deleted:
             self.torrent_db._delete(infohash)
             self.owner_db._delete(infohash)
+        
+        return deleted
             
     def eraseTorrentFile(self, infohash):
         data = self.torrent_db._get(infohash)
         if not data or not data['torrent_name'] or not data['info']:
             return False
         src = os.path.join(data['torrent_dir'], data['torrent_name'])
+        if not os.path.exists(src):    # already removed
+            return True
+        
         try:
             os.remove(src)
         except Exception, msg:
             print >> sys.stderr, "cachedbhandler: failed to erase torrent", src, Exception, msg
             return False
+        
         return True
                 
     def getTorrent(self, infohash, num_owners=False):
@@ -480,12 +488,15 @@ class TorrentDBHandler(BasicDBHandler):
         
         return torrents
             
-    def getCollectedTorrents(self, light=True): 
-        """ get torrents on disk but not in my pref """
+    def getCollectedTorrents(self, light=True, all=False): 
+        """ get torrents on disk, used by torrent checking, and metadata handler; 
+            memory reduced version of getRecommendedTorrents 
+        """
                     
         #start_time = time()
-        
-        all_list = Set(self.torrent_db._keys()) - Set(self.mypref_db._keys())
+        all_list = Set(self.torrent_db._keys())
+        if not all:
+            all_list -= Set(self.mypref_db._keys())
             
         torrents = []
         for torrent in all_list:
@@ -502,14 +513,20 @@ class TorrentDBHandler(BasicDBHandler):
                 item['infohash'] = torrent
                                 
                 info = p.get('info', {})
+                if not info:
+                    continue
                 try:
                     date = int(info.get('creation date', 0))
                 except:
                     date = 0
                 item['creation date'] = date
                         
-                for key in ['status','leecher','seeder','retry_number','relevance']:
+                for key in ['status','leecher','seeder','retry_number','relevance','ignore_number','last_check_time']:
                     item[key] = p.get(key, None)
+                item['infohash'] = torrent
+                item['info'] = {'announce-list':info.get("announce-list", ""),
+                                'announce':info.get("announce", "")
+                                }
                 
                 del p
                 torrents.append(item)

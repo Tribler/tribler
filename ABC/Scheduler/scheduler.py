@@ -167,21 +167,23 @@ class ABCScheduler(DelayedEventHandler):
             nfile = npeer = 'loading..'
             self.cycleTime += 1
         else:
-            gui_utility = GUIUtility.getInstance()
-            if not gui_utility.peer_manager:
+            if not self.guiUtility.peer_manager:
                 npeer = 'loading..'
             else:
-                npeer = gui_utility.peer_manager.getNumEncounteredPeers()
+                npeer = self.guiUtility.peer_manager.getNumEncounteredPeers()
                 if npeer < 0:
                     npeer = 'loading..'
                 else:
                     npeer = str(npeer)
             
-            nfile = self.utility.getNumFiles()
-            if nfile < 0:
+            if not self.guiUtility.data_manager:
                 nfile = 'loading..'
             else:
-                nfile = str(nfile)
+                nfile = self.guiUtility.data_manager.getNumDiscoveredFiles()
+                if nfile < 0:
+                    nfile = 'loading..'
+                else:
+                    nfile = str(nfile)
         
         try:
             # update value in minimize icon
@@ -522,9 +524,8 @@ class ABCScheduler(DelayedEventHandler):
 
     def doAddTorrentFromFile(self,data,caller=''):
         self.addtorrents.AddTorrentFromFile(data,caller=caller)
-        guiUtility = GUIUtility.getInstance()
         # Switch to Library view
-        guiUtility.standardLibraryOverview()
+        self.guiUtility.standardLibraryOverview()
         
     def checkAutoShutdownTorrents(self):
         self.invokeLater(self.utility.actionhandler.procCHECK_AUTOSHUTDOWN)

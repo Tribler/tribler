@@ -53,9 +53,6 @@ class GUIUtility:
             GUIUtility(*args, **kw)
         return GUIUtility.__single
     getInstance = staticmethod(getInstance)
-    
-    
-    
         
     def buttonClicked(self, event):
         "One of the buttons in the GUI has been clicked"
