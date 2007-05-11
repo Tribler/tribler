@@ -135,6 +135,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         
         self.hSizer.Layout()
         wx.CallAfter(self.hSizer.Layout)
+        wx.CallAfter(self.currentPanel.Layout)
         wx.CallAfter(self.currentPanel.Refresh)
         #self.Show(True)
         
@@ -442,7 +443,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         
     def updateFunTorrents(self, torrent, operate):    
         if DEBUG:
-            print >>sys.stderr,"standardOverview: updateFunTorrents called: %s, %s" % (operate, str(torrent))
+            print >>sys.stderr,"standardOverview: updateFunTorrents called: %s, %s" % (operate, repr(torrent.get('content_name')))
         try:
             detailsPanel = self.guiUtility.standardDetails
         except:

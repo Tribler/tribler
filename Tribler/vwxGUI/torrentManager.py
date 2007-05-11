@@ -30,6 +30,7 @@ class TorrentDataManager:
         self.rankList = []
         self.isDataPrepared = False
         self.data = []
+        self.hits = []
         self.initDBs()
 #        self.loadData()
         self.dict_FunList = {}
@@ -107,7 +108,9 @@ class TorrentDataManager:
                 return dod
             else:
                 # library search
-                return self.search(library = True)
+                return self.search(library)
+            
+        self.hits = [] # remove currentHits. Because they dont need to be updated
         
         def torrentFilter(torrent):
             okLibrary = library == torrent.has_key('myDownloadHistory')
@@ -202,8 +205,11 @@ class TorrentDataManager:
 #        if torrent["category"] == ["?"]:
 #            torrent["category"] = self.category.calculateCategory(torrent["info"], torrent["info"]['name'])
         
-        isLibraryItem = torrent.get('myDownloadHistory', False)
+        isLibraryItem = torrent.get('myDownloadHistory', False) or \
+                        torrent.get('eventComingUp', '') == 'downloading'
         categories = torrent.get('category', ['other']) + ["All"]
+        if torrent in self.hits:
+            categories.append('search')
                                             
         for key in categories:
 #            if key == '?':
@@ -491,6 +497,8 @@ class TorrentDataManager:
                     if DEBUG:
                         print >>sys.stderr,"torrentDataManager: search: Got hit",`wantkw`,"found in",`torrent['content_name']`
                     hits.append(torrent)
+        # Store the hits, so that we can update them
+        self.hits = hits
         return hits
 
     def getFromSource(self,source):

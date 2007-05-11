@@ -2,7 +2,7 @@ import wx, os, sys
 from traceback import print_exc
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 
-DEBUG = True
+DEBUG = False
 
 class tribler_topButton(wx.Panel):
     """

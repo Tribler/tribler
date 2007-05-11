@@ -390,7 +390,7 @@ class personsGrid(standardGrid):
 class friendsGrid(standardGrid):
     def __init__(self):   
         columns = 2
-        self.subPanelHeight = 36 # This will be update after first refresh
+        self.subPanelHeight = 43 # This will be update after first refresh
         standardGrid.__init__(self, columns, orientation='vertical')
         
     def getSubPanel(self):
