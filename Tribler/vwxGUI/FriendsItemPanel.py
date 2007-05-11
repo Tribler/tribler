@@ -41,16 +41,21 @@ class FriendsItemPanel(wx.Panel):
 
     def addComponents(self):
         self.Show(False)
-        self.SetMinSize((137,43))
+        self.SetMinSize((137,43+1))
         self.selectedColour = wx.Colour(255,200,187)       
         self.unselectedColour = wx.WHITE
         
         self.SetBackgroundColour(self.unselectedColour)
+        
+        self.vSizerAll = wx.BoxSizer(wx.VERTICAL)
+        
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
         self.Bind(wx.EVT_LEFT_UP, self.mouseAction)
         self.Bind(wx.EVT_KEY_UP, self.keyTyped)
         
+        # Add left vertical line
+        self.vLine = self.addLine()
         # Add thumb
         self.thumb = FriendThumbnailViewer(self)
         self.thumb.setBackground(wx.BLACK)
@@ -87,7 +92,10 @@ class FriendsItemPanel(wx.Panel):
         self.delete = tribler_topButton(self, -1, wx.Point(0,0), wx.Size(17,17),name='deleteFriend')                
         self.hSizer.Add(self.delete, 0, wx.TOP|wx.RIGHT, 3)
 
-        self.SetSizer(self.hSizer);
+        self.vSizerAll.Add(self.hSizer, 0, wx.EXPAND, 0)
+        #Add bottom horizontal line
+        self.addLine(False)
+        self.SetSizer(self.vSizerAll);
         self.SetAutoLayout(1);
         self.Layout();
         self.Refresh()
@@ -95,7 +103,17 @@ class FriendsItemPanel(wx.Panel):
         for window in self.GetChildren():
             window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
             window.Bind(wx.EVT_KEY_UP, self.keyTyped)
-                             
+            
+    def addLine(self, vertical=True):
+        if vertical:
+            vLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(2,43),wx.LI_VERTICAL)
+            self.hSizer.Add(vLine, 0, wx.RIGHT|wx.EXPAND, 3)
+            return vLine
+        else:
+            hLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(-1,1),wx.LI_HORIZONTAL)
+            self.vSizerAll.Add(hLine, 0, wx.EXPAND, 0)
+            return hLine
+                                     
     def setData(self, peer_data):
         # set bitmap, rating, title
 #        if peer_data is None:
@@ -153,6 +171,10 @@ class FriendsItemPanel(wx.Panel):
           
         
     def select(self, rowIndex, colIndex):
+        if colIndex == 0:
+            self.vLine.Hide()
+        else:
+            self.vLine.Show()
         self.thumb.setSelected(True)
         self.title.SetBackgroundColour(self.selectedColour)
         self.status.SetBackgroundColour(self.selectedColour)
@@ -161,6 +183,10 @@ class FriendsItemPanel(wx.Panel):
         self.Refresh()
         
     def deselect(self, rowIndex, colIndex):
+        if colIndex == 0:
+            self.vLine.Hide()
+        else:
+            self.vLine.Show()
         if rowIndex % 2 == 0:
             colour = self.guiUtility.unselectedColour
         else:
