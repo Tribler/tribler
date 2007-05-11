@@ -183,7 +183,7 @@ class GUIUtility:
         if DEBUG:
             print >>sys.stderr,"standardFriendsOverview, filter state:",filterState
         self.standardOverview.filterChanged(filterState)
-        self.standardDetails.setMode('personsMode')
+        self.standardDetails.setMode('friendsMode')
     
     def standardProfileOverview(self):
         profileList = []

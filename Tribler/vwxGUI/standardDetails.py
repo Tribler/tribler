@@ -85,6 +85,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         self.modeElements['personsMode'] = ['TasteHeart', 'recommendationField','addAsFriend', 'commonFilesField',
                                             'alsoDownloadedField', 'info_detailsTab', 'advanced_detailsTab','detailsC',
                                             'titleField','statusField','thumbField']
+        self.modeElements['friendsMode'] = ['TasteHeart', 'recommendationField','addAsFriend', 'commonFilesField',
+                                            'alsoDownloadedField', 'info_detailsTab', 'advanced_detailsTab','detailsC',
+                                            'titleField','statusField','thumbField']
         self.modeElements['libraryMode'] = ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
                                             'files_detailsTab', 'info_detailsTab', 'details', 
@@ -205,6 +208,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
     def loadPanel(self):
         currentPanel = self.data[self.mode].get('panel',None)
         modeString = self.mode[:-4]
+        #<mluc>[11.05.07]: small hack as the friends mode has no details panel, but we still want to know that this is friends mode
+        if self.mode == "friendsMode":
+            modeString = "persons"
         if not currentPanel:
             xrcResource = os.path.join(self.utility.getPath(),'Tribler','vwxGUI', modeString+'Details.xrc')
             panelName = modeString+'Details'
@@ -715,9 +721,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             elif self.currentPanel == self.getGuiObj('profileDetails_Persons'):
                 tab = 'profileDetails_Persons'
                 count = 0 
-                count = int(self.utility.getNumPeers())
-                print 'tb numPeers'
-                print count                           
+                count = int(self.guiUtility.peer_manager.getNumEncounteredPeers())
+#                print 'tb numPeers'
+#                print count                           
 #                if item is not None:
 #                    if item.has_key('similar_peers'):
 #                        count = item['similar_peers']
@@ -805,7 +811,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 tab = "error"
             if tab != "error":
                 if self.reHeightToFit(tab):
-                    print "<mluc> do panel ",tab,"relayouting"
+#                    print "<mluc> do panel ",tab,"relayouting"
                     self.currentPanel.SetAutoLayout(1)
                     self.currentPanel.Layout()
                     self.hSizer.Layout()

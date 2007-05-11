@@ -172,9 +172,9 @@ class ProfileOverviewPanel(wx.Panel):
             bShouldRefresh = True
         
         #get the number of peers
-        count = int(self.utility.getNumPeers())  
-        print 'tb'
-        print count                         
+        count = int(self.guiUtility.peer_manager.getNumEncounteredPeers())
+#        print 'tb'
+#        print count                         
         #count = self.guiUtility.peer_manager.getCountOfSimilarPeers()
         aux_count = count
         if aux_count > 3000:
