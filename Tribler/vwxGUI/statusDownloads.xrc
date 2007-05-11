@@ -78,25 +78,25 @@
         <object class="wxBoxSizer">
           <orient>wxHORIZONTAL</orient>
           <object class="sizeritem">
-            <flag>wxRIGHT|wxFIXED_MINSIZE</flag>
+            <flag>wxTOP|wxRIGHT|wxFIXED_MINSIZE</flag>
             <border>3</border>
             <option>1</option>
             <object class="wxStaticText" name="download1">
               <style>wxST_NO_AUTORESIZE</style>
               <label>
 </label>
-              <pos>10,20</pos>
+              <pos>10,23</pos>
               <size>170,18</size>
             </object>
           </object>
           <object class="sizeritem">
-            <flag>wxFIXED_MINSIZE</flag>
-            <border>10</border>
+            <flag>wxTOP|wxFIXED_MINSIZE</flag>
+            <border>3</border>
             <option>0</option>
             <object class="wxStaticText" name="percent1">
               <style>wxST_NO_AUTORESIZE</style>
-              <pos>256,20</pos>
-              <size>42,19</size>
+              <pos>246,20</pos>
+              <size>42,18</size>
             </object>
           </object>
         </object>
@@ -113,7 +113,7 @@
             <option>1</option>
             <object class="wxStaticText" name="download2">
               <style>wxST_NO_AUTORESIZE</style>
-              <pos>10,39</pos>
+              <pos>10,41</pos>
               <size>170,18</size>
             </object>
           </object>
@@ -123,8 +123,8 @@
             <option>0</option>
             <object class="wxStaticText" name="percent2">
               <style>wxST_NO_AUTORESIZE</style>
-              <pos>246,39</pos>
-              <size>42,19</size>
+              <pos>246,41</pos>
+              <size>42,18</size>
             </object>
           </object>
         </object>
@@ -141,7 +141,7 @@
             <option>1</option>
             <object class="wxStaticText" name="download3">
               <style>wxST_NO_AUTORESIZE</style>
-              <pos>10,58</pos>
+              <pos>10,60</pos>
               <size>170,18</size>
             </object>
           </object>
@@ -151,8 +151,8 @@
             <option>0</option>
             <object class="wxStaticText" name="percent3">
               <style>wxST_NO_AUTORESIZE</style>
-              <pos>246,58</pos>
-              <size>42,19</size>
+              <pos>246,59</pos>
+              <size>42,18</size>
             </object>
           </object>
         </object>
@@ -169,7 +169,7 @@
             <option>1</option>
             <object class="wxStaticText" name="download4">
               <style>wxST_NO_AUTORESIZE</style>
-              <pos>10,77</pos>
+              <pos>10,79</pos>
               <size>170,18</size>
             </object>
           </object>
@@ -180,7 +180,7 @@
             <object class="wxStaticText" name="percent4">
               <style>wxST_NO_AUTORESIZE</style>
               <pos>246,77</pos>
-              <size>42,19</size>
+              <size>42,18</size>
             </object>
           </object>
         </object>

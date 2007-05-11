@@ -114,7 +114,7 @@
               <option>0</option>
               <object class="wxStaticText" name="advanced_detailsTab" subclass="Tribler.vwxGUI.TextButton.TextButton">
                 <pos>95,0</pos>
-                <size>75,18</size>
+                <size>95,16</size>
               </object>
             </object>
           </object>

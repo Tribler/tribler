@@ -112,7 +112,7 @@
               <option>0</option>
               <object class="wxStaticText" name="descriptionField0">
                 <label>&lt; no info &gt;</label>
-                <pos>6,77</pos>
+                <pos>6,57</pos>
                 <size>284,-1</size>
                 <font>
                   <size>8</size>
@@ -149,74 +149,7 @@
               <option>0</option>
               <object class="wxStaticText" name="descriptionField1">
                 <label>&lt; no info &gt;</label>
-                <pos>6,114</pos>
-                <size>284,-1</size>
-                <font>
-                  <size>8</size>
-                  <family>modern</family>
-                  <style>normal</style>
-                  <weight>normal</weight>
-                  <underlined>0</underlined>
-                  <face>Verdana</face>
-                </font>
-              </object>
-            </object>
-            <object class="sizeritem">
-              <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
-              <border>3</border>
-              <option>0</option>
-              <object class="wxStaticText" name="Desc1">
-                <style>wxST_NO_AUTORESIZE</style>
-                <label>   Sharing ratio</label>
-                <pos>0,155</pos>
-                <size>241,15</size>
-                <bg>#cbcbcb</bg>
-              </object>
-            </object>
-            <object class="sizeritem">
-              <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-              <border>6</border>
-              <option>0</option>
-              <object class="wxStaticText" name="descriptionField2">
-                <label>&lt; no info &gt;</label>
-                <pos>6,157</pos>
-                <size>284,-1</size>
-                <font>
-                  <size>8</size>
-                  <family>modern</family>
-                  <style>normal</style>
-                  <weight>normal</weight>
-                  <underlined>0</underlined>
-                  <face>Verdana</face>
-                </font>
-              </object>
-            </object>
-            <object class="sizeritem">
-              <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-              <border>6</border>
-              <option>0</option>
-              <object class="wxStaticText" name="howToImprove1">
-                <style>wxST_NO_AUTORESIZE</style>
-                <label>How to improve</label>
-                <pos>6,187</pos>
-                <size>284,18</size>
-                <font>
-                  <size>8</size>
-                  <family>modern</family>
-                  <style>normal</style>
-                  <weight>bold</weight>
-                  <underlined>0</underlined>
-                  <face>Verdana</face>
-                </font>
-              </object>
-            </object>
-            <object class="sizeritem">
-              <flag>wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-              <border>6</border>
-              <option>0</option>
-              <object class="wxStaticText" name="descriptionField3">
-                <label>&lt; no info &gt;</label>
-                <pos>6,229</pos>
+                <pos>6,94</pos>
                 <size>284,-1</size>
                 <font>
                   <size>8</size>
@@ -241,12 +174,12 @@
               </object>
             </object>
             <object class="sizeritem">
-              <flag>wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
               <object class="wxStaticText" name="descriptionField4">
                 <label>&lt; no info &gt;</label>
-                <pos>6,291</pos>
+                <pos>6,131</pos>
                 <size>284,-1</size>
                 <font>
                   <size>8</size>
