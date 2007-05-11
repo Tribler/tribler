@@ -41,13 +41,13 @@ class FriendsItemPanel(wx.Panel):
 
     def addComponents(self):
         self.Show(False)
-        self.SetMinSize((137,43+1))
+        self.SetMinSize((137,43+0))
         self.selectedColour = wx.Colour(255,200,187)       
         self.unselectedColour = wx.WHITE
         
         self.SetBackgroundColour(self.unselectedColour)
         
-        self.vSizerAll = wx.BoxSizer(wx.VERTICAL)
+#        self.vSizerAll = wx.BoxSizer(wx.VERTICAL)
         
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
@@ -92,10 +92,10 @@ class FriendsItemPanel(wx.Panel):
         self.delete = tribler_topButton(self, -1, wx.Point(0,0), wx.Size(17,17),name='deleteFriend')                
         self.hSizer.Add(self.delete, 0, wx.TOP|wx.RIGHT, 3)
 
-        self.vSizerAll.Add(self.hSizer, 0, wx.EXPAND, 0)
+#        self.vSizerAll.Add(self.hSizer, 0, wx.EXPAND, 0)
         #Add bottom horizontal line
-        self.addLine(False)
-        self.SetSizer(self.vSizerAll);
+#        self.addLine(False)
+        self.SetSizer(self.hSizer);
         self.SetAutoLayout(1);
         self.Layout();
         self.Refresh()
