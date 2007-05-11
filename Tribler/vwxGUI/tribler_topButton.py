@@ -297,11 +297,18 @@ class SwitchButton(tribler_topButton):
             elif DEBUG:
                 print 'Could not find image: %s' % img
                 
-                
-        self.bitmaps = self.allBitmaps[:2]
+
+        if self.toggled:
+            self.bitmaps = self.allBitmaps[2:]
+        else:
+            self.bitmaps = self.allBitmaps[:2]
                 
     def setToggled(self, b):
         self.toggled = b
+
+        if not self.initDone:
+            return
+
         if b:
             self.bitmaps=self.allBitmaps[2:]
         else:

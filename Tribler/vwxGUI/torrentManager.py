@@ -12,6 +12,8 @@ from traceback import print_exc, print_stack
 from time import time
 from bisect import insort
 
+import web2
+
 DEBUG = False
 DEBUG_RANKING = False
 
@@ -101,7 +103,9 @@ class TorrentDataManager:
             return filter(noDownloadHistory, self.data)
         
         if categorykey == "search":
-            return self.search()
+            dod = web2.DataOnDemandWeb2(" ".join(self.searchkeywords))
+            dod.addItems(self.search())
+            return dod
         
         # See downloaded files also as category
         if (categorykey == self.utility.lang.get('mypref_list_title').lower()):

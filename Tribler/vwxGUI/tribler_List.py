@@ -70,6 +70,12 @@ class FilesList(tribler_List):
         torrent_file = torrent.get('torrent_name')
         try:
             
+            if torrent.get('web2'):
+                self.filelist = []
+                self.DeleteAllItems()
+                self.onListResize(None)
+                return {}
+	
             if not os.path.exists(torrent_dir):
                 torrent_dir = os.path.join(self.utility.getConfigPath(), "torrent2")
             
