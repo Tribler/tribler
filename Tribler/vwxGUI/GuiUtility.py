@@ -192,7 +192,7 @@ class GUIUtility:
         self.standardOverview.setMode('profileMode')
         self.standardDetails.setMode('profileMode')
         
-    def standardLibraryOverview(self, filters = ['','']):       
+    def standardLibraryOverview(self, filters = ['all','latest']):       
         self.standardOverview.setMode('libraryMode')        
         self.standardOverview.filterChanged(filters)
         self.standardDetails.setMode('libraryMode')
@@ -342,15 +342,15 @@ class GUIUtility:
         webbrowser.open(mailToURL)
         
     def dosearch(self):
-        if self.standardOverview.mode == "filesMode":
-            self.searchFiles()
+        if self.standardOverview.mode in ["filesMode", "libraryMode"]:
+            self.searchFiles(self.standardOverview.mode)
         elif self.standardOverview.mode == "personsMode":
             self.searchPersons()
         elif self.standardOverview.mode == "friendsMode":
             self.searchFriends()
-
         
-    def searchFiles(self):
+        
+    def searchFiles(self, mode):
         sf = self.standardOverview.getSearchField()
         if sf is None:
             return
@@ -366,7 +366,13 @@ class GUIUtility:
         wantkeywords = list(zet)
         #self.peer_manager = standardOverview.peer_manager
         self.data_manager.setSearchKeywords(wantkeywords)
-        self.standardOverview.filterChanged(['search','swarmsize'],setgui=True)
+        if mode == 'filesMode':
+            sorting = 'swarmsize'
+        elif mode == 'libraryMode':
+            sorting = ('content_name', 'increase')
+        self.standardOverview.filterChanged(['search',sorting],setgui=True)
+    
+    
         
     def searchPersons(self):
         sf = self.standardOverview.getSearchField()

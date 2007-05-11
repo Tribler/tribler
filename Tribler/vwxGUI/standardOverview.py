@@ -48,7 +48,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         self.data_manager = TorrentDataManager.getInstance(self.utility)
         
         self.peer_manager = PeerDataManager.getInstance(self.utility) #the updateFunc is called after the data is updated in the peer manager so that the GUI has the newest information
-#        self.peer_manager.register(self.updateFun, 'all')
+
         def filterFuncFriend(peer_data):
             return peer_data.get('friend')
         self.peer_manager.registerFilter( 'friends', filterFuncFriend)
@@ -266,21 +266,21 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         self.data[self.mode]['filterState'] = filterState
                 
             
-    def loadTorrentData(self, cat, sort):
+    def loadTorrentData(self, cat, sort, library = False):
         if DEBUG:
             print >>sys.stderr,'standardOverview: loadTorrentData: Category set to %s, %s' % (str(cat), str(sort))
         
         if cat is not None:
             # Unregister for old category
             if self.categorykey:
-                self.data_manager.unregister(self.updateFunTorrents, self.categorykey)
+                self.data_manager.unregister(self.updateFunTorrents, self.categorykey[0], self.categorykey[1])
             
             # Register for new one    
-            self.categorykey = cat
-            self.data_manager.register(self.updateFunTorrents, self.categorykey)
+            self.categorykey = (cat, library)
+            self.data_manager.register(self.updateFunTorrents, self.categorykey[0], self.categorykey[1])
             self.type = sort
             
-            data = self.data_manager.getCategory(self.categorykey)
+            data = self.data_manager.getCategory(self.categorykey[0], self.categorykey[1])
 
             if type(data) == list:
                 self.filtered = []
@@ -342,30 +342,40 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         for torrent in self.utility.torrents['all']:
             activeInfohashes[torrent.torrent_hash] = torrent
             
+        if sort != 'latest':
+            preSorting = sort
+        else:
+            # Sorting of torrents is redone, after loadTorrentData
+            preSorting = 'date'
+        self.loadTorrentData(cat, preSorting, library = True)
         
-        self.loadTorrentData(self.utility.lang.get('mypref_list_title'), 'date')
         libraryList = self.data[self.mode]['data']
+        
+        if not libraryList:
+            return
         # Add abctorrents to library data
         for torrent in libraryList:
             infohash = torrent.get('infohash')
             if infohash in activeInfohashes:
                 torrent['abctorrent'] = activeInfohashes[infohash]
         
-        def librarySort(x, y):
-            xFin = self.isTorrentFinished(x)
-            yFin = self.isTorrentFinished(y)
-            if xFin and not yFin:
-                return 1
-            elif not xFin and yFin:
-                return -1
-            else:
-                xDate = self.getDownloadStartedTime(x)
-                yDate = self.getDownloadStartedTime(y)
-                diff = int(yDate - xDate)
-                assert type(diff) == int, 'Difference should be a int value'
-                return diff
+        if sort == 'latest':
+            def librarySort(x, y):
+                xFin = self.isTorrentFinished(x)
+                yFin = self.isTorrentFinished(y)
+                if xFin and not yFin:
+                    return 1
+                elif not xFin and yFin:
+                    return -1
+                else:
+                    xDate = self.getDownloadStartedTime(x)
+                    yDate = self.getDownloadStartedTime(y)
+                    diff = int(yDate - xDate)
+                    assert type(diff) == int, 'Difference should be a int value'
+                    return diff
+                
+            libraryList.sort(librarySort)
             
-        libraryList.sort(librarySort)
         if DEBUG:
             print >>sys.stderr,'standardOverview: Loading libraryList: %s' % [(self.isTorrentFinished(t), t.get('download_started',False)) for t in libraryList]
         self.data[self.mode]['data'] = libraryList

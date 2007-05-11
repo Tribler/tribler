@@ -91,47 +91,45 @@ class TorrentDataManager:
                     count = count + 1
         return count
         
-    def getCategory(self, categorykey):
+    def getCategory(self, categorykey, library):
         if not self.done_init:
             return
         
         categorykey = categorykey.lower()
-        def noDownloadHistory(torrent):
-            return not torrent.has_key('myDownloadHistory')
         
-        if categorykey == "all":
-            return filter(noDownloadHistory, self.data)
+        
         
         if categorykey == "search":
             web2on = self.utility.config.Read('enableweb2search',"boolean")
-            if web2on:
+            if not library and web2on:
                 dod = web2.DataOnDemandWeb2(" ".join(self.searchkeywords))
                 dod.addItems(self.search())
                 return dod
             else:
-                return self.search()
+                # library search
+                return self.search(library = True)
         
-        # See downloaded files also as category
-        if (categorykey == self.utility.lang.get('mypref_list_title').lower()):
-            def myfilter(a):
-                return a.get('myDownloadHistory', False) and a.get('eventComingUp', '') != 'notDownloading'
-            rlist = filter(myfilter, self.data) 
-            if DEBUG:
-                print >>sys.stderr,'torrentManager: getCategory: returns mydlhistory: %s' % str([t['content_name'] for t in rlist])
-            return rlist
+        def torrentFilter(torrent):
+            okLibrary = library == torrent.has_key('myDownloadHistory')
+            
+            # If we want to see the library. Do not show just removed items
+            if library and torrent.get('eventComingUp', '') == 'notDownloading':
+                okLibrary = False
+
+            okCategory = False
+            if categorykey == 'all':
+                okCategory = True
+            else:
+                categories = torrent.get("category", [])
+                if not categories:
+                    categories = ["other"]
+                if categorykey in [cat.lower() for cat in categories]:
+                    okCategory = True
+                    
+            return okLibrary and okCategory
         
-        rlist = []
-        
-        for idata in self.data:
-            if not idata:
-                continue
-            categories = idata.get("category", [])
-            if not categories:
-                categories = ["other"]
-            if categorykey in [cat.lower() for cat in categories]:
-                rlist.append(idata)
+        return filter(torrentFilter, self.data)
                 
-        return filter(noDownloadHistory, rlist)
 
     def getTorrents(self, hash_list):
         """builds a list with torrents that have the infohash in the list provided as an input parameter"""
@@ -148,33 +146,33 @@ class TorrentDataManager:
         self.torrent_db.deleteTorrent(infohash, delete_file=False, updateFlag=True)
 
     # register update function
-    def register(self, fun, key):
+    def register(self, fun, key, library):
         if DEBUG:
             print >>sys.stderr,'torrentManager: Registered for key: %s' % key
         try:
             key = key.lower()
-            self.dict_FunList[key].index(fun)
+            self.dict_FunList[(key, library)].index(fun)
             # if no exception, fun already exist!
             if DEBUG:
                 print >>sys.stderr,"torrentManager: DBObserver register error. " + str(fun.__name__) + " already exist!"
             return
         except KeyError:
-            self.dict_FunList[key] = []
-            self.dict_FunList[key].append(fun)
+            self.dict_FunList[(key, library)] = []
+            self.dict_FunList[(key, library)].append(fun)
         except ValueError:
-            self.dict_FunList[key].append(fun)
+            self.dict_FunList[(key, library)].append(fun)
         except Exception, msg:
             if DEBUG:
                 print >>sys.stderr,"torrentDataManager: register error.", Exception, msg
             print_exc()
         
         
-    def unregister(self, fun, key):
+    def unregister(self, fun, key, library):
         if DEBUG:
             print >>sys.stderr,'torrentDataManager: Unregistered for key: %s' % key
         try:
             key = key.lower()
-            self.dict_FunList[key].remove(fun)
+            self.dict_FunList[(key, library)].remove(fun)
         except Exception, msg:
             if DEBUG:
                 print >>sys.stderr,"torrentDataManager: unregister error.", Exception, msg
@@ -204,17 +202,15 @@ class TorrentDataManager:
 #        if torrent["category"] == ["?"]:
 #            torrent["category"] = self.category.calculateCategory(torrent["info"], torrent["info"]['name'])
         
-        if torrent.get('myDownloadHistory'):
-            categories = [self.utility.lang.get('mypref_list_title')]
-        else:
-            categories = torrent.get('category', ['other']) + ["All"]
+        isLibraryItem = torrent.get('myDownloadHistory', False)
+        categories = torrent.get('category', ['other']) + ["All"]
                                             
         for key in categories:
 #            if key == '?':
 #                continue
             try:
                 key = key.lower()
-                for fun in self.dict_FunList[key]: # call all functions for a certain key
+                for fun in self.dict_FunList[(key, isLibraryItem)]: # call all functions for a certain key
                     fun(torrent, operate)     # lock is used to avoid dead lock
             except Exception, msg:
                 #print >> sys.stderr, "abcfileframe: TorrentDataManager update error. Key: %s" % (key), Exception, msg
@@ -479,19 +475,19 @@ class TorrentDataManager:
     def setSearchKeywords(self,wantkeywords):
         self.searchkeywords = wantkeywords
          
-    def search(self):
+    def search(self, library = False):
         if DEBUG:
             print >>sys.stderr,"torrentDataManager: search: Want",self.searchkeywords
         hits = []
         if len(self.searchkeywords) == 0:
             return hits
         for torrent in self.data:
-            if torrent.has_key('myDownloadHistory'):
+            if library != torrent.has_key('myDownloadHistory'):
                 continue
             low = torrent['content_name'].lower()
             for wantkw in self.searchkeywords:
                 # only search in alive torrents
-                if low.find(wantkw) != -1 and torrent['status'] == 'good':
+                if low.find(wantkw) != -1 and (torrent['status'] == 'good' or library):
                     if DEBUG:
                         print >>sys.stderr,"torrentDataManager: search: Got hit",`wantkw`,"found in",`torrent['content_name']`
                     hits.append(torrent)

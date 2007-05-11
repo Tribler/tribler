@@ -87,7 +87,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                                             'titleField','statusField','thumbField']
         self.modeElements['libraryMode'] = ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
-                                            'download', 'files_detailsTab', 'info_detailsTab', 'details', 
+                                            'files_detailsTab', 'info_detailsTab', 'details', 
                                             'peopleWhoField']
         self.modeElements['profileMode'] = ['levelPic','descriptionField0']
         
