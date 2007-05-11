@@ -495,7 +495,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                         if operate in ["update","add"]:
                             self.invokeLater(grid.setDataOfPanel,[index-grid.currentData, grid.data[index]])
                         elif operate in ["delete","hide"]:
-                            self.invokeLater(grid.setData,[grid.data,False])
+                            self.invokeLater(self.filterChanged)#grid.setData,[grid.data,False])
                         elif operate.endswith("and top_changed"):
                             self.invokeLater(grid.refreshPanels)
 #                print "#===============================================================================#"

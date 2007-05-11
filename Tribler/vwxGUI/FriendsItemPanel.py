@@ -41,7 +41,7 @@ class FriendsItemPanel(wx.Panel):
 
     def addComponents(self):
         self.Show(False)
-        self.SetMinSize((137,37))
+        self.SetMinSize((137,43))
         self.selectedColour = wx.Colour(255,200,187)       
         self.unselectedColour = wx.WHITE
         
@@ -86,7 +86,6 @@ class FriendsItemPanel(wx.Panel):
         # Add delete button
         self.delete = tribler_topButton(self, -1, wx.Point(0,0), wx.Size(17,17),name='deleteFriend')                
         self.hSizer.Add(self.delete, 0, wx.TOP|wx.RIGHT, 3)
-        
 
         self.SetSizer(self.hSizer);
         self.SetAutoLayout(1);
@@ -156,14 +155,23 @@ class FriendsItemPanel(wx.Panel):
     def select(self):
         self.thumb.setSelected(True)
         self.title.SetBackgroundColour(self.selectedColour)
-        self.title.Refresh()
+        self.status.SetBackgroundColour(self.selectedColour)
+        self.taste.SetBackgroundColour(self.selectedColour)
+        self.SetBackgroundColour(self.selectedColour)
+        self.Refresh()
         
     def deselect(self, number = 0):
-        colour = self.guiUtility.unselectedColour
-        
+        if number/2 % 2 == 0:
+            colour = self.guiUtility.unselectedColour
+        else:
+            colour = self.guiUtility.unselectedColour2
+            
         self.thumb.setSelected(False)
         self.title.SetBackgroundColour(colour)
-        self.title.Refresh()
+        self.status.SetBackgroundColour(colour)
+        self.taste.SetBackgroundColour(colour)
+        self.SetBackgroundColour(colour)
+        self.Refresh()
     
     def keyTyped(self, event):
         if self.selected:
@@ -176,7 +184,6 @@ class FriendsItemPanel(wx.Panel):
         event.Skip()
         
     def mouseAction(self, event):
-        print "set focus"
         event.Skip()
         self.SetFocus()
         if self.data:
@@ -193,6 +200,38 @@ class FriendThumbnailViewer(ThumbnailViewer):
     def __init__(self, *args, **kw):    
         ThumbnailViewer.__init__(self, *args, **kw)
         
+    def setThumbnail(self, data):
+        # Get the file(s)data for this torrent
+        try:
+            width, height = self.GetSize()
+            bmp = None
+            # Check if we have already read the thumbnail and metadata information from this torrent file
+            if data.get('metadata'):
+                bmp = data['metadata'].get('ThumbnailBitmap')
+            else:
+                self.GetParent().guiserver.add_task(lambda:self.loadMetadata(data),0)
+            if not bmp:
+                bmp = self.mm.get_default('friendsMode','DEFAULT_THUMB')
+
+            self.setBitmap(bmp)
+            d = 1
+            self.border = [wx.Point(0,d), wx.Point(width-d, d), wx.Point(width-d, height-d), wx.Point(d,height-d), wx.Point(d,0)]
+            self.Refresh()
+            
+        except:
+            print_exc(file=sys.stderr)
+            return {} 
+
+#===============================================================================
+#    def setBitmap(self, bmp, default=False):
+#        # Recalculate image placement
+#        w, h = self.GetSize()
+#        iw, ih = bmp.GetSize()
+#                
+#        self.dataBitmap = bmp
+#        self.xpos, self.ypos = (w-iw)/2, (h-ih)/2
+#===============================================================================
+                        
     def OnPaint(self, evt):
         dc = wx.BufferedPaintDC(self)
         dc.SetBackground(wx.Brush(self.backgroundColor))
@@ -203,7 +242,7 @@ class FriendThumbnailViewer(ThumbnailViewer):
 #        if self.mouseOver:
         if self.data is not None and type(self.data)==type({}) and self.data.get('permid'):
 
-            print "DATA IS",self.data
+#            print "DATA IS",self.data
 
             helping = None
             if self.data.get('friend'):
@@ -228,6 +267,14 @@ class FriendThumbnailViewer(ThumbnailViewer):
                 recomm = 3
             else:
                 recomm = -1
+            if self.mouseOver:
+                mask = self.mm.get_default('friendsMode','MASK_BITMAP_OVERLAY')
+                y_pos = 0
+                m_height = mask.GetSize()[1]
+                y_height = self.GetSize()[1]
+                while y_pos<y_height:
+                    dc.DrawBitmap(mask,0 ,y_pos, True)
+                    y_pos = y_pos + m_height
             if recomm >=0 or self.data.get('friend') or self.data.get('online'):
                 mask = self.mm.get_default('personsMode','MASK_BITMAP')
                 dc.DrawBitmap(mask,0 ,62, True)

@@ -271,7 +271,21 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                 metadata['ThumbnailBitmap'] = bm
             else:
                 metadata['ThumbnailBitmap'] = None
-                
+
+        if metadata['ThumbnailBitmap'] is not None:
+            iw, ih = metadata['ThumbnailBitmap'].GetSize()
+            w, h = self.GetSize()
+            if (iw/float(ih)) > (w/float(h)):
+                nw = w
+                nh = int(ih * w/float(iw))
+            else:
+                nh = h
+                nw = int(iw * h/float(ih))
+            if nw != iw or nh != ih:
+                #print 'Rescale from (%d, %d) to (%d, %d)' % (iw, ih, nw, nh)
+                img = wx.ImageFromBitmap(metadata['ThumbnailBitmap'])
+                img.Rescale(nw, nh)
+                metadata['ThumbnailBitmap'] = wx.BitmapFromImage(img)
             #print >>sys.stderr,"pip: Netresult is",metadata['ThumbnailBitmap']
 
         if DEBUG:

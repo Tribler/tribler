@@ -177,11 +177,11 @@ class PeerDataManager(DelayedEventHandler):
         self.filtered_data = { 'all':all_data}
         #there should anways be no filtering function for this all data
         self.filtered_func = { 'all':[None,None] } #a sorting function can be added later
-        stubCN = "no data"
-        if utility is not None:
-            stubCN = utility.lang.get('persons_view_no_data')
-        noDataStub = {'content_name':stubCN, 'permid':'000001', 'last_seen':-1, 'similarity':0, 'friend':False, 'name':''}
-        all_data.append(noDataStub)
+#        stubCN = "no data"
+#        if utility is not None:
+#            stubCN = utility.lang.get('persons_view_no_data')
+#        noDataStub = {'content_name':stubCN, 'permid':'000001', 'last_seen':-1, 'similarity':0, 'friend':False, 'name':''}
+#        all_data.append(noDataStub)
         self.done_init = True
 
     def getInstance(*args, **kw):
