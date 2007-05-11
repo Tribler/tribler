@@ -206,10 +206,10 @@ class FriendThumbnailViewer(ThumbnailViewer):
             width, height = self.GetSize()
             bmp = None
             # Check if we have already read the thumbnail and metadata information from this torrent file
-            if data.get('metadata'):
-                bmp = data['metadata'].get('ThumbnailBitmap')
+            if data.get('metadata') and data['metadata'].get('ThumbnailBitmapAsFriend'):
+                bmp = data['metadata'].get('ThumbnailBitmapAsFriend')
             else:
-                self.GetParent().guiserver.add_task(lambda:self.loadMetadata(data),0)
+                self.GetParent().guiserver.add_task(lambda:self.loadMetadata(data,type="AsFriend"),0)
             if not bmp:
                 bmp = self.mm.get_default('friendsMode','DEFAULT_THUMB')
 

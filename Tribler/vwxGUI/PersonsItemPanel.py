@@ -239,7 +239,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         self.xpos, self.ypos = (w-iw)/2, (h-ih)/2
         
 
-    def loadMetadata(self,data):
+    def loadMetadata(self,data,type=None):
         """ Called by non-GUI thread """
         
         if DEBUG:
@@ -249,9 +249,9 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         [mimetype,bmpdata] = self.mm.load_data(data['permid'],data['name'])
         #print "PersonsItemPanel: ThumbnailViewer: loadMetadata: Got",show_permid_short(permid),mimetype
 
-        self.invokeLater(self.metadata_thread_gui_callback,[data,mimetype,bmpdata])
+        self.invokeLater(self.metadata_thread_gui_callback,[data,mimetype,bmpdata,type])
              
-    def metadata_thread_gui_callback(self,data,mimetype,bmpdata):
+    def metadata_thread_gui_callback(self,data,mimetype,bmpdata,type=None):
         """ Called by GUI thread """
 
         metadata = {}
@@ -272,7 +272,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             else:
                 metadata['ThumbnailBitmap'] = None
 
-        if metadata['ThumbnailBitmap'] is not None:
+        if type and metadata['ThumbnailBitmap'] is not None:
             iw, ih = metadata['ThumbnailBitmap'].GetSize()
             w, h = self.GetSize()
             if (iw/float(ih)) > (w/float(h)):
@@ -285,7 +285,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                 #print 'Rescale from (%d, %d) to (%d, %d)' % (iw, ih, nw, nh)
                 img = wx.ImageFromBitmap(metadata['ThumbnailBitmap'])
                 img.Rescale(nw, nh)
-                metadata['ThumbnailBitmap'] = wx.BitmapFromImage(img)
+                metadata['ThumbnailBitmap'+type] = wx.BitmapFromImage(img)
             #print >>sys.stderr,"pip: Netresult is",metadata['ThumbnailBitmap']
 
         if DEBUG:
@@ -295,8 +295,11 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         # This item may be displaying another person right now, only show the icon
         # when it's still the same person
         if data['permid'] == self.data['permid']:
-            if 'ThumbnailBitmap' in metadata and metadata['ThumbnailBitmap'] is not None:
-                self.setBitmap(metadata['ThumbnailBitmap'])
+            thumb_type = 'ThumbnailBitmap'
+            if type:
+                thumb_type = thumb_type+type
+            if thumb_type in metadata and metadata[thumb_type] is not None:
+                self.setBitmap(metadata[thumb_type])
             self.Refresh()
     
     
