@@ -1832,16 +1832,20 @@ class ABCOptionDialog(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.onCloseGlobalPref, cancelbtn)
         self.Bind(wx.EVT_CLOSE, self.onCloseGlobalPref)
 
-        self.splitter.SplitVertically(self.tree, self.rateLimitPanel, split)
-        self.rateLimitPanel.changed = True
+        defaultPanel = self.triblerPanel
+        treeitem = [k for (k,v) in self.tree.treeMap.iteritems() if v == defaultPanel][0]
+        self.tree.SelectItem( treeitem, True )
+
+        self.splitter.SplitVertically(self.tree, defaultPanel, split)
+        defaultPanel.changed = True
         self.splitter.SetMinimumPaneSize(50)
 
         for key in self.tree.treeMap:
             panel = self.tree.treeMap[key]
             panel.Show(False)
         
-        self.rateLimitPanel.Show(True)
-        self.rateLimitPanel.Fit()
+        defaultPanel.Show(True)
+        defaultPanel.Fit()
         
         self.SetSizer(outerbox)
 #        self.Fit()
