@@ -57,9 +57,6 @@ class LibraryItemPanel(wx.Panel):
         self.thumb = ThumbnailViewer(self, 'libraryMode')
         self.thumb.setBackground(wx.BLACK)
         self.thumb.SetSize((66,37))
-        #self.thumb = bgPanel(self, name="defaultThumb")
-        #self.thumb.setBackground(wx.BLACK)
-        #self.thumb.SetSize((66,37))
         self.hSizer.Add(self.thumb, 0, wx.LEFT|wx.TOP|wx.BOTTOM, 3)
         
         # Add title

@@ -208,10 +208,15 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             bmp = self.mm.get_default(self.mode,'DEFAULT_THUMB')
             # Check if we have already read the thumbnail and metadata information from this torrent file
             if torrent.get('metadata'):
-                bmp = torrent['metadata'].get('ThumbnailBitmap')
+                if self.mode == 'libraryMode':
+                    # Make a resized thumb for lib view
+                    bmp = torrent['metadata'].get('ThumbnailBitmapLibrary')
+                        
+                elif self.mode == 'filesMode':
+                    bmp = torrent['metadata'].get('ThumbnailBitmap')
                 if not bmp:
                     #print 'fip: ThumbnailViewer: Error: thumbnailBitmap not found in torrent %s' % torrent
-                    bmp = self.mm.get_default('filesMode','DEFAULT_THUMB')
+                    bmp = self.mm.get_default(self.mode,'DEFAULT_THUMB')
             else:
                 #print "fip: ThumbnailViewer: set: Scheduling read of metadata"
                 torrent_dir = torrent['torrent_dir']
@@ -280,31 +285,43 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             #print 'Found thumbnail: %s' % thumbnailString
             stream = cStringIO.StringIO(thumbnailString)
             img =  wx.ImageFromStream( stream )
-            iw, ih = img.GetSize()
-            w, h = self.GetSize()
-            if (iw/float(ih)) > (w/float(h)):
-                nw = w
-                nh = int(ih * w/float(iw))
-            else:
-                nh = h
-                nw = int(iw * h/float(ih))
-            if nw != iw or nh != ih:
-                #print 'Rescale from (%d, %d) to (%d, %d)' % (iw, ih, nw, nh)
-                img.Rescale(nw, nh)
-            bmp = wx.BitmapFromImage(img)
             
-            metadata['ThumbnailBitmap'] = bmp
+            filesModeThumbSize = (125, 70)
+            libraryModeThumbSize = (66, 37)
+            metadata['ThumbnailBitmap'] = self.getResizedBitmapFromImage(img, filesModeThumbSize)
+            metadata['ThumbnailBitmapLibrary'] = self.getResizedBitmapFromImage(img, libraryModeThumbSize)
           
         torrent['metadata'] = metadata
         
         # This item may be displaying another torrent right now, only show the icon
         # when it's still the same torrent
         if torrent['infohash'] == self.torrent['infohash']:
-            if 'ThumbnailBitmap' in metadata:
-                self.setBitmap(metadata['ThumbnailBitmap'])
+            thumbToGet = ''
+            if self.mode == 'filesMode':
+                thumbToGet = 'ThumbnailBitmap'
+            elif self.mode == 'libraryMode':
+                thumbToGet = 'ThumbnailBitmapLibrary'
+                
+            if thumbToGet in metadata:
+                self.setBitmap(metadata[thumbToGet])
             self.Refresh()
              
-    
+    def getResizedBitmapFromImage(self, img, size):
+        "Resize image to size of self"
+        iw, ih = img.GetSize()
+        w, h = size
+        if (iw/float(ih)) > (w/float(h)):
+            nw = w
+            nh = int(ih * w/float(iw))
+        else:
+            nh = h
+            nw = int(iw * h/float(ih))
+        if nw != iw or nh != ih:
+            #print 'Rescale from (%d, %d) to (%d, %d)' % (iw, ih, nw, nh)
+            img.Rescale(nw, nh)
+        bmp = wx.BitmapFromImage(img)
+        return bmp
+            
     def OnErase(self, event):
         pass
         #event.Skip()
@@ -339,12 +356,14 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         dc.SetBackground(wx.Brush(self.backgroundColor))
         dc.Clear()
         
-        if self.torrent:
+
+        if self.torrent and self.mode == 'filesMode':
             rank = self.torrent.get('simRank', -1)
         else:
             rank = -1
             
         heartBitmap = TasteHeart.getHeartBitmap(rank)
+        
         
         if self.torrentBitmap:
             dc.DrawBitmap(self.torrentBitmap, self.xpos,self.ypos, True)
