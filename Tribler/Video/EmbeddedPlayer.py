@@ -373,7 +373,8 @@ class VLCMediaCtrl(wx.Window):
         if sys.platform == 'win32':
 		cwd = os.getcwd()
 		os.chdir(vlcinstalldir)
-        self.media = vlc.MediaControl(["--key-fullscreen","Esc"])
+        # Arno: 2007-05-11: Don't ask me why but without the "--verbose=0" vlc will ignore the key redef.
+        self.media = vlc.MediaControl(["--verbose=0","--key-fullscreen","Esc"])
         self.visinit = False
 
         if sys.platform == 'win32':

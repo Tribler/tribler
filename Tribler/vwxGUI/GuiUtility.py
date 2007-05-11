@@ -79,6 +79,7 @@ class GUIUtility:
             self.refreshTracker()
         elif name == "addAsFriend" or name == 'deleteFriend':
             self.standardDetails.addAsFriend()
+            self.standardOverview.refreshData()
         elif name == 'download':
             self.standardDetails.download()
         elif name == 'addFriend':
