@@ -137,10 +137,17 @@ class NameIconWizardPage(WizardPageSimple):
 
     def OnIconButton(self, evt):
         try:
-            path = os.path.join(self.utility.getPath(), 'icons')
-            path = os.path.join(path, 'mugshots')
+            if sys.platform == 'win32':
+                # Arno goes win32, find location of "My Pictures"
+                # see http://www.mvps.org/access/api/api0054.htm
+                from win32com.shell import shell
+                pidl = shell.SHGetSpecialFolderLocation(0,0x27)
+                path = shell.SHGetPathFromIDList(pidl)
+            else:
+                path = os.path.expandvars('$HOME')
         except Exception, msg:
             path = ''
+            print_exc()
             
         # open the image browser dialog
         dlg = ib.ImageDialog(self, path)

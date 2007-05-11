@@ -371,9 +371,10 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     if not flag:
                         if 'source' in torrent:
                             s = torrent['source']
-                            if s == 'BC':
-                                s = 'Received from other user'
-                            descrtxt = "Source: "+s
+                            if s != '':
+                                if s == 'BC':
+                                    s = 'Received from other user'
+                                descrtxt = "Source: "+s
 
                 descriptionField.SetLabel(descrtxt)
                 descriptionField.Wrap(-1)        

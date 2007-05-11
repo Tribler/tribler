@@ -360,6 +360,8 @@ class LibraryItemPanel(wx.Panel):
                 if self.data:
                     if DEBUG:
                         print >>sys.stderr,'lib: deleting'
+                    # Arno; 2007-05-11: TODO: use right method here, deleteTorrent does nothing at the 
+                    # moment, see below for right method
                     self.guiUtility.deleteTorrent(self.data)
         event.Skip()
         
