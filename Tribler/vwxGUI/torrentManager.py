@@ -32,6 +32,8 @@ class TorrentDataManager:
         self.isDataPrepared = False
         self.data = []
         self.hits = []
+        # initialize the cate_dict
+        self.info_dict = {}    # reverse map
         self.initDBs()
 #        self.loadData()
         self.dict_FunList = {}
@@ -62,8 +64,6 @@ class TorrentDataManager:
         self.isDataPrepared = True
         
     def prepareData(self):
-        # initialize the cate_dict
-        self.info_dict = {}    # reverse map
         
         for torrent in self.data:      
             # prepare to display
