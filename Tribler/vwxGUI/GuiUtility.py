@@ -448,13 +448,18 @@ class GUIUtility:
     def subscribe(self):
         rssurlctrl = self.standardOverview.getRSSUrlCtrl()
         url = rssurlctrl.GetValue()
+        if not url:
+            return
+        if not "://" in url:
+            url = "http://" + url
+
         if DEBUG:
             print >>sys.stderr,"GUIUtil: subscribe:",url
         try:
             stream = urllib2.urlopen(url)
             stream.close()
         except Exception,e:
-            dlg = wx.MessageDialog(self.standardOverview, "Invalid URL"+str(e), 'Tribler Warning',wx.OK | wx.ICON_WARNING)
+            dlg = wx.MessageDialog(self.standardOverview, "Could not resolve URL:\n\n"+str(e), 'Tribler Warning',wx.OK | wx.ICON_WARNING)
             result = dlg.ShowModal()
             dlg.Destroy()
             return
