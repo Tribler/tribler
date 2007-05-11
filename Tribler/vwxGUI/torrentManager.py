@@ -103,9 +103,13 @@ class TorrentDataManager:
             return filter(noDownloadHistory, self.data)
         
         if categorykey == "search":
-            dod = web2.DataOnDemandWeb2(" ".join(self.searchkeywords))
-            dod.addItems(self.search())
-            return dod
+            web2on = self.utility.config.Read('enableweb2search',"boolean")
+            if web2on:
+                dod = web2.DataOnDemandWeb2(" ".join(self.searchkeywords))
+                dod.addItems(self.search())
+                return dod
+            else:
+                return self.search()
         
         # See downloaded files also as category
         if (categorykey == self.utility.lang.get('mypref_list_title').lower()):

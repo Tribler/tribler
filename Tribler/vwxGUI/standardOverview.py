@@ -177,7 +177,12 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 if search is not None:
                     search.Bind(wx.EVT_KEY_DOWN, self.guiUtility.OnSearchKeyDown)
                     if modeString == "files":
-                        search.SetValue(self.utility.lang.get('filesdefaultsearchtxt'))
+                        web2on = self.utility.config.Read('enableweb2search',"boolean")
+                        if web2on:
+                            txt = self.utility.lang.get('filesdefaultsearchweb2txt')
+                        else:
+                            txt = self.utility.lang.get('filesdefaultsearchtxt')
+                        search.SetValue(txt)
                         search.Bind(wx.EVT_LEFT_UP, self.guiUtility.OnSearchMouseAction)
                     
                 pager.setGrid(grid)
