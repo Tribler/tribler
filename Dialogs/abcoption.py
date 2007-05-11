@@ -1530,6 +1530,9 @@ class VideoPanel(ABCOptionPanel):
         ABCOptionPanel.__init__(self, parent, dialog)
         sizer = self.sizer
 
+        playbacksection_title = wx.StaticBox(self, -1, self.utility.lang.get('playback_section'))
+        playbacksection = wx.StaticBoxSizer(playbacksection_title, wx.VERTICAL)
+
         playbackbox = wx.BoxSizer(wx.HORIZONTAL)
         feasible = return_feasible_playback_modes()
         playback_choices = []
@@ -1547,7 +1550,7 @@ class VideoPanel(ABCOptionPanel):
 
         playbackbox.Add(wx.StaticText(self, -1, self.utility.lang.get('playback_mode')), 1, wx.ALIGN_CENTER_VERTICAL)
         playbackbox.Add(self.playback_chooser)
-        sizer.Add(playbackbox, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        playbacksection.Add(playbackbox, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
         
         player_box = wx.BoxSizer(wx.HORIZONTAL)
         self.player = wx.TextCtrl(self, -1, "")
@@ -1557,7 +1560,12 @@ class VideoPanel(ABCOptionPanel):
         browsebtn = wx.Button(self, -1, "...")
         self.Bind(wx.EVT_BUTTON, self.onBrowsePlayer, browsebtn)
         player_box.Add(browsebtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
-        sizer.Add(player_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT|wx.EXPAND, 5)
+        playbacksection.Add(player_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT|wx.EXPAND, 5)
+
+        sizer.Add(playbacksection, 0, wx.EXPAND|wx.ALL, 5)
+
+        analysissection_title = wx.StaticBox(self, -1, self.utility.lang.get('analysis_section'))
+        analysissection = wx.StaticBoxSizer(analysissection_title, wx.VERTICAL)
 
         analyser_box = wx.BoxSizer(wx.HORIZONTAL)
         self.analyser = wx.TextCtrl(self, -1, "")
@@ -1567,8 +1575,9 @@ class VideoPanel(ABCOptionPanel):
         browsebtn = wx.Button(self, -1, "...")
         self.Bind(wx.EVT_BUTTON, self.onBrowseAnalyser, browsebtn)
         analyser_box.Add(browsebtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
-        sizer.Add(analyser_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT|wx.EXPAND, 5)
+        analysissection.Add(analyser_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT|wx.EXPAND, 5)
 
+        sizer.Add(analysissection, 0, wx.EXPAND|wx.ALL, 5)
         
         if sys.platform == 'win32':
             self.quote = '"'
@@ -1638,10 +1647,10 @@ class VideoPanel(ABCOptionPanel):
         dlg.Destroy()
 
     def onBrowsePlayer(self, event = None):
-        self.onBrowse(self.utility.lang.get('choosevideoplayer'),self.player)
+        self.onBrowse(self.player,self.utility.lang.get('choosevideoplayer'))
         
     def onBrowseAnalyser(self, event = None):
-        self.onBrowse(self.utility.lang.get('choosevideoanalyser'),self.analyser)
+        self.onBrowse(self.analyser,self.utility.lang.get('choosevideoanalyser'))
         
     def onBrowse(self,widget,title):
         dlg = wx.FileDialog(self.utility.frame, 
@@ -1687,7 +1696,6 @@ class ABCTree(wx.TreeCtrl):
         #self.colors = self.AppendItem(self.display, self.utility.lang.get('torrentcolors'))
                 
         self.misc = self.AppendItem(self.root, self.utility.lang.get('miscsetting'))
-
 
         self.treeMap = {self.ratelimits : self.dialog.rateLimitPanel, 
                         self.seedingoptions : self.dialog.seedingOptionsPanel, 
@@ -1833,8 +1841,6 @@ class ABCOptionDialog(wx.Dialog):
         self.Bind(wx.EVT_CLOSE, self.onCloseGlobalPref)
 
         defaultPanel = self.triblerPanel
-        treeitem = [k for (k,v) in self.tree.treeMap.iteritems() if v == defaultPanel][0]
-        self.tree.SelectItem( treeitem, True )
 
         self.splitter.SplitVertically(self.tree, defaultPanel, split)
         defaultPanel.changed = True
@@ -1853,6 +1859,9 @@ class ABCOptionDialog(wx.Dialog):
         self.closing = False
         if openname is not None:
             self.tree.open(openname)
+
+        treeitem = [k for (k,v) in self.tree.treeMap.iteritems() if v == defaultPanel][0]
+        self.tree.SelectItem( treeitem, True )
         
     def getWindowSettings(self):
         width = self.utility.config.Read("prefwindow_width", "int")
