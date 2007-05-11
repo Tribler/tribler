@@ -1362,24 +1362,20 @@ class TriblerPanel(ABCOptionPanel):
         ABCOptionPanel.__init__(self, parent, dialog)
         sizer = self.sizer
 
-        self.rec_enable = wx.CheckBox(self, -1, self.utility.lang.get('enablerecommender'))
-        sizer.Add(self.rec_enable, 0, wx.ALIGN_LEFT|wx.ALL, 5)
-        sizer.Add(wx.StaticText(self, -1, self.utility.lang.get('restartabc')), 0, wx.ALIGN_CENTER_VERTICAL)
+        funcsection_title = wx.StaticBox(self, -1, self.utility.lang.get('corefuncsetting'))
+        funcsection = wx.StaticBoxSizer(funcsection_title, wx.VERTICAL)
 
-        self.dlhelp_enable = wx.CheckBox(self, -1, self.utility.lang.get('enabledlhelp'))
-        sizer.Add(self.dlhelp_enable, 0, wx.ALIGN_LEFT|wx.ALL, 5)
-        sizer.Add(wx.StaticText(self, -1, self.utility.lang.get('restartabc')), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.rec_enable = wx.CheckBox(self, -1, self.utility.lang.get('enablerecommender')+" "+self.utility.lang.get('restartabc'))
+        funcsection.Add(self.rec_enable, 0, wx.ALIGN_LEFT|wx.ALL, 5)
 
-        self.collect_enable = wx.CheckBox(self, -1, self.utility.lang.get('enabledlcollecting'))
-        sizer.Add(self.collect_enable, 0, wx.ALIGN_LEFT|wx.ALL, 5)
-        sizer.Add(wx.StaticText(self, -1, self.utility.lang.get('restartabc')), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.dlhelp_enable = wx.CheckBox(self, -1, self.utility.lang.get('enabledlhelp')+" "+self.utility.lang.get('restartabc'))
+        funcsection.Add(self.dlhelp_enable, 0, wx.ALIGN_LEFT|wx.ALL, 5)
 
-        self.timectrl = self.utility.makeNumCtrl(self, 1, min = 1, max = 3600)
-        time_box = wx.BoxSizer(wx.HORIZONTAL)
-        time_box.Add(wx.StaticText(self, -1, self.utility.lang.get('torrentcollectsleep')), 0, wx.ALIGN_CENTER_VERTICAL)
-        time_box.Add(self.timectrl, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
-        time_box.Add(wx.StaticText(self, -1, self.utility.lang.get('restartabc')), 0, wx.ALIGN_CENTER_VERTICAL)
-        sizer.Add(time_box, 0, wx.EXPAND|wx.ALL, 5)
+        self.collect_enable = wx.CheckBox(self, -1, self.utility.lang.get('enabledlcollecting')+" "+self.utility.lang.get('restartabc'))
+        funcsection.Add(self.collect_enable, 0, wx.ALIGN_LEFT|wx.ALL, 5)
+
+        sizer.Add(funcsection, 0, wx.EXPAND|wx.ALL, 5)
+
 
         """
         name_box = wx.BoxSizer(wx.HORIZONTAL)
@@ -1388,6 +1384,33 @@ class TriblerPanel(ABCOptionPanel):
         name_box.Add(self.myname, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
         sizer.Add(name_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
         """
+
+        tcsection_title = wx.StaticBox(self, -1, self.utility.lang.get('torrentcollectsetting'))
+        tcsection = wx.StaticBoxSizer(tcsection_title, wx.VERTICAL)
+
+        self.timectrl = self.utility.makeNumCtrl(self, 1, min = 1, max = 3600)
+        time_box = wx.BoxSizer(wx.HORIZONTAL)
+        time_box.Add(wx.StaticText(self, -1, self.utility.lang.get('torrentcollectsleep')), 0, wx.ALIGN_CENTER_VERTICAL)
+        time_box.Add(self.timectrl, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        time_box.Add(wx.StaticText(self, -1, self.utility.lang.get('restartabc')), 0, wx.ALIGN_CENTER_VERTICAL)
+        tcsection.Add(time_box, 0, wx.EXPAND|wx.ALL, 5)
+
+        ntorrents_box = wx.BoxSizer(wx.HORIZONTAL)    # set the max num of torrents to collect
+        self.ntorrents = wx.TextCtrl(self, -1, "")
+        ntorrents_box.Add(wx.StaticText(self, -1, self.utility.lang.get('maxntorrents')), 0, wx.ALIGN_CENTER_VERTICAL)
+        ntorrents_box.Add(self.ntorrents, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        tcsection.Add(ntorrents_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        
+        tc_rate_box = wx.BoxSizer(wx.HORIZONTAL)    # set the rate of torrent collecting
+        self.tc_rate = wx.TextCtrl(self, -1, "")
+        tc_rate_box.Add(wx.StaticText(self, -1, self.utility.lang.get('torrentcollectingrate')), 0, wx.ALIGN_CENTER_VERTICAL)
+        tc_rate_box.Add(self.tc_rate, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        tcsection.Add(tc_rate_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+
+        sizer.Add(tcsection, 0, wx.EXPAND|wx.ALL, 5)
+
+        myinfosection_title = wx.StaticBox(self, -1, self.utility.lang.get('myinfosetting'))
+        myinfosection = wx.StaticBoxSizer(myinfosection_title, wx.VERTICAL)
 
         # Show PermID
         mypermid = MyDBHandler().getMyPermid()
@@ -1398,30 +1421,21 @@ class TriblerPanel(ABCOptionPanel):
             self.permidctrl = wx.TextCtrl(self, -1, pb64, size = (400, 30), style = wx.TE_READONLY)
             permid_box.Add(wx.StaticText(self, -1, self.utility.lang.get('mypermid')), 0, wx.ALIGN_CENTER_VERTICAL)
             permid_box.Add(self.permidctrl, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
-            sizer.Add(permid_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+            myinfosection.Add(permid_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
         else:
             permid_txt = self.utility.lang.get('mypermid')+": "+pb64
             label = wx.StaticText(self, -1, self.permid_txt )
-            sizer.Add( label, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+            myinfosection.Add( label, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         
         self.myinfo = wx.Button(self, -1, self.utility.lang.get('myinfo') + "...")
-        sizer.Add(self.myinfo, 0, wx.ALL, 5)
         self.Bind(wx.EVT_BUTTON, self.OnMyInfoWizard, self.myinfo)
+        myinfosection.Add(self.myinfo, 0, wx.ALL, 5)
 
-        ntorrents_box = wx.BoxSizer(wx.HORIZONTAL)    # set the max num of torrents to collect
-        self.ntorrents = wx.TextCtrl(self, -1, "")
-        ntorrents_box.Add(wx.StaticText(self, -1, self.utility.lang.get('maxntorrents')), 0, wx.ALIGN_CENTER_VERTICAL)
-        ntorrents_box.Add(self.ntorrents, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
-        sizer.Add(ntorrents_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
-        
-        tc_rate_box = wx.BoxSizer(wx.HORIZONTAL)    # set the rate of torrent collecting
-        self.tc_rate = wx.TextCtrl(self, -1, "")
-        tc_rate_box.Add(wx.StaticText(self, -1, self.utility.lang.get('torrentcollectingrate')), 0, wx.ALIGN_CENTER_VERTICAL)
-        tc_rate_box.Add(self.tc_rate, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
-        sizer.Add(tc_rate_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        sizer.Add(myinfosection, 0, wx.EXPAND|wx.ALL, 5)
 
-        self.debug = wx.Button(self, -1, 'Debug')
+        self.debug = wx.Button(self, -1, 'Open debug window')
         sizer.Add(self.debug, 0, wx.ALL, 5)
+
         self.Bind(wx.EVT_BUTTON, self.OnDebug, self.debug)
 
         
@@ -1656,28 +1670,23 @@ class ABCTree(wx.TreeCtrl):
         self.utility = dialog.utility
        
         self.root = self.AddRoot("Preferences")
-        
+
+	self.tribler = self.AppendItem(self.root, self.utility.lang.get('triblersetting'))
+	self.video = self.AppendItem(self.root, self.utility.lang.get('videosetting'))
         self.ratelimits = self.AppendItem(self.root, self.utility.lang.get('ratelimits'))
         self.seedingoptions = self.AppendItem(self.root, self.utility.lang.get('seedoptions'))
         self.queuesetting = self.AppendItem(self.root, self.utility.lang.get('queuesetting'))
         self.timeout = self.AppendItem(self.root, self.utility.lang.get('timeout'))
-        
-        self.network = self.AppendItem(self.root, self.utility.lang.get('networksetting'))
-        
-        self.advancednetwork = self.AppendItem(self.network, self.utility.lang.get('advanced'))
-        
         self.disk = self.AppendItem(self.root, self.utility.lang.get('disksettings'))
         self.advanceddisk = self.AppendItem(self.disk, self.utility.lang.get('advanced'))
+        self.network = self.AppendItem(self.root, self.utility.lang.get('networksetting'))
+        self.advancednetwork = self.AppendItem(self.network, self.utility.lang.get('advanced'))
 
         #self.display = self.AppendItem(self.root, self.utility.lang.get('displaysetting'))
 
         #self.colors = self.AppendItem(self.display, self.utility.lang.get('torrentcolors'))
                 
         self.misc = self.AppendItem(self.root, self.utility.lang.get('miscsetting'))
-
-        self.tribler = self.AppendItem(self.root, self.utility.lang.get('triblersetting'))
-
-        self.video = self.AppendItem(self.root, self.utility.lang.get('videosetting'))
 
 
         self.treeMap = {self.ratelimits : self.dialog.rateLimitPanel, 
