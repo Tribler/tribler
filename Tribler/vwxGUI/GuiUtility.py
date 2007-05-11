@@ -104,7 +104,7 @@ class GUIUtility:
                 self.utility.actions[ACTION_PREFERENCES].action(openname=self.utility.lang.get('triblersetting'))
             if panel_name == "profileDetails_Download":
                 #self.utility.actions[ACTION_PREFERENCES].action(openname=self.utility.lang.get('triblersetting'))
-                self.utility.actions[ACTION_PREFERENCES].action()
+                self.utility.actions[ACTION_PREFERENCES].action(openname=self.utility.lang.get('ratelimits'))
             elif panel_name == "profileDetails_Presence": 
                 URL = 'http://www.tribler.org/'
                 webbrowser.open(URL)  

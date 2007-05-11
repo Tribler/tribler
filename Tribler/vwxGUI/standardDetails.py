@@ -714,7 +714,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             elif self.currentPanel == self.getGuiObj('profileDetails_Persons'):
                 tab = 'profileDetails_Persons'
                 count = 0 
-                count = str(self.utility.getNumPeers())                           
+                count = int(self.utility.getNumPeers())
+                print 'tb numPeers'
+                print count                           
 #                if item is not None:
 #                    if item.has_key('similar_peers'):
 #                        count = item['similar_peers']

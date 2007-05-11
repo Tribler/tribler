@@ -6,6 +6,7 @@ from Tribler.vwxGUI.tribler_topButton import tribler_topButton
 from Tribler.CacheDB.CacheDBHandler import MyDBHandler
 from Tribler.Dialogs.MugshotManager import MugshotManager
 from Tribler.Dialogs.socnetmyinfo import MyInfoWizard
+from Tribler.CacheDB.CacheDBHandler import MyPreferenceDBHandler
 
 class ProfileOverviewPanel(wx.Panel):
     def __init__(self, *args, **kw):
@@ -42,6 +43,7 @@ class ProfileOverviewPanel(wx.Panel):
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.data_manager = self.guiUtility.standardOverview.data_manager
+        self.mydb = MyPreferenceDBHandler()
 #        self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 #        self.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
         for element in self.elementsName:
@@ -153,13 +155,14 @@ class ProfileOverviewPanel(wx.Panel):
         overall_index = 0
         
         #get the number of downloads for this user
-        count = self.data_manager.getDownloadHistCount()
+        count = len(self.mydb.getPrefList())
+        #count = self.data_manager.getDownloadHistCount()
         aux_count = count
         if aux_count > 100:
             aux_count = 101
         if aux_count < 0:
             aux_count = 0
-        new_index = int((aux_count-1)/20)+1 #from 0 to 6
+        new_index = int((aux_count-1)/25)+1 #from 0 to 5
         overall_index = overall_index + new_index*0.1667
 #        print "<mluc> [after quality] overall=",overall_index
         qualityElem = self.getGuiElement("perf_Quality")    # Quality of tribler recommendation
@@ -168,14 +171,19 @@ class ProfileOverviewPanel(wx.Panel):
             self.data['downloaded_files'] = count
             bShouldRefresh = True
         
-        #get the number of similar peers
-        count = self.guiUtility.peer_manager.getCountOfSimilarPeers()
+        #get the number of peers
+        count = int(self.utility.getNumPeers())  
+        print 'tb'
+        print count                         
+        #count = self.guiUtility.peer_manager.getCountOfSimilarPeers()
         aux_count = count
-        if aux_count > 500:
-            aux_count = 501
+        if aux_count > 3000:
+            aux_count = 3001
         if aux_count < 0:
             aux_count = 0
-        new_index = int((aux_count-1)/100)+1 #from 0 to 6
+        new_index = int((aux_count-1)/750)+1 #from 0 to 5
+        if new_index >= 4:
+            new_index = 4
         overall_index = overall_index + new_index*0.1667
 #        print "<mluc> [after similar peers] overall=",overall_index
         elem = self.getGuiElement("perf_Persons")    # Discovered persons
@@ -184,16 +192,17 @@ class ProfileOverviewPanel(wx.Panel):
             self.data['similar_peers'] = count
             bShouldRefresh = True
         
-        #get the number of similar files (tasteful)
-        count = self.data_manager.getRecommendFilesCount()
+        #get the number of files
+        count = int(self.utility.getNumFiles())
+        #count = self.data_manager.getRecommendFilesCount()
         aux_count = count
-        if aux_count > 100:
-            aux_count = 101
+        if aux_count > 3000:
+            aux_count = 3001
         if aux_count < 0:
             aux_count = 0
-        new_index = int((aux_count-1)/20)+1 #from 0 to 6
-        if new_index >= 5:
-            new_index = 5
+        new_index = int((aux_count-1)/750)+1 #from 0 to 5
+        if new_index >= 4:
+            new_index = 4
         overall_index = overall_index + new_index*0.1667
 #        print "<mluc> [after taste files] overall=",overall_index
         elem = self.getGuiElement("perf_Files")    # Discovered files

@@ -229,7 +229,7 @@
                           <option>0</option>
                           <object class="wxStaticText" name="popularityField1">
                             <label>?</label>
-                            <pos>102,43</pos>
+                            <pos>101,43</pos>
                             <size>36,18</size>
                           </object>
                         </object>
