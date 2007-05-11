@@ -205,8 +205,7 @@ class TorrentDataManager:
 #        if torrent["category"] == ["?"]:
 #            torrent["category"] = self.category.calculateCategory(torrent["info"], torrent["info"]['name'])
         
-        isLibraryItem = torrent.get('myDownloadHistory', False) or \
-                        torrent.get('eventComingUp', '') == 'downloading'
+        isLibraryItem = torrent.get('myDownloadHistory', False)
         categories = torrent.get('category', ['other']) + ["All"]
         if torrent in self.hits:
             categories.append('search')
@@ -489,6 +488,8 @@ class TorrentDataManager:
             return hits
         for torrent in self.data:
             if library != torrent.has_key('myDownloadHistory'):
+                continue
+            if library and torrent.get('eventComingUp') == 'notDownloading':
                 continue
             low = torrent['content_name'].lower()
             for wantkw in self.searchkeywords:
