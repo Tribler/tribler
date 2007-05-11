@@ -72,12 +72,11 @@ class MyInfoWizard(Wizard):
         my_db = MyDBHandler()
         my_db.put('name',name)
         mm = MugshotManager.getInstance()
-        if iconpath is None:
-            return
-        mypermid = my_db.getMyPermid()
-        oldiconpath = mm.find_filename(mypermid,name)
-        if oldiconpath != iconpath:
-            mm.create_from_file(mypermid,iconpath)
+        if iconpath:
+            mypermid = my_db.getMyPermid()
+            oldiconpath = mm.find_filename(mypermid,name)
+            if oldiconpath != iconpath:
+                mm.create_from_file(mypermid,iconpath)
 
         self.parent.WizardFinished(self)
 
