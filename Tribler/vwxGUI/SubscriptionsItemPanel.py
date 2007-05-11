@@ -228,6 +228,13 @@ class SubscriptionsItemPanel(wx.Panel):
 
     def toggleWeb2Search(self,status):
         self.utility.config.Write('enableweb2search',status, "boolean")
+        search = self.guiUtility.getSearchField(mode='filesMode')
+        if status:
+            txt = self.utility.lang.get('filesdefaultsearchweb2txt')
+        else:
+            txt = self.utility.lang.get('filesdefaultsearchtxt')
+        search.SetValue(txt)
+
 
 
 class FavicoThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):

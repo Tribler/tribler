@@ -508,8 +508,10 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 print_exc()
                 self.invokeLater(grid.refreshPanels)
     
-    def getSearchField(self):
-        return self.data[self.mode]['search']
+    def getSearchField(self,mode=None):
+        if mode is None:
+            mode = self.mode
+        return self.data[mode]['search']
     
     def getFilter(self):
         return self.data[self.mode]['filter']

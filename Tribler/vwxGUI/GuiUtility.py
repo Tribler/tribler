@@ -485,3 +485,6 @@ class GUIUtility:
         # TODO: smarter behavior
         sf.SetSelection(-1,-1)
         event.Skip()
+
+    def getSearchField(self,mode=None):
+       return self.standardOverview.getSearchField(mode=mode)
