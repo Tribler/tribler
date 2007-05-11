@@ -22,8 +22,11 @@ class TorrentStatus:
         self.lastStopped = 0
         self.lastCheckFinished = None
 
-    def getStatusText(self):
-        value = self.value
+    def getStatusText(self, otherValue = None):
+        if otherValue:
+            value = otherValue
+        else:
+            value = self.value
         
         if self.isActive():
             if value == STATUS_PAUSE:
@@ -112,22 +115,26 @@ class TorrentStatus:
     def updateStatus(self, value, update = True):
         if value != self.value:
             self.value = value
-            print 'Status updated to', self.getStatusText()
+            #print 'Status updated to', self.getStatusText()
             if update:
                 self.torrent.torrentconfig.writeStatus()
                         
     def checkJustFinished(self):
         "Check if the torrent finished between the last check and now"
-        #print 'check finished'
-        completedStates = [STATUS_SUPERSEED, STATUS_FINISHED]
-        if self.value in completedStates and self.lastCheckFinished != None and self.lastCheckFinished not in completedStates:
+        
+        status = self.getStatusText()
+        if status in [self.utility.lang.get('completedseeding'), self.utility.lang.get('completed')] and \
+            self.lastCheckFinished != status:
+            self.lastCheckFinished = status
+            print 'check finished: now: (%s) %s, before: (%s) %s' % (self.value, self.getStatusText(), self.lastCheckFinished, self.getStatusText(self.lastCheckFinished))
             print 'Torrent just finished'
             # inform library that download is finished so that it sorts
             libraryPanel = self.torrent.libraryPanel
             if libraryPanel:
-                libraryPanel.abctorrentFinished(self.torrent.torrent_hash)
+               libraryPanel.abctorrentFinished(self.torrent.torrent_hash)
         
-        self.lastCheckFinished = self.value
+        self.lastCheckFinished = status
+        
         
     def setHaveDigest(self,havedigest):
         self.havedigest = havedigest

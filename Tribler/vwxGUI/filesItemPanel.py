@@ -339,7 +339,11 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         dc.SetBackground(wx.Brush(self.backgroundColor))
         dc.Clear()
         
-        rank = self.torrent.get('simRank', -1)
+        if self.torrent:
+            rank = self.torrent.get('simRank', -1)
+        else:
+            rank = -1
+            
         heartBitmap = TasteHeart.getHeartBitmap(rank)
         
         if self.torrentBitmap:

@@ -525,9 +525,9 @@ class LibraryItemPanel(wx.Panel):
         """
         The download just finished. Call standardOverview to resort.
         """
-        print 'abctorrentFinished called()'
+        
         if self.data.get('infohash') == infohash:
             standardOverview = self.guiUtility.standardOverview
             if standardOverview.mode == 'libraryMode':
                 standardOverview.filterChanged(None)
-                print 'filterChanged()called'
+                #print 'filterChanged()called'

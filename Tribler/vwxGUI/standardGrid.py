@@ -17,7 +17,7 @@ from traceback import print_exc,print_stack
 import wx, os, sys, math
 import wx.xrc as xrc
 
-DEBUG = True
+DEBUG = False
 
         
 class standardGrid(wx.Panel):
