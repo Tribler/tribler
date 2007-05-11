@@ -773,6 +773,8 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         self.utility.abcquitting = True
         self.GUIupdate = False
         
+        self.guiUtility.guiOpen.clear()
+        
         # Close the Torrent Maker
         self.utility.actions[ACTION_MAKETORRENT].closeWin()
 
