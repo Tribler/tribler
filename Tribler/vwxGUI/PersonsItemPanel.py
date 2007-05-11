@@ -117,14 +117,14 @@ class PersonsItemPanel(wx.Panel):
         
           
         
-    def select(self):
+    def select(self, rowIndex, colIndex):
         if DEBUG:
             print 'pip: person selected'
         self.thumb.setSelected(True)
         self.title.SetBackgroundColour(self.selectedColour)
         self.title.Refresh()
         
-    def deselect(self, number = 0):
+    def deselect(self, rowIndex, colIndex):
         self.thumb.setSelected(False)
         self.title.SetBackgroundColour(self.unselectedColour)
         self.title.Refresh()

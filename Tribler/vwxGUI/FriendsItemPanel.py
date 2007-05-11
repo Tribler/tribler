@@ -152,7 +152,7 @@ class FriendsItemPanel(wx.Panel):
         
           
         
-    def select(self):
+    def select(self, rowIndex, colIndex):
         self.thumb.setSelected(True)
         self.title.SetBackgroundColour(self.selectedColour)
         self.status.SetBackgroundColour(self.selectedColour)
@@ -160,8 +160,8 @@ class FriendsItemPanel(wx.Panel):
         self.SetBackgroundColour(self.selectedColour)
         self.Refresh()
         
-    def deselect(self, number = 0):
-        if number/2 % 2 == 0:
+    def deselect(self, rowIndex, colIndex):
+        if rowIndex % 2 == 0:
             colour = self.guiUtility.unselectedColour
         else:
             colour = self.guiUtility.unselectedColour2

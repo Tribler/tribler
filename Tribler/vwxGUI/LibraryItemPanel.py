@@ -324,7 +324,7 @@ class LibraryItemPanel(wx.Panel):
         self.GetContainingSizer().Layout()
         #self.parent.Refresh()
         
-    def select(self):
+    def select(self, rowIndex, colIndex):
         colour = self.guiUtility.selectedColour
         self.thumb.setSelected(True)
         self.title.SetBackgroundColour(colour)
@@ -336,8 +336,8 @@ class LibraryItemPanel(wx.Panel):
         self.Refresh()
         
         
-    def deselect(self, number = 0):
-        if number % 2 == 0:
+    def deselect(self, rowIndex, colIndex):
+        if rowIndex % 2 == 0:
             colour = self.guiUtility.unselectedColour
         else:
             colour = self.guiUtility.unselectedColour2

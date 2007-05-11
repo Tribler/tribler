@@ -156,7 +156,7 @@ class SubscriptionsItemPanel(wx.Panel):
         
           
         
-    def select(self):
+    def select(self, rowIndex, colIndex):
         colour = self.guiUtility.selectedColour
         if DEBUG:
             print >>sys.stderr,'subip: selected'
@@ -164,7 +164,7 @@ class SubscriptionsItemPanel(wx.Panel):
         self.SetBackgroundColour(self.selectedColour)
         self.Refresh()
         
-    def deselect(self, number = 0):
+    def deselect(self, rowIndex, colIndex):
         #print >>sys.stderr,'subip: deselected',self.data
         if number % 2 == 0:
             colour = self.guiUtility.unselectedColour

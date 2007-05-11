@@ -488,14 +488,14 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         if grid is not None:
             try:
                 if DEBUG:
-                    print >>sys.stderr,"standardOverview: updateFunPersons called for ",peer_data['content_name']
+                    print >>sys.stderr,"standardOverview: updateFunPersons called for ",peer_data['content_name'],"in mode",self.mode
                 #check if the changed peer_data is in the list of visible ones
                 for index in range(grid.currentData,grid.currentData+grid.items):
                     if index<len(grid.data) and grid.data[index]['permid'] == peer_data['permid']:
                         if operate in ["update","add"]:
-                            self.invokeLater(grid.setDataOfPanel,[index-grid.currentData, grid.data[index]])
+                            self.invokeLater(self.refreshData)#grid.setDataOfPanel,[index-grid.currentData, grid.data[index]])
                         elif operate in ["delete","hide"]:
-                            self.invokeLater(self.filterChanged)#grid.setData,[grid.data,False])
+                            self.invokeLater(self.refreshData)#grid.setData,[grid.data,False])
                         elif operate.endswith("and top_changed"):
                             self.invokeLater(grid.refreshPanels)
 #                print "#===============================================================================#"

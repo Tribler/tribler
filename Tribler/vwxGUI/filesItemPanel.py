@@ -116,7 +116,7 @@ class FilesItemPanel(wx.Panel):
         #self.parent.Refresh()
         
           
-    def select(self):
+    def select(self, rowIndex, colIndex):
         if DEBUG:
             print >>sys.stderr,'fip: item selected'
         colour = self.guiUtility.selectedColour
@@ -124,7 +124,7 @@ class FilesItemPanel(wx.Panel):
         self.title.SetBackgroundColour(colour)
         self.title.Refresh()
         
-    def deselect(self, number = 0):
+    def deselect(self, rowIndex, colIndex):
         colour = self.guiUtility.unselectedColour
             
         self.thumb.setSelected(False)

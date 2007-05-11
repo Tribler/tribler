@@ -323,7 +323,9 @@ class standardGrid(wx.Panel):
             #print "standardGrid: updateSelection: detailsPanel has id",id,self.detailPanel
                 
             number = 0
+            rowIndex = 0
             for row in self.panels:
+                colIndex = 0
                 for pan in row:
                     try:
                         panel_id = pan.getIdentifier()
@@ -333,10 +335,12 @@ class standardGrid(wx.Panel):
                         
                     if panel_id is None or repr(panel_id) != repr(id):
                         #print 'item deselected2'
-                        pan.deselect(number = number)
+                        pan.deselect(rowIndex,colIndex)#number = number)
                     else:
-                        pan.select()
+                        pan.select(rowIndex,colIndex)
                     number += 1
+                    colIndex += 1
+                rowIndex += 1
         except:
             # I sometimes get UnicodeErrors here somewhere
             print_exc()
