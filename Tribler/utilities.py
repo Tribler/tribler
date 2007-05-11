@@ -260,7 +260,7 @@ def dict_compare(a, b, keys):
 def multisort_dictlist(dict_list, keys):
 
     listcopy = copy.copy(dict_list)
-    cmp = partial(dict_compare,keys=keys)
+    cmp = lambda a, b: dict_compare(a, b, keys)
     listcopy.sort(cmp=cmp)
     return listcopy
 
@@ -309,19 +309,6 @@ def find_prog_in_PATH(prog):
     return foundat
     
 
-# from the Python Library Reference
-# http://docs.python.org/lib/module-functools.html
-def partial(func, *args, **keywords):
-    def newfunc(*fargs, **fkeywords):
-        newkeywords = keywords.copy()
-        newkeywords.update(fkeywords)
-        return func(*(args + fargs), **newkeywords)
-    newfunc.func = func
-    newfunc.args = args
-    newfunc.keywords = keywords
-    return newfunc
-
-    
 if __name__=='__main__':
 
     torrenta = {'name':'a', 'swarmsize' : 12}

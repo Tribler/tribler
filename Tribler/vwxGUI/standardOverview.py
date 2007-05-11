@@ -303,7 +303,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 keysort.append((sort, 'decrease'))
             elif type(sort) == tuple:
                 keysort.append(sort)
-            data.setSort(partial(multisort_dictlist, keys=keysort))
+            data.setSort(lambda list: multisort_dictlist(list, keysort))
             self.data[self.mode]['data'] = data
     
     

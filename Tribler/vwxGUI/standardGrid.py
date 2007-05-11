@@ -107,12 +107,12 @@ class standardGrid(wx.Panel):
         #else:
             #datalength = len(dataList)
         
-        if type(dataList) == list:
+        if type(dataList) == list or dataList is None:
             self.data = dataList
             if self.dod != None:
                 self.dod.unregister(self.updateDod)
             self.dod = None
-        elif dataList is not None and dataList.isDod():
+        elif dataList.isDod():
             if self.dod != dataList and self.dod != None:
                 self.dod.unregister(self.updateDod)
                 self.dod.stop()
