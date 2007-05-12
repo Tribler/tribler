@@ -80,6 +80,9 @@ class FriendsItemPanel(wx.Panel):
         self.vSizer.Add(self.status,1,wx.TOP|wx.EXPAND,3)
         
         self.hSizer.Add(self.vSizer, 1, wx.RIGHT|wx.EXPAND, 5)
+        # Add Taste Heart
+        self.tasteHeart = TasteHeart.TasteHeart(self, -1, wx.DefaultPosition, wx.Size(14,14),name='TasteHeart')
+        self.hSizer.Add(self.tasteHeart, 0, wx.TOP, 5)
         # Add Taste similarity
         self.taste =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(40,15))        
         self.taste.SetBackgroundColour(wx.WHITE)
@@ -116,13 +119,6 @@ class FriendsItemPanel(wx.Panel):
                                      
     def setData(self, peer_data):
         # set bitmap, rating, title
-#        if peer_data is None:
-            #self.Hide()
-#            self.Refresh()
-#            return
-        
-#        if not self.IsShown():
-#                self.Show()
         if peer_data is None:
             self.datacopy = None
                         
@@ -155,13 +151,32 @@ class FriendsItemPanel(wx.Panel):
             self.title.Wrap(self.title.GetSize()[0])
             self.title.SetToolTipString(peer_data['content_name'])
             self.delete.Show()
+            self.tasteHeart.Show()
         else:
             self.title.SetLabel('')
             self.title.SetToolTipString('')
             self.title.Enable(False)
             self.status.SetLabel('')
             self.delete.Hide()
-       
+            self.tasteHeart.Hide()
+            
+        rank = peer_data.get('simTop',-1) 
+        recommField = self.taste
+        if rank!=-1:
+            if rank == 1:
+                recommField.SetLabel("%d" % rank + "st")
+            elif rank == 2:
+                recommField.SetLabel("%d" % rank + "nd")                        
+            elif rank == 3:
+                recommField.SetLabel("%d" % rank + "rd")
+            else:
+                recommField.SetLabel("%d" % rank + "th")
+            self.tasteHeart.Show()
+            self.tasteHeart.setRank(rank)
+        else:
+            self.taste.SetLabel('')
+            self.tasteHeart.Hide()
+                  
         self.thumb.setData(peer_data)
                
         self.Layout()
@@ -179,6 +194,7 @@ class FriendsItemPanel(wx.Panel):
         self.title.SetBackgroundColour(self.selectedColour)
         self.status.SetBackgroundColour(self.selectedColour)
         self.taste.SetBackgroundColour(self.selectedColour)
+        self.tasteHeart.setBackground(self.selectedColour)
         self.SetBackgroundColour(self.selectedColour)
         self.Refresh()
         
@@ -196,6 +212,7 @@ class FriendsItemPanel(wx.Panel):
         self.title.SetBackgroundColour(colour)
         self.status.SetBackgroundColour(colour)
         self.taste.SetBackgroundColour(colour)
+        self.tasteHeart.setBackground(colour)
         self.SetBackgroundColour(colour)
         self.Refresh()
     
