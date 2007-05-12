@@ -489,16 +489,18 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         if grid is not None:
             try:
                 if DEBUG:
-                    print >>sys.stderr,"standardOverview: updateFunPersons called for ",peer_data['content_name'],"in mode",self.mode
+                    print >>sys.stderr,"standardOverview: updateFunPersons called with",operate,"for",peer_data.get('content_name'),"in mode",self.mode
+                #something changed, so refresh data in grid
+                self.invokeLater(self.refreshData)
                 #check if the changed peer_data is in the list of visible ones
-                for index in range(grid.currentData,grid.currentData+grid.items):
-                    if index<len(grid.data) and grid.data[index]['permid'] == peer_data['permid']:
-                        if operate in ["update","add"]:
-                            self.invokeLater(self.refreshData)#grid.setDataOfPanel,[index-grid.currentData, grid.data[index]])
-                        elif operate in ["delete","hide"]:
-                            self.invokeLater(self.refreshData)#grid.setData,[grid.data,False])
-                        elif operate.endswith("and top_changed"):
-                            self.invokeLater(grid.refreshPanels)
+#                for index in range(grid.currentData,grid.currentData+grid.items):
+#                    if index<len(grid.data) and grid.data[index]['permid'] == peer_data['permid']:
+#                        if operate in ["update","add","online","offline"]:
+#                            self.invokeLater(self.refreshData)#grid.setDataOfPanel,[index-grid.currentData, grid.data[index]])
+#                        elif operate in ["delete","hide"]:
+#                            self.invokeLater(self.refreshData)#grid.setData,[grid.data,False])
+#                        elif operate.endswith("and top_changed"):
+#                            self.invokeLater(grid.refreshPanels)
 #                print "#===============================================================================#"
 #                print "#                         dump visible peers                                    #"
 #                for index in range(grid.currentData,grid.currentData+grid.items):

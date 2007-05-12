@@ -91,8 +91,8 @@ def cmpFuncSimilarity( val1, val2):
 #        if manager.top20similar[i]['permid'] == val2['permid']:
 #            pos2 = i
 #===============================================================================
-    pos1 = val1['simTop']
-    pos2 = val2['simTop']
+    pos1 = val1.get('simTop',-1)
+    pos2 = val2.get('simTop',-1)
     if pos1 >= 0 and pos2 == -1:
         return 1
     if pos2 >=0 and pos1 == -1:
@@ -374,6 +374,10 @@ class PeerDataManager(DelayedEventHandler):
                 peer_data = tempdata[i]
                 self.preparePeer(peer_data,isFriend)
                 localdata.append(peer_data)
+        #update top 20
+        self.updateTopList(localdata, self.top20similar, 'similarity')
+        #set the rankings to data
+        self.updateSimTopValues(localdata)
         #save the data information
         return localdata
 
@@ -440,14 +444,30 @@ class PeerDataManager(DelayedEventHandler):
                 if peer_data.get('permid') is None:
                     peer_data['permid'] = permid
                 #arrange the data some more: add content_name, rank and so on
+                #and also updates the top 20
                 bTopChanged = self.preparePeer(peer_data, isFriend=isFriend)
             #update local snapshot
             if mode in ['delete', 'hide']:
                 #remove from all lists
                 self.removeFromFilters(list, permid, check_filter=False)
-            elif mode in ['update', 'add']:
+                if self.updateTopList([{'permid':permid,'similarity':0}], self.top20similar, 'similarity'):
+                    #if an element was removed, add a new one
+                    self.updateTopList(self.filtered_data['all'], self.top20similar, 'similarity')
+                    self.updateSimTopValues()
+            elif mode in ['update', 'add','online','offline']:
                 if peer_data is not None:
                     self.insertInFilters(peer_data)
+                if mode in ['update','add']:
+                    #check to see if top20 needs to be updated
+                    if self.updateTopList([peer_data], self.top20similar, 'similarity'):
+                        #refresh the grid
+                        self.updateSimTopValues()
+                        #dump the new list
+            #            print "#===============================================================================#"
+            #            print "#             dump top 20 most similar peers                                    #"
+            #            for i in range(len(self.top20similar)):
+            #                print "#     %d. %s     %f" % (self.top20similar[i]['simTop'],unicode2str(self.top20similar[i]['content_name']),self.top20similar[i]['similarity'])
+            #            print "#===============================================================================#"
 #===============================================================================
 #                i = find_content_in_dictlist(self.data, peer_data, 'permid')
 #                if i != -1:
@@ -463,15 +483,14 @@ class PeerDataManager(DelayedEventHandler):
 #                            list.append( peer_data)
 #===============================================================================
                 
-            #inform the GuiUtility of operation
-            try:
-                if bTopChanged:
-                    mode = mode+" and top_changed"
-                self.notifyGui(peer_data, mode)
-#                if self.guiCallbackFunc!=None:
-#                    self.guiCallbackFunc(peer_data, mode)
-            except:
-                print "error calling GUI callback function for data change"
+        #inform the GuiUtility of operation but only once for all updates
+        try:
+#            if bTopChanged:
+#                mode = mode+" and top_changed"
+            mode = "peers changes"
+            self.notifyGui(peer_data, mode)
+        except:
+            print "error calling GUI callback function for data change"
 #            debug( "new operation to be done for %s in GuiUtility!" % peer_data['content_name'])
 #===============================================================================
 #            if mode in ['update', 'delete']:
@@ -490,7 +509,8 @@ class PeerDataManager(DelayedEventHandler):
   
     def updateTopList(self, data_list, top_list, key, equal_key='permid', max_list_length=20):
         """for each element in data_list, add it to top_list ordered descending based on the key
-        it returns true or false if changes have been made to top_list"""
+        it returns true or false if changes have been made to top_list
+        these elements may or may not be identical to the ones in peermanager's list"""
         bChange = False
         for element in data_list:
             #check where to add the element, and also where is already inserted
@@ -499,38 +519,61 @@ class PeerDataManager(DelayedEventHandler):
             llen = len(top_list)
             indexInsertAt = llen
             indexIsAt = -1
-            while index < llen:
-                if indexIsAt==-1 and top_list[index][equal_key] == element[equal_key]:
+            bIsAt = False
+            bInsertAt = False
+            while index < llen and (not bIsAt or not bInsertAt) :
+                if not bIsAt and top_list[index][equal_key] == element[equal_key]:
                     indexIsAt = index
-                if indexInsertAt == llen and top_list[index][key] < element[key]:
+                    bIsAt = True
+                if not bInsertAt and top_list[index][key] < element[key]:
                     indexInsertAt = index
-                if indexIsAt != -1 and indexInsertAt < llen:
+                    bInsertAt = True
+                if bIsAt and bInsertAt:
                     break #both indexes are computed so no reason to continue
                 index = index + 1
-            if indexInsertAt != indexIsAt: #if on the same position, do nothing
-                if indexIsAt != -1 and indexIsAt < llen-1 and indexIsAt<indexInsertAt and element[key] == top_list[indexIsAt+1][key]:
-                    continue #if is equal with the ones until insertion point, no need to do it
-                if indexIsAt != -1:
-                    #move from one position to another
-                    elem = top_list.pop(indexIsAt)
-                    elem['simTop'] = -1
-                    if indexIsAt < indexInsertAt:
-                        indexInsertAt = indexInsertAt - 1
-                    bChange = True #there is a change in the list
-                if indexInsertAt < max_list_length and element[key]>0: #don't insert an element that will be removed and also that has a 0 value
-                    top_list.insert(indexInsertAt, element)
-                    element['simTop']=(indexInsertAt+1)
-                    bChange = True #there is a change in the list
+            if indexInsertAt == indexIsAt: #if on the same position, do nothing
+                continue
+            if bIsAt and indexInsertAt == indexIsAt+1:
+                continue #if already in list and the new position is right after, there is no point in moving it
+            if bIsAt and indexIsAt < llen-1 and indexIsAt<indexInsertAt and element[key] == top_list[indexIsAt+1][key]:
+                continue #if is equal with the ones until insertion point, no need to do it
+            origElem = None
+            if bIsAt:
+                #move from one position to another
+                origElem = top_list.pop(indexIsAt)
+#                origElem['simTop'] = -1
+                if indexIsAt < indexInsertAt:
+                    indexInsertAt = indexInsertAt - 1
+                bChange = True #there is a change in the list
+            if indexInsertAt < max_list_length and element[key]>0: #don't insert an element that will be removed and also that has a 0 value
+                top_list.insert(indexInsertAt, element)
+#                element['simTop']=(indexInsertAt+1)
+                bChange = True #there is a change in the list
             #reduce the size of the list
             while len(top_list)>max_list_length:
                 elem = top_list.pop()
-                elem["simTop"] = -1
+#                elem["simTop"] = -1
         #print len(top_list), [ elem['content_name'] for elem in top_list]
-        if bChange:
+#        if bChange:
             #update the "simTop" field for all elements
-            for pos in range(len(top_list)):
-                top_list[pos]["simTop"] = (pos+1)
+#            for pos in range(len(top_list)):
+#                top_list[pos]["simTop"] = (pos+1)
         return bChange
+
+    def updateSimTopValues(self, data=None):
+        """if the top 20 similar peers has changed, then the simTop value has
+        to be updated in the 'all' list"""
+        #construct a dictionary of permid-s:index in list
+        top_dict = {}
+        for index in range(len(self.top20similar)):
+            top_dict[self.top20similar[index]['permid']]=(index+1)
+        if data is None:
+            data = self.filtered_data['all']
+        #udpate the big list
+        for element in data:
+            value = top_dict.get(element['permid'],-1)
+            element['simTop'] = value
+#            print "<mluc> set",value,"for",element['content_name']
 
     def updatePeer(self, old_value, new_value, equalFunc=peerEqualFunc):
         """updates an existing peer data dictionary with values from a new one while keeping the old reference"""
@@ -557,7 +600,6 @@ class PeerDataManager(DelayedEventHandler):
                 self.MaxSimilarityValue = peer_data['similarity'] #should recompute percents
         else:
             peer_data['similarity']=0
-        peer_data["simTop"] = -1
 #===============================================================================
 #        if self.isDataPrepared:
 #            if self.MaxSimilarityValue > 0:
@@ -567,17 +609,6 @@ class PeerDataManager(DelayedEventHandler):
 #            #recompute rank
 #            peer_data['rank_value'] = self.compute_rankval(peer_data)
 #===============================================================================
-        #check to see if top20 needs to be updated
-        if self.updateTopList([peer_data], self.top20similar, 'similarity'):
-            #refresh the grid
-            #dump the new list
-#            print "#===============================================================================#"
-#            print "#             dump top 20 most similar peers                                    #"
-#            for i in range(len(self.top20similar)):
-#                print "#     %d. %s     %f" % (self.top20similar[i]['simTop'],unicode2str(self.top20similar[i]['content_name']),self.top20similar[i]['similarity'])
-#            print "#===============================================================================#"
-            return True
-        return False
 
     def compute_rankval(self, peer_data):
         """computes a rank value for a peer used for ordering the peers based on
