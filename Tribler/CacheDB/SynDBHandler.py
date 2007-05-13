@@ -56,6 +56,15 @@ class SynTorrentDBHandler(TorrentDBHandler):
             self.notifyObserver(infohash, "delete")
         return deleted
 
+    def addAllTorrents(self):
+        """ send an 'add' message for each torrent in db. """
+        for infohash, data in self.iteritems():
+            if not data or not data['info']:
+                continue
+            #print >> sys.stderr, "*********** add torrent", data['torrent_name'] 
+            self.notifyObserver(infohash, "add")
+
+
 class SynPeerDBHandler(PeerDBHandler):
     """ This is a variant of PeerDBHandler, which is used to notice 
         multiple modules when one module updated the peer db.

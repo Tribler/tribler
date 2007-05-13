@@ -337,6 +337,13 @@ class BasicDB:    # Should we use delegation instead of inheritance?
             print_exc()
             print >> sys.stderr, "cachedb: cachedb.BasicDB._size error", self.__class__.__name__
             return 0
+
+    def _iteritems(self):
+        try:
+            return dbutils.DeadlockWrap(self._data.iteritems, max_retries=MAX_RETRIES)
+        except:
+            print_exc()
+            print >> sys.stderr, "cachedb: cachedb.BasicDB._iteritems error", self.__class__.__name__
     
     def close(self):
         if DEBUG:
@@ -598,7 +605,7 @@ class TorrentDB(BasicDB):
             TorrentDB(*args, **kw)
         return TorrentDB.__single
     getInstance = staticmethod(getInstance)
-    
+
     def updateItem(self, infohash, item={}):    # insert a torrent; update it if existed
         if isValidInfohash(infohash) and validDict(item):
             if self._has_key(infohash):

@@ -31,6 +31,9 @@ class BasicDBHandler:
     def size(self):
         return self.dbs[0]._size()
 
+    def iteritems(self):
+        return self.dbs[0]._iteritems()
+
     def sync(self):
         for db in self.dbs:
             db._sync()
