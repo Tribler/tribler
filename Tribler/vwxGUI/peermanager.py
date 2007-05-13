@@ -449,7 +449,7 @@ class PeerDataManager(DelayedEventHandler):
             #update local snapshot
             if mode in ['delete', 'hide']:
                 #remove from all lists
-                self.removeFromFilters(list, permid, check_filter=False)
+                self.removeFromFilters( permid, check_filter=False)
                 if self.updateTopList([{'permid':permid,'similarity':0}], self.top20similar, 'similarity'):
                     #if an element was removed, add a new one
                     self.updateTopList(self.filtered_data['all'], self.top20similar, 'similarity')
