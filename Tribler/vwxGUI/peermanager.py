@@ -245,9 +245,12 @@ class PeerDataManager(DelayedEventHandler):
         if self.filtered_data.get(filter_name) is None:
             return -1
         data = self.filtered_data[filter_name] 
-        for i in xrange(len(data)):
-            if data[i]['permid'] == permid:
-                return i
+        try:
+            for i in xrange(len(data)):
+                if data[i]['permid'] == permid:
+                    return i
+        except: #if index out of bound, it means not found
+            return -1
         return -1
     
     def getPeerData(self, permid, filter_name='all'):
@@ -258,13 +261,16 @@ class PeerDataManager(DelayedEventHandler):
         if self.filtered_data.get(filter_name) is None:
             return None
         data = self.filtered_data[filter_name] 
-        for i in xrange(len(data)):
-            if data[i].get('permid') is None:
-                if DEBUG:
-                    print >>sys.stderr,"peermanager: <mluc> ERROR: peer has no permid!!!! at position",i,"out of",len(data)
-                    print >>sys.stderr,"peermanager: <mluc> ERROR: peer name is",data[i]['content_name']
-            if data[i]['permid'] == permid:
-                return data[i]
+        try:
+            for i in xrange(len(data)):
+                if data[i].get('permid') is None:
+                    if DEBUG:
+                        print >>sys.stderr,"peermanager: <mluc> ERROR: peer has no permid!!!! at position",i,"out of",len(data)
+                        print >>sys.stderr,"peermanager: <mluc> ERROR: peer name is",data[i]['content_name']
+                if data[i]['permid'] == permid:
+                    return data[i]
+        except: #if index out of bound, it means not found
+            return None
         return None
     
     def isFriend(self, permid):
