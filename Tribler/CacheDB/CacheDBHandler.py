@@ -172,6 +172,7 @@ class PeerDBHandler(BasicDBHandler):
         BasicDBHandler.__init__(self)
         self.peer_db = PeerDB.getInstance(db_dir=db_dir)
         self.pref_db = PreferenceDB.getInstance(db_dir=db_dir)
+        self.pref_db_handler = PreferenceDBHandler(db_dir=db_dir)
         self.dbs = [self.peer_db]
         
     def __len__(self):
@@ -277,7 +278,7 @@ class PeerDBHandler(BasicDBHandler):
         if data and data['connected_times'] > 0:
             self.peer_db.num_encountered_peers -= 1
         self.peer_db._delete(permid)
-        self.pref_db._delete(permid)
+        self.pref_db_handler.deletePeer(permid)
         
     def updateTimes(self, permid, key, change):
         item = self.peer_db.getItem(permid)
@@ -321,6 +322,12 @@ class PreferenceDBHandler(BasicDBHandler):
     def addPreference(self, permid, infohash, data={}):
         self.pref_db.addPreference(permid, infohash, data)
         self.owner_db.addOwner(infohash, permid)
+
+    def deletePeer(self, permid):   # delete a peer from pref_db
+        prefs = self.pref_db.getItem(permid)
+        for infohash in prefs:
+            self.owner_db.deleteOwner(infohash, permid)
+        self.pref_db.deleteItem(permid)
 
     def deletePreference(self, permid, infohash):
         self.pref_db.deletePreference(permid, infohash)
@@ -371,7 +378,6 @@ class TorrentDBHandler(BasicDBHandler):
         
         if deleted:
             self.torrent_db._delete(infohash)
-            self.owner_db._delete(infohash)
         
         return deleted
             
@@ -459,7 +465,8 @@ class TorrentDBHandler(BasicDBHandler):
             if not p:
                 break #database not available any more
             if not p.get('torrent_name', None) or not p.get('info', None):
-                continue
+                deleted = self.deleteTorrent(torrent)     # remove infohashes without torrent
+                #print >> sys.stderr, "*** deleted empty torrent", deleted
             
             live = p.get('status', 'unknown')
             if live != 'dead' and live != 'unknown':

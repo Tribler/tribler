@@ -1755,7 +1755,9 @@ class DataHandler:
             torrent_hash = hash(torrent)
             if torrent_hash not in self.getPeerPrefList(peer_permid):
                 insort(self.peers[peer_permid][2], torrent_hash)
-                self.torrent_db.addTorrent(torrent, updateFlag=False)
+                # Jie: an important change since 4.0: don't add it to torrent_db to avoid unlimited size of torrent_db
+                # a record is added to the db only when added a torrent file
+                #self.torrent_db.addTorrent(torrent, updateFlag=False)  
                 self.pref_db.addPreference(peer_permid, torrent)
                 changed += 1
                 
