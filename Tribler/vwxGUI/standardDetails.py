@@ -857,8 +857,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         autolayouting the sizer, all that has to be done is wrap the elements that don't
         have the ST_NO_AUTORESIZE flag set
         returns true if elements have been repositioned so that the layout be redone"""
-        if DEBUG:
-            print >> sys.stderr,"standardDetails: <mluc> trying to reheight panel for mode",self.mode,"and tab",tab
+#        if DEBUG:
+#            print >> sys.stderr,"standardDetails: <mluc> trying to reheight panel for mode",self.mode,"and tab",tab
         bElementMoved = False
         VERTICAL_SPACE = 3
         try:
@@ -873,8 +873,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     currentElement = self.getGuiObj(elementName, tab)
                     if isinstance(currentElement,wx.StaticText):
                         style = currentElement.GetWindowStyle()
-                        if DEBUG:
-                            print >> sys.stderr,"standardDetails: <mluc> element",elementName,"has style",style
+#                        if DEBUG:
+#                            print >> sys.stderr,"standardDetails: <mluc> element",elementName,"has style",style
                         if (style & wx.ST_NO_AUTORESIZE)==0 :
                             currentElement.Wrap(284)
                             bElementMoved = True

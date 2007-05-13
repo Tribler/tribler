@@ -136,6 +136,36 @@ class ProfileOverviewPanel(wx.Panel):
             return None
         return self.elements[name]
     
+    def indexValue(self, value, max_value, max_index=5):
+        """given a value and a maximal value, computes an index from 0 to max_index 
+        so that when value >= max_value, it returns max_index
+        uses an algorithm that complies to this example:
+        max_index = 5
+        max_value = 100
+        |---------------|
+        | value | index |
+        |---------------|
+        |   0   |   0   |
+        |  1-24 |   1   |
+        | 25-49 |   2   |
+        | 50-74 |   3   |
+        | 75-99 |   4   |
+        | >=100 |   5   |
+        |---------------|
+        """
+        if max_index <= 0:
+            return 0
+        if value <= 0:
+            return 0
+        if value >= max_value:
+            return max_index
+        index = 1 + int(value * (max_index-1) / max_value)
+        if index > max_index:
+            index = max_index
+        if index < 0:
+            index = 0
+        return index
+    
     def reloadData(self, event=None):
         """updates the fields in the panel with new data if it has changed"""
         
@@ -157,12 +187,7 @@ class ProfileOverviewPanel(wx.Panel):
         #get the number of downloads for this user
         count = len(self.mydb.getPrefList())
         #count = self.data_manager.getDownloadHistCount()
-        aux_count = count
-        if aux_count > 100:
-            aux_count = 101
-        if aux_count < 0:
-            aux_count = 0
-        new_index = int((aux_count-1)/25)+1 #from 0 to 5
+        new_index = self.indexValue(count,100) #from 0 to 5
         overall_index = overall_index + new_index*0.1667
 #        print "<mluc> [after quality] overall=",overall_index
         qualityElem = self.getGuiElement("perf_Quality")    # Quality of tribler recommendation
@@ -173,15 +198,7 @@ class ProfileOverviewPanel(wx.Panel):
         
         #get the number of peers
         count = int(self.guiUtility.peer_manager.getNumEncounteredPeers())
-#        print 'tb'
-#        print count                         
-        #count = self.guiUtility.peer_manager.getCountOfSimilarPeers()
-        aux_count = count
-        if aux_count > 3000:
-            aux_count = 3001
-        if aux_count < 0:
-            aux_count = 0
-        new_index = int((aux_count-1)/750)+1 #from 0 to 5
+        new_index = self.indexValue(count,2000) #from 0 to 5
         if new_index >= 4:
             new_index = 4
         overall_index = overall_index + new_index*0.1667
@@ -194,15 +211,7 @@ class ProfileOverviewPanel(wx.Panel):
         
         #get the number of files
         count = int(self.utility.getNumFiles())
-        #count = self.data_manager.getRecommendFilesCount()
-        aux_count = count
-        if aux_count > 3000:
-            aux_count = 3001
-        if aux_count < 0:
-            aux_count = 0
-        new_index = int((aux_count-1)/750)+1 #from 0 to 5
-        if new_index >= 4:
-            new_index = 4
+        new_index = self.indexValue(count,3000) #from 0 to 5
         overall_index = overall_index + new_index*0.1667
 #        print "<mluc> [after taste files] overall=",overall_index
         elem = self.getGuiElement("perf_Files")    # Discovered files
@@ -258,13 +267,7 @@ class ProfileOverviewPanel(wx.Panel):
         dvalue = dvalue + value
         #and the number of friends
         value = self.guiUtility.peer_manager.getCountOfFriends()
-        self.data['friends_count'] = value
-        if value > 20:
-            value = 20
-        if value < 0:
-            value = 0
-        dvalue = dvalue + value #from 0 to 90
-        new_index  = int((dvalue-1)*0.0667+1) #from 0 to 6
+        new_index = self.indexValue(count,20) #from 0 to 5
         overall_index = overall_index + dvalue/60.0
 #        print "<mluc> [after downloads] overall=",overall_index
         elem = self.getGuiElement("perf_Download")    # Optimal download speed
@@ -275,12 +278,7 @@ class ProfileOverviewPanel(wx.Panel):
         
         #get the number of similar files (tasteful)
         count = self.guiUtility.peer_manager.getCountOfFriends()
-        aux_count = count
-        if aux_count > 100:
-            aux_count = 101
-        if aux_count < 0:
-            aux_count = 0
-        new_index = int((aux_count-1)/20)+1 #from 0 to 6
+        new_index = self.indexValue(count,100) #from 0 to 5
         overall_index = overall_index + new_index*0.1667
 #        print "<mluc> [after taste files] overall=",overall_index
         elem = self.getGuiElement("perf_Presence")    # Network reach
