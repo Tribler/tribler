@@ -1594,20 +1594,21 @@ class DataHandler:
                 cmp_values = [value[0]+value[1]/self.time_sim_weight for value in peer_values]
                 tmp_list = zip(cmp_values, peer_values, all_peerlist)
                 tmp_list.sort()
-                tmp_list.reverse()
+                tmp_list.reverse()  # the smaller index, the more important
+
+                # too many peers in DB. delete some peers from DB
                 if len(tmp_list) > self.max_peer_in_db:
-                    # delete peers in DB
-                    num_peers_2_del = int(self.max_peer_in_db - len(tmp_list) + self.max_peer_in_db*0.02)
+                    num_peers_2_del = int(len(tmp_list) - self.max_peer_in_db + self.max_peer_in_db*0.02)
                     peers2del = [peer for (_, _, peer) in tmp_list[-1*num_peers_2_del:]]
+                    print >> sys.stderr, "**** buddycast delete peers from db", "#peers2del", len(peers2del), "#peers in db", len(tmp_list), "max limit", self.max_peer_in_db
                     for peer in peers2del:
-                        if peer not in self.myfriends:
-                            self.peer_db.deletePeer(peer, updateFlag=False)
+                        self.peer_db.deletePeer(peer, updateFlag=False)     # friends will not be deleted
                 
                 tmp_list = tmp_list[:num_peers]
                 tmp_list = [(peer, peer_value) for (_, peer_value, peer) in tmp_list]
                 self.peers = dict(tmp_list)
         # used to notify peer view that peer list is ready
-        #print "**** buddycast update all peers", len(self.peers), num_peers
+        print >> sys.stderr, "**** buddycast update all peers", "#peers in cache", len(self.peers), "#peers in db", len(all_peerlist), "max limit", num_peers
 
         #print "******* buddycast thread:", currentThread().getName()
         BuddyCastFactory.getInstance().data_ready_evt.set()    

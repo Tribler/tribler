@@ -273,8 +273,8 @@ class BasicDB:    # Should we use delegation instead of inheritance?
             #return self._data.get(key, value)
         except Exception,e:
             print >> sys.stderr, "cachedb: _get EXCEPTION BY",currentThread().getName()
-            #print_stack()
-            self.report_exception(e)
+            print_stack()
+            #self.report_exception(e)   # Jie: don't show the error window to bother users
             return value
         
     def _updateItem(self, key, data):
@@ -368,6 +368,7 @@ class BasicDB:    # Should we use delegation instead of inheritance?
         return df
     
     def report_exception(self,e):
+        return  # Jie: don't show the error window to bother users
         if BasicDB.exception_handler is not None:
             BasicDB.exception_handler(e)
     
@@ -399,6 +400,7 @@ class MyDB(BasicDB):
         }
         self.preload_keys = ['ip', 'torrent_path', 'permid']    # these keys can be changed at each bootstrap
         self.initData(myinfo)
+        self.friend_set = Set(self._get('friends'))
             
     def getInstance(*args, **kw):
         if MyDB.__single is None:
@@ -477,17 +479,19 @@ class MyDB(BasicDB):
             fr = self._get('friends')
             fr.add(permid)
             self._put('friends', fr)
+            self.friend_set = Set(fr)
             
     def deleteFriend(self, permid):
         try:
             fr = self._get('friends')
             fr.remove(permid)
             self._put('friends', fr)
+            self.friend_set = Set(fr)
         except:
             pass
             
     def isFriend(self, permid):
-        return permid in self._get('friends')
+        return permid in self.friend_set
     
     def getFriends(self):
         friends = self._get('friends')
@@ -769,6 +773,9 @@ class MyPreferenceDB(BasicDB):     #  = FileDB
         if ret is None and default:
             ret = deepcopy(self.default_item)
         return ret
+
+    def hasPreference(self, infohash):
+        return self._has_key(infohash)
     
     def getRank(self, infohash):
         v = self._get(infohash)

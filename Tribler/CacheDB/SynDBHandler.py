@@ -52,7 +52,7 @@ class SynTorrentDBHandler(TorrentDBHandler):
         
     def deleteTorrent(self, infohash, delete_file=False, updateFlag=True):
         deleted = TorrentDBHandler.deleteTorrent(self, infohash, delete_file)
-        if updateFlag == True and deleted:
+        if (deleted and updateFlag == True):
             self.notifyObserver(infohash, "delete")
         return deleted
 
@@ -109,8 +109,8 @@ class SynPeerDBHandler(PeerDBHandler):
             self.notifyObserver(permid, "update")
         
     def deletePeer(self, permid, updateFlag=True):
-        PeerDBHandler.deletePeer(self, permid)
-        if (updateFlag == True):
+        deleted = PeerDBHandler.deletePeer(self, permid)
+        if (deleted and updateFlag == True):
             self.notifyObserver(permid, "delete")
             
     def hidePeer(self, permid, updateFlag=True):

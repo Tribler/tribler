@@ -175,6 +175,7 @@ class PeerDBHandler(BasicDBHandler):
         BasicDBHandler.__init__(self)
         self.peer_db = PeerDB.getInstance(db_dir=db_dir)
         self.pref_db = PreferenceDB.getInstance(db_dir=db_dir)
+        self.my_db = MyDB.getInstance(db_dir=db_dir)
         self.pref_db_handler = PreferenceDBHandler(db_dir=db_dir)
         self.dbs = [self.peer_db]
         
@@ -280,8 +281,11 @@ class PeerDBHandler(BasicDBHandler):
         data = self.peer_db._get(permid)
         if data and data['connected_times'] > 0:
             self.peer_db.num_encountered_peers -= 1
+        if self.my_db.isFriend(permid):
+            return False
         self.peer_db._delete(permid)
         self.pref_db_handler.deletePeer(permid)
+        return True
         
     def updateTimes(self, permid, key, change):
         item = self.peer_db.getItem(permid)
@@ -367,6 +371,9 @@ class TorrentDBHandler(BasicDBHandler):
         self.torrent_db.updateItem(infohash, kw)
         
     def deleteTorrent(self, infohash, delete_file=False):
+        if self.mypref_db.hasPreference(infohash):  # don't remove torrents in my pref
+            return False
+
         if delete_file:
 #            data = self.torrent_db._get(infohash)
 #            if data and data['torrent_name']:
