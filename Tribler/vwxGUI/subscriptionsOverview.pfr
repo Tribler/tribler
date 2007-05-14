@@ -13,7 +13,7 @@ s_tipoFile=21
 ClsparentCompTipo=0
 l_framTipo=0
 VisualWxVersion=0.87.2.5
-VisualWxIdent=8725
+VisualWxIdent=8724
 l_hasAutoSize=1
 strTree=00it=3 01it=204 02it=205 02it=206 03it=207 04it=208 02it=209 01it=232 02it=233 03it=235 03it=234 03it=236 01it=229 01it=219 02it=220 02it=221 02it=222 03it=223 04it=224 04it=225 04it=226 
 [Controlli]
@@ -1093,8 +1093,8 @@ s_name=subscribe
 i_index=-1
 i_left=431
 i_top=6
-i_height=23
-i_width=23
+i_height=24
+i_width=24
 l_backColor=
 l_foreColor=
 l_backColorSys=
