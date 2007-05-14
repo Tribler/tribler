@@ -722,9 +722,11 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 maxuploadrate = self.guiUtility.utility.config.Read('maxuploadrate', 'int') #kB/s
                 if ( maxuploadrate == 0 ):
                     text1 = self.utility.lang.get("profileDetails_Download_UpSpeedMax", giveerror=False)
+                    text2 = self.utility.lang.get("profileDetails_Download_UpSpeedMax_improve", giveerror=False)
                 else:
                     text1 = self.utility.lang.get("profileDetails_Download_UpSpeed", giveerror=False)
                     text1 = text1 % maxuploadrate                    
+                    text2 = self.utility.lang.get("profileDetails_Download_UpSpeed_improve", giveerror=False)
     #            maxuploadslots = self.guiUtility.utility.config.Read('maxupload', "int")
     #            if ( maxuploadslots == 0 ):
     #                text2 = self.utility.lang.get("profileDetails_Download_UpSlotsMax", giveerror=False)
@@ -738,10 +740,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
     #                text3 = self.utility.lang.get("profileDetails_Download_DlSpeed", giveerror=False)
     #                text3 = text3 % maxdownloadrate
     #            text = "%s\n%s\n%s" % (text1,text2,text3)
-                text = "%s" % (text1)
-                self.getGuiObj('descriptionField0', tab = 'profileDetails_Download').SetLabel( text)            
-                text = self.utility.lang.get("profileDetails_Download_UpSpeed_improve", giveerror=False)
-                self.getGuiObj('descriptionField1', tab = 'profileDetails_Download').SetLabel(text)
+                self.getGuiObj('descriptionField0', tab = 'profileDetails_Download').SetLabel( text1)            
+                self.getGuiObj('descriptionField1', tab = 'profileDetails_Download').SetLabel(text2)
 
                 count = item.get('number_friends',0)
                 text = self.utility.lang.get("profileDetails_Download_Friends", giveerror=False)
@@ -777,7 +777,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 current_version = self.utility.getVersion()
                 text = self.utility.lang.get("profileDetails_Presence_VersionUnknown", giveerror=False)
                 new_version = item.get('new_version',text)
-                update_url = item.get('update_url','www.tribler.org')
+                update_url = 'www.tribler.org' #item.get('update_url','www.tribler.org')
                 compare_result = item.get('compare_result',-3)
                 if compare_result == -1: #newer version locally
                     text1 = self.utility.lang.get("profileDetails_Presence_VersionNewer", giveerror=False)

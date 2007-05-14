@@ -6,7 +6,7 @@ DEBUG = False
 
 # find the heart bitmaps
 
-NUM_PERFS = 5 #number of performance states for vertical bar
+NUM_PERFS = 6 #number of performance states for vertical bar
 NUM_GRADES = 7 #number of tribler grades
 NUM_LEVELS = 4 #number of tribler grades
 BITMAPS_PERFS = []

@@ -1156,6 +1156,7 @@ profileDetails_Download_info = "You are not using your download speed optimally.
 profileDetails_Download_UpSpeed = "Your upload speed is set to %d KB/s. Limiting your upload speed also limits your download speed."
 profileDetails_Download_UpSpeedMax = "Your upload speed is set to 'unlimited'. That's good."
 profileDetails_Download_UpSpeed_improve = "* Increase the upload speed limit in your preferences (for -Play ASAP- mode you need at least 64 KB/s). "
+profileDetails_Download_UpSpeedMax_improve = "* For an improved performance, you can also increase the number of upload slots in Preferences. "
 #  profileDetails_Download_UpSlots = "You set up a number of %d slots for upload."
 #  profileDetails_Download_UpSlotsMax = "You set up an unlimited number of slots for upload. That's good."
 #  profileDetails_Download_DlSpeed = "Your download speed is set to %d KB/s."
