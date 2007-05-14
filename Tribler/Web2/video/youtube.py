@@ -28,7 +28,9 @@ RE_DATE = r'<div id="userInfoDiv">.*?<span class="smallLabel">Added</span>.*?<b 
 
 URL_WATCH = "http://www.youtube.com/watch?v=%s"
 URL_DL_VIDEO = 'http://www.youtube.com/get_video?video_id=%s&t=%s'
-RE_VIDEOURL = r'player2\.swf\?video_id=([^&]+?)&.*?&t=([^&"]+?)(?:&|")'
+RE_VIDEOURL = r'/watch_fullscreen\?video_id=([^&]+?)&.*?&t=([^&"]+?)(?:&|")'
+#RE_VIDEOURL_OLD = r'player2\.swf\?video_id=([^&]+?)&.*?&t=([^&"]+?)(?:&|")'
+
 
 URL_SEARCH =  "http://www.youtube.com/results?search_type=videos&search_query=%s&search_sort=relevance&search_category=0&page=%d"
 
@@ -61,10 +63,12 @@ class YoutubeSearch(db.ThreadedDBSearch):
 
         st = re.findall(RE_VIDEOURL, itempage)
         #util.log.log("Youtube: " + str(st))
-        if len(st) != 1:
+        if len(st) != 1 or len(st[0]) != 2:                               
             #util.log.log("Youtube: Downloadability check failed")
             #f = file("youtubepage", "w+")
             #print >> f, itempage
+            if DEBUG:
+                print "web2.0: youtube, cannot find video url"
             return None
 
         name = re.findall(RE_NAME, itempage)

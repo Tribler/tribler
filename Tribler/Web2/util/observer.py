@@ -3,6 +3,8 @@ import traceback
 import threading
 import copy
 
+DEBUG = False
+
 class Observer:
 
     def __init__(self):
@@ -65,8 +67,9 @@ class Subject:
             try:
                 observer.update(self, m)
             except:
-                print self
-                traceback.print_exc()
+                if DEBUG:
+                    print self                
+                    traceback.print_exc()
 
         self.__lock.release()
 

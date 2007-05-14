@@ -20,6 +20,7 @@ import utilsettings
 from Tribler.Web2.util import observer
 from Tribler.Web2.util.log import log 
 
+DEBUG = False
 
 databases = {}
 
@@ -408,6 +409,8 @@ class ThreadedDBSearch(observer.Subject):
                     try:
                         newitems = self.parseItempage()
                     except:
+                        if DEBUG:
+                            traceback.print_exc()
                         newitems = []
 
                     if len(newitems) == 0:
@@ -433,16 +436,20 @@ class ThreadedDBSearch(observer.Subject):
                 try:
                     dbitem = self.parseItem(workitem)
                 except:
-                    traceback.print_exc()
+                    if DEBUG:
+                        traceback.print_exc()
                     dbitem = None
 
                 if dbitem == None:
+                    if DEBUG:
+                        print "web2.0: Item Failed: " + str(workitem)
                     self.getMore(1)
 
                 self.returnItem(index, dbitem)
 
         except:
-            traceback.print_exc()
+            if DEBUG:
+                traceback.print_exc()
 
 
     def returnItem(self, i, item):
