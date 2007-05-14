@@ -57,7 +57,7 @@ class TorrentDataManager:
         self.category = Category.getInstance()
         
     def loadData(self):
-        self.data = self.torrent_db.getRecommendedTorrents(light=False,all=True) #gets torrents with mypref
+        self.data = self.torrent_db.getRecommendedTorrents(light=True,all=True) #gets torrents with mypref
         updated = self.category.checkResort(self) # the database is uprageded from v1 to v2
         if updated:
             self.data = self.torrent_db.getRecommendedTorrents(light=False,all=True)
@@ -94,8 +94,6 @@ class TorrentDataManager:
             return
         
         categorykey = categorykey.lower()
-        
-        
         
         if categorykey == "search":
             web2on = self.utility.config.Read('enableweb2search',"boolean")
@@ -222,7 +220,7 @@ class TorrentDataManager:
     def addItem(self, infohash):
         if self.info_dict.has_key(infohash):
             return
-        torrent = self.torrent_db.getTorrent(infohash, num_owners=True)
+        torrent = self.torrent_db.getTorrent(infohash)
         if not torrent:
             return
         torrent['infohash'] = infohash
@@ -269,7 +267,7 @@ class TorrentDataManager:
     def addNewPreference(self, infohash): 
         if self.info_dict.has_key(infohash):
             return
-        torrent = self.torrent_db.getTorrent(infohash, num_owners=True)
+        torrent = self.torrent_db.getTorrent(infohash)
         if not torrent:
             return
         torrent['infohash'] = infohash
@@ -283,7 +281,7 @@ class TorrentDataManager:
         old_torrent = self.info_dict.get(infohash, None)
         if not old_torrent:
             return
-        torrent = self.torrent_db.getTorrent(infohash, num_owners=True)
+        torrent = self.torrent_db.getTorrent(infohash)
         if not torrent:
             return
         torrent['infohash'] = infohash

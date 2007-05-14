@@ -51,17 +51,25 @@ class BasicDBHandler:
             
 class MyDBHandler(BasicDBHandler):
 
+    def __del__(self):
+        if self.writed:
+            try:
+                self.sync()
+            except:
+                pass
+
     def __init__(self, db_dir=''):
         BasicDBHandler.__init__(self)
         self.my_db = MyDB.getInstance(db_dir = db_dir)
-        self.peer_db = PeerDB.getInstance(db_dir = db_dir)
-        self.dbs = [self.my_db, self.peer_db]
+        self.writed = False
+        self.dbs = [self.my_db]
         
     def get(self, key, value=''):
         ret = self.my_db._get(key, value)
         return ret
 
     def put(self, key, value):
+        self.writed = True
         self.my_db._put(key, value)
     
     def getMyPermid(self):
@@ -129,7 +137,7 @@ class FriendDBHandler(BasicDBHandler):
         
     def addFriend(self, permid):
         self.my_db.addFriend(permid)
-        self.my_db._sync()
+        #self.my_db._sync()
         
     def addExternalFriend(self, friend):
         if not isinstance(friend, dict) or 'permid' not in friend:
@@ -137,12 +145,12 @@ class FriendDBHandler(BasicDBHandler):
         permid = friend.pop('permid')
         if permid not in self.my_db.getFriends():
             self.peer_db.updateItem(permid, friend)
-            self.peer_db._sync()
+            #self.peer_db._sync()
             self.my_db.addFriend(permid)
-            self.my_db._sync()
+            #self.my_db._sync()
         else:
             self.peer_db.updateItem(permid, friend, update_time=False)
-            self.peer_db._sync()
+            #self.peer_db._sync()
             
     def getFriendList(self):
         """returns a list of permids"""
@@ -848,15 +856,22 @@ class OwnerDBHandler(BasicDBHandler):
                 co_torrents.pop(infohash)
         
         sim_items = []
+        
         for torrent in co_torrents:
             co = co_torrents[torrent]
 #            if co <= 1:
 #                continue
             
             # check if the torrent is collected and live
-            value = self.torrent_db._get(torrent)
-            if not value:
+            has_key = self.torrent_db._has_key(torrent)
+            if has_key == False:
                 continue
+            elif has_key == None:
+                break
+            value = self.torrent_db._get(torrent)
+            if not value:    # sth. is wrong
+                print >> sys.stderr, "cachedbhandler: getSimItems meets error in getting data"
+                break
             info = value.get('info', {})
             name = info.get('name', None)
             if not name:

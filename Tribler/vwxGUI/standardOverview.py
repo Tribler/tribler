@@ -282,7 +282,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             self.type = sort
             
             data = self.data_manager.getCategory(self.categorykey[0], self.categorykey[1])
-
+            
             if type(data) == list:
                 self.filtered = []
                 for torrent in data:

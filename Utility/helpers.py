@@ -8,7 +8,7 @@ from time import sleep
 from traceback import print_exc
 #from cStringIO import StringIO
 
-from wx.lib import masked
+#from wx.lib import masked
 
 from BitTornado.ConfigDir import ConfigDir
 from BitTornado.bencode import bdecode

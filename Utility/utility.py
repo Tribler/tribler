@@ -308,7 +308,7 @@ class Utility:
             'color_stripe': '245245245', 
             'display_interval': '0.8', 
             'listfont': '', 
-            'diskfullthreshold': '0', 
+            'diskfullthreshold': '200', 
             'updatepeers_interval': '5',
             'update_preference_interval': '36000',     # 
 #            'showmenuicons': '1',

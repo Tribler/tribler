@@ -16,6 +16,7 @@ from Tribler.unicode import name2unicode
 from Tribler.Category.Category import Category
 from Tribler.Dialogs.activities import ACT_GOT_METADATA
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
+from Utility.helpers import getfreespace
 
 DEBUG = False
 
@@ -48,16 +49,24 @@ class MetadataHandler:
         self.launchmany = launchmany
         self.config = config
         config_dir = self.config['config_path']
+        self.min_free_space = self.config['disk_full_threshold']*(2**20)    # TODO: apply to effect from GUI
+        if self.min_free_space <= 0:
+            self.min_free_space = 200*(2**20)    # at least 1 MB left on disk
         self.config_dir = os.path.join(config_dir, 'torrent2')    #TODO: user can set it
-        self.max_num_torrents = int(self.config['max_torrents'])
+        self.free_space = self.get_free_space()
+        print "Available space for database and collecting torrents: %d MB" % (self.free_space/(2**20)), "Min free space", self.min_free_space/(2**20), "MB"
+        self.max_num_torrents = self.init_max_num_torrents = int(self.config['max_torrents'])
         self.upload_rate = 1024 * int(self.config['torrent_collecting_rate'])   # 5KB/s
         self.torrent_db = SynTorrentDBHandler()
-        self.num_torrents = -10
+        self.num_torrents = -100
         self.recently_collected_torrents = []
         self.upload_queue = []
         self.requested_torrents = Set()
         self.next_upload_time = 0
         self.initialized = True
+
+    def get_free_space(self):
+        return getfreespace(self.config_dir)    # Byte
 
     def set_rate(self, rate):
         self.upload_rate = rate * 1024
@@ -220,7 +229,8 @@ class MetadataHandler:
                                 'status':status})
 
             return self.do_send_metadata(permid, torrent, selversion)
-        else:
+        else:    # deleted before sending it
+            self.torrent_db.deleteTorrent(infohash, delete_file=False, updateFlag=True)
             if DEBUG:
                 print >> sys.stderr,"metadata: GET_METADATA: no torrent data to send"
             return 0
@@ -238,7 +248,6 @@ class MetadataHandler:
             if DEBUG:
                 print >> sys.stderr,"metadata: METADATA: error sending to",show_permid_short(permid),exc
             pass
-
 
     def read_torrent(self, torrent_path):
         try:
@@ -326,6 +335,7 @@ class MetadataHandler:
         
     def set_overflow(self, max_num_torrent):
         self.max_num_torrents = max_num_torrent
+        self.init_max_num_torrents = self.max_num_torrents
         
     def delayed_check_overflow(self, delay=2):
         rawserver = self.secure_overlay.rawserver    # not a good way, but simple
@@ -335,7 +345,7 @@ class MetadataHandler:
         if self.num_torrents < 0:
             collected_torrents = self.torrent_db.getCollectedTorrents()
             self.num_torrents = len(collected_torrents)
-            print >> sys.stderr, "**** torrent collectin self.num_torrents=", self.num_torrents
+            #print >> sys.stderr, "**** torrent collectin self.num_torrents=", self.num_torrents
 
         #print "------"*5, "check overflow is called", "current", self.num_torrents, "max", self.max_num_torrents
         if self.num_torrents > self.max_num_torrents:
@@ -388,12 +398,34 @@ class MetadataHandler:
         if not self.initialized:
             return
         
+        self.free_space = self.get_free_space()
+        if self.free_space < self.min_free_space:    # no enough space, removing old torrents
+            space_need = self.min_free_space - self.free_space
+            num2del = 1 + space_need / (25*(2**10))    # how many torrents to del, assume each torrent is 25K
+            if self.num_torrents > 0:    # wait for loading it before deleting
+                self.max_num_torrents = self.num_torrents - num2del
+                if self.max_num_torrents > 0:
+                    self.check_overflow()
+                else:    # stop working; even remove all the space is still not enough
+                    return
+#                print "************** disk overflor when save_torrent", self.free_space/(2**20), \
+#                    self.min_free_space/(2**20), num2del, self.num_torrents, self.max_num_torrents
+
+        else:    # change back
+            self.max_num_torrents = self.init_max_num_torrents
+        
+        if self.free_space <= len(metadata):    # no enough space
+            return
+        
         file_name = self.get_filename(torrent_hash)
         if DEBUG:
             print >> sys.stderr,"metadata: Storing torrent", sha(torrent_hash).hexdigest(),"in",file_name
         save_path = os.path.join(self.config_dir, file_name)
         self.write_torrent(metadata, self.config_dir, file_name)
         self.addTorrentToDB(save_path, torrent_hash, metadata, source=source, extra_info=extra_info)
+        
+        # check if space is enough and remove old torrents
+        
         
     def refreshTrackerStatus(self, torrent):
         "Upon the reception of a new discovered torrent, directly check its tracker"

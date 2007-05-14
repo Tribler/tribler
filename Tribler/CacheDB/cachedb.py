@@ -202,7 +202,7 @@ def open_db(filename, db_dir='', filetype=db.DB_BTREE, writeback=False):
     #_db = BsdDbShelf(d, writeback=writeback) 
     _db = dbshelve.open(filename, flags=db.DB_THREAD|db.DB_CREATE, 
             filetype=filetype, dbenv=env)
-    return _db
+    return _db, dir
 
 def validDict(data, keylen=0):    # basic requirement for a data item in DB
     if not isinstance(data, dict):
@@ -234,7 +234,11 @@ class BasicDB:    # Should we use delegation instead of inheritance?
         if self.__class__ == BasicDB:
             self.db_name = 'basic.bsd'    # for testing
             self.opened = True
-            self._data = open_db(self.db_name, db_dir, filetype=db.DB_HASH)
+            
+            self.db_dir = db_dir
+            self.filetype = db.DB_BTREE
+            self._data, self.db_dir = open_db(self.db_name, self.db_dir, filetype=self.filetype)
+        
             #raise NotImplementedError, "Cannot create object of class BasicDB"
     
 #------------ Basic interfaces, used by member func and handlers -------------#
@@ -265,21 +269,23 @@ class BasicDB:    # Should we use delegation instead of inheritance?
             return dbutils.DeadlockWrap(self._data.has_key, key, max_retries=MAX_RETRIES)
             #return self._data.has_key(key)
         except Exception, e:
-            print >> sys.stderr, "cachedb: _has_key EXCEPTION BY",currentThread().getName(), Exception, e
+            print >> sys.stderr, "cachedb: _has_key EXCEPTION BY",currentThread().getName(), Exception, e, self.db_name, `key`
             return False
     
     def _get(self, key, value=None):    # read
         try:
             return dbutils.DeadlockWrap(self._data.get, key, value, max_retries=MAX_RETRIES)
             #return self._data.get(key, value)
+#        except db.DBRunRecoveryError, e:
+#            print >> sys.stderr, "cachedb: Sorry, meet DBRunRecoveryError at get, have to remove the whole database", self.db_name
+#            self.report_exception(e)
+#            self._recover_db()    # have to clear the whole database
         except Exception,e:
-            print >> sys.stderr, "cachedb: _get EXCEPTION BY",currentThread().getName(), Exception, e
-            if not self._has_key(key):
+            print >> sys.stderr, "cachedb: _get EXCEPTION BY",currentThread().getName(), Exception, e, self.db_name, `key`, value
+            if value is not None:
                 return value
-            print >> sys.stderr, "cachedb: check get:", self._has_key(key), `key`
-            print_exc()
-            self.report_exception(e)   # Jie: don't show the error window to bother users
-            return value
+            self.report_exception(e)
+            return None
         
     def _updateItem(self, key, data):
         try:
@@ -308,20 +314,42 @@ class BasicDB:    # Should we use delegation instead of inheritance?
             pass
 
     def _sync(self):            # write data from mem to disk
-        dbutils.DeadlockWrap(self._data.sync, max_retries=MAX_RETRIES)
-        #self._data.sync()
+        try:
+            dbutils.DeadlockWrap(self._data.sync, max_retries=MAX_RETRIES)
+#        except db.DBRunRecoveryError, e:
+#            print >> sys.stderr, "cachedb: Sorry, meet DBRunRecoveryError at sync, have to remove the whole database", self.db_name
+#            self.report_exception(e)
+#            self._recover_db()    # have to clear the whole database
+        except Exception, e:
+            print >> sys.stderr, "cachedb: synchronize db error", self.db_name, Exception, e
+            self.report_exception(e)
             
     def _clear(self):
         dbutils.DeadlockWrap(self._data.clear, max_retries=MAX_RETRIES)
         #self._data.clear()
+    
+#===============================================================================
+#    def _recover_db(self):
+#        path = os.path.join(self.db_dir, self.db_name)
+#        try:
+#            self._data.close()
+#            print >> sys.stderr, "cachedb: closed and removing database", path
+#            os.remove(path)
+#            print >> sys.stderr, "cachedb: removed database", path
+#            self._data, self.db_dir = open_db(self.db_name, self.db_dir, filetype=self.filetype)    # reopen
+#            print >> sys.stderr, "cachedb: database is removed and reopened successfully", path
+#        except Exception, msg:
+#            print_exc()
+#            print >> sys.stderr, "cachedb: cannot remove the database", path, Exception, msg
+#===============================================================================
     
     def _keys(self):
         try:
             return dbutils.DeadlockWrap(self._data.keys, max_retries=MAX_RETRIES)
             #return self._data.keys()
         except Exception,e:
-            print >> sys.stderr, "cachedb: _keys EXCEPTION BY",currentThread().getName()
-            print_exc()
+            print >> sys.stderr, "cachedb: _keys EXCEPTION BY", currentThread().getName(), self.db_name, `key`
+            #print_exc()
             self.report_exception(e)
             return []
     
@@ -386,7 +414,11 @@ class MyDB(BasicDB):
             raise RuntimeError, "MyDB is singleton"
         self.db_name = 'mydata.bsd'
         self.opened = True
-        self._data = open_db(self.db_name, db_dir, filetype=db.DB_HASH)    # dbshelve object
+        
+        self.db_dir = db_dir
+        self.filetype = db.DB_HASH
+        self._data, self.db_dir = open_db(self.db_name, self.db_dir, filetype=self.filetype)
+
         MyDB.__single = self 
         self.default_data = {
             'version':curr_version, 
@@ -515,7 +547,11 @@ class PeerDB(BasicDB):
             raise RuntimeError, "PeerDB is singleton"
         self.db_name = 'peers.bsd'
         self.opened = True
-        self._data = open_db(self.db_name, db_dir)    # dbshelve object
+        
+        self.db_dir = db_dir
+        self.filetype = db.DB_BTREE
+        self._data, self.db_dir = open_db(self.db_name, self.db_dir, filetype=self.filetype)
+        
         MyDB.checkVersion(self)
         PeerDB.__single = self
         self.num_encountered_peers = -100
@@ -586,7 +622,11 @@ class TorrentDB(BasicDB):
             raise RuntimeError, "TorrentDB is singleton"
         self.db_name = 'torrents.bsd'
         self.opened = True
-        self._data = open_db(self.db_name, db_dir)    # dbshelve object
+        
+        self.db_dir = db_dir
+        self.filetype = db.DB_BTREE
+        self._data, self.db_dir = open_db(self.db_name, self.db_dir, filetype=self.filetype)
+
         MyDB.checkVersion(self)
         TorrentDB.__single = self
         self.default_item = {
@@ -671,7 +711,11 @@ class PreferenceDB(BasicDB):
             raise RuntimeError, "PreferenceDB is singleton"
         self.db_name = 'preferences.bsd'
         self.opened = True
-        self._data = open_db(self.db_name, db_dir)    # dbshelve object
+        
+        self.db_dir = db_dir
+        self.filetype = db.DB_BTREE
+        self._data, self.db_dir = open_db(self.db_name, self.db_dir, filetype=self.filetype)
+        
         MyDB.checkVersion(self)
         PreferenceDB.__single = self 
         self.default_item = {    # subitem actually
@@ -738,7 +782,11 @@ class MyPreferenceDB(BasicDB):     #  = FileDB
             raise RuntimeError, "TorrentDB is singleton"
         self.db_name = 'mypreferences.bsd'
         self.opened = True
-        self._data = open_db(self.db_name, db_dir)    # dbshelve object
+        
+        self.db_dir = db_dir
+        self.filetype = db.DB_BTREE
+        self._data, self.db_dir = open_db(self.db_name, self.db_dir, filetype=self.filetype)
+        
         MyDB.checkVersion(self)
         MyPreferenceDB.__single = self 
         self.default_item = {
@@ -798,7 +846,11 @@ class OwnerDB(BasicDB):
             raise RuntimeError, "OwnerDB is singleton"
         self.db_name = 'owners.bsd'
         self.opened = True
-        self._data = open_db(self.db_name, db_dir)    # dbshelve object
+        
+        self.db_dir = db_dir
+        self.filetype = db.DB_BTREE
+        self._data, self.db_dir = open_db(self.db_name, self.db_dir, filetype=self.filetype)
+        
         OwnerDB.__single = self 
                 
     def getInstance(*args, **kw):
@@ -855,27 +907,29 @@ class OwnerDB(BasicDB):
             return []
                     
 
-class ActionDB(BasicDB):
-    
-    __single = None
-    
-    def __init__(self, db_dir=''):
-        if ActionDB.__single:
-            raise RuntimeError, "ActionDB is singleton"
-        self.db_name = 'actions.bsd'
-        self.opened = True
-        env = db.DBEnv()
-        # Concurrent Data Store
-        env.open(db_dir, db.DB_THREAD|db.DB_INIT_CDB|db.DB_INIT_MPOOL|db.DB_CREATE|db.DB_PRIVATE)
-        self._data = db.DB(dbEnv=env)
-        self._data.open(self.filename, db.DB_RECNO, db.DB_CREATE)
-        ActionDB.__single = self 
-                
-    def getInstance(*args, **kw):
-        if ActionDB.__single is None:
-            ActionDB(*args, **kw)
-        return ActionDB.__single
-    getInstance = staticmethod(getInstance)
+#===============================================================================
+# class ActionDB(BasicDB):
+#    
+#    __single = None
+#    
+#    def __init__(self, db_dir=''):
+#        if ActionDB.__single:
+#            raise RuntimeError, "ActionDB is singleton"
+#        self.db_name = 'actions.bsd'
+#        self.opened = True
+#        env = db.DBEnv()
+#        # Concurrent Data Store
+#        env.open(db_dir, db.DB_THREAD|db.DB_INIT_CDB|db.DB_INIT_MPOOL|db.DB_CREATE|db.DB_PRIVATE)
+#        self._data = db.DB(dbEnv=env)
+#        self._data.open(self.filename, db.DB_RECNO, db.DB_CREATE)
+#        ActionDB.__single = self 
+#                
+#    def getInstance(*args, **kw):
+#        if ActionDB.__single is None:
+#            ActionDB(*args, **kw)
+#        return ActionDB.__single
+#    getInstance = staticmethod(getInstance)
+#===============================================================================
     
     
         

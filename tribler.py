@@ -941,6 +941,7 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
         self.params = params
         self.single_instance_checker = single_instance_checker
         self.abcpath = abcpath
+        self.error = None
         wx.App.__init__(self, x)
         
     def OnInit(self):

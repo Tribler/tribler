@@ -217,6 +217,8 @@ defaults = [
         "number of seconds to wait for consensus"),
     ('socnet', 1,
         "enable social networking (0 = disabled)"),
+    ('disk_full_threshold', 200,
+        "minimum how many MB left on disk before deleting old collected torrents")
     ]
 
 argslistheader = 'Arguments are:\n\n'
