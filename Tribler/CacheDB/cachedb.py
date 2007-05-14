@@ -262,9 +262,10 @@ class BasicDB:    # Should we use delegation instead of inheritance?
         
     def _has_key(self, key):    # find a key
         try:
-            #return dbutils.DeadlockWrap(self._data.has_key, key, max_retries=MAX_RETRIES)
-            return self._data.has_key(key)
-        except:
+            return dbutils.DeadlockWrap(self._data.has_key, key, max_retries=MAX_RETRIES)
+            #return self._data.has_key(key)
+        except Exception, e:
+            print >> sys.stderr, "cachedb: _has_key EXCEPTION BY",currentThread().getName(), Exception, e
             return False
     
     def _get(self, key, value=None):    # read
@@ -272,7 +273,10 @@ class BasicDB:    # Should we use delegation instead of inheritance?
             return dbutils.DeadlockWrap(self._data.get, key, value, max_retries=MAX_RETRIES)
             #return self._data.get(key, value)
         except Exception,e:
-            print >> sys.stderr, "cachedb: _get EXCEPTION BY",currentThread().getName()
+            print >> sys.stderr, "cachedb: _get EXCEPTION BY",currentThread().getName(), Exception, e
+            if not self._has_key(key):
+                return value
+            print >> sys.stderr, "cachedb: check get:", self._has_key(key), `key`
             print_exc()
             self.report_exception(e)   # Jie: don't show the error window to bother users
             return value
@@ -602,7 +606,7 @@ class TorrentDB(BasicDB):
             'progress': 0.0,
             'destdir':''
         }
-        self.num_metadatalive = -100
+#        self.num_metadatalive = -100
         
     def getInstance(*args, **kw):
         if TorrentDB.__single is None:

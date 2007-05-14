@@ -444,7 +444,8 @@ class PeerDataManager(DelayedEventHandler):
                 peer_data = self.peersdb.getPeer(permid)
                 isFriend = self.frienddb.isFriend(permid)
                 #check if is a valid peer
-                if peer_data['connected_times'] == 0 and not isFriend:
+                if peer_data.get('connected_times', 0) == 0 and not isFriend:
+                    # quick fix: sometimes peer_data['connected_times'] got error. problematic db?
                     continue #skip this peer as it is of no interrest
                 #extra check, the permid should already be there
                 if peer_data.get('permid') is None:

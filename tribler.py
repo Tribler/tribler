@@ -1134,7 +1134,9 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             if self.error is not None and self.error.args[1] == e.args[1]:
                 return # don't repeat same error
         except:
+            print >> sys.stderr, "abc: db_exception_handler error", e, type(e)
             print_exc()
+            print_stack()
         self.error = e
         self.invokeLater(self.onError,[],{'source':"The database layer reported: "})
     

@@ -175,6 +175,10 @@ class MetadataHandler:
         data = self.torrent_db.getTorrent(torrent_hash)
         if not data or not data['torrent_name']:
             return True     # don't close connection
+        live = data.get('status', 'unknown')
+        #print "**************** check live before send metadata", live
+        if live == 'dead':
+            return True    # don't send dead torrents around
         
         torrent_path = None
         try:
@@ -331,7 +335,7 @@ class MetadataHandler:
         if self.num_torrents < 0:
             collected_torrents = self.torrent_db.getCollectedTorrents()
             self.num_torrents = len(collected_torrents)
-            #print >> sys.stderr, "** torrent collectin self.num_torrents=", self.num_torrents
+            print >> sys.stderr, "**** torrent collectin self.num_torrents=", self.num_torrents
 
         #print "------"*5, "check overflow is called", "current", self.num_torrents, "max", self.max_num_torrents
         if self.num_torrents > self.max_num_torrents:

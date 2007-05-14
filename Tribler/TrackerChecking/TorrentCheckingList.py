@@ -24,7 +24,6 @@ class TorrentCheckingList:
         self.list_dead = []
 #        self.torrent_db = TorrentDBHandler()
         self.torrent_db = SynTorrentDBHandler(updateFun=self.updateFun)
-        self._readDB()
         self._prepareData()            # prepare the list
         self.done_init = True
         
@@ -61,9 +60,11 @@ class TorrentCheckingList:
     
     def _prepareData(self):
         
+        data = self.torrent_db.getCollectedTorrents(light=False, all=True)
+        
         self.info_dict = {}            # used to setTorrent
         
-        for idata in self.data:
+        for idata in data:
             self.info_dict[idata["infohash"]] = idata
             if (idata["status"] == "good"):
                 self.list_good.append(idata)
@@ -73,9 +74,11 @@ class TorrentCheckingList:
                 self.list_dead.append(idata)
             else:
                 raise Exception, "status of torrent not found"    # error
-
+        del data
+        
         shuffle(self.list_good)
         shuffle(self.list_unknown)
+        
         
 #        print "total len", len(self.list_good) + len(self.list_unknown) + len(self.list_dead)
 #        print "good len", len(self.list_good)
@@ -137,10 +140,6 @@ class TorrentCheckingList:
 #        print "good len", len(self.list_good)
 #        print "unknown len", len(self.list_unknown)
 #        print "dead len", len(self.list_dead)
-        
-    def _readDB(self):
-        # Also check torrents in my download history
-        self.data = self.torrent_db.getCollectedTorrents(all=True, light=False)
         
         
     def acquire(self):

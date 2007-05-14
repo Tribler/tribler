@@ -988,7 +988,7 @@ class BuddyCastCore:
             
         except:
             print_exc()
-            return False
+            #return True    # don't close connection, maybe my problem in handleBuddyCastMessage
         
         self.blockPeer(sender_permid, self.recv_block_list)
         

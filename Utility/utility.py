@@ -119,11 +119,13 @@ class Utility:
         self.friend_db = FriendDBHandler     
         self.buddycast = BuddyCastFactory.getInstance()
         
-    def getNumPeers(self):
-        return self.peer_db.getNumEncounteredPeers()#, self.peer_db.size()
-        
-    def getNumFiles(self):
-        return self.torrent_db.getNumMetadataAndLive()#, self.torrent_db.size()
+#===============================================================================
+#    def getNumPeers(self):
+#        return self.peer_db.getNumEncounteredPeers()#, self.peer_db.size()
+#
+#    def getNumFiles(self):
+#        return self.torrent_db.getNumMetadataAndLive()#, self.torrent_db.size()
+#===============================================================================
         
     def setupConfigPath(self):
         configdir = ConfigDir()

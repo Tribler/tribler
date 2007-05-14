@@ -52,7 +52,6 @@ class TiT4TaTTorrentCollecting(SimpleTorrentCollecting):
         self.rawserver = rawserver
         self.peers = {}
         self.starttime = time()
-        self.ntorrents = self.torrent_db.getNumMetadataAndLive()
         self.work()
         
     def work(self):
@@ -62,11 +61,9 @@ class TiT4TaTTorrentCollecting(SimpleTorrentCollecting):
             return
         
     def _work(self):
-         self.ntorrents += 1
+        pass
     
     def getCurrrentInterval(self):
-        if self.ntorrents < 20:
-            return 3
         now = time()
         if now - self.starttime < 5*60:
             return 5

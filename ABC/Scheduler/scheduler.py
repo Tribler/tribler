@@ -50,7 +50,6 @@ class ABCScheduler(DelayedEventHandler):
 
         self.UpdateRunningTorrentCounters()
         self.guiUtility = GUIUtility.getInstance()
-        self.cycleTime = 0
 
     def postInitTasks(self,argv):
         # Read old list from torrent.lst
@@ -163,27 +162,23 @@ class ABCScheduler(DelayedEventHandler):
         downspeed2 = self.utility.speed_format(self.totals['down'], truncate = 0)
         downloadspeed = downspeed + " / " + downratecap
         
-        if self.cycleTime < 0:
-            nfile = npeer = 'loading..'
-            self.cycleTime += 1
+        if not self.guiUtility.peer_manager:
+            npeer = 'loading..'
         else:
-            if not self.guiUtility.peer_manager:
+            npeer = self.guiUtility.peer_manager.getNumEncounteredPeers()
+            if npeer < 0:
                 npeer = 'loading..'
             else:
-                npeer = self.guiUtility.peer_manager.getNumEncounteredPeers()
-                if npeer < 0:
-                    npeer = 'loading..'
-                else:
-                    npeer = str(npeer)
-            
-            if not self.guiUtility.data_manager:
+                npeer = str(npeer)
+        
+        if not self.guiUtility.data_manager:
+            nfile = 'loading..'
+        else:
+            nfile = self.guiUtility.data_manager.getNumDiscoveredFiles()
+            if nfile < 0:
                 nfile = 'loading..'
             else:
-                nfile = self.guiUtility.data_manager.getNumDiscoveredFiles()
-                if nfile < 0:
-                    nfile = 'loading..'
-                else:
-                    nfile = str(nfile)
+                nfile = str(nfile)
         
         try:
             # update value in minimize icon
