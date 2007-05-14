@@ -665,10 +665,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             # --------------------------------------------------------------------------------------------------------------------------------------------------------
             ## --- Overall performance  !!!! we'll leave it probably out!!!
             if self.currentPanel == self.getGuiObj('profileDetails_Overall'):  
-                #text = "%s"
-                #text = self.utility.lang.get("profileDetails_Overall_description", giveerror=False)
                 self.getGuiObj('descriptionField0').SetLabel(item.get('overall_rank'))            
-                
                 picture = self.getGuiObj("levelPic")                
                 if item.get('overall_rank') == "beginner": 
                     picture.setIndex(0)
@@ -683,11 +680,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             # --- Quality of tribler recommendations    
             elif self.currentPanel == self.getGuiObj('profileDetails_Quality'):
                 tab = 'profileDetails_Quality'
-                count = 0
-                count = len(self.mydb.getPrefList())            
-#                if item is not None:
-#                    if item.has_key('downloaded_files'):
-#                        count = item['downloaded_files']
+                count = item.get('downloaded_files',0) #len(self.mydb.getPrefList())            
                 text = self.utility.lang.get("profileDetails_Quality_description", giveerror=False)
                 text1 = self.utility.lang.get("profileDetails_Quality_improve", giveerror=False)
                 if count < 10:
@@ -696,49 +689,29 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     only=""
                 self.getGuiObj('descriptionField0', tab = 'profileDetails_Quality').SetLabel(text % (only,count))
                 self.getGuiObj('descriptionField1', tab = 'profileDetails_Quality').SetLabel(text1)
-#                diff_height = self.reHeightToFit(tab = 'profileDetails_Quality')
-#                if diff_height!=0:
-#                    print "<mluc> the panel should increase in size with",diff_height
-#                    the_size = self.currentPanel.GetSize()
-#                    the_size.SetHeight(the_size.GetHeight()+diff_height)
-#                    self.currentPanel.SetSize(the_size)
-#                    self.currentPanel.SetBackgroundColour("red")
-#                    self.currentPanel.Layout()
-#                    self.currentPanel.GetSizer().Layout()
+
             # --------------------------------------------------------------------------------------------------------------------------------------------------------
             # --- Discovered Files
             elif self.currentPanel == self.getGuiObj('profileDetails_Files'):  
                 tab = 'profileDetails_Files'              
-                count = 0           
-                count = int(self.utility.getNumFiles())
+                count = item.get('discovered_files',0)
                 count2 = self.utility.config.Read('maxntorrents','int')
-#                if item is not None:
-#                    if item.has_key('taste_files'):
-#                        count = item['taste_files']
                 text = self.utility.lang.get("profileDetails_Files_description", giveerror=False)
                 text1 = self.utility.lang.get("profileDetails_Files_improve", giveerror=False)
                 self.getGuiObj('descriptionField0', tab = 'profileDetails_Files').SetLabel(text % count)
                 self.getGuiObj('descriptionField1', tab = 'profileDetails_Files').SetLabel(text1 % count2)  
-                # max number of torrents download pref
-                
-                
-                
                           
             # --------------------------------------------------------------------------------------------------------------------------------------------------------
             # --- Discovered Persons
             elif self.currentPanel == self.getGuiObj('profileDetails_Persons'):
                 tab = 'profileDetails_Persons'
                 count = 0 
-                count = int(self.guiUtility.peer_manager.getNumEncounteredPeers())
-#                print 'tb numPeers'
-#                print count                           
-#                if item is not None:
-#                    if item.has_key('similar_peers'):
-#                        count = item['similar_peers']
+                count = item.get('discovered_persons',0) #int(self.guiUtility.peer_manager.getNumEncounteredPeers())
                 text = self.utility.lang.get("profileDetails_Persons_description", giveerror=False)
                 text1 = self.utility.lang.get("profileDetails_Persons_improve", giveerror=False)
                 self.getGuiObj('descriptionField0', tab = 'profileDetails_Persons').SetLabel(text % count)
                 self.getGuiObj('descriptionField1', tab = 'profileDetails_Persons').SetLabel(text1)  
+
             # --------------------------------------------------------------------------------------------------------------------------------------------------------
             ## --- Optimal download speed    
             elif self.currentPanel == self.getGuiObj('profileDetails_Download'):    
@@ -769,11 +742,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 self.getGuiObj('descriptionField0', tab = 'profileDetails_Download').SetLabel( text)            
                 text = self.utility.lang.get("profileDetails_Download_UpSpeed_improve", giveerror=False)
                 self.getGuiObj('descriptionField1', tab = 'profileDetails_Download').SetLabel(text)
-                #
-                count = 0
-                if item is not None:
-                    if item.has_key('friends_count'):
-                        count = item['friends_count']
+
+                count = item.get('number_friends',0)
                 text = self.utility.lang.get("profileDetails_Download_Friends", giveerror=False)
                 self.getGuiObj('descriptionField2', tab = 'profileDetails_Download').SetLabel(text % count)
                 text = self.utility.lang.get("profileDetails_Download_Friends_improve", giveerror=False)
@@ -781,14 +751,15 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 
                 if self.guiUtility.isReachable:
                     text1 = self.utility.lang.get("profileDetails_Download_VisibleYes", giveerror=False)
-                    #text2 = self.utility.lang.get("profileDetails_Download_VisibleYes", giveerror=False)
-                    self.getGuiObj('descriptionField4', tab = 'profileDetails_Download').SetLabel(text1)
-                    self.getGuiObj('descriptionField5', tab = 'profileDetails_Download').SetLabel("")
-                else:
-                    text1 = self.utility.lang.get("profileDetails_Download_VisibleNo", giveerror=False)
-                    text2 = self.utility.lang.get("profileDetails_Download_Visible_improve", giveerror=False)
+                    text2 = self.utility.lang.get("profileDetails_Download_VisibleYes_improve", giveerror=False)
                     self.getGuiObj('descriptionField4', tab = 'profileDetails_Download').SetLabel(text1)
                     self.getGuiObj('descriptionField5', tab = 'profileDetails_Download').SetLabel(text2)
+                else:
+                    text1 = self.utility.lang.get("profileDetails_Download_VisibleNo", giveerror=False)
+                    text2 = self.utility.lang.get("profileDetails_Download_VisibleNo_improve", giveerror=False)
+                    self.getGuiObj('descriptionField4', tab = 'profileDetails_Download').SetLabel(text1)
+                    self.getGuiObj('descriptionField5', tab = 'profileDetails_Download').SetLabel(text2)
+
             # --------------------------------------------------------------------------------------------------------------------------------------------------------        
             ## --- Reachability
             elif self.currentPanel == self.getGuiObj('profileDetails_Presence'):    
@@ -796,25 +767,40 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 text = self.utility.lang.get("profileDetails_Presence_info", giveerror=False)
                 self.getGuiObj('descriptionField', tab = 'profileDetails_Presence').SetLabel(text)
                 
-                count = 0
-                if item is not None:
-                    if item.has_key('friends_count'):
-                        count = item['friends_count']
+                count = item.get('number_friends',0)
                 # use text that is also used in 'optimal download details        
                 text = self.utility.lang.get("profileDetails_Download_Friends", giveerror=False)
                 self.getGuiObj('descriptionField0', tab = 'profileDetails_Presence').SetLabel(text % count)
                 text = self.utility.lang.get("profileDetails_Download_Friends_improve", giveerror=False)
                 self.getGuiObj('descriptionField1', tab = 'profileDetails_Presence').SetLabel(text)
                 
-#                text = self.utility.lang.get("profileDetails_Presence_Sharingratio", giveerror=False)
-#                self.getGuiObj('descriptionField2', tab = 'profileDetails_Presence').SetLabel(text % count)
-#                text = self.utility.lang.get("profileDetails_Presence_Sharingratio_improve", giveerror=False)
-#                self.getGuiObj('descriptionField3', tab = 'profileDetails_Presence').SetLabel(text)
-
-                text = self.utility.lang.get("profileDetails_Presence_VersionNo", giveerror=False)
-                self.getGuiObj('descriptionField4', tab = 'profileDetails_Presence').SetLabel(text)
-                text = self.utility.lang.get("profileDetails_Presence_VersionNo_improve", giveerror=False)
-                self.getGuiObj('descriptionField5', tab = 'profileDetails_Presence').SetLabel(text)
+                current_version = self.utility.getVersion()
+                text = self.utility.lang.get("profileDetails_Presence_VersionUnknown", giveerror=False)
+                new_version = item.get('new_version',text)
+                update_url = item.get('update_url','www.tribler.org')
+                compare_result = item.get('compare_result',-3)
+                if compare_result == -1: #newer version locally
+                    text1 = self.utility.lang.get("profileDetails_Presence_VersionNewer", giveerror=False)
+                    text1 = text1 % (current_version, new_version)
+                    text2 = self.utility.lang.get("profileDetails_Presence_VersionNewer_improve", giveerror=False)
+                    text2 = text2 % update_url
+                elif compare_result == 0: #same version
+                    text1 = self.utility.lang.get("profileDetails_Presence_VersionCurrent", giveerror=False)
+                    text1 = text1 % current_version
+                    text2 = self.utility.lang.get("profileDetails_Presence_VersionCurrent_improve", giveerror=False)
+                    text2 = text2 % update_url
+                elif compare_result == 1: #newer version on website
+                    text1 = self.utility.lang.get("profileDetails_Presence_VersionOlder", giveerror=False)
+                    text1 = text1 % current_version
+                    text2 = self.utility.lang.get("profileDetails_Presence_VersionOlder_improve", giveerror=False)
+                    text2 = text2 % (new_version,update_url)
+                else:
+                    text1 = self.utility.lang.get("profileDetails_Presence_VersionError", giveerror=False)
+                    text1 = text1 % current_version
+                    text2 = self.utility.lang.get("profileDetails_Presence_VersionError_improve", giveerror=False)
+                    text2 = text2 % update_url
+                self.getGuiObj('descriptionField4', tab = 'profileDetails_Presence').SetLabel(text1)
+                self.getGuiObj('descriptionField5', tab = 'profileDetails_Presence').SetLabel(text2)
             else:
                 tab = "error"
             if tab != "error":

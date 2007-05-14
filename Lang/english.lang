@@ -1163,17 +1163,24 @@ profileDetails_Download_UpSpeed_improve = "* Increase the upload speed limit in 
 profileDetails_Download_Friends = "At the moment you have %d friends. If you make more friends you can help in boosting each others download speeds."
 profileDetails_Download_Friends_improve = "* Invite your friends, family, and colleagues by e-mail, to start tribler too and let them add you as a friend. (start e-mail software >)"
 profileDetails_Download_VisibleYes = "You are currently accessible by other people."
+profileDetails_Download_VisibleYes_improve = "* Your friends should also be accessible. For that, please guide them to www.tribler.org for instructions."
 profileDetails_Download_VisibleNo = "Other users are not able to connect to you, because your modem/router blocks them."
-profileDetails_Download_Visible_improve = "* You have to open a port on your modem/router to enable other users to connect to you. This will almost double your possible download speed. Read more on www.tribler.org for instructions."
+profileDetails_Download_VisibleNo_improve = "* You have to open a port on your modem/router to enable other users to connect to you. This will almost double your possible download speed. Read more on www.tribler.org for instructions."
 # --- Network Reach
 profileDetails_Presence_info = "If you want to increase your network reach, follow the instructions."
 #profileDetails_Presence_Friends = profileDetails_Download_Friends
 #profileDetails_Presence_Friends_improve = profileDetails_Download_Friends_improve
 profileDetails_Presence_Sharingratio = "Your overall sharing ratio is %d. This means that you download more from others than you upload to them."
 profileDetails_Presence_Sharingratio_improve = "* To reach a fair sharing ratio, you should share your files longer. "
-profileDetails_Presence_VersionNo = "You are using an old version of Tribler and not taking advantage of the new features available. "
-profileDetails_Presence_VersionYes = "You are up to date!"
-profileDetails_Presence_VersionNo_improve = "* Update to the newest version 4.0 at www.tribler.org"
+profileDetails_Presence_VersionNewer = "You are using a newer version of Tribler (%s) than on website (%s)."
+profileDetails_Presence_VersionNewer_improve = "* Check the website for news and updates at %s"
+profileDetails_Presence_VersionOlder = "You are using an old version of Tribler (%s) and not taking advantage of the new features available. "
+profileDetails_Presence_VersionOlder_improve = "* Update to the newest version %s at %s"
+profileDetails_Presence_VersionCurrent = "You are up to date! The current version client is %s."
+profileDetails_Presence_VersionCurrent_improve = "* Check the website for news and updates at %s"
+profileDetails_Presence_VersionUnknown = "unknown"
+profileDetails_Presence_VersionError = "Your current client version is %s."
+profileDetails_Presence_VersionError_improve = "* Check the website for news and updates at %s"
 
 ###############
 # Tribler UI - persons.py, Tribler 3.7

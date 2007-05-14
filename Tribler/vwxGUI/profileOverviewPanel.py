@@ -7,6 +7,9 @@ from Tribler.CacheDB.CacheDBHandler import MyDBHandler
 from Tribler.Dialogs.MugshotManager import MugshotManager
 from Tribler.Dialogs.socnetmyinfo import MyInfoWizard
 from Tribler.CacheDB.CacheDBHandler import MyPreferenceDBHandler
+from time import time
+from traceback import print_exc
+import urllib
 
 class ProfileOverviewPanel(wx.Panel):
     def __init__(self, *args, **kw):
@@ -86,6 +89,7 @@ class ProfileOverviewPanel(wx.Panel):
         self.initDone = True
         self.Refresh(True)
 #        self.Update()
+        self.initData()
         self.timer = None
         wx.CallAfter(self.reloadData)
 
@@ -166,6 +170,18 @@ class ProfileOverviewPanel(wx.Panel):
             index = 0
         return index
     
+    def initData(self):
+        self.quality_value = -1
+        self.discovered_files = -1
+        self.discovered_persons = -1
+        self.number_friends = -1
+        self.max_upload_rate = -1
+        self.is_reachable = False
+        self.last_version_check_time = -1
+        self.update_url = 'http://tribler.org'
+        self.new_version = 'unknown'
+        self.check_result = -3 #unknown check result, -2 means error, -1 means newer version on the client, 0 means same version, 1 means newer version on the website
+        
     def reloadData(self, event=None):
         """updates the fields in the panel with new data if it has changed"""
         
@@ -174,141 +190,104 @@ class ProfileOverviewPanel(wx.Panel):
         if not self.IsShown(): #should not update data if not shown
             return
         bShouldRefresh = False
-        #set the overall ranking to a random number
-#===============================================================================
-#        new_index = random.randint(0,3) #used only for testing
-#        elem = self.getGuiElement("icon_Overall")
-#        if elem and new_index != elem.getIndex():
-#            elem.setIndex(new_index)
-#            bShouldRefresh = True
-#===============================================================================
-        overall_index = 0
+        max_index_bar = 5 #the maximal value the normal bar can have
+        max_overall_index_bar = 6 #the maximal value the overall bar can have
         
-        #get the number of downloads for this user
+        #--- Quality of tribler recommendation
+        #<<<get the number of downloads for this user
         count = len(self.mydb.getPrefList())
-        #count = self.data_manager.getDownloadHistCount()
-        new_index = self.indexValue(count,100) #from 0 to 5
-        overall_index = overall_index + new_index*0.1667
-#        print "<mluc> [after quality] overall=",overall_index
-        qualityElem = self.getGuiElement("perf_Quality")    # Quality of tribler recommendation
-        if qualityElem and new_index != qualityElem.getIndex():
-            qualityElem.setIndex(new_index)
+        index_q = self.indexValue(count,100, max_index_bar) #from 0 to 5
+        if count != self.quality_value:
             self.data['downloaded_files'] = count
             bShouldRefresh = True
-        
-        #get the number of peers
+            self.quality_value = count
+            if self.getGuiElement("perf_Quality"):
+                self.getGuiElement("perf_Quality").setIndex(index_q)
+                    
+        #--- Discovered files
+        #<<<get the number of files
+        count = int(self.guiUtility.data_manager.getNumDiscoveredFiles())
+        index_f = self.indexValue(count,3000, max_index_bar) #from 0 to 5
+        if count != self.discovered_files:
+            self.data['discovered_files'] = count
+            bShouldRefresh = True
+            self.discovered_files = count
+            if self.getGuiElement("perf_Files"):
+                self.getGuiElement("perf_Files").setIndex(index_f)
+
+        #--- Discovered persons
+        #<<<get the number of peers
         count = int(self.guiUtility.peer_manager.getNumEncounteredPeers())
-        new_index = self.indexValue(count,2000) #from 0 to 5
-        if new_index >= 4:
-            new_index = 4
-        overall_index = overall_index + new_index*0.1667
-#        print "<mluc> [after similar peers] overall=",overall_index
-        elem = self.getGuiElement("perf_Persons")    # Discovered persons
-        if elem and new_index != elem.getIndex():
-            elem.setIndex(new_index)
-            self.data['similar_peers'] = count
+        index_p = self.indexValue(count,2000, max_index_bar) #from 0 to 5
+        if count != self.discovered_persons:
+            self.data['discovered_persons'] = count
             bShouldRefresh = True
-        
-        #get the number of files
-        count = int(self.utility.getNumFiles())
-        new_index = self.indexValue(count,3000) #from 0 to 5
-        overall_index = overall_index + new_index*0.1667
-#        print "<mluc> [after taste files] overall=",overall_index
-        elem = self.getGuiElement("perf_Files")    # Discovered files
-        if elem and new_index != elem.getIndex():
-            elem.setIndex(new_index)
-            self.data['taste_files'] = count
-            bShouldRefresh = True
+            self.discovered_persons = count
+            if self.getGuiElement("perf_Persons"):
+                self.getGuiElement("perf_Persons").setIndex(index_p)
 
-
-        #set the download stuff
-        dvalue = 0
+        #--- Optimal download speed
+        #<<<set the download stuff
+        index_1 = 0
         #get upload rate, download rate, upload slots: maxupload': '5', 'maxuploadrate': '0', 'maxdownloadrate': '0'
         maxuploadrate = self.guiUtility.utility.config.Read('maxuploadrate', 'int') #kB/s
-        maxuploadslots = self.guiUtility.utility.config.Read('maxupload', "int")
-        maxdownloadrate = self.guiUtility.utility.config.Read('maxdownloadrate', "int")
-        value = 0
+#        maxuploadslots = self.guiUtility.utility.config.Read('maxupload', "int")
+#        maxdownloadrate = self.guiUtility.utility.config.Read('maxdownloadrate', "int")
         if maxuploadrate == 0:
-            value = 20
-        else:
-            value = maxuploadrate
-            if maxuploadrate > 2000:
-                value = 2000
-            if maxuploadrate < 0:
-                value = 0
-            value = int(value/100)
-        dvalue = dvalue + value
-        value = 0
-        if maxdownloadrate == 0:
-            value = 20
-        else:
-            value = maxdownloadrate
-            if maxdownloadrate > 2000:
-                value = 2000
-            if maxdownloadrate < 0:
-                value = 0
-            value = int(value/100)
-        dvalue = dvalue + value
-        value = 0
-        if maxuploadslots == 0:
-            value = 10
-        else:
-            value = maxuploadslots
-            if maxuploadslots > 10:
-                value = 10
-            if maxuploadslots < 0:
-                value = 0
-            value = int(value)
-        dvalue = dvalue + value
-        #set the reachability value
-        value = 0
+            index_1 = max_index_bar
+        else: #between 0 and 100KB/s
+            index_1 = self.indexValue(maxuploadrate,100, max_index_bar) #from 0 to 5
+        #<<<set the reachability value
+        index_2 = 0
         if self.guiUtility.isReachable:
-            value = 20
-        dvalue = dvalue + value
-        #and the number of friends
-        value = self.guiUtility.peer_manager.getCountOfFriends()
-        new_index = self.indexValue(count,20) #from 0 to 5
-        overall_index = overall_index + dvalue/60.0
-#        print "<mluc> [after downloads] overall=",overall_index
-        elem = self.getGuiElement("perf_Download")    # Optimal download speed
-        if elem and new_index != elem.getIndex():
-            elem.setIndex(new_index)
-            bShouldRefresh = True
-
-        
-        #get the number of similar files (tasteful)
+            index_2 = max_index_bar
+        #<<<get the number of friends
         count = self.guiUtility.peer_manager.getCountOfFriends()
-        new_index = self.indexValue(count,100) #from 0 to 5
-        overall_index = overall_index + new_index*0.1667
-#        print "<mluc> [after taste files] overall=",overall_index
-        elem = self.getGuiElement("perf_Presence")    # Network reach
-        if elem and new_index != elem.getIndex():
-            elem.setIndex(new_index)
+        index_h = self.indexValue(count,20, max_index_bar) #from 0 to 5
+        bMoreFriends = False
+        if self.number_friends!=count:
+            bMoreFriends = True
+            self.number_friends = count
+        index_s = self.indexValue(index_1+index_2+index_h, 3*max_index_bar, max_index_bar)
+        if self.max_upload_rate!=maxuploadrate or self.is_reachable!=self.guiUtility.isReachable or bMoreFriends:
+            self.data['number_friends']=count
             bShouldRefresh = True
+            self.max_upload_rate = maxuploadrate
+            self.is_reachable = self.guiUtility.isReachable
+            if self.getGuiElement("perf_Download"):
+                self.getGuiElement("perf_Download").setIndex(index_s)
 
+        #--- Network reach
+        #<<<get the number of friends
+        #use index_h computed above
+        #<<<get new version
+        index_v = 0
+        if self.checkNewVersion():
+            index_v = max_index_bar
+            self.data['new_version']=self.new_version
+            self.data['update_url'] = self.update_url
+            self.data['compare_result'] = self.check_result
+        index_n = self.indexValue(index_h+index_v, 2*max_index_bar, max_index_bar)
+        if bMoreFriends or index_v>0:
+            bShouldRefresh = True
+            if self.getGuiElement("perf_Presence"):
+                self.getGuiElement("perf_Presence").setIndex(index_n)
 
-#        print "<mluc> [before] overall index is",overall_index
-        overall_index = int(overall_index)
-        if overall_index > 6:
-            overall_index = 6
-#        print "<mluc> [after] overall index is",overall_index
-        #set the overall performance to a random number
-        new_index = overall_index #random.randint(0,5) #used only for testing
-        elem = self.getGuiElement("perf_Overall")    # Overall performance
-        if elem and new_index != elem.getIndex() or self.data.get('overall_rank') is None:
-            elem.setIndex(new_index)
-            if new_index < 2:
+        #--- Overall performance
+        #<<<set the overall performance to a random number
+        overall_index = self.indexValue(index_q+index_p+index_f+index_s+index_n, 5*max_index_bar, max_overall_index_bar)
+        elem = self.getGuiElement("perf_Overall")    
+        if elem and overall_index != elem.getIndex() or self.data.get('overall_rank') is None:
+            elem.setIndex(overall_index)
+            if overall_index < 2:
                 self.data['overall_rank'] = "beginner"
-                self.getGuiElement('text_Overall').SetLabel("Overall performance (beginner)")
-            elif new_index < 4:
+            elif overall_index < 4:
                 self.data['overall_rank'] = "experienced"
-                self.getGuiElement('text_Overall').SetLabel("Overall performance (experienced)")
-            elif new_index < 6:
+            elif overall_index < 6:
                 self.data['overall_rank'] = "top user"
-                self.getGuiElement('text_Overall').SetLabel("Overall performance (top user)")
             else:
                 self.data['overall_rank'] = "master"
-                self.getGuiElement('text_Overall').SetLabel("Overall performance (master)")
+            self.getGuiElement('text_Overall').SetLabel("Overall performance (%s)" % self.data['overall_rank'])
             bShouldRefresh = True
         
         if bShouldRefresh:
@@ -330,3 +309,64 @@ class ProfileOverviewPanel(wx.Panel):
 
         self.getNameMugshot()
         self.showNameMugshot()
+
+    def checkNewVersion(self):
+        """check for new version on the website
+        saves compare result between version on site and the 
+        one the user has, that means a value of -1,0,1, or -2 if there was an 
+        error connecting; and url for new version
+        the checking is done once each day day the client runs
+        returns True if anything changed, False otherwise"""
+        if self.last_version_check_time!=-1 and time() - self.last_version_check_time < 86400:
+            return False#check for a new version once a day
+        self.last_version_check_time = time()
+        bChanged = False
+        my_version = self.utility.getVersion()
+        try:
+            curr_status = urllib.urlopen('http://tribler.org/version').readlines()
+            line1 = curr_status[0]
+            if len(curr_status) > 1:
+                new_url = curr_status[1].strip()
+                if self.update_url!=new_url:
+                    self.update_url = new_url
+                    bChanged = True
+            _curr_status = line1.split()
+            new_version = _curr_status[0]
+            if new_version != self.new_version:
+                self.new_version = new_version
+                bChanged = True
+            result = self.compareVersions(self.new_version, my_version)
+            if result != self.check_result:
+                self.check_result = result
+                bChanged = True
+        except:
+            print_exc()
+            if self.check_result!=-2:
+                self.check_result = -2
+                bChanged = True
+        return bChanged
+        
+    def compareVersions(self, curr_version, my_version):
+        """compares two version strings, copied from Dialogs.aboutme.py
+        changed the return value: 1 for newer version on the website,
+        0 for same version, -1 for newer version on the client"""
+        curr = curr_version.split('.')
+        my = my_version.split('.')
+        if len(my) >= len(curr):
+            nversion = len(my)
+        else:
+            nversion = len(curr)
+        for i in range(nversion):
+            if i < len(my):
+                my_v = int(my[i])
+            else:
+                my_v = 0
+            if i < len(curr):
+                curr_v = int(curr[i])
+            else:
+                curr_v = 0
+            if curr_v > my_v:
+                return 1
+            elif curr_v < my_v:
+                return -1
+        return 0 

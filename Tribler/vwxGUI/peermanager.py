@@ -768,6 +768,10 @@ class PeerDataManager(DelayedEventHandler):
         return count
     
     def getCountOfFriends(self):
+        """counts the number of friends by checking if each peer is a friend or not
+        it can be done by querying the database also"""
+        if self.filtered_data.get('friends'):
+            return len(self.filtered_data['friends'])
         count = 0
         all_data = self.filtered_data['all']
         for peer_data in all_data:

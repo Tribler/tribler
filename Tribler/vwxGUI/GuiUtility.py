@@ -100,9 +100,11 @@ class GUIUtility:
             if panel_name == "profileDetails_Files":
                 #self.utility.actions[ACTION_PREFERENCES].action()
                 self.utility.actions[ACTION_PREFERENCES].action(openname=self.utility.lang.get('triblersetting'))
+                self.selectData(self.standardDetails.getData())
             if panel_name == "profileDetails_Download":
                 #self.utility.actions[ACTION_PREFERENCES].action(openname=self.utility.lang.get('triblersetting'))
                 self.utility.actions[ACTION_PREFERENCES].action(openname=self.utility.lang.get('videosetting'))
+                self.selectData(self.standardDetails.getData())
             elif panel_name == "profileDetails_Presence":
                 self.emailFriend(event)
                 #self.mainButtonClicked( 'mainButtonPersons', self.frame.mainButtonPersons)
