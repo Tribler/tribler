@@ -348,7 +348,7 @@ class BasicDB:    # Should we use delegation instead of inheritance?
             return dbutils.DeadlockWrap(self._data.keys, max_retries=MAX_RETRIES)
             #return self._data.keys()
         except Exception,e:
-            print >> sys.stderr, "cachedb: _keys EXCEPTION BY", currentThread().getName(), self.db_name, `key`
+            print >> sys.stderr, "cachedb: _keys EXCEPTION BY", currentThread().getName(), self.db_name
             #print_exc()
             self.report_exception(e)
             return []

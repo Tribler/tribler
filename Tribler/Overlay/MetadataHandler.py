@@ -49,12 +49,12 @@ class MetadataHandler:
         self.launchmany = launchmany
         self.config = config
         config_dir = self.config['config_path']
-        self.min_free_space = self.config['disk_full_threshold']*(2**20)    # TODO: apply to effect from GUI
+        self.min_free_space = self.config['stop_collecting_threshold']*(2**20)    # TODO: apply to effect from GUI
         if self.min_free_space <= 0:
             self.min_free_space = 200*(2**20)    # at least 1 MB left on disk
         self.config_dir = os.path.join(config_dir, 'torrent2')    #TODO: user can set it
         self.free_space = self.get_free_space()
-        print "Available space for database and collecting torrents: %d MB" % (self.free_space/(2**20)), "Min free space", self.min_free_space/(2**20), "MB"
+        print "Available space for database and collecting torrents: %d MB," % (self.free_space/(2**20)), "Min free space", self.min_free_space/(2**20), "MB"
         self.max_num_torrents = self.init_max_num_torrents = int(self.config['max_torrents'])
         self.upload_rate = 1024 * int(self.config['torrent_collecting_rate'])   # 5KB/s
         self.torrent_db = SynTorrentDBHandler()
@@ -70,6 +70,9 @@ class MetadataHandler:
 
     def set_rate(self, rate):
         self.upload_rate = rate * 1024
+        
+    def set_min_free_space(self, min_free_space):
+        self.min_free_space = min_free_space*(2**20)
 
     def checking_upload_queue(self):
         """ check the upload queue every 5 seconds, and send torrent out if the queue 
@@ -341,6 +344,10 @@ class MetadataHandler:
         rawserver = self.secure_overlay.rawserver    # not a good way, but simple
         rawserver.add_task(self.check_overflow, delay)
         
+    def delayed_check_free_space(self, delay=2):
+        rawserver = self.secure_overlay.rawserver    # not a good way, but simple
+        rawserver.add_task(self.check_free_space, delay)
+        
     def check_overflow(self):    # check if torrents are more than enough
         if self.num_torrents < 0:
             collected_torrents = self.torrent_db.getCollectedTorrents()
@@ -394,26 +401,29 @@ class MetadataHandler:
             #print "---------"*5, "delete torrent, succeeded?", deleted, self.num_torrents
         del collected_torrents
         
-    def save_torrent(self, torrent_hash, metadata, source='BC', extra_info={}):
-        if not self.initialized:
-            return
-        
+    def check_free_space(self):
         self.free_space = self.get_free_space()
         if self.free_space < self.min_free_space:    # no enough space, removing old torrents
-            space_need = self.min_free_space - self.free_space
-            num2del = 1 + space_need / (25*(2**10))    # how many torrents to del, assume each torrent is 25K
-            if self.num_torrents > 0:    # wait for loading it before deleting
+            if self.num_torrents >= 0:    # wait for loading it before deleting
+                space_need = self.min_free_space - self.free_space
+                num2del = 1 + space_need / (25*(2**10))    # how many torrents to del, assume each torrent is 25K
                 self.max_num_torrents = self.num_torrents - num2del
                 if self.max_num_torrents > 0:
+                    print >> sys.stderr, "meta: disk overflow when save_torrent", self.free_space/(2**20), \
+                        self.min_free_space/(2**20), num2del, self.num_torrents, self.max_num_torrents
                     self.check_overflow()
                 else:    # stop working; even remove all the space is still not enough
                     return
-#                print "************** disk overflor when save_torrent", self.free_space/(2**20), \
-#                    self.min_free_space/(2**20), num2del, self.num_torrents, self.max_num_torrents
 
         else:    # change back
             self.max_num_torrents = self.init_max_num_torrents
+
         
+    def save_torrent(self, torrent_hash, metadata, source='BC', extra_info={}):
+        if not self.initialized:
+            return
+
+        self.check_free_space()
         if self.free_space <= len(metadata):    # no enough space
             return
         

@@ -1396,16 +1396,28 @@ class TriblerPanel(ABCOptionPanel):
         tcsection.Add(time_box, 0, wx.EXPAND|wx.ALL, 5)
 
         ntorrents_box = wx.BoxSizer(wx.HORIZONTAL)    # set the max num of torrents to collect
-        self.ntorrents = wx.TextCtrl(self, -1, "")
+        self.ntorrents = self.utility.makeNumCtrl(self, 5000, min = 0, max = 999999)
         ntorrents_box.Add(wx.StaticText(self, -1, self.utility.lang.get('maxntorrents')), 0, wx.ALIGN_CENTER_VERTICAL)
         ntorrents_box.Add(self.ntorrents, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
-        tcsection.Add(ntorrents_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        tcsection.Add(ntorrents_box, 0, wx.EXPAND|wx.ALL, 5)
+        
+        tc_threshold_box = wx.BoxSizer(wx.HORIZONTAL)    # set the min space to stop torrent collecting
+        self.tc_threshold = self.utility.makeNumCtrl(self, 200, min = 1, max = 999999)
+        tc_threshold_box.Add(wx.StaticText(self, -1, self.utility.lang.get('tc_threshold')), 0, wx.ALIGN_CENTER_VERTICAL)
+        tc_threshold_box.Add(self.tc_threshold, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        tc_threshold_box.Add(wx.StaticText(self, -1, self.utility.lang.get('MB')), 0, wx.ALIGN_CENTER_VERTICAL)
+        tc_threshold_box.Add(wx.StaticText(self, -1, ' ('+self.utility.lang.get('current_free_space')+' '), 0, wx.ALIGN_CENTER_VERTICAL)
+        mh = MetadataHandler.getInstance()
+        current_free_space = mh.get_free_space()/(2**20)
+        tc_threshold_box.Add(wx.StaticText(self, -1, str(current_free_space)), 0, wx.ALIGN_CENTER_VERTICAL)
+        tc_threshold_box.Add(wx.StaticText(self, -1, self.utility.lang.get('MB')+')'), 0, wx.ALIGN_CENTER_VERTICAL)
+        tcsection.Add(tc_threshold_box, 0, wx.EXPAND|wx.ALL, 5)
         
         tc_rate_box = wx.BoxSizer(wx.HORIZONTAL)    # set the rate of torrent collecting
-        self.tc_rate = wx.TextCtrl(self, -1, "")
+        self.tc_rate = self.utility.makeNumCtrl(self, 5, min = 0, max = 999999)
         tc_rate_box.Add(wx.StaticText(self, -1, self.utility.lang.get('torrentcollectingrate')), 0, wx.ALIGN_CENTER_VERTICAL)
         tc_rate_box.Add(self.tc_rate, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
-        tcsection.Add(tc_rate_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        tcsection.Add(tc_rate_box, 0, wx.EXPAND|wx.ALL, 5)
 
         sizer.Add(tcsection, 0, wx.EXPAND|wx.ALL, 5)
 
@@ -1461,6 +1473,15 @@ class TriblerPanel(ABCOptionPanel):
         except:
             print_exc()
             
+        value = str(Read('stopcollectingthreshold', "string"))
+        try:    # check if the input is correct
+            int_value = int(value)
+            if int_value < 0:
+                raise
+            self.tc_threshold.SetValue(str(int_value))
+        except:
+            print_exc()
+            
         value = str(Read('torrentcollectingrate', "string"))
         try:    # check if the input is correct
             int_value = int(value)
@@ -1485,9 +1506,21 @@ class TriblerPanel(ABCOptionPanel):
             self.utility.config.Write('maxntorrents', maxntorrents, "string")
             mh = MetadataHandler.getInstance()
             mh.set_overflow(int_value)
-            mh.delayed_check_overflow(1)
+            mh.delayed_check_overflow(2)
         except:
             print_exc()
+            
+        try:    # check if the input is correct
+            tc_threshold_value = self.tc_threshold.GetValue()
+            int_value = int(tc_threshold_value)
+            if int_value <= 0:
+                raise
+            self.utility.config.Write('stopcollectingthreshold', tc_threshold_value, "string")
+            mh = MetadataHandler.getInstance()
+            mh.set_min_free_space(int_value)
+            mh.delayed_check_free_space(2)
+        except:
+            print_exc()            
             
         try:    # check if the input is correct
             tc_rate_value = self.tc_rate.GetValue()
