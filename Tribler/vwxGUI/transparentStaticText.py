@@ -1,3 +1,4 @@
+
 import wx
 from traceback import print_exc
 
@@ -22,11 +23,17 @@ class TransparentStaticText(wx.StaticText):
         return True
     
     def _PostInit(self):
+#        while self.Unbind(wx.EVT_PAINT):
+#            pass
+#        self.Disconnect(-1, -1, wx.wxEVT_PAINT)
+        
         self.Bind(wx.EVT_PAINT, self.OnPaint)
-        #self.Bind(wx.EVT_ERASE_BACKGROUND, self.onEraseBackground)
-        #pass
+        self.Bind(wx.EVT_ERASE_BACKGROUND, self.onEraseBackground)
+        self.OnPaint = self.OnPaint
+        pass
         
     def onEraseBackground(self, event):
+        return
         dc = wx.ClientDC(self)
         dc.SetBackground(wx.BLACK_BRUSH)
         dc.Clear()
@@ -39,7 +46,18 @@ class TransparentStaticText(wx.StaticText):
                 dc.DrawBitmap(self.parentBitmap, 0,0, True)
         event.Skip(False)
     
+    
+    def SetLabel(self, label):
+        """
+        Sets the static text label and updates the control's size to exactly
+        fit the label unless the control has wx.ST_NO_AUTORESIZE flag.
+        """
+        print 'setLabel()'
+        wx.StaticText.SetLabel(self, label)
+        self.Refresh()
+
     def OnPaint(self, event):
+        print 'paint()'
         if BUFFERED:
             dc = wx.BufferedPaintDC(self)
         else:
@@ -57,12 +75,12 @@ class TransparentStaticText(wx.StaticText):
             dc.SetBackground(backBrush)
             dc.Clear()
         
-        if self.parentBitmap:
-            dc.DrawBitmap(self.parentBitmap, 0,0, True)
-        else:
+        if not self.parentBitmap:
             self.parentBitmap = self.getParentBitmap()
-            if self.parentBitmap:
-                dc.DrawBitmap(self.parentBitmap, 0,0, True)
+        
+        if self.parentBitmap:
+            print 'paint parent()'
+            dc.DrawBitmap(self.parentBitmap, 0,0, True)
 
         if self.IsEnabled():
             dc.SetTextForeground(self.GetForegroundColour())
