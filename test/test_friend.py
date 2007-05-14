@@ -73,7 +73,8 @@ class TestFriendList(unittest.TestCase):
                    'similarity':0,
                    'last_seen':0,
                    'buddycast_times':0,
-                   'tried_times':0,
+                   'last_buddycast_time':0,
+                   'oversion':0,
                    'connected_times':0
                    },
                    {'permid':base64.decodestring('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAc6ebdH+dmvvgKiE7oOZuQba5I4msyuTJmVpJQVPAT+R9Pg8zsLsuJPV6RjU30RKHnCiaJvjtFW6pLXo\n'),
@@ -83,7 +84,8 @@ class TestFriendList(unittest.TestCase):
                    'similarity':0,
                    'last_seen':0,
                    'buddycast_times':0,
-                   'tried_times':0,
+                   'last_buddycast_time':0,
+                   'oversion':0,                   
                    'connected_times':0
                    },
                    ]
@@ -91,6 +93,18 @@ class TestFriendList(unittest.TestCase):
         # Arno: last_seen is set automatically these days :-(
         for friend in friends:
             friend['last_seen'] = 0
+
+        """
+        for f in friends:
+            k = f.keys()[:]
+            k.sort()
+            print "FRIEND",k
+        for a in answer:
+            k = a.keys()[:]
+            k.sort()
+            print "ANSWER",k
+        """
+        
         assert friends == answer or (friends[0] == answer[1] and friends[1] == answer[0]), friends
         #self.flist.writeFriendList('tmp.txt')
         self.flist.deleteFriend(answer[0]['permid'])

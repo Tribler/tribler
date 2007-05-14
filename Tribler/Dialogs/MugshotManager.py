@@ -28,6 +28,8 @@ class MugshotManager:
         if MugshotManager.__single:
             raise RuntimeError, "MugshotManager is singleton"
         MugshotManager.__single = self
+        self.usericonpath = '' # for test suite
+        self.sysiconpath = ''
 
     def getInstance(*args, **kw):
         if MugshotManager.__single is None:
@@ -217,7 +219,7 @@ class MugshotManager:
     def _permid2iconfilename(self,permid):
         safename = sha(permid).hexdigest()
         return os.path.join(self.usericonpath, safename+NETW_EXT)
- 
+
 
     def data2wxBitmap(self,type,data,dim=ICON_MAX_DIM):
         try:

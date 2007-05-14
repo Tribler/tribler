@@ -65,7 +65,7 @@ class TestSocialOverlap(TestAsServer):
         self.myhash = sha(self.mypermid).digest()
 
         # Give him a usericon to send
-        self.mm.copy_file(self.hispermid,self.make_filename('usericon-ok.bmp'))
+        self.mm.copy_file(self.hispermid,self.make_filename('usericon-ok.jpg'))
 
         self.count = 48
 
@@ -89,14 +89,14 @@ class TestSocialOverlap(TestAsServer):
         # 1. test good SOCIAL_OVERLAP
         self.subtest_good_soverlap()
 
-        """
+
         # 2. test various bad SOCIAL_OVERLAP messages
         self.subtest_bad_not_bdecodable()
         self.subtest_bad_not_dict1()
         self.subtest_bad_not_dict2()
         self.subtest_bad_empty_dict()
         self.subtest_bad_wrong_dict_keys()
-        """
+
         self.subtest_bad_persinfo()
         
 
@@ -130,13 +130,13 @@ class TestSocialOverlap(TestAsServer):
     def create_good_persinfo(self):
         pi = {}
         pi['name'] = 'Beurre Alexander Lucas'
-        pi['icontype'] = 'image/bmp'
+        pi['icontype'] = 'image/jpeg'
         pi['icondata'] = self.read_usericon_ok()
         sig = None
         return [sig,pi]
 
     def read_usericon_ok(self):
-        return self.read_file(self.make_filename('usericon-ok.bmp'))
+        return self.read_file(self.make_filename('usericon-ok.jpg'))
 
     def make_filename(self,filename):
         """ The main test is run from the main source dir, not test/ 
@@ -289,7 +289,7 @@ class TestSocialOverlap(TestAsServer):
 
     def make_persinfo_icontype_noslash(self):
         [sig,pi] = self.create_good_persinfo()
-        pi['icontype'] = 'image#bmp'
+        pi['icontype'] = 'image#jpeg'
         return pi
 
     def make_persinfo_icondata_not_str(self):

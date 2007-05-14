@@ -89,7 +89,11 @@ class SingleDownload:
                         hash,
                         myid,
                         self.rawserver,
-                        controller.listen_port)
+                        controller.listen_port,
+                        False,
+                        [],
+                        None,
+                        '')
         self.d = d
 
     def start(self):
@@ -613,7 +617,7 @@ class UPnPThread(Thread):
 
     def run(self):
         dmh = DialbackMsgHandler.getInstance()
-		
+                
         if self.upnp_type > 0:
             self.upnp_wrap = UPnPWrapper.getInstance()
             wanip = MyDBHandler().getMyIP()
