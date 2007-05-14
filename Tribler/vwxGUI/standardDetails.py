@@ -423,26 +423,21 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 
                     viewsField = self.getGuiObj('popularityField1')
                     viewsField.SetLabel(str(torrent['views']) + " views")
-		    print torrent['views']
+                    
+                    self.getGuiObj('popularityField2').Hide()
+                    self.getGuiObj('up').Hide()
+                    self.getGuiObj('down').Hide()
+                    self.getGuiObj('refresh').Hide()
 
-		    self.getGuiObj('popularityField2').Hide()
-		    self.getGuiObj('up').Hide()
-		    self.getGuiObj('down').Hide()
-		    self.getGuiObj('refresh').Hide()
-
-		    viewsField.GetParent().Layout()
-		    viewsField.SetSize((100,18))
+                    viewsField.GetParent().Layout()
+                    viewsField.SetSize((100,18))
 
                 else:
-                    #view = self.getGuiObj('views')
-                    #view.Hide()
-                    #pop = self.getGuiObj('popularity')
-                    #pop.Show()
-                    #pop.GetParent().Layout()
-		    self.getGuiObj('popularityField2').Show()
-		    self.getGuiObj('up').Show()
-		    self.getGuiObj('down').Show()
-		    self.getGuiObj('refresh').Show()
+
+                    self.getGuiObj('popularityField2').Show()
+                    self.getGuiObj('up').Show()
+                    self.getGuiObj('down').Show()
+                    self.getGuiObj('refresh').Show()
 
                     if torrent.has_key('seeder'):
                         seeders = torrent['seeder']
@@ -455,7 +450,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                         else:
                             seedersField.SetLabel('?')
                             leechersField.SetLabel('?')
-		    seedersField.SetSize((36,18))
+                            seedersField.SetSize((36,18))
                     seedersField.GetParent().Layout()
                         
                 

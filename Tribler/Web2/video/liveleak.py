@@ -10,6 +10,7 @@ from Tribler.Web2.util import db
 from Tribler.Web2.util import download
 from Tribler.Web2.util.log import log
 
+DEBUG = False
 
 ENCODING = "iso-8859-1"
 
@@ -182,7 +183,8 @@ class LiveLeakDownload(download.Download):
             
             download.Download.run(self)
         except:
-            traceback.print_exc()
+            if DEBUG:
+                traceback.print_exc()
             self.notify(download.DLMessage(self, download.DLMessage.FAILURE))
             
 

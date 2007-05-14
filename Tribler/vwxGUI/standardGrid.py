@@ -96,7 +96,8 @@ class standardGrid(wx.Panel):
 
 
     def updateDod(self):
-        print "WEB2.0 -> updateDod"
+        if DEBUG:
+            print "WEB2.0 -> updateDod"
         self.data = self.dod.getData()
         wx.CallAfter(self.refreshPanels)
     
@@ -360,7 +361,8 @@ class standardGrid(wx.Panel):
             needed = self.items * 3 + self.currentData # 3 -> load 2 pages in advance
 
             if needed > 0:
-                print "Web2.0: ", needed
+                if DEBUG:
+                    print "Web2.0: ", needed
                 self.dod.request(needed)
     
     def __del__(self):
