@@ -1633,7 +1633,7 @@ class DataHandler:
         peerprefs.sort()
         peerprefs = array('l', peerprefs)
             
-        if len(self.peers[peer_permid]) == 3:
+        if len(self.peers[peer_permid]) > 2:
             self.peers[peer_permid][2] = peerprefs
         elif len(self.peers[peer_permid]) == 2:
             self.peers[peer_permid].append(peerprefs)
@@ -1657,7 +1657,12 @@ class DataHandler:
         
         if cache:
             value = self.peers.get(permid, self.default_peer)
-            preflist = value[2]    # array('l', torrent_hash)
+            if len(value) > 2:
+                preflist = value[2]    # array('l', torrent_hash)
+            else:
+                self.updatePeerPref(permid)
+                value = self.peers.get(permid, self.default_peer)
+                preflist = value[2]
         else:
             preflist = self.pref_db.getPrefList(permid)    # [infohash]
         if live:    # remove dead torrents
