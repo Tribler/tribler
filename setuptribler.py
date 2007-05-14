@@ -1,4 +1,21 @@
 # setup.py
+import time
+import sys
+
+try:
+    import py2exe.mf as modulefinder
+    import win32com
+    for p in win32com.__path__[1:]:
+        modulefinder.AddPackagePath("win32com", p)
+    for extra in ["win32com.shell"]:
+        __import__(extra)
+        m = sys.modules[extra]
+        for p in m.__path__[1:]:
+            modulefinder.AddPackagePath(extra, p)
+except ImportError:
+    pass
+
+
 from distutils.core import setup
 import py2exe
 

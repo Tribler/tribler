@@ -501,7 +501,7 @@ class TorrentDBHandler(BasicDBHandler):
 #        print >> sys.stderr, '[StartUpDebug]----------- from getRecommendedTorrents ----------', time()-start_time, currentThread().getName(), '\n\n'
         
         self.torrent_db.num_metadatalive = num_live_torrents
-        print 'Returning %d torrents' % len(torrents)
+        #print 'Returning %d torrents' % len(torrents)
         
         return torrents
             

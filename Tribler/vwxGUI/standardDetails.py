@@ -22,7 +22,7 @@ from Tribler.CacheDB.CacheDBHandler import MyPreferenceDBHandler
 
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'subscriptionsMode', 'messageMode']
 
-DEBUG = True
+DEBUG = False
 
 def showInfoHash(infohash):
     if infohash.startswith('torrent'):    # for testing

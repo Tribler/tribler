@@ -1608,7 +1608,8 @@ class DataHandler:
                 tmp_list = [(peer, peer_value) for (_, peer_value, peer) in tmp_list]
                 self.peers = dict(tmp_list)
         # used to notify peer view that peer list is ready
-        print >> sys.stderr, "**** buddycast update all peers", "#peers in cache", len(self.peers), "#peers in db", len(all_peerlist), "max limit", num_peers
+        if DEBUG:
+            print >> sys.stderr, "**** buddycast update all peers", "#peers in cache", len(self.peers), "#peers in db", len(all_peerlist), "max limit", num_peers
 
         #print "******* buddycast thread:", currentThread().getName()
         BuddyCastFactory.getInstance().data_ready_evt.set()    

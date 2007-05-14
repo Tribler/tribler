@@ -21,7 +21,7 @@ from Tribler.Video.VideoServer import MovieTransport
 EXTENSIONS = ['asf','avi','dv','flc','mpeg','mpeg4','mpg4','mp4','mpg','mov','ogm','qt','rm','swf','vob','wmv']
 
 
-DEBUG = True
+DEBUG = False
 DEBUGPP = False
 
 class PiecePickerStreaming(PiecePicker):
@@ -417,7 +417,11 @@ class MovieOnDemandTransporter(MovieTransport):
         self.piecepicker = piecepicker
         self.rawserver = rawserver
 
-        self.video_analyser_path=videoanalyserpath
+        # Add quotes around path, as that's what os.popen() wants on win32
+        if sys.platform == "win32" and videoanalyserpath is not None and videoanalyserpath.find(' ') != -1:
+            self.video_analyser_path='"'+videoanalyserpath+'"'
+        else:
+            self.video_analyser_path=videoanalyserpath
         
         self.downloadrate = Measure( 10 )
 
@@ -771,7 +775,7 @@ class MovieOnDemandTransporter(MovieTransport):
         display = (int(time.time()) % 5) == 0
         if DEBUG:
             display = False
-        if  display:
+        if display and DEBUG:
             print >>sys.stderr,"vod: Estimated download time: %5ds [%7.2f Kbyte/s]" % (self.expected_download_time(),self.downloadrate.rate/1024)
             #print >>sys.stderr,"vod: Estimated by",currentThread().getName()
         if self.playing and round(self.playbackrate.rate) > self.MINPLAYBACKRATE and not self.prebuffering:

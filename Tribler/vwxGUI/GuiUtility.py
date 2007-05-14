@@ -130,7 +130,7 @@ class GUIUtility:
             self.subscribe()
         elif name == 'firewallStatus':
             self.firewallStatusClick()
-        else:
+        elif DEBUG:
             print 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
                 
         

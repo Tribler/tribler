@@ -126,8 +126,8 @@ class TorrentStatus:
         if status in [self.utility.lang.get('completedseeding'), self.utility.lang.get('completed')] and \
             self.lastCheckFinished != status:
             self.lastCheckFinished = status
-            print 'check finished: now: (%s) %s, before: (%s) %s' % (self.value, self.getStatusText(), self.lastCheckFinished, self.getStatusText(self.lastCheckFinished))
-            print 'Torrent just finished'
+            #print 'check finished: now: (%s) %s, before: (%s) %s' % (self.value, self.getStatusText(), self.lastCheckFinished, self.getStatusText(self.lastCheckFinished))
+            #print 'Torrent just finished'
             # inform library that download is finished so that it sorts
             libraryPanel = self.torrent.libraryPanel
             if libraryPanel:

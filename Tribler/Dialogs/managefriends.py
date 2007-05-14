@@ -145,7 +145,7 @@ class FriendList(wx.ListCtrl):
         self.parent = parent
         self.utility = parent.utility
         self.friendsdb = friendsdb
-        self.type = wx.LC_LIST
+        self.type = wx.LC_REPORT
         style = self.type|wx.VSCROLL|wx.SIMPLE_BORDER|wx.LC_VRULES|wx.CLIP_CHILDREN
         if (sys.platform == 'win32'):
             style |= wx.LC_ALIGN_TOP
@@ -175,6 +175,8 @@ class FriendList(wx.ListCtrl):
         self.Refresh()
 
     def updateImageList(self):
+        return
+        
         self.SetWindowStyleFlag(self.type)
         
         self.imgList = createImageList(self.utility, self.friends)

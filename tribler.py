@@ -1112,7 +1112,14 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
     
     def db_exception_handler(self,e):
         if DEBUG:
-            print >> sys.stderr,"abc: Database Exception handler called",e
+            print >> sys.stderr,"abc: Database Exception handler called",e,"value",e.args,"#"
+        try:
+            if e.args[1] == "DB object has been closed":
+                return # We caused this non-fatal error, don't show.
+            if self.error is not None and self.error.args[1] == e.args[1]:
+                return # don't repeat same error
+        except:
+            print_exc()
         self.error = e
         self.invokeLater(self.onError,[],{'source':"The database layer reported: "})
     
@@ -1181,7 +1188,7 @@ def run(params = None):
         #
         #if sys.platform != 'linux2':
         #    tribler_done(configpath)
-        #os._exit(0)
+        os._exit(0)
 
 if __name__ == '__main__':
     run()

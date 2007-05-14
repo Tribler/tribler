@@ -266,7 +266,7 @@ class FileList(CommonTriblerList):
         self.parent = parent
         self.categorykey = categorykey
         self.data_manager = TorrentDataManager.getInstance()
-        self.data_manager.register(self.updateFun, self.categorykey)
+        self.data_manager.register(self.updateFun, self.categorykey, False)
         self.utility = parent.utility
         self.min_rank = -1
         self.max_rank = 5
@@ -335,7 +335,7 @@ class FileList(CommonTriblerList):
         return str2unicode(original_data)
         
     def reloadData(self):
-        self.data = self.data_manager.getCategory(self.categorykey)
+        self.data = self.data_manager.getCategory(self.categorykey,False)
         def showFile(data):
             if data['relevance'] < self.relevance_threshold:
                 return False

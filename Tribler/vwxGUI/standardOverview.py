@@ -16,7 +16,7 @@ import web2
 
 OVERVIEW_MODES = ['filesMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionsMode', 'messageMode', 'libraryMode']
 
-DEBUG = True
+DEBUG = False
 
 class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     """
@@ -62,10 +62,10 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
 
             def run(self):
                 try:
-                    print >> sys.stderr, '[StartUpDebug]----------- thread data loading started'
+                    #print >> sys.stderr, '[StartUpDebug]----------- thread data loading started'
                     #first load torrent data from database
                     self.owner.data_manager.loadData()
-                    print >> sys.stderr, '[StartUpDebug]----------- thread torrent data loaded'
+                    #print >> sys.stderr, '[StartUpDebug]----------- thread torrent data loaded'
                     #then load the peer data
                     peer_list = None
                     #wait for buddycast list only if the recommender is enabled
@@ -83,7 +83,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                     self.owner.peer_manager.applyFilters(data)
             #        print "<mluc> ################### size of data is ",len(self.filtered_data['all'])
                     self.owner.peer_manager.isDataPrepared = True
-                    print >> sys.stderr, '[StartUpDebug]----------- thread peer data loaded'
+                    #print >> sys.stderr, '[StartUpDebug]----------- thread peer data loaded'
                 except:
                     print_exc()
                 wx.CallAfter(self.owner.filterChanged)
@@ -100,7 +100,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         self.addComponents()
         #self.Refresh()
         self.guiUtility.initStandardOverview(self)
-        print >> sys.stderr, '[StartUpDebug]----------- standardOverview is in postinit ----------', currentThread().getName(), '\n\n'
+        #print >> sys.stderr, '[StartUpDebug]----------- standardOverview is in postinit ----------', currentThread().getName(), '\n\n'
         
         
     def addComponents(self):

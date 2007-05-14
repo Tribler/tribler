@@ -33,6 +33,7 @@ class MetadataHandler:
         if MetadataHandler.__single:
             raise RuntimeError, "MetadataHandler is singleton"
         MetadataHandler.__single = self
+        self.initialzed = False
 
     def getInstance(*args, **kw):
         if MetadataHandler.__single is None:
@@ -56,6 +57,7 @@ class MetadataHandler:
         self.upload_queue = []
         self.requested_torrents = Set()
         self.next_upload_time = 0
+        self.initialized = True
 
     def set_rate(self, rate):
         self.upload_rate = rate * 1024
@@ -379,6 +381,9 @@ class MetadataHandler:
         del collected_torrents
         
     def save_torrent(self, torrent_hash, metadata, source='BC', extra_info={}):
+        if not self.initialized:
+            return
+        
         file_name = self.get_filename(torrent_hash)
         if DEBUG:
             print >> sys.stderr,"metadata: Storing torrent", sha(torrent_hash).hexdigest(),"in",file_name

@@ -13,7 +13,7 @@ from threading import RLock,currentThread
 from traceback import print_exc
 from __init__ import read,BLOCKSIZE
 
-DEBUG = True
+DEBUG = False
 
 
 class MovieTransport:
@@ -280,7 +280,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
             if DEBUG:
                 print >>sys.stderr,"videoserv: Error occured while serving"
             ##f = open("/tmp/videoserv.log","w")
-            print_exc(file=sys.stderr)
+            print_exc()
             self.error(e,self.path)
             ##f.close()
 

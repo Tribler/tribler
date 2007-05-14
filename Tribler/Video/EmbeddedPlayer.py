@@ -27,7 +27,7 @@ MEDIASTATE_PLAYING = 1
 MEDIASTATE_PAUSED  = 2
 MEDIASTATE_STOPPED = 3
 
-DEBUG = True
+DEBUG = False
 
 
 class VideoItem:
@@ -87,7 +87,8 @@ class VideoFrame(wx.Frame):
 
     def swapin_videopanel(self,url,play=True,progressinf=None):
         
-        print >>sys.stderr,"videoframe: Swap IN videopanel"
+        if DEBUG:
+            print >>sys.stderr,"videoframe: Swap IN videopanel"
         
         if not self.showingvideo:
             self.showingvideo = True
@@ -101,7 +102,8 @@ class VideoFrame(wx.Frame):
 
     def swapout_videopanel(self):
         
-        print >>sys.stderr,"videoframe: Swap OUT videopanel"
+        if DEBUG:
+            print >>sys.stderr,"videoframe: Swap OUT videopanel"
         
         self.videopanel.reset()
         if self.showingvideo:

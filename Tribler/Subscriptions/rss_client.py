@@ -147,6 +147,7 @@ class TorrentFeedThread(Thread):
         self.lock.release()
         
     def run(self):
+        sleep(10) # Let other Tribler components, in particular, MetadataHandler startup
         while not self.done.isSet():
             self.lock.acquire()
             cfeeds = self.feeds[:]

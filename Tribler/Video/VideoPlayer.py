@@ -307,14 +307,16 @@ class VideoPlayer:
         mimetype = 'video/mpeg'
         video_player_path = self.utility.config.Read('videoplayerpath')
 
-        print "videoplay: Default player is",video_player_path
+        if DEBUG:
+            print >>sys.stderr,"videoplay: Default player is",video_player_path
 
         if sys.platform == 'win32':
             # TODO: Use Python's mailcap facility on Linux to find player
             [mimetype,playcmd] = self.win32_retrieve_video_play_command(ext,videourl)
             if mimetype is None:
                 mimetype = 'video/mpeg'
-            print "videoplay: Win32 reg said playcmd is",playcmd
+            if DEBUG:
+                print >>sys.stderr,"videoplay: Win32 reg said playcmd is",playcmd
 
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
             return [mimetype,videourl]
@@ -323,9 +325,10 @@ class VideoPlayer:
                 cmd = 'start /B "TriblerVideo" '+playcmd
                 return [mimetype,cmd]
 
-        print >>sys.stderr,"videoplay: Defaulting to default player",video_player_path
+        if DEBUG:
+            print >>sys.stderr,"videoplay: Defaulting to default player",video_player_path
         qprogpath = self.quote_program_path(video_player_path)
-        print >>sys.stderr,"videoplay: Defaulting to quoted prog",qprogpath
+        #print >>sys.stderr,"videoplay: Defaulting to quoted prog",qprogpath
         if qprogpath is None:
             return [None,None]
         qvideourl = self.escape_path(videourl)
@@ -651,8 +654,9 @@ def is_movie(filename,enc=False):
     # filter movies
     movie_extensions = [".%s" % e for e in EXTENSIONS]
 
+    low = filename.lower()
     for ext in movie_extensions:
-        if filename.endswith( ext ) or (enc and filename.endswith(ext+'.enc')):
+        if low.endswith( ext ) or (enc and low.endswith(ext+'.enc')):
             return True
     else:
         return False

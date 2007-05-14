@@ -273,8 +273,8 @@ class BasicDB:    # Should we use delegation instead of inheritance?
             #return self._data.get(key, value)
         except Exception,e:
             print >> sys.stderr, "cachedb: _get EXCEPTION BY",currentThread().getName()
-            print_stack()
-            #self.report_exception(e)   # Jie: don't show the error window to bother users
+            print_exc()
+            self.report_exception(e)   # Jie: don't show the error window to bother users
             return value
         
     def _updateItem(self, key, data):
@@ -318,7 +318,7 @@ class BasicDB:    # Should we use delegation instead of inheritance?
         except Exception,e:
             print >> sys.stderr, "cachedb: _keys EXCEPTION BY",currentThread().getName()
             print_exc()
-            #self.report_exception(e)
+            self.report_exception(e)
             return []
     
     def _values(self):
@@ -368,7 +368,7 @@ class BasicDB:    # Should we use delegation instead of inheritance?
         return df
     
     def report_exception(self,e):
-        return  # Jie: don't show the error window to bother users
+        #return  # Jie: don't show the error window to bother users
         if BasicDB.exception_handler is not None:
             BasicDB.exception_handler(e)
     
