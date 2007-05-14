@@ -410,8 +410,8 @@ class MetadataHandler:
                 num2del = 1 + space_need / (25*(2**10))    # how many torrents to del, assume each torrent is 25K
                 self.max_num_torrents = self.num_torrents - num2del
                 if self.max_num_torrents > 0:
-                    print >> sys.stderr, "meta: disk overflow when save_torrent", self.free_space/(2**20), \
-                        self.min_free_space/(2**20), num2del, self.num_torrents, self.max_num_torrents
+                    #print >> sys.stderr, "meta: disk overflow when save_torrent", self.free_space/(2**20), \
+                    #    self.min_free_space/(2**20), num2del, self.num_torrents, self.max_num_torrents
                     self.check_overflow()
                 else:    # stop working; even remove all the space is still not enough
                     return
