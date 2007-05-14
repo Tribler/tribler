@@ -581,7 +581,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
                 # Arno: we are a separate thread, delegate GUI updates to MainThread
                 self.upgradeCallback()
         except Exception,e:
-            print >> sys.stderr, "abc: Version check failed", ctime(time()), str(e)
+            print >> sys.stderr, "Tribler: Version check failed", ctime(time()), str(e)
             #print_exc()
             
     def newversion(self, curr_version, my_version):

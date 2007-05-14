@@ -164,7 +164,8 @@ class DLFilesList(tribler_List):
                 if ret:
                     self.infohash_List.pop(item)
                     self.DeleteItem(item)
-                    if self.other_List is not None:
+                    if self.other_List is not None:    
+                        # only used to move items to common item list in peer view
                         if self.other_List.isEmpty:
                             self.other_List.DeleteAllItems()
                         self.other_List.InsertStringItem(sys.maxint, torrent['info']['name'])

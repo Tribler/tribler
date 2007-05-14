@@ -635,8 +635,12 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             if todayList.GetColumnCount() == 0:
                 todayList.InsertColumn(0, "Torrent",wx.LIST_FORMAT_LEFT,280)
             todayList.DeleteAllItems()
+            
+            today_infohashes = []
             for torrent in todayl:
                 todayList.Append([torrent['content_name']])
+                today_infohashes.append(torrent['infohash'])
+            todayList.setInfoHashList(today_infohashes)
 
             # Update Yesterday view
             ydayField = self.getGuiObj('receivedYesterday')
@@ -654,9 +658,11 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             if ydayList.GetColumnCount() == 0:
                 ydayList.InsertColumn(0, "Torrent",wx.LIST_FORMAT_LEFT,280)
             ydayList.DeleteAllItems()
+            yesterday_infohashes = []
             for torrent in yesterdayl:
                 ydayList.Append([torrent['content_name']])
-
+                yesterday_infohashes.append(torrent['infohash'])
+            ydayList.setInfoHashList(yesterday_infohashes)
         
         elif self.mode == 'profileMode':
             if len(item) == 0:

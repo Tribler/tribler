@@ -48,17 +48,18 @@ class MetadataHandler:
         self.dlhelper = dlhelper
         self.launchmany = launchmany
         self.config = config
-        config_dir = self.config['config_path']
-        self.min_free_space = self.config['stop_collecting_threshold']*(2**20)    # TODO: apply to effect from GUI
+        self.min_free_space = self.config['stop_collecting_threshold']*(2**20)
         if self.min_free_space <= 0:
             self.min_free_space = 200*(2**20)    # at least 1 MB left on disk
-        self.config_dir = os.path.join(config_dir, 'torrent2')    #TODO: user can set it
+        config_dir = self.config['config_path']
+        self.config_dir = os.path.abspath(os.path.join(config_dir, 'torrent2'))    #TODO: user can set it
         self.free_space = self.get_free_space()
         print "Available space for database and collecting torrents: %d MB," % (self.free_space/(2**20)), "Min free space", self.min_free_space/(2**20), "MB"
         self.max_num_torrents = self.init_max_num_torrents = int(self.config['max_torrents'])
         self.upload_rate = 1024 * int(self.config['torrent_collecting_rate'])   # 5KB/s
         self.torrent_db = SynTorrentDBHandler()
         self.num_torrents = -100
+        self.num_collected_torrents = 0
         self.recently_collected_torrents = []
         self.upload_queue = []
         self.requested_torrents = Set()
@@ -72,7 +73,7 @@ class MetadataHandler:
         self.upload_rate = rate * 1024
         
     def set_min_free_space(self, min_free_space):
-        self.min_free_space = min_free_space*(2**20)
+        self.min_free_space = max(1, min_free_space)*(2**20)    # at least 1 MB
 
     def checking_upload_queue(self):
         """ check the upload queue every 5 seconds, and send torrent out if the queue 
@@ -423,17 +424,22 @@ class MetadataHandler:
         if not self.initialized:
             return
 
-        self.check_free_space()
+        if self.free_space <= self.min_free_space or self.num_collected_torrents % 10 == 0:
+            self.check_free_space()
+            
         if self.free_space <= len(metadata):    # no enough space
             return
         
         file_name = self.get_filename(torrent_hash)
         if DEBUG:
             print >> sys.stderr,"metadata: Storing torrent", sha(torrent_hash).hexdigest(),"in",file_name
-        save_path = os.path.join(self.config_dir, file_name)
-        self.write_torrent(metadata, self.config_dir, file_name)
-        self.addTorrentToDB(save_path, torrent_hash, metadata, source=source, extra_info=extra_info)
         
+        self.write_torrent(metadata, self.config_dir, file_name)
+        self.num_collected_torrents += 1
+        self.free_space -= len(metadata)
+        
+        save_path = os.path.join(self.config_dir, file_name)
+        self.addTorrentToDB(save_path, torrent_hash, metadata, source=source, extra_info=extra_info)
         # check if space is enough and remove old torrents
         
         
