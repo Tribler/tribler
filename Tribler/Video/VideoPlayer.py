@@ -307,7 +307,8 @@ class VideoPlayer:
                 print >>sys.stderr,"videoplay: play_url: OLD PATH WAS",x[2],"NEW PATH",n
             x[2] = n
             n = urllib.quote(x[3])
-            print >>sys.stderr,"videoplay: play_url: OLD QUERY WAS",x[3],"NEW PATH",n
+            if DEBUG:
+                print >>sys.stderr,"videoplay: play_url: OLD QUERY WAS",x[3],"NEW PATH",n
             x[3] = n
             url = urlparse.urlunsplit(x)
 
