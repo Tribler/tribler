@@ -189,7 +189,7 @@
                           <option>0</option>
                           <object class="wxStaticText" name="creationdateField">
                             <label>unknown</label>
-                            <pos>90,28</pos>
+                            <pos>87,25</pos>
                             <size>131,18</size>
                           </object>
                         </object>
@@ -228,8 +228,8 @@
                           <option>0</option>
                           <object class="wxStaticText" name="popularityField1">
                             <label>?</label>
-                            <pos>101,46</pos>
-                            <size>21,18</size>
+                            <pos>102,43</pos>
+                            <size>36,18</size>
                           </object>
                         </object>
                         <object class="sizeritem">
@@ -248,8 +248,8 @@
                           <option>0</option>
                           <object class="wxStaticText" name="popularityField2">
                             <label>?</label>
-                            <pos>157,46</pos>
-                            <size>21,18</size>
+                            <pos>158,43</pos>
+                            <size>36,18</size>
                           </object>
                         </object>
                         <object class="sizeritem">

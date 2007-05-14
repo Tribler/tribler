@@ -108,7 +108,15 @@
                   <style>wxST_NO_AUTORESIZE</style>
                   <label>nickname:</label>
                   <pos>110,69</pos>
-                  <size>64,23</size>
+                  <size>89,23</size>
+                  <font>
+                    <size>11</size>
+                    <family>modern</family>
+                    <style>normal</style>
+                    <weight>normal</weight>
+                    <underlined>0</underlined>
+                    <face>Verdana</face>
+                  </font>
                 </object>
               </object>
               <object class="spacer">
@@ -136,12 +144,12 @@
               <orient>wxVERTICAL</orient>
               <object class="sizeritem">
                 <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                <border>3</border>
+                <border>6</border>
                 <option>0</option>
                 <object class="wxStaticText" name="myNameField">
                   <style>wxST_NO_AUTORESIZE</style>
                   <label>_</label>
-                  <pos>177,66</pos>
+                  <pos>205,69</pos>
                   <size>169,23</size>
                   <font>
                     <size>11</size>
@@ -149,7 +157,7 @@
                     <style>normal</style>
                     <weight>bold</weight>
                     <underlined>0</underlined>
-                    <face>Tahoma</face>
+                    <face>Verdana</face>
                   </font>
                 </object>
               </object>

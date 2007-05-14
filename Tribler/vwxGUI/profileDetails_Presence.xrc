@@ -101,7 +101,7 @@
               <object class="wxStaticText" name="Desc0">
                 <style>wxST_NO_AUTORESIZE</style>
                 <label>   Number of friends</label>
-                <pos>0,50</pos>
+                <pos>0,36</pos>
                 <size>241,15</size>
                 <bg>#cbcbcb</bg>
               </object>
@@ -144,7 +144,7 @@
               </object>
             </object>
             <object class="sizeritem">
-              <flag>wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
               <object class="wxStaticText" name="descriptionField1">
@@ -159,6 +159,15 @@
                   <underlined>0</underlined>
                   <face>Verdana</face>
                 </font>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxTOP|wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
+              <border>6</border>
+              <option>0</option>
+              <object class="wxPanel" name="takeMeThere0" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                <pos>6,113</pos>
+                <size>120,21</size>
               </object>
             </object>
             <object class="sizeritem">
@@ -232,8 +241,8 @@
               <flag>wxTOP|wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
-              <object class="wxPanel" name="takeMeThere0" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                <pos>6,368</pos>
+              <object class="wxPanel" name="takeMeThere1" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                <pos>6,220</pos>
                 <size>120,21</size>
               </object>
             </object>

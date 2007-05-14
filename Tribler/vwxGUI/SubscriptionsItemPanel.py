@@ -68,7 +68,7 @@ class SubscriptionsItemPanel(wx.Panel):
         self.thumb.SetSize((16,16))
         self.hSizer.Add(self.thumb, 0, wx.ALL, 3)        
         # Add title
-        self.title =wx.StaticText(self,-1,"Tribler discovery through other Tribler Users",wx.Point(0,0),wx.Size(550,20))        
+        self.title =wx.StaticText(self,-1,"Tribler discovery through other Tribler Users",wx.Point(0,0),wx.Size(800,20))        
         #self.title.SetBackgroundColour(wx.BLUE)
         self.title.SetFont(wx.Font(12,74,90,wx.NORMAL,0,"Verdana"))
         self.title.SetMinSize((550,20))

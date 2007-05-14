@@ -102,10 +102,9 @@ class GUIUtility:
                 self.utility.actions[ACTION_PREFERENCES].action(openname=self.utility.lang.get('triblersetting'))
             if panel_name == "profileDetails_Download":
                 #self.utility.actions[ACTION_PREFERENCES].action(openname=self.utility.lang.get('triblersetting'))
-                self.utility.actions[ACTION_PREFERENCES].action(openname=self.utility.lang.get('ratelimits'))
-            elif panel_name == "profileDetails_Presence": 
-                URL = 'http://www.tribler.org/'
-                webbrowser.open(URL)  
+                self.utility.actions[ACTION_PREFERENCES].action(openname=self.utility.lang.get('videosetting'))
+            elif panel_name == "profileDetails_Presence":
+                self.emailFriend(event)
                 #self.mainButtonClicked( 'mainButtonPersons', self.frame.mainButtonPersons)
             #generate event to change page -> this should be done as a parameter to action because is modal
             #event = wx.TreeEvent(wx.EVT_TREE_ITEM_ACTIVATED)
@@ -115,6 +114,9 @@ class GUIUtility:
             if panel_name == "profileDetails_Download":
                 self.emailFriend(event)
                 #self.mainButtonClicked( 'mainButtonPersons', self.frame.mainButtonPersons)
+            if panel_name == "profileDetails_Presence": 
+                URL = 'http://www.tribler.org/'
+                webbrowser.open(URL)  
             else:
                 print 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
                 

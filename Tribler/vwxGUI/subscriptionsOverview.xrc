@@ -93,7 +93,7 @@
               <option>0</option>
               <object class="wxPanel" name="subscribe" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
                 <pos>431,6</pos>
-                <size>23,23</size>
+                <size>24,24</size>
               </object>
             </object>
           </object>

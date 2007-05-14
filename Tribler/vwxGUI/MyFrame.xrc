@@ -233,7 +233,7 @@
                                     <option>0</option>
                                     <object class="wxStaticText" name="numberFiles">
                                       <style>wxST_NO_AUTORESIZE</style>
-                                      <label>200</label>
+                                      <label>---</label>
                                       <pos>219,5</pos>
                                       <size>35,13</size>
                                       <bg>#  4454</bg>
@@ -246,7 +246,7 @@
                                     <option>0</option>
                                     <object class="wxStaticText" name="numberPersons">
                                       <style>wxST_NO_AUTORESIZE</style>
-                                      <label>300</label>
+                                      <label>---</label>
                                       <pos>219,20</pos>
                                       <size>35,13</size>
                                       <bg>#  4454</bg>
@@ -282,7 +282,7 @@
 _
 _</label>
                               <pos>87,35</pos>
-                              <size>160,38</size>
+                              <size>195,38</size>
                               <bg>#305100</bg>
                               <fg>#ffffff</fg>
                             </object>
@@ -315,17 +315,9 @@ _</label>
               <flag>wxTOP|wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>9</border>
               <option>0</option>
-              <object class="wxBoxSizer">
-                <orient>wxVERTICAL</orient>
-                <object class="sizeritem">
-                  <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-                  <border>9</border>
-                  <option>1</option>
-                  <object class="wxPanel" name="standardDetails" subclass="Tribler.vwxGUI.standardDetails.standardDetails">
-                    <pos>704,98</pos>
-                    <size>300,3</size>
-                  </object>
-                </object>
+              <object class="wxPanel" name="standardDetails" subclass="Tribler.vwxGUI.standardDetails.standardDetails">
+                <pos>2121,98</pos>
+                <size>300,400</size>
               </object>
             </object>
             <object class="spacer">
