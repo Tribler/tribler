@@ -951,7 +951,22 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
 
             sys.stdout.write('Client Starting Up.\n')
             sys.stdout.write('Build: ' + self.utility.lang.get('build') + '\n')
+            
+            bm = wx.Bitmap(os.path.join(self.utility.getPath(),'icons','splash.jpg'),wx.BITMAP_TYPE_JPEG)
+            self.splash = wx.SplashScreen(bm, wx.SPLASH_CENTRE_ON_SCREEN|wx.SPLASH_TIMEOUT, 1000, None, -1)
+            
+            wx.CallAfter(self.PostInit)
+            return True
+            
+        except Exception,e:
+            print_exc()
+            self.error = e
+            self.onError()
+            return False
 
+
+    def PostInit(self):
+        try:
             tribler_init(self.utility.getConfigPath(),self.utility.getPath(),self.db_exception_handler)
             self.utility.setTriblerVariables()
             self.utility.postAppInit()

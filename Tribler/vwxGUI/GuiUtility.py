@@ -83,9 +83,7 @@ class GUIUtility:
             #print >>sys.stderr,"GUIUtil: buttonClicked: parent is",obj.GetParent().GetName()
             dialog = MakeFriendsDialog(obj,self.utility)
             ret = dialog.ShowModal()
-            if ret == wx.ID_OK:
-                #self.updateView()
-                dialog.Destroy()
+            dialog.Destroy()
         elif name == 'inviteFriends':
             self.emailFriend(event)
        

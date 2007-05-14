@@ -10,8 +10,10 @@ from shutil import copy2
 import wx
 import wx.lib.imagebrowser as ib
 from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
+from Tribler.CacheDB.SynDBHandler import SynPeerDBHandler
 from Tribler.Overlay.permid import permid_for_user
 from Tribler.Dialogs.MugshotManager import MugshotManager
+#from Tribler.vwxGUI.peermanager import PeerDataManager
 
 DEBUG = False
 
@@ -195,12 +197,20 @@ class MakeFriendsDialog(wx.Dialog):
             self.show_inputerror(self.utility.lang.get('friendsport_error'))
         else:
             fdb = FriendDBHandler()
+            pdb = SynPeerDBHandler()
+            
             #friend = {'permid':permid, 'ip':ip, 'port':port, 'name':name, 'icon':newiconfilename}
-            friend = {'permid':permid, 'ip':ip, 'port':port, 'name':name}
+            #friend = {'permid':permid, 'ip':ip, 'port':port, 'name':name}
+            friend = {'ip':ip, 'port':port, 'name':name}
             if self.editfriend is not None:
                 if self.editfriend['permid'] != permid:
                     fdb.deleteFriend(self.editfriend['permid'])
-            fdb.addExternalFriend(friend)
+                    pdb.deletePeer(self.editfriend['permid'])
+                    
+            #fdb.addExternalFriend(friend)
+            fdb.addFriend(permid)
+            pdb.addPeer(permid,friend)
+            
             event.Skip()    # must be done, otherwise ShowModal() returns wrong error 
             self.Destroy()
 

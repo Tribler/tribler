@@ -17,7 +17,7 @@ from BitTornado.BT1.MessageID import protocol_name,option_pattern,getMessageName
 from BitTornado.BT1.convert import tobinary,toint
 
 from Tribler.CacheDB.CacheDBHandler import MyDBHandler
-from Tribler.CacheDB.SynDBHandler import SynPeerDBHandler as PeerDBHandler
+from Tribler.CacheDB.SynDBHandler import SynPeerDBHandler
 from Tribler.Overlay.permid import ChallengeResponse
 from Tribler.utilities import show_permid_short
 
@@ -90,7 +90,7 @@ class SecureOverlay:
         self.iplport2oc = {}    # (IP,listen port) -> OverlayConnection
         self.usermsghandler = None
         self.userconnhandler = None
-        self.peer_db = PeerDBHandler()
+        self.peer_db = SynPeerDBHandler()
         self.mykeypair = mykeypair
         self.permid = str(mykeypair.pub().get_der())
         self.myip = MyDBHandler().getMyIP()

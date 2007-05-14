@@ -12,6 +12,7 @@ from copy import deepcopy
 from traceback import print_exc, print_stack
 from time import time
 from bisect import insort
+from sets import Set
 
 import web2
 
@@ -495,6 +496,7 @@ class TorrentDataManager:
                         print >>sys.stderr,"torrentDataManager: search: Got hit",`wantkw`,"found in",`torrent['content_name']`
                     hits.append(torrent)
         # Store the hits, so that we can update them
+        hits = list(Set(hits)) # remove duplicates
         self.hits = hits
         return hits
 

@@ -1189,7 +1189,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         if torrent.get('web2'):
             if DEBUG:
                 print "PLAY WEB2 VIDEO: " + torrent['url']
-            self.videoplayer.parentwindow.swapin_videopanel(torrent['url'])
+            #self.videoplayer.parentwindow.swapin_videopanel(torrent['url'])
+            self.videoplayer.play_url(torrent['url'])
             return
 
         src1 = os.path.join(torrent['torrent_dir'], 

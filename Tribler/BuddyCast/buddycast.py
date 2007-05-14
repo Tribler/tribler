@@ -164,8 +164,8 @@ import socket
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import BUDDYCAST, KEEP_ALIVE
 from Tribler.CacheDB.CacheDBHandler import *
-from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler as TorrentDBHandler
-from Tribler.CacheDB.SynDBHandler import SynPeerDBHandler as PeerDBHandler
+from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
+from Tribler.CacheDB.SynDBHandler import SynPeerDBHandler
 from Tribler.utilities import *
 from Tribler.unicode import dunno2unicode
 from Tribler.Dialogs.activities import ACT_MEET, ACT_RECOMMEND
@@ -1458,9 +1458,9 @@ class DataHandler:
         self.rawserver = rawserver
         # --- database handlers ---
         self.my_db = MyDBHandler(db_dir=db_dir)
-        self.peer_db = PeerDBHandler(db_dir=db_dir)
+        self.peer_db = SynPeerDBHandler(db_dir=db_dir)
         self.superpeer_db = SuperPeerDBHandler(db_dir=db_dir)
-        self.torrent_db = TorrentDBHandler(db_dir=db_dir)
+        self.torrent_db = SynTorrentDBHandler(db_dir=db_dir)
         self.mypref_db = MyPreferenceDBHandler(db_dir=db_dir)
         self.pref_db = PreferenceDBHandler(db_dir=db_dir)
         self.friend_db = FriendDBHandler(db_dir=db_dir)

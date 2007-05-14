@@ -7,6 +7,7 @@ import re
 import urllib
 from threading import currentThread,Event
 from traceback import print_exc,print_stack
+import urlparse
 
 from safeguiupdate import DelayedInvocation
 from Utility.regchecker import Win32RegChecker
@@ -270,7 +271,8 @@ class VideoPlayer:
         if currentThread().getName() != "MainThread":
             print >>sys.stderr,"videoplay: vod_download_completed called by nonMainThread!",currentThread().getName()
             print_stack()
-        
+
+        ABCTorrentTemp.disable_on_demand_download()
         prevactivetorrents = ABCTorrentTemp.get_previously_active_torrents()
         if prevactivetorrents is not None:
             if DEBUG:
@@ -284,6 +286,40 @@ class VideoPlayer:
         self.vod_stopped(ABCTorrentTemp)
         self.utility.actionhandler.procSTOP([ABCTorrentTemp])
         self.utility.actionhandler.procRESUME([ABCTorrentTemp])
+
+
+    def play_url(self,url):
+        """ Play video file from disk """
+        self.determine_playbackmode()
+        
+        t = urlparse.urlsplit(url)
+        dest = t[2]
+        if DEBUG:
+            print >>sys.stderr,"videoplay: Playing file from url",url
+
+        
+        # VLC will play .flv files, but doesn't like the URLs that YouTube uses,
+        # so quote them
+        if self.playbackmode != PLAYBACKMODE_INTERNAL:
+            x = [t[0],t[1],t[2],t[3],t[4]]
+            n = urllib.quote(x[2])
+            if DEBUG:
+                print >>sys.stderr,"videoplay: play_url: OLD PATH WAS",x[2],"NEW PATH",n
+            x[2] = n
+            n = urllib.quote(x[3])
+            print >>sys.stderr,"videoplay: play_url: OLD QUERY WAS",x[3],"NEW PATH",n
+            x[3] = n
+            url = urlparse.urlunsplit(x)
+
+        (prefix,ext) = os.path.splitext(dest)
+        [mimetype,cmd] = self.get_video_player(ext,url)
+        
+        if DEBUG:
+            print >>sys.stderr,"videoplay: play_url: cmd is",cmd
+        
+        self.launch_video_player(cmd)
+
+
 
     def select_video(self,ABCTorrentTemp,enc=False):        
         fileindexlist = find_video_on_disk(ABCTorrentTemp,enc)

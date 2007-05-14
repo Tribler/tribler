@@ -10,6 +10,7 @@ from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
 from Tribler.utilities import show_permid_short
 #from managefriends import createImageList
 from Tribler.Dialogs.MugshotManager import MugshotManager
+from Tribler.utilities import show_permid_shorter
 
 DEBUG = 0
 
@@ -104,7 +105,7 @@ class DownloadHelperPanel(wx.Panel):
             try:
                 #imgList = createImageList(self.utility,friends)
                 mm = MugshotManager.getInstance()
-                imgList = mm.create_wxImageList(friends)
+                imgList = mm.create_wxImageList(friends,setindex=True)
             except:
                 print_exc()
                 # disable icons
@@ -114,16 +115,21 @@ class DownloadHelperPanel(wx.Panel):
         self.remainingFriends = []
         for index in range(len(friends)):
             friend = friends[index]
+            
+            if friend['name'] == '':
+                friend['name']= 'peer %s' % show_permid_shorter(friend['permid'])
+            
             flag = 0
             for helper in helpingFriends:
                 if friend['permid'] == helper['permid']:
-                    helper['tempiconindex'] = index
+                    #helper['tempiconindex'] = index
                     flag = 1
                     break
             if flag:
                 continue
-            friend['tempiconindex'] = index
+            #friend['tempiconindex'] = index
             self.remainingFriends.append(friend)
+            
 
         # 3. TODO: remove entries from helpingFriends that are no longer friends
 

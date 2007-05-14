@@ -3,6 +3,7 @@ from traceback import print_exc
 from Tribler.utilities import *
 from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.Dialogs.ContentFrontPanel import ImagePanel
+from Tribler.Dialogs.makefriends import MakeFriendsDialog
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from Tribler.vwxGUI.PersonsItemPanel import ThumbnailViewer
 from Tribler.unicode import *
@@ -106,6 +107,7 @@ class FriendsItemPanel(wx.Panel):
         for window in self.GetChildren():
             window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
             window.Bind(wx.EVT_KEY_UP, self.keyTyped)
+            window.Bind(wx.EVT_LEFT_DCLICK, self.doubleClicked)
             
     def addLine(self, vertical=True):
         if vertical:
@@ -149,7 +151,7 @@ class FriendsItemPanel(wx.Panel):
             self.title.Enable(True)
             self.title.SetLabel(title)
             self.title.Wrap(self.title.GetSize()[0])
-            self.title.SetToolTipString(peer_data['content_name'])
+            self.title.SetToolTipString(peer_data['ip']+':'+str(peer_data['port']))
             self.delete.Show()
             self.tasteHeart.Show()
         else:
@@ -236,7 +238,15 @@ class FriendsItemPanel(wx.Panel):
         if self.data:
             return self.data['permid']
         
-        
+
+    def doubleClicked(self, event):
+        if self.data is not None:
+            dialog = MakeFriendsDialog(self,self.utility,self.data)
+            ret = dialog.ShowModal()
+            dialog.Destroy()
+            
+        event.Skip()
+      
                 
 
 class FriendThumbnailViewer(ThumbnailViewer):
