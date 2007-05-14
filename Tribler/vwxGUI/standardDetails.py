@@ -941,7 +941,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             ofList.DeleteAllItems()
             cfList.DeleteAllItems()
             ofList.setInfoHashList(None)
-            if self.mode != "personsMode" or self.item is None or self.item.get('permid') is None:
+            if ( self.mode != "personsMode" and self.mode != "friendsMode" ) or self.item is None or self.item.get('permid') is None:
                 return
             permid = self.item['permid']
             hash_list = self.guiUtility.peer_manager.getPeerHistFiles(permid)
