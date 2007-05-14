@@ -496,7 +496,8 @@ class TorrentDataManager:
                         print >>sys.stderr,"torrentDataManager: search: Got hit",`wantkw`,"found in",`torrent['content_name']`
                     hits.append(torrent)
         # Store the hits, so that we can update them
-        hits = list(Set(hits)) # remove duplicates
+        hits.sort()
+        hits = [hits[i] for i in xrange(0,len(hits)) if i == 0 or hits[i] != hits[i-1]] # remove duplicates
         self.hits = hits
         return hits
 
