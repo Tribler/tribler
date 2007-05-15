@@ -631,10 +631,12 @@ class VODWarningDialog(wx.Dialog):
         msg = self.utility.lang.get('vodwarngeneral')
         if bitrate is None:
             msg += self.utility.lang.get('vodwarnbitrateunknown')
+            msg += self.is_mov_file(videoinfo)
             msg += self.utility.lang.get('vodwarnconclusionno')
         elif bitrate > maxuploadrate and maxuploadrate != 0:
             s = self.utility.lang.get('vodwarnbitrateinsufficient') % (str(bitrate/1024),str(maxuploadrate)+" KB/s")
             msg += s
+            msg += self.is_mov_file(videoinfo)
             msg += self.utility.lang.get('vodwarnconclusionno')
         else:
             if maxuploadrate == 0:
@@ -643,7 +645,12 @@ class VODWarningDialog(wx.Dialog):
                 rate = str(maxuploadrate)+" KB/s"
             s = self.utility.lang.get('vodwarnbitratesufficient') % (str(bitrate/1024),rate)
             msg += s
-            msg += self.utility.lang.get('vodwarnconclusionyes')
+            extra = self.is_mov_file(videoinfo)
+            if extra  == '':
+                msg += self.utility.lang.get('vodwarnconclusionyes')
+            else:
+                msg += extra
+                msg += self.utility.lang.get('vodwarnconclusionno')
         
         sizer = wx.BoxSizer(wx.VERTICAL)
         text = wx.StaticText(self, -1, msg)
@@ -685,7 +692,15 @@ class VODWarningDialog(wx.Dialog):
             print >>sys.stderr,"videoplay: Other-torrents-policy is",idx
         return idx
 
-
+    def is_mov_file(self,videoinfo):
+        orig = videoinfo[1]
+        (prefix,ext) = os.path.splitext(orig)
+        low = ext.lower()
+        if low == '.mov':
+            return self.utility.lang.get('vodwarnmov')
+        else:
+            return ''
+            
         
 def is_movie(filename,enc=False):
     # filter movies
