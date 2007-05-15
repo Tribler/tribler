@@ -97,7 +97,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         
         self.modeElements['subscriptionsMode'] = ['titleField', 'receivedToday', 'subscrTodayField', 'receivedYesterday', 'subscrYesterdayField'] #  'receivedTotal']
         
-        self.tabElements = {'filesTab_files': [ 'download', 'includedFiles', 'filesField'],                            
+        self.tabElements = {'filesTab_files': [ 'download', 'includedFiles', 'filesField', 'trackerField'],                            
                             'personsTab_advanced': ['lastExchangeField', 'timesConnectedField','addAsFriend','similarityValueField'],
                             'libraryTab_files': [ 'download', 'includedFiles'],
                             'profileDetails_Quality': ['descriptionField0','howToImprove','descriptionField1'],
@@ -242,14 +242,17 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             if modeString in ['files','library']:
                 self.getGuiObj('up').setBackground(wx.WHITE)
                 self.getGuiObj('down').setBackground(wx.WHITE)
-                self.getGuiObj('refresh').setBackground(wx.WHITE)
+                refresh = self.getGuiObj('refresh')
+                refresh.setBackground(wx.WHITE)
+                refresh.Bind(wx.EVT_ENTER_WINDOW, self.updateLastCheck)
                 self.setListAspect2OneColumn("peopleWhoField")
                 infoTab = self.getGuiObj('info_detailsTab')
                 infoTab.setSelected(True)
                 self.getAlternativeTabPanel('filesTab_files', parent=currentPanel).Hide()
                 if modeString == 'files':
                     self.getGuiObj('TasteHeart').setBackground(wx.WHITE)
-                    
+                
+                
             elif modeString in ['persons','friends']:
                 self.getGuiObj('TasteHeart').setBackground(wx.WHITE)
                 self.getGuiObj('info_detailsTab').setSelected(True)
@@ -446,11 +449,23 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                         
                         if seeders > -1:
                             seedersField.SetLabel('%d' % seeders)
+                            seedersField.SetToolTipString(self.utility.lang.get('seeder_tool') % seeders)
+                            self.getGuiObj('up').SetToolTipString(self.utility.lang.get('seeder_tool') % seeders)
                             leechersField.SetLabel('%d' % torrent['leecher'])
+                            self.getGuiObj('down').SetToolTipString(self.utility.lang.get('leecher_tool') % torrent['leecher'])
+                            leechersField.SetToolTipString(self.utility.lang.get('leecher_tool') % torrent['leecher'])
+                            
                         else:
                             seedersField.SetLabel('?')
+                            seedersField.SetToolTipString('')
                             leechersField.SetLabel('?')
+                            leechersField.SetToolTipString('')
+                            self.getGuiObj('up').SetToolTipString('')
+                            self.getGuiObj('down').SetToolTipString('')
                             seedersField.SetSize((36,18))
+                            
+                        refreshString = '%s: %s' % (self.utility.lang.get('last_checked'), friendly_time(torrent.get('last_check_time')))
+                        self.getGuiObj('refresh').SetToolTipString(refreshString)
                     seedersField.GetParent().Layout()
                         
                 
@@ -490,6 +505,13 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     downloadButton.Show()
                 else:
                     downloadButton.Hide()
+                # Set tracker info
+                if torrent.has_key('tracker'):
+                    trackerString = torrent['tracker']
+                    short = getShortTrackerFormat(trackerString)
+                    trackerField = self.getGuiObj('trackerField', tab = 'filesTab_files')
+                    trackerField.SetLabel(short)
+                    trackerField.SetToolTipString(trackerString)
                     
                 
             elif DEBUG:
@@ -1372,6 +1394,13 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         leftlabel.SetLabel(lefttext)
         rightlabel.SetLabel(righttxt)
 
+    def updateLastCheck(self, event=None):
+        #print 'updateLastCheck'
+        if self.item and self.item.has_key('last_check_time'):
+            last_time = self.item.get('last_check_time')
+            if last_time and type(last_time) == int:
+                self.getGuiObj('refresh').SetToolTipString('%s: %s' % (self.utility.lang.get('last_checked'), friendly_time(last_time)))
+        event.Skip()
     """
     def subscrNeedsGUIUpdate(self,todayl,yesterdayl):
         update = True
@@ -1402,3 +1431,13 @@ def reverse_torrent_insertime_cmp(a,b):
         return 0
     else:
         return -1
+    
+def getShortTrackerFormat(n):
+        i1 = n.find(':', 8)
+        i2 = n.find('/', 8)
+        if i1 != -1 and (i1 < i2 or i2 == -1):
+            return n[:i1]
+        elif i2 != -1:
+            return n[:i2]
+        else:
+            return n

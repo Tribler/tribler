@@ -126,6 +126,7 @@ class tribler_topButton(wx.Panel):
         return self.selected
         
     def mouseAction(self, event):
+        event.Skip()
         if event.Entering():
             #print 'enter' 
             self.mouseOver = True
