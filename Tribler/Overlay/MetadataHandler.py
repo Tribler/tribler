@@ -34,6 +34,7 @@ class MetadataHandler:
         if MetadataHandler.__single:
             raise RuntimeError, "MetadataHandler is singleton"
         MetadataHandler.__single = self
+        self.torrent_db = SynTorrentDBHandler()
         self.num_torrents = -100
         self.initialized = False
         self.registered = False
@@ -60,7 +61,6 @@ class MetadataHandler:
         print "Available space for database and collecting torrents: %d MB," % (self.free_space/(2**20)), "Min free space", self.min_free_space/(2**20), "MB"
         self.max_num_torrents = self.init_max_num_torrents = int(self.config['max_torrents'])
         self.upload_rate = 1024 * int(self.config['torrent_collecting_rate'])   # 5KB/s
-        self.torrent_db = SynTorrentDBHandler()
         self.num_collected_torrents = 0
         self.recently_collected_torrents = []
         self.upload_queue = []
@@ -135,6 +135,9 @@ class MetadataHandler:
         if self.torrent_exists(torrent_hash):    # torrent already exists on disk
             return True
         
+        if self.free_space < self.min_free_space:   # no space to collect
+            return True
+
         try:
             # Optimization: don't connect if we're connected, although it won't 
             # do any harm.
@@ -336,6 +339,7 @@ class MetadataHandler:
 
         if self.initialized:
             self.num_torrents += 1
+            #print "---------- add Torrent To DB", self.num_torrents
             self.check_overflow()
         
             if not extra_info:
@@ -352,8 +356,7 @@ class MetadataHandler:
             self.launchmany.set_activity(ACT_GOT_METADATA,unicode('"'+torrent_info['name']+'"'))
         
     def set_overflow(self, max_num_torrent):
-        self.max_num_torrents = max_num_torrent
-        self.init_max_num_torrents = self.max_num_torrents
+        self.max_num_torrents = self.init_max_num_torrents = max_num_torrent
         
     def delayed_check_overflow(self, delay=2):
         if not self.initialized:
@@ -427,16 +430,13 @@ class MetadataHandler:
                 space_need = self.min_free_space - self.free_space
                 num2del = 1 + space_need / (25*(2**10))    # how many torrents to del, assume each torrent is 25K
                 self.max_num_torrents = self.num_torrents - num2del
+                if DEBUG:
+                    print >> sys.stderr, "meta: disk overflow when save_torrent", self.free_space/(2**20), \
+                        self.min_free_space/(2**20), num2del, self.num_torrents, self.max_num_torrents
                 if self.max_num_torrents > 0:
-                    #print >> sys.stderr, "meta: disk overflow when save_torrent", self.free_space/(2**20), \
-                    #    self.min_free_space/(2**20), num2del, self.num_torrents, self.max_num_torrents
                     self.check_overflow()
-                else:    # stop working; even remove all the space is still not enough
-                    return
-
-        else:    # change back
-            self.max_num_torrents = self.init_max_num_torrents
-
+        # always change back
+        self.max_num_torrents = self.init_max_num_torrents
         
     def save_torrent(self, torrent_hash, metadata, source='BC', extra_info={}):
         if not self.initialized:
@@ -445,20 +445,19 @@ class MetadataHandler:
         if self.free_space <= self.min_free_space or self.num_collected_torrents % 10 == 0:
             self.check_free_space()
             
-        if self.free_space <= len(metadata):    # no enough space
+        if self.free_space - len(metadata) < self.min_free_space:    # no enough space
             return
         
         file_name = self.get_filename(torrent_hash)
         if DEBUG:
             print >> sys.stderr,"metadata: Storing torrent", sha(torrent_hash).hexdigest(),"in",file_name
         
-        self.write_torrent(metadata, self.torrent_dir, file_name)
-        self.num_collected_torrents += 1
-        self.free_space -= len(metadata)
-        
-        save_path = os.path.join(self.torrent_dir, file_name)
-        self.addTorrentToDB(save_path, torrent_hash, metadata, source=source, extra_info=extra_info)
-        # check if space is enough and remove old torrents
+        save_path = self.write_torrent(metadata, self.torrent_dir, file_name)
+        if save_path:
+            self.num_collected_torrents += 1
+            self.free_space -= len(metadata)
+            self.addTorrentToDB(save_path, torrent_hash, metadata, source=source, extra_info=extra_info)
+            # check if space is enough and remove old torrents
         
         
     def refreshTrackerStatus(self, torrent):
@@ -487,9 +486,11 @@ class MetadataHandler:
             file.close()
             if DEBUG:
                 print >> sys.stderr,"metadata: write torrent", `save_path`, len(metadata), hash(metadata)
+            return save_path
         except:
             print_exc(file=sys.stderr)
             print >> sys.stderr, "metadata: write torrent failed"
+            return None
 
     def valid_metadata(self, torrent_hash, metadata):
         try:

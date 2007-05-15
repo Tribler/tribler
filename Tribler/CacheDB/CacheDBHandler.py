@@ -551,7 +551,7 @@ class TorrentDBHandler(BasicDBHandler):
                 break #database not available any more
             if not p.get('torrent_name', None) or not p.get('info', None):
                 deleted = self.deleteTorrent(torrent)     # remove infohashes without torrent
-                #print >> sys.stderr, "*** deleted empty torrent", deleted
+                print >> sys.stderr, "*** deleted empty torrent", deleted, p.get('torrent_name', None), p.get('info', None)
             
 #            if torrent not in mypref_set:
 #                live = p.get('status', 'unknown')
