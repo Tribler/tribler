@@ -34,7 +34,9 @@ class MetadataHandler:
         if MetadataHandler.__single:
             raise RuntimeError, "MetadataHandler is singleton"
         MetadataHandler.__single = self
-        self.initialzed = False
+        self.num_torrents = -100
+        self.initialized = False
+        self.registered = False
 
     def getInstance(*args, **kw):
         if MetadataHandler.__single is None:
@@ -43,6 +45,7 @@ class MetadataHandler:
     getInstance = staticmethod(getInstance)
         
     def register(self, secure_overlay, dlhelper, launchmany, config):
+        self.registered = True
         self.secure_overlay = secure_overlay
         self.rawserver = secure_overlay.rawserver
         self.dlhelper = dlhelper
@@ -51,14 +54,13 @@ class MetadataHandler:
         self.min_free_space = self.config['stop_collecting_threshold']*(2**20)
         if self.min_free_space <= 0:
             self.min_free_space = 200*(2**20)    # at least 1 MB left on disk
-        config_dir = self.config['config_path']
-        self.config_dir = os.path.abspath(os.path.join(config_dir, 'torrent2'))    #TODO: user can set it
+        self.config_dir = os.path.abspath(self.config['config_path'])
+        self.torrent_dir = os.path.join(self.config_dir, 'torrent2')    #TODO: user can set it
         self.free_space = self.get_free_space()
         print "Available space for database and collecting torrents: %d MB," % (self.free_space/(2**20)), "Min free space", self.min_free_space/(2**20), "MB"
         self.max_num_torrents = self.init_max_num_torrents = int(self.config['max_torrents'])
         self.upload_rate = 1024 * int(self.config['torrent_collecting_rate'])   # 5KB/s
         self.torrent_db = SynTorrentDBHandler()
-        self.num_torrents = -100
         self.num_collected_torrents = 0
         self.recently_collected_torrents = []
         self.upload_queue = []
@@ -67,7 +69,15 @@ class MetadataHandler:
         self.initialized = True
 
     def get_free_space(self):
-        return getfreespace(self.config_dir)    # Byte
+        if not self.registered:
+            return 0
+        try:
+            freespace = getfreespace(self.config_dir)
+            return freespace
+        except:
+            print >> sys.stderr, "meta: cannot get free space of", self.config_dir
+            print_exc()
+            return 0
 
     def set_rate(self, rate):
         self.upload_rate = rate * 1024
@@ -95,6 +105,8 @@ class MetadataHandler:
             self.rawserver.add_task(self.checking_upload_queue, idel)
 
     def getRecentlyCollectedTorrents(self, num):
+        if not self.initialized:
+            return []
         return self.recently_collected_torrents[-1*num:]    # get the last ones
 
     def handleMessage(self,permid,selversion,message):
@@ -140,7 +152,7 @@ class MetadataHandler:
         # if the torrent is already on disk, put it in db
         
         file_name = sha(torrent_hash).hexdigest()+'.torrent'
-        torrent_path = os.path.join(self.config_dir, file_name)
+        torrent_path = os.path.join(self.torrent_dir, file_name)
         if not os.path.exists(torrent_path):
             return False
         else:
@@ -320,32 +332,38 @@ class MetadataHandler:
         #    print '### one torrent added from MetadataHandler: ' + str(torrent['category']) + ' ' + torrent['torrent_name'] + '###'
         
         self.torrent_db.addTorrent(torrent_hash, torrent, new_metadata=True, updateFlag=True)
-        self.num_torrents += 1
-        self.check_overflow()
         self.torrent_db.sync()
+
+        if self.initialized:
+            self.num_torrents += 1
+            self.check_overflow()
         
-        if not extra_info:
-            torrent.update({'infohash':torrent_hash})
-            self.refreshTrackerStatus(torrent)
-        
-        if len(self.recently_collected_torrents) < 50:    # Queue of 50
-            self.recently_collected_torrents.append(torrent_hash)
-        else:
-            self.recently_collected_torrents.pop(0)
-            self.recently_collected_torrents.append(torrent_hash)
-        
-        # Arno: show activity
-        self.launchmany.set_activity(ACT_GOT_METADATA,unicode('"'+torrent_info['name']+'"'))
+            if not extra_info:
+                torrent.update({'infohash':torrent_hash})
+                self.refreshTrackerStatus(torrent)
+            
+            if len(self.recently_collected_torrents) < 50:    # Queue of 50
+                self.recently_collected_torrents.append(torrent_hash)
+            else:
+                self.recently_collected_torrents.pop(0)
+                self.recently_collected_torrents.append(torrent_hash)
+            
+            # Arno: show activity
+            self.launchmany.set_activity(ACT_GOT_METADATA,unicode('"'+torrent_info['name']+'"'))
         
     def set_overflow(self, max_num_torrent):
         self.max_num_torrents = max_num_torrent
         self.init_max_num_torrents = self.max_num_torrents
         
     def delayed_check_overflow(self, delay=2):
+        if not self.initialized:
+            return
         rawserver = self.secure_overlay.rawserver    # not a good way, but simple
         rawserver.add_task(self.check_overflow, delay)
         
     def delayed_check_free_space(self, delay=2):
+        if not self.initialized:
+            return
         rawserver = self.secure_overlay.rawserver    # not a good way, but simple
         rawserver.add_task(self.check_free_space, delay)
         
@@ -434,11 +452,11 @@ class MetadataHandler:
         if DEBUG:
             print >> sys.stderr,"metadata: Storing torrent", sha(torrent_hash).hexdigest(),"in",file_name
         
-        self.write_torrent(metadata, self.config_dir, file_name)
+        self.write_torrent(metadata, self.torrent_dir, file_name)
         self.num_collected_torrents += 1
         self.free_space -= len(metadata)
         
-        save_path = os.path.join(self.config_dir, file_name)
+        save_path = os.path.join(self.torrent_dir, file_name)
         self.addTorrentToDB(save_path, torrent_hash, metadata, source=source, extra_info=extra_info)
         # check if space is enough and remove old torrents
         
@@ -452,7 +470,7 @@ class MetadataHandler:
         
     def get_filename(self,torrent_hash):
         file_name = sha(torrent_hash).hexdigest()+'.torrent'
-        #_path = os.path.join(self.config_dir, file_name)
+        #_path = os.path.join(self.torrent_dir, file_name)
         #if os.path.exists(_path):
             # assign a name for the torrent. add a timestamp if it exists.
             #file_name = str(time()) + '_' + file_name 

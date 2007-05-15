@@ -321,7 +321,7 @@ class BasicDB:    # Should we use delegation instead of inheritance?
 #            self.report_exception(e)
 #            self._recover_db()    # have to clear the whole database
         except Exception, e:
-            print >> sys.stderr, "cachedb: synchronize db error", self.db_name, Exception, e
+            #print >> sys.stderr, "cachedb: synchronize db error", self.db_name, Exception, e
             self.report_exception(e)
             
     def _clear(self):
