@@ -366,7 +366,7 @@ class GUIUtility:
         zet = Set(wantkeywords)
         wantkeywords = list(zet)
         #self.peer_manager = standardOverview.peer_manager
-        self.data_manager.setSearchKeywords(wantkeywords)
+        self.data_manager.setSearchKeywords(wantkeywords, mode)
         if mode == 'filesMode':
             sorting = 'swarmsize'
         elif mode == 'libraryMode':

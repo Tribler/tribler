@@ -39,7 +39,7 @@ class TorrentDataManager:
 #        self.loadData()
         self.dict_FunList = {}
         self.done_init = True
-        self.searchkeywords = []
+        self.searchkeywords = {'filesMode':[], 'libraryMode':[]}
         self.metadata_handler = MetadataHandler.getInstance()
         if DEBUG:
             print >>sys.stderr,'torrentManager: ready init'
@@ -98,7 +98,7 @@ class TorrentDataManager:
         if categorykey == "search":
             web2on = self.utility.config.Read('enableweb2search',"boolean")
             if not library and web2on:
-                dod = web2.DataOnDemandWeb2(" ".join(self.searchkeywords))
+                dod = web2.DataOnDemandWeb2(" ".join(self.searchkeywords['filesMode']))
                 dod.addItems(self.search())
                 return dod
             else:
@@ -472,14 +472,20 @@ class TorrentDataManager:
         if wrong > 0:
             raise Exception('wrong torrents')
             
-    def setSearchKeywords(self,wantkeywords):
-        self.searchkeywords = wantkeywords
+    def setSearchKeywords(self,wantkeywords, mode):
+        self.searchkeywords[mode] = wantkeywords
          
     def search(self, library = False):
+        if library:
+            mode = 'libraryMode'
+        else:
+            mode = 'filesMode'
+            
         if DEBUG:
-            print >>sys.stderr,"torrentDataManager: search: Want",self.searchkeywords
+            print >>sys.stderr,"torrentDataManager: search: Want",self.searchkeywords[mode]
         hits = []
-        if len(self.searchkeywords) == 0:
+        
+        if len(self.searchkeywords[mode]) == 0:
             return hits
         for torrent in self.data:
             if library != torrent.has_key('myDownloadHistory'):
@@ -487,7 +493,7 @@ class TorrentDataManager:
             if library and torrent.get('eventComingUp') == 'notDownloading':
                 continue
             low = torrent['content_name'].lower()
-            for wantkw in self.searchkeywords:
+            for wantkw in self.searchkeywords[mode]:
                 # only search in alive torrents
                 if low.find(wantkw) != -1 and (torrent['status'] == 'good' or library):
                     if DEBUG:
