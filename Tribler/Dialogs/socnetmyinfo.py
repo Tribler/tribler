@@ -139,9 +139,9 @@ class NameIconWizardPage(WizardPageSimple):
             if sys.platform == 'win32':
                 # Arno goes win32, find location of "My Pictures"
                 # see http://www.mvps.org/access/api/api0054.htm
-                import win32com.shell as modshell
-                pidl = modshell.shell.SHGetSpecialFolderLocation(0,0x27)
-                path = modshell.shell.SHGetPathFromIDList(pidl)
+                from win32com.shell import shell
+                pidl = shell.SHGetSpecialFolderLocation(0,0x27)
+                path = shell.SHGetPathFromIDList(pidl)
             else:
                 path = os.path.expandvars('$HOME')
         except Exception, msg:

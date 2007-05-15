@@ -1,4 +1,5 @@
 import wx, math, time, os, sys, threading
+import random
 from traceback import print_exc
 from Tribler.utilities import *
 from wx.lib.stattext import GenStaticText as StaticText
@@ -214,8 +215,14 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             # Check if we have already read the thumbnail and metadata information from this torrent file
             if data.get('metadata'):
                 bmp = data['metadata'].get('ThumbnailBitmap')
+                tt = data['metadata'].get('triend_time')
                 if not bmp:
+                    now = time()
+                    #print "BMP IS NONE",data['name']
                     bmp = self.mm.get_default('personsMode','DEFAULT_THUMB')
+                    if now > tt+(15*60.0):
+                        #print "REFRESH OF PEER IMAGE SCHEDULED"
+                        self.GetParent().guiserver.add_task(lambda:self.loadMetadata(data),0)
             else:
                 self.GetParent().guiserver.add_task(lambda:self.loadMetadata(data),0)
             
@@ -255,6 +262,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         """ Called by GUI thread """
 
         metadata = {}
+        metadata['triend_time'] = time()+(random.random()*100)
         if mimetype is not None:
             metadata['ThumbnailBitmap'] = self.mm.data2wxBitmap(mimetype,bmpdata)
         else:

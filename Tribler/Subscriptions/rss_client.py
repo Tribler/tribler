@@ -188,7 +188,26 @@ class TorrentFeedThread(Thread):
                 self.process_statscopy(statscopy)
             self.lock.release()
             """
-            sleep(60*60)
+            # Arno: total waiting time should be 60 minutes
+            for count in range(120):
+                #if DEBUG:
+                #    print >>sys.stderr,"subscrip: Sleeping for 30 after checking all feeds"
+                self.lock.acquire()
+                cfeeds2 = self.feeds[:]
+                urls = []
+                for feed in cfeeds:
+                    urls.append(feed.feed_url)
+                urls2 = []
+                for feed in cfeeds2:
+                    urls2.append(feed.feed_url)
+                self.lock.release()
+                urls.sort()
+                urls2.sort()
+                if urls != urls2:
+                    if DEBUG:
+                        print >>sys.stderr,"subscrip: Detected an addition/removal from feeds list, rechecking all feeds"
+                    break
+                sleep(30)
 
 
     def shutdown(self):
@@ -241,8 +260,8 @@ class TorrentFeedReader:
         feed_socket = urlOpenTimeout(self.feed_url,timeout=5)
         feed_xml = feed_socket.read()
         feed_socket.close()
-        if DEBUG:
-            print "<mluc> feed.refresh read xml:",feed_xml
+        #if DEBUG:
+        #    print "<mluc> feed.refresh read xml:",feed_xml
         feed_dom = parseString(feed_xml)
 
         entries = [(title,link) for title,link in
