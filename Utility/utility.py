@@ -374,7 +374,7 @@ class Utility:
                                     ACTION_SCRAPE, 
                                     ACTION_DETAILS],
              'enablerecommender': '1',
-             'startrecommender': '0',
+             'startrecommender': '1',
              'enabledlhelp': '1',  
              'enabledlcollecting': '1',
              'enableweb2search':'1',
