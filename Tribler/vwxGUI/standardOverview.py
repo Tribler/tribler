@@ -420,7 +420,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         bcsub = self.utility.lang.get('buddycastsubscription')
         web2sub = self.utility.lang.get('web2subscription')
         
-        bcactive = self.utility.config.Read('enablerecommender', "boolean")
+        bcactive = self.utility.config.Read('startrecommender', "boolean")
         bcstatus = 'inactive'
         if bcactive:
             bcstatus = 'active'

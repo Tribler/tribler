@@ -219,7 +219,7 @@ class SubscriptionsItemPanel(wx.Panel):
             return self.data['url']
         
     def toggleBuddycast(self,status):
-        self.utility.config.Write('enablerecommender',status, "boolean")
+        self.utility.config.Write('startrecommender',status, "boolean")
         bcfac = BuddyCastFactory.getInstance()
         if status == True:
             bcfac.restartBuddyCast()

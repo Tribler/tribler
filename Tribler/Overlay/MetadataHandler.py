@@ -14,7 +14,7 @@ from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
 from Tribler.Overlay.SecureOverlay import OLPROTO_VER_FOURTH
 from Tribler.unicode import name2unicode
 from Tribler.Category.Category import Category
-from Tribler.Dialogs.activities import ACT_GOT_METADATA
+from Tribler.Dialogs.activities import ACT_GOT_METADATA, ACT_DISK_FULL
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 from Utility.helpers import getfreespace
 
@@ -36,6 +36,7 @@ class MetadataHandler:
         MetadataHandler.__single = self
         self.torrent_db = SynTorrentDBHandler()
         self.num_torrents = -100
+        self.avg_torrent_size = 25*(2**10)
         self.initialized = False
         self.registered = False
 
@@ -135,8 +136,11 @@ class MetadataHandler:
         if self.torrent_exists(torrent_hash):    # torrent already exists on disk
             return True
         
-        if self.free_space < self.min_free_space:   # no space to collect
-            return True
+        if self.free_space - self.avg_torrent_size < self.min_free_space:   # no space to collect
+            self.free_space = self.get_free_space()
+            if self.free_space - self.avg_torrent_size < self.min_free_space:
+                self.warn_disk_full()
+                return True
 
         try:
             # Optimization: don't connect if we're connected, although it won't 
@@ -365,10 +369,11 @@ class MetadataHandler:
         rawserver.add_task(self.check_overflow, delay)
         
     def delayed_check_free_space(self, delay=2):
-        if not self.initialized:
-            return
-        rawserver = self.secure_overlay.rawserver    # not a good way, but simple
-        rawserver.add_task(self.check_free_space, delay)
+        self.free_space = self.get_free_space()
+        #if not self.initialized:
+        #    return
+        #rawserver = self.secure_overlay.rawserver    # not a good way, but simple
+        #rawserver.add_task(self.check_free_space, delay)
         
     def check_overflow(self):    # check if torrents are more than enough
         if self.num_torrents < 0:
@@ -418,35 +423,44 @@ class MetadataHandler:
         for torrent in collected_torrents[:num_delete]:
             infohash = torrent['infohash']
             deleted = self.torrent_db.deleteTorrent(infohash, delete_file=True, updateFlag=True)
-            if deleted:
+            if deleted > 0:
                 self.num_torrents -= 1
             #print "---------"*5, "delete torrent, succeeded?", deleted, self.num_torrents
         del collected_torrents
+        if num_delete > 0:
+            self.free_space = self.get_free_space()
         
-    def check_free_space(self):
-        self.free_space = self.get_free_space()
-        if self.free_space < self.min_free_space:    # no enough space, removing old torrents
-            if self.num_torrents >= 0:    # wait for loading it before deleting
-                space_need = self.min_free_space - self.free_space
-                num2del = 1 + space_need / (25*(2**10))    # how many torrents to del, assume each torrent is 25K
-                self.max_num_torrents = self.num_torrents - num2del
-                if DEBUG:
-                    print >> sys.stderr, "meta: disk overflow when save_torrent", self.free_space/(2**20), \
-                        self.min_free_space/(2**20), num2del, self.num_torrents, self.max_num_torrents
-                if self.max_num_torrents > 0:
-                    self.check_overflow()
-        # always change back
-        self.max_num_torrents = self.init_max_num_torrents
+#===============================================================================
+#    def check_free_space(self):
+#        self.free_space = self.get_free_space()
+#        if self.free_space < self.min_free_space < self.free_space + 2:    
+#            # no enough space caused by this module, removing old torrents
+#            # if the disk is suddenly used a lot, it may be other reason, so we stop removing torrents
+#            if self.num_torrents >= 0:    # wait for loading it before deleting
+#                space_need = self.min_free_space - self.free_space
+#                num2del = 1 + space_need / (25*(2**10))    # how many torrents to del, assume each torrent is 25K
+#                self.max_num_torrents = self.num_torrents - num2del
+#                if DEBUG:
+#                    print >> sys.stderr, "meta: disk overflow when save_torrent", self.free_space/(2**20), \
+#                        self.min_free_space/(2**20), num2del, self.num_torrents, self.max_num_torrents
+#                if self.max_num_torrents > 0:
+#                    self.check_overflow()
+#        # always change back
+#        self.max_num_torrents = self.init_max_num_torrents
+#===============================================================================
         
     def save_torrent(self, torrent_hash, metadata, source='BC', extra_info={}):
         if not self.initialized:
             return
 
-        if self.free_space <= self.min_free_space or self.num_collected_torrents % 10 == 0:
-            self.check_free_space()
+#        if self.free_space <= self.min_free_space or self.num_collected_torrents % 10 == 0:
+#            self.check_free_space()
             
-        if self.free_space - len(metadata) < self.min_free_space:    # no enough space
-            return
+        if self.free_space - len(metadata) < self.min_free_space or self.num_collected_torrents % 10 == 0:
+            self.free_space = self.get_free_space()
+            if self.free_space - len(metadata) < self.min_free_space:
+                self.warn_disk_full()
+                return
         
         file_name = self.get_filename(torrent_hash)
         if DEBUG:
@@ -562,3 +576,10 @@ class MetadataHandler:
         
     def get_num_torrents(self):
         return self.num_torrents
+    
+    def warn_disk_full(self):
+        drive,dir = os.path.splitdrive(os.path.abspath(self.torrent_dir))
+        if not drive:
+            drive = dir
+        self.launchmany.set_activity(ACT_DISK_FULL, drive)
+        

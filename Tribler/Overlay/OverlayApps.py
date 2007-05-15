@@ -86,7 +86,7 @@ class OverlayApps:
             # Using buddycast to handle torrent collecting since they are dependent
             self.buddycast.register(secure_overlay, launchmany.rawserver, launchmany, 
                                     launchmany.listen_port, launchmany.exchandler, True,
-                                    self.metadata_handler, self.torrent_collecting_solution)
+                                    self.metadata_handler, self.torrent_collecting_solution, config['start_recommender'])
             self.register_msg_handler(BuddyCastMessages, self.buddycast.handleMessage)
 
         if config['dialback']:

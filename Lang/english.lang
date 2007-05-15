@@ -1046,6 +1046,7 @@ act_get_ext_ip_from_peers = "Asking peers for my IP address"
 act_meet = "Person connected:\n"
 act_got_metadata = "File discovered:\n"
 act_recommend = "Discovered more persons and files from"
+act_disk_full = "Disk is full to collect more torrents. Please change your preferences or free space on "
 
 #############
 #Tribler UI - ContentFrontPanel, Tribler 3.6

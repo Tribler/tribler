@@ -246,13 +246,14 @@ class BuddyCastFactory:
     getInstance = staticmethod(getInstance)
     
     def register(self, secure_overlay, rawserver, launchmany, port, errorfunc, 
-                 start, metadata_handler, torrent_collecting_solution):    
+                 start, metadata_handler, torrent_collecting_solution, running):    
         if self.registered:
             return
         self.secure_overlay = secure_overlay
         self.rawserver = rawserver
         self.launchmany = launchmany
         self.errorfunc = errorfunc
+        self.running = bool(running)
         
         self.registered = True
         if start:
@@ -274,7 +275,6 @@ class BuddyCastFactory:
             # if any. So when you change this time, make sure it allows for UPnP to
             # do its thing, or add explicit coordination between UPnP and BC.
             # See BitTornado/launchmany.py
-            self.running = True
             self.rawserver.add_task(self.data_handler.postInit, 0)    # avoid flash crawd
             self.rawserver.add_task(self.doBuddyCast, 2)
             self.rawserver.add_task(self.data_handler.updateAllSim, randint(60,5*60))
@@ -737,7 +737,9 @@ class BuddyCastCore:
             ## Create message depending on selected protocol version
             try:
                 if not self.isConnected(target_permid):
-                    raise RuntimeError, 'buddycast: not connected while calling connect_callback'
+                    if DEBUG:
+                        raise RuntimeError, 'buddycast: not connected while calling connect_callback'
+                    return
                 
                 self.print_debug_info('Active', 15, target_permid, selversion)
                         

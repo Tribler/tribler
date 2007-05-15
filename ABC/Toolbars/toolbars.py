@@ -112,9 +112,11 @@ class ABCStatusBar(wx.StatusBar):
         elif type == ACT_MEET:
             prefix = self.utility.lang.get('act_meet')
         elif type == ACT_GOT_METADATA:
-           prefix = self.utility.lang.get('act_got_metadata')
+            prefix = self.utility.lang.get('act_got_metadata')
         elif type == ACT_RECOMMEND:
-           prefix = self.utility.lang.get('act_recommend')
+            prefix = self.utility.lang.get('act_recommend')
+        elif type == ACT_DISK_FULL:
+            prefix = self.utility.lang.get('act_disk_full')            
 
         if msg == u'':
             text = prefix

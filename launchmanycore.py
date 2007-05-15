@@ -85,6 +85,7 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
 
         # Enable/disable features
         btconfig['buddycast'] = int(self.utility.config.Read('enablerecommender'))
+        btconfig['start_recommender'] = int(self.utility.config.Read('startrecommender'))
         btconfig['download_help'] = int(self.utility.config.Read('enabledlhelp'))
         btconfig['torrent_collecting'] = int(self.utility.config.Read('enabledlcollecting'))
         btconfig['max_torrents'] = int(self.utility.config.Read('maxntorrents'))
