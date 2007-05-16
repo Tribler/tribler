@@ -69,9 +69,9 @@ class HelperMessageHandler:
         
         if not self.can_help(torrent_hash):
             return False
-        torrent_path = self.find_torrent(torrent_hash)
-        if torrent_path:
-            self.do_help(torrent_hash, torrent_path, permid)
+        torrent_data = self.find_torrent(torrent_hash)
+        if torrent_data:
+            self.do_help(torrent_hash, torrent_data, permid)
         else:
             self.get_metadata(permid, torrent_hash,selversion)
         return True
@@ -177,7 +177,11 @@ class HelperMessageHandler:
         if torrent is None:
             return None
         elif 'torrent_dir' in torrent:
-            return torrent['torrent_dir']
+            fn = torrent['torrent_dir']
+            f = open(fn,"rb")
+            data = f.read()
+            f.close()
+            return data
         else:
             return None
 
