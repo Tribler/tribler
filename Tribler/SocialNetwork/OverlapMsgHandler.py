@@ -190,12 +190,12 @@ def isValidPersinfo(persinfo,signed):
             print >> sys.stderr,"socnet: SOCIAL_*: persinfo: key 'name' missing or value wrong type"
         return False
 
-    if 'icontype' in k and not isValidIconType(persinfo['icontype'])):
+    if 'icontype' in k and not isValidIconType(persinfo['icontype']):
         if DEBUG:
             print >> sys.stderr,"socnet: SOCIAL_*: persinfo: key 'icontype' value wrong type"
         return False
 
-    if 'icondata' in k and not isValidIconData(persinfo['icondata'])):
+    if 'icondata' in k and not isValidIconData(persinfo['icondata']):
         if DEBUG:
             print >> sys.stderr,"socnet: SOCIAL_*: persinfo: key 'icondata' value wrong type"
         return False
