@@ -18,7 +18,7 @@ from Tribler.Dialogs.activities import ACT_GOT_METADATA, ACT_DISK_FULL
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 from Utility.helpers import getfreespace
 
-DEBUG = False
+DEBUG = True
 
 # Python no recursive imports?
 # from overlayswarm import overlay_infohash
@@ -134,6 +134,8 @@ class MetadataHandler:
             return False
         
         if self.torrent_exists(torrent_hash):    # torrent already exists on disk
+            if DEBUG:
+                print >> sys.stderr,"metadata: send_meta_req: Already on disk??!"
             return True
         
         if self.free_space - self.avg_torrent_size < self.min_free_space:   # no space to collect
@@ -578,6 +580,8 @@ class MetadataHandler:
         return self.num_torrents
     
     def warn_disk_full(self):
+        if DEBUG:
+            print >> sys.stderr,"metadata: send_meta_req: Disk full!"
         drive,dir = os.path.splitdrive(os.path.abspath(self.torrent_dir))
         if not drive:
             drive = dir
