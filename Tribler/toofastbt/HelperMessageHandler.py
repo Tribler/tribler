@@ -148,6 +148,8 @@ class HelperMessageHandler:
         self.launchmany.add(torrent_hash, data)
 
     def get_metadata(self, permid, torrent_hash, selversion):
+        if DEBUG:
+            print >> sys.stderr,"helpmsg: Don't have torrent yet, ask coordinator"
         if not self.metadata_queue.has_key(torrent_hash):
             self.metadata_queue[torrent_hash] = []
         self.metadata_queue[torrent_hash].append(permid)
