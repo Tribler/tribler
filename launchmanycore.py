@@ -234,7 +234,7 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
         if DEBUG:
             print >> sys.stderr,"launchmany: actually Adding torrent"
         self.utility.queue.addtorrents.AddTorrentFromFile(data['path'], caller = "helper", dest = data['dest'], caller_data = data)
-        self.guiUtility.AddTorrentAsHelper()
+        self.guiUtility.addTorrentAsHelper()
         
     # polymorph/override
     def addDownload(self, ABCTorrentTemp):
