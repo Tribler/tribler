@@ -69,46 +69,6 @@ class MetadataHandler:
         self.next_upload_time = 0
         self.initialized = True
 
-    def get_free_space(self):
-        if not self.registered:
-            return 0
-        try:
-            freespace = getfreespace(self.config_dir)
-            return freespace
-        except:
-            print >> sys.stderr, "meta: cannot get free space of", self.config_dir
-            print_exc()
-            return 0
-
-    def set_rate(self, rate):
-        self.upload_rate = rate * 1024
-        
-    def set_min_free_space(self, min_free_space):
-        self.min_free_space = max(1, min_free_space)*(2**20)    # at least 1 MB
-
-    def checking_upload_queue(self):
-        """ check the upload queue every 5 seconds, and send torrent out if the queue 
-            is not empty and the max upload rate is not reached.
-            It is used for rate control
-        """
-
-        if DEBUG:
-            print >> sys.stderr, "metadata: checking_upload_queue, length:", len(self.upload_queue), "now:", ctime(time()), "next check:", ctime(self.next_upload_time)
-        if self.upload_rate > 0 and int(time()) >= self.next_upload_time and len(self.upload_queue) > 0:
-            task = self.upload_queue.pop(0)
-            permid = task['permid']
-            torrent_hash = task['torrent_hash']
-            torrent_path = task['torrent_path']
-            selversion = task['selversion']
-            sent_size = self.read_and_send_metadata(permid, torrent_hash, torrent_path, selversion)
-            idel = sent_size / self.upload_rate + 1
-            self.next_upload_time = int(time()) + idel
-            self.rawserver.add_task(self.checking_upload_queue, idel)
-
-    def getRecentlyCollectedTorrents(self, num):
-        if not self.initialized:
-            return []
-        return self.recently_collected_torrents[-1*num:]    # get the last ones
 
     def handleMessage(self,permid,selversion,message):
         
@@ -137,6 +97,9 @@ class MetadataHandler:
             if DEBUG:
                 print >> sys.stderr,"metadata: send_meta_req: Already on disk??!"
             return True
+        
+        if caller == "dlhelp":
+            self.requested_torrents.remove(torrent_hash)
         
         if self.free_space - self.avg_torrent_size < self.min_free_space:   # no space to collect
             self.free_space = self.get_free_space()
@@ -586,4 +549,45 @@ class MetadataHandler:
         if not drive:
             drive = dir
         self.launchmany.set_activity(ACT_DISK_FULL, drive)
+        
+    def get_free_space(self):
+        if not self.registered:
+            return 0
+        try:
+            freespace = getfreespace(self.config_dir)
+            return freespace
+        except:
+            print >> sys.stderr, "meta: cannot get free space of", self.config_dir
+            print_exc()
+            return 0
+
+    def set_rate(self, rate):
+        self.upload_rate = rate * 1024
+        
+    def set_min_free_space(self, min_free_space):
+        self.min_free_space = max(1, min_free_space)*(2**20)    # at least 1 MB
+
+    def checking_upload_queue(self):
+        """ check the upload queue every 5 seconds, and send torrent out if the queue 
+            is not empty and the max upload rate is not reached.
+            It is used for rate control
+        """
+
+        if DEBUG:
+            print >> sys.stderr, "metadata: checking_upload_queue, length:", len(self.upload_queue), "now:", ctime(time()), "next check:", ctime(self.next_upload_time)
+        if self.upload_rate > 0 and int(time()) >= self.next_upload_time and len(self.upload_queue) > 0:
+            task = self.upload_queue.pop(0)
+            permid = task['permid']
+            torrent_hash = task['torrent_hash']
+            torrent_path = task['torrent_path']
+            selversion = task['selversion']
+            sent_size = self.read_and_send_metadata(permid, torrent_hash, torrent_path, selversion)
+            idel = sent_size / self.upload_rate + 1
+            self.next_upload_time = int(time()) + idel
+            self.rawserver.add_task(self.checking_upload_queue, idel)
+
+    def getRecentlyCollectedTorrents(self, num):
+        if not self.initialized:
+            return []
+        return self.recently_collected_torrents[-1*num:]    # get the last ones
         
