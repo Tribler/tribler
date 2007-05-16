@@ -21,7 +21,7 @@ from Tribler.CacheDB.SynDBHandler import SynPeerDBHandler
 from Tribler.Overlay.permid import ChallengeResponse
 from Tribler.utilities import show_permid_short
 
-DEBUG = False
+DEBUG = True
 
 #
 # Public definitions

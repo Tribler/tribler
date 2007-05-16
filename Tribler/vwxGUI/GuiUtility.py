@@ -248,6 +248,11 @@ class GUIUtility:
         self.standardOverview.loadSubscriptionData()
         self.standardOverview.refreshData()
     
+    def addTorrentAsHelper(self):
+        self.standardOverview.loadLibraryData()
+        self.standardOverview.refreshData()
+    
+    
     def selectData(self, data):
         "User clicked on item. Has to be selected in detailPanel"
         self.standardDetails.setData(data)

@@ -190,12 +190,12 @@ def isValidPersinfo(persinfo,signed):
             print >> sys.stderr,"socnet: SOCIAL_*: persinfo: key 'name' missing or value wrong type"
         return False
 
-    if not ('icontype' in k and isValidIconType(persinfo['icontype'])):
+    if 'icontype' in k and not isValidIconType(persinfo['icontype'])):
         if DEBUG:
             print >> sys.stderr,"socnet: SOCIAL_*: persinfo: key 'icontype' value wrong type"
         return False
 
-    if not ('icondata' in k and isValidIconData(persinfo['icondata'])):
+    if 'icondata' in k and not isValidIconData(persinfo['icondata'])):
         if DEBUG:
             print >> sys.stderr,"socnet: SOCIAL_*: persinfo: key 'icondata' value wrong type"
         return False
@@ -242,6 +242,7 @@ def add_icon_persinfo(mm,permid,persinfo,short):
     [type,data] = mm.load_data(permid,persinfo['name'])
     if type is None or data is None:
         return
+    print "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^SETTING ICONTYPE",type
     short['icontype'] = type
     short['icondata'] = str(data)
 
