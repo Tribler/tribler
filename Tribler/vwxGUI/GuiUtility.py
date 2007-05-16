@@ -249,7 +249,7 @@ class GUIUtility:
         self.standardOverview.refreshData()
     
     def addTorrentAsHelper(self):
-        self.standardOverview.loadLibraryData()
+        self.standardOverview.loadLibraryData('all','latest')
         self.standardOverview.refreshData()
     
     
