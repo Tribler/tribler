@@ -93,9 +93,12 @@ class MetadataHandler:
         if not isValidInfohash(torrent_hash):
             return False
         
-        if caller != "dlhelp" and self.torrent_exists(torrent_hash):    # torrent already exists on disk
+        metadata = self.torrent_exists(torrent_hash)
+        if metadata is not None:    # torrent already exists on disk
             if DEBUG:
                 print >> sys.stderr,"metadata: send_meta_req: Already on disk??!"
+            if self.dlhelper is not None:
+                self.dlhelper.call_dlhelp_task(torrent_hash, metadata)
             return True
         
         if caller == "dlhelp":
@@ -126,13 +129,13 @@ class MetadataHandler:
         file_name = sha(torrent_hash).hexdigest()+'.torrent'
         torrent_path = os.path.join(self.torrent_dir, file_name)
         if not os.path.exists(torrent_path):
-            return False
+            return None
         else:
             metadata = self.read_torrent(torrent_path)
             if not self.valid_metadata(torrent_hash, metadata):
-                return False
+                return None
             self.addTorrentToDB(torrent_path, torrent_hash, metadata, source="BC", extra_info={})
-            return True
+            return metadata
 
     def get_metadata_connect_callback(self,exc,dns,permid,selversion,torrent_hash):
         if exc is None:

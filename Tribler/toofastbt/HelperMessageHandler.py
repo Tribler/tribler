@@ -172,7 +172,13 @@ class HelperMessageHandler:
         return True                      #Future support: make the decision based on my preference
 
     def find_torrent(self, torrent_hash):
-        return None
+        torrent = self.torrent_db.getTorrent(torrent_hash)
+        if torrent is None:
+            return None
+        elif 'torrent_dir' in torrent:
+            return torrent['torrent_dir']
+        else:
+            return None
 
 
     def got_stop_dlhelp_request(self, permid, message, selversion):
