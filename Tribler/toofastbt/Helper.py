@@ -14,7 +14,7 @@ from Tribler.CacheDB.CacheDBHandler import PeerDBHandler
 from Tribler.utilities import show_permid_short
 
 MAX_ROUNDS = 200
-DEBUG = True
+DEBUG = False
 
 class SingleDownloadHelperInterface:
     """ This interface should contain all methods that the PiecePiecker/Helper

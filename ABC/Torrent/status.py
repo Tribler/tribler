@@ -28,6 +28,14 @@ class TorrentStatus:
         else:
             value = self.value
         
+        if self.torrent.caller_data is not None:
+            if self.torrent.caller_data.has_key('coordinator_permid'):
+                permid = self.torrent.caller_data['coordinator_permid']
+                peer = self.utility.peer_db.getPeer(permid)    
+                if peer is not None:
+                    status = "helping "+peer['name']
+                    return status
+        
         if self.isActive():
             if value == STATUS_PAUSE:
                 status = self.utility.lang.get('pause')

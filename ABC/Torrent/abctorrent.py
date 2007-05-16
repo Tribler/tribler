@@ -195,10 +195,6 @@ class ABCTorrent:
 
         
     def addMyPref(self):
-        # If this is a helper torrent, don't add it as my preference
-        if self.caller_data is not None:
-            return
-
         self.addTorrentToDB()
         
         if self.mypref_db.hasPreference(self.torrent_hash):
@@ -208,7 +204,9 @@ class ABCTorrent:
         if self.files.dest:
             mypref['content_dir'] = self.files.dest    #TODO: check
             mypref['content_name'] = self.files.filename
-        
+
+        # If this is a helper torrent, don't add it as my preference
+        #if self.caller_data is None:
         self.mypref_db.addPreference(self.torrent_hash, mypref)
         if self.utility.abcfileframe is not None:
             self.utility.abcfileframe.updateMyPref()
@@ -217,6 +215,7 @@ class ABCTorrent:
         self.data_manager.addNewPreference(self.torrent_hash)
         self.data_manager.setBelongsToMyDowloadHistory(self.torrent_hash, True)
         
+        #if self.caller_data is None:
         self.utility.buddycast.addMyPref(self.torrent_hash)
         if DEBUG:
             print >> sys.stderr, "abctorrent: add mypref to db", self.infohash, mypref
@@ -901,6 +900,10 @@ class ABCTorrent:
 
         # If this is a helper torrent, remove all traces
         if self.caller_data is not None:
+            if DEBUG:
+                print >>sys.stderr,"abctorrent: shutdown: Stopping from DOWNLOAD HELP"
+            self.mypref_db.deletePreference(self.torrent_hash)
+            self.data_manager.setBelongsToMyDowloadHistory(self.torrent_hash, False)
             if self.caller_data.has_key('coordinator_permid'):
                 try:
                     os.remove(self.src)

@@ -21,7 +21,7 @@ from Tribler.CacheDB.SynDBHandler import SynPeerDBHandler
 from Tribler.Overlay.permid import ChallengeResponse
 from Tribler.utilities import show_permid_short
 
-DEBUG = True
+DEBUG = False
 
 #
 # Public definitions
@@ -425,6 +425,8 @@ class SecureOverlay:
                     print >> sys.stderr,"secover: INTERNAL ERROR:", \
                         "User receive callback returned None, not True or False"
                 ret = False
+            elif DEBUG:
+                print >> sys.stderr,"secover: message handler returned",ret
             return ret
         except:
             # Catch all

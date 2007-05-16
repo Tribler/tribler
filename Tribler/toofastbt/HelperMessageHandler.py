@@ -13,7 +13,7 @@ from Tribler.CacheDB.CacheDBHandler import FriendDBHandler,TorrentDBHandler
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
 
-DEBUG = True
+DEBUG = False
 
 def get_random_filename(dir):
     while True:

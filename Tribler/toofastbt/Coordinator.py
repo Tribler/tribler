@@ -12,7 +12,7 @@ from Tribler.utilities import show_permid_short
 from BitTornado.bencode import bencode
 from BitTornado.BT1.MessageID import DOWNLOAD_HELP, STOP_DOWNLOAD_HELP, PIECES_RESERVED
 
-DEBUG = True
+DEBUG = False
 MAX_ROUNDS = 137
 
 

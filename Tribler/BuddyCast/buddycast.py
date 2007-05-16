@@ -176,8 +176,8 @@ from TorrentCollecting import SimpleTorrentCollecting   #, TiT4TaTTorrentCollect
 from Tribler.Statistics.Logger import OverlayLogger
 from threading import Event, currentThread
 
-DEBUG = False
-debug = False
+DEBUG = False    # for errors
+debug = False    # for status
 MAX_BUDDYCAST_LENGTH = 10*1024    # 10 KByte
 
 def now():

@@ -242,7 +242,6 @@ def add_icon_persinfo(mm,permid,persinfo,short):
     [type,data] = mm.load_data(permid,persinfo['name'])
     if type is None or data is None:
         return
-    print "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^SETTING ICONTYPE",type
     short['icontype'] = type
     short['icondata'] = str(data)
 

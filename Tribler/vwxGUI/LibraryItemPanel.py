@@ -229,6 +229,9 @@ class LibraryItemPanel(wx.Panel):
             statustxt = abctorrent.status.getStatusText()
             active = abctorrent.status.isActive(pause = False)
             
+            if abctorrent.caller_data is not None:
+                active = False
+            
             initstates = [self.utility.lang.get('checkingdata'), 
                            self.utility.lang.get('allocatingspace'), 
                            self.utility.lang.get('movingdata'),

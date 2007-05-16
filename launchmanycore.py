@@ -222,6 +222,7 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
         #msg = self.utility.lang.get('helping_stopped')
         #ABCTorrentTemp.changeMessage( msg, "status")
         self.utility.actionhandler.procREMOVE([ABCTorrentTemp], removefiles = True)
+        self.guiUtility.addTorrentAsHelper()
 
     def add(self, hash, data):
         """ called by Tribler/toofastbt/HelperMessageHandler """

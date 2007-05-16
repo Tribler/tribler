@@ -18,7 +18,7 @@ from Tribler.Dialogs.activities import ACT_GOT_METADATA, ACT_DISK_FULL
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 from Utility.helpers import getfreespace
 
-DEBUG = True
+DEBUG = False
 
 # Python no recursive imports?
 # from overlayswarm import overlay_infohash

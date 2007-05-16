@@ -16,7 +16,7 @@ import web2
 
 OVERVIEW_MODES = ['filesMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionsMode', 'messageMode', 'libraryMode']
 
-DEBUG = True
+DEBUG = False
 
 class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     """
@@ -346,6 +346,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         inactive = []
         for torrent in self.utility.torrents['all']:
             activeInfohashes[torrent.torrent_hash] = torrent
+            if DEBUG:
+                print >>sys.stderr,"standardOverview: Load library active is",`torrent.info['name']`
             
         if sort != 'latest':
             preSorting = sort
