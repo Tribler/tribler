@@ -138,7 +138,6 @@ class Utility:
     def setupConfig(self):        
         defaults = {
             'defrentorwithdest': '1', 
-            'minport': str(random.randint(10000, 60000)), 
             'maxport': '50000', 
             'maxupload': '5', 
             'maxuploadrate': '0', 
@@ -430,6 +429,9 @@ class Utility:
         #print self.config.items("ABC")
 #        self.config = ConfigReader(configfilepath, "ABC")
 #        self.config.defaults = defaults
+        # Arno: 2007-05-16, Make sure the port is in the abc.conf
+        minport = self.config.Read('minport','int')
+        self.config.Write('minport', minport)
         
     def setupWebConfig(self):
         defaults = {

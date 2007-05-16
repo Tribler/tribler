@@ -445,6 +445,14 @@ class GUIUtility:
             self.subscribe()
         event.Skip()     
 
+    def OnSubscribeMouseAction(self,event):
+        obj = event.GetEventObject()
+
+        # TODO: smarter behavior
+        obj.SetSelection(-1,-1)
+        event.Skip()
+
+
     def subscribe(self):
         rssurlctrl = self.standardOverview.getRSSUrlCtrl()
         url = rssurlctrl.GetValue()

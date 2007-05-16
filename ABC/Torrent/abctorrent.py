@@ -141,7 +141,7 @@ class ABCTorrent:
         self.download_on_demand = False
         self.videoinfo = None
         self.progressinf = None
-        self.prevactivetorrenst = None
+        self.prevactivetorrents = None
 
         self.vodable = (len(find_video_on_disk(self,stat(self))) > 0)
 

@@ -191,6 +191,10 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 if self.mode == 'subscriptionsMode':
                     rssurlctrl = xrc.XRCCTRL(currentPanel,'pasteUrl')
                     rssurlctrl.Bind(wx.EVT_KEY_DOWN, self.guiUtility.OnSubscribeKeyDown)
+                    rssurlctrl.Bind(wx.EVT_LEFT_UP, self.guiUtility.OnSubscribeMouseAction)
+                    txt = self.utility.lang.get('rssurldefaulttxt')
+                    rssurlctrl.SetValue(txt)
+
                     self.data[self.mode]['rssurlctrl'] = rssurlctrl
             except:
                 if DEBUG:
