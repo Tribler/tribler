@@ -9,7 +9,7 @@ from random import randint
 
 from Tribler.Overlay.SecureOverlay import SecureOverlay
 from Tribler.utilities import show_permid_short
-from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
+from Tribler.CacheDB.CacheDBHandler import FriendDBHandler,TorrentDBHandler
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
 
@@ -27,6 +27,7 @@ class HelperMessageHandler:
         self.metadata_queue = {}
         self.launchmany = launchmany
         self.helpdir = launchmany.torrent_dir
+        self.torrent_db = TorrentDBHandler()
 
     def register(self, metadata_handler,secure_overlay):
         self.metadata_handler = metadata_handler
