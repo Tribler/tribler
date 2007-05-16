@@ -99,7 +99,7 @@ class MetadataHandler:
             return True
         
         if caller == "dlhelp":
-            self.requested_torrents.remove(torrent_hash)
+            self.requested_torrents.add(torrent_hash)
         
         if self.free_space - self.avg_torrent_size < self.min_free_space:   # no space to collect
             self.free_space = self.get_free_space()
