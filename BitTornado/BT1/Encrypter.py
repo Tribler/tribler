@@ -13,7 +13,7 @@ from time import time
 from traceback import print_exc, extract_stack, print_stack
 import sys
 from Tribler.Overlay.SecureOverlay import SecureOverlay
-from BitTornado.BT1.MessageID import protocol_name,option_pattern
+from BitTornado.BT1.MessageID import protocol_name,option_pattern,disabled_overlay_option_pattern
 from BitTornado.BT1.convert import toint
 # _2fastbt
 
