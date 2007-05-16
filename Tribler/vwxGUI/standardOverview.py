@@ -383,7 +383,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             
         if DEBUG:
             for t in libraryList:
-                print >>sys.stderr,'standardOverview: Loading ITEM",`t['content_name']`
+                print >>sys.stderr,"standardOverview: Loading ITEM",`t['content_name']`
             print >>sys.stderr,'standardOverview: Loading libraryList: %s' % [(self.isTorrentFinished(t), t.get('download_started',False)) for t in libraryList]
         self.data[self.mode]['data'] = libraryList
         if DEBUG:
