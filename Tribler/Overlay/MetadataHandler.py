@@ -127,13 +127,13 @@ class MetadataHandler:
                 print >> sys.stderr,"metadata: UNKNOWN OVERLAY MESSAGE", ord(t)
             return False
 
-    def send_metadata_request(self, permid, torrent_hash, selversion=-1):
+    def send_metadata_request(self, permid, torrent_hash, selversion=-1, caller="BC"):
         if DEBUG:
             print >> sys.stderr,"metadata: Connect to send GET_METADATA to",show_permid_short(permid)
         if not isValidInfohash(torrent_hash):
             return False
         
-        if self.torrent_exists(torrent_hash):    # torrent already exists on disk
+        if caller != "dlhelp" and self.torrent_exists(torrent_hash):    # torrent already exists on disk
             if DEBUG:
                 print >> sys.stderr,"metadata: send_meta_req: Already on disk??!"
             return True

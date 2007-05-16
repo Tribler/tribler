@@ -153,7 +153,7 @@ class HelperMessageHandler:
         if not self.metadata_queue.has_key(torrent_hash):
             self.metadata_queue[torrent_hash] = []
         self.metadata_queue[torrent_hash].append(permid)
-        self.metadata_handler.send_metadata_request(permid, torrent_hash, selversion)
+        self.metadata_handler.send_metadata_request(permid, torrent_hash, selversion,caller="dlhelp")
 
     def call_dlhelp_task(self, torrent_hash, torrent_data):
         if DEBUG:
