@@ -151,38 +151,39 @@ ${SITEPACKAGES}/M2Crypto/:
 
 # ----- VLC
 
-VLCDIR=build/temp/vlc
+VLCDIR=${PWD}/build/temp/vlc
 
-${VLCDIR}/Makefile:
-	svn co svn://svn.videolan.org/vlc/trunk $@
+${VLCDIR}/.prereqs:
+	svn co svn://svn.videolan.org/vlc/trunk ${VLCDIR}
+	cd ${VLCDIR} && patch -p0 -N < ${PWD}/vlc-macosx.patch
 	cd ${VLCDIR}/extras/contrib && ./bootstrap
 	cd ${VLCDIR}/extras/contrib && make src
+	touch $@
+
+${VLCDIR}/Makefile:	${VLCDIR}/.prereqs
 	cd ${VLCDIR} && ./bootstrap
-	cd ${VLCDIR} && ./configure --enable-debug --disable-x11 --disable-xvideo --disable-glx --enable-sdl --enable-mad --enable-libdvbpsi --enable-a52 --disable-dvdplay --enable-dvdnav --enable-dvdread --enable-ffmpeg --enable-faad --enable-flac --enable-vorbis --enable-speex --enable-theora --enable-ogg --enable-shout --enable-cddb --disable-cddax --enable-vcdx --disable-skins --disable-skins2 --disable-wxwidgets --enable-freetype --enable-fribidi --disable-caca --enable-live555 --enable-dca --enable-goom --enable-modplug --enable-gnutls --enable-daap --enable-ncurses --enable-libtwolame --enable-x264 --enable-png --enable-realrtsp --disable-libtool --prefix=${PWD}/${VLCDIR}/install-root
-	cd ${VLCDIR} && patch -p0 < ${PWD}/vlc-macosx.patch
+	svn revert ${VLCDIR}/m4/*
+	cd ${VLCDIR} && ./configure --enable-debug --disable-x11 --disable-xvideo --disable-glx --enable-sdl --enable-mad --enable-libdvbpsi --enable-a52 --disable-dvdplay --enable-dvdnav --enable-dvdread --enable-ffmpeg --enable-faad --enable-flac --enable-vorbis --enable-speex --enable-theora --enable-ogg --enable-shout --enable-cddb --disable-cddax --enable-vcdx --disable-skins --disable-skins2 --disable-wxwidgets --enable-freetype --enable-fribidi --disable-caca --enable-live555 --enable-dca --enable-goom --enable-modplug --enable-gnutls --enable-daap --enable-ncurses --enable-libtwolame --enable-x264 --enable-png --enable-realrtsp --disable-libtool --prefix=${VLCDIR}/install-root
 
 ${VLCDIR}/install-root/lib/libvlc.a:	${VLCDIR}/Makefile
 	# build and install vlc
 	cd ${VLCDIR} && ./compile
+	cp mkinstalldirs ${VLCDIR}/autotools
 	cd ${VLCDIR} && make install
 
 	# copy some missing libraries into the install-root
-	for i in `${VLCDIR}/vlc-config --target builtin`; do cp $$i ${VLCDIR}/install-root/lib/; done
+	for i in `${VLCDIR}/vlc-config --target builtin`; do cp ${VLCDIR}/$$i ${VLCDIR}/install-root/lib/vlc; done
 	cp ${VLCDIR}/extras/contrib/vlc-lib/vlc_*.dylib ${VLCDIR}/install-root/lib/
-
-	# fix dependencies of .dylib libraries
-	#(for i in `find ${VLCDIR}/install-root/lib -name "*.dylib" -or -name "*.so"`; do otool -L $$i | perl -ne 'print "install_name_tool -change $$1 lib/$$2 '$$i'\n" if m#(\@executable_path/lib/(\S+))#;'; done) | bash -
-
-	touch $@
 
 ${VLCDIR}/install-root/lib/python${PYTHON_VER}/site-packages/vlc.so:	${VLCDIR}/install-root/lib/libvlc.a
 	# build python bindings
-	cd ${VLCDIR}/bindings/python && ${PYTHON} setup.py install --prefix=${PWD}/${VLCDIR}/install-root
-
-	# fix dependency
-	#install_name_tool -change @executable_path/lib/vlc_libintl.dylib vlc_libintl.dylib $@
+	cd ${VLCDIR}/bindings/python && ${PYTHON} setup.py install --prefix=${VLCDIR}/install-root
 
 ${SITEPACKAGES}/vlc.so:		${VLCDIR}/install-root/lib/python${PYTHON_VER}/site-packages/vlc.so
-	cp $< ${SITEPACKAGES}
-	cd ${VLCDIR}/install-root/lib && for in `find . -name "*.dylib"`; do mkdir -p ${PWD}/build/lib/`dirname $$i`; cp $$i ${PWD}/build/lib/$$i; done
+	cd ${VLCDIR}/install-root/lib && for i in `find . -name "*.dylib"`; do mkdir -p ${PWD}/build/lib/`dirname $$i`; cp $$i ${PWD}/build/lib/$$i; done
+	cp $< $@
+
+	# fix dependencies of .dylib/.so libraries
+	#(for i in `find build/lib -name "*.dylib" -or -name "*.so"`; do otool -L $$i | perl -ne 'print "install_name_tool -change $$1 lib/$$2 '$$i'\n" if m#(\@executable_path/lib/(\S+))#;'; done) | bash -
+
 
