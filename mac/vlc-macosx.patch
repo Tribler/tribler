@@ -1,11 +1,10 @@
---- Makefile.orig	2007-05-08 08:38:11.000000000 +0200
-+++ Makefile	2007-05-08 08:48:18.000000000 +0200
-@@ -646,7 +646,7 @@
+--- Makefile.orig       2007-05-16 15:49:03.000000000 +0200
++++ Makefile    2007-05-16 15:49:10.000000000 +0200
+@@ -628,7 +628,6 @@
  #noinst_DATA = vlc-bundle
  
  # Create the MacOS X app
 -vlc_app_DATA = VLC.app
-+#vlc_app_DATA = VLC.app
  vlc_appdir = $(bindir)
  #DATA_win32_rc = $(noinst_share_vlc_win32_rc_DATA)
  #noinst_share_vlc_win32_rc_DATA = share/vlc_win32_rc.$(OBJEXT)
@@ -20,18 +19,18 @@
  mkinstalldirs = $(SHELL) `case "$(MKINSTALLDIRS)" in /*) echo "$(MKINSTALLDIRS)" ;; *) echo "$(top_builddir)/$(MKINSTALLDIRS)" ;; esac`
  
  GMSGFMT = /Users/jandavidmol/svn/vlc-trunk/./extras/contrib/bin/msgfmt
---- vlc-config.orig	2007-05-08 09:15:37.000000000 +0200
-+++ vlc-config	2007-05-08 09:15:51.000000000 +0200
+--- vlc-config.orig     2007-05-16 15:48:00.000000000 +0200
++++ vlc-config  2007-05-16 15:48:13.000000000 +0200
 @@ -20,7 +20,7 @@
  objcflags=""
  ldflags=""
  
 -cflags_tuning="-march=pentium-m -mtune=prescott"
 +cflags_tuning=""
+ cflags_optim=" -O3 -ffast-math -funroll-loops"
  cflags_optim_nodebug=" -fomit-frame-pointer"
  cflags_nooptim=" -O2"
- 
-@@ -819,7 +819,7 @@
+@@ -822,7 +822,7 @@
        ;;
      external)
        echo_external=yes
@@ -40,3 +39,109 @@
        ;;      
      *)
        module="$1"
+Index: modules/gui/macosx/voutgl.m
+===================================================================
+--- modules/gui/macosx/voutgl.m	(revision 20150)
++++ modules/gui/macosx/voutgl.m	(working copy)
+@@ -43,6 +43,7 @@
+ #include <OpenGL/gl.h>
+ 
+ #include <AGL/agl.h>
++#include <Carbon/Carbon.h>
+ 
+ /*****************************************************************************
+  * VLCGLView interface
+@@ -68,11 +69,13 @@
+     vlc_bool_t          b_embedded;
+     AGLContext          agl_ctx;
+     AGLDrawable         agl_drawable;
++    ControlRef          theControl;
+     int                 i_offx, i_offy;
+     int                 i_width, i_height;
+     WindowRef           theWindow;
+     WindowGroupRef      winGroup;
+     vlc_bool_t          b_clipped_out;
++    vlc_bool_t          b_viewport_set;
+     Rect                clipBounds, viewBounds;             
+ };
+ 
+@@ -470,7 +473,8 @@
+     Rect clipBounds;
+     
+     var_Get( p_vout->p_libvlc, "drawable", &val );
+-    p_vout->p_sys->agl_drawable = (AGLDrawable)val.i_int;
++    p_vout->p_sys->theControl = val.i_int;
++    p_vout->p_sys->agl_drawable = (AGLDrawable)GetWindowPort(GetControlOwner(val.i_int));
+     aglSetDrawable(p_vout->p_sys->agl_ctx, p_vout->p_sys->agl_drawable);
+ 
+     var_Get( p_vout->p_libvlc, "drawable-view-top", &val );
+@@ -492,7 +496,9 @@
+ 
+     p_vout->p_sys->b_clipped_out = (clipBounds.top == clipBounds.bottom)
+                                  || (clipBounds.left == clipBounds.right);
+-    if( ! p_vout->p_sys->b_clipped_out )
++    p_vout->p_sys->b_viewport_set = viewBounds.top || viewBounds.bottom
++                                 || viewBounds.left || viewBounds.right;
++    if( !p_vout->p_sys->b_clipped_out  && p_vout->p_sys->b_viewport_set )
+     {
+         aglLock(p_vout);
+         aglSetViewport(p_vout, viewBounds, clipBounds);
+@@ -590,7 +596,8 @@
+             Rect clipBounds;
+ 
+             var_Get( p_vout->p_libvlc, "drawable", &val );
+-            p_vout->p_sys->agl_drawable = (AGLDrawable)val.i_int;
++            p_vout->p_sys->theControl = val.i_int;
++            p_vout->p_sys->agl_drawable = (AGLDrawable)GetWindowPort(GetControlOwner(val.i_int));
+             aglSetDrawable(p_vout->p_sys->agl_ctx, p_vout->p_sys->agl_drawable);
+ 
+             var_Get( p_vout->p_libvlc, "drawable-view-top", &val );
+@@ -714,7 +721,9 @@
+ 
+                 p_vout->p_sys->b_clipped_out = (clipBounds.top == clipBounds.bottom)
+                                              || (clipBounds.left == clipBounds.right);
+-                if( ! p_vout->p_sys->b_clipped_out )
++                p_vout->p_sys->b_viewport_set = viewBounds.top || viewBounds.bottom
++                                             || viewBounds.left || viewBounds.right;
++                if( !p_vout->p_sys->b_clipped_out )
+                 {
+                     /* ignore consecutive viewport update with identical parameters */
+                     if( memcmp(&clipBounds, &(p_vout->p_sys->clipBounds), sizeof(clipBounds) )
+@@ -769,10 +778,36 @@
+ 
+ static void aglSwap( vout_thread_t * p_vout )
+ {
+-    if( ! p_vout->p_sys->b_clipped_out )
++    if( !p_vout->p_sys->b_clipped_out || !p_vout->p_sys->b_viewport_set )
+     {
+         p_vout->p_sys->b_got_frame = VLC_TRUE;
+         aglSwapBuffers(p_vout->p_sys->agl_ctx);
++
++        if( !p_vout->p_sys->b_viewport_set ) {
++            WindowRef win;
++            Rect rect,clipBounds,viewBounds;
++
++            /* invalidate window data to force redraw */
++            //win = GetWindowFromPort( p_vout->p_sys->agl_drawable );
++            //GetWindowPortBounds( win, &rect );
++            GetControlBounds( p_vout->p_sys->theControl, &rect );
++            InvalWindowRect( win, &rect );
++
++            /* check for resizing -- ugly hack to do this in aglSwap, i.e. every frame */
++            clipBounds = viewBounds = rect;
++
++	    /* ignore consecutive viewport update with identical parameters */
++	    if( memcmp(&clipBounds, &(p_vout->p_sys->clipBounds), sizeof(clipBounds) )
++	     && memcmp(&viewBounds, &(p_vout->p_sys->viewBounds), sizeof(viewBounds)) )
++	    {
++                /* set first to avoid infinite recursion */
++		p_vout->p_sys->clipBounds = clipBounds;
++		p_vout->p_sys->viewBounds = viewBounds;
++
++		aglSetViewport(p_vout, viewBounds, clipBounds);
++		aglReshape( p_vout );
++	    }
++        }
+     }
+     else
+     {
