@@ -107,6 +107,12 @@ if not __debug__:
     s.insert(-2,'os.environ["PYTHONOPTIMIZE"] = "2"')
     bundlebuilder.BOOTSTRAP_SCRIPT = "\n".join(s)
 
+# ----- update .xrc files
+
+from Tribler.vwxGUI.updateXRC import main as updateXRC
+
+updateXRC( [os.path.abspath(os.path.dirname(sys.argv[0]))+"/Tribler/vwxGUI"] )
+
 # ----- build the app bundle
 
 bundlebuilder.buildapp(
