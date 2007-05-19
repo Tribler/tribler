@@ -543,12 +543,14 @@ class VideoPlayer:
             
         dlg = VideoChooser(self.parentwindow,self.utility,filelist)
         result = dlg.ShowModal()
-        index = None
         if result == wx.ID_OK:
             index = dlg.getChosenIndex()
         dlg.Destroy()
         
-        return fileindexlist[index] 
+        if result == wx.ID_OK:
+            return fileindexlist[index] 
+        else:
+            return None
 
 
     def warn_user(self,ABCTorrentTemp,videoinfo):
