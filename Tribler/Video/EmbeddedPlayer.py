@@ -379,11 +379,10 @@ class VLCMediaCtrl(wx.Window):
         # Arno: 2007-05-11: Don't ask me why but without the "--verbose=0" vlc will ignore the key redef.
         params = ["--verbose=0","--key-fullscreen","Esc"]
         if sys.platform == 'darwin':
-            params += ["--plugin-path", "%s/lib/vlc:%s/lib/vlc" % (
-                 # location of plugins in app bundle: next to tribler.py
-                 os.path.abspath(os.path.dirname(sys.argv[0])),
-                 # location when running from source: in build dir
-                 "mac/build")]
+            params += ["--plugin-path", "%s/lib/vlc" % (
+                 # location of plugins: next to tribler.py
+                 os.path.abspath(os.path.dirname(sys.argv[0]))
+                 )]
         self.media = vlc.MediaControl(params)
 
         self.visinit = False
