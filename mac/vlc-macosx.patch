@@ -122,7 +122,7 @@ Index: modules/gui/macosx/voutgl.m
 +            Rect rect,clipBounds,viewBounds;
 +
 +            /* invalidate window data to force redraw */
-+            //win = GetWindowFromPort( p_vout->p_sys->agl_drawable );
++            win = GetWindowFromPort( p_vout->p_sys->agl_drawable );
 +            //GetWindowPortBounds( win, &rect );
 +            GetControlBounds( p_vout->p_sys->theControl, &rect );
 +            InvalWindowRect( win, &rect );
