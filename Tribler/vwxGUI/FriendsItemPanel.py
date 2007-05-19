@@ -319,9 +319,9 @@ class FriendThumbnailViewer(ThumbnailViewer):
                 if torrentname is not None:
                     helping = "helping with "+torrentname
             if helping is None:
-                self.Parent.status.SetLabel('status unknown')
+                self.GetParent().status.SetLabel('status unknown')
             else:
-                self.Parent.status.SetLabel(helping)
+                self.GetParent().status.SetLabel(helping)
             rank = self.guiUtility.peer_manager.getRank(peer_data = self.data)#['permid'])
             #because of the fact that hearts are coded so that lower index means higher ranking, then:
             if rank > 0 and rank <= 5:
@@ -357,7 +357,7 @@ class FriendThumbnailViewer(ThumbnailViewer):
                 label = 'online'
                 if helping is not None:
                     label = 'online,'+helping
-                self.Parent.status.SetLabel(label)
+                self.GetParent().status.SetLabel(label)
                 dc.SetFont(wx.Font(FS_ONLINE, wx.SWISS, wx.NORMAL, wx.BOLD, False))
                 dc.SetTextForeground('#007303')
                 dc.DrawText('online', 26, 66)
