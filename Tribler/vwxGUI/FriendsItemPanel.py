@@ -17,6 +17,20 @@ import TasteHeart
 
 DEBUG=False
 
+# font sizes
+if sys.platform == 'darwin':
+    FS_FRIENDTITLE = 11
+    FS_STATUS = 10
+    FS_SIMILARITY = 10
+    FS_HEARTRANK = 10
+    FS_ONLINE = 10
+else:
+    FS_FRIENDTITLE = 11
+    FS_STATUS = 9
+    FS_SIMILARITY = 10
+    FS_HEARTRANK = 7
+    FS_ONLINE = 8
+
 class FriendsItemPanel(wx.Panel):
     """
     PersonsItemPanel shows one persons item inside the PersonsGridPanel
@@ -65,13 +79,13 @@ class FriendsItemPanel(wx.Panel):
         # Add title
         self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(100,15))        
         self.title.SetBackgroundColour(wx.WHITE)
-        self.title.SetFont(wx.Font(11,74,90,wx.NORMAL,0,"Verdana"))
+        self.title.SetFont(wx.Font(FS_FRIENDTITLE,74,90,wx.NORMAL,0,"Verdana"))
         self.title.SetMinSize((100,15))        
         self.title.SetLabel('')
         # Add status
         self.status =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(80,12))        
         self.status.SetBackgroundColour(wx.WHITE)
-        self.status.SetFont(wx.Font(9,74,90,wx.NORMAL,0,"Verdana"))
+        self.status.SetFont(wx.Font(FS_STATUS,74,90,wx.NORMAL,0,"Verdana"))
         self.status.SetForegroundColour(wx.Colour(128,128,128))        
         self.status.SetMinSize((80,12))
         self.status.SetLabel('')
@@ -87,7 +101,7 @@ class FriendsItemPanel(wx.Panel):
         # Add Taste similarity
         self.taste =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(40,15))        
         self.taste.SetBackgroundColour(wx.WHITE)
-        self.taste.SetFont(wx.Font(10,74,90,wx.NORMAL,0,"Verdana"))
+        self.taste.SetFont(wx.Font(FS_SIMILARITY,74,90,wx.NORMAL,0,"Verdana"))
         self.taste.SetMinSize((40,15))
         self.taste.SetLabel('')
         self.hSizer.Add(self.taste, 0, wx.TOP|wx.RIGHT, 5)
@@ -333,7 +347,7 @@ class FriendThumbnailViewer(ThumbnailViewer):
                 dc.DrawBitmap(mask,0 ,62, True)
             if recomm >=0:
                 dc.DrawBitmap(TasteHeart.BITMAPS[recomm],5 ,64, True)
-                dc.SetFont(wx.Font(7, wx.SWISS, wx.NORMAL, wx.BOLD, False))
+                dc.SetFont(wx.Font(FS_HEARTRANK, wx.SWISS, wx.NORMAL, wx.BOLD, False))
                 text = repr(rank)                
                 dc.DrawText(text, 22, 66)
             if self.data.get('friend'):
@@ -344,7 +358,7 @@ class FriendThumbnailViewer(ThumbnailViewer):
                 if helping is not None:
                     label = 'online,'+helping
                 self.Parent.status.SetLabel(label)
-                dc.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, False))
+                dc.SetFont(wx.Font(FS_ONLINE, wx.SWISS, wx.NORMAL, wx.BOLD, False))
                 dc.SetTextForeground('#007303')
                 dc.DrawText('online', 26, 66)
                 

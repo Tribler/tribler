@@ -12,6 +12,14 @@ import TasteHeart
 
 DEBUG=False
 
+# font sizes
+if sys.platform == 'darwin':
+    FS_FILETITLE = 10
+    FS_HEARTRANK = 10
+else:
+    FS_FILETITLE = 8
+    FS_HEARTRANK = 7
+
 class FilesItemPanel(wx.Panel):
     """
     This Panel shows one content item inside the GridPanel
@@ -54,7 +62,7 @@ class FilesItemPanel(wx.Panel):
         self.vSizer.Add(self.thumb, 0, wx.ALL, 0)        
         self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(125,22), wx.ST_NO_AUTORESIZE)        
         self.title.SetBackgroundColour(wx.WHITE)
-        self.title.SetFont(wx.Font(8,74,90,wx.NORMAL,0,"Verdana"))
+        self.title.SetFont(wx.Font(FS_FILETITLE,74,90,wx.NORMAL,0,"Verdana"))
         self.title.SetMinSize((125,40))
         self.vSizer.Add(self.title, 0, wx.BOTTOM, 3)     
         self.vSizer.Add([100,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)        
@@ -394,7 +402,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             margin = 52
             dc.DrawBitmap(mask,0 ,margin, True)
             dc.DrawBitmap(heartBitmap,5 ,margin+2, True)
-            dc.SetFont(wx.Font(7, wx.SWISS, wx.NORMAL, wx.BOLD, False))
+            dc.SetFont(wx.Font(FS_HEARTRANK, wx.SWISS, wx.NORMAL, wx.BOLD, False))
             text = repr(rank)                
             dc.DrawText(text, 22, margin+4)
                 

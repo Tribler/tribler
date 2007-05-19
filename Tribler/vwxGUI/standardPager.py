@@ -8,6 +8,14 @@ import wx, os, sys, os.path, math
 
 DEBUG = False
 
+# font sizes
+if sys.platform == 'darwin':
+    FS_ITEMNORMAL = 11
+    FS_ITEMBOLD = 13
+else:
+    FS_ITEMNORMAL = 8
+    FS_ITEMBOLD = 10
+
 class standardPager(wx.Panel):
     """
     Panel with automatic backgroundimage control.
@@ -57,8 +65,8 @@ class standardPager(wx.Panel):
     def addComponents(self):
         self.Show(False)
         self.SetBackgroundColour(self.triblerRed)
-        self.normalFont = wx.Font(8,74,90,90,0,"Arial")
-        self.boldFont  = wx.Font(10,74,90,wx.BOLD,1,"Arial")
+        self.normalFont = wx.Font(FS_ITEMNORMAL,74,90,90,0,"Arial")
+        self.boldFont  = wx.Font(FS_ITEMBOLD,74,90,wx.BOLD,1,"Arial")
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
         #self.number = wx.StaticText(self,-1,"",wx.Point(3,111),wx.Size(49,13))

@@ -12,6 +12,16 @@ import TasteHeart
 
 DEBUG=False
 
+# font sizes
+if sys.platform == 'darwin':
+    FS_PERSONSTITLE = 10
+    FS_HEARTRANK = 10
+    FS_ONLINE = 10
+else:
+    FS_PERSONSTITLE = 10
+    FS_HEARTRANK = 7
+    FS_ONLINE = 8
+
 class PersonsItemPanel(wx.Panel):
     """
     PersonsItemPanel shows one persons item inside the PersonsGridPanel
@@ -57,7 +67,7 @@ class PersonsItemPanel(wx.Panel):
         self.vSizer.Add(self.thumb, 0, wx.ALL, 0)        
         self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(80,15))        
         self.title.SetBackgroundColour(wx.WHITE)
-        self.title.SetFont(wx.Font(10,74,90,wx.NORMAL,0,"Verdana"))
+        self.title.SetFont(wx.Font(FS_PERSONSTITLE,74,90,wx.NORMAL,0,"Verdana"))
         self.title.SetMinSize((80,30))
         self.vSizer.Add(self.title, 0, wx.BOTTOM, 3)     
 
@@ -369,7 +379,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                 dc.DrawBitmap(mask,0 ,62, True)
             if heartBitmap:
                 dc.DrawBitmap(heartBitmap,5 ,64, True)
-                dc.SetFont(wx.Font(7, wx.SWISS, wx.NORMAL, wx.BOLD, False))
+                dc.SetFont(wx.Font(FS_HEARTRANK, wx.SWISS, wx.NORMAL, wx.BOLD, False))
                 text = repr(rank)                
                 dc.DrawText(text, 22, 66)
             if self.data.get('friend'):
@@ -379,7 +389,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                     friend = self.mm.get_default('personsMode','FRIEND_OFFLINE_BITMAP')
                 dc.DrawBitmap(friend,60 ,65, True)   
             elif self.data.get('online'):         
-                dc.SetFont(wx.Font(8, wx.SWISS, wx.NORMAL, wx.BOLD, False))
+                dc.SetFont(wx.Font(FS_ONLINE, wx.SWISS, wx.NORMAL, wx.BOLD, False))
                 dc.SetTextForeground('#007303')
                 dc.DrawText('online', 38, 64)
         
