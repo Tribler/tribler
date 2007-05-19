@@ -20,6 +20,12 @@ import cStringIO
 
 DEBUG=False
 
+# font sizes
+if sys.platform == 'darwin':
+    FS_TITLE = 12
+else:
+    FS_TITLE = 8
+
 class LibraryItemPanel(wx.Panel):
     def __init__(self, parent):
 
@@ -62,7 +68,7 @@ class LibraryItemPanel(wx.Panel):
         # Add title
         self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(160,12))        
         self.title.SetBackgroundColour(wx.WHITE)
-        self.title.SetFont(wx.Font(8,74,90,wx.NORMAL,0,"Verdana"))
+        self.title.SetFont(wx.Font(FS_TITLE,74,90,wx.NORMAL,0,"Verdana"))
         self.title.SetMinSize((180,14))
         
         # Up/Down text speed

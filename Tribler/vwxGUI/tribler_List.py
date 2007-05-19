@@ -43,7 +43,7 @@ class tribler_List(wx.ListCtrl):
         if not self.InReportView() or self.GetColumnCount()==0:
             return
         size = self.GetClientSize()
-        self.SetColumnWidth( 0, size.width-10) #vertical scrollbar width
+        self.SetColumnWidth( 0, size.width - wx.SystemSettings.GetMetric(wx.SYS_VSCROLL_X)) #vertical scrollbar width
         self.ScrollList(-100, 0) # Removes HSCROLLBAR
 
 class FilesList(tribler_List):
