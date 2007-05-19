@@ -194,6 +194,7 @@ class EmbeddedPlayer(wx.Panel,FlaglessDelayedInvocation):
                 self.progress.Refresh()
 
         self.update = True
+        self.invokeLater(self.slider.SetValue,(0,))
         
         if self.timer is None:
             self.timer = wx.Timer(self)
