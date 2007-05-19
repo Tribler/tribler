@@ -4,8 +4,7 @@
 import wx
 import sys
 
-if sys.platform != "darwin":
-    import vlc
+import vlc
 
 import os
 import time
@@ -340,7 +339,7 @@ class DelayTimer(wx.Timer):
 
 
 
-VLC_MAXVOL = 1024
+VLC_MAXVOL = 200
 
 class VLCMediaCtrl(wx.Window):
     def __init__(self, parent, id, logofilename):
@@ -375,8 +374,17 @@ class VLCMediaCtrl(wx.Window):
         if sys.platform == 'win32':
 		cwd = os.getcwd()
 		os.chdir(vlcinstalldir)
+
         # Arno: 2007-05-11: Don't ask me why but without the "--verbose=0" vlc will ignore the key redef.
-        self.media = vlc.MediaControl(["--verbose=0","--key-fullscreen","Esc"])
+        params = ["--verbose=0","--key-fullscreen","Esc"]
+        if sys.platform == 'darwin':
+            params += ["--plugin-path", "%s/lib/vlc:%s/lib/vlc" % (
+                 # location of plugins in app bundle: next to tribler.py
+                 os.path.abspath(os.path.dirname(sys.argv[0])),
+                 # location when running from source: in build dir
+                 "mac/build")]
+        self.media = vlc.MediaControl(params)
+
         self.visinit = False
 
         if sys.platform == 'win32':

@@ -62,6 +62,7 @@ class VideoPlayer:
             self.playbackmode = playbackmode
         else:
             self.playbackmode = feasible[0]
+        print >>sys.stderr,"playback mode is %d wanted %d" % (self.playbackmode,playbackmode)
 
     def set_parentwindow(self,parentwindow):
         self.parentwindow = parentwindow
@@ -356,6 +357,7 @@ class VideoPlayer:
                 print >>sys.stderr,"videoplay: Win32 reg said playcmd is",playcmd
 
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
+            print >>sys.stderr,"videoplay: using internal player"
             return [mimetype,videourl]
         elif self.playbackmode == PLAYBACKMODE_EXTERNAL_MIME and sys.platform == 'win32':
             if playcmd is not None:
@@ -372,8 +374,11 @@ class VideoPlayer:
         playcmd = qprogpath+' '+qvideourl
         if sys.platform == 'win32':
             cmd = 'start /B "TriblerVideo" '+playcmd
+        elif sys.platform == 'darwin':
+            cmd = 'open -a '+playcmd
         else:
             cmd = playcmd
+        print >>sys.stderr,"videoplay: using external user-defined player by executing ",cmd
         return [mimetype,cmd]
 
             

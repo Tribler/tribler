@@ -30,6 +30,11 @@ import wx
 from wx import xrc
 #import hotshot
 
+if sys.platform == "darwin":
+    # on Mac, we can only load VLC libraries
+    # relative to the location of tribler.py
+    os.chdir(os.path.abspath(os.path.dirname(sys.argv[0])))
+
 from threading import Thread, Timer, Event,currentThread
 from time import time, ctime, sleep
 from traceback import print_exc, print_stack

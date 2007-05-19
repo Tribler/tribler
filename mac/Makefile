@@ -29,16 +29,19 @@ dirs:
 
 # ----- Tribler
 
+APPRES=build/imagecontents/Tribler.app/Contents/Resources
+
 build/imagecontents/:	${SITEPACKAGES}/M2Crypto/ ${SITEPACKAGES}/Growl.py ${SITEPACKAGES}/vlc.so
 	rm -rf $@
 	mkdir -p $@
 
 	cd .. && PYTHONPATH=mac/${SITEPACKAGES} ${PYTHON} -OO - < mac/setuptriblermac.py build
 	mv ../build/* $@
+	cd build && for i in `find lib -name "*.dylib"`; do mkdir -p ../${APPRES}/`dirname $$i`; cp $$i ../${APPRES}/$$i; done
 
 	# Sample Friend Icons
-	mkdir -p $@"/Sample Friend Icons"
-	cp ../icons/mugshots/*.bmp $@"/Sample Friend Icons"
+	#mkdir -p $@"/Sample Friend Icons"
+	#cp ../icons/mugshots/*.bmp $@"/Sample Friend Icons"
 
 	# Background
 	mkdir -p $@/.background
@@ -84,7 +87,6 @@ Tribler.dmg:		build/imagecontents/ SLAResources.rsrc
 	-e "       set background picture of the icon view options of container window to file \".background:background.png\"" \
 	-e "       set position of item \"Tribler.app\" to {150, 140}" \
 	-e "       set position of item \"Applications\" to {410, 140}" \
-	-e "       set position of item \"Sample Friend Icons\" to {300, 400}" \
 	-e "       set the bounds of the container window to {50, 100, 600, 400}" \
 	-e "       update without registering applications" \
 	-e "       delay 5 -- Sync" \
@@ -184,6 +186,9 @@ ${SITEPACKAGES}/vlc.so:		${VLCDIR}/install-root/lib/python${PYTHON_VER}/site-pac
 	cp $< $@
 
 	# fix dependencies of .dylib/.so libraries
-	#(for i in `find build/lib -name "*.dylib" -or -name "*.so"`; do otool -L $$i | perl -ne 'print "install_name_tool -change $$1 lib/$$2 '$$i'\n" if m#(\@executable_path/lib/(\S+))#;'; done) | bash -
+	(for i in `find build/lib -name "*.dylib" -or -name "*.so"`; do otool -L $$i | perl -ne 'print "install_name_tool -change $$1 lib/$$2 '$$i'\n" if m#(\@executable_path/lib/(\S+))#;'; done) | bash -
 
+	# let run from source locate libraries
+	rm ../lib
+	ln -s ${PWD}/build/lib ../lib
 
