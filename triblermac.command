@@ -11,6 +11,13 @@
 PYTHONVER=2.5
 PYTHON=python$PYTHONVER
 
+DIRCHANGE=`dirname $0`
+
+if [ $DIRCHANGE != "" ]
+then
+  cd $DIRCHANGE
+fi
+
 if [ ! -e "lib" ]
 then
   echo Please let the 'lib' symlink point to your built libraries [typically mac/build/lib].
