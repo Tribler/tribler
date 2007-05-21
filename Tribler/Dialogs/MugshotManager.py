@@ -1,7 +1,11 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
 
-import wx
+try:
+	import wx
+except:
+    got_wx = False
+    
 import os
 import sys
 from cStringIO import StringIO
@@ -41,8 +45,10 @@ class MugshotManager:
     def register(self,userpath,syspath):
         self.usericonpath = os.path.join(userpath,'icons')
         self.sysiconpath = os.path.join(syspath,'icons')
-        
+    
         self.defaults = {}
+	if not got_wx:
+	    return
         self.defaults['filesMode'] = {}        
         self.defaults['filesMode']['DEFAULT_THUMB'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'defaultThumb.png'))
         self.defaults['filesMode']['BIG_DEFAULT_THUMB'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'defaultThumbL.png'))
