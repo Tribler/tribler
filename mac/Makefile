@@ -191,7 +191,7 @@ ${SITEPACKAGES}/vlc.so:		${VLCPREFIX}/lib/python${PYTHON_VER}/site-packages/vlc.
 	(for i in `find build/lib -name "*.dylib" -or -name "*.so"`; do otool -L $$i | perl -ne 'print "install_name_tool -change $$1 lib/$$2 '$$i'\n" if m#(\@executable_path/lib/(\S+))#;'; done) | bash -
 
 	# let run from source locate libraries
-	rm ../lib
+	rm -f ../lib
 	ln -s ${PWD}/build/lib ../lib
 
 # ----- FFmpeg
