@@ -520,7 +520,10 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         # Start up the controller
         self.utility.controller = ABCLaunchMany(self.utility)
         self.utility.controller.start()
-        
+
+        # Give GUI time to set up stuff
+        wx.Yield()
+
         #if server start with params run it
         #####################################
         
