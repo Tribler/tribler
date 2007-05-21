@@ -1,3 +1,10 @@
+# !!! IMPORTANT
+#
+# Put the output of the foreign architecture build/temp/vlc-native in this directory
+# called vlc-foreign. i.e.:
+#
+# scp -r mac/build/temp/vlc-native foreignmachine:mac/vlc-foreign
+#
 # Building on Mac OS/X requires:
 # * Python 2.5
 # * wxPython 2.8-unicode
@@ -183,12 +190,19 @@ ${VLCPREFIX}/lib/python${PYTHON_VER}/site-packages/vlc.so:	${VLCPREFIX}/lib/libv
 	# build python bindings
 	cd ${VLCDIR}/bindings/python && ${PYTHON} setup.py install --prefix=${VLCPREFIX}
 
-${SITEPACKAGES}/vlc.so:		${VLCPREFIX}/lib/python${PYTHON_VER}/site-packages/vlc.so
-	cd ${VLCPREFIX}/lib && for i in `find . -name "*.dylib"`; do mkdir -p ${PWD}/build/lib/`dirname $$i`; cp $$i ${PWD}/build/lib/$$i; done
+build/temp/vlc-native/vlc.so:		${VLCPREFIX}/lib/python${PYTHON_VER}/site-packages/vlc.so
+	mkdir -p build/temp/vlc-native
+	cd ${VLCPREFIX}/lib && for i in `find . -name "*.dylib"`; do mkdir -p ${PWD}/build/temp/vlc-native/`dirname $$i`; cp $$i ${PWD}/build/temp/vlc-native/$$i; done
 	cp $< $@
 
 	# fix dependencies of .dylib/.so libraries
-	(for i in `find build/lib -name "*.dylib" -or -name "*.so"`; do otool -L $$i | perl -ne 'print "install_name_tool -change $$1 lib/$$2 '$$i'\n" if m#(\@executable_path/lib/(\S+))#;'; done) | bash -
+	(for i in `find build/temp/vlc-native -name "*.dylib" -or -name "*.so"`; do otool -L $$i | perl -ne 'print "install_name_tool -change $$1 lib/$$2 '$$i'\n" if m#(\@executable_path/lib/(\S+))#;'; done) | bash -
+
+
+${SITEPACKAGES}/vlc.so:		build/temp/vlc-native/vlc.so
+	# merge with foreign architecture
+	cd build/temp/vlc-native && for i in `find . -name "*.dylib"`; do mkdir -p ${PWD}/build/lib/`dirname $$i`; ${PWD}/smart_lipo $$i ${PWD}/vlc-foreign/$$i ${PWD}/build/lib/$$i; done
+	./smart_lipo build/temp/vlc-native/vlc.so vlc-foreign/vlc.so $@
 
 	# let run from source locate libraries
 	rm -f ../lib
@@ -197,19 +211,19 @@ ${SITEPACKAGES}/vlc.so:		${VLCPREFIX}/lib/python${PYTHON_VER}/site-packages/vlc.
 # ----- FFmpeg
 
 FFDIR=build/temp/ffmpeg
-FFCONFIG=
+FFCONFIG=--disable-vhook --disable-network
 
 ${FFDIR}/.prereqs:
 	svn co svn://svn.mplayerhq.hu/ffmpeg/trunk ${FFDIR}
 	touch $@
 
 ${FFDIR}/ffmpeg.i386:	${FFDIR}/.prereqs
-	cd ${FFDIR} && ./configure ${FFCONFIG}
+	cd ${FFDIR} && ./configure ${FFCONFIG} --arch=i386 --extra-cflags="-arch i386" --extra-ldflags="-arch i386 -L/Developer/SDKs/MacOSX10.4u.sdk/usr/lib -L/Developer/SDKs/MacOSX10.4u.sdk/usr/lib/system/libmathCommon.A.dylib" --cross-compile
 	cd ${FFDIR} && make clean && make
 	mv ${FFDIR}/ffmpeg $@
 
 ${FFDIR}/ffmpeg.ppc:	${FFDIR}/.prereqs
-	cd ${FFDIR} && ./configure ${FFCONFIG} --arch=ppc --enable-altivec --extra-cflags="-arch ppc" --extra-ldflags="-arch ppc" --cross-compile
+	cd ${FFDIR} && ./configure ${FFCONFIG} --arch=ppc --enable-altivec --extra-cflags="-arch ppc" --extra-ldflags="-arch ppc -L/Developer/SDKs/MacOSX10.4u.sdk/usr/lib -L/Developer/SDKs/MacOSX10.4u.sdk/usr/lib/system/libmathCommon.A.dylib" --cross-compile
 	cd ${FFDIR} && make clean && make
 	mv ${FFDIR}/ffmpeg $@
 
