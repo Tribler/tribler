@@ -31,13 +31,14 @@ dirs:
 
 APPRES=build/imagecontents/Tribler.app/Contents/Resources
 
-build/imagecontents/:	${SITEPACKAGES}/M2Crypto/ ${SITEPACKAGES}/Growl.py ${SITEPACKAGES}/vlc.so
+build/imagecontents/:	${SITEPACKAGES}/M2Crypto/ ${SITEPACKAGES}/Growl.py ${SITEPACKAGES}/vlc.so build/lib/ffmpeg
 	rm -rf $@
 	mkdir -p $@
 
 	cd .. && PYTHONPATH=mac/${SITEPACKAGES} ${PYTHON} -OO - < mac/setuptriblermac.py build
 	mv ../build/* $@
 	cd build && for i in `find lib -name "*.dylib"`; do mkdir -p ../${APPRES}/`dirname $$i`; cp $$i ../${APPRES}/$$i; done
+	cp build/lib/ffmpeg ${APPRES}/lib/ffmpeg
 
 	# Sample Friend Icons
 	#mkdir -p $@"/Sample Friend Icons"
@@ -192,4 +193,29 @@ ${SITEPACKAGES}/vlc.so:		${VLCPREFIX}/lib/python${PYTHON_VER}/site-packages/vlc.
 	# let run from source locate libraries
 	rm ../lib
 	ln -s ${PWD}/build/lib ../lib
+
+# ----- FFmpeg
+
+FFDIR=build/temp/ffmpeg
+FFCONFIG=
+
+${FFDIR}/.prereqs:
+	svn co svn://svn.mplayerhq.hu/ffmpeg/trunk ${FFDIR}
+	touch $@
+
+${FFDIR}/ffmpeg.i386:	${FFDIR}/.prereqs
+	cd ${FFDIR} && ./configure ${FFCONFIG}
+	cd ${FFDIR} && make clean && make
+	mv ${FFDIR}/ffmpeg $@
+
+${FFDIR}/ffmpeg.ppc:	${FFDIR}/.prereqs
+	cd ${FFDIR} && ./configure ${FFCONFIG} --arch=ppc --enable-altivec --extra-cflags="-arch ppc" --extra-ldflags="-arch ppc" --cross-compile
+	cd ${FFDIR} && make clean && make
+	mv ${FFDIR}/ffmpeg $@
+
+${FFDIR}/ffmpeg:	${FFDIR}/ffmpeg.i386 ${FFDIR}/ffmpeg.ppc
+	lipo $^ -create -o $@
+
+build/lib/ffmpeg:	${FFDIR}/ffmpeg
+	cp $^ $@
 
