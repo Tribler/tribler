@@ -2,7 +2,8 @@
 # see LICENSE.txt for license information
 
 try:
-	import wx
+    import wx
+    got_wx = True
 except:
     got_wx = False
     
