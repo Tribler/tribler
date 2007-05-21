@@ -407,6 +407,23 @@ class Utility:
             # Path also valid on MS Vista
             defaults['videoplayerpath'] = progfilesdir+'\\Windows Media Player\\wmplayer.exe'
             defaults['videoanalyserpath'] = self.getPath()+'\\ffmpeg.exe'
+        elif sys.platform == 'darwin':
+            profiledir = os.path.expandvars('${HOME}')
+            tempdir = os.path.join(profiledir,'Desktop','TriblerDownloads')
+            defaults['setdefaultfolder']= '1' 
+            defaults['defaultfolder'] = tempdir
+            defaults['defaultmovedir']= tempdir
+            defaults['mintray'] = '0'  # tray doesn't make sense on Mac
+            vlcpath = find_prog_in_PATH("vlc")
+            if vlcpath is None:
+                defaults['videoplayerpath'] = "/Applications/QuickTime Player.app"
+            else:
+                defaults['videoplayerpath'] = vlcpath
+            ffmpegpath = find_prog_in_PATH("ffmpeg")
+            if ffmpegpath is None:
+                defaults['videoanalyserpath'] = "ffmpeg"
+            else:
+                defaults['videoanalyserpath'] = ffmpegpath
         else:
             defaults['setdefaultfolder']= '1' 
             defaults['defaultfolder'] = '/tmp'
