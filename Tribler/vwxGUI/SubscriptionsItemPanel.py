@@ -191,6 +191,9 @@ class SubscriptionsItemPanel(wx.Panel):
         if not self.data:
             return
 
+        if DEBUG:
+            print >>sys.stderr,"subip: new status: ",newstatus
+
         self.guiUtility.selectSubscription(self.data)
 
         if 'persistent' in self.data:
@@ -207,6 +210,8 @@ class SubscriptionsItemPanel(wx.Panel):
 
 	newstatus = self.cB.GetValue()
 	self.toggleStatus( newstatus )
+	
+	event.Skip()
         
     def mouseAction(self, event):
         if DEBUG:
@@ -220,10 +225,7 @@ class SubscriptionsItemPanel(wx.Panel):
             self.guiUtility.selectSubscription(self.data)
         
         if self.data is not None:
-            if name == 'check':
-                newstatus = not self.cB.GetValue()
-                self.toggleStatus( newstatus )
-            elif name == 'deleteSubscriptionItem':
+            if name == 'deleteSubscriptionItem':
                 self.torrentfeed.deleteURL(self.data['url'])
                 self.guiUtility.deleteSubscription(self.data)
             
