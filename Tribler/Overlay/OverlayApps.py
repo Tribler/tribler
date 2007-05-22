@@ -16,7 +16,6 @@ from Tribler.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.SocialNetwork.SocialNetworkMsgHandler import SocialNetworkMsgHandler
 from Tribler.utilities import show_permid_short
-from Tribler.vwxGUI.peermanager import PeerDataManager
 from traceback import print_exc
 
 DEBUG = False
@@ -37,6 +36,7 @@ class OverlayApps:
         self.dialback_handler = None
         self.socnet_handler = None
         self.msg_handlers = {}
+        self.text_mode = None
         
         self.torrent_collecting_solution = 2    # TODO: read from config
         # 1: simplest solution: per torrent/buddycasted peer/4hours
@@ -50,6 +50,7 @@ class OverlayApps:
 
     def register(self, secure_overlay, launchmany, rawserver, config):
         self.secure_overlay = secure_overlay
+        self.text_mode = config.has_key('text_mode')
         
         # OverlayApps gets all messages, and demultiplexes 
         secure_overlay.register_recv_callback(self.handleMessage)
@@ -151,7 +152,9 @@ class OverlayApps:
                 bOnline = True
             else:
                 bOnline = False
-            PeerDataManager.getInstance().setOnline(permid, bOnline)
+            if not self.text_mode:
+                from Tribler.vwxGUI.peermanager import PeerDataManager
+                PeerDataManager.getInstance().setOnline(permid, bOnline)
         except:
             print_exc()
         
