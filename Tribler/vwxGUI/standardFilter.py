@@ -85,14 +85,20 @@ class standardFilter(wx.Panel):
         wx.CallAfter(self.mouseAction,[None])
         
     def mouseAction(self, event):
-        
-        filterIndex = [filter.GetSelection() for filter in self.filters]
+
+        #print >>sys.stderr,"standardFilter: mouseAction: event is",event
+        filterIndex = []
+        for filter in self.filters:
+            idx = filter.GetSelection()
+            if idx == -1:
+                idx = 0
+            filterIndex.append(idx)
         filterState = []
         for filterNum in range(len(self.filters)):
             filterState.append(self.filterData[filterNum][filterIndex[filterNum]][0])
             
         if DEBUG:
-            print >>sys.stderr,"standardFilter: filterState is",filterState
+            print >>sys.stderr,"standardFilter: filterState is",filterState,"old",self.filterState
         if filterState != self.filterState:
             self.filterChanged(filterState)
             self.filterState = filterState

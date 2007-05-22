@@ -10,7 +10,7 @@ from Tribler.unicode import *
 import cStringIO
 import TasteHeart
 
-DEBUG=False
+DEBUG = False
 
 # font sizes
 if sys.platform == 'darwin':
@@ -83,7 +83,8 @@ class PersonsItemPanel(wx.Panel):
     def setData(self, peer_data):
         # set bitmap, rating, title
         
-        #print "pip: setData:",peer_data
+        #print >>sys.stderr,"pip: setData:",peer_data
+            
         if peer_data is None:
             self.datacopy = None
         
@@ -119,14 +120,12 @@ class PersonsItemPanel(wx.Panel):
             self.title.SetLabel('')
             self.title.SetToolTipString('')
             self.title.Enable(False)
-       
+
         self.thumb.setData(peer_data)
                
         self.Layout()
         self.Refresh()
         #self.parent.Refresh()
-        
-          
         
     def select(self, rowIndex, colIndex):
         if DEBUG:
@@ -261,6 +260,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         
         if DEBUG:
             print "pip: ThumbnailViewer: loadMetadata: Peer",show_permid_short(data['permid']),data['name']
+            
         # We can't do any wx stuff here apparently, so the only thing we can do is to
         # read the data from the file and create the wxBitmap in the GUI callback.
         [mimetype,bmpdata] = self.mm.load_data(data['permid'],data['name'])

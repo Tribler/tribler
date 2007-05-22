@@ -14,13 +14,23 @@ class TextButton(wx.StaticText):
     def __init__(self, *args, **kw):    
         self.selected = False
         self.colours = [wx.Colour(102,102,102), wx.WHITE]
-        pre = wx.PreStaticText()
-        # the Create step is done by XRC.
-        self.PostCreate(pre)
-        self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
+        if len(args) == 0: 
+            pre = wx.PreStaticText()
+            # the Create step is done by XRC.
+            self.PostCreate(pre)
+            # Arno,2007-05-22: official EVT_WINDOW_CREATE doesn't seem 
+            # to work on Linux
+            if sys.platform == 'linux2':
+                self.windowreadyeventtype = wx.EVT_SIZE
+            else:
+                self.windowreadyeventtype = wx.EVT_WINDOW_CREATE
+            self.Bind(self.windowreadyeventtype, self.OnCreate)
+        else:
+            wx.StaticText.__init__(self, *args, **kw) 
+            self._PostInit()     
         
     def OnCreate(self, event):
-        self.Unbind(wx.EVT_WINDOW_CREATE)
+        self.Unbind(self.windowreadyeventtype)
         wx.CallAfter(self._PostInit)
         event.Skip()
         return True

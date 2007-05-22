@@ -420,6 +420,10 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         self.SetSize(size)
         self.SetPosition(position)
         self.SetTitle(title)
+        tt = self.GetToolTip()
+        if tt is not None:
+            tt.SetTip('')
+        
         #wx.Frame.__init__(self, None, ID, title, position, size, style = style)
         
         self.doneflag = Event()
