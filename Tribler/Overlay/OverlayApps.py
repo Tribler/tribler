@@ -16,6 +16,7 @@ from Tribler.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.SocialNetwork.SocialNetworkMsgHandler import SocialNetworkMsgHandler
 from Tribler.utilities import show_permid_short
+from Tribler.vwxGUI.peermanager import PeerDataManager
 from traceback import print_exc
 
 DEBUG = False
