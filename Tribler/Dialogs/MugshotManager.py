@@ -81,19 +81,24 @@ class MugshotManager:
         """
         if len(peerswpermid) == 0:
             return None
+
+        # scale default to proper size
+        defaultThumb = self.get_default('personsMode','DEFAULT_THUMB')
+        defaultThumb = wx.BitmapFromImage(defaultThumb.ConvertToImage().Scale(SMALL_ICON_MAX_DIM,SMALL_ICON_MAX_DIM))
+
         list = []
         for peer in peerswpermid:
             filename = self.find_filename(peer['permid'],peer['name'])
             bm = None
             if filename is None:
-                bm = self.get_default('personsMode','DEFAULT_THUMB')
+                bm = defaultThumb
             else:
                 try:
                     im = wx.Image(filename)
                     bm = wx.BitmapFromImage(im.Scale(SMALL_ICON_MAX_DIM,SMALL_ICON_MAX_DIM),-1)
                 except:
                     try:
-                        bm = self.get_default('personsMode','DEFAULT_THUMB')
+                        bm = defaultThumb
                     except:
                         return None
             list.append(bm)
