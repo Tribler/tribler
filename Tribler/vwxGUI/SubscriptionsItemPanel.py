@@ -92,6 +92,8 @@ class SubscriptionsItemPanel(wx.Panel):
         self.SetAutoLayout(1);
         self.Layout();
         self.Refresh()
+
+        self.Bind(wx.EVT_CHECKBOX, self.checkboxAction, self.cB)
         
         for window in self.GetChildren():
             window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
@@ -184,6 +186,27 @@ class SubscriptionsItemPanel(wx.Panel):
                         print >>sys.stderr,'subip: deleting'
                     self.guiUtility.deleteSubscription(self.data)
         event.Skip()
+
+    def toggleStatus(self,newstatus):
+        if not self.data:
+            return
+
+        self.guiUtility.selectSubscription(self.data)
+
+        if 'persistent' in self.data:
+            if self.data['persistent'] == 'BC':
+                self.toggleBuddycast(newstatus)
+            elif self.data['persistent'] == 'Web2.0':
+                self.toggleWeb2Search(newstatus)
+        else:
+            self.torrentfeed.setURLStatus(self.data['url'],newstatus)
+
+    def checkboxAction(self,event):
+        if DEBUG:
+            print >>sys.stderr,"subip: checkboxAction"
+
+	newstatus = self.cB.GetValue()
+	self.toggleStatus( newstatus )
         
     def mouseAction(self, event):
         if DEBUG:
@@ -195,19 +218,11 @@ class SubscriptionsItemPanel(wx.Panel):
         #self.SetFocus()
         if self.data:
             self.guiUtility.selectSubscription(self.data)
-
         
         if self.data is not None:
             if name == 'check':
                 newstatus = not self.cB.GetValue()
-                #self.cB.SetValue(newstatus)
-                if 'persistent' in self.data:
-                    if self.data['persistent'] == 'BC':
-                        self.toggleBuddycast(newstatus)
-                    elif self.data['persistent'] == 'Web2.0':
-                        self.toggleWeb2Search(newstatus)
-                else:
-                    self.torrentfeed.setURLStatus(self.data['url'],newstatus)
+                self.toggleStatus( newstatus )
             elif name == 'deleteSubscriptionItem':
                 self.torrentfeed.deleteURL(self.data['url'])
                 self.guiUtility.deleteSubscription(self.data)
