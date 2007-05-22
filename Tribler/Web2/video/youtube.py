@@ -24,7 +24,7 @@ RE_CAT  = r'<a href="/browse\?s=.*?Video\+Category\+Link.*?>(.*?)</a>'
 RE_NAME = r'<title>YouTube - (.*?)</title>'
 RE_DESC = r'<meta name="description" content="(.*?)">'
 RE_VIEWS = r'Views: <span class="statVal">(.*?)</span>'
-RE_DATE = r'<div id="userInfoDiv">.*?<span class="smallLabel">Added</span>.*?<b class="smallText">(.*?)</b><br>'
+RE_DATE = r'<div id="userInfoDiv">.*?<span class="smallLabel">Added:</span>.*?<b class="smallText">(.*?)</b><br>'
 
 URL_WATCH = "http://www.youtube.com/watch?v=%s"
 URL_DL_VIDEO = 'http://www.youtube.com/get_video?video_id=%s&t=%s'
@@ -198,7 +198,9 @@ def YoutubeDateParser(strdate):
         year = int(year)
 
         return time.mktime(datetime.date(year, month, day).timetuple())
-        
+
     except:
+        if DEBUG:
+            traceback.print_exc()
         return None
 
