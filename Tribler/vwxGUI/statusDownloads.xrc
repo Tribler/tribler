@@ -57,6 +57,7 @@
                     <pos>0,3</pos>
                     <size>114,15</size>
                     <bg>#     0</bg>
+                    <fg>#ffffff</fg>
                   </object>
                 </object>
                 <object class="sizeritem">
@@ -69,6 +70,7 @@
                     <pos>114,3</pos>
                     <size>134,15</size>
                     <bg>#     0</bg>
+                    <fg>#ffffff</fg>
                   </object>
                 </object>
               </object>
