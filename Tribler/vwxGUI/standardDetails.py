@@ -1297,7 +1297,11 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     nw = int(iw * h/float(ih))
                 if nw != iw or nh != ih:
                     #print 'Rescale from (%d, %d) to (%d, %d)' % (iw, ih, nw, nh)
-                    img.Rescale(nw, nh, quality = wx.IMAGE_QUALITY_HIGH)
+                    try:
+                        # if wx >= 2.7, use Bicubic scaling
+                        img.Rescale(nw, nh, quality = wx.IMAGE_QUALITY_HIGH)
+                    except:
+                        img.Rescale(nw, nh)
                 bmp = wx.BitmapFromImage(img)
                  
                 thumbPanel.setBitmap(bmp)

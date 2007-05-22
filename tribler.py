@@ -429,6 +429,9 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         self.doneflag = Event()
         DelayedInvocation.__init__(self)
 
+        dragdroplist = FileDropTarget(self.utility)
+        self.SetDropTarget(dragdroplist)
+
         self.tbicon = None
 
         # Arno: see ABCPanel

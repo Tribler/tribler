@@ -203,6 +203,17 @@ class MetadataHandler:
     def read_and_send_metadata(self, permid, torrent_hash, torrent_path, selversion):
         torrent_data = self.read_torrent(torrent_path)
         if torrent_data:
+            
+            # Arno: Don't send private torrents
+            try:
+                metainfo = bdecode(torrent_data)
+                if 'info' in metainfo and 'private' in metainfo['info'] and metainfo['info']['private']:
+                    if DEBUG:
+                        print >> sys.stderr,"metadata: Not sending torrent", `torrent_path`,"because it is private"
+                    return
+            except:
+                print_exc()
+            
             if DEBUG:
                 print >> sys.stderr,"metadata: sending torrent", `torrent_path`, len(torrent_data)
             torrent = {'torrent_hash':torrent_hash, 
@@ -290,6 +301,7 @@ class MetadataHandler:
             torrent["seeder"] = 1
             torrent["leecher"] = 1
             torrent["status"] = "good"
+            torrent["last_check_time"] = 0
         else:
             torrent["seeder"] = extra_info.get('seeder', -1)
             torrent["leecher"] = extra_info.get('leecher', -1)
