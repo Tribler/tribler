@@ -1084,16 +1084,20 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
 
             # Arno, 2007-05-03: wxWidgets 2.8.3.0 and earlier have the MIME-type for .bmp 
             # files set to 'image/x-bmp' whereas 'image/bmp' is the official one.
-            bmphand = None
-            hands = wx.Image.GetHandlers()
-            for hand in hands:
-                #print "Handler",hand.GetExtension(),hand.GetType(),hand.GetMimeType()
-                if hand.GetMimeType() == 'image/x-bmp':
-                    bmphand = hand
-                    break
-            #wx.Image.AddHandler()
-            if bmphand is not None:
-                bmphand.SetMimeType('image/bmp')
+            try:
+                bmphand = None
+                hands = wx.Image.GetHandlers()
+                for hand in hands:
+                    #print "Handler",hand.GetExtension(),hand.GetType(),hand.GetMimeType()
+                    if hand.GetMimeType() == 'image/x-bmp':
+                        bmphand = hand
+                        break
+                #wx.Image.AddHandler()
+                if bmphand is not None:
+                    bmphand.SetMimeType('image/bmp')
+            except:
+                # wx < 2.7 don't like wx.Image.GetHandlers()
+                print_exc()
             
             # Must be after ABCLaunchMany is created
             self.torrentfeed = TorrentFeedThread.getInstance()
