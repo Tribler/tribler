@@ -763,16 +763,6 @@ class ABCFrame(wx.Frame, DelayedInvocation):
     ##################################
                
     def OnCloseWindow(self, event = None):
-        self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
-#        self.Bind(wx.EVT_MENU, self.OnMenuExit, id = wx.ID_CLOSE)
-
-        # leaving here for the time being:
-        # wxMSW apparently sends the event to the App object rather than
-        # the top-level Frame, but there seemed to be some possibility of
-        # change
-        self.Bind(wx.EVT_QUERY_END_SESSION, self.OnCloseWindow)
-        self.Bind(wx.EVT_END_SESSION, self.OnCloseWindow)
-
         if event != None:
             nr = event.GetEventType()
             lookup = { wx.EVT_CLOSE.evtType[0]: "EVT_CLOSE", wx.EVT_QUERY_END_SESSION.evtType[0]: "EVT_QUERY_END_SESSION", wx.EVT_END_SESSION.evtType[0]: "EVT_END_SESSION" }
