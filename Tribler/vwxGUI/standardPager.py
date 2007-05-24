@@ -1,7 +1,5 @@
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from Tribler.vwxGUI.tribler_topButton import tribler_topButton
-from Tribler.Dialogs.ContentFrontPanel import ImagePanel
-
 from wx.lib.stattext import GenStaticText as StaticText
 
 import wx, os, sys, os.path, math

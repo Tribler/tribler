@@ -2,7 +2,6 @@ import wx, math, time, os, sys, threading
 from traceback import print_exc
 from Tribler.utilities import *
 from wx.lib.stattext import GenStaticText as StaticText
-from Tribler.Dialogs.ContentFrontPanel import ImagePanel
 from Tribler.Dialogs.makefriends import MakeFriendsDialog
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from Tribler.vwxGUI.PersonsItemPanel import ThumbnailViewer

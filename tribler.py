@@ -58,7 +58,6 @@ from Utility.utility import Utility
 from Utility.constants import * #IGNORE:W0611
 
 from Tribler.__init__ import tribler_init, tribler_done
-from Tribler.Dialogs.ContentFrontPanel import *
 from BitTornado.__init__ import product_name
 from safeguiupdate import DelayedInvocation,FlaglessDelayedInvocation
 import webbrowser
@@ -255,21 +254,9 @@ class ABCPanel(wx.Panel):
         ##############################
         colSizer = wx.BoxSizer(wx.VERTICAL)
         
-        #buddyCastEnabled = int(self.utility.config.Read('enablerecommender'))
-        buddyCastEnabled = False
-        if (buddyCastEnabled):
-            split = ABCSplitterWindow(self, -1)
-            self.list = ABCList(split)
-            self.utility.list = self.list
-            self.contentPanel = ContentFrontPanel(split)
-            split.SplitHorizontally(self.list, self.contentPanel, 100) #  module dependent
-        
-            colSizer.Add(split, 1, wx.ALL|wx.EXPAND, 3)
-        
-        else: # buddycast disabled
-            self.list = ABCList(self)
-            self.utility.list = self.list
-            colSizer.Add(self.list, 1, wx.ALL|wx.EXPAND, 3)
+        self.list = ABCList(self)
+        self.utility.list = self.list
+        colSizer.Add(self.list, 1, wx.ALL|wx.EXPAND, 3)
             
         """
         # Add status bar

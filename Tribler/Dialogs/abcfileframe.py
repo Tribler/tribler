@@ -687,8 +687,6 @@ class ABCFileFrame(wx.Frame):
         keys = Category.getInstance().getCategoryKeys()
         self.filePanels = []
         for key in keys:
-#            if key == 'xxx':
-#                continue
             panel = FilePanel(self, self.notebook, key)
             self.filePanels.append(panel)
             self.notebook.AddPage(panel, key)

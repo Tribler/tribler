@@ -5,7 +5,6 @@ from Tribler.vwxGUI.LibraryItemPanel import LibraryItemPanel
 from Tribler.vwxGUI.PersonsItemPanel import PersonsItemPanel
 from Tribler.vwxGUI.FriendsItemPanel import FriendsItemPanel
 from Tribler.vwxGUI.SubscriptionsItemPanel import SubscriptionsItemPanel
-from Tribler.Dialogs.ContentFrontPanel import ImagePanel, DetailPanel
 from Tribler.Dialogs.GUIServer import GUIServer
 from Tribler.Dialogs.MugshotManager import MugshotManager
 from Tribler.CacheDB.CacheDBHandler import SuperPeerDBHandler

@@ -37,7 +37,12 @@ class Category:
         Category.__single = self
         self.torrent_db = SynTorrentDBHandler()
         self.category_info = getCategoryInfo(filename)
+        self.category_info.sort(rankcmp)
         self.config_dir = config_dir
+        
+        if DEBUG:
+            print >>sys.stderr,"category: Categories defined by user",self.getCategoryNames()
+        
         
     # return Category instance    
     def getInstance(*args, **kw):
@@ -142,6 +147,22 @@ class Category:
         keys.sort()
         return keys
     
+    def getCategoryNames(self):
+        
+        keys = []
+        for category in self.category_info:
+            rank = category['rank']
+            if rank == -1:
+                break
+            keys.append((category['name'],category['displayname']))
+        return keys
+    
+    def getCategoryRank(self,cat):
+        for category in self.category_info:
+            if category['name'] == cat:
+                return category['rank']
+        return None
+    
     # calculate the category for a given torrent_dict of a torrent file
     # return list
     def calculateCategory(self, torrent_dict, display_name):  # torrent_dict is the info dict of 
@@ -168,10 +189,6 @@ class Category:
         strongest_cat = 0.0
         for category in self.category_info:    # for each category
             (decision, strength) = self.judge(category, filename_list, filesize_list, display_name)
-            
-            # Either take category xxx or the strongest of the rest
-            if (decision and category['name'].lower() == 'xxx'):
-                return [category['name']]
             
             if decision and (strength > strongest_cat):
                 torrent_category = [category['name']]
@@ -225,10 +242,6 @@ class Category:
             # judge file keywords
             factor = 1.0
             fileKeywords = self._getWords(filename_list[index])
-            # special for xxx
-            if category["name"] == "xxx":
-                if filename_list[index].find("xxx") != -1:
-                    factor = 0            
             for ikeywords in category['keywords'].keys():
 #                pass
                 try:
@@ -243,7 +256,10 @@ class Category:
    
         # match file   
         if (matchSize / totalSize) >= category['matchpercentage']:
-            return (True, (matchSize/ totalSize))
+            if 'strength' in category:
+                return (True, category['strength'])
+            else:
+                return (True, (matchSize/ totalSize))
             
         return (False, 0)
     
@@ -270,3 +286,20 @@ class Category:
             if s != "" and not s.isdigit():
                 strList.append(s)
         return strList  
+
+def rankcmp(a,b):
+    if not ('rank' in a):
+        return 1
+    elif not ('rank' in b):
+        return -1
+    elif a['rank'] == -1:
+        return 1
+    elif b['rank'] == -1:
+        return -1
+    elif a['rank'] == b['rank']:
+        return 0
+    elif a['rank'] < b['rank']:
+        return -1
+    else:
+        return 1
+    

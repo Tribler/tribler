@@ -3,7 +3,7 @@ import wx.xrc as xrc
 
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from traceback import print_exc
-#from Tribler.vwxGUI.filesGrid import filesGrid
+from Tribler.Category.Category import Category
 
 DEBUG = False
 
@@ -130,17 +130,11 @@ class standardFilter(wx.Panel):
 
 class filesFilter(standardFilter):
     def __init__(self):
+        nametuples = Category.getInstance().getCategoryNames()
+        nametuples.append(('other', 'Other'))
+        nametuples.append(('search', 'Search Results'))
         filterData = [
-                      [('video', 'Video Files'),
-                       ('videoclips', 'VideoClips'),
-                       ('audio', 'Audio'),
-                       ('picture', 'Picture'),
-                       ('compressed', 'Compressed'),
-                       ('document','Document'),
-                       ('other', 'Other'),
-                       ('xxx', 'XXX'),
-                       ('search', 'Search Results')
-                       ],
+                       nametuples,
                        [(('content_name', 'increase'), 'Name'),
                         ('swarmsize', 'Popular'),
                         ('relevance','Recommended'),
@@ -167,18 +161,13 @@ class personsFilter(standardFilter):
         
 class libraryFilter(standardFilter):
     def __init__(self):
+
+        nametuples = Category.getInstance().getCategoryNames()
+        nametuples = [('all', 'All')] + nametuples
+        nametuples += [('other', 'Other')]
+        nametuples += [('search', 'Search Results')]
         filterData = [
-                      [('all', 'All'),
-                       ('video', 'Video Files'),
-                       ('videoclips', 'VideoClips'),
-                       ('audio', 'Audio'),
-                       ('picture', 'Picture'),
-                       ('compressed', 'Compressed'),
-                       ('document','Document'),
-                       ('other', 'Other'),
-                       ('xxx', 'XXX'),
-                       ('search', 'Search Results')
-                       ],
+                       nametuples,
                        [('latest', 'Latest downloaded'),
                         (('content_name', 'increase'), 'Name'),
                         #('swarmsize', 'Popular'),

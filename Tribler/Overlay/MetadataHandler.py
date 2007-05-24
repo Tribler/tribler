@@ -278,6 +278,16 @@ class MetadataHandler:
         
         torrent_info = {}
         torrent_info['name'] = info.get(namekey, '')
+        
+        catobj = Category.getInstance()
+        torrent['category'] = catobj.calculateCategory(info, torrent_info['name'])
+        for cat in torrent['category']:
+            rank = catobj.getCategoryRank(cat)
+            if rank == -1:
+                if DEBUG:
+                    print >>sys.stderr,"metadata: Got torrent",`torrent_info['name']`,"from banned category",cat,", discarded it."
+                return
+        
         length = 0
         nf = 0
         if info.has_key('length'):
@@ -294,7 +304,7 @@ class MetadataHandler:
         torrent_info['announce-list'] = metainfo.get('announce-list', '')
         torrent_info['creation date'] = metainfo.get('creation date', 0)
         torrent['info'] = torrent_info
-        torrent['category'] = Category.getInstance().calculateCategory(info, torrent_info['name'])
+        
         torrent["ignore_number"] = 0
         torrent["retry_number"] = 0
         if hack:
