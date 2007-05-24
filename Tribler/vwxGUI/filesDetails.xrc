@@ -77,7 +77,7 @@
         <object class="wxPanel" name="tabs">
           <pos>0,211</pos>
           <size>300,28</size>
-          <bg>#     0</bg>
+          <bg>#cbcbcb</bg>
           <object class="wxBoxSizer">
             <orient>wxVERTICAL</orient>
             <object class="spacer">

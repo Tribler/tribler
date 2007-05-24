@@ -1,8 +1,0 @@
-
-- First phases: start tracker with
-  $ bttrack --allowed_ips authorized_networks.txt
-  file format:
-  130.161.0.0/16
-  130.37.0.0/16
-
-- 
