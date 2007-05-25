@@ -1,0 +1,5 @@
+import wx
+
+FONTFAMILY = wx.SWISS
+FONTWEIGHT = wx.NORMAL
+FONTFACE = "Verdana"
