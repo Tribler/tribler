@@ -74,6 +74,7 @@ from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Dialogs.activities import *
 
 from Tribler.notification import init as notification_init
+from Tribler.vwxGUI.font import *
 
 DEBUG = False
 ALLOW_MULTIPLE = False
@@ -932,7 +933,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
             text = unicode( prefix+u' '+msg)
             
         if DEBUG:
-            print  >> sys.stderr,"abc: Setting activity", `text`
+            print  >> sys.stderr,"abc: Setting activity",`text`,"EOT"
         self.messageField.SetLabel(text)
 
 
@@ -1033,13 +1034,21 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
 
 
             self.frame.numberPersons = xrc.XRCCTRL(self.frame, "numberPersons")
+            numperslabel = xrc.XRCCTRL(self.frame, "persons")
             self.frame.numberFiles = xrc.XRCCTRL(self.frame, "numberFiles")
+            numfileslabel = xrc.XRCCTRL(self.frame, "files")
             self.frame.messageField = xrc.XRCCTRL(self.frame, "messageField")
             self.frame.firewallStatus = xrc.XRCCTRL(self.frame, "firewallStatus")
             tt = self.frame.firewallStatus.GetToolTip()
             if tt is not None:
                 SetTip(self.utility.lang.get('unknownreac_tooltip'))
             
+            if sys.platform == "linux2":
+                self.frame.numberPersons.SetFont(wx.Font(9,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+                self.frame.numberFiles.SetFont(wx.Font(9,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+                self.frame.messageField.SetFont(wx.Font(9,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+                numperslabel.SetFont(wx.Font(9,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+                numfileslabel.SetFont(wx.Font(9,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
             """
             searchfilebut = xrc.XRCCTRL(self.frame, "bt257cC")
             searchfilebut.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)

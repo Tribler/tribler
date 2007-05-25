@@ -6,6 +6,7 @@ from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from safeguiupdate import FlaglessDelayedInvocation
 from Tribler.unicode import *
+from font import *
 import cStringIO
 import TasteHeart
 
@@ -66,7 +67,7 @@ class PersonsItemPanel(wx.Panel):
         self.vSizer.Add(self.thumb, 0, wx.ALL, 0)        
         self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(80,15))        
         self.title.SetBackgroundColour(wx.WHITE)
-        self.title.SetFont(wx.Font(FS_PERSONSTITLE,74,90,wx.NORMAL,0,"Verdana"))
+        self.title.SetFont(wx.Font(FS_PERSONSTITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.title.SetMinSize((80,30))
         self.vSizer.Add(self.title, 0, wx.BOTTOM, 3)     
 
@@ -378,7 +379,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                 dc.DrawBitmap(mask,0 ,62, True)
             if heartBitmap:
                 dc.DrawBitmap(heartBitmap,5 ,64, True)
-                dc.SetFont(wx.Font(FS_HEARTRANK, wx.SWISS, wx.NORMAL, wx.BOLD, False))
+                dc.SetFont(wx.Font(FS_HEARTRANK,FONTFAMILY,FONTWEIGHT, wx.BOLD, False, FONTFACE))
                 text = repr(rank)                
                 dc.DrawText(text, 22, 66)
             if self.data.get('friend'):
@@ -388,7 +389,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                     friend = self.mm.get_default('personsMode','FRIEND_OFFLINE_BITMAP')
                 dc.DrawBitmap(friend,60 ,65, True)   
             elif self.data.get('online'):         
-                dc.SetFont(wx.Font(FS_ONLINE, wx.SWISS, wx.NORMAL, wx.BOLD, False))
+                dc.SetFont(wx.Font(FS_ONLINE,FONTFAMILY,FONTWEIGHT, wx.BOLD, False,FONTFACE))
                 dc.SetTextForeground('#007303')
                 dc.DrawText('online', 38, 64)
         

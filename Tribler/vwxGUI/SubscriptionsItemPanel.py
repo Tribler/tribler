@@ -6,6 +6,7 @@ from Tribler.vwxGUI.GuiUtility import GUIUtility
 from Tribler.BuddyCast.buddycast import BuddyCastFactory
 from safeguiupdate import FlaglessDelayedInvocation
 from Tribler.unicode import *
+from font import *
 from copy import deepcopy
 import cStringIO
 from tribler_topButton import *
@@ -69,14 +70,14 @@ class SubscriptionsItemPanel(wx.Panel):
         # Add title
         self.title =wx.StaticText(self,-1,"Tribler discovery through other Tribler Users",wx.Point(0,0),wx.Size(800,20))        
         #self.title.SetBackgroundColour(wx.BLUE)
-        self.title.SetFont(wx.Font(12,74,90,wx.NORMAL,0,"Verdana"))
+        self.title.SetFont(wx.Font(12,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.title.SetMinSize((550,20))
         self.hSizer.Add(self.title, 1, wx.BOTTOM|wx.TOP, 3)     
         # Add title
         
         #self.today =wx.StaticText(self,-1,"today: 10 files",wx.Point(0,0),wx.Size(140,18))        
         #self.today.SetBackgroundColour(wx.WHITE)
-        #self.today.SetFont(wx.Font(10,74,90,wx.NORMAL,0,"Verdana"))
+        #self.today.SetFont(wx.Font(10,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         #self.today.SetMinSize((140,18))
         #self.hSizer.Add(self.today, 0, wx.BOTTOM|wx.TOP|wx.RIGHT, 3)
        

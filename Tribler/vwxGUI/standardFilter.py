@@ -4,6 +4,7 @@ import wx.xrc as xrc
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from traceback import print_exc
 from Tribler.Category.Category import Category
+from font import *
 
 DEBUG = False
 
@@ -68,7 +69,7 @@ class standardFilter(wx.Panel):
                     print >>sys.stderr,'standardFilter: Error getting default filterState, data: %s' % pullDownData
                 pass
             filter = wx.ComboBox(self,-1,titles[0], wx.Point(8,3),wx.Size(180,21),titles, wx.CB_DROPDOWN|wx.CB_READONLY)
-            filter.SetFont(wx.Font(10,74,90,90,0,"Verdana"))
+            filter.SetFont(wx.Font(10,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
 #            filter.SetBackgroundColour(wx.WHITE)
             filter.Bind(wx.EVT_COMBOBOX, self.mouseAction)
             self.filters.append(filter)

@@ -15,6 +15,7 @@ from Tribler.unicode import *
 from tribler_topButton import *
 from copy import deepcopy
 from bgPanel import *
+from font import *
 from Utility.constants import * 
 import cStringIO
 
@@ -68,7 +69,7 @@ class LibraryItemPanel(wx.Panel):
         # Add title
         self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(160,12))        
         self.title.SetBackgroundColour(wx.WHITE)
-        self.title.SetFont(wx.Font(FS_TITLE,74,90,wx.NORMAL,0,"Verdana"))
+        self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.title.SetMinSize((180,14))
         
         # Up/Down text speed

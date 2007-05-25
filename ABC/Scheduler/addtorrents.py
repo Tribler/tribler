@@ -13,7 +13,6 @@ from threading import currentThread
 
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.zurllib import urlopen
-from Tribler.Video.VideoPlayer import is_video_torrent
 
 from ABC.Torrent.abctorrent import ABCTorrent
 
@@ -208,7 +207,7 @@ class AddTorrents:
         if torrentinlist:
             if DEBUG:
                 print >>sys.stderr,"addtorrents: duplicate torrent"
-            if True: # is_video_torrent(metainfo):
+            if True: # old_is_video_torrent(metainfo):
                 for ABCTorrentTemp in self.utility.torrents["all"]:
                     if hexinfohash == ABCTorrentTemp.infohash:
                         if DEBUG:
@@ -444,7 +443,7 @@ class AddTorrents:
         newhexinfohash = None
         if argv[0] != "":
             metainfo = self.utility.getMetainfo(argv[0])
-            if metainfo is not None and True: # is_video_torrent(metainfo):
+            if metainfo is not None and True: # old_is_video_torrent(metainfo):
                 # So we're being started with a video torrent 
                 newisvideo = True
                 newhexinfohash = sha(bencode(metainfo['info'])).hexdigest()

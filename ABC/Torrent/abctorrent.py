@@ -19,9 +19,8 @@ from ABC.Torrent.status import TorrentStatus
 from Utility.constants import * #IGNORE:W0611
 from Tribler.unicode import name2unicode
 from Tribler.Category.Category import Category
-from Tribler.Video.__init__ import stat
 from Tribler.vwxGUI.torrentManager import TorrentDataManager
-from Tribler.Video.VideoPlayer import VideoPlayer,find_video_on_disk
+from Tribler.Video.VideoPlayer import VideoPlayer,is_vodable
 
 from time import time
 
@@ -143,7 +142,7 @@ class ABCTorrent:
         self.progressinf = None
         self.prevactivetorrents = None
 
-        self.vodable = (len(find_video_on_disk(self,stat(self))) > 0)
+        self.vodable = is_vodable(self)
 
 
     def addTorrentToDB(self):

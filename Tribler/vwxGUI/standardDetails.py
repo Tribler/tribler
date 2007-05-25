@@ -5,7 +5,7 @@ from time import sleep,time
 import math
 from traceback import print_exc
 import cStringIO
-
+import urlparse
 
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from Tribler.utilities import *
@@ -510,6 +510,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     trackerString = torrent['tracker']
                     short = getShortTrackerFormat(trackerString)
                     trackerField = self.getGuiObj('trackerField', tab = 'filesTab_files')
+                    trackerField.Wrap(-1)
                     trackerField.SetLabel(short)
                     trackerField.SetToolTipString(trackerString)
                     
@@ -1437,11 +1438,16 @@ def reverse_torrent_insertime_cmp(a,b):
         return -1
     
 def getShortTrackerFormat(n):
-        i1 = n.find(':', 8)
-        i2 = n.find('/', 8)
-        if i1 != -1 and (i1 < i2 or i2 == -1):
-            return n[:i1]
-        elif i2 != -1:
-            return n[:i2]
+    try:
+        t = urlparse.urlsplit(n)
+        short = t[1]
+        idx = t[1].find(':')
+        if idx == -1:
+            short = t[1]
         else:
-            return n
+            short = t[1][:idx]
+        if sys.platform == 'linux2':
+            short = short[:27]
+    except:
+        short = n[:27]
+    return ' '+short

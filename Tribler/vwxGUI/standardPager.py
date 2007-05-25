@@ -1,6 +1,7 @@
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from Tribler.vwxGUI.tribler_topButton import tribler_topButton
 from wx.lib.stattext import GenStaticText as StaticText
+from font import *
 
 import wx, os, sys, os.path, math
 
@@ -63,8 +64,8 @@ class standardPager(wx.Panel):
     def addComponents(self):
         self.Show(False)
         self.SetBackgroundColour(self.triblerRed)
-        self.normalFont = wx.Font(FS_ITEMNORMAL,74,90,90,0,"Arial")
-        self.boldFont  = wx.Font(FS_ITEMBOLD,74,90,wx.BOLD,1,"Arial")
+        self.normalFont = wx.Font(FS_ITEMNORMAL,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE) # was Arial
+        self.boldFont  = wx.Font(FS_ITEMBOLD,FONTFAMILY,FONTWEIGHT,wx.BOLD,True,FONTFACE) # was Arial
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
         #self.number = wx.StaticText(self,-1,"",wx.Point(3,111),wx.Size(49,13))

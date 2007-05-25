@@ -134,7 +134,7 @@ class OverlayApps:
                 return self.msg_handlers[id](permid,selversion,message)
             except:
                 # Catch all
-                print_exc(file=sys.stderr)
+                print_exc()
                 return False
 
 

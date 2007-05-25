@@ -210,7 +210,7 @@ class MetadataHandler:
                 if 'info' in metainfo and 'private' in metainfo['info'] and metainfo['info']['private']:
                     if DEBUG:
                         print >> sys.stderr,"metadata: Not sending torrent", `torrent_path`,"because it is private"
-                    return
+                    return 0
             except:
                 print_exc()
             

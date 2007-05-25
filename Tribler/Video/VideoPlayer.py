@@ -104,7 +104,7 @@ class VideoPlayer:
 
 
     def is_video_torrent(self,ABCTorrentTemp):
-        filelist = find_video_on_disk(ABCTorrentTemp,stat(ABCTorrentTemp))
+        filelist = find_video_on_disk(ABCTorrentTemp,stat(ABCTorrentTemp),getdest=False)
         if filelist is None or len(filelist) == 0:
             return False
         else:
@@ -721,7 +721,7 @@ def is_movie(filename,enc=False):
         return False
 
 
-def find_video_on_disk(ABCTorrentTemp,enc=False):
+def find_video_on_disk(ABCTorrentTemp,enc=False,getdest=True):
     """ Returns four tuple [index,printname,bitrate,filenameasondisk] of the video files 
     found on the local disk 
     """
@@ -773,12 +773,13 @@ def find_video_on_disk(ABCTorrentTemp,enc=False):
                         bitrate = x['length']/playtime
                 except:
                     print_exc(file=sys.stderr)
-                fileindexlist.append([i,intorrentpath,bitrate,ABCTorrentTemp.files.getSingleFileDest(index=i)])
+                if getdest:
+                    dest = ABCTorrentTemp.files.getSingleFileDest(index=i)
+                else:
+                    dest = None
+                fileindexlist.append([i,intorrentpath,bitrate,dest])
     return fileindexlist
 
-## TEMP REMOVE
-def is_video_torrent(metainfo):
-    return False
 
 def parse_playtime_to_secs(hhmmss):
     if DEBUG:
@@ -813,3 +814,5 @@ def return_feasible_playback_modes():
         l.append(PLAYBACKMODE_EXTERNAL_DEFAULT)
     return l
 
+def is_vodable(ABCTorrentTemp):
+    return (len(find_video_on_disk(ABCTorrentTemp,stat(ABCTorrentTemp),getdest=False)) > 0)

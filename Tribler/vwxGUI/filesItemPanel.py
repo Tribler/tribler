@@ -8,6 +8,7 @@ from Tribler.unicode import *
 from copy import deepcopy
 import cStringIO
 import TasteHeart
+from font import *
 
 DEBUG=False
 
@@ -61,7 +62,7 @@ class FilesItemPanel(wx.Panel):
         self.vSizer.Add(self.thumb, 0, wx.ALL, 0)        
         self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(125,22), wx.ST_NO_AUTORESIZE)        
         self.title.SetBackgroundColour(wx.WHITE)
-        self.title.SetFont(wx.Font(FS_FILETITLE,74,90,wx.NORMAL,0,"Verdana"))
+        self.title.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.title.SetMinSize((125,40))
         self.vSizer.Add(self.title, 0, wx.BOTTOM, 3)     
         self.vSizer.Add([100,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)        
@@ -392,7 +393,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
 #            dc.SetTextForeground(wx.BLACK)
             #dc.DrawText('rating', 8, 50)
         if self.mouseOver:
-            dc.SetFont(wx.Font(6, wx.SWISS, wx.NORMAL, wx.BOLD, True))
+            dc.SetFont(wx.Font(6, FONTFAMILY,FONTWEIGHT, wx.BOLD, True, FONTFACE))
             mask = self.mm.get_default('filesMode','MASK_BITMAP')
             dc.DrawBitmap(mask,0 ,0, True)
         
@@ -401,7 +402,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             margin = 52
             dc.DrawBitmap(mask,0 ,margin, True)
             dc.DrawBitmap(heartBitmap,5 ,margin+2, True)
-            dc.SetFont(wx.Font(FS_HEARTRANK, wx.SWISS, wx.NORMAL, wx.BOLD, False))
+            dc.SetFont(wx.Font(FS_HEARTRANK, FONTFAMILY, FONTWEIGHT, wx.BOLD, False, FONTFACE))
             text = repr(rank)                
             dc.DrawText(text, 22, margin+4)
                 
