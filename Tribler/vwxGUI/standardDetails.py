@@ -352,8 +352,10 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             torrent = item
             
             titleField = self.getGuiObj('titleField')
-            titleField.SetLabel(torrent.get('content_name'))
-            titleField.Wrap(-1)
+            title = torrent.get('content_name')
+            title = title[:77]
+            titleField.SetLabel(title)
+            titleField.Wrap(-1) # doesn't appear to work
             
             self.setTorrentThumb(self.mode, torrent, self.getGuiObj('thumbField'))        
 

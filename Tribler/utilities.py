@@ -228,7 +228,10 @@ def friendly_time(old_time):
         return strftime("%d-%m-%Y", gmtime(old_time))
         
 def sort_dictlist(dict_list, key, order='increase'):
-    aux = [(dict_list[i][key], i) for i in xrange(len(dict_list))]
+    aux = []
+    for i in xrange(len(dict_list)):
+        if key in dict_list[i]:
+            aux.append((dict_list[i][key],i))
     aux.sort()
     if order == 'decrease' or order == 1:    # 0 - increase, 1 - decrease
         aux.reverse()

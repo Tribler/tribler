@@ -1113,6 +1113,10 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             self.torrentfeed = TorrentFeedThread.getInstance()
             self.torrentfeed.register(self.utility)
             self.torrentfeed.start()
+            
+            #print "DIM",wx.GetDisplaySize()
+            #print "MM",wx.GetDisplaySizeMM()
+            
 
             wx.CallAfter(self.startWithRightView)            
             
