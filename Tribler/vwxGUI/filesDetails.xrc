@@ -77,7 +77,7 @@
         <object class="wxPanel" name="tabs">
           <pos>0,211</pos>
           <size>300,28</size>
-          <bg>#cbcbcb</bg>
+          <bg>#     0</bg>
           <object class="wxBoxSizer">
             <orient>wxVERTICAL</orient>
             <object class="spacer">
@@ -96,7 +96,7 @@
                   <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>10</border>
                   <option>0</option>
-                  <object class="wxStaticText" name="info_detailsTab" subclass="Tribler.vwxGUI.TextButton.TextButton">
+                  <object class="wxPanel" name="info_detailsTab" subclass="Tribler.vwxGUI.TextButton.TextButton">
                     <pos>10,10</pos>
                     <size>75,18</size>
                   </object>
@@ -105,7 +105,7 @@
                   <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>10</border>
                   <option>0</option>
-                  <object class="wxStaticText" name="files_detailsTab" subclass="Tribler.vwxGUI.TextButton.TextButton">
+                  <object class="wxPanel" name="files_detailsTab" subclass="Tribler.vwxGUI.TextButton.TextButton">
                     <pos>95,10</pos>
                     <size>75,18</size>
                   </object>

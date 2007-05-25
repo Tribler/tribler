@@ -53,7 +53,7 @@ def changeFile(filename):
                      ('subscriptionsGrid', 'wxPanel', customDir+'standardGrid'),
                      
                      ('TasteHeart', 'wxPanel', customDir+'TasteHeart'),
-                     ('TextButton', 'wxStaticText', customDir+'TextButton')
+                     ('TextButton', 'wxPanel', customDir+'TextButton')
                      ]
     
     # Define all used custom classes here and the related wxPython classes. They will be replaced by the regexp.
