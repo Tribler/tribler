@@ -91,7 +91,18 @@ class ProfileOverviewPanel(wx.Panel):
 #        self.Update()
         self.initData()
         self.timer = None
+        self.Bind(wx.EVT_SHOW, self.OnShow) 
         wx.CallAfter(self.reloadData)
+        
+    def OnShow(self, evt):
+#        print "<mluc> in onshow in profileOverviewPanel"
+        if evt.show:
+#            print "<mluc> profileOverviewPanel is visible"
+            self.timer.Start() #restarts the timer
+        else:
+#            print "<mluc> profileOverviewPanel is visible"
+            pass
+        #wx.CallAfter(self.reloadData())
 
     def getNameMugshot(self):
         my_db = MyDBHandler()
@@ -185,10 +196,12 @@ class ProfileOverviewPanel(wx.Panel):
     def reloadData(self, event=None):
         """updates the fields in the panel with new data if it has changed"""
         
-        self.showNameMugshot()
-        
         if not self.IsShown(): #should not update data if not shown
             return
+#        print "<mluc> profileOverviewPanel in reloadData"
+        
+        self.showNameMugshot()
+
         bShouldRefresh = False
         max_index_bar = 5 #the maximal value the normal bar can have
         max_overall_index_bar = 6 #the maximal value the overall bar can have
@@ -262,13 +275,19 @@ class ProfileOverviewPanel(wx.Panel):
         #use index_h computed above
         #<<<get new version
         index_v = 0
-        if self.checkNewVersion():
-            index_v = max_index_bar
+        bCheckVersionChange = self.checkNewVersion()
+        if bCheckVersionChange:
             self.data['new_version']=self.new_version
             self.data['update_url'] = self.update_url
             self.data['compare_result'] = self.check_result
+        if self.check_result == -1: #it means the user has a newer version, that's good
+            index_v = max_index_bar
+        elif self.check_result == 0: #it means the same version user has as on web site
+            index_v = max_index_bar
+        else: #for 1, -2, -3 cases, the version isn't good enough
+            index_v = 0
         index_n = self.indexValue(index_h+index_v, 2*max_index_bar, max_index_bar)
-        if bMoreFriends or index_v>0:
+        if bMoreFriends or bCheckVersionChange:
             bShouldRefresh = True
             if self.getGuiElement("perf_Presence"):
                 self.getGuiElement("perf_Presence").setIndex(index_n)
@@ -276,14 +295,14 @@ class ProfileOverviewPanel(wx.Panel):
         #--- Overall performance
         #<<<set the overall performance to a random number
         overall_index = self.indexValue(index_q+index_p+index_f+index_s+index_n, 5*max_index_bar, max_overall_index_bar)
-        elem = self.getGuiElement("perf_Overall")    
-        if elem and overall_index != elem.getIndex() or self.data.get('overall_rank') is None:
+        elem = self.getGuiElement("perf_Overall")
+        if overall_index != elem.getIndex() or self.data.get('overall_rank') is None:
             elem.setIndex(overall_index)
             if overall_index < 2:
                 self.data['overall_rank'] = "beginner"
-            elif overall_index < 4:
+            elif overall_index < 3:
                 self.data['overall_rank'] = "experienced"
-            elif overall_index < 6:
+            elif overall_index < 5:
                 self.data['overall_rank'] = "top user"
             else:
                 self.data['overall_rank'] = "master"
