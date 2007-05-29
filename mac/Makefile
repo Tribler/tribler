@@ -174,12 +174,13 @@ ${VLCDIR}/Makefile:	${VLCDIR}/.prereqs
 	cd ${VLCDIR} && ./bootstrap
 	svn revert ${VLCDIR}/m4/*
 	cd ${VLCDIR} && ./configure --enable-debug --disable-x11 --disable-xvideo --disable-glx --enable-sdl --enable-mad --enable-libdvbpsi --enable-a52 --disable-dvdplay --enable-dvdnav --enable-dvdread --enable-ffmpeg --enable-faad --enable-flac --enable-vorbis --enable-speex --enable-theora --enable-ogg --enable-shout --enable-cddb --disable-cddax --enable-vcdx --disable-skins --disable-skins2 --disable-wxwidgets --enable-freetype --enable-fribidi --disable-caca --enable-live555 --enable-dca --enable-goom --enable-modplug --enable-gnutls --enable-daap --disable-ncurses --enable-libtwolame --enable-x264 --enable-png --enable-realrtsp --disable-libtool --prefix=${VLCPREFIX}
-	cd ${VLCDIR} && patch -p0 -N < ${PWD}/vlc-macosx.patch
 
 ${VLCPREFIX}/lib/libvlc.a:	${VLCDIR}/Makefile
 	# build and install vlc
+	cd ${VLCDIR} && patch -p0 -N < ${PWD}/vlc-macosx-compile.patch
 	cd ${VLCDIR} && ./compile
 	cp mkinstalldirs ${VLCDIR}/autotools
+	cd ${VLCDIR} && patch -p0 -N < ${PWD}/vlc-macosx-install.patch
 	cd ${VLCDIR} && make install
 
 	# copy some missing libraries into the install-root
