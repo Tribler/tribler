@@ -284,7 +284,8 @@ class standardGrid(wx.Panel):
                 self.panels.append([])
                 for panel in range(0, self.cols):
                     dataPanel = self.getSubPanel()
-                    #dataPanel = wx.Panel(self, wx.ID_ANY)
+                    # add keylistener for arrow selection
+                    dataPanel.Bind(wx.EVT_KEY_UP, self.keyTypedOnGridItem)
                     self.panels[i].append(dataPanel)
                     #dataPanel.SetSize((-1, self.subPanelHeight))
                     hSizer.Add(dataPanel, 1, wx.ALIGN_CENTER|wx.ALL|wx.GROW, 0)
@@ -368,7 +369,44 @@ class standardGrid(wx.Panel):
         if self.dod:
             self.dod.unregister(self.updateDod)
             self.dod.stop()
-
+            
+    def keyTypedOnGridItem(self, event):
+        obj = event.GetEventObject()
+        
+        if not obj.selected:
+                return
+        keyCode = event.GetKeyCode()
+        # Get coord of keytyped panel
+        rowIndex = 0
+        xpan = ypan = None
+        for row in self.panels:
+            colIndex = 0    
+            for pan in row:
+                if obj == pan:
+                    (xpan, ypan) = colIndex, rowIndex
+                    break
+                colIndex += 1
+            rowIndex += 1
+        if xpan == None:
+            raise Exception('Could not find selected panel')
+        xpanold = xpan
+        ypanold = ypan
+        if keyCode == wx.WXK_UP:
+            ypan = max(0, ypan-1)
+        elif keyCode == wx.WXK_DOWN:
+            ypan = min(self.currentRows-1, ypan+1)
+        elif keyCode == wx.WXK_LEFT:
+            xpan = max(0, xpan -1)
+        elif keyCode == wx.WXK_RIGHT:
+            xpan = min(self.cols-1, xpan+1)
+        # Get data of new panel
+        #print 'Old: %s, New: %s' % ((xpanold, ypanold), (xpan, ypan))
+        if xpanold != xpan or ypanold != ypan:
+            newpanel = self.panels[ypan][xpan]
+            if newpanel.data != None:
+                # select new panel
+                self.guiUtility.selectData(newpanel.data)
+            
 
 class filesGrid(standardGrid):
     def __init__(self):

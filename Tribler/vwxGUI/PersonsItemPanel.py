@@ -41,6 +41,7 @@ class PersonsItemPanel(wx.Panel):
         self.oldCategoryLabel = None
         self.guiserver = parent.guiserver
         self.mm = parent.mm
+        self.selected = False
         self.superpeer_db = parent.superpeer_db
         self.addComponents()
         self.Show()
@@ -130,11 +131,14 @@ class PersonsItemPanel(wx.Panel):
     def select(self, rowIndex, colIndex):
         if DEBUG:
             print 'pip: person selected'
+        self.selected = True
         self.thumb.setSelected(True)
         self.title.SetBackgroundColour(self.selectedColour)
         self.title.Refresh()
+        self.SetFocus()
         
     def deselect(self, rowIndex, colIndex):
+        self.selected = False
         self.thumb.setSelected(False)
         self.title.SetBackgroundColour(self.unselectedColour)
         self.title.Refresh()

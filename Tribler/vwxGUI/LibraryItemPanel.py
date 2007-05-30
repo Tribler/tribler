@@ -48,6 +48,7 @@ class LibraryItemPanel(wx.Panel):
         self.torrentDetailsFrame = None
         self.addComponents()
         self.SetMinSize((-1, 37+6))
+        self.selected = False
         self.Show()
         self.Refresh()
         self.Layout()
@@ -335,6 +336,7 @@ class LibraryItemPanel(wx.Panel):
         #self.parent.Refresh()
         
     def select(self, rowIndex, colIndex):
+        self.selected = True
         colour = self.guiUtility.selectedColour
         self.thumb.setSelected(True)
         self.title.SetBackgroundColour(colour)
@@ -344,9 +346,11 @@ class LibraryItemPanel(wx.Panel):
         self.SetBackgroundColour(colour)
         self.playerPlay.setBackground(colour)
         self.Refresh()
+        self.SetFocus()
         
         
     def deselect(self, rowIndex, colIndex):
+        self.selected = False
         if rowIndex % 2 == 0:
             colour = self.guiUtility.unselectedColour
         else:

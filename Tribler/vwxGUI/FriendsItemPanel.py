@@ -202,6 +202,7 @@ class FriendsItemPanel(wx.Panel):
           
         
     def select(self, rowIndex, colIndex):
+        self.selected = True
         if colIndex == 0:
             self.vLine.Hide()
         else:
@@ -213,8 +214,10 @@ class FriendsItemPanel(wx.Panel):
         self.tasteHeart.setBackground(self.selectedColour)
         self.SetBackgroundColour(self.selectedColour)
         self.Refresh()
+        self.SetFocus()
         
     def deselect(self, rowIndex, colIndex):
+        self.selected = False
         if colIndex == 0:
             self.vLine.Hide()
         else:
