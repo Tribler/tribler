@@ -405,6 +405,7 @@ class standardGrid(wx.Panel):
             newpanel = self.panels[ypan][xpan]
             if newpanel.data != None:
                 # select new panel
+                newpanel.SetFocus()
                 self.guiUtility.selectData(newpanel.data)
             
 

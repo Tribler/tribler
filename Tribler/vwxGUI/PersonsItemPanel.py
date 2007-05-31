@@ -135,8 +135,7 @@ class PersonsItemPanel(wx.Panel):
         self.thumb.setSelected(True)
         self.title.SetBackgroundColour(self.selectedColour)
         self.title.Refresh()
-        self.SetFocus()
-        
+                
     def deselect(self, rowIndex, colIndex):
         self.selected = False
         self.thumb.setSelected(False)

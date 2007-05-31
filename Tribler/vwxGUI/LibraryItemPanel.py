@@ -346,7 +346,7 @@ class LibraryItemPanel(wx.Panel):
         self.SetBackgroundColour(colour)
         self.playerPlay.setBackground(colour)
         self.Refresh()
-        self.SetFocus()
+
         
         
     def deselect(self, rowIndex, colIndex):

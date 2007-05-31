@@ -132,7 +132,6 @@ class FilesItemPanel(wx.Panel):
         self.thumb.setSelected(True)
         self.title.SetBackgroundColour(colour)
         self.title.Refresh()
-        self.SetFocus()
         
     def deselect(self, rowIndex, colIndex):
         self.selected = False
