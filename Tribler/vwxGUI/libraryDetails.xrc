@@ -15,7 +15,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>0</border>
             <option>0</option>
-            <object class="wxPanel" name="black_top_left" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="bgPanel" name="black_top_left">
               <pos>3,3</pos>
               <size>10,21</size>
             </object>
@@ -53,7 +53,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>0</border>
             <option>0</option>
-            <object class="wxPanel" name="black_top_right" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="bgPanel" name="black_top_right">
               <pos>275,3</pos>
               <size>10,21</size>
             </object>
@@ -64,7 +64,7 @@
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="wxPanel" name="thumbField" subclass="Tribler.vwxGUI.bgPanel.ImagePanel">
+        <object class="ImagePanel" name="thumbField">
           <pos>0,21</pos>
           <size>300,170</size>
         </object>
@@ -95,7 +95,7 @@
                   <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>10</border>
                   <option>0</option>
-                  <object class="wxPanel" name="info_detailsTab" subclass="Tribler.vwxGUI.TextButton.TextButton">
+                  <object class="TextButton" name="info_detailsTab">
                     <pos>3,13</pos>
                     <size>75,18</size>
                   </object>
@@ -104,7 +104,7 @@
                   <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>10</border>
                   <option>0</option>
-                  <object class="wxPanel" name="files_detailsTab" subclass="Tribler.vwxGUI.TextButton.TextButton">
+                  <object class="TextButton" name="files_detailsTab">
                     <pos>88,13</pos>
                     <size>75,18</size>
                   </object>
@@ -216,7 +216,7 @@
                           <flag>wxFIXED_MINSIZE</flag>
                           <border>3</border>
                           <option>0</option>
-                          <object class="wxPanel" name="up" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+                          <object class="bgPanel" name="up">
                             <pos>90,46</pos>
                             <size>11,14</size>
                             <bg>#ffffff</bg>
@@ -236,7 +236,7 @@
                           <flag>wxLEFT|wxFIXED_MINSIZE</flag>
                           <border>20</border>
                           <option>0</option>
-                          <object class="wxPanel" name="down" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+                          <object class="bgPanel" name="down">
                             <pos>126,46</pos>
                             <size>11,14</size>
                             <bg>#ffffff</bg>
@@ -256,7 +256,7 @@
                           <flag>wxLEFT|wxFIXED_MINSIZE</flag>
                           <border>25</border>
                           <option>0</option>
-                          <object class="wxPanel" name="refresh" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                          <object class="tribler_topButton" name="refresh">
                             <pos>182,46</pos>
                             <size>11,12</size>
                           </object>
@@ -329,19 +329,19 @@
               <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>10</border>
               <option>0</option>
-              <object class="wxPanel" name="Peop" subclass="Tribler.vwxGUI.btn_DetailsHeader.btn_DetailsHeader">
+              <object class="btn_DetailsHeader" name="Peop">
                 <pos>0,161</pos>
                 <size>20,15</size>
                 <object class="wxBoxSizer">
                   <orient>wxHORIZONTAL</orient>
                   <object class="sizeritem">
-                    <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                    <border>3</border>
+                    <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                    <border>10</border>
                     <option>1</option>
                     <object class="wxStaticText" name="st202cC">
                       <style>wxST_NO_AUTORESIZE</style>
                       <label>People who like this also like</label>
-                      <pos>10,0</pos>
+                      <pos>3,3</pos>
                       <size>204,14</size>
                       <bg>#cbcbcb</bg>
                     </object>
@@ -353,7 +353,7 @@
               <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
-              <object class="wxListCtrl" name="peopleWhoField" subclass="Tribler.vwxGUI.tribler_List.DLFilesList">
+              <object class="DLFilesList" name="peopleWhoField">
                 <pos>6,269</pos>
                 <size>284,125</size>
               </object>
@@ -365,7 +365,7 @@
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="wxPanel" name="white_bottom" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+        <object class="bgPanel" name="white_bottom">
           <pos>3,275</pos>
           <size>300,5</size>
         </object>
