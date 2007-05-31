@@ -62,21 +62,34 @@
         <flag>wxTOP|wxBOTTOM|wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>12</border>
         <option>0</option>
-        <object class="wxStaticText" name="st219c">
-          <style>wxST_NO_AUTORESIZE</style>
-          <label>   Profile</label>
-          <pos>0,33</pos>
-          <size>623,18</size>
+        <object class="wxPanel" name="pn343c">
+          <pos>3,24</pos>
+          <size>20,18</size>
           <bg>#     0</bg>
-          <fg>#ffffff</fg>
-          <font>
-            <size>12</size>
-            <family>modern</family>
-            <style>normal</style>
-            <weight>normal</weight>
-            <underlined>0</underlined>
-            <face>Verdana</face>
-          </font>
+          <object class="wxBoxSizer">
+            <orient>wxHORIZONTAL</orient>
+            <object class="sizeritem">
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>12</border>
+              <option>0</option>
+              <object class="wxStaticText" name="st219cCC">
+                <style>wxST_NO_AUTORESIZE</style>
+                <label>   Profile</label>
+                <pos>0,0</pos>
+                <size>623,18</size>
+                <bg>#     0</bg>
+                <fg>#ffffff</fg>
+                <font>
+                  <size>12</size>
+                  <family>modern</family>
+                  <style>normal</style>
+                  <weight>normal</weight>
+                  <underlined>0</underlined>
+                  <face>Verdana</face>
+                </font>
+              </object>
+            </object>
+          </object>
         </object>
       </object>
       <object class="sizeritem">
@@ -169,21 +182,34 @@
         <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>12</border>
         <option>0</option>
-        <object class="wxStaticText" name="st219cC">
-          <style>wxST_NO_AUTORESIZE</style>
-          <label>   Performance</label>
-          <pos>0,155</pos>
-          <size>617,18</size>
+        <object class="wxPanel" name="pn346c">
+          <pos>0,0</pos>
+          <size>20,20</size>
           <bg>#     0</bg>
-          <fg>#ffffff</fg>
-          <font>
-            <size>12</size>
-            <family>modern</family>
-            <style>normal</style>
-            <weight>normal</weight>
-            <underlined>0</underlined>
-            <face>Verdana</face>
-          </font>
+          <object class="wxBoxSizer">
+            <orient>wxHORIZONTAL</orient>
+            <object class="sizeritem">
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>12</border>
+              <option>0</option>
+              <object class="wxStaticText" name="st219cCCC">
+                <style>wxST_NO_AUTORESIZE</style>
+                <label>   Performance</label>
+                <pos>0,0</pos>
+                <size>617,18</size>
+                <bg>#     0</bg>
+                <fg>#ffffff</fg>
+                <font>
+                  <size>12</size>
+                  <family>modern</family>
+                  <style>normal</style>
+                  <weight>normal</weight>
+                  <underlined>0</underlined>
+                  <face>Verdana</face>
+                </font>
+              </object>
+            </object>
+          </object>
         </object>
       </object>
       <object class="sizeritem">

@@ -344,10 +344,10 @@
                     <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
                     <border>3</border>
                     <option>0</option>
-                    <object class="wxStaticText" name="DescCC">
+                    <object class="wxStaticText" name="Desc">
                       <style>wxST_NO_AUTORESIZE</style>
                       <label>   Description</label>
-                      <pos>0,3</pos>
+                      <pos>0,0</pos>
                       <size>199,15</size>
                       <bg>#cbcbcb</bg>
                     </object>
@@ -362,7 +362,7 @@
               <object class="wxStaticText" name="descriptionField">
                 <style>wxST_NO_AUTORESIZE</style>
                 <label>no description available</label>
-                <pos>6,108</pos>
+                <pos>6,105</pos>
                 <size>265,73</size>
               </object>
             </object>
@@ -371,8 +371,8 @@
               <border>10</border>
               <option>0</option>
               <object class="wxPanel" name="Peop" subclass="Tribler.vwxGUI.btn_DetailsHeader.btn_DetailsHeader">
-                <pos>0,181</pos>
-                <size>20,20</size>
+                <pos>0,178</pos>
+                <size>20,15</size>
                 <object class="wxBoxSizer">
                   <orient>wxHORIZONTAL</orient>
                   <object class="sizeritem">
@@ -383,7 +383,7 @@
                       <style>wxST_NO_AUTORESIZE</style>
                       <label>People who like this also like</label>
                       <pos>10,0</pos>
-                      <size>204,14</size>
+                      <size>204,15</size>
                       <bg>#cbcbcb</bg>
                     </object>
                   </object>

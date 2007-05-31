@@ -103,13 +103,26 @@
                 <object class="sizeritem">
                   <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>3</border>
-                  <option>0</option>
-                  <object class="wxStaticText" name="Desc0">
-                    <style>wxST_NO_AUTORESIZE</style>
-                    <label>   Upload limit</label>
-                    <pos>0,55</pos>
-                    <size>241,-1</size>
+                  <option>1</option>
+                  <object class="wxPanel" name="panelDesc0">
+                    <pos>0,30</pos>
+                    <size>20,-1</size>
                     <bg>#cbcbcb</bg>
+                    <object class="wxBoxSizer">
+                      <orient>wxHORIZONTAL</orient>
+                      <object class="sizeritem">
+                        <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                        <border>3</border>
+                        <option>0</option>
+                        <object class="wxStaticText" name="Desc01">
+                          <style>wxST_NO_AUTORESIZE</style>
+                          <label>   Upload limit</label>
+                          <pos>0,3</pos>
+                          <size>241,15</size>
+                          <bg>#cbcbcb</bg>
+                        </object>
+                      </object>
+                    </object>
                   </object>
                 </object>
                 <object class="sizeritem">
@@ -187,13 +200,26 @@
                 <object class="sizeritem">
                   <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>3</border>
-                  <option>0</option>
-                  <object class="wxStaticText" name="Desc1">
-                    <style>wxST_NO_AUTORESIZE</style>
-                    <label>   Number of friends</label>
-                    <pos>0,175</pos>
-                    <size>241,15</size>
+                  <option>1</option>
+                  <object class="wxPanel" name="panelDesc1">
+                    <pos>0,142</pos>
+                    <size>20,-1</size>
                     <bg>#cbcbcb</bg>
+                    <object class="wxBoxSizer">
+                      <orient>wxHORIZONTAL</orient>
+                      <object class="sizeritem">
+                        <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                        <border>3</border>
+                        <option>0</option>
+                        <object class="wxStaticText" name="Desc1">
+                          <style>wxST_NO_AUTORESIZE</style>
+                          <label>   Number of friends</label>
+                          <pos>0,3</pos>
+                          <size>241,15</size>
+                          <bg>#cbcbcb</bg>
+                        </object>
+                      </object>
+                    </object>
                   </object>
                 </object>
                 <object class="sizeritem">
@@ -271,13 +297,26 @@
                 <object class="sizeritem">
                   <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>3</border>
-                  <option>0</option>
-                  <object class="wxStaticText" name="Desc2">
-                    <style>wxST_NO_AUTORESIZE</style>
-                    <label>   Connectability</label>
-                    <pos>0,315</pos>
-                    <size>241,15</size>
+                  <option>1</option>
+                  <object class="wxPanel" name="panelDesc2">
+                    <pos>0,254</pos>
+                    <size>20,-1</size>
                     <bg>#cbcbcb</bg>
+                    <object class="wxBoxSizer">
+                      <orient>wxHORIZONTAL</orient>
+                      <object class="sizeritem">
+                        <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                        <border>3</border>
+                        <option>0</option>
+                        <object class="wxStaticText" name="Desc2">
+                          <style>wxST_NO_AUTORESIZE</style>
+                          <label>   Connectability</label>
+                          <pos>0,3</pos>
+                          <size>241,15</size>
+                          <bg>#cbcbcb</bg>
+                        </object>
+                      </object>
+                    </object>
                   </object>
                 </object>
                 <object class="sizeritem">
@@ -340,7 +379,7 @@
                   <border>6</border>
                   <option>0</option>
                   <object class="wxPanel" name="takeMeThere2" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                    <pos>6,334</pos>
+                    <pos>6,319</pos>
                     <size>120,21</size>
                   </object>
                 </object>

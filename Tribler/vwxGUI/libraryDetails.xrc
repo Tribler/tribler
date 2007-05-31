@@ -285,12 +285,25 @@
               <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>3</border>
               <option>0</option>
-              <object class="wxStaticText" name="Desc">
-                <style>wxST_NO_AUTORESIZE</style>
-                <label>   Description</label>
-                <pos>0,149</pos>
-                <size>199,15</size>
+              <object class="wxPanel" name="pn271c">
+                <pos>3,315</pos>
+                <size>294,15</size>
                 <bg>#cbcbcb</bg>
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="sizeritem">
+                    <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                    <border>3</border>
+                    <option>0</option>
+                    <object class="wxStaticText" name="Desc1">
+                      <style>wxST_NO_AUTORESIZE</style>
+                      <label>   Description</label>
+                      <pos>0,0</pos>
+                      <size>199,15</size>
+                      <bg>#cbcbcb</bg>
+                    </object>
+                  </object>
+                </object>
               </object>
             </object>
             <object class="sizeritem">
@@ -317,8 +330,8 @@
               <border>10</border>
               <option>0</option>
               <object class="wxPanel" name="Peop" subclass="Tribler.vwxGUI.btn_DetailsHeader.btn_DetailsHeader">
-                <pos>3,184</pos>
-                <size>20,20</size>
+                <pos>0,161</pos>
+                <size>20,15</size>
                 <object class="wxStaticText" name="st202cC">
                   <style>wxST_NO_AUTORESIZE</style>
                   <label>People who like this also like</label>

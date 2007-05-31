@@ -86,12 +86,25 @@
               <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>3</border>
               <option>0</option>
-              <object class="wxStaticText" name="receivedToday">
-                <style>wxST_NO_AUTORESIZE</style>
-                <label>   Today</label>
+              <object class="wxPanel" name="panelToday">
                 <pos>0,38</pos>
-                <size>296,15</size>
+                <size>294,15</size>
                 <bg>#cbcbcb</bg>
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="sizeritem">
+                    <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                    <border>3</border>
+                    <option>0</option>
+                    <object class="wxStaticText" name="receivedToday">
+                      <style>wxST_NO_AUTORESIZE</style>
+                      <label>   Today</label>
+                      <pos>0,0</pos>
+                      <size>296,15</size>
+                      <bg>#cbcbcb</bg>
+                    </object>
+                  </object>
+                </object>
               </object>
             </object>
             <object class="sizeritem">
@@ -107,12 +120,25 @@
               <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>3</border>
               <option>0</option>
-              <object class="wxStaticText" name="receivedYesterday">
-                <style>wxST_NO_AUTORESIZE</style>
-                <label>   Yesterday</label>
-                <pos>0,217</pos>
-                <size>296,15</size>
+              <object class="wxPanel" name="panelYesterday">
+                <pos>0,401</pos>
+                <size>294,15</size>
                 <bg>#cbcbcb</bg>
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="sizeritem">
+                    <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                    <border>3</border>
+                    <option>0</option>
+                    <object class="wxStaticText" name="receivedYesterday">
+                      <style>wxST_NO_AUTORESIZE</style>
+                      <label>   Yesterday</label>
+                      <pos>0,0</pos>
+                      <size>296,15</size>
+                      <bg>#cbcbcb</bg>
+                    </object>
+                  </object>
+                </object>
               </object>
             </object>
             <object class="sizeritem">

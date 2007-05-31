@@ -4,20 +4,6 @@
     <pos>0,0</pos>
     <size>300,155</size>
     <bg>#ffffff</bg>
-    <object class="wxMenuBar" name="fdfs">
-      <object class="wxMenu" name="menu443">
-        <label>File</label>
-        <object class="wxMenuItem" name="Item444">
-          <label>Exit</label>
-        </object>
-      </object>
-      <object class="wxMenu" name="menu445">
-        <label>Options</label>
-        <object class="wxMenuItem" name="Item446">
-          <label>Options</label>
-        </object>
-      </object>
-    </object>
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>
       <object class="sizeritem">
@@ -57,7 +43,6 @@
                     <pos>0,3</pos>
                     <size>114,15</size>
                     <bg>#     0</bg>
-                    <fg>#ffffff</fg>
                   </object>
                 </object>
                 <object class="sizeritem">
@@ -66,11 +51,10 @@
                   <option>0</option>
                   <object class="wxStaticText" name="st30c">
                     <style>wxST_NO_AUTORESIZE</style>
-                    <label>down: 30 KB/s | up: 20 KB/s</label>
+                    <label>down: 0 KB/s | up: 0 KB/s</label>
                     <pos>114,3</pos>
                     <size>134,15</size>
                     <bg>#     0</bg>
-                    <fg>#ffffff</fg>
                   </object>
                 </object>
               </object>
