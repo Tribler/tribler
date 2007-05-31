@@ -26,7 +26,7 @@ urllib.URLopener.open_https = original_open_https
 
 import sys, locale
 import os
-import wx
+import wx, commands
 from wx import xrc
 #import hotshot
 
@@ -1183,8 +1183,14 @@ class DummySingleInstanceChecker:
         pass
 
     def IsAnotherRunning(self):
-        return False
-        
+        "Uses pgrep to find other tribler.py processes"
+        # If no pgrep available, it will always start tribler
+        progressInfo = commands.getoutput('pgrep -fl tribler.py | grep -v pgrep')
+        numProcesses = len(progressInfo.split('\n'))
+        if DEBUG:
+            print 'ProgressInfo: %s, num: %d' % (progressInfo, numProcesses)
+        return numProcesses > 1
+                
         
 ##############################################################
 #

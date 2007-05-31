@@ -13,7 +13,7 @@ from BitTornado.download_bt1 import defaults as BTDefaults
 from BitTornado.parseargs import parseargs
 from BitTornado.zurllib import urlopen
 
-
+DEBUG = False
 ################################################################
 #
 # Helper methods
@@ -103,7 +103,8 @@ def difference(list1, list2):
 #
 def getClientSocket(host, port):
     s = None
-    
+    if DEBUG:
+        print 'getClientSocket(%s, %d)' % (host, port)
     for res in socket.getaddrinfo(host, port, socket.AF_UNSPEC, socket.SOCK_STREAM):
         af, socktype, proto, canonname, sa = res
         try:
