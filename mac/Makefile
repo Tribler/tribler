@@ -129,34 +129,49 @@ ${SITEPACKAGES}/Growl.py:
 
 # ----- OpenSSL and M2Crypto
 
-${SITEPACKAGES}/M2Crypto/:
-	curl http://www.openssl.org/source/openssl-${OPENSSL_VER}.tar.gz -o build/temp/openssl-${OPENSSL_VER}.tar.gz
+build/temp/openssl-${OPENSSL_VER}.tar.gz:
+	curl http://www.openssl.org/source/openssl-${OPENSSL_VER}.tar.gz -o $@
 
-	mkdir -p build/temp/openssl-i386
-	mkdir -p build/temp/openssl-ppc
-
+build/temp/.openssl-i386:	build/temp/openssl-${OPENSSL_VER}.tar.gz
 	cd build/temp && tar xfz openssl-${OPENSSL_VER}.tar.gz
-	mv build/temp/openssl-${OPENSSL_VER} build/temp/openssl
+	rm -rf build/temp/openssl-i386
+	mv build/temp/openssl-${OPENSSL_VER} build/temp/openssl-i386
 
-	cd build/temp/openssl && make clean
-	cd build/temp/openssl && ./Configure 386 darwin-i386-cc
-	cd build/temp/openssl && make build_libs "CC=cc -arch i386"
-	mv build/temp/openssl/*.a build/temp/openssl-i386
+	cd build/temp/openssl-i386 && make clean
+	cd build/temp/openssl-i386 && ./Configure 386 darwin-i386-cc
+	cd build/temp/openssl-i386 && make build_libs "CC=cc -arch i386"
+	touch $@
 
-	cd build/temp/openssl && make clean
-	cd build/temp/openssl && ./Configure darwin-ppc-cc
-	cd build/temp/openssl && make build_libs "CC=cc -arch ppc"
-	mv build/temp/openssl/*.a build/temp/openssl-ppc
+build/temp/.openssl-ppc:	build/temp/openssl-${OPENSSL_VER}.tar.gz
+	cd build/temp && tar xfz openssl-${OPENSSL_VER}.tar.gz
+	rm -rf build/temp/openssl-ppc
+	mv build/temp/openssl-${OPENSSL_VER} build/temp/openssl-ppc
 
+	cd build/temp/openssl-ppc && make clean
+	cd build/temp/openssl-ppc && ./Configure darwin-ppc-cc
+	cd build/temp/openssl-ppc && make build_libs "CC=cc -arch ppc"
+	touch $@
+
+build/temp/openssl/libcrypto.a:	build/temp/.openssl-i386 build/temp/.openssl-ppc
+	mkdir -p build/temp/openssl
 	lipo -create -output build/temp/openssl/libcrypto.a build/temp/openssl-*/libcrypto.a
 	ranlib build/temp/openssl/libcrypto.a
 
+build/temp/openssl/libssl.a:	build/temp/.openssl-i386 build/temp/.openssl-ppc
+	mkdir -p build/temp/openssl
 	lipo -create -output build/temp/openssl/libssl.a build/temp/openssl-*/libssl.a
 	ranlib build/temp/openssl/libssl.a
 
-	svn co http://svn.tribler.org/m2crypto/branches/main build/temp/m2crypto
-	cd build/temp/m2crypto && ${PYTHON} setup.py install --root ${PWD}/build/lib
+build/temp/openssl/.include:	build/temp/.openssl-i386
+	cp -RL build/temp/openssl-i386/include build/temp/openssl
+	touch $@
 
+build/temp/.m2crypto:
+	svn co http://svn.tribler.org/m2crypto/branches/main build/temp/m2crypto
+	touch $@
+
+${SITEPACKAGES}/M2Crypto/:	build/temp/openssl/libcrypto.a build/temp/openssl/libssl.a build/temp/.m2crypto	build/temp/openssl/.include
+	cd build/temp/m2crypto && ${PYTHON} setup.py install --root ${PWD}/build/lib
 	touch $@
 
 # ----- VLC
@@ -214,23 +229,20 @@ ${SITEPACKAGES}/vlc.so:		build/temp/vlc-native/vlc.so
 FFDIR=build/temp/ffmpeg
 FFCONFIG=--disable-vhook --disable-network
 
-${FFDIR}/.prereqs:
-	svn co svn://svn.mplayerhq.hu/ffmpeg/trunk ${FFDIR}
+build/temp/.ffmpeg-i386:
+	svn co svn://svn.mplayerhq.hu/ffmpeg/trunk build/temp/ffmpeg-i386
 	touch $@
 
-${FFDIR}/ffmpeg.i386:	${FFDIR}/.prereqs
-	cd ${FFDIR} && ./configure ${FFCONFIG} --arch=i386 --extra-cflags="-arch i386" --extra-ldflags="-arch i386 -L/Developer/SDKs/MacOSX10.4u.sdk/usr/lib -L/Developer/SDKs/MacOSX10.4u.sdk/usr/lib/system/libmathCommon.A.dylib" --cross-compile
-	cd ${FFDIR} && make clean && make
-	mv ${FFDIR}/ffmpeg $@
+build/temp/.ffmpeg-ppc:
+	svn co svn://svn.mplayerhq.hu/ffmpeg/trunk build/temp/ffmpeg-ppc
+	touch $@
 
-${FFDIR}/ffmpeg.ppc:	${FFDIR}/.prereqs
-	cd ${FFDIR} && ./configure ${FFCONFIG} --arch=ppc --enable-altivec --extra-cflags="-arch ppc" --extra-ldflags="-arch ppc -L/Developer/SDKs/MacOSX10.4u.sdk/usr/lib -L/Developer/SDKs/MacOSX10.4u.sdk/usr/lib/system/libmathCommon.A.dylib" --cross-compile
-	cd ${FFDIR} && make clean && make
-	mv ${FFDIR}/ffmpeg $@
+build/temp/ffmpeg-i386/ffmpeg:	build/temp/.ffmpeg-i386
+	cd build/temp/ffmpeg-i386 && ./configure ${FFCONFIG} --arch=i386 --extra-cflags="-arch i386" --extra-ldflags="-arch i386 -L/Developer/SDKs/MacOSX10.4u.sdk/usr/lib -L/Developer/SDKs/MacOSX10.4u.sdk/usr/lib/system/libmathCommon.A.dylib" --cross-compile
+	cd build/temp/ffmpeg-i386 && make
 
-${FFDIR}/ffmpeg:	${FFDIR}/ffmpeg.i386 ${FFDIR}/ffmpeg.ppc
+build/temp/ffmpeg-ppc/ffmpeg:	build/temp/.ffmpeg-ppc
+	cd build/temp/ffmpeg-ppc && ./configure ${FFCONFIG} --arch=ppc --enable-altivec --extra-cflags="-arch ppc" --extra-ldflags="-arch ppc -L/Developer/SDKs/MacOSX10.4u.sdk/usr/lib -L/Developer/SDKs/MacOSX10.4u.sdk/usr/lib/system/libmathCommon.A.dylib" --cross-compile
+	cd build/temp/ffmpeg-ppc && make
+build/lib/ffmpeg:		build/temp/ffmpeg-i386/ffmpeg build/temp/ffmpeg-ppc/ffmpeg
 	lipo $^ -create -o $@
-
-build/lib/ffmpeg:	${FFDIR}/ffmpeg
-	cp $^ $@
-
