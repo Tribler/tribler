@@ -18,7 +18,7 @@ from Tribler.Dialogs.activities import ACT_GOT_METADATA, ACT_DISK_FULL
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 from Utility.helpers import getfreespace
 
-DEBUG = False
+DEBUG = True
 
 # Python no recursive imports?
 # from overlayswarm import overlay_infohash
@@ -203,7 +203,6 @@ class MetadataHandler:
     def read_and_send_metadata(self, permid, torrent_hash, torrent_path, selversion):
         torrent_data = self.read_torrent(torrent_path)
         if torrent_data:
-            
             # Arno: Don't send private torrents
             try:
                 metainfo = bdecode(torrent_data)
@@ -213,7 +212,9 @@ class MetadataHandler:
                     return 0
             except:
                 print_exc()
+                return 0
             
+
             if DEBUG:
                 print >> sys.stderr,"metadata: sending torrent", `torrent_path`, len(torrent_data)
             torrent = {'torrent_hash':torrent_hash, 
