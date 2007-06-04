@@ -1,8 +1,8 @@
 #!/bin/sh
 
 # Debian people haven't made python2.4-wxgtk2.6 available, hack around that
-PYTHON=python2.4
-EXECPYTHON=python2.4
+PYTHON=python2.5
+EXECPYTHON=python2.5
 
 # don't care about gtk/x11/whatever. Currently (3.4.0) must be unicode
 WXPYTHONVER=`ls -1d /usr/lib/$PYTHON/site-packages/wx-2.6* | grep -v ansi | sed -e 's/.*wx-//g' -e 's/-.*//g' | sort -nr | head -1`

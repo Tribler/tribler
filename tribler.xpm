@@ -1,8 +1,8 @@
 /* XPM */
-static char *tribler_jelle[] = {
+static char *tribler_xpm[] = {
 /* columns rows colors chars-per-pixel */
 "48 48 256 2",
-"   c black",
+"   c None",
 ".  c #BB371D",
 "X  c #9D4A39",
 "o  c #BD4730",

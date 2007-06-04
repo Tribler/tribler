@@ -1,3 +1,9 @@
+tribler (4.0.1-1ubuntu1) feisty; urgency=low
+
+  * New release 
+
+ -- Arno Bakker <arno@cs.vu.nl>  Thu, 31 May 2007 15:53:06 +0200
+
 tribler (3.4.1-1) unstable; urgency=low
 
   * New release
