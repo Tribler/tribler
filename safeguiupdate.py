@@ -68,4 +68,5 @@ class FlaglessDelayedInvocation:
 class FlaglessDelayedEventHandler(FlaglessDelayedInvocation,wx.EvtHandler):
     def __init__(self):
         wx.EvtHandler.__init__(self)
-        DelayedInvocation.__init__(self)
+        FlaglessDelayedInvocation.__init__(self)
+

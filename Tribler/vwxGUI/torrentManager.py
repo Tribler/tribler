@@ -58,7 +58,7 @@ class TorrentDataManager:
         
     def loadData(self):
         self.data = self.torrent_db.getRecommendedTorrents(light=True,all=True) #gets torrents with mypref
-        updated = self.category.checkResort(self) # the database is uprageded from v1 to v2
+        updated = self.category.checkResort(self) # the database is upgraded from v1 to v2
         if updated:
             self.data = self.torrent_db.getRecommendedTorrents(light=False,all=True)
         self.prepareData()

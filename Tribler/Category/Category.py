@@ -10,6 +10,7 @@ from sets import Set
 from time import time
 from copy import deepcopy
 from traceback import print_exc
+from safeguiupdate import FlaglessDelayedEventHandler
 import sys
 
 DEBUG=False
@@ -25,7 +26,7 @@ def make_filename(config_dir, filename):
     else:
         return os.path.join(config_dir,filename)    
 
-class Category:
+class Category (FlaglessDelayedEventHandler):
     
     # Code to make this a singleton
     __single = None
@@ -35,10 +36,12 @@ class Category:
         if Category.__single:
             raise RuntimeError, "Category is singleton"
         Category.__single = self
+        self.invoker = FlaglessDelayedEventHandler()
         self.torrent_db = SynTorrentDBHandler()
         self.category_info = getCategoryInfo(filename)
         self.category_info.sort(rankcmp)
         self.config_dir = config_dir
+        
         
         if DEBUG:
             print >>sys.stderr,"category: Categories defined by user",self.getCategoryNames()
@@ -54,6 +57,7 @@ class Category:
     # check to see whether need to resort torrent file
     # return bool
     def checkResort(self, data_manager):
+        print >> sys.stderr, 'checkResort()'
         data = data_manager.data
 #===============================================================================
 #        if not data:
@@ -66,7 +70,7 @@ class Category:
 #        self.reSortAll(data)
 #        return True
         torrent = data[0]
-        if torrent["category"] == ["?"]:
+        if torrent["category"] == ["?"] or True:
             #data = data_manager.torrent_db.getRecommendedTorrents(all = True)
             self.reSortAll(data)
 #            del data
@@ -105,7 +109,7 @@ class Category:
         for i in xrange(len(data)):
             count += 1
             if count % step == 0:
-                dlg.Update(count)
+                self.invoker.invokeLater(dlg.Update, [count])
             try:
                 # try alternative dir if bsddb doesnt match with current Tribler install
                 if not os.path.exists(data[i]['torrent_dir']):
@@ -136,7 +140,7 @@ class Category:
             data[i]['category'] = category_belong    # should have updated self.data
             self.torrent_db.updateTorrent(data[i]['infohash'], updateFlag=False, category=category_belong)
         self.torrent_db.sync()
-        dlg.Destroy()   
+        self.invoker.invokeLater(dlg.Destroy)   
     
     def getCategoryKeys(self):
         keys = []
