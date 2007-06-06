@@ -11,6 +11,7 @@ from time import time
 from copy import deepcopy
 from traceback import print_exc
 from safeguiupdate import FlaglessDelayedEventHandler
+from threading import Condition
 import sys
 
 DEBUG=False
@@ -57,7 +58,6 @@ class Category (FlaglessDelayedEventHandler):
     # check to see whether need to resort torrent file
     # return bool
     def checkResort(self, data_manager):
-        print >> sys.stderr, 'checkResort()'
         data = data_manager.data
 #===============================================================================
 #        if not data:
@@ -94,14 +94,30 @@ class Category (FlaglessDelayedEventHandler):
         if max == 0:
             return
         import wx
-        dlg = wx.ProgressDialog("Upgrading Database",
-                               "Upgrading Old Database to New Database",
-                               maximum = max,
-                               parent = None,
-                               style = wx.PD_AUTO_HIDE 
-                                | wx.PD_ELAPSED_TIME
-                                | wx.PD_REMAINING_TIME
-                                )
+        dlgHolder = []
+        cond = Condition()
+        def makeDialog():
+            dlg = wx.ProgressDialog("Upgrading Database",
+                                    "Upgrading Old Database to New Database",
+                                    maximum = max,
+                                    parent = None,
+                                    style = wx.PD_AUTO_HIDE 
+                                    | wx.PD_ELAPSED_TIME
+                                    | wx.PD_REMAINING_TIME
+                                    )
+            dlgHolder.append(dlg)
+            cond.acquire()
+            cond.notify()
+            cond.release()
+
+        self.invoker.invokeLater(makeDialog)
+        
+        # Wait for dialog to be ready
+        cond.acquire()
+        cond.wait()
+        cond.release()
+        dlg = dlgHolder[0]
+        
         count = 0
         step = int(float(max) / 20) + 1
         
