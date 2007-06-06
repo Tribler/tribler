@@ -1,0 +1,12 @@
+Source: tribler
+Section: net
+Priority: optional
+Maintainer: Arno Bakker <arno@cs.vu.nl>
+Standards-Version: 3.6.2.0
+
+Package: tribler
+Architecture: all
+Depends: python (>= 2.4), python-wxgtk2.6, python-m2crypto, vlc, ffmpeg
+Description: The fastest way of social file sharing
+ .
+ Homepage: http://www.tribler.org

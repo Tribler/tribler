@@ -70,7 +70,7 @@ class Category (FlaglessDelayedEventHandler):
 #        self.reSortAll(data)
 #        return True
         torrent = data[0]
-        if torrent["category"] == ["?"] or True:
+        if torrent["category"] == ["?"]:
             #data = data_manager.torrent_db.getRecommendedTorrents(all = True)
             self.reSortAll(data)
 #            del data
