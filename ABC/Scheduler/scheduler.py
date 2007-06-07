@@ -5,7 +5,7 @@ import wx
 from threading import Event
 from threading import Timer
 from threading import currentThread
-from traceback import print_stack
+from traceback import print_exc,print_stack
 #from cStringIO import StringIO
 
 from ABC.Scheduler.action import ActionHandler
@@ -54,7 +54,10 @@ class ABCScheduler(DelayedEventHandler):
     def postInitTasks(self,argv):
         # Read old list from torrent.lst
         ####################################
-        self.addtorrents.readTorrentList(argv)
+        try:
+            self.addtorrents.readTorrentList(argv)
+        except:
+            print_exc()
         
         # Wait until after creating the list and adding torrents
         # to start CyclicalTasks in the scheduler
@@ -326,10 +329,15 @@ class ABCScheduler(DelayedEventHandler):
             if DEBUG:
                 print >>sys.stderr,"scheduler: resuming",ABCTorrentTemp.infohash
             play_video = ABCTorrentTemp.clear_newly_added()
-            change = ABCTorrentTemp.actions.resume()
-            if change:
-                inactivestarted += 1
-                    
+            try:
+                change = ABCTorrentTemp.actions.resume()
+                if change:
+                    inactivestarted += 1
+            except Exception,e:
+                print_exc()
+                # add error message to GUI message log
+                ABCTorrentTemp.changeMessage(str(e),"error")
+
         torrentstostart = torrentstostart - inactivestarted
         
         if inactivestarted > 0:
