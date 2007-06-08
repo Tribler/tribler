@@ -23,7 +23,7 @@ else
   FFMPEG_CONFIG=--cpu=pentium-m --enable-memalign-hack
 endif
 
-all:	clean dirs Tribler.dmg
+all:	clean dirs Tribler.dmg ../lib
 
 clean:
 	rm -rf build/imagecontents/ Tribler.dmg
@@ -44,7 +44,7 @@ dirs:
 
 APPRES=build/imagecontents/Tribler.app/Contents/Resources
 
-build/imagecontents/:	${SITEPACKAGES}/M2Crypto/ ${SITEPACKAGES}/Growl.py ${SITEPACKAGES}/vlc.so build/lib/ffmpeg
+build/imagecontents/:	${SITEPACKAGES}/M2Crypto/ ${SITEPACKAGES}/Growl.py ${SITEPACKAGES}/vlc.so build/lib/ffmpeg build/lib/.vlc
 	rm -rf $@
 	mkdir -p $@
 
@@ -59,10 +59,6 @@ build/imagecontents/:	${SITEPACKAGES}/M2Crypto/ ${SITEPACKAGES}/Growl.py ${SITEP
 	# Thin everything for this architecture. Some things ship Universal (Python, wxPython, ...) and
 	# others get a stub for the other architecture (things built by Universal Python)
 	for i in `find build/imagecontents`; do ./smart_lipo_thin $$i; done
-
-	# Sample Friend Icons
-	#mkdir -p $@"/Sample Friend Icons"
-	#cp ../icons/mugshots/*.bmp $@"/Sample Friend Icons"
 
 	# Background
 	mkdir -p $@/.background
@@ -177,12 +173,12 @@ ${VLCDIR}/Makefile:	${VLCDIR}/.prereqs
 	svn revert ${VLCDIR}/m4/* ${VLCDIR}/po/*
 	cd ${VLCDIR} && ./bootstrap
 	cd ${VLCDIR} && ./configure --enable-debug --disable-x11 --disable-xvideo --disable-glx --disable-qt4 --disable-sdl --enable-mad --enable-libdvbpsi --enable-a52 --disable-dvdplay --enable-dvdnav --enable-dvdread --enable-ffmpeg --enable-faad --enable-flac --enable-vorbis --enable-speex --enable-theora --enable-ogg --enable-shout --enable-cddb --disable-cddax --enable-vcdx --disable-skins --disable-skins2 --disable-wxwidgets --enable-freetype --enable-fribidi --disable-caca --enable-live555 --enable-dca --enable-goom --enable-modplug --enable-gnutls --enable-daap --disable-ncurses --enable-libtwolame --enable-x264 --enable-png --enable-realrtsp --disable-libtool --prefix=${VLCPREFIX}
+	cd ${VLCDIR} && patch -p0 -N < ${PWD}/vlc-macosx-compile.patch
+	cp mkinstalldirs ${VLCDIR}/autotools
 
 ${VLCPREFIX}/lib/libvlc.a:	${VLCDIR}/Makefile
 	# build and install vlc
-	cd ${VLCDIR} && patch -p0 -N < ${PWD}/vlc-macosx-compile.patch
 	cd ${VLCDIR} && ./compile
-	cp mkinstalldirs ${VLCDIR}/autotools
 	cd ${VLCDIR} && patch -p0 -N < ${PWD}/vlc-macosx-install.patch
 	cd ${VLCDIR} && make install
 
@@ -194,18 +190,23 @@ ${VLCPREFIX}/lib/python${PYTHON_VER}/site-packages/vlc.so:	${VLCPREFIX}/lib/libv
 	# build python bindings
 	cd ${VLCDIR}/bindings/python && ${PYTHON} setup.py install --prefix=${VLCPREFIX}
 
-${SITEPACKAGES}/vlc.so:		${VLCPREFIX}/lib/python${PYTHON_VER}/site-packages/vlc.so
-	# first, place the libraries/plugins in build/lib
+build/lib/.vlc:              ${VLCPREFIX}/lib/libvlc.a
+	# place the libraries/plugins in build/lib
 	cd ${VLCPREFIX}/lib && for i in `find . -name "*.dylib"`; do mkdir -p ${PWD}/build/lib/`dirname $$i`; cp $$i ${PWD}/build/lib/$$i; done
 
 	# fix dependencies of .dylib/.so libraries
 	(for i in `find build/lib -name "*.dylib" -or -name "*.so"`; do otool -L $$i | perl -ne 'print "install_name_tool -change $$1 lib/$$2 '$$i'\n" if m#(\@executable_path/lib/(\S+))#;'; done) | bash -
 
+	touch $@
+
+${SITEPACKAGES}/vlc.so:		${VLCPREFIX}/lib/python${PYTHON_VER}/site-packages/vlc.so
+	cp $< $@
+
+../lib:			build/lib/.vlc
 	# let run from source locate libraries
 	rm -f ../lib
 	ln -s ${PWD}/build/lib ../lib
 
-	cp $< $@
 
 # ----- FFmpeg
 
