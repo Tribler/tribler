@@ -1,10 +1,5 @@
 # !!! IMPORTANT
 #
-# Put the output of the foreign architecture build/temp/vlc-native in this directory
-# called vlc-foreign. i.e.:
-#
-# scp -r mac/build/temp/vlc-native foreignmachine:mac/vlc-foreign
-#
 # Building on Mac OS/X requires:
 # * Python 2.5
 # * wxPython 2.8-unicode
@@ -21,9 +16,11 @@ ARCH:=${shell arch}
 ifeq ($(ARCH),ppc)
   # PPC
   OPENSSL_CONFIG=darwin-ppc-cc
+  FFMPEG_CONFIG=--cpu=G4
 else
   # INTEL
   OPENSSL_CONFIG=darwin-i386-cc
+  FFMPEG_CONFIG=--cpu=pentium-m --enable-memalign-hack
 endif
 
 all:	clean dirs Tribler.dmg
@@ -56,7 +53,8 @@ build/imagecontents/:	${SITEPACKAGES}/M2Crypto/ ${SITEPACKAGES}/Growl.py ${SITEP
 	cd build && for i in `find lib -name "*.dylib"`; do mkdir -p ../${APPRES}/`dirname $$i`; cp $$i ../${APPRES}/$$i; done
 	cp build/lib/ffmpeg ${APPRES}/lib/ffmpeg
 
-	# Thinnen everything for this architecture
+	# Thin everything for this architecture. Some things ship Universal (Python, wxPython, ...) and
+	# others get a stub for the other architecture (things built by Universal Python)
 	for i in `find build/imagecontents`; do ./smart_lipo_thin $$i; done
 
 	# Sample Friend Icons
@@ -149,7 +147,6 @@ build/temp/.openssl:		build/temp/openssl-${OPENSSL_VER}.tar.gz
 	rm -rf build/temp/openssl
 	mv build/temp/openssl-${OPENSSL_VER} build/temp/openssl
 
-	cd build/temp/openssl && make clean
 	cd build/temp/openssl && ./Configure ${OPENSSL_CONFIG}
 	cd build/temp/openssl && make build_libs
 	touch $@
@@ -174,9 +171,9 @@ ${VLCDIR}/.prereqs:
 	touch $@
 
 ${VLCDIR}/Makefile:	${VLCDIR}/.prereqs
+	svn revert ${VLCDIR}/m4/* ${VLCDIR}/po/*
 	cd ${VLCDIR} && ./bootstrap
-	svn revert ${VLCDIR}/m4/*
-	cd ${VLCDIR} && ./configure --enable-debug --disable-x11 --disable-xvideo --disable-glx --enable-sdl --enable-mad --enable-libdvbpsi --enable-a52 --disable-dvdplay --enable-dvdnav --enable-dvdread --enable-ffmpeg --enable-faad --enable-flac --enable-vorbis --enable-speex --enable-theora --enable-ogg --enable-shout --enable-cddb --disable-cddax --enable-vcdx --disable-skins --disable-skins2 --disable-wxwidgets --enable-freetype --enable-fribidi --disable-caca --enable-live555 --enable-dca --enable-goom --enable-modplug --enable-gnutls --enable-daap --disable-ncurses --enable-libtwolame --enable-x264 --enable-png --enable-realrtsp --disable-libtool --prefix=${VLCPREFIX}
+	cd ${VLCDIR} && ./configure --enable-debug --disable-x11 --disable-xvideo --disable-glx --disable-qt4 --disable-sdl --enable-mad --enable-libdvbpsi --enable-a52 --disable-dvdplay --enable-dvdnav --enable-dvdread --enable-ffmpeg --enable-faad --enable-flac --enable-vorbis --enable-speex --enable-theora --enable-ogg --enable-shout --enable-cddb --disable-cddax --enable-vcdx --disable-skins --disable-skins2 --disable-wxwidgets --enable-freetype --enable-fribidi --disable-caca --enable-live555 --enable-dca --enable-goom --enable-modplug --enable-gnutls --enable-daap --disable-ncurses --enable-libtwolame --enable-x264 --enable-png --enable-realrtsp --disable-libtool --prefix=${VLCPREFIX}
 
 ${VLCPREFIX}/lib/libvlc.a:	${VLCDIR}/Makefile
 	# build and install vlc
@@ -195,29 +192,30 @@ ${VLCPREFIX}/lib/python${PYTHON_VER}/site-packages/vlc.so:	${VLCPREFIX}/lib/libv
 	cd ${VLCDIR}/bindings/python && ${PYTHON} setup.py install --prefix=${VLCPREFIX}
 
 ${SITEPACKAGES}/vlc.so:		${VLCPREFIX}/lib/python${PYTHON_VER}/site-packages/vlc.so
-	mkdir -p build/temp/vlc-native
-	cd ${VLCPREFIX}/lib && for i in `find . -name "*.dylib"`; do mkdir -p ${PWD}/build/temp/vlc-native/`dirname $$i`; cp $$i ${SITEPACKAGES}/$$i; done
-	cp $< $@
+	# first, place the libraries/plugins in build/lib
+	cd ${VLCPREFIX}/lib && for i in `find . -name "*.dylib"`; do mkdir -p ${PWD}/build/lib/`dirname $$i`; cp $$i ${PWD}/build/lib/$$i; done
 
 	# fix dependencies of .dylib/.so libraries
-	(for i in `find ${SITEPACKAGES} -name "*.dylib" -or -name "*.so"`; do otool -L $$i | perl -ne 'print "install_name_tool -change $$1 lib/$$2 '$$i'\n" if m#(\@executable_path/lib/(\S+))#;'; done) | bash -
+	(for i in `find build/lib -name "*.dylib" -or -name "*.so"`; do otool -L $$i | perl -ne 'print "install_name_tool -change $$1 lib/$$2 '$$i'\n" if m#(\@executable_path/lib/(\S+))#;'; done) | bash -
 
 	# let run from source locate libraries
 	rm -f ../lib
 	ln -s ${PWD}/build/lib ../lib
 
+	cp $< $@
+
 # ----- FFmpeg
 
-FFDIR=build/temp/ffmpeg
-FFCONFIG=--disable-vhook --disable-network
+FFMPEG_CONFIG += --disable-vhook --disable-network --disable-ffserver --disable-ffplay
 
-build/temp/ffmpeg:
+build/temp/.ffmpeg:
 	svn co svn://svn.mplayerhq.hu/ffmpeg/trunk build/temp/ffmpeg
 	touch $@
 
-build/temp/ffmpeg/ffmpeg:	build/temp/ffmpeg
-	cd build/temp/ffmpeg && ./configure ${FFCONFIG}
+build/temp/ffmpeg/ffmpeg:	build/temp/.ffmpeg
+	cd build/temp/ffmpeg && ./configure ${FFMPEG_CONFIG}
 	cd build/temp/ffmpeg && make
 
 build/lib/ffmpeg:		build/temp/ffmpeg/ffmpeg
 	cp $^ $@
+
