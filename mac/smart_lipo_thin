@@ -11,7 +11,7 @@ ARCH=`arch`
 REPORT=`lipo -info $INPUT 2>&1 | cut -d\  -f1-5`
 if [ "$REPORT" == "Architectures in the fat file:" ]
 then
-  echo $INPUT is fat -- extracting $ARCH
+  echo thinning `basename $INPUT`
   lipo -thin $ARCH $INPUT -output $INPUT.tmp
   rm -f $INPUT
   mv $INPUT.tmp $INPUT

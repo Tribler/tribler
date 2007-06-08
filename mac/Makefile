@@ -53,6 +53,9 @@ build/imagecontents/:	${SITEPACKAGES}/M2Crypto/ ${SITEPACKAGES}/Growl.py ${SITEP
 	cd build && for i in `find lib -name "*.dylib"`; do mkdir -p ../${APPRES}/`dirname $$i`; cp $$i ../${APPRES}/$$i; done
 	cp build/lib/ffmpeg ${APPRES}/lib/ffmpeg
 
+	# Ditch Python documentation
+	rm -rf build/imagecontents/Tribler.app/Contents/Frameworks/Python.framework/Versions/2.5/Resources/English.lproj/Documentation
+
 	# Thin everything for this architecture. Some things ship Universal (Python, wxPython, ...) and
 	# others get a stub for the other architecture (things built by Universal Python)
 	for i in `find build/imagecontents`; do ./smart_lipo_thin $$i; done
