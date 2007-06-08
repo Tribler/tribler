@@ -16,7 +16,7 @@
 OPENSSL_VER=0.9.8e
 PYTHON_VER=2.5
 PWD:=${shell pwd}
-ARCH:=${shell uname -a}
+ARCH:=${shell arch}
 
 ifeq ($(ARCH),ppc)
   # PPC
