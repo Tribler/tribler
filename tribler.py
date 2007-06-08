@@ -548,6 +548,9 @@ class ABCFrame(wx.Frame, DelayedInvocation):
             
             videoplayer = VideoPlayer.getInstance()
             videoplayer.set_parentwindow(self.videoFrame)
+        else:
+            videoplayer = VideoPlayer.getInstance()
+            videoplayer.set_parentwindow(self)
 
         sys.stdout.write('GUI Complete.\n')
 
