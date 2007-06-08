@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# syntax: smart_lipo filenative fileforeign fileout
+# syntax: smart_lipo_merge filenative fileforeign fileout
 #
 # merges two binaries, taking the respective architecture part in case the input is fat
 #

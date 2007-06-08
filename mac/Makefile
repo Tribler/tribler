@@ -16,6 +16,15 @@
 OPENSSL_VER=0.9.8e
 PYTHON_VER=2.5
 PWD:=${shell pwd}
+ARCH:=${shell uname -a}
+
+ifeq ($(ARCH),ppc)
+  # PPC
+  OPENSSL_CONFIG=darwin-ppc-cc
+else
+  # INTEL
+  OPENSSL_CONFIG=darwin-i386-cc
+endif
 
 all:	clean dirs Tribler.dmg
 
@@ -46,6 +55,9 @@ build/imagecontents/:	${SITEPACKAGES}/M2Crypto/ ${SITEPACKAGES}/Growl.py ${SITEP
 	mv ../build/* $@
 	cd build && for i in `find lib -name "*.dylib"`; do mkdir -p ../${APPRES}/`dirname $$i`; cp $$i ../${APPRES}/$$i; done
 	cp build/lib/ffmpeg ${APPRES}/lib/ffmpeg
+
+	# Thinnen everything for this architecture
+	for i in `find build/imagecontents`; do ./smart_lipo_thin $$i; done
 
 	# Sample Friend Icons
 	#mkdir -p $@"/Sample Friend Icons"
@@ -132,45 +144,21 @@ ${SITEPACKAGES}/Growl.py:
 build/temp/openssl-${OPENSSL_VER}.tar.gz:
 	curl http://www.openssl.org/source/openssl-${OPENSSL_VER}.tar.gz -o $@
 
-build/temp/.openssl-i386:	build/temp/openssl-${OPENSSL_VER}.tar.gz
+build/temp/.openssl:		build/temp/openssl-${OPENSSL_VER}.tar.gz
 	cd build/temp && tar xfz openssl-${OPENSSL_VER}.tar.gz
-	rm -rf build/temp/openssl-i386
-	mv build/temp/openssl-${OPENSSL_VER} build/temp/openssl-i386
+	rm -rf build/temp/openssl
+	mv build/temp/openssl-${OPENSSL_VER} build/temp/openssl
 
-	cd build/temp/openssl-i386 && make clean
-	cd build/temp/openssl-i386 && ./Configure 386 darwin-i386-cc
-	cd build/temp/openssl-i386 && make build_libs "CC=cc -arch i386"
-	touch $@
-
-build/temp/.openssl-ppc:	build/temp/openssl-${OPENSSL_VER}.tar.gz
-	cd build/temp && tar xfz openssl-${OPENSSL_VER}.tar.gz
-	rm -rf build/temp/openssl-ppc
-	mv build/temp/openssl-${OPENSSL_VER} build/temp/openssl-ppc
-
-	cd build/temp/openssl-ppc && make clean
-	cd build/temp/openssl-ppc && ./Configure darwin-ppc-cc
-	cd build/temp/openssl-ppc && make build_libs "CC=cc -arch ppc"
-	touch $@
-
-build/temp/openssl/libcrypto.a:	build/temp/.openssl-i386 build/temp/.openssl-ppc
-	mkdir -p build/temp/openssl
-	lipo -create -output build/temp/openssl/libcrypto.a build/temp/openssl-*/libcrypto.a
-	ranlib build/temp/openssl/libcrypto.a
-
-build/temp/openssl/libssl.a:	build/temp/.openssl-i386 build/temp/.openssl-ppc
-	mkdir -p build/temp/openssl
-	lipo -create -output build/temp/openssl/libssl.a build/temp/openssl-*/libssl.a
-	ranlib build/temp/openssl/libssl.a
-
-build/temp/openssl/.include:	build/temp/.openssl-i386
-	cp -RL build/temp/openssl-i386/include build/temp/openssl
+	cd build/temp/openssl && make clean
+	cd build/temp/openssl && ./Configure ${OPENSSL_CONFIG}
+	cd build/temp/openssl && make build_libs
 	touch $@
 
 build/temp/.m2crypto:
 	svn co http://svn.tribler.org/m2crypto/branches/main build/temp/m2crypto
 	touch $@
 
-${SITEPACKAGES}/M2Crypto/:	build/temp/openssl/libcrypto.a build/temp/openssl/libssl.a build/temp/.m2crypto	build/temp/openssl/.include
+${SITEPACKAGES}/M2Crypto/:	build/temp/.openssl build/temp/.m2crypto
 	cd build/temp/m2crypto && ${PYTHON} setup.py install --root ${PWD}/build/lib
 	touch $@
 
@@ -206,19 +194,13 @@ ${VLCPREFIX}/lib/python${PYTHON_VER}/site-packages/vlc.so:	${VLCPREFIX}/lib/libv
 	# build python bindings
 	cd ${VLCDIR}/bindings/python && ${PYTHON} setup.py install --prefix=${VLCPREFIX}
 
-build/temp/vlc-native/vlc.so:		${VLCPREFIX}/lib/python${PYTHON_VER}/site-packages/vlc.so
+${SITEPACKAGES}/vlc.so:		${VLCPREFIX}/lib/python${PYTHON_VER}/site-packages/vlc.so
 	mkdir -p build/temp/vlc-native
-	cd ${VLCPREFIX}/lib && for i in `find . -name "*.dylib"`; do mkdir -p ${PWD}/build/temp/vlc-native/`dirname $$i`; cp $$i ${PWD}/build/temp/vlc-native/$$i; done
+	cd ${VLCPREFIX}/lib && for i in `find . -name "*.dylib"`; do mkdir -p ${PWD}/build/temp/vlc-native/`dirname $$i`; cp $$i ${SITEPACKAGES}/$$i; done
 	cp $< $@
 
 	# fix dependencies of .dylib/.so libraries
-	(for i in `find build/temp/vlc-native -name "*.dylib" -or -name "*.so"`; do otool -L $$i | perl -ne 'print "install_name_tool -change $$1 lib/$$2 '$$i'\n" if m#(\@executable_path/lib/(\S+))#;'; done) | bash -
-
-
-${SITEPACKAGES}/vlc.so:		build/temp/vlc-native/vlc.so
-	# merge with foreign architecture
-	cd build/temp/vlc-native && for i in `find . -name "*.dylib"`; do mkdir -p ${PWD}/build/lib/`dirname $$i`; ${PWD}/smart_lipo $$i ${PWD}/vlc-foreign/$$i ${PWD}/build/lib/$$i; done
-	./smart_lipo build/temp/vlc-native/vlc.so vlc-foreign/vlc.so $@
+	(for i in `find ${SITEPACKAGES} -name "*.dylib" -or -name "*.so"`; do otool -L $$i | perl -ne 'print "install_name_tool -change $$1 lib/$$2 '$$i'\n" if m#(\@executable_path/lib/(\S+))#;'; done) | bash -
 
 	# let run from source locate libraries
 	rm -f ../lib
@@ -229,20 +211,13 @@ ${SITEPACKAGES}/vlc.so:		build/temp/vlc-native/vlc.so
 FFDIR=build/temp/ffmpeg
 FFCONFIG=--disable-vhook --disable-network
 
-build/temp/.ffmpeg-i386:
-	svn co svn://svn.mplayerhq.hu/ffmpeg/trunk build/temp/ffmpeg-i386
+build/temp/ffmpeg:
+	svn co svn://svn.mplayerhq.hu/ffmpeg/trunk build/temp/ffmpeg
 	touch $@
 
-build/temp/.ffmpeg-ppc:
-	svn co svn://svn.mplayerhq.hu/ffmpeg/trunk build/temp/ffmpeg-ppc
-	touch $@
+build/temp/ffmpeg/ffmpeg:	build/temp/ffmpeg
+	cd build/temp/ffmpeg && ./configure ${FFCONFIG}
+	cd build/temp/ffmpeg && make
 
-build/temp/ffmpeg-i386/ffmpeg:	build/temp/.ffmpeg-i386
-	cd build/temp/ffmpeg-i386 && ./configure ${FFCONFIG} --arch=i386 --extra-cflags="-arch i386" --extra-ldflags="-arch i386 -L/Developer/SDKs/MacOSX10.4u.sdk/usr/lib -L/Developer/SDKs/MacOSX10.4u.sdk/usr/lib/system/libmathCommon.A.dylib" --cross-compile
-	cd build/temp/ffmpeg-i386 && make
-
-build/temp/ffmpeg-ppc/ffmpeg:	build/temp/.ffmpeg-ppc
-	cd build/temp/ffmpeg-ppc && ./configure ${FFCONFIG} --arch=ppc --enable-altivec --extra-cflags="-arch ppc" --extra-ldflags="-arch ppc -L/Developer/SDKs/MacOSX10.4u.sdk/usr/lib -L/Developer/SDKs/MacOSX10.4u.sdk/usr/lib/system/libmathCommon.A.dylib" --cross-compile
-	cd build/temp/ffmpeg-ppc && make
-build/lib/ffmpeg:		build/temp/ffmpeg-i386/ffmpeg build/temp/ffmpeg-ppc/ffmpeg
-	lipo $^ -create -o $@
+build/lib/ffmpeg:		build/temp/ffmpeg/ffmpeg
+	cp $^ $@
