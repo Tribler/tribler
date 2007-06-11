@@ -19,7 +19,7 @@ from font import *
 from Utility.constants import * 
 import cStringIO
 
-DEBUG=True
+DEBUG=False
 
 # font sizes
 if sys.platform == 'darwin':
