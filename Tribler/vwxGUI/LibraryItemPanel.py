@@ -19,7 +19,7 @@ from font import *
 from Utility.constants import * 
 import cStringIO
 
-DEBUG=False
+DEBUG=True
 
 # font sizes
 if sys.platform == 'darwin':
@@ -305,8 +305,8 @@ class LibraryItemPanel(wx.Panel):
             self.statusField.SetLabel(self.utility.lang.get('stop'))
             self.eta.SetLabel('')
             
-            if torrent.get('progress'):
-                self.percentage.SetLabel('%0.2f%%' % torrent['progress'])
+            if torrent.get('progress') != None:
+                self.percentage.SetLabel('%0.1f%%' % torrent['progress'])
                 self.pb.setNormalPercentage(torrent['progress'])
             else:
                 self.percentage.SetLabel('?')
@@ -526,11 +526,12 @@ class LibraryItemPanel(wx.Panel):
             self.data.update(newdata)
             
             if DEBUG:
-                print >>sys.stderr,'lip: Save destination?: %s' % self.data['destdir']
+                print >>sys.stderr,'lip: Save destination?: %s and progress: %f' % (self.data['destdir'], self.data['progress'])
             # only save new data (progression and destdir, no other data or torrent
-            self.utility.torrent_db.updateTorrent(infohash, item = newdata)
+            self.utility.torrent_db.updateTorrent(infohash, **newdata)
             # Now delete the abctorrent object reference
             del self.data['abctorrent']
+
     
     def abctorrentFinished(self, infohash):
         """
