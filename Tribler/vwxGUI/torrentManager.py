@@ -262,7 +262,6 @@ class TorrentDataManager:
             pass
         else:
             self.utility.buddycast.delMyPref(infohash)
-
                 
     def addNewPreference(self, infohash): 
         if self.info_dict.has_key(infohash):

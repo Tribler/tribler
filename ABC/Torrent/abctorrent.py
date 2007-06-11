@@ -150,8 +150,8 @@ class ABCTorrent:
         # Arno: Checking for presence in the database causes some problems 
         # during testing sometimes, and it makes sense to update the database 
         # to the latest values.
-        #if self.torrent_db.hasTorrent(self.torrent_hash):
-        #    return
+        if self.torrent_db.hasTorrent(self.torrent_hash):
+            return
             
         torrent = {}
         torrent['torrent_dir'], torrent['torrent_name'] = os.path.split(self.src)

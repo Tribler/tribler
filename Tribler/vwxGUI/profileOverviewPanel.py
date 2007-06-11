@@ -96,10 +96,10 @@ class ProfileOverviewPanel(wx.Panel):
         
     def OnShow(self, evt):
 #        print "<mluc> in onshow in profileOverviewPanel"
-        if evt.show:
+#        if evt.show:
 #            print "<mluc> profileOverviewPanel is visible"
-            self.timer.Start() #restarts the timer
-        else:
+#            self.timer.Start() #restarts the timer
+#        else:
 #            print "<mluc> profileOverviewPanel is visible"
             pass
         #wx.CallAfter(self.reloadData())

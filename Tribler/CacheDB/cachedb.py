@@ -655,6 +655,7 @@ class TorrentDB(BasicDB):
     getInstance = staticmethod(getInstance)
 
     def updateItem(self, infohash, item={}):    # insert a torrent; update it if existed
+        
         if isValidInfohash(infohash) and validDict(item):
             if self._has_key(infohash):
                 _item = self.getItem(infohash)
