@@ -54,7 +54,7 @@ binary-indep: build install
 	dh_installexamples
 	dh_installmenu
 	dh_installmime
-	dh_installman tribler.1.gz
+	dh_installman
 
 	mkdir -p debian/tribler/usr/share/tribler/
 	cp -rf `ls -1d * | grep -v debian | grep -v test` debian/tribler/usr/share/tribler/
