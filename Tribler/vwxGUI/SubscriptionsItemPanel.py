@@ -244,6 +244,13 @@ class SubscriptionsItemPanel(wx.Panel):
             bcfac.pauseBuddyCast()
 
     def toggleWeb2Search(self,status):
+        if status and sys.platform == 'linux2':
+            dlg = wx.MessageDialog(None, self.utility.lang.get('vlc_linux_start_bug') ,self.utility.lang.get('vlc_linux_start_bug_title'), wx.OK|wx.ICON_INFORMATION)
+            dlg.ShowModal()
+            dlg.Destroy()
+
+            
+            print 'Are you sure?'
         self.utility.config.Write('enableweb2search',status, "boolean")
         search = self.guiUtility.getSearchField(mode='filesMode')
         if status:

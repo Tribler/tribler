@@ -1216,3 +1216,6 @@ web2subscription = "Discover content from YouTube and LiveLeak"
 filesdefaultsearchweb2txt = "search files, YouTube and LiveLeak"
 filesdefaultsearchtxt = "search all files"
 rssurldefaulttxt = "Paste your RSS link here"
+
+vlc_linux_start_bug_title = "No linux VLC flashmovie streaming"
+vlc_linux_start_bug = "In the current linux version of VCL, Youtube.com movies cannot be viewed in streaming-mode. They will start after the movie has finished downloading completely."
