@@ -2,8 +2,8 @@ Source: tribler
 Section: net
 Priority: optional
 Maintainer: Arno Bakker <arno@cs.vu.nl>
-Standards-Version: 3.6.2.0
-Build-Depends: debhelper, devscripts
+Standards-Version: 3.7.2
+Build-Depends: python, debhelper, devscripts
 
 Package: tribler
 Architecture: all
