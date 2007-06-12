@@ -1,4 +1,0 @@
-?package(tribler):needs="x11" section="Apps/Net" \
-	 title="Tribler" \
-	 icon="/usr/share/pixmaps/tribler.xpm" \
-	 command="tribler"
