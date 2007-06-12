@@ -3,7 +3,7 @@ Section: net
 Priority: optional
 Maintainer: Arno Bakker <arno@cs.vu.nl>
 Standards-Version: 3.7.2
-Build-Depends: python, debhelper, devscripts
+Build-Depends: python, debhelper (>= 5.0.37.2), devscripts
 
 Package: tribler
 Architecture: all
