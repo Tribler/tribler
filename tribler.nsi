@@ -1,5 +1,5 @@
 !define PRODUCT "Tribler"
-!define VERSION "4.0.1"
+!define VERSION "4.0.3"
 
 !include "MUI.nsh"
 
@@ -92,9 +92,9 @@ Section "!Main EXE" SecMain
  CreateDirectory "$INSTDIR\icons"
  SetOutPath "$INSTDIR\icons"
  File icons\*.*
- CreateDirectory "$INSTDIR\icons\mugshots"
- SetOutPath "$INSTDIR\icons\mugshots"
- File icons\mugshots\*.*
+; CreateDirectory "$INSTDIR\icons\mugshots"
+; SetOutPath "$INSTDIR\icons\mugshots"
+; File icons\mugshots\*.*
  CreateDirectory "$INSTDIR\Lang"
  SetOutPath "$INSTDIR\Lang"
  IfFileExists user.lang userlang
