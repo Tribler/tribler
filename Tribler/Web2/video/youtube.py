@@ -17,7 +17,9 @@ ENCODING = "utf-8"
 site = "youtube.com"
 
 
-RE_SEARCHITEM = r"<a href=\"/watch\?v=(.*?)\".*?><img src=\"(.*?)\".*?></a>.*?<span class=\"runtime\">(.*?)</span>"
+#RE_SEARCHITEM = r"<a href=\"/watch\?v=(.*?)\".*?><img src=\"(.*?)\".*?></a>.*?<span class=\"runtime\">(.*?)</span>"
+# Arno: YouTube changed output 2007-06-14
+RE_SEARCHITEM = r"<a .*? href=\"/watch\?v=(.*?)\".*?><img src=\"(.*?)\".*?></a>.*?<span .*? class=\"runtime\">(.*?)</span>"
 RE_TAG  = r'<meta name="keywords" content="(.*?)">'
 RE_TAG2 = r'([^ ,]+)'
 RE_CAT  = r'<a href="/browse\?s=.*?Video\+Category\+Link.*?>(.*?)</a>' 
