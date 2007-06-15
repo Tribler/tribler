@@ -302,16 +302,21 @@ class VideoPlayer:
         # VLC will play .flv files, but doesn't like the URLs that YouTube uses,
         # so quote them
         if self.playbackmode != PLAYBACKMODE_INTERNAL:
-            x = [t[0],t[1],t[2],t[3],t[4]]
-            n = urllib.quote(x[2])
-            if DEBUG:
-                print >>sys.stderr,"videoplay: play_url: OLD PATH WAS",x[2],"NEW PATH",n
-            x[2] = n
-            n = urllib.quote(x[3])
-            if DEBUG:
-                print >>sys.stderr,"videoplay: play_url: OLD QUERY WAS",x[3],"NEW PATH",n
-            x[3] = n
-            url = urlparse.urlunsplit(x)
+            if sys.platform == 'win32':
+                x = [t[0],t[1],t[2],t[3],t[4]]
+                n = urllib.quote(x[2])
+                if DEBUG:
+                    print >>sys.stderr,"videoplay: play_url: OLD PATH WAS",x[2],"NEW PATH",n
+                x[2] = n
+                n = urllib.quote(x[3])
+                if DEBUG:
+                    print >>sys.stderr,"videoplay: play_url: OLD QUERY WAS",x[3],"NEW PATH",n
+                x[3] = n
+                url = urlparse.urlunsplit(x)
+            elif url[0] != '"' and url[0] != "'":
+                # to prevent shell escape problems
+                # TODO: handle this case in escape_path() that now just covers spaces
+                url = "'"+url+"'" 
 
         (prefix,ext) = os.path.splitext(dest)
         [mimetype,cmd] = self.get_video_player(ext,url)
