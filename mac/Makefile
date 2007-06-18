@@ -23,7 +23,7 @@ else
   FFMPEG_CONFIG=--cpu=pentium-m --enable-memalign-hack
 endif
 
-all:	clean dirs Tribler.dmg ../lib
+all:	clean dirs Tribler-${ARCH}.dmg ../lib
 
 clean:
 	rm -rf build/imagecontents/ Tribler.dmg
@@ -72,7 +72,7 @@ build/imagecontents/:	${SITEPACKAGES}/M2Crypto/ ${SITEPACKAGES}/Growl.py ${SITEP
 
 	touch $@
 
-Tribler.dmg:		build/imagecontents/ SLAResources.rsrc
+Tribler-${ARCH}.dmg:		build/imagecontents/ SLAResources.rsrc
 	rm -f $@
 
 	# create image
@@ -163,13 +163,13 @@ ${SITEPACKAGES}/M2Crypto/:	build/temp/.openssl build/temp/.m2crypto
 VLCDIR=${PWD}/build/temp/vlc
 VLCPREFIX=${VLCDIR}/install-root
 
-${VLCDIR}/.prereqs:
+build/temp/.vlc:
 	svn co svn://svn.videolan.org/vlc/trunk ${VLCDIR}
 	cd ${VLCDIR}/extras/contrib && ./bootstrap
 	cd ${VLCDIR}/extras/contrib && make src
 	touch $@
 
-${VLCDIR}/Makefile:	${VLCDIR}/.prereqs
+${VLCDIR}/Makefile:	build/temp/.vlc
 	svn revert ${VLCDIR}/m4/* ${VLCDIR}/po/*
 	cd ${VLCDIR} && ./bootstrap
 	cd ${VLCDIR} && ./configure --enable-debug --disable-x11 --disable-xvideo --disable-glx --disable-qt4 --disable-sdl --enable-mad --enable-libdvbpsi --enable-a52 --disable-dvdplay --enable-dvdnav --enable-dvdread --enable-ffmpeg --enable-faad --enable-flac --enable-vorbis --enable-speex --enable-theora --enable-ogg --enable-shout --enable-cddb --disable-cddax --enable-vcdx --disable-skins --disable-skins2 --disable-wxwidgets --enable-freetype --enable-fribidi --disable-caca --enable-live555 --enable-dca --enable-goom --enable-modplug --enable-gnutls --enable-daap --disable-ncurses --enable-libtwolame --enable-x264 --enable-png --enable-realrtsp --disable-libtool --prefix=${VLCPREFIX}
@@ -190,7 +190,7 @@ ${VLCPREFIX}/lib/python${PYTHON_VER}/site-packages/vlc.so:	${VLCPREFIX}/lib/libv
 	# build python bindings
 	cd ${VLCDIR}/bindings/python && ${PYTHON} setup.py install --prefix=${VLCPREFIX}
 
-build/lib/.vlc:              ${VLCPREFIX}/lib/libvlc.a
+build/lib/.vlc:              ${VLCPREFIX}/lib/libvlc.a ${VLCPREFIX}/lib/python${PYTHON_VER}/site-packages/vlc.so
 	# place the libraries/plugins in build/lib
 	cd ${VLCPREFIX}/lib && for i in `find . -name "*.dylib"`; do mkdir -p ${PWD}/build/lib/`dirname $$i`; cp $$i ${PWD}/build/lib/$$i; done
 
