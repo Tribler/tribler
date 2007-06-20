@@ -75,6 +75,7 @@ from Tribler.Dialogs.activities import *
 
 from Tribler.notification import init as notification_init
 from Tribler.vwxGUI.font import *
+from Tribler.Web2.util.update import Web2Updater
 
 DEBUG = False
 ALLOW_MULTIPLE = False
@@ -586,6 +587,9 @@ class ABCFrame(wx.Frame, DelayedInvocation):
             if self.newversion(self.curr_version, my_version):
                 # Arno: we are a separate thread, delegate GUI updates to MainThread
                 self.upgradeCallback()
+            
+            # Also check new version of web2definitions for youtube etc. search
+            Web2Updater(self.utility).checkUpdate()
         except Exception,e:
             print >> sys.stderr, "Tribler: Version check failed", ctime(time()), str(e)
             #print_exc()
