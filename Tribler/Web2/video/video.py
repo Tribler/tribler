@@ -16,7 +16,7 @@ from Tribler.Web2.util import db
 from Tribler.Web2.util.log import log
 
 import liveleak
-import youtube
+
 
 mux = "avi"
 

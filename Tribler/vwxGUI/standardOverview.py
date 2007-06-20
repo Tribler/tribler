@@ -492,6 +492,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         
     def updateFunPersons(self, peer_data, operate):    
         grid = None
+        if peer_data == None:
+            return
         if self.mode in ["personsMode","friendsMode"]:
             grid = self.data[self.mode].get('grid')
         if grid is not None:

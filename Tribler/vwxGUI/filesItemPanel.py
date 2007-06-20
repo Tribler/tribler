@@ -235,7 +235,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             else:
                 #print "fip: ThumbnailViewer: set: Scheduling read of metadata"
                 # web2.0 elements already have the thumbnail stored at key 'preview'
-                if not torrent.get('preview'):
+                if not torrent.get('web2'):
                     torrent_dir = torrent['torrent_dir']
                     torrent_file = torrent['torrent_name']
                 
@@ -246,7 +246,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                     if DEBUG:
                         print "fip: Scheduling read of thumbnail for",torrent_filename
                     self.GetParent().guiserver.add_task(lambda:self.loadMetadata(torrent,torrent_filename),0)
-                else:
+                elif torrent.get('preview'):
                     self.GetParent().guiserver.add_task(lambda:self.loadMetadata(torrent,None),0)
             
             self.setBitmap(bmp)
@@ -308,6 +308,8 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             #print 'Found thumbnail: %s' % thumbnailString
             stream = cStringIO.StringIO(thumbnailString)
             img =  wx.ImageFromStream( stream )
+            if not img.Ok():
+                return
             
             filesModeThumbSize = (125, 70)
             libraryModeThumbSize = (66, 37)

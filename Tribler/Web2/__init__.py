@@ -1,21 +1,17 @@
 
 import util.db
 
-import video.youtube
-import video.liveleak
-
-video
-
-typesearches = {
-        "video" : [ video.liveleak.LiveLeakSearch, video.youtube.YoutubeSearch]
-        }
+from video.genericsearch import GenericSearch
+from util.update import Web2Config
+import Tribler.vwxGUI.GuiUtility
 
 
 def web2query(query, type):
-
+    gui_utility = Tribler.vwxGUI.GuiUtility.GUIUtility.getInstance()
+    web2config = Web2Config.getInstance(gui_utility.utility)
     searches = []
-    for search in typesearches[type]:
-        searches.append(search(query))
+    for searchname in web2config.getWeb2Sites(type):
+        searches.append(GenericSearch(searchname, query, web2config))
 
     return util.db.CompoundDBSearch(searches)
 
