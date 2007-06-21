@@ -34,8 +34,8 @@ class StatsPanel(PlotCanvas):
         self.plot_graphics = None
         self.visible = False #visibility flag set manually
         self.uploadIsNegative = False #flag to set upload view as negative
-        self.showTotal = False
-        self.showTotal2 = True
+        self.showTotal = True
+        self.showTotal2 = False
         self.showAll = False #unused yet
         self.currentItem = None #unused yet
 #        self.utility = frame.utility # get the utility object of parent frame, should be there!
