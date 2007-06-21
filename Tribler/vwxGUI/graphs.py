@@ -70,15 +70,16 @@ class StatsPanel(PlotCanvas):
         self.down_data = {}
         self.up_data = {}
         # first call to create the plot
-        self.updateData()
+        #self.updateData()
         # register the timer to periodically call updateData
         ID_Timer = wx.NewId()
         self.timer = wx.Timer(self, ID_Timer)
         self.Bind( wx.EVT_TIMER, self.OnMyTimer, self.timer)     
-        self.timer.Start(5000)
+        #self.timer.Start(5000)
         
     def setVisible(self, isVisible):
         """set the visibility flag and also clears the graph history"""
+        print "set visible: ", isVisible
         if self.visible == isVisible:
             return
         self.visible = isVisible
@@ -285,12 +286,14 @@ class StatsPanel(PlotCanvas):
         self.updateData()
         
     def updateData(self):
+        print "update Data"
         if not self.visible:
             return #don't compute new things if it is not visible
-#        if self.IsShown():
-#            print "panel is visible"
-#        else:
-#            print "graph stats is not visible"
+        if self.IsShown():
+            print "panel is visible"
+        else:
+            print "graph stats is not visible"
+        print "update Data2"
         MAX_POINTS = 61
         lines = []
         upload_sign = 1
@@ -456,6 +459,7 @@ class StatsPanel(PlotCanvas):
         else:
             self.plot_graphics = None
         self.Refresh()
+#        self.timer.Start(5000)
 ##        ## draw
 ##        # Bar graph
 ##        self.lines = []
