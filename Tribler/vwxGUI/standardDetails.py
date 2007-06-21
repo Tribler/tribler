@@ -19,10 +19,11 @@ from Utility.constants import COL_PROGRESS
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Dialogs.GUIServer import GUIServer
 from Tribler.CacheDB.CacheDBHandler import MyPreferenceDBHandler
+from graphs import StatsPanel
 
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'subscriptionsMode', 'messageMode']
 
-DEBUG = False
+DEBUG = True
 
 def showInfoHash(infohash):
     if infohash.startswith('torrent'):    # for testing
@@ -90,7 +91,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                                             'titleField','statusField','thumbField']
         self.modeElements['libraryMode'] = ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
-                                            'files_detailsTab', 'info_detailsTab', 'details', 
+                                            'files_detailsTab', 'info_detailsTab', 'graphs_detailsTab', 'details', 
                                             'peopleWhoField']
         self.modeElements['profileMode'] = ['levelPic','descriptionField0']
         
@@ -100,6 +101,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         self.tabElements = {'filesTab_files': [ 'download', 'includedFiles', 'filesField', 'trackerField'],                            
                             'personsTab_advanced': ['lastExchangeField', 'timesConnectedField','addAsFriend','similarityValueField'],
                             'libraryTab_files': [ 'download', 'includedFiles'],
+                            'Tab_graphs': ['Graph'], #tab in library for showing up/dw graphs
                             'profileDetails_Quality': ['descriptionField0','howToImprove','descriptionField1'],
                             'profileDetails_Files': ['descriptionField0','howToImprove','descriptionField1','takeMeThere0'],
                             'profileDetails_Persons': ['descriptionField0','howToImprove','descriptionField1'],
@@ -251,6 +253,18 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 self.getAlternativeTabPanel('filesTab_files', parent=currentPanel).Hide()
                 if modeString == 'files':
                     self.getGuiObj('TasteHeart').setBackground(wx.WHITE)
+                if modeString == 'library':
+                    graph_parent = self.getAlternativeTabPanel('Tab_graphs', parent=currentPanel)
+                    graph_parent.Hide()
+                    #swap the dummy Graph panel with the plot panel
+                    dummy_graph_panel = self.getGuiObj('Graph', 'Tab_graphs')
+                    graph_panel = StatsPanel(graph_parent)
+                    self.swapPanel(dummy_graph_panel, graph_panel)
+                    #also set it as an object of Tab_graphs
+                    self.data[self.mode]['Tab_graphs'+'_'+'Graph'] = graph_panel
+                    graph_panel.SetMinSize(wx.Size(300,300))
+                    graph_panel.SetSize(wx.Size(300,300))
+                    
                 
                 
             elif modeString in ['persons','friends']:
@@ -909,11 +923,13 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                (self.mode == 'libraryMode' and torrent.get('eventComingUp') == 'notDownloading')
                
                  
-    def getGuiObj(self, obj_name, tab=None):
+    def getGuiObj(self, obj_name, tab=None, mode=None):
         """handy function to retreive an object based on it's name for the current mode"""
         if tab:
             obj_name = tab+'_'+obj_name
-        return self.data[self.mode].get(obj_name)
+        if not mode:
+            mode = self.mode
+        return self.data[mode].get(obj_name)
      
     def fillSimTorrentsList(self, infohash):
         """fills the list of torrents from library or file view with the files that are similar to the currently selected one"""
@@ -1032,13 +1048,54 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
     def tabClicked(self, name):
         if DEBUG:
             print >> sys.stderr,'standardDetails: tabClicked: %s' % name
-        
+        # just some generic way of making sure that a certain panel is informed when it is or not visible
+        if self.mode == 'libraryMode' and name == 'graphs_detailsTab':
+            self.getGuiObj('Graph', 'Tab_graphs').setVisible(True)
+        else:
+            self.getGuiObj(obj_name='Graph', tab='Tab_graphs', mode='libraryMode').setVisible(False)
         # currently, only tabs in filesDetailspanel work
-        if self.mode in ['filesMode', 'libraryMode']:
+        if self.mode == 'libraryMode':
+            tabButtons = { 'files_detailsTab':self.getGuiObj('files_detailsTab'),
+                          'info_detailsTab':self.getGuiObj('info_detailsTab'),
+                          'graphs_detailsTab':self.getGuiObj('graphs_detailsTab') }
+            tabPanelNames = { 'files_detailsTab':'filesTab_files', 
+                             'info_detailsTab':'details', 
+                             'graphs_detailsTab':'Tab_graphs'}
+            #TODO: change from currentPanel to the string name of the current selected details panel
+            #get the currently selected panel
+            current_name = 'details'
+            panel_name = 'details'
+            for key in tabButtons.keys():
+                if name == key:
+                    panel_name = tabPanelNames[key]
+                if tabButtons[key].isSelected():
+                    current_name = tabPanelNames[key]
+            panel1 = self.getGuiObj(current_name)
+            panel2 = self.getGuiObj(panel_name)
+            if panel1 is not None and panel2 is not None and panel1 != panel2:
+                if DEBUG:
+                    print >>sys.stderr,"standardDetails: <mluc> switching from "+current_name+" to "+panel_name
+                self.swapPanel(panel1, panel2)
+                #each time the panel changes, update the 'panel' reference in data list
+                #self.data[self.mode]['panel'] = panel2
+                #actually, update the currentPanel reference
+                #self.currentPanel = panel2
+                for key in tabButtons.keys():
+                    try:
+                        if key == name:
+                            tabButtons[key].setSelected(True)
+                        else:
+                            tabButtons[key].setSelected(False)
+                    except:
+                        print "tab %s has no button??" % key
+                self.currentPanel.SetAutoLayout(1)
+                self.currentPanel.Layout()
+                self.hSizer.Layout()
+        elif self.mode == 'filesMode':
             tabFiles = self.getGuiObj('files_detailsTab')
             tabInfo = self.getGuiObj('info_detailsTab')
             infoPanel = self.getGuiObj('details')
-#            sizer = infoPanel.GetContainingSizer()
+ #            sizer = infoPanel.GetContainingSizer()
             filesPanel = self.getGuiObj('filesTab_files')
             
             if name == 'files_detailsTab' and not tabFiles.isSelected():
@@ -1054,7 +1111,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 if DEBUG:
                     print >> sys.stderr,'standardDetails: %s: Unknown tab %s' % (self.mode,name)
                 return
-            #relayout the details panel to accomodate the new panel
+#                relayout the details panel to accomodate the new panel
             self.currentPanel.SetAutoLayout(1)
             self.currentPanel.Layout()
             self.hSizer.Layout()
@@ -1123,7 +1180,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     print >>sys.stderr,"standardDetails: <mluc> switch from %s[%s] to %s[%s]" % (panel1.GetName(), panel1.GetParent().GetName(), panel2.GetName(), panel2.GetParent().GetName())
         else:
             if DEBUG:
-                print >>sys.stderr,'standardDetails: Tabs for this mode (%s) not yet implemented' % self.mode
+                print >>sys.stderr,'standardDetails: Tab (%s) for this mode (%s) not yet implemented' % (name,self.mode)
             return
         
         self.setData(self.item)
@@ -1453,3 +1510,4 @@ def getShortTrackerFormat(n):
     except:
         short = n[:27]
     return ' '+short
+

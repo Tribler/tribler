@@ -23,7 +23,7 @@ from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.utilities import *
 from Utility.constants import *
 
-DEBUG = False
+DEBUG = True
 
 class GUIUtility:
     __single = None
@@ -56,17 +56,18 @@ class GUIUtility:
         
     def buttonClicked(self, event):
         "One of the buttons in the GUI has been clicked"
-        
-        if DEBUG:
-            print >>sys.stderr,'GUIUtil: Button clicked'
 
         event.Skip(True) #should let other handlers use this event!!!!!!!
             
+        name = ""
         obj = event.GetEventObject()
         try:
             name = obj.GetName()
         except:
             print 'Error: Could not get name of buttonObject: %s' % obj
+        
+        if DEBUG:
+            print >>sys.stderr,'GUIUtil: Button clicked %s' % name
         
         if name.startswith('mainButton'):
             self.mainButtonClicked(name, obj)
