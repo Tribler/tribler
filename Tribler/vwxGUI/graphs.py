@@ -1,6 +1,7 @@
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from ABC.Torrent.abctorrent import ABCTorrent
 from Utility.constants import * #IGNORE:W0611
+import threading
 # Needs Numeric or numarray or NumPy
 try:
     import numpy as _Numeric
@@ -18,12 +19,78 @@ except:
             msg += "downloading source or binaries."
             raise ImportError, "Numeric,numarray or NumPy not found. \n\n" + msg
 from wx.lib.plot import *
+ 
+    
+class MyTimer(threading.Thread):
+    def __init__(self, callback):
+        threading.Thread.__init__(self)
+        self.status = 0 #0=initialized, 1=started, 2=running, 3=should stop, 4=stopped
+        self.delay = 0
+        self.period = -1
+        self.callback = callback
+        self.pause_ev = threading.Event() #should pause?
+        self.pause_ev.set()
+        self.notify = threading.Event()
+        
+    def start(self, period, delay=0, paused=True):
+        self.status = 1
+        self.delay = delay
+        self.period = period
+        if paused:
+            self.pause() #start it paused, call resume to really start it
+        threading.Thread.start(self)
+    
+        
+    def pause(self):
+        #check first if it's started
+        if self.status < 1:
+            self.start()
+        self.pause_ev.clear()
+        
+    def resume(self):
+        #check first if it's started
+        if self.status < 1:
+            self.start()
+        self.pause_ev.set()
+    
+    def stop(self):
+        self.status = 3
+        self.notify.set()
+        
+    def wait(self, period):
+        if self.status >= 3 or period < 0 or self.notify.isSet():
+            return 1 #means it is stopped
+        if period == 0:
+            return 0 #don't wait...
+        self.pause_ev.wait()
+        self.notify.wait(period) #during waiting, an event.set might have been called
+        if self.notify.isSet():
+            return 1
+        return 0 #means that wait went fine
+        
+    def run(self):
+        self.status=2
+        if self.wait(self.delay):
+            self.status=4
+            return #wait decided that timer is stopped
+        if self.callback is None:
+            self.status=4
+            return
+        wx.CallAfter(self.callback)
+        while self.wait(self.period) == 0:
+            if self.callback is None:
+                self.status=4
+                return
+            wx.CallAfter(self.callback)
+        self.status = 4
+
 
 class StatsPanel(PlotCanvas):
     """ draws a plot of download rate of each torrent and the total one.
         the same for upload.
         on tooltip it shows informations about the torrent
         """
+ 
     def __init__(self, parent):
         PlotCanvas.__init__(self, parent)
 
@@ -71,26 +138,30 @@ class StatsPanel(PlotCanvas):
         # first call to create the plot
         #self.updateData()
         # register the timer to periodically call updateData
-        ID_Timer = wx.NewId()
-        self.timer = wx.Timer(self, ID_Timer)
-        self.Bind( wx.EVT_TIMER, self.OnMyTimer, self.timer)     
+        #ID_Timer = wx.NewId()
+        #self.timer = wx.Timer(self, ID_Timer)
+        #self.Bind( wx.EVT_TIMER, self.OnMyTimer, self.timer)     
         #self.timer.Start(5000)
+        self.timer = MyTimer(self.OnMyTimer)
+        self.timer.start(0.5)
+                
+            
         
     def setVisible(self, isVisible):
         """set the visibility flag and also clears the graph history"""
-        print "set visible: ", isVisible
+        #print "set visible: ", isVisible
         if self.visible == isVisible:
             return
         self.visible = isVisible
         if not self.visible:
-            self.timer.Stop()
+            self.timer.pause()
             self.plot_graphics=None
             self.down_data = {}
             self.up_data = {}
         else:
             # first call to create the plot
             self.updateData()
-            self.timer.Start(5000)
+            self.timer.resume()
             #self.Refresh()
     
     def setNegativeUpload(self, isUploadNegative):
@@ -282,17 +353,16 @@ class StatsPanel(PlotCanvas):
         
     def OnMyTimer(self, event=None):
         #print event
+        print "OnMyTimer [StatsPanel]"
         self.updateData()
         
     def updateData(self):
-        print "update Data"
         if not self.visible:
             return #don't compute new things if it is not visible
-        if self.IsShown():
-            print "panel is visible"
-        else:
-            print "graph stats is not visible"
-        print "update Data2"
+#        if self.IsShown():
+#            print "panel is visible"
+#        else:
+#            print "graph stats is not visible"
         MAX_POINTS = 61
         lines = []
         upload_sign = 1
