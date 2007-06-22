@@ -1,7 +1,6 @@
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from ABC.Torrent.abctorrent import ABCTorrent
 from Utility.constants import * #IGNORE:W0611
-from wx.lib.plot import *
 # Needs Numeric or numarray or NumPy
 try:
     import numpy as _Numeric
@@ -12,13 +11,13 @@ except:
         try:
             import Numeric as _Numeric
         except:
-            msg= """
-            This module requires the Numeric/numarray or NumPy module,
-            which could not be imported.  It probably is not installed
-            (it's not part of the standard Python distribution). See the
-            Numeric Python site (http://numpy.scipy.org) for information on
-            downloading source or binaries."""
-            raise ImportError, "Numeric,numarray or NumPy not found. \n" + msg
+            msg = "This module requires the Numeric/numarray or NumPy module,"
+            msg += "which could not be imported.  It probably is not installed"
+            msg += "(it's not part of the standard Python distribution). See the"
+            msg += "Numeric Python site (http://numpy.scipy.org) for information on"
+            msg += "downloading source or binaries."
+            raise ImportError, "Numeric,numarray or NumPy not found. \n\n" + msg
+from wx.lib.plot import *
 
 class StatsPanel(PlotCanvas):
     """ draws a plot of download rate of each torrent and the total one.

@@ -7,6 +7,8 @@ from traceback import print_exc
 import cStringIO
 import urlparse
 
+from wx.lib.stattext import GenStaticText as StaticText
+from font import *
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from Tribler.utilities import *
 from Tribler.Dialogs.MugshotManager import MugshotManager
@@ -19,11 +21,10 @@ from Utility.constants import COL_PROGRESS
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Dialogs.GUIServer import GUIServer
 from Tribler.CacheDB.CacheDBHandler import MyPreferenceDBHandler
-from graphs import StatsPanel
 
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'subscriptionsMode', 'messageMode']
 
-DEBUG = True
+DEBUG = False
 
 def showInfoHash(infohash):
     if infohash.startswith('torrent'):    # for testing
@@ -258,12 +259,34 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     graph_parent.Hide()
                     #swap the dummy Graph panel with the plot panel
                     dummy_graph_panel = self.getGuiObj('Graph', 'Tab_graphs')
-                    graph_panel = StatsPanel(graph_parent)
-                    self.swapPanel(dummy_graph_panel, graph_panel)
-                    #also set it as an object of Tab_graphs
-                    self.data[self.mode]['Tab_graphs'+'_'+'Graph'] = graph_panel
-                    graph_panel.SetMinSize(wx.Size(300,300))
-                    graph_panel.SetSize(wx.Size(300,300))
+                    emsg = None
+                    try:
+                        from graphs import StatsPanel
+                        graph_panel = StatsPanel(graph_parent)
+                    except ImportError, msg:
+                        graph_panel = None
+                        emsg=msg
+                    if graph_panel is None:
+                        def setVisible(isVisible):
+                            pass
+                        dummy_graph_panel.setVisible = setVisible
+                        dummy_graph_panel.vSizer = wx.BoxSizer(wx.VERTICAL)
+                        dummy_graph_panel.title =wx.StaticText(dummy_graph_panel,-1,"",wx.Point(0,0),wx.Size(300,300))        
+                        dummy_graph_panel.title.SetBackgroundColour(wx.WHITE)
+                        dummy_graph_panel.title.SetFont(wx.Font(10,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+                        dummy_graph_panel.title.SetMinSize((300,300))
+                        dummy_graph_panel.vSizer.Add(dummy_graph_panel.title, 0, wx.BOTTOM, 3)
+                        dummy_graph_panel.title.SetLabel(str(emsg))
+                        dummy_graph_panel.SetSizer(dummy_graph_panel.vSizer);
+                        dummy_graph_panel.SetAutoLayout(1);
+                        dummy_graph_panel.Layout();
+                        dummy_graph_panel.Refresh()
+                    else:
+                        self.swapPanel(dummy_graph_panel, graph_panel)
+                        #also set it as an object of Tab_graphs
+                        self.data[self.mode]['Tab_graphs'+'_'+'Graph'] = graph_panel
+                        graph_panel.SetMinSize(wx.Size(300,300))
+                        graph_panel.SetSize(wx.Size(300,300))
                     
                 
                 
@@ -530,6 +553,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     trackerField.SetLabel(short)
                     trackerField.SetToolTipString(trackerString)
                     
+            elif self.getGuiObj('graphs_detailsTab').isSelected():
+                if DEBUG:
+                    print "standardDetails: graph set data"
                 
             elif DEBUG:
                 print >> sys.stderr,'standardDetails: error: unknown tab selected'
@@ -1049,6 +1075,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         if DEBUG:
             print >> sys.stderr,'standardDetails: tabClicked: %s' % name
         # just some generic way of making sure that a certain panel is informed when it is or not visible
+        #the function must be there!
         if self.mode == 'libraryMode' and name == 'graphs_detailsTab':
             self.getGuiObj('Graph', 'Tab_graphs').setVisible(True)
         else:
