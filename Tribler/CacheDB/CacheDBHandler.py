@@ -549,7 +549,7 @@ class TorrentDBHandler(BasicDBHandler):
             p = self.torrent_db.getItem(torrent)
             if not p:
                 break #database not available any more
-            if not p.get('torrent_name', None) or not p.get('info', None):
+            if not type(p) == dict or not p.get('torrent_name', None) or not p.get('info', None):
                 deleted = self.deleteTorrent(torrent)     # remove infohashes without torrent
                 print >> sys.stderr, "*** deleted empty torrent", deleted, p.get('torrent_name', None), p.get('info', None)
             
@@ -602,7 +602,7 @@ class TorrentDBHandler(BasicDBHandler):
             p = self.torrent_db.getItem(torrent)
             if not p:    # database is closed
                 break
-            if not p.get('torrent_name', None) or not p.get('info', None):
+            if not type(p) == dict or not p.get('torrent_name', None) or not p.get('info', None):
                 continue
             
             if light:

@@ -129,6 +129,8 @@ class GenericSearch(db.ThreadedDBSearch):
         item['description'] = codec.decodehtml(unicode(item['description'], ENCODING))
         item['web2'] = True
         
+        assert type(src) == str, "Url of video was not string, but %s (site:%s, name:%s)" % (repr(src), self.site, name)
+        
         item['url'] = src
         if self.get('RE_VIEWS'):
             views = re.findall(self.get('RE_VIEWS'), itempage)

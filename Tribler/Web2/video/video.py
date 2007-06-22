@@ -15,7 +15,6 @@ import settings
 from Tribler.Web2.util import db
 from Tribler.Web2.util.log import log
 
-import liveleak
 
 
 mux = "avi"
