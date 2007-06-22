@@ -363,6 +363,7 @@ class StatsPanel(PlotCanvas):
 #            print "panel is visible"
 #        else:
 #            print "graph stats is not visible"
+        print "UpldatingData [StatsPanel]"
         MAX_POINTS = 61
         lines = []
         upload_sign = 1
@@ -560,6 +561,7 @@ class StatsPanel(PlotCanvas):
             return '#%s%s%s' % (sred,sgreen,sblue)
         
     def OnPaint(self, event):
+        print "OnPaint [StatsPanel]"
 
         PlotCanvas.OnPaint(self, event)
         dc = wx.PaintDC(self.canvas)
