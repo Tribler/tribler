@@ -135,6 +135,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             #change the mode, so save last item selected
             self.lastItemSelected[self.mode] = self.item
             self.mode = mode
+            self.checkGraphTabVisible()
             self.refreshMode()
         if item:
             self.setData(item)
@@ -267,6 +268,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                         graph_panel = None
                         emsg=msg
                     if graph_panel is None:
+                        def setData(item):
+                            pass
+                        dummy_graph_panel.setData = setData
                         def setVisible(isVisible):
                             pass
                         dummy_graph_panel.setVisible = setVisible
@@ -556,6 +560,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             elif self.getGuiObj('graphs_detailsTab').isSelected():
                 if DEBUG:
                     print "standardDetails: graph set data"
+                graph_panel = self.getGuiObj("Graph", "Tab_graphs")
+                if graph_panel is not None:
+                    graph_panel.setData(item)
                 
             elif DEBUG:
                 print >> sys.stderr,'standardDetails: error: unknown tab selected'
@@ -1071,15 +1078,31 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             if DEBUG:
                 print >> sys.stderr,"standardDetails: could not resize lists in person detail panel"
         
+    def checkGraphTabVisible(self, tab2check='Graph', selectedTab=None):
+        # just some generic way of making sure that a certain panel is informed when it is or not visible
+        #the function must be there!
+        graph_panel = self.getGuiObj(obj_name='Graph', tab='Tab_graphs', mode='libraryMode')
+        if graph_panel is None:
+            return
+        if self.mode == 'libraryMode':
+            if selectedTab is None:
+                #find currently selected tab
+                tabButtons = { 'files_detailsTab':self.getGuiObj('files_detailsTab'),
+                              'info_detailsTab':self.getGuiObj('info_detailsTab'),
+                              'graphs_detailsTab':self.getGuiObj('graphs_detailsTab') }
+                for key in tabButtons.keys():
+                    if tabButtons[key].isSelected():
+                        selectedTab = key
+                        break
+            if selectedTab == 'graphs_detailsTab':
+                graph_panel.setVisible(True)
+                return
+        graph_panel.setVisible(False)
+    
     def tabClicked(self, name):
         if DEBUG:
             print >> sys.stderr,'standardDetails: tabClicked: %s' % name
-        # just some generic way of making sure that a certain panel is informed when it is or not visible
-        #the function must be there!
-        if self.mode == 'libraryMode' and name == 'graphs_detailsTab':
-            self.getGuiObj('Graph', 'Tab_graphs').setVisible(True)
-        else:
-            self.getGuiObj(obj_name='Graph', tab='Tab_graphs', mode='libraryMode').setVisible(False)
+        self.checkGraphTabVisible(selectedTab=name)
         # currently, only tabs in filesDetailspanel work
         if self.mode == 'libraryMode':
             tabButtons = { 'files_detailsTab':self.getGuiObj('files_detailsTab'),

@@ -20,6 +20,7 @@ except:
             raise ImportError, "Numeric,numarray or NumPy not found. \n\n" + msg
 from wx.lib.plot import *
  
+DEBUG = False
     
 class MyTimer(threading.Thread):
     def __init__(self, callback):
@@ -100,8 +101,8 @@ class StatsPanel(PlotCanvas):
         self.plot_graphics = None
         self.visible = False #visibility flag set manually
         self.uploadIsNegative = False #flag to set upload view as negative
-        self.showTotal = True
-        self.showTotal2 = False
+        self.showTotal = False
+        self.showTotal2 = True
         self.showAll = False #unused yet
         self.currentItem = None #unused yet
 #        self.utility = frame.utility # get the utility object of parent frame, should be there!
@@ -143,7 +144,7 @@ class StatsPanel(PlotCanvas):
         #self.Bind( wx.EVT_TIMER, self.OnMyTimer, self.timer)     
         #self.timer.Start(5000)
         self.timer = MyTimer(self.OnMyTimer)
-        self.timer.start(0.5)
+        self.timer.start(5) #update each 5 seconds
                 
             
         
@@ -353,7 +354,8 @@ class StatsPanel(PlotCanvas):
         
     def OnMyTimer(self, event=None):
         #print event
-        print "OnMyTimer [StatsPanel]"
+        if DEBUG:
+            print "OnMyTimer [StatsPanel]"
         self.updateData()
         
     def updateData(self):
@@ -363,7 +365,8 @@ class StatsPanel(PlotCanvas):
 #            print "panel is visible"
 #        else:
 #            print "graph stats is not visible"
-        print "UpldatingData [StatsPanel]"
+        if DEBUG:
+            print "UpdatingData [StatsPanel]"
         MAX_POINTS = 61
         lines = []
         upload_sign = 1
@@ -561,7 +564,8 @@ class StatsPanel(PlotCanvas):
             return '#%s%s%s' % (sred,sgreen,sblue)
         
     def OnPaint(self, event):
-        print "OnPaint [StatsPanel]"
+        if DEBUG:
+            print "OnPaint [StatsPanel]"
 
         PlotCanvas.OnPaint(self, event)
         dc = wx.PaintDC(self.canvas)
@@ -643,6 +647,9 @@ class StatsPanel(PlotCanvas):
                 text_start_height += line_height
         
         event.Skip(False)
+        
+    def setData(self, item):
+        self.currentItem = item
 
     def OnMouseLeftDownA(self,event):
         self.mouseLeftDownText= "Left Mouse Down at Point: (%.4f, %.4f)" % self.GetXY(event)
