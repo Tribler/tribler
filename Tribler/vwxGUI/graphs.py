@@ -105,6 +105,7 @@ class StatsPanel(PlotCanvas):
         self.showTotal2 = True
         self.showAll = False #unused yet
         self.currentItem = None #unused yet
+        self.selectedABCTorrent = None #the torrent currently selected in library view?
 #        self.utility = frame.utility # get the utility object of parent frame, should be there!
         
         # Create mouse event for showing cursor coords in status bar
@@ -117,6 +118,7 @@ class StatsPanel(PlotCanvas):
         #self.Bind(wx.EVT_CHAR, self.OnChar, self, wx.NewId())
         # self.Bind(wx.EVT_KEY_DOWN, self.OnChar, self, wx.NewId())
         # Paint event
+        self.SetBackgroundColour("white")
         wx.EVT_PAINT( self, self.OnPaint)
         #Bar Graph Example
         """Just to reset the fonts back to the PlotCanvas defaults"""
@@ -409,7 +411,9 @@ class StatsPanel(PlotCanvas):
         ALMOST_ZERO =  0.0001
         # get each torrent that's downloading/uploading and put it in plot
         for ABCTorrentTemp in self.utility.torrents["active"].keys():
-            if ABCTorrentTemp.status.value != STATUS_PAUSE:
+            if ABCTorrentTemp.status.value != STATUS_PAUSE and \
+                ( self.selectedABCTorrent is None or ABCTorrentTemp is self.selectedABCTorrent ): #check if it's the selected torrent
+                
                 downrate = ABCTorrentTemp.getColumnValue(COL_DLSPEED)
                 uprate = ABCTorrentTemp.getColumnValue(COL_ULSPEED)
                 
@@ -448,13 +452,7 @@ class StatsPanel(PlotCanvas):
                             down_data.append((i,0))
                         down_data.append((last_id,down_kb))
                         self.down_data[ABCTorrentTemp] = down_data
-                if ABCTorrentTemp in self.down_data:
-                    # to generate color for torrent, get the first 6 characters from infohash and combine them
-                    # with green for download and red for upload
-                    title = 'DL %s' % ABCTorrentTemp.getColumnValue(COL_TITLE)
-                    if len(title) > 15:
-                        title = title[:15]
-                    lines.append(PolyLine(self.down_data[ABCTorrentTemp], legend= title, colour=self.getColor( ABCTorrentTemp.infohash, 'DL')))
+#                if ABCTorrentTemp in self.down_data:
                 #upload
                 if ABCTorrentTemp in self.up_data:
                     up_data = self.up_data[ABCTorrentTemp]
@@ -481,24 +479,42 @@ class StatsPanel(PlotCanvas):
                             up_data.append((i,0))
                         up_data.append((last_id,upload_sign*up_kb))
                         self.up_data[ABCTorrentTemp] = up_data
-                if ABCTorrentTemp in self.up_data:
-                    # to generate color for torrent, get the first 6 characters from infohash and combine them
-                    # with green for download and red for up
-                    title = 'UP %s' % ABCTorrentTemp.getColumnValue(COL_TITLE)
-                    if len(title) > 15:
-                        title = title[:15]
-                    lines.append(PolyLine(self.up_data[ABCTorrentTemp], legend= title, colour=self.getColor( ABCTorrentTemp.infohash, 'UP')))
+#===============================================================================
+#                if ABCTorrentTemp in self.up_data:
+#                    # to generate color for torrent, get the first 6 characters from infohash and combine them
+#                    # with green for download and red for up
+#                    title = 'UP %s' % ABCTorrentTemp.getColumnValue(COL_TITLE)
+#                    if len(title) > 15:
+#                        title = title[:15]
+#                    lines.append(PolyLine(self.up_data[ABCTorrentTemp], legend= title, colour=self.getColor( ABCTorrentTemp.infohash, 'UP')))
+#===============================================================================
         #remove all torrents that are no more active
         for PlotTorrent in self.down_data.keys():
             if isinstance(PlotTorrent,ABCTorrent):
-                if not PlotTorrent in self.utility.torrents["active"]:
+                if (not PlotTorrent in self.utility.torrents["active"]) \
+                    or ((self.selectedABCTorrent is not None) and (PlotTorrent is not self.selectedABCTorrent)):
                     #print "deleting dw torrent ",PlotTorrent.getColumnValue(COL_TITLE)
                     del self.down_data[PlotTorrent]
+                else: #append to lines
+                    # to generate color for torrent, get the first 6 characters from infohash and combine them
+                    # with green for download and red for upload
+                    title = 'DL %s' % PlotTorrent.getColumnValue(COL_TITLE)
+                    if len(title) > 15:
+                        title = title[:15]
+                    lines.append(PolyLine(self.down_data[PlotTorrent], legend= title, colour=self.getColor( PlotTorrent.infohash, 'DL')))
         for PlotTorrent in self.up_data.keys():
             if isinstance(PlotTorrent,ABCTorrent):
-                if not PlotTorrent in self.utility.torrents["active"]:
+                if (not PlotTorrent in self.utility.torrents["active"]) \
+                    or ((self.selectedABCTorrent is not None) and (PlotTorrent is not self.selectedABCTorrent)):
                     #print "deleting up torrent ",PlotTorrent.getColumnValue(COL_TITLE)
                     del self.up_data[PlotTorrent]
+                else:
+                    # to generate color for torrent, get the first 6 characters from infohash and combine them
+                    # with green for download and red for up
+                    title = 'UP %s' % PlotTorrent.getColumnValue(COL_TITLE)
+                    if len(title) > 15:
+                        title = title[:15]
+                    lines.append(PolyLine(self.up_data[PlotTorrent], legend= title, colour=self.getColor( PlotTorrent.infohash, 'UP')))
         #compute a second totals
         if self.showTotal2:
             if 'total_bis' in self.down_data:
@@ -521,14 +537,14 @@ class StatsPanel(PlotCanvas):
                     self.up_data['total_bis'].append((i,0))
                 self.down_data['total_bis'].append((last_id, total_down))
                 self.up_data['total_bis'].append((last_id, upload_sign*total_up))
-            lines.append(PolyLine(self.down_data['total_bis'], legend= 'Total Download II', colour='blue', width=2))
-            lines.append(PolyLine(self.up_data['total_bis'], legend= 'Total Upload II', colour='brown', width=2))
+            lines.append(PolyLine(self.down_data['total_bis'], legend= 'Total Download', colour='green', width=2))
+            lines.append(PolyLine(self.up_data['total_bis'], legend= 'Total Upload', colour='red', width=2))
 
 
         self.first_id=first_id
         self.last_id=last_id
         if len(lines) > 0:
-            self.plot_graphics = PlotGraphics( lines,"up/down rates", "Time", "Rate [kb/s]")
+            self.plot_graphics = PlotGraphics( lines,"up/down rates", "Time", "Rate [KB/s]")
         else:
             self.plot_graphics = None
         self.Refresh()
@@ -652,6 +668,10 @@ class StatsPanel(PlotCanvas):
         
     def setData(self, item):
         self.currentItem = item
+        if self.currentItem is not None and self.currentItem.has_key("abctorrent"):
+            self.selectedABCTorrent = self.currentItem['abctorrent']
+        else:
+            self.selectedABCTorrent = None
 
     def OnMouseLeftDownA(self,event):
         self.mouseLeftDownText= "Left Mouse Down at Point: (%.4f, %.4f)" % self.GetXY(event)
