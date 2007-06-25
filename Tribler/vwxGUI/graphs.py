@@ -146,7 +146,7 @@ class StatsPanel(PlotCanvas):
         #self.Bind( wx.EVT_TIMER, self.OnMyTimer, self.timer)     
         #self.timer.Start(5000)
         self.timer = MyTimer(self.OnMyTimer)
-        self.timer.start(0.5) #update each 5 seconds
+        self.timer.start(5) #update each 5 seconds
                 
             
         
