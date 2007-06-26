@@ -10,7 +10,7 @@ from Tribler.Web2.util import db
 from Tribler.Web2.util.log import log
 from Tribler.Web2.util import download
 
-DEBUG = True
+DEBUG = False
 
 
 class GenericSearch(db.ThreadedDBSearch):
