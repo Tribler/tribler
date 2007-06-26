@@ -96,7 +96,7 @@
                   <border>10</border>
                   <option>0</option>
                   <object class="wxPanel" name="info_detailsTab" subclass="Tribler.vwxGUI.TextButton.TextButton">
-                    <pos>3,13</pos>
+                    <pos>10,10</pos>
                     <size>75,18</size>
                   </object>
                 </object>
@@ -114,7 +114,7 @@
                   <border>10</border>
                   <option>0</option>
                   <object class="wxPanel" name="graphs_detailsTab" subclass="Tribler.vwxGUI.TextButton.TextButton">
-                    <pos>173,13</pos>
+                    <pos>180,10</pos>
                     <size>75,18</size>
                   </object>
                 </object>
@@ -350,7 +350,7 @@
                     <object class="wxStaticText" name="st202cC">
                       <style>wxST_NO_AUTORESIZE</style>
                       <label>People who like this also like</label>
-                      <pos>3,3</pos>
+                      <pos>10,0</pos>
                       <size>204,14</size>
                       <bg>#cbcbcb</bg>
                     </object>

@@ -7,12 +7,13 @@
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>
       <object class="sizeritem">
-        <flag>wxLEFT|wxFIXED_MINSIZE</flag>
+        <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
         <object class="wxPanel" name="Graph">
-          <pos>240,3</pos>
+          <pos>3,3</pos>
           <size>300,300</size>
+          <bg>#ffffff</bg>
         </object>
       </object>
     </object>
