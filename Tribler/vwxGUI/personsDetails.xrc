@@ -149,34 +149,25 @@
                       <object class="wxBoxSizer">
                         <orient>wxHORIZONTAL</orient>
                         <object class="sizeritem">
-                          <flag>wxFIXED_MINSIZE</flag>
-                          <border>3</border>
+                          <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                          <border>6</border>
                           <option>0</option>
-                          <object class="wxStaticText" name="st209cCCC">
+                          <object class="wxStaticText" name="disc_filesText">
                             <style>wxST_NO_AUTORESIZE</style>
-                            <label>similar taste:</label>
+                            <label>discovered files:</label>
                             <pos>8,7</pos>
-                            <size>79,18</size>
+                            <size>110,18</size>
                           </object>
                         </object>
                         <object class="sizeritem">
-                          <flag>wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
-                          <border>3</border>
-                          <option>0</option>
-                          <object class="wxPanel" name="TasteHeart" subclass="Tribler.vwxGUI.TasteHeart.TasteHeart">
-                            <pos>90,10</pos>
-                            <size>14,14</size>
-                          </object>
-                        </object>
-                        <object class="sizeritem">
-                          <flag>wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                          <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
                           <border>10</border>
                           <option>0</option>
-                          <object class="wxStaticText" name="recommendationField">
+                          <object class="wxStaticText" name="discFilesField">
                             <style>wxST_NO_AUTORESIZE</style>
                             <label>unknown</label>
-                            <pos>107,7</pos>
-                            <size>71,18</size>
+                            <pos>105,7</pos>
+                            <size>111,18</size>
                           </object>
                         </object>
                       </object>
@@ -191,11 +182,80 @@
                           <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
                           <border>6</border>
                           <option>0</option>
-                          <object class="wxStaticText" name="st209cCC">
+                          <object class="wxStaticText" name="disc_personsText">
+                            <style>wxST_NO_AUTORESIZE</style>
+                            <label>discovered persons:</label>
+                            <pos>8,25</pos>
+                            <size>110,18</size>
+                          </object>
+                        </object>
+                        <object class="sizeritem">
+                          <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                          <border>10</border>
+                          <option>0</option>
+                          <object class="wxStaticText" name="discPersonsField">
+                            <style>wxST_NO_AUTORESIZE</style>
+                            <label>unknown</label>
+                            <pos>105,25</pos>
+                            <size>111,18</size>
+                          </object>
+                        </object>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                      <border>5</border>
+                      <option>0</option>
+                      <object class="wxBoxSizer">
+                        <orient>wxHORIZONTAL</orient>
+                        <object class="sizeritem">
+                          <flag>wxFIXED_MINSIZE</flag>
+                          <border>3</border>
+                          <option>0</option>
+                          <object class="wxStaticText" name="recommendationText">
+                            <style>wxST_NO_AUTORESIZE</style>
+                            <label>similar taste:</label>
+                            <pos>8,43</pos>
+                            <size>110,18</size>
+                          </object>
+                        </object>
+                        <object class="sizeritem">
+                          <flag>wxLEFT|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
+                          <border>3</border>
+                          <option>0</option>
+                          <object class="wxPanel" name="TasteHeart" subclass="Tribler.vwxGUI.TasteHeart.TasteHeart">
+                            <pos>121,43</pos>
+                            <size>14,14</size>
+                          </object>
+                        </object>
+                        <object class="sizeritem">
+                          <flag>wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                          <border>10</border>
+                          <option>0</option>
+                          <object class="wxStaticText" name="recommendationField">
+                            <style>wxST_NO_AUTORESIZE</style>
+                            <label>unknown</label>
+                            <pos>138,43</pos>
+                            <size>86,18</size>
+                          </object>
+                        </object>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                      <border>5</border>
+                      <option>0</option>
+                      <object class="wxBoxSizer">
+                        <orient>wxHORIZONTAL</orient>
+                        <object class="sizeritem">
+                          <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                          <border>6</border>
+                          <option>0</option>
+                          <object class="wxStaticText" name="statusText">
                             <style>wxST_NO_AUTORESIZE</style>
                             <label>status:</label>
-                            <pos>8,28</pos>
-                            <size>79,18</size>
+                            <pos>8,61</pos>
+                            <size>110,18</size>
                           </object>
                         </object>
                         <object class="sizeritem">
@@ -205,8 +265,8 @@
                           <object class="wxStaticText" name="statusField">
                             <style>wxST_NO_AUTORESIZE</style>
                             <label>unknown</label>
-                            <pos>87,28</pos>
-                            <size>131,18</size>
+                            <pos>105,61</pos>
+                            <size>111,18</size>
                           </object>
                         </object>
                       </object>
@@ -301,7 +361,7 @@
               <border>6</border>
               <option>0</option>
               <object class="wxListCtrl" name="alsoDownloadedField" subclass="Tribler.vwxGUI.tribler_List.DLFilesList">
-                <pos>6,196</pos>
+                <pos>6,215</pos>
                 <size>284,160</size>
               </object>
             </object>

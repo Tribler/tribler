@@ -53,7 +53,8 @@ class SubscriptionsItemPanel(wx.Panel):
         self.Bind(wx.EVT_KEY_UP, self.keyTyped)
         
         # Add Spacer
-        self.hSizer.Add([8,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)        
+        self.hSizer.Add([8,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)  
+              
         # Add Checkbox turn on/off
         self.cB = wx.CheckBox(self,-1,"",wx.Point(8,128),wx.Size(18,18))        
         self.cB.SetForegroundColour(wx.Colour(0,0,0))

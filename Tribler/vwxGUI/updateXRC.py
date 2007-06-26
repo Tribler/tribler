@@ -1,7 +1,7 @@
 import sys, re, os, os.path
 
 DEBUG = False
-ENABLED = False
+ENABLED = True
 
 def changeFile(filename):
     f_in = file(filename, 'r')
