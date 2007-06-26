@@ -56,7 +56,7 @@ class FriendsItemPanel(wx.Panel):
 
     def addComponents(self):
         self.Show(False)
-        self.SetMinSize((137,43+0))
+        self.SetMinSize((137,30+0))
         self.selectedColour = wx.Colour(255,200,187)       
         self.unselectedColour = wx.WHITE
         
@@ -68,47 +68,74 @@ class FriendsItemPanel(wx.Panel):
         
         self.Bind(wx.EVT_LEFT_UP, self.mouseAction)
         self.Bind(wx.EVT_KEY_UP, self.keyTyped)
+ 
+        # Add Spacer
+        self.hSizer.Add([8,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0) 
         
-        # Add left vertical line
-        self.vLine = self.addLine()
         # Add thumb
         self.thumb = FriendThumbnailViewer(self)
         self.thumb.setBackground(wx.BLACK)
-        self.thumb.SetSize((37,37))
+        self.thumb.SetSize((24,24))
         self.hSizer.Add(self.thumb, 0, wx.ALL, 3)        
+        
         # Add title
         self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(100,15))        
         self.title.SetBackgroundColour(wx.WHITE)
         self.title.SetFont(wx.Font(FS_FRIENDTITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.title.SetMinSize((100,15))        
         self.title.SetLabel('')
+        self.hSizer.Add(self.title,1,wx.TOP|wx.EXPAND,7)
+        
+        # Add left vertical line
+        self.vLine1 = self.addLine()        
+        
         # Add status
-        self.status =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(80,12))        
+        self.status =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(130,12))        
         self.status.SetBackgroundColour(wx.WHITE)
         self.status.SetFont(wx.Font(FS_STATUS,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.status.SetForegroundColour(wx.Colour(128,128,128))        
-        self.status.SetMinSize((80,12))
-        self.status.SetLabel('')
+        self.status.SetMinSize((130,12))
+        self.status.SetLabel('') 
+        self.hSizer.Add(self.status,1,wx.TOP|wx.EXPAND,9)
         
-        self.vSizer = wx.BoxSizer(wx.VERTICAL)
-        self.vSizer.Add(self.title,1,wx.TOP|wx.EXPAND,3)
-        self.vSizer.Add(self.status,1,wx.TOP|wx.EXPAND,3)
+        # Add left vertical line
+        self.vLine2 = self.addLine()           
+                
+        # Add message > if today new content is discovered from him/her
+        self.message =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(130,12))        
+        self.message.SetBackgroundColour(wx.WHITE)
+        self.message.SetFont(wx.Font(FS_STATUS,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+        self.message.SetForegroundColour(wx.Colour(128,128,128))        
+        self.message.SetMinSize((130,12))
+        self.message.SetLabel('') 
+        self.hSizer.Add(self.message,1,wx.TOP|wx.EXPAND,9)
         
-        self.hSizer.Add(self.vSizer, 1, wx.RIGHT|wx.EXPAND, 5)
+        # Add left vertical line
+        self.vLine3 = self.addLine() 
+        
+        # Add Spacer to keep space occupied when no heart available
+        self.vSizer = wx.BoxSizer(wx.VERTICAL)                
+        self.vSizer.Add([90,1],0,wx.FIXED_MINSIZE,0)  
+        self.hSizer2 = wx.BoxSizer(wx.HORIZONTAL)      
+        
         # Add Taste Heart
         self.tasteHeart = TasteHeart.TasteHeart(self, -1, wx.DefaultPosition, wx.Size(14,14),name='TasteHeart')
-        self.hSizer.Add(self.tasteHeart, 0, wx.TOP, 5)
+        self.hSizer2.Add(self.tasteHeart, 0, wx.TOP, 0)
+        
         # Add Taste similarity
         self.taste =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(40,15))        
         self.taste.SetBackgroundColour(wx.WHITE)
         self.taste.SetFont(wx.Font(FS_SIMILARITY,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.taste.SetMinSize((40,15))
         self.taste.SetLabel('')
-        self.hSizer.Add(self.taste, 0, wx.TOP|wx.RIGHT, 5)
+        self.hSizer2.Add(self.taste, 0, wx.TOP|wx.RIGHT, 0)
+        
+        self.vSizer.Add(self.hSizer2, 0, wx.TOP, 11)
+        self.hSizer.Add(self.vSizer, 0, wx.LEFT|wx.RIGHT, 2)
         
         # Add delete button
         self.delete = tribler_topButton(self, -1, wx.Point(0,0), wx.Size(17,17),name='deleteFriend')                
-        self.hSizer.Add(self.delete, 0, wx.TOP|wx.RIGHT, 3)
+        self.hSizer.Add(self.delete, 0, wx.TOP|wx.RIGHT, 9)
 
 #        self.vSizerAll.Add(self.hSizer, 0, wx.EXPAND, 0)
         #Add bottom horizontal line
@@ -125,7 +152,7 @@ class FriendsItemPanel(wx.Panel):
             
     def addLine(self, vertical=True):
         if vertical:
-            vLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(2,43),wx.LI_VERTICAL)
+            vLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(2,30),wx.LI_VERTICAL)
             self.hSizer.Add(vLine, 0, wx.RIGHT|wx.EXPAND, 3)
             return vLine
         else:
@@ -168,6 +195,9 @@ class FriendsItemPanel(wx.Panel):
             self.title.SetToolTipString(peer_data['ip']+':'+str(peer_data['port']))
             self.delete.Show()
             self.tasteHeart.Show()
+            self.vLine1.Show()
+            self.vLine2.Show()
+            self.vLine3.Show()
         else:
             self.title.SetLabel('')
             self.title.SetToolTipString('')
@@ -175,6 +205,9 @@ class FriendsItemPanel(wx.Panel):
             self.status.SetLabel('')
             self.delete.Hide()
             self.tasteHeart.Hide()
+            self.vLine1.Hide()
+            self.vLine2.Hide()
+            self.vLine3.Hide()
             
         rank = peer_data.get('simTop',-1) 
         recommField = self.taste
@@ -203,13 +236,14 @@ class FriendsItemPanel(wx.Panel):
         
     def select(self, rowIndex, colIndex):
         self.selected = True
-        if colIndex == 0:
-            self.vLine.Hide()
-        else:
-            self.vLine.Show()
+#        if colIndex == 0:
+#            self.vLine.Hide()            
+#        else:
+#            self.vLine.Show()
         self.thumb.setSelected(True)
         self.title.SetBackgroundColour(self.selectedColour)
         self.status.SetBackgroundColour(self.selectedColour)
+        self.message.SetBackgroundColour(self.selectedColour)
         self.taste.SetBackgroundColour(self.selectedColour)
         self.tasteHeart.setBackground(self.selectedColour)
         self.SetBackgroundColour(self.selectedColour)
@@ -218,10 +252,10 @@ class FriendsItemPanel(wx.Panel):
         
     def deselect(self, rowIndex, colIndex):
         self.selected = False
-        if colIndex == 0:
-            self.vLine.Hide()
-        else:
-            self.vLine.Show()
+#        if colIndex == 0:
+#            self.vLine.Hide()
+#        else:
+#            self.vLine.Show()
         if rowIndex % 2 == 0:
             colour = self.guiUtility.unselectedColour
         else:
@@ -230,6 +264,7 @@ class FriendsItemPanel(wx.Panel):
         self.thumb.setSelected(False)
         self.title.SetBackgroundColour(colour)
         self.status.SetBackgroundColour(colour)
+        self.message.SetBackgroundColour(colour)
         self.taste.SetBackgroundColour(colour)
         self.tasteHeart.setBackground(colour)
         self.SetBackgroundColour(colour)
