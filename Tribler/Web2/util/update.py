@@ -5,7 +5,7 @@ import ConfigParser
 
 WEB2CONFIG_NAME = 'web2definitions.conf'
 WEB2MODULE_NAME = 'web2definitions'
-WEB2_URL = 'http://www.tribler.org/web2definitions'
+WEB2_URL = 'http://www.tribler.org/web2definitions/web2definitions.conf'
 DEBUG = True
 
 
@@ -50,18 +50,12 @@ class Web2Updater:
             web2config.close()
             # Set modtime to webmodtime
             os.utime(self.path, (date, date))
-            self.reloadPython()
+            #self.reloadPython()
             
         except Exception, e:
             print >> sys.stderr, "Web2Update: Could not download new web2def file:"
             print_exc()
     
-    def reloadPython(self):
-        # Delete module web2 definitions, so that new code is loaded
-        # see: http://pyunit.sourceforge.net/notes/reloading.html
-        if WEB2MODULE_NAME in sys.modules.keys():
-            del sys.modules[WEB2MODULE_NAME]
-
 
 class Web2Config:
     

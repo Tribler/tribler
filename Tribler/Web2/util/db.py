@@ -20,8 +20,7 @@ import utilsettings
 from Tribler.Web2.util import observer
 from Tribler.Web2.util.log import log 
 
-DEBUG = False
-
+DEBUG = True
 databases = {}
 
 

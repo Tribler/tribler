@@ -10,7 +10,7 @@ from Tribler.Web2.util import db
 from Tribler.Web2.util.log import log
 from Tribler.Web2.util import download
 
-DEBUG = False
+DEBUG = True
 
 
 class GenericSearch(db.ThreadedDBSearch):
@@ -40,9 +40,21 @@ class GenericSearch(db.ThreadedDBSearch):
         if DEBUG:
             print "getting URL", url
         conn = urllib.urlopen(url)
-        itempage = conn.read()
+        itempage = conn.read().replace('\n','')
+        srcpage = itempage
         conn.close()
+        
+        # Liveleak needs a separate page to get video url
+        url_for_src = self.get('URL_SRC')
+        if url_for_src:
+            url_for_src = url_for_src % id
+            if DEBUG:
+                print "getting URL", url_for_src
+            conn = urllib.urlopen(url_for_src)
+            srcpage = conn.read().replace('\n','')
+            conn.close()
 
+        
         trynum = 0
         success = False
         # Either get link by formatting id
@@ -54,23 +66,33 @@ class GenericSearch(db.ThreadedDBSearch):
                 regexp = self.get('RE_VIDEO_URL%d' % trynum)
                 if not regexp:
                     break;
-                src = re.findall(regexp, itempage, re.S | re.I)
+                src = re.findall(regexp, srcpage, re.S | re.I)
                 if len(src) == 1:
                     success = True
+                    src = src[0]
                     break
                 trynum += 1
             if not success:
                 if DEBUG:
                     print 'Error, src=%s' % src
                 return None
-       
-            
+        
+        
 
         # Youtube needs id parsed in url
         id2url = self.get('URL_DL_VIDEO')
         if id2url:
-            src = self.get('URL_DL_VIDEO') % src[0]
+            src = self.get('URL_DL_VIDEO') % src
         
+        unquote_url = self.get('UNQUOTE')
+        if DEBUG:
+            print 'unquote: %s' % unquote_url
+        if unquote_url:
+            src = urllib.unquote(src)
+            
+        if DEBUG:
+            print 'Got video url: %s' % src
+            
         name = re.findall(self.get('RE_NAME'), itempage)
         if len(name) == 0:
             if DEBUG:
@@ -164,10 +186,11 @@ class GenericSearch(db.ThreadedDBSearch):
         if DEBUG:
             print "Retrieving url", url
         pageconn = urllib.urlopen(url)
-        page = pageconn.read()
+        page = pageconn.read().replace('\n','')
         pageconn.close()
-        #if DEBUG:
-        #    print 'The page:\n%s' % page
+        if DEBUG:
+            #print 'The page:\n%s' % page
+            print 'Regexp: %s' % self.get('RE_SEARCHITEM')
         items = re.findall(self.get('RE_SEARCHITEM'), page, re.S)
 
         self.pagecount += 1

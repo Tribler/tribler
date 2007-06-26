@@ -377,7 +377,8 @@ class VLCMediaCtrl(wx.Window):
 		os.chdir(vlcinstalldir)
 
         # Arno: 2007-05-11: Don't ask me why but without the "--verbose=0" vlc will ignore the key redef.
-        params = ["--verbose=0","--key-fullscreen","Esc"]
+        params = ["--verbose=0","--key-fullscreen", "Esc"]
+        params = []
         
         if sys.platform == 'darwin':
             params += ["--plugin-path", "%s/lib/vlc" % (
