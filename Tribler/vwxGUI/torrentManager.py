@@ -485,7 +485,7 @@ class TorrentDataManager:
             print >>sys.stderr,"torrentDataManager: search: Want",self.searchkeywords[mode]
         hits = []
         
-        if len(self.searchkeywords[mode]) == 0:
+        if len(self.searchkeywords[mode]) == 0 or len(self.searchkeywords[mode]) == 1 and self.searchkeywords[mode][0] == '':
             return hits
         haystack = []
         for torrent in self.data:

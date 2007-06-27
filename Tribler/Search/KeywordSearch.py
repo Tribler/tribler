@@ -16,6 +16,8 @@ class KeywordSearch:
     3. Searching is case insensitive
     """
     def search(self, haystack, needles):
+        if DEBUG:
+            print 'unprocessed keywords: %s' % needles
         needles = self.unRegExpifySearchwords(needles)
         if DEBUG:
             print 'Searching for %s in %d items' % (repr(needles), len(haystack))
