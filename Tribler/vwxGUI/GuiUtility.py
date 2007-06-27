@@ -366,17 +366,15 @@ class GUIUtility:
             print >>sys.stderr,"GUIUtil: searchFiles:",input
         low = input.lower()
         wantkeywords = low.split(' ')
-        wantkeywords += low.split('-')
-        wantkeywords += low.split('_')
-        wantkeywords += low.split('.')
-        zet = Set(wantkeywords)
-        wantkeywords = list(zet)
-        #self.peer_manager = standardOverview.peer_manager
+        #zet = Set(wantkeywords)
+        #wantkeywords = list(zet)
+        
         self.data_manager.setSearchKeywords(wantkeywords, mode)
-        if mode == 'filesMode':
-            sorting = 'swarmsize'
-        elif mode == 'libraryMode':
-            sorting = ('content_name', 'increase')
+#        if mode == 'filesMode':
+#            sorting = 'swarmsize'
+#        elif mode == 'libraryMode':
+#            sorting = ('content_name', 'increase')
+        sorting = None
         self.standardOverview.filterChanged(['search',sorting],setgui=True)
     
     

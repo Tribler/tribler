@@ -44,6 +44,8 @@ class KeywordSearch:
         results.sort(reverse=True)
         if DEBUG:
             print 'Found %d items eventually' % len(results)
+            #for r in results:
+            #    print r
         return [r[1] for r in results]
 
     
@@ -51,6 +53,9 @@ class KeywordSearch:
         replaceRegExpChars = re.compile(r'(\\|\*|\.|\+|\?|\||\(|\)|\[|\]|\{|\})')
         new_needles = []
         for needle in needles:
+            needle = needle.strip()
+            if len(needle)== 0:
+                continue
             new_needle = re.sub(replaceRegExpChars, r'\\\1', needle.lower())
             new_needles.append(new_needle)
         return new_needles
