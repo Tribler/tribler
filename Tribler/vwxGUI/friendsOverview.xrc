@@ -125,10 +125,10 @@
       </object>
       <object class="sizeritem">
         <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
-        <border>10</border>
+        <border>5</border>
         <option>1</option>
         <object class="wxPanel" name="friendsGrid" subclass="Tribler.vwxGUI.standardGrid.friendsGrid">
-          <pos>10,66</pos>
+          <pos>0,66</pos>
           <size>20,20</size>
         </object>
       </object>

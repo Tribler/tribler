@@ -70,7 +70,7 @@ class FriendsItemPanel(wx.Panel):
         self.Bind(wx.EVT_KEY_UP, self.keyTyped)
  
         # Add Spacer
-        self.hSizer.Add([8,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0) 
+        self.hSizer.Add([8,30],0,wx.EXPAND|wx.FIXED_MINSIZE,0) 
         
         # Add thumb
         self.thumb = FriendThumbnailViewer(self)
@@ -134,7 +134,7 @@ class FriendsItemPanel(wx.Panel):
         self.hSizer.Add(self.vSizer, 0, wx.LEFT|wx.RIGHT, 2)
         
         # Add delete button
-        self.delete = tribler_topButton(self, -1, wx.Point(0,0), wx.Size(17,17),name='deleteFriend')                
+        self.delete = tribler_topButton(self, -1, wx.Point(0,0), wx.Size(16,16),name='deleteFriend')                
         self.hSizer.Add(self.delete, 0, wx.TOP|wx.RIGHT, 9)
 
 #        self.vSizerAll.Add(self.hSizer, 0, wx.EXPAND, 0)

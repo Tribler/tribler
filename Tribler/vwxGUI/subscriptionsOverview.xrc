@@ -80,11 +80,22 @@
               <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
               <border>6</border>
               <option>0</option>
+              <object class="wxTextCtrl" name="pasteName">
+                <style>wxTE_PROCESS_ENTER</style>
+                <label>  name</label>
+                <pos>10,6</pos>
+                <size>175,23</size>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
+              <border>6</border>
+              <option>0</option>
               <object class="wxTextCtrl" name="pasteUrl">
                 <style>wxTE_PROCESS_ENTER</style>
                 <label>  paste your url here</label>
-                <pos>10,6</pos>
-                <size>415,23</size>
+                <pos>241,6</pos>
+                <size>365,23</size>
               </object>
             </object>
             <object class="sizeritem">
@@ -101,7 +112,7 @@
       </object>
       <object class="sizeritem">
         <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
-        <border>10</border>
+        <border>5</border>
         <option>1</option>
         <object class="wxPanel" name="subscriptionsGrid" subclass="Tribler.vwxGUI.standardGrid.subscriptionsGrid">
           <pos>0,66</pos>
