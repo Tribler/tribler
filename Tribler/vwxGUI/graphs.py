@@ -102,7 +102,7 @@ class StatsPanel(PlotCanvas):
         self.visible = False #visibility flag set manually
         self.uploadIsNegative = False #flag to set upload view as negative
         self.showTotal = False
-        self.showTotal2 = True
+        self.showTotal2 = False
         self.showAll = False #unused yet
         self.currentItem = None #unused yet
         self.selectedABCTorrent = None #the torrent currently selected in library view?
