@@ -13,7 +13,7 @@ from traceback import print_exc, print_stack
 from time import time
 from bisect import insort
 from sets import Set
-
+from Tribler.Search.KeywordSearch import KeywordSearch
 import web2
 
 DEBUG = False
@@ -33,6 +33,7 @@ class TorrentDataManager:
         self.isDataPrepared = False
         self.data = []
         self.hits = []
+        self.keywordsearch = KeywordSearch()
         # initialize the cate_dict
         self.info_dict = {}    # reverse map
         self.initDBs()
@@ -486,23 +487,17 @@ class TorrentDataManager:
         
         if len(self.searchkeywords[mode]) == 0:
             return hits
+        haystack = []
         for torrent in self.data:
             if library != torrent.has_key('myDownloadHistory'):
                 continue
             if library and torrent.get('eventComingUp') == 'notDownloading':
                 continue
-            low = torrent['content_name'].lower()
-            for wantkw in self.searchkeywords[mode]:
-                # only search in alive torrents
-                if low.find(wantkw) != -1 and (torrent['status'] == 'good' or library):
-                    if DEBUG:
-                        print >>sys.stderr,"torrentDataManager: search: Got hit",`wantkw`,"found in",`torrent['content_name']`
-                    hits.append(torrent)
-        # Store the hits, so that we can update them
-        hits.sort()
-        hits = [hits[i] for i in xrange(0,len(hits)) if i == 0 or hits[i] != hits[i-1]] # remove duplicates
-        self.hits = hits
-        return hits
+            if not library and torrent['status'] != 'good':
+                continue
+            haystack.append(torrent)
+        self.hits = self.keywordsearch.search(haystack, self.searchkeywords[mode])
+        return self.hits
 
     def getFromSource(self,source):
         hits = []
