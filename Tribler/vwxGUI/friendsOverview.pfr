@@ -14,7 +14,7 @@ s_tipoFile=21
 ClsparentCompTipo=0
 l_framTipo=0
 VisualWxVersion=0.87.6.0
-VisualWxIdent=8725
+VisualWxIdent=8760
 l_hasAutoSize=1
 strTree=00it=3 01it=8 02it=196 02it=10 03it=133 04it=134 02it=197 01it=222 02it=221 02it=223 03it=224 04it=226 04it=227 04it=228 01it=216 01it=204 02it=214 02it=215 03it=217 04it=218 04it=220 04it=219 02it=207 03it=208 04it=209 04it=212 04it=211 
 [Controlli]
@@ -487,7 +487,7 @@ validator=
 s_name=friendsGrid
 subClassName=
 i_index=-1
-i_left=10
+i_left=0
 i_top=66
 i_height=20
 i_width=20
@@ -520,7 +520,7 @@ i_idPArent=3
 i_id=216
 parCompID=0
 i_sizeGrow=1
-i_border=10
+i_border=5
 is_parent=0
 is_siz=0
 siz_style=41024

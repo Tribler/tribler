@@ -114,7 +114,7 @@ class ImagePanelBasic(wx.Panel):
 
 class bgPanel(ImagePanelBasic):
     def __init__(self, *args, **kw):
-        tile = True
+        tile = True     
         ImagePanelBasic.__init__(self, tile, *args, **kw)
         
 class ImagePanel(ImagePanelBasic):

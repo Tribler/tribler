@@ -17,15 +17,38 @@ from copy import deepcopy
 from bgPanel import *
 from font import *
 from Utility.constants import * 
+from Utility import *
 import cStringIO
 
 DEBUG=False
 
+[ID_MENU_1418,ID_MENU_1419,ID_MENU_1420] = 1418,1419,1420
+
 # font sizes
+
+#if sys.platform == 'darwin':
+#    FS_FRIENDTITLE = 11
+#    FS_STATUS = 10
+#    FS_SIMILARITY = 10
+#    FS_HEARTRANK = 10
+#    FS_ONLINE = 10
+#else:
+#    FS_FRIENDTITLE = 11
+#    FS_STATUS = 9
+#    FS_SIMILARITY = 10
+#    FS_HEARTRANK = 7
+#    FS_ONLINE = 8
+
 if sys.platform == 'darwin':
-    FS_TITLE = 12
+    FS_TITLE = 11
+    FS_PERC = 9
+    FS_SPEED = 9
 else:
     FS_TITLE = 8
+    FS_PERC = 7
+    FS_SPEED = 7
+    
+
 
 class LibraryItemPanel(wx.Panel):
     def __init__(self, parent):
@@ -38,16 +61,21 @@ class LibraryItemPanel(wx.Panel):
         self.parent = parent
         self.guiserver = parent.guiserver
         self.triblerGrey = wx.Colour(128,128,128)
+
         self.data = None
+        self.menuTest = None
         self.datacopy = None
-        self.titleLength = 23 # num characters
+        self.titleLength = 16 # num characters
         self.vodMode = False
         self.selected = False
         self.warningMode = False
         self.oldCategoryLabel = None
         self.torrentDetailsFrame = None
         self.addComponents()
-        self.SetMinSize((-1, 37+6))
+    
+        self.Bind(wx.EVT_RIGHT_DOWN, self.rightMouseButton)             
+
+        self.SetMinSize((-1, 30))
         self.selected = False
         self.Show()
         self.Refresh()
@@ -64,104 +92,120 @@ class LibraryItemPanel(wx.Panel):
         # Add thumb
         self.thumb = ThumbnailViewer(self, 'libraryMode')
         self.thumb.setBackground(wx.BLACK)
-        self.thumb.SetSize((66,37))
-        self.hSizer.Add(self.thumb, 0, wx.LEFT|wx.TOP|wx.BOTTOM, 3)
+        self.thumb.SetSize((43,24))
+        self.hSizer.Add(self.thumb, 0, wx.ALL, 3)
         
         # Add title
-        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(160,12))        
+        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(120,12))        
         self.title.SetBackgroundColour(wx.WHITE)
         self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.title.SetMinSize((180,14))
+        self.title.SetMinSize((120,12))
+        self.hSizer.Add(self.title,1,wx.TOP,7)
         
-        # Up/Down text speed
-        self.speedUp2   = wx.StaticText(self,-1,"up: 0 KB/s",wx.Point(274,3),wx.Size(70,15),wx.ST_NO_AUTORESIZE)                        
-        self.speedUp2.SetForegroundColour(self.triblerGrey)
-        self.speedDown2 = wx.StaticText(self,-1,"down: 0 KB/s",wx.Point(274,3),wx.Size(80,15),wx.ST_NO_AUTORESIZE)                                
-        self.speedDown2.SetForegroundColour(self.triblerGrey)        
-        self.speedSizer = wx.BoxSizer(wx.HORIZONTAL)
-#        self.speedSizer.Add(self.speedUp,0,wx.TOP|wx.LEFT|wx.FIXED_MINSIZE,4)                
-        self.speedSizer.Add(self.speedUp2,0,wx.TOP|wx.FIXED_MINSIZE,4)
-#        self.speedSizer.Add(self.speedDown, 0, wx.LEFT|wx.TOP|wx.FIXED_MINSIZE, 4)                       
-        self.speedSizer.Add(self.speedDown2, 0, wx.LEFT|wx.TOP|wx.FIXED_MINSIZE, 4)        
-        self.vSizerTitle = wx.BoxSizer(wx.VERTICAL)
-        self.vSizerTitle.Add (self.title, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)
-        self.vSizerTitle.Add (self.speedSizer, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)                           
-        self.hSizer.Add(self.vSizerTitle, 0, wx.LEFT|wx.RIGHT|wx.TOP|wx.EXPAND, 3)     
+    
+##        self.vSizerTitle = wx.BoxSizer(wx.VERTICAL)
+##        self.vSizerTitle.Add (self.title, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)
+##        self.vSizerTitle.Add (self.speedSizer, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)                           
+##        self.hSizer.Add(self.vSizerTitle, 0, wx.LEFT|wx.RIGHT|wx.TOP|wx.EXPAND, 3)     
+        
+        
         
         # Add Gauge/progressbar
         #self.pb = TriblerProgressbar(self,-1,wx.Point(359,0),wx.Size(80,15))
-        self.pb = ProgressBar(self,pos=wx.Point(359,0),size=wx.Size(100,16))
-        #self.pb = wx.Panel(self)
-        self.pause = SwitchButton(self, -1, wx.Point(542,3), wx.Size(16,16),name='pause' )
-                
+        self.pb = ProgressBar(self,pos=wx.Point(359,0),size=wx.Size(140,5))
         # >> Drawn in progressbar
         #self.pbLabel = wx.StaticText(self,-1,"12% |ETA:10min30",wx.Point(274,3),wx.Size(80,15),wx.ST_NO_AUTORESIZE)                                
         #self.pbSizer.Add(self.pbLabel,0,wx.TOP|wx.FIXED_MINSIZE,3)        
-        # <<
-        self.pbSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.pbSizer.Add(self.pb,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,2)        
-        self.pbSizer.Add(self.pause,0,wx.TOP|wx.LEFT|wx.EXPAND|wx.FIXED_MINSIZE,2)        
-                
+        # <<        
 
         # Text under progressbar
         self.percentage = wx.StaticText(self,-1,"?%")
         self.percentage.SetForegroundColour(self.triblerGrey)
+        self.percentage.SetFont(wx.Font(FS_PERC,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.eta = wx.StaticText(self,-1,"?")
         self.eta.SetForegroundColour(self.triblerGrey)
-        
+        self.eta.SetFont(wx.Font(FS_PERC,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+                
         self.fileProgressSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.fileProgressSizer.Add(self.percentage, 1, wx.EXPAND, 0)
         self.fileProgressSizer.Add(self.eta, 0, wx.EXPAND|wx.ALIGN_RIGHT, 0)
         
         self.pbMessage = wx.BoxSizer(wx.VERTICAL)
-        self.pbMessage.Add(self.pbSizer,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,2)
+        self.pbMessage.Add(self.pb,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,7)
         self.pbMessage.Add(self.fileProgressSizer,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,1)
+        self.hSizer.Add(self.pbMessage, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 2)         
         
+        # pause/stop button
+        self.pause = SwitchButton(self, -1, wx.Point(542,3), wx.Size(16,16),name='pause' )
+        self.hSizer.Add(self.pause,0,wx.TOP|wx.FIXED_MINSIZE,7)        
+        
+        # V Line
         self.addLine()
-        #vLine = wx.StaticLine(self,-1,wx.Point(362,37),wx.Size(2,32),wx.LI_VERTICAL)
-        #self.hSizer.Add(vLine, 0, wx.LEFT, 6)
         
-        self.hSizer.Add(self.pbMessage, 0, wx.LEFT|wx.EXPAND, 2)         
+        # Up/Down text speed
+        self.downSpeed = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='downSpeed')
+        self.downSpeed.setBackground(wx.WHITE)
+        self.downSpeed.SetToolTipString(self.utility.lang.get('down'))
+        self.speedDown2 = wx.StaticText(self,-1,"down: 0 KB/s",wx.Point(274,3),wx.Size(70,12),wx.ST_NO_AUTORESIZE)                                
+        self.speedDown2.SetForegroundColour(self.triblerGrey)        
+        self.speedDown2.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+        self.speedDown2.SetMinSize((70,12))
+        self.upSpeed = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='upSpeed')
+        self.upSpeed.setBackground(wx.WHITE)
+        self.upSpeed.SetToolTipString(self.utility.lang.get('up'))
+        self.speedUp2   = wx.StaticText(self,-1,"up: 0 KB/s",wx.Point(274,3),wx.Size(70,12),wx.ST_NO_AUTORESIZE)                        
+        self.speedUp2.SetForegroundColour(self.triblerGrey)
+        self.speedUp2.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+        self.speedUp2.SetMinSize((70,12))
+
+        self.hSizer.Add(self.downSpeed, 0, wx.TOP, 7)
+        self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)                 
+        self.hSizer.Add(self.speedDown2, 0, wx.TOP|wx.EXPAND, 9)
+        
+        self.hSizer.Add(self.upSpeed, 0, wx.TOP, 7)                  
+        self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)                 
+        self.hSizer.Add(self.speedUp2, 0, wx.TOP|wx.EXPAND, 9)         
         
         # V Line                
         self.addLine()
-
+                
+        # Status message
+        self.statusField = wx.StaticText(self, -1, '')
+        self.statusField.SetMinSize((37,12))
+        self.hSizer.Add(self.statusField, 1, wx.TOP|wx.EXPAND, 7)
+        
+        # V Line
+        self.addLine()
        
         # Play Fast
         self.playFast = SwitchButton(self, name="playFast")
         self.playFast.setBackground(wx.WHITE)
-        self.playFast.SetSize((81,16))
+        # (81,16)
+        self.playFast.SetSize((20,6))
         self.playFast.setEnabled(False)
         self.boost = SwitchButton(self, name="boost")
         self.boost.setBackground(wx.WHITE)
-        self.boost.SetSize((81,16))
+        self.boost.SetSize((20,6))
         self.boost.setEnabled(False)
         buttonSizer = wx.BoxSizer(wx.VERTICAL)
         buttonSizer.Add(self.playFast, 1, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 2)
-        buttonSizer.Add(self.boost, 1, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 2)
-        
-        self.hSizer.Add(buttonSizer, 1, wx.TOP, 0) 
+        buttonSizer.Add(self.boost, 1, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 2)        
+        self.hSizer.Add(buttonSizer, 0, wx.TOP|wx.ALIGN_RIGHT, 0) 
 
-        self.addLine()
-        
-        # Status message
-        self.statusField = wx.StaticText(self, -1, '')
-        self.statusField.SetMinSize((37,-1))
-        self.hSizer.Add(self.statusField, 1, wx.TOP|wx.EXPAND, 4)
-        
         # Play
         self.playerPlay = SwitchButton(self, name="libraryPlay")
         self.playerPlay.setBackground(wx.WHITE)
-        self.playerPlay.SetSize((37,37))
+        #(37,37)
+        self.playerPlay.SetSize((16,16))
         self.playerPlay.setEnabled(False)
-        self.hSizer.Add(self.playerPlay, 0, wx.TOP|wx.BOTTOM, 3) 
+        self.hSizer.Add(self.playerPlay, 0, wx.TOP|wx.BOTTOM|wx.ALIGN_RIGHT, 3)         
         
         # Delete button
         self.delete = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='deleteLibraryitem')
         self.delete.setBackground(wx.WHITE)
         
         self.hSizer.Add(self.delete,0,wx.TOP|wx.LEFT|wx.FIXED_MINSIZE|wx.ALIGN_TOP,3)       
-        
+                
         self.hSizer.Add([8,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)         
     
         # Add Refresh        
@@ -179,7 +223,7 @@ class LibraryItemPanel(wx.Panel):
         self.setData(self.data)
         
     def addLine(self):
-        vLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(2,32),wx.LI_VERTICAL)
+        vLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(2,22),wx.LI_VERTICAL)
         self.hSizer.Add(vLine, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)
         
     def setData(self, torrent):
@@ -212,20 +256,26 @@ class LibraryItemPanel(wx.Panel):
             
             #self.pb.setEnabled(True)
             self.pb.Show()
-            self.speedUp2.Show()
+            self.downSpeed.Show()
             self.speedDown2.Show()
+            self.upSpeed.Show()
+            self.speedUp2.Show()
             
             dls = abctorrent.getColumnText(COL_DLSPEED)
-            self.speedDown2.SetLabel(self.utility.lang.get('down')+': '+dls) 
+            self.speedDown2.SetLabel(dls) 
+#            self.speedDown2.SetLabel(self.utility.lang.get('down')+': '+dls) 
             uls = abctorrent.getColumnText(COL_ULSPEED)
-            self.speedUp2.SetLabel(self.utility.lang.get('up')+': '+uls)
+            self.speedUp2.SetLabel(uls)
+#            self.speedUp2.SetLabel(self.utility.lang.get('up')+': '+uls)
             progresstxt = abctorrent.getColumnText(COL_PROGRESS)
-            progress = float(progresstxt[:-1])
+            progress = round(float(progresstxt[:-1]),0)
+
             self.percentage.SetLabel(progresstxt)
-            eta = 'ETA: '+abctorrent.getColumnText(COL_ETA)
-            if eta == 'ETA: ' or eta.find('unknown') != -1 or progress == 100.0:
+            eta = ''+abctorrent.getColumnText(COL_ETA)
+            if eta == '' or eta.find('unknown') != -1 or progress == 100.0:
                 eta = ''
             self.eta.SetLabel(eta)
+            self.eta.SetToolTipString(self.utility.lang.get('eta')+eta)
             
             self.statusField.SetLabel(abctorrent.getColumnText(COL_BTSTATUS))
             switchable = False
@@ -294,8 +344,10 @@ class LibraryItemPanel(wx.Panel):
         elif torrent: # inactive torrent
             
             #self.pb.setEnabled(False)
-            self.speedUp2.Hide()
+            self.downSpeed.Hide()
             self.speedDown2.Hide()
+            self.upSpeed.Hide()            
+            self.speedUp2.Hide()
             
             # Only show playbutton
             self.playFast.setEnabled(False)
@@ -305,7 +357,7 @@ class LibraryItemPanel(wx.Panel):
             self.statusField.SetLabel(self.utility.lang.get('stop'))
             self.eta.SetLabel('')
             
-            if torrent.get('progress') != None:
+            if torrent.get('progress') != None:                
                 self.percentage.SetLabel('%0.1f%%' % torrent['progress'])
                 self.pb.setNormalPercentage(torrent['progress'])
             else:
@@ -340,6 +392,8 @@ class LibraryItemPanel(wx.Panel):
         colour = self.guiUtility.selectedColour
         self.thumb.setSelected(True)
         self.title.SetBackgroundColour(colour)
+        self.downSpeed.setBackground(colour)
+        self.upSpeed.setBackground(colour)
         self.playFast.setBackground(colour)
         self.boost.setBackground(colour)
         self.playerPlay.setBackground(colour)
@@ -358,6 +412,8 @@ class LibraryItemPanel(wx.Panel):
             
         self.thumb.setSelected(False)
         self.title.SetBackgroundColour(colour)
+        self.downSpeed.setBackground(colour)
+        self.upSpeed.setBackground(colour)
         self.SetBackgroundColour(colour)
         self.playFast.setBackground(colour)
         self.boost.setBackground(colour)
@@ -376,8 +432,7 @@ class LibraryItemPanel(wx.Panel):
                     self.guiUtility.deleteTorrent(self.data)
         event.Skip()
         
-    def mouseAction(self, event):
-
+    def mouseAction(self, event):        
         if DEBUG:
             print >>sys.stderr,"lip: mouseaction: name",event.GetEventObject().GetName()
 
@@ -448,6 +503,56 @@ class LibraryItemPanel(wx.Panel):
         if name == 'deleteLibraryitem':
             # delete works for active and inactive torrents
             self.guiUtility.standardOverview.removeTorrentFromLibrary(self.data)
+   
+   
+    def rightMouseButton(self, event):     
+        # Open right-click menu (windows menu key)
+        print '--tb-- keydown function'       
+        
+        
+#        self.menuTest = wx.Menu()
+#        
+#        itemmenu = wx.MenuItem(self.menuTest,ID_MENU_1418,"Item1418","",wx.ITEM_NORMAL)
+#        itemmenu = wx.MenuItem(self.menuTest,)
+#        self.menuTest.AppendItem(itemmenu)
+#        itemmenu = wx.MenuItem(self.menuTest,ID_MENU_1419,"Item1419","",wx.ITEM_NORMAL)
+#        self.menuTest.AppendItem(itemmenu)
+#        self.menuTest.AppendSeparator()
+#        itemmenu = wx.MenuItem(self.menuTest,ID_MENU_1420,"Item1420","",wx.ITEM_NORMAL)
+#        self.menuTest.AppendItem(itemmenu)
+#        
+#        
+#        # copied from abcdetailframe
+#        s = self.getSelected()
+#        if not s:   # just in case
+#            return
+
+        menuTest = wx.Menu()
+        
+        self.utility.makePopup(menuTest, None, 'rcopyfilename')
+        self.utility.makePopup(menuTest, None, 'rcopypath')
+        #self.utility.makePopup(menu, self.onOpenDest, 'ropendest')
+        #self.utility.makePopup(menu, self.onOpenFileDest, 'ropenfiledest')
+
+##        #Add the priority submenu if this is a multi-file torrent
+##        if not self.torrent.files.isFile():
+##            prioritymenu = self.makePriorityMenu()
+##            if prioritymenu is not None:
+##                menu.AppendMenu(-1, self.utility.lang.get('rpriosetting'), prioritymenu)
+##
+##         Popup the menu.  If an item is selected then its handler
+##         will be called before PopupMenu returns.
+##        if event is None:
+##             use the position of the first selected item (key event)
+##            position = self.GetItemPosition(s[0])
+##        else:
+##             use the cursor position (mouse event)
+##            position = event.GetPoint()
+
+        #position = event.GetPoint()
+        self.PopupMenu(menuTest, (-1,-1))
+
+            
              
         
        

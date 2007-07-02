@@ -254,12 +254,13 @@ l_second 		= "s"
 ############################################
 # Tribler Tweak
 ############################################
-up 				= "Up"
-down 			= "Down"
+up 				= "Upload speed"
+down 			= "Download speed"
 columns 		= "Columns"
 column 			= "Column :"
 displayname 	= "Column Name :"
 columnwidth 	= "Column Width :"
+eta				= "Estimated time needed to complete: "
 
 customizetoolbar = "Customize Toolbar"
 
