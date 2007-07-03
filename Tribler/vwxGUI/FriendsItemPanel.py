@@ -35,7 +35,7 @@ class FriendsItemPanel(wx.Panel):
     """
     PersonsItemPanel shows one persons item inside the PersonsGridPanel
     """
-    def __init__(self, parent):
+    def __init__(self, parent, keyTypedFun= None):
         global TORRENTPANEL_BACKGROUND
         
         wx.Panel.__init__(self, parent, -1)

@@ -24,7 +24,7 @@ class FilesItemPanel(wx.Panel):
     """
     This Panel shows one content item inside the GridPanel
     """
-    def __init__(self, parent):
+    def __init__(self, parent, keyfun):
         global TORRENTPANEL_BACKGROUND
         
         wx.Panel.__init__(self, parent, -1)
@@ -42,6 +42,7 @@ class FilesItemPanel(wx.Panel):
         self.Show()
         self.Refresh()
         self.Layout()
+        self.gridKeyTyped = keyfun
 
     def addComponents(self):
         self.Show(False)
@@ -150,6 +151,12 @@ class FilesItemPanel(wx.Panel):
                         print >>sys.stderr,'fip: deleting'
                     self.guiUtility.deleteTorrent(self.data)
         event.Skip()
+        try:
+            self.gridKeyTyped(event)
+        except:
+            print 'Exception in keytyped'
+            
+            
         
     def mouseAction(self, event):
         

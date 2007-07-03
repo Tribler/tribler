@@ -31,6 +31,7 @@ class standardGrid(wx.Panel):
         self.detailPanel = None       
         self.cols = cols
         self.orientation = orientation
+        self.subPanelClass = None
         self.items = 0 #number of items that are currently visible 
         self.currentData = 0 #current starting index in the list for visible items
         self.currentRows = 0
@@ -215,7 +216,7 @@ class standardGrid(wx.Panel):
             print >>sys.stderr,'standardGrid: setPager called: %s' % pager
         self.standardPager = pager
        
-    def getSubPanel(self):
+    def getSubPanel(self, keyfun=None):
         raise NotImplementedError('Method getSubPanel should be subclassed')
 
     def setDataOfPanel(self, panelNumber, data):
@@ -283,9 +284,10 @@ class standardGrid(wx.Panel):
                 hSizer = wx.BoxSizer(wx.HORIZONTAL)
                 self.panels.append([])
                 for panel in range(0, self.cols):
-                    dataPanel = self.getSubPanel()
+                    dataPanel = self.getSubPanel(self.keyTypedOnGridItem)
+                    self.subPanelClass = dataPanel.__class__
                     # add keylistener for arrow selection
-                    dataPanel.Bind(wx.EVT_KEY_UP, self.keyTypedOnGridItem)
+                    #dataPanel.Bind(wx.EVT_KEY_UP, self.keyTypedOnGridItem)
                     self.panels[i].append(dataPanel)
                     #dataPanel.SetSize((-1, self.subPanelHeight))
                     hSizer.Add(dataPanel, 1, wx.ALIGN_CENTER|wx.ALL|wx.GROW, 0)
@@ -372,9 +374,13 @@ class standardGrid(wx.Panel):
             
     def keyTypedOnGridItem(self, event):
         obj = event.GetEventObject()
+        print 'Keytyped in %s' % obj.__class__.__name__
+        while obj.__class__ != self.subPanelClass:
+            obj = obj.GetParent()
         
-        if not obj.selected:
-                return
+        if not obj.selected and sys.platform != 'win32':
+            return
+
         keyCode = event.GetKeyCode()
         # Get coord of keytyped panel
         rowIndex = 0
@@ -384,6 +390,7 @@ class standardGrid(wx.Panel):
             for pan in row:
                 if obj == pan:
                     (xpan, ypan) = colIndex, rowIndex
+                    print 'found: %d, %d' % (colIndex, rowIndex)
                     break
                 colIndex += 1
             rowIndex += 1
@@ -391,17 +398,31 @@ class standardGrid(wx.Panel):
             raise Exception('Could not find selected panel')
         xpanold = xpan
         ypanold = ypan
-        if keyCode == wx.WXK_UP:
-            ypan = max(0, ypan-1)
-        elif keyCode == wx.WXK_DOWN:
-            ypan = min(self.currentRows-1, ypan+1)
-        elif keyCode == wx.WXK_LEFT:
-            xpan = max(0, xpan -1)
-        elif keyCode == wx.WXK_RIGHT:
-            xpan = min(self.cols-1, xpan+1)
+        if sys.platform != 'win32':
+            if keyCode == wx.WXK_UP:
+                ypan = max(0, ypan-1)
+            elif keyCode == wx.WXK_DOWN:
+                ypan = min(self.currentRows-1, ypan+1)
+            elif keyCode == wx.WXK_LEFT:
+                xpan = max(0, xpan -1)
+            elif keyCode == wx.WXK_RIGHT:
+                xpan = min(self.cols-1, xpan+1)
+        else:
+            if keyCode == wx.WXK_UP:
+                if xpan == self.cols-1:
+                    xpan = 0
+                else:
+                    xpan+=1
+                    ypan = max(0, ypan-1)
+            elif keyCode == wx.WXK_DOWN:
+                if xpan == 0:
+                    xpan = self.cols-1
+                else:
+                    xpan = xpan -1
+                    ypan = min(self.currentRows-1, ypan+1)
         # Get data of new panel
-        #print 'Old: %s, New: %s' % ((xpanold, ypanold), (xpan, ypan))
-        if xpanold != xpan or ypanold != ypan:
+        print 'Old: %s, New: %s' % ((xpanold, ypanold), (xpan, ypan))
+        if xpanold != xpan or ypanold != ypan or sys.platform =='win32':
             newpanel = self.panels[ypan][xpan]
             if newpanel.data != None:
                 # select new panel
@@ -415,8 +436,8 @@ class filesGrid(standardGrid):
         self.subPanelHeight = 118 # This will be update after first refresh
         standardGrid.__init__(self, columns, orientation='horizontal')
         
-    def getSubPanel(self):
-        return FilesItemPanel(self)
+    def getSubPanel(self, keyfun):
+        return FilesItemPanel(self, keyfun)
     
 class personsGrid(standardGrid):
     def __init__(self):
@@ -424,8 +445,8 @@ class personsGrid(standardGrid):
         self.subPanelHeight = 113 # This will be update after first refresh
         standardGrid.__init__(self, columns, orientation='horizontal')
         
-    def getSubPanel(self):
-        return PersonsItemPanel(self)
+    def getSubPanel(self, keyfun):
+        return PersonsItemPanel(self, keyfun)
 
 class friendsGrid(standardGrid):
     def __init__(self):   
@@ -433,8 +454,8 @@ class friendsGrid(standardGrid):
         self.subPanelHeight = 30 # This will be update after first refresh
         standardGrid.__init__(self, columns, orientation='vertical')
         
-    def getSubPanel(self):
-        return FriendsItemPanel(self)
+    def getSubPanel(self, keyfun):
+        return FriendsItemPanel(self, keyfun)
     
 class libraryGrid(standardGrid):
     def __init__(self):
@@ -442,8 +463,8 @@ class libraryGrid(standardGrid):
         self.subPanelHeight = 30 # This will be update after first refresh
         standardGrid.__init__(self, columns, orientation='horizontal')
         
-    def getSubPanel(self):
-        return LibraryItemPanel(self)
+    def getSubPanel(self, keyfun):
+        return LibraryItemPanel(self, keyfun)
     
 class subscriptionsGrid(standardGrid):
     def __init__(self):
@@ -451,5 +472,5 @@ class subscriptionsGrid(standardGrid):
         self.subPanelHeight = 30 # This will be update after first refresh
         standardGrid.__init__(self, columns, orientation='horizontal')
         
-    def getSubPanel(self):
-        return SubscriptionsItemPanel(self)
+    def getSubPanel(self, keyfun):
+        return SubscriptionsItemPanel(self, keyfun)

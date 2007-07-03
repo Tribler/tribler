@@ -26,7 +26,7 @@ class PersonsItemPanel(wx.Panel):
     """
     PersonsItemPanel shows one persons item inside the PersonsGridPanel
     """
-    def __init__(self, parent):
+    def __init__(self, parent, keyTypedFun=None):
         global TORRENTPANEL_BACKGROUND
         
         wx.Panel.__init__(self, parent, -1)
@@ -43,6 +43,7 @@ class PersonsItemPanel(wx.Panel):
         self.mm = parent.mm
         self.selected = False
         self.superpeer_db = parent.superpeer_db
+        self.keyTypedFun = keyTypedFun
         self.addComponents()
         self.Show()
         self.Refresh()

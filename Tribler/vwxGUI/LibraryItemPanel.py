@@ -51,7 +51,7 @@ else:
 
 
 class LibraryItemPanel(wx.Panel):
-    def __init__(self, parent):
+    def __init__(self, parent, keyTypedFun = None):
 
         global TORRENTPANEL_BACKGROUND
         
