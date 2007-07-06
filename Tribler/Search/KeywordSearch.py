@@ -1,8 +1,9 @@
 # written by Jelle Roozenburg
+# see LICENSE.txt for license information
 
 import re
 
-DEBUG = True
+DEBUG = False
 
 class KeywordSearch:
     """

@@ -1,3 +1,5 @@
+# written by Fabian van der Werf, Jelle Roozenburg
+# see LICENSE.txt for license information
 
 import util.db
 

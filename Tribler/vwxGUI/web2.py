@@ -44,7 +44,7 @@ class DataOnDemand:
         self.datalock.release()
 
     def addItems(self, items):
-        print "web2.addItems"
+        #print "web2.addItems"
         self.datalock.acquire()
         for item in items:
             self._addItem(item)

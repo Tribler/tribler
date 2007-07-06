@@ -1,4 +1,6 @@
 # Written by Jelle Roozenburg
+# see LICENSE.txt for license information
+
 import urllib, os, time, sys
 from traceback import print_exc
 import ConfigParser

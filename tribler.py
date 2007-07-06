@@ -763,6 +763,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
             lookup = { wx.EVT_CLOSE.evtType[0]: "EVT_CLOSE", wx.EVT_QUERY_END_SESSION.evtType[0]: "EVT_QUERY_END_SESSION", wx.EVT_END_SESSION.evtType[0]: "EVT_END_SESSION" }
             if nr in lookup: nr = lookup[nr]
             print "Closing due to event ",nr
+            print >>sys.stderr,"Closing due to event ",nr
         else:
             print "Closing untriggered by event"
         

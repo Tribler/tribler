@@ -48,12 +48,9 @@ class VideoFrame(wx.Frame):
 
 
         iconpath = os.path.join(self.utility.getPath(),'tribler.ico')
-        # Giving it the whole bundle throws an exception about image 6
-        #self.icons = wx.IconBundle()
-        #self.icons.AddIconFromFile(iconpath,wx.BITMAP_TYPE_ICO)
-        #self.SetIcons(self.icons)
-        self.icon = wx.Icon(iconpath,wx.BITMAP_TYPE_ICO,16,16)
-        self.SetIcon(self.icon)
+        self.icons = wx.IconBundle()
+        self.icons.AddIconFromFile(iconpath,wx.BITMAP_TYPE_ICO)
+        self.SetIcons(self.icons)
 
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
 

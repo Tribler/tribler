@@ -1,3 +1,6 @@
+# written by Jelle Roozenburg
+# see LICENSE.txt for license information
+
 import os
 import sys
 from base64 import encodestring
