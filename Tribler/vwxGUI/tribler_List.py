@@ -18,6 +18,7 @@ class tribler_List(wx.ListCtrl):
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.backgroundColor = wx.Colour(102,102,102) 
+        #self.ForegroundColour = wx.Colour(0,0,0)
         self.isEmpty = True    # used for DLFilesList.onListDClick
         
         pre = wx.PreListCtrl() 

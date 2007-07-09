@@ -319,7 +319,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                 return
             
             filesModeThumbSize = (125, 70)
-            libraryModeThumbSize = (66, 37)
+            libraryModeThumbSize = (43, 24)
             metadata['ThumbnailBitmap'] = self.getResizedBitmapFromImage(img, filesModeThumbSize)
             metadata['ThumbnailBitmapLibrary'] = self.getResizedBitmapFromImage(img, libraryModeThumbSize)
           

@@ -99,6 +99,7 @@
                   <object class="wxPanel" name="info_detailsTab" subclass="Tribler.vwxGUI.TextButton.TextButton">
                     <pos>10,10</pos>
                     <size>75,18</size>
+                    <fg>#     0</fg>
                   </object>
                 </object>
                 <object class="sizeritem">
@@ -108,6 +109,7 @@
                   <object class="wxPanel" name="files_detailsTab" subclass="Tribler.vwxGUI.TextButton.TextButton">
                     <pos>95,10</pos>
                     <size>75,18</size>
+                    <fg>#     0</fg>
                   </object>
                 </object>
               </object>
@@ -152,6 +154,7 @@
                             <label>size:</label>
                             <pos>8,7</pos>
                             <size>79,18</size>
+                            <fg>#     0</fg>
                           </object>
                         </object>
                         <object class="sizeritem">
@@ -163,6 +166,7 @@
                             <label>unknown</label>
                             <pos>87,7</pos>
                             <size>131,18</size>
+                            <fg>#     0</fg>
                           </object>
                         </object>
                       </object>
@@ -182,6 +186,7 @@
                             <label>creation date:</label>
                             <pos>8,25</pos>
                             <size>79,18</size>
+                            <fg>#     0</fg>
                           </object>
                         </object>
                         <object class="sizeritem">
@@ -192,6 +197,7 @@
                             <label>unknown</label>
                             <pos>87,25</pos>
                             <size>131,18</size>
+                            <fg>#     0</fg>
                           </object>
                         </object>
                       </object>
@@ -211,6 +217,7 @@
                             <label>popularity:</label>
                             <pos>8,43</pos>
                             <size>79,18</size>
+                            <fg>#     0</fg>
                           </object>
                         </object>
                         <object class="sizeritem">
@@ -224,18 +231,19 @@
                           </object>
                         </object>
                         <object class="sizeritem">
-                          <flag>wxEXPAND</flag>
+                          <flag>wxRIGHT|wxEXPAND</flag>
                           <border>4</border>
                           <option>0</option>
                           <object class="wxStaticText" name="popularityField1">
                             <label>?</label>
                             <pos>101,43</pos>
-                            <size>36,18</size>
+                            <size>50,18</size>
+                            <fg>#     0</fg>
                           </object>
                         </object>
                         <object class="sizeritem">
-                          <flag>wxLEFT|wxFIXED_MINSIZE</flag>
-                          <border>4</border>
+                          <flag>wxRIGHT|wxFIXED_MINSIZE</flag>
+                          <border>3</border>
                           <option>0</option>
                           <object class="wxPanel" name="down" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
                             <pos>155,43</pos>
@@ -244,13 +252,14 @@
                           </object>
                         </object>
                         <object class="sizeritem">
-                          <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                          <flag>wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
                           <border>4</border>
                           <option>0</option>
                           <object class="wxStaticText" name="popularityField2">
                             <label>?</label>
-                            <pos>156,43</pos>
-                            <size>36,18</size>
+                            <pos>173,43</pos>
+                            <size>50,18</size>
+                            <fg>#     0</fg>
                           </object>
                         </object>
                         <object class="sizeritem">
@@ -258,7 +267,7 @@
                           <border>2</border>
                           <option>0</option>
                           <object class="wxPanel" name="refresh" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                            <pos>210,43</pos>
+                            <pos>248,43</pos>
                             <size>11,12</size>
                           </object>
                         </object>
@@ -279,6 +288,7 @@
                             <label>fit to taste:</label>
                             <pos>8,64</pos>
                             <size>79,15</size>
+                            <fg>#     0</fg>
                           </object>
                         </object>
                         <object class="sizeritem">
@@ -299,6 +309,7 @@
                             <label>unknown</label>
                             <pos>107,64</pos>
                             <size>101,12</size>
+                            <fg>#     0</fg>
                           </object>
                         </object>
                       </object>
@@ -350,6 +361,7 @@
                       <pos>0,0</pos>
                       <size>199,15</size>
                       <bg>#cbcbcb</bg>
+                      <fg>#     0</fg>
                     </object>
                   </object>
                 </object>
@@ -364,6 +376,7 @@
                 <label>no description available</label>
                 <pos>6,105</pos>
                 <size>265,73</size>
+                <fg>#     0</fg>
               </object>
             </object>
             <object class="sizeritem">
@@ -385,6 +398,7 @@
                       <pos>10,0</pos>
                       <size>204,15</size>
                       <bg>#cbcbcb</bg>
+                      <fg>#     0</fg>
                     </object>
                   </object>
                 </object>

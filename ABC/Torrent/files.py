@@ -86,11 +86,12 @@ class TorrentFiles:
         if not self.dest:
             self.dest = None
 
-    def onOpenDest(self, event = None, index = 0):
-        return self.onOpenFileDest(index, pathonly = True)
+    def onOpenDest(self, event = None, index = 0, dest = ""):
+        return self.onOpenFileDest(index, pathonly = True, dest= dest)
 
-    def onOpenFileDest(self, event = None, index = 0, pathonly = False):
-        dest = self.getSingleFileDest(index, pathonly, checkexists = False)
+    def onOpenFileDest(self, event = None, index = 0, pathonly = False, dest = ""):
+        if dest == "":
+            dest = self.getSingleFileDest(index, pathonly, checkexists = False)
         
         # Check to make sure that what we're trying to get exists
         if dest is None or not os.access(dest, os.R_OK):

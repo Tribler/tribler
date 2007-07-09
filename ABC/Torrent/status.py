@@ -21,7 +21,8 @@ class TorrentStatus:
         self.havedigest = None
         self.lastStopped = 0
         self.lastCheckFinished = None
-
+        
+        
     def getStatusText(self, otherValue = None):
         if otherValue:
             value = otherValue
@@ -149,3 +150,6 @@ class TorrentStatus:
         
     def getHaveDigest(self):
         return self.havedigest
+    
+    def getStatus (self):
+        return self.value        

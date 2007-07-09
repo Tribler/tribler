@@ -24,8 +24,9 @@ class wxcus29232f(wx.Panel):
     def VwXinit(self):
         self.Show(True)
         self.pn3c = wx.Panel(self,-1,wx.Point(0,0),wx.Size(75,20))
-        self.st4c = wx.StaticText(self.pn3c,-1,"",wx.Point(0,0),wx.Size(49,13),wx.ST_NO_AUTORESIZE)
+        self.st4c = wx.StaticText(self.pn3c,-1,"",wx.Point(3,3),wx.Size(49,13),wx.ST_NO_AUTORESIZE)
         self.st4c.SetLabel("tab")
+        self.st4c.SetForegroundColour(wx.Colour(0,0,0))
         self.sz5s = wx.BoxSizer(wx.HORIZONTAL)
         self.sz5s.Add(self.st4c,0,wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,3)
         self.pn3c.SetSizer(self.sz5s);self.pn3c.SetAutoLayout(1);self.pn3c.Layout();

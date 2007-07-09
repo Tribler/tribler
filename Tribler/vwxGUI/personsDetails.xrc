@@ -106,6 +106,7 @@
               <object class="wxPanel" name="info_detailsTab" subclass="Tribler.vwxGUI.TextButton.TextButton">
                 <pos>10,0</pos>
                 <size>75,18</size>
+                <fg>#     0</fg>
               </object>
             </object>
             <object class="sizeritem">
@@ -115,6 +116,7 @@
               <object class="wxPanel" name="advanced_detailsTab" subclass="Tribler.vwxGUI.TextButton.TextButton">
                 <pos>95,0</pos>
                 <size>95,16</size>
+                <fg>#     0</fg>
               </object>
             </object>
           </object>
@@ -157,6 +159,7 @@
                             <label>discovered files:</label>
                             <pos>8,7</pos>
                             <size>110,18</size>
+                            <fg>#     0</fg>
                           </object>
                         </object>
                         <object class="sizeritem">
@@ -166,8 +169,9 @@
                           <object class="wxStaticText" name="discFilesField">
                             <style>wxST_NO_AUTORESIZE</style>
                             <label>unknown</label>
-                            <pos>105,7</pos>
+                            <pos>118,7</pos>
                             <size>111,18</size>
+                            <fg>#     0</fg>
                           </object>
                         </object>
                       </object>
@@ -187,6 +191,7 @@
                             <label>discovered persons:</label>
                             <pos>8,25</pos>
                             <size>110,18</size>
+                            <fg>#     0</fg>
                           </object>
                         </object>
                         <object class="sizeritem">
@@ -196,8 +201,9 @@
                           <object class="wxStaticText" name="discPersonsField">
                             <style>wxST_NO_AUTORESIZE</style>
                             <label>unknown</label>
-                            <pos>105,25</pos>
+                            <pos>118,25</pos>
                             <size>111,18</size>
+                            <fg>#     0</fg>
                           </object>
                         </object>
                       </object>
@@ -217,6 +223,7 @@
                             <label>similar taste:</label>
                             <pos>8,43</pos>
                             <size>110,18</size>
+                            <fg>#     0</fg>
                           </object>
                         </object>
                         <object class="sizeritem">
@@ -237,6 +244,7 @@
                             <label>unknown</label>
                             <pos>138,43</pos>
                             <size>86,18</size>
+                            <fg>#     0</fg>
                           </object>
                         </object>
                       </object>
@@ -256,6 +264,7 @@
                             <label>status:</label>
                             <pos>8,61</pos>
                             <size>110,18</size>
+                            <fg>#     0</fg>
                           </object>
                         </object>
                         <object class="sizeritem">
@@ -265,8 +274,9 @@
                           <object class="wxStaticText" name="statusField">
                             <style>wxST_NO_AUTORESIZE</style>
                             <label>unknown</label>
-                            <pos>105,61</pos>
+                            <pos>118,61</pos>
                             <size>111,18</size>
+                            <fg>#     0</fg>
                           </object>
                         </object>
                       </object>
@@ -315,9 +325,10 @@
                     <object class="wxStaticText" name="DescC">
                       <style>wxST_NO_AUTORESIZE</style>
                       <label>   Common files</label>
-                      <pos>0,3</pos>
+                      <pos>0,0</pos>
                       <size>241,15</size>
                       <bg>#cbcbcb</bg>
+                      <fg>#     0</fg>
                     </object>
                   </object>
                 </object>
@@ -328,8 +339,9 @@
               <border>6</border>
               <option>0</option>
               <object class="wxListCtrl" name="commonFilesField" subclass="Tribler.vwxGUI.tribler_List.tribler_List">
-                <pos>6,82</pos>
+                <pos>6,103</pos>
                 <size>284,85</size>
+                <fg>#     0</fg>
               </object>
             </object>
             <object class="sizeritem">
@@ -348,9 +360,10 @@
                     <object class="wxStaticText" name="st202cC">
                       <style>wxST_NO_AUTORESIZE</style>
                       <label>Also downloaded</label>
-                      <pos>0,0</pos>
+                      <pos>10,0</pos>
                       <size>204,15</size>
                       <bg>#cbcbcb</bg>
+                      <fg>#     0</fg>
                     </object>
                   </object>
                 </object>
@@ -363,6 +376,7 @@
               <object class="wxListCtrl" name="alsoDownloadedField" subclass="Tribler.vwxGUI.tribler_List.DLFilesList">
                 <pos>6,215</pos>
                 <size>284,160</size>
+                <fg>#     0</fg>
               </object>
             </object>
           </object>

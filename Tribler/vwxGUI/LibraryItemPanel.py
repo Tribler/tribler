@@ -9,6 +9,7 @@ from Tribler.vwxGUI.GuiUtility import GUIUtility
 from Tribler.vwxGUI.filesItemPanel import ThumbnailViewer
 #from Dialogs.abcdetailframe import ABCDetailFrame
 from Tribler.Video.VideoPlayer import VideoPlayer
+from Tribler.vwxGUI.bgPanel import ImagePanel
 
 from Tribler.Video.Progress import ProgressBar
 from Tribler.unicode import *
@@ -18,6 +19,10 @@ from bgPanel import *
 from font import *
 from Utility.constants import * 
 from Utility import *
+
+from ABC.Torrent.status import TorrentStatus
+
+
 import cStringIO
 
 DEBUG=False
@@ -48,6 +53,11 @@ else:
     FS_PERC = 7
     FS_SPEED = 7
     
+statusLibrary  = {"downloading"     : "LibStatus_downloading.png",
+                  "stopped"         : "LibStatus_stopped.png",
+                  "boosting"        : "LibStatus_boosting.png",
+                  "completed"       : "LibStatus_completed.png",
+                  "seeding"         : "LibSatus_seeding.png"}
 
 
 class LibraryItemPanel(wx.Panel):
@@ -61,9 +71,13 @@ class LibraryItemPanel(wx.Panel):
         self.parent = parent
         self.guiserver = parent.guiserver
         self.triblerGrey = wx.Colour(128,128,128)
+        
+        self.statusTorrent = TorrentStatus(self)
+        
 
         self.data = None
-        self.menuTest = None
+        self.status = None
+        self.rightMouse = None
         self.datacopy = None
         self.titleLength = 16 # num characters
         self.vodMode = False
@@ -73,7 +87,8 @@ class LibraryItemPanel(wx.Panel):
         self.torrentDetailsFrame = None
         self.addComponents()
     
-        self.Bind(wx.EVT_RIGHT_DOWN, self.rightMouseButton)             
+        #self.Bind(wx.EVT_RIGHT_DOWN, self.rightMouseButton)             
+        
 
         self.SetMinSize((-1, 30))
         self.selected = False
@@ -96,10 +111,10 @@ class LibraryItemPanel(wx.Panel):
         self.hSizer.Add(self.thumb, 0, wx.ALL, 3)
         
         # Add title
-        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(120,12))        
+        self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(120,14))        
         self.title.SetBackgroundColour(wx.WHITE)
         self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.title.SetMinSize((120,12))
+        self.title.SetMinSize((120,14))
         self.hSizer.Add(self.title,1,wx.TOP,7)
         
     
@@ -169,10 +184,18 @@ class LibraryItemPanel(wx.Panel):
         # V Line                
         self.addLine()
                 
+        # Status Icon
+        self.statusIcon = ImagePanel(self, -1, name="LibStatus_boosting")        
+        self.statusIcon.searchBitmap(name = statusLibrary["stopped"])
+
+        self.hSizer.Add(self.statusIcon, 0, wx.TOP|wx.RIGHT|wx.EXPAND, 2)
+        
         # Status message
         self.statusField = wx.StaticText(self, -1, '')
+        self.statusField.SetForegroundColour(self.triblerGrey)        
+        self.statusField.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.statusField.SetMinSize((37,12))
-        self.hSizer.Add(self.statusField, 1, wx.TOP|wx.EXPAND, 7)
+        self.hSizer.Add(self.statusField, 1, wx.TOP|wx.EXPAND, 9)
         
         # V Line
         self.addLine()
@@ -181,31 +204,34 @@ class LibraryItemPanel(wx.Panel):
         self.playFast = SwitchButton(self, name="playFast")
         self.playFast.setBackground(wx.WHITE)
         # (81,16)
-        self.playFast.SetSize((20,6))
+        self.playFast.SetSize((51,16))
         self.playFast.setEnabled(False)
+        self.hSizer.Add(self.playFast, 0, wx.TOP|wx.ALIGN_RIGHT, 7)
+        self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)   
+        
+        # TODO: TB >get the boost button out of the code
         self.boost = SwitchButton(self, name="boost")
         self.boost.setBackground(wx.WHITE)
         self.boost.SetSize((20,6))
         self.boost.setEnabled(False)
         buttonSizer = wx.BoxSizer(wx.VERTICAL)
         buttonSizer.Add(self.playFast, 1, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 2)
-        buttonSizer.Add(self.boost, 1, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 2)        
-        self.hSizer.Add(buttonSizer, 0, wx.TOP|wx.ALIGN_RIGHT, 0) 
+        buttonSizer.Add(self.boost, 1, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 2) 
+        self.boost.Hide()
 
         # Play
         self.playerPlay = SwitchButton(self, name="libraryPlay")
         self.playerPlay.setBackground(wx.WHITE)
-        #(37,37)
         self.playerPlay.SetSize((16,16))
         self.playerPlay.setEnabled(False)
-        self.hSizer.Add(self.playerPlay, 0, wx.TOP|wx.BOTTOM|wx.ALIGN_RIGHT, 3)         
-        
+        self.hSizer.Add(self.playerPlay, 0, wx.TOP|wx.ALIGN_RIGHT, 7)          
+        self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0) 
+#       
+        # TODO: TB >delete button should be removed when delete function in rightMouseButton menu works 
         # Delete button
         self.delete = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='deleteLibraryitem')
         self.delete.setBackground(wx.WHITE)
-        
-        self.hSizer.Add(self.delete,0,wx.TOP|wx.LEFT|wx.FIXED_MINSIZE|wx.ALIGN_TOP,3)       
-                
+        self.hSizer.Add(self.delete,0,wx.TOP|wx.FIXED_MINSIZE|wx.ALIGN_TOP,7)
         self.hSizer.Add([8,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)         
     
         # Add Refresh        
@@ -218,6 +244,8 @@ class LibraryItemPanel(wx.Panel):
             window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
             window.Bind(wx.EVT_LEFT_DCLICK, self.doubleClicked)
             window.Bind(wx.EVT_KEY_UP, self.keyTyped)
+            window.Bind(wx.EVT_RIGHT_DOWN, self.rightMouseButton)             
+            window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction)             
                   
     def refreshData(self):
         self.setData(self.data)
@@ -278,6 +306,32 @@ class LibraryItemPanel(wx.Panel):
             self.eta.SetToolTipString(self.utility.lang.get('eta')+eta)
             
             self.statusField.SetLabel(abctorrent.getColumnText(COL_BTSTATUS))
+            self.statusField.SetToolTipString(self.statusField.GetLabel())
+            
+            status = abctorrent.status.getStatus()
+#            print "--tb-------------------------------"
+#            print status
+            # status is mapped with >Utility/constants.py
+            if status == STATUS_QUEUE :  
+                print 'queue'
+            elif status == STATUS_STOP or status == STATUS_PAUSE :  
+                self.statusIcon.searchBitmap(name = statusLibrary["stopped"])
+            elif status == STATUS_ACTIVE:  
+                self.statusIcon.searchBitmap(name = statusLibrary["downloading"])
+            elif status == STATUS_HASHCHECK:  
+                print 'hash check'
+            elif status == STATUS_SUPERSEED :  
+                self.statusIcon.searchBitmap(name = statusLibrary["seeding"])
+            elif status == STATUS_FINISHED :  
+                self.statusIcon.searchBitmap(name = statusLibrary["completed"])
+                
+##statusLibrary  = {"downloading"     : "LibStatus_boosting.png",
+##                  "stopped"         : "LibStatus_stopped.png",
+##                  "boosting"        : "LibStatus_boosting.png",
+##                  "completed"       : "LibStatus_completed.png",
+##                  "seeding"         : "LibSatus_seeding.png"}
+
+                            
             switchable = False
             self.playable = False
             havedigest = None
@@ -285,6 +339,7 @@ class LibraryItemPanel(wx.Panel):
             showPlayFast = False            
             showPlayButton = False
             statustxt = abctorrent.status.getStatusText()
+
             active = abctorrent.status.isActive(pause = False)
             
             if abctorrent.caller_data is not None:
@@ -329,11 +384,11 @@ class LibraryItemPanel(wx.Panel):
                 self.pb.Refresh()
                 
             
-            self.playerPlay.setEnabled(showPlayButton or self.playable)
-            self.playerPlay.setToggled(self.playable)
+            self.playerPlay.setEnabled(showPlayButton or self.playable)            
+            self.playerPlay.setToggled(self.playable, tooltip = {"disabled" : self.utility.lang.get('playerDisabled'), "enabled" : self.utility.lang.get('playerEnabled')})
             
             self.playFast.setEnabled(showPlayFast)
-            self.playFast.setToggled(not switchable)
+            self.playFast.setToggled(not switchable, tooltip = {"disabled" : self.utility.lang.get('playFastDisabled'), "enabled" : self.utility.lang.get('playFastEnabled')})
 
             self.boost.setEnabled(showBoost)
             self.boost.setToggled(self.is_boosted())
@@ -344,17 +399,18 @@ class LibraryItemPanel(wx.Panel):
         elif torrent: # inactive torrent
             
             #self.pb.setEnabled(False)
-            self.downSpeed.Hide()
-            self.speedDown2.Hide()
-            self.upSpeed.Hide()            
-            self.speedUp2.Hide()
+            #self.downSpeed.Hide()
+            #self.speedDown2.Hide()
+            #self.upSpeed.Hide()            
+            #self.speedUp2.Hide()
             
             # Only show playbutton
             self.playFast.setEnabled(False)
             self.boost.setEnabled(False)
             self.pause.setEnabled(True)
             self.pause.setToggled(True)
-            self.statusField.SetLabel(self.utility.lang.get('stop'))
+            self.statusField.SetLabel(self.utility.lang.get('stop')) 
+            self.statusField.SetToolTipString(self.statusField.GetLabel())
             self.eta.SetLabel('')
             
             if torrent.get('progress') != None:                
@@ -396,9 +452,9 @@ class LibraryItemPanel(wx.Panel):
         self.upSpeed.setBackground(colour)
         self.playFast.setBackground(colour)
         self.boost.setBackground(colour)
+        self.statusIcon.setBackground(colour)
         self.playerPlay.setBackground(colour)
         self.SetBackgroundColour(colour)
-        self.playerPlay.setBackground(colour)
         self.Refresh()
 
         
@@ -417,6 +473,7 @@ class LibraryItemPanel(wx.Panel):
         self.SetBackgroundColour(colour)
         self.playFast.setBackground(colour)
         self.boost.setBackground(colour)
+        self.statusIcon.setBackground(colour)
         self.playerPlay.setBackground(colour)
         self.Refresh()
         
@@ -432,7 +489,7 @@ class LibraryItemPanel(wx.Panel):
                     self.guiUtility.deleteTorrent(self.data)
         event.Skip()
         
-    def mouseAction(self, event):        
+    def mouseAction(self, event):
         if DEBUG:
             print >>sys.stderr,"lip: mouseaction: name",event.GetEventObject().GetName()
 
@@ -507,32 +564,24 @@ class LibraryItemPanel(wx.Panel):
    
     def rightMouseButton(self, event):     
         # Open right-click menu (windows menu key)
-        print '--tb-- keydown function'       
+        # >>makePopup(self, menu, event = None, label = "", extralabel = "", bindto = None):
+        print '--tb-- keydown function'  
         
-        
-#        self.menuTest = wx.Menu()
-#        
-#        itemmenu = wx.MenuItem(self.menuTest,ID_MENU_1418,"Item1418","",wx.ITEM_NORMAL)
-#        itemmenu = wx.MenuItem(self.menuTest,)
-#        self.menuTest.AppendItem(itemmenu)
-#        itemmenu = wx.MenuItem(self.menuTest,ID_MENU_1419,"Item1419","",wx.ITEM_NORMAL)
-#        self.menuTest.AppendItem(itemmenu)
-#        self.menuTest.AppendSeparator()
-#        itemmenu = wx.MenuItem(self.menuTest,ID_MENU_1420,"Item1420","",wx.ITEM_NORMAL)
-#        self.menuTest.AppendItem(itemmenu)
-#        
-#        
-#        # copied from abcdetailframe
-#        s = self.getSelected()
-#        if not s:   # just in case
-#            return
+        rightMouse = wx.Menu()        
 
-        menuTest = wx.Menu()
+        self.utility.makePopup(rightMouse, self.onOpenFileDest, 'ropenfiledest')
+        self.utility.makePopup(rightMouse, self.onOpenDest, 'ropendest')
+        rightMouse.AppendSeparator()        
+        self.utility.makePopup(rightMouse, self.onModerate, 'rModerate')              
+        self.utility.makePopup(rightMouse, self.onRecommend, 'rRecommend')        
+        #if secret:
+        self.utility.makePopup(rightMouse, self.onDownloadOpen, 'rDownloadOpenly')
+        #else:
+        self.utility.makePopup(rightMouse, self.onDownloadSecret, 'rDownloadSecretly')
+        rightMouse.AppendSeparator()
+        self.utility.makePopup(rightMouse, None, 'rRemoveFromList')
+        self.utility.makePopup(rightMouse, None, 'rRemoveFromListAndHD')  
         
-        self.utility.makePopup(menuTest, None, 'rcopyfilename')
-        self.utility.makePopup(menuTest, None, 'rcopypath')
-        #self.utility.makePopup(menu, self.onOpenDest, 'ropendest')
-        #self.utility.makePopup(menu, self.onOpenFileDest, 'ropenfiledest')
 
 ##        #Add the priority submenu if this is a multi-file torrent
 ##        if not self.torrent.files.isFile():
@@ -550,12 +599,50 @@ class LibraryItemPanel(wx.Panel):
 ##            position = event.GetPoint()
 
         #position = event.GetPoint()
-        self.PopupMenu(menuTest, (-1,-1))
+        self.PopupMenu(rightMouse, (-1,-1))
+
+
+    def onOpenFileDest(self, event = None):
+        # open File
+        print '---tb---'
+        print self.data.get('destdir')
+        abctorrent = self.data.get('abctorrent')
+        
+        if abctorrent:
+            abctorrent.files.onOpenFileDest(index = abctorrent.listindex)
+        else:
+            print "niet gelukt"
+            # TODO: TB> This state doesn't occur because torrents stay active, when tribler is 
+            #       closed within 1 hour after torrent is stopped or finished (see action.py)
+            #       This else statement is also empty for the playback button
+
+        
+                                   
+        #self.onOpenFileDest(index = self.data.get('destdir'))
 
             
-             
-        
-       
+    def onOpenDest(self, event = None):
+        # open Destination
+        for index in self.getSelected(firstitemonly = True):
+            self.torrent.files.onOpenFileDest(index = index, pathonly = True)
+            
+    def onModerate(self, event = None):
+        print '---tb--- Moderate event'
+        print event
+        # todo
+        event.Skip()
+    
+    def onRecommend(self, event = None):
+        # todo
+        event.Skip()
+   
+    def onDownloadOpen(self, event = None):
+        # todo
+        event.Skip()
+    
+    def onDownloadSecret(self, event = None):
+        # todo
+        event.Skip()
        
     def doubleClicked(self, event):
         # open torrent details frame

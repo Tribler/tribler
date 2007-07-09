@@ -49,7 +49,7 @@ class ImagePanelBasic(wx.Panel):
         self.backgroundColour = colour
         self.Refresh()
         
-    def searchBitmap(self):
+    def searchBitmap(self, name = None):
         self.bitmap = None
         
         # get the image directory
@@ -64,7 +64,10 @@ class ImagePanelBasic(wx.Panel):
             return
         
         # find a file with same name as this panel
-        self.bitmapPath = os.path.join(self.imagedir, self.GetName()+'.png')
+        if name is None:
+            self.bitmapPath = os.path.join(self.imagedir, self.GetName()+'.png')
+        else:
+            self.bitmapPath = os.path.join(self.imagedir, name)
         
         
         if os.path.isfile(self.bitmapPath):

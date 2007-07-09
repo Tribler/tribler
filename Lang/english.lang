@@ -160,6 +160,18 @@ menu_unstopall = "&Queue all stopped torrents"
 menu_clearcompleted = "&Clear Completed"
 
 #########################
+# Library Overview
+#########################
+
+playFastDisabled	= "Give high priority and play ASAP"
+playFastEnabled		= "Back to normal mode"
+playerDisabled		= "Please wait until first part is available \n(Tribler is currently giving first part high priority)"
+playerEnabled 		= "Click to play"
+
+
+
+
+#########################
 # ToolBar
 #########################
 addtorrentfile_short = "Add Torrent File"
@@ -254,8 +266,8 @@ l_second 		= "s"
 ############################################
 # Tribler Tweak
 ############################################
-up 				= "Upload speed"
-down 			= "Download speed"
+up 				= "upload speed"
+down 			= "download speed"
 columns 		= "Columns"
 column 			= "Column :"
 displayname 	= "Column Name :"
@@ -618,6 +630,16 @@ rQueue 				= "&Queue"
 rRemoveTorrent 		= "Remove Torrent"
 rRemoveTorrentandFile = "Remove Torrent and File(s)"
 
+rRemoveFromList	    = "Remove from library"
+rRemoveFromListAndHD = "Remove from library and harddisk"
+rDownloadSecretly  = "Download secretly"
+rDownloadOpenly     = "Download openly"
+rModerate           = "Change info..."
+rRecommend          = "Recommend to a friend..."
+
+rcopyfilename       = "&Copy Filename"
+rcopypath           = "Copy &Path"
+
 rcopyfromlist       = "&Copy from list..."
 rexportfromlist     = "&Export torrent"
 rextractfromlist 	= "&Extract from List..."
@@ -631,15 +653,15 @@ rsuperseedmode 		= "Use Super-seed &Mode"
 rpriosetting 		= "&Priority Setting"
 rlocaluploadsetting = "&Local Settings..."
 
-openfiledest 	    = "Open File..."
-opendest 			= "Open Destination..."
+openfiledest 	    = "Open File"
+opendest 			= "Open Destination"
 
 ################################
 # BT status
 ################################
 completed 			= "completed"
 completedseeding 	= "completed/sharing"
-working 			= "working"
+working 			= "downloading"
 superseeding 		= "super-seeding"
 waiting 			= "waiting.."
 pause 				= "pause"
@@ -649,7 +671,7 @@ stop 				= "stopped"
 checkingdata		= "checking existing data"
 allocatingspace		= "allocating disk space"
 movingdata			= "moving data"
-connectingtopeers	= "connecting to others"
+connectingtopeers	= "connecting"
 
 ##############################################
 # Web Interface Service
@@ -965,9 +987,6 @@ makehash_optional = "Optional hashes:"
 createmerkletorrent = "Create Merkle torrent"
 createtorrentsig = "Create signature (only if PermIDs enabled)"
 
-rcopyfilename = "&Copy Filename"
-rcopypath = "Copy &Path"
-
 diskfull = "Error: Not enough space left on the destination disk"
 diskfullthreshold = "Stop torrents if destination has less than:"
 
@@ -1139,7 +1158,7 @@ vodprogress = "Progress:"
 launchvideoplayer = "Launch Video Player"
 videoserverservefailure = "Error serving video to player, probably the player does not understand the video format or cannot play it from the network."
 videoserverservefailureadvice = "Please wait until the download is complete and try again, or select a different player in Preferences/Video."
-downloading = "Downloading"
+downloading = "Active"
 
 #############
 #Tribler UI - Profile View, Tribler 4.0.0

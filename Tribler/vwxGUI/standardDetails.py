@@ -110,7 +110,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                             #'profileDetails_Presence': ['descriptionField','Desc0','descriptionField0','howToImprove0','descriptionField1','Desc1','descriptionField2','howToImprove1','descriptionField3','Desc2','descriptionField4','howToImprove2','descriptionField5','takeMeThere0']}
                             'profileDetails_Presence': ['descriptionField','Desc0','descriptionField0','howToImprove0','descriptionField1','Desc2','descriptionField4','howToImprove2','descriptionField5','takeMeThere0']}
             
-        self.statdlElements = ['st28c','st30c','download1','percent1','download2','percent2','download3','percent3','download4','percent4']
+        self.statdlElements = ['st28c','down_White','downSpeed','up_White','upSpeed','download1','percent1','download2','percent2','download3','percent3','download4','percent4']
             
         self.guiUtility.initStandardDetails(self)
         self.subscr_old_source = None
@@ -313,8 +313,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 self.getAlternativeTabPanel('profileDetails_Files', parent=self).Hide() #parent is self because it is not a tab, it replaces the details panel
                 self.getAlternativeTabPanel('profileDetails_Persons', parent=self).Hide() #parent is self because it is not a tab, it replaces the details panel
                 self.getAlternativeTabPanel('profileDetails_Download', parent=self).Hide() #parent is self because it is not a tab, it replaces the details panel
-                self.getAlternativeTabPanel('profileDetails_Presence', parent=self).Hide() #parent is self because it is not a tab, it replaces the details panel
-                
+                self.getAlternativeTabPanel('profileDetails_Presence', parent=self).Hide() #parent is self because it is not a tab, it replaces the details panel                
+        
         return currentPanel
     
     def loadStatusPanel(self):
@@ -334,7 +334,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     print >> sys.stderr,'standardDetails: Error: Could not identify xrc element: %s for mode %s' % (element, mode)
                 pass
             if name:
-                self.data[mode][name] = xrcElement
+                self.data[mode][name] = xrcElement                
+
+        
         return currentPanel
 
     
@@ -1501,12 +1503,15 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         active = self.utility.torrents["active"]
         
         leftlabel = self.data['status']['st28c']
-        rightlabel = self.data['status']['st30c']
+        rightlabel = self.data['status']['downSpeed']
+        rightlabel2 = self.data['status']['upSpeed']
         
         lefttext = self.utility.lang.get('downloading')+' ('+str(len(active))+')'
-        righttxt = 'down: '+totaldlspeed + ' | up: ' + totalulspeed
+        righttxt = totaldlspeed
+        righttxt2 =totalulspeed
         leftlabel.SetLabel(lefttext)
         rightlabel.SetLabel(righttxt)
+        rightlabel2.SetLabel(righttxt2)
 
     def updateLastCheck(self, event=None):
         #print 'updateLastCheck'
