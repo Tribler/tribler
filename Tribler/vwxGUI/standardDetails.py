@@ -88,7 +88,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                                             'TasteHeart', 'details', 'peopleWhoField', 'recommendationField']
         self.modeElements['personsMode'] = ['TasteHeart', 'recommendationField','addAsFriend', 'commonFilesField',
                                             'alsoDownloadedField', 'info_detailsTab', 'advanced_detailsTab','detailsC',
-                                            'titleField','statusField','thumbField']
+                                            'titleField','statusField','thumbField', 'discFilesField', 'discPersonsField']
         self.modeElements['friendsMode'] = ['TasteHeart', 'recommendationField','addAsFriend', 'commonFilesField',
                                             'alsoDownloadedField', 'info_detailsTab', 'advanced_detailsTab','detailsC',
                                             'titleField','statusField','thumbField']
@@ -621,6 +621,13 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                         self.getGuiObj('statusField').SetLabel('connected  %s' % friendly_time(item['last_seen']))
                 else:
                     self.getGuiObj('statusField').SetLabel( 'unknown')
+
+                if 'npeers' in item:
+                    n = unicode(item['npeers'])
+                    self.getGuiObj('discPersonsField').SetLabel(n)
+                if 'ntorrents' in item:
+                    n = unicode(item['ntorrents'])
+                    self.getGuiObj('discFilesField').SetLabel(n)
                 
                 if item.get('friend') is not None:
                     if item['friend']:
@@ -980,7 +987,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 f = self.data_manager.getTorrent(torrent)
                 if not f:
                     continue
-                name = f.get('info',{}).get('name','unknown')
+                name = f.get('content_name','unknown')
                 index = sim_torrent_list.InsertStringItem(sys.maxint, name)
                 alist.append(torrent)
 #                color = "black"
@@ -1039,7 +1046,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 else:
                     the_list = ofList
                 if f['status'] != 'dead':
-                    index = the_list.InsertStringItem(sys.maxint, f['info']['name'])
+                    index = the_list.InsertStringItem(sys.maxint, f['content_name'])
                     if the_list == ofList:
                         alist.append(infohash)
 #                color = "black"
@@ -1354,8 +1361,6 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         src2 = os.path.join(self.utility.getConfigPath(), 'torrent2', torrent['torrent_name'])
         if torrent.get('content_name'):
             name = torrent['content_name']
-        elif torrent.get('info') and torrent['info'].get('name'):
-            name = torrent['info']['name']
         else:
             name = showInfoHash(torrent['infohash'])
         #start_download = self.utility.lang.get('start_downloading')

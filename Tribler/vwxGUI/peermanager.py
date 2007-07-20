@@ -178,7 +178,7 @@ class PeerDataManager(DelayedEventHandler):
         self.frienddb = CacheDBHandler.FriendDBHandler()
         self.MAX_MIN_PEERS_NUMBER = 1900
         self.MAX_MAX_PEERS_NUMBER = 2100
-        self.wantedkeys = ['permid', 'name', 'ip', 'similarity', 'last_seen', 'connected_times', 'buddycast_times', 'port']
+        self.wantedkeys = ['permid', 'name', 'ip', 'similarity', 'last_seen', 'connected_times', 'buddycast_times', 'port', 'ntorrents', 'npeers']
 
         #there should always be an all key that contains all data
         all_data = [] #this all data can also be stored in a separate variable for easier usage
