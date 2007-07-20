@@ -176,12 +176,11 @@ class FriendList(wx.ListCtrl):
 
     def updateImageList(self):
         return
+        #self.SetWindowStyleFlag(self.type)
         
-        self.SetWindowStyleFlag(self.type)
-        
-        self.imgList = createImageList(self.utility, self.friends)
-        self.AssignImageList(self.imgList, wx.IMAGE_LIST_SMALL)
-        self.loadList()
+        #self.imgList = createImageList(self.utility, self.friends)
+        #self.AssignImageList(self.imgList, wx.IMAGE_LIST_SMALL)
+        #self.loadList()
         
     def updateReportList(self):
         self.SetWindowStyleFlag(self.type)

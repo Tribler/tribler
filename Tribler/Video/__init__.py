@@ -1,6 +1,7 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
 
+import sys
 from M2Crypto import EVP
 from binascii import unhexlify
 

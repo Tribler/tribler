@@ -1,6 +1,8 @@
 # Written by Jie Yang
 # see LICENSE.txt for license information
 
+import sys
+
 try:
     True
 except:

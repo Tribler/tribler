@@ -648,8 +648,8 @@ class PeerDataManager(DelayedEventHandler):
             rank_value = rank_value + 1
         # add last seen
         rank_value = (rank_value << 13)
-        if peer_data.get('last_seen')!= None:
-            rank_value = rank_value + getAgeingValue(peer_data['last_seen'])
+#        if peer_data.get('last_seen')!= None:
+#            rank_value = rank_value + getAgeingValue(peer_data['last_seen'])
 #        if DEBUG:
 #            print "peer",peer_data['content_name'],(peer_data.get('friend') and "is" or "is not"),\
 #            "friend, with a similarity of",peer_data['similarity_percent'],"%, and last seen",\

@@ -181,3 +181,10 @@ PEER_CONNECTED = 6
 PEER_EXCHANGED = 7
 
 CALLER_ARGV = 'argv'
+
+#
+# Constants used for currently searching imported friends list
+#
+IMPORT_SERVICE = 0
+IMPORT_ID = 1
+IMPORT_NAME = 2

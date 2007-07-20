@@ -900,11 +900,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
             self.firewallStatus.setToggled(True)
             tt = self.firewallStatus.GetToolTip()
             if tt is not None:
-                if reach:
-                    tt.SetTip(self.utility.lang.get('reachable_tooltip'))
-                else:
-                    tt.SetTip(self.utility.lang.get('unknownreac_tooltip'))
-            GUIUtility.getInstance().isReachable = True
+                tt.SetTip(self.utility.lang.get('reachable_tooltip'))
 
 
     def setActivity(self,type,msg=u''):
@@ -1046,7 +1042,7 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             self.frame.firewallStatus = xrc.XRCCTRL(self.frame, "firewallStatus")
             tt = self.frame.firewallStatus.GetToolTip()
             if tt is not None:
-                SetTip(self.utility.lang.get('unknownreac_tooltip'))
+                tt.SetTip(self.utility.lang.get('unknownreac_tooltip'))
             
             if sys.platform == "linux2":
                 self.frame.numberPersons.SetFont(wx.Font(9,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))

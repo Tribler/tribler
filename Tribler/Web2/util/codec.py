@@ -351,7 +351,7 @@ def decodehtml(str, space = ' ', failchar = '?'):
     
 if __name__ == "__main__":
     import sys
-    print decodehtmlstr(sys.argv[1])
+    print decodehtml(sys.argv[1])
 
 
 #------------------------------------------------------

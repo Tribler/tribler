@@ -339,7 +339,7 @@ class BuddyCastFactory:
                 return False
         else:
             if DEBUG:
-                print >> sys.stderr, "bc: wrong message to buddycast", ord(t), "Round", self.round
+                print >> sys.stderr, "bc: wrong message to buddycast", ord(t), "Round", self.buddycast_core.round
             return False
         
     def gotBuddyCastMessage(self, msg, permid, selversion):
@@ -942,7 +942,7 @@ class BuddyCastCore:
         # buddycast message should be around 6~7KBytes. So the reasonable 
         # length limitation might be 10KB for buddycast message. 
         if MAX_BUDDYCAST_LENGTH > 0 and len(recv_msg) > MAX_BUDDYCAST_LENGTH:
-            print >> sys.stderr, "bc: warning - got large BuddyCastMsg", len(t), "Round", self.round
+            print >> sys.stderr, "bc: warning - got large BuddyCastMsg", len(recv_msg), "Round", self.round
             return False
 
         active = self.isBlocked(sender_permid, self.send_block_list)

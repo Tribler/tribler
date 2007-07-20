@@ -145,7 +145,7 @@ class SubscriptionsItemPanel(wx.Panel):
             return vLine
         else:
             hLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(-1,1),wx.LI_HORIZONTAL)
-            self.vSizerAll.Add(hLine, 0, wx.EXPAND, 0)
+            self.vSizer.Add(hLine, 0, wx.EXPAND, 0)
             return hLine
                              
     def setData(self, peer_data):
@@ -471,10 +471,11 @@ class FavicoThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         elif event.ButtonUp():
             self.ClickedButton()
         #event.Skip()
-        """
+
     def ClickedButton(self):
-        print 'Click'
-        """
+        if DEBUG:
+            print 'subip: Click'
+        pass
                 
     def setBackground(self, wxColor):
         self.backgroundColor = wxColor

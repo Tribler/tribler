@@ -13,7 +13,6 @@ import cStringIO
 from tribler_topButton import *
 from threading import Lock
 import TasteHeart
-from font import *
 
 DEBUG=False
 
@@ -157,7 +156,7 @@ class FriendsItemPanel(wx.Panel):
             return vLine
         else:
             hLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(-1,1),wx.LI_HORIZONTAL)
-            self.vSizerAll.Add(hLine, 0, wx.EXPAND, 0)
+            self.vSizer.Add(hLine, 0, wx.EXPAND, 0)
             return hLine
                                      
     def setData(self, peer_data):

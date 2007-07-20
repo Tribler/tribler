@@ -4,6 +4,7 @@
 # Converts betweem BiTorrent/BitTornado 3.x/0.3 RawServer and BitTorrent 5.0 
 # rawserver for Khashmir
 #
+import sys
 
 DEBUG = False
 

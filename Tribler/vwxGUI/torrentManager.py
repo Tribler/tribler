@@ -127,7 +127,7 @@ class TorrentDataManager:
         
     def getCategory(self, categorykey, library):
         if not self.done_init:
-            return
+            return []
         
         categorykey = categorykey.lower()
         
@@ -441,7 +441,7 @@ class TorrentDataManager:
                 del torrent['simRank']
             if not initializing:
                 self.notifyView(torrent, 'update')
-        else:
+        elif DEBUG_RANKING:
             raise Exception('(removeRank) Not found infohash: %s in info_dict.' % repr(infohash))
             
     

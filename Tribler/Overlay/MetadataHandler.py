@@ -236,7 +236,7 @@ class MetadataHandler:
 
             return self.do_send_metadata(permid, torrent, selversion)
         else:    # deleted before sending it
-            self.torrent_db.deleteTorrent(infohash, delete_file=False, updateFlag=True)
+            self.torrent_db.deleteTorrent(torrent_hash, delete_file=True, updateFlag=True)
             if DEBUG:
                 print >> sys.stderr,"metadata: GET_METADATA: no torrent data to send"
             return 0
@@ -257,9 +257,9 @@ class MetadataHandler:
 
     def read_torrent(self, torrent_path):
         try:
-            file = open(torrent_path, "rb")
-            torrent_data = file.read()
-            file.close()
+            f = open(torrent_path, "rb")
+            torrent_data = f.read()
+            f.close()
             torrent_size = len(torrent_data)
             if DEBUG:
                 print >> sys.stderr,"metadata: read torrent", `torrent_path`, torrent_size
@@ -267,7 +267,7 @@ class MetadataHandler:
                 return None
             return torrent_data
         except:
-            print_exc(file=sys.stderr)
+            print_exc()
             return None
 
 

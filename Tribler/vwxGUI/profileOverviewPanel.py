@@ -252,7 +252,7 @@ class ProfileOverviewPanel(wx.Panel):
             index_1 = self.indexValue(maxuploadrate,100, max_index_bar) #from 0 to 5
         #<<<set the reachability value
         index_2 = 0
-        if self.guiUtility.isReachable:
+        if self.guiUtility.isReachable():
             index_2 = max_index_bar
         #<<<get the number of friends
         count = self.guiUtility.peer_manager.getCountOfFriends()

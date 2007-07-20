@@ -271,13 +271,13 @@ class EmbeddedPlayer(wx.Panel,FlaglessDelayedInvocation):
     def SetVolume(self, evt):
         self.mediactrl.SetVolume(float(self.volume.GetValue()) / 100)
 
-
+    """
     def run(self):
         while not self.stop.isSet():
             evt = UpdateEvent(self.GetId())
             wx.PostEvent(self, evt)
             self.stop.wait(0.2)
-
+    """
 
     def Stop(self):
         self.ppbtn.SetLabel(self.utility.lang.get('playprompt'))

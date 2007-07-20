@@ -419,7 +419,7 @@ class TrackerInfoPanel(wx.Panel):
             params['announce'] = announceurl
         else:
             # Use just internal tracker
-            params['announce'] = get_itracker_url()
+            params['announce'] = get_itracker_url(self.utility)
                    
         # HTTP Seeds
         httpseedlist = self.getHTTPSeedList()

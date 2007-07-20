@@ -791,8 +791,6 @@ def test_all():
     test_mydb()
     test_myprefDB()
     
-from time import time    
-    
 def test_getSimItems(db_dir):
     owner_db = OwnerDBHandler(db_dir)
     torrent_db = TorrentDBHandler(db_dir)

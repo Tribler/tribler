@@ -171,7 +171,6 @@ def run(params):
         seed(myid)
 
         config['overlay'] = 0
-        config['overlay] = 0
     
         doneflag = Event()
         def disp_exception(text):

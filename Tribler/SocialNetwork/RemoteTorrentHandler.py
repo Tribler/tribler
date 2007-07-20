@@ -8,6 +8,8 @@
 import sys
 from sets import Set
 
+from Tribler.vwxGUI.GuiUtility import GUIUtility
+from Tribler.vwxGUI.torrentManager import TorrentDataManager
 
 class RemoteTorrentHandler:
     

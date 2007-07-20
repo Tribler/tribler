@@ -831,7 +831,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 text = self.utility.lang.get("profileDetails_Download_Friends_improve", giveerror=False)
                 self.getGuiObj('descriptionField3', tab = 'profileDetails_Download').SetLabel(text)
                 
-                if self.guiUtility.isReachable:
+                if self.guiUtility.isReachable():
                     text1 = self.utility.lang.get("profileDetails_Download_VisibleYes", giveerror=False)
                     text2 = self.utility.lang.get("profileDetails_Download_VisibleYes_improve", giveerror=False)
                     self.getGuiObj('descriptionField4', tab = 'profileDetails_Download').SetLabel(text1)

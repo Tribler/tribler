@@ -856,13 +856,7 @@ class ABCEngine(DelayedEventHandler):
                 return inet_aton(ip)
             except:
                 return ''
-                
-            x = s.find('.')
-            if x == -1:
-                return 0
-            iptext = s[:x] + '.' + ''.join(s[x:].split('.'))
-            return eval(iptext)
-            
+
         elif colid == SPEW_LR:
             return spew[line]['direction']
             

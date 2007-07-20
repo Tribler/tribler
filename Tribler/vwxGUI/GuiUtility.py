@@ -15,6 +15,7 @@ from Tribler.Dialogs.makefriends import MakeFriendsDialog
 from peermanager import PeerDataManager
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
+from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 
 #from Tribler.vwxGUI.filesFilter import filesFilter
 
@@ -37,8 +38,8 @@ class GUIUtility:
         self.xrcResource = None
         self.utility = utility
         self.params = params
+        self.frame = None
         self.selectedMainButton = None
-        self.isReachable = False #reachability flag / port forwarding enabled / accessible from the internet
         self.peer_manager = None
         self.data_manager = None
         self.guiOpen = Event()
@@ -494,7 +495,7 @@ class GUIUtility:
         self.standardOverview.refreshData()
 
     def firewallStatusClick(self,event=None):
-        if self.isReachable:
+        if self.isReachable():
             title = self.utility.lang.get('tribler_information')
             type = wx.ICON_INFORMATION
             msg = self.utility.lang.get('reachable_tooltip')
@@ -517,4 +518,8 @@ class GUIUtility:
 
     def getSearchField(self,mode=None):
        return self.standardOverview.getSearchField(mode=mode)
+   
+    def isReachable(self):
+       #reachability flag / port forwarding enabled / accessible from the internet
+       return DialbackMsgHandler.getInstance().isConnectable()
    

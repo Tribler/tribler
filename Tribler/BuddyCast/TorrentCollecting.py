@@ -39,7 +39,7 @@ class SimpleTorrentCollecting:
             idx = relevances.index(max(relevances))
             return candidates[idx]
         else:
-            idx = randint(0, nprefs-1)
+            idx = randint(0, len(preferences)-1)
             selected = candidates[idx]
             return selected
     

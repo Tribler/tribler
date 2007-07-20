@@ -1,6 +1,7 @@
 # Written by Bram Cohen and Pawel Garbacki
 # see LICENSE.txt for license information
 
+import os
 from zurllib import urlopen
 from urlparse import urlparse
 from BT1.btformats import check_message
@@ -33,6 +34,7 @@ from clock import clock
 import re
 from __init__ import createPeerID
 
+from Tribler.__init__ import TRIBLER_TORRENT_EXT
 from Tribler.Merkle.merkle import create_fake_hashes
 from Tribler.unicode import bin2unicode
 from Tribler.Video.VideoOnDemand import MovieSelector,MovieOnDemandTransporter,PiecePickerVOD

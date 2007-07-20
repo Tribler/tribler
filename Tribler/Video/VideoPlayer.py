@@ -498,8 +498,8 @@ class VideoPlayer:
             else:
                 (self.player_out,self.player_in) = os.popen2( cmd, 'b' )
         except Exception, e:
-            print_exc(file=sys.stderr)
-            self.onError(self.utility.lang.get('videoplayerstartfailure'),cmd,str(self.error.__class__)+':'+str(self.error))
+            print_exc()
+            self.onError(self.utility.lang.get('videoplayerstartfailure'),cmd,str(e.__class__)+':'+str(e))
 
 
 

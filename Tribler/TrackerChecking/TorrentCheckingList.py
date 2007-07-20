@@ -51,7 +51,8 @@ class TorrentCheckingList:
         if (self.list_good != []):
             infohash = self.list_good.pop(0)
             torrent = self.torrent_db.getTorrent(infohash)
-            print >>sys.stderr,"GET FIRST GOOD",`infohash`
+            if DEBUG:
+                print >>sys.stderr,"TorrCheckList: Get first good",`infohash`
             torrent['infohash'] = infohash
             return torrent
         return None                  
@@ -60,7 +61,8 @@ class TorrentCheckingList:
         if (self.list_unknown != []):
             infohash = self.list_unknown.pop(0)
             torrent = self.torrent_db.getTorrent(infohash)
-            print >>sys.stderr,"GET FIRST UNKNOWN",`infohash`
+            if DEBUG:
+                print >>sys.stderr,"TorrCheckList: Get first unknown",`infohash`
             torrent['infohash'] = infohash
             return torrent
         return None     
@@ -107,15 +109,12 @@ class TorrentCheckingList:
     
     def deleteTorrentFromList(self, infohash):
         try:
-            if old["status"] == "good":
-                self.list_good.remove(infohash)
-            elif old["status"] == "unknown":
-                self.list_unknown.remove(infohash)
-            elif old["status"] == "dead":
-                self.list_dead.remove(infohash)
-            else:
-                print "TorrentCheckingList: error delete"
+            self.list_good.remove(infohash)
+            self.list_unknown.remove(infohash)
+            self.list_dead.remove(infohash)
         except:
+            if DEBUG:
+                print_exc()
             pass
         
     def updateFun(self, infohash, operate):

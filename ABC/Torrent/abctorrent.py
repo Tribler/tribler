@@ -22,8 +22,6 @@ from Tribler.Category.Category import Category
 from Tribler.vwxGUI.torrentManager import TorrentDataManager
 from Tribler.Video.VideoPlayer import VideoPlayer,is_vodable
 
-from time import time
-
 try:
     True
 except:

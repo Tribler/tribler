@@ -288,7 +288,7 @@ class MovieSelector:
             (file,length) = self.fileselector.files[i]
             videoinfo = self.videoinfo
             if not length:
-                filepieces.append(())
+                fileinfo.append(())
             else:
                 # filename, offset, length, (first_piece,offset), (last_piece,offset)
                 info = (file, total, length, ( int(total/piece_length), total % piece_length ),

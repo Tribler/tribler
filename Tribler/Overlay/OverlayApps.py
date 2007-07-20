@@ -16,9 +16,7 @@ from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.SocialNetwork.SocialNetworkMsgHandler import SocialNetworkMsgHandler
 from Tribler.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
 from Tribler.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
-
 from Tribler.utilities import show_permid_short
-from traceback import print_exc
 
 DEBUG = False
 
