@@ -167,6 +167,7 @@ if __name__ == '__main__':
             configdir.saveConfig(config)
 
         config['config_path'] = config_path
+	config['internaltracker'] = 0
         if not os.path.isdir(config['config_path']):
             print "Tribler requires config_path parameter pointing to dir with ecpub.pem, etc.!"
             exit(1)

@@ -113,8 +113,8 @@ class TorrentCheckingList:
             self.list_unknown.remove(infohash)
             self.list_dead.remove(infohash)
         except:
-            if DEBUG:
-                print_exc()
+            #if DEBUG:
+            #    print_exc()
             pass
         
     def updateFun(self, infohash, operate):

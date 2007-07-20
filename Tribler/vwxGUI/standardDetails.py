@@ -14,6 +14,7 @@ from Tribler.utilities import *
 from Tribler.Dialogs.MugshotManager import MugshotManager
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 from Tribler.vwxGUI.torrentManager import TorrentDataManager
+from Tribler.vwxGUI.filesItemPanel import loadAzureusMetadataFromTorrent,createThumbImage
 from Tribler.unicode import bin2unicode
 from safeguiupdate import FlaglessDelayedInvocation
 #from Tribler.vwxGUI.tribler_topButton import tribler_topButton
@@ -21,6 +22,7 @@ from Utility.constants import COL_PROGRESS
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Dialogs.GUIServer import GUIServer
 from Tribler.CacheDB.CacheDBHandler import MyPreferenceDBHandler
+from Tribler.Overlay.MetadataHandler import MetadataHandler
 from Tribler.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 
 
@@ -67,6 +69,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         self.data_manager = TorrentDataManager.getInstance(self.utility)
         self.mm = MugshotManager.getInstance()
         self.mydb = MyPreferenceDBHandler()                    
+        self.metadatahandler = MetadataHandler.getInstance()
         self.mode = None
         self.item = None
         self.lastItemSelected = {} #keeps the last item selected for each mode
@@ -539,7 +542,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 
             elif self.getGuiObj('files_detailsTab').isSelected():
                 filesList = self.getGuiObj('includedFiles', tab = 'filesTab_files')
-                filesList.setData(torrent)
+                filesList.setData(torrent,self.metadatahandler)
                 self.getGuiObj('filesField', tab = 'filesTab_files').SetLabel('%d' % filesList.getNumFiles())
                 # Remove download button for libraryview
                 downloadButton = self.getGuiObj('download', tab='filesTab_files')
@@ -1356,28 +1359,24 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 print_exc()
             return True
 
-        src1 = os.path.join(torrent['torrent_dir'], 
-                            torrent['torrent_name'])
-        src2 = os.path.join(self.utility.getConfigPath(), 'torrent2', torrent['torrent_name'])
+        (torrent_dir,torrent_name) = self.metadatahandler.get_std_torrent_dir_name(torrent)
+        torrent_filename = os.path.join(torrent_dir, torrent_name)
+
         if torrent.get('content_name'):
             name = torrent['content_name']
         else:
             name = showInfoHash(torrent['infohash'])
         #start_download = self.utility.lang.get('start_downloading')
         #str = name + "?"
-        if os.path.isfile(src1):
-            src = src1
-        else:
-            src = src2
             
-        if os.path.isfile(src):
+        if os.path.isfile(torrent_filename):
 #            str = self.utility.lang.get('download_start') + u' ' + name + u'?'
 #            dlg = wx.MessageDialog(self, str, self.utility.lang.get('click_and_download'), 
 #                                        wx.YES_NO|wx.NO_DEFAULT|wx.ICON_INFORMATION)
 #            result = dlg.ShowModal()
 #            dlg.Destroy()
 #            if result == wx.ID_YES:
-            ret = self.utility.queue.addtorrents.AddTorrentFromFile(src, dest = dest)
+            ret = self.utility.queue.addtorrents.AddTorrentFromFile(torrent_filename, dest = dest)
             if ret and ret[0]:
                 if DEBUG:
                     print >>sys.stderr,'standardDetails: download started'
@@ -1410,39 +1409,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         
         thumbPanel.setBackground(wx.BLACK)
         if mode in  ['filesMode', 'libraryMode']:
-            thumbBitmap = torrent.get('metadata',{}).get('ThumbnailBitmapLarge')
-            thumbnailString = torrent.get('metadata', {}).get('Thumbnail')
-            
-            if thumbBitmap:
-                thumbPanel.setBitmap(thumbBitmap)
-                
-            elif thumbnailString:
-                #print 'Found thumbnail: %s' % thumbnailString
-                stream = cStringIO.StringIO(thumbnailString)
-                img =  wx.ImageFromStream( stream )
-                iw, ih = img.GetSize()
-                w, h = thumbPanel.GetSize()
-                if (iw/float(ih)) > (w/float(h)):
-                    nw = w
-                    nh = int(ih * w/float(iw))
-                else:
-                    nh = h
-                    nw = int(iw * h/float(ih))
-                if nw != iw or nh != ih:
-                    #print 'Rescale from (%d, %d) to (%d, %d)' % (iw, ih, nw, nh)
-                    try:
-                        # if wx >= 2.7, use Bicubic scaling
-                        img.Rescale(nw, nh, quality = wx.IMAGE_QUALITY_HIGH)
-                    except:
-                        img.Rescale(nw, nh)
-                bmp = wx.BitmapFromImage(img)
-                 
-                thumbPanel.setBitmap(bmp)
-                torrent['metadata']['ThumbnailBitmapLarge'] = bmp
-            else:
-                default = self.mm.get_default('filesMode','BIG_DEFAULT_THUMB')
-                thumbPanel.setBitmap(default)
-                
+            self.getThumbnailLarge(torrent,thumbPanel)
         elif mode in ['personsMode', 'friendMode']:
             # get thumbimage of person
             if False:
@@ -1555,6 +1522,53 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             self.subscrDataCopy_yday_top = yesterdayl[0]
         return update
     """
+            
+    def getThumbnailLarge(self,torrent,thumbPanel):
+        readable = torrent.get('metadata',{}).get('ThumbReadable')
+        if readable == False:
+            default = self.mm.get_default('filesMode','BIG_DEFAULT_THUMB')
+            thumbPanel.setBitmap(default)
+            return
+
+        # Arno: Read big image on demand
+        (torrent_dir,torrent_name) = self.metadatahandler.get_std_torrent_dir_name(torrent)
+        torrent_filename = os.path.join(torrent_dir, torrent_name)
+        metadata = loadAzureusMetadataFromTorrent(torrent_filename)
+
+        thumbnailString = metadata.get('Thumbnail')
+        if thumbnailString:
+            img = createThumbImage(thumbnailString)
+
+            #print 'Found thumbnail: %s' % thumbnailString
+            iw, ih = img.GetSize()
+            w, h = thumbPanel.GetSize()
+            if (iw/float(ih)) > (w/float(h)):
+                nw = w
+                nh = int(ih * w/float(iw))
+            else:
+                nh = h
+                nw = int(iw * h/float(ih))
+            if nw != iw or nh != ih:
+                #print 'Rescale from (%d, %d) to (%d, %d)' % (iw, ih, nw, nh)
+                try:
+                    # if wx >= 2.7, use Bicubic scaling
+                    img.Rescale(nw, nh, quality = wx.IMAGE_QUALITY_HIGH)
+                except:
+                    img.Rescale(nw, nh)
+            bmp = wx.BitmapFromImage(img)
+             
+            thumbPanel.setBitmap(bmp)
+            torrent['metadata']['ThumbReadable'] = True
+        else:
+            if 'metadata' not in torrent:
+                torrent['metadata'] = {}
+            torrent['metadata']['ThumbReadable'] = False
+            
+            default = self.mm.get_default('filesMode','BIG_DEFAULT_THUMB')
+            thumbPanel.setBitmap(default)
+                
+            
+            
             
 def revtcmp(a,b):
     if a[0] < b[0]:

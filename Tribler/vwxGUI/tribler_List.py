@@ -59,16 +59,14 @@ class FilesList(tribler_List):
             self.InsertColumn(1, self.utility.lang.get('size'))
             self.Bind(wx.EVT_SIZE, self.onListResize)
         self.initReady = True
-        
-    def setData(self, torrent):
+
+    def setData(self, torrent, metadatahandler):
         # Get the file(s)data for this torrent
         if not self.initReady:
             self._PostInit()
             
         if DEBUG:
             print >>sys.stderr,'tribler_List: setData of FilesTabPanel called'
-        torrent_dir = torrent.get('torrent_dir')
-        torrent_file = torrent.get('torrent_name')
         try:
             
             if torrent.get('web2') or 'query_permid' in torrent: # web2 or remote query result
@@ -76,12 +74,9 @@ class FilesList(tribler_List):
                 self.DeleteAllItems()
                 self.onListResize(None)
                 return {}
-	
-            if not os.path.exists(torrent_dir):
-                torrent_dir = os.path.join(self.utility.getConfigPath(), "torrent2")
-            
-            torrent_filename = os.path.join(torrent_dir, torrent_file)
-            
+
+            (torrent_dir,torrent_name) = metadatahandler.get_std_torrent_dir_name(torrent)
+            torrent_filename = os.path.join(torrent_dir, torrent_name)
             if not os.path.exists(torrent_filename):
                 if DEBUG:    
                     print >>sys.stderr,"tribler_List: Torrent: %s does not exist" % torrent_filename

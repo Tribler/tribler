@@ -9,6 +9,7 @@ from Tribler.utilities import *
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from safeguiupdate import FlaglessDelayedInvocation
 from Tribler.unicode import *
+from Utility.utility import getMetainfo
 from copy import deepcopy
 import cStringIO
 import TasteHeart
@@ -124,7 +125,7 @@ class FilesItemPanel(wx.Panel):
             self.datacopy['myDownloadHistory'] = torrent.get('myDownloadHistory')
             #web2.0 item elements
             self.datacopy['web2'] = torrent.get('web2')
-            self.datacopy['web2'] = torrent.get('preview')
+            self.datacopy['preview'] = torrent.get('preview')
         else:
             torrent = {}
 
@@ -221,7 +222,6 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         self.triblerGrey = wx.Colour(128,128,128)
         self.triblerLightGrey = wx.Colour(203,203,203)   
         self.guiUtility = GUIUtility.getInstance()
-        self.utility = self.guiUtility.utility
         self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
         self.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
@@ -313,15 +313,8 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
 
             # We can't do any wx stuff here apparently, so the only thing we can do is to
             # read the data from the torrent file and create the wxBitmap in the GUI callback.
-            
-            metadata = self.utility.getMetainfo(torrent_filename)
-            if not metadata:
-                return None
-            
-            newmetadata = metadata.get('azureus_properties', {}).get('Content',{})
-            for key in ['encoding','comment','comment-utf8']: # 'created by'
-                if key in metadata:
-                    newmetadata[key] = metadata[key]
+
+            newmetadata = loadAzureusMetadataFromTorrent(torrent_filename)
         else:
             newmetadata = { 'Thumbnail' : torrent['preview'] }
 
@@ -338,21 +331,9 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         if thumbnailString:
             #print 'Found thumbnail: %s' % thumbnailString
             
-            try:
-                # Simple protection against bad parsing of websites, if the
-                # image data is HTML, ignore it.
-                low = thumbnailString.lower()
-                if low.find('<html>') != -1:
-                    return
-            except:
-                print_exc()
-                pass
-            
-            stream = cStringIO.StringIO(thumbnailString)
-            img =  wx.ImageFromStream( stream )
-            if not img.Ok():
+            img = createThumbImage(thumbnailString)
+            if img is None:
                 return
-            
             bmp = self.getResizedBitmapFromImage(img, filesModeThumbSize)
             if bmp:
                 metadata['ThumbnailBitmap'] = bmp
@@ -473,3 +454,34 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             else:
                 dc.SetPen(wx.Pen(self.triblerLightGrey, 2))
             dc.DrawLines(self.border)
+
+
+def loadAzureusMetadataFromTorrent(torrent_filename):
+    metadata = getMetainfo(torrent_filename)
+    if not metadata:
+        return None
+            
+    newmetadata = metadata.get('azureus_properties', {}).get('Content',{})
+    for key in ['encoding','comment','comment-utf8']: # 'created by'
+        if key in metadata:
+            newmetadata[key] = metadata[key]
+    return newmetadata
+
+
+def createThumbImage(imgdata):
+    try:
+        # Simple protection against bad parsing of websites, if the
+        # image data is HTML, ignore it.
+        
+        low = imgdata[:5].lower()
+        if low == '<html' or low == '<!doc':
+            return None
+    except:
+        #print_exc()
+        pass
+    
+    stream = cStringIO.StringIO(imgdata)
+    img =  wx.ImageFromStream(stream)
+    if not img.Ok():
+        return None
+    return img

@@ -580,32 +580,7 @@ class Utility:
         return  text
             
     def getMetainfo(self, src, openoptions = 'rb', style = "file"):
-        if src is None:
-            return None
-        
-        metainfo = None
-        try:
-            metainfo_file = None
-            # We're getting a url
-            if style == "rawdata":
-                return bdecode(src)
-            elif style == "url":
-                metainfo_file = urlopen(src)
-            # We're getting a file that exists
-            elif os.access(src, os.R_OK):
-                metainfo_file = open(src, openoptions)
-            
-            if metainfo_file is not None:
-                metainfo = bdecode(metainfo_file.read())
-                metainfo_file.close()
-        except:
-            if metainfo_file is not None:
-                try:
-                    metainfo_file.close()
-                except:
-                    pass
-            metainfo = None
-        return metainfo
+        return getMetainfo(src,openoptions=openoptions,style=style)
         
     def speed_format(self, s, truncate = 1, stopearly = None):
         return self.size_format(s, truncate, stopearly) + "/" + self.lang.get('l_second')
@@ -951,3 +926,31 @@ class Utility:
             bindto.Bind(wx.EVT_MENU, event, id = newid)
         menu.Append(newid, text)
         return newid
+
+def getMetainfo(src, openoptions = 'rb', style = "file"):
+    if src is None:
+        return None
+    
+    metainfo = None
+    try:
+        metainfo_file = None
+        # We're getting a url
+        if style == "rawdata":
+            return bdecode(src)
+        elif style == "url":
+            metainfo_file = urlopen(src)
+        # We're getting a file that exists
+        elif os.access(src, os.R_OK):
+            metainfo_file = open(src, openoptions)
+        
+        if metainfo_file is not None:
+            metainfo = bdecode(metainfo_file.read())
+            metainfo_file.close()
+    except:
+        if metainfo_file is not None:
+            try:
+                metainfo_file.close()
+            except:
+                pass
+        metainfo = None
+    return metainfo

@@ -358,8 +358,10 @@ class TorrentDataManager:
             
         # Arno: to save mem I delete some fields here
         del torrent['info']
+        
         if 'torrent_dir' in torrent and torrent['torrent_dir'] == self.collected_torrent_dir:
             # Will be determined on the fly
+            #print "torrentManager: deleting torrent_dir"
             del torrent['torrent_dir']
             del torrent['torrent_name']
         

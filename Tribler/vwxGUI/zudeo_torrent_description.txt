@@ -24,3 +24,6 @@ info:{
 		}
 created by:Azureus/3.0.0.6
 announce:http://tracker02.azureusplatform.com:10000/announce
+
+
+# Typical size of Thumbnail: (171, 96)
