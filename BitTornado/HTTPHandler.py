@@ -165,3 +165,27 @@ class HTTPHandler:
         if t - self.lastflush > self.minflush:
             self.lastflush = t
             stdout.flush()
+
+
+class DummyHTTPHandler:
+    def __init__(self):
+        pass
+
+    def external_connection_made(self, connection):
+        reply = 'HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\nTribler Internal Tracker not activated.\r\n'
+        connection.write(reply)
+        connection.close()
+
+    def connection_flushed(self, connection):
+        pass
+
+    def connection_lost(self, connection):
+        pass
+
+    def data_came_in(self, connection, data):
+        pass
+
+    def log(self, ip, ident, username, header,
+            responsecode, length, referrer, useragent):
+        year, month, day, hour, minute, second, a, b, c = time.localtime(time.time())
+        pass

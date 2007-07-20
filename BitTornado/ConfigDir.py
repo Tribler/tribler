@@ -122,6 +122,10 @@ class ConfigDir:
         if not os.path.isdir(self.dir_piececache):
             os.mkdir(self.dir_piececache)
 
+        self.dir_itracker = os.path.join(self.dir_root, 'itracker')
+        if not os.path.isdir(self.dir_itracker):
+            os.mkdir(self.dir_itracker)
+
         self.configfile = os.path.join(self.dir_root, 'config'+config_ext+'.ini')
         self.statefile = os.path.join(self.dir_root, 'state'+config_ext)
 

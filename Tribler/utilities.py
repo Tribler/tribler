@@ -82,27 +82,24 @@ def isValidName(name):
 def show_permid(permid):
     # Full BASE64-encoded 
     if not permid:
-        return ''
+        return 'None'
     return encodestring(permid).replace("\n","")
     # Short digest
     ##return sha(permid).hexdigest()
 
 def show_permid_short(permid):
     if not permid:
-        return ''
+        return 'None'
     s = encodestring(permid).replace("\n","")
     return s[-10:]
     #return encodestring(sha(s).digest()).replace("\n","")
 
 def show_permid_shorter(permid):
     if not permid:
-        return ''
+        return 'None'
     s = encodestring(permid).replace("\n","")
     return s[-5:]
 
-def show_permid2(permid):
-    return show_permid_short(permid)
-    
 def readableBuddyCastMsg(buddycast_data):
     # convert msg to readable format
     prefxchg_msg = deepcopy(buddycast_data)
@@ -228,8 +225,10 @@ def friendly_time(old_time):
         return strftime("%d-%m-%Y", gmtime(old_time))
         
 def sort_dictlist(dict_list, key, order='increase'):
+    
     aux = []
     for i in xrange(len(dict_list)):
+        #print >>sys.stderr,"sort_dictlist",key,"in",dict_list[i].keys(),"?"
         if key in dict_list[i]:
             aux.append((dict_list[i][key],i))
     aux.sort()

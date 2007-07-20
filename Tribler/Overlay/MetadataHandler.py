@@ -69,6 +69,9 @@ class MetadataHandler:
         self.next_upload_time = 0
         self.initialized = True
 
+    def register2(self,rquerytorrenthandler):
+        self.rquerytorrenthandler = rquerytorrenthandler
+
 
     def handleMessage(self,permid,selversion,message):
         
@@ -268,20 +271,24 @@ class MetadataHandler:
             return None
 
 
-    def addTorrentToDB(self, src, torrent_hash, metadata, source='BC', extra_info={}, hack=False):
+    def addTorrentToDB(self, filename, torrent_hash, metadata, source='BC', extra_info={}, hack=False):
         
         metainfo = bdecode(metadata)
         namekey = name2unicode(metainfo)  # convert info['name'] to type(unicode)
         info = metainfo['info']
         
         torrent = {}
-        torrent['torrent_dir'], torrent['torrent_name'] = os.path.split(src)
+        torrent['torrent_dir'], torrent['torrent_name'] = os.path.split(filename)
         
         torrent_info = {}
         torrent_info['name'] = info.get(namekey, '')
         
         catobj = Category.getInstance()
         torrent['category'] = catobj.calculateCategory(info, torrent_info['name'])
+        
+        #if DEBUG:
+        #    print >>sys.stderr,"metadata: Category for",`torrent_info['name']`,torrent['category']
+        
         for cat in torrent['category']:
             rank = catobj.getCategoryRank(cat)
             if rank == -1:
@@ -366,16 +373,18 @@ class MetadataHandler:
         #rawserver = self.secure_overlay.rawserver    # not a good way, but simple
         #rawserver.add_task(self.check_free_space, delay)
         
-    def check_overflow(self):    # check if torrents are more than enough
+    def check_overflow(self):    # check if there are too many torrents relative to the free disk space
         if self.num_torrents < 0:
-            collected_torrents = self.torrent_db.getCollectedTorrents()
-            self.num_torrents = len(collected_torrents)
+            collected_infohashes = self.torrent_db.getCollectedTorrentHashes()
+            self.num_torrents = len(collected_infohashes)
             #print >> sys.stderr, "**** torrent collectin self.num_torrents=", self.num_torrents
 
-        #print "------"*5, "check overflow is called", "current", self.num_torrents, "max", self.max_num_torrents
+        if DEBUG:
+            print >>sys.stderr,"metadata: check overflow: current", self.num_torrents, "max", self.max_num_torrents
+        
         if self.num_torrents > self.max_num_torrents:
             num_delete = int(self.num_torrents - self.max_num_torrents*0.95)
-            #print >> sys.stderr, "** limit space::", self.num_torrents, self.max_num_torrents, num_delete
+            print "** limit space::", self.num_torrents, self.max_num_torrents, num_delete
             self.limit_space(num_delete)
             
     def limit_space(self, num_delete):
@@ -395,29 +404,42 @@ class MetadataHandler:
             
             relevance = min(torrent.get('relevance', 0), 25000)
             
-            date = torrent.get('creation date', 0)
+            info = torrent.get('info',{})
+            cdate = info.get('creation date', '0')
+            try:
+                date = int(cdate)
+            except:
+                cdate = torrent.get('inserttime',0)
+                try:
+                    date = int(cdate)
+                except:
+                    date = 0
             age = max(int(time())-date, 24*60*60)
             rel_date = min(age/(24*60*60), 1000)    # [1, 1000]
             
             weight = status*1000 + retry_number*100 + rel_date - relevance/10 - leechers - 3*seeders
             return weight
         
-        #print "---------"*5, "limit space called", self.num_torrents, self.max_num_torrents
-        collected_torrents = self.torrent_db.getCollectedTorrents(light=False)
-        self.num_torrents = len(collected_torrents)    # sync point
-        #print "---------"*5, "collected torrents", self.num_torrents
-        for i in xrange(self.num_torrents):
-            torrent = collected_torrents[i]
-            torrent['weight'] = get_weight(torrent)
-        collected_torrents = sort_dictlist(collected_torrents, 'weight', order='decrease')
-        
-        for torrent in collected_torrents[:num_delete]:
-            infohash = torrent['infohash']
+        collected_infohashes = self.torrent_db.getCollectedTorrentHashes()
+        self.num_torrents = len(collected_infohashes)    # sync point
+
+        if DEBUG:
+            print >>sys.stderr,"metadata: limit space: num", self.num_torrents,"max", self.max_num_torrents
+
+        weighted_infohashes = []
+        for infohash in collected_infohashes:
+            torrent = self.torrent_db.getTorrent(infohash)
+            weight = get_weight(torrent)
+            weighted_infohashes.append((weight,infohash))
+        weighted_infohashes.sort()
+
+        for (weight,infohash) in weighted_infohashes[-num_delete:]:
             deleted = self.torrent_db.deleteTorrent(infohash, delete_file=True, updateFlag=True)
             if deleted > 0:
                 self.num_torrents -= 1
-            #print "---------"*5, "delete torrent, succeeded?", deleted, self.num_torrents
-        del collected_torrents
+            if DEBUG:
+                print >>sys.stderr,"metadata: limit space: delete torrent, succeeded?", deleted, self.num_torrents,weight
+
         if num_delete > 0:
             self.free_space = self.get_free_space()
         
@@ -511,9 +533,15 @@ class MetadataHandler:
             print >> sys.stderr, "problem metadata:", repr(metadata)
             return False
         
-    def got_metadata(self, message, selversion):    # receive torrent file from others
-        if self.upload_rate <= 0:    # if no upload, no download, that's the game
-            return True    # don't close connection
+    def got_metadata(self, message, selversion):    
+        """ receive torrent file from others """
+        
+        # Arno, 2007-06-20: Disabled the following code. What's this? Somebody sends 
+        # us something and we refuse? Also doesn't take into account download help 
+        #and remote-query extension.
+        
+        #if self.upload_rate <= 0:    # if no upload, no download, that's the game
+        #    return True    # don't close connection
         
         try:
             message = bdecode(message[1:])
@@ -559,9 +587,12 @@ class MetadataHandler:
             
             if self.dlhelper is not None:
                 self.dlhelper.call_dlhelp_task(torrent_hash, metadata)
-        except Exception, msg:
-            print_exc(file=sys.stderr)
-            print >> sys.stderr,"metadata: Received metadata is broken", msg
+            if self.rquerytorrenthandler is not None:
+                self.rquerytorrenthandler.got_torrent(torrent_hash,metadata)
+                
+        except Exception, e:
+            print_exc()
+            print >> sys.stderr,"metadata: Received metadata is broken",e
         
         return True
         
@@ -616,4 +647,15 @@ class MetadataHandler:
         if not self.initialized:
             return []
         return self.recently_collected_torrents[-1*num:]    # get the last ones
-        
+
+
+    def get_std_torrent_dir_name(self,torrent):
+        """ torrent must be a db-record dict with infohash """
+    
+        if 'torrent_dir' not in torrent or not os.path.exists(torrent['torrent_dir']):
+            torrent_dir = os.path.join(self.config_dir,'torrent2')
+            torrent_name = self.get_filename(torrent['infohash'])
+        else:
+            torrent_dir = torrent['torrent_dir']
+            torrent_name = torrent['torrent_name']
+        return (torrent_dir,torrent_name)

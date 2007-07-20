@@ -818,8 +818,8 @@ class ABCTorrent:
             title = self.metainfo['info'][self.namekey]
         elif kind == "torrent":
             torrentfilename = os.path.split(self.src)[1]
-            torrentfilename = torrentfilename[:torrentfilename.rfind('.torrent')]
-            title = torrentfilename
+            (prefix,ext) = os.path.splitext(torrentfilename)
+            title = prefix
         elif kind == "dest":
             if self.files.isFile():
                 destloc = self.files.dest

@@ -28,6 +28,7 @@ import Category.Category as category
 from NATFirewall.guessip import get_my_wan_ip
 
 ## Global initialization
+TRIBLER_TORRENT_EXT = ".tribe"
 
 ## Moved to BitTornado/download_bt1.py where all config is done
 # class GLOBAL:

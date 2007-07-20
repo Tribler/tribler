@@ -21,6 +21,8 @@ from Utility.constants import COL_PROGRESS
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Dialogs.GUIServer import GUIServer
 from Tribler.CacheDB.CacheDBHandler import MyPreferenceDBHandler
+from Tribler.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
+
 
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'subscriptionsMode', 'messageMode']
 
@@ -457,9 +459,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     sizeField.SetLabel(torrent['length'])
 
                 
-                if torrent.get('info', {}).get('creation date'):
+                if torrent.get('date',0):
                     creationField = self.getGuiObj('creationdateField')
-                    creationField.SetLabel(friendly_time(torrent['info']['creation date']))
+                    creationField.SetLabel(friendly_time(torrent['date']))
 
                     
                 if torrent.get('web2'):
@@ -1294,6 +1296,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             return panel
         
     def mouseAction(self, event):
+        """ Arno: apparently not used, see GUIUtility.buttonClicked() """ 
         if DEBUG:
             print >>sys.stderr,'standardDetails: mouseAction'
         
@@ -1323,15 +1326,28 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 #        return self.enabled
 
     def download(self, torrent = None, dest = None):
-        if torrent == None:
+        if torrent is None:
             torrent = self.item
+
+        if torrent is None:
+            return
             
         if torrent.get('web2'):
             if DEBUG:
-                print "PLAY WEB2 VIDEO: " + torrent['url']
+                print >>sys.stderr,"standardDetails: Playing WEB2 video: " + torrent['url']
             #self.videoplayer.parentwindow.swapin_videopanel(torrent['url'])
             self.videoplayer.play_url(torrent['url'])
-            return
+            return True
+
+        if 'query_permid' in torrent:
+            if DEBUG:
+                print >>sys.stderr,"standardDetails: User selected query result for download"
+            try:
+                rth = RemoteTorrentHandler.getInstance()
+                rth.download(torrent)
+            except:
+                print_exc()
+            return True
 
         src1 = os.path.join(torrent['torrent_dir'], 
                             torrent['torrent_name'])

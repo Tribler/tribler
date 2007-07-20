@@ -142,6 +142,15 @@ Section "Make Default" SecDefault
    WriteRegStr HKCR "bittorrent\shell" "" open
    WriteRegStr HKCR "bittorrent\shell\open\command" "" '"$INSTDIR\${PRODUCT}.exe" "%1"'
    WriteRegStr HKCR "bittorrent\DefaultIcon" "" "$INSTDIR\torrenticon.ico"
+
+   WriteRegStr HKCR .tribe "" tribe
+   WriteRegStr HKCR .tribe "Content Type" application/x-tribe
+   WriteRegStr HKCR "MIME\Database\Content Type\application/x-tribe" Extension .tribe
+   WriteRegStr HKCR tribe "" "TRIBE File"
+   WriteRegBin HKCR tribe EditFlags 00000100
+   WriteRegStr HKCR "tribe\shell" "" open
+   WriteRegStr HKCR "tribe\shell\open\command" "" '"$INSTDIR\${PRODUCT}.exe" "%1"'
+   WriteRegStr HKCR "tribe\DefaultIcon" "" "$INSTDIR\torrenticon.ico"
 SectionEnd
 
 ;--------------------------------

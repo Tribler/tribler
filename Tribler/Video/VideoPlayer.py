@@ -638,6 +638,7 @@ class VODWarningDialog(wx.Dialog):
         wx.Dialog.__init__(self,parent,-1,title,style=style)
 
         maxuploadrate = self.utility.config.Read('maxuploadrate', 'int')
+        maxmeasureduploadrate = self.utility.queue.getMaxMeasuredUploadRate()
         
         bitrate = videoinfo[2]
         msg = self.utility.lang.get('vodwarngeneral')
@@ -650,6 +651,12 @@ class VODWarningDialog(wx.Dialog):
             msg += s
             msg += self.is_mov_file(videoinfo)
             msg += self.utility.lang.get('vodwarnconclusionno')
+        elif bitrate > maxmeasureduploadrate and maxuploadrate == 0:
+            s = self.utility.lang.get('vodwarnbitrateinsufficientmeasured') % (str(bitrate/1024),str(maxuploadrate)+" KB/s")
+            msg += s
+            msg += self.is_mov_file(videoinfo)
+            msg += self.utility.lang.get('vodwarnconclusionno')
+            
         else:
             if maxuploadrate == 0:
                 rate = self.utility.lang.get('unlimited')

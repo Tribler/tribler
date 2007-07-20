@@ -415,8 +415,8 @@ class TorrentDBHandler(BasicDBHandler):
         
         return True
                 
-    def getTorrent(self, infohash, num_owners=False):
-        torrent = self.torrent_db.getItem(infohash)
+    def getTorrent(self, infohash, num_owners=False,savemem=False):
+        torrent = self.torrent_db.getItem(infohash,savemem=savemem)
         if torrent and num_owners:
             torrent['num_owners'] = self.owner_db.getNumOwners(infohash)
         return torrent
@@ -447,79 +447,6 @@ class TorrentDBHandler(BasicDBHandler):
     def getAllTorrents(self):
         return self.torrent_db._keys()
         
-#===============================================================================
-#    def getRecommendedTorrents2(self, light=True, all=False):
-#        """ get torrents on disk but not in my pref
-#           BE AWARE: the returned object of this call may consume lots of memory.
-#           You should delete the object when possible
-#        """
-#        
-#        #print '>>>>>>'*5, "getRecommendedTorrents", currentThread().getName()
-#        #print_stack()
-#        #loaded by DataLoadingThread
-#        
-#        start_time = time()
-#        
-#        mypref_set = Set(self.mypref_db._keys())
-#        
-# #        wrong = 0
-# #        for torrent in all_list:
-# #            for torrent2 in all_list:
-# #                if torrent is torrent2:
-# #                    continue
-# #                if torrent == torrent2:
-# #                    print 'Double hash: %s, %s' % (torrent, torrent2)
-# #                    wrong+=1
-# #        print 'CacheDB: %d (div by 2) double items of %d total' % (wrong, len(all_list))
-# 
-#        torrents = []
-#        num_live_torrents = 0 
-#        setOfInfohashes = Set()    # avoid duplicated infohashes in a problematic db
-#        
-#        for torrent,p in self.torrent_db._iteritems():
-#            #if not self.hasMetaData(torrent):
-#            #    continue
-#            #p = self.torrent_db.getItem(torrent)
-#            #if not p:
-#            #    break #database not available any more
-#            if not p.get('torrent_name', None) or not p.get('info', None):
-#                deleted = self.deleteTorrent(torrent)     # remove infohashes without torrent
-#                #print >> sys.stderr, "*** deleted empty torrent", deleted
-#            if torrent in setOfInfohashes: # do not add 2 torrents with same infohash
-#                continue
-#            
-#            if all:
-#                if torrent in mypref_set:
-#                    p['myDownloadHistory'] = True
-#                    mypref_obj = self.mypref_db.getItem(torrent)
-#                    if mypref_obj:
-#                        p['download_started'] = mypref_obj['created_time']
-#            else:
-#                if torrent in mypref_set:
-#                    continue
-# 
-#            live = p.get('status', 'unknown')
-#            if live != 'dead' and live != 'unknown':
-#                num_live_torrents += 1
-#                    
-#            p['infohash'] = torrent
-#            setOfInfohashes.add(torrent)
-#            if not light:    # set light as ture to be faster
-#                p['num_owners'] = self.owner_db.getNumOwners(torrent)
-#            torrents.append(p)
-#            
-#        #del all_list
-#        del setOfInfohashes
-#        
-# #        from traceback import print_stack
-# #        print_stack()
-#        print >> sys.stderr, '[StartUpDebug]----------- from getRecommendedTorrents ----------', time()-start_time, currentThread().getName(), '\n\n'
-#        
-#        self.torrent_db.num_metadatalive = num_live_torrents
-#        #print 'Returning %d torrents' % len(torrents)
-#        
-#        return torrents
-#===============================================================================
         
     def getRecommendedTorrents(self, light=True, all=False):     
         """ get torrents on disk but not in my pref
@@ -539,6 +466,11 @@ class TorrentDBHandler(BasicDBHandler):
         else:
             all_list = Set(self.torrent_db._keys()) - mypref_set
 
+        # Arno: save memory by reusing dict keys
+        key_infohash = 'infohash'
+        key_myDownloadHistory = 'myDownloadHistory'
+        key_download_started = 'download_started'
+        key_num_owners = 'key_num_owners'
         
         torrents = []
 #        num_live_torrents = 0 
@@ -546,12 +478,12 @@ class TorrentDBHandler(BasicDBHandler):
         for torrent in all_list:
             if torrent in setOfInfohashes: # do not add 2 torrents with same infohash
                 continue
-            p = self.torrent_db.getItem(torrent)
+            p = self.torrent_db.getItem(torrent,savemem=True)
             if not p:
                 break #database not available any more
             if not type(p) == dict or not p.get('torrent_name', None) or not p.get('info', None):
                 deleted = self.deleteTorrent(torrent)     # remove infohashes without torrent
-                print >> sys.stderr, "*** deleted empty torrent", deleted, p.get('torrent_name', None), p.get('info', None)
+                print >> sys.stderr, "TorrentDBHandler: deleted empty torrent", deleted, p.get('torrent_name', None), p.get('info', None)
             
 #            if torrent not in mypref_set:
 #                live = p.get('status', 'unknown')
@@ -559,15 +491,16 @@ class TorrentDBHandler(BasicDBHandler):
 #                    num_live_torrents += 1
                     
             if all and torrent in mypref_set:
-                p['myDownloadHistory'] = True
+                p[key_myDownloadHistory] = True
                 mypref_obj = self.mypref_db.getItem(torrent)
                 if mypref_obj:
-                    p['download_started'] = mypref_obj['created_time']
+                    p[key_download_started] = mypref_obj['created_time']
                     
-            p['infohash'] = torrent
+            p[key_infohash] = torrent
             setOfInfohashes.add(torrent)
             if not light:    # set light as ture to be faster
-                p['num_owners'] = self.owner_db.getNumOwners(torrent)
+                p[key_num_owners] = self.owner_db.getNumOwners(torrent)
+                
             torrents.append(p)
             
         del all_list
@@ -582,59 +515,14 @@ class TorrentDBHandler(BasicDBHandler):
         
         return torrents
         
-    def getCollectedTorrents(self, light=True, all=False): 
-        """ get torrents on disk, used by torrent checking, and metadata handler; 
-            memory reduced version of getRecommendedTorrents 
+    def getCollectedTorrentHashes(self): 
+        """ get infohashes of torrents on disk, used by torrent checking, 
+            and metadata handler
         """
-        
-        #print '>>>>>>'*5, "getCollectedTorrents", currentThread().getName()
-        #print_stack()
-        #result: loaded by MetadataHandler (deleted after use) and TorrentCheckingList (deleted after use)
-                    
-        start_time = time()
         all_list = Set(self.torrent_db._keys())
-        if not all:
-            all_list -= Set(self.mypref_db._keys())
-            
-        torrents = []
-        num_total_torrents = 0
-        for torrent in all_list:
-            p = self.torrent_db.getItem(torrent)
-            if not p:    # database is closed
-                break
-            if not type(p) == dict or not p.get('torrent_name', None) or not p.get('info', None):
-                continue
-            
-            if light:
-                torrents.append(torrent)
-            else:
-                item = {}
-                item['infohash'] = torrent
-                                
-                info = p.get('info', {})
-                if not info:
-                    continue
-                try:
-                    date = int(info.get('creation date', 0))
-                except:
-                    date = 0
-                item['creation date'] = date
-                        
-                for key in ['status','leecher','seeder','retry_number','relevance','ignore_number','last_check_time']:
-                    item[key] = p.get(key, None)
-                item['infohash'] = torrent
-                item['info'] = {'announce-list':info.get("announce-list", ""),
-                                'announce':info.get("announce", "")
-                                }
-                
-                torrents.append(item)
-        
-#        from traceback import print_stack
-#        print_stack()
-#        print >> sys.stderr, '[StartUpDebug]----------- from getCollectedTorrents ----------', time()-start_time, currentThread().getName(), '\n\n'
-        
-        return torrents
-        
+        all_list -= Set(self.mypref_db._keys())
+
+        return all_list
     
     def hasTorrent(self, infohash):
         return self.torrent_db._has_key(infohash)
@@ -801,6 +689,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
         self.mypref_db.updateItem(infohash, {'rank':rank})
         self.sync()
 
+
 class OwnerDBHandler(BasicDBHandler):
     
     def __init__(self, db_dir=''):
@@ -822,9 +711,7 @@ class OwnerDBHandler(BasicDBHandler):
            torrent_hash: the infohash of a torrent
            num: the number of similar torrents to get
         output: 
-           if name is False, return a list of infohashes, sorted by similarity,
-           otherwise return a list of tuples, each of which contains a torrent's 
-           infohash and content name.
+           returns a list of infohashes, sorted by similarity,
         """
 
         start = time()

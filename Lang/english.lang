@@ -407,6 +407,7 @@ randomport 		= "Randomize Ports"
 kickban 		= "Kick/Ban clients that send you bad data"
 security 		= "Don't allow multiple connections from the same IP"
 scrape 			= "Retrieve scrape data"
+internaltrackerurl = "URL of internal tracker"
 
 scrape_hint_line1 = "Automatically retrieve the total number of seeds/peers"
 scrape_hint_line2 = "connected to the tracker"
@@ -559,9 +560,9 @@ maketorrentof 		= "Source :"
 dir 				= "Dir"
 add 				= "Add"
 remove 				= "Remove"
-announce			= "Announce"
+announce			= "Tracker"
 announcelist 		= "Announce list :"
-copyannouncefromtorrent = "Copy announce from torrent"
+copyannouncefromtorrent = "Copy tracker from torrent"
 createdby			= "Created By :"
 
 trackerinfo			= "Tracker Info"
@@ -591,6 +592,8 @@ no 					= "No"
 notoall				= "No to All"
 playtime			= "Duration of video ([hh:]mm:ss)"
 addthumbnail		= "Thumbnail"
+useinternaltracker = "Use internal tracker"
+manualtrackerconfig = "Use additional trackers (you must place internal tracker URL)"
 
 ###########################################################
 # BTcompletedirgui
@@ -1067,6 +1070,7 @@ act_meet = "Person connected:\n"
 act_got_metadata = "File discovered:"
 act_recommend = "Discovered more persons and files from"
 act_disk_full = "Disk is full to collect more torrents. Please change your preferences or free space on "
+act_new_version = "New version of Tribler available"
 
 #############
 #Tribler UI - ContentFrontPanel, Tribler 3.6
@@ -1133,7 +1137,8 @@ selectdlulbwexplan = "For optimal performance, Tribler needs to know your Intern
 vodwarntitle = "Experimental Feature Warning"
 vodwarngeneral = "Tribler Video-On-Demand is a highly experimental feature that allows you to watch videos while they are downloading, given you have sufficient upload bandwidth and/or a lot of people are offering the video for download. "
 vodwarnbitrateunknown = "The video you have selected has a unknown bitrate. "
-vodwarnbitrateinsufficient = "The video you have selected has a bitrate of %s KB/s, and your upload bandwidth is %s. "
+vodwarnbitrateinsufficient = "The video you have selected has a bitrate of %s KB/s, and your upload bandwidth is just %s. "
+vodwarnbitrateinsufficientmeasured = "The video you have selected has a bitrate of %s KB/s, and your best measured upload bandwidth is just %s. "
 vodwarnmov = "The selected video is a .MOV which usually cannot be played on demand. "
 vodwarnconclusionno = "So it's not clear whether there is enough bandwidth to watch it."
 vodwarnbitratesufficient = "The video you have selected has a bitrate of %s KB/s, and your upload bandwidth is %s. "

@@ -1,3 +1,4 @@
+import sys
 import copy, threading
 from Tribler import Web2
 from Tribler.Web2.util.observer import Observer
@@ -78,6 +79,7 @@ class DataOnDemand:
 class DataOnDemandWeb2(DataOnDemand, Observer):
 
     def __init__(self, query, type='video', sort=lambda x:x):
+        #print >>sys.stderr,"DataOnDemandWeb2: query is",query
         DataOnDemand.__init__(self, sort)
         Observer.__init__(self)
         self.web2querylock = threading.RLock()

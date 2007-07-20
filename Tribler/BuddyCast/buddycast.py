@@ -170,7 +170,7 @@ from Tribler.utilities import *
 from Tribler.unicode import dunno2unicode
 from Tribler.Dialogs.activities import ACT_MEET, ACT_RECOMMEND
 from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
-from Tribler.Overlay.SecureOverlay import OLPROTO_VER_FOURTH, OLPROTO_VER_THIRD, OLPROTO_VER_SECOND, OLPROTO_VER_CURRENT
+from Tribler.Overlay.SecureOverlay import *
 from similarity import P2PSim, P2PSimSorted, P2PSimLM
 from TorrentCollecting import SimpleTorrentCollecting   #, TiT4TaTTorrentCollecting
 from Tribler.Statistics.Logger import OverlayLogger
@@ -187,6 +187,8 @@ def ctime(t):
     return strftime("%Y-%m-%d.%H:%M:%S", gmtime(t))
 
 def validBuddyCastData(prefxchg, nmyprefs=50, nbuddies=10, npeers=10, nbuddyprefs=10):
+    
+    # Arno: TODO: make check version dependent
     
     def validPeer(peer):
         validPermid(peer['permid'])
@@ -364,6 +366,10 @@ class BuddyCastFactory:
     def delMyPref(self, torrent):
         if self.registered:
             self.data_handler.delMyPref(torrent)
+    
+    def getTasteBuddies(self):
+        return self.buddycast_core.getAllTasteBuddies()
+    
     
 class BuddyCastCore:
     def __init__(self, secure_overlay, launchmany, data_handler, 
@@ -812,6 +818,14 @@ class BuddyCastCore:
             recent_collect = self.metadata_handler.getRecentlyCollectedTorrents(self.max_collected_torrents)
             buddycast_data['collected torrents'] = recent_collect
         
+        if selversion >= OLPROTO_VER_SIXTH:
+            npeers = self.data_handler.get_npeers()
+            ntorrents = self.data_handler.get_ntorrents()
+            nmyprefs = self.data_handler.get_nmyprefs()
+            buddycast_data['npeers'] = npeers
+            buddycast_data['nfiles'] = ntorrents
+            buddycast_data['ndls'] = nmyprefs
+            
         return buddycast_data
 
     def getTasteBuddies(self, ntbs, ntbprefs, target_permid, target_ip, target_port, selversion):
@@ -1036,6 +1050,9 @@ class BuddyCastCore:
             for tb in tbs:
                 sim = tb.get('similarity', 0)
                 max_tb_sim = max(max_tb_sim, sim)
+                
+        if selversion >= OLPROTO_VER_SIXTH:
+            self.data_handler.updatePeerLevelStats(sender_permid,buddycast_data['npeers'],buddycast_data['nfiles'],buddycast_data['ndls'])
                 
         tbs += [buddycast_data]
         for tb in tbs:
@@ -1454,6 +1471,9 @@ class BuddyCastCore:
         sys.stdout.flush()
         sys.stderr.flush()
 
+    def getAllTasteBuddies(self):
+        return self.connected_taste_buddies
+        
         
 class DataHandler:
     def __init__(self, rawserver, db_dir=''):
@@ -1914,4 +1934,17 @@ class DataHandler:
         # using negative value to indicate this sim comes from others
         self.peers[peer_permid][0] = peer_sim
         
-        
+    def get_npeers(self):
+        return self.peer_db.size()
+    
+    def get_ntorrents(self):
+        return self.torrent_db.size()
+    
+    def get_nmyprefs(self):
+        return self.mypref_db.size()
+    
+    def updatePeerLevelStats(self,permid,npeers,ntorrents,nprefs):
+        d = {'npeers':npeers,'ntorrents':ntorrents,'nprefs':nprefs}
+        for k,v in d:
+            self.peer_db.updatePeer(permid,k,v)
+            

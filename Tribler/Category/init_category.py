@@ -31,7 +31,7 @@ def getDefault():
     category["keywords"] ={}
     category["suffix"] = []
     category["minfilesize"] = 0
-    category["maxfilesize"] = 10000000
+    category["maxfilesize"] = -1
     return category
 
 def getCategoryInfo(filename):

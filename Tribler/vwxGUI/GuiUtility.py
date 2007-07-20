@@ -12,9 +12,9 @@ from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 from Tribler.CacheDB.CacheDBHandler import MyDBHandler
 from Tribler.Overlay.permid import permid_for_user
 from Tribler.Dialogs.makefriends import MakeFriendsDialog
-from torrentManager import TorrentDataManager
 from peermanager import PeerDataManager
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
+from Tribler.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
 
 #from Tribler.vwxGUI.filesFilter import filesFilter
 
@@ -243,7 +243,7 @@ class GUIUtility:
     def deleteTorrent(self, torrent):
         if torrent.get('web2'):
             return
-        pass
+        self.data_manager.deleteTorrent(torrent['infohash'],delete_file=True)
     
     def deleteSubscription(self,subscrip):
         self.standardOverview.loadSubscriptionData()
@@ -376,8 +376,20 @@ class GUIUtility:
 #            sorting = ('content_name', 'increase')
         sorting = None
         self.standardOverview.filterChanged(['search',sorting],setgui=True)
-    
-    
+
+        #
+        # Query the peers we are connected to
+        #
+        rqmh = RemoteQueryMsgHandler.getInstance()
+        rqmh.register2(self.data_manager)
+        q = ''
+        for kw in wantkeywords:
+            q += kw+' '
+            
+        # For TEST suite
+        #rqmh.test_sendQuery(q) 
+        rqmh.sendQuery(q) 
+
         
     def searchPersons(self):
         sf = self.standardOverview.getSearchField()
@@ -505,3 +517,4 @@ class GUIUtility:
 
     def getSearchField(self,mode=None):
        return self.standardOverview.getSearchField(mode=mode)
+   

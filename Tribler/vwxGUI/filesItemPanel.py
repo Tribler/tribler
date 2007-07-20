@@ -1,5 +1,9 @@
+# Written by Jelle Roozenburg, Maarten ten Brinke, Lucan Musat
+# see LICENSE.txt for license information
+
 import wx, math, time, os, sys, threading
 from traceback import print_exc,print_stack
+
 from Tribler.utilities import *
 #from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.vwxGUI.GuiUtility import GUIUtility
@@ -10,6 +14,8 @@ import cStringIO
 import TasteHeart
 from font import *
 
+from Tribler.Overlay.MetadataHandler import MetadataHandler
+
 DEBUG=False
 
 # font sizes
@@ -19,6 +25,11 @@ if sys.platform == 'darwin':
 else:
     FS_FILETITLE = 8
     FS_HEARTRANK = 7
+
+filesModeThumbSize = (125, 70)
+libraryModeThumbSize = (66, 37)
+
+
 
 class FilesItemPanel(wx.Panel):
     """
@@ -38,6 +49,7 @@ class FilesItemPanel(wx.Panel):
         self.warningMode = False
         self.oldCategoryLabel = None
         self.guiserver = parent.guiserver
+        self.metadatahandler = MetadataHandler.getInstance()
         self.addComponents()
         self.Show()
         self.Refresh()
@@ -78,6 +90,15 @@ class FilesItemPanel(wx.Panel):
             window.Bind(wx.EVT_LEFT_DCLICK, self.doubleClicked)
                              
     def setData(self, torrent):
+        
+        """
+        if DEBUG:
+            if torrent is None:
+                stat = 'None'
+            else:
+                stat = `torrent['content_name']`
+            print >>sys.stderr,"fip: setData:",stat
+        """
         
         if torrent is None:
             self.datacopy = None
@@ -170,6 +191,8 @@ class FilesItemPanel(wx.Panel):
         
     def getIdentifier(self):
         return self.data['infohash']
+
+
                 
 class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
     """
@@ -178,6 +201,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
 
     def __init__(self, parent, mode, **kw):    
         wx.Panel.__init__(self, parent, **kw)
+        self.metadatahandler = parent.metadatahandler
         self.mode = mode
         self._PostInit()
         
@@ -205,7 +229,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         self.selected = False
         self.border = None
         self.mm = self.GetParent().parent.mm
-        
+
     
     def setTorrent(self, torrent):
         if not torrent:
@@ -232,7 +256,9 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             if torrent.get('metadata'):
                 if self.mode == 'libraryMode':
                     # Make a resized thumb for lib view
-                    bmp = torrent['metadata'].get('ThumbnailBitmapLibrary')
+                    bmp = torrent['metadata'].get('ThumbnailBitmap')
+                    img = bmp.ConvertToImage()
+                    bmp = self.getResizedBitmapFromImage(img, libraryModeThumbSize)
                         
                 elif self.mode == 'filesMode':
                     bmp = torrent['metadata'].get('ThumbnailBitmap')
@@ -242,19 +268,18 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             else:
                 #print "fip: ThumbnailViewer: set: Scheduling read of metadata"
                 # web2.0 elements already have the thumbnail stored at key 'preview'
-                if not torrent.get('web2'):
-                    torrent_dir = torrent['torrent_dir']
-                    torrent_file = torrent['torrent_name']
-                
-                    if not os.path.exists(torrent_dir):
-                        torrent_dir = os.path.join(self.utility.getConfigPath(), "torrent2")
-                    torrent_filename = os.path.join(torrent_dir, torrent_file)
+                if 'query_permid' in torrent:
+                    # Remote query result, no .torrent file avail
+                    return
+                elif torrent.get('preview'):
+                    self.GetParent().guiserver.add_task(lambda:self.loadMetadata(torrent,None),0)
+                else:
+                    (torrent_dir,torrent_name) = self.metadatahandler.get_std_torrent_dir_name(torrent)
+                    torrent_filename = os.path.join(torrent_dir, torrent_name)
                     
                     if DEBUG:
                         print "fip: Scheduling read of thumbnail for",torrent_filename
                     self.GetParent().guiserver.add_task(lambda:self.loadMetadata(torrent,torrent_filename),0)
-                elif torrent.get('preview'):
-                    self.GetParent().guiserver.add_task(lambda:self.loadMetadata(torrent,None),0)
             
             self.setBitmap(bmp)
             width, height = self.GetSize()
@@ -264,7 +289,6 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             
         except:
             print_exc()
-            return {}           
         
          
     def setBitmap(self, bmp):
@@ -313,35 +337,60 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
          
         if thumbnailString:
             #print 'Found thumbnail: %s' % thumbnailString
+            
+            try:
+                # Simple protection against bad parsing of websites, if the
+                # image data is HTML, ignore it.
+                low = thumbnailString.lower()
+                if low.find('<html>') != -1:
+                    return
+            except:
+                print_exc()
+                pass
+            
             stream = cStringIO.StringIO(thumbnailString)
             img =  wx.ImageFromStream( stream )
             if not img.Ok():
                 return
             
-            filesModeThumbSize = (125, 70)
-            libraryModeThumbSize = (43, 24)
-            metadata['ThumbnailBitmap'] = self.getResizedBitmapFromImage(img, filesModeThumbSize)
-            metadata['ThumbnailBitmapLibrary'] = self.getResizedBitmapFromImage(img, libraryModeThumbSize)
+            bmp = self.getResizedBitmapFromImage(img, filesModeThumbSize)
+            if bmp:
+                metadata['ThumbnailBitmap'] = bmp
+                
+            ## We now scale live
+            #bmplib = self.getResizedBitmapFromImage(img, libraryModeThumbSize)
+            #if bmplib:
+            #    metadata['ThumbnailBitmapLibrary'] = bmplib
+                
+            # Dump the raw data
+            del metadata['Thumbnail']
           
         torrent['metadata'] = metadata
         
         # This item may be displaying another torrent right now, only show the icon
         # when it's still the same torrent
+        
+        #print >>sys.stderr,"fip: meta_gui_cb: old torrent",`torrent['content_name']`,"new torrent",`self.torrent['content_name']`
+        #print >>sys.stderr,"fip: meta_gui_cb: old torrent",`torrent['infohash']`,"new torrent",`self.torrent['infohash']`
+        
         if torrent['infohash'] == self.torrent['infohash']:
-            thumbToGet = ''
-            if self.mode == 'filesMode':
-                thumbToGet = 'ThumbnailBitmap'
-            elif self.mode == 'libraryMode':
-                thumbToGet = 'ThumbnailBitmapLibrary'
-                
-            if thumbToGet in metadata:
-                self.setBitmap(metadata[thumbToGet])
-            self.Refresh()
+            bmp = metadata.get('ThumbnailBitmap')
+            if bmp:
+                if self.mode == 'libraryMode':
+                    bmp = self.getResizedBitmapFromImage(img, libraryModeThumbSize)
+                self.setBitmap(bmp)
+                self.Refresh()
+
              
     def getResizedBitmapFromImage(self, img, size):
         "Resize image to size of self"
         iw, ih = img.GetSize()
         w, h = size
+
+        if iw == 0 or ih == 0:
+            # Can happen when there is not handler for image type
+            return None
+        
         if (iw/float(ih)) > (w/float(h)):
             nw = w
             nh = int(ih * w/float(iw))

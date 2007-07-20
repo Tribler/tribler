@@ -52,6 +52,8 @@ except:
     True = 1
     False = 0
 
+DEFAULTPORT=7762  # Arno: see Utility/configreader.py and Utility/utility.py
+
 defaults = [
     ('max_uploads', 7,
         "the maximum number of uploads to allow at once."),
@@ -189,6 +191,8 @@ defaults = [
         "create overlay swarm to transfer special messages"),
     ('buddycast', 1,
         "run buddycast recommendation system"),
+    ('start_recommender', 1,
+        "buddycast can be temp. disabled via this flag"),
     ('download_help', 1,
         "accept download help request"),
     ('torrent_collecting', 1,
@@ -205,7 +209,7 @@ defaults = [
         "max rate of torrent collecting (Kbps)"),
     ('torrent_checking', 1,
         "automatically check the health of torrents"),
-    ('torrent_checking_period', 60,
+    ('torrent_checking_period', 60, 
         "period for auto torrent checking"),
     ('dialback', 1,
         "use other peers to determine external IP address (0 = disabled)"),
@@ -217,8 +221,12 @@ defaults = [
         "number of seconds to wait for consensus"),
     ('socnet', 1,
         "enable social networking (0 = disabled)"),
+    ('rquery', 1,
+        "enable remote query (0 = disabled)"),
     ('stop_collecting_threshold', 200,
-        "stop collecting more torrents if the disk has less than this size (MB)")
+        "stop collecting more torrents if the disk has less than this size (MB)"),
+    ('internaltracker', 1,
+        "enable internal tracker (0 = disabled)")
     ]
 
 argslistheader = 'Arguments are:\n\n'
@@ -374,7 +382,7 @@ def get_response(file, url, errorfunc):
 class BT1Download:    
     def __init__(self, statusfunc, finfunc, errorfunc, excfunc, doneflag, 
                  config, response, infohash, id, rawserver, port, play_video,
-                 videoinfo, progressinf, videoanalyserpath, appdataobj = None):
+                 videoinfo, progressinf, videoanalyserpath, appdataobj = None, dht = None):
         self.statusfunc = statusfunc
         self.finfunc = finfunc
         self.errorfunc = errorfunc
@@ -386,6 +394,7 @@ class BT1Download:
         self.myid = id
         self.rawserver = rawserver
         self.port = port
+        self.dht = dht
         
         self.info = self.response['info']  
         self.infohash = sha(bencode(self.info)).digest()
@@ -514,8 +523,9 @@ class BT1Download:
                         if not existing:
                             file = path.join(file, self.info['name'])
                             if path.exists(file) and not path.isdir(file):
-                                if file[-8:] == '.torrent':
-                                    file = file[:-8]
+                                if file.endswith('.torrent') or file.endswith(TRIBLER_TORRENT_EXT):
+                                    (prefix,ext) = os.path.splitext(file)
+                                    file = prefix
                                 if path.exists(file) and not path.isdir(file):
                                     self.errorfunc("Can't create dir - " + self.info['name'])
                                     return None
@@ -817,8 +827,12 @@ class BT1Download:
                 for t in range(len(trackerlist[tier])):
                     trackerlist[tier][t] = bin2unicode(trackerlist[tier][t])
         else:
-            tracker = bin2unicode(self.response['announce'])
-            trackerlist = [[tracker]]
+            tracker = bin2unicode(self.response.get('announce', ''))
+            if tracker:
+                trackerlist = [[tracker]]
+            else:
+                trackerlist = [[]]
+            
             
         self.rerequest = Rerequester(trackerlist, self.config['rerequest_interval'], 
             self.rawserver.add_task,self.connecter.how_many_connections, 

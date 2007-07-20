@@ -49,7 +49,7 @@ class TestPeerDBHandler(unittest.TestCase):
         assert len(res) == 1, len(res)
         # Arno: 'last_seen' is set automatically these days :-(
         res[0]['last_seen'] = 0
-        expected = {'permid':'permid2', 'ip':'22.2.3.4', 'port':22342, 'name':'peer22', 'similarity':0, 'last_seen':0,'buddycast_times':0,'connected_times':0,'last_buddycast_time':0,'oversion':0}
+        expected = {'permid':'permid2', 'ip':'22.2.3.4', 'port':22342, 'name':'peer22', 'similarity':0, 'last_seen':0,'buddycast_times':0,'connected_times':0,'last_buddycast_time':0,'oversion':0,'npeers':0,'ntorrents':0,'nprefs':0,'nqueries':0}
         """
         k1 = res[0].keys()
         k1.sort()

@@ -71,7 +71,7 @@ class FilesList(tribler_List):
         torrent_file = torrent.get('torrent_name')
         try:
             
-            if torrent.get('web2'):
+            if torrent.get('web2') or 'query_permid' in torrent: # web2 or remote query result
                 self.filelist = []
                 self.DeleteAllItems()
                 self.onListResize(None)

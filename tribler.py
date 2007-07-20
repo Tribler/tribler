@@ -72,6 +72,9 @@ from Tribler.vwxGUI.perfBar import set_perfBar_bitmaps
 from Tribler.Dialogs.BandwidthSelector import BandwidthSelector
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Dialogs.activities import *
+from Tribler.DecentralizedTracking import mainlineDHT
+from Tribler.DecentralizedTracking.rsconvert import RawServerConverter
+from Tribler.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
 
 from Tribler.notification import init as notification_init
 from Tribler.vwxGUI.font import *
@@ -516,6 +519,13 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         # Start up the controller
         self.utility.controller = ABCLaunchMany(self.utility)
         self.utility.controller.start()
+        
+        # Start up mainline DHT
+        rsconvert = RawServerConverter(self.utility.controller.get_rawserver())
+        mainlineDHT.init('', self.utility.listen_port, self.utility.getConfigPath(),rawserver=rsconvert)
+        # Create torrent-liveliness checker based on DHT
+        c = mainlineDHTChecker.getInstance()
+        c.register(mainlineDHT.dht)
 
         # Give GUI time to set up stuff
         wx.Yield()
@@ -618,25 +628,10 @@ class ABCFrame(wx.Frame, DelayedInvocation):
 
     def upgradeCallback(self):
         self.invokeLater(self.OnUpgrade)    
+        # TODO: warn multiple times?
     
     def OnUpgrade(self, event=None):
-        s = self.utility.lang.get('upgradeabc')
-        title = self.utility.lang.get('upgradeabctitle')
-        mainpage = self.utility.lang.get('mainpage')
-        dlg = wx.MessageDialog(self, s,
-                               title + self.curr_version,
-                               wx.YES_NO|wx.ICON_EXCLAMATION
-                               #wx.OK | wx.ICON_INFORMATION |
-                               #wx.YES_NO | wx.NO_DEFAULT | wx.CANCEL | wx.ICON_INFORMATION
-                               )
-        result = dlg.ShowModal()
-        dlg.Destroy()
-        if result == wx.ID_YES:
-            t = Timer(0.1, self.openBrowserForUpgrade)
-            t.start()
-            
-    def openBrowserForUpgrade(self):
-        webbrowser.open_new(self.update_url)
+        self.setActivity(ACT_NEW_VERSION)
             
     def onFocus(self, event = None):
         if event is not None:
@@ -775,7 +770,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         # (might not be able to in case of shutting down windows)
         if event is not None:
             try:
-                if event.CanVeto() and self.utility.config.Read('confirmonclose', "boolean"):
+                if event.CanVeto() and self.utility.config.Read('confirmonclose', "boolean") and not event.GetEventType() == wx.EVT_QUERY_END_SESSION.evtType[0]:
                     dialog = wx.MessageDialog(None, self.utility.lang.get('confirmmsg'), self.utility.lang.get('confirm'), wx.OK|wx.CANCEL)
                     result = dialog.ShowModal()
                     dialog.Destroy()
@@ -877,7 +872,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         result = dlg.ShowModal()
         dlg.Destroy()
 
-    def onUPnPError(self,upnp_type,listenport,error_type,exc=None):
+    def onUPnPError(self,upnp_type,listenport,error_type,exc=None,listenproto='TCP'):
 
         if error_type == 0:
             errormsg = unicode(' UPnP mode '+str(upnp_type)+' ')+self.utility.lang.get('tribler_upnp_error1')
@@ -889,6 +884,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
             errormsg = unicode(' UPnP mode '+str(upnp_type)+' Unknown error')
 
         msg = self.utility.lang.get('tribler_upnp_error_intro')
+        msg += listenproto+' '
         msg += str(listenport)
         msg += self.utility.lang.get('tribler_upnp_error_intro_postfix')
         msg += errormsg
@@ -934,7 +930,8 @@ class ABCFrame(wx.Frame, DelayedInvocation):
             prefix = self.utility.lang.get('act_recommend')
         elif type == ACT_DISK_FULL:
             prefix = self.utility.lang.get('act_disk_full')   
-
+        elif type == ACT_NEW_VERSION:
+            prefix = self.utility.lang.get('act_new_version')   
         if msg == u'':
             text = prefix
         else:
@@ -1089,7 +1086,8 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             self.Bind(wx.EVT_END_SESSION, self.frame.OnCloseWindow)
             
             
-            asked = self.utility.config.Read('askeduploadbw', 'boolean')
+            #asked = self.utility.config.Read('askeduploadbw', 'boolean')
+            asked = True
             if not asked:
                 dlg = BandwidthSelector(self.frame,self.utility)
                 result = dlg.ShowModal()
@@ -1125,7 +1123,6 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             #print "DIM",wx.GetDisplaySize()
             #print "MM",wx.GetDisplaySizeMM()
             
-
             wx.CallAfter(self.startWithRightView)            
             
         except Exception,e:
@@ -1156,6 +1153,7 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
     def OnExit(self):
         
         self.torrentfeed.shutdown()
+        mainlineDHT.deinit()
         
         if not ALLOW_MULTIPLE:
             del self.single_instance_checker
@@ -1173,7 +1171,7 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
         except:
             print >> sys.stderr, "abc: db_exception_handler error", e, type(e)
             print_exc()
-            print_stack()
+            #print_stack()
         self.error = e
         self.invokeLater(self.onError,[],{'source':"The database layer reported: "})
     

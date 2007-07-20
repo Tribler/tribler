@@ -8,6 +8,7 @@ from ConfigParser import ConfigParser, MissingSectionHeaderError, NoSectionError
 
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.download_bt1 import defaults as bt1_defaults
+from BitTornado.download_bt1 import DEFAULTPORT
 
 ################################################################
 #
@@ -51,7 +52,7 @@ class ConfigReader(ConfigParser):
         # Arno: Apparently port 6881 is poisoned because ISPs have blocked it.
         # A random port does not work well with Buddycast so, pick a random, fixed one
         if filename.endswith('abc.conf') and not os.access(filename, os.F_OK):
-            defaults['minport'] = '7762'
+            defaults['minport'] = str(DEFAULTPORT)
         
         try:
             self.read(self.filename)
@@ -238,6 +239,9 @@ class ConfigReader(ConfigParser):
 #            print_exc(file = data)
 #            sys.stderr.write(data.getvalue())
             pass
+
+
+        #print "config: reading",param,value,type,section
 
         value = self.StringToValue(value, type)
            

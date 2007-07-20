@@ -4,6 +4,7 @@ from bencode import bencode, bdecode
 from BT1.btformats import check_info
 from sha import sha
 import sys, os
+from Tribler.__init__ import TRIBLER_TORRENT_EXT
 
 try:
     True
@@ -17,7 +18,7 @@ def _errfunc(x):
     print ":: "+x
 
 def parsedir(directory, parsed, files, blocked,
-             exts = ['.torrent'], return_metainfo = False, errfunc = _errfunc):
+             exts = ['.torrent', TRIBLER_TORRENT_EXT], return_metainfo = False, errfunc = _errfunc):
     if NOISY:
         errfunc('checking dir')
     dirs_to_check = [directory]

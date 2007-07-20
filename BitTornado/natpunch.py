@@ -18,7 +18,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = 0
+DEBUG = False
 
 EXPIRE_CACHE = 30 # seconds
 ID = "BT-"+createPeerID()[-4:]
@@ -49,7 +49,7 @@ class _UPnP1:   # derived from Myers Carpenter's code
                 self.last_got_map = clock()
             except:
                 if DEBUG:
-                    print_exc(file=sys.stderr)
+                    print_exc()
                 self.map = None
         return self.map
 
@@ -59,42 +59,42 @@ class _UPnP1:   # derived from Myers Carpenter's code
             success = True
         except:
             if DEBUG:
-                print_exc(file=sys.stderr)
+                print_exc()
             success = False
         return success
 
 
-    def open(self, ip, p):
+    def open(self, ip, p, iproto='TCP'):
         map = self._get_map()
         try:
-            map.Add(p, 'TCP', p, ip, True, ID)
+            map.Add(p, iproto, p, ip, True, ID)
             if DEBUG:
                 print >>sys.stderr,'upnp1: succesfully opened port: '+ip+':'+str(p)
             success = True
         except:
             if DEBUG:
                 print >>sys.stderr,"upnp1: COULDN'T OPEN "+str(p)
-                print_exc(file=sys.stderr)
+                print_exc()
             success = False
         return success
 
 
-    def close(self, p):
+    def close(self, p, iproto='TCP'):
         map = self._get_map()
         try:
-            map.Remove(p, 'TCP')
+            map.Remove(p, iproto)
             success = True
             if DEBUG:
                 print >>sys.stderr,'upnp1: succesfully closed port: '+str(p)
         except:
             if DEBUG:
                 print >>sys.stderr,"upnp1: COULDN'T CLOSE "+str(p)
-                print_exc(file=sys.stderr)
+                print_exc()
             success = False
         return success
 
 
-    def clean(self, retry = False):
+    def clean(self, retry = False, iproto='TCP'):
         if not win32_imported:
             return
         try:
@@ -108,12 +108,12 @@ class _UPnP1:   # derived from Myers Carpenter's code
                     desc = str(mapping.Description).lower()
                 except:
                     port = None
-                if port and prot == 'tcp' and desc[:3] == 'bt-':
+                if port and prot == iproto.lower() and desc[:3] == 'bt-':
                     ports_in_use.append(port)
             success = True
             for port in ports_in_use:
                 try:
-                    map.Remove(port, 'TCP')
+                    map.Remove(port, iproto)
                 except:
                     success = False
             if not success and not retry:
@@ -151,19 +151,19 @@ class _UPnP2:   # derived from Yejun Yang's code
                                         self.services.append(svcs[s])
                                     except:
                                         if DEBUG:
-                                            print_exc(file=sys.stderr)
+                                            print_exc()
                                         pass
                             except:
                                 if DEBUG:
-                                    print_exc(file=sys.stderr)
+                                    print_exc()
                                 pass
                     except:
                         if DEBUG:
-                            print_exc(file=sys.stderr)
+                            print_exc()
                         pass
             except:
                 if DEBUG:
-                    print_exc(file=sys.stderr)
+                    print_exc()
                 pass
             self.last_got_services = clock()
         return self.services
@@ -177,37 +177,37 @@ class _UPnP2:   # derived from Yejun Yang's code
         return success
 
 
-    def open(self, ip, p):
+    def open(self, ip, p, iproto='TCP'):
         svcs = self._get_services()
         success = False
         for s in svcs:
             try:
-                s.InvokeAction('AddPortMapping', ['', p, 'TCP', p, ip, True, ID, 0], '')
+                s.InvokeAction('AddPortMapping', ['', p, iproto, p, ip, True, ID, 0], '')
                 success = True
             except:
                 if DEBUG:
-                    print_exc(file=sys.stderr)
+                    print_exc()
                 pass
         if DEBUG and not success:
             print >>sys.stderr,"upnp2: COULDN'T OPEN "+str(p)
-            print_exc(file=sys.stderr)
+            print_exc()
         return success
 
 
-    def close(self, p):
+    def close(self, p, iproto='TCP'):
         svcs = self._get_services()
         success = False
         for s in svcs:
             try:
-                s.InvokeAction('DeletePortMapping', ['', p, 'TCP'], '')
+                s.InvokeAction('DeletePortMapping', ['', p, iproto], '')
                 success = True
             except:
                 if DEBUG:
-                    print_exc(file=sys.stderr)
+                    print_exc()
                 pass
         if DEBUG and not success:
             print >>sys.stderr,"upnp2: COULDN'T CLOSE "+str(p)
-            print_exc(file=sys.stderr)
+            print_exc()
         return success
 
 
@@ -229,7 +229,7 @@ class _UPnP2:   # derived from Yejun Yang's code
                     print >>sys.stderr,"upnp2: RETURNED IP ADDRESS EMPTY"
             except:
                 if DEBUG:
-                    print_exc(file=sys.stderr)
+                    print_exc()
                 pass
         if DEBUG and not success:
             print >>sys.stderr,"upnp2: COULDN'T GET EXT IP ADDR"
@@ -245,39 +245,39 @@ class _UPnP3:
             return self.u.found_wanted_services()
         except:
             if DEBUG:
-                print_exc(file=sys.stderr)
+                print_exc()
             return False
 
-    def open(self,ip,p):
+    def open(self,ip,p,iproto='TCP'):
         """ Return False in case of network failure, 
             Raises UPnPError in case of a properly reported error from the server
         """
         try:
-            self.u.add_port_map(ip,p)
+            self.u.add_port_map(ip,p,iproto=iproto)
             return True
         except UPnPError,e:
             if DEBUG:
-                print_exc(file=sys.stderr)
+                print_exc()
             raise e
         except:
             if DEBUG:
-                print_exc(file=sys.stderr)
+                print_exc()
             return False
 
-    def close(self,p):
+    def close(self,p,iproto='TCP'):
         """ Return False in case of network failure, 
             Raises UPnPError in case of a properly reported error from the server
         """
         try:
-            self.u.del_port_map(p)
+            self.u.del_port_map(p,iproto=iproto)
             return True
         except UPnPError,e:
             if DEBUG:
-                print_exc(file=sys.stderr)
+                print_exc()
             raise e
         except:
             if DEBUG:
-                print_exc(file=sys.stderr)
+                print_exc()
             return False
 
     def get_ext_ip(self):
@@ -288,11 +288,11 @@ class _UPnP3:
             return self.u.get_ext_ip()
         except UPnPError,e:
             if DEBUG:
-                print_exc(file=sys.stderr)
+                print_exc()
             raise e
         except:
             if DEBUG:
-                print_exc(file=sys.stderr)
+                print_exc()
             return None
 
 class UPnPWrapper:    # master holding class
@@ -341,7 +341,7 @@ class UPnPWrapper:    # master holding class
                     self.local_ip = None
                     if DEBUG:
                         print >>sys.stderr,'upnpX: Error finding local IP'
-                        print_exc(file=sys.stderr)
+                        print_exc()
         return self.local_ip
 
     def test(self, upnp_type):
@@ -362,16 +362,16 @@ class UPnPWrapper:    # master holding class
             print >>sys.stderr,'upnpX: tested bad'
         return 0
 
-    def open(self, p):
+    def open(self, p, iproto='TCP'):
         assert self.upnp, "upnpX: must run UPnP_test() with the desired UPnP access type first"
-        return self.upnp.open(self.get_ip(), p)
+        return self.upnp.open(self.get_ip(), p, iproto=iproto)
 
-    def close(self, p):
+    def close(self, p, iproto='TCP'):
         assert self.upnp, "upnpX: must run UPnP_test() with the desired UPnP access type first"
-        return self.upnp.close(p)
+        return self.upnp.close(p,iproto=iproto)
 
-    def clean(self):
-        return self.upnp1.clean()
+    def clean(self,iproto='TCP'):
+        return self.upnp1.clean(iproto=iproto)
 
     def get_ext_ip(self):
         assert self.upnp, "upnpX: must run UPnP_test() with the desired UPnP access type first"

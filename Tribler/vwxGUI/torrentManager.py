@@ -1,5 +1,11 @@
-# written by Jelle Roozenburg
+# Written by Jelle Roozenburg, Maarten ten Brinke, Lucan Musat, Arno Bakker
 # see LICENSE.txt for license information
+
+#
+# WARNING: To save memory, the torrent records read from database and kept in
+# memory here have some fields removed. In particular, 'info' and for buddycasted
+# torrents also 'torrent_dir' and 'torrent_name'. Saves 50MB on 30000 torrent DB.
+# 
 
 import os
 import sys
@@ -21,6 +27,25 @@ import web2
 
 DEBUG = False
 DEBUG_RANKING = False
+
+# Arno: save memory by reusing dict keys
+# In principe, these should only be used in assignments, e.g. 
+#     torrent[key_length] = 481
+# In other cases you can just use 'length'.
+key_length = 'length'
+key_content_name = 'content_name'
+key_torrent_name = 'torrent_name'
+key_num_files = 'num_files'
+key_date = 'date'
+key_tracker = 'tracker'
+key_leecher = 'leecher'
+key_seeder = 'seeder'
+key_swarmsize ='swarmsize'
+key_relevance = 'relevance'
+key_infohash = 'infohash'
+key_myDownloadHistory = 'myDownloadHistory'
+key_eventComingUp = 'eventComingUp'
+key_simRank = 'simRank'
 
 class TorrentDataManager:
     # Code to make this a singleton
@@ -44,9 +69,14 @@ class TorrentDataManager:
         self.dict_FunList = {}
         self.done_init = True
         self.searchkeywords = {'filesMode':[], 'libraryMode':[]}
+        self.oldsearchkeywords = {'filesMode':[], 'libraryMode':[]} # previous query
         self.metadata_handler = MetadataHandler.getInstance()
+        
+        self.collected_torrent_dir = os.path.join(self.utility.getConfigPath(),'torrent2')
+        
         if DEBUG:
             print >>sys.stderr,'torrentManager: ready init'
+
         
     def getInstance(*args, **kw):
         if TorrentDataManager.__single is None:
@@ -62,6 +92,8 @@ class TorrentDataManager:
         
     def loadData(self):
         self.data = self.torrent_db.getRecommendedTorrents(light=True,all=True) #gets torrents with mypref
+        
+        self.category.register(self.metadata_handler)
         updated = self.category.checkResort(self) # the database is upgraded from v1 to v2
         if updated:
             self.data = self.torrent_db.getRecommendedTorrents(light=False,all=True)
@@ -109,7 +141,7 @@ class TorrentDataManager:
                 # library search
                 return self.search(library)
             
-        self.hits = [] # remove currentHits. Because they dont need to be updated
+        ##self.hits = [] # remove currentHits. Because they dont need to be updated
         
         def torrentFilter(torrent):
             okLibrary = library == torrent.has_key('myDownloadHistory')
@@ -224,10 +256,10 @@ class TorrentDataManager:
     def addItem(self, infohash):
         if self.info_dict.has_key(infohash):
             return
-        torrent = self.torrent_db.getTorrent(infohash)
+        torrent = self.torrent_db.getTorrent(infohash,savemem=True)
         if not torrent:
             return
-        torrent['infohash'] = infohash
+        torrent[key_infohash] = infohash
         item = self.prepareItem(torrent)
         self.data.append(item)
         self.info_dict[infohash] = item
@@ -244,18 +276,18 @@ class TorrentDataManager:
         
         # EventComing up, to let the detailPanel update already
         if b:    # add to my pref
-            old_torrent['eventComingUp'] = 'downloading'
+            old_torrent[key_eventComingUp] = 'downloading'
         else:    # remove from my pref
-            old_torrent['eventComingUp'] = 'notDownloading'
+            old_torrent[key_eventComingUp] = 'notDownloading'
         
         self.notifyView(old_torrent, 'delete')
         
-        del old_torrent['eventComingUp']
+        del old_torrent[key_eventComingUp]
         if b:
-            old_torrent['myDownloadHistory'] = True
+            old_torrent[key_myDownloadHistory] = True
         else:
-            if old_torrent.has_key('myDownloadHistory'):
-                del old_torrent['myDownloadHistory']
+            if old_torrent.has_key(key_myDownloadHistory):
+                del old_torrent[key_myDownloadHistory]
             
         self.notifyView(old_torrent, 'add')
         
@@ -273,9 +305,9 @@ class TorrentDataManager:
         torrent = self.torrent_db.getTorrent(infohash)
         if not torrent:
             return
-        torrent['infohash'] = infohash
+        torrent[key_infohash] = infohash
         item = self.prepareItem(torrent)
-        torrent['myDownloadHistory'] = True
+        torrent[key_myDownloadHistory] = True
         self.data.append(item)
         self.info_dict[infohash] = item
         self.notifyView(item, 'add')
@@ -287,7 +319,7 @@ class TorrentDataManager:
         torrent = self.torrent_db.getTorrent(infohash)
         if not torrent:
             return
-        torrent['infohash'] = infohash
+        torrent[key_infohash] = infohash
         item = self.prepareItem(torrent)
         
         #old_torrent.update(item)
@@ -310,19 +342,27 @@ class TorrentDataManager:
 
     def prepareItem(self, torrent):    # change self.data
         info = torrent['info']
-        torrent['length'] = info.get('length', 0)
-        torrent['content_name'] = dunno2unicode(info.get('name', '?'))
-        if torrent['torrent_name'] == '':
-            torrent['torrent_name'] = '?'
-        torrent['num_files'] = int(info.get('num_files', 0))
-        torrent['date'] = info.get('creation date', 0) 
-        torrent['tracker'] = info.get('announce', '')
-        torrent['leecher'] = torrent.get('leecher', -1)
-        torrent['seeder'] = torrent.get('seeder', -1)
-        torrent['swarmsize'] = torrent['seeder'] + torrent['leecher']
+        torrent[key_length] = info.get('length', 0)
+        torrent[key_content_name] = dunno2unicode(info.get('name', '?'))
+        if key_torrent_name not in torrent or torrent[key_torrent_name] == '':
+            torrent[key_torrent_name] = '?'
+        torrent[key_num_files] = int(info.get('num_files', 0))
+        torrent[key_date] = info.get('creation date', 0) 
+        torrent[key_tracker] = info.get('announce', '')
+        torrent[key_leecher] = torrent.get('leecher', -1)
+        torrent[key_seeder] = torrent.get('seeder', -1)
+        torrent[key_swarmsize] = torrent['seeder'] + torrent['leecher']
         if torrent.has_key('simRank'):
             raise Exception('simRank in database!')
             del torrent['simRank']
+            
+        # Arno: to save mem I delete some fields here
+        del torrent['info']
+        if 'torrent_dir' in torrent and torrent['torrent_dir'] == self.collected_torrent_dir:
+            # Will be determined on the fly
+            del torrent['torrent_dir']
+            del torrent['torrent_name']
+        
         # Thumbnail is read from file only when it is shown on screen by
         # thumbnailViewer or detailsPanel
         return torrent
@@ -412,7 +452,7 @@ class TorrentDataManager:
                 torrent = self.info_dict[infohash]
                 if DEBUG_RANKING:
                     print 'Give rank %d to %s' % (rank, repr(torrent.get('content_name')))
-                torrent['simRank'] = rank
+                torrent[key_simRank] = rank
                 if not initializing:
                     self.notifyView(torrent, 'update')
             else:
@@ -483,13 +523,17 @@ class TorrentDataManager:
             mode = 'libraryMode'
         else:
             mode = 'filesMode'
+        
+        if self.searchkeywords[mode] == self.oldsearchkeywords[mode] and len(self.hits) > 0:
+            if DEBUG:
+                print >>sys.stderr,"torrentDataManager: search: returning old hit list",len(self.hits)
+            return self.hits
             
         if DEBUG:
             print >>sys.stderr,"torrentDataManager: search: Want",self.searchkeywords[mode]
-        hits = []
         
         if len(self.searchkeywords[mode]) == 0 or len(self.searchkeywords[mode]) == 1 and self.searchkeywords[mode][0] == '':
-            return hits
+            return []
         haystack = []
         for torrent in self.data:
             if library != torrent.has_key('myDownloadHistory'):
@@ -501,6 +545,51 @@ class TorrentDataManager:
             haystack.append(torrent)
         self.hits = self.keywordsearch.search(haystack, self.searchkeywords[mode])
         return self.hits
+
+    def remoteSearch(self,kws,maxhits=None):
+        if DEBUG:
+            print >>sys.stderr,"torrentDataManager: remoteSearch",kws
+        
+        haystack = []
+        for torrent in self.data:
+            if torrent['status'] != 'good':
+                continue
+            haystack.append(torrent)
+        hits = self.keywordsearch.search(haystack,kws)
+        if maxhits is None:
+            return hits
+        else:
+            return hits[:maxhits]
+
+    
+    def gotRemoteHits(self,permid,kws,answers,mode='filesMode'):
+        """ Called by standardOverview """
+        if DEBUG:
+            print >>sys.stderr,"torrentDataManager: gotRemoteHist: got",len(answers)
+        
+        # We got some replies. First check if they are for the current query
+        if self.searchkeywords[mode] == kws:
+            for key,value in answers.iteritems():
+                value['infohash'] = key
+                # Set from which peer this info originates
+                value['query_permid'] = permid
+                # We trust the peer
+                value['status'] = 'good'
+                
+                # Add values to enable filters (popular/rec/size) to work
+                value['swarmsize'] = value['seeder']+value['leecher']
+                value['relevance'] = 0
+                value['date'] = 0
+                
+                if DEBUG:
+                    print >>sys.stderr,"torrentDataManager: gotRemoteHist: appending hit",`value['content_name']`
+                    value['content_name'] = 'REMOTE '+value['content_name']
+                self.hits.append(value)
+            return True
+        elif DEBUG:
+            print >>sys.stderr,"torrentDataManager: gotRemoteHist: got hits for",kws,"but current search is for",self.searchkeywords[mode]
+        return False
+
 
     def getFromSource(self,source):
         hits = []

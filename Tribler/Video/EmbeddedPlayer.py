@@ -67,7 +67,7 @@ class VideoFrame(wx.Frame):
         self.Hide()
         # Arno, 2007-04-02: There is a weird problem with stderr when using VLC on Linux
         # see Tribler\Video\vlcmedia.py:VLCMediaCtrl. Solution is to sleep 1 sec here.
-        # Arno: 2007-04-23: Appears to have been cause by wx.SingleInstanceChecker
+        # Arno: 2007-04-23: Appears to have been caused by wx.SingleInstanceChecker
         # in wxPython-2.8.1.1.
         #
         #if sys.platform == 'linux2':

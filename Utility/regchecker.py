@@ -36,6 +36,7 @@ class RegChecker:
 #        abcpath = os.path.normcase(abcpath)
         iconpath = os.path.join(self.utility.getPath(), "torrenticon.ico")
     
+        # Arno: 2007-06-18: Assuming no concurrency on TRIBLER_TORRENT_EXT
         # tuple (array) with key to register
         self.reg_data = [ (r".torrent", "", "bittorrent", _winreg.REG_SZ), 
                           (r".torrent", "Content Type", r"application/x-bittorrent", _winreg.REG_SZ), 

@@ -10,18 +10,22 @@ import wx
 import wx.lib.imagebrowser as ib
 import os
 import cStringIO
+import shutil
 
 from os.path import join, isdir, exists, normpath, split
 from threading import Event, Thread, currentThread
 from shutil import copy2
 from tempfile import mkstemp
+from binascii import hexlify
 
 from traceback import print_exc
 
 from TorrentMaker.btmakemetafile import make_meta_file, completedir
+from Tribler.CacheDB.CacheDBHandler import MyDBHandler
 
 from Utility.helpers import union
 from Utility.constants import * #IGNORE:W0611
+from Dialogs.abcoption import get_itracker_url
 
 DEBUG = False
 
@@ -72,14 +76,16 @@ class MiscInfoPanel(wx.Panel):
         outerbox.Add(self.playtCtl, 0, wx.EXPAND|wx.ALL, 5)
 
         # Thumbnail:
+        ybox = wx.BoxSizer(wx.VERTICAL)
+        ybox.Add(wx.StaticText(self, -1, self.utility.lang.get('addthumbnail')), 0, wx.EXPAND|wx.ALL, 5)
         xbox = wx.BoxSizer(wx.HORIZONTAL)
-        xbox.Add(wx.StaticText(self, -1, self.utility.lang.get('addthumbnail')), 0, wx.EXPAND|wx.ALL, 5)
         self.thumbCtl = wx.TextCtrl(self, -1)
-        xbox.Add(self.thumbCtl, 0, wx.EXPAND|wx.ALL, 5)
+        xbox.Add(self.thumbCtl, 1, wx.EXPAND|wx.ALL, 5)
         browsebtn = wx.Button(self, -1, "...")
         self.Bind(wx.EVT_BUTTON, self.onBrowseThumb, browsebtn)
-        xbox.Add(browsebtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
-        outerbox.Add(xbox, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT|wx.EXPAND, 5)
+        xbox.Add(browsebtn, 0, wx.ALL, 5)
+        ybox.Add(xbox, 0, wx.EXPAND|wx.ALL, 5)
+        outerbox.Add(ybox, 0, wx.ALL|wx.EXPAND, 5)
       
         self.SetSizerAndFit(outerbox)
         
@@ -100,22 +106,23 @@ class MiscInfoPanel(wx.Panel):
         params = {}
 
         thumbfn = self.thumbCtl.GetValue()
-        jpgdata = None
-        try:
-            im = wx.Image(thumbfn)
-            ims = im.Scale(171,96)
-
-            [thumbhandle,thumbfilename] = mkstemp("torrent-thumb")
-            os.close(thumbhandle)
-            ims.SaveFile(thumbfilename,wx.BITMAP_TYPE_JPEG)
-            f = open(thumbfilename,"rb")
-            jpgdata = f.read()
-            f.close()
-        except:
-            print_exc()
-        
-        if jpgdata is not None:
-            params['thumb'] = jpgdata
+        if len(thumbfn) > 0:
+            jpgdata = None
+            try:
+                im = wx.Image(thumbfn)
+                ims = im.Scale(171,96)
+    
+                [thumbhandle,thumbfilename] = mkstemp("torrent-thumb")
+                os.close(thumbhandle)
+                ims.SaveFile(thumbfilename,wx.BITMAP_TYPE_JPEG)
+                f = open(thumbfilename,"rb")
+                jpgdata = f.read()
+                f.close()
+            except:
+                print_exc()
+            
+            if jpgdata is not None:
+                params['thumb'] = jpgdata
 
         playt = self.playtCtl.GetValue()
         if playt != '':
@@ -181,33 +188,50 @@ class TrackerInfoPanel(wx.Panel):
 
         self.announcehistory = []
 
+        # Use internal tracker?
+        itracker_box = wx.BoxSizer(wx.HORIZONTAL)
+        prompt = self.utility.lang.get('useinternaltracker')+' ('+get_itracker_url(self.utility)+')'
+        self.itracker = wx.CheckBox(self, -1, prompt)
+        wx.EVT_CHECKBOX(self, self.itracker.GetId(), self.OnInternalTracker)
+        itracker_box.Add(self.itracker, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        announcesection.Add(itracker_box, 0, wx.EXPAND|wx.ALL, 3)
+
+        # Manual override of tracker definition
+        manualover_box = wx.BoxSizer(wx.HORIZONTAL)
+        self.manualover = wx.CheckBox(self, -1, self.utility.lang.get('manualtrackerconfig'))
+        wx.EVT_CHECKBOX(self, self.manualover.GetId(), self.OnInternalTracker) # yes, OnInternalTracker
+        manualover_box.Add(self.manualover, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        announcesection.Add(manualover_box, 0, wx.EXPAND|wx.ALL, 3)
+
         # Copy announce from torrent
-        abutton = wx.Button(self, -1, self.utility.lang.get('copyannouncefromtorrent'))
-        wx.EVT_BUTTON(self, abutton.GetId(), self.announceCopy)
-        announcesection.Add(abutton, 0, wx.ALL, 5)
+        self.copybutton = wx.Button(self, -1, self.utility.lang.get('copyannouncefromtorrent'))
+        wx.EVT_BUTTON(self, self.copybutton.GetId(), self.announceCopy)
+        announcesection.Add(self.copybutton, 0, wx.ALL, 5)
 
         # Announce url:
-        announcesection.Add(wx.StaticText(self, -1, self.utility.lang.get('announceurl')), 0, wx.ALL, 5)
+        self.annText = wx.StaticText(self, -1, self.utility.lang.get('announceurl'))
+        announcesection.Add(self.annText, 0, wx.ALL, 5)
 
         announceurl_box = wx.BoxSizer(wx.HORIZONTAL)
        
         self.annCtl = wx.ComboBox(self, -1, "", choices = self.announcehistory, style=wx.CB_DROPDOWN)
         announceurl_box.Add(self.annCtl, 1, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 5)
         
-        button = wx.Button(self, -1, "+", size = (30, -1))
-        button.SetToolTipString(self.utility.lang.get('add'))
-        wx.EVT_BUTTON(self, button.GetId(), self.addAnnounce)
-        announceurl_box.Add(button, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+        self.addbutton = wx.Button(self, -1, "+", size = (30, -1))
+        self.addbutton.SetToolTipString(self.utility.lang.get('add'))
+        wx.EVT_BUTTON(self, self.addbutton.GetId(), self.addAnnounce)
+        announceurl_box.Add(self.addbutton, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
 
-        button2 = wx.Button(self, -1, "-", size = (30, -1))
-        button2.SetToolTipString(self.utility.lang.get('remove'))
-        wx.EVT_BUTTON(self, button2.GetId(), self.removeAnnounce)
-        announceurl_box.Add(button2, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+        self.delbutton = wx.Button(self, -1, "-", size = (30, -1))
+        self.delbutton.SetToolTipString(self.utility.lang.get('remove'))
+        wx.EVT_BUTTON(self, self.delbutton.GetId(), self.removeAnnounce)
+        announceurl_box.Add(self.delbutton, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
 
         announcesection.Add(announceurl_box, 0, wx.EXPAND)
 
         # Announce List:        
-        announcesection.Add(wx.StaticText(self, -1, self.utility.lang.get('announcelist')), 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        self.annListText = wx.StaticText(self, -1, self.utility.lang.get('announcelist'))
+        announcesection.Add(self.annListText, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
        
         self.annListCtl = wx.TextCtrl(self, -1, size = (-1, 75), style = wx.TE_MULTILINE|wx.HSCROLL|wx.TE_DONTWRAP)
         self.annListCtl.SetToolTipString(self.utility.lang.get('multiannouncehelp'))
@@ -231,6 +255,11 @@ class TrackerInfoPanel(wx.Panel):
         if Read is None:
             Read = self.utility.makerconfig.Read
 
+        useitracker = Read('useitracker','boolean')
+        self.itracker.SetValue(useitracker)
+        manualtrackerconfig = Read('manualtrackerconfig','boolean')
+        self.manualover.SetValue(manualtrackerconfig)
+
         self.annCtl.Clear()
         self.announcehistory = Read('announcehistory', "bencode-list")
         for announceurl in self.announcehistory:
@@ -238,7 +267,44 @@ class TrackerInfoPanel(wx.Panel):
         self.annCtl.SetValue(Read('announcedefault'))
 
         self.annListCtl.SetValue(Read('announce-list'))
+        
+        self.toggle_itracker(useitracker,manualtrackerconfig)
+        
         self.httpSeeds.SetValue(Read('httpseeds'))
+
+
+    def toggle_itracker(self,useitracker,manualtrackerconfig):
+        if useitracker:
+            self.manualover.Enable()
+            if manualtrackerconfig:
+                self.copybutton.Enable()
+                self.annText.Enable()
+                self.annCtl.Enable()
+                self.annListText.Enable()
+                self.annListCtl.Enable()
+                self.addbutton.Enable()
+                self.delbutton.Enable()
+            else:
+                self.copybutton.Disable()
+                self.annText.Disable()
+                self.annCtl.Disable()
+                self.annListText.Disable()
+                self.annListCtl.Disable()
+                self.addbutton.Disable()
+                self.delbutton.Disable()
+                
+            self.dialog.fileInfoPanel.startnow.SetValue(True)
+            self.dialog.fileInfoPanel.startnow.Disable()
+        else:
+            self.manualover.Disable()
+            self.copybutton.Enable()
+            self.annText.Enable()
+            self.annCtl.Enable()
+            self.annListText.Enable()
+            self.annListCtl.Enable()
+            self.addbutton.Enable()
+            self.delbutton.Enable()
+            self.dialog.fileInfoPanel.startnow.Enable()
 
     def saveConfig(self, event = None):
         index = self.annCtl.GetSelection()
@@ -255,7 +321,6 @@ class TrackerInfoPanel(wx.Panel):
         announceurl = announceurl.strip()
         if not announceurl or announceurl in self.announcehistory:
             return
-       
         self.announcehistory.append(announceurl)
         self.annCtl.Append(announceurl)
         
@@ -323,36 +388,49 @@ class TrackerInfoPanel(wx.Panel):
 
     def getParams(self):
         params = {}
-        
-        # Announce list
-        annlist = self.getAnnounceList()
-        if annlist:
-            params['real_announce_list'] = annlist
-        
-        # Announce URL
-        announceurl = None
-        index = self.annCtl.GetSelection()
-        if annlist and index == -1:
-            # If we don't have an announce url specified,
-            # try using the first value in announce-list
-            tier1 = annlist[0]
-            if tier1:
-                announceurl = tier1[0]
+
+        if self.itracker.GetValue():
+            params['usinginternaltracker'] = True
         else:
-            announceurl = self.annCtl.GetValue()
-                
-        if announceurl is None:
-            # What should we do here?
-            announceurl = ""
+             params['usinginternaltracker'] = False
             
-        params['announce'] = announceurl
+        if self.manualover.GetValue(): # Use manual specification of trackers
+            # Announce list
+            annlist = self.getAnnounceList()
+            if annlist:
+                params['real_announce_list'] = annlist
+            
+            # Announce URL
+            announceurl = None
+            index = self.annCtl.GetSelection()
+            if annlist and index == -1:
+                # If we don't have an announce url specified,
+                # try using the first value in announce-list
+                tier1 = annlist[0]
+                if tier1:
+                    announceurl = tier1[0]
+            else:
+                announceurl = self.annCtl.GetValue()
+                    
+            if announceurl is None:
+                # What should we do here?
+                announceurl = ""
+    
+            params['announce'] = announceurl
+        else:
+            # Use just internal tracker
+            params['announce'] = get_itracker_url()
                    
         # HTTP Seeds
         httpseedlist = self.getHTTPSeedList()
         if httpseedlist:
             params['real_httpseeds'] = httpseedlist
-        
+
         return params
+    
+    def OnInternalTracker(self,event=None):
+        self.toggle_itracker(self.itracker.GetValue(),self.manualover.GetValue())
+    
 
 
 ################################################################
@@ -716,6 +794,14 @@ class CompleteDir:
     def __init__(self, parent, d, a, params):
         self.d = d
         self.a = a
+        self.startnow = self.parent.fileInfoPanel.startnow.GetValue() 
+        
+        self.usinginternaltracker = False
+        if 'usinginternaltracker' in params:
+            self.usinginternaltracker = params['usinginternaltracker']
+            del params['usinginternaltracker']
+            self.startnow = True # Always start seeding immediately
+            
         self.params = params
         self.parent = parent
         self.utility = self.parent.utility
@@ -821,7 +907,7 @@ class CompleteDir:
             if not self.flag.isSet():
                 self.completeCallback()
 
-            if self.parent.fileInfoPanel.startnow.GetValue():
+            if self.startnow:
                 # When seeding immediately, copy torrents to config dir
                 for list in self.files:
                     torrentfile = list[1]
@@ -845,6 +931,9 @@ class CompleteDir:
         dlg.Destroy()
 
     def completeCallback(self):
+        
+        self.utility.controller.tracker_rescan_dir()
+        
         self.invokeLater(self.onComplete)
     
     def onComplete(self):
@@ -862,8 +951,16 @@ class CompleteDir:
         if target > old+perc10: # 10% increments
             self.gauge.SetValue(target)
 
-    def fileCallback(self, orig, torrent):
+    def fileCallback(self, orig, torrent, infohash):
         self.files.append([orig,torrent])
+        
+        # Internal tracker
+        if self.usinginternaltracker:
+            # Use predictable filename so we can delete it when the user deletes the torrent
+            fn = hexlify(infohash)+'.torrent'
+            absfn = os.path.join(self.utility.getConfigPath(),'itracker',fn)
+            shutil.copy(torrent,absfn)
+        
         self.invokeLater(self.onFile, [torrent])
 
     def onFile(self, torrent):

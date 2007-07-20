@@ -1,5 +1,8 @@
-# written by Yuan Yuan
+# written by Yuan Yuan, Arno Bakker
 # see LICENSE.txt for license information
+
+# Arno: Removed dumb yet-another in-core version of the database
+#
 
 from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
 
@@ -9,6 +12,8 @@ from random import shuffle
 from copy import copy, deepcopy
 import sys
 from traceback import print_exc
+
+DEBUG = True
 
 class TorrentCheckingList:
     __single = None
@@ -44,37 +49,40 @@ class TorrentCheckingList:
     
     def getFirstGood(self):
         if (self.list_good != []):
-            torrent = self.list_good.pop(0)
-            if self.info_dict.has_key(torrent["infohash"]):
-                del self.info_dict[torrent["infohash"]]
-            return deepcopy(torrent)
+            infohash = self.list_good.pop(0)
+            torrent = self.torrent_db.getTorrent(infohash)
+            print >>sys.stderr,"GET FIRST GOOD",`infohash`
+            torrent['infohash'] = infohash
+            return torrent
         return None                  
         
     def getFirstUnknown(self):
         if (self.list_unknown != []):
-            torrent = self.list_unknown.pop(0)
-            if self.info_dict.has_key(torrent["infohash"]):
-                del self.info_dict[torrent["infohash"]]
-            return deepcopy(torrent)
+            infohash = self.list_unknown.pop(0)
+            torrent = self.torrent_db.getTorrent(infohash)
+            print >>sys.stderr,"GET FIRST UNKNOWN",`infohash`
+            torrent['infohash'] = infohash
+            return torrent
         return None     
     
     def _prepareData(self):
         
-        data = self.torrent_db.getCollectedTorrents(light=False, all=True)
+        if DEBUG:
+            print >>sys.stderr,"TorrentChecking: prepareData"
         
-        self.info_dict = {}            # used to setTorrent
-        
-        for idata in data:
-            self.info_dict[idata["infohash"]] = idata
-            if (idata["status"] == "good"):
-                self.list_good.append(idata)
-            elif (idata["status"] == "unknown"):
-                self.list_unknown.append(idata)
-            elif (idata["status"] == "dead"):
-                self.list_dead.append(idata)
+        infohashes = self.torrent_db.getAllTorrents()
+        for infohash in infohashes:
+            torrent = self.torrent_db.getTorrent(infohash)
+            if (torrent["status"] == "good"):
+                self.list_good.append(infohash)
+            elif (torrent["status"] == "unknown"):
+                self.list_unknown.append(infohash)
+            elif (torrent["status"] == "dead"):
+                self.list_dead.append(infohash)
             else:
                 raise Exception, "status of torrent not found"    # error
-        del data
+
+        del infohashes
         
         shuffle(self.list_good)
         shuffle(self.list_unknown)
@@ -86,32 +94,27 @@ class TorrentCheckingList:
 #        print "dead len", len(self.list_dead)
 
     
-    def addTorrentToList(self, torrent):
+    def addTorrentToList(self, infohash, torrent):
         if torrent["status"] == "good":
-            self.list_good.append(torrent)
+            self.list_good.append(infohash)
         elif torrent["status"] == "unknown":
-            self.list_unknown.append(torrent)
+            self.list_unknown.append(infohash)
         elif torrent["status"] == "dead":
-            self.list_dead.append(torrent)
+            self.list_dead.append(infohash)
         else:
             print "error"
-        self.info_dict[torrent["infohash"]] = torrent
         
     
     def deleteTorrentFromList(self, infohash):
         try:
-            if not self.info_dict.has_key(infohash):
-                return
-            old = self.info_dict[infohash]
-            del self.info_dict[infohash]
             if old["status"] == "good":
-                self.list_good.remove(old)
+                self.list_good.remove(infohash)
             elif old["status"] == "unknown":
-                self.list_unknown.remove(old)
+                self.list_unknown.remove(infohash)
             elif old["status"] == "dead":
-                self.list_dead.remove(old)
+                self.list_dead.remove(infohash)
             else:
-                print "error"
+                print "TorrentCheckingList: error delete"
         except:
             pass
         
@@ -123,16 +126,15 @@ class TorrentCheckingList:
         if not torrent:
             self.deleteTorrentFromList(infohash)
             return
-        torrent.update({'infohash':infohash})
         
         try:
             if operate == "update":
-                self.deleteTorrentFromList(torrent["infohash"])
-                self.addTorrentToList(torrent)
+                self.deleteTorrentFromList(infohash)
+                self.addTorrentToList(infohash,torrent)
             elif operate == "add":
-                self.addTorrentToList(torrent)
+                self.addTorrentToList(infohash,torrent)
             elif operate == "delete":
-                self.deleteTorrentFromList(torrent["infohash"])
+                self.deleteTorrentFromList(infohash)
         except Exception, msg:
             print sys.stderr, Exception, msg
             print print_exc()

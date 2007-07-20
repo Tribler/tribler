@@ -118,6 +118,13 @@ class NetworkPanel(ABCOptionPanel):
         #    self.ipv6.SetValue(False)
         ####################################################################
 
+        # URL of internal tracker, user should use it in annouce box / announce-list
+        itrack_box = wx.BoxSizer(wx.HORIZONTAL)
+        self.itrack = wx.TextCtrl(self, -1, "")
+        itrack_box.Add(wx.StaticText(self, -1, self.utility.lang.get('internaltrackerurl')), 0, wx.ALIGN_CENTER_VERTICAL)
+        itrack_box.Add(self.itrack, 1, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT|wx.EXPAND, 5)
+        sizer.Add(itrack_box, 0, wx.ALIGN_LEFT|wx.ALL|wx.EXPAND, 5)
+
         self.initTasks()
         
     def loadValues(self, Read = None):
@@ -130,6 +137,11 @@ class NetworkPanel(ABCOptionPanel):
         self.notsameip.SetValue(Read('notsameip', "boolean"))
         self.scrape.SetValue(Read('scrape', "boolean"))
         
+        itrackerurl = get_itracker_url(self.utility)
+
+        self.itrack.SetValue(itrackerurl)
+
+        
     def apply(self):
         minport = int(self.minport.GetValue())
         if minport > 65535:
@@ -140,6 +152,7 @@ class NetworkPanel(ABCOptionPanel):
         self.utility.config.Write('kickban', self.kickban.GetValue(), "boolean")
         self.utility.config.Write('notsameip', self.notsameip.GetValue(), "boolean")
         self.utility.config.Write('scrape', self.scrape.GetValue(), "boolean")       
+        self.utility.config.Write('internaltrackerurl', self.itrack.GetValue())
 
 
 ################################################################
@@ -1941,3 +1954,13 @@ class ABCOptionDialog(wx.Dialog):
             
             self.EndModal(wx.ID_OK)
 
+def get_itracker_url(utility):
+    itrackerurl = utility.config.Read('internaltrackerurl')
+    if itrackerurl == '':
+        my_db = MyDBHandler()
+        ip = utility.config.Read('bind')
+        if ip is None or ip == '':
+            ip = my_db.getMyIP()
+        port = utility.config.Read('minport', 'int')
+        itrackerurl = 'http://'+ip+':'+str(port)+'/announce'
+    return itrackerurl

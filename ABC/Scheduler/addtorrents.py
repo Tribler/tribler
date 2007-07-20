@@ -18,6 +18,7 @@ from ABC.Torrent.abctorrent import ABCTorrent
 
 from Utility.compat import convertOldList
 from Utility.constants import * #IGNORE:W0611
+from Tribler.__init__ import TRIBLER_TORRENT_EXT
 
 DEBUG = False
 
@@ -113,7 +114,7 @@ class AddTorrents:
                 if gotdata:
                     text = data.GetText()
             if text is not None:
-                if text.startswith("http://") and text.endswith(".torrent"):
+                if text.startswith("http://") and (text.endswith(".torrent") or text.endswith(TRIBLER_TORRENT_EXT)):
                     starturl = text
         
             dialog = wx.TextEntryDialog(None, 
@@ -141,7 +142,7 @@ class AddTorrents:
                                self.utility.lang.get('choosetorrentfile'), 
                                self.utility.getLastDir("open"), 
                                '', 
-                               self.utility.lang.get('torrentfileswildcard') + ' (*.torrent)|*.torrent', 
+                               self.utility.lang.get('torrentfileswildcard') + ' (*.torrent;*'+TRIBLER_TORRENT_EXT+')|*.torrent;*'+TRIBLER_TORRENT_EXT, 
                                wx.OPEN|wx.MULTIPLE)
         result = dialog.ShowModal()
         dialog.Destroy()

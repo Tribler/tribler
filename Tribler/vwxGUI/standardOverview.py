@@ -204,9 +204,19 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         return currentPanel
      
     def refreshData(self):        
+        if DEBUG:
+            print >>sys.stderr,"standardOverview: refreshData"
+        
         grid = self.data[self.mode].get('grid')
         if grid:
+            
+            if DEBUG:
+                data = self.data[self.mode].get('data')
+                if type(data) == list:
+                    print >>sys.stderr,"standardOverview: refreshData: refreshing",len(data)
+            
             grid.setData(self.data[self.mode].get('data'), resetPages = False)
+
         
     def updateSelection(self):
         grid = self.data[self.mode].get('grid')
@@ -235,6 +245,9 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             grid.refreshData()
     
     def filterChanged(self, filterState = None, setgui = False):
+        if DEBUG:
+            print >>sys.stderr,"standardOverview: filterChanged",filterState,setgui
+        
         oldFilterState = self.data[self.mode].get('filterState')
         
         if DEBUG:
@@ -262,6 +275,10 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                     print >>sys.stderr,'standardOverview: Filters not yet implemented in this mode'
                 return
         
+        if DEBUG:
+            print >>sys.stderr,"standardOverview: before refreshData"
+
+        
         if setgui:
             filter = self.data[self.mode]['filter']
             if filter is not None:
@@ -286,11 +303,19 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             self.type = sort
             
             data = self.data_manager.getCategory(self.categorykey[0], self.categorykey[1])
+
+            if DEBUG:
+                if type(data)  == list:
+                    print >>sys.stderr,"standardOverview: getCategory returned",len(data)
             
             if type(data) == list:
                 self.filtered = []
                 for torrent in data:
                     if torrent.get('status') == 'good' or torrent.get('myDownloadHistory'):
+                        
+                        if DEBUG:
+                            print >>sys.stderr,"standardOverview: prefilter adding",`torrent['content_name']`
+
                         self.filtered.append(torrent)
             elif data.isDod():
                 data.addFilter(lambda x:x.get('status') == 'good' or x.get('myDownloadHistory'))
@@ -300,6 +325,9 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 self.filtered = sort_dictlist(self.filtered, sort, 'decrease')
             elif type(sort) == tuple:
                 self.filtered = sort_dictlist(self.filtered, sort[0], sort[1])
+
+            if DEBUG:
+                print >>sys.stderr,"standardOverview: filtering",len(self.filtered)
         
             self.data[self.mode]['data'] = self.filtered
         elif data.isDod():
@@ -309,6 +337,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             elif type(sort) == tuple:
                 keysort.append(sort)
             data.setSort(lambda list: multisort_dictlist(list, keysort))
+            
             self.data[self.mode]['data'] = data
     
     
@@ -540,4 +569,13 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         self.utility.mypref_db.deletePreference(infohash)
         self.utility.mypref_db.sync()
         self.data_manager.setBelongsToMyDowloadHistory(infohash, False)
+        
+    def gotRemoteHits(self,permid,kws,answers):
+        """ Called by RemoteQueryMsgHandler """
+        if self.mode == 'filesMode':
+            if self.data_manager.gotRemoteHits(permid,kws,answers,self.mode):
+                # remote info still valid, repaint if we're showing search results
+                fs = self.data[self.mode]['filterState']
+                if fs[0] == 'search':
+                    self.filterChanged(['search','swarmsize'])
         

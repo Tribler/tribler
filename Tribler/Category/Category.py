@@ -54,6 +54,9 @@ class Category (FlaglessDelayedEventHandler):
             Category(*args, **kw)       
         return Category.__single
     getInstance = staticmethod(getInstance)
+       
+    def register(self,metadata_handler):
+        self.metadata_handler = metadata_handler
         
     # check to see whether need to resort torrent file
     # return bool
@@ -128,11 +131,11 @@ class Category (FlaglessDelayedEventHandler):
                 self.invoker.invokeLater(dlg.Update, [count])
             try:
                 # try alternative dir if bsddb doesnt match with current Tribler install
-                if not os.path.exists(data[i]['torrent_dir']):
-                    data[i]['torrent_dir'] = os.path.join(self.config_dir, "torrent2")
-            
-                                                # read the torrent file
-                filesrc = os.path.join(data[i]['torrent_dir'], data[i]['torrent_name'])
+                rec = data[i]
+                (torrent_dir,torrent_name) = self.metadata_handler.get_std_torrent_dir_name(rec)
+                    
+                # read the torrent file
+                filesrc = os.path.join(torrent_dir,torrent_name)
                 
 #                print filesrc
                 f = open(filesrc, "rb")
@@ -209,7 +212,6 @@ class Category (FlaglessDelayedEventHandler):
         strongest_cat = 0.0
         for category in self.category_info:    # for each category
             (decision, strength) = self.judge(category, filename_list, filesize_list, display_name)
-            
             if decision and (strength > strongest_cat):
                 torrent_category = [category['name']]
                 strongest_cat = strength
@@ -235,7 +237,10 @@ class Category (FlaglessDelayedEventHandler):
             except:
                 pass
         if (1 - factor) > 0.5:
-            return (True, (1- factor))
+            if 'strength' in category:
+                return (True, category['strength'])
+            else:
+                return (True, (1- factor))
         
         # judge each file
         matchSize = 0
@@ -243,7 +248,7 @@ class Category (FlaglessDelayedEventHandler):
         for index in range( len( filesize_list ) ):
             totalSize += filesize_list[index]
             # judge file size
-            if ( filesize_list[index] < category['minfilesize'] ) or ( filesize_list[index] > category['maxfilesize'] ):
+            if ( filesize_list[index] < category['minfilesize'] ) or (category['maxfilesize'] > 0 and filesize_list[index] > category['maxfilesize'] ):
                 continue
         
             # change to lower case
@@ -262,11 +267,12 @@ class Category (FlaglessDelayedEventHandler):
             # judge file keywords
             factor = 1.0
             fileKeywords = self._getWords(filename_list[index])
+            
             for ikeywords in category['keywords'].keys():
 #                pass
                 try:
                     fileKeywords.index(ikeywords)
-#                    print ikeywords
+                    print ikeywords
                     factor *= 1 - category['keywords'][ikeywords]
                 except:
                     pass

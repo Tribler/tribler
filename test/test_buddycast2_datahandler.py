@@ -20,6 +20,14 @@ from random import random, shuffle
 
 myid =  147
 
+class FakeRawServer:
+    
+    def __init__(self):
+        pass
+    
+    def add_task(self,func,t):
+        pass
+
 class TestBuddyCastDataHandler(unittest.TestCase):
     
     def setUp(self):
@@ -31,7 +39,7 @@ class TestBuddyCastDataHandler(unittest.TestCase):
         copy_tree(testdbpath, self.dbpath)
         
         tribler_init(unicode(self.homepath))
-        self.data_handler = DataHandler(db_dir=self.dbpath)
+        self.data_handler = DataHandler(FakeRawServer(),db_dir=self.dbpath)
         # self.data_handler.max_num_peers = 100
         # self.data_handler.postInit()
         

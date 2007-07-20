@@ -13,6 +13,13 @@ from traceback import print_exc
 #===============================================================================
 
 DEBUG = False
+
+key_content_name = 'content_name'
+key_permid = 'permid'
+key_friend = 'friend'
+key_similarity = 'similarity'
+
+
 def debug(message):
     if DEBUG:
         print >>sys.stderr,"peermanager:",message
@@ -171,6 +178,7 @@ class PeerDataManager(DelayedEventHandler):
         self.frienddb = CacheDBHandler.FriendDBHandler()
         self.MAX_MIN_PEERS_NUMBER = 1900
         self.MAX_MAX_PEERS_NUMBER = 2100
+        self.wantedkeys = ['permid', 'name', 'ip', 'similarity', 'last_seen', 'connected_times', 'buddycast_times', 'port']
 
         #there should always be an all key that contains all data
         all_data = [] #this all data can also be stored in a separate variable for easier usage
@@ -368,18 +376,17 @@ class PeerDataManager(DelayedEventHandler):
         unique_peer_list = set(peer_list)
         #add the list of friends
         unique_peer_list = unique_peer_list | set(self.frienddb.getFriendList())
-        key = ['permid', 'name', 'ip', 'similarity', 'last_seen', 'connected_times', 'buddycast_times', 'port']
-        tempdata = self.peersdb.getPeers(unique_peer_list, key)
 
         localdata = []
         #select only tribler peers
-        for i in xrange(len(tempdata)):
-            permid = tempdata[i].get('permid')
+        for permid in unique_peer_list:
+            peer = self.peersdb.getPeer(permid)
+            peer[key_permid] = permid
             isFriend = self.frienddb.isFriend(permid)
-            if tempdata[i]['connected_times'] > 0 or isFriend:
-                peer_data = tempdata[i]
-                self.preparePeer(peer_data,isFriend)
-                localdata.append(peer_data)
+            
+            if peer['connected_times'] > 0 or isFriend:
+                newpeer = self.preparePeer(peer,isFriend)
+                localdata.append(newpeer)
         #update top 20
         self.updateTopList(localdata, self.top20similar, 'similarity')
         #set the rankings to data
@@ -437,7 +444,6 @@ class PeerDataManager(DelayedEventHandler):
     def treatCallback(self, permid_dict):
 #        debug("treat callback with %d peers" % (len(permid_dict)))
         for permid, mode in permid_dict.iteritems():
-            bTopChanged = False #indicates that the top 20 similar peer has changed due to this peer, so a refresh of the page is probably neccessary
             peer_data = None
             if mode in ['update', 'add']:
                 #first get the new data from database
@@ -452,7 +458,7 @@ class PeerDataManager(DelayedEventHandler):
                     peer_data['permid'] = permid
                 #arrange the data some more: add content_name, rank and so on
                 #and also updates the top 20
-                bTopChanged = self.preparePeer(peer_data, isFriend=isFriend)
+                peer_data = self.preparePeer(peer_data, isFriend=isFriend)
             #update local snapshot
             if mode in ['delete', 'hide']:
                 #remove from all lists
@@ -492,8 +498,6 @@ class PeerDataManager(DelayedEventHandler):
                 
         #inform the GuiUtility of operation but only once for all updates
         try:
-#            if bTopChanged:
-#                mode = mode+" and top_changed"
             mode = "peers changes"
             self.notifyGui(peer_data, mode)
         except:
@@ -588,25 +592,31 @@ class PeerDataManager(DelayedEventHandler):
             for key,value in new_value.iteritems():
                 old_value[key] = value
             
-    def preparePeer(self, peer_data, isFriend=None):
+    def preparePeer(self, peer, isFriend=None):
         """when a peer is updated, prepare it for use inside the view
         creates content_name, similarity_percent, rank_value
         updates the global maximal similarity value and the list of top 20 most similar peers"""
+
+        # Arno: remove keys we don't want + savemem by reusing the key strings
+        peer_data = {}
+        for key in self.wantedkeys:
+            peer_data[key] = peer[key]
+        
         if peer_data['name'] is not None and len(peer_data['name'])>0:
-            peer_data['content_name']=dunno2unicode(peer_data['name'])
+            peer_data[key_content_name]=dunno2unicode(peer_data['name'])
         else:
-            peer_data['content_name']= 'peer %s' % show_permid_shorter(peer_data['permid'])#'[%s:%s]' % (localdata[i]['ip'],str(localdata[i]['port']))
+            peer_data[key_content_name]= 'peer %s' % show_permid_shorter(peer_data['permid'])#'[%s:%s]' % (localdata[i]['ip'],str(localdata[i]['port']))
         if isFriend is not None:
-            peer_data['friend'] = isFriend
+            peer_data[key_friend] = isFriend
         else:
-            peer_data['friend'] = self.frienddb.isFriend(peer_data['permid'])#permid in self.friend_list
+            peer_data[key_friend] = self.frienddb.isFriend(peer_data['permid'])#permid in self.friend_list
         # compute the maximal value for similarity
         # in order to be able to compute top-n persons based on similarity
         if peer_data.get('similarity'):
             if peer_data['similarity']>self.MaxSimilarityValue:
                 self.MaxSimilarityValue = peer_data['similarity'] #should recompute percents
         else:
-            peer_data['similarity']=0
+            peer_data[key_similarity]=0
 #===============================================================================
 #        if self.isDataPrepared:
 #            if self.MaxSimilarityValue > 0:
@@ -616,6 +626,7 @@ class PeerDataManager(DelayedEventHandler):
 #            #recompute rank
 #            peer_data['rank_value'] = self.compute_rankval(peer_data)
 #===============================================================================
+        return peer_data
 
     def compute_rankval(self, peer_data):
         """computes a rank value for a peer used for ordering the peers based on

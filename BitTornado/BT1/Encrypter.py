@@ -392,7 +392,7 @@ class Encoder:
             print >>sys.stderr,"encoder: connecting to",len(list),"peers"
         if not self.to_connect:
             self.raw_server.add_task(self._start_connection_from_queue)
-        self.to_connect = list
+        self.to_connect.extend(list)
         self.trackertime = int(time()) 
 
     def _start_connection_from_queue(self):

@@ -1,5 +1,6 @@
 # Written by Bram Cohen
 # modified for multitracker operation by John Hoffman
+# modified for mainline DHT support by Fabian van der Werf
 # see LICENSE.txt for license information
 
 import sys
@@ -7,13 +8,18 @@ from BitTornado.zurllib import urlopen
 from urllib import quote
 from btformats import check_peers
 from BitTornado.bencode import bdecode
-from threading import Thread, Lock
+from threading import Thread, Lock, currentThread
 from cStringIO import StringIO
 from traceback import print_exc,print_stack
-from socket import error, gethostbyname
+from socket import error, gethostbyname, inet_aton, inet_ntoa
 from random import shuffle
 from sha import sha
 from time import time
+from struct import pack, unpack
+
+from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
+import Tribler.DecentralizedTracking.mainlineDHT as mainlineDHT
+
 try:
     from os import getpid
 except ImportError:
@@ -69,9 +75,10 @@ class Rerequester:
         self.trackerlist = newtrackerlist
         self.lastsuccessful = ''
         self.rejectedmessage = 'rejected by tracker - '
+        self.port = port
         
         if DEBUG:
-            print >>sys.stderr,"Rerequest tracker: inofhash is",`infohash`
+            print >>sys.stderr,"Rerequest tracker: infohash is",`infohash`
 
         self.url = ('?info_hash=%s&peer_id=%s&port=%s' %
             (quote(infohash), quote(myid), str(port)))
@@ -79,7 +86,7 @@ class Rerequester:
         self.interval = interval
         self.last = None
         self.trackerid = None
-        self.announce_interval = 30 * 60
+        self.announce_interval = 1 * 60
         self.sched = sched
         self.howmany = howmany
         self.minpeers = minpeers
@@ -102,8 +109,12 @@ class Rerequester:
         self.special = None
         self.stopped = False
         self.schedid = 'arno481'
+        self.infohash = infohash
+        self.dht = mainlineDHT.dht
+
 
     def start(self):
+            
         self.sched(self.c, self.interval/2)
         self.d(0)
 
@@ -202,14 +213,23 @@ class Rerequester:
                     self.externalsched(fail)
             self.errorcodes = {}
             if self.special is None:
+
+                #Do dht request
+                if self.dht:
+                    self._dht_rerequest()
+                elif DEBUG:
+                    print >>sys.stderr,"Rerequester: No DHT support loaded"
+
                 for t in range(len(self.trackerlist)):
                     for tr in range(len(self.trackerlist[t])):
                         tracker  = self.trackerlist[t][tr]
                         # Arno: no udp support yet
                         if tracker.startswith( 'udp:' ):
                             if DEBUG:
-                                print "Rerequest tracker: ignoring",tracker
+                                print >>sys.stderr,"Rerequester: Ignoring tracker",tracker
                             continue
+                        #elif DEBUG:
+                        #    print >>sys.stderr,"Rerequester: Trying tracker",tracker
                         if self.rerequest_single(tracker, s, callback):
                             if not self.last_failed and tr != 0:
                                 del self.trackerlist[t][tr]
@@ -234,7 +254,7 @@ class Rerequester:
                     r = self.errorcodes[f]
                     break
             else:
-                r = 'Problem connecting to tracker - unspecified error'
+                r = 'Problem connecting to tracker - unspecified error:'+`self.errorcodes`
             self.errorfunc(r)
 
         self.last_failed = True
@@ -281,7 +301,7 @@ class Rerequester:
             err = None
             try:
                 if DEBUG:
-                    print "Rerequest tracker:"
+                    print >>sys.stderr,"Rerequest tracker:"
                     print t+s
                 h = urlopen(t+s)
                 closer[0] = h.close
@@ -289,15 +309,15 @@ class Rerequester:
             except (IOError, error), e:
                 err = 'Problem connecting to tracker - ' + str(e)
                 if DEBUG:
-                    print_exc(file=sys.stderr)
+                    print_exc()
             except:
                 err = 'Problem connecting to tracker'
                 if DEBUG:
-                    print_exc(file=sys.stderr)
+                    print_exc()
                     
                     
-            if DEBUG:
-                print >>sys.stderr,"rerequest: Got data",data
+            #if DEBUG:
+            #    print >>sys.stderr,"rerequest: Got data",data
                     
             try:
                 h.close()
@@ -318,11 +338,11 @@ class Rerequester:
             try:
                 r = bdecode(data, sloppy=1)
                 if DEBUG:
-                    print "Tracker returns:", r
+                    print >>sys.stderr,"Rerequester: Tracker returns:", r
                 check_peers(r)
             except ValueError, e:
                 if DEBUG:
-                    print_exc(file=sys.stderr)
+                    print_exc()
                 if self.lock.trip(l):
                     self.errorcodes['bad_data'] = 'bad data from tracker - ' + str(e)
                     self.lock.unwait(l)
@@ -346,41 +366,78 @@ class Rerequester:
         except:
             self.exception(callback)
 
+    def _dht_rerequest(self):
+        if DEBUG:
+            print >>sys.stderr,"Rerequester: _dht_rerequest",`self.infohash`
+        if DialbackMsgHandler.getInstance().isConnectable():
+            self.dht.getPeersAndAnnounce(self.infohash, self.port, self._dht_got_peers)
+        else:
+            self.dht.getPeers(self.infohash, self._dht_got_peers)
+
+    def _dht_got_peers(self, peers):
+        if DEBUG:
+            print >>sys.stderr,"Rerequester: DHT: Received",len(peers),"peers",currentThread().getName()
+        p = []
+        for peer in peers:
+            try:
+                ip, port = unpack("!4sH", peer)
+                if DEBUG:
+                    print >>sys.stderr,"Rerequester: DHT: Got",inet_ntoa(ip), int(port)
+                p.append({'ip':  inet_ntoa(ip),
+                          'port':port})
+            except:
+                pass
+
+        if p:
+            r = {'peers':p}
+            def add(self = self, r = r):
+                self.postrequest(r, lambda : None)
+            self.externalsched(add)
 
     def postrequest(self, r, callback):
-        if r.has_key('warning message'):
-            self.errorfunc('warning from tracker - ' + r['warning message'])
-        self.announce_interval = r.get('interval', self.announce_interval)
-        self.interval = r.get('min interval', self.interval)
-        
-        if DEBUG:
-            print >> sys.stderr,"Rerequester: announce min is",self.announce_interval,self.interval
-        
-        self.trackerid = r.get('tracker id', self.trackerid)
-        self.last = r.get('last')
-#        ps = len(r['peers']) + self.howmany()
-        p = r['peers']
-        peers = []
-        if type(p) == type(''):
-            for x in xrange(0, len(p), 6):
-                ip = '.'.join([str(ord(i)) for i in p[x:x+4]])
-                port = (ord(p[x+4]) << 8) | ord(p[x+5])
-                peers.append(((ip, port), 0))
-        else:
-            for x in p:
-                peers.append(((x['ip'].strip(), x['port']), x.get('peer id', 0)))
-        ps = len(peers) + self.howmany()
-        if ps < self.maxpeers:
-            if self.doneflag.isSet():
-                if r.get('num peers', 1000) - r.get('done peers', 0) > ps * 1.2:
-                    self.last = None
+        try:
+            if r.has_key('warning message'):
+                self.errorfunc('warning from tracker - ' + r['warning message'])
+            self.announce_interval = r.get('interval', self.announce_interval)
+            self.interval = r.get('min interval', self.interval)
+            
+            if DEBUG:
+                print >> sys.stderr,"Rerequester: announce min is",self.announce_interval,self.interval
+            
+            self.trackerid = r.get('tracker id', self.trackerid)
+            self.last = r.get('last', self.last)
+    #        ps = len(r['peers']) + self.howmany()
+            p = r['peers']
+            peers = []
+            if type(p) == type(''):
+                for x in xrange(0, len(p), 6):
+                    ip = '.'.join([str(ord(i)) for i in p[x:x+4]])
+                    port = (ord(p[x+4]) << 8) | ord(p[x+5])
+                    peers.append(((ip, port), 0))
             else:
-                if r.get('num peers', 1000) > ps * 1.2:
-                    self.last = None
-        if peers:
-            shuffle(peers)
-            self.connect(peers)    # Encoder.start_connections(peers)
-        callback()
+                for x in p:
+                    peers.append(((x['ip'].strip(), x['port']), x.get('peer id', 0)))
+                    
+            if DEBUG:
+                print >>sys.stderr,"Rerequester: postrequest: Got peers",peers
+            ps = len(peers) + self.howmany()
+            if ps < self.maxpeers:
+                if self.doneflag.isSet():
+                    if r.get('num peers', 1000) - r.get('done peers', 0) > ps * 1.2:
+                        self.last = None
+                else:
+                    if r.get('num peers', 1000) > ps * 1.2:
+                        self.last = None
+
+
+            if peers:
+                shuffle(peers)
+                self.connect(peers)    # Encoder.start_connections(peers)
+            callback()
+        except:
+            print >>sys.stderr,"Rerequester: Error in postrequest"
+            import traceback
+            traceback.print_exc()
 
     def exception(self, callback):
         data = StringIO()

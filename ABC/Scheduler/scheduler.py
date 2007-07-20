@@ -50,6 +50,7 @@ class ABCScheduler(DelayedEventHandler):
 
         self.UpdateRunningTorrentCounters()
         self.guiUtility = GUIUtility.getInstance()
+        self.maxmeasuredul = self.utility.config.Read('maxmeasureduploadrate','int') * 1024.0
 
     def postInitTasks(self,argv):
         # Read old list from torrent.lst
@@ -140,7 +141,7 @@ class ABCScheduler(DelayedEventHandler):
         self.totals_kb['down'] = (totaldownload / 1024.0)
         
         self.totals['connections'] = totalconnections
-
+        
     def updateTrayAndStatusBar(self):
         self.invokeLater(self.onUpdateTrayAndStatusBar)
 
@@ -207,6 +208,13 @@ class ABCScheduler(DelayedEventHandler):
             
         except wx.PyDeadObjectError:
             pass
+
+        # Make sure the config is written by MainThread
+        if self.totals['up'] > self.maxmeasuredul:
+            self.maxmeasuredul = self.totals['up']
+            m = int(self.maxmeasuredul/1024.0)
+            self.utility.config.Write('maxmeasureduploadrate',m)
+
                                 
     def CyclicalTasks(self):       
         self.getDownUpConnections()
@@ -533,3 +541,6 @@ class ABCScheduler(DelayedEventHandler):
     def checkAutoShutdownTorrents(self):
         self.invokeLater(self.utility.actionhandler.procCHECK_AUTOSHUTDOWN)
         
+    def getMaxMeasuredUploadRate(self):
+        return int(self.maxmeasuredul / 1024.0)
+    

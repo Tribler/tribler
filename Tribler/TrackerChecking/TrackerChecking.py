@@ -2,6 +2,7 @@
 # see LICENSE.txt for license information
 
 # single torrent checking without Thread
+import sys
 from BitTornado.bencode import bdecode
 from random import shuffle
 import urllib, httplib
@@ -11,6 +12,8 @@ from time import time
 from traceback import print_exc
 
 HTTP_TIMEOUT = 30 # seconds
+
+DEBUG = True
 
 def trackerChecking(torrent):    
     single_no_thread(torrent)              
@@ -39,6 +42,8 @@ def single_no_thread(torrent):
             else:                                        # length > 1
                 aindex = torrent["info"]["announce-list"].index(announces)                                    
                 shuffle(announces)
+                # Arno: protect agaist DoS torrents with many trackers in announce list. 
+                announces = announces[:16]
                 for announce in announces:                # for eache announce
                     (s, l) = singleTrackerStatus(torrent, announce)
                     seeder = max(seeder, s)
@@ -80,12 +85,19 @@ def singleTrackerStatus(torrent, announce):
     # return (-2. -2) means the status of torrent is dead
     # return (-3, -3) means the interval problem 
     info_hash = torrent["infohash"]
+    
+    if DEBUG:
+        print >>sys.stderr,"TrackerChecking: Checking",announce,"for",`info_hash`
+    
     url = getUrl(announce, info_hash)            # whether scrape support
     if (url == None):                            # tracker url error
         return (-2, -2)                            # use announce instead
     try:
         #print 'Checking url: %s' % url
         (seeder, leecher) = getStatus(url, info_hash)
+        
+        if DEBUG:
+            print >>sys.stderr,"TrackerChecking: Result",(seeder,leecher)
     except:
         (seeder, leecher) = (-2, -2)
     return (seeder, leecher)

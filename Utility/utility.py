@@ -15,6 +15,8 @@ from wx.lib import masked
 from BitTornado.ConfigDir import ConfigDir
 from BitTornado.bencode import bdecode
 from BitTornado.download_bt1 import defaults as BTDefaults
+from BitTornado.download_bt1 import DEFAULTPORT
+from BitTornado.BT1.track import defaults as TrackerDefaults
 from BitTornado.parseargs import parseargs
 from BitTornado.zurllib import urlopen
 from BitTornado.__init__ import version_id
@@ -86,8 +88,10 @@ class Utility:
         
         self.FILESEM   = Semaphore(1)
 
-        if (sys.platform == 'win32'):        
+        warned = self.config.Read('torrentassociationwarned','int')
+        if (sys.platform == 'win32' and not warned):     
             self.regchecker = RegChecker(self)
+            self.config.Write('torrentassociationwarned','1')
 
         self.lastdir = { "save" : self.config.Read('defaultfolder'), 
                          "open" : "", 
@@ -143,6 +147,7 @@ class Utility:
             'maxuploadrate': '0', 
             'maxdownloadrate': '0', 
             'maxseeduploadrate': '0', 
+            'maxmeasureduploadrate': '0',
             'numsimdownload': '5', 
             'uploadoption': '0', 
             'uploadtimeh': '0', 
@@ -388,7 +393,9 @@ class Utility:
              'showearthpanel': '0',
              'videoplaybackmode':'0',
              'askeduploadbw':'0',
-             'torrentcollectsleep':'15'
+             'torrentcollectsleep':'15',
+             'torrentassociationwarned':'0',
+             'internaltrackerurl': ''
 #            'skipcheck': '0'
         }
 
@@ -484,10 +491,12 @@ class Utility:
             'makehash_md5': '0', 
             'makehash_crc32': '0', 
             'makehash_sha1': '0', 
-            'startnow': '0', 
-            'savetorrent': '2',
-            'createmerkletorrent': '0',
-            'createtorrentsig': '0'
+            'startnow': '1', 
+            'savetorrent': '1',
+            'createmerkletorrent': '1',
+            'createtorrentsig': '0',
+            'useitracker': '1',
+            'manualtrackerconfig': '0'
         }
 
         torrentmakerconfigfilepath = os.path.join(self.getConfigPath(), "maker.conf")
@@ -773,6 +782,24 @@ class Utility:
         config, args = parseargs(btparams, BTDefaults)
             
         return config
+
+    def getTrackerParams(self):
+        tconfig = {}
+        for k,v,expl in TrackerDefaults:
+            tconfig[k] = v
+        
+        tconfig['port'] = DEFAULTPORT
+        dir = os.path.join(self.getConfigPath(),'itracker')
+        dfile = os.path.join(dir,'tracker.db')
+        tconfig['dfile'] = dfile
+        tconfig['allowed_dir'] = dir
+        tconfig['favicon'] = os.path.join(self.getPath(),'tribler.ico')
+        #tconfig['save_dfile_interval'] = 20
+        tconfig['dfile_format'] = 'pickle' # We use unicode filenames, so bencode won't work
+        
+        return tconfig
+        
+
 
     # Check if str is a valid Windows file name (or unit name if unit is true)
     # If the filename isn't valid: returns a fixed name

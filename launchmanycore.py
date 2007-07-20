@@ -61,8 +61,9 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
         self.output = Outputter()
         self.guiUtility = GUIUtility.getInstance()
 
-        btconfig = utility.getBTParams()
+        btconfig = self.utility.getBTParams()
         btconfig['config_path'] = self.utility.getConfigPath()
+        btconfig['trackerconf'] = self.utility.getTrackerParams() 
 
         # Create dir for helper to put torrents and files in.
         #
@@ -317,8 +318,8 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
         gc.collect()
 
     # override
-    def upnp_failed(self,upnp_type,listenport,error_type,exc=None):
-        self.invokeLater(self.utility.frame.onUPnPError,[upnp_type,listenport,error_type,exc])
+    def upnp_failed(self,upnp_type,listenport,error_type,exc=None,listenproto='TCP'):
+        self.invokeLater(self.utility.frame.onUPnPError,[upnp_type,listenport,error_type,exc],{'listenproto':listenproto})
 
     def dying_engines_errormsg(self,ABCTorrentTemp,msg,label):
         self.invokeLater(self.dying_engines_errormsg_callback,[ABCTorrentTemp,msg,label])
@@ -348,6 +349,9 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
     def create_full_bufferinfo(self):
         return BufferInfo(full=True)
 
+    def get_gui_util(self):
+        return self.guiUtility
+    
     
 class Outputter:
     def __init__(self):

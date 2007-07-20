@@ -1,6 +1,6 @@
 @echo off
 
-set PYTHONPATH="C:\Python24"
+set PYTHONPATH="C:\Python243"
 set NSIS="C:\Program Files\NSIS\makensis.exe"
 set IMGCFG="C:\Program Files\Imagecfg\imagecfg.exe"
 

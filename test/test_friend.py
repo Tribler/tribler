@@ -75,7 +75,11 @@ class TestFriendList(unittest.TestCase):
                    'buddycast_times':0,
                    'last_buddycast_time':0,
                    'oversion':0,
-                   'connected_times':0
+                   'connected_times':0,
+                   'npeers':0,
+                   'ntorrents':0,
+                   'nprefs':0,
+                   'nqueries':0
                    },
                    {'permid':base64.decodestring('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAc6ebdH+dmvvgKiE7oOZuQba5I4msyuTJmVpJQVPAT+R9Pg8zsLsuJPV6RjU30RKHnCiaJvjtFW6pLXo\n'),
                    'name':'Jie Yang',
@@ -86,7 +90,11 @@ class TestFriendList(unittest.TestCase):
                    'buddycast_times':0,
                    'last_buddycast_time':0,
                    'oversion':0,                   
-                   'connected_times':0
+                   'connected_times':0,
+                   'npeers':0,
+                   'ntorrents':0,
+                   'nprefs':0,
+                   'nqueries':0
                    },
                    ]
         assert len(friends) == 2, len(friends)

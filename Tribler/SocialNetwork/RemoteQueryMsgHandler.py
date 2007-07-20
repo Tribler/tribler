@@ -1,0 +1,355 @@
+# Written by Arno Bakker, Jie Yang
+# see LICENSE.txt for license information
+#
+# Send free-form queries to all the peers you are connected to.
+#
+# TODO: make sure we return also items from download history, but need to verify if 
+# their status is still checked.
+#
+#
+
+import sys
+from time import time
+from sets import Set
+from traceback import print_stack
+
+from M2Crypto import Rand
+
+from BitTornado.bencode import bencode,bdecode
+from BitTornado.BT1.MessageID import *
+
+from Tribler.Overlay.SecureOverlay import OLPROTO_VER_SIXTH
+from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler, FriendDBHandler, PeerDBHandler
+from Tribler.utilities import show_permid_short
+
+MAX_QUERIES_FROM_RANDOM_PEER = 10
+MAX_RESULTS = 20
+QUERY_ID_SIZE = 20
+
+DEBUG = False
+
+class RemoteQueryMsgHandler:
+    
+    __single = None
+    
+    def __init__(self):
+        if RemoteQueryMsgHandler.__single:
+            raise RuntimeError, "RemoteQueryMsgHandler is singleton"
+        RemoteQueryMsgHandler.__single = self
+
+        self.torrent_db = TorrentDBHandler()
+        self.friend_db = FriendDBHandler()
+        self.peer_db = PeerDBHandler()
+        self.connections = Set()
+        self.query_ids2query = {}
+
+    def getInstance(*args, **kw):
+        if RemoteQueryMsgHandler.__single is None:
+            RemoteQueryMsgHandler(*args, **kw)
+        return RemoteQueryMsgHandler.__single
+    getInstance = staticmethod(getInstance)
+        
+
+    def register(self,secure_overlay,launchmany,rawserver,config,bc_fac):
+        if DEBUG:
+            print >> sys.stderr,"rquery: register"
+        self.secure_overlay = secure_overlay
+        self.launchmany= launchmany
+        self.rawserver = rawserver
+        self.config = config
+        self.bc_fac = bc_fac # May be None
+        
+        
+    def register2(self,data_manager):
+        self.data_manager = data_manager
+
+    #
+    # Incoming messages
+    # 
+    def handleMessage(self,permid,selversion,message):
+        
+        t = message[0]
+        if t == QUERY:
+            if DEBUG:
+                print >> sys.stderr,"rquery: Got QUERY",len(message)
+            return self.recv_query(permid,message,selversion)
+        if t == QUERY_REPLY:
+            if DEBUG:
+                print >> sys.stderr,"rquery: Got QUERY_REPLY",len(message)
+            return self.recv_query_reply(permid,message,selversion)
+        else:
+            if DEBUG:
+                print >> sys.stderr,"rquery: UNKNOWN OVERLAY MESSAGE", ord(t)
+            return False
+
+    #
+    # Incoming connections
+    #
+    def handleConnection(self,exc,permid,selversion,locally_initiated):
+        
+        if DEBUG:
+            print >> sys.stderr,"rquery: handleConnection",exc,"v",selversion,"local",locally_initiated
+        if exc is not None:
+            return
+        
+        if selversion < OLPROTO_VER_SIXTH:
+            return True
+
+        if exc is None:
+            self.connections.add(permid)
+        else:
+            self.connections.remove(permid)
+
+        return True
+
+    #
+    # Send query
+    # 
+
+    def sendQuery(self,query):
+        """ Called by GUI Thread """
+        if DEBUG:
+            print >>sys.stderr,"rquery: sendQuery",query
+        send_query_func = lambda:self.sendQueryNetworkCallback(query)
+        self.rawserver.add_task(send_query_func,0)
+
+
+    def sendQueryNetworkCallback(self,query):
+        """ Called by network thread """
+        p = self.create_query(query)
+        m = QUERY+p
+        func = lambda exc,dns,permid,selversion:self.conn_callback(exc,dns,permid,selversion,m)
+
+        if DEBUG:
+            print >>sys.stderr,"rquery: sendQuery: Sending to",len(self.connections),"peers"
+        
+        for permid in self.connections:
+            self.secure_overlay.connect(permid,func)
+        
+    def create_query(self,query):
+        d = {}
+        d['q'] = 'SIMPLE '+query
+        d['id'] = self.create_and_register_query_id(query)
+        return bencode(d)
+        
+    def create_and_register_query_id(self,query):
+        id = Rand.rand_bytes(QUERY_ID_SIZE)
+        self.query_ids2query[id] = query
+        return id
+        
+    def is_registered_query_id(self,id):
+        if id in self.query_ids2query:
+            return self.query_ids2query[id]
+        else:
+            return None
+        
+    def conn_callback(self,exc,dns,permid,selversion,message):
+        if exc is None and selversion >= OLPROTO_VER_SIXTH:
+            self.secure_overlay.send(permid,message,self.send_callback)
+            
+    def send_callback(self,exc,permid):
+        pass
+    
+    
+    #
+    # Receive query
+    # 
+    
+    def recv_query(self,permid,message,selversion):
+        if selversion < OLPROTO_VER_SIXTH:
+            return False
+
+        # Unpack
+        try:
+            d = bdecode(message[1:])
+        except:
+            if DEBUG:
+                print >>sys.stderr,"rquery: Cannot bdecode QUERY message"
+            #print_exc()
+            return False
+        
+        if not isValidQuery(d,selversion):
+            return False
+
+        # Check auth
+        friends = self.friend_db.getFriendList()
+        tastebuddies = []
+        if self.bc_fac is not None:
+            tastebuddies = self.bc_fac.getTasteBuddies()
+        
+        if not (permid in friends or permid in tastebuddies or self.benign_random_peer(permid)):
+            if DEBUG:
+                print >>sys.stderr,"rquery: QUERY not from friend, taste buddy or benign random peer"
+            return False
+
+        # Process
+        self.process_query(permid,d)
+        return True
+
+
+    def benign_random_peer(self,permid):
+        peer = self.peer_db.getPeer(permid)
+        return peer['nqueries'] < MAX_QUERIES_FROM_RANDOM_PEER
+
+
+    #
+    # Send query reply
+    #
+    def process_query(self,permid,d):
+        q = d['q'][len('SIMPLE '):]
+        # Format: 'SIMPLE '+string of space separated keywords
+        # In the future we could support full SQL queries:
+        # SELECT infohash,torrent_name FROM torrent_db WHERE status = ALIVE
+        kws = q.split()
+        hits = self.data_manager.remoteSearch(kws,maxhits=MAX_RESULTS)
+        
+        p = self.create_query_reply(d['id'],hits)
+        m = QUERY_REPLY+p
+        self.secure_overlay.send(permid,m,self.send_callback)
+        
+        
+    def create_query_reply(self,id,hits):
+        d = {}
+        d['id'] = id
+        d2 = {}
+        for torrent in hits:
+            r = {}
+            r['content_name'] = torrent['content_name']
+            r['length'] = torrent['length']
+            r['leecher'] = torrent['leecher']
+            r['seeder'] = torrent['seeder']
+            d2[torrent['infohash']] = r
+        d['a'] = d2
+        return bencode(d)
+
+
+    #
+    # Receive query reply
+    #
+
+    def recv_query_reply(self,permid,message,selversion):
+        if selversion < OLPROTO_VER_SIXTH:
+            return False
+
+        # Unpack
+        try:
+            d = bdecode(message[1:])
+        except:
+            if DEBUG:
+                print >>sys.stderr,"rquery: Cannot bdecode QUERY_REPLY message"
+            return False
+        
+        if not isValidQueryReply(d,selversion):
+            return False
+
+        # Check auth
+        query = self.is_registered_query_id(d['id'])
+        if not query:
+            if DEBUG:
+                print >>sys.stderr,"rquery: QUERY_REPLY has unknown query ID"
+            return False
+
+        # Process
+        self.process_query_reply(permid,query,d)
+        return True
+
+
+    def process_query_reply(self,permid,query,d):
+        if len(d['a']) > 0:
+            # TODO: report to standardOverview instead
+            kws = query.split()
+            self.notify_of_remote_hits(permid,kws,d['a'])
+        elif DEBUG:
+            print >>sys.stderr,"rquery: QUERY_REPLY: no results found"
+
+    def notify_of_remote_hits(self,permid,kws,answers):
+        guiutil = self.launchmany.get_gui_util()
+        if guiutil is None:
+            if DEBUG:
+                print >>sys.stderr,"rquery: QUERY_REPLY: cannot pass remote hits to GUI layer"
+            return
+        
+        so = guiutil.standardOverview
+        so.invokeLater(self.notify_hits_guicallback,[so,permid,kws,answers])
+
+
+    def notify_hits_guicallback(self,standardOverview,permid,kws,answers):
+        """ Called by GUI thread """
+        standardOverview.gotRemoteHits(permid,kws,answers)
+
+
+    def test_sendQuery(self,query):
+        """ Called by GUI Thread """
+        add_remote_hits_func = lambda:self.add_remote_query_hits(query)
+        self.rawserver.add_task(add_remote_hits_func,3)
+        
+    def add_remote_query_hits(self,query):
+        torrent = {}
+        torrent['content_name'] = 'Hallo 1'
+        torrent['length'] = 100000000
+        torrent['leecher'] = 200
+        torrent['seeder'] = 400
+        
+        torrent2 = {}
+        torrent2['content_name'] = 'Hallo 2'
+        torrent2['length'] = 7777777
+        torrent2['leecher'] = 678
+        torrent2['seeder'] = 123
+        
+        d = {}
+        ih = 'a'*20
+        ih2 = 'b'*20
+        d[ih] = torrent
+        d[ih2] = torrent2
+        kws = query.split()
+        permid = None
+        self.notify_of_remote_hits(permid,kws,d)
+
+
+def isValidQuery(d,selversion):
+    if not isinstance(d,dict):
+        return False
+    if not ('q' in d and 'id' in d):
+        return False
+    if not (isinstance(d['q'],str) and isinstance(d['id'],str)):
+        return False
+    if len(d['q']) == 0:
+        return False
+    if len(d) > 2: # no other keys
+        return False
+    return True
+
+def isValidQueryReply(d,selversion):
+    if not isinstance(d,dict):
+        return False
+    if not ('a' in d and 'id' in d):
+        return False
+    if not (isinstance(d['a'],dict) and isinstance(d['id'],str)):
+        return False
+    if not isValidHits(d['a']):
+        return False
+    if len(d) > 2: # no other keys
+        return False
+    return True
+
+def isValidHits(d):
+    if not isinstance(d,dict):
+        return False
+    for key in d.keys():
+        if len(key) != 20:
+            return False
+        val = d[key]
+        if not isValidVal(val):
+            return False
+    return True
+
+def isValidVal(d):
+    if not isinstance(d,dict):
+        return False
+    if not ('content_name' in d and 'length' in d and 'leecher' in d and 'seeder' in d):
+        return False
+    if not (isinstance(d['content_name'],str) and isinstance(d['length'],int) and isinstance(d['leecher'],int) and isinstance(d['seeder'],int)):
+        return False
+    if len(d) > 4: # no other keys
+        return False
+    return True

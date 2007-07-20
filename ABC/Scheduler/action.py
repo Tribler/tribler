@@ -37,6 +37,14 @@ class ActionHandler:
                     os.remove(ABCTorrentTemp.src)
                 except:
                     pass
+                
+            # Internal tracker: remove torrent from tracker's allowed_dir
+            try:
+                fn = ABCTorrentTemp.infohash+'.torrent'
+                absfn = os.path.join(self.utility.getConfigPath(),'itracker',fn)
+                os.remove(absfn)
+            except: 
+                pass
 
             ABCTorrentTemp.shutdown()
             ABCTorrentTemp.remove(removefiles)

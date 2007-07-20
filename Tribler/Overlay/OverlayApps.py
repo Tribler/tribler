@@ -7,14 +7,16 @@ import sys
 from traceback import print_exc
 
 from time import time
-from BitTornado.BT1.MessageID import HelpCoordinatorMessages, HelpHelperMessages, \
-        MetadataMessages, BuddyCastMessages, DIALBACK_REQUEST, SocialNetworkMessages, getMessageName
+from BitTornado.BT1.MessageID import *
 from Tribler.toofastbt.CoordinatorMessageHandler import CoordinatorMessageHandler
 from Tribler.toofastbt.HelperMessageHandler import HelperMessageHandler
 from MetadataHandler import MetadataHandler
 from Tribler.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.SocialNetwork.SocialNetworkMsgHandler import SocialNetworkMsgHandler
+from Tribler.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
+from Tribler.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
+
 from Tribler.utilities import show_permid_short
 from traceback import print_exc
 
@@ -35,6 +37,7 @@ class OverlayApps:
         self.collect = None
         self.dialback_handler = None
         self.socnet_handler = None
+        self.rquery_handler = None
         self.msg_handlers = {}
         self.text_mode = None
         
@@ -106,6 +109,16 @@ class OverlayApps:
             self.socnet_handler.register(secure_overlay, launchmany.rawserver, config)
             self.register_msg_handler(SocialNetworkMessages,self.socnet_handler.handleMessage)
 
+        if config['rquery']:
+            self.rquery_handler = RemoteQueryMsgHandler.getInstance()
+            self.rquery_handler.register(secure_overlay,launchmany,launchmany.rawserver,config,self.buddycast)
+            self.register_msg_handler(RemoteQueryMessages,self.rquery_handler.handleMessage)
+            
+            self.rtorrent_handler = RemoteTorrentHandler.getInstance()
+            self.rtorrent_handler.register(launchmany.rawserver,self.metadata_handler)
+            self.metadata_handler.register2(self.rtorrent_handler)
+            
+
     def register_msg_handler(self, ids, handler):
         """ 
         ids is the [ID1, ID2, ..] where IDn is a sort of message ID in overlay
@@ -174,3 +187,7 @@ class OverlayApps:
             # overlay-protocol version check done inside
             self.socnet_handler.handleConnection(exc,permid,selversion,locally_initiated)
             
+        if self.rquery_handler is not None:
+            # overlay-protocol version check done inside
+            self.rquery_handler.handleConnection(exc,permid,selversion,locally_initiated)
+

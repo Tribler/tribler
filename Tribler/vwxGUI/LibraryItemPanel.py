@@ -5,13 +5,11 @@ from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.vwxGUI.tribler_topButton import tribler_topButton, SwitchButton
 from Tribler.Dialogs.dlhelperframe import DownloadHelperFrame
 from Tribler.vwxGUI.GuiUtility import GUIUtility
-#from Tribler.vwxGUI.TriblerProgressbar import TriblerProgressbar
 from Tribler.vwxGUI.filesItemPanel import ThumbnailViewer
-#from Dialogs.abcdetailframe import ABCDetailFrame
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.vwxGUI.bgPanel import ImagePanel
-
 from Tribler.Video.Progress import ProgressBar
+from Tribler.Overlay.MetadataHandler import MetadataHandler
 from Tribler.unicode import *
 from tribler_topButton import *
 from copy import deepcopy
@@ -85,6 +83,7 @@ class LibraryItemPanel(wx.Panel):
         self.warningMode = False
         self.oldCategoryLabel = None
         self.torrentDetailsFrame = None
+        self.metadatahandler = MetadataHandler.getInstance()
         self.addComponents()
     
         #self.Bind(wx.EVT_RIGHT_DOWN, self.rightMouseButton)             
@@ -735,3 +734,4 @@ class LibraryItemPanel(wx.Panel):
             if standardOverview.mode == 'libraryMode':
                 standardOverview.filterChanged(None)
                 #print 'filterChanged()called'
+

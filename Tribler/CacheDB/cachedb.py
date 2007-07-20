@@ -42,6 +42,10 @@ PeerDB - (MyFriendDB, PreferenceDB, OwnerDB)
         #relability (uptime, IP fixed/changing)
         #trust: int (0)    # [0, 100]
         #icon: str ('')    # name + '_' + permid[-4:]
+        npeers: int(0)
+        ntorrents: int(0)
+        nprefs: int(0)
+        nqueries: int(0)
     }
 
 TorrentDB - (PreferenceDB, MyPreference, OwnerDB)
@@ -118,8 +122,9 @@ home_dir = 'bsddb'
 # 1 = First
 # 2 = Added keys to TorrentDB:  leecher,seeder,category,ignore_number,last_check_time,retry_number,status
 # 3 = Added keys to TorrentDB: source,inserttime
+# 4 = Added keys to PeerDB: npeers, nfiles, nprefs, nqueries
 #
-curr_version = 3
+curr_version = 4
 permid_length = 112
 infohash_length = 20
 torrent_id_length = 20
@@ -274,6 +279,12 @@ class BasicDB:    # Should we use delegation instead of inheritance?
     
     def _get(self, key, value=None):    # read
         try:
+            #if self.db_name == 'torrents.bsd':
+            #    self.count += 1
+            #    if self.count % 3000 == 0:
+            #        print "GET"
+            #        print_stack()
+            
             return dbutils.DeadlockWrap(self._data.get, key, value, max_retries=MAX_RETRIES)
             #return self._data.get(key, value)
 #        except db.DBRunRecoveryError, e:
@@ -568,6 +579,10 @@ class PeerDB(BasicDB):
             #'trust':50,
             #'reliability':
             #'icon':'',
+            'npeers':0,
+            'ntorrents':0,
+            'nprefs':0,
+            'nqueries':0
         }
         
     def getInstance(*args, **kw):
@@ -603,6 +618,10 @@ class PeerDB(BasicDB):
         self._delete(permid)
         
     def getItem(self, permid, default=False):
+        """ Arno: At the moment we keep a copy of the PeerDB in memory,
+         see Tribler.vwxGUI.peermanager. This class, however, already converts
+         the records using the save-memory by sharing key strings trick (see 
+         TorrentDB) so there's no need to have that here. """
         ret = self._get(permid, None)
         if ret is None and default:
             ret = deepcopy(self.default_item)
@@ -611,6 +630,17 @@ class PeerDB(BasicDB):
     def hasItem(self, permid):
         return self._has_key(permid)
         
+    def updateDB(self, old_version):
+        if old_version == 1 or old_version == 2 or old_version == 3:
+            def_newitem = {
+                'npeers': 0,
+                'ntorrents': 0,
+                'nprefs': 0,
+                'nqueries':0 }
+            keys = self._keys()
+            for key in keys:
+                self._updateItem(key, def_newitem)
+
 
 class TorrentDB(BasicDB):
     """ Database of all torrent files, including the torrents I don't have yet """
@@ -622,7 +652,7 @@ class TorrentDB(BasicDB):
             raise RuntimeError, "TorrentDB is singleton"
         self.db_name = 'torrents.bsd'
         self.opened = True
-        
+
         self.db_dir = db_dir
         self.filetype = db.DB_BTREE
         self._data, self.db_dir = open_db(self.db_name, self.db_dir, filetype=self.filetype)
@@ -646,6 +676,8 @@ class TorrentDB(BasicDB):
             'progress': 0.0,
             'destdir':''
         }
+        self.infokey = 'info'
+        self.infokeys = ['name','creation date','num_files','length','announce','announce-list']
 #        self.num_metadatalive = -100
         
     def getInstance(*args, **kw):
@@ -671,10 +703,24 @@ class TorrentDB(BasicDB):
     def deleteItem(self, infohash):
         self._delete(infohash)
         
-    def getItem(self, infohash, default=False):
+    def getItem(self, infohash, default=False,savemem=False):
+        """ Arno: At the moment we keep a copy of the TorrentDB in memory,
+         see Tribler.vwxGUI.torrentManager. A lot of memory can be saved
+         by reusing/sharing the strings of the keys in the database records (=dicts).
+         When the savemem option is enabled, the dict returned will have the
+         key strings of the self.default_item. """
         ret = self._get(infohash, None)
         if ret is None and default:
             ret = deepcopy(self.default_item)
+        if savemem:
+            newret = {}
+            for key in self.default_item:
+                newret[key] = ret[key]
+            newinfo = {}
+            for key in self.infokeys:
+                newinfo[key] = ret['info'][key]
+            newret[self.infokey] = newinfo
+            return newret
         return ret
     
     def updateDB(self, old_version):
@@ -699,8 +745,7 @@ class TorrentDB(BasicDB):
             keys = self._keys()
             for key in keys:
                 self._updateItem(key, def_newitem)
-
-
+            
     
 class PreferenceDB(BasicDB):
     """ Peer * Torrent """

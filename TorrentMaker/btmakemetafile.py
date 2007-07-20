@@ -30,6 +30,7 @@ from BitTornado.parseargs import parseargs, formatDefinitions
 from Tribler.Merkle.merkle import MerkleTree
 from Tribler.Overlay.permid import create_torrent_signature
 from Tribler.unicode import str2unicode
+from Tribler.__init__ import TRIBLER_TORRENT_EXT
 
 defaults = [
     ('announce_list', '', 
@@ -79,7 +80,7 @@ def print_announcelist_details():
     print ('            url[|url...]')
 
 def make_meta_file(file, url, params = None, flag = Event(), 
-                   progress = lambda x: None, progress_percent = 1, fileCallback = lambda x: None, gethash = None, extradata = {}):
+                   progress = lambda x: None, progress_percent = 1, fileCallback = lambda x: None, gethash = None, extradata = {}, dht=False):
     """ extradata is a dict that is added to the top-level (i.e. metainfo) dict of the torrent """
     if params is None:
         params = {}
@@ -89,7 +90,7 @@ def make_meta_file(file, url, params = None, flag = Event(),
         piece_len_exp = default_piece_len_exp
     merkle_torrent = 'merkle_torrent' in params and params['merkle_torrent'] == 1
     if merkle_torrent:
-        postfix = '.merkle.torrent'
+        postfix = TRIBLER_TORRENT_EXT
     else:
         postfix = '.torrent'
     sign = 'permid signature' in params and params['permid signature'] == 1
@@ -139,7 +140,9 @@ def make_meta_file(file, url, params = None, flag = Event(),
         return
     check_info(info)
     h = open(f, 'wb')
-    data = {'info': info, 'announce': strip(url), 'encoding': encoding, 'creation date': long(time())}
+    data = {'info': info, 'encoding': encoding, 'creation date': long(time())}
+    if not dht:
+        data['announce'] = strip(url)
     data.update(extradata)
 
     if 'comment' in params and params['comment']:
@@ -184,7 +187,10 @@ def make_meta_file(file, url, params = None, flag = Event(),
 
     h.write(bencode(data))
     h.close()
-    fileCallback(file,f)
+    
+    infohash = sha(bencode(info)).digest()
+    
+    fileCallback(file,f,infohash)
 
 def calcsize(file):
     if not isdir(file):
@@ -432,7 +438,7 @@ def completedir(dir, url, params = None, flag = Event(),
         params = {}
     merkle_torrent = 'merkle_torrent' in params and params['merkle_torrent'] == 1
     if merkle_torrent:
-        ext = '.merkle.torrent'
+        ext = TRIBLER_TORRENT_EXT
     else:
         ext = '.torrent'
     files = listdir(dir)
@@ -465,7 +471,7 @@ def completedir(dir, url, params = None, flag = Event(),
         except ValueError:
             print_exc()
 
-def file_callback(orig, torrent):
+def file_callback(orig, torrent, infohash):
     print "Created torrent",torrent,"from",orig
 
 def prog(amount):
