@@ -8,6 +8,7 @@
 #
 
 from threading import Thread,Condition
+from traceback import print_exc
 
 class GUIServer:
     
@@ -53,6 +54,9 @@ class GUIServer:
             self.cond.release()
             
             # Execute task outside lock
-            task()        
+            try:
+                task()        
+            except:
+                print_exc()
         
         

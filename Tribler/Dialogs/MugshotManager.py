@@ -118,8 +118,11 @@ class MugshotManager:
         if not os.access(filename,os.R_OK):
             if name is not None:
                 # Old style, < 3.5.0
-                filename = os.path.join(self.usericonpath,name+NETW_EXT)
-                if not os.access(filename,os.R_OK):
+                try:
+                    filename = os.path.join(self.usericonpath,name+NETW_EXT)
+                    if not os.access(filename,os.R_OK):
+                        return None
+                except:
                     return None
             else:
                 return None
