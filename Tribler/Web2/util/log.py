@@ -3,7 +3,7 @@ import datetime
 
 starttime = datetime.datetime.now()
 
-DEBUG = False
+DEBUG = True
 
 def log(message):
 

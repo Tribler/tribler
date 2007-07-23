@@ -16,7 +16,7 @@ from traceback import print_exc,print_stack
 import wx.xrc as xrc
 import web2
 
-DEBUG = False
+DEBUG = True
 
         
 class standardGrid(wx.Panel):
@@ -364,7 +364,7 @@ class standardGrid(wx.Panel):
 
             if needed > 0:
                 if DEBUG:
-                    print "Web2.0: ", needed
+                    print "Web2.0: fetching total of", needed,"items"
                 self.dod.request(needed)
     
     def __del__(self):

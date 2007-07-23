@@ -95,6 +95,7 @@ class DataOnDemandWeb2(DataOnDemand, Observer):
         self.web2querylock.acquire()
         
         if self.requested >= num:
+            self.web2querylock.release() # Arno: forgot to unlock?
             return
         
         more = num - self.requested
