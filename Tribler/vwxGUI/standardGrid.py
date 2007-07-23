@@ -16,7 +16,7 @@ from traceback import print_exc,print_stack
 import wx.xrc as xrc
 import web2
 
-DEBUG = True
+DEBUG = False
 
         
 class standardGrid(wx.Panel):
