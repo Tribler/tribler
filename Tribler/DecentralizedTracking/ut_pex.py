@@ -10,10 +10,10 @@ As documented in
 The PEX message payload is a bencoded dict with three keys:
  'added': the set of peers met since the last PEX
  'added.f': a flag for every peer, apparently with the following values:
-    \x00: unknown
+    \x00: unknown, assuming default
     \x01: Prefers encryption (as suggested by LH-ABC-3.2.0/BitTorrent/BT1/Connector.py)
     \x02: Is seeder (as suggested by BitTorrent-5.0.8/BitTorrent/Connector.py)
-  OR-ing them together is allowed as I've seen 0x03 values.
+  OR-ing them together is allowed as I've seen \x03 values.
  'dropped': the set of peers dropped since last PEX
 
 The mechanism is insecure because there is no way to know if the peer addresses
@@ -41,7 +41,7 @@ def create_ut_pex(addedconns,droppedconns):
             flags[i] = chr(ord(flags[i]) | 2)
     (newremoved,compactedpeerstr) = self.compact_connections(droppedconns)
     d['dropped'] = compactedpeerstr
-    return d
+    return bencode(d)
 
 def check_ut_pex(d):
     if type(d) != DictType:
@@ -51,6 +51,8 @@ def check_ut_pex(d):
     if 'added.f' not in d:
         raise ValueError('ut_pex: added.f: missing')
     addedf = d['added.f']
+    if type(addedf) != StringType:
+        raise ValueError('ut_pex: added.f: not string')
     if len(addedf) != len(d['added']):
         raise ValueError('ut_pex: added.f: more flags than peers')
     
@@ -63,6 +65,14 @@ def check_ut_pex_peerlist(d,name):
     if len(peerlist) % 6 != 0:
         raise ValueError('ut_pex:'+name+': not multiple of 6 bytes')
     
+def ut_pex_get_conns_diff(currconns,thisconn,prevconns):
+    addedconns = currconns[:]
+    droppedconns = []
+    del addedconns[thisconn]
+    for conn in prevconns:
+        del addedconns[conn]
+        droppedconns.append(conn)
+    return (addedconns,droppedconns)
 
 
 def compact_connections(conns):

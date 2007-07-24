@@ -66,6 +66,7 @@ and our overlay-swarm protocol.
 """
 EXTEND_MSG_HANDSHAKE_ID = chr(0)
 EXTEND_MSG_OVERLAYSWARM = 'Tr_OVERLAYSWARM'
+# The set of messages we support. Note that the msg ID is an int not a byte in this dict
 EXTEND_HANDSHAKE_M_DICT = {EXTEND_MSG_OVERLAYSWARM:ord(CHALLENGE)}
 #                           EXTEND_MSG_UTORRENT_PEX:ord(EXTEND_MSG_UTORRENT_PEX_ID)}
 
@@ -90,8 +91,9 @@ class Connection:
         self.unauth_permid = None
         self.looked_for_permid = UNAUTH_PERMID_PERIOD-3
         self.closed = False
-        self.extend_hs_dict = {}
+        self.extend_hs_dict = {}        # what extended messages does this peer support
         self.initiated_overlay = False
+        self.ut_pex_previous_conns = [] # last value of 'added' field for this peer
             
     def get_myip(self, real=False):
         return self.connection.get_myip(real)
@@ -192,6 +194,10 @@ class Connection:
     def send_keepalive(self):
         self._send_message('')
 
+    def send_extend_ut_pex(self,payload):
+        msg = EXTEND+chr(self.extend_msg_name_to_id(EXTEND_MSG_UTORRENT_PEX))+payload
+        self._send_message(msg)
+
     def _send_message(self, s):
         s = tobinary(len(s))+s
         if self.partial_message:
@@ -255,6 +261,15 @@ class Connection:
         if self.just_unchoked:
             self.connecter.ratelimiter.ping(clock() - self.just_unchoked)
             self.just_unchoked = 0
+
+    #
+    # ut_pex support
+    #
+    def supports_extend_msg(self,msg_name):
+        if 'm' in self.extend_hs_dict:
+            return msg_name in self.extend_hs_dict['m']
+        else:
+            return False
     
     def got_extend_handshake(self,d):
         if DEBUG:
@@ -269,6 +284,7 @@ class Connection:
 
             if not 'm' in self.extend_hs_dict:
                 self.extend_hs_dict['m'] = {}
+            # Note: we store the dict without converting the msg IDs to bytes.
             self.extend_hs_dict['m'].update(d['m'])
             if EXTEND_MSG_OVERLAYSWARM in self.extend_hs_dict['m']:
                 # This peer understands our overlay swarm extension
@@ -283,11 +299,19 @@ class Connection:
                 self.extend_hs_dict[key] = d[key]
 
     def extend_msg_id_to_name(self,ext_id):
-        """ find the name for the given message id """
+        """ find the name for the given message id (byte) """
         for key,val in self.extend_hs_dict['m'].iteritems():
             if val == ord(ext_id):
                 return key
         return None
+    
+    def extend_msg_name_to_id(self,ext_name):
+        """ returns the message id (byte) for the given message name or None """
+        val = self.extend_hs_dict['m'].get(ext_name)
+        if val is None:
+            return val
+        else:
+            return chr(val)
 
     def got_ut_pex(self,d):
         if DEBUG:
@@ -303,6 +327,12 @@ class Connection:
     def get_extend_listenport(self):
         return self.hs_dict.get('p')
 
+    def get_ut_pex_previous_conns(self):
+        return self.ut_pex_previous_conns
+
+    def set_ut_pex_previous_conns(self,conns):
+        self.ut_pex_previous_conns = conns
+
     def send_extend_handshake(self):
         d = {}
         d['m'] = EXTEND_HANDSHAKE_M_DICT
@@ -313,7 +343,10 @@ class Connection:
         self._send_message(EXTEND + EXTEND_MSG_HANDSHAKE_ID + bencode(d))
         if DEBUG:
             print 'sent extend: id=0+',d
-
+            
+    #
+    # SecureOverlay support
+    #
     def connect_overlay(self):
         if DEBUG:
             print >>sys.stderr,"connecter: Initiating overlay connection"
@@ -334,7 +367,6 @@ class Connecter:
     def __init__(self, make_upload, downloader, choker, numpieces,
             totalup, config, ratelimiter, merkle_torrent, sched = None, 
             coordinator = None, helper = None, mylistenport = None):
-# _2fastbt
         self.downloader = downloader
         self.make_upload = make_upload
         self.choker = choker
@@ -356,7 +388,8 @@ class Connecter:
         self.overlay_enabled = 1
         if 'overlay' in self.config:
             self.overlay_enabled = self.config['overlay']
-        # _2fastbt
+        if EXTEND_MSG_UTORRENT_PEX in EXTEND_HANDSHAKE_M_DICT:
+            self.sched(self.ut_pex_callback,60)
 
     def how_many_connections(self):
         return len(self.connections)
@@ -406,6 +439,15 @@ class Connecter:
         for co in self.connections.values():
             co.send_have(i)
 
+    def ut_pex_callback(self):
+        """ Periocially send info about the peers you know to the other peers """
+        for c in self.connections:
+            if c.supports_extend_msg(EXTEND_MSG_UTORRENT_PEX):
+                (addedconns,droppedconns) = ut_pex_get_conns_diff(self.connections,c,c.get_ut_pex_previous_conns())
+                c.set_ut_pex_previous_conns(addedconns)
+                payload = create_ut_pex(addedconns,droppedconns)
+                c.send_ut_pex(payload)
+        self.sched(self.ut_pex_callback,60)
 
     def got_message(self, connection, message):
         # connection: Encrypter.Connection; c: Connecter.Connection
