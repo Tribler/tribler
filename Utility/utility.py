@@ -15,6 +15,8 @@ from wx.lib import masked
 from BitTornado.ConfigDir import ConfigDir
 from BitTornado.bencode import bdecode
 from BitTornado.download_bt1 import defaults as BTDefaults
+from BitTornado.download_bt1 import DEFAULTPORT
+from BitTornado.BT1.track import defaults as TrackerDefaults
 from BitTornado.parseargs import parseargs
 from BitTornado.zurllib import urlopen
 from BitTornado.__init__ import version_id
@@ -31,6 +33,7 @@ from Utility.constants import * #IGNORE:W0611
 from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler, PreferenceDBHandler
 from Tribler.CacheDB.CacheDBHandler import PeerDBHandler, FriendDBHandler
 from Tribler.BuddyCast.buddycast import BuddyCastFactory
+from Tribler.utilities import find_prog_in_PATH  
   
 ################################################################
 #
@@ -73,7 +76,8 @@ class Utility:
                           "pause": {}, 
                           "seeding": {}, 
                           "downloading": {} }
-                          
+
+                        
         self.accessflag = Event()
         self.accessflag.set()
                             
@@ -84,8 +88,10 @@ class Utility:
         
         self.FILESEM   = Semaphore(1)
 
-        if (sys.platform == 'win32'):        
+        warned = self.config.Read('torrentassociationwarned','int')
+        if (sys.platform == 'win32' and not warned):     
             self.regchecker = RegChecker(self)
+            self.config.Write('torrentassociationwarned','1')
 
         self.lastdir = { "save" : self.config.Read('defaultfolder'), 
                          "open" : "", 
@@ -117,11 +123,13 @@ class Utility:
         self.friend_db = FriendDBHandler     
         self.buddycast = BuddyCastFactory.getInstance()
         
-    def getNumPeers(self):
-        return self.peer_db.getNumEncounteredPeers()#, self.peer_db.size()
-        
-    def getNumFiles(self):
-        return self.torrent_db.getNumMetadataAndLive()#, self.torrent_db.size()
+#===============================================================================
+#    def getNumPeers(self):
+#        return self.peer_db.getNumEncounteredPeers()#, self.peer_db.size()
+#
+#    def getNumFiles(self):
+#        return self.torrent_db.getNumMetadataAndLive()#, self.torrent_db.size()
+#===============================================================================
         
     def setupConfigPath(self):
         configdir = ConfigDir()
@@ -134,22 +142,18 @@ class Utility:
     def setupConfig(self):        
         defaults = {
             'defrentorwithdest': '1', 
-            'minport': str(random.randint(10000, 60000)), 
             'maxport': '50000', 
             'maxupload': '5', 
             'maxuploadrate': '0', 
             'maxdownloadrate': '0', 
             'maxseeduploadrate': '0', 
+            'maxmeasureduploadrate': '0',
             'numsimdownload': '5', 
-            'uploadoption': '2', 
+            'uploadoption': '0', 
             'uploadtimeh': '0', 
             'uploadtimem': '30', 
             'uploadratio': '100', 
             'removetorrent': '0', 
-            'setdefaultfolder': '0', 
-            'defaultfolder': 'c:\\', 
-            'defaultmovedir': 'c:\\', 
-            'mintray': '0', 
             'trigwhenfinishseed': '1', 
             'confirmonclose': '1', 
             'kickban': '1', 
@@ -162,9 +166,9 @@ class Utility:
             'alloc_rate': '2', 
             'max_files_open': '50', 
             'max_connections': '0', 
-            'lock_files': '1', 
+            'lock_files': '0', 
             'lock_while_reading': '0', 
-            'double_check': '1', 
+            'double_check': '0', 
             'triple_check': '0', 
             'timeouttracker': '15', 
             'timeoutdownload': '30', 
@@ -178,8 +182,8 @@ class Utility:
             'urmdelay': '60', 
             'stripedlist': '0', 
 #            'mode': '1',
-            'window_width': '800', 
-            'window_height': '500', 
+            'window_width': '1024', 
+            'window_height': '768', 
             'detailwindow_width': '800', 
             'detailwindow_height': '500', 
             'prefwindow_width': '640', 
@@ -308,7 +312,8 @@ class Utility:
             'color_stripe': '245245245', 
             'display_interval': '0.8', 
             'listfont': '', 
-            'diskfullthreshold': '0', 
+            'diskfullthreshold': '1', 
+            'stopcollectingthreshold': '200',
             'updatepeers_interval': '5',
             'update_preference_interval': '36000',     # 
 #            'showmenuicons': '1',
@@ -330,6 +335,12 @@ class Utility:
                                  #ACTION_ADDTORRENTNONDEFAULT, 
                                  #ACTION_ADDTORRENTURL, 
                                  -1, 
+                                 ACTION_PLAY,
+                                 -1,
+                                 ACTION_BUDDIES,
+                                 #ACTION_FILES, # Tribler: Removed recommended files icon because these content is shown in main window now
+                                 ACTION_MYINFO,
+                                 -1,
                                  ACTION_RESUME, 
                                  ACTION_PAUSE, 
                                  ACTION_STOP, 
@@ -338,10 +349,15 @@ class Utility:
                                  #ACTION_SCRAPE, 
                                  -1,
                                  ACTION_BUDDIES,
-                                 #ACTION_FILES, # Tribler: Removed recommended files icon because these content is shown in main window now
+                                 ACTION_FILES, # Tribler: Removed recommended files icon because these content is shown in main window now
                                  ACTION_MYINFO
                                  ], 
-            'menu_listrightclick': [ACTION_RESUME, 
+            'menu_listrightclick': [ACTION_ADDTORRENT, 
+                                    ACTION_DETAILS,
+                                    ACTION_ADDTORRENTURL, 
+                                    -1, 
+                                    ACTION_PLAY,
+                                    ACTION_RESUME, 
                                     ACTION_STOP, 
                                     ACTION_PAUSE, 
                                     ACTION_QUEUE, 
@@ -362,27 +378,84 @@ class Utility:
                                     ACTION_SCRAPE, 
                                     ACTION_DETAILS],
              'enablerecommender': '1',
+             'startrecommender': '1',
              'enabledlhelp': '1',  
              'enabledlcollecting': '1',
+             'enableweb2search':'1',
+             'maxntorrents': 5000,
+             'torrentcollectingrate': 5,
              'minport': '6881',
              'myname': '',
              'rec_relevance_threshold': '0',
              'torrent1_width': 200,
              'mypref0_width': 200,
              'mypref1_width': 200,
-             'showearthpanel': '1'
+             'showearthpanel': '0',
+             'videoplaybackmode':'0',
+             'askeduploadbw':'0',
+             'torrentcollectsleep':'15',
+             'torrentassociationwarned':'0',
+             'internaltrackerurl': ''
 #            'skipcheck': '0'
         }
 
-        if sys.platform != 'win32':
+        if sys.platform == 'win32':
+            profiledir = os.path.expandvars('${USERPROFILE}')
+            tempdir = os.path.join(profiledir,'Desktop','TriblerDownloads')
+            defaults['setdefaultfolder']= '1'
+            defaults['defaultfolder'] = tempdir 
+            defaults['defaultmovedir'] = tempdir
+            defaults['mintray'] = '2'
+            # Don't use double quotes here, those are lost when this string is stored in the
+            # abc.conf file in INI-file format. The code that starts the player will add quotes
+            # if there is a space in this string.
+            progfilesdir = os.path.expandvars('${PROGRAMFILES}')
+            #defaults['videoplayerpath'] = progfilesdir+'\\VideoLAN\\VLC\\vlc.exe'
+            # Path also valid on MS Vista
+            defaults['videoplayerpath'] = progfilesdir+'\\Windows Media Player\\wmplayer.exe'
+            defaults['videoanalyserpath'] = self.getPath()+'\\ffmpeg.exe'
+        elif sys.platform == 'darwin':
+            profiledir = os.path.expandvars('${HOME}')
+            tempdir = os.path.join(profiledir,'Desktop','TriblerDownloads')
+            defaults['setdefaultfolder']= '1' 
+            defaults['defaultfolder'] = tempdir
+            defaults['defaultmovedir']= tempdir
+            defaults['mintray'] = '0'  # tray doesn't make sense on Mac
+            vlcpath = find_prog_in_PATH("vlc")
+            if vlcpath is None:
+                defaults['videoplayerpath'] = "/Applications/QuickTime Player.app"
+            else:
+                defaults['videoplayerpath'] = vlcpath
+            ffmpegpath = find_prog_in_PATH("ffmpeg")
+            if ffmpegpath is None:
+                defaults['videoanalyserpath'] = "lib/ffmpeg"
+            else:
+                defaults['videoanalyserpath'] = ffmpegpath
+        else:
+            defaults['setdefaultfolder']= '1' 
             defaults['defaultfolder'] = '/tmp'
             defaults['defaultmovedir']= '/tmp' 
+            defaults['mintray'] = '0'  # Still crashes on Linux sometimes 
+            vlcpath = find_prog_in_PATH("vlc")
+            if vlcpath is None:
+                defaults['videoplayerpath'] = "vlc"
+            else:
+                defaults['videoplayerpath'] = vlcpath
+            ffmpegpath = find_prog_in_PATH("ffmpeg")
+            if ffmpegpath is None:
+                defaults['videoanalyserpath'] = "ffmpeg"
+            else:
+                defaults['videoanalyserpath'] = ffmpegpath
+
 
         configfilepath = os.path.join(self.getConfigPath(), "abc.conf")
         self.config = ConfigReader(configfilepath, "ABC", defaults)
         #print self.config.items("ABC")
 #        self.config = ConfigReader(configfilepath, "ABC")
 #        self.config.defaults = defaults
+        # Arno: 2007-05-16, Make sure the port is in the abc.conf
+        minport = self.config.Read('minport','int')
+        self.config.Write('minport', minport)
         
     def setupWebConfig(self):
         defaults = {
@@ -418,10 +491,12 @@ class Utility:
             'makehash_md5': '0', 
             'makehash_crc32': '0', 
             'makehash_sha1': '0', 
-            'startnow': '0', 
-            'savetorrent': '2',
-            'createmerkletorrent': '0',
-            'createtorrentsig': '0'
+            'startnow': '1', 
+            'savetorrent': '1',
+            'createmerkletorrent': '1',
+            'createtorrentsig': '0',
+            'useitracker': '1',
+            'manualtrackerconfig': '0'
         }
 
         torrentmakerconfigfilepath = os.path.join(self.getConfigPath(), "maker.conf")
@@ -505,32 +580,7 @@ class Utility:
         return  text
             
     def getMetainfo(self, src, openoptions = 'rb', style = "file"):
-        if src is None:
-            return None
-        
-        metainfo = None
-        try:
-            metainfo_file = None
-            # We're getting a url
-            if style == "rawdata":
-                return bdecode(src)
-            elif style == "url":
-                metainfo_file = urlopen(src)
-            # We're getting a file that exists
-            elif os.access(src, os.R_OK):
-                metainfo_file = open(src, openoptions)
-            
-            if metainfo_file is not None:
-                metainfo = bdecode(metainfo_file.read())
-                metainfo_file.close()
-        except:
-            if metainfo_file is not None:
-                try:
-                    metainfo_file.close()
-                except:
-                    pass
-            metainfo = None
-        return metainfo
+        return getMetainfo(src,openoptions=openoptions,style=style)
         
     def speed_format(self, s, truncate = 1, stopearly = None):
         return self.size_format(s, truncate, stopearly) + "/" + self.lang.get('l_second')
@@ -628,13 +678,13 @@ class Utility:
         button_bmp.SetMask(button_mask)
         return button_bmp
 
-    def makeBitmapButton(self, parent, bitmap, tooltip, event, trans_color = wx.Colour(200, 200, 200)):
+    def makeBitmapButton(self, parent, bitmap, tooltip, event, trans_color = wx.Colour(200, 200, 200), padx=18, pady=4):
         tooltiptext = self.lang.get(tooltip)
         
         button_bmp = self.makeBitmap(bitmap, trans_color)
         
         ID_BUTTON = wx.NewId()
-        button_btn = wx.BitmapButton(parent, ID_BUTTON, button_bmp, size=wx.Size(button_bmp.GetWidth()+18, button_bmp.GetHeight()+4))
+        button_btn = wx.BitmapButton(parent, ID_BUTTON, button_bmp, size=wx.Size(button_bmp.GetWidth()+padx, button_bmp.GetHeight()+pady))
         button_btn.SetToolTipString(tooltiptext)
         parent.Bind(wx.EVT_BUTTON, event, button_btn)
         return button_btn
@@ -707,6 +757,24 @@ class Utility:
         config, args = parseargs(btparams, BTDefaults)
             
         return config
+
+    def getTrackerParams(self):
+        tconfig = {}
+        for k,v,expl in TrackerDefaults:
+            tconfig[k] = v
+        
+        tconfig['port'] = DEFAULTPORT
+        dir = os.path.join(self.getConfigPath(),'itracker')
+        dfile = os.path.join(dir,'tracker.db')
+        tconfig['dfile'] = dfile
+        tconfig['allowed_dir'] = dir
+        tconfig['favicon'] = os.path.join(self.getPath(),'tribler.ico')
+        #tconfig['save_dfile_interval'] = 20
+        tconfig['dfile_format'] = 'pickle' # We use unicode filenames, so bencode won't work
+        
+        return tconfig
+        
+
 
     # Check if str is a valid Windows file name (or unit name if unit is true)
     # If the filename isn't valid: returns a fixed name
@@ -845,16 +913,54 @@ class Utility:
         return font
 
     # Make an entry for a popup menu
-    def makePopup(self, menu, event = None, label = "", extralabel = "", bindto = None):
+    def makePopup(self, menu, event = None, label = "", extralabel = "", bindto = None, type="normal", status=""):
         text = ""
         if label != "":
             text = self.lang.get(label)
         text += extralabel
         
-        newid = wx.NewId()
+        newid = wx.NewId()        
         if event is not None:
             if bindto is None:
                 bindto = menu
             bindto.Bind(wx.EVT_MENU, event, id = newid)
-        menu.Append(newid, text)
+        
+        if type == "normal":    
+            menu.Append(newid, text)
+        elif type == "checkitem":
+            menu.AppendCheckItem(newid, text)
+            if status == "active":
+                menu.Check(newid,True)
+        
+        if event is None:
+            menu.Enable(newid, False)
+        
         return newid
+
+def getMetainfo(src, openoptions = 'rb', style = "file"):
+    if src is None:
+        return None
+    
+    metainfo = None
+    try:
+        metainfo_file = None
+        # We're getting a url
+        if style == "rawdata":
+            return bdecode(src)
+        elif style == "url":
+            metainfo_file = urlopen(src)
+        # We're getting a file that exists
+        elif os.access(src, os.R_OK):
+            metainfo_file = open(src, openoptions)
+        
+        if metainfo_file is not None:
+            metainfo = bdecode(metainfo_file.read())
+            metainfo_file.close()
+    except:
+        if metainfo_file is not None:
+            try:
+                metainfo_file.close()
+            except:
+                pass
+        metainfo = None
+    return metainfo

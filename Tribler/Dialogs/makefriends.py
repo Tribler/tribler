@@ -10,27 +10,26 @@ from shutil import copy2
 import wx
 import wx.lib.imagebrowser as ib
 from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
+from Tribler.CacheDB.SynDBHandler import SynPeerDBHandler
 from Tribler.Overlay.permid import permid_for_user
+from Tribler.Dialogs.MugshotManager import MugshotManager
+#from Tribler.vwxGUI.peermanager import PeerDataManager
 
 DEBUG = False
 
 
-def permid2iconfilename(utility,permid):
-    safename = sha(permid).hexdigest()
-    return os.path.join(utility.getConfigPath(), 'icons', safename+'.bmp')
-
-
 class MakeFriendsDialog(wx.Dialog):
-    def __init__(self, parent, editfriend = None):
+    def __init__(self, parent, utility, editfriend = None):
         #provider = wx.SimpleHelpProvider()
         #wx.HelpProvider_Set(provider)
         
-        self.utility = parent.utility
+        self.utility = utility
         self.editfriend = editfriend
 
-        style = wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
+        style = wx.DEFAULT_DIALOG_STYLE 
+        #| wx.RESIZE_BORDER
         pos = wx.DefaultPosition
-        size = wx.Size(530, 420)
+        size = wx.Size(600, 200)
         #size, split = self.getWindowSettings()
 
         if editfriend is None:
@@ -51,7 +50,7 @@ class MakeFriendsDialog(wx.Dialog):
         # name
         box = wx.BoxSizer(wx.HORIZONTAL)
 
-        label = wx.StaticText(self, -1, self.utility.lang.get('name')+':')
+        label = wx.StaticText(self, -1, self.utility.lang.get('name')+':',wx.DefaultPosition,wx.Size(40,18))
         #label.SetHelpText("")
         box.Add(label, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
 
@@ -59,16 +58,21 @@ class MakeFriendsDialog(wx.Dialog):
             name = editfriend['name']
         else:   
             name = ''
-        self.name_text = wx.TextCtrl(self, -1, name, size=(80,-1))
+        self.name_text = wx.TextCtrl(self, -1, name, size=(140,-1))
         ##self.name_text.SetHelpText(self.utility.lang.get('nickname_help'))
-        box.Add(self.name_text, 1, wx.ALIGN_CENTRE|wx.ALL, 5)
+        box.Add(self.name_text, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
 
         sizer.Add(box, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+
+        # text about e-mail invitation
+        label = wx.StaticText(self, -1, self.utility.lang.get('pasteinvitationemail'),wx.DefaultPosition)
+        label.Wrap( 500 )
+        sizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
 
         # ip
         box = wx.BoxSizer(wx.HORIZONTAL)
 
-        label = wx.StaticText(self, -1, self.utility.lang.get('ipaddress')+':')
+        label = wx.StaticText(self, -1, self.utility.lang.get('ipaddress')+':',wx.DefaultPosition,wx.Size(40,18))
         #label.SetHelpText("")
         box.Add(label, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
 
@@ -76,16 +80,16 @@ class MakeFriendsDialog(wx.Dialog):
             ip = editfriend['ip']
         else:   
             ip = ''
-        self.ip_text = wx.TextCtrl(self, -1, ip, size=(80,-1))
+        self.ip_text = wx.TextCtrl(self, -1, ip, size=(140,-1))
         ##self.ip_text.SetHelpText(self.utility.lang.get('friendsipaddr_help'))
-        box.Add(self.ip_text, 1, wx.ALIGN_CENTRE|wx.ALL, 5)
+        box.Add(self.ip_text, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
 
-        sizer.Add(box, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        sizer.Add(box, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT|wx.BOTTOM, 5)
 
         # port
         box = wx.BoxSizer(wx.HORIZONTAL)
 
-        label = wx.StaticText(self, -1, self.utility.lang.get('portnumber'))
+        label = wx.StaticText(self, -1, self.utility.lang.get('portnumber'),wx.DefaultPosition,wx.Size(40,18))
         #label.SetHelpText("")
         box.Add(label, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
 
@@ -93,16 +97,16 @@ class MakeFriendsDialog(wx.Dialog):
             port_str = str(editfriend['port'])
         else:   
             port_str = ''
-        self.port_text = wx.TextCtrl(self, -1, port_str, size=(80,-1))
+        self.port_text = wx.TextCtrl(self, -1, port_str, size=(140,-1))
         ##self.port_text.SetHelpText(self.utility.lang.get('friendsport_help'))
-        box.Add(self.port_text, 1, wx.ALIGN_CENTRE|wx.ALL, 5)
+        box.Add(self.port_text, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
 
-        sizer.Add(box, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        sizer.Add(box, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT|wx.BOTTOM, 5)
 
         # permid
         box = wx.BoxSizer(wx.HORIZONTAL)
 
-        label = wx.StaticText(self, -1, self.utility.lang.get('permid')+':')
+        label = wx.StaticText(self, -1, self.utility.lang.get('permid')+':',wx.DefaultPosition,wx.Size(40,18))
         #label.SetHelpText("")
         box.Add(label, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
 
@@ -110,16 +114,17 @@ class MakeFriendsDialog(wx.Dialog):
             permid = permid_for_user(editfriend['permid'])
         else:   
             permid = ''
-        self.permid_text = wx.TextCtrl(self, -1, permid, size=(80,-1))
+        self.permid_text = wx.TextCtrl(self, -1, permid, size=(300,-1))
         ## self.permid_text.SetHelpText(self.utility.lang.get('friendspermid_help'))
-        box.Add(self.permid_text, 1, wx.ALIGN_CENTRE|wx.ALL, 5)
+        box.Add(self.permid_text, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
 
         sizer.Add(box, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
 
+        """
         # picture
         box = wx.BoxSizer(wx.HORIZONTAL)
 
-        label = wx.StaticText(self, -1, self.utility.lang.get('icon32bmp'))
+        label = wx.StaticText(self, -1, self.utility.lang.get('icon'))
         #label.SetHelpText("")
         box.Add(label, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
 
@@ -136,6 +141,7 @@ class MakeFriendsDialog(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.OnIconButton, iconbtn)
 
         sizer.Add(box, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        """  
         
         box = wx.BoxSizer(wx.HORIZONTAL)
         line = wx.StaticLine(self, -1, size=(20,-1), style=wx.LI_HORIZONTAL)
@@ -159,7 +165,11 @@ class MakeFriendsDialog(wx.Dialog):
         btnsizer.AddButton(btn)
         btnsizer.Realize()
 
-        sizer.Add(btnsizer, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        #sizer.Add(btnsizer, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        sizer.Add(btnsizer, 0, wx.ALIGN_CENTER|wx.ALL, 5)
+
+
+        self.mm = MugshotManager.getInstance()
 
         self.SetSizer(sizer)
         sizer.Fit(self)
@@ -173,7 +183,7 @@ class MakeFriendsDialog(wx.Dialog):
         except:
             print_exc()
             permid = ''
-        icon = self.icon_path.GetValue()
+        #icon = self.icon_path.GetValue()
         try:
             port = int(self.port_text.GetValue())
         except:
@@ -185,36 +195,37 @@ class MakeFriendsDialog(wx.Dialog):
             self.show_inputerror(self.utility.lang.get('friendspermid_error'))
         elif port == 0:
             self.show_inputerror(self.utility.lang.get('friendsport_error'))
+        else:
+            fdb = FriendDBHandler()
+            pdb = SynPeerDBHandler()
+            
+            #friend = {'permid':permid, 'ip':ip, 'port':port, 'name':name, 'icon':newiconfilename}
+            #friend = {'permid':permid, 'ip':ip, 'port':port, 'name':name}
+            friend = {'ip':ip, 'port':port, 'name':name}
+            if self.editfriend is not None:
+                if self.editfriend['permid'] != permid:
+                    fdb.deleteFriend(self.editfriend['permid'])
+                    pdb.deletePeer(self.editfriend['permid'])
+                    
+            #fdb.addExternalFriend(friend)
+            fdb.addFriend(permid)
+            pdb.addPeer(permid,friend)
+            
+            event.Skip()    # must be done, otherwise ShowModal() returns wrong error 
+            self.Destroy()
+
+        """            
         elif icon != '' and not os.path.exists(icon):
             self.show_inputerror(self.utility.lang.get('fiendsiconnotfound_error'))
         else:
             newiconfilename = ''
             if icon != '':
-                try:
-                    bm = wx.Bitmap(icon,wx.BITMAP_TYPE_BMP)
-                    if bm.GetWidth() != 32 or bm.GetHeight() != 32:
-                        self.show_inputerror(self.utility.lang.get('friendsiconnot32bmp_error') )
-                        return
-                except:
+                ret = self.mm.create_from_file(permid,icon)
+                if not ret:
                     self.show_inputerror(self.utility.lang.get('friendsiconnotbmp_error'))
                     return
-                    
-                # All good, save icon in $HOME/.Tribler/icons
-                # Renabled by Arno
-                newiconfilename = permid2iconfilename(self.utility,permid)
-                try:
-                    copy2(os.path.normpath(icon), newiconfilename)
-                except:
-                    print_exc()
+        """
 
-            fdb = FriendDBHandler()
-            friend = {'permid':permid, 'ip':ip, 'port':port, 'name':name, 'icon':newiconfilename}
-            if self.editfriend is not None:
-                if self.editfriend['permid'] != permid:
-                    fdb.deleteFriend(self.editfriend['permid'])
-            fdb.addExternalFriend(friend)
-            event.Skip()    # must be done, otherwise ShowModal() returns wrong error 
-            self.Destroy()
         
     def OnIconButton(self, evt):
         # get current working directory

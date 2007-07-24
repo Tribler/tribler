@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
+  <object class="wxPanel" name="profileDetails">
+    <pos>0,0</pos>
+    <size>300,500</size>
+    <object class="wxBoxSizer">
+      <orient>wxVERTICAL</orient>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>0</border>
+        <option>0</option>
+        <object class="wxBoxSizer">
+          <orient>wxHORIZONTAL</orient>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>0</border>
+            <option>0</option>
+            <object class="wxPanel" name="black_top_left" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+              <pos>3,3</pos>
+              <size>10,21</size>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>1</option>
+            <object class="wxPanel" name="titlePanel">
+              <bitmap>images/triblerpanel_topcenter.png</bitmap>
+              <pos>13,3</pos>
+              <size>280,21</size>
+              <bg>#     0</bg>
+              <fg>#ffffff</fg>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="titleField">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>Overall performance
+</label>
+                    <pos>0,3</pos>
+                    <size>280,18</size>
+                    <bg>#     0</bg>
+                    <fg>#ffffff</fg>
+                  </object>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>0</border>
+            <option>0</option>
+            <object class="wxPanel" name="black_top_right" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+              <pos>275,3</pos>
+              <size>10,21</size>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+        <object class="wxPanel" name="details">
+          <pos>0,21</pos>
+          <size>300,400</size>
+          <bg>#ffffff</bg>
+          <object class="wxBoxSizer">
+            <orient>wxVERTICAL</orient>
+            <object class="sizeritem">
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="spacer">
+                  <size>10,66</size>
+                  <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>1</option>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                  <object class="wxPanel" name="levelPic" subclass="Tribler.vwxGUI.perfBar.TriblerLevel">
+                    <pos>83,3</pos>
+                    <size>130,282</size>
+                  </object>
+                </object>
+                <object class="spacer">
+                  <size>10,340</size>
+                  <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>1</option>
+                </object>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="spacer">
+                  <size>64,16</size>
+                  <flag>wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>1</option>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                  <object class="wxBoxSizer">
+                    <orient>wxVERTICAL</orient>
+                    <object class="sizeritem">
+                      <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxALIGN_CENTER_HORIZONTAL|wxFIXED_MINSIZE</flag>
+                      <border>6</border>
+                      <option>0</option>
+                      <object class="wxStaticText" name="descriptionField0">
+                        <style>wxALIGN_CENTRE|wxST_NO_AUTORESIZE</style>
+                        <label>beginner</label>
+                        <pos>73,349</pos>
+                        <size>149,40</size>
+                        <bg>#ffffff</bg>
+                        <fg>#     0</fg>
+                        <font>
+                          <size>16</size>
+                          <family>modern</family>
+                          <style>normal</style>
+                          <weight>normal</weight>
+                          <underlined>0</underlined>
+                          <face>Verdana</face>
+                        </font>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+                <object class="spacer">
+                  <size>64,15</size>
+                  <flag>wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>1</option>
+                </object>
+              </object>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+        <object class="wxPanel" name="white_bottom" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+          <pos>3,275</pos>
+          <size>300,5</size>
+        </object>
+      </object>
+    </object>
+  </object>
+</resource>

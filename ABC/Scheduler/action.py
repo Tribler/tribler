@@ -7,6 +7,8 @@ import os
 from Utility.constants import * #IGNORE:W0611
 from Utility.helpers import intersection
 
+DEBUG = False
+
 ################################################################
 #
 # Class: ActionHandler
@@ -35,6 +37,14 @@ class ActionHandler:
                     os.remove(ABCTorrentTemp.src)
                 except:
                     pass
+                
+            # Internal tracker: remove torrent from tracker's allowed_dir
+            try:
+                fn = ABCTorrentTemp.infohash+'.torrent'
+                absfn = os.path.join(self.utility.getConfigPath(),'itracker',fn)
+                os.remove(absfn)
+            except: 
+                pass
 
             ABCTorrentTemp.shutdown()
             ABCTorrentTemp.remove(removefiles)
@@ -100,11 +110,16 @@ class ActionHandler:
             self.queue.UpdateRunningTorrentCounters()
        
     def procRESUME(self, workinglist = None, skipcheck = False):
+        if DEBUG:
+            print >>sys.stderr,"ActionHandler: procRESUME: enter",workinglist
         fulllist = self.utility.torrents["inactive"].keys()
         if workinglist is None:
             workinglist = fulllist
         else:
             workinglist = intersection(fulllist, workinglist)
+            
+        if DEBUG:
+            print >>sys.stderr,"ActionHandler: procRESUME: list to resume",workinglist
         
         update = [1 for ABCTorrentTemp in workinglist if ABCTorrentTemp.actions.resume(skipcheck)]
 
@@ -128,3 +143,18 @@ class ActionHandler:
         
         if update:
             self.queue.updateAndInvoke()
+
+    def procCHECK_AUTOSHUTDOWN(self, workinglist = None, autoShutdownTime = 60*60): # shutdown after 1 hour
+        if workinglist is None:
+            workinglist = self.utility.torrents["all"]
+        
+        shutdownList = []
+        for ABCTorrentTemp in workinglist:
+            if ABCTorrentTemp.checkAutoShutdown(autoShutdownTime):
+                shutdownList.append(ABCTorrentTemp)
+                
+        #print '%d torrent autoshutdown' % len(shutdownList)
+        
+        if shutdownList:
+            self.procREMOVE(shutdownList)
+            

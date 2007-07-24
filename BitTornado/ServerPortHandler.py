@@ -22,7 +22,7 @@ def toint(s):
 
 default_task_id = []
 
-DEBUG = 0
+DEBUG = False
 
 def show(s):
     for i in xrange(len(s)): 
@@ -119,8 +119,15 @@ class NewSocketHandler:     # hand a new socket off where it belongs
     # copied from Encrypter and modified
     
     def read_header_len(self, s):
-        l = ord(s)
-        return l, self.read_header
+        if s == 'G':
+            self.protocol = 'HTTP'
+            self.firstbyte = s
+            if DEBUG:
+                print >>sys.stderr,"NewSocketHandler: Got HTTP connection"
+            return True
+        else:
+            l = ord(s)
+            return l, self.read_header
 
     def read_header(self, s):
         self.protocol = s
@@ -171,10 +178,16 @@ class NewSocketHandler:     # hand a new socket off where it belongs
                 self.close()
                 return
             if x == True:       # ready to process
-                if DEBUG:
-                    print >> sys.stderr,"NewSocketHandler: Reporting connection via",self.multihandler.singlerawservers[m]._external_connection_made
-
-                self.multihandler.singlerawservers[m]._external_connection_made(
+                if self.protocol == 'HTTP':
+                    if DEBUG:
+                        print >> sys.stderr,"NewSocketHandler: Reporting HTTP connection" 
+                    self.multihandler.httphandler.external_connection_made(self.connection)
+                    self.multihandler.httphandler.data_came_in(self.connection,self.firstbyte)
+                    self.multihandler.httphandler.data_came_in(self.connection,s)
+                else:
+                    if DEBUG:
+                        print >> sys.stderr,"NewSocketHandler: Reporting connection via",self.multihandler.singlerawservers[m]._external_connection_made
+                    self.multihandler.singlerawservers[m]._external_connection_made(
                         self.connection, self.options, s)
                 self.complete = True
                 return
@@ -193,6 +206,7 @@ class MultiHandler:
         self.singlerawservers = {}
         self.connections = {}
         self.taskqueues = {}
+        self.httphandler = None
 
     def newRawServer(self, info_hash, doneflag, protocol=protocol_name):
         new = SingleRawServer(info_hash, self, doneflag, protocol)
@@ -209,6 +223,9 @@ class MultiHandler:
             srs.finished = True
             srs.running = False
             srs.doneflag.set()
+
+    def set_httphandler(self,httphandler):
+        self.httphandler = httphandler
         
     ### RawServer handler functions ###
     # be wary of name collisions

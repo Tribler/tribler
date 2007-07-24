@@ -16,7 +16,7 @@ from wx.lib.buttons import GenButton
 from ABC.GUI.list import ManagedList
 
 from Utility.constants import * #IGNORE:W0611
-from Tribler.Dialogs.dlhelperframe import DownloadHelperPanel
+#from Tribler.Dialogs.dlhelperframe import DownloadHelperPanel
 from Tribler.Worldmap.ipinfo import IPInfo, no_info
 from Tribler.unicode import bin2unicode
 
@@ -1167,8 +1167,8 @@ class ABCDetailFrame(wx.Frame):
         self.torrentInfoPanel = TorrentInfoPanel(self.notebook, self)
         self.notebook.AddPage(self.torrentInfoPanel, self.utility.lang.get('torrentinfo'))
 
-        self.downloadHelperPanel = DownloadHelperPanel(self.notebook, self)
-        self.notebook.AddPage(self.downloadHelperPanel, self.utility.lang.get('helperinfo'))
+        #self.downloadHelperPanel = DownloadHelperPanel(self.notebook, self.utility, self.torrent.connection.engine)
+        #self.notebook.AddPage(self.downloadHelperPanel, self.utility.lang.get('helperinfo'))
 
         self.messageLogPanel = MessageLogPanel(self.notebook, self)
         self.notebook.AddPage(self.messageLogPanel, self.utility.lang.get('messagelog'))

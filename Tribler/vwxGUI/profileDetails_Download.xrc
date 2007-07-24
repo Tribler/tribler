@@ -1,0 +1,402 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
+  <object class="wxPanel" name="profileDetails_Download">
+    <pos>0,0</pos>
+    <size>300,650</size>
+    <object class="wxBoxSizer">
+      <orient>wxVERTICAL</orient>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>0</border>
+        <option>0</option>
+        <object class="wxBoxSizer">
+          <orient>wxHORIZONTAL</orient>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>0</border>
+            <option>0</option>
+            <object class="wxPanel" name="black_top_left" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+              <pos>3,3</pos>
+              <size>10,21</size>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>1</option>
+            <object class="wxPanel" name="titlePanel">
+              <bitmap>images/triblerpanel_topcenter.png</bitmap>
+              <pos>13,3</pos>
+              <size>280,21</size>
+              <bg>#     0</bg>
+              <fg>#ffffff</fg>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="titleField">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>Optimal download speed
+</label>
+                    <pos>0,3</pos>
+                    <size>280,18</size>
+                    <bg>#     0</bg>
+                    <fg>#ffffff</fg>
+                  </object>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>0</border>
+            <option>0</option>
+            <object class="wxPanel" name="black_top_right" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+              <pos>275,3</pos>
+              <size>10,21</size>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+        <object class="wxPanel" name="details">
+          <pos>0,21</pos>
+          <size>298,550</size>
+          <bg>#ffffff</bg>
+          <object class="wxBoxSizer">
+            <orient>wxVERTICAL</orient>
+            <object class="spacer">
+              <size>105,8</size>
+              <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+            </object>
+            <object class="sizeritem">
+              <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>6</border>
+              <option>0</option>
+              <object class="wxStaticText" name="descriptionField">
+                <label>&lt; no info &gt;</label>
+                <pos>6,14</pos>
+                <size>284,-1</size>
+                <font>
+                  <size>8</size>
+                  <family>modern</family>
+                  <style>normal</style>
+                  <weight>normal</weight>
+                  <underlined>0</underlined>
+                  <face>Verdana</face>
+                </font>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+              <object class="wxBoxSizer">
+                <orient>wxVERTICAL</orient>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>1</option>
+                  <object class="wxPanel" name="panelDesc0">
+                    <pos>0,30</pos>
+                    <size>20,-1</size>
+                    <bg>#cbcbcb</bg>
+                    <object class="wxBoxSizer">
+                      <orient>wxHORIZONTAL</orient>
+                      <object class="sizeritem">
+                        <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                        <border>3</border>
+                        <option>0</option>
+                        <object class="wxStaticText" name="Desc01">
+                          <style>wxST_NO_AUTORESIZE</style>
+                          <label>   Upload limit</label>
+                          <pos>0,3</pos>
+                          <size>241,15</size>
+                          <bg>#cbcbcb</bg>
+                        </object>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="descriptionField0">
+                    <label>&lt; no info &gt;</label>
+                    <pos>6,51</pos>
+                    <size>284,-1</size>
+                    <font>
+                      <size>8</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>normal</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="howToImprove0">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>How to improve</label>
+                    <pos>6,64</pos>
+                    <size>284,18</size>
+                    <font>
+                      <size>8</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>bold</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="descriptionField1">
+                    <label>&lt; no info &gt;</label>
+                    <pos>6,88</pos>
+                    <size>284,-1</size>
+                    <font>
+                      <size>8</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>normal</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxPanel" name="takeMeThere0" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <pos>6,114</pos>
+                    <size>120,21</size>
+                  </object>
+                </object>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+              <object class="wxBoxSizer">
+                <orient>wxVERTICAL</orient>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>1</option>
+                  <object class="wxPanel" name="panelDesc1">
+                    <pos>0,142</pos>
+                    <size>20,-1</size>
+                    <bg>#cbcbcb</bg>
+                    <object class="wxBoxSizer">
+                      <orient>wxHORIZONTAL</orient>
+                      <object class="sizeritem">
+                        <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                        <border>3</border>
+                        <option>0</option>
+                        <object class="wxStaticText" name="Desc1">
+                          <style>wxST_NO_AUTORESIZE</style>
+                          <label>   Number of friends</label>
+                          <pos>0,3</pos>
+                          <size>241,15</size>
+                          <bg>#cbcbcb</bg>
+                        </object>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="descriptionField2">
+                    <label>&lt; no info &gt;</label>
+                    <pos>6,171</pos>
+                    <size>284,-1</size>
+                    <font>
+                      <size>8</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>normal</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="howToImprove1">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>How to improve</label>
+                    <pos>6,178</pos>
+                    <size>284,18</size>
+                    <font>
+                      <size>8</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>bold</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="descriptionField3">
+                    <label>&lt; no info &gt;</label>
+                    <pos>6,208</pos>
+                    <size>284,-1</size>
+                    <font>
+                      <size>8</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>normal</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxPanel" name="takeMeThere1" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <pos>6,227</pos>
+                    <size>120,21</size>
+                  </object>
+                </object>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+              <object class="wxBoxSizer">
+                <orient>wxVERTICAL</orient>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>1</option>
+                  <object class="wxPanel" name="panelDesc2">
+                    <pos>0,254</pos>
+                    <size>20,-1</size>
+                    <bg>#cbcbcb</bg>
+                    <object class="wxBoxSizer">
+                      <orient>wxHORIZONTAL</orient>
+                      <object class="sizeritem">
+                        <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                        <border>3</border>
+                        <option>0</option>
+                        <object class="wxStaticText" name="Desc2">
+                          <style>wxST_NO_AUTORESIZE</style>
+                          <label>   Connectability</label>
+                          <pos>0,3</pos>
+                          <size>241,15</size>
+                          <bg>#cbcbcb</bg>
+                        </object>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="descriptionField4">
+                    <label>&lt; no info &gt;</label>
+                    <pos>6,278</pos>
+                    <size>284,-1</size>
+                    <font>
+                      <size>8</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>normal</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="howToImprove2">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>How to improve</label>
+                    <pos>6,279</pos>
+                    <size>284,18</size>
+                    <font>
+                      <size>8</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>bold</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="descriptionField5">
+                    <label>&lt; no info &gt;</label>
+                    <pos>6,315</pos>
+                    <size>284,-1</size>
+                    <font>
+                      <size>8</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>normal</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxPanel" name="takeMeThere2" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <pos>6,319</pos>
+                    <size>120,21</size>
+                  </object>
+                </object>
+              </object>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+        <object class="wxPanel" name="white_bottom" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+          <pos>3,475</pos>
+          <size>300,5</size>
+        </object>
+      </object>
+    </object>
+  </object>
+</resource>

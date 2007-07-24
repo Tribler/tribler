@@ -1,5 +1,5 @@
 !define PRODUCT "Tribler"
-!define VERSION "3.6.0"
+!define VERSION "4.0.4"
 
 !include "MUI.nsh"
 
@@ -8,13 +8,13 @@
 
 ;General
  Name "Tribler ${VERSION}"
- OutFile "${PRODUCT}_${VERSION}.exe"
+OutFile "${PRODUCT}_${VERSION}.exe"
 
 ;Folder selection page
- InstallDir "$PROGRAMFILES\${PRODUCT}"
+InstallDir "$PROGRAMFILES\${PRODUCT}"
  
 ;Remember install folder
- InstallDirRegKey HKCU "Software\${PRODUCT}" ""
+InstallDirRegKey HKCU "Software\${PRODUCT}" ""
 
 ;
 ; Uncomment for smaller file size
@@ -25,47 +25,49 @@ SetCompressor "lzma"
 ;
 ;SetCompress "off"
 
- CompletedText "Install Complete. Thank you for choosing ${PRODUCT}"
+CompletedText "Installation completed. Thank you for choosing ${PRODUCT}"
 
- BrandingText "Tribler"
+BrandingText "Tribler"
 
 ;--------------------------------
 ;Modern UI Configuration
 
- !define MUI_ABORTWARNING
- !define MUI_HEADERIMAGE
- !define MUI_HEADERIMAGE_BITMAP "heading.bmp"
+!define MUI_ABORTWARNING
+!define MUI_HEADERIMAGE
+!define MUI_HEADERIMAGE_BITMAP "heading.bmp"
 
 ;--------------------------------
 ;Pages
 
-  !define MUI_LICENSEPAGE_RADIOBUTTONS
-  !define MUI_LICENSEPAGE_RADIOBUTTONS_TEXT_ACCEPT "I'm cool"
-  !define MUI_LICENSEPAGE_RADIOBUTTONS_TEXT_DECLINE "Go away"
+!define MUI_LICENSEPAGE_RADIOBUTTONS
+!define MUI_LICENSEPAGE_RADIOBUTTONS_TEXT_ACCEPT "I'm cool"
+!define MUI_LICENSEPAGE_RADIOBUTTONS_TEXT_DECLINE "Go away"
+!define MUI_FINISHPAGE_RUN "$INSTDIR\tribler.exe"
 
-  !insertmacro MUI_PAGE_LICENSE "binary-LICENSE.txt"
-  !insertmacro MUI_PAGE_COMPONENTS
-  !insertmacro MUI_PAGE_DIRECTORY
-  !insertmacro MUI_PAGE_INSTFILES
-  
-  !insertmacro MUI_UNPAGE_CONFIRM
-  !insertmacro MUI_UNPAGE_INSTFILES
+!insertmacro MUI_PAGE_LICENSE "binary-LICENSE.txt"
+!insertmacro MUI_PAGE_COMPONENTS
+!insertmacro MUI_PAGE_DIRECTORY
+!insertmacro MUI_PAGE_INSTFILES
+!insertmacro MUI_PAGE_FINISH
 
-#  !insertmacro MUI_DEFAULT UMUI_HEADERIMAGE_BMP heading.bmp"
+!insertmacro MUI_UNPAGE_CONFIRM
+!insertmacro MUI_UNPAGE_INSTFILES
+
+;!insertmacro MUI_DEFAULT UMUI_HEADERIMAGE_BMP heading.bmp"
 
 ;--------------------------------
 ;Languages
 
- !insertmacro MUI_LANGUAGE "English"
+!insertmacro MUI_LANGUAGE "English"
  
 ;--------------------------------
 ;Language Strings
 
 ;Description
- LangString DESC_SecMain ${LANG_ENGLISH} "Install Tribler"
- LangString DESC_SecDesk ${LANG_ENGLISH} "Create Desktop Shortcuts"
- LangString DESC_SecStart ${LANG_ENGLISH} "Create Start Menu Shortcuts"
- LangString DESC_SecDefault ${LANG_ENGLISH} "Associate .torrent files with Tribler"
+LangString DESC_SecMain ${LANG_ENGLISH} "Install Tribler"
+LangString DESC_SecDesk ${LANG_ENGLISH} "Create Desktop Shortcuts"
+LangString DESC_SecStart ${LANG_ENGLISH} "Create Start Menu Shortcuts"
+LangString DESC_SecDefault ${LANG_ENGLISH} "Associate .torrent files with Tribler"
 
 ;--------------------------------
 ;Installer Sections
@@ -78,6 +80,8 @@ Section "!Main EXE" SecMain
  File category.conf
  File tribler.exe.manifest
  File tribler.exe
+ File ffmpeg.exe
+ File /r vlc
  Delete "$INSTDIR\*.pyd"
  File *.pyd
  Delete "$INSTDIR\python*.dll"
@@ -88,15 +92,22 @@ Section "!Main EXE" SecMain
  CreateDirectory "$INSTDIR\icons"
  SetOutPath "$INSTDIR\icons"
  File icons\*.*
- CreateDirectory "$INSTDIR\icons\mugshots"
- SetOutPath "$INSTDIR\icons\mugshots"
- File icons\mugshots\*.*
+; CreateDirectory "$INSTDIR\icons\mugshots"
+; SetOutPath "$INSTDIR\icons\mugshots"
+; File icons\mugshots\*.*
  CreateDirectory "$INSTDIR\Lang"
  SetOutPath "$INSTDIR\Lang"
  IfFileExists user.lang userlang
  File lang\*.*
  userlang:
  File /x user.lang lang\*.*
+ CreateDirectory "$INSTDIR\Tribler"
+ CreateDirectory "$INSTDIR\Tribler\vwxGUI"
+ CreateDirectory "$INSTDIR\Tribler\vwxGUI\images"
+ SetOutPath "$INSTDIR\Tribler\vwxGUI"
+ File Tribler\vwxGUI\*.*
+ SetOutPath "$INSTDIR\Tribler\vwxGUI\images"
+ File Tribler\vwxGUI\images\*.*
  SetOutPath "$INSTDIR"
  WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "DisplayName" "${PRODUCT} (remove only)"
  WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "UninstallString" "$INSTDIR\Uninstall.exe"
@@ -131,17 +142,26 @@ Section "Make Default" SecDefault
    WriteRegStr HKCR "bittorrent\shell" "" open
    WriteRegStr HKCR "bittorrent\shell\open\command" "" '"$INSTDIR\${PRODUCT}.exe" "%1"'
    WriteRegStr HKCR "bittorrent\DefaultIcon" "" "$INSTDIR\torrenticon.ico"
+
+   WriteRegStr HKCR .tribe "" tribe
+   WriteRegStr HKCR .tribe "Content Type" application/x-tribe
+   WriteRegStr HKCR "MIME\Database\Content Type\application/x-tribe" Extension .tribe
+   WriteRegStr HKCR tribe "" "TRIBE File"
+   WriteRegBin HKCR tribe EditFlags 00000100
+   WriteRegStr HKCR "tribe\shell" "" open
+   WriteRegStr HKCR "tribe\shell\open\command" "" '"$INSTDIR\${PRODUCT}.exe" "%1"'
+   WriteRegStr HKCR "tribe\DefaultIcon" "" "$INSTDIR\torrenticon.ico"
 SectionEnd
 
 ;--------------------------------
 ;Descriptions
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
- !insertmacro MUI_DESCRIPTION_TEXT ${SecMain} $(DESC_SecMain)
- !insertmacro MUI_DESCRIPTION_TEXT ${SecDesk} $(DESC_SecDesk)
- !insertmacro MUI_DESCRIPTION_TEXT ${SecStart} $(DESC_SecStart)
-; !insertmacro MUI_DESCRIPTION_TEXT ${SecLang} $(DESC_SecLang)
- !insertmacro MUI_DESCRIPTION_TEXT ${SecDefault} $(DESC_SecDefault)
+!insertmacro MUI_DESCRIPTION_TEXT ${SecMain} $(DESC_SecMain)
+!insertmacro MUI_DESCRIPTION_TEXT ${SecDesk} $(DESC_SecDesk)
+!insertmacro MUI_DESCRIPTION_TEXT ${SecStart} $(DESC_SecStart)
+;!insertmacro MUI_DESCRIPTION_TEXT ${SecLang} $(DESC_SecLang)
+!insertmacro MUI_DESCRIPTION_TEXT ${SecDefault} $(DESC_SecDefault)
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 ;--------------------------------
@@ -180,7 +200,7 @@ Function .onInit
 
   StrCmp $R0 0 +3 
 
-    MessageBox MB_OK "The installer is already running." 
+  MessageBox MB_OK "The installer is already running."
 
-    Abort 
+  Abort 
 FunctionEnd

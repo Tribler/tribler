@@ -5,7 +5,7 @@ import wx
 from threading import Event
 from threading import Timer
 from threading import currentThread
-from traceback import print_stack
+from traceback import print_exc,print_stack
 #from cStringIO import StringIO
 
 from ABC.Scheduler.action import ActionHandler
@@ -15,6 +15,10 @@ from ABC.Scheduler.ratemanager import RateManager
 from Utility.constants import * #IGNORE:W0611
 from safeguiupdate import DelayedEventHandler
 from BitTornado.__init__ import product_name
+from Tribler.vwxGUI.GuiUtility import GUIUtility
+
+DEBUG = False
+
 
 ################################################################
 #
@@ -45,12 +49,17 @@ class ABCScheduler(DelayedEventHandler):
                            'down': 0.0 }
 
         self.UpdateRunningTorrentCounters()
+        self.guiUtility = GUIUtility.getInstance()
+        self.maxmeasuredul = self.utility.config.Read('maxmeasureduploadrate','int') * 1024.0
 
-    def postInitTasks(self):
+    def postInitTasks(self,argv):
         # Read old list from torrent.lst
         ####################################
-        self.addtorrents.readTorrentList()
-
+        try:
+            self.addtorrents.readTorrentList(argv)
+        except:
+            print_exc()
+        
         # Wait until after creating the list and adding torrents
         # to start CyclicalTasks in the scheduler
         self.CyclicalTasks()
@@ -132,7 +141,7 @@ class ABCScheduler(DelayedEventHandler):
         self.totals_kb['down'] = (totaldownload / 1024.0)
         
         self.totals['connections'] = totalconnections
-
+        
     def updateTrayAndStatusBar(self):
         self.invokeLater(self.onUpdateTrayAndStatusBar)
 
@@ -144,6 +153,7 @@ class ABCScheduler(DelayedEventHandler):
         else:
             upspeed = self.utility.size_format(self.totals['up'], truncate = 1, stopearly = "KB", applylabel = False)
             upratecap = self.utility.speed_format((maxuprate * 1024), truncate = 0, stopearly = "KB")
+        upspeed2 = self.utility.speed_format(self.totals['up'], truncate = 0)
         uploadspeed = upspeed + " / " + upratecap
 
         maxdownrate = self.ratemanager.MaxRate("down")
@@ -153,11 +163,26 @@ class ABCScheduler(DelayedEventHandler):
         else:
             downspeed = self.utility.size_format(self.totals['down'], truncate = 1, stopearly = "KB", applylabel = False)
             downratecap = self.utility.speed_format((maxdownrate * 1024), truncate = 0, stopearly = "KB")
+        downspeed2 = self.utility.speed_format(self.totals['down'], truncate = 0)
         downloadspeed = downspeed + " / " + downratecap
         
+        if not self.guiUtility.peer_manager:
+            npeer = 'loading..'
+        else:
+            npeer = self.guiUtility.peer_manager.getNumEncounteredPeers()
+            if npeer < 0:
+                npeer = 'loading..'
+            else:
+                npeer = str(npeer)
         
-        npeer = str(self.utility.getNumPeers())
-        nfile = str(self.utility.getNumFiles())
+        if not self.guiUtility.data_manager:
+            nfile = 'loading..'
+        else:
+            nfile = self.guiUtility.data_manager.getNumDiscoveredFiles()
+            if nfile < 0:
+                nfile = 'loading..'
+            else:
+                nfile = str(nfile)
         
         try:
             # update value in minimize icon
@@ -172,14 +197,24 @@ class ABCScheduler(DelayedEventHandler):
 
             # update in status bar
             ##########################################
-            if self.utility.frame.abc_sb is not None:
-                self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('abbrev_down') + " " + downloadspeed, 1)
-                self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('abbrev_up') + " " + uploadspeed, 2)
-                self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('discover_peer') + " " + npeer, 3)
-                self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('discover_file') + " " + nfile, 4)
+            #if self.utility.frame.abc_sb is not None:
+            #    self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('abbrev_down') + " " + downloadspeed, 2)
+            #    self.utility.frame.abc_sb.SetStatusText(" " + self.utility.lang.get('abbrev_up') + " " + uploadspeed, 3)
+            
                 
+            self.utility.frame.numberPersons.SetLabel(npeer)
+            self.utility.frame.numberFiles.SetLabel(nfile)
+            self.guiUtility.refreshTorrentTotalStats(totaldlspeed=downspeed2,totalulspeed=upspeed2)
+            
         except wx.PyDeadObjectError:
             pass
+
+        # Make sure the config is written by MainThread
+        if self.totals['up'] > self.maxmeasuredul:
+            self.maxmeasuredul = self.totals['up']
+            m = int(self.maxmeasuredul/1024.0)
+            self.utility.config.Write('maxmeasureduploadrate',m)
+
                                 
     def CyclicalTasks(self):       
         self.getDownUpConnections()
@@ -187,7 +222,10 @@ class ABCScheduler(DelayedEventHandler):
         self.updateTrayAndStatusBar()
 
         self.ratemanager.RunTasks()
-   
+        
+        # check if stopped torrents will be shutdown
+        self.checkAutoShutdownTorrents()
+                
         try:
             # Run postponed deleting events
             while self.utility.window.postponedevents:
@@ -206,7 +244,7 @@ class ABCScheduler(DelayedEventHandler):
 
         # Start Timer
         ##########################################
-        self.timers['frequent'] = Timer(2, self.CyclicalTasks)
+        self.timers['frequent'] = Timer(4, self.CyclicalTasks)
         self.timers['frequent'].start()
             
     def InfrequentCyclicalTasks(self, update = True):
@@ -251,8 +289,14 @@ class ABCScheduler(DelayedEventHandler):
 
         torrents_inactive = self.utility.torrents["inactive"].keys()
 
+        #print >>sys.stderr,"scheduler: getInactive: torrents['inactive'] are",torrents_inactive
+        #for ABCTorrentTemp in torrents_inactive:
+        #    print >>sys.stderr,"scheduler: getInactive: status is",ABCTorrentTemp.status.value
+
         # Find which torrents are queued:
         inactivetorrents = [ABCTorrentTemp for ABCTorrentTemp in torrents_inactive if (ABCTorrentTemp.status.value == STATUS_QUEUE)]
+
+        #print >>sys.stderr,"scheduler: getInactive: torrents inactive and queued",inactivetorrents
 
         inactivelength = len(inactivetorrents)
 
@@ -284,14 +328,24 @@ class ABCScheduler(DelayedEventHandler):
            
         inactivestarted = 0
             
+        #print >>sys.stderr,"scheduler: Scheduler: torrents to start is",torrentstostart,numsimdownload,self.getProcCount()
+            
         # Start torrents
         inactivetorrents = self.getInactiveTorrents(torrentstostart)
                            
         for ABCTorrentTemp in inactivetorrents:
-            change = ABCTorrentTemp.actions.resume()
-            if change:
-                inactivestarted += 1
-                    
+            if DEBUG:
+                print >>sys.stderr,"scheduler: resuming",ABCTorrentTemp.infohash
+            play_video = ABCTorrentTemp.clear_newly_added()
+            try:
+                change = ABCTorrentTemp.actions.resume()
+                if change:
+                    inactivestarted += 1
+            except Exception,e:
+                print_exc()
+                # add error message to GUI message log
+                ABCTorrentTemp.changeMessage(str(e),"error")
+
         torrentstostart = torrentstostart - inactivestarted
         
         if inactivestarted > 0:
@@ -476,6 +530,17 @@ class ABCScheduler(DelayedEventHandler):
         
         self.utility.torrentconfig.Flush()
 
-    def addTorrentFromFileCallback(self,data):
-        self.invokeLater(self.addtorrents.AddTorrentFromFile,[data])
+    def addTorrentFromFileCallback(self,data,caller=''):
+        self.invokeLater(self.doAddTorrentFromFile,[data],{'caller':caller})
+
+    def doAddTorrentFromFile(self,data,caller=''):
+        self.addtorrents.AddTorrentFromFile(data,caller=caller)
+        # Switch to Library view
+        self.guiUtility.standardLibraryOverview()
         
+    def checkAutoShutdownTorrents(self):
+        self.invokeLater(self.utility.actionhandler.procCHECK_AUTOSHUTDOWN)
+        
+    def getMaxMeasuredUploadRate(self):
+        return int(self.maxmeasuredul / 1024.0)
+    

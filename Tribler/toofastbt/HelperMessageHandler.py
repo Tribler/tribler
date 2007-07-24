@@ -9,7 +9,7 @@ from random import randint
 
 from Tribler.Overlay.SecureOverlay import SecureOverlay
 from Tribler.utilities import show_permid_short
-from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
+from Tribler.CacheDB.CacheDBHandler import FriendDBHandler,TorrentDBHandler
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
 
@@ -27,9 +27,11 @@ class HelperMessageHandler:
         self.metadata_queue = {}
         self.launchmany = launchmany
         self.helpdir = launchmany.torrent_dir
+        self.torrent_db = TorrentDBHandler()
 
-    def register(self, metadata_handler):
+    def register(self, metadata_handler,secure_overlay):
         self.metadata_handler = metadata_handler
+        self.secure_overlay = secure_overlay
 
     def handleMessage(self,permid,selversion,message):
         t = message[0]
@@ -67,9 +69,9 @@ class HelperMessageHandler:
         
         if not self.can_help(torrent_hash):
             return False
-        torrent_path = self.find_torrent(torrent_hash)
-        if torrent_path:
-            self.do_help(torrent_hash, torrent_path, permid)
+        torrent_data = self.find_torrent(torrent_hash)
+        if torrent_data:
+            self.do_help(torrent_hash, torrent_data, permid)
         else:
             self.get_metadata(permid, torrent_hash,selversion)
         return True
@@ -147,10 +149,12 @@ class HelperMessageHandler:
         self.launchmany.add(torrent_hash, data)
 
     def get_metadata(self, permid, torrent_hash, selversion):
+        if DEBUG:
+            print >> sys.stderr,"helpmsg: Don't have torrent yet, ask coordinator"
         if not self.metadata_queue.has_key(torrent_hash):
             self.metadata_queue[torrent_hash] = []
         self.metadata_queue[torrent_hash].append(permid)
-        self.metadata_handler.send_metadata_request(permid, torrent_hash, selversion)
+        self.metadata_handler.send_metadata_request(permid, torrent_hash, selversion,caller="dlhelp")
 
     def call_dlhelp_task(self, torrent_hash, torrent_data):
         if DEBUG:
@@ -169,7 +173,17 @@ class HelperMessageHandler:
         return True                      #Future support: make the decision based on my preference
 
     def find_torrent(self, torrent_hash):
-        return None
+        torrent = self.torrent_db.getTorrent(torrent_hash)
+        if torrent is None:
+            return None
+        elif 'torrent_dir' in torrent:
+            fn = torrent['torrent_dir']
+            f = open(fn,"rb")
+            data = f.read()
+            f.close()
+            return data
+        else:
+            return None
 
 
     def got_stop_dlhelp_request(self, permid, message, selversion):
@@ -187,6 +201,9 @@ class HelperMessageHandler:
             return False
 
         self.launchmany.remove(torrent_hash)
+        
+        self.secure_overlay.close(permid)
+        
         return True
 
 

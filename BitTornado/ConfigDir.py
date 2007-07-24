@@ -86,12 +86,16 @@ class ConfigDir:
         old_dir_root = os.path.join( dir_root, '.ABC' )
 
         # Arno: upgrade .ABC to .Tribler, if necessary
+        # Arno,2007-05-03: disabled
+        """
         old_exists = os.path.isdir(old_dir_root)
         cur_exists = os.path.isdir(cur_dir_root)
         if old_exists and not cur_exists:
             # upgrade old to new
             print "Upgrading 3.3.x config files to new version..."
             shutil.copytree(old_dir_root,cur_dir_root)
+        """
+            
         self._normal_init(config_ext)
 
     def _normal_init(self,config_ext):
@@ -101,6 +105,10 @@ class ConfigDir:
         self.dir_icons = os.path.join(self.dir_root, 'icons')
         if not os.path.isdir(self.dir_icons):
             os.mkdir(self.dir_icons)
+
+        self.dir_subscrip = os.path.join(self.dir_root, 'subscriptions')
+        if not os.path.isdir(self.dir_subscrip):
+            os.mkdir(self.dir_subscrip)
 
         self.dir_torrentcache = os.path.join(self.dir_root, 'torrentcache')
         if not os.path.isdir(self.dir_torrentcache):
@@ -113,6 +121,10 @@ class ConfigDir:
         self.dir_piececache = os.path.join(self.dir_root, 'piececache')
         if not os.path.isdir(self.dir_piececache):
             os.mkdir(self.dir_piececache)
+
+        self.dir_itracker = os.path.join(self.dir_root, 'itracker')
+        if not os.path.isdir(self.dir_itracker):
+            os.mkdir(self.dir_itracker)
 
         self.configfile = os.path.join(self.dir_root, 'config'+config_ext+'.ini')
         self.statefile = os.path.join(self.dir_root, 'state'+config_ext)

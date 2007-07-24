@@ -31,6 +31,8 @@ from parsedir import parsedir
 from BT1.Encrypter import Encoder
 from BT1.Connecter import Connecter
 from natpunch import UPnPWrapper, UPnPError
+from BT1.track import Tracker
+from HTTPHandler import HTTPHandler,DummyHTTPHandler
 
 import Tribler.Overlay.permid as permid
 from Tribler.Overlay.SecureOverlay import SecureOverlay
@@ -46,7 +48,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = 0
+DEBUG = False
 
 def fmttime(n):
     try:
@@ -89,7 +91,11 @@ class SingleDownload:
                         hash,
                         myid,
                         self.rawserver,
-                        controller.listen_port)
+                        controller.listen_port,
+                        False,
+                        [],
+                        None,
+                        '')
         self.d = d
 
     def start(self):
@@ -256,6 +262,15 @@ class LaunchMany:
                 # all higher protocol-handling layers are properly configured.
                 self.secure_overlay.start_listening()
             
+            self.internaltracker = None
+            if config['internaltracker']:
+                tconfig = config['trackerconf']
+                self.internaltracker = Tracker(tconfig, self.rawserver)
+                self.httphandler = HTTPHandler(self.internaltracker.get, tconfig['min_time_between_log_flushes'])
+            else:
+                self.httphandler = DummyHTTPHandler()
+            self.handler.set_httphandler(self.httphandler)
+            
             self.torrent_db = TorrentDBHandler()
             self.mypref_db = MyPreferenceDBHandler()
             
@@ -280,10 +295,9 @@ class LaunchMany:
 #        print "torrent_checking start"
         try:
             t = TorrentChecking()        
-#            t.setDaemon(True)
             t.start()
         except:
-            pass
+            print_exc()
 
       
     def start(self):
@@ -304,6 +318,10 @@ class LaunchMany:
             self.downloads[hash].shutdown()
 
         self.stop_upnp()
+        
+        if self.internaltracker is not None:
+            self.internaltracker.save_state()
+        
         self.rawserver.shutdown()
 
     def start_upnp(self):
@@ -442,7 +460,7 @@ class LaunchMany:
         
         torrent = {}
         torrent['torrent_dir'], torrent['torrent_name'] = os.path.split(src)
-        torrent['relevance'] = 100*1000
+        #torrent['relevance'] = 100*1000
         
         torrent_info = {}
         torrent_info['name'] = info.get('name', '')
@@ -554,8 +572,8 @@ class LaunchMany:
     def exchandler(self, s):
         self.Output.exception(s)
 
-    def upnp_failed(self,upnp_type,listenport,error_type,exc=None):
-        self.failed("UPnP mode "+str(upnp_type)+" request to firewall failed with error "+str(error_type)+" Try setting a different mode in Preferences. Listen port was "+str(listenport))
+    def upnp_failed(self,upnp_type,listenport,error_type,exc=None,listenproto='TCP'):
+        self.failed("UPnP mode "+str(upnp_type)+" request to firewall failed with error "+str(error_type)+" Try setting a different mode in Preferences. Listen port was "+str(listenport)+", protocol"+listenproto)
 
 # 2fastbt_
     def get_coordinator(self,torrent_hash):
@@ -585,6 +603,16 @@ class LaunchMany:
     def set_activity(self,type,msg=''):
             self.Output.message('Activity: '+str(type)+" "+msg)
         
+    def get_gui_util(self):
+        return None
+
+    def get_rawserver(self):
+        return self.rawserver
+    
+    def tracker_rescan_dir(self):
+        if self.internaltracker is not None:
+            self.internaltracker.parse_allowed(source='TorrentMaker')
+
 
 class UPnPThread(Thread):
     """ Thread to run the UPnP code. Moved out of main startup-
@@ -613,9 +641,8 @@ class UPnPThread(Thread):
 
     def run(self):
         dmh = DialbackMsgHandler.getInstance()
-		
+                
         if self.upnp_type > 0:
-
             self.upnp_wrap = UPnPWrapper.getInstance()
             wanip = MyDBHandler().getMyIP()
             self.upnp_wrap.register(wanip)
@@ -638,10 +665,16 @@ class UPnPThread(Thread):
                     # get_ext_ip() must be done first to ensure we have the 
                     # right IP ASAP.
                     
-                    # Open port on firewall
-                    ret = self.upnp_wrap.open(self.listen_port)
+                    # Open TCP listen port on firewall
+                    ret = self.upnp_wrap.open(self.listen_port,iproto='TCP')
                     if ret == False and not shownerror:
                         self.error_func(self.upnp_type,self.listen_port,0)
+
+                    # Open UDP listen port on firewall
+                    ret = self.upnp_wrap.open(self.listen_port,iproto='UDP')
+                    if ret == False and not shownerror:
+                        self.error_func(self.upnp_type,self.listen_port,0,listenproto='UDP')
+                
                 except UPnPError,e:
                     self.error_func(self.upnp_type,self.listen_port,1,e)
             else:
@@ -666,7 +699,8 @@ class UPnPThread(Thread):
             if DEBUG:
                 print "upnp: thread: Shutting down, closing port on firewall"
             try:
-                self.upnp_wrap.close(self.listen_port)
+                self.upnp_wrap.close(self.listen_port,iproto='TCP')
+                self.upnp_wrap.close(self.listen_port,iproto='UDP')
             except Exception,e:
                 print "upnp: thread: close port at shutdown threw",e
                 print_exc()

@@ -70,6 +70,7 @@ class TestAsServer(unittest.TestCase):
         self.lm = MyLaunchMany(self.config, HeadlessDisplayer(self))
         self.hisport = self.lm.get_listen_port()
         self.lm.start()
+        self.setUpPostLaunchMany()
 
     def setUpPreTriblerInit(self):
         """ Should set self.config_path and self.config """
@@ -88,8 +89,12 @@ class TestAsServer(unittest.TestCase):
         self.config['minport'] = random.randint(10000, 60000)
         self.config['text_mode'] = 1
         self.config['buddycast'] = 0
+        self.config['start_recommender'] = 0
         self.config['superpeer'] = 0
         self.config['dialback'] = 0
+        self.config['socnet'] = 0
+        self.config['rquery'] = 0
+        self.config['internaltracker'] = 0
 
         self.my_keypair = EC.gen_params(EC.NID_sect233k1)
         self.my_keypair.gen_key()
@@ -98,6 +103,9 @@ class TestAsServer(unittest.TestCase):
         """ Should set self.his_keypair """
         keypair_filename = os.path.join(self.config_path,'ec.pem')
         self.his_keypair = EC.load_key(keypair_filename)
+
+    def setUpPostLaunchMany(self):
+        pass
 
     def tearDown(self):
         """ unittest test tear down code """

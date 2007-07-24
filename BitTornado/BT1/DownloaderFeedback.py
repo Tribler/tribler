@@ -121,7 +121,7 @@ class DownloaderFeedback:
             s['time'] = 0
             return s
         s['down'] = self.downfunc()
-        obtained, desired = self.leftfunc()
+        obtained, desired, have = self.leftfunc()
         s['done'] = obtained
         s['wanted'] = desired
         if desired > 0:
@@ -132,6 +132,7 @@ class DownloaderFeedback:
             s['time'] = 0
         else:
             s['time'] = self.ratemeasure.get_time_left(desired-obtained)
+        s['have'] = have
         return s        
 
 

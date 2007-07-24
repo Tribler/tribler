@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
+  <object class="wxPanel" name="peerItem">
+    <pos>0,0</pos>
+    <size>82,155</size>
+    <object class="wxBoxSizer">
+      <orient>wxVERTICAL</orient>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxALIGN_CENTER_VERTICAL|wxALIGN_CENTER_HORIZONTAL|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+        <object class="wxStaticBitmap" name="bm4c">
+          <bitmap>images/1p_82x82.gif</bitmap>
+          <style>wxSIMPLE_BORDER</style>
+          <pos>0,0</pos>
+          <size>82,82</size>
+          <bg>#000000</bg>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+        <object class="wxStaticText" name="st5c">
+          <style>wxST_NO_AUTORESIZE</style>
+          <label>Sanne de Vries</label>
+          <pos>0,85</pos>
+          <size>82,28</size>
+          <font>
+            <size>8</size>
+            <family>modern</family>
+            <style>normal</style>
+            <weight>normal</weight>
+            <underlined>0</underlined>
+            <face>Verdana</face>
+          </font>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>1</border>
+        <option>0</option>
+        <object class="wxStaticText" name="st5cC">
+          <style>wxST_NO_AUTORESIZE</style>
+          <label>15 downloads</label>
+          <pos>0,116</pos>
+          <size>82,28</size>
+          <fg>#808080</fg>
+          <font>
+            <size>8</size>
+            <family>modern</family>
+            <style>normal</style>
+            <weight>normal</weight>
+            <underlined>0</underlined>
+            <face>Verdana</face>
+          </font>
+        </object>
+      </object>
+    </object>
+  </object>
+</resource>

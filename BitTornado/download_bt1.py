@@ -1,6 +1,7 @@
 # Written by Bram Cohen and Pawel Garbacki
 # see LICENSE.txt for license information
 
+import os
 from zurllib import urlopen
 from urlparse import urlparse
 from BT1.btformats import check_message
@@ -30,17 +31,20 @@ from socket import error as socketerror
 from random import seed
 from threading import Event
 from clock import clock
+import re
 from __init__ import createPeerID
 
+from Tribler.__init__ import TRIBLER_TORRENT_EXT
 from Tribler.Merkle.merkle import create_fake_hashes
 from Tribler.unicode import bin2unicode
+from Tribler.Video.VideoOnDemand import MovieSelector,MovieOnDemandTransporter,PiecePickerVOD
 
 # 2fastbt_
 from Tribler.toofastbt.Coordinator import Coordinator
 from Tribler.toofastbt.Helper import Helper
 from Tribler.toofastbt.RatePredictor import ExpSmoothRatePredictor
 import sys
-from traceback import print_exc
+from traceback import print_exc,print_stack
 # _2fastbt
 
 
@@ -49,6 +53,8 @@ try:
 except:
     True = 1
     False = 0
+
+DEFAULTPORT=7762  # Arno: see Utility/configreader.py and Utility/utility.py
 
 defaults = [
     ('max_uploads', 7,
@@ -187,21 +193,25 @@ defaults = [
         "create overlay swarm to transfer special messages"),
     ('buddycast', 1,
         "run buddycast recommendation system"),
+    ('start_recommender', 1,
+        "buddycast can be temp. disabled via this flag"),
     ('download_help', 1,
         "accept download help request"),
     ('torrent_collecting', 1,
         "automatically collect torrents"),
     ('superpeer', 0,
-        "run on super peer mode (0 = disabled)"),
+        "run in super peer mode (0 = disabled)"),
     ('overlay_log', '',
         "log on super peer mode ('' = disabled)"),
     ('buddycast_interval', 15,
         "number of seconds to pause between exchanging preference with a peer in buddycast"),
     ('max_torrents', 5000,
         "max number of torrents to collect"),
+    ('torrent_collecting_rate', 5,
+        "max rate of torrent collecting (Kbps)"),
     ('torrent_checking', 1,
         "automatically check the health of torrents"),
-    ('torrent_checking_period', 60,
+    ('torrent_checking_period', 60, 
         "period for auto torrent checking"),
     ('dialback', 1,
         "use other peers to determine external IP address (0 = disabled)"),
@@ -211,7 +221,14 @@ defaults = [
         "trust superpeer replies (needed to disable for testing only) (0 = disabled)"),
     ('dialback_interval', 30,
         "number of seconds to wait for consensus"),
-
+    ('socnet', 1,
+        "enable social networking (0 = disabled)"),
+    ('rquery', 1,
+        "enable remote query (0 = disabled)"),
+    ('stop_collecting_threshold', 200,
+        "stop collecting more torrents if the disk has less than this size (MB)"),
+    ('internaltracker', 1,
+        "enable internal tracker (0 = disabled)")
     ]
 
 argslistheader = 'Arguments are:\n\n'
@@ -366,8 +383,8 @@ def get_response(file, url, errorfunc):
 
 class BT1Download:    
     def __init__(self, statusfunc, finfunc, errorfunc, excfunc, doneflag, 
-                 config, response, infohash, id, rawserver, port, 
-                 appdataobj = None):
+                 config, response, infohash, id, rawserver, port, play_video,
+                 videoinfo, progressinf, videoanalyserpath, appdataobj = None, dht = None):
         self.statusfunc = statusfunc
         self.finfunc = finfunc
         self.errorfunc = errorfunc
@@ -379,6 +396,7 @@ class BT1Download:
         self.myid = id
         self.rawserver = rawserver
         self.port = port
+        self.dht = dht
         
         self.info = self.response['info']  
         self.infohash = sha(bencode(self.info)).digest()
@@ -404,6 +422,12 @@ class BT1Download:
         self.finflag = Event()
         self.rerequest = None
         self.tcp_ack_fudge = config['tcp_ack_fudge']
+        
+        self.play_video = play_video
+        self.videoinfo = videoinfo
+        self.progressinf = progressinf
+        self.videoanalyserpath = videoanalyserpath
+        self.voddownload = None
 
         self.selector_enabled = config['selector_enabled']
         if appdataobj:
@@ -436,7 +460,12 @@ class BT1Download:
                 self.config['role'] = ''
                 self.config['coordinator_permid'] = ''
 
-            self.picker = PiecePicker(self.len_pieces, config['rarest_first_cutoff'], 
+            if self.play_video:
+                # Jan-David: Start video-on-demand service
+                self.picker = PiecePickerVOD(self.len_pieces, config['rarest_first_cutoff'], 
+                             config['rarest_first_priority_cutoff'], helper = self.helper)
+            else:
+                self.picker = PiecePicker(self.len_pieces, config['rarest_first_cutoff'], 
                              config['rarest_first_priority_cutoff'], helper = self.helper)
         except:
             print_exc()
@@ -446,6 +475,7 @@ class BT1Download:
         self.choker = Choker(config, rawserver.add_task, 
                              self.picker, self.finflag.isSet)
 
+        #print >>sys.stderr,"download_bt1.BT1Download: play_video is",self.play_video
 
     def checkSaveLocation(self, loc):
         if self.info.has_key('length'):
@@ -495,8 +525,9 @@ class BT1Download:
                         if not existing:
                             file = path.join(file, self.info['name'])
                             if path.exists(file) and not path.isdir(file):
-                                if file[-8:] == '.torrent':
-                                    file = file[:-8]
+                                if file.endswith('.torrent') or file.endswith(TRIBLER_TORRENT_EXT):
+                                    (prefix,ext) = os.path.splitext(file)
+                                    file = prefix
                                 if path.exists(file) and not path.isdir(file):
                                     self.errorfunc("Can't create dir - " + self.info['name'])
                                     return None
@@ -514,7 +545,7 @@ class BT1Download:
                     files.append((n, x['length']))
                     make(n)
             if DEBUG:
-                print "saveas 2"
+                print >>sys.stderr,"BT1Download: saveas 2"
         except OSError, e:
             self.errorfunc("Couldn't allocate dir - " + str(e))
             return None
@@ -527,10 +558,10 @@ class BT1Download:
         self.datalength = file_length
         
         if DEBUG:
-            print "saveas returning ", file
+            print "BT1Download: saveas returning ", file
                 
         return file
-    
+
 
     def getFilename(self):
         return self.filename
@@ -682,6 +713,10 @@ class BT1Download:
         self.downloader.requeue_piece_download(pieces)
 
     def startEngine(self, ratelimiter = None, statusfunc = None):
+        
+        if DEBUG:
+            print >>sys.stderr,"BT1Download: startEngine"
+        
         if self.doneflag.isSet():
             return False
         if not statusfunc:
@@ -759,9 +794,20 @@ class BT1Download:
                 self.fileselector.set_priorities_now(self.priority)
             self.appdataobj.deleteTorrentData(self.infohash)
                                 # erase old data once you've started modifying it
-        self.started = True
-        return True
 
+        if self.play_video:
+            if DEBUG:
+                print >>sys.stderr,"BT1Download: startEngine: Going into VOD mode",self.videoinfo
+            self.movieselector = MovieSelector(self.videoinfo, self.fileselector, self.storagewrapper, self.picker)
+            self.voddownload = MovieOnDemandTransporter( self.movieselector, self.picker, self.info['piece length'], self.rawserver, self.progressinf, self.videoanalyserpath)
+        elif DEBUG:
+            print >>sys.stderr,"BT1Download: startEngine: Going into standard mode"
+
+        if not self.doneflag.isSet():
+            self.started = True
+            return True
+        else:
+            return False
 
     def rerequest_complete(self):
         if self.rerequest:
@@ -783,11 +829,15 @@ class BT1Download:
                 for t in range(len(trackerlist[tier])):
                     trackerlist[tier][t] = bin2unicode(trackerlist[tier][t])
         else:
-            tracker = bin2unicode(self.response['announce'])
-            trackerlist = [[tracker]]
+            tracker = bin2unicode(self.response.get('announce', ''))
+            if tracker:
+                trackerlist = [[tracker]]
+            else:
+                trackerlist = [[]]
+            
             
         self.rerequest = Rerequester(trackerlist, self.config['rerequest_interval'], 
-            self.rawserver.add_task, self.connecter.how_many_connections, 
+            self.rawserver.add_task,self.connecter.how_many_connections, 
             self.config['min_peers'], self.encoder.start_connections, 
             self.rawserver.add_task, self.storagewrapper.get_amount_left, 
             self.upmeasure.get_total, self.downmeasure.get_total, self.port, self.config['ip'], 
@@ -796,6 +846,7 @@ class BT1Download:
             self.doneflag, self.upmeasure.get_rate, self.downmeasure.get_rate, 
             self.unpauseflag)
 
+        self.encoder.set_rerequester(self.rerequest)
         self.rerequest.start()
 
 
@@ -994,3 +1045,6 @@ class BT1Download:
 
     def get_transfer_stats(self):
         return self.upmeasure.get_total(), self.downmeasure.get_total()
+
+    def get_moviestreamtransport(self):
+        return self.voddownload

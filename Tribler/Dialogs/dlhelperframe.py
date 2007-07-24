@@ -8,7 +8,9 @@ from traceback import print_exc
 
 from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
 from Tribler.utilities import show_permid_short
-from managefriends import createImageList
+#from managefriends import createImageList
+from Tribler.Dialogs.MugshotManager import MugshotManager
+from Tribler.utilities import show_permid_shorter
 
 DEBUG = 0
 
@@ -20,12 +22,55 @@ DEBUG = 0
 # a torrent
 #
 ################################################################
+
+
+class DownloadHelperFrame(wx.Frame):
+    
+    def __init__(self,parent,utility,engine):
+        self.utility = utility
+        wx.Frame.__init__(self, None, -1, self.utility.lang.get('tb_dlhelp_short'), 
+                          size=(640,480))
+        
+        main_panel = wx.Panel(self)
+        self.downloadHelperPanel = self.createMainPanel(main_panel,engine)
+        bot_box = self.createBottomBoxer(main_panel)
+        
+        mainbox = wx.BoxSizer(wx.VERTICAL)
+        mainbox.Add(self.downloadHelperPanel, 1, wx.EXPAND|wx.ALL, 5)
+        mainbox.Add(bot_box, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 5)
+        main_panel.SetSizer(mainbox)
+
+
+        iconpath = os.path.join(self.utility.getPath(),'tribler.ico')
+        # Giving it the whole bundle throws an exception about image 6
+        self.icons = wx.IconBundle()
+        self.icons.AddIconFromFile(iconpath,wx.BITMAP_TYPE_ICO)
+        self.SetIcons(self.icons)
+
+        self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
+        self.Show()
+
+    def createMainPanel(self,main_panel,engine):
+        return DownloadHelperPanel(main_panel,self.utility,engine)
+
+    def createBottomBoxer(self, main_panel):
+        bot_box = wx.BoxSizer(wx.HORIZONTAL)
+        button = wx.Button(main_panel, -1, self.utility.lang.get('close'), style = wx.BU_EXACTFIT)
+        self.Bind(wx.EVT_BUTTON, self.OnCloseWindow, button)
+        bot_box.Add(button, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
+        return bot_box
+
+
+    def OnCloseWindow(self, event = None):
+        self.Destroy()
+        
+
+
 class DownloadHelperPanel(wx.Panel):
-    def __init__(self, parent, dialog):
+    def __init__(self, parent, utility, engine):
         wx.Panel.__init__(self, parent, -1)
 
-        self.utility = dialog.utility
-        engine = dialog.torrent.connection.engine
+        self.utility = utility
         if engine is not None:
             self.coordinator = engine.getDownloadhelpCoordinator()
 
@@ -56,7 +101,9 @@ class DownloadHelperPanel(wx.Panel):
         imgList = None
         if type != wx.LC_REPORT:
             try:
-                imgList = createImageList(self.utility,friends)
+                #imgList = createImageList(self.utility,friends)
+                mm = MugshotManager.getInstance()
+                imgList = mm.create_wxImageList(friends,setindex=True)
             except:
                 print_exc()
                 # disable icons
@@ -66,16 +113,21 @@ class DownloadHelperPanel(wx.Panel):
         self.remainingFriends = []
         for index in range(len(friends)):
             friend = friends[index]
+            
+            if friend['name'] == '':
+                friend['name']= 'peer %s' % show_permid_shorter(friend['permid'])
+            
             flag = 0
             for helper in helpingFriends:
                 if friend['permid'] == helper['permid']:
-                    helper['tempiconindex'] = index
+                    #helper['tempiconindex'] = index
                     flag = 1
                     break
             if flag:
                 continue
-            friend['tempiconindex'] = index
+            #friend['tempiconindex'] = index
             self.remainingFriends.append(friend)
+            
 
         # 3. TODO: remove entries from helpingFriends that are no longer friends
 
@@ -122,6 +174,12 @@ class DownloadHelperPanel(wx.Panel):
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.OnTimer)
         self.timer.Start(4000)
+
+
+        howtotext = wx.StaticText(self, -1, self.utility.lang.get('dlhelphowto'))
+        howtotext.Wrap(500)
+        botbox.Add(howtotext, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5)
+
 
         # 5. Show GUI
         mainbox.Add(topbox, 0, wx.EXPAND|wx.ALL)

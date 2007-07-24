@@ -1,6 +1,8 @@
 # Written by Jie Yang
 # see LICENSE.txt for license information
 
+import sys
+
 try:
     True
 except:
@@ -9,7 +11,7 @@ except:
 
 DEBUG = False
 
-import Tribler.TrackerChecking.timeouturlopen as timeouturlopen
+import Tribler.timeouturlopen as timeouturlopen
 try:
     import GeoIP
     geoip_installed = True
@@ -164,7 +166,7 @@ class IPInfo:
         getIPInfoMethods = []
         getIPInfoMethods.append(getIPInfoByHostIP1)
         getIPInfoMethods.append(getIPInfoByHostIP2)
-        getIPInfoMethods.append(getIPInfoByGeoIP) 
+        #getIPInfoMethods.append(getIPInfoByGeoIP) 
 
         ip_info = []
         for getIPInfo in getIPInfoMethods:    # lookup the ip by give methods

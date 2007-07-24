@@ -31,7 +31,7 @@ clean:
 
 	# Add here commands to clean up after the build process.
 	#-$(MAKE) clean
-	find . -name *.pyc |xargs rm || :
+	find . -name '*.pyc' |xargs rm || :
 
 	dh_clean
 
@@ -69,6 +69,7 @@ binary-indep: build install
 	dh_installchangelogs 
 	dh_installinit -r --no-start -- stop 20 0 6 .
 	dh_install --sourcedir=debian/tmp
+	dh_install debian/tribler.desktop usr/share/applications
 	dh_link
 	dh_compress
 	dh_fixperms

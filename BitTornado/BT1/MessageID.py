@@ -33,6 +33,8 @@ REQUEST = chr(6)
 PIECE = chr(7)
 # index, begin, piece
 CANCEL = chr(8)
+# 2-byte port
+PORT = chr(9)
 
 # uTorrent and Bram's BitTorrent now support an extended protocol
 EXTEND = chr(20)
@@ -70,6 +72,9 @@ HASHPIECE = chr(250)
                   'port':the last known listen port,
                   'age':the age of this preference list in integer seconds
                  }]
+ 'npeers': Number of peers known to peer
+ 'nfiles': Number of files known to peer
+ 'ndls': Number of downloads by peer
 }
 """                   
 BUDDYCAST = chr(249)
@@ -106,8 +111,19 @@ HelpCoordinatorMessages = [DOWNLOAD_HELP,STOP_DOWNLOAD_HELP,PIECES_RESERVED]
 HelpHelperMessages = [RESERVE_PIECES]
 # _2fastbt
 
+# Note: SecureOverlay's KEEP_ALIVE is 240
+## Social-Network feature 
+SOCIAL_OVERLAP = chr(239)
 
-OverlaySwarmMessages= PermIDMessages + BuddyCastMessages + MetadataMessages + HelpCoordinatorMessages + HelpHelperMessages + DialbackMessages
+SocialNetworkMessages = [SOCIAL_OVERLAP]
+
+# Remote query extension
+QUERY = chr(238)
+QUERY_REPLY = chr(237)
+
+RemoteQueryMessages = [QUERY,QUERY_REPLY]
+
+OverlaySwarmMessages= PermIDMessages + BuddyCastMessages + MetadataMessages + HelpCoordinatorMessages + HelpHelperMessages + SocialNetworkMessages + RemoteQueryMessages
 
 message_map = {
     CHOKE:"CHOKE",
@@ -119,6 +135,7 @@ message_map = {
     REQUEST:"REQUEST",
     CANCEL:"CANCEL",
     PIECE:"PIECE",
+    PORT:"PORT",
     EXTEND:"EXTEND",
     
     CHALLENGE:"CHALLENGE",
@@ -135,6 +152,9 @@ message_map = {
     DIALBACK_REQUEST:"DIALBACK_REQUEST",
     DIALBACK_REPLY:"DIALBACK_REPLY",
     KEEP_ALIVE:"KEEP_ALIVE",
+    SOCIAL_OVERLAP:"SOCIAL_OVERLAP",
+    QUERY:"QUERY",
+    QUERY_REPLY:"QUERY_REPLY"
 }
 
 

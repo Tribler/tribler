@@ -58,6 +58,7 @@ class TestDialbackReplyActive(TestAsServer):
         self.config['dialback_active'] = 1
         self.config['dialback_trust_superpeers'] = 1
         self.config['buddycast'] = 1 # make sure overlay connections are being made
+        self.config['start_recommender'] = 1
 
         # Write superpeers.txt
         self.install_path = tempfile.mkdtemp()

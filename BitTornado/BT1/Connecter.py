@@ -12,9 +12,11 @@ from BitTornado.__init__ import version_short,decodePeerID,TRIBLER_PEERID_LETTER
 from BitTornado.BT1.convert import tobinary,toint
 
 from MessageID import *
+
 # 2fastbt_
 from Tribler.CacheDB.CacheDBHandler import PeerDBHandler
 from Tribler.Overlay.SecureOverlay import SecureOverlay
+from Tribler.DecentralizedTracking.ut_pex import *
 # _2fastbt
 
 try:
@@ -60,10 +62,13 @@ i.e. Tr_OVERLAYSWARM=253. Processing is now as follows:
 N.B. The EXTEND message is poorly designed, it lacks protocol versioning
 support which is present in the Azureus Extended Messaging Protocol
 and our overlay-swarm protocol.
+
 """
 EXTEND_MSG_HANDSHAKE_ID = chr(0)
 EXTEND_MSG_OVERLAYSWARM = 'Tr_OVERLAYSWARM'
+# The set of messages we support. Note that the msg ID is an int not a byte in this dict
 EXTEND_HANDSHAKE_M_DICT = {EXTEND_MSG_OVERLAYSWARM:ord(CHALLENGE)}
+#                           EXTEND_MSG_UTORRENT_PEX:ord(EXTEND_MSG_UTORRENT_PEX_ID)}
 
 def show(s):
     text = []
@@ -86,8 +91,9 @@ class Connection:
         self.unauth_permid = None
         self.looked_for_permid = UNAUTH_PERMID_PERIOD-3
         self.closed = False
-        self.extend_m_dict = {}
+        self.extend_hs_dict = {}        # what extended messages does this peer support
         self.initiated_overlay = False
+        self.ut_pex_previous_conns = [] # last value of 'added' field for this peer
             
     def get_myip(self, real=False):
         return self.connection.get_myip(real)
@@ -188,6 +194,10 @@ class Connection:
     def send_keepalive(self):
         self._send_message('')
 
+    def send_extend_ut_pex(self,payload):
+        msg = EXTEND+chr(self.extend_msg_name_to_id(EXTEND_MSG_UTORRENT_PEX))+payload
+        self._send_message(msg)
+
     def _send_message(self, s):
         s = tobinary(len(s))+s
         if self.partial_message:
@@ -251,6 +261,15 @@ class Connection:
         if self.just_unchoked:
             self.connecter.ratelimiter.ping(clock() - self.just_unchoked)
             self.just_unchoked = 0
+
+    #
+    # ut_pex support
+    #
+    def supports_extend_msg(self,msg_name):
+        if 'm' in self.extend_hs_dict:
+            return msg_name in self.extend_hs_dict['m']
+        else:
+            return False
     
     def got_extend_handshake(self,d):
         if DEBUG:
@@ -262,23 +281,57 @@ class Connection:
             for key,val in m.iteritems():
                 if type(val) != IntType:
                     raise ValueError('Message ID in m-dict not int')
-                
-            self.extend_m_dict.update(d['m'])
-            if EXTEND_MSG_OVERLAYSWARM in self.extend_m_dict:
+
+            if not 'm' in self.extend_hs_dict:
+                self.extend_hs_dict['m'] = {}
+            # Note: we store the dict without converting the msg IDs to bytes.
+            self.extend_hs_dict['m'].update(d['m'])
+            if EXTEND_MSG_OVERLAYSWARM in self.extend_hs_dict['m']:
                 # This peer understands our overlay swarm extension
                 if self.connection.locally_initiated:
                     if DEBUG:
                         print >>sys.stderr,"connecter: Peer supports Tr_OVERLAYSWARM, attempt connection"
                     self.connect_overlay()
         # 'p' is peer's listen port, 'v' is peer's version, all optional
+        # 'e' is used by uTorrent to show it prefers encryption (whatever that means)
+        for key in ['p','e']:
+            if key in d:
+                self.extend_hs_dict[key] = d[key]
 
     def extend_msg_id_to_name(self,ext_id):
-        """ find the name for the given message id """
-        for key,val in self.extend_m_dict.iteritems():
-            if val == ext_id:
+        """ find the name for the given message id (byte) """
+        for key,val in self.extend_hs_dict['m'].iteritems():
+            if val == ord(ext_id):
                 return key
         return None
+    
+    def extend_msg_name_to_id(self,ext_name):
+        """ returns the message id (byte) for the given message name or None """
+        val = self.extend_hs_dict['m'].get(ext_name)
+        if val is None:
+            return val
+        else:
+            return chr(val)
 
+    def got_ut_pex(self,d):
+        if DEBUG:
+            print "Got uTorrent PEX:",d
+        # TODO: add format checks
+        check_ut_pex(d)
+        # TODO: use peers from peer exchange
+        # TODO: reply? Should send it periodically
+
+    def get_extend_encryption(self):
+        return self.hs_dict.get('e',0)
+    
+    def get_extend_listenport(self):
+        return self.hs_dict.get('p')
+
+    def get_ut_pex_previous_conns(self):
+        return self.ut_pex_previous_conns
+
+    def set_ut_pex_previous_conns(self,conns):
+        self.ut_pex_previous_conns = conns
 
     def send_extend_handshake(self):
         d = {}
@@ -286,10 +339,14 @@ class Connection:
         d['p'] = self.connecter.mylistenport
         ver = version_short.replace('-',' ',1)
         d['v'] = ver
+        d['e'] = 0  # Apparently this means we don't like uTorrent encryption
         self._send_message(EXTEND + EXTEND_MSG_HANDSHAKE_ID + bencode(d))
         if DEBUG:
             print 'sent extend: id=0+',d
-
+            
+    #
+    # SecureOverlay support
+    #
     def connect_overlay(self):
         if DEBUG:
             print >>sys.stderr,"connecter: Initiating overlay connection"
@@ -310,7 +367,6 @@ class Connecter:
     def __init__(self, make_upload, downloader, choker, numpieces,
             totalup, config, ratelimiter, merkle_torrent, sched = None, 
             coordinator = None, helper = None, mylistenport = None):
-# _2fastbt
         self.downloader = downloader
         self.make_upload = make_upload
         self.choker = choker
@@ -332,7 +388,8 @@ class Connecter:
         self.overlay_enabled = 1
         if 'overlay' in self.config:
             self.overlay_enabled = self.config['overlay']
-        # _2fastbt
+        if EXTEND_MSG_UTORRENT_PEX in EXTEND_HANDSHAKE_M_DICT:
+            self.sched(self.ut_pex_callback,60)
 
     def how_many_connections(self):
         return len(self.connections)
@@ -382,6 +439,16 @@ class Connecter:
         for co in self.connections.values():
             co.send_have(i)
 
+    def ut_pex_callback(self):
+        """ Periocially send info about the peers you know to the other peers """
+        for c in self.connections:
+            if c.supports_extend_msg(EXTEND_MSG_UTORRENT_PEX):
+                (addedconns,droppedconns) = ut_pex_get_conns_diff(self.connections,c,c.get_ut_pex_previous_conns())
+                c.set_ut_pex_previous_conns(addedconns)
+                payload = create_ut_pex(addedconns,droppedconns)
+                c.send_ut_pex(payload)
+        self.sched(self.ut_pex_callback,60)
+
     def got_message(self, connection, message):
         # connection: Encrypter.Connection; c: Connecter.Connection
         c = self.connections[connection]    
@@ -404,7 +471,7 @@ class Connecter:
                         c.got_extend_handshake(d)
                     else:
                         if DEBUG:
-                            print "Close on bad EXTEND: payload of handshake is not a dict"
+                            print "Close on bad EXTEND: payload of handshake is not a bencoded dict"
                         connection.close()
                         return
                 else:
@@ -418,6 +485,17 @@ class Connecter:
                         if DEBUG:
                             print "Not closing EXTEND+CHALLENGE: peer didn't read our spec right, be liberal"
                         pass
+                    elif ext_msg_name == EXTEND_MSG_UTORRENT_PEX:
+                        d = bdecode(message[2:])
+                        if type(d) == DictType:
+                            c.got_ut_pex(d)
+                        else:
+                            if DEBUG:
+                                print "Close on bad EXTEND: payload of handshake is not a bencoded dict"
+                            connection.close()
+                            return
+
+                    
                     else:
                         if DEBUG:
                             print "Close on bad EXTEND: peer sent ID that maps to name we don't support"
@@ -427,7 +505,7 @@ class Connecter:
             except Exception,e:
                 if DEBUG:
                     print "Close on bad EXTEND: exception",str(e)
-                    traceback.print_exc(file=sys.stderr)
+                    traceback.print_exc()
                 connection.close()
                 return
         
@@ -452,8 +530,8 @@ class Connecter:
                 print "connecter: Got UNCHOKE from",connection.get_ip()
             c.download.got_unchoke()
         elif t == INTERESTED:
-            #FIXME: c.upload may be None
-            c.upload.got_interested()
+            if c.upload is not None:
+                c.upload.got_interested()
         elif t == NOT_INTERESTED:
             c.upload.got_not_interested()
         elif t == HAVE:
@@ -479,8 +557,8 @@ class Connecter:
                     print "Close on bad BITFIELD"
                 connection.close()
                 return
-            #FIXME: c.download may be None
-            c.download.got_have_bitfield(b)
+            if c.download is not None:
+                c.download.got_have_bitfield(b)
         elif t == REQUEST:
             if len(message) != 13:
                 if DEBUG:

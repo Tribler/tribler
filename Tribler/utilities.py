@@ -1,12 +1,14 @@
 # Written by Jie Yang
 # see LICENSE.txt for license information
 
-from socket import inet_aton, gethostbyname
+from socket import inet_aton, gethostbyname, getaddrinfo
 from time import time, strftime, gmtime
 from base64 import encodestring
 from sha import sha
 from copy import deepcopy
 import sys
+import os
+import copy
 
 STRICT_CHECK = False
 
@@ -26,9 +28,10 @@ def validPort(port):
 
 def validIP(ip):
     try:
-        ip = gethostbyname(ip)
-        inet_aton(ip)
+        getaddrinfo(ip, None)
     except:
+        if ip.find(':') >= 0:    # ipv6
+            return True
         raise RuntimeError, "invalid IP address: " + ip
     return True
     
@@ -79,21 +82,24 @@ def isValidName(name):
 def show_permid(permid):
     # Full BASE64-encoded 
     if not permid:
-        return ''
+        return 'None'
     return encodestring(permid).replace("\n","")
     # Short digest
     ##return sha(permid).hexdigest()
 
 def show_permid_short(permid):
     if not permid:
-        return ''
+        return 'None'
     s = encodestring(permid).replace("\n","")
     return s[-10:]
     #return encodestring(sha(s).digest()).replace("\n","")
 
-def show_permid2(permid):
-    return show_permid_short(permid)
-    
+def show_permid_shorter(permid):
+    if not permid:
+        return 'None'
+    s = encodestring(permid).replace("\n","")
+    return s[-5:]
+
 def readableBuddyCastMsg(buddycast_data):
     # convert msg to readable format
     prefxchg_msg = deepcopy(buddycast_data)
@@ -193,8 +199,13 @@ def friendly_time(old_time):
         old_time = int(old_time)
         diff = int(curr_time - old_time)
     except:
-        return ''
-    if diff < 1:
+        if isinstance(old_time, str):
+            return old_time
+        else:
+            return '?'
+    if diff < 0:
+        return '?'
+    elif diff < 2:
         return str(diff) + " sec. ago"
     elif diff < 60:
         return str(diff) + " secs. ago"
@@ -214,11 +225,47 @@ def friendly_time(old_time):
         return strftime("%d-%m-%Y", gmtime(old_time))
         
 def sort_dictlist(dict_list, key, order='increase'):
-    aux = [(dict_list[i][key], i) for i in xrange(len(dict_list))]
+    
+    aux = []
+    for i in xrange(len(dict_list)):
+        #print >>sys.stderr,"sort_dictlist",key,"in",dict_list[i].keys(),"?"
+        if key in dict_list[i]:
+            aux.append((dict_list[i][key],i))
     aux.sort()
     if order == 'decrease' or order == 1:    # 0 - increase, 1 - decrease
         aux.reverse()
     return [dict_list[i] for x, i in aux]
+
+
+def dict_compare(a, b, keys):
+    for key in keys:
+        order = 'increase'
+        if type(key) == tuple:
+            skey, order = key
+        else:
+            skey = key
+
+        if a.get(skey) > b.get(skey):
+            if order == 'decrease' or order == 1:
+                return -1
+            else:
+                return 1
+        elif a.get(skey) < b.get(skey):
+            if order == 'decrease' or order == 1:
+                return 1
+            else:
+                return -1
+
+    return 0
+
+
+def multisort_dictlist(dict_list, keys):
+
+    listcopy = copy.copy(dict_list)
+    cmp = lambda a, b: dict_compare(a, b, keys)
+    listcopy.sort(cmp=cmp)
+    return listcopy
+
 
 def find_content_in_dictlist(dict_list, content, key='infohash'):
     title = content.get(key)
@@ -231,6 +278,9 @@ def find_content_in_dictlist(dict_list, content, key='infohash'):
     return -1
 
 def remove_torrent_from_list(list, content, key = 'infohash'):
+    remove_data_from_list(list, content, key)
+
+def remove_data_from_list(list, content, key = 'infohash'):
     index = find_content_in_dictlist(list, content, key)
     if index != -1:
         del list[index]
@@ -247,8 +297,30 @@ def getPlural( n):
             return ''
         else:
             return 's'
+
+
+def find_prog_in_PATH(prog):
+    envpath = os.path.expandvars('${PATH}')
+    paths = envpath.split(':')
+    foundat = None
+    for path in paths:
+        fullpath = os.path.join(path,prog)
+        if os.access(fullpath,os.R_OK|os.X_OK):
+            foundat = fullpath
+            break
+    return foundat
     
-    
+
 if __name__=='__main__':
-    d = {'a':1,'b':[1,2,3],'c':{'c':2,'d':[3,4],'k':{'c':2,'d':[3,4]}}}
-    print_dict(d)    
+
+    torrenta = {'name':'a', 'swarmsize' : 12}
+    torrentb = {'name':'b', 'swarmsize' : 24}
+    torrentc = {'name':'c', 'swarmsize' : 18, 'Web2' : True}
+    torrentd = {'name':'b', 'swarmsize' : 36, 'Web2' : True}
+
+    torrents = [torrenta, torrentb, torrentc, torrentd]
+    print multisort_dictlist(torrents, ["Web2", ("swarmsize", "decrease")])
+
+
+    #d = {'a':1,'b':[1,2,3],'c':{'c':2,'d':[3,4],'k':{'c':2,'d':[3,4]}}}
+    #print_dict(d)    

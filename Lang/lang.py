@@ -75,14 +75,14 @@ class Lang:
             tryall = False
     
         if tryall and label in self.cache:
-            return self.cache[label]
+            return self.expandEnter(self.cache[label])
     
         if (label == 'version'):
             return version_id
         if (label == 'build'):
-            return "Build 3202"
+            return "Build 4401"
         if (label == 'build_date'):
-            return "Mar 21, 2007"
+            return "July 6, 2007"
 
         # see if it exists in 'user.lang'
         if tryuser:
@@ -90,7 +90,7 @@ class Lang:
             if found:
                 if tryall:
                     self.cache[label] = text
-                return text
+                return self.expandEnter(text)
 
         # see if it exists in local language
         if trylocal and self.local_lang is not None:
@@ -98,7 +98,7 @@ class Lang:
             if found:
                 if tryall:
                     self.cache[label] = text
-                return text
+                return self.expandEnter(text)
 
         # see if it exists in 'english.lang'
         if tryenglish:
@@ -106,13 +106,18 @@ class Lang:
             if found:
                 if tryall:
                     self.cache[label] = text
-                return text
+                return self.expandEnter(text)
 
         # if we get to this point, we weren't able to read anything
         if giveerror:
-            sys.stdout.write("Language file: Got an error reading anything\n")
+            sys.stdout.write("Language file: Got an error finding: "+label)
             self.error(label)
         return ""
+        
+    def expandEnter(self, text):
+        text = text.replace("\\r","\n")
+        text = text.replace("\\n","\n")
+        return text
         
     def getFromLanguage(self, label, langfile, giveerror = False):
         try:

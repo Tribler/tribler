@@ -13,7 +13,13 @@ from ABC.GUI.toolbar import ToolBarDialog
 from Utility.configreader import ConfigReader
 from Utility.constants import * #IGNORE:W0611
 
+from Tribler.Dialogs.socnetmyinfo import MyInfoWizard
 from Tribler.CacheDB.CacheDBHandler import MyDBHandler
+from Tribler.Video.VideoPlayer import *
+from Tribler.Overlay.permid import permid_for_user
+from Tribler.Overlay.MetadataHandler import MetadataHandler
+
+DEBUG = False
 
 
 ################################################################
@@ -75,6 +81,15 @@ class NetworkPanel(ABCOptionPanel):
         ABCOptionPanel.__init__(self, parent, dialog)
         sizer = self.sizer
 
+        my_db = MyDBHandler()
+        ip = self.utility.config.Read('bind')
+        if ip is None or ip == '':
+            ip = my_db.getMyIP()
+        ip_txt = self.utility.lang.get('currentdiscoveredipaddress')+": "+ip
+        label = wx.StaticText(self, -1, ip_txt )
+        sizer.Add( label, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+
+
         self.minport = self.utility.makeNumCtrl(self, 1, min = 1, max = 65536)
         port_box = wx.BoxSizer(wx.HORIZONTAL)
         port_box.Add(wx.StaticText(self, -1, self.utility.lang.get('portnumber')), 0, wx.ALIGN_CENTER_VERTICAL)
@@ -103,6 +118,13 @@ class NetworkPanel(ABCOptionPanel):
         #    self.ipv6.SetValue(False)
         ####################################################################
 
+        # URL of internal tracker, user should use it in annouce box / announce-list
+        itrack_box = wx.BoxSizer(wx.HORIZONTAL)
+        self.itrack = wx.TextCtrl(self, -1, "")
+        itrack_box.Add(wx.StaticText(self, -1, self.utility.lang.get('internaltrackerurl')), 0, wx.ALIGN_CENTER_VERTICAL)
+        itrack_box.Add(self.itrack, 1, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT|wx.EXPAND, 5)
+        sizer.Add(itrack_box, 0, wx.ALIGN_LEFT|wx.ALL|wx.EXPAND, 5)
+
         self.initTasks()
         
     def loadValues(self, Read = None):
@@ -115,6 +137,11 @@ class NetworkPanel(ABCOptionPanel):
         self.notsameip.SetValue(Read('notsameip', "boolean"))
         self.scrape.SetValue(Read('scrape', "boolean"))
         
+        itrackerurl = get_itracker_url(self.utility)
+
+        self.itrack.SetValue(itrackerurl)
+
+        
     def apply(self):
         minport = int(self.minport.GetValue())
         if minport > 65535:
@@ -125,6 +152,7 @@ class NetworkPanel(ABCOptionPanel):
         self.utility.config.Write('kickban', self.kickban.GetValue(), "boolean")
         self.utility.config.Write('notsameip', self.notsameip.GetValue(), "boolean")
         self.utility.config.Write('scrape', self.scrape.GetValue(), "boolean")       
+        self.utility.config.Write('internaltrackerurl', self.itrack.GetValue())
 
 
 ################################################################
@@ -1333,6 +1361,8 @@ class AdvancedDiskPanel(ABCOptionPanel):
         self.utility.config.Write('auto_flush', flushval)
 
 
+
+
 ################################################################
 #
 # Class: TriblerPanel
@@ -1344,47 +1374,341 @@ class TriblerPanel(ABCOptionPanel):
     def __init__(self, parent, dialog):
         ABCOptionPanel.__init__(self, parent, dialog)
         sizer = self.sizer
-        
-        self.rec_enable = wx.CheckBox(self, -1, self.utility.lang.get('enablerecommender'))
-        sizer.Add(self.rec_enable, 0, wx.ALIGN_LEFT|wx.ALL, 5)
-        sizer.Add(wx.StaticText(self, -1, self.utility.lang.get('restartabc')), 0, wx.ALIGN_CENTER_VERTICAL)
 
-        self.dlhelp_enable = wx.CheckBox(self, -1, self.utility.lang.get('enabledlhelp'))
-        sizer.Add(self.dlhelp_enable, 0, wx.ALIGN_LEFT|wx.ALL, 5)
-        sizer.Add(wx.StaticText(self, -1, self.utility.lang.get('restartabc')), 0, wx.ALIGN_CENTER_VERTICAL)
+        funcsection_title = wx.StaticBox(self, -1, self.utility.lang.get('corefuncsetting'))
+        funcsection = wx.StaticBoxSizer(funcsection_title, wx.VERTICAL)
 
-        self.collect_enable = wx.CheckBox(self, -1, self.utility.lang.get('enabledlcollecting'))
-        sizer.Add(self.collect_enable, 0, wx.ALIGN_LEFT|wx.ALL, 5)
-        sizer.Add(wx.StaticText(self, -1, self.utility.lang.get('restartabc')), 0, wx.ALIGN_CENTER_VERTICAL)
+        self.rec_enable = wx.CheckBox(self, -1, self.utility.lang.get('enablerecommender')+" "+self.utility.lang.get('restartabc'))
+        funcsection.Add(self.rec_enable, 0, wx.ALIGN_LEFT|wx.ALL, 5)
 
+        self.dlhelp_enable = wx.CheckBox(self, -1, self.utility.lang.get('enabledlhelp')+" "+self.utility.lang.get('restartabc'))
+        funcsection.Add(self.dlhelp_enable, 0, wx.ALIGN_LEFT|wx.ALL, 5)
+
+        self.collect_enable = wx.CheckBox(self, -1, self.utility.lang.get('enabledlcollecting')+" "+self.utility.lang.get('restartabc'))
+        funcsection.Add(self.collect_enable, 0, wx.ALIGN_LEFT|wx.ALL, 5)
+
+        sizer.Add(funcsection, 0, wx.EXPAND|wx.ALL, 5)
+
+
+        """
         name_box = wx.BoxSizer(wx.HORIZONTAL)
         self.myname = wx.TextCtrl(self, -1, "")
         name_box.Add(wx.StaticText(self, -1, self.utility.lang.get('myname')), 0, wx.ALIGN_CENTER_VERTICAL)
         name_box.Add(self.myname, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
         sizer.Add(name_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        """
+
+        tcsection_title = wx.StaticBox(self, -1, self.utility.lang.get('torrentcollectsetting'))
+        tcsection = wx.StaticBoxSizer(tcsection_title, wx.VERTICAL)
+
+        self.timectrl = self.utility.makeNumCtrl(self, 1, min = 1, max = 3600)
+        time_box = wx.BoxSizer(wx.HORIZONTAL)
+        time_box.Add(wx.StaticText(self, -1, self.utility.lang.get('torrentcollectsleep')), 0, wx.ALIGN_CENTER_VERTICAL)
+        time_box.Add(self.timectrl, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        time_box.Add(wx.StaticText(self, -1, self.utility.lang.get('restartabc')), 0, wx.ALIGN_CENTER_VERTICAL)
+        tcsection.Add(time_box, 0, wx.EXPAND|wx.ALL, 5)
+
+        ntorrents_box = wx.BoxSizer(wx.HORIZONTAL)    # set the max num of torrents to collect
+        self.ntorrents = self.utility.makeNumCtrl(self, 5000, min = 0, max = 999999)
+        ntorrents_box.Add(wx.StaticText(self, -1, self.utility.lang.get('maxntorrents')), 0, wx.ALIGN_CENTER_VERTICAL)
+        ntorrents_box.Add(self.ntorrents, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        tcsection.Add(ntorrents_box, 0, wx.EXPAND|wx.ALL, 5)
+        
+        tc_threshold_box = wx.BoxSizer(wx.HORIZONTAL)    # set the min space to stop torrent collecting
+        self.tc_threshold = self.utility.makeNumCtrl(self, 200, min = 1, max = 999999)
+        tc_threshold_box.Add(wx.StaticText(self, -1, self.utility.lang.get('tc_threshold')), 0, wx.ALIGN_CENTER_VERTICAL)
+        tc_threshold_box.Add(self.tc_threshold, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        tc_threshold_box.Add(wx.StaticText(self, -1, self.utility.lang.get('MB')), 0, wx.ALIGN_CENTER_VERTICAL)
+        tc_threshold_box.Add(wx.StaticText(self, -1, ' ('+self.utility.lang.get('current_free_space')+' '), 0, wx.ALIGN_CENTER_VERTICAL)
+        mh = MetadataHandler.getInstance()
+        current_free_space = mh.get_free_space()/(2**20)
+        tc_threshold_box.Add(wx.StaticText(self, -1, str(current_free_space)), 0, wx.ALIGN_CENTER_VERTICAL)
+        tc_threshold_box.Add(wx.StaticText(self, -1, self.utility.lang.get('MB')+')'), 0, wx.ALIGN_CENTER_VERTICAL)
+        tcsection.Add(tc_threshold_box, 0, wx.EXPAND|wx.ALL, 5)
+        
+        tc_rate_box = wx.BoxSizer(wx.HORIZONTAL)    # set the rate of torrent collecting
+        self.tc_rate = self.utility.makeNumCtrl(self, 5, min = 0, max = 999999)
+        tc_rate_box.Add(wx.StaticText(self, -1, self.utility.lang.get('torrentcollectingrate')), 0, wx.ALIGN_CENTER_VERTICAL)
+        tc_rate_box.Add(self.tc_rate, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        tcsection.Add(tc_rate_box, 0, wx.EXPAND|wx.ALL, 5)
+
+        sizer.Add(tcsection, 0, wx.EXPAND|wx.ALL, 5)
+
+        myinfosection_title = wx.StaticBox(self, -1, self.utility.lang.get('myinfosetting'))
+        myinfosection = wx.StaticBoxSizer(myinfosection_title, wx.VERTICAL)
+
+        # Show PermID
+        mypermid = MyDBHandler().getMyPermid()
+        pb64 = permid_for_user(mypermid)
+        if True:
+            # Make it copy-and-paste able
+            permid_box = wx.BoxSizer(wx.HORIZONTAL)
+            self.permidctrl = wx.TextCtrl(self, -1, pb64, size = (400, 30), style = wx.TE_READONLY)
+            permid_box.Add(wx.StaticText(self, -1, self.utility.lang.get('mypermid')), 0, wx.ALIGN_CENTER_VERTICAL)
+            permid_box.Add(self.permidctrl, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+            myinfosection.Add(permid_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        else:
+            permid_txt = self.utility.lang.get('mypermid')+": "+pb64
+            label = wx.StaticText(self, -1, self.permid_txt )
+            myinfosection.Add( label, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        
+        self.myinfo = wx.Button(self, -1, self.utility.lang.get('myinfo') + "...")
+        self.Bind(wx.EVT_BUTTON, self.OnMyInfoWizard, self.myinfo)
+        myinfosection.Add(self.myinfo, 0, wx.ALL, 5)
+
+        sizer.Add(myinfosection, 0, wx.EXPAND|wx.ALL, 5)
+
+        self.debug = wx.Button(self, -1, 'Open debug window')
+        sizer.Add(self.debug, 0, wx.ALL, 5)
+
+        self.Bind(wx.EVT_BUTTON, self.OnDebug, self.debug)
+
+        
         self.initTasks()
         
     def loadValues(self, Read = None):
+        """ Loading values from configure file """
+        
         if Read is None:
             Read = self.utility.config.Read
         
         self.rec_enable.SetValue(Read('enablerecommender', "boolean"))
         self.dlhelp_enable.SetValue(Read('enabledlhelp', "boolean"))
         self.collect_enable.SetValue(Read('enabledlcollecting', "boolean"))
+        self.timectrl.SetValue(Read('torrentcollectsleep', 'int'))
+        
+        value = str(Read('maxntorrents', "string"))
+        try:    # check if the input is correct
+            int_value = int(value)
+            if int_value < 0:
+                raise
+            self.ntorrents.SetValue(str(int_value))
+        except:
+            print_exc()
+            
+        value = str(Read('stopcollectingthreshold', "string"))
+        try:    # check if the input is correct
+            int_value = int(value)
+            if int_value < 0:
+                raise
+            self.tc_threshold.SetValue(str(int_value))
+        except:
+            print_exc()
+            
+        value = str(Read('torrentcollectingrate', "string"))
+        try:    # check if the input is correct
+            int_value = int(value)
+            if int_value < 0:
+                raise
+            self.tc_rate.SetValue(str(int_value))
+        except:
+            print_exc()
 
-        self.my_db = MyDBHandler()
-        name = self.my_db.get('name', '')
-        self.myname.SetValue(name)
-              
     def apply(self):       
+        """ do sth. when user click apply of OK button """
+        
         self.utility.config.Write('enablerecommender', self.rec_enable.GetValue(), "boolean")
         self.utility.config.Write('enabledlhelp', self.dlhelp_enable.GetValue(), "boolean")          
-        self.utility.config.Write('enabledlcollecting', self.collect_enable.GetValue(), "boolean")          
+        self.utility.config.Write('enabledlcollecting', self.collect_enable.GetValue(), "boolean")
+        
+        try:    # check if the input is correct
+            maxntorrents = self.ntorrents.GetValue()
+            int_value = int(maxntorrents)
+            if int_value < 0:
+                raise
+            self.utility.config.Write('maxntorrents', maxntorrents, "string")
+            mh = MetadataHandler.getInstance()
+            mh.set_overflow(int_value)
+            mh.delayed_check_overflow(2)
+        except:
+            print_exc()
+            
+        try:    # check if the input is correct
+            tc_threshold_value = self.tc_threshold.GetValue()
+            int_value = int(tc_threshold_value)
+            if int_value <= 0:
+                raise
+            self.utility.config.Write('stopcollectingthreshold', tc_threshold_value, "string")
+            mh = MetadataHandler.getInstance()
+            mh.set_min_free_space(int_value)
+            mh.delayed_check_free_space(2)
+        except:
+            print_exc()            
+            
+        try:    # check if the input is correct
+            tc_rate_value = self.tc_rate.GetValue()
+            int_value = int(tc_rate_value)
+            if int_value < 0:
+                raise
+            self.utility.config.Write('torrentcollectingrate', tc_rate_value, "string")
+            mh = MetadataHandler.getInstance()
+            mh.set_rate(int_value)
+        except:
+            print_exc()
+        
+        t = int(self.timectrl.GetValue())
+        if t  > 3600:
+            t = 3600
 
-        name = self.myname.GetValue()
-        self.my_db.put('name',name)
+        tchanged = self.utility.config.Write('torrentcollectsleep', t)
 
 
+    def OnMyInfoWizard(self, event = None):
+        wizard = MyInfoWizard(self)
+        wizard.RunWizard(wizard.getFirstPage())
+
+    def WizardFinished(self,wizard):
+        wizard.Destroy()
+
+    def OnDebug(self,event):
+        self.utility.frame.oldframe.Show()
+
+
+################################################################
+#
+# Class: VideoPanel
+#
+# Contains settings for video features
+#
+################################################################
+class VideoPanel(ABCOptionPanel):
+    def __init__(self, parent, dialog):
+        ABCOptionPanel.__init__(self, parent, dialog)
+        sizer = self.sizer
+
+        playbacksection_title = wx.StaticBox(self, -1, self.utility.lang.get('playback_section'))
+        playbacksection = wx.StaticBoxSizer(playbacksection_title, wx.VERTICAL)
+
+        playbackbox = wx.BoxSizer(wx.HORIZONTAL)
+        feasible = return_feasible_playback_modes()
+        playback_choices = []
+        self.playback_indices = []
+        if PLAYBACKMODE_INTERNAL in feasible:
+            playback_choices.append(self.utility.lang.get('playback_internal'))
+            self.playback_indices.append(PLAYBACKMODE_INTERNAL)
+        if PLAYBACKMODE_EXTERNAL_DEFAULT in feasible:
+            playback_choices.append(self.utility.lang.get('playback_external_default'))
+            self.playback_indices.append(PLAYBACKMODE_EXTERNAL_DEFAULT)
+        if PLAYBACKMODE_EXTERNAL_MIME in feasible:
+            playback_choices.append(self.utility.lang.get('playback_external_mime'))
+            self.playback_indices.append(PLAYBACKMODE_EXTERNAL_MIME)
+        self.playback_chooser=wx.Choice(self, -1, wx.Point(-1, -1), wx.Size(-1, -1), playback_choices)
+
+        playbackbox.Add(wx.StaticText(self, -1, self.utility.lang.get('playback_mode')), 1, wx.ALIGN_CENTER_VERTICAL)
+        playbackbox.Add(self.playback_chooser)
+        playbacksection.Add(playbackbox, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        
+        player_box = wx.BoxSizer(wx.HORIZONTAL)
+        self.player = wx.TextCtrl(self, -1, "")
+        player_box.Add(wx.StaticText(self, -1, self.utility.lang.get('videoplayer_default_path')), 0, wx.ALIGN_CENTER_VERTICAL)
+        player_box.Add(self.player, 1, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        #browsebtn = wx.Button(self, -1, "...", style = wx.BU_EXACTFIT)
+        browsebtn = wx.Button(self, -1, "...")
+        self.Bind(wx.EVT_BUTTON, self.onBrowsePlayer, browsebtn)
+        player_box.Add(browsebtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        playbacksection.Add(player_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT|wx.EXPAND, 5)
+
+        sizer.Add(playbacksection, 0, wx.EXPAND|wx.ALL, 5)
+
+        analysissection_title = wx.StaticBox(self, -1, self.utility.lang.get('analysis_section'))
+        analysissection = wx.StaticBoxSizer(analysissection_title, wx.VERTICAL)
+
+        analyser_box = wx.BoxSizer(wx.HORIZONTAL)
+        self.analyser = wx.TextCtrl(self, -1, "")
+        analyser_box.Add(wx.StaticText(self, -1, self.utility.lang.get('videoanalyserpath')), 0, wx.ALIGN_CENTER_VERTICAL)
+        analyser_box.Add(self.analyser, 1, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        #browsebtn = wx.Button(self, -1, "...", style = wx.BU_EXACTFIT)
+        browsebtn = wx.Button(self, -1, "...")
+        self.Bind(wx.EVT_BUTTON, self.onBrowseAnalyser, browsebtn)
+        analyser_box.Add(browsebtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        analysissection.Add(analyser_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT|wx.EXPAND, 5)
+
+        sizer.Add(analysissection, 0, wx.EXPAND|wx.ALL, 5)
+        
+        if sys.platform == 'win32':
+            self.quote = '"'
+        else:
+            self.quote = "'"
+        
+        self.initTasks()
+        
+    def loadValues(self, Read = None):
+        if Read is None:
+            Read = self.utility.config.Read
+
+        mode = Read('videoplaybackmode', "int")
+        for index in self.playback_indices:
+            if index == mode:
+                self.playback_chooser.SetSelection(index)
+        
+        value = Read('videoplayerpath')
+        qvalue = self.quote_path(value)
+        self.player.SetValue(qvalue)
+
+        value = Read('videoanalyserpath')
+        qvalue = self.quote_path(value)
+        self.analyser.SetValue(qvalue)
+
+              
+    def apply(self):       
+        
+        value = self.playback_chooser.GetSelection()
+        mode = self.playback_indices[value]
+        self.utility.config.Write('videoplaybackmode',mode)
+
+        for key,widget,mainmsg in [('videoplayerpath',self.player,self.utility.lang.get('videoplayernotfound')),('videoanalyserpath',self.analyser,self.utility.lang.get('videoanalysernotfound'))]:
+            qvalue = widget.GetValue()
+            value = self.unquote_path(qvalue)
+            if not os.access(value,os.F_OK):
+                self.onError(mainmsg,value)
+                return
+            if DEBUG:
+                print >>sys.stderr,"abcoptions: VideoPanel: Writing",key,value
+            self.utility.config.Write(key,value)
+
+
+    def unquote_path(self,value):
+        value.strip()
+        if value[0] == self.quote:
+            idx = value.find(self.quote,1)
+            return value[1:idx]
+        else:
+            return value
+
+    def quote_path(self,value):
+        value.strip()
+        if value.find(' ') != -1:
+            return self.quote+value+self.quote
+        else:
+            return value
+        
+        
+    def onError(self,mainmsg,path):
+        msg = mainmsg
+        msg += '\n'
+        msg += path
+        msg += '\n'
+        dlg = wx.MessageDialog(None, msg, self.utility.lang.get('videoplayererrortitle'), wx.OK|wx.ICON_ERROR)
+        result = dlg.ShowModal()
+        dlg.Destroy()
+
+    def onBrowsePlayer(self, event = None):
+        self.onBrowse(self.player,self.utility.lang.get('choosevideoplayer'))
+        
+    def onBrowseAnalyser(self, event = None):
+        self.onBrowse(self.analyser,self.utility.lang.get('choosevideoanalyser'))
+        
+    def onBrowse(self,widget,title):
+        dlg = wx.FileDialog(self.utility.frame, 
+                           title, 
+                           style = wx.OPEN | wx.FILE_MUST_EXIST)
+        if dlg.ShowModal() == wx.ID_OK:
+            value = dlg.GetPath()
+            qvalue = self.quote_path(value)
+            widget.SetValue(qvalue)
+        dlg.Destroy()
+
+        
 ################################################################
 #
 # Class: ABCTree
@@ -1401,26 +1725,23 @@ class ABCTree(wx.TreeCtrl):
         self.utility = dialog.utility
        
         self.root = self.AddRoot("Preferences")
-        
+
+	self.tribler = self.AppendItem(self.root, self.utility.lang.get('triblersetting'))
+	self.video = self.AppendItem(self.root, self.utility.lang.get('videosetting'))
         self.ratelimits = self.AppendItem(self.root, self.utility.lang.get('ratelimits'))
         self.seedingoptions = self.AppendItem(self.root, self.utility.lang.get('seedoptions'))
         self.queuesetting = self.AppendItem(self.root, self.utility.lang.get('queuesetting'))
         self.timeout = self.AppendItem(self.root, self.utility.lang.get('timeout'))
-        
-        self.network = self.AppendItem(self.root, self.utility.lang.get('networksetting'))
-        
-        self.advancednetwork = self.AppendItem(self.network, self.utility.lang.get('advanced'))
-        
         self.disk = self.AppendItem(self.root, self.utility.lang.get('disksettings'))
         self.advanceddisk = self.AppendItem(self.disk, self.utility.lang.get('advanced'))
+        self.network = self.AppendItem(self.root, self.utility.lang.get('networksetting'))
+        self.advancednetwork = self.AppendItem(self.network, self.utility.lang.get('advanced'))
 
-        self.display = self.AppendItem(self.root, self.utility.lang.get('displaysetting'))
+        #self.display = self.AppendItem(self.root, self.utility.lang.get('displaysetting'))
 
-        self.colors = self.AppendItem(self.display, self.utility.lang.get('torrentcolors'))
+        #self.colors = self.AppendItem(self.display, self.utility.lang.get('torrentcolors'))
                 
         self.misc = self.AppendItem(self.root, self.utility.lang.get('miscsetting'))
-
-        self.tribler = self.AppendItem(self.root, self.utility.lang.get('triblersetting'))
 
         self.treeMap = {self.ratelimits : self.dialog.rateLimitPanel, 
                         self.seedingoptions : self.dialog.seedingOptionsPanel, 
@@ -1429,8 +1750,9 @@ class ABCTree(wx.TreeCtrl):
                         self.network : self.dialog.networkPanel, 
                         self.misc : self.dialog.miscPanel,
                         self.tribler : self.dialog.triblerPanel,
-                        self.display : self.dialog.displayPanel, 
-                        self.colors : self.dialog.colorPanel, 
+                        self.video : self.dialog.videoPanel,
+                        #self.display : self.dialog.displayPanel, 
+                        #self.colors : self.dialog.colorPanel, 
                         self.disk : self.dialog.diskPanel }
 
         self.treeMap[self.advancednetwork] = self.dialog.advancedNetworkPanel
@@ -1445,6 +1767,8 @@ class ABCTree(wx.TreeCtrl):
         if self.dialog.closing or event is None:
             return
 
+        if DEBUG:
+            print >>sys.stderr,"abcoption: <mluc> event type:", event.GetEventType()
         newitem = event.GetItem()
         newpanel = None
         foundnew = False
@@ -1470,6 +1794,31 @@ class ABCTree(wx.TreeCtrl):
                 # (splitter.GetWindow2() sometimes appears to
                 #  return an Object rather than wx.Window)
 
+    def open(self,name):
+        rootid = self.GetRootItem()
+        if rootid.IsOk():
+            #print "root is",self.GetItemText(rootid)
+            [firstid,cookie] = self.GetFirstChild(rootid)
+            if firstid.IsOk():
+                print "first is",self.GetItemText(firstid)
+                if not self.doopen(name,firstid):
+                    while True:
+                        [childid,cookie] = self.GetNextChild(firstid,cookie)
+                        if childid.IsOk():
+                            if self.doopen(name,childid):
+                                break
+                        else:
+                            break
+
+    def doopen(self,wantname,childid):
+        gotname = self.GetItemText(childid)
+        print "gotname is",gotname
+        if gotname == wantname:
+            self.SelectItem(childid)
+            return True
+        else:
+            return False
+
 
 ################################################################
 #
@@ -1479,7 +1828,7 @@ class ABCTree(wx.TreeCtrl):
 #
 ################################################################        
 class ABCOptionDialog(wx.Dialog):
-    def __init__(self, parent):
+    def __init__(self, parent,openname=None):
         self.utility = parent.utility
 
         style = wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
@@ -1499,8 +1848,9 @@ class ABCOptionDialog(wx.Dialog):
         self.networkPanel = NetworkPanel(self.splitter, self)
         self.miscPanel = MiscPanel(self.splitter, self)
         self.triblerPanel = TriblerPanel(self.splitter, self)
-        self.displayPanel = DisplayPanel(self.splitter, self)
-        self.colorPanel = ColorPanel(self.splitter, self)
+        self.videoPanel = VideoPanel(self.splitter, self)
+        #self.displayPanel = DisplayPanel(self.splitter, self)
+        #self.colorPanel = ColorPanel(self.splitter, self)
         self.diskPanel = DiskPanel(self.splitter, self)
         
         self.advancedNetworkPanel = AdvancedNetworkPanel(self.splitter, self)
@@ -1536,21 +1886,28 @@ class ABCOptionDialog(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.onCloseGlobalPref, cancelbtn)
         self.Bind(wx.EVT_CLOSE, self.onCloseGlobalPref)
 
-        self.splitter.SplitVertically(self.tree, self.rateLimitPanel, split)
-        self.rateLimitPanel.changed = True
+        defaultPanel = self.triblerPanel
+
+        self.splitter.SplitVertically(self.tree, defaultPanel, split)
+        defaultPanel.changed = True
         self.splitter.SetMinimumPaneSize(50)
 
         for key in self.tree.treeMap:
             panel = self.tree.treeMap[key]
             panel.Show(False)
         
-        self.rateLimitPanel.Show(True)
-        self.rateLimitPanel.Fit()
+        defaultPanel.Show(True)
+        defaultPanel.Fit()
         
         self.SetSizer(outerbox)
 #        self.Fit()
         
         self.closing = False
+        if openname is not None:
+            self.tree.open(openname)
+
+        treeitem = [k for (k,v) in self.tree.treeMap.iteritems() if v == defaultPanel][0]
+        self.tree.SelectItem( treeitem, True )
         
     def getWindowSettings(self):
         width = self.utility.config.Read("prefwindow_width", "int")
@@ -1596,3 +1953,14 @@ class ABCOptionDialog(wx.Dialog):
             self.saveWindowSettings()
             
             self.EndModal(wx.ID_OK)
+
+def get_itracker_url(utility):
+    itrackerurl = utility.config.Read('internaltrackerurl')
+    if itrackerurl == '':
+        my_db = MyDBHandler()
+        ip = utility.config.Read('bind')
+        if ip is None or ip == '':
+            ip = my_db.getMyIP()
+        port = utility.config.Read('minport', 'int')
+        itrackerurl = 'http://'+ip+':'+str(port)+'/announce'
+    return itrackerurl

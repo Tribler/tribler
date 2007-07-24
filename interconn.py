@@ -1,9 +1,9 @@
 import wx
 import sys
 import socket
+from traceback import print_exc
 
 from Utility.helpers import getSocket
-
 
 ################################################################
 #
@@ -43,12 +43,14 @@ class ServerListener:
                 elif data == "Raise Window":
                     self.utility.frame.taskbarCallback()
                 else:
-                    self.utility.queue.addTorrentFromFileCallback(data)
+                    self.utility.queue.addTorrentFromFileCallback(data,caller='otherinstance')
             except wx.PyDeadObjectError:
                 toosoontext = "\nTried to start Tribler again too soon after exiting!\n" + \
                               "(Wait for Tribler to finish shutting down, then try again)\n"
                 sys.stderr.write(toosoontext)
                 break
+            except:
+                print_exc(file=sys.stderr)
 #        self.utility.abcdonequitting = True
 #        sys.stderr.write("\nDone shutting down serverlistener")
 

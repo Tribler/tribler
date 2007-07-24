@@ -231,6 +231,7 @@ class ChallengeResponse:
 
     def __init__(self, my_keypair, my_id, secure_overlay):
         self.my_keypair = my_keypair
+        self.permid = str(my_keypair.pub().get_der())
         self.my_id = my_id
         self.secure_overlay = secure_overlay
 
@@ -282,11 +283,21 @@ class ChallengeResponse:
                 print >> sys.stderr,"Got unexpected RESPONSE1 message"
             raise PermIDException
         [randomA,peer_pub] = check_response1(rdata1,self.my_random,self.my_id)
-        if randomA is None:
+        
+        if randomA is None or peer_pub is None:
             self.state = STATE_FAILED
             if DEBUG:
                 print >> sys.stderr,"Got bad RESPONSE1 message"
             raise PermIDException
+        
+        # avoid being connected by myself
+        peer_permid = str(peer_pub.get_der())
+        if self.permid == peer_permid:
+            self.state = STATE_FAILED
+            if DEBUG:
+                print >> sys.stderr,"Got the same Permid as myself"
+            raise PermIDException
+        
         self.peer_id = peer_id
         self.peer_random = randomA
         self.peer_pub = peer_pub
@@ -307,7 +318,15 @@ class ChallengeResponse:
                 print >> sys.stderr,"Got bad RESPONSE2 message, authentication failed."
             raise PermIDException
         else:
-            self.set_peer_authenticated()
+            # avoid being connected by myself
+            peer_permid = str(self.peer_pub.get_der())
+            if self.permid == peer_permid:
+                self.state = STATE_FAILED
+                if DEBUG:
+                    print >> sys.stderr,"Got the same Permid as myself"
+                raise PermIDException
+            else:
+                self.set_peer_authenticated()
 
     def set_peer_authenticated(self):
         if DEBUG:

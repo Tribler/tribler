@@ -11,6 +11,11 @@ try:
 except ImportError:
     UnicodeType = None
 
+from traceback import print_exc
+import sys
+
+DEBUG = False
+
 def decode_int(x, f):
     f += 1
     newf = x.index('e', f)
@@ -287,7 +292,15 @@ def bencode(x):
     except:
         print "bencode: *** error *** could not encode type %s (value: %s)" % (type(x), x)
         assert 0
-    return ''.join(r)
+    try:
+        return ''.join(r)
+    except:
+        if DEBUG:
+            print >>sys.stderr,"bencode: join error",x
+            for elem in r:
+                print "elem",elem,"has type",type(elem)
+            print_exc()
+        return ''
 
 def test_bencode():
     assert bencode(4) == 'i4e'

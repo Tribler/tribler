@@ -27,7 +27,10 @@ from binascii import b2a_hex
 import sys, os
 import signal
 import re
-from BitTornado.__init__ import version, createPeerID
+import pickle
+from BitTornado.__init__ import version_short, createPeerID
+from Tribler.__init__ import TRIBLER_TORRENT_EXT
+
 try:
     True
 except:
@@ -39,6 +42,7 @@ DEBUG=False
 defaults = [
     ('port', 80, "Port to listen on."),
     ('dfile', None, 'file to store recent downloader info in'),
+    ('dfile_format', 'bencode', 'format of dfile: either "bencode" (default) or pickle (needed when unicode filenames in state)'),
     ('bind', '', 'comma-separated list of ips/hostnames to bind to locally'),
 #    ('ipv6_enabled', autodetect_ipv6(),
     ('ipv6_enabled', 0,
@@ -202,7 +206,7 @@ class Tracker:
         self.favicon = None
         if favicon:
             try:
-                h = open(favicon,'r')
+                h = open(favicon,'rb')
                 self.favicon = h.read()
                 h.close()
             except:
@@ -228,9 +232,12 @@ class Tracker:
         if exists(self.dfile):
             try:
                 h = open(self.dfile, 'rb')
-                ds = h.read()
+                if self.config['dfile_format'] == 'bencode':
+                    ds = h.read()
+                    tempstate = bdecode(ds)
+                else:
+                    tempstate = pickle.load(h)
                 h.close()
-                tempstate = bdecode(ds)
                 if not tempstate.has_key('peers'):
                     tempstate = {'peers': tempstate}
                 statefiletemplate(tempstate)
@@ -369,7 +376,7 @@ class Tracker:
         if self.aggregate_password is not None:
             url += '&password='+self.aggregate_password
         rq = Thread(target = self._aggregate_senddata, args = [url])
-        rq.setDaemon(False)
+        rq.setDaemon(True)
         rq.start()
 
     def _aggregate_senddata(self, url):     # just send, don't attempt to error check,
@@ -392,15 +399,11 @@ class Tracker:
             
             s = StringIO()
             s.write('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n' \
-                '<html><head><title>BitTorrent download info</title>\n')
+                '<html><head><title>Tribler Tracker Statistics</title>\n')
             if self.favicon is not None:
                 s.write('<link rel="shortcut icon" href="/favicon.ico">\n')
             s.write('</head>\n<body>\n' \
-                '<h3>BitTorrent download info</h3>\n'\
-                '<ul>\n'
-                '<li><strong>tracker version:</strong> %s</li>\n' \
-                '<li><strong>server time:</strong> %s</li>\n' \
-                '</ul>\n' % (version, isotime()))
+                '<h3>Tribler Tracker Statistics</h3>\n')
             if self.config['allowed_dir']:
                 if self.show_names:
                     names = [ (self.allowed[hash]['name'],hash)
@@ -411,7 +414,7 @@ class Tracker:
             else:
                 names = [ (None,hash) for hash in self.downloads.keys() ]
             if not names:
-                s.write('<p>not tracking any files yet...</p>\n')
+                s.write('<p>Not tracking any files yet...</p>\n')
             else:
                 names.sort()
                 tn = 0
@@ -466,7 +469,10 @@ class Tracker:
                     '<li><em>downloading:</em> number of connected clients still downloading</li>\n' \
                     '<li><em>downloaded:</em> reported complete downloads (total: current/all)</li>\n' \
                     '<li><em>transferred:</em> torrent size * total downloaded (does not include partial transfers)</li>\n' \
-                    '</ul>\n')
+                    '</ul>\n' \
+                    '<hr>\n'
+                    '<address>%s (%s)</address>\n' % (version_short, isotime()))
+
 
             s.write('</body>\n' \
                 '</html>\n')
@@ -929,17 +935,24 @@ class Tracker:
     def save_state(self):
         self.rawserver.add_task(self.save_state, self.save_dfile_interval)
         h = open(self.dfile, 'wb')
-        h.write(bencode(self.state))
+        if self.config['dfile_format'] == 'bencode':
+            h.write(bencode(self.state))
+        else:
+            pickle.dump(self.state,h,-1)
         h.close()
 
 
-    def parse_allowed(self):
-        self.rawserver.add_task(self.parse_allowed, self.parse_dir_interval)
+    def parse_allowed(self,source=None):
+        if DEBUG:
+            print >>sys.stderr,"tracker: parse_allowed: Source is",source
+        
+        if source is None:
+            self.rawserver.add_task(self.parse_allowed, self.parse_dir_interval)
 
         if self.config['allowed_dir']:
             r = parsedir( self.config['allowed_dir'], self.allowed,
                           self.allowed_dir_files, self.allowed_dir_blocked,
-                          [".torrent"] )
+                          [".torrent",TRIBLER_TORRENT_EXT] )
             ( self.allowed, self.allowed_dir_files, self.allowed_dir_blocked,
                 added, garbage2 ) = r
             

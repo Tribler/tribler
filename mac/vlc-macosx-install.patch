@@ -1,0 +1,41 @@
+--- Makefile.orig       2007-05-16 15:49:03.000000000 +0200
++++ Makefile    2007-05-16 15:49:10.000000000 +0200
+@@ -628,7 +628,6 @@
+ #noinst_DATA = vlc-bundle
+ 
+ # Create the MacOS X app
+-vlc_app_DATA = VLC.app
+ vlc_appdir = $(bindir)
+ #DATA_win32_rc = $(noinst_share_vlc_win32_rc_DATA)
+ #noinst_share_vlc_win32_rc_DATA = share/vlc_win32_rc.$(OBJEXT)
+--- po/Makefile.orig	2007-05-08 09:14:19.000000000 +0200
++++ po/Makefile	2007-05-08 09:14:50.000000000 +0200
+@@ -26,7 +26,7 @@
+ 
+ INSTALL = /usr/bin/install -c
+ INSTALL_DATA = ${INSTALL} -m 644
+-MKINSTALLDIRS = @MKINSTALLDIRS@
++MKINSTALLDIRS = autotools/mkinstalldirs
+ mkinstalldirs = $(SHELL) `case "$(MKINSTALLDIRS)" in /*) echo "$(MKINSTALLDIRS)" ;; *) echo "$(top_builddir)/$(MKINSTALLDIRS)" ;; esac`
+ 
+ GMSGFMT = /Users/jandavidmol/svn/vlc-trunk/./extras/contrib/bin/msgfmt
+--- vlc-config.orig     2007-05-16 15:48:00.000000000 +0200
++++ vlc-config  2007-05-16 15:48:13.000000000 +0200
+@@ -20,7 +20,7 @@
+ objcflags=""
+ ldflags=""
+ 
+-cflags_tuning="-march=pentium-m -mtune=prescott"
++cflags_tuning=""
+ cflags_optim=" -O3 -ffast-math -funroll-loops"
+ cflags_optim_nodebug=" -fomit-frame-pointer"
+ cflags_nooptim=" -O2"
+@@ -822,7 +822,7 @@
+       ;;
+     external)
+       echo_external=yes
+-      ldflags="${ldflags} -lvlc -lvlc-control"
++      ldflags="${ldflags} -lvlc"
+       ;;      
+     *)
+       module="$1"

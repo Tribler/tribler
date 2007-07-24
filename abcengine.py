@@ -1,6 +1,7 @@
 import wx
 import sys
 from socket import inet_aton
+import os
 
 #from operator import itemgetter
 from threading import Event, Timer, currentThread
@@ -18,9 +19,11 @@ from Utility.helpers import getfreespace
 from Tribler.Worldmap.peer import BTPeer
 from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
 from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
+from Tribler.notification import notify, DOWNLOAD_COMPLETE, DONE_SEEDING
+
 from safeguiupdate import DelayedEventHandler
 from Tribler.utilities import show_permid_short
-from Tribler.notification import notify,DOWNLOAD_COMPLETE,DONE_SEEDING
+from Tribler.Video.VideoPlayer import VideoPlayer
 
 DEBUG = False
 
@@ -90,6 +93,7 @@ class ABCEngine(DelayedEventHandler):
         # New stuff....
 
         self.controller = self.utility.controller
+        self.statsfunc = self.dummy_statsfunc()
         
         self.waiting = True
         self.checking = False
@@ -138,6 +142,8 @@ class ABCEngine(DelayedEventHandler):
 #                btconfig['check_hashes'] = 0
 #        self.torrent.files.skipcheck = False
 
+        video_analyser_path = self.utility.config.Read('videoanalyserpath')
+
         self.dow = BT1Download(self.display, 
                                self.finished, 
                                self.error, 
@@ -148,7 +154,11 @@ class ABCEngine(DelayedEventHandler):
                                hash, 
                                myid, 
                                self.rawserver, 
-                               self.controller.listen_port)
+                               self.controller.listen_port,
+                               self.torrent.get_on_demand_download(),
+                               self.torrent.get_videoinfo(),
+                               self.torrent.get_progressinf(),
+                               video_analyser_path)
 
 
     ####################################
@@ -167,13 +177,20 @@ class ABCEngine(DelayedEventHandler):
             return
         self._hashcheckfunc = self.dow.initFiles()
         
+        if DEBUG:
+            print >>sys.stderr,"engine: start: after initFiles"
+
         if not self._hashcheckfunc:
             self.shutdown()
             return
 
         self.controller.hashchecksched(self.torrent)
+        if DEBUG:
+            print >>sys.stderr,"engine: start: after hashchecksched"
 
     def hashcheck_start(self, donefunc):
+        if DEBUG:
+            print >>sys.stderr,"engine: hashcheck_start: enter"
         if self.is_dead():
             self.shutdown()
             return
@@ -182,8 +199,12 @@ class ABCEngine(DelayedEventHandler):
         
         # Start infrequent tasks
         self.InfrequentTasks()
+        if DEBUG:
+            print >>sys.stderr,"engine: start: after start infreq tasks"
         
         self._hashcheckfunc(donefunc)
+        if DEBUG:
+            print >>sys.stderr,"engine: start: after _hashcheckfunc call",self._hashcheckfunc
 
     def hashcheck_callback(self):
         self.checking = False
@@ -195,6 +216,12 @@ class ABCEngine(DelayedEventHandler):
         if not self.dow.startEngine(ratelimiter = None):
             self.shutdown()
             return
+
+        # Errors with StorageWrapper can occur deep inside MovieOnDemandTransporter
+        # not easy to report that back till here, so do it like this.
+        #if self.is_dead():
+        #    self.shutdown()
+        #    return
 
         self.dow.startRerequester()
 
@@ -276,6 +303,11 @@ class ABCEngine(DelayedEventHandler):
         self.status_err.append(msg)
         self.status_errtime = clock()
 
+        if self.torrent.get_on_demand_download():
+            # We was VOD-ing
+            videoplayer = VideoPlayer.getInstance()
+            videoplayer.vod_failed(self.torrent)
+
 
     def saveAs(self, name, length, saveas, isdir):
         return self.torrent.files.dest
@@ -299,17 +331,17 @@ class ABCEngine(DelayedEventHandler):
 
     def onUpdateStatus(self, fractionDone = None, 
             timeEst = None, downRate = None, upRate = None, 
-            activity = None, statistics = None, spew = None, 
+            activity = None, statistics = None, spew = None, havedigest = None,
             **kws):
 
-        self.invokeLater(self.updateStatus, [fractionDone, timeEst, downRate, upRate, activity, statistics, spew])
+        self.invokeLater(self.updateStatus, [fractionDone, timeEst, downRate, upRate, activity, statistics, spew, havedigest])
 
         
-    def updateStatus(self, fractionDone = None, timeEst = None, downRate = None, upRate = None, activity = None, statistics = None, spew = None):
+    def updateStatus(self, fractionDone = None, timeEst = None, downRate = None, upRate = None, activity = None, statistics = None, spew = None, havedigest = None):
         # Just in case a torrent was finished
         # but now isn't
         self.torrent.status.completed = self.seed
-            
+    
         # Get scrape data every 20 minutes
         #############################################
         if self.utility.config.Read('scrape', "boolean"):
@@ -320,7 +352,7 @@ class ABCEngine(DelayedEventHandler):
         if fractionDone is not None and not self.seed:
             self.progress = (float(fractionDone) * 100)
 
-        self.setActivity(activity)
+        self.setActivity(activity) # GUI
 
         if timeEst is not None:
             self.eta = timeEst
@@ -359,7 +391,7 @@ class ABCEngine(DelayedEventHandler):
             # Update download, upload, and progress
             self.downsize['new'] = float(statistics.downTotal)
             self.upsize['new'] = float(statistics.upTotal)
-            self.torrent.files.updateProgress()
+            self.torrent.files.updateProgress() #GUI
             self.totalspeed = float(statistics.torrentRate)
             self.numconnections = statistics.numPeers
 
@@ -374,7 +406,7 @@ class ABCEngine(DelayedEventHandler):
         
         if self.seed:
             self.countSeedingTime()
-            if self.torrent.status.isDoneUploading():
+            if self.torrent.status.isDoneUploading(): #GUI
                 self.TerminateUpload()
 
         # Update color
@@ -387,6 +419,8 @@ class ABCEngine(DelayedEventHandler):
                                     COL_DLSPEED, 
                                     COL_ULSPEED, 
                                     COL_MESSAGE])
+        
+               
         
         if statistics is not None:
             # Share Ratio, #Seed, #Peer, #Copies, #Peer Avg Progress,
@@ -427,6 +461,10 @@ class ABCEngine(DelayedEventHandler):
 #            # or is destroyed first
 #            print Exception, msg
 #        
+
+        # Save summary of map of downloaded pieces
+        self.torrent.status.setHaveDigest(havedigest)
+
         if self.torrent.status.value == STATUS_HASHCHECK and self.working:
             # Skip on ahead to the normal procedure if the torrent was active
             # before doing the hashcheck
@@ -437,6 +475,7 @@ class ABCEngine(DelayedEventHandler):
                 return
             else:
                 self.torrent.status.updateStatus(STATUS_ACTIVE)
+        
         
     # TODO: Workaround for multiport not reporting
     #       external_connection_made properly
@@ -633,15 +672,17 @@ class ABCEngine(DelayedEventHandler):
         for ip in self.torrent.peer_swarm.keys():
             self.torrent.peer_swarm[ip].active = False
         
-        for peer_info in spew:
-            ip = peer_info['ip']
-            if self.torrent.peer_swarm.has_key(ip):  # if the peer exists, active it
-                self.torrent.peer_swarm[ip].updateBTInfo(peer_info)
-                self.torrent.peer_swarm[ip].active = True
-            else:   # otherwise create a new peer, add it into peer_swarm and display it
-                new_peer = BTPeer(peer_info, self.torrent, self.rawserver)
-                new_peer.updateBTInfo(peer_info)
-                self.torrent.peer_swarm[ip] = new_peer
+        showearth = self.utility.config.Read('showearthpanel', "boolean")
+        if showearth:
+            for peer_info in spew:
+                ip = peer_info['ip']
+                if self.torrent.peer_swarm.has_key(ip):  # if the peer exists, active it
+                    self.torrent.peer_swarm[ip].updateBTInfo(peer_info)
+                    self.torrent.peer_swarm[ip].active = True
+                else:   # otherwise create a new peer, add it into peer_swarm and display it
+                    new_peer = BTPeer(peer_info, self.torrent, self.rawserver)
+                    new_peer.updateBTInfo(peer_info)
+                    self.torrent.peer_swarm[ip] = new_peer
 
     def updatePeerCache(self, spew):
         pass
@@ -815,13 +856,7 @@ class ABCEngine(DelayedEventHandler):
                 return inet_aton(ip)
             except:
                 return ''
-                
-            x = s.find('.')
-            if x == -1:
-                return 0
-            iptext = s[:x] + '.' + ''.join(s[x:].split('.'))
-            return eval(iptext)
-            
+
         elif colid == SPEW_LR:
             return spew[line]['direction']
             
@@ -1053,7 +1088,7 @@ class ABCEngine(DelayedEventHandler):
         self.torrent.status.completed = True
         self.progress = 100.0
 
-        notify( DONE_SEEDING, self.utility.lang.get('notify_doneseedinG'), self.torrent.getTitle() )
+        notify( DONE_SEEDING, self.utility.lang.get("notification_finished_seeding"), self.torrent.getTitle() )
         self.torrent.connection.stopEngine()
         
         self.queue.updateAndInvoke()
@@ -1071,9 +1106,8 @@ class ABCEngine(DelayedEventHandler):
         # clear :   8:ETA 10:DLSpeed  
         #####################################################
         if self.dow.storagewrapper.stat_numdownloaded > 0:
-            # only notify if we finished after downloading last piece, not when download was already
-            # finished at startup
-            notify( DOWNLOAD_COMPLETE, self.utility.lang.get('notify_downloadcomplete'), self.torrent.getTitle() )
+            # only notify if we finished downloading the last piece
+            notify( DOWNLOAD_COMPLETE, self.utility.lang.get("notification_download_complete"), self.torrent.getTitle() )
         self.torrent.status.completed = True
         self.progress = 100.0
         self.torrent.files.updateProgress()
@@ -1091,6 +1125,13 @@ class ABCEngine(DelayedEventHandler):
         self.torrent.updateColor()
 
         self.queue.updateAndInvoke()
+        
+        # TODO: Play when download is complete, but not at startup when seeding torrents are set to
+        # completion.
+        if self.torrent.get_on_demand_download():
+            videoplayer = VideoPlayer.getInstance()
+            videoplayer.vod_download_completed(self.torrent)
+
             
     def failed(self):
         if self.utility.config.Read('failbehavior') == '0':
@@ -1142,3 +1183,17 @@ class ABCEngine(DelayedEventHandler):
     def stop_download_help(self):
         if self.dow.coordinator is not None:
             self.dow.coordinator.stop_all_help()
+
+    def Pause(self):
+        """ Called by ABC/Torrent/actions/TorrentActions """
+        self.dow.Pause()
+        
+    def dummy_statsfunc(self):
+        return None
+    
+    def get_moviestreamtransport(self):
+        #print >>sys.stderr,"engine: Getting OnDemandTransport from btdownload1",self.dow
+        if self.dow is None:
+            return None
+        else:
+            return self.dow.get_moviestreamtransport()

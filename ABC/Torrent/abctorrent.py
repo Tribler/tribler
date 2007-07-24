@@ -19,9 +19,8 @@ from ABC.Torrent.status import TorrentStatus
 from Utility.constants import * #IGNORE:W0611
 from Tribler.unicode import name2unicode
 from Tribler.Category.Category import Category
-from Tribler.Dialogs.abcfileframe import TorrentDataManager
-
-from time import time
+from Tribler.vwxGUI.torrentManager import TorrentDataManager
+from Tribler.Video.VideoPlayer import VideoPlayer,is_vodable
 
 try:
     True
@@ -51,8 +50,7 @@ class ABCTorrent:
         self.utility = self.queue.utility
         self.mypref_db = self.utility.mypref_db
         self.torrent_db = self.utility.torrent_db
-        self.data_manager = TorrentDataManager.getInstance(self.utility)
-        
+                
         self.list = self.utility.list
         self.listindex = len(self.utility.torrents["all"])
 
@@ -64,6 +62,9 @@ class ABCTorrent:
         self.actions = TorrentActions(self)
         self.dialogs = TorrentDialogs(self)
         self.connection = TorrentConnections(self)
+
+        if DEBUG:
+            print >>sys.stderr,"abctorrent: forceask is",forceasklocation
 
         #########
         self.metainfo = self.getResponse()
@@ -90,6 +91,7 @@ class ABCTorrent:
         self.info = self.metainfo['info']
 
         self.title = None
+        self.newlyadded = False
                       
         # Initialize values to defaults
 
@@ -130,14 +132,24 @@ class ABCTorrent:
         self.totalseeds = "?"
         
         self.peer_swarm = {}    # swarm of each torrent, used to display peers on map
+        self.libraryPanel = None
         
+
+        self.download_on_demand = False
+        self.videoinfo = None
+        self.progressinf = None
+        self.prevactivetorrents = None
+
+        self.vodable = is_vodable(self)
+
+
     def addTorrentToDB(self):
         
         # Arno: Checking for presence in the database causes some problems 
         # during testing sometimes, and it makes sense to update the database 
         # to the latest values.
-        #if self.torrent_db.hasTorrent(self.torrent_hash):
-        #    return
+        if self.torrent_db.hasTorrent(self.torrent_hash):
+            return
             
         torrent = {}
         torrent['torrent_dir'], torrent['torrent_name'] = os.path.split(self.src)
@@ -180,10 +192,6 @@ class ABCTorrent:
 
         
     def addMyPref(self):
-        # If this is a helper torrent, don't add it as my preference
-        if self.caller_data is not None:
-            return
-
         self.addTorrentToDB()
         
         if self.mypref_db.hasPreference(self.torrent_hash):
@@ -193,14 +201,18 @@ class ABCTorrent:
         if self.files.dest:
             mypref['content_dir'] = self.files.dest    #TODO: check
             mypref['content_name'] = self.files.filename
-        
+
+        # If this is a helper torrent, don't add it as my preference
+        #if self.caller_data is None:
         self.mypref_db.addPreference(self.torrent_hash, mypref)
         if self.utility.abcfileframe is not None:
             self.utility.abcfileframe.updateMyPref()
             
+        self.data_manager = TorrentDataManager.getInstance(self.utility)
         self.data_manager.addNewPreference(self.torrent_hash)
         self.data_manager.setBelongsToMyDowloadHistory(self.torrent_hash, True)
         
+        #if self.caller_data is None:
         self.utility.buddycast.addMyPref(self.torrent_hash)
         if DEBUG:
             print >> sys.stderr, "abctorrent: add mypref to db", self.infohash, mypref
@@ -208,12 +220,15 @@ class ABCTorrent:
     #
     # Tasks to perform when first starting adding this torrent to the display
     #
-    def postInitTasks(self):        
+    def postInitTasks(self,activate=True):        
         self.utility.torrents["all"].append(self)
         self.utility.torrents["inactive"][self] = 1
         
         # Read extra information about the torrent
         self.torrentconfig.readAll()
+        
+        if not activate:
+            self.status.value = STATUS_STOP
     
         # Add a new item to the list
         self.list.InsertStringItem(self.listindex, "")
@@ -394,10 +409,10 @@ class ABCTorrent:
                         text = "(oo)"
                     else:
                         value = self.connection.seedingtimeleft
-                        text = "(" + self.utility.eta_value(value) + ")"
+                        text = "(" + self.utility.eta_value(value, truncate=2) + ")"
                 elif self.connection.engine.eta is not None:
                     value = self.connection.engine.eta
-                    text = self.utility.eta_value(value)
+                    text = self.utility.eta_value(value, truncate=2)
 
             elif colid == COL_SIZE: # Size                            
                 # Some file pieces are set to "download never"
@@ -464,6 +479,10 @@ class ABCTorrent:
 
             elif colid == COL_DLSIZE: # Download Size
                 text = self.utility.size_format(self.files.downsize)
+                
+            elif colid == COL_DLANDTOTALSIZE: # Download Size
+                text = self.utility.size_format(self.files.downsize, truncate=1) +'/'+\
+                       self.utility.size_format(self.files.floattotalsize, truncate =1)
 
             elif colid == COL_ULSIZE: # Upload Size
                 text = self.utility.size_format(self.files.upsize)
@@ -516,6 +535,8 @@ class ABCTorrent:
             text = ""
             
         return text
+
+   
 
     #
     # Update multiple columns in the display
@@ -718,7 +739,7 @@ class ABCTorrent:
         self.updateColumns([COL_SEEDS, COL_PEERS])
         if message != "":
             if DEBUG:
-                print >> sys.stderr,"message: " + message
+                print >> sys.stderr,"abctorrent: message: " + message
             
             if message == self.utility.lang.get('scraping'):
                 msgtype = "status"
@@ -795,8 +816,8 @@ class ABCTorrent:
             title = self.metainfo['info'][self.namekey]
         elif kind == "torrent":
             torrentfilename = os.path.split(self.src)[1]
-            torrentfilename = torrentfilename[:torrentfilename.rfind('.torrent')]
-            title = torrentfilename
+            (prefix,ext) = os.path.splitext(torrentfilename)
+            title = prefix
         elif kind == "dest":
             if self.files.isFile():
                 destloc = self.files.dest
@@ -835,6 +856,14 @@ class ABCTorrent:
             self.files.removeFiles()
 
 
+    def checkAutoShutdown(self, autoShutdownTime):
+        # Check if this torrent is in stop state for more than autoShutdownTime
+        
+        if self.status.value == STATUS_STOP and self.status.lastStopped != 0:
+            return (time() - self.status.lastStopped) > autoShutdownTime
+        else:
+            return False
+        
     # Things to do when shutting down a torrent
     def shutdown(self):
         # Set shutdown flag to true
@@ -842,6 +871,14 @@ class ABCTorrent:
         
         self.torrentconfig.writeAll()
         
+        if DEBUG:
+            print >>sys.stderr,'abctorrent shutdown'
+        # Remove abctorrent from librarypanel
+        if self.libraryPanel:
+            self.libraryPanel.abcTorrentShutdown(self.torrent_hash)
+        elif DEBUG:
+            print 'abctorrent: has no libraryPanel'
+            
         # Delete Detail Window
         ########################
         try:
@@ -853,9 +890,17 @@ class ABCTorrent:
 #        # (if it's currently active, wait for it to stop)
 #        self.connection.stopEngine(waitForThread = True)
         self.connection.stopEngine()
+        if self.get_on_demand_download():
+            # We was VOD-ing
+            videoplayer = VideoPlayer.getInstance()
+            videoplayer.vod_stopped(self)
 
         # If this is a helper torrent, remove all traces
         if self.caller_data is not None:
+            if DEBUG:
+                print >>sys.stderr,"abctorrent: shutdown: Stopping from DOWNLOAD HELP"
+            self.mypref_db.deletePreference(self.torrent_hash)
+            self.data_manager.setBelongsToMyDowloadHistory(self.torrent_hash, False)
             if self.caller_data.has_key('coordinator_permid'):
                 try:
                     os.remove(self.src)
@@ -868,3 +913,50 @@ class ABCTorrent:
                     self.utility.torrents["all"].remove(self)        
 
         del self.utility.torrents["inactive"][self]
+        
+        
+        
+        
+    def setLibraryPanel(self, panel):
+        self.libraryPanel = panel
+
+    def set_newly_added(self):
+        self.newlyadded = True
+    
+    def clear_newly_added(self):
+        ret = self.newlyadded
+        self.newlyadded = False
+        return ret
+
+    def enable_on_demand_download(self):
+        self.download_on_demand = True
+        
+    def disable_on_demand_download(self):
+        self.download_on_demand = False
+        
+    def get_on_demand_download(self):
+        return self.download_on_demand
+    
+    def set_videoinfo(self,info):
+        self.videoinfo = info
+        
+    def get_videoinfo(self):
+        return self.videoinfo
+    
+    def get_moviestreamtransport(self):
+        return self.connection.get_moviestreamtransport()    
+
+    def set_progressinf(self,progressinf):
+        self.progressinf = progressinf
+
+    def get_progressinf(self):
+        return self.progressinf
+    
+    def set_previously_active_torrents(self,activetorrents):
+        self.prevactivetorrents = activetorrents
+        
+    def get_previously_active_torrents(self):
+        return self.prevactivetorrents
+
+    def is_vodable(self):
+        return self.vodable

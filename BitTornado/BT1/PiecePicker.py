@@ -7,6 +7,7 @@ from BitTornado.clock import clock
 from traceback import extract_tb
 import sys
 # _2fastbt
+
 try:
     True
 except:
@@ -15,31 +16,77 @@ except:
 
 DEBUG = False
 
+"""
+  rarest_first_cutoff = number of downloaded pieces at which to switch from random to rarest first.
+  rarest_first_priority_cutoff = number of peers which need to have a piece before other partials
+                                 take priority over rarest first.
+"""
+
 class PiecePicker:
 # 2fastbt_
     def __init__(self, numpieces,
                  rarest_first_cutoff = 1, rarest_first_priority_cutoff = 3,
                  priority_step = 20, helper = None, rate_predictor = None):
 # _2fastbt
+        # If we have less than the cutoff pieces, choose pieces at random. Otherwise,
+        # go for rarest first.
         self.rarest_first_cutoff = rarest_first_cutoff
-        self.rarest_first_priority_cutoff = rarest_first_priority_cutoff + priority_step
+
         self.priority_step = priority_step
+
+        # cutoff = number of non-seeds which need to have a piece before other
+        #          partials take priority over rarest first. In effect, equal to:
+        #              rarest_first_priority_cutoff + priority_step - #seeds
+        #          before a seed is discovered, it is equal to (as set here):
+        #              rarest_first_priority_cutoff
+        #
+        # This cutoff is used as an interest level (see below). When in random piece
+        # mode, asking for really rare pieces is disfavoured.
+        self.rarest_first_priority_cutoff = rarest_first_priority_cutoff + priority_step
         self.cutoff = rarest_first_priority_cutoff
+
+        # total number of pieces
         self.numpieces = numpieces
+
+        # pieces we have started to download (in transit)
         self.started = []
+
+        # !!! the following statistics involve peers, and exclude seeds !!!
+
+        # total number of pieces owned by peers
         self.totalcount = 0
+
+        # how many pees have a certain piece
         self.numhaves = [0] * numpieces
+
+        # priority of each peace; -1 to avoid downloading it
         self.priority = [1] * numpieces
+
         self.removed_partials = {}
+
+        # self.crosscount[x] = the number of pieces owned by x peers
+        # (inverse of self.numhaves)
         self.crosscount = [numpieces]
+
+        # self.crosscount2[x] = the number of pieces owned by x peers and me
+        # (inverse of self.numhaves[x]+self.has[x])
         self.crosscount2 = [numpieces]
+
+        # whether we have a certain piece
         self.has = [0] * numpieces
+
+        # number of (complete) pieces we got
         self.numgot = 0
+
+        # whether we're done downloading
         self.done = False
+
+        # seeding information
         self.seed_connections = {}
         self.seed_time = None
         self.superseed = False
         self.seeds_connected = 0
+
 # 2fastbt_
         self.helper = helper
         self.rate_predictor = rate_predictor
@@ -47,6 +94,26 @@ class PiecePicker:
         self._init_interests()
 
     def _init_interests(self):
+        """
+        Interests are sets of pieces ordered by priority (0 = high). The
+        priority to the outside world is coarse-grained and is fine-tuned
+        by the number of peers owning a piece.
+
+        The interest level of a piece is self.level_in_interests[piece],
+        which is equal to:
+
+          self.priority[piece] * self.priority_step + self.numhaves[piece].
+
+        Every level is a subset of peers. The placement in the subset
+        with self.pos_interests[piece, so
+
+          piece == self.interests
+                     [self.level_in_interests[piece]]
+                     [self.pos_in_interests[piece]]
+
+        holds. Pieces within the same subset are kept shuffled.
+        """
+
         self.interests = [[] for x in xrange(self.priority_step)]
         self.level_in_interests = [self.priority_step] * self.numpieces
         interests = range(self.numpieces)
@@ -57,6 +124,8 @@ class PiecePicker:
         self.interests.append(interests)
 
     def got_have(self, piece):
+        """ A peer reports to have the given piece. """
+
         self.totalcount+=1
         numint = self.numhaves[piece]
         self.numhaves[piece] += 1
@@ -83,6 +152,8 @@ class PiecePicker:
         self._shift_over(piece, self.interests[numint], self.interests[numint + 1])
 
     def lost_have(self, piece):
+        """ We lost a peer owning the given piece. """
+
         self.totalcount-=1
         numint = self.numhaves[piece]
         self.numhaves[piece] -= 1
@@ -102,14 +173,20 @@ class PiecePicker:
         self._shift_over(piece, self.interests[numint], self.interests[numint - 1])
 
     def _shift_over(self, piece, l1, l2):
+        """ Moves 'piece' from interests list l1 to l2. """
+
         assert self.superseed or (not self.has[piece] and self.priority[piece] >= 0)
         parray = self.pos_in_interests
+
+        # remove piece from l1
         p = parray[piece]
         assert l1[p] == piece
         q = l1[-1]
         l1[p] = q
         parray[q] = p
         del l1[-1]
+
+        # add piece to a random place in l2
         newp = randrange(len(l2)+1)
         if newp == len(l2):
             parray[piece] = len(l2)
@@ -126,6 +203,8 @@ class PiecePicker:
         self.cutoff = max(self.rarest_first_priority_cutoff-self.seeds_connected, 0)
 
     def became_seed(self):
+        """ A peer just became a seed. """
+
         self.got_seed()
         self.totalcount -= self.numpieces
         self.numhaves = [i-1 for i in self.numhaves]
@@ -141,6 +220,7 @@ class PiecePicker:
         self.cutoff = max(self.rarest_first_priority_cutoff-self.seeds_connected, 0)
 
     def requested(self, piece):
+        """ Given piece has been requested or a partial of it is on disk. """
         if piece not in self.started:
             self.started.append(piece)
 
@@ -160,6 +240,7 @@ class PiecePicker:
             pass
 
     def complete(self, piece):
+        """ Succesfully received the given piece. """
         assert not self.has[piece]
         self.has[piece] = 1
         self.numgot += 1
@@ -177,11 +258,33 @@ class PiecePicker:
 # 2fastbt_
     def _next(self, haves, wantfunc, complete_first, helper_con):
 # _2fastbt
+        """ Determine which piece to download next from a peer.
 
+        haves:          set of pieces owned by that peer
+        wantfunc:       custom piece filter
+        complete_first: whether to complete partial pieces first
+        helper_con:
+
+        """
+
+        # First few (rarest_first_cutoff) pieces are selected at random
+        # and completed. Subsequent pieces are downloaded rarest-first.
+
+        # cutoff = True:  random mode
+        #          False: rarest-first mode
         cutoff = self.numgot < self.rarest_first_cutoff
+
+        # whether to complete existing partials first -- do so before the
+        # cutoff, or if forced by complete_first, but not for seeds.
         complete_first = (complete_first or cutoff) and not haves.complete()
+
+        # most interesting piece
         best = None
+
+        # interest level of best piece
         bestnum = 2 ** 30
+
+        # select piece we started to download with best interest index.
         for i in self.started:
 # 2fastbt_
             if haves[i] and wantfunc(i) and (self.helper is None or helper_con or not self.helper.is_ignored(i)):
@@ -189,16 +292,25 @@ class PiecePicker:
                 if self.level_in_interests[i] < bestnum:
                     best = i
                     bestnum = self.level_in_interests[i]
+
         if best is not None:
+            # found a piece -- return it if we are completing partials first
+            # or if there is a cutoff
             if complete_first or (cutoff and len(self.interests) > self.cutoff):
                 return best
+
         if haves.complete():
+            # peer has all pieces - look for any more interesting piece
             r = [ (0, min(bestnum, len(self.interests))) ]
         elif cutoff and len(self.interests) > self.cutoff:
+            # no best piece - start looking for low-priority pieces first
             r = [ (self.cutoff, min(bestnum, len(self.interests))),
                       (0, self.cutoff) ]
         else:
+            # look for the most interesting piece
             r = [ (0, min(bestnum, len(self.interests))) ]
+
+        # select first acceptable piece, best interest index first.
         for lo, hi in r:
             for i in xrange(lo, hi):
                 for j in self.interests[i]:
@@ -206,6 +318,7 @@ class PiecePicker:
                     if haves[j] and wantfunc(j) and (self.helper is None or helper_con or not self.helper.is_ignored(j)):
 # _2fastbt
                         return j
+
         if best is not None:
             return best
         return None
@@ -248,6 +361,8 @@ class PiecePicker:
         return self.done
     
     def bump(self, piece):
+        """ Piece was received but contained bad data? """
+
         l = self.interests[self.level_in_interests[piece]]
         pos = self.pos_in_interests[piece]
         del l[pos]
@@ -260,6 +375,9 @@ class PiecePicker:
             pass
 
     def set_priority(self, piece, p):
+        """ Define the priority with which a piece needs to be downloaded.
+            A priority of -1 means 'do not download'. """
+
         if self.superseed:
             return False    # don't muck with this if you're a superseed
         oldp = self.priority[piece]

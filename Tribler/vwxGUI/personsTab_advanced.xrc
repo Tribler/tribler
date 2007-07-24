@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
+  <object class="wxPanel" name="personsTab_advanced">
+    <pos>0,0</pos>
+    <size>300,350</size>
+    <bg>#ffffff</bg>
+    <object class="wxBoxSizer">
+      <orient>wxVERTICAL</orient>
+      <object class="sizeritem">
+        <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+        <object class="wxBoxSizer">
+          <orient>wxHORIZONTAL</orient>
+          <object class="sizeritem">
+            <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>4</border>
+            <option>0</option>
+            <object class="wxBoxSizer">
+              <orient>wxVERTICAL</orient>
+              <object class="sizeritem">
+                <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>5</border>
+                <option>0</option>
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="sizeritem">
+                    <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                    <border>6</border>
+                    <option>0</option>
+                    <object class="wxStaticText" name="st209cCC">
+                      <style>wxST_NO_AUTORESIZE</style>
+                      <label>last info exchange:</label>
+                      <pos>8,7</pos>
+                      <size>150,18</size>
+                    </object>
+                  </object>
+                  <object class="sizeritem">
+                    <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                    <border>10</border>
+                    <option>0</option>
+                    <object class="wxStaticText" name="lastExchangeField">
+                      <style>wxST_NO_AUTORESIZE</style>
+                      <label>unknown</label>
+                      <pos>158,7</pos>
+                      <size>60,18</size>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>5</border>
+                <option>0</option>
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="sizeritem">
+                    <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                    <border>3</border>
+                    <option>0</option>
+                    <object class="wxStaticText" name="st209cC">
+                      <style>wxST_NO_AUTORESIZE</style>
+                      <label>number of times connected:</label>
+                      <pos>8,25</pos>
+                      <size>150,18</size>
+                    </object>
+                  </object>
+                  <object class="sizeritem">
+                    <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                    <border>4</border>
+                    <option>0</option>
+                    <object class="wxStaticText" name="timesConnectedField">
+                      <label>unknown</label>
+                      <pos>158,43</pos>
+                      <size>60,18</size>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>5</border>
+                <option>0</option>
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="sizeritem">
+                    <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                    <border>3</border>
+                    <option>0</option>
+                    <object class="wxStaticText" name="st209cCCC">
+                      <style>wxST_NO_AUTORESIZE</style>
+                      <label>similarity value:</label>
+                      <pos>8,43</pos>
+                      <size>150,18</size>
+                    </object>
+                  </object>
+                  <object class="sizeritem">
+                    <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                    <border>4</border>
+                    <option>0</option>
+                    <object class="wxStaticText" name="similarityValueField">
+                      <label>unknown</label>
+                      <pos>158,43</pos>
+                      <size>60,18</size>
+                    </object>
+                  </object>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>4</border>
+            <option>1</option>
+            <object class="wxBoxSizer">
+              <orient>wxHORIZONTAL</orient>
+              <object class="spacer">
+                <size>10,10</size>
+                <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                <border>3</border>
+                <option>1</option>
+              </object>
+              <object class="sizeritem">
+                <flag>wxLEFT|wxFIXED_MINSIZE</flag>
+                <border>3</border>
+                <option>0</option>
+                <object class="wxPanel" name="addAsFriend" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                  <pos>240,3</pos>
+                  <size>55,55</size>
+                </object>
+              </object>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="spacer">
+        <size>105,60</size>
+        <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>1</option>
+      </object>
+    </object>
+  </object>
+</resource>

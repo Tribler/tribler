@@ -5,7 +5,7 @@ from BitTornado.piecebuffer import BufferPool
 from threading import Lock
 from time import strftime, localtime
 import os
-from os.path import exists, getsize, getmtime, basename
+from os.path import exists, getsize, getmtime as getmtime_, basename
 from traceback import print_exc
 try:
     from os import fsync
@@ -27,6 +27,10 @@ MAXLOCKRANGE = 3999999999L   # only lock first 4 gig of file
 
 _pool = BufferPool()
 PieceBuffer = _pool.new
+
+def getmtime(path):
+    # On some OS's, getmtime returns a float
+    return int(getmtime_(path))
 
 def dummy_status(fractionDone = None, activity = None):
     pass

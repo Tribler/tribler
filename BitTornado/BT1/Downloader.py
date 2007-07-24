@@ -400,6 +400,9 @@ class SingleDownload(SingleDownloadHelperInterface):
             self.got_choke()    # treat it just like a choke
         return clock() - self.last > self.downloader.snub_time
 
+    def peer_is_complete(self):
+        return self.have.complete()
+
 class Downloader:
     def __init__(self, storage, picker, backlog, max_rate_period,
                  numpieces, chunksize, measurefunc, snub_time,

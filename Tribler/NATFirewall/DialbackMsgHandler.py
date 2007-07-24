@@ -96,6 +96,9 @@ class DialbackMsgHandler:
         
         if DEBUG:
             print >> sys.stderr,"dialback: handleConnection",exc,"v",selversion,"local",locally_initiated
+        if selversion < OLPROTO_VER_THIRD:
+            return True
+        
         if exc is not None:
             try:
                 del self.peers_asked[permid]
@@ -109,9 +112,6 @@ class DialbackMsgHandler:
             # Arno: this means we're externally reachable    
             self.secover_says_reachable()
 
-        if selversion < OLPROTO_VER_THIRD:
-            return True
-            
         if self.consensusip is None:
             self.ntries += 1
             if self.ntries >= MAX_TRIES:

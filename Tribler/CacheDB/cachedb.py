@@ -1,6 +1,11 @@
 # Written by Jie Yang
 # see LICENSE.txt for license information
 
+## TODO: update database V3:
+# TorrentDB: clean relevance, insert time
+# PeerDB: clean similarity, insert time
+# PreferenceDB: clean  permid:torrent_id:{}
+
 """
 Database design
 Value in bracket is the default value
@@ -29,12 +34,18 @@ PeerDB - (MyFriendDB, PreferenceDB, OwnerDB)
         name: str ('unknown')
         last_seen: int (0)
         similarity: int (0)    # [0, 1000]
+        oversion: int(0)    # overlay version, added in 3.7.1
         connected_times: int(0)    # times to connect the peer successfully
-        tried_times: int(0)        # times to attempt to connect the peer
+        #tried_times: int(0)        # times to attempt to connect the peer, removed from 3.7.1
         buddycast_times: int(0)    # times to receive buddycast message
+        last_buddycast_time: int (0)    # from buddycast 3/tribler 3.7
         #relability (uptime, IP fixed/changing)
         #trust: int (0)    # [0, 100]
         #icon: str ('')    # name + '_' + permid[-4:]
+        npeers: int(0)
+        ntorrents: int(0)
+        nprefs: int(0)
+        nqueries: int(0)
     }
 
 TorrentDB - (PreferenceDB, MyPreference, OwnerDB)
@@ -52,12 +63,18 @@ TorrentDB - (PreferenceDB, MyPreference, OwnerDB)
         last_check_time: long (time())
         retry_number: int (0)
         status: str ("unknown")
+        source: str("")
+        inserttime: long (time())
+        progress: float
+        destdir: str("")
     }
 
 PreferenceDB - (PeerDB, TorrentDB)    # other peers' preferences
   preferences.bsd:
     permid:{
-        torrent_id:{}
+        torrent_id:{
+        # 'relevance': int (0), 'rank': int (0), removed from 3.6
+        }
     }
 
 MyPreferenceDB - (TorrentDB)
@@ -104,8 +121,10 @@ home_dir = 'bsddb'
 # Database schema versions (for all databases)
 # 1 = First
 # 2 = Added keys to TorrentDB:  leecher,seeder,category,ignore_number,last_check_time,retry_number,status
+# 3 = Added keys to TorrentDB: source,inserttime
+# 4 = Added keys to PeerDB: npeers, nfiles, nprefs, nqueries
 #
-curr_version = 2
+curr_version = 4
 permid_length = 112
 infohash_length = 20
 torrent_id_length = 20
@@ -188,7 +207,7 @@ def open_db(filename, db_dir='', filetype=db.DB_BTREE, writeback=False):
     #_db = BsdDbShelf(d, writeback=writeback) 
     _db = dbshelve.open(filename, flags=db.DB_THREAD|db.DB_CREATE, 
             filetype=filetype, dbenv=env)
-    return _db
+    return _db, dir
 
 def validDict(data, keylen=0):    # basic requirement for a data item in DB
     if not isinstance(data, dict):
@@ -216,11 +235,15 @@ class BasicDB:    # Should we use delegation instead of inheritance?
     exception_handler = None
         
     def __init__(self, db_dir=''):
-        self.default_item = {'d':1, 'e':'abc', 'f':{'k':'v'}, 'g':[1,'2']} # for test
+        self.default_item = {}    #{'d':1, 'e':'abc', 'f':{'k':'v'}, 'g':[1,'2']} # for test
         if self.__class__ == BasicDB:
             self.db_name = 'basic.bsd'    # for testing
             self.opened = True
-            self._data = open_db(self.db_name, db_dir, filetype=db.DB_HASH)
+            
+            self.db_dir = db_dir
+            self.filetype = db.DB_BTREE
+            self._data, self.db_dir = open_db(self.db_name, self.db_dir, filetype=self.filetype)
+        
             #raise NotImplementedError, "Cannot create object of class BasicDB"
     
 #------------ Basic interfaces, used by member func and handlers -------------#
@@ -238,7 +261,9 @@ class BasicDB:    # Should we use delegation instead of inheritance?
                 self.threadnames[name] += 1
                 print >> sys.stderr, "cachedb: put", len(self.threadnames), name, \
                     self.threadnames[name], time(), self.__class__.__name__
-                    
+            if not value and type(value) == dict:
+                raise Exception('Warning someone tries to insert empty data in db: %s:%s'% (key, value))
+            
             dbutils.DeadlockWrap(self._data.put, key, value, max_retries=MAX_RETRIES)
             #self._data.put(key, value)
         except:
@@ -248,18 +273,30 @@ class BasicDB:    # Should we use delegation instead of inheritance?
         try:
             return dbutils.DeadlockWrap(self._data.has_key, key, max_retries=MAX_RETRIES)
             #return self._data.has_key(key)
-        except:
+        except Exception, e:
+            print >> sys.stderr, "cachedb: _has_key EXCEPTION BY",currentThread().getName(), Exception, e, self.db_name, `key`
             return False
     
     def _get(self, key, value=None):    # read
         try:
+            #if self.db_name == 'torrents.bsd':
+            #    self.count += 1
+            #    if self.count % 3000 == 0:
+            #        print "GET"
+            #        print_stack()
+            
             return dbutils.DeadlockWrap(self._data.get, key, value, max_retries=MAX_RETRIES)
             #return self._data.get(key, value)
+#        except db.DBRunRecoveryError, e:
+#            print >> sys.stderr, "cachedb: Sorry, meet DBRunRecoveryError at get, have to remove the whole database", self.db_name
+#            self.report_exception(e)
+#            self._recover_db()    # have to clear the whole database
         except Exception,e:
-            print >> sys.stderr, "cachedb: _get EXCEPTION BY",currentThread().getName()
-            print_exc()
+            print >> sys.stderr, "cachedb: _get EXCEPTION BY",currentThread().getName(), Exception, e, self.db_name, `key`, value
+            if value is not None:
+                return value
             self.report_exception(e)
-            return value
+            return None
         
     def _updateItem(self, key, data):
         try:
@@ -288,21 +325,49 @@ class BasicDB:    # Should we use delegation instead of inheritance?
             pass
 
     def _sync(self):            # write data from mem to disk
-        dbutils.DeadlockWrap(self._data.sync, max_retries=MAX_RETRIES)
-        #self._data.sync()
+        try:
+            dbutils.DeadlockWrap(self._data.sync, max_retries=MAX_RETRIES)
+#        except db.DBRunRecoveryError, e:
+#            print >> sys.stderr, "cachedb: Sorry, meet DBRunRecoveryError at sync, have to remove the whole database", self.db_name
+#            self.report_exception(e)
+#            self._recover_db()    # have to clear the whole database
+        except Exception, e:
+            #print >> sys.stderr, "cachedb: synchronize db error", self.db_name, Exception, e
+            self.report_exception(e)
             
     def _clear(self):
         dbutils.DeadlockWrap(self._data.clear, max_retries=MAX_RETRIES)
         #self._data.clear()
     
+#===============================================================================
+#    def _recover_db(self):
+#        path = os.path.join(self.db_dir, self.db_name)
+#        try:
+#            self._data.close()
+#            print >> sys.stderr, "cachedb: closed and removing database", path
+#            os.remove(path)
+#            print >> sys.stderr, "cachedb: removed database", path
+#            self._data, self.db_dir = open_db(self.db_name, self.db_dir, filetype=self.filetype)    # reopen
+#            print >> sys.stderr, "cachedb: database is removed and reopened successfully", path
+#        except Exception, msg:
+#            print_exc()
+#            print >> sys.stderr, "cachedb: cannot remove the database", path, Exception, msg
+#===============================================================================
+    
     def _keys(self):
-        return dbutils.DeadlockWrap(self._data.keys, max_retries=MAX_RETRIES)
-        #return self._data.keys()
+        try:
+            return dbutils.DeadlockWrap(self._data.keys, max_retries=MAX_RETRIES)
+            #return self._data.keys()
+        except Exception,e:
+            print >> sys.stderr, "cachedb: _keys EXCEPTION BY", currentThread().getName(), self.db_name
+            #print_exc()
+            self.report_exception(e)
+            return []
     
     def _values(self):
         return dbutils.DeadlockWrap(self._data.values, max_retries=MAX_RETRIES)
         #return self._data.values()
-    
+
     def _items(self):
         return dbutils.DeadlockWrap(self._data.items, max_retries=MAX_RETRIES)
         #return self._data.items()
@@ -315,6 +380,13 @@ class BasicDB:    # Should we use delegation instead of inheritance?
             print_exc()
             print >> sys.stderr, "cachedb: cachedb.BasicDB._size error", self.__class__.__name__
             return 0
+
+    def _iteritems(self):
+        try:
+            return dbutils.DeadlockWrap(self._data.iteritems, max_retries=MAX_RETRIES)
+        except:
+            print_exc()
+            print >> sys.stderr, "cachedb: cachedb.BasicDB._iteritems error", self.__class__.__name__
     
     def close(self):
         if DEBUG:
@@ -339,6 +411,7 @@ class BasicDB:    # Should we use delegation instead of inheritance?
         return df
     
     def report_exception(self,e):
+        #return  # Jie: don't show the error window to bother users
         if BasicDB.exception_handler is not None:
             BasicDB.exception_handler(e)
     
@@ -352,7 +425,11 @@ class MyDB(BasicDB):
             raise RuntimeError, "MyDB is singleton"
         self.db_name = 'mydata.bsd'
         self.opened = True
-        self._data = open_db(self.db_name, db_dir, filetype=db.DB_HASH)    # dbshelve object
+        
+        self.db_dir = db_dir
+        self.filetype = db.DB_HASH
+        self._data, self.db_dir = open_db(self.db_name, self.db_dir, filetype=self.filetype)
+
         MyDB.__single = self 
         self.default_data = {
             'version':curr_version, 
@@ -370,6 +447,7 @@ class MyDB(BasicDB):
         }
         self.preload_keys = ['ip', 'torrent_path', 'permid']    # these keys can be changed at each bootstrap
         self.initData(myinfo)
+        self.friend_set = Set(self._get('friends'))
             
     def getInstance(*args, **kw):
         if MyDB.__single is None:
@@ -404,9 +482,9 @@ class MyDB(BasicDB):
             MyDB.__single._put('version', curr_version)
         elif old_version < curr_version:
             db.updateDB(old_version)
-        elif old_version > curr_version:
+        #elif old_version > curr_version:
             #FIXME: user first install 3.4.0, then 3.5.0. Now he cannot reinstall 3.4.0 anymore
-            raise RuntimeError, "The version of database is too high. Please update the software."
+        #    raise RuntimeError, "The version of database is too high. Please update the software."
     checkVersion = staticmethod(checkVersion)
     
     def updateDBVersion(db):
@@ -448,17 +526,19 @@ class MyDB(BasicDB):
             fr = self._get('friends')
             fr.add(permid)
             self._put('friends', fr)
+            self.friend_set = Set(fr)
             
     def deleteFriend(self, permid):
         try:
             fr = self._get('friends')
             fr.remove(permid)
             self._put('friends', fr)
+            self.friend_set = Set(fr)
         except:
             pass
             
     def isFriend(self, permid):
-        return permid in self._get('friends')
+        return permid in self.friend_set
     
     def getFriends(self):
         friends = self._get('friends')
@@ -478,9 +558,14 @@ class PeerDB(BasicDB):
             raise RuntimeError, "PeerDB is singleton"
         self.db_name = 'peers.bsd'
         self.opened = True
-        self._data = open_db(self.db_name, db_dir)    # dbshelve object
+        
+        self.db_dir = db_dir
+        self.filetype = db.DB_BTREE
+        self._data, self.db_dir = open_db(self.db_name, self.db_dir, filetype=self.filetype)
+        
         MyDB.checkVersion(self)
         PeerDB.__single = self
+        self.num_encountered_peers = -100
         self.default_item = {
             'ip':'',
             'port':0,
@@ -488,13 +573,17 @@ class PeerDB(BasicDB):
             'last_seen':0,
             'similarity':0,
             'connected_times':0,
-            'tried_times':0,
+            'oversion':0,   # overlay version
             'buddycast_times':0,
+            'last_buddycast_time':0,
             #'trust':50,
             #'reliability':
             #'icon':'',
+            'npeers':0,
+            'ntorrents':0,
+            'nprefs':0,
+            'nqueries':0
         }
-        self.new_encountered_peer = True
         
     def getInstance(*args, **kw):
         if PeerDB.__single is None:
@@ -529,6 +618,10 @@ class PeerDB(BasicDB):
         self._delete(permid)
         
     def getItem(self, permid, default=False):
+        """ Arno: At the moment we keep a copy of the PeerDB in memory,
+         see Tribler.vwxGUI.peermanager. This class, however, already converts
+         the records using the save-memory by sharing key strings trick (see 
+         TorrentDB) so there's no need to have that here. """
         ret = self._get(permid, None)
         if ret is None and default:
             ret = deepcopy(self.default_item)
@@ -537,8 +630,16 @@ class PeerDB(BasicDB):
     def hasItem(self, permid):
         return self._has_key(permid)
         
-    def hasNewEncounteredPeer(self, v):
-        self.new_encountered_peer = v
+    def updateDB(self, old_version):
+        if old_version == 1 or old_version == 2 or old_version == 3:
+            def_newitem = {
+                'npeers': 0,
+                'ntorrents': 0,
+                'nprefs': 0,
+                'nqueries':0 }
+            keys = self._keys()
+            for key in keys:
+                self._updateItem(key, def_newitem)
 
 
 class TorrentDB(BasicDB):
@@ -551,7 +652,11 @@ class TorrentDB(BasicDB):
             raise RuntimeError, "TorrentDB is singleton"
         self.db_name = 'torrents.bsd'
         self.opened = True
-        self._data = open_db(self.db_name, db_dir)    # dbshelve object
+
+        self.db_dir = db_dir
+        self.filetype = db.DB_BTREE
+        self._data, self.db_dir = open_db(self.db_name, self.db_dir, filetype=self.filetype)
+
         MyDB.checkVersion(self)
         TorrentDB.__single = self
         self.default_item = {
@@ -565,17 +670,24 @@ class TorrentDB(BasicDB):
             'ignore_number': 0,
             'last_check_time': 0,
             'retry_number': 0,
-            'status': 'unknown'
+            'status': 'unknown',
+            'source': '',
+            'inserttime': 0,
+            'progress': 0.0,
+            'destdir':''
         }
-        self.new_metadata = True
+        self.infokey = 'info'
+        self.infokeys = ['name','creation date','num_files','length','announce','announce-list']
+#        self.num_metadatalive = -100
         
     def getInstance(*args, **kw):
         if TorrentDB.__single is None:
             TorrentDB(*args, **kw)
         return TorrentDB.__single
     getInstance = staticmethod(getInstance)
-    
+
     def updateItem(self, infohash, item={}):    # insert a torrent; update it if existed
+        
         if isValidInfohash(infohash) and validDict(item):
             if self._has_key(infohash):
                 _item = self.getItem(infohash)
@@ -591,15 +703,26 @@ class TorrentDB(BasicDB):
     def deleteItem(self, infohash):
         self._delete(infohash)
         
-    def getItem(self, infohash, default=False):
+    def getItem(self, infohash, default=False,savemem=False):
+        """ Arno: At the moment we keep a copy of the TorrentDB in memory,
+         see Tribler.vwxGUI.torrentManager. A lot of memory can be saved
+         by reusing/sharing the strings of the keys in the database records (=dicts).
+         When the savemem option is enabled, the dict returned will have the
+         key strings of the self.default_item. """
         ret = self._get(infohash, None)
         if ret is None and default:
             ret = deepcopy(self.default_item)
+        if savemem:
+            newret = {}
+            for key in self.default_item:
+                newret[key] = ret[key]
+            newinfo = {}
+            for key in self.infokeys:
+                newinfo[key] = ret['info'][key]
+            newret[self.infokey] = newinfo
+            return newret
         return ret
     
-    def hasNewMetadata(self, v):
-        self.new_metadata = v
-        
     def updateDB(self, old_version):
         if old_version == 1:
             def_newitem = {
@@ -613,6 +736,16 @@ class TorrentDB(BasicDB):
             keys = self._keys()
             for key in keys:
                 self._updateItem(key, def_newitem)
+        if old_version == 1 or old_version == 2:
+            def_newitem = {
+                'source': '',
+                'inserttime': 0,
+                'progress': 0.0,
+                'destdir':''}
+            keys = self._keys()
+            for key in keys:
+                self._updateItem(key, def_newitem)
+            
     
 class PreferenceDB(BasicDB):
     """ Peer * Torrent """
@@ -624,7 +757,11 @@ class PreferenceDB(BasicDB):
             raise RuntimeError, "PreferenceDB is singleton"
         self.db_name = 'preferences.bsd'
         self.opened = True
-        self._data = open_db(self.db_name, db_dir)    # dbshelve object
+        
+        self.db_dir = db_dir
+        self.filetype = db.DB_BTREE
+        self._data, self.db_dir = open_db(self.db_name, self.db_dir, filetype=self.filetype)
+        
         MyDB.checkVersion(self)
         PreferenceDB.__single = self 
         self.default_item = {    # subitem actually
@@ -691,7 +828,11 @@ class MyPreferenceDB(BasicDB):     #  = FileDB
             raise RuntimeError, "TorrentDB is singleton"
         self.db_name = 'mypreferences.bsd'
         self.opened = True
-        self._data = open_db(self.db_name, db_dir)    # dbshelve object
+        
+        self.db_dir = db_dir
+        self.filetype = db.DB_BTREE
+        self._data, self.db_dir = open_db(self.db_name, self.db_dir, filetype=self.filetype)
+        
         MyDB.checkVersion(self)
         MyPreferenceDB.__single = self 
         self.default_item = {
@@ -730,6 +871,9 @@ class MyPreferenceDB(BasicDB):     #  = FileDB
         if ret is None and default:
             ret = deepcopy(self.default_item)
         return ret
+
+    def hasPreference(self, infohash):
+        return self._has_key(infohash)
     
     def getRank(self, infohash):
         v = self._get(infohash)
@@ -748,7 +892,11 @@ class OwnerDB(BasicDB):
             raise RuntimeError, "OwnerDB is singleton"
         self.db_name = 'owners.bsd'
         self.opened = True
-        self._data = open_db(self.db_name, db_dir)    # dbshelve object
+        
+        self.db_dir = db_dir
+        self.filetype = db.DB_BTREE
+        self._data, self.db_dir = open_db(self.db_name, self.db_dir, filetype=self.filetype)
+        
         OwnerDB.__single = self 
                 
     def getInstance(*args, **kw):
@@ -804,3 +952,31 @@ class OwnerDB(BasicDB):
         else:
             return []
                     
+
+#===============================================================================
+# class ActionDB(BasicDB):
+#    
+#    __single = None
+#    
+#    def __init__(self, db_dir=''):
+#        if ActionDB.__single:
+#            raise RuntimeError, "ActionDB is singleton"
+#        self.db_name = 'actions.bsd'
+#        self.opened = True
+#        env = db.DBEnv()
+#        # Concurrent Data Store
+#        env.open(db_dir, db.DB_THREAD|db.DB_INIT_CDB|db.DB_INIT_MPOOL|db.DB_CREATE|db.DB_PRIVATE)
+#        self._data = db.DB(dbEnv=env)
+#        self._data.open(self.filename, db.DB_RECNO, db.DB_CREATE)
+#        ActionDB.__single = self 
+#                
+#    def getInstance(*args, **kw):
+#        if ActionDB.__single is None:
+#            ActionDB(*args, **kw)
+#        return ActionDB.__single
+#    getInstance = staticmethod(getInstance)
+#===============================================================================
+    
+    
+        
+        

@@ -378,8 +378,24 @@ class SocketHandler:
                     if DEBUG:
                         print >> sys.stderr,"SocketHandler: Got event, close server socket"
                     self.poll.unregister(s)
-                    s.close()
+                    if not is_udp_socket(s):
+                        s.close()
                     del self.servers[sock]
+                elif is_udp_socket(s):
+                    try:
+                        (data,addr) = s.recvfrom(8192)
+                        if not data:
+                            if DEBUG:
+                                print >> sys.stderr,"SocketHandler: UDP no-data",addr
+                        else:
+                            if DEBUG:
+                                print >> sys.stderr,"SocketHandler: Got UDP data",addr,"len",len(data)
+                            self.handlerudp.data_came_in(addr, data)
+                            
+                    except socket.error, e:
+                        if DEBUG:
+                            print >> sys.stderr,"SocketHandler: UDP Socket error",str(e)
+                        pass
                 elif len(self.single_sockets) < self.max_connects:
                     try:
                         newsock, addr = s.accept()
@@ -486,3 +502,24 @@ class SocketHandler:
             except:
                 pass
 
+    #
+    # Interface for Khasmir, called from RawServer
+    #
+    #
+    def create_udpsocket(self,port,host):
+        server = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+        server.bind((host,port))
+        self.servers[server.fileno()] = server
+        server.setblocking(0)
+        return server
+        
+    def start_listening_udp(self,serversocket,handler):
+        self.handlerudp = handler
+        self.poll.register(serversocket, POLLIN)
+    
+    def stop_listening_udp(self,serversocket):
+        del self.servers[serversocket.fileno()]
+        
+
+def is_udp_socket(sock):
+    return sock.getsockopt(socket.SOL_SOCKET,socket.SO_TYPE) == socket.SOCK_DGRAM

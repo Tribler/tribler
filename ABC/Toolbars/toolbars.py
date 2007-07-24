@@ -89,14 +89,16 @@ class ABCStatusBar(wx.StatusBar):
         style = wx.ST_SIZEGRIP | wx.CLIP_CHILDREN
         
         wx.StatusBar.__init__(self, parent, -1, style = style)
-        self.SetFieldsCount(5)
-        self.SetStatusWidths([-1, 130, 130, 120, 140])
+        self.SetFieldsCount(6)
+        #self.SetStatusWidths([-1, 120, 120, 100, 100])
+        self.SetStatusWidths([20, -1, 130, 130, 120, 140])
+        self.SetStatusText( '', 0)
 
     def setActivity(self,type,msg=u''):
     
-        if currentThread().getName() != "MainThread":
-            print "setActivity thread",currentThread().getName(),"is NOT MAIN THREAD"
-            print_stack()
+#        if currentThread().getName() != "MainThread":
+#            print "setActivity thread",currentThread().getName(),"is NOT MAIN THREAD"
+#            print_stack()
     
         if type == ACT_NONE:
             prefix = u''
@@ -110,9 +112,11 @@ class ABCStatusBar(wx.StatusBar):
         elif type == ACT_MEET:
             prefix = self.utility.lang.get('act_meet')
         elif type == ACT_GOT_METADATA:
-           prefix = self.utility.lang.get('act_got_metadata')
+            prefix = self.utility.lang.get('act_got_metadata')
         elif type == ACT_RECOMMEND:
-           prefix = self.utility.lang.get('act_recommend')
+            prefix = self.utility.lang.get('act_recommend')
+        elif type == ACT_DISK_FULL:
+            prefix = self.utility.lang.get('act_disk_full')            
 
         if msg == u'':
             text = prefix
@@ -121,7 +125,7 @@ class ABCStatusBar(wx.StatusBar):
             
         if DEBUG:
             print "act: Setting activity", `text`
-        self.SetStatusText( text, 0)
+        self.SetStatusText( text, 1)
 
 ##############################################################
 #
@@ -207,7 +211,7 @@ class ABCMenuBar(wx.MenuBar):
             menu.Destroy()
         
         items = [ACTION_FILEMENU, 
-                 ACTION_TORRENTACTIONMENU, 
+                 #ACTION_TORRENTACTIONMENU, 
                  ACTION_TOOLSMENU, 
                  ACTION_VERSIONMENU]
         for item in items:

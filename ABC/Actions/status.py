@@ -5,7 +5,9 @@ import wx
 from ABC.Actions.actionbase import ABCAction
 
 from Utility.constants import * #IGNORE:W0611
+from Tribler.Video.VideoPlayer import VideoPlayer
               
+DEBUG = False
 
 ################################
 # 
@@ -79,6 +81,29 @@ class Resume(ABCAction):
         self.utility.actionhandler.procRESUME(list.getTorrentSelected())
         list.SetFocus()
 
+
+################################
+# 
+################################
+class Play(ABCAction):
+    def __init__(self, utility):
+        ABCAction.__init__(self, 
+                           utility, 
+                           'play.bmp', 
+                           'tb_play_short', 
+                           menudesc = 'rPlay')
+                           
+    def action(self, event = None):
+        list = self.utility.window.getSelectedList()
+        torrents = list.getTorrentSelected()
+        if DEBUG:
+            print >>sys.stderr,"Play action: called, selected torrents is",torrents
+        if len(torrents) == 1:
+            vp = VideoPlayer.getInstance()
+            vp.play(torrents[0])
+            list.SetFocus()
+        elif DEBUG:
+            print >>sys.stderr,"Play action: no or multiple torrents selected"
 
 ################################
 # 

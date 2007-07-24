@@ -51,8 +51,11 @@ class AddTorrentMenu(ABCActionMenu):
 ################################
 class FileMenu(ABCActionMenu):
     def __init__(self, utility):
-        subactions = [ACTION_ADDTORRENTMENU, 
-                      ACTION_MYINFO,
+        subactions = [#ACTION_ADDTORRENTMENU, 
+                      #ACTION_MYINFO,
+                      ACTION_ADDTORRENT, 
+                      ACTION_ADDTORRENTNONDEFAULT, 
+                      ACTION_ADDTORRENTURL,
                       ACTION_PREFERENCES, 
                       -1, 
                       ACTION_EXIT]

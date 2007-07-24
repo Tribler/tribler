@@ -72,3 +72,9 @@ def name2unicode(metadata):
         metadata['info']['name'] = metadata['info'][namekey ]
 
     return namekey
+
+
+def unicode2str(s):
+    if not isinstance(s,unicode):
+        return s
+    return s.encode(sys.getfilesystemencoding())

@@ -2,11 +2,29 @@ Source: tribler
 Section: net
 Priority: optional
 Maintainer: Arno Bakker <arno@cs.vu.nl>
-Standards-Version: 3.6.2.0
+Standards-Version: 3.7.2
+Build-Depends: python, debhelper (>= 5.0.37.2), devscripts
 
 Package: tribler
 Architecture: all
-Depends: python2.4, python-wxgtk2.6, python2.4-m2crypto-ec
-Description: The fastest way of social file sharing
+Depends: python, python-wxgtk2.6, python-m2crypto, vlc, ffmpeg
+Description: Python based Bittorrent/Internet TV application
+ It allows you to watch videos and download
+ content. Tribler aims to combine the ease of
+ Youtube.com with the performance of peer-to-peer.
+ .
+ Tribler is backwards compatible with the Bittorrent
+ download protocol. To discover interesting content
+ standard RSS feeds with .torrent links are supported
+ plus the "Tribe protocol" which automatically scans
+ the network for available Bittorrent swarms upon
+ startup. Tribler uses an embedded web browser to
+ access video clips of Youtube.com and Liveleak.com
+ Other features are "People who like this also like"
+ for recommending related swarms, the ability to
+ make friends, and to donate idle upload capacity
+ to friends. The later can improve download speed
+ by a factor of two on asymmetric Internet links.
+ The fastest way of social file sharing
  .
  Homepage: http://www.tribler.org

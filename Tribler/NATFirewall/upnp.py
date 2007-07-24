@@ -9,96 +9,6 @@
 #     * WANIPConnection:1 Service Template Version 1.01
 #
 
-"""
-#
-# OLD CODE USING ZIS Web Service Toolkit (couldn't get that to work:
-# I couldn't get it to mark the method as coming from the 
-# "urn:schemas-upnp-org:service:WANIPConnection:1" namespace)
-#        
-        #endpoint = location+self.services[location]['controlurl']
-        o = urlparse(location)
-        print o
-        endpoint = o[0]+'://'+o[1]+self.services[location]['controlurl']
-        print >> sys.stderr,"endpoint is",endpoint
-        namespace = servicetype
-        soapaction = servicetype+'#GetExternalIPAddress'
-        #server = SOAPProxy(endpoint, namespace)
-        #print >> sys.stderr,"external IP", server._sa(soapaction).GetExternalIPAddress()
-        print >> sys.stderr,"Trying to SOAP call",endpoint
-        #b = Binding(url=endpoint, soapaction=soapaction, nsdict={'m':namespace}, tracefile=sys.stdout)
-        b = Binding(url=endpoint, soapaction=soapaction, tracefile=sys.stdout)
-        #b.SetNS(namespace)
-        rsp = b.GetExternalIPAddress()
-        print >> sys.stderr,"soap response is",rsp
-    except:
-        print_exc(file=sys.stderr)
-        pass
-
-        #endpoint = location+self.services[location]['controlurl']
-        endpoint = 'http://comet.cs.vu.nl:37000/'
-        namespace = servicetype
-        soapaction = servicetype+'#GetExternalIPAddress'
-        #server = SOAPProxy(endpoint, namespace)
-        #print >> sys.stderr,"external IP", server._sa(soapaction).GetExternalIPAddress()
-        print >> sys.stderr,"Trying to SOAP call",endpoint
-        b = Binding(url=endpoint, soapaction=soapaction, nsdict={'m':namespace}, tracefile=sys.stdout)
-        #b.SetNS(namespace)
-        rsp = b.GetExternalIPAddress()
-        print >> sys.stderr,"soap response is",rsp
-    except:
-        print_exc(file=sys.stderr)
-        pass
-
-
-    print >> sys.stderr,"LOC=",location,"=LOC"
-    o = urlparse(location)
-    print o
-    endpoint = o[0]+'://'+o[1]+self.services[location]['controlurl']
-    print >> sys.stderr,"endpoint is",endpoint
-    namespace = servicetype
-
-    headers = {}
-    #headers['Host'] = endpoint
-    #headers['Accept-Encoding'] = 'identity'
-    headers['Content-type'] = 'text/xml; charset="utf-8"'
-    headers['SOAPAction'] = '"urn:schemas-upnp-org:service:WANIPConnection:1#GetExternalIPAddress"'
-    headers['User-Agent'] = 'Mozilla/4.0 (compatible; UPnP/1.0; Windows 9x)'
-
-    body = ''
-    body += '<?xml version="1.0"?>'
-    body += '<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"'
-    body += ' SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">'
-    body += '<SOAP-ENV:Body><m:GetExternalIPAddress xmlns:m="urn:schemas-upnp-org:service:WANIPConnection:1">'
-    #body += '<NewRemoteHost xmlns:dt="urn:schemas-microsoft-com:datatypes" dt:dt="string"></NewRemoteHost><NewExternalPort xmlns:dt="urn:schemas-microsoft-com:datatypes" dt:dt="ui2">5210</NewExternalPort><NewProtocol xmlns:dt="urn:schemas-microsoft-com:datatypes" dt:dt="string">TCP</NewProtocol>'
-    body += '</m:GetExternalIPAddress></SOAP-ENV:Body>'
-    body += '</SOAP-ENV:Envelope>'
-
-    print body
-    try:
-        req = urllib2.Request(url=endpoint,data=body,headers=headers)
-        f = urllib2.urlopen(req)
-        print f.read()
-    except urllib2.HTTPError,e:
-        print >> sys.stderr,"READING",e.fp.read()
-
-
-
-    body += '<SOAP-ENV:Envelope xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/"'
-    body += ' xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"'
-    body += ' xmlns:ZSI="http://www.zolera.com/schemas/ZSI/"'
-    #body += ' xmlns:m="urn:schemas-upnp-org:service:WANIPConnection:1"'
-    body += ' xmlns:xsd="http://www.w3.org/2001/XMLSchema"'
-    body += ' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
-    body += ' SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">'
-    body += '<SOAP-ENV:Header></SOAP-ENV:Header>'
-    #body += '<SOAP-ENV:Body><m:GetExternalIPAddress></m:GetExternalIPAddress></SOAP-ENV:Body>'
-    #body += '<SOAP-ENV:Body><m:GetExternalIPAddress xmlns:m="'+namespace+'"></m:GetExternalIPAddress></SOAP-ENV:Body>'
-    body += '<SOAP-ENV:Body><GetExternalIPAddress></GetExternalIPAddress></SOAP-ENV:Body>'
-    body += '</SOAP-ENV:Envelope>'
-
-"""
-
-
 import sys
 import socket
 from cStringIO import StringIO
@@ -111,7 +21,7 @@ from traceback import print_exc
 
 UPNP_WANTED_SERVICETYPES = ['urn:schemas-upnp-org:service:WANIPConnection:1','urn:schemas-upnp-org:service:WANPPPConnection:1']
 
-DEBUG = 0
+DEBUG = False
 
 class UPnPPlatformIndependent:
 
@@ -171,7 +81,7 @@ class UPnPPlatformIndependent:
 
         except:
             if DEBUG:
-                print_exc(file=sys.stderr)
+                print_exc()
 
     def found_wanted_services(self):
         """ Return True if WANIPConnection or WANPPPConnection were found by discover() """
@@ -182,25 +92,25 @@ class UPnPPlatformIndependent:
         return False
         
 
-    def add_port_map(self,internalip,port):
+    def add_port_map(self,internalip,port,iproto='TCP'):
         """ Sends an AddPortMapping request to all relevant IGDs found by discover()
             
             Raises UPnPError in case the IGD returned an error reply,
             Raises Exception in case of any other error
         """
-        srch = self.do_soap_request('AddPortMapping',port,internalip)
+        srch = self.do_soap_request('AddPortMapping',port,iproto=iproto,internalip=internalip)
         if srch is not None:
             se = srch.get_error()
             if se is not None:
                 raise se
 
-    def del_port_map(self,port):
+    def del_port_map(self,port,iproto='TCP'):
         """ Sends a DeletePortMapping request to all relevant IGDs found by discover()
 
             Raises UPnPError in case the IGD returned an error reply,
             Raises Exception in case of any other error
         """
-        srch = self.do_soap_request('DeletePortMapping',port)
+        srch = self.do_soap_request('DeletePortMapping',port,iproto=iproto)
         if srch is not None:
             se = srch.get_error()
             if se is not None:
@@ -223,7 +133,7 @@ class UPnPPlatformIndependent:
     #
     # Internal methods
     #
-    def do_soap_request(self,methodname,port=-1,internalip=None):
+    def do_soap_request(self,methodname,port=-1,iproto='TCP',internalip=None):
         for location in self.services:
             for servicetype in UPNP_WANTED_SERVICETYPES:
                 if self.services[location]['servicetype'] == servicetype:
@@ -233,7 +143,7 @@ class UPnPPlatformIndependent:
                     #endpoint = o[0]+'://'+o[1]+'/bla'+self.services[location]['controlurl']
                     if DEBUG:
                         print >> sys.stderr,"upnp: "+methodname+": Talking to endpoint ",endpoint
-                    (headers,body) = self.create_soap_request(methodname,port,internalip)
+                    (headers,body) = self.create_soap_request(methodname,port,iproto=iproto,internalip=internalip)
                     #print body
                     try:
                         req = urllib2.Request(url=endpoint,data=body,headers=headers)
@@ -242,7 +152,7 @@ class UPnPPlatformIndependent:
                     except urllib2.HTTPError,e:
                         resp = e.fp.read()
                         if DEBUG:
-                            print_exc(file=sys.stderr)
+                            print_exc()
                     srch = SOAPResponseContentHandler(methodname)
                     if DEBUG:
                         print >> sys.stderr,"upnp: "+methodname+": response is",resp
@@ -270,7 +180,7 @@ class UPnPPlatformIndependent:
         dch.parse(desc)
         return dch.services
 
-    def create_soap_request(self,methodname,port=-1,internalip=None):
+    def create_soap_request(self,methodname,port=-1,iproto="TCP",internalip=None):
         headers = {}
         #headers['Host'] = endpoint
         #headers['Accept-Encoding'] = 'identity'
@@ -289,7 +199,7 @@ class UPnPPlatformIndependent:
             internalclient = internalip
             body += '<NewRemoteHost xmlns:dt="urn:schemas-microsoft-com:datatypes" dt:dt="string"></NewRemoteHost>'
             body += '<NewExternalPort xmlns:dt="urn:schemas-microsoft-com:datatypes" dt:dt="ui2">'+str(externalport)+'</NewExternalPort>'
-            body += '<NewProtocol xmlns:dt="urn:schemas-microsoft-com:datatypes" dt:dt="string">TCP</NewProtocol>'
+            body += '<NewProtocol xmlns:dt="urn:schemas-microsoft-com:datatypes" dt:dt="string">'+iproto+'</NewProtocol>'
             body += '<NewInternalPort xmlns:dt="urn:schemas-microsoft-com:datatypes" dt:dt="ui2">'+str(internalport)+'</NewInternalPort>'
             body += '<NewInternalClient xmlns:dt="urn:schemas-microsoft-com:datatypes" dt:dt="string">'+internalclient+'</NewInternalClient>'
             body += '<NewEnabled xmlns:dt="urn:schemas-microsoft-com:datatypes" dt:dt="boolean">1</NewEnabled>'
@@ -299,7 +209,7 @@ class UPnPPlatformIndependent:
             externalport = port
             body += '<NewRemoteHost xmlns:dt="urn:schemas-microsoft-com:datatypes" dt:dt="string"></NewRemoteHost>'
             body += '<NewExternalPort xmlns:dt="urn:schemas-microsoft-com:datatypes" dt:dt="ui2">'+str(externalport)+'</NewExternalPort>'
-            body += '<NewProtocol xmlns:dt="urn:schemas-microsoft-com:datatypes" dt:dt="string">TCP</NewProtocol>'
+            body += '<NewProtocol xmlns:dt="urn:schemas-microsoft-com:datatypes" dt:dt="string">'+iproto+'</NewProtocol>'
         body += '</m:'+methodname+'></SOAP-ENV:Body>'
         body += '</SOAP-ENV:Envelope>'
         return (headers,body)

@@ -4,7 +4,8 @@
 import wx
 from socket import inet_aton, inet_ntoa
 
-from Tribler.CacheDB.CacheDBHandler import PeerDBHandler, FriendDBHandler, PreferenceDBHandler
+from Tribler.CacheDB.CacheDBHandler import FriendDBHandler, PreferenceDBHandler
+from Tribler.CacheDB.SynDBHandler import SynPeerDBHandler as PeerDBHandler
 from Tribler.utilities import friendly_time, sort_dictlist
 from Tribler.unicode import str2unicode
 from common import CommonTriblerList

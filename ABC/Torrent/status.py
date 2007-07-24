@@ -2,7 +2,6 @@ import sys
 
 from Utility.constants import * #IGNORE:W0611
 
-
 ################################################################
 #
 # Class: TorrentStatus
@@ -19,9 +18,24 @@ class TorrentStatus:
         self.value = STATUS_QUEUE
         self.completed = False
         self.dontupdate = True # Don't update until the list item is created
-
-    def getStatusText(self):
-        value = self.value
+        self.havedigest = None
+        self.lastStopped = 0
+        self.lastCheckFinished = None
+        
+        
+    def getStatusText(self, otherValue = None):
+        if otherValue:
+            value = otherValue
+        else:
+            value = self.value
+        
+        if self.torrent.caller_data is not None:
+            if self.torrent.caller_data.has_key('coordinator_permid'):
+                permid = self.torrent.caller_data['coordinator_permid']
+                peer = self.utility.peer_db.getPeer(permid)    
+                if peer is not None:
+                    status = "helping "+peer['name']
+                    return status
         
         if self.isActive():
             if value == STATUS_PAUSE:
@@ -103,13 +117,39 @@ class TorrentStatus:
             # Was finished before, but isn't now
             self.value = STATUS_QUEUE
             
-        self.torrent.updateColumns([COL_BTSTATUS])
+        self.torrent.updateColumns([COL_BTSTATUS]) #GUI
         
         return finished
         
     def updateStatus(self, value, update = True):
         if value != self.value:
             self.value = value
+            #print 'Status updated to', self.getStatusText()
             if update:
                 self.torrent.torrentconfig.writeStatus()
+                        
+    def checkJustFinished(self):
+        "Check if the torrent finished between the last check and now"
         
+        status = self.getStatusText()
+        if status in [self.utility.lang.get('completedseeding'), self.utility.lang.get('completed')] and \
+            self.lastCheckFinished != status:
+            self.lastCheckFinished = status
+            #print 'check finished: now: (%s) %s, before: (%s) %s' % (self.value, self.getStatusText(), self.lastCheckFinished, self.getStatusText(self.lastCheckFinished))
+            #print 'Torrent just finished'
+            # inform library that download is finished so that it sorts
+            libraryPanel = self.torrent.libraryPanel
+            if libraryPanel:
+               libraryPanel.abctorrentFinished(self.torrent.torrent_hash)
+        
+        self.lastCheckFinished = status
+        
+        
+    def setHaveDigest(self,havedigest):
+        self.havedigest = havedigest
+        
+    def getHaveDigest(self):
+        return self.havedigest
+    
+    def getStatus (self):
+        return self.value        

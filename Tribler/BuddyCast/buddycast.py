@@ -23,7 +23,7 @@ Algorithm in LaTeX format:
     \IF{$C_C$ is empty}
         \STATE $C_C \leftarrow$ select 5 peers recently seen from Mega Cache
     \ENDIF
-    \STATE $Q \leftarrow$ select a most similar taste buddy or a most likely online random peer from $C_C$
+    \STATE $Q \leftarrow$ select a most similar taste buddy or a random online peer from $C_C$
     \STATE connectPeer($Q$)
     \STATE block($Q$, $B_S$, 4hours)
     \STATE remove $Q$ from $C_C$
@@ -124,15 +124,38 @@ function \textbf{addConnectedPeer}($Q$)
 \label{Fig:buddycast_addConnectedPeer}
 \end{center}
 \end{figure*}
- 
+
+"""
+"""
+
+BuddyCast 3:
+    No preferences for taste buddies; 
+    don't accept preferences of taste buddies from incoming message either
+    50 recent my prefs + 50 recent collected torrents + 50 ratings
+    
+Torrent info 
+    preferences: Recently downloaded torrents by the user {'seeders','leechers','check time'}
+    collected torrents: Recently collected torrents (include Subscribed torrents) 
+    #ratings: Recently rated torrents and their ratings (negative rating means this torrent was deleted) 
+Taste Buddies 
+    permid 
+    ip 
+    port 
+    similarity 
+Random Peers 
+    permid 
+    ip 
+    port 
+    similarity 
+
 """
 
 import sys
 from random import sample, randint
 from time import time, gmtime, strftime
-from traceback import print_exc
+from traceback import print_exc, print_stack
 from sets import Set
-#from threading import RLock
+from array import array
 from bisect import insort
 from copy import deepcopy
 import gc
@@ -141,17 +164,20 @@ import socket
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import BUDDYCAST, KEEP_ALIVE
 from Tribler.CacheDB.CacheDBHandler import *
+from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
+from Tribler.CacheDB.SynDBHandler import SynPeerDBHandler
 from Tribler.utilities import *
 from Tribler.unicode import dunno2unicode
 from Tribler.Dialogs.activities import ACT_MEET, ACT_RECOMMEND
 from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
-from Tribler.Overlay.SecureOverlay import OLPROTO_VER_CURRENT
-from similarity import P2PSim
-from TorrentCollecting import SimpleTorrentCollecting
+from Tribler.Overlay.SecureOverlay import *
+from similarity import P2PSim, P2PSimSorted, P2PSimLM
+from TorrentCollecting import SimpleTorrentCollecting   #, TiT4TaTTorrentCollecting
 from Tribler.Statistics.Logger import OverlayLogger
+from threading import Event, currentThread
 
-DEBUG = False
-debug = False
+DEBUG = False    # for errors
+debug = False    # for status
 MAX_BUDDYCAST_LENGTH = 10*1024    # 10 KByte
 
 def now():
@@ -162,6 +188,8 @@ def ctime(t):
 
 def validBuddyCastData(prefxchg, nmyprefs=50, nbuddies=10, npeers=10, nbuddyprefs=10):
     
+    # Arno: TODO: make check version dependent
+    
     def validPeer(peer):
         validPermid(peer['permid'])
         validIP(peer['ip'])
@@ -170,7 +198,7 @@ def validBuddyCastData(prefxchg, nmyprefs=50, nbuddies=10, npeers=10, nbuddypref
     def validPref(pref, num):
         if not (isinstance(prefxchg, list) or isinstance(prefxchg, dict)):
             raise RuntimeError, "bc: invalid pref type " + str(type(prefxchg))
-        if len(pref) > num:
+        if num > 0 and len(pref) > num:
             raise RuntimeError, "bc: length of pref exceeds " + str((len(pref), num))
         for p in pref:
             validInfohash(p)
@@ -185,7 +213,7 @@ def validBuddyCastData(prefxchg, nmyprefs=50, nbuddies=10, npeers=10, nbuddypref
                 str(len(prefxchg['taste buddies']))
     for b in prefxchg['taste buddies']:
         validPeer(b)
-        validPref(b['preferences'], nbuddyprefs)
+        #validPref(b['preferences'], nbuddyprefs)    # not used from version 4
         
     if len(prefxchg['random peers']) > npeers:
         raise RuntimeError, "bc: length of random peers " + \
@@ -193,6 +221,7 @@ def validBuddyCastData(prefxchg, nmyprefs=50, nbuddies=10, npeers=10, nbuddypref
     for b in prefxchg['random peers']:
         validPeer(b)
     return True
+
 
 class BuddyCastFactory:
     __single = None
@@ -204,9 +233,11 @@ class BuddyCastFactory:
         self.db_dir = db_dir
         self.registered = False
         self.buddycast_interval = 15    # MOST IMPORTANT PARAMETER
-        self.sync_interval = 20*self.buddycast_interval
+        self.sync_interval = int(20.3*self.buddycast_interval)
         self.superpeer = superpeer
         self.log = log
+        self.running = False
+        self.data_ready_evt = Event()    # used for buddycast to notify peer view the peer list is ready
         if self.superpeer:
             print "Start as SuperPeer mode"
         
@@ -217,48 +248,84 @@ class BuddyCastFactory:
     getInstance = staticmethod(getInstance)
     
     def register(self, secure_overlay, rawserver, launchmany, port, errorfunc, 
-                 start, metadata_handler, torrent_collecting_solution):    
+                 start, metadata_handler, torrent_collecting_solution, running):    
         if self.registered:
             return
         self.secure_overlay = secure_overlay
         self.rawserver = rawserver
         self.launchmany = launchmany
         self.errorfunc = errorfunc
+        self.running = bool(running)
         
         self.registered = True
         if start:
-            self.data_handler = DataHandler(db_dir=self.db_dir)
+            self.data_handler = DataHandler(self.rawserver, db_dir=self.db_dir)
             if isValidPort(port):
                 self.data_handler.updatePort(port)
             self.buddycast_core = BuddyCastCore(secure_overlay, launchmany, 
                    self.data_handler, self.buddycast_interval, self.superpeer,
-                   metadata_handler, torrent_collecting_solution, self.log
+                   metadata_handler, rawserver, torrent_collecting_solution, self.log
                    )
+            self.data_handler.buddycast_core = self.buddycast_core
+            self.start_time = now()
             self.startup()
     
     def startup(self):
         if self.registered:
-            self.rawserver.add_task(self.data_handler.postInit, int(self.buddycast_interval/2))
-            self.rawserver.add_task(self.data_handler.updateAllSim, 1811)
             # Arno, 2007-02-28: BC is now started self.buddycast_interval after client
             # startup. This is assumed to give enough time for UPnP to open the firewall
             # if any. So when you change this time, make sure it allows for UPnP to
             # do its thing, or add explicit coordination between UPnP and BC.
             # See BitTornado/launchmany.py
-            self.rawserver.add_task(self.doBuddyCast, self.buddycast_interval)
+            self.rawserver.add_task(self.data_handler.postInit, 0)    # avoid flash crawd
+            self.rawserver.add_task(self.doBuddyCast, 2)
+            self.rawserver.add_task(self.data_handler.updateAllSim, randint(60,5*60))
             self.rawserver.add_task(self.sync, self.sync_interval)
             print >> sys.stdout, "BuddyCast starts up"
             
     def doBuddyCast(self):
-        self.rawserver.add_task(self.doBuddyCast, self.buddycast_interval)
+        if not self.running:
+            return
+        buddycast_interval = self.getCurrrentInterval()
+        self.rawserver.add_task(self.doBuddyCast, buddycast_interval)
         self.buddycast_core.work()
+        
+    def pauseBuddyCast(self):
+        self.running = False
+        
+    def restartBuddyCast(self):
+        if self.registered and not self.running:
+            self.running = True
+            self.doBuddyCast()
+        
+    def getCurrrentInterval(self):
+        """
+        install [#(peers - superpeers)==0] & start < 2min: interval = 1
+        start < 30min: interval = 5
+        start > 24hour: interval = 60
+        other: interval = 15
+        """
+        
+        past = now() - self.start_time
+        if past < 2*60:
+            if self.data_handler.npeers == 0:
+                interval = 1
+            else:
+                interval = 5
+        elif past < 30*60:
+            interval = 5
+        elif past > 24*60*60:
+            interval = 60
+        else:
+            interval = 15
+        return interval
         
     def sync(self):
         self.rawserver.add_task(self.sync, self.sync_interval)
         self.data_handler.sync()
         
     def handleMessage(self, permid, selversion, message):
-        if not self.registered:
+        if not self.registered or not self.running:
             return False
         
         t = message[0]
@@ -272,40 +339,48 @@ class BuddyCastFactory:
                 return False
         else:
             if DEBUG:
-                print >> sys.stderr, "bc: wrong message to buddycast", ord(t), "Round", self.round
+                print >> sys.stderr, "bc: wrong message to buddycast", ord(t), "Round", self.buddycast_core.round
             return False
         
     def gotBuddyCastMessage(self, msg, permid, selversion):
-        if self.registered:
+        if self.registered and self.running:
             return self.buddycast_core.gotBuddyCastMessage(msg, permid, selversion)
         else:
             return False
     
     def gotKeepAliveMessage(self, permid):
-        if self.registered:
+        if self.registered and self.running:
             return self.buddycast_core.gotKeepAliveMessage(permid)
         else:
             return False
     
     def handleConnection(self,exc,permid,selversion,locally_initiated):
         if self.registered:
-            self.buddycast_core.handleConnection(exc,permid,selversion,locally_initiated)
+            if self.running or exc is not None:    # if not running, only close connection
+                self.buddycast_core.handleConnection(exc,permid,selversion,locally_initiated)
     
     def addMyPref(self, torrent):
         if self.registered:
             self.data_handler.addMyPref(torrent)
         
+    def delMyPref(self, torrent):
+        if self.registered:
+            self.data_handler.delMyPref(torrent)
+    
+    def getTasteBuddies(self):
+        return self.buddycast_core.getAllTasteBuddies()
+    
     
 class BuddyCastCore:
     def __init__(self, secure_overlay, launchmany, data_handler, 
                  buddycast_interval, superpeer, 
-                 metadata_handler, torrent_collecting_solution, log=''):
+                 metadata_handler, rawserver, torrent_collecting_solution, log=''):
         self.secure_overlay = secure_overlay
-        self.so_version = OLPROTO_VER_CURRENT
         self.launchmany = launchmany
         self.data_handler = data_handler
         self.buddycast_interval = buddycast_interval
         self.superpeer = superpeer    # change it for superpeers
+        #self.superpeer_set = Set(self.data_handler.getSuperPeers())
         self.log = log
         self.dialback = DialbackMsgHandler.getInstance()
 
@@ -323,6 +398,7 @@ class BuddyCastCore:
         self.block_interval = 4*60*60   # block interval for a peer to buddycast
         self.short_block_interval = 4*60*60    # block interval if failed to connect the peer
         self.num_myprefs = 50       # num of my preferences in buddycast msg 
+        self.max_collected_torrents = 50    # num of recently collected torrents (from BuddyCast 3)
         self.num_tbs = 10           # num of taste buddies in buddycast msg 
         self.num_tb_prefs = 10      # num of taset buddy's preferences in buddycast msg 
         self.num_rps = 10           # num of random peers in buddycast msg  
@@ -332,21 +408,24 @@ class BuddyCastCore:
         self.max_conn_tb = 10    # max number of connectable taste buddies
         self.max_conn_rp = 10    # max number of connectable random peers
         self.max_conn_up = 10    # max number of unconnectable peers
-        self.bootstrap_num = 5   # max number of peers to fill when bootstrapping
+        self.bootstrap_num = 10   # max number of peers to fill when bootstrapping
         self.bootstrap_interval = 10*60    # 10 min
         self.network_delay = self.buddycast_interval*2    # 30 seconds
+        self.check_period = 120    # how many seconds to send keep alive message and check updates
         
         # --- memory ---
         self.send_block_list = {}    #TODO: record the earliest block peer to improve performance
         self.recv_block_list = {}
-        self.connections = {}               # permid: time_to_expire, all connected peers
-        self.connected_taste_buddies = {}   # permid: connect_time 
-        self.connected_random_peers = {}    # permid: connect_time
+        self.connections = {}               # permid: overlay_version
+        self.connected_taste_buddies = []   # [permid]
+        self.connected_random_peers = []    # [permid]
+        self.connected_connectable_peers = {}    # permid: connect_time
         self.connected_unconnectable_peers = {}    # permid: connect_time
         self.connection_candidates = {}     # permid: last_seen
         self.sorted_new_candidates = []     # sorted list: the smaller index, the older peer
         
         # --- stats ---
+        self.target_type = 0
         self.next_initiate = 0
         self.round = 0     # every call to work() is a round
         self.bootstrapped = 0    # bootstrap once every 1 hours
@@ -354,39 +433,45 @@ class BuddyCastCore:
         self.total_bootstrapped_time = 0
         self.last_bootstrapped = 0    # bootstrap time of the last time
         self.start_time = now()
+        self.last_check_time = 0
         
         # --- dependent modules ---
+        self.metadata_handler = metadata_handler
         self.torrent_collecting = None
-        if torrent_collecting_solution == 1:
+        if torrent_collecting_solution >= 1:
             self.torrent_collecting = SimpleTorrentCollecting(metadata_handler)
+        #elif torrent_collecting_solution == 2:
+        #    self.torrent_collecting = TiT4TaTTorrentCollecting(metadata_handler, rawserver)
 
         # -- misc ---
         self.dnsindb = self.data_handler.get_dns_from_peerdb
         if self.log:
             self.overlay_log = OverlayLogger(self.log)
                     
-    def get_peer_info(self, target_permid, include_permid=True):
+    def get_peer_info(self, target_permid, include_permid=True, may_be_deleted=False):
         if not target_permid:
             return ' None '
         dns = self.dnsindb(target_permid)
         s_pid = show_permid_short(target_permid)
+        sim = self.data_handler.getPeerSim(target_permid, may_be_deleted)
         try:
             ip = dns[0]
             port = dns[1]
             if include_permid:
-                return ' %s %s:%s ' % (s_pid, ip, port)
+                return ' %s %s:%s %.3f ' % (s_pid, ip, port, sim)
             else:
-                return ' %s:%s ' % (ip, port)
+                return ' %s:%s %.3f' % (ip, port, sim)
         except:
             #print_exc()
             return ' %s ' % dns
-
+        
     def work(self):
         """
             The engineer of buddycast empidemic protocol.
             In every round, it selects a target and initates a buddycast exchange,
             or idels due to replying messages in the last rounds.
         """
+        
         try:
             self.round += 1
             self.print_debug_info('Active', 2)
@@ -397,19 +482,14 @@ class BuddyCastCore:
             self.print_debug_info('Active', 3)
             self.updateSendBlockList()
             
-            if self.round % self.check_connection_round == 0:
+            _now = now()
+            if _now - self.last_check_time >= self.check_period:
                 self.print_debug_info('Active', 4)
                 self.keepConnections()
-                self.data_handler.checkUpdateItemSim()
+                self.data_handler.checkUpdate()
                 gc.collect()
+                self.last_check_time = _now
                 
-#                if self.log:
-#                    conns = []
-#                    for p in self.connections:
-#                        s_pid = show_permid_short(p)
-#                        conns.append(s_pid)
-#                    self.overlay_log('BUCA_CON', conns)
-                    
             if self.next_initiate > 0:
                 # It replied some meesages in the last rounds, so it doesn't initiate Buddycast
                 self.print_debug_info('Active', 6)
@@ -445,11 +525,7 @@ class BuddyCastCore:
             return -1
         
         peers = self.data_handler.getAllPeers()
-        if len(peers) <= len(self.send_block_list):
-            return 0
-        all_peer_set = Set(peers)
-        block_peer_set = Set(self.send_block_list)
-        target_cands = all_peer_set - block_peer_set
+        target_cands = Set(peers) - Set(self.send_block_list)
         recent_peers = self.selectRecentPeers(target_cands, number, 
                                               startfrom=self.bootstrap_time*number)
         
@@ -535,7 +611,7 @@ class BuddyCastCore:
         for p in self.send_block_list.keys():    # don't call isBlocked() for performance reason
             if _now >= self.send_block_list[p] - self.network_delay:
                 if debug:
-                    print "bc: *** unblock peer in send block list" + self.get_peer_info(p) + \
+                    print "bc: *** unblock peer in send block list" + self.get_peer_info(p,may_be_deleted=True) + \
                         "expiration:", ctime(self.send_block_list[p])
                 self.send_block_list.pop(p)
                     
@@ -548,8 +624,7 @@ class BuddyCastCore:
             # we don't close connection here, because if no incoming msg,
             # sockethandler will close connection in 5-6 min.
             
-            if (peer_permid in self.connected_taste_buddies or \
-                 peer_permid in self.connected_random_peers or \
+            if (peer_permid in self.connected_connectable_peers or \
                  peer_permid in self.connected_unconnectable_peers):   
                 self.sendKeepAliveMsg(peer_permid)
                 
@@ -558,7 +633,7 @@ class BuddyCastCore:
         
         if self.isConnected(peer_permid):
             overlay_protocol_version = self.connections[peer_permid]
-            if overlay_protocol_version == self.so_version:
+            if overlay_protocol_version >= OLPROTO_VER_THIRD:
                 # From this version, support KEEP_ALIVE message in secure overlay
                 keepalive_msg = ''
                 self.secure_overlay.send(peer_permid, KEEP_ALIVE+keepalive_msg, 
@@ -572,13 +647,12 @@ class BuddyCastCore:
     
     def keepaliveSendCallback(self, exc, peer_permid, other=0):        
         if exc is None:
-            if debug:
-                print "bc: got keep alive msg from", self.get_peer_info(peer_permid)
+            pass
         else:
-            self.closeConnection(peer_permid, 'keepalive:'+str(exc))
-            if DEBUG:
+            if debug:
                 print >> sys.stderr, "bc: error - send keep alive msg", exc, \
                 self.get_peer_info(peer_permid), "Round", self.round
+            self.closeConnection(peer_permid, 'keepalive:'+str(exc))
         
     def gotKeepAliveMessage(self, peer_permid):
         if self.isConnected(peer_permid):
@@ -608,27 +682,24 @@ class BuddyCastCore:
             
         def selectRPTarget():
             # Randomly select a random peer 
-            target = (None, None)
-            while len(self.sorted_new_candidates) > 0:
-                target = self.sorted_new_candidates[-1]
-                permid = target[1]
-                if permid not in self.connection_candidates or \
-                    self.isBlocked(permid, self.send_block_list):
-                    self.sorted_new_candidates.pop(-1)
+            permid = None
+            while len(self.connection_candidates) > 0:
+                permid = sample(self.connection_candidates, 1)[0]
+                if self.isBlocked(permid, self.send_block_list):
+                    self.removeConnCandidate(permid)
                     continue
                 else:
                     break
                 
-            return target[1]
+            return permid
     
-        r = randint(0,1)
-        r = 1
-        if r == 0:  # select a taste buddy
+        self.target_type = 1 - self.target_type
+        if self.target_type == 0:  # select a taste buddy
             target_permid = selectTBTarget()
         else:       # select a random peer
             target_permid = selectRPTarget()
             
-        return r, target_permid
+        return self.target_type, target_permid
     
     def randomSelectList(self, alist, num):
         """ Randomly select a number of items from a list """
@@ -641,7 +712,7 @@ class BuddyCastCore:
     def startBuddyCast(self, target_permid):
         """ Connect to a peer, create a buddycast message and send it """
         
-        if not target_permid:
+        if not target_permid or target_permid == self.permid:
             return
         
         if not self.isBlocked(target_permid, self.send_block_list):
@@ -672,7 +743,9 @@ class BuddyCastCore:
             ## Create message depending on selected protocol version
             try:
                 if not self.isConnected(target_permid):
-                    raise RuntimeError, 'buddycast: not connected while calling connect_callback'
+                    if DEBUG:
+                        raise RuntimeError, 'buddycast: not connected while calling connect_callback'
+                    return
                 
                 self.print_debug_info('Active', 15, target_permid, selversion)
                         
@@ -691,7 +764,13 @@ class BuddyCastCore:
     def createAndSendBuddyCastMessage(self, target_permid, selversion, active):
         
         buddycast_data = self.createBuddyCastMessage(target_permid, selversion)
-        buddycast_msg = bencode(buddycast_data)
+        try:
+            buddycast_msg = bencode(buddycast_data)
+        except:
+            print_exc()
+            print >> sys.stderr, "error buddycast_data:", buddycast_data
+            return
+            
         if active:
             self.print_debug_info('Active', 16, target_permid)
         else:
@@ -717,53 +796,98 @@ class BuddyCastCore:
     def createBuddyCastMessage(self, target_permid, selversion):
         """ Create a buddycast message for a target peer on selected protocol version """
         
-        my_pref = self.data_handler.getMyPreferences(self.num_myprefs)       #[pref]
-        taste_buddies = self.getTasteBuddies(self.num_tbs, self.num_tb_prefs, target_permid, selversion)
-        random_peers = self.getRandomPeers(self.num_rps, target_permid, selversion)    #{peer:last_seen}
+        target_ip,target_port = self.dnsindb(target_permid)
+        if not target_ip or not target_port:
+            return {}
+        my_pref = self.data_handler.getMyLivePreferences(self.num_myprefs)       #[pref]
+        taste_buddies = self.getTasteBuddies(self.num_tbs, self.num_tb_prefs, target_permid, target_ip, target_port, selversion)
+        random_peers = self.getRandomPeers(self.num_rps, target_permid, target_ip, target_port, selversion)    #{peer:last_seen}
         buddycast_data = {'ip':self.ip,
                          'port':self.port,
                          'name':self.name,
                          'preferences':my_pref,
                          'taste buddies':taste_buddies, 
                          'random peers':random_peers}
-        if selversion == self.so_version:
+        
+        if selversion >= OLPROTO_VER_THIRD:
             # From this version, add 'connectable' entry in buddycast message
             connectable = self.isConnectable()
             buddycast_data['connectable'] = connectable
         
+        if selversion >= OLPROTO_VER_FOURTH:
+            recent_collect = self.metadata_handler.getRecentlyCollectedTorrents(self.max_collected_torrents)
+            buddycast_data['collected torrents'] = recent_collect
+        
+        if selversion >= OLPROTO_VER_SIXTH:
+            npeers = self.data_handler.get_npeers()
+            ntorrents = self.data_handler.get_ntorrents()
+            nmyprefs = self.data_handler.get_nmyprefs()
+            buddycast_data['npeers'] = npeers
+            buddycast_data['nfiles'] = ntorrents
+            buddycast_data['ndls'] = nmyprefs
+            
         return buddycast_data
 
-    def getTasteBuddies(self, ntbs, ntbprefs, target_permid, selversion):
+    def getTasteBuddies(self, ntbs, ntbprefs, target_permid, target_ip, target_port, selversion):
         """ Randomly select a number of peers from connected_taste_buddies. """
         
         if not self.connected_taste_buddies:
             return []
-        tb_list = self.connected_taste_buddies.keys()
+        tb_list = self.connected_taste_buddies[:]
         if target_permid in tb_list:
             tb_list.remove(target_permid)
-        peers = self.data_handler.getPeers(tb_list, ['permid', 'ip', 'port'])
-        for i in xrange(len(peers)):
-            # In overlay version 2, buddycast must include 'age'
-            if selversion < self.so_version:
+        peers = self.data_handler.getPeers(tb_list, ['permid', 'ip', 'port', 'similarity'])
+        # filter peers with the same ip and port
+        peers = filter(lambda p:p['ip']!=target_ip or int(p['port'])!=target_port, peers)
+        
+        for i in range(len(peers)):
+            peers[i]['port'] = int(peers[i]['port'])
+            
+        # In overlay version 2, buddycast has 'age' field
+        if selversion <= OLPROTO_VER_SECOND:
+            for i in range(len(peers)):
                 peers[i]['age'] = 0
-            peer_permid = peers[i]['permid']
-            peers[i]['preferences'] = self.data_handler.getPeerPrefList(peer_permid, 
-                                                    ntbprefs, live=True)
+            
+        # In overlay version 2 and 3, buddycast doesn't have similarity field, and taste buddy has preferences
+        if selversion <= OLPROTO_VER_THIRD:
+            for i in range(len(peers)):
+                peers[i].pop('similarity')
+                peers[i]['preferences'] = self.data_handler.getPeerPrefList(peers[i]['permid'], 
+                                                    ntbprefs, live=True, cache=False)
+
+        # From overlay version 4, buddycast includes similarity for peers
+        if selversion >= OLPROTO_VER_FOURTH:
+            for i in range(len(peers)):
+                peers[i]['similarity'] = int(peers[i]['similarity']+0.5)    # bencode doesn't accept float type
+        
         return peers
     
-    def getRandomPeers(self, nrps, target_permid, selversion):
+    def getRandomPeers(self, nrps, target_permid, target_ip, target_port, selversion):
         """ Randomly select a number of peers from connected_random_peers. """
         
         if not self.connected_random_peers:
             return []
-        rp_list = self.connected_random_peers.keys()
+        rp_list = self.connected_random_peers[:]
         if target_permid in rp_list:
             rp_list.remove(target_permid)
-        peers = self.data_handler.getPeers(rp_list, ['permid', 'ip', 'port'])
-        # In overlay version 2, buddycast must include 'age'
-        if selversion < self.so_version:    
+        peers = self.data_handler.getPeers(rp_list, ['permid', 'ip', 'port', 'similarity'])
+        peers = filter(lambda p:p['ip']!=target_ip or int(p['port'])!=target_port, peers)
+        
+        for i in range(len(peers)):
+            peers[i]['port'] = int(peers[i]['port'])
+            
+        if selversion <= OLPROTO_VER_SECOND:    
             for i in range(len(peers)):
                 peers[i]['age'] = 0
+                
+        if selversion <= OLPROTO_VER_THIRD:
+            for i in range(len(peers)):
+                peers[i].pop('similarity')
+
+        if selversion >= OLPROTO_VER_FOURTH:
+            for i in range(len(peers)):
+                peers[i]['similarity'] = int(peers[i]['similarity']+0.5)
+        
         return peers       
     
     def isConnectable(self):
@@ -779,10 +903,10 @@ class BuddyCastCore:
                 print "bc: *** msg was sent successfully to peer", \
                     self.get_peer_info(target_permid)
         else:
-            self.closeConnection(target_permid, 'buddycast:'+str(exc))
             if debug:
                 print "bc: *** warning - error in sending msg to",\
                         self.get_peer_info(target_permid), exc
+            self.closeConnection(target_permid, 'buddycast:'+str(exc))
             
     def blockPeer(self, peer_permid, block_list, block_interval=None):
         """ Add a peer to a block list """
@@ -797,7 +921,7 @@ class BuddyCastCore:
     def gotBuddyCastMessage(self, recv_msg, sender_permid, selversion):
         """ Received a buddycast message and handle it. Reply if needed """
         
-        if not sender_permid:
+        if not sender_permid or sender_permid == self.permid:
             print >> sys.stderr, "bc: error - got BuddyCastMsg from a None peer", \
                         sender_permid, recv_msg, "Round", self.round
             return False
@@ -806,7 +930,7 @@ class BuddyCastCore:
             if DEBUG:
                 print >> sys.stderr, "bc: warning - got BuddyCastMsg from a recv blocked peer", \
                         show_permid(sender_permid), "Round", self.round
-            return False
+            return True     # allow the connection to be kept. That peer may have restarted in 4 hours
         
         # Jie: Because buddycast message is implemented as a dictionary, anybody can 
         # insert any content in the message. It isn't secure if someone puts 
@@ -818,7 +942,7 @@ class BuddyCastCore:
         # buddycast message should be around 6~7KBytes. So the reasonable 
         # length limitation might be 10KB for buddycast message. 
         if MAX_BUDDYCAST_LENGTH > 0 and len(recv_msg) > MAX_BUDDYCAST_LENGTH:
-            print >> sys.stderr, "bc: warning - got large BuddyCastMsg", len(t), "Round", self.round
+            print >> sys.stderr, "bc: warning - got large BuddyCastMsg", len(recv_msg), "Round", self.round
             return False
 
         active = self.isBlocked(sender_permid, self.send_block_list)
@@ -833,7 +957,7 @@ class BuddyCastCore:
             buddycast_data = bdecode(recv_msg)
             buddycast_data.update({'permid':sender_permid})
             try:    # check buddycast message
-                validBuddyCastData(buddycast_data, self.num_myprefs, 
+                validBuddyCastData(buddycast_data, 0, 
                                    self.num_tbs, self.num_rps, self.num_tb_prefs)    # RCP 2            
             except RuntimeError, msg:
                 try:
@@ -862,13 +986,15 @@ class BuddyCastCore:
             
             # store discovered peers/preferences/torrents to cache and db
             conn = self.handleBuddyCastMessage(sender_permid, buddycast_data, selversion)
+            if active:
+                conn = 1
             
             if active:
                 self.print_debug_info('Active', 19, sender_permid)
             else:
                 self.print_debug_info('Passive', 3, sender_permid)
             
-            # add sender to a connection list and keep connection with it
+            # update sender and other peers in connection list
             addto = self.addPeerToConnList(sender_permid, conn)
             
             if active:
@@ -878,15 +1004,16 @@ class BuddyCastCore:
             
         except:
             print_exc()
-            return False
+            #return True    # don't close connection, maybe my problem in handleBuddyCastMessage
         
         self.blockPeer(sender_permid, self.recv_block_list)
         
         # update torrent collecting module
-        self.data_handler.checkUpdateItemSim()
-        sender_prefs = self.data_handler.getPeerPrefList(sender_permid)
-        if self.torrent_collecting:
-            self.torrent_collecting.updatePreferences(sender_permid, sender_prefs, selversion)
+        #self.data_handler.checkUpdate()
+        torrents2down = buddycast_data.get('preferences', [])
+        torrents2down += buddycast_data.get('collected torrents', [])    # get sth. from BuddyCast 3
+        if self.torrent_collecting and torrents2down:
+            self.torrent_collecting.updatePreferences(sender_permid, torrents2down, selversion)
         
         if active:
             self.print_debug_info('Active', 21, sender_permid)
@@ -918,14 +1045,26 @@ class BuddyCastCore:
         tbs = buddycast_data.pop('taste buddies')
         rps = buddycast_data.pop('random peers')
         
-        tbs += [buddycast_data]    # add the sender to tbs
+        max_tb_sim = 1
+        if selversion >= OLPROTO_VER_FOURTH:
+            for tb in tbs:
+                sim = tb.get('similarity', 0)
+                max_tb_sim = max(max_tb_sim, sim)
+                
+        if selversion >= OLPROTO_VER_SIXTH:
+            self.data_handler.updatePeerLevelStats(sender_permid,buddycast_data['npeers'],buddycast_data['nfiles'],buddycast_data['ndls'])
+                
+        tbs += [buddycast_data]
         for tb in tbs:
             peer_permid = tb['permid']
             age = max(tb.get('age', 0), 0)    # From secure overlay version 3, it doesn't include 'age'
             last_seen = _now - age
             self.data_handler.addPeer(peer_permid, last_seen, tb)    # new peer
-            self.data_handler.setPeerLastSeen(peer_permid, last_seen)
-            self.data_handler.addPeerPreferences(peer_permid, tb['preferences'])
+            self.data_handler.addPeerPreferences(peer_permid, tb.get('preferences',[]))
+            if selversion >= OLPROTO_VER_FOURTH:
+                sim = tb.get('similarity', 0)
+                if sim > 0:
+                    self.data_handler.addRelativeSim(sender_permid, peer_permid, sim, max_tb_sim)
             if peer_permid != sender_permid:
                 self.addConnCandidate(peer_permid, last_seen)
         
@@ -934,7 +1073,10 @@ class BuddyCastCore:
             age = max(rp.get('age', 0), 0)
             last_seen = _now - age
             self.data_handler.addPeer(peer_permid, last_seen, rp)
-            self.data_handler.setPeerLastSeen(peer_permid, last_seen)
+            if selversion >= OLPROTO_VER_FOURTH:
+                sim = rp.get('similarity', 0)
+                if sim > 0:
+                    self.data_handler.addRelativeSim(sender_permid, peer_permid, sim, max_tb_sim)
             if peer_permid != sender_permid:    # to be safe; shouldn't happen
                 self.addConnCandidate(peer_permid, last_seen)
             
@@ -944,87 +1086,94 @@ class BuddyCastCore:
         # TODO: return new added peers/torrents/prefs
         return conn
         
+    def removeFromConnList(self, peer_permid):
+        removed = 0
+        if peer_permid in self.connected_connectable_peers:     # Ct
+            self.connected_connectable_peers.pop(peer_permid)
+            try:
+                self.connected_taste_buddies.remove(peer_permid)
+            except ValueError:
+                self.connected_random_peers.remove(peer_permid)
+            removed = 1
+        if peer_permid in self.connected_unconnectable_peers:    # Cu
+            self.connected_unconnectable_peers.pop(peer_permid)
+            removed = 2
+        return removed
+        
     def addPeerToConnList(self, peer_permid, connectable=0):
         """ Add the peer to Ct, Cr or Cu """
+        
+        # remove the existing peer from lists so that its status can be updated later
+        self.removeFromConnList(peer_permid)    
         
         if not self.isConnected(peer_permid):
             print >> sys.stderr, "bc: cannot add a unconnected peer to conn list", "Round", self.round
             return
         
-        # remove the existing peer from lists so that its status can be updated later
-        if peer_permid in self.connected_taste_buddies:     # Ct
-            self.connected_taste_buddies.pop(peer_permid)
-        if peer_permid in self.connected_random_peers:    # Cr    
-            self.connected_random_peers.pop(peer_permid)
-        if peer_permid in self.connected_unconnectable_peers:    # Cu
-            self.connected_unconnectable_peers.pop(peer_permid)
-        
         _now = now()
         
         if connectable == 1:
-            added = self.addPeerToConnTB(peer_permid, _now)
-            if not added:
-                if self.addPeerToConnRP(peer_permid, _now):
-                    addto = '(randomly)'
-            else:
-                addto = '(taste buddy)'
+            self.addPeerToConnCP(peer_permid, _now)
+            addto = '(reachable peer)'
         else:
-            if self.addPeerToConnUP(peer_permid, _now):
-                addto = '(peer deemed unreachable)'
+            self.addPeerToConnUP(peer_permid, _now)
+            addto = '(peer deemed unreachable)'
             
         return addto
-            
-    def addPeerToConnTB(self, peer_permid, conn_time):
-        """ Add a peer to connected_taste_buddies if its similarity is high enough 
-            and remove a least similar and oldest one. 
-            Return False if failed so that it has chance to join Cr.
-        """
+           
+    def updateTBandRPList(self):
+        """ Select the top 10 most similar (sim>0) peer to TB and others to RP """
         
-        tbs = self.connected_taste_buddies
-        if peer_permid in tbs:
-            return True
-        sim = self.data_handler.getPeerSim(peer_permid)
-        if sim >= 0:    # allow random peers be taste buddies to enhance exploration
-            if len(tbs) < self.max_conn_tb:
-                tbs[peer_permid] = conn_time
-                return True
+        nconnpeers = len(self.connected_connectable_peers)
+        if nconnpeers == 0:
+            self.connected_taste_buddies = []
+            self.connected_random_peers = [] 
+            return
+        
+        tmplist = []
+        tbs = []
+        rps = []
+        for peer in self.connected_connectable_peers:
+            sim = self.data_handler.getPeerSim(peer)
+            if sim > 0:
+                tmplist.append([sim, peer])
             else:
-                # Find the least similar peer. 
-                # If two peers have the same similarity, find the older one.
-                min_sim_peer = (10**9, now(), None)
-                initial = 'abcdefghijklmnopqrstuvwxyz'
-                # using :-) as a separator to avoid the permid being splitted
-                separator = ':-)'
-                for p in tbs:
-                    _sim = self.data_handler.getPeerSim(p)
-                    _conn_time = tbs[p]
-                    r = randint(0, self.max_conn_tb)
-                    # to randomly select a peer if the first two in to_cmp are the same
-                    name = initial[r] + separator + p     
-                    to_cmp = (_sim, _conn_time, name)
-                    min_sim_peer = min(min_sim_peer, to_cmp)
-                # add it if its sim is high enough, and pop a peer to Cr
-                if sim >= min_sim_peer[0]:    # add it
-                    out_conn_time = min_sim_peer[1]
-                    out_peer = min_sim_peer[2].split(separator)[1]
-                    tbs.pop(out_peer)
-                    self.addPeerToConnRP(out_peer, out_conn_time)
-                    tbs[peer_permid] = conn_time
-                    return True
-                    
-        return False
-                    
-    def addPeerToConnRP(self, peer_permid, conn_time):
-        """ Add a peer to connected_random_peers; close connection to the poped peer """
+                rps.append(peer)
+        tmplist.sort()
+        tmplist.reverse()
         
-        rps = self.connected_random_peers
-        if peer_permid not in rps:
-            out_peer = self.addNewPeerToConnList(rps, 
-                                      self.max_conn_rp, peer_permid, conn_time)
-            if out_peer != peer_permid:
-                return True
-        return False
-                
+        #ntb = self.max_conn_tb    # 10 tb & 10 rp
+        ntb = min((nconnpeers+1)/2, self.max_conn_tb)    # half tb and half rp
+        if len(tmplist) > 0:
+            for sim,peer in tmplist[:ntb]:
+                tbs.append(peer)
+        if len(tmplist) > ntb:
+            rps = [peer for sim,peer in tmplist[ntb:]] + rps
+        
+        # remove the oldest peer from both random peer list and connected_connectable_peers
+        if len(rps) > self.max_conn_rp:
+            tmplist = []
+            for peer in rps:
+                connect_time = self.connected_connectable_peers[peer]
+                tmplist.append([connect_time, peer])
+            tmplist.sort()
+            tmplist.reverse()
+            rps = []
+            i = 0
+            for last_seen,peer in tmplist:
+                if i < self.max_conn_rp:
+                    rps.append(peer)
+                else:
+                    self.connected_connectable_peers.pop(peer)
+                i += 1
+            
+        self.connected_taste_buddies = tbs
+        self.connected_random_peers = rps
+            
+    def addPeerToConnCP(self, peer_permid, conn_time):
+        self.connected_connectable_peers[peer_permid] = conn_time
+        self.updateTBandRPList()
+        
     def addNewPeerToConnList(self, conn_list, max_num, peer_permid, conn_time):
         """ Add a peer to a connection list, and pop the oldest peer out """
         
@@ -1082,26 +1231,33 @@ class BuddyCastCore:
         
     # -------------- handle overlay connections from SecureOverlay ---------- #
     def handleConnection(self,exc,permid,selversion,locally_initiated):
+        if exc is None and permid != self.permid:    # add a connection
+            self.addConnection(permid, selversion, locally_initiated)
+        else:
+            self.closeConnection(permid, 'overlayswarm:'+str(exc))
+
         if debug:
             print >> sys.stdout, "bc: handle conn from overlay", exc, \
                 self.get_peer_info(permid), "selversion:", selversion, \
                 "local_init:", locally_initiated, ctime(now())
-
-        if exc is None:    # add a connection
-            self.addConnection(permid, selversion, locally_initiated)
-        else:
-            self.closeConnection(permid, 'overlayswarm:'+str(exc))
         
     def addConnection(self, peer_permid, selversion, locally_initiated):
         _now = now()
         if not self.isConnected(peer_permid):
             self.connections[peer_permid] = selversion # add a new connection
-            self.data_handler._addPeer(peer_permid, _now)
+            self.data_handler.addPeer(peer_permid, _now)
+            #self.data_handler.setPeerLastSeen(peer_permid, _now)   # done by secure overlay
             # add connection from secure overlay
             addto = self.addPeerToConnList(peer_permid, locally_initiated)
+            
             dns = self.get_peer_info(peer_permid, include_permid=False)
             buf = '%s %s'%(dns, addto)
             self.launchmany.set_activity(ACT_MEET, buf)
+
+            torrents2down = self.data_handler.getPeerPrefList(peer_permid, cache=False)
+            if self.torrent_collecting and torrents2down:
+                self.torrent_collecting.updatePreferences(peer_permid, torrents2down, selversion)
+            
             if debug:
                 print >> sys.stdout, "bc: add connection", \
                     self.get_peer_info(peer_permid), "to", addto
@@ -1115,18 +1271,14 @@ class BuddyCastCore:
         """ Close connection with a peer, and remove it from connection lists """
         
         if debug:
-            print >> sys.stdout, "bc: close connection:", self.get_peer_info(peer_permid)
+            print >> sys.stdout, "bc: close connection:", self.get_peer_info(peer_permid, may_be_deleted=True)
         
+        self.data_handler.setPeerLastSeen(peer_permid, now())
         if self.isConnected(peer_permid):
-            if peer_permid in self.connected_taste_buddies:
-                self.connected_taste_buddies.pop(peer_permid)
-            elif peer_permid in self.connected_random_peers:
-                self.connected_random_peers.pop(peer_permid)
-            elif peer_permid in self.connected_unconnectable_peers:
-                self.connected_unconnectable_peers.pop(peer_permid)
-                
-            self.data_handler.setPeerLastSeen(peer_permid, now())
             self.connections.pop(peer_permid)
+        removed = self.removeFromConnList(peer_permid)
+        if removed == 1:
+            self.updateTBandRPList()
         
         if self.torrent_collecting:
             self.torrent_collecting.closeConnection(peer_permid)
@@ -1136,11 +1288,16 @@ class BuddyCastCore:
             if dns:
                 ip,port = dns
                 self.overlay_log('CONN_DEL', ip, port, show_permid(peer_permid), reason)
-            
+
+    def peerInUse(self, peer_permid):
+        if peer_permid in self.connections or peer_permid in self.connection_candidates:
+            return True
+        return False
+
     # -------------- print debug info ---------- #
     def get_stats(self):
         nPeer = len(self.data_handler.peers)
-        nPref = len(self.data_handler.preferences)
+        nPref = nPeer #len(self.data_handler.preferences)
         nCc = len(self.connection_candidates)
         nBs = len(self.send_block_list)
         nBr = len(self.recv_block_list)
@@ -1166,10 +1323,45 @@ class BuddyCastCore:
                     print "bc: warning - nSo and nCo is inconsistent"
                 if nCc > self.max_conn_cand or nCt > self.max_conn_tb or nCr > self.max_conn_rp or nCu > self.max_conn_up:
                     print "bc: warning - nCC or nCt or nCr or nCu overloads"
+                _now = now()
                 buf = ""
-                for p in self.connections:
-                    buf += "bc: * conn: " + self.get_peer_info(p) + "version: " + str(self.connections[p]) + "\n"
+                i = 1
+                for p in self.connected_taste_buddies:
+                    buf += "bc: %d taste buddies: "%i + self.get_peer_info(p) + str(_now-self.connected_connectable_peers[p]) + " version: " + str(self.connections[p]) + "\n"
+                    i += 1
                 print buf
+                
+                buf = ""
+                i = 1
+                for p in self.connected_random_peers:
+                    buf += "bc: %d random peers: "%i + self.get_peer_info(p) + str(_now-self.connected_connectable_peers[p]) + " version: " + str(self.connections[p]) + "\n"
+                    i += 1
+                print buf
+                
+                buf = ""
+                i = 1
+                for p in self.connected_unconnectable_peers:
+                    buf += "bc: %d unconnectable peers: "%i + self.get_peer_info(p) + str(_now-self.connected_unconnectable_peers[p]) + " version: " + str(self.connections[p]) + "\n"
+                    i += 1
+                print buf
+                buf = ""
+                totalsim = 0
+                nsimpeers = 0
+                minsim = 1e10
+                maxsim = 0
+                for p in self.data_handler.peers:
+                    sim = self.data_handler.getPeerSim(p)
+                    if sim > 0:
+                        nsimpeers += 1
+                        totalsim += sim
+                        minsim = min(sim, minsim)
+                        maxsim = max(sim, maxsim)
+                        #buf += "bc: * peer: " + self.get_peer_info(p) + "\n"
+                if nsimpeers > 0:
+                    meansim = totalsim/nsimpeers
+                else:
+                    meansim = 0
+                print "bc: * sim peer: %d %.3f %.3f %.3f %.3f\n" % (nsimpeers, totalsim, meansim, minsim, maxsim)
 
             elif step == 3:
                 print "check blocked peers: Round", self.round
@@ -1276,29 +1468,44 @@ class BuddyCastCore:
 
             elif step == 10:
                 print "add idle loops", self.next_initiate
+        sys.stdout.flush()
+        sys.stderr.flush()
 
+    def getAllTasteBuddies(self):
+        return self.connected_taste_buddies
+        
         
 class DataHandler:
-    def __init__(self, db_dir=''):
+    def __init__(self, rawserver, db_dir=''):
+        self.rawserver = rawserver
         # --- database handlers ---
         self.my_db = MyDBHandler(db_dir=db_dir)
-        self.peer_db = PeerDBHandler(db_dir=db_dir)
+        self.peer_db = SynPeerDBHandler(db_dir=db_dir)
         self.superpeer_db = SuperPeerDBHandler(db_dir=db_dir)
-        self.torrent_db = TorrentDBHandler(db_dir=db_dir)
+        self.torrent_db = SynTorrentDBHandler(db_dir=db_dir)
         self.mypref_db = MyPreferenceDBHandler(db_dir=db_dir)
         self.pref_db = PreferenceDBHandler(db_dir=db_dir)
         self.friend_db = FriendDBHandler(db_dir=db_dir)
+        self.superpeer_db = SuperPeerDBHandler(db_dir=db_dir)
         self.dbs = [self.my_db, self.peer_db, self.superpeer_db,
                     self.torrent_db, self.mypref_db, self.pref_db]
         self.mypreflist = []    # torrent_infohashes
-        self.peers = {}    # permid: [last_seen, similarity]
-        self.preferences = {}       # peer_id: Set(torrent)
+        self.myfriends = Set(self.friend_db.getFriendList())
+        self.myprefhash = array('l',[])
+        self.peers = {}    # permid: [similarity, last_seen, prefs]    prefs: array('l')
+        self.default_peer = [0,0, array('l',[])]
+        self.owners = {}    # torrents_of_mine: Set(permid)
         self.permid = self.getMyPermid()
+        self.nprefs = 0
         self.total_pref_changed = 0
         # how many peers to load into cache from db
-        self.max_num_peers = 2000       
+        self.max_num_peers = 2000
+        self.max_peer_in_db = 10000
+        self.time_sim_weight = 4*60*60  # every 4 hours equals to a point of similarity
         # after added some many (user, item) pairs, update sim of item to item
-        self.update_i2i_threshold = 50  
+        self.update_i2i_threshold = 100
+        self.npeers = self.peer_db.size() - self.superpeer_db.size()
+        self.buddycast_core = None
 
     def sync(self):
         for db in self.dbs:
@@ -1309,7 +1516,8 @@ class DataHandler:
             db.close()
     
     def __del__(self):
-        self.close()
+        #self.close()
+        pass
 
     def getMyName(self, name=''):
         return self.my_db.get('name', name)
@@ -1320,33 +1528,71 @@ class DataHandler:
     def getMyPort(self, port=0):
         return self.my_db.get('port', port)
     
+    def updatePort(self, port):
+        self.my_db.put('port', port)
+  
     def getMyPermid(self, permid=''):
         return self.my_db.get('permid', permid)
+        
+    def getSuperPeers(self):
+        return self.superpeer_db.getSuperPeerList()
         
     def postInit(self):
         # build up a cache layer between app and db
         self.updateMyPreferences()
-        self.updateAllPeers()
+        self.updateAllPeers(self.max_num_peers)
         self.updateAllPref()
+        #self.updateAllSim()
         #self.updateAllI2ISim()
         
     def updateAllSim(self):
         # update similarity to all peers to keep consistent
-        for peer in self.preferences:
-            self.updateSimilarity(peer)
+        starttime = time()
+        totalsim = 0.0
+        for peer in self.peers:
+            sim = self.updateSimilarity(peer)
+            totalsim += sim
+        npeers = len(self.peers)
+        if npeers > 0:
+            meansim = totalsim/npeers
+        else:
+            meansim = 0
+        if debug:
+            print "bc: updated All P2P sim", meansim, npeers, time()-starttime, ctime(now())
         
     def addMyPref(self, torrent):
-        self.updateMyPreferences()
         if torrent not in self.mypreflist:
             self.mypreflist.append(torrent)
-        for peer in self.preferences:
-            pref = self.preferences[peer]
-            if peer in pref:
-                self.updateSimilarity(peer)
-        self.total_pref_changed += self.update_i2i_threshold
+            torrent_hash = hash(torrent)
+            insort(self.myprefhash, torrent_hash)
+            self.updateOwners(torrent)
+            self.rawserver.add_task(self.updateAllSim, 5)
+            self.total_pref_changed += self.update_i2i_threshold
+            
+    def delMyPref(self, torrent):
+        if torrent in self.mypreflist:
+            self.mypreflist.remove(torrent)
+            torrent_hash = hash(torrent)
+            self.myprefhash.remove(torrent_hash)
+            self.owners.pop(torrent_hash)
+            self.rawserver.add_task(self.updateAllSim, 10)
+            self.total_pref_changed += self.update_i2i_threshold
+
+    def updateOwners(self, torrent):
+        torrent_hash = hash(torrent)
+        self.owners[torrent_hash] = Set()
+        for peer in self.peers:
+            if torrent_hash in self.getPeerPrefList(peer):
+                self.owners[torrent_hash].add(peer)
         
     def updateMyPreferences(self):
         self.mypreflist = self.mypref_db.getRecentPrefList()
+        for torrent in self.mypreflist:
+            torrent_hash = hash(torrent)
+            self.owners[torrent_hash] = Set()
+        self.myprefhash = self.owners.keys()
+        self.myprefhash.sort()
+        self.myprefhash = array('l', self.myprefhash)
     
     def updateAllPeers(self, num_peers=None):
         """ Read peers from db and put them in self.peers.
@@ -1354,35 +1600,70 @@ class DataHandler:
         """
         
         all_peerlist = self.peer_db.getPeerList()
-        _peer_values = self.getPeers(all_peerlist, ['last_seen', 'similarity'])
+        try:
+            all_peerlist.remove(self.permid)
+        except ValueError:
+            pass
+        _peer_values = self.getPeers(all_peerlist, ['similarity','last_seen'])
         peer_values = []
         for p in _peer_values:
-            peer_values.append([p['last_seen'], p['similarity']])
-        if num_peers == 0:
-            self.peers = dict(zip(all_peerlist, peer_values))
+            peer_values.append([p['similarity'], p['last_seen']])
+        if not num_peers or len(all_peerlist) <= num_peers:
+            self.peers = dict(zip(all_peerlist, peer_values))   # all peers
         else:
-            if num_peers is None:
-                num_peers = self.max_num_peers
-            if num_peers == 0 or len(all_peerlist) < num_peers:
-                self.peers = dict(zip(all_peerlist, peer_values))
-            else:
-                tmp_list = zip(peer_values, all_peerlist)
+            if len(all_peerlist) > num_peers:
+                # get a number of peers first based on sim, then based on last_seen
+                cmp_values = [value[0]+value[1]/self.time_sim_weight for value in peer_values]
+                tmp_list = zip(cmp_values, peer_values, all_peerlist)
                 tmp_list.sort()
-                tmp_list.reverse()
+                tmp_list.reverse()  # the smaller index, the more important
+
+                # too many peers in DB. delete some peers from DB
+                if len(tmp_list) > self.max_peer_in_db:
+                    num_peers_2_del = int(len(tmp_list) - self.max_peer_in_db + self.max_peer_in_db*0.02)
+                    peers2del = [peer for (_, _, peer) in tmp_list[-1*num_peers_2_del:]]
+                    print >> sys.stderr, "**** buddycast delete peers from db", "#peers2del", len(peers2del), "#peers in db", len(tmp_list), "max limit", self.max_peer_in_db
+                    for peer in peers2del:
+                        self.peer_db.deletePeer(peer, updateFlag=False)     # friends will not be deleted
+                
                 tmp_list = tmp_list[:num_peers]
-                tmp_list = [(peer, peer_value) for (peer_value, peer) in tmp_list]
+                tmp_list = [(peer, peer_value) for (_, peer_value, peer) in tmp_list]
                 self.peers = dict(tmp_list)
+        # used to notify peer view that peer list is ready
+        if DEBUG:
+            print >> sys.stderr, "**** buddycast update all peers", "#peers in cache", len(self.peers), "#peers in db", len(all_peerlist), "max limit", num_peers
+
+        #print "******* buddycast thread:", currentThread().getName()
+        BuddyCastFactory.getInstance().data_ready_evt.set()    
         return self.peers
     
     def getPeers(self, peer_list, keys):
         return self.peer_db.getPeers(peer_list, keys)
     
     def updateAllPref(self):
-        """ Read preferences of peers in self.peers to write into self.preferences """
+        """ Read preferences of peers in self.peers to write into preferences """
         
+        self.nprefs = 0
         for peer_permid in self.peers:
-            # whole pref for sim calculation
-            self.preferences[peer_permid] = Set(self.getPeerPrefList(peer_permid, cache=False))
+            self.nprefs += self.updatePeerPref(peer_permid)
+        self.update_i2i_threshold = max(100, self.nprefs*0.01)
+                
+    def updatePeerPref(self, peer_permid):
+        peerprefs = []
+        for p in self.pref_db.getPrefList(peer_permid):
+            peerprefs.append(hash(p))
+        peerprefs.sort()
+        peerprefs = array('l', peerprefs)
+            
+        if len(self.peers[peer_permid]) > 2:
+            self.peers[peer_permid][2] = peerprefs
+        elif len(self.peers[peer_permid]) == 2:
+            self.peers[peer_permid].append(peerprefs)
+            
+        for torrent_hash in self.owners:
+            if torrent_hash in peerprefs:
+                self.owners[torrent_hash].add(peer_permid)
+        return len(peerprefs)
         
     def getAllPeers(self, num_peers=None):
         """ Get a number of peers from self.peers """
@@ -1397,9 +1678,15 @@ class DataHandler:
         """
         
         if cache:
-            preflist = list(self.preferences.get(permid, []))
+            value = self.peers.get(permid, self.default_peer)
+            if len(value) > 2:
+                preflist = value[2]    # array('l', torrent_hash)
+            else:
+                self.updatePeerPref(permid)
+                value = self.peers.get(permid, self.default_peer)
+                preflist = value[2]
         else:
-            preflist = self.pref_db.getPrefList(permid)
+            preflist = self.pref_db.getPrefList(permid)    # [infohash]
         if live:    # remove dead torrents
             preflist = self.torrent_db.getLiveTorrents(preflist)
         if num == 0 or num > len(preflist):
@@ -1408,53 +1695,82 @@ class DataHandler:
             prefs = sample(preflist, num)    # randomly select 10 prefs to avoid starvation
             return prefs
     
-    def updatePort(self, port):
-        self.my_db.put('port', port)
-  
-    def getMyPreferences(self, num=0):
+    def getMyLivePreferences(self, num):
         """ Get a number of my preferences. Get all if num==0 """
         
-        if num > len(self.mypreflist):
-            return self.mypreflist[:num]
+        mypreflist = self.torrent_db.getLiveTorrents(self.mypreflist)
+        if num > 0 and len(mypreflist) > num:
+            return mypreflist[:num]
         else:
-            return self.mypreflist
+            return mypreflist
     
     def getPeerLastSeen(self, peer_permid):
         if peer_permid not in self.peers:
             return 0
-        return self.peers[peer_permid][0]
-    
-    def getPeerSim(self, peer_permid):
-        if peer_permid not in self.peers:
-            return -1
         return self.peers[peer_permid][1]
+    
+    def getPeerSim(self, peer_permid, may_be_deleted=False, raw=False):
+        if peer_permid not in self.peers:
+            if not may_be_deleted:
+                print_stack()
+                print >> sys.stderr, "bc: try to get a peer sim but it isn't in cache", \
+                    show_permid_short(peer_permid), ctime(now())
+            return 0
+        if not raw:    
+            # negative value means it is calculated from other peers, not itself. See addRelativeSim()
+            return abs(self.peers[peer_permid][0])
+        else:
+            return self.peers[peer_permid][0]
     
     def setPeerLastSeen(self, peer_permid, last_seen):
         old_last_seen = self.getPeerLastSeen(peer_permid)
         new_last_seen = max(old_last_seen, last_seen)
-        self.peers[peer_permid][0] = new_last_seen
+        if peer_permid in self.peers:    # could have been deleted if self.peers was full
+            self.peers[peer_permid][1] = new_last_seen
         self.peer_db.updatePeer(peer_permid, 'last_seen', new_last_seen)
                 
     def setPeerSim(self, peer_permid, sim):
-        self.peers[peer_permid][1] = sim
-        self.peer_db.updatePeer(peer_permid, 'similarity', sim)
+        self.peers[peer_permid][0] = sim
+        self.peer_db.updatePeer(peer_permid, 'similarity', sim, updateFlag=False)
 
     def _addPeer(self, peer_permid, last_seen):
         """ add a peer to cache """
         # Secure Overlay should have added this peer to database.
         
         if not self.peers.has_key(peer_permid):
-            self.peers[peer_permid] = [last_seen, 0]    # last_seen, similarity
-        else:
-            self.setPeerLastSeen(peer_permid, last_seen)
+            #sim = self.peer_db.getPeerSim(peer_permid)
+            self.peers[peer_permid] = [last_seen, 0]    # last_seen, similarity, pref
+        
+        if len(self.peers[peer_permid]) == 2:
+            self.total_pref_changed += self.updatePeerPref(peer_permid)
+            self.updateSimilarity(peer_permid)
+        
 
-    def addPeer(self, peer_permid, last_seen, peer_data):  
+    def addPeer(self, peer_permid, last_seen, peer_data=None):  
         """ add a peer from buddycast message to both cache and db """
         
         if peer_permid != self.permid:
             self._addPeer(peer_permid, last_seen)    
             if peer_data is not None:
                 self._addPeerToDB(peer_permid, last_seen, peer_data)
+
+    def removePeers(self, num):
+        tmplist = []
+        for peer in self.peers:
+            if self.buddycast_core.peerInUse(peer):
+                continue
+            sim = self.getPeerSim(peer)
+            last_seen = self.getPeerLastSeen(peer)
+            nprefs = len(self.getPeerPrefList(peer))
+            comp = sim + nprefs + last_seen/self.time_sim_weight
+            value = [comp, peer]
+            tmplist.append(value)
+        tmplist.sort()
+        for _,peer in tmplist[:num]:
+            if self.peers.has_key(peer):
+                self.peers.pop(peer)
+                if peer not in self.myfriends:
+                    self.peer_db.hidePeer(peer)
                 
     def addPeerPreferences(self, peer_permid, prefs):
         """ add a peer's preferences to both cache and db """
@@ -1465,64 +1781,94 @@ class DataHandler:
         changed = 0
         for torrent in prefs:
             # add to DB
-            if not self.preferences.has_key(peer_permid) or \
-                torrent not in self.preferences[peer_permid]:
+            torrent_hash = hash(torrent)
+            if torrent_hash not in self.getPeerPrefList(peer_permid):
+                insort(self.peers[peer_permid][2], torrent_hash)
+                # Jie: an important change since 4.0: don't add it to torrent_db to avoid unlimited size of torrent_db
+                # a record is added to the db only when added a torrent file
+                #self.torrent_db.addTorrent(torrent, updateFlag=False)  
+                self.pref_db.addPreference(peer_permid, torrent)
                 changed += 1
-            self.pref_db.addPreference(peer_permid, torrent)
-            self.torrent_db.addTorrent(torrent)
-            
+                
         if changed:
-            self.preferences[peer_permid] = Set(self.getPeerPrefList(peer_permid, cache=False))
-            self.updateSimilarity(peer_permid)
             self.total_pref_changed += changed
-        return changed
+            self.updateSimilarity(peer_permid)
             
-    def checkUpdateItemSim(self):
+    def checkUpdate(self):
         if self.total_pref_changed >= self.update_i2i_threshold:
             self.updateAllI2ISim()
-            self.total_pref_changed = 0
-    
+            
+        npeers = len(self.peers)
+        if npeers > self.max_num_peers*1.05:    # remove peers when exceeded 5%
+            self.removePeers(npeers - self.max_num_peers)
+            
     def updateSimilarity(self, peer_permid):
         """ update a peer's similarity """
         
-        sim = self.computeSimilarity(peer_permid)
+        sim = self.computeP2PSimilarity(peer_permid)
+        #print "***** update Similarity", sim
         self.setPeerSim(peer_permid, sim)
+        return sim
         
-    def computeSimilarity(self, peer_permid):
+    def getP2PSimilarityOld(self, peer_permid):
         """ calculate the similarity
             PeerSim = int(1000*len(pref1&pref2)/(len(pref1)*len(pref2))**0.5)
         """
         
-        pref1 = Set(self.mypreflist)
-        pref2 = self.preferences.get(peer_permid, Set())
-        sim = P2PSim(pref1, pref2)
+        pref1 = self.myprefhash
+        pref2 = self.getPeerPrefList(peer_permid)
+        sim = P2PSimSorted(pref1, pref2)
         return sim
-        
+    
+    def computeP2PSimilarity(self, peer_permid):
+        peer_pref = self.getPeerPrefList(peer_permid)
+        sim = P2PSimLM(peer_permid, self.myprefhash, peer_pref, self.owners, self.nprefs, mu=1.0)
+        return sim
+    
     def updateAllI2ISim(self, ret=False):
         # A temporary user to item similarity
         # TODO: incrementally update
         starttime = time()
         torrent_sim = {}    # [sim, pop]
         npref = 0
-        for peer in self.preferences:
-            preflist = self.getPeerPrefList(peer)
+        for peer in self.peers:
+            preflist = self.getPeerPrefList(peer, cache=True)
             peer_sim = self.getPeerSim(peer)
             for torrent in preflist:
                 if torrent not in torrent_sim:
-                    torrent_sim[torrent] = [0, 0]
-                torrent_sim[torrent][0] += peer_sim
-                torrent_sim[torrent][1] += 1
+                    torrent_sim[torrent] = 0
+                torrent_sim[torrent] += peer_sim + 1
                 npref += 1
-        npeer = len(self.preferences)
-        for torrent in torrent_sim:
-            sim = torrent_sim[torrent][0]
-            pop = torrent_sim[torrent][1]
-            newsim = sim + pop
-            if ret:
-                torrent_sim[torrent].append(newsim)
-            self.torrent_db.updateTorrentRelevance(torrent, newsim)
+        self.nprefs = npref
+        self.update_i2i_threshold = max(100, self.nprefs*0.01)
+        
+        maxsim = 0
+        minsim = 10**9
+        totalsim = 0
+        ngoodtorrents = 0
+        for infohash in self.torrent_db.getAllTorrents():
+            torrent = hash(infohash)
+            if torrent in torrent_sim:
+                sim = torrent_sim[torrent]
+                self.torrent_db.updateTorrentRelevance(infohash, sim, updateFlag=False)
+                if debug:
+                    maxsim = max(maxsim, sim)
+                    minsim = min(minsim, sim)
+                    totalsim += sim
+                    if sim > 0:
+                        ngoodtorrents += 1
+        
+        self.total_pref_changed = 0
+        
         if debug:
-            print "bc: updated All I2I sim", len(torrent_sim), npref, npeer, time()-starttime
+            npeer = len(self.peers)
+            if npeer > 0:
+                meansim = 1.0*totalsim/npeer
+            else:
+                meansim = 0
+            print "bc: updated All I2I sim", len(torrent_sim), npref, npeer, \
+                "sim:", maxsim, meansim, minsim, ngoodtorrents, "time:", time()-starttime, ctime(now())
+            
         if ret:
             return torrent_sim    # for test suit
         else:
@@ -1538,8 +1884,10 @@ class DataHandler:
             new_peer_data['last_seen'] = last_seen
             if peer_data.has_key('name'):
                 new_peer_data['name'] = dunno2unicode(peer_data['name'])    # store in db as unicode
-                
-            self.peer_db.addPeer(peer_permid, new_peer_data)
+
+            exist = self.peer_db.hasPeer(peer_permid)
+            self.peer_db.addPeer(peer_permid, new_peer_data, update_dns=True, updateFlag=(not exist))
+            
         except KeyError:
             print_exc()
             print >> sys.stderr, "bc: _addPeerToDB has KeyError"
@@ -1550,9 +1898,10 @@ class DataHandler:
 
     def increaseBuddyCastTimes(self, peer_permid):
         self.peer_db.updateTimes(peer_permid, 'buddycast_times', 1)
+        self.peer_db.updatePeer(peer_permid, 'last_buddycast_time', now())
 
     def get_dns_from_peerdb(self,permid):
-        dns = None
+        dns = (None, None)
         peer = self.peer_db.getPeer(permid)
         if peer:
             ip = self.to_real_ip(peer['ip'])
@@ -1568,3 +1917,34 @@ class DataHandler:
             pass
         return ip
     
+    def addRelativeSim(self, sender_permid, peer_permid, sim, max_sim):
+        # Given Sim(I, A) and Sim(A, B), predict Sim(I, B)
+        # Sim(I, B) = Sim(I, A)*Sim(A, B)/Max(Sim(A,B)) for all B
+        old_sim = self.getPeerSim(peer_permid, raw=True)
+        if old_sim > 0:    # its similarity has been calculated based on its preferences
+            return
+        old_sim = abs(old_sim)
+        sender_sim = self.getPeerSim(sender_permid)
+        new_sim = sender_sim*sim/max_sim
+        if old_sim == 0:
+            peer_sim = new_sim    
+        else:
+            peer_sim = (new_sim + old_sim)/2
+        peer_sim = -1*peer_sim
+        # using negative value to indicate this sim comes from others
+        self.peers[peer_permid][0] = peer_sim
+        
+    def get_npeers(self):
+        return self.peer_db.size()
+    
+    def get_ntorrents(self):
+        return self.torrent_db.size()
+    
+    def get_nmyprefs(self):
+        return self.mypref_db.size()
+    
+    def updatePeerLevelStats(self,permid,npeers,ntorrents,nprefs):
+        d = {'npeers':npeers,'ntorrents':ntorrents,'nprefs':nprefs}
+        for k,v in d:
+            self.peer_db.updatePeer(permid,k,v)
+            

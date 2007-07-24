@@ -6,17 +6,19 @@
 import sys
 from traceback import print_exc
 
-from BitTornado.BT1.MessageID import HelpCoordinatorMessages, HelpHelperMessages, \
-        MetadataMessages, BuddyCastMessages, DIALBACK_REQUEST, getMessageName
+from time import time
+from BitTornado.BT1.MessageID import *
 from Tribler.toofastbt.CoordinatorMessageHandler import CoordinatorMessageHandler
 from Tribler.toofastbt.HelperMessageHandler import HelperMessageHandler
 from MetadataHandler import MetadataHandler
 from Tribler.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
-from Tribler.Overlay.SecureOverlay import OLPROTO_VER_SECOND
+from Tribler.SocialNetwork.SocialNetworkMsgHandler import SocialNetworkMsgHandler
+from Tribler.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
+from Tribler.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.utilities import show_permid_short
 
-DEBUG = 0
+DEBUG = False
 
 class OverlayApps:
     # Code to make this a singleton
@@ -32,13 +34,15 @@ class OverlayApps:
         self.buddycast = None
         self.collect = None
         self.dialback_handler = None
+        self.socnet_handler = None
+        self.rquery_handler = None
         self.msg_handlers = {}
+        self.text_mode = None
         
-        self.torrent_collecting_solution = 1    # TODO: read from config
+        self.torrent_collecting_solution = 2    # TODO: read from config
         # 1: simplest solution: per torrent/buddycasted peer/4hours
-        # 2: simple and efficent solution: random collecting on group base
-        # 3: advanced solution: personlized collecting on group base
-
+        # 2: tig for tag on group base
+        
     def getInstance(*args, **kw):
         if OverlayApps.__single is None:
             OverlayApps(*args, **kw)
@@ -46,8 +50,8 @@ class OverlayApps:
     getInstance = staticmethod(getInstance)
 
     def register(self, secure_overlay, launchmany, rawserver, config):
-        
         self.secure_overlay = secure_overlay
+        self.text_mode = config.has_key('text_mode')
         
         # OverlayApps gets all messages, and demultiplexes 
         secure_overlay.register_recv_callback(self.handleMessage)
@@ -66,14 +70,13 @@ class OverlayApps:
 
             # Create handler for messages to dlhelp helper
             self.help_handler = HelperMessageHandler(launchmany)
-            self.help_handler.register(self.metadata_handler)
+            self.help_handler.register(self.metadata_handler,secure_overlay)
             self.register_msg_handler(HelpCoordinatorMessages, self.help_handler.handleMessage)
 
         # Part 2:
         self.metadata_handler.register(secure_overlay, self.help_handler, launchmany, 
-                                       config['config_path'], config['max_torrents'])            
+                                       config)
         self.register_msg_handler(MetadataMessages, self.metadata_handler.handleMessage)
-
         
         if not config['torrent_collecting']:
             self.torrent_collecting_solution = 0
@@ -85,7 +88,7 @@ class OverlayApps:
             # Using buddycast to handle torrent collecting since they are dependent
             self.buddycast.register(secure_overlay, launchmany.rawserver, launchmany, 
                                     launchmany.listen_port, launchmany.exchandler, True,
-                                    self.metadata_handler, self.torrent_collecting_solution)
+                                    self.metadata_handler, self.torrent_collecting_solution, config['start_recommender'])
             self.register_msg_handler(BuddyCastMessages, self.buddycast.handleMessage)
 
         if config['dialback']:
@@ -98,6 +101,21 @@ class OverlayApps:
                                            config['dialback_interval'])
             self.register_msg_handler([DIALBACK_REQUEST],
                                       self.dialback_handler.handleSecOverlayMessage)
+
+        if config['socnet']:
+            self.socnet_handler = SocialNetworkMsgHandler.getInstance()
+            self.socnet_handler.register(secure_overlay, launchmany.rawserver, config)
+            self.register_msg_handler(SocialNetworkMessages,self.socnet_handler.handleMessage)
+
+        if config['rquery']:
+            self.rquery_handler = RemoteQueryMsgHandler.getInstance()
+            self.rquery_handler.register(secure_overlay,launchmany,launchmany.rawserver,config,self.buddycast)
+            self.register_msg_handler(RemoteQueryMessages,self.rquery_handler.handleMessage)
+            
+            self.rtorrent_handler = RemoteTorrentHandler.getInstance()
+            self.rtorrent_handler.register(launchmany.rawserver,self.metadata_handler)
+            self.metadata_handler.register2(self.rtorrent_handler)
+            
 
     def register_msg_handler(self, ids, handler):
         """ 
@@ -127,7 +145,7 @@ class OverlayApps:
                 return self.msg_handlers[id](permid,selversion,message)
             except:
                 # Catch all
-                print_exc(file=sys.stderr)
+                print_exc()
                 return False
 
 
@@ -135,11 +153,21 @@ class OverlayApps:
         """ An overlay-connection was established. Notify interested parties. """
 
         if DEBUG:
-            print >> sys.stderr,"olapps: handleConnection",exc
+            print >> sys.stderr,"olapps: handleConnection",exc,selversion,locally_initiated
 
         if self.dialback_handler is not None:
             # overlay-protocol version check done inside
             self.dialback_handler.handleSecOverlayConnection(exc,permid,selversion,locally_initiated)
+        try:
+            if exc is None:
+                bOnline = True
+            else:
+                bOnline = False
+            if not self.text_mode:
+                from Tribler.vwxGUI.peermanager import PeerDataManager
+                PeerDataManager.getInstance().setOnline(permid, bOnline)
+        except:
+            print_exc()
         
         if self.buddycast:
             self.buddycast.handleConnection(exc,permid,selversion,locally_initiated)
@@ -147,9 +175,17 @@ class OverlayApps:
             if DEBUG:
                 nconn = 0
                 conns = self.buddycast.buddycast_core.connections
-                print >> sys.stdout, "\n****** conn in buddycast"
+                print >> sys.stdout, "\nbc: conn in buddycast"
                 for peer_permid in conns:
                     _permid = show_permid_short(peer_permid)
                     nconn += 1
-                    print >> sys.stdout, "***", nconn, _permid, conns[peer_permid]
+                    print >> sys.stdout, "bc: ", nconn, _permid, conns[peer_permid]
+
+        if self.socnet_handler is not None:
+            # overlay-protocol version check done inside
+            self.socnet_handler.handleConnection(exc,permid,selversion,locally_initiated)
+            
+        if self.rquery_handler is not None:
+            # overlay-protocol version check done inside
+            self.rquery_handler.handleConnection(exc,permid,selversion,locally_initiated)
 

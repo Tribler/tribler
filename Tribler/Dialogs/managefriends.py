@@ -11,33 +11,7 @@ import webbrowser
 from Tribler.CacheDB.CacheDBHandler import FriendDBHandler,MyDBHandler
 from Tribler.Overlay.permid import permid_for_user
 
-from makefriends import MakeFriendsDialog, permid2iconfilename
-
-def createImageList(utility, friends):
-    if len(friends) == 0:
-        return None
-    bitmaps = []
-    height = 0
-    width = 0
-    for friend in friends:
-        filename = ''
-        if friend.has_key('icon'):
-            filename = friend['icon']
-        elif friend['permid'] is not None: # not possible
-            filename = permid2iconfilename(utility,friend['permid'])
-        if not os.access(filename, os.F_OK):
-            # fallback name, don't use nickname2... here
-            filename = os.path.join(utility.getPath(), 'icons', 'joe32.bmp')
-        bm = wx.Bitmap(filename,wx.BITMAP_TYPE_BMP)
-        if bm.GetWidth() > width:
-            width = bm.GetWidth()
-        if bm.GetHeight() > height:
-            height = bm.GetHeight()
-        bitmaps.append(bm)
-    imgList = wx.ImageList(width,height)
-    for bm in bitmaps:
-        imgList.Add(bm)
-    return imgList
+from makefriends import MakeFriendsDialog
 
 ################################################################
 #
@@ -93,7 +67,7 @@ class ManageFriendsPanel(wx.Panel):
 
 
     def addFriend(self, event = None):
-        dialog = MakeFriendsDialog(self)
+        dialog = MakeFriendsDialog(self,self.utility)
         ret = dialog.ShowModal()
         if ret == wx.ID_OK:
             self.updateView()
@@ -171,7 +145,7 @@ class FriendList(wx.ListCtrl):
         self.parent = parent
         self.utility = parent.utility
         self.friendsdb = friendsdb
-        self.type = wx.LC_LIST
+        self.type = wx.LC_REPORT
         style = self.type|wx.VSCROLL|wx.SIMPLE_BORDER|wx.LC_VRULES|wx.CLIP_CHILDREN
         if (sys.platform == 'win32'):
             style |= wx.LC_ALIGN_TOP
@@ -201,11 +175,12 @@ class FriendList(wx.ListCtrl):
         self.Refresh()
 
     def updateImageList(self):
-        self.SetWindowStyleFlag(self.type)
+        return
+        #self.SetWindowStyleFlag(self.type)
         
-        self.imgList = createImageList(self.utility, self.friends)
-        self.AssignImageList(self.imgList, wx.IMAGE_LIST_SMALL)
-        self.loadList()
+        #self.imgList = createImageList(self.utility, self.friends)
+        #self.AssignImageList(self.imgList, wx.IMAGE_LIST_SMALL)
+        #self.loadList()
         
     def updateReportList(self):
         self.SetWindowStyleFlag(self.type)

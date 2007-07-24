@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
+  <object class="wxPanel" name="dummy">
+    <pos>0,0</pos>
+    <size>300,300</size>
+    <bg>#ffffff</bg>
+    <object class="wxBoxSizer">
+      <orient>wxVERTICAL</orient>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+	      <object class="wxStaticText" name="dummyText">
+	        <style>wxST_NO_AUTORESIZE</style>
+	      	<label>Dummy Panel</label>
+	        <pos>0,4</pos>
+	        <size>194,17</size>
+	        <fg>#ffffff</fg>
+	      </object>
+      </object>
+    </object>
+  </object>
+</resource>

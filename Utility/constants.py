@@ -36,6 +36,9 @@ COL_DEST          = 22
 COL_SEEDTIME      = 23
 COL_CONNECTIONS   = 24
 COL_SEEDOPTION    = 25
+# only for tribler GUI:
+COL_DLANDTOTALSIZE = 30
+
 
 #
 # Constants used for the column headings in the spew list
@@ -81,6 +84,7 @@ ACTION_ADDTORRENT = 9
 ACTION_ADDTORRENTNONDEFAULT = 10
 ACTION_ADDTORRENTURL = 11
 ACTION_RESUME = 12
+ACTION_PLAY = 13
 #ACTION_RESEEDRESUME = 13
 ACTION_PAUSE = 14
 ACTION_STOP = 15
@@ -175,3 +179,12 @@ PEER_LASTSEEN = 4
 PEER_PREFERENCES = 5
 PEER_CONNECTED = 6
 PEER_EXCHANGED = 7
+
+CALLER_ARGV = 'argv'
+
+#
+# Constants used for currently searching imported friends list
+#
+IMPORT_SERVICE = 0
+IMPORT_ID = 1
+IMPORT_NAME = 2

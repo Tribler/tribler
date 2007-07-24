@@ -39,6 +39,7 @@ def makeActionList(utility):
     actions[ACTION_ADDTORRENTURL] = AddTorrentURL(utility)
     
     actions[ACTION_RESUME] = Resume(utility)
+    actions[ACTION_PLAY] = Play(utility)
     #actions[ACTION_RESEEDRESUME] = ReseedResume(utility)
     
     actions[ACTION_PAUSE] = Pause(utility)

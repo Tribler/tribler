@@ -1,6 +1,10 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
-
+#
+# Arno, 2007-04-24: The whole doneflag may not be necessary. As we're going
+# for 4.0 I won't touch the code now, TODO.
+#
+#
 import wx
 from threading import Event,currentThread
 
@@ -45,3 +49,24 @@ class DelayedEventHandler(DelayedInvocation,wx.EvtHandler):
     def __init__(self):
         wx.EvtHandler.__init__(self)
         DelayedInvocation.__init__(self)
+
+class FlaglessDelayedInvocation:
+    def __init__(self):
+        EVT_INVOKE(self, self.onInvoke)
+
+    def onInvoke(self, event):
+        event.func(*event.args, **event.kwargs)
+
+    def invokeLater(self, func, args = [], kwargs = {}):
+        ## Arno: I noticed a problem when the mainthread itself calls 
+        ## invokeLater(), so I added this special case.
+        if currentThread().getName() == 'MainThread':
+            func(*args,**kwargs)
+        else:
+            wx.PostEvent(self, InvokeEvent(func, args, kwargs))
+
+class FlaglessDelayedEventHandler(FlaglessDelayedInvocation,wx.EvtHandler):
+    def __init__(self):
+        wx.EvtHandler.__init__(self)
+        FlaglessDelayedInvocation.__init__(self)
+

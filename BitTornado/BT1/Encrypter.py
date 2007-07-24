@@ -13,7 +13,7 @@ from time import time
 from traceback import print_exc, extract_stack, print_stack
 import sys
 from Tribler.Overlay.SecureOverlay import SecureOverlay
-from BitTornado.BT1.MessageID import protocol_name,option_pattern
+from BitTornado.BT1.MessageID import protocol_name,option_pattern,disabled_overlay_option_pattern
 from BitTornado.BT1.convert import toint
 # _2fastbt
 
@@ -392,7 +392,7 @@ class Encoder:
             print >>sys.stderr,"encoder: connecting to",len(list),"peers"
         if not self.to_connect:
             self.raw_server.add_task(self._start_connection_from_queue)
-        self.to_connect = list
+        self.to_connect.extend(list)
         self.trackertime = int(time()) 
 
     def _start_connection_from_queue(self):

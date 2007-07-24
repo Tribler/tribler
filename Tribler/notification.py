@@ -1,57 +1,75 @@
-"""
-  Processes notifications like 'done seeding' and 'done downloading' by sending them
-  to a system-wide notification system like Growl.
-"""
 import os,sys
 from traceback import print_exc
 
 (DOWNLOAD_COMPLETE,DONE_SEEDING)=range(0,2)
 
-icondir = os.path.dirname(sys.argv[0])
-docIcon = "TriblerDoc.icns"
-appIcon = "tribler.icns"
-
 types = [
-    # (id,icon,name)
-    (DOWNLOAD_COMPLETE, docIcon,    "Download Complete"),
-    (DONE_SEEDING     , docIcon,    "Finished Seeding")
+    # (id,icon,langstr)
+    (DOWNLOAD_COMPLETE, "doc",    "notification_download_complete"),
+    (DONE_SEEDING     , "doc",    "notification_finished_seeding")
         ]
 
-if sys.platform == "darwin":
-    try:
+class Notifier:
+    def __init__( self ):
+        pass
+
+    def notify( self, type, title, content ):
+        pass
+
+class GrowlNotifier( Notifier ):
+    icons = { "doc": "TriblerDoc.icns",
+              "app": "tribler.icns" }
+
+    def __init__( self, utility ):
         import Growl
 
+        self.utility = utility
+        self.icondir = utility.getPath()
+        try:
+            # distinguish between app bundle and run from source
+            # if "mac/" exists, use it as a path to the icons
+            macdir = os.path.join(self.icondir,"mac")
+
+            os.stat( macdir )
+            self.icondir = macdir
+        except:
+            pass
+
+
         appname = "Tribler"
-        nAppIcon = Growl.Image.imageFromPath(os.path.join(icondir,appIcon))
+        nAppIcon = Growl.Image.imageFromPath( os.path.join( self.icondir, self.icons["app"] ) )
 
         # register all notification types and the application name & icon
-        growler = Growl.GrowlNotifier( appname, [x[2] for x in types], applicationIcon=nAppIcon )
-        growler.register()
-    except:
-        # error importing Growl or contacting Growl
-        growler = None
-else:
-    # notification only supported on Mac
-    growler = None
+        self.growler = Growl.GrowlNotifier( appname, [utility.lang.get(x[2]) for x in types], applicationIcon=nAppIcon )
+        self.growler.register()
+
+    def notify( self, type, title, content ):
+	import Growl
+
+        # lookup the type
+        x = [x for x in types if x[0]==type]
+        assert x, "Notification type not found: notify(%s,'%s','%s')" % (type,title,content)
+        info = x[0]
+	iconfile = self.icons[info[1]]
+	mesg = self.utility.lang.get(info[2])
+
+        # fetch the icon
+        nIcon = Growl.Image.imageFromPath( os.path.join( self.icondir, iconfile ) )
+
+        # notify Growl
+        self.growler.notify( mesg, title, content, icon=nIcon )
 
 def notify( type, title, content ):
-    """ Send a notification to Growl, if it exists.  """
+    pass
 
-    if growler is None:
-        return
+# ----- set the right notifier
+def init( utility ):
+    global notify
 
-    # lookup the type
-    x = [x for x in types if x[0]==type]
-    assert x, "Notification type not found: notify(%s,'%s','%s')" % (type,title,content)
-    info = x[0]
-
-    # fetch the icon
-    nIcon = Growl.Image.imageFromPath(os.path.join(icondir,info[1]))
-
-    # notify Growl
-    try:
-        growler.notify(info[2],title,content,icon=nIcon)
-    except:
-        print_exc()
-        raise
+    if sys.platform == "darwin":
+        try:
+	    notifier = GrowlNotifier( utility )
+            notify = notifier.notify
+        except:
+            pass
 

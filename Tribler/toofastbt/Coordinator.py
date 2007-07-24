@@ -8,6 +8,7 @@ import copy
 import sys
 
 from Tribler.Overlay.SecureOverlay import SecureOverlay,select_supported_protoversion
+from Tribler.utilities import show_permid_short
 from BitTornado.bencode import bencode
 from BitTornado.BT1.MessageID import DOWNLOAD_HELP, STOP_DOWNLOAD_HELP, PIECES_RESERVED
 
@@ -175,7 +176,7 @@ class Coordinator:
         # returns a COPY of the list. We need 'before' and 'after' info here,
         # so the caller is not allowed to update the current asked_helpers
         if DEBUG:
-            print >> sys.stderr,"dlhelp: Coordinator: Asked helpers is",self.asked_helpers
+            print >> sys.stderr,"dlhelp: Coordinator: Asked helpers is #",len(self.asked_helpers)
         return copy.deepcopy(self.asked_helpers)
 
     def samePeer(self,a,b):

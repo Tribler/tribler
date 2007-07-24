@@ -195,7 +195,7 @@ class TestMerkleHashes(unittest.TestCase):
             fp = open(datafilename,"wb")
             fp.write(block)
             fp.close()
-            torrentfilename = datafilename+'.merkle.torrent'
+            torrentfilename = datafilename+'.tribe'
 
             # 2. create args for make_meta_file
             url = "http://localhost:6969/announce"
@@ -205,7 +205,7 @@ class TestMerkleHashes(unittest.TestCase):
             flag = Event()
             def dummy_progress(val):
                 pass
-            def dummy_filecallback(f1,f2):
+            def dummy_filecallback(f1,f2,f3):
                 pass
 
             # 3. create Merkle torrent
