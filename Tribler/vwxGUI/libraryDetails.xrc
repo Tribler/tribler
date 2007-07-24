@@ -40,7 +40,7 @@
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>Title
 </label>
-                    <pos>3,3</pos>
+                    <pos>0,3</pos>
                     <size>280,18</size>
                     <bg>#     0</bg>
                     <fg>#ffffff</fg>
@@ -67,6 +67,51 @@
         <object class="wxPanel" name="thumbField" subclass="Tribler.vwxGUI.bgPanel.ImagePanel">
           <pos>0,21</pos>
           <size>300,170</size>
+          <object class="wxBoxSizer">
+            <orient>wxHORIZONTAL</orient>
+            <object class="sizeritem">
+              <flag>wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+              <object class="wxPanel" name="collapse" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                <pos>0,0</pos>
+                <size>8,16</size>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+              <object class="wxPanel" name="options" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                <pos>8,0</pos>
+                <size>62,16</size>
+                <bg>#ffffff</bg>
+                <fg>#     0</fg>
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="sizeritem">
+                    <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                    <border>16</border>
+                    <option>0</option>
+                    <object class="wxStaticText" name="optionText">
+                      <style>wxST_NO_AUTORESIZE</style>
+                      <label>  options</label>
+                      <pos>0,0</pos>
+                      <size>46,16</size>
+                      <bg>#ffffff</bg>
+                      <fg>#     0</fg>
+                    </object>
+                  </object>
+                </object>
+              </object>
+            </object>
+            <object class="spacer">
+              <size>105,170</size>
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>1</option>
+            </object>
+          </object>
         </object>
       </object>
       <object class="sizeritem">

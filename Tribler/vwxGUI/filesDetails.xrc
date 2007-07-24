@@ -2,7 +2,7 @@
 <resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
   <object class="wxPanel" name="filesDetails">
     <pos>0,0</pos>
-    <size>298,575</size>
+    <size>300,575</size>
     <fg>#d8d8bf</fg>
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>
@@ -55,7 +55,7 @@
             <border>0</border>
             <option>0</option>
             <object class="wxPanel" name="black_top_right" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
-              <pos>210,0</pos>
+              <pos>288,0</pos>
               <size>10,21</size>
             </object>
           </object>
@@ -68,6 +68,51 @@
         <object class="wxPanel" name="thumbField" subclass="Tribler.vwxGUI.bgPanel.ImagePanel">
           <pos>0,21</pos>
           <size>300,170</size>
+          <object class="wxBoxSizer">
+            <orient>wxHORIZONTAL</orient>
+            <object class="sizeritem">
+              <flag>wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+              <object class="wxPanel" name="collapse" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                <pos>0,0</pos>
+                <size>8,16</size>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+              <object class="wxPanel" name="options" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                <pos>8,0</pos>
+                <size>62,16</size>
+                <bg>#ffffff</bg>
+                <fg>#     0</fg>
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="sizeritem">
+                    <flag>wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                    <border>16</border>
+                    <option>0</option>
+                    <object class="wxStaticText" name="optionText">
+                      <style>wxST_NO_AUTORESIZE</style>
+                      <label>  options</label>
+                      <pos>0,0</pos>
+                      <size>46,16</size>
+                      <bg>#ffffff</bg>
+                      <fg>#     0</fg>
+                    </object>
+                  </object>
+                </object>
+              </object>
+            </object>
+            <object class="spacer">
+              <size>18,170</size>
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>3</border>
+              <option>0</option>
+            </object>
+          </object>
         </object>
       </object>
       <object class="sizeritem">

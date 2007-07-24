@@ -14,6 +14,7 @@ from Tribler.utilities import *
 from Tribler.Dialogs.MugshotManager import MugshotManager
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 from Tribler.vwxGUI.torrentManager import TorrentDataManager
+#from Tribler.vwxGUI.LibraryItemPanel import rightMouseButton
 from Tribler.vwxGUI.filesItemPanel import loadAzureusMetadataFromTorrent,createThumbImage
 from Tribler.unicode import bin2unicode
 from safeguiupdate import FlaglessDelayedInvocation
@@ -67,6 +68,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.data_manager = TorrentDataManager.getInstance(self.utility)
+        #self.optionsButtonLibraryFunc = rightMouseButton.getInstance()
         self.mm = MugshotManager.getInstance()
         self.mydb = MyPreferenceDBHandler()                    
         self.metadatahandler = MetadataHandler.getInstance()
@@ -85,7 +87,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         self.modeElements = {}
         for elem in DETAILS_MODES:
             self.modeElements[elem] = []
-        self.modeElements['filesMode'] = ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
+        self.modeElements['filesMode'] = ['titleField', 'popularityField1', 'options', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
                                             'download', 'tabs', ('files_detailsTab','tabs'), ('info_detailsTab','tabs'), 
                                             'TasteHeart', 'details', 'peopleWhoField', 'recommendationField']
@@ -265,6 +267,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     graph_parent.Hide()
                     #swap the dummy Graph panel with the plot panel
                     dummy_graph_panel = self.getGuiObj('Graph', 'Tab_graphs')
+                    #optionsButton = self.getGuiObj('options')
+
                     emsg = None
                     try:
                         from graphs import StatsPanel
@@ -1317,6 +1321,11 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             return
         if obj == self.downloadButton:
             self.download(self.data)
+            # --tb--
+#        if obj == self.optionsButtonLibrary:
+#            # zelfde menu als rechterMuisKnop
+#            print "optionsButton"
+#            self.rightMouseAction(event)
         elif obj == self.refreshButton: 
             #and self.refreshButton.isEnabled():
             if DEBUG:
@@ -1325,6 +1334,12 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             #self.swarmText.Refresh()
             
             self.refresh(self.data)
+            
+    def rightMouseButton(self, event):
+        print '--tb-- keydown function(2)'  
+        menu = self.guiUtility.OnRightMouseAction(event)
+
+        self.PopupMenu(menu, (-1,-1))   
             
     def refresh(self, torrent):
         if DEBUG:

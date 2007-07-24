@@ -1,3 +1,4 @@
+
 import wx
 from wx import xrc
 from traceback import print_exc,print_stack
@@ -134,6 +135,8 @@ class GUIUtility:
             self.subscribe()
         elif name == 'firewallStatus':
             self.firewallStatusClick()
+        elif name == 'options':
+            self.standardDetails.rightMouseButton(event)
         elif DEBUG:
             print 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
                 
@@ -523,3 +526,90 @@ class GUIUtility:
        #reachability flag / port forwarding enabled / accessible from the internet
        return DialbackMsgHandler.getInstance().isConnectable()
    
+    def OnRightMouseAction(self,event):
+        # called from  "*ItemPanel" or from "standardDetails"
+        print 'RightMouse Menu function --> GuiUtility.py'  
+
+        rightMouse = wx.Menu()        
+        #--tb--
+        
+        #rightMouse.AppendSeparator()
+        print "self.selectedMainButton"
+        print self.standardOverview.mode
+        print self.selectedMainButton
+        if self.standardOverview.mode == "filesMode" or self.standardOverview.mode == "libraryMode":     
+            self.utility.makePopup(rightMouse, None, 'rFileOptions')
+            self.utility.makePopup(rightMouse, self.onModerate, 'rModerate')       
+            #-- categories
+            rightMouseSub1 = wx.Menu() 
+            self.utility.makePopup(rightMouseSub1, None, "rCategory1", type="checkitem")
+            self.utility.makePopup(rightMouseSub1, None, "rCategory2", type="checkitem")
+            self.utility.makePopup(rightMouseSub1, None, "rCategory3", type="checkitem")
+            self.utility.makePopup(rightMouseSub1, self.onModerate, "rCategory4", type="checkitem", status="active")
+            self.utility.makePopup(rightMouseSub1, self.onModerate, "rCategory5", type="checkitem")
+            #--- end categories
+            rightMouse.AppendMenu(-1, self.utility.lang.get("rModerateCat"), rightMouseSub1)
+            self.utility.makePopup(rightMouse, self.onRecommend, 'rRecommend')        
+            #if secret:
+            self.utility.makePopup(rightMouse, self.onDownloadOpen, 'rDownloadOpenly')
+            #else:
+            self.utility.makePopup(rightMouse, self.onDownloadSecret, 'rDownloadSecretly')
+            
+            # if in library:
+            if self.standardOverview.mode == "libraryMode":
+                rightMouse.AppendSeparator()
+                self.utility.makePopup(rightMouse, None, 'rLibraryOptions')
+                self.utility.makePopup(rightMouse, self.onOpenFileDest, 'rOpenfilename')
+                self.utility.makePopup(rightMouse, self.onOpenDest, 'rOpenfiledestination')
+                self.utility.makePopup(rightMouse, None, 'rRemoveFromList')
+                self.utility.makePopup(rightMouse, None, 'rRemoveFromListAndHD')  
+        elif self.selectedMainButton == "mainButtonPersons" or  self.selectedMainButton == "mainButtonFriends":     
+            print "still todo"
+        
+        return (rightMouse)
+        #self.PopupMenu(rightMouse, (-1,-1))  
+        
+# ================== actions for rightMouse button ========================================== 
+    def onOpenFileDest(self, event = None):
+        # open File
+        print '---tb---'
+        print self.data.get('destdir')
+        abctorrent = self.data.get('abctorrent')
+        
+        if abctorrent:
+            abctorrent.files.onOpenFileDest(index = abctorrent.listindex)
+        else:
+            print "niet gelukt"
+            # TODO: TB> This state doesn't occur because torrents stay active, when tribler is 
+            #       closed within 1 hour after torrent is stopped or finished (see action.py)
+            #       This else statement is also empty for the playback button
+
+        
+                                   
+        #self.onOpenFileDest(index = self.data.get('destdir'))
+  
+    def onOpenDest(self, event = None):
+        # open Destination
+        for index in self.getSelected(firstitemonly = True):
+            self.torrent.files.onOpenFileDest(index = index, pathonly = True)
+            
+    def onModerate(self, event = None):
+        print '---tb--- Moderate event'
+        print event
+        # todo
+        event.Skip()
+    
+    def onRecommend(self, event = None):
+        # todo
+        event.Skip()
+   
+    def onDownloadOpen(self, event = None):
+        # todo
+        event.Skip()
+    
+    def onDownloadSecret(self, event = None):
+        # todo
+        event.Skip()     
+        
+# =========END ========= actions for rightMouse button ==========================================
+        

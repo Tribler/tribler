@@ -89,6 +89,9 @@ class FilesItemPanel(wx.Panel):
             window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
             window.Bind(wx.EVT_KEY_UP, self.keyTyped)
             window.Bind(wx.EVT_LEFT_DCLICK, self.doubleClicked)
+            window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction)            
+            #window.Bind(wx.EVT_RIGHT_DOWN, self.rightMouseButton)  
+            
                              
     def setData(self, torrent):
         
@@ -180,12 +183,19 @@ class FilesItemPanel(wx.Panel):
             
             
         
-    def mouseAction(self, event):
-        
+    def mouseAction(self, event):        
         self.SetFocus()
         if self.data:
             # torrent data is sent to guiUtility > standardDetails.setData
             self.guiUtility.selectTorrent(self.data)
+            
+        if event.RightDown():
+            self.rightMouseButton(event)
+            
+
+    def rightMouseButton(self, event):       
+        menu = self.guiUtility.OnRightMouseAction(event)
+        self.PopupMenu(menu, (-1,-1)) 
 
     def doubleClicked(self, event):
         self.guiUtility.standardDetails.download(self.data)

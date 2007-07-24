@@ -913,18 +913,28 @@ class Utility:
         return font
 
     # Make an entry for a popup menu
-    def makePopup(self, menu, event = None, label = "", extralabel = "", bindto = None):
+    def makePopup(self, menu, event = None, label = "", extralabel = "", bindto = None, type="normal", status=""):
         text = ""
         if label != "":
             text = self.lang.get(label)
         text += extralabel
         
-        newid = wx.NewId()
+        newid = wx.NewId()        
         if event is not None:
             if bindto is None:
                 bindto = menu
             bindto.Bind(wx.EVT_MENU, event, id = newid)
-        menu.Append(newid, text)
+        
+        if type == "normal":    
+            menu.Append(newid, text)
+        elif type == "checkitem":
+            menu.AppendCheckItem(newid, text)
+            if status == "active":
+                menu.Check(newid,True)
+        
+        if event is None:
+            menu.Enable(newid, False)
+        
         return newid
 
 def getMetainfo(src, openoptions = 'rb', style = "file"):

@@ -242,8 +242,7 @@ class LibraryItemPanel(wx.Panel):
         for window in [self]+self.GetChildren():
             window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
             window.Bind(wx.EVT_LEFT_DCLICK, self.doubleClicked)
-            window.Bind(wx.EVT_KEY_UP, self.keyTyped)
-            window.Bind(wx.EVT_RIGHT_DOWN, self.rightMouseButton)             
+            window.Bind(wx.EVT_KEY_UP, self.keyTyped)                         
             window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction)             
                   
     def refreshData(self):
@@ -559,27 +558,34 @@ class LibraryItemPanel(wx.Panel):
         if name == 'deleteLibraryitem':
             # delete works for active and inactive torrents
             self.guiUtility.standardOverview.removeTorrentFromLibrary(self.data)
+            
+        if event.RightDown():
+            self.rightMouseButton(event)
    
    
     def rightMouseButton(self, event):     
         # Open right-click menu (windows menu key)
         # >>makePopup(self, menu, event = None, label = "", extralabel = "", bindto = None):
-        print '--tb-- keydown function'  
-        
-        rightMouse = wx.Menu()        
 
-        self.utility.makePopup(rightMouse, self.onOpenFileDest, 'ropenfiledest')
-        self.utility.makePopup(rightMouse, self.onOpenDest, 'ropendest')
-        rightMouse.AppendSeparator()        
-        self.utility.makePopup(rightMouse, self.onModerate, 'rModerate')              
-        self.utility.makePopup(rightMouse, self.onRecommend, 'rRecommend')        
-        #if secret:
-        self.utility.makePopup(rightMouse, self.onDownloadOpen, 'rDownloadOpenly')
-        #else:
-        self.utility.makePopup(rightMouse, self.onDownloadSecret, 'rDownloadSecretly')
-        rightMouse.AppendSeparator()
-        self.utility.makePopup(rightMouse, None, 'rRemoveFromList')
-        self.utility.makePopup(rightMouse, None, 'rRemoveFromListAndHD')  
+        menu = self.guiUtility.OnRightMouseAction(event)
+        self.PopupMenu(menu, (-1,-1))        
+        
+        #--tb--
+#        rightMouse = wx.Menu()        
+#
+#        self.utility.makePopup(rightMouse, self.onOpenFileDest, 'ropenfiledest')
+#        self.utility.makePopup(rightMouse, self.onOpenDest, 'ropendest')
+#        rightMouse.AppendSeparator()        
+#        self.utility.makePopup(rightMouse, self.onModerate, 'rModerate')              
+#        self.utility.makePopup(rightMouse, self.onRecommend, 'rRecommend')        
+#        #if secret:
+#        self.utility.makePopup(rightMouse, self.onDownloadOpen, 'rDownloadOpenly')
+#        #else:
+#        self.utility.makePopup(rightMouse, self.onDownloadSecret, 'rDownloadSecretly')
+#        rightMouse.AppendSeparator()
+#        self.utility.makePopup(rightMouse, None, 'rLibraryOptions')
+#        self.utility.makePopup(rightMouse, None, 'rRemoveFromList')
+#        self.utility.makePopup(rightMouse, None, 'rRemoveFromListAndHD')  
         
 
 ##        #Add the priority submenu if this is a multi-file torrent
@@ -598,50 +604,10 @@ class LibraryItemPanel(wx.Panel):
 ##            position = event.GetPoint()
 
         #position = event.GetPoint()
-        self.PopupMenu(rightMouse, (-1,-1))
+#        self.PopupMenu(rightMouse, (-1,-1))
 
 
-    def onOpenFileDest(self, event = None):
-        # open File
-        print '---tb---'
-        print self.data.get('destdir')
-        abctorrent = self.data.get('abctorrent')
-        
-        if abctorrent:
-            abctorrent.files.onOpenFileDest(index = abctorrent.listindex)
-        else:
-            print "niet gelukt"
-            # TODO: TB> This state doesn't occur because torrents stay active, when tribler is 
-            #       closed within 1 hour after torrent is stopped or finished (see action.py)
-            #       This else statement is also empty for the playback button
-
-        
-                                   
-        #self.onOpenFileDest(index = self.data.get('destdir'))
-
-            
-    def onOpenDest(self, event = None):
-        # open Destination
-        for index in self.getSelected(firstitemonly = True):
-            self.torrent.files.onOpenFileDest(index = index, pathonly = True)
-            
-    def onModerate(self, event = None):
-        print '---tb--- Moderate event'
-        print event
-        # todo
-        event.Skip()
     
-    def onRecommend(self, event = None):
-        # todo
-        event.Skip()
-   
-    def onDownloadOpen(self, event = None):
-        # todo
-        event.Skip()
-    
-    def onDownloadSecret(self, event = None):
-        # todo
-        event.Skip()
        
     def doubleClicked(self, event):
         # open torrent details frame
