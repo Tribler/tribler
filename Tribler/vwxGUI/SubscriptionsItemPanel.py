@@ -137,6 +137,7 @@ class SubscriptionsItemPanel(wx.Panel):
         for window in self.GetChildren():
             window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
             window.Bind(wx.EVT_KEY_UP, self.keyTyped)
+            window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction) 
             
     def addLine(self, vertical=True):
         if vertical:
@@ -283,8 +284,14 @@ class SubscriptionsItemPanel(wx.Panel):
             if name == 'deleteSubscriptionItem':
                 self.torrentfeed.deleteURL(self.data['url'])
                 self.guiUtility.deleteSubscription(self.data)
+        if event.RightDown():
+            self.rightMouseButton(event)
             
-        event.Skip()
+        event.Skip()    
+
+    def rightMouseButton(self, event):       
+        menu = self.guiUtility.OnRightMouseAction(event)
+        self.PopupMenu(menu, (-1,-1))
             
     def getIdentifier(self):
         if self.data:

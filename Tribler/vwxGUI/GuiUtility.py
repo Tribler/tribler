@@ -135,7 +135,7 @@ class GUIUtility:
             self.subscribe()
         elif name == 'firewallStatus':
             self.firewallStatusClick()
-        elif name == 'options':
+        elif name == 'options':            
             self.standardDetails.rightMouseButton(event)
         elif DEBUG:
             print 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
@@ -240,8 +240,8 @@ class GUIUtility:
         "Called by standardDetails when ready with init"
         self.standardDetails = standardDetails
         firstItem = self.standardOverview.getFirstItem()
-        self.standardDetails.setMode('filesMode', firstItem)
-        self.standardDetails.refreshStatusPanel(True)    
+        self.standardDetails.setMode('filesMode', firstItem)        
+        self.standardDetails.refreshStatusPanel(True) 
         self.guiOpen.set()
         
     def deleteTorrent(self, torrent):
@@ -285,7 +285,9 @@ class GUIUtility:
     def refreshOnResize(self):
         try:
             #if DEBUG:
-#            print'GuiUtility: explicit refresh'
+#           print'GuiUtility: explicit refresh'
+            
+        
             self.standardDetails.Refresh()
             self.standardOverview.Refresh()
             self.frame.topBackgroundRight.Refresh()
@@ -537,18 +539,21 @@ class GUIUtility:
         print "self.selectedMainButton"
         print self.standardOverview.mode
         print self.selectedMainButton
+        self.utility.makePopup(rightMouse, None, 'rOptions')
         if self.standardOverview.mode == "filesMode" or self.standardOverview.mode == "libraryMode":     
-            self.utility.makePopup(rightMouse, None, 'rFileOptions')
-            self.utility.makePopup(rightMouse, self.onModerate, 'rModerate')       
-            #-- categories
-            rightMouseSub1 = wx.Menu() 
-            self.utility.makePopup(rightMouseSub1, None, "rCategory1", type="checkitem")
-            self.utility.makePopup(rightMouseSub1, None, "rCategory2", type="checkitem")
-            self.utility.makePopup(rightMouseSub1, None, "rCategory3", type="checkitem")
-            self.utility.makePopup(rightMouseSub1, self.onModerate, "rCategory4", type="checkitem", status="active")
-            self.utility.makePopup(rightMouseSub1, self.onModerate, "rCategory5", type="checkitem")
-            #--- end categories
-            rightMouse.AppendMenu(-1, self.utility.lang.get("rModerateCat"), rightMouseSub1)
+#-- change info            
+##            self.utility.makePopup(rightMouse, self.onModerate, 'rModerate')       
+#-- end change info            
+#-- categories
+##            rightMouseSub1 = wx.Menu() 
+##            self.utility.makePopup(rightMouseSub1, None, "rCategory1", type="checkitem")
+##            self.utility.makePopup(rightMouseSub1, None, "rCategory2", type="checkitem")
+##            self.utility.makePopup(rightMouseSub1, None, "rCategory3", type="checkitem")
+##            self.utility.makePopup(rightMouseSub1, self.onModerate, "rCategory4", type="checkitem", status="active")
+##            self.utility.makePopup(rightMouseSub1, self.onModerate, "rCategory5", type="checkitem")
+##            rightMouse.AppendMenu(-1, self.utility.lang.get("rModerateCat"), rightMouseSub1)
+#-- end categories
+            
             self.utility.makePopup(rightMouse, self.onRecommend, 'rRecommend')        
             #if secret:
             self.utility.makePopup(rightMouse, self.onDownloadOpen, 'rDownloadOpenly')
@@ -563,8 +568,22 @@ class GUIUtility:
                 self.utility.makePopup(rightMouse, self.onOpenDest, 'rOpenfiledestination')
                 self.utility.makePopup(rightMouse, None, 'rRemoveFromList')
                 self.utility.makePopup(rightMouse, None, 'rRemoveFromListAndHD')  
-        elif self.selectedMainButton == "mainButtonPersons" or  self.selectedMainButton == "mainButtonFriends":     
-            print "still todo"
+        elif self.standardOverview.mode == "personsMode" or self.standardOverview.mode == "friendsMode":     
+            # if not friend:
+            self.utility.makePopup(rightMouse, None, 'rAddAsFriend')
+            # if friend
+            self.utility.makePopup(rightMouse, None, 'rRemoveAsFriend')
+            
+            # if in friends:
+            if self.standardOverview.mode == "friendsMode":
+                rightMouse.AppendSeparator()
+                self.utility.makePopup(rightMouse, None, 'rFriendsOptions')
+                self.utility.makePopup(rightMouse, None, 'rSendAMessage')
+        elif self.standardOverview.mode == "subscriptionsMode":
+            self.utility.makePopup(rightMouse, None, 'rChangeSubscrTitle')
+            self.utility.makePopup(rightMouse, None, 'rRemoveSubscr')
+            
+
         
         return (rightMouse)
         #self.PopupMenu(rightMouse, (-1,-1))  

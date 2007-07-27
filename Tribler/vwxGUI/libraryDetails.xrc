@@ -73,17 +73,8 @@
               <flag>wxFIXED_MINSIZE</flag>
               <border>3</border>
               <option>0</option>
-              <object class="wxPanel" name="collapse" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                <pos>0,0</pos>
-                <size>8,16</size>
-              </object>
-            </object>
-            <object class="sizeritem">
-              <flag>wxFIXED_MINSIZE</flag>
-              <border>3</border>
-              <option>0</option>
               <object class="wxPanel" name="options" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                <pos>8,0</pos>
+                <pos>0,0</pos>
                 <size>62,16</size>
                 <bg>#ffffff</bg>
                 <fg>#     0</fg>

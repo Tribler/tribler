@@ -96,8 +96,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                                             'titleField','statusField','thumbField', 'discFilesField', 'discPersonsField']
         self.modeElements['friendsMode'] = ['TasteHeart', 'recommendationField','addAsFriend', 'commonFilesField',
                                             'alsoDownloadedField', 'info_detailsTab', 'advanced_detailsTab','detailsC',
-                                            'titleField','statusField','thumbField']
-        self.modeElements['libraryMode'] = ['titleField', 'popularityField1', 'popularityField2', 'creationdateField', 
+                                            'titleField','statusField','thumbField', 'discFilesField', 'discPersonsField']
+        self.modeElements['libraryMode'] = ['titleField', 'popularityField1','options', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
                                             'files_detailsTab', 'info_detailsTab', 'graphs_detailsTab', 'details', 
                                             'peopleWhoField']
@@ -124,7 +124,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 
 
     def addComponents(self):
-        self.SetBackgroundColour(wx.Colour(102,102,102))
+        #self.SetBackgroundColour(wx.Colour(102,102,102))
+        self.SetBackgroundColour(wx.Colour(255,51,0))
         self.hSizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(self.hSizer)
         self.SetAutoLayout(1)
@@ -1182,7 +1183,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 #                relayout the details panel to accomodate the new panel
             self.currentPanel.SetAutoLayout(1)
             self.currentPanel.Layout()
-            self.hSizer.Layout()
+            self.hSizer.Layout()    
 
         elif self.mode in ["personsMode","friendsMode"]:
             tabAdvanced = self.getGuiObj('advanced_detailsTab')

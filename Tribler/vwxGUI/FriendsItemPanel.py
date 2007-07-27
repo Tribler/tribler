@@ -148,6 +148,7 @@ class FriendsItemPanel(wx.Panel):
             window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
             window.Bind(wx.EVT_KEY_UP, self.keyTyped)
             window.Bind(wx.EVT_LEFT_DCLICK, self.doubleClicked)
+            window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction) 
             
     def addLine(self, vertical=True):
         if vertical:
@@ -284,6 +285,14 @@ class FriendsItemPanel(wx.Panel):
         self.SetFocus()
         if self.data:
             self.guiUtility.selectPeer(self.data)
+            
+        if event.RightDown():
+            self.rightMouseButton(event)
+            
+
+    def rightMouseButton(self, event):       
+        menu = self.guiUtility.OnRightMouseAction(event)
+        self.PopupMenu(menu, (-1,-1)) 
             
     def getIdentifier(self):
         if self.data:

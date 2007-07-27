@@ -81,6 +81,7 @@ class PersonsItemPanel(wx.Panel):
         for window in self.GetChildren():
             window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
             window.Bind(wx.EVT_KEY_UP, self.keyTyped)
+            window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction)            
                              
     def setData(self, peer_data):
         # set bitmap, rating, title
@@ -136,6 +137,9 @@ class PersonsItemPanel(wx.Panel):
         self.thumb.setSelected(True)
         self.title.SetBackgroundColour(self.selectedColour)
         self.title.Refresh()
+        
+        print '--tb-- getsize for itemPanel'
+        print self.GetSize();
                 
     def deselect(self, rowIndex, colIndex):
         self.selected = False
@@ -159,6 +163,14 @@ class PersonsItemPanel(wx.Panel):
         self.SetFocus()
         if self.data:
             self.guiUtility.selectPeer(self.data)
+            
+        if event.RightDown():
+            self.rightMouseButton(event)
+            
+
+    def rightMouseButton(self, event):       
+        menu = self.guiUtility.OnRightMouseAction(event)
+        self.PopupMenu(menu, (-1,-1)) 
             
     def getIdentifier(self):
         if self.data:

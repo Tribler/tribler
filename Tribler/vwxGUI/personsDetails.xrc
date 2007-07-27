@@ -3,6 +3,7 @@
   <object class="wxPanel" name="personsDetails">
     <pos>0,0</pos>
     <size>300,620</size>
+    <bg>#     0</bg>
     <fg>#d8d8bf</fg>
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>
@@ -58,6 +59,47 @@
               <pos>288,0</pos>
               <size>10,21</size>
             </object>
+          </object>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+        <object class="wxBoxSizer">
+          <orient>wxHORIZONTAL</orient>
+          <object class="sizeritem">
+            <flag>wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>0</option>
+            <object class="wxPanel" name="options" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+              <pos>3,24</pos>
+              <size>62,16</size>
+              <bg>#ffffff</bg>
+              <fg>#     0</fg>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="sizeritem">
+                  <flag>wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>16</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="optionText">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>  options</label>
+                    <pos>0,0</pos>
+                    <size>46,16</size>
+                    <bg>#ffffff</bg>
+                    <fg>#     0</fg>
+                  </object>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="spacer">
+            <size>18,3</size>
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>0</option>
           </object>
         </object>
       </object>

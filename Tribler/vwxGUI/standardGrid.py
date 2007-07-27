@@ -433,11 +433,12 @@ class standardGrid(wx.Panel):
 class filesGrid(standardGrid):
     def __init__(self):
         columns = 5
-        self.subPanelHeight = 118 # This will be update after first refresh
+        self.subPanelHeight = 108 # This will be update after first refresh
         standardGrid.__init__(self, columns, orientation='horizontal')
         
     def getSubPanel(self, keyfun):
         return FilesItemPanel(self, keyfun)
+
     
 class personsGrid(standardGrid):
     def __init__(self):

@@ -58,29 +58,52 @@ class FilesItemPanel(wx.Panel):
         self.gridKeyTyped = keyfun
 
     def addComponents(self):
+        
         self.Show(False)
         self.SetMinSize((125,110))
         self.selectedColour = wx.Colour(255,200,187)       
         self.unselectedColour = wx.WHITE
         
         self.SetBackgroundColour(self.unselectedColour)
-        self.vSizer = wx.BoxSizer(wx.VERTICAL)
+       
         
-        self.Bind(wx.EVT_LEFT_UP, self.mouseAction)
-        self.Bind(wx.EVT_KEY_UP, self.keyTyped)
+#        self.Bind(wx.EVT_LEFT_UP, self.mouseAction)
+#        self.Bind(wx.EVT_KEY_UP, self.keyTyped)
+
+        fileListMode = 'thumbs'        
+#        fileListMode = 'list'
         
-        # Add title
-        self.thumb = ThumbnailViewer(self, 'filesMode')
-        self.thumb.setBackground(wx.BLACK)
-        self.thumb.SetSize((125,70))
-        self.vSizer.Add(self.thumb, 0, wx.ALL, 0)        
-        self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(125,22), wx.ST_NO_AUTORESIZE)        
-        self.title.SetBackgroundColour(wx.WHITE)
-        self.title.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.title.SetMinSize((125,40))
-        self.vSizer.Add(self.title, 0, wx.BOTTOM, 3)     
-        self.vSizer.Add([100,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)        
-        self.SetSizer(self.vSizer);
+        if fileListMode == "thumbs":
+            # Add title
+            self.vSizer = wx.BoxSizer(wx.VERTICAL)
+            self.thumb = ThumbnailViewer(self, 'filesMode')
+            self.thumb.setBackground(wx.BLACK)
+            self.thumb.SetSize((125,70))
+            self.vSizer.Add(self.thumb, 0, wx.ALL, 0)        
+            self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(125,22), wx.ST_NO_AUTORESIZE)        
+            self.title.SetBackgroundColour(wx.WHITE)
+            self.title.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+            self.title.SetMinSize((125,40))
+            self.vSizer.Add(self.title, 0, wx.BOTTOM, 3)     
+            self.vSizer.Add([100,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)        
+            self.SetSizer(self.vSizer);
+        
+        if fileListMode == "list":
+            self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.thumb = ThumbnailViewer(self, 'filesMode')
+            self.thumb.setBackground(wx.BLACK)
+            self.thumb.SetSize((32,18))
+            self.hSizer.Add(self.thumb, 0, wx.ALL, 2)  
+            
+            self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(125,18), wx.ST_NO_AUTORESIZE)        
+            self.title.SetBackgroundColour(wx.WHITE)
+            self.title.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+            self.title.SetMinSize((125,18))
+            self.hSizer.Add(self.title, 0,wx.TOP|wx.BOTTOM, 2)     
+            self.hSizer.Add([100,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)        
+            self.SetSizer(self.hSizer);
+            
+            
         self.SetAutoLayout(1);
         self.Layout();
         self.Refresh()
@@ -158,6 +181,9 @@ class FilesItemPanel(wx.Panel):
         self.thumb.setSelected(True)
         self.title.SetBackgroundColour(colour)
         self.title.Refresh()
+        
+        print '--tb-- getsize for itemPanel'
+        print self.GetSize();
         
     def deselect(self, rowIndex, colIndex):
         self.selected = False

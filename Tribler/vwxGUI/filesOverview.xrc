@@ -27,7 +27,7 @@
             <option>1</option>
             <object class="wxPanel" name="pn10c">
               <bitmap>images/triblerpanel_topcenter.png</bitmap>
-              <pos>135,0</pos>
+              <pos>10,0</pos>
               <size>20,21</size>
               <bg>#ff3300</bg>
               <fg>#ffffff</fg>
@@ -40,8 +40,27 @@
                   <object class="wxStaticText" name="st64cew">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>Files</label>
-                    <pos>0,4</pos>
-                    <size>269,15</size>
+                    <pos>4,4</pos>
+                    <size>554,15</size>
+                    <bg>#ff3300</bg>
+                    <fg>#ffffff</fg>
+                  </object>
+                </object>
+                <object class="spacer">
+                  <size>10,19</size>
+                  <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>1</option>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                  <object class="wxComboBox" name="cmb241c">
+                    <content/>
+                    <label>control</label>
+                    <pos>451,3</pos>
+                    <size>145,14</size>
                     <bg>#ff3300</bg>
                     <fg>#ffffff</fg>
                   </object>
@@ -69,32 +88,28 @@
           <object class="sizeritem">
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>3</border>
-            <option>1</option>
-            <object class="wxPanel" name="filesFilter" subclass="Tribler.vwxGUI.standardFilter.filesFilter">
-              <pos>0,21</pos>
-              <size>371,35</size>
-            </object>
-          </object>
-          <object class="sizeritem">
-            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-            <border>3</border>
             <option>0</option>
             <object class="wxPanel" name="searchPanel">
-              <pos>421,21</pos>
-              <size>200,35</size>
+              <pos>0,21</pos>
+              <size>315,35</size>
               <bg>#999999</bg>
               <object class="wxBoxSizer">
                 <orient>wxHORIZONTAL</orient>
+                <object class="spacer">
+                  <size>10,10</size>
+                  <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                </object>
                 <object class="sizeritem">
                   <flag>wxTOP|wxFIXED_MINSIZE</flag>
                   <border>4</border>
                   <option>0</option>
                   <object class="wxTextCtrl" name="searchField">
-                    <title>search a file</title>
                     <style>wxTE_PROCESS_ENTER</style>
                     <label>search a file</label>
-                    <pos>-85,4</pos>
-                    <size>151,22</size>
+                    <pos>10,4</pos>
+                    <size>271,22</size>
                     <font>
                       <size>10</size>
                       <family>modern</family>
@@ -114,13 +129,16 @@
                     <size>22,22</size>
                   </object>
                 </object>
-                <object class="spacer">
-                  <size>10,10</size>
-                  <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-                  <border>3</border>
-                  <option>0</option>
-                </object>
               </object>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>1</option>
+            <object class="wxPanel" name="filesFilter" subclass="Tribler.vwxGUI.standardFilter.filesFilter">
+              <pos>395,21</pos>
+              <size>226,35</size>
             </object>
           </object>
         </object>

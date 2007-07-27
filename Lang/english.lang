@@ -633,7 +633,9 @@ rQueue 				= "&Queue"
 rRemoveTorrent 		= "Remove Torrent"
 rRemoveTorrentandFile = "Remove Torrent and File(s)"
 
-rFileOptions        = "Options:"
+
+############# FILE and LIBRARY
+rOptions            = "Options:"
 rDownloadSecretly   = "   Download secretly"
 rDownloadOpenly     = "   Download openly"
 rModerate           = "   Change info..."
@@ -646,11 +648,25 @@ rCategory3          = "Compressed"
 rCategory4          = "Other"
 rCategory5          = "XXX"
 
+############# LIBRARY
 rLibraryOptions     = "Library options:"
 rOpenfilename 	    = "   Open file"
 rOpenfiledestination= "   Open destination"
 rRemoveFromList	    = "   Remove from library"
 rRemoveFromListAndHD= "   Remove from library and harddisk"
+
+############# PERSONS and FRIENDS
+rAddAsFriend		= "   Add as friend"
+rRemoveAsFriend		= "   Remove as friend"
+
+############# FRIENDS
+rFriendsOptions     = "Friends options:"
+rSendAMessage       = "   Send a message..." 
+
+############# SUBSCRIPTIONS
+rChangeSubscrTitle  = "   Change title" 
+rRemoveSubscr       = "   Remove subscription" 
+
 
 rcopyfilename       = "&Copy Filename"
 rcopypath           = "Copy &Path"

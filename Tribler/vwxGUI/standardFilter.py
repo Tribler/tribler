@@ -56,7 +56,7 @@ class standardFilter(wx.Panel):
         #self.SetBackgroundColour(wx.BLUE)
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         # Add Sizer
-        self.hSizer.Add([8,10],0,wx.EXPAND|wx.FIXED_MINSIZE,0)        
+        self.hSizer.Add([20,10],0,wx.EXPAND|wx.FIXED_MINSIZE,0)        
         # filter 1 is making a selection
         for pullDownData in self.filterData:
             titles = [item[1] for item in pullDownData]
