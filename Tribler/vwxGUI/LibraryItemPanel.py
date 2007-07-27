@@ -5,7 +5,7 @@ from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.vwxGUI.tribler_topButton import tribler_topButton, SwitchButton
 from Tribler.Dialogs.dlhelperframe import DownloadHelperFrame
 from Tribler.vwxGUI.GuiUtility import GUIUtility
-from Tribler.vwxGUI.filesItemPanel import ThumbnailViewer
+from Tribler.vwxGUI.filesItemPanel import ThumbnailViewer, libraryModeThumbSize
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.vwxGUI.bgPanel import ImagePanel
 from Tribler.Video.Progress import ProgressBar
@@ -106,7 +106,7 @@ class LibraryItemPanel(wx.Panel):
         # Add thumb
         self.thumb = ThumbnailViewer(self, 'libraryMode')
         self.thumb.setBackground(wx.BLACK)
-        self.thumb.SetSize((43,24))
+        self.thumb.SetSize(libraryModeThumbSize)
         self.hSizer.Add(self.thumb, 0, wx.ALL, 3)
         
         # Add title
@@ -216,6 +216,8 @@ class LibraryItemPanel(wx.Panel):
         buttonSizer = wx.BoxSizer(wx.VERTICAL)
         buttonSizer.Add(self.playFast, 1, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 2)
         buttonSizer.Add(self.boost, 1, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 2) 
+        # temporary remove boost button
+        self.boost.SetSize((0,0))
         self.boost.Hide()
 
         # Play
@@ -228,10 +230,10 @@ class LibraryItemPanel(wx.Panel):
 #       
         # TODO: TB >delete button should be removed when delete function in rightMouseButton menu works 
         # Delete button
-        self.delete = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='deleteLibraryitem')
-        self.delete.setBackground(wx.WHITE)
-        self.hSizer.Add(self.delete,0,wx.TOP|wx.FIXED_MINSIZE|wx.ALIGN_TOP,7)
-        self.hSizer.Add([8,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)         
+        #self.delete = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='deleteLibraryitem')
+        #self.delete.setBackground(wx.WHITE)
+        #self.hSizer.Add(self.delete,0,wx.TOP|wx.FIXED_MINSIZE|wx.ALIGN_TOP,7)
+        #self.hSizer.Add([8,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)         
     
         # Add Refresh        
         self.SetSizer(self.hSizer);
@@ -311,7 +313,8 @@ class LibraryItemPanel(wx.Panel):
 #            print status
             # status is mapped with >Utility/constants.py
             if status == STATUS_QUEUE :  
-                print 'queue'
+                #print 'queue'
+                pass
             elif status == STATUS_STOP or status == STATUS_PAUSE :  
                 self.statusIcon.searchBitmap(name = statusLibrary["stopped"])
             elif status == STATUS_ACTIVE:  

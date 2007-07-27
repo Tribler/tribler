@@ -1581,6 +1581,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         else:
             if 'metadata' not in torrent:
                 torrent['metadata'] = {}
+            print 'Torrent: %s' % torrent
             torrent['metadata']['ThumbReadable'] = False
             
             default = self.mm.get_default('filesMode','BIG_DEFAULT_THUMB')

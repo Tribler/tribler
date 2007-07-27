@@ -28,7 +28,7 @@ else:
     FS_HEARTRANK = 7
 
 filesModeThumbSize = (125, 70)
-libraryModeThumbSize = (66, 37)
+libraryModeThumbSize = (43,24)#(66, 37)
 
 
 
@@ -293,11 +293,13 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                 if self.mode == 'libraryMode':
                     # Make a resized thumb for lib view
                     bmp = torrent['metadata'].get('ThumbnailBitmap')
-                    img = bmp.ConvertToImage()
-                    bmp = self.getResizedBitmapFromImage(img, libraryModeThumbSize)
+                    if bmp:
+                        img = bmp.ConvertToImage()
+                        bmp = self.getResizedBitmapFromImage(img, libraryModeThumbSize)
                         
                 elif self.mode == 'filesMode':
                     bmp = torrent['metadata'].get('ThumbnailBitmap')
+                
                 if not bmp:
                     #print 'fip: ThumbnailViewer: Error: thumbnailBitmap not found in torrent %s' % torrent
                     bmp = self.mm.get_default(self.mode,'DEFAULT_THUMB')
@@ -405,7 +407,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         w, h = size
 
         if iw == 0 or ih == 0:
-            # Can happen when there is not handler for image type
+            # Can happen when there is no handler for image type
             return None
         
         if (iw/float(ih)) > (w/float(h)):

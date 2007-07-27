@@ -530,29 +530,12 @@ class GUIUtility:
    
     def OnRightMouseAction(self,event):
         # called from  "*ItemPanel" or from "standardDetails"
-        print 'RightMouse Menu function --> GuiUtility.py'  
-
+        item = self.standardDetails.getData()
         rightMouse = wx.Menu()        
         #--tb--
         
-        #rightMouse.AppendSeparator()
-        print "self.selectedMainButton"
-        print self.standardOverview.mode
-        print self.selectedMainButton
         self.utility.makePopup(rightMouse, None, 'rOptions')
-        if self.standardOverview.mode == "filesMode" or self.standardOverview.mode == "libraryMode":     
-#-- change info            
-##            self.utility.makePopup(rightMouse, self.onModerate, 'rModerate')       
-#-- end change info            
-#-- categories
-##            rightMouseSub1 = wx.Menu() 
-##            self.utility.makePopup(rightMouseSub1, None, "rCategory1", type="checkitem")
-##            self.utility.makePopup(rightMouseSub1, None, "rCategory2", type="checkitem")
-##            self.utility.makePopup(rightMouseSub1, None, "rCategory3", type="checkitem")
-##            self.utility.makePopup(rightMouseSub1, self.onModerate, "rCategory4", type="checkitem", status="active")
-##            self.utility.makePopup(rightMouseSub1, self.onModerate, "rCategory5", type="checkitem")
-##            rightMouse.AppendMenu(-1, self.utility.lang.get("rModerateCat"), rightMouseSub1)
-#-- end categories
+        if self.standardOverview.mode == "filesMode":
             
             self.utility.makePopup(rightMouse, self.onRecommend, 'rRecommend')        
             #if secret:
@@ -561,18 +544,19 @@ class GUIUtility:
             self.utility.makePopup(rightMouse, self.onDownloadSecret, 'rDownloadSecretly')
             
             # if in library:
-            if self.standardOverview.mode == "libraryMode":
-                rightMouse.AppendSeparator()
-                self.utility.makePopup(rightMouse, None, 'rLibraryOptions')
-                self.utility.makePopup(rightMouse, self.onOpenFileDest, 'rOpenfilename')
-                self.utility.makePopup(rightMouse, self.onOpenDest, 'rOpenfiledestination')
-                self.utility.makePopup(rightMouse, None, 'rRemoveFromList')
-                self.utility.makePopup(rightMouse, None, 'rRemoveFromListAndHD')  
+        elif self.standardOverview.mode == "libraryMode":
+            self.utility.makePopup(rightMouse, self.onRecommend, 'rRecommend')        
+            rightMouse.AppendSeparator()
+            self.utility.makePopup(rightMouse, None, 'rLibraryOptions')
+            self.utility.makePopup(rightMouse, self.onOpenFileDest, 'rOpenfilename')
+            self.utility.makePopup(rightMouse, self.onOpenDest, 'rOpenfiledestination')
+            self.utility.makePopup(rightMouse, self.onDeleteTorrentFromLibrary, 'rRemoveFromList')
+            self.utility.makePopup(rightMouse, self.onDeleteTorrentFromDisk, 'rRemoveFromListAndHD')  
         elif self.standardOverview.mode == "personsMode" or self.standardOverview.mode == "friendsMode":     
-            # if not friend:
-            self.utility.makePopup(rightMouse, None, 'rAddAsFriend')
-            # if friend
-            self.utility.makePopup(rightMouse, None, 'rRemoveAsFriend')
+            if item.get('friend'):
+                self.utility.makePopup(rightMouse, self.onChangeFriendStatus, 'rRemoveAsFriend')
+            else:
+                self.utility.makePopup(rightMouse, self.onChangeFriendStatus, 'rAddAsFriend')
             
             # if in friends:
             if self.standardOverview.mode == "friendsMode":
@@ -591,9 +575,8 @@ class GUIUtility:
 # ================== actions for rightMouse button ========================================== 
     def onOpenFileDest(self, event = None):
         # open File
-        print '---tb---'
-        print self.data.get('destdir')
-        abctorrent = self.data.get('abctorrent')
+        item = self.standardDetails.getData()
+        abctorrent = item.get('abctorrent')
         
         if abctorrent:
             abctorrent.files.onOpenFileDest(index = abctorrent.listindex)
@@ -602,16 +585,33 @@ class GUIUtility:
             # TODO: TB> This state doesn't occur because torrents stay active, when tribler is 
             #       closed within 1 hour after torrent is stopped or finished (see action.py)
             #       This else statement is also empty for the playback button
-
-        
-                                   
-        #self.onOpenFileDest(index = self.data.get('destdir'))
   
     def onOpenDest(self, event = None):
         # open Destination
-        for index in self.getSelected(firstitemonly = True):
-            self.torrent.files.onOpenFileDest(index = index, pathonly = True)
+        item = self.standardDetails.getData()
+        abctorrent = item.get('abctorrent')
+        
+        if abctorrent:
+            abctorrent.files.onOpenDest(index = abctorrent.listindex)
+        else:
+            print "niet gelukt"
             
+    def onDeleteTorrentFromDisk(self, event = None):
+        item = self.standardDetails.getData()
+        abctorrent = item.get('abctorrent')
+        
+        if abctorrent:
+            self.utility.actionhandler.procREMOVE([abctorrent], removefiles = True)
+        self.standardOverview.removeTorrentFromLibrary(item)
+                
+    def onDeleteTorrentFromLibrary(self, event = None):
+        item = self.standardDetails.getData()
+        abctorrent = item.get('abctorrent')
+        
+        if abctorrent:
+            self.utility.actionhandler.procREMOVE([abctorrent], removefiles = False)
+        self.standardOverview.removeTorrentFromLibrary(item)
+        
     def onModerate(self, event = None):
         print '---tb--- Moderate event'
         print event
@@ -623,12 +623,19 @@ class GUIUtility:
         event.Skip()
    
     def onDownloadOpen(self, event = None):
-        # todo
+        item = self.standardDetails.getData()
+        self.standardDetails.download(item)
         event.Skip()
     
     def onDownloadSecret(self, event = None):
-        # todo
-        event.Skip()     
+        # todo secret download
+        self.onDownloadOpen(event)
+        event.Skip()
+        
+    def onChangeFriendStatus(self, event = None):
+        self.standardDetails.addAsFriend()
+        self.standardOverview.refreshData()
+        event.Skip()
         
 # =========END ========= actions for rightMouse button ==========================================
         
