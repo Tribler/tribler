@@ -174,6 +174,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 self.data[self.mode]['pager'] = pager
                 self.data[self.mode]['search'] = search
                 self.data[self.mode]['filter'] = filter
+                
                 #search.Bind(wx.EVT_COMMAND_TEXT_ENTER, self.OnSearchKeyDown)
                 if search is not None:
                     search.Bind(wx.EVT_KEY_DOWN, self.guiUtility.OnSearchKeyDown)
@@ -188,6 +189,16 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                     
                 pager.setGrid(grid)
                 
+                if self.mode in ['filesMode', 'personsMode']:
+                    viewModeSelect = xrc.XRCCTRL(currentPanel, 'modeItems')
+                    overviewSizeSelect = xrc.XRCCTRL(currentPanel, 'numberItems')                    
+                    # set default values
+                    viewModeSelect.SetValue('thumbnails')
+                    overviewSizeSelect.SetValue('auto')
+                    viewModeSelect.Bind(wx.EVT_COMBOBOX, grid.onViewModeChange)
+                    overviewSizeSelect.Bind(wx.EVT_COMBOBOX, grid.onSizeChange)
+                    
+                    
                 if self.mode == 'subscriptionsMode':
                     rssurlctrl = xrc.XRCCTRL(currentPanel,'pasteUrl')
                     rssurlctrl.Bind(wx.EVT_KEY_DOWN, self.guiUtility.OnSubscribeKeyDown)

@@ -28,8 +28,7 @@ class standardGrid(wx.Panel):
         self.initReady = False
         self.data = None
         self.dod = None
-        self.detailPanel = None       
-        self.cols = cols
+        self.detailPanel = None
         self.orientation = orientation
         self.subPanelClass = None
         self.items = 0 #number of items that are currently visible 
@@ -39,6 +38,12 @@ class standardGrid(wx.Panel):
         # the Create step is done by XRC.
         self.PostCreate(pre)
         self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
+        if type(cols) == int:
+            self.cols = cols
+            self.columnTypes = None
+        else:
+            self.cols = cols[0]
+            self.columnTypes = cols
         
         self.guiserver = GUIServer.getInstance()
         self.mm = MugshotManager.getInstance()
@@ -87,6 +92,26 @@ class standardGrid(wx.Panel):
         #self.Update()
         #print "vSizer: %s, Panel: %s"% (self.vSizer.GetSize(), self.GetSize())
 
+    def onViewModeChange(self, event=None):
+        assert self.columnTypes, "grid viewmode change not allowed if grid initiated with integer(self.cols)"
+        mode = event.GetEventObject().GetValue()
+        
+        #oldcols = self.cols
+        self.updatePanel(self.currentRows, 0)
+        if mode == 'thumbnails':
+            self.cols = self.columnTypes[0]
+        elif mode == 'list':
+            self.cols = self.columnTypes[1]
+        
+        self.updatePanel(0, self.currentRows)
+        self.items = self.cols * self.currentRows
+        #self.updateCols(oldcols, self.cols)
+        self.refreshData()
+        
+    def onSizeChange(self, event=None):
+        print event
+        
+        
     def refreshData(self):
         self.setData(self.data, resetPages = False)
         
@@ -275,7 +300,26 @@ class standardGrid(wx.Panel):
             
         
         
-            
+    def updateCols(self, oldCols, newCols):
+        self.items = newCols * self.currentRows
+        if newCols > oldCols:
+            numNew = newCols - oldCols
+            for row in xrange(len(self.panels)):
+                hSizer = self.vSizer.GetItem(row).GetSizer()
+                for i in xrange(numNew):
+                    dataPanel = self.getSubPanel(self.keyTypedOnGridItem)
+                    self.subPanelClass = dataPanel.__class__
+                    self.panels[row].append(dataPanel)
+                    hSizer.Add(dataPanel, 1, wx.ALIGN_CENTER|wx.ALL|wx.GROW, 0)
+        elif newCols < oldCols:
+            numDelete = oldCols - newCols
+            for row in self.panels:
+                for i in xrange(numDelete):
+                    panel = row[newCols]
+                    panel.Destroy()
+                    del row[newCols]
+                    
+        
     
     def updatePanel(self, oldRows, newRows):
         # put torrent items in grid 
@@ -434,7 +478,7 @@ class filesGrid(standardGrid):
     def __init__(self):
 #        columns = 5
 #        self.subPanelHeight = 108 # This will be update after first refresh
-        columns = 1
+        columns = (5, 1)
         self.subPanelHeight = 22 # This will be update after first refresh
         
         standardGrid.__init__(self, columns, orientation='horizontal')
@@ -445,7 +489,7 @@ class filesGrid(standardGrid):
     
 class personsGrid(standardGrid):
     def __init__(self):
-        columns = 6
+        columns = (6, 1)
         self.subPanelHeight = 113 # This will be update after first refresh
         standardGrid.__init__(self, columns, orientation='horizontal')
         

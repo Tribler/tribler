@@ -121,8 +121,8 @@ class ProgressBar(wx.Control):
 
         style = wx.SIMPLE_BORDER
         wx.Control.__init__(self, parent, -1, style=style)
-        self.SetMaxSize((-1,15))
-        self.SetMinSize((100,15))
+        self.SetMaxSize((-1,6))
+        self.SetMinSize((1,6))
         self.SetBackgroundColour(wx.WHITE)
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)

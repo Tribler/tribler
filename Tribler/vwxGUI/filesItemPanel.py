@@ -48,6 +48,7 @@ class FilesItemPanel(wx.Panel):
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.parent = parent
+        self.listItem = (self.parent.cols == 1)
         self.data = None
         self.datacopy = None
         self.titleLength = 37 # num characters
@@ -61,6 +62,7 @@ class FilesItemPanel(wx.Panel):
         self.Refresh()
         self.Layout()
         self.gridKeyTyped = keyfun
+        
 
     def addComponents(self):
         
@@ -76,10 +78,9 @@ class FilesItemPanel(wx.Panel):
 #        self.Bind(wx.EVT_KEY_UP, self.keyTyped)
 
 #        fileListMode = 'thumbs'        
-        fileListMode = 'list'
-        print '--tb-- list'
+        #print '--tb-- list'
         
-        if fileListMode == "thumbs":
+        if not self.listItem:
             self.SetMinSize((125,110))
             # Add title
             self.vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -95,8 +96,7 @@ class FilesItemPanel(wx.Panel):
             self.vSizer.Add(self.title, 0, wx.BOTTOM, 3)     
             self.vSizer.Add([100,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)        
             self.SetSizer(self.vSizer);
-        
-        if fileListMode == "list":
+        else: # listitem
             self.SetMinSize((670,22))
             self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
             self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
