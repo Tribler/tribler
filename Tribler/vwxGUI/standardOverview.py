@@ -575,6 +575,20 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     def getRSSUrlCtrl(self):
         return self.data[self.mode]['rssurlctrl']
     
+    def gridIsAutoResizing(self):
+        grid = self.data[self.mode]['grid']
+        return grid.sizeMode == 'auto'
+        
+    def growWithGrid(self):
+        gridHeight = self.data[self.mode]['grid'].GetSize()[1]
+        pagerHeight = 29
+        filterHeight = 21 + 8+ self.data[self.mode]['filter'].GetSize()[1]
+        
+        newSize = (-1, gridHeight + pagerHeight + filterHeight)
+        self.SetSize(newSize)
+        self.SetMinSize(newSize)
+        self.GetSizer().Layout()
+        self.GetContainingSizer().Layout()
         
     def removeTorrentFromLibrary(self, torrent):
         "Remove torrent from the library. Add it to discovered files?"

@@ -34,6 +34,7 @@ class standardGrid(wx.Panel):
         self.items = 0 #number of items that are currently visible 
         self.currentData = 0 #current starting index in the list for visible items
         self.currentRows = 0
+        self.sizeMode = 'auto'
         pre = wx.PrePanel()
         # the Create step is done by XRC.
         self.PostCreate(pre)
@@ -115,8 +116,23 @@ class standardGrid(wx.Panel):
         self.refreshData()
         
     def onSizeChange(self, event=None):
-        print event
-        
+        value = event.GetEventObject().GetValue()
+        self.sizeMode = value
+        if value == 'auto':
+            self.guiUtility.updateSizeOfStandardOverview()
+            self.SetMinSize((-1, 20))
+        else:
+            try:
+                wantedRows = int(value) / self.cols
+                self.SetSize((-1, wantedRows * self.subPanelHeight))
+                self.SetMinSize((-1, wantedRows * self.subPanelHeight))
+                self.guiUtility.standardOverview.growWithGrid()
+                self.guiUtility.standardOverview.Refresh()
+            except:
+                print 'Exception!'
+                
+                raise
+                
         
     def refreshData(self):
         self.setData(self.data, resetPages = False)
