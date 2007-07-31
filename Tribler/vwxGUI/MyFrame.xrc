@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
   <object class="wxFrame" name="MyFrame" subclass="tribler.ABCFrame">
-    <tooltip></tooltip>
     <hidden>1</hidden>
     <pos>1,1</pos>
     <size>1024,768</size>
@@ -312,16 +311,16 @@ _</label>
               </object>
             </object>
             <object class="sizeritem">
-              <flag>wxTOP|wxLEFT|wxFIXED_MINSIZE|wxEXPAND</flag>
+              <flag>wxTOP|wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>9</border>
               <option>0</option>
               <object class="wxPanel" name="standardDetails" subclass="Tribler.vwxGUI.standardDetails.standardDetails">
-                <pos>704,98</pos>
-                <size>300,750</size>
+                <pos>688,98</pos>
+                <size>300,731</size>
               </object>
             </object>
             <object class="spacer">
-              <size>20,0</size>
+              <size>20,60</size>
               <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
               <border>3</border>
               <option>0</option>

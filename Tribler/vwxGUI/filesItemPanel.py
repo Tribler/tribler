@@ -83,6 +83,7 @@ class FilesItemPanel(wx.Panel):
             self.SetMinSize((125,110))
             # Add title
             self.vSizer = wx.BoxSizer(wx.VERTICAL)
+            self.vSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
             self.thumb = ThumbnailViewer(self, 'filesMode')
             self.thumb.setBackground(wx.BLACK)
             self.thumb.SetSize((125,70))
@@ -98,6 +99,7 @@ class FilesItemPanel(wx.Panel):
         if fileListMode == "list":
             self.SetMinSize((670,22))
             self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
             self.thumb = ThumbnailViewer(self, 'filesMode')
             self.thumb.setBackground(wx.BLACK)
             self.thumb.SetSize((32,18))
@@ -110,48 +112,48 @@ class FilesItemPanel(wx.Panel):
             self.hSizer.Add(self.title, 1,wx.TOP|wx.BOTTOM, 2)     
             #self.hSizer.Add([5,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3) 
             # V Line
-            self.addLine() 
+            self.vLine1 = self.addLine() 
             # Add size
             self.fileSize = wx.StaticText(self,-1,"size",wx.Point(0,0),wx.Size(75,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
-            self.fileSize.SetBackgroundColour(wx.LIGHT_GREY)
+            self.fileSize.SetBackgroundColour(wx.WHITE)
             self.fileSize.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
             self.fileSize.SetMinSize((75,18))
             self.hSizer.Add(self.fileSize, 0,wx.TOP|wx.BOTTOM, 2)  
             # V Line
-            self.addLine()  
+            self.vLine2 = self.addLine() 
             # Add creation date
             self.creationDate = wx.StaticText(self,-1,"21-01-2007",wx.Point(0,0),wx.Size(110,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
-            self.creationDate.SetBackgroundColour(wx.LIGHT_GREY)
+            self.creationDate.SetBackgroundColour(wx.WHITE)
             self.creationDate.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
             self.creationDate.SetMinSize((110,18))
             self.hSizer.Add(self.creationDate, 0,wx.TOP|wx.BOTTOM, 2) 
             # V Line
-            self.addLine()
+            self.vLine3 = self.addLine() 
             # Add popularity
             self.seeders = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='down')
             self.seeders.setBackground(wx.WHITE)
             self.seeders.SetToolTipString(self.utility.lang.get('rNumberOfSeeders'))
             self.seedersNumber = wx.StaticText(self,-1,"203",wx.Point(0,0),wx.Size(125,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
-            self.seedersNumber.SetBackgroundColour(wx.LIGHT_GREY)
+            self.seedersNumber.SetBackgroundColour(wx.WHITE)
             self.seedersNumber.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
             self.seedersNumber.SetMinSize((45,18))
             self.leechers = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='up')
             self.leechers.setBackground(wx.WHITE)
             self.leechers.SetToolTipString(self.utility.lang.get('rNumberOfLeechers'))
             self.leechersNumber = wx.StaticText(self,-1,"678",wx.Point(0,0),wx.Size(125,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
-            self.leechersNumber.SetBackgroundColour(wx.LIGHT_GREY)
+            self.leechersNumber.SetBackgroundColour(wx.WHITE)
             self.leechersNumber.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
             self.leechersNumber.SetMinSize((45,18))
             self.hSizer.Add(self.seeders, 0,wx.TOP|wx.BOTTOM|wx.RIGHT, 2) 
             self.hSizer.Add(self.seedersNumber, 0,wx.TOP|wx.BOTTOM|wx.RIGHT, 2) 
+            self.vLine4 = self.addLine() 
             self.hSizer.Add(self.leechers, 0,wx.TOP|wx.BOTTOM|wx.RIGHT, 2)
             self.hSizer.Add(self.leechersNumber, 0,wx.TOP|wx.BOTTOM|wx.RIGHT, 2) 
             # V Line
-            self.addLine()            
+            self.vLine5 = self.addLine() 
             # Add Taste Heart
             self.vSizer2 = wx.BoxSizer(wx.VERTICAL)
-            self.vSizer2.Add([60,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
-            
+            self.vSizer2.Add([60,2],0,wx.EXPAND|wx.FIXED_MINSIZE,3)            
             self.hSizer2 = wx.BoxSizer(wx.HORIZONTAL)
             self.tasteHeart = TasteHeart.TasteHeart(self, -1, wx.DefaultPosition, wx.Size(14,14),name='TasteHeart')
             self.hSizer2.Add(self.tasteHeart, 0, wx.TOP, 0)            
@@ -169,6 +171,7 @@ class FilesItemPanel(wx.Panel):
             self.sourceIcon.setBackground(wx.WHITE)
             #self.sourceIcon.SetToolTipString(self.utility.lang.get('---'))          
             self.hSizer.Add(self.sourceIcon, 0, wx.TOP|wx.RIGHT, 0)
+            self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
 
             
             self.SetSizer(self.hSizer);
@@ -239,7 +242,7 @@ class FilesItemPanel(wx.Panel):
             self.leechersNumber.SetLabel('%d' % torrent['leecher'])
                 # -- tasteheart --        
             rank = torrent.get('simRank', -1)
-            recommField = self.taste
+            recommField = self.taste            
             if rank!=-1:
                 if rank == 1:
                     recommField.SetLabel("%d" % rank + "st")
@@ -251,28 +254,61 @@ class FilesItemPanel(wx.Panel):
                     recommField.SetLabel("%d" % rank + "th")
                 self.tasteHeart.Show()
                 self.tasteHeart.setRank(rank)
+                self.taste.SetLabel('')
             else:
                 self.taste.SetLabel('')
                 self.tasteHeart.Hide()
                 # -- END tasteheart --
-                
-            # -- END if list VIEW --
-
             
+            self.leechers.Show()
+            self.seeders.Show()
+#            self.tasteHeart.Show()
+
+            self.sourceIcon.Show()
+            self.vLine1.Show()
+            self.vLine2.Show()
+            self.vLine3.Show()
+            self.vLine4.Show()
+            self.vLine5.Show()    
+            # -- END if list VIEW --
+            
+    
         else:
+            self.thumb.Hide()
             self.title.SetLabel('')
             self.title.SetToolTipString('')
             self.title.Enable(False)
+            # -- if list VIEW --
+            self.fileSize.SetLabel('')
+            self.creationDate.SetLabel('')
+            self.seedersNumber.SetLabel('')            
+            self.leechersNumber.SetLabel('')
+            self.taste.SetLabel('')
+            self.leechers.Hide()
+            self.seeders.Hide()
+            self.tasteHeart.Hide()
             
-        self.thumb.setTorrent(torrent)
-        
+            self.sourceIcon.Hide()
+            self.vLine1.Hide()
+            self.vLine2.Hide()
+            self.vLine3.Hide()
+            self.vLine4.Hide()
+            self.vLine5.Hide()
+            
+        self.thumb.setTorrent(torrent)        
         self.Layout()
         self.Refresh()
         #self.parent.Refresh()
         
     def addLine(self):
+
+    
         vLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(2,22),wx.LI_VERTICAL)
-        self.hSizer.Add(vLine, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)
+        vLine.SetForegroundColour(wx.Colour(64,128,128))
+        vLine.SetBackgroundColour(wx.Colour(255,51,0))
+        #self.hSizer.Add(vLine, 0, wx.RIGHT|wx.LEFT|wx.EXPAND, 3)
+        return vLine
+        #self.hSizer.Add(vLine, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)
           
     def select(self, rowIndex, colIndex):
         self.selected = True
@@ -280,19 +316,45 @@ class FilesItemPanel(wx.Panel):
             print >>sys.stderr,'fip: item selected'
         colour = self.guiUtility.selectedColour
         self.thumb.setSelected(True)
+        self.SetBackgroundColour(colour)
         self.title.SetBackgroundColour(colour)
-        self.title.Refresh()
+        self.fileSize.SetBackgroundColour(colour)
+        self.creationDate.SetBackgroundColour(colour)
+        self.seeders.SetBackgroundColour(colour)
+        self.seedersNumber.SetBackgroundColour(colour)
+        self.leechers.SetBackgroundColour(colour)
+        self.leechersNumber.SetBackgroundColour(colour)
+        self.tasteHeart.setBackground(colour)        
+        self.taste.SetBackgroundColour(colour)
+        self.sourceIcon.SetBackgroundColour(colour)
+        self.Refresh()
+
         
         print '--tb-- getsize for itemPanel'
         print self.GetSize();
         
     def deselect(self, rowIndex, colIndex):
         self.selected = False
-        colour = self.guiUtility.unselectedColour
+        #colour = self.guiUtility.unselectedColour
+
+        if rowIndex % 2 == 0:
+            colour = self.guiUtility.unselectedColour
+        else:
+            colour = self.guiUtility.unselectedColour2
             
         self.thumb.setSelected(False)
+        self.SetBackgroundColour(colour)
         self.title.SetBackgroundColour(colour)
-        self.title.Refresh()
+        self.fileSize.SetBackgroundColour(colour)
+        self.creationDate.SetBackgroundColour(colour)
+        self.seeders.SetBackgroundColour(colour)
+        self.seedersNumber.SetBackgroundColour(colour)
+        self.leechers.SetBackgroundColour(colour)
+        self.leechersNumber.SetBackgroundColour(colour)
+        self.tasteHeart.setBackground(colour)        
+        self.taste.SetBackgroundColour(colour)
+        self.sourceIcon.SetBackgroundColour(colour)
+        self.Refresh()
         
     def keyTyped(self, event):
         if self.selected:

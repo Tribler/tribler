@@ -23,7 +23,7 @@ n=26
 n=1
 ws_name=MyFrame.pfr
 ws_dir=.\\
-i_id=306
+i_id=307
 s_tipoFile=4
 s_tipoComp=0
 wx_WindowFileADD=-1163005939
@@ -1807,7 +1807,7 @@ i_sizeGrow=0
 i_border=9
 is_parent=0
 is_siz=0
-siz_style=32848
+siz_style=41040
 l_enWinSizeMin=0
 b_ItmsizeMinAb=0
 i_ItminSizeH=10
@@ -1830,6 +1830,7 @@ Theme=0
 [Windows24/sizerProp]
 0=1
 1=1
+5=1
 13=1
 [Windows25]
 style=

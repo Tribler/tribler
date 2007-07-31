@@ -710,7 +710,7 @@ validator=
 s_name=filesGrid
 subClassName=
 i_index=-1
-i_left=10
+i_left=0
 i_top=66
 i_height=10
 i_width=623
@@ -746,7 +746,7 @@ i_sizeGrow=1
 i_border=10
 is_parent=0
 is_siz=0
-siz_style=41072
+siz_style=41024
 l_enWinSizeMin=0
 b_ItmsizeMinAb=0
 i_ItminSizeH=10
@@ -768,8 +768,6 @@ IndexOfS=2
 Theme=0
 [Windows10/sizerProp]
 0=1
-1=1
-3=1
 5=1
 13=1
 [Windows11]
