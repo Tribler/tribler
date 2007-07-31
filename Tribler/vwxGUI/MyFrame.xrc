@@ -312,12 +312,12 @@ _</label>
               </object>
             </object>
             <object class="sizeritem">
-              <flag>wxTOP|wxLEFT|wxFIXED_MINSIZE</flag>
+              <flag>wxTOP|wxLEFT|wxFIXED_MINSIZE|wxEXPAND</flag>
               <border>9</border>
               <option>0</option>
               <object class="wxPanel" name="standardDetails" subclass="Tribler.vwxGUI.standardDetails.standardDetails">
                 <pos>704,98</pos>
-                <size>300,5250</size>
+                <size>300,750</size>
               </object>
             </object>
             <object class="spacer">

@@ -287,15 +287,14 @@ class GUIUtility:
     def refreshOnResize(self):
         try:
             #if DEBUG:
-#           print'GuiUtility: explicit refresh'
-            
-        
+            #    print'GuiUtility: explicit refresh'
+                    
             self.standardDetails.Refresh()
             self.standardOverview.Refresh()
             self.frame.topBackgroundRight.Refresh()
-            #self.frame.topBackgroundRight.GetSizer.Layout()
             
         except:
+            raise
             pass # When resize is done before panels are loaded: no refresh
         
     def refreshTracker(self):

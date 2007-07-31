@@ -124,8 +124,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 
 
     def addComponents(self):
-        #self.SetBackgroundColour(wx.Colour(102,102,102))
-        self.SetBackgroundColour(wx.Colour(255,51,0))
+        self.SetBackgroundColour(wx.Colour(102,102,102))
+        #self.SetBackgroundColour(wx.Colour(255,51,0))
         self.hSizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(self.hSizer)
         self.SetAutoLayout(1)
@@ -1602,7 +1602,14 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         self.SetMaxSize(size)
         self.GetContainingSizer().Layout()
         # Resize scrollWindow to make scrollbars update to new windowsize
-        self.guiUtility.scrollWindow.SetSize(self.guiUtility.scrollWindow.GetSize())
+#        windowSize = self.guiUtility.frame.GetSize()
+#        windowSize[0]+=1
+#        self.guiUtility.frame.SetSize(windowSize)
+#        windowSize[0]-=1
+#        self.guiUtility.frame.SetSize(windowSize)
+        self.guiUtility.scrollWindow.FitInside()
+        self.Refresh()
+        
         if DEBUG:
             print 'StandardDetails: setting size of stand.details to: %s' % str(size)
             
