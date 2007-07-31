@@ -24,7 +24,7 @@ class standardGrid(wx.Panel):
     Panel which shows a grid with static number of columns and dynamic number
     of rows
     """
-    def __init__(self, cols, orientation='horizontal'):
+    def __init__(self, cols, subPanelHeight, orientation='horizontal'):
         self.initReady = False
         self.data = None
         self.dod = None
@@ -41,9 +41,12 @@ class standardGrid(wx.Panel):
         if type(cols) == int:
             self.cols = cols
             self.columnTypes = None
+            self.subPanelHeight = subPanelHeight
         else:
             self.cols = cols[0]
             self.columnTypes = cols
+            self.subPanelHeights = subPanelHeight
+            self.subPanelHeight = self.subPanelHeights[0]
         
         self.guiserver = GUIServer.getInstance()
         self.mm = MugshotManager.getInstance()
@@ -100,11 +103,14 @@ class standardGrid(wx.Panel):
         self.updatePanel(self.currentRows, 0)
         if mode == 'thumbnails':
             self.cols = self.columnTypes[0]
+            self.subPanelHeight = self.subPanelHeights[0]
         elif mode == 'list':
             self.cols = self.columnTypes[1]
+            self.subPanelHeight = self.subPanelHeights[1]
+        self.currentRows = 0
         
-        self.updatePanel(0, self.currentRows)
-        self.items = self.cols * self.currentRows
+        #self.updatePanel(0, self.currentRows)
+        self.calculateRows()
         #self.updateCols(oldcols, self.cols)
         self.refreshData()
         
@@ -270,18 +276,12 @@ class standardGrid(wx.Panel):
         if event:
             event.Skip()
         
-    def updateSubPanelHeight(self):
-        try:
-            self.subPanelHeight = self.vSizer.GetItem(0).GetSizer().GetItem(0).GetWindow().GetSize()[1]
-        except:
-            #print 'Could not get subpanelheight'
-            pass
+   
         
     def calculateRows(self, event=None):
     
         size = self.GetSize()
         oldRows = self.currentRows
-        self.updateSubPanelHeight()
         if size[1] < 50 or self.subPanelHeight == 0:
             self.currentRows = 0
             self.items = 0
@@ -322,6 +322,7 @@ class standardGrid(wx.Panel):
         
     
     def updatePanel(self, oldRows, newRows):
+        print 'update from %d to %d rows' % (oldRows, newRows)
         # put torrent items in grid 
         if newRows > oldRows:
             for i in range(oldRows, newRows):
@@ -479,9 +480,8 @@ class filesGrid(standardGrid):
 #        columns = 5
 #        self.subPanelHeight = 108 # This will be update after first refresh
         columns = (5, 1)
-        self.subPanelHeight = 22 # This will be update after first refresh
-        
-        standardGrid.__init__(self, columns, orientation='horizontal')
+        subPanelHeight = (5*22, 22)
+        standardGrid.__init__(self, columns, subPanelHeight, orientation='horizontal')
         
     def getSubPanel(self, keyfun):
         return FilesItemPanel(self, keyfun)
@@ -490,8 +490,8 @@ class filesGrid(standardGrid):
 class personsGrid(standardGrid):
     def __init__(self):
         columns = (6, 1)
-        self.subPanelHeight = 113 # This will be update after first refresh
-        standardGrid.__init__(self, columns, orientation='horizontal')
+        subPanelHeight = (6*22, 22)
+        standardGrid.__init__(self, columns, subPanelHeight, orientation='horizontal')
         
     def getSubPanel(self, keyfun):
         return PersonsItemPanel(self, keyfun)
