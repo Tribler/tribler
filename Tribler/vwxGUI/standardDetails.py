@@ -1602,11 +1602,6 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         self.SetMaxSize(size)
         self.GetContainingSizer().Layout()
         # Resize scrollWindow to make scrollbars update to new windowsize
-#        windowSize = self.guiUtility.frame.GetSize()
-#        windowSize[0]+=1
-#        self.guiUtility.frame.SetSize(windowSize)
-#        windowSize[0]-=1
-#        self.guiUtility.frame.SetSize(windowSize)
         self.guiUtility.scrollWindow.FitInside()
         self.Refresh()
         
