@@ -233,44 +233,44 @@ class FilesItemPanel(wx.Panel):
             self.title.SetLabel(title)
             self.title.Wrap(self.title.GetSize()[0])
             self.title.SetToolTipString(torrent['content_name'])
-            # -- if list VIEW --
-            self.fileSize.Enable(True)
-            self.fileSize.SetLabel(self.utility.size_format(torrent['length']))
-            self.creationDate.Enable(True)
-            self.creationDate.SetLabel(friendly_time(torrent['date']))
-            self.seedersNumber.SetLabel('%d' % torrent['seeder'])
-            self.leechersNumber.SetLabel('%d' % torrent['leecher'])
-                # -- tasteheart --        
-            rank = torrent.get('simRank', -1)
-            recommField = self.taste            
-            if rank!=-1:
-                if rank == 1:
-                    recommField.SetLabel("%d" % rank + "st")
-                elif rank == 2:
-                    recommField.SetLabel("%d" % rank + "nd")                        
-                elif rank == 3:
-                    recommField.SetLabel("%d" % rank + "rd")
+            if self.listItem:
+                self.fileSize.Enable(True)
+                self.fileSize.SetLabel(self.utility.size_format(torrent['length']))
+                self.creationDate.Enable(True)
+                self.creationDate.SetLabel(friendly_time(torrent['date']))
+                self.seedersNumber.SetLabel('%d' % torrent['seeder'])
+                self.leechersNumber.SetLabel('%d' % torrent['leecher'])
+                    # -- tasteheart --        
+                rank = torrent.get('simRank', -1)
+                recommField = self.taste            
+                if rank!=-1:
+                    if rank == 1:
+                        recommField.SetLabel("%d" % rank + "st")
+                    elif rank == 2:
+                        recommField.SetLabel("%d" % rank + "nd")                        
+                    elif rank == 3:
+                        recommField.SetLabel("%d" % rank + "rd")
+                    else:
+                        recommField.SetLabel("%d" % rank + "th")
+                    self.tasteHeart.Show()
+                    self.tasteHeart.setRank(rank)
+                    self.taste.SetLabel('')
                 else:
-                    recommField.SetLabel("%d" % rank + "th")
-                self.tasteHeart.Show()
-                self.tasteHeart.setRank(rank)
-                self.taste.SetLabel('')
-            else:
-                self.taste.SetLabel('')
-                self.tasteHeart.Hide()
-                # -- END tasteheart --
-            
-            self.leechers.Show()
-            self.seeders.Show()
-#            self.tasteHeart.Show()
-
-            self.sourceIcon.Show()
-            self.vLine1.Show()
-            self.vLine2.Show()
-            self.vLine3.Show()
-            self.vLine4.Show()
-            self.vLine5.Show()    
-            # -- END if list VIEW --
+                    self.taste.SetLabel('')
+                    self.tasteHeart.Hide()
+                    # -- END tasteheart --
+                
+                self.leechers.Show()
+                self.seeders.Show()
+    #            self.tasteHeart.Show()
+    
+                self.sourceIcon.Show()
+                self.vLine1.Show()
+                self.vLine2.Show()
+                self.vLine3.Show()
+                self.vLine4.Show()
+                self.vLine5.Show()    
+                # -- END if list VIEW --
             
     
         else:
@@ -278,22 +278,23 @@ class FilesItemPanel(wx.Panel):
             self.title.SetLabel('')
             self.title.SetToolTipString('')
             self.title.Enable(False)
-            # -- if list VIEW --
-            self.fileSize.SetLabel('')
-            self.creationDate.SetLabel('')
-            self.seedersNumber.SetLabel('')            
-            self.leechersNumber.SetLabel('')
-            self.taste.SetLabel('')
-            self.leechers.Hide()
-            self.seeders.Hide()
-            self.tasteHeart.Hide()
-            
-            self.sourceIcon.Hide()
-            self.vLine1.Hide()
-            self.vLine2.Hide()
-            self.vLine3.Hide()
-            self.vLine4.Hide()
-            self.vLine5.Hide()
+            if self.listItem:
+                # -- if list VIEW --
+                self.fileSize.SetLabel('')
+                self.creationDate.SetLabel('')
+                self.seedersNumber.SetLabel('')            
+                self.leechersNumber.SetLabel('')
+                self.taste.SetLabel('')
+                self.leechers.Hide()
+                self.seeders.Hide()
+                self.tasteHeart.Hide()
+                
+                self.sourceIcon.Hide()
+                self.vLine1.Hide()
+                self.vLine2.Hide()
+                self.vLine3.Hide()
+                self.vLine4.Hide()
+                self.vLine5.Hide()
             
         self.thumb.setTorrent(torrent)        
         self.Layout()
@@ -301,32 +302,32 @@ class FilesItemPanel(wx.Panel):
         #self.parent.Refresh()
         
     def addLine(self):
-
-    
         vLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(2,22),wx.LI_VERTICAL)
-        vLine.SetForegroundColour(wx.Colour(64,128,128))
-        vLine.SetBackgroundColour(wx.Colour(255,51,0))
-        #self.hSizer.Add(vLine, 0, wx.RIGHT|wx.LEFT|wx.EXPAND, 3)
+#        vLine.SetForegroundColour(wx.Colour(64,128,128))
+#        vLine.SetBackgroundColour(wx.Colour(255,51,0))
+        self.hSizer.Add(vLine, 0, wx.RIGHT|wx.LEFT|wx.EXPAND, 3)
         return vLine
-        #self.hSizer.Add(vLine, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)
           
     def select(self, rowIndex, colIndex):
         self.selected = True
         if DEBUG:
             print >>sys.stderr,'fip: item selected'
         colour = self.guiUtility.selectedColour
-        self.thumb.setSelected(True)
-        self.SetBackgroundColour(colour)
+        self.thumb.setSelected(True)        
         self.title.SetBackgroundColour(colour)
-        self.fileSize.SetBackgroundColour(colour)
-        self.creationDate.SetBackgroundColour(colour)
-        self.seeders.SetBackgroundColour(colour)
-        self.seedersNumber.SetBackgroundColour(colour)
-        self.leechers.SetBackgroundColour(colour)
-        self.leechersNumber.SetBackgroundColour(colour)
-        self.tasteHeart.setBackground(colour)        
-        self.taste.SetBackgroundColour(colour)
-        self.sourceIcon.SetBackgroundColour(colour)
+        
+        if self.listItem:
+            self.SetBackgroundColour(colour)
+            self.fileSize.SetBackgroundColour(colour)
+            self.creationDate.SetBackgroundColour(colour)
+            self.seeders.SetBackgroundColour(colour)
+            self.seedersNumber.SetBackgroundColour(colour)
+            self.leechers.SetBackgroundColour(colour)
+            self.leechersNumber.SetBackgroundColour(colour)
+            self.tasteHeart.setBackground(colour)        
+            self.taste.SetBackgroundColour(colour)
+            self.sourceIcon.SetBackgroundColour(colour)
+            
         self.Refresh()
 
         
@@ -337,23 +338,26 @@ class FilesItemPanel(wx.Panel):
         self.selected = False
         #colour = self.guiUtility.unselectedColour
 
-        if rowIndex % 2 == 0:
+        if rowIndex % 2 == 0 or not self.listItem:
             colour = self.guiUtility.unselectedColour
         else:
             colour = self.guiUtility.unselectedColour2
             
         self.thumb.setSelected(False)
-        self.SetBackgroundColour(colour)
         self.title.SetBackgroundColour(colour)
-        self.fileSize.SetBackgroundColour(colour)
-        self.creationDate.SetBackgroundColour(colour)
-        self.seeders.SetBackgroundColour(colour)
-        self.seedersNumber.SetBackgroundColour(colour)
-        self.leechers.SetBackgroundColour(colour)
-        self.leechersNumber.SetBackgroundColour(colour)
-        self.tasteHeart.setBackground(colour)        
-        self.taste.SetBackgroundColour(colour)
-        self.sourceIcon.SetBackgroundColour(colour)
+        
+        if self.listItem:
+            self.SetBackgroundColour(colour)
+            self.fileSize.SetBackgroundColour(colour)
+            self.creationDate.SetBackgroundColour(colour)
+            self.seeders.SetBackgroundColour(colour)
+            self.seedersNumber.SetBackgroundColour(colour)
+            self.leechers.SetBackgroundColour(colour)
+            self.leechersNumber.SetBackgroundColour(colour)
+            self.tasteHeart.setBackground(colour)        
+            self.taste.SetBackgroundColour(colour)
+            self.sourceIcon.SetBackgroundColour(colour)
+            
         self.Refresh()
         
     def keyTyped(self, event):
