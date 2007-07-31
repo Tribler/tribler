@@ -811,7 +811,7 @@ contenitor=0
 [Project/GroupsName]
 count=1
 item0name=Save Project
-item0id=1002,1016,2119
+item0id=
 [VwXScript]
 count=0
 [File0]

@@ -66,6 +66,8 @@ class PersonsItemPanel(wx.Panel):
         if not self.listItem:
             self.SetMinSize((80,110))
             self.vSizer = wx.BoxSizer(wx.VERTICAL)
+#            # Add spacer
+#            self.vSizer2.Add([60,2],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
             # Add title
             self.thumb = ThumbnailViewer(self)
             self.thumb.setBackground(wx.BLACK)
@@ -305,7 +307,7 @@ class PersonsItemPanel(wx.Panel):
                 
     def deselect(self, rowIndex, colIndex):
         
-        if rowIndex % 2 == 0:
+        if rowIndex % 2 == 0 or not self.listItem:
             colour = self.guiUtility.unselectedColour
         else:
             colour = self.guiUtility.unselectedColour2
