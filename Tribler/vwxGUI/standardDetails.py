@@ -179,6 +179,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             
 #        self.currentPanel.Layout()
         wx.CallAfter(self.hSizer.Layout)
+        wx.CallAfter(self.refreshStandardDetailsHeight)
 #        wx.CallAfter(self.currentPanel.Refresh)
         #self.Show(True)
         
@@ -929,7 +930,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             recommField.SetLabel("")
         
     def reHeightToFit(self, tab=None):
-        """the ideea is to iterate through all object mentioned in the list of 
+        """the idea is to iterate through all objects mentioned in the list of 
         object for current tab and to reposition them on y axis so that all of
         them are fully visible -> update, the repositioning should be done automatically by 
         autolayouting the sizer, all that has to be done is wrap the elements that don't
@@ -966,6 +967,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                             #reposition element as it overlaps the one above
                             currentElement.SetPosition(wx.Point(currentElement.GetPosition().x,new_pos))
                     prevElement = currentElement
+            # Set size of standardDetails to size of content
+            
+            
         except:
             print_exc()
         return bElementMoved
@@ -1122,7 +1126,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         if DEBUG:
             print >> sys.stderr,'standardDetails: tabClicked: %s' % name
         self.checkGraphTabVisible(selectedTab=name)
-        # currently, only tabs in filesDetailspanel work
+
         if self.mode == 'libraryMode':
             tabButtons = { 'files_detailsTab':self.getGuiObj('files_detailsTab'),
                           'info_detailsTab':self.getGuiObj('info_detailsTab'),
@@ -1145,10 +1149,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 if DEBUG:
                     print >>sys.stderr,"standardDetails: <mluc> switching from "+current_name+" to "+panel_name
                 self.swapPanel(panel1, panel2)
-                #each time the panel changes, update the 'panel' reference in data list
-                #self.data[self.mode]['panel'] = panel2
-                #actually, update the currentPanel reference
-                #self.currentPanel = panel2
+                
                 for key in tabButtons.keys():
                     try:
                         if key == name:
@@ -1181,6 +1182,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     print >> sys.stderr,'standardDetails: %s: Unknown tab %s' % (self.mode,name)
                 return
 #                relayout the details panel to accomodate the new panel
+            print "info: %s, files: %s" % (str(infoPanel.GetSize()), str(filesPanel.GetSize()))
+            
             self.currentPanel.SetAutoLayout(1)
             self.currentPanel.Layout()
             self.hSizer.Layout()    
@@ -1253,6 +1256,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             return
         
         self.setData(self.item)
+        self.refreshStandardDetailsHeight()
 
             
     def swapPanel(self, oldpanel, newpanel, sizer=None, index=-1):
@@ -1586,8 +1590,21 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             
             default = self.mm.get_default('filesMode','BIG_DEFAULT_THUMB')
             thumbPanel.setBitmap(default)
-                
-            
+
+    def refreshStandardDetailsHeight(self, panel = None):
+        if not panel:
+            panel = self.currentPanel
+        margin = 6
+        newHeight = panel.GetSize()[1] + self.data['status']['panel'].GetSize()[1] + margin
+        size = (300,newHeight)
+        self.SetSize(size)
+        self.SetMinSize(size)
+        self.SetMaxSize(size)
+        self.GetContainingSizer().Layout()
+        # Resize scrollWindow to make scrollbars update to new windowsize
+        self.guiUtility.scrollWindow.SetSize(self.guiUtility.scrollWindow.GetSize())
+        if DEBUG:
+            print 'StandardDetails: setting size of stand.details to: %s' % str(size)
             
             
 def revtcmp(a,b):

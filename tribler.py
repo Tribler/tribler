@@ -1027,10 +1027,10 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             self.guiUtility.xrcResource = self.res
             self.frame = self.res.LoadFrame(None, "MyFrame")
             self.guiUtility.frame = self.frame
-            self.scrollWindow = xrc.XRCCTRL(self.frame, "level0")
-            self.guiUtility.mainSizer = self.scrollWindow.GetSizer()
+            self.guiUtility.scrollWindow = xrc.XRCCTRL(self.frame, "level0")
+            self.guiUtility.mainSizer = self.guiUtility.scrollWindow.GetSizer()
             self.frame.topBackgroundRight = xrc.XRCCTRL(self.frame, "topBG3")
-            #self.scrollWindow.SetScrollbars(1,1,1024,768)
+            self.guiUtility.scrollWindow.SetScrollbars(1,1,1024,368)
             self.frame.mainButtonPersons = xrc.XRCCTRL(self.frame, "mainButtonPersons")
 
 

@@ -292,6 +292,7 @@ class GUIUtility:
             self.standardOverview.Refresh()
             self.frame.topBackgroundRight.Refresh()
             #self.frame.topBackgroundRight.GetSizer.Layout()
+            
         except:
             pass # When resize is done before panels are loaded: no refresh
         
@@ -531,6 +532,11 @@ class GUIUtility:
     def OnRightMouseAction(self,event):
         # called from  "*ItemPanel" or from "standardDetails"
         item = self.standardDetails.getData()
+        if not item:
+            if DEBUG:
+                print 'Used right mouse menu, but no item in DetailWindow'
+            return
+        
         rightMouse = wx.Menu()        
         #--tb--
         
