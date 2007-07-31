@@ -7,6 +7,7 @@ from traceback import print_exc,print_stack
 from Tribler.utilities import *
 #from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.vwxGUI.GuiUtility import GUIUtility
+from Tribler.vwxGUI.tribler_topButton import tribler_topButton, SwitchButton
 from safeguiupdate import FlaglessDelayedInvocation
 from Tribler.unicode import *
 from Utility.utility import getMetainfo
@@ -22,12 +23,16 @@ DEBUG=False
 # font sizes
 if sys.platform == 'darwin':
     FS_FILETITLE = 10
+    FS_SIMILARITY = 10
     FS_HEARTRANK = 10
 else:
     FS_FILETITLE = 8
+    FS_SIMILARITY = 10
     FS_HEARTRANK = 7
+    
 
-filesModeThumbSize = (125, 70)
+#filesModeThumbSize = (125, 70)
+filesModeThumbSize = (32, 18)
 libraryModeThumbSize = (43,24)#(66, 37)
 
 
@@ -60,7 +65,7 @@ class FilesItemPanel(wx.Panel):
     def addComponents(self):
         
         self.Show(False)
-        self.SetMinSize((125,110))
+        
         self.selectedColour = wx.Colour(255,200,187)       
         self.unselectedColour = wx.WHITE
         
@@ -70,10 +75,12 @@ class FilesItemPanel(wx.Panel):
 #        self.Bind(wx.EVT_LEFT_UP, self.mouseAction)
 #        self.Bind(wx.EVT_KEY_UP, self.keyTyped)
 
-        fileListMode = 'thumbs'        
-#        fileListMode = 'list'
+#        fileListMode = 'thumbs'        
+        fileListMode = 'list'
+        print '--tb-- list'
         
         if fileListMode == "thumbs":
+            self.SetMinSize((125,110))
             # Add title
             self.vSizer = wx.BoxSizer(wx.VERTICAL)
             self.thumb = ThumbnailViewer(self, 'filesMode')
@@ -89,20 +96,82 @@ class FilesItemPanel(wx.Panel):
             self.SetSizer(self.vSizer);
         
         if fileListMode == "list":
+            self.SetMinSize((670,22))
             self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
             self.thumb = ThumbnailViewer(self, 'filesMode')
             self.thumb.setBackground(wx.BLACK)
             self.thumb.SetSize((32,18))
             self.hSizer.Add(self.thumb, 0, wx.ALL, 2)  
-            
-            self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(125,18), wx.ST_NO_AUTORESIZE)        
+            # Add title
+            self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(105,18), wx.ST_NO_AUTORESIZE)        
             self.title.SetBackgroundColour(wx.WHITE)
             self.title.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-            self.title.SetMinSize((125,18))
-            self.hSizer.Add(self.title, 0,wx.TOP|wx.BOTTOM, 2)     
-            self.hSizer.Add([100,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)        
-            self.SetSizer(self.hSizer);
+            self.title.SetMinSize((105,18))
+            self.hSizer.Add(self.title, 1,wx.TOP|wx.BOTTOM, 2)     
+            #self.hSizer.Add([5,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3) 
+            # V Line
+            self.addLine() 
+            # Add size
+            self.fileSize = wx.StaticText(self,-1,"size",wx.Point(0,0),wx.Size(75,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
+            self.fileSize.SetBackgroundColour(wx.LIGHT_GREY)
+            self.fileSize.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+            self.fileSize.SetMinSize((75,18))
+            self.hSizer.Add(self.fileSize, 0,wx.TOP|wx.BOTTOM, 2)  
+            # V Line
+            self.addLine()  
+            # Add creation date
+            self.creationDate = wx.StaticText(self,-1,"21-01-2007",wx.Point(0,0),wx.Size(110,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
+            self.creationDate.SetBackgroundColour(wx.LIGHT_GREY)
+            self.creationDate.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+            self.creationDate.SetMinSize((110,18))
+            self.hSizer.Add(self.creationDate, 0,wx.TOP|wx.BOTTOM, 2) 
+            # V Line
+            self.addLine()
+            # Add popularity
+            self.seeders = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='down')
+            self.seeders.setBackground(wx.WHITE)
+            self.seeders.SetToolTipString(self.utility.lang.get('rNumberOfSeeders'))
+            self.seedersNumber = wx.StaticText(self,-1,"203",wx.Point(0,0),wx.Size(125,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
+            self.seedersNumber.SetBackgroundColour(wx.LIGHT_GREY)
+            self.seedersNumber.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+            self.seedersNumber.SetMinSize((45,18))
+            self.leechers = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='up')
+            self.leechers.setBackground(wx.WHITE)
+            self.leechers.SetToolTipString(self.utility.lang.get('rNumberOfLeechers'))
+            self.leechersNumber = wx.StaticText(self,-1,"678",wx.Point(0,0),wx.Size(125,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
+            self.leechersNumber.SetBackgroundColour(wx.LIGHT_GREY)
+            self.leechersNumber.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+            self.leechersNumber.SetMinSize((45,18))
+            self.hSizer.Add(self.seeders, 0,wx.TOP|wx.BOTTOM|wx.RIGHT, 2) 
+            self.hSizer.Add(self.seedersNumber, 0,wx.TOP|wx.BOTTOM|wx.RIGHT, 2) 
+            self.hSizer.Add(self.leechers, 0,wx.TOP|wx.BOTTOM|wx.RIGHT, 2)
+            self.hSizer.Add(self.leechersNumber, 0,wx.TOP|wx.BOTTOM|wx.RIGHT, 2) 
+            # V Line
+            self.addLine()            
+            # Add Taste Heart
+            self.vSizer2 = wx.BoxSizer(wx.VERTICAL)
+            self.vSizer2.Add([60,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
             
+            self.hSizer2 = wx.BoxSizer(wx.HORIZONTAL)
+            self.tasteHeart = TasteHeart.TasteHeart(self, -1, wx.DefaultPosition, wx.Size(14,14),name='TasteHeart')
+            self.hSizer2.Add(self.tasteHeart, 0, wx.TOP, 0)            
+            # Add Taste similarity
+            self.taste =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(40,15))        
+            self.taste.SetBackgroundColour(wx.WHITE)
+            self.taste.SetFont(wx.Font(FS_SIMILARITY,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+            self.taste.SetMinSize((40,15))
+            self.taste.SetLabel('2nd')
+            self.hSizer2.Add(self.taste, 0, wx.TOP|wx.RIGHT, 0)
+            self.vSizer2.Add(self.hSizer2,0, wx.EXPAND|wx.FIXED_MINSIZE, 0)
+            self.hSizer.Add(self.vSizer2,0,wx.EXPAND|wx.FIXED_MINSIZE, 0)
+            # Add Source Icon
+            self.sourceIcon = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='bcIcon')
+            self.sourceIcon.setBackground(wx.WHITE)
+            #self.sourceIcon.SetToolTipString(self.utility.lang.get('---'))          
+            self.hSizer.Add(self.sourceIcon, 0, wx.TOP|wx.RIGHT, 0)
+
+            
+            self.SetSizer(self.hSizer);
             
         self.SetAutoLayout(1);
         self.Layout();
@@ -161,6 +230,35 @@ class FilesItemPanel(wx.Panel):
             self.title.SetLabel(title)
             self.title.Wrap(self.title.GetSize()[0])
             self.title.SetToolTipString(torrent['content_name'])
+            # -- if list VIEW --
+            self.fileSize.Enable(True)
+            self.fileSize.SetLabel(self.utility.size_format(torrent['length']))
+            self.creationDate.Enable(True)
+            self.creationDate.SetLabel(friendly_time(torrent['date']))
+            self.seedersNumber.SetLabel('%d' % torrent['seeder'])
+            self.leechersNumber.SetLabel('%d' % torrent['leecher'])
+                # -- tasteheart --        
+            rank = torrent.get('simRank', -1)
+            recommField = self.taste
+            if rank!=-1:
+                if rank == 1:
+                    recommField.SetLabel("%d" % rank + "st")
+                elif rank == 2:
+                    recommField.SetLabel("%d" % rank + "nd")                        
+                elif rank == 3:
+                    recommField.SetLabel("%d" % rank + "rd")
+                else:
+                    recommField.SetLabel("%d" % rank + "th")
+                self.tasteHeart.Show()
+                self.tasteHeart.setRank(rank)
+            else:
+                self.taste.SetLabel('')
+                self.tasteHeart.Hide()
+                # -- END tasteheart --
+                
+            # -- END if list VIEW --
+
+            
         else:
             self.title.SetLabel('')
             self.title.SetToolTipString('')
@@ -172,6 +270,9 @@ class FilesItemPanel(wx.Panel):
         self.Refresh()
         #self.parent.Refresh()
         
+    def addLine(self):
+        vLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(2,22),wx.LI_VERTICAL)
+        self.hSizer.Add(vLine, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)
           
     def select(self, rowIndex, colIndex):
         self.selected = True

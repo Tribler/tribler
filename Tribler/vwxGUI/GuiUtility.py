@@ -137,6 +137,8 @@ class GUIUtility:
             self.firewallStatusClick()
         elif name == 'options':            
             self.standardDetails.rightMouseButton(event)
+        elif name == 'viewModus':            
+            self.onChangeViewModus()
         elif DEBUG:
             print 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
                 
@@ -529,6 +531,16 @@ class GUIUtility:
        #reachability flag / port forwarding enabled / accessible from the internet
        return DialbackMsgHandler.getInstance().isConnectable()
    
+   
+    def onChangeViewModus(self):
+        # clicked on changemodus button in title bar of overviewPanel
+        changeViewModus = wx.Menu() 
+        self.utility.makePopup(changeViewModus, None, 'rChangeViewModusThumb', type="checkitem", status="active")
+        self.utility.makePopup(changeViewModus, None, 'rChangeViewModusList', type="checkitem") 
+        return (changeViewMouse)
+        
+        
+        
     def OnRightMouseAction(self,event):
         # called from  "*ItemPanel" or from "standardDetails"
         item = self.standardDetails.getData()

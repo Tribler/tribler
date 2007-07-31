@@ -41,7 +41,7 @@
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>Files</label>
                     <pos>4,4</pos>
-                    <size>554,15</size>
+                    <size>300,15</size>
                     <bg>#ff3300</bg>
                     <fg>#ffffff</fg>
                   </object>
@@ -53,16 +53,49 @@
                   <option>1</option>
                 </object>
                 <object class="sizeritem">
-                  <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                  <border>3</border>
+                  <flag>wxTOP|wxFIXED_MINSIZE</flag>
+                  <border>2</border>
                   <option>0</option>
-                  <object class="wxComboBox" name="cmb241c">
-                    <content/>
+                  <object class="wxComboBox" name="numberItemsC">
+                    <tooltip>Different views</tooltip>
+                    <content>
+                      <item>thumbnails</item>
+                      <item>list</item>
+                    </content>
                     <label>control</label>
-                    <pos>451,3</pos>
-                    <size>145,14</size>
+                    <pos>384,2</pos>
+                    <size>105,19</size>
                     <bg>#ff3300</bg>
                     <fg>#ffffff</fg>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxFIXED_MINSIZE</flag>
+                  <border>2</border>
+                  <option>0</option>
+                  <object class="wxComboBox" name="numberItems">
+                    <tooltip>Number of items to show</tooltip>
+                    <content>
+                      <item>auto</item>
+                      <item>20</item>
+                      <item>40</item>
+                      <item>80</item>
+                    </content>
+                    <label>control</label>
+                    <pos>489,2</pos>
+                    <size>65,19</size>
+                    <bg>#ff3300</bg>
+                    <fg>#ffffff</fg>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>2</border>
+                  <option>0</option>
+                  <object class="wxPanel" name="viewModus" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <hidden>1</hidden>
+                    <pos>554,2</pos>
+                    <size>45,19</size>
                   </object>
                 </object>
               </object>
@@ -137,7 +170,7 @@
             <border>3</border>
             <option>1</option>
             <object class="wxPanel" name="filesFilter" subclass="Tribler.vwxGUI.standardFilter.filesFilter">
-              <pos>395,21</pos>
+              <pos>315,21</pos>
               <size>226,35</size>
             </object>
           </object>

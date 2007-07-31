@@ -621,9 +621,9 @@ minute_long 		= "Minutes"
 hour_long 			= "Hours"
 time 				= "Time"
 
-################################
-# Right-Click Menu
-################################
+################################################################################################
+#(-Right-) Click Menu
+################################################################################################
 rHashCheck 			= "&Hash Check"
 rResume 			= "&Resume Torrent"
 rPlay				= "&Play Video"
@@ -632,6 +632,9 @@ rPause 				= "P&ause"
 rQueue 				= "&Queue"
 rRemoveTorrent 		= "Remove Torrent"
 rRemoveTorrentandFile = "Remove Torrent and File(s)"
+
+rChangeViewModusThumb= "Thumbnail view"
+rChangeViewModusList= "List view"
 
 
 ############# FILE and LIBRARY
@@ -666,6 +669,16 @@ rSendAMessage       = "   Send a message..."
 ############# SUBSCRIPTIONS
 rChangeSubscrTitle  = "   Change title" 
 rRemoveSubscr       = "   Remove subscription" 
+
+
+################################################################################################
+# Mouse roll over
+################################################################################################
+
+############# FILE
+rNumberOfSeeders    = "Number of current uploaders (seeders)
+rNumberOfLeechers   = "Number of current downloaders (leechers)
+
 
 
 rcopyfilename       = "&Copy Filename"
