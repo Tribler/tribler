@@ -45,6 +45,48 @@
                     <fg>#ffffff</fg>
                   </object>
                 </object>
+                <object class="spacer">
+                  <size>10,19</size>
+                  <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>1</option>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxFIXED_MINSIZE</flag>
+                  <border>2</border>
+                  <option>0</option>
+                  <object class="wxComboBox" name="modeItems">
+                    <tooltip>Different views</tooltip>
+                    <content>
+                      <item>thumbnails</item>
+                      <item>list</item>
+                    </content>
+                    <label>control</label>
+                    <pos>578,3</pos>
+                    <size>105,19</size>
+                    <bg>#ff3300</bg>
+                    <fg>#ffffff</fg>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxFIXED_MINSIZE</flag>
+                  <border>2</border>
+                  <option>0</option>
+                  <object class="wxComboBox" name="numberItems">
+                    <tooltip>Number of items to show</tooltip>
+                    <content>
+                      <item>auto</item>
+                      <item>20</item>
+                      <item>40</item>
+                      <item>80</item>
+                    </content>
+                    <label>control</label>
+                    <pos>578,3</pos>
+                    <size>65,19</size>
+                    <bg>#ff3300</bg>
+                    <fg>#ffffff</fg>
+                  </object>
+                </object>
               </object>
             </object>
           </object>
@@ -91,7 +133,7 @@
                   <object class="wxTextCtrl" name="searchField">
                     <title>search a file</title>
                     <style>wxTE_PROCESS_ENTER</style>
-                    <pos>21,4</pos>
+                    <pos>0,4</pos>
                     <size>151,22</size>
                     <font>
                       <size>10</size>
