@@ -329,10 +329,6 @@ class FilesItemPanel(wx.Panel):
             self.sourceIcon.SetBackgroundColour(colour)
             
         self.Refresh()
-
-        
-        print '--tb-- getsize for itemPanel'
-        print self.GetSize();
         
     def deselect(self, rowIndex, colIndex):
         self.selected = False

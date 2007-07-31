@@ -1351,7 +1351,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             print >>sys.stderr,'standardDetails: refresh ' + repr(torrent.get('content_name', 'no_name'))
         check = SingleManualChecking(torrent)
         check.start()
-            
+        
+ 
 #    def isEnabled(self):
 #        return self.enabled
 

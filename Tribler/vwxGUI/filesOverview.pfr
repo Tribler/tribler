@@ -23,7 +23,7 @@ n=21
 n=1
 ws_name=filesOverview.pfr
 ws_dir=.\\
-i_id=245
+i_id=247
 s_tipoFile=21
 s_tipoComp=0
 wx_WindowFileADD=1635087209
@@ -1262,7 +1262,7 @@ Theme=0
 5=1
 13=1
 [Windows18]
-style=
+style=wxCB_DROPDOWN|wxCB_READONLY
 Estyle=
 i_stylePN=21
 idIncCmpFilCmp=0
@@ -1326,6 +1326,9 @@ dataObj\\SizRowPos=0
 dataObj\\SizColPos=0
 dataObj\\panelfitInsS=0
 IndexOfS=3
+[Windows18/style]
+18=1
+19=1
 [Windows18/i_width]
 [Windows18/i_width/Windows18]
 Theme=0
@@ -1416,7 +1419,7 @@ validator=
 s_name=viewModus
 subClassName=
 i_index=-1
-i_left=554
+i_left=528
 i_top=2
 i_height=19
 i_width=45
@@ -1477,14 +1480,14 @@ Theme=0
 5=1
 13=1
 [Windows21]
-style=
+style=wxCB_DROPDOWN|wxCB_READONLY
 Estyle=
 i_stylePN=21
-idIncCmpFilCmp=3537
+idIncCmpFilCmp=0
 i_tipoComp=600101
 isContenitor=0
 validator=
-s_name=numberItemsC
+s_name=modeItems
 subClassName=
 i_index=-1
 i_left=384
@@ -1541,6 +1544,9 @@ dataObj\\SizRowPos=0
 dataObj\\SizColPos=0
 dataObj\\panelfitInsS=0
 IndexOfS=2
+[Windows21/style]
+18=1
+19=1
 [Windows21/i_width]
 [Windows21/i_width/Windows21]
 Theme=0
