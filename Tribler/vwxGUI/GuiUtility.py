@@ -290,11 +290,21 @@ class GUIUtility:
             #    print'GuiUtility: explicit refresh'
                     
             self.standardDetails.Refresh()
-            self.standardOverview.Refresh()
             self.frame.topBackgroundRight.Refresh()
             
+            margin = 10
+            newSize = (-1, self.scrollWindow.GetClientSize()[1] - 
+                           self.scrollWindow.CalcUnscrolledPosition(self.standardOverview.GetPosition())[1] - 
+                           self.standardOverview.getPager().GetSize()[1] -
+                           margin)
+            #print 'ClientSize: %s, virtual : %s' % (str(self.scrollWindow.GetClientSize()), str(self.scrollWindow.GetVirtualSize()))
+            #print 'Positiion: %s' % str(self.standardOverview.GetPosition())
+            self.standardOverview.SetSize(newSize)
+            self.standardOverview.SetMinSize(newSize)
+            self.standardOverview.SetMaxSize(newSize)            
+            #print 'Overview is now: %s' % str(self.standardOverview.GetSize())
+            self.standardOverview.Refresh()
         except:
-            raise
             pass # When resize is done before panels are loaded: no refresh
         
     def refreshTracker(self):

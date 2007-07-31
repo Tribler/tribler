@@ -1182,7 +1182,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     print >> sys.stderr,'standardDetails: %s: Unknown tab %s' % (self.mode,name)
                 return
 #                relayout the details panel to accomodate the new panel
-            print "info: %s, files: %s" % (str(infoPanel.GetSize()), str(filesPanel.GetSize()))
+           
             
             self.currentPanel.SetAutoLayout(1)
             self.currentPanel.Layout()

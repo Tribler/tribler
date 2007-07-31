@@ -75,7 +75,7 @@ class TorrentCheckingList:
         infohashes = self.torrent_db.getAllTorrents()
         for infohash in infohashes:
             torrent = self.torrent_db.getTorrent(infohash)
-            if not torrent:
+            if not torrent or type(torrent) != dict:
                 continue
             if (torrent["status"] == "good"):
                 self.list_good.append(infohash)

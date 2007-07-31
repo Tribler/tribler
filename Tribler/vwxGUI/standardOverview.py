@@ -558,6 +558,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     def getFilter(self):
         return self.data[self.mode]['filter']
 
+    def getPager(self):
+        return self.data[self.mode]['pager']
         
     def getRSSUrlCtrl(self):
         return self.data[self.mode]['rssurlctrl']
