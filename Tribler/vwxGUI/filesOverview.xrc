@@ -62,6 +62,7 @@
                       <item>thumbnails</item>
                       <item>list</item>
                     </content>
+                    <style>wxCB_DROPDOWN|wxCB_READONLY</style>
                     <label>control</label>
                     <pos>384,2</pos>
                     <size>105,19</size>
@@ -81,6 +82,7 @@
                       <item>40</item>
                       <item>80</item>
                     </content>
+                    <style>wxCB_DROPDOWN|wxCB_READONLY</style>
                     <label>control</label>
                     <pos>489,2</pos>
                     <size>65,19</size>
@@ -94,7 +96,7 @@
                   <option>0</option>
                   <object class="wxPanel" name="viewModus" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
                     <hidden>1</hidden>
-                    <pos>554,2</pos>
+                    <pos>528,2</pos>
                     <size>45,19</size>
                   </object>
                 </object>

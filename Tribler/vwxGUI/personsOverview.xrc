@@ -61,9 +61,10 @@
                       <item>thumbnails</item>
                       <item>list</item>
                     </content>
+                    <style>wxCB_DROPDOWN|wxCB_READONLY</style>
                     <label>control</label>
-                    <pos>578,3</pos>
-                    <size>105,19</size>
+                    <pos>416,2</pos>
+                    <size>120,21</size>
                     <bg>#ff3300</bg>
                     <fg>#ffffff</fg>
                   </object>
@@ -80,8 +81,9 @@
                       <item>40</item>
                       <item>80</item>
                     </content>
+                    <style>wxCB_DROPDOWN|wxCB_READONLY</style>
                     <label>control</label>
-                    <pos>578,3</pos>
+                    <pos>536,2</pos>
                     <size>65,19</size>
                     <bg>#ff3300</bg>
                     <fg>#ffffff</fg>
