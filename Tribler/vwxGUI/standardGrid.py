@@ -322,7 +322,7 @@ class standardGrid(wx.Panel):
         
     
     def updatePanel(self, oldRows, newRows):
-        print 'update from %d to %d rows' % (oldRows, newRows)
+        #print 'update from %d to %d rows' % (oldRows, newRows)
         # put torrent items in grid 
         if newRows > oldRows:
             for i in range(oldRows, newRows):
@@ -499,8 +499,8 @@ class personsGrid(standardGrid):
 class friendsGrid(standardGrid):
     def __init__(self):   
         columns = 1
-        self.subPanelHeight = 30 # This will be update after first refresh
-        standardGrid.__init__(self, columns, orientation='vertical')
+        subPanelHeight = 30 # This will be update after first refresh
+        standardGrid.__init__(self, columns, subPanelHeight, orientation='vertical')
         
     def getSubPanel(self, keyfun):
         return FriendsItemPanel(self, keyfun)
@@ -508,8 +508,8 @@ class friendsGrid(standardGrid):
 class libraryGrid(standardGrid):
     def __init__(self):
         columns = 1
-        self.subPanelHeight = 30 # This will be update after first refresh
-        standardGrid.__init__(self, columns, orientation='horizontal')
+        subPanelHeight = 30 # This will be update after first refresh
+        standardGrid.__init__(self, columns, subPanelHeight, orientation='horizontal')
         
     def getSubPanel(self, keyfun):
         return LibraryItemPanel(self, keyfun)
@@ -517,8 +517,8 @@ class libraryGrid(standardGrid):
 class subscriptionsGrid(standardGrid):
     def __init__(self):
         columns = 1
-        self.subPanelHeight = 30 # This will be update after first refresh
-        standardGrid.__init__(self, columns, orientation='horizontal')
+        subPanelHeight = 30 # This will be update after first refresh
+        standardGrid.__init__(self, columns, subPanelHeight, orientation='horizontal')
         
     def getSubPanel(self, keyfun):
         return SubscriptionsItemPanel(self, keyfun)

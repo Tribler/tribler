@@ -265,7 +265,7 @@ class PersonsItemPanel(wx.Panel):
             self.title.SetToolTipString('')
             self.title.Enable(False)
             
-            if not self.listItem:
+            if self.listItem:
                 self.discFiles.SetLabel('')
                 self.discPersons.SetLabel('')
                 self.status.SetLabel('')

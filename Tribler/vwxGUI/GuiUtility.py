@@ -291,22 +291,26 @@ class GUIUtility:
                     
             self.standardDetails.Refresh()
             self.frame.topBackgroundRight.Refresh()
+            self.updateSizeOfStandardOverview()
+            self.standardOverview.Refresh()
             
-            margin = 10
-            newSize = (-1, self.scrollWindow.GetClientSize()[1] - 
+        except:
+            pass # When resize is done before panels are loaded: no refresh
+    
+    def updateSizeOfStandardOverview(self):
+        margin = 10
+        newSize = (-1, self.scrollWindow.GetClientSize()[1] - 
                            self.scrollWindow.CalcUnscrolledPosition(self.standardOverview.GetPosition())[1] - 
                            self.standardOverview.getPager().GetSize()[1] -
                            margin)
-            #print 'ClientSize: %s, virtual : %s' % (str(self.scrollWindow.GetClientSize()), str(self.scrollWindow.GetVirtualSize()))
-            #print 'Positiion: %s' % str(self.standardOverview.GetPosition())
-            self.standardOverview.SetSize(newSize)
-            self.standardOverview.SetMinSize(newSize)
-            self.standardOverview.SetMaxSize(newSize)            
-            #print 'Overview is now: %s' % str(self.standardOverview.GetSize())
-            self.standardOverview.Refresh()
-        except:
-            pass # When resize is done before panels are loaded: no refresh
+        #print 'ClientSize: %s, virtual : %s' % (str(self.scrollWindow.GetClientSize()), str(self.scrollWindow.GetVirtualSize()))
+        #print 'Positiion: %s' % str(self.standardOverview.GetPosition())
+        self.standardOverview.SetSize(newSize)
+        self.standardOverview.SetMinSize(newSize)
+        self.standardOverview.SetMaxSize(newSize)            
+        #print 'Overview is now: %s' % str(self.standardOverview.GetSize())
         
+            
     def refreshTracker(self):
         torrent = self.standardDetails.getData()
         if not torrent:

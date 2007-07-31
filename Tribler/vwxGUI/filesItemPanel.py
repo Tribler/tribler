@@ -316,6 +316,7 @@ class FilesItemPanel(wx.Panel):
         self.thumb.setSelected(True)        
         self.title.SetBackgroundColour(colour)
         
+        
         if self.listItem:
             self.SetBackgroundColour(colour)
             self.fileSize.SetBackgroundColour(colour)
