@@ -312,7 +312,7 @@
                         <object class="sizeritem">
                           <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
                           <border>10</border>
-                          <option>0</option>
+                          <option>1</option>
                           <object class="wxStaticText" name="statusField">
                             <style>wxST_NO_AUTORESIZE</style>
                             <label>unknown</label>

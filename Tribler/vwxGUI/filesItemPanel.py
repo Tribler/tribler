@@ -26,13 +26,13 @@ if sys.platform == 'darwin':
     FS_SIMILARITY = 10
     FS_HEARTRANK = 10
 else:
-    FS_FILETITLE = 8
+    FS_FILETITLE = 10
     FS_SIMILARITY = 10
     FS_HEARTRANK = 7
     
 
-#filesModeThumbSize = (125, 70)
-filesModeThumbSize = (32, 18)
+filesModeThumbSize = (125, 70)
+#filesModeThumbSizeList = (32, 18)
 libraryModeThumbSize = (43,24)#(66, 37)
 
 
@@ -82,27 +82,34 @@ class FilesItemPanel(wx.Panel):
         
         if not self.listItem:
             self.SetMinSize((125,110))
-            # Add title
+            
+            self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
+            
             self.vSizer = wx.BoxSizer(wx.VERTICAL)
-            self.vSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
+            # Add thumb
             self.thumb = ThumbnailViewer(self, 'filesMode')
             self.thumb.setBackground(wx.BLACK)
             self.thumb.SetSize((125,70))
             self.vSizer.Add(self.thumb, 0, wx.ALL, 0)        
+            # Add title
             self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(125,22), wx.ST_NO_AUTORESIZE)        
             self.title.SetBackgroundColour(wx.WHITE)
             self.title.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
             self.title.SetMinSize((125,40))
             self.vSizer.Add(self.title, 0, wx.BOTTOM, 3)     
             self.vSizer.Add([100,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)        
-            self.SetSizer(self.vSizer);
+            #
+            self.hSizer.Add(self.vSizer,0,wx.ALL,0)
+            self.hSizer.Add([5,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
+            self.SetSizer(self.hSizer);
         else: # listitem
             self.SetMinSize((670,22))
             self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
             self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
             self.thumb = ThumbnailViewer(self, 'filesMode')
             self.thumb.setBackground(wx.BLACK)
-            self.thumb.SetSize((32,18))
+            #self.thumb.SetSize((32,18))
             self.hSizer.Add(self.thumb, 0, wx.ALL, 2)  
             # Add title
             self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(105,18), wx.ST_NO_AUTORESIZE)        
@@ -535,8 +542,10 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             
             img = createThumbImage(thumbnailString)
             if img is None:
-                return
+                return           
+
             bmp = self.getResizedBitmapFromImage(img, filesModeThumbSize)
+                    
             if bmp:
                 metadata['ThumbnailBitmap'] = bmp
                 

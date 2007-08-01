@@ -627,7 +627,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     if item['last_seen'] < 0:
                         self.getGuiObj('statusField').SetLabel('never seen')
                     else:
-                        self.getGuiObj('statusField').SetLabel('connected  %s' % friendly_time(item['last_seen']))
+                        self.getGuiObj('statusField').SetLabel('conn.  %s' % friendly_time(item['last_seen']))
                 else:
                     self.getGuiObj('statusField').SetLabel( 'unknown')
 

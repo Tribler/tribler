@@ -16,13 +16,15 @@ DEBUG = False
 if sys.platform == 'darwin':
     FS_PERSONSTITLE = 10
     FS_SIMILARITY = 10
-    FS_HEARTRANK = 10
+    FS_HEARTRANK = 8
     FS_ONLINE = 10
+    FS_DISCOVERED = 8
 else:
     FS_PERSONSTITLE = 10
     FS_SIMILARITY = 10
     FS_HEARTRANK = 7
     FS_ONLINE = 8
+    FS_DISCOVERED = 7
 
 class PersonsItemPanel(wx.Panel):
     """
@@ -65,20 +67,25 @@ class PersonsItemPanel(wx.Panel):
         
         if not self.listItem:
             self.SetMinSize((80,110))
-            self.vSizer = wx.BoxSizer(wx.VERTICAL)
 #            # Add spacer
-#            self.vSizer2.Add([60,2],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
-            # Add title
+            self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
+            self.vSizer = wx.BoxSizer(wx.VERTICAL)            
+            # Add thumb
             self.thumb = ThumbnailViewer(self)
             self.thumb.setBackground(wx.BLACK)
             self.thumb.SetSize((80,80))
-            self.vSizer.Add(self.thumb, 0, wx.ALL, 0)        
+            self.vSizer.Add(self.thumb, 0, wx.ALL, 0)
+            # Add title        
             self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(80,15))        
             self.title.SetBackgroundColour(wx.WHITE)
             self.title.SetFont(wx.Font(FS_PERSONSTITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
             self.title.SetMinSize((80,30))
             self.vSizer.Add(self.title, 0, wx.BOTTOM, 3)  
-            self.SetSizer(self.vSizer);
+            #
+            self.hSizer.Add(self.vSizer,0,wx.ALL,0)
+            self.hSizer.Add([5,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
+            self.SetSizer(self.hSizer);
             
         else: #list item
             self.SetMinSize((670,22))
@@ -93,53 +100,33 @@ class PersonsItemPanel(wx.Panel):
             self.title.SetBackgroundColour(wx.WHITE)
             self.title.SetFont(wx.Font(FS_PERSONSTITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
             self.title.SetMinSize((105,18))
-            self.hSizer.Add(self.title, 1,wx.TOP|wx.BOTTOM, 2)     
-            # V Line
-            self.vLine1 = self.addLine() 
-            # Add discovered Files
-            self.discFiles = wx.StaticText(self,-1,"11",wx.Point(0,0),wx.Size(75,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
-            self.discFiles.SetBackgroundColour(wx.WHITE)
-            self.discFiles.SetFont(wx.Font(FS_PERSONSTITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-            self.discFiles.SetMinSize((75,18))
-            self.hSizer.Add(self.discFiles, 0,wx.TOP|wx.BOTTOM, 2)  
-            # V Line
-            self.vLine2 = self.addLine() 
-            # Add discovered Persons
-            self.discPersons= wx.StaticText(self,-1,"10",wx.Point(0,0),wx.Size(110,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
-            self.discPersons.SetBackgroundColour(wx.WHITE)
-            self.discPersons.SetFont(wx.Font(FS_PERSONSTITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-            self.discPersons.SetMinSize((110,18))
-            self.hSizer.Add(self.discPersons, 0,wx.TOP|wx.BOTTOM, 2) 
+            self.hSizer.Add(self.title, 1,wx.TOP|wx.BOTTOM, 2) 
             # V Line
             self.vLine3 = self.addLine()
             # Add status
             self.status= wx.StaticText(self,-1,"10",wx.Point(0,0),wx.Size(110,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
             self.status.SetBackgroundColour(wx.WHITE)
             self.status.SetFont(wx.Font(FS_PERSONSTITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-            self.status.SetMinSize((310,18))
-            self.hSizer.Add(self.status, 0,wx.TOP|wx.BOTTOM, 2)  
-#            # Add popularity
-#            self.seeders = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='down')
-#            self.seeders.setBackground(wx.WHITE)
-#            self.seeders.SetToolTipString(self.utility.lang.get('rNumberOfSeeders'))
-#            self.seedersNumber = wx.StaticText(self,-1,"203",wx.Point(0,0),wx.Size(125,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
-#            self.seedersNumber.SetBackgroundColour(wx.WHITE)
-#            self.seedersNumber.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-#            self.seedersNumber.SetMinSize((45,18))
-#            self.leechers = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='up')
-#            self.leechers.setBackground(wx.WHITE)
-#            self.leechers.SetToolTipString(self.utility.lang.get('rNumberOfLeechers'))
-#            self.leechersNumber = wx.StaticText(self,-1,"678",wx.Point(0,0),wx.Size(125,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
-#            self.leechersNumber.SetBackgroundColour(wx.WHITE)
-#            self.leechersNumber.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-#            self.leechersNumber.SetMinSize((45,18))
-#            self.hSizer.Add(self.seeders, 0,wx.TOP|wx.BOTTOM|wx.RIGHT, 2) 
-#            self.hSizer.Add(self.seedersNumber, 0,wx.TOP|wx.BOTTOM|wx.RIGHT, 2) 
-#            self.vLine4 = self.addLine() 
-#            self.hSizer.Add(self.leechers, 0,wx.TOP|wx.BOTTOM|wx.RIGHT, 2)
-#            self.hSizer.Add(self.leechersNumber, 0,wx.TOP|wx.BOTTOM|wx.RIGHT, 2) 
+            self.status.SetMinSize((165,18))
+            self.hSizer.Add(self.status, 0,wx.TOP|wx.BOTTOM, 2)     
             # V Line
-            self.vLine5 = self.addLine() 
+            self.vLine1 = self.addLine() 
+            # Add discovered Files
+            self.discFiles = wx.StaticText(self,-1,"110000",wx.Point(0,0),wx.Size(75,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
+            self.discFiles.SetBackgroundColour(wx.WHITE)
+            self.discFiles.SetFont(wx.Font(FS_DISCOVERED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+            self.discFiles.SetMinSize((40,18))
+            self.hSizer.Add(self.discFiles, 0,wx.TOP, 5)  
+            # V Line
+            self.vLine2 = self.addLine() 
+            # Add discovered Persons
+            self.discPersons= wx.StaticText(self,-1,"100000",wx.Point(0,0),wx.Size(110,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
+            self.discPersons.SetBackgroundColour(wx.WHITE)
+            self.discPersons.SetFont(wx.Font(FS_DISCOVERED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+            self.discPersons.SetMinSize((40,18))
+            self.hSizer.Add(self.discPersons, 0,wx.TOP,5)  
+            # V Line
+            self.vLine4 = self.addLine() 
             # Add Taste Heart
             self.vSizer2 = wx.BoxSizer(wx.VERTICAL)
             self.vSizer2.Add([60,2],0,wx.EXPAND|wx.FIXED_MINSIZE,3)            
@@ -147,12 +134,12 @@ class PersonsItemPanel(wx.Panel):
             self.tasteHeart = TasteHeart.TasteHeart(self, -1, wx.DefaultPosition, wx.Size(14,14),name='TasteHeart')
             self.hSizer2.Add(self.tasteHeart, 0, wx.TOP, 0)            
             # Add Taste similarity
-#            self.taste =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(40,15))        
-#            self.taste.SetBackgroundColour(wx.WHITE)
-#            self.taste.SetFont(wx.Font(FS_SIMILARITY,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-#            self.taste.SetMinSize((40,15))
-#            self.taste.SetLabel('2nd')
-#            self.hSizer2.Add(self.taste, 0, wx.TOP|wx.RIGHT, 0)
+            self.taste =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(40,15))        
+            self.taste.SetBackgroundColour(wx.WHITE)
+            self.taste.SetFont(wx.Font(FS_HEARTRANK,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+            self.taste.SetMinSize((20,15))
+            self.taste.SetLabel('')
+            self.hSizer2.Add(self.taste, 0, wx.LEFT, 2)
             self.vSizer2.Add(self.hSizer2,0, wx.EXPAND|wx.FIXED_MINSIZE, 0)
             self.hSizer.Add(self.vSizer2,0,wx.EXPAND|wx.FIXED_MINSIZE, 0)
             # Add Source Icon
@@ -223,9 +210,6 @@ class PersonsItemPanel(wx.Panel):
                 self.status.Enable(True)
                 #self.status.SetLabel(peer_data['last_seen'])
                 statusPeer = peer_data['last_seen']
-                
-                print '--tb--'
-                print statusPeer
                     
                 if statusPeer is 'online':
                     print '--tb-- online'
@@ -234,31 +218,32 @@ class PersonsItemPanel(wx.Panel):
                     if statusPeer < 0:
                         self.status.SetLabel('never seen')
                     else:
-                        self.status.SetLabel('connected  %s' % friendly_time(statusPeer))
+                        self.status.SetLabel('conn.  %s' % friendly_time(statusPeer))
                 else:
                     self.status.SetLabel( 'unknown')
                 
                 
                 # -- taste issues
                 rank = peer_data.get('simTop',-1) 
-                #recommField = self.taste
+                recommField = self.taste
                 if rank!=-1:
                     if rank == 1:
                         self.tasteHeart.SetToolTipString("%d" % rank + "st of top 20 of all discovered persons")
-                        #recommField.SetLabel("%d" % rank + "st")                    
+                        recommField.SetLabel("%d" % rank + "")                    
                     elif rank == 2:
                         self.tasteHeart.SetToolTipString("%d" % rank + "nd of top 20 of all discovered persons")
-                        #recommField.SetLabel("%d" % rank + "nd")                        
+                        recommField.SetLabel("%d" % rank + "")                        
                     elif rank == 3:
                         self.tasteHeart.SetToolTipString("%d" % rank + "rd of top 20 of all discovered persons")
-                        #recommField.SetLabel("%d" % rank + "rd")
+                        recommField.SetLabel("%d" % rank + "")
                     else:
                         self.tasteHeart.SetToolTipString("%d" % rank + "th of top 20 of all discovered persons")
-                        #recommField.SetLabel("%d" % rank + "th")
+                        recommField.SetLabel("%d" % rank + "")
                     self.tasteHeart.Show()
                     self.tasteHeart.setRank(rank)
                 else:                    
                     self.tasteHeart.Hide()
+                    self.taste.SetLabel('')
                 
 
                 
@@ -271,10 +256,12 @@ class PersonsItemPanel(wx.Panel):
                 self.discFiles.SetLabel('')
                 self.discPersons.SetLabel('')
                 self.status.SetLabel('')
+                self.taste.SetLabel('')
                 self.tasteHeart.Hide()
                 self.vLine1.Hide()
                 self.vLine2.Hide()
-                self.vLine3.Hide()            
+                self.vLine3.Hide()
+                self.vLine4.Hide()            
 
         self.thumb.setData(peer_data)
                
@@ -301,7 +288,8 @@ class PersonsItemPanel(wx.Panel):
             self.discFiles.SetBackgroundColour(colour)
             self.discPersons.SetBackgroundColour(colour)
             self.status.SetBackgroundColour(colour)
-            self.tasteHeart.setBackground(colour)        
+            self.tasteHeart.setBackground(colour)  
+            self.taste.SetBackgroundColour(colour)       
             
         self.Refresh()
                 
@@ -321,7 +309,8 @@ class PersonsItemPanel(wx.Panel):
             self.discFiles.SetBackgroundColour(colour)
             self.discPersons.SetBackgroundColour(colour)
             self.status.SetBackgroundColour(colour)
-            self.tasteHeart.setBackground(colour)  
+            self.tasteHeart.setBackground(colour) 
+            self.taste.SetBackgroundColour(colour) 
         
         self.Refresh()
     
