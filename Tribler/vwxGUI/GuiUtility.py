@@ -286,12 +286,14 @@ class GUIUtility:
         
     def refreshOnResize(self):
         try:
-            #if DEBUG:
-            #    print'GuiUtility: explicit refresh'
+            if DEBUG:
+                print'GuiUtility: explicit refresh'
                     
             self.standardDetails.Refresh()
             self.frame.topBackgroundRight.Refresh()
             self.updateSizeOfStandardOverview()
+            self.standardDetails.Layout()
+            self.standardDetail.GetContainingSizer.Layout()
             self.standardOverview.Refresh()
             
         except:
@@ -305,12 +307,15 @@ class GUIUtility:
                                self.scrollWindow.CalcUnscrolledPosition(self.standardOverview.GetPosition())[1] - 
                                self.standardOverview.getPager().GetSize()[1] -
                                margin)
-            #print 'ClientSize: %s, virtual : %s' % (str(self.scrollWindow.GetClientSize()), str(self.scrollWindow.GetVirtualSize()))
-            #print 'Positiion: %s' % str(self.standardOverview.GetPosition())
-            self.standardOverview.SetSize(newSize)
-            self.standardOverview.SetMinSize(newSize)
-            self.standardOverview.SetMaxSize(newSize)            
-            #print 'Overview is now: %s' % str(self.standardOverview.GetSize())
+        else:
+            newSize = self.standardOverview.GetSize()
+                    
+        #print 'ClientSize: %s, virtual : %s' % (str(self.scrollWindow.GetClientSize()), str(self.scrollWindow.GetVirtualSize()))
+        #print 'Position: %s' % str(self.standardOverview.GetPosition())
+        self.standardOverview.SetSize(newSize)
+        self.standardOverview.SetMinSize(newSize)
+        self.standardOverview.SetMaxSize(newSize)            
+        #print 'Overview is now: %s' % str(self.standardOverview.GetSize())
         self.standardOverview.GetContainingSizer().Layout()
             
     def refreshTracker(self):

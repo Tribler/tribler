@@ -589,6 +589,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         self.SetMinSize(newSize)
         self.GetSizer().Layout()
         self.GetContainingSizer().Layout()
+        self.guiUtility.scrollWindow.FitInside()
+        self.guiUtility.refreshOnResize()
         
     def removeTorrentFromLibrary(self, torrent):
         "Remove torrent from the library. Add it to discovered files?"
