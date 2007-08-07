@@ -2,7 +2,7 @@ import wx, os, sys
 from traceback import print_exc
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 
-DEBUG = False
+DEBUG = True
 
 class tribler_topButton(wx.Panel):
     """
@@ -47,7 +47,7 @@ class tribler_topButton(wx.Panel):
         self.createBackgroundImage()
         
         #<mluc> on mac, the button doesn't get a size
-        if self.bitmaps[0] and self.GetSize()==(0,0):
+        if self.bitmaps[0] and self.GetSize()==(0,0) or True:
             self.SetSize(self.bitmaps[0].GetSize())
 #        print self.Name
 #        print 'size'
@@ -155,11 +155,11 @@ class tribler_topButton(wx.Panel):
             location = self.GetPosition()
             #location[0] -= parent.GetPosition()[0]
             #location[1] -= parent.GetPosition()[1]
-            if DEBUG:
-                print '(button %s) Mypos: %s, Parentpos: %s' % (self.GetName(), self.GetPosition(), parent.GetPosition())
+            #if DEBUG:
+            #    print '(button %s) Mypos: %s, Parentpos: %s' % (self.GetName(), self.GetPosition(), parent.GetPosition())
             rect = [location[0], location[1], self.GetClientSize()[0], self.GetClientSize()[1]]
-            if DEBUG:
-                print '(button %s) Slicing rect(%d,%d) size(%s) from parent image size(%s)' % (self.GetName(), location[0], location[1], str(self.GetClientSize()), str(bitmap.GetSize()))
+            #if DEBUG:
+            #    print '(button %s) Slicing rect(%d,%d) size(%s) from parent image size(%s)' % (self.GetName(), location[0], location[1], str(self.GetClientSize()), str(bitmap.GetSize()))
             bitmap = self.getBitmapSlice(bitmap, rect)
             return bitmap
         else:

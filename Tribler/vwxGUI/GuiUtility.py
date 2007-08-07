@@ -386,7 +386,7 @@ class GUIUtility:
         elif self.standardOverview.mode == "friendsMode":
             self.searchFriends()
 
-        self.standardOverview.toggleSearchDetailsPanel(False)
+        
         
         
     def searchFiles(self, mode):

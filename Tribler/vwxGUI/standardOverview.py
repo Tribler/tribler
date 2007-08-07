@@ -611,16 +611,19 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                     self.filterChanged(['search','swarmsize'])
                     
     def toggleSearchDetailsPanel(self, visible):
-        sizer = self.data[self.mode]['filter'].GetContainingSizer()
+        sizer = self.data[self.mode]['grid'].GetContainingSizer()
         if visible:
             if not self.searchDetails:
                 self.searchDetails = SearchDetailsPanel(self) #self.data[self.mode]['panel'])
                 
                 print 'Inserting search details'
-                sizer.Insert(2, self.searchDetails, 5, wx.ALL|wx.EXPAND, 3)
-                print 'Size: %s' % str(self.searchDetails.GetSize())
-                print 'Parent: %s' % str(self.searchDetails.GetParent().GetName())
-                print 'GParent: %s' % str(self.searchDetails.GetParent().GetParent().GetName())
+                sizer.Insert(2,self.searchDetails, 0, wx.ALL|wx.EXPAND, 3)
+                #sizer.Layout()
+                #self.data[self.mode]['panel'].Refresh()
+#                print 'Size: %s' % str(self.searchDetails.GetSize())
+#                print 'Parent: %s' % str(self.searchDetails.GetParent().GetName())
+#                print 'GParent: %s' % str(self.searchDetails.GetParent().GetParent().GetName())
+                
         else:
             if self.searchDetails:
                 print 'removing search details'
