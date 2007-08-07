@@ -1,5 +1,5 @@
 
-import wx
+import wx, time
 from wx import xrc
 from traceback import print_exc,print_stack
 from threading import Event
@@ -378,12 +378,15 @@ class GUIUtility:
         webbrowser.open(mailToURL)
         
     def dosearch(self):
+        self.standardOverview.toggleSearchDetailsPanel(True)
         if self.standardOverview.mode in ["filesMode", "libraryMode"]:
             self.searchFiles(self.standardOverview.mode)
         elif self.standardOverview.mode == "personsMode":
             self.searchPersons()
         elif self.standardOverview.mode == "friendsMode":
             self.searchFriends()
+
+        self.standardOverview.toggleSearchDetailsPanel(False)
         
         
     def searchFiles(self, mode):

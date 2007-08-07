@@ -4,6 +4,7 @@ from Tribler.vwxGUI.GuiUtility import GUIUtility
 from safeguiupdate import FlaglessDelayedInvocation
 from traceback import print_exc,print_stack
 from Tribler.vwxGUI.torrentManager import TorrentDataManager
+from Tribler.vwxGUI.SearchDetails import SearchDetailsPanel
 from Tribler.utilities import *
 from Utility.constants import *
 from peermanager import PeerDataManager
@@ -45,6 +46,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.categorykey = None
+        self.searchDetails = None
         self.data_manager = TorrentDataManager.getInstance(self.utility)
         
         self.peer_manager = PeerDataManager.getInstance(self.utility) #the updateFunc is called after the data is updated in the peer manager so that the GUI has the newest information
@@ -607,4 +609,24 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 fs = self.data[self.mode]['filterState']
                 if fs[0] == 'search':
                     self.filterChanged(['search','swarmsize'])
-        
+                    
+    def toggleSearchDetailsPanel(self, visible):
+        sizer = self.data[self.mode]['filter'].GetContainingSizer()
+        if visible:
+            if not self.searchDetails:
+                self.searchDetails = SearchDetailsPanel(self) #self.data[self.mode]['panel'])
+                
+                print 'Inserting search details'
+                sizer.Insert(2, self.searchDetails, 5, wx.ALL|wx.EXPAND, 3)
+                print 'Size: %s' % str(self.searchDetails.GetSize())
+                print 'Parent: %s' % str(self.searchDetails.GetParent().GetName())
+                print 'GParent: %s' % str(self.searchDetails.GetParent().GetParent().GetName())
+        else:
+            if self.searchDetails:
+                print 'removing search details'
+                sizer.Detach(self.searchDetails)
+                self.searchDetails.Destroy()
+                self.searchDetails = None
+        sizer.Layout()
+        self.data[self.mode]['panel'].Refresh()
+        self.hSizer.Layout()

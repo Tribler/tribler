@@ -92,8 +92,8 @@ class FilesItemPanel(wx.Panel):
             self.thumb.setBackground(wx.BLACK)
             self.thumb.SetSize((125,70))
             self.vSizer.Add(self.thumb, 0, wx.ALL, 0)        
-            # Add title
-            self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(125,22), wx.ST_NO_AUTORESIZE)        
+
+            self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(125,22))    # 
             self.title.SetBackgroundColour(wx.WHITE)
             self.title.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
             self.title.SetMinSize((125,40))
@@ -242,9 +242,14 @@ class FilesItemPanel(wx.Panel):
             self.title.SetToolTipString(torrent['content_name'])
             if self.listItem:
                 self.fileSize.Enable(True)
-                self.fileSize.SetLabel(self.utility.size_format(torrent['length']))
+                if torrent.get('web2'):
+                    self.fileSize.SetLabel(torrent['length'])
+                    self.creationDate.SetLabel(friendly_time(torrent['info']['creation date']))
+                else:
+                    self.fileSize.SetLabel(self.utility.size_format(torrent['length']))
+                    self.creationDate.SetLabel(friendly_time(torrent['date']))
+                
                 self.creationDate.Enable(True)
-                self.creationDate.SetLabel(friendly_time(torrent['date']))
                 self.seedersNumber.SetLabel('%d' % torrent['seeder'])
                 self.leechersNumber.SetLabel('%d' % torrent['leecher'])
                     # -- tasteheart --        
