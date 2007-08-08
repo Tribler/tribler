@@ -141,14 +141,14 @@ class FilesItemPanel(wx.Panel):
             # V Line
             self.vLine3 = self.addLine() 
             # Add popularity
-            self.seeders = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='down')
+            self.seeders = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='up')
             self.seeders.setBackground(wx.WHITE)
             self.seeders.SetToolTipString(self.utility.lang.get('rNumberOfSeeders'))
             self.seedersNumber = wx.StaticText(self,-1,"203",wx.Point(0,0),wx.Size(125,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
             self.seedersNumber.SetBackgroundColour(wx.WHITE)
             self.seedersNumber.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
             self.seedersNumber.SetMinSize((45,18))
-            self.leechers = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='up')
+            self.leechers = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='down')
             self.leechers.setBackground(wx.WHITE)
             self.leechers.SetToolTipString(self.utility.lang.get('rNumberOfLeechers'))
             self.leechersNumber = wx.StaticText(self,-1,"678",wx.Point(0,0),wx.Size(125,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
