@@ -143,6 +143,8 @@ class GUIUtility:
             # this has to be a callafter to avoid segmentation fault
             # otherwise the panel with the event generating button is destroyed
             # in the execution of the event.
+            self.standardOverview.clearSearch()
+                        
             wx.CallAfter(self.standardOverview.toggleSearchDetailsPanel, False)
         elif DEBUG:
             print 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
@@ -405,7 +407,7 @@ class GUIUtility:
         wantkeywords = low.split(' ')
         self.data_manager.setSearchKeywords(wantkeywords, mode)
         sorting = None
-        self.standardOverview.filterChanged(['search',sorting],setgui=True)
+        self.standardOverview.filterChanged(None)
 
         #
         # Query the peers we are connected to

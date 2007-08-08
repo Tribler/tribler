@@ -25,7 +25,7 @@ class SearchDetailsPanel(wx.Panel):
         self.SetSizer(self.hSizer);
         self.SetAutoLayout(1);
         self.SetMinSize((-1, 19))
-        self.SetBackgroundColour(wx.RED)
+        self.SetBackgroundColour(wx.WHITE)
         self.hSizer.Layout()
         self.Layout()
         self.searchBusy = True #??
@@ -36,13 +36,17 @@ class SearchDetailsPanel(wx.Panel):
         
     def stopSearch(self):
         # call remoteSearch and Web2.0 search to stop
-        pass
+        dod = self.guiUtility.standardOverview.getGrid().dod
+        if dod:
+            dod.stop()
     
     def findMoreSearch(self):
         # call remoteSearch and Web2.0 search to find more
         self.searchBusy = True
         self.stopMoreButton.setToggled(False)
-        pass
+        grid = self.guiUtility.standardOverview.getGrid()
+        if grid.dod:
+            grid.dod.requestMore(grid.items)
     
     def searchFinished(self):
         self.searchBusy = False

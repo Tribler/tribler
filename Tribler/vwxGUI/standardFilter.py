@@ -68,7 +68,7 @@ class standardFilter(wx.Panel):
                 if DEBUG:
                     print >>sys.stderr,'standardFilter: Error getting default filterState, data: %s' % pullDownData
                 pass
-            filter = wx.ComboBox(self,-1,titles[0], wx.Point(8,3),wx.Size(180,21),titles, wx.CB_DROPDOWN|wx.CB_READONLY)
+            filter = wx.ComboBox(self,-1,titles[0], wx.Point(8,3),wx.Size(160,21),titles, wx.CB_DROPDOWN|wx.CB_READONLY)
             #filter = wx.Choice(self,-1, wx.Point(8,3),wx.Size(180,21),titles)
             filter.SetFont(wx.Font(10,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
 #            filter.SetBackgroundColour(wx.WHITE)
@@ -134,7 +134,7 @@ class filesFilter(standardFilter):
     def __init__(self):
         nametuples = Category.getInstance().getCategoryNames()
         nametuples.append(('other', 'Other'))
-        nametuples.append(('search', 'Search Results'))
+        #nametuples.append(('search', 'Search Results'))
         filterData = [
                        nametuples,
                        [(('content_name', 'increase'), 'Name'),

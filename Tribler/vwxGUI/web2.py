@@ -21,7 +21,10 @@ class DataOnDemand:
             self.updateFuns.append(updateFun)
 
     def unregister(self, updateFun):
-        self.updateFuns.remove(updateFun)
+        try:
+            self.updateFuns.remove(updateFun)
+        except:
+            print 'web2.unregister() unnecessary'
 
     def notify(self): #, item):
         for fun in self.updateFuns:

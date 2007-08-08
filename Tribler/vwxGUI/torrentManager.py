@@ -25,7 +25,7 @@ from sets import Set
 from Tribler.Search.KeywordSearch import KeywordSearch
 import web2
 
-DEBUG = False
+DEBUG = True
 DEBUG_RANKING = False
 
 # Arno: save memory by reusing dict keys
@@ -61,6 +61,7 @@ class TorrentDataManager:
         self.isDataPrepared = False
         self.data = []
         self.hits = []
+        self.dod = None
         self.keywordsearch = KeywordSearch()
         # initialize the cate_dict
         self.info_dict = {}    # reverse map
@@ -125,25 +126,16 @@ class TorrentDataManager:
                     count = count + 1
         return count
         
-    def getCategory(self, categorykey, library):
+    def getCategory(self, categorykey, mode):
         if not self.done_init:
             return []
         
         categorykey = categorykey.lower()
         
-        if categorykey == "search":
-            web2on = self.utility.config.Read('enableweb2search',"boolean")
-            if not library and web2on:
-                dod = web2.DataOnDemandWeb2(" ".join(self.searchkeywords['filesMode']))
-                dod.addItems(self.search())
-                return dod
-            else:
-                # library search
-                return self.search(library)
-            
-        ##self.hits = [] # remove currentHits. Because they dont need to be updated
         
+            
         def torrentFilter(torrent):
+            library = (mode == 'libraryMode')
             okLibrary = library == torrent.has_key('myDownloadHistory')
             
             # If we want to see the library. Do not show just removed items
@@ -160,9 +152,32 @@ class TorrentDataManager:
                 if categorykey in [cat.lower() for cat in categories]:
                     okCategory = True
                     
-            return okLibrary and okCategory
+            return okLibrary and okCategory and torrent['status'] =='good'
         
-        return filter(torrentFilter, self.data)
+        data = filter(torrentFilter, self.data)
+        
+        if DEBUG:
+            print 'getCategory found: %d items' % len(data)
+        # if searchkeywords are defined. Search instead of show all
+        if self.searchkeywords[mode]:
+                data = self.search(data, mode)
+                if DEBUG:
+                    print 'getCategory found after search: %d items' % len(data)
+        
+        web2on = self.utility.config.Read('enableweb2search',"boolean")
+        if mode == 'filesMode' and web2on and self.searchkeywords[mode] and \
+                categorykey == 'video':
+                
+                # if we are searching in filesmode
+                self.dod = web2.DataOnDemandWeb2(" ".join(self.searchkeywords[mode]))
+                self.dod.addItems(data)
+                return self.dod
+             
+        else:
+            if self.dod:
+                self.dod.stop()
+                self.dod = None
+            return data
                 
 
     def getTorrents(self, hash_list):
@@ -520,32 +535,19 @@ class TorrentDataManager:
     def setSearchKeywords(self,wantkeywords, mode):
         self.searchkeywords[mode] = wantkeywords
          
-    def search(self, library = False):
-        if library:
-            mode = 'libraryMode'
-        else:
-            mode = 'filesMode'
-        
-        if self.searchkeywords[mode] == self.oldsearchkeywords[mode] and len(self.hits) > 0:
-            if DEBUG:
-                print >>sys.stderr,"torrentDataManager: search: returning old hit list",len(self.hits)
-            return self.hits
+    def search(self, data, mode):
+#        if self.searchkeywords[mode] == self.oldsearchkeywords[mode] and len(self.hits) > 0:
+#            if DEBUG:
+#                print >>sys.stderr,"torrentDataManager: search: returning old hit list",len(self.hits)
+#            return self.hits
             
         if DEBUG:
             print >>sys.stderr,"torrentDataManager: search: Want",self.searchkeywords[mode]
         
         if len(self.searchkeywords[mode]) == 0 or len(self.searchkeywords[mode]) == 1 and self.searchkeywords[mode][0] == '':
-            return []
-        haystack = []
-        for torrent in self.data:
-            if library != torrent.has_key('myDownloadHistory'):
-                continue
-            if library and torrent.get('eventComingUp') == 'notDownloading':
-                continue
-            if not library and torrent['status'] != 'good':
-                continue
-            haystack.append(torrent)
-        self.hits = self.keywordsearch.search(haystack, self.searchkeywords[mode])
+            return data
+        
+        self.hits = self.keywordsearch.search(data, self.searchkeywords[mode])
         return self.hits
 
     def remoteSearch(self,kws,maxhits=None):

@@ -300,7 +300,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         self.data[self.mode]['filterState'] = filterState
                 
             
-    def loadTorrentData(self, cat, sort, library = False):
+    def loadTorrentData(self, cat, sort):
         if DEBUG:
             print >>sys.stderr,'standardOverview: loadTorrentData: Category set to %s, %s' % (str(cat), str(sort))
         
@@ -310,47 +310,47 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 self.data_manager.unregister(self.updateFunTorrents, self.categorykey[0], self.categorykey[1])
             
             # Register for new one    
-            self.categorykey = (cat, library)
-            self.data_manager.register(self.updateFunTorrents, self.categorykey[0], self.categorykey[1])
+            
+            self.data_manager.register(self.updateFunTorrents, cat, self.mode == 'libraryMode')
             self.type = sort
             
-            data = self.data_manager.getCategory(self.categorykey[0], self.categorykey[1])
+            torrentData = self.data_manager.getCategory(cat, self.mode)
 
             if DEBUG:
-                if type(data)  == list:
-                    print >>sys.stderr,"standardOverview: getCategory returned",len(data)
+                if type(torrentData)  == list:
+                    print >>sys.stderr,"standardOverview: getCategory returned",len(torrentData)
             
-            if type(data) == list:
-                self.filtered = []
-                for torrent in data:
-                    if torrent.get('status') == 'good' or torrent.get('myDownloadHistory'):
-                        
-                        if DEBUG:
-                            print >>sys.stderr,"standardOverview: prefilter adding",`torrent['content_name']`
+            # Jelle: This is now done in data_manager.getCategory()
+#            if type(data) == list:
+#                self.filtered = []
+#                for torrent in data:
+#                    if torrent.get('status') == 'good' or torrent.get('myDownloadHistory'):
+#                        
+#                        if DEBUG:
+#                            print >>sys.stderr,"standardOverview: prefilter adding",`torrent['content_name']`
+#
+#                        self.filtered.append(torrent)
+#            elif data.isDod():
+#                data.addFilter(lambda x:x.get('status') == 'good' or x.get('myDownloadHistory'))
 
-                        self.filtered.append(torrent)
-            elif data.isDod():
-                data.addFilter(lambda x:x.get('status') == 'good' or x.get('myDownloadHistory'))
-
-        if type(data) == list:
+        if type(torrentData) == list:
             if type(sort) == str:
-                self.filtered = sort_dictlist(self.filtered, sort, 'decrease')
+                torrentData = sort_dictlist(torrentData, sort, 'decrease')
             elif type(sort) == tuple:
-                self.filtered = sort_dictlist(self.filtered, sort[0], sort[1])
+                torrentData = sort_dictlist(torrentData, sort[0], sort[1])
 
             if DEBUG:
-                print >>sys.stderr,"standardOverview: filtering",len(self.filtered)
+                print >>sys.stderr,"standardOverview: filtering",len(torrentData)
         
-            self.data[self.mode]['data'] = self.filtered
-        elif data.isDod():
+        elif torrentData.isDod():
             keysort = ["web2"]
             if type(sort) == str:
                 keysort.append((sort, 'decrease'))
             elif type(sort) == tuple:
                 keysort.append(sort)
-            data.setSort(lambda list: multisort_dictlist(list, keysort))
+            torrentData.setSort(lambda list: multisort_dictlist(list, keysort))
             
-            self.data[self.mode]['data'] = data
+        self.data[self.mode]['data'] = torrentData
     
     
     def loadPersonsData(self, cat, sort):
@@ -395,7 +395,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         else:
             # Sorting of torrents is redone, after loadTorrentData
             preSorting = 'date'
-        self.loadTorrentData(cat, preSorting, library = True)
+        self.loadTorrentData(cat, preSorting)
         
         libraryList = self.data[self.mode]['data']
         
@@ -567,6 +567,14 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             mode = self.mode
         return self.data[mode]['search']
     
+    def getGrid(self):
+        return self.data[self.mode]['grid']
+    
+    def clearSearch(self):
+        self.data[self.mode]['search'].Clear()
+        self.guiUtility.data_manager.setSearchKeywords([], self.mode)
+        self.filterChanged(None)
+        
     def getFilter(self):
         return self.data[self.mode]['filter']
 
@@ -577,8 +585,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         return self.data[self.mode]['rssurlctrl']
     
     def gridIsAutoResizing(self):
-        grid = self.data[self.mode]['grid']
-        return grid.sizeMode == 'auto'
+        return self.getGrid().sizeMode == 'auto'
         
     def growWithGrid(self):
         gridHeight = self.data[self.mode]['grid'].GetSize()[1]
