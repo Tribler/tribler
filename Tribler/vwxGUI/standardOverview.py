@@ -619,7 +619,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         
         if visible:
             if not searchDetails:
-                searchDetails = SearchDetailsPanel(self) #self.data[self.mode]['panel'])
+                searchDetails = SearchDetailsPanel(self.data[self.mode]['panel'])
                 
                 print 'Inserting search details'
                 sizer.Insert(2,searchDetails, 0, wx.ALL|wx.EXPAND, 0)
