@@ -46,7 +46,6 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.categorykey = None
-        self.searchDetails = None
         self.data_manager = TorrentDataManager.getInstance(self.utility)
         
         self.peer_manager = PeerDataManager.getInstance(self.utility) #the updateFunc is called after the data is updated in the peer manager so that the GUI has the newest information
@@ -611,25 +610,35 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                     self.filterChanged(['search','swarmsize'])
                     
     def toggleSearchDetailsPanel(self, visible):
+        searchDetails = self.data[self.mode].get('searchDetailsPanel')
         sizer = self.data[self.mode]['grid'].GetContainingSizer()
+        print 'Sizer: %s' % sizer
+        print 'SearchDetails: %s' % searchDetails
+        if searchDetails:
+            print '%s, %s' % (str(searchDetails.GetSize()), str(searchDetails.GetMinSize()))
+        
         if visible:
-            if not self.searchDetails:
-                self.searchDetails = SearchDetailsPanel(self) #self.data[self.mode]['panel'])
+            if not searchDetails:
+                searchDetails = SearchDetailsPanel(self) #self.data[self.mode]['panel'])
                 
                 print 'Inserting search details'
-                sizer.Insert(2,self.searchDetails, 0, wx.ALL|wx.EXPAND, 3)
+                sizer.Insert(2,searchDetails, 0, wx.ALL|wx.EXPAND, 0)
                 #sizer.Layout()
                 #self.data[self.mode]['panel'].Refresh()
 #                print 'Size: %s' % str(self.searchDetails.GetSize())
 #                print 'Parent: %s' % str(self.searchDetails.GetParent().GetName())
 #                print 'GParent: %s' % str(self.searchDetails.GetParent().GetParent().GetName())
-                
+                self.data[self.mode]['searchDetailsPanel'] = searchDetails
+                searchDetails.Show()
+            else:
+                searchDetails.Show()
         else:
-            if self.searchDetails:
+            if searchDetails:
                 print 'removing search details'
-                sizer.Detach(self.searchDetails)
-                self.searchDetails.Destroy()
-                self.searchDetails = None
+                sizer.Detach(searchDetails)
+                searchDetails.Destroy()
+                self.data[self.mode]['searchDetailsPanel'] = None
         sizer.Layout()
         self.data[self.mode]['panel'].Refresh()
         self.hSizer.Layout()
+

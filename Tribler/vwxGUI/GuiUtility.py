@@ -1,5 +1,5 @@
 
-import wx, time
+import wx, time, random
 from wx import xrc
 from traceback import print_exc,print_stack
 from threading import Event
@@ -139,6 +139,11 @@ class GUIUtility:
             self.standardDetails.rightMouseButton(event)
         elif name == 'viewModus':            
             self.onChangeViewModus()
+        elif name == 'searchClear':
+            # this has to be a callafter to avoid segmentation fault
+            # otherwise the panel with the event generating button is destroyed
+            # in the execution of the event.
+            wx.CallAfter(self.standardOverview.toggleSearchDetailsPanel, False)
         elif DEBUG:
             print 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
                 
@@ -398,29 +403,23 @@ class GUIUtility:
             print >>sys.stderr,"GUIUtil: searchFiles:",input
         low = input.lower()
         wantkeywords = low.split(' ')
-        #zet = Set(wantkeywords)
-        #wantkeywords = list(zet)
-        
         self.data_manager.setSearchKeywords(wantkeywords, mode)
-#        if mode == 'filesMode':
-#            sorting = 'swarmsize'
-#        elif mode == 'libraryMode':
-#            sorting = ('content_name', 'increase')
         sorting = None
         self.standardOverview.filterChanged(['search',sorting],setgui=True)
 
         #
         # Query the peers we are connected to
         #
-        rqmh = RemoteQueryMsgHandler.getInstance()
-        rqmh.register2(self.data_manager)
-        q = ''
-        for kw in wantkeywords:
-            q += kw+' '
-            
-        # For TEST suite
-        #rqmh.test_sendQuery(q) 
-        rqmh.sendQuery(q) 
+        if mode == 'filesMode':
+            rqmh = RemoteQueryMsgHandler.getInstance()
+            rqmh.register2(self.data_manager)
+            q = ''
+            for kw in wantkeywords:
+                q += kw+' '
+                
+            # For TEST suite
+            #rqmh.test_sendQuery(q) 
+            rqmh.sendQuery(q) 
 
         
     def searchPersons(self):

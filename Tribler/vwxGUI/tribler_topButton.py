@@ -47,7 +47,8 @@ class tribler_topButton(wx.Panel):
         self.createBackgroundImage()
         
         #<mluc> on mac, the button doesn't get a size
-        if self.bitmaps[0] and self.GetSize()==(0,0) or True:
+        #if self.bitmaps[0] and self.GetSize()==(0,0):
+        if self.bitmaps[0]:
             self.SetSize(self.bitmaps[0].GetSize())
 #        print self.Name
 #        print 'size'
@@ -267,8 +268,6 @@ class tribler_topButton(wx.Panel):
         if self.bitmaps[0]:
             dc.DrawBitmap(self.bitmaps[0], 0,0, True)
         if (self.mouseOver or self.selected) and self.bitmaps[1]:
-            if DEBUG:
-                print 'bitmap2: %s' % self.bitmaps[1]
             dc.DrawBitmap(self.bitmaps[1], 0,0, True)
         
 

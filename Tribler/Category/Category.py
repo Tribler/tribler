@@ -272,7 +272,7 @@ class Category (FlaglessDelayedEventHandler):
 #                pass
                 try:
                     fileKeywords.index(ikeywords)
-                    print ikeywords
+                    #print ikeywords
                     factor *= 1 - category['keywords'][ikeywords]
                 except:
                     pass

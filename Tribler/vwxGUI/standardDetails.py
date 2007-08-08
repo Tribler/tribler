@@ -1596,7 +1596,12 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         if not panel:
             panel = self.currentPanel
         margin = 6
-        newHeight = panel.GetSize()[1] + self.data['status']['panel'].GetSize()[1] + margin
+        if self.data.get('status',{}).get('panel'):
+            statusPanelHeight = self.data['status']['panel'].GetSize()[1]
+        else:
+            statusPanelHeight = 0
+        
+        newHeight = panel.GetSize()[1] + statusPanelHeight + margin
         size = (300,newHeight)
         self.SetSize(size)
         self.SetMinSize(size)

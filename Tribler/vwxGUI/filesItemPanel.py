@@ -25,6 +25,10 @@ if sys.platform == 'darwin':
     FS_FILETITLE = 10
     FS_SIMILARITY = 10
     FS_HEARTRANK = 10
+elif sys.platform == 'linux2':
+    FS_FILETITLE = 8
+    FS_SIMILARITY = 7
+    FS_HEARTRANK = 7
 else:
     FS_FILETITLE = 10
     FS_SIMILARITY = 10
