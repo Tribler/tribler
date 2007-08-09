@@ -1,4 +1,4 @@
-import wx
+import wx, os
 from Tribler.vwxGUI.tribler_topButton import tribler_topButton, SwitchButton
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 
@@ -57,7 +57,7 @@ class SearchDetailsPanel(wx.Panel):
             key, value = pair
             tt += self.guiUtility.utility.lang.get('search_'+key) % value
             if items.index(pair) != len(items)-1:
-                tt +='\n'
+                tt +=os.linesep
         self.textPanel.SetToolTipString(tt)
         self.text.SetToolTipString(tt)
         
