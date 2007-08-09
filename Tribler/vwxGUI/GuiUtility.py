@@ -486,7 +486,8 @@ class GUIUtility:
         #print "OnSearchKeyDown: keycode",keycode
         if keycode == wx.WXK_RETURN:
             self.dosearch()
-        #event.Skip()     
+        else:
+            event.Skip()     
 
     def OnSubscribeKeyDown(self,event):
         keycode = event.GetKeyCode()
