@@ -161,7 +161,8 @@ class TorrentDataManager:
         # if searchkeywords are defined. Search instead of show all
         if self.inSearchMode(mode):
                 data = self.search(data, mode)
-                standardOverview.setSearchFeedback('torrent', False, len(data))
+                standardOverview.setSearchFeedback('torrent', False, len(data), self.searchkeywords[mode])
+                standardOverview.setSearchFeedback('web2', False, 0)
                 if DEBUG:
                     print 'getCategory found after search: %d items' % len(data)
         

@@ -594,9 +594,10 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         """ May be called by web2.0 thread """
         self.invokeLater(self._setSearchFeedback,args,kwargs)
         
-    def _setSearchFeedback(self, type, finished, num):
+        
+    def _setSearchFeedback(self, type, finished, num, keywords = []):
         print '_setSearchFeedback called by', currentThread().getName()
-        self.data[self.mode]['searchDetailsPanel'].setMessage(type, finished, num)
+        self.data[self.mode]['searchDetailsPanel'].setMessage(type, finished, num, keywords)
         
     def growWithGrid(self):
         gridHeight = self.data[self.mode]['grid'].GetSize()[1]

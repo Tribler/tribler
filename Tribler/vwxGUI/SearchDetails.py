@@ -40,24 +40,32 @@ class SearchDetailsPanel(wx.Panel):
         #self.Show(True)
         self.results = {}
         
-    def setMessage(self, type, finished, num):
+    def setMessage(self, type, finished, num, keywords = []):
         self.results[type] = num
         total = sum(self.results.values())
-        if not total:
-            msg = self.guiUtility.utility.lang.get('start_search')
-        elif not finished:
-            msg = self.guiUtility.utility.lang.get('going_search') % sum(self.results.values())
+        
+        if keywords:
+            self.keywords = " ".join(keywords)
+          
+        if finished:  
+            msg = self.guiUtility.utility.lang.get('finished_search') % (self.keywords, total)
+        elif not total:
+            msg = self.guiUtility.utility.lang.get('start_search') % self.keywords
         else:
-            msg = self.guiUtility.utility.lang.get('finished_search') % sum(self.results.values())
+            msg = self.guiUtility.utility.lang.get('going_search') % (self.keywords, total)
+        
+            
         self.text.SetLabel(msg)
         tt = ''
         items = self.results.items()
         items.sort()
         for pair in items:
             key, value = pair
+            if not value:
+                continue
             tt += self.guiUtility.utility.lang.get('search_'+key) % value
-            if items.index(pair) != len(items)-1:
-                tt +=os.linesep
+            tt +=os.linesep
+        tt = tt[:-1]
         self.textPanel.SetToolTipString(tt)
         self.text.SetToolTipString(tt)
         
