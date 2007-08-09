@@ -535,6 +535,9 @@ class TorrentDataManager:
     def setSearchKeywords(self,wantkeywords, mode):
         self.searchkeywords[mode] = wantkeywords
          
+    def inSearchMode(self, mode):
+        return bool(self.searchkeywords[mode])
+    
     def search(self, data, mode):
 #        if self.searchkeywords[mode] == self.oldsearchkeywords[mode] and len(self.hits) > 0:
 #            if DEBUG:

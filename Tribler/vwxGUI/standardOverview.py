@@ -186,7 +186,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                         else:
                             txt = self.utility.lang.get('filesdefaultsearchtxt')
                         search.SetValue(txt)
-                        search.Bind(wx.EVT_LEFT_UP, self.guiUtility.OnSearchMouseAction)
+                        search.Bind(wx.EVT_LEFT_DCLICK, self.guiUtility.OnSearchMouseAction)
                     
                 pager.setGrid(grid)
                 
@@ -525,8 +525,9 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             # unhealthy torrents are also updated
             self.invokeLater(torrentGrid.updateItem, [torrent])
         elif operate == 'add' and torrent.get('status') == 'good' or torrent.get('myDownloadHistory'):
-            # new torrents are only added when healthy
-            self.invokeLater(torrentGrid.updateItem, [torrent])
+            if not self.data_manager.inSearchMode(self.mode):
+                # new torrents are only added when healthy
+                self.invokeLater(torrentGrid.updateItem, [torrent])
         elif operate == 'delete':
             self.invokeLater(torrentGrid.updateItem, [torrent], {'delete':True})
             

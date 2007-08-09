@@ -64,7 +64,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
     def _PostInit(self):
         # Do all init here
         FlaglessDelayedInvocation.__init__(self)
-        
+        self.subscr_old_source = None
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.data_manager = TorrentDataManager.getInstance(self.utility)
@@ -120,7 +120,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         self.statdlElements = ['st28c','down_White','downSpeed','up_White','upSpeed','download1','percent1','download2','percent2','download3','percent3','download4','percent4']
             
         self.guiUtility.initStandardDetails(self)
-        self.subscr_old_source = None
+        
 
 
     def addComponents(self):

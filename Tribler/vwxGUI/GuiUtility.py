@@ -486,7 +486,7 @@ class GUIUtility:
         #print "OnSearchKeyDown: keycode",keycode
         if keycode == wx.WXK_RETURN:
             self.dosearch()
-        event.Skip()     
+        #event.Skip()     
 
     def OnSubscribeKeyDown(self,event):
         keycode = event.GetKeyCode()
@@ -546,7 +546,7 @@ class GUIUtility:
             return
         # TODO: smarter behavior
         sf.SetSelection(-1,-1)
-        event.Skip()
+        #event.Skip()
 
     def getSearchField(self,mode=None):
        return self.standardOverview.getSearchField(mode=mode)

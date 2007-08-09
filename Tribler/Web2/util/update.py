@@ -8,7 +8,7 @@ import ConfigParser
 WEB2CONFIG_NAME = 'web2definitions.conf'
 WEB2MODULE_NAME = 'web2definitions'
 WEB2_URL = 'http://www.tribler.org/web2definitions/web2definitions.conf'
-DEBUG = True
+DEBUG = False
 
 
 class Web2Updater:
