@@ -59,6 +59,7 @@ class SearchDetailsPanel(wx.Panel):
             if items.index(pair) != len(items)-1:
                 tt +='\n'
         self.textPanel.SetToolTipString(tt)
+        self.text.SetToolTipString(tt)
         
     def stopSearch(self):
         # call remoteSearch and Web2.0 search to stop
