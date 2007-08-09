@@ -524,8 +524,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             return
             
         if operate == 'update':
-            # unhealthy torrents are also updated
-            self.invokeLater(torrentGrid.updateItem, [torrent])
+            # unhealthy torrents are also updated 
+            self.invokeLater(torrentGrid.updateItem, [torrent], {'onlyupdate':True})
         elif operate == 'add' and torrent.get('status') == 'good' or torrent.get('myDownloadHistory'):
             if not self.data_manager.inSearchMode(self.mode):
                 # new torrents are only added when healthy

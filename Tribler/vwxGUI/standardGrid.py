@@ -192,7 +192,7 @@ class standardGrid(wx.Panel):
 
         self.Layout()
         
-    def updateItem(self, item, delete = False):
+    def updateItem(self, item, delete = False, onlyupdate = False):
         "Add or update an item in the grid"
         
         if not item:
@@ -221,7 +221,7 @@ class standardGrid(wx.Panel):
                 self.data[i] = item
             else:
                 self.data.remove(item)
-        else:
+        elif not onlyupdate:
             self.data.append(item)
         self.refreshData()
         
