@@ -59,19 +59,17 @@
                   <option>1</option>
                 </object>
                 <object class="sizeritem">
-                  <flag>wxTOP|wxFIXED_MINSIZE</flag>
-                  <border>2</border>
+                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>1</border>
                   <option>0</option>
-                  <object class="wxComboBox" name="modeItems">
+                  <object class="wxChoice" name="modeItems">
                     <tooltip>Views</tooltip>
                     <content>
                       <item>thumbnails</item>
                       <item>list</item>
                     </content>
-                    <style>wxCB_DROPDOWN|wxCB_READONLY</style>
-                    <label>control</label>
-                    <pos>429,2</pos>
-                    <size>105,19</size>
+                    <pos>483,1</pos>
+                    <size>105,20</size>
                     <bg>#ff3300</bg>
                     <fg>#ffffff</fg>
                     <font>
@@ -85,10 +83,10 @@
                   </object>
                 </object>
                 <object class="sizeritem">
-                  <flag>wxTOP|wxFIXED_MINSIZE</flag>
-                  <border>2</border>
+                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>1</border>
                   <option>0</option>
-                  <object class="wxComboBox" name="numberItems">
+                  <object class="wxChoice" name="numberItems">
                     <tooltip>Number of items to show</tooltip>
                     <content>
                       <item>auto</item>
@@ -96,10 +94,8 @@
                       <item>40</item>
                       <item>80</item>
                     </content>
-                    <style>wxCB_DROPDOWN|wxCB_READONLY</style>
-                    <label>control</label>
-                    <pos>534,2</pos>
-                    <size>65,19</size>
+                    <pos>588,1</pos>
+                    <size>65,20</size>
                     <bg>#ff3300</bg>
                     <fg>#ffffff</fg>
                     <font>

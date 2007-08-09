@@ -109,7 +109,7 @@ class FilesItemPanel(wx.Panel):
             self.hSizer.Add([2,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
             self.SetSizer(self.hSizer);
         else: # listitem
-            self.SetMinSize((670,22))
+            self.SetMinSize((660,22))
             self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
             self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
             self.thumb = ThumbnailViewer(self, 'filesMode')

@@ -229,7 +229,7 @@
             <border>18</border>
             <option>0</option>
             <object class="wxPanel" name="bgPanel_Overall" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-              <pos>0,202</pos>
+              <pos>0,182</pos>
               <size>600,85</size>
               <bg>#ffffff</bg>
               <object class="wxBoxSizer">
@@ -277,12 +277,6 @@
                     </object>
                   </object>
                 </object>
-                <object class="spacer">
-                  <size>68,85</size>
-                  <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-                  <border>3</border>
-                  <option>1</option>
-                </object>
               </object>
             </object>
           </object>
@@ -303,7 +297,7 @@
                 <border>3</border>
                 <option>0</option>
                 <object class="wxPanel" name="icon_Overall">
-                  <pos>600,239</pos>
+                  <pos>600,219</pos>
                   <size>20,40</size>
                   <bg>#e6e6e6</bg>
                 </object>
