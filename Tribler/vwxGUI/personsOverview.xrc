@@ -44,10 +44,11 @@
                   <border>4</border>
                   <option>0</option>
                   <object class="wxStaticText" name="st64c">
+                    <tooltip>Persons that were connected while you are using Tribler \n(automatic process)</tooltip>
                     <style>wxST_NO_AUTORESIZE</style>
-                    <label>Persons</label>
+                    <label>Discovered persons</label>
                     <pos>4,4</pos>
-                    <size>194,17</size>
+                    <size>309,15</size>
                     <fg>#ffffff</fg>
                   </object>
                 </object>

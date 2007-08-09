@@ -24,7 +24,7 @@ DEBUG=False
 if sys.platform == 'darwin':
     FS_FILETITLE = 10
     FS_SIMILARITY = 10
-    FS_HEARTRANK = 10
+    FS_HEARTRANK = 8
 elif sys.platform == 'linux2':
     FS_FILETITLE = 8
     FS_SIMILARITY = 7
@@ -172,7 +172,7 @@ class FilesItemPanel(wx.Panel):
             # Add Taste similarity
             self.taste =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(40,15))        
             self.taste.SetBackgroundColour(wx.WHITE)
-            self.taste.SetFont(wx.Font(FS_SIMILARITY,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+            self.taste.SetFont(wx.Font(FS_HEARTRANK,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
             self.taste.SetMinSize((40,15))
             self.taste.SetLabel('2nd')
             self.hSizer2.Add(self.taste, 0, wx.TOP|wx.RIGHT, 0)
@@ -261,6 +261,8 @@ class FilesItemPanel(wx.Panel):
                 rank = torrent.get('simRank', -1)
                 recommField = self.taste            
                 if rank!=-1:
+                    print '--tb-- there is taste'
+                    print rank
                     if rank == 1:
                         recommField.SetLabel("%d" % rank + "st")
                     elif rank == 2:
@@ -271,7 +273,7 @@ class FilesItemPanel(wx.Panel):
                         recommField.SetLabel("%d" % rank + "th")
                     self.tasteHeart.Show()
                     self.tasteHeart.setRank(rank)
-                    self.taste.SetLabel('')
+                    #self.taste.SetLabel('')
                 else:
                     self.taste.SetLabel('')
                     self.tasteHeart.Hide()
