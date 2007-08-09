@@ -2,10 +2,16 @@
 <resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
   <object class="wxPanel" name="filesOverview">
     <pos>0,0</pos>
-    <size>623,485</size>
+    <size>677,485</size>
     <bg>#ffffff</bg>
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>
+      <object class="spacer">
+        <size>660,0</size>
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+      </object>
       <object class="sizeritem">
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
@@ -68,6 +74,14 @@
                     <size>105,19</size>
                     <bg>#ff3300</bg>
                     <fg>#ffffff</fg>
+                    <font>
+                      <size>7</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>normal</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
                   </object>
                 </object>
                 <object class="sizeritem">
@@ -88,6 +102,14 @@
                     <size>65,19</size>
                     <bg>#ff3300</bg>
                     <fg>#ffffff</fg>
+                    <font>
+                      <size>7</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>normal</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
                   </object>
                 </object>
               </object>
@@ -116,7 +138,7 @@
             <option>0</option>
             <object class="wxPanel" name="searchPanel">
               <pos>0,21</pos>
-              <size>315,35</size>
+              <size>307,35</size>
               <bg>#999999</bg>
               <object class="wxBoxSizer">
                 <orient>wxHORIZONTAL</orient>
@@ -134,7 +156,7 @@
                     <style>wxTE_PROCESS_ENTER</style>
                     <label>search a file</label>
                     <pos>10,4</pos>
-                    <size>270,22</size>
+                    <size>260,22</size>
                     <font>
                       <size>10</size>
                       <family>modern</family>
@@ -173,7 +195,7 @@
         <border>5</border>
         <option>1</option>
         <object class="wxPanel" name="filesGrid" subclass="Tribler.vwxGUI.standardGrid.filesGrid">
-          <pos>0,66</pos>
+          <pos>0,61</pos>
           <size>623,10</size>
         </object>
       </object>

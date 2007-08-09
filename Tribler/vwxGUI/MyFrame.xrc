@@ -307,7 +307,7 @@ _</label>
               <option>1</option>
               <object class="wxPanel" name="standardOverview" subclass="Tribler.vwxGUI.standardOverview.standardOverview">
                 <pos>9,98</pos>
-                <size>660,560</size>
+                <size>677,560</size>
               </object>
             </object>
             <object class="sizeritem">

@@ -6,6 +6,12 @@
     <bg>#ffffff</bg>
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>
+      <object class="spacer">
+        <size>660,0</size>
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+      </object>
       <object class="sizeritem">
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
@@ -40,7 +46,7 @@
                   <object class="wxStaticText" name="st64cC">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>Subscriptions</label>
-                    <pos>0,4</pos>
+                    <pos>4,4</pos>
                     <size>269,15</size>
                     <bg>#ff3300</bg>
                     <fg>#ffffff</fg>
@@ -78,7 +84,7 @@
             </object>
             <object class="sizeritem">
               <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
-              <border>6</border>
+              <border>4</border>
               <option>0</option>
               <object class="wxTextCtrl" name="pasteName">
                 <style>wxTE_PROCESS_ENTER</style>
@@ -89,21 +95,21 @@
             </object>
             <object class="sizeritem">
               <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
-              <border>6</border>
+              <border>4</border>
               <option>0</option>
               <object class="wxTextCtrl" name="pasteUrl">
                 <style>wxTE_PROCESS_ENTER</style>
                 <label>  paste your url here</label>
-                <pos>241,6</pos>
+                <pos>189,6</pos>
                 <size>365,23</size>
               </object>
             </object>
             <object class="sizeritem">
               <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
-              <border>6</border>
+              <border>4</border>
               <option>0</option>
               <object class="wxPanel" name="subscribe" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                <pos>431,6</pos>
+                <pos>558,6</pos>
                 <size>24,24</size>
               </object>
             </object>
@@ -115,7 +121,7 @@
         <border>5</border>
         <option>1</option>
         <object class="wxPanel" name="subscriptionsGrid" subclass="Tribler.vwxGUI.standardGrid.subscriptionsGrid">
-          <pos>0,66</pos>
+          <pos>0,61</pos>
           <size>20,20</size>
         </object>
       </object>

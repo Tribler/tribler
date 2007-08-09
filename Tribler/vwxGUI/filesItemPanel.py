@@ -86,10 +86,10 @@ class FilesItemPanel(wx.Panel):
         
         if not self.listItem:
             
-            self.SetMinSize((125,110))
+            self.SetMinSize((138,110))
             
             self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
-            self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
+            self.hSizer.Add([7,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
             
             self.vSizer = wx.BoxSizer(wx.VERTICAL)
             # Add thumb
@@ -105,8 +105,8 @@ class FilesItemPanel(wx.Panel):
             self.vSizer.Add(self.title, 0, wx.BOTTOM, 3)     
             self.vSizer.Add([100,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)        
             #
-            self.hSizer.Add(self.vSizer,0,wx.ALL,0)
-            self.hSizer.Add([5,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
+            self.hSizer.Add(self.vSizer,0,wx.ALL|wx.FIXED_MINSIZE,0)
+            self.hSizer.Add([2,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
             self.SetSizer(self.hSizer);
         else: # listitem
             self.SetMinSize((670,22))

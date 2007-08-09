@@ -6,6 +6,12 @@
     <bg>#ffffff</bg>
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>
+      <object class="spacer">
+        <size>660,0</size>
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+      </object>
       <object class="sizeritem">
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
@@ -68,22 +74,19 @@
           <object class="sizeritem">
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>3</border>
-            <option>1</option>
-            <object class="wxPanel" name="friendsFilter" subclass="Tribler.vwxGUI.standardFilter.friendsFilter">
-              <pos>0,21</pos>
-              <size>213,35</size>
-            </object>
-          </object>
-          <object class="sizeritem">
-            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-            <border>3</border>
             <option>0</option>
             <object class="wxPanel" name="searchPanel">
-              <pos>626,24</pos>
-              <size>200,35</size>
+              <pos>0,21</pos>
+              <size>307,35</size>
               <bg>#999999</bg>
               <object class="wxBoxSizer">
                 <orient>wxHORIZONTAL</orient>
+                <object class="spacer">
+                  <size>10,27</size>
+                  <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                </object>
                 <object class="sizeritem">
                   <flag>wxTOP|wxFIXED_MINSIZE</flag>
                   <border>4</border>
@@ -91,8 +94,8 @@
                   <object class="wxTextCtrl" name="searchField">
                     <title>search a file</title>
                     <style>wxTE_PROCESS_ENTER</style>
-                    <pos>4,4</pos>
-                    <size>151,22</size>
+                    <pos>10,4</pos>
+                    <size>260,22</size>
                     <font>
                       <size>10</size>
                       <family>modern</family>
@@ -112,13 +115,16 @@
                     <size>22,22</size>
                   </object>
                 </object>
-                <object class="spacer">
-                  <size>10,27</size>
-                  <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-                  <border>3</border>
-                  <option>0</option>
-                </object>
               </object>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>1</option>
+            <object class="wxPanel" name="friendsFilter" subclass="Tribler.vwxGUI.standardFilter.friendsFilter">
+              <pos>200,21</pos>
+              <size>213,35</size>
             </object>
           </object>
         </object>

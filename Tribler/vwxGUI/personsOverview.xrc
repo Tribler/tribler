@@ -6,6 +6,12 @@
     <bg>#ffffff</bg>
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>
+      <object class="spacer">
+        <size>660,0</size>
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+      </object>
       <object class="sizeritem">
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
@@ -63,10 +69,18 @@
                     </content>
                     <style>wxCB_DROPDOWN|wxCB_READONLY</style>
                     <label>control</label>
-                    <pos>416,2</pos>
+                    <pos>431,2</pos>
                     <size>105,19</size>
                     <bg>#ff3300</bg>
                     <fg>#ffffff</fg>
+                    <font>
+                      <size>7</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>normal</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
                   </object>
                 </object>
                 <object class="sizeritem">
@@ -87,6 +101,14 @@
                     <size>65,19</size>
                     <bg>#ff3300</bg>
                     <fg>#ffffff</fg>
+                    <font>
+                      <size>7</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>normal</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
                   </object>
                 </object>
               </object>
@@ -115,7 +137,7 @@
             <option>0</option>
             <object class="wxPanel" name="searchPanel">
               <pos>0,21</pos>
-              <size>315,35</size>
+              <size>307,35</size>
               <bg>#999999</bg>
               <object class="wxBoxSizer">
                 <orient>wxHORIZONTAL</orient>
@@ -133,7 +155,7 @@
                     <title>search a file</title>
                     <style>wxTE_PROCESS_ENTER</style>
                     <pos>10,4</pos>
-                    <size>270,22</size>
+                    <size>260,22</size>
                     <font>
                       <size>10</size>
                       <family>modern</family>
@@ -172,7 +194,7 @@
         <border>5</border>
         <option>1</option>
         <object class="wxPanel" name="personsGrid" subclass="Tribler.vwxGUI.standardGrid.personsGrid">
-          <pos>0,66</pos>
+          <pos>0,61</pos>
           <size>20,20</size>
         </object>
       </object>

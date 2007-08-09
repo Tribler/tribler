@@ -6,6 +6,12 @@
     <bg>#ffffff</bg>
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>
+      <object class="spacer">
+        <size>660,0</size>
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+        <border>3</border>
+        <option>0</option>
+      </object>
       <object class="sizeritem">
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
@@ -40,7 +46,7 @@
                   <object class="wxStaticText" name="st64cC">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>Library</label>
-                    <pos>0,4</pos>
+                    <pos>4,4</pos>
                     <size>269,15</size>
                     <bg>#ff3300</bg>
                     <fg>#ffffff</fg>
@@ -69,22 +75,19 @@
           <object class="sizeritem">
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>3</border>
-            <option>1</option>
-            <object class="wxPanel" name="libraryFilter" subclass="Tribler.vwxGUI.standardFilter.libraryFilter">
-              <pos>0,21</pos>
-              <size>183,35</size>
-            </object>
-          </object>
-          <object class="sizeritem">
-            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-            <border>3</border>
             <option>0</option>
             <object class="wxPanel" name="searchPanel">
-              <pos>626,24</pos>
-              <size>200,35</size>
+              <pos>0,21</pos>
+              <size>307,35</size>
               <bg>#999999</bg>
               <object class="wxBoxSizer">
                 <orient>wxHORIZONTAL</orient>
+                <object class="spacer">
+                  <size>10,10</size>
+                  <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>3</border>
+                  <option>0</option>
+                </object>
                 <object class="sizeritem">
                   <flag>wxTOP|wxFIXED_MINSIZE</flag>
                   <border>4</border>
@@ -92,8 +95,8 @@
                   <object class="wxTextCtrl" name="searchField">
                     <title>search a file</title>
                     <style>wxTE_PROCESS_ENTER</style>
-                    <pos>3,3</pos>
-                    <size>151,22</size>
+                    <pos>10,4</pos>
+                    <size>260,22</size>
                     <font>
                       <size>10</size>
                       <family>modern</family>
@@ -113,13 +116,16 @@
                     <size>22,22</size>
                   </object>
                 </object>
-                <object class="spacer">
-                  <size>10,10</size>
-                  <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-                  <border>3</border>
-                  <option>0</option>
-                </object>
               </object>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+            <border>3</border>
+            <option>1</option>
+            <object class="wxPanel" name="libraryFilter" subclass="Tribler.vwxGUI.standardFilter.libraryFilter">
+              <pos>460,21</pos>
+              <size>163,35</size>
             </object>
           </object>
         </object>
