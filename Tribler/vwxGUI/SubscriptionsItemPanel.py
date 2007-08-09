@@ -18,13 +18,13 @@ DEBUG = False
 
 # font sizes
 if sys.platform == 'darwin':
-    FS_SUBSCRTITLE = 11
+    FS_SUBSCRTITLE = 10
     FS_TOTALNUMBER = 10
 #    FS_SIMILARITY = 10
 #    FS_HEARTRANK = 10
 #    FS_ONLINE = 10
 else:
-    FS_SUBSCRTITLE = 11
+    FS_SUBSCRTITLE = 8
     FS_TOTALNUMBER = 9
 #    FS_SIMILARITY = 10
 #    FS_HEARTRANK = 7
@@ -68,28 +68,28 @@ class SubscriptionsItemPanel(wx.Panel):
         self.Bind(wx.EVT_KEY_UP, self.keyTyped)
         
         # Add Spacer
-        self.hSizer.Add([8,30],0,wx.EXPAND|wx.FIXED_MINSIZE,0)  
+        self.hSizer.Add([8,22],0,wx.EXPAND|wx.FIXED_MINSIZE,0)  
               
         # Add Checkbox turn on/off
         self.cB = wx.CheckBox(self,-1,"",wx.Point(8,128),wx.Size(18,18))        
         self.cB.SetForegroundColour(wx.Colour(0,0,0))
-        self.hSizer.Add(self.cB, 0, wx.TOP|wx.LEFT|wx.RIGHT, 7)        
+        self.hSizer.Add(self.cB, 0, wx.TOP|wx.LEFT|wx.RIGHT, 3)        
         
         # Add Spacer
-        self.hSizer.Add([5,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)        
+        self.hSizer.Add([0,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)        
         
         # Add thumb / favicon from website?
         self.thumb = FavicoThumbnailViewer(self)
         self.thumb.setBackground(wx.BLACK)
         self.thumb.SetSize((16,16))
-        self.hSizer.Add(self.thumb, 0, wx.TOP|wx.RIGHT, 7)        
+        self.hSizer.Add(self.thumb, 0, wx.TOP|wx.RIGHT, 3)        
         
         # Add title                
         self.title =wx.StaticText(self,-1,"Tribler discovery through other Tribler Users",wx.Point(0,0),wx.Size(800,20))                
         #self.title.SetBackgroundColour(wx.BLUE)        
         self.title.SetFont(wx.Font(FS_SUBSCRTITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.title.SetMinSize((550,20))
-        self.hSizer.Add(self.title, 1, wx.TOP|wx.RIGHT, 7)     
+        self.hSizer.Add(self.title, 1, wx.TOP|wx.RIGHT, 5)     
         
         # Add title        
         #self.today =wx.StaticText(self,-1,"today: 10 files",wx.Point(0,0),wx.Size(140,18))        
@@ -108,7 +108,7 @@ class SubscriptionsItemPanel(wx.Panel):
         self.totalnumber.SetForegroundColour(wx.Colour(128,128,128))        
         self.totalnumber.SetMinSize((60,12))
         self.totalnumber.SetLabel('') 
-        self.hSizer.Add(self.totalnumber,0,wx.TOP|wx.EXPAND,7)
+        self.hSizer.Add(self.totalnumber,0,wx.TOP|wx.EXPAND,3)
         
         # Add left vertical line
         self.vLine2 = self.addLine()         
@@ -119,7 +119,7 @@ class SubscriptionsItemPanel(wx.Panel):
         
         # Add delete button
         self.delete = tribler_topButton(self, -1, wx.Point(0,0), wx.Size(16,16),name='deleteSubscriptionItem')                
-        self.vSizer.Add(self.delete, 0, wx.TOP, 7)        
+        self.vSizer.Add(self.delete, 0, wx.TOP, 3)        
         
         self.hSizer.Add(self.vSizer, 0, wx.LEFT|wx.RIGHT|wx.TOP, 0)
         
@@ -141,7 +141,7 @@ class SubscriptionsItemPanel(wx.Panel):
             
     def addLine(self, vertical=True):
         if vertical:
-            vLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(2,30),wx.LI_VERTICAL)
+            vLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(2,22),wx.LI_VERTICAL)
             self.hSizer.Add(vLine, 0, wx.RIGHT|wx.EXPAND, 3)
             return vLine
         else:

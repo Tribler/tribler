@@ -30,14 +30,14 @@ elif sys.platform == 'linux2':
     FS_SIMILARITY = 7
     FS_HEARTRANK = 7
 else:
-    FS_FILETITLE = 10
+    FS_FILETITLE = 8
     FS_SIMILARITY = 10
     FS_HEARTRANK = 7
     
 
 filesModeThumbSize = (125, 70)
 #filesModeThumbSizeList = (32, 18)
-libraryModeThumbSize = (43,24)#(66, 37)
+libraryModeThumbSize = (32,18)#(43,24)#(66, 37)
 
 
 
@@ -85,6 +85,7 @@ class FilesItemPanel(wx.Panel):
         #print '--tb-- list'
         
         if not self.listItem:
+            
             self.SetMinSize((125,110))
             
             self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -113,14 +114,14 @@ class FilesItemPanel(wx.Panel):
             self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
             self.thumb = ThumbnailViewer(self, 'filesMode')
             self.thumb.setBackground(wx.BLACK)
-            #self.thumb.SetSize((32,18))
+            self.thumb.SetSize((32,18))
             self.hSizer.Add(self.thumb, 0, wx.ALL, 2)  
             # Add title
             self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(105,18), wx.ST_NO_AUTORESIZE)        
             self.title.SetBackgroundColour(wx.WHITE)
             self.title.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-            self.title.SetMinSize((105,18))
-            self.hSizer.Add(self.title, 1,wx.TOP|wx.BOTTOM, 2)     
+            self.title.SetMinSize((105,14))
+            self.hSizer.Add(self.title, 1,wx.TOP|wx.BOTTOM, 3)     
             #self.hSizer.Add([5,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3) 
             # V Line
             self.vLine1 = self.addLine() 

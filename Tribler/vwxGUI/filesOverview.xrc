@@ -170,7 +170,7 @@
       </object>
       <object class="sizeritem">
         <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
-        <border>10</border>
+        <border>5</border>
         <option>1</option>
         <object class="wxPanel" name="filesGrid" subclass="Tribler.vwxGUI.standardGrid.filesGrid">
           <pos>0,66</pos>

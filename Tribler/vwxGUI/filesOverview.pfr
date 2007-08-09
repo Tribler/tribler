@@ -14,7 +14,7 @@ s_tipoFile=21
 ClsparentCompTipo=0
 l_framTipo=0
 VisualWxVersion=0.87.6.0
-VisualWxIdent=8760
+VisualWxIdent=8725
 l_hasAutoSize=1
 strTree=00it=3 01it=8 02it=196 02it=10 03it=133 04it=134 04it=242 04it=245 04it=241 02it=197 01it=229 02it=233 03it=234 04it=240 04it=236 04it=237 02it=225 01it=195 01it=13 02it=199 02it=200 02it=209 03it=211 04it=212 04it=226 04it=213 
 [Controlli]
@@ -743,7 +743,7 @@ i_idPArent=3
 i_id=195
 parCompID=0
 i_sizeGrow=1
-i_border=10
+i_border=5
 is_parent=0
 is_siz=0
 siz_style=41024

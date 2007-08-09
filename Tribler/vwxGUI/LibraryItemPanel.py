@@ -43,7 +43,7 @@ DEBUG=False
 #    FS_ONLINE = 8
 
 if sys.platform == 'darwin':
-    FS_TITLE = 11
+    FS_TITLE = 10
     FS_PERC = 9
     FS_SPEED = 9
 else:
@@ -89,7 +89,7 @@ class LibraryItemPanel(wx.Panel):
         #self.Bind(wx.EVT_RIGHT_DOWN, self.rightMouseButton)             
         
 
-        self.SetMinSize((-1, 30))
+        self.SetMinSize((-1, 22))
         self.selected = False
         self.Show()
         self.Refresh()
@@ -101,20 +101,21 @@ class LibraryItemPanel(wx.Panel):
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
         # Add Spacer
-        self.hSizer.Add([8,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)        
+        self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,0)        
+        
         
         # Add thumb
         self.thumb = ThumbnailViewer(self, 'libraryMode')
         self.thumb.setBackground(wx.BLACK)
         self.thumb.SetSize(libraryModeThumbSize)
-        self.hSizer.Add(self.thumb, 0, wx.ALL, 3)
+        self.hSizer.Add(self.thumb, 0, wx.ALL, 2)
         
         # Add title
         self.title = wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(120,14))        
         self.title.SetBackgroundColour(wx.WHITE)
         self.title.SetFont(wx.Font(FS_TITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.title.SetMinSize((120,14))
-        self.hSizer.Add(self.title,1,wx.TOP,7)
+        self.hSizer.Add(self.title,1,wx.TOP,3)
         
     
 ##        self.vSizerTitle = wx.BoxSizer(wx.VERTICAL)
@@ -139,20 +140,19 @@ class LibraryItemPanel(wx.Panel):
         self.percentage.SetFont(wx.Font(FS_PERC,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.eta = wx.StaticText(self,-1,"?")
         self.eta.SetForegroundColour(self.triblerGrey)
-        self.eta.SetFont(wx.Font(FS_PERC,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-                
+        self.eta.SetFont(wx.Font(FS_PERC,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))                
         self.fileProgressSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.fileProgressSizer.Add(self.percentage, 1, wx.EXPAND, 0)
         self.fileProgressSizer.Add(self.eta, 0, wx.EXPAND|wx.ALIGN_RIGHT, 0)
         
         self.pbMessage = wx.BoxSizer(wx.VERTICAL)
-        self.pbMessage.Add(self.pb,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,7)
+        self.pbMessage.Add(self.pb,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,2)
         self.pbMessage.Add(self.fileProgressSizer,0,wx.TOP|wx.EXPAND|wx.FIXED_MINSIZE,1)
         self.hSizer.Add(self.pbMessage, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 2)         
         
         # pause/stop button
         self.pause = SwitchButton(self, -1, wx.Point(542,3), wx.Size(16,16),name='pause' )
-        self.hSizer.Add(self.pause,0,wx.TOP|wx.FIXED_MINSIZE,7)        
+        self.hSizer.Add(self.pause,0,wx.TOP|wx.FIXED_MINSIZE,2)        
         
         # V Line
         self.addLine()
@@ -161,41 +161,41 @@ class LibraryItemPanel(wx.Panel):
         self.downSpeed = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='downSpeed')
         self.downSpeed.setBackground(wx.WHITE)
         self.downSpeed.SetToolTipString(self.utility.lang.get('down'))
-        self.speedDown2 = wx.StaticText(self,-1,"down: 0 KB/s",wx.Point(274,3),wx.Size(70,12),wx.ST_NO_AUTORESIZE)                                
+        self.speedDown2 = wx.StaticText(self,-1,"down: 0 KB/s",wx.Point(274,3),wx.Size(70,12),wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)                                
         self.speedDown2.SetForegroundColour(self.triblerGrey)        
         self.speedDown2.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.speedDown2.SetMinSize((70,12))
         self.upSpeed = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='upSpeed')
         self.upSpeed.setBackground(wx.WHITE)
         self.upSpeed.SetToolTipString(self.utility.lang.get('up'))
-        self.speedUp2   = wx.StaticText(self,-1,"up: 0 KB/s",wx.Point(274,3),wx.Size(70,12),wx.ST_NO_AUTORESIZE)                        
+        self.speedUp2   = wx.StaticText(self,-1,"up: 0 KB/s",wx.Point(274,3),wx.Size(70,12),wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)                        
         self.speedUp2.SetForegroundColour(self.triblerGrey)
         self.speedUp2.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.speedUp2.SetMinSize((70,12))
 
-        self.hSizer.Add(self.downSpeed, 0, wx.TOP, 7)
+        self.hSizer.Add(self.downSpeed, 0, wx.TOP, 2)
         self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)                 
-        self.hSizer.Add(self.speedDown2, 0, wx.TOP|wx.EXPAND, 9)
+        self.hSizer.Add(self.speedDown2, 0, wx.TOP|wx.EXPAND, 4)
         
-        self.hSizer.Add(self.upSpeed, 0, wx.TOP, 7)                  
+        self.hSizer.Add(self.upSpeed, 0, wx.LEFT|wx.TOP, 2)                  
         self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)                 
-        self.hSizer.Add(self.speedUp2, 0, wx.TOP|wx.EXPAND, 9)         
+        self.hSizer.Add(self.speedUp2, 0, wx.TOP|wx.EXPAND, 4)         
         
         # V Line                
         self.addLine()
                 
         # Status Icon
-        self.statusIcon = ImagePanel(self, -1, name="LibStatus_boosting")        
-        self.statusIcon.searchBitmap(name = statusLibrary["stopped"])
-
-        self.hSizer.Add(self.statusIcon, 0, wx.TOP|wx.RIGHT|wx.EXPAND, 2)
+##        self.statusIcon = ImagePanel(self, -1, name="LibStatus_boosting")        
+##        self.statusIcon.searchBitmap(name = statusLibrary["stopped"])
+##
+##        self.hSizer.Add(self.statusIcon, 0, wx.TOP|wx.RIGHT|wx.EXPAND, 2)
         
         # Status message
         self.statusField = wx.StaticText(self, -1, '')
         self.statusField.SetForegroundColour(self.triblerGrey)        
         self.statusField.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.statusField.SetMinSize((37,12))
-        self.hSizer.Add(self.statusField, 1, wx.TOP|wx.EXPAND, 9)
+        self.hSizer.Add(self.statusField, 1, wx.TOP|wx.EXPAND, 4)
         
         # V Line
         self.addLine()
@@ -206,7 +206,7 @@ class LibraryItemPanel(wx.Panel):
         # (81,16)
         self.playFast.SetSize((51,16))
         self.playFast.setEnabled(False)
-        self.hSizer.Add(self.playFast, 0, wx.TOP|wx.ALIGN_RIGHT, 7)
+        self.hSizer.Add(self.playFast, 0, wx.TOP|wx.ALIGN_RIGHT, 2)
         self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)   
         
         # TODO: TB >get the boost button out of the code
@@ -226,7 +226,7 @@ class LibraryItemPanel(wx.Panel):
         self.playerPlay.setBackground(wx.WHITE)
         self.playerPlay.SetSize((16,16))
         self.playerPlay.setEnabled(False)
-        self.hSizer.Add(self.playerPlay, 0, wx.TOP|wx.ALIGN_RIGHT, 7)          
+        self.hSizer.Add(self.playerPlay, 0, wx.TOP|wx.ALIGN_RIGHT, 2)          
         self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0) 
 #       
         # TODO: TB >delete button should be removed when delete function in rightMouseButton menu works 
@@ -316,16 +316,16 @@ class LibraryItemPanel(wx.Panel):
             if status == STATUS_QUEUE :  
                 #print 'queue'
                 pass
-            elif status == STATUS_STOP or status == STATUS_PAUSE :  
-                self.statusIcon.searchBitmap(name = statusLibrary["stopped"])
-            elif status == STATUS_ACTIVE:  
-                self.statusIcon.searchBitmap(name = statusLibrary["downloading"])
-            elif status == STATUS_HASHCHECK:  
-                print 'hash check'
-            elif status == STATUS_SUPERSEED :  
-                self.statusIcon.searchBitmap(name = statusLibrary["seeding"])
-            elif status == STATUS_FINISHED :  
-                self.statusIcon.searchBitmap(name = statusLibrary["completed"])
+##            elif status == STATUS_STOP or status == STATUS_PAUSE :  
+##                self.statusIcon.searchBitmap(name = statusLibrary["stopped"])
+##            elif status == STATUS_ACTIVE:  
+##                self.statusIcon.searchBitmap(name = statusLibrary["downloading"])
+##            elif status == STATUS_HASHCHECK:  
+##                print 'hash check'
+##            elif status == STATUS_SUPERSEED :  
+##                self.statusIcon.searchBitmap(name = statusLibrary["seeding"])
+##            elif status == STATUS_FINISHED :  
+##                self.statusIcon.searchBitmap(name = statusLibrary["completed"])
                 
 ##statusLibrary  = {"downloading"     : "LibStatus_boosting.png",
 ##                  "stopped"         : "LibStatus_stopped.png",
@@ -454,7 +454,7 @@ class LibraryItemPanel(wx.Panel):
         self.upSpeed.setBackground(colour)
         self.playFast.setBackground(colour)
         self.boost.setBackground(colour)
-        self.statusIcon.setBackground(colour)
+##        self.statusIcon.setBackground(colour)
         self.playerPlay.setBackground(colour)
         self.SetBackgroundColour(colour)
         self.Refresh()
@@ -475,7 +475,7 @@ class LibraryItemPanel(wx.Panel):
         self.SetBackgroundColour(colour)
         self.playFast.setBackground(colour)
         self.boost.setBackground(colour)
-        self.statusIcon.setBackground(colour)
+##        self.statusIcon.setBackground(colour)
         self.playerPlay.setBackground(colour)
         self.Refresh()
         

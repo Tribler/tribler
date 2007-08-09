@@ -482,11 +482,13 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 
                     viewsField = self.getGuiObj('popularityField1')
                     viewsField.SetLabel(str(torrent['views']) + " views")
+                    viewsField.SetToolTipString('')
                     
                     self.getGuiObj('popularityField2').Hide()
-                    self.getGuiObj('up').Hide()
+                    self.getGuiObj('up').Hide()                    
                     self.getGuiObj('down').Hide()
                     self.getGuiObj('refresh').Hide()
+                    
 
                     viewsField.GetParent().Layout()
                     viewsField.SetSize((100,18))

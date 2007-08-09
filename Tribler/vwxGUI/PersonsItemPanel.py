@@ -20,7 +20,7 @@ if sys.platform == 'darwin':
     FS_ONLINE = 10
     FS_DISCOVERED = 8
 else:
-    FS_PERSONSTITLE = 10
+    FS_PERSONSTITLE = 8
     FS_SIMILARITY = 10
     FS_HEARTRANK = 7
     FS_ONLINE = 8

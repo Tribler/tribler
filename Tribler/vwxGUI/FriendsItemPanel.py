@@ -18,15 +18,15 @@ DEBUG=False
 
 # font sizes
 if sys.platform == 'darwin':
-    FS_FRIENDTITLE = 11
+    FS_FRIENDTITLE = 10
     FS_STATUS = 10
     FS_SIMILARITY = 10
     FS_HEARTRANK = 10
     FS_ONLINE = 10
 else:
-    FS_FRIENDTITLE = 11
-    FS_STATUS = 9
-    FS_SIMILARITY = 10
+    FS_FRIENDTITLE = 8
+    FS_STATUS = 8
+    FS_SIMILARITY = 8
     FS_HEARTRANK = 7
     FS_ONLINE = 8
 
@@ -55,7 +55,7 @@ class FriendsItemPanel(wx.Panel):
 
     def addComponents(self):
         self.Show(False)
-        self.SetMinSize((137,30+0))
+        self.SetMinSize((137,22+0))
         self.selectedColour = wx.Colour(255,200,187)       
         self.unselectedColour = wx.WHITE
         
@@ -69,13 +69,13 @@ class FriendsItemPanel(wx.Panel):
         self.Bind(wx.EVT_KEY_UP, self.keyTyped)
  
         # Add Spacer
-        self.hSizer.Add([8,30],0,wx.EXPAND|wx.FIXED_MINSIZE,0) 
+        self.hSizer.Add([8,22],0,wx.EXPAND|wx.FIXED_MINSIZE,0) 
         
         # Add thumb
         self.thumb = FriendThumbnailViewer(self)
         self.thumb.setBackground(wx.BLACK)
-        self.thumb.SetSize((24,24))
-        self.hSizer.Add(self.thumb, 0, wx.ALL, 3)        
+        self.thumb.SetSize((18,18))
+        self.hSizer.Add(self.thumb, 0, wx.ALL, 2)        
         
         # Add title
         self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(100,15))        
@@ -83,7 +83,7 @@ class FriendsItemPanel(wx.Panel):
         self.title.SetFont(wx.Font(FS_FRIENDTITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.title.SetMinSize((100,15))        
         self.title.SetLabel('')
-        self.hSizer.Add(self.title,1,wx.TOP|wx.EXPAND,7)
+        self.hSizer.Add(self.title,1,wx.TOP|wx.EXPAND,4)
         
         # Add left vertical line
         self.vLine1 = self.addLine()        
@@ -95,7 +95,7 @@ class FriendsItemPanel(wx.Panel):
         self.status.SetForegroundColour(wx.Colour(128,128,128))        
         self.status.SetMinSize((130,12))
         self.status.SetLabel('') 
-        self.hSizer.Add(self.status,1,wx.TOP|wx.EXPAND,9)
+        self.hSizer.Add(self.status,1,wx.TOP|wx.EXPAND,4)
         
         # Add left vertical line
         self.vLine2 = self.addLine()           
@@ -107,17 +107,17 @@ class FriendsItemPanel(wx.Panel):
         self.message.SetForegroundColour(wx.Colour(128,128,128))        
         self.message.SetMinSize((130,12))
         self.message.SetLabel('') 
-        self.hSizer.Add(self.message,1,wx.TOP|wx.EXPAND,9)
+        self.hSizer.Add(self.message,1,wx.TOP|wx.EXPAND,4)
         
         # Add left vertical line
         self.vLine3 = self.addLine() 
         
         # Add Spacer to keep space occupied when no heart available
         self.vSizer = wx.BoxSizer(wx.VERTICAL)                
-        self.vSizer.Add([90,1],0,wx.FIXED_MINSIZE,0)  
-        self.hSizer2 = wx.BoxSizer(wx.HORIZONTAL)      
-        
+        self.vSizer.Add([70,1],0,wx.FIXED_MINSIZE,0)  
+          
         # Add Taste Heart
+        self.hSizer2 = wx.BoxSizer(wx.HORIZONTAL)    
         self.tasteHeart = TasteHeart.TasteHeart(self, -1, wx.DefaultPosition, wx.Size(14,14),name='TasteHeart')
         self.hSizer2.Add(self.tasteHeart, 0, wx.TOP, 0)
         
@@ -125,16 +125,16 @@ class FriendsItemPanel(wx.Panel):
         self.taste =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(40,15))        
         self.taste.SetBackgroundColour(wx.WHITE)
         self.taste.SetFont(wx.Font(FS_SIMILARITY,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.taste.SetMinSize((40,15))
+        self.taste.SetMinSize((30,15))
         self.taste.SetLabel('')
-        self.hSizer2.Add(self.taste, 0, wx.TOP|wx.RIGHT, 0)
+        self.hSizer2.Add(self.taste, 0, wx.LEFT, 2)
         
-        self.vSizer.Add(self.hSizer2, 0, wx.TOP, 11)
+        self.vSizer.Add(self.hSizer2, 0, wx.TOP, 2)
         self.hSizer.Add(self.vSizer, 0, wx.LEFT|wx.RIGHT, 2)
         
         # Add delete button
-        self.delete = tribler_topButton(self, -1, wx.Point(0,0), wx.Size(16,16),name='deleteFriend')                
-        self.hSizer.Add(self.delete, 0, wx.TOP|wx.RIGHT, 9)
+##        self.delete = tribler_topButton(self, -1, wx.Point(0,0), wx.Size(16,16),name='deleteFriend')                
+##        self.hSizer.Add(self.delete, 0, wx.TOP|wx.RIGHT, 4)
 
 #        self.vSizerAll.Add(self.hSizer, 0, wx.EXPAND, 0)
         #Add bottom horizontal line
@@ -152,7 +152,7 @@ class FriendsItemPanel(wx.Panel):
             
     def addLine(self, vertical=True):
         if vertical:
-            vLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(2,30),wx.LI_VERTICAL)
+            vLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(2,22),wx.LI_VERTICAL)
             self.hSizer.Add(vLine, 0, wx.RIGHT|wx.EXPAND, 3)
             return vLine
         else:
@@ -193,7 +193,7 @@ class FriendsItemPanel(wx.Panel):
             self.title.SetLabel(title)
             self.title.Wrap(self.title.GetSize()[0])
             self.title.SetToolTipString(peer_data['ip']+':'+str(peer_data['port']))
-            self.delete.Show()
+#            self.delete.Show()
             self.tasteHeart.Show()
             self.vLine1.Show()
             self.vLine2.Show()
@@ -203,7 +203,7 @@ class FriendsItemPanel(wx.Panel):
             self.title.SetToolTipString('')
             self.title.Enable(False)
             self.status.SetLabel('')
-            self.delete.Hide()
+#            self.delete.Hide()
             self.tasteHeart.Hide()
             self.vLine1.Hide()
             self.vLine2.Hide()
