@@ -19,6 +19,7 @@ import urllib
 import utilsettings
 from Tribler.Web2.util import observer
 from Tribler.Web2.util.log import log 
+from Tribler.vwxGUI.GuiUtility import GUIUtility
 
 DEBUG = True
 databases = {}
@@ -505,6 +506,7 @@ class CompoundDBSearch(observer.Subject, observer.Observer):
         self.wanted = 0
         self.items = []
         self.total = 0
+        self.guiUtility = None
 
     def start(self):
 
@@ -559,8 +561,12 @@ class CompoundDBSearch(observer.Subject, observer.Observer):
 
             if self.total == self.wanted:
                 log("CompoundSearch: update -> Enough")
+                self.giveSearchFeedback(True, self.total)
                 for i in range(len(self.searches)):
                     self.searches[i].enough()
+                    
+            if self.total < self.wanted:
+                self.giveSearchFeedback(False, self.total)
 
             if self.total <= self.wanted:
                 log("CompoundSearch: returning an item")
@@ -570,4 +576,10 @@ class CompoundDBSearch(observer.Subject, observer.Observer):
 
         self.lock.release()
 
+    def giveSearchFeedback(self, finished, num):
+        if not self.guiUtility:
+            self.guiUtility = GUIUtility.getInstance()
         
+        self.guiUtility.standardOverview.setSearchFeedback('web2', finished, num)
+        
+

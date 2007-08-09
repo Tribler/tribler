@@ -131,7 +131,7 @@ class TorrentDataManager:
             return []
         
         categorykey = categorykey.lower()
-        
+        standardOverview = self.utility.guiUtility.standardOverview
         
             
         def torrentFilter(torrent):
@@ -159,24 +159,29 @@ class TorrentDataManager:
         if DEBUG:
             print 'getCategory found: %d items' % len(data)
         # if searchkeywords are defined. Search instead of show all
-        if self.searchkeywords[mode]:
+        if self.inSearchMode(mode):
                 data = self.search(data, mode)
+                standardOverview.setSearchFeedback('torrent', False, len(data))
                 if DEBUG:
                     print 'getCategory found after search: %d items' % len(data)
         
         web2on = self.utility.config.Read('enableweb2search',"boolean")
-        if mode == 'filesMode' and web2on and self.searchkeywords[mode] and \
+        if mode == 'filesMode' and web2on and self.inSearchMode(mode) and \
                 categorykey == 'video':
-                
                 # if we are searching in filesmode
                 self.dod = web2.DataOnDemandWeb2(" ".join(self.searchkeywords[mode]))
                 self.dod.addItems(data)
+                
                 return self.dod
              
         else:
             if self.dod:
                 self.dod.stop()
                 self.dod = None
+                
+            if self.inSearchMode(mode):
+                standardOverview.setSearchFeedback('torrent', True, len(data))                
+            
             return data
                 
 

@@ -38,6 +38,7 @@ class GUIUtility:
         
         self.xrcResource = None
         self.utility = utility
+        self.utility.guiUtility = self
         self.params = params
         self.frame = None
         self.selectedMainButton = None

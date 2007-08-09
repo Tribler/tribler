@@ -19,8 +19,16 @@ class SearchDetailsPanel(wx.Panel):
         self.stopMoreButton.Bind(wx.EVT_LEFT_UP, self.stopMoreClicked)
         self.hSizer.Add(self.clearButton, 0, wx.ALL, 1)
         self.hSizer.Add(self.stopMoreButton, 0, wx.ALL, 1)
-        self.text = wx.StaticText(self, -1, 'hallo')
-        self.hSizer.Add(self.text, 0, wx.ALL|wx.EXPAND, 3)
+        self.textPanel = wx.Panel(self)
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.text = wx.StaticText(self.textPanel, -1, 'hallo')
+        sizer.Add(self.text, 1, wx.ALL, 0)
+        self.textPanel.SetSizer(sizer)
+        self.textPanel.SetAutoLayout(1)
+        self.textPanel.SetBackgroundColour(wx.WHITE)
+        
+        self.text.SetSize((-1, 15))
+        self.hSizer.Add(self.textPanel, 1, wx.LEFT|wx.EXPAND, 10)
         
         self.SetSizer(self.hSizer);
         self.SetAutoLayout(1);
@@ -30,9 +38,27 @@ class SearchDetailsPanel(wx.Panel):
         self.Layout()
         self.searchBusy = True #??
         #self.Show(True)
+        self.results = {}
         
-    def setMessage(self, msg):
+    def setMessage(self, type, finished, num):
+        self.results[type] = num
+        total = sum(self.results.values())
+        if not total:
+            msg = self.guiUtility.utility.lang.get('start_search')
+        elif not finished:
+            msg = self.guiUtility.utility.lang.get('going_search') % sum(self.results.values())
+        else:
+            msg = self.guiUtility.utility.lang.get('finished_search') % sum(self.results.values())
         self.text.SetLabel(msg)
+        tt = ''
+        items = self.results.items()
+        items.sort()
+        for pair in items:
+            key, value = pair
+            tt += self.guiUtility.utility.lang.get('search_'+key) % value
+            if items.index(pair) != len(items)-1:
+                tt +='\n'
+        self.textPanel.SetToolTipString(tt)
         
     def stopSearch(self):
         # call remoteSearch and Web2.0 search to stop

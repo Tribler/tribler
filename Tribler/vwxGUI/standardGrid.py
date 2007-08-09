@@ -98,7 +98,11 @@ class standardGrid(wx.Panel):
 
     def onViewModeChange(self, event=None):
         assert self.columnTypes, "grid viewmode change not allowed if grid initiated with integer(self.cols)"
-        mode = event.GetEventObject().GetValue()
+        if type(event.GetEventObject()) == wx.Choice:
+            mode = event.GetEventObject().GetStringSelection()
+        else:
+            mode = event.GetEventObject().GetValue()
+        
         
         #oldcols = self.cols
         self.updatePanel(self.currentRows, 0)
@@ -116,7 +120,11 @@ class standardGrid(wx.Panel):
         self.refreshData()
         
     def onSizeChange(self, event=None):
-        value = event.GetEventObject().GetValue()
+        if type(event.GetEventObject()) == wx.Choice:
+            value = event.GetEventObject().GetStringSelection()
+        else:
+            value = event.GetEventObject().GetValue()
+            
         self.sizeMode = value
         if value == 'auto':
             self.guiUtility.updateSizeOfStandardOverview()

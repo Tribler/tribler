@@ -130,10 +130,10 @@ class DataOnDemandWeb2(DataOnDemand, Observer):
 
     def stop(self):
         self.web2querylock.acquire()
-
-        self.web2query.detach(self)
-        self.web2query.quit()
-        del self.web2query
+        if self.web2query:
+            self.web2query.detach(self)
+            self.web2query.quit()
+            self.web2query = None
 
         self.web2querylock.release()
 

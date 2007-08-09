@@ -15,6 +15,7 @@ from threading import Thread,currentThread
 from time import time
 import web2
 
+
 OVERVIEW_MODES = ['filesMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionsMode', 'messageMode', 'libraryMode']
 
 DEBUG = False
@@ -194,11 +195,12 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                     viewModeSelect = xrc.XRCCTRL(currentPanel, 'modeItems')
                     overviewSizeSelect = xrc.XRCCTRL(currentPanel, 'numberItems')                    
                     # set default values
-                    viewModeSelect.SetValue('thumbnails')
-                    overviewSizeSelect.SetValue('auto')
-                    viewModeSelect.Bind(wx.EVT_COMBOBOX, grid.onViewModeChange)
-                    overviewSizeSelect.Bind(wx.EVT_COMBOBOX, grid.onSizeChange)
-                    
+                    viewModeSelect.Select(0) #SetValue('thumbnails')
+                    overviewSizeSelect.Select(0) #SetValue('auto')
+                    #viewModeSelect.Bind(wx.EVT_COMBOBOX, grid.onViewModeChange)
+                    viewModeSelect.Bind(wx.EVT_CHOICE, grid.onViewModeChange)
+                    #overviewSizeSelect.Bind(wx.EVT_COMBOBOX, grid.onSizeChange)
+                    overviewSizeSelect.Bind(wx.EVT_CHOICE, grid.onSizeChange)
                     
                 if self.mode == 'subscriptionsMode':
                     rssurlctrl = xrc.XRCCTRL(currentPanel,'pasteUrl')
@@ -588,6 +590,14 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     def gridIsAutoResizing(self):
         return self.getGrid().sizeMode == 'auto'
         
+    def setSearchFeedback(self,*args,**kwargs):
+        """ May be called by web2.0 thread """
+        self.invokeLater(self._setSearchFeedback,args,kwargs)
+        
+    def _setSearchFeedback(self, type, finished, num):
+        print '_setSearchFeedback called by', currentThread().getName()
+        self.data[self.mode]['searchDetailsPanel'].setMessage(type, finished, num)
+        
     def growWithGrid(self):
         gridHeight = self.data[self.mode]['grid'].GetSize()[1]
         pagerHeight = 29
@@ -630,7 +640,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 searchDetails = SearchDetailsPanel(self.data[self.mode]['panel'])
                 
                 print 'Inserting search details'
-                sizer.Insert(2,searchDetails, 0, wx.ALL|wx.EXPAND, 0)
+                sizer.Insert(3,searchDetails, 0, wx.ALL|wx.EXPAND, 0)
                 #sizer.Layout()
                 #self.data[self.mode]['panel'].Refresh()
 #                print 'Size: %s' % str(self.searchDetails.GetSize())

@@ -63,16 +63,28 @@ class KeywordSearch:
             new_needles.append(new_needle)
         return new_needles
             
-    def simpleSearch(self, haystack, needles):
-        searchRegexp = r''
-        for needle in needles:
-            searchRegexp+= needle+'|'
-        searchRegexp = re.compile(searchRegexp[:-1])
+    def simpleSearch(self, haystack, needles, searchtype='AND'):
+        "Can do both OR or AND search"
         hits = []
-        for item in haystack:
-            title = item['content_name'].lower()
-            if len(searchRegexp.findall(title)) > 0:
-                hits.append(item)
+        if searchtype == 'OR':
+            searchRegexp = r''
+            for needle in needles:
+                searchRegexp+= needle+'|'
+            searchRegexp = re.compile(searchRegexp[:-1])
+            for item in haystack:
+                title = item['content_name'].lower()
+                if len(searchRegexp.findall(title)) > 0:
+                    hits.append(item)
+        elif searchtype == 'AND':
+            for item in haystack:
+                title = item['content_name'].lower()
+                foundAll = True
+                for needle in needles:
+                    if title.find(needle) == -1:
+                        foundAll = False
+                        break
+                if foundAll:
+                    hits.append(item)
         return hits
 
 

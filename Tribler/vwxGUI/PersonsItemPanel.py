@@ -211,8 +211,7 @@ class PersonsItemPanel(wx.Panel):
                 #self.status.SetLabel(peer_data['last_seen'])
                 statusPeer = peer_data['last_seen']
                     
-                if statusPeer is 'online':
-                    print '--tb-- online'
+                if peer_data.get('online'):
                     self.status.SetLabel('online')
                 elif statusPeer is not None:
                     if statusPeer < 0:
