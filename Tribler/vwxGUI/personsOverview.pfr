@@ -14,7 +14,7 @@ s_tipoFile=21
 ClsparentCompTipo=0
 l_framTipo=0
 VisualWxVersion=0.87.6.0
-VisualWxIdent=8725
+VisualWxIdent=8760
 l_hasAutoSize=1
 strTree=00it=3 01it=229 01it=8 02it=196 02it=10 03it=133 04it=134 04it=225 04it=230 04it=231 02it=197 01it=223 02it=218 03it=219 04it=224 04it=221 04it=222 02it=216 01it=213 01it=204 02it=214 02it=215 02it=207 03it=208 04it=209 04it=212 04it=211 
 [Controlli]
@@ -1492,8 +1492,8 @@ validator=
 s_name=numberItems
 subClassName=
 i_index=-1
-i_left=578
-i_top=3
+i_left=536
+i_top=1
 i_height=20
 i_width=65
 l_backColor=255,51,0
@@ -1556,7 +1556,7 @@ IndexOfS=3
 [Windows21/i_width/Windows21]
 Theme=0
 [Windows21/i_propN]
-1=auto\r\n20\r\n40\r\n80
+1=auto\r\n24\r\n48\r\n96
 [Windows21/sizerProp]
 0=1
 5=1

@@ -90,11 +90,11 @@
                     <tooltip>Number of items to show</tooltip>
                     <content>
                       <item>auto</item>
-                      <item>20</item>
-                      <item>40</item>
-                      <item>80</item>
+                      <item>24</item>
+                      <item>48</item>
+                      <item>96</item>
                     </content>
-                    <pos>578,3</pos>
+                    <pos>536,1</pos>
                     <size>65,20</size>
                     <bg>#ff3300</bg>
                     <fg>#ffffff</fg>

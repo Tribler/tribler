@@ -101,7 +101,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
                                             'files_detailsTab', 'info_detailsTab', 'graphs_detailsTab', 'details', 
                                             'peopleWhoField']
-        self.modeElements['profileMode'] = ['levelPic','descriptionField0']
+        self.modeElements['profileMode'] = ['levelPic']
         
         
         self.modeElements['subscriptionsMode'] = ['titleField', 'receivedToday', 'subscrTodayField', 'receivedYesterday', 'subscrYesterdayField'] #  'receivedTotal']
@@ -762,10 +762,12 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             if len(item) == 0:
                 return
             tab = None
+            print '--tb--'
+            print item
             # --------------------------------------------------------------------------------------------------------------------------------------------------------
             ## --- Overall performance  !!!! we'll leave it probably out!!!
             if self.currentPanel == self.getGuiObj('profileDetails_Overall'):  
-                self.getGuiObj('descriptionField0').SetLabel(item.get('overall_rank'))            
+#                self.getGuiObj('descriptionField0').SetLabel(item.get('overall_rank'))            
                 picture = self.getGuiObj("levelPic")                
                 if item.get('overall_rank') == "beginner": 
                     picture.setIndex(0)

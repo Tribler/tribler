@@ -55,7 +55,7 @@ class FilesItemPanel(wx.Panel):
         self.listItem = (self.parent.cols == 1)
         self.data = None
         self.datacopy = None
-        self.titleLength = 37 # num characters
+        self.titleLength = 137 # num characters
         self.selected = False
         self.warningMode = False
         self.oldCategoryLabel = None
@@ -117,7 +117,7 @@ class FilesItemPanel(wx.Panel):
             self.thumb.SetSize((32,18))
             self.hSizer.Add(self.thumb, 0, wx.ALL, 2)  
             # Add title
-            self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(105,18), wx.ST_NO_AUTORESIZE)        
+            self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(105,18))        
             self.title.SetBackgroundColour(wx.WHITE)
             self.title.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
             self.title.SetMinSize((105,14))

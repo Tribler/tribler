@@ -1292,3 +1292,7 @@ search_web2 = "Web search (%d results)"
 search_torrent = "Tribler local search (%d results)"
 search_remote = "Tribler remote search (%d results)"
 
+# search buttons
+searchStop       = "stop searching"
+searchStopEnabled= "stopped searching"
+searchClear      = "clear results and browse all discovered files"

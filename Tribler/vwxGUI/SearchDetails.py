@@ -14,26 +14,33 @@ class SearchDetailsPanel(wx.Panel):
     def addComponents(self):
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         #(self, -1, wx.DefaultPosition, wx.Size(16,16),name='down')
-        self.clearButton = tribler_topButton(self, -1, wx.DefaultPosition, wx.DefaultSize, name='searchClear')
         self.stopMoreButton = SwitchButton(self, -1, wx.DefaultPosition, wx.DefaultSize, name='searchStop')
         self.stopMoreButton.Bind(wx.EVT_LEFT_UP, self.stopMoreClicked)
-        self.hSizer.Add(self.clearButton, 0, wx.ALL, 1)
+        self.stopMoreButton.SetToolTipString(self.guiUtility.utility.lang.get('searchStop'))        
+        self.clearButton = tribler_topButton(self, -1, wx.DefaultPosition, wx.DefaultSize, name='searchClear')        
+        self.clearButton.SetToolTipString(self.guiUtility.utility.lang.get('searchClear'))
+        self.hSizer.Add([9,5],0,wx.EXPAND|wx.FIXED_MINSIZE,0)
         self.hSizer.Add(self.stopMoreButton, 0, wx.ALL, 1)
+        self.hSizer.Add(self.clearButton, 0, wx.ALL, 1)
+        
+        self.hSizer.Add([8,5],0,wx.EXPAND|wx.FIXED_MINSIZE,0)
         self.textPanel = wx.Panel(self)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.text = wx.StaticText(self.textPanel, -1, 'hallo')
+        self.text.SetForegroundColour(wx.Colour(255,255,255))
         sizer.Add(self.text, 1, wx.ALL, 0)
         self.textPanel.SetSizer(sizer)
         self.textPanel.SetAutoLayout(1)
-        self.textPanel.SetBackgroundColour(wx.WHITE)
+        self.textPanel.SetForegroundColour(wx.WHITE)        
+        self.textPanel.SetBackgroundColour(wx.Colour(53,53,53))
         
         self.text.SetSize((-1, 15))
-        self.hSizer.Add(self.textPanel, 1, wx.LEFT|wx.EXPAND, 10)
+        self.hSizer.Add(self.textPanel, 1, wx.TOP|wx.EXPAND, 3)
         
         self.SetSizer(self.hSizer);
         self.SetAutoLayout(1);
         self.SetMinSize((-1, 19))
-        self.SetBackgroundColour(wx.WHITE)
+        self.SetBackgroundColour(wx.Colour(53,53,53))
         self.hSizer.Layout()
         self.Layout()
         self.searchBusy = True #??
