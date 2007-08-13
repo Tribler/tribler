@@ -66,7 +66,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         FlaglessDelayedInvocation.__init__(self)
         self.subscr_old_source = None
         self.guiUtility = GUIUtility.getInstance()
-        self.utility = self.guiUtility.utility
+        self.utility = self.guiUtility.utility        
         self.data_manager = TorrentDataManager.getInstance(self.utility)
         #self.optionsButtonLibraryFunc = rightMouseButton.getInstance()
         self.mm = MugshotManager.getInstance()
@@ -764,6 +764,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             tab = None
             print '--tb--'
             print item
+
             # --------------------------------------------------------------------------------------------------------------------------------------------------------
             ## --- Overall performance  !!!! we'll leave it probably out!!!
             if self.currentPanel == self.getGuiObj('profileDetails_Overall'):  
@@ -778,7 +779,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 if item.get('overall_rank') == "master": 
                     picture.setIndex(3)
                                
-            # --------------------------------------------------------------------------------------------------------------------------------------------------------
+            # --------------------------------------------------------------------------------------------------------------------------------------------------------            
             # --- Quality of tribler recommendations    
             elif self.currentPanel == self.getGuiObj('profileDetails_Quality'):
                 tab = 'profileDetails_Quality'

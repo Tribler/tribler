@@ -40,12 +40,22 @@
               <object class="wxBoxSizer">
                 <orient>wxHORIZONTAL</orient>
                 <object class="sizeritem">
+                  <flag>wxTOP|wxRIGHT|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxPanel" name="infoIcon" subclass="Tribler.vwxGUI.bgPanel.ImagePanel">
+                    <tooltip>Your profile; your name and Tribler icon are visible to other Tribler users.</tooltip>
+                    <pos>0,6</pos>
+                    <size>8,8</size>
+                  </object>
+                </object>
+                <object class="sizeritem">
                   <flag>wxTOP|wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>4</border>
                   <option>0</option>
                   <object class="wxStaticText" name="st64c">
                     <style>wxST_NO_AUTORESIZE</style>
-                    <pos>0,4</pos>
+                    <pos>18,4</pos>
                     <size>194,17</size>
                     <fg>#ffffff</fg>
                   </object>
@@ -323,7 +333,7 @@
         <border>3</border>
         <option>0</option>
         <object class="wxPanel" name="bgPanel_Quality" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-          <pos>0,276</pos>
+          <pos>0,296</pos>
           <size>417,40</size>
           <bg>#cbcbcb</bg>
           <object class="wxBoxSizer">

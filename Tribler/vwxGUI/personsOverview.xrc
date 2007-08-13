@@ -40,15 +40,24 @@
               <object class="wxBoxSizer">
                 <orient>wxHORIZONTAL</orient>
                 <object class="sizeritem">
+                  <flag>wxTOP|wxRIGHT|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxPanel" name="infoIcon" subclass="Tribler.vwxGUI.bgPanel.ImagePanel">
+                    <tooltip>Persons that were connected while you are using Tribler \n(automatic process)</tooltip>
+                    <pos>0,5</pos>
+                    <size>8,8</size>
+                  </object>
+                </object>
+                <object class="sizeritem">
                   <flag>wxTOP|wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>4</border>
                   <option>0</option>
                   <object class="wxStaticText" name="st64c">
-                    <tooltip>Persons that were connected while you are using Tribler \n(automatic process)</tooltip>
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>Discovered persons</label>
-                    <pos>4,4</pos>
-                    <size>309,15</size>
+                    <pos>18,4</pos>
+                    <size>184,15</size>
                     <fg>#ffffff</fg>
                   </object>
                 </object>

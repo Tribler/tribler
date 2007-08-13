@@ -191,7 +191,7 @@ class LibraryItemPanel(wx.Panel):
 ##        self.hSizer.Add(self.statusIcon, 0, wx.TOP|wx.RIGHT|wx.EXPAND, 2)
         
         # Status message
-        self.statusField = wx.StaticText(self, -1, '')
+        self.statusField = wx.StaticText(self, -1,'', wx.Point(),wx.Size())
         self.statusField.SetForegroundColour(self.triblerGrey)        
         self.statusField.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.statusField.SetMinSize((37,12))
@@ -218,8 +218,8 @@ class LibraryItemPanel(wx.Panel):
         buttonSizer.Add(self.playFast, 1, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 2)
         buttonSizer.Add(self.boost, 1, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 2) 
         # temporary remove boost button
-        self.boost.SetSize((0,0))
-        self.boost.Hide()
+        #self.boost.SetSize((0,0))
+        #self.boost.Hide()
 
         # Play
         self.playerPlay = SwitchButton(self, name="libraryPlay")

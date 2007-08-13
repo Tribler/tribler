@@ -40,6 +40,16 @@
               <object class="wxBoxSizer">
                 <orient>wxHORIZONTAL</orient>
                 <object class="sizeritem">
+                  <flag>wxTOP|wxRIGHT|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxPanel" name="infoIcon" subclass="Tribler.vwxGUI.bgPanel.ImagePanel">
+                    <tooltip>In progress and finished downloads</tooltip>
+                    <pos>0,6</pos>
+                    <size>8,8</size>
+                  </object>
+                </object>
+                <object class="sizeritem">
                   <flag>wxTOP|wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>4</border>
                   <option>0</option>

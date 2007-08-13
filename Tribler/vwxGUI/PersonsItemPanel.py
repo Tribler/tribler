@@ -40,7 +40,8 @@ class PersonsItemPanel(wx.Panel):
         self.listItem = (self.parent.cols == 1)
         self.data = None
         self.datacopy = None
-        self.titleLength = 37 # num characters
+        self.titleLength = 137 # num characters
+        self.triblerGrey = wx.Colour(128,128,128)
         self.selected = False
         self.warningMode = False
         self.oldCategoryLabel = None
@@ -99,7 +100,7 @@ class PersonsItemPanel(wx.Panel):
             self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(105,18), wx.ST_NO_AUTORESIZE)        
             self.title.SetBackgroundColour(wx.WHITE)
             self.title.SetFont(wx.Font(FS_PERSONSTITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-            self.title.SetMinSize((105,18))
+            self.title.SetMinSize((105,14))
             self.hSizer.Add(self.title, 1,wx.TOP|wx.BOTTOM, 2) 
             # V Line
             self.vLine3 = self.addLine()
@@ -107,6 +108,7 @@ class PersonsItemPanel(wx.Panel):
             self.status= wx.StaticText(self,-1,"10",wx.Point(0,0),wx.Size(110,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
             self.status.SetBackgroundColour(wx.WHITE)
             self.status.SetFont(wx.Font(FS_PERSONSTITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+            self.status.SetForegroundColour(self.triblerGrey)  
             self.status.SetMinSize((165,18))
             self.hSizer.Add(self.status, 0,wx.TOP|wx.BOTTOM, 2)     
             # V Line
@@ -115,16 +117,18 @@ class PersonsItemPanel(wx.Panel):
             self.discFiles = wx.StaticText(self,-1,"110000",wx.Point(0,0),wx.Size(75,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
             self.discFiles.SetBackgroundColour(wx.WHITE)
             self.discFiles.SetFont(wx.Font(FS_DISCOVERED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+            self.discFiles.SetForegroundColour(self.triblerGrey) 
             self.discFiles.SetMinSize((40,18))
-            self.hSizer.Add(self.discFiles, 0,wx.TOP, 5)  
+            self.hSizer.Add(self.discFiles, 0,wx.TOP, 3)  
             # V Line
             self.vLine2 = self.addLine() 
             # Add discovered Persons
             self.discPersons= wx.StaticText(self,-1,"100000",wx.Point(0,0),wx.Size(110,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
             self.discPersons.SetBackgroundColour(wx.WHITE)
             self.discPersons.SetFont(wx.Font(FS_DISCOVERED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+            self.discPersons.SetForegroundColour(self.triblerGrey) 
             self.discPersons.SetMinSize((40,18))
-            self.hSizer.Add(self.discPersons, 0,wx.TOP,5)  
+            self.hSizer.Add(self.discPersons, 0,wx.TOP,3)  
             # V Line
             self.vLine4 = self.addLine() 
             # Add Taste Heart
@@ -196,7 +200,10 @@ class PersonsItemPanel(wx.Panel):
             title = peer_data['content_name'][:self.titleLength]
             self.title.Enable(True)
             self.title.SetLabel(title)
-            self.title.Wrap(self.title.GetSize()[0])
+            
+            if not self.listItem:
+                self.title.Wrap(self.title.GetSize()[0])
+                
             self.title.SetToolTipString(peer_data['content_name'])            
             
             if self.listItem:
@@ -221,6 +228,17 @@ class PersonsItemPanel(wx.Panel):
                 else:
                     self.status.SetLabel( 'unknown')
                 
+                # number of Discovered files and persons
+                if peer_data.get('npeers'):
+                    n = unicode(peer_data.get('npeers'))
+                    print '--tb--'
+                    print n
+                    self.discPersons.SetLabel(n)
+                    #self.getGuiObj('discPersonsField').SetLabel(n)
+                if peer_data.get('ntorrents'):
+                    n = unicode(item['ntorrents'])
+                    self.discFiles.SetLabel(n)
+                    #self.getGuiObj('discFilesField').SetLabel(n)
                 
                 # -- taste issues
                 rank = peer_data.get('simTop',-1) 

@@ -44,6 +44,7 @@ class FriendsItemPanel(wx.Panel):
         self.data = None
         self.datacopy = None
         self.titleLength = 77 # num characters
+        self.triblerGrey = wx.Colour(128,128,128)
         self.selected = False
         self.warningMode = False
         self.guiserver = parent.guiserver
@@ -81,33 +82,33 @@ class FriendsItemPanel(wx.Panel):
         self.title =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(100,15))        
         self.title.SetBackgroundColour(wx.WHITE)
         self.title.SetFont(wx.Font(FS_FRIENDTITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.title.SetMinSize((100,15))        
+        self.title.SetMinSize((100,14))        
         self.title.SetLabel('')
-        self.hSizer.Add(self.title,1,wx.TOP|wx.EXPAND,4)
+        self.hSizer.Add(self.title,1,wx.TOP,4)
         
         # Add left vertical line
         self.vLine1 = self.addLine()        
         
         # Add status
-        self.status =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(130,12))        
+        self.status =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(130,12), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE )        
         self.status.SetBackgroundColour(wx.WHITE)
         self.status.SetFont(wx.Font(FS_STATUS,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.status.SetForegroundColour(wx.Colour(128,128,128))        
-        self.status.SetMinSize((130,12))
-        self.status.SetLabel('') 
-        self.hSizer.Add(self.status,1,wx.TOP|wx.EXPAND,4)
+        self.status.SetForegroundColour(self.triblerGrey)        
+        self.status.SetMinSize((165,12))
+        self.status.SetLabel("") 
+        self.hSizer.Add(self.status,0,wx.TOP|wx.EXPAND,4)
         
         # Add left vertical line
         self.vLine2 = self.addLine()           
                 
         # Add message > if today new content is discovered from him/her
-        self.message =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(130,12))        
-        self.message.SetBackgroundColour(wx.WHITE)
-        self.message.SetFont(wx.Font(FS_STATUS,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.message.SetForegroundColour(wx.Colour(128,128,128))        
-        self.message.SetMinSize((130,12))
-        self.message.SetLabel('') 
-        self.hSizer.Add(self.message,1,wx.TOP|wx.EXPAND,4)
+        self.helping =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(130,12), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
+        self.helping.SetBackgroundColour(wx.WHITE)
+        self.helping.SetFont(wx.Font(FS_STATUS,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+        self.helping.SetForegroundColour(self.triblerGrey)        
+        self.helping.SetMinSize((30,14))
+        self.helping.SetLabel('') 
+        self.hSizer.Add(self.helping,1,wx.TOP,4)
         
         # Add left vertical line
         self.vLine3 = self.addLine() 
@@ -153,7 +154,7 @@ class FriendsItemPanel(wx.Panel):
     def addLine(self, vertical=True):
         if vertical:
             vLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(2,22),wx.LI_VERTICAL)
-            self.hSizer.Add(vLine, 0, wx.RIGHT|wx.EXPAND, 3)
+            self.hSizer.Add(vLine, 0, wx.RIGHT|wx.LEFT|wx.EXPAND, 3)
             return vLine
         else:
             hLine = wx.StaticLine(self,-1,wx.DefaultPosition, wx.Size(-1,1),wx.LI_HORIZONTAL)
@@ -193,6 +194,21 @@ class FriendsItemPanel(wx.Panel):
             self.title.SetLabel(title)
             self.title.Wrap(self.title.GetSize()[0])
             self.title.SetToolTipString(peer_data['ip']+':'+str(peer_data['port']))
+            # status issues
+            self.status.Enable(True)            
+            statusPeer = peer_data['last_seen']
+            print '==tb=='
+            print statusPeer                
+            if peer_data.get('online'):
+                self.status.SetLabel('online')
+            elif statusPeer is not None:
+                if statusPeer < 0:
+                    self.status.SetLabel('never seen')
+                else:                    
+                    self.status.SetLabel('conn.  %s' % friendly_time(statusPeer))
+            else:
+                self.status.SetLabel( 'unknown')
+                
 #            self.delete.Show()
             self.tasteHeart.Show()
             self.vLine1.Show()
@@ -203,6 +219,7 @@ class FriendsItemPanel(wx.Panel):
             self.title.SetToolTipString('')
             self.title.Enable(False)
             self.status.SetLabel('')
+            self.helping.SetLabel('') 
 #            self.delete.Hide()
             self.tasteHeart.Hide()
             self.vLine1.Hide()
@@ -243,7 +260,7 @@ class FriendsItemPanel(wx.Panel):
         self.thumb.setSelected(True)
         self.title.SetBackgroundColour(self.selectedColour)
         self.status.SetBackgroundColour(self.selectedColour)
-        self.message.SetBackgroundColour(self.selectedColour)
+        self.helping.SetBackgroundColour(self.selectedColour)
         self.taste.SetBackgroundColour(self.selectedColour)
         self.tasteHeart.setBackground(self.selectedColour)
         self.SetBackgroundColour(self.selectedColour)
@@ -264,7 +281,7 @@ class FriendsItemPanel(wx.Panel):
         self.thumb.setSelected(False)
         self.title.SetBackgroundColour(colour)
         self.status.SetBackgroundColour(colour)
-        self.message.SetBackgroundColour(colour)
+        self.helping.SetBackgroundColour(colour)
         self.taste.SetBackgroundColour(colour)
         self.tasteHeart.setBackground(colour)
         self.SetBackgroundColour(colour)
@@ -365,9 +382,14 @@ class FriendThumbnailViewer(ThumbnailViewer):
                 if torrentname is not None:
                     helping = "helping with "+torrentname
             if helping is None:
-                self.GetParent().status.SetLabel('status unknown')
-            else:
-                self.GetParent().status.SetLabel(helping)
+                print '-nothing-'
+                self.GetParent().helping.SetLabel('')
+                self.GetParent().helping.SetToolTipString('')
+                #self.GetParent().status.SetLabel('status unknown')
+            else:                
+                self.GetParent().helping.SetLabel(helping)
+                self.GetParent().helping.SetToolTipString(helping)
+#                self.GetParent().status.SetLabel(helping)
             rank = self.guiUtility.peer_manager.getRank(peer_data = self.data)#['permid'])
             #because of the fact that hearts are coded so that lower index means higher ranking, then:
             if rank > 0 and rank <= 5:
@@ -400,10 +422,14 @@ class FriendThumbnailViewer(ThumbnailViewer):
                 friend = self.mm.get_default('personsMode','MASK_BITMAP')
                 dc.DrawBitmap(friend,60 ,65, True)            
             if self.data.get('online'):
-                label = 'online'
+                #label = 'online'
+                label = ''
                 if helping is not None:
-                    label = 'online,'+helping
-                self.GetParent().status.SetLabel(label)
+                    #label = 'online,'+helping
+                    label = helping
+                self.GetParent().helping.SetLabel(label)
+                self.GetParent().helping.SetToolTipString(label)
+                #self.GetParent().status.SetLabel(label)
                 dc.SetFont(wx.Font(FS_ONLINE, FONTFAMILY, FONTWEIGHT, wx.BOLD, False, FONTFACE))
                 dc.SetTextForeground('#007303')
                 dc.DrawText('online', 26, 66)

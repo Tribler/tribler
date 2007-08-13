@@ -56,6 +56,7 @@ class FilesItemPanel(wx.Panel):
         self.data = None
         self.datacopy = None
         self.titleLength = 137 # num characters
+        self.triblerGrey = wx.Colour(128,128,128)
         self.selected = False
         self.warningMode = False
         self.oldCategoryLabel = None
@@ -129,6 +130,7 @@ class FilesItemPanel(wx.Panel):
             self.fileSize = wx.StaticText(self,-1,"size",wx.Point(0,0),wx.Size(75,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
             self.fileSize.SetBackgroundColour(wx.WHITE)
             self.fileSize.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+            self.fileSize.SetForegroundColour(self.triblerGrey) 
             self.fileSize.SetMinSize((75,18))
             self.hSizer.Add(self.fileSize, 0,wx.TOP|wx.BOTTOM, 2)  
             # V Line
@@ -137,6 +139,7 @@ class FilesItemPanel(wx.Panel):
             self.creationDate = wx.StaticText(self,-1,"21-01-2007",wx.Point(0,0),wx.Size(110,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
             self.creationDate.SetBackgroundColour(wx.WHITE)
             self.creationDate.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+            self.creationDate.SetForegroundColour(self.triblerGrey) 
             self.creationDate.SetMinSize((110,18))
             self.hSizer.Add(self.creationDate, 0,wx.TOP|wx.BOTTOM, 2) 
             # V Line
@@ -147,6 +150,7 @@ class FilesItemPanel(wx.Panel):
             self.seeders.SetToolTipString(self.utility.lang.get('rNumberOfSeeders'))
             self.seedersNumber = wx.StaticText(self,-1,"203",wx.Point(0,0),wx.Size(125,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
             self.seedersNumber.SetBackgroundColour(wx.WHITE)
+            self.seedersNumber.SetForegroundColour(self.triblerGrey) 
             self.seedersNumber.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
             self.seedersNumber.SetMinSize((45,18))
             self.leechers = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='down')
@@ -154,6 +158,7 @@ class FilesItemPanel(wx.Panel):
             self.leechers.SetToolTipString(self.utility.lang.get('rNumberOfLeechers'))
             self.leechersNumber = wx.StaticText(self,-1,"678",wx.Point(0,0),wx.Size(125,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
             self.leechersNumber.SetBackgroundColour(wx.WHITE)
+            self.leechersNumber.SetForegroundColour(self.triblerGrey) 
             self.leechersNumber.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
             self.leechersNumber.SetMinSize((45,18))
             self.hSizer.Add(self.seeders, 0,wx.TOP|wx.BOTTOM|wx.RIGHT, 2) 

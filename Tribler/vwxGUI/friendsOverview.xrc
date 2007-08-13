@@ -40,13 +40,23 @@
               <object class="wxBoxSizer">
                 <orient>wxHORIZONTAL</orient>
                 <object class="sizeritem">
+                  <flag>wxTOP|wxRIGHT|wxFIXED_MINSIZE</flag>
+                  <border>6</border>
+                  <option>0</option>
+                  <object class="wxPanel" name="infoIcon" subclass="Tribler.vwxGUI.bgPanel.ImagePanel">
+                    <tooltip>Your friends in the Tribler network</tooltip>
+                    <pos>0,6</pos>
+                    <size>8,8</size>
+                  </object>
+                </object>
+                <object class="sizeritem">
                   <flag>wxTOP|wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>4</border>
                   <option>0</option>
                   <object class="wxStaticText" name="st64c">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>Friends</label>
-                    <pos>0,4</pos>
+                    <pos>4,4</pos>
                     <size>194,17</size>
                     <fg>#ffffff</fg>
                   </object>
@@ -168,7 +178,7 @@
                   <option>0</option>
                   <object class="wxPanel" name="addFriend" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
                     <pos>4,4</pos>
-                    <size>92,15</size>
+                    <size>80,14</size>
                   </object>
                 </object>
                 <object class="spacer">
@@ -182,8 +192,8 @@
                   <border>4</border>
                   <option>0</option>
                   <object class="wxPanel" name="inviteFriends" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                    <pos>130,4</pos>
-                    <size>106,15</size>
+                    <pos>118,4</pos>
+                    <size>95,14</size>
                   </object>
                 </object>
               </object>
