@@ -1298,3 +1298,12 @@ search_remote = "Tribler remote search (%d results)"
 searchStop       = "stop searching"
 searchStopEnabled= "stopped searching"
 searchClear      = "clear results and browse all discovered files"
+
+################
+#Tribler UI - Column headers Tribler 4.1.0
+#################
+uploaders = "Number of uploaders"
+downloaders = "Number of downloaders"
+filename= "Name of the file"
+
+

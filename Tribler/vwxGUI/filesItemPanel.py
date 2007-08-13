@@ -8,6 +8,7 @@ from Tribler.utilities import *
 #from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from Tribler.vwxGUI.tribler_topButton import tribler_topButton, SwitchButton
+from Tribler.vwxGUI.bgPanel import ImagePanel
 from safeguiupdate import FlaglessDelayedInvocation
 from Tribler.unicode import *
 from Utility.utility import getMetainfo
@@ -145,7 +146,7 @@ class FilesItemPanel(wx.Panel):
             # V Line
             self.vLine3 = self.addLine() 
             # Add popularity
-            self.seeders = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='up')
+            self.seeders = ImagePanel(self, -1, wx.DefaultPosition, wx.Size(16,16),name='up')
             self.seeders.setBackground(wx.WHITE)
             self.seeders.SetToolTipString(self.utility.lang.get('rNumberOfSeeders'))
             self.seedersNumber = wx.StaticText(self,-1,"203",wx.Point(0,0),wx.Size(125,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
@@ -153,7 +154,7 @@ class FilesItemPanel(wx.Panel):
             self.seedersNumber.SetForegroundColour(self.triblerGrey) 
             self.seedersNumber.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
             self.seedersNumber.SetMinSize((45,18))
-            self.leechers = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='down')
+            self.leechers = ImagePanel(self, -1, wx.DefaultPosition, wx.Size(16,16),name='down')
             self.leechers.setBackground(wx.WHITE)
             self.leechers.SetToolTipString(self.utility.lang.get('rNumberOfLeechers'))
             self.leechersNumber = wx.StaticText(self,-1,"678",wx.Point(0,0),wx.Size(125,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
@@ -184,7 +185,7 @@ class FilesItemPanel(wx.Panel):
             self.vSizer2.Add(self.hSizer2,0, wx.EXPAND|wx.FIXED_MINSIZE, 0)
             self.hSizer.Add(self.vSizer2,0,wx.EXPAND|wx.FIXED_MINSIZE, 0)
             # Add Source Icon
-            self.sourceIcon = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='bcIcon')
+            self.sourceIcon = ImagePanel(self, -1, wx.DefaultPosition, wx.Size(16,16),name='bcIcon')
             self.sourceIcon.setBackground(wx.WHITE)
             #self.sourceIcon.SetToolTipString(self.utility.lang.get('---'))          
             self.hSizer.Add(self.sourceIcon, 0, wx.TOP|wx.RIGHT, 0)
@@ -417,6 +418,14 @@ class FilesItemPanel(wx.Panel):
     def getIdentifier(self):
         return self.data['infohash']
 
+    def getColumns(self):
+        return [{'title':'name', 'weight':1,'tip':self.utility.lang.get('filename'), 'order':'up'},
+                {'title':'size', 'width':81, 'tip':self.utility.lang.get('filesize')},
+                {'title':'creation','width':116, 'tip':self.utility.lang.get('creationdate')},
+                {'pic':'up', 'width':71, 'tip':self.utility.lang.get('uploaders')},
+                {'pic':'down', 'width':71, 'tip':self.utility.lang.get('downloaders')},
+                {'pic':'heart1', 'width':89, 'tip':self.utility.lang.get('recommendation')}
+                ]
 
                 
 class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):

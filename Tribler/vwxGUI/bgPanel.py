@@ -82,7 +82,9 @@ class ImagePanelBasic(wx.Panel):
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnErase)
         
 
-    
+    def setBitmapFromFile(self, filename):
+        self.setBitmap(wx.Bitmap(os.path.join(self.imagedir, filename+'.png')))
+        
     def setBitmap(self, bitmap):
         self.bitmap = bitmap
         

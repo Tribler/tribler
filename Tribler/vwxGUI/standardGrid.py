@@ -4,6 +4,7 @@ from Tribler.vwxGUI.filesItemPanel import FilesItemPanel
 from Tribler.vwxGUI.LibraryItemPanel import LibraryItemPanel
 from Tribler.vwxGUI.PersonsItemPanel import PersonsItemPanel
 from Tribler.vwxGUI.FriendsItemPanel import FriendsItemPanel
+from Tribler.vwxGUI.ColumnHeader import ColumnHeaderBar
 from Tribler.vwxGUI.SubscriptionsItemPanel import SubscriptionsItemPanel
 from Tribler.Dialogs.GUIServer import GUIServer
 from Tribler.Dialogs.MugshotManager import MugshotManager
@@ -88,7 +89,8 @@ class standardGrid(wx.Panel):
 
         self.SetBackgroundColour(wx.WHITE)
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
-        
+        self.columnHeaderSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.vSizer.Add(self.columnHeaderSizer, 0, wx.ALL|wx.EXPAND, 0)
         self.SetSizer(self.vSizer);
         self.SetAutoLayout(1);
         #self.Layout();
@@ -118,6 +120,7 @@ class standardGrid(wx.Panel):
         self.calculateRows()
         #self.updateCols(oldcols, self.cols)
         self.refreshData()
+        self.toggleColumnHeaders(mode == 'list')
         
     def onSizeChange(self, event=None):
         if type(event.GetEventObject()) == wx.Choice:
@@ -275,13 +278,12 @@ class standardGrid(wx.Panel):
         raise NotImplementedError('Method getSubPanel should be subclassed')
 
     def setDataOfPanel(self, panelNumber, data):
-        
         try:
             if self.orientation == 'vertical':
-                hSizer = self.vSizer.GetItem(panelNumber%self.currentRows).GetSizer()
+                hSizer = self.vSizer.GetItem(panelNumber%self.currentRows+1).GetSizer()
                 panel = hSizer.GetItem(panelNumber/ self.currentRows).GetWindow()
             else:
-                hSizer = self.vSizer.GetItem(panelNumber/self.cols).GetSizer()
+                hSizer = self.vSizer.GetItem(panelNumber/self.cols+1).GetSizer()
                 panel = hSizer.GetItem(panelNumber % self.cols).GetWindow()
                 
             panel.setData(data)
@@ -372,7 +374,8 @@ class standardGrid(wx.Panel):
                     
                 assert self.panels[row] == [], 'We deleted all panels, still the row is %s' % self.panels[row]
                 del self.panels[row]
-                self.vSizer.Detach(row) # detach hSizer of the row
+                self.vSizer.Detach(row+1) # detach hSizer of the row
+                # +1 compensated for columnheaders
                 
        
         
@@ -497,8 +500,28 @@ class standardGrid(wx.Panel):
                 # select new panel
                 newpanel.SetFocus()
                 self.guiUtility.selectData(newpanel.data)
-            
-
+                
+    def getFirstPanel(self):
+        try:
+             hSizer = self.vSizer.GetItem(1).GetSizer()
+             panel = hSizer.GetItem(0).GetWindow()
+             return panel
+        except:
+            return None
+        
+    def toggleColumnHeaders(self, show):
+        # show or hide columnheaders
+        if show:
+            panel = self.getFirstPanel()
+            if panel:
+                self.columnHeader = ColumnHeaderBar(self, panel)
+                self.columnHeaderSizer.Add(self.columnHeader, 1, wx.EXPAND, 0)
+                self.columnHeaderSizer.Layout()
+        else:
+            self.columnHeaderSizer.Detach(0)
+            self.columnHeader.Destroy()
+        self.vSizer.Layout()
+        
 class filesGrid(standardGrid):
     def __init__(self):
 #        columns = 5
