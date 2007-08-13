@@ -228,7 +228,12 @@ defaults = [
     ('stop_collecting_threshold', 200,
         "stop collecting more torrents if the disk has less than this size (MB)"),
     ('internaltracker', 1,
-        "enable internal tracker (0 = disabled)")
+        "enable internal tracker (0 = disabled)"),
+    ('ut_pex', 1,
+        "enable uTorrent peer exchange (0 = disabled)"),
+    ('ut_pex_max_addrs_from_peer', 16,
+        "maximum number of addresses to accept from peer (0 = all)")
+
     ]
 
 argslistheader = 'Arguments are:\n\n'

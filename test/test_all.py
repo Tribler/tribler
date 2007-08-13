@@ -53,6 +53,7 @@ def suite():
     import test_social_overlap as test_social_overlap
     import test_gui_server as test_gui_server
     import test_remote_query as test_remote_query
+    import test_ut_pex as test_ut_pex
     
     # SecureOverlay is tested by running test_so.sh from topdir
     # Extra Dialback message tests can be done with test_dra.sh from topdir
@@ -77,7 +78,8 @@ def suite():
         #test_extend_hs_t350,
         #test_social_overlap,
         #test_gui_server,
-        test_remote_query
+        #test_remote_query,
+        test_ut_pex
         ]
 
     alltests = unittest.TestSuite()

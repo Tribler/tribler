@@ -117,7 +117,11 @@ class BTConnection:
         size = toint(size_data)
         if DEBUG and size > 10000:
             print >> sys.stderr,"btconn: waiting for message size",size
-        return self._readn(size)
+        if size == 0:
+            # BT keep alive message, don't report upwards
+            return self.recv()
+        else:
+            return self._readn(size)
 
     def _readn(self,n):
         """ read n bytes from socket stream """

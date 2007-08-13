@@ -501,7 +501,7 @@ reverttodefault = "Restore Defaults"
 bufferdisk 		= "Disk Buffering"
 buffer_read 	= "Read Cache"
 buffer_write 	= "Write Cache"
-
+ut_pex_maxaddrs = "Maximum number of addresses to accept via peer exchange per client"
 flush_data 		= "Flush data to disk every"
 
 iphint_line1 	= "The IP reported to the tracker."
@@ -516,6 +516,11 @@ bindhint_line3 	= "If you don't know what this is, leave it blank."
 minpeershint_line1 = "The minimum number of peers the client tries to stay connected with."
 minpeershint_line2 = ""
 minpeershint_line3 = "Do not set this higher unless you have a very fast connection and a lot of system resources."
+
+ut_pex_maxaddrs_hint_line1 = "When you meet other peers they can give you addresses of the peers they know."
+ut_pex_maxaddrs_hint_line2 = "This value sets the maximum number of gossiped addresses you accept from each peer."
+ut_pex_maxaddrs_hint_line3 = "Don't set this too high as these gossiped addresses are from an untrusted source"
+ut_pex_maxaddrs_hint_line4 = "(i.e. a random peer) and not the trustworthy tracker."
 
 alloctypehint_line1 = "How to allocate disk space:
 alloctypehint_line2 = ""
@@ -645,11 +650,8 @@ rModerate           = "   Change info..."
 rModerateCat        = "   Change category"
 rRecommend          = "   Recommend to a friend..."
 
-rCategory1          = "Video"
-rCategory2          = "Audio"
-rCategory3          = "Compressed"
-rCategory4          = "Other"
-rCategory5          = "XXX"
+# Arno: categories must be completely defined by category.conf,
+# not in the code
 
 ############# LIBRARY
 rLibraryOptions     = "Library options:"

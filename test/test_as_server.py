@@ -90,11 +90,13 @@ class TestAsServer(unittest.TestCase):
         self.config['text_mode'] = 1
         self.config['buddycast'] = 0
         self.config['start_recommender'] = 0
+        self.config['torrent_checking'] = 0
         self.config['superpeer'] = 0
         self.config['dialback'] = 0
         self.config['socnet'] = 0
         self.config['rquery'] = 0
         self.config['internaltracker'] = 0
+
 
         self.my_keypair = EC.gen_params(EC.NID_sect233k1)
         self.my_keypair.gen_key()

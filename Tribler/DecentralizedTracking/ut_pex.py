@@ -22,7 +22,9 @@ For peer addresses that come from trackers we at least know that the peer host
 ran BitTorrent and was downloading this swarm (assuming the tracker is trustworthy).
 
 """
+from types import DictType,StringType
 from BitTornado.BT1.track import compact_peer_info
+from BitTornado.bencode import bencode,bdecode
 
 EXTEND_MSG_UTORRENT_PEX_ID = chr(1) # Can be any value, the name 'ut_pex' is standardized
 EXTEND_MSG_UTORRENT_PEX = 'ut_pex' # note case sensitive
@@ -30,31 +32,36 @@ EXTEND_MSG_UTORRENT_PEX = 'ut_pex' # note case sensitive
 
 def create_ut_pex(addedconns,droppedconns):
     d = {}
-    (newadded,compactedpeerstr) = self.compact_connections(addedconns)
+    (newadded,compactedpeerstr) = compact_connections(addedconns)
     d['added'] = compactedpeerstr
-    flags = '\x00' * len(newadded)
+    flags = ''
     for i in range(len(newadded)):
         conn = newadded[i]
+        flag = 0
         if conn.get_extend_encryption():
-            flags[i] = chr(ord(flags[i]) | 1)
+            flag |= 1
         if conn.download is not None and conn.download.peer_is_complete():
-            flags[i] = chr(ord(flags[i]) | 2)
-    (newremoved,compactedpeerstr) = self.compact_connections(droppedconns)
+            flag |= 2
+        flags += chr(flag)
+    d['added.f'] = flags
+    (newremoved,compactedpeerstr) = compact_connections(droppedconns)
     d['dropped'] = compactedpeerstr
     return bencode(d)
 
 def check_ut_pex(d):
     if type(d) != DictType:
         raise ValueError('ut_pex: not a dict')
-    check_ut_pex_peerlist(d,'added')
-    check_ut_pex_peerlist(d,'dropped')
+    apeers = check_ut_pex_peerlist(d,'added')
+    dpeers = check_ut_pex_peerlist(d,'dropped')
     if 'added.f' not in d:
         raise ValueError('ut_pex: added.f: missing')
     addedf = d['added.f']
     if type(addedf) != StringType:
         raise ValueError('ut_pex: added.f: not string')
-    if len(addedf) != len(d['added']):
+    if len(addedf) != len(apeers) and not len(addedf) == 0:
+        # KTorrent sends an empty added.f, be nice
         raise ValueError('ut_pex: added.f: more flags than peers')
+    return (apeers,dpeers)
     
 def check_ut_pex_peerlist(d,name):
     if name not in d:
@@ -64,14 +71,29 @@ def check_ut_pex_peerlist(d,name):
         raise ValueError('ut_pex:'+name+': not string')
     if len(peerlist) % 6 != 0:
         raise ValueError('ut_pex:'+name+': not multiple of 6 bytes')
+    peers = decompact_connections(peerlist)
+    for ip,port in peers:
+        if ip == '127.0.0.1':
+            raise ValueError('ut_pex:'+name+': address is localhost')
+    return peers
     
 def ut_pex_get_conns_diff(currconns,thisconn,prevconns):
-    addedconns = currconns[:]
+    addedconns = []
     droppedconns = []
-    del addedconns[thisconn]
+    for conn in currconns:
+        if conn in prevconns:
+            # already reported, don't mention
+            pass
+        elif conn != thisconn:
+            # new conn
+            addedconns.append(conn)
     for conn in prevconns:
-        del addedconns[conn]
-        droppedconns.append(conn)
+        if conn in currconns:
+            # already reported, don't mention
+            pass
+        else:
+            # old conn, was dropped
+            droppedconns.append(conn)
     return (addedconns,droppedconns)
 
 
@@ -84,6 +106,7 @@ def compact_connections(conns):
         port = conn.get_extend_listenport()
         if port is None:
             # peer didn't send it in EXTEND message
+            #print "ut_pex: Don't have a listening port for peer",ip
             deletedconns.append(conn)
         else:
             compactpeer = compact_peer_info(ip,port)
@@ -91,7 +114,7 @@ def compact_connections(conns):
     # Remove connections for which we had incomplete info
     newconns = conns[:]
     for conn in deletedconns:
-        del newconns[conn]
+        newconns.remove(conn)
         
     # Create compact representation of peers
     compactpeerstr = ''.join(compactpeers)
@@ -106,3 +129,4 @@ def decompact_connections(p):
         port = (ord(p[x+4]) << 8) | ord(p[x+5])
         peers.append((ip, port))
     return peers
+

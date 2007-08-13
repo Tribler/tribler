@@ -1077,12 +1077,20 @@ class AdvancedNetworkPanel(ABCOptionPanel):
         datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('upnp')), 1, wx.ALIGN_CENTER_VERTICAL)
         datasizer.Add(self.upnp_data)
 
+
+        # ut_pex maximum Peers
+        self.ut_pex_maxaddrs_data = wx.SpinCtrl(self, size = wx.Size(60, -1))
+        self.ut_pex_maxaddrs_data.SetRange(10, 100)
+        datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('ut_pex_maxaddrs')), 1, wx.ALIGN_CENTER_VERTICAL)
+        datasizer.Add(self.ut_pex_maxaddrs_data)
+
         sizer.Add(datasizer, 0, wx.ALL, 5)
         
         # Set tooltips
         self.ip_data.SetToolTipString(self.utility.lang.get('iphint'))
         self.bind_data.SetToolTipString(self.utility.lang.get('bindhint'))
         self.minpeers_data.SetToolTipString(self.utility.lang.get('minpeershint'))
+        self.ut_pex_maxaddrs_data.SetToolTipString(self.utility.lang.get('ut_pex_maxaddrs_hint'))
         self.maxconnections_data.SetToolTipString(self.utility.lang.get('maxconnectionhint'))
                
         self.initTasks()
