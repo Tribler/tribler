@@ -269,8 +269,14 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         
         if filterState is None or len(filterState) == 0:
             filterState = oldFilterState
+        
+        if filterState and oldFilterState:
+            for i in xrange(len(filterState)):
+                if filterState[i] == None:
+                    filterState[i] = oldFilterState[i]
+                        
         if filterState is not None:
-                
+                    
             if self.mode == 'filesMode':
                 self.loadTorrentData(filterState[0], filterState[1])
                 

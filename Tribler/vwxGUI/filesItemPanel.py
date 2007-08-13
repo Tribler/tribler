@@ -419,12 +419,12 @@ class FilesItemPanel(wx.Panel):
         return self.data['infohash']
 
     def getColumns(self):
-        return [{'title':'name', 'weight':1,'tip':self.utility.lang.get('filename'), 'order':'up'},
-                {'title':'size', 'width':81, 'tip':self.utility.lang.get('filesize')},
-                {'title':'creation','width':116, 'tip':self.utility.lang.get('creationdate')},
-                {'pic':'up', 'width':71, 'tip':self.utility.lang.get('uploaders')},
-                {'pic':'down', 'width':71, 'tip':self.utility.lang.get('downloaders')},
-                {'pic':'heart1', 'width':89, 'tip':self.utility.lang.get('recommendation')}
+        return [{'sort':'content_name', 'title':'name', 'weight':1,'tip':self.utility.lang.get('filename'), 'order':'up'},
+                {'sort':'length', 'title':'size', 'width':81, 'tip':self.utility.lang.get('filesize')},
+                {'sort':'date', 'title':'creation','width':116, 'tip':self.utility.lang.get('creationdate')},
+                {'sort':'seeder', 'pic':'up', 'width':71, 'tip':self.utility.lang.get('uploaders')},
+                {'sort':'leecher', 'pic':'down', 'width':71, 'tip':self.utility.lang.get('downloaders')},
+                {'sort':'relevance', 'pic':'heart1', 'width':89, 'tip':self.utility.lang.get('recommendation')}
                 ]
 
                 

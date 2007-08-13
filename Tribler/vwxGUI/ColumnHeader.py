@@ -1,5 +1,6 @@
 import wx
 from Tribler.vwxGUI.bgPanel import ImagePanel
+from Tribler.vwxGUI.GuiUtility import GUIUtility
 
 
 class ColumnHeader(wx.Panel):
@@ -7,14 +8,14 @@ class ColumnHeader(wx.Panel):
     bitmapOrderUp = 'up'
     bitmapOrderDown = 'down'
     
-    def __init__(self, parent, title, picture, order, tip, colour):
+    def __init__(self, parent, title, picture, order, tip, sorting, colour):
         wx.Panel.__init__(self, parent, -1)
         self.colour = colour
         self.type = None
         self.addComponents(title, picture)
         self.setOrdering(order)
         self.SetToolTipString(tip)
-        
+        self.sorting = sorting
         
         
     def addComponents(self, title, picture):
@@ -76,6 +77,7 @@ class ColumnHeaderBar(wx.Panel):
         self.itemPanel = itemPanel
         wx.Panel.__init__(self, parent, -1)
         self.columns = []
+        self.guiUtility = GUIUtility.getInstance()
         self.addComponents()
         #self.SetMinSize((-1,30))
         self.Show(True)
@@ -85,7 +87,7 @@ class ColumnHeaderBar(wx.Panel):
         columns = self.itemPanel.getColumns()
         for dict in columns:
             colour = wx.Colour(190,190,190)
-            header = ColumnHeader(self, dict.get('title'), dict.get('pic'), dict.get('order'), dict['tip'], colour)
+            header = ColumnHeader(self, dict.get('title'), dict.get('pic'), dict.get('order'), dict['tip'], dict['sort'], colour)
             if dict.get('width'):
                 header.SetSize((dict['width'], -1))
                 header.SetMinSize((dict['width'], -1))
@@ -104,8 +106,14 @@ class ColumnHeaderBar(wx.Panel):
         for header in self.columns:
             if header != column:
                 header.setOrdering(None)
+        if ordering == 'up':
+            self.sorting = (column.sorting, 'increase')
+        else:
+            self.sorting = (column.sorting, 'decrease')
+        self.guiUtility.standardOverview.filterChanged([None, self.sorting])
         
-        
+    def getSorting(self):
+        return self.sorting
     
     
      

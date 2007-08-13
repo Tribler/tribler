@@ -31,17 +31,10 @@ class standardFilter(wx.Panel):
     def _PostInit(self):
         # Do all init here
         self.SetBackgroundColour(wx.Colour(153,153,153))   
-   
-        #self.filesGrid = filesGrid()
-        #self.filesGrid = self.filesGrid.filesGrid
-        
         self.parent = None
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.detailPanel = None
-        self.cols = 5
-        self.items = 0
-        self.currentData = 0
         self.addComponents()
         self.Show()
         self.initReady = True
@@ -99,6 +92,7 @@ class standardFilter(wx.Panel):
         for filterNum in range(len(self.filters)):
             filterState.append(self.filterData[filterNum][filterIndex[filterNum]][0])
             
+        filterState.append(None) #replacement for old ordering filter
         if DEBUG:
             print >>sys.stderr,"standardFilter: filterState is",filterState,"old",self.filterState
         if filterState != self.filterState:
@@ -126,7 +120,10 @@ class standardFilter(wx.Panel):
     
     def getState(self):
         if self.filterState is None:
-            return [self.filterData[0][0][0],self.filterData[1][0][0]]
+            state = []
+            for i in xrange(len(self.filters)):
+                state.append(self.filterData[i][0][0])
+            return state
         return self.filterState
 
 
@@ -136,15 +133,15 @@ class filesFilter(standardFilter):
         nametuples.append(('other', 'Other'))
         #nametuples.append(('search', 'Search Results'))
         filterData = [
-                       nametuples,
-                       [(('content_name', 'increase'), 'Name'),
-                        ('swarmsize', 'Popular'),
-                        ('relevance','Recommended'),
-                        ('date','Creation date'),
-                        ('length', 'Size'),                        
-                        #('tracker', 'Tracker'),
-                        #('num_owners', 'Often received')
-                        ]
+                       nametuples
+#                       [(('content_name', 'increase'), 'Name'),
+#                        ('swarmsize', 'Popular'),
+#                        ('relevance','Recommended'),
+#                        ('date','Creation date'),
+#                        ('length', 'Size'),                        
+#                        #('tracker', 'Tracker'),
+#                        #('num_owners', 'Often received')
+#                        ]
                       ]
         standardFilter.__init__(self, filterData = filterData)
         
@@ -167,18 +164,18 @@ class libraryFilter(standardFilter):
         nametuples = Category.getInstance().getCategoryNames()
         nametuples = [('all', 'All')] + nametuples
         nametuples += [('other', 'Other')]
-        nametuples += [('search', 'Search Results')]
+        #nametuples += [('search', 'Search Results')]
         filterData = [
                        nametuples,
-                       [('latest', 'Latest downloaded'),
-                        (('content_name', 'increase'), 'Name'),
+                       #[('latest', 'Latest downloaded'),
+                       # (('content_name', 'increase'), 'Name'),
                         #('swarmsize', 'Popular'),
                         #('relevance','Recommended'),
                         #('date','Creation date'),
-                        ('length', 'Size'),                        
+                        #('length', 'Size'),                        
                         #('tracker', 'Tracker'),
                         #('num_owners', 'Often received')
-                        ]
+                        #]
                       ]
         standardFilter.__init__(self, filterData = filterData)
 
