@@ -98,7 +98,7 @@ class ColumnHeader(wx.Panel):
                     position[i]+=event.GetEventObject().GetPosition()[i]
                     position[i]-=self.GetPosition()[i]
                 size = self.GetSize()
-                #print position, size
+
                 if position[0]<0 or position[0]>=size[0] or position[1]<0 or position[1]>=size[1]:
                     colour = self.unselectedColour
             else:

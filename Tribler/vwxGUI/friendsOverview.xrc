@@ -84,7 +84,7 @@
           <object class="sizeritem">
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>3</border>
-            <option>0</option>
+            <option>1</option>
             <object class="wxPanel" name="searchPanel">
               <pos>0,21</pos>
               <size>307,35</size>
@@ -126,15 +126,6 @@
                   </object>
                 </object>
               </object>
-            </object>
-          </object>
-          <object class="sizeritem">
-            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-            <border>3</border>
-            <option>1</option>
-            <object class="wxPanel" name="friendsFilter" subclass="Tribler.vwxGUI.standardFilter.friendsFilter">
-              <pos>200,21</pos>
-              <size>213,35</size>
             </object>
           </object>
         </object>

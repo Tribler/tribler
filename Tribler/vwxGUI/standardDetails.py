@@ -762,8 +762,6 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             if len(item) == 0:
                 return
             tab = None
-            print '--tb--'
-            print item
 
             # --------------------------------------------------------------------------------------------------------------------------------------------------------
             ## --- Overall performance  !!!! we'll leave it probably out!!!

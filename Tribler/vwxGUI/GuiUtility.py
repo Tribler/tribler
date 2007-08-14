@@ -94,7 +94,7 @@ class GUIUtility:
             #else:
             #    print >>sys.stderr,"GUIUtil: buttonClicked: dlbooster: Torrent is None"
             
-        elif (name == 'edit' or name.startswith('bgPanel')) and obj.GetParent().GetName() == "profileOverview":
+        elif (name == 'edit' or name == "top10Sharers" or name.startswith('bgPanel')) and obj.GetParent().GetName() == "profileOverview":
             self.standardOverview.currentPanel.sendClick(event)
             self.detailsTabClicked(name) #a panel was clicked in the profile overview and this is the most elegant so far method of informing the others
         elif name == "takeMeThere0" : #a button to go to preferences was clicked
@@ -576,7 +576,7 @@ class GUIUtility:
             return
         
         rightMouse = wx.Menu()        
-        #--tb--
+
         
         self.utility.makePopup(rightMouse, None, 'rOptions')
         if self.standardOverview.mode == "filesMode":

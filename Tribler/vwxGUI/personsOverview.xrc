@@ -45,7 +45,7 @@
                   <option>0</option>
                   <object class="wxPanel" name="infoIcon" subclass="Tribler.vwxGUI.bgPanel.ImagePanel">
                     <tooltip>Persons that were connected while you are using Tribler \n(automatic process)</tooltip>
-                    <pos>0,5</pos>
+                    <pos>0,6</pos>
                     <size>8,8</size>
                   </object>
                 </object>
@@ -140,7 +140,7 @@
           <object class="sizeritem">
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>3</border>
-            <option>0</option>
+            <option>1</option>
             <object class="wxPanel" name="searchPanel">
               <pos>0,21</pos>
               <size>307,35</size>
@@ -182,15 +182,6 @@
                   </object>
                 </object>
               </object>
-            </object>
-          </object>
-          <object class="sizeritem">
-            <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
-            <border>3</border>
-            <option>1</option>
-            <object class="wxPanel" name="personsFilter" subclass="Tribler.vwxGUI.standardFilter.personsFilter">
-              <pos>200,21</pos>
-              <size>225,35</size>
             </object>
           </object>
         </object>

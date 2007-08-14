@@ -15,7 +15,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>0</border>
             <option>0</option>
-            <object class="wxPanel" name="black_top_left" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="bgPanel" name="black_top_left">
               <pos>3,3</pos>
               <size>10,21</size>
             </object>
@@ -53,7 +53,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>0</border>
             <option>0</option>
-            <object class="wxPanel" name="black_top_right" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="bgPanel" name="black_top_right">
               <pos>275,3</pos>
               <size>10,21</size>
             </object>
@@ -102,7 +102,7 @@
               <object class="wxStaticText" name="howToImprove">
                 <style>wxST_NO_AUTORESIZE</style>
                 <label>How to improve</label>
-                <pos>6,80</pos>
+                <pos>6,33</pos>
                 <size>284,18</size>
                 <font>
                   <size>8</size>
@@ -121,7 +121,7 @@
               <object class="wxStaticText" name="descriptionField1">
                 <label>&lt; no info &gt;
 </label>
-                <pos>6,98</pos>
+                <pos>6,51</pos>
                 <size>284,-1</size>
                 <font>
                   <size>8</size>
@@ -140,7 +140,7 @@
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="wxPanel" name="white_bottom" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+        <object class="bgPanel" name="white_bottom">
           <pos>0,23</pos>
           <size>300,5</size>
         </object>

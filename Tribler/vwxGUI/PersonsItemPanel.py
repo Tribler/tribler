@@ -164,7 +164,9 @@ class PersonsItemPanel(wx.Panel):
             window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
             window.Bind(wx.EVT_KEY_UP, self.keyTyped)
             window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction)            
-                             
+
+
+                         
     def setData(self, peer_data):
         # set bitmap, rating, title
         
@@ -231,8 +233,6 @@ class PersonsItemPanel(wx.Panel):
                 # number of Discovered files and persons
                 if peer_data.get('npeers'):
                     n = unicode(peer_data.get('npeers'))
-                    print '--tb--'
-                    print n
                     self.discPersons.SetLabel(n)
                     #self.getGuiObj('discPersonsField').SetLabel(n)
                 if peer_data.get('ntorrents'):

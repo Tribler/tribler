@@ -84,7 +84,7 @@ class FilesItemPanel(wx.Panel):
 #        self.Bind(wx.EVT_KEY_UP, self.keyTyped)
 
 #        fileListMode = 'thumbs'        
-        #print '--tb-- list'
+
         
         if not self.listItem:
             
@@ -211,7 +211,7 @@ class FilesItemPanel(wx.Panel):
                 {'sort':'date', 'title':'creation','width':110, 'tip':self.utility.lang.get('creationdate')},
                 {'sort':'seeder', 'pic':'upSmall', 'width':47, 'tip':self.utility.lang.get('uploaders')},
                 {'sort':'leecher', 'pic':'downSmall', 'width':47, 'tip':self.utility.lang.get('downloaders')},
-                {'sort':'relevance', 'pic':'heart1', 'width':86, 'tip':self.utility.lang.get('recommendation')}
+                {'sort':'relevance', 'pic':'heartSmall', 'width':86, 'tip':self.utility.lang.get('recommendation')}
                 ]
 
                  
