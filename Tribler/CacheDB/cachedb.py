@@ -674,7 +674,8 @@ class TorrentDB(BasicDB):
             'source': '',
             'inserttime': 0,
             'progress': 0.0,
-            'destdir':''
+            'destdir':'',
+            'secret':False # download secretly
         }
         self.infokey = 'info'
         self.infokeys = ['name','creation date','num_files','length','announce','announce-list']
@@ -715,7 +716,7 @@ class TorrentDB(BasicDB):
         if savemem:
             newret = {}
             for key in self.default_item:
-                newret[key] = ret[key]
+                newret[key] = ret.get(key)
             newinfo = {}
             for key in self.infokeys:
                 newinfo[key] = ret['info'][key]

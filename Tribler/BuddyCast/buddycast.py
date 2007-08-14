@@ -176,7 +176,7 @@ from TorrentCollecting import SimpleTorrentCollecting   #, TiT4TaTTorrentCollect
 from Tribler.Statistics.Logger import OverlayLogger
 from threading import Event, currentThread
 
-DEBUG = False    # for errors
+DEBUG = True    # for errors
 debug = False    # for status
 MAX_BUDDYCAST_LENGTH = 10*1024    # 10 KByte
 
@@ -1561,6 +1561,12 @@ class DataHandler:
             print "bc: updated All P2P sim", meansim, npeers, time()-starttime, ctime(now())
         
     def addMyPref(self, torrent):
+        torrentdata = self.torrent_db.getTorrent(torrent)
+        if torrentdata.get('secret', False):
+            if DEBUG:
+                print >> sys.stderr, 'Omitting secret download: %s' % torrentdata.get('info', {}).get('name', 'unknown')
+            return # do not buddycast secret downloads
+        
         if torrent not in self.mypreflist:
             self.mypreflist.append(torrent)
             torrent_hash = hash(torrent)

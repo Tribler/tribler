@@ -46,6 +46,7 @@ key_infohash = 'infohash'
 key_myDownloadHistory = 'myDownloadHistory'
 key_eventComingUp = 'eventComingUp'
 key_simRank = 'simRank'
+key_secret = 'secret'
 
 class TorrentDataManager:
     # Code to make this a singleton
@@ -288,7 +289,7 @@ class TorrentDataManager:
         self.notifyView(item, 'add')
     
     
-    def setBelongsToMyDowloadHistory(self, infohash, b):
+    def setBelongsToMyDowloadHistory(self, infohash, b, secret = False):
         """Set a certain new torrent to be in the download history or not"
         Should not be changed by updateTorrent calls"""
         old_torrent = self.info_dict.get(infohash, None)
@@ -622,4 +623,11 @@ class TorrentDataManager:
             if ntorrents < 0:    # metadatahandler is not ready to load torents yet
                 ntorrents = len(self.data)
             return ntorrents
+        
+    def setSecret(self, infohash, b):
+        if b:
+            self.torrent_db.updateTorrent(infohash, **{'secret':True})
+        else:
+            self.torrent_db.updateTorrent(infohash, **{'secret':False})
+        
             

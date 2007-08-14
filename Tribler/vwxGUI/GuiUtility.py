@@ -580,12 +580,14 @@ class GUIUtility:
         
         self.utility.makePopup(rightMouse, None, 'rOptions')
         if self.standardOverview.mode == "filesMode":
-            
-            self.utility.makePopup(rightMouse, self.onRecommend, 'rRecommend')        
-            #if secret:
-            self.utility.makePopup(rightMouse, self.onDownloadOpen, 'rDownloadOpenly')
-            #else:
-            self.utility.makePopup(rightMouse, self.onDownloadSecret, 'rDownloadSecretly')
+            if item.get('web2'):
+                self.utility.makePopup(rightMouse, self.onDownloadOpen, 'rPlay')
+            else:
+                self.utility.makePopup(rightMouse, self.onRecommend, 'rRecommend')        
+                #if secret:
+                self.utility.makePopup(rightMouse, self.onDownloadOpen, 'rDownloadOpenly')
+                #else:
+                self.utility.makePopup(rightMouse, self.onDownloadSecret, 'rDownloadSecretly')
             
             # if in library:
         elif self.standardOverview.mode == "libraryMode":
@@ -667,13 +669,11 @@ class GUIUtility:
         event.Skip()
    
     def onDownloadOpen(self, event = None):
-        item = self.standardDetails.getData()
-        self.standardDetails.download(item)
+        self.standardDetails.download()
         event.Skip()
     
     def onDownloadSecret(self, event = None):
-        # todo secret download
-        self.onDownloadOpen(event)
+        self.standardDetails.download(secret=True)
         event.Skip()
         
     def onChangeFriendStatus(self, event = None):

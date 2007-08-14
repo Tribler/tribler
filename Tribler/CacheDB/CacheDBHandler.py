@@ -658,7 +658,8 @@ class MyPreferenceDBHandler(BasicDBHandler):
             valid = self.mypref_db.getRank(infohash) >= 0
             torrentdata = self.torrent_db.getItem(infohash, default=True) # defaulttorrent has status 'unknown'
             alive = torrentdata.get('status', 'unknown') != 'dead'
-            return alive and valid
+            secret = torrentdata.get('secret', False) # exclude secret downloads.
+            return alive and valid and not secret
         return filter(fakeFilter, items)
     
             

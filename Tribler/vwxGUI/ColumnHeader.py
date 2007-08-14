@@ -59,10 +59,12 @@ class ColumnHeader(wx.Panel):
         self.type = type
         if type == 'up':
             self.sortIcon.setBitmapFromFile(self.bitmapOrderUp)
+            self.setColour(self.selectedColour)
             if not self.sortIcon.IsShown():
                 self.sortIcon.Show()
         elif type == 'down':
             self.sortIcon.setBitmapFromFile(self.bitmapOrderDown)
+            self.setColour(self.selectedColour)
             if not self.sortIcon.IsShown():
                 self.sortIcon.Show()
         else:
@@ -78,8 +80,12 @@ class ColumnHeader(wx.Panel):
         self.setOrdering(newType)
         self.GetParent().setOrdering(self, newType)
         
+        
+        
     def mouseAction(self, event):
         event.Skip()
+        if self.type:
+            return
         colour = None
         if event.Entering():
             colour = self.selectedColour
@@ -97,13 +103,16 @@ class ColumnHeader(wx.Panel):
             else:
                 colour = self.unselectedColour
         if colour:
-            for element in [self, self.icon, self.sortIcon, self.text]:
-                if element:
-                    if element.__class__ == ImagePanel:
-                        element.setBackground(colour)
-                    element.SetBackgroundColour(colour)
+            self.setColour(colour)
             self.Refresh()
         
+    def setColour(self, colour):
+        for element in [self, self.icon, self.sortIcon, self.text]:
+            if element:
+                if element.__class__ == ImagePanel:
+                    element.setBackground(colour)
+                element.SetBackgroundColour(colour)
+                
 class ColumnHeaderBar(wx.Panel):
     
     

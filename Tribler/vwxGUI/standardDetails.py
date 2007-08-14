@@ -1361,7 +1361,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 #    def isEnabled(self):
 #        return self.enabled
 
-    def download(self, torrent = None, dest = None):
+    def download(self, torrent = None, dest = None, secret = False):
         if torrent is None:
             torrent = self.item
 
@@ -1385,6 +1385,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 print_exc()
             return True
 
+        self.data_manager.setSecret(torrent['infohash'], secret)
+            
         (torrent_dir,torrent_name) = self.metadatahandler.get_std_torrent_dir_name(torrent)
         torrent_filename = os.path.join(torrent_dir, torrent_name)
 
@@ -1394,7 +1396,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             name = showInfoHash(torrent['infohash'])
         #start_download = self.utility.lang.get('start_downloading')
         #str = name + "?"
-            
+        
+        
         if os.path.isfile(torrent_filename):
 #            str = self.utility.lang.get('download_start') + u' ' + name + u'?'
 #            dlg = wx.MessageDialog(self, str, self.utility.lang.get('click_and_download'), 
