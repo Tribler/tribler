@@ -88,8 +88,10 @@ class ColumnHeader(wx.Panel):
             if sys.platform == 'windows32':
                 position = event.GetPosition()
                 for i in xrange(2):
-                    position[i]-=self.GetPosition()[i]
+                    position[i]+=event.GetEventObj().GetPosition()[i]
+                    position[i]-=self.GetPosition[i]
                 size = self.GetSize()
+                print position, size
                 if position[0]<0 or position[0]>=size[0] or position[1]<0 or position[1]>=size[1]:
                     colour = self.unselectedColour
             else:
