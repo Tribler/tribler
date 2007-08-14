@@ -191,15 +191,12 @@ class GUIUtility:
         
     def standardPersonsOverview(self):
         self.standardOverview.setMode('personsMode')
-        self.standardOverview.filterChanged(self.standardOverview.getFilter().getState())
+        self.standardOverview.filterChanged(('all', 'content_name'))
         self.standardDetails.setMode('personsMode')
         
     def standardFriendsOverview(self):
         self.standardOverview.setMode('friendsMode')
-        filterState = self.standardOverview.getFilter().getState()
-        if DEBUG:
-            print >>sys.stderr,"standardFriendsOverview, filter state:",filterState
-        self.standardOverview.filterChanged(filterState)
+        self.standardOverview.filterChanged(('friends', 'content_name'))
         self.standardDetails.setMode('friendsMode')
     
     def standardProfileOverview(self):

@@ -631,7 +631,7 @@ time 				= "Time"
 ################################################################################################
 rHashCheck 			= "&Hash Check"
 rResume 			= "&Resume Torrent"
-rPlay				= "&Play Video"
+rPlay				= "   &Play Video"
 rStop 				= "&Stop"
 rPause 				= "P&ause"
 rQueue 				= "&Queue"

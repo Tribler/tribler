@@ -206,7 +206,7 @@ class FilesItemPanel(wx.Panel):
             #window.Bind(wx.EVT_RIGHT_DOWN, self.rightMouseButton)  
             
     def getColumns(self):
-        return [{'sort':'content_name', 'title':'name', 'weight':1,'tip':self.utility.lang.get('filename'), 'order':'up'},
+        return [{'sort':'content_name', 'reverse':True, 'title':'name', 'weight':1,'tip':self.utility.lang.get('filename'), 'order':'down'},
                 {'sort':'length', 'title':'size', 'width':75, 'tip':self.utility.lang.get('filesize')},
                 {'sort':'date', 'title':'creation','width':110, 'tip':self.utility.lang.get('creationdate')},
                 {'sort':'seeder', 'pic':'upSmall', 'width':47, 'tip':self.utility.lang.get('uploaders')},

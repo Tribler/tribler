@@ -129,7 +129,8 @@ class standardFilter(wx.Panel):
 
 class filesFilter(standardFilter):
     def __init__(self):
-        nametuples = Category.getInstance().getCategoryNames()
+        nametuples = [('all', 'All')]
+        nametuples += Category.getInstance().getCategoryNames()
         nametuples.append(('other', 'Other'))
         #nametuples.append(('search', 'Search Results'))
         filterData = [

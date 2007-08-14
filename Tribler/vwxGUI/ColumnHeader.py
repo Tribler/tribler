@@ -8,7 +8,7 @@ class ColumnHeader(wx.Panel):
     bitmapOrderUp = 'upSort'
     bitmapOrderDown = 'downSort'
     
-    def __init__(self, parent, title, picture, order, tip, sorting, colours):
+    def __init__(self, parent, title, picture, order, tip, sorting, reverse, colours):
         wx.Panel.__init__(self, parent, -1)
         self.type = None
         self.selectedColour = colours[0]
@@ -16,6 +16,10 @@ class ColumnHeader(wx.Panel):
         self.addComponents(title, picture, tip)
         self.setOrdering(order)
         self.sorting = sorting
+        if reverse:
+            self.reverse = True
+        else:
+            self.reverse = False
         
         
         
@@ -74,10 +78,10 @@ class ColumnHeader(wx.Panel):
         self.GetSizer().Layout()
     
     def clicked(self, event):
-        if not self.type or self.type == 'down':
-            newType = 'up'
-        elif self.type == 'up':
+        if not self.type or self.type == 'up':
             newType = 'down'
+        elif self.type == 'down':
+            newType = 'up'
         self.setOrdering(newType)
         self.GetParent().setOrdering(self, newType)
         
@@ -132,7 +136,7 @@ class ColumnHeaderBar(wx.Panel):
         columns = self.itemPanel.getColumns()
         for dict in columns:
             colours = (wx.Colour(203,203,203), wx.Colour(223,223,223))
-            header = ColumnHeader(self, dict.get('title'), dict.get('pic'), dict.get('order'), dict['tip'], dict['sort'], colours)
+            header = ColumnHeader(self, dict.get('title'), dict.get('pic'), dict.get('order'), dict['tip'], dict['sort'], dict.get('reverse'), colours)
             
 
             self.hSizer.Add(header, dict.get('weight',0), wx.EXPAND|wx.BOTTOM, 0)
@@ -159,7 +163,7 @@ class ColumnHeaderBar(wx.Panel):
         for header in self.columns:
             if header != column:
                 header.setOrdering(None)
-        if ordering == 'up':
+        if ordering == 'up' and not column.reverse or ordering == 'down' and column.reverse:
             self.sorting = (column.sorting, 'increase')
         else:
             self.sorting = (column.sorting, 'decrease')
