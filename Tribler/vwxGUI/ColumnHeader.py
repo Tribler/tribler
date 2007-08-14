@@ -32,17 +32,18 @@ class ColumnHeader(wx.Panel):
             self.icon = ImagePanel(self)
             self.icon.setBitmapFromFile(picture)
             self.icon.setBackground(self.unselectedColour)
-            self.hSizer.Add(self.icon, 1, wx.ALL, 1)
+            self.hSizer.Add(self.icon, 1, wx.TOP,1 )
         else:
             raise Exception('No text nor an icon in columnheader')
         self.sortIcon = ImagePanel(self)
-        self.sortIcon.SetMinSize((20,20))
+        #self.sortIcon.SetMinSize((18,))
         self.sortIcon.setBackground(self.unselectedColour)
         self.sortIcon.Hide()
         self.hSizer.Add(self.sortIcon, 0, wx.ALL, 1)
         self.SetSizer(self.hSizer)
         self.SetAutoLayout(True)
         self.hSizer.Layout()
+        self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
         for element in self.GetChildren()+[self]:
             element.Bind(wx.EVT_LEFT_UP, self.clicked)
             element.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
@@ -110,15 +111,22 @@ class ColumnHeaderBar(wx.Panel):
         for dict in columns:
             colours = (wx.Colour(203,203,203), wx.Colour(223,223,223))
             header = ColumnHeader(self, dict.get('title'), dict.get('pic'), dict.get('order'), dict['tip'], dict['sort'], colours)
-            if dict.get('width'):
-                header.SetSize((dict['width'], -1))
-                header.SetMinSize((dict['width'], -1))
+            
+
             self.hSizer.Add(header, dict.get('weight',0), wx.EXPAND|wx.BOTTOM, 0)
+
             self.columns.append(header)
             if columns.index(dict) != len(columns)-1:
                 line = wx.StaticLine(self,-1,wx.DefaultPosition, wx.DefaultSize, wx.LI_VERTICAL)
-                line.SetBackgroundColour(colours[0])
-                self.hSizer.Add(line, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)
+                self.SetBackgroundColour(colours[0])
+                self.hSizer.Add(line, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 0)
+                if dict.get('width'):
+                    header.SetSize((dict['width']+6, -1))
+                    header.SetMinSize((dict['width']+6, -1))
+            else:
+                if dict.get('width'):
+                    header.SetSize((dict['width']+3, -1))
+                    header.SetMinSize((dict['width']+3, -1))
         
         #self.SetBackgroundColour(wx.Colour(100,100,100))
         self.hSizer.Layout()

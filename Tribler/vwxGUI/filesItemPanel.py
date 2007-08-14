@@ -209,8 +209,8 @@ class FilesItemPanel(wx.Panel):
         return [{'sort':'content_name', 'title':'name', 'weight':1,'tip':self.utility.lang.get('filename'), 'order':'up'},
                 {'sort':'length', 'title':'size', 'width':75, 'tip':self.utility.lang.get('filesize')},
                 {'sort':'date', 'title':'creation','width':110, 'tip':self.utility.lang.get('creationdate')},
-                {'sort':'seeder', 'pic':'up', 'width':47, 'tip':self.utility.lang.get('uploaders')},
-                {'sort':'leecher', 'pic':'down', 'width':47, 'tip':self.utility.lang.get('downloaders')},
+                {'sort':'seeder', 'pic':'upSmall', 'width':47, 'tip':self.utility.lang.get('uploaders')},
+                {'sort':'leecher', 'pic':'downSmall', 'width':47, 'tip':self.utility.lang.get('downloaders')},
                 {'sort':'relevance', 'pic':'heart1', 'width':86, 'tip':self.utility.lang.get('recommendation')}
                 ]
 
