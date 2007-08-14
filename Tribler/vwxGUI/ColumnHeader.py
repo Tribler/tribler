@@ -1,4 +1,4 @@
-import wx
+import wx, sys
 from Tribler.vwxGUI.bgPanel import ImagePanel
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 
@@ -24,16 +24,17 @@ class ColumnHeader(wx.Panel):
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.text = None
         self.icon = None
-        if title:
-            self.hSizer.Add([15,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
-            self.text = wx.StaticText(self, -1, title)
-            self.hSizer.Add(self.text, 1, wx.TOP, 3)
-        elif picture:
+        
+        if picture:
             self.icon = ImagePanel(self)
             self.icon.setBitmapFromFile(picture)
             self.icon.setBackground(self.unselectedColour)
             self.hSizer.Add(self.icon, 1, wx.TOP,1 )
-        else:
+        if title:
+            self.hSizer.Add([15,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
+            self.text = wx.StaticText(self, -1, title)
+            self.hSizer.Add(self.text, 1, wx.TOP, 3)
+        if not picture and not title:
             raise Exception('No text nor an icon in columnheader')
         self.sortIcon = ImagePanel(self)
         #self.sortIcon.SetMinSize((18,))
@@ -84,7 +85,15 @@ class ColumnHeader(wx.Panel):
             colour = self.selectedColour
 
         elif event.Leaving():
-            colour = self.unselectedColour
+            if sys.platform == 'windows32':
+                position = event.GetPosition()
+                for i in xrange(2):
+                    position[i]-=self.GetPosition()[i]
+                size = self.GetSize()
+                if position[0]<0 or position[0]>=size[0] or position[1]<0 or position[1]>=size[1]:
+                    colour = self.unselectedColour
+            else:
+                colour = self.unselectedColour
         if colour:
             for element in [self, self.icon, self.sortIcon, self.text]:
                 if element:
