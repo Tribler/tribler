@@ -92,6 +92,7 @@ class ImagePanelBasic(wx.Panel):
         iw, ih = self.bitmap.GetSize()
                 
         self.xpos, self.ypos = (w-iw)/2, (h-ih)/2
+        self.SetMinSize((iw, ih))
         self.Refresh()
         
     def OnErase(self, event):

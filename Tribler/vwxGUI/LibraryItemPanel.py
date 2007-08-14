@@ -158,14 +158,14 @@ class LibraryItemPanel(wx.Panel):
         self.addLine()
         
         # Up/Down text speed
-        self.downSpeed = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='downSpeed')
+        self.downSpeed = ImagePanel(self, -1, wx.DefaultPosition, wx.Size(16,16),name='downSpeed')
         self.downSpeed.setBackground(wx.WHITE)
         self.downSpeed.SetToolTipString(self.utility.lang.get('down'))
         self.speedDown2 = wx.StaticText(self,-1,"down: 0 KB/s",wx.Point(274,3),wx.Size(70,12),wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)                                
         self.speedDown2.SetForegroundColour(self.triblerGrey)        
         self.speedDown2.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.speedDown2.SetMinSize((70,12))
-        self.upSpeed = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='upSpeed')
+        self.upSpeed = ImagePanel(self, -1, wx.DefaultPosition, wx.Size(16,16),name='upSpeed')
         self.upSpeed.setBackground(wx.WHITE)
         self.upSpeed.SetToolTipString(self.utility.lang.get('up'))
         self.speedUp2   = wx.StaticText(self,-1,"up: 0 KB/s",wx.Point(274,3),wx.Size(70,12),wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)                        

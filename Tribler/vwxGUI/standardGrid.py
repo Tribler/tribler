@@ -37,6 +37,7 @@ class standardGrid(wx.Panel):
         self.currentRows = 0
         self.sizeMode = 'auto'
         self.columnHeader = None
+        self.panels = []
         pre = wx.PrePanel()
         # the Create step is done by XRC.
         self.PostCreate(pre)
@@ -72,7 +73,6 @@ class standardGrid(wx.Panel):
         self.utility = self.guiUtility.utility
         #self.cols = 5
         
-        self.panels = []
         self.Bind(wx.EVT_SIZE, self.onResize)
         
         self.addComponents()
@@ -99,14 +99,15 @@ class standardGrid(wx.Panel):
         #self.Update()
         #print "vSizer: %s, Panel: %s"% (self.vSizer.GetSize(), self.GetSize())
 
-    def onViewModeChange(self, event=None):
-        assert self.columnTypes, "grid viewmode change not allowed if grid initiated with integer(self.cols)"
-        if type(event.GetEventObject()) == wx.Choice:
-            mode = event.GetEventObject().GetStringSelection()
-        else:
-            mode = event.GetEventObject().GetValue()
-        
-        
+    def onViewModeChange(self, event=None, mode = None):
+        if not self.initReady:
+            wx.CallAfter(self.onViewModeChange, event, mode)
+            return
+                         
+        if not mode:
+            if type(event.GetEventObject()) == wx.Choice:
+                mode = event.GetEventObject().GetStringSelection()
+            
         #oldcols = self.cols
         self.updatePanel(self.currentRows, 0)
         if mode == 'thumbnails':
@@ -558,9 +559,10 @@ class friendsGrid(standardGrid):
     
 class libraryGrid(standardGrid):
     def __init__(self):
-        columns = 1
-        subPanelHeight = 22 # This will be update after first refresh
+        columns = (1,1)
+        subPanelHeight = (22, 22) # This will be update after first refresh
         standardGrid.__init__(self, columns, subPanelHeight, orientation='horizontal')
+        self.onViewModeChange(mode='list')
         
     def getSubPanel(self, keyfun):
         return LibraryItemPanel(self, keyfun)
