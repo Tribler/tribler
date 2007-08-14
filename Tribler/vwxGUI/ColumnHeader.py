@@ -70,6 +70,7 @@ class ColumnHeader(wx.Panel):
         else:
             self.sortIcon.setBitmapFromFile(self.bitmapOrderDown)
             self.sortIcon.Hide()
+            self.setColour(self.unselectedColour)
         self.GetSizer().Layout()
     
     def clicked(self, event):
@@ -104,7 +105,7 @@ class ColumnHeader(wx.Panel):
                 colour = self.unselectedColour
         if colour:
             self.setColour(colour)
-            self.Refresh()
+            
         
     def setColour(self, colour):
         for element in [self, self.icon, self.sortIcon, self.text]:
@@ -112,6 +113,7 @@ class ColumnHeader(wx.Panel):
                 if element.__class__ == ImagePanel:
                     element.setBackground(colour)
                 element.SetBackgroundColour(colour)
+        self.Refresh()
                 
 class ColumnHeaderBar(wx.Panel):
     
