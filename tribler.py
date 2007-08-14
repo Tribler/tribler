@@ -35,7 +35,7 @@ if sys.platform == "darwin":
     # relative to the location of tribler.py
     os.chdir(os.path.abspath(os.path.dirname(sys.argv[0])))
 
-from threading import Thread, Timer, Event,currentThread
+from threading import Thread, Timer, Event,currentThread,enumerate
 from time import time, ctime, sleep
 from traceback import print_exc, print_stack
 from cStringIO import StringIO
@@ -80,7 +80,7 @@ from Tribler.notification import init as notification_init
 from Tribler.vwxGUI.font import *
 from Tribler.Web2.util.update import Web2Updater
 
-DEBUG = False
+DEBUG = True
 ALLOW_MULTIPLE = False
 start_time = 0
 start_time2 = 0
@@ -863,6 +863,12 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         
         if DEBUG:    
             print >>sys.stderr,"abc: OnCloseWindow END"
+
+        if DEBUG:
+            ts = enumerate()
+            for t in ts:
+                print >>sys.stderr,"abc: Thread still running",t.getName(),"daemon",t.isDaemon()
+
 
 
     def onWarning(self,exc):

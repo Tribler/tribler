@@ -747,7 +747,8 @@ class Utility:
                       "max_files_open", 
                       "max_connections", 
                       "upnp_nat_access", 
-                      "auto_flush" ]
+                      "auto_flush",
+                      "ut_pex_max_addrs_from_peer" ]
         for param in paramlist:
             value = self.config.Read(param)
             if value != "":

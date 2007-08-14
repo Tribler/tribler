@@ -320,7 +320,7 @@ class Connection:
         # an untrusted source, so be a bit careful
         mx = self.connecter.ut_pex_max_addrs_from_peer
         if DEBUG:
-            print >>sys.stderr,"connecter: Got",len(added_peers),"peers via uTorrent PEX, using",mx
+            print >>sys.stderr,"connecter: Got",len(added_peers),"peers via uTorrent PEX, using max",mx
             #print >>sys.stderr,"connecter: Got",added_peers
         shuffle(added_peers)
         
@@ -401,13 +401,15 @@ class Connecter:
         if 'overlay' in self.config:
             self.overlay_enabled = self.config['overlay']
         self.ut_pex_enabled = 0
-        if 'ut_pex' in self.config:
-            self.ut_pex_enabled = self.config['ut_pex']
-            m = self.config['ut_pex_max_addrs_from_peer']
-            if m == 0:
-                self.ut_pex_max_addrs_from_peer = 2 ** 31
+        if 'ut_pex_max_addrs_from_peer' in self.config:
+            self.ut_pex_max_addrs_from_peer = self.config['ut_pex_max_addrs_from_peer']
+            self.ut_pex_enabled = self.ut_pex_max_addrs_from_peer > 0
+            
+        if DEBUG:
+            if self.ut_pex_enabled:
+                print >>sys.stderr,"connecter: Enabling uTorrent PEX"
             else:
-                self.ut_pex_max_addrs_from_peer = m 
+                print >>sys.stderr,"connecter: Disabling uTorrent PEX"
             
         if self.overlay_enabled:
             # Say in the EXTEND handshake we support the overlay-swarm ext.
@@ -474,11 +476,16 @@ class Connecter:
         for c in self.connections.values():
             if c.supports_extend_msg(EXTEND_MSG_UTORRENT_PEX):
                 if DEBUG:
-                    print >>sys.stderr,"connecter: Preparing ut_pex for",c.get_ip(),c.get_extend_listenport()
+                    print >>sys.stderr,"connecter: ut_pex: Creating msg for",c.get_ip(),c.get_extend_listenport()
                 try:
                     currconns = self.connections.values()
                     (addedconns,droppedconns) = ut_pex_get_conns_diff(currconns,c,c.get_ut_pex_previous_conns())
                     c.set_ut_pex_previous_conns(currconns)
+                    if False: # DEBUG
+                        for conn in addedconns:
+                            print >>sys.stderr,"connecter: ut_pex: Added",conn.get_ip(),conn.get_extend_listenport()
+                        for conn in droppedconns:
+                            print >>sys.stderr,"connecter: ut_pex: Dropped",conn.get_ip(),conn.get_extend_listenport()
                     payload = create_ut_pex(addedconns,droppedconns)
                     c.send_extend_ut_pex(payload)
                 except:

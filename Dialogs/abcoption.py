@@ -1080,7 +1080,7 @@ class AdvancedNetworkPanel(ABCOptionPanel):
 
         # ut_pex maximum Peers
         self.ut_pex_maxaddrs_data = wx.SpinCtrl(self, size = wx.Size(60, -1))
-        self.ut_pex_maxaddrs_data.SetRange(10, 100)
+        self.ut_pex_maxaddrs_data.SetRange(0, 1024)
         datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('ut_pex_maxaddrs')), 1, wx.ALIGN_CENTER_VERTICAL)
         datasizer.Add(self.ut_pex_maxaddrs_data)
 
@@ -1116,6 +1116,8 @@ class AdvancedNetworkPanel(ABCOptionPanel):
         upnp_val = self.utility.config.Read('upnp_nat_access', "int")
         selected = self.upnp_val2selected(upnp_val)
         self.upnp_data.SetStringSelection(self.upnp_choices[selected])
+
+        self.ut_pex_maxaddrs_data.SetValue(Read('ut_pex_max_addrs_from_peer', "int"))
 
 #        #self.ipv6bindsv4_data.SetSelection()
         
@@ -1169,6 +1171,10 @@ class AdvancedNetworkPanel(ABCOptionPanel):
         self.utility.config.Write('upnp_nat_access',upnp_val)
 
         self.utility.config.Write('ipv6_binds_v4', "1")
+
+        mx = self.ut_pex_maxaddrs_data.GetValue()
+        self.utility.config.Write('ut_pex_max_addrs_from_peer', mx)
+
 
 
 ################################################################

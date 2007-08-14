@@ -141,6 +141,7 @@ class TorrentChecking(Thread):
         self.mldhtchecker = mainlineDHTChecker.getInstance() 
         
     def run(self):
+        """ Gets one torrent from good or unknown list and checks it """
         self.torrentList.acquire()
         g = self.torrentList.getGoodLen()
         n = self.torrentList.getUnknownLen()

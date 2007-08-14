@@ -92,6 +92,9 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
         btconfig['max_torrents'] = int(self.utility.config.Read('maxntorrents'))
         btconfig['stop_collecting_threshold'] = int(self.utility.config.Read('stopcollectingthreshold', "int"))
         btconfig['torrent_collecting_rate'] = int(self.utility.config.Read('torrentcollectingrate'))
+        btconfig['ut_pex_max_addrs_from_peer'] = int(self.utility.config.Read('ut_pex_max_addrs_from_peer'))
+
+        print >>sys.stderr,"launchmany: btconfig ut_pex_max_addrs_from_peer set to",btconfig['ut_pex_max_addrs_from_peer'] 
 
         # btconfig must be set before calling LaunchMany constructor
         Thread.__init__(self)
