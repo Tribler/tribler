@@ -1004,7 +1004,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 f = self.data_manager.getTorrent(torrent)
                 if not f:
                     continue
-                name = f.get('content_name','unknown')
+                name = f.get('info',{}).get('name', 'unknown')
                 index = sim_torrent_list.InsertStringItem(sys.maxint, name)
                 alist.append(torrent)
 #                color = "black"

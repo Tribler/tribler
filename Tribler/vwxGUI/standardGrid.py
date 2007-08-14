@@ -512,9 +512,9 @@ class standardGrid(wx.Panel):
         
     def toggleColumnHeaders(self, show):
         # show or hide columnheaders
-        if show:
-            if self.columnHeader:
+        if bool(self.columnHeader) == show:
                 return
+        if show:
             panel = self.getFirstPanel()
             if panel:
                 self.columnHeader = ColumnHeaderBar(self, panel)
