@@ -350,7 +350,7 @@
                     <flag>wxFIXED_MINSIZE</flag>
                     <border>3</border>
                     <option>0</option>
-                    <object class="wxPanel" name="top10Sharers" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
+                    <object class="wxPanel" name="bgPanel_statsTopSharers" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
                       <pos>336,128</pos>
                       <size>102,16</size>
                     </object>

@@ -325,7 +325,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 self.getAlternativeTabPanel('profileDetails_Persons', parent=self).Hide() #parent is self because it is not a tab, it replaces the details panel
                 self.getAlternativeTabPanel('profileDetails_Download', parent=self).Hide() #parent is self because it is not a tab, it replaces the details panel
                 self.getAlternativeTabPanel('profileDetails_Presence', parent=self).Hide() #parent is self because it is not a tab, it replaces the details panel                
-        
+                self.getAlternativeTabPanel('profileDetails_statsTopSharers', parent=self).Hide() #parent is self because it is not a tab, it replaces the details panel                
         return currentPanel
     
     def loadStatusPanel(self):
