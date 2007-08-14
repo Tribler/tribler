@@ -44,8 +44,8 @@
                   <border>6</border>
                   <option>0</option>
                   <object class="wxPanel" name="infoIcon" subclass="Tribler.vwxGUI.bgPanel.ImagePanel">
-                    <tooltip>Files received from other Tribler users, showing what is available in the Tribler network \n(automatic process)</tooltip>
-                    <pos>89,8</pos>
+                    <tooltip>Files received from other Tribler users, thus showing what is available in the Tribler network \n(automatic process)</tooltip>
+                    <pos>0,6</pos>
                     <size>8,8</size>
                   </object>
                 </object>
@@ -197,7 +197,7 @@
         </object>
       </object>
       <object class="sizeritem">
-        <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>5</border>
         <option>1</option>
         <object class="wxPanel" name="filesGrid" subclass="Tribler.vwxGUI.standardGrid.filesGrid">

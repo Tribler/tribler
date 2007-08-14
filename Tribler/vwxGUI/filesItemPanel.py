@@ -146,26 +146,26 @@ class FilesItemPanel(wx.Panel):
             # V Line
             self.vLine3 = self.addLine() 
             # Add popularity
-            self.seeders = ImagePanel(self, -1, wx.DefaultPosition, wx.Size(16,16),name='up')
-            self.seeders.setBackground(wx.WHITE)
-            self.seeders.SetToolTipString(self.utility.lang.get('rNumberOfSeeders'))
+##            self.seeders = ImagePanel(self, -1, wx.DefaultPosition, wx.Size(16,16),name='up')
+##            self.seeders.setBackground(wx.WHITE)
+##            self.seeders.SetToolTipString(self.utility.lang.get('rNumberOfSeeders'))
             self.seedersNumber = wx.StaticText(self,-1,"203",wx.Point(0,0),wx.Size(125,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
             self.seedersNumber.SetBackgroundColour(wx.WHITE)
             self.seedersNumber.SetForegroundColour(self.triblerGrey) 
             self.seedersNumber.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
             self.seedersNumber.SetMinSize((45,18))
-            self.leechers = ImagePanel(self, -1, wx.DefaultPosition, wx.Size(16,16),name='down')
-            self.leechers.setBackground(wx.WHITE)
-            self.leechers.SetToolTipString(self.utility.lang.get('rNumberOfLeechers'))
+##            self.leechers = ImagePanel(self, -1, wx.DefaultPosition, wx.Size(16,16),name='down')
+##            self.leechers.setBackground(wx.WHITE)
+##            self.leechers.SetToolTipString(self.utility.lang.get('rNumberOfLeechers'))
             self.leechersNumber = wx.StaticText(self,-1,"678",wx.Point(0,0),wx.Size(125,18), wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)        
             self.leechersNumber.SetBackgroundColour(wx.WHITE)
             self.leechersNumber.SetForegroundColour(self.triblerGrey) 
             self.leechersNumber.SetFont(wx.Font(FS_FILETITLE,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
             self.leechersNumber.SetMinSize((45,18))
-            self.hSizer.Add(self.seeders, 0,wx.TOP|wx.BOTTOM|wx.RIGHT, 2) 
+##            self.hSizer.Add(self.seeders, 0,wx.TOP|wx.BOTTOM|wx.RIGHT, 2) 
             self.hSizer.Add(self.seedersNumber, 0,wx.TOP|wx.BOTTOM|wx.RIGHT, 2) 
             self.vLine4 = self.addLine() 
-            self.hSizer.Add(self.leechers, 0,wx.TOP|wx.BOTTOM|wx.RIGHT, 2)
+##            self.hSizer.Add(self.leechers, 0,wx.TOP|wx.BOTTOM|wx.RIGHT, 2)
             self.hSizer.Add(self.leechersNumber, 0,wx.TOP|wx.BOTTOM|wx.RIGHT, 2) 
             # V Line
             self.vLine5 = self.addLine() 
@@ -205,7 +205,16 @@ class FilesItemPanel(wx.Panel):
             window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction)            
             #window.Bind(wx.EVT_RIGHT_DOWN, self.rightMouseButton)  
             
-                             
+    def getColumns(self):
+        return [{'sort':'content_name', 'title':'name', 'weight':1,'tip':self.utility.lang.get('filename'), 'order':'up'},
+                {'sort':'length', 'title':'size', 'width':75, 'tip':self.utility.lang.get('filesize')},
+                {'sort':'date', 'title':'creation','width':110, 'tip':self.utility.lang.get('creationdate')},
+                {'sort':'seeder', 'pic':'up', 'width':47, 'tip':self.utility.lang.get('uploaders')},
+                {'sort':'leecher', 'pic':'down', 'width':47, 'tip':self.utility.lang.get('downloaders')},
+                {'sort':'relevance', 'pic':'heart1', 'width':86, 'tip':self.utility.lang.get('recommendation')}
+                ]
+
+                 
     def setData(self, torrent):
         
         """
@@ -285,8 +294,8 @@ class FilesItemPanel(wx.Panel):
                     self.tasteHeart.Hide()
                     # -- END tasteheart --
                 
-                self.leechers.Show()
-                self.seeders.Show()
+##                self.leechers.Show()
+##                self.seeders.Show()
     #            self.tasteHeart.Show()
     
                 self.sourceIcon.Show()
@@ -346,9 +355,9 @@ class FilesItemPanel(wx.Panel):
             self.SetBackgroundColour(colour)
             self.fileSize.SetBackgroundColour(colour)
             self.creationDate.SetBackgroundColour(colour)
-            self.seeders.setBackground(colour)
+##            self.seeders.setBackground(colour)
             self.seedersNumber.SetBackgroundColour(colour)
-            self.leechers.setBackground(colour)
+##            self.leechers.setBackground(colour)
             self.leechersNumber.SetBackgroundColour(colour)
             self.tasteHeart.setBackground(colour)        
             self.taste.SetBackgroundColour(colour)
@@ -372,9 +381,9 @@ class FilesItemPanel(wx.Panel):
             self.SetBackgroundColour(colour)
             self.fileSize.SetBackgroundColour(colour)
             self.creationDate.SetBackgroundColour(colour)
-            self.seeders.setBackground(colour)              
+##            self.seeders.setBackground(colour)              
             self.seedersNumber.SetBackgroundColour(colour)
-            self.leechers.setBackground(colour)
+##            self.leechers.setBackground(colour)
             self.leechersNumber.SetBackgroundColour(colour)
             self.tasteHeart.setBackground(colour)        
             self.taste.SetBackgroundColour(colour)
@@ -417,15 +426,6 @@ class FilesItemPanel(wx.Panel):
         
     def getIdentifier(self):
         return self.data['infohash']
-
-    def getColumns(self):
-        return [{'sort':'content_name', 'title':'name', 'weight':1,'tip':self.utility.lang.get('filename'), 'order':'up'},
-                {'sort':'length', 'title':'size', 'width':81, 'tip':self.utility.lang.get('filesize')},
-                {'sort':'date', 'title':'creation','width':116, 'tip':self.utility.lang.get('creationdate')},
-                {'sort':'seeder', 'pic':'up', 'width':71, 'tip':self.utility.lang.get('uploaders')},
-                {'sort':'leecher', 'pic':'down', 'width':71, 'tip':self.utility.lang.get('downloaders')},
-                {'sort':'relevance', 'pic':'heart1', 'width':89, 'tip':self.utility.lang.get('recommendation')}
-                ]
 
                 
 class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):

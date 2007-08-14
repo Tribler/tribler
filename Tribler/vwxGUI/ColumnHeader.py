@@ -5,8 +5,8 @@ from Tribler.vwxGUI.GuiUtility import GUIUtility
 
 class ColumnHeader(wx.Panel):
     
-    bitmapOrderUp = 'up'
-    bitmapOrderDown = 'down'
+    bitmapOrderUp = 'upSort'
+    bitmapOrderDown = 'downSort'
     
     def __init__(self, parent, title, picture, order, tip, sorting, colour):
         wx.Panel.__init__(self, parent, -1)
@@ -22,8 +22,9 @@ class ColumnHeader(wx.Panel):
         self.SetBackgroundColour(self.colour)
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         if title:
+            self.hSizer.Add([15,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
             self.text = wx.StaticText(self, -1, title)
-            self.hSizer.Add(self.text, 1, wx.ALL, 1)
+            self.hSizer.Add(self.text, 1, wx.TOP, 3)
         elif picture:
             self.icon = ImagePanel(self)
             self.icon.setBitmapFromFile(picture)
@@ -86,16 +87,17 @@ class ColumnHeaderBar(wx.Panel):
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         columns = self.itemPanel.getColumns()
         for dict in columns:
-            colour = wx.Colour(190,190,190)
+            colour = wx.Colour(203,203,203)
             header = ColumnHeader(self, dict.get('title'), dict.get('pic'), dict.get('order'), dict['tip'], dict['sort'], colour)
             if dict.get('width'):
                 header.SetSize((dict['width'], -1))
                 header.SetMinSize((dict['width'], -1))
-            self.hSizer.Add(header, dict.get('weight',0), wx.ALL|wx.EXPAND, 0)
+            self.hSizer.Add(header, dict.get('weight',0), wx.EXPAND|wx.BOTTOM, 5)
             self.columns.append(header)
             if columns.index(dict) != len(columns)-1:
                 line = wx.StaticLine(self,-1,wx.DefaultPosition, wx.DefaultSize, wx.LI_VERTICAL)
-                self.hSizer.Add(line, 0, wx.ALL|wx.EXPAND, 0)
+                line.SetBackgroundColour(wx.Colour(203,203,203))
+                self.hSizer.Add(line, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)
         
         #self.SetBackgroundColour(wx.Colour(100,100,100))
         self.hSizer.Layout()
