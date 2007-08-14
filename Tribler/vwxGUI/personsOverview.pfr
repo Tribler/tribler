@@ -675,7 +675,7 @@ i_sizeGrow=1
 i_border=5
 is_parent=0
 is_siz=0
-siz_style=41024
+siz_style=40960
 l_enWinSizeMin=0
 b_ItmsizeMinAb=0
 i_ItminSizeH=10
@@ -696,7 +696,6 @@ IndexOfS=3
 [Windows9/i_width/Windows9]
 Theme=0
 [Windows9/sizerProp]
-0=1
 5=1
 13=1
 [Windows10]

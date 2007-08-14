@@ -21,7 +21,7 @@ if sys.platform == 'darwin':
     FS_FRIENDTITLE = 10
     FS_STATUS = 10
     FS_SIMILARITY = 10
-    FS_HEARTRANK = 10
+    FS_HEARTRANK = 8
     FS_ONLINE = 10
 else:
     FS_FRIENDTITLE = 8
@@ -115,9 +115,7 @@ class FriendsItemPanel(wx.Panel):
         
         # Add Spacer to keep space occupied when no heart available
         self.vSizer = wx.BoxSizer(wx.VERTICAL)                
-        self.vSizer.Add([70,1],0,wx.FIXED_MINSIZE,0)  
-          
-        # Add Taste Heart
+        self.vSizer.Add([60,2],0,wx.FIXED_MINSIZE,0)  
         self.hSizer2 = wx.BoxSizer(wx.HORIZONTAL)    
         self.tasteHeart = TasteHeart.TasteHeart(self, -1, wx.DefaultPosition, wx.Size(14,14),name='TasteHeart')
         self.hSizer2.Add(self.tasteHeart, 0, wx.TOP, 0)
@@ -125,11 +123,10 @@ class FriendsItemPanel(wx.Panel):
         # Add Taste similarity
         self.taste =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(40,15))        
         self.taste.SetBackgroundColour(wx.WHITE)
-        self.taste.SetFont(wx.Font(FS_SIMILARITY,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.taste.SetMinSize((30,15))
+        self.taste.SetFont(wx.Font(FS_HEARTRANK,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
+        self.taste.SetMinSize((20,15))
         self.taste.SetLabel('')
-        self.hSizer2.Add(self.taste, 0, wx.LEFT, 2)
-        
+        self.hSizer2.Add(self.taste, 0, wx.LEFT, 2)        
         self.vSizer.Add(self.hSizer2, 0, wx.TOP, 2)
         self.hSizer.Add(self.vSizer, 0, wx.LEFT|wx.RIGHT, 2)
         
@@ -150,6 +147,13 @@ class FriendsItemPanel(wx.Panel):
             window.Bind(wx.EVT_KEY_UP, self.keyTyped)
             window.Bind(wx.EVT_LEFT_DCLICK, self.doubleClicked)
             window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction) 
+            
+    def getColumns(self):
+        return [{'sort':'content_name', 'title':'name', 'weight':1,'tip':self.utility.lang.get('filename') },
+                {'sort':'last_seen', 'title':'status', 'width':165, 'tip':self.utility.lang.get('filesize'), 'order':'down'},
+                {'sort':'??', 'title':'helping','weight':1, 'tip':self.utility.lang.get('creationdate')},
+                {'sort':'similarity', 'pic':'heartSmall', 'width':60, 'tip':self.utility.lang.get('recommendation')}
+                ]
             
     def addLine(self, vertical=True):
         if vertical:

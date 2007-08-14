@@ -187,7 +187,7 @@
         </object>
       </object>
       <object class="sizeritem">
-        <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>5</border>
         <option>1</option>
         <object class="wxPanel" name="personsGrid" subclass="Tribler.vwxGUI.standardGrid.personsGrid">

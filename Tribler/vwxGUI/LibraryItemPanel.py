@@ -124,10 +124,11 @@ class LibraryItemPanel(wx.Panel):
 ##        self.hSizer.Add(self.vSizerTitle, 0, wx.LEFT|wx.RIGHT|wx.TOP|wx.EXPAND, 3)     
         
         
-        
+        # V Line
+        self.addLine()
         # Add Gauge/progressbar
         #self.pb = TriblerProgressbar(self,-1,wx.Point(359,0),wx.Size(80,15))
-        self.pb = ProgressBar(self,pos=wx.Point(359,0),size=wx.Size(140,5))
+        self.pb = ProgressBar(self,pos=wx.Point(359,0),size=wx.Size(100,5))
         
         # >> Drawn in progressbar
         #self.pbLabel = wx.StaticText(self,-1,"12% |ETA:10min30",wx.Point(274,3),wx.Size(80,15),wx.ST_NO_AUTORESIZE)                                
@@ -164,7 +165,7 @@ class LibraryItemPanel(wx.Panel):
         self.speedDown2 = wx.StaticText(self,-1,"down: 0 KB/s",wx.Point(274,3),wx.Size(70,12),wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)                                
         self.speedDown2.SetForegroundColour(self.triblerGrey)        
         self.speedDown2.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.speedDown2.SetMinSize((70,12))
+        self.speedDown2.SetMinSize((70,12))        
         self.upSpeed = ImagePanel(self, -1, wx.DefaultPosition, wx.Size(16,16),name='upSpeed')
         self.upSpeed.setBackground(wx.WHITE)
         self.upSpeed.SetToolTipString(self.utility.lang.get('up'))
@@ -176,6 +177,8 @@ class LibraryItemPanel(wx.Panel):
         self.hSizer.Add(self.downSpeed, 0, wx.TOP, 2)
         self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)                 
         self.hSizer.Add(self.speedDown2, 0, wx.TOP|wx.EXPAND, 4)
+        # V Line
+        self.addLine()
         
         self.hSizer.Add(self.upSpeed, 0, wx.LEFT|wx.TOP, 2)                  
         self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)                 
@@ -194,8 +197,8 @@ class LibraryItemPanel(wx.Panel):
         self.statusField = wx.StaticText(self, -1,'', wx.Point(),wx.Size())
         self.statusField.SetForegroundColour(self.triblerGrey)        
         self.statusField.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.statusField.SetMinSize((37,12))
-        self.hSizer.Add(self.statusField, 1, wx.TOP|wx.EXPAND, 4)
+        self.statusField.SetMinSize((80,12))
+        self.hSizer.Add(self.statusField, 0, wx.TOP|wx.EXPAND, 4)
         
         # V Line
         self.addLine()
@@ -247,6 +250,15 @@ class LibraryItemPanel(wx.Panel):
             window.Bind(wx.EVT_LEFT_DCLICK, self.doubleClicked)
             window.Bind(wx.EVT_KEY_UP, self.keyTyped)                         
             window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction)             
+            
+    def getColumns(self):
+        return [{'sort':'content_name', 'reverse':True, 'title':'name', 'weight':1,'tip':self.utility.lang.get('filename'), 'order':'down'},
+                {'sort':'??', 'title':'progress', 'width':120, 'tip':self.utility.lang.get('filesize')},
+                {'sort':'??', 'title':'upspeed','width':88, 'tip':self.utility.lang.get('creationdate')},
+                {'sort':'??', 'title':'downspeed', 'width':88, 'tip':self.utility.lang.get('uploaders')},
+                {'sort':'latest', 'title':'status', 'width':80, 'tip':self.utility.lang.get('downloaders')},
+                {'sort':'??', 'title':'info', 'width':72, 'tip':self.utility.lang.get('recommendation')}
+                ]     
                   
     def refreshData(self):
         self.setData(self.data)

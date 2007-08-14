@@ -46,7 +46,7 @@ class standardGrid(wx.Panel):
             self.cols = cols
             self.columnTypes = None
             self.subPanelHeight = subPanelHeight
-        else:
+        else: 
             self.cols = cols[0]
             self.columnTypes = cols
             self.subPanelHeights = subPanelHeight
@@ -550,9 +550,10 @@ class personsGrid(standardGrid):
 
 class friendsGrid(standardGrid):
     def __init__(self):   
-        columns = 1
-        subPanelHeight = 22 # This will be update after first refresh
+        columns = (1,1)
+        subPanelHeight = (22,22) # This will be update after first refresh
         standardGrid.__init__(self, columns, subPanelHeight, orientation='vertical')
+        self.onViewModeChange(mode='list')
         
     def getSubPanel(self, keyfun):
         return FriendsItemPanel(self, keyfun)

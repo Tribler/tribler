@@ -113,7 +113,7 @@
               <option>0</option>
               <object class="wxStaticText" name="howToImprove">
                 <style>wxST_NO_AUTORESIZE</style>
-                <label>    you:</label>
+                <label>       you:</label>
                 <pos>6,173</pos>
                 <size>284,18</size>
                 <font>

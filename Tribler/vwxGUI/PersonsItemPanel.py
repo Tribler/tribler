@@ -165,7 +165,13 @@ class PersonsItemPanel(wx.Panel):
             window.Bind(wx.EVT_KEY_UP, self.keyTyped)
             window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction)            
 
-
+    def getColumns(self):
+        return [{'sort':'content_name', 'title':'name', 'weight':1,'tip':self.utility.lang.get('filename') },
+                {'sort':'last_seen', 'title':'status', 'width':165, 'tip':self.utility.lang.get('filesize'), 'order':'down'},
+                {'sort':'discFiles', 'pic':'iconDiscFiles','width':40, 'tip':self.utility.lang.get('creationdate')},
+                {'sort':'discPersons', 'pic':'iconDiscPersons', 'width':40, 'tip':self.utility.lang.get('uploaders')},                
+                {'sort':'similarity', 'pic':'heartSmall', 'width':60, 'tip':self.utility.lang.get('recommendation')}
+                ]
                          
     def setData(self, peer_data):
         # set bitmap, rating, title

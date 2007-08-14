@@ -133,6 +133,7 @@ class ColumnHeaderBar(wx.Panel):
         
     def addComponents(self):
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.hSizer.Add([0,20],0,wx.FIXED_MINSIZE,0)
         columns = self.itemPanel.getColumns()
         currentSorting = self.guiUtility.standardOverview.getSorting()
         print 'currentSorting: %s' % str(currentSorting)

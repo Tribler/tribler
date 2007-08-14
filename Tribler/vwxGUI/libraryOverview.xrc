@@ -141,11 +141,11 @@
         </object>
       </object>
       <object class="sizeritem">
-        <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+        <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>5</border>
         <option>1</option>
         <object class="wxPanel" name="libraryGrid" subclass="Tribler.vwxGUI.standardGrid.libraryGrid">
-          <pos>0,66</pos>
+          <pos>0,61</pos>
           <size>20,20</size>
         </object>
       </object>
