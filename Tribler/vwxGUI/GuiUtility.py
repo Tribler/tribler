@@ -182,6 +182,10 @@ class GUIUtility:
         
         self.standardOverview.setMode('filesMode')
         filters = self.standardOverview.getFilter().getState()
+        if filters:
+            filters[1] = 'seeder'
+        else:
+            filters = ['all', 'seeder']
         self.standardOverview.filterChanged(filters,setgui=True)
         try:
             if self.standardDetails:

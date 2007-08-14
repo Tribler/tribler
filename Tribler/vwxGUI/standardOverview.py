@@ -18,7 +18,7 @@ import web2
 
 OVERVIEW_MODES = ['filesMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionsMode', 'messageMode', 'libraryMode']
 
-DEBUG = False
+DEBUG = True
 
 class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     """
@@ -584,6 +584,9 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         self.guiUtility.data_manager.setSearchKeywords([], self.mode)
         self.filterChanged(None)
         
+    def getSorting(self):
+        return self.data[self.mode].get('filterState')[1]
+    
     def getFilter(self):
         return self.data[self.mode]['filter']
 

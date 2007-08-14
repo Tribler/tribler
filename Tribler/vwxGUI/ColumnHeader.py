@@ -134,9 +134,19 @@ class ColumnHeaderBar(wx.Panel):
     def addComponents(self):
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         columns = self.itemPanel.getColumns()
+        currentSorting = self.guiUtility.standardOverview.getSorting()
+        print 'currentSorting: %s' % str(currentSorting)
         for dict in columns:
             colours = (wx.Colour(203,203,203), wx.Colour(223,223,223))
-            header = ColumnHeader(self, dict.get('title'), dict.get('pic'), dict.get('order'), dict['tip'], dict['sort'], dict.get('reverse'), colours)
+            if (type(currentSorting) == str and currentSorting == dict['sort'] or
+                type(currentSorting) == tuple and currentSorting[0] == dict['sort']):
+                if (len(currentSorting) == 2 and currentSorting[1] == 'increase') ^ dict.get('reverse', False):
+                    beginorder = 'up'
+                else:
+                    beginorder = 'down'
+            else:
+                beginorder = None
+            header = ColumnHeader(self, dict.get('title'), dict.get('pic'), beginorder, dict['tip'], dict['sort'], dict.get('reverse'), colours)
             
 
             self.hSizer.Add(header, dict.get('weight',0), wx.EXPAND|wx.BOTTOM, 0)
