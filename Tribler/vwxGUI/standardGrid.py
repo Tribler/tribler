@@ -36,6 +36,7 @@ class standardGrid(wx.Panel):
         self.currentData = 0 #current starting index in the list for visible items
         self.currentRows = 0
         self.sizeMode = 'auto'
+        self.columnHeader = None
         pre = wx.PrePanel()
         # the Create step is done by XRC.
         self.PostCreate(pre)
@@ -512,6 +513,8 @@ class standardGrid(wx.Panel):
     def toggleColumnHeaders(self, show):
         # show or hide columnheaders
         if show:
+            if self.columnHeader:
+                return
             panel = self.getFirstPanel()
             if panel:
                 self.columnHeader = ColumnHeaderBar(self, panel)
@@ -520,6 +523,7 @@ class standardGrid(wx.Panel):
         else:
             self.columnHeaderSizer.Detach(0)
             self.columnHeader.Destroy()
+            self.columnHeader = None
         self.vSizer.Layout()
         
 class filesGrid(standardGrid):

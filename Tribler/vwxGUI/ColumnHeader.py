@@ -8,19 +8,22 @@ class ColumnHeader(wx.Panel):
     bitmapOrderUp = 'upSort'
     bitmapOrderDown = 'downSort'
     
-    def __init__(self, parent, title, picture, order, tip, sorting, colour):
+    def __init__(self, parent, title, picture, order, tip, sorting, colours):
         wx.Panel.__init__(self, parent, -1)
-        self.colour = colour
         self.type = None
-        self.addComponents(title, picture)
+        self.selectedColour = colours[0]
+        self.unselectedColour = colours[1]
+        self.addComponents(title, picture, tip)
         self.setOrdering(order)
-        self.SetToolTipString(tip)
         self.sorting = sorting
         
         
-    def addComponents(self, title, picture):
-        self.SetBackgroundColour(self.colour)
+        
+    def addComponents(self, title, picture, tip):
+        self.SetBackgroundColour(self.unselectedColour)
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.text = None
+        self.icon = None
         if title:
             self.hSizer.Add([15,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
             self.text = wx.StaticText(self, -1, title)
@@ -28,13 +31,13 @@ class ColumnHeader(wx.Panel):
         elif picture:
             self.icon = ImagePanel(self)
             self.icon.setBitmapFromFile(picture)
-            self.icon.setBackground(self.colour)
+            self.icon.setBackground(self.unselectedColour)
             self.hSizer.Add(self.icon, 1, wx.ALL, 1)
         else:
             raise Exception('No text nor an icon in columnheader')
         self.sortIcon = ImagePanel(self)
         self.sortIcon.SetMinSize((20,20))
-        self.sortIcon.setBackground(self.colour)
+        self.sortIcon.setBackground(self.unselectedColour)
         self.sortIcon.Hide()
         self.hSizer.Add(self.sortIcon, 0, wx.ALL, 1)
         self.SetSizer(self.hSizer)
@@ -42,6 +45,8 @@ class ColumnHeader(wx.Panel):
         self.hSizer.Layout()
         for element in self.GetChildren()+[self]:
             element.Bind(wx.EVT_LEFT_UP, self.clicked)
+            element.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
+            element.SetToolTipString(tip)
         
     def setText(self, t):
         self.text.SetLabel(t)
@@ -71,6 +76,22 @@ class ColumnHeader(wx.Panel):
         self.setOrdering(newType)
         self.GetParent().setOrdering(self, newType)
         
+    def mouseAction(self, event):
+        event.Skip()
+        colour = None
+        if event.Entering():
+            colour = self.selectedColour
+
+        elif event.Leaving():
+            colour = self.unselectedColour
+        if colour:
+            for element in [self, self.icon, self.sortIcon, self.text]:
+                if element:
+                    if element.__class__ == ImagePanel:
+                        element.setBackground(colour)
+                    element.SetBackgroundColour(colour)
+            self.Refresh()
+        
 class ColumnHeaderBar(wx.Panel):
     
     
@@ -87,16 +108,16 @@ class ColumnHeaderBar(wx.Panel):
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
         columns = self.itemPanel.getColumns()
         for dict in columns:
-            colour = wx.Colour(203,203,203)
-            header = ColumnHeader(self, dict.get('title'), dict.get('pic'), dict.get('order'), dict['tip'], dict['sort'], colour)
+            colours = (wx.Colour(203,203,203), wx.Colour(223,223,223))
+            header = ColumnHeader(self, dict.get('title'), dict.get('pic'), dict.get('order'), dict['tip'], dict['sort'], colours)
             if dict.get('width'):
                 header.SetSize((dict['width'], -1))
                 header.SetMinSize((dict['width'], -1))
-            self.hSizer.Add(header, dict.get('weight',0), wx.EXPAND|wx.BOTTOM, 5)
+            self.hSizer.Add(header, dict.get('weight',0), wx.EXPAND|wx.BOTTOM, 0)
             self.columns.append(header)
             if columns.index(dict) != len(columns)-1:
                 line = wx.StaticLine(self,-1,wx.DefaultPosition, wx.DefaultSize, wx.LI_VERTICAL)
-                line.SetBackgroundColour(wx.Colour(203,203,203))
+                line.SetBackgroundColour(colours[0])
                 self.hSizer.Add(line, 0, wx.LEFT|wx.RIGHT|wx.EXPAND, 3)
         
         #self.SetBackgroundColour(wx.Colour(100,100,100))
