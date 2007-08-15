@@ -7,6 +7,9 @@ from Tribler.Overlay.permid import permid_for_user
 from traceback import print_exc, print_stack
 from types import StringType, ListType, DictType
 
+from Tribler.Overlay.SecureOverlay import OLPROTO_VER_FIFTH
+
+
 MAX_BARTERCAST_LENGTH = 10 * 1024 * 1024 # TODO: give this length a reasonable value
 NO_PEERS_IN_MSG = 10
 
@@ -31,6 +34,10 @@ class BarterCastCore:
     ################################
     def createAndSendBarterCastMessage(self, target_permid, selversion):
 
+        # for older versions of Tribler (non-BarterCast): do nothing
+        if selversion <= OLPROTO_VER_FIFTH:
+            return
+
         # create a new bartercast message
         bartercast_data = self.createBarterCastMessage(target_permid)
         
@@ -42,7 +49,7 @@ class BarterCastCore:
             return
             
         # send the message    
-#        self.secure_overlay.send(target_permid, BARTERCAST+bartercast_msg, self.bartercastSendCallback)
+        self.secure_overlay.send(target_permid, BARTERCAST+bartercast_msg, self.bartercastSendCallback)
             
 
     ################################
