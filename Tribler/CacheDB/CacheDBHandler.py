@@ -895,10 +895,12 @@ class BarterCastDBHandler(BasicDBHandler):
 
                 # if list contains more than N elements: remove the last (=lowest value)
                 if len(top) > n:
-                    top.remove(top[len(top)-1])
+                    del top[-1]
+                    #top.remove(top[len(top)-1])
 
                 # determine new minimum of values    
-                min = top[len(top)-1][1]    
+                #min = top[len(top)-1][1]    
+                min = top[-1][1]    
 
         return top        
 

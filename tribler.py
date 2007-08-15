@@ -590,7 +590,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         #######################################################
         if (sys.platform == 'win32'):
             if self.utility.config.Read('associate', "boolean"):
-                if not self.utility.regchecker.testRegistry():
+                if self.utility.regchecker and not self.utility.regchecker.testRegistry():
                     dialog = RegCheckDialog(self)
                     dialog.ShowModal()
                     dialog.Destroy()

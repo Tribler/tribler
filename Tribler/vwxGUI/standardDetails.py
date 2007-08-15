@@ -25,7 +25,7 @@ from Tribler.Dialogs.GUIServer import GUIServer
 from Tribler.CacheDB.CacheDBHandler import MyPreferenceDBHandler
 from Tribler.Overlay.MetadataHandler import MetadataHandler
 from Tribler.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
-
+from Tribler.CacheDB.CacheDBHandler import BarterCastDBHandler
 
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'subscriptionsMode', 'messageMode']
 
@@ -74,6 +74,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         self.metadatahandler = MetadataHandler.getInstance()
         self.mode = None
         self.item = None
+        self.bartercastdb = None
         self.lastItemSelected = {} #keeps the last item selected for each mode
         self.data = {} #keeps gui elements for each mode
         for mode in DETAILS_MODES+['status']:
@@ -115,7 +116,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                             'profileDetails_Persons': ['descriptionField0','howToImprove','descriptionField1'],
                             'profileDetails_Download': ['descriptionField','Desc0','descriptionField0','howToImprove0','descriptionField1','takeMeThere0','Desc1','descriptionField2','howToImprove1','descriptionField3','takeMeThere1','Desc2','descriptionField4','howToImprove2','descriptionField5','takeMeThere2'],
                             #'profileDetails_Presence': ['descriptionField','Desc0','descriptionField0','howToImprove0','descriptionField1','Desc1','descriptionField2','howToImprove1','descriptionField3','Desc2','descriptionField4','howToImprove2','descriptionField5','takeMeThere0']}
-                            'profileDetails_Presence': ['descriptionField','Desc0','descriptionField0','howToImprove0','descriptionField1','Desc2','descriptionField4','howToImprove2','descriptionField5','takeMeThere0']}
+                            'profileDetails_Presence': ['descriptionField','Desc0','descriptionField0','howToImprove0','descriptionField1','Desc2','descriptionField4','howToImprove2','descriptionField5','takeMeThere0'],
+                            'profileDetails_statsTopSharers':['descriptionField0']}
+        
             
         self.statdlElements = ['st28c','down_White','downSpeed','up_White','upSpeed','download1','percent1','download2','percent2','download3','percent3','download4','percent4']
             
@@ -902,6 +905,13 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     text2 = text2 % update_url
                 self.getGuiObj('descriptionField4', tab = 'profileDetails_Presence').SetLabel(text1)
                 self.getGuiObj('descriptionField5', tab = 'profileDetails_Presence').SetLabel(text2)
+            # --------------------------------------------------------------------------------------------------------------------------------------------------------
+            # --- Top N List of sharers
+            elif self.currentPanel == self.getGuiObj('profileDetails_statsTopSharers'):
+                tab = 'profileDetails_statsTopSharers'
+                self.getGuiObj('descriptionField0', tab = 'profileDetails_statsTopSharers').SetLabel(self.topNListText())
+                
+
             else:
                 tab = "error"
             if tab != "error":
@@ -1620,6 +1630,29 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         if DEBUG:
             print 'StandardDetails: setting size of stand.details to: %s' % str(size)
             
+    def topNListText(self):
+        if not self.bartercastdb:
+            self.bartercastdb = BarterCastDBHandler()
+        
+        top = self.bartercastdb.getTopNPeers(5)
+        top = [('dfkgsdjdjgsg', 1346336),
+               ('kgjldkgjldfg',  443543),
+               ('sdfgsgghsdfgs',  95343)
+               ]
+        rank = 1
+        text = ''
+        for permid, amount in top:
+            amount_str = self.utility.size_format(amount)
+            peerdata = self.guiUtility.peer_manager.getPeerData(permid)
+            if peerdata:
+                name = peerdata['content_name']
+            else:
+                name = show_permid(permid)
+            text += '%d. %s\n  (up: %s, down: %s)%s' % (rank, name, 
+                                                     amount_str, amount_str, os.linesep)
+            rank+=1
+        print 'topNListText:\n%s' % text
+        return text
             
 def revtcmp(a,b):
     if a[0] < b[0]:

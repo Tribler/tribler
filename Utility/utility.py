@@ -92,7 +92,9 @@ class Utility:
         if (sys.platform == 'win32' and not warned):     
             self.regchecker = RegChecker(self)
             self.config.Write('torrentassociationwarned','1')
-
+        else:
+            self.regchecker = None
+            
         self.lastdir = { "save" : self.config.Read('defaultfolder'), 
                          "open" : "", 
                          "log": "" }
