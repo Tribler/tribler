@@ -4,6 +4,7 @@ from traceback import print_exc
 from Tribler.utilities import *
 from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.vwxGUI.GuiUtility import GUIUtility
+from Tribler.vwxGUI.bgPanel import ImagePanel
 from safeguiupdate import FlaglessDelayedInvocation
 from Tribler.unicode import *
 from font import *
@@ -131,7 +132,7 @@ class PersonsItemPanel(wx.Panel):
             self.hSizer.Add(self.discPersons, 0,wx.TOP,3)  
             # V Line
             self.vLine4 = self.addLine() 
-            # Add Taste Heart
+            # Add Taste Heart - Add Spacer to keep space occupied when no heart available
             self.vSizer2 = wx.BoxSizer(wx.VERTICAL)
             self.vSizer2.Add([60,2],0,wx.EXPAND|wx.FIXED_MINSIZE,3)            
             self.hSizer2 = wx.BoxSizer(wx.HORIZONTAL)
@@ -141,16 +142,22 @@ class PersonsItemPanel(wx.Panel):
             self.taste =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(40,15))        
             self.taste.SetBackgroundColour(wx.WHITE)
             self.taste.SetFont(wx.Font(FS_HEARTRANK,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-            self.taste.SetMinSize((20,15))
+            self.taste.SetMinSize((40,15))
             self.taste.SetLabel('')
-            self.hSizer2.Add(self.taste, 0, wx.LEFT, 2)
+            self.hSizer2.Add(self.taste, 0, wx.LEFT, 0)
             self.vSizer2.Add(self.hSizer2,0, wx.EXPAND|wx.FIXED_MINSIZE, 0)
             self.hSizer.Add(self.vSizer2,0,wx.EXPAND|wx.FIXED_MINSIZE, 0)
-            # Add Source Icon
-#            self.sourceIcon = tribler_topButton(self, -1, wx.DefaultPosition, wx.Size(16,16),name='bcIcon')
-#            self.sourceIcon.setBackground(wx.WHITE)
-#            #self.sourceIcon.SetToolTipString(self.utility.lang.get('---'))          
-#            self.hSizer.Add(self.sourceIcon, 0, wx.TOP|wx.RIGHT, 0)
+            # V Line
+            self.vLine5 = self.addLine() 
+            # Add Friends Icon
+            self.vSizer3 = wx.BoxSizer(wx.VERTICAL)
+            self.vSizer3.Add([22,2],0,wx.EXPAND|wx.FIXED_MINSIZE,3)  
+            self.friendsIcon = ImagePanel(self)
+            self.friendsIcon.setBackground(wx.WHITE)
+            self.friendsIcon.Hide()
+            self.vSizer3.Add(self.friendsIcon,0, wx.FIXED_MINSIZE, 0)
+            self.hSizer.Add(self.vSizer3, 0, wx.TOP|wx.RIGHT, 0)
+            
 #            self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
             self.SetSizer(self.hSizer);
                
@@ -166,11 +173,12 @@ class PersonsItemPanel(wx.Panel):
             window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction)            
 
     def getColumns(self):
-        return [{'sort':'content_name', 'title':'name', 'weight':1,'tip':self.utility.lang.get('filename') },
-                {'sort':'last_seen', 'title':'status', 'width':165, 'tip':self.utility.lang.get('filesize'), 'order':'down'},
-                {'sort':'discFiles', 'pic':'iconDiscFiles','width':40, 'tip':self.utility.lang.get('creationdate')},
-                {'sort':'discPersons', 'pic':'iconDiscPersons', 'width':40, 'tip':self.utility.lang.get('uploaders')},                
-                {'sort':'similarity', 'pic':'heartSmall', 'width':60, 'tip':self.utility.lang.get('recommendation')}
+        return [{'sort':'content_name', 'title':'name', 'weight':1,'tip':self.utility.lang.get('C_personname') },
+                {'sort':'last_seen', 'title':'status', 'width':165, 'tip':self.utility.lang.get('C_status'), 'order':'down'},
+                {'sort':'discFiles', 'pic':'iconDiscFiles','width':40, 'tip':self.utility.lang.get('C_discfiles')},
+                {'sort':'discPersons', 'pic':'iconDiscPersons', 'width':40, 'tip':self.utility.lang.get('C_discpersons')},                
+                {'sort':'similarity', 'pic':'heartSmall', 'width':60, 'tip':self.utility.lang.get('C_recommpersons')},
+                {'sort':'friends', 'pic':'iconFriends', 'width':22, 'tip':self.utility.lang.get('C_friends')}
                 ]
                          
     def setData(self, peer_data):
@@ -252,21 +260,35 @@ class PersonsItemPanel(wx.Panel):
                 if rank!=-1:
                     if rank == 1:
                         self.tasteHeart.SetToolTipString("%d" % rank + "st of top 20 of all discovered persons")
-                        recommField.SetLabel("%d" % rank + "")                    
+                        recommField.SetLabel("%d" % rank + "st")                    
                     elif rank == 2:
                         self.tasteHeart.SetToolTipString("%d" % rank + "nd of top 20 of all discovered persons")
-                        recommField.SetLabel("%d" % rank + "")                        
+                        recommField.SetLabel("%d" % rank + "nd")                        
                     elif rank == 3:
                         self.tasteHeart.SetToolTipString("%d" % rank + "rd of top 20 of all discovered persons")
-                        recommField.SetLabel("%d" % rank + "")
+                        recommField.SetLabel("%d" % rank + "rd")
                     else:
                         self.tasteHeart.SetToolTipString("%d" % rank + "th of top 20 of all discovered persons")
-                        recommField.SetLabel("%d" % rank + "")
+                        recommField.SetLabel("%d" % rank + "th")
                     self.tasteHeart.Show()
                     self.tasteHeart.setRank(rank)
                 else:                    
                     self.tasteHeart.Hide()
                     self.taste.SetLabel('')
+                    
+                # -- friend issues
+                if self.data.get('friend'):
+                    if self.data.get('online'):
+                        print 'friend online'
+                        self.friendsIcon.setBitmapFromFile('friend')
+                    else:
+                        print 'friend offline'
+                        self.friendsIcon.setBitmapFromFile('friend_offline')
+                    self.friendsIcon.Show()
+                else:
+                    self.friendsIcon.Hide()
+    
+                        
                 
 
                 
@@ -281,10 +303,12 @@ class PersonsItemPanel(wx.Panel):
                 self.status.SetLabel('')
                 self.taste.SetLabel('')
                 self.tasteHeart.Hide()
+                self.friendsIcon.Hide()
                 self.vLine1.Hide()
                 self.vLine2.Hide()
                 self.vLine3.Hide()
                 self.vLine4.Hide()            
+                self.vLine5.Hide()            
 
         self.thumb.setData(peer_data)
                
@@ -312,7 +336,8 @@ class PersonsItemPanel(wx.Panel):
             self.discPersons.SetBackgroundColour(colour)
             self.status.SetBackgroundColour(colour)
             self.tasteHeart.setBackground(colour)  
-            self.taste.SetBackgroundColour(colour)       
+            self.taste.SetBackgroundColour(colour)
+            self.friendsIcon.setBackground(colour)       
             
         self.Refresh()
                 
@@ -334,6 +359,7 @@ class PersonsItemPanel(wx.Panel):
             self.status.SetBackgroundColour(colour)
             self.tasteHeart.setBackground(colour) 
             self.taste.SetBackgroundColour(colour) 
+            self.friendsIcon.setBackground(colour)  
         
         self.Refresh()
     

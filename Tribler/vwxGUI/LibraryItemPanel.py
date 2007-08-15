@@ -159,29 +159,29 @@ class LibraryItemPanel(wx.Panel):
         self.addLine()
         
         # Up/Down text speed
-        self.downSpeed = ImagePanel(self, -1, wx.DefaultPosition, wx.Size(16,16),name='downSpeed')
-        self.downSpeed.setBackground(wx.WHITE)
-        self.downSpeed.SetToolTipString(self.utility.lang.get('down'))
+#        self.downSpeed = ImagePanel(self, -1, wx.DefaultPosition, wx.Size(16,16),name='downSpeed')
+#        self.downSpeed.setBackground(wx.WHITE)
+#        self.downSpeed.SetToolTipString(self.utility.lang.get('down'))
         self.speedDown2 = wx.StaticText(self,-1,"down: 0 KB/s",wx.Point(274,3),wx.Size(70,12),wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)                                
         self.speedDown2.SetForegroundColour(self.triblerGrey)        
         self.speedDown2.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.speedDown2.SetMinSize((70,12))        
-        self.upSpeed = ImagePanel(self, -1, wx.DefaultPosition, wx.Size(16,16),name='upSpeed')
-        self.upSpeed.setBackground(wx.WHITE)
-        self.upSpeed.SetToolTipString(self.utility.lang.get('up'))
+#        self.upSpeed = ImagePanel(self, -1, wx.DefaultPosition, wx.Size(16,16),name='upSpeed')
+#        self.upSpeed.setBackground(wx.WHITE)
+#        self.upSpeed.SetToolTipString(self.utility.lang.get('up'))
         self.speedUp2   = wx.StaticText(self,-1,"up: 0 KB/s",wx.Point(274,3),wx.Size(70,12),wx.ALIGN_RIGHT | wx.ST_NO_AUTORESIZE)                        
         self.speedUp2.SetForegroundColour(self.triblerGrey)
         self.speedUp2.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
         self.speedUp2.SetMinSize((70,12))
 
-        self.hSizer.Add(self.downSpeed, 0, wx.TOP, 2)
-        self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)                 
+#        self.hSizer.Add(self.downSpeed, 0, wx.TOP, 2)
+#        self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)                 
         self.hSizer.Add(self.speedDown2, 0, wx.TOP|wx.EXPAND, 4)
         # V Line
         self.addLine()
         
-        self.hSizer.Add(self.upSpeed, 0, wx.LEFT|wx.TOP, 2)                  
-        self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)                 
+#        self.hSizer.Add(self.upSpeed, 0, wx.LEFT|wx.TOP, 2)                  
+#        self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)                 
         self.hSizer.Add(self.speedUp2, 0, wx.TOP|wx.EXPAND, 4)         
         
         # V Line                
@@ -197,8 +197,8 @@ class LibraryItemPanel(wx.Panel):
         self.statusField = wx.StaticText(self, -1,'', wx.Point(),wx.Size())
         self.statusField.SetForegroundColour(self.triblerGrey)        
         self.statusField.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.statusField.SetMinSize((80,12))
-        self.hSizer.Add(self.statusField, 0, wx.TOP|wx.EXPAND, 4)
+        self.statusField.SetMinSize((125,12))
+        self.hSizer.Add(self.statusField, 0, wx.TOP, 4)
         
         # V Line
         self.addLine()
@@ -252,12 +252,12 @@ class LibraryItemPanel(wx.Panel):
             window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction)             
             
     def getColumns(self):
-        return [{'sort':'content_name', 'reverse':True, 'title':'name', 'weight':1,'tip':self.utility.lang.get('filename'), 'order':'down'},
-                {'sort':'??', 'title':'progress', 'width':120, 'tip':self.utility.lang.get('filesize')},
-                {'sort':'??', 'title':'upspeed','width':88, 'tip':self.utility.lang.get('creationdate')},
-                {'sort':'??', 'title':'downspeed', 'width':88, 'tip':self.utility.lang.get('uploaders')},
-                {'sort':'latest', 'title':'status', 'width':80, 'tip':self.utility.lang.get('downloaders')},
-                {'sort':'??', 'title':'info', 'width':72, 'tip':self.utility.lang.get('recommendation')}
+        return [{'sort':'content_name', 'reverse':True, 'title':'name', 'weight':1,'tip':self.utility.lang.get('C_filename'), 'order':'down'},
+                {'sort':'??', 'title':'progress', 'width':120, 'tip':self.utility.lang.get('C_progress')},
+                {'sort':'??', 'pic':'downSpeed','title':'down', 'width':70, 'tip':self.utility.lang.get('C_downspeed')},
+                {'sort':'??', 'pic':'upSpeed','title':'up','width':70, 'tip':self.utility.lang.get('C_upspeed')},                
+                {'sort':'latest', 'title':'status', 'width':125, 'tip':self.utility.lang.get('C_message')},
+                {'sort':'??', 'title':'info', 'width':71, 'tip':self.utility.lang.get('C_info')}
                 ]     
                   
     def refreshData(self):
@@ -297,9 +297,9 @@ class LibraryItemPanel(wx.Panel):
             
             #self.pb.setEnabled(True)
             self.pb.Show()
-            self.downSpeed.Show()
+#            self.downSpeed.Show()
             self.speedDown2.Show()
-            self.upSpeed.Show()
+#            self.upSpeed.Show()
             self.speedUp2.Show()
             
             dls = abctorrent.getColumnText(COL_DLSPEED)
@@ -462,8 +462,8 @@ class LibraryItemPanel(wx.Panel):
         colour = self.guiUtility.selectedColour
         self.thumb.setSelected(True)
         self.title.SetBackgroundColour(colour)
-        self.downSpeed.setBackground(colour)
-        self.upSpeed.setBackground(colour)
+#        self.downSpeed.setBackground(colour)
+#        self.upSpeed.setBackground(colour)
         self.playFast.setBackground(colour)
         self.boost.setBackground(colour)
 ##        self.statusIcon.setBackground(colour)
@@ -482,8 +482,8 @@ class LibraryItemPanel(wx.Panel):
             
         self.thumb.setSelected(False)
         self.title.SetBackgroundColour(colour)
-        self.downSpeed.setBackground(colour)
-        self.upSpeed.setBackground(colour)
+#        self.downSpeed.setBackground(colour)
+#        self.upSpeed.setBackground(colour)
         self.SetBackgroundColour(colour)
         self.playFast.setBackground(colour)
         self.boost.setBackground(colour)

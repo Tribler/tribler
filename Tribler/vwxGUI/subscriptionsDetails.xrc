@@ -41,8 +41,8 @@
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>Title
 </label>
-                    <pos>0,3</pos>
-                    <size>280,18</size>
+                    <pos>0,5</pos>
+                    <size>280,16</size>
                     <bg>#     0</bg>
                     <fg>#ffffff</fg>
                   </object>

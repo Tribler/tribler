@@ -33,18 +33,19 @@ class ColumnHeader(wx.Panel):
             self.icon = ImagePanel(self)
             self.icon.setBitmapFromFile(picture)
             self.icon.setBackground(self.unselectedColour)
-            self.hSizer.Add(self.icon, 1, wx.TOP,1 )
+            self.hSizer.Add(self.icon, 0, wx.TOP,1 )
         if title:
-            self.hSizer.Add([15,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
+            if not picture:
+                self.hSizer.Add([15,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
             self.text = wx.StaticText(self, -1, title)
-            self.hSizer.Add(self.text, 1, wx.TOP, 3)
+            self.hSizer.Add(self.text, 1, wx.TOP, 3)            
         if not picture and not title:
             raise Exception('No text nor an icon in columnheader')
+        
         self.sortIcon = ImagePanel(self)
-        #self.sortIcon.SetMinSize((18,))
         self.sortIcon.setBackground(self.unselectedColour)
         self.sortIcon.Hide()
-        self.hSizer.Add(self.sortIcon, 0, wx.ALL, 1)
+        self.hSizer.Add(self.sortIcon, 0, wx.TOP, 1)
         self.SetSizer(self.hSizer)
         self.SetAutoLayout(True)
         self.hSizer.Layout()
@@ -133,7 +134,7 @@ class ColumnHeaderBar(wx.Panel):
         
     def addComponents(self):
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.hSizer.Add([0,20],0,wx.FIXED_MINSIZE,0)
+        #self.hSizer.Add([0,20],0,wx.FIXED_MINSIZE,0)
         columns = self.itemPanel.getColumns()
         currentSorting = self.guiUtility.standardOverview.getSorting()
         print 'currentSorting: %s' % str(currentSorting)

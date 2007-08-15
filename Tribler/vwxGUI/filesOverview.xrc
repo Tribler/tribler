@@ -149,7 +149,7 @@
               <object class="wxBoxSizer">
                 <orient>wxHORIZONTAL</orient>
                 <object class="spacer">
-                  <size>10,10</size>
+                  <size>10,35</size>
                   <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>3</border>
                   <option>0</option>
@@ -178,7 +178,7 @@
                   <border>4</border>
                   <option>0</option>
                   <object class="wxPanel" name="search" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                    <pos>175,3</pos>
+                    <pos>274,4</pos>
                     <size>22,22</size>
                   </object>
                 </object>
@@ -190,7 +190,7 @@
             <border>3</border>
             <option>1</option>
             <object class="wxPanel" name="filesFilter" subclass="Tribler.vwxGUI.standardFilter.filesFilter">
-              <pos>315,21</pos>
+              <pos>307,21</pos>
               <size>225,35</size>
             </object>
           </object>
@@ -201,7 +201,7 @@
         <border>5</border>
         <option>1</option>
         <object class="wxPanel" name="filesGrid" subclass="Tribler.vwxGUI.standardGrid.filesGrid">
-          <pos>0,61</pos>
+          <pos>0,56</pos>
           <size>623,10</size>
         </object>
       </object>

@@ -42,7 +42,7 @@
                     <label>Title
 </label>
                     <pos>0,5</pos>
-                    <size>280,15</size>
+                    <size>280,16</size>
                     <bg>#     0</bg>
                     <fg>#ffffff</fg>
                   </object>

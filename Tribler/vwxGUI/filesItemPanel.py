@@ -184,6 +184,8 @@ class FilesItemPanel(wx.Panel):
             self.hSizer2.Add(self.taste, 0, wx.TOP|wx.RIGHT, 0)
             self.vSizer2.Add(self.hSizer2,0, wx.EXPAND|wx.FIXED_MINSIZE, 0)
             self.hSizer.Add(self.vSizer2,0,wx.EXPAND|wx.FIXED_MINSIZE, 0)
+            # V Line
+            self.vLine6 = self.addLine() 
             # Add Source Icon
             self.sourceIcon = ImagePanel(self, -1, wx.DefaultPosition, wx.Size(16,16),name='bcIcon')
             self.sourceIcon.setBackground(wx.WHITE)
@@ -206,12 +208,13 @@ class FilesItemPanel(wx.Panel):
             #window.Bind(wx.EVT_RIGHT_DOWN, self.rightMouseButton)  
             
     def getColumns(self):
-        return [{'sort':'content_name', 'reverse':True, 'title':'name', 'weight':1,'tip':self.utility.lang.get('filename')},
-                {'sort':'length', 'title':'size', 'width':75, 'tip':self.utility.lang.get('filesize')},
-                {'sort':'date', 'title':'creation','width':110, 'tip':self.utility.lang.get('creationdate')},
-                {'sort':'seeder', 'pic':'upSmall', 'width':47, 'tip':self.utility.lang.get('uploaders')},
-                {'sort':'leecher', 'pic':'downSmall', 'width':47, 'tip':self.utility.lang.get('downloaders')},
-                {'sort':'relevance', 'pic':'heartSmall', 'width':86, 'tip':self.utility.lang.get('recommendation')}
+        return [{'sort':'content_name', 'reverse':True, 'title':'name', 'weight':1,'tip':self.utility.lang.get('C_filename')},
+                {'sort':'length', 'title':'size', 'width':75, 'tip':self.utility.lang.get('C_filesize')},
+                {'sort':'date', 'title':'creation','width':110, 'tip':self.utility.lang.get('C_creationdate')},
+                {'sort':'seeder', 'pic':'upSmall','title':'se', 'width':47, 'tip':self.utility.lang.get('C_uploaders')},
+                {'sort':'leecher', 'pic':'downSmall','title':'le', 'width':47, 'tip':self.utility.lang.get('C_downloaders')},
+                {'sort':'relevance', 'pic':'heartSmall', 'width':60, 'tip':self.utility.lang.get('C_recommfiles')},
+                {'sort':'source', 'title':'-', 'width':26, 'tip':self.utility.lang.get('C_source')}
                 ]
 
                  
@@ -279,12 +282,16 @@ class FilesItemPanel(wx.Panel):
                     print '--tb-- there is taste'
                     print rank
                     if rank == 1:
+                        self.tasteHeart.SetToolTipString("%d" % rank + "st of top 20 of all discovered persons")
                         recommField.SetLabel("%d" % rank + "st")
                     elif rank == 2:
+                        self.tasteHeart.SetToolTipString("%d" % rank + "nd of top 20 of all discovered persons")
                         recommField.SetLabel("%d" % rank + "nd")                        
                     elif rank == 3:
+                        self.tasteHeart.SetToolTipString("%d" % rank + "rd of top 20 of all discovered persons")
                         recommField.SetLabel("%d" % rank + "rd")
                     else:
+                        self.tasteHeart.SetToolTipString("%d" % rank + "th of top 20 of all discovered persons")
                         recommField.SetLabel("%d" % rank + "th")
                     self.tasteHeart.Show()
                     self.tasteHeart.setRank(rank)
@@ -303,7 +310,8 @@ class FilesItemPanel(wx.Panel):
                 self.vLine2.Show()
                 self.vLine3.Show()
                 self.vLine4.Show()
-                self.vLine5.Show()    
+                self.vLine5.Show()
+                self.vLine6.Show()
                 # -- END if list VIEW --
             
     
@@ -319,8 +327,8 @@ class FilesItemPanel(wx.Panel):
                 self.seedersNumber.SetLabel('')            
                 self.leechersNumber.SetLabel('')
                 self.taste.SetLabel('')
-                self.leechers.Hide()
-                self.seeders.Hide()
+#                self.leechers.Hide()
+#                self.seeders.Hide()
                 self.tasteHeart.Hide()
                 
                 self.sourceIcon.Hide()
@@ -329,6 +337,8 @@ class FilesItemPanel(wx.Panel):
                 self.vLine3.Hide()
                 self.vLine4.Hide()
                 self.vLine5.Hide()
+                self.vLine6.Hide()
+                
             
         self.thumb.setTorrent(torrent)        
         self.Layout()

@@ -113,18 +113,17 @@ class FriendsItemPanel(wx.Panel):
         # Add left vertical line
         self.vLine3 = self.addLine() 
         
-        # Add Spacer to keep space occupied when no heart available
+        # Add Taste Heart - Add Spacer to keep space occupied when no heart available
         self.vSizer = wx.BoxSizer(wx.VERTICAL)                
         self.vSizer.Add([60,2],0,wx.FIXED_MINSIZE,0)  
         self.hSizer2 = wx.BoxSizer(wx.HORIZONTAL)    
         self.tasteHeart = TasteHeart.TasteHeart(self, -1, wx.DefaultPosition, wx.Size(14,14),name='TasteHeart')
-        self.hSizer2.Add(self.tasteHeart, 0, wx.TOP, 0)
-        
+        self.hSizer2.Add(self.tasteHeart, 0, wx.TOP, 0)        
         # Add Taste similarity
         self.taste =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(40,15))        
         self.taste.SetBackgroundColour(wx.WHITE)
         self.taste.SetFont(wx.Font(FS_HEARTRANK,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.taste.SetMinSize((20,15))
+        self.taste.SetMinSize((40,15))
         self.taste.SetLabel('')
         self.hSizer2.Add(self.taste, 0, wx.LEFT, 2)        
         self.vSizer.Add(self.hSizer2, 0, wx.TOP, 2)
@@ -149,10 +148,10 @@ class FriendsItemPanel(wx.Panel):
             window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction) 
             
     def getColumns(self):
-        return [{'sort':'content_name', 'title':'name', 'weight':1,'tip':self.utility.lang.get('filename') },
-                {'sort':'last_seen', 'title':'status', 'width':165, 'tip':self.utility.lang.get('filesize'), 'order':'down'},
-                {'sort':'??', 'title':'helping','weight':1, 'tip':self.utility.lang.get('creationdate')},
-                {'sort':'similarity', 'pic':'heartSmall', 'width':60, 'tip':self.utility.lang.get('recommendation')}
+        return [{'sort':'content_name', 'title':'name', 'weight':1,'tip':self.utility.lang.get('C_friendname') },
+                {'sort':'last_seen', 'title':'status', 'width':165, 'tip':self.utility.lang.get('C_friendstatus'), 'order':'down'},
+                {'sort':'??', 'title':'boosting','weight':1, 'tip':self.utility.lang.get('C_helping')},
+                {'sort':'similarity', 'pic':'heartSmall', 'width':60, 'tip':self.utility.lang.get('C_recommpersons')}
                 ]
             
     def addLine(self, vertical=True):
@@ -234,12 +233,16 @@ class FriendsItemPanel(wx.Panel):
         recommField = self.taste
         if rank!=-1:
             if rank == 1:
+                self.tasteHeart.SetToolTipString("%d" % rank + "st of top 20 of all discovered persons")
                 recommField.SetLabel("%d" % rank + "st")
             elif rank == 2:
+                self.tasteHeart.SetToolTipString("%d" % rank + "nd of top 20 of all discovered persons")
                 recommField.SetLabel("%d" % rank + "nd")                        
             elif rank == 3:
+                self.tasteHeart.SetToolTipString("%d" % rank + "rd of top 20 of all discovered persons")
                 recommField.SetLabel("%d" % rank + "rd")
             else:
+                self.tasteHeart.SetToolTipString("%d" % rank + "th of top 20 of all discovered persons")
                 recommField.SetLabel("%d" % rank + "th")
             self.tasteHeart.Show()
             self.tasteHeart.setRank(rank)

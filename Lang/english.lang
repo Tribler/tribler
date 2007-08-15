@@ -1302,8 +1302,33 @@ searchClear      = "clear results and browse all discovered files"
 ################
 #Tribler UI - Column headers Tribler 4.1.0
 #################
-uploaders = "Number of uploaders"
-downloaders = "Number of downloaders"
-filename= "Name of the file"
+# FILES
+C_filename    	= "Name of the file"
+C_filesize		= "Total size"
+C_creationdate	= "Creation date"
+C_uploaders		= "Number of uploaders (seeders)"
+C_downloaders 	= "Number of downloaders (leechers)"
+C_recommfiles	= "Fit to your taste (top20 of discovered files)"
+C_source		= "Source of file" 
+# PERSONS
+C_personname	= "Name of the persons"
+C_status		= "Last time you connected with this person"
+C_discfiles		= "Number of files discovered by this person"
+C_discpersons	= "Number of persons discovered by this person"
+C_recommpersons	= "Fit to your taste (top20 of discovered persons)"
+C_friends		= "Friends of yours"
+# LIBRARY
+C_progress		= "Progress of downloads"
+C_downspeed		= "Download speed"
+C_upspeed		= "Upload speed"
+C_message		= "Status of downloads"
+C_info			= "Other info"
+# FRIENDS
+C_friendname	= "Name of your friends"
+C_friendstatus	= "Last time you connected with your friends"
+C_helping		= "Showing what friends are boosting for you"
+
+
+
 
 

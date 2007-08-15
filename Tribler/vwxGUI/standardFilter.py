@@ -67,9 +67,9 @@ class standardFilter(wx.Panel):
 #            filter.SetBackgroundColour(wx.WHITE)
             filter.Bind(wx.EVT_COMBOBOX, self.mouseAction)
             self.filters.append(filter)
-            self.hSizer.Add(filter, 0, wx.TOP|wx.LEFT|wx.BOTTOM|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,3)
+            self.hSizer.Add(filter, 0, wx.TOP|wx.LEFT|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,3)
                 
-        self.hSizer.Add([8,33],0,wx.EXPAND|wx.FIXED_MINSIZE,2)
+        self.hSizer.Add([8,10],0,wx.EXPAND|wx.FIXED_MINSIZE,2)
         
         
         self.SetSizer(self.hSizer);

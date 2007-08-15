@@ -148,7 +148,7 @@
               <object class="wxBoxSizer">
                 <orient>wxHORIZONTAL</orient>
                 <object class="spacer">
-                  <size>10,10</size>
+                  <size>10,35</size>
                   <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
                   <border>3</border>
                   <option>0</option>
