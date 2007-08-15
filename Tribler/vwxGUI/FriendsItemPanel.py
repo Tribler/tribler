@@ -389,7 +389,7 @@ class FriendThumbnailViewer(ThumbnailViewer):
                 if torrentname is not None:
                     helping = "helping with "+torrentname
             if helping is None:
-                print '-nothing-'
+                
                 self.GetParent().helping.SetLabel('')
                 self.GetParent().helping.SetToolTipString('')
                 #self.GetParent().status.SetLabel('status unknown')

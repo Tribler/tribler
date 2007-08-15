@@ -197,32 +197,28 @@ class LibraryItemPanel(wx.Panel):
         self.statusField = wx.StaticText(self, -1,'', wx.Point(),wx.Size())
         self.statusField.SetForegroundColour(self.triblerGrey)        
         self.statusField.SetFont(wx.Font(FS_SPEED,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-        self.statusField.SetMinSize((125,12))
-        self.hSizer.Add(self.statusField, 0, wx.TOP, 4)
+        self.statusField.SetMinSize((60,12))
+#        self.statusField.SetMinSize((125,12))
+        self.hSizer.Add(self.statusField, 1, wx.TOP, 4)
         
         # V Line
         self.addLine()
+        
+        # Boost button
+        self.boost = SwitchButton(self, name="boost")
+        self.boost.setBackground(wx.WHITE)
+        self.boost.SetSize((50,16))
+        self.boost.setEnabled(False)
+        self.hSizer.Add(self.boost, 0, wx.TOP|wx.ALIGN_RIGHT, 2)
+        self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)
        
         # Play Fast
         self.playFast = SwitchButton(self, name="playFast")
         self.playFast.setBackground(wx.WHITE)
-        # (81,16)
-        self.playFast.SetSize((51,16))
+        self.playFast.SetSize((39,16))
         self.playFast.setEnabled(False)
         self.hSizer.Add(self.playFast, 0, wx.TOP|wx.ALIGN_RIGHT, 2)
         self.hSizer.Add([2,20],0,wx.EXPAND|wx.FIXED_MINSIZE,0)   
-        
-        # TODO: TB >get the boost button out of the code
-        self.boost = SwitchButton(self, name="boost")
-        self.boost.setBackground(wx.WHITE)
-        self.boost.SetSize((20,6))
-        self.boost.setEnabled(False)
-        buttonSizer = wx.BoxSizer(wx.VERTICAL)
-        buttonSizer.Add(self.playFast, 1, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 2)
-        buttonSizer.Add(self.boost, 1, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 2) 
-        # temporary remove boost button
-        #self.boost.SetSize((0,0))
-        #self.boost.Hide()
 
         # Play
         self.playerPlay = SwitchButton(self, name="libraryPlay")
@@ -256,8 +252,8 @@ class LibraryItemPanel(wx.Panel):
                 {'sort':'??', 'title':'progress', 'width':120, 'tip':self.utility.lang.get('C_progress')},
                 {'sort':'??', 'pic':'downSpeed','title':'down', 'width':70, 'tip':self.utility.lang.get('C_downspeed')},
                 {'sort':'??', 'pic':'upSpeed','title':'up','width':70, 'tip':self.utility.lang.get('C_upspeed')},                
-                {'sort':'latest', 'title':'status', 'width':125, 'tip':self.utility.lang.get('C_message')},
-                {'sort':'??', 'title':'info', 'width':71, 'tip':self.utility.lang.get('C_info')}
+                {'sort':'latest', 'title':'status', 'weight':1, 'tip':self.utility.lang.get('C_message')},
+                {'sort':'??', 'title':'info', 'width':111, 'tip':self.utility.lang.get('C_info')}
                 ]     
                   
     def refreshData(self):
