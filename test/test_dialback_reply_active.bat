@@ -1,0 +1,12 @@
+set PYTHONPATH=..
+
+python test_dialback_reply_active.py singtest_good_dreply
+python test_dialback_reply_active.py singtest_bad_not_bdecodable
+python test_dialback_reply_active.py singtest_bad_not_string
+python test_dialback_reply_active.py singtest_bad_not_validip
+python test_dialback_reply_active.py singtest_bad_diff_ips
+python test_dialback_reply_active2.py singtest_good_dreply
+python test_dialback_reply_active2.py singtest_bad_not_bdecodable
+python test_dialback_reply_active2.py singtest_bad_not_string
+python test_dialback_reply_active2.py singtest_bad_not_validip
+python test_dialback_reply_active2.py singtest_bad_diff_ips
