@@ -1,3 +1,5 @@
+set PYTHONPATH=..
+
 python test_dlh.py singtest_good_2fast
 python test_dlh.py singtest_bad_2fast_dlhelp
 python test_dlh.py singtest_bad_2fast_metadata_not_bdecodable

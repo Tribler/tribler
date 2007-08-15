@@ -408,3 +408,6 @@ def test_suite():
 
 def main():
     unittest.main(defaultTest='test_suite',argv=[sys.argv[0]])
+
+if __name__ == "__main__":
+    main()

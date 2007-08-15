@@ -1,3 +1,5 @@
+set PYTHONPATH=..
+
 python test_dch.py singtest_connect_dns_to_dead_peer
 python test_dch.py singtest_connect_dns_to_live_peer
 python test_dch.py singtest_send_unopenedA

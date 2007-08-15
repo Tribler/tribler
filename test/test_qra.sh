@@ -6,5 +6,8 @@
 # WARNING: this shell script must use \n as end-of-line, Windows
 # \r\n gives problems running this on Linux
 
-python test_qra.py singtest_good_qreply
-python test_qra.py singtest_bad_not_bdecodable
+PYTHONPATH=..:"$PYTHONPATH"
+export PYTHONPATH
+
+python test_rquery_reply_active.py singtest_good_qreply
+python test_rquery_reply_active.py singtest_bad_not_bdecodable

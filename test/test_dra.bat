@@ -1,3 +1,5 @@
+set PYTHONPATH=..
+
 python test_dra.py singtest_good_dreply
 python test_dra.py singtest_bad_not_bdecodable
 python test_dra.py singtest_bad_not_string

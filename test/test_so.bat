@@ -1,3 +1,5 @@
+set PYTHONPATH=..
+
 python test_so.py singtest_connect_dns_to_dead_peer
 python test_so.py singtest_connect_dns_to_live_peer
 python test_so.py singtest_connect_to_dead_peerA
