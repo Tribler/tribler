@@ -42,7 +42,7 @@ class BarterCastCore:
             return
             
         # send the message    
-        self.secure_overlay.send(target_permid, BARTERCAST+bartercast_msg, self.bartercastSendCallback)
+#        self.secure_overlay.send(target_permid, BARTERCAST+bartercast_msg, self.bartercastSendCallback)
             
 
     ################################
