@@ -176,6 +176,8 @@ from TorrentCollecting import SimpleTorrentCollecting   #, TiT4TaTTorrentCollect
 from Tribler.Statistics.Logger import OverlayLogger
 from threading import Event, currentThread
 
+from bartercast import BarterCastCore
+
 DEBUG = True    # for errors
 debug = False    # for status
 MAX_BUDDYCAST_LENGTH = 10*1024    # 10 KByte
@@ -262,9 +264,12 @@ class BuddyCastFactory:
             self.data_handler = DataHandler(self.rawserver, db_dir=self.db_dir)
             if isValidPort(port):
                 self.data_handler.updatePort(port)
+                
+            self.bartercast_core = BarterCastCore(self.data_handler, secure_overlay, self.log)
+                
             self.buddycast_core = BuddyCastCore(secure_overlay, launchmany, 
                    self.data_handler, self.buddycast_interval, self.superpeer,
-                   metadata_handler, rawserver, torrent_collecting_solution, self.log
+                   metadata_handler, rawserver, torrent_collecting_solution, self.bartercast_core, self.log
                    )
             self.data_handler.buddycast_core = self.buddycast_core
             self.start_time = now()
@@ -337,6 +342,12 @@ class BuddyCastFactory:
                 return self.gotKeepAliveMessage(permid)
             else:
                 return False
+                
+        elif t == BARTERCAST:
+            if DEBUG:
+                print >> sys.stderr, "Received bartercast message"
+            return self.bartercast_core.gotBarterCastMessage(message[1:], permid, selversion)
+            
         else:
             if DEBUG:
                 print >> sys.stderr, "bc: wrong message to buddycast", ord(t), "Round", self.buddycast_core.round
@@ -374,7 +385,7 @@ class BuddyCastFactory:
 class BuddyCastCore:
     def __init__(self, secure_overlay, launchmany, data_handler, 
                  buddycast_interval, superpeer, 
-                 metadata_handler, rawserver, torrent_collecting_solution, log=''):
+                 metadata_handler, rawserver, torrent_collecting_solution, bartercast_core, log=''):
         self.secure_overlay = secure_overlay
         self.launchmany = launchmany
         self.data_handler = data_handler
@@ -447,6 +458,10 @@ class BuddyCastCore:
         self.dnsindb = self.data_handler.get_dns_from_peerdb
         if self.log:
             self.overlay_log = OverlayLogger(self.log)
+            
+        # Bartercast
+        self.bartercast_core = bartercast_core
+        self.bartercast_core.buddycast_core = self    
                     
     def get_peer_info(self, target_permid, include_permid=True, may_be_deleted=False):
         if not target_permid:
@@ -781,6 +796,10 @@ class BuddyCastCore:
             self.print_debug_info('Active', 17, target_permid)
         else:
             self.print_debug_info('Passive', 7, target_permid)
+
+        # Bartercast
+        self.bartercast_core.createAndSendBarterCastMessage(target_permid, selversion)
+
             
         if self.log:
             dns = self.dnsindb(target_permid)

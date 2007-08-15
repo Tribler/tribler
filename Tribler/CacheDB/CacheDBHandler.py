@@ -8,6 +8,8 @@ from traceback import print_exc
 from threading import currentThread
 from time import time
 
+from BitTornado.bencode import bencode, bdecode
+from Tribler.Overlay.permid import permid_for_user
 
 class BasicDBHandler:
     def __init__(self):
@@ -780,6 +782,227 @@ class OwnerDBHandler(BasicDBHandler):
         
         self.sim_cache[torrent_hash] = sim_torrents
         return sim_torrents
+        
+        
+        
+class BarterCastDBHandler(BasicDBHandler):
+
+    def __init__(self, db_dir=''):
+        BasicDBHandler.__init__(self)
+        self.my_db_handler = MyDBHandler()
+        self.bartercast_db = BarterCastDB.getInstance(db_dir=db_dir)
+        self.peer_db = PeerDB.getInstance(db_dir=db_dir)
+        self.dbs = [self.bartercast_db]
+        self.my_permid = self.my_db_handler.getMyPermid()
+
+    def __len__(self):
+        return self.bartercast_db._size()
+
+    def getName(self, permid):
+
+        peer = self.peer_db.getItem(permid, False)
+        return peer['name']
+
+
+    def getItem(self, (permid_1, permid_2), default=False):
+
+        # in the database, permid-tuple is always sorted
+        # to ensure unique entries for each permid combination
+        if permid_1 > permid_2:
+            reverse = True
+            permid_from = permid_2
+            permid_to = permid_1
+        else:
+            reverse = False
+            permid_from = permid_1
+            permid_to = permid_2
+
+        item = self.bartercast_db.getItem((permid_from, permid_to), default)
+
+        # if peer in peerdb but not in bartercastdb: add peer
+        if item == None: # and peerdb_peer != None:
+
+            print 'Item (%s, %s) added to BarterCastDB' % (permid_for_user(permid_from), permid_for_user(permid_to))
+            self.addItem((permid_from, permid_to), self.bartercast_db.default_item)
+
+            # get item again now it exists
+            item = self.bartercast_db.getItem((permid_from, permid_to), default)
+
+        # if reverse: exchange up and down so that the caller doesnt have to worry
+        # about the order of permids in the tuple
+        if reverse:
+            down = item['downloaded']
+            up = item['uploaded']
+            item['downloaded'] = up
+            item['uploaded'] = down
+
+        return item
+
+
+    def getItemList(self):    # get the list of all peers' permid
+        keys = map(lambda key: bdecode(key), self.bartercast_db._keys())
+        return keys
+
+    # Return (sorted) list of the top N peers with the highest (combined) values for the given keys    
+    def getTopNPeers(self, n):
+
+        itemlist = self.getItemList()
+        itemlist_from = filter(lambda (permid_from, permid_to): permid_to == self.my_permid, itemlist)
+        itemlist_to = filter(lambda (permid_from, permid_to): permid_from == self.my_permid, itemlist)
+
+        peerlist_from = map(lambda (permid_from, me): permid_from, itemlist_from) 
+        peerlist_to = map(lambda (me, permid_to): permid_to, itemlist_to)
+
+        top = []
+        min = 0
+
+        for peer in peerlist_from + peerlist_to:
+
+            if peer in peerlist_from:
+                item = self.getItem((peer, self.my_permid))  # from other peer to me
+            else:
+                item = self.getItem((self.my_permid, peer))
+
+            value = item['downloaded'] + item['uploaded']       # add both values
+
+            # check if peer belongs to current top N
+            if len(top) < n or value > min:
+
+                top.append((peer, value))
+
+                # sort based on value
+                top.sort(cmp = lambda (p1, v1), (p2, v2): cmp(v2, v1))
+
+                # if list contains more than N elements: remove the last (=lowest value)
+                if len(top) > n:
+                    top.remove(top[len(top)-1])
+
+                # determine new minimum of values    
+                min = top[len(top)-1][1]    
+
+        return top        
+
+
+    def addItem(self, (permid_1, permid_2), item):
+
+#        if value.has_key('last_seen'):    # get the latest last_seen
+#            old_last_seen = 0
+#            old_data = self.getPeer(permid)
+#            if old_data:
+#                old_last_seen = old_data.get('last_seen', 0)
+#            last_seen = value['last_seen']
+#            value['last_seen'] = max(last_seen, old_last_seen)
+
+        # in the database, permid-tuple is always sorted
+        # to ensure unique entries for each permid combination
+        if permid_1 > permid_2:
+            reverse = True
+            permid_from = permid_2
+            permid_to = permid_1
+        else:
+            reverse = False
+            permid_from = permid_1
+            permid_to = permid_2
+
+        # if reverse: exchange up and down
+        if reverse:
+            down = item['downloaded']
+            up = item['uploaded']
+            item['downloaded'] = up
+            item['uploaded'] = down
+
+        self.bartercast_db.updateItem((permid_from, permid_to), item)
+
+
+    def hasItem(self, (permid_1, permid_2)):
+
+        # in the database, permid-tuple is always sorted
+        # to ensure unique entries for each permid combination
+        if permid_1 > permid_2:
+            reverse = True
+            permid_from = permid_2
+            permid_to = permid_1
+        else:
+            reverse = False
+            permid_from = permid_1
+            permid_to = permid_2
+
+        item = self.bartercast_db.hasItem((permid_from, permid_to))        
+
+        if reverse:
+            down = item['downloaded']
+            up = item['uploaded']
+            item['downloaded'] = up
+            item['uploaded'] = down
+
+        return item
+
+
+    def updateItem(self, (permid_1, permid_2), key, value):
+
+        # in the database, permid-tuple is always sorted
+        # to ensure unique entries for each permid combination
+        if permid_1 > permid_2:
+            permid_from = permid_2
+            permid_to = permid_1
+        else:
+            permid_from = permid_1
+            permid_to = permid_2
+            if key == 'uploaded':
+                key = 'downloaded'
+            elif key == 'downloaded':
+                key = 'uploaded'
+
+        self.bartercast_db.updateItem((permid_from, permid_to), {key:value})
+
+
+    def incrementItem(self, (permid_1, permid_2), key, value):
+
+        # in the database, permid-tuple is always sorted
+        # to ensure unique entries for each permid combination
+        if permid_1 > permid_2:
+            permid_from = permid_2
+            permid_to = permid_1
+        else:
+            permid_from = permid_1
+            permid_to = permid_2
+            if key == 'uploaded':
+                key = 'downloaded'
+            elif key == 'downloaded':
+                key = 'uploaded'
+
+        item = self.getItem((permid_from, permid_to))
+
+        if key in item.keys():
+            old_value = item[key]
+            new_value = old_value + value
+            self.bartercast_db.updateItem((permid_from, permid_to), {key:new_value})
+            return new_value
+
+        return None
+
+
+    # TODO: include this functionality in PeerDB?
+    def deleteItem(self, (permid_1, permid_2)):
+
+        # in the database, permid-tuple is always sorted
+        # to ensure unique entries for each permid combination
+        if permid_1 > permid_2:
+            permid_from = permid_2
+            permid_to = permid_1
+        else:
+            permid_from = permid_1
+            permid_to = permid_2
+
+        data = self.bartercast_db._get((permid_from, permid_to))
+        if data and data['connected_times'] > 0:
+            self.bartercast_db.num_encountered_peers -= 1
+        self.bartercast_db._delete((permid_from, permid_to))
+
+        return True
+
+
+        
         
 def test_mydb():
     mydb = MyDBHandler()

@@ -102,6 +102,9 @@ from sets import Set
 from traceback import print_exc, print_stack
 from threading import currentThread
 
+from BitTornado.bencode import bencode, bdecode
+from Tribler.utilities import isValidIP
+
 #from Tribler.utilities import isValidPermid, isValidInfohash
 
 try:
@@ -952,8 +955,116 @@ class OwnerDB(BasicDB):
             return list(owners)
         else:
             return []
-                    
+ 
+class IP2PermIDDB(BasicDB):
+    """ IP * Peer """
 
+    __single = None
+
+    def __init__(self, db_dir=''):
+        if IP2PermIDDB.__single:
+            raise RuntimeError, "IP2PermIDDB is singleton"
+        self.db_name = 'ip2permid.bsd'
+        self.opened = True
+
+        self.filetype = db.DB_BTREE
+        self._data, self.db_dir = open_db(self.db_name, db_dir, filetype=self.filetype)
+        IP2PermIDDB.__single = self 
+
+    def getInstance(*args, **kw):
+        if IP2PermIDDB.__single is None:
+            IP2PermIDDB(*args, **kw)
+        return IP2PermIDDB.__single
+    getInstance = staticmethod(getInstance)
+
+
+    def addIP(self, ip, permid):
+        if not isValidPermid(permid) or not isValidIP(ip):
+            return
+
+        self._put(ip,permid)
+
+    def getPermIDByIP(self, ip):
+        if not isValidIP(ip):
+            return None
+
+        if not self._has_key(ip):
+            return None
+        else:
+            return self._get(ip)
+
+    def deletePermID(self, permid):
+        for ip, permid2 in self._items():
+            if permid == permid2:
+                self._delete(ip)
+                break
+
+
+# DB extension for BarterCast statistics
+class BarterCastDB(BasicDB):
+
+    __single = None
+
+    def __init__(self, db_dir=''):
+        if BarterCastDB.__single:
+            raise RuntimeError, "BarterCastDB is singleton"
+        self.db_name = 'bartercast.bsd'
+        self.opened = True
+
+        self.db_dir = db_dir
+        self.filetype = db.DB_BTREE
+        self._data, self.db_dir = open_db(self.db_name, self.db_dir, filetype=self.filetype)
+
+        MyDB.checkVersion(self)
+        BarterCastDB.__single = self
+        self.num_encountered_peers = -100
+        self.default_item = {
+            'last_seen':0,
+            'value': 0,
+            'downloaded': 0,
+            'uploaded': 0,
+        }
+
+    def getInstance(*args, **kw):
+        if BarterCastDB.__single is None:
+            BarterCastDB(*args, **kw)
+        return BarterCastDB.__single
+    getInstance = staticmethod(getInstance)
+
+    def updateItem(self, (permid_from, permid_to), item={}, update_time=True):    # insert a peer; update it if existed
+
+        if isValidPermid(permid_from) and isValidPermid(permid_to) and validDict(item):
+
+            key = bencode((permid_from, permid_to))
+            if self._has_key(key):
+                _item = self.getItem((permid_from, permid_to))
+                if _item is None:  # database error, the key exists, but the data ain't there
+                    return
+                _item.update(item)
+                if update_time:
+                    _item.update({'last_seen':int(time())})
+                self._updateItem(key, _item)
+            else:
+                item = self.setDefaultItem(item)
+                if update_time:
+                    item.update({'last_seen':int(time())})
+                self._put(key, item)
+
+    def deleteItem(self, (permid_from, permid_to)):
+        key = bencode((permid_from, permid_to))
+        self._delete(key)
+
+    def getItem(self, (permid_from, permid_to), default=False):
+        key = bencode((permid_from, permid_to))
+        ret = self._get(key, None)
+        if ret is None and default:
+            ret = deepcopy(self.default_item)
+        return ret
+
+    def hasItem(self, (permid_from, permid_to)):
+        key = bencode((permid_from, permid_to))
+        return self._has_key(key) 
+ 
 #===============================================================================
 # class ActionDB(BasicDB):
 #    

@@ -80,6 +80,9 @@ from Tribler.notification import init as notification_init
 from Tribler.vwxGUI.font import *
 from Tribler.Web2.util.update import Web2Updater
 
+from Tribler.CacheDB.CacheDBHandler import BarterCastDBHandler
+from Tribler.Overlay.permid import permid_for_user
+
 DEBUG = True
 ALLOW_MULTIPLE = False
 start_time = 0
@@ -566,6 +569,22 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         sys.stdout.write('GUI Complete.\n')
 
         self.Show(True)
+        
+        
+        # Just for debugging: display top 5 peers from which the most is downloaded in bartercastdb
+        bartercastdb = BarterCastDBHandler()
+        top = bartercastdb.getTopNPeers(5)
+        mypermid = permid_for_user(bartercastdb.my_permid)
+        print 'My Permid: ', mypermid
+        
+        print 'Top 5 BarterCast peers:'
+        print '======================='
+
+        i = 1
+        for (permid, val) in top:
+            print '%2d: %15s - %10d bytes' % (i, bartercastdb.getName(permid), val)
+            i += 1
+        
         
         # Check to see if ABC is associated with torrents
         #######################################################

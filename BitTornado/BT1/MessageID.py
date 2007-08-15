@@ -79,8 +79,10 @@ HASHPIECE = chr(250)
 """                   
 BUDDYCAST = chr(249)
 KEEP_ALIVE = chr(240)
+# Bartercast
+BARTERCAST = chr(236)
 
-BuddyCastMessages = [BUDDYCAST, KEEP_ALIVE]
+BuddyCastMessages = [BARTERCAST, BUDDYCAST, KEEP_ALIVE]
 
 # bencoded torrent_hash (Arno,2007-08-14: shouldn't be bencoded, but is)
 GET_METADATA = chr(248)

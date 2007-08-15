@@ -9,6 +9,11 @@ from BitTornado.clock import clock
 from Tribler.toofastbt.Helper import SingleDownloadHelperInterface
 from traceback import print_stack
 # _2fastbt
+
+from Tribler.CacheDB.CacheDBHandler import PeerDBHandler, BarterCastDBHandler
+from Tribler.Overlay.permid import permid_for_user
+import sys
+
 try:
     True
 except:
@@ -206,6 +211,32 @@ class SingleDownload(SingleDownloadHelperInterface):
                         assert not d.active_requests
         self._request_more()
         self.downloader.check_complete(index)
+        
+        
+        
+        # Michel: 
+        # BarterCast
+
+        ip = self.connection.get_ip(False)       
+        port = self.connection.get_port(False)   
+        peerid = self.connection.get_readable_id()   # perip.peerid
+
+        peerdb = PeerDBHandler()
+        permid = peerdb.getPermIDByIP(ip)
+
+#        print >> sys.stdout, "Received %d B from %s:%s (PermID = %s)" % (length, ip, port, permid)
+        bartercastdb = BarterCastDBHandler()
+        my_permid = bartercastdb.my_permid
+
+        # Save downloaded MBs in PeerDB
+        if permid != None:
+
+            name = bartercastdb.getName(permid)
+#            print >> sys.stdout, "\nDownloaded data from peer %s (%s)" % (name, permid_for_user(permid))
+            new_value = bartercastdb.incrementItem((my_permid, permid), 'downloaded', length)
+#            print >> sys.stdout, "DB: downloaded %d bytes from peer %s" % (new_value, name)
+        
+        
         return self.downloader.storage.do_I_have(index)
 
 # 2fastbt_
