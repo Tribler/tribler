@@ -82,9 +82,9 @@ KEEP_ALIVE = chr(240)
 
 BuddyCastMessages = [BUDDYCAST, KEEP_ALIVE]
 
-# torrent_hash
+# bencoded torrent_hash (Arno,2007-08-14: shouldn't be bencoded, but is)
 GET_METADATA = chr(248)
-# {'torrent_hash', 'metadata', 'md5sum'}    # index starts from 1 and ends by total.
+# {'torrent_hash', 'metadata', ... }
 METADATA = chr(247)
 
 MetadataMessages = [GET_METADATA, METADATA]

@@ -68,6 +68,7 @@ class MetadataHandler:
         self.requested_torrents = Set()
         self.next_upload_time = 0
         self.initialized = True
+        self.rquerytorrenthandler = None
 
     def register2(self,rquerytorrenthandler):
         self.rquerytorrenthandler = rquerytorrenthandler

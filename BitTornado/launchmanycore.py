@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-
-# Written by John Hoffman and Pawel Garbacki
+# Written by John Hoffman, Pawel Garbacki, Arno Bakker
 # see LICENSE.txt for license information
 
 from random import seed
@@ -429,7 +427,7 @@ class LaunchMany:
             
     def remove(self, hash):
         if DEBUG:
-            print >> sys.stderr,"BitTornado/launchmany: STOP_DOWNLOAD_HELP not supported in text-mode!"
+            print >> sys.stderr,"BitTornado/launchmany: STOP_DOWNLOAD_HELP called remove()"
         self.torrent_list.remove(hash)
         self.downloads[hash].shutdown()
         del self.downloads[hash]
@@ -437,7 +435,7 @@ class LaunchMany:
     def add(self, hash, data):
         
         if DEBUG:
-            print >> sys.stderr,"BitTornado/launchmany: Adding torrent"
+            print >> sys.stderr,"BitTornado/launchmany: Adding torrent",`hash`
         
         c = self.counter
         self.counter += 1
@@ -584,6 +582,8 @@ class LaunchMany:
     def get_helper(self,torrent_hash):
         d = self.get_bt1download(torrent_hash)
         if d is not None:
+            if DEBUG:
+                print >>sys.stderr,"BitTornado/launchmany: get_helper: Found instance",d
             return d.helper
 
     def get_bt1download(self,torrent_hash):
@@ -591,6 +591,11 @@ class LaunchMany:
             d = self.downloads[torrent_hash]
             if d is None:
                 return None
+            elif isinstance(d,SingleDownload):
+                # In text mode self.downloads contains SingleDownload instances,
+                # whereas in GUI mode self.downloads contains BT1Download instances.
+                # Simple hack around it
+                return d.d
             else:
                 return d
         except KeyError:

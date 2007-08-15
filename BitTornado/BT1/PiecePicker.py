@@ -4,7 +4,7 @@
 from random import randrange, shuffle
 from BitTornado.clock import clock
 # 2fastbt_
-from traceback import extract_tb
+from traceback import extract_tb,print_stack
 import sys
 # _2fastbt
 
@@ -330,20 +330,24 @@ class PiecePicker:
             piece = self._next(haves, wantfunc, complete_first, helper_con)
             if piece is None:
                 if DEBUG:
-                    print >> sys.stderr,"PiecePicker: _next returned no pieces!",
+                    print >> sys.stderr,"PiecePicker: next: _next returned no pieces!",
                 break
             if self.helper is None or helper_con:
+                if DEBUG:
+                    print >> sys.stderr,"PiecePicker: next: helper None or helper conn, returning",piece
                 return piece
 
             if self.helper.reserve_piece(piece,sdownload):
                 if DEBUG:
-                    print >> sys.stderr,"helper: reserve SHOULD DL PIECE",piece
+                    print >> sys.stderr,"PiecePicker: next: helper: reserve SHOULD DL PIECE",piece
                 return piece
             else:
+                if DEBUG:
+                    print >> sys.stderr,"PiecePicker: next: helper.reserve_piece failed"
                 return None
 
             if DEBUG:
-                print >> sys.stderr,"helper: NONE SHOULD DL PIECE",piece
+                print >> sys.stderr,"PiecePicker: next:helper: NONE SHOULD DL PIECE",piece
             return piece
         if self.rate_predictor is None or not self.rate_predictor.has_capacity():
             return None

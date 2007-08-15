@@ -23,7 +23,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = True
+DEBUG = False
 
 MAX_INCOMPLETE = 8
 
@@ -87,7 +87,7 @@ class Connection:
 # _2fastbt
         if self.locally_initiated or ext_handshake:
             if DEBUG:
-                print >>sys.stderr,"Encoder.Connection: writing protname + swarm-ID"
+                print >>sys.stderr,"Encoder.Connection: writing protname + options + infohash"
             self.connection.write(chr(len(protocol_name)) + protocol_name + 
                 option_pattern + self.Encoder.download_id)
         if ext_handshake:
@@ -192,6 +192,9 @@ class Connection:
                                self.id = remote id if remotely init
         """
 # _2fastbt        
+        if DEBUG:
+            print >>sys.stderr,"Encoder.Connection: read_peer_id"
+
         if not self.id:    # remote init or local init without remote peer's id or remote init
             self.id = s
             self.readable_id = make_readable(s)
@@ -295,7 +298,7 @@ class Connection:
         #    print >>sys.stderr,"encoder: is_coordinator_con: coordinator is ",self.Encoder.coordinator_ip
         if self.coord_con:
             return True
-        elif self.get_ip() == self.Encoder.coordinator_ip:
+        elif self.get_ip() == self.Encoder.coordinator_ip and self.get_ip() != '127.0.0.1': # Arno: for testing
             return True
         else:
             return False
@@ -414,6 +417,8 @@ class Encoder:
 
     def start_connection(self, dns, id, coord_con = False):
         """ Locally initiated connection """
+        if DEBUG:
+            print >>sys.stderr,"encoder: start_connection:",dns
         
         if ( self.paused
              or len(self.connections) >= self.max_connections
@@ -426,6 +431,8 @@ class Encoder:
             if v is None:
                 continue
             if id and v.id == id:
+                if DEBUG:
+                    print >>sys.stderr,"encoder: start_connection: already connected to peer",`id`
                 return True
             ip = v.get_ip(True)
             port = v.get_port(False)

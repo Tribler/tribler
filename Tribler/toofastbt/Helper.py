@@ -135,16 +135,20 @@ class Helper:
             elif not self.is_ignored(piece):
                 pieces_to_send.append(piece)
 
-        #if DEBUG:
-        #    print >> sys.stderr,"helper: reserve_pieces: result is",result,"to_send is",pieces_to_send
+        if DEBUG:
+            print >> sys.stderr,"helper: reserve_pieces: result is",result,"to_send is",pieces_to_send
 
         if pieces_to_send == []:
             return result
         if self.coordinator is not None:
+            if DEBUG:
+                print >>sys.stderr,"helper: reserve_pieces: calling self.coordinator.reserve_pieces"
             new_reserved_pieces = self.coordinator.reserve_pieces(pieces_to_send, all_or_nothing)
             for piece in new_reserved_pieces:
                 self._reserve_piece(piece)
         else:
+            if DEBUG:
+                print >>sys.stderr,"helper: reserve_pieces: self.coordinator not set"
             self.send_or_queue_reservation(sdownload,pieces_to_send,result)
             return []
 

@@ -206,14 +206,14 @@ class TestSocialOverlap(TestAsServer):
     def subtest_bad_persinfo(self):
         """ Cut a corner """
         methods = [
-            #self.make_persinfo_not_dict1,
-            #self.make_persinfo_not_dict2,
-            #self.make_persinfo_empty_dict,
-            #self.make_persinfo_wrong_dict_keys,
-            #self.make_persinfo_name_not_str,
-            #self.make_persinfo_icontype_not_str,
-            #self.make_persinfo_icontype_noslash,
-            #self.make_persinfo_icondata_not_str,
+            self.make_persinfo_not_dict1,
+            self.make_persinfo_not_dict2,
+            self.make_persinfo_empty_dict,
+            self.make_persinfo_wrong_dict_keys,
+            self.make_persinfo_name_not_str,
+            self.make_persinfo_icontype_not_str,
+            self.make_persinfo_icontype_noslash,
+            self.make_persinfo_icondata_not_str,
             self.make_persinfo_icondata_too_big ]
         for method in methods:
             # Hmmm... let's get dirty

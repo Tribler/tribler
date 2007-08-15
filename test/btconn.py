@@ -62,6 +62,7 @@ class BTConnection:
             self.expected_infohash = user_infohash
         handshake += self.expected_infohash
         handshake += self.myid
+        print >>sys.stderr,"btconn: Sending handshake len",len(handshake)
         self.s.send(handshake)
 
     def get_my_id(self):

@@ -26,8 +26,8 @@ except:
     True = 1
     False = 0
 
-DEBUG = True
-DEBUG_NORMAL_MSGS = False
+DEBUG = False
+DEBUG_NORMAL_MSGS = True
 
 UNAUTH_PERMID_PERIOD = 3600
 
@@ -523,6 +523,8 @@ class Connecter:
                 print "connecter: Got UNCHOKE from",connection.get_ip()
             c.download.got_unchoke()
         elif t == INTERESTED:
+            if DEBUG_NORMAL_MSGS:
+                print "connecter: Got INTERESTED from",connection.get_ip()
             if c.upload is not None:
                 c.upload.got_interested()
         elif t == NOT_INTERESTED:
@@ -543,6 +545,8 @@ class Connecter:
                 print "connecter: Got HAVE(",i,") from",connection.get_ip()
             c.download.got_have(i)
         elif t == BITFIELD:
+            if DEBUG_NORMAL_MSGS:
+                print "connecter: Got BITFIELD from",connection.get_ip()
             try:
                 b = Bitfield(self.numpieces, message[1:])
             except ValueError:
