@@ -1,5 +1,13 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
+#
+# Like test_secure_overlay, we start a new python interpreter for each test. 
+# Although we don't have the singleton problem here, we do need to do this as the
+# HTTPServer that MyTracker uses won't relinquish the listen socket, causing 
+# "address in use" errors in the next test. This is probably due to the fact that
+# MyTracker has a thread mixed in, as a listensocket.close() normally releases it
+# (according to lsof).
+#
 
 import unittest
 import os
@@ -9,7 +17,7 @@ from sha import sha
 from random import randint,shuffle
 from traceback import print_exc
 from types import StringType, ListType, DictType
-from threading import Thread
+from threading import Thread,enumerate
 from time import sleep
 import socket
 
@@ -59,9 +67,6 @@ class TestDownloadHelp(TestAsServer):
 
         self.myid2 = 'R410-----56789HuGyx0'
 
-        print >>sys.stderr,"test: Giving MyTracker and myself time to start"
-        time.sleep(5)
-
     def setUpMyListenSockets(self):
         # Start our server side, to with Tribler will try to connect
         self.mylistenport = 4810
@@ -70,7 +75,7 @@ class TestDownloadHelp(TestAsServer):
         self.myss.bind(('', self.mylistenport))
         self.myss.listen(1)
 
-        self.mylistenport2 = 481
+        self.mylistenport2 = 3726
         self.myss2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.myss2.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.myss2.bind(('', self.mylistenport2))
@@ -96,69 +101,91 @@ class TestDownloadHelp(TestAsServer):
         """ override TestAsServer """
         print >> sys.stderr,"test: *** TEARDOWN"
         TestAsServer.tearDown(self)
+        self.mytracker.shutdown()
         self.tearDownMyListenSockets()
+
 
     def tearDownMyListenSockets(self):
         self.myss.close()
         self.myss2.close()
 
 
-    def test_all(self):
-        """ 
-            I want to start a Tribler client once and then connect to
-            it many times. So there must be only one test method
-            to prevent setUp() from creating a new client every time.
-
-            The code is constructed so unittest will show the name of the
-            (sub)test where the error occured in the traceback it prints.
-        """
-        # 1. test good DOWNLOAD_HELP
-        self.subtest_good_2fast()
-        self.subtest_bad_2fast_dlhelp()
-        self.subtest_bad_2fast_metadata()
-
-
     #
     # Good 2fast
     #
-    def subtest_good_2fast(self):
+    def singtest_good_2fast(self):
+        genresdict = self.get_genresdict()
+        print >>sys.stderr,"test: good DOWNLOAD_HELP"
+        self._test_2fast(genresdict)
+    
+
+    def get_genresdict(self):
         genresdict = {}
         genresdict[DOWNLOAD_HELP] = (self.create_good_dlhelp,True)
         genresdict[METADATA] = (self.create_good_metadata,True)
         genresdict[PIECES_RESERVED] = (self.create_good_pieces_reserved,True)
         genresdict[STOP_DOWNLOAD_HELP] = (self.create_good_stop_dlhelp,True)
-        print >>sys.stderr,"test: good DOWNLOAD_HELP"
-        self._test_2fast(genresdict)
-    
+        return genresdict
 
     #
     # Bad 2fast
     #
-    def subtest_bad_2fast_dlhelp(self):
-        genresdict = {}
+    def singtest_bad_2fast_dlhelp(self):
+        genresdict = self.get_genresdict()
         genresdict[DOWNLOAD_HELP] = (self.create_bad_dlhelp_not_infohash,False)
-        genresdict[METADATA] = (self.create_good_metadata,True)
-        genresdict[PIECES_RESERVED] = (self.create_good_pieces_reserved,True)
-        genresdict[STOP_DOWNLOAD_HELP] = (self.create_good_stop_dlhelp,True)
-        
         print >>sys.stderr,"test: bad dlhelp"
         self._test_2fast(genresdict)
         
-    def subtest_bad_2fast_metadata(self):
-        l = [self.create_bad_metadata_not_bdecodable,
-        self.create_bad_metadata_not_dict1,
-        self.create_bad_metadata_not_dict2,
-        self.create_bad_metadata_empty_dict,
-        self.create_bad_metadata_wrong_dict_keys,
-        self.create_bad_metadata_bad_torrent ]
-        for func in l:
-            genresdict = {}
-            genresdict[DOWNLOAD_HELP] = (self.create_good_dlhelp,True)
-            genresdict[METADATA] = (func,False)
-            genresdict[PIECES_RESERVED] = (self.create_good_pieces_reserved,True)
-            genresdict[STOP_DOWNLOAD_HELP] = (self.create_good_stop_dlhelp,True)
-            print >>sys.stderr,"test: bad METADATA",func
-            self._test_2fast(genresdict)
+    def singtest_bad_2fast_metadata_not_bdecodable(self):
+        genresdict = self.get_genresdict()
+        genresdict[METADATA] = (self.create_bad_metadata_not_bdecodable,False)
+        print >>sys.stderr,"test: bad METADATA",genresdict[METADATA][0]
+        self._test_2fast(genresdict)
+
+    def singtest_bad_2fast_metadata_not_dict1(self):
+        genresdict = self.get_genresdict()
+        genresdict[METADATA] = (self.create_bad_metadata_not_dict1,False)
+        print >>sys.stderr,"test: bad METADATA",genresdict[METADATA][0]
+        self._test_2fast(genresdict)
+
+    def singtest_bad_2fast_metadata_not_dict2(self):
+        genresdict = self.get_genresdict()
+        genresdict[METADATA] = (self.create_bad_metadata_not_dict2,False)
+        print >>sys.stderr,"test: bad METADATA",genresdict[METADATA][0]
+        self._test_2fast(genresdict)
+
+
+    def singtest_bad_2fast_metadata_empty_dict(self):
+        genresdict = self.get_genresdict()
+        genresdict[METADATA] = (self.create_bad_metadata_empty_dict,False)
+        print >>sys.stderr,"test: bad METADATA",genresdict[METADATA][0]
+        self._test_2fast(genresdict)
+
+    def singtest_bad_2fast_metadata_wrong_dict_keys(self):
+        genresdict = self.get_genresdict()
+        genresdict[METADATA] = (self.create_bad_metadata_wrong_dict_keys,False)
+        print >>sys.stderr,"test: bad METADATA",genresdict[METADATA][0]
+        self._test_2fast(genresdict)
+
+    def singtest_bad_2fast_metadata_bad_torrent1(self):
+        genresdict = self.get_genresdict()
+        genresdict[METADATA] = (self.create_bad_metadata_bad_torrent1,False)
+        print >>sys.stderr,"test: bad METADATA",genresdict[METADATA][0]
+        self._test_2fast(genresdict)
+
+
+    def singtest_bad_2fast_metadata_bad_torrent2(self):
+        genresdict = self.get_genresdict()
+        genresdict[METADATA] = (self.create_bad_metadata_bad_torrent2,False)
+        print >>sys.stderr,"test: bad METADATA",genresdict[METADATA][0]
+        self._test_2fast(genresdict)
+
+    def singtest_bad_2fast_metadata_bad_torrent3(self):
+        genresdict = self.get_genresdict()
+        genresdict[METADATA] = (self.create_bad_metadata_bad_torrent3,False)
+        print >>sys.stderr,"test: bad METADATA",genresdict[METADATA][0]
+        self._test_2fast(genresdict)
+
 
     
     def _test_2fast(self,genresdict):
@@ -166,7 +193,7 @@ class TestDownloadHelp(TestAsServer):
             test DOWNLOAD_HELP, METADATA, PIECES_RESERVED and STOP_DOWNLOAD_HELP sequence
         """
         # 1. Establish overlay connection to Tribler
-        s = OLConnection(self.my_keypair,'localhost',self.hisport)
+        s = OLConnection(self.my_keypair,'localhost',self.hisport,mylistenport=self.mylistenport2)
         
         (func,good) = genresdict[DOWNLOAD_HELP]
         msg = func()
@@ -272,6 +299,11 @@ class TestDownloadHelp(TestAsServer):
         data = f.read()
         f.close() 
         
+        d = self.create_good_metadata_dict(data)
+        bd = bencode(d)
+        return METADATA+bd
+
+    def create_good_metadata_dict(self,data):
         d = {}
         d['torrent_hash'] = self.infohash 
         d['metadata'] = data
@@ -279,9 +311,7 @@ class TestDownloadHelp(TestAsServer):
         d['seeder'] = 1
         d['last_check_time'] = int(time.time())
         d['status'] = 'good'
-        bd = bencode(d)
-        return METADATA+bd
-
+        return d
 
     def check_reserve_pieces(self,data):
         # torrent_hash + 1-byte all_or_nothing + bencode([piece num,...])
@@ -338,34 +368,43 @@ class TestDownloadHelp(TestAsServer):
         d['bla2'] = '\x00\x00\x00\x00\x00\x30\x00\x00'
         return METADATA+bencode(d)
 
-    def create_bad_metadata_bad_torrent(self):
-        d = {}
-        d['torrent_hash'] = self.infohash 
+    def create_bad_metadata_bad_torrent1(self):
+        d = self.create_good_metadata_dict(data)
         d['metadata'] = '\x12\x34' * 100 # random data
-        d['leecher'] = 1
-        d['seeder'] = 1
-        d['last_check_time'] = int(time.time())
-        d['status'] = 'good'
+        bd = bencode(d)
+        return METADATA+bd
+
+    def create_bad_metadata_bad_torrent2(self):
+        torrent = {}
+        data = bencode(torrent)
+        
+        d = self.create_good_metadata_dict(data)
+        d['metadata'] = data
         bd = bencode(d)
         return METADATA+bd
 
 
+    def create_bad_metadata_bad_torrent3(self):
+        torrent = {'info':481}
+        data = bencode(torrent)
+        
+        d = self.create_good_metadata_dict(data)
+        d['metadata'] = data
+        bd = bencode(d)
+        return METADATA+bd
+
+
+
 def test_suite():
     suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(TestDownloadHelp))
+    # We should run the tests in a separate Python interpreter to prevent 
+    # problems with our singleton classes, e.g. PeerDB, etc.
+    if len(sys.argv) != 2:
+        print "Usage: python test_dl.py <method name>"
+    else:
+        suite.addTest(TestDownloadHelp(sys.argv[1]))
     
     return suite
 
-def sign_data(plaintext,keypair):
-    digest = sha(plaintext).digest()
-    return keypair.sign_dsa_asn1(digest)
-
-def verify_data(plaintext,permid,blob):
-    pubkey = EC.pub_key_from_der(permid)
-    digest = sha(plaintext).digest()
-    return pubkey.verify_dsa_asn1(digest,blob)
-
-
-if __name__ == "__main__":
-    unittest.main()
-
+def main():
+    unittest.main(defaultTest='test_suite',argv=[sys.argv[0]])

@@ -594,6 +594,7 @@ class MetadataHandler:
         except Exception, e:
             print_exc()
             print >> sys.stderr,"metadata: Received metadata is broken",e
+            return False
         
         return True
         

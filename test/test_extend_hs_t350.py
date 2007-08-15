@@ -12,7 +12,7 @@ from sha import sha
 from traceback import print_exc
 from types import DictType,StringType,IntType
 import BaseHTTPServer
-from SocketServer import ThreadingMixIn
+from SocketServer import ThreadingMixIn,BaseServer
 
 from test_as_server import TestAsServer
 from olconn import OLConnection
@@ -35,6 +35,10 @@ class MyTracker(ThreadingMixIn,BaseHTTPServer.HTTPServer):
         
     def background_serve( self ):
         thread.start_new_thread( self.serve_forever, () )
+
+    def shutdown(self):
+        self.socket.close()
+
 
 class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
 

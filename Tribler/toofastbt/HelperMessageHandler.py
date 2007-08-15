@@ -181,10 +181,13 @@ class HelperMessageHandler:
             return None
         elif 'torrent_dir' in torrent:
             fn = torrent['torrent_dir']
-            f = open(fn,"rb")
-            data = f.read()
-            f.close()
-            return data
+            if os.path.isfile(fn):
+                f = open(fn,"rb")
+                data = f.read()
+                f.close()
+                return data
+            else:
+                return None
         else:
             return None
 
