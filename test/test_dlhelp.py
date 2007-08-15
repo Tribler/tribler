@@ -113,42 +113,96 @@ class TestDownloadHelp(TestAsServer):
             (sub)test where the error occured in the traceback it prints.
         """
         # 1. test good DOWNLOAD_HELP
-        self.subtest_good_dlhelp()
+        self.subtest_good_2fast()
+        self.subtest_bad_2fast_dlhelp()
+        self.subtest_bad_2fast_metadata()
 
 
     #
-    # Good DOWNLOAD_HELP
+    # Good 2fast
     #
-    def subtest_good_dlhelp(self):
-        """ 
-            test good DOWNLOAD_HELP message
-        """
+    def subtest_good_2fast(self):
+        genresdict = {}
+        genresdict[DOWNLOAD_HELP] = (self.create_good_dlhelp,True)
+        genresdict[METADATA] = (self.create_good_metadata,True)
+        genresdict[PIECES_RESERVED] = (self.create_good_pieces_reserved,True)
+        genresdict[STOP_DOWNLOAD_HELP] = (self.create_good_stop_dlhelp,True)
         print >>sys.stderr,"test: good DOWNLOAD_HELP"
+        self._test_2fast(genresdict)
+    
+
+    #
+    # Bad 2fast
+    #
+    def subtest_bad_2fast_dlhelp(self):
+        genresdict = {}
+        genresdict[DOWNLOAD_HELP] = (self.create_bad_dlhelp_not_infohash,False)
+        genresdict[METADATA] = (self.create_good_metadata,True)
+        genresdict[PIECES_RESERVED] = (self.create_good_pieces_reserved,True)
+        genresdict[STOP_DOWNLOAD_HELP] = (self.create_good_stop_dlhelp,True)
         
+        print >>sys.stderr,"test: bad dlhelp"
+        self._test_2fast(genresdict)
+        
+    def subtest_bad_2fast_metadata(self):
+        l = [self.create_bad_metadata_not_bdecodable,
+        self.create_bad_metadata_not_dict1,
+        self.create_bad_metadata_not_dict2,
+        self.create_bad_metadata_empty_dict,
+        self.create_bad_metadata_wrong_dict_keys,
+        self.create_bad_metadata_bad_torrent ]
+        for func in l:
+            genresdict = {}
+            genresdict[DOWNLOAD_HELP] = (self.create_good_dlhelp,True)
+            genresdict[METADATA] = (func,False)
+            genresdict[PIECES_RESERVED] = (self.create_good_pieces_reserved,True)
+            genresdict[STOP_DOWNLOAD_HELP] = (self.create_good_stop_dlhelp,True)
+            print >>sys.stderr,"test: bad METADATA",func
+            self._test_2fast(genresdict)
+
+    
+    def _test_2fast(self,genresdict):
+        """ 
+            test DOWNLOAD_HELP, METADATA, PIECES_RESERVED and STOP_DOWNLOAD_HELP sequence
+        """
         # 1. Establish overlay connection to Tribler
         s = OLConnection(self.my_keypair,'localhost',self.hisport)
-        msg = self.create_good_dlhelp()
-        s.send(msg)
-        resp = s.recv()
-        self.assert_(resp[0] == GET_METADATA)
-        self.check_get_metadata(resp[1:])
-        print >>sys.stderr,"test: Got GET_METADATA for torrent, good"
         
-        msg = self.create_good_metadata()
+        (func,good) = genresdict[DOWNLOAD_HELP]
+        msg = func()
+        s.send(msg)
+        if good:
+            resp = s.recv()
+            self.assert_(resp[0] == GET_METADATA)
+            self.check_get_metadata(resp[1:])
+            print >>sys.stderr,"test: Got GET_METADATA for torrent, good"
+        else:
+            resp = s.recv()
+            self.assert_(len(resp)==0)
+            s.close()
+            return
+
+        (func,good) = genresdict[METADATA]
+        msg = func()
         s.send(msg)
 
-        # 2. Accept the data connection Tribler wants to establish with us, the coordinator
-        self.myss2.settimeout(10.0)
-        conn, addr = self.myss2.accept()
-        s3 = BTConnection('',0,conn,user_infohash=self.infohash,myid=self.myid2)
-        s3.read_handshake_medium_rare()
-        
-        msg = UNCHOKE
-        s3.send(msg)
-        print >>sys.stderr,"test: Got data connection to us, as coordinator, good"
+        if good:
+            # 2. Accept the data connection Tribler wants to establish with us, the coordinator
+            self.myss2.settimeout(10.0)
+            conn, addr = self.myss2.accept()
+            s3 = BTConnection('',0,conn,user_infohash=self.infohash,myid=self.myid2)
+            s3.read_handshake_medium_rare()
+            
+            msg = UNCHOKE
+            s3.send(msg)
+            print >>sys.stderr,"test: Got data connection to us, as coordinator, good"
+        else:
+            resp = s.recv()
+            self.assert_(len(resp)==0)
+            s.close()
+            return
 
-
-        # 3. The tracker says there is another peer (also us) on port 4810
+        # 3. Our tracker says there is another peer (also us) on port 4810
         # Now accept a connection on that port and pretend we're a seeder
         self.myss.settimeout(10.0)
         conn, addr = self.myss.accept()
@@ -172,26 +226,35 @@ class TestDownloadHelp(TestAsServer):
         self.assert_(resp[0] == RESERVE_PIECES)
         pieces = self.check_reserve_pieces(resp[1:])
         print >>sys.stderr,"test: Got RESERVE_PIECES, good"
+
+        (func,good) = genresdict[PIECES_RESERVED]
         
         # 5. Reply with PIECES_RESERVED
-        msg = self.create_good_pieces_reserved(pieces)
+        msg = func(pieces)
         s.send(msg)
         
-        # 6. Await REQUEST on fake seeder
-        while True:
-            resp = s2.recv()
-            self.assert_(len(resp) > 0)
-            print "test: Fake seeder got message",getMessageName(resp[0])
-            if resp[0] == REQUEST:
-                self.check_request(resp[1:],pieces)
-                print >>sys.stderr,"test: Fake seeder got REQUEST for reserved piece, good"
-                break
-        
+        if good:
+            # 6. Await REQUEST on fake seeder
+            while True:
+                resp = s2.recv()
+                self.assert_(len(resp) > 0)
+                print "test: Fake seeder got message",getMessageName(resp[0])
+                if resp[0] == REQUEST:
+                    self.check_request(resp[1:],pieces)
+                    print >>sys.stderr,"test: Fake seeder got REQUEST for reserved piece, good"
+                    break
+        else:
+            resp = s.recv()
+            self.assert_(len(resp)==0)
+            s.close()
+            return
+
+        (func,good) = genresdict[STOP_DOWNLOAD_HELP]
         # 5. Reply with STOP_DOWNLOAD_HELP
-        msg = self.create_good_stop_dlhelp()
+        msg = func()
         s.send(msg)
-        
-        # the other side should close the connection
+
+        # the other side should close the connection, whether the msg was good or bad
         resp = s.recv()
         self.assert_(len(resp)==0)
         s.close()
@@ -246,22 +309,45 @@ class TestDownloadHelp(TestAsServer):
     #
     # Bad DOWNLOAD_HELP
     #    
-    def subtest_bad_dlhelp(self):
-        self._test_bad(self.create_not_infohash)
 
-    def create_not_infohash(self):
+    def create_bad_dlhelp_not_infohash(self):
         return DOWNLOAD_HELP+"481"
 
-    def _test_bad(self,gen_soverlap_func):
-        print >>sys.stderr,"test: bad DOWNLOAD_HELP",gen_soverlap_func
-        s = OLConnection(self.my_keypair,'localhost',self.hisport)
-        msg = gen_soverlap_func()
-        s.send(msg)
-        time.sleep(5)
-        # the other side should not like this and close the connection
-        self.assert_(len(s.recv())==0)
-        s.close()
+    #
+    # Bad METADATA
+    #
 
+    def create_bad_metadata_not_bdecodable(self):
+        return METADATA+"bla"
+
+    def create_bad_metadata_not_dict1(self):
+        d  = 481
+        return METADATA+bencode(d)
+
+    def create_bad_metadata_not_dict2(self):
+        d  = []
+        return METADATA+bencode(d)
+
+    def create_bad_metadata_empty_dict(self):
+        d = {}
+        return METADATA+bencode(d)
+
+    def create_bad_metadata_wrong_dict_keys(self):
+        d = {}
+        d['bla1'] = '\x00\x00\x00\x00\x00\x30\x00\x00'
+        d['bla2'] = '\x00\x00\x00\x00\x00\x30\x00\x00'
+        return METADATA+bencode(d)
+
+    def create_bad_metadata_bad_torrent(self):
+        d = {}
+        d['torrent_hash'] = self.infohash 
+        d['metadata'] = '\x12\x34' * 100 # random data
+        d['leecher'] = 1
+        d['seeder'] = 1
+        d['last_check_time'] = int(time.time())
+        d['status'] = 'good'
+        bd = bencode(d)
+        return METADATA+bd
 
 
 def test_suite():

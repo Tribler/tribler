@@ -67,6 +67,9 @@ class HelperMessageHandler:
             print >> sys.stderr,"helper: warning: bad data in dlhelp_request"
             return False
         
+        if len(torrent_hash) != 20:
+            return False
+        
         if not self.can_help(torrent_hash):
             return False
         torrent_data = self.find_torrent(torrent_hash)
