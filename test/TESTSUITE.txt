@@ -1,6 +1,12 @@
 TESTSUITE FOR TRIBLER
 =====================
 
+The test suite technically consists of two groups: tests that can be run
+by a single python interpreter, one after another, and tests that require
+a fresh python interpreter to prevent problems with singleton classes,
+threads and listen ports. The former group is tested in one blow by running 
+test_all_single_python.py (see below), for the other groups there are
+separate shell scripts, and you'll see "Run XXX" instructions for those.
 
 Description of tests
 --------------------
@@ -41,6 +47,10 @@ Feature: Download Helper
 	* Test whether the client always stops helping on a STOP_DOWNLOAD_HELP
 	in various situations.
 
+  Run
+       $ test_dlhelp.sh
+
+
 Feature: BuddyCast
 
 	Start a Tribler client, connect to it via the SecureOverlay API.
@@ -52,21 +62,32 @@ Feature: BuddyCast
 Feature: SecureOverlay V3
 
 	Run 
-		$ python test_so.sh
+		$ test_secure_overlay.sh
 		
 Feature: Dialback Message
 
 	Run
-		$ python test_dra.sh
-		$ python test_dch.sh		
+		$ test_dialback_reply_active.sh
+		$ test_dialback_conn_handler.sh		
+
+Feature: Remote Query
+
+    Run 
+        $ test_rquery_reply_active.sh
+        
+Feature: uTorrent Peer Exchange
+
+    Part of test_all_single_python.py
+
 
 Running
 -------
 
 To run the full test suite, run
 
-$ python test.py 
+$ test.sh
 
-from the main dir. 
+from the this test dir. This calls test_all_single_python.py 
+and all separate shell scripts.
 
-Arno Bakker, 2007-02-27
+Arno Bakker, 2007-08-15

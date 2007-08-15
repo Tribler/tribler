@@ -91,7 +91,7 @@ class TestDownloadHelp(TestAsServer):
         
         # This is the infohash of the torrent in test/extend_hs_dir
         self.infohash = '\xccg\x07\xe2\x9e!]\x16\xae{\xb8\x10?\xf9\xa5\xf9\x07\xfdBk'
-        self.torrentfile = os.path.join('test','extend_hs_dir','dummydata.merkle.torrent')
+        self.torrentfile = os.path.join('extend_hs_dir','dummydata.merkle.torrent')
 
         # Add us as friend, so he will accept the DOWNLOAD_HELP
         friendsdb = FriendDBHandler()

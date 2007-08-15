@@ -5,6 +5,7 @@
 # no longer there, this code needs to be updated.
 
 import os
+import sys
 import unittest
 from tempfile import mkdtemp
 from distutils.dir_util import copy_tree, remove_tree
@@ -32,13 +33,19 @@ class TestBuddyCastDataHandler(unittest.TestCase):
     
     def setUp(self):
         # prepare database
-        testdbpath = os.path.join('.Tribler', 'bsddb')
+        if sys.platform == 'win32':
+            realhomevar = '${APPDATA}'
+        else:
+            realhomevar = '${HOME}'
+        realhome = os.path.expandvars(realhomevar)
+        testdbpath = os.path.join(realhome,'.Tribler', 'bsddb')
         self.homepath = mkdtemp()
         #print "\ntest: create tmp dir", self.homepath
         self.dbpath = os.path.join(self.homepath, 'bsddb')
         copy_tree(testdbpath, self.dbpath)
         
-        tribler_init(unicode(self.homepath))
+        self.install_path = '..'
+        tribler_init(unicode(self.homepath),unicode(self.install_path))
         self.data_handler = DataHandler(FakeRawServer(),db_dir=self.dbpath)
         # self.data_handler.max_num_peers = 100
         # self.data_handler.postInit()

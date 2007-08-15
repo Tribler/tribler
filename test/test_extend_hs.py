@@ -51,7 +51,7 @@ class TestExtendHandshake(TestAsServer):
 
         # Let Tribler start downloading an non-functioning torrent, so
         # we can talk to a normal download engine.
-        self.config['torrent_dir'] = os.path.join('test','extend_hs_dir')
+        self.config['torrent_dir'] = os.path.join('extend_hs_dir')
         self.config['parse_dir_interval'] = 60
         self.config['saveas_style'] = 1
         self.config['priority'] = 1

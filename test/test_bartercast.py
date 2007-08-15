@@ -120,22 +120,6 @@ class TestBarterCast(TestAsServer):
         return self.create_payload(bartercast_data)
 
 
-    def make_filename(self,filename):
-        """ The main test is run from the main source dir, not test/ 
-            Allow for running from test/ as well. 
-        """
-        cwd = os.getcwd()
-        if cwd.endswith('test'):
-            return filename
-        else:
-            return os.path.join(cwd,'test',filename)
-
-    def read_file(self,filename):
-        f = open( filename, 'r')
-        data = f.read()
-        f.close()
-        return data
-    
     def create_payload(self,r):
         return BARTERCAST+bencode(r)
 

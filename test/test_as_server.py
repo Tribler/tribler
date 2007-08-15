@@ -75,14 +75,14 @@ class TestAsServer(unittest.TestCase):
     def setUpPreTriblerInit(self):
         """ Should set self.config_path and self.config """
         self.config_path = tempfile.mkdtemp()
-        self.install_path = '.'
+        self.install_path = '..'
         configdir = ConfigDir('launchmany',self.config_path)
         defaultsToIgnore = ['responsefile', 'url', 'priority']
         configdir.setDefaults(download_bt1.defaults,defaultsToIgnore)
         #configdir.loadConfig()
         self.config = configdir.getConfig()
         # extra defaults
-        self.config['torrent_dir'] = os.path.join('test','empty_dir')
+        self.config['torrent_dir'] = os.path.join('empty_dir')
         self.config['parse_dir_interval'] = 600
         # overrides
         self.config['config_path'] = self.config_path

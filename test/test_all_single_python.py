@@ -1,12 +1,11 @@
-""" Run all test cases """
+""" Run all test cases that can be run in a single python interpreter after one another """
 
 import sys
 import os
 import unittest
 
-import hotshot, hotshot.stats, test.test_all
+import hotshot, hotshot.stats
 import math
-from test.test_all import *
 
     
 verbose = 0
@@ -24,12 +23,6 @@ def print_versions():
 class PrintInfoFakeTest(unittest.TestCase):
     def testPrintVersions(self):
         print_versions()
-
-# This little hack is for when this module is run as main and all the
-# other modules import it so they will still be able to get the right
-# verbose setting.  It's confusing but it works.
-import test_all
-test_all.verbose = verbose
 
 def test_suite():
     suite = unittest.TestSuite()
@@ -54,7 +47,6 @@ def suite():
     import test_gui_server as test_gui_server
     import test_remote_query as test_remote_query
     import test_ut_pex as test_ut_pex
-    import test_dlhelp as test_dlhelp
     
     # SecureOverlay is tested by running test_so.sh from topdir
     # Extra Dialback message tests can be done with test_dra.sh from topdir
@@ -80,8 +72,7 @@ def suite():
         #test_social_overlap,
         #test_gui_server,
         #test_remote_query,
-        #test_ut_pex,
-        test_dlhelp
+        test_ut_pex
         ]
 
     alltests = unittest.TestSuite()
@@ -113,4 +104,6 @@ def profile():
     stats.sort_stats('time', 'calls')
     stats.print_stats(100)
     
+if __name__ == "__main__":
+    main()
     
