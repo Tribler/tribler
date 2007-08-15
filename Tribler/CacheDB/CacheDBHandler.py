@@ -187,7 +187,8 @@ class PeerDBHandler(BasicDBHandler):
         self.pref_db = PreferenceDB.getInstance(db_dir=db_dir)
         self.my_db = MyDB.getInstance(db_dir=db_dir)
         self.pref_db_handler = PreferenceDBHandler(db_dir=db_dir)
-        self.dbs = [self.peer_db]
+        self.ip_db = IP2PermIDDB.getInstance(db_dir=db_dir)
+        self.dbs = [self.peer_db, self.ip_db]
         
     def __len__(self):
         return self.peer_db._size()
@@ -258,7 +259,14 @@ class PeerDBHandler(BasicDBHandler):
             last_seen = value['last_seen']
             value['last_seen'] = max(last_seen, old_last_seen)
 
+
         self.peer_db.updateItem(permid, value, update_dns)
+
+        try:
+            self.ip_db.addIP(value['ip'],permid)
+        except KeyError:
+            print "cachedbh: peerinfo keys were",value.keys()
+            print_exc()
         
     def hasPeer(self, permid):
         return self.peer_db.hasItem(permid)        
@@ -283,9 +291,16 @@ class PeerDBHandler(BasicDBHandler):
     
     def updatePeer(self, permid, key, value):
         self.peer_db.updateItem(permid, {key:value})
+        if key == 'ip':
+            self.ip_db.deletePermID(permid)
+            self.ip_db.addIP(value,permid)
+
     
     def updatePeerIPPort(self, permid, ip, port):
         self.peer_db.updateItem(permid, {'ip':ip, 'port':port})
+        self.ip_db.deletePermID(permid)
+        self.ip_db.addIP(ip,permid)
+
         
     def deletePeer(self, permid):
         data = self.peer_db._get(permid)
@@ -295,6 +310,8 @@ class PeerDBHandler(BasicDBHandler):
             return False
         self.peer_db._delete(permid)
         self.pref_db_handler.deletePeer(permid)
+        self.ip_db.deletePermID(permid)
+
         return True
         
     def updateTimes(self, permid, key, change):
@@ -321,6 +338,9 @@ class PeerDBHandler(BasicDBHandler):
                     n += 1
             self.peer_db.num_encountered_peers = n
         return self.peer_db.num_encountered_peers
+        
+    def getPermIDByIP(self,ip):
+        return self.ip_db.getPermIDByIP(ip)    
         
 class PreferenceDBHandler(BasicDBHandler):
     
