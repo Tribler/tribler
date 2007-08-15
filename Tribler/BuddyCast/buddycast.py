@@ -798,7 +798,8 @@ class BuddyCastCore:
             self.print_debug_info('Passive', 7, target_permid)
 
         # Bartercast
-        self.bartercast_core.createAndSendBarterCastMessage(target_permid, selversion)
+        if self.bartercast_core != None and active:
+            self.bartercast_core.createAndSendBarterCastMessage(target_permid, selversion)
 
             
         if self.log:
