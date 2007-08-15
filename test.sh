@@ -4,3 +4,4 @@ python test.py
 test_so.sh
 test_dra.sh
 test_qra.sh
+test_dlh.sh
