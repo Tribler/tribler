@@ -210,7 +210,7 @@ class FilesItemPanel(wx.Panel):
     def getColumns(self):
         return [{'sort':'content_name', 'reverse':True, 'title':'name', 'weight':1,'tip':self.utility.lang.get('C_filename')},
                 {'sort':'length', 'title':'size', 'width':75, 'tip':self.utility.lang.get('C_filesize')},
-                {'sort':'date', 'title':'creation','width':110, 'tip':self.utility.lang.get('C_creationdate')},
+                {'sort':'date', 'title':'creation date','width':110, 'tip':self.utility.lang.get('C_creationdate')},
                 {'sort':'seeder', 'pic':'upSmall','title':'se', 'width':47, 'tip':self.utility.lang.get('C_uploaders')},
                 {'sort':'leecher', 'pic':'downSmall','title':'le', 'width':47, 'tip':self.utility.lang.get('C_downloaders')},
                 {'sort':'relevance', 'pic':'heartSmall', 'width':60, 'tip':self.utility.lang.get('C_recommfiles')},

@@ -44,7 +44,7 @@ class SubscriptionsItemPanel(wx.Panel):
         self.parent = parent
         self.data = None
         self.datacopy = None
-        self.titleLength = 72 # num characters
+        self.titleLength = 172 # num characters
         self.selected = False
         self.warningMode = False
         self.guiserver = parent.guiserver
