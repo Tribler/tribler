@@ -185,8 +185,8 @@
                   <border>6</border>
                   <option>0</option>
                   <object class="wxPanel" name="takeMeThere0" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                    <pos>6,114</pos>
-                    <size>120,21</size>
+                    <pos>6,112</pos>
+                    <size>100,16</size>
                   </object>
                 </object>
               </object>
@@ -282,8 +282,8 @@
                   <border>6</border>
                   <option>0</option>
                   <object class="wxPanel" name="takeMeThere1" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                    <pos>6,227</pos>
-                    <size>120,21</size>
+                    <pos>6,224</pos>
+                    <size>100,16</size>
                   </object>
                 </object>
               </object>
@@ -379,8 +379,8 @@
                   <border>6</border>
                   <option>0</option>
                   <object class="wxPanel" name="takeMeThere2" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                    <pos>6,319</pos>
-                    <size>120,21</size>
+                    <pos>6,336</pos>
+                    <size>100,16</size>
                   </object>
                 </object>
               </object>

@@ -1,4 +1,3 @@
-import wx, os, sys, os.path, random
 import wx.xrc as xrc
 from binascii import hexlify
 from time import sleep,time

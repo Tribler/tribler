@@ -93,7 +93,7 @@ class PersonsItemPanel(wx.Panel):
             self.SetMinSize((670,22))
             self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
             self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
-            self.thumb = ThumbnailViewer(self)
+            self.thumb = ThumbnailViewer(self, mode = 'list')
             self.thumb.setBackground(wx.BLACK)
             self.thumb.SetSize((18,18))
             self.hSizer.Add(self.thumb, 0, wx.ALL, 2)  

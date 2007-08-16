@@ -14,7 +14,7 @@ s_tipoFile=21
 ClsparentCompTipo=0
 l_framTipo=0
 VisualWxVersion=0.87.6.0
-VisualWxIdent=8725
+VisualWxIdent=8760
 l_hasAutoSize=1
 strTree=00it=3 01it=349 01it=8 02it=196 02it=10 03it=133 04it=350 04it=134 02it=197 01it=351 02it=360 03it=361 03it=220 04it=221 04it=223 05it=227 05it=342 05it=341 04it=226 05it=229 02it=362 03it=363 03it=352 04it=364 04it=354 05it=355 05it=365 05it=370 04it=358 05it=359 05it=366 03it=368 04it=369 04it=367 01it=346 02it=347 03it=348 01it=329 02it=321 03it=322 04it=340 04it=324 05it=325 05it=339 02it=332 03it=333 03it=334 03it=335 01it=338 01it=292 02it=293 03it=294 03it=295 03it=296 01it=301 02it=305 03it=306 03it=307 03it=308 01it=302 02it=309 03it=310 03it=311 03it=312 01it=303 02it=313 03it=314 03it=315 03it=316 01it=304 02it=317 03it=318 03it=319 03it=320 01it=240 01it=211 02it=212 02it=213 02it=214 03it=215 04it=216 04it=217 04it=218 
 [Controlli]
@@ -863,8 +863,8 @@ subClassName=
 i_index=-1
 i_left=110
 i_top=130
-i_height=14
-i_width=34
+i_height=16
+i_width=37
 l_backColor=
 l_foreColor=
 l_backColorSys=

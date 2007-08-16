@@ -243,15 +243,15 @@ class LibraryItemPanel(wx.Panel):
         
         for window in [self]+self.GetChildren():
             window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
-            window.Bind(wx.EVT_LEFT_DCLICK, self.doubleClicked)
+            #window.Bind(wx.EVT_LEFT_DCLICK, self.doubleClicked)
             window.Bind(wx.EVT_KEY_UP, self.keyTyped)                         
             window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction)             
             
     def getColumns(self):
         return [{'sort':'content_name', 'reverse':True, 'title':'name', 'weight':1,'tip':self.utility.lang.get('C_filename'), 'order':'down'},
                 {'sort':'??', 'title':'progress', 'width':120, 'tip':self.utility.lang.get('C_progress')},
-                {'sort':'??', 'pic':'downSpeed','title':'down', 'width':70, 'tip':self.utility.lang.get('C_downspeed')},
-                {'sort':'??', 'pic':'upSpeed','title':'up','width':70, 'tip':self.utility.lang.get('C_upspeed')},                
+                {'sort':'??', 'pic':'downSpeedColumn','title':'down', 'width':70, 'tip':self.utility.lang.get('C_downspeed')},
+                {'sort':'??', 'pic':'upSpeedColumn','title':'up','width':70, 'tip':self.utility.lang.get('C_upspeed')},                
                 {'sort':'latest', 'title':'status', 'weight':1, 'tip':self.utility.lang.get('C_message')},
                 {'sort':'??', 'title':'info', 'width':111, 'tip':self.utility.lang.get('C_info')}
                 ]     
@@ -401,7 +401,7 @@ class LibraryItemPanel(wx.Panel):
             self.playFast.setToggled(not switchable, tooltip = {"disabled" : self.utility.lang.get('playFastDisabled'), "enabled" : self.utility.lang.get('playFastEnabled')})
 
             self.boost.setEnabled(showBoost)
-            self.boost.setToggled(self.is_boosted())
+            self.boost.setToggled(self.is_boosted(), tooltip = {"disabled" : self.utility.lang.get('boostDisabled'), "enabled" : self.utility.lang.get('boostEnabled')})
             
             self.pause.setToggled(not active)
                         
@@ -621,13 +621,13 @@ class LibraryItemPanel(wx.Panel):
 
     
        
-    def doubleClicked(self, event):
-        # open torrent details frame
-        abctorrent = self.data.get('abctorrent')
-        if abctorrent:
-            abctorrent.dialogs.advancedDetails()
-            
-        event.Skip()
+#    def doubleClicked(self, event):
+#        # open torrent details frame
+#        abctorrent = self.data.get('abctorrent')
+#        if abctorrent:
+#            abctorrent.dialogs.advancedDetails()
+#            
+#        event.Skip()
         
     def getIdentifier(self):
         if self.data:

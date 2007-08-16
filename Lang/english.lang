@@ -167,8 +167,8 @@ playFastDisabled	= "Give high priority and play ASAP"
 playFastEnabled		= "Back to normal mode"
 playerDisabled		= "Please wait until first part is available \n(Tribler is currently giving first part high priority)"
 playerEnabled 		= "Click to play"
-
-
+boostDisabled		= "Aks friends to boost your download"
+boostEnabled		= "Boosting"
 
 
 #########################
@@ -644,11 +644,12 @@ rChangeViewModusList= "List view"
 
 ############# FILE and LIBRARY
 rOptions            = "Options:"
-rDownloadSecretly   = "   Download secretly"
-rDownloadOpenly     = "   Download openly"
+rDownloadSecretly   = "   Download and hide for other Tribler users"
+rDownloadOpenly     = "   Download"
 rModerate           = "   Change info..."
 rModerateCat        = "   Change category"
 rRecommend          = "   Recommend to a friend..."
+rAdvancedInfo		= "   Advanced info..."
 
 # Arno: categories must be completely defined by category.conf,
 # not in the code
@@ -663,6 +664,7 @@ rRemoveFromListAndHD= "   Remove from library and harddisk"
 ############# PERSONS and FRIENDS
 rAddAsFriend		= "   Add as friend"
 rRemoveAsFriend		= "   Remove as friend"
+rChangeInfo			= "   Change friend info"
 
 ############# FRIENDS
 rFriendsOptions     = "Friends options:"

@@ -579,12 +579,13 @@ class GUIUtility:
         rightMouse = wx.Menu()        
 
         
-        self.utility.makePopup(rightMouse, None, 'rOptions')
+        
         if self.standardOverview.mode == "filesMode":
+            self.utility.makePopup(rightMouse, None, 'rOptions')
             if item.get('web2'):
                 self.utility.makePopup(rightMouse, self.onDownloadOpen, 'rPlay')
             else:
-                self.utility.makePopup(rightMouse, self.onRecommend, 'rRecommend')        
+                #self.utility.makePopup(rightMouse, self.onRecommend, 'rRecommend')        
                 #if secret:
                 self.utility.makePopup(rightMouse, self.onDownloadOpen, 'rDownloadOpenly')
                 #else:
@@ -592,25 +593,30 @@ class GUIUtility:
             
             # if in library:
         elif self.standardOverview.mode == "libraryMode":
-            self.utility.makePopup(rightMouse, self.onRecommend, 'rRecommend')        
+            #self.utility.makePopup(rightMouse, self.onRecommend, 'rRecommend')        
             rightMouse.AppendSeparator()
             self.utility.makePopup(rightMouse, None, 'rLibraryOptions')
             self.utility.makePopup(rightMouse, self.onOpenFileDest, 'rOpenfilename')
             self.utility.makePopup(rightMouse, self.onOpenDest, 'rOpenfiledestination')
             self.utility.makePopup(rightMouse, self.onDeleteTorrentFromLibrary, 'rRemoveFromList')
-            self.utility.makePopup(rightMouse, self.onDeleteTorrentFromDisk, 'rRemoveFromListAndHD')  
+            self.utility.makePopup(rightMouse, self.onDeleteTorrentFromDisk, 'rRemoveFromListAndHD') 
+            rightMouse.AppendSeparator()
+            self.utility.makePopup(rightMouse, self.onAdvancedInfoInLibrary, 'rAdvancedInfo')
         elif self.standardOverview.mode == "personsMode" or self.standardOverview.mode == "friendsMode":     
+            self.utility.makePopup(rightMouse, None, 'rOptions')
             if item.get('friend'):
                 self.utility.makePopup(rightMouse, self.onChangeFriendStatus, 'rRemoveAsFriend')
+                self.utility.makePopup(rightMouse, self.onChangeFriendInfo, 'rChangeInfo')
             else:
                 self.utility.makePopup(rightMouse, self.onChangeFriendStatus, 'rAddAsFriend')
             
             # if in friends:
-            if self.standardOverview.mode == "friendsMode":
-                rightMouse.AppendSeparator()
-                self.utility.makePopup(rightMouse, None, 'rFriendsOptions')
-                self.utility.makePopup(rightMouse, None, 'rSendAMessage')
+##            if self.standardOverview.mode == "friendsMode":
+##                rightMouse.AppendSeparator()
+##                self.utility.makePopup(rightMouse, None, 'rFriendsOptions')
+##                self.utility.makePopup(rightMouse, None, 'rSendAMessage')
         elif self.standardOverview.mode == "subscriptionsMode":
+            self.utility.makePopup(rightMouse, None, 'rOptions')
             self.utility.makePopup(rightMouse, None, 'rChangeSubscrTitle')
             self.utility.makePopup(rightMouse, None, 'rRemoveSubscr')
             
@@ -659,6 +665,15 @@ class GUIUtility:
             self.utility.actionhandler.procREMOVE([abctorrent], removefiles = False)
         self.standardOverview.removeTorrentFromLibrary(item)
         
+    def onAdvancedInfoInLibrary(self, event = None):
+        # open torrent details frame
+        item = self.standardDetails.getData()
+        abctorrent = item.get('abctorrent')
+        if abctorrent:
+            abctorrent.dialogs.advancedDetails(item)
+            
+        event.Skip()
+        
     def onModerate(self, event = None):
         print '---tb--- Moderate event'
         print event
@@ -681,6 +696,11 @@ class GUIUtility:
         self.standardDetails.addAsFriend()
         self.standardOverview.refreshData()
         event.Skip()
+
+    def onChangeFriendInfo(self, event = None):        
+
+        event.Skip()
+
         
 # =========END ========= actions for rightMouse button ==========================================
         

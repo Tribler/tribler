@@ -137,7 +137,7 @@
               <option>0</option>
               <object class="wxPanel" name="takeMeThere0" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
                 <pos>6,76</pos>
-                <size>120,21</size>
+                <size>100,16</size>
               </object>
             </object>
           </object>

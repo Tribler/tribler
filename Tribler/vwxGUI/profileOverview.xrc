@@ -159,7 +159,7 @@
                         <option>0</option>
                         <object class="wxPanel" name="edit" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
                           <pos>110,130</pos>
-                          <size>34,14</size>
+                          <size>37,16</size>
                         </object>
                       </object>
                     </object>
