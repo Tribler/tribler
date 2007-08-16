@@ -261,7 +261,8 @@ class LaunchMany:
                 self.secure_overlay.start_listening()
             
             self.internaltracker = None
-            if config['internaltracker']:
+            if config['internaltracker'] and 'trackerconf' in config:
+                # TEMP ARNO TODO: make sure trackerconf also set when using btlaunchmany
                 tconfig = config['trackerconf']
                 self.internaltracker = Tracker(tconfig, self.rawserver)
                 self.httphandler = HTTPHandler(self.internaltracker.get, tconfig['min_time_between_log_flushes'])

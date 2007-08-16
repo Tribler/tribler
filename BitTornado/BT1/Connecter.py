@@ -27,7 +27,7 @@ except:
     False = 0
 
 DEBUG = False
-DEBUG_NORMAL_MSGS = True
+DEBUG_NORMAL_MSGS = False
 
 UNAUTH_PERMID_PERIOD = 3600
 
