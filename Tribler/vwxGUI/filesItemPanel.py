@@ -443,7 +443,8 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
     Show thumbnail and mast with info on mouseOver
     """
 
-    def __init__(self, parent, mode, **kw):    
+    def __init__(self, parent, mode, **kw):
+        self.parent = parent 
         wx.Panel.__init__(self, parent, **kw)
         self.metadatahandler = parent.metadatahandler
         self.mode = mode
@@ -471,6 +472,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnErase)
         self.selected = False
         self.border = None
+        self.categoryIcon = None
         self.mm = self.GetParent().parent.mm
 
     
@@ -486,7 +488,12 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         if torrent != self.torrent:
             self.torrent = torrent
             self.setThumbnail(torrent)
-                                        
+            self.setCategoryIcon(torrent)
+            
+    def setCategoryIcon(self, torrent):
+        if not torrent.has_key('category'):
+            return
+        self.categoryIcon = self.mm.getCategoryIcon(self.mode, torrent.get('category'))
     
     def setThumbnail(self, torrent):
         #if torrent.get('web2'):
@@ -494,7 +501,8 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             #pdb.set_trace()
         # Get the file(s)data for this torrent
         try:
-            bmp = self.mm.get_default(self.mode,'DEFAULT_THUMB')
+            bmp = self.mm.getCategoryIcon(self.mode, torrent.get('category'), small=(self.parent.listItem))
+            self.defaultThumb = True
             # Check if we have already read the thumbnail and metadata information from this torrent file
             if torrent.get('metadata'):
                 if self.mode == 'libraryMode':
@@ -509,7 +517,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                 
                 if not bmp:
                     #print 'fip: ThumbnailViewer: Error: thumbnailBitmap not found in torrent %s' % torrent
-                    bmp = self.mm.get_default(self.mode,'DEFAULT_THUMB')
+                    bmp = self.mm.getCategoryIcon(self.mode, torrent.get('category'), small=(self.parent.listItem))
             else:
                 #print "fip: ThumbnailViewer: set: Scheduling read of metadata"
                 # web2.0 elements already have the thumbnail stored at key 'preview'
@@ -693,7 +701,9 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             dc.SetFont(wx.Font(FS_HEARTRANK, FONTFAMILY, FONTWEIGHT, wx.BOLD, False, FONTFACE))
             text = repr(rank)                
             dc.DrawText(text, 22, margin+4)
-                
+        
+        if self.categoryIcon:
+            dc.DrawBitmap(self.categoryIcon, 93, 0)        
             
         if self.border:
             if self.selected:

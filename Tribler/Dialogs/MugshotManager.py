@@ -35,6 +35,7 @@ class MugshotManager:
         MugshotManager.__single = self
         self.usericonpath = '' # for test suite
         self.sysiconpath = ''
+        
 
     def getInstance(*args, **kw):
         if MugshotManager.__single is None:
@@ -46,34 +47,35 @@ class MugshotManager:
     def register(self,userpath,syspath):
         self.usericonpath = os.path.join(userpath,'icons')
         self.sysiconpath = os.path.join(syspath,'icons')
-    
+        self.guiImagePath = os.path.join(syspath,'Tribler', 'vwxGUI', 'images')
         self.defaults = {}
+        self.categoryThumbs = {}
 	if not got_wx:
 	    return
         self.defaults['filesMode'] = {}        
-        self.defaults['filesMode']['DEFAULT_THUMB'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'defaultThumb.png'))
-        self.defaults['filesMode']['BIG_DEFAULT_THUMB'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'defaultThumbL.png'))
-        self.defaults['filesMode']['MASK_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'fileItemMask_clean.png'))
-        self.defaults['filesMode']['MASK_BITMAP_BOTTOM'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'itemMask.png'))
-        #self.defaults['filesMode']['HEART_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'heart1.png'))
+        self.defaults['filesMode']['DEFAULT_THUMB'] = wx.Bitmap(os.path.join(self.guiImagePath, 'defaultThumb.png'))
+        self.defaults['filesMode']['BIG_DEFAULT_THUMB'] = wx.Bitmap(os.path.join(self.guiImagePath, 'defaultThumbL.png'))
+        self.defaults['filesMode']['MASK_BITMAP'] = wx.Bitmap(os.path.join(self.guiImagePath, 'fileItemMask_clean.png'))
+        self.defaults['filesMode']['MASK_BITMAP_BOTTOM'] = wx.Bitmap(os.path.join(self.guiImagePath, 'itemMask.png'))
+        #self.defaults['filesMode']['HEART_BITMAP'] = wx.Bitmap(os.path.join(self.guiImagePath, 'heart1.png'))
         self.defaults['libraryMode'] = {}
-        self.defaults['libraryMode']['DEFAULT_THUMB'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'defaultThumbLibrary.png'))
+        self.defaults['libraryMode']['DEFAULT_THUMB'] = wx.Bitmap(os.path.join(self.guiImagePath, 'defaultThumbLibrary.png'))
         self.defaults['personsMode'] = {}
-        self.defaults['personsMode']['DEFAULT_THUMB'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'defaultThumbPeer.png'))
-        self.defaults['personsMode']['MASK_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'itemMask.png'))
-        self.defaults['personsMode']['MASK_BITMAP_CLEAN'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'itemMask_clean.png'))
-        self.defaults['personsMode']['HEART_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'heart1.png'))
-        self.defaults['personsMode']['FRIEND_ONLINE_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'friend.png'))
-        self.defaults['personsMode']['FRIEND_OFFLINE_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'friend_offline.png'))
-        self.defaults['personsMode']['ISFRIEND_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'isFriend.png'))
-        self.defaults['personsMode']['ISFRIEND_CLICKED_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'isFriend_clicked.png'))
-        self.defaults['personsMode']['SUPERPEER_BITMAP'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'superpeer.png'))
+        self.defaults['personsMode']['DEFAULT_THUMB'] = wx.Bitmap(os.path.join(self.guiImagePath, 'defaultThumbPeer.png'))
+        self.defaults['personsMode']['MASK_BITMAP'] = wx.Bitmap(os.path.join(self.guiImagePath, 'itemMask.png'))
+        self.defaults['personsMode']['MASK_BITMAP_CLEAN'] = wx.Bitmap(os.path.join(self.guiImagePath, 'itemMask_clean.png'))
+        self.defaults['personsMode']['HEART_BITMAP'] = wx.Bitmap(os.path.join(self.guiImagePath, 'heart1.png'))
+        self.defaults['personsMode']['FRIEND_ONLINE_BITMAP'] = wx.Bitmap(os.path.join(self.guiImagePath, 'friend.png'))
+        self.defaults['personsMode']['FRIEND_OFFLINE_BITMAP'] = wx.Bitmap(os.path.join(self.guiImagePath, 'friend_offline.png'))
+        self.defaults['personsMode']['ISFRIEND_BITMAP'] = wx.Bitmap(os.path.join(self.guiImagePath, 'isFriend.png'))
+        self.defaults['personsMode']['ISFRIEND_CLICKED_BITMAP'] = wx.Bitmap(os.path.join(self.guiImagePath, 'isFriend_clicked.png'))
+        self.defaults['personsMode']['SUPERPEER_BITMAP'] = wx.Bitmap(os.path.join(self.guiImagePath, 'superpeer.png'))
         self.defaults['subscriptionsMode'] = {}
-        self.defaults['subscriptionsMode']['DEFAULT_THUMB'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'favicon.png'))
-        self.defaults['subscriptionsMode']['BUDDYCAST_THUMB'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'bcicon.png'))
+        self.defaults['subscriptionsMode']['DEFAULT_THUMB'] = wx.Bitmap(os.path.join(self.guiImagePath, 'favicon.png'))
+        self.defaults['subscriptionsMode']['BUDDYCAST_THUMB'] = wx.Bitmap(os.path.join(self.guiImagePath, 'bcicon.png'))
         self.defaults['friendsMode'] = {}
-        self.defaults['friendsMode']['DEFAULT_THUMB'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'defaultThumbPeerS.png'))
-        self.defaults['friendsMode']['MASK_BITMAP_OVERLAY'] = wx.Bitmap(os.path.join(syspath,'Tribler', 'vwxGUI', 'images', 'itemMask_clean.png'))
+        self.defaults['friendsMode']['DEFAULT_THUMB'] = wx.Bitmap(os.path.join(self.guiImagePath, 'defaultThumbPeerS.png'))
+        self.defaults['friendsMode']['MASK_BITMAP_OVERLAY'] = wx.Bitmap(os.path.join(self.guiImagePath, 'itemMask_clean.png'))
 
     def create_wxImageList(self,peerswpermid,setindex=False):
         """ peerswpermid is a list of dictionaries that contain the
@@ -258,3 +260,25 @@ class MugshotManager:
     def get_default(self,mode,name):
         return self.defaults[mode][name]
     
+    def getCategoryIcon(self, mode, cat, small = False, large = False):
+        if type(cat) == list:
+            cat = cat[0]
+        if self.categoryThumbs.get((cat, small)):
+            return self.categoryThumbs[(cat, small)]
+        else:
+            if small:
+                smallString = 'S'
+            elif not large:
+                smallString = ''
+            else:
+                smallString = 'L'
+            filename = 'defaultThumb%s_%s.png' % (smallString, cat)
+            pathname = os.path.join(self.guiImagePath, filename)
+            if os.path.isfile(pathname):
+                bm = wx.Bitmap(pathname)
+            else:
+                bm = None
+            self.categoryThumbs[(cat, small)] = bm
+            return bm
+    
+            
