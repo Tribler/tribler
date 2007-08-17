@@ -162,6 +162,8 @@ class SingleDownload(SingleDownloadHelperInterface):
             self.connection.send_not_interested()
 
     def got_piece(self, index, begin, hashlist, piece):
+        """ Returns True if the piece is complete. """
+
         length = len(piece)
         try:
             self.active_requests.remove((index, begin, length))

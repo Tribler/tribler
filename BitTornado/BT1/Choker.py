@@ -76,6 +76,11 @@ class Choker:
             return
         if maxuploads > 1:
             for c in self.connections:
+# g2g_ unchoke some g2g peers later
+                if not c.use_g2g:
+                    continue
+# _g2g
+
                 u = c.get_upload()
                 if not u.is_interested():
                     continue
@@ -91,6 +96,26 @@ class Choker:
             preferred.sort()
             del preferred[maxuploads-1:]
             preferred = [x[1] for x in preferred]
+
+# g2g_ unchoke some g2g peers too
+            g2g_preferred = []
+            for c in self.connections:
+                if not c.use_g2g:
+                    continue
+
+                u = c.get_upload()
+                if not u.is_interested():
+                    continue
+
+                r = c.g2g_score()
+                g2g_preferred.append((-r[0], -r[1], c))
+            g2g_preferred.sort()
+            del g2g_preferred[maxuploads-1:]
+            g2g_preferred = [x[2] for x in g2g_preferred]
+
+            preferred += g2g_preferred
+# _g2g
+
         count = len(preferred)
         hit = False
         to_unchoke = []

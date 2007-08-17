@@ -21,12 +21,26 @@ from Tribler.Video.VideoServer import MovieTransport
 EXTENSIONS = ['asf','avi','dv','flc','mpeg','mpeg4','mpg4','mp4','mpg','mov','ogm','qt','rm','swf','vob','wmv']
 
 
+# pull all video data as if a video player was attached
+FAKEPLAYBACK = False
+
 DEBUG = False
 DEBUGPP = False
 
 class PiecePickerStreaming(PiecePicker):
     """ Implements piece picking for streaming video. Keeps track of playback
         point and avoids requesting obsolete pieces. """
+
+    # order of initialisation and important function calls
+    #   PiecePicker.__init__              (by BitTornado.BT1Download.__init__)
+    #   PiecePicker.complete              (by hash checker, for pieces on disk)
+    #   MovieOnDemandTransporter.__init__ (by BitTornado.BT1Download.startEngine)
+    #   PiecePicker.set_bitrate           (by MovieOnDemandTransporter)
+    #   PiecePicker.set_transporter       (by MovieOnDemandTransporter)
+    #
+    #   PiecePicker._next                 (once connections are set up)
+    #
+    #   PiecePicker.complete              (by hash checker, for pieces received)
 
     def __init__(self, numpieces,
                  rarest_first_cutoff = 1, rarest_first_priority_cutoff = 3,
@@ -35,7 +49,7 @@ class PiecePickerStreaming(PiecePicker):
                               priority_step, helper, rate_predictor )
 
         # size of each piece
-        self.piece_length = 0
+        self.piecesize = 0
 
         # range of pieces to download, inclusive: (first,last)
         self.download_range = (0,self.numpieces-1)
@@ -43,13 +57,22 @@ class PiecePickerStreaming(PiecePicker):
         # playback module
         self.transporter = None
 
+        # video speed in bytes/s
+	self.set_bitrate( 512*1024/8 ) # default to 512 Kbit/s
+
     def set_transporter(self, transporter):
         self.transporter = transporter
+
+        # update our information
+        self.piecesize = transporter.piecesize
 
         # update its information
         for i in xrange(0,self.numpieces):
             if self.has[i]:
                 self.transporter.complete( i, downloaded=False )
+
+    def set_bitrate(self, bitrate):
+        self.bitrate = bitrate
 
     def got_have(self, piece):
         PiecePicker.got_have( self, piece )
@@ -216,7 +239,94 @@ class PiecePickerBiToS(PiecePickerStreaming):
 
         return choice
 
-PiecePickerVOD = PiecePickerBiToS
+class PiecePickerG2G(PiecePickerStreaming):
+    """ BiToS -- define a high-priority set, and select out of it with probability p. """
+   
+    # size of high probability set, in seconds
+    HIGH_PROB_SETSIZE = 10
+
+    # relative size of mid-priority set
+    MU = 4
+
+    def set_bitrate(self,bitrate):
+	""" Set the bitrate of the video (bytes/sec). """
+
+        PiecePickerStreaming.set_bitrate(self,bitrate)
+
+	if self.piecesize > 0:
+		self.h = int(self.HIGH_PROB_SETSIZE * self.bitrate / self.piecesize)
+	else:
+		self.h = 0
+
+    def _next(self, haves, wantfunc, complete_first, helper_con):
+        """ Determine which piece to download next from a peer.
+
+        haves:          set of pieces owned by that peer
+        wantfunc:       custom piece filter
+        complete_first: whether to complete partial pieces first
+        helper_con:
+
+        """
+        
+        def first( f, t ):
+            for i in xrange(f,t):
+                if self.has[i]:
+                    continue
+
+                if not wantfunc(i):
+                    continue
+
+                if not haves[i]:
+                    continue
+
+                if self.helper is None or helper_con or not self.helper.is_ignored(i):
+                    return i
+
+            return None
+
+        def rarest( f, t ):
+            for piecelist in self.interests:
+                for i in piecelist:
+                    if i < f or i >= t:
+                        continue
+
+                    if self.has[i]:
+                        continue
+
+                    if not wantfunc(i):
+                        continue
+
+                    if not haves[i]:
+                        continue
+
+                    if self.helper is None or helper_con or not self.helper.is_ignored(i):
+                        return i
+
+            return None
+
+	limit = lambda x: min( x, self.download_range[1] )
+
+        highprob_cutoff = limit( self.download_range[0] + self.h )
+	midprob_cutoff  = limit( highprob_cutoff + self.MU * self.h )
+
+        if self.transporter.prebuffering:
+            # focus on first packets
+            f = self.download_range[0]
+            t = f + self.transporter.max_preparse_packets
+            choice = rarest( f, t )
+        else:
+            choice = None
+
+        if choice is None:
+            choice = first( self.download_range[0], highprob_cutoff )
+        if choice is None:
+            choice = rarest( highprob_cutoff, midprob_cutoff )
+        if choice is None:
+            choice = rarest( midprob_cutoff, self.download_range[1]+1 )
+
+        return choice
+
+PiecePickerVOD = PiecePickerG2G
 
 class MovieSelector:
     """ Selects a movie out of a torrent and provides information regarding the pieces
@@ -305,7 +415,7 @@ class MovieSelector:
         """ The user selected a movie (self.videoinfo),
             now set download params based on that
         """
-        if self.videoinfo[0] == -1:
+        if not self.videoinfo or self.videoinfo[0] == -1:
             file_index = 0
         else:
             file_index = self.videoinfo[0]
@@ -326,8 +436,8 @@ class MovieSelector:
         if DEBUG:
             print >>sys.stderr,"vod: moviesel: Selected: %s (pieces %d-%d)" % (self.download_fileinfo,begin[0],end[0])
 
-        bitrate = videoinfo[2]
-        if bitrate is not None:
+        bitrate = videoinfo and videoinfo[2]
+        if bitrate:
             if DEBUG:
                 print >>sys.stderr,"vod: moviesel: Bitrate from torrent: %.2f KByte/s" % (bitrate/1024)
             self.set_bitrate(bitrate)
@@ -415,6 +525,7 @@ class MovieOnDemandTransporter(MovieTransport):
     def __init__(self,movieselector,piecepicker,piecesize,rawserver,progressinf,videoanalyserpath):
         self.movieselector = movieselector
         self.piecepicker = piecepicker
+        self.piecesize = piecesize
         self.rawserver = rawserver
 
         # Add quotes around path, as that's what os.popen() wants on win32
@@ -442,10 +553,13 @@ class MovieOnDemandTransporter(MovieTransport):
         # part of progress inf used here is to see when things become playable.
         # 
         self.progressinf = progressinf
-        self.bufferinfo = progressinf.get_bufferinfo()
-        #self.bufferinfo.set_numpieces(self.movieselector.num_movie_pieces())
-        self.bufferinfo.set_movieselector(movieselector)
-        self.progressinf.bufferinfo_updated_callback()
+	if progressinf:
+            self.bufferinfo = progressinf.get_bufferinfo()
+            #self.bufferinfo.set_numpieces(self.movieselector.num_movie_pieces())
+            self.bufferinfo.set_movieselector(movieselector)
+            self.progressinf.bufferinfo_updated_callback()
+	else:
+	    self.bufferinfo = None
 
         self.data_ready = Condition()
         self.prebuffering = True
@@ -476,6 +590,7 @@ class MovieOnDemandTransporter(MovieTransport):
         
         if not self.doing_bitrate_est:
             bytesneeded = self.movieselector.bitrate * 10 # seconds
+            self.piecepicker.set_bitrate( self.movieselector.bitrate )
         else:
             # Arno, 2007-01-08: for very high bitrate files e.g. 
             # 850 kilobyte/s (500 MB for 10 min 20 secs) this is too small
@@ -507,6 +622,9 @@ class MovieOnDemandTransporter(MovieTransport):
         # link to others (last thing to do)
         self.piecepicker.set_transporter( self )
         #self.start()
+
+        if FAKEPLAYBACK:
+            self.rawserver.add_task( self.start, 0.0 )
 
     def parse_video(self):
         """ Feeds the first max_preparse_packets to ffmpeg to determine video bitrate. """
@@ -641,6 +759,9 @@ class MovieOnDemandTransporter(MovieTransport):
                         print >>sys.stderr,"vod: trans: Estimated bitrate: %.2f KByte/s" % (bitrate/1024)
 
                     self.movieselector.set_bitrate(bitrate)
+
+            self.piecepicker.set_bitrate( self.movieselector.bitrate )
+
             if width is not None and height is not None:
                 diff = False
                 if self.videodim is None:
@@ -939,7 +1060,8 @@ class MovieOnDemandTransporter(MovieTransport):
                     if DEBUG:
                         print >>sys.stderr,"vod: trans: %d: pushed l=%d" % (self.pos,loop)
                     data = self.piece( loop )
-                    self.outbuf.append( (self.pos,data) )
+		    if not FAKEPLAYBACK:
+                        self.outbuf.append( (self.pos,data) )
                     self.data_ready.notify()
                     self.pos += 1
                     self.inc_playback_pos()
@@ -994,6 +1116,7 @@ class MovieOnDemandTransporter(MovieTransport):
         return piece
 
     def notify_playable(self):
-        self.bufferinfo.set_playable()
+        if self.bufferinfo:
+            self.bufferinfo.set_playable()
         #self.progressinf.bufferinfo_updated_callback()
 

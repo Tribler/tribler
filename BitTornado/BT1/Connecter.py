@@ -20,6 +20,8 @@ from Tribler.Overlay.SecureOverlay import SecureOverlay
 from Tribler.DecentralizedTracking.ut_pex import *
 # _2fastbt
 
+from BitTornado.CurrentRateMeasure import Measure
+
 try:
     True
 except:
@@ -67,10 +69,7 @@ and our overlay-swarm protocol.
 """
 EXTEND_MSG_HANDSHAKE_ID = chr(0)
 EXTEND_MSG_OVERLAYSWARM = 'Tr_OVERLAYSWARM'
-# The set of messages we support. Note that the msg ID is an int not a byte in 
-# this dict. This dict is initialized in the Connecter constructor based on config
-EXTEND_HANDSHAKE_M_DICT = {}
-                           
+EXTEND_MSG_G2G          = 'Tr_G2G'
 
 def show(s):
     text = []
@@ -96,7 +95,15 @@ class Connection:
         self.extend_hs_dict = {}        # what extended messages does this peer support
         self.initiated_overlay = False
         self.ut_pex_previous_conns = [] # last value of 'added' field for this peer
-            
+
+        self.use_g2g = False # set to true if both sides use G2G, indicated by self.connector.use_g2g
+        self.parts_sent = {}
+
+        config = self.connecter.config
+        self.forward_speeds = [0] * 2
+        self.forward_speeds[0] = Measure(config['max_rate_period'], config['upload_rate_fudge'])
+        self.forward_speeds[1] = Measure(config['max_rate_period'], config['upload_rate_fudge'])
+
     def get_myip(self, real=False):
         return self.connection.get_myip(real)
     
@@ -212,6 +219,20 @@ class Connection:
                 return 0
             # Merkle: send hashlist along with piece in HASHPIECE message
             index, begin, hashlist, piece = s
+
+            if self.use_g2g:
+                # ----- G2G: record who we send this to
+                self.g2g_sent_piece_part( self, index, begin, hashlist, piece )
+
+                # ---- G2G: we are uploading len(piece) data of piece #index
+                for c in self.connecter.connections.itervalues():
+                    if not c.use_g2g:
+                        continue
+
+                    # include sending to self, because it should not be excluded from the statistics
+
+                    c.send_g2g_piece_xfer( index, begin, piece )
+
             if self.connecter.merkle_torrent:
                 bhashlist = bencode(hashlist)
                 self.partial_message = ''.join((
@@ -290,6 +311,13 @@ class Connection:
                     if DEBUG:
                         print >>sys.stderr,"connecter: Peer supports Tr_OVERLAYSWARM, attempt connection"
                     self.connect_overlay()
+            if self.connecter.use_g2g and EXTEND_MSG_G2G in self.extend_hs_dict['m']:
+                # Both us and the peer want to use G2G
+                if self.connection.locally_initiated:
+                    if DEBUG:
+                        print >>sys.stderr,"connecter: Peer supports Tr_G2G"
+
+                self.use_g2g = True
         # 'p' is peer's listen port, 'v' is peer's version, all optional
         # 'e' is used by uTorrent to show it prefers encryption (whatever that means)
         for key in ['p','e']:
@@ -342,7 +370,7 @@ class Connection:
 
     def send_extend_handshake(self):
         d = {}
-        d['m'] = EXTEND_HANDSHAKE_M_DICT
+        d['m'] = self.connecter.EXTEND_HANDSHAKE_M_DICT
         d['p'] = self.connecter.mylistenport
         ver = version_short.replace('-',' ',1)
         d['v'] = ver
@@ -371,14 +399,51 @@ class Connection:
         if exc is not None:
             print >>sys.stderr,"connecter: peer",dns,"said he supported overlay swarm, but we can't connect to him",exc
 
+    def send_g2g_piece_xfer(self,index,begin,piece):
+        self._send_message(G2G_PIECE_XFER + tobinary(index) + tobinary(begin) + tobinary(len(piece)))
 
+    def got_g2g_piece_xfer(self,index,begin,length):
+        self.g2g_peer_forwarded_piece_part( self, index, begin, length )
 
+    def g2g_sent_piece_part( self, c, i, begin, hashlist, piece ):
+        """ Keeps a record of the fact that we sent piece i[begin:end]. """
+
+        record = (begin,begin+len(piece))
+        if i in self.parts_sent:
+            self.parts_sent[i].append( record )
+        else:
+            self.parts_sent[i] = [record]
+
+    def g2g_peer_forwarded_piece_part( self, c, i, begin, length ):
+        """ Processes this peer forwarding piece i[begin:end] to a grandchild. """
+
+        end = begin + length
+
+        # Reward for forwarding data in general
+        self.forward_speeds[1].update_rate( length )
+
+        if i not in self.parts_sent:
+            # piece came from disk
+            return
+
+        # Extra reward if its data we sent
+        for l in self.parts_sent[i]:
+            b,e = l
+
+            if begin < b < end or begin < e < end:
+                # pieces overlap -- reward child for forwarding our data
+                overlap = min( e, end ) - max( b, begin )
+
+                self.forward_speeds[0].update_rate( overlap )
+
+    def g2g_score( self ):
+        return [x.get_rate() for x in self.forward_speeds]
 
 class Connecter:
 # 2fastbt_
     def __init__(self, make_upload, downloader, choker, numpieces,
             totalup, config, ratelimiter, merkle_torrent, sched = None, 
-            coordinator = None, helper = None, mylistenport = None):
+            coordinator = None, helper = None, mylistenport = None, use_g2g = False):
         self.downloader = downloader
         self.make_upload = make_upload
         self.choker = choker
@@ -392,6 +457,7 @@ class Connecter:
         self.connections = {}
         self.external_connection_made = 0
         self.merkle_torrent = merkle_torrent
+        self.use_g2g = use_g2g
         # 2fastbt_
         self.coordinator = coordinator
         self.helper = helper
@@ -410,16 +476,24 @@ class Connecter:
                 print >>sys.stderr,"connecter: Enabling uTorrent PEX"
             else:
                 print >>sys.stderr,"connecter: Disabling uTorrent PEX"
+
+        # The set of messages we support. Note that the msg ID is an int not a byte in 
+        # this dict.
+        self.EXTEND_HANDSHAKE_M_DICT = {}
             
         if self.overlay_enabled:
             # Say in the EXTEND handshake we support the overlay-swarm ext.
             d = {EXTEND_MSG_OVERLAYSWARM:ord(CHALLENGE)}
-            EXTEND_HANDSHAKE_M_DICT.update(d)
+            self.EXTEND_HANDSHAKE_M_DICT.update(d)
         if self.ut_pex_enabled:
             # Say in the EXTEND handshake we support uTorrent's peer exchange ext.
             d = {EXTEND_MSG_UTORRENT_PEX:ord(EXTEND_MSG_UTORRENT_PEX_ID)}
-            EXTEND_HANDSHAKE_M_DICT.update(d)
+            self.EXTEND_HANDSHAKE_M_DICT.update(d)
             self.sched(self.ut_pex_callback,6)
+        if self.use_g2g:
+            # Say in the EXTEND handshake we want to do G2G.
+            d = {EXTEND_MSG_G2G:ord(CHALLENGE)}
+            self.EXTEND_HANDSHAKE_M_DICT.update(d)
 
     def how_many_connections(self):
         return len(self.connections)
@@ -491,7 +565,6 @@ class Connecter:
                 except:
                     traceback.print_exc()
         self.sched(self.ut_pex_callback,60)
-
 
     def got_message(self, connection, message):
         # connection: Encrypter.Connection; c: Connecter.Connection
@@ -597,6 +670,7 @@ class Connecter:
                     print "Close on bad PIECE: msg len"
                 connection.close()
                 return
+
             if c.download.got_piece(i, toint(message[5:9]), [], message[9:]):
                 self.got_piece(i)
         elif t == HASHPIECE:
@@ -627,6 +701,7 @@ class Connecter:
                     not ((len(oh[1])==20)): \
                         raise AssertionError, "hashlist entry invalid"
                 piece = message[13+len_hashlist:]
+
                 if c.download.got_piece(i, begin, hashlist, piece):
                     self.got_piece(i)
             except Exception,e:
@@ -635,6 +710,22 @@ class Connecter:
                     traceback.print_exc()
                 connection.close()
                 return
+        elif t == G2G_PIECE_XFER:
+            if len(message) <= 12:
+                if DEBUG:
+                    print "Close on bad G2G_PIECE_XFER: msg len"
+                connection.close()
+                return
+            if not c.use_g2g:
+                if DEBUG:
+                    print "Close on receiving G2G_PIECE_XFER over non-g2g connection"
+                connection.close()
+                return
+
+            index = toint(message[1:5])
+            begin = toint(message[5:9])
+            length = toint(message[9:13])
+            c.got_g2g_piece_xfer(index,begin,length)
         else:
             connection.close()
 

@@ -127,6 +127,11 @@ RemoteQueryMessages = [QUERY,QUERY_REPLY]
 
 OverlaySwarmMessages= PermIDMessages + BuddyCastMessages + MetadataMessages + HelpCoordinatorMessages + HelpHelperMessages + SocialNetworkMessages + RemoteQueryMessages
 
+# g2g info (uplink statistics, etc)
+G2G_PIECE_XFER = chr(236)
+
+VoDMessages = [G2G_PIECE_XFER]
+
 message_map = {
     CHOKE:"CHOKE",
     UNCHOKE:"UNCHOKE",
@@ -156,7 +161,8 @@ message_map = {
     KEEP_ALIVE:"KEEP_ALIVE",
     SOCIAL_OVERLAP:"SOCIAL_OVERLAP",
     QUERY:"QUERY",
-    QUERY_REPLY:"QUERY_REPLY"
+    QUERY_REPLY:"QUERY_REPLY",
+    G2G_PIECE_XFER: "G2G_PIECE_XFER"
 }
 
 

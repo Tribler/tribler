@@ -230,7 +230,9 @@ defaults = [
     ('internaltracker', 1,
         "enable internal tracker (0 = disabled)"),
     ('ut_pex_max_addrs_from_peer', 16,
-        "maximum number of addresses to accept from peer (0 = disabled PEX)")
+        "maximum number of addresses to accept from peer (0 = disabled PEX)"),
+    ('vod', 0,
+        "download in video-on-demand mode (0 = disabled)")
     ]
 
 argslistheader = 'Arguments are:\n\n'
@@ -425,7 +427,7 @@ class BT1Download:
         self.rerequest = None
         self.tcp_ack_fudge = config['tcp_ack_fudge']
         
-        self.play_video = play_video
+        self.play_video = play_video or config['vod']
         self.videoinfo = videoinfo
         self.progressinf = progressinf
         self.videoanalyserpath = videoanalyserpath
@@ -754,7 +756,7 @@ class BT1Download:
         self.connecter = Connecter(self._make_upload, self.downloader, self.choker, 
                             self.len_pieces, self.upmeasure, self.config, 
                             self.ratelimiter, self.info.has_key('root hash'),
-                            self.rawserver.add_task, self.coordinator, self.helper, self.port)
+                            self.rawserver.add_task, self.coordinator, self.helper, self.port, self.play_video)
 # _2fastbt
         self.encoder = Encoder(self.connecter, self.rawserver, 
             self.myid, self.config['max_message_length'], self.rawserver.add_task, 
