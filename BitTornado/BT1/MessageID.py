@@ -128,7 +128,7 @@ RemoteQueryMessages = [QUERY,QUERY_REPLY]
 OverlaySwarmMessages= PermIDMessages + BuddyCastMessages + MetadataMessages + HelpCoordinatorMessages + HelpHelperMessages + SocialNetworkMessages + RemoteQueryMessages
 
 # g2g info (uplink statistics, etc)
-G2G_PIECE_XFER = chr(236)
+G2G_PIECE_XFER = chr(235)
 
 VoDMessages = [G2G_PIECE_XFER]
 
