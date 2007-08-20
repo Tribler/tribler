@@ -492,7 +492,7 @@ class Connecter:
             self.sched(self.ut_pex_callback,6)
         if self.use_g2g:
             # Say in the EXTEND handshake we want to do G2G.
-            d = {EXTEND_MSG_G2G:ord(CHALLENGE)}
+            d = {EXTEND_MSG_G2G:ord(G2G_PIECE_XFER)}
             self.EXTEND_HANDSHAKE_M_DICT.update(d)
 
     def how_many_connections(self):
