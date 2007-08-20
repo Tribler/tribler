@@ -62,8 +62,8 @@ class IPInfo:
             #  http://www.melissadata.com/Lookups/iplocation.asp?ipaddress=xxx&submit=submit (using IP2Location database without coordinate)
             
             try:
-		file = timeouturlopen.urlOpenTimeout(url,timeout=2)
-		ip_info = file.read()
+                file = timeouturlopen.urlOpenTimeout(url,timeout=2)
+                ip_info = file.read()
             except:
                 if DEBUG:
                     print >> sys.stderr,"ipinfo: getIPInfoByURL failed: cannot access", url

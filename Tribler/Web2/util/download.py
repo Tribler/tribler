@@ -232,7 +232,7 @@ class DownloadManager(observer.Observer, observer.Subject):
         dl = item.getDownloader()
         self.downloads[item] = dl
 
-    	self.notify(DlMgrMsg(DlMgrMsg.NEWDL, dl, item))
+        self.notify(DlMgrMsg(DlMgrMsg.NEWDL, dl, item))
         dl.attach(self)
 
         dl.start()
