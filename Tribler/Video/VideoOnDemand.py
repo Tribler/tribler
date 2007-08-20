@@ -510,8 +510,11 @@ class MovieSelector:
 class MovieOnDemandTransporter(MovieTransport):
     """ Takes care of providing a bytestream interface based on the available pieces. """
 
-    # max number of pieces in queue to player
-    BUFFER_LENGTH = 2
+    # max number of seconds in queue to player
+    BUFFER_LENGTH = 0.5
+    
+    # polling interval to refill buffer
+    REFILL_INTERVAL = BUFFER_LENGTH * 0.75
 
     # amount of time (seconds) to push a packet into
     # the player queue ahead of schedule
@@ -1069,7 +1072,7 @@ class MovieOnDemandTransporter(MovieTransport):
             abspiece = self.movieselector.download_range[0][0] + loop
             ihavepiece = self.has[abspiece]
             if ihavepiece:
-                if len( self.outbuf ) < self.BUFFER_LENGTH:
+                if sum( (len(x) for x in self.outbuf)) < max( 2, self.BUFFER_LENGTH * self.movieselector.bitrate):
                     # piece found -- add it to the queue
                     if DEBUG:
                         print >>sys.stderr,"vod: trans: %d: pushed l=%d" % (self.pos,loop)
@@ -1105,7 +1108,7 @@ class MovieOnDemandTransporter(MovieTransport):
         if self.downloading:
             self.refill_buffer()
 
-        self.rawserver.add_task( self.refill_thread, 0.1 )
+        self.rawserver.add_task( self.refill_thread, self.REFILL_INTERVAL )
 
     def pop( self ):
         self.data_ready.acquire()
