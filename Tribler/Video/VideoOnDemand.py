@@ -58,7 +58,7 @@ class PiecePickerStreaming(PiecePicker):
         self.transporter = None
 
         # video speed in bytes/s
-	self.set_bitrate( 512*1024/8 ) # default to 512 Kbit/s
+        self.set_bitrate( 512*1024/8 ) # default to 512 Kbit/s
 
     def set_transporter(self, transporter):
         self.transporter = transporter
@@ -249,14 +249,14 @@ class PiecePickerG2G(PiecePickerStreaming):
     MU = 4
 
     def set_bitrate(self,bitrate):
-	""" Set the bitrate of the video (bytes/sec). """
+        """ Set the bitrate of the video (bytes/sec). """
 
         PiecePickerStreaming.set_bitrate(self,bitrate)
 
-	if self.piecesize > 0:
-		self.h = int(self.HIGH_PROB_SETSIZE * self.bitrate / self.piecesize)
-	else:
-		self.h = 0
+        if self.piecesize > 0:
+                self.h = int(self.HIGH_PROB_SETSIZE * self.bitrate / self.piecesize)
+        else:
+                self.h = 0
 
     def _next(self, haves, wantfunc, complete_first, helper_con):
         """ Determine which piece to download next from a peer.
@@ -304,10 +304,10 @@ class PiecePickerG2G(PiecePickerStreaming):
 
             return None
 
-	limit = lambda x: min( x, self.download_range[1] )
+        limit = lambda x: min( x, self.download_range[1] )
 
         highprob_cutoff = limit( self.download_range[0] + self.h )
-	midprob_cutoff  = limit( highprob_cutoff + self.MU * self.h )
+        midprob_cutoff  = limit( highprob_cutoff + self.MU * self.h )
 
         if self.transporter.prebuffering:
             # focus on first packets
@@ -553,13 +553,13 @@ class MovieOnDemandTransporter(MovieTransport):
         # part of progress inf used here is to see when things become playable.
         # 
         self.progressinf = progressinf
-	if progressinf:
+        if progressinf:
             self.bufferinfo = progressinf.get_bufferinfo()
             #self.bufferinfo.set_numpieces(self.movieselector.num_movie_pieces())
             self.bufferinfo.set_movieselector(movieselector)
             self.progressinf.bufferinfo_updated_callback()
-	else:
-	    self.bufferinfo = None
+        else:
+            self.bufferinfo = None
 
         self.data_ready = Condition()
         self.prebuffering = True
@@ -1060,7 +1060,7 @@ class MovieOnDemandTransporter(MovieTransport):
                     if DEBUG:
                         print >>sys.stderr,"vod: trans: %d: pushed l=%d" % (self.pos,loop)
                     data = self.piece( loop )
-		    if not FAKEPLAYBACK:
+                    if not FAKEPLAYBACK:
                         self.outbuf.append( (self.pos,data) )
                     self.data_ready.notify()
                     self.pos += 1

@@ -370,8 +370,8 @@ class VLCMediaCtrl(wx.Window):
 
     def getVlcMediaCtrl(self):
         if sys.platform == 'win32':
-		cwd = os.getcwd()
-		os.chdir(vlcinstalldir)
+                cwd = os.getcwd()
+                os.chdir(vlcinstalldir)
 
         # Arno: 2007-05-11: Don't ask me why but without the "--verbose=0" vlc will ignore the key redef.
         params = ["--verbose=0","--key-fullscreen", "Esc"]
@@ -387,7 +387,7 @@ class VLCMediaCtrl(wx.Window):
         self.visinit = False
 
         if sys.platform == 'win32':
-		os.chdir(cwd)
+                os.chdir(cwd)
         
 
     # Be sure that this window is visible before
@@ -438,7 +438,7 @@ class VLCMediaCtrl(wx.Window):
 
     def Load(self,url):
         self.media.exit()
-	self.getVlcMediaCtrl()
+        self.getVlcMediaCtrl()
         #self.Stop()
         #self.media.playlist_clear()
         #self.visinit = False
