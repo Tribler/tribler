@@ -90,10 +90,10 @@ class SingleDownload:
                         myid,
                         self.rawserver,
                         controller.listen_port,
-                        False,
+                        config['vod'],
                         [],
                         None,
-                        '')
+                        'ffmpeg')
         self.d = d
 
     def start(self):
