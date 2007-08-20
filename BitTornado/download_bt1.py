@@ -903,6 +903,8 @@ class BT1Download:
                 self.appdataobj.writeTorrentData(self.infohash, torrentdata)
             except:
                 self.appdataobj.deleteTorrentData(self.infohash) # clear it
+        if self.play_video:
+            self.voddownload.stop()
         return not self.failed and not self.excflag.isSet()
         # if returns false, you may wish to auto-restart the torrent
 

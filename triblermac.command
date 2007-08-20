@@ -25,4 +25,4 @@ then
 fi
 
 export PYTHONPATH=lib/Library/Frameworks/Python.framework/Versions/$PYTHONVER/lib/python$PYTHONVER/site-packages
-exec $PYTHON tribler.py
+exec $PYTHON tribler.py $@

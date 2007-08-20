@@ -527,7 +527,7 @@ class MovieOnDemandTransporter(MovieTransport):
         self.piecepicker = piecepicker
         self.piecesize = piecesize
         self.rawserver = rawserver
-
+        
         # Add quotes around path, as that's what os.popen() wants on win32
         if sys.platform == "win32" and videoanalyserpath is not None and videoanalyserpath.find(' ') != -1:
             self.video_analyser_path='"'+videoanalyserpath+'"'
@@ -581,7 +581,7 @@ class MovieOnDemandTransporter(MovieTransport):
             self.videodim = self.movieselector.videodim
         self.player_opened_with_width_height = False
         self.ffmpeg_est_bitrate = None
-
+        
         # number of packets required to preparse the video
         # I say we need 128 KB to sniff size and bitrate
         
@@ -624,7 +624,22 @@ class MovieOnDemandTransporter(MovieTransport):
         #self.start()
 
         if FAKEPLAYBACK:
-            self.rawserver.add_task( self.start, 0.0 )
+            import threading
+            
+            class FakeReader(threading.Thread):
+                def __init__(self,movie):
+                    threading.Thread.__init__(self)
+                    self.movie = movie
+                    
+                def run(self):
+                    self.movie.start()
+                    while not self.movie.done():
+                        self.movie.read()
+            
+            t = FakeReader(self)
+            t.start()
+          
+        #self.rawserver.add_task( fakereader, 0.0 )
 
     def parse_video(self):
         """ Feeds the first max_preparse_packets to ffmpeg to determine video bitrate. """
@@ -973,7 +988,6 @@ class MovieOnDemandTransporter(MovieTransport):
         self.pos = piece
         self.set_playback_pos( piece )
         self.outbuf = []
-        self.start_playback = time.time()
         self.playing = True
         self.prebuffering = True
         self.playbackrate = Measure( 60 )
@@ -1060,8 +1074,7 @@ class MovieOnDemandTransporter(MovieTransport):
                     if DEBUG:
                         print >>sys.stderr,"vod: trans: %d: pushed l=%d" % (self.pos,loop)
                     data = self.piece( loop )
-                    if not FAKEPLAYBACK:
-                        self.outbuf.append( (self.pos,data) )
+                    self.outbuf.append( (self.pos,data) )
                     self.data_ready.notify()
                     self.pos += 1
                     self.inc_playback_pos()
@@ -1077,7 +1090,7 @@ class MovieOnDemandTransporter(MovieTransport):
             else:
                 # drop packet
                 if DEBUG:
-                    print >>sys.stderr,"vod: trans: %d: dropped l=%d" % (self.pos,loop)
+                    print >>sys.stderr,"vod: trans: %d: dropped l=%d; deadline expired %.2f sec ago" % (self.pos,loop,time.time()-self.piece_due(loop))
                 self.pos += 1
                 self.inc_playback_pos()
                 pass
@@ -1112,6 +1125,9 @@ class MovieOnDemandTransporter(MovieTransport):
             self.playbackrate.update_rate( len(piece) )
 
         self.data_ready.release()
+
+        if self.start_playback == float(2**31):
+            self.start_playback = time.time()
 
         return piece
 
