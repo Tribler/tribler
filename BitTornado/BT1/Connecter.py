@@ -15,10 +15,12 @@ from BitTornado.BT1.convert import tobinary,toint
 from MessageID import *
 
 # 2fastbt_
-from Tribler.CacheDB.CacheDBHandler import PeerDBHandler
+from Tribler.CacheDB.CacheDBHandler import PeerDBHandler, BarterCastDBHandler
 from Tribler.Overlay.SecureOverlay import SecureOverlay
 from Tribler.DecentralizedTracking.ut_pex import *
 # _2fastbt
+
+from Tribler.Overlay.permid import permid_for_user
 
 from BitTornado.CurrentRateMeasure import Measure
 
@@ -103,6 +105,10 @@ class Connection:
         self.forward_speeds = [0] * 2
         self.forward_speeds[0] = Measure(config['max_rate_period'], config['upload_rate_fudge'])
         self.forward_speeds[1] = Measure(config['max_rate_period'], config['upload_rate_fudge'])
+        
+        # BarterCast counters
+        self.total_downloaded = 0
+        self.total_uploaded = 0
 
     def get_myip(self, real=False):
         return self.connection.get_myip(real)
@@ -494,6 +500,12 @@ class Connecter:
             # Say in the EXTEND handshake we want to do G2G.
             d = {EXTEND_MSG_G2G:ord(G2G_PIECE_XFER)}
             self.EXTEND_HANDSHAKE_M_DICT.update(d)
+            
+            
+        # BarterCast    
+        self.peerdb = PeerDBHandler()
+        self.bartercastdb = BarterCastDBHandler()
+            
 
     def how_many_connections(self):
         return len(self.connections)
@@ -528,6 +540,33 @@ class Connecter:
 
     def connection_lost(self, connection):
         c = self.connections[connection]
+
+        ######################################
+        # BarterCast
+
+        ip = c.get_ip(False)       
+        port = c.get_port(False)   
+
+        permid = self.peerdb.getPermIDByIP(ip)
+
+        print >> sys.stdout, "Up %d down %d peer %s:%s (PermID = %s)" % (c.total_uploaded, c.total_downloaded, ip, port, permid)
+        my_permid = self.bartercastdb.my_permid
+
+        # Save downloaded MBs in PeerDB
+        if permid != None:
+
+            name = self.bartercastdb.getName(permid)
+
+            if c.total_downloaded > 0:
+                new_value = self.bartercastdb.incrementItem((my_permid, permid), 'downloaded', c.total_downloaded)
+                print >> sys.stdout, "DB: downloaded %d bytes from peer %s" % (new_value, name)
+
+            if c.total_uploaded > 0:
+                new_value = self.bartercastdb.incrementItem((my_permid, permid), 'uploaded', c.total_uploaded)
+                print >> sys.stdout, "DB: uploaded %d bytes from peer %s" % (new_value, name)
+
+        ###################################### 
+
         del self.connections[connection]
         if c.download:
             c.download.disconnected()

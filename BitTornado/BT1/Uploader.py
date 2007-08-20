@@ -100,28 +100,8 @@ class Upload:
         self.measure.update_rate(len(piece))
         self.totalup.update_rate(len(piece))
         
-        # Michel:
-        ip = self.connection.get_ip(False)
-        port = self.connection.get_port(False)
-        peerid = self.connection.get_readable_id()   # perip.peerid
-
-        # Retrieve permid (TODO: make this secure and reliable)
-        peerdb = PeerDBHandler()
-        permid = peerdb.getPermIDByIP(ip)
-
-#        print >> sys.stdout, "Uploaded %d B to %s:%s (PermID = %s)" % (len(piece), ip, port, permid)
-
-        bartercastdb = BarterCastDBHandler()
-        my_permid = bartercastdb.my_permid
-
-        # Save uploaded MBs in PeerDB
-        if permid != None:
-
-            name = bartercastdb.getName(permid)
-#            print >> sys.stdout, "\nUploaded data to peer %s (%s)" % (name, permid_for_user(permid))
-            new_value = bartercastdb.incrementItem((my_permid, permid), 'uploaded', length)
-#            print >> sys.stdout, "DB: uploaded %d bytes to peer %s" % (new_value, name)
-        
+        # BarterCast counter
+        self.connection.total_uploaded += length
         
         return (index, begin, hashlist, piece)
 
