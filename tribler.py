@@ -571,18 +571,26 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         self.Show(True)
         
         
-        # Just for debugging: display top 5 peers from which the most is downloaded in bartercastdb
+        # Just for debugging: add test permids and display top 5 peers from which the most is downloaded in bartercastdb
         bartercastdb = BarterCastDBHandler()
+        mypermid = bartercastdb.my_permid
+        
+        bartercastdb.incrementItem((mypermid, "testpermid_1"), 'uploaded', 100)
+        bartercastdb.incrementItem((mypermid, "testpermid_1"), 'downloaded', 2000)
+                
+        bartercastdb.incrementItem((mypermid, "testpermid_2"), 'uploaded', 4000)
+        bartercastdb.incrementItem((mypermid, "testpermid_2"), 'downloaded', 6000)
+        
         top = bartercastdb.getTopNPeers(5)
-        mypermid = permid_for_user(bartercastdb.my_permid)
-        print 'My Permid: ', mypermid
+
+        print 'My Permid: ', permid_for_user(mypermid)
         
         print 'Top 5 BarterCast peers:'
         print '======================='
 
         i = 1
-        for (permid, val) in top:
-            print '%2d: %15s - %10d bytes' % (i, bartercastdb.getName(permid), val)
+        for (permid, up, down) in top:
+            print '%2d: %15s  -  %10d up  %10d down' % (i, bartercastdb.getName(permid), up, down)
             i += 1
         
         

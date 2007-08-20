@@ -820,6 +820,11 @@ class BarterCastDBHandler(BasicDBHandler):
 
     def getName(self, permid):
 
+        if permid == 'testpermid_1':
+            return "Test_1"
+        elif permid == 'testpermid_2':
+            return "Test_2"
+
         peer = self.peer_db.getItem(permid, False)
         return peer['name']
 
@@ -866,10 +871,12 @@ class BarterCastDBHandler(BasicDBHandler):
     # Return (sorted) list of the top N peers with the highest (combined) values for the given keys    
     def getTopNPeers(self, n):
 
+        print permid_for_user(self.my_permid)
+
         itemlist = self.getItemList()
         itemlist_from = filter(lambda (permid_from, permid_to): permid_to == self.my_permid, itemlist)
         itemlist_to = filter(lambda (permid_from, permid_to): permid_from == self.my_permid, itemlist)
-
+        
         peerlist_from = map(lambda (permid_from, me): permid_from, itemlist_from) 
         peerlist_to = map(lambda (me, permid_to): permid_to, itemlist_to)
 
@@ -878,20 +885,24 @@ class BarterCastDBHandler(BasicDBHandler):
 
         for peer in peerlist_from + peerlist_to:
 
-            if peer in peerlist_from:
-                item = self.getItem((peer, self.my_permid))  # from other peer to me
-            else:
-                item = self.getItem((self.my_permid, peer))
+            item = self.getItem((self.my_permid, peer))
 
-            value = item['downloaded'] + item['uploaded']       # add both values
+            # note: values are reverse from db values since 
+            # here we want to report what the 
+            # peer has downloaded _from_ me and 
+            # uploaded _to_ me.
+            up = item['downloaded']
+            down = item['uploaded']
+            
+            value = up + down # compare based on total exchange
 
             # check if peer belongs to current top N
             if len(top) < n or value > min:
 
-                top.append((peer, value))
+                top.append((peer, up, down))
 
                 # sort based on value
-                top.sort(cmp = lambda (p1, v1), (p2, v2): cmp(v2, v1))
+                top.sort(cmp = lambda (p1, u1, d1), (p2, u2, d2): cmp(u2 + d2, u1 + d1))
 
                 # if list contains more than N elements: remove the last (=lowest value)
                 if len(top) > n:
@@ -967,13 +978,13 @@ class BarterCastDBHandler(BasicDBHandler):
         if permid_1 > permid_2:
             permid_from = permid_2
             permid_to = permid_1
-        else:
-            permid_from = permid_1
-            permid_to = permid_2
             if key == 'uploaded':
                 key = 'downloaded'
             elif key == 'downloaded':
                 key = 'uploaded'
+        else:
+            permid_from = permid_1
+            permid_to = permid_2
 
         self.bartercast_db.updateItem((permid_from, permid_to), {key:value})
 
@@ -985,13 +996,13 @@ class BarterCastDBHandler(BasicDBHandler):
         if permid_1 > permid_2:
             permid_from = permid_2
             permid_to = permid_1
-        else:
-            permid_from = permid_1
-            permid_to = permid_2
             if key == 'uploaded':
                 key = 'downloaded'
             elif key == 'downloaded':
                 key = 'uploaded'
+        else:
+            permid_from = permid_1
+            permid_to = permid_2
 
         item = self.getItem((permid_from, permid_to))
 

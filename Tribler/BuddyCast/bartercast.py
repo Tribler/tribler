@@ -57,7 +57,7 @@ class BarterCastCore:
         """ Create a bartercast message """
 
         my_permid = self.bartercastdb.my_permid
-        top_peers = map(lambda (permid, value): permid, self.bartercastdb.getTopNPeers(NO_PEERS_IN_MSG))
+        top_peers = map(lambda (permid, up, down): permid, self.bartercastdb.getTopNPeers(NO_PEERS_IN_MSG))
         data = {}
         
         for permid in top_peers:
