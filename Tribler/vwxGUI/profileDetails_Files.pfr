@@ -14,7 +14,7 @@ s_tipoFile=21
 ClsparentCompTipo=0
 l_framTipo=0
 VisualWxVersion=0.87.6.0
-VisualWxIdent=8725
+VisualWxIdent=8760
 l_hasAutoSize=1
 strTree=00it=61 01it=62 02it=63 02it=64 03it=65 04it=66 02it=67 01it=68 02it=69 03it=70 03it=71 03it=75 03it=72 03it=77 01it=73 
 [Controlli]
@@ -881,8 +881,8 @@ subClassName=
 i_index=-1
 i_left=6
 i_top=76
-i_height=21
-i_width=120
+i_height=16
+i_width=100
 l_backColor=
 l_foreColor=
 l_backColorSys=
