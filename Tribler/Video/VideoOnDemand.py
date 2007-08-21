@@ -1074,20 +1074,22 @@ class MovieOnDemandTransporter(MovieTransport):
         loop = self.pos
         #loop = self.download_pos
         abspiece = None
+        mx = max( 2, self.BUFFER_TIME * self.movieselector.bitrate )
+        outbuflen = sum( (len(d) for (p,d) in self.outbuf) )
         while loop < self.numpieces():
             abspiece = self.movieselector.download_range[0][0] + loop
             ihavepiece = self.has[abspiece]
             if ihavepiece:
-                inbuf = sum( (len(d) for (p,d) in self.outbuf))
-                mx = max( 2, self.BUFFER_TIME * self.movieselector.bitrate)
                 #if DEBUG:
-                #    print >>sys.stderr,"vod: trans: Got bytes in output buf",inbuf,"max is",mx
-                if  inbuf < mx:
+                #    print >>sys.stderr,"vod: trans: Got bytes in output buf",outbuflen,"max is",mx
+                if outbuflen < mx:
                     # piece found -- add it to the queue
                     if DEBUG:
                         print >>sys.stderr,"vod: trans: %d: pushed l=%d" % (self.pos,loop)
                     data = self.piece( loop )
                     self.outbuf.append( (self.pos,data) )
+                    outbuflen += len(data)
+
                     self.data_ready.notify()
                     self.pos += 1
                     self.inc_playback_pos()
