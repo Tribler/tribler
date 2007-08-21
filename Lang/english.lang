@@ -167,7 +167,7 @@ playFastDisabled	= "Give high priority and play ASAP"
 playFastEnabled		= "Back to normal mode"
 playerDisabled		= "Please wait until first part is available \n(Tribler is currently giving first part high priority)"
 playerEnabled 		= "Click to play"
-boostDisabled		= "Aks friends to boost your download"
+boostDisabled		= "Ask friends to boost your download"
 boostEnabled		= "Boosting"
 
 
