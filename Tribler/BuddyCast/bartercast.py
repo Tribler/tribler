@@ -98,12 +98,6 @@ class BarterCastCore:
                         sender_permid, recv_msg
             return False
         
-        if self.buddycast_core.isBlocked(sender_permid, self.buddycast_core.recv_block_list):
-            if DEBUG:
-                print >> sys.stderr, "bc: warning - got BuddyCastMsg from a recv blocked peer", \
-                        show_permid(sender_permid), "Round", self.round
-            return True     # allow the connection to be kept. That peer may have restarted in 4 hours
-        
         if MAX_BARTERCAST_LENGTH > 0 and len(recv_msg) > MAX_BARTERCAST_LENGTH:
             print >> sys.stderr, "bartercast: warning - got large BarterCastMsg", len(t)
             return False
