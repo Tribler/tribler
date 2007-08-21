@@ -22,6 +22,8 @@ class GUIServer:
         self.cond = Condition()
         self.queue = []
         self.thread = Thread(target = self.run)
+        self.thread.setDaemon(True)
+        self.thread.setName( "GUIServer"+self.thread.getName() )
         
     def getInstance(*args, **kw):
         if GUIServer.__single is None:

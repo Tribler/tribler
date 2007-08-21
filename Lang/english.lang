@@ -1328,7 +1328,7 @@ C_info			= "Other info"
 # FRIENDS
 C_friendname	= "Name of your friends"
 C_friendstatus	= "Last time you connected with your friends"
-C_helping		= "Showing what friends are boosting for you"
+C_helping		= "Whether friend is boosting your downloads"
 
 
 

@@ -1594,7 +1594,7 @@ class VideoPanel(ABCOptionPanel):
         playbacksection = wx.StaticBoxSizer(playbacksection_title, wx.VERTICAL)
 
         playbackbox = wx.BoxSizer(wx.HORIZONTAL)
-        feasible = return_feasible_playback_modes()
+        feasible = return_feasible_playback_modes(self.utility.getPath())
         playback_choices = []
         self.playback_indices = []
         if PLAYBACKMODE_INTERNAL in feasible:

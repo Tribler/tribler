@@ -124,6 +124,7 @@ class SingleDownload(SingleDownloadHelperInterface):
             if self.request_size < self.downloader.storage._piecelen(self.index):
                 self.url += '&ranges='+self._request_ranges()
             rq = Thread(target = self._request)
+            rq.setName( "HTTPDownloader"+rq.getName() )
             rq.setDaemon(True)
             rq.start()
             self.active = True

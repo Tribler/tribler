@@ -1574,6 +1574,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             torrent_filename = os.path.join(torrent_dir, torrent_name)
             metadata = loadAzureusMetadataFromTorrent(torrent_filename)
             thumbnailString = metadata.get('Thumbnail')
+
+        if 'metadata' not in torrent:
+            torrent['metadata'] = {}
             
         if thumbnailString:
             img = createThumbImage(thumbnailString)
@@ -1599,9 +1602,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             thumbPanel.setBitmap(bmp)
             torrent['metadata']['ThumbReadable'] = True
         else:
-            if 'metadata' not in torrent:
-                torrent['metadata'] = {}
-            print 'Torrent: %s' % torrent
+            #print 'Torrent: %s' % torrent
             torrent['metadata']['ThumbReadable'] = False
             
             default = self.mm.get_default('filesMode','BIG_DEFAULT_THUMB')

@@ -57,7 +57,7 @@ class VideoPlayer:
 
     def determine_playbackmode(self):
         playbackmode = self.utility.config.Read('videoplaybackmode', "int")
-        feasible = return_feasible_playback_modes()
+        feasible = return_feasible_playback_modes(self.utility.getPath())
         if playbackmode in feasible:
             self.playbackmode = playbackmode
         else:
@@ -811,12 +811,14 @@ def parse_playtime_to_secs(hhmmss):
             t = int(occ[0])
     return t
 
-def return_feasible_playback_modes():
+def return_feasible_playback_modes(syspath):
     l = []
     try:
         import vlc
-        l.append(PLAYBACKMODE_INTERNAL)
-    except ImportError:
+        vlcpath = os.path.join(syspath,"vlc")
+        if os.path.isdir(vlcpath):
+            l.append(PLAYBACKMODE_INTERNAL)
+    except Exception:
         print_exc(file=sys.stderr)
     
     if sys.platform == 'win32':

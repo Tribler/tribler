@@ -197,6 +197,7 @@ class Rerequester:
             return
         self.lock.reset()
         rq = Thread(target = self._rerequest, args = [s, callback])
+        rq.setName( "TrackerRerequestA"+rq.getName() )
         # Arno: make this a daemon thread so the client closes sooner.
         rq.setDaemon(True)
         rq.start()
@@ -265,6 +266,7 @@ class Rerequester:
     def rerequest_single(self, t, s, callback):
         l = self.lock.set()
         rq = Thread(target = self._rerequest_single, args = [t, s+get_key(t), l, callback])
+        rq.setName( "TrackerRerequestB"+rq.getName() )
         # Arno: make this a daemon thread so the client closes sooner.
         rq.setDaemon(True)
         rq.start()

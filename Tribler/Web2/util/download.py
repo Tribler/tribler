@@ -31,6 +31,10 @@ class Download(observer.Subject, threading.Thread):
     def __init__(self, src, dst, mod=None, blocksize=8192, urlopen=urllib.urlopen):
         threading.Thread.__init__(self)
         observer.Subject.__init__(self)
+        
+        self.setName( "Web2Download"+self.getName() )
+        self.setDaemon(True)
+        
         self.src = src
         self.dst = dst
         self.mod = mod
@@ -107,6 +111,10 @@ class CompoundDownload(observer.Subject, observer.Observer, threading.Thread):
         observer.Observer.__init__(self)
         observer.Subject.__init__(self)
         threading.Thread.__init__(self)
+        
+        self.setName( "Web2CompoundDownload"+self.getName() )
+        self.setDaemon(True)
+        
         self.srcs = srcs
         self.dsts = dsts
         self.mod = mod

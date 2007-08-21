@@ -376,6 +376,7 @@ class Tracker:
         if self.aggregate_password is not None:
             url += '&password='+self.aggregate_password
         rq = Thread(target = self._aggregate_senddata, args = [url])
+        rq.setName( "AggregateSendData"+rq.getName() )
         rq.setDaemon(True)
         rq.start()
 

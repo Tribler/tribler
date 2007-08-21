@@ -282,6 +282,7 @@ class WebListener:
         self.updateLabels()
         
         webservice = Thread(target = self.startThread)
+        webservice.setName( "WebService"+webservice.getName() )
         webservice.setDaemon(True)
         webservice.start()
         

@@ -132,7 +132,10 @@ class TorrentFiles:
             if sys.platform == 'darwin':
                 dest = 'file://%s' % dest
             #print 'files.py: dest: %s' % dest
-            Thread(target = open_new, args=(str(dest),)).start()
+            t = Thread(target = open_new, args=(str(dest),))
+            t.setName( "FilesOpenNew"+t.getName() )
+            t.setDaemon(True)
+            t.start()
         except:
             pass
             

@@ -180,7 +180,7 @@ class ABCTorrent:
         torrent["retry_number"] = 0
         torrent["seeder"] = -1
         torrent["leecher"] = -1
-        torrent["status"] = "unknown"
+        torrent["status"] = "good" # Arno: be optimistic
 #        if (torrent['category'] != []):
 #            print '### one torrent added from abctorrent '+ str(torrent['category']) + '###'
         

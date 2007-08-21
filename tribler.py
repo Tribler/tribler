@@ -550,7 +550,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
             self.utility.torrentconfig.Flush()
 
         self.videoFrame = None
-        feasible = return_feasible_playback_modes()
+        feasible = return_feasible_playback_modes(self.utility.getPath())
         if PLAYBACKMODE_INTERNAL in feasible:
             # This means vlc is available
             from Tribler.Video.EmbeddedPlayer import VideoFrame

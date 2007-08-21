@@ -112,6 +112,8 @@ class OldFlickrSearch(threading.Thread, util.observer.Subject):
 
     def __init__(self, query, db):
         threading.Thread.__init__(self)
+        self.setName( "OldFlickrSearch"+self.getName() )
+        self.setDaemon(True)
         util.observer.Subject.__init__(self)
         self.__count = 0
         self.__quit = threading.Event()

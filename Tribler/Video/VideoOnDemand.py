@@ -436,11 +436,12 @@ class MovieSelector:
         if DEBUG:
             print >>sys.stderr,"vod: moviesel: Selected: %s (pieces %d-%d)" % (self.download_fileinfo,begin[0],end[0])
 
-        bitrate = videoinfo and videoinfo[2]
-        if bitrate:
-            if DEBUG:
-                print >>sys.stderr,"vod: moviesel: Bitrate from torrent: %.2f KByte/s" % (bitrate/1024)
-            self.set_bitrate(bitrate)
+        if videoinfo:
+            bitrate = videoinfo[2]
+            if bitrate:
+                if DEBUG:
+                    print >>sys.stderr,"vod: moviesel: Bitrate from torrent: %.2f KByte/s" % (bitrate/1024)
+                self.set_bitrate(bitrate)
 
 
     def num_movie_pieces(self):

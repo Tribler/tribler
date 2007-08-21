@@ -13,7 +13,7 @@ from copy import copy, deepcopy
 import sys
 from traceback import print_exc
 
-DEBUG = True
+DEBUG = False
 
 class TorrentCheckingList:
     __single = None

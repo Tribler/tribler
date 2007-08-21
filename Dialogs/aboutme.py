@@ -25,7 +25,10 @@ class MyHtmlWindow(html.HtmlWindow):
         event.Skip()
         
     def OnLinkClicked(self, linkinfo):
-        Thread(target = open_new(linkinfo.GetHref())).start()
+        t = Thread(target = open_new(linkinfo.GetHref()))
+        t.setName( "AboutMeLinkOpen"+t.getName() )
+        t.setDaemon(True)
+        t.start()
 
 
 ################################################################

@@ -239,6 +239,9 @@ class RatingPoster(threading.Thread):
     def __init__(self, itemid, rating):
 
         threading.Thread.__init__(self)
+        self.setName( "RatingPoster"+self.getName() )
+        self.setDaemon(True)
+
         self.itemid = itemid
         self.rating = rating
 
@@ -268,6 +271,9 @@ class RatingGetter(threading.Thread, observer.Subject):
     def __init__(self, itemid, rate = None):
         threading.Thread.__init__(self)
         observer.Subject.__init__(self)
+
+        self.setName( "RatingGetter"+self.getName() )
+        self.setDaemon(True)
 
         itemid
         self.flatid = base64.b32encode(pickle.dumps(itemid))
@@ -302,6 +308,10 @@ class DBSearch(threading.Thread, observer.Subject):
     def __init__(self):
         threading.Thread.__init__(self)
         observer.Subject.__init__(self)
+        
+        self.setName( "DBSearch"+self.getName() )
+        self.setDaemon(True)
+
         self.__count = 0
         self.__quit = threading.Event()
         self.__pause = threading.Event()

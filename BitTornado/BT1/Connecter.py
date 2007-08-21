@@ -1,6 +1,7 @@
 # Written by Bram Cohen, Pawel Garbacki and Arno Bakker
 # see LICENSE.txt for license information
 
+import time
 import traceback,sys
 from sha import sha
 from types import DictType,IntType
@@ -611,6 +612,12 @@ class Connecter:
         t = message[0]
         # EXTEND handshake will be sent just after BT handshake, 
         # before BITFIELD even
+        
+        #if DEBUG_NORMAL_MSGS:
+        #    print "connecter: Got msg from",getMessageName(t),connection.get_ip()
+
+        
+        
         if t == EXTEND:
             self.got_extend_message(connection,c,message,self.ut_pex_enabled)
             return
@@ -709,9 +716,14 @@ class Connecter:
                     print "Close on bad PIECE: msg len"
                 connection.close()
                 return
-
+            if DEBUG_NORMAL_MSGS:
+                print "connecter: Got PIECE(",i,") from",connection.get_ip()
+            st = time.time()
             if c.download.got_piece(i, toint(message[5:9]), [], message[9:]):
+                et = time.time()
+                print "connecter: Got Piece took",et-st
                 self.got_piece(i)
+            
         elif t == HASHPIECE:
             # Merkle: Handle pieces with hashes
             try:

@@ -123,7 +123,7 @@ from Tribler.TrackerChecking.TorrentCheckingList import TorrentCheckingList
 from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
 from Tribler.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
 
-DEBUG = True
+DEBUG = False
 
 class TorrentChecking(Thread):
     

@@ -48,6 +48,7 @@ class TorrentFeedThread(Thread):
             raise RuntimeError, "TorrentFeedThread is singleton"
         TorrentFeedThread.__single = self
         Thread.__init__(self)
+        self.setName( "TorrentFeed"+self.getName() )
         self.setDaemon(True)
 
         self.urls = {}
