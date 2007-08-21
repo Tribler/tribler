@@ -72,7 +72,7 @@ class LibraryItemPanel(wx.Panel):
         
         self.statusTorrent = TorrentStatus(self)
         
-
+        self.listItem = True # library always in listmode
         self.data = None
         self.status = None
         self.rightMouse = None

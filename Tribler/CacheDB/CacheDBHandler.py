@@ -869,7 +869,7 @@ class BarterCastDBHandler(BasicDBHandler):
         return keys
 
     # Return (sorted) list of the top N peers with the highest (combined) values for the given keys    
-    def getTopNPeers(self, n):
+    def getTopNPeers(self, n, giveMyTotals = False):
 
         itemlist = self.getItemList()
 
@@ -886,7 +886,9 @@ class BarterCastDBHandler(BasicDBHandler):
         top = []
         min = 0
 
-        for peer in peers:
+        total_up = total_down = 0
+        
+        for peer in peerlist_from + peerlist_to:
 
             item = self.getItem((self.my_permid, peer))
 
@@ -894,8 +896,11 @@ class BarterCastDBHandler(BasicDBHandler):
             # here we want to report what the 
             # peer has downloaded _from_ me and 
             # uploaded _to_ me.
-            up = item['downloaded']
-            down = item['uploaded']
+            up = item['downloaded'] * 1024 # in bytes..
+            down = item['uploaded'] * 1024 
+            
+            total_down += up # save totals of my down and upload
+            total_up += down
             
             value = up + down # compare based on total exchange
 
@@ -910,13 +915,14 @@ class BarterCastDBHandler(BasicDBHandler):
                 # if list contains more than N elements: remove the last (=lowest value)
                 if len(top) > n:
                     del top[-1]
-                    #top.remove(top[len(top)-1])
-
+                    
                 # determine new minimum of values    
-                #min = top[len(top)-1][1]    
-                min = top[-1][1]    
+                min = top[-1][1]
 
-        return top        
+        if giveMyTotals:
+            return top, (total_up, total_down)
+        else:
+            return top        
 
     def getMyValues(self):
 

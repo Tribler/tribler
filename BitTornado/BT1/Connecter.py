@@ -722,6 +722,10 @@ class Connecter:
             if DEBUG_NORMAL_MSGS:
                 print "connecter: Got PIECE(",i,") from",connection.get_ip()
             if c.download.got_piece(i, toint(message[5:9]), [], message[9:]):
+                if DEBUG:
+                    et = time.time()
+                    print "connecter: Got Piece took",et-st
+
                 self.got_piece(i)
             
         elif t == HASHPIECE:

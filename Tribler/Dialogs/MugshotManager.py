@@ -260,25 +260,35 @@ class MugshotManager:
     def get_default(self,mode,name):
         return self.defaults[mode][name]
     
-    def getCategoryIcon(self, mode, cat, small = False, large = False):
+    def getCategoryIcon(self, mode, cat, thumbtype = 'normal'):
+        categoryConverter = {'Picture':'Other', 
+                             'VideoClips':'Video',
+                             'Document':'Other'}
+        thumbType = {'normal':'defaultThumb_%s.png',
+                     'large':'defaultThumbL_%s.png',
+                     'small':'defaultThumbS_%s.png',
+                     'icon':'cat%sSmall.png'
+                     }
         if type(cat) == list:
             cat = cat[0]
-        if self.categoryThumbs.get((cat, small)):
-            return self.categoryThumbs[(cat, small)]
+        
+        if cat in categoryConverter:
+            cat = categoryConverter[cat]
+        
+        if thumbtype == 'icon':
+            cat = cat.title()
+            
+        if self.categoryThumbs.get((cat, thumbtype)):
+            return self.categoryThumbs[(cat, thumbtype)]
         else:
-            if small:
-                smallString = 'S'
-            elif not large:
-                smallString = ''
-            else:
-                smallString = 'L'
-            filename = 'defaultThumb%s_%s.png' % (smallString, cat)
+            filename = thumbType[thumbtype] % cat
             pathname = os.path.join(self.guiImagePath, filename)
             if os.path.isfile(pathname):
                 bm = wx.Bitmap(pathname)
             else:
                 bm = None
-            self.categoryThumbs[(cat, small)] = bm
+                print >> sys.stderr, 'No thumb found for category: %s' % cat
+            self.categoryThumbs[(cat, thumbtype)] = bm
             return bm
     
             

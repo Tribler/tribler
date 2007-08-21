@@ -497,16 +497,16 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
     def setCategoryIcon(self, torrent):
         if not torrent.has_key('category'):
             return
-        self.categoryIcon = self.mm.getCategoryIcon(self.mode, torrent.get('category'))
+        self.categoryIcon = self.mm.getCategoryIcon(self.mode, torrent.get('category'), thumbtype='icon')
     
     def setThumbnail(self, torrent):
         #if torrent.get('web2'):
             #import pdb
             #pdb.set_trace()
         # Get the file(s)data for this torrent
+        thumbtype = (self.parent.listItem) and 'small' or 'normal'
         try:
-            bmp = self.mm.getCategoryIcon(self.mode, torrent.get('category'), small=(self.parent.listItem))
-            self.defaultThumb = True
+            bmp = self.mm.getCategoryIcon(self.mode, torrent.get('category'), thumbtype=thumbtype)
             # Check if we have already read the thumbnail and metadata information from this torrent file
             if torrent.get('metadata'):
                 if self.mode == 'libraryMode':
@@ -521,7 +521,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                 
                 if not bmp:
                     #print 'fip: ThumbnailViewer: Error: thumbnailBitmap not found in torrent %s' % torrent
-                    bmp = self.mm.getCategoryIcon(self.mode, torrent.get('category'), small=(self.parent.listItem))
+                    bmp = self.mm.getCategoryIcon(self.mode, torrent.get('category'), thumbtype=thumbtype)
             else:
                 #print "fip: ThumbnailViewer: set: Scheduling read of metadata"
                 # web2.0 elements already have the thumbnail stored at key 'preview'
@@ -550,11 +550,16 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
          
     def setBitmap(self, bmp):
         # Recalculate image placement
-        w, h = self.GetSize()
-        iw, ih = bmp.GetSize()
-                
-        self.torrentBitmap = bmp
-        self.xpos, self.ypos = (w-iw)/2, (h-ih)/2
+        if not bmp:
+            self.torrentBitmap = None
+            self.xpos, self.ypos = 0,0
+            print 'Warning: Thumbnail set to None for %s' % `self.torrent`
+        else:
+            w, h = self.GetSize()
+            iw, ih = bmp.GetSize()
+                    
+            self.torrentBitmap = bmp
+            self.xpos, self.ypos = (w-iw)/2, (h-ih)/2
         
         
     def loadMetadata(self, torrent,torrent_filename):
@@ -593,7 +598,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                 return           
 
             bmp = self.getResizedBitmapFromImage(img, filesModeThumbSize)
-                    
+            
             if bmp:
                 metadata['ThumbnailBitmap'] = bmp
                 
@@ -692,6 +697,9 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
 #            dc.DrawBitmap(MASK_BITMAP,0 ,52, True)
 #            dc.SetTextForeground(wx.BLACK)
             #dc.DrawText('rating', 8, 50)
+        if self.categoryIcon:
+            dc.DrawBitmap(self.categoryIcon, 93, 0, True)      
+            
         if self.mouseOver:
             dc.SetFont(wx.Font(6, FONTFAMILY,FONTWEIGHT, wx.BOLD, True, FONTFACE))
             mask = self.mm.get_default('filesMode','MASK_BITMAP')
@@ -706,8 +714,6 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             text = repr(rank)                
             dc.DrawText(text, 22, margin+4)
         
-        if self.categoryIcon:
-            dc.DrawBitmap(self.categoryIcon, 93, 0)        
             
         if self.border:
             if self.selected:

@@ -116,7 +116,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                             'profileDetails_Download': ['descriptionField','Desc0','descriptionField0','howToImprove0','descriptionField1','takeMeThere0','Desc1','descriptionField2','howToImprove1','descriptionField3','takeMeThere1','Desc2','descriptionField4','howToImprove2','descriptionField5','takeMeThere2'],
                             #'profileDetails_Presence': ['descriptionField','Desc0','descriptionField0','howToImprove0','descriptionField1','Desc1','descriptionField2','howToImprove1','descriptionField3','Desc2','descriptionField4','howToImprove2','descriptionField5','takeMeThere0']}
                             'profileDetails_Presence': ['descriptionField','Desc0','descriptionField0','howToImprove0','descriptionField1','Desc2','descriptionField4','howToImprove2','descriptionField5','takeMeThere0'],
-                            'profileDetails_statsTopSharers':['descriptionField0']}
+                            'profileDetails_statsTopSharers':['descriptionField0', 'descriptionField1']}
         
             
         self.statdlElements = ['st28c','down_White','downSpeed','up_White','upSpeed','download1','percent1','download2','percent2','download3','percent3','download4','percent4']
@@ -908,8 +908,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             # --- Top N List of sharers
             elif self.currentPanel == self.getGuiObj('profileDetails_statsTopSharers'):
                 tab = 'profileDetails_statsTopSharers'
-                self.getGuiObj('descriptionField0', tab = 'profileDetails_statsTopSharers').SetLabel(self.topNListText())
-                
+                topN, myTotals = self.topNListText()
+                self.getGuiObj('descriptionField0', tab = tab).SetLabel(topN)
+                self.getGuiObj('descriptionField1', tab = tab).SetLabel(myTotals)
 
             else:
                 tab = "error"
@@ -1634,7 +1635,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         if not self.bartercastdb:
             self.bartercastdb = BarterCastDBHandler()
         
-        top = self.bartercastdb.getTopNPeers(5)
+        top, mytotals = self.bartercastdb.getTopNPeers(5, giveMyTotals = True)
+
         rank = 1
         text = ''
         for permid, up, down in top:
@@ -1644,19 +1646,15 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             # Jelle is this the correct string format?
             amount_str_up = self.utility.size_format(up)
             amount_str_down = self.utility.size_format(down)
-            peerdata = self.guiUtility.peer_manager.getPeerData(permid)
-            if peerdata:
-                name = peerdata['content_name']
-            else:
-                name = self.bartercastdb.getName(permid)
-                if name == None:
-                    name = 'Unknown'
-                    
+
+            name = self.bartercastdb.getName(permid)
+
             text += '%d. %s\n  (up: %s, down: %s)%s' % (rank, name, 
                                                      amount_str_up, amount_str_down, os.linesep)
             rank+=1
-        print 'topNListText:\n%s' % text
-        return text
+        
+        text2 = 'Up: %s, down: %s' % (self.utility.size_format(mytotals[0]), self.utility.size_format(mytotals[1])) 
+        return text, text2
             
 def revtcmp(a,b):
     if a[0] < b[0]:
