@@ -2,7 +2,7 @@ import wx.xrc as xrc
 from binascii import hexlify
 from time import sleep,time
 import math
-from traceback import print_exc
+from traceback import print_exc, print_stack
 import cStringIO
 import urlparse
 
@@ -398,6 +398,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             print_exc()
         
     def setData(self, item):
+        
         self.item = item
         if item is None:
             item = {}
@@ -414,10 +415,12 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             titleField.Wrap(-1) # doesn't appear to work
             
             self.setTorrentThumb(self.mode, torrent, self.getGuiObj('thumbField'))        
-
-    
+            
             if self.getGuiObj('info_detailsTab').isSelected():
                 # The info tab is selected, show normal torrent info
+                
+                self.setDownloadbutton(torrent)
+                
                 descriptionField = self.getGuiObj('descriptionField')
 
                 descrtxt = ''
@@ -529,47 +532,30 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     seedersField.GetParent().Layout()
                         
                 
-                
                 # Call a function to retrieve similar torrent data
                 self.fillSimTorrentsList(item['infohash'])
 
                 # Show or hide download button in detailstab
                 if self.mode == 'filesMode':
-                    downloadButton = self.getGuiObj('download')
-                    if self.showDownloadbutton(self.mode, torrent):
-                        if torrent.get('web2'):
-                            downloadButton.setToggled(True)
-                        else:
-                            downloadButton.setToggled(False)
-                        downloadButton.Show()
-                    else:
-                        downloadButton.Hide()
-                    
+                        
                     # Set tastheart and ranking
                     rank = torrent.get('simRank', -1)
                     self.getGuiObj('TasteHeart').setRank(rank)
                     self.setRankToRecommendationField(rank)
                 
             elif self.getGuiObj('files_detailsTab').isSelected():
-                filesList = self.getGuiObj('includedFiles', tab = 'filesTab_files')
+                tab = 'filesTab_files'
+                filesList = self.getGuiObj('includedFiles', tab = tab)
                 filesList.setData(torrent,self.metadatahandler)
-                self.getGuiObj('filesField', tab = 'filesTab_files').SetLabel('%d' % filesList.getNumFiles())
+                self.getGuiObj('filesField', tab = tab).SetLabel('%d' % filesList.getNumFiles())
                 # Remove download button for libraryview
-                downloadButton = self.getGuiObj('download', tab='filesTab_files')
-                if self.showDownloadbutton(self.mode, torrent):
-                    downloadButton.Show()
-                    if torrent.get('web2'):
-                        downloadButton.setToggled(True)
-                    else:
-                        downloadButton.setToggled(False)
-                    downloadButton.Show()
-                else:
-                    downloadButton.Hide()
+                self.setDownloadbutton(torrent, tab = tab)
+                
                 # Set tracker info
                 if torrent.has_key('tracker'):
                     trackerString = torrent['tracker']
                     short = getShortTrackerFormat(trackerString)
-                    trackerField = self.getGuiObj('trackerField', tab = 'filesTab_files')
+                    trackerField = self.getGuiObj('trackerField', tab = tab)
                     trackerField.Wrap(-1)
                     trackerField.SetLabel(short)
                     trackerField.SetToolTipString(trackerString)
@@ -987,10 +973,16 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             print_exc()
         return bElementMoved
     
-    def showDownloadbutton(self, mode, torrent):
-        return (self.mode == 'filesMode' and not torrent.get('eventComingUp') == 'downloading') or \
-               (self.mode == 'libraryMode' and torrent.get('eventComingUp') == 'notDownloading')
-               
+    def setDownloadbutton(self, torrent, tab = None):
+        downloadButton = self.getGuiObj('download', tab = tab)
+        if downloadButton:
+            if torrent.get('myDownloadHistory', False):
+                bitmap, bitmap2 = self.mm.getDownloadButton('library')
+            elif torrent.get('web2'):
+                bitmap, bitmap2 = self.mm.getDownloadButton('play')
+            else:
+                bitmap, bitmap2 = self.mm.getDownloadButton('download')
+            downloadButton.setBitmaps(bitmap, bitmap2)
                  
     def getGuiObj(self, obj_name, tab=None, mode=None):
         """handy function to retreive an object based on it's name for the current mode"""

@@ -88,7 +88,13 @@ class tribler_topButton(wx.Panel):
                 i+=1
             elif DEBUG:
                 print 'Could not find image: %s' % img
-                
+         
+           
+    def setBitmaps(self, normalBitmap, selectedBitmap=None):
+        # This function does not protect you as switch* do.
+        self.bitmaps=[normalBitmap,selectedBitmap]
+        self.Refresh()
+           
     def switchTo(self, normalBitmap, selectedBitmap=None):
         if self.old_bitmaps is not None:
             if DEBUG:

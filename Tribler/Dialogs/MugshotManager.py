@@ -77,6 +77,13 @@ class MugshotManager:
         self.defaults['friendsMode']['DEFAULT_THUMB'] = wx.Bitmap(os.path.join(self.guiImagePath, 'defaultThumbPeerS.png'))
         self.defaults['friendsMode']['MASK_BITMAP_OVERLAY'] = wx.Bitmap(os.path.join(self.guiImagePath, 'itemMask_clean.png'))
 
+        self.DOWNLOAD_BUTTON_LIBRARY = wx.Bitmap(os.path.join(self.guiImagePath, 'inLibrary.png'))
+        self.DOWNLOAD_BUTTON_LIBRARY_S = wx.Bitmap(os.path.join(self.guiImagePath, 'inLibrary_clicked.png'))
+        self.DOWNLOAD_BUTTON_DOWNLOAD = wx.Bitmap(os.path.join(self.guiImagePath, 'download.png'))
+        self.DOWNLOAD_BUTTON_DOWNLOAD_S = wx.Bitmap(os.path.join(self.guiImagePath, 'download_clicked.png'))
+        self.DOWNLOAD_BUTTON_PLAY = wx.Bitmap(os.path.join(self.guiImagePath, 'play.png'))
+        self.DOWNLOAD_BUTTON_PLAY_S = wx.Bitmap(os.path.join(self.guiImagePath, 'play_clicked.png'))
+        
     def create_wxImageList(self,peerswpermid,setindex=False):
         """ peerswpermid is a list of dictionaries that contain the
             name and permid of a peer
@@ -292,3 +299,13 @@ class MugshotManager:
             return bm
     
             
+    def getDownloadButton(self, mode):
+        if mode == 'play':
+            return self.DOWNLOAD_BUTTON_PLAY, self.DOWNLOAD_BUTTON_PLAY_S
+        elif mode == 'download':
+            return self.DOWNLOAD_BUTTON_DOWNLOAD, self.DOWNLOAD_BUTTON_DOWNLOAD_S
+        elif mode == 'library':
+            return self.DOWNLOAD_BUTTON_LIBRARY, self.DOWNLOAD_BUTTON_LIBRARY_S
+        else:
+            raise Exception('No such mode')
+        

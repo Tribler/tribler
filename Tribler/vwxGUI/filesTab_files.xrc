@@ -96,7 +96,7 @@
                 <flag>wxLEFT|wxFIXED_MINSIZE</flag>
                 <border>3</border>
                 <option>0</option>
-                <object class="wxPanel" name="download" subclass="Tribler.vwxGUI.tribler_topButton.SwitchButton">
+                <object class="wxPanel" name="download" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
                   <pos>240,3</pos>
                   <size>55,55</size>
                 </object>

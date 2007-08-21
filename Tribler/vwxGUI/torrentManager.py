@@ -93,15 +93,17 @@ class TorrentDataManager:
         self.category = Category.getInstance()
         
     def loadData(self):
-        self.data = self.torrent_db.getRecommendedTorrents(light=True,all=True) #gets torrents with mypref
-        
-        self.category.register(self.metadata_handler)
-        updated = self.category.checkResort(self) # the database is upgraded from v1 to v2
-        if updated:
-            self.data = self.torrent_db.getRecommendedTorrents(light=False,all=True)
-        self.prepareData()
-        self.isDataPrepared = True
-        
+        try:
+            self.data = self.torrent_db.getRecommendedTorrents(light=True,all=True) #gets torrents with mypref
+            
+            self.category.register(self.metadata_handler)
+            updated = self.category.checkResort(self) # the database is upgraded from v1 to v2
+            if updated:
+                self.data = self.torrent_db.getRecommendedTorrents(light=False,all=True)
+            self.prepareData()
+            self.isDataPrepared = True
+        except:
+            raise Exception('Could not load torrent data !!')
     def prepareData(self):
         
         for torrent in self.data:      
@@ -137,12 +139,8 @@ class TorrentDataManager:
             
         def torrentFilter(torrent):
             library = (mode == 'libraryMode')
-            okLibrary = library == torrent.has_key('myDownloadHistory')
+            okLibrary = not library or torrent.has_key('myDownloadHistory')
             
-            # If we want to see the library. Do not show just removed items
-            if library and torrent.get('eventComingUp', '') == 'notDownloading':
-                okLibrary = False
-
             okCategory = False
             if categorykey == 'all':
                 okCategory = True
@@ -173,7 +171,7 @@ class TorrentDataManager:
             print >>sys.stderr,"getCategory: mode",mode,"webon",web2on,"insearch",self.inSearchMode(mode),"catekey",categorykey
         
         if mode == 'filesMode' and web2on and self.inSearchMode(mode) and \
-                (categorykey == 'video' or categorykey == 'all'):
+                categorykey in ['video', 'all']:
                 # if we are searching in filesmode
                 self.dod = web2.DataOnDemandWeb2(" ".join(self.searchkeywords[mode]))
                 self.dod.addItems(data)
@@ -263,17 +261,22 @@ class TorrentDataManager:
 #            torrent["category"] = self.category.calculateCategory(torrent["info"], torrent["info"]['name'])
         
         isLibraryItem = torrent.get('myDownloadHistory', False)
-        categories = torrent.get('category', ['other']) + ["All"]
+        categories = torrent.get('category', ['other']) + ["all"]
         if torrent in self.hits:
             categories.append('search')
-                                            
+        
         for key in categories:
 #            if key == '?':
 #                continue
             try:
                 key = key.lower()
-                for fun in self.dict_FunList[(key, isLibraryItem)]: # call all functions for a certain key
-                    fun(torrent, operate)     # lock is used to avoid dead lock
+                if isLibraryItem:
+                    for fun in self.dict_FunList.get((key, True), []): # call all functions for a certain key
+                        fun(torrent, operate)     # lock is used to avoid dead lock
+                # Always notify discovered files (also for library items)
+                for fun in self.dict_FunList.get((key, False), []):
+                    fun(torrent, operate)
+                    
             except Exception, msg:
                 #print >> sys.stderr, "abcfileframe: TorrentDataManager update error. Key: %s" % (key), Exception, msg
                 #print_exc()
@@ -300,22 +303,13 @@ class TorrentDataManager:
         if not old_torrent:
             return
         
-        # EventComing up, to let the detailPanel update already
-        if b:    # add to my pref
-            old_torrent[key_eventComingUp] = 'downloading'
-        else:    # remove from my pref
-            old_torrent[key_eventComingUp] = 'notDownloading'
-        
-        self.notifyView(old_torrent, 'delete')
-        
-        del old_torrent[key_eventComingUp]
         if b:
             old_torrent[key_myDownloadHistory] = True
         else:
             if old_torrent.has_key(key_myDownloadHistory):
                 del old_torrent[key_myDownloadHistory]
             
-        self.notifyView(old_torrent, 'add')
+        self.notifyView(old_torrent, 'update')
         
         self.updateRankList(old_torrent, 'update')
         

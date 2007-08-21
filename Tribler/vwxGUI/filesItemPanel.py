@@ -19,7 +19,7 @@ from font import *
 
 from Tribler.Overlay.MetadataHandler import MetadataHandler
 
-DEBUG=False
+DEBUG=True
 
 # font sizes
 if sys.platform == 'darwin':
@@ -80,11 +80,6 @@ class FilesItemPanel(wx.Panel):
         self.SetBackgroundColour(self.unselectedColour)
        
         
-#        self.Bind(wx.EVT_LEFT_UP, self.mouseAction)
-#        self.Bind(wx.EVT_KEY_UP, self.keyTyped)
-
-#        fileListMode = 'thumbs'        
-
         
         if not self.listItem:
             
@@ -244,7 +239,8 @@ class FilesItemPanel(wx.Panel):
                 self.datacopy['length'] == torrent['length'] and
                 self.datacopy.get('myDownloadHistory') == torrent.get('myDownloadHistory')):
                 return
-        
+                
+            
         self.data = torrent
 
         if torrent is not None:
@@ -260,6 +256,8 @@ class FilesItemPanel(wx.Panel):
             self.datacopy['preview'] = torrent.get('preview')
         else:
             torrent = {}
+            
+        self.thumb.setTorrent(torrent)
 
         if torrent.get('content_name'):
             title = torrent['content_name'][:self.titleLength]
@@ -344,7 +342,6 @@ class FilesItemPanel(wx.Panel):
                 self.vLine6.Hide()
                 
             
-        self.thumb.setTorrent(torrent)        
         self.Layout()
         self.Refresh()
         #self.parent.Refresh()
@@ -360,7 +357,10 @@ class FilesItemPanel(wx.Panel):
         self.selected = True
         if DEBUG:
             print >>sys.stderr,'fip: item selected'
-        colour = self.guiUtility.selectedColour
+        if self.data and self.data.get('myDownloadHistory'):
+            colour = self.guiUtility.selectedColourDownload
+        else:
+            colour = self.guiUtility.selectedColour
         self.thumb.setSelected(True)        
         self.title.SetBackgroundColour(colour)
         
@@ -383,7 +383,9 @@ class FilesItemPanel(wx.Panel):
         self.selected = False
         #colour = self.guiUtility.unselectedColour
 
-        if rowIndex % 2 == 0 or not self.listItem:
+        if self.data and self.data.get('myDownloadHistory'):
+            colour = self.guiUtility.unselectedColourDownload
+        elif rowIndex % 2 == 0 or not self.listItem:
             colour = self.guiUtility.unselectedColour
         else:
             colour = self.guiUtility.unselectedColour2
@@ -423,7 +425,7 @@ class FilesItemPanel(wx.Panel):
         
     def mouseAction(self, event):        
         self.SetFocus()
-        if self.data:
+        if self.data and event.LeftUp():
             # torrent data is sent to guiUtility > standardDetails.setData
             self.guiUtility.selectTorrent(self.data)
             
@@ -476,6 +478,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnErase)
         self.selected = False
         self.border = None
+        self.downloading = False
         self.categoryIcon = None
         self.mm = self.GetParent().parent.mm
 
@@ -489,11 +492,11 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         if not self.IsShown():
             self.Show()
                 
-        if torrent != self.torrent:
-            self.torrent = torrent
-            self.setThumbnail(torrent)
-            self.setCategoryIcon(torrent)
-            
+        self.torrent = torrent
+        self.setThumbnail(torrent)
+        self.setCategoryIcon(torrent)
+        self.downloading = torrent.get('myDownloadHistory', False)
+                            
     def setCategoryIcon(self, torrent):
         if not torrent.has_key('category'):
             return
@@ -621,7 +624,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         if torrent['infohash'] == self.torrent['infohash']:
             bmp = metadata.get('ThumbnailBitmap')
             if bmp:
-                if self.mode == 'libraryMode':
+                if self.parent.listItem:
                     bmp = self.getResizedBitmapFromImage(img, libraryModeThumbSize)
                 self.setBitmap(bmp)
                 self.Refresh()
@@ -717,9 +720,16 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             
         if self.border:
             if self.selected:
-                dc.SetPen(wx.Pen(wx.Colour(255,51,0), 2))
+                if self.downloading:
+                    colour = self.guiUtility.selectedColourDownload
+                else:
+                    colour = self.guiUtility.triblerRed
             else:
-                dc.SetPen(wx.Pen(self.triblerLightGrey, 2))
+                if self.downloading:
+                    colour = self.guiUtility.unselectedColourDownload
+                else:
+                    colour = self.triblerLightGrey
+            dc.SetPen(wx.Pen(colour, 2))
             dc.DrawLines(self.border)
 
 

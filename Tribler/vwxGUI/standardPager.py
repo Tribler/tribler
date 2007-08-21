@@ -46,7 +46,7 @@ class standardPager(wx.Panel):
         
     def initPager(self, numPages=10):
         
-        self.triblerRed = wx.Colour(255, 51, 0)
+       
         self.beginPage = 0
         self.currentPage = 0
         self.numPages = numPages
@@ -63,7 +63,7 @@ class standardPager(wx.Panel):
    
     def addComponents(self):
         self.Show(False)
-        self.SetBackgroundColour(self.triblerRed)
+        self.SetBackgroundColour(self.guiUtility.triblerRed)
         self.normalFont = wx.Font(FS_ITEMNORMAL,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE) # was Arial
         self.boldFont  = wx.Font(FS_ITEMBOLD,FONTFAMILY,FONTWEIGHT,wx.BOLD,True,FONTFACE) # was Arial
         self.hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -79,7 +79,7 @@ class standardPager(wx.Panel):
 #        self.hSizer.Add(self.leftPages, 0, BORDER_EXPAND, 0)
         self.left = tribler_topButton(self, name='pager_left')
         self.left.Bind(wx.EVT_LEFT_UP, self.mouseAction)
-        self.left.setBackground(self.triblerRed)
+        self.left.setBackground(self.guiUtility.triblerRed)
         #self.hSizer.AddSpacer(wx.Size(25))
         self.hSizer.Add(self.left, 0, wx.TOP, 5)
         
@@ -89,7 +89,7 @@ class standardPager(wx.Panel):
         
         self.right = tribler_topButton(self, name='pager_right')
         self.right.Bind(wx.EVT_LEFT_UP, self.mouseAction)
-        self.right.setBackground(self.triblerRed)
+        self.right.setBackground(self.guiUtility.triblerRed)
         self.hSizer.AddSpacer(wx.Size(5))
         self.hSizer.Add(self.right, 0, wx.TOP, 5)
        
@@ -197,7 +197,7 @@ class standardPager(wx.Panel):
     def getDefaultTextField(self, t=""):
         text = StaticText(self, -1, t)
         text.SetForegroundColour(wx.WHITE)
-        text.SetBackgroundColour(self.triblerRed)
+        text.SetBackgroundColour(self.guiUtility.triblerRed)
         return text
     
     def refresh(self):
