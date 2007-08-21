@@ -819,7 +819,10 @@ def return_feasible_playback_modes(syspath):
     try:
         import vlc
         vlcpath = os.path.join(syspath,"vlc")
-        if os.path.isdir(vlcpath):
+        if sys.platform == 'win32':
+            if os.path.isdir(vlcpath):
+                l.append(PLAYBACKMODE_INTERNAL)
+        else:
             l.append(PLAYBACKMODE_INTERNAL)
     except Exception:
         print_exc(file=sys.stderr)

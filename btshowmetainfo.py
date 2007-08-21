@@ -34,6 +34,7 @@ for metainfo_name in argv[1:]:
 
     print 'metainfo file.: %s' % basename(metainfo_name)
     print 'info hash.....: %s' % info_hash.hexdigest()
+    print 'info hash.....: %s' % `info_hash.digest()`
     piece_length = info['piece length']
     if info.has_key('length'):
         # let's assume we just have a file

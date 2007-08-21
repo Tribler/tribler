@@ -84,6 +84,7 @@ def bdecode(x, sloppy = 0):
         r, l = decode_func[x[0]](x, 0)
 #    except (IndexError, KeyError):
     except (IndexError, KeyError, ValueError):
+        #print_exc()
         raise ValueError, "bad bencoded data"
     if not sloppy and l != len(x):
         raise ValueError, "bad bencoded data"
