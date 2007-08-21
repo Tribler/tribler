@@ -162,7 +162,7 @@ import gc
 import socket
 
 from BitTornado.bencode import bencode, bdecode
-from BitTornado.BT1.MessageID import BUDDYCAST, KEEP_ALIVE
+from BitTornado.BT1.MessageID import BUDDYCAST, BARTERCAST, KEEP_ALIVE
 from Tribler.CacheDB.CacheDBHandler import *
 from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
 from Tribler.CacheDB.SynDBHandler import SynPeerDBHandler

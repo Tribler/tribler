@@ -1643,7 +1643,6 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             
             # up and down are integers in KB in the database
             # (for overhead limitation)
-            # Jelle is this the correct string format?
             amount_str_up = self.utility.size_format(up)
             amount_str_down = self.utility.size_format(down)
 
