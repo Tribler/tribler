@@ -698,7 +698,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
 #            dc.SetTextForeground(wx.BLACK)
             #dc.DrawText('rating', 8, 50)
         if self.categoryIcon:
-            dc.DrawBitmap(self.categoryIcon, 93, 0, True)      
+            dc.DrawBitmap(self.categoryIcon, 99, 7, True)      
             
         if self.mouseOver:
             dc.SetFont(wx.Font(6, FONTFAMILY,FONTWEIGHT, wx.BOLD, True, FONTFACE))

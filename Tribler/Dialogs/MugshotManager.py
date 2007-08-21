@@ -267,7 +267,7 @@ class MugshotManager:
         thumbType = {'normal':'defaultThumb_%s.png',
                      'large':'defaultThumbL_%s.png',
                      'small':'defaultThumbS_%s.png',
-                     'icon':'cat%sSmall.png'
+                     'icon':'icon_%s.png'
                      }
         if type(cat) == list:
             cat = cat[0]
