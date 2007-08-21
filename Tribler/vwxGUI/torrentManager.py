@@ -168,8 +168,12 @@ class TorrentDataManager:
                     print 'getCategory found after search: %d items' % len(data)
         
         web2on = self.utility.config.Read('enableweb2search',"boolean")
+        
+        if DEBUG:
+            print >>sys.stderr,"getCategory: mode",mode,"webon",web2on,"insearch",self.inSearchMode(mode),"catekey",categorykey
+        
         if mode == 'filesMode' and web2on and self.inSearchMode(mode) and \
-                categorykey == 'video':
+                (categorykey == 'video' or categorykey == 'all'):
                 # if we are searching in filesmode
                 self.dod = web2.DataOnDemandWeb2(" ".join(self.searchkeywords[mode]))
                 self.dod.addItems(data)

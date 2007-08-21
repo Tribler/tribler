@@ -51,7 +51,7 @@ class VideoFrame(wx.Frame):
     def __init__(self,parent):
         self.utility = parent.utility
         wx.Frame.__init__(self, None, -1, self.utility.lang.get('tb_video_short'), 
-                          size=(320,240)) # size=(800,650)) # TEMP ARNO
+                          size=(800,650))
         self.createMainPanel()
 
 
@@ -412,6 +412,7 @@ class VLCMediaCtrl(wx.Window):
     # Be sure that this window is visible before
     # calling Play(), otherwise GetHandle() fails
     def Play(self):
+        self.setStatus("Starting player...")
         if self.GetState() == MEDIASTATE_PLAYING:
             return
 
@@ -450,8 +451,8 @@ class VLCMediaCtrl(wx.Window):
 
     def GetState(self):
         status = self.media.get_stream_information()["status"]
-        if DEBUG:
-            print "VLCMediaCtrl: VLC reports status",status,vlcstatusmap[status]
+        #if DEBUG:
+        #    print "VLCMediaCtrl: VLC reports status",status,vlcstatusmap[status]
         if status == vlc.PlayingStatus:
             return MEDIASTATE_PLAYING
         elif status == vlc.PauseStatus:
