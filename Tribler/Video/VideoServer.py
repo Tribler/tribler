@@ -153,6 +153,7 @@ class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
         BaseHTTPServer.HTTPServer.__init__( self, ("",self.port), SimpleServer )
         self.daemon_threads = True
         self.errorcallback = None
+        self.statuscallback = None
         
     def getInstance(*args, **kw):
         if VideoHTTPServer.__single is None:
@@ -163,8 +164,9 @@ class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
     def background_serve( self ):
         thread.start_new_thread( self.serve_forever, () )
 
-    def register(self,errorcallback):
+    def register(self,errorcallback,statuscallback):
         self.errorcallback = errorcallback
+        self.statuscallback = statuscallback
 
     def set_movietransport(self,newmt):
         ret = False
@@ -201,6 +203,8 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
         try:
             if DEBUG:
                 print >>sys.stderr,"videoserv: do_GET: Got request",self.path,self.headers.getheader('range')
+                
+            self.server.statuscallback("Player started...")
             movie = self.server.get_movietransport()
             if movie is None:
                 if DEBUG:
@@ -228,6 +232,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_header("Content-Length", size)
             self.end_headers()
             
+            first = True
             while not movie.done():
                 data = movie.read()
                 if not data:
@@ -256,6 +261,9 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                     #print >>sys.stderr,"videoserv: writing",len(data) 
                     self.wfile.write(data)
                     #sleep(1)
+                    if first:
+                        self.server.statuscallback("Playing...")
+                        first = False
                     
                 except IOError, e:
                     if DEBUG:

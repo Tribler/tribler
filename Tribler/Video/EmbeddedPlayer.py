@@ -26,7 +26,15 @@ MEDIASTATE_PLAYING = 1
 MEDIASTATE_PAUSED  = 2
 MEDIASTATE_STOPPED = 3
 
-DEBUG = False
+vlcstatusmap = {vlc.PlayingStatus:'vlc.PlayingStatus',
+                vlc.PauseStatus:'vlc.PauseStatus',
+                vlc.ForwardStatus:'vlc.ForwardStatus',
+                vlc.BackwardStatus:'vlc.BackwardStatus',
+                vlc.InitStatus:'vlc.InitStatus',
+                vlc.EndStatus:'vlc.EndStatus',
+                vlc.UndefinedStatus:'vlc.UndefinedStatus'}
+
+DEBUG = True
 
 
 class VideoItem:
@@ -43,7 +51,7 @@ class VideoFrame(wx.Frame):
     def __init__(self,parent):
         self.utility = parent.utility
         wx.Frame.__init__(self, None, -1, self.utility.lang.get('tb_video_short'), 
-                          size=(800,650))
+                          size=(320,240)) # size=(800,650)) # TEMP ARNO
         self.createMainPanel()
 
 
@@ -117,6 +125,9 @@ class VideoFrame(wx.Frame):
         self.videopanel.invokeLater(*args,**kwargs)
 
 
+    def set_player_status(self,s):
+        if self.videopanel:
+            self.videopanel.set_player_status(s)
 
 class EmbeddedPlayer(wx.Panel,FlaglessDelayedInvocation):
 
@@ -226,6 +237,8 @@ class EmbeddedPlayer(wx.Panel,FlaglessDelayedInvocation):
     def updateSlider(self, evt):
         self.volume.SetValue(int(self.mediactrl.GetVolume() * 100))
 
+        #s = self.mediactrl.GetState()
+
         if self.update:
             len = self.mediactrl.Length()
             if len == -1:
@@ -317,6 +330,11 @@ class EmbeddedPlayer(wx.Panel,FlaglessDelayedInvocation):
                 self.br.SetLabel(txt)
        """     
 
+    def set_player_status(self,s):
+        if self.mediactrl:
+            self.mediactrl.setStatus(s)
+
+
 class DelayTimer(wx.Timer):
     """ vlc.MediaCtrl needs some time to stop after we give it a stop command.
         Wait until it is and then tell it to play the new item
@@ -345,6 +363,7 @@ class VLCMediaCtrl(wx.Window):
         wx.Window.__init__(self, parent, id, size=(320,240))
         self.SetMinSize((320,240))
         self.SetBackgroundColour(wx.BLACK)
+        self.status = "Starting player..."
 
         if logofilename is not None:
             self.logo = wx.BitmapFromImage(wx.Image(logofilename).Scale(100,142),-1)
@@ -393,7 +412,6 @@ class VLCMediaCtrl(wx.Window):
     # Be sure that this window is visible before
     # calling Play(), otherwise GetHandle() fails
     def Play(self):
-
         if self.GetState() == MEDIASTATE_PLAYING:
             return
 
@@ -407,8 +425,12 @@ class VLCMediaCtrl(wx.Window):
             pos.origin = vlc.AbsolutePosition
             pos.key = vlc.MediaTime
             pos.value = 0
+            if DEBUG:
+                print >>sys.stderr,"VLCMediaCtrl: Actual play command"
             self.media.start(pos)
         else:
+            if DEBUG:
+                print >>sys.stderr,"VLCMediaCtrl: Actual resume command"
             self.media.resume()
 
 
@@ -428,6 +450,7 @@ class VLCMediaCtrl(wx.Window):
 
     def GetState(self):
         status = self.media.get_stream_information()["status"]
+        #print "vlc getstate is",status,vlcstatusmap[status]
         if status == vlc.PlayingStatus:
             return MEDIASTATE_PLAYING
         elif status == vlc.PauseStatus:
@@ -477,6 +500,7 @@ class VLCMediaCtrl(wx.Window):
     def Stop(self):
         self.media.stop()
         self.media.playlist_clear()
+        self.setStatus("Player is stopped")
 
 
     def __del__(self):
@@ -511,8 +535,22 @@ class VLCMediaCtrl(wx.Window):
         dc.SetBrush(wx.Brush("BLACK"))
         dc.DrawRectangle(x,y,maxw,maxh)
         dc.DrawBitmap(self.logo,halfx,halfy,True)
+
+        dc.SetTextForeground(wx.WHITE)
+        dc.SetTextBackground(wx.BLACK)
+        dc.DrawText(self.getStatus(),halfx,halfy+self.logo.GetHeight()+10)
         
         dc.EndDrawing()
         if evt is not None:
             evt.Skip(True)
         
+    def getStatus(self):
+        return self.status
+    
+    def setStatus(self,s):
+        wx.CallAfter(self.OnSetStatus,s)
+        
+    def OnSetStatus(self,s):
+        self.status = s
+        #self.OnPaint(None)
+        self.Refresh()

@@ -24,7 +24,7 @@ EXTENSIONS = ['asf','avi','dv','flc','mpeg','mpeg4','mpg4','mp4','mpg','mov','og
 # pull all video data as if a video player was attached
 FAKEPLAYBACK = False
 
-DEBUG = False
+DEBUG = True
 DEBUGPP = False
 
 class PiecePickerStreaming(PiecePicker):
@@ -240,7 +240,7 @@ class PiecePickerBiToS(PiecePickerStreaming):
         return choice
 
 class PiecePickerG2G(PiecePickerStreaming):
-    """ BiToS -- define a high-priority set, and select out of it with probability p. """
+    """ G2G+BiToS -- define a high-priority set, and select out of it with probability p. """
    
     # size of high probability set, in seconds
     HIGH_PROB_SETSIZE = 10
@@ -327,6 +327,7 @@ class PiecePickerG2G(PiecePickerStreaming):
         return choice
 
 PiecePickerVOD = PiecePickerG2G
+#PiecePickerVOD = PiecePickerBiToS
 
 class MovieSelector:
     """ Selects a movie out of a torrent and provides information regarding the pieces
@@ -512,10 +513,12 @@ class MovieOnDemandTransporter(MovieTransport):
     """ Takes care of providing a bytestream interface based on the available pieces. """
 
     # max number of seconds in queue to player
-    BUFFER_LENGTH = 0.5
+    BUFFER_TIME = 2.0
     
     # polling interval to refill buffer
-    REFILL_INTERVAL = BUFFER_LENGTH * 0.75
+    #REFILL_INTERVAL = BUFFER_TIME * 0.75
+    # Arno: there's is no guarantee we got enough (=BUFFER_TIME secs worth) to write to output bug!
+    REFILL_INTERVAL = 0.1
 
     # amount of time (seconds) to push a packet into
     # the player queue ahead of schedule
@@ -619,6 +622,8 @@ class MovieOnDemandTransporter(MovieTransport):
         self.pos = 0
         self.outbuf = []
         self.start_playback = float(2 ** 31) #end of time
+
+        self.lasttime=0
 
         self.refill_thread()
         self.tick_second()
@@ -1005,7 +1010,7 @@ class MovieOnDemandTransporter(MovieTransport):
     def stop( self ):
         """ Playback is stopped. """
 
-        print >>sys.stderr,"vod: trans: === STOP request === "
+        print >>sys.stderr,"vod: trans: === STOP  = player closed conn === "
         self.playing = False
 
         # clear buffer and notify possible readers
@@ -1073,7 +1078,11 @@ class MovieOnDemandTransporter(MovieTransport):
             abspiece = self.movieselector.download_range[0][0] + loop
             ihavepiece = self.has[abspiece]
             if ihavepiece:
-                if sum( (len(x) for x in self.outbuf)) < max( 2, self.BUFFER_LENGTH * self.movieselector.bitrate):
+                inbuf = sum( (len(d) for (p,d) in self.outbuf))
+                mx = max( 2, self.BUFFER_TIME * self.movieselector.bitrate)
+                #if DEBUG:
+                #    print >>sys.stderr,"vod: trans: Got bytes in output buf",inbuf,"max is",mx
+                if  inbuf < mx:
                     # piece found -- add it to the queue
                     if DEBUG:
                         print >>sys.stderr,"vod: trans: %d: pushed l=%d" % (self.pos,loop)
@@ -1089,7 +1098,7 @@ class MovieOnDemandTransporter(MovieTransport):
             elif time.time() < self.piece_due( loop ):
                 # wait for packet
                 if DEBUG:
-                    print >>sys.stderr,"vod: trans: %d: waiting %.2fs  l=%d" % (self.pos,self.piece_due(loop)-time.time(),loop)
+                    print >>sys.stderr,"vod: trans: %d: due in %.2fs  pos=%d" % (loop,self.piece_due(loop)-time.time(),self.pos)
                 break
             else:
                 # drop packet
@@ -1106,6 +1115,11 @@ class MovieOnDemandTransporter(MovieTransport):
         self.data_ready.release()
 
     def refill_thread( self ):
+        
+        now = time.time()
+        print "vod: trans: last REFILL",now-self.lasttime
+        self.lasttime=now
+        
         if self.downloading:
             self.refill_buffer()
 
@@ -1120,6 +1134,8 @@ class MovieOnDemandTransporter(MovieTransport):
 
         while not self.outbuf and not self.done():
             # wait until a piece is available
+            if DEBUG:
+                print >>sys.stderr,"vod: trans: Player waiting for data"
             self.data_ready.wait()
 
         if not self.outbuf:

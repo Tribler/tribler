@@ -51,7 +51,7 @@ class VideoPlayer:
         self.utility = utility
         
         videoserver = VideoHTTPServer.getInstance()
-        videoserver.register(self.videoserver_error_callback)
+        videoserver.register(self.videoserver_error_callback,self.videoserver_set_status_callback)
 
         self.determine_playbackmode()
 
@@ -574,6 +574,8 @@ class VideoPlayer:
         print >>sys.stderr,"videoplay: Video server reported error",str(e)
         #self.onError(self.utility.lang.get('videoserverservefailure')+self.utility.lang.get('videoserverservefailureadvice'),url,str(e.__class__)+':'+str(e))
 
+    def videoserver_set_status_callback(self,status):
+        self.parentwindow.set_player_status(status)
 
     def create_url(self,videoserver,upath):
         schemeserv = 'http://127.0.0.1:'+str(videoserver.port)
@@ -720,6 +722,7 @@ class VODWarningDialog(wx.Dialog):
         else:
             return ''
             
+        
         
 def is_movie(filename,enc=False):
     # filter movies

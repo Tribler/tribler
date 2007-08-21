@@ -83,7 +83,7 @@ from Tribler.Web2.util.update import Web2Updater
 from Tribler.CacheDB.CacheDBHandler import BarterCastDBHandler
 from Tribler.Overlay.permid import permid_for_user
 
-DEBUG = True
+DEBUG = False
 ALLOW_MULTIPLE = False
 start_time = 0
 start_time2 = 0

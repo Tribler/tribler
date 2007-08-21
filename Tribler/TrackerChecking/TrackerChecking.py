@@ -13,7 +13,7 @@ from traceback import print_exc
 
 HTTP_TIMEOUT = 30 # seconds
 
-DEBUG = True
+DEBUG = False
 
 def trackerChecking(torrent):    
     single_no_thread(torrent)              
