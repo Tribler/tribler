@@ -39,7 +39,9 @@ class ColumnHeader(wx.Panel):
                 self.hSizer.Add([15,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
             self.text = wx.StaticText(self, -1, title)
             self.hSizer.Add(self.text, 1, wx.TOP, 3)            
-        if not picture and not title:
+        
+        self.dummy = not picture and not title
+        if picture == None and title == None:
             raise Exception('No text nor an icon in columnheader')
         
         self.sortIcon = ImagePanel(self)
@@ -84,6 +86,8 @@ class ColumnHeader(wx.Panel):
         self.GetSizer().Layout()
     
     def clicked(self, event):
+        if self.dummy:
+            return
         if not self.type or self.type == 'up':
             newType = 'down'
         elif self.type == 'down':

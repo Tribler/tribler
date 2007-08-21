@@ -252,8 +252,9 @@ class LibraryItemPanel(wx.Panel):
             window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction)             
             
     def getColumns(self):
-        return [{'sort':'content_name', 'reverse':True, 'title':'name', 'weight':1,'tip':self.utility.lang.get('C_filename'), 'order':'down'},
-                {'sort':'??', 'title':'progress', 'width':120, 'tip':self.utility.lang.get('C_progress')},
+        return [{'sort':'', 'title':'', 'width':35, 'tip':''},
+                {'sort':'content_name', 'reverse':True, 'title':'name', 'weight':1,'tip':self.utility.lang.get('C_filename'), 'order':'down'},
+                {'sort':'progress', 'title':'progress', 'width':120, 'tip':self.utility.lang.get('C_progress')},
                 {'sort':'??', 'pic':'downSpeedColumn','title':'down', 'width':70, 'tip':self.utility.lang.get('C_downspeed')},
                 {'sort':'??', 'pic':'upSpeedColumn','title':'up','width':70, 'tip':self.utility.lang.get('C_upspeed')},                
                 {'sort':'latest', 'title':'status', 'weight':1, 'tip':self.utility.lang.get('C_message')},
