@@ -31,7 +31,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = False
+DEBUG = True
 DEBUG_NORMAL_MSGS = False
 
 UNAUTH_PERMID_PERIOD = 3600
@@ -480,7 +480,7 @@ class Connecter:
             
         if DEBUG:
             if self.ut_pex_enabled:
-                print >>sys.stderr,"connecter: Enabling uTorrent PEX"
+                print >>sys.stderr,"connecter: Enabling uTorrent PEX",self.ut_pex_max_addrs_from_peer
             else:
                 print >>sys.stderr,"connecter: Disabling uTorrent PEX"
 
@@ -722,10 +722,6 @@ class Connecter:
             if DEBUG_NORMAL_MSGS:
                 print "connecter: Got PIECE(",i,") from",connection.get_ip()
             if c.download.got_piece(i, toint(message[5:9]), [], message[9:]):
-                if DEBUG:
-                    et = time.time()
-                    print "connecter: Got Piece took",et-st
-
                 self.got_piece(i)
             
         elif t == HASHPIECE:

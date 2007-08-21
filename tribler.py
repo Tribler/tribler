@@ -1044,6 +1044,7 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             ############################################
             self.serverthread   = Thread(target = self.serverlistener.start)
             self.serverthread.setDaemon(True)
+            self.serverthread.setName("SingleInstanceServer"+self.serverthread.getName())
             self.serverthread.start()
     
             self.videoplayer = VideoPlayer.getInstance()

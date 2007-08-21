@@ -129,24 +129,38 @@ Tips if you want to compile M2Crypto yourself using Microsoft Visual Studio
 2. Make sure swig.exe is in your PATH:
   
   	set PATH=%PATH%;"C:\Program Files\swig"
+
+   (In some cases python still doesn't find the swig.exe binary. In that case
+   copy it to the current directory.)
+
+
   
-2. Sometimes swig can't find its libraries, use the SWIG_LIB environment 
+3. Sometimes swig can't find its libraries, use the SWIG_LIB environment 
    variable:
   
   	set SWIG_LIB=C:\PROGRA~1\swig\lib
   
-3. Edit M2Crypto's setup.py such that c:\\pkg is replaced with c:\\
+4. Edit M2Crypto's setup.py such that c:\\pkg is replaced with c:\\
    (it will now look for OpenSSL in C:\OpenSSL instead of C:\pkgs\OpenSSL)
 
-4. Copy libeay32.lib and ssleay32.lib from C:\OpenSSL\lib\VC to the
+5. Copy libeay32.lib and ssleay32.lib from C:\OpenSSL\lib\VC to the
    root of the M2Crypto source dir.
    
    	C:\M2Crypto> copy C:\OpenSSL\lib\VC\*.lib .
 	
-5. Now run
+   Newer OpenSSL's have different versions of the libraries. In that case, 
+   use the *MD.lib ones, and edit setup.py to link to the MD versions.
+
+
+6. Now run
 
         C:\Python24\python2.4 setup.py build
 	C:\Python24\python2.4 setup.py install 
+
+   (In some cases, python won't find the __m2crypto.pyd installed. In that
+   case copy it from \python25\lib\site-packages\M2Crypto\__m2crypto.pyd to 
+   \python25\DLLs)
+
 
 For information on how to build a binary distribution of Tribler, see
 below. Be warned, however, because the

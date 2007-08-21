@@ -244,7 +244,7 @@ class ABCScheduler(DelayedEventHandler):
 
         # Start Timer
         ##########################################
-        self.timers['frequent'] = Timer(4, self.CyclicalTasks)
+        self.timers['frequent'] = NamedTimer(4, self.CyclicalTasks)
         self.timers['frequent'].start()
             
     def InfrequentCyclicalTasks(self, update = True):
@@ -257,7 +257,7 @@ class ABCScheduler(DelayedEventHandler):
         
             self.updateTorrentList()
 
-        self.timers['infrequent'] = Timer(300, self.InfrequentCyclicalTasks)
+        self.timers['infrequent'] = NamedTimer(300, self.InfrequentCyclicalTasks)
         self.timers['infrequent'].start()
 
     def updateAndInvoke(self, updateCounters = True, invokeLater = True):
@@ -544,3 +544,9 @@ class ABCScheduler(DelayedEventHandler):
     def getMaxMeasuredUploadRate(self):
         return int(self.maxmeasuredul / 1024.0)
     
+    
+def NamedTimer(*args,**kwargs):
+    t = Timer(*args,**kwargs)
+    t.setDaemon(True)
+    t.setName("NamedTimer"+t.getName())
+    return t
