@@ -1635,20 +1635,23 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             self.bartercastdb = BarterCastDBHandler()
         
         top = self.bartercastdb.getTopNPeers(5)
-#        top = [('dfkgsdjdjgsg', 1346336),
-#               ('kgjldkgjldfg',  443543),
-#               ('sdfgsgghsdfgs',  95343)
-#               ]
         rank = 1
         text = ''
         for permid, up, down in top:
+            
+            # up and down are integers in KB in the database
+            # (for overhead limitation)
+            # Jelle is this the correct string format?
             amount_str_up = self.utility.size_format(up)
             amount_str_down = self.utility.size_format(down)
             peerdata = self.guiUtility.peer_manager.getPeerData(permid)
             if peerdata:
                 name = peerdata['content_name']
             else:
-                name = show_permid(permid)
+                name = self.bartercastdb.getName(permid)
+                if name == None:
+                    name = 'Unknown'
+                    
             text += '%d. %s\n  (up: %s, down: %s)%s' % (rank, name, 
                                                      amount_str_up, amount_str_down, os.linesep)
             rank+=1

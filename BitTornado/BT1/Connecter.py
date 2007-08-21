@@ -557,14 +557,17 @@ class Connecter:
         if permid != None:
 
             name = self.bartercastdb.getName(permid)
+            
+            down_kb = int(c.total_downloaded / 1024)
+            up_kb = int(c.total_uploaded / 1024)
 
-            if c.total_downloaded > 0:
-                new_value = self.bartercastdb.incrementItem((my_permid, permid), 'downloaded', c.total_downloaded)
-                print >> sys.stdout, "DB: downloaded %d bytes from peer %s" % (new_value, name)
+            if down_kb > 0:
+                new_value = self.bartercastdb.incrementItem((my_permid, permid), 'downloaded', down_kb)
+ #               print >> sys.stdout, "DB: downloaded %d bytes from peer %s" % (new_value, name)
 
-            if c.total_uploaded > 0:
-                new_value = self.bartercastdb.incrementItem((my_permid, permid), 'uploaded', c.total_uploaded)
-                print >> sys.stdout, "DB: uploaded %d bytes from peer %s" % (new_value, name)
+            if up_kb > 0:
+                new_value = self.bartercastdb.incrementItem((my_permid, permid), 'uploaded', up_kb)
+ #               print >> sys.stdout, "DB: uploaded %d bytes from peer %s" % (new_value, name)
 
         ###################################### 
 

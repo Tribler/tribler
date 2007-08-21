@@ -871,19 +871,22 @@ class BarterCastDBHandler(BasicDBHandler):
     # Return (sorted) list of the top N peers with the highest (combined) values for the given keys    
     def getTopNPeers(self, n):
 
-        print permid_for_user(self.my_permid)
-
         itemlist = self.getItemList()
+
+        # get items with which I've had local dealings
         itemlist_from = filter(lambda (permid_from, permid_to): permid_to == self.my_permid, itemlist)
         itemlist_to = filter(lambda (permid_from, permid_to): permid_from == self.my_permid, itemlist)
-        
+
+        # get corresponding peers        
         peerlist_from = map(lambda (permid_from, me): permid_from, itemlist_from) 
         peerlist_to = map(lambda (me, permid_to): permid_to, itemlist_to)
+        peers = peerlist_from + peerlist_to
 
+        # create top N peers
         top = []
         min = 0
 
-        for peer in peerlist_from + peerlist_to:
+        for peer in peers:
 
             item = self.getItem((self.my_permid, peer))
 
@@ -915,6 +918,33 @@ class BarterCastDBHandler(BasicDBHandler):
 
         return top        
 
+    def getMyValues(self):
+
+        itemlist = self.getItemList()
+
+        # get items with which I've had local dealings
+        itemlist_from = filter(lambda (permid_from, permid_to): permid_to == self.my_permid, itemlist)
+        itemlist_to = filter(lambda (permid_from, permid_to): permid_from == self.my_permid, itemlist)
+
+        # get corresponding peers
+        peerlist_from = map(lambda (permid_from, me): permid_from, itemlist_from) 
+        peerlist_to = map(lambda (me, permid_to): permid_to, itemlist_to)
+        peers = peerlist_from + peerlist_to
+
+        # compute my total uploaded and downloaded
+        total_up = 0
+        total_down = 0
+        
+        for peer in peers:
+            
+            item = self.getItem((self.my_permid, peer))
+            up = item['uploaded']
+            down = item['downloaded']
+            total_up += up
+            total_down += down
+            
+        return (total_up, total_down)
+            
 
     def addItem(self, (permid_1, permid_2), item):
 
