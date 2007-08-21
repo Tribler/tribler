@@ -450,7 +450,7 @@ class Connecter:
 # 2fastbt_
     def __init__(self, make_upload, downloader, choker, numpieces,
             totalup, config, ratelimiter, merkle_torrent, sched = None, 
-            coordinator = None, helper = None, mylistenport = None, use_g2g = False):
+            coordinator = None, helper = None, mylistenport = None, use_g2g = False, infohash=None):
         self.downloader = downloader
         self.make_upload = make_upload
         self.choker = choker
@@ -470,6 +470,7 @@ class Connecter:
         self.helper = helper
         self.round = 0
         self.mylistenport = mylistenport
+        self.infohash = infohash
         self.overlay_enabled = 1
         if 'overlay' in self.config:
             self.overlay_enabled = self.config['overlay']

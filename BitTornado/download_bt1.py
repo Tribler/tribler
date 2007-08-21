@@ -403,7 +403,7 @@ class BT1Download:
         self.dht = dht
         
         self.info = self.response['info']  
-        self.infohash = sha(bencode(self.info)).digest()
+        #self.infohash = sha(bencode(self.info)).digest()
         # Merkle: Create list of fake hashes. This will be filled if we're an
         # initial seeder
         if self.info.has_key('root hash'):
@@ -756,7 +756,7 @@ class BT1Download:
         self.connecter = Connecter(self._make_upload, self.downloader, self.choker, 
                             self.len_pieces, self.upmeasure, self.config, 
                             self.ratelimiter, self.info.has_key('root hash'),
-                            self.rawserver.add_task, self.coordinator, self.helper, self.port, self.play_video)
+                            self.rawserver.add_task, self.coordinator, self.helper, self.port, self.play_video,self.infohash)
 # _2fastbt
         self.encoder = Encoder(self.connecter, self.rawserver, 
             self.myid, self.config['max_message_length'], self.rawserver.add_task, 
