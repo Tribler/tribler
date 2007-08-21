@@ -140,8 +140,8 @@ class EmbeddedPlayer(wx.Panel,FlaglessDelayedInvocation):
         self.utility = utility
         self.SetBackgroundColour(wx.BLACK)
 
-        #logofilename = os.path.join(self.utility.getPath(),'icons','logo4video.png')
-        logofilename = None
+        logofilename = os.path.join(self.utility.getPath(),'icons','logo4video.png')
+        #logofilename = None
 
         mainbox = wx.BoxSizer(wx.VERTICAL)
         self.mediactrl = VLCMediaCtrl(self, -1,logofilename)
@@ -450,7 +450,8 @@ class VLCMediaCtrl(wx.Window):
 
     def GetState(self):
         status = self.media.get_stream_information()["status"]
-        #print "vlc getstate is",status,vlcstatusmap[status]
+        if DEBUG:
+            print "VLCMediaCtrl: VLC reports status",status,vlcstatusmap[status]
         if status == vlc.PlayingStatus:
             return MEDIASTATE_PLAYING
         elif status == vlc.PauseStatus:

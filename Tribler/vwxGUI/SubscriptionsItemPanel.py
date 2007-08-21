@@ -134,7 +134,11 @@ class SubscriptionsItemPanel(wx.Panel):
 
         self.Bind(wx.EVT_CHECKBOX, self.checkboxAction, self.cB)
         
-        for window in self.GetChildren():
+        # 2.8.4.2 return value of GetChildren changed
+        wl = []
+        for c in self.GetChildren():
+            wl.append(c)
+        for window in wl:
             window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
             window.Bind(wx.EVT_KEY_UP, self.keyTyped)
             window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction) 

@@ -83,7 +83,7 @@ from Tribler.Web2.util.update import Web2Updater
 from Tribler.CacheDB.CacheDBHandler import BarterCastDBHandler
 from Tribler.Overlay.permid import permid_for_user
 
-DEBUG = False
+DEBUG = True
 ALLOW_MULTIPLE = False
 start_time = 0
 start_time2 = 0
@@ -886,7 +886,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         #if sys.platform == 'linux2':
         #
         
-        tribler_done(self.utility.getConfigPath())            
+        #tribler_done(self.utility.getConfigPath())            
         
         if DEBUG:    
             print >>sys.stderr,"abc: OnCloseWindow END"

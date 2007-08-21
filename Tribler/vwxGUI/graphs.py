@@ -25,6 +25,8 @@ DEBUG = False
 class MyTimer(threading.Thread):
     def __init__(self, callback):
         threading.Thread.__init__(self)
+        self.setDaemon(True)
+        self.setName("GraphMyTimer"+self.getName())
         self.status = 0 #0=initialized, 1=started, 2=running, 3=should stop, 4=stopped
         self.delay = 0
         self.period = -1

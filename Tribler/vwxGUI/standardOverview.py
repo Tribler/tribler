@@ -60,6 +60,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         class DataLoadingThread(Thread):
             def __init__(self,owner):
                 Thread.__init__(self, name="DataLoadingThread")
+                self.setDaemon(True)
                 self.owner = owner
 
             def run(self):

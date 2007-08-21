@@ -179,7 +179,10 @@ class TorrentInfoPanel(wx.Panel):
     def trackerurl(self, event = None):
         if self.turl is not None:
             try:
-                Thread(target = open_new(self.turl)).start()
+                t = Thread(target = open_new(self.turl))
+                t.setDaemon(True)
+                t.setName("OldTrackerURL"+t.getName())
+                t.start()
             except:
                 pass
 

@@ -50,7 +50,12 @@ class ColumnHeader(wx.Panel):
         self.SetAutoLayout(True)
         self.hSizer.Layout()
         self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
-        for element in self.GetChildren()+[self]:
+
+        # 2.8.4.2 return value of GetChildren changed
+        wl = [self]
+        for c in self.GetChildren():
+            wl.append(c)
+        for element in wl:
             element.Bind(wx.EVT_LEFT_UP, self.clicked)
             element.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
             element.SetToolTipString(tip)

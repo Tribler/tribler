@@ -1116,9 +1116,11 @@ class MovieOnDemandTransporter(MovieTransport):
 
     def refill_thread( self ):
         
+        """
         now = time.time()
         print "vod: trans: last REFILL",now-self.lasttime
         self.lasttime=now
+        """
         
         if self.downloading:
             self.refill_buffer()
