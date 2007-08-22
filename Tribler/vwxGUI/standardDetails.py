@@ -1366,7 +1366,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         if torrent is None:
             torrent = self.item
 
-        if torrent is None:
+        if torrent is None or torrent.get('myDownloadHistory'):
             return
             
         if torrent.get('web2'):

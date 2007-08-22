@@ -49,7 +49,8 @@ class GUIUtility:
         self.selectedColour = wx.Colour(255,200,187)       
         self.unselectedColour = wx.WHITE
         self.unselectedColour2 = wx.Colour(230,230,230)
-        self.unselectedColourDownload = wx.Colour(148,181,90)
+        self.unselectedColourDownload = wx.Colour(188,221,110)
+        self.unselectedColour2Download = wx.Colour(148,181,90)
         self.selectedColourDownload = wx.Colour(48,81,0)
         self.triblerRed = wx.Colour(255, 51, 0)
         

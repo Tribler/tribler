@@ -383,12 +383,18 @@ class FilesItemPanel(wx.Panel):
         self.selected = False
         #colour = self.guiUtility.unselectedColour
 
-        if self.data and self.data.get('myDownloadHistory'):
-            colour = self.guiUtility.unselectedColourDownload
-        elif rowIndex % 2 == 0 or not self.listItem:
-            colour = self.guiUtility.unselectedColour
+        downloading = self.data and self.data.get('myDownloadHistory')
+        if rowIndex % 2 == 0 or not self.listItem:
+            if downloading:
+                colour = self.guiUtility.unselectedColourDownload
+            else:
+                colour = self.guiUtility.unselectedColour
         else:
-            colour = self.guiUtility.unselectedColour2
+            if downloading:
+                colour = self.guiUtility.unselectedColour2Download
+            else:
+                colour = self.guiUtility.unselectedColour2
+        
             
         self.thumb.setSelected(False)
         self.title.SetBackgroundColour(colour)
@@ -496,7 +502,9 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         self.torrent = torrent
         self.setThumbnail(torrent)
         self.setCategoryIcon(torrent)
-        self.downloading = torrent.get('myDownloadHistory', False)
+        # items in library should not show downloading color
+        self.downloading = torrent.get('myDownloadHistory', False) and self.mode != 'libraryMode'
+        
                             
     def setCategoryIcon(self, torrent):
         if not torrent.has_key('category'):
