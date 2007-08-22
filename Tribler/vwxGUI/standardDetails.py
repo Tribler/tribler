@@ -1556,7 +1556,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
     def getThumbnailLarge(self,torrent,thumbPanel):
         readable = torrent.get('metadata',{}).get('ThumbReadable')
         if readable == False:
-            default = self.mm.get_default('filesMode','BIG_DEFAULT_THUMB')
+            default = self.mm.getCategoryIcon('filesMode',torrent.get('category'), 'large')
             thumbPanel.setBitmap(default)
             return
 
@@ -1599,7 +1599,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             #print 'Torrent: %s' % torrent
             torrent['metadata']['ThumbReadable'] = False
             
-            default = self.mm.get_default('filesMode','BIG_DEFAULT_THUMB')
+            default = self.mm.getCategoryIcon('filesMode',torrent.get('category'), 'large')
             thumbPanel.setBitmap(default)
 
     def refreshStandardDetailsHeight(self, panel = None):
