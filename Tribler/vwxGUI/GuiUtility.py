@@ -413,6 +413,7 @@ class GUIUtility:
         wantkeywords = low.split(' ')
         self.data_manager.setSearchKeywords(wantkeywords, mode)
         sorting = None
+        #print "******** gui uti searchFiles", wantkeywords
         self.standardOverview.filterChanged(None)
 
         #
@@ -427,6 +428,7 @@ class GUIUtility:
                 
             # For TEST suite
             #rqmh.test_sendQuery(q) 
+            #print "************** send query", q
             rqmh.sendQuery(q) 
 
         
