@@ -204,9 +204,7 @@ class FriendsItemPanel(wx.Panel):
             self.title.SetToolTipString(peer_data['ip']+':'+str(peer_data['port']))
             # status issues
             self.status.Enable(True)            
-            statusPeer = peer_data['last_seen']
-            print '==tb=='
-            print statusPeer                
+            statusPeer = peer_data['last_seen']              
             if peer_data.get('online'):
                 self.status.SetLabel('online')
             elif statusPeer is not None:

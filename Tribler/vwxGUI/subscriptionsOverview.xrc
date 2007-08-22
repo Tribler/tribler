@@ -96,22 +96,11 @@
               <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
               <border>4</border>
               <option>0</option>
-              <object class="wxTextCtrl" name="pasteName">
-                <style>wxTE_PROCESS_ENTER</style>
-                <label>  name</label>
-                <pos>10,6</pos>
-                <size>175,23</size>
-              </object>
-            </object>
-            <object class="sizeritem">
-              <flag>wxTOP|wxBOTTOM|wxRIGHT|wxFIXED_MINSIZE</flag>
-              <border>4</border>
-              <option>0</option>
               <object class="wxTextCtrl" name="pasteUrl">
                 <style>wxTE_PROCESS_ENTER</style>
                 <label>  paste your url here</label>
-                <pos>189,6</pos>
-                <size>365,23</size>
+                <pos>10,4</pos>
+                <size>365,22</size>
               </object>
             </object>
             <object class="sizeritem">
@@ -119,8 +108,8 @@
               <border>4</border>
               <option>0</option>
               <object class="wxPanel" name="subscribe" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                <pos>558,6</pos>
-                <size>24,24</size>
+                <pos>379,4</pos>
+                <size>45,22</size>
               </object>
             </object>
           </object>

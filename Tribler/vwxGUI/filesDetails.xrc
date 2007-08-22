@@ -79,22 +79,6 @@
                 <size>62,16</size>
                 <bg>#ffffff</bg>
                 <fg>#     0</fg>
-                <object class="wxBoxSizer">
-                  <orient>wxHORIZONTAL</orient>
-                  <object class="sizeritem">
-                    <flag>wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                    <border>16</border>
-                    <option>0</option>
-                    <object class="wxStaticText" name="optionText">
-                      <style>wxST_NO_AUTORESIZE</style>
-                      <label>  options</label>
-                      <pos>0,0</pos>
-                      <size>46,16</size>
-                      <bg>#ffffff</bg>
-                      <fg>#     0</fg>
-                    </object>
-                  </object>
-                </object>
               </object>
             </object>
             <object class="spacer">
@@ -368,8 +352,8 @@
                       <flag>wxLEFT|wxFIXED_MINSIZE</flag>
                       <border>3</border>
                       <option>0</option>
-                      <object class="wxPanel" name="download" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-                        <pos>236,3</pos>
+                      <object class="wxPanel" name="download" subclass="Tribler.vwxGUI.tribler_topButton.SwitchButton">
+                        <pos>238,3</pos>
                         <size>55,55</size>
                       </object>
                     </object>
