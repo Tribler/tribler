@@ -131,7 +131,7 @@ class RemoteQueryMsgHandler:
         nqueries = 0
         for permid in self.connections:
             self.secure_overlay.connect(permid,func)
-            nqueires += 1
+            nqueries += 1
         
         if max_nqueries < 0:
             max_nqueries = self.max_nqueries
