@@ -52,7 +52,8 @@ class GUIUtility:
         self.unselectedColour2Download = wx.Colour(190,209,139)
         self.selectedColourDownload = wx.Colour(145,173,78)
         self.triblerRed = wx.Colour(255, 51, 0)
-        
+        self.max_remote_queries = 10    # max number of remote peers to query
+        self.remote_search_threshold = 20    # start remote search when results is less than this number
             
     def getInstance(*args, **kw):
         if GUIUtility.__single is None:
@@ -423,7 +424,8 @@ class GUIUtility:
         #
         # Query the peers we are connected to
         #
-        if mode == 'filesMode':
+        nhits = len(self.data_manager.hits)
+        if nhits < self.remote_search_threshold and mode == 'filesMode':
             q = ''
             for kw in wantkeywords:
                 q += kw+' '
@@ -431,7 +433,10 @@ class GUIUtility:
             # For TEST suite
             #rqmh.test_sendQuery(q) 
             #print "************** send query", q
-            self.rqmh.sendQuery(q) 
+            
+            num_remote_queries = min((self.remote_search_threshold - nhits)/2, self.max_remote_queries)
+            if num_remote_queries > 0:
+                self.rqmh.sendQuery(q, num_remote_queries) 
 
         
     def searchPersons(self):

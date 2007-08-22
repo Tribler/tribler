@@ -272,6 +272,9 @@ class MugshotManager:
         return self.defaults[mode][name]
     
     def getCategoryIcon(self, mode, cat, thumbtype = 'normal', web2 = False):
+        
+        #print "**** getCategoryIcon", mode, cat, thumbtype, web2
+        
         categoryConverter = {'picture':'other', 
                              'videoclips':'video',
                              'document':'other'}

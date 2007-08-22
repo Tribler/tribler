@@ -125,7 +125,7 @@ home_dir = 'bsddb'
 # 1 = First
 # 2 = Added keys to TorrentDB:  leecher,seeder,category,ignore_number,last_check_time,retry_number,status
 # 3 = Added keys to TorrentDB: source,inserttime
-# 4 = Added keys to PeerDB: npeers, nfiles, nprefs, nqueries
+# 4 = Added keys to PeerDB: npeers, ntorrents, nprefs, nqueries
 #
 curr_version = 4
 permid_length = 112

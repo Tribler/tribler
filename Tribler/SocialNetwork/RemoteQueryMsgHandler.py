@@ -22,7 +22,7 @@ from Tribler.Overlay.SecureOverlay import OLPROTO_VER_SIXTH
 from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler, FriendDBHandler, PeerDBHandler
 from Tribler.utilities import show_permid_short
 
-MAX_QUERIES_FROM_RANDOM_PEER = 10
+MAX_QUERIES_FROM_RANDOM_PEER = 100
 MAX_RESULTS = 20
 QUERY_ID_SIZE = 20
 MAX_QUERY_REPLY_LEN = 100*1024    # 100K
@@ -43,6 +43,7 @@ class RemoteQueryMsgHandler:
         self.peer_db = PeerDBHandler()
         self.connections = Set()    # only connected remote_search_peers
         self.query_ids2query = {}
+        self.max_nqueries = 10    # max number of peers to query
 
     def getInstance(*args, **kw):
         if RemoteQueryMsgHandler.__single is None:
@@ -107,15 +108,16 @@ class RemoteQueryMsgHandler:
     # Send query
     # 
 
-    def sendQuery(self,query):
+    def sendQuery(self,query, max_nqueries=-1):
         """ Called by GUI Thread """
         if DEBUG:
             print >>sys.stderr,"rquery: sendQuery",query
-        send_query_func = lambda:self.sendQueryNetworkCallback(query)
-        self.rawserver.add_task(send_query_func,0)
+        if max_nqueries > 0:
+            send_query_func = lambda:self.sendQueryNetworkCallback(query,max_nqueries)
+            self.rawserver.add_task(send_query_func,0)
 
 
-    def sendQueryNetworkCallback(self,query):
+    def sendQueryNetworkCallback(self,query,max_nqueries):
         """ Called by network thread """
         p = self.create_query(query)
         m = QUERY+p
@@ -126,8 +128,18 @@ class RemoteQueryMsgHandler:
         
         #print "******** send query net cb:", query, len(self.connections), self.connections
         
-        for permid in self.connections:    # TODO RS: check version
+        nqueries = 0
+        for permid in self.connections:
             self.secure_overlay.connect(permid,func)
+            nqueires += 1
+        
+        if max_nqueries < 0:
+            max_nqueries = self.max_nqueries
+        if nqueries < max_nqueries and self.bc_fac and self.bc_fac.buddycast_core:
+            query_cand = self.bc_fac.buddycast_core.getRemoteSearchPeers(self.max_nqueries-nqueries)
+            for permid in query_cand:
+                if permid not in self.connections:    # don't call twice
+                    self.secure_overlay.connect(permid,func)
         
     def create_query(self,query):
         d = {}
@@ -175,7 +187,6 @@ class RemoteQueryMsgHandler:
         if not isValidQuery(d,selversion):
             return False
 
-        # TODO RS: Limitation: any peer version >= 6, last query > N sec.
         # Check auth
         friends = self.friend_db.getFriendList()
         tastebuddies = []

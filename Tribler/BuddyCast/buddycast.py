@@ -178,9 +178,11 @@ from threading import Event, currentThread
 
 from bartercast import BarterCastCore
 
-DEBUG = True    # for errors
+DEBUG = False    # for errors
 debug = False    # for status
 MAX_BUDDYCAST_LENGTH = 10*1024    # 10 KByte
+REMOTE_SEARCH_PEER_NTORRENTS_THRESHOLD = 100    # speedup finding >=4.1 peers in this version
+
 
 def now():
     return int(time())
@@ -423,6 +425,8 @@ class BuddyCastCore:
         self.bootstrap_interval = 10*60    # 10 min
         self.network_delay = self.buddycast_interval*2    # 30 seconds
         self.check_period = 120    # how many seconds to send keep alive message and check updates
+        self.num_search_cand = 10 # max number of remote search peer candidates
+        self.num_remote_peers_in_msg = 2 # number of remote search peers in msg
         
         # --- memory ---
         self.send_block_list = {}    #TODO: record the earliest block peer to improve performance
@@ -434,6 +438,7 @@ class BuddyCastCore:
         self.connected_unconnectable_peers = {}    # permid: connect_time
         self.connection_candidates = {}     # permid: last_seen
         self.sorted_new_candidates = []     # sorted list: the smaller index, the older peer
+        self.remote_search_peer_candidates = []    # [last_seen,permid], sorted, the first one in the list is the oldest one
         
         # --- stats ---
         self.target_type = 0
@@ -856,7 +861,7 @@ class BuddyCastCore:
         tb_list = self.connected_taste_buddies[:]
         if target_permid in tb_list:
             tb_list.remove(target_permid)
-        peers = self.data_handler.getPeers(tb_list, ['permid', 'ip', 'port', 'similarity'])
+        peers = self.data_handler.getPeers(tb_list, ['permid', 'ip', 'port', 'similarity', 'oversion', 'ntorrents'])
         # filter peers with the same ip and port
         peers = filter(lambda p:p['ip']!=target_ip or int(p['port'])!=target_port, peers)
         
@@ -880,6 +885,15 @@ class BuddyCastCore:
             for i in range(len(peers)):
                 peers[i]['similarity'] = int(peers[i]['similarity']+0.5)    # bencode doesn't accept float type
         
+        # Every peer >= 6 in message attachs nfiles and oversion for remote search from version 6
+        for i in range(len(peers)):
+            oversion = peers[i].pop('oversion')
+            nfiles = peers[i].pop('ntorrents')
+            if selversion >= OLPROTO_VER_SIXTH and oversion >= OLPROTO_VER_SIXTH:
+                peers[i]['oversion'] = oversion
+                # ascribe it to the inconsistent name of the same concept in msg and db
+                peers[i]['nfiles'] = nfiles
+        
         return peers
     
     def getRandomPeers(self, nrps, target_permid, target_ip, target_port, selversion):
@@ -888,9 +902,17 @@ class BuddyCastCore:
         if not self.connected_random_peers:
             return []
         rp_list = self.connected_random_peers[:]
+        
+        # From version 6, two (might be offline) remote-search-peers must be included in msg
+        if selversion >= OLPROTO_VER_SIXTH:
+            remote_search_peers = self.getRemoteSearchPeers(self.num_remote_peers_in_msg)
+            rp_list += remote_search_peers
+            if len(rp_list) > nrps:
+                rp_list = sample(rp_list, nrps)
+            
         if target_permid in rp_list:
             rp_list.remove(target_permid)
-        peers = self.data_handler.getPeers(rp_list, ['permid', 'ip', 'port', 'similarity'])
+        peers = self.data_handler.getPeers(rp_list, ['permid', 'ip', 'port', 'similarity', 'oversion', 'ntorrents'])
         peers = filter(lambda p:p['ip']!=target_ip or int(p['port'])!=target_port, peers)
         
         for i in range(len(peers)):
@@ -900,6 +922,7 @@ class BuddyCastCore:
             for i in range(len(peers)):
                 peers[i]['age'] = 0
                 
+        # random peer also attachs similarity from 4
         if selversion <= OLPROTO_VER_THIRD:
             for i in range(len(peers)):
                 peers[i].pop('similarity')
@@ -908,6 +931,15 @@ class BuddyCastCore:
             for i in range(len(peers)):
                 peers[i]['similarity'] = int(peers[i]['similarity']+0.5)
         
+        # Every peer >= 6 in message attachs nfiles and oversion for remote search from version 6
+        for i in range(len(peers)):
+            oversion = peers[i].pop('oversion')
+            nfiles = peers[i].pop('ntorrents')
+            if selversion >= OLPROTO_VER_SIXTH and oversion >= OLPROTO_VER_SIXTH:
+                peers[i]['oversion'] = oversion
+                # ascribe it to the inconsistent name of the same concept in msg and db
+                peers[i]['nfiles'] = nfiles
+  
         return peers       
     
     def isConnectable(self):
@@ -1064,6 +1096,7 @@ class BuddyCastCore:
         conn = buddycast_data.get('connectable', 0)    # 0 - unknown
         tbs = buddycast_data.pop('taste buddies')
         rps = buddycast_data.pop('random peers')
+        buddycast_data['oversion'] = selversion
         
         max_tb_sim = 1
         if selversion >= OLPROTO_VER_FOURTH:
@@ -1074,13 +1107,32 @@ class BuddyCastCore:
         if selversion >= OLPROTO_VER_SIXTH:
             self.data_handler.updatePeerLevelStats(sender_permid,buddycast_data['npeers'],buddycast_data['nfiles'],buddycast_data['ndls'])
                 
-        tbs += [buddycast_data]
+        tbs += [buddycast_data]    # include sender itself
         for tb in tbs:
             peer_permid = tb['permid']
             age = max(tb.get('age', 0), 0)    # From secure overlay version 3, it doesn't include 'age'
             last_seen = _now - age
+#            peer_data = None
+#            if 'oversion' in tb:
+#                oversion = tb.get('oversion')
+#            else:
+#                peer_data = self.data_handler.getPeer(peer_permid)
+#                oversion = peer_data['oversion']
+#
+#            if 'nfiles' in tb:
+#                nfiles = tb.pop('nfiles')
+#                tb['ntorrents'] = nfiles
+#            else:
+#                if peer_data:
+#                    peer_data = self.data_handler.getPeer(peer_permid)
+#                nfiles = peer_data['ntorrents']
+                
             self.data_handler.addPeer(peer_permid, last_seen, tb)    # new peer
             self.data_handler.addPeerPreferences(peer_permid, tb.get('preferences',[]))
+                
+            oversion = tb.get('oversion', 0)
+            nfiles = tb.pop('nfiles', 0)
+            self.addRemoteSearchPeer(peer_permid, oversion, nfiles, last_seen)
             if selversion >= OLPROTO_VER_FOURTH:
                 sim = tb.get('similarity', 0)
                 if sim > 0:
@@ -1093,6 +1145,9 @@ class BuddyCastCore:
             age = max(rp.get('age', 0), 0)
             last_seen = _now - age
             self.data_handler.addPeer(peer_permid, last_seen, rp)
+            oversion = rp.get('oversion', 0)
+            nfiles = rp.get('nfiles', 0)
+            self.addRemoteSearchPeer(peer_permid, oversion, nfiles, last_seen)
             if selversion >= OLPROTO_VER_FOURTH:
                 sim = rp.get('similarity', 0)
                 if sim > 0:
@@ -1494,6 +1549,22 @@ class BuddyCastCore:
     def getAllTasteBuddies(self):
         return self.connected_taste_buddies
         
+    def addRemoteSearchPeer(self, permid, oversion, ntorrents, last_seen):
+        if oversion >= OLPROTO_VER_SIXTH and ntorrents >= REMOTE_SEARCH_PEER_NTORRENTS_THRESHOLD:
+            insort(self.remote_search_peer_candidates, [last_seen,permid])
+            if len(self.remote_search_peer_candidates) > self.num_search_cand:
+                self.remote_search_peer_candidates.pop(0)
+                
+            #print "******"*5, "got a remote search peer in cache", `permid`, oversion, ntorrents, last_seen, len(self.remote_search_peer_candidates)
+                
+    def getRemoteSearchPeers(self, npeers):
+        if len(self.remote_search_peer_candidates) > npeers:
+            _peers = sample(self.remote_search_peer_candidates, npeers)    # randomly select
+        else:
+            _peers = self.remote_search_peer_candidates
+        peers = [permid for last_seen,permid in _peers]
+        return peers
+        
         
 class DataHandler:
     def __init__(self, rawserver, db_dir=''):
@@ -1630,10 +1701,13 @@ class DataHandler:
             all_peerlist.remove(self.permid)
         except ValueError:
             pass
-        _peer_values = self.getPeers(all_peerlist, ['similarity','last_seen'])
+        _peer_values = self.getPeers(all_peerlist, ['similarity','last_seen','ntorrents','oversion'])
         peer_values = []
-        for p in _peer_values:
+        for i in range(len(_peer_values)):
+            p = _peer_values[i]
+            permid = all_peerlist[i]
             peer_values.append([p['similarity'], p['last_seen']])
+            self.buddycast_core.addRemoteSearchPeer(permid, p['oversion'], p['ntorrents'], p['last_seen'])
         if not num_peers or len(all_peerlist) <= num_peers:
             self.peers = dict(zip(all_peerlist, peer_values))   # all peers
         else:
@@ -1933,6 +2007,9 @@ class DataHandler:
             ip = self.to_real_ip(peer['ip'])
             dns = (ip, int(peer['port']))
         return dns
+    
+    def getPeer(self, permid):
+        return self.peer_db.getPeer(permid)
 
     def to_real_ip(self,hostname_or_ip):
         """ If it's a hostname convert it to IP address first """
@@ -1973,4 +2050,4 @@ class DataHandler:
         d = {'npeers':npeers,'ntorrents':ntorrents,'nprefs':nprefs}
         for k,v in d.items():
             self.peer_db.updatePeer(permid,k,v)
-            
+        
