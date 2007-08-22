@@ -142,7 +142,7 @@ class standardGrid(wx.Panel):
                 self.guiUtility.standardOverview.growWithGrid()
                 self.guiUtility.standardOverview.Refresh()
             except:
-                print 'Exception!'
+                #print 'Exception!'
                 
                 raise
                 
@@ -157,7 +157,7 @@ class standardGrid(wx.Panel):
 
     def updateDod(self):
         if DEBUG:
-            print "WEB2.0 -> updateDod"
+            print >>sys.stderr,'standardGrid: WEB2.0 -> updateDod'
         self.data = self.dod.getData()
         wx.CallAfter(self.refreshPanels)
     
@@ -438,7 +438,7 @@ class standardGrid(wx.Panel):
 
             if needed > 0:
                 if DEBUG:
-                    print "Web2.0: fetching total of", needed,"items"
+                    print >>sys.stderr,"standardGrid: Web2.0: fetching total of", needed,"items"
                 self.dod.request(needed)
     
     def __del__(self):
@@ -448,7 +448,7 @@ class standardGrid(wx.Panel):
             
     def keyTypedOnGridItem(self, event):
         obj = event.GetEventObject()
-        print 'Keytyped in %s' % obj.__class__.__name__
+        print >>sys.stderr,'standardGrid: keyTyped: in %s' % obj.__class__.__name__
         while obj.__class__ != self.subPanelClass:
             obj = obj.GetParent()
         
@@ -464,7 +464,7 @@ class standardGrid(wx.Panel):
             for pan in row:
                 if obj == pan:
                     (xpan, ypan) = colIndex, rowIndex
-                    print 'found: %d, %d' % (colIndex, rowIndex)
+                    print >>sys.stderr,'standardGrid: keyTyped: found: %d, %d' % (colIndex, rowIndex)
                     break
                 colIndex += 1
             rowIndex += 1
@@ -495,7 +495,8 @@ class standardGrid(wx.Panel):
                     xpan = xpan -1
                     ypan = min(self.currentRows-1, ypan+1)
         # Get data of new panel
-        print 'Old: %s, New: %s' % ((xpanold, ypanold), (xpan, ypan))
+        if DEBUG:
+            print >>sys.stderr,'standardGrid: Old: %s, New: %s' % ((xpanold, ypanold), (xpan, ypan))
         if xpanold != xpan or ypanold != ypan or sys.platform =='win32':
             newpanel = self.panels[ypan][xpan]
             if newpanel.data != None:

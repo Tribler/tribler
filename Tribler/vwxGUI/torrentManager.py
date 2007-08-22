@@ -25,7 +25,7 @@ from sets import Set
 from Tribler.Search.KeywordSearch import KeywordSearch
 import web2
 
-DEBUG = True
+DEBUG = False
 DEBUG_RANKING = False
 
 # Arno: save memory by reusing dict keys
@@ -156,19 +156,19 @@ class TorrentDataManager:
         data = filter(torrentFilter, self.data)
         
         if DEBUG:
-            print 'getCategory found: %d items' % len(data)
+            print >>sys.stderr,'torrentManager: getCategory found: %d items' % len(data)
         # if searchkeywords are defined. Search instead of show all
         if self.inSearchMode(mode):
                 data = self.search(data, mode)
                 standardOverview.setSearchFeedback('torrent', False, len(data), self.searchkeywords[mode])
                 standardOverview.setSearchFeedback('web2', False, 0)
                 if DEBUG:
-                    print 'getCategory found after search: %d items' % len(data)
+                    print >>sys.stderr,'torrentManager: getCategory found after search: %d items' % len(data)
         
         web2on = self.utility.config.Read('enableweb2search',"boolean")
         
-        if DEBUG:
-            print >>sys.stderr,"getCategory: mode",mode,"webon",web2on,"insearch",self.inSearchMode(mode),"catekey",categorykey
+        #if DEBUG:
+        #    print >>sys.stderr,"torrentManager: getCategory: mode",mode,"webon",web2on,"insearch",self.inSearchMode(mode),"catekey",categorykey
         
         if mode == 'filesMode' and web2on and self.inSearchMode(mode) and \
                 categorykey in ['video', 'all']:
@@ -393,7 +393,7 @@ class TorrentDataManager:
         "Update the ranking list, so that it always shows the top20 most similar torrents"
         
         if DEBUG_RANKING:
-            print 'UpdateRankList: %s, for: %s' % (operate, repr(torrent.get('content_name')))
+            print >>sys.stderr,'torrentManager: UpdateRankList: %s, for: %s' % (operate, repr(torrent.get('content_name')))
         
         sim = torrent.get('relevance')
         good = sim > 0 and torrent.get('status') == 'good' and not torrent.get('myDownloadHistory', False)
@@ -458,7 +458,7 @@ class TorrentDataManager:
         if self.info_dict.has_key(infohash):
             torrent = self.info_dict[infohash]
             if DEBUG_RANKING:
-                print 'Del rank %d of %s' % (torrent.get('simRank', -1), repr(torrent.get('content_name')))
+                print >>sys.stderr,'torrentManager: Del rank %d of %s' % (torrent.get('simRank', -1), repr(torrent.get('content_name')))
             if torrent.has_key('simRank'):
                 del torrent['simRank']
             if not initializing:
@@ -473,7 +473,7 @@ class TorrentDataManager:
             if self.info_dict.has_key(infohash):
                 torrent = self.info_dict[infohash]
                 if DEBUG_RANKING:
-                    print 'Give rank %d to %s' % (rank, repr(torrent.get('content_name')))
+                    print >>sys.stderr,'torrentManager: Give rank %d to %s' % (rank, repr(torrent.get('content_name')))
                 torrent[key_simRank] = rank
                 if not initializing:
                     self.notifyView(torrent, 'update')
@@ -506,21 +506,21 @@ class TorrentDataManager:
         
     def printRankList(self):
         self.rankList.reverse()
-        print 'Ranklist:'
+        print >>sys.stderr,'torrentManager: Ranklist:'
         rank = 1
         
         for (sim, infohash) in self.rankList:
             if self.info_dict.has_key(infohash):
                 torrent = self.info_dict[infohash]
-                print '%d: %.2f, %s' % (rank, torrent.get('relevance', -1), repr(torrent.get('content_name', 'no name')))
+                print >>sys.stderr,'torrentManager: %d: %.2f, %s' % (rank, torrent.get('relevance', -1), repr(torrent.get('content_name', 'no name')))
             else:
                 print_stack()
-                print 'Not found infohash: %s in info_dict.' % repr(infohash)
+                print >>sys.stderr,'torrentManager: Not found infohash: %s in info_dict.' % repr(infohash)
             rank += 1
         
         self.rankList.reverse()
         
-        print 'Checking all torrents'
+        print >>sys.stderr,'torrentManager: Checking all torrents'
         wrong = right = 0
         for infohash, torrent in self.info_dict.items():
             inRankList = False
@@ -530,10 +530,10 @@ class TorrentDataManager:
             if not inRankList:
                 if torrent.has_key('simRank'):
                     wrong += 1
-                    print 'Torrent %s was not in ranklist: sim: %f, rank: %d' % (repr(torrent.get('content_name')), torrent.get('relevance'), torrent['simRank'])
+                    print >>sys.stderr,'torrentManager: Torrent %s was not in ranklist: sim: %f, rank: %d' % (repr(torrent.get('content_name')), torrent.get('relevance'), torrent['simRank'])
                 else:
                     right+=1
-        print '%d right, %d wrong torrents' % (right, wrong)
+        print >>sys.stderr,'torrentManager: %d right, %d wrong torrents' % (right, wrong)
         if wrong > 0:
             raise Exception('wrong torrents')
             

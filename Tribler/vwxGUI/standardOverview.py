@@ -606,7 +606,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         
         
     def _setSearchFeedback(self, type, finished, num, keywords = []):
-        print '_setSearchFeedback called by', currentThread().getName()
+        #print 'standardOverview: _setSearchFeedback called by', currentThread().getName()
         self.data[self.mode]['searchDetailsPanel'].setMessage(type, finished, num, keywords)
         
     def growWithGrid(self):

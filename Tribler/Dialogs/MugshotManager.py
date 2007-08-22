@@ -282,19 +282,23 @@ class MugshotManager:
         if cat in categoryConverter:
             cat = categoryConverter[cat]
         
-        if thumbtype == 'icon':
-            cat = cat.title()
+        # Arno: This gives 'Video' and all images are called 'video' 
+        # so this won't work on Linux 
+        #if thumbtype == 'icon':
+        #    cat = cat.title()
             
         if self.categoryThumbs.get((cat, thumbtype)):
             return self.categoryThumbs[(cat, thumbtype)]
         else:
             filename = thumbType[thumbtype] % cat
             pathname = os.path.join(self.guiImagePath, filename)
+            
+            #print >> sys.stderr, 'mm: Looking for category image:',pathname
             if os.path.isfile(pathname):
                 bm = wx.Bitmap(pathname)
             else:
                 bm = None
-                print >> sys.stderr, 'No thumb found for category: %s' % cat
+                print >> sys.stderr, 'mm: No thumb found for category: %s' % cat
             self.categoryThumbs[(cat, thumbtype)] = bm
             return bm
     

@@ -175,7 +175,7 @@ class NameIconWizardPage(WizardPageSimple):
 
     def IsFilledIn(self):
         (name,iconpath) = self.getNameIconPath()
-        print "ICONPATH IS",iconpath
+        #print "ICONPATH IS",iconpath
         return len(name) != 0 ## and len(iconpath) != 0
 
     def getNameIconPath(self):

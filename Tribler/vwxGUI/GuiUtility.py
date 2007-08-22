@@ -25,7 +25,7 @@ from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.utilities import *
 from Utility.constants import *
 
-DEBUG = True
+DEBUG = False
 
 class GUIUtility:
     __single = None
@@ -300,7 +300,7 @@ class GUIUtility:
     def refreshOnResize(self):
         try:
             if DEBUG:
-                print'GuiUtility: explicit refresh'
+                print >>sys.stderr,'GuiUtility: explicit refresh'
                     
             self.standardDetails.Refresh()
             self.frame.topBackgroundRight.Refresh()

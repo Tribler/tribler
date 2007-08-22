@@ -551,7 +551,8 @@ class Connecter:
 
         permid = self.peerdb.getPermIDByIP(ip)
 
-        print >> sys.stdout, "Up %d down %d peer %s:%s (PermID = %s)" % (c.total_uploaded, c.total_downloaded, ip, port, permid)
+        if DEBUG:
+            print >> sys.stdout, "barter: Up %d down %d peer %s:%s (PermID = %s)" % (c.total_uploaded, c.total_downloaded, ip, port, permid)
         my_permid = self.bartercastdb.my_permid
 
         # Save downloaded MBs in PeerDB

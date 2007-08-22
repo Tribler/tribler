@@ -575,23 +575,24 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         bartercastdb = BarterCastDBHandler()
         mypermid = bartercastdb.my_permid
         
-        bartercastdb.incrementItem((mypermid, "testpermid_1"), 'uploaded', 1024)
-        bartercastdb.incrementItem((mypermid, "testpermid_1"), 'downloaded', 20000)
-                
-        bartercastdb.incrementItem((mypermid, "testpermid_2"), 'uploaded', 40000)
-        bartercastdb.incrementItem((mypermid, "testpermid_2"), 'downloaded', 60000)
-        
-        top = bartercastdb.getTopNPeers(5)
-
-        print 'My Permid: ', permid_for_user(mypermid)
-        
-        print 'Top 5 BarterCast peers:'
-        print '======================='
-
-        i = 1
-        for (permid, up, down) in top:
-            print '%2d: %15s  -  %10d up  %10d down' % (i, bartercastdb.getName(permid), up, down)
-            i += 1
+        if DEBUG:
+            bartercastdb.incrementItem((mypermid, "testpermid_1"), 'uploaded', 1024)
+            bartercastdb.incrementItem((mypermid, "testpermid_1"), 'downloaded', 20000)
+                    
+            bartercastdb.incrementItem((mypermid, "testpermid_2"), 'uploaded', 40000)
+            bartercastdb.incrementItem((mypermid, "testpermid_2"), 'downloaded', 60000)
+            
+            top = bartercastdb.getTopNPeers(5)
+    
+            print 'My Permid: ', permid_for_user(mypermid)
+            
+            print 'Top 5 BarterCast peers:'
+            print '======================='
+    
+            i = 1
+            for (permid, up, down) in top:
+                print '%2d: %15s  -  %10d up  %10d down' % (i, bartercastdb.getName(permid), up, down)
+                i += 1
         
         
         # Check to see if ABC is associated with torrents

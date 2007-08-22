@@ -644,7 +644,7 @@ rChangeViewModusList= "List view"
 
 ############# FILE and LIBRARY
 rOptions            = "Options:"
-rDownloadSecretly   = "   Download and hide for other Tribler users"
+rDownloadSecretly   = "   Download and hide this from other Tribler users"
 rDownloadOpenly     = "   Download"
 rModerate           = "   Change info..."
 rModerateCat        = "   Change category"

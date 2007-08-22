@@ -501,7 +501,8 @@ class PeerDataManager(DelayedEventHandler):
             mode = "peers changes"
             self.notifyGui(peer_data, mode)
         except:
-            print "error calling GUI callback function for data change"
+            print >>sys.stderr,"peermanager: error calling GUI callback function for data change"
+            print_exc()
 #            debug( "new operation to be done for %s in GuiUtility!" % peer_data['content_name'])
 #===============================================================================
 #            if mode in ['update', 'delete']:

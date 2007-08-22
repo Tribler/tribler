@@ -45,7 +45,7 @@ class SingleManualChecking(Thread):
             self.mldhtchecker.lookup(self.torrent['infohash'])
         except:
             print_exc()
-        print 'torrent: %d %d' % (self.torrent['seeder'], self.torrent['leecher'])
+        ##print 'torrent: %d %d' % (self.torrent['seeder'], self.torrent['leecher'])
         kw = {
             'last_check_time': int(time()),
             'seeder': self.torrent['seeder'],

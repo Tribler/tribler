@@ -19,7 +19,7 @@ from font import *
 
 from Tribler.Overlay.MetadataHandler import MetadataHandler
 
-DEBUG=True
+DEBUG = False
 
 # font sizes
 if sys.platform == 'darwin':
@@ -281,7 +281,7 @@ class FilesItemPanel(wx.Panel):
                 rank = torrent.get('simRank', -1)
                 recommField = self.taste            
                 if rank!=-1:
-                    print '--tb-- there is taste'
+                    ##print '--tb-- there is taste'
                     print rank
                     if rank == 1:
                         self.tasteHeart.SetToolTipString("%d" % rank + "st of top 20 of all discovered persons")
@@ -509,6 +509,8 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
     def setCategoryIcon(self, torrent):
         if not torrent.has_key('category'):
             return
+        
+        #print >>sys.stderr,"fip: ",`torrent['content_name']`,"has cat",torrent.get('category')
         self.categoryIcon = self.mm.getCategoryIcon(self.mode, torrent.get('category'), thumbtype='icon')
     
     def setThumbnail(self, torrent):
