@@ -982,6 +982,8 @@ class TorThread(Thread):
         Thread.__init__(self)
         self.setDaemon(True)
         self.setName("TorThread"+self.getName())
+        self.child_out = None
+        self.child_in = None
         
     def run(self):
         if EVIL:
@@ -994,13 +996,20 @@ class TorThread(Thread):
             else:
                 sink = '/dev/null'
     
-            (child_out,child_in) = os.popen2( "tor.exe  --log err-err > %s 2>&1" % (sink), 'b' )
+            (self.child_out,self.child_in) = os.popen2( "tor.exe  --log err-err > %s 2>&1" % (sink), 'b' )
             #(child_out,child_in) = os.popen2( "tor.exe --log err-err", 'b' )
             while True:
                 msg = child_in.read()
                 if DEBUG:
                     print >>sys.stderr,"TorThread: tor said",msg
+                sleep(1)
 
+    def shutdown(self):
+        if self.child_out is not None:
+            self.child_out.close()
+        if self.child_in is not None:
+            self.child_in.close()
+            
 
 ##############################################################
 #
@@ -1218,6 +1227,7 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
     def OnExit(self):
         
         self.torrentfeed.shutdown()
+        self.torthread.shutdown()
         mainlineDHT.deinit()
         
         if not ALLOW_MULTIPLE:
