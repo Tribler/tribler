@@ -78,7 +78,7 @@ class Rerequester:
         self.port = port
         
         if DEBUG:
-            print >>sys.stderr,"Rerequest tracker: infohash is",`infohash`
+            print >>sys.stderr,"Rerequest tracker: infohash is",`infohash`,"port is",self.port,"myid",`myid`,"quoted id",quote(myid)
 
         self.url = ('?info_hash=%s&peer_id=%s&port=%s' %
             (quote(infohash), quote(myid), str(port)))

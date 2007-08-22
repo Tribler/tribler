@@ -585,7 +585,8 @@ class LibraryItemPanel(wx.Panel):
         # >>makePopup(self, menu, event = None, label = "", extralabel = "", bindto = None):
 
         menu = self.guiUtility.OnRightMouseAction(event)
-        self.PopupMenu(menu, (-1,-1))        
+        if menu is not None:
+            self.PopupMenu(menu, (-1,-1))        
         
         #--tb--
 #        rightMouse = wx.Menu()        

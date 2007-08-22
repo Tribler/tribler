@@ -34,7 +34,7 @@ vlcstatusmap = {vlc.PlayingStatus:'vlc.PlayingStatus',
                 vlc.EndStatus:'vlc.EndStatus',
                 vlc.UndefinedStatus:'vlc.UndefinedStatus'}
 
-DEBUG = True
+DEBUG = False
 
 
 class VideoItem:

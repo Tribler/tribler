@@ -435,7 +435,8 @@ class FilesItemPanel(wx.Panel):
 
     def rightMouseButton(self, event):       
         menu = self.guiUtility.OnRightMouseAction(event)
-        self.PopupMenu(menu, (-1,-1)) 
+        if menu is not None:
+            self.PopupMenu(menu, (-1,-1)) 
 
     def doubleClicked(self, event):
         self.guiUtility.standardDetails.download(self.data)

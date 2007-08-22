@@ -1,9 +1,9 @@
-
+import sys
 import datetime
 
 starttime = datetime.datetime.now()
 
-DEBUG = True
+DEBUG = False
 
 def log(message):
 
@@ -16,5 +16,5 @@ def log(message):
             message = message.encode("utf-8")
     
         m = "Web2.0: " + timestr + " " + message
-        print m
+        print >>sys.stderr,m
     

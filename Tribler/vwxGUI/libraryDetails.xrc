@@ -145,15 +145,6 @@
                     <size>75,18</size>
                   </object>
                 </object>
-                <object class="sizeritem">
-                  <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
-                  <border>10</border>
-                  <option>0</option>
-                  <object class="wxPanel" name="graphs_detailsTab" subclass="Tribler.vwxGUI.TextButton.TextButton">
-                    <pos>180,10</pos>
-                    <size>75,18</size>
-                  </object>
-                </object>
               </object>
             </object>
           </object>

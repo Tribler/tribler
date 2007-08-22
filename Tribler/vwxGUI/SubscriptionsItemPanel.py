@@ -295,7 +295,8 @@ class SubscriptionsItemPanel(wx.Panel):
 
     def rightMouseButton(self, event):       
         menu = self.guiUtility.OnRightMouseAction(event)
-        self.PopupMenu(menu, (-1,-1))
+        if menu is not None:
+            self.PopupMenu(menu, (-1,-1))
             
     def getIdentifier(self):
         if self.data:

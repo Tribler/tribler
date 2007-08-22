@@ -450,12 +450,10 @@ class GUIUtility:
                     return True
             return False
         self.peer_manager.registerFilter("search",searchFilterFunc)
-        filterState = self.standardOverview.getFilter().getState()
-        sort = None
-        if filterState is not None and type(filterState) == 'list' and len(filterState) == 2 and filterState[1] is not None:
-            sort = filterState[1]
-        self.standardOverview.filterChanged(['search',sort],setgui=True)
+        self.standardOverview.filterChanged(['search',None],setgui=True)
+        # there is no personsFilter
         
+    
     def searchFriends(self):
         sf = self.standardOverview.getSearchField()
         if sf is None:

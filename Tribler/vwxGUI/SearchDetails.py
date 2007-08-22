@@ -26,7 +26,7 @@ class SearchDetailsPanel(wx.Panel):
         self.hSizer.Add([8,5],0,wx.EXPAND|wx.FIXED_MINSIZE,0)
         self.textPanel = wx.Panel(self)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.text = wx.StaticText(self.textPanel, -1, 'hallo')
+        self.text = wx.StaticText(self.textPanel, -1, 'Finished')
         self.text.SetForegroundColour(wx.Colour(255,255,255))
         sizer.Add(self.text, 1, wx.ALL, 0)
         self.textPanel.SetSizer(sizer)

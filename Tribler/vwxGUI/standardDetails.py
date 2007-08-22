@@ -99,7 +99,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                                             'titleField','statusField','thumbField', 'discFilesField', 'discPersonsField']
         self.modeElements['libraryMode'] = ['titleField', 'popularityField1','options', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
-                                            'files_detailsTab', 'info_detailsTab', 'graphs_detailsTab', 'details', 
+                                            'files_detailsTab', 'info_detailsTab', 'details', 
                                             'peopleWhoField']
         self.modeElements['profileMode'] = ['levelPic']
         
@@ -109,7 +109,6 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         self.tabElements = {'filesTab_files': [ 'download', 'includedFiles', 'filesField', 'trackerField'],                            
                             'personsTab_advanced': ['lastExchangeField', 'timesConnectedField','addAsFriend','similarityValueField'],
                             'libraryTab_files': [ 'download', 'includedFiles'],
-                            'Tab_graphs': ['Graph'], #tab in library for showing up/dw graphs
                             'profileDetails_Quality': ['descriptionField0','howToImprove','descriptionField1'],
                             'profileDetails_Files': ['descriptionField0','howToImprove','descriptionField1','takeMeThere0'],
                             'profileDetails_Persons': ['descriptionField0','howToImprove','descriptionField1'],
@@ -266,6 +265,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 self.getAlternativeTabPanel('filesTab_files', parent=currentPanel).Hide()
                 if modeString == 'files':
                     self.getGuiObj('TasteHeart').setBackground(wx.WHITE)
+                """
                 if modeString == 'library':
                     graph_parent = self.getAlternativeTabPanel('Tab_graphs', parent=currentPanel)
                     graph_parent.Hide()
@@ -304,7 +304,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                         self.data[self.mode]['Tab_graphs'+'_'+'Graph'] = graph_panel
                         graph_panel.SetMinSize(wx.Size(300,300))
                         graph_panel.SetSize(wx.Size(300,300))
-                    
+                """ 
                 
                 
             elif modeString in ['persons','friends']:
@@ -560,13 +560,12 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     trackerField.SetLabel(short)
                     trackerField.SetToolTipString(trackerString)
                     
-            elif self.getGuiObj('graphs_detailsTab').isSelected():
-                if DEBUG:
-                    print "standardDetails: graph set data"
-                graph_panel = self.getGuiObj("Graph", "Tab_graphs")
-                if graph_panel is not None:
-                    graph_panel.setData(item)
-                
+            #elif self.getGuiObj('graphs_detailsTab').isSelected():
+            #    if DEBUG:
+            #        print "standardDetails: graph set data"
+            #    graph_panel = self.getGuiObj("Graph", "Tab_graphs")
+            #    if graph_panel is not None:
+            #        graph_panel.setData(item)
             elif DEBUG:
                 print >> sys.stderr,'standardDetails: error: unknown tab selected'
             
@@ -1130,15 +1129,15 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
     def tabClicked(self, name):
         if DEBUG:
             print >> sys.stderr,'standardDetails: tabClicked: %s' % name
-        self.checkGraphTabVisible(selectedTab=name)
+        #self.checkGraphTabVisible(selectedTab=name)
 
         if self.mode == 'libraryMode':
             tabButtons = { 'files_detailsTab':self.getGuiObj('files_detailsTab'),
-                          'info_detailsTab':self.getGuiObj('info_detailsTab'),
-                          'graphs_detailsTab':self.getGuiObj('graphs_detailsTab') }
+                          'info_detailsTab':self.getGuiObj('info_detailsTab')}
+                          # 'graphs_detailsTab':self.getGuiObj('graphs_detailsTab') }
             tabPanelNames = { 'files_detailsTab':'filesTab_files', 
-                             'info_detailsTab':'details', 
-                             'graphs_detailsTab':'Tab_graphs'}
+                             'info_detailsTab':'details'}
+                             #'graphs_detailsTab':'Tab_graphs'}
             #TODO: change from currentPanel to the string name of the current selected details panel
             #get the currently selected panel
             current_name = 'details'
@@ -1346,10 +1345,12 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             self.refresh(self.data)
             
     def rightMouseButton(self, event):
-        print '--tb-- keydown function(2)'  
+        if DEBUG:
+            print >>sys.stderr,'standardDetails: --tb-- keydown function(2)'  
         menu = self.guiUtility.OnRightMouseAction(event)
+        if menu is not None:
+            self.PopupMenu(menu, (-1,-1))   
 
-        self.PopupMenu(menu, (-1,-1))   
             
     def refresh(self, torrent):
         if DEBUG:
