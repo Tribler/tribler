@@ -113,7 +113,7 @@ class ProgressBar(wx.Control):
     #def __init__(self, parent, colours = ["#cfcfcf","#d7ffd7","#00ff00"], *args, **kwargs ):
     #def __init__(self, parent, colours = ["#cfcfcf","#fde72d","#00ff00"], *args, **kwargs ):
     #def __init__(self, parent, colours = ["#ffffff","#fde72d","#00ff00"], *args, **kwargs ):
-    def __init__(self, parent, colours = ["#ffffff","#305100","#ff3300"], *args, **kwargs ):
+    def __init__(self, parent, colours = ["#ffffff","#CBCBCB","#ff3300"], *args, **kwargs ):
         self.colours = colours
         self.pens    = [wx.Pen(c,0) for c in self.colours]
         self.brushes = [wx.Brush(c) for c in self.colours]

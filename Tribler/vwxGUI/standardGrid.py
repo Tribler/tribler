@@ -547,7 +547,7 @@ class filesGrid(standardGrid):
 class personsGrid(standardGrid):
     def __init__(self):
         columns = (6, 1)
-        subPanelHeight = (6*22, 22)
+        subPanelHeight = (5*22, 22)
         standardGrid.__init__(self, columns, subPanelHeight, orientation='horizontal')
         
     def getSubPanel(self, keyfun):
