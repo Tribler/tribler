@@ -164,7 +164,7 @@ VLCDIR=${PWD}/build/temp/vlc
 VLCPREFIX=${VLCDIR}/install-root
 
 build/temp/.vlc:
-	svn co svn://svn.videolan.org/vlc/trunk ${VLCDIR}
+	svn co -r 21375 svn://svn.videolan.org/vlc/trunk ${VLCDIR}
 	cd ${VLCDIR}/extras/contrib && ./bootstrap
 	cd ${VLCDIR}/extras/contrib && make src
 	touch $@
@@ -179,7 +179,15 @@ ${VLCDIR}/Makefile:	build/temp/.vlc
 ${VLCPREFIX}/lib/libvlc.a:	${VLCDIR}/Makefile
 	# build and install vlc
 	cd ${VLCDIR} && ./compile
-	cd ${VLCDIR} && patch -p0 -N < ${PWD}/vlc-macosx-install.patch
+
+	# some necessary patches :( since these files differ between builds and architectures,
+	# and one might want to run this Makefile several times in case of errors, we don't use patch
+	cat ${VLCDIR}/Makefile | sed 's/vlc_app_DATA = VLC.app//;' > build/temp/Makefile.temp
+	mv build/temp/Makefile.temp ${VLCDIR}/Makefile
+	cat ${VLCDIR}/vlc-config | sed 's/^cflags_tuning=.*/cflags_tuning=""/; s/-lvlc-control//;' > build/temp/vlc-config.temp
+	mv build/temp/vlc-config.temp ${VLCDIR}/vlc-config
+	chmod a+x ${VLCDIR}/vlc-config
+
 	cd ${VLCDIR} && make install
 
 	# copy some missing libraries into the install-root
