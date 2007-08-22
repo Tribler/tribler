@@ -265,6 +265,7 @@ class FilesItemPanel(wx.Panel):
             self.title.SetLabel(title)
             self.title.Wrap(self.title.GetSize()[0])
             self.title.SetToolTipString(torrent['content_name'])
+            self.setSourceIcon(torrent)
             if self.listItem:
                 self.fileSize.Enable(True)
                 if torrent.get('web2'):
@@ -308,7 +309,6 @@ class FilesItemPanel(wx.Panel):
     #            self.tasteHeart.Show()
     
                 
-                self.setSourceIcon(torrent)
                 self.vLine1.Show()
                 self.vLine2.Show()
                 self.vLine3.Show()
@@ -460,10 +460,17 @@ class FilesItemPanel(wx.Panel):
                 source = 'liveleak'
             else:
                 source = ''
-        else:
+        elif self.listItem:
             source = 'tribler'
-        self.sourceIcon.setBitmap(self.parent.mm.getSourceIcon(source))
-        self.sourceIcon.Show()
+        else:
+            source = ''
+            
+        si = self.parent.mm.getSourceIcon(source)
+        if self.listItem:
+            self.sourceIcon.setBitmap(si)
+            self.sourceIcon.Show()
+        else:
+            self.thumb.setSourceIcon(si)
                 
 class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
     """
@@ -491,7 +498,8 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         self.torrent = None
         self.mouseOver = False
         self.triblerGrey = wx.Colour(128,128,128)
-        self.triblerLightGrey = wx.Colour(203,203,203)   
+        self.triblerLightGrey = wx.Colour(203,203,203)
+        self.sourceIcon = None  
         self.guiUtility = GUIUtility.getInstance()
         self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
         self.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
@@ -525,6 +533,9 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         #print >>sys.stderr,"fip: ",`torrent['content_name']`,"has cat",torrent.get('category')
         self.categoryIcon = self.mm.getCategoryIcon(self.mode, torrent.get('category'), thumbtype='icon', web2 = torrent.get('web2'))
     
+    def setSourceIcon(self, si):
+        self.sourceIcon = si
+        
     def setThumbnail(self, torrent):
         #if torrent.get('web2'):
             #import pdb
@@ -732,6 +743,8 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             #dc.DrawText('rating', 8, 50)
         if self.categoryIcon:
             dc.DrawBitmap(self.categoryIcon, 99, 7, True)      
+        if self.sourceIcon:
+            dc.DrawBitmap(self.sourceIcon, 101, 27, True)
             
         if self.mouseOver:
             dc.SetFont(wx.Font(6, FONTFAMILY,FONTWEIGHT, wx.BOLD, True, FONTFACE))

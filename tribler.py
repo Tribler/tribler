@@ -737,8 +737,10 @@ class ABCFrame(wx.Frame, DelayedInvocation):
                 print  >> sys.stderr,"abc: onSize: None"
         self.setGUIupdate(True)
         if event is not None:
-            #self.window.SetSize(self.GetSize())
+            if event.GetEventType() == wx.EVT_MAXIMIZE:
+                self.window.SetClientSize(self.GetClientSize())
             event.Skip()
+        
 
         # Refresh subscreens
         self.refreshNeeded = True
@@ -988,6 +990,7 @@ class TorThread(Thread):
     def run(self):
         if EVIL:
             ## TOR EVIL
+            
             if DEBUG:
                 print >>sys.stderr,"TorThread starting",currentThread().getName()
             if sys.platform == "win32":

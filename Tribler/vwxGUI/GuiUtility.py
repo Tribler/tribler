@@ -308,6 +308,8 @@ class GUIUtility:
             self.mainSizer.FitInside(self.frame)
             self.standardDetails.Refresh()
             self.frame.topBackgroundRight.Refresh()
+            self.frame.topBackgroundRight.GetSizer().Layout()
+            #self.frame.topBackgroundRight.GetContainingSizer().Layout()
             self.updateSizeOfStandardOverview()
             self.standardDetails.Layout()
             self.standardDetail.GetContainingSizer.Layout()
@@ -318,11 +320,11 @@ class GUIUtility:
     
     def updateSizeOfStandardOverview(self):
         if self.standardOverview.gridIsAutoResizing():
-           
+            print 'size1: %d, size2: %d' % (self.frame.GetClientSize()[1], self.frame.window.GetClientSize()[1])
             margin = 10
             newSize = (-1, #self.scrollWindow.GetClientSize()[1] - 
                            self.frame.GetClientSize()[1] - 
-                               self.scrollWindow.CalcUnscrolledPosition(self.standardOverview.GetPosition())[1] - 
+                               100 - # height of top bar
                                self.standardOverview.getPager().GetSize()[1] -
                                margin)
         else:
@@ -716,6 +718,15 @@ class GUIUtility:
         dialog.Destroy()
         event.Skip()
 
-        
+    
 # =========END ========= actions for rightMouse button ==========================================
-        
+    
+    def superRefresh(self, sizer):
+        print 'supersizer to the rescue'
+        for item in sizer.GetChildren():
+            if item.IsSizer():
+                self.superRefresh(item.GetSizer())
+                item.GetSizer().Layout()
+            elif item.IsWindow():
+                item.GetWindow().Refresh()
+    
