@@ -178,7 +178,7 @@ class PersonsItemPanel(wx.Panel):
                 {'sort':'discFiles', 'pic':'iconDiscFiles','width':40, 'tip':self.utility.lang.get('C_discfiles')},
                 {'sort':'discPersons', 'pic':'iconDiscPersons', 'width':40, 'tip':self.utility.lang.get('C_discpersons')},                
                 {'sort':'similarity', 'pic':'heartSmall', 'width':60, 'tip':self.utility.lang.get('C_recommpersons')},
-                {'sort':'friends', 'pic':'iconFriends', 'width':22, 'tip':self.utility.lang.get('C_friends')}
+                {'sort':'friends', 'pic':'iconfriends', 'width':22, 'tip':self.utility.lang.get('C_friends')}
                 ]
                          
     def setData(self, peer_data):
