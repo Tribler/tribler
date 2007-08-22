@@ -556,6 +556,12 @@ recommendinstructions = "Double click on a torrent to start downloading; right c
 recommendfilter = "Don't show torrents with recommendation value less than"
 recommendfilterall = "(set to 0.0 to see all known torrents)"
 
+torenable = "Enable Tor support"
+tortrackersleep = "Minutes between connecting to the tracker"
+torhost = "The hostname or ip you run Tor at"
+torport = "The port you're running tor at"
+torpanel = "Tor"
+
 ############################################################
 # BTMakeTorrentGUI
 ############################################################

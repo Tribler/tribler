@@ -229,11 +229,29 @@ defaults = [
         "stop collecting more torrents if the disk has less than this size (MB)"),
     ('internaltracker', 1,
         "enable internal tracker (0 = disabled)"),
-    ('ut_pex_max_addrs_from_peer', 16,
-        "maximum number of addresses to accept from peer (0 = disabled PEX)"),
     ('vod', 0,
-        "download in video-on-demand mode (0 = disabled)")
-    ]
+        "download in video-on-demand mode (0 = disabled)"),
+    ('tor_host', '127.0.0.1',
+        'the host running Tor'),
+    ('tor_port', 9050,
+        'the port where Tor is running')]
+
+EVIL = False
+if EVIL:
+    defaults += [('ut_pex_max_addrs_from_peer', 1024,
+            "maximum number of addresses to accept from peer (0 = disabled PEX)"),
+        ('tor_enabled', 1,
+            'enable Tor support (0 = disbled)'),
+        ('tor_tracker_sleep', 1,
+            'the time in minutes between peer retrieval via Tor')]
+else:
+    defaults += [('ut_pex_max_addrs_from_peer', 16,
+            "maximum number of addresses to accept from peer (0 = disabled PEX)"),
+        ('tor_enabled', 1,
+            'enable Tor support (0 = disbled)'),
+        ('tor_tracker_sleep', 60,
+            'the time in minutes between peer retrieval via Tor')]
+
 
 argslistheader = 'Arguments are:\n\n'
 
@@ -839,7 +857,6 @@ class BT1Download:
             else:
                 trackerlist = [[]]
             
-            
         self.rerequest = Rerequester(trackerlist, self.config['rerequest_interval'], 
             self.rawserver.add_task,self.connecter.how_many_connections, 
             self.config['min_peers'], self.encoder.start_connections, 
@@ -848,7 +865,7 @@ class BT1Download:
             self.myid, self.infohash, self.config['http_timeout'], 
             self.errorfunc, self.excfunc, self.config['max_initiate'], 
             self.doneflag, self.upmeasure.get_rate, self.downmeasure.get_rate, 
-            self.unpauseflag)
+            self.unpauseflag, self.config['tor_enabled'], self.config['tor_host'], self.config['tor_port'], self.config['tor_tracker_sleep'])
 
         self.encoder.set_rerequester(self.rerequest)
         self.rerequest.start()

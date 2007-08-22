@@ -88,6 +88,7 @@ ALLOW_MULTIPLE = False
 start_time = 0
 start_time2 = 0
 
+
 ################################################################
 #
 # Class: FileDropTarget
@@ -972,6 +973,30 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         self.messageField.SetLabel(text)
 
 
+class TorThread(Thread):
+    
+    def __init__(self):
+        Thread.__init__(self)
+        self.setDaemon(True)
+        self.setName("TorThread"+self.getName())
+        
+    def run(self):
+        ## TOR EVIL
+        if DEBUG:
+            print >>sys.stderr,"TorThread starting",currentThread().getName()
+        if sys.platform == "win32":
+            # Not "Nul:" but "nul" is /dev/null on Win32
+            sink = 'nul'
+        else:
+            sink = '/dev/null'
+
+        (child_out,child_in) = os.popen2( "tor.exe  --log err-err > %s 2>&1" % (sink), 'b' )
+        #(child_out,child_in) = os.popen2( "tor.exe --log err-err", 'b' )
+        while True:
+            msg = child_in.read()
+            if DEBUG:
+                print >>sys.stderr,"TorThread: tor said",msg
+
 
 ##############################################################
 #
@@ -1154,6 +1179,9 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             
             #print "DIM",wx.GetDisplaySize()
             #print "MM",wx.GetDisplaySizeMM()
+
+            self.torthread = TorThread()
+            self.torthread.start()
             
             wx.CallAfter(self.startWithRightView)            
             

@@ -750,7 +750,12 @@ class Utility:
                       "max_connections", 
                       "upnp_nat_access", 
                       "auto_flush",
-                      "ut_pex_max_addrs_from_peer" ]
+                      "ut_pex_max_addrs_from_peer",
+                      "tor_enabled",
+                      "tor_host",
+                      "tor_port",
+                      "tor_tracker_sleep"]
+
         for param in paramlist:
             value = self.config.Read(param)
             if value != "":

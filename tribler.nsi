@@ -81,6 +81,7 @@ Section "!Main EXE" SecMain
  File tribler.exe.manifest
  File tribler.exe
  File ffmpeg.exe
+ File tor.exe
  File /r vlc
  Delete "$INSTDIR\*.pyd"
  File *.pyd

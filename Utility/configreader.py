@@ -10,6 +10,8 @@ from BitTornado.bencode import bencode, bdecode
 from BitTornado.download_bt1 import defaults as bt1_defaults
 from BitTornado.download_bt1 import DEFAULTPORT
 
+DEBUG = False
+
 ################################################################
 #
 # Class: ConfigReader
@@ -214,6 +216,9 @@ class ConfigReader(ConfigParser):
         if section is None:
             section = self.section
             
+        if DEBUG:
+            print >>sys.stderr,"ConfigReader: Read(",param,"type",type,"section",section
+            
         if param is None or param == "":
             return ""
 
@@ -226,7 +231,8 @@ class ConfigReader(ConfigParser):
         except:
             param = param.lower()
             value = self.defaults.get(param, None)
-#            sys.stderr.write("Error while reading parameter: (" + str(param) + ")\n")
+            if DEBUG:
+                sys.stderr.write("ConfigReader: Error while reading parameter: (" + str(param) + ")\n")
             # Arno, 2007-03-21: The ABCOptions dialog tries to read config values
             # via this mechanism. However, that doesn't take into account the
             # values from BitTornado/download_bt1.py defaults. I added that.
@@ -240,8 +246,8 @@ class ConfigReader(ConfigParser):
 #            sys.stderr.write(data.getvalue())
             pass
 
-
-        #print "config: reading",param,value,type,section
+        if DEBUG:
+            print >>sys.stderr,"ConfigReader: Read",param,type,section,"got",value
 
         value = self.StringToValue(value, type)
            

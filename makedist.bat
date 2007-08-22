@@ -70,6 +70,7 @@ mkdir dist\tribler\icons\mugshots
 copy icons\mugshots\*.* dist\tribler\icons\mugshots
 copy Lang\*.lang dist\tribler\Lang
 copy ffmpeg.exe dist\tribler
+copy tor.exe dist\tribler
 xcopy vlc dist\tribler\vlc /E /I
 
 mkdir dist\tribler\Tribler

@@ -1175,7 +1175,61 @@ class AdvancedNetworkPanel(ABCOptionPanel):
         mx = self.ut_pex_maxaddrs_data.GetValue()
         self.utility.config.Write('ut_pex_max_addrs_from_peer', mx)
 
+################################################################
+#
+# Class: TorNetworkPanel
+#
+# Contains advanced network settings
+# (defaults should be fine for most users)
+#
+################################################################
+class TorNetworkPanel(ABCOptionPanel):
+    def __init__(self, parent, dialog):
+        ABCOptionPanel.__init__(self, parent, dialog)
+        
+        datasizer = wx.FlexGridSizer(cols = 2, vgap = 5, hgap = 10)
 
+        # Enable Tor
+        self.tor_enabled = wx.CheckBox(self, -1)
+        datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('torenable')), 1, wx.ALIGN_CENTER_VERTICAL)
+        datasizer.Add(self.tor_enabled)
+
+        # Tor tracker sleep
+        self.tor_tracker_sleep = wx.SpinCtrl(self, size=wx.Size(60, -1))
+        self.tor_tracker_sleep.SetRange(1, 120)
+        datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('tortrackersleep')), 1, wx.ALIGN_CENTER_VERTICAL)
+        datasizer.Add(self.tor_tracker_sleep)
+        
+        # Tor host
+        self.tor_host = wx.TextCtrl(self, -1, size= (400, 30))
+        datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('torhost')), 1, wx.ALIGN_CENTER_VERTICAL)
+        datasizer.Add(self.tor_host)
+
+        # Maximum Connections
+        self.tor_port = self.utility.makeNumCtrl(self, 1, min=1, max=2**16)
+        datasizer.Add(wx.StaticText(self, -1, self.utility.lang.get('torport')), 1, wx.ALIGN_CENTER_VERTICAL)
+        datasizer.Add(self.tor_port)
+        
+        self.sizer.Add(datasizer, 0, wx.ALL, 5)
+        self.sizer.Add(wx.StaticText(self, -1, self.utility.lang.get('restartabc')), 0, wx.ALIGN_CENTER_VERTICAL)
+
+        self.initTasks()
+
+    def loadValues(self, Read = None):
+        if Read is None:
+            Read = self.utility.config.Read
+        self.tor_enabled.SetValue(Read('tor_enabled',"boolean"))
+        self.tor_tracker_sleep.SetValue(Read('tor_tracker_sleep', 'int') or 60)
+        self.tor_host.SetValue(Read('tor_host') or 'localhost')
+        self.tor_port.SetValue(Read('tor_port', 'int') or 9050)
+        
+    def apply(self):
+        Write = self.utility.config.Write
+        Write('tor_enabled', self.tor_enabled.GetValue(), "boolean")
+        Write('tor_tracker_sleep', self.tor_tracker_sleep.GetValue(),"int")
+        Write('tor_host', self.tor_host.GetValue())
+        Write('tor_port', self.tor_port.GetValue(),"int")
+        
 
 ################################################################
 #
@@ -1750,6 +1804,7 @@ class ABCTree(wx.TreeCtrl):
         self.advanceddisk = self.AppendItem(self.disk, self.utility.lang.get('advanced'))
         self.network = self.AppendItem(self.root, self.utility.lang.get('networksetting'))
         self.advancednetwork = self.AppendItem(self.network, self.utility.lang.get('advanced'))
+        self.tornetwork = self.AppendItem(self.network, self.utility.lang.get('torpanel'))
 
         #self.display = self.AppendItem(self.root, self.utility.lang.get('displaysetting'))
 
@@ -1771,6 +1826,7 @@ class ABCTree(wx.TreeCtrl):
 
         self.treeMap[self.advancednetwork] = self.dialog.advancedNetworkPanel
         self.treeMap[self.advanceddisk] = self.dialog.advancedDiskPanel
+        self.treeMap[self.tornetwork] = self.dialog.torNetworkPanel
         
         self.Bind(wx.EVT_TREE_SEL_CHANGED, self.onSwitchPage)
 
@@ -1869,6 +1925,7 @@ class ABCOptionDialog(wx.Dialog):
         
         self.advancedNetworkPanel = AdvancedNetworkPanel(self.splitter, self)
         self.advancedDiskPanel = AdvancedDiskPanel(self.splitter, self)
+        self.torNetworkPanel = TorNetworkPanel(self.splitter, self)
         
         self.tree = ABCTree(self.splitter, self)
 
