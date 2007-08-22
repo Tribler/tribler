@@ -228,6 +228,11 @@ class PersonsItemPanel(wx.Panel):
     #            self.discPersons.Enable(True)
     #            self.discPersons.SetLabel(peer_data['??'])
                 
+                self.vLine1.Show()
+                self.vLine2.Show()
+                self.vLine3.Show()
+                self.vLine4.Show()            
+                self.vLine5.Show()  
                 
                 # -- status issues
                 self.status.Enable(True)
@@ -245,14 +250,16 @@ class PersonsItemPanel(wx.Panel):
                     self.status.SetLabel( 'unknown')
                 
                 # number of Discovered files and persons
-                if peer_data.get('npeers'):
-                    n = unicode(peer_data.get('npeers'))
-                    self.discPersons.SetLabel(n)
-                    #self.getGuiObj('discPersonsField').SetLabel(n)
-                if peer_data.get('ntorrents'):
-                    n = unicode(item['ntorrents'])
-                    self.discFiles.SetLabel(n)
-                    #self.getGuiObj('discFilesField').SetLabel(n)
+                n = unicode(peer_data.get('npeers'))
+                if not n or n=='0':
+                    n = '?'
+                self.discPersons.SetLabel(n)
+
+                t = unicode(peer_data.get('ntorrents'))
+                if not t or t == '0':
+                    t = '?'
+                self.discFiles.SetLabel(t)
+
                 
                 # -- taste issues
                 rank = peer_data.get('simTop',-1) 

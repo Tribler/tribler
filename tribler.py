@@ -83,7 +83,7 @@ from Tribler.Web2.util.update import Web2Updater
 from Tribler.CacheDB.CacheDBHandler import BarterCastDBHandler
 from Tribler.Overlay.permid import permid_for_user
 
-DEBUG = False
+DEBUG = True
 ALLOW_MULTIPLE = False
 start_time = 0
 start_time2 = 0
@@ -518,6 +518,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         self.Bind(wx.EVT_ICONIZE, self.onIconify)
         self.Bind(wx.EVT_SET_FOCUS, self.onFocus)
         self.Bind(wx.EVT_SIZE, self.onSize)
+        self.Bind(wx.EVT_MAXIMIZE, self.onSize)
         #self.Bind(wx.EVT_IDLE, self.onIdle)
         
         # Start up the controller
@@ -729,7 +730,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         
         if DEBUG:
             if event is not None:
-                print  >> sys.stderr,"abc: onSize:",event.GetSize()
+                print  >> sys.stderr,"abc: onSize:",self.GetSize()
             else:
                 print  >> sys.stderr,"abc: onSize: None"
         self.setGUIupdate(True)

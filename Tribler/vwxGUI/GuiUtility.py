@@ -304,7 +304,7 @@ class GUIUtility:
         try:
             if DEBUG:
                 print >>sys.stderr,'GuiUtility: explicit refresh'
-                    
+            self.mainSizer.FitInside(self.frame)
             self.standardDetails.Refresh()
             self.frame.topBackgroundRight.Refresh()
             self.updateSizeOfStandardOverview()
@@ -319,7 +319,8 @@ class GUIUtility:
         if self.standardOverview.gridIsAutoResizing():
            
             margin = 10
-            newSize = (-1, self.scrollWindow.GetClientSize()[1] - 
+            newSize = (-1, #self.scrollWindow.GetClientSize()[1] - 
+                           self.frame.GetClientSize()[1] - 
                                self.scrollWindow.CalcUnscrolledPosition(self.standardOverview.GetPosition())[1] - 
                                self.standardOverview.getPager().GetSize()[1] -
                                margin)
@@ -703,8 +704,11 @@ class GUIUtility:
         self.standardOverview.refreshData()
         event.Skip()
 
-    def onChangeFriendInfo(self, event = None):        
-
+    def onChangeFriendInfo(self, event = None):
+        item = self.standardDetails.getData()       
+        dialog = MakeFriendsDialog(self.frame,self.utility, item)
+        ret = dialog.ShowModal()
+        dialog.Destroy()
         event.Skip()
 
         

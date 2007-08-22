@@ -148,7 +148,6 @@ class FriendsItemPanel(wx.Panel):
         for window in wl:
             window.Bind(wx.EVT_LEFT_UP, self.mouseAction)
             window.Bind(wx.EVT_KEY_UP, self.keyTyped)
-            window.Bind(wx.EVT_LEFT_DCLICK, self.doubleClicked)
             window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction) 
             
     def getColumns(self):
@@ -327,14 +326,7 @@ class FriendsItemPanel(wx.Panel):
             return self.data['permid']
         
 
-    def doubleClicked(self, event):
-        if self.data is not None:
-            dialog = MakeFriendsDialog(self,self.utility,self.data)
-            ret = dialog.ShowModal()
-            dialog.Destroy()
-            
-        event.Skip()
-      
+    
                 
 
 class FriendThumbnailViewer(ThumbnailViewer):
