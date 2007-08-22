@@ -234,14 +234,17 @@ class RawServer:
     # Interface for Khashmir 
     #
     def create_udpsocket(self,port,host):
-        print "rawudp: create_udp_socket",host,port
+        if DEBUG:
+            print >>sys.stderr,"rawudp: create_udp_socket",host,port
         return self.sockethandler.create_udpsocket(port,host)
         
     def start_listening_udp(self,serversocket,handler):
-        print "rawudp: start_listen:",serversocket,handler
+        if DEBUG:
+            print >>sys.stderr,"rawudp: start_listen:",serversocket,handler
         self.sockethandler.start_listening_udp(serversocket,handler)
     
     def stop_listening_udp(self,serversocket):
-        print "rawudp: stop_listen:",serversocket
+        if DEBUG:
+            print >>sys.stderr,"rawudp: stop_listen:",serversocket
         self.sockethandler.stop_listening_udp(serversocket)
         

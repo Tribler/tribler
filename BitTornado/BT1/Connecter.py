@@ -6,6 +6,7 @@ import traceback,sys
 from sha import sha
 from types import DictType,IntType
 from random import shuffle
+from traceback import print_exc
 
 from BitTornado.bitfield import Bitfield
 from BitTornado.clock import clock

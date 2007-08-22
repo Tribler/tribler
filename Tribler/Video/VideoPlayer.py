@@ -78,7 +78,7 @@ class VideoPlayer:
                 return # error already given
 
             bitrate = videoinfo[2]
-            if bitrate is None:
+            if bitrate is None and not ABCTorrentTemp.status.completed:
                 video_analyser_path = self.utility.config.Read('videoanalyserpath')
                 if not os.access(video_analyser_path,os.F_OK):
                     self.onError(self.utility.lang.get('videoanalysernotfound'),video_analyser_path,self.utility.lang.get('videoanalyserwhereset'))

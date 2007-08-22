@@ -22,6 +22,7 @@ For peer addresses that come from trackers we at least know that the peer host
 ran BitTorrent and was downloading this swarm (assuming the tracker is trustworthy).
 
 """
+import sys
 from types import DictType,StringType
 from BitTornado.BT1.track import compact_peer_info
 from BitTornado.bencode import bencode,bdecode
@@ -29,6 +30,7 @@ from BitTornado.bencode import bencode,bdecode
 EXTEND_MSG_UTORRENT_PEX_ID = chr(1) # Can be any value, the name 'ut_pex' is standardized
 EXTEND_MSG_UTORRENT_PEX = 'ut_pex' # note case sensitive
 
+DEBUG = False
 
 def create_ut_pex(addedconns,droppedconns):
     d = {}
@@ -61,6 +63,10 @@ def check_ut_pex(d):
     if len(addedf) != len(apeers) and not len(addedf) == 0:
         # KTorrent sends an empty added.f, be nice
         raise ValueError('ut_pex: added.f: more flags than peers')
+    
+    if DEBUG:
+        print >>sys.stderr,"ut_pex: Got",apeers
+    
     return (apeers,dpeers)
     
 def check_ut_pex_peerlist(d,name):

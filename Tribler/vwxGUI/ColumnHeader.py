@@ -2,7 +2,6 @@ import wx, sys
 from Tribler.vwxGUI.bgPanel import ImagePanel
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 
-
 class ColumnHeader(wx.Panel):
     
     bitmapOrderUp = 'upSort'
@@ -146,7 +145,7 @@ class ColumnHeaderBar(wx.Panel):
         #self.hSizer.Add([0,20],0,wx.FIXED_MINSIZE,0)
         columns = self.itemPanel.getColumns()
         currentSorting = self.guiUtility.standardOverview.getSorting()
-        print 'currentSorting: %s' % str(currentSorting)
+        #print 'currentSorting: %s' % str(currentSorting)
         for dict in columns:
             colours = (wx.Colour(203,203,203), wx.Colour(223,223,223))
             if (type(currentSorting) == str and currentSorting == dict['sort'] or

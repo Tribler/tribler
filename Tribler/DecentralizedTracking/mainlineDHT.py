@@ -3,7 +3,7 @@
 
 khashmir_imported = False
 try:
-    from utkhashmir import UTKhashmir
+    from khashmir.utkhashmir import UTKhashmir
     khashmir_imported = True
 except:
     pass

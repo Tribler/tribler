@@ -33,6 +33,7 @@ except:
     False = 0
     
 DEBUG = False
+DEBUG_DHT = False
 
 mapbase64 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-'
 keys = {}
@@ -218,7 +219,7 @@ class Rerequester:
                 #Do dht request
                 if self.dht:
                     self._dht_rerequest()
-                elif DEBUG:
+                elif DEBUG_DHT:
                     print >>sys.stderr,"Rerequester: No DHT support loaded"
 
                 for t in range(len(self.trackerlist)):
@@ -377,13 +378,13 @@ class Rerequester:
             self.dht.getPeers(self.infohash, self._dht_got_peers)
 
     def _dht_got_peers(self, peers):
-        if DEBUG:
+        if DEBUG_DHT:
             print >>sys.stderr,"Rerequester: DHT: Received",len(peers),"peers",currentThread().getName()
         p = []
         for peer in peers:
             try:
                 ip, port = unpack("!4sH", peer)
-                if DEBUG:
+                if DEBUG_DHT:
                     print >>sys.stderr,"Rerequester: DHT: Got",inet_ntoa(ip), int(port)
                 p.append({'ip':  inet_ntoa(ip),
                           'port':port})

@@ -101,6 +101,7 @@ class SubscriptionsItemPanel(wx.Panel):
         # Add left vertical line
         self.vLine1 = self.addLine()
         
+        """
         # Add total number of received files
         self.totalnumber =wx.StaticText(self,-1,"",wx.Point(0,0),wx.Size(130,12))        
         self.totalnumber.SetBackgroundColour(wx.WHITE)
@@ -111,7 +112,8 @@ class SubscriptionsItemPanel(wx.Panel):
         self.hSizer.Add(self.totalnumber,0,wx.TOP|wx.EXPAND,3)
         
         # Add left vertical line
-        self.vLine2 = self.addLine()         
+        self.vLine2 = self.addLine()
+        """         
         
         # Add Spacer to keep space occupied when no delete button is available
         self.vSizer = wx.BoxSizer(wx.VERTICAL)                
@@ -192,7 +194,7 @@ class SubscriptionsItemPanel(wx.Panel):
             self.cB.Show()
             self.cB.SetValue(peer_data['status'] == "active")
             self.vLine1.Show()
-            self.vLine2.Show()
+            #self.vLine2.Show()
             if 'persistent' in self.data:
                 self.delete.Hide()
             else:
@@ -204,7 +206,7 @@ class SubscriptionsItemPanel(wx.Panel):
             self.cB.SetValue(False)
             self.cB.Hide()
             self.vLine1.Hide()
-            self.vLine2.Hide()
+            #self.vLine2.Hide()
             #self.delete.Enable(False)
             self.delete.Hide()
        
@@ -222,7 +224,7 @@ class SubscriptionsItemPanel(wx.Panel):
             print >>sys.stderr,'subip: selected'
         self.thumb.setSelected(True)
         self.SetBackgroundColour(self.selectedColour)
-        self.totalnumber.SetBackgroundColour(self.selectedColour)
+        #self.totalnumber.SetBackgroundColour(self.selectedColour)
         self.Refresh()
         
     def deselect(self, rowIndex, colIndex):
@@ -234,7 +236,7 @@ class SubscriptionsItemPanel(wx.Panel):
             
         self.thumb.setSelected(False)
         self.SetBackgroundColour(colour)
-        self.totalnumber.SetBackgroundColour(colour)
+        #self.totalnumber.SetBackgroundColour(colour)
         self.Refresh()
     
     def keyTyped(self, event):

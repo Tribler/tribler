@@ -552,6 +552,13 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                         print "fip: Scheduling read of thumbnail for",torrent_filename
                     self.GetParent().guiserver.add_task(lambda:self.loadMetadata(torrent,torrent_filename),0)
             
+                # ARNO: TODO: The FileItemPanels that use this ThumbnailViewer now get deleted, and thus
+                # also the ThumbnailViewer objects. Or at least the C++ part of them. As a result we
+                # can no longer schedule these loadMetadata callbacks on the GUIServer thread. 
+                #
+                # At the moment, the wx code protects us, and throws an exception that the C++ part
+                # of the ThumbnailViewer object is gone. But we should clean this up. 
+            
             self.setBitmap(bmp)
             width, height = self.GetSize()
             d = 1
