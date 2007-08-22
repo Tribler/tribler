@@ -223,6 +223,7 @@ class RemoteQueryMsgHandler:
             r['length'] = torrent['length']
             r['leecher'] = torrent['leecher']
             r['seeder'] = torrent['seeder']
+            r['category'] = torrent['category']
             d2[torrent['infohash']] = r
         d['a'] = d2
         return bencode(d)

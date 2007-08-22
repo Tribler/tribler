@@ -1604,7 +1604,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             #print 'Torrent: %s' % torrent
             torrent['metadata']['ThumbReadable'] = False
             
-            default = self.mm.getCategoryIcon('filesMode',torrent.get('category'), 'large')
+            #print "****** torrent", torrent
+            
+            default = self.mm.getCategoryIcon('filesMode',torrent.get('category','all'), 'large')
             thumbPanel.setBitmap(default)
 
     def refreshStandardDetailsHeight(self, panel = None):
