@@ -21,7 +21,6 @@ from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 #from Tribler.vwxGUI.filesFilter import filesFilter
 
 
-
 from Tribler.utilities import *
 from Utility.constants import *
 
@@ -244,6 +243,10 @@ class GUIUtility:
         filesButton = xrc.XRCCTRL(self.frame, 'mainButtonFiles')
         filesButton.setSelected(True)
         self.selectedMainButton = filesButton
+        
+        self.rqmh = RemoteQueryMsgHandler.getInstance()
+        self.rqmh.register2(self.data_manager)
+            
      
     def getOverviewElement(self):
         """should get the last selected item for the current standard overview, or
@@ -420,8 +423,6 @@ class GUIUtility:
         # Query the peers we are connected to
         #
         if mode == 'filesMode':
-            rqmh = RemoteQueryMsgHandler.getInstance()
-            rqmh.register2(self.data_manager)
             q = ''
             for kw in wantkeywords:
                 q += kw+' '
@@ -429,7 +430,7 @@ class GUIUtility:
             # For TEST suite
             #rqmh.test_sendQuery(q) 
             #print "************** send query", q
-            rqmh.sendQuery(q) 
+            self.rqmh.sendQuery(q) 
 
         
     def searchPersons(self):
