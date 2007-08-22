@@ -99,7 +99,7 @@ class SubscriptionsItemPanel(wx.Panel):
         #self.hSizer.Add(self.today, 0, wx.BOTTOM|wx.TOP|wx.RIGHT, 3)
         
         # Add left vertical line
-        self.vLine1 = self.addLine()
+#        self.vLine1 = self.addLine()
         
         """
         # Add total number of received files
@@ -193,7 +193,7 @@ class SubscriptionsItemPanel(wx.Panel):
             #self.title.SetToolTipString(peer_data['url'])
             self.cB.Show()
             self.cB.SetValue(peer_data['status'] == "active")
-            self.vLine1.Show()
+#            self.vLine1.Show()
             #self.vLine2.Show()
             if 'persistent' in self.data:
                 self.delete.Hide()
@@ -205,7 +205,7 @@ class SubscriptionsItemPanel(wx.Panel):
             self.title.Enable(False)
             self.cB.SetValue(False)
             self.cB.Hide()
-            self.vLine1.Hide()
+#            self.vLine1.Hide()
             #self.vLine2.Hide()
             #self.delete.Enable(False)
             self.delete.Hide()

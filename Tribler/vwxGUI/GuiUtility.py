@@ -621,9 +621,10 @@ class GUIUtility:
 ##                self.utility.makePopup(rightMouse, None, 'rFriendsOptions')
 ##                self.utility.makePopup(rightMouse, None, 'rSendAMessage')
         elif self.standardOverview.mode == "subscriptionsMode":
-            self.utility.makePopup(rightMouse, None, 'rOptions')
-            self.utility.makePopup(rightMouse, None, 'rChangeSubscrTitle')
-            self.utility.makePopup(rightMouse, None, 'rRemoveSubscr')
+            event.Skip()
+##            self.utility.makePopup(rightMouse, None, 'rOptions')
+##            self.utility.makePopup(rightMouse, None, 'rChangeSubscrTitle')
+##            self.utility.makePopup(rightMouse, None, 'rRemoveSubscr')
             
 
         

@@ -98,6 +98,8 @@
                   <option>0</option>
                   <object class="wxChoice" name="numberItems">
                     <tooltip>Number of items to show</tooltip>
+                    <enabled>1</enabled>
+                    <hidden>1</hidden>
                     <content>
                       <item>auto</item>
                       <item>20</item>

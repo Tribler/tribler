@@ -72,7 +72,9 @@
             <border>3</border>
             <option>0</option>
             <object class="wxPanel" name="options" subclass="Tribler.vwxGUI.tribler_topButton.tribler_topButton">
-              <pos>3,575</pos>
+              <enabled>1</enabled>
+              <hidden>1</hidden>
+              <pos>0,21</pos>
               <size>62,16</size>
               <bg>#ffffff</bg>
               <fg>#     0</fg>
