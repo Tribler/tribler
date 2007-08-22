@@ -166,8 +166,6 @@ class SingleDownload(SingleDownloadHelperInterface):
 
         length = len(piece)
         
-        print "LENGTH IS",length
-        
         try:
             self.active_requests.remove((index, begin, length))
         except ValueError:
