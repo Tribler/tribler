@@ -668,11 +668,11 @@ rChangeInfo			= "   Change friend info"
 
 ############# FRIENDS
 rFriendsOptions     = "Friends options:"
-rSendAMessage       = "   Send a message..." 
+rSendAMessage       = "   Send a message..."
 
 ############# SUBSCRIPTIONS
-rChangeSubscrTitle  = "   Change title" 
-rRemoveSubscr       = "   Remove subscription" 
+rChangeSubscrTitle  = "   Change title"
+rRemoveSubscr       = "   Remove subscription"
 
 
 ################################################################################################
@@ -1311,7 +1311,7 @@ C_creationdate	= "Creation date"
 C_uploaders		= "Number of uploaders (seeders)"
 C_downloaders 	= "Number of downloaders (leechers)"
 C_recommfiles	= "Fit to your taste (top20 of discovered files)"
-C_source		= "Source of file" 
+C_source		= "Source of file"
 # PERSONS
 C_personname	= "Name of the persons"
 C_status		= "Last time you connected with this person"
