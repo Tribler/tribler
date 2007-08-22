@@ -159,7 +159,7 @@ class TorrentDataManager:
             print >>sys.stderr,'torrentManager: getCategory found: %d items' % len(data)
         # if searchkeywords are defined. Search instead of show all
         if self.inSearchMode(mode):
-                data = self.search(data, mode)
+                data = self.search(data, mode)    #TODO RS: does it come from remote search or local search?
                 standardOverview.setSearchFeedback('torrent', False, len(data), self.searchkeywords[mode])
                 standardOverview.setSearchFeedback('web2', False, 0)
                 if DEBUG:
@@ -281,7 +281,7 @@ class TorrentDataManager:
                 #print >> sys.stderr, "abcfileframe: TorrentDataManager update error. Key: %s" % (key), Exception, msg
                 #print_exc()
                 pass
-        
+    
     def addItem(self, infohash):
         if self.info_dict.has_key(infohash):
             return
@@ -556,6 +556,7 @@ class TorrentDataManager:
             return data
         
         self.hits = self.keywordsearch.search(data, self.searchkeywords[mode])
+        
         return self.hits
 
     def remoteSearch(self,kws,maxhits=None):
@@ -597,6 +598,7 @@ class TorrentDataManager:
                     print >>sys.stderr,"torrentDataManager: gotRemoteHist: appending hit",`value['content_name']`
                     value['content_name'] = 'REMOTE '+value['content_name']
                 self.hits.append(value)
+                self.notifyView(value, 'add')
             return True
         elif DEBUG:
             print >>sys.stderr,"torrentDataManager: gotRemoteHist: got hits for",kws,"but current search is for",self.searchkeywords[mode]

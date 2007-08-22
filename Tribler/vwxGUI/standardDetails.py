@@ -1369,6 +1369,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         if torrent is None or torrent.get('myDownloadHistory'):
             return
             
+        #print "**** standdetail: download", `torrent`
+            
         if torrent.get('web2'):
             if DEBUG:
                 print >>sys.stderr,"standardDetails: Playing WEB2 video: " + torrent['url']
@@ -1567,7 +1569,10 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             (torrent_dir,torrent_name) = self.metadatahandler.get_std_torrent_dir_name(torrent)
             torrent_filename = os.path.join(torrent_dir, torrent_name)
             metadata = loadAzureusMetadataFromTorrent(torrent_filename)
-            thumbnailString = metadata.get('Thumbnail')
+            if metadata:
+                thumbnailString = metadata.get('Thumbnail')
+            else:
+                thumbnailString = None
 
         if 'metadata' not in torrent:
             torrent['metadata'] = {}

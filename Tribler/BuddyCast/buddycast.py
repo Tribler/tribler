@@ -1971,6 +1971,6 @@ class DataHandler:
     
     def updatePeerLevelStats(self,permid,npeers,ntorrents,nprefs):
         d = {'npeers':npeers,'ntorrents':ntorrents,'nprefs':nprefs}
-        for k,v in d:
+        for k,v in d.items():
             self.peer_db.updatePeer(permid,k,v)
             

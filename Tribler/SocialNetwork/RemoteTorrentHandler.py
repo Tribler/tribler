@@ -51,14 +51,17 @@ class RemoteTorrentHandler:
         permid = torrent['query_permid']
         infohash = torrent['infohash']
        
-        if infohash in self.requestedtorrents:
-            return
+        #if infohash in self.requestedtorrents:
+        #    return    # TODO RS:the previous request could have failed
        
+        self.requestedtorrents.add(torrent['infohash'])
         self.metadatahandler.send_metadata_request(permid,infohash,caller="rquery")
        
        
     def got_torrent(self,torrent_hash,metadata):
        """ Called by network thread """
+       
+       #print "***** got remote, torrent", torrent_hash in self.requestedtorrents, self.requestedtorrents
        if torrent_hash not in self.requestedtorrents:
            return
        
@@ -71,6 +74,7 @@ class RemoteTorrentHandler:
        
        # It's now a normal torrent
        torrent = data_manager.getTorrent(torrent_hash)
+       torrent['infohash'] = torrent_hash
 
        # Let GUI thread do the normal download stuff now
        stddetails = guiutil.standardDetails

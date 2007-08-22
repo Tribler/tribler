@@ -261,7 +261,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     
     def filterChanged(self, filterState = None, setgui = False):
         if DEBUG:
-            print >>sys.stderr,"standardOverview: filterChanged",filterState,setgui
+            print >>sys.stderr,"standardOverview: filterChanged",filterState,setgui,self.mode#,self.data[self.mode]
         
         oldFilterState = self.data[self.mode].get('filterState')
         
@@ -534,9 +534,10 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             # unhealthy torrents are also updated 
             self.invokeLater(torrentGrid.updateItem, [torrent], {'onlyupdate':True})
         elif operate == 'add' and torrent.get('status') == 'good' or torrent.get('myDownloadHistory'):
-            if not self.data_manager.inSearchMode(self.mode):
+            #print "******** add torrent", torrent,self.mode,self.data_manager.inSearchMode(self.mode)
+            #if not self.data_manager.inSearchMode(self.mode):
                 # new torrents are only added when healthy
-                self.invokeLater(torrentGrid.updateItem, [torrent])
+            self.invokeLater(torrentGrid.updateItem, [torrent])
         elif operate == 'delete':
             self.invokeLater(torrentGrid.updateItem, [torrent], {'delete':True})
             
@@ -635,8 +636,10 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             if self.data_manager.gotRemoteHits(permid,kws,answers,self.mode):
                 # remote info still valid, repaint if we're showing search results
                 fs = self.data[self.mode]['filterState']
-                if fs[0] == 'search':
-                    self.filterChanged(['search','swarmsize'])
+                #print "****** fs remote hits:", fs, len(self.data_manager.hits)
+                #if fs[0] == 'search':
+                #    self.filterChanged(['search','swarmsize'])
+                #self.filterChanged([fs[0],'swarmsize'])
                     
     def toggleSearchDetailsPanel(self, visible):
         searchDetails = self.data[self.mode].get('searchDetailsPanel')

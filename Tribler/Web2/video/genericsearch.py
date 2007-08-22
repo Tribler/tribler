@@ -185,7 +185,10 @@ class GenericSearch(db.ThreadedDBSearch):
         url = self.get('URL_SEARCH') % (self.query, self.pagecount)
         if DEBUG:
             print "Retrieving url", url
-        pageconn = urllib.urlopen(url)
+        try:
+            pageconn = urllib.urlopen(url)
+        except:
+            return []
         page = pageconn.read().replace('\n','')
         pageconn.close()
         if DEBUG:

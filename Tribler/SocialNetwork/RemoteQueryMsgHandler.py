@@ -25,6 +25,7 @@ from Tribler.utilities import show_permid_short
 MAX_QUERIES_FROM_RANDOM_PEER = 10
 MAX_RESULTS = 20
 QUERY_ID_SIZE = 20
+MAX_QUERY_REPLY_LEN = 100*1024    # 100K
 
 DEBUG = False
 
@@ -40,7 +41,7 @@ class RemoteQueryMsgHandler:
         self.torrent_db = TorrentDBHandler()
         self.friend_db = FriendDBHandler()
         self.peer_db = PeerDBHandler()
-        self.connections = Set()
+        self.connections = Set()    # only connected remote_search_peers
         self.query_ids2query = {}
 
     def getInstance(*args, **kw):
@@ -123,7 +124,9 @@ class RemoteQueryMsgHandler:
         if DEBUG:
             print >>sys.stderr,"rquery: sendQuery: Sending to",len(self.connections),"peers"
         
-        for permid in self.connections:
+        #print "******** send query net cb:", query, len(self.connections), self.connections
+        
+        for permid in self.connections:    # TODO RS: check version
             self.secure_overlay.connect(permid,func)
         
     def create_query(self,query):
@@ -148,6 +151,7 @@ class RemoteQueryMsgHandler:
             self.secure_overlay.send(permid,message,self.send_callback)
             
     def send_callback(self,exc,permid):
+        #print "******* queury was sent to", show_permid_short(permid), exc
         pass
     
     
@@ -171,6 +175,7 @@ class RemoteQueryMsgHandler:
         if not isValidQuery(d,selversion):
             return False
 
+        # TODO RS: Limitation: any peer version >= 6, last query > N sec.
         # Check auth
         friends = self.friend_db.getFriendList()
         tastebuddies = []
@@ -228,8 +233,14 @@ class RemoteQueryMsgHandler:
     #
 
     def recv_query_reply(self,permid,message,selversion):
+        
+        #print "****** recv query reply", len(message)
+        
         if selversion < OLPROTO_VER_SIXTH:
             return False
+        
+        if len(message) > MAX_QUERY_REPLY_LEN:
+            return True    # don't close
 
         # Unpack
         try:
@@ -240,6 +251,8 @@ class RemoteQueryMsgHandler:
             return False
         
         if not isValidQueryReply(d,selversion):
+            if DEBUG:
+                print >>sys.stderr,"rquery: not valid QUERY_REPLY message"
             return False
 
         # Check auth
@@ -255,8 +268,11 @@ class RemoteQueryMsgHandler:
 
 
     def process_query_reply(self,permid,query,d):
+        
+        #print "****** recv query reply:", query, d
+        
         if len(d['a']) > 0:
-            # TODO: report to standardOverview instead
+            #TODO: report to standardOverview instead
             kws = query.split()
             self.notify_of_remote_hits(permid,kws,d['a'])
         elif DEBUG:
@@ -336,8 +352,8 @@ def isValidHits(d):
     if not isinstance(d,dict):
         return False
     for key in d.keys():
-        if len(key) != 20:
-            return False
+#        if len(key) != 20:
+#            return False
         val = d[key]
         if not isValidVal(val):
             return False
@@ -348,8 +364,8 @@ def isValidVal(d):
         return False
     if not ('content_name' in d and 'length' in d and 'leecher' in d and 'seeder' in d):
         return False
-    if not (isinstance(d['content_name'],str) and isinstance(d['length'],int) and isinstance(d['leecher'],int) and isinstance(d['seeder'],int)):
-        return False
-    if len(d) > 4: # no other keys
-        return False
+#    if not (isinstance(d['content_name'],str) and isinstance(d['length'],int) and isinstance(d['leecher'],int) and isinstance(d['seeder'],int)):
+#        return False
+#    if len(d) > 4: # no other keys
+#        return False
     return True

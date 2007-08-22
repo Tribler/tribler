@@ -85,7 +85,8 @@ class SuperPeerList:
                         superpeer['name'] = superpeer_info[3]
                     superpeers_info.append(superpeer)
                 except:
-                    print_exc()
+                    pass
+                    #print_exc()
         return superpeers_info
     
     def validSuperPeerList(self, superpeer_info):
