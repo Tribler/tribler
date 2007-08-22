@@ -889,7 +889,7 @@ class BuddyCastCore:
         for i in range(len(peers)):
             oversion = peers[i].pop('oversion')
             nfiles = peers[i].pop('ntorrents')
-            if selversion >= OLPROTO_VER_SIXTH and oversion >= OLPROTO_VER_SIXTH:
+            if selversion >= OLPROTO_VER_SIXTH and oversion >= OLPROTO_VER_SIXTH and nfiles >= REMOTE_SEARCH_PEER_NTORRENTS_THRESHOLD:
                 peers[i]['oversion'] = oversion
                 # ascribe it to the inconsistent name of the same concept in msg and db
                 peers[i]['nfiles'] = nfiles
@@ -935,7 +935,8 @@ class BuddyCastCore:
         for i in range(len(peers)):
             oversion = peers[i].pop('oversion')
             nfiles = peers[i].pop('ntorrents')
-            if selversion >= OLPROTO_VER_SIXTH and oversion >= OLPROTO_VER_SIXTH:
+            # only include remote-search-peers
+            if selversion >= OLPROTO_VER_SIXTH and oversion >= OLPROTO_VER_SIXTH and nfiles >= REMOTE_SEARCH_PEER_NTORRENTS_THRESHOLD:
                 peers[i]['oversion'] = oversion
                 # ascribe it to the inconsistent name of the same concept in msg and db
                 peers[i]['nfiles'] = nfiles
