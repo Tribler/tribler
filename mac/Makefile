@@ -54,7 +54,7 @@ build/imagecontents/:	${SITEPACKAGES}/M2Crypto/ ${SITEPACKAGES}/Growl.py ${SITEP
 	cp build/lib/ffmpeg ${APPRES}/lib/ffmpeg
 
 	# Ditch Python documentation
-	rm -rf build/imagecontents/Tribler.app/Contents/Frameworks/Python.framework/Versions/2.5/Resources/English.lproj/Documentation
+	rm -rf build/imagecontents/Tribler.app/Contents/Frameworks/Python.framework/Versions/${PYTHON_VER}/Resources/English.lproj/Documentation
 
 	# Thin everything for this architecture. Some things ship Universal (Python, wxPython, ...) and
 	# others get a stub for the other architecture (things built by Universal Python)
@@ -203,7 +203,10 @@ build/lib/.vlc:              ${VLCPREFIX}/lib/libvlc.a ${VLCPREFIX}/lib/python${
 	cd ${VLCPREFIX}/lib && for i in `find . -name "*.dylib"`; do mkdir -p ${PWD}/build/lib/`dirname $$i`; cp $$i ${PWD}/build/lib/$$i; done
 
 	# fix dependencies of .dylib/.so libraries
+	# replace @executable_path/lib/* => lib/*
 	(for i in `find build/lib -name "*.dylib" -or -name "*.so"`; do otool -L $$i | perl -ne 'print "install_name_tool -change $$1 lib/$$2 '$$i'\n" if m#(\@executable_path/lib/(\S+))#;'; done) | bash -
+	# replace $VLCPREFIX/lib/* => lib/*
+	(for i in `find build/lib -name "*.dylib" -or -name "*.so"`; do otool -L $$i | perl -ne 'print "install_name_tool -change $$1 lib/$$2 '$$i'\n" if m#(${VLCPREFIX}/lib/(\S+))#;'; done) | bash -
 
 	touch $@
 
