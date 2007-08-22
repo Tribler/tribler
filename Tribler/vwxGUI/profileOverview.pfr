@@ -1167,7 +1167,7 @@ i_index=-1
 i_left=336
 i_top=66
 i_height=18
-i_width=89
+i_width=149
 l_backColor=
 l_foreColor=
 l_backColorSys=
@@ -1229,7 +1229,7 @@ IndexOfS=0
 [Windows16/i_width/Windows16]
 Theme=0
 [Windows16/i_propN]
-0=downloaded:
+0=total downloaded:
 [Windows16/sizerProp]
 0=1
 5=1
@@ -1245,8 +1245,8 @@ validator=
 s_name=st227cCC
 subClassName=
 i_index=-1
-i_left=329
-i_top=128
+i_left=336
+i_top=86
 i_height=23
 i_width=89
 l_backColor=
@@ -1310,7 +1310,7 @@ IndexOfS=1
 [Windows17/i_width/Windows17]
 Theme=0
 [Windows17/i_propN]
-0=uploaded:
+0=total uploaded:
 [Windows17/sizerProp]
 0=1
 5=1
@@ -1326,7 +1326,7 @@ validator=
 s_name=downloadedNumber
 subClassName=
 i_index=-1
-i_left=427
+i_left=487
 i_top=66
 i_height=18
 i_width=169
@@ -1496,7 +1496,7 @@ i_index=-1
 i_left=336
 i_top=128
 i_height=16
-i_width=102
+i_width=138
 l_backColor=
 l_foreColor=
 l_backColorSys=
