@@ -267,10 +267,10 @@ class MugshotManager:
     def get_default(self,mode,name):
         return self.defaults[mode][name]
     
-    def getCategoryIcon(self, mode, cat, thumbtype = 'normal'):
-        categoryConverter = {'Picture':'Other', 
-                             'VideoClips':'Video',
-                             'Document':'Other'}
+    def getCategoryIcon(self, mode, cat, thumbtype = 'normal', web2 = False):
+        categoryConverter = {'picture':'other', 
+                             'videoclips':'video',
+                             'document':'other'}
         thumbType = {'normal':'defaultThumb_%s.png',
                      'large':'defaultThumbL_%s.png',
                      'small':'defaultThumbS_%s.png',
@@ -278,15 +278,15 @@ class MugshotManager:
                      }
         if type(cat) == list:
             cat = cat[0]
+        if web2:
+            cat = 'video'
+        
+        cat = cat.lower()
         
         if cat in categoryConverter:
             cat = categoryConverter[cat]
         
-        # Arno: This gives 'Video' and all images are called 'video' 
-        # so this won't work on Linux 
-        #if thumbtype == 'icon':
-        #    cat = cat.title()
-            
+                
         if self.categoryThumbs.get((cat, thumbtype)):
             return self.categoryThumbs[(cat, thumbtype)]
         else:

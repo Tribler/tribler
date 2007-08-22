@@ -507,11 +507,9 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         
                             
     def setCategoryIcon(self, torrent):
-        if not torrent.has_key('category'):
-            return
         
         #print >>sys.stderr,"fip: ",`torrent['content_name']`,"has cat",torrent.get('category')
-        self.categoryIcon = self.mm.getCategoryIcon(self.mode, torrent.get('category'), thumbtype='icon')
+        self.categoryIcon = self.mm.getCategoryIcon(self.mode, torrent.get('category'), thumbtype='icon', web2 = torrent.get('web2'))
     
     def setThumbnail(self, torrent):
         #if torrent.get('web2'):
@@ -520,7 +518,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         # Get the file(s)data for this torrent
         thumbtype = (self.parent.listItem) and 'small' or 'normal'
         try:
-            bmp = self.mm.getCategoryIcon(self.mode, torrent.get('category'), thumbtype=thumbtype)
+            bmp = self.mm.getCategoryIcon(self.mode, torrent.get('category'), thumbtype=thumbtype, web2 = torrent.get('web2'))
             # Check if we have already read the thumbnail and metadata information from this torrent file
             if torrent.get('metadata'):
                 if self.mode == 'libraryMode':
@@ -535,7 +533,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                 
                 if not bmp:
                     #print 'fip: ThumbnailViewer: Error: thumbnailBitmap not found in torrent %s' % torrent
-                    bmp = self.mm.getCategoryIcon(self.mode, torrent.get('category'), thumbtype=thumbtype)
+                    bmp = self.mm.getCategoryIcon(self.mode, torrent.get('category'), thumbtype=thumbtype, web2 = torrent.get('web2'))
             else:
                 #print "fip: ThumbnailViewer: set: Scheduling read of metadata"
                 # web2.0 elements already have the thumbnail stored at key 'preview'
