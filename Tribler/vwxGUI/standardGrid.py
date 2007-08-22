@@ -91,6 +91,7 @@ class standardGrid(wx.Panel):
         self.SetBackgroundColour(wx.WHITE)
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         self.columnHeaderSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.columnHeaderSizer.AddSpacer(5)
         self.vSizer.Add(self.columnHeaderSizer, 0, wx.ALL|wx.EXPAND, 0)
         self.SetSizer(self.vSizer);
         self.SetAutoLayout(1);
@@ -520,12 +521,15 @@ class standardGrid(wx.Panel):
             panel = self.getFirstPanel()
             if panel:
                 self.columnHeader = ColumnHeaderBar(self, panel)
+                self.columnHeaderSizer.Detach(0)
                 self.columnHeaderSizer.Add(self.columnHeader, 1, wx.EXPAND, 0)
                 self.columnHeaderSizer.Layout()
         else:
             self.columnHeaderSizer.Detach(0)
             self.columnHeader.Destroy()
             self.columnHeader = None
+            self.columnHeaderSizer.AddSpacer(5)
+            self.columnHeaderSizer.Layout()
         self.vSizer.Layout()
         
 class filesGrid(standardGrid):
