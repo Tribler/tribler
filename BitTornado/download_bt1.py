@@ -247,7 +247,7 @@ if EVIL:
 else:
     defaults += [('ut_pex_max_addrs_from_peer', 16,
             "maximum number of addresses to accept from peer (0 = disabled PEX)"),
-        ('tor_enabled', 1,
+        ('tor_enabled', 0,
             'enable Tor support (0 = disbled)'),
         ('tor_tracker_sleep', 60,
             'the time in minutes between peer retrieval via Tor')]

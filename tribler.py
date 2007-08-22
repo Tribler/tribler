@@ -19,6 +19,7 @@
 #
 # This must be done in the first python file that is started.
 #
+
 import urllib
 original_open_https = urllib.URLopener.open_https
 import M2Crypto
@@ -82,6 +83,7 @@ from Tribler.Web2.util.update import Web2Updater
 
 from Tribler.CacheDB.CacheDBHandler import BarterCastDBHandler
 from Tribler.Overlay.permid import permid_for_user
+from BitTornado.download_bt1 import EVIL
 
 DEBUG = True
 ALLOW_MULTIPLE = False
@@ -982,21 +984,22 @@ class TorThread(Thread):
         self.setName("TorThread"+self.getName())
         
     def run(self):
-        ## TOR EVIL
-        if DEBUG:
-            print >>sys.stderr,"TorThread starting",currentThread().getName()
-        if sys.platform == "win32":
-            # Not "Nul:" but "nul" is /dev/null on Win32
-            sink = 'nul'
-        else:
-            sink = '/dev/null'
-
-        (child_out,child_in) = os.popen2( "tor.exe  --log err-err > %s 2>&1" % (sink), 'b' )
-        #(child_out,child_in) = os.popen2( "tor.exe --log err-err", 'b' )
-        while True:
-            msg = child_in.read()
+        if EVIL:
+            ## TOR EVIL
             if DEBUG:
-                print >>sys.stderr,"TorThread: tor said",msg
+                print >>sys.stderr,"TorThread starting",currentThread().getName()
+            if sys.platform == "win32":
+                # Not "Nul:" but "nul" is /dev/null on Win32
+                sink = 'nul'
+            else:
+                sink = '/dev/null'
+    
+            (child_out,child_in) = os.popen2( "tor.exe  --log err-err > %s 2>&1" % (sink), 'b' )
+            #(child_out,child_in) = os.popen2( "tor.exe --log err-err", 'b' )
+            while True:
+                msg = child_in.read()
+                if DEBUG:
+                    print >>sys.stderr,"TorThread: tor said",msg
 
 
 ##############################################################
@@ -1027,7 +1030,8 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             sys.stdout.write('Build: ' + self.utility.lang.get('build') + '\n')
             
             bm = wx.Bitmap(os.path.join(self.utility.getPath(),'icons','splash.jpg'),wx.BITMAP_TYPE_JPEG)
-            self.splash = wx.SplashScreen(bm, wx.SPLASH_CENTRE_ON_SCREEN|wx.SPLASH_TIMEOUT, 1000, None, -1)
+            s = wx.MINIMIZE_BOX | wx.MAXIMIZE_BOX | wx.RESIZE_BORDER | wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX | wx.CLIP_CHILDREN
+            self.splash = wx.SplashScreen(bm, wx.SPLASH_CENTRE_ON_SCREEN|wx.SPLASH_TIMEOUT, 1000, None, -1, style=s)
             
             wx.CallAfter(self.PostInit)
             return True
