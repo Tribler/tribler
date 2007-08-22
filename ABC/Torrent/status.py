@@ -49,7 +49,11 @@ class TorrentStatus:
         elif value == STATUS_FINISHED:
             status = self.utility.lang.get('completed')
         elif value == STATUS_STOP:
-            status = self.utility.lang.get('stop')
+            # although it's stopped. still show finished
+            if self.torrent.files.progress == 100.0:
+                status = self.utility.lang.get('completed')
+            else:
+                status = self.utility.lang.get('stop')
         elif value == STATUS_QUEUE:
             status = self.utility.lang.get('queue')
         else:

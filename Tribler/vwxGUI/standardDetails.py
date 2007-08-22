@@ -1362,11 +1362,11 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 #    def isEnabled(self):
 #        return self.enabled
 
-    def download(self, torrent = None, dest = None, secret = False):
+    def download(self, torrent = None, dest = None, secret = False, force = False):
         if torrent is None:
             torrent = self.item
 
-        if torrent is None or torrent.get('myDownloadHistory'):
+        if (torrent is None or torrent.get('myDownloadHistory')) and not force:
             return
             
         #print "**** standdetail: download", `torrent`

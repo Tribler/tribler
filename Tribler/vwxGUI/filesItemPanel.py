@@ -307,7 +307,8 @@ class FilesItemPanel(wx.Panel):
 ##                self.seeders.Show()
     #            self.tasteHeart.Show()
     
-                self.sourceIcon.Show()
+                
+                self.setSourceIcon(torrent)
                 self.vLine1.Show()
                 self.vLine2.Show()
                 self.vLine3.Show()
@@ -431,7 +432,7 @@ class FilesItemPanel(wx.Panel):
         
     def mouseAction(self, event):        
         self.SetFocus()
-        if self.data and event.LeftUp():
+        if self.data and (event.LeftUp() or event.RightDown()):
             # torrent data is sent to guiUtility > standardDetails.setData
             self.guiUtility.selectTorrent(self.data)
             
@@ -450,6 +451,19 @@ class FilesItemPanel(wx.Panel):
     def getIdentifier(self):
         return self.data['infohash']
 
+    def setSourceIcon(self, torrent):
+        desc = torrent.get('description', '')
+        if torrent.get('web2'):
+            if desc.lower().find('youtube') != -1:
+                source = 'youtube'
+            elif desc.lower().find('liveleak') != -1:
+                source = 'liveleak'
+            else:
+                source = ''
+        else:
+            source = 'tribler'
+        self.sourceIcon.setBitmap(self.parent.mm.getSourceIcon(source))
+        self.sourceIcon.Show()
                 
 class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
     """

@@ -25,7 +25,7 @@ class standardGrid(wx.Panel):
     Panel which shows a grid with static number of columns and dynamic number
     of rows
     """
-    def __init__(self, cols, subPanelHeight, orientation='horizontal'):
+    def __init__(self, cols, subPanelHeight, orientation='horizontal', viewmode = 'thumbnails'):
         self.initReady = False
         self.data = None
         self.dod = None
@@ -37,7 +37,9 @@ class standardGrid(wx.Panel):
         self.currentRows = 0
         self.sizeMode = 'auto'
         self.columnHeader = None
+        self.topMargin = 5
         self.panels = []
+        self.viewmode = viewmode
         pre = wx.PrePanel()
         # the Create step is done by XRC.
         self.PostCreate(pre)
@@ -91,7 +93,7 @@ class standardGrid(wx.Panel):
         self.SetBackgroundColour(wx.WHITE)
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         self.columnHeaderSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.columnHeaderSizer.AddSpacer(5)
+        self.columnHeaderSizer.AddSpacer(self.topMargin)
         self.vSizer.Add(self.columnHeaderSizer, 0, wx.ALL|wx.EXPAND, 0)
         self.SetSizer(self.vSizer);
         self.SetAutoLayout(1);
@@ -109,21 +111,23 @@ class standardGrid(wx.Panel):
             if type(event.GetEventObject()) == wx.Choice:
                 mode = event.GetEventObject().GetStringSelection()
             
-        #oldcols = self.cols
-        self.updatePanel(self.currentRows, 0)
-        if mode == 'thumbnails':
-            self.cols = self.columnTypes[0]
-            self.subPanelHeight = self.subPanelHeights[0]
-        elif mode == 'list':
-            self.cols = self.columnTypes[1]
-            self.subPanelHeight = self.subPanelHeights[1]
-        self.currentRows = 0
-        
-        #self.updatePanel(0, self.currentRows)
-        self.calculateRows()
-        #self.updateCols(oldcols, self.cols)
-        self.refreshData()
-        self.toggleColumnHeaders(mode == 'list')
+        if self.viewmode != mode:
+            self.viewmode = mode
+            #oldcols = self.cols
+            self.updatePanel(self.currentRows, 0)
+            if mode == 'thumbnails':
+                self.cols = self.columnTypes[0]
+                self.subPanelHeight = self.subPanelHeights[0]
+            elif mode == 'list':
+                self.cols = self.columnTypes[1]
+                self.subPanelHeight = self.subPanelHeights[1]
+            self.currentRows = 0
+            
+            #self.updatePanel(0, self.currentRows)
+            self.calculateRows()
+            #self.updateCols(oldcols, self.cols)
+            self.refreshData()
+            self.toggleColumnHeaders(mode == 'list')
         
     def onSizeChange(self, event=None):
         if type(event.GetEventObject()) == wx.Choice:
@@ -175,9 +179,8 @@ class standardGrid(wx.Panel):
                 self.dod.unregister(self.updateDod)
             self.dod = None
         elif dataList.isDod():
-            if self.dod != dataList and self.dod != None:
-                self.dod.unregister(self.updateDod)
-                self.dod.stop()
+            if self.dod != dataList:
+                self.stopWeb2Search()
 
             self.data = dataList.getData()
             self.dod = dataList
@@ -311,11 +314,17 @@ class standardGrid(wx.Panel):
     
         size = self.GetSize()
         oldRows = self.currentRows
+        if self.columnHeader:
+            columnHeaderHeight = self.columnHeader.GetSize()[1]
+        else:
+            columnHeaderHeight = self.topMargin
+            
+        
         if size[1] < 50 or self.subPanelHeight == 0:
             self.currentRows = 0
             self.items = 0
         else:            
-            self.currentRows = size[1] / self.subPanelHeight 
+            self.currentRows = (size[1] - columnHeaderHeight) / self.subPanelHeight 
             if DEBUG:
                 print >> sys.stderr, 'standardGrid: Height: %d, single panel is %d, so %d rows' % (size[1], self.subPanelHeight, self.currentRows)
             self.items = self.cols * self.currentRows
@@ -531,7 +540,12 @@ class standardGrid(wx.Panel):
             self.columnHeaderSizer.AddSpacer(5)
             self.columnHeaderSizer.Layout()
         self.vSizer.Layout()
-        
+    
+    def stopWeb2Search(self):
+        if self.dod:
+            self.dod.unregister(self.updateDod)
+            self.dod.stop()
+            
 class filesGrid(standardGrid):
     def __init__(self):
 #        columns = 5

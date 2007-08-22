@@ -585,7 +585,7 @@ class GUIUtility:
 
         
         
-        if self.standardOverview.mode == "filesMode":
+        if self.standardOverview.mode == "filesMode" and not item.get('myDownloadHistory', False):
             self.utility.makePopup(rightMouse, None, 'rOptions')
             if item.get('web2'):
                 self.utility.makePopup(rightMouse, self.onDownloadOpen, 'rPlay')
@@ -597,9 +597,9 @@ class GUIUtility:
                 self.utility.makePopup(rightMouse, self.onDownloadSecret, 'rDownloadSecretly')
             
             # if in library:
-        elif self.standardOverview.mode == "libraryMode":
+        elif self.standardOverview.mode == "libraryMode" or item.get('myDownloadHistory'):
             #self.utility.makePopup(rightMouse, self.onRecommend, 'rRecommend')        
-            rightMouse.AppendSeparator()
+            #rightMouse.AppendSeparator()
             self.utility.makePopup(rightMouse, None, 'rLibraryOptions')
             self.utility.makePopup(rightMouse, self.onOpenFileDest, 'rOpenfilename')
             self.utility.makePopup(rightMouse, self.onOpenDest, 'rOpenfiledestination')

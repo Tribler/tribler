@@ -23,7 +23,7 @@ from ABC.Torrent.status import TorrentStatus
 
 import cStringIO
 
-DEBUG=False
+DEBUG=True
 
 [ID_MENU_1418,ID_MENU_1419,ID_MENU_1420] = 1418,1419,1420
 
@@ -414,17 +414,20 @@ class LibraryItemPanel(wx.Panel):
         elif torrent: # inactive torrent
             
             #self.pb.setEnabled(False)
-            #self.downSpeed.Hide()
-            #self.speedDown2.Hide()
+            #self.downSpeed2.Hide()
+            self.speedDown2.SetLabel('')
             #self.upSpeed.Hide()            
-            #self.speedUp2.Hide()
+            self.speedUp2.SetLabel('')
             
             # Only show playbutton
             self.playFast.setEnabled(False)
             self.boost.setEnabled(False)
             self.pause.setEnabled(True)
             self.pause.setToggled(True)
-            self.statusField.SetLabel(self.utility.lang.get('stop')) 
+            if torrent.get('progress') == 100.0:
+                self.statusField.SetLabel(self.utility.lang.get('completed'))
+            else:
+                self.statusField.SetLabel(self.utility.lang.get('stop'))
             self.statusField.SetToolTipString(self.statusField.GetLabel())
             self.eta.SetLabel('')
             
@@ -566,11 +569,21 @@ class LibraryItemPanel(wx.Panel):
                      # Start torrent again
                      if DEBUG:
                          print >>sys.stderr,'lip: starting torrent %s with data in dir %s' % (repr(self.data['content_name']), dest_dir)
-                     self.guiUtility.standardDetails.download(self.data, dest = dest_dir)
+                     self.guiUtility.standardDetails.download(self.data, dest = dest_dir, force = True)
                  
                  elif DEBUG:
                      print >>sys.stderr,'lip: Could not make abctorrent active, no destdir in dictionary: %s' % repr(self.data.get('content_name'))
-                
+            elif name == 'libraryPlay':
+                # Todo: make non-abctorrent files playable.
+                dest_dir = self.data.get('destdir')
+                if  dest_dir is not None:
+                    # Start torrent again
+                    if DEBUG:
+                        print >>sys.stderr,'lip: starting torrent %s with data in dir %s' % (repr(self.data['content_name']), dest_dir)
+                    self.guiUtility.standardDetails.download(self.data, dest = dest_dir, force = True)
+                    
+                elif DEBUG:
+                    print >>sys.stderr,'lip: Could not make abctorrent active, no destdir in dictionary: %s' % repr(self.data.get('content_name'))
                 
         if name == 'deleteLibraryitem':
             # delete works for active and inactive torrents

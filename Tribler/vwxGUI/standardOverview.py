@@ -113,7 +113,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         self.Layout()
         
     def setMode(self, mode):
-        if self.mode != mode: 
+        if self.mode != mode:
+            self.stopWeb2Search()
             self.mode = mode
             self.refreshMode()
             
@@ -579,7 +580,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         return self.data[mode]['search']
     
     def getGrid(self):
-        return self.data[self.mode]['grid']
+        return self.data.get(self.mode, {}).get('grid')
     
     def clearSearch(self):
         self.data[self.mode]['search'].Clear()
@@ -608,7 +609,9 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         
     def _setSearchFeedback(self, type, finished, num, keywords = []):
         #print 'standardOverview: _setSearchFeedback called by', currentThread().getName()
-        self.data[self.mode]['searchDetailsPanel'].setMessage(type, finished, num, keywords)
+        searchDetailsPanel = self.data[self.mode].get('searchDetailsPanel')
+        if searchDetailsPanel:
+            searchDetailsPanel.setMessage(type, finished, num, keywords)
         
     def growWithGrid(self):
         gridHeight = self.data[self.mode]['grid'].GetSize()[1]
@@ -674,3 +677,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         self.data[self.mode]['panel'].Refresh()
         self.hSizer.Layout()
 
+    def stopWeb2Search(self):
+        grid = self.getGrid()
+        if grid:
+            grid.stopWeb2Search()

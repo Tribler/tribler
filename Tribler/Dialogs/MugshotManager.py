@@ -84,6 +84,10 @@ class MugshotManager:
         self.DOWNLOAD_BUTTON_PLAY = wx.Bitmap(os.path.join(self.guiImagePath, 'play.png'))
         self.DOWNLOAD_BUTTON_PLAY_S = wx.Bitmap(os.path.join(self.guiImagePath, 'play_clicked.png'))
         
+        self.SOURCE_ICON_TRIBLER = wx.Bitmap(os.path.join(self.guiImagePath, 'icon_tribler.png'))
+        self.SOURCE_ICON_YOUTUBE = wx.Bitmap(os.path.join(self.guiImagePath, 'icon_youtube.png'))
+        self.SOURCE_ICON_LIVELEAK = wx.Bitmap(os.path.join(self.guiImagePath, 'icon_liveleak.png'))\
+        
     def create_wxImageList(self,peerswpermid,setindex=False):
         """ peerswpermid is a list of dictionaries that contain the
             name and permid of a peer
@@ -312,4 +316,16 @@ class MugshotManager:
             return self.DOWNLOAD_BUTTON_LIBRARY, self.DOWNLOAD_BUTTON_LIBRARY_S
         else:
             raise Exception('No such mode')
+        
+    def getSourceIcon(self, source):
+        if source == 'tribler':
+            return self.SOURCE_ICON_TRIBLER
+        elif source == 'youtube':
+            return self.SOURCE_ICON_YOUTUBE
+        elif source == 'liveleak':
+            return self.SOURCE_ICON_LIVELEAK
+        elif not source:
+            return None
+        else:
+            raise Exception('No such source')
         

@@ -41,7 +41,7 @@ class tribler_topButton(wx.Panel):
         self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
         self.Bind(wx.EVT_LEFT_UP, self.ClickedButton)
         self.selected = False
-        self.ToolTip = None
+        self.tooltip = None
         self.old_bitmaps = None #bitmaps that were initially loaded on the button with searchBitmaps function, and now have been changed to some provisory ones using switchTo
         self.searchBitmaps()
         self.createBackgroundImage()
@@ -247,6 +247,11 @@ class tribler_topButton(wx.Panel):
                                             
     def setEnabled(self, e):
         self.enabled = e
+        if not e:
+            self.SetToolTipString('')
+#        else:
+#            if self.tooltip:
+#                self.SetToolTipString(self.tooltip)
         self.Refresh()
         
     def isEnabled(self):
@@ -326,10 +331,12 @@ class SwitchButton(tribler_topButton):
 
         if b:
             self.bitmaps=self.allBitmaps[2:]
-            self.SetToolTipString(tooltip["enabled"])
+            if self.enabled:
+                self.SetToolTipString(tooltip["enabled"])
         else:
             self.bitmaps=self.allBitmaps[:2]
-            self.SetToolTipString(tooltip["disabled"])
+            if self.enabled:
+                self.SetToolTipString(tooltip["disabled"])
             
         #print 'Bitmaps is now: %s' % self.bitmaps
         #should Refresh?
