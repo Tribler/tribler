@@ -556,21 +556,28 @@ class Connecter:
             print >> sys.stdout, "barter: Up %d down %d peer %s:%s (PermID = %s)" % (c.total_uploaded, c.total_downloaded, ip, port, permid)
         my_permid = self.bartercastdb.my_permid
 
-        # Save downloaded MBs in PeerDB
+        down_kb = int(c.total_downloaded / 1024)
+        up_kb = int(c.total_uploaded / 1024)
+
+        # Save exchanged KBs in PeerDB
         if permid != None:
 
             name = self.bartercastdb.getName(permid)
             
-            down_kb = int(c.total_downloaded / 1024)
-            up_kb = int(c.total_uploaded / 1024)
-
             if down_kb > 0:
                 new_value = self.bartercastdb.incrementItem((my_permid, permid), 'downloaded', down_kb)
- #               print >> sys.stdout, "DB: downloaded %d bytes from peer %s" % (new_value, name)
-
+ 
             if up_kb > 0:
                 new_value = self.bartercastdb.incrementItem((my_permid, permid), 'uploaded', up_kb)
- #               print >> sys.stdout, "DB: uploaded %d bytes from peer %s" % (new_value, name)
+ 
+        # For the record: save KBs exchanged with non-tribler peers
+        else:
+            if down_kb > 0:
+                new_value = self.bartercastdb.incrementItem((my_permid, 'non-tribler'), 'downloaded', down_kb)
+ 
+            if up_kb > 0:
+                new_value = self.bartercastdb.incrementItem((my_permid, 'non-tribler'), 'uploaded', up_kb)
+            
 
         ###################################### 
 

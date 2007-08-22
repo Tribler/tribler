@@ -824,6 +824,8 @@ class BarterCastDBHandler(BasicDBHandler):
             return "Test_1"
         elif permid == 'testpermid_2':
             return "Test_2"
+        elif permid == 'non-tribler':
+            return "Non-tribler"
 
         peer = self.peer_db.getItem(permid, False)
         return peer['name']
@@ -905,7 +907,7 @@ class BarterCastDBHandler(BasicDBHandler):
             value = up + down # compare based on total exchange
 
             # check if peer belongs to current top N
-            if len(top) < n or value > min:
+            if peer != 'non-tribler' and (len(top) < n or value > min):
 
                 top.append((peer, up, down))
 
