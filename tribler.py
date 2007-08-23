@@ -995,11 +995,13 @@ class TorThread(Thread):
                 print >>sys.stderr,"TorThread starting",currentThread().getName()
             if sys.platform == "win32":
                 # Not "Nul:" but "nul" is /dev/null on Win32
+                cmd = 'tor.exe'
                 sink = 'nul'
             else:
+                cmd = 'tor'
                 sink = '/dev/null'
     
-            (self.child_out,self.child_in) = os.popen2( "tor.exe  --log err-err > %s 2>&1" % (sink), 'b' )
+            (self.child_out,self.child_in) = os.popen2( "%s --log err-err > %s 2>&1" % (cmd,sink), 'b' )
             #(child_out,child_in) = os.popen2( "tor.exe --log err-err", 'b' )
             while True:
                 msg = child_in.read()
