@@ -139,6 +139,7 @@ bundlebuilder.buildapp(
            + includedir( "icons" )
            + filterincludes( includedir( "Tribler/vwxGUI" ), lambda x: x.endswith(".xrc") )
            + includedir( "Tribler/vwxGUI/images" )
+           + includedir( "khashmir" )
             )
 )
 

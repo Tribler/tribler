@@ -528,11 +528,19 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         self.utility.controller.start()
         
         # Start up mainline DHT
-        rsconvert = RawServerConverter(self.utility.controller.get_rawserver())
-        mainlineDHT.init('', self.utility.listen_port, self.utility.getConfigPath(),rawserver=rsconvert)
-        # Create torrent-liveliness checker based on DHT
-        c = mainlineDHTChecker.getInstance()
-        c.register(mainlineDHT.dht)
+        # Arno: do this in a try block, as khashmir gives a very funky
+        # error when started from a .dmg (not from cmd line) on Mac. In particular
+        # it complains that it cannot find the 'hex' encoding method when
+        # hstr.encode('hex') is called, and hstr is a string?!
+        #
+        try:
+            rsconvert = RawServerConverter(self.utility.controller.get_rawserver())
+            mainlineDHT.init('', self.utility.listen_port, self.utility.getConfigPath(),rawserver=rsconvert)
+            # Create torrent-liveliness checker based on DHT
+            c = mainlineDHTChecker.getInstance()
+            c.register(mainlineDHT.dht)
+        except:
+            print_exc()
 
         # Give GUI time to set up stuff
         wx.Yield()
