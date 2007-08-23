@@ -10,7 +10,7 @@
 #               need Python, WxPython in order to run from source code.
 #########################################################################
 
-# Arno: G*dd*mn M2Crypto overrides the method for https:// in the
+# Arno: M2Crypto overrides the method for https:// in the
 # standard Python libraries. This causes msnlib to fail and makes Tribler
 # freakout when "http://www.tribler.org/version" is redirected to
 # "https://www.tribler.org/version/" (which happened during our website
@@ -1005,6 +1005,8 @@ class TorThread(Thread):
                 msg = child_in.read()
                 if DEBUG:
                     print >>sys.stderr,"TorThread: tor said",msg
+                if len(msg) == 0:
+                    break
                 sleep(1)
 
     def shutdown(self):
