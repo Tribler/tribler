@@ -10,6 +10,7 @@
 
 OPENSSL_VER=0.9.8e
 PYTHON_VER=2.5
+VLC_REV=20150
 PWD:=${shell pwd}
 ARCH:=${shell arch}
 
@@ -164,7 +165,7 @@ VLCDIR=${PWD}/build/temp/vlc
 VLCPREFIX=${VLCDIR}/install-root
 
 build/temp/.vlc:
-	svn co -r 21375 svn://svn.videolan.org/vlc/trunk ${VLCDIR}
+	svn co -r ${VLC_REV} svn://svn.videolan.org/vlc/trunk ${VLCDIR}
 	cd ${VLCDIR}/extras/contrib && ./bootstrap
 	cd ${VLCDIR}/extras/contrib && make src
 	touch $@
@@ -184,7 +185,7 @@ ${VLCPREFIX}/lib/libvlc.a:	${VLCDIR}/Makefile
 	# and one might want to run this Makefile several times in case of errors, we don't use patch
 	cat ${VLCDIR}/Makefile | sed 's/vlc_app_DATA = VLC.app//;' > build/temp/Makefile.temp
 	mv build/temp/Makefile.temp ${VLCDIR}/Makefile
-	cat ${VLCDIR}/vlc-config | sed 's/^cflags_tuning=.*/cflags_tuning=""/; s/-lvlc-control//;' > build/temp/vlc-config.temp
+	cat ${VLCDIR}/vlc-config | sed 's/^cflags_tuning=.*/cflags_tuning=""/;' > build/temp/vlc-config.temp
 	mv build/temp/vlc-config.temp ${VLCDIR}/vlc-config
 	chmod a+x ${VLCDIR}/vlc-config
 
