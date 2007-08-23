@@ -622,9 +622,13 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 
                 if 'npeers' in item:
                     n = unicode(item['npeers'])
+                    if not n or n=='0':
+                        n = '?'
                     self.getGuiObj('discPersonsField').SetLabel(n)
                 if 'ntorrents' in item:
                     n = unicode(item['ntorrents'])
+                    if not n or n == '0':
+                        n = '?'
                     self.getGuiObj('discFilesField').SetLabel(n)
                 
                 if item.get('friend') is not None:
