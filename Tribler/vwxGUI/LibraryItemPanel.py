@@ -717,7 +717,7 @@ class LibraryItemPanel(wx.Panel):
             self.data.update(newdata)
             
             if DEBUG:
-                print >>sys.stderr,'lip: Save destination?: %s and progress: %f' % (self.data['destdir'], self.data['progress'])
+                print >>sys.stderr,'lip: Save destination?: %s and progress: %f' % (`self.data['destdir']`, self.data['progress'])
             # only save new data (progression and destdir, no other data or torrent
             self.utility.torrent_db.updateTorrent(infohash, **newdata)
             # Now delete the abctorrent object reference

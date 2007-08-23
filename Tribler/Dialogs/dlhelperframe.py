@@ -29,7 +29,7 @@ class DownloadHelperFrame(wx.Frame):
     def __init__(self,parent,utility,engine):
         self.utility = utility
         wx.Frame.__init__(self, None, -1, self.utility.lang.get('tb_dlhelp_short'), 
-                          size=(640,480))
+                          size=(640,520))
         
         main_panel = wx.Panel(self)
         self.downloadHelperPanel = self.createMainPanel(main_panel,engine)
@@ -134,7 +134,8 @@ class DownloadHelperPanel(wx.Panel):
         # 4. Build GUI
         mainbox = wx.BoxSizer(wx.VERTICAL)
         topbox = wx.BoxSizer(wx.HORIZONTAL)
-        botbox = wx.BoxSizer(wx.HORIZONTAL)
+        botbox1 = wx.BoxSizer(wx.HORIZONTAL)
+        botbox2 = wx.BoxSizer(wx.HORIZONTAL)
 
         # 4a. Friends in left window
         friendsbox = wx.BoxSizer(wx.VERTICAL)
@@ -176,14 +177,20 @@ class DownloadHelperPanel(wx.Panel):
         self.timer.Start(4000)
 
 
-        howtotext = wx.StaticText(self, -1, self.utility.lang.get('dlhelphowto'))
-        howtotext.Wrap(500)
-        botbox.Add(howtotext, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5)
+        howtotext1 = wx.StaticText(self, -1, self.utility.lang.get('dlhelphowto1'))
+        howtotext1.Wrap(500)
+        botbox1.Add(howtotext1, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5)
+        
+        howtotext2 = wx.StaticText(self, -1, self.utility.lang.get('dlhelphowto2'))
+        howtotext2.Wrap(500)
+        botbox2.Add(howtotext2, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5)
 
 
         # 5. Show GUI
+        mainbox.Add(botbox1, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 5)        
         mainbox.Add(topbox, 0, wx.EXPAND|wx.ALL)
-        mainbox.Add(botbox, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 5)
+        mainbox.Add(botbox2, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALL, 5)        
+        
         #self.SetSizerAndFit(mainbox)
         self.SetSizer(mainbox)
         self.SetAutoLayout(True)
