@@ -455,7 +455,9 @@ class FilesItemPanel(wx.Panel):
 
     def setSourceIcon(self, torrent):
         desc = torrent.get('description', '')
-        if torrent.get('web2'):
+        if torrent.has_key('query_permid'):
+            source = 'remote'
+        elif torrent.get('web2'):
             if desc.lower().find('youtube') != -1:
                 source = 'youtube'
             elif desc.lower().find('liveleak') != -1:
@@ -561,7 +563,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                 if not bmp:
                     #print 'fip: ThumbnailViewer: Error: thumbnailBitmap not found in torrent %s' % torrent
                     bmp = self.mm.getCategoryIcon(self.mode, torrent.get('category'), thumbtype=thumbtype, web2 = torrent.get('web2'))
-            elif not 'query_permid' in torrent:
+            else:
                 #print "fip: ThumbnailViewer: set: Scheduling read of metadata"
                 # web2.0 elements already have the thumbnail stored at key 'preview'
                 if torrent.get('preview'):

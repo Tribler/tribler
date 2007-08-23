@@ -18,7 +18,7 @@ import web2
 
 OVERVIEW_MODES = ['filesMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionsMode', 'messageMode', 'libraryMode']
 
-DEBUG = False
+DEBUG = True
 
 class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     """

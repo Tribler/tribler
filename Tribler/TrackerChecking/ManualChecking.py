@@ -8,6 +8,7 @@ import os
 from Tribler.TrackerChecking.TrackerChecking import trackerChecking
 from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
 from Tribler.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
+from Tribler.unicode import name2unicode
 
 class ManualChecking(Thread):
     
@@ -59,7 +60,7 @@ class SingleManualChecking(Thread):
     def readExtraTorrentInfo(self, torrent):
         if not torrent.has_key('info'):
             from Tribler.Overlay.MetadataHandler import MetadataHandler
-            from Utility.utility import getMetainfo
+            from Utility.utility import getMetainfo, printTorrent
             
             metadatahandler = MetadataHandler.getInstance()
             (torrent_dir,torrent_name) = metadatahandler.get_std_torrent_dir_name(torrent)
@@ -67,8 +68,18 @@ class SingleManualChecking(Thread):
             metadata = getMetainfo(torrent_filename)
             if not metadata:
                 raise Exception('No torrent metadata found')
-#                   
-            torrent['info'] = metadata
+#
+            print 'Metainfo'
+            printTorrent(metadata)
+            
+            namekey = name2unicode(metadata)
+            torrent['info'] = {}
+            torrent['info']['name'] = metadata['info'][namekey]
+            if metadata.get('announce'):
+                torrent['info']['announce'] = metadata.get('announce')
+            if metadata.get('announce-list'):
+                torrent['info']['announce-list'] = metadata.get('announce-list')
+            
         
     def deleteExtraTorrentInfo(self, torrent):
         if torrent.has_key('info'):

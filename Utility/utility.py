@@ -945,6 +945,14 @@ class Utility:
         
         return newid
 
+
+def printTorrent(torrent, pre = ''):
+    for key, value in torrent.items():
+        if type(value) == dict:
+            printTorrent(value, pre+' '+key)
+        elif key.lower() not in ['pieces', 'thumbnail', 'preview']:
+            print '%s | %s: %s' % (pre, key, value)
+            
 def getMetainfo(src, openoptions = 'rb', style = "file"):
     if src is None:
         return None

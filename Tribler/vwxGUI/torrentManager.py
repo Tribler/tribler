@@ -25,7 +25,7 @@ from sets import Set
 from Tribler.Search.KeywordSearch import KeywordSearch
 import web2
 
-DEBUG = False
+DEBUG = True
 DEBUG_RANKING = False
 
 # Arno: save memory by reusing dict keys
@@ -103,6 +103,7 @@ class TorrentDataManager:
             self.prepareData()
             self.isDataPrepared = True
         except:
+            print_exc()
             raise Exception('Could not load torrent data !!')
     def prepareData(self):
         
@@ -360,7 +361,11 @@ class TorrentDataManager:
         self.notifyView(old_torrent, 'delete')
 
     def prepareItem(self, torrent):    # change self.data
+        
         info = torrent['info']
+        if not info.get('name'):
+            print 'Error in torrent. No name found'
+        
         torrent[key_length] = info.get('length', 0)
         torrent[key_content_name] = dunno2unicode(info.get('name', '?'))
         if key_torrent_name not in torrent or torrent[key_torrent_name] == '':
@@ -582,6 +587,10 @@ class TorrentDataManager:
         # We got some replies. First check if they are for the current query
         if self.searchkeywords[mode] == kws:
             for key,value in answers.iteritems():
+                
+                if self.info_dict.has_key(key):
+                    continue # do not show results we have ourselves
+                
                 value['infohash'] = key
                 # Set from which peer this info originates
                 value['query_permid'] = permid
@@ -591,7 +600,7 @@ class TorrentDataManager:
                 # Add values to enable filters (popular/rec/size) to work
                 value['swarmsize'] = value['seeder']+value['leecher']
                 value['relevance'] = 0
-                value['date'] = 0
+                value['date'] = None # gives '?' in GUI
                 
                 if DEBUG:
                     print >>sys.stderr,"torrentDataManager: gotRemoteHist: appending hit",`value['content_name']`

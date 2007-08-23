@@ -86,7 +86,8 @@ class MugshotManager:
         
         self.SOURCE_ICON_TRIBLER = wx.Bitmap(os.path.join(self.guiImagePath, 'icon_tribler.png'))
         self.SOURCE_ICON_YOUTUBE = wx.Bitmap(os.path.join(self.guiImagePath, 'icon_youtube.png'))
-        self.SOURCE_ICON_LIVELEAK = wx.Bitmap(os.path.join(self.guiImagePath, 'icon_liveleak.png'))\
+        self.SOURCE_ICON_LIVELEAK = wx.Bitmap(os.path.join(self.guiImagePath, 'icon_liveleak.png'))
+        self.SOURCE_ICON_REMOTE = wx.Bitmap(os.path.join(self.guiImagePath, 'icon_remote.png'))
         
     def create_wxImageList(self,peerswpermid,setindex=False):
         """ peerswpermid is a list of dictionaries that contain the
@@ -327,6 +328,8 @@ class MugshotManager:
             return self.SOURCE_ICON_YOUTUBE
         elif source == 'liveleak':
             return self.SOURCE_ICON_LIVELEAK
+        elif source == 'remote':
+            return self.SOURCE_ICON_REMOTE
         elif not source:
             return None
         else:
