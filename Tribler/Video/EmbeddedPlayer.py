@@ -363,7 +363,7 @@ class VLCMediaCtrl(wx.Window):
         wx.Window.__init__(self, parent, id, size=(320,240))
         self.SetMinSize((320,240))
         self.SetBackgroundColour(wx.BLACK)
-        self.status = "Starting player..."
+        self.status = "Player is loading..."
 
         if logofilename is not None:
             self.logo = wx.BitmapFromImage(wx.Image(logofilename).Scale(100,142),-1)
@@ -412,7 +412,7 @@ class VLCMediaCtrl(wx.Window):
     # Be sure that this window is visible before
     # calling Play(), otherwise GetHandle() fails
     def Play(self):
-        self.setStatus("Starting player...")
+        self.setStatus("Player is loading...")
         if self.GetState() == MEDIASTATE_PLAYING:
             return
 

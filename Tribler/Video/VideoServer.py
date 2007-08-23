@@ -204,7 +204,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
             if DEBUG:
                 print >>sys.stderr,"videoserv: do_GET: Got request",self.path,self.headers.getheader('range')
                 
-            self.server.statuscallback("Player started...")
+            self.server.statuscallback("Player ready - Attempting to load file...")
             movie = self.server.get_movietransport()
             if movie is None:
                 if DEBUG:
@@ -262,7 +262,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                     self.wfile.write(data)
                     #sleep(1)
                     if first:
-                        self.server.statuscallback("Playing...")
+                        self.server.statuscallback("Player ready - Attempting to play file...")
                         first = False
                     
                 except IOError, e:
