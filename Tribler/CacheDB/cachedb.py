@@ -34,7 +34,7 @@ PeerDB - (MyFriendDB, PreferenceDB, OwnerDB)
         name: str ('unknown')
         last_seen: int (0)
         similarity: int (0)    # [0, 1000]
-        oversion: int(0)    # overlay version, added in 3.7.1
+        oversion: int(0)    # overlay version, added in 3.7.1, overlay version 4
         connected_times: int(0)    # times to connect the peer successfully
         #tried_times: int(0)        # times to attempt to connect the peer, removed from 3.7.1
         buddycast_times: int(0)    # times to receive buddycast message
@@ -42,10 +42,10 @@ PeerDB - (MyFriendDB, PreferenceDB, OwnerDB)
         #relability (uptime, IP fixed/changing)
         #trust: int (0)    # [0, 100]
         #icon: str ('')    # name + '_' + permid[-4:]
-        npeers: int(0)
-        ntorrents: int(0)
-        nprefs: int(0)
-        nqueries: int(0)
+        npeers: int(0)     # added in 4.1, overlay version 6
+        ntorrents: int(0)  # added in 4.1, overlay version 6  
+        nprefs: int(0)     # added in 4.1, overlay version 6
+        nqueries: int(0)   # added in 4.1, overlay version 6
     }
 
 TorrentDB - (PreferenceDB, MyPreference, OwnerDB)
@@ -636,6 +636,7 @@ class PeerDB(BasicDB):
     def updateDB(self, old_version):
         if old_version == 1 or old_version == 2 or old_version == 3:
             def_newitem = {
+                'oversion':0,
                 'npeers': 0,
                 'ntorrents': 0,
                 'nprefs': 0,
