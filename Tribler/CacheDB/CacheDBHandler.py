@@ -10,6 +10,7 @@ from time import time
 
 from BitTornado.bencode import bencode, bdecode
 from Tribler.Overlay.permid import permid_for_user
+from sets import Set
 
 class BasicDBHandler:
     def __init__(self):
@@ -871,43 +872,54 @@ class BarterCastDBHandler(BasicDBHandler):
         return keys
 
     # Return (sorted) list of the top N peers with the highest (combined) values for the given keys    
-    def getTopNPeers(self, n, giveMyTotals = False):
+    def getTopNPeers(self, n, giveMyTotals = False, local_only = False):
 
         itemlist = self.getItemList()
 
-        # get items with which I've had local dealings
-        itemlist_from = filter(lambda (permid_from, permid_to): permid_to == self.my_permid, itemlist)
-        itemlist_to = filter(lambda (permid_from, permid_to): permid_from == self.my_permid, itemlist)
+        if local_only:
+        
+            # get only items of my local dealings
+            itemlist = filter(lambda (permid_from, permid_to): permid_to == self.my_permid or permid_from == self.my_permid, itemlist)
+            
+        total_up = {}
+        total_down = {}
+        
+        for (permid_1, permid_2) in itemlist:
+            
+            item = self.getItem((permid_1, permid_2))
+            up = item['uploaded']
+            down = item['downloaded']
+            
+            # process permid_1
+            if permid_1 in total_up:
+                total_up[permid_1] += up
+                total_down[permid_1] += down
+            else:
+                total_up[permid_1] = up
+                total_down[permid_1] = down
 
-        # get corresponding peers        
-        peerlist_from = map(lambda (permid_from, me): permid_from, itemlist_from) 
-        peerlist_to = map(lambda (me, permid_to): permid_to, itemlist_to)
-        peers = peerlist_from + peerlist_to
-
+            # process permid_2
+            if permid_2 in total_up:
+                total_up[permid_2] += down
+                total_down[permid_2] += up
+            else:
+                total_up[permid_2] = down
+                total_down[permid_2] = up
+        
         # create top N peers
         top = []
         min = 0
-
-        total_up = total_down = 0
         
-        for peer in peerlist_from + peerlist_to:
+        for peer in total_up.keys():
 
-            item = self.getItem((self.my_permid, peer))
-
-            # note: values are reverse from db values since 
-            # here we want to report what the 
-            # peer has downloaded _from_ me and 
-            # uploaded _to_ me.
-            up = item['downloaded'] * 1024 # in bytes..
-            down = item['uploaded'] * 1024 
+            up = total_up[peer]
+            down = total_down[peer]
             
-            total_down += up # save totals of my down and upload
-            total_up += down
-            
-            value = up + down # compare based on total exchange
+            # we know rank on total upload?
+            value = up
 
             # check if peer belongs to current top N
-            if peer != 'non-tribler' and (len(top) < n or value > min):
+            if peer != 'non-tribler' and peer != self.my_permid and (len(top) < n or value > min):
 
                 top.append((peer, up, down))
 
@@ -921,38 +933,12 @@ class BarterCastDBHandler(BasicDBHandler):
                 # determine new minimum of values    
                 min = top[-1][1]
 
+
         if giveMyTotals:
-            return top, (total_up, total_down)
+            return top, (total_up[self.my_permid], total_down[self.my_permid])
         else:
             return top        
 
-    def getMyValues(self):
-
-        itemlist = self.getItemList()
-
-        # get items with which I've had local dealings
-        itemlist_from = filter(lambda (permid_from, permid_to): permid_to == self.my_permid, itemlist)
-        itemlist_to = filter(lambda (permid_from, permid_to): permid_from == self.my_permid, itemlist)
-
-        # get corresponding peers
-        peerlist_from = map(lambda (permid_from, me): permid_from, itemlist_from) 
-        peerlist_to = map(lambda (me, permid_to): permid_to, itemlist_to)
-        peers = peerlist_from + peerlist_to
-
-        # compute my total uploaded and downloaded
-        total_up = 0
-        total_down = 0
-        
-        for peer in peers:
-            
-            item = self.getItem((self.my_permid, peer))
-            up = item['uploaded']
-            down = item['downloaded']
-            total_up += up
-            total_down += down
-            
-        return (total_up, total_down)
-            
 
     def addItem(self, (permid_1, permid_2), item):
 
