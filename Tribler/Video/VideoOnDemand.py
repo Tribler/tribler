@@ -92,10 +92,15 @@ class PiecePickerStreaming(PiecePicker):
         return (piece >= self.download_range[0]
                 and piece <= self.download_range[1])
 
+    # next: selects next piece to download. adjusts wantfunc with filter for streaming; calls
+    #   _next: selects next piece to download. completes partial downloads first, if needed, otherwise calls
+    #     next_new: selects next piece to download. override this with the piece picking policy
+
     def next(self, haves, wantfunc, sdownload, complete_first = False, helper_con = False):
         def newwantfunc( piece ):
             return self.streaming_piece_filter( piece ) and wantfunc( piece )
 
+        # fallback: original piece picker
         p = PiecePicker.next(self, haves, newwantfunc, sdownload, complete_first, helper_con)
         #if DEBUG:
         #    print >>sys.stderr,"PiecePickerStreaming: next returns",p
@@ -106,10 +111,51 @@ class PiecePickerStreaming(PiecePicker):
             self.transporter.notify_playable()
         return p
 
+    def next_new(self, haves, wantfunc, complete_first, helper_con):
+        """ Override this function for the streaming piece picking. """
+
+        # fallback: original piece picker
+        print "omgwtfbbq"
+        return PiecePicker._next(self, haves, wantfunc, complete_first, helper_con)
+
+    def _next(self, haves, wantfunc, complete_first, helper_con):
+        """ First, complete any partials if needed. Otherwise, select a new piece. """
+
+        # cutoff = True:  random mode
+        #          False: rarest-first mode
+        cutoff = self.numgot < self.rarest_first_cutoff
+
+        # whether to complete existing partials first -- do so before the
+        # cutoff, or if forced by complete_first, but not for seeds.
+        complete_first = (complete_first or cutoff) and not haves.complete()
+
+        # most interesting piece
+        best = None
+
+        # interest level of best piece
+        bestnum = 2 ** 30
+
+        # select piece we started to download with best interest index.
+        for i in self.started:
+# 2fastbt_
+            if haves[i] and wantfunc(i) and (self.helper is None or helper_con or not self.helper.is_ignored(i)):
+# _2fastbt
+                if self.level_in_interests[i] < bestnum:
+                    best = i
+                    bestnum = self.level_in_interests[i]
+
+        if best is not None:
+            # found a piece -- return it if we are completing partials first
+            # or if there is a cutoff
+            if complete_first or (cutoff and len(self.interests) > self.cutoff):
+                return best
+
+        return self.next_new(haves, wantfunc, complete_first, helper_con)
+
 class PiecePickerEDF(PiecePickerStreaming):
     """ Earliest Deadline First -- pick the piece with the lowest number. """
 
-    def _next(self, haves, wantfunc, complete_first, helper_con):
+    def next_new(self, haves, wantfunc, complete_first, helper_con):
         """ Determine which piece to download next from a peer.
 
         haves:          set of pieces owned by that peer
@@ -131,6 +177,8 @@ class PiecePickerEDF(PiecePickerStreaming):
             if self.helper is None or helper_con or not self.helper.is_ignored(i):
                 return i
 
+        return None
+
 class PiecePickerBiToS(PiecePickerStreaming):
     """ BiToS -- define a high-priority set, and select out of it with probability p. """
    
@@ -140,7 +188,7 @@ class PiecePickerBiToS(PiecePickerStreaming):
     # p -- probability of selecting a piece out of the high probability set
     P = 0.8
 
-    def _next(self, haves, wantfunc, complete_first, helper_con):
+    def next_new(self, haves, wantfunc, complete_first, helper_con):
         """ Determine which piece to download next from a peer.
 
         haves:          set of pieces owned by that peer
@@ -258,7 +306,7 @@ class PiecePickerG2G(PiecePickerStreaming):
         else:
                 self.h = 0
 
-    def _next(self, haves, wantfunc, complete_first, helper_con):
+    def next_new(self, haves, wantfunc, complete_first, helper_con):
         """ Determine which piece to download next from a peer.
 
         haves:          set of pieces owned by that peer
