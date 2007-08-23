@@ -9,7 +9,7 @@ from distutils.util import get_platform
 import sys,os,platform
 
 # modules to include into bundle
-includeModules=["M2Crypto","wx","wxPython","encodings.utf_8","encodings.latin_1","argvemulator","_xmlplus.sax"]
+includeModules=["M2Crypto","wx","wxPython","encodings.hex_codec","encodings.utf_8","encodings.latin_1","argvemulator","_xmlplus.sax"]
 
 # gui panels to include
 includePanels=[
@@ -135,7 +135,8 @@ bundlebuilder.buildapp(
              ("readme.txt",       "Contents/Resources/"),
              ("tribler.ico",      "Contents/Resources/"),
              ("torrenticon.ico",  "Contents/Resources/"),
-             ("mac/TriblerDoc.icns", "Contents/Resources/"),]
+             ("mac/TriblerDoc.icns", "Contents/Resources/"),
+             ("tor",  "Contents/Resources/")]
            + includedir( "icons" )
            + filterincludes( includedir( "Tribler/vwxGUI" ), lambda x: x.endswith(".xrc") )
            + includedir( "Tribler/vwxGUI/images" )

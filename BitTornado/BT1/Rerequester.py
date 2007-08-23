@@ -42,7 +42,7 @@ except:
     False = 0
     
 DEBUG = False
-DEBUG_DHT = False
+DEBUG_DHT = True 
 
 mapbase64 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-'
 keys = {}
