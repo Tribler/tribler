@@ -185,7 +185,7 @@ class FilesItemPanel(wx.Panel):
             self.sourceIcon = ImagePanel(self, -1, wx.DefaultPosition, wx.Size(16,16),name='bcIcon')
             self.sourceIcon.setBackground(wx.WHITE)
             #self.sourceIcon.SetToolTipString(self.utility.lang.get('---'))          
-            self.hSizer.Add(self.sourceIcon, 0, wx.TOP|wx.RIGHT, 0)
+            self.hSizer.Add(self.sourceIcon, 0, wx.TOP, 2)
             self.hSizer.Add([10,5],0,wx.EXPAND|wx.FIXED_MINSIZE,3)
 
             
@@ -375,6 +375,7 @@ class FilesItemPanel(wx.Panel):
 ##            self.leechers.setBackground(colour)
             self.leechersNumber.SetBackgroundColour(colour)
             self.tasteHeart.setBackground(colour)        
+            self.sourceIcon.setBackground(colour)
             self.taste.SetBackgroundColour(colour)
             self.sourceIcon.SetBackgroundColour(colour)
             
@@ -409,6 +410,7 @@ class FilesItemPanel(wx.Panel):
 ##            self.leechers.setBackground(colour)
             self.leechersNumber.SetBackgroundColour(colour)
             self.tasteHeart.setBackground(colour)        
+            self.sourceIcon.setBackground(colour)
             self.taste.SetBackgroundColour(colour)
             self.sourceIcon.SetBackgroundColour(colour)
             
