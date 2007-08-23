@@ -425,8 +425,11 @@ class LibraryItemPanel(wx.Panel):
             self.pause.setEnabled(True)
             self.pause.setToggled(True)
             if torrent.get('progress') == 100.0:
+                self.playerPlay.setEnabled(True)
+                self.playerPlay.setToggled(True, tooltip = {"disabled" : self.utility.lang.get('playerDisabled'), "enabled" : self.utility.lang.get('playerEnabled')})
                 self.statusField.SetLabel(self.utility.lang.get('completed'))
             else:
+                self.playerPlay.setEnabled(False)
                 self.statusField.SetLabel(self.utility.lang.get('stop'))
             self.statusField.SetToolTipString(self.statusField.GetLabel())
             self.eta.SetLabel('')

@@ -27,7 +27,7 @@ MAX_RESULTS = 20
 QUERY_ID_SIZE = 20
 MAX_QUERY_REPLY_LEN = 100*1024    # 100K
 
-DEBUG = False
+DEBUG = True
 
 class RemoteQueryMsgHandler:
     

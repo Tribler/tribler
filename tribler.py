@@ -85,7 +85,7 @@ from Tribler.CacheDB.CacheDBHandler import BarterCastDBHandler
 from Tribler.Overlay.permid import permid_for_user
 from BitTornado.download_bt1 import EVIL
 
-DEBUG = True
+DEBUG = False
 ALLOW_MULTIPLE = False
 start_time = 0
 start_time2 = 0

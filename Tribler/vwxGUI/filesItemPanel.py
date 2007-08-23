@@ -269,7 +269,7 @@ class FilesItemPanel(wx.Panel):
             if self.listItem:
                 self.fileSize.Enable(True)
                 if torrent.get('web2'):
-                    self.fileSize.SetLabel(torrent['length'])
+                    self.fileSize.SetLabel('%s s' % torrent['length'])
                     self.creationDate.SetLabel(friendly_time(torrent['info']['creation date']))
                 else:
                     self.fileSize.SetLabel(self.utility.size_format(torrent['length']))
@@ -559,13 +559,10 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                 if not bmp:
                     #print 'fip: ThumbnailViewer: Error: thumbnailBitmap not found in torrent %s' % torrent
                     bmp = self.mm.getCategoryIcon(self.mode, torrent.get('category'), thumbtype=thumbtype, web2 = torrent.get('web2'))
-            else:
+            elif not 'query_permid' in torrent:
                 #print "fip: ThumbnailViewer: set: Scheduling read of metadata"
                 # web2.0 elements already have the thumbnail stored at key 'preview'
-                if 'query_permid' in torrent:
-                    # Remote query result, no .torrent file avail
-                    return
-                elif torrent.get('preview'):
+                if torrent.get('preview'):
                     self.GetParent().guiserver.add_task(lambda:self.loadMetadata(torrent,None),0)
                 else:
                     (torrent_dir,torrent_name) = self.metadatahandler.get_std_torrent_dir_name(torrent)

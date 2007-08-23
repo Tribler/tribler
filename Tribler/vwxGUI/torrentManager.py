@@ -61,7 +61,7 @@ class TorrentDataManager:
         self.rankList = []
         self.isDataPrepared = False
         self.data = []
-        self.hits = []
+
         self.dod = None
         self.keywordsearch = KeywordSearch()
         # initialize the cate_dict
@@ -262,8 +262,7 @@ class TorrentDataManager:
         
         isLibraryItem = torrent.get('myDownloadHistory', False)
         categories = torrent.get('category', ['other']) + ["all"]
-        if torrent in self.hits:
-            categories.append('search')
+        
         
         for key in categories:
 #            if key == '?':

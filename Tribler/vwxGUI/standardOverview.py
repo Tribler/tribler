@@ -536,9 +536,11 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             self.invokeLater(torrentGrid.updateItem, [torrent], {'onlyupdate':True})
         elif operate == 'add' and torrent.get('status') == 'good' or torrent.get('myDownloadHistory'):
             #print "******** add torrent", torrent,self.mode,self.data_manager.inSearchMode(self.mode)
-            #if not self.data_manager.inSearchMode(self.mode):
+            
+            # only show update if we are not searching or update is a RemoteSearchResult
+            if not self.data_manager.inSearchMode(self.mode) or torrent.has_key('query_permid'):
                 # new torrents are only added when healthy
-            self.invokeLater(torrentGrid.updateItem, [torrent])
+                self.invokeLater(torrentGrid.updateItem, [torrent])
         elif operate == 'delete':
             self.invokeLater(torrentGrid.updateItem, [torrent], {'delete':True})
             
