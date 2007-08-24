@@ -872,14 +872,18 @@ class BarterCastDBHandler(BasicDBHandler):
         return keys
 
     # Return (sorted) list of the top N peers with the highest (combined) values for the given keys    
-    def getTopNPeers(self, n, giveMyTotals = False, local_only = False):
+    def getTopNPeers(self, n, giveMyTotals = False, local_only = False, tribler_only = False):
 
         itemlist = self.getItemList()
 
         if local_only:
-        
             # get only items of my local dealings
             itemlist = filter(lambda (permid_from, permid_to): permid_to == self.my_permid or permid_from == self.my_permid, itemlist)
+
+        if tribler_only:
+            # base MyTotals only on interaction with other tribler peers
+            itemlist = filter(lambda (permid_from, permid_to): permid_to != 'non-tribler' and permid_from != 'non-tribler', itemlist)
+            
             
         total_up = {}
         total_down = {}
