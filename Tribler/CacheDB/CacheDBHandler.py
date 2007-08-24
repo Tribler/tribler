@@ -935,7 +935,13 @@ class BarterCastDBHandler(BasicDBHandler):
 
 
         if giveMyTotals:
-            return top, (total_up[self.my_permid], total_down[self.my_permid])
+            u = 0
+            d = 0
+            if (self.my_permid in total_up):
+                u = total_up[self.my_permid] 
+            if (self.my_permid in total_down):
+                d = total_down[self.my_permid]
+            return top, (u, d)
         else:
             return top        
 

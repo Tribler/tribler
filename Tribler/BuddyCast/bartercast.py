@@ -122,8 +122,6 @@ class BarterCastCore:
 
         self.handleBarterCastMsg(sender_permid, data)
        
-#        self.blockPeer(sender_permid, self.recv_block_list)
-        
         if not active:
             self.replyBarterCast(sender_permid, selversion)    
         
@@ -180,6 +178,4 @@ class BarterCastCore:
 
         self.createAndSendBarterCastMessage(target_permid, selversion)
 
-#        self.blockPeer(target_permid, self.send_block_list, self.short_block_interval)
-#        self.removeConnCandidate(target_permid)
-#        self.next_initiate += 1        # Be idel in next round
+
