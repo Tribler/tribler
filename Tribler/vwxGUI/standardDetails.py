@@ -101,7 +101,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
                                             'files_detailsTab', 'info_detailsTab', 'details', 
                                             'peopleWhoField']
-        self.modeElements['profileMode'] = ['levelPic']
+        self.modeElements['profileMode'] = ['levelPic', 'uploadedNumber', 'downloadedNumber']
         
         
         self.modeElements['subscriptionsMode'] = ['titleField', 'receivedToday', 'subscrTodayField', 'receivedYesterday', 'subscrYesterdayField'] #  'receivedTotal']
@@ -115,7 +115,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                             'profileDetails_Download': ['descriptionField','Desc0','descriptionField0','howToImprove0','descriptionField1','takeMeThere0','Desc1','descriptionField2','howToImprove1','descriptionField3','takeMeThere1','Desc2','descriptionField4','howToImprove2','descriptionField5','takeMeThere2'],
                             #'profileDetails_Presence': ['descriptionField','Desc0','descriptionField0','howToImprove0','descriptionField1','Desc1','descriptionField2','howToImprove1','descriptionField3','Desc2','descriptionField4','howToImprove2','descriptionField5','takeMeThere0']}
                             'profileDetails_Presence': ['descriptionField','Desc0','descriptionField0','howToImprove0','descriptionField1','Desc2','descriptionField4','howToImprove2','descriptionField5','takeMeThere0'],
-                            'profileDetails_statsTopSharers':['descriptionField0', 'descriptionField1']}
+                            'profileDetails_statsTopSharers':['descriptionField0', 'downloadedNumberT', 'uploadedNumberT']}
         
             
         self.statdlElements = ['st28c','down_White','downSpeed','up_White','upSpeed','download1','percent1','download2','percent2','download3','percent3','download4','percent4']
@@ -899,8 +899,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 tab = 'profileDetails_statsTopSharers'
                 topN, myTotals = self.topNListText()
                 self.getGuiObj('descriptionField0', tab = tab).SetLabel(topN)
-                self.getGuiObj('descriptionField1', tab = tab).SetLabel(myTotals)
-
+                self.getGuiObj('downloadedNumberT', tab = tab).SetLabel(myTotals)
+                self.getGuiObj('uploadedNumberT', tab = tab).SetLabel(myTotals)
             else:
                 tab = "error"
             if tab != "error":

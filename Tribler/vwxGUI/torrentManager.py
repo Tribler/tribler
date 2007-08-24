@@ -70,6 +70,7 @@ class TorrentDataManager:
 #        self.loadData()
         self.dict_FunList = {}
         self.done_init = True
+        self.standardOverview = None
         self.searchkeywords = {'filesMode':[], 'libraryMode':[]}
         self.oldsearchkeywords = {'filesMode':[], 'libraryMode':[]} # previous query
         self.metadata_handler = MetadataHandler.getInstance()
@@ -135,8 +136,9 @@ class TorrentDataManager:
             return []
         
         categorykey = categorykey.lower()
-        standardOverview = self.utility.guiUtility.standardOverview
         
+        if not self.standardOverview:
+            self.standardOverview = self.utility.guiUtility.standardOverview
             
         def torrentFilter(torrent):
             library = (mode == 'libraryMode')
@@ -161,8 +163,9 @@ class TorrentDataManager:
         # if searchkeywords are defined. Search instead of show all
         if self.inSearchMode(mode):
                 data = self.search(data, mode)    #TODO RS: does it come from remote search or local search?
-                standardOverview.setSearchFeedback('torrent', False, len(data), self.searchkeywords[mode])
-                standardOverview.setSearchFeedback('web2', False, 0)
+                self.standardOverview.setSearchFeedback('torrent', False, len(data), self.searchkeywords[mode])
+                self.standardOverview.setSearchFeedback('web2', False, -1)
+                self.standardOverview.setSearchFeedback('remote', False, -1)
                 if DEBUG:
                     print >>sys.stderr,'torrentManager: getCategory found after search: %d items' % len(data)
         
@@ -174,6 +177,9 @@ class TorrentDataManager:
         if mode == 'filesMode' and web2on and self.inSearchMode(mode) and \
                 categorykey in ['video', 'all']:
                 # if we are searching in filesmode
+                self.standardOverview.setSearchFeedback('web2', False, 0)
+                if self.dod:
+                    self.dod.stop()
                 self.dod = web2.DataOnDemandWeb2(" ".join(self.searchkeywords[mode]))
                 self.dod.addItems(data)
                 
@@ -185,7 +191,7 @@ class TorrentDataManager:
                 self.dod = None
                 
             if self.inSearchMode(mode):
-                standardOverview.setSearchFeedback('torrent', True, len(data))                
+                self.standardOverview.setSearchFeedback('torrent', True, len(data))                
             
             return data
                 
@@ -272,7 +278,7 @@ class TorrentDataManager:
         
         isLibraryItem = torrent.get('myDownloadHistory', libraryDelete)
         categories = torrent.get('category', ['other']) + ["all"]
-        
+        funCalled = False
         
         for key in categories:
 #            if key == '?':
@@ -282,14 +288,18 @@ class TorrentDataManager:
                 if isLibraryItem:
                     for fun in self.dict_FunList.get((key, True), []): # call all functions for a certain key
                         fun(torrent, libraryDelete and 'delete' or operate)
+                        funCalled = True
                 # Always notify discovered files (also for library items)
                 for fun in self.dict_FunList.get((key, False), []):
                     fun(torrent, operate)
+                    funCalled = True
                     
             except Exception, msg:
                 #print >> sys.stderr, "abcfileframe: TorrentDataManager update error. Key: %s" % (key), Exception, msg
                 #print_exc()
                 pass
+            
+        return funCalled # return if a view was actually notified
     
     def addItem(self, infohash):
         if self.info_dict.has_key(infohash):
@@ -596,6 +606,7 @@ class TorrentDataManager:
         
         # We got some replies. First check if they are for the current query
         if self.searchkeywords[mode] == kws:
+            numResults = 0
             for key,value in answers.iteritems():
                 
                 if self.info_dict.has_key(key):
@@ -616,7 +627,9 @@ class TorrentDataManager:
                     print >>sys.stderr,"torrentDataManager: gotRemoteHist: appending hit",`value['content_name']`
                     value['content_name'] = 'REMOTE '+value['content_name']
                 self.hits.append(value)
-                self.notifyView(value, 'add')
+                if self.notifyView(value, 'add'):
+                    numResults +=1
+            self.standardOverview.setSearchFeedback('remote', False, numResults, self.searchkeywords[mode])
             return True
         elif DEBUG:
             print >>sys.stderr,"torrentDataManager: gotRemoteHist: got hits for",kws,"but current search is for",self.searchkeywords[mode]

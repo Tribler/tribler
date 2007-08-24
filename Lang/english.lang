@@ -1312,12 +1312,11 @@ rssurldefaulttxt = "Paste your RSS link here"
 
 vlc_linux_start_bug_title = "No flash video streaming on Ubuntu Linux with VLC"
 vlc_linux_start_bug = "The current Ubuntu version of the VLC video player cannot stream Youtube.com movies. So be warned, they will not start playing until they have been completely downloaded. We have submitted a patch to Ubuntu."
-start_search = "Searching for '%s'..."
 going_search = "Searching for '%s'... (%d results)"
 finished_search = "Finished search '%s'. (%d results)"
-search_web2 = "Web search (%d results)"
-search_torrent = "Tribler local search (%d results)"
-search_remote = "Tribler remote search (%d results)"
+search_web2 = "Web movies (%d results)"
+search_torrent = "Discovered files (%d results)"
+search_remote = "Tribler network (%d results)"
 
 # search buttons
 searchStop       = "stop searching"

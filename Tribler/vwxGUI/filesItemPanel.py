@@ -546,11 +546,18 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             #pdb.set_trace()
         # Get the file(s)data for this torrent
         thumbtype = (self.parent.listItem) and 'small' or 'normal'
-        try:
-            bmp = self.mm.getCategoryIcon(self.mode, torrent.get('category'), thumbtype=thumbtype, web2 = torrent.get('web2'))
+        bmp = None
+        readable = torrent.get('metadata',{}).get('ThumbReadable')
+        if readable == False:
+            bmp = self.mm.getCategoryIcon(self.mode,torrent.get('category'), thumbtype=thumbtype, web2 = torrent.get('web2'))
+        
+        else:        
             # Check if we have already read the thumbnail and metadata information from this torrent file
-            if torrent.get('metadata'):
-                if self.mode == 'libraryMode':
+            if 'preview' in torrent:
+                self.GetParent().guiserver.add_task(lambda:self.loadMetadata(torrent,None),0)
+                
+            elif torrent.get('metadata',{}).get('ThumbnailBitmap'):
+                if self.mode == 'libraryMode' or self.parent.listItem:
                     # Make a resized thumb for lib view
                     bmp = torrent['metadata'].get('ThumbnailBitmap')
                     if bmp:
@@ -559,23 +566,14 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                         
                 elif self.mode == 'filesMode':
                     bmp = torrent['metadata'].get('ThumbnailBitmap')
-                
-                if not bmp:
-                    #print 'fip: ThumbnailViewer: Error: thumbnailBitmap not found in torrent %s' % torrent
-                    bmp = self.mm.getCategoryIcon(self.mode, torrent.get('category'), thumbtype=thumbtype, web2 = torrent.get('web2'))
             else:
-                #print "fip: ThumbnailViewer: set: Scheduling read of metadata"
-                # web2.0 elements already have the thumbnail stored at key 'preview'
-                if torrent.get('preview'):
-                    self.GetParent().guiserver.add_task(lambda:self.loadMetadata(torrent,None),0)
-                else:
-                    (torrent_dir,torrent_name) = self.metadatahandler.get_std_torrent_dir_name(torrent)
-                    torrent_filename = os.path.join(torrent_dir, torrent_name)
-                    
-                    if DEBUG:
-                        print "fip: Scheduling read of thumbnail for",torrent_filename
-                    self.GetParent().guiserver.add_task(lambda:self.loadMetadata(torrent,torrent_filename),0)
-            
+                (torrent_dir,torrent_name) = self.metadatahandler.get_std_torrent_dir_name(torrent)
+                torrent_filename = os.path.join(torrent_dir, torrent_name)
+                
+                if DEBUG:
+                    print "fip: Scheduling read of thumbnail for",torrent_filename
+                self.GetParent().guiserver.add_task(lambda:self.loadMetadata(torrent,torrent_filename),0)
+        
                 # ARNO: TODO: The FileItemPanels that use this ThumbnailViewer now get deleted, and thus
                 # also the ThumbnailViewer objects. Or at least the C++ part of them. As a result we
                 # can no longer schedule these loadMetadata callbacks on the GUIServer thread. 
@@ -583,14 +581,17 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                 # At the moment, the wx code protects us, and throws an exception that the C++ part
                 # of the ThumbnailViewer object is gone. But we should clean this up. 
             
-            self.setBitmap(bmp)
-            width, height = self.GetSize()
-            d = 1
-            self.border = [wx.Point(0,d), wx.Point(width-d, d), wx.Point(width-d, height-d), wx.Point(d,height-d), wx.Point(d,0)]
-            self.Refresh()
-            
-        except:
-            print_exc()
+        if not bmp:
+            bmp = self.mm.getCategoryIcon(self.mode, torrent.get('category'), thumbtype=thumbtype, web2 = torrent.get('web2'))
+        
+        assert bmp, 'No bitmap found for %s' % `torrent['content_name']`
+        self.setBitmap(bmp)
+        width, height = self.GetSize()
+        d = 1
+        self.border = [wx.Point(0,d), wx.Point(width-d, d), wx.Point(width-d, height-d), wx.Point(d,height-d), wx.Point(d,0)]
+        self.Refresh()
+        
+        
         
          
     def setBitmap(self, bmp):
@@ -598,7 +599,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         if not bmp:
             self.torrentBitmap = None
             self.xpos, self.ypos = 0,0
-            print 'Warning: Thumbnail set to None for %s' % `self.torrent`
+            raise Exception('Warning: Thumbnail set to None for %s' % `self.torrent`)
         else:
             w, h = self.GetSize()
             iw, ih = bmp.GetSize()
@@ -646,7 +647,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             
             if bmp:
                 metadata['ThumbnailBitmap'] = bmp
-                
+                metadata['ThumbnailReadable'] = True
             ## We now scale live
             #bmplib = self.getResizedBitmapFromImage(img, libraryModeThumbSize)
             #if bmplib:
@@ -654,6 +655,8 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                 
             # Dump the raw data
             del metadata['Thumbnail']
+        else:
+            metadata['ThumbnailReadable'] = False
           
         torrent['metadata'] = metadata
         
@@ -742,6 +745,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
 #            dc.DrawBitmap(MASK_BITMAP,0 ,52, True)
 #            dc.SetTextForeground(wx.BLACK)
             #dc.DrawText('rating', 8, 50)
+
         if self.categoryIcon:
             dc.DrawBitmap(self.categoryIcon, 99, 7, True)      
         if self.sourceIcon:

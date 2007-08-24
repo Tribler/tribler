@@ -18,7 +18,7 @@ import wx.xrc as xrc
 import web2
 
 DEBUG = False
-
+DEBUG_DOD = True
         
 class standardGrid(wx.Panel):
     """
@@ -161,7 +161,7 @@ class standardGrid(wx.Panel):
 
 
     def updateDod(self):
-        if DEBUG:
+        if DEBUG or DEBUG_DOD:
             print >>sys.stderr,'standardGrid: WEB2.0 -> updateDod'
         self.data = self.dod.getData()
         wx.CallAfter(self.refreshPanels)
@@ -175,9 +175,7 @@ class standardGrid(wx.Panel):
         
         if type(dataList) == list or dataList is None:
             self.data = dataList
-            if self.dod != None:
-                self.dod.unregister(self.updateDod)
-            self.dod = None
+            
         elif dataList.isDod():
             if self.dod != dataList:
                 self.stopWeb2Search()

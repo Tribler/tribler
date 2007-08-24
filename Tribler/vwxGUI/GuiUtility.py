@@ -320,7 +320,7 @@ class GUIUtility:
     
     def updateSizeOfStandardOverview(self):
         if self.standardOverview.gridIsAutoResizing():
-            print 'size1: %d, size2: %d' % (self.frame.GetClientSize()[1], self.frame.window.GetClientSize()[1])
+            #print 'size1: %d, size2: %d' % (self.frame.GetClientSize()[1], self.frame.window.GetClientSize()[1])
             margin = 10
             newSize = (-1, #self.scrollWindow.GetClientSize()[1] - 
                            self.frame.GetClientSize()[1] - 
@@ -439,6 +439,7 @@ class GUIUtility:
             num_remote_queries = min((self.remote_search_threshold - nhits)/2, self.max_remote_queries)
             if num_remote_queries > 0:
                 self.rqmh.sendQuery(q, num_remote_queries) 
+                self.standardOverview.setSearchFeedback('remote', False, 0)
 
         
     def searchPersons(self):

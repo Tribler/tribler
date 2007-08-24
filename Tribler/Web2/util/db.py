@@ -21,7 +21,7 @@ from Tribler.Web2.util import observer
 from Tribler.Web2.util.log import log 
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 
-DEBUG = False
+DEBUG = True
 databases = {}
 
 
@@ -507,8 +507,13 @@ class ThreadedDBSearch(observer.Subject):
                         
 
 class CompoundDBSearch(observer.Subject, observer.Observer):
-
+    instance = None
+    
     def __init__(self, searches):
+        if self.instance != None:
+            self.instance.quit()
+        self.instance = self
+            
         observer.Subject.__init__(self)
         observer.Observer.__init__(self)
         self.lock = threading.RLock()
@@ -579,7 +584,8 @@ class CompoundDBSearch(observer.Subject, observer.Observer):
                 self.giveSearchFeedback(False, self.total)
 
             if self.total <= self.wanted:
-                log("CompoundSearch: returning an item")
+                if DEBUG:
+                    print "CompoundSearch: returning an item"
                 self.notify(item)
             else:
                 self.items.append(item)

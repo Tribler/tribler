@@ -49,15 +49,13 @@ class SearchDetailsPanel(wx.Panel):
         
     def setMessage(self, type, finished, num, keywords = []):
         self.results[type] = num
-        total = sum(self.results.values())
+        total = sum([v for v in self.results.values() if v != -1])
         
         if keywords:
             self.keywords = " ".join(keywords)
           
         if finished:  
             msg = self.guiUtility.utility.lang.get('finished_search') % (self.keywords, total)
-        elif not total:
-            msg = self.guiUtility.utility.lang.get('start_search') % self.keywords
         else:
             msg = self.guiUtility.utility.lang.get('going_search') % (self.keywords, total)
         
@@ -68,7 +66,7 @@ class SearchDetailsPanel(wx.Panel):
         items.sort()
         for pair in items:
             key, value = pair
-            if not value:
+            if value == -1:
                 continue
             tt += self.guiUtility.utility.lang.get('search_'+key) % value
             tt +=os.linesep
@@ -99,6 +97,6 @@ class SearchDetailsPanel(wx.Panel):
         if self.searchBusy:
             self.stopSearch()
             self.searchFinished()
-        else: # find more
-            self.findMoreSearch()
+        #else: # find more
+        #    self.findMoreSearch()
             
