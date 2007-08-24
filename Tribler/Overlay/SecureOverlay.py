@@ -363,6 +363,11 @@ class SecureOverlay:
         peer_data = {'permid':peer_permid, 'ip':ip, 'port':port, 'oversion':oversion, 'last_seen':int(time())}
         self.peer_db.addPeer(peer_permid, peer_data, update_dns=True)
         self.peer_db.updateTimes(peer_permid, 'connected_times', 1)
+        try:
+            # Arno: PARANOID SYNC
+            self.peer_db.sync()
+        except:
+            print_exc()
         
         if oc.is_locally_initiated() and oc.get_port() != oc.get_auth_listen_port():
             if DEBUG:

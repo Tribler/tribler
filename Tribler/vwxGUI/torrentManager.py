@@ -25,7 +25,7 @@ from sets import Set
 from Tribler.Search.KeywordSearch import KeywordSearch
 import web2
 
-DEBUG = True
+DEBUG = False
 DEBUG_RANKING = False
 
 # Arno: save memory by reusing dict keys

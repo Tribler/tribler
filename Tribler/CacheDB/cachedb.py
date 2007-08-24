@@ -125,6 +125,9 @@ except ImportError:
 
 from shelve import BsdDbShelf 
 
+dbutils._deadlock_VerboseFile = sys.stderr
+
+
 #permid_len = 0  #112
 #infohash_len = 20
 #

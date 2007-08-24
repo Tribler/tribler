@@ -396,6 +396,11 @@ class TorrentDBHandler(BasicDBHandler):
         self.torrent_db.updateItem(infohash, torrent)
 #        if new_metadata:
 #            self.torrent_db.num_metadatalive += 1
+        try:
+            # Arno: PARANOID SYNC
+            self.sync()
+        except:
+            print_exc()
         return True
         
     def updateTorrent(self, infohash, **kw):    # watch the schema of database
