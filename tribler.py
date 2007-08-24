@@ -1012,7 +1012,7 @@ class TorThread(Thread):
                 (self.child_out,self.child_in) = os.popen2( "%s --log err-err > %s 2>&1" % (cmd,sink), 'b' )
                 #(child_out,child_in) = os.popen2( "tor.exe --log err-err", 'b' )
                 while True:
-                    msg = child_in.read()
+                    msg = self.child_in.read()
                     if DEBUG:
                         print >>sys.stderr,"TorThread: tor said",msg
                     if len(msg) == 0:
