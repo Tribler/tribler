@@ -647,16 +647,20 @@ class PeerDB(BasicDB):
         
     def updateDB(self, old_version):
         if old_version == 1 or old_version == 2 or old_version == 3:
-            def_newitem = {
-                'oversion':0,
-                'npeers': 0,
-                'ntorrents': 0,
-                'nprefs': 0,
-                'nqueries':0 }
+            
             keys = self._keys()
             for key in keys:
-                self._updateItem(key, def_newitem)
-
+                def_newitem = {
+                    'oversion':0,
+                    'npeers': 0,
+                    'ntorrents': 0,
+                    'nprefs': 0,
+                    'nqueries':0 }
+                item = self.getItem(key)
+                def_newitem.update(item)    # keep the old info if it exists
+                self._put(key, def_newitem)
+            self._sync()
+            
 
 class TorrentDB(BasicDB):
     """ Database of all torrent files, including the torrents I don't have yet """
