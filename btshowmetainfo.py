@@ -19,6 +19,7 @@ for metainfo_name in argv[1:]:
     metainfo_file = open(metainfo_name, 'rb')
     metainfo = bdecode(metainfo_file.read())
     print "metainfo:",metainfo.keys()
+    #print "metainfo creation date",metainfo['creation date']
     if 'azureus_properties' in metainfo:
         azprop = metainfo['azureus_properties']
         print "azprop:",azprop.keys()

@@ -731,8 +731,10 @@ class TorrentDB(BasicDB):
             for key in self.default_item:
                 newret[key] = ret.get(key)
             newinfo = {}
+            hiskeys = ret['info'].keys()
             for key in self.infokeys:
-                newinfo[key] = ret['info'][key]
+                if key in hiskeys:
+                    newinfo[key] = ret['info'][key]
             newret[self.infokey] = newinfo
             return newret
         return ret
