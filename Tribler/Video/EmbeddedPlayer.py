@@ -418,6 +418,7 @@ class VLCMediaCtrl(wx.Window):
 
         if not self.visinit:
             xid = self.GetHandle()
+            self.media.get_vlc_instance().video_set_macosx_parent_type(1)
             self.media.set_visual(xid)
             self.visinit = True
 
