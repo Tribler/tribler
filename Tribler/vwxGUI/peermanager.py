@@ -81,7 +81,36 @@ def peerEqualFunc(peer1, peer2):
         return True
     return False
 
-def cmpFuncSimilarity( val1, val2):
+def cmpFuncSimilarityAsc( val1, val2):
+    """compare function that sorts on similarity value
+    greater value ahead"""
+    if val1['similarity'] > val2['similarity']:
+        return 1
+    if val1['similarity'] < val2['similarity']:
+        return -1
+    #if values are equal, check the order in the similarity top
+    manager = PeerDataManager.getInstance()
+    pos1=pos2=-1
+#===============================================================================
+#    for i in range(len(manager.top20similar)):
+#        if manager.top20similar[i]['permid'] == val1['permid']:
+#            pos1 = i
+#        if manager.top20similar[i]['permid'] == val2['permid']:
+#            pos2 = i
+#===============================================================================
+    pos1 = val1.get('simTop',-1)
+    pos2 = val2.get('simTop',-1)
+    if pos1 >= 0 and pos2 == -1:
+        return 1
+    if pos2 >=0 and pos1 == -1:
+        return -1
+    if pos1 < pos2:
+        return 1
+    if pos2 < pos1:
+        return -1
+    return 0    
+
+def cmpFuncSimilarityDesc( val2, val1):
     """compare function that sorts on similarity value
     greater value ahead"""
     if val1['similarity'] > val2['similarity']:
@@ -126,7 +155,7 @@ def cmpFuncNameAsc( val1, val2):
         return -1
     return 0
 
-def cmpFuncConnectivity( val1, val2):
+def cmpFuncConnectivityAsc( val1, val2):
     """compares based on online status and also last seen
     first are the online peers, and then ordered ascending by last_seen"""
     if val1.get('online') and not val2.get('online'):
@@ -142,6 +171,38 @@ def cmpFuncConnectivity( val1, val2):
     if ls1 > ls2:
         return -1
     return 0
+
+def cmpFuncConnectivityDesc( val2, val1):
+    """compares based on online status and also last seen
+    first are the online peers, and then ordered ascending by last_seen"""
+    if val1.get('online') and not val2.get('online'):
+        return 1
+    if val2.get('online') and not val1.get('online'):
+        return -1
+    #they both are online or offline, so compare by last seen
+    now = time.time()
+    ls1 = now-val1['last_seen']
+    ls2 = now-val2['last_seen']
+    if ls1 < ls2:
+        return 1
+    if ls1 > ls2:
+        return -1
+    return 0
+
+def cmpFuncNPeersAsc( val1, val2):
+    return val1.get('npeers', 0) - val2.get('npeers', 0)
+def cmpFuncNPeersDesc( val2, val1):
+    return val1.get('npeers', 0) - val2.get('npeers', 0)
+
+def cmpFuncNFilesAsc( val1, val2):
+    return val1.get('ntorrents', 0) - val2.get('ntorrents', 0)
+def cmpFuncNFilesDesc( val2, val1):
+    return val1.get('ntorrents', 0) - val2.get('ntorrents', 0)
+
+def cmpFuncFriendAsc( val1, val2):
+    return int(val1.get('friend', 0)) - int(val2.get('friend', 0))
+def cmpFuncFriendDesc( val2, val1):
+    return int(val1.get('friend', 0)) - int(val2.get('friend', 0))
 
 class PeerDataManager(DelayedEventHandler):
     """offers a sync view of the peer database, in an usable form for the

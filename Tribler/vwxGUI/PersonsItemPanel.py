@@ -173,12 +173,12 @@ class PersonsItemPanel(wx.Panel):
             window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction)            
 
     def getColumns(self):
-        return [{'sort':'content_name', 'title':'name', 'weight':1,'tip':self.utility.lang.get('C_personname') },
-                {'sort':'last_seen', 'title':'status', 'width':165, 'tip':self.utility.lang.get('C_status'), 'order':'down'},
-                {'sort':'discFiles', 'pic':'iconDiscFiles','width':40, 'tip':self.utility.lang.get('C_discfiles')},
-                {'sort':'discPersons', 'pic':'iconDiscPersons', 'width':40, 'tip':self.utility.lang.get('C_discpersons')},                
-                {'sort':'similarity', 'pic':'heartSmall', 'width':60, 'tip':self.utility.lang.get('C_recommpersons')},
-                {'sort':'friends', 'pic':'iconfriends', 'width':22, 'tip':self.utility.lang.get('C_friends')}
+        return [{'sort':'content_name', 'reverse':True, 'title':'name', 'weight':1,'tip':self.utility.lang.get('C_personname') },
+                {'sort':'last_seen', 'reverse': True, 'title':'status', 'width':165, 'tip':self.utility.lang.get('C_status'), 'order':'down'},
+                {'sort':'nfiles', 'reverse':True, 'pic':'iconDiscFiles','width':40, 'tip':self.utility.lang.get('C_discfiles')},
+                {'sort':'npeers', 'reverse':True, 'pic':'iconDiscPersons', 'width':40, 'tip':self.utility.lang.get('C_discpersons')},                
+                {'sort':'similarity', 'reverse':True, 'pic':'heartSmall', 'width':60, 'tip':self.utility.lang.get('C_recommpersons')},
+                {'sort':'friend', 'reverse':True, 'pic':'iconfriends', 'width':22, 'tip':self.utility.lang.get('C_friends')}
                 ]
                          
     def setData(self, peer_data):

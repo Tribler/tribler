@@ -54,6 +54,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         def filterFuncFriend(peer_data):
             return peer_data.get('friend')
         self.peer_manager.registerFilter( 'friends', filterFuncFriend)
+        
+       
         #register for gui events
         self.peer_manager.registerGui(self.updateFunPersons) #no matter which of the two, persons or friends, is on, the same function is used
 
@@ -363,7 +365,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     
     
     def loadPersonsData(self, cat, sort):
-#        print '<mluc>[',self.mode,'view] Category set to %s, %s' % (str(cat), str(sort))
+        print '<mluc>[',self.mode,'view] Category set to %s, %s' % (str(cat), str(sort))
 
         if self.mode in [ "personsMode","friendsMode"]:
             self.data[self.mode]['data'] = self.peer_manager.getFilteredData(cat)
@@ -371,16 +373,40 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             currentSortFunc = self.peer_manager.getCmpFunc(cat)
             newSortFunc = None
             if type(sort) == str:
-                if sort == 'similarity':
-                    newSortFunc = peermanager.cmpFuncSimilarity
-                elif sort == 'last_seen':
-                    newSortFunc = peermanager.cmpFuncConnectivity
-            elif type(sort) == tuple:
-                if sort[0] == "content_name":
-                    if sort[1] == "increase":
-                        newSortFunc = peermanager.cmpFuncNameAsc
-                    else:
-                        newSortFunc = peermanager.cmpFuncNameDesc
+                sort = (sort, 'increase')
+                
+            reverse = sort[1] != 'increase'
+            if sort[0] == "content_name":
+                if not reverse:
+                    newSortFunc = peermanager.cmpFuncNameAsc
+                else:
+                    newSortFunc = peermanager.cmpFuncNameDesc
+            elif sort[0] == 'last_seen':
+                if not reverse:
+                    newSortFunc = peermanager.cmpFuncConnectivityAsc
+                else:
+                    newSortFunc = peermanager.cmpFuncConnectivityDesc
+            elif sort[0] == 'similarity':
+                if not reverse:
+                    newSortFunc = peermanager.cmpFuncSimilarityAsc
+                else:
+                    newSortFunc = peermanager.cmpFuncSimilarityDesc
+            elif sort[0] == 'npeers':
+                if not reverse:
+                    newSortFunc = peermanager.cmpFuncNPeersAsc
+                else:
+                    newSortFunc = peermanager.cmpFuncNPeersDesc
+            elif sort[0] == 'nfiles':
+                if not reverse:
+                    newSortFunc = peermanager.cmpFuncNFilesAsc
+                else:
+                    newSortFunc = peermanager.cmpFuncNFilesDesc
+            elif sort[0] == 'friend':
+                if not reverse:
+                    newSortFunc = peermanager.cmpFuncFriendAsc
+                else:
+                    newSortFunc = peermanager.cmpFuncFriendDesc
+                    
             if currentSortFunc != newSortFunc:
                 self.peer_manager.setCmpFunc(newSortFunc, cat)
         else:
@@ -588,8 +614,12 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     
     def clearSearch(self):
         self.data[self.mode]['search'].Clear()
-        self.guiUtility.data_manager.setSearchKeywords([], self.mode)
-        self.filterChanged(None)
+        if self.mode == 'filesMode':
+            self.guiUtility.data_manager.setSearchKeywords([], self.mode)
+            self.filterChanged(None)
+        elif self.mode == 'personsMode':
+            self.filterChanged(['all', None])
+        
         
     def getSorting(self):
         fs = self.data[self.mode].get('filterState')

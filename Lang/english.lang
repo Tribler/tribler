@@ -1352,7 +1352,10 @@ C_friendname	= "Name of your friends"
 C_friendstatus	= "Last time you connected with your friends"
 C_helping		= "Whether friend is boosting your downloads"
 
+# TopNList discovered peers in profile view - Tribler 4.1.0
 
+totalUp         = "Up: %s"
+totalDown       = "Down: %s"
 
 
 
