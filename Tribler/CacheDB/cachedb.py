@@ -1,11 +1,13 @@
 # Written by Jie Yang
 # see LICENSE.txt for license information
 #
-# !!!!!!!!!!!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!!!!!!
-# Arno: When updating the database schemas i.e. adding a field, you MUST increase
-# the database version number and provide an updateDB() method that converts
-# the records in the old schema to the new schema.
-# !!!!!!!!!!!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!!!!!!
+# ! WARNING !
+# Arno: The database schemas used should be versioned such that a specific DB
+# version number denotes a specific set of schemas. So when updating the schemas 
+# i.e. adding a field, you MUST provide an updateDB() method that converts the 
+# records in the old schema to the new  schema. If you are the first to add a new 
+# field for a release, you must also increase the database version number.
+# ! WARNING !
 #
 #
 ## TODO: update database V3:
