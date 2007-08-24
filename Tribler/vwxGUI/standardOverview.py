@@ -316,8 +316,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         
         if cat is not None:
             # Unregister for old category
-            if self.categorykey:
-                self.data_manager.unregister(self.updateFunTorrents, self.categorykey[0], self.categorykey[1])
+            self.data_manager.unregisterAll(self.updateFunTorrents)
             
             # Register for new one    
             
@@ -408,6 +407,9 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         self.loadTorrentData(cat, preSorting)
         
         libraryList = self.data[self.mode]['data']
+        
+        if type(libraryList) == web2.DataOnDemandWeb2:
+            raise Exception('dod!!')
         
         if not libraryList:
             return
@@ -590,7 +592,11 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         self.filterChanged(None)
         
     def getSorting(self):
-        return self.data[self.mode].get('filterState')[1]
+        fs = self.data[self.mode].get('filterState')
+        if fs:
+            return fs[1]
+        else:
+            return None
     
     def getFilter(self):
         return self.data[self.mode]['filter']

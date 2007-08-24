@@ -52,7 +52,7 @@ class SingleManualChecking(Thread):
             'seeder': self.torrent['seeder'],
             'leecher': self.torrent['leecher'],
             'status': self.torrent['status'],
-            'info': self.torrent['info']
+            #'info': self.torrent['info']
             }
         self.torrent_db.updateTorrent(self.torrent['infohash'], updateFlag=True, **kw)
         self.deleteExtraTorrentInfo(self.torrent)
@@ -79,7 +79,8 @@ class SingleManualChecking(Thread):
                 torrent['info']['announce'] = metadata.get('announce')
             if metadata.get('announce-list'):
                 torrent['info']['announce-list'] = metadata.get('announce-list')
-            
+            if metadata['info'].get('length') != None:
+                torrent['info']['length'] = metadata['info']['length']
         
     def deleteExtraTorrentInfo(self, torrent):
         if torrent.has_key('info'):

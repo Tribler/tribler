@@ -2,7 +2,7 @@
 # see LICENSE.txt for license information
 
 from threading import Lock
-from traceback import print_exc
+from traceback import print_exc, print_stack
 import sys
 
 class BasicObserver:

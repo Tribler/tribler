@@ -61,7 +61,7 @@ class TorrentDataManager:
         self.rankList = []
         self.isDataPrepared = False
         self.data = []
-
+        self.hits = []
         self.dod = None
         self.keywordsearch = KeywordSearch()
         # initialize the cate_dict
@@ -213,7 +213,7 @@ class TorrentDataManager:
             self.dict_FunList[(key, library)].index(fun)
             # if no exception, fun already exist!
             if DEBUG:
-                print >>sys.stderr,"torrentManager: DBObserver register error. " + str(fun.__name__) + " already exist!"
+                print >>sys.stderr,"torrentManager: register error. " + str(fun.__name__) + " already exist for key %s!" % str((key, library))
             return
         except KeyError:
             self.dict_FunList[(key, library)] = []
@@ -236,7 +236,16 @@ class TorrentDataManager:
             if DEBUG:
                 print >>sys.stderr,"torrentDataManager: unregister error.", Exception, msg
             print_exc()
-        
+            
+    def unregisterAll(self, fun):
+        rem = 0
+        for tuple, funList in self.dict_FunList.iteritems():
+            if fun in funList:
+                funList.remove(fun)
+                rem+=1
+        if DEBUG:
+            print >>sys.stderr,'torrentDataManager: UnregisteredAll function %s (%d unregisters)' % (fun.__name__, rem)
+            
     def updateFun(self, infohash, operate):
         if not self.done_init:    # don't call update func before init finished
             return
@@ -257,11 +266,11 @@ class TorrentDataManager:
             else:
                 self.addItem(infohash)
                 
-    def notifyView(self, torrent, operate):        
+    def notifyView(self, torrent, operate, libraryDelete = False):        
 #        if torrent["category"] == ["?"]:
 #            torrent["category"] = self.category.calculateCategory(torrent["info"], torrent["info"]['name'])
         
-        isLibraryItem = torrent.get('myDownloadHistory', False)
+        isLibraryItem = torrent.get('myDownloadHistory', libraryDelete)
         categories = torrent.get('category', ['other']) + ["all"]
         
         
@@ -272,7 +281,7 @@ class TorrentDataManager:
                 key = key.lower()
                 if isLibraryItem:
                     for fun in self.dict_FunList.get((key, True), []): # call all functions for a certain key
-                        fun(torrent, operate)     # lock is used to avoid dead lock
+                        fun(torrent, libraryDelete and 'delete' or operate)
                 # Always notify discovered files (also for library items)
                 for fun in self.dict_FunList.get((key, False), []):
                     fun(torrent, operate)
@@ -308,8 +317,9 @@ class TorrentDataManager:
         else:
             if old_torrent.has_key(key_myDownloadHistory):
                 del old_torrent[key_myDownloadHistory]
-            
-        self.notifyView(old_torrent, 'update')
+        
+        self.notifyView(old_torrent, 'update', libraryDelete = not b)
+        
         
         self.updateRankList(old_torrent, 'update')
         
