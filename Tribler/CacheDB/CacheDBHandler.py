@@ -900,20 +900,13 @@ class BarterCastDBHandler(BasicDBHandler):
             down = item['downloaded']
             
             # process permid_1
-            if permid_1 in total_up:
-                total_up[permid_1] += up
-                total_down[permid_1] += down
-            else:
-                total_up[permid_1] = up
-                total_down[permid_1] = down
-
+            total_up[permid_1] = total_up.get(permid_1, 0) + up
+            total_down[permid_1] = total_down.get(permid_1, 0) + down
+            
             # process permid_2
-            if permid_2 in total_up:
-                total_up[permid_2] += down
-                total_down[permid_2] += up
-            else:
-                total_up[permid_2] = down
-                total_down[permid_2] = up
+            total_up[permid_2] = total_up.get(permid_2, 0) + down
+            total_down[permid_2] = total_down(permid_2, 0) +  up
+            
         
         # create top N peers
         top = []
