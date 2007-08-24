@@ -614,12 +614,11 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     
     def clearSearch(self):
         self.data[self.mode]['search'].Clear()
-        if self.mode == 'filesMode':
+        if self.mode in ['filesMode', 'libraryMode']:
             self.guiUtility.data_manager.setSearchKeywords([], self.mode)
             self.filterChanged(None)
         elif self.mode == 'personsMode':
             self.filterChanged(['all', None])
-        
         
     def getSorting(self):
         fs = self.data[self.mode].get('filterState')

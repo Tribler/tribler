@@ -255,10 +255,10 @@ class LibraryItemPanel(wx.Panel):
         return [{'sort':'', 'title':'', 'width':35, 'tip':''},
                 {'sort':'content_name', 'reverse':True, 'title':'name', 'weight':1,'tip':self.utility.lang.get('C_filename'), 'order':'down'},
                 {'sort':'progress', 'title':'progress', 'width':120, 'tip':self.utility.lang.get('C_progress')},
-                {'sort':'??', 'pic':'downSpeedColumn','title':'down', 'width':70, 'tip':self.utility.lang.get('C_downspeed')},
-                {'sort':'??', 'pic':'upSpeedColumn','title':'up','width':70, 'tip':self.utility.lang.get('C_upspeed')},                
-                {'sort':'latest', 'title':'status', 'weight':1, 'tip':self.utility.lang.get('C_message')},
-                {'sort':'??', 'title':'info', 'width':111, 'tip':self.utility.lang.get('C_info')}
+                {'sort':'??','dummy':True, 'pic':'downSpeedColumn','title':'down', 'width':70, 'tip':self.utility.lang.get('C_downspeed')},
+                {'sort':'??', 'dummy':True, 'pic':'upSpeedColumn','title':'up','width':70, 'tip':self.utility.lang.get('C_upspeed')},                
+                {'sort':'latest', 'dummy':True, 'title':'status', 'weight':1, 'tip':self.utility.lang.get('C_message')},
+                {'sort':'??', 'title':'info', 'dummy':True, 'width':111, 'tip':self.utility.lang.get('C_info')}
                 ]     
                   
     def refreshData(self):

@@ -7,11 +7,12 @@ class ColumnHeader(wx.Panel):
     bitmapOrderUp = 'upSort'
     bitmapOrderDown = 'downSort'
     
-    def __init__(self, parent, title, picture, order, tip, sorting, reverse, colours):
+    def __init__(self, parent, title, picture, order, tip, sorting, reverse, colours, dummy):
         wx.Panel.__init__(self, parent, -1)
         self.type = None
         self.selectedColour = colours[0]
         self.unselectedColour = colours[1]
+        self.dummy = dummy
         self.addComponents(title, picture, tip)
         self.setOrdering(order)
         self.sorting = sorting
@@ -19,7 +20,6 @@ class ColumnHeader(wx.Panel):
             self.reverse = True
         else:
             self.reverse = False
-        
         
         
     def addComponents(self, title, picture, tip):
@@ -39,7 +39,7 @@ class ColumnHeader(wx.Panel):
             self.text = wx.StaticText(self, -1, title)
             self.hSizer.Add(self.text, 1, wx.TOP, 3)            
         
-        self.dummy = not picture and not title
+        self.dummy = self.dummy or (not picture and not title)
         if picture == None and title == None:
             raise Exception('No text nor an icon in columnheader')
         
@@ -156,7 +156,7 @@ class ColumnHeaderBar(wx.Panel):
                     beginorder = 'down'
             else:
                 beginorder = None
-            header = ColumnHeader(self, dict.get('title'), dict.get('pic'), beginorder, dict['tip'], dict['sort'], dict.get('reverse'), colours)
+            header = ColumnHeader(self, dict.get('title'), dict.get('pic'), beginorder, dict['tip'], dict['sort'], dict.get('reverse'), colours, dict.get('dummy', False))
             
 
             self.hSizer.Add(header, dict.get('weight',0), wx.EXPAND|wx.BOTTOM, 0)
