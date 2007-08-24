@@ -38,7 +38,7 @@
                   <option>0</option>
                   <object class="wxStaticText" name="titleField">
                     <style>wxST_NO_AUTORESIZE</style>
-                    <label>Top Sharers</label>
+                    <label>top 10 Tribler Sharers</label>
                     <pos>0,5</pos>
                     <size>280,15</size>
                     <bg>#     0</bg>
@@ -69,6 +69,43 @@
           <bg>#ffffff</bg>
           <object class="wxBoxSizer">
             <orient>wxVERTICAL</orient>
+            <object class="sizeritem">
+              <flag>wxTOP|wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>10</border>
+              <option>0</option>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxFIXED_MINSIZE</flag>
+                  <border>4</border>
+                  <option>0</option>
+                  <object class="wxPanel" name="infoIcon" subclass="Tribler.vwxGUI.bgPanel.ImagePanel">
+                    <tooltip>Tribler is a special network on top of the overall network.\nThese figures shows the top 10 sharers within the Tribler network.</tooltip>
+                    <pos>10,14</pos>
+                    <size>8,8</size>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>4</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="st371c">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>Stats for only the Tribler network:</label>
+                    <pos>22,10</pos>
+                    <size>286,18</size>
+                    <font>
+                      <size>9</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>normal</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
+              </object>
+            </object>
             <object class="spacer">
               <size>105,8</size>
               <flag>wxTOP|wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
@@ -76,13 +113,17 @@
               <option>0</option>
             </object>
             <object class="sizeritem">
-              <flag>wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-              <border>6</border>
+              <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>14</border>
               <option>0</option>
               <object class="wxStaticText" name="descriptionField0">
-                <label>
-				</label>
-                <pos>6,14</pos>
+                <label>.
+
+
+
+	
+</label>
+                <pos>14,42</pos>
                 <size>284,153</size>
                 <font>
                   <size>8</size>
@@ -95,40 +136,114 @@
               </object>
             </object>
             <object class="sizeritem">
-              <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-              <border>6</border>
+              <flag>wxTOP|wxLEFT|wxBOTTOM|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>12</border>
               <option>0</option>
               <object class="wxStaticText" name="howToImprove">
                 <style>wxST_NO_AUTORESIZE</style>
-                <label>       you:</label>
-                <pos>6,173</pos>
+                <label>Your exchanges with other Tribler users:</label>
+                <pos>12,207</pos>
                 <size>284,18</size>
                 <font>
-                  <size>8</size>
-                  <family>modern</family>
-                  <style>normal</style>
-                  <weight>bold</weight>
-                  <underlined>0</underlined>
-                  <face>Verdana</face>
-                </font>
-              </object>
-            </object>
-            <object class="sizeritem">
-              <flag>wxLEFT|wxBOTTOM|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
-              <border>6</border>
-              <option>0</option>
-              <object class="wxStaticText" name="descriptionField1">
-                <label></label>
-                <pos>6,191</pos>
-                <size>284,-1</size>
-                <font>
-                  <size>8</size>
+                  <size>9</size>
                   <family>modern</family>
                   <style>normal</style>
                   <weight>normal</weight>
                   <underlined>0</underlined>
                   <face>Verdana</face>
                 </font>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>11</border>
+              <option>0</option>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>2</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="st227cC">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>total downloaded:</label>
+                    <pos>11,282</pos>
+                    <size>144,18</size>
+                    <font>
+                      <size>9</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>bold</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>2</border>
+                  <option>1</option>
+                  <object class="wxStaticText" name="downloadedNumberT">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>_</label>
+                    <pos>157,282</pos>
+                    <size>99,18</size>
+                    <font>
+                      <size>9</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>bold</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>11</border>
+              <option>0</option>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>2</border>
+                  <option>0</option>
+                  <object class="wxStaticText" name="st227cCC">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>total uploaded:</label>
+                    <pos>11,302</pos>
+                    <size>144,18</size>
+                    <font>
+                      <size>9</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>bold</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                  <border>2</border>
+                  <option>1</option>
+                  <object class="wxStaticText" name="uploadedNumberT">
+                    <style>wxST_NO_AUTORESIZE</style>
+                    <label>_</label>
+                    <pos>157,302</pos>
+                    <size>99,18</size>
+                    <font>
+                      <size>9</size>
+                      <family>modern</family>
+                      <style>normal</style>
+                      <weight>bold</weight>
+                      <underlined>0</underlined>
+                      <face>Verdana</face>
+                    </font>
+                  </object>
+                </object>
               </object>
             </object>
           </object>
