@@ -10,7 +10,7 @@
 
 OPENSSL_VER=0.9.8e
 PYTHON_VER=2.5
-VLC_REV=20150
+VLC_REV=20403
 PWD:=${shell pwd}
 ARCH:=${shell arch}
 
