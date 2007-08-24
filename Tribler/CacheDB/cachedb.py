@@ -1,6 +1,13 @@
 # Written by Jie Yang
 # see LICENSE.txt for license information
-
+#
+# !!!!!!!!!!!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!!!!!!
+# Arno: When updating the database schemas i.e. adding a field, you MUST increase
+# the database version number and provide an updateDB() method that converts
+# the records in the old schema to the new schema.
+# !!!!!!!!!!!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!!!!!!
+#
+#
 ## TODO: update database V3:
 # TorrentDB: clean relevance, insert time
 # PeerDB: clean similarity, insert time
