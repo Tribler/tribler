@@ -2039,7 +2039,7 @@ class DataHandler:
         self.peers[peer_permid][0] = peer_sim
         
     def get_npeers(self):
-        return self.peer_db.size()
+        return len(self.peers)    # changed to this according to Maarten's suggestion
     
     def get_ntorrents(self):
         return self.torrent_db.size()
