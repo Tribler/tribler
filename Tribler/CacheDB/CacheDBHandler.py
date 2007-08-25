@@ -905,7 +905,7 @@ class BarterCastDBHandler(BasicDBHandler):
             
             # process permid_2
             total_up[permid_2] = total_up.get(permid_2, 0) + down
-            total_down[permid_2] = total_down(permid_2, 0) +  up
+            total_down[permid_2] = total_down.get(permid_2, 0) +  up
             
         
         # create top N peers
