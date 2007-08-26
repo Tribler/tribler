@@ -23,7 +23,10 @@ from time import time
 from bisect import insort
 from sets import Set
 from Tribler.Search.KeywordSearch import KeywordSearch
-import web2
+try:
+    import web2
+except ImportError:
+    pass
 
 DEBUG = False
 DEBUG_RANKING = False
