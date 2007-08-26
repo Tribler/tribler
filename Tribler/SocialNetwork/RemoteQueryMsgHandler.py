@@ -29,6 +29,15 @@ MAX_QUERY_REPLY_LEN = 100*1024    # 100K
 
 DEBUG = False
 
+class FakeUtility:
+    
+    def __init__(self,config_path):
+        self.config_path = config_path
+        
+    def getConfigPath(self):
+        return self.config_path
+
+
 class RemoteQueryMsgHandler:
     
     __single = None
@@ -44,6 +53,7 @@ class RemoteQueryMsgHandler:
         self.connections = Set()    # only connected remote_search_peers
         self.query_ids2query = {}
         self.max_nqueries = 10    # max number of peers to query
+        self.registered = False
 
     def getInstance(*args, **kw):
         if RemoteQueryMsgHandler.__single is None:
@@ -60,7 +70,8 @@ class RemoteQueryMsgHandler:
         self.rawserver = rawserver
         self.config = config
         self.bc_fac = bc_fac # May be None
-        
+        self.data_manager = None
+        self.registered = True
         
     def register2(self,data_manager):
         self.data_manager = data_manager
@@ -69,6 +80,8 @@ class RemoteQueryMsgHandler:
     # Incoming messages
     # 
     def handleMessage(self,permid,selversion,message):
+        if not self.registered:
+            return True
         
         t = message[0]
         if t == QUERY:
@@ -88,6 +101,8 @@ class RemoteQueryMsgHandler:
     # Incoming connections
     #
     def handleConnection(self,exc,permid,selversion,locally_initiated):
+        if not self.registered:
+            return True
         
         if DEBUG:
             print >> sys.stderr,"rquery: handleConnection",exc,"v",selversion,"local",locally_initiated
@@ -217,11 +232,21 @@ class RemoteQueryMsgHandler:
         # In the future we could support full SQL queries:
         # SELECT infohash,torrent_name FROM torrent_db WHERE status = ALIVE
         kws = q.split()
+        if self.data_manager is None:    # running on text terminate
+            self.create_data_manager()
         hits = self.data_manager.remoteSearch(kws,maxhits=MAX_RESULTS)
         
         p = self.create_query_reply(d['id'],hits)
         m = QUERY_REPLY+p
         self.secure_overlay.send(permid,m,self.send_callback)
+        
+    def create_data_manager(self):
+        config_path = '.Tribler'
+        #print "*** create fake data manager", config_path
+        utility = FakeUtility(config_path)
+        from Tribler.vwxGUI.torrentManager import TorrentDataManager
+        self.data_manager = TorrentDataManager.getInstance(utility)
+        self.data_manager.loadData()
         
         
     def create_query_reply(self,id,hits):

@@ -825,7 +825,8 @@ def return_feasible_playback_modes(syspath):
         else:
             l.append(PLAYBACKMODE_INTERNAL)
     except Exception:
-        print_exc(file=sys.stderr)
+        #print_exc(file=sys.stderr)
+        pass
     
     if sys.platform == 'win32':
         l.append(PLAYBACKMODE_EXTERNAL_MIME)
