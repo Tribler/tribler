@@ -8,8 +8,11 @@
 import sys
 from sets import Set
 
-from Tribler.vwxGUI.GuiUtility import GUIUtility
-from Tribler.vwxGUI.torrentManager import TorrentDataManager
+try:
+    from Tribler.vwxGUI.GuiUtility import GUIUtility
+    from Tribler.vwxGUI.torrentManager import TorrentDataManager
+except ImportError:
+    pass    #support cmdline version without wx
 
 class RemoteTorrentHandler:
     

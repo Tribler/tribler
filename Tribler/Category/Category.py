@@ -13,7 +13,6 @@ from traceback import print_exc
 try:
     from safeguiupdate import FlaglessDelayedEventHandler
 except ImportError:
-    print "***** wx !!!"
     class FlaglessDelayedEventHandler:    # support cmdline version without wx
         pass
     
