@@ -10,7 +10,13 @@ from sets import Set
 from time import time
 from copy import deepcopy
 from traceback import print_exc
-from safeguiupdate import FlaglessDelayedEventHandler
+try:
+    from safeguiupdate import FlaglessDelayedEventHandler
+except ImportError:
+    print "***** wx !!!"
+    class FlaglessDelayedEventHandler:    # support cmdline version without wx
+        pass
+    
 from threading import Condition
 import sys
 
