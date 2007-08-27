@@ -61,16 +61,16 @@ class SearchDetailsPanel(wx.Panel):
         
             
         self.text.SetLabel(msg)
-        tt = ''
-        items = self.results.items()
-        items.sort()
-        for pair in items:
+        tt = []
+        
+        for pair in self.results.items():
             key, value = pair
             if value == -1:
                 continue
-            tt += self.guiUtility.utility.lang.get('search_'+key) % value
-            tt +=os.linesep
-        tt = tt[:-1]
+            tt.append(self.guiUtility.utility.lang.get('search_'+key) % value)
+            
+        tt.sort()
+        tt = os.linesep.join(tt)
         self.textPanel.SetToolTipString(tt)
         self.text.SetToolTipString(tt)
         

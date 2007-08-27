@@ -897,10 +897,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             # --- Top N List of sharers
             elif self.currentPanel == self.getGuiObj('profileDetails_statsTopSharers'):
                 tab = 'profileDetails_statsTopSharers'
-                topN, myTotals = self.topNListText()
-                self.getGuiObj('descriptionField0', tab = tab).SetLabel(topN)
-                self.getGuiObj('downloadedNumberT', tab = tab).SetLabel(myTotals)
-                self.getGuiObj('uploadedNumberT', tab = tab).SetLabel(myTotals)
+                self.topNListText(tab)
+                
             else:
                 tab = "error"
             if tab != "error":
@@ -993,6 +991,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             obj_name = tab+'_'+obj_name
         if not mode:
             mode = self.mode
+        #print 'Available objects: %s' % self.data[mode].keys()
         return self.data[mode].get(obj_name)
      
     def fillSimTorrentsList(self, infohash):
@@ -1635,19 +1634,19 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         if DEBUG:
             print 'StandardDetails: setting size of stand.details to: %s' % str(size)
             
-    def topNListText(self):
+    def topNListText(self, tab):
         if not self.bartercastdb:
             self.bartercastdb = BarterCastDBHandler()
         
         top_stats = self.bartercastdb.getTopNPeers(5)
         top = top_stats['top']
-        total_up = top_stats['total_up']
-        total_down = top_stats['total_down']
+        #total_up = top_stats['total_up']
+        #total_down = top_stats['total_down']
         tribler_up = top_stats['tribler_up']
         tribler_down = top_stats['tribler_down']
         
         rank = 1
-        text = ''
+        topText = ''
         for permid, up, down in top:
             
             # up and down are integers in KB in the database
@@ -1657,12 +1656,13 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 
             name = self.bartercastdb.getName(permid)
 
-            text += '%d. %s\n  (up: %s, down: %s)%s' % (rank, name, 
+            topText += '%d. %s\n  (up: %s, down: %s)%s' % (rank, name, 
                                                      amount_str_up, amount_str_down, os.linesep)
             rank+=1
         
-        text2 = 'Up: %s, down: %s' % (self.utility.size_format(tribler_up), self.utility.size_format(tribler_down)) 
-        return text, text2
+        self.getGuiObj('descriptionField0', tab = tab).SetLabel(topText)
+        self.getGuiObj('downloadedNumberT', tab = tab).SetLabel(self.utility.size_format(tribler_down))
+        self.getGuiObj('uploadedNumberT', tab = tab).SetLabel(self.utility.size_format(tribler_up))
             
 def revtcmp(a,b):
     if a[0] < b[0]:

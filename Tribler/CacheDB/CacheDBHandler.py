@@ -895,8 +895,8 @@ class BarterCastDBHandler(BasicDBHandler):
         for (permid_1, permid_2) in itemlist:
             
             item = self.getItem((permid_1, permid_2))
-            up = item['uploaded']
-            down = item['downloaded']
+            up = item['uploaded'] *1024 # make into bytes
+            down = item['downloaded'] *1024
             
             # process permid_1
             total_up[permid_1] = total_up.get(permid_1, 0) + up

@@ -177,11 +177,11 @@ class standardGrid(wx.Panel):
             #datalength = len(dataList)
         
         if type(dataList) == list or dataList is None:
-            print 'grid.setData: list'
+            #print 'grid.setData: list'
             self.data = dataList
             
         elif dataList.isDod():
-            print 'grid.setData: dod'
+            #print 'grid.setData: dod'
             if self.dod != dataList:
                 self.stopWeb2Search()
 

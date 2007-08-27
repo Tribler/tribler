@@ -7,6 +7,7 @@ from Tribler.CacheDB.CacheDBHandler import MyDBHandler
 from Tribler.Dialogs.MugshotManager import MugshotManager
 from Tribler.Dialogs.socnetmyinfo import MyInfoWizard
 from Tribler.CacheDB.CacheDBHandler import MyPreferenceDBHandler
+from Tribler.CacheDB.CacheDBHandler import BarterCastDBHandler
 from time import time
 from traceback import print_exc
 import urllib
@@ -21,7 +22,7 @@ class ProfileOverviewPanel(wx.Panel):
                              'bgPanel_Persons', 'perf_Persons', 'text_Persons', 
                              'bgPanel_Download', 'perf_Download', 'text_Download', 
                              'bgPanel_Presence', 'perf_Presence', 'text_Presence',
-                             'myNameField', 'thumb', 'edit']
+                             'myNameField', 'thumb', 'edit', 'downloadedNumber', 'uploadedNumber']
         self.elements = {}
         self.data = {} #data related to profile information, to be used in details panel
         if len(args) == 0: 
@@ -41,11 +42,13 @@ class ProfileOverviewPanel(wx.Panel):
         return True
     
     def _PostInit(self):
-#        print "<mluc> tribler_topButton in _PostInit"
+        print "<mluc> tribler_topButton in _PostInit"
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
+        
         self.utility = self.guiUtility.utility
         self.data_manager = self.guiUtility.standardOverview.data_manager
+        self.bartercast_db = BarterCastDBHandler()
         self.mydb = MyPreferenceDBHandler()
 #        self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 #        self.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
@@ -85,14 +88,14 @@ class ProfileOverviewPanel(wx.Panel):
                     icon_elem.Bind(wx.EVT_LEFT_UP, self.sendClick)
                     
         self.getGuiElement('myNameField').SetLabel('')
-
         self.initDone = True
-        self.Refresh(True)
+        
 #        self.Update()
         self.initData()
         self.timer = None
         self.Bind(wx.EVT_SHOW, self.OnShow) 
         wx.CallAfter(self.reloadData)
+        wx.CallAfter(self.Refresh)
         
     def OnShow(self, evt):
 #        print "<mluc> in onshow in profileOverviewPanel"
@@ -198,7 +201,7 @@ class ProfileOverviewPanel(wx.Panel):
         
         if not self.IsShown(): #should not update data if not shown
             return
-#        print "<mluc> profileOverviewPanel in reloadData"
+        #print "<mluc> profileOverviewPanel in reloadData"
         
         self.showNameMugshot()
 
@@ -309,6 +312,18 @@ class ProfileOverviewPanel(wx.Panel):
             self.getGuiElement('text_Overall').SetLabel("Overall performance (%s)" % self.data['overall_rank'])
             bShouldRefresh = True
         
+        # --- Upload and download amounts
+        topinfo = self.bartercast_db.getTopNPeers(0, local_only = True)
+        up = self.utility.size_format(topinfo.get('total_up'))
+        down = self.utility.size_format(topinfo.get('total_down'))
+        old_up = self.getGuiElement('uploadedNumber').GetLabel()
+        old_down = self.getGuiElement('downloadedNumber').GetLabel()
+        if up != old_up:
+            self.getGuiElement('uploadedNumber').SetLabel(up)
+        if down != old_down:
+            self.getGuiElement('downloadedNumber').SetLabel(down)
+            
+            
         if bShouldRefresh:
             self.Refresh()
             #also set data for details panel
