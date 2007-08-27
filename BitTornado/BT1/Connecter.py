@@ -577,7 +577,11 @@ class Connecter:
  
             if up_kb > 0:
                 new_value = self.bartercastdb.incrementItem((my_permid, 'non-tribler'), 'uploaded', up_kb)
-            
+        try:
+            # Arno: PARANOID SYNC
+            self.bartercastdb.sync()
+        except:
+            print_exc()
 
         ###################################### 
 

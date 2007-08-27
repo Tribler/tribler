@@ -10,7 +10,7 @@ from Tribler.toofastbt.Helper import SingleDownloadHelperInterface
 from traceback import print_stack
 # _2fastbt
 
-from Tribler.CacheDB.CacheDBHandler import PeerDBHandler, BarterCastDBHandler
+from Tribler.CacheDB.CacheDBHandler import PeerDBHandler
 from Tribler.Overlay.permid import permid_for_user
 import sys
 
