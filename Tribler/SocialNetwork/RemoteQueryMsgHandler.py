@@ -259,7 +259,7 @@ class RemoteQueryMsgHandler:
             r['length'] = torrent['length']
             r['leecher'] = torrent['leecher']
             r['seeder'] = torrent['seeder']
-            r['category'] = torrent['category']
+            # Arno: sending category doesn't make sense as that's user-defined
             d2[torrent['infohash']] = r
         d['a'] = d2
         return bencode(d)
@@ -374,14 +374,22 @@ def isValidQuery(d,selversion):
 
 def isValidQueryReply(d,selversion):
     if not isinstance(d,dict):
+        if DEBUG:
+            print >>sys.stderr,"rqmh: reply: not dict"
         return False
     if not ('a' in d and 'id' in d):
+        if DEBUG:
+            print >>sys.stderr,"rqmh: reply: a or id key missing"
         return False
     if not (isinstance(d['a'],dict) and isinstance(d['id'],str)):
+        if DEBUG:
+            print >>sys.stderr,"rqmh: reply: a or id key not dict/str"
         return False
     if not isValidHits(d['a']):
         return False
     if len(d) > 2: # no other keys
+        if DEBUG:
+            print >>sys.stderr,"rqmh: reply: too many keys, got",d.keys()
         return False
     return True
 
@@ -398,8 +406,12 @@ def isValidHits(d):
 
 def isValidVal(d):
     if not isinstance(d,dict):
+        if DEBUG:
+            print >>sys.stderr,"rqmh: reply: a: value not dict"
         return False
     if not ('content_name' in d and 'length' in d and 'leecher' in d and 'seeder' in d):
+        if DEBUG:
+            print >>sys.stderr,"rqmh: reply: a: key missing, got",d.keys()
         return False
 #    if not (isinstance(d['content_name'],str) and isinstance(d['length'],int) and isinstance(d['leecher'],int) and isinstance(d['seeder'],int)):
 #        return False

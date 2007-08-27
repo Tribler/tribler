@@ -47,32 +47,35 @@ def suite():
     import test_gui_server as test_gui_server
     import test_remote_query as test_remote_query
     import test_ut_pex as test_ut_pex
-    
-    # SecureOverlay is tested by running test_so.sh from topdir
-    # Extra Dialback message tests can be done with test_dra.sh from topdir
+    import test_bartercast as test_bartercast
+
+    # Note: There are more tests, but these require a fresh Python interpreter
+    # for each test, so they need to be run from shell scripts. See test_*.sh and
+    # test_*.bat in this dir.
     
     # Legend: 
     # '#'  = broken
     # '##' = disable temporarily for testing a specific test
     #
     test_modules = [
-        #test_cachedb,
-        #test_friend,
-        #test_cachedbhandler,
-        #test_superpeers,
+        test_cachedb,
+        test_friend,
+        test_cachedbhandler,
+        test_superpeers,
         ##test_buddycast,  # currently not working due to unfinished test functions
-        #test_buddycast2_datahandler,
+        ##test_buddycast2_datahandler, # complains about addRemoteSearchPeer 
         ##test_sim, # currently not working due to unfinished test functions
-        #test_merkle,
-        #test_permid,
-        #test_permid_response1,
-        #test_dialback_request,
-        #test_extend_hs,
-        #test_extend_hs_t350,
-        #test_social_overlap,
-        #test_gui_server,
-        #test_remote_query,
-        test_ut_pex
+        test_merkle,
+        test_permid,
+        test_permid_response1,
+        test_dialback_request,
+        test_extend_hs,
+        test_extend_hs_t350,
+        test_social_overlap,
+        test_gui_server,
+        test_remote_query,
+        test_ut_pex,
+        test_bartercast
         ]
 
     alltests = unittest.TestSuite()

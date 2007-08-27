@@ -55,7 +55,7 @@ class TestQueryReplyActive(TestAsServer):
         sleep(3)
         
         # 2. Make Tribler send query
-        self.lm.overlay_apps.rquery_handler.sendQuery(TEST_QUERY)
+        self.lm.overlay_apps.rquery_handler.sendQuery(TEST_QUERY,10)
 
 
     #

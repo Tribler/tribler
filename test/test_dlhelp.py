@@ -369,7 +369,7 @@ class TestDownloadHelp(TestAsServer):
         return METADATA+bencode(d)
 
     def create_bad_metadata_bad_torrent1(self):
-        d = self.create_good_metadata_dict(data)
+        d = self.create_good_metadata_dict(None)
         d['metadata'] = '\x12\x34' * 100 # random data
         bd = bencode(d)
         return METADATA+bd
