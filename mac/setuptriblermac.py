@@ -136,7 +136,7 @@ bundlebuilder.buildapp(
              ("tribler.ico",      "Contents/Resources/"),
              ("torrenticon.ico",  "Contents/Resources/"),
              ("mac/TriblerDoc.icns", "Contents/Resources/"),
-             ("tor",  "Contents/Resources/")]
+             ("tor.mac",  "Contents/Resources/")]
            + includedir( "icons" )
            + filterincludes( includedir( "Tribler/vwxGUI" ), lambda x: x.endswith(".xrc") )
            + includedir( "Tribler/vwxGUI/images" )
