@@ -26,6 +26,7 @@ MAX_QUERIES_FROM_RANDOM_PEER = 100
 MAX_RESULTS = 20
 QUERY_ID_SIZE = 20
 MAX_QUERY_REPLY_LEN = 100*1024    # 100K
+MAX_NQUERIES = 10
 
 DEBUG = False
 
@@ -52,7 +53,6 @@ class RemoteQueryMsgHandler:
         self.peer_db = PeerDBHandler()
         self.connections = Set()    # only connected remote_search_peers
         self.query_ids2query = {}
-        self.max_nqueries = 10    # max number of peers to query
         self.registered = False
 
     def getInstance(*args, **kw):
@@ -123,7 +123,7 @@ class RemoteQueryMsgHandler:
     # Send query
     # 
 
-    def sendQuery(self,query, max_nqueries=-1):
+    def sendQuery(self,query, max_nqueries=MAX_NQUERIES):
         """ Called by GUI Thread """
         if DEBUG:
             print >>sys.stderr,"rquery: sendQuery",query
@@ -148,10 +148,8 @@ class RemoteQueryMsgHandler:
             self.secure_overlay.connect(permid,func)
             nqueries += 1
         
-        if max_nqueries < 0:
-            max_nqueries = self.max_nqueries
         if nqueries < max_nqueries and self.bc_fac and self.bc_fac.buddycast_core:
-            query_cand = self.bc_fac.buddycast_core.getRemoteSearchPeers(self.max_nqueries-nqueries)
+            query_cand = self.bc_fac.buddycast_core.getRemoteSearchPeers(MAX_NQUERIES-nqueries)
             for permid in query_cand:
                 if permid not in self.connections:    # don't call twice
                     self.secure_overlay.connect(permid,func)
