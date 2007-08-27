@@ -109,6 +109,7 @@ class TestQueryReplyActive(TestAsServer):
         r['length'] = 481
         r['leecher'] = 11
         r['seeder'] = 22
+        r['category'] = 'Video'
         
         d2 = {}
         ih = 'i'*20

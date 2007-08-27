@@ -7,7 +7,7 @@
 ;Configuration
 
 ;General
- Name "Tribler ${VERSION}"
+ Name "${PRODUCT} ${VERSION}"
 OutFile "${PRODUCT}_${VERSION}.exe"
 
 ;Folder selection page
@@ -27,7 +27,7 @@ SetCompressor "lzma"
 
 CompletedText "Installation completed. Thank you for choosing ${PRODUCT}"
 
-BrandingText "Tribler"
+BrandingText "${PRODUCT}"
 
 ;--------------------------------
 ;Modern UI Configuration
@@ -64,10 +64,10 @@ BrandingText "Tribler"
 ;Language Strings
 
 ;Description
-LangString DESC_SecMain ${LANG_ENGLISH} "Install Tribler"
+LangString DESC_SecMain ${LANG_ENGLISH} "Install ${PRODUCT}"
 LangString DESC_SecDesk ${LANG_ENGLISH} "Create Desktop Shortcuts"
 LangString DESC_SecStart ${LANG_ENGLISH} "Create Start Menu Shortcuts"
-LangString DESC_SecDefault ${LANG_ENGLISH} "Associate .torrent files with Tribler"
+LangString DESC_SecDefault ${LANG_ENGLISH} "Associate .torrent files with ${PRODUCT}"
 
 ;--------------------------------
 ;Installer Sections

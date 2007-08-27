@@ -259,7 +259,9 @@ class RemoteQueryMsgHandler:
             r['length'] = torrent['length']
             r['leecher'] = torrent['leecher']
             r['seeder'] = torrent['seeder']
-            # Arno: sending category doesn't make sense as that's user-defined
+            # Arno: TODO: sending category doesn't make sense as that's user-defined
+            # leaving it now because of time constraints
+            r['category'] = torrent['category']
             d2[torrent['infohash']] = r
         d['a'] = d2
         return bencode(d)
@@ -342,12 +344,14 @@ class RemoteQueryMsgHandler:
         torrent['length'] = 100000000
         torrent['leecher'] = 200
         torrent['seeder'] = 400
+        torrent['category'] = 'Video'
         
         torrent2 = {}
         torrent2['content_name'] = 'Hallo 2'
         torrent2['length'] = 7777777
         torrent2['leecher'] = 678
         torrent2['seeder'] = 123
+        torrent2['category'] = 'Audio'
         
         d = {}
         ih = 'a'*20
@@ -409,7 +413,7 @@ def isValidVal(d):
         if DEBUG:
             print >>sys.stderr,"rqmh: reply: a: value not dict"
         return False
-    if not ('content_name' in d and 'length' in d and 'leecher' in d and 'seeder' in d):
+    if not ('content_name' in d and 'length' in d and 'leecher' in d and 'seeder' in d and 'category' in d):
         if DEBUG:
             print >>sys.stderr,"rqmh: reply: a: key missing, got",d.keys()
         return False
