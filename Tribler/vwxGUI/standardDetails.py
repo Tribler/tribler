@@ -1639,8 +1639,13 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         if not self.bartercastdb:
             self.bartercastdb = BarterCastDBHandler()
         
-        top, mytotals = self.bartercastdb.getTopNPeers(5, giveMyTotals = True)
-
+        top_stats = self.bartercastdb.getTopNPeers(5)
+        top = top_stats['top']
+        total_up = top_stats['total_up']
+        total_down = top_stats['total_down']
+        tribler_up = top_stats['tribler_up']
+        tribler_down = top_stats['tribler_down']
+        
         rank = 1
         text = ''
         for permid, up, down in top:
@@ -1656,7 +1661,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                                                      amount_str_up, amount_str_down, os.linesep)
             rank+=1
         
-        text2 = 'Up: %s, down: %s' % (self.utility.size_format(mytotals[0]), self.utility.size_format(mytotals[1])) 
+        text2 = 'Up: %s, down: %s' % (self.utility.size_format(tribler_up), self.utility.size_format(tribler_down)) 
         return text, text2
             
 def revtcmp(a,b):

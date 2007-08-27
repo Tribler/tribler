@@ -834,7 +834,10 @@ class BarterCastDBHandler(BasicDBHandler):
             return "Non-tribler"
 
         peer = self.peer_db.getItem(permid, False)
-        return peer['name']
+        if peer == None:
+            return "Unknown"
+        else:
+            return peer.get('name', 'Unknown')
 
 
     def getItem(self, (permid_1, permid_2), default=False):
@@ -877,21 +880,17 @@ class BarterCastDBHandler(BasicDBHandler):
         return keys
 
     # Return (sorted) list of the top N peers with the highest (combined) values for the given keys    
-    def getTopNPeers(self, n, giveMyTotals = False, local_only = False, tribler_only = False):
+    def getTopNPeers(self, n, local_only = False):
 
         itemlist = self.getItemList()
 
         if local_only:
             # get only items of my local dealings
             itemlist = filter(lambda (permid_from, permid_to): permid_to == self.my_permid or permid_from == self.my_permid, itemlist)
-
-        if tribler_only:
-            # base MyTotals only on interaction with other tribler peers
-            itemlist = filter(lambda (permid_from, permid_to): permid_to != 'non-tribler' and permid_from != 'non-tribler', itemlist)
-            
             
         total_up = {}
         total_down = {}
+        
         
         for (permid_1, permid_2) in itemlist:
             
@@ -936,17 +935,20 @@ class BarterCastDBHandler(BasicDBHandler):
                 min = top[-1][1]
 
 
-        if giveMyTotals:
-            u = 0
-            d = 0
-            if (self.my_permid in total_up):
-                u = total_up[self.my_permid] 
-            if (self.my_permid in total_down):
-                d = total_down[self.my_permid]
-            return top, (u, d)
-        else:
-            return top        
-
+        
+        result = {}
+        
+        result['top'] = top
+        
+        # My total up and download, including interaction with non-tribler peers
+        result['total_up'] = total_up.get(self.my_permid, 0)
+        result['total_down'] = total_down.get(self.my_permid, 0)
+        
+        # My up and download with tribler peers only
+        result['tribler_up'] = result['total_up'] - total_down.get('non-tribler', 0)
+        result['tribler_down'] = result['total_down'] - total_up.get('non-tribler', 0)
+        
+        return result
 
     def addItem(self, (permid_1, permid_2), item):
 
