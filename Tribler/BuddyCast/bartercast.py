@@ -58,7 +58,7 @@ class BarterCastCore:
 
         my_permid = self.bartercastdb.my_permid
         local_top = self.bartercastdb.getTopNPeers(NO_PEERS_IN_MSG, local_only = True)['top']
-        top_peers = map(lambda (permid, up, down): permid, local_top
+        top_peers = map(lambda (permid, up, down): permid, local_top)
         data = {}
         
         for permid in top_peers:
