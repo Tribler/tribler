@@ -397,7 +397,8 @@ class Utility:
              'askeduploadbw':'0',
              'torrentcollectsleep':'15',
              'torrentassociationwarned':'0',
-             'internaltrackerurl': ''
+             'internaltrackerurl': '',
+             'lure_ended':'0'
 #            'skipcheck': '0'
         }
 

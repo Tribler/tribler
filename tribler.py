@@ -85,7 +85,7 @@ from Tribler.CacheDB.CacheDBHandler import BarterCastDBHandler
 from Tribler.Overlay.permid import permid_for_user
 from BitTornado.download_bt1 import EVIL
 
-DEBUG = False
+DEBUG = True
 ALLOW_MULTIPLE = False
 start_time = 0
 start_time2 = 0
@@ -996,30 +996,33 @@ class TorThread(Thread):
         self.child_in = None
         
     def run(self):
-        if EVIL:
-            ## TOR EVIL
-            try:
+        try:
+            if DEBUG:
+                print >>sys.stderr,"TorThread starting",currentThread().getName()
+            if sys.platform == "win32":
+                # Not "Nul:" but "nul" is /dev/null on Win32
+                cmd = 'tor.exe'
+                sink = 'nul'
+            elif sys.platform == "darwin":
+                cmd = 'tor.mac'
+                sink = '/dev/null'
+            else:
+                cmd = 'tor'
+                sink = '/dev/null'
+
+            (self.child_out,self.child_in) = os.popen2( "%s --log err-err > %s 2>&1" % (cmd,sink), 'b' )
+            while True:
                 if DEBUG:
-                    print >>sys.stderr,"TorThread starting",currentThread().getName()
-                if sys.platform == "win32":
-                    # Not "Nul:" but "nul" is /dev/null on Win32
-                    cmd = 'tor.exe'
-                    sink = 'nul'
-                else:
-                    cmd = 'tor'
-                    sink = '/dev/null'
-        
-                (self.child_out,self.child_in) = os.popen2( "%s --log err-err > %s 2>&1" % (cmd,sink), 'b' )
-                #(child_out,child_in) = os.popen2( "tor.exe --log err-err", 'b' )
-                while True:
-                    msg = self.child_in.read()
-                    if DEBUG:
-                        print >>sys.stderr,"TorThread: tor said",msg
-                    if len(msg) == 0:
-                        break
-                    sleep(1)
-            except:
-                print_exc()
+                    print >>sys.stderr,"TorThread reading",currentThread().getName()
+
+                msg = self.child_in.read()
+                if DEBUG:
+                    print >>sys.stderr,"TorThread: tor said",msg
+                if len(msg) == 0:
+                    break
+                sleep(1)
+        except:
+            print_exc()
 
     def shutdown(self):
         if self.child_out is not None:
@@ -1044,6 +1047,7 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
         self.single_instance_checker = single_instance_checker
         self.abcpath = abcpath
         self.error = None
+        self.torthread = None
         wx.App.__init__(self, x)
         
     def OnInit(self):
@@ -1111,7 +1115,30 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             self.videoserver.background_serve()
 
             notification_init( self.utility )
-    
+
+            # Change config when experiment ends, before ABCLaunchMany is created
+            global EVIL
+            if EVIL and time() > 1190099288.0:
+                EVIL = False
+                end = self.utility.config.Read('lure_ended', "boolean")
+                if not end:
+                    self.utility.config.Write('lure_ended', 1, "boolean")
+                    self.utility.config.Write('tor_enabled', 0, "boolean")
+                    self.utility.config.Write('ut_pex_max_addrs_from_peer', 16)
+                
+                    msg = "The Tribler download accelerator using the TOR network has been turned off. For more information visit http://TV.seas.Harvard.edu/"
+                    dlg = wx.MessageDialog(None, msg, "Tribler Warning", wx.OK|wx.ICON_INFORMATION)
+                    result = dlg.ShowModal()
+                    dlg.Destroy()
+                
+            
+            if EVIL:
+                self.torthread = TorThread()
+                self.torthread.start()
+
+            #
+            # Read and create GUI from .xrc files
+            #
             #self.frame = ABCFrame(-1, self.params, self.utility)
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params)
             updateXRC.main([os.path.join(self.utility.getPath(),'Tribler','vwxGUI')])
@@ -1212,9 +1239,6 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             #print "DIM",wx.GetDisplaySize()
             #print "MM",wx.GetDisplaySizeMM()
 
-            self.torthread = TorThread()
-            self.torthread.start()
-            
             wx.CallAfter(self.startWithRightView)            
             
         except Exception,e:
@@ -1245,7 +1269,8 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
     def OnExit(self):
         
         self.torrentfeed.shutdown()
-        self.torthread.shutdown()
+        if self.torthread is not None:
+            self.torthread.shutdown()
         mainlineDHT.deinit()
         
         if not ALLOW_MULTIPLE:
