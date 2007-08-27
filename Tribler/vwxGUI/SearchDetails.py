@@ -48,7 +48,9 @@ class SearchDetailsPanel(wx.Panel):
         self.results = {}
         
     def setMessage(self, type, finished, num, keywords = []):
-        self.results[type] = num
+        if type:
+            self.results[type] = num
+        
         total = sum([v for v in self.results.values() if v != -1])
         
         if keywords:
@@ -56,6 +58,7 @@ class SearchDetailsPanel(wx.Panel):
           
         if finished:  
             msg = self.guiUtility.utility.lang.get('finished_search') % (self.keywords, total)
+            self.stopMoreClicked()
         else:
             msg = self.guiUtility.utility.lang.get('going_search') % (self.keywords, total)
         
@@ -74,6 +77,10 @@ class SearchDetailsPanel(wx.Panel):
         self.textPanel.SetToolTipString(tt)
         self.text.SetToolTipString(tt)
         
+    def startSearch(self):
+        self.stopMoreButton.setToggled(False)
+        self.searchBusy = True
+        
     def stopSearch(self):
         # call remoteSearch and Web2.0 search to stop
         dod = self.guiUtility.standardOverview.getGrid().dod
@@ -82,8 +89,7 @@ class SearchDetailsPanel(wx.Panel):
     
     def findMoreSearch(self):
         # call remoteSearch and Web2.0 search to find more
-        self.searchBusy = True
-        self.stopMoreButton.setToggled(False)
+        self.startSearch()
         grid = self.guiUtility.standardOverview.getGrid()
         if grid.dod:
             grid.dod.requestMore(grid.items)
@@ -91,9 +97,11 @@ class SearchDetailsPanel(wx.Panel):
     def searchFinished(self):
         self.searchBusy = False
         self.stopMoreButton.setToggled(True)
-        
+        self.setMessage(None, True, 0, None)
     
-    def stopMoreClicked(self, event):
+    def stopMoreClicked(self, event = None):
+        if event:
+            event.Skip()
         if self.searchBusy:
             self.stopSearch()
             self.searchFinished()

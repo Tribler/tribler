@@ -169,9 +169,15 @@ class TorrentDataManager:
         # if searchkeywords are defined. Search instead of show all
         if self.inSearchMode(mode):
                 data = self.search(data, mode)    #TODO RS: does it come from remote search or local search?
-                self.standardOverview.setSearchFeedback('torrent', False, len(data), self.searchkeywords[mode])
-                self.standardOverview.setSearchFeedback('web2', False, -1)
-                self.standardOverview.setSearchFeedback('remote', False, -1)
+                self.standardOverview.setSearchFeedback('web2', False, -1, self.searchkeywords[mode])
+                self.standardOverview.setSearchFeedback('remote', False, -1, self.searchkeywords[mode])
+                if mode == 'filesMode':
+                    self.standardOverview.setSearchFeedback('torrent', False, len(data), self.searchkeywords[mode])
+                elif mode == 'libraryMode':
+                    # set finished true and use other string
+                    self.standardOverview.setSearchFeedback('library', True, len(data), self.searchkeywords[mode])
+                    
+                
                 self.addRemoteResults(data, mode, categorykey)
                 if DEBUG:
                     print >>sys.stderr,'torrentManager: getCategory found after search: %d items' % len(data)
@@ -637,7 +643,7 @@ class TorrentDataManager:
             print >>sys.stderr,"torrentDataManager: gotRemoteHist: got",len(answers)
         
         # We got some replies. First check if they are for the current query
-        if self.searchkeywords[mode] == kws:
+        if self.searchkeywords[mode] == kws and self.standardOverview.getSearchBusy():
             self.remoteHits = (self.searchkeywords[mode], [])
             numResults = 0
             for key,value in answers.iteritems():

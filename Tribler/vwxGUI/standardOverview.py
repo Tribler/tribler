@@ -643,7 +643,13 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         """ May be called by web2.0 thread """
         self.invokeLater(self._setSearchFeedback,args,kwargs)
         
-        
+    def getSearchBusy(self):
+        searchDetailsPanel = self.data[self.mode].get('searchDetailsPanel')
+        if searchDetailsPanel:
+            return searchDetailsPanel.searchBusy
+        else:
+            return False
+            
     def _setSearchFeedback(self, type, finished, num, keywords = []):
         #print 'standardOverview: _setSearchFeedback called by', currentThread().getName()
         searchDetailsPanel = self.data[self.mode].get('searchDetailsPanel')
@@ -703,7 +709,9 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 self.data[self.mode]['searchDetailsPanel'] = searchDetails
                 searchDetails.Show()
             else:
+                searchDetails.startSearch()
                 searchDetails.Show()
+                
         else:
             if searchDetails:
                 print 'removing search details'
