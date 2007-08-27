@@ -1345,14 +1345,14 @@ C_recommpersons	= "Fit to your taste (top20 of discovered persons)"
 C_friends		= "Friends of yours"
 # LIBRARY
 C_progress		= "Progress of downloads"
-C_downspeed		= "Download speed"
-C_upspeed		= "Upload speed"
-C_message		= "Status of downloads"
-C_info			= "Other info"
+C_downspeed		= "Download speed (no sorting)"
+C_upspeed		= "Upload speed (no sorting)"
+C_message		= "Status of downloads (no sorting)"
+C_info			= "Other info (no sorting)"
 # FRIENDS
 C_friendname	= "Name of your friends"
 C_friendstatus	= "Last time you connected with your friends"
-C_helping		= "Whether friend is boosting your downloads"
+C_helping		= "Whether friend is boosting your downloads (no sorting)"
 
 # TopNList discovered peers in profile view - Tribler 4.1.0
 
