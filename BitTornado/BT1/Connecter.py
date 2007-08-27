@@ -559,7 +559,7 @@ class Connecter:
         down_kb = int(c.total_downloaded / 1024)
         up_kb = int(c.total_uploaded / 1024)
 
-        # Save exchanged KBs in PeerDB
+        # Save exchanged KBs in BarterCastDB
         if permid != None:
 
             name = self.bartercastdb.getName(permid)

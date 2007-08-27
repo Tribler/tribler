@@ -858,7 +858,7 @@ class BarterCastDBHandler(BasicDBHandler):
         # if peer in peerdb but not in bartercastdb: add peer
         if item == None: # and peerdb_peer != None:
 
-            print 'Item (%s, %s) added to BarterCastDB' % (permid_for_user(permid_from), permid_for_user(permid_to))
+#            print 'Item (%s, %s) added to BarterCastDB' % (permid_for_user(permid_from), permid_for_user(permid_to))
             self.addItem((permid_from, permid_to), self.bartercast_db.default_item)
 
             # get item again now it exists
@@ -925,7 +925,7 @@ class BarterCastDBHandler(BasicDBHandler):
                 top.append((peer, up, down))
 
                 # sort based on value
-                top.sort(cmp = lambda (p1, u1, d1), (p2, u2, d2): cmp(u2 + d2, u1 + d1))
+                top.sort(cmp = lambda (p1, u1, d1), (p2, u2, d2): cmp(u2, u1))
 
                 # if list contains more than N elements: remove the last (=lowest value)
                 if len(top) > n:
