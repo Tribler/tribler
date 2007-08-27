@@ -38,7 +38,7 @@
                   <option>0</option>
                   <object class="wxStaticText" name="titleField">
                     <style>wxST_NO_AUTORESIZE</style>
-                    <label>top 10 Tribler Sharers</label>
+                    <label>top 10 Tribler Uploaders</label>
                     <pos>0,5</pos>
                     <size>280,15</size>
                     <bg>#     0</bg>
@@ -80,7 +80,7 @@
                   <border>4</border>
                   <option>0</option>
                   <object class="wxPanel" name="infoIcon" subclass="Tribler.vwxGUI.bgPanel.ImagePanel">
-                    <tooltip>Tribler is a special network on top of the overall network.\nThese figures shows the top 10 sharers within the Tribler network.</tooltip>
+                    <tooltip>Tribler is a special network on top of the overall network.\nThese figures shows the top 10 uploaders within the Tribler network.</tooltip>
                     <pos>10,14</pos>
                     <size>8,8</size>
                   </object>
