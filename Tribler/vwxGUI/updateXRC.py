@@ -1,6 +1,6 @@
 import sys, re, os, os.path
 
-DEBUG = False
+DEBUG = True
 ENABLED = True
 
 def changeFile(filename):
