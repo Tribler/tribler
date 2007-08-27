@@ -7,7 +7,7 @@ Build-Depends: python, debhelper (>= 5.0.37.2), devscripts
 
 Package: tribler
 Architecture: all
-Depends: python, python-wxgtk2.6, python-m2crypto, vlc, ffmpeg
+Depends: python, python-wxgtk2.6, python-m2crypto, vlc, ffmpeg, tor
 Description: Python based Bittorrent/Internet TV application
  It allows you to watch videos and download
  content. Tribler aims to combine the ease of
