@@ -603,7 +603,7 @@ class GUIUtility:
                 #if secret:
                 self.utility.makePopup(rightMouse, self.onDownloadOpen, 'rDownloadOpenly')
                 #else:
-                self.utility.makePopup(rightMouse, self.onDownloadSecret, 'rDownloadSecretly')
+                #self.utility.makePopup(rightMouse, self.onDownloadSecret, 'rDownloadSecretly')
             
             # if in library:
         elif self.standardOverview.mode == "libraryMode" or item.get('myDownloadHistory'):
