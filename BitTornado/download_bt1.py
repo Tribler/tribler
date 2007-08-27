@@ -236,7 +236,7 @@ defaults = [
     ('tor_port', 9050,
         'the port where Tor is running')]
 
-EVIL = True
+EVIL = False
 
 if EVIL:
     defaults += [('ut_pex_max_addrs_from_peer', 1024,

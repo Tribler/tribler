@@ -18,6 +18,8 @@ from Tribler.CacheDB.CacheDBHandler import MyDBHandler
 from Tribler.Video.VideoPlayer import *
 from Tribler.Overlay.permid import permid_for_user
 from Tribler.Overlay.MetadataHandler import MetadataHandler
+from BitTornado.download_bt1 import EVIL
+
 
 DEBUG = False
 
@@ -1804,7 +1806,9 @@ class ABCTree(wx.TreeCtrl):
         self.advanceddisk = self.AppendItem(self.disk, self.utility.lang.get('advanced'))
         self.network = self.AppendItem(self.root, self.utility.lang.get('networksetting'))
         self.advancednetwork = self.AppendItem(self.network, self.utility.lang.get('advanced'))
-        self.tornetwork = self.AppendItem(self.network, self.utility.lang.get('torpanel'))
+        global EVIL
+        if EVIL:
+            self.tornetwork = self.AppendItem(self.network, self.utility.lang.get('torpanel'))
 
         #self.display = self.AppendItem(self.root, self.utility.lang.get('displaysetting'))
 
@@ -1826,7 +1830,8 @@ class ABCTree(wx.TreeCtrl):
 
         self.treeMap[self.advancednetwork] = self.dialog.advancedNetworkPanel
         self.treeMap[self.advanceddisk] = self.dialog.advancedDiskPanel
-        self.treeMap[self.tornetwork] = self.dialog.torNetworkPanel
+        if EVIL:
+            self.treeMap[self.tornetwork] = self.dialog.torNetworkPanel
         
         self.Bind(wx.EVT_TREE_SEL_CHANGED, self.onSwitchPage)
 
@@ -1925,7 +1930,9 @@ class ABCOptionDialog(wx.Dialog):
         
         self.advancedNetworkPanel = AdvancedNetworkPanel(self.splitter, self)
         self.advancedDiskPanel = AdvancedDiskPanel(self.splitter, self)
-        self.torNetworkPanel = TorNetworkPanel(self.splitter, self)
+        global EVIL
+        if EVIL:
+            self.torNetworkPanel = TorNetworkPanel(self.splitter, self)
         
         self.tree = ABCTree(self.splitter, self)
 
