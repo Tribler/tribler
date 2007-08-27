@@ -1656,7 +1656,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 
             name = self.bartercastdb.getName(permid)
 
-            topText += '%d. %s%s  (up: %s, down: %s)%s' % (rank, name, os.linesep, 
+            topText += '%d. %s%s     up: %s (down: %s)%s \r' % (rank, name, os.linesep, 
                                                      amount_str_up, amount_str_down, os.linesep)
             rank+=1
         
