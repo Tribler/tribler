@@ -48,11 +48,20 @@ class standardGrid(wx.Panel):
             self.cols = cols
             self.columnTypes = None
             self.subPanelHeight = subPanelHeight
-        else: 
-            self.cols = cols[0]
+        else:
             self.columnTypes = cols
             self.subPanelHeights = subPanelHeight
-            self.subPanelHeight = self.subPanelHeights[0]
+            if self.viewmode == 'thumbnails':
+                self.cols = cols[0]
+                self.subPanelHeight = self.subPanelHeights[0]
+            elif self.viewmode == 'list':
+                self.cols = cols[1]
+                self.subPanelHeight = self.subPanelHeights[1]
+            else:
+                raise Exception('unknown viewmode: %s' % self.viewmode)
+                
+            
+            
         
         self.guiserver = GUIServer.getInstance()
         self.mm = MugshotManager.getInstance()
@@ -79,6 +88,8 @@ class standardGrid(wx.Panel):
         
         self.addComponents()
         self.calculateRows()
+        if self.viewmode == 'list':
+            self.toggleColumnHeaders(True)
         self.Show()
         self.Layout()
         self.Refresh()
@@ -574,8 +585,7 @@ class friendsGrid(standardGrid):
     def __init__(self):   
         columns = (1,1)
         subPanelHeight = (22,22) # This will be update after first refresh
-        standardGrid.__init__(self, columns, subPanelHeight, orientation='vertical')
-        self.onViewModeChange(mode='list')
+        standardGrid.__init__(self, columns, subPanelHeight, orientation='vertical', viewmode='list')
         
     def getSubPanel(self, keyfun):
         return FriendsItemPanel(self, keyfun)
@@ -584,9 +594,8 @@ class libraryGrid(standardGrid):
     def __init__(self):
         columns = (1,1)
         subPanelHeight = (22, 22) # This will be update after first refresh
-        standardGrid.__init__(self, columns, subPanelHeight, orientation='horizontal')
-        self.onViewModeChange(mode='list')
-        
+        standardGrid.__init__(self, columns, subPanelHeight, orientation='horizontal', viewmode='list')
+            
     def getSubPanel(self, keyfun):
         return LibraryItemPanel(self, keyfun)
     

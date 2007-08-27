@@ -152,10 +152,10 @@ class FriendsItemPanel(wx.Panel):
             
     def getColumns(self):
         return [{'sort':'', 'title':'', 'width':20, 'tip':''},
-                {'sort':'content_name', 'title':'name', 'weight':1,'tip':self.utility.lang.get('C_friendname') },
-                {'sort':'last_seen', 'title':'status', 'width':165, 'tip':self.utility.lang.get('C_friendstatus'), 'order':'down'},
-                {'sort':'??', 'title':'boosting','weight':1, 'tip':self.utility.lang.get('C_helping')},
-                {'sort':'similarity', 'pic':'heartSmall', 'width':65, 'tip':self.utility.lang.get('C_recommpersons')}
+                {'sort':'content_name', 'reverse':True,'title':'name', 'weight':1,'tip':self.utility.lang.get('C_friendname') },
+                {'sort':'last_seen', 'reverse':True,'title':'status', 'width':165, 'tip':self.utility.lang.get('C_friendstatus'), 'order':'down'},
+                {'sort':'??', 'dummy':True, 'title':'boosting','weight':1, 'tip':self.utility.lang.get('C_helping')},
+                {'sort':'similarity', 'reverse':True,'pic':'heartSmall', 'width':65, 'tip':self.utility.lang.get('C_recommpersons')}
                 ]
             
     def addLine(self, vertical=True):

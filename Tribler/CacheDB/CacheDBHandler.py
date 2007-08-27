@@ -881,7 +881,7 @@ class BarterCastDBHandler(BasicDBHandler):
 
     # Return (sorted) list of the top N peers with the highest (combined) values for the given keys    
     def getTopNPeers(self, n, local_only = False):
-
+        n = max(1, n)
         itemlist = self.getItemList()
 
         if local_only:
