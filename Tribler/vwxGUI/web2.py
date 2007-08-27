@@ -26,13 +26,14 @@ class DataOnDemand:
         except:
             print 'web2.unregister() unnecessary'
 
-    def notify(self): #, item):
+    def notify(self, item=None):
         for fun in self.updateFuns:
-            fun() #????
+            fun(item) #????
 
     def _addItem(self, item):
         for filter in self.filters:
             if not filter(item):
+                print 'item got filtered'
                 return False
 
         self.data.append(item)
@@ -40,20 +41,24 @@ class DataOnDemand:
         return True
 
     def addItem(self, item):
-        #print "web2.addItem"
+        print "web2.addItem"
         self.datalock.acquire()
         if self._addItem(item):
             self.data = self.sort(self.data)
-            self.notify()
+            print 'web2.addItem: notify'
+            self.notify(item)
         self.datalock.release()
 
     def addItems(self, items):
         #print "web2.addItems"
         self.datalock.acquire()
+#        for item in items:
+#            self._addItem(item)
+#        self.data = self.sort(self.data)
+#        self.notify()
+        # Quickfix: do not sort anymore. Otherwise it conflicts with incoming remotesearch
         for item in items:
-            self._addItem(item)
-        self.data = self.sort(self.data)
-        self.notify()
+            self.addItem(item)
         self.datalock.release()
 
     def numRequested(self):
@@ -124,6 +129,7 @@ class DataOnDemandWeb2(DataOnDemand, Observer):
     def update(self, subject, m):
         #print "WEB2.0: new item received"
         if m == None:
+            print 'web2: item was none'
             self.end = True
         else:
             self.addItem(m)

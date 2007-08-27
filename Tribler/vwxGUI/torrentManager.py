@@ -10,7 +10,7 @@
 import os
 import sys
 from base64 import encodestring
-from Tribler.utilities import friendly_time, sort_dictlist, remove_torrent_from_list
+from Tribler.utilities import friendly_time, sort_dictlist, remove_torrent_from_list, find_content_in_dictlist
 from Tribler.unicode import str2unicode, dunno2unicode
 from Utility.constants import * #IGNORE:W0611
 from Tribler.Category.Category import Category
@@ -28,7 +28,7 @@ try:
 except ImportError:
     pass
 
-DEBUG = False
+DEBUG = True
 DEBUG_RANKING = False
 
 # Arno: save memory by reusing dict keys
@@ -65,6 +65,7 @@ class TorrentDataManager:
         self.isDataPrepared = False
         self.data = []
         self.hits = []
+        self.remoteHits = None
         self.dod = None
         self.keywordsearch = KeywordSearch()
         # initialize the cate_dict
@@ -169,6 +170,7 @@ class TorrentDataManager:
                 self.standardOverview.setSearchFeedback('torrent', False, len(data), self.searchkeywords[mode])
                 self.standardOverview.setSearchFeedback('web2', False, -1)
                 self.standardOverview.setSearchFeedback('remote', False, -1)
+                self.addRemoteResults(data, mode, categorykey)
                 if DEBUG:
                     print >>sys.stderr,'torrentManager: getCategory found after search: %d items' % len(data)
         
@@ -193,8 +195,8 @@ class TorrentDataManager:
                 self.dod.stop()
                 self.dod = None
                 
-            if self.inSearchMode(mode):
-                self.standardOverview.setSearchFeedback('torrent', True, len(data))                
+#            if self.inSearchMode(mode):
+#                self.standardOverview.setSearchFeedback('torrent', True, len(data))                
             
             return data
                 
@@ -586,6 +588,31 @@ class TorrentDataManager:
         
         return self.hits
 
+    def addRemoteResults(self, data, mode, cat):
+        if self.remoteHits and self.remoteHits[0] == self.searchkeywords[mode]:
+            numResults = 0
+            def catFilter(item):
+                icat = item.get('category')
+                if type(icat) == list:
+                    icat = icat[0].lower()
+                elif type(icat) == str:
+                    icat = icat.lower()
+                else:
+                    return False
+                return icat == cat or cat == 'all'
+            
+            catResults = filter(catFilter, self.remoteHits[1])
+            if DEBUG:
+                print >> sys.stderr, "Adding %d remote results (%d in category)" % (len(self.remoteHits[1]), len(catResults))
+            
+            
+            for remoteItem in catResults:
+                if find_content_in_dictlist(data, remoteItem) == -1:
+                    data.append(remoteItem)
+                    numResults+=1
+            self.standardOverview.setSearchFeedback('remote', False, numResults, self.searchkeywords[mode])
+        
+        
     def remoteSearch(self,kws,maxhits=None):
         if DEBUG:
             print >>sys.stderr,"torrentDataManager: remoteSearch",kws
@@ -609,6 +636,7 @@ class TorrentDataManager:
         
         # We got some replies. First check if they are for the current query
         if self.searchkeywords[mode] == kws:
+            self.remoteHits = (self.searchkeywords[mode], [])
             numResults = 0
             for key,value in answers.iteritems():
                 
@@ -630,6 +658,7 @@ class TorrentDataManager:
                     print >>sys.stderr,"torrentDataManager: gotRemoteHist: appending hit",`value['content_name']`
                     value['content_name'] = 'REMOTE '+value['content_name']
                 self.hits.append(value)
+                self.remoteHits[1].append(value)
                 if self.notifyView(value, 'add'):
                     numResults +=1
             self.standardOverview.setSearchFeedback('remote', False, numResults, self.searchkeywords[mode])

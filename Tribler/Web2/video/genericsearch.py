@@ -154,14 +154,16 @@ class GenericSearch(db.ThreadedDBSearch):
         assert type(src) == str, "Url of video was not string, but %s (site:%s, name:%s)" % (repr(src), self.site, name)
         
         item['url'] = src
+        item['views'] = 'unknown'
         if self.get('RE_VIEWS'):
             views = re.findall(self.get('RE_VIEWS'), itempage)
-            item['views'] = int(filter(lambda x: x.isdigit(), views[0]))
-        else:
-            item['views'] = 'unknown'
+            if views:    
+                item['views'] = int(filter(lambda x: x.isdigit(), views[0]))
+        
         if self.get('RE_DATE'):
             date = re.findall(self.get('RE_DATE'), itempage, re.S)
-            item['info'] = { 'creation date' : GenericDateParser(date[0], self) }
+            if date:
+                item['info'] = { 'creation date' : GenericDateParser(date[0], self) }
 
         item['status'] = 'good'
         item['seeder'] = 1

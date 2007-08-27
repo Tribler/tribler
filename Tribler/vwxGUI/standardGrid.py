@@ -160,11 +160,14 @@ class standardGrid(wx.Panel):
         return self.data
 
 
-    def updateDod(self):
+    def updateDod(self, item=None):
         if DEBUG or DEBUG_DOD:
             print >>sys.stderr,'standardGrid: WEB2.0 -> updateDod'
-        self.data = self.dod.getData()
-        wx.CallAfter(self.refreshPanels)
+        #self.data = self.dod.getData()
+        if item:
+            self.data.append(item)
+            wx.CallAfter(self.refreshData)
+        
     
     def setData(self, dataList, resetPages = True):
         
@@ -174,9 +177,11 @@ class standardGrid(wx.Panel):
             #datalength = len(dataList)
         
         if type(dataList) == list or dataList is None:
+            print 'grid.setData: list'
             self.data = dataList
             
         elif dataList.isDod():
+            print 'grid.setData: dod'
             if self.dod != dataList:
                 self.stopWeb2Search()
 

@@ -3,7 +3,7 @@ import traceback
 import threading
 import copy
 
-DEBUG = False
+DEBUG = True
 
 class Observer:
 
