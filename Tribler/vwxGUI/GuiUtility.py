@@ -465,6 +465,10 @@ class GUIUtility:
         self.peer_manager.registerFilter("search",searchFilterFunc)
         self.standardOverview.filterChanged(['search',None],setgui=True)
         # there is no personsFilter
+        numResults =0
+        if self.standardOverview.getGrid():
+            numResults = len(self.standardOverview.getGrid().getData())
+        self.standardOverview.setSearchFeedback('peers', True, numResults, wantkeywords)
         
     
     def searchFriends(self):

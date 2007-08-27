@@ -1316,6 +1316,7 @@ going_search = "Searching for '%s'... (%d results)"
 finished_search = "Finished search '%s'. (%d results)"
 search_web2 = "Web movies (%d results)"
 search_torrent = "Discovered files (%d results)"
+search_peers = "Discovered persons (%d results)"
 search_library = "Library files (%d results)"
 search_remote = "Tribler network (%d results)"
 
