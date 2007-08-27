@@ -167,6 +167,10 @@ VLCPREFIX=${VLCDIR}/install-root
 build/temp/.vlc:
 	svn co -r ${VLC_REV} svn://svn.videolan.org/vlc/trunk ${VLCDIR}
 	cd ${VLCDIR}/extras/contrib && ./bootstrap
+
+	cat ${VLCDIR}/extras/contrib/config.mak | sed 's#wget#'`which wget`'#' > build/temp/config.mak.temp
+	mv build/temp/config.mak.temp ${VLCDIR}/extras/contrib/config.mak
+
 	cd ${VLCDIR}/extras/contrib && make src
 	touch $@
 
@@ -185,8 +189,13 @@ ${VLCPREFIX}/lib/libvlc.a:	${VLCDIR}/Makefile
 	# and one might want to run this Makefile several times in case of errors, we don't use patch
 	cat ${VLCDIR}/Makefile | sed 's/vlc_app_DATA = VLC.app//;' > build/temp/Makefile.temp
 	mv build/temp/Makefile.temp ${VLCDIR}/Makefile
+
 	cat ${VLCDIR}/vlc-config | sed 's/^cflags_tuning=.*/cflags_tuning=""/;' > build/temp/vlc-config.temp
 	mv build/temp/vlc-config.temp ${VLCDIR}/vlc-config
+	chmod a+x ${VLCDIR}/vlc-config
+
+	cat ${VLCDIR}/po/Makefile | sed 's#@MKINSTALLDIRS@#'${VLCDIR}'/autotools/mkinstalldirs#;' > build/temp/Makefile.temp
+	mv build/temp/Makefile.temp ${VLCDIR}/po/Makefile
 	chmod a+x ${VLCDIR}/vlc-config
 
 	cd ${VLCDIR} && make install
