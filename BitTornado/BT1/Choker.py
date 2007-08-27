@@ -11,6 +11,8 @@ except:
     True = 1
     False = 0
 
+DEBUG = False
+
 class Choker:
     def __init__(self, config, schedule, picker, done = lambda: False):
         self.config = config
@@ -77,7 +79,7 @@ class Choker:
         if maxuploads > 1:
             for c in self.connections:
 # g2g_ unchoke some g2g peers later
-                if not c.use_g2g:
+                if c.use_g2g:
                     continue
 # _g2g
 
@@ -95,6 +97,8 @@ class Choker:
             self.last_preferred = len(preferred)
             preferred.sort()
             del preferred[maxuploads-1:]
+            if DEBUG:
+                print "NORMAL UNCHOKE",preferred
             preferred = [x[1] for x in preferred]
 
 # g2g_ unchoke some g2g peers too
@@ -111,6 +115,8 @@ class Choker:
                 g2g_preferred.append((-r[0], -r[1], c))
             g2g_preferred.sort()
             del g2g_preferred[maxuploads-1:]
+            if DEBUG:
+                print "G2G UNCHOKE",g2g_preferred
             g2g_preferred = [x[2] for x in g2g_preferred]
 
             preferred += g2g_preferred
@@ -128,6 +134,7 @@ class Choker:
                     to_unchoke.append(u)
                     if u.is_interested():
                         count += 1
+                        if DEBUG and not hit: print "OPTIMISTIC UNCHOKE",c
                         hit = True
                 else:
 # 2fastbt_
