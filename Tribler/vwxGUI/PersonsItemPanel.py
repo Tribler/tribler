@@ -460,20 +460,32 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
     def setThumbnail(self, data):
         # Get the file(s)data for this torrent
         try:
-            bmp = self.mm.get_default('personsMode','DEFAULT_THUMB')
+            listItem = self.GetParent().listItem
+            if listItem:
+                defThumb = 'DEFAULT_THUMB_SMALL'
+                thumbType = 'AsFriend'
+            else:
+                defThumb = 'DEFAULT_THUMB'
+                thumbType = None
+                
+            bmp = self.mm.get_default('personsMode',defThumb)
             # Check if we have already read the thumbnail and metadata information from this torrent file
             if data.get('metadata'):
-                bmp = data['metadata'].get('ThumbnailBitmap')
+                if listItem:
+                    bmp = data['metadata'].get('ThumbnailBitmapAsFriend')
+                else:
+                    bmp = data['metadata'].get('ThumbnailBitmap')
+                    
                 tt = data['metadata'].get('triend_time')
                 if not bmp:
                     now = time()
                     #print "BMP IS NONE",data['name']
-                    bmp = self.mm.get_default('personsMode','DEFAULT_THUMB')
+                    bmp = self.mm.get_default('personsMode',defThumb)
                     if now > tt+(15*60.0):
                         #print "REFRESH OF PEER IMAGE SCHEDULED"
-                        self.GetParent().guiserver.add_task(lambda:self.loadMetadata(data),0)
+                        self.GetParent().guiserver.add_task(lambda:self.loadMetadata(data, type=thumbType),0)
             else:
-                self.GetParent().guiserver.add_task(lambda:self.loadMetadata(data),0)
+                self.GetParent().guiserver.add_task(lambda:self.loadMetadata(data, type=thumbType),0)
             
             self.setBitmap(bmp)
             width, height = self.GetSize()

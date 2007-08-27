@@ -113,7 +113,7 @@ class DataOnDemandWeb2(DataOnDemand, Observer):
 
 
     def requestMore(self, num):
-        if self.end:
+        if self.end or not self.web2query:
             return
 
         self.web2querylock.acquire()
@@ -140,7 +140,7 @@ class DataOnDemandWeb2(DataOnDemand, Observer):
             self.web2query.detach(self)
             self.web2query.quit()
             self.web2query = None
-
+        self.end = True
         self.web2querylock.release()
 
 
