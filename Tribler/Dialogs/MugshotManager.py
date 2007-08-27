@@ -273,7 +273,6 @@ class MugshotManager:
         return self.defaults[mode][name]
     
     def getCategoryIcon(self, mode, cat, thumbtype = 'normal', web2 = False):
-        
         #print "**** getCategoryIcon", mode, cat, thumbtype, web2
         
         categoryConverter = {'picture':'other', 
@@ -288,6 +287,8 @@ class MugshotManager:
             cat = cat[0]
         if web2:
             cat = 'video'
+        elif cat == None:
+            return None
         
         cat = cat.lower()
         

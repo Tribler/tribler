@@ -157,8 +157,10 @@ class TorrentDataManager:
                     categories = ["other"]
                 if categorykey in [cat.lower() for cat in categories]:
                     okCategory = True
-                    
-            return okLibrary and okCategory and torrent['status'] =='good'
+            
+            okGood = torrent['status'] == 'good' or torrent.has_key('myDownloadHistory')
+            
+            return okLibrary and okCategory and okGood
         
         data = filter(torrentFilter, self.data)
         
