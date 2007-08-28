@@ -12,6 +12,10 @@ from BitTornado.bencode import bencode, bdecode
 from Tribler.Overlay.permid import permid_for_user
 from sets import Set
 
+from Tribler.utilities import show_permid_shorter
+
+DEBUG = False
+
 class BasicDBHandler:
     def __init__(self):
         self.dbs = []    # don't include read only database
@@ -835,10 +839,12 @@ class BarterCastDBHandler(BasicDBHandler):
 
         peer = self.peer_db.getItem(permid, False)
         if peer == None:
-            return "Unknown"
+            return 'peer %s' % show_permid_shorter(permid) 
         else:
-            return peer.get('name', 'Unknown')
-
+            name = peer.get('name', '')
+            if name == '':
+                name = 'peer %s' % show_permid_shorter(permid)
+            return name
 
     def getItem(self, (permid_1, permid_2), default=False):
 
@@ -858,7 +864,9 @@ class BarterCastDBHandler(BasicDBHandler):
         # if peer in peerdb but not in bartercastdb: add peer
         if item == None: # and peerdb_peer != None:
 
-#            print 'Item (%s, %s) added to BarterCastDB' % (permid_for_user(permid_from), permid_for_user(permid_to))
+            if DEBUG:
+                print 'Item (%s, %s) added to BarterCastDB' % (self.getName(permid_from), self.getName(permid_to))
+            
             self.addItem((permid_from, permid_to), self.bartercast_db.default_item)
 
             # get item again now it exists
@@ -895,8 +903,12 @@ class BarterCastDBHandler(BasicDBHandler):
         for (permid_1, permid_2) in itemlist:
             
             item = self.getItem((permid_1, permid_2))
+            
             up = item['uploaded'] *1024 # make into bytes
             down = item['downloaded'] *1024
+
+            if DEBUG:
+                print "BarterCast DB entry: (%s, %s) up = %d down = %d" % (self.getName(permid_1), self.getName(permid_2), up, down)
             
             # process permid_1
             total_up[permid_1] = total_up.get(permid_1, 0) + up
@@ -915,6 +927,9 @@ class BarterCastDBHandler(BasicDBHandler):
 
             up = total_up[peer]
             down = total_down[peer]
+            
+            if DEBUG:
+                print "BarterCast: total of %s: up = %d down = %d" % (self.getName(peer), up, down)
             
             # we know rank on total upload?
             value = up
@@ -1020,6 +1035,9 @@ class BarterCastDBHandler(BasicDBHandler):
             permid_from = permid_1
             permid_to = permid_2
 
+        if DEBUG:
+            print "BarterCast: update (%s, %s) [%s] += %s" % (self.getName(permid_from), self.getName(permid_to), key, str(value))
+
         self.bartercast_db.updateItem((permid_from, permid_to), {key:value})
 
 
@@ -1037,6 +1055,9 @@ class BarterCastDBHandler(BasicDBHandler):
         else:
             permid_from = permid_1
             permid_to = permid_2
+
+        if DEBUG:
+            print "BarterCast: increment (%s, %s) [%s] += %s" % (self.getName(permid_from), self.getName(permid_to), key, str(value))
 
         item = self.getItem((permid_from, permid_to))
 

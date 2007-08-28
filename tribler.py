@@ -588,11 +588,6 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         mypermid = bartercastdb.my_permid
         
         if DEBUG:
-            bartercastdb.incrementItem((mypermid, "testpermid_1"), 'uploaded', 1024)
-            bartercastdb.incrementItem((mypermid, "testpermid_1"), 'downloaded', 20000)
-                    
-            bartercastdb.incrementItem((mypermid, "testpermid_2"), 'uploaded', 40000)
-            bartercastdb.incrementItem((mypermid, "testpermid_2"), 'downloaded', 60000)
             
             top = bartercastdb.getTopNPeers(5)['top']
     

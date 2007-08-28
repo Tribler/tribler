@@ -13,7 +13,7 @@ from Tribler.Overlay.SecureOverlay import OLPROTO_VER_FIFTH
 MAX_BARTERCAST_LENGTH = 10 * 1024 * 1024 # TODO: give this length a reasonable value
 NO_PEERS_IN_MSG = 10
 
-debug = True
+DEBUG = True
 
 class BarterCastCore:
 
@@ -34,13 +34,17 @@ class BarterCastCore:
     ################################
     def createAndSendBarterCastMessage(self, target_permid, selversion):
 
+
         # for older versions of Tribler (non-BarterCast): do nothing
         if selversion <= OLPROTO_VER_FIFTH:
             return
 
+        if DEBUG:
+            print "Sending BarterCast msg to ", self.bartercastdb.getName(target_permid)
+
         # create a new bartercast message
         bartercast_data = self.createBarterCastMessage(target_permid)
-        
+
         try:
             bartercast_msg = bencode(bartercast_data)
         except:
@@ -79,10 +83,11 @@ class BarterCastCore:
     ################################
     def bartercastSendCallback(self, exc, target_permid, other=0):
         if exc is None:
-            if debug:
-                print "bartercast: *** msg was sent successfully to peer", self.bartercastdb.getName(target_permid)
+            if DEBUG:
+                print "bartercast: *** msg was sent successfully to peer %s (%s)" % \
+                        (self.bartercastdb.getName(target_permid), permid_for_user(target_permid))
         else:
-            if debug:
+            if DEBUG:
                 print "bartercast: *** warning - error in sending msg to", self.bartercastdb.getName(target_permid), exc
 
 
@@ -91,8 +96,8 @@ class BarterCastCore:
     def gotBarterCastMessage(self, recv_msg, sender_permid, selversion):
         """ Received a bartercast message and handle it. Reply if needed """
         
-        if debug:
-            print 'Received a BarterCast message from ', permid_for_user(sender_permid)
+        if DEBUG:
+            print 'Received a BarterCast message from ', self.bartercastdb.getName(sender_permid)
             
         if not sender_permid or sender_permid == self.bartercastdb.my_permid:
             print >> sys.stderr, "bartercast: error - got BarterCastMsg from a None peer", \
@@ -157,11 +162,18 @@ class BarterCastCore:
     ################################
     def handleBarterCastMsg(self, sender_permid, data):
         
+        if DEBUG:
+            print "Processing bartercast msg from: ", self.bartercastdb.getName(sender_permid)
+        
         # process bartercast data in database
         for permid in data.keys():
-
+            
             data_to = data[permid]['u']
             data_from = data[permid]['d']
+            
+            if DEBUG:
+                print "BarterCast data: (%s, %s) up = %d down = %d" % (self.bartercastdb.getName(sender_permid), self.bartercastdb.getName(permid),\
+                                                                        data_to, data_from)
 
             # update database sender->permid and permid->sender
             self.bartercastdb.updateItem((sender_permid, permid), 'uploaded', data_to)
