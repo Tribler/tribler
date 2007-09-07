@@ -12,7 +12,7 @@ from traceback import print_exc
 # update top list and the sorting after removal of elements
 #===============================================================================
 
-DEBUG = True
+DEBUG = False
 
 key_content_name = 'content_name'
 key_permid = 'permid'
@@ -187,7 +187,7 @@ class PeerDataManager(DelayedEventHandler):
         ## initialization
         self.MIN_CALLBACK_INT = 1 #min callback interval: minimum time in seconds between two invocations on the gui from the callback
         self.start_callback_int = -1 #init the time variable for the callback function
-        self.peerDeletionTime = 5 # delete peers > maxPeers, at most once every 60 seconds
+        self.peerDeletionTime = 100 # delete peers > maxPeers, at most once every x seconds
         self.dataLock = threading.RLock()
         self.callback_dict = {} #empty list for events
         self.guiCallbackFuncList = []#callback function list from the parent, the creator object
@@ -948,7 +948,7 @@ class PeerDataManager(DelayedEventHandler):
                 for peer in self.filtered_data['all'][-numToRemove:]:
                     self.callbackPeerChange(peer['permid'], 'delete')
                 self.setCmpFunc(self.lastSortFunc)
-                debug('Removed %d peers in %f s' % (numToRemove, (time.time()-beginTime)))
+                print 'Removed %d peers (from %d total) in %f s' % (numToRemove, len(self.filtered_data['all']), (time.time()-beginTime))
         finally:
             self.peerDeletionScheduled = False
                     

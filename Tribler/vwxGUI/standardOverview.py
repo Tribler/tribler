@@ -191,8 +191,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                         else:
                             txt = self.utility.lang.get('filesdefaultsearchtxt')
                         search.SetValue(txt)
-                        search.Bind(wx.EVT_LEFT_DCLICK, self.guiUtility.OnSearchMouseAction)
-                    
+                        search.Bind(wx.EVT_MOUSE_EVENTS, self.guiUtility.OnSearchMouseAction)
+                                            
                 pager.setGrid(grid)
                 
                 if self.mode in ['filesMode', 'personsMode']:

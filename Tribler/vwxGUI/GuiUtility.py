@@ -453,7 +453,7 @@ class GUIUtility:
         input = sf.GetValue()
         if DEBUG:
             print >>sys.stderr,"GUIUtil: searchPersons:",input
-        low = input.lower()
+        low = input.lower().strip()
         wantkeywords = low.split(' ')
         wantkeywords += low.split('-')
         wantkeywords += low.split('_')
@@ -479,7 +479,7 @@ class GUIUtility:
         sf = self.standardOverview.getSearchField()
         if sf is None:
             return
-        input = sf.GetValue()
+        input = sf.GetValue().strip()
         if DEBUG:
             print "GUIUtil: searchFriends:",input
         low = input.lower()
@@ -487,7 +487,7 @@ class GUIUtility:
         wantkeywords += low.split('-')
         wantkeywords += low.split('_')
         wantkeywords += low.split('.')
-        zet = Set(wantkeywords)
+        zet = Set([i for i in wantkeywords if i])
         wantkeywords = list(zet)
         def searchFriendsFilterFunc(peer_data):
             if not peer_data.get('friend',False):
@@ -571,9 +571,17 @@ class GUIUtility:
         sf = self.standardOverview.getSearchField()
         if sf is None:
             return
-        # TODO: smarter behavior
-        sf.SetSelection(-1,-1)
-        #event.Skip()
+
+        eventType = event.GetEventType()
+        #print 'event: %s, double: %s, leftup: %s' % (eventType, wx.EVT_LEFT_DCLICK, wx.EVT_LEFT_UP)
+        #print 'value: "%s", 1: "%s", 2: "%s"' % (sf.GetValue(), self.utility.lang.get('filesdefaultsearchweb2txt'),self.utility.lang.get('filesdefaultsearchtxt')) 
+        if event.LeftDClick() or \
+           ( event.LeftUp() and sf.GetValue() in [self.utility.lang.get('filesdefaultsearchweb2txt'),self.utility.lang.get('filesdefaultsearchtxt')]):
+            print 'select'
+            sf.SetSelection(-1,-1)
+            
+        if not event.LeftDClick():
+            event.Skip()
 
     def getSearchField(self,mode=None):
        return self.standardOverview.getSearchField(mode=mode)
