@@ -385,6 +385,7 @@ class Utility:
              'enabledlcollecting': '1',
              'enableweb2search':'1',
              'maxntorrents': 5000,
+             'maxnpeers': 2000,
              'torrentcollectingrate': 5,
              'minport': '6881',
              'myname': '',

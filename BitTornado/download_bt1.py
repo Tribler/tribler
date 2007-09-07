@@ -207,6 +207,8 @@ defaults = [
         "number of seconds to pause between exchanging preference with a peer in buddycast"),
     ('max_torrents', 5000,
         "max number of torrents to collect"),
+    ('max_peers', 2000,
+        "max number of peers to use for recommender"),
     ('torrent_collecting_rate', 5,
         "max rate of torrent collecting (Kbps)"),
     ('torrent_checking', 1,
@@ -234,7 +236,9 @@ defaults = [
     ('tor_host', '127.0.0.1',
         'the host running Tor'),
     ('tor_port', 9050,
-        'the port where Tor is running')]
+        'the port where Tor is running'),
+    ('nickname', '__default_name__',
+        'the nickname you want to show to others')]
 
 EVIL = False
 

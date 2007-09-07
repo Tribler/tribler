@@ -20,21 +20,24 @@
 # This must be done in the first python file that is started.
 #
 
+import os,sys
+
+if sys.platform == "darwin":
+    # on Mac, we can only load VLC/OpenSSL libraries
+    # relative to the location of tribler.py
+    os.chdir(os.path.abspath(os.path.dirname(sys.argv[0])))
+
 import urllib
 original_open_https = urllib.URLopener.open_https
 import M2Crypto
 urllib.URLopener.open_https = original_open_https
 
-import sys, locale
-import os
+import locale
+import signal
 import wx, commands
 from wx import xrc
 #import hotshot
 
-if sys.platform == "darwin":
-    # on Mac, we can only load VLC libraries
-    # relative to the location of tribler.py
-    os.chdir(os.path.abspath(os.path.dirname(sys.argv[0])))
 
 from threading import Thread, Timer, Event,currentThread,enumerate
 from time import time, ctime, sleep
@@ -62,6 +65,7 @@ from Tribler.__init__ import tribler_init, tribler_done
 from BitTornado.__init__ import product_name
 from safeguiupdate import DelayedInvocation,FlaglessDelayedInvocation
 import webbrowser
+import Tribler.vwxGUI.font as font
 from Tribler.Dialogs.MugshotManager import MugshotManager
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 import Tribler.vwxGUI.updateXRC as updateXRC
@@ -765,14 +769,25 @@ class ABCFrame(wx.Frame, DelayedInvocation):
             size = wx.Size(int(width), int(height))
         except:
             size = wx.Size(710, 400)
-        
+
         x = self.utility.config.Read("window_x")
         y = self.utility.config.Read("window_y")
         if (x == "" or y == ""):
-            position = wx.DefaultPosition
+            #position = wx.DefaultPosition
+
+            # On Mac, the default position will be underneath the menu bar, so lookup (top,left) of
+            # the primary display
+            primarydisplay = wx.Display(0)
+            dsize = primarydisplay.GetClientArea()
+            position = dsize.GetTopLeft()
+
+            # Decrease size to fit on screen, if needed
+            width = min( size.GetWidth(), dsize.GetWidth() )
+            height = min( size.GetHeight(), dsize.GetHeight() )
+            size = wx.Size( width, height )
         else:
             position = wx.Point(int(x), int(y))
-            
+
         return size, position     
         
     def saveWindowSettings(self):
@@ -896,12 +911,14 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         #if sys.platform == 'linux2':
         #
         
-        #tribler_done(self.utility.getConfigPath())            
+        tribler_done(self.utility.getConfigPath())            
+        
+        self.utility.app.special_shutdown()
         
         if DEBUG:    
             print >>sys.stderr,"abc: OnCloseWindow END"
 
-        if DEBUG:
+        if not DEBUG:
             ts = enumerate()
             for t in ts:
                 print >>sys.stderr,"abc: Thread still running",t.getName(),"daemon",t.isDaemon()
@@ -983,12 +1000,17 @@ class ABCFrame(wx.Frame, DelayedInvocation):
 
 class TorThread(Thread):
     
-    def __init__(self):
+    def __init__(self,configpath):
         Thread.__init__(self)
         self.setDaemon(True)
         self.setName("TorThread"+self.getName())
         self.child_out = None
         self.child_in = None
+        self.pidfilename = os.path.join(configpath,"tor.pid")
+        if sys.platform == "win32" and self.pidfilename.find(' ') != -1:
+            self.escaped_pidfilename = '"'+self.pidfilename+'"'
+        else:
+            self.escaped_pidfilename = self.pidfilename
         
     def run(self):
         try:
@@ -999,13 +1021,15 @@ class TorThread(Thread):
                 cmd = 'tor.exe'
                 sink = 'nul'
             elif sys.platform == "darwin":
-                cmd = 'tor.mac'
+                cmd = './tor.mac'
                 sink = '/dev/null'
             else:
                 cmd = 'tor'
                 sink = '/dev/null'
-
-            (self.child_out,self.child_in) = os.popen2( "%s --log err-err > %s 2>&1" % (cmd,sink), 'b' )
+            
+            cmdline = "%s --log err-err --pidfile %s > %s 2>&1" % (cmd,self.escaped_pidfilename,sink)
+            print "Command line is",cmdline
+            (self.child_out,self.child_in) = os.popen2( cmdline, 'b' )
             while True:
                 if DEBUG:
                     print >>sys.stderr,"TorThread reading",currentThread().getName()
@@ -1020,10 +1044,31 @@ class TorThread(Thread):
             print_exc()
 
     def shutdown(self):
+        """
         if self.child_out is not None:
             self.child_out.close()
         if self.child_in is not None:
             self.child_in.close()
+        """
+        try:
+            f = open(self.pidfilename,"r")
+            data = f.read()
+            f.close()
+            pid = int(data)
+            if sys.platform == "win32":
+                self.kill(pid)
+            else:
+                os.kill(pid,signal.SIGTERM)
+        except:
+            print_exc() 
+
+            
+            
+    def kill(self,pid):
+        """kill function for Win32"""
+        import win32api
+        handle = win32api.OpenProcess(1, 0, pid)
+        return (0 != win32api.TerminateProcess(handle, 0))            
             
 
 ##############################################################
@@ -1048,6 +1093,7 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
     def OnInit(self):
         try:
             self.utility = Utility(self.abcpath)
+            self.utility.app = self
             # Set locale to determine localisation
             locale.setlocale(locale.LC_ALL, '')
 
@@ -1071,6 +1117,9 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
 
     def PostInit(self):
         try:
+            # Initialise fonts
+            font.init()
+
             tribler_init(self.utility.getConfigPath(),self.utility.getPath(),self.db_exception_handler)
             self.utility.setTriblerVariables()
             self.utility.postAppInit()
@@ -1126,9 +1175,9 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
                     result = dlg.ShowModal()
                     dlg.Destroy()
                 
-            
-            if EVIL:
-                self.torthread = TorThread()
+            enabled = self.utility.config.Read('tor_enabled', "boolean")
+            if enabled:
+                self.torthread = TorThread(self.utility.getConfigPath())
                 self.torthread.start()
 
             #
@@ -1266,6 +1315,7 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
         self.torrentfeed.shutdown()
         if self.torthread is not None:
             self.torthread.shutdown()
+            self.torthread = None
         mainlineDHT.deinit()
         
         if not ALLOW_MULTIPLE:
@@ -1294,6 +1344,11 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
     def startWithRightView(self):
         if self.params[0] != "":
             self.guiUtility.standardLibraryOverview()
+    
+    def special_shutdown(self):
+        if self.torthread is not None:
+            self.torthread.shutdown()
+            self.torthread = None
     
         
 class DummySingleInstanceChecker:

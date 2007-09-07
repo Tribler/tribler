@@ -46,12 +46,13 @@ class DBObserver(BasicObserver):
             self.dict_FunList[key].append(fun)
         except Exception, msg:
             print >> sys.stderr, "dbobserver: DBObserver register error. " + str(fun), Exception, msg
-            print_exc(file=sys.stderr)
+            print_exc()
         self.lock.release()
         
     def unregister(self, fun, key = "default"):
         self.lock.acquire()
         if not self.dict_FunList.has_key(key):
+            self.lock.release()
             return
         self.dict_FunList[key].remove(fun)
         self.lock.release()
@@ -63,7 +64,7 @@ class DBObserver(BasicObserver):
                 fun(*paramenter)     # lock is used to avoid dead lock
         except Exception, msg:
             print >> sys.stderr, "dbobserver: DBObserver update error. ", Exception, msg
-            print_exc(file=sys.stderr)
+            print_exc()
                        
         self.lock.release()
     

@@ -1,7 +1,7 @@
 # written by Yuan Yuan
 # see LICENSE.txt for license information
 
-from threading import Thread, Lock
+from threading import Thread
 from traceback import print_exc
 from time import sleep, time
 import os
@@ -69,8 +69,8 @@ class SingleManualChecking(Thread):
             if not metadata:
                 raise Exception('No torrent metadata found')
 #
-            print 'Metainfo'
-            printTorrent(metadata)
+            #print 'Metainfo'
+            #printTorrent(metadata)
             
             namekey = name2unicode(metadata)
             torrent['info'] = {}

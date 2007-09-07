@@ -111,33 +111,7 @@ def cmpFuncSimilarityAsc( val1, val2):
     return 0    
 
 def cmpFuncSimilarityDesc( val2, val1):
-    """compare function that sorts on similarity value
-    greater value ahead"""
-    if val1['similarity'] > val2['similarity']:
-        return 1
-    if val1['similarity'] < val2['similarity']:
-        return -1
-    #if values are equal, check the order in the similarity top
-    manager = PeerDataManager.getInstance()
-    pos1=pos2=-1
-#===============================================================================
-#    for i in range(len(manager.top20similar)):
-#        if manager.top20similar[i]['permid'] == val1['permid']:
-#            pos1 = i
-#        if manager.top20similar[i]['permid'] == val2['permid']:
-#            pos2 = i
-#===============================================================================
-    pos1 = val1.get('simTop',-1)
-    pos2 = val2.get('simTop',-1)
-    if pos1 >= 0 and pos2 == -1:
-        return 1
-    if pos2 >=0 and pos1 == -1:
-        return -1
-    if pos1 < pos2:
-        return 1
-    if pos2 < pos1:
-        return -1
-    return 0    
+    return cmpFuncSimilarityAsc( val1, val2)
 
 def cmpFuncNameDesc( val1, val2):
     """compare function that sorts on name descending case insensitive"""
@@ -148,61 +122,43 @@ def cmpFuncNameDesc( val1, val2):
     return 0    
 
 def cmpFuncNameAsc( val1, val2):
-    """compare function that sorts on name ascending case insensitive"""
-    if val1['content_name'].lower() < val2['content_name'].lower():
-        return 1
-    if val1['content_name'].lower() > val2['content_name'].lower():
-        return -1
-    return 0
-
+    return cmpFuncNameDesc(val2, val1)
+    
 def cmpFuncConnectivityAsc( val1, val2):
     """compares based on online status and also last seen
-    first are the online peers, and then ordered ascending by last_seen"""
+    first are the online peers, and then ordered ascending by last_connected"""
     if val1.get('online') and not val2.get('online'):
         return 1
     if val2.get('online') and not val1.get('online'):
         return -1
     #they both are online or offline, so compare by last seen
     now = time.time()
-    ls1 = now-val1['last_seen']
-    ls2 = now-val2['last_seen']
+    ls1 = now-val1['last_connected']
+    ls2 = now-val2['last_connected']
     if ls1 < ls2:
         return 1
     if ls1 > ls2:
         return -1
     return 0
+
 
 def cmpFuncConnectivityDesc( val2, val1):
-    """compares based on online status and also last seen
-    first are the online peers, and then ordered ascending by last_seen"""
-    if val1.get('online') and not val2.get('online'):
-        return 1
-    if val2.get('online') and not val1.get('online'):
-        return -1
-    #they both are online or offline, so compare by last seen
-    now = time.time()
-    ls1 = now-val1['last_seen']
-    ls2 = now-val2['last_seen']
-    if ls1 < ls2:
-        return 1
-    if ls1 > ls2:
-        return -1
-    return 0
-
+    return cmpFuncConnectivityAsc( val1, val2)
+    
 def cmpFuncNPeersAsc( val1, val2):
     return val1.get('npeers', 0) - val2.get('npeers', 0)
 def cmpFuncNPeersDesc( val2, val1):
-    return val1.get('npeers', 0) - val2.get('npeers', 0)
+    return cmpFuncNPeersAsc(val1, val2)
 
 def cmpFuncNFilesAsc( val1, val2):
     return val1.get('ntorrents', 0) - val2.get('ntorrents', 0)
 def cmpFuncNFilesDesc( val2, val1):
-    return val1.get('ntorrents', 0) - val2.get('ntorrents', 0)
+    return cmpFuncNFilesAsc( val1, val2)
 
 def cmpFuncFriendAsc( val1, val2):
     return int(val1.get('friend', 0)) - int(val2.get('friend', 0))
 def cmpFuncFriendDesc( val2, val1):
-    return int(val1.get('friend', 0)) - int(val2.get('friend', 0))
+    return cmpFuncFriendAsc( val1, val2)
 
 class PeerDataManager(DelayedEventHandler):
     """offers a sync view of the peer database, in an usable form for the
@@ -239,8 +195,8 @@ class PeerDataManager(DelayedEventHandler):
         self.frienddb = CacheDBHandler.FriendDBHandler()
         self.MAX_MIN_PEERS_NUMBER = 1900
         self.MAX_MAX_PEERS_NUMBER = 2100
-        self.wantedkeys = ['permid', 'name', 'ip', 'similarity', 'last_seen', 'connected_times', 'buddycast_times', 'port', 'ntorrents', 'npeers']
-
+        self.wantedkeys = ['permid', 'name', 'ip', 'similarity', 'last_connected', 'connected_times', 'buddycast_times', 'port', 'ntorrents', 'npeers']
+        self.peerDeletionScheduled = False
         #there should always be an all key that contains all data
         all_data = [] #this all data can also be stored in a separate variable for easier usage
         self.filtered_data = { 'all':all_data}
@@ -249,7 +205,7 @@ class PeerDataManager(DelayedEventHandler):
 #        stubCN = "no data"
 #        if utility is not None:
 #            stubCN = utility.lang.get('persons_view_no_data')
-#        noDataStub = {'content_name':stubCN, 'permid':'000001', 'last_seen':-1, 'similarity':0, 'friend':False, 'name':''}
+#        noDataStub = {'content_name':stubCN, 'permid':'000001', 'last_connected':-1, 'similarity':0, 'friend':False, 'name':''}
 #        all_data.append(noDataStub)
         self.done_init = True
 
@@ -431,21 +387,22 @@ class PeerDataManager(DelayedEventHandler):
         # first, obtain values
         ##update
         #myprefs = self.mydb.getPrefList()
+        print '--tb-- setting data', len(peer_list)
         if peer_list is None:
             peer_list = self.peersdb.getPeerList()
         #make sure we have only unique items
-        unique_peer_list = set(peer_list)
-        #add the list of friends
-        unique_peer_list = unique_peer_list | set(self.frienddb.getFriendList())
-
+        unique_peer_list = set(peer_list + self.frienddb.getFriendList()) 
+        
         localdata = []
         #select only tribler peers
         for permid in unique_peer_list:
             peer = self.peersdb.getPeer(permid)
+            if not peer:
+                continue
             peer[key_permid] = permid
             isFriend = self.frienddb.isFriend(permid)
             
-            if peer['connected_times'] > 0 or isFriend:
+            if peer['buddycast_times'] > 0 or isFriend:
                 newpeer = self.preparePeer(peer,isFriend)
                 localdata.append(newpeer)
         #update top 20
@@ -536,26 +493,10 @@ class PeerDataManager(DelayedEventHandler):
                     if self.updateTopList([peer_data], self.top20similar, 'similarity'):
                         #refresh the grid
                         self.updateSimTopValues()
-                        #dump the new list
-            #            print "#===============================================================================#"
-            #            print "#             dump top 20 most similar peers                                    #"
-            #            for i in range(len(self.top20similar)):
-            #                print "#     %d. %s     %f" % (self.top20similar[i]['simTop'],unicode2str(self.top20similar[i]['content_name']),self.top20similar[i]['similarity'])
-            #            print "#===============================================================================#"
-#===============================================================================
-#                i = find_content_in_dictlist(self.data, peer_data, 'permid')
-#                if i != -1:
-#                    #update the data in local snapshot
-#                    self.data[i] = peer_data
-#                    #should reorder the data?
-#                else:
-#                    # shouldn't I insert the data at their place based on rank value... ?
-# #                    self.data.append(peer_data)
-#                    #append data to all lists
-#                    for key,list in self.filtered_data.iteritems():
-#                        if not self.filtered_func[key] or self.filtered_func[key] and self.filtered_func[key](peer_data):
-#                            list.append( peer_data)
-#===============================================================================
+                    
+                    # Check if too many peers in db
+                    if self.tooManyPeersInManager():
+                        self.schedulePeerDeletion()
                 
         #inform the GuiUtility of operation but only once for all updates
         try:
@@ -710,12 +651,12 @@ class PeerDataManager(DelayedEventHandler):
             rank_value = rank_value + 1
         # add last seen
         rank_value = (rank_value << 13)
-#        if peer_data.get('last_seen')!= None:
-#            rank_value = rank_value + getAgeingValue(peer_data['last_seen'])
+#        if peer_data.get('last_connected')!= None:
+#            rank_value = rank_value + getAgeingValue(peer_data['last_connected'])
 #        if DEBUG:
 #            print "peer",peer_data['content_name'],(peer_data.get('friend') and "is" or "is not"),\
 #            "friend, with a similarity of",peer_data['similarity_percent'],"%, and last seen",\
-#            friendly_time(peer_data['last_seen']),"resulting rank value:",rank_value
+#            friendly_time(peer_data['last_connected']),"resulting rank value:",rank_value
         return rank_value
     
     def sortData(self, localdata=None, filter='all'):
@@ -739,9 +680,9 @@ class PeerDataManager(DelayedEventHandler):
             self.sortInPlace( filtered, cmpFunc)
         
         #limit the number of peers so that it wouldn't occupy alot of memory
-        if len(filtered)>self.MAX_MAX_PEERS_NUMBER:
-            while len(filtered)>self.MAX_MIN_PEERS_NUMBER:
-                filtered.pop()
+#        if len(filtered)>self.MAX_MAX_PEERS_NUMBER:
+#            while len(filtered)>self.MAX_MIN_PEERS_NUMBER:
+#                filtered.pop()
         
     def getRank(self, permid=None, peer_data=None):
         """looks for the current data in the top 20 list and returns the index starting from 1"""
@@ -882,7 +823,8 @@ class PeerDataManager(DelayedEventHandler):
     """cmpFunc(val1, val2) should return 1 if val1 > val2, 0 if val1 == val2, and -1 if val1 < val2"""
     def sortInPlace(self, list, cmpFunc):
         """apply a sorting algorithm without creating a new list"""
-        self.quicksort(list, 0, len(list)-1, cmpFunc)
+        #self.quicksort(list, 0, len(list)-1, cmpFunc)
+        list.sort(cmp = cmpFunc, reverse=True)
         
     def insertInPlace(self, list, new_value, cmpFunc=None, equalFunc=peerEqualFunc):
         """iterate through the list to check two things: if the item is already in list
@@ -928,3 +870,16 @@ class PeerDataManager(DelayedEventHandler):
         """returns a reference to the filtered data corresponding to the filter named as parameter
         it should check if data is really available (meaning prepareData was run)"""
         return self.filtered_data.get(filter_name,None)
+    
+    def tooManyPeersInManager(self):
+        totalLength = len(self.filtered_data['all'])
+        maxLength = 10000000000000
+        return totalLength > maxLength
+
+    def schedulePeerDeletion(self):
+        if not self.peerDeletionScheduled:
+            self.peerDeletionScheduled = True
+            # self.rawserver.addTask(removeTooManyPeers, 60)
+            
+    
+                    

@@ -133,16 +133,16 @@ class OverlayLogger:
               2  Pf    # nPref
               3  Tr    # nTorrent
               
-              4  Cc    # nConntionCandidates
-              5  Bs    # nBlockSendList
-              6  Br    # nBlockRecvList
+              #4  Cc    # nConntionCandidates (this one was missed before v4.1, and will not be included either in this version)
+              4  Bs    # nBlockSendList
+              5  Br    # nBlockRecvList
               
-              7  SO    # nConnectionsInSecureOver
-              8  Co    # nConnectionsInBuddyCast
+              6  SO    # nConnectionsInSecureOver
+              7  Co    # nConnectionsInBuddyCast
               
-              9  Ct    # nTasteConnectionList
-              10  Cr   # nRandomConnectionList
-              11  Cu   # nUnconnectableConnectionList
+              8  Ct    # nTasteConnectionList
+              9  Cr   # nRandomConnectionList
+              10  Cu   # nUnconnectableConnectionList
         """
         
         log_msg = ''
@@ -187,11 +187,11 @@ class OverlayLogger:
         logger = Logger(3, self.file_name, self.file_dir, hostname, True)
         logger.log(3, '# Tribler Overlay Log Version 2', showtime=False)    # mention the log version at the first line
         logger.log(3, '# BUCA_STA: nRound   nPeer nPref nTorrent   ' + \
-                   'nConntionCandidates nBlockSendList nBlockRecvList   ' + \
+                   'nBlockSendList nBlockRecvList   ' + \
                    'nConnectionsInSecureOver nConnectionsInBuddyCast  ' + \
                    'nTasteConnectionList nRandomConnectionList nUnconnectableConnectionList', 
                    showtime=False)
-        logger.log(3, '# BUCA_STA: Rd  Pr Pf Tr  Cc Bs Br  SO Co  Ct Cr Cu', showtime=False)
+        logger.log(3, '# BUCA_STA: Rd  Pr Pf Tr  Bs Br  SO Co  Ct Cr Cu', showtime=False)
         return logger
         
 if __name__ == '__main__':

@@ -270,15 +270,21 @@ class FilesItemPanel(wx.Panel):
                 self.fileSize.Enable(True)
                 if torrent.get('web2'):
                     self.fileSize.SetLabel('%s s' % torrent['length'])
-                    self.creationDate.SetLabel(friendly_time(torrent['info']['creation date']))
                 else:
                     self.fileSize.SetLabel(self.utility.size_format(torrent['length']))
+                
+                if torrent.get('date'):
                     self.creationDate.SetLabel(friendly_time(torrent['date']))
                 
                 self.creationDate.Enable(True)
-                self.seedersNumber.SetLabel('%d' % torrent['seeder'])
-                self.leechersNumber.SetLabel('%d' % torrent['leecher'])
-                    # -- tasteheart --        
+                if torrent['seeder'] >= 0:
+                    self.seedersNumber.SetLabel('%d' % torrent['seeder'])
+                    self.leechersNumber.SetLabel('%d' % torrent['leecher'])
+                else:
+                    self.seedersNumber.SetLabel('?')
+                    self.leechersNumber.SetLabel('?')
+                    
+                # -- tasteheart --        
                 rank = torrent.get('simRank', -1)
                 recommField = self.taste            
                 if rank!=-1:

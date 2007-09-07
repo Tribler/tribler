@@ -201,12 +201,16 @@ class GUIUtility:
         self.standardOverview.setMode('personsMode')
         self.standardOverview.filterChanged(('all', 'content_name'))
         self.standardDetails.setMode('personsMode')
+        self.standardOverview.clearSearch()
+        self.standardOverview.toggleSearchDetailsPanel(False)
         
     def standardFriendsOverview(self):
         self.standardOverview.setMode('friendsMode')
         self.standardOverview.filterChanged(('friends', 'content_name'))
         self.standardDetails.setMode('friendsMode')
-    
+        self.standardOverview.clearSearch()
+        self.standardOverview.toggleSearchDetailsPanel(False)
+        
     def standardProfileOverview(self):
         profileList = []
         self.standardOverview.setMode('profileMode')
@@ -276,7 +280,6 @@ class GUIUtility:
         if self.standardOverview.mode == 'libraryMode':
             self.standardOverview.filterChanged(None)
             #self.standardOverview.refreshData()
-    
     
     def selectData(self, data):
         "User clicked on item. Has to be selected in detailPanel"
@@ -494,6 +497,7 @@ class GUIUtility:
                 if low.find(wantkw) != -1:
                     return True
             return False
+
         self.peer_manager.registerFilter("search_friends",searchFriendsFilterFunc)
         sort = None
         self.standardOverview.filterChanged(['search_friends',sort],setgui=True)
@@ -501,7 +505,7 @@ class GUIUtility:
         if self.standardOverview.getGrid():
             numResults = len(self.standardOverview.getGrid().getData())
         self.standardOverview.setSearchFeedback('friends', True, numResults, wantkeywords)
-        
+
     def OnSearchKeyDown(self,event):
         keycode = event.GetKeyCode()
         #if event.CmdDown():

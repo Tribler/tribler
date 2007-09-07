@@ -241,6 +241,7 @@ class BuddyCastFactory:
         self.superpeer = superpeer
         self.log = log
         self.running = False
+        self.data_handler = None
         self.data_ready_evt = Event()    # used for buddycast to notify peer view the peer list is ready
         if self.superpeer:
             print "Start as SuperPeer mode"
@@ -252,7 +253,8 @@ class BuddyCastFactory:
     getInstance = staticmethod(getInstance)
     
     def register(self, secure_overlay, rawserver, launchmany, port, errorfunc, 
-                 start, metadata_handler, torrent_collecting_solution, running):    
+                 start, metadata_handler, torrent_collecting_solution, running,
+                 max_peers=2000):
         if self.registered:
             return
         self.secure_overlay = secure_overlay
@@ -263,7 +265,7 @@ class BuddyCastFactory:
         
         self.registered = True
         if start:
-            self.data_handler = DataHandler(self.rawserver, db_dir=self.db_dir)
+            self.data_handler = DataHandler(self.rawserver, db_dir=self.db_dir, max_num_peers=max_peers)
             if isValidPort(port):
                 self.data_handler.updatePort(port)
                 
@@ -383,6 +385,15 @@ class BuddyCastFactory:
     def getTasteBuddies(self):
         return self.buddycast_core.getAllTasteBuddies()
     
+    def getAllPeerList(self):    # get the peer list for GUI
+        if self.data_handler:
+            return self.data_handler.getAllPeerList()
+        else:
+            return None
+        
+    def removeAllPeerList(self):   # called by peermanager to reduce memory usage
+        if self.data_handler:
+            self.data_handler.removeAllPeerList()
     
 class BuddyCastCore:
     def __init__(self, secure_overlay, launchmany, data_handler, 
@@ -462,7 +473,7 @@ class BuddyCastCore:
         # -- misc ---
         self.dnsindb = self.data_handler.get_dns_from_peerdb
         if self.log:
-            self.overlay_log = OverlayLogger(self.log)
+            self.overlay_log = OverlayLogger.getInstance(self.log)
             
         # Bartercast
         self.bartercast_core = bartercast_core
@@ -1324,7 +1335,6 @@ class BuddyCastCore:
         if not self.isConnected(peer_permid):
             self.connections[peer_permid] = selversion # add a new connection
             self.data_handler.addPeer(peer_permid, _now)
-            #self.data_handler.setPeerLastSeen(peer_permid, _now)   # done by secure overlay
             # add connection from secure overlay
             addto = self.addPeerToConnList(peer_permid, locally_initiated)
             
@@ -1351,7 +1361,6 @@ class BuddyCastCore:
         if debug:
             print >> sys.stdout, "bc: close connection:", self.get_peer_info(peer_permid, may_be_deleted=True)
         
-        self.data_handler.setPeerLastSeen(peer_permid, now())
         if self.isConnected(peer_permid):
             self.connections.pop(peer_permid)
         removed = self.removeFromConnList(peer_permid)
@@ -1463,6 +1472,9 @@ class BuddyCastCore:
                     buf = ""
                     for p in self.connection_candidates:
                         buf += "bc: * cand:" + self.get_peer_info(p) + "\n"
+                    buf += "\nbc: Remote Search Peer Candidates:\n"
+                    for p in self.remote_search_peer_candidates:
+                        buf += "bc: * remote: %d "%p[0] + self.get_peer_info(p[1]) + "\n"
                     print buf
             
             elif step == 11:
@@ -1570,7 +1582,7 @@ class BuddyCastCore:
         
         
 class DataHandler:
-    def __init__(self, rawserver, db_dir=''):
+    def __init__(self, rawserver, db_dir='', max_num_peers=2000):
         self.rawserver = rawserver
         # --- database handlers ---
         self.my_db = MyDBHandler(db_dir=db_dir)
@@ -1593,13 +1605,14 @@ class DataHandler:
         self.nprefs = 0
         self.total_pref_changed = 0
         # how many peers to load into cache from db
-        self.max_num_peers = 2000
-        self.max_peer_in_db = 10000
+        self.max_num_peers = max(max_num_peers, 100)    # at least 100
+        self.max_peer_in_db = self.max_num_peers*2
         self.time_sim_weight = 4*60*60  # every 4 hours equals to a point of similarity
         # after added some many (user, item) pairs, update sim of item to item
         self.update_i2i_threshold = 100
         self.npeers = self.peer_db.size() - self.superpeer_db.size()
         self.buddycast_core = None
+        self.all_peer_list = None
 
     def sync(self):
         for db in self.dbs:
@@ -1699,25 +1712,29 @@ class DataHandler:
             At most self.max_num_peers recently seen peers can be cached.
         """
         
-        all_peerlist = self.peer_db.getPeerList()
+        start = time()
+        
+        self.all_peer_list = self.peer_db.getPeerList()
+        
         try:
-            all_peerlist.remove(self.permid)
+            self.all_peer_list.remove(self.permid)
         except ValueError:
             pass
-        _peer_values = self.getPeers(all_peerlist, ['similarity','last_seen','ntorrents','oversion'])
+        
+        _peer_values = self.getPeers(self.all_peer_list, ['similarity','last_seen','ntorrents','oversion'])
         peer_values = []
         for i in range(len(_peer_values)):
             p = _peer_values[i]
-            permid = all_peerlist[i]
+            permid = self.all_peer_list[i]
             peer_values.append([p['similarity'], p['last_seen']])
             self.buddycast_core.addRemoteSearchPeer(permid, p['oversion'], p['ntorrents'], p['last_seen'])
-        if not num_peers or len(all_peerlist) <= num_peers:
-            self.peers = dict(zip(all_peerlist, peer_values))   # all peers
+        if not num_peers or len(self.all_peer_list) <= num_peers:
+            self.peers = dict(zip(self.all_peer_list, peer_values))   # all peers
         else:
-            if len(all_peerlist) > num_peers:
+            if len(self.all_peer_list) > num_peers:
                 # get a number of peers first based on sim, then based on last_seen
                 cmp_values = [value[0]+value[1]/self.time_sim_weight for value in peer_values]
-                tmp_list = zip(cmp_values, peer_values, all_peerlist)
+                tmp_list = zip(cmp_values, peer_values, self.all_peer_list)
                 tmp_list.sort()
                 tmp_list.reverse()  # the smaller index, the more important
 
@@ -1725,20 +1742,28 @@ class DataHandler:
                 if len(tmp_list) > self.max_peer_in_db:
                     num_peers_2_del = int(len(tmp_list) - self.max_peer_in_db + self.max_peer_in_db*0.02)
                     peers2del = [peer for (_, _, peer) in tmp_list[-1*num_peers_2_del:]]
+                    self.all_peer_list = [peer for (_, _, peer) in tmp_list[:len(tmp_list)-num_peers_2_del]]
                     print >> sys.stderr, "**** buddycast delete peers from db", "#peers2del", len(peers2del), "#peers in db", len(tmp_list), "max limit", self.max_peer_in_db
-                    for peer in peers2del:
-                        self.peer_db.deletePeer(peer, updateFlag=False)     # friends will not be deleted
+                    #remove_peers_func = lambda:self.remove_overhead_peers(peers2del)
+                    #self.rawserver.add_task(remove_peers_func,5)
+                    self.remove_overhead_peers(peers2del)
                 
-                tmp_list = tmp_list[:num_peers]
-                tmp_list = [(peer, peer_value) for (_, peer_value, peer) in tmp_list]
+                tmp_list = [(peer, peer_value) for (_, peer_value, peer) in tmp_list[:num_peers]]
                 self.peers = dict(tmp_list)
+                
         # used to notify peer view that peer list is ready
         if DEBUG:
-            print >> sys.stderr, "**** buddycast update all peers", "#peers in cache", len(self.peers), "#peers in db", len(all_peerlist), "max limit", num_peers
+            print >> sys.stderr, "**** buddycast update all peers", "#peers in cache", len(self.peers), "#peers in db", len(self.all_peer_list), "max limit", num_peers
 
         #print "******* buddycast thread:", currentThread().getName()
-        BuddyCastFactory.getInstance().data_ready_evt.set()    
+        BuddyCastFactory.getInstance().data_ready_evt.set()
+        
+        print >> sys.stderr, "*************** updateAllPeers takes", time()-start
         return self.peers
+    
+    def remove_overhead_peers(self, peers2del):
+        for peer in peers2del:
+            self.peer_db.deletePeer(peer, updateFlag=False)     # friends will not be deleted
     
     def getPeers(self, peer_list, keys):
         return self.peer_db.getPeers(peer_list, keys)
@@ -1750,7 +1775,7 @@ class DataHandler:
         for peer_permid in self.peers:
             self.nprefs += self.updatePeerPref(peer_permid)
         self.update_i2i_threshold = max(100, self.nprefs*0.01)
-                
+        
     def updatePeerPref(self, peer_permid):
         peerprefs = []
         for p in self.pref_db.getPrefList(peer_permid):
@@ -1825,13 +1850,6 @@ class DataHandler:
         else:
             return self.peers[peer_permid][0]
     
-    def setPeerLastSeen(self, peer_permid, last_seen):
-        old_last_seen = self.getPeerLastSeen(peer_permid)
-        new_last_seen = max(old_last_seen, last_seen)
-        if peer_permid in self.peers:    # could have been deleted if self.peers was full
-            self.peers[peer_permid][1] = new_last_seen
-        self.peer_db.updatePeer(peer_permid, 'last_seen', new_last_seen)
-                
     def setPeerSim(self, peer_permid, sim):
         self.peers[peer_permid][0] = sim
         self.peer_db.updatePeer(peer_permid, 'similarity', sim, updateFlag=False)
@@ -2059,4 +2077,10 @@ class DataHandler:
         d = {'npeers':npeers,'ntorrents':ntorrents,'nprefs':nprefs}
         for k,v in d.items():
             self.peer_db.updatePeer(permid,k,v)
+        
+    def getAllPeerList(self):
+        return self.all_peer_list
+    
+    def removeAllPeerList(self):
+        self.all_peer_list = None
         

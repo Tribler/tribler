@@ -11,7 +11,7 @@
 import sys
 from time import time
 from sets import Set
-from traceback import print_stack
+from traceback import print_stack, print_exc
 
 from M2Crypto import Rand
 
@@ -20,9 +20,11 @@ from BitTornado.BT1.MessageID import *
 
 from Tribler.Overlay.SecureOverlay import OLPROTO_VER_SIXTH
 from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler, FriendDBHandler, PeerDBHandler
-from Tribler.utilities import show_permid_short
+from Tribler.utilities import show_permid_short,show_permid
+from Tribler.Statistics.Logger import OverlayLogger
+from Tribler.unicode import dunno2unicode
 
-MAX_QUERIES_FROM_RANDOM_PEER = 100
+MAX_QUERIES_FROM_RANDOM_PEER = 1000
 MAX_RESULTS = 20
 QUERY_ID_SIZE = 20
 MAX_QUERY_REPLY_LEN = 100*1024    # 100K
@@ -53,6 +55,7 @@ class RemoteQueryMsgHandler:
         self.peer_db = PeerDBHandler()
         self.connections = Set()    # only connected remote_search_peers
         self.query_ids2query = {}
+        self.overlay_log = None
         self.registered = False
 
     def getInstance(*args, **kw):
@@ -62,7 +65,7 @@ class RemoteQueryMsgHandler:
     getInstance = staticmethod(getInstance)
         
 
-    def register(self,secure_overlay,launchmany,rawserver,config,bc_fac):
+    def register(self,secure_overlay,launchmany,rawserver,config,bc_fac,log=''):
         if DEBUG:
             print >> sys.stderr,"rquery: register"
         self.secure_overlay = secure_overlay
@@ -71,6 +74,8 @@ class RemoteQueryMsgHandler:
         self.config = config
         self.bc_fac = bc_fac # May be None
         self.data_manager = None
+        if log:
+            self.overlay_log = OverlayLogger.getInstance(log)
         self.registered = True
         
     def register2(self,data_manager):
@@ -139,7 +144,7 @@ class RemoteQueryMsgHandler:
         func = lambda exc,dns,permid,selversion:self.conn_callback(exc,dns,permid,selversion,m)
 
         if DEBUG:
-            print >>sys.stderr,"rquery: sendQuery: Sending to",len(self.connections),"peers"
+            print >>sys.stderr,"rquery: sendQuery: Connected",len(self.connections),"peers"
         
         #print "******** send query net cb:", query, len(self.connections), self.connections
         
@@ -153,6 +158,10 @@ class RemoteQueryMsgHandler:
             for permid in query_cand:
                 if permid not in self.connections:    # don't call twice
                     self.secure_overlay.connect(permid,func)
+                    nqueries += 1
+        
+        if DEBUG:
+            print >>sys.stderr,"rquery: sendQuery: Sent to",nqueries,"peers"
         
     def create_query(self,query):
         d = {}
@@ -212,31 +221,54 @@ class RemoteQueryMsgHandler:
             return False
 
         # Process
-        self.process_query(permid,d)
+        self.process_query(permid, d, selversion)
+        
         return True
 
 
-    def benign_random_peer(self,permid):
+    def get_peer_nqueries(self, permid):
         peer = self.peer_db.getPeer(permid)
-        return peer['nqueries'] < MAX_QUERIES_FROM_RANDOM_PEER
+        return peer['nqueries']
+    
+    def inc_peer_nqueries(self, permid):
+        nqueries = self.get_peer_nqueries(permid)
+        self.peer_db.updatePeer(permid, 'nqueries', nqueries+1)
 
+    def benign_random_peer(self,permid):
+        if MAX_QUERIES_FROM_RANDOM_PEER > 0:
+            nqueries = self.get_peer_nqueries(permid)
+            return nqueries < MAX_QUERIES_FROM_RANDOM_PEER
+        else:
+            return True
 
     #
     # Send query reply
     #
-    def process_query(self,permid,d):
+    def process_query(self, permid, d, selversion):
         q = d['q'][len('SIMPLE '):]
+        q = dunno2unicode(q)
         # Format: 'SIMPLE '+string of space separated keywords
         # In the future we could support full SQL queries:
         # SELECT infohash,torrent_name FROM torrent_db WHERE status = ALIVE
         kws = q.split()
         if self.data_manager is None:    # running on text terminate
             self.create_data_manager()
-        hits = self.data_manager.remoteSearch(kws,maxhits=MAX_RESULTS)
+        hits = self.data_manager.remoteSearch(kws, maxhits=MAX_RESULTS)
         
         p = self.create_query_reply(d['id'],hits)
         m = QUERY_REPLY+p
-        self.secure_overlay.send(permid,m,self.send_callback)
+
+        if self.overlay_log:
+            nqueries = self.get_peer_nqueries(permid)
+            # RECV_MSG PERMID OVERSION NUM_QUERIES MSG
+            self.overlay_log('RECV_QRY', show_permid(permid), selversion, nqueries, repr(d))
+
+            # RPLY_QRY PERMID NUM_HITS MSG
+            self.overlay_log('RPLY_QRY', show_permid(permid), len(hits), repr(p))
+
+        self.secure_overlay.send(permid, m, self.send_callback)
+        
+        self.inc_peer_nqueries(permid)
         
     def create_data_manager(self):
         config_path = '.Tribler'

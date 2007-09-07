@@ -11,6 +11,7 @@ from time import time
 from BitTornado.bencode import bencode, bdecode
 from Tribler.Overlay.permid import permid_for_user
 from sets import Set
+from Tribler.utilities import show_permid_shorter
 
 from Tribler.utilities import show_permid_shorter
 
@@ -262,16 +263,13 @@ class PeerDBHandler(BasicDBHandler):
             if old_data:
                 old_last_seen = old_data.get('last_seen', 0)
             last_seen = value['last_seen']
-            value['last_seen'] = max(last_seen, old_last_seen)
-
+            now = int(time())
+            value['last_seen'] = min(now, max(last_seen, old_last_seen))
 
         self.peer_db.updateItem(permid, value, update_dns)
 
-        try:
-            self.ip_db.addIP(value['ip'],permid)
-        except KeyError:
-            print "cachedbh: peerinfo keys were",value.keys()
-            print_exc()
+        if value.has_key('ip') and update_dns:
+            self.updatePeerIP(permid, value['ip'])
         
     def hasPeer(self, permid):
         return self.peer_db.hasItem(permid)        
@@ -297,20 +295,32 @@ class PeerDBHandler(BasicDBHandler):
     def updatePeer(self, permid, key, value):
         self.peer_db.updateItem(permid, {key:value})
         if key == 'ip':
-            self.ip_db.deletePermID(permid)
-            self.ip_db.addIP(value,permid)
-
+            self.updatePeerIP(permid, value)
     
-    def updatePeerIPPort(self, permid, ip, port):
-        self.peer_db.updateItem(permid, {'ip':ip, 'port':port})
-        self.ip_db.deletePermID(permid)
-        self.ip_db.addIP(ip,permid)
-
+    def updatePeerIP(self, permid, ip):
+        peer_data = self.peer_db._get(permid, {})
+        old_ip = peer_data.get('ip', None)
+        if not old_ip:    # not exist in peer_db, don't touch it either
+            return
+        
+        if old_ip != ip:    # changed ip
+            old_permid = self.ip_db.getPermIDByIP(old_ip)   
+            if old_permid == permid:    # ip_db is consistent with peer_db
+                self.ip_db.deleteItem(old_ip)    # delete the old map
+        permid2 = self.ip_db.getPermIDByIP(ip)
+        if permid2 != permid:
+            self.ip_db.addIP(ip,permid)
+        
+    
+#===============================================================================
+#    # This function is never used
+#    def updatePeerIPPort(self, permid, ip, port):
+#        self.peer_db.updateItem(permid, {'ip':ip, 'port':port})
+#        self.ip_db.deletePermID(permid,ip)
+#        self.ip_db.addIP(ip,permid)
+#===============================================================================
         
     def deletePeer(self, permid):
-        data = self.peer_db._get(permid)
-        if data and data['connected_times'] > 0:
-            self.peer_db.num_encountered_peers -= 1
         if self.my_db.isFriend(permid):
             return False
         self.peer_db._delete(permid)
@@ -329,20 +339,6 @@ class PeerDBHandler(BasicDBHandler):
             value = item[key]
         value += change
         self.peer_db.updateItem(permid, {key:value})
-        
-        if key == 'connected_times':    # a new encounter peer
-            if value == 1:
-                self.peer_db.num_encountered_peers += 1
-
-    def getNumEncounteredPeers(self):
-        if self.peer_db.num_encountered_peers < 0:
-            n = 0
-            for permid in self.peer_db._keys():
-                data = self.peer_db._get(permid)
-                if data and data['connected_times'] > 0:
-                    n += 1
-            self.peer_db.num_encountered_peers = n
-        return self.peer_db.num_encountered_peers
         
     def getPermIDByIP(self,ip):
         return self.ip_db.getPermIDByIP(ip)    
@@ -1082,9 +1078,6 @@ class BarterCastDBHandler(BasicDBHandler):
             permid_from = permid_1
             permid_to = permid_2
 
-        data = self.bartercast_db._get((permid_from, permid_to))
-        if data and data['connected_times'] > 0:
-            self.bartercast_db.num_encountered_peers -= 1
         self.bartercast_db._delete((permid_from, permid_to))
 
         return True

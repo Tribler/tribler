@@ -356,19 +356,6 @@ class SecureOverlay:
             print >> sys.stderr,"secover: got_auth_connection", \
                 show_permid_short(oc.get_auth_permid()),oc.get_ip(),oc.get_auth_listen_port()
 
-        ip = oc.get_ip()
-        port = oc.get_auth_listen_port()
-        peer_permid = oc.get_auth_permid()
-        oversion = oc.get_cur_proto_ver()
-        peer_data = {'permid':peer_permid, 'ip':ip, 'port':port, 'oversion':oversion, 'last_seen':int(time())}
-        self.peer_db.addPeer(peer_permid, peer_data, update_dns=True)
-        self.peer_db.updateTimes(peer_permid, 'connected_times', 1)
-        try:
-            # Arno: PARANOID SYNC
-            self.peer_db.sync()
-        except:
-            print_exc()
-        
         if oc.is_locally_initiated() and oc.get_port() != oc.get_auth_listen_port():
             if DEBUG:
                 print >> sys.stderr,"secover: got_auth_connection: closing because auth", \
@@ -393,6 +380,8 @@ class SecureOverlay:
             ret = False
             
         if ret:
+            self.add_peer_to_db(oc)
+            
             if self.userconnhandler is not None:
                 try:
                     self.userconnhandler(None,oc.get_auth_permid(),oc.get_sel_proto_ver(),oc.is_locally_initiated())
@@ -406,13 +395,41 @@ class SecureOverlay:
         """ our side is closing the connection """
         if DEBUG:
             print >> sys.stderr,"secover: local_close"
+        self.update_peer_status(oc)
         self.cleanup_admin_and_callbacks(oc,Exception('local close'))
 
     def connection_lost(self,oc):
         """ overlay connection telling us to clear admin """
         if DEBUG:
             print >> sys.stderr,"secover: connection_lost"
+        self.update_peer_status(oc)
         self.cleanup_admin_and_callbacks(oc,Exception('connection lost'))
+
+    def add_peer_to_db(self,oc):
+        # add a connected peer to database
+        if oc.is_auth_done():
+            ip = oc.get_ip()
+            port = oc.get_auth_listen_port()
+            peer_permid = oc.get_auth_permid()
+            oversion = oc.get_cur_proto_ver()
+            now = int(time())
+            peer_data = {'permid':peer_permid, 'ip':ip, 'port':port, 'oversion':oversion, 'last_seen':now, 'last_connected':now}
+            self.peer_db.addPeer(peer_permid, peer_data, update_dns=True)
+            self.peer_db.updateTimes(peer_permid, 'connected_times', 1)
+            try:
+                # Arno: PARANOID SYNC
+                self.peer_db.sync()
+            except:
+                print_exc()
+        
+    def update_peer_status(self, oc):
+        # update last_seen and last_connected in peer db when close
+        now = int(time())
+        if oc.is_auth_done():
+            peer_permid = oc.get_auth_permid()
+            self.peer_db.updatePeer(peer_permid, 'last_seen', now)
+            self.peer_db.updatePeer(peer_permid, 'last_connected', now)
+        
 
     def got_message(self,permid,message,selversion):
         """ received message from authenticated peer, pass to upper layer """
@@ -800,8 +817,6 @@ class OverlayConnection:
             self.close()
         else:
             self.rawserver.add_task(self._olconn_auto_close, EXPIRE_CHECK_INTERVAL)
-
-
 
 
 #

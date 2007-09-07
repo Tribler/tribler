@@ -28,7 +28,7 @@ try:
 except ImportError:
     pass
 
-DEBUG = False
+DEBUG = True
 DEBUG_RANKING = False
 
 # Arno: save memory by reusing dict keys
@@ -110,6 +110,7 @@ class TorrentDataManager:
         except:
             print_exc()
             raise Exception('Could not load torrent data !!')
+    
     def prepareData(self):
         
         for torrent in self.data:      
@@ -119,8 +120,6 @@ class TorrentDataManager:
             self.updateRankList(torrent, 'add', initializing = True)
         #self.printRankList()
         
-        
-
     def getDownloadHistCount(self):
         #[mluc]{26.04.2007} ATTENTION: data is not updated when a new download starts, although it should
         def isDownloadHistory(torrent):
@@ -140,25 +139,31 @@ class TorrentDataManager:
             return []
         
         categorykey = categorykey.lower()
+        enabledcattuples = self.category.getCategoryNames()
+        enabledcatslow = []
+        for catname,displayname in enabledcattuples:
+            enabledcatslow.append(catname.lower())
         
         if not self.standardOverview:
             self.standardOverview = self.utility.guiUtility.standardOverview
             
         def torrentFilter(torrent):
             library = (mode == 'libraryMode')
-            okLibrary = not library or torrent.has_key('myDownloadHistory')
+            okLibrary = not library or torrent.get('myDownloadHistory', False)
             
             okCategory = False
+            categories = torrent.get("category", [])
+            if not categories:
+                categories = ["other"]
             if categorykey == 'all':
+                for torcat in categories:
+                    if torcat.lower() in enabledcatslow:
+                        okCategory = True
+                        break
+            elif categorykey in [cat.lower() for cat in categories]:
                 okCategory = True
-            else:
-                categories = torrent.get("category", [])
-                if not categories:
-                    categories = ["other"]
-                if categorykey in [cat.lower() for cat in categories]:
-                    okCategory = True
             
-            okGood = torrent['status'] == 'good' or torrent.has_key('myDownloadHistory')
+            okGood = torrent['status'] == 'good' or torrent.get('myDownloadHistory', False)
             
             return okLibrary and okCategory and okGood
         
@@ -329,7 +334,7 @@ class TorrentDataManager:
     
     
     def setBelongsToMyDowloadHistory(self, infohash, b, secret = False):
-        """Set a certain new torrent to be in the download history or not"
+        """Set a certain new torrent to be in the download history or not
         Should not be changed by updateTorrent calls"""
         old_torrent = self.info_dict.get(infohash, None)
         if not old_torrent:
@@ -397,7 +402,7 @@ class TorrentDataManager:
         
         info = torrent['info']
         if not info.get('name'):
-            print 'Error in torrent. No name found'
+            print 'torrentMgr: Error in torrent. No name found',info.get('name')
         
         torrent[key_length] = info.get('length', 0)
         torrent[key_content_name] = dunno2unicode(info.get('name', '?'))
@@ -639,42 +644,59 @@ class TorrentDataManager:
     
     def gotRemoteHits(self,permid,kws,answers,mode='filesMode'):
         """ Called by standardOverview """
-        if DEBUG:
-            print >>sys.stderr,"torrentDataManager: gotRemoteHist: got",len(answers)
-        
-        # We got some replies. First check if they are for the current query
-        if self.searchkeywords[mode] == kws and self.standardOverview.getSearchBusy():
-            self.remoteHits = (self.searchkeywords[mode], [])
-            numResults = 0
-            for key,value in answers.iteritems():
-                
-                if self.info_dict.has_key(key):
-                    continue # do not show results we have ourselves
-                
-                value['infohash'] = key
-                # Set from which peer this info originates
-                value['query_permid'] = permid
-                # We trust the peer
-                value['status'] = 'good'
-                
-                # Add values to enable filters (popular/rec/size) to work
-                value['swarmsize'] = value['seeder']+value['leecher']
-                value['relevance'] = 0
-                value['date'] = None # gives '?' in GUI
-                
-                if DEBUG:
-                    print >>sys.stderr,"torrentDataManager: gotRemoteHist: appending hit",`value['content_name']`
-                    value['content_name'] = 'REMOTE '+value['content_name']
-                self.hits.append(value)
-                self.remoteHits[1].append(value)
-                if self.notifyView(value, 'add'):
-                    numResults +=1
-            self.standardOverview.setSearchFeedback('remote', False, numResults, self.searchkeywords[mode])
-            return True
-        elif DEBUG:
-            print >>sys.stderr,"torrentDataManager: gotRemoteHist: got hits for",kws,"but current search is for",self.searchkeywords[mode]
-        return False
-
+        try:
+            if DEBUG:
+                print >>sys.stderr,"torrentDataManager: gotRemoteHist: got",len(answers)
+            
+            # We got some replies. First check if they are for the current query
+            if self.searchkeywords[mode] == kws and self.standardOverview.getSearchBusy():
+                self.remoteHits = (self.searchkeywords[mode], [])
+                numResults = 0
+                catobj = Category.getInstance()
+                for key,value in answers.iteritems():
+                    
+                    if self.info_dict.has_key(key):
+                        continue # do not show results we have ourselves
+                    
+                    value['infohash'] = key
+                    # Set from which peer this info originates
+                    value['query_permid'] = permid
+                    # We trust the peer
+                    value['status'] = 'good'
+                    
+                    # Add values to enable filters (popular/rec/size) to work
+                    value['swarmsize'] = value['seeder']+value['leecher']
+                    value['relevance'] = 0
+                    value['date'] = None # gives '?' in GUI
+                    
+                    if DEBUG:
+                        print >>sys.stderr,"torrentDataManager: gotRemoteHist: appending hit",`value['content_name']`
+                        value['content_name'] = 'REMOTE '+value['content_name']
+                        
+                    # Filter out results from unwanted categories
+                    flag = False
+                    for cat in value['category']:
+                        rank = catobj.getCategoryRank(cat)
+                        if rank == -1:
+                            if DEBUG:
+                                print >>sys.stderr,"torrentDataManager: gotRemoteHits: Got",`value['content_name']`,"from banned category",cat,", discarded it."
+                            flag = True
+                            break
+                    if flag:
+                        continue
+                        
+                    self.hits.append(value)
+                    self.remoteHits[1].append(value)
+                    if self.notifyView(value, 'add'):
+                        numResults +=1
+                self.standardOverview.setSearchFeedback('remote', False, numResults, self.searchkeywords[mode])
+                return True
+            elif DEBUG:
+                print >>sys.stderr,"torrentDataManager: gotRemoteHist: got hits for",kws,"but current search is for",self.searchkeywords[mode]
+            return False
+        except:
+            print_exc()
+            return False
 
     def getFromSource(self,source):
         hits = []

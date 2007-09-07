@@ -117,6 +117,7 @@ import sys
 from threading import Thread
 from random import random
 from time import time, asctime
+from traceback import print_exc
 
 from Tribler.TrackerChecking.TrackerChecking import trackerChecking
 from Tribler.TrackerChecking.TorrentCheckingList import TorrentCheckingList
@@ -141,6 +142,14 @@ class TorrentChecking(Thread):
         self.mldhtchecker = mainlineDHTChecker.getInstance() 
         
     def run(self):
+        try:
+            self.run4real()
+        except:
+            print_exc()
+            # Make extra sure we don't hold lock
+            self.torrentList.release()
+            
+    def run4real(self):
         """ Gets one torrent from good or unknown list and checks it """
         self.torrentList.acquire()
         g = self.torrentList.getGoodLen()

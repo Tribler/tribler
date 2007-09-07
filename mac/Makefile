@@ -1,5 +1,3 @@
-# !!! IMPORTANT
-#
 # Building on Mac OS/X requires:
 # * Python 2.5
 # * wxPython 2.8-unicode
@@ -45,17 +43,12 @@ dirs:
 
 APPRES=build/imagecontents/Tribler.app/Contents/Resources
 
-build/imagecontents/:	${SITEPACKAGES}/M2Crypto/ ${SITEPACKAGES}/Growl.py ${SITEPACKAGES}/vlc.so build/lib/ffmpeg build/lib/.vlc
+build/imagecontents/:	${SITEPACKAGES}/M2Crypto/ ${SITEPACKAGES}/Growl.py build/lib/ffmpeg build/lib/.vlc ${SITEPACKAGES}/khashmir/
 	rm -rf $@
 	mkdir -p $@
 
-	cd .. && PYTHONPATH=mac/${SITEPACKAGES} ${PYTHON} -OO - < mac/setuptriblermac.py build
-	mv ../build/* $@
-	cd build && for i in `find lib -name "*.dylib"`; do mkdir -p ../${APPRES}/`dirname $$i`; cp $$i ../${APPRES}/$$i; done
-	cp build/lib/ffmpeg ${APPRES}/lib/ffmpeg
-
-	# Ditch Python documentation
-	rm -rf build/imagecontents/Tribler.app/Contents/Frameworks/Python.framework/Versions/${PYTHON_VER}/Resources/English.lproj/Documentation
+	cd .. && PYTHONPATH=mac/${SITEPACKAGES} ${PYTHON} -OO - < mac/setuptriblermac.py py2app
+	mv ../dist/* $@
 
 	# Thin everything for this architecture. Some things ship Universal (Python, wxPython, ...) and
 	# others get a stub for the other architecture (things built by Universal Python)
@@ -88,6 +81,7 @@ Tribler-${ARCH}.dmg:		build/imagecontents/ SLAResources.rsrc
 	sleep 1
 
 	# position items
+	# oddly enough, 'set f .. as alias' can fail, but a reboot fixes that
 	osascript -e "tell application \"Finder\"" \
 	-e "   set f to POSIX file (\""${PWD}"/build/temp/mnt\" as string) as alias" \
 	-e "   tell folder f" \
@@ -115,10 +109,10 @@ Tribler-${ARCH}.dmg:		build/imagecontents/ SLAResources.rsrc
 	-e "end tell" || true
 
 	# turn on custom volume icon
-	/Developer/Tools/SetFile -a C build/temp/mnt
+	/Developer/Tools/SetFile -a C build/temp/mnt || true
 
 	# close
-	hdiutil detach build/temp/mnt
+	hdiutil detach build/temp/mnt || true
 
 	# make read-only
 	mv $@ build/temp/rw.dmg
@@ -147,19 +141,22 @@ build/temp/.openssl:		build/temp/openssl-${OPENSSL_VER}.tar.gz
 	rm -rf build/temp/openssl
 	mv build/temp/openssl-${OPENSSL_VER} build/temp/openssl
 
-	cd build/temp/openssl && ./Configure ${OPENSSL_CONFIG}
-	cd build/temp/openssl && make build_libs
+	cd build/temp/openssl && ./Configure ${OPENSSL_CONFIG} shared --prefix=${PWD}/build/lib
+	cd build/temp/openssl && make install
 	touch $@
 
 build/temp/.m2crypto:
-	svn co http://svn.tribler.org/m2crypto/branches/main build/temp/m2crypto
+	svn co http://svn.osafoundation.org/m2crypto/tags/0.18 build/temp/m2crypto
 	touch $@
 
 ${SITEPACKAGES}/M2Crypto/:	build/temp/.openssl build/temp/.m2crypto
+	cd build/temp/m2crypto && ${PYTHON} setup.py build build_ext --openssl=${PWD}/build/lib
 	cd build/temp/m2crypto && ${PYTHON} setup.py install --root ${PWD}/build/lib
+
 	touch $@
 
 # ----- VLC
+# If VLC is prebuilt, copy build/temp/vlc 
 
 VLCDIR=${PWD}/build/temp/vlc
 VLCPREFIX=${VLCDIR}/install-root
@@ -207,26 +204,36 @@ ${VLCPREFIX}/lib/python${PYTHON_VER}/site-packages/vlc.so:	${VLCPREFIX}/lib/libv
 	# build python bindings
 	cd ${VLCDIR}/bindings/python && ${PYTHON} setup.py install --prefix=${VLCPREFIX}
 
-build/lib/.vlc:              ${VLCPREFIX}/lib/libvlc.a ${VLCPREFIX}/lib/python${PYTHON_VER}/site-packages/vlc.so
+build/temp/vlc/.complete:    ${VLCPREFIX}/lib/libvlc.a ${VLCPREFIX}/lib/python${PYTHON_VER}/site-packages/vlc.so
+	touch $@
+
+build/lib/.vlc:
+	# allow VLC to come prebuilt. If build/temp/vlc/.complete was an official dependency,
+	# make would test its timestamp against its dependencies, which is undesirable
+	# if the whole tree was copied resulting in basically random timestamps
+	test -e build/temp/vlc/.complete || make build/temp/vlc/.complete
+
+	# fix dependencies of the plugins
+	./process_libs ${VLCPREFIX}/lib
+	./process_libs ${VLCPREFIX}/lib
+
 	# place the libraries/plugins in build/lib
 	cd ${VLCPREFIX}/lib && for i in `find . -name "*.dylib"`; do mkdir -p ${PWD}/build/lib/`dirname $$i`; cp $$i ${PWD}/build/lib/$$i; done
 
-	# fix dependencies of .dylib/.so libraries
-	# replace @executable_path/lib/* => lib/*
-	(for i in `find build/lib -name "*.dylib" -or -name "*.so"`; do otool -L $$i | perl -ne 'print "install_name_tool -change $$1 lib/$$2 '$$i'\n" if m#(\@executable_path/lib/(\S+))#;'; done) | bash -
-	# replace $VLCPREFIX/lib/* => lib/*
-	(for i in `find build/lib -name "*.dylib" -or -name "*.so"`; do otool -L $$i | perl -ne 'print "install_name_tool -change $$1 lib/$$2 '$$i'\n" if m#(${VLCPREFIX}/lib/(\S+))#;'; done) | bash -
+	# place vlc.so with the site-packages
+	cp ${VLCPREFIX}/lib/python${PYTHON_VER}/site-packages/vlc.so $@
 
 	touch $@
 
-${SITEPACKAGES}/vlc.so:		${VLCPREFIX}/lib/python${PYTHON_VER}/site-packages/vlc.so
-	cp $< $@
 
 ../lib:			build/lib/.vlc
 	# let run from source locate libraries
 	rm -f ../lib
 	ln -s ${PWD}/build/lib ../lib
 
+${SITEPACKAGES}/khashmir/:
+	svn co https://svn.tribler.org/khashmir/branches/khashmir-fabian-from-bt5.0.7 $@
+	touch $@
 
 # ----- FFmpeg
 

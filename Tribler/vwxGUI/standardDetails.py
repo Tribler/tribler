@@ -407,7 +407,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             if item.get('infohash') is None:
                 return #no valid torrent
             torrent = item
-            
+                        
             titleField = self.getGuiObj('titleField')
             title = torrent.get('content_name')
             title = title[:77]
@@ -472,11 +472,11 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 else:
                     sizeField.SetLabel(torrent['length'])
 
-                
+                creationField = self.getGuiObj('creationdateField')
                 if torrent.get('date',0):
-                    creationField = self.getGuiObj('creationdateField')
                     creationField.SetLabel(friendly_time(torrent['date']))
-
+                else:
+                    creationField.SetLabel('?')
                     
                 if torrent.get('web2'):
                     #view = self.getGuiObj('views')
@@ -552,13 +552,16 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 self.setDownloadbutton(torrent, tab = tab)
                 
                 # Set tracker info
+                trackerField = self.getGuiObj('trackerField', tab = tab)
+                trackerField.Wrap(-1)
                 if torrent.has_key('tracker'):
                     trackerString = torrent['tracker']
                     short = getShortTrackerFormat(trackerString)
-                    trackerField = self.getGuiObj('trackerField', tab = tab)
-                    trackerField.Wrap(-1)
                     trackerField.SetLabel(short)
                     trackerField.SetToolTipString(trackerString)
+                else:
+                    trackerField.SetLabel('')
+                    trackerField.SetToolTipString('')
                     
             #elif self.getGuiObj('graphs_detailsTab').isSelected():
             #    if DEBUG:
@@ -612,11 +615,11 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 
                 if item.get('online'):
                     self.getGuiObj('statusField').SetLabel( 'online')
-                elif item.get('last_seen') is not None:
-                    if item['last_seen'] < 0:
+                elif item.get('last_connected') is not None:
+                    if item['last_connected'] < 0:
                         self.getGuiObj('statusField').SetLabel('never seen')
                     else:
-                        self.getGuiObj('statusField').SetLabel('conn.  %s' % friendly_time(item['last_seen']))
+                        self.getGuiObj('statusField').SetLabel('conn.  %s' % friendly_time(item['last_connected']))
                 else:
                     self.getGuiObj('statusField').SetLabel( 'unknown')
 
@@ -641,11 +644,11 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                     
                 self.fillTorrentLists()
             elif self.getGuiObj('advanced_detailsTab').isSelected():
-                if item.get('last_seen') is not None:
-                    if item['last_seen'] < 0:
+                if item.get('last_connected') is not None:
+                    if item['last_connected'] < 0:
                         self.getGuiObj('lastExchangeField', tab = 'personsTab_advanced').SetLabel("never seen online")
                     else:
-                        self.getGuiObj('lastExchangeField', tab = 'personsTab_advanced').SetLabel('%s %s'%(friendly_time(item['last_seen']),'ago'))
+                        self.getGuiObj('lastExchangeField', tab = 'personsTab_advanced').SetLabel('%s %s'%(friendly_time(item['last_connected']),'ago'))
                 else:
                     self.getGuiObj('lastExchangeField', tab = 'personsTab_advanced').SetLabel('')
                 if item.get("connected_times") is not None:
@@ -898,12 +901,14 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             elif self.currentPanel == self.getGuiObj('profileDetails_statsTopSharers'):
                 tab = 'profileDetails_statsTopSharers'
                 self.topNListText(tab)
+                self.refreshStandardDetailsHeight()
                 
             else:
                 tab = "error"
             if tab != "error":
                 if self.reHeightToFit(tab):
-#                    print "<mluc> do panel ",tab,"relayouting"
+                    
+                    #print "<mluc> do panel ",tab,"relayouting"
                     self.currentPanel.SetAutoLayout(1)
                     self.currentPanel.Layout()
                     self.hSizer.Layout()
@@ -954,6 +959,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                         style = currentElement.GetWindowStyle()
 #                        if DEBUG:
 #                            print >> sys.stderr,"standardDetails: <mluc> element",elementName,"has style",style
+                        #print 'Style if %s has flag: %s' % (elementName, (style & wx.ST_NO_AUTORESIZE))
                         if (style & wx.ST_NO_AUTORESIZE)==0 :
                             currentElement.Wrap(284)
                             bElementMoved = True
@@ -1638,7 +1644,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         if not self.bartercastdb:
             self.bartercastdb = BarterCastDBHandler()
         
-        top_stats = self.bartercastdb.getTopNPeers(5)
+        top_stats = self.bartercastdb.getTopNPeers(10)
         top = top_stats['top']
         #total_up = top_stats['total_up']
         #total_down = top_stats['total_down']

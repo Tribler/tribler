@@ -197,6 +197,7 @@ def friendly_time(old_time):
     curr_time = time()
     try:
         old_time = int(old_time)
+        assert old_time > 0
         diff = int(curr_time - old_time)
     except:
         if isinstance(old_time, str):

@@ -174,7 +174,7 @@ class PersonsItemPanel(wx.Panel):
 
     def getColumns(self):
         return [{'sort':'content_name', 'reverse':True, 'title':'name', 'weight':1,'tip':self.utility.lang.get('C_personname') },
-                {'sort':'last_seen', 'reverse': True, 'title':'status', 'width':165, 'tip':self.utility.lang.get('C_status'), 'order':'down'},
+                {'sort':'last_connected', 'reverse': True, 'title':'status', 'width':165, 'tip':self.utility.lang.get('C_status'), 'order':'down'},
                 {'sort':'nfiles', 'reverse':True, 'pic':'iconDiscFiles','width':40, 'tip':self.utility.lang.get('C_discfiles')},
                 {'sort':'npeers', 'reverse':True, 'pic':'iconDiscPersons', 'width':40, 'tip':self.utility.lang.get('C_discpersons')},                
                 {'sort':'similarity', 'reverse':True, 'pic':'heartSmall', 'width':60, 'tip':self.utility.lang.get('C_recommpersons')},
@@ -190,7 +190,7 @@ class PersonsItemPanel(wx.Panel):
             self.datacopy = None
         
         if self.datacopy is not None and peer_data is not None and self.datacopy['permid'] == peer_data['permid']:
-            if (self.datacopy['last_seen'] == peer_data['last_seen'] and
+            if (self.datacopy['last_connected'] == peer_data['last_connected'] and
                 self.datacopy['similarity'] == peer_data['similarity'] and
                 self.datacopy['name'] == peer_data['name'] and
                 self.datacopy['content_name'] == peer_data['content_name'] and
@@ -203,7 +203,7 @@ class PersonsItemPanel(wx.Panel):
             # deepcopy no longer works with 'ThumnailBitmap' on board
             self.datacopy = {}
             self.datacopy['permid'] = peer_data['permid']
-            self.datacopy['last_seen'] = peer_data['last_seen']
+            self.datacopy['last_connected'] = peer_data['last_connected']
             self.datacopy['similarity'] = peer_data['similarity']
             self.datacopy['name'] = peer_data['name']
             self.datacopy['content_name'] = peer_data['content_name']
@@ -219,8 +219,12 @@ class PersonsItemPanel(wx.Panel):
             
             if not self.listItem:
                 self.title.Wrap(self.title.GetSize()[0])
-                
-            self.title.SetToolTipString(peer_data['content_name'])            
+
+            try:
+                ipport = peer_data['ip']+':'+str(peer_data['port'])
+            except:
+                ipport = peer_data['content_name']
+            self.title.SetToolTipString(ipport)            
             
             if self.listItem:
     #            self.discFiles.Enable(True)
@@ -236,8 +240,8 @@ class PersonsItemPanel(wx.Panel):
                 
                 # -- status issues
                 self.status.Enable(True)
-                #self.status.SetLabel(peer_data['last_seen'])
-                statusPeer = peer_data['last_seen']
+                #self.status.SetLabel(peer_data['last_connected'])
+                statusPeer = peer_data['last_connected']
                     
                 if peer_data.get('online'):
                     self.status.SetLabel('online')
@@ -286,10 +290,12 @@ class PersonsItemPanel(wx.Panel):
                 # -- friend issues
                 if self.data.get('friend'):
                     if self.data.get('online'):
-                        print 'friend online'
+                        if DEBUG:
+                            print >>sys.stderr,'pip: friend online'
                         self.friendsIcon.setBitmapFromFile('friend')
                     else:
-                        print 'friend offline'
+                        if DEBUG:
+                            print >>sys.stderr,'pip: friend offline'
                         self.friendsIcon.setBitmapFromFile('friend_offline')
                     self.friendsIcon.Show()
                 else:

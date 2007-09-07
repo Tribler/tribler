@@ -2,7 +2,7 @@
 <resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
   <object class="wxPanel" name="profileDetails_statsTopSharers">
     <pos>0,0</pos>
-    <size>300,510</size>
+    <size>300,710</size>
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>
       <object class="sizeritem">
@@ -65,7 +65,7 @@
         <option>0</option>
         <object class="wxPanel" name="details">
           <pos>0,21</pos>
-          <size>298,330</size>
+          <size>298,645</size>
           <bg>#ffffff</bg>
           <object class="wxBoxSizer">
             <orient>wxVERTICAL</orient>
@@ -124,7 +124,7 @@
 	
 </label>
                 <pos>14,42</pos>
-                <size>284,153</size>
+                <size>282,468</size>
                 <font>
                   <size>8</size>
                   <family>modern</family>
@@ -142,7 +142,7 @@
               <object class="wxStaticText" name="howToImprove">
                 <style>wxST_NO_AUTORESIZE</style>
                 <label>Your exchanges with other Tribler users:</label>
-                <pos>12,207</pos>
+                <pos>12,142</pos>
                 <size>284,18</size>
                 <font>
                   <size>9</size>
@@ -167,7 +167,7 @@
                   <object class="wxStaticText" name="st227cC">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>total downloaded:</label>
-                    <pos>11,282</pos>
+                    <pos>11,179</pos>
                     <size>144,18</size>
                     <font>
                       <size>9</size>
@@ -186,7 +186,7 @@
                   <object class="wxStaticText" name="downloadedNumberT">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>_</label>
-                    <pos>157,282</pos>
+                    <pos>157,179</pos>
                     <size>99,18</size>
                     <font>
                       <size>9</size>
@@ -213,7 +213,7 @@
                   <object class="wxStaticText" name="st227cCC">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>total uploaded:</label>
-                    <pos>11,302</pos>
+                    <pos>11,199</pos>
                     <size>144,18</size>
                     <font>
                       <size>9</size>
@@ -232,7 +232,7 @@
                   <object class="wxStaticText" name="uploadedNumberT">
                     <style>wxST_NO_AUTORESIZE</style>
                     <label>_</label>
-                    <pos>157,302</pos>
+                    <pos>157,199</pos>
                     <size>99,18</size>
                     <font>
                       <size>9</size>

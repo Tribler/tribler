@@ -23,7 +23,7 @@ from ABC.Torrent.status import TorrentStatus
 
 import cStringIO
 
-DEBUG=True
+DEBUG = False
 
 [ID_MENU_1418,ID_MENU_1419,ID_MENU_1420] = 1418,1419,1420
 

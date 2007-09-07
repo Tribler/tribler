@@ -164,7 +164,8 @@ class GenericSearch(db.ThreadedDBSearch):
             date = re.findall(self.get('RE_DATE'), itempage, re.S)
             if date:
                 item['info'] = { 'creation date' : GenericDateParser(date[0], self) }
-
+                item['date'] = item['info']['creation date']
+                
         item['status'] = 'good'
         item['seeder'] = 1
         item['leecher'] = 1

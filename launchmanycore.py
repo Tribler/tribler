@@ -90,6 +90,7 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
         btconfig['download_help'] = int(self.utility.config.Read('enabledlhelp'))
         btconfig['torrent_collecting'] = int(self.utility.config.Read('enabledlcollecting'))
         btconfig['max_torrents'] = int(self.utility.config.Read('maxntorrents'))
+        btconfig['max_peers'] = int(self.utility.config.Read('maxnpeers'))
         btconfig['stop_collecting_threshold'] = int(self.utility.config.Read('stopcollectingthreshold', "int"))
         btconfig['torrent_collecting_rate'] = int(self.utility.config.Read('torrentcollectingrate'))
 

@@ -18,7 +18,6 @@ from Tribler.CacheDB.CacheDBHandler import MyDBHandler
 from Tribler.Video.VideoPlayer import *
 from Tribler.Overlay.permid import permid_for_user
 from Tribler.Overlay.MetadataHandler import MetadataHandler
-from BitTornado.download_bt1 import EVIL
 
 
 DEBUG = False
@@ -1484,6 +1483,12 @@ class TriblerPanel(ABCOptionPanel):
         ntorrents_box.Add(self.ntorrents, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
         tcsection.Add(ntorrents_box, 0, wx.EXPAND|wx.ALL, 5)
         
+        npeers_box = wx.BoxSizer(wx.HORIZONTAL)    # set the max num of peers to be used by buddycast
+        self.npeers = self.utility.makeNumCtrl(self, 2000, min = 0, max = 999999)
+        npeers_box.Add(wx.StaticText(self, -1, self.utility.lang.get('maxnpeers')), 0, wx.ALIGN_CENTER_VERTICAL)
+        npeers_box.Add(self.npeers, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        tcsection.Add(npeers_box, 0, wx.EXPAND|wx.ALL, 5)
+        
         tc_threshold_box = wx.BoxSizer(wx.HORIZONTAL)    # set the min space to stop torrent collecting
         self.tc_threshold = self.utility.makeNumCtrl(self, 200, min = 1, max = 999999)
         tc_threshold_box.Add(wx.StaticText(self, -1, self.utility.lang.get('tc_threshold')), 0, wx.ALIGN_CENTER_VERTICAL)
@@ -1555,6 +1560,15 @@ class TriblerPanel(ABCOptionPanel):
             self.ntorrents.SetValue(str(int_value))
         except:
             print_exc()
+        
+        value = str(Read('maxnpeers', "string"))
+        try:    # check if the input is correct
+            int_value = int(value)
+            if int_value < 0:
+                raise
+            self.npeers.SetValue(str(int_value))
+        except:
+            print_exc()
             
         value = str(Read('stopcollectingthreshold', "string"))
         try:    # check if the input is correct
@@ -1581,7 +1595,7 @@ class TriblerPanel(ABCOptionPanel):
         self.utility.config.Write('enabledlhelp', self.dlhelp_enable.GetValue(), "boolean")          
         self.utility.config.Write('enabledlcollecting', self.collect_enable.GetValue(), "boolean")
         
-        try:    # check if the input is correct
+        try:    # check if the input is correct for maxntorrents
             maxntorrents = self.ntorrents.GetValue()
             int_value = int(maxntorrents)
             if int_value < 0:
@@ -1593,6 +1607,15 @@ class TriblerPanel(ABCOptionPanel):
         except:
             print_exc()
             
+        try:    # check if the input is correct for maxnpeers
+            maxnpeers = self.npeers.GetValue()
+            int_value = int(maxnpeers)
+            if int_value < 0:
+                raise
+            self.utility.config.Write('maxnpeers', maxnpeers, "string")
+        except:
+            print_exc()
+        
         try:    # check if the input is correct
             tc_threshold_value = self.tc_threshold.GetValue()
             int_value = int(tc_threshold_value)
@@ -1806,9 +1829,7 @@ class ABCTree(wx.TreeCtrl):
         self.advanceddisk = self.AppendItem(self.disk, self.utility.lang.get('advanced'))
         self.network = self.AppendItem(self.root, self.utility.lang.get('networksetting'))
         self.advancednetwork = self.AppendItem(self.network, self.utility.lang.get('advanced'))
-        global EVIL
-        if EVIL:
-            self.tornetwork = self.AppendItem(self.network, self.utility.lang.get('torpanel'))
+        self.tornetwork = self.AppendItem(self.network, self.utility.lang.get('torpanel'))
 
         #self.display = self.AppendItem(self.root, self.utility.lang.get('displaysetting'))
 
@@ -1830,8 +1851,7 @@ class ABCTree(wx.TreeCtrl):
 
         self.treeMap[self.advancednetwork] = self.dialog.advancedNetworkPanel
         self.treeMap[self.advanceddisk] = self.dialog.advancedDiskPanel
-        if EVIL:
-            self.treeMap[self.tornetwork] = self.dialog.torNetworkPanel
+        self.treeMap[self.tornetwork] = self.dialog.torNetworkPanel
         
         self.Bind(wx.EVT_TREE_SEL_CHANGED, self.onSwitchPage)
 
@@ -1930,9 +1950,7 @@ class ABCOptionDialog(wx.Dialog):
         
         self.advancedNetworkPanel = AdvancedNetworkPanel(self.splitter, self)
         self.advancedDiskPanel = AdvancedDiskPanel(self.splitter, self)
-        global EVIL
-        if EVIL:
-            self.torNetworkPanel = TorNetworkPanel(self.splitter, self)
+        self.torNetworkPanel = TorNetworkPanel(self.splitter, self)
         
         self.tree = ABCTree(self.splitter, self)
 

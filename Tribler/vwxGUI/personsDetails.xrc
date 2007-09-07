@@ -383,7 +383,7 @@
                     <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
                     <border>10</border>
                     <option>0</option>
-                    <object class="wxStaticText" name="st202cC">
+                    <object class="wxStaticText" name="alsoDownloaded">
                       <style>wxST_NO_AUTORESIZE</style>
                       <label>Also downloaded</label>
                       <pos>10,0</pos>

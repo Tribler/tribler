@@ -78,12 +78,13 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                     if bcactive:
                         self.owner.utility.buddycast.data_ready_evt.wait()   # called by buddycast
                         # get the peer list in buddycast. Actually it is a dict, but it can be used
-                        peer_list = self.owner.utility.buddycast.data_handler.peers
+                        peer_list = self.owner.utility.buddycast.getAllPeerList()
                         if DEBUG:
                             print >>sys.stderr,"standardOverview: Buddycast signals it has loaded, release data for GUI thread", len(peer_list), currentThread().getName()
     #                self.owner.sortData(self.owner.prepareData(buddycast_peer_list))
                     #this initialization can be done in another place also
                     data = self.owner.peer_manager.prepareData(peer_list)
+                    self.owner.utility.buddycast.removeAllPeerList()    # to reduce memory
             #        self.sortData(data)
                     self.owner.peer_manager.applyFilters(data)
             #        print "<mluc> ################### size of data is ",len(self.filtered_data['all'])
@@ -365,7 +366,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     
     
     def loadPersonsData(self, cat, sort):
-        print '<mluc>[',self.mode,'view] Category set to %s, %s' % (str(cat), str(sort))
+        if DEBUG:
+            print >>sys.stderr,'standardOverview: <mluc>[',self.mode,'view] Category set to %s, %s' % (str(cat), str(sort))
 
         if self.mode in [ "personsMode","friendsMode"]:
             self.data[self.mode]['data'] = self.peer_manager.getFilteredData(cat)
@@ -381,7 +383,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                     newSortFunc = peermanager.cmpFuncNameAsc
                 else:
                     newSortFunc = peermanager.cmpFuncNameDesc
-            elif sort[0] == 'last_seen':
+            elif sort[0] == 'last_connected':
                 if not reverse:
                     newSortFunc = peermanager.cmpFuncConnectivityAsc
                 else:
@@ -690,16 +692,16 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     def toggleSearchDetailsPanel(self, visible):
         searchDetails = self.data[self.mode].get('searchDetailsPanel')
         sizer = self.data[self.mode]['grid'].GetContainingSizer()
-        print 'Sizer: %s' % sizer
-        print 'SearchDetails: %s' % searchDetails
-        if searchDetails:
-            print '%s, %s' % (str(searchDetails.GetSize()), str(searchDetails.GetMinSize()))
+        #print 'standardOverview: Sizer: %s' % sizer
+        #print 'standardOverview: SearchDetails: %s' % searchDetails
+        #if searchDetails:
+        #    print 'standardOverview: %s, %s' % (str(searchDetails.GetSize()), str(searchDetails.GetMinSize()))
         
         if visible:
             if not searchDetails:
                 searchDetails = SearchDetailsPanel(self.data[self.mode]['panel'])
                 
-                print 'Inserting search details'
+                #print 'standardOverview: Inserting search details'
                 sizer.Insert(3,searchDetails, 0, wx.ALL|wx.EXPAND, 0)
                 #sizer.Layout()
                 #self.data[self.mode]['panel'].Refresh()
@@ -714,7 +716,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 
         else:
             if searchDetails:
-                print 'removing search details'
+                #print 'standardOverview: removing search details'
                 sizer.Detach(searchDetails)
                 searchDetails.Destroy()
                 self.data[self.mode]['searchDetailsPanel'] = None

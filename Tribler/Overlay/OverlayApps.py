@@ -17,6 +17,7 @@ from Tribler.SocialNetwork.SocialNetworkMsgHandler import SocialNetworkMsgHandle
 from Tribler.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
 from Tribler.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.utilities import show_permid_short
+from Tribler.CacheDB.CacheDBHandler import MyDBHandler
 
 DEBUG = False
 
@@ -88,7 +89,8 @@ class OverlayApps:
             # Using buddycast to handle torrent collecting since they are dependent
             self.buddycast.register(secure_overlay, launchmany.rawserver, launchmany, 
                                     launchmany.listen_port, launchmany.exchandler, True,
-                                    self.metadata_handler, self.torrent_collecting_solution, config['start_recommender'])
+                                    self.metadata_handler, self.torrent_collecting_solution, 
+                                    config['start_recommender'], config['max_peers'])
             self.register_msg_handler(BuddyCastMessages, self.buddycast.handleMessage)
 
         if config['dialback']:
@@ -109,13 +111,17 @@ class OverlayApps:
 
         if config['rquery']:
             self.rquery_handler = RemoteQueryMsgHandler.getInstance()
-            self.rquery_handler.register(secure_overlay,launchmany,launchmany.rawserver,config,self.buddycast)
+            self.rquery_handler.register(secure_overlay,launchmany,launchmany.rawserver,config,self.buddycast,log=config['overlay_log'])
             self.register_msg_handler(RemoteQueryMessages,self.rquery_handler.handleMessage)
             
             self.rtorrent_handler = RemoteTorrentHandler.getInstance()
             self.rtorrent_handler.register(launchmany.rawserver,self.metadata_handler)
             self.metadata_handler.register2(self.rtorrent_handler)
+
             
+        if config['nickname'] != '__default_name__':    # update my nickname
+            mydb = MyDBHandler()
+            mydb.put('name',config['nickname'])
 
     def register_msg_handler(self, ids, handler):
         """ 

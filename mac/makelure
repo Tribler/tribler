@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# Build all LURE versions of Tribler 4.1 for Mac OS/X
+
+# file to patch
+F=../BitTornado/download_bt1.py
+
+# image produced
+I=Tribler-`arch`.dmg
+
+# prefix and postfix for final image
+PRE=Tribler_4.1p
+POST=-`arch`.dmg
+
+# make non-evil versions
+EVIL=False
+for p in 7763 7764
+do
+  echo --- Processing port $p ---
+  echo Patching...
+  sed -E 's/DEFAULTPORT=[0-9]+/DEFAULTPORT='$p'/; s/^EVIL = [A-Za-z]+/EVIL = '$EVIL'/;' < $F > $F.temp
+  mv $F.temp $F
+  echo Building...
+  make >/dev/null 2>&1
+  mv $I $PRE$p$POST
+done
+
+# make evil versions
+EVIL=True
+for p in 7765 7766 7767 7768 7769 7770 7771 7772 7773 7774
+do
+  echo --- Processing port $p ---
+  echo Patching...
+  sed -E 's/DEFAULTPORT=[0-9]+/DEFAULTPORT='$p'/; s/^EVIL = [A-Za-z]+/EVIL = '$EVIL'/;' < $F > $F.temp
+  mv $F.temp $F
+  echo Building...
+  make >/dev/null 2>&1
+  mv $I $PRE$p$POST
+done
+
+echo DONE

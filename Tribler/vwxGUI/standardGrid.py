@@ -18,7 +18,7 @@ import wx.xrc as xrc
 import web2
 
 DEBUG = False
-DEBUG_DOD = True
+DEBUG_DOD = False
         
 class standardGrid(wx.Panel):
     """
@@ -104,7 +104,7 @@ class standardGrid(wx.Panel):
         self.SetBackgroundColour(wx.WHITE)
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         self.columnHeaderSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.columnHeaderSizer.AddSpacer(self.topMargin)
+        self.columnHeaderSizer.Add((0,self.topMargin))
         self.vSizer.Add(self.columnHeaderSizer, 0, wx.ALL|wx.EXPAND, 0)
         self.SetSizer(self.vSizer);
         self.SetAutoLayout(1);

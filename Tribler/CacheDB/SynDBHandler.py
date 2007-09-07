@@ -8,7 +8,6 @@ from cachedb import *
 from copy import deepcopy
 from sets import Set
 from traceback import print_exc
-from threading import Lock
 import sys
 
 class SynTorrentDBHandler(TorrentDBHandler):

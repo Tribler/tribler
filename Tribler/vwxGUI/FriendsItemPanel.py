@@ -153,7 +153,7 @@ class FriendsItemPanel(wx.Panel):
     def getColumns(self):
         return [{'sort':'', 'title':'', 'width':20, 'tip':''},
                 {'sort':'content_name', 'reverse':True,'title':'name', 'weight':1,'tip':self.utility.lang.get('C_friendname') },
-                {'sort':'last_seen', 'reverse':True,'title':'status', 'width':165, 'tip':self.utility.lang.get('C_friendstatus'), 'order':'down'},
+                {'sort':'last_connected', 'reverse':True,'title':'status', 'width':165, 'tip':self.utility.lang.get('C_friendstatus'), 'order':'down'},
                 {'sort':'??', 'dummy':True, 'title':'boosting','weight':1, 'tip':self.utility.lang.get('C_helping')},
                 {'sort':'similarity', 'reverse':True,'pic':'heartSmall', 'width':65, 'tip':self.utility.lang.get('C_recommpersons')}
                 ]
@@ -174,7 +174,7 @@ class FriendsItemPanel(wx.Panel):
             self.datacopy = None
                         
         if self.datacopy is not None and peer_data is not None and self.datacopy['permid'] == peer_data['permid']:
-            if (self.datacopy['last_seen'] == peer_data['last_seen'] and
+            if (self.datacopy['last_connected'] == peer_data['last_connected'] and
                 self.datacopy['similarity'] == peer_data['similarity'] and
                 self.datacopy['name'] == peer_data['name'] and
                 self.datacopy['content_name'] == peer_data['content_name'] and
@@ -187,7 +187,7 @@ class FriendsItemPanel(wx.Panel):
             # deepcopy no longer works with 'ThumnailBitmap' on board
             self.datacopy = {}
             self.datacopy['permid'] = peer_data['permid']
-            self.datacopy['last_seen'] = peer_data['last_seen']
+            self.datacopy['last_connected'] = peer_data['last_connected']
             self.datacopy['similarity'] = peer_data['similarity']
             self.datacopy['name'] = peer_data['name']
             self.datacopy['content_name'] = peer_data['content_name']
@@ -203,7 +203,7 @@ class FriendsItemPanel(wx.Panel):
             self.title.SetToolTipString(peer_data['ip']+':'+str(peer_data['port']))
             # status issues
             self.status.Enable(True)            
-            statusPeer = peer_data['last_seen']              
+            statusPeer = peer_data['last_connected']              
             if peer_data.get('online'):
                 self.status.SetLabel('online')
             elif statusPeer is not None:

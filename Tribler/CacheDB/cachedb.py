@@ -41,7 +41,7 @@ PeerDB - (MyFriendDB, PreferenceDB, OwnerDB)
         ip: str ('')
         port: int (0)    # listening port, even behind firewall
         name: str ('unknown')
-        last_seen: int (0)
+        last_seen: int (0)    # last seen of this peer by anyone. This info could be copied from other peers
         similarity: int (0)    # [0, 1000]
         oversion: int(0)    # overlay version, added in 3.7.1, overlay version 4
         connected_times: int(0)    # times to connect the peer successfully
@@ -51,10 +51,11 @@ PeerDB - (MyFriendDB, PreferenceDB, OwnerDB)
         #relability (uptime, IP fixed/changing)
         #trust: int (0)    # [0, 100]
         #icon: str ('')    # name + '_' + permid[-4:]
-        npeers: int(0)     # added in 4.1, overlay version 6
-        ntorrents: int(0)  # added in 4.1, overlay version 6  
-        nprefs: int(0)     # added in 4.1, overlay version 6
-        nqueries: int(0)   # added in 4.1, overlay version 6
+        npeers: int(0)     # added in 4.1, overlay version 6, DB version 4
+        ntorrents: int(0)  # added in 4.1, overlay version 6, DB version 4  
+        nprefs: int(0)     # added in 4.1, overlay version 6, DB version 4
+        nqueries: int(0)   # added in 4.1, overlay version 6, DB version 4
+        last_connected: int(0)    # last time I connected to the peer. added in 4.1.2, overlay version 6, DB version 5
     }
 
 TorrentDB - (PreferenceDB, MyPreference, OwnerDB)
@@ -138,8 +139,8 @@ home_dir = 'bsddb'
 # 2 = Added keys to TorrentDB:  leecher,seeder,category,ignore_number,last_check_time,retry_number,status
 # 3 = Added keys to TorrentDB: source,inserttime
 # 4 = Added keys to PeerDB: npeers, ntorrents, nprefs, nqueries
-#
-curr_version = 4
+# 5 = Added keys to PeerDB: last_connected
+curr_version = 5
 permid_length = 112
 infohash_length = 20
 torrent_id_length = 20
@@ -234,15 +235,6 @@ def validDict(data, keylen=0):    # basic requirement for a data item in DB
             return False
     return True        
     
-def validList(data, keylen=0):
-    if not isinstance(data, list):
-        return False
-    for key in data:
-        if not isinstance(key, str):
-            return False
-        if STRICT_CHECK and keylen and len(key) != keylen:
-            return False
-    return True        
 
 # Abstract base calss    
 class BasicDB:    # Should we use delegation instead of inheritance?
@@ -294,12 +286,6 @@ class BasicDB:    # Should we use delegation instead of inheritance?
     
     def _get(self, key, value=None):    # read
         try:
-            #if self.db_name == 'torrents.bsd':
-            #    self.count += 1
-            #    if self.count % 3000 == 0:
-            #        print "GET"
-            #        print_stack()
-            
             return dbutils.DeadlockWrap(self._data.get, key, value, max_retries=MAX_RETRIES)
             #return self._data.get(key, value)
 #        except db.DBRunRecoveryError, e:
@@ -312,7 +298,22 @@ class BasicDB:    # Should we use delegation instead of inheritance?
                 return value
             self.report_exception(e)
             return None
-        
+
+#===============================================================================
+#    def _recover_db(self):
+#        path = os.path.join(self.db_dir, self.db_name)
+#        try:
+#            self._data.close()
+#            print >> sys.stderr, "cachedb: closed and removing database", path
+#            os.remove(path)
+#            print >> sys.stderr, "cachedb: removed database", path
+#            self._data, self.db_dir = open_db(self.db_name, self.db_dir, filetype=self.filetype)    # reopen
+#            print >> sys.stderr, "cachedb: database is removed and reopened successfully", path
+#        except Exception, msg:
+#            print_exc()
+#            print >> sys.stderr, "cachedb: cannot remove the database", path, Exception, msg
+#===============================================================================
+            
     def _updateItem(self, key, data):
         try:
             x = self._get(key)
@@ -354,21 +355,7 @@ class BasicDB:    # Should we use delegation instead of inheritance?
         dbutils.DeadlockWrap(self._data.clear, max_retries=MAX_RETRIES)
         #self._data.clear()
     
-#===============================================================================
-#    def _recover_db(self):
-#        path = os.path.join(self.db_dir, self.db_name)
-#        try:
-#            self._data.close()
-#            print >> sys.stderr, "cachedb: closed and removing database", path
-#            os.remove(path)
-#            print >> sys.stderr, "cachedb: removed database", path
-#            self._data, self.db_dir = open_db(self.db_name, self.db_dir, filetype=self.filetype)    # reopen
-#            print >> sys.stderr, "cachedb: database is removed and reopened successfully", path
-#        except Exception, msg:
-#            print_exc()
-#            print >> sys.stderr, "cachedb: cannot remove the database", path, Exception, msg
-#===============================================================================
-    
+
     def _keys(self):
         try:
             return dbutils.DeadlockWrap(self._data.keys, max_retries=MAX_RETRIES)
@@ -580,7 +567,6 @@ class PeerDB(BasicDB):
         
         MyDB.checkVersion(self)
         PeerDB.__single = self
-        self.num_encountered_peers = -100
         self.default_item = {
             'ip':'',
             'port':0,
@@ -597,7 +583,8 @@ class PeerDB(BasicDB):
             'npeers':0,
             'ntorrents':0,
             'nprefs':0,
-            'nqueries':0
+            'nqueries':0,
+            'last_connected':0
         }
         
     def getInstance(*args, **kw):
@@ -646,20 +633,35 @@ class PeerDB(BasicDB):
         return self._has_key(permid)
         
     def updateDB(self, old_version):
-        if old_version == 1 or old_version == 2 or old_version == 3:
+        def_newitem = {}
+        
+        if old_version < 4:
+            add_newitem = {
+                'oversion':0,
+                'npeers': 0,
+                'ntorrents': 0,
+                'nprefs': 0,
+                'nqueries':0
+                }
+            def_newitem.update(add_newitem)
             
-            keys = self._keys()
-            for key in keys:
-                def_newitem = {
-                    'oversion':0,
-                    'npeers': 0,
-                    'ntorrents': 0,
-                    'nprefs': 0,
-                    'nqueries':0 }
-                item = self.getItem(key)
-                def_newitem.update(item)    # keep the old info if it exists
-                self._put(key, def_newitem)
-            self._sync()
+        if old_version < 5:
+            add_newitem = {
+                'last_connected':0
+                }
+            def_newitem.update(add_newitem)
+        
+        keys = self._keys()
+        for key in keys:
+            item = self.getItem(key)
+            if item:
+                newitem = deepcopy(def_newitem)
+                newitem.update(item)    # keep the old info if it exists
+                # copy last_seen value to last_connected
+                if newitem['last_connected'] == 0 and newitem['last_seen'] > 0:
+                    newitem['last_connected'] = newitem['last_seen']
+                self._put(key, newitem)
+        self._sync()
             
 
 class TorrentDB(BasicDB):
@@ -988,6 +990,7 @@ class IP2PermIDDB(BasicDB):
 
         self.filetype = db.DB_BTREE
         self._data, self.db_dir = open_db(self.db_name, db_dir, filetype=self.filetype)
+        self.peer_db = PeerDB.getInstance(db_dir=db_dir)
         IP2PermIDDB.__single = self 
 
     def getInstance(*args, **kw):
@@ -1012,11 +1015,14 @@ class IP2PermIDDB(BasicDB):
         else:
             return self._get(ip)
 
-    def deletePermID(self, permid):
-        for ip, permid2 in self._items():
-            if permid == permid2:
-                self._delete(ip)
-                break
+    def deletePermID(self, permid, ip=None):
+        # Jie: This function was amended otherwise it takes too long to perform
+        if not ip:
+            data = self.peer_db._get(permid, {})
+            ip = data.get('ip',None)
+        permid2 = self._get(ip)
+        if permid == permid2:
+            self._delete(ip)
 
 
 # DB extension for BarterCast statistics
@@ -1036,7 +1042,6 @@ class BarterCastDB(BasicDB):
 
         MyDB.checkVersion(self)
         BarterCastDB.__single = self
-        self.num_encountered_peers = -100
         self.default_item = {
             'last_seen':0,
             'value': 0,

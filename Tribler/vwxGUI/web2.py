@@ -3,6 +3,8 @@ import copy, threading
 from Tribler import Web2
 from Tribler.Web2.util.observer import Observer
 
+DEBUG = False
+
 class DataOnDemand:
     
     def __init__(self, sort=lambda x:x):
@@ -41,11 +43,12 @@ class DataOnDemand:
         return True
 
     def addItem(self, item):
-        print "web2.addItem"
+        if DEBUG:
+            print >>sys.stderr,"web2.addItem"
         self.datalock.acquire()
         if self._addItem(item):
             self.data = self.sort(self.data)
-            print 'web2.addItem: notify'
+            #print 'web2.addItem: notify'
             self.notify(item)
         self.datalock.release()
 

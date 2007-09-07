@@ -14,7 +14,7 @@ s_tipoFile=21
 ClsparentCompTipo=0
 l_framTipo=0
 VisualWxVersion=0.87.6.0
-VisualWxIdent=8760
+VisualWxIdent=8725
 l_hasAutoSize=1
 strTree=00it=3 01it=193 02it=194 02it=195 03it=196 04it=197 02it=198 01it=290 02it=291 02it=294 01it=240 02it=241 03it=243 03it=260 01it=201 02it=202 03it=246 03it=247 01it=207 02it=208 03it=209 04it=276 05it=287 06it=288 06it=289 05it=284 06it=285 06it=286 05it=277 06it=278 06it=279 06it=280 05it=281 06it=282 06it=283 04it=223 05it=249 05it=245 03it=263 04it=265 05it=266 03it=255 03it=227 04it=267 05it=228 03it=262 01it=239 
 [Controlli]
@@ -2001,7 +2001,7 @@ idIncCmpFilCmp=0
 i_tipoComp=600051
 isContenitor=0
 validator=
-s_name=st202cC
+s_name=alsoDownloaded
 subClassName=
 i_index=-1
 i_left=10

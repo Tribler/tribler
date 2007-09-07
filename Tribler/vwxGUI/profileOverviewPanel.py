@@ -42,7 +42,7 @@ class ProfileOverviewPanel(wx.Panel):
         return True
     
     def _PostInit(self):
-        print "<mluc> tribler_topButton in _PostInit"
+        #print "<mluc> tribler_topButton in _PostInit"
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
         

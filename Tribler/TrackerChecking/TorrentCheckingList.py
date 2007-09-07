@@ -6,7 +6,7 @@
 
 from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
 
-from threading import Lock
+from threading import RLock
 from time import time
 from random import shuffle
 from copy import copy, deepcopy
@@ -23,7 +23,7 @@ class TorrentCheckingList:
             raise RuntimeError, "TorrentCheckingList is singleton"
         TorrentCheckingList.__single = self
         self.done_init = False
-        self.lock = Lock()
+        self.lock = RLock()
         self.list_good = []
         self.list_unknown = []
         self.list_dead = []
@@ -48,25 +48,37 @@ class TorrentCheckingList:
         return len(self.list_dead)
     
     def getFirstGood(self):
-        if (self.list_good != []):
-            infohash = self.list_good.pop(0)
-            torrent = self.torrent_db.getTorrent(infohash)
-            if DEBUG:
-                print >>sys.stderr,"TorrCheckList: Get first good",`infohash`
-            torrent['infohash'] = infohash
-            return torrent
-        return None                  
+        try:
+            if (self.list_good != []):
+                infohash = self.list_good.pop(0)
+                torrent = self.torrent_db.getTorrent(infohash)
+                if not torrent:
+                    return None    # this infohash has been deleted
+                if DEBUG:
+                    print >>sys.stderr,"TorrCheckList: Get first good",`infohash`
+                    assert torrent, 'torrentCheckingList: Torrent unknown'
+                torrent['infohash'] = infohash
+                return torrent
+            return None
+        except:
+            print_exc()
+            return None
         
     def getFirstUnknown(self):
-        if (self.list_unknown != []):
-            infohash = self.list_unknown.pop(0)
-            torrent = self.torrent_db.getTorrent(infohash)
-            if DEBUG:
-                print >>sys.stderr,"TorrCheckList: Get first unknown",`infohash`
-            assert torrent, 'torrentCheckingList: Torrent unknown'
-            torrent['infohash'] = infohash
-            return torrent
-        return None     
+        try:
+            if (self.list_unknown != []):
+                infohash = self.list_unknown.pop(0)
+                torrent = self.torrent_db.getTorrent(infohash)
+                if not torrent:
+                    return None    # this infohash has been deleted
+                if DEBUG:
+                    print >>sys.stderr,"TorrCheckList: Get first unknown",`infohash`,type(torrent)
+                torrent['infohash'] = infohash
+                return torrent
+            return None     
+        except:
+            print_exc()
+            return None
     
     def _prepareData(self):
         

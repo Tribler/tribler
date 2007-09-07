@@ -13,7 +13,8 @@ from Tribler.Overlay.SecureOverlay import OLPROTO_VER_FIFTH
 MAX_BARTERCAST_LENGTH = 10 * 1024 * 1024 # TODO: give this length a reasonable value
 NO_PEERS_IN_MSG = 10
 
-DEBUG = True
+debug = False
+
 
 class BarterCastCore:
 
@@ -96,8 +97,9 @@ class BarterCastCore:
     def gotBarterCastMessage(self, recv_msg, sender_permid, selversion):
         """ Received a bartercast message and handle it. Reply if needed """
         
-        if DEBUG:
-            print 'Received a BarterCast message from ', self.bartercastdb.getName(sender_permid)
+        if debug:
+            print 'bartercast: Received a BarterCast msg from ', permid_for_user(sender_permid)
+
             
         if not sender_permid or sender_permid == self.bartercastdb.my_permid:
             print >> sys.stderr, "bartercast: error - got BarterCastMsg from a None peer", \

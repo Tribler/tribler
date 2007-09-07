@@ -183,7 +183,6 @@ class LaunchMany:
             self.torrent_dir = config['torrent_dir']
             self.scan_period = config['parse_dir_interval']
             self.torrent_checking_period = config['torrent_checking_period']    #### temporary
-
             self.torrent_cache = {}
             self.file_cache = {}
             self.blocked_files = {}
@@ -274,7 +273,7 @@ class LaunchMany:
             self.mypref_db = MyPreferenceDBHandler()
             
             # add task for tracker checking
-            if config['torrent_checking']:
+            if not self.text_mode and config['torrent_checking']:
                 self.rawserver.add_task(self.torrent_checking, self.torrent_checking_period)
             
             ##self.start()

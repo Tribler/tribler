@@ -146,19 +146,19 @@ class filesFilter(standardFilter):
                       ]
         standardFilter.__init__(self, filterData = filterData)
         
-class personsFilter(standardFilter):
-    def __init__(self):
-        filterData = [
-                      [('all', 'All'),
-                       ('search', 'Search Results')
-                       ],
-                      [(('content_name','increase'), 'Name'),
-                       ('similarity', 'Similar taste'),                        
-                       ('last_seen', 'Recently connected'),                        
-                      ]
-                  ]
-        standardFilter.__init__(self, filterData = filterData)
-        
+#class personsFilter(standardFilter):
+#    def __init__(self):
+#        filterData = [
+#                      [('all', 'All'),
+#                       ('search', 'Search Results')
+#                       ],
+#                      [(('content_name','increase'), 'Name'),
+#                       ('similarity', 'Similar taste'),                        
+#                       ('last_connected', 'Recently connected'),                        
+#                      ]
+#                  ]
+#        standardFilter.__init__(self, filterData = filterData)
+#        
 class libraryFilter(standardFilter):
     def __init__(self):
 
@@ -180,16 +180,16 @@ class libraryFilter(standardFilter):
                       ]
         standardFilter.__init__(self, filterData = filterData)
 
-class friendsFilter(standardFilter):
-    def __init__(self):
-        filterData = [
-                      [('friends', 'All'),
-                       ('search_friends', 'Search Results')
-                       ],
-                      [(('content_name','increase'), 'Name'),
-                       ('similarity', 'Similar taste'),                        
-                       ('last_seen', 'Recently connected'),                        
-                      ]
-                  ]
-        standardFilter.__init__(self, filterData = filterData)
+#class friendsFilter(standardFilter):
+#    def __init__(self):
+#        filterData = [
+#                      [('friends', 'All'),
+#                       ('search_friends', 'Search Results')
+#                       ],
+#                      [(('content_name','increase'), 'Name'),
+#                       ('similarity', 'Similar taste'),                        
+#                       ('last_connected', 'Recently connected'),                        
+#                      ]
+#                  ]
+#        standardFilter.__init__(self, filterData = filterData)
 

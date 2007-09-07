@@ -14,6 +14,8 @@ try:
 except ImportError:
     pass    #support cmdline version without wx
 
+DEBUG = False
+
 class RemoteTorrentHandler:
     
     __single = None
@@ -59,7 +61,8 @@ class RemoteTorrentHandler:
        
         self.requestedtorrents.add(torrent['infohash'])
         self.metadatahandler.send_metadata_request(permid,infohash,caller="rquery")
-       
+        if DEBUG:
+            print 'Requested torrent: %s' % `torrent['content_name']`
        
     def got_torrent(self,torrent_hash,metadata):
        """ Called by network thread """
