@@ -273,8 +273,9 @@ class GUIUtility:
         self.standardOverview.refreshData()
     
     def addTorrentAsHelper(self):
-        self.standardOverview.loadLibraryData('all','latest')
-        self.standardOverview.refreshData()
+        if self.standardOverview.mode == 'libraryMode':
+            self.standardOverview.filterChanged(None)
+            #self.standardOverview.refreshData()
     
     
     def selectData(self, data):
@@ -494,12 +495,13 @@ class GUIUtility:
                     return True
             return False
         self.peer_manager.registerFilter("search_friends",searchFriendsFilterFunc)
-        filterState = self.standardOverview.getFilter().getState()
         sort = None
-        if filterState is not None and type(filterState) == 'list' and len(filterState) == 2 and filterState[1] is not None:
-            sort = filterState[1]
         self.standardOverview.filterChanged(['search_friends',sort],setgui=True)
-
+        numResults =0
+        if self.standardOverview.getGrid():
+            numResults = len(self.standardOverview.getGrid().getData())
+        self.standardOverview.setSearchFeedback('friends', True, numResults, wantkeywords)
+        
     def OnSearchKeyDown(self,event):
         keycode = event.GetKeyCode()
         #if event.CmdDown():

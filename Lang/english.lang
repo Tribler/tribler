@@ -1319,7 +1319,7 @@ search_torrent = "Discovered files (%d results)"
 search_peers = "Discovered persons (%d results)"
 search_library = "Library files (%d results)"
 search_remote = "Tribler network (%d results)"
-
+search_friends = "Friends (%d results)"
 # search buttons
 searchStop       = "stop searching"
 searchStopEnabled= "stopped searching"

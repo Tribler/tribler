@@ -63,6 +63,7 @@ class TorrentCheckingList:
             torrent = self.torrent_db.getTorrent(infohash)
             if DEBUG:
                 print >>sys.stderr,"TorrCheckList: Get first unknown",`infohash`
+            assert torrent, 'torrentCheckingList: Torrent unknown'
             torrent['infohash'] = infohash
             return torrent
         return None     
