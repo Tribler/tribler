@@ -48,7 +48,6 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         self.utility = self.guiUtility.utility
         self.categorykey = None
         self.data_manager = TorrentDataManager.getInstance(self.utility)
-        
         self.peer_manager = PeerDataManager.getInstance(self.utility) #the updateFunc is called after the data is updated in the peer manager so that the GUI has the newest information
 
         def filterFuncFriend(peer_data):
@@ -372,45 +371,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         if self.mode in [ "personsMode","friendsMode"]:
             self.data[self.mode]['data'] = self.peer_manager.getFilteredData(cat)
             #check the current sorting for current filter
-            currentSortFunc = self.peer_manager.getCmpFunc(cat)
-            newSortFunc = None
-            if type(sort) == str:
-                sort = (sort, 'increase')
-                
-            reverse = sort[1] != 'increase'
-            if sort[0] == "content_name":
-                if not reverse:
-                    newSortFunc = peermanager.cmpFuncNameAsc
-                else:
-                    newSortFunc = peermanager.cmpFuncNameDesc
-            elif sort[0] == 'last_connected':
-                if not reverse:
-                    newSortFunc = peermanager.cmpFuncConnectivityAsc
-                else:
-                    newSortFunc = peermanager.cmpFuncConnectivityDesc
-            elif sort[0] == 'similarity':
-                if not reverse:
-                    newSortFunc = peermanager.cmpFuncSimilarityAsc
-                else:
-                    newSortFunc = peermanager.cmpFuncSimilarityDesc
-            elif sort[0] == 'npeers':
-                if not reverse:
-                    newSortFunc = peermanager.cmpFuncNPeersAsc
-                else:
-                    newSortFunc = peermanager.cmpFuncNPeersDesc
-            elif sort[0] == 'nfiles':
-                if not reverse:
-                    newSortFunc = peermanager.cmpFuncNFilesAsc
-                else:
-                    newSortFunc = peermanager.cmpFuncNFilesDesc
-            elif sort[0] == 'friend':
-                if not reverse:
-                    newSortFunc = peermanager.cmpFuncFriendAsc
-                else:
-                    newSortFunc = peermanager.cmpFuncFriendDesc
-                    
-            if currentSortFunc != newSortFunc:
-                self.peer_manager.setCmpFunc(newSortFunc, cat)
+            self.peer_manager.setSortingMode(sort, cat)
         else:
             if DEBUG:
                 print >>sys.stderr,"standardOverview: loadPersonsData: <mluc> not correct standard overview mode for loading peers:",self.mode

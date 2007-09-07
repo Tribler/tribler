@@ -286,7 +286,7 @@ class BuddyCastFactory:
             # if any. So when you change this time, make sure it allows for UPnP to
             # do its thing, or add explicit coordination between UPnP and BC.
             # See BitTornado/launchmany.py
-            self.rawserver.add_task(self.data_handler.postInit, 0)    # avoid flash crawd
+            self.rawserver.add_task(self.data_handler.postInit, 0)    # avoid flash crowd
             self.rawserver.add_task(self.doBuddyCast, 2)
             self.rawserver.add_task(self.data_handler.updateAllSim, randint(60,5*60))
             self.rawserver.add_task(self.sync, self.sync_interval)

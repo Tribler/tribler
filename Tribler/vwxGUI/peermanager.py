@@ -12,7 +12,7 @@ from traceback import print_exc
 # update top list and the sorting after removal of elements
 #===============================================================================
 
-DEBUG = False
+DEBUG = True
 
 key_content_name = 'content_name'
 key_permid = 'permid'
@@ -177,6 +177,7 @@ class PeerDataManager(DelayedEventHandler):
         DelayedEventHandler.__init__(self)
         self.doneflag = threading.Event()
         self.isDataPrepared = False
+        self.utility = utility
         # for that, create a separate ordered list with only the first 20 most similar peers
         self.top20similar = []
         self.MaxSimilarityValue = 0 #maximal value for similarity as maintained 
@@ -186,6 +187,8 @@ class PeerDataManager(DelayedEventHandler):
         ## initialization
         self.MIN_CALLBACK_INT = 1 #min callback interval: minimum time in seconds between two invocations on the gui from the callback
         self.start_callback_int = -1 #init the time variable for the callback function
+        self.peerDeletionTime = 5 # delete peers > maxPeers, at most once every 60 seconds
+        self.dataLock = threading.RLock()
         self.callback_dict = {} #empty list for events
         self.guiCallbackFuncList = []#callback function list from the parent, the creator object
         self.peersdb = SynPeerDBHandler(updateFun = self.callbackPeerChange)#CacheDBHandler.PeerDBHandler()
@@ -193,8 +196,7 @@ class PeerDataManager(DelayedEventHandler):
 #        self.mydb = CacheDBHandler.MyPreferenceDBHandler()
 #        self.tordb = CacheDBHandler.TorrentDBHandler()
         self.frienddb = CacheDBHandler.FriendDBHandler()
-        self.MAX_MIN_PEERS_NUMBER = 1900
-        self.MAX_MAX_PEERS_NUMBER = 2100
+        
         self.wantedkeys = ['permid', 'name', 'ip', 'similarity', 'last_connected', 'connected_times', 'buddycast_times', 'port', 'ntorrents', 'npeers']
         self.peerDeletionScheduled = False
         #there should always be an all key that contains all data
@@ -239,15 +241,18 @@ class PeerDataManager(DelayedEventHandler):
     def insertInFilters(self, peer_data):
         """inserts in each filtered data the value at the right position based on the comparing function
         if compare function is None, append at the end"""
+        self.dataLock.acquire()
         for type,list in self.filtered_data.iteritems():
             filterFunc,cmpFunc = self.filtered_func[type]
             if filterFunc is None or filterFunc(peer_data):
 #                print "adding peer",`peer_data['content_name']`,"to filter",type
                 self.insertInPlace(list, peer_data, cmpFunc)
-            
+        self.dataLock.release()
+        
     def removeFromFilters(self, permid, check_filter=True):
         """if value doesn't corresponds any more to the filter function, remove it from list
         if the check_filter flag is False, remove it without checking"""
+        self.dataLock.acquire()
         for type,list in self.filtered_data.iteritems():
             peer_index = self.getPeerDataIndex(permid, type)
             if peer_index != -1:
@@ -262,7 +267,8 @@ class PeerDataManager(DelayedEventHandler):
                     bShouldRemove = True
                 if bShouldRemove:
                     list.pop(peer_index)
-    
+        self.dataLock.release()
+        
     def getPeerDataIndex(self, permid, filter_name='all'):
         """same as getPeerData only that returns the index of the item in the
         list provided by filter_name
@@ -314,7 +320,7 @@ class PeerDataManager(DelayedEventHandler):
                 print >>sys.stderr,"peermanager: tried to set online status for",show_permid_shorter(permid),"to online?",bOnline
             return
         peer_data['online']=bOnline
-        debug("%s is online? %s" %(peer_data['content_name'],peer_data['online']))
+        #debug("%s is online? %s" %(peer_data['content_name'],peer_data['online']))
         if bOnline:
             mode="online"
         else:
@@ -436,7 +442,7 @@ class PeerDataManager(DelayedEventHandler):
         #return
         # instead of treating each message when it arrives, just put them in a hash
         # that has the permid as key and mode as value and when some time passed
-        # invoke an event
+        debug('callbackPeerChange: %s, %s' % (show_permid_shorter(permid), mode))
         if self.start_callback_int == -1:
             self.start_callback_int = start_time
         self.callback_dict[permid] = mode
@@ -460,7 +466,7 @@ class PeerDataManager(DelayedEventHandler):
         return
 
     def treatCallback(self, permid_dict):
-#        debug("treat callback with %d peers" % (len(permid_dict)))
+#        debug("threat callback with %d peers" % (len(permid_dict)))
         for permid, mode in permid_dict.iteritems():
             peer_data = None
             if mode in ['update', 'add']:
@@ -744,13 +750,57 @@ class PeerDataManager(DelayedEventHandler):
 #            print "PeerDataManager register error.", Exception, msg
 #            print_exc()
         
+    def setSortingMode(self, sort, cat):
+        currentSortFunc = self.getCmpFunc(cat)
+        self.lastSortFunc = currentSortFunc
+        newSortFunc = None
+        if type(sort) == str:
+            sort = (sort, 'increase')
+            
+        reverse = sort[1] != 'increase'
+        if sort[0] == "content_name":
+            if not reverse:
+                newSortFunc = cmpFuncNameAsc
+            else:
+                newSortFunc = cmpFuncNameDesc
+        elif sort[0] == 'last_connected':
+            if not reverse:
+                newSortFunc = cmpFuncConnectivityAsc
+            else:
+                newSortFunc = cmpFuncConnectivityDesc
+        elif sort[0] == 'similarity':
+            if not reverse:
+                newSortFunc = cmpFuncSimilarityAsc
+            else:
+                newSortFunc = cmpFuncSimilarityDesc
+        elif sort[0] == 'npeers':
+            if not reverse:
+                newSortFunc = cmpFuncNPeersAsc
+            else:
+                newSortFunc = cmpFuncNPeersDesc
+        elif sort[0] == 'nfiles':
+            if not reverse:
+                newSortFunc = cmpFuncNFilesAsc
+            else:
+                newSortFunc = cmpFuncNFilesDesc
+        elif sort[0] == 'friend':
+            if not reverse:
+                newSortFunc = cmpFuncFriendAsc
+            else:
+                newSortFunc = cmpFuncFriendDesc
+                
+        if currentSortFunc != newSortFunc:
+            self.setCmpFunc(newSortFunc, cat)
+                
     def setCmpFunc(self, cmp_func, filter_name='all'):
         """changes the comparing function, should that mean a resorting?"""
         if self.filtered_func.has_key(filter_name):
+            self.dataLock.acquire()
 #            print "<mluc> set compare function for",filter_name,"to",cmp_func.__name__
             self.filtered_func[filter_name][1] = cmp_func
             self.sortData(filter=filter_name)
-    
+            self.dataLock.release()
+            
     def getCmpFunc(self, filter_name="all"):
         if self.filtered_func.has_key(filter_name):
             return self.filtered_func[filter_name][1]
@@ -873,13 +923,32 @@ class PeerDataManager(DelayedEventHandler):
     
     def tooManyPeersInManager(self):
         totalLength = len(self.filtered_data['all'])
-        maxLength = 10000000000000
+        maxLength = self.utility.config.Read('maxnpeers', 'int')
         return totalLength > maxLength
 
     def schedulePeerDeletion(self):
         if not self.peerDeletionScheduled:
             self.peerDeletionScheduled = True
-            # self.rawserver.addTask(removeTooManyPeers, 60)
-            
+            try:
+                debug('Scheduling peer deletion in %d s' % self.peerDeletionTime)
+                rawserver = self.utility.buddycast.rawserver
+                rawserver.add_task(self.removeTooManyPeers, self.peerDeletionTime)
+            except:
+                rawserver = None
+                debug('Could not find rawserver')
     
+    def removeTooManyPeers(self):
+        try:
+            
+            numToRemove = max(0, len(self.filtered_data['all']) - self.utility.config.Read('maxnpeers', 'int'))
+            # Sort by last_connected
+            if numToRemove > 0:
+                beginTime = time.time()
+                self.setSortingMode('last_connected', 'all')
+                for peer in self.filtered_data['all'][-numToRemove:]:
+                    self.callbackPeerChange(peer['permid'], 'delete')
+                self.setCmpFunc(self.lastSortFunc)
+                debug('Removed %d peers in %f s' % (numToRemove, (time.time()-beginTime)))
+        finally:
+            self.peerDeletionScheduled = False
                     

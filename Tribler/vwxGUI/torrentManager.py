@@ -28,7 +28,7 @@ try:
 except ImportError:
     pass
 
-DEBUG = True
+DEBUG = False
 DEBUG_RANKING = False
 
 # Arno: save memory by reusing dict keys
