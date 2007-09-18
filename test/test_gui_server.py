@@ -31,6 +31,25 @@ class TestGUIServer(unittest.TestCase):
             self.guiserver.add_task(self.define_task(i),0)
         self.guiserver.register()
 
+    def test_delay(self):
+        self.ntasks = 1
+        
+        self.guiserver.register()
+        self.guiserver.add_task(lambda:self.task(0),3)
+        print "test: sleeping 5 secs so tasks gets executed"
+        sleep(5)
+
+    def test_delay2(self):
+        self.ntasks = 2
+        
+        self.guiserver.register()
+        self.guiserver.add_task(lambda:self.task(1),3)
+        self.guiserver.add_task(lambda:self.task(0),1)
+        print "test: sleeping 5 secs so tasks gets executed"
+        sleep(5)
+
+
+
     def define_task(self,num):
         return lambda:self.task(num)
 
@@ -45,3 +64,5 @@ def test_suite():
     
     return suite
     
+if __name__ == '__main__':
+    unittest.main(defaultTest='test_suite')

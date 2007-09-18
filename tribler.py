@@ -671,6 +671,9 @@ class ABCFrame(wx.Frame, DelayedInvocation):
     
     def OnUpgrade(self, event=None):
         self.setActivity(ACT_NEW_VERSION)
+        guiserver = GUIServer.getInstance()
+        guiserver.add_task(self.upgradeCallback,10.0)
+
             
     def onFocus(self, event = None):
         if event is not None:

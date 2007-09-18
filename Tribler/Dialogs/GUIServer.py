@@ -9,6 +9,9 @@
 
 from threading import Thread,Condition
 from traceback import print_exc
+from time import time
+
+DEBUG = False
 
 class GUIServer:
     
@@ -39,9 +42,12 @@ class GUIServer:
         GUIServer.__single = None
         
     def add_task(self,task,t):
-        """ t parameter currently ignored """
+        """ t parameter is now usable, unlike before """
         self.cond.acquire()
-        self.queue.append(task)
+        when = time()+t
+        if DEBUG:
+            print >>sys.stderr,"guiserv: ADD EVENT",t,task
+        self.queue.append((when,task))
         self.cond.notify()
         self.cond.release()
         
@@ -49,10 +55,36 @@ class GUIServer:
         """ Run by server thread """
         while True:
             task = None
+            timeout = None
+            flag = False
             self.cond.acquire()
-            while len(self.queue) == 0:
-                self.cond.wait()
-            task = self.queue.pop(0)
+            while True:
+                while len(self.queue) == 0 or flag:
+                    flag = False
+                    if timeout is None:
+                        # Wait until something is queued
+                        self.cond.wait()
+                    else:
+                        # Wait till first event is due
+                        self.cond.wait(timeout)
+                # A new event was added or an event is due
+                self.queue.sort()
+                (when,task) = self.queue[0]
+                if DEBUG:
+                    print >>sys.stderr,"guiserv: EVENT IN QUEUE",when,task
+                now = time()
+                if now <= when:
+                    # Event not due, wait some more
+                    if DEBUG:
+                        print >>sys.stderr,"guiserv: EVENT NOT TILL",when-now
+                    timeout = when-now
+                    flag = True
+                else:
+                    # Event due, execute
+                    if DEBUG:
+                        print >>sys.stderr,"guiserv: EVENT DUE"
+                    self.queue.pop(0)
+                    break
             self.cond.release()
             
             # Execute task outside lock
