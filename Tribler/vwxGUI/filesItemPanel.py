@@ -41,13 +41,14 @@ filesModeThumbSize = (125, 70)
 libraryModeThumbSize = (32,18)#(43,24)#(66, 37)
 
 
+class ItemPanel(wx.Panel):
+    pass
 
 class FilesItemPanel(wx.Panel):
     """
     This Panel shows one content item inside the GridPanel
     """
     def __init__(self, parent, keyfun):
-        global TORRENTPANEL_BACKGROUND
         
         wx.Panel.__init__(self, parent, -1)
         self.guiUtility = GUIUtility.getInstance()
@@ -275,7 +276,9 @@ class FilesItemPanel(wx.Panel):
                 
                 if torrent.get('date'):
                     self.creationDate.SetLabel(friendly_time(torrent['date']))
-                
+                else:
+                    self.creationDate.SetLabel('')
+                    
                 self.creationDate.Enable(True)
                 if torrent['seeder'] >= 0:
                     self.seedersNumber.SetLabel('%d' % torrent['seeder'])
@@ -386,6 +389,7 @@ class FilesItemPanel(wx.Panel):
             self.sourceIcon.SetBackgroundColour(colour)
             
         self.Refresh()
+        self.guiUtility.standardOverview.SetFocus()
         
     def deselect(self, rowIndex, colIndex):
         self.selected = False
@@ -439,7 +443,7 @@ class FilesItemPanel(wx.Panel):
             
         
     def mouseAction(self, event):        
-        self.SetFocus()
+        #self.SetFocus()
         if self.data and (event.LeftUp() or event.RightDown()):
             # torrent data is sent to guiUtility > standardDetails.setData
             self.guiUtility.selectTorrent(self.data)
@@ -568,7 +572,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                     bmp = torrent['metadata'].get('ThumbnailBitmap')
                     if bmp:
                         img = bmp.ConvertToImage()
-                        bmp = self.getResizedBitmapFromImage(img, libraryModeThumbSize)
+                        bmp = getResizedBitmapFromImage(img, libraryModeThumbSize)
                         
                 elif self.mode == 'filesMode':
                     bmp = torrent['metadata'].get('ThumbnailBitmap')
@@ -649,13 +653,13 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             if img is None:
                 return           
 
-            bmp = self.getResizedBitmapFromImage(img, filesModeThumbSize)
+            bmp = getResizedBitmapFromImage(img, filesModeThumbSize)
             
             if bmp:
                 metadata['ThumbnailBitmap'] = bmp
                 metadata['ThumbnailReadable'] = True
             ## We now scale live
-            #bmplib = self.getResizedBitmapFromImage(img, libraryModeThumbSize)
+            #bmplib = getResizedBitmapFromImage(img, libraryModeThumbSize)
             #if bmplib:
             #    metadata['ThumbnailBitmapLibrary'] = bmplib
                 
@@ -676,31 +680,12 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             bmp = metadata.get('ThumbnailBitmap')
             if bmp:
                 if self.parent.listItem:
-                    bmp = self.getResizedBitmapFromImage(img, libraryModeThumbSize)
+                    bmp = getResizedBitmapFromImage(img, libraryModeThumbSize)
                 self.setBitmap(bmp)
                 self.Refresh()
 
              
-    def getResizedBitmapFromImage(self, img, size):
-        "Resize image to size of self"
-        iw, ih = img.GetSize()
-        w, h = size
-
-        if iw == 0 or ih == 0:
-            # Can happen when there is no handler for image type
-            return None
-        
-        if (iw/float(ih)) > (w/float(h)):
-            nw = w
-            nh = int(ih * w/float(iw))
-        else:
-            nh = h
-            nw = int(iw * h/float(ih))
-        if nw != iw or nh != ih:
-            #print 'Rescale from (%d, %d) to (%d, %d)' % (iw, ih, nw, nh)
-            img.Rescale(nw, nh)
-        bmp = wx.BitmapFromImage(img)
-        return bmp
+    
             
     def OnErase(self, event):
         pass
@@ -816,3 +801,24 @@ def createThumbImage(imgdata):
     if not img.Ok():
         return None
     return img
+
+def getResizedBitmapFromImage(img, size):
+        "Resize image to size of self"
+        iw, ih = img.GetSize()
+        w, h = size
+
+        if iw == 0 or ih == 0:
+            # Can happen when there is no handler for image type
+            return None
+        
+        if (iw/float(ih)) > (w/float(h)):
+            nw = w
+            nh = int(ih * w/float(iw))
+        else:
+            nh = h
+            nw = int(iw * h/float(ih))
+        if nw != iw or nh != ih:
+            #print 'Rescale from (%d, %d) to (%d, %d)' % (iw, ih, nw, nh)
+            img.Rescale(nw, nh)
+        bmp = wx.BitmapFromImage(img)
+        return bmp

@@ -582,6 +582,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             self.filterChanged(None)
         elif self.mode == 'personsMode':
             self.filterChanged(['all', None])
+        elif self.mode == 'friendsMode':
+            self.filterChanged(['friends', None])
         
     def getSorting(self):
         fs = self.data[self.mode].get('filterState')

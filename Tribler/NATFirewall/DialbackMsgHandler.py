@@ -13,6 +13,12 @@
 # initiated conns + IP address check (BC2 message could be used to attack
 # still)
 #
+# TODO: Arno,2007-09-18: Bittorrent mainline tracker e.g. 
+# http://tracker.publish.bittorrent.com:6969/announce
+# now also returns your IP address in the reply, i.e. there is a
+# {'external ip': '\x82%\xc1@'}
+# in the dict. We should use this info.
+#
 
 import sys
 from time import time

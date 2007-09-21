@@ -87,17 +87,17 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         self.modeElements = {}
         for elem in DETAILS_MODES:
             self.modeElements[elem] = []
-        self.modeElements['filesMode'] = ['titleField', 'popularityField1', 'options', 'popularityField2', 'creationdateField', 
+        self.modeElements['filesMode'] = ['titleField', 'simTitlesField', 'popularityField1', 'options', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
                                             'download', 'tabs', ('files_detailsTab','tabs'), ('info_detailsTab','tabs'), 
                                             'TasteHeart', 'details', 'peopleWhoField', 'recommendationField']
-        self.modeElements['personsMode'] = ['TasteHeart', 'recommendationField','addAsFriend', 'commonFilesField',
-                                            'alsoDownloadedField', 'info_detailsTab', 'advanced_detailsTab','detailsC',
+        self.modeElements['personsMode'] = ['TasteHeart', 'recommendationField','addAsFriend', 'commonFilesField', 'commonFiles',
+                                            'alsoDownloadedField', 'alsoDownloaded', 'info_detailsTab', 'advanced_detailsTab','detailsC',
                                             'titleField','statusField','thumbField', 'discFilesField', 'discPersonsField']
-        self.modeElements['friendsMode'] = ['TasteHeart', 'recommendationField','addAsFriend', 'commonFilesField',
-                                            'alsoDownloadedField', 'info_detailsTab', 'advanced_detailsTab','detailsC',
+        self.modeElements['friendsMode'] = ['TasteHeart', 'recommendationField','addAsFriend', 'commonFilesField', 'commonFiles',
+                                            'alsoDownloadedField', 'alsoDownloaded', 'info_detailsTab', 'advanced_detailsTab','detailsC',
                                             'titleField','statusField','thumbField', 'discFilesField', 'discPersonsField']
-        self.modeElements['libraryMode'] = ['titleField', 'popularityField1','options', 'popularityField2', 'creationdateField', 
+        self.modeElements['libraryMode'] = ['titleField', 'simTitlesField', 'popularityField1','options', 'popularityField2', 'creationdateField', 
                                             'descriptionField', 'sizeField', 'thumbField', 'up', 'down', 'refresh', 
                                             'files_detailsTab', 'info_detailsTab', 'details', 
                                             'peopleWhoField']
@@ -260,6 +260,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 refresh.setBackground(wx.WHITE)
                 refresh.Bind(wx.EVT_ENTER_WINDOW, self.updateLastCheck)
                 self.setListAspect2OneColumn("peopleWhoField")
+                self.setListAspect2OneColumn("simTitlesField")
                 infoTab = self.getGuiObj('info_detailsTab')
                 infoTab.setSelected(True)
                 self.getAlternativeTabPanel('filesTab_files', parent=currentPanel).Hide()
@@ -318,6 +319,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 ofList = self.getGuiObj("alsoDownloadedField")
                 cfList = self.getGuiObj("commonFilesField")
                 ofList.setOtherList(cfList)
+                ofList.setFieldsUpdateFunction(self.updateNumFilesInTextFields)
             
             elif modeString == "profile":
                 self.data[self.mode]['profileDetails_Overall'] = currentPanel #also add first panel as an named element in the data list
@@ -533,8 +535,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                         
                 
                 # Call a function to retrieve similar torrent data
-                self.fillSimTorrentsList(item['infohash'])
-
+                wx.CallAfter(self.fillSimTorrentsList, item['infohash'])
+                wx.CallAfter(self.fillSimTitlesList, item)
                 # Show or hide download button in detailstab
                 if self.mode == 'filesMode':
                         
@@ -1002,6 +1004,9 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
      
     def fillSimTorrentsList(self, infohash):
         """fills the list of torrents from library or file view with the files that are similar to the currently selected one"""
+        
+        self.data_manager.getSimilarTitles(self.item, 30)
+        
         sim_torrent_list = self.getGuiObj('peopleWhoField')
         try:
             sim_torrents = self.data_manager.getSimItems(infohash, 8)
@@ -1046,6 +1051,41 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             if DEBUG:
                 print >> sys.stderr,"standardDetails: could not resize lists in sim_torrent_list panel" 
         
+    def fillSimTitlesList(self, item):
+        """fills the list of torrents with similar titles"""
+        
+        sim_torrent_list = self.getGuiObj('simTitlesField')
+        try:
+            sim_torrents = self.data_manager.getSimilarTitles(item, 30)
+            sim_torrent_list.DeleteAllItems()
+            sim_torrent_list.setInfoHashList(None)
+            alist = []
+            for torrent in sim_torrents:
+                name = torrent.get('content_name')
+                index = sim_torrent_list.InsertStringItem(sys.maxint, name)
+                alist.append(torrent)
+#              
+                
+            if sim_torrent_list.GetItemCount() == 0:
+                index = sim_torrent_list.InsertStringItem(sys.maxint, "No similar files found yet.")
+                font = sim_torrent_list.GetItemFont(index)
+                font.SetStyle(wx.FONTSTYLE_ITALIC)
+                sim_torrent_list.SetItemFont(index, font)
+                sim_torrent_list.SetItemTextColour(index, "#222222")
+            else:
+                sim_torrent_list.setInfoHashList([a['infohash'] for a in alist])
+                
+        except Exception, e:
+            print_exc()
+            sim_torrent_list.DeleteAllItems()
+            sim_torrent_list.setInfoHashList(None)
+            index = sim_torrent_list.InsertStringItem(0, "Error getting similar files list")
+            sim_torrent_list.SetItemTextColour(index, "dark red")
+        try:
+            sim_torrent_list.onListResize() #SetColumnWidth(0,wx.LIST_AUTOSIZE)
+        except:
+            if DEBUG:
+                print >> sys.stderr,"standardDetails: could not resize lists in sim_torrent_list panel" 
         
     def fillTorrentLists(self):
         """fills the lists of torrents from persons detail view with common and history files for the selected person"""
@@ -1083,6 +1123,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 #                    color = "red"
 #                the_list.SetItemTextColour(index, color)
                 #self.ofList.SetStringItem(index, 1, f[1])
+            self.updateNumFilesInTextFields(cfList, ofList)
             if cfList.GetItemCount() == 0:
                 index = cfList.InsertStringItem(sys.maxint, "No common files with this person.")
                 font = cfList.GetItemFont(index)
@@ -1100,6 +1141,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 ofList.SetItemTextColour(index, "#222222")
             else:
                 ofList.setInfoHashList(alist)
+            
+           
         except:
             print_exc()
             ofList.DeleteAllItems()
@@ -1114,6 +1157,12 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             if DEBUG:
                 print >> sys.stderr,"standardDetails: could not resize lists in person detail panel"
         
+    def updateNumFilesInTextFields(self, cfList, ofList):
+        numItems = [cfList.GetItemCount(), ofList.GetItemCount()]
+        self.getGuiObj('commonFiles').SetLabel(self.utility.lang.get('commonFiles') % numItems[0])
+        nprefs = max(self.getData().get('nprefs',0), numItems[1])
+        self.getGuiObj('alsoDownloaded').SetLabel(self.utility.lang.get('alsoDownloaded') % (numItems[1], nprefs))
+            
     def checkGraphTabVisible(self, tab2check='Graph', selectedTab=None):
         # just some generic way of making sure that a certain panel is informed when it is or not visible
         #the function must be there!
@@ -1662,11 +1711,12 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 
             name = self.bartercastdb.getName(permid)
 
-            topText += '%d. %s%s     up: %s (down: %s)%s \r' % (rank, name, os.linesep, 
-                                                     amount_str_up, amount_str_down, os.linesep)
+            topText += '%d. %s%s     up: %s (down: %s)%s%s' % (rank, name, os.linesep, 
+                                                     amount_str_up, amount_str_down, os.linesep, os.linesep)
             rank+=1
         
         self.getGuiObj('descriptionField0', tab = tab).SetLabel(topText)
+        self.getGuiObj('descriptionField0', tab = tab).Refresh()
         self.getGuiObj('downloadedNumberT', tab = tab).SetLabel(self.utility.size_format(tribler_down))
         self.getGuiObj('uploadedNumberT', tab = tab).SetLabel(self.utility.size_format(tribler_up))
             

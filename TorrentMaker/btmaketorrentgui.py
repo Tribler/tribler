@@ -21,7 +21,6 @@ from binascii import hexlify
 from traceback import print_exc
 
 from TorrentMaker.btmakemetafile import make_meta_file, completedir
-from Tribler.CacheDB.CacheDBHandler import MyDBHandler
 
 from Utility.helpers import union
 from Utility.constants import * #IGNORE:W0611

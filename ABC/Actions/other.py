@@ -6,8 +6,6 @@ from shutil import copy, move
 from Dialogs.aboutme import AboutMeDialog, VersionDialog
 from Dialogs.abcoption import ABCOptionDialog
 from Dialogs.localupload import LocalSettingDialog
-from Tribler.Dialogs.abcbuddyframe import ABCBuddyFrame
-from Tribler.Dialogs.abcfileframe import ABCFileFrame
 from Tribler.Dialogs.managefriends import MyInfoDialog
 from webservice import WebDialog
 
@@ -285,46 +283,6 @@ class Separator(ABCAction):
         self.menudesc = "--------------"
         # Arno: the EmptyBitmap construction gave giberish on Linux
         
-# -- new functions in Tribler --        
-################################
-# 
-################################
-class BuddiesAction(ABCAction):
-    def __init__(self, utility):
-        ABCAction.__init__(self, 
-                           utility, 
-                           'friends.bmp', 
-                           'tb_buddy_short', 
-                           menudesc = 'managefriends')
-                           
-    def action(self, event = None):
-        if self.utility.frame.buddyFrame is None:
-            self.utility.frame.buddyFrame = ABCBuddyFrame(self.utility.frame)
-        else:
-            self.utility.frame.buddyFrame.SetFocus()
-            self.utility.frame.buddyFrame.Show()
-
-    def reaction(self):
-        self.action()
-
-################################
-# 
-################################
-class FilesAction(ABCAction):
-    def __init__(self, utility):
-        ABCAction.__init__(self, 
-                           utility, 
-                           'recommend.bmp', 
-                           'tb_file_short', 
-                           menudesc = 'recommendatefiles')
-                           
-    def action(self, event = None):
-        if self.utility.frame.fileFrame is None:
-            self.utility.frame.fileFrame = ABCFileFrame(self.utility.frame)
-        else:
-            self.utility.frame.fileFrame.SetFocus()
-            self.utility.frame.fileFrame.Show()
-
 
 ################################
 # 

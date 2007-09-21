@@ -1,5 +1,5 @@
 !define PRODUCT "Tribler"
-!define VERSION "4.1.2"
+!define VERSION "4.2.0"
 
 !include "MUI.nsh"
 
@@ -81,7 +81,6 @@ Section "!Main EXE" SecMain
  File tribler.exe.manifest
  File tribler.exe
  File ffmpeg.exe
- File tor.exe
  File /r vlc
  Delete "$INSTDIR\*.pyd"
  File *.pyd

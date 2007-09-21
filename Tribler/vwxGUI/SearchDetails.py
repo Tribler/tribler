@@ -47,15 +47,18 @@ class SearchDetailsPanel(wx.Panel):
         #self.Show(True)
         self.results = {}
         
-    def setMessage(self, type, finished, num, keywords = []):
-        if type:
-            self.results[type] = num
+    def setMessage(self, stype, finished, num, keywords = []):
+        if stype:
+            self.results[stype] = num
         
         total = sum([v for v in self.results.values() if v != -1])
         
         if keywords:
-            self.keywords = " ".join(keywords)
-          
+            if type(keywords) == list:
+                self.keywords = " ".join(keywords)
+            else:
+                self.keywords = keywords
+                
         if finished:  
             msg = self.guiUtility.utility.lang.get('finished_search') % (self.keywords, total)
             self.stopMoreClicked()

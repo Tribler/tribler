@@ -1,10 +1,9 @@
 #!/bin/sh
+# Startup script for Ubuntu Linux
 
-# Debian people haven't made python2.4-wxgtk2.6 available, hack around that
-
-# don't care about gtk/x11/whatever. Currently (3.4.0) must be unicode
-WXPYTHONVER24=`ls -1d /usr/lib/python2.4/site-packages/wx-2.6* 2>/dev/null | grep -v ansi | sed -e 's/.*wx-//g' -e 's/-.*//g' | sort -nr | head -1`
-WXPYTHONVER25=`ls -1d /usr/lib/python2.5/site-packages/wx-2.6* 2>/dev/null | grep -v ansi | sed -e 's/.*wx-//g' -e 's/-.*//g' | sort -nr | head -1`
+# don't care about gtk/x11/whatever. Currently (>= 3.4.0) must be unicode
+WXPYTHONVER24=`ls -1d /usr/lib/python2.4/site-packages/wx-2.8* 2>/dev/null | grep -v ansi | sed -e 's/.*wx-//g' -e 's/-.*//g' | sort -nr | head -1`
+WXPYTHONVER25=`ls -1d /usr/lib/python2.5/site-packages/wx-2.8* 2>/dev/null | grep -v ansi | sed -e 's/.*wx-//g' -e 's/-.*//g' | sort -nr | head -1`
 
 if [ "$WXPYTHONVER24" = "" ] && [ "$WXPYTHONVER25" = "" ];
 then

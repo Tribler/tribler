@@ -124,7 +124,7 @@
 	
 </label>
                 <pos>14,42</pos>
-                <size>282,468</size>
+                <size>282,478</size>
                 <font>
                   <size>8</size>
                   <family>modern</family>
@@ -142,7 +142,7 @@
               <object class="wxStaticText" name="howToImprove">
                 <style>wxST_NO_AUTORESIZE</style>
                 <label>Your exchanges with other Tribler users:</label>
-                <pos>12,142</pos>
+                <pos>12,522</pos>
                 <size>284,18</size>
                 <font>
                   <size>9</size>

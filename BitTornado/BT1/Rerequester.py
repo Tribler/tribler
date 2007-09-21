@@ -1,30 +1,21 @@
 # Written by Bram Cohen
 # modified for multitracker operation by John Hoffman
 # modified for mainline DHT support by Fabian van der Werf
-# modified for Tor support by Rick van Hattem
 # see LICENSE.txt for license information
 
 import sys
+from BitTornado.zurllib import urlopen
 from urllib import quote
 from btformats import check_peers
 from BitTornado.bencode import bdecode
 from threading import Thread, Lock, currentThread
 from cStringIO import StringIO
-from traceback import print_exc
-from socket import error, gethostbyname, inet_ntoa
+from traceback import print_exc,print_stack
+from socket import error, gethostbyname, inet_aton, inet_ntoa
 from random import shuffle
 from sha import sha
-from time import time, sleep
-from struct import unpack
-import random
-from sched import scheduler
-import httplib2
-
-try:
-    import socks
-except ImportError:
-    socks = None
-    print >>sys.stderr, 'SocksiPy not available, disabling Tor'
+from time import time
+from struct import pack, unpack
 
 from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 import Tribler.DecentralizedTracking.mainlineDHT as mainlineDHT
@@ -74,10 +65,10 @@ class Rerequester:
             connect, externalsched, amount_left, up, down, 
             port, ip, myid, infohash, timeout, errorfunc, excfunc, 
             maxpeers, doneflag, upratefunc, downratefunc, 
-            unpauseflag = fakeflag(True), tor_enabled=False, tor_host='127.0.0.1', tor_port=9050, tor_tracker_sleep=60):
+            unpauseflag = fakeflag(True)):
 
         self.excfunc = excfunc
-        newtrackerlist = []
+        newtrackerlist = []        
         for tier in trackerlist:
             if len(tier) > 1:
                 shuffle(tier)
@@ -121,11 +112,7 @@ class Rerequester:
         self.schedid = 'arno481'
         self.infohash = infohash
         self.dht = mainlineDHT.dht
-        self.lastevent = 0
-        self.tor_enabled = tor_enabled
-        self.tor_host = tor_host
-        self.tor_port = tor_port
-        self.tor_tracker_sleep = tor_tracker_sleep
+
 
     def start(self):
             
@@ -166,11 +153,7 @@ class Rerequester:
         self.d(0)
 
     def announce(self, event = 3, callback = lambda: None, specialurl = None):
-        if not event and socks and self.tor_enabled:
-            self._tor_request(callback)
-        else:
-            self.lastevent = event
-        
+
         if specialurl is not None:
             s = self.url+'&uploaded=0&downloaded=0&left=1'   # don't add to statistics
             if self.howmany() >= self.maxpeers:
@@ -211,7 +194,7 @@ class Rerequester:
         if not self.lock.isfinished():  # still waiting for prior cycle to complete??
             def retry(self = self, s = s, callback = callback):
                 self.rerequest(s, callback)
-            self.sched(retry, 2)         # retry in 2 seconds
+            self.sched(retry, 5)         # retry in 5 seconds
             return
         self.lock.reset()
         rq = Thread(target = self._rerequest, args = [s, callback])
@@ -264,6 +247,7 @@ class Rerequester:
         except:
             self.exception(callback)
 
+
     def _fail(self, callback):
         if ( (self.upratefunc() < 100 and self.downratefunc() < 100)
              or not self.amount_left() ):
@@ -278,10 +262,11 @@ class Rerequester:
         self.last_failed = True
         self.lock.give_up()
         self.externalsched(callback)
-                    
-    def rerequest_single(self, t, s, callback, proxy_type=None, proxy_host=None, proxy_port=None):
+
+
+    def rerequest_single(self, t, s, callback):
         l = self.lock.set()
-        rq = Thread(target = self._rerequest_single, args = [t, s+get_key(t), l, callback, proxy_type, proxy_host, proxy_port])
+        rq = Thread(target = self._rerequest_single, args = [t, s+get_key(t), l, callback])
         rq.setName( "TrackerRerequestB"+rq.getName() )
         # Arno: make this a daemon thread so the client closes sooner.
         rq.setDaemon(True)
@@ -301,14 +286,29 @@ class Rerequester:
             return True
         return False    # returns true if it wants rerequest() to exit
 
-    def _rerequest_single(self, t, s, l, callback, proxy_type=None, proxy_host=None, proxy_port=None):
+
+    def _rerequest_single(self, t, s, l, callback):
         try:        
+            closer = [None]
+            def timedout(self = self, l = l, closer = closer):
+                if self.lock.trip(l):
+                    self.errorcodes['troublecode'] = 'Problem connecting to tracker - timeout exceeded'
+                    self.lock.unwait(l)
+                try:
+                    closer[0]()
+                except:
+                    pass
+                    
+            self.externalsched(timedout, self.timeout)
+
             err = None
             try:
                 if DEBUG:
-                    print >>sys.stderr,"Rerequest tracker: t='%s', s='%s'" % (t, s)
-                http = httplib2.Http(timeout=self.timeout, proxy_type=proxy_type, proxy_host=proxy_host, proxy_port=proxy_port)
-                data = http.request(t+s)[1]
+                    print >>sys.stderr,"Rerequest tracker:"
+                    print t+s
+                h = urlopen(t+s)
+                closer[0] = h.close
+                data = h.read()
             except (IOError, error), e:
                 err = 'Problem connecting to tracker - ' + str(e)
                 if DEBUG:
@@ -318,9 +318,14 @@ class Rerequester:
                 if DEBUG:
                     print_exc()
                     
+                    
             #if DEBUG:
             #    print >>sys.stderr,"rerequest: Got data",data
-
+                    
+            try:
+                h.close()
+            except:
+                pass
             if err:        
                 if self.lock.trip(l):
                     self.errorcodes['troublecode'] = err
@@ -426,7 +431,8 @@ class Rerequester:
                 else:
                     if r.get('num peers', 1000) > ps * 1.2:
                         self.last = None
-            
+
+
             if peers:
                 shuffle(peers)
                 self.connect(peers)    # Encoder.start_connections(peers)
@@ -446,17 +452,7 @@ class Rerequester:
                 print s
             callback()
         self.externalsched(r)
-        
-    def _tor_request(self, callback):
-        if not self.lastevent:
-            tor_request_func = lambda:self._tor_request(callback)
-            self.sched(tor_request_func,60*self.tor_tracker_sleep)
-                
-            for trackerlist in self.trackerlist:
-                for tracker in trackerlist:
-                    tor = TorRequest(self, callback, self.tor_host, self.tor_port, tracker)
-                    tor.setDaemon(True)
-                    tor.start()
+
 
 class SuccessLock:
     def __init__(self):
@@ -510,44 +506,3 @@ class SuccessLock:
         x = self.finished
         self.lock.release()
         return x    
-
-    
-class TorRequest(Thread, object):
-    def __init__(self, rerequester, callback, tor_host, tor_port, tracker, *args, **kwargs):
-        Thread.__init__(self, *args, **kwargs)
-        
-        self.rerequester = rerequester
-        self.callback = callback
-        self.tor_host = tor_host
-        self.tor_port = tor_port
-        self.tracker = tracker
-        self.left = self.get_left()
-        self.info_hash = self.get_info_hash()
-        self.peer_id = '%020d' % random.randint(0, 10**20)
-        self.port = '%d' % random.randint(2**10, 2**16)
-        self.downloaded = '%d' % 0
-        self.uploaded = '%d' % 0
-        self.url = self.get_url()
-        
-        self.setName('TorRequest-%s' % self.getName())
-    
-    def get_left(self):
-        left = self.rerequester.amount_left()
-        if left > 1:
-            return '%s' % random.randint(1, self.rerequester.amount_left())
-        else:
-            return 0
-    
-    def get_info_hash(self):
-        return str(quote(self.rerequester.infohash))
-    
-    def get_url(self):
-        return '?info_hash=%(info_hash)s&peer_id=%(peer_id)s&port=%(port)s&' \
-               'uploaded=%(uploaded)s&downloaded=%(downloaded)s&left=%(left)s&' \
-               'compact=1&event=started' % self.__dict__
-    
-    def run(self):
-        if self.left:
-            if DEBUG:
-                print >>sys.stderr, 'Tor request to tracker "%s" with url "%s"' % (self.tracker, self.url)
-            self.rerequester.rerequest_single(self.tracker, self.url, self.callback, socks.PROXY_TYPE_SOCKS5, self.tor_host, self.tor_port)

@@ -6,6 +6,7 @@ from Tribler.utilities import *
 from Tribler.Overlay.permid import permid_for_user
 from traceback import print_exc, print_stack
 from types import StringType, ListType, DictType
+from time import time, gmtime, strftime, ctime
 
 from Tribler.Overlay.SecureOverlay import OLPROTO_VER_FIFTH
 
@@ -15,7 +16,9 @@ NO_PEERS_IN_MSG = 10
 
 DEBUG = False
 
-
+def now():
+    return int(time())
+    
 class BarterCastCore:
 
     ################################
@@ -27,13 +30,18 @@ class BarterCastCore:
         self.secure_overlay = secure_overlay
         self.bartercastdb = BarterCastDBHandler()
         self.buddycast_core = None
-
+        
+        self.network_delay = 30
+        self.send_block_list = {}
+        self.recv_block_list = {}
+        self.block_interval = 1*60*60   # block interval for a peer to barter   cast
+        
         if self.log:
             self.overlay_log = OverlayLogger(self.log)
 
 
     ################################
-    def createAndSendBarterCastMessage(self, target_permid, selversion):
+    def createAndSendBarterCastMessage(self, target_permid, selversion, active = False):
 
 
         # for older versions of Tribler (non-BarterCast): do nothing
@@ -55,6 +63,8 @@ class BarterCastCore:
             
         # send the message    
         self.secure_overlay.send(target_permid, BARTERCAST+bartercast_msg, self.bartercastSendCallback)
+
+        self.blockPeer(target_permid, self.send_block_list, self.block_interval)
             
 
     ################################
@@ -85,12 +95,10 @@ class BarterCastCore:
     def bartercastSendCallback(self, exc, target_permid, other=0):
         if exc is None:
             if DEBUG:
-                print "bartercast: *** msg was sent successfully to peer %s (%s)" % \
-                        (self.bartercastdb.getName(target_permid), permid_for_user(target_permid))
+                print "%s bartercast: *** msg was sent successfully to peer %s" % (ctime(now()), self.bartercastdb.getName(target_permid))
         else:
             if DEBUG:
-                print "bartercast: *** warning - error in sending msg to", self.bartercastdb.getName(target_permid), exc
-
+                print "%s bartercast: *** warning - error in sending msg to %s" % (ctime(now()), self.bartercastdb.getName(target_permid))
 
 
     ################################
@@ -98,8 +106,7 @@ class BarterCastCore:
         """ Received a bartercast message and handle it. Reply if needed """
         
         if DEBUG:
-            print 'bartercast: Received a BarterCast msg from ', permid_for_user(sender_permid)
-
+            print '%s bartercast: Received a BarterCast msg from %s'% (ctime(now()), self.bartercastdb.getName(sender_permid))
             
         if not sender_permid or sender_permid == self.bartercastdb.my_permid:
             print >> sys.stderr, "bartercast: error - got BarterCastMsg from a None peer", \
@@ -109,8 +116,6 @@ class BarterCastCore:
         if MAX_BARTERCAST_LENGTH > 0 and len(recv_msg) > MAX_BARTERCAST_LENGTH:
             print >> sys.stderr, "bartercast: warning - got large BarterCastMsg", len(t)
             return False
-
-        active = self.buddycast_core.isBlocked(sender_permid, self.buddycast_core.send_block_list)
 
         bartercast_data = {}
 
@@ -130,7 +135,7 @@ class BarterCastCore:
 
         self.handleBarterCastMsg(sender_permid, data)
        
-        if not active:
+        if not self.isBlocked(sender_permid, self.send_block_list):
             self.replyBarterCast(sender_permid, selversion)    
         
         return True
@@ -187,10 +192,37 @@ class BarterCastCore:
         """ Reply a bartercast message """
 
         if not self.buddycast_core.isConnected(target_permid):
-            print >> sys.stderr, 'bartercast: lost connection while replying buddycast', \
+            print >> sys.stderr, 'bartercast: lost connection while replying bartercast', \
                 "Round", self.buddycast_core.round
             return
 
         self.createAndSendBarterCastMessage(target_permid, selversion)
 
 
+
+
+    # Blocking functions (similar to BuddyCast):
+    
+    ################################
+    def isBlocked(self, peer_permid, block_list):
+        if peer_permid not in block_list:
+            return False
+        unblock_time = block_list[peer_permid]
+        if now() >= unblock_time - self.network_delay:    # 30 seconds for network delay
+            block_list.pop(peer_permid)
+            return False
+        return True
+
+
+
+    ################################
+    def blockPeer(self, peer_permid, block_list, block_interval=None):
+        """ Add a peer to a block list """
+
+        if block_interval is None:
+            block_interval = self.block_interval
+        unblock_time = now() + block_interval
+        block_list[peer_permid] = unblock_time
+        
+        if DEBUG:
+            print '%s bartercast: Blocked peer %s'% (ctime(now()), self.bartercastdb.getName(peer_permid))

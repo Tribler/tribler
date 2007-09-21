@@ -17,6 +17,7 @@ from Tribler.Category.Category import Category
 from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
 from Tribler.CacheDB.CacheDBHandler import OwnerDBHandler
 from Tribler.Overlay.MetadataHandler import MetadataHandler
+from Tribler.CacheDB.EditDist import editDist
 from copy import deepcopy
 from traceback import print_exc, print_stack
 from time import time
@@ -26,7 +27,8 @@ from Tribler.Search.KeywordSearch import KeywordSearch
 try:
     import web2
 except ImportError:
-    pass
+    print 'Could not import web2'
+    
 
 DEBUG = False
 DEBUG_RANKING = False
@@ -50,6 +52,7 @@ key_myDownloadHistory = 'myDownloadHistory'
 key_eventComingUp = 'eventComingUp'
 key_simRank = 'simRank'
 key_secret = 'secret'
+key_abctorrent = 'abctorrent'
 
 class TorrentDataManager:
     # Code to make this a singleton
@@ -70,9 +73,11 @@ class TorrentDataManager:
         self.keywordsearch = KeywordSearch()
         # initialize the cate_dict
         self.info_dict = {}    # reverse map
+        self.title_dict = {} # for similar titles search
         self.initDBs()
 #        self.loadData()
         self.dict_FunList = {}
+        self.titleIndexLength = 4
         self.done_init = True
         self.standardOverview = None
         self.searchkeywords = {'filesMode':[], 'libraryMode':[]}
@@ -117,6 +122,12 @@ class TorrentDataManager:
             # prepare to display
             torrent = self.prepareItem(torrent)
             self.info_dict[torrent["infohash"]] = torrent
+            # save dict for similar titles search
+            beginTitle = torrent['content_name'][:self.titleIndexLength].lower()
+            if self.title_dict.has_key(beginTitle):
+                self.title_dict[beginTitle].append(torrent)
+            else:
+                self.title_dict[beginTitle] = [torrent]
             self.updateRankList(torrent, 'add', initializing = True)
         #self.printRankList()
         
@@ -140,7 +151,7 @@ class TorrentDataManager:
         
         categorykey = categorykey.lower()
         enabledcattuples = self.category.getCategoryNames()
-        enabledcatslow = []
+        enabledcatslow = ["other"]
         for catname,displayname in enabledcattuples:
             enabledcatslow.append(catname.lower())
         
@@ -671,7 +682,7 @@ class TorrentDataManager:
                     
                     if DEBUG:
                         print >>sys.stderr,"torrentDataManager: gotRemoteHist: appending hit",`value['content_name']`
-                        value['content_name'] = 'REMOTE '+value['content_name']
+                        #value['content_name'] = 'REMOTE '+value['content_name']
                         
                     # Filter out results from unwanted categories
                     flag = False
@@ -708,6 +719,26 @@ class TorrentDataManager:
     def getSimItems(self, infohash, num=15):
         return self.owner_db.getSimItems(infohash, num)
 
+    def getSimilarTitles(self, storrent, num=30):
+#        starttime = time()
+        title = storrent['content_name']
+        beginTitle = title[:self.titleIndexLength].lower()
+        infohash = storrent['infohash']
+        simTorrents = []
+        for torrent in self.title_dict.get(beginTitle, []):
+            if torrent['infohash'] != infohash and torrent['status'] == 'good':
+                distance = editDist(torrent.get('content_name',''), title)
+                if distance < 0.45:
+                    insort(simTorrents, (distance, torrent['content_name'], torrent['infohash']))
+                    if len(simTorrents) > num:
+                        simTorrents = simTorrents[:-1]
+                
+        result = [self.info_dict[a[2]] for a in simTorrents]
+#        for r in result:
+#            print result.index(r)+1, simTorrents[result.index(r)][0], r['content_name']
+#        print 'Searched %d similar titles in %f s' % (len(self.data), time()-starttime)
+        return result
+        
     def getNumDiscoveredFiles(self):
         if not self.isDataPrepared:
             return -1

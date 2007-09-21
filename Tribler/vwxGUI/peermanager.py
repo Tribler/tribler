@@ -196,8 +196,7 @@ class PeerDataManager(DelayedEventHandler):
 #        self.mydb = CacheDBHandler.MyPreferenceDBHandler()
 #        self.tordb = CacheDBHandler.TorrentDBHandler()
         self.frienddb = CacheDBHandler.FriendDBHandler()
-        
-        self.wantedkeys = ['permid', 'name', 'ip', 'similarity', 'last_connected', 'connected_times', 'buddycast_times', 'port', 'ntorrents', 'npeers']
+        self.wantedkeys = ['permid', 'name', 'ip', 'similarity', 'last_connected', 'connected_times', 'buddycast_times', 'port', 'ntorrents', 'npeers', 'nprefs']
         self.peerDeletionScheduled = False
         #there should always be an all key that contains all data
         all_data = [] #this all data can also be stored in a separate variable for easier usage
@@ -393,7 +392,8 @@ class PeerDataManager(DelayedEventHandler):
         # first, obtain values
         ##update
         #myprefs = self.mydb.getPrefList()
-        print '--tb-- setting data', len(peer_list)
+        if DEBUG:
+            print >>sys.stderr,'peerMgr: --tb-- setting data', len(peer_list)
         if peer_list is None:
             peer_list = self.peersdb.getPeerList()
         #make sure we have only unique items
@@ -951,4 +951,3 @@ class PeerDataManager(DelayedEventHandler):
                 print 'Removed %d peers (from %d total) in %f s' % (numToRemove, len(self.filtered_data['all']), (time.time()-beginTime))
         finally:
             self.peerDeletionScheduled = False
-                    

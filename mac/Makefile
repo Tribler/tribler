@@ -1,6 +1,7 @@
 # Building on Mac OS/X requires:
 # * Python 2.5
 # * wxPython 2.8-unicode
+# * py2app 0.3.6
 # * swig, subversion (available through MacPorts)
 # * XCode 2.4+
 #
@@ -133,6 +134,8 @@ ${SITEPACKAGES}/Growl.py:
 
 # ----- OpenSSL and M2Crypto
 
+OPENSSL_CONFIG += shared --prefix=${PWD}/build/lib
+
 build/temp/openssl-${OPENSSL_VER}.tar.gz:
 	curl http://www.openssl.org/source/openssl-${OPENSSL_VER}.tar.gz -o $@
 
@@ -141,7 +144,7 @@ build/temp/.openssl:		build/temp/openssl-${OPENSSL_VER}.tar.gz
 	rm -rf build/temp/openssl
 	mv build/temp/openssl-${OPENSSL_VER} build/temp/openssl
 
-	cd build/temp/openssl && ./Configure ${OPENSSL_CONFIG} shared --prefix=${PWD}/build/lib
+	cd build/temp/openssl && ./Configure ${OPENSSL_CONFIG}
 	cd build/temp/openssl && make install
 	touch $@
 
@@ -230,6 +233,8 @@ build/lib/.vlc:
 	# let run from source locate libraries
 	rm -f ../lib
 	ln -s ${PWD}/build/lib ../lib
+
+# ----- Khashmir
 
 ${SITEPACKAGES}/khashmir/:
 	svn co https://svn.tribler.org/khashmir/branches/khashmir-fabian-from-bt5.0.7 $@

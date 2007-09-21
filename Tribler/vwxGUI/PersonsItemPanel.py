@@ -7,6 +7,7 @@ from Tribler.vwxGUI.GuiUtility import GUIUtility
 from Tribler.vwxGUI.bgPanel import ImagePanel
 from safeguiupdate import FlaglessDelayedInvocation
 from Tribler.unicode import *
+from Tribler.vwxGUI.filesItemPanel import getResizedBitmapFromImage
 from font import *
 import cStringIO
 import TasteHeart
@@ -151,9 +152,11 @@ class PersonsItemPanel(wx.Panel):
             self.vLine5 = self.addLine() 
             # Add Friends Icon
             self.vSizer3 = wx.BoxSizer(wx.VERTICAL)
-            self.vSizer3.Add([22,2],0,wx.EXPAND|wx.FIXED_MINSIZE,3)  
+            self.vSizer3.Add([22,2],0,wx.FIXED_MINSIZE,3)  
             self.friendsIcon = ImagePanel(self)
             self.friendsIcon.setBackground(wx.WHITE)
+#            self.friendsIcon.SetMinSize((22,-1))
+#            self.friendsIcon.SetSize((22,-1))
             self.friendsIcon.Hide()
             self.vSizer3.Add(self.friendsIcon,0, wx.FIXED_MINSIZE, 0)
             self.hSizer.Add(self.vSizer3, 0, wx.TOP|wx.RIGHT, 0)
@@ -472,7 +475,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             else:
                 defThumb = 'DEFAULT_THUMB'
                 
-            bmp = self.mm.get_default('personsMode',defThumb)
+            bmp_default = self.mm.get_default('personsMode',defThumb)
             # Check if we have already read the thumbnail and metadata information from this torrent file
             if data.get('metadata'):
                 bmp = data['metadata'].get('ThumbnailBitmap')
@@ -480,14 +483,15 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                 if not bmp:
                     now = time()
                     #print "BMP IS NONE",data['name']
-                    bmp = self.mm.get_default('personsMode',defThumb)
                     if now > tt+(15*60.0):
                         #print "REFRESH OF PEER IMAGE SCHEDULED"
                         self.GetParent().guiserver.add_task(lambda:self.loadMetadata(data),0)
+                else:
+                    bmp_default = bmp
             else:
                 self.GetParent().guiserver.add_task(lambda:self.loadMetadata(data),0)
             
-            self.setBitmap(bmp)
+            self.setBitmap(bmp_default)
             width, height = self.GetSize()
             d = 1
             self.border = [wx.Point(0,d), wx.Point(width-d, d), wx.Point(width-d, height-d), wx.Point(d,height-d), wx.Point(d,0)]
@@ -501,9 +505,12 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
     def setBitmap(self, bmp):
         # Recalculate image placement
         w, h = self.GetSize()
-        iw, ih = bmp.GetSize()
-                
+        
+        img = bmp.ConvertToImage()
+        bmp = getResizedBitmapFromImage(img, (w,h))
+        
         self.dataBitmap = bmp
+        iw, ih = bmp.GetSize()
         self.xpos, self.ypos = (w-iw)/2, (h-ih)/2
         
 

@@ -394,6 +394,15 @@ class BuddyCastFactory:
     def removeAllPeerList(self):   # called by peermanager to reduce memory usage
         if self.data_handler:
             self.data_handler.removeAllPeerList()
+            
+    def setNumPeersFromUI(self, num):    # used by peerManager to change the value
+        if self.data_handler:
+            self.data_handler.setNumPeersFromUI(num)
+
+    def setNumTorrentsFromUI(self, num):    # used by peerManager to change the value
+        if self.data_handler:
+            self.data_handler.setNumTorrentsFromUI(num)
+
     
 class BuddyCastCore:
     def __init__(self, secure_overlay, launchmany, data_handler, 
@@ -816,8 +825,7 @@ class BuddyCastCore:
         # Bartercast
         
         if self.bartercast_core != None and active:
-
-            self.bartercast_core.createAndSendBarterCastMessage(target_permid, selversion)
+            self.bartercast_core.createAndSendBarterCastMessage(target_permid, selversion, active)
 
             
         if self.log:
@@ -1030,7 +1038,8 @@ class BuddyCastCore:
                     errmsg = str(msg)
                 except:
                     errmsg = repr(msg)
-                print >> sys.stderr, "bc: warning, got invalide BuddyCastMsg:", errmsg, \
+                if DEBUG:
+                    print >> sys.stderr, "bc: warning, got invalide BuddyCastMsg:", errmsg, \
                     "Round", self.round   # ipv6
                 return False
            
@@ -1606,13 +1615,15 @@ class DataHandler:
         self.total_pref_changed = 0
         # how many peers to load into cache from db
         self.max_num_peers = max(max_num_peers, 100)    # at least 100
-        self.max_peer_in_db = self.max_num_peers*2
+        self.max_peer_in_db = self.max_num_peers
         self.time_sim_weight = 4*60*60  # every 4 hours equals to a point of similarity
         # after added some many (user, item) pairs, update sim of item to item
         self.update_i2i_threshold = 100
         self.npeers = self.peer_db.size() - self.superpeer_db.size()
         self.buddycast_core = None
         self.all_peer_list = None
+        self.num_peers_ui = None
+        self.num_torrents_ui = None
 
     def sync(self):
         for db in self.dbs:
@@ -1743,7 +1754,7 @@ class DataHandler:
                     num_peers_2_del = int(len(tmp_list) - self.max_peer_in_db + self.max_peer_in_db*0.02)
                     peers2del = [peer for (_, _, peer) in tmp_list[-1*num_peers_2_del:]]
                     self.all_peer_list = [peer for (_, _, peer) in tmp_list[:len(tmp_list)-num_peers_2_del]]
-                    print >> sys.stderr, "**** buddycast delete peers from db", "#peers2del", len(peers2del), "#peers in db", len(tmp_list), "max limit", self.max_peer_in_db
+                    #print >> sys.stderr, "**** buddycast delete peers from db", "#peers2del", len(peers2del), "#peers in db", len(tmp_list), "max limit", self.max_peer_in_db
                     #remove_peers_func = lambda:self.remove_overhead_peers(peers2del)
                     #self.rawserver.add_task(remove_peers_func,5)
                     self.remove_overhead_peers(peers2del)
@@ -1758,7 +1769,7 @@ class DataHandler:
         #print "******* buddycast thread:", currentThread().getName()
         BuddyCastFactory.getInstance().data_ready_evt.set()
         
-        print >> sys.stderr, "*************** updateAllPeers takes", time()-start
+        #print >> sys.stderr, "*************** updateAllPeers takes", time()-start
         return self.peers
     
     def remove_overhead_peers(self, peers2del):
@@ -2065,10 +2076,16 @@ class DataHandler:
         self.peers[peer_permid][0] = peer_sim
         
     def get_npeers(self):
-        return len(self.peers)    # changed to this according to Maarten's suggestion
+        if self.num_peers_ui is None:
+            return len(self.peers)    # changed to this according to Maarten's suggestion
+        else:
+            return self.num_peers_ui
     
     def get_ntorrents(self):
-        return self.torrent_db.size()
+        if self.num_torrents_ui is None:
+            return self.torrent_db.size()
+        else:
+            return self.num_torrents_ui
     
     def get_nmyprefs(self):
         return self.mypref_db.size()
@@ -2084,3 +2101,8 @@ class DataHandler:
     def removeAllPeerList(self):
         self.all_peer_list = None
         
+    def setNumPeersFromUI(self, num):
+        self.num_peers_ui = num
+        
+    def setNumTorrentsFromUI(self, num):
+        self.num_torrents_ui = num

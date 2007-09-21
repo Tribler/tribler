@@ -173,6 +173,7 @@ class ABCScheduler(DelayedEventHandler):
             if npeer < 0:
                 npeer = 'loading..'
             else:
+                self.utility.buddycast.setNumPeersFromUI(npeer) # update the npeers that buddycast send around
                 npeer = str(npeer)
         
         if not self.guiUtility.data_manager:
@@ -182,6 +183,7 @@ class ABCScheduler(DelayedEventHandler):
             if nfile < 0:
                 nfile = 'loading..'
             else:
+                self.utility.buddycast.setNumTorrentsFromUI(nfile) # update the nfiles that buddycast send around
                 nfile = str(nfile)
         
         try:

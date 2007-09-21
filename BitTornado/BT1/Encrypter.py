@@ -543,8 +543,9 @@ class Encoder:
         del self.connections[conn]
         now = int(time())
         if DEBUG:
-            print "encoder: admin_close: now-tt is",now-self.trackertime
+            print >>sys.stderr,"encoder: admin_close: now-tt is",now-self.trackertime
         if len(self.connections) == 0 and (now-self.trackertime) < 20:
-            # print "encoder: admin_close: Recontacting tracker, last request got just dead peers: TEMP DISABLED, ARNO WORKING ON IT"
+            #if DEBUG:
+            #    print >>sys.stderr,"encoder: admin_close: Recontacting tracker, last request got just dead peers: TEMP DISABLED, ARNO WORKING ON IT"
             ###self.rerequest.encoder_wants_new_peers()
             pass

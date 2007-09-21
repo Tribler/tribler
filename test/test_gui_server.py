@@ -48,8 +48,6 @@ class TestGUIServer(unittest.TestCase):
         print "test: sleeping 5 secs so tasks gets executed"
         sleep(5)
 
-
-
     def define_task(self,num):
         return lambda:self.task(num)
 

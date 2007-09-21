@@ -348,7 +348,7 @@
                     <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
                     <border>3</border>
                     <option>0</option>
-                    <object class="wxStaticText" name="DescC">
+                    <object class="wxStaticText" name="commonFiles">
                       <style>wxST_NO_AUTORESIZE</style>
                       <label>   Common files</label>
                       <pos>0,0</pos>
@@ -375,7 +375,7 @@
               <border>10</border>
               <option>0</option>
               <object class="wxPanel" name="Peop" subclass="Tribler.vwxGUI.btn_DetailsHeader.btn_DetailsHeader">
-                <pos>0,173</pos>
+                <pos>0,194</pos>
                 <size>20,15</size>
                 <object class="wxBoxSizer">
                   <orient>wxHORIZONTAL</orient>

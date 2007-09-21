@@ -225,7 +225,7 @@ class SecureOverlay:
                 callback(None,dns,oc.get_auth_permid(),oc.get_sel_proto_ver())
         except Exception,exc:
             if DEBUG:
-                print_exc(file=sys.stderr)
+                print_exc()
             callback(exc,dns,None,0)
 
     def _connect(self,expectedpermid,callback):
@@ -247,7 +247,7 @@ class SecureOverlay:
                 self._whoishe_callback(None,(oc.get_ip(),oc.get_auth_listen_port()),expectedpermid,oc.get_sel_proto_ver(),expectedpermid,callback)
         except Exception,exc:
             if DEBUG:
-                print_exc(file=sys.stderr)
+                print_exc()
             callback(exc,None,expectedpermid,0)
 
     def _whoishe_callback(self,exc,dns,peerpermid,selver,expectedpermid,callback):
@@ -267,7 +267,7 @@ class SecureOverlay:
                 callback(exc,dns,expectedpermid,0)
         except Exception,exc:
             if DEBUG:
-                print_exc(file=sys.stderr)
+                print_exc()
             callback(exc,dns,expectedpermid,0)
 
     def _send(self,permid,message,callback):
@@ -297,7 +297,7 @@ class SecureOverlay:
                     callback(KeyError('Connection not yet established'),permid)
         except Exception,exc:
             if DEBUG:
-                print_exc(file=sys.stderr)
+                print_exc()
             callback(exc,permid)
 
 
@@ -312,7 +312,7 @@ class SecureOverlay:
             else:
                 oc.close()
         except Exception,e:
-            print_exc(file=sys.stderr)
+            print_exc()
 
     #
     # Interface for SocketHandler
@@ -387,7 +387,7 @@ class SecureOverlay:
                     self.userconnhandler(None,oc.get_auth_permid(),oc.get_sel_proto_ver(),oc.is_locally_initiated())
                 except:
                     # Catch all
-                    print_exc(file=sys.stderr)
+                    print_exc()
             oc.dequeue_callbacks()
         return ret
 
@@ -406,7 +406,7 @@ class SecureOverlay:
         self.cleanup_admin_and_callbacks(oc,Exception('connection lost'))
 
     def add_peer_to_db(self,oc):
-        # add a connected peer to database
+        """ add a connected peer to database """
         if oc.is_auth_done():
             ip = oc.get_ip()
             port = oc.get_auth_listen_port()
@@ -423,7 +423,7 @@ class SecureOverlay:
                 print_exc()
         
     def update_peer_status(self, oc):
-        # update last_seen and last_connected in peer db when close
+        """ update last_seen and last_connected in peer db when close """
         now = int(time())
         if oc.is_auth_done():
             peer_permid = oc.get_auth_permid()
@@ -452,7 +452,7 @@ class SecureOverlay:
             return ret
         except:
             # Catch all
-            print_exc(file=sys.stderr)
+            print_exc()
             return False
 
 
@@ -550,7 +550,7 @@ class Task:
     def start(self):
         if DEBUG:
             print >> sys.stderr,"secover: task: start",self.method
-            #print_stack(file=sys.stderr)
+            #print_stack()
         self.method(*self.args,**self.kwargs)
     
 
@@ -622,7 +622,7 @@ class OverlayConnection:
             except:
                 self.next_len, self.next_func = 1, self.read_dead
                 if DEBUG:
-                    print_exc(file=sys.stderr)
+                    print_exc()
                 raise
             if x is None:
                 if DEBUG:
@@ -697,7 +697,7 @@ class OverlayConnection:
                 callback(None,self.specified_dns,permid,self.get_sel_proto_ver())
             self.cb_queue = []
         except Exception,e:
-            print_exc(file=sys.stderr)
+            print_exc()
 
 
     def cleanup_callbacks(self,exc):
@@ -710,7 +710,7 @@ class OverlayConnection:
                    print >> sys.stderr,"olconn: cleanup_callbacks: callback is",callback
                 callback(exc,self.specified_dns,self.get_auth_permid(),0)
         except Exception,e:
-            print_exc(file=sys.stderr)
+            print_exc()
 
     #
     # Interface for ChallengeResponse
@@ -804,7 +804,7 @@ class OverlayConnection:
     def close(self):
         if DEBUG:
             print >> sys.stderr,"olconn: we close()",self.get_ip(),self.get_port()
-            #print_stack(file=sys.stderr)
+            #print_stack()
         self.state_when_error = self.state
         if self.state != STATE_CLOSED:
             self.state = STATE_CLOSED

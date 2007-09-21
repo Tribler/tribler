@@ -503,7 +503,8 @@ reverttodefault = "Restore Defaults"
 bufferdisk 		= "Disk Buffering"
 buffer_read 	= "Read Cache"
 buffer_write 	= "Write Cache"
-ut_pex_maxaddrs = "Maximum number of addresses to accept via peer exchange per client"
+ut_pex_maxaddrs1 = "Maximum number of addresses to accept"
+ut_pex_maxaddrs2 = "via peer exchange per client"
 flush_data 		= "Flush data to disk every"
 
 iphint_line1 	= "The IP reported to the tracker."
@@ -557,12 +558,6 @@ maxconnectionhint_line5 = "If the client freezes, try setting this to 60 or belo
 recommendinstructions = "Double click on a torrent to start downloading; right click to delete or manually check health of the torrent"
 recommendfilter = "Don't show torrents with recommendation value less than"
 recommendfilterall = "(set to 0.0 to see all known torrents)"
-
-torenable = "Enable Tor support"
-tortrackersleep = "Minutes between connecting to the tracker"
-torhost = "The hostname or ip you run Tor at"
-torport = "The port you're running tor at"
-torpanel = "Tor"
 
 ############################################################
 # BTMakeTorrentGUI
@@ -1290,6 +1285,8 @@ peer_nofriend_tooltip = "Click to make this person your friend."
 peer_connected_times_tooltip = "Successful connections made to this person."
 peer_buddycast_times_tooltip = "Specific Tribler messages exchanged with this person."
 peer_similarity_tooltip = "Similarity between you and this person based on the download history."
+commonFiles    = "   Common files (%d)"
+alsoDownloaded = "Also downloaded (%d/%s)"
 peer_common_files_tooltip = "Files that you and this person have in common."
 peer_other_files_tooltip = "Other files that this person has downloaded."
 

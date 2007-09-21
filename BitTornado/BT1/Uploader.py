@@ -3,8 +3,6 @@
 
 from BitTornado.CurrentRateMeasure import Measure
 
-from Tribler.CacheDB.CacheDBHandler import PeerDBHandler
-from Tribler.Overlay.permid import permid_for_user
 import sys
 
 try:

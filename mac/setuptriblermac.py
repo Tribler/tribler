@@ -35,9 +35,6 @@ wxversion.select('2.8-unicode')
 
 import wx
 
-# For now, assume a specific location for the wxPython libraries until
-# someone finds a better way of discovering it.
-
 v = wx.__version__
 
 if v < "2.6":
@@ -130,7 +127,6 @@ setup(
              "tribler.ico",
              "torrenticon.ico",
              "mac/TriblerDoc.icns",
-             "tor.mac",
              ("lib", ["mac/build/lib/ffmpeg"],
            )]
            # add images
@@ -142,9 +138,6 @@ setup(
 
            # add VLC plugins
            + filterincludes( includedir( "mac/build/lib/vlc", "lib/vlc" ), lambda x: x.endswith(".dylib") )
-
-           # add khashmir
-           #+ includedir( "khashmir" )
             ,
     } }
 )

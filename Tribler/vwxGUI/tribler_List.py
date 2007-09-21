@@ -6,12 +6,7 @@ from Tribler.unicode import *
 DEBUG = False
 
 class tribler_List(wx.ListCtrl):
-    """
-    Button that changes the image shown if you move your mouse over it.
-    It redraws the background of the parent Panel, if this is an imagepanel with
-    a variable self.bitmap.
-    """
-
+ 
     def __init__(self, *args, **kw):
         # self.SetWindowStyle(wx.LC_REPORT|wx.NO_BORDER|wx.LC_NO_HEADER|wx.LC_SINGLE_SEL)
         
@@ -20,7 +15,7 @@ class tribler_List(wx.ListCtrl):
         self.backgroundColor = wx.Colour(102,102,102) 
         #self.ForegroundColour = wx.Colour(0,0,0)
         self.isEmpty = True    # used for DLFilesList.onListDClick
-        
+        self.updateFunc = None
         pre = wx.PreListCtrl() 
         # the Create step is done by XRC. 
         
@@ -36,7 +31,8 @@ class tribler_List(wx.ListCtrl):
     def _PostInit(self):
         # Do all init here
         self.Bind(wx.EVT_SIZE, self.onListResize)
-#        pass
+        # Turn on labeltips in list control
+                
 
     def onListResize(self, event=None):
         if event!=None:
@@ -149,6 +145,9 @@ class DLFilesList(tribler_List):
         """the other list that should received the downloaded item"""
         self.other_List = olist
 
+    def setFieldsUpdateFunction(self, func):
+        self.updateFunc = func
+        
     def onListDClick(self, event):
         if self.infohash_List:
             item = self.GetFirstSelected()
@@ -167,3 +166,5 @@ class DLFilesList(tribler_List):
                         self.other_List.InsertStringItem(sys.maxint, torrent['info']['name'])
                         self.other_List.isEmpty = False
             event.Skip()
+            if self.updateFunc:
+                self.updateFunc(self.other_List, self)

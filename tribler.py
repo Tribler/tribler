@@ -87,7 +87,6 @@ from Tribler.Web2.util.update import Web2Updater
 
 from Tribler.CacheDB.CacheDBHandler import BarterCastDBHandler
 from Tribler.Overlay.permid import permid_for_user
-from BitTornado.download_bt1 import EVIL
 
 DEBUG = False
 ALLOW_MULTIPLE = False
@@ -674,7 +673,6 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         guiserver = GUIServer.getInstance()
         guiserver.add_task(self.upgradeCallback,10.0)
 
-            
     def onFocus(self, event = None):
         if event is not None:
             event.Skip()
@@ -846,13 +844,14 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         # Close the Torrent Maker
         self.utility.actions[ACTION_MAKETORRENT].closeWin()
 
-        try:
-            self.utility.webserver.stop()
-        except:
-            data = StringIO()
-            print_exc(file = data)
-            sys.stderr.write(data.getvalue())
-            pass
+        if False:
+            try:
+                self.utility.webserver.stop()
+            except:
+                data = StringIO()
+                print_exc(file = data)
+                sys.stderr.write(data.getvalue())
+                pass
 
         try:
             # tell scheduler to close all active thread
@@ -915,8 +914,6 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         #
         
         tribler_done(self.utility.getConfigPath())            
-        
-        self.utility.app.special_shutdown()
         
         if DEBUG:    
             print >>sys.stderr,"abc: OnCloseWindow END"
@@ -1000,78 +997,6 @@ class ABCFrame(wx.Frame, DelayedInvocation):
             print  >> sys.stderr,"abc: Setting activity",`text`,"EOT"
         self.messageField.SetLabel(text)
 
-
-class TorThread(Thread):
-    
-    def __init__(self,configpath):
-        Thread.__init__(self)
-        self.setDaemon(True)
-        self.setName("TorThread"+self.getName())
-        self.child_out = None
-        self.child_in = None
-        self.pidfilename = os.path.join(configpath,"tor.pid")
-        if sys.platform == "win32" and self.pidfilename.find(' ') != -1:
-            self.escaped_pidfilename = '"'+self.pidfilename+'"'
-        else:
-            self.escaped_pidfilename = self.pidfilename
-        
-    def run(self):
-        try:
-            if DEBUG:
-                print >>sys.stderr,"TorThread starting",currentThread().getName()
-            if sys.platform == "win32":
-                # Not "Nul:" but "nul" is /dev/null on Win32
-                cmd = 'tor.exe'
-                sink = 'nul'
-            elif sys.platform == "darwin":
-                cmd = './tor.mac'
-                sink = '/dev/null'
-            else:
-                cmd = 'tor'
-                sink = '/dev/null'
-            
-            cmdline = "%s --log err-err --pidfile %s > %s 2>&1" % (cmd,self.escaped_pidfilename,sink)
-            print "Command line is",cmdline
-            (self.child_out,self.child_in) = os.popen2( cmdline, 'b' )
-            while True:
-                if DEBUG:
-                    print >>sys.stderr,"TorThread reading",currentThread().getName()
-
-                msg = self.child_in.read()
-                if DEBUG:
-                    print >>sys.stderr,"TorThread: tor said",msg
-                if len(msg) == 0:
-                    break
-                sleep(1)
-        except:
-            print_exc()
-
-    def shutdown(self):
-        """
-        if self.child_out is not None:
-            self.child_out.close()
-        if self.child_in is not None:
-            self.child_in.close()
-        """
-        try:
-            f = open(self.pidfilename,"r")
-            data = f.read()
-            f.close()
-            pid = int(data)
-            if sys.platform == "win32":
-                self.kill(pid)
-            else:
-                os.kill(pid,signal.SIGTERM)
-        except:
-            print_exc() 
-
-            
-            
-    def kill(self,pid):
-        """kill function for Win32"""
-        import win32api
-        handle = win32api.OpenProcess(1, 0, pid)
-        return (0 != win32api.TerminateProcess(handle, 0))            
             
 
 ##############################################################
@@ -1090,7 +1015,6 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
         self.single_instance_checker = single_instance_checker
         self.abcpath = abcpath
         self.error = None
-        self.torthread = None
         wx.App.__init__(self, x)
         
     def OnInit(self):
@@ -1145,9 +1069,11 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             
             # Check webservice for autostart webservice
             #######################################################
-            WebListener(self.utility)
-            if self.utility.webconfig.Read("webautostart", "boolean"):
-                self.utility.webserver.start()
+            if False:
+                # Arno: disabled, as it is not working at the moment, and nobody uses it
+                WebListener(self.utility)
+                if self.utility.webconfig.Read("webautostart", "boolean"):
+                    self.utility.webserver.start()
                 
             # Start single instance server listenner
             ############################################
@@ -1162,26 +1088,6 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             self.videoserver.background_serve()
 
             notification_init( self.utility )
-
-            # Change config when experiment ends, before ABCLaunchMany is created
-            global EVIL
-            if EVIL and time() > 1190099288.0:
-                EVIL = False
-                end = self.utility.config.Read('lure_ended', "boolean")
-                if not end:
-                    self.utility.config.Write('lure_ended', 1, "boolean")
-                    self.utility.config.Write('tor_enabled', 0, "boolean")
-                    self.utility.config.Write('ut_pex_max_addrs_from_peer', 16)
-                
-                    msg = "The Tribler download accelerator using the TOR network has been turned off. For more information visit http://TV.seas.Harvard.edu/"
-                    dlg = wx.MessageDialog(None, msg, "Tribler Warning", wx.OK|wx.ICON_INFORMATION)
-                    result = dlg.ShowModal()
-                    dlg.Destroy()
-                
-            enabled = self.utility.config.Read('tor_enabled', "boolean")
-            if enabled:
-                self.torthread = TorThread(self.utility.getConfigPath())
-                self.torthread.start()
 
             #
             # Read and create GUI from .xrc files
@@ -1316,9 +1222,6 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
     def OnExit(self):
         
         self.torrentfeed.shutdown()
-        if self.torthread is not None:
-            self.torthread.shutdown()
-            self.torthread = None
         mainlineDHT.deinit()
         
         if not ALLOW_MULTIPLE:
@@ -1348,10 +1251,6 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
         if self.params[0] != "":
             self.guiUtility.standardLibraryOverview()
     
-    def special_shutdown(self):
-        if self.torthread is not None:
-            self.torthread.shutdown()
-            self.torthread = None
     
         
 class DummySingleInstanceChecker:

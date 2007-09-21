@@ -17,7 +17,6 @@ from peermanager import PeerDataManager
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
 from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
-
 #from Tribler.vwxGUI.filesFilter import filesFilter
 
 
@@ -71,7 +70,7 @@ class GUIUtility:
         try:
             name = obj.GetName()
         except:
-            print 'Error: Could not get name of buttonObject: %s' % obj
+            print >>sys.stderr,'GUIUtil: Error: Could not get name of buttonObject: %s' % obj
         
         if DEBUG:
             print >>sys.stderr,'GUIUtil: Button clicked %s' % name
@@ -126,7 +125,7 @@ class GUIUtility:
                 URL = 'http://www.tribler.org/'
                 webbrowser.open(URL)  
             else:
-                print 'GUIUtil: A button was clicked, but no action is defined for: %s' % name
+                print >>sys.stderr,'GUIUtil: A button was clicked, but no action is defined for: %s' % name
                 
         elif name == "takeMeThere2": #switch to another view
             panel_name = self.standardDetails.currentPanel.GetName()
@@ -134,7 +133,8 @@ class GUIUtility:
                 URL = 'http://www.tribler.org/'
                 webbrowser.open(URL)                
         elif name == "search": # search files/persons button
-            print 'GUIUtil: search button clicked'
+            if DEBUG:
+                print >>sys.stderr,'GUIUtil: search button clicked'
             self.dosearch()
         elif name == 'subscribe':
             self.subscribe()
@@ -186,11 +186,11 @@ class GUIUtility:
         
         self.standardOverview.setMode('filesMode')
         filters = self.standardOverview.getFilter().getState()
-        if filters:
-            filters[1] = 'seeder'
-        else:
+        #if filters:
+        #    filters[1] = 'seeder'
+        if not filters:
             filters = ['all', 'seeder']
-        self.standardOverview.filterChanged(filters,setgui=True)
+            self.standardOverview.filterChanged(filters,setgui=True)
         try:
             if self.standardDetails:
                 self.standardDetails.setMode('filesMode', None)
@@ -199,17 +199,19 @@ class GUIUtility:
         
     def standardPersonsOverview(self):
         self.standardOverview.setMode('personsMode')
-        self.standardOverview.filterChanged(('all', 'content_name'))
+        if not self.standardOverview.getSorting():
+            self.standardOverview.filterChanged(('all', 'content_name'))
         self.standardDetails.setMode('personsMode')
-        self.standardOverview.clearSearch()
-        self.standardOverview.toggleSearchDetailsPanel(False)
+        #self.standardOverview.clearSearch()
+        #self.standardOverview.toggleSearchDetailsPanel(False)
         
     def standardFriendsOverview(self):
         self.standardOverview.setMode('friendsMode')
-        self.standardOverview.filterChanged(('friends', 'content_name'))
+        if not self.standardOverview.getSorting():
+            self.standardOverview.filterChanged(('friends', 'content_name'))
         self.standardDetails.setMode('friendsMode')
-        self.standardOverview.clearSearch()
-        self.standardOverview.toggleSearchDetailsPanel(False)
+        #self.standardOverview.clearSearch()
+        #self.standardOverview.toggleSearchDetailsPanel(False)
         
     def standardProfileOverview(self):
         profileList = []
@@ -359,7 +361,7 @@ class GUIUtility:
                 self.standardOverview.refreshTorrentStats_network_callback()
                 self.standardDetails.refreshTorrentStats_network_callback()
         except:
-            print 'GuiUtility: Error refreshing stats'
+            print >>sys.stderr,'GUIUtil: Error refreshing stats'
             print_exc()
 
 
@@ -369,7 +371,7 @@ class GUIUtility:
             if self.guiOpen.isSet():
                 self.standardDetails.refreshTorrentTotalStats_network_callback(*args,**kwargs)
         except:
-            print 'GuiUtility: Error refreshing total stats'
+            print >>sys.stderr,'GUIUtil: Error refreshing total stats'
             print_exc()
    
    
@@ -402,26 +404,27 @@ class GUIUtility:
         webbrowser.open(mailToURL)
         
     def dosearch(self):
-        self.standardOverview.toggleSearchDetailsPanel(True)
-        if self.standardOverview.mode in ["filesMode", "libraryMode"]:
-            self.searchFiles(self.standardOverview.mode)
-        elif self.standardOverview.mode == "personsMode":
-            self.searchPersons()
-        elif self.standardOverview.mode == "friendsMode":
-            self.searchFriends()
-
-        
-        
-        
-    def searchFiles(self, mode):
         sf = self.standardOverview.getSearchField()
         if sf is None:
             return
-        input = sf.GetValue()
+        input = sf.GetValue().strip()
+        if input == '':
+            return
+        self.standardOverview.toggleSearchDetailsPanel(True)
+        if self.standardOverview.mode in ["filesMode", "libraryMode"]:
+            self.searchFiles(self.standardOverview.mode, input)
+        elif self.standardOverview.mode in ["personsMode", 'friendsMode']:
+            self.searchPersons(self.standardOverview.mode, input)
+        
+        
+        
+        
+    def searchFiles(self, mode, input):
+        
         if DEBUG:
             print >>sys.stderr,"GUIUtil: searchFiles:",input
         low = input.lower()
-        wantkeywords = low.split(' ')
+        wantkeywords = [i for i in low.split(' ') if i]
         self.data_manager.setSearchKeywords(wantkeywords, mode)
         sorting = None
         #print "******** gui uti searchFiles", wantkeywords
@@ -446,65 +449,43 @@ class GUIUtility:
                 self.standardOverview.setSearchFeedback('remote', False, 0)
 
         
-    def searchPersons(self):
-        sf = self.standardOverview.getSearchField()
-        if sf is None:
-            return
-        input = sf.GetValue()
+    def searchPersons(self, mode, input):
+        
         if DEBUG:
             print >>sys.stderr,"GUIUtil: searchPersons:",input
         low = input.lower().strip()
         wantkeywords = low.split(' ')
-        wantkeywords += low.split('-')
-        wantkeywords += low.split('_')
-        wantkeywords += low.split('.')
-        zet = Set(wantkeywords)
-        wantkeywords = list(zet)
-        def searchFilterFunc(peer_data):
-            low = peer_data['content_name'].lower()
-            for wantkw in wantkeywords:
-                if low.find(wantkw) != -1:
-                    return True
-            return False
-        self.peer_manager.registerFilter("search",searchFilterFunc)
-        self.standardOverview.filterChanged(['search',None],setgui=True)
-        # there is no personsFilter
-        numResults =0
-        if self.standardOverview.getGrid():
-            numResults = len(self.standardOverview.getGrid().getData())
-        self.standardOverview.setSearchFeedback('peers', True, numResults, wantkeywords)
-        
-    
-    def searchFriends(self):
-        sf = self.standardOverview.getSearchField()
-        if sf is None:
-            return
-        input = sf.GetValue().strip()
-        if DEBUG:
-            print "GUIUtil: searchFriends:",input
-        low = input.lower()
-        wantkeywords = low.split(' ')
-        wantkeywords += low.split('-')
-        wantkeywords += low.split('_')
-        wantkeywords += low.split('.')
-        zet = Set([i for i in wantkeywords if i])
-        wantkeywords = list(zet)
-        def searchFriendsFilterFunc(peer_data):
-            if not peer_data.get('friend',False):
+#        zet = Set([i for i in wantkeywords if i])
+#        wantkeywords = list(zet)
+        if mode == 'personsMode':
+            def searchFilterFunc(peer_data):
+                low = peer_data['content_name'].lower()
+                for wantkw in wantkeywords:
+                    if low.find(wantkw) != -1:
+                        return True
                 return False
-            low = peer_data['content_name'].lower()
-            for wantkw in wantkeywords:
-                if low.find(wantkw) != -1:
-                    return True
-            return False
+            self.peer_manager.registerFilter("search",searchFilterFunc)
+            self.standardOverview.filterChanged(['search',None],setgui=True)
+            searchType = 'peers'
+            
+        elif mode == 'friendsMode':
+            def searchFriendsFilterFunc(peer_data):
+                if not peer_data.get('friend',False):
+                    return False
+                low = peer_data['content_name'].lower()
+                for wantkw in wantkeywords:
+                    if low.find(wantkw) != -1:
+                        return True
+                return False
+            self.peer_manager.registerFilter("search_friends",searchFriendsFilterFunc)
+            self.standardOverview.filterChanged(['search_friends',None],setgui=True)
+            searchType = 'friends'
 
-        self.peer_manager.registerFilter("search_friends",searchFriendsFilterFunc)
-        sort = None
-        self.standardOverview.filterChanged(['search_friends',sort],setgui=True)
         numResults =0
         if self.standardOverview.getGrid():
             numResults = len(self.standardOverview.getGrid().getData())
-        self.standardOverview.setSearchFeedback('friends', True, numResults, wantkeywords)
+        self.standardOverview.setSearchFeedback(searchType, True, numResults, input)
+   
 
     def OnSearchKeyDown(self,event):
         keycode = event.GetKeyCode()
@@ -577,7 +558,7 @@ class GUIUtility:
         #print 'value: "%s", 1: "%s", 2: "%s"' % (sf.GetValue(), self.utility.lang.get('filesdefaultsearchweb2txt'),self.utility.lang.get('filesdefaultsearchtxt')) 
         if event.LeftDClick() or \
            ( event.LeftUp() and sf.GetValue() in [self.utility.lang.get('filesdefaultsearchweb2txt'),self.utility.lang.get('filesdefaultsearchtxt')]):
-            print 'select'
+            ##print 'select'
             sf.SetSelection(-1,-1)
             
         if not event.LeftDClick():
@@ -605,7 +586,7 @@ class GUIUtility:
         item = self.standardDetails.getData()
         if not item:
             if DEBUG:
-                print 'Used right mouse menu, but no item in DetailWindow'
+                print >>sys.stderr,'GUIUtil: Used right mouse menu, but no item in DetailWindow'
             return
         
         rightMouse = wx.Menu()        
@@ -666,8 +647,8 @@ class GUIUtility:
         
         if abctorrent:
             abctorrent.files.onOpenFileDest(index = abctorrent.listindex)
-        else:
-            print "niet gelukt"
+        elif DEBUG:
+            print >>sys.stderr,'GUIUtil: onOpenFileDest failed: no torrent selected'
             # TODO: TB> This state doesn't occur because torrents stay active, when tribler is 
             #       closed within 1 hour after torrent is stopped or finished (see action.py)
             #       This else statement is also empty for the playback button
@@ -679,25 +660,49 @@ class GUIUtility:
         
         if abctorrent:
             abctorrent.files.onOpenDest(index = abctorrent.listindex)
-        else:
-            print "niet gelukt"
+        elif DEBUG:
+            print >>sys.stderr,'GUIUtil: onOpenFileDest failed: no torrent selected'
             
     def onDeleteTorrentFromDisk(self, event = None):
         item = self.standardDetails.getData()
+        
+        if not item.get('abctorrent'):
+            # Apparently abctorrent is not yet put in the torrentmanager.
+            # -> find abctorrent from utility list
+            self.addAbcTorrent(item)
+        
         abctorrent = item.get('abctorrent')
         
         if abctorrent:
             self.utility.actionhandler.procREMOVE([abctorrent], removefiles = True)
+        #else:
+        #    print 'Error: Could not delete torrent: %s' % repr(item['content_name'])
         self.standardOverview.removeTorrentFromLibrary(item)
+
                 
     def onDeleteTorrentFromLibrary(self, event = None):
         item = self.standardDetails.getData()
-        abctorrent = item.get('abctorrent')
+        
+        if not item.get('abctorrent'):
+            # Apparently abctorrent is not yet put in the torrentmanager.
+            # -> find abctorrent from utility list
+            self.addAbcTorrent(item)
+            
+        abctorrent = item.get('abctorrent')    
         
         if abctorrent:
             self.utility.actionhandler.procREMOVE([abctorrent], removefiles = False)
+        #else:
+        #    print 'Error: Could not delete torrent: %s' % repr(item['content_name'])
         self.standardOverview.removeTorrentFromLibrary(item)
+    
+    def addAbcTorrent(self, item):
+        from Tribler.vwxGUI.torrentManager import key_abctorrent
         
+        for torrent in self.utility.torrents['all']:
+            if torrent.torrent_hash == item['infohash']:
+                item[key_abctorrent] = torrent
+                        
     def onAdvancedInfoInLibrary(self, event = None):
         # open torrent details frame
         item = self.standardDetails.getData()
@@ -708,8 +713,9 @@ class GUIUtility:
         event.Skip()
         
     def onModerate(self, event = None):
-        print '---tb--- Moderate event'
-        print event
+        if DEBUG:
+            print >>sys.stderr,'GUIUtil: ---tb--- Moderate event'
+            print >>sys.stderr,event
         # todo
         event.Skip()
     

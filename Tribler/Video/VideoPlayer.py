@@ -148,6 +148,7 @@ class VideoPlayer:
 
 
     def play_vod_via_http(self,ABCTorrentTemp,videoinfo):
+        """ Called by GUI thread when clicking "Play ASAP" button """
 
         # For multi-file torrent: when the user selects a different file, play that
         oldvideoinfo = ABCTorrentTemp.get_videoinfo()
@@ -196,7 +197,7 @@ class VideoPlayer:
             
 
     def vod_start_playing(self,ABCTorrentTemp): 
-        """ Called by GUI thread """
+        """ Called by GUI thread when clicking "Play" button in Library view """
         
         if DEBUG:
             print >>sys.stderr,"videoplay: VOD started"

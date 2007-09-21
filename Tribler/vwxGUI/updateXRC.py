@@ -1,7 +1,7 @@
 import sys, re, os, os.path
 
 DEBUG = False
-ENABLED = True
+ENABLED = False
 
 def changeFile(filename):
     f_in = file(filename, 'r')
@@ -85,6 +85,9 @@ def main(args):
     # find all xrc files in this dir
     if not ENABLED:
         return
+    if ENABLED:
+        print ' ------------------ Updatexrc.py is enabled'
+        
     try:
         dir = args[0]
     except:

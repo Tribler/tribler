@@ -2,7 +2,7 @@
 <resource xmlns="http://www.wxwidgets.org/wxxrc" version="2.3.0.1">
   <object class="wxPanel" name="filesDetails">
     <pos>0,0</pos>
-    <size>300,575</size>
+    <size>300,755</size>
     <fg>#d8d8bf</fg>
     <object class="wxBoxSizer">
       <orient>wxVERTICAL</orient>
@@ -429,7 +429,41 @@
               <border>6</border>
               <option>0</option>
               <object class="wxListCtrl" name="peopleWhoField" subclass="Tribler.vwxGUI.tribler_List.DLFilesList">
-                <pos>56,442</pos>
+                <pos>6,199</pos>
+                <size>284,125</size>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>10</border>
+              <option>0</option>
+              <object class="wxPanel" name="simTitles" subclass="Tribler.vwxGUI.btn_DetailsHeader.btn_DetailsHeader">
+                <pos>0,324</pos>
+                <size>20,15</size>
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="sizeritem">
+                    <flag>wxLEFT|wxEXPAND|wxFIXED_MINSIZE</flag>
+                    <border>10</border>
+                    <option>0</option>
+                    <object class="wxStaticText" name="st202cCCC">
+                      <style>wxST_NO_AUTORESIZE</style>
+                      <label>Similar Files</label>
+                      <pos>10,0</pos>
+                      <size>204,15</size>
+                      <bg>#cbcbcb</bg>
+                      <fg>#     0</fg>
+                    </object>
+                  </object>
+                </object>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <flag>wxTOP|wxLEFT|wxRIGHT|wxEXPAND|wxFIXED_MINSIZE</flag>
+              <border>6</border>
+              <option>0</option>
+              <object class="wxListCtrl" name="simTitlesField" subclass="Tribler.vwxGUI.tribler_List.DLFilesList">
+                <pos>6,345</pos>
                 <size>284,125</size>
               </object>
             </object>
@@ -441,7 +475,7 @@
         <border>3</border>
         <option>0</option>
         <object class="wxPanel" name="white_bottom" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
-          <pos>0,163</pos>
+          <pos>0,568</pos>
           <size>300,5</size>
         </object>
       </object>

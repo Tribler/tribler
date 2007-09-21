@@ -28,8 +28,8 @@ MyDB - (PeerDB)
     port: int (0)
     name: str ('Tribler')
     torrent_path: str ('')    # default path to store torrents
-    prefxchg_queue: list ([]) # permid
-    bootstrapping: int (1)
+    prefxchg_queue: list ([]) # not used
+    bootstrapping: int (1)    # not used
     max_num_torrents: int (100000)
     max_num_my_preferences: int (1000)
     superpeers: Set([permid])
@@ -55,7 +55,7 @@ PeerDB - (MyFriendDB, PreferenceDB, OwnerDB)
         ntorrents: int(0)  # added in 4.1, overlay version 6, DB version 4  
         nprefs: int(0)     # added in 4.1, overlay version 6, DB version 4
         nqueries: int(0)   # added in 4.1, overlay version 6, DB version 4
-        last_connected: int(0)    # last time I connected to the peer. added in 4.1.2, overlay version 6, DB version 5
+        last_connected: int(0)    # last time I connected to the peer. added in 4.1.3, overlay version 6, DB version 5
     }
 
 TorrentDB - (PreferenceDB, MyPreference, OwnerDB)
@@ -658,7 +658,9 @@ class PeerDB(BasicDB):
                 newitem = deepcopy(def_newitem)
                 newitem.update(item)    # keep the old info if it exists
                 # copy last_seen value to last_connected
-                if newitem['last_connected'] == 0 and newitem['last_seen'] > 0:
+                if 'last_seen' not in newitem:
+                    newitem['last_seen'] = 0    # according to bug report
+                elif newitem['last_connected'] == 0 and newitem['last_seen'] > 0:
                     newitem['last_connected'] = newitem['last_seen']
                 self._put(key, newitem)
         self._sync()

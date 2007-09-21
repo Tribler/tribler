@@ -49,8 +49,6 @@ def makeActionList(utility):
     actions[ACTION_REMOVEFILE] = RemoveFile(utility)
     actions[ACTION_SCRAPE] = Scrape(utility)
     actions[ACTION_DETAILS] = Details(utility)
-    actions[ACTION_BUDDIES] = BuddiesAction(utility)
-    actions[ACTION_FILES] = FilesAction(utility)
     
     actions[ACTION_SUPERSEED] = SuperSeed(utility)
     

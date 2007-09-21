@@ -24,15 +24,16 @@ So make sure you have
         Python >= 2.4 
 	OpenSSL >= 0.9.8
 	swig >= 1.3.25
-	wxPython >= 2.6 UNICODE (i.e., use --enable-unicode to build)
+	wxPython >= 2.8 UNICODE (i.e., use --enable-unicode to build)
 	M2Crypto >= 0.16
         pywin32 >= Build 208 (Windows only, for UPnP support)
 	vlc >= 0.8.6a and its python bindings (for internal video player)
 
-Note that Tribler only works with wxPython UNICODE, not ANSI.  Python 2.4 is
-prefered, as Python 2.3's unicode support is not perfect, and 2.3's bsddb
-module does not support the type of concurrency control we need. OpenSSL
-0.9.8 is required for Elliptic Curve crypto support.
+Note that Tribler only works with wxPython UNICODE, not ANSI. With small
+adjustments it probably also works with wxPython 2.6.  Python 2.4 is prefered,
+as Python 2.3's unicode support is not perfect, and 2.3's bsddb module does
+not support the type of concurrency control we need. OpenSSL 0.9.8 is
+required for Elliptic Curve crypto support.
    
 
 INSTALLING ON LINUX

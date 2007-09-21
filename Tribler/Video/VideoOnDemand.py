@@ -20,7 +20,6 @@ from Tribler.Video.VideoServer import MovieTransport
 
 EXTENSIONS = ['asf','avi','dv','flc','mpeg','mpeg4','mpg4','mp4','mpg','mov','ogm','qt','rm','swf','vob','wmv']
 
-
 # pull all video data as if a video player was attached
 FAKEPLAYBACK = False
 
@@ -374,8 +373,8 @@ class PiecePickerG2G(PiecePickerStreaming):
 
         return choice
 
-PiecePickerVOD = PiecePickerG2G
-#PiecePickerVOD = PiecePickerBiToS
+#PiecePickerVOD = PiecePickerG2G
+PiecePickerVOD = PiecePickerBiToS
 
 class MovieSelector:
     """ Selects a movie out of a torrent and provides information regarding the pieces
@@ -1123,7 +1122,7 @@ class MovieOnDemandTransporter(MovieTransport):
         #loop = self.download_pos
         abspiece = None
         mx = max( 2, self.BUFFER_TIME * self.movieselector.bitrate )
-        outbuflen = sum( (len(d) for (p,d) in self.outbuf) )
+        outbuflen = sum( [len(d) for (p,d) in self.outbuf] )
         while loop < self.numpieces():
             abspiece = self.movieselector.download_range[0][0] + loop
             ihavepiece = self.has[abspiece]

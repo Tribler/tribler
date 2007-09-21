@@ -472,9 +472,15 @@ class standardGrid(wx.Panel):
             
     def keyTypedOnGridItem(self, event):
         obj = event.GetEventObject()
-        print >>sys.stderr,'standardGrid: keyTyped: in %s' % obj.__class__.__name__
+        if DEBUG:
+            print >>sys.stderr,'standardGrid: keyTyped: in %s' % obj.__class__.__name__
         while obj.__class__ != self.subPanelClass:
             obj = obj.GetParent()
+        
+        # Jelle: Turn of key navigation under windows. Windows already has a focus traversal policy and changes 
+        # the focus of panel.
+        if sys.platform == 'win32': 
+            return
         
         if not obj.selected and sys.platform != 'win32':
             return
@@ -488,7 +494,8 @@ class standardGrid(wx.Panel):
             for pan in row:
                 if obj == pan:
                     (xpan, ypan) = colIndex, rowIndex
-                    print >>sys.stderr,'standardGrid: keyTyped: found: %d, %d' % (colIndex, rowIndex)
+                    if DEBUG:
+                        print >>sys.stderr,'standardGrid: keyTyped: found: %d, %d' % (colIndex, rowIndex)
                     break
                 colIndex += 1
             rowIndex += 1
@@ -525,8 +532,9 @@ class standardGrid(wx.Panel):
             newpanel = self.panels[ypan][xpan]
             if newpanel.data != None:
                 # select new panel
-                newpanel.SetFocus()
+                #newpanel.SetFocus()
                 self.guiUtility.selectData(newpanel.data)
+        event.Skip()
                 
     def getFirstPanel(self):
         try:
