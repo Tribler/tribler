@@ -1195,10 +1195,10 @@ class MovieOnDemandTransporter(MovieTransport):
             piece = self.outbuf.pop( 0 )
             self.playbackrate.update_rate( len(piece) )
 
-        self.data_ready.release()
-
         if self.start_playback == float(2**31):
             self.start_playback = time.time()
+
+        self.data_ready.release()
 
         return piece
 
