@@ -70,6 +70,9 @@ class TorrentDataManager:
         self.isDataPrepared = Event()
         self.data = []
         self.complete_data = [] # temporary storage
+        self.loading_count = 1
+        self.loading_count_db = 0
+        self.is_data_merged = False
         self.hits = []
         self.remoteHits = None
         self.dod = None
@@ -111,13 +114,14 @@ class TorrentDataManager:
             # Arno: 1. load my prefs first, so library can be shown
             self.data = self.torrent_db.getRecommendedTorrents(light=True,myprefs=True)
             self.prepareData(self.data,rank=False)
+            self.loading_count = len(self.data)
             self.isDataPrepared.set()
             parent.refreshView()
 
             # 2. Load complete torrent db in temp data structure
             print >>sys.stderr,"torrentManager: getRec: start"
             st = time()
-            self.complete_data = self.torrent_db.getRecommendedTorrents(light=True,all=True) #gets torrents with mypref
+            self.complete_data = self.torrent_db.getRecommendedTorrents(light=True,all=True,countcallback=self.loadingCountCallback) #gets torrents with mypref
             et = time()
             diff = et-st
             print >>sys.stderr,"torrentManager: getRec took",diff
@@ -135,6 +139,9 @@ class TorrentDataManager:
             print_exc()
             raise Exception('Could not load torrent data !!')
 
+    def loadingCountCallback(self,count):
+        self.loading_count = count/2
+        self.loading_count_db = self.loading_count 
 
     def mergeData(self):
         """ Called by MainThread """
@@ -159,6 +166,7 @@ class TorrentDataManager:
             
         # Add complete_data to self.data
         self.data.extend(self.complete_data)
+        self.is_data_merged = True
 
     
     def prepareData(self,data,rank=True):
@@ -181,6 +189,7 @@ class TorrentDataManager:
             count += 1
             if count % 1000 == 0:
                 print >>sys.stderr,"torrentManager: prepared item",count
+                self.loading_count = self.loading_count_db + count/2
         
     def getDownloadHistCount(self):
         #[mluc]{26.04.2007} ATTENTION: data is not updated when a new download starts, although it should
@@ -792,7 +801,12 @@ class TorrentDataManager:
         return result
         
     def getNumDiscoveredFiles(self):
-        if not self.isDataPrepared:
+
+        if DEBUG:
+            print >>sys.stderr,"torrentManager: getNumDisc: loaded",self.loading_count 
+        self.standardOverview.setLoadingCount(self.loading_count)
+        
+        if not self.is_data_merged:
             return -1
         else:
             ntorrents = self.metadata_handler.get_num_torrents()

@@ -5,6 +5,7 @@ from safeguiupdate import FlaglessDelayedInvocation
 from traceback import print_exc,print_stack
 from Tribler.vwxGUI.torrentManager import TorrentDataManager
 from Tribler.vwxGUI.SearchDetails import SearchDetailsPanel
+from Tribler.vwxGUI.LoadingDetails import LoadingDetailsPanel
 from Tribler.utilities import *
 from Utility.constants import *
 from peermanager import PeerDataManager
@@ -95,15 +96,10 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                     
                 except:
                     print_exc()
-                wx.CallAfter(self.owner.data_manager.mergeData)
-                wx.CallAfter(self.owner.filterChanged)
+                wx.CallAfter(self.owner.OnLoadingDone)
 
             def refreshView(self):
                 wx.CallAfter(self.owner.filterChanged)
-
-        thr1=DataLoadingThread(self)
-        thr1.setDaemon(True)
-        thr1.start()
 
         self.mode = None
         self.data = {} #keeps gui elements for each mode
@@ -112,9 +108,21 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         self.currentPanel = None
         self.addComponents()
         #self.Refresh()
+        
         self.guiUtility.initStandardOverview(self)
+
+        self.toggleLoadingDetailsPanel(True)
+        thr1=DataLoadingThread(self)
+        thr1.setDaemon(True)
+        thr1.start()
+
+        
         #print >> sys.stderr, '[StartUpDebug]----------- standardOverview is in postinit ----------', currentThread().getName(), '\n\n'
         
+    def OnLoadingDone(self):
+        self.data_manager.mergeData()
+        self.filterChanged()
+        self.toggleLoadingDetailsPanel(False)
         
     def addComponents(self):
         self.hSizer = wx.BoxSizer(wx.VERTICAL)
@@ -660,6 +668,37 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 #    self.filterChanged(['search','swarmsize'])
                 #self.filterChanged([fs[0],'swarmsize'])
                     
+    def toggleLoadingDetailsPanel(self, visible):
+        loadingDetails = self.data[self.mode].get('loadingDetailsPanel')
+        sizer = self.data[self.mode]['grid'].GetContainingSizer()
+        if visible:
+            if not loadingDetails:
+                loadingDetails = LoadingDetailsPanel(self.data[self.mode]['panel'])
+                
+                sizer.Insert(3,loadingDetails, 0, wx.ALL|wx.EXPAND, 0)
+                self.data[self.mode]['loadingDetailsPanel'] = loadingDetails
+                loadingDetails.Show()
+            else:
+                loadingDetails.startSearch()
+                loadingDetails.Show()
+                
+        else:
+            if loadingDetails:
+                #print 'standardOverview: removing loading details'
+                sizer.Detach(loadingDetails)
+                loadingDetails.Destroy()
+                self.data[self.mode]['loadingDetailsPanel'] = None
+        sizer.Layout()
+        self.data[self.mode]['panel'].Refresh()
+        self.hSizer.Layout()
+
+    def setLoadingCount(self,count):
+        loadingDetails = self.data[self.mode].get('loadingDetailsPanel')
+        if not loadingDetails:
+            return
+        loadingDetails.setMessage('loaded '+str(count)+' more files from database (not yet shown)')
+
+
     def toggleSearchDetailsPanel(self, visible):
         searchDetails = self.data[self.mode].get('searchDetailsPanel')
         sizer = self.data[self.mode]['grid'].GetContainingSizer()
@@ -694,6 +733,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         sizer.Layout()
         self.data[self.mode]['panel'].Refresh()
         self.hSizer.Layout()
+
 
     def stopWeb2Search(self):
         grid = self.getGrid()

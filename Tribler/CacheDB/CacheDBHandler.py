@@ -482,7 +482,7 @@ class TorrentDBHandler(BasicDBHandler):
         return self.torrent_db._keys()
         
         
-    def getRecommendedTorrents(self, light=True, all=False, myprefs=False):     
+    def getRecommendedTorrents(self, light=True, all=False, myprefs=False, countcallback=None):     
         """ get torrents on disk but not in my pref
            BE AWARE: the returned object of this call may consume lots of memory.
            You should delete the object when possible
@@ -545,6 +545,8 @@ class TorrentDBHandler(BasicDBHandler):
             count += 1
             if count % 1000 == 0:
                 print >>sys.stderr,"torrentdb: Read items",count,currentThread().getName()
+                if countcallback is not None:
+                    countcallback(count)
             
         del all_list
         del setOfInfohashes
@@ -557,6 +559,8 @@ class TorrentDBHandler(BasicDBHandler):
         #print 'Returning %d torrents' % len(torrents)
         
         return torrents
+        
+        
         
     def getCollectedTorrentHashes(self): 
         """ get infohashes of torrents on disk, used by torrent checking, 

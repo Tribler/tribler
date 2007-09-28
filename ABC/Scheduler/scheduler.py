@@ -13,7 +13,6 @@ from ABC.Scheduler.addtorrents import AddTorrents
 from ABC.Scheduler.ratemanager import RateManager
 
 from Utility.constants import * #IGNORE:W0611
-from safeguiupdate import DelayedEventHandler
 from BitTornado.__init__ import product_name
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 
@@ -28,9 +27,8 @@ DEBUG = False
 # and deal with loading, moving, and removing torrents.
 #
 ################################################################
-class ABCScheduler(DelayedEventHandler):
+class ABCScheduler:
     def __init__(self, utility):
-        DelayedEventHandler.__init__(self)
         self.doneflag = Event()
         self.doneflag.set()
         
@@ -146,9 +144,11 @@ class ABCScheduler(DelayedEventHandler):
         self.totals['connections'] = totalconnections
         
     def updateTrayAndStatusBar(self):
-        self.invokeLater(self.onUpdateTrayAndStatusBar)
+        wx.CallAfter(self.onUpdateTrayAndStatusBar)
 
     def onUpdateTrayAndStatusBar(self):
+        
+        print >>sys.stderr,"scheduler: onUpdateTrayAndStatusBar"
         maxuprate = self.ratemanager.MaxRate("up")
         if maxuprate == 0:
             upspeed = self.utility.speed_format(self.totals['up'], truncate = 1)
@@ -221,36 +221,42 @@ class ABCScheduler(DelayedEventHandler):
             self.utility.config.Write('maxmeasureduploadrate',m)
 
                                 
-    def CyclicalTasks(self):       
-        self.getDownUpConnections()
-            
-        self.updateTrayAndStatusBar()
-
-        self.ratemanager.RunTasks()
+    def CyclicalTasks(self):
         
-        # check if stopped torrents will be shutdown
-        self.checkAutoShutdownTorrents()
-                
+        print >>sys.stderr,"scheduler: CyclicalTasks"
         try:
-            # Run postponed deleting events
-            while self.utility.window.postponedevents:
-                ev = self.utility.window.postponedevents.pop(0)
-                #print "POSTPONED EVENT : ", ev[0]
-                ev[0](ev[1])
-            self.utility.list.Enable()
-        except wx.PyDeadObjectError:
-            pass
-
-        # Try invoking the scheduler
-        # (just in case we need to start more stuff:
-        #  should return almost immediately otherwise)
-        ## Do so via main thread, because Scheduler updates counters in the GUI 
-        self.invokeLater(self.Scheduler)
-
-        # Start Timer
-        ##########################################
-        self.timers['frequent'] = NamedTimer(4, self.CyclicalTasks)
-        self.timers['frequent'].start()
+                   
+            self.getDownUpConnections()
+                
+            self.updateTrayAndStatusBar()
+    
+            self.ratemanager.RunTasks()
+            
+            # check if stopped torrents will be shutdown
+            self.checkAutoShutdownTorrents()
+                    
+            try:
+                # Run postponed deleting events
+                while self.utility.window.postponedevents:
+                    ev = self.utility.window.postponedevents.pop(0)
+                    #print "POSTPONED EVENT : ", ev[0]
+                    ev[0](ev[1])
+                self.utility.list.Enable()
+            except wx.PyDeadObjectError:
+                pass
+    
+            # Try invoking the scheduler
+            # (just in case we need to start more stuff:
+            #  should return almost immediately otherwise)
+            ## Do so via main thread, because Scheduler updates counters in the GUI 
+            wx.CallAfter(self.Scheduler)
+    
+            # Start Timer
+            ##########################################
+            self.timers['frequent'] = NamedTimer(4, self.CyclicalTasks)
+            self.timers['frequent'].start()
+        except:
+            print_exc()
             
     def InfrequentCyclicalTasks(self, update = True):
         if update:           
@@ -271,7 +277,7 @@ class ABCScheduler(DelayedEventHandler):
             self.UpdateRunningTorrentCounters()
         # Only invoke the scheduler if we're not shutting down
         if invokeLater:
-            self.invokeLater(self.Scheduler)
+            wx.CallAfter(self.Scheduler)
       
     def updateTorrentList(self):
         torrentconfig = self.utility.torrentconfig
@@ -538,7 +544,7 @@ class ABCScheduler(DelayedEventHandler):
         self.utility.torrentconfig.Flush()
 
     def addTorrentFromFileCallback(self,data,caller=''):
-        self.invokeLater(self.doAddTorrentFromFile,[data],{'caller':caller})
+        wx.CallAfter(self.doAddTorrentFromFile,[data],{'caller':caller})
 
     def doAddTorrentFromFile(self,data,caller=''):
         self.addtorrents.AddTorrentFromFile(data,caller=caller)
@@ -546,7 +552,7 @@ class ABCScheduler(DelayedEventHandler):
         self.guiUtility.standardLibraryOverview()
         
     def checkAutoShutdownTorrents(self):
-        self.invokeLater(self.utility.actionhandler.procCHECK_AUTOSHUTDOWN)
+        wx.CallAfter(self.utility.actionhandler.procCHECK_AUTOSHUTDOWN)
         
     def getMaxMeasuredUploadRate(self):
         return int(self.maxmeasuredul / 1024.0)
@@ -555,7 +561,7 @@ class ABCScheduler(DelayedEventHandler):
         """ Can be called by any thread """
         print >>sys.stderr,"scheduler: Reactivating downloads"
         self.doneflag.clear()
-        self.invokeLater(self.Scheduler)
+        wx.CallAfter(self.Scheduler)
     
 def NamedTimer(*args,**kwargs):
     t = Timer(*args,**kwargs)
