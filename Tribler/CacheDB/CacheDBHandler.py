@@ -225,6 +225,8 @@ class PeerDBHandler(BasicDBHandler):
             keys.remove('permid')
         else:
             permid = False
+            
+        count = 0
         for peer in peer_list:
             p = self.peer_db.getItem(peer)
             if not p:
@@ -236,6 +238,10 @@ class PeerDBHandler(BasicDBHandler):
             for key in keys:
                 d[key] = p[key]
             peers.append(d)
+            
+            count += 1
+            if count % 1000 == 0:
+                print >>sys.stderr,"peerdb: Read items",count,currentThread().getName() 
         
         return peers
         
@@ -501,6 +507,7 @@ class TorrentDBHandler(BasicDBHandler):
         key_num_owners = 'key_num_owners'
         
         torrents = []
+        count = 0
 #        num_live_torrents = 0 
         setOfInfohashes = Set()
         for torrent in all_list:
@@ -530,6 +537,10 @@ class TorrentDBHandler(BasicDBHandler):
                 p[key_num_owners] = self.owner_db.getNumOwners(torrent)
                 
             torrents.append(p)
+            
+            count += 1
+            if count % 1000 == 0:
+                print >>sys.stderr,"torrentdb: Read items",count,currentThread().getName()
             
         del all_list
         del setOfInfohashes

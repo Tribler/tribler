@@ -66,11 +66,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
 
             def run(self):
                 try:
-                    #print >> sys.stderr, '[StartUpDebug]----------- thread data loading started'
-                    #first load torrent data from database
-                    self.owner.data_manager.loadData()
-                    #print >> sys.stderr, '[StartUpDebug]----------- thread torrent data loaded'
-                    #then load the peer data
+                    #first load the peer data
                     peer_list = None
                     #wait for buddycast list only if the recommender is enabled
                     bcactive = self.owner.utility.config.Read('enablerecommender', "boolean")
@@ -80,6 +76,13 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                         peer_list = self.owner.utility.buddycast.getAllPeerList()
                         if DEBUG:
                             print >>sys.stderr,"standardOverview: Buddycast signals it has loaded, release data for GUI thread", len(peer_list), currentThread().getName()
+                            
+                    #print >> sys.stderr, '[StartUpDebug]----------- thread data loading started'
+                    #first load torrent data from database
+                    self.owner.data_manager.loadData()
+                    #print >> sys.stderr, '[StartUpDebug]----------- thread torrent data loaded'
+                            
+                            
     #                self.owner.sortData(self.owner.prepareData(buddycast_peer_list))
                     #this initialization can be done in another place also
                     data = self.owner.peer_manager.prepareData(peer_list)
@@ -89,6 +92,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             #        print "<mluc> ################### size of data is ",len(self.filtered_data['all'])
                     self.owner.peer_manager.isDataPrepared = True
                     #print >> sys.stderr, '[StartUpDebug]----------- thread peer data loaded'
+                    
                 except:
                     print_exc()
                 wx.CallAfter(self.owner.filterChanged)

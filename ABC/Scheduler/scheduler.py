@@ -32,6 +32,7 @@ class ABCScheduler(DelayedEventHandler):
     def __init__(self, utility):
         DelayedEventHandler.__init__(self)
         self.doneflag = Event()
+        self.doneflag.set()
         
         self.utility = utility
         self.utility.queue = self
@@ -55,6 +56,8 @@ class ABCScheduler(DelayedEventHandler):
     def postInitTasks(self,argv):
         # Read old list from torrent.lst
         ####################################
+        self.utility.frame.numberPersons.SetLabel('loading..')
+        self.utility.frame.numberFiles.SetLabel('loading..')
         try:
             self.addtorrents.readTorrentList(argv)
         except:
@@ -321,6 +324,8 @@ class ABCScheduler(DelayedEventHandler):
             return
         self.doneflag.set()
         
+        print >>sys.stderr,"scheduler: SCHEDULER"
+        
         numsimdownload = self.utility.config.Read('numsimdownload', "int")
             
         # Max number of torrents to start
@@ -546,6 +551,11 @@ class ABCScheduler(DelayedEventHandler):
     def getMaxMeasuredUploadRate(self):
         return int(self.maxmeasuredul / 1024.0)
     
+    def enableScheduling(self):
+        """ Can be called by any thread """
+        print >>sys.stderr,"scheduler: Reactivating downloads"
+        self.doneflag.clear()
+        self.invokeLater(self.Scheduler)
     
 def NamedTimer(*args,**kwargs):
     t = Timer(*args,**kwargs)

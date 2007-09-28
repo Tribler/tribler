@@ -104,7 +104,13 @@ class TorrentDataManager:
         
     def loadData(self):
         try:
+            st = time()
             self.data = self.torrent_db.getRecommendedTorrents(light=True,all=True) #gets torrents with mypref
+            et = time()
+            diff = et-st
+            print >>sys.stderr,"torrentManager: getRec took",diff
+            
+            self.utility.queue.enableScheduling()
             
             self.category.register(self.metadata_handler)
             updated = self.category.checkResort(self) # the database is upgraded from v1 to v2
