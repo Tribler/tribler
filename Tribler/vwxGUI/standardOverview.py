@@ -79,7 +79,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                             
                     #print >> sys.stderr, '[StartUpDebug]----------- thread data loading started'
                     #first load torrent data from database
-                    self.owner.data_manager.loadData()
+                    self.owner.data_manager.loadData(self)
                     #print >> sys.stderr, '[StartUpDebug]----------- thread torrent data loaded'
                             
                             
@@ -95,6 +95,10 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                     
                 except:
                     print_exc()
+                wx.CallAfter(self.owner.data_manager.mergeData)
+                wx.CallAfter(self.owner.filterChanged)
+
+            def refreshView(self):
                 wx.CallAfter(self.owner.filterChanged)
 
         thr1=DataLoadingThread(self)

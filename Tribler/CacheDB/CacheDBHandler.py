@@ -482,7 +482,7 @@ class TorrentDBHandler(BasicDBHandler):
         return self.torrent_db._keys()
         
         
-    def getRecommendedTorrents(self, light=True, all=False):     
+    def getRecommendedTorrents(self, light=True, all=False, myprefs=False):     
         """ get torrents on disk but not in my pref
            BE AWARE: the returned object of this call may consume lots of memory.
            You should delete the object when possible
@@ -494,11 +494,15 @@ class TorrentDBHandler(BasicDBHandler):
         
         start_time = time()
         mypref_set = Set(self.mypref_db._keys())
-        
-        if all:
-            all_list = self.torrent_db._keys()
+
+        if myprefs:
+            all_list = mypref_set
         else:
-            all_list = Set(self.torrent_db._keys()) - mypref_set
+            if all:
+                all_list = self.torrent_db._keys()
+            else:
+                all_list = Set(self.torrent_db._keys()) - mypref_set
+            
 
         # Arno: save memory by reusing dict keys
         key_infohash = 'infohash'
@@ -525,7 +529,7 @@ class TorrentDBHandler(BasicDBHandler):
 #                if live != 'dead' and live != 'unknown':
 #                    num_live_torrents += 1
                     
-            if all and torrent in mypref_set:
+            if torrent in mypref_set:
                 p[key_myDownloadHistory] = True
                 mypref_obj = self.mypref_db.getItem(torrent)
                 if mypref_obj:

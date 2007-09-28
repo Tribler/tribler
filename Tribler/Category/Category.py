@@ -65,31 +65,19 @@ class Category (FlaglessDelayedEventHandler):
         
     # check to see whether need to resort torrent file
     # return bool
-    def checkResort(self, data_manager):
-        data = data_manager.data
-#===============================================================================
-#        if not data:
-#            data = data_manager.torrent_db.getRecommendedTorrents(all = True)
-#===============================================================================
+    def checkResort(self, data):
         if not data:
             return False
 
-#        data = data_manager.torrent_db.getRecommendedTorrents(all = True)
-#        self.reSortAll(data)
-#        return True
         torrent = data[0]
         if torrent["category"] == ["?"]:
-            #data = data_manager.torrent_db.getRecommendedTorrents(all = True)
             self.reSortAll(data)
-#            del data
             return True
         
         begin = time()
         for item in data:
             if len(item['category']) > 1:
-                #data = data_manager.torrent_db.getRecommendedTorrents(all = True)
                 self.reSortAll(data)
-#                del data
                 return True
         if DEBUG:
             print 'torrcoll: Checking of %d torrents costs: %f s' % (len(data), time() - begin)

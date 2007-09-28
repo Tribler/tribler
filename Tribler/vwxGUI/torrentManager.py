@@ -10,6 +10,13 @@
 import os
 import sys
 from base64 import encodestring
+from copy import deepcopy
+from traceback import print_exc, print_stack
+from time import time
+from bisect import insort
+from sets import Set
+from threading import Event
+
 from Tribler.utilities import friendly_time, sort_dictlist, remove_torrent_from_list, find_content_in_dictlist
 from Tribler.unicode import str2unicode, dunno2unicode
 from Utility.constants import * #IGNORE:W0611
@@ -18,11 +25,6 @@ from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
 from Tribler.CacheDB.CacheDBHandler import OwnerDBHandler
 from Tribler.Overlay.MetadataHandler import MetadataHandler
 from Tribler.CacheDB.EditDist import editDist
-from copy import deepcopy
-from traceback import print_exc, print_stack
-from time import time
-from bisect import insort
-from sets import Set
 from Tribler.Search.KeywordSearch import KeywordSearch
 try:
     import web2
@@ -65,8 +67,9 @@ class TorrentDataManager:
         self.done_init = False
         self.utility = utility
         self.rankList = []
-        self.isDataPrepared = False
+        self.isDataPrepared = Event()
         self.data = []
+        self.complete_data = [] # temporary storage
         self.hits = []
         self.remoteHits = None
         self.dod = None
@@ -102,29 +105,66 @@ class TorrentDataManager:
         self.owner_db = OwnerDBHandler()
         self.category = Category.getInstance()
         
-    def loadData(self):
+    def loadData(self,parent):
+        """ Called by DataLoadingThread (see standardOverview) """
         try:
+            # Arno: 1. load my prefs first, so library can be shown
+            self.data = self.torrent_db.getRecommendedTorrents(light=True,myprefs=True)
+            self.prepareData(self.data,rank=False)
+            self.isDataPrepared.set()
+            parent.refreshView()
+
+            # 2. Load complete torrent db in temp data structure
+            print >>sys.stderr,"torrentManager: getRec: start"
             st = time()
-            self.data = self.torrent_db.getRecommendedTorrents(light=True,all=True) #gets torrents with mypref
+            self.complete_data = self.torrent_db.getRecommendedTorrents(light=True,all=True) #gets torrents with mypref
             et = time()
             diff = et-st
             print >>sys.stderr,"torrentManager: getRec took",diff
             
+            # 3. Start torrents
             self.utility.queue.enableScheduling()
             
+            # 4. Do remainder of work
             self.category.register(self.metadata_handler)
-            updated = self.category.checkResort(self) # the database is upgraded from v1 to v2
+            updated = self.category.checkResort(self.complete_data) # the database is upgraded from v1 to v2
             if updated:
-                self.data = self.torrent_db.getRecommendedTorrents(light=False,all=True)
-            self.prepareData()
-            self.isDataPrepared = True
+                self.complete_data = self.torrent_db.getRecommendedTorrents(light=False,all=True)
+            self.prepareData(self.complete_data)
         except:
             print_exc()
             raise Exception('Could not load torrent data !!')
-    
-    def prepareData(self):
+
+
+    def mergeData(self):
+        """ Called by MainThread """
+        print >>sys.stderr,"torrentManager: mergeData"
+        infohashes = []
         
-        for torrent in self.data:      
+        # Which torrents are already in self.data?
+        for torrent in self.data:
+            infohashes.append(torrent['infohash'])
+
+        # Delete already loaded torrents from complete_data    
+        i = 0
+        while i < len(self.complete_data):
+            if self.complete_data[i]['infohash'] in infohashes:
+                print >>sys.stderr,"torrentManager: mergeData: Removing",`self.complete_data[i]['content_name']`
+                del self.complete_data[i]
+            else:
+                i += 1
+            
+            if i % 1000 == 0:
+                print >> sys.stderr,"torrentManager: mergeData: Purged items",i
+            
+        # Add complete_data to self.data
+        self.data.extend(self.complete_data)
+
+    
+    def prepareData(self,data,rank=True):
+        
+        count = 0
+        for torrent in data:      
             # prepare to display
             torrent = self.prepareItem(torrent)
             self.info_dict[torrent["infohash"]] = torrent
@@ -134,8 +174,13 @@ class TorrentDataManager:
                 self.title_dict[beginTitle].append(torrent)
             else:
                 self.title_dict[beginTitle] = [torrent]
-            self.updateRankList(torrent, 'add', initializing = True)
-        #self.printRankList()
+            if rank:
+                self.updateRankList(torrent, 'add', initializing = True)
+                #self.printRankList()
+        
+            count += 1
+            if count % 1000 == 0:
+                print >>sys.stderr,"torrentManager: prepared item",count
         
     def getDownloadHistCount(self):
         #[mluc]{26.04.2007} ATTENTION: data is not updated when a new download starts, although it should
@@ -288,12 +333,13 @@ class TorrentDataManager:
             print >>sys.stderr,'torrentDataManager: UnregisteredAll function %s (%d unregisters)' % (fun.__name__, rem)
             
     def updateFun(self, infohash, operate):
+        
         if not self.done_init:    # don't call update func before init finished
             return
-        if not self.isDataPrepared:
+        if not self.isDataPrepared.isSet():
             return
         if DEBUG:
-            print "torrentDataManager: updateFun called, param", operate
+            print "torrentDataManager: updateFun called, param", operate,currentThread().getName()
         if self.info_dict.has_key(infohash):
             if operate == 'add':
                 self.addItem(infohash)
@@ -303,7 +349,7 @@ class TorrentDataManager:
                 self.deleteItem(infohash)
         else:
             if operate == 'update' or operate == 'delete':
-                return
+                pass
             else:
                 self.addItem(infohash)
                 
