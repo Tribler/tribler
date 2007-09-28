@@ -139,6 +139,39 @@ class TorrentDataManager:
             print_exc()
             raise Exception('Could not load torrent data !!')
 
+    def prepareData(self,data,rank=True):
+        
+        count = 0
+        for torrent in data:      
+            # prepare to display
+            torrent = self.prepareItem(torrent)
+            self.info_dict[torrent["infohash"]] = torrent
+            # save dict for similar titles search
+            beginTitle = torrent['content_name'][:self.titleIndexLength].lower()
+            if self.title_dict.has_key(beginTitle):
+                self.title_dict[beginTitle].append(torrent)
+            else:
+                self.title_dict[beginTitle] = [torrent]
+            if rank:
+                self.updateRankList(torrent, 'add', initializing = True)
+                #self.printRankList()
+        
+            count += 1
+            if count % 1000 == 0:
+                print >>sys.stderr,"torrentManager: prepared item",count
+                self.loading_count = self.loading_count_db + count/2
+
+        count = 0
+        for torrent in data:      
+            # prepare to display
+            torrent = self.cleanItem(torrent)
+
+            count += 1
+            if count % 1000 == 0:
+                print >>sys.stderr,"torrentManager: clean item",count
+                self.loading_count = self.loading_count_db + count/2
+
+
     def loadingCountCallback(self,count):
         self.loading_count = count/2
         self.loading_count_db = self.loading_count 
@@ -168,28 +201,6 @@ class TorrentDataManager:
         self.data.extend(self.complete_data)
         self.is_data_merged = True
 
-    
-    def prepareData(self,data,rank=True):
-        
-        count = 0
-        for torrent in data:      
-            # prepare to display
-            torrent = self.prepareItem(torrent)
-            self.info_dict[torrent["infohash"]] = torrent
-            # save dict for similar titles search
-            beginTitle = torrent['content_name'][:self.titleIndexLength].lower()
-            if self.title_dict.has_key(beginTitle):
-                self.title_dict[beginTitle].append(torrent)
-            else:
-                self.title_dict[beginTitle] = [torrent]
-            if rank:
-                self.updateRankList(torrent, 'add', initializing = True)
-                #self.printRankList()
-        
-            count += 1
-            if count % 1000 == 0:
-                print >>sys.stderr,"torrentManager: prepared item",count
-                self.loading_count = self.loading_count_db + count/2
         
     def getDownloadHistCount(self):
         #[mluc]{26.04.2007} ATTENTION: data is not updated when a new download starts, although it should
@@ -486,10 +497,15 @@ class TorrentDataManager:
         torrent[key_leecher] = torrent.get('leecher', -1)
         torrent[key_seeder] = torrent.get('seeder', -1)
         torrent[key_swarmsize] = torrent['seeder'] + torrent['leecher']
-        if torrent.has_key('simRank'):
-            raise Exception('simRank in database!')
-            del torrent['simRank']
-            
+
+        # No deletions here, that slows down enormously
+        
+        # Thumbnail is read from file only when it is shown on screen by
+        # thumbnailViewer or detailsPanel
+        return torrent
+
+
+    def cleanItem(self, torrent):    # change self.data
         # Arno: to save mem I delete some fields here
         del torrent['info']
         
@@ -498,10 +514,7 @@ class TorrentDataManager:
             #print "torrentManager: deleting torrent_dir"
             del torrent['torrent_dir']
             del torrent['torrent_name']
-        
-        # Thumbnail is read from file only when it is shown on screen by
-        # thumbnailViewer or detailsPanel
-        return torrent
+
          
     def updateRankList(self, torrent, operate, initializing = False):
         "Update the ranking list, so that it always shows the top20 most similar torrents"
