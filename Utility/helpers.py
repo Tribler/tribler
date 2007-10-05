@@ -219,17 +219,25 @@ except:
                     mystdin, mystdout = os.popen2("dir " + "\"" + path + "\"")
                     
                     sizestring = "0"
-                
+
+                    #change by vincent (for Dutch-WinXP)
+                    index = -1
+
+                    #Last line with 'bytes' in it should be available space
                     for line in mystdout:
                         line = line.strip()
-                        index = line.rfind("bytes free")
-                        if index > -1 and line[index:] == "bytes free":
-                            parts = line.split(" ")
-                            if len(parts) > 3:
-                                part = parts[-3]
-                                part = part.replace(",", "")
-                                sizestring = part
-                                break
+                        index = line.rfind("bytes")
+                    
+                    #Found the substring 'bytes'?
+                    if index > -1:
+                        parts = line.split(" ")
+                        #Third word from the right is freespace string
+                        if len(parts) > 3:
+                            part = parts[-3]
+                            part = part.replace(",", "")    #English
+                            part = part.replace(".", "")    #Dutch
+                            sizestring = part
+                    #end of change by vincent
 
                     size = long(sizestring)                    
                     

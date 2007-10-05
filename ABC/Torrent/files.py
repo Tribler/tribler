@@ -385,15 +385,19 @@ class TorrentFiles:
             ## see if we're saving to a subdirectory or not
             existing = 0
             try:
-              if os.path.exists(dest):
-                if not os.path.isdir(dest):
-                    dest = None
-                if os.listdir(dest):  # if it's not empty
-                    for x in self.torrent.info['files']:
-                        if os.path.exists(os.path.join(dest, x['path'][0])):
-                            existing = 1
-                    if not existing:
-                        dest = os.path.join(dest, self.filename)
+                if os.path.exists(dest):
+                    if not os.path.isdir(dest):
+                        dest = None
+                    if os.listdir(dest):  # if it's not empty
+                        #Caching by Vincent
+                        cache = []
+                        for x in self.torrent.info['files']:
+                            if x['path'][0] not in cache:
+                                cache.append(x['path'][0])  #cache
+                                if os.path.exists(os.path.join(dest, x['path'][0])):
+                                    existing = 1            #No need to set if item is in cache (then it is set already)
+                        if not existing:
+                            dest = os.path.join(dest, self.filename)
             except UnicodeEncodeError:
                 return dest
         elif pathonly:
