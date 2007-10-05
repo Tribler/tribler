@@ -1261,7 +1261,7 @@ class DummySingleInstanceChecker:
     def IsAnotherRunning(self):
         "Uses pgrep to find other tribler.py processes"
         # If no pgrep available, it will always start tribler
-        progressInfo = commands.getoutput('pgrep -fl tribler.py | grep -v pgrep')
+        progressInfo = commands.getoutput('pgrep -fl "tribler\.py" | grep -v pgrep')
         numProcesses = len(progressInfo.split('\n'))
         if DEBUG:
             print 'ProgressInfo: %s, num: %d' % (progressInfo, numProcesses)
