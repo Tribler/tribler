@@ -14,11 +14,14 @@ from Tribler.Overlay.SecureOverlay import OLPROTO_VER_FIFTH
 MAX_BARTERCAST_LENGTH = 10 * 1024 * 1024 # TODO: give this length a reasonable value
 NO_PEERS_IN_MSG = 10
 
-DEBUG = False
+DEBUG = True
+LOG = True
 
 def now():
     return int(time())
     
+    
+
 class BarterCastCore:
 
     ################################
@@ -30,11 +33,12 @@ class BarterCastCore:
         self.secure_overlay = secure_overlay
         self.bartercastdb = BarterCastDBHandler()
         self.buddycast_core = None
-        
         self.network_delay = 30
         self.send_block_list = {}
         self.recv_block_list = {}
-        self.block_interval = 1*60*60   # block interval for a peer to barter   cast
+        self.block_interval = 1*60*60   # block interval for a peer to bartercast
+        
+        self.logfile = 'bartercast.log'
         
         if self.log:
             self.overlay_log = OverlayLogger(self.log)
@@ -43,17 +47,13 @@ class BarterCastCore:
     ################################
     def createAndSendBarterCastMessage(self, target_permid, selversion, active = False):
 
-
         # for older versions of Tribler (non-BarterCast): do nothing
         if selversion <= OLPROTO_VER_FIFTH:
             return
 
-        if DEBUG:
-            print "Sending BarterCast msg to ", self.bartercastdb.getName(target_permid)
-
         # create a new bartercast message
         bartercast_data = self.createBarterCastMessage(target_permid)
-
+        
         try:
             bartercast_msg = bencode(bartercast_data)
         except:
@@ -96,6 +96,13 @@ class BarterCastCore:
         if exc is None:
             if DEBUG:
                 print "%s bartercast: *** msg was sent successfully to peer %s" % (ctime(now()), self.bartercastdb.getName(target_permid))
+            
+            if LOG:
+                log = open(self.logfile, 'a')
+                line = '%d SEND (%s)\n' % (now(), permid_for_user(target_permid))
+                log.write(line)
+                log.close()
+        
         else:
             if DEBUG:
                 print "%s bartercast: *** warning - error in sending msg to %s" % (ctime(now()), self.bartercastdb.getName(target_permid))
@@ -107,6 +114,12 @@ class BarterCastCore:
         
         if DEBUG:
             print '%s bartercast: Received a BarterCast msg from %s'% (ctime(now()), self.bartercastdb.getName(sender_permid))
+            
+        if LOG:
+            log = open(self.logfile, 'a')
+            line = '%d RECV (%s)\n' % (now(), permid_for_user(sender_permid))
+            log.write(line)
+            log.close()
             
         if not sender_permid or sender_permid == self.bartercastdb.my_permid:
             print >> sys.stderr, "bartercast: error - got BarterCastMsg from a None peer", \
@@ -169,22 +182,23 @@ class BarterCastCore:
     ################################
     def handleBarterCastMsg(self, sender_permid, data):
         
-        if DEBUG:
-            print "Processing bartercast msg from: ", self.bartercastdb.getName(sender_permid)
-        
         # process bartercast data in database
         for permid in data.keys():
             
             data_to = data[permid]['u']
             data_from = data[permid]['d']
-            
-            if DEBUG:
-                print "BarterCast data: (%s, %s) up = %d down = %d" % (self.bartercastdb.getName(sender_permid), self.bartercastdb.getName(permid),\
-                                                                        data_to, data_from)
 
             # update database sender->permid and permid->sender
             self.bartercastdb.updateItem((sender_permid, permid), 'uploaded', data_to)
             self.bartercastdb.updateItem((sender_permid, permid), 'downloaded', data_from)
+
+            if LOG:
+                log = open(self.logfile, 'a')
+                line = '%d RECV_ENTRY (%s,%s) %d %d\n' % (now(), permid_for_user(sender_permid), permid_for_user(permid), data_to, data_from)
+                log.write(line)
+                log.close()
+
+        self.bartercastdb.sync()
             
 
     ################################
@@ -197,8 +211,6 @@ class BarterCastCore:
             return
 
         self.createAndSendBarterCastMessage(target_permid, selversion)
-
-
 
 
     # Blocking functions (similar to BuddyCast):
@@ -224,5 +236,5 @@ class BarterCastCore:
         unblock_time = now() + block_interval
         block_list[peer_permid] = unblock_time
         
-        if DEBUG:
-            print '%s bartercast: Blocked peer %s'% (ctime(now()), self.bartercastdb.getName(peer_permid))
+#        if DEBUG:
+#            print '%s bartercast: Blocked peer %s'% (ctime(now()), self.bartercastdb.getName(peer_permid))

@@ -404,6 +404,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         return True
     
     def _PostInit(self):
+        
         # Do all init here
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
@@ -1017,6 +1018,7 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
         self.error = None
         wx.App.__init__(self, x)
         
+        
     def OnInit(self):
         try:
             self.utility = Utility(self.abcpath)
@@ -1319,5 +1321,6 @@ def run(params = None):
         os._exit(0)
 
 if __name__ == '__main__':
+    
     run()
 

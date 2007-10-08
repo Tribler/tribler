@@ -13,7 +13,6 @@ from Tribler.Overlay.permid import permid_for_user
 from sets import Set
 from Tribler.utilities import show_permid_shorter
 
-from Tribler.utilities import show_permid_shorter
 
 DEBUG = False
 
@@ -1005,15 +1004,8 @@ class BarterCastDBHandler(BasicDBHandler):
             permid_from = permid_1
             permid_to = permid_2
 
-        item = self.bartercast_db.hasItem((permid_from, permid_to))        
+        return self.bartercast_db.hasItem((permid_from, permid_to))        
 
-        if reverse:
-            down = item['downloaded']
-            up = item['uploaded']
-            item['downloaded'] = up
-            item['uploaded'] = down
-
-        return item
 
 
     def updateItem(self, (permid_1, permid_2), key, value):
@@ -1032,7 +1024,7 @@ class BarterCastDBHandler(BasicDBHandler):
             permid_to = permid_2
 
         if DEBUG:
-            print "BarterCast: update (%s, %s) [%s] += %s" % (self.getName(permid_from), self.getName(permid_to), key, str(value))
+            print "BarterCast: update (%s, %s) [%s] = %s" % (self.getName(permid_from), self.getName(permid_to), key, str(value))
 
         self.bartercast_db.updateItem((permid_from, permid_to), {key:value})
 

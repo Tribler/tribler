@@ -183,6 +183,7 @@ debug = False    # for status
 MAX_BUDDYCAST_LENGTH = 10*1024    # 10 KByte
 REMOTE_SEARCH_PEER_NTORRENTS_THRESHOLD = 100    # speedup finding >=4.1 peers in this version
 
+BARTERCAST_CRAWLER = True
 
 def now():
     return int(time())
@@ -314,6 +315,8 @@ class BuddyCastFactory:
         start > 24hour: interval = 60
         other: interval = 15
         """
+        if BARTERCAST_CRAWLER:
+            return 1
         
         past = now() - self.start_time
         if past < 2*60:
@@ -336,7 +339,7 @@ class BuddyCastFactory:
     def handleMessage(self, permid, selversion, message):
         if not self.registered or not self.running:
             return False
-        
+            
         t = message[0]
         
         if t == BUDDYCAST:

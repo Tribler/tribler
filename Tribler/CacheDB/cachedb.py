@@ -1060,7 +1060,7 @@ class BarterCastDB(BasicDB):
     def updateItem(self, (permid_from, permid_to), item={}, update_time=True):    # insert a peer; update it if existed
 
         if isValidPermid(permid_from) and isValidPermid(permid_to) and validDict(item):
-
+            
             key = bencode((permid_from, permid_to))
             if self._has_key(key):
                 _item = self.getItem((permid_from, permid_to))
@@ -1070,6 +1070,7 @@ class BarterCastDB(BasicDB):
                 if update_time:
                     _item.update({'last_seen':int(time())})
                 self._updateItem(key, _item)
+                
             else:
                 item = self.setDefaultItem(item)
                 if update_time:
