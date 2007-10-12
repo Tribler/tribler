@@ -54,190 +54,6 @@ except:
     True = 1
     False = 0
 
-DEFAULTPORT=7762  # Arno: see Utility/configreader.py and Utility/utility.py
-
-defaults = [
-    ('max_uploads', 7,
-        "the maximum number of uploads to allow at once."),
-    ('keepalive_interval', 120.0,
-        'number of seconds to pause between sending keepalives'),
-    ('download_slice_size', 2 ** 14,
-        "How many bytes to query for per request."),
-    ('upload_unit_size', 1460,
-        "when limiting upload rate, how many bytes to send at a time"),
-    ('request_backlog', 10,
-        "maximum number of requests to keep in a single pipe at once."),
-    ('max_message_length', 2 ** 23,
-        "maximum length prefix encoding you'll accept over the wire - larger values get the connection dropped."),
-    ('ip', '',
-        "ip to report you have to the tracker."),
-    ('minport', 10000, 'minimum port to listen on, counts up if unavailable'),
-    ('maxport', 60000, 'maximum port to listen on'),
-    ('random_port', 1, 'whether to choose randomly inside the port range ' +
-        'instead of counting up linearly'),
-    ('responsefile', '',
-        'file the server response was stored in, alternative to url'),
-    ('url', '',
-        'url to get file from, alternative to responsefile'),
-    ('selector_enabled', 1,
-        'whether to enable the file selector and fast resume function'),
-    ('expire_cache_data', 10,
-        'the number of days after which you wish to expire old cache data ' +
-        '(0 = disabled)'),
-    ('priority', '',
-        'a list of file priorities separated by commas, must be one per file, ' +
-        '0 = highest, 1 = normal, 2 = lowest, -1 = download disabled'),
-    ('saveas', '',
-        'local file name to save the file as, null indicates query user'),
-    ('timeout', 300.0,
-        'time to wait between closing sockets which nothing has been received on'),
-    ('timeout_check_interval', 60.0,
-        'time to wait between checking if any connections have timed out'),
-    ('max_slice_length', 2 ** 17,
-        "maximum length slice to send to peers, larger requests are ignored"),
-    ('max_rate_period', 20.0,
-        "maximum amount of time to guess the current rate estimate represents"),
-    ('bind', '', 
-        'comma-separated list of ips/hostnames to bind to locally'),
-#    ('ipv6_enabled', autodetect_ipv6(),
-    ('ipv6_enabled', 0,
-         'allow the client to connect to peers via IPv6'),
-    ('ipv6_binds_v4', autodetect_socket_style(),
-        "set if an IPv6 server socket won't also field IPv4 connections"),
-    ('upnp_nat_access', 3,         # If you change this, look at BitTornado/launchmany/UPnPThread
-        'attempt to autoconfigure a UPnP router to forward a server port ' +
-        '(0 = disabled, 1 = mode 1 [fast,win32], 2 = mode 2 [slow,win32], 3 = mode 3 [any platform])'),
-    ('upload_rate_fudge', 5.0, 
-        'time equivalent of writing to kernel-level TCP buffer, for rate adjustment'),
-    ('tcp_ack_fudge', 0.03,
-        'how much TCP ACK download overhead to add to upload rate calculations ' +
-        '(0 = disabled)'),
-    ('display_interval', .5,
-        'time between updates of displayed information'),
-    ('rerequest_interval', 5 * 60,
-        'time to wait between requesting more peers'),
-    ('min_peers', 20, 
-        'minimum number of peers to not do rerequesting'),
-    ('http_timeout', 60, 
-        'number of seconds to wait before assuming that an http connection has timed out'),
-    ('max_initiate', 40,
-        'number of peers at which to stop initiating new connections'),
-    ('check_hashes', 1,
-        'whether to check hashes on disk'),
-    ('max_upload_rate', 0,
-        'maximum kB/s to upload at (0 = no limit, -1 = automatic)'),
-    ('max_download_rate', 0,
-        'maximum kB/s to download at (0 = no limit)'),
-    ('alloc_type', 'normal',
-        'allocation type (may be normal, background, pre-allocate or sparse)'),
-    ('alloc_rate', 2.0,
-        'rate (in MiB/s) to allocate space at using background allocation'),
-    ('buffer_reads', 1,
-        'whether to buffer disk reads'),
-    ('write_buffer_size', 4,
-        'the maximum amount of space to use for buffering disk writes ' +
-        '(in megabytes, 0 = disabled)'),
-    ('breakup_seed_bitfield', 1,
-        'sends an incomplete bitfield and then fills with have messages, '
-        'in order to get around stupid ISP manipulation'),
-    ('snub_time', 30.0,
-        "seconds to wait for data to come in over a connection before assuming it's semi-permanently choked"),
-    ('spew', 0,
-        "whether to display diagnostic info to stdout"),
-    ('rarest_first_cutoff', 2,
-        "number of downloads at which to switch from random to rarest first"),
-    ('rarest_first_priority_cutoff', 5,
-        'the number of peers which need to have a piece before other partials take priority over rarest first'),
-    ('min_uploads', 4,
-        "the number of uploads to fill out to with extra optimistic unchokes"),
-    ('max_files_open', 50,
-        'the maximum number of files to keep open at a time, 0 means no limit'),
-    ('round_robin_period', 30,
-        "the number of seconds between the client's switching upload targets"),
-    ('super_seeder', 0,
-        "whether to use special upload-efficiency-maximizing routines (only for dedicated seeds)"),
-    ('security', 1,
-        "whether to enable extra security features intended to prevent abuse"),
-    ('max_connections', 0,
-        "the absolute maximum number of peers to connect with (0 = no limit)"),
-    ('auto_kick', 1,
-        "whether to allow the client to automatically kick/ban peers that send bad data"),
-    ('double_check', 1,
-        "whether to double-check data being written to the disk for errors (may increase CPU load)"),
-    ('triple_check', 0,
-        "whether to thoroughly check data being written to the disk (may slow disk access)"),
-    ('lock_files', 1,
-        "whether to lock files the client is working with"),
-    ('lock_while_reading', 0,
-        "whether to lock access to files being read"),
-    ('auto_flush', 0,
-        "minutes between automatic flushes to disk (0 = disabled)"),
-#
-# Tribler extensions
-#
-# 2fastbt_
-#    ('max_control_connections', 0,
-#        "the absolute maximum number of connections with helpers (0 = no limit)"),
-    ('role', '', # 'helper', 'coordinator'
-        "role of the peer in the download"),
-    ('helpers_file', '',
-        "file with the list of friends"),
-    ('coordinator_permid', '',
-        "PermID of the cooperative download coordinator"),
-    ('exclude_ips', '',
-        "list of IP addresse to be excluded; comma separated"),
-# _2fastbt
-    ('cache', 1,
-        "use bsddb to cache peers and preferences"),
-    ('overlay', 1,
-        "create overlay swarm to transfer special messages"),
-    ('buddycast', 1,
-        "run buddycast recommendation system"),
-    ('start_recommender', 1,
-        "buddycast can be temp. disabled via this flag"),
-    ('download_help', 1,
-        "accept download help request"),
-    ('torrent_collecting', 1,
-        "automatically collect torrents"),
-    ('superpeer', 0,
-        "run in super peer mode (0 = disabled)"),
-    ('overlay_log', '',
-        "log on super peer mode ('' = disabled)"),
-    ('buddycast_interval', 15,
-        "number of seconds to pause between exchanging preference with a peer in buddycast"),
-    ('max_torrents', 5000,
-        "max number of torrents to collect"),
-    ('max_peers', 2000,
-        "max number of peers to use for recommender"),
-    ('torrent_collecting_rate', 5,
-        "max rate of torrent collecting (Kbps)"),
-    ('torrent_checking', 1,
-        "automatically check the health of torrents"),
-    ('torrent_checking_period', 60, 
-        "period for auto torrent checking"),
-    ('dialback', 1,
-        "use other peers to determine external IP address (0 = disabled)"),
-    ('dialback_active', 1,
-        "do active discovery (needed to disable for testing only) (0 = disabled)"),
-    ('dialback_trust_superpeers', 1,
-        "trust superpeer replies (needed to disable for testing only) (0 = disabled)"),
-    ('dialback_interval', 30,
-        "number of seconds to wait for consensus"),
-    ('socnet', 1,
-        "enable social networking (0 = disabled)"),
-    ('rquery', 1,
-        "enable remote query (0 = disabled)"),
-    ('stop_collecting_threshold', 200,
-        "stop collecting more torrents if the disk has less than this size (MB)"),
-    ('internaltracker', 1,
-        "enable internal tracker (0 = disabled)"),
-    ('vod', 0,
-        "download in video-on-demand mode (0 = disabled)"),
-    ('nickname', '__default_name__',
-        'the nickname you want to show to others'),
-    ('ut_pex_max_addrs_from_peer', 16,
-            "maximum number of addresses to accept from peer (0 = disabled PEX)")]
-
 
 argslistheader = 'Arguments are:\n\n'
 
@@ -337,8 +153,8 @@ def parse_params(params, presets = {}):
     return config
 
 
-def get_usage(defaults = defaults, cols = 100, presets = {}):
-    return (argslistheader + formatDefinitions(defaults, cols, presets))
+#def get_usage(defaults = defaults, cols = 100, presets = {}):
+#    return (argslistheader + formatDefinitions(defaults, cols, presets))
 
 
 def get_response(file, url, errorfunc):
@@ -391,8 +207,8 @@ def get_response(file, url, errorfunc):
 
 class BT1Download:    
     def __init__(self, statusfunc, finfunc, errorfunc, excfunc, doneflag, 
-                 config, response, infohash, id, rawserver, port, play_video,
-                 videoinfo, progressinf, videoanalyserpath, appdataobj = None, dht = None):
+                 config, response, infohash, id, rawserver, port,
+                 videoinfo, videoanalyserpath, appdataobj = None, dht = None):
         self.statusfunc = statusfunc
         self.finfunc = finfunc
         self.errorfunc = errorfunc
@@ -431,9 +247,8 @@ class BT1Download:
         self.rerequest = None
         self.tcp_ack_fudge = config['tcp_ack_fudge']
         
-        self.play_video = play_video or config['vod']
+        self.play_video = config['vod']
         self.videoinfo = videoinfo
-        self.progressinf = progressinf
         self.videoanalyserpath = videoanalyserpath
         self.voddownload = None
 
@@ -807,7 +622,7 @@ class BT1Download:
             if DEBUG:
                 print >>sys.stderr,"BT1Download: startEngine: Going into VOD mode",self.videoinfo
             self.movieselector = MovieSelector(self.videoinfo, self.fileselector, self.storagewrapper, self.picker)
-            self.voddownload = MovieOnDemandTransporter( self.movieselector, self.picker, self.info['piece length'], self.rawserver, self.progressinf, self.videoanalyserpath)
+            self.voddownload = MovieOnDemandTransporter( self.movieselector, self.picker, self.info['piece length'], self.rawserver, self.videoanalyserpath)
         elif DEBUG:
             print >>sys.stderr,"BT1Download: startEngine: Going into standard mode"
 

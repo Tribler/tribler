@@ -17,7 +17,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = False
+DEBUG = True
 
 def autodetect_ipv6():
     try:

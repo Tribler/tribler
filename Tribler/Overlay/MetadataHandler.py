@@ -16,7 +16,7 @@ from Tribler.unicode import name2unicode
 from Tribler.Category.Category import Category
 from Tribler.Dialogs.activities import ACT_GOT_METADATA, ACT_DISK_FULL
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
-from Utility.helpers import getfreespace
+from Utility.coreutils import getfreespace
 
 DEBUG = False
 

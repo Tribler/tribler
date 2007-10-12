@@ -24,21 +24,21 @@ STATE_AWAIT_R2 = 2
 STATE_AUTHENTICATED = 3
 STATE_FAILED = 4
 
-# Global variable holding our EC keypair
-_ec_keypair = None
-
 # Exported functions
-def init(config_dir = None):
-    Rand.load_file(get_rand_filename(config_dir.encode(sys.getfilesystemencoding())), -1) 
-    try:
-        read_keypair(config_dir)
-    except:
-        generate_keypair()
-        save_keypair(config_dir)
-        save_pub_key(config_dir)
+def init():
+    Rand.rand_seed(os.urandom(num_random_bits/8))
 
-def exit(config_dir = None):
-    Rand.save_file(get_rand_filename(config_dir.encode(sys.getfilesystemencoding())))
+def exit():
+    pass
+
+def generate_keypair():
+    ec_keypair=EC.gen_params(keypair_ecc_curve)
+    ec_keypair.gen_key()
+    return ec_keypair
+
+def read_keypair(keypairfilename):
+    return EC.load_key(keypairfilename)
+
 
 # def show_permid(permid):
 # See Tribler/utilities.py
@@ -48,53 +48,17 @@ def permid_for_user(permid):
     return encodestring(permid).replace("\n","")
 
 # For convenience
-def sign_data(plaintext):
-    global _ec_keypair
+def sign_data(plaintext,ec_keypair):
     digest = sha(plaintext).digest()
-    return _ec_keypair.sign_dsa_asn1(digest)
+    return ec_keypair.sign_dsa_asn1(digest)
 
 def verify_data(plaintext,permid,blob):
     pubkey = EC.pub_key_from_der(permid)
     digest = sha(plaintext).digest()
     return pubkey.verify_dsa_asn1(digest,blob)
 
-def get_my_keypair():
-    global _ec_keypair
-    return _ec_keypair
-    
 
 # Internal functions
-def generate_keypair():
-    global _ec_keypair
-    _ec_keypair=EC.gen_params(keypair_ecc_curve)
-    _ec_keypair.gen_key()
-
-def read_keypair(config_dir = None):
-    global _ec_keypair
-    _ec_keypair=EC.load_key(get_keypair_filename(config_dir))
-
-def save_keypair(config_dir = None):
-    global _ec_keypair
-    _ec_keypair.save_key(get_keypair_filename(config_dir), None)    
-
-def save_pub_key(config_dir = None):
-    global _ec_keypair
-    _ec_keypair.save_pub_key(get_pub_key_filename(config_dir))    
-
-def get_rand_filename(config_dir=None):
-    return make_filename(config_dir,'randpool.dat')
-
-def get_keypair_filename(config_dir=None):
-    return make_filename(config_dir,'ec.pem')
-
-def get_pub_key_filename(config_dir=None):
-    return make_filename(config_dir,'ecpub.pem')
-
-def make_filename(config_dir,filename):
-    if config_dir is None:
-        return filename
-    else:
-        return os.path.join(config_dir,filename)
 
 #
 # The following methods and ChallengeResponse class implement a

@@ -576,7 +576,7 @@ class MovieOnDemandTransporter(MovieTransport):
     # set the bitrate in movieselector.
     MINPLAYBACKRATE = 32*1024
 
-    def __init__(self,movieselector,piecepicker,piecesize,rawserver,progressinf,videoanalyserpath):
+    def __init__(self,movieselector,piecepicker,piecesize,rawserver,videoanalyserpath):
         self.movieselector = movieselector
         self.piecepicker = piecepicker
         self.piecesize = piecesize
@@ -606,8 +606,9 @@ class MovieOnDemandTransporter(MovieTransport):
         # on which pieces are in directly as for non-VOD torrents. The only
         # part of progress inf used here is to see when things become playable.
         # 
-        self.progressinf = progressinf
-        if progressinf:
+        # APICLEANUP
+        self.progressinf = None
+        if self.progressinf:
             self.bufferinfo = progressinf.get_bufferinfo()
             #self.bufferinfo.set_numpieces(self.movieselector.num_movie_pieces())
             self.bufferinfo.set_movieselector(movieselector)

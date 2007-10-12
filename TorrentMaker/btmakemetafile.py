@@ -32,31 +32,6 @@ from Tribler.Overlay.permid import create_torrent_signature
 from Tribler.unicode import str2unicode
 from Tribler.__init__ import TRIBLER_TORRENT_EXT
 
-defaults = [
-    ('announce_list', '', 
-        'a list of announce URLs - explained below'), 
-    ('httpseeds', '',
-        'a list of http seed URLs - explained below'),
-    ('piece_size_pow2', 0, 
-        "which power of 2 to set the piece size to (0 = automatic)"), 
-    ('comment', '', 
-        "optional human-readable comment to put in .torrent"), 
-    ('filesystem_encoding', '',
-        "optional specification for filesystem encoding " +
-        "(set automatically in recent Python versions)"),
-    ('target', '', 
-        "optional target file for the torrent"),
-    ('created by', '',
-        "optional information on who made the torrent"),
-    ('merkle_torrent', 0, 
-        "create a Merkle torrent instead of a regular torrent"),
-    ('playtime', '',
-        "optional play time for video torrents, format [h+:]mm:ss"),
-    ('thumb', '',
-        "image for video torrents, format: 171x96 JPEG")	
-    ]
-
-default_piece_len_exp = 18
 
 ignore = ['core', 'CVS']
 
