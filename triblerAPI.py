@@ -481,6 +481,9 @@ class Bindable:
     def bind(self,lock):
         self.bindlock.set(lock)
         
+    def get_configee(self):
+        return self.configee
+    
     def set_configee(self,configee):
         self.configee = configee
         
@@ -526,6 +529,13 @@ class NotYetImplementedException(TriblerException):
     
     def __init__(self):
         TriblerException.__init__(self)
+
+
+class DownloadIsStoppedException(TriblerException):
+    
+    def __init__(self):
+        TriblerException.__init__(self)
+
 
 
 class Session(Serializable):
@@ -579,7 +589,9 @@ class Session(Serializable):
         """ 
         Creates a Download object and adds it to the session. The passed 
         TorrentDef and DownloadConfig are copied into the new Download object
-        and the copies become bound.
+        and the copies become bound. If the tracker is not set in tdef, it
+        is set to the internal tracker (which must have been enabled in the 
+        session config)
         
         in:
         tdef = TorrentDef
@@ -759,13 +771,12 @@ class SessionConfig(Defaultable,Copyable,Serializable,Bindable):
     #
     # Internal method
     #
-    def _change_runtime_param(self,func):
+    def change_runtime_param(self,func):
         self.bindlock.acquire()
         try:
             func()
         finally:
             self.bindlock.release()
-        
         
 
 
@@ -829,6 +840,9 @@ class TorrentDef(Defaultable,Copyable,Serializable,Bindable):
     load = staticmethod(load)
         
     def _read(stream):
+        """ Internal class method that reads a torrent file from stream,
+        checks it for correctness and sets self.input and self.metainfo
+        accordingly """
         bdata = stream.read()
         stream.close()
         data = bdecode(bdata)
@@ -895,7 +909,7 @@ class TorrentDef(Defaultable,Copyable,Serializable,Bindable):
         playtime = (optional) String representing the duration of the multimedia
                    file when played, in [hh:]mm:ss format. 
         """
-        if self.isbound():
+        if self.is_bound():
             raise OperationNotPermittedWhenBoundException()
 
         s = os.stat(filename)
@@ -931,7 +945,7 @@ class TorrentDef(Defaultable,Copyable,Serializable,Bindable):
         
         exceptions: ...Error
         """
-        if self.isbound():
+        if self.is_bound():
             raise OperationNotPermittedWhenBoundException()
         
         f = open(thumbfilename,"rb")
@@ -949,7 +963,7 @@ class TorrentDef(Defaultable,Copyable,Serializable,Bindable):
         return ret
         
     def set_tracker(self,url):
-        if self.isbound():
+        if self.is_bound():
             raise OperationNotPermittedWhenBoundException()
 
         self.input['announce'] = url 
@@ -1057,13 +1071,14 @@ class DownloadConfig(Defaultable,Copyable,Serializable,Bindable):
         """
         ISSUE: How do session maximums and torrent maximums coexist?
         """
-        if not self.isbound():
+        if not self.is_bound():
             self.config['max_upload'] = speed
         else:
-            def change():
+            self.bindlock.acquire()
+            
                 self.configee.set_max_upload(speed)
                 self.config['max_upload'] = speed
-            self._change_runtime_param(change)
+            self.change_runtime_param(change)
 
 
     #
@@ -1097,18 +1112,11 @@ class DownloadConfig(Defaultable,Copyable,Serializable,Bindable):
 
 
     #
-    # Internal method
+    # Internal methods
     #
-    def _change_runtime_param(self,func):
-        self.bindlock.acquire()
-        ex = None
-        try:
-            func()
-        except Exception,e:
-            ex = e
-        self.bindlock.release()
-        if ex is not None:
-            raise ex
+        
+    def copy_dict(self):
+        return copy.copy(self.config)
         
         
 class Download:
@@ -1183,20 +1191,13 @@ class Download:
     def stop(self):
         self.bindlock.acquire()
         try:
-            # TODO: how do we access the BT1Download object?
-            raise NotYetImplementedException()
+            def stop_download():
+                self.dcfg.get_configee().shutdown()
+            self.rawserver.add_task(stop_download,0)
         finally:
             self.bindlock.release()
         
     def restart(self):
-        self.bindlock.acquire()
-        try:
-            raise NotYetImplementedException()
-        finally:
-            self.bindlock.release()
-
-        
-    def pause(self):
         self.bindlock.acquire()
         try:
             raise NotYetImplementedException()
@@ -1374,8 +1375,8 @@ class TriblerLaunchMany(Thread):
                 print >>sys.stderr,"tlm: add: got infohash + metainfo"
 
             
-            
-            kvconfig = d.get_config().config # DIRECT ACCESS
+            # Note: BT1Download is started with copy of self.scfg.config, not direct access
+            kvconfig = d.get_config().copy_dict() 
             listenport = self.scfg.get_listen_port()
             
             if DEBUG:
@@ -1555,7 +1556,9 @@ class SingleDownload:
     """ This class is accessed solely by the network thread """
     
     def __init__(self,infohash,metainfo,kvconfig,multihandler,listenport,videoanalyserpath):
+        self.restart(infohash,metainfo,kvconfig,multihandler,listenport,videoanalyserpath)
         
+    def restart(self,infohash,metainfo,kvconfig,multihandler,listenport,videoanalyserpath):
         self.dldoneflag = Event()
         
         # MUST NOT BE DONE MY ANY THREAD!
@@ -1620,6 +1623,25 @@ class SingleDownload:
 
         self.dow.startRerequester()
         self.rawserver.start_listening(self.dow.getPortHandler())
+
+
+    # DownloadConfig methods
+    def set_max_upload(self,speed):
+        if self.dow is None:
+            raise DownloadIsStopped()
+        
+        self.dow.setUploadRate(speed)
+
+
+    #
+    #
+    #
+    def shutdown(self):
+        if self.dow is not None:
+            self.dldoneflag.set()
+            self.rawserver.shutdown()
+            self.dow.shutdown()
+            self.dow = None
 
     #
     # Internal methods
@@ -1744,6 +1766,7 @@ if __name__ == "__main__":
     
     print >>sys.stderr,"main: TorrentDef is",tdef
     d = s.start_download(tdef)
+    d.get_config().set_max_upload(100)
     while True:
         print d.get_state().get_progress()
         time.sleep(5)

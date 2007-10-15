@@ -728,6 +728,7 @@ class BT1Download:
 
 
     def setUploadRate(self, rate):
+        """ Called by any thread, thread safe """
         try:
             def s(self = self, rate = rate):
                 self.config['max_upload_rate'] = rate
