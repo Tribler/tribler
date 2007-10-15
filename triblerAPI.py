@@ -176,6 +176,7 @@ import sha
 import socket
 from UserDict import DictMixin
 from threading import RLock,Event,Thread
+from traceback import print_exc,print_stack
 
 from BitTornado.__init__ import resetPeerIDs,createPeerID
 from BitTornado.RawServer import autodetect_socket_style
@@ -1126,8 +1127,8 @@ class Download:
         (infohash,metainfo) = self.tdef.finalize()
         kvconfig = self.dcfg.config
         
-        self.doneflag = Event()
-        self.rawserver = self.lm.multihandler.newRawServer(infohash,self.doneflag)
+        self.dldoneflag = Event()
+        self.rawserver = self.lm.multihandler.newRawServer(infohash,self.dldoneflag)
 
         """
         class BT1Download:    
@@ -1139,7 +1140,7 @@ class Download:
                         self._finishedfunc,
                         self._errorfunc, 
                         self._exceptionfunc,
-                        self.doneflag,
+                        self.dldoneflag,
                         kvconfig,
                         metainfo, 
                         infohash,
@@ -1176,7 +1177,7 @@ class Download:
             os.mkdir(path)
         return path
 
-    def hashcheck(self,complete_callback):
+    def perform_hashcheck(self,complete_callback):
         print >>sys.stderr,"Download: hashcheck()",self._hashcheckfunc
         self._hashcheckfunc(complete_callback)
     
@@ -1321,18 +1322,20 @@ class TriblerLaunchMany(Thread):
         self.locally_guessed_wanip = self.get_my_ip()
 
         # Orig
-        self.doneflag = Event()
+        self.sessdoneflag = Event()
         self.upnp_type = config['upnp_nat_access'] # TODO: use methods to read values?
         self.hashcheck_queue = []
         self.downloadtohashcheck = None
 
 
-        self.rawserver = RawServer(self.doneflag,
+        self.rawserver = RawServer(self.sessdoneflag,
                                    config['timeout_check_interval'],
                                    config['timeout'],
                                    ipv6_enable = config['ipv6_enabled'],
                                    failfunc = self.failfunc,
                                    errorfunc = self.exceptionfunc)
+        self.rawserver.add_task(self.rawserver_keepalive,1)
+        
         self.listen_port = self.rawserver.find_and_bind(0, 
                     config['minport'], config['maxport'], config['bind'], 
                     reuse = True,
@@ -1344,7 +1347,7 @@ class TriblerLaunchMany(Thread):
                                        config['upload_unit_size'])
         self.ratelimiter.set_upload_rate(config['max_upload_rate'])
 
-        self.multihandler = MultiHandler(self.rawserver, self.doneflag)
+        self.multihandler = MultiHandler(self.rawserver, self.sessdoneflag)
         #
         # Arno: disabling out startup of torrents, need to fix this
         # to let text-mode work again.
@@ -1428,6 +1431,10 @@ class TriblerLaunchMany(Thread):
             self.stop_upnp()
             self.rawserver.shutdown()
 
+    def rawserver_keepalive(self):
+        """ Hack to prevent rawserver sleeping in select() for a long time, not
+        processing any tasks on its queue at startup time """
+        self.rawserver.add_task(self.rawserver_keepalive,1)
 
     def get_my_ip(self):
         ip = get_my_wan_ip()
@@ -1476,10 +1483,10 @@ class TriblerLaunchMany(Thread):
     def dequeue_and_start_hashcheck(self):
         """ Start integriy check for first Download in queue"""
         self.downloadtohashcheck = self.hashcheck_queue.pop(0)
-        self.downloadtohashcheck.hashcheck(self.hashcheck_done)
+        self.downloadtohashcheck.perform_hashcheck(self.hashcheck_done)
 
     def hashcheck_done(self):
-        """ Integrity check for first Download done """
+        """ Integrity check for first Download in queue done """
         self.downloadtohashcheck.hashcheck_done()
         if self.hashcheck_queue:
             self.dequeue_and_start_hashcheck()

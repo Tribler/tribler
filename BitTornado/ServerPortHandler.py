@@ -218,6 +218,8 @@ class MultiHandler:
         del self.singlerawservers[info_hash]
 
     def listen_forever(self):
+        if DEBUG:
+            print >>sys.stderr,"MultiHandler: listen_forever()"
         self.rawserver.listen_forever(self)
         for srs in self.singlerawservers.values():
             srs.finished = True

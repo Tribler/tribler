@@ -78,6 +78,8 @@ class RawServer:
         insort(self.funcs, (clock() + delay, func, id))
 
     def add_task(self, func, delay = 0, id = None):
+        if DEBUG:
+            print >>sys.stderr,"rawserver: add_task(",func,delay,")"
         if delay < 0:
             delay = 0
         self.lock.acquire()
@@ -117,6 +119,8 @@ class RawServer:
         self.lock.release()
 
     def listen_forever(self, handler):
+        if DEBUG:
+            print >>sys.stderr,"rawserver: listen forever()"
         # handler=btlanuchmany: MultiHandler, btdownloadheadless: Encoder
         self.sockethandler.set_handler(handler)
         try:
@@ -131,6 +135,10 @@ class RawServer:
                     if period < 0:
                         period = 0
                     events = self.sockethandler.do_poll(period)
+                    
+                    if DEBUG:
+                        print >>sys.stderr,".",
+                    
                     if self.doneflag.isSet():
                         if DEBUG:
                             print >> sys.stderr,"rawserver: stopping because done flag set"
