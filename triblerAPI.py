@@ -102,6 +102,7 @@ All calls to Session, Download and DownloadState are thread safe.
 TODO: Define whether changes to runtime configs is synchronous, i.e., does
 dcfg.set_max_upload(100) sets the upload limit before returning, or 
 asynchronous. SOL: easiest is async, as network thread does actual changing
+2007-10-15: can use Download condition variable for synchronous perhaps? 
  
 
 ALTERNATIVE:
@@ -184,7 +185,7 @@ from BitTornado.bencode import bencode,bdecode
 from BitTornado.download_bt1 import BT1Download
 import Tribler.Overlay.permid
 from Tribler.NATFirewall.guessip import get_my_wan_ip
-from Tribler.utilities import find_prog_in_PATH
+from Tribler.utilities import find_prog_in_PATH,validTorrentFile
 
 
 from BitTornado.RawServer import RawServer
@@ -550,7 +551,6 @@ class Session(Serializable):
         else:
             self.scfg = scfg.copy()
             
-        print >>sys.stderr,"Session: scfg is",self.scfg
         self.scfg.bind(self.sesslock)
         
         # Core init
@@ -559,7 +559,7 @@ class Session(Serializable):
         if self.scfg.config['eckeypair'] is None:
             self.scfg.config['eckeypair'] = Tribler.Overlay.permid.generate_keypair()
         
-        self.lm = TriblerLaunchMany(self.scfg,self.sesslock)
+        self.lm = TriblerLaunchMany(self,self.scfg,self.sesslock)
         self.lm.start()
         
         self.scfg.set_configee(self.lm)
@@ -618,10 +618,11 @@ class Session(Serializable):
 
 
     def get_internal_tracker_url(self):
-        self.bindlock.acquire()
-        
-        self.bindlock.release()
-
+        """ Called by any thread """
+        ip = self.lm.get_ext_ip() #already thread safe
+        port = self.scfg.get_listen_port() # already thread safe
+        url = 'http://'+ip+':'+str(port)+'/announce/'
+        return url
 
     
 class SessionConfig(Defaultable,Copyable,Serializable,Bindable):  
@@ -697,8 +698,9 @@ class SessionConfig(Defaultable,Copyable,Serializable,Bindable):
         # runtime modifiable
         #
         self.bindlock.acquire()
-        return self.config['minport']
+        ret = self.config['minport']
         self.bindlock.release()
+        return ret
         
         
     def set_max_upload(self,speed):
@@ -721,9 +723,9 @@ class SessionConfig(Defaultable,Copyable,Serializable,Bindable):
 
     def get_video_analyser_path(self):
         self.bindlock.acquire()
-        return self.config['videoanalyserpath'] # strings immutable
+        ret = self.config['videoanalyserpath'] # strings immutable
         self.bindlock.release()
-
+        return ret
     
 
     #
@@ -731,13 +733,9 @@ class SessionConfig(Defaultable,Copyable,Serializable,Bindable):
     #
     def get_copy_of_default(*args,**kwargs):
         """ Not thread safe """
-        print >>sys.stderr,"SessionConfig::get_copy_of_default",SessionConfig._default
         if SessionConfig._default is None:
             SessionConfig._default = SessionConfig()
-            print >>sys.stderr,"SessionConfig::get_copy_of_default2",SessionConfig._default
-        c = SessionConfig._default.copy()
-        print >>sys.stderr,"SessionConfig::get_copy_of_default, copy is",c
-        return c
+        return SessionConfig._default.copy()
     get_copy_of_default = staticmethod(get_copy_of_default)
 
     def get_default():
@@ -835,14 +833,16 @@ class TorrentDef(Defaultable,Copyable,Serializable,Bindable):
         stream.close()
         data = bdecode(bdata)
         
+        validTorrentFile(data) # raises ValueErrors if not good
+        
         t = TorrentDef()
-        # TODO: integrity check
         t.metainfo = data
         t.metainfo_valid = True
         t.infohash = sha.sha(bencode(data['info'])).digest()
         # copy stuff into self.input 
-        #TODO
-        t.input = None # provoke error when used, so we know this is TODO
+        t.input = {}
+        t.input['announce'] = t.metainfo['announce']
+        # TODO: rest
         return t
     _read = staticmethod(_read)
 
@@ -941,6 +941,18 @@ class TorrentDef(Defaultable,Copyable,Serializable,Bindable):
         self.metainfo_valid = False
         
 
+    def get_tracker(self):
+        """ Returns 'announce' field """
+        self.bindlock.acquire()
+        ret = self.input['announce']
+        self.bindlock.release()
+        return ret
+        
+    def set_tracker(self,url):
+        if self.isbound():
+            raise OperationNotPermittedWhenBoundException()
+
+        self.input['announce'] = url 
         
     def finalize(self):
         """ Create BT torrent file from input and calculate infohash """
@@ -1059,13 +1071,9 @@ class DownloadConfig(Defaultable,Copyable,Serializable,Bindable):
     #
     def get_copy_of_default(*args,**kwargs):
         """ Not thread safe """
-        print >>sys.stderr,"DownloadConfig::get_copy_of_default",DownloadConfig._default
         if DownloadConfig._default is None:
             DownloadConfig._default = DownloadConfig()
-            print >>sys.stderr,"DownloadConfig::get_copy_of_default2",DownloadConfig._default
-        c = DownloadConfig._default.copy()
-        print >>sys.stderr,"DownloadConfig::get_copy_of_default, copy is",c
-        return c
+        return DownloadConfig._default.copy()
     get_copy_of_default = staticmethod(get_copy_of_default)
 
     def get_default():
@@ -1113,7 +1121,7 @@ class Download:
     #
     # Internal method
     #
-    def __init__(self,scfg,lm,tdef,dcfg=None):
+    def __init__(self,scfg,lm,tdef,dcfg=None,itrackerurl=None):
         """
         Create a Download object. Used internally by Session. Copies tdef and 
         dcfg and binds them to this download.
@@ -1131,6 +1139,11 @@ class Download:
             self.dcfg = DownloadConfig.get_copy_of_default()
         else:
             self.dcfg = dcfg.copy()
+
+        # Do before bind, simpler
+        tracker = self.tdef.get_tracker()
+        if tracker == '':
+            self.tdef.set_tracker(itrackerurl)
         
         self.tdef.bind(self.cond)
         self.dcfg.bind(self.cond)
@@ -1141,7 +1154,7 @@ class Download:
         self.dcfg.config['ip'] = lm.get_ext_ip()
         
         self.tdef.finalize()
-
+        
     
     #
     # Public methods
@@ -1246,12 +1259,13 @@ class DownloadState:
 
 class TriblerLaunchMany(Thread):
     
-    def __init__(self,scfg,sesslock):
+    def __init__(self,session,scfg,sesslock):
         """ Called only once (unless we have multiple Sessions) """
         Thread.__init__(self)
         self.setDaemon(True)
         self.setName("Network"+self.getName())
         
+        self.session = session
         self.scfg = scfg
         self.sesslock = sesslock
         
@@ -1337,7 +1351,7 @@ class TriblerLaunchMany(Thread):
 
     def add(self,tdef,dcfg):
         """ Called by any thread """
-        d = Download(self.scfg,self,tdef,dcfg)
+        d = Download(self.scfg,self,tdef,dcfg,self.session.get_internal_tracker_url())
         func = lambda:self.create_download_callback(d)
         self.rawserver.add_task(func,0)
         
@@ -1349,27 +1363,51 @@ class TriblerLaunchMany(Thread):
 
     def create_download_callback(self,d):
         """ Called by network thread """
-        
-        infohash = d.get_def().get_infohash()
-        metainfo = d.get_def().get_metainfo()
-        kvconfig = d.get_config().config # DIRECT ACCESS
-        listenport = self.scfg.get_listen_port()
-        vapath = self.scfg.get_video_analyser_path()
-        sd = SingleDownload(infohash,metainfo,kvconfig,self.multihandler,listenport,vapath)
-        d.set_configee(sd)
-        self.queue_for_hashcheck(sd)
-        if DEBUG:
-            print >>sys.stderr,"engine: start: after hashchecksched"
+        try:
+            if DEBUG:
+                print >>sys.stderr,"tlm: add()"
+            
+            infohash = d.get_def().get_infohash()
+            metainfo = d.get_def().get_metainfo()
+            
+            if DEBUG:
+                print >>sys.stderr,"tlm: add: got infohash + metainfo"
 
-        # store in list of Downloads
-        self.sesslock.acquire()
-        self.downloads[infohash] = d
-        self.sesslock.release()
-        
-        # wake up creator thread
-        d.cond.acquire()
-        d.cond.notify()
-        d.cond.release()
+            
+            
+            kvconfig = d.get_config().config # DIRECT ACCESS
+            listenport = self.scfg.get_listen_port()
+            
+            if DEBUG:
+                print >>sys.stderr,"tlm: add: got listen port"
+
+            
+            vapath = self.scfg.get_video_analyser_path()
+            
+            if DEBUG:
+                print >>sys.stderr,"tlm: add: got vapath"
+
+            
+            if DEBUG:
+                print >>sys.stderr,"tlm: add: before SingleDownload()"
+            
+            sd = SingleDownload(infohash,metainfo,kvconfig,self.multihandler,listenport,vapath)
+            d.set_configee(sd)
+            self.queue_for_hashcheck(sd)
+            if DEBUG:
+                print >>sys.stderr,"tlm: add: after queue for hashcheck"
+    
+            # store in list of Downloads
+            self.sesslock.acquire()
+            self.downloads[infohash] = d
+            self.sesslock.release()
+            
+            # wake up creator thread
+            d.cond.acquire()
+            d.cond.notify()
+            d.cond.release()
+        except:
+            print_exc()
         
     def remove(self,d):
         """ Called by any thread """

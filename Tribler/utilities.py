@@ -9,6 +9,8 @@ from copy import deepcopy
 import sys
 import os
 import copy
+from types import UnicodeType, StringType, LongType, IntType, ListType, DictType
+import urlparse
 
 STRICT_CHECK = False
 
@@ -78,6 +80,118 @@ def isValidName(name):
         return validPort(name)
     except:
         return False
+    
+    
+def validTorrentFile(metainfo):
+    if type(metainfo) != DictType:
+        raise ValueError('metainfo not dict')
+    
+    keys = ['announce', 'info']
+    for key in keys:
+        if key not in metainfo:
+            raise ValueError('metainfo misses key '+key)
+    if not isValidURL(metainfo['announce']):
+        raise ValueError('announce URL bad')
+    
+    info = metainfo['info']
+    if type(info) != DictType:
+        raise ValueError('info not dict')
+    
+    if 'root hash' in info:
+        infokeys = ['name','piece length', 'root hash']
+    else:
+        infokeys = ['name','piece length', 'pieces']
+    for key in infokeys:
+        if key not in info:
+            raise ValueError('info misses key '+key)
+    name = info['name']
+    if type(name) != StringType:
+        raise ValueError('info name is not string')
+    pl = info['piece length']
+    if type(pl) != IntType:
+        raise ValueError('info piece size is not int')
+    if 'root hash' in info:
+        rh = info['root hash']
+        if type(rh) != StringType or len(rh) != 20:
+            raise ValueError('info roothash is not 20-byte string')
+    else:
+        p = info['pieces']
+        if type(p) != StringType or len(p) % 20 != 0:
+            raise ValueError('info pieces is not multiple of 20 bytes')
+        
+    if 'length' in info:
+        # single-file torrent
+        if 'files' in info:
+            raise ValueError('info may not contain both files and length key')
+        
+        l = info['length']
+        if type(l) != IntType:
+            raise ValueError('info length is not int')
+    else:
+        # multi-file torrent
+        if 'length' in info:
+            raise ValueError('info may not contain both files and length key')
+        
+        files = info['files']
+        if type(files) != ListType:
+            raise ValueError('info files not list')
+        
+        filekeys = ['path','length']
+        for file in files:
+            for key in filekeys:
+                if key not in file:
+                    raise ValueError('info files missing path or length key')
+            
+            p = file['path']
+            if type(p) != ListType:
+                raise ValueError('info files path is not list')
+            for dir in p:
+                if type(dir) != StringType:
+                    raise ValueError('info files path is not string')
+            
+            l = file['length']
+            if type(l) != IntType:
+                raise ValueError('info files length is not int')
+            
+    # common additional fields
+    if 'announce-list' in metainfo:
+        al = metainfo['announce-list']
+        if type(al) != ListType:
+            raise ValueErorr('announce-list is not list')
+        for tier in al:
+            if type(tier) != ListType:
+                raise ValueErorr('announce-list tier is not list '+`tier`)
+            for url in tier:
+                if not isValidURL(url):
+                    raise ValueError('announce-list url is not valid '+`url`)
+
+    if 'azureus_properties' in metainfo:
+        azprop = metainfo['azureus_properties']
+        if type(azprop) != DictType:
+            raise ValueError('azureus_properties is not dict')
+        if 'Content' in azprop:
+                content = azprop['Content']
+                if type(content) != DictType:
+                    raise ValueError('azureus_properties content is not dict')
+                if 'thumbnail' in content:
+                    thumb = content['thumbnail']
+                    if type(content) != StringType:
+                        raise ValueError('azureus_properties content thumbnail is not string')
+    
+    
+def isValidTorrentFile(metainfo):
+    try:
+        validTorrentFile(metainfo)
+        return True
+    except:
+        return False
+    
+    
+def isValidURL(url):
+    r = urlparse.urlsplit(url)
+    if r[0] == '' or r[1] == '' or r[2] == '':
+        return False
+    return True
     
 def show_permid(permid):
     # Full BASE64-encoded 

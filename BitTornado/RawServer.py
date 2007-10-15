@@ -134,6 +134,10 @@ class RawServer:
                         period = 2 ** 30
                     if period < 0:
                         period = 0
+                        
+                    if DEBUG:
+                        print >>sys.stderr,"rawserver: do_poll",period
+
                     events = self.sockethandler.do_poll(period)
                     
                     if DEBUG:
