@@ -28,7 +28,7 @@ from traceback import print_exc
 from BitTornado.BT1.MessageID import *
 from BitTornado.bencode import bencode,bdecode
 
-from Tribler.CacheDB.CacheDBHandler import MyDBHandler,PeerDBHandler, SuperPeerDBHandler
+from Tribler.CacheDB.CacheDBHandler import PeerDBHandler, SuperPeerDBHandler
 from Tribler.NATFirewall.ReturnConnHandler import ReturnConnHandler
 from Tribler.Overlay.SecureOverlay import OLPROTO_VER_THIRD
 from Tribler.utilities import *
@@ -62,11 +62,9 @@ class DialbackMsgHandler:
 
         self.peers_asked = {}
         self.myips = []
-        self.my_db = MyDBHandler()
         self.peer_db = PeerDBHandler()
         self.superpeer_db = SuperPeerDBHandler()
         self.consensusip = None # IP address according to peers
-        self.upnpip = None        # IP address as found by UPnP
         self.fromsuperpeer = False
         self.dbreach = False    # Did I get any DIALBACK_REPLY?
         self.btenginereach = False # Did BT engine get incoming connections?
@@ -338,11 +336,10 @@ class DialbackMsgHandler:
 
         # 8. Change IP address if different
         if self.consensusip is not None:
-            old_ext_ip = self.my_db.getMyIP()
-            if old_ext_ip != self.consensusip:
-                if DEBUG:
-                    print >> sys.stderr,"dialback: DIALBACK_REPLY: I think my IP address is",old_ext_ip,"others say",self.consensusip,", setting it to latter"
-                self.my_db.put('ip',self.consensusip)
+            
+            self.launchmany.dialback_got_ext_ip_callback(self.consensusip)
+            if DEBUG:
+                print >> sys.stderr,"dialback: DIALBACK_REPLY: I think my IP address is",old_ext_ip,"others say",self.consensusip,", setting it to latter"
 
         # 9. Notify GUI that we are connectable
         self.launchmany.reachable_network_callback()
@@ -381,9 +378,6 @@ class DialbackMsgHandler:
         """ Called by network thread """
         return self.dbreach or self.btenginereach or self.secoverreach
 
-    def upnp_got_ext_ip(self,ip):
-        self.upnpip = ip
-        
 
     #
     # Internal methods

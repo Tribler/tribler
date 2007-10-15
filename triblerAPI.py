@@ -101,7 +101,7 @@ All calls to Session, Download and DownloadState are thread safe.
 
 TODO: Define whether changes to runtime configs is synchronous, i.e., does
 dcfg.set_max_upload(100) sets the upload limit before returning, or 
-asynchronous.
+asynchronous. SOL: easiest is async, as network thread does actual changing
  
 
 ALTERNATIVE:
@@ -138,10 +138,10 @@ Serializable
 
 Session Object
 ==============
-ISSUE: Theoretically, Session can be a real class with multiple instances. For
+FUTURE: Theoretically, Session can be a real class with multiple instances. For
 implementation purposes making it a Singleton is easier, as a lot of our 
 internal stuff are currently singletons (e.g. databases and *MsgHandler, etc.)
-
+SOL: singleton for now, interface should allow more.
 
 Modifiability of parameters
 ===========================
@@ -175,7 +175,7 @@ import copy
 import sha
 import socket
 from UserDict import DictMixin
-from threading import RLock,Event,Thread
+from threading import RLock,Condition,Event,Thread
 from traceback import print_exc,print_stack
 
 from BitTornado.__init__ import resetPeerIDs,createPeerID
@@ -539,8 +539,11 @@ class Session(Serializable):
         in: scfg = SessionConfig object or None, in which case 
         SessionConfig.get_copy_of_default() is called and the returned config
         becomes the bound config of the session.
+        
+        In the current implementation only a single session instance can exist
+        at a time in a process.
         """
-        self.lock = RLock()
+        self.sesslock = RLock()
         
         if scfg is None:
             self.scfg = SessionConfig.get_copy_of_default()
@@ -548,7 +551,7 @@ class Session(Serializable):
             self.scfg = scfg.copy()
             
         print >>sys.stderr,"Session: scfg is",self.scfg
-        self.scfg.bind(self.lock)
+        self.scfg.bind(self.sesslock)
         
         # Core init
         resetPeerIDs()
@@ -556,10 +559,11 @@ class Session(Serializable):
         if self.scfg.config['eckeypair'] is None:
             self.scfg.config['eckeypair'] = Tribler.Overlay.permid.generate_keypair()
         
-        self.lm = TriblerLaunchMany(self.scfg,self.lock)
+        self.lm = TriblerLaunchMany(self.scfg,self.sesslock)
         self.lm.start()
         
         self.scfg.set_configee(self.lm)
+
 
     def get_config(self):
         """
@@ -613,6 +617,12 @@ class Session(Serializable):
         self.lm.remove(d)
 
 
+    def get_internal_tracker_url(self):
+        self.bindlock.acquire()
+        
+        self.bindlock.release()
+
+
     
 class SessionConfig(Defaultable,Copyable,Serializable,Bindable):  
     # Defaultable only if Session is not singleton
@@ -656,11 +666,12 @@ class SessionConfig(Defaultable,Copyable,Serializable,Bindable):
         self.config['ipv6_binds_v4'] = autodetect_socket_style()
     
     
-        # TEMP ARNO: session max vs download max 
+        # TODO TEMP ARNO: session max vs download max 
         self.config['max_upload_rate'] = 0
     
         # TEMP TODO
         self.config['overlay'] = 0
+        self.config['dialback'] = 0
     
     
     def set_permid(self,keypair):
@@ -671,13 +682,12 @@ class SessionConfig(Defaultable,Copyable,Serializable,Bindable):
         
     def set_listen_port(self,port):
         """
-        ISSUE: do we allow runtime modification of this param? Theoretically
+        FUTURE: do we allow runtime modification of this param? Theoretically
         possible, a bit hard to implement
         """
         if not self.is_bound():
             self.config['minport'] = port
             self.config['maxport'] = port
-            # ISSUE: must raise exception at Session start when port already in use.
         else:
             raise OperationNotPermittedWhenBoundException()
 
@@ -713,6 +723,7 @@ class SessionConfig(Defaultable,Copyable,Serializable,Bindable):
         self.bindlock.acquire()
         return self.config['videoanalyserpath'] # strings immutable
         self.bindlock.release()
+
     
 
     #
@@ -860,7 +871,7 @@ class TorrentDef(Defaultable,Copyable,Serializable,Bindable):
             # TODO: should be possible when bound
             raise NotYetImplementedException()
         finally:
-            self.bindlock.releas()
+            self.bindlock.release()
         """
             bn = os.path.basename(filename)
             # How to encode Unicode filename? TODO
@@ -904,7 +915,7 @@ class TorrentDef(Defaultable,Copyable,Serializable,Bindable):
         else:
             thumb = self.input['thumb'] # buffer/string immutable
             ret = ('image/jpeg',thumb)
-        self.bindlock.releas()
+        self.bindlock.release()
         return ret
         
         
@@ -951,6 +962,12 @@ class TorrentDef(Defaultable,Copyable,Serializable,Bindable):
         else:
             raise NotYetImplementedException() # must save first
 
+    def get_metainfo(self):
+        if self.metainfo_valid:
+            return self.metainfo
+        else:
+            raise NotYetImplementedException() # must save first
+        
 
     #
     # DictMixin
@@ -1096,7 +1113,7 @@ class Download:
     #
     # Internal method
     #
-    def __init__(self,lock,scfg,lm,tdef,dcfg=None):
+    def __init__(self,scfg,lm,tdef,dcfg=None):
         """
         Create a Download object. Used internally by Session. Copies tdef and 
         dcfg and binds them to this download.
@@ -1107,91 +1124,23 @@ class Download:
         _default() is called and the result becomes the (bound) config of this
         Download.
         """
+        self.cond = Condition()
+        
         self.tdef = tdef.copy()
         if dcfg is None:
             self.dcfg = DownloadConfig.get_copy_of_default()
         else:
             self.dcfg = dcfg.copy()
         
-        self.tdef.bind(lock)
-        self.dcfg.bind(lock)
+        self.tdef.bind(self.cond)
+        self.dcfg.bind(self.cond)
         
-        self.lm= lm
+        self.lm = lm
         
+        # Set IP to report to tracker. 
+        self.dcfg.config['ip'] = lm.get_ext_ip()
         
-        # TODO: set IP to report to tracker. Make dependeny on DialbackMsg
-        # and UPnP results
-        self.dcfg.config['ip'] = lm.locally_guessed_wanip
-        
-
-        (infohash,metainfo) = self.tdef.finalize()
-        kvconfig = self.dcfg.config
-        
-        self.dldoneflag = Event()
-        self.rawserver = self.lm.multihandler.newRawServer(infohash,self.dldoneflag)
-
-        """
-        class BT1Download:    
-            def __init__(self, statusfunc, finfunc, errorfunc, excfunc, doneflag, 
-                 config, response, infohash, id, rawserver, port, play_video,
-                 videoinfo, progressinf, videoanalyserpath, appdataobj = None, dht = None):
-        """
-        self.dow = BT1Download(self._statusfunc,
-                        self._finishedfunc,
-                        self._errorfunc, 
-                        self._exceptionfunc,
-                        self.dldoneflag,
-                        kvconfig,
-                        metainfo, 
-                        infohash,
-                        createPeerID(),
-                        self.rawserver,
-                        scfg.get_listen_port(),
-                        #config['vod'], Arno: read from kvconfig
-                        [],    # TODO: how to set which video in a multi-video torrent to play
-                        #None, # = progressinf: now via DownloadState
-                        scfg.get_video_analyser_path()
-                        # TODO: dht
-                        )
-
-        self.dcfg.set_configee(self.dow)
-    
-        if not self.dow.saveAs(self.save_as):
-            # TODO: let saveAs throw exceptions
-            return
-        self._hashcheckfunc = self.dow.initFiles()
-        if not self._hashcheckfunc:
-            self.shutdown()
-            return
-
-        self.lm.queue_for_hashcheck(self)
-        if DEBUG:
-            print >>sys.stderr,"engine: start: after hashchecksched"
-    
-    
-    def save_as(self,name,length,saveas,isdir):
-        """ Return the local filename to which to save the file 'name' in the torrent """
-        print >>sys.stderr,"Download: save_as(",name,length,saveas,isdir,")"
-        path = os.path.join(saveas,name)
-        if isdir and not os.path.isdir(path):
-            os.mkdir(path)
-        return path
-
-    def perform_hashcheck(self,complete_callback):
-        print >>sys.stderr,"Download: hashcheck()",self._hashcheckfunc
-        self._hashcheckfunc(complete_callback)
-    
-    def hashcheck_done(self):
-        """ Called by LaunchMany when hashcheck complete and the Download can be
-            resumed
-        """
-        print >>sys.stderr,"Download: hashcheck_done()"
-        if not self.dow.startEngine():
-            print >>sys.stderr,"Download: hashcheck_complete: startEngine failed"
-            return
-
-        self.dow.startRerequester()
-        self.rawserver.start_listening(self.dow.getPortHandler())
+        self.tdef.finalize()
 
     
     #
@@ -1242,21 +1191,10 @@ class Download:
             self.bindlock.release()
 
     #
-    # Internal methods
-    #
-    def _statusfunc(self,activity = '', fractionDone = 0.0):
-        print >>sys.stderr,"Session::_statusfunc called",activity,fractionDone
-
-    def _finishedfunc(self):
-        print >>sys.stderr,"Session::_finishedfunc called"
-
-    def _errorfunc(self,msg):
-        print >>sys.stderr,"Session::_errorfunc called",msg
-
-    def _exceptionfunc(self,e):
-        print >>sys.stderr,"Session::_exceptfunc called",e
-
-        
+    # Internal method
+    # 
+    def set_configee(self,sd):
+        self.dcfg.set_configee(sd)
 
     
 class DownloadState:
@@ -1308,24 +1246,32 @@ class DownloadState:
 
 class TriblerLaunchMany(Thread):
     
-    def __init__(self,scfg,lock):
+    def __init__(self,scfg,sesslock):
+        """ Called only once (unless we have multiple Sessions) """
         Thread.__init__(self)
         self.setDaemon(True)
         self.setName("Network"+self.getName())
         
         self.scfg = scfg
-        self.lock = lock
+        self.sesslock = sesslock
         
         self.downloads = {}
         config = scfg.config # Should be safe at startup
 
-        self.locally_guessed_wanip = self.get_my_ip()
+        self.locally_guessed_ext_ip = self.guess_ext_ip_locally()
+        self.upnp_ext_ip = None
+        self.dialback_ext_ip = None
 
         # Orig
         self.sessdoneflag = Event()
-        self.upnp_type = config['upnp_nat_access'] # TODO: use methods to read values?
+        
+        # Following two attributes set/get by network thread
         self.hashcheck_queue = []
-        self.downloadtohashcheck = None
+        self.sdownloadtohashcheck = None
+        
+        # Following 2 attributes set/get by UPnPThread
+        self.upnp_thread = None
+        self.upnp_type = config['upnp_nat_access'] # TODO: use methods to read values?
 
 
         self.rawserver = RawServer(self.sessdoneflag,
@@ -1390,53 +1336,90 @@ class TriblerLaunchMany(Thread):
         
 
     def add(self,tdef,dcfg):
-        self.lock.acquire()
-        try:
-            d = Download(self.lock,self.scfg,self,tdef,dcfg)
-            self.downloads[d.get_def().get_infohash()] = d
-        finally:
-            self.lock.release()
+        """ Called by any thread """
+        d = Download(self.scfg,self,tdef,dcfg)
+        func = lambda:self.create_download_callback(d)
+        self.rawserver.add_task(func,0)
+        
+        # make calling thread wait till network thread created object
+        d.cond.acquire()
+        d.cond.wait()
+        d.cond.release()
         return d
+
+    def create_download_callback(self,d):
+        """ Called by network thread """
+        
+        infohash = d.get_def().get_infohash()
+        metainfo = d.get_def().get_metainfo()
+        kvconfig = d.get_config().config # DIRECT ACCESS
+        listenport = self.scfg.get_listen_port()
+        vapath = self.scfg.get_video_analyser_path()
+        sd = SingleDownload(infohash,metainfo,kvconfig,self.multihandler,listenport,vapath)
+        d.set_configee(sd)
+        self.queue_for_hashcheck(sd)
+        if DEBUG:
+            print >>sys.stderr,"engine: start: after hashchecksched"
+
+        # store in list of Downloads
+        self.sesslock.acquire()
+        self.downloads[infohash] = d
+        self.sesslock.release()
+        
+        # wake up creator thread
+        d.cond.acquire()
+        d.cond.notify()
+        d.cond.release()
         
     def remove(self,d):
-        self.lock.acquire()
+        """ Called by any thread """
+        self.sesslock.acquire()
         try:
             d.stop()
             d._cleanup_disk()
             del self.downloads[d.get_def().get_infohash()]
         finally:
-            self.lock.release()
+            self.sesslock.release()
 
     def get_downloads(self):
-        self.lock.acquire()
+        """ Called by any thread """
+        self.sesslock.acquire()
         try:
             l = self.downloads[:] #copy, is mutable
         finally:
-            self.lock.release()
+            self.sesslock.release()
         return l
     
     def failfunc(self,msg):
+        """ Called by multiple threads, TODO determine required locking """
         print >>sys.stderr,"TriblerLaunchMany: failfunc called",msg
 
     def exceptionfunc(self,e):
+        """ Called by multiple threads, TODO determine required locking """
         print >>sys.stderr,"TriblerLaunchmany: exceptfunc called",e
 
 
     def run(self):
+        """ Called only once """
         try:
-            self.start_upnp()
-            self.multihandler.listen_forever()
+            try:
+                self.start_upnp()
+                self.multihandler.listen_forever()
+            except:
+                print_exc()    
         finally:
-            print_exc()
             self.stop_upnp()
             self.rawserver.shutdown()
 
     def rawserver_keepalive(self):
         """ Hack to prevent rawserver sleeping in select() for a long time, not
-        processing any tasks on its queue at startup time """
+        processing any tasks on its queue at startup time 
+        
+        Called by network thread """
         self.rawserver.add_task(self.rawserver_keepalive,1)
 
-    def get_my_ip(self):
+    def guess_ext_ip_locally(self):
+        """ Called at creation time """
         ip = get_my_wan_ip()
         if ip is None:
             host = socket.gethostbyname_ex(socket.gethostname())
@@ -1449,49 +1432,172 @@ class TriblerLaunchMany(Thread):
 
 
     def start_upnp(self):
-        # Arno: as the UPnP discovery and calls to the firewall can be slow,
-        # do it in a separate thread. When it fails, it should report popup
-        # a dialog to inform and help the user. Or report an error in textmode.
-        #
-        # Must save type here, to handle case where user changes the type
-        # In that case we still need to delete the port mapping using the old mechanism
-
-        self.upnp_thread = UPnPThread(self.upnp_type,self.locally_guessed_wanip,self.listen_port,self.upnp_failed,self)
+        """ Arno: as the UPnP discovery and calls to the firewall can be slow,
+        do it in a separate thread. When it fails, it should report popup
+        a dialog to inform and help the user. Or report an error in textmode.
+        
+        Must save type here, to handle case where user changes the type
+        In that case we still need to delete the port mapping using the old mechanism
+        
+        Called by network thread """ 
+        
+        print >>sys.stderr,"tlm: start_upnp()"
+        self.set_activity(ACT_UPNP)
+        self.upnp_thread = UPnPThread(self.upnp_type,self.locally_guessed_ext_ip,self.listen_port,self.upnp_failed_callback,self.upnp_got_ext_ip_callback)
         self.upnp_thread.start()
 
     def stop_upnp(self):
+        """ Called by network thread """
         if self.upnp_type > 0:
             self.upnp_thread.shutdown()
 
-    def upnp_failed(self,upnp_type,listenport,error_type,exc=None,listenproto='TCP'):
+    def upnp_failed_callback(self,upnp_type,listenport,error_type,exc=None,listenproto='TCP'):
+        """ Called by UPnP thread TODO: make thread safe"""
         self.failfunc("UPnP mode "+str(upnp_type)+" request to firewall failed with error "+str(error_type)+" Try setting a different mode in Preferences. Listen port was "+str(listenport)+", protocol"+listenproto)
 
+    def upnp_got_ext_ip_callback(self,ip):
+        """ Called by UPnP thread TODO: make thread safe"""
+        self.sesslock.acquire()
+        self.upnp_ext_ip = ip
+        self.sesslock.release()
+
+    def dialback_got_ext_ip_callback(self,ip):
+        """ Called by network thread """
+        self.sesslock.acquire()
+        self.dialback_ext_ip = ip
+        self.sesslock.release()
+        
+    def get_ext_ip(self):
+        """ Called by any thread """
+        self.sesslock.acquire()
+        if self.dialback_ext_ip is not None:
+            ret = self.dialback_ext_ip # string immutable
+        elif self.upnp_ext_ip is not None:
+            ret = self.upnp_ext_ip 
+        else:
+            ret = self.locally_guessed_ext_ip
+        self.sesslock.release()
+        return ret
 
     def set_activity(self,type):
         pass # TODO
 
 
-    def queue_for_hashcheck(self,d):
-        """ Schedule a Download for integrity check of on-disk data"""
+    def queue_for_hashcheck(self,sd):
+        """ Schedule a SingleDownload for integrity check of on-disk data
+        
+        Called by network thread """
         if hash:
-            self.hashcheck_queue.append(d)
+            self.hashcheck_queue.append(sd)
             # Check smallest torrents first
             self.hashcheck_queue.sort(lambda x, y: cmp(self.downloads[x].dow.datalength, self.downloads[y].dow.datalength))
-        if not self.downloadtohashcheck:
+        if not self.sdownloadtohashcheck:
             self.dequeue_and_start_hashcheck()
 
     def dequeue_and_start_hashcheck(self):
-        """ Start integriy check for first Download in queue"""
-        self.downloadtohashcheck = self.hashcheck_queue.pop(0)
-        self.downloadtohashcheck.perform_hashcheck(self.hashcheck_done)
+        """ Start integriy check for first SingleDownload in queue
+        
+        Called by network thread """
+        self.sdownloadtohashcheck = self.hashcheck_queue.pop(0)
+        self.sdownloadtohashcheck.perform_hashcheck(self.hashcheck_done)
 
     def hashcheck_done(self):
-        """ Integrity check for first Download in queue done """
-        self.downloadtohashcheck.hashcheck_done()
+        """ Integrity check for first SingleDownload in queue done
+        
+        Called by network thread """
+        self.sdownloadtohashcheck.hashcheck_done()
         if self.hashcheck_queue:
             self.dequeue_and_start_hashcheck()
         else:
-            self.downloadtohashcheck = None
+            self.sdownloadtohashcheck = None
+
+
+
+class SingleDownload:
+    """ This class is accessed solely by the network thread """
+    
+    def __init__(self,infohash,metainfo,kvconfig,multihandler,listenport,videoanalyserpath):
+        
+        self.dldoneflag = Event()
+        
+        # MUST NOT BE DONE MY ANY THREAD!
+        self.rawserver = multihandler.newRawServer(infohash,self.dldoneflag)
+
+        """
+        class BT1Download:    
+            def __init__(self, statusfunc, finfunc, errorfunc, excfunc, doneflag, 
+                 config, response, infohash, id, rawserver, port, play_video,
+                 videoinfo, progressinf, videoanalyserpath, appdataobj = None, dht = None):
+        """
+        self.dow = BT1Download(self._statusfunc,
+                        self._finishedfunc,
+                        self._errorfunc, 
+                        self._exceptionfunc,
+                        self.dldoneflag,
+                        kvconfig,
+                        metainfo, 
+                        infohash,
+                        createPeerID(),
+                        self.rawserver,
+                        listenport,
+                        #config['vod'], Arno: read from kvconfig
+                        [],    # TODO: how to set which video in a multi-video torrent to play
+                        #None, # = progressinf: now via DownloadState
+                        videoanalyserpath
+                        # TODO: dht
+                        )
+    
+        if not self.dow.saveAs(self.save_as):
+            # TODO: let saveAs throw exceptions
+            return
+        self._hashcheckfunc = self.dow.initFiles()
+        if not self._hashcheckfunc:
+            self.shutdown()
+            return
+    
+    def save_as(self,name,length,saveas,isdir):
+        """ Return the local filename to which to save the file 'name' in the torrent """
+        print >>sys.stderr,"Download: save_as(",name,length,saveas,isdir,")"
+        path = os.path.join(saveas,name)
+        if isdir and not os.path.isdir(path):
+            os.mkdir(path)
+        return path
+
+    def perform_hashcheck(self,complete_callback):
+        """ Called by any thread """
+        print >>sys.stderr,"Download: hashcheck()",self._hashcheckfunc
+        """ Schedules actually hashcheck on network thread """
+        self._hashcheckfunc(complete_callback)
+    
+    def hashcheck_done(self):
+        """ Called by LaunchMany when hashcheck complete and the Download can be
+            resumed
+            
+            Called by network thread
+        """
+        print >>sys.stderr,"Download: hashcheck_done()"
+        if not self.dow.startEngine():
+            print >>sys.stderr,"Download: hashcheck_complete: startEngine failed"
+            return
+
+        self.dow.startRerequester()
+        self.rawserver.start_listening(self.dow.getPortHandler())
+
+    #
+    # Internal methods
+    #
+    def _statusfunc(self,activity = '', fractionDone = 0.0):
+        print >>sys.stderr,"SingleDownload::_statusfunc called",activity,fractionDone
+
+    def _finishedfunc(self):
+        print >>sys.stderr,"SingleDownload::_finishedfunc called"
+
+    def _errorfunc(self,msg):
+        print >>sys.stderr,"SingleDownload::_errorfunc called",msg
+
+    def _exceptionfunc(self,e):
+        print >>sys.stderr,"SingleDownload::_exceptfunc called",e
+
 
 
 
@@ -1510,26 +1616,23 @@ class UPnPThread(Thread):
         Arno, 2006-11-12
     """
 
-    def __init__(self,upnp_type,wanip,listen_port,error_func,launchmany):
+    def __init__(self,upnp_type,ext_ip,listen_port,error_func,got_ext_ip_func):
         Thread.__init__(self)
         self.setDaemon(True)
         self.setName( "UPnP"+self.getName() )
         
         self.upnp_type = upnp_type
-        self.locally_guessed_wanip = wanip
+        self.locally_guessed_ext_ip = ext_ip
         self.listen_port = listen_port
         self.error_func = error_func
-        self.launchmany = launchmany
+        self.got_ext_ip_func = got_ext_ip_func 
         self.shutdownevent = Event()
 
     def run(self):
-        dmh = DialbackMsgHandler.getInstance()
-                
         if self.upnp_type > 0:
             self.upnp_wrap = UPnPWrapper.getInstance()
-            self.upnp_wrap.register(self.locally_guessed_wanip)
+            self.upnp_wrap.register(self.locally_guessed_ext_ip)
 
-            self.launchmany.set_activity(ACT_UPNP)
             if self.upnp_wrap.test(self.upnp_type):
                 try:
                     shownerror=False
@@ -1540,7 +1643,7 @@ class UPnPThread(Thread):
                             shownerror=True
                             self.error_func(self.upnp_type,self.listen_port,0)
                         else:
-                            self.handle_ext_ip(ret,dmh)
+                            self.got_ext_ip_func(ret)
 
                     # Do open_port irrespective of whether get_ext_ip()
                     # succeeds, UPnP mode 1 doesn't support get_ext_ip()
@@ -1589,12 +1692,6 @@ class UPnPThread(Thread):
 
         # End of UPnPThread
 
-    def handle_ext_ip(self,upnp_ip,dmh):
-        # We learned our external IP address via UPnP
-        dmh.upnp_got_ext_ip(upnp_ip)
-        
-        # TODO: safe found IP address somewhere
-
     def shutdown(self):
         self.shutdownevent.set()
 
@@ -1604,6 +1701,7 @@ class UPnPThread(Thread):
 if __name__ == "__main__":
     
     s = Session()
+    
     tdef = TorrentDef.load('/tmp/bla.torrent')
     
     print >>sys.stderr,"main: TorrentDef is",tdef
