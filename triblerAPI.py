@@ -202,6 +202,22 @@ from Tribler.Overlay.OverlayApps import OverlayApps
 from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from triblerdefs import *
 
+
+# Move to triblerdefs?
+DLSTATUS_WAITING4HASHCHECK = 0
+DLSTATUS_HASHCHECKING = 1
+DLSTATUS_DOWNLOADING = 2
+DLSTATUS_SEEDING = 3
+DLSTATUS_STOPPED = 4
+DLSTATUS_STOPPED_ON_ERROR = 5
+
+dlstatus_strings = ['DLSTATUS_WAITING4HASHCHECK', 
+'DLSTATUS_HASHCHECKING',
+'DLSTATUS_DOWNLOADING',
+'DLSTATUS_SEEDING',
+'DLSTATUS_STOPPED',
+'DLSTATUS_STOPPED_ON_ERROR']
+
 # TEMP
 from Tribler.Dialogs.activities import *
 
@@ -972,20 +988,42 @@ class Download(DownloadConfigInterface):
         return self.tdef
 
     
-    def get_state(self):
+    def set_state_callback(self,usercallback,interval):
         """ 
         returns: copy of internal download state (so not live pointers into 
-        engine)
+        engine)  TODO text
         """
         self.dllock.acquire()
         try:
-            # HACK
-            if self.sd is not None and self.sd.dow is not None:
-                progress = self.sd.dow.storagewrapper.get_stats()
-            else:
-                progress = 0.0
-            return DownloadState(self.error,progress)
+            self.getstateusercallback = usercallback
+            self.getstateinterval = interval
+            # First time on general rawserver
+            self.session.lm.rawserver.add_task(self.network_get_state,self.getstateinterval)
+        finally:
+            self.dllock.release()
         
+        
+    def network_get_state(self):
+        """ Called by network thread """
+                # TODO: how to disable this? Don't renew is self.sd is not None
+
+        self.dllock.acquire()
+        try:
+            if self.sd is None:
+                ds = DownloadState(DLSTATUS_STOPPED,self.error,0.0) # TODO: really want progress at time of stop
+            else:
+                stats = self.sd.get_stats()
+                ds = DownloadState(None,self.error,None,stats=stats)
+            
+            # TODO: do on other thread    
+            self.getstateusercallback(ds)
+            
+            # Schedule next invocation, either on general or DL specific
+            # TODO: ensure this continues when dl is stopped. Should be OK.
+            if self.sd is None:
+                self.session.lm.rawserver.add_task(self.network_get_state,self.getstateinterval)
+            else:
+                self.sd.rawserver.add_task(self.network_get_state,self.getstateinterval)
         finally:
             self.dllock.release()
             
@@ -1005,6 +1043,7 @@ class Download(DownloadConfigInterface):
         # and restarts, e.g. we have stop all-but-one & restart-all for VOD)
         self.dllock.acquire()
         try:
+            self.error = None # assume fatal error is reproducible
             self.async_create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback)
         finally:
             self.dllock.release()
@@ -1072,9 +1111,27 @@ class DownloadState:
     SOL: have parameter for get_state(), indicating "complete"/"simplestats", 
     etc.
     """
-    def __init__(self,error,progress):
-        self.error = error # readonly access
-        self.progress = progress
+    def __init__(self,status,error,progress,stats=None):
+        if stats is None:
+            self.error = error # readonly access
+            self.progress = progress
+            if self.error is not None:
+                self.status = DLSTATUS_STOPPED_ON_ERROR
+            else:
+                self.status = status
+        elif error is not None:
+            self.error = error # readonly access
+            self.progress = 0.0 # really want old progress
+            self.status = DLSTATUS_STOPPED_ON_ERROR
+        else:
+            # Copy info from stats
+            self.progress = stats['frac']   # TODO: also make this hashchecking progress
+            if stats['frac'] == 1.0:
+                self.status = DLSTATUS_SEEDING
+            else:
+                self.status = DLSTATUS_DOWNLOADING
+            self.error = None
+            print >>sys.stderr,"STATS IS",stats
     
     def get_progress(self):
         """
@@ -1084,13 +1141,9 @@ class DownloadState:
         
     def get_status(self):
         """
-        returns: status of the torrent, e.g. stopped, paused, queued, 
-        hashchecking, active
-        
-        ISSUE: what is the status? e.g. is seeding a status value or is that 
-        the same as when the torrent is active and progress is 100%?
+        returns: status of the torrent, e.g. DLSTATUS_* 
         """
-        return 1
+        return self.status
 
     def get_error(self):
         return self.error
@@ -1303,14 +1356,15 @@ class TriblerLaunchMany(Thread):
     def get_ext_ip(self):
         """ Called by any thread """
         self.sesslock.acquire()
-        if self.dialback_ext_ip is not None:
-            ret = self.dialback_ext_ip # string immutable
-        elif self.upnp_ext_ip is not None:
-            ret = self.upnp_ext_ip 
-        else:
-            ret = self.locally_guessed_ext_ip
-        self.sesslock.release()
-        return ret
+        try:
+            if self.dialback_ext_ip is not None: # best
+                return self.dialback_ext_ip # string immutable
+            elif self.upnp_ext_ip is not None: # good
+                return self.upnp_ext_ip 
+            else: # slighly wild guess
+                return self.locally_guessed_ext_ip
+        finally:
+            self.sesslock.release()
 
     def set_activity(self,type):
         pass # TODO
@@ -1380,14 +1434,10 @@ class SingleDownload:
                             # TODO: dht
                             )
         
-            if not self.dow.saveAs(self.save_as):
-                # TODO: let saveAs throw exceptions
-                return
+            file = self.dow.saveAs(self.save_as)
             self._hashcheckfunc = None
             self._hashcheckfunc = self.dow.initFiles()
-            if not self._hashcheckfunc:
-                self.shutdown()
-                return
+            self._getstatsfunc = None
             
         except Exception,e:
             self.fatalerrorfunc(e)
@@ -1421,14 +1471,12 @@ class SingleDownload:
         """
         print >>sys.stderr,"Download: hashcheck_done()"
         try:
-            if not self.dow.startEngine():
-                print >>sys.stderr,"Download: hashcheck_complete: startEngine failed"
-                return
-
+            self.dow.startEngine()
+            self._getstatsfunc = self.dow.startStats() # not possible earlier
             self.dow.startRerequester()
             self.rawserver.start_listening(self.dow.getPortHandler())
         except Exception,e:
-            self.set_error_func(e)
+            self.fatalerrorfunc(e)
 
 
     # DownloadConfigInterface methods
@@ -1438,6 +1486,14 @@ class SingleDownload:
         
         self.dow.setUploadRate(speed)
 
+
+    def get_stats(self):  
+        if self._getstatsfunc is None:
+            # TODO
+            print >>sys.stderr,"SingleDownload: get_stats: TODO HASHCHECKING, WAITING4HASHCHECKING"
+            return None
+        else:
+            return self._getstatsfunc()
 
     #
     #
@@ -1462,7 +1518,8 @@ class SingleDownload:
     def fatalerrorfunc(self,data):
         print >>sys.stderr,"SingleDownload::fatalerrorfunc called",data
         if type(data) == StringType:
-            print >>sys.stderr,"CORE FATAL ERROR",data
+            print >>sys.stderr,"LEGACY CORE FATAL ERROR",data
+            print_stack()
             self.set_error_func(TriblerLegacyException(data))
         else:
             print_exc()
@@ -1571,6 +1628,9 @@ class UPnPThread(Thread):
         self.shutdownevent.set()
 
 
+def state_callback(ds):
+    print >>sys.stderr,"main: Stats",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
+
 
 if __name__ == "__main__":
     
@@ -1581,19 +1641,14 @@ if __name__ == "__main__":
     #dcfg.set_saveas('/arno')
     print >>sys.stderr,"main: TorrentDef is",tdef
     d = s.start_download(tdef,dcfg)
-    count = 0
-    while count < 2:
-        print "main: Progress is",d.get_state().get_progress()
-        print "main: Error is",d.get_state().get_error()
-        time.sleep(5)
-        count += 1
-        
+    d.set_state_callback(state_callback,1)
+    time.sleep(10)
+    
+    """    
     d.stop()
     print "After stop"
     time.sleep(5)
     d.restart()
-    while True:
-        print "main: Progress2 is",d.get_state().get_progress()
-        print "main: Error2 is",d.get_state().get_error()
-        time.sleep(5)
+    """
+    time.sleep(25)
     

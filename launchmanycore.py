@@ -189,6 +189,8 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
                         # StorageWrapper works on. Let's digest it here, before
                         # we go to the GUI thread.
                         #
+                        # TODO: stats['stats'] may already have this info
+                        #
                         havedigest = self.havebitfield2bufferinfo(stats['have'])
                     elif progress == 1.0:
                         havedigest = self.create_full_bufferinfo()

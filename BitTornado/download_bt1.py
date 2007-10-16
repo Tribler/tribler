@@ -321,8 +321,8 @@ class BT1Download:
             file_length = self.info['length']
             file = filefunc(self.info['name'], file_length, 
                             self.config['saveas'], False)
-            if file is None:
-                return None
+            # filefunc throws exc if filename gives IOError
+
             make(file)
             files = [(file, file_length)]
         else:
@@ -331,16 +331,14 @@ class BT1Download:
                 file_length += x['length']
             file = filefunc(self.info['name'], file_length, 
                             self.config['saveas'], True)
-            if file is None:
-                return None
+            # filefunc throws exc if filename gives IOError
 
             # if this path exists, and no files from the info dict exist, we assume it's a new download and 
             # the user wants to create a new directory with the default name
             existing = 0
             if path.exists(file):
                 if not path.isdir(file):
-                    self.errorfunc(file + 'is not a dir')
-                    return None
+                    raise IOError(file + 'is not a dir')
                 if listdir(file):  # if it's not empty
                     for x in self.info['files']:
                         if path.exists(path.join(file, x['path'][0])):
@@ -352,8 +350,7 @@ class BT1Download:
                                 (prefix,ext) = os.path.splitext(file)
                                 file = prefix
                             if path.exists(file) and not path.isdir(file):
-                                self.errorfunc("Can't create dir - " + self.info['name'])
-                                return None
+                                raise IOError("Can't create dir - " + self.info['name'])
             make(file, True)
 
             # alert the UI to any possible change in path
@@ -430,7 +427,7 @@ class BT1Download:
                         assert p >= -1
                         assert p <= 2
                 except:
-                    self.errorfunc('bad priority list given, ignored')
+                    raise ValueError('bad priority list given, ignored')
                     self.priority = None
 
             data = self.appdataobj.getTorrentData(self.infohash)
@@ -520,7 +517,8 @@ class BT1Download:
             print >>sys.stderr,"BT1Download: startEngine"
         
         if self.doneflag.isSet():
-            return False
+            return
+        
         if not statusfunc:
             statusfunc = self.statusfunc
 
@@ -604,12 +602,8 @@ class BT1Download:
             self.voddownload = MovieOnDemandTransporter( self.movieselector, self.picker, self.info['piece length'], self.rawserver, self.videoanalyserpath)
         elif DEBUG:
             print >>sys.stderr,"BT1Download: startEngine: Going into standard mode"
-
         if not self.doneflag.isSet():
             self.started = True
-            return True
-        else:
-            return False
 
     def rerequest_complete(self):
         if self.rerequest:
