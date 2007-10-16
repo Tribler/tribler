@@ -201,7 +201,7 @@ from Tribler.Overlay.SecureOverlay import SecureOverlay
 from Tribler.Overlay.OverlayApps import OverlayApps
 from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from triblerdefs import *
-
+SPECIAL_VALUE=481
 
 # Move to triblerdefs?
 DLSTATUS_WAITING4HASHCHECK = 0
@@ -1012,8 +1012,8 @@ class Download(DownloadConfigInterface):
             if self.sd is None:
                 ds = DownloadState(DLSTATUS_STOPPED,self.error,0.0) # TODO: really want progress at time of stop
             else:
-                stats = self.sd.get_stats()
-                ds = DownloadState(None,self.error,None,stats=stats)
+                (status,stats) = self.sd.get_stats()
+                ds = DownloadState(status,self.error,None,stats=stats)
             
             # TODO: do on other thread    
             self.getstateusercallback(ds)
@@ -1123,6 +1123,14 @@ class DownloadState:
             self.error = error # readonly access
             self.progress = 0.0 # really want old progress
             self.status = DLSTATUS_STOPPED_ON_ERROR
+        elif status is not None:
+            # For HASHCHECKING and WAITING4HASHCHECK
+            self.status = status
+            if self.status == DLSTATUS_WAITING4HASHCHECK:
+                self.progress = 0.0
+            else:
+                self.progress = stats['frac']
+            self.error = error
         else:
             # Copy info from stats
             self.progress = stats['frac']   # TODO: also make this hashchecking progress
@@ -1438,6 +1446,7 @@ class SingleDownload:
             self._hashcheckfunc = None
             self._hashcheckfunc = self.dow.initFiles()
             self._getstatsfunc = None
+            self.hashcheckfrac = 0.0
             
         except Exception,e:
             self.fatalerrorfunc(e)
@@ -1452,16 +1461,17 @@ class SingleDownload:
                 os.mkdir(path)
             return path
         except Exception,e:
-            self.set_error_func(e)
+            self.fatalerrorfunc(e)
 
     def perform_hashcheck(self,complete_callback):
         """ Called by any thread """
         print >>sys.stderr,"Download: hashcheck()",self._hashcheckfunc
         try:
             """ Schedules actually hashcheck on network thread """
+            self._getstatsfunc = SPECIAL_VALUE # signal we're hashchecking
             self._hashcheckfunc(complete_callback)
         except Exception,e:
-            self.set_error_func(e)
+            self.fatalerrorfunc(e)
             
     def hashcheck_done(self):
         """ Called by LaunchMany when hashcheck complete and the Download can be
@@ -1491,9 +1501,13 @@ class SingleDownload:
         if self._getstatsfunc is None:
             # TODO
             print >>sys.stderr,"SingleDownload: get_stats: TODO HASHCHECKING, WAITING4HASHCHECKING"
-            return None
+            return (DLSTATUS_WAITING4HASHCHECK,None)
+        elif self._getstatsfunc == SPECIAL_VALUE:
+            stats = {}
+            stats['frac'] = self.hashcheckfrac
+            return (DLSTATUS_HASHCHECKING,stats)
         else:
-            return self._getstatsfunc()
+            return (None,self._getstatsfunc())
 
     #
     #
@@ -1509,7 +1523,9 @@ class SingleDownload:
     # Internal methods
     #
     def statusfunc(self,activity = '', fractionDone = 0.0):
+        """ Allegedly only used by StorageWrapper during hashchecking """
         print >>sys.stderr,"SingleDownload::statusfunc called",activity,fractionDone
+        self.hashcheckfrac = fractionDone
 
     def finishedfunc(self):
         """ Download is complete """
