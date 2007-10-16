@@ -17,7 +17,7 @@ Simpler download session
 ========================
     s = Session()
     tdef = TorrentDef.load('/tmp/bla.torrent')
-    dcfg = DownloadConfig.get_copy_of_default()
+    dcfg = DownloadStartupConfig.get_copy_of_default()
     dcfg.set_dest_dir('/tmp')
     d = s.start_download(tdef,dcfg)
 
@@ -26,7 +26,7 @@ Simple VOD download session
 ===========================
     s = Session()
     tdef = TorrentDef.load('/tmp/bla.torrent')
-    dcfg = DownloadConfig.get_copy_of_default()
+    dcfg = DownloadStartupConfig.get_copy_of_default()
     dcfg.set_mode('VOD',vod_ready_callback)
     d = s.start_download(tdef,dcfg)
     
@@ -106,7 +106,7 @@ asynchronous. SOL: easiest is async, as network thread does actual changing
  
 
 ALTERNATIVE:
-Use copy in/out semantics for TorrentDef and DownloadConfig. A disadvantage of 
+Use copy in/out semantics for TorrentDef and DownloadStartupConfig. A disadvantage of 
 copy in/out is that people may forget to call the copy in method.
 
 
@@ -198,222 +198,12 @@ from BitTornado.HTTPHandler import HTTPHandler,DummyHTTPHandler
 from Tribler.Overlay.SecureOverlay import SecureOverlay
 from Tribler.Overlay.OverlayApps import OverlayApps
 from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
+from triblerdefs import *
 
 # TEMP
 from Tribler.Dialogs.activities import *
 
-
 DEBUG = True
-
-
-DEFAULTPORT=7762  # Arno: see Utility/configreader.py and Utility/utility.py
-
-sessdefaults = [
-    ('ip', '',
-        "ip to report you have to the tracker."),
-    ('minport', DEFAULTPORT, 'minimum port to listen on, counts up if unavailable'),
-    ('maxport', DEFAULTPORT, 'maximum port to listen on'),
-    ('random_port', 1, 'whether to choose randomly inside the port range ' +
-        'instead of counting up linearly'),
-    ('bind', '', 
-        'comma-separated list of ips/hostnames to bind to locally'),
-#    ('ipv6_enabled', autodetect_ipv6(),
-    ('ipv6_enabled', 0,
-         'allow the client to connect to peers via IPv6'),
-    ('ipv6_binds_v4', None,
-        "set if an IPv6 server socket won't also field IPv4 connections"),
-    ('upnp_nat_access', 3,         # If you change this, look at BitTornado/launchmany/UPnPThread
-        'attempt to autoconfigure a UPnP router to forward a server port ' +
-        '(0 = disabled, 1 = mode 1 [fast,win32], 2 = mode 2 [slow,win32], 3 = mode 3 [any platform])'),
-    ('timeout', 300.0,
-        'time to wait between closing sockets which nothing has been received on'),
-    ('timeout_check_interval', 60.0,
-        'time to wait between checking if any connections have timed out'),
-    ('upload_unit_size', 1460,
-        "when limiting upload rate, how many bytes to send at a time"),
-
-# Tribler session opts
-    ('eckeypair', None, "keypair to use for session"),
-    ('cache', 1,
-        "use bsddb to cache peers and preferences"),
-    ('overlay', 1,
-        "create overlay swarm to transfer special messages"),
-    ('buddycast', 1,
-        "run buddycast recommendation system"),
-    ('start_recommender', 1,
-        "buddycast can be temp. disabled via this flag"),
-    ('download_help', 1,
-        "accept download help request"),
-    ('torrent_collecting', 1,
-        "automatically collect torrents"),
-    ('superpeer', 0,
-        "run in super peer mode (0 = disabled)"),
-    ('overlay_log', '',
-        "log on super peer mode ('' = disabled)"),
-    ('buddycast_interval', 15,
-        "number of seconds to pause between exchanging preference with a peer in buddycast"),
-    ('max_torrents', 5000,
-        "max number of torrents to collect"),
-    ('max_peers', 2000,
-        "max number of peers to use for recommender"),
-    ('torrent_collecting_rate', 5,
-        "max rate of torrent collecting (Kbps)"),
-    ('torrent_checking', 1,
-        "automatically check the health of torrents"),
-    ('torrent_checking_period', 60, 
-        "period for auto torrent checking"),
-    ('dialback', 1,
-        "use other peers to determine external IP address (0 = disabled)"),
-    ('dialback_active', 1,
-        "do active discovery (needed to disable for testing only) (0 = disabled)"),
-    ('dialback_trust_superpeers', 1,
-        "trust superpeer replies (needed to disable for testing only) (0 = disabled)"),
-    ('dialback_interval', 30,
-        "number of seconds to wait for consensus"),
-    ('socnet', 1,
-        "enable social networking (0 = disabled)"),
-    ('rquery', 1,
-        "enable remote query (0 = disabled)"),
-    ('stop_collecting_threshold', 200,
-        "stop collecting more torrents if the disk has less than this size (MB)"),
-    ('internaltracker', 1,
-        "enable internal tracker (0 = disabled)"),
-    ('nickname', '__default_name__',
-        'the nickname you want to show to others'),
-    ('videoplayerpath', None, 'Path to video analyser (FFMPEG, found automatically if in PATH)')]
-
-
-# BT per download opts
-dldefaults = [
-    ('max_uploads', 7,
-        "the maximum number of uploads to allow at once."),
-    ('keepalive_interval', 120.0,
-        'number of seconds to pause between sending keepalives'),
-    ('download_slice_size', 2 ** 14,
-        "How many bytes to query for per request."),
-    ('request_backlog', 10,
-        "maximum number of requests to keep in a single pipe at once."),
-    ('max_message_length', 2 ** 23,
-        "maximum length prefix encoding you'll accept over the wire - larger values get the connection dropped."),
-    ('responsefile', '',
-        'file the server response was stored in, alternative to url'),
-    ('url', '',
-        'url to get file from, alternative to responsefile'),
-    ('selector_enabled', 1,
-        'whether to enable the file selector and fast resume function'),
-    ('expire_cache_data', 10,
-        'the number of days after which you wish to expire old cache data ' +
-        '(0 = disabled)'),
-    ('priority', '',
-        'a list of file priorities separated by commas, must be one per file, ' +
-        '0 = highest, 1 = normal, 2 = lowest, -1 = download disabled'),
-    ('saveas', '',
-        'local file name to save the file as, null indicates query user'),
-    ('max_slice_length', 2 ** 17,
-        "maximum length slice to send to peers, larger requests are ignored"),
-    ('max_rate_period', 20.0,
-        "maximum amount of time to guess the current rate estimate represents"),
-    ('upload_rate_fudge', 5.0, 
-        'time equivalent of writing to kernel-level TCP buffer, for rate adjustment'),
-    ('tcp_ack_fudge', 0.03,
-        'how much TCP ACK download overhead to add to upload rate calculations ' +
-        '(0 = disabled)'),
-    ('rerequest_interval', 5 * 60,
-        'time to wait between requesting more peers'),
-    ('min_peers', 20, 
-        'minimum number of peers to not do rerequesting'),
-    ('http_timeout', 60, 
-        'number of seconds to wait before assuming that an http connection has timed out'),
-    ('max_initiate', 40,
-        'number of peers at which to stop initiating new connections'),
-    ('check_hashes', 1,
-        'whether to check hashes on disk'),
-    ('max_upload_rate', 0,
-        'maximum kB/s to upload at (0 = no limit, -1 = automatic)'),
-    ('max_download_rate', 0,
-        'maximum kB/s to download at (0 = no limit)'),
-    ('alloc_type', 'normal',
-        'allocation type (may be normal, background, pre-allocate or sparse)'),
-    ('alloc_rate', 2.0,
-        'rate (in MiB/s) to allocate space at using background allocation'),
-    ('buffer_reads', 1,
-        'whether to buffer disk reads'),
-    ('write_buffer_size', 4,
-        'the maximum amount of space to use for buffering disk writes ' +
-        '(in megabytes, 0 = disabled)'),
-    ('breakup_seed_bitfield', 1,
-        'sends an incomplete bitfield and then fills with have messages, '
-        'in order to get around stupid ISP manipulation'),
-    ('snub_time', 30.0,
-        "seconds to wait for data to come in over a connection before assuming it's semi-permanently choked"),
-    ('spew', 0,
-        "whether to display diagnostic info to stdout"),
-    ('rarest_first_cutoff', 2,
-        "number of downloads at which to switch from random to rarest first"),
-    ('rarest_first_priority_cutoff', 5,
-        'the number of peers which need to have a piece before other partials take priority over rarest first'),
-    ('min_uploads', 4,
-        "the number of uploads to fill out to with extra optimistic unchokes"),
-    ('max_files_open', 50,
-        'the maximum number of files to keep open at a time, 0 means no limit'),
-    ('round_robin_period', 30,
-        "the number of seconds between the client's switching upload targets"),
-    ('super_seeder', 0,
-        "whether to use special upload-efficiency-maximizing routines (only for dedicated seeds)"),
-    ('security', 1,
-        "whether to enable extra security features intended to prevent abuse"),
-    ('max_connections', 0,
-        "the absolute maximum number of peers to connect with (0 = no limit)"),
-    ('auto_kick', 1,
-        "whether to allow the client to automatically kick/ban peers that send bad data"),
-    ('double_check', 1,
-        "whether to double-check data being written to the disk for errors (may increase CPU load)"),
-    ('triple_check', 0,
-        "whether to thoroughly check data being written to the disk (may slow disk access)"),
-    ('lock_files', 1,
-        "whether to lock files the client is working with"),
-    ('lock_while_reading', 0,
-        "whether to lock access to files being read"),
-    ('auto_flush', 0,
-        "minutes between automatic flushes to disk (0 = disabled)"),
-#
-# Tribler per-download opts
-#
-    ('role', '', # 'helper', 'coordinator'
-        "role of the peer in the download"),
-    ('helpers_file', '',
-        "file with the list of friends"),
-    ('coordinator_permid', '',
-        "PermID of the cooperative download coordinator"),
-    ('exclude_ips', '',
-        "list of IP addresse to be excluded; comma separated"),
-    ('vod', 0,
-        "download in video-on-demand mode (0 = disabled)"),
-    ('ut_pex_max_addrs_from_peer', 16,
-            "maximum number of addresses to accept from peer (0 = disabled PEX)")]
-
-
-tdefdictdefaults = [ 
-    ('comment', '', "comment field"),
-    ('created by', '', "created by field"),
-    ('announce', '', "default tracker"),
-    ('announce-list', '', "default announce list"), 
-    ('httpseeds', '',  "default httpseeds") ]
-
-tdefmetadefaults = [
-    ('piece_size', 0, "piece size as int (0 = automatic)"), 
-    ('makehash_md5', 0, "add end-to-end MD5 checksum"), 
-    ('makehash_crc32', 0, "add end-to-end CRC32 checksum"), 
-    ('makehash_sha1', 0, "add end-to-end SHA1 checksum"), 
-    ('createmerkletorrent', 1, "create a Merkle torrent (.tribe, Tribler only)"),
-    ('createtorrentsig', 0, "whether to add a signature to the torrent"),
-    ('torrentsigkeypair', None, "keypair for signature"),
-    ('thumb', None, "image for video torrents, format: 171x96 JPEG")
-    ]
-
-tdefdefaults = tdefdictdefaults + tdefmetadefaults
-
-
 
 
 class Serializable:
@@ -472,46 +262,6 @@ class Copyable:
 
 
 
-class Bindable:
-
-    def __init__(self):
-        self.bindlock = BindLock()
-        self.configee = None
-    
-    def bind(self,lock):
-        self.bindlock.set(lock)
-        
-    def get_configee(self):
-        return self.configee
-    
-    def set_configee(self,configee):
-        self.configee = configee
-        
-    def is_bound(self):
-        return self.bindlock.get()
-
-
-class BindLock:
-    
-    def __init__(self):
-        self.lock = None
-        
-    def acquire(self):
-        if self.lock is not None:
-            self.lock.acquire()
-            
-    def release(self):
-        if self.lock is not None:
-            self.lock.release()
-
-    def set(self,lock):
-        self.lock = lock
-        
-    def get(self):
-        return self.lock
-
-
-#
 # Exceptions
 #
 class TriblerException(Exception):
@@ -520,7 +270,7 @@ class TriblerException(Exception):
         Exception.__init__(self)
         
 
-class OperationNotPermittedWhenBoundException(TriblerException):
+class OperationNotPossibleAtRuntimeException(TriblerException):
     
     def __init__(self):
         TriblerException.__init__(self)
@@ -537,18 +287,130 @@ class DownloadIsStoppedException(TriblerException):
         TriblerException.__init__(self)
 
 
+#
+# API classes
+#
 
-class Session(Serializable):
+    
+class SessionConfigInterface:
+    """ 
+    (key,value) pair config of global parameters, 
+    e.g. PermID keypair, listen port, max upload, etc.
+    
+    Use SessionStartupConfig from creating and manipulation configurations
+    before session startup time. This is just a parent class.
+    """
+    def __init__(self,sessconfig=None):
+        
+        if sessconfig is not None: # copy constructor
+            self.sessconfig = sessconfig
+            return
+        
+        self.sessconfig = {}
+        
+        # Define the built-in default here
+        for key,val,expl in sessdefaults:
+            self.sessconfig[key] = val
+    
+        if sys.platform == 'win32':
+            self.sessconfig['videoanalyserpath'] = self.getPath()+'\\ffmpeg.exe'
+        elif sys.platform == 'darwin':
+            ffmpegpath = find_prog_in_PATH("ffmpeg")
+            if ffmpegpath is None:
+                self.sessconfig['videoanalyserpath'] = "lib/ffmpeg"
+            else:
+                self.sessconfig['videoanalyserpath'] = ffmpegpath
+        else:
+            ffmpegpath = find_prog_in_PATH("ffmpeg")
+            if ffmpegpath is None:
+                self.sessconfig['videoanalyserpath'] = "ffmpeg"
+            else:
+                self.sessconfig['videoanalyserpath'] = ffmpegpath
+
+    
+        self.sessconfig['ipv6_binds_v4'] = autodetect_socket_style()
+    
+    
+        # TODO TEMP ARNO: session max vs download max 
+        self.sessconfig['max_upload_rate'] = 0
+    
+        # TEMP TODO
+        self.sessconfig['overlay'] = 0
+        self.sessconfig['dialback'] = 0
+
+
+    
+    def set_permid(self,keypair):
+        self.sessconfig['eckeypair'] = keypair
+        
+    def set_listen_port(self,port):
+        """
+        FUTURE: do we allow runtime modification of this param? Theoretically
+        possible, a bit hard to implement
+        """
+        self.sessconfig['minport'] = port
+        self.sessconfig['maxport'] = port
+
+    def get_listen_port(self):
+        return self.sessconfig['minport']
+        
+    def set_max_upload(self,speed):
+        self.sessconfig['max_upload_rate'] = speed
+        
+    def set_max_connections(self,nconns):
+        self.sessconfig['max_connections'] = nconns
+
+    def get_video_analyser_path(self):
+        return self.sessconfig['videoanalyserpath'] # strings immutable
+    
+
+
+class SessionStartupConfig(SessionConfigInterface,Defaultable,Copyable,Serializable):  
+    # Defaultable only if Session is not singleton
+    
+    _default = None
+    
+    def __init__(self,sessconfig=None):
+        SessionConfigInterface.__init__(self,sessconfig)
+
+    #
+    # Defaultable interface
+    #
+    def get_copy_of_default(*args,**kwargs):
+        """ Not thread safe """
+        if SessionStartupConfig._default is None:
+            SessionStartupConfig._default = SessionStartupConfig()
+        return SessionStartupConfig._default.copy()
+    get_copy_of_default = staticmethod(get_copy_of_default)
+
+    def get_default():
+        """ Not thread safe """
+        return SessionStartupConfig._default
+
+    def set_default(scfg):
+        """ Not thread safe """
+        SessionStartupConfig._default = scfg
+
+    #
+    # Copyable interface
+    # 
+    def copy(self):
+        config = copy.copy(self.sessconfig)
+        return SessionStartupConfig(config)
+
+
+
+class Session(Serializable,SessionConfigInterface):
     """
     cf. libtorrent session
     """
     def __init__(self,scfg=None):
         """
         A Session object is created which is configured following a copy of the
-        SessionConfig scfg.
+        SessionStartupConfig scfg.
         
-        in: scfg = SessionConfig object or None, in which case 
-        SessionConfig.get_copy_of_default() is called and the returned config
+        in: scfg = SessionStartupConfig object or None, in which case 
+        SessionStartupConfig.get_copy_of_default() is called and the returned config
         becomes the bound config of the session.
         
         In the current implementation only a single session instance can exist
@@ -557,46 +419,34 @@ class Session(Serializable):
         self.sesslock = RLock()
         
         if scfg is None:
-            self.scfg = SessionConfig.get_copy_of_default()
+            cscfg = SessionStartupConfig.get_copy_of_default()
         else:
-            self.scfg = scfg.copy()
+            cscfg = scfg
             
-        self.scfg.bind(self.sesslock)
+        self.sessconfig = copy.copy(cscfg.sessconfig)
         
         # Core init
         resetPeerIDs()
         Tribler.Overlay.permid.init()
-        if self.scfg.config['eckeypair'] is None:
-            self.scfg.config['eckeypair'] = Tribler.Overlay.permid.generate_keypair()
+        if self.sessconfig['eckeypair'] is None:
+            self.sessconfig['eckeypair'] = Tribler.Overlay.permid.generate_keypair()
         
-        self.lm = TriblerLaunchMany(self,self.scfg,self.sesslock)
+        self.lm = TriblerLaunchMany(self,self.sesslock)
         self.lm.start()
         
-        self.scfg.set_configee(self.lm)
 
-
-    def get_config(self):
-        """
-        Return the Session's config (note: not a copy)
-        
-        returns: a bound SessionConfig object
-        """
-        # no lock, not changable
-        return self.scfg
-    
-    
     def start_download(self,tdef,dcfg=None):
         """ 
         Creates a Download object and adds it to the session. The passed 
-        TorrentDef and DownloadConfig are copied into the new Download object
+        TorrentDef and DownloadStartupConfig are copied into the new Download object
         and the copies become bound. If the tracker is not set in tdef, it
         is set to the internal tracker (which must have been enabled in the 
         session config)
         
         in:
         tdef = TorrentDef
-        drcfg = DownloadConfig or None, in which case 
-        DownloadConfig.get_copy_of_default() is called and the result becomes 
+        drcfg = DownloadStartupConfig or None, in which case 
+        DownloadStartupConfig.get_copy_of_default() is called and the result becomes 
         the config of this Download.
         returns: a Download object
         """
@@ -632,156 +482,48 @@ class Session(Serializable):
     def get_internal_tracker_url(self):
         """ Called by any thread """
         ip = self.lm.get_ext_ip() #already thread safe
-        port = self.scfg.get_listen_port() # already thread safe
+        port = self.get_listen_port() # already thread safe
         url = 'http://'+ip+':'+str(port)+'/announce/'
         return url
-
     
-class SessionConfig(Defaultable,Copyable,Serializable,Bindable):  
-    # Defaultable only if Session is not singleton
-    
-    _default = None
-    
-    """ 
-    (key,value) pair config of global parameters, 
-    e.g. PermID keypair, listen port, max upload, etc.
-    """
-    def __init__(self,config=None):
-        Bindable.__init__(self)
-        
-        if config is not None: # copy constructor
-            self.config = config
-            return
-        
-        self.config = {}
-        self.bindlock = BindLock()
-        
-        # Define the built-in default here
-        for key,val,expl in sessdefaults:
-            self.config[key] = val
-    
-        if sys.platform == 'win32':
-            self.config['videoanalyserpath'] = self.getPath()+'\\ffmpeg.exe'
-        elif sys.platform == 'darwin':
-            ffmpegpath = find_prog_in_PATH("ffmpeg")
-            if ffmpegpath is None:
-                self.config['videoanalyserpath'] = "lib/ffmpeg"
-            else:
-                self.config['videoanalyserpath'] = ffmpegpath
-        else:
-            ffmpegpath = find_prog_in_PATH("ffmpeg")
-            if ffmpegpath is None:
-                self.config['videoanalyserpath'] = "ffmpeg"
-            else:
-                self.config['videoanalyserpath'] = ffmpegpath
-
-    
-        self.config['ipv6_binds_v4'] = autodetect_socket_style()
-    
-    
-        # TODO TEMP ARNO: session max vs download max 
-        self.config['max_upload_rate'] = 0
-    
-        # TEMP TODO
-        self.config['overlay'] = 0
-        self.config['dialback'] = 0
-    
-    
+    #
+    # SessionConfigInterface
+    #
+    # use these to change the session config at runtime
+    #
     def set_permid(self,keypair):
-        if not self.is_bound():
-            self.config['eckeypair'] = keypair
-        else:
-            raise OperationNotPermittedWhenBoundException()
+        raise OperationNotPossibleAtRuntime()
         
     def set_listen_port(self,port):
-        """
-        FUTURE: do we allow runtime modification of this param? Theoretically
-        possible, a bit hard to implement
-        """
-        if not self.is_bound():
-            self.config['minport'] = port
-            self.config['maxport'] = port
-        else:
-            raise OperationNotPermittedWhenBoundException()
+        raise OperationNotPossibleAtRuntime()
 
     def get_listen_port(self):
-        # Cheap because BindLock won't really lock until bound
-        # Lock protects dict, not also minport, as minport is currently not
-        # runtime modifiable
-        #
-        self.bindlock.acquire()
-        ret = self.config['minport']
-        self.bindlock.release()
+        self.sesslock.acquire()
+        # To protect self.sessconfig
+        ret = SessionConfigInterface.get_listen_port(self)
+        self.sesslock.release()
         return ret
-        
         
     def set_max_upload(self,speed):
-        if not self.is_bound():
-            self.config['max_upload_rate'] = speed
-        else:
-            def change():
-                self.configee.setUploadRate(speed)
-                self.config['max_upload_rate'] = speed
-            self._change_runtime_param(change)
+        # TODO: max per session and per download
+        raise NotYetImplementedException()
         
     def set_max_connections(self,nconns):
-        if not self.is_bound():
-            self.config['max_connections'] = nconns
-        else:
-            def change():
-                self.configee.set_max_connections(speed)
-                self.config['max_connections'] = nconns
-            self._change_runtime_param(change)
+        # TODO: max per session and per download
+        raise NotYetImplementedException()
 
     def get_video_analyser_path(self):
-        self.bindlock.acquire()
-        ret = self.config['videoanalyserpath'] # strings immutable
-        self.bindlock.release()
+        self.sesslock.acquire()
+        # To protect self.sessconfig
+        ret = SessionConfigInterface.get_video_analyser_path(self)
+        self.sesslock.release()
         return ret
-    
 
-    #
-    # Defaultable interface
-    #
-    def get_copy_of_default(*args,**kwargs):
-        """ Not thread safe """
-        if SessionConfig._default is None:
-            SessionConfig._default = SessionConfig()
-        return SessionConfig._default.copy()
-    get_copy_of_default = staticmethod(get_copy_of_default)
 
-    def get_default():
-        """ Not thread safe """
-        return SessionConfig._default
-
-    def set_default(scfg):
-        """ Not thread safe """
-        SessionConfig._default = scfg
-
-    #
-    # Copyable interface
-    # 
-    def copy(self):
-        if self.is_bound():
-            raise OperationNotPermittedWhenBoundException()
-        
-        config = copy.copy(self.config)
-        return SessionConfig(config)
-
-    #
-    # Internal method
-    #
-    def change_runtime_param(self,func):
-        self.bindlock.acquire()
-        try:
-            func()
-        finally:
-            self.bindlock.release()
         
 
-
-#class TorrentDef(DictMixin,Defaultable,Copyable,Serializable):
-class TorrentDef(Defaultable,Copyable,Serializable,Bindable):
+#class TorrentDef(DictMixin,Defaultable,Serializable):
+class TorrentDef(Defaultable,Serializable):
     """
     Definition of a torrent, i.e. all params required for a torrent file,
     plus optional params such as thumbnail, playtime, etc.
@@ -796,16 +538,16 @@ class TorrentDef(Defaultable,Copyable,Serializable,Bindable):
     cf. libtorrent torrent_info
     """
     def __init__(self,config=None,input=None,metainfo=None,infohash=None):
-        Bindable.__init__(self)
         
-        if config is not None:
+        self.readonly = False
+        if config is not None: # copy constructor
             self.config = config
             self.input = input
             self.metainfo = metainfo
             self.infohash = infohash
             return
-            
-        self.config = {}
+        
+        self.tdefconfig = {}
         self.input = {} # fields added by user, waiting to be turned into torrent file
         self.input['files'] = []
         self.metainfo_valid = False
@@ -814,12 +556,12 @@ class TorrentDef(Defaultable,Copyable,Serializable,Bindable):
         
         # Define the built-in default here
         for key,val,expl in tdefmetadefaults:
-            self.config[key] = val
+            self.tdefconfig[key] = val
 
         for key,val,expl in tdefdictdefaults:
             self.input[key] = val
         
-        self.input['announce'] = 'bla' # Hmmm... this depends on the default SessionConfig ISSUE
+        self.input['announce'] = 'bla' # Hmmm... this depends on the default SessionStartupConfig ISSUE
 
 
     #
@@ -870,33 +612,9 @@ class TorrentDef(Defaultable,Copyable,Serializable,Bindable):
         return TorrentDef._read(f)
     load_from_url = staticmethod(load_from_url)
 
+    
     #
-    # Instance methods
-    #
-    def save(self,filename):
-        """
-        Writes torrent file data (i.e., bencoded dict following BT spec)
-        in:
-        filename = Unicode string
-        """
-        # Lock & write
-        self.bindlock.acquire()
-        try:
-            # TODO: should be possible when bound
-            raise NotYetImplementedException()
-        finally:
-            self.bindlock.release()
-        """
-            bn = os.path.basename(filename)
-            # How to encode Unicode filename? TODO
-            
-            # When to read file to calc hashes? TODO (could do now and keep pieces in mem until
-            # torrent file / bind time. Update: Need to wait until we know piece size.
-        """ 
-
-
-    #
-    # Convenience methods for publishing new content
+    # Convenience instance methods for publishing new content
     #
     def add_file(self,filename,playtime=None):
         """
@@ -909,9 +627,9 @@ class TorrentDef(Defaultable,Copyable,Serializable,Bindable):
         playtime = (optional) String representing the duration of the multimedia
                    file when played, in [hh:]mm:ss format. 
         """
-        if self.is_bound():
-            raise OperationNotPermittedWhenBoundException()
-
+        if self.readonly:
+            raise OperationNotPossibleAtRuntimeException()
+        
         s = os.stat(filename)
         d = {'fn':filename,'playtime':playtime,'length':s.st_size}
         self.input['files'].append(d)
@@ -921,16 +639,14 @@ class TorrentDef(Defaultable,Copyable,Serializable,Bindable):
         """
         returns: (MIME type,thumbnail data) if present or (None,None)
         """
-        # Lock just protects self.config, not also thumb, that is currently
-        # not runtime modifiable.
-        self.bindlock.acquire()
+        if self.readonly:
+            raise OperationNotPossibleAtRuntimeException()
+
         if thumb is None:
-            ret = (None,None)
+            return (None,None)
         else:
             thumb = self.input['thumb'] # buffer/string immutable
-            ret = ('image/jpeg',thumb)
-        self.bindlock.release()
-        return ret
+            return ('image/jpeg',thumb)
         
         
     def set_thumbnail(self,thumbfilename):
@@ -945,8 +661,8 @@ class TorrentDef(Defaultable,Copyable,Serializable,Bindable):
         
         exceptions: ...Error
         """
-        if self.is_bound():
-            raise OperationNotPermittedWhenBoundException()
+        if self.readonly:
+            raise OperationNotPossibleAtRuntimeException()
         
         f = open(thumbfilename,"rb")
         data = f.read()
@@ -957,27 +673,24 @@ class TorrentDef(Defaultable,Copyable,Serializable,Bindable):
 
     def get_tracker(self):
         """ Returns 'announce' field """
-        self.bindlock.acquire()
-        ret = self.input['announce']
-        self.bindlock.release()
-        return ret
+        return self.input['announce']
         
     def set_tracker(self,url):
-        if self.is_bound():
-            raise OperationNotPermittedWhenBoundException()
+        if self.readonly:
+            raise OperationNotPossibleAtRuntimeException()
 
         self.input['announce'] = url 
         
+        
     def finalize(self):
         """ Create BT torrent file from input and calculate infohash """
-        self.bindlock.acquire()
-        try:
-            if self.metainfo_valid:
-                return (self.infohash,self.metainfo)
-            else:
-                raise NotYetImplementedException()
-        finally:
-            self.bindlock.release()
+        if self.readonly:
+            raise OperationNotPossibleAtRuntimeException()
+        
+        if self.metainfo_valid:
+            return (self.infohash,self.metainfo)
+        else:
+            raise NotYetImplementedException()
 
     #
     # 
@@ -993,27 +706,40 @@ class TorrentDef(Defaultable,Copyable,Serializable,Bindable):
             return self.metainfo
         else:
             raise NotYetImplementedException() # must save first
+
+
+    def save(self,filename):
+        """
+        Writes torrent file data (i.e., bencoded dict following BT spec)
+        in:
+        filename = Unicode string
+        """
+        # TODO: should be possible when bound/readonly
+        raise NotYetImplementedException()
+        """
+            bn = os.path.basename(filename)
+            # How to encode Unicode filename? TODO
+            
+            # When to read file to calc hashes? TODO (could do now and keep pieces in mem until
+            # torrent file / bind time. Update: Need to wait until we know piece size.
+        """ 
         
 
     #
     # DictMixin
     #
-    # TODO: make thread safe when bound
+
 
     #
     # Defaultable interface can be used to things such as default tracker, which
     # end-to-end checksums to include, etc.
     #
 
-
     #
     # Copyable interface
     # 
     def copy(self):
-        if self.is_bound():
-            raise OperationNotPermittedWhenBoundException()
-        
-        config = copy.copy(self.config)
+        config = copy.copy(self.tdefconfig)
         input = copy.copy(self.input)
         metainfo = copy.copy(self.metainfo)
         infohash = self.infohash
@@ -1021,8 +747,55 @@ class TorrentDef(Defaultable,Copyable,Serializable,Bindable):
         t.metainfo_valid = self.metainfo_valid
         return t
 
+
+
+class DownloadConfigInterface:
+    """
+    (key,value) pair config of per-torrent runtime parameters,
+    e.g. destdir, file-allocation policy, etc. Also options to advocate
+    torrent, e.g. register in DHT, advertise via Buddycast.
     
-class DownloadConfig(Defaultable,Copyable,Serializable,Bindable):
+    Use DownloadStartupConfig to manipulate download configs before download 
+    startup time. This is just a parent class.
+     
+    cf. libtorrent torrent_handle
+    """
+    def __init__(self,dlconfig=None):
+        
+        if dlconfig is not None: # copy constructor
+            self.dlconfig = dlconfig
+            return
+        
+        self.dlconfig = {}
+        
+        # Define the built-in default here
+        for key,val,expl in dldefaults:
+            self.dlconfig[key] = val
+       
+        if sys.platform == 'win32':
+            profiledir = os.path.expandvars('${USERPROFILE}')
+            tempdir = os.path.join(profiledir,'Desktop','TriblerDownloads')
+            self.dlconfig['saveas'] = tempdir 
+        elif sys.platform == 'darwin':
+            profiledir = os.path.expandvars('${HOME}')
+            tempdir = os.path.join(profiledir,'Desktop','TriblerDownloads')
+            self.dlconfig['saveas'] = tempdir
+        else:
+            self.dlconfig['saveas'] = '/tmp'
+
+        # TODO: is now sess param, how to set here?
+        self.dlconfig['upload_unit_size'] = 1460
+
+    
+    def set_max_upload(self,speed):
+        """
+        ISSUE: How do session maximums and torrent maximums coexist?
+        """
+        self.dlconfig['max_upload'] = speed
+
+
+    
+class DownloadStartupConfig(DownloadConfigInterface,Defaultable,Serializable):
     """
     (key,value) pair config of per-torrent runtime parameters,
     e.g. destdir, file-allocation policy, etc. Also options to advocate
@@ -1038,88 +811,37 @@ class DownloadConfig(Defaultable,Copyable,Serializable,Bindable):
     _default = None
     
     
-    def __init__(self,config=None):
-        Bindable.__init__(self)
-        
-        if config is not None: # copy constructor
-            self.config = config
-            return
-
-        
-        self.config = {}
-        
-        # Define the built-in default here
-        for key,val,expl in dldefaults:
-            self.config[key] = val
-       
-        if sys.platform == 'win32':
-            profiledir = os.path.expandvars('${USERPROFILE}')
-            tempdir = os.path.join(profiledir,'Desktop','TriblerDownloads')
-            self.config['saveas'] = tempdir 
-        elif sys.platform == 'darwin':
-            profiledir = os.path.expandvars('${HOME}')
-            tempdir = os.path.join(profiledir,'Desktop','TriblerDownloads')
-            self.config['saveas'] = tempdir
-        else:
-            self.config['saveas'] = '/tmp'
-
-        # TODO: is now sess param, how to set here?
-        self.config['upload_unit_size'] = 1460
-
-    
-    def set_max_upload(self,speed):
-        """
-        ISSUE: How do session maximums and torrent maximums coexist?
-        """
-        if not self.is_bound():
-            self.config['max_upload'] = speed
-        else:
-            self.bindlock.acquire()
-            
-                self.configee.set_max_upload(speed)
-                self.config['max_upload'] = speed
-            self.change_runtime_param(change)
-
+    def __init__(self,dlconfig=None):
+        DownloadConfigInterface.__init__(self,dlconfig)
 
     #
     # Defaultable interface
     #
     def get_copy_of_default(*args,**kwargs):
         """ Not thread safe """
-        if DownloadConfig._default is None:
-            DownloadConfig._default = DownloadConfig()
-        return DownloadConfig._default.copy()
+        if DownloadStartupConfig._default is None:
+            DownloadStartupConfig._default = DownloadStartupConfig()
+        return DownloadStartupConfig._default.copy()
     get_copy_of_default = staticmethod(get_copy_of_default)
 
     def get_default():
         """ Not thread safe """
-        return DownloadConfig._default
+        return DownloadStartupConfig._default
 
-    def set_default(scfg):
+    def set_default(dcfg):
         """ Not thread safe """
-        DownloadConfig._default = scfg
-
+        DownloadStartupConfig._default = dcfg
 
     #
     # Copyable interface
     # 
     def copy(self):
-        if self.is_bound():
-            raise OperationNotPermittedWhenBoundException()
-        
-        config = copy.copy(self.config)
-        return DownloadConfig(config)
+        config = copy.copy(self.dlconfig)
+        return DownloadStartupConfig(config)
 
-
-    #
-    # Internal methods
-    #
-        
-    def copy_dict(self):
-        return copy.copy(self.config)
         
         
-class Download:
+class Download(DownloadConfigInterface):
     """
     Representation of a running BT download/upload
     
@@ -1129,58 +851,80 @@ class Download:
     #
     # Internal method
     #
-    def __init__(self,scfg,lm,tdef,dcfg=None,itrackerurl=None):
+    def __init__(self,session,tdef,dcfg=None):
         """
         Create a Download object. Used internally by Session. Copies tdef and 
         dcfg and binds them to this download.
         
         in: 
         tdef = unbound TorrentDef
-        dcfg = unbound DownloadConfig or None (in which case DownloadConfig.get_copy_of\
+        dcfg = unbound DownloadStartupConfig or None (in which case DownloadStartupConfig.get_copy_of\
         _default() is called and the result becomes the (bound) config of this
         Download.
         """
         self.cond = Condition()
-        
-        self.tdef = tdef.copy()
-        if dcfg is None:
-            self.dcfg = DownloadConfig.get_copy_of_default()
-        else:
-            self.dcfg = dcfg.copy()
 
-        # Do before bind, simpler
+        self.session = session
+        # Copy tdef
+        self.tdef = tdef.copy()
         tracker = self.tdef.get_tracker()
         if tracker == '':
             self.tdef.set_tracker(itrackerurl)
-        
-        self.tdef.bind(self.cond)
-        self.dcfg.bind(self.cond)
-        
-        self.lm = lm
-        
-        # Set IP to report to tracker. 
-        self.dcfg.config['ip'] = lm.get_ext_ip()
-        
         self.tdef.finalize()
+        self.tdef.readonly = True
         
-    
+        
+        # Copy dlconfig, from default if not specified
+        if dcfg is None:
+            cdcfg = DownloadStartupConfig.get_copy_of_default()
+        else:
+            cdcfg = dcfg
+        self.dlconfig = copy.copy(cdcfg.dlconfig)
+
+        # Set IP to report to tracker. 
+        self.dlconfig['ip'] = self.session.lm.get_ext_ip()
+
+
+    def async_create_engine_wrapper(self,lmcallback):
+        """ Called by any thread """
+        if DEBUG:
+            print >>sys.stderr,"Download: async_create_engine_wrapper()"
+        
+        # all thread safe
+        infohash = self.get_def().get_infohash()
+        metainfo = self.get_def().get_metainfo()
+        multihandler = self.session.lm.multihandler
+        listenport = self.session.get_listen_port()
+        vapath = self.session.get_video_analyser_path()
+
+        # Note: BT1Download is started with copy of d.dlconfig, not direct access
+        self.cond.acquire()
+        kvconfig = copy.copy(self.dlconfig)
+        self.cond.release()
+        
+        func = lambda:self.network_create_engine_wrapper(infohash,metainfo,kvconfig,multihandler,listenport,vapath,lmcallback)
+        self.session.lm.rawserver.add_task(func,0) 
+        
+
+    def network_create_engine_wrapper(self,infohash,metainfo,kvconfig,multihandler,listenport,vapath,lmcallback):
+        """ Called by network thread """
+        self.cond.acquire()
+        self.sd = SingleDownload(infohash,metainfo,kvconfig,multihandler,listenport,vapath)
+        self.cond.release()
+        if lmcallback is not None:
+            lmcallback(self,self.sd)
+        
     #
     # Public methods
     #
     def get_def(self):
         """
-        Returns the bound TorrentDef
+        Returns the read-only TorrentDef
         """
         # No lock because attrib immutable and return value protected
         return self.tdef
+
     
-    def get_config(self):
-        """
-        Returns the bound DownloadConfig
-        """
-        # No lock because attrib immutable and return value protected
-        return self.dcfg
-        
     def get_state(self):
         """ 
         returns: copy of internal download state (so not live pointers into 
@@ -1189,26 +933,52 @@ class Download:
         return DownloadState()
 
     def stop(self):
-        self.bindlock.acquire()
+        """ Called by any thread """
+        self.cond.acquire()
         try:
-            def stop_download():
-                self.dcfg.get_configee().shutdown()
-            self.rawserver.add_task(stop_download,0)
+            if self.sd is None:
+                raise DownloadIsStoppedException()
+            self.session.lm.rawserver.add_task(self.network_stop,0)
         finally:
-            self.bindlock.release()
+            self.cond.release()
+        
+        # TODO: async or sync stop?
         
     def restart(self):
-        self.bindlock.acquire()
-        try:
-            raise NotYetImplementedException()
-        finally:
-            self.bindlock.release()
+        """ Called by any thread """
+        self.session.lm.rawserver.add_task(self.network_restart,0)
+
+        # TODO: async or sync start?
+
 
     #
-    # Internal method
-    # 
-    def set_configee(self,sd):
-        self.dcfg.set_configee(sd)
+    # DownloadConfigInterface
+    #
+    def set_max_upload(self,speed):
+        """ Called by any thread """
+        self.cond.acquire()
+        try:
+            if self.sd is None:
+                raise DownloadIsStoppedException()
+            DownloadConfigInterface.set_max_upload(self,speed)
+        finally:
+            self.cond.release()
+
+
+    #
+    # Internal methods
+    #
+
+    def network_stop(self):
+        """ Called by network thread """
+        self.cond.acquire()
+        try:
+            self.sd.shutdown()
+        finally:
+            self.cond.release()
+
+    def network_restart(self):
+        self.async_create_engine_wrapper(None)
 
     
 class DownloadState:
@@ -1230,7 +1000,7 @@ class DownloadState:
     ISSUE: some of this state such as piece admin for some file-alloc modes 
     must be savable. It is wise to also save the torrent runtime config along,
     so determine at which level we should offer save/load methods. E.g.
-    just let DownloadState and DownloadConfig return data which e.g.
+    just let DownloadState and DownloadStartupConfig return data which e.g.
     Download saves in single file.
     
     How do we support this? Copying file alloc admin each time is overhead.
@@ -1260,18 +1030,17 @@ class DownloadState:
 
 class TriblerLaunchMany(Thread):
     
-    def __init__(self,session,scfg,sesslock):
+    def __init__(self,session,sesslock):
         """ Called only once (unless we have multiple Sessions) """
         Thread.__init__(self)
         self.setDaemon(True)
         self.setName("Network"+self.getName())
         
         self.session = session
-        self.scfg = scfg
         self.sesslock = sesslock
         
         self.downloads = {}
-        config = scfg.config # Should be safe at startup
+        config = session.sessconfig # Should be safe at startup
 
         self.locally_guessed_ext_ip = self.guess_ext_ip_locally()
         self.upnp_ext_ip = None
@@ -1352,63 +1121,29 @@ class TriblerLaunchMany(Thread):
 
     def add(self,tdef,dcfg):
         """ Called by any thread """
-        d = Download(self.scfg,self,tdef,dcfg,self.session.get_internal_tracker_url())
-        func = lambda:self.create_download_callback(d)
-        self.rawserver.add_task(func,0)
+        self.sesslock.acquire()
+        d = Download(self.session,tdef,dcfg)
         
+        d.async_create_engine_wrapper(self.network_engine_wrapper_created_callback)
+
         # make calling thread wait till network thread created object
         d.cond.acquire()
         d.cond.wait()
         d.cond.release()
+
+        # store in list of Downloads
+        self.downloads[d.get_def().get_infohash()] = d
+        self.sesslock.release()
         return d
 
-    def create_download_callback(self,d):
+    def network_engine_wrapper_created_callback(self,d,sd):
         """ Called by network thread """
-        try:
-            if DEBUG:
-                print >>sys.stderr,"tlm: add()"
-            
-            infohash = d.get_def().get_infohash()
-            metainfo = d.get_def().get_metainfo()
-            
-            if DEBUG:
-                print >>sys.stderr,"tlm: add: got infohash + metainfo"
+        self.queue_for_hashcheck(sd)
 
-            
-            # Note: BT1Download is started with copy of self.scfg.config, not direct access
-            kvconfig = d.get_config().copy_dict() 
-            listenport = self.scfg.get_listen_port()
-            
-            if DEBUG:
-                print >>sys.stderr,"tlm: add: got listen port"
-
-            
-            vapath = self.scfg.get_video_analyser_path()
-            
-            if DEBUG:
-                print >>sys.stderr,"tlm: add: got vapath"
-
-            
-            if DEBUG:
-                print >>sys.stderr,"tlm: add: before SingleDownload()"
-            
-            sd = SingleDownload(infohash,metainfo,kvconfig,self.multihandler,listenport,vapath)
-            d.set_configee(sd)
-            self.queue_for_hashcheck(sd)
-            if DEBUG:
-                print >>sys.stderr,"tlm: add: after queue for hashcheck"
-    
-            # store in list of Downloads
-            self.sesslock.acquire()
-            self.downloads[infohash] = d
-            self.sesslock.release()
-            
-            # wake up creator thread
-            d.cond.acquire()
-            d.cond.notify()
-            d.cond.release()
-        except:
-            print_exc()
+        # wake up creator thread
+        d.cond.acquire()
+        d.cond.notify()
+        d.cond.release()
         
     def remove(self,d):
         """ Called by any thread """
@@ -1424,10 +1159,9 @@ class TriblerLaunchMany(Thread):
         """ Called by any thread """
         self.sesslock.acquire()
         try:
-            l = self.downloads[:] #copy, is mutable
+            return self.downloads[:] #copy, is mutable
         finally:
             self.sesslock.release()
-        return l
     
     def failfunc(self,msg):
         """ Called by multiple threads, TODO determine required locking """
@@ -1625,7 +1359,7 @@ class SingleDownload:
         self.rawserver.start_listening(self.dow.getPortHandler())
 
 
-    # DownloadConfig methods
+    # DownloadConfigInterface methods
     def set_max_upload(self,speed):
         if self.dow is None:
             raise DownloadIsStopped()
@@ -1766,7 +1500,7 @@ if __name__ == "__main__":
     
     print >>sys.stderr,"main: TorrentDef is",tdef
     d = s.start_download(tdef)
-    d.get_config().set_max_upload(100)
+    d.set_max_upload(100)
     while True:
         print d.get_state().get_progress()
         time.sleep(5)
