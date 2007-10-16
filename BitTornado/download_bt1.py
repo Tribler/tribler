@@ -310,71 +310,65 @@ class BT1Download:
                 
 
     def saveAs(self, filefunc, pathfunc = None):
-        try:
-            def make(f, forcedir = False):
-                if not forcedir:
-                    f = path.split(f)[0]
-                if f != '' and not path.exists(f):
-                    makedirs(f)
+        """ Now throws Exceptions """
+        def make(f, forcedir = False):
+            if not forcedir:
+                f = path.split(f)[0]
+            if f != '' and not path.exists(f):
+                makedirs(f)
 
-            if self.info.has_key('length'):
-                file_length = self.info['length']
-                file = filefunc(self.info['name'], file_length, 
-                                self.config['saveas'], False)
-                if file is None:
-                    return None
-                make(file)
-                files = [(file, file_length)]
-            else:
-                file_length = 0L
-                for x in self.info['files']:
-                    file_length += x['length']
-                file = filefunc(self.info['name'], file_length, 
-                                self.config['saveas'], True)
-                if file is None:
-                    return None
+        if self.info.has_key('length'):
+            file_length = self.info['length']
+            file = filefunc(self.info['name'], file_length, 
+                            self.config['saveas'], False)
+            if file is None:
+                return None
+            make(file)
+            files = [(file, file_length)]
+        else:
+            file_length = 0L
+            for x in self.info['files']:
+                file_length += x['length']
+            file = filefunc(self.info['name'], file_length, 
+                            self.config['saveas'], True)
+            if file is None:
+                return None
 
-                # if this path exists, and no files from the info dict exist, we assume it's a new download and 
-                # the user wants to create a new directory with the default name
-                existing = 0
-                if path.exists(file):
-                    if not path.isdir(file):
-                        self.errorfunc(file + 'is not a dir')
-                        return None
-                    if listdir(file):  # if it's not empty
-                        for x in self.info['files']:
-                            if path.exists(path.join(file, x['path'][0])):
-                                existing = 1
-                        if not existing:
-                            file = path.join(file, self.info['name'])
+            # if this path exists, and no files from the info dict exist, we assume it's a new download and 
+            # the user wants to create a new directory with the default name
+            existing = 0
+            if path.exists(file):
+                if not path.isdir(file):
+                    self.errorfunc(file + 'is not a dir')
+                    return None
+                if listdir(file):  # if it's not empty
+                    for x in self.info['files']:
+                        if path.exists(path.join(file, x['path'][0])):
+                            existing = 1
+                    if not existing:
+                        file = path.join(file, self.info['name'])
+                        if path.exists(file) and not path.isdir(file):
+                            if file.endswith('.torrent') or file.endswith(TRIBLER_TORRENT_EXT):
+                                (prefix,ext) = os.path.splitext(file)
+                                file = prefix
                             if path.exists(file) and not path.isdir(file):
-                                if file.endswith('.torrent') or file.endswith(TRIBLER_TORRENT_EXT):
-                                    (prefix,ext) = os.path.splitext(file)
-                                    file = prefix
-                                if path.exists(file) and not path.isdir(file):
-                                    self.errorfunc("Can't create dir - " + self.info['name'])
-                                    return None
-                make(file, True)
+                                self.errorfunc("Can't create dir - " + self.info['name'])
+                                return None
+            make(file, True)
 
-                # alert the UI to any possible change in path
-                if pathfunc != None:
-                    pathfunc(file)
+            # alert the UI to any possible change in path
+            if pathfunc != None:
+                pathfunc(file)
 
-                files = []
-                for x in self.info['files']:
-                    n = file
-                    for i in x['path']:
-                        n = path.join(n, i)
-                    files.append((n, x['length']))
-                    make(n)
-            if DEBUG:
-                print >>sys.stderr,"BT1Download: saveas 2"
-        except OSError, e:
-            self.errorfunc("Couldn't allocate dir - " + str(e))
-            return None
-        except UnicodeEncodeError, e:
-            self.errorfunc("Couldn't create dir named by unknown characters - " + str(e))
-            return None
+            files = []
+            for x in self.info['files']:
+                n = file
+                for i in x['path']:
+                    n = path.join(n, i)
+                files.append((n, x['length']))
+                make(n)
+        if DEBUG:
+            print >>sys.stderr,"BT1Download: saveas 2"
 
         self.filename = file
         self.files = files
@@ -418,6 +412,7 @@ class BT1Download:
         
 
     def initFiles(self, old_style = False, statusfunc = None):
+        """ Now throws exceptions """
         if self.doneflag.isSet():
             return None
         if not statusfunc:
@@ -449,37 +444,21 @@ class BT1Download:
                 except:
                     pass
 
-        try:
-            try:
-                self.storage = Storage(self.files, self.info['piece length'], 
-                                       self.doneflag, self.config, disabled_files)
-            except IOError, e:
-                print_exc()
-                self.errorfunc('trouble accessing files - ' + str(e))
-                return None
-            if self.doneflag.isSet():
-                return None
+        self.storage = Storage(self.files, self.info['piece length'], 
+                               self.doneflag, self.config, disabled_files)
 
-            # Merkle: Are we dealing with a Merkle torrent y/n?
-            if self.info.has_key('root hash'):
-                root_hash = self.info['root hash']
-            else:
-                root_hash = None
-            self.storagewrapper = StorageWrapper(self.storage, self.config['download_slice_size'],
-                self.pieces, self.info['piece length'], root_hash, 
-                self._finished, self._failed,
-                statusfunc, self.doneflag, self.config['check_hashes'],
-                self._data_flunked, self.rawserver.add_task,
-                self.config, self.unpauseflag)
+        # Merkle: Are we dealing with a Merkle torrent y/n?
+        if self.info.has_key('root hash'):
+            root_hash = self.info['root hash']
+        else:
+            root_hash = None
+        self.storagewrapper = StorageWrapper(self.storage, self.config['download_slice_size'],
+            self.pieces, self.info['piece length'], root_hash, 
+            self._finished, self._failed,
+            statusfunc, self.doneflag, self.config['check_hashes'],
+            self._data_flunked, self.rawserver.add_task,
+            self.config, self.unpauseflag)
             
-        except ValueError, e:
-            self._failed('bad data - ' + str(e))
-        except IOError, e:
-            self._failed('IOError - ' + str(e))
-
-        if self.doneflag.isSet():
-            return None
-
         if self.selector_enabled:
             self.fileselector = FileSelector(self.files, self.info['piece length'], 
                                              self.appdataobj.getPieceDir(self.infohash), 

@@ -435,7 +435,7 @@ class Session(Serializable,SessionConfigInterface):
         self.lm.start()
         
 
-    def start_download(self,tdef,dcfg=None):
+    def start_download(self,tdef,dcfg=None,usercallback=None):
         """ 
         Creates a Download object and adds it to the session. The passed 
         TorrentDef and DownloadStartupConfig are copied into the new Download object
@@ -448,10 +448,25 @@ class Session(Serializable,SessionConfigInterface):
         drcfg = DownloadStartupConfig or None, in which case 
         DownloadStartupConfig.get_copy_of_default() is called and the result becomes 
         the config of this Download.
-        returns: a Download object
+        callback = function pointer to a func(exc,d)
         """
         # locking by lm
-        return self.lm.add(tdef,dcfg)
+        if usercallback is None:
+            func = self.dummy_usercallback
+        else:
+            func = lambda exc,obj:self.do_usercallback(usercallback,exc,obj)
+            
+        try:
+            self.lm.add(tdef,dcfg,func)
+        except Exception,e:
+            func(e,None)
+
+    def do_usercallback(self,usercallback,exc,obj):
+        """ Get thread from pool and make it do usercallback """
+        usercallback(exc,obj)
+
+    def dummy_usercallback(self,exc,obj):
+        print >>sys.stderr,"Session: Unhandled usercallback",exc,obj
 
     def resume_download_from_file(self,filename):
         """
@@ -485,6 +500,7 @@ class Session(Serializable,SessionConfigInterface):
         port = self.get_listen_port() # already thread safe
         url = 'http://'+ip+':'+str(port)+'/announce/'
         return url
+
     
     #
     # SessionConfigInterface
@@ -498,11 +514,12 @@ class Session(Serializable,SessionConfigInterface):
         raise OperationNotPossibleAtRuntime()
 
     def get_listen_port(self):
-        self.sesslock.acquire()
         # To protect self.sessconfig
-        ret = SessionConfigInterface.get_listen_port(self)
-        self.sesslock.release()
-        return ret
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_listen_port(self)
+        finally:
+            self.sesslock.release()
         
     def set_max_upload(self,speed):
         # TODO: max per session and per download
@@ -513,12 +530,12 @@ class Session(Serializable,SessionConfigInterface):
         raise NotYetImplementedException()
 
     def get_video_analyser_path(self):
-        self.sesslock.acquire()
         # To protect self.sessconfig
-        ret = SessionConfigInterface.get_video_analyser_path(self)
-        self.sesslock.release()
-        return ret
-
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_video_analyser_path(self)
+        finally:
+            self.sesslock.release()
 
         
 
@@ -538,6 +555,7 @@ class TorrentDef(Defaultable,Serializable):
     cf. libtorrent torrent_info
     """
     def __init__(self,config=None,input=None,metainfo=None,infohash=None):
+        """ Normal and copy onstructor for TorrentDef """
         
         self.readonly = False
         if config is not None: # copy constructor
@@ -561,20 +579,23 @@ class TorrentDef(Defaultable,Serializable):
         for key,val,expl in tdefdictdefaults:
             self.input[key] = val
         
-        self.input['announce'] = 'bla' # Hmmm... this depends on the default SessionStartupConfig ISSUE
-
+        # We cannot set a built-in default for a tracker here, as it depends on
+        # a Session. Alternatively, the tracker will be set to the internal
+        # tracker by default when Session::start_download() is called, if the
+        # 'announce' field is the empty string.
 
     #
     # Class methods for creating a TorrentDef from a .torrent file
     #
     def load(filename):
         """
-        ISSUE: We could a single load() method that takes an URL as argument.
-        This could be a HTTP URL or a file URL. Problem is that formally a 
-        Unicode filename of the local filesystem would have to be encoded 
-        according to the URL encoding rules first.
+        Load a BT .torrent or Tribler .tribe file from disk and convert
+        it into a TorrentDef
         
-        SOLUTION: have load() and load_from_url()
+        in: filename = Fully qualified Unicode filename
+        returns: a TorrentDef object
+        
+        throws: IOExceptions,ValueError
         """
         # Class method, no locking required
         f = open(filename,"rb")
@@ -589,7 +610,8 @@ class TorrentDef(Defaultable,Serializable):
         stream.close()
         data = bdecode(bdata)
         
-        validTorrentFile(data) # raises ValueErrors if not good
+        # raises ValueErrors if not good
+        validTorrentFile(data) 
         
         t = TorrentDef()
         t.metainfo = data
@@ -604,8 +626,13 @@ class TorrentDef(Defaultable,Serializable):
 
     def load_from_url(url):
         """
-        in:
-        torrenturl = URL of file
+        Load a BT .torrent or Tribler .tribe file from the URL and convert
+        it into a TorrentDef
+        
+        in: url = URL
+        returns: a TorrentDef object
+        
+        throws: IOExceptions,ValueError
         """
         # Class method, no locking required
         f = urlTimeoutOpen(url)
@@ -683,7 +710,10 @@ class TorrentDef(Defaultable,Serializable):
         
         
     def finalize(self):
-        """ Create BT torrent file from input and calculate infohash """
+        """ Create BT torrent file from input and calculate infohash 
+        
+        returns: (infohash,metainfo) tuple
+        """
         if self.readonly:
             raise OperationNotPossibleAtRuntimeException()
         
@@ -712,7 +742,7 @@ class TorrentDef(Defaultable,Serializable):
         """
         Writes torrent file data (i.e., bencoded dict following BT spec)
         in:
-        filename = Unicode string
+        filename = Fully qualified Unicode filename
         """
         # TODO: should be possible when bound/readonly
         raise NotYetImplementedException()
@@ -794,6 +824,9 @@ class DownloadConfigInterface:
         self.dlconfig['max_upload'] = speed
 
 
+    def set_saveas(self,path):
+        self.dlconfig['saveas'] = path
+
     
 class DownloadStartupConfig(DownloadConfigInterface,Defaultable,Serializable):
     """
@@ -809,7 +842,6 @@ class DownloadStartupConfig(DownloadConfigInterface,Defaultable,Serializable):
     cf. libtorrent torrent_handle
     """
     _default = None
-    
     
     def __init__(self,dlconfig=None):
         DownloadConfigInterface.__init__(self,dlconfig)
@@ -851,7 +883,7 @@ class Download(DownloadConfigInterface):
     #
     # Internal method
     #
-    def __init__(self,session,tdef,dcfg=None):
+    def __init__(self,session,tdef,dcfg=None,lmcallback=None,usercallback=None):
         """
         Create a Download object. Used internally by Session. Copies tdef and 
         dcfg and binds them to this download.
@@ -863,8 +895,8 @@ class Download(DownloadConfigInterface):
         Download.
         """
         self.cond = Condition()
-
         self.session = session
+        
         # Copy tdef
         self.tdef = tdef.copy()
         tracker = self.tdef.get_tracker()
@@ -881,11 +913,9 @@ class Download(DownloadConfigInterface):
             cdcfg = dcfg
         self.dlconfig = copy.copy(cdcfg.dlconfig)
 
-        # Set IP to report to tracker. 
-        self.dlconfig['ip'] = self.session.lm.get_ext_ip()
+        self.async_create_engine_wrapper(lmcallback,usercallback)
 
-
-    def async_create_engine_wrapper(self,lmcallback):
+    def async_create_engine_wrapper(self,lmcallback,usercallback):
         """ Called by any thread """
         if DEBUG:
             print >>sys.stderr,"Download: async_create_engine_wrapper()"
@@ -899,20 +929,31 @@ class Download(DownloadConfigInterface):
 
         # Note: BT1Download is started with copy of d.dlconfig, not direct access
         self.cond.acquire()
+        # Set IP to report to tracker. 
+        self.dlconfig['ip'] = self.session.lm.get_ext_ip()
         kvconfig = copy.copy(self.dlconfig)
         self.cond.release()
         
-        func = lambda:self.network_create_engine_wrapper(infohash,metainfo,kvconfig,multihandler,listenport,vapath,lmcallback)
+        # Delegate creation of engine wrapper to network thread
+        func = lambda:self.network_create_engine_wrapper(infohash,metainfo,kvconfig,multihandler,listenport,vapath,lmcallback,usercallback)
         self.session.lm.rawserver.add_task(func,0) 
         
 
-    def network_create_engine_wrapper(self,infohash,metainfo,kvconfig,multihandler,listenport,vapath,lmcallback):
+    def network_create_engine_wrapper(self,infohash,metainfo,kvconfig,multihandler,listenport,vapath,lmcallback,usercallback):
         """ Called by network thread """
         self.cond.acquire()
-        self.sd = SingleDownload(infohash,metainfo,kvconfig,multihandler,listenport,vapath)
-        self.cond.release()
+        exc = None
+        sd = None
+        try:
+            self.sd = SingleDownload(infohash,metainfo,kvconfig,multihandler,listenport,vapath)
+            sd = self.sd
+            self.cond.release()
+        except Exception,e:
+            exc = e 
+            self.cond.release()
+            
         if lmcallback is not None:
-            lmcallback(self,self.sd)
+            lmcallback(self,sd,usercallback,exc)
         
     #
     # Public methods
@@ -946,8 +987,7 @@ class Download(DownloadConfigInterface):
         
     def restart(self):
         """ Called by any thread """
-        self.session.lm.rawserver.add_task(self.network_restart,0)
-
+        self.async_create_engine_wrapper(None)
         # TODO: async or sync start?
 
 
@@ -960,15 +1000,19 @@ class Download(DownloadConfigInterface):
         try:
             if self.sd is None:
                 raise DownloadIsStoppedException()
-            DownloadConfigInterface.set_max_upload(self,speed)
+            func = lambda:self.sd.set_max_upload(speed,self.network_set_max_upload)
+            self.session.lm.rawserver(func,0)
         finally:
             self.cond.release()
+            
+        # TODO: async or sync start?
 
+    def network_set_max_upload(self):
+        pass
 
     #
     # Internal methods
     #
-
     def network_stop(self):
         """ Called by network thread """
         self.cond.acquire()
@@ -977,8 +1021,6 @@ class Download(DownloadConfigInterface):
         finally:
             self.cond.release()
 
-    def network_restart(self):
-        self.async_create_engine_wrapper(None)
 
     
 class DownloadState:
@@ -1119,31 +1161,34 @@ class TriblerLaunchMany(Thread):
             self.rawserver.add_task(self.torrent_checking, self.torrent_checking_period)
         
 
-    def add(self,tdef,dcfg):
+    def add(self,tdef,dcfg,usercallback):
         """ Called by any thread """
         self.sesslock.acquire()
-        d = Download(self.session,tdef,dcfg)
-        
-        d.async_create_engine_wrapper(self.network_engine_wrapper_created_callback)
+        try:
+            d = Download(self.session,tdef,dcfg,self.network_engine_wrapper_created_callback,usercallback)
+            self.sesslock.release()
+        finally:
+            self.sesslock.release()
 
-        # make calling thread wait till network thread created object
-        d.cond.acquire()
-        d.cond.wait()
-        d.cond.release()
 
-        # store in list of Downloads
-        self.downloads[d.get_def().get_infohash()] = d
-        self.sesslock.release()
-        return d
-
-    def network_engine_wrapper_created_callback(self,d,sd):
+    def network_engine_wrapper_created_callback(self,d,sd,usercallback,exc):
         """ Called by network thread """
-        self.queue_for_hashcheck(sd)
 
-        # wake up creator thread
-        d.cond.acquire()
-        d.cond.notify()
-        d.cond.release()
+        if exc is None:
+            self.sesslock.acquire()
+            try:
+                # store in list of Downloads
+                self.downloads[d.get_def().get_infohash()] = d
+            finally:
+                self.sesslock.release()
+
+            self.queue_for_hashcheck(sd)
+        else:
+            d = None
+
+        # Tell user success/failure
+        usercallback(exc,d)
+        
         
     def remove(self,d):
         """ Called by any thread """
@@ -1290,9 +1335,6 @@ class SingleDownload:
     """ This class is accessed solely by the network thread """
     
     def __init__(self,infohash,metainfo,kvconfig,multihandler,listenport,videoanalyserpath):
-        self.restart(infohash,metainfo,kvconfig,multihandler,listenport,videoanalyserpath)
-        
-    def restart(self,infohash,metainfo,kvconfig,multihandler,listenport,videoanalyserpath):
         self.dldoneflag = Event()
         
         # MUST NOT BE DONE MY ANY THREAD!
@@ -1490,6 +1532,15 @@ class UPnPThread(Thread):
         self.shutdownevent.set()
 
 
+def start_callback(exc,d):
+    if exc is None:
+        #d.set_max_upload(100)
+        while True:
+            print d.get_state().get_progress()
+            time.sleep(5)
+    else:
+        raise exc
+
 
 
 if __name__ == "__main__":
@@ -1497,10 +1548,10 @@ if __name__ == "__main__":
     s = Session()
     
     tdef = TorrentDef.load('/tmp/bla.torrent')
+    dcfg = DownloadStartupConfig.get_copy_of_default()
+    dcfg.set_saveas('/')
     
     print >>sys.stderr,"main: TorrentDef is",tdef
-    d = s.start_download(tdef)
-    d.set_max_upload(100)
-    while True:
-        print d.get_state().get_progress()
-        time.sleep(5)
+    s.start_download(tdef,dcfg,start_callback)
+
+    time.sleep(100)
