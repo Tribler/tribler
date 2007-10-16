@@ -343,6 +343,11 @@ class StorageWrapper:
                 d2.release()
                 s = sh.digest()
 
+
+                if DEBUG:
+                    if s != self.hashes[i]:
+                        print >>sys.stderr,"StorageWrapper: hashcheckfunc: piece corrupt",i
+
                 # Merkle: If we didn't read the hashes from persistent storage then
                 # we can't check anything. Exception is the case where we are the
                 # initial seeder. In that case we first calculate all hashes, 

@@ -102,8 +102,9 @@ All calls to Session, Download and DownloadState are thread safe.
 TODO: Define whether changes to runtime configs is synchronous, i.e., does
 dcfg.set_max_upload(100) sets the upload limit before returning, or 
 asynchronous. SOL: easiest is async, as network thread does actual changing
-2007-10-15: can use Download condition variable for synchronous perhaps? 
- 
+2007-10-15: can use Download condition variable for synchronous perhaps?
+2007-10-16: It's all async, errors are reported via callbacks, and generally
+for Downloads via the DownloadState. 
 
 ALTERNATIVE:
 Use copy in/out semantics for TorrentDef and DownloadStartupConfig. A disadvantage of 
@@ -178,6 +179,7 @@ import socket
 from UserDict import DictMixin
 from threading import RLock,Condition,Event,Thread
 from traceback import print_exc,print_stack
+from types import StringType
 
 from BitTornado.__init__ import resetPeerIDs,createPeerID
 from BitTornado.RawServer import autodetect_socket_style
@@ -266,26 +268,40 @@ class Copyable:
 #
 class TriblerException(Exception):
     
-    def __init__(self):
-        Exception.__init__(self)
-        
+    def __init__(self,msg):
+        Exception.__init__(self,msg)
+
+    def __str__(self):
+        return str(self.__class__)+': '+Exception.__str__(self)
+ 
 
 class OperationNotPossibleAtRuntimeException(TriblerException):
     
-    def __init__(self):
-        TriblerException.__init__(self)
+    def __init__(self,msg):
+        TriblerException.__init__(self,msg)
     
 class NotYetImplementedException(TriblerException):
     
-    def __init__(self):
-        TriblerException.__init__(self)
+    def __init__(self,msg):
+        TriblerException.__init__(self,msg)
 
 
 class DownloadIsStoppedException(TriblerException):
     
-    def __init__(self):
-        TriblerException.__init__(self)
+    def __init__(self,msg):
+        TriblerException.__init__(self,msg)
 
+
+class TriblerLegacyException(TriblerException):
+    """ Wrapper around fatal errors that happen in the download engine,
+    but which are not reported as Exception objects for legacy reasons,
+    just as text (often containing a stringified Exception).
+    Will be phased out.
+    """
+    
+    def __init__(self,msg):
+        TriblerException.__init__(self,msg)
+    
 
 #
 # API classes
@@ -422,7 +438,8 @@ class Session(Serializable,SessionConfigInterface):
             cscfg = SessionStartupConfig.get_copy_of_default()
         else:
             cscfg = scfg
-            
+     
+        # Work from copy
         self.sessconfig = copy.copy(cscfg.sessconfig)
         
         # Core init
@@ -435,7 +452,7 @@ class Session(Serializable,SessionConfigInterface):
         self.lm.start()
         
 
-    def start_download(self,tdef,dcfg=None,usercallback=None):
+    def start_download(self,tdef,dcfg=None):
         """ 
         Creates a Download object and adds it to the session. The passed 
         TorrentDef and DownloadStartupConfig are copied into the new Download object
@@ -448,25 +465,10 @@ class Session(Serializable,SessionConfigInterface):
         drcfg = DownloadStartupConfig or None, in which case 
         DownloadStartupConfig.get_copy_of_default() is called and the result becomes 
         the config of this Download.
-        callback = function pointer to a func(exc,d)
+        returns: a Download object
         """
         # locking by lm
-        if usercallback is None:
-            func = self.dummy_usercallback
-        else:
-            func = lambda exc,obj:self.do_usercallback(usercallback,exc,obj)
-            
-        try:
-            self.lm.add(tdef,dcfg,func)
-        except Exception,e:
-            func(e,None)
-
-    def do_usercallback(self,usercallback,exc,obj):
-        """ Get thread from pool and make it do usercallback """
-        usercallback(exc,obj)
-
-    def dummy_usercallback(self,exc,obj):
-        print >>sys.stderr,"Session: Unhandled usercallback",exc,obj
+        return self.lm.add(tdef,dcfg)
 
     def resume_download_from_file(self,filename):
         """
@@ -881,42 +883,53 @@ class Download(DownloadConfigInterface):
     """
     
     #
-    # Internal method
+    # Internal methods
     #
-    def __init__(self,session,tdef,dcfg=None,lmcallback=None,usercallback=None):
+    def __init__(self):
+        self.dllock = RLock()
+        self.error = None
+        self.sd = None # hack
+        # just enough so error saving and get_state() works
+    
+    def setup(self,session,tdef,dcfg=None,lmcallback=None):
         """
         Create a Download object. Used internally by Session. Copies tdef and 
         dcfg and binds them to this download.
         
         in: 
         tdef = unbound TorrentDef
-        dcfg = unbound DownloadStartupConfig or None (in which case DownloadStartupConfig.get_copy_of\
-        _default() is called and the result becomes the (bound) config of this
-        Download.
+        dcfg = unbound DownloadStartupConfig or None (in which case 
+        DownloadStartupConfig.get_copy_of_default() is called and the result 
+        becomes the (bound) config of this Download.
         """
-        self.cond = Condition()
-        self.session = session
-        
-        # Copy tdef
-        self.tdef = tdef.copy()
-        tracker = self.tdef.get_tracker()
-        if tracker == '':
-            self.tdef.set_tracker(itrackerurl)
-        self.tdef.finalize()
-        self.tdef.readonly = True
-        
-        
-        # Copy dlconfig, from default if not specified
-        if dcfg is None:
-            cdcfg = DownloadStartupConfig.get_copy_of_default()
-        else:
-            cdcfg = dcfg
-        self.dlconfig = copy.copy(cdcfg.dlconfig)
+        try:
+            self.dllock.acquire() # not really needed, no other threads know of it
+            self.session = session
+            
+            # Copy tdef
+            self.tdef = tdef.copy()
+            tracker = self.tdef.get_tracker()
+            if tracker == '':
+                self.tdef.set_tracker(self.session.get_internal_tracker_url())
+            self.tdef.finalize()
+            self.tdef.readonly = True
+            
+            
+            # Copy dlconfig, from default if not specified
+            if dcfg is None:
+                cdcfg = DownloadStartupConfig.get_copy_of_default()
+            else:
+                cdcfg = dcfg
+            self.dlconfig = copy.copy(cdcfg.dlconfig)
+    
+            self.async_create_engine_wrapper(lmcallback)
+            self.dllock.release()
+        except Exception,e:
+            self.set_error(e)
+            self.dllock.release()
 
-        self.async_create_engine_wrapper(lmcallback,usercallback)
-
-    def async_create_engine_wrapper(self,lmcallback,usercallback):
-        """ Called by any thread """
+    def async_create_engine_wrapper(self,lmcallback):
+        """ Called by any thread, assume dllock already acquired """
         if DEBUG:
             print >>sys.stderr,"Download: async_create_engine_wrapper()"
         
@@ -928,32 +941,25 @@ class Download(DownloadConfigInterface):
         vapath = self.session.get_video_analyser_path()
 
         # Note: BT1Download is started with copy of d.dlconfig, not direct access
-        self.cond.acquire()
         # Set IP to report to tracker. 
         self.dlconfig['ip'] = self.session.lm.get_ext_ip()
         kvconfig = copy.copy(self.dlconfig)
-        self.cond.release()
         
         # Delegate creation of engine wrapper to network thread
-        func = lambda:self.network_create_engine_wrapper(infohash,metainfo,kvconfig,multihandler,listenport,vapath,lmcallback,usercallback)
+        func = lambda:self.network_create_engine_wrapper(infohash,metainfo,kvconfig,multihandler,listenport,vapath,lmcallback)
         self.session.lm.rawserver.add_task(func,0) 
         
 
-    def network_create_engine_wrapper(self,infohash,metainfo,kvconfig,multihandler,listenport,vapath,lmcallback,usercallback):
+    def network_create_engine_wrapper(self,infohash,metainfo,kvconfig,multihandler,listenport,vapath,lmcallback):
         """ Called by network thread """
-        self.cond.acquire()
-        exc = None
-        sd = None
-        try:
-            self.sd = SingleDownload(infohash,metainfo,kvconfig,multihandler,listenport,vapath)
-            sd = self.sd
-            self.cond.release()
-        except Exception,e:
-            exc = e 
-            self.cond.release()
-            
+        self.dllock.acquire()
+        self.sd = SingleDownload(infohash,metainfo,kvconfig,multihandler,listenport,vapath,self.set_error)
+        sd = self.sd
+        exc = self.error
+        self.dllock.release()
+        
         if lmcallback is not None:
-            lmcallback(self,sd,usercallback,exc)
+            lmcallback(sd,exc)
         
     #
     # Public methods
@@ -971,56 +977,73 @@ class Download(DownloadConfigInterface):
         returns: copy of internal download state (so not live pointers into 
         engine)
         """
-        return DownloadState()
+        self.dllock.acquire()
+        try:
+            # HACK
+            if self.sd is not None and self.sd.dow is not None:
+                progress = self.sd.dow.storagewrapper.get_stats()
+            else:
+                progress = 0.0
+            return DownloadState(self.error,progress)
+        
+        finally:
+            self.dllock.release()
+            
 
     def stop(self):
         """ Called by any thread """
-        self.cond.acquire()
+        self.dllock.acquire()
         try:
-            if self.sd is None:
-                raise DownloadIsStoppedException()
-            self.session.lm.rawserver.add_task(self.network_stop,0)
+            if self.sd is not None:
+                self.session.lm.rawserver.add_task(self.network_stop,0)
         finally:
-            self.cond.release()
-        
-        # TODO: async or sync stop?
+            self.dllock.release()
         
     def restart(self):
         """ Called by any thread """
-        self.async_create_engine_wrapper(None)
-        # TODO: async or sync start?
-
+        # Must schedule the hash check via lm. In some cases we have batch stops
+        # and restarts, e.g. we have stop all-but-one & restart-all for VOD)
+        self.dllock.acquire()
+        try:
+            self.async_create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback)
+        finally:
+            self.dllock.release()
 
     #
     # DownloadConfigInterface
     #
     def set_max_upload(self,speed):
         """ Called by any thread """
-        self.cond.acquire()
+        self.dllock.acquire()
         try:
             if self.sd is None:
                 raise DownloadIsStoppedException()
             func = lambda:self.sd.set_max_upload(speed,self.network_set_max_upload)
             self.session.lm.rawserver(func,0)
         finally:
-            self.cond.release()
-            
-        # TODO: async or sync start?
+            self.dllock.release()
 
-    def network_set_max_upload(self):
-        pass
+    def network_set_max_upload(self,speed):
+        DownloadConfigInterface.set_max_upload(speed)
+
 
     #
     # Internal methods
     #
     def network_stop(self):
         """ Called by network thread """
-        self.cond.acquire()
+        self.dllock.acquire()
         try:
             self.sd.shutdown()
         finally:
-            self.cond.release()
+            self.dllock.release()
 
+
+    def set_error(self,e):
+        self.dllock.acquire()
+        self.error = e
+        self.dllock.release()
+        
 
     
 class DownloadState:
@@ -1049,14 +1072,15 @@ class DownloadState:
     SOL: have parameter for get_state(), indicating "complete"/"simplestats", 
     etc.
     """
-    def __init__(self):
-        pass
+    def __init__(self,error,progress):
+        self.error = error # readonly access
+        self.progress = progress
     
     def get_progress(self):
         """
         returns: percentage of torrent downloaded, as float
         """
-        return 10.0
+        return self.progress
         
     def get_status(self):
         """
@@ -1068,6 +1092,8 @@ class DownloadState:
         """
         return 1
 
+    def get_error(self):
+        return self.error
 
 
 class TriblerLaunchMany(Thread):
@@ -1081,7 +1107,7 @@ class TriblerLaunchMany(Thread):
         self.session = session
         self.sesslock = sesslock
         
-        self.downloads = {}
+        self.downloads = []
         config = session.sessconfig # Should be safe at startup
 
         self.locally_guessed_ext_ip = self.guess_ext_ip_locally()
@@ -1161,34 +1187,23 @@ class TriblerLaunchMany(Thread):
             self.rawserver.add_task(self.torrent_checking, self.torrent_checking_period)
         
 
-    def add(self,tdef,dcfg,usercallback):
+    def add(self,tdef,dcfg):
         """ Called by any thread """
         self.sesslock.acquire()
         try:
-            d = Download(self.session,tdef,dcfg,self.network_engine_wrapper_created_callback,usercallback)
-            self.sesslock.release()
+            d = Download()
+            # store in list of Downloads, always
+            self.downloads.append(d)
+            d.setup(self.session,tdef,dcfg,self.network_engine_wrapper_created_callback)
+            return d
         finally:
             self.sesslock.release()
 
 
-    def network_engine_wrapper_created_callback(self,d,sd,usercallback,exc):
+    def network_engine_wrapper_created_callback(self,sd,exc):
         """ Called by network thread """
-
         if exc is None:
-            self.sesslock.acquire()
-            try:
-                # store in list of Downloads
-                self.downloads[d.get_def().get_infohash()] = d
-            finally:
-                self.sesslock.release()
-
             self.queue_for_hashcheck(sd)
-        else:
-            d = None
-
-        # Tell user success/failure
-        usercallback(exc,d)
-        
         
     def remove(self,d):
         """ Called by any thread """
@@ -1334,58 +1349,70 @@ class TriblerLaunchMany(Thread):
 class SingleDownload:
     """ This class is accessed solely by the network thread """
     
-    def __init__(self,infohash,metainfo,kvconfig,multihandler,listenport,videoanalyserpath):
-        self.dldoneflag = Event()
-        
-        # MUST NOT BE DONE MY ANY THREAD!
-        self.rawserver = multihandler.newRawServer(infohash,self.dldoneflag)
-
-        """
-        class BT1Download:    
-            def __init__(self, statusfunc, finfunc, errorfunc, excfunc, doneflag, 
-                 config, response, infohash, id, rawserver, port, play_video,
-                 videoinfo, progressinf, videoanalyserpath, appdataobj = None, dht = None):
-        """
-        self.dow = BT1Download(self._statusfunc,
-                        self._finishedfunc,
-                        self._errorfunc, 
-                        self._exceptionfunc,
-                        self.dldoneflag,
-                        kvconfig,
-                        metainfo, 
-                        infohash,
-                        createPeerID(),
-                        self.rawserver,
-                        listenport,
-                        #config['vod'], Arno: read from kvconfig
-                        [],    # TODO: how to set which video in a multi-video torrent to play
-                        #None, # = progressinf: now via DownloadState
-                        videoanalyserpath
-                        # TODO: dht
-                        )
+    def __init__(self,infohash,metainfo,kvconfig,multihandler,listenport,videoanalyserpath,set_error_func):
+        self.set_error_func = set_error_func
+        try:
+            self.dldoneflag = Event()
+            
+            self.rawserver = multihandler.newRawServer(infohash,self.dldoneflag)
     
-        if not self.dow.saveAs(self.save_as):
-            # TODO: let saveAs throw exceptions
-            return
-        self._hashcheckfunc = self.dow.initFiles()
-        if not self._hashcheckfunc:
-            self.shutdown()
-            return
+            """
+            class BT1Download:    
+                def __init__(self, statusfunc, finfunc, errorfunc, excfunc, doneflag, 
+                     config, response, infohash, id, rawserver, port, play_video,
+                     videoinfo, progressinf, videoanalyserpath, appdataobj = None, dht = None):
+            """
+            self.dow = BT1Download(self.statusfunc,
+                            self.finishedfunc,
+                            self.fatalerrorfunc, 
+                            self.nonfatalerrorfunc,
+                            self.dldoneflag,
+                            kvconfig,
+                            metainfo, 
+                            infohash,
+                            createPeerID(),
+                            self.rawserver,
+                            listenport,
+                            #config['vod'], Arno: read from kvconfig
+                            [],    # TODO: how to set which video in a multi-video torrent to play
+                            #None, # = progressinf: now via DownloadState
+                            videoanalyserpath
+                            # TODO: dht
+                            )
+        
+            if not self.dow.saveAs(self.save_as):
+                # TODO: let saveAs throw exceptions
+                return
+            self._hashcheckfunc = None
+            self._hashcheckfunc = self.dow.initFiles()
+            if not self._hashcheckfunc:
+                self.shutdown()
+                return
+            
+        except Exception,e:
+            self.fatalerrorfunc(e)
+    
     
     def save_as(self,name,length,saveas,isdir):
         """ Return the local filename to which to save the file 'name' in the torrent """
         print >>sys.stderr,"Download: save_as(",name,length,saveas,isdir,")"
-        path = os.path.join(saveas,name)
-        if isdir and not os.path.isdir(path):
-            os.mkdir(path)
-        return path
+        try:
+            path = os.path.join(saveas,name)
+            if isdir and not os.path.isdir(path):
+                os.mkdir(path)
+            return path
+        except Exception,e:
+            self.set_error_func(e)
 
     def perform_hashcheck(self,complete_callback):
         """ Called by any thread """
         print >>sys.stderr,"Download: hashcheck()",self._hashcheckfunc
-        """ Schedules actually hashcheck on network thread """
-        self._hashcheckfunc(complete_callback)
-    
+        try:
+            """ Schedules actually hashcheck on network thread """
+            self._hashcheckfunc(complete_callback)
+        except Exception,e:
+            self.set_error_func(e)
+            
     def hashcheck_done(self):
         """ Called by LaunchMany when hashcheck complete and the Download can be
             resumed
@@ -1393,12 +1420,15 @@ class SingleDownload:
             Called by network thread
         """
         print >>sys.stderr,"Download: hashcheck_done()"
-        if not self.dow.startEngine():
-            print >>sys.stderr,"Download: hashcheck_complete: startEngine failed"
-            return
+        try:
+            if not self.dow.startEngine():
+                print >>sys.stderr,"Download: hashcheck_complete: startEngine failed"
+                return
 
-        self.dow.startRerequester()
-        self.rawserver.start_listening(self.dow.getPortHandler())
+            self.dow.startRerequester()
+            self.rawserver.start_listening(self.dow.getPortHandler())
+        except Exception,e:
+            self.set_error_func(e)
 
 
     # DownloadConfigInterface methods
@@ -1422,18 +1452,27 @@ class SingleDownload:
     #
     # Internal methods
     #
-    def _statusfunc(self,activity = '', fractionDone = 0.0):
-        print >>sys.stderr,"SingleDownload::_statusfunc called",activity,fractionDone
+    def statusfunc(self,activity = '', fractionDone = 0.0):
+        print >>sys.stderr,"SingleDownload::statusfunc called",activity,fractionDone
 
-    def _finishedfunc(self):
-        print >>sys.stderr,"SingleDownload::_finishedfunc called"
+    def finishedfunc(self):
+        """ Download is complete """
+        print >>sys.stderr,"SingleDownload::finishedfunc called *******************************"
 
-    def _errorfunc(self,msg):
-        print >>sys.stderr,"SingleDownload::_errorfunc called",msg
+    def fatalerrorfunc(self,data):
+        print >>sys.stderr,"SingleDownload::fatalerrorfunc called",data
+        if type(data) == StringType:
+            print >>sys.stderr,"CORE FATAL ERROR",data
+            self.set_error_func(TriblerLegacyException(data))
+        else:
+            print_exc()
+            self.set_error_func(data)
+        self.shutdown()
 
-    def _exceptionfunc(self,e):
-        print >>sys.stderr,"SingleDownload::_exceptfunc called",e
-
+    def nonfatalerrorfunc(self,e):
+        print >>sys.stderr,"SingleDownload::nonfatalerrorfunc called",e
+        # Could log this somewhere, or phase it out (only used in Rerequester)
+        
 
 
 
@@ -1532,16 +1571,6 @@ class UPnPThread(Thread):
         self.shutdownevent.set()
 
 
-def start_callback(exc,d):
-    if exc is None:
-        #d.set_max_upload(100)
-        while True:
-            print d.get_state().get_progress()
-            time.sleep(5)
-    else:
-        raise exc
-
-
 
 if __name__ == "__main__":
     
@@ -1549,9 +1578,22 @@ if __name__ == "__main__":
     
     tdef = TorrentDef.load('/tmp/bla.torrent')
     dcfg = DownloadStartupConfig.get_copy_of_default()
-    dcfg.set_saveas('/')
-    
+    #dcfg.set_saveas('/arno')
     print >>sys.stderr,"main: TorrentDef is",tdef
-    s.start_download(tdef,dcfg,start_callback)
-
-    time.sleep(100)
+    d = s.start_download(tdef,dcfg)
+    count = 0
+    while count < 2:
+        print "main: Progress is",d.get_state().get_progress()
+        print "main: Error is",d.get_state().get_error()
+        time.sleep(5)
+        count += 1
+        
+    d.stop()
+    print "After stop"
+    time.sleep(5)
+    d.restart()
+    while True:
+        print "main: Progress2 is",d.get_state().get_progress()
+        print "main: Error2 is",d.get_state().get_error()
+        time.sleep(5)
+    

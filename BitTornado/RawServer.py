@@ -78,8 +78,8 @@ class RawServer:
         insort(self.funcs, (clock() + delay, func, id))
 
     def add_task(self, func, delay = 0, id = None):
-        if DEBUG:
-            print >>sys.stderr,"rawserver: add_task(",func,delay,")"
+        #if DEBUG:
+        #    print >>sys.stderr,"rawserver: add_task(",func,delay,")"
         if delay < 0:
             delay = 0
         self.lock.acquire()
@@ -135,13 +135,13 @@ class RawServer:
                     if period < 0:
                         period = 0
                         
-                    if DEBUG:
-                        print >>sys.stderr,"rawserver: do_poll",period
+                    #if DEBUG:
+                    #    print >>sys.stderr,"rawserver: do_poll",period
 
                     events = self.sockethandler.do_poll(period)
                     
-                    if DEBUG:
-                        print >>sys.stderr,".",
+                    #if DEBUG:
+                    #    print >>sys.stderr,".",
                     
                     if self.doneflag.isSet():
                         if DEBUG:
