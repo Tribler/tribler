@@ -416,7 +416,11 @@ def getPlural( n):
 
 def find_prog_in_PATH(prog):
     envpath = os.path.expandvars('${PATH}')
-    paths = envpath.split(':')
+    if sys.platform == 'win32':
+        splitchar = ';'
+    else:
+        splitchar = ':'
+    paths = envpath.split(splitchar)
     foundat = None
     for path in paths:
         fullpath = os.path.join(path,prog)

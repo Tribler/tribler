@@ -99,16 +99,17 @@ is also not thread safe, so you must ensure there are no concurrent calls.
 
 All calls to Session, Download and DownloadState are thread safe.
 
-TODO: Define whether changes to runtime configs is synchronous, i.e., does
+DONE: Define whether changes to runtime configs is synchronous, i.e., does
 dcfg.set_max_upload(100) sets the upload limit before returning, or 
 asynchronous. SOL: easiest is async, as network thread does actual changing
 2007-10-15: can use Download condition variable for synchronous perhaps?
-2007-10-16: It's all async, errors are reported via callbacks, and generally
-for Downloads via the DownloadState. 
+2007-10-16: It's all async, errors are reported via callbacks (if needed), 
+and generally for Downloads via the DownloadState. 
 
 ALTERNATIVE:
-Use copy in/out semantics for TorrentDef and DownloadStartupConfig. A disadvantage of 
-copy in/out is that people may forget to call the copy in method.
+Use copy in/out semantics for TorrentDef and DownloadStartupConfig. A 
+disadvantage of copy in/out is that people may forget to call the copy in 
+method.
 
 
 Persistence Support
@@ -170,6 +171,35 @@ what BT does. When you start a seed, you basically create a replica. When you
 start a download you want to create a copy on your local system, i.e. create a
 replica there.
 """
+
+"""
+TODO:
+
+- queuing of torrents that get activated when others upload low?
+    This relates to unsupervised usage: people turn on tribler,
+    add a couple of torrents to download and then go away, expecting
+    them all to be finished, perhaps with priority.
+    Same for seeding: Tribler now allows seeding up to specific ul/dl ratio,
+    for a specified period of time.
+    
+    
+    We can leave this up to the API user, just providing the mechanism
+    or offer a standard model.
+    
+    Freek says: leave out of core. My addition: OK, but offer standard
+    modules that work on core that use this.
+    One implication is that we don't have a set_max_upload() on Session level,
+    just Download.
+    
+- local/global ratelimiter
+    What is a good policy here? Dividing a global max over the number of 
+    torrents may not be ideal, if some torrents don't achieve their allocated
+    speed, perhaps others could have used it.
+    
+    ABC/Scheduler/ratemanager appears to do this
+
+"""
+
 import sys
 import os
 import time
@@ -210,6 +240,9 @@ DLSTATUS_DOWNLOADING = 2
 DLSTATUS_SEEDING = 3
 DLSTATUS_STOPPED = 4
 DLSTATUS_STOPPED_ON_ERROR = 5
+
+# ABC/Scheduler/ratemanager suggest also a ALLOCATING_DISKSPACE status to
+# cater for pre-alloc alloc types?
 
 dlstatus_strings = ['DLSTATUS_WAITING4HASHCHECK', 
 'DLSTATUS_HASHCHECKING',
@@ -345,21 +378,21 @@ class SessionConfigInterface:
             self.sessconfig[key] = val
     
         if sys.platform == 'win32':
-            self.sessconfig['videoanalyserpath'] = None # self.getPath()+'\\ffmpeg.exe' TODO
-        elif sys.platform == 'darwin':
-            ffmpegpath = find_prog_in_PATH("ffmpeg")
-            if ffmpegpath is None:
+            ffmpegname = "ffmpeg.exe"
+        else:
+            ffmpegname = "ffmpeg"
+    
+        ffmpegpath = find_prog_in_PATH(ffmpegname)
+        if ffmpegpath is None:
+            if sys.platform == 'win32':
+                self.sessconfig['videoanalyserpath'] = ffmpegname
+            elif sys.platform == 'darwin':
                 self.sessconfig['videoanalyserpath'] = "lib/ffmpeg"
             else:
-                self.sessconfig['videoanalyserpath'] = ffmpegpath
+                self.sessconfig['videoanalyserpath'] = ffmpegname
         else:
-            ffmpegpath = find_prog_in_PATH("ffmpeg")
-            if ffmpegpath is None:
-                self.sessconfig['videoanalyserpath'] = "ffmpeg"
-            else:
-                self.sessconfig['videoanalyserpath'] = ffmpegpath
+            self.sessconfig['videoanalyserpath'] = ffmpegpath
 
-    
         self.sessconfig['ipv6_binds_v4'] = autodetect_socket_style()
     
     
