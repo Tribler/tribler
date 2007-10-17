@@ -284,7 +284,7 @@ class Copyable:
 #
 class TriblerException(Exception):
     
-    def __init__(self,msg):
+    def __init__(self,msg=None):
         Exception.__init__(self,msg)
 
     def __str__(self):
@@ -293,18 +293,18 @@ class TriblerException(Exception):
 
 class OperationNotPossibleAtRuntimeException(TriblerException):
     
-    def __init__(self,msg):
+    def __init__(self,msg=None):
         TriblerException.__init__(self,msg)
     
 class NotYetImplementedException(TriblerException):
     
-    def __init__(self,msg):
+    def __init__(self,msg=None):
         TriblerException.__init__(self,msg)
 
 
 class DownloadIsStoppedException(TriblerException):
     
-    def __init__(self,msg):
+    def __init__(self,msg=None):
         TriblerException.__init__(self,msg)
 
 
@@ -315,7 +315,7 @@ class TriblerLegacyException(TriblerException):
     Will be phased out.
     """
     
-    def __init__(self,msg):
+    def __init__(self,msg=None):
         TriblerException.__init__(self,msg)
     
 
@@ -345,7 +345,7 @@ class SessionConfigInterface:
             self.sessconfig[key] = val
     
         if sys.platform == 'win32':
-            self.sessconfig['videoanalyserpath'] = self.getPath()+'\\ffmpeg.exe'
+            self.sessconfig['videoanalyserpath'] = None # self.getPath()+'\\ffmpeg.exe' TODO
         elif sys.platform == 'darwin':
             ffmpegpath = find_prog_in_PATH("ffmpeg")
             if ffmpegpath is None:
@@ -1005,8 +1005,6 @@ class Download(DownloadConfigInterface):
         
     def network_get_state(self):
         """ Called by network thread """
-                # TODO: how to disable this? Don't renew is self.sd is not None
-
         self.dllock.acquire()
         try:
             if self.sd is None:
@@ -1023,7 +1021,7 @@ class Download(DownloadConfigInterface):
             if self.sd is None:
                 self.session.lm.rawserver.add_task(self.network_get_state,self.getstateinterval)
             else:
-                self.sd.rawserver.add_task(self.network_get_state,self.getstateinterval)
+                self.sd.dlrawserver.add_task(self.network_get_state,self.getstateinterval)
         finally:
             self.dllock.release()
             
@@ -1034,6 +1032,7 @@ class Download(DownloadConfigInterface):
         try:
             if self.sd is not None:
                 self.session.lm.rawserver.add_task(self.network_stop,0)
+            # No exception if already stopped, for convenience
         finally:
             self.dllock.release()
         
@@ -1043,10 +1042,13 @@ class Download(DownloadConfigInterface):
         # and restarts, e.g. we have stop all-but-one & restart-all for VOD)
         self.dllock.acquire()
         try:
-            self.error = None # assume fatal error is reproducible
-            self.async_create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback)
+            if self.sd is None:
+                self.error = None # assume fatal error is reproducible
+                self.async_create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback)
+            # No exception if already started, for convenience
         finally:
             self.dllock.release()
+
 
     #
     # DownloadConfigInterface
@@ -1055,15 +1057,24 @@ class Download(DownloadConfigInterface):
         """ Called by any thread """
         self.dllock.acquire()
         try:
-            if self.sd is None:
-                raise DownloadIsStoppedException()
-            func = lambda:self.sd.set_max_upload(speed,self.network_set_max_upload)
-            self.session.lm.rawserver(func,0)
+            # Don't need to throw an exception when stopped, we then just save the new value and
+            # use it at (re)startup.
+            if self.sd is not None:
+                func = lambda:self.sd.set_max_upload(speed,self.network_set_max_upload)
+                self.session.lm.rawserver.add_task(func,0)
+            else:
+                self.network_set_max_upload(speed)
         finally:
             self.dllock.release()
 
     def network_set_max_upload(self,speed):
-        DownloadConfigInterface.set_max_upload(speed)
+        """ Called by network thread """
+        self.dllock.acquire()
+        try:
+            DownloadConfigInterface.set_max_upload(self,speed)
+        finally:
+            self.dllock.release()
+        
 
 
     #
@@ -1171,7 +1182,7 @@ class TriblerLaunchMany(Thread):
         self.downloads = []
         config = session.sessconfig # Should be safe at startup
 
-        self.locally_guessed_ext_ip = self.guess_ext_ip_locally()
+        self.locally_guessed_ext_ip = self.guess_ext_ip_from_local_info()
         self.upnp_ext_ip = None
         self.dialback_ext_ip = None
 
@@ -1191,8 +1202,8 @@ class TriblerLaunchMany(Thread):
                                    config['timeout_check_interval'],
                                    config['timeout'],
                                    ipv6_enable = config['ipv6_enabled'],
-                                   failfunc = self.failfunc,
-                                   errorfunc = self.exceptionfunc)
+                                   failfunc = self.rawserver_failfunc,
+                                   errorfunc = self.rawserver_exceptionfunc)
         self.rawserver.add_task(self.rawserver_keepalive,1)
         
         self.listen_port = self.rawserver.find_and_bind(0, 
@@ -1284,17 +1295,17 @@ class TriblerLaunchMany(Thread):
         finally:
             self.sesslock.release()
     
-    def failfunc(self,msg):
-        """ Called by multiple threads, TODO determine required locking """
+    def rawserver_failfunc(self,msg):
+        """ Called by ?, TODO determine required locking """
         print >>sys.stderr,"TriblerLaunchMany: failfunc called",msg
 
-    def exceptionfunc(self,e):
-        """ Called by multiple threads, TODO determine required locking """
+    def rawserver_exceptionfunc(self,e):
+        """ Called by ?, TODO determine required locking """
         print >>sys.stderr,"TriblerLaunchmany: exceptfunc called",e
 
 
     def run(self):
-        """ Called only once """
+        """ Called only once by network thread """
         try:
             try:
                 self.start_upnp()
@@ -1312,7 +1323,7 @@ class TriblerLaunchMany(Thread):
         Called by network thread """
         self.rawserver.add_task(self.rawserver_keepalive,1)
 
-    def guess_ext_ip_locally(self):
+    def guess_ext_ip_from_local_info(self):
         """ Called at creation time """
         ip = get_my_wan_ip()
         if ip is None:
@@ -1416,7 +1427,7 @@ class SingleDownload:
         try:
             self.dldoneflag = Event()
             
-            self.rawserver = multihandler.newRawServer(infohash,self.dldoneflag)
+            self.dlrawserver = multihandler.newRawServer(infohash,self.dldoneflag)
     
             """
             class BT1Download:    
@@ -1424,7 +1435,7 @@ class SingleDownload:
                      config, response, infohash, id, rawserver, port, play_video,
                      videoinfo, progressinf, videoanalyserpath, appdataobj = None, dht = None):
             """
-            self.dow = BT1Download(self.statusfunc,
+            self.dow = BT1Download(self.hashcheckprogressfunc,
                             self.finishedfunc,
                             self.fatalerrorfunc, 
                             self.nonfatalerrorfunc,
@@ -1433,7 +1444,7 @@ class SingleDownload:
                             metainfo, 
                             infohash,
                             createPeerID(),
-                            self.rawserver,
+                            self.dlrawserver,
                             listenport,
                             #config['vod'], Arno: read from kvconfig
                             [],    # TODO: how to set which video in a multi-video torrent to play
@@ -1484,17 +1495,16 @@ class SingleDownload:
             self.dow.startEngine()
             self._getstatsfunc = self.dow.startStats() # not possible earlier
             self.dow.startRerequester()
-            self.rawserver.start_listening(self.dow.getPortHandler())
+            self.dlrawserver.start_listening(self.dow.getPortHandler())
         except Exception,e:
             self.fatalerrorfunc(e)
 
 
     # DownloadConfigInterface methods
-    def set_max_upload(self,speed):
-        if self.dow is None:
-            raise DownloadIsStopped()
-        
-        self.dow.setUploadRate(speed)
+    def set_max_upload(self,speed,callback):
+        if self.dow is not None:
+            self.dow.setUploadRate(speed)
+        callback(speed)
 
 
     def get_stats(self):  
@@ -1515,14 +1525,14 @@ class SingleDownload:
     def shutdown(self):
         if self.dow is not None:
             self.dldoneflag.set()
-            self.rawserver.shutdown()
+            self.dlrawserver.shutdown()
             self.dow.shutdown()
             self.dow = None
 
     #
     # Internal methods
     #
-    def statusfunc(self,activity = '', fractionDone = 0.0):
+    def hashcheckprogressfunc(self,activity = '', fractionDone = 0.0):
         """ Allegedly only used by StorageWrapper during hashchecking """
         print >>sys.stderr,"SingleDownload::statusfunc called",activity,fractionDone
         self.hashcheckfrac = fractionDone
@@ -1652,12 +1662,17 @@ if __name__ == "__main__":
     
     s = Session()
     
-    tdef = TorrentDef.load('/tmp/bla.torrent')
+    if sys.platform == 'win32':
+        tdef = TorrentDef.load('bla.torrent')
+    else:
+        tdef = TorrentDef.load('/tmp/bla.torrent')
     dcfg = DownloadStartupConfig.get_copy_of_default()
     #dcfg.set_saveas('/arno')
     print >>sys.stderr,"main: TorrentDef is",tdef
     d = s.start_download(tdef,dcfg)
     d.set_state_callback(state_callback,1)
+    d.set_max_upload(100)
+    
     time.sleep(10)
     
     """    

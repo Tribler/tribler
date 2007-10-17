@@ -511,7 +511,7 @@ class BT1Download:
     def _reqmorefunc(self, pieces):
         self.downloader.requeue_piece_download(pieces)
 
-    def startEngine(self, ratelimiter = None, statusfunc = None):
+    def startEngine(self, ratelimiter = None):
         
         if DEBUG:
             print >>sys.stderr,"BT1Download: startEngine"
@@ -519,9 +519,6 @@ class BT1Download:
         if self.doneflag.isSet():
             return
         
-        if not statusfunc:
-            statusfunc = self.statusfunc
-
         self.checking = False
 
         for i in xrange(self.len_pieces):
@@ -701,9 +698,11 @@ class BT1Download:
 
 
     def setUploadRate(self, rate):
-        """ Called by any thread, thread safe """
         try:
             def s(self = self, rate = rate):
+                
+                print >>sys.stderr,"BT1Download: set max upload to",rate # TEMP ARNO
+                
                 self.config['max_upload_rate'] = rate
                 self.ratelimiter.set_upload_rate(rate)
             self.rawserver.add_task(s)

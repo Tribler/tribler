@@ -2,6 +2,9 @@
 #
 # Multiple methods for getting free diskspace
 #
+import sys
+import os
+
 try:
     # Unix
     from os import statvfs
