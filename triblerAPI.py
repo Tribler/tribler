@@ -9,8 +9,8 @@ Simplest download session
     s = Session()
     tdef = TorrentDef.load('/tmp/bla.torrent')
     d = s.start_download(tdef)
-    while True:
-        print d.get_state().get_progress()
+    while True: 
+        print d.get_state().get_progress() TODO: say state callback
         sleep(5)
 
 Simpler download session
@@ -38,6 +38,7 @@ def vod_ready_callback(mimetype,stream):
         if len(data) == 0:
             break
         outstream.write(data)
+    stream.close()
         
 ALTERNATIVE: the user passes a block_ready_callback, which we call every time
 a new block comes in. This may be less desirable, as the user then has to
@@ -203,7 +204,7 @@ TODO:
 
 - Allow VOD when first part of file hashchecked.
 
-- Determine MIME type for VOD file
+- persistence
 
 """
 
@@ -245,15 +246,13 @@ from Tribler.Video.VideoServer import VideoHTTPServer
 SPECIAL_VALUE=481
 
 # Move to triblerdefs?
-DLSTATUS_WAITING4HASHCHECK = 0
-DLSTATUS_HASHCHECKING = 1
-DLSTATUS_DOWNLOADING = 2
-DLSTATUS_SEEDING = 3
-DLSTATUS_STOPPED = 4
-DLSTATUS_STOPPED_ON_ERROR = 5
-
-# ABC/Scheduler/ratemanager suggest also a ALLOCATING_DISKSPACE status to
-# cater for pre-alloc alloc types?
+DLSTATUS_ALLOCATING_DISKSPACE = 0
+DLSTATUS_WAITING4HASHCHECK = 1
+DLSTATUS_HASHCHECKING = 2
+DLSTATUS_DOWNLOADING = 3
+DLSTATUS_SEEDING = 4
+DLSTATUS_STOPPED = 5
+DLSTATUS_STOPPED_ON_ERROR = 6
 
 dlstatus_strings = ['DLSTATUS_WAITING4HASHCHECK', 
 'DLSTATUS_HASHCHECKING',
@@ -963,9 +962,9 @@ class DownloadConfigInterface:
     
     def set_max_upload(self,speed):
         """ Sets the maximum upload speed for this Download in KB/s """
-        self.dlconfig['max_upload'] = speed
+        self.dlconfig['max_upload_rate'] = speed
 
-    def set_saveas(self,path):
+    def set_dest_dir(self,path):
         """ Sets the directory where to save this Download """
         self.dlconfig['saveas'] = path
 
@@ -978,7 +977,10 @@ class DownloadConfigInterface:
 
     def set_selected_files(self,files):
         # TODO: can't check if files exists.... bugger
-        if self.dlconfig['mode'] == DL_MODE_VOD and len(files) > 1:
+        if type(files) == StringType: # convenience
+            files =[files]
+            
+        if self.dlconfig['mode'] == DLMODE_VOD and len(files) > 1:
             raise ValueError("In Video-On-Demand mode only 1 file can be selected for download")
         self.dlconfig['selected_files'] = files
 
@@ -1078,6 +1080,13 @@ class Download(DownloadConfigInterface):
             else:
                 cdcfg = dcfg
             self.dlconfig = copy.copy(cdcfg.dlconfig)
+    
+            # Things that only exist at runtime
+            self.dlruntimeconfig= {}
+            # We want to remember the desired rates and the actual assigned quota
+            # rates by the RateManager
+            self.dlruntimeconfig['max_desired_upload_rate'] = self.dlconfig['max_upload_rate'] 
+            self.dlruntimeconfig['max_desired_download_rate'] = self.dlconfig['max_download_rate']
     
             self.async_create_engine_wrapper(lmcallback)
             self.dllock.release()
@@ -1245,6 +1254,38 @@ class Download(DownloadConfigInterface):
 
     def set_selected_files(self,files):
         raise NotYetImplementedException()
+
+
+    #
+    # Runtime Config 
+    #
+    def set_max_desired_upload(self,speed):
+        """ Sets the maximum desired upload speed for this Download in KB/s """
+        self.dllock.acquire()
+        self.dlruntimeconfig['max_desired_upload_rate'] = speed
+        self.dllock.release()
+
+    def get_max_desired_upload(self):
+        """ Returns the maximum desired upload speed for this Download in KB/s """
+        self.dllock.acquire()
+        try:
+            return self.dlruntimeconfig['max_desired_upload_rate']
+        finally:
+            self.dllock.release()
+
+    def set_max_desired_download(self,speed):
+        """ Sets the maximum desired download speed for this Download in KB/s """
+        self.dllock.acquire()
+        self.dlruntimeconfig['max_desired_download_rate'] = speed
+        self.dllock.release()
+
+    def get_max_desired_download(self):
+        """ Returns the maximum desired download speed for this Download in KB/s """
+        self.dllock.acquire()
+        try:
+            return self.dlruntimeconfig['max_desired_download_rate']
+        finally:
+            self.dllock.release()
 
 
     #
@@ -1789,9 +1830,10 @@ if __name__ == "__main__":
     dcfg = DownloadStartupConfig.get_copy_of_default()
     dcfg.set_video_on_demand(vod_ready_callback)
     #dcfg.set_selected_files('MATRIX-XP_engl_L.avi') # play this video
+    #dcfg.set_selected_files('field-trip-west-siberia.avi')
     
     d = s.start_download(tdef,dcfg)
-    #d.set_state_callback(state_callback,1)
+    d.set_state_callback(state_callback,1)
     #d.set_max_upload(100)
     
     time.sleep(10)

@@ -178,7 +178,7 @@ dldefaults = [
     ('check_hashes', 1,
         'whether to check hashes on disk'),
     ('max_upload_rate', 0,
-        'maximum kB/s to upload at (0 = no limit, -1 = automatic)'),
+        'maximum kB/s to upload at (0 = no limit'),
     ('max_download_rate', 0,
         'maximum kB/s to download at (0 = no limit)'),
     ('alloc_type', 'normal',

@@ -3,7 +3,6 @@ import wx
 
 #from operator import attrgetter
 from threading import Event
-from threading import Timer
 from threading import currentThread
 from traceback import print_exc,print_stack
 #from cStringIO import StringIO
@@ -15,6 +14,7 @@ from ABC.Scheduler.ratemanager import RateManager
 from Utility.constants import * #IGNORE:W0611
 from BitTornado.__init__ import product_name
 from Tribler.vwxGUI.GuiUtility import GUIUtility
+from Tribler.API.miscutils import NamedTimer
 
 DEBUG = False
 
@@ -562,9 +562,3 @@ class ABCScheduler:
         print >>sys.stderr,"scheduler: Reactivating downloads"
         self.doneflag.clear()
         wx.CallAfter(self.Scheduler)
-    
-def NamedTimer(*args,**kwargs):
-    t = Timer(*args,**kwargs)
-    t.setDaemon(True)
-    t.setName("NamedTimer"+t.getName())
-    return t

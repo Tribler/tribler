@@ -3,6 +3,7 @@
 
 import sys
 import re
+from threading import Timer
 
 DEBUG = False
 
@@ -26,3 +27,9 @@ def parse_playtime_to_secs(hhmmss):
     
     
     
+    
+def NamedTimer(*args,**kwargs):
+    t = Timer(*args,**kwargs)
+    t.setDaemon(True)
+    t.setName("NamedTimer"+t.getName())
+    return t    
