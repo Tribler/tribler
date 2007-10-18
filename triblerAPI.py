@@ -27,10 +27,11 @@ Simple VOD download session
     s = Session()
     tdef = TorrentDef.load('/tmp/bla.torrent')
     dcfg = DownloadStartupConfig.get_copy_of_default()
-    dcfg.set_mode('VOD',vod_ready_callback)
+    dcfg.set_video_on_demand(vod_ready_callback)
+    dcfg.set_selected_files('part2.avi') # play this video
     d = s.start_download(tdef,dcfg)
     
-def vod_ready_callback(stream):
+def vod_ready_callback(mimetype,stream):
     # Called by new thread 
     while True:
         data = stream.read()
@@ -198,6 +199,10 @@ TODO:
     
     ABC/Scheduler/ratemanager appears to do this
 
+- Don't hashcheck when file complete / we closed normally
+
+- Allow VOD when first part of file hashchecked.
+
 """
 
 import sys
@@ -207,7 +212,7 @@ import copy
 import sha
 import socket
 from UserDict import DictMixin
-from threading import RLock,Condition,Event,Thread
+from threading import RLock,Condition,Event,Thread,currentThread
 from traceback import print_exc,print_stack
 from types import StringType
 
@@ -217,20 +222,23 @@ from BitTornado.bencode import bencode,bdecode
 from BitTornado.download_bt1 import BT1Download
 import Tribler.Overlay.permid
 from Tribler.NATFirewall.guessip import get_my_wan_ip
+from Tribler.NATFirewall.UPnPThread import UPnPThread
 from Tribler.utilities import find_prog_in_PATH,validTorrentFile
-
 
 from BitTornado.RawServer import RawServer
 from BitTornado.ServerPortHandler import MultiHandler
 from BitTornado.RateLimiter import RateLimiter
-from BitTornado.natpunch import UPnPWrapper, UPnPError
 from BitTornado.BT1.track import Tracker
 from BitTornado.HTTPHandler import HTTPHandler,DummyHTTPHandler
 
 from Tribler.Overlay.SecureOverlay import SecureOverlay
 from Tribler.Overlay.OverlayApps import OverlayApps
 from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
-from triblerdefs import *
+from Tribler.API.defaults import *
+from Tribler.API.miscutils import *
+
+from Tribler.Video.VideoServer import VideoHTTPServer
+
 SPECIAL_VALUE=481
 
 # Move to triblerdefs?
@@ -395,14 +403,12 @@ class SessionConfigInterface:
 
         self.sessconfig['ipv6_binds_v4'] = autodetect_socket_style()
     
-    
-        # TODO TEMP ARNO: session max vs download max 
-        self.sessconfig['max_upload_rate'] = 0
-    
-        # TEMP TODO
+        # TEMP TODO: Delegate to Jelle?
         self.sessconfig['overlay'] = 0
         self.sessconfig['dialback'] = 0
-
+        
+        # TODO
+        self.sessconfig['internaltracker'] = 0
 
     
     def set_permid(self,keypair):
@@ -419,12 +425,6 @@ class SessionConfigInterface:
     def get_listen_port(self):
         return self.sessconfig['minport']
         
-    def set_max_upload(self,speed):
-        self.sessconfig['max_upload_rate'] = speed
-        
-    def set_max_connections(self,nconns):
-        self.sessconfig['max_connections'] = nconns
-
     def get_video_analyser_path(self):
         return self.sessconfig['videoanalyserpath'] # strings immutable
     
@@ -472,7 +472,7 @@ class Session(Serializable,SessionConfigInterface):
     def __init__(self,scfg=None):
         """
         A Session object is created which is configured following a copy of the
-        SessionStartupConfig scfg.
+        SessionStartupConfig scfg. (copy constructor used internally)
         
         in: scfg = SessionStartupConfig object or None, in which case 
         SessionStartupConfig.get_copy_of_default() is called and the returned config
@@ -482,6 +482,7 @@ class Session(Serializable,SessionConfigInterface):
         at a time in a process.
         """
         self.sesslock = RLock()
+        self.threadcount=1
         
         if scfg is None:
             cscfg = SessionStartupConfig.get_copy_of_default()
@@ -572,14 +573,6 @@ class Session(Serializable,SessionConfigInterface):
         finally:
             self.sesslock.release()
         
-    def set_max_upload(self,speed):
-        # TODO: max per session and per download
-        raise NotYetImplementedException()
-        
-    def set_max_connections(self,nconns):
-        # TODO: max per session and per download
-        raise NotYetImplementedException()
-
     def get_video_analyser_path(self):
         # To protect self.sessconfig
         self.sesslock.acquire()
@@ -588,6 +581,23 @@ class Session(Serializable,SessionConfigInterface):
         finally:
             self.sesslock.release()
 
+    #
+    # Internal methods
+    #
+    def perform_vod_usercallback(self,usercallback,mimetype,stream):
+        """ Called by network thread """
+        print >>sys.stderr,"Session: perform_vod_user_callback()"
+        self.sesslock.acquire()
+        try:
+            # TODO: thread pool, etc.
+            target = lambda:usercallback(mimetype,stream)
+            name = "SessionCallbackThread-"+str(self.threadcount)
+            self.threadcount += 1
+            t = Thread(target=target,name=name)
+            t.start()
+        finally:
+            self.sesslock.release()
+        
         
 
 #class TorrentDef(DictMixin,Defaultable,Serializable):
@@ -606,7 +616,7 @@ class TorrentDef(Defaultable,Serializable):
     cf. libtorrent torrent_info
     """
     def __init__(self,config=None,input=None,metainfo=None,infohash=None):
-        """ Normal and copy onstructor for TorrentDef """
+        """ Normal constructor for TorrentDef (copy constructor used internally) """
         
         self.readonly = False
         if config is not None: # copy constructor
@@ -798,13 +808,92 @@ class TorrentDef(Defaultable,Serializable):
         # TODO: should be possible when bound/readonly
         raise NotYetImplementedException()
         """
-            bn = os.path.basename(filename)
-            # How to encode Unicode filename? TODO
-            
-            # When to read file to calc hashes? TODO (could do now and keep pieces in mem until
-            # torrent file / bind time. Update: Need to wait until we know piece size.
+        bn = os.path.basename(filename)
+        # How to encode Unicode filename? TODO
+        
+        # When to read file to calc hashes? TODO (could do now and keep pieces in mem until
+        # torrent file / bind time. Update: Need to wait until we know piece size.
         """ 
         
+        
+    def get_bitrate(self,file=None):
+        """ Returns the bitrate of the specified file in bytes/sec """ 
+        if not self.metainfo_valid:
+            raise NotYetImplementedException() # must save first
+
+        info = self.metainfo['info']
+        if file is None:
+            bitrate = None
+            try:
+                playtime = None
+                if info.has_key('playtime'):
+                    playtime = parse_playtime_to_secs(info['playtime'])
+                elif 'playtime' in self.metainfo: # HACK: encode playtime in non-info part of existing torrent
+                    playtime = parse_playtime_to_secs(self.metainfo['playtime'])
+                """
+                elif 'azureus_properties' in metainfo:
+                    if 'Speed Bps' in metainfo['azureus_properties']:
+                        bitrate = float(metainfo['azureus_properties']['Speed Bps'])/8.0
+                        playtime = file_length / bitrate
+                """
+                if playtime is not None:
+                    bitrate = info['length']/playtime
+            except:
+                print_exc()
+    
+            return bitrate
+    
+        if file is not None and 'files' in info:
+            for i in range(len(info['files'])):
+                x = info['files'][i]
+                    
+                intorrentpath = ''
+                for elem in x['path']:
+                    intorrentpath = os.path.join(intorrentpath,elem)
+                bitrate = None
+                try:
+                    playtime = None
+                    if x.has_key('playtime'):
+                        playtime = parse_playtime_to_secs(x['playtime'])
+                    elif 'playtime' in self.metainfo: # HACK: encode playtime in non-info part of existing torrent
+                        playtime = parse_playtime_to_secs(self.metainfo['playtime'])
+                        
+                    if playtime is not None:
+                        bitrate = x['length']/playtime
+                except:
+                    print_exc()
+                    
+                if intorrentpath == file:
+                    return bitrate
+                
+            raise ValueError("File not found in torrent")
+        else:
+            raise ValueError("File not found in single-file torrent")
+    
+    
+    #
+    # Internal methods
+    #
+    def get_index_of_file_in_files(self,file):
+        if not self.metainfo_valid:
+            raise NotYetImplementedException() # must save first
+
+        info = self.metainfo['info']
+
+        if file is not None and 'files' in info:
+            for i in range(len(info['files'])):
+                x = info['files'][i]
+                    
+                intorrentpath = ''
+                for elem in x['path']:
+                    intorrentpath = os.path.join(intorrentpath,elem)
+                    
+                if intorrentpath == file:
+                    return i
+            return ValueError("File not found in torrent")
+        else:
+            raise ValueError("File not found in single-file torrent")
+
 
     #
     # DictMixin
@@ -864,19 +953,27 @@ class DownloadConfigInterface:
         else:
             self.dlconfig['saveas'] = '/tmp'
 
-        # TODO: is now sess param, how to set here?
-        self.dlconfig['upload_unit_size'] = 1460
-
     
     def set_max_upload(self,speed):
-        """
-        ISSUE: How do session maximums and torrent maximums coexist?
-        """
+        """ Sets the maximum upload speed for this Download in KB/s """
         self.dlconfig['max_upload'] = speed
 
-
     def set_saveas(self,path):
+        """ Sets the directory where to save this Download """
         self.dlconfig['saveas'] = path
+
+    def set_video_on_demand(self,usercallback):
+        """ Download the file "file" from the torrent in Video-On-Demand
+        mode. usercallback is a function that accepts a file-like object
+        as its first argument. """
+        self.dlconfig['mode'] = DLMODE_VOD
+        self.dlconfig['vod_usercallback'] = usercallback
+
+    def set_selected_files(self,files):
+        # TODO: can't check if files exists.... bugger
+        if self.dlconfig['mode'] == DL_MODE_VOD and len(files) > 1:
+            raise ValueError("In Video-On-Demand mode only 1 file can be selected for download")
+        self.dlconfig['selected_files'] = files
 
     
 class DownloadStartupConfig(DownloadConfigInterface,Defaultable,Serializable):
@@ -895,6 +992,8 @@ class DownloadStartupConfig(DownloadConfigInterface,Defaultable,Serializable):
     _default = None
     
     def __init__(self,dlconfig=None):
+        """ Normal constructor for DownloadStartupConfig (copy constructor 
+        used internally) """
         DownloadConfigInterface.__init__(self,dlconfig)
 
     #
@@ -936,9 +1035,11 @@ class Download(DownloadConfigInterface):
     #
     def __init__(self):
         self.dllock = RLock()
+        # just enough so error saving and get_state() works
         self.error = None
         self.sd = None # hack
-        # just enough so error saving and get_state() works
+        # To be able to return the progress of a stopped torrent, how far it got.
+        self.progressbeforestop = 0.0 
     
     def setup(self,session,tdef,dcfg=None,lmcallback=None):
         """
@@ -993,16 +1094,32 @@ class Download(DownloadConfigInterface):
         # Set IP to report to tracker. 
         self.dlconfig['ip'] = self.session.lm.get_ext_ip()
         kvconfig = copy.copy(self.dlconfig)
+
+        # Define which file to DL in VOD mode
+        if self.dlconfig['mode'] == DLMODE_VOD:
+            callback = lambda mimetype,stream:self.session.perform_vod_usercallback(self.dlconfig['vod_usercallback'],mimetype,stream)
+            if len(self.dlconfig['selected_files']) == 0:
+                # single-file torrent
+                file = None
+                idx = -1
+            else:
+                # multi-file torrent
+                file = self.dlconfig['selected_files'][0]
+                idx = self.get_def().get_index_of_file_in_files(file)
+            bitrate = self.get_def().get_bitrate(file)
+            vodfileindex = [idx,file,bitrate,None,callback]
+        else:
+            vodfileindex = [-1,None,0.0,None,callback]
         
         # Delegate creation of engine wrapper to network thread
-        func = lambda:self.network_create_engine_wrapper(infohash,metainfo,kvconfig,multihandler,listenport,vapath,lmcallback)
+        func = lambda:self.network_create_engine_wrapper(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcallback)
         self.session.lm.rawserver.add_task(func,0) 
         
 
-    def network_create_engine_wrapper(self,infohash,metainfo,kvconfig,multihandler,listenport,vapath,lmcallback):
+    def network_create_engine_wrapper(self,infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcallback):
         """ Called by network thread """
         self.dllock.acquire()
-        self.sd = SingleDownload(infohash,metainfo,kvconfig,multihandler,listenport,vapath,self.set_error)
+        self.sd = SingleDownload(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,self.set_error)
         sd = self.sd
         exc = self.error
         self.dllock.release()
@@ -1023,8 +1140,13 @@ class Download(DownloadConfigInterface):
     
     def set_state_callback(self,usercallback,interval):
         """ 
-        returns: copy of internal download state (so not live pointers into 
-        engine)  TODO text
+        Set a callback for retrieving the state of the download. This callback
+        will be called every "interval" seconds with a DownloadState object as
+        parameter.
+        
+        in: 
+        callback = function that accepts DownloadState as first parameter
+        interval = time between calls to the callback as float.
         """
         self.dllock.acquire()
         try:
@@ -1041,10 +1163,11 @@ class Download(DownloadConfigInterface):
         self.dllock.acquire()
         try:
             if self.sd is None:
-                ds = DownloadState(DLSTATUS_STOPPED,self.error,0.0) # TODO: really want progress at time of stop
+                ds = DownloadState(DLSTATUS_STOPPED,self.error,self.progressbeforestop)
             else:
                 (status,stats) = self.sd.get_stats()
                 ds = DownloadState(status,self.error,None,stats=stats)
+                self.progressbeforestop = stats['frac']
             
             # TODO: do on other thread    
             self.getstateusercallback(ds)
@@ -1100,19 +1223,24 @@ class Download(DownloadConfigInterface):
         finally:
             self.dllock.release()
 
-    def network_set_max_upload(self,speed):
-        """ Called by network thread """
-        self.dllock.acquire()
-        try:
-            DownloadConfigInterface.set_max_upload(self,speed)
-        finally:
-            self.dllock.release()
-        
+    def set_saveas(self,path):
+        raise OperationNotPossibleAtRuntimeException()
+
+    def set_video_on_demand(self,usercallback):
+        raise NotYetImplementedException()
+
+    def set_selected_files(self,files):
+        raise NotYetImplementedException()
 
 
     #
     # Internal methods
     #
+    def set_error(self,e):
+        self.dllock.acquire()
+        self.error = e
+        self.dllock.release()
+
     def network_stop(self):
         """ Called by network thread """
         self.dllock.acquire()
@@ -1121,11 +1249,13 @@ class Download(DownloadConfigInterface):
         finally:
             self.dllock.release()
 
-
-    def set_error(self,e):
+    def network_set_max_upload(self,speed):
+        """ Called by network thread """
         self.dllock.acquire()
-        self.error = e
-        self.dllock.release()
+        try:
+            DownloadConfigInterface.set_max_upload(self,speed)
+        finally:
+            self.dllock.release()
         
 
     
@@ -1177,7 +1307,7 @@ class DownloadState:
             self.error = error
         else:
             # Copy info from stats
-            self.progress = stats['frac']   # TODO: also make this hashchecking progress
+            self.progress = stats['frac']
             if stats['frac'] == 1.0:
                 self.status = DLSTATUS_SEEDING
             else:
@@ -1200,6 +1330,10 @@ class DownloadState:
     def get_error(self):
         return self.error
 
+
+#
+# Internal classes
+#
 
 class TriblerLaunchMany(Thread):
     
@@ -1228,15 +1362,15 @@ class TriblerLaunchMany(Thread):
         
         # Following 2 attributes set/get by UPnPThread
         self.upnp_thread = None
-        self.upnp_type = config['upnp_nat_access'] # TODO: use methods to read values?
+        self.upnp_type = config['upnp_nat_access']
 
 
         self.rawserver = RawServer(self.sessdoneflag,
                                    config['timeout_check_interval'],
                                    config['timeout'],
                                    ipv6_enable = config['ipv6_enabled'],
-                                   failfunc = self.rawserver_failfunc,
-                                   errorfunc = self.rawserver_exceptionfunc)
+                                   failfunc = self.rawserver_fatalerrorfunc,
+                                   errorfunc = self.rawserver_nonfatalerrorfunc)
         self.rawserver.add_task(self.rawserver_keepalive,1)
         
         self.listen_port = self.rawserver.find_and_bind(0, 
@@ -1246,10 +1380,6 @@ class TriblerLaunchMany(Thread):
                     randomizer = config['random_port'])
         print "Got listen port", self.listen_port
         
-        self.ratelimiter = RateLimiter(self.rawserver.add_task, 
-                                       config['upload_unit_size'])
-        self.ratelimiter.set_upload_rate(config['max_upload_rate'])
-
         self.multihandler = MultiHandler(self.rawserver, self.sessdoneflag)
         #
         # Arno: disabling out startup of torrents, need to fix this
@@ -1274,11 +1404,10 @@ class TriblerLaunchMany(Thread):
             self.secure_overlay.start_listening()
         
         self.internaltracker = None
-        if config['internaltracker'] and 'trackerconf' in config:
-            # TEMP ARNO TODO: make sure trackerconf also set when using btlaunchmany
-            tconfig = config['trackerconf']
-            self.internaltracker = Tracker(tconfig, self.rawserver)
-            self.httphandler = HTTPHandler(self.internaltracker.get, tconfig['min_time_between_log_flushes'])
+        if config['internaltracker']:
+            # TODO: save tracker state when shutting down
+            self.internaltracker = Tracker(config, self.rawserver)
+            self.httphandler = HTTPHandler(self.internaltracker.get, config['tracker_min_time_between_log_flushes'])
         else:
             self.httphandler = DummyHTTPHandler()
         self.multihandler.set_httphandler(self.httphandler)
@@ -1328,14 +1457,17 @@ class TriblerLaunchMany(Thread):
         finally:
             self.sesslock.release()
     
-    def rawserver_failfunc(self,msg):
-        """ Called by ?, TODO determine required locking """
-        print >>sys.stderr,"TriblerLaunchMany: failfunc called",msg
+    def rawserver_fatalerrorfunc(self,e):
+        """ Called by network thread """
+        if DEBUG:
+            print >>sys.stderr,"TriblerLaunchMany: RawServer fatal error func called",e
+        print_exc
 
-    def rawserver_exceptionfunc(self,e):
-        """ Called by ?, TODO determine required locking """
-        print >>sys.stderr,"TriblerLaunchmany: exceptfunc called",e
-
+    def rawserver_nonfatalerrorfunc(self,e):
+        """ Called by network thread """
+        if DEBUG:
+            print >>sys.stderr,"TriblerLaunchmany: RawServer non fatal error func called",e
+        # Could log this somewhere, or phase it out
 
     def run(self):
         """ Called only once by network thread """
@@ -1390,11 +1522,13 @@ class TriblerLaunchMany(Thread):
             self.upnp_thread.shutdown()
 
     def upnp_failed_callback(self,upnp_type,listenport,error_type,exc=None,listenproto='TCP'):
-        """ Called by UPnP thread TODO: make thread safe"""
-        self.failfunc("UPnP mode "+str(upnp_type)+" request to firewall failed with error "+str(error_type)+" Try setting a different mode in Preferences. Listen port was "+str(listenport)+", protocol"+listenproto)
+        """ Called by UPnP thread TODO: determine how to pass to API user 
+            In principle this is a non fatal error. But it is one we wish to
+            show to the user """
+        print >>sys.stderr,"UPnP mode "+str(upnp_type)+" request to firewall failed with error "+str(error_type)+" Try setting a different mode in Preferences. Listen port was "+str(listenport)+", protocol"+listenproto
 
     def upnp_got_ext_ip_callback(self,ip):
-        """ Called by UPnP thread TODO: make thread safe"""
+        """ Called by UPnP thread """
         self.sesslock.acquire()
         self.upnp_ext_ip = ip
         self.sesslock.release()
@@ -1419,7 +1553,7 @@ class TriblerLaunchMany(Thread):
             self.sesslock.release()
 
     def set_activity(self,type):
-        pass # TODO
+        pass # TODO Jelle
 
 
     def queue_for_hashcheck(self,sd):
@@ -1455,7 +1589,9 @@ class TriblerLaunchMany(Thread):
 class SingleDownload:
     """ This class is accessed solely by the network thread """
     
-    def __init__(self,infohash,metainfo,kvconfig,multihandler,listenport,videoanalyserpath,set_error_func):
+    def __init__(self,infohash,metainfo,kvconfig,multihandler,listenport,videoanalyserpath,vodfileindex,set_error_func):
+        
+        self.dow = None
         self.set_error_func = set_error_func
         try:
             self.dldoneflag = Event()
@@ -1479,14 +1615,22 @@ class SingleDownload:
                             createPeerID(),
                             self.dlrawserver,
                             listenport,
-                            #config['vod'], Arno: read from kvconfig
-                            [],    # TODO: how to set which video in a multi-video torrent to play
-                            #None, # = progressinf: now via DownloadState
                             videoanalyserpath
                             # TODO: dht
                             )
         
             file = self.dow.saveAs(self.save_as)
+            
+            # Set local filename in vodfileindex
+            if vodfileindex is not None:
+                index = vodfileindex[0]
+                if index == -1:
+                    index = 0
+                vodfileindex[3] = self.dow.get_dest(index)
+            self.dow.set_videoinfo(vodfileindex)
+
+            print >>sys.stderr,"SingleDownload: setting vodfileindex",vodfileindex
+            
             self._hashcheckfunc = None
             self._hashcheckfunc = self.dow.initFiles()
             self._getstatsfunc = None
@@ -1591,107 +1735,34 @@ class SingleDownload:
         
 
 
-
-
-class UPnPThread(Thread):
-    """ Thread to run the UPnP code. Moved out of main startup-
-        sequence for performance. As you can see this thread won't
-        exit until the client exits. This is due to a funky problem
-        with UPnP mode 2. That uses Win32/COM API calls to find and
-        talk to the UPnP-enabled firewall. This mechanism apparently
-        requires all calls to be carried out by the same thread.
-        This means we cannot let the final DeletePortMapping(port) 
-        (==UPnPWrapper.close(port)) be done by a different thread,
-        and we have to make this one wait until client shutdown.
-
-        Arno, 2006-11-12
-    """
-
-    def __init__(self,upnp_type,ext_ip,listen_port,error_func,got_ext_ip_func):
-        Thread.__init__(self)
-        self.setDaemon(True)
-        self.setName( "UPnP"+self.getName() )
-        
-        self.upnp_type = upnp_type
-        self.locally_guessed_ext_ip = ext_ip
-        self.listen_port = listen_port
-        self.error_func = error_func
-        self.got_ext_ip_func = got_ext_ip_func 
-        self.shutdownevent = Event()
-
-    def run(self):
-        if self.upnp_type > 0:
-            self.upnp_wrap = UPnPWrapper.getInstance()
-            self.upnp_wrap.register(self.locally_guessed_ext_ip)
-
-            if self.upnp_wrap.test(self.upnp_type):
-                try:
-                    shownerror=False
-                    # Get external IP address from firewall
-                    if self.upnp_type != 1: # Mode 1 doesn't support getting the IP address"
-                        ret = self.upnp_wrap.get_ext_ip()
-                        if ret == None:
-                            shownerror=True
-                            self.error_func(self.upnp_type,self.listen_port,0)
-                        else:
-                            self.got_ext_ip_func(ret)
-
-                    # Do open_port irrespective of whether get_ext_ip()
-                    # succeeds, UPnP mode 1 doesn't support get_ext_ip()
-                    # get_ext_ip() must be done first to ensure we have the 
-                    # right IP ASAP.
-                    
-                    # Open TCP listen port on firewall
-                    ret = self.upnp_wrap.open(self.listen_port,iproto='TCP')
-                    if ret == False and not shownerror:
-                        self.error_func(self.upnp_type,self.listen_port,0)
-
-                    # Open UDP listen port on firewall
-                    ret = self.upnp_wrap.open(self.listen_port,iproto='UDP')
-                    if ret == False and not shownerror:
-                        self.error_func(self.upnp_type,self.listen_port,0,listenproto='UDP')
-                
-                except UPnPError,e:
-                    self.error_func(self.upnp_type,self.listen_port,1,e)
-            else:
-                if self.upnp_type != 3:
-                    self.error_func(self.upnp_type,self.listen_port,2)
-                elif DEBUG:
-                    print >>sys.stderr,"upnp: thread: Initialization failed, but didn't report error because UPnP mode 3 is now enabled by default"
-
-        # Now that the firewall is hopefully open, activate other services
-        # here. For Buddycast we don't have an explicit notification that it
-        # can go ahead. It will start 15 seconds after client startup, which
-        # is assumed to be sufficient for UPnP to open the firewall.
-        ## dmh.start_active()
-
-        if self.upnp_type > 0:
-            if DEBUG:
-                print >>sys.stderr,"upnp: thread: Waiting till shutdown"
-            self.shutdownevent.wait()
-            # Don't write to sys.stderr, that sometimes doesn't seem to exist
-            # any more?! Python garbage collection funkiness of module sys import?
-            # The GUI is definitely gone, so don't use self.error_func()
-            if DEBUG:
-                print "upnp: thread: Shutting down, closing port on firewall"
-            try:
-                self.upnp_wrap.close(self.listen_port,iproto='TCP')
-                self.upnp_wrap.close(self.listen_port,iproto='UDP')
-            except Exception,e:
-                print "upnp: thread: close port at shutdown threw",e
-                print_exc()
-
-        # End of UPnPThread
-
-    def shutdown(self):
-        self.shutdownevent.set()
-
-
 def state_callback(ds):
     print >>sys.stderr,"main: Stats",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
 
+def vod_ready_callback(mimetype,stream):
+    print >>sys.stderr,"main: VOD ready callback called",currentThread().getName(),"###########################################################"
+
+    """
+    f = open("video.avi","wb")
+    while True:
+        data = stream.read()
+        print >>sys.stderr,"main: VOD ready callback: reading",type(data)
+        print >>sys.stderr,"main: VOD ready callback: reading",len(data)
+        if len(data) == 0:
+            break
+        f.write(data)
+    f.close()
+    stream.close()
+    """
+
+    # HACK: TODO: make to work with file-like interface
+    videoserv = VideoHTTPServer.getInstance()
+    videoserv.set_movietransport(stream.mt)
+    
 
 if __name__ == "__main__":
+    
+    videoserv = VideoHTTPServer.getInstance() # create
+    videoserv.background_serve()
     
     s = Session()
     
@@ -1701,10 +1772,13 @@ if __name__ == "__main__":
         tdef = TorrentDef.load('/tmp/bla.torrent')
     dcfg = DownloadStartupConfig.get_copy_of_default()
     #dcfg.set_saveas('/arno')
-    print >>sys.stderr,"main: TorrentDef is",tdef
+    dcfg = DownloadStartupConfig.get_copy_of_default()
+    dcfg.set_video_on_demand(vod_ready_callback)
+    #dcfg.set_selected_files('MATRIX-XP_engl_L.avi') # play this video
+    
     d = s.start_download(tdef,dcfg)
-    d.set_state_callback(state_callback,1)
-    d.set_max_upload(100)
+    #d.set_state_callback(state_callback,1)
+    #d.set_max_upload(100)
     
     time.sleep(10)
     
@@ -1714,5 +1788,5 @@ if __name__ == "__main__":
     time.sleep(5)
     d.restart()
     """
-    time.sleep(25)
+    time.sleep(2500)
     

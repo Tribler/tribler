@@ -158,21 +158,21 @@ class RawServer:
                                     print >> sys.stderr,"RawServer: calling (not bgalloc)",func.func_name
                             func()
                         except (SystemError, MemoryError), e:
-                            self.failfunc(str(e))
+                            self.failfunc(e)
                             return
-                        except KeyboardInterrupt:
-#                            self.exception(True)
+                        except KeyboardInterrupt,e:
+#                            self.exception(e)
                             return
                         except error:
                             if DEBUG:
                                 print >> sys.stderr,"rawserver: func: ERROR exception"
                                 print_exc()
-                        except:
+                        except Exception,e:
                             if DEBUG:
                                 print >> sys.stderr,"rawserver: func: any exception"
                                 print_exc()
                             if self.noisy:
-                                self.exception()
+                                self.exception(e)
                     self.sockethandler.close_dead()
                     self.sockethandler.handle_events(events)
                     if self.doneflag.isSet():
@@ -183,7 +183,7 @@ class RawServer:
                 except (SystemError, MemoryError), e:
                     if DEBUG:
                         print >> sys.stderr,"rawserver: SYS/MEM exception",e
-                    self.failfunc(str(e))
+                    self.failfunc(e)
                     return
                 except error:
                     if DEBUG:
@@ -191,14 +191,14 @@ class RawServer:
                         print_exc()
                     if self.doneflag.isSet():
                         return
-                except KeyboardInterrupt:
-#                    self.exception(True)
+                except KeyboardInterrupt,e:
+#                    self.exception(e)
                     return
-                except:
+                except Exception,e:
                     if DEBUG:
                         print >> sys.stderr,"rawserver: other exception"
                         print_exc()
-                    self.exception()
+                    self.exception(e)
                 ## Arno: Don't stop till we drop
                 ##if self.exccount > 10:
                 ##    print >> sys.stderr,"rawserver: stopping because exccount > 10"
@@ -225,18 +225,15 @@ class RawServer:
     def kill_tasks(self, id):
         self.tasks_to_kill.append(id)
 
-    def exception(self, kbint = False):
+    def exception(self,e,kbint=False):
         if not kbint:
             self.excflag.set()
         self.exccount += 1
         if self.errorfunc is None:
             print_exc()
         else:
-            data = StringIO()
-            print_exc(file = data)
-#            print data.getvalue()   # report exception here too
-            if not kbint:           # don't report here if it's a keyboard interrupt
-                self.errorfunc(data.getvalue())
+            if not kbint:   # don't report here if it's a keyboard interrupt
+                self.errorfunc(e)
 
     def shutdown(self):
         self.sockethandler.shutdown()

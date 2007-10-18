@@ -16,14 +16,14 @@ import os,sys,string,time
 import random,socket,thread,re
 from BitTornado.CurrentRateMeasure import Measure
 from BitTornado.BT1.PiecePicker import PiecePicker
-from Tribler.Video.VideoServer import MovieTransport
+from Tribler.Video.VideoServer import MovieTransport,MovieTransportFileLikeInterfaceWrapper
 
 EXTENSIONS = ['asf','avi','dv','flc','mpeg','mpeg4','mpg4','mp4','mpg','mov','ogm','qt','rm','swf','vob','wmv']
 
 # pull all video data as if a video player was attached
 FAKEPLAYBACK = False
 
-DEBUG = False
+DEBUG = True
 DEBUGPP = False
 
 class PiecePickerStreaming(PiecePicker):
@@ -848,7 +848,7 @@ class MovieOnDemandTransporter(MovieTransport):
         if gotall and self.enough_buffer():
             # enough buffer and could estimated bitrate - start streaming
             if DEBUG:
-                print >>sys.stderr,"vod: trans: Prebuffering done"
+                print >>sys.stderr,"vod: trans: Prebuffering done",currentThread().getName()
             self.data_ready.acquire()
             self.prebuffering = False
             self.notify_playable()
@@ -1046,7 +1046,7 @@ class MovieOnDemandTransporter(MovieTransport):
         self.set_playback_pos( piece )
         self.outbuf = []
         self.playing = True
-        self.prebuffering = True
+        ####self.prebuffering = True # TEMP ARNO, don't think we need this
         self.playbackrate = Measure( 60 )
         self.data_ready.release()
 
@@ -1204,7 +1204,11 @@ class MovieOnDemandTransporter(MovieTransport):
         return piece
 
     def notify_playable(self):
-        if self.bufferinfo:
-            self.bufferinfo.set_playable()
+        #if self.bufferinfo:
+        #    self.bufferinfo.set_playable()
         #self.progressinf.bufferinfo_updated_callback()
+        # triblerAPI
+        print >>sys.stderr,"vod: trans: Calling usercallback to tell it we're ready to play",self.movieselector.videoinfo[4]
+        stream = MovieTransportFileLikeInterfaceWrapper(self)
+        self.movieselector.videoinfo[4](self.get_mimetype(),stream)
 

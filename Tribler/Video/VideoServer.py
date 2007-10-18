@@ -13,7 +13,7 @@ from threading import RLock,currentThread
 from traceback import print_exc
 from __init__ import read,BLOCKSIZE
 
-DEBUG = False
+DEBUG = True
 
 
 class MovieTransport:
@@ -135,6 +135,30 @@ class MovieTransportDecryptWrapper:
     def get_mimetype(self):
         return self.mt.get_mimetype()
 
+
+
+class MovieTransportFileLikeInterfaceWrapper:
+    """ Provide a file-like interface """
+    def __init__(self,mt):
+        self.mt = mt
+        self.started = False
+        self.done = False
+
+    def read(self,numbytes=None):
+        if self.done:
+            return ''
+        if not self.started:
+            self.mt.start(0)
+        data = self.mt.read(numbytes)
+        if data is None:
+            print >>sys.stderr,"MovieTransportFileLikeInterfaceWrapper: mt read returns None"
+            data = ''
+        self.done = self.mt.done()
+        return data
+        
+    def close(self):
+        self.mt.stop()
+
         
 
 class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
@@ -204,7 +228,8 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
             if DEBUG:
                 print >>sys.stderr,"videoserv: do_GET: Got request",self.path,self.headers.getheader('range')
                 
-            self.server.statuscallback("Player ready - Attempting to load file...")
+            if self.server.statuscallback is not None:
+                self.server.statuscallback("Player ready - Attempting to load file...")
             movie = self.server.get_movietransport()
             if movie is None:
                 if DEBUG:
@@ -262,7 +287,8 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                     self.wfile.write(data)
                     #sleep(1)
                     if first:
-                        self.server.statuscallback("Player ready - Attempting to play file...")
+                        if self.server.statuscallback is not None:
+                            self.server.statuscallback("Player ready - Attempting to play file...")
                         first = False
                     
                 except IOError, e:
@@ -295,3 +321,5 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
     def error(self,e,url):
        if self.server.errorcallback is not None:
            self.server.errorcallback(e,url)
+       else:
+           print_exc()

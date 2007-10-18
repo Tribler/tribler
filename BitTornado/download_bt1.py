@@ -47,6 +47,7 @@ import sys
 from traceback import print_exc,print_stack
 # _2fastbt
 
+from Tribler.API.defaults import *
 
 try:
     True
@@ -208,7 +209,7 @@ def get_response(file, url, errorfunc):
 class BT1Download:    
     def __init__(self, statusfunc, finfunc, errorfunc, excfunc, doneflag, 
                  config, response, infohash, id, rawserver, port,
-                 videoinfo, videoanalyserpath, appdataobj = None, dht = None):
+                 videoanalyserpath, appdataobj = None, dht = None):
         self.statusfunc = statusfunc
         self.finfunc = finfunc
         self.errorfunc = errorfunc
@@ -247,8 +248,8 @@ class BT1Download:
         self.rerequest = None
         self.tcp_ack_fudge = config['tcp_ack_fudge']
         
-        self.play_video = config['vod']
-        self.videoinfo = videoinfo
+        self.play_video = (config['mode'] == DLMODE_VOD)
+        self.videoinfo = None
         self.videoanalyserpath = videoanalyserpath
         self.voddownload = None
 
@@ -299,6 +300,10 @@ class BT1Download:
                              self.picker, self.finflag.isSet)
 
         #print >>sys.stderr,"download_bt1.BT1Download: play_video is",self.play_video
+
+    def set_videoinfo(self,videoinfo):
+        self.videoinfo = videoinfo
+
 
     def checkSaveLocation(self, loc):
         if self.info.has_key('length'):
@@ -380,6 +385,8 @@ class BT1Download:
     def getFilename(self):
         return self.filename
 
+    def get_dest(self,index):
+        return self.files[index][0]
 
     def _finished(self):
         self.finflag.set()

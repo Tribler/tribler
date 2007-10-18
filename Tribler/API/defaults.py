@@ -1,5 +1,10 @@
+# Written by Arno Bakker and Bram Cohen 
+# see LICENSE.txt for license information
 
 DEFAULTPORT=7762  # Arno: see Utility/configreader.py and Utility/utility.py
+
+DLMODE_NORMAL = 0
+DLMODE_VOD = 1
 
 sessdefaults = [
     ('ip', '',
@@ -22,8 +27,6 @@ sessdefaults = [
         'time to wait between closing sockets which nothing has been received on'),
     ('timeout_check_interval', 60.0,
         'time to wait between checking if any connections have timed out'),
-    ('upload_unit_size', 1460,
-        "when limiting upload rate, how many bytes to send at a time"),
 
 # Tribler session opts
     ('eckeypair', None, "keypair to use for session"),
@@ -75,6 +78,57 @@ sessdefaults = [
         'the nickname you want to show to others'),
     ('videoplayerpath', None, 'Path to video analyser (FFMPEG, found automatically if in PATH)')]
 
+trackerdefaults = [
+    ('tracker_dfile', None, 'file to store recent downloader info in'),
+    ('tracker_dfile_format', 'bencode', 'format of dfile: either "bencode" (default) or pickle (needed when unicode filenames in state)'),
+    ('tracker_socket_timeout', 15, 'timeout for closing connections'),
+    ('tracker_save_dfile_interval', 5 * 60, 'seconds between saving dfile'),
+    ('tracker_timeout_downloaders_interval', 45 * 60, 'seconds between expiring downloaders'),
+    ('tracker_reannounce_interval', 30 * 60, 'seconds downloaders should wait between reannouncements'),
+    ('tracker_response_size', 50, 'number of peers to send in an info message'),
+    ('tracker_timeout_check_interval', 5,
+        'time to wait between checking if any connections have timed out'),
+    ('tracker_nat_check', 3,
+        "how many times to check if a downloader is behind a NAT (0 = don't check)"),
+    ('tracker_log_nat_checks', 0,
+        "whether to add entries to the log for nat-check results"),
+    ('tracker_min_time_between_log_flushes', 3.0,
+        'minimum time it must have been since the last flush to do another one'),
+    ('tracker_min_time_between_cache_refreshes', 600.0,
+        'minimum time in seconds before a cache is considered stale and is flushed'),
+    ('tracker_allowed_dir', '', 'only allow downloads for .torrents in this dir'),
+    ('tracker_allowed_list', '', 'only allow downloads for hashes in this list (hex format, one per line)'),
+    ('tracker_allowed_controls', 0, 'allow special keys in torrents in the allowed_dir to affect tracker access'),
+    ('tracker_multitracker_enabled', 0, 'whether to enable multitracker operation'),
+    ('tracker_multitracker_allowed', 'autodetect', 'whether to allow incoming tracker announces (can be none, autodetect or all)'),
+    ('tracker_multitracker_reannounce_interval', 2 * 60, 'seconds between outgoing tracker announces'),
+    ('tracker_multitracker_maxpeers', 20, 'number of peers to get in a tracker announce'),
+    ('tracker_aggregate_forward', '', 'format: <url>[,<password>] - if set, forwards all non-multitracker to this url with this optional password'),
+    ('tracker_aggregator', '0', 'whether to act as a data aggregator rather than a tracker.  If enabled, may be 1, or <password>; ' +
+             'if password is set, then an incoming password is required for access'),
+    ('tracker_hupmonitor', 0, 'whether to reopen the log file upon receipt of HUP signal'),
+    ('tracker_http_timeout', 60, 
+        'number of seconds to wait before assuming that an http connection has timed out'),
+    ('tracker_parse_dir_interval', 60, 'seconds between reloading of allowed_dir or allowed_file ' +
+             'and allowed_ips and banned_ips lists'),
+    ('tracker_show_infopage', 1, "whether to display an info page when the tracker's root dir is loaded"),
+    ('tracker_infopage_redirect', '', 'a URL to redirect the info page to'),
+    ('tracker_show_names', 1, 'whether to display names from allowed dir'),
+    ('tracker_favicon', '', 'file containing x-icon data to return when browser requests favicon.ico'),
+    ('tracker_allowed_ips', '', 'only allow connections from IPs specified in the given file; '+
+             'file contains subnet data in the format: aa.bb.cc.dd/len'),
+    ('tracker_banned_ips', '', "don't allow connections from IPs specified in the given file; "+
+             'file contains IP range data in the format: xxx:xxx:ip1-ip2'),
+    ('tracker_only_local_override_ip', 2, "ignore the ip GET parameter from machines which aren't on local network IPs " +
+             "(0 = never, 1 = always, 2 = ignore if NAT checking is not enabled)"),
+    ('tracker_logfile', '', 'file to write the tracker logs, use - for stdout (default)'),
+    ('tracker_allow_get', 1, 'use with allowed_dir; adds a /file?hash={hash} url that allows users to download the torrent file'),
+    ('tracker_keep_dead', 0, 'keep dead torrents after they expire (so they still show up on your /scrape and web page)'),
+    ('tracker_scrape_allowed', 'full', 'scrape access allowed (can be none, specific or full)')
+  ]
+
+sessdefaults = sessdefaults + trackerdefaults
+
 
 # BT per download opts
 dldefaults = [
@@ -84,6 +138,8 @@ dldefaults = [
         'number of seconds to pause between sending keepalives'),
     ('download_slice_size', 2 ** 14,
         "How many bytes to query for per request."),
+    ('upload_unit_size', 1460,
+        "when limiting upload rate, how many bytes to send at a time"),
     ('request_backlog', 10,
         "maximum number of requests to keep in a single pipe at once."),
     ('max_message_length', 2 ** 23,
@@ -172,16 +228,18 @@ dldefaults = [
 #
 # Tribler per-download opts
 #
-    ('role', '', # 'helper', 'coordinator'
+    ('role', '', # 'helper', 'coordinator' # MARKED FOR DELETION
         "role of the peer in the download"),
-    ('helpers_file', '',
+    ('helpers_file', '',  # MARKED FOR DELETION
         "file with the list of friends"),
-    ('coordinator_permid', '',
+    ('coordinator_permid', '', # MARKED FOR DELETION
         "PermID of the cooperative download coordinator"),
-    ('exclude_ips', '',
+    ('exclude_ips', '', # MARKED FOR DELETION
         "list of IP addresse to be excluded; comma separated"),
-    ('vod', 0,
-        "download in video-on-demand mode (0 = disabled)"),
+    ('mode', DLMODE_NORMAL,
+        "0 = normal download, 1 = download in video-on-demand mode"),
+    ('vod_usercallback', None, "callback func for video on demand, first arg is a stream object"),
+    ('selected_files',[], "files in torrent to download"),
     ('ut_pex_max_addrs_from_peer', 16,
             "maximum number of addresses to accept from peer (0 = disabled PEX)")]
 

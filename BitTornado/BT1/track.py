@@ -39,61 +39,7 @@ except:
 
 DEBUG=False
 
-defaults = [
-    ('port', 80, "Port to listen on."),
-    ('dfile', None, 'file to store recent downloader info in'),
-    ('dfile_format', 'bencode', 'format of dfile: either "bencode" (default) or pickle (needed when unicode filenames in state)'),
-    ('bind', '', 'comma-separated list of ips/hostnames to bind to locally'),
-#    ('ipv6_enabled', autodetect_ipv6(),
-    ('ipv6_enabled', 0,
-         'allow the client to connect to peers via IPv6'),
-    ('ipv6_binds_v4', autodetect_socket_style(),
-        'set if an IPv6 server socket will also field IPv4 connections'),
-    ('socket_timeout', 15, 'timeout for closing connections'),
-    ('save_dfile_interval', 5 * 60, 'seconds between saving dfile'),
-    ('timeout_downloaders_interval', 45 * 60, 'seconds between expiring downloaders'),
-    ('reannounce_interval', 30 * 60, 'seconds downloaders should wait between reannouncements'),
-    ('response_size', 50, 'number of peers to send in an info message'),
-    ('timeout_check_interval', 5,
-        'time to wait between checking if any connections have timed out'),
-    ('nat_check', 3,
-        "how many times to check if a downloader is behind a NAT (0 = don't check)"),
-    ('log_nat_checks', 0,
-        "whether to add entries to the log for nat-check results"),
-    ('min_time_between_log_flushes', 3.0,
-        'minimum time it must have been since the last flush to do another one'),
-    ('min_time_between_cache_refreshes', 600.0,
-        'minimum time in seconds before a cache is considered stale and is flushed'),
-    ('allowed_dir', '', 'only allow downloads for .torrents in this dir'),
-    ('allowed_list', '', 'only allow downloads for hashes in this list (hex format, one per line)'),
-    ('allowed_controls', 0, 'allow special keys in torrents in the allowed_dir to affect tracker access'),
-    ('multitracker_enabled', 0, 'whether to enable multitracker operation'),
-    ('multitracker_allowed', 'autodetect', 'whether to allow incoming tracker announces (can be none, autodetect or all)'),
-    ('multitracker_reannounce_interval', 2 * 60, 'seconds between outgoing tracker announces'),
-    ('multitracker_maxpeers', 20, 'number of peers to get in a tracker announce'),
-    ('aggregate_forward', '', 'format: <url>[,<password>] - if set, forwards all non-multitracker to this url with this optional password'),
-    ('aggregator', '0', 'whether to act as a data aggregator rather than a tracker.  If enabled, may be 1, or <password>; ' +
-             'if password is set, then an incoming password is required for access'),
-    ('hupmonitor', 0, 'whether to reopen the log file upon receipt of HUP signal'),
-    ('http_timeout', 60, 
-        'number of seconds to wait before assuming that an http connection has timed out'),
-    ('parse_dir_interval', 60, 'seconds between reloading of allowed_dir or allowed_file ' +
-             'and allowed_ips and banned_ips lists'),
-    ('show_infopage', 1, "whether to display an info page when the tracker's root dir is loaded"),
-    ('infopage_redirect', '', 'a URL to redirect the info page to'),
-    ('show_names', 1, 'whether to display names from allowed dir'),
-    ('favicon', '', 'file containing x-icon data to return when browser requests favicon.ico'),
-    ('allowed_ips', '', 'only allow connections from IPs specified in the given file; '+
-             'file contains subnet data in the format: aa.bb.cc.dd/len'),
-    ('banned_ips', '', "don't allow connections from IPs specified in the given file; "+
-             'file contains IP range data in the format: xxx:xxx:ip1-ip2'),
-    ('only_local_override_ip', 2, "ignore the ip GET parameter from machines which aren't on local network IPs " +
-             "(0 = never, 1 = always, 2 = ignore if NAT checking is not enabled)"),
-    ('logfile', '', 'file to write the tracker logs, use - for stdout (default)'),
-    ('allow_get', 0, 'use with allowed_dir; adds a /file?hash={hash} url that allows users to download the torrent file'),
-    ('keep_dead', 0, 'keep dead torrents after they expire (so they still show up on your /scrape and web page)'),
-    ('scrape_allowed', 'full', 'scrape access allowed (can be none, specific or full)')
-  ]
+from triblerdefs import trackerdefaults as defaults
 
 def statefiletemplate(x):
     if type(x) != DictType:
@@ -198,11 +144,11 @@ def compact_peer_info(ip, port):
 class Tracker:
     def __init__(self, config, rawserver):
         self.config = config
-        self.response_size = config['response_size']
-        self.dfile = config['dfile']
-        self.natcheck = config['nat_check']
-        favicon = config['favicon']
-        self.parse_dir_interval = config['parse_dir_interval']
+        self.response_size = config['tracker_response_size']
+        self.dfile = config['tracker_dfile']
+        self.natcheck = config['tracker_nat_check']
+        favicon = config['tracker_favicon']
+        self.parse_dir_interval = config['tracker_parse_dir_interval']
         self.favicon = None
         if favicon:
             try:
@@ -220,19 +166,19 @@ class Tracker:
 
         self.allowed_IPs = None
         self.banned_IPs = None
-        if config['allowed_ips'] or config['banned_ips']:
+        if config['tracker_allowed_ips'] or config['tracker_banned_ips']:
             self.allowed_ip_mtime = 0
             self.banned_ip_mtime = 0
             self.read_ip_lists()
                 
-        self.only_local_override_ip = config['only_local_override_ip']
+        self.only_local_override_ip = config['tracker_only_local_override_ip']
         if self.only_local_override_ip == 2:
-            self.only_local_override_ip = not config['nat_check']
+            self.only_local_override_ip = not config['tracker_nat_check']
 
         if exists(self.dfile):
             try:
                 h = open(self.dfile, 'rb')
-                if self.config['dfile_format'] == 'bencode':
+                if self.config['tracker_dfile_format'] == 'bencode':
                     ds = h.read()
                     tempstate = bdecode(ds)
                 else:
@@ -274,25 +220,25 @@ class Tracker:
         self.trackerid = createPeerID('-T-')
         seed(self.trackerid)
                 
-        self.reannounce_interval = config['reannounce_interval']
-        self.save_dfile_interval = config['save_dfile_interval']
-        self.show_names = config['show_names']
+        self.reannounce_interval = config['tracker_reannounce_interval']
+        self.save_dfile_interval = config['tracker_save_dfile_interval']
+        self.show_names = config['tracker_show_names']
         rawserver.add_task(self.save_state, self.save_dfile_interval)
         self.prevtime = clock()
-        self.timeout_downloaders_interval = config['timeout_downloaders_interval']
+        self.timeout_downloaders_interval = config['tracker_timeout_downloaders_interval']
         rawserver.add_task(self.expire_downloaders, self.timeout_downloaders_interval)
         self.logfile = None
         self.log = None
-        if (config['logfile']) and (config['logfile'] != '-'):
+        if (config['tracker_logfile']) and (config['tracker_logfile'] != '-'):
             try:
-                self.logfile = config['logfile']
+                self.logfile = config['tracker_logfile']
                 self.log = open(self.logfile,'a')
                 sys.stdout = self.log
                 print "# Log Started: ", isotime()
             except:
                 print "**warning** could not redirect stdout to log file: ", sys.exc_info()[0]
 
-        if config['hupmonitor']:
+        if config['tracker_hupmonitor']:
             def huphandler(signum, frame, self = self):
                 try:
                     self.log.close()
@@ -304,27 +250,27 @@ class Tracker:
              
             signal.signal(signal.SIGHUP, huphandler)            
                 
-        self.allow_get = config['allow_get']
+        self.allow_get = config['tracker_allow_get']
         
-        self.t2tlist = T2TList(config['multitracker_enabled'], self.trackerid,
-                               config['multitracker_reannounce_interval'],
-                               config['multitracker_maxpeers'], config['http_timeout'],
+        self.t2tlist = T2TList(config['tracker_multitracker_enabled'], self.trackerid,
+                               config['tracker_multitracker_reannounce_interval'],
+                               config['tracker_multitracker_maxpeers'], config['tracker_http_timeout'],
                                self.rawserver)
 
-        if config['allowed_list']:
-            if config['allowed_dir']:
+        if config['tracker_allowed_list']:
+            if config['tracker_allowed_dir']:
                 print '**warning** allowed_dir and allowed_list options cannot be used together'
                 print '**warning** disregarding allowed_dir'
-                config['allowed_dir'] = ''
+                config['tracker_allowed_dir'] = ''
             self.allowed = self.state.setdefault('allowed_list',{})
             self.allowed_list_mtime = 0
             self.parse_allowed()
             self.remove_from_state('allowed','allowed_dir_files')
-            if config['multitracker_allowed'] == 'autodetect':
-                config['multitracker_allowed'] = 'none'
-            config['allowed_controls'] = 0
+            if config['tracker_multitracker_allowed'] == 'autodetect':
+                config['tracker_multitracker_allowed'] = 'none'
+            config['tracker_allowed_controls'] = 0
 
-        elif config['allowed_dir']:
+        elif config['tracker_allowed_dir']:
             self.allowed = self.state.setdefault('allowed',{})
             self.allowed_dir_files = self.state.setdefault('allowed_dir_files',{})
             self.allowed_dir_blocked = {}
@@ -334,15 +280,15 @@ class Tracker:
         else:
             self.allowed = None
             self.remove_from_state('allowed','allowed_dir_files', 'allowed_list')
-            if config['multitracker_allowed'] == 'autodetect':
-                config['multitracker_allowed'] = 'none'
-            config['allowed_controls'] = 0
+            if config['tracker_multitracker_allowed'] == 'autodetect':
+                config['tracker_multitracker_allowed'] = 'none'
+            config['tracker_allowed_controls'] = 0
                 
         self.uq_broken = unquote('+') != ' '
-        self.keep_dead = config['keep_dead']
+        self.keep_dead = config['tracker_keep_dead']
         self.Filter = Filter(rawserver.add_task)
         
-        aggregator = config['aggregator']
+        aggregator = config['tracker_aggregator']
         if aggregator == '0':
             self.is_aggregator = False
             self.aggregator_key = None
@@ -354,7 +300,7 @@ class Tracker:
                 self.aggregator_key = aggregator
             self.natcheck = False
                 
-        send = config['aggregate_forward']
+        send = config['tracker_aggregate_forward']
         if not send:
             self.aggregate_forward = None
         else:
@@ -391,9 +337,9 @@ class Tracker:
 
     def get_infopage(self):
         try:
-            if not self.config['show_infopage']:
+            if not self.config['tracker_show_infopage']:
                 return (404, 'Not Found', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'}, alas)
-            red = self.config['infopage_redirect']
+            red = self.config['tracker_infopage_redirect']
             if red:
                 return (302, 'Found', {'Content-Type': 'text/html', 'Location': red},
                         '<A HREF="'+red+'">Click Here</A>')
@@ -405,7 +351,7 @@ class Tracker:
                 s.write('<link rel="shortcut icon" href="/favicon.ico">\n')
             s.write('</head>\n<body>\n' \
                 '<h3>Tribler Tracker Statistics</h3>\n')
-            if self.config['allowed_dir']:
+            if self.config['tracker_allowed_dir']:
                 if self.show_names:
                     names = [ (self.allowed[hash]['name'],hash)
                               for hash in self.allowed.keys() ]
@@ -424,7 +370,7 @@ class Tracker:
                 tt = 0  # Total transferred
                 ts = 0  # Total size
                 nf = 0  # Number of files displayed
-                if self.config['allowed_dir'] and self.show_names:
+                if self.config['tracker_allowed_dir'] and self.show_names:
                     s.write('<table summary="files" border="1">\n' \
                         '<tr><th>info hash</th><th>torrent name</th><th align="right">size</th><th align="right">complete</th><th align="right">downloading</th><th align="right">downloaded</th><th align="right">transferred</th></tr>\n')
                 else:
@@ -438,7 +384,7 @@ class Tracker:
                     tc = tc + c
                     d = len(l) - c
                     td = td + d
-                    if self.config['allowed_dir'] and self.show_names:
+                    if self.config['tracker_allowed_dir'] and self.show_names:
                         if self.allowed.has_key(hash):
                             nf = nf + 1
                             sz = self.allowed[hash]['length']  # size
@@ -457,7 +403,7 @@ class Tracker:
                 ttn = 0
                 for i in self.completed.values():
                     ttn = ttn + i
-                if self.config['allowed_dir'] and self.show_names:
+                if self.config['tracker_allowed_dir'] and self.show_names:
                     s.write('<tr><td align="right" colspan="2">%i files</td><td align="right">%s</td><td align="right">%i</td><td align="right">%i</td><td align="right">%i/%i</td><td align="right">%s</td></tr>\n'
                             % (nf, size_format(ts), tc, td, tn, ttn, size_format(tt)))
                 else:
@@ -489,14 +435,14 @@ class Tracker:
         c = self.seedcount[hash]
         d = len(l) - c
         f = {'complete': c, 'incomplete': d, 'downloaded': n}
-        if return_name and self.show_names and self.config['allowed_dir']:
+        if return_name and self.show_names and self.config['tracker_allowed_dir']:
             f['name'] = self.allowed[hash]['name']
         return (f)
 
     def get_scrape(self, paramslist):
         fs = {}
         if paramslist.has_key('info_hash'):
-            if self.config['scrape_allowed'] not in ['specific', 'full']:
+            if self.config['tracker_scrape_allowed'] not in ['specific', 'full']:
                 return (400, 'Not Authorized', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'},
                     bencode({'failure reason':
                     'specific scrape function is not available with this tracker.'}))
@@ -508,7 +454,7 @@ class Tracker:
                     if self.downloads.has_key(hash):
                         fs[hash] = self.scrapedata(hash)
         else:
-            if self.config['scrape_allowed'] != 'full':
+            if self.config['tracker_scrape_allowed'] != 'full':
                 return (400, 'Not Authorized', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'},
                     bencode({'failure reason':
                     'full scrape function is not available with this tracker.'}))
@@ -548,18 +494,18 @@ class Tracker:
                 return (200, 'Not Authorized', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'},
                     bencode({'failure reason':
                     'Requested download is not authorized for use with this tracker.'}))
-            if self.config['allowed_controls']:
+            if self.config['tracker_allowed_controls']:
                 if self.allowed[infohash].has_key('failure reason'):
                     return (200, 'Not Authorized', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'},
                         bencode({'failure reason': self.allowed[infohash]['failure reason']}))
 
         if paramslist.has_key('tracker'):
-            if ( self.config['multitracker_allowed'] == 'none' or       # turned off
+            if ( self.config['tracker_multitracker_allowed'] == 'none' or       # turned off
                           paramslist['peer_id'][0] == self.trackerid ): # oops! contacted myself
                 return (200, 'Not Authorized', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'},
                     bencode({'failure reason': 'disallowed'}))
             
-            if ( self.config['multitracker_allowed'] == 'autodetect'
+            if ( self.config['tracker_multitracker_allowed'] == 'autodetect'
                         and not self.allowed[infohash].has_key('announce-list') ):
                 return (200, 'Not Authorized', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'},
                     bencode({'failure reason':
@@ -692,17 +638,17 @@ class Tracker:
         data['complete'] = seeds
         data['incomplete'] = len(self.downloads[infohash]) - seeds
         
-        if ( self.config['allowed_controls']
+        if ( self.config['tracker_allowed_controls']
                 and self.allowed[infohash].has_key('warning message') ):
             data['warning message'] = self.allowed[infohash]['warning message']
 
         if tracker:
-            data['interval'] = self.config['multitracker_reannounce_interval']
+            data['interval'] = self.config['tracker_multitracker_reannounce_interval']
             if not rsize:
                 return data
             cache = self.cached_t.setdefault(infohash, None)
             if ( not cache or len(cache[1]) < rsize
-                 or cache[0] + self.config['min_time_between_cache_refreshes'] < clock() ):
+                 or cache[0] + self.config['tracker_min_time_between_cache_refreshes'] < clock() ):
                 bc = self.becache.setdefault(infohash,[[{}, {}], [{}, {}], [{}, {}]])
                 cache = [ clock(), bc[0][0].values() + bc[0][1].values() ]
                 self.cached_t[infohash] = cache
@@ -729,7 +675,7 @@ class Tracker:
         if cache and ( not cache[1]
                        or (is_seed and len(cache[1]) < rsize)
                        or len(cache[1]) < l_get_size
-                       or cache[0]+self.config['min_time_between_cache_refreshes'] < self.cachetime ):
+                       or cache[0]+self.config['tracker_min_time_between_cache_refreshes'] < self.cachetime ):
             cache = None
         if not cache:
             peers = self.downloads[infohash]
@@ -902,12 +848,12 @@ class Tracker:
         if ( record is None 
                  or (record['ip'] != ip and record.get('given ip') != ip)
                  or record['port'] != port ):
-            if self.config['log_nat_checks']:
+            if self.config['tracker_log_nat_checks']:
                 self.natchecklog(peerid, ip, port, 404)
             if DEBUG:
                 print >>sys.stderr,"tracker: natcheck: No record found for tested peer"
             return
-        if self.config['log_nat_checks']:
+        if self.config['tracker_log_nat_checks']:
             if result:
                 x = 200
             else:
@@ -936,7 +882,7 @@ class Tracker:
     def save_state(self):
         self.rawserver.add_task(self.save_state, self.save_dfile_interval)
         h = open(self.dfile, 'wb')
-        if self.config['dfile_format'] == 'bencode':
+        if self.config['tracker_dfile_format'] == 'bencode':
             h.write(bencode(self.state))
         else:
             pickle.dump(self.state,h,-1)
@@ -950,8 +896,8 @@ class Tracker:
         if source is None:
             self.rawserver.add_task(self.parse_allowed, self.parse_dir_interval)
 
-        if self.config['allowed_dir']:
-            r = parsedir( self.config['allowed_dir'], self.allowed,
+        if self.config['tracker_allowed_dir']:
+            r = parsedir( self.config['tracker_allowed_dir'], self.allowed,
                           self.allowed_dir_files, self.allowed_dir_blocked,
                           [".torrent",TRIBLER_TORRENT_EXT] )
             ( self.allowed, self.allowed_dir_files, self.allowed_dir_blocked,
@@ -963,7 +909,7 @@ class Tracker:
             self.t2tlist.parse(self.allowed)
             
         else:
-            f = self.config['allowed_list']
+            f = self.config['tracker_allowed_list']
             if self.allowed_list_mtime == os.path.getmtime(f):
                 return
             try:
@@ -984,7 +930,7 @@ class Tracker:
     def read_ip_lists(self):
         self.rawserver.add_task(self.read_ip_lists,self.parse_dir_interval)
             
-        f = self.config['allowed_ips']
+        f = self.config['tracker_allowed_ips']
         if f and self.allowed_ip_mtime != os.path.getmtime(f):
             self.allowed_IPs = IP_List()
             try:
@@ -993,7 +939,7 @@ class Tracker:
             except (IOError, OSError):
                 print '**warning** unable to read allowed_IP list'
                 
-        f = self.config['banned_ips']
+        f = self.config['tracker_banned_ips']
         if f and self.banned_ip_mtime != os.path.getmtime(f):
             self.banned_IPs = IP_Range_List()
             try:
@@ -1042,10 +988,10 @@ def track(args):
         print 'error: ' + str(e)
         print 'run with no arguments for parameter explanations'
         return
-    r = RawServer(Event(), config['timeout_check_interval'],
-                  config['socket_timeout'], ipv6_enable = config['ipv6_enabled'])
+    r = RawServer(Event(), config['tracker_timeout_check_interval'],
+                  config['tracker_socket_timeout'], ipv6_enable = config['ipv6_enabled'])
     t = Tracker(config, r)
-    r.bind(config['port'], config['bind'],
+    r.bind(config['minport'], config['bind'],
            reuse = True, ipv6_socket_style = config['ipv6_binds_v4'])
     r.listen_forever(HTTPHandler(t.get, config['min_time_between_log_flushes']))
     t.save_state()
