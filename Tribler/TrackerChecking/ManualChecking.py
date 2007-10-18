@@ -8,7 +8,7 @@ import os
 from Tribler.TrackerChecking.TrackerChecking import trackerChecking
 from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
 from Tribler.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
-from Tribler.unicode import name2unicode
+from Tribler.unicode import metainfoname2unicode
 
 class ManualChecking(Thread):
     
@@ -72,7 +72,7 @@ class SingleManualChecking(Thread):
             #print 'Metainfo'
             #printTorrent(metadata)
             
-            namekey = name2unicode(metadata)
+            namekey = metainfoname2unicode(metadata)
             torrent['info'] = {}
             torrent['info']['name'] = metadata['info'][namekey]
             if metadata.get('announce'):

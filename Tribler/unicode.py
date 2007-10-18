@@ -55,7 +55,7 @@ def dunno2unicode(dunno):
     return newdunno
 
 
-def name2unicode(metadata):
+def metainfoname2unicode(metadata):
     if metadata['info'].has_key('name.utf-8'):
         namekey = 'name.utf-8'
     else:

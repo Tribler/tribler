@@ -17,6 +17,7 @@ import random,socket,thread,re
 from BitTornado.CurrentRateMeasure import Measure
 from BitTornado.BT1.PiecePicker import PiecePicker
 from Tribler.Video.VideoServer import MovieTransport,MovieTransportFileLikeInterfaceWrapper
+from utils import win32_retrieve_video_play_command # just for MIME-type guessing
 
 EXTENSIONS = ['asf','avi','dv','flc','mpeg','mpeg4','mpg4','mp4','mpg','mov','ogm','qt','rm','swf','vob','wmv']
 
@@ -1209,6 +1210,20 @@ class MovieOnDemandTransporter(MovieTransport):
         #self.progressinf.bufferinfo_updated_callback()
         # triblerAPI
         print >>sys.stderr,"vod: trans: Calling usercallback to tell it we're ready to play",self.movieselector.videoinfo[4]
+        mimetype = self.get_mimetype()
+        if mimetype is None:
+            if sys.platform == 'win32':
+                try:
+                    file = self.movieselector.videoinfo[1]
+                    (prefix,ext) = os.path.splitext(file)
+                    ext = ext.lower()
+                    (mimetype,playercmd) = win32_retrieve_video_play_command(ext,'')
+                except:
+                    print_exc()
+                    mimetype = 'video/mpeg'
+            else:
+                mimetype = 'video/mpeg'
         stream = MovieTransportFileLikeInterfaceWrapper(self)
-        self.movieselector.videoinfo[4](self.get_mimetype(),stream)
+        
+        self.movieselector.videoinfo[4](mimetype,stream)
 

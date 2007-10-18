@@ -12,7 +12,7 @@ from BitTornado.BT1.MessageID import *
 from Tribler.utilities import isValidInfohash, show_permid_short, sort_dictlist
 from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
 from Tribler.Overlay.SecureOverlay import OLPROTO_VER_FOURTH
-from Tribler.unicode import name2unicode
+from Tribler.unicode import metainfoname2unicode
 from Tribler.Category.Category import Category
 from Tribler.Dialogs.activities import ACT_GOT_METADATA, ACT_DISK_FULL
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
@@ -275,7 +275,7 @@ class MetadataHandler:
     def addTorrentToDB(self, filename, torrent_hash, metadata, source='BC', extra_info={}, hack=False):
         
         metainfo = bdecode(metadata)
-        namekey = name2unicode(metainfo)  # convert info['name'] to type(unicode)
+        namekey = metainfoname2unicode(metainfo)  # convert info['name'] to type(unicode)
         info = metainfo['info']
         
         torrent = {}

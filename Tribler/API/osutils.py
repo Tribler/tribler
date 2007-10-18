@@ -77,3 +77,48 @@ except:
             # If in doubt, just return something really large
             # (1 yottabyte)
             return 2**80L
+
+
+invalidwinfilenamechars = ''
+for i in range(32):
+    invalidwinfilenamechars += chr(i)
+    invalidwinfilenamechars += '"*/:<>?\\|'
+
+
+# Check if str is a valid Windows file name (or unit name if unit is true)
+# If the filename isn't valid: returns a fixed name
+# If the filename is valid: returns the filename
+def fix_filebasename(name, unit = False):        
+    if unit and (len(name) != 2 or name[1] != ':'):
+        return 'c:'
+    if not name or name == '.' or name == '..':
+        return '_'
+    if unit:
+        name = name[0]
+    fixed = False
+    if sys.platform == 'win32':
+        if len(name) > 250:
+            name = name[:250]
+            fixed = True
+        fixedname = ''
+    spaces = 0
+    for c in name:
+        if sys.platform == 'win32':
+            invalidchars = invalidwinfilenamechars
+        else:
+             invalidchars = ''
+             
+        if c in invalidchars:
+            fixedname += '_'
+            fixed = True
+        else:
+            fixedname += c
+            if c == ' ':
+                spaces += 1
+    if fixed:
+        return fixedname
+    elif spaces == len(name):
+        # contains only spaces
+        return '_'
+    else:
+        return name

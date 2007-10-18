@@ -17,7 +17,7 @@ from ABC.Torrent.dialogs import TorrentDialogs
 from ABC.Torrent.status import TorrentStatus
 
 from Utility.constants import * #IGNORE:W0611
-from Tribler.unicode import name2unicode
+from Tribler.unicode import metainfoname2unicode
 from Tribler.Category.Category import Category
 from Tribler.vwxGUI.torrentManager import TorrentDataManager
 from Tribler.Video.VideoPlayer import VideoPlayer,is_vodable
@@ -78,14 +78,14 @@ class ABCTorrent:
         self.torrentconfig = TorrentConfig(self)
              
         # check for unicode name
-        self.namekey = name2unicode(self.metainfo)
+        self.namekey = metainfoname2unicode(self.metainfo)
 
         # Check for valid windows filename
         if sys.platform == 'win32':
             fixedname = self.utility.fixWindowsName(self.metainfo['info'][self.namekey])
             if fixedname: 
                 self.metainfo['info'][self.namekey] = fixedname
-                # Arno: see name2unicode
+                # Arno: see metainfoname2unicode
                 self.metainfo['info']['name'] = fixedname
         
         self.info = self.metainfo['info']

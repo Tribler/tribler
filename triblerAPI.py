@@ -203,6 +203,8 @@ TODO:
 
 - Allow VOD when first part of file hashchecked.
 
+- Determine MIME type for VOD file
+
 """
 
 import sys
@@ -220,21 +222,22 @@ from BitTornado.__init__ import resetPeerIDs,createPeerID
 from BitTornado.RawServer import autodetect_socket_style
 from BitTornado.bencode import bencode,bdecode
 from BitTornado.download_bt1 import BT1Download
-import Tribler.Overlay.permid
-from Tribler.NATFirewall.guessip import get_my_wan_ip
-from Tribler.NATFirewall.UPnPThread import UPnPThread
-from Tribler.utilities import find_prog_in_PATH,validTorrentFile
-
 from BitTornado.RawServer import RawServer
 from BitTornado.ServerPortHandler import MultiHandler
 from BitTornado.RateLimiter import RateLimiter
 from BitTornado.BT1.track import Tracker
 from BitTornado.HTTPHandler import HTTPHandler,DummyHTTPHandler
 
+import Tribler.Overlay.permid
+from Tribler.NATFirewall.guessip import get_my_wan_ip
+from Tribler.NATFirewall.UPnPThread import UPnPThread
+from Tribler.utilities import find_prog_in_PATH,validTorrentFile
 from Tribler.Overlay.SecureOverlay import SecureOverlay
 from Tribler.Overlay.OverlayApps import OverlayApps
 from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
+from Tribler.unicode import metainfoname2unicode
 from Tribler.API.defaults import *
+from Tribler.API.osutils import *
 from Tribler.API.miscutils import *
 
 from Tribler.Video.VideoServer import VideoHTTPServer
@@ -678,9 +681,12 @@ class TorrentDef(Defaultable,Serializable):
         t.metainfo = data
         t.metainfo_valid = True
         t.infohash = sha.sha(bencode(data['info'])).digest()
+        
         # copy stuff into self.input 
         t.input = {}
         t.input['announce'] = t.metainfo['announce']
+        t.input['name'] = t.metainfo['info']['name']
+        
         # TODO: rest
         return t
     _read = staticmethod(_read)
@@ -723,13 +729,14 @@ class TorrentDef(Defaultable,Serializable):
         self.input['files'].append(d)
         self.metainfo_valid = False
 
+    def get_name(self):
+        """ Returns info['name'] field """
+        return self.input['name']
+
     def get_thumbnail(self):
         """
         returns: (MIME type,thumbnail data) if present or (None,None)
         """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
         if thumb is None:
             return (None,None)
         else:
@@ -1075,6 +1082,7 @@ class Download(DownloadConfigInterface):
             self.async_create_engine_wrapper(lmcallback)
             self.dllock.release()
         except Exception,e:
+            print_exc()
             self.set_error(e)
             self.dllock.release()
 
@@ -1085,7 +1093,12 @@ class Download(DownloadConfigInterface):
         
         # all thread safe
         infohash = self.get_def().get_infohash()
-        metainfo = self.get_def().get_metainfo()
+        metainfo = copy.copy(self.get_def().get_metainfo())
+        
+        # H4xor this so the 'name' field is safe
+        namekey = metainfoname2unicode(metainfo)
+        metainfo['info'][namekey] = metainfo['info']['name'] = fix_filebasename(metainfo['info'][namekey])
+        
         multihandler = self.session.lm.multihandler
         listenport = self.session.get_listen_port()
         vapath = self.session.get_video_analyser_path()
@@ -1100,16 +1113,17 @@ class Download(DownloadConfigInterface):
             callback = lambda mimetype,stream:self.session.perform_vod_usercallback(self.dlconfig['vod_usercallback'],mimetype,stream)
             if len(self.dlconfig['selected_files']) == 0:
                 # single-file torrent
-                file = None
+                file = self.get_def().get_name()
                 idx = -1
+                bitrate = self.get_def().get_bitrate(None)
             else:
                 # multi-file torrent
                 file = self.dlconfig['selected_files'][0]
                 idx = self.get_def().get_index_of_file_in_files(file)
-            bitrate = self.get_def().get_bitrate(file)
+                bitrate = self.get_def().get_bitrate(file)
             vodfileindex = [idx,file,bitrate,None,callback]
         else:
-            vodfileindex = [-1,None,0.0,None,callback]
+            vodfileindex = [-1,None,0.0,None,None]
         
         # Delegate creation of engine wrapper to network thread
         func = lambda:self.network_create_engine_wrapper(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcallback)
@@ -1739,7 +1753,7 @@ def state_callback(ds):
     print >>sys.stderr,"main: Stats",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
 
 def vod_ready_callback(mimetype,stream):
-    print >>sys.stderr,"main: VOD ready callback called",currentThread().getName(),"###########################################################"
+    print >>sys.stderr,"main: VOD ready callback called",currentThread().getName(),"###########################################################",mimetype
 
     """
     f = open("video.avi","wb")
