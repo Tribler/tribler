@@ -1360,6 +1360,7 @@ class DownloadState:
             else:
                 self.progress = stats['frac']
             self.error = error
+            self.stats = None
         else:
             # Copy info from stats
             self.progress = stats['frac']
@@ -1367,7 +1368,6 @@ class DownloadState:
                 self.status = DLSTATUS_SEEDING
             else:
                 self.status = DLSTATUS_DOWNLOADING
-            self.error = None
             print >>sys.stderr,"STATS IS",stats
     
     def get_progress(self):
@@ -1382,9 +1382,17 @@ class DownloadState:
         """
         return self.status
 
+    def get_current_upload_rate(self):
+        pass
+        
+    def get_current_download_rate(self):
+        pass
+
+
     def get_error(self):
         return self.error
 
+    
 
 #
 # Internal classes

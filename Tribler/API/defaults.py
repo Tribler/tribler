@@ -76,7 +76,7 @@ sessdefaults = [
         "enable internal tracker (0 = disabled)"),
     ('nickname', '__default_name__',
         'the nickname you want to show to others'),
-    ('videoplayerpath', None, 'Path to video analyser (FFMPEG, found automatically if in PATH)')]
+    ('videoplayerpath', None, 'Path to video analyser (FFMPEG, default is to look for it in $PATH)')]
 
 trackerdefaults = [
     ('tracker_dfile', None, 'file to store recent downloader info in'),
