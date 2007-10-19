@@ -48,8 +48,8 @@ class RateManager:
         # Minimum rate setting
         # 3 KB/s for uploads, 0.01KB/s for downloads
         # (effectively, no real limit for downloads)
-        self.rateminimum = { "up": 3.0,
-                             "down": 0.01 }
+        self.rateminimum = { UPLOAD: 3.0,
+                             DOWNLOAD: 0.01 }
 
         self.timer = NamedTimer(4, self.RateTasks)
 
@@ -59,8 +59,8 @@ class RateManager:
         
         # self.UploadRateMaximizer() TODO: add queueing system
         
-        self.CalculateBandwidth("down")
-        self.CalculateBandwidth("up")
+        self.CalculateBandwidth(DOWNLOAD)
+        self.CalculateBandwidth(UPLOAD)
         
         self.lock.release()
         self.timer = NamedTimer(4, self.RateTasks)
@@ -87,8 +87,8 @@ class RateManager:
         self.currentotal['down'] = 0.0
 
 
-    def MaxRate(self, dir = "up"):
-        if dir == "up":
+    def MaxRate(self, dir = UPLOAD):
+        if dir == UPLOAD:
             if self.allseeds:
                 # Static overall maximum up rate when seeding
                 return self.max_seed_upload_rate
@@ -110,8 +110,8 @@ class RateManager:
 
 
             
-    def CalculateBandwidth(self, dir = "up"):
-        if dir == "up":
+    def CalculateBandwidth(self, dir = UPLOAD):
+        if dir == UPLOAD:
             workingset = self.statusmap[DLSTATUS_DOWNLOADING]+self.statusmap[DLSTATUS_SEEDING]
         else:
             workingset = self.statusmap[DLSTATUS_DOWNLOADING]
@@ -119,9 +119,7 @@ class RateManager:
         # Limit working set to active torrents with connections:
         newws = []
         for ds in workingset:
-            stats = ds.get_stats()
-            statsobj = stats['stats']
-            if statsobj.numSeeds+statsobj.numPeers > 0:
+            if ds.has_active_connections():
                 newws.apppend(ds)
         workingset = newws
 
@@ -134,12 +132,9 @@ class RateManager:
         if maxrate == 0:
             # Unlimited rate
             for (d,ds) in workingset:
-                if dir == "up":
-                    # Arno: you have 2 values: the rate you want, and the rate you are allowed
-                    # you want to remember the first too.
-                    d.set_max_upload_rate(d.get_max_desired_upload_rate()) # TODO: optimize so less locking?
-                else:
-                    d.set_max_download_rate(d.get_max_desired_download_rate()) # TODO: optimize so less locking?
+                # Arno: you have 2 values: the rate you want, and the rate you are allowed
+                # you want to remember the first too.
+                d.set_max_speed(dir,d.get_max_desired_speed(dir)) # TODO: optimize so less locking?
             return
         
         #print "====================== BEGINNING ALGO ======= th1=%.1f ; th2=%.1f =============================" % (self.calcupth1, self.calcupth2)
@@ -213,10 +208,7 @@ class RateManager:
                 # changed and that have an allmost null rate. They will not go 
                 # lower, we can reset their reserved rate until they want to get
                 # higher.
-                if dir == "up"
-                    d.set_max_desired_upload_rate(0.0)
-                else:
-                    d.set_max_desired_download_rate(0.0)
+                d.set_max_desired_speed(dir,0.0)
             elif maxrate_float - currentrate > self.calcupth1:
                 tobelowered.append(torrent)
             elif maxrate_float - currentrate <= self.calcupth2:
@@ -258,12 +250,8 @@ class RateManager:
                         newrate = maxlocalrate
                 else:
                     rateToUse = self.MaxRate(dir)
-                if dir == "up":
-                    d.set_max_desired_upload_rate(newrate)
-                    d.set_max_upload_rate(rateToUse)
-                else:
-                    d.set_max_desired_download_rate(newrate)
-                    d.set_max_download_rate(rateToUse)
+                d.set_max_desired_speed(dir,newrate)
+                d.set_max_speed(dir,rateToUse)
             return
 
         ###########################################################################
@@ -279,16 +267,10 @@ class RateManager:
             newreservedrate = currentrate + self.meancalcupth
             if newreservedrate > self.rateminimum[dir]:
                 grantedfortoberaisedinpriority += self.rateminimum[dir] - maxdesiredrate
-                if dir == "up":
-                    d.set_max_desired_upload_rate(self.rateminimum[dir])
-                else:
-                    d.set_max_desired_download_rate(self.rateminimum[dir])
+                d.set_max_desired_speed(dir,self.rateminimum[dir])
             else:
                 grantedfortoberaisedinpriority += newreservedrate - maxdesiredrate
-                if dir == "up":
-                    d.set_max_desired_upload_rate(newreservedrate)
-                else:
-                    d.set_max_desired_download_rate(newreservedrate)
+                d.set_max_desired_speed(dir,newreservedrate)
 
 
         # Treat in priority the torrents with a local rate setting if "prioritize local" is set
@@ -305,12 +287,8 @@ class RateManager:
                 newrate = maxlocalrate
             grantedforlocaltoberaised += newrate - maxdesiredrate
 
-            if dir == "up":
-                d.set_max_desired_upload_rate(newrate)
-                d.set_max_upload_rate(maxlocalrate)
-            else:
-                d.set_max_desired_download_rate(newrate)
-                d.set_max_download_rate(maxlocalrate)
+            d.set_max_desired_speed(newrate)
+            d.set_max_speed(maxlocalrate)
             
 
         # Torrents that want to be lowered in rate (and give back some reserved bandwidth)
@@ -321,10 +299,7 @@ class RateManager:
             
             newreservedrate = currentrate + self.meancalcupth
             givenbackbytobelowered += newreservedrate - maxdesiredrate
-            if dir == "up":
-                d.set_max_desired_upload_rate(newreservedrate)
-            else:
-                d.set_max_desired_download_rate(newreservedrate)
+            d.set_max_desired_speed(dir,newreservedrate)
 
         
         # Add to available rate to be distributed the rate given back by the torrents that have been lowered ;
@@ -393,10 +368,7 @@ class RateManager:
                 if maxlocalup > 0 and newreservedrate > maxlocalup:
                     newmaxup = maxup + (maxlocalup - maxup) * realupfactor
 
-                if dir == "up":
-                    d.set_max_desired_upload_rate(newmaxup)
-                else:
-                    d.set_max_desired_download_rate(newmaxup)
+                d.set_max_desired_speed(dir,newmaxup)
                 #print "index :", torrent.listindex, "; rate raised from", maxup, "to", maxdesiredrate
             
             ################################################
@@ -424,7 +396,7 @@ class RateManager:
             rate_id = []
             for (d,ds)in pooltobelowered:
                 torrent = (d,ds)
-                currenrate = get_current_rate(d,ds,dir)
+                currentrate = ds.get_current_speed(dir)
                 if currentrate > self.rateminimum[dir]:
                     rate_id.append(torrent)
 
@@ -440,10 +412,7 @@ class RateManager:
             i = 0
             for (d,ds) in rate_id:
                 torrent = (d,ds)
-                if dir == "up"
-                    maxdesiredrate = d.get_max_desired_upload_rate()
-                else:
-                    maxdesiredrate = d.get_max_desired_download_rate()
+                maxdesiredrate = d.get_max_desired_speed(dir)
                 
                 # (availableratetobedistributed and ratenotassignedforeach are negative numbers)
                 newmaxrate = maxdesiredrate + ratenotassignedforeach
@@ -454,10 +423,7 @@ class RateManager:
                     if i != sizerate_id:
                         ratenotassignedforeach += (newmaxrate - self.rateminimum[dir]) / (sizerate_id - i)
                     newmaxrate = self.rateminimum[dir]
-                if dir == "up":
-                    d.set_max_desired_upload_rate(newmaxrate)
-                else:
-                    d.set_max_desired_download_rate(newmaxrate)
+                d.set_max_desired_speed(dir,newmaxrate)
 
                 
             #    print "%i lowered from %.3f to %.3f" % (t[1].listindex, t[0], newmaxrate)
@@ -492,10 +458,7 @@ class RateManager:
         
         for (d,ds) in toberaised:
             torrent = (d,ds)
-            if dir == "up"
-                maxdesiredrate = d.get_max_desired_upload_rate()
-            else:
-                maxdesiredrate = d.get_max_desired_download_rate()
+            maxdesiredrate = d.get_max_desired_speed(dir)
             
             if maxdesiredrate > meanrate:
                 allabovem.append(torrent)
@@ -503,10 +466,7 @@ class RateManager:
                 raisedbelowm.append(torrent)
         for (d,ds) in nottobechanged:
             torrent = (d,ds)
-            if dir == "up"
-                maxdesiredrate = d.get_max_desired_upload_rate()
-            else:
-                maxdesiredrate = d.get_max_desired_download_rate()
+            maxdesiredrate = d.get_max_desired_speed(dir)
             
             if maxdesiredrate > meanrate:
                 allabovem.append(torrent)
@@ -518,10 +478,7 @@ class RateManager:
             down = 0.0
             for (d,ds) in raisedbelowm:
                 torrent = (d,ds)
-                if dir == "up"
-                    maxdesiredrate = d.get_max_desired_upload_rate()
-                else:
-                    maxdesiredrate = d.get_max_desired_download_rate()
+                maxdesiredrate = d.get_max_desired_speed(dir)
                 
                 toadd = meanrate - maxdesiredrate
 
@@ -531,10 +488,7 @@ class RateManager:
                 up += toadd
             for (d,ds) in allabovem:
                 torrent= (d,ds)
-                if dir == "up"
-                    maxdesiredrate = d.get_max_desired_upload_rate()
-                else:
-                    maxdesiredrate = d.get_max_desired_download_rate()
+                maxdesiredrate = d.get_max_desired_speed(dir)
                 
                 down += maxdesiredrate - meanrate
             if up > down:
@@ -562,27 +516,17 @@ class RateManager:
                 # analysed as still wanting to raise by the next phase 1 check
                 step = 2 * (currentrate + self.calcupth2 - maxup)
                 if toadd < step:
-                    if dir == "up":
-                        d.set_max_desired_upload_rate(maxup + toadd)
-                    else:
-                        d.set_max_desired_download_rate(maxup + toadd)
+                    d.set_max_desired_speed(dir,maxup + toadd)
                     realup += toadd
                 else:
-                    if dir == "up":
-                        d.set_max_desired_upload_rate(maxup + step)
-                    else:
-                        d.set_max_desired_download_rate(maxup + step)
+                    d.set_max_desired_speed(dir,maxup + step)
                     realup += step
                 #print "index :", torrent.listindex, "; rate raised from", maxup, "to", d.Xet_max_desired_Xrate[dir]          
             realup /= len(allabovem)
             # Slow down fast torrents :
             for (d,ds) in allabovem:
-                if dir == "up"
-                    maxdesiredrate = d.get_max_desired_upload_rate()
-                    d.set_max_desired_upload_rate(maxdesiredrate - realup)
-                else:
-                    maxdesiredrate = d.get_max_desired_download_rate()
-                    d.set_max_desired_download_rate(maxdesiredrate - realup)
+                maxdesiredrate = d.get_max_desired_speed(dir)
+                d.set_max_desired_speed(dir,maxdesiredrate - realup)
 
                 #print "index :", torrent.listindex, "; rate lowered from", maxup, "to", torrent.listindex
 
@@ -594,27 +538,11 @@ class RateManager:
 
     def make_it_so(self,torrentlist):
         for (d,ds) in torrentlist:
-            if dir == "up":
-                d.set_max_upload_rate(d.get_max_desired_upload_rate())
-            else:
-                d.set_max_download_rate(d.get_max_desired_download_rate())
+            d.set_max_speed(dir,d.get_max_desired_speed(dir))
 
 
 def get_rates(d,ds,dir):
-    stats = ds.get_stats()
-    if dir == "up":
-        currentrate = stats['up'] 
-        currentlimit = d.get_max_upload_rate()
-        maxdesiredrate = d.get_max_desired_upload_rate()
-    else:
-        currentrate = stats['down'] 
-        currentlimit = d.get_max_download_rate()
-        maxdesiredrate = d.get_max_desired_download_rate()
+    currentrate = ds.get_current_speed(dir)
+    currentlimit = d.get_max_speed(dir)
+    maxdesiredrate = d.get_max_desired_speed(dir)
     return (currentrate,currentlimit,maxdesiredrate)
-
-def get_current_rate(d,ds,dir):
-    if dir == "up":
-        currentrate = stats['up'] 
-    else:
-        currentrate = stats['down'] 
-    return currentrate

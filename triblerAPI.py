@@ -1,3 +1,6 @@
+# Written by Arno Bakker 
+# see LICENSE.txt for license information
+
 """
 triblerAPI v0.0.1rc1
 oct 9, 2007 
@@ -244,22 +247,8 @@ from Tribler.API.miscutils import *
 from Tribler.Video.VideoServer import VideoHTTPServer
 
 SPECIAL_VALUE=481
+from Tribler.API.simpledefs import *
 
-# Move to triblerdefs?
-DLSTATUS_ALLOCATING_DISKSPACE = 0
-DLSTATUS_WAITING4HASHCHECK = 1
-DLSTATUS_HASHCHECKING = 2
-DLSTATUS_DOWNLOADING = 3
-DLSTATUS_SEEDING = 4
-DLSTATUS_STOPPED = 5
-DLSTATUS_STOPPED_ON_ERROR = 6
-
-dlstatus_strings = ['DLSTATUS_WAITING4HASHCHECK', 
-'DLSTATUS_HASHCHECKING',
-'DLSTATUS_DOWNLOADING',
-'DLSTATUS_SEEDING',
-'DLSTATUS_STOPPED',
-'DLSTATUS_STOPPED_ON_ERROR']
 
 # TEMP
 from Tribler.Dialogs.activities import *
@@ -370,7 +359,7 @@ class TriblerLegacyException(TriblerException):
 class SessionConfigInterface:
     """ 
     (key,value) pair config of global parameters, 
-    e.g. PermID keypair, listen port, max upload, etc.
+    e.g. PermID keypair, listen port, max upload speed, etc.
     
     Use SessionStartupConfig from creating and manipulation configurations
     before session startup time. This is just a parent class.
@@ -960,9 +949,12 @@ class DownloadConfigInterface:
             self.dlconfig['saveas'] = '/tmp'
 
     
-    def set_max_upload(self,speed):
-        """ Sets the maximum upload speed for this Download in KB/s """
-        self.dlconfig['max_upload_rate'] = speed
+    def set_max_speed(self,direct,speed):
+        """ Sets the maximum upload or download speed for this Download in KB/s """
+        if direct == UPLOAD:
+            self.dlconfig['max_upload_rate'] = speed
+        else:
+            self.dlconfig['max_download_rate'] = speed
 
     def set_dest_dir(self,path):
         """ Sets the directory where to save this Download """
@@ -1232,17 +1224,17 @@ class Download(DownloadConfigInterface):
     #
     # DownloadConfigInterface
     #
-    def set_max_upload(self,speed):
+    def set_max_speed(self,direct,speed):
         """ Called by any thread """
         self.dllock.acquire()
         try:
             # Don't need to throw an exception when stopped, we then just save the new value and
             # use it at (re)startup.
             if self.sd is not None:
-                func = lambda:self.sd.set_max_upload(speed,self.network_set_max_upload)
+                func = lambda:self.sd.set_max_speed(direct,speed,self.network_set_max_rate)
                 self.session.lm.rawserver.add_task(func,0)
             else:
-                self.network_set_max_upload(speed)
+                self.network_set_max_speed(direct.speed)
         finally:
             self.dllock.release()
 
@@ -1259,31 +1251,23 @@ class Download(DownloadConfigInterface):
     #
     # Runtime Config 
     #
-    def set_max_desired_upload(self,speed):
-        """ Sets the maximum desired upload speed for this Download in KB/s """
+    def set_max_desired_speed(self,direct,speed):
+        """ Sets the maximum desired upload/download speed for this Download in KB/s """
         self.dllock.acquire()
-        self.dlruntimeconfig['max_desired_upload_rate'] = speed
+        if direct == UPLOAD:
+            self.dlruntimeconfig['max_desired_upload_rate'] = speed
+        else:
+            self.dlruntimeconfig['max_desired_download_rate'] = speed
         self.dllock.release()
 
-    def get_max_desired_upload(self):
-        """ Returns the maximum desired upload speed for this Download in KB/s """
+    def get_max_desired_speed(self,direct):
+        """ Returns the maximum desired upload/download speed for this Download in KB/s """
         self.dllock.acquire()
         try:
-            return self.dlruntimeconfig['max_desired_upload_rate']
-        finally:
-            self.dllock.release()
-
-    def set_max_desired_download(self,speed):
-        """ Sets the maximum desired download speed for this Download in KB/s """
-        self.dllock.acquire()
-        self.dlruntimeconfig['max_desired_download_rate'] = speed
-        self.dllock.release()
-
-    def get_max_desired_download(self):
-        """ Returns the maximum desired download speed for this Download in KB/s """
-        self.dllock.acquire()
-        try:
-            return self.dlruntimeconfig['max_desired_download_rate']
+            if dir == UPLOAD:
+                return self.dlruntimeconfig['max_desired_upload_rate']
+            else:
+                return self.dlruntimeconfig['max_desired_download_rate']
         finally:
             self.dllock.release()
 
@@ -1304,11 +1288,11 @@ class Download(DownloadConfigInterface):
         finally:
             self.dllock.release()
 
-    def network_set_max_upload(self,speed):
+    def network_set_max_speed(self,direct,speed):
         """ Called by network thread """
         self.dllock.acquire()
         try:
-            DownloadConfigInterface.set_max_upload(self,speed)
+            DownloadConfigInterface.set_max_speed(self,direct,speed)
         finally:
             self.dllock.release()
         
@@ -1348,10 +1332,12 @@ class DownloadState:
                 self.status = DLSTATUS_STOPPED_ON_ERROR
             else:
                 self.status = status
+            self.stats = None
         elif error is not None:
             self.error = error # readonly access
             self.progress = 0.0 # really want old progress
             self.status = DLSTATUS_STOPPED_ON_ERROR
+            self.stats = None
         elif status is not None:
             # For HASHCHECKING and WAITING4HASHCHECK
             self.status = status
@@ -1369,6 +1355,7 @@ class DownloadState:
             else:
                 self.status = DLSTATUS_DOWNLOADING
             print >>sys.stderr,"STATS IS",stats
+            self.stats = stats
     
     def get_progress(self):
         """
@@ -1382,12 +1369,22 @@ class DownloadState:
         """
         return self.status
 
-    def get_current_upload_rate(self):
-        pass
-        
-    def get_current_download_rate(self):
-        pass
+    def get_current_speed(self,direct):
+        if self.stats is None:
+            return False
+        if direct == UPLOAD:
+            return self.stats['up']
+        else:
+            return self.stats['down']
 
+    def has_active_connections(self):
+        if self.stats is None:
+            return False
+
+        # Determine if we need statsobj to be requested, same as for spew
+        statsobj = self.stats['stats']
+        return statsobj.numSeeds+statsobj.numPeers > 0
+        
 
     def get_error(self):
         return self.error

@@ -1,10 +1,9 @@
 # Written by Arno Bakker and Bram Cohen 
 # see LICENSE.txt for license information
 
-DEFAULTPORT=7762  # Arno: see Utility/configreader.py and Utility/utility.py
+from simpledefs import *
 
-DLMODE_NORMAL = 0
-DLMODE_VOD = 1
+DEFAULTPORT=7762  # Arno: see Utility/configreader.py and Utility/utility.py
 
 sessdefaults = [
     ('ip', '',
