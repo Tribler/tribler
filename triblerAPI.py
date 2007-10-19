@@ -1839,11 +1839,11 @@ class SingleDownload:
         
 
 
-from Tribler.API.RateManager import RateManager
+from Tribler.API.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
 
     
 s = Session()
-r = RateManager(0,0,100)
+r = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(0,0,100)
 t = 0
 
 def state_callback(d,ds):

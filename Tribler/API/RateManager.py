@@ -9,16 +9,11 @@ from traceback import print_exc
 
 from Tribler.API.simpledefs import *
 
-
+DEBUG = False
 
 
 class RateManager:
-    def __init__(self,global_maxupload_rate,global_maxseed_upload_rate,global_maxdownload_rate):
-
-        self.global_maxupload_rate = global_maxupload_rate 
-        self.global_maxseed_upload_rate = global_maxseed_upload_rate
-        self.global_maxdownload_rate = global_maxdownload_rate
-
+    def __init__(self):
         self.lock = RLock()
         self.statusmap = {}
         self.currenttotal = {}
@@ -28,8 +23,8 @@ class RateManager:
     def adjust_speeds(self):
         self.lock.acquire()
         
-        self.calc_bandwidth(DOWNLOAD)
-        self.calc_bandwidth(UPLOAD)
+        self.calc_and_set_speed_limits(DOWNLOAD)
+        self.calc_and_set_speed_limits(UPLOAD)
         self.clear_downloadstates()
         
         self.lock.release()
@@ -47,7 +42,6 @@ class RateManager:
             return len(self.dset)
         finally:
             self.lock.release()
-
 
     #
     # Internal methods
@@ -67,22 +61,33 @@ class RateManager:
             self.currenttotal[dir] = 0
         self.dset.clear()
 
-            
-    def get_global_max_speed(self, dir = UPLOAD):
-        if dir == UPLOAD:
-            if len(self.statusmap[DLSTATUS_DOWNLOADING]) == 0 and len(self.statusmap[DLSTATUS_SEEDING]) > 0:
-                # Static overall maximum up rate when seeding
-                return self.global_maxseed_upload_rate
-            else:
-                # Static overall maximum up rate when downloading
-                return self.global_maxupload_rate
-        else:
-            return self.global_maxdownload_rate
-           
+    def calc_and_set_speed_limits(self,direct):
+        """ Override this method to write you own speed management policy. """
+        pass
 
-    def calc_bandwidth(self, dir = UPLOAD):
+
+class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
+    """ This class implements a simple rate management policy that:
+    1. If the API user set a desired speed for a particular download,
+       the speed limit for this download is set to the desired value.
+    2. For all torrents for which no desired speeds have been set, 
+       the global limit is equally divided amongst all downloads.
+       (however small the piece of the pie may be).
+    3. There are separate global limits for download speed, upload speed
+       and upload speed when all torrents are seeding. 
+    """
+    def __init__(self,global_maxupload_speed,global_maxseed_upload_speed,global_maxdownload_speed):
         
-        print >>sys.stderr,"RateManager: CalculateBandwidth",dir
+        RateManager.__init__(self)
+        self.global_maxupload_speed = global_maxupload_speed 
+        self.global_maxseed_upload_speed = global_maxseed_upload_speed
+        self.global_maxdownload_speed = global_maxdownload_speed
+
+        
+    def calc_and_set_speed_limits(self, dir = UPLOAD):
+        
+        if DEBUG:
+            print >>sys.stderr,"RateManager: calc_and_set_speed_limits",dir
         
         if dir == UPLOAD:
             workingset = self.statusmap[DLSTATUS_DOWNLOADING]+self.statusmap[DLSTATUS_SEEDING]
@@ -96,35 +101,53 @@ class RateManager:
                 newws.append((d,ds))
         workingset = newws
 
-        print >>sys.stderr,"RateManager: CalculateBandwidth: len workingset",len(workingset)
+        if DEBUG:
+            print >>sys.stderr,"RateManager: calc_and_set_speed_limits: len workingset",len(workingset)
 
         # No active file, not need to calculate
         if not workingset:
             return
         
-        globalmaxrate = self.get_global_max_speed(dir)
-        # See if global rate settings are set to unlimited
-        if globalmaxrate == 0:
-            # Unlimited rate
+        globalmaxspeed = self.get_global_max_speed(dir)
+        # See if global speed settings are set to unlimited
+        if globalmaxspeed == 0:
+            # Unlimited speed
             for (d,ds) in workingset:
                 d.set_max_speed(dir,d.get_max_desired_speed(dir)) 
             return
         
-        print >>sys.stderr,"RateManager: globalmaxrate is",globalmaxrate,dir
+        if DEBUG:
+            print >>sys.stderr,"RateManager: calc_and_set_speed_limits: globalmaxspeed is",globalmaxspeed,dir
 
         # User set priority is always granted, ignoring global limit
         todoset = []
         for (d,ds) in workingset:
-            maxdesiredrate = d.get_max_desired_speed(dir)
-            if maxdesiredrate > 0.0:
-                d.set_max_speed(dir,maxdesiredrate)
+            maxdesiredspeed = d.get_max_desired_speed(dir)
+            if maxdesiredspeed > 0.0:
+                d.set_max_speed(dir,maxdesiredspeed)
             else:
                 todoset.append((d,ds))
 
         if len(todoset) > 0:
-            # Rest divides globalmaxrate equally
-            localmaxrate = globalmaxrate / float(len(todoset))
+            # Rest divides globalmaxspeed equally
+            localmaxspeed = globalmaxspeed / float(len(todoset))
             # if too small than user's problem
-            for (d,ds) in todoset:
-                d.set_max_speed(dir,localmaxrate)
+            
+            if DEBUG:
+                print >>sys.stderr,"RateManager: calc_and_set_speed_limits: localmaxspeed is",localmaxspeed,dir
 
+            for (d,ds) in todoset:
+                d.set_max_speed(dir,localmaxspeed)
+
+
+    def get_global_max_speed(self, dir = UPLOAD):
+        if dir == UPLOAD:
+            if len(self.statusmap[DLSTATUS_DOWNLOADING]) == 0 and len(self.statusmap[DLSTATUS_SEEDING]) > 0:
+                # Static overall maximum up speed when seeding
+                return self.global_maxseed_upload_speed
+            else:
+                # Static overall maximum up speed when downloading
+                return self.global_maxupload_speed
+        else:
+            return self.global_maxdownload_speed
+           
