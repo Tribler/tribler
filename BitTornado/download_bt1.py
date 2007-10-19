@@ -708,7 +708,7 @@ class BT1Download:
         try:
             def s(self = self, rate = rate):
                 
-                print >>sys.stderr,"BT1Download: set max upload to",rate # TEMP ARNO
+                #print >>sys.stderr,"BT1Download: set max upload to",rate # TEMP ARNO
                 
                 self.config['max_upload_rate'] = rate
                 self.ratelimiter.set_upload_rate(rate)

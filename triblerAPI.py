@@ -244,7 +244,6 @@ from Tribler.API.defaults import *
 from Tribler.API.osutils import *
 from Tribler.API.miscutils import *
 
-from Tribler.Video.VideoServer import VideoHTTPServer
 
 SPECIAL_VALUE=481
 from Tribler.API.simpledefs import *
@@ -956,6 +955,12 @@ class DownloadConfigInterface:
         else:
             self.dlconfig['max_download_rate'] = speed
 
+    def get_max_speed(self,direct):
+        if direct == UPLOAD:
+            return self.dlconfig['max_upload_rate']
+        else:
+            return self.dlconfig['max_download_rate']
+
     def set_dest_dir(self,path):
         """ Sets the directory where to save this Download """
         self.dlconfig['saveas'] = path
@@ -1080,6 +1085,9 @@ class Download(DownloadConfigInterface):
             self.dlruntimeconfig['max_desired_upload_rate'] = self.dlconfig['max_upload_rate'] 
             self.dlruntimeconfig['max_desired_download_rate'] = self.dlconfig['max_download_rate']
     
+    
+            print >>sys.stderr,"Download: setup: get_max_desired",self.dlruntimeconfig['max_desired_upload_rate']
+    
             self.async_create_engine_wrapper(lmcallback)
             self.dllock.release()
         except Exception,e:
@@ -1156,11 +1164,11 @@ class Download(DownloadConfigInterface):
     def set_state_callback(self,usercallback,interval):
         """ 
         Set a callback for retrieving the state of the download. This callback
-        will be called every "interval" seconds with a DownloadState object as
-        parameter.
+        will be called every "interval" seconds with this Download object as
+        first parameter and a DownloadState object as second parameter.
         
         in: 
-        callback = function that accepts DownloadState as first parameter
+        callback = function that accepts Download,DownloadState as parameters.
         interval = time between calls to the callback as float.
         """
         self.dllock.acquire()
@@ -1182,10 +1190,10 @@ class Download(DownloadConfigInterface):
             else:
                 (status,stats) = self.sd.get_stats()
                 ds = DownloadState(status,self.error,None,stats=stats)
-                self.progressbeforestop = stats['frac']
+                self.progressbeforestop = ds.get_progress()
             
             # TODO: do on other thread    
-            self.getstateusercallback(ds)
+            self.getstateusercallback(self,ds)
             
             # Schedule next invocation, either on general or DL specific
             # TODO: ensure this continues when dl is stopped. Should be OK.
@@ -1226,15 +1234,26 @@ class Download(DownloadConfigInterface):
     #
     def set_max_speed(self,direct,speed):
         """ Called by any thread """
+        
+        print >>sys.stderr,"Download: set_max_speed",`self.get_def().get_metainfo()['info']['name']`,direct,speed
+        #print_stack()
+        
         self.dllock.acquire()
         try:
             # Don't need to throw an exception when stopped, we then just save the new value and
             # use it at (re)startup.
             if self.sd is not None:
-                func = lambda:self.sd.set_max_speed(direct,speed,self.network_set_max_rate)
+                func = lambda:self.sd.set_max_speed(direct,speed,self.network_set_max_speed)
                 self.session.lm.rawserver.add_task(func,0)
             else:
-                self.network_set_max_speed(direct.speed)
+                DownloadConfigInterface.set_max_speed(self,direct,speed)
+        finally:
+            self.dllock.release()
+
+    def get_max_speed(self,direct):
+        self.dllock.acquire()
+        try:
+            return DownloadConfigInterface.get_max_speed(self,direct)
         finally:
             self.dllock.release()
 
@@ -1253,6 +1272,11 @@ class Download(DownloadConfigInterface):
     #
     def set_max_desired_speed(self,direct,speed):
         """ Sets the maximum desired upload/download speed for this Download in KB/s """
+        
+        print >>sys.stderr,"Download: set_max_desired_speed",direct,speed
+        #if speed < 10:
+        #    print_stack()
+        
         self.dllock.acquire()
         if direct == UPLOAD:
             self.dlruntimeconfig['max_desired_upload_rate'] = speed
@@ -1264,7 +1288,8 @@ class Download(DownloadConfigInterface):
         """ Returns the maximum desired upload/download speed for this Download in KB/s """
         self.dllock.acquire()
         try:
-            if dir == UPLOAD:
+            if direct == UPLOAD:
+                print >>sys.stderr,"Download: get_max_desired_speed: get_max_desired",self.dlruntimeconfig['max_desired_upload_rate']
                 return self.dlruntimeconfig['max_desired_upload_rate']
             else:
                 return self.dlruntimeconfig['max_desired_download_rate']
@@ -1340,21 +1365,28 @@ class DownloadState:
             self.stats = None
         elif status is not None:
             # For HASHCHECKING and WAITING4HASHCHECK
+            self.error = error
             self.status = status
             if self.status == DLSTATUS_WAITING4HASHCHECK:
                 self.progress = 0.0
             else:
                 self.progress = stats['frac']
-            self.error = error
             self.stats = None
         else:
             # Copy info from stats
+            self.error = None
             self.progress = stats['frac']
             if stats['frac'] == 1.0:
                 self.status = DLSTATUS_SEEDING
             else:
                 self.status = DLSTATUS_DOWNLOADING
-            print >>sys.stderr,"STATS IS",stats
+            #print >>sys.stderr,"STATS IS",stats
+            
+            # Safe to store the stats dict. The stats dict is created per
+            # invocation of the BT1Download returned statsfunc and contains no
+            # pointers (TODO: EXCEPTION IS stats['have'] TO BE REMOVED IF 
+            # POSSIBLE (currently needed for VOD progress bar)
+            #
             self.stats = stats
     
     def get_progress(self):
@@ -1370,14 +1402,20 @@ class DownloadState:
         return self.status
 
     def get_current_speed(self,direct):
+        """
+        returns: current up or download speed in KB/s, as float
+        """
         if self.stats is None:
             return False
         if direct == UPLOAD:
-            return self.stats['up']
+            return self.stats['up']/1024.0
         else:
-            return self.stats['down']
+            return self.stats['down']/1024.0
 
     def has_active_connections(self):
+        """ 
+        returns: whether the download has active connections
+        """
         if self.stats is None:
             return False
 
@@ -1387,9 +1425,12 @@ class DownloadState:
         
 
     def get_error(self):
+        """ 
+        returns: the Exception that caused the download to be moved to 
+        DLSTATUS_STOPPED_ON_ERROR status.
+        """
         return self.error
 
-    
 
 #
 # Internal classes
@@ -1527,6 +1568,7 @@ class TriblerLaunchMany(Thread):
         """ Called by network thread """
         if DEBUG:
             print >>sys.stderr,"TriblerLaunchmany: RawServer non fatal error func called",e
+            print_exc()
         # Could log this somewhere, or phase it out
 
     def run(self):
@@ -1738,16 +1780,18 @@ class SingleDownload:
 
 
     # DownloadConfigInterface methods
-    def set_max_upload(self,speed,callback):
+    def set_max_speed(self,direct,speed,callback):
         if self.dow is not None:
-            self.dow.setUploadRate(speed)
-        callback(speed)
+            #print >>sys.stderr,"SingleDownload: set_max_speed",`self.dow.response['info']['name']`,direct,speed
+            if direct == UPLOAD:
+                self.dow.setUploadRate(speed)
+            else:
+                self.dow.setDownloadRate(speed)
+        callback(direct,speed)
 
 
     def get_stats(self):  
         if self._getstatsfunc is None:
-            # TODO
-            print >>sys.stderr,"SingleDownload: get_stats: TODO HASHCHECKING, WAITING4HASHCHECKING"
             return (DLSTATUS_WAITING4HASHCHECK,None)
         elif self._getstatsfunc == SPECIAL_VALUE:
             stats = {}
@@ -1771,7 +1815,7 @@ class SingleDownload:
     #
     def hashcheckprogressfunc(self,activity = '', fractionDone = 0.0):
         """ Allegedly only used by StorageWrapper during hashchecking """
-        print >>sys.stderr,"SingleDownload::statusfunc called",activity,fractionDone
+        #print >>sys.stderr,"SingleDownload::statusfunc called",activity,fractionDone
         self.hashcheckfrac = fractionDone
 
     def finishedfunc(self):
@@ -1795,59 +1839,46 @@ class SingleDownload:
         
 
 
-def state_callback(ds):
-    print >>sys.stderr,"main: Stats",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
+from Tribler.API.RateManager import RateManager
 
-def vod_ready_callback(mimetype,stream):
-    print >>sys.stderr,"main: VOD ready callback called",currentThread().getName(),"###########################################################",mimetype
-
-    """
-    f = open("video.avi","wb")
-    while True:
-        data = stream.read()
-        print >>sys.stderr,"main: VOD ready callback: reading",type(data)
-        print >>sys.stderr,"main: VOD ready callback: reading",len(data)
-        if len(data) == 0:
-            break
-        f.write(data)
-    f.close()
-    stream.close()
-    """
-
-    # HACK: TODO: make to work with file-like interface
-    videoserv = VideoHTTPServer.getInstance()
-    videoserv.set_movietransport(stream.mt)
     
+s = Session()
+r = RateManager(0,0,100)
+t = 0
+
+def state_callback(d,ds):
+    #print >>sys.stderr,"main: Stats",`d.get_def().get_name()`,ds.get_status()
+    print >>sys.stderr,"main: Stats",`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD)
+
+    global s
+    global r
+    global t
+
+    now = time.time()
+    downloads = s.get_downloads()
+    count = r.add_downloadstate(d,ds)
+    if now-t > 4.0 and count >= len(downloads):
+        r.adjust_speeds()
+        t = time.time()
+
 
 if __name__ == "__main__":
     
-    videoserv = VideoHTTPServer.getInstance() # create
-    videoserv.background_serve()
-    
-    s = Session()
-    
+    # Torrent 1
     if sys.platform == 'win32':
         tdef = TorrentDef.load('bla.torrent')
     else:
         tdef = TorrentDef.load('/tmp/bla.torrent')
-    dcfg = DownloadStartupConfig.get_copy_of_default()
-    #dcfg.set_saveas('/arno')
-    dcfg = DownloadStartupConfig.get_copy_of_default()
-    dcfg.set_video_on_demand(vod_ready_callback)
-    #dcfg.set_selected_files('MATRIX-XP_engl_L.avi') # play this video
-    #dcfg.set_selected_files('field-trip-west-siberia.avi')
-    
-    d = s.start_download(tdef,dcfg)
+    d = s.start_download(tdef)
     d.set_state_callback(state_callback,1)
-    #d.set_max_upload(100)
     
-    time.sleep(10)
-    
-    """    
-    d.stop()
-    print "After stop"
-    time.sleep(5)
-    d.restart()
-    """
+    # Torrent 2
+    if sys.platform == 'win32':
+        tdef = TorrentDef.load('bla2.torrent')
+    else:
+        tdef = TorrentDef.load('/tmp/bla2.torrent')
+    d2 = s.start_download(tdef)
+    d2.set_state_callback(state_callback,1)
+
     time.sleep(2500)
     

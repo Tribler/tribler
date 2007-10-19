@@ -132,6 +132,9 @@ class DownloaderFeedback:
             s['time'] = 0
         else:
             s['time'] = self.ratemeasure.get_time_left(desired-obtained)
+            
+        ### TEMP ARNO: Do we still need this if we got self.statistics + this
+        # is direct access to StorageWrapper have list.
         s['have'] = have
         return s        
 

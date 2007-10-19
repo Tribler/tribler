@@ -39,7 +39,7 @@ except:
 
 DEBUG=False
 
-from triblerdefs import trackerdefaults as defaults
+from Tribler.API.defaults import trackerdefaults as defaults
 
 def statefiletemplate(x):
     if type(x) != DictType:

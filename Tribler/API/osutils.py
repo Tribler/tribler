@@ -100,7 +100,7 @@ def fix_filebasename(name, unit = False):
         if len(name) > 250:
             name = name[:250]
             fixed = True
-        fixedname = ''
+    fixedname = ''
     spaces = 0
     for c in name:
         if sys.platform == 'win32':
