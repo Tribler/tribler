@@ -106,9 +106,9 @@ class DownloaderFeedback:
         return l
 
 
-    def gather(self, displayfunc = None):
+    def gather(self, displayfunc = None, peerinfo=False):
         s = {'stats': self.statistics.update()}
-        if self.sp.isSet():
+        if peerinfo:
             s['spew'] = self.spews()
         else:
             s['spew'] = None

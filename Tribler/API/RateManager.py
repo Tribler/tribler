@@ -9,7 +9,10 @@ from traceback import print_exc
 
 from Tribler.API.simpledefs import *
 
-DEBUG = False
+DEBUG = True
+
+
+#TODO: rate manager that gives unused capacity to download that is at max
 
 
 class RateManager:
@@ -20,22 +23,13 @@ class RateManager:
         self.dset = Set()
         self.clear_downloadstates()
         
-    def adjust_speeds(self):
-        self.lock.acquire()
-        
-        self.calc_and_set_speed_limits(DOWNLOAD)
-        self.calc_and_set_speed_limits(UPLOAD)
-        self.clear_downloadstates()
-        
-        self.lock.release()
-
-
-    def add_downloadstate(self,d,ds):
+    def add_downloadstate(self,ds):
         """ Returns the number of unique states currently stored """
         self.lock.acquire()
         try:
+            d = ds.get_download()
             if d not in self.dset:
-                self.statusmap[ds.get_status()].append((d,ds))
+                self.statusmap[ds.get_status()].append(ds)
                 for dir in [UPLOAD,DOWNLOAD]:
                     self.currenttotal[dir] += ds.get_current_speed(dir)
                 self.dset.add(d)
@@ -43,12 +37,17 @@ class RateManager:
         finally:
             self.lock.release()
 
-    #
-    # Internal methods
-    #
-    #
-    # The following methods are all called with the lock held
-    #
+    def adjust_speeds(self):
+        """ Adjust speeds for the specified set of downloads and clears the set """
+        self.lock.acquire()
+        try:
+            self.calc_and_set_speed_limits(DOWNLOAD)
+            self.calc_and_set_speed_limits(UPLOAD)
+            self.clear_downloadstates()
+        finally:
+            self.lock.release()
+
+
     def clear_downloadstates(self):
         self.statusmap[DLSTATUS_ALLOCATING_DISKSPACE] = []
         self.statusmap[DLSTATUS_WAITING4HASHCHECK] = []
@@ -60,6 +59,13 @@ class RateManager:
         for dir in [UPLOAD,DOWNLOAD]:
             self.currenttotal[dir] = 0
         self.dset.clear()
+
+    #
+    # Internal methods
+    #
+    #
+    # The following methods are all called with the lock held
+    #
 
     def calc_and_set_speed_limits(self,direct):
         """ Override this method to write you own speed management policy. """
@@ -76,14 +82,23 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
     3. There are separate global limits for download speed, upload speed
        and upload speed when all torrents are seeding. 
     """
-    def __init__(self,global_maxupload_speed,global_maxseed_upload_speed,global_maxdownload_speed):
-        
+    def __init__(self):
         RateManager.__init__(self)
-        self.global_maxupload_speed = global_maxupload_speed 
-        self.global_maxseed_upload_speed = global_maxseed_upload_speed
-        self.global_maxdownload_speed = global_maxdownload_speed
+        self.global_max_speed = {}
+        self.global_max_speed[UPLOAD] = 0.0
+        self.global_max_speed[DOWNLOAD] = 0.0
+        self.global_max_seedupload_speed = 0.0
 
+    def set_global_max_speed(self,direct,speed):
+        self.lock.acquire()
+        self.global_max_speed[direct] = speed
+        self.lock.release()
         
+    def set_global_max_seedupload_speed(self,speed):
+        self.lock.acquire()
+        self.global_max_seedupload_speed = speed
+        self.lock.release()
+
     def calc_and_set_speed_limits(self, dir = UPLOAD):
         
         if DEBUG:
@@ -96,9 +111,9 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
 
         # Limit working set to active torrents with connections:
         newws = []
-        for (d,ds) in workingset:
+        for ds in workingset:
             if ds.has_active_connections():
-                newws.append((d,ds))
+                newws.append(ds)
         workingset = newws
 
         if DEBUG:
@@ -112,7 +127,8 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
         # See if global speed settings are set to unlimited
         if globalmaxspeed == 0:
             # Unlimited speed
-            for (d,ds) in workingset:
+            for ds in workingset:
+                d = ds.get_download()
                 d.set_max_speed(dir,d.get_max_desired_speed(dir)) 
             return
         
@@ -121,12 +137,13 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
 
         # User set priority is always granted, ignoring global limit
         todoset = []
-        for (d,ds) in workingset:
+        for d in workingset:
+            d = ds.get_download()
             maxdesiredspeed = d.get_max_desired_speed(dir)
             if maxdesiredspeed > 0.0:
                 d.set_max_speed(dir,maxdesiredspeed)
             else:
-                todoset.append((d,ds))
+                todoset.append(ds)
 
         if len(todoset) > 0:
             # Rest divides globalmaxspeed equally
@@ -136,18 +153,15 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
             if DEBUG:
                 print >>sys.stderr,"RateManager: calc_and_set_speed_limits: localmaxspeed is",localmaxspeed,dir
 
-            for (d,ds) in todoset:
+            for ds in todoset:
+                d = ds.get_download()
                 d.set_max_speed(dir,localmaxspeed)
 
 
     def get_global_max_speed(self, dir = UPLOAD):
-        if dir == UPLOAD:
-            if len(self.statusmap[DLSTATUS_DOWNLOADING]) == 0 and len(self.statusmap[DLSTATUS_SEEDING]) > 0:
-                # Static overall maximum up speed when seeding
-                return self.global_maxseed_upload_speed
-            else:
-                # Static overall maximum up speed when downloading
-                return self.global_maxupload_speed
+        if dir == UPLOAD and len(self.statusmap[DLSTATUS_DOWNLOADING]) == 0 and len(self.statusmap[DLSTATUS_SEEDING]) > 0:
+            # Static overall maximum up speed when seeding
+            return self.global_max_seedupload_speed
         else:
-            return self.global_maxdownload_speed
+            return self.global_max_speed[dir]
            

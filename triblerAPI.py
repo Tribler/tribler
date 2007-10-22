@@ -528,12 +528,21 @@ class Session(Serializable,SessionConfigInterface):
         # locking by lm
         return self.lm.get_downloads()
     
+    
     def remove_download(self,d):  
         """
         Stops the download and removes it from the session.
         """
         # locking by lm
         self.lm.remove(d)
+
+
+    def set_download_states_callback(self,usercallback,peerinfo=False):
+        """
+        See Download.set_state_callback. Calls usercallback(dslist) which should
+        return > 0.0 to reschedule.
+        """
+        self.lm.set_download_states_callback(usercallback,peerinfo)
 
 
     def get_internal_tracker_url(self):
@@ -1161,46 +1170,57 @@ class Download(DownloadConfigInterface):
         return self.tdef
 
     
-    def set_state_callback(self,usercallback,interval):
+    def set_state_callback(self,usercallback,peerinfo=False):
         """ 
         Set a callback for retrieving the state of the download. This callback
-        will be called every "interval" seconds with this Download object as
-        first parameter and a DownloadState object as second parameter.
-        
+        will be called immediately with a DownloadState object as first parameter.
+        The callback method must return a tuple (when,peerinfo) where "when" 
+        indicates whether the callback should be called again and represents a
+        number of seconds from now. If "when" <= 0.0 the callback will not be
+        called again. "peerinfo" is a boolean that indicates whether the 
+        DownloadState passed to the callback on the next invocation should
+        contain info about the set of current peers.
+                
         in: 
-        callback = function that accepts Download,DownloadState as parameters.
-        interval = time between calls to the callback as float.
+        callback = function that accepts DownloadState as parameter and returns 
+        a (float,boolean) tuple.
         """
         self.dllock.acquire()
         try:
-            self.getstateusercallback = usercallback
-            self.getstateinterval = interval
+            func = lambda:self.network_get_state(usercallback,peerinfo)
             # First time on general rawserver
-            self.session.lm.rawserver.add_task(self.network_get_state,self.getstateinterval)
+            self.session.lm.rawserver.add_task(func,0.0)
         finally:
             self.dllock.release()
         
         
-    def network_get_state(self):
+    def network_get_state(self,usercallback,peerinfo,sessioncalling=False):
         """ Called by network thread """
         self.dllock.acquire()
         try:
             if self.sd is None:
                 ds = DownloadState(DLSTATUS_STOPPED,self.error,self.progressbeforestop)
             else:
-                (status,stats) = self.sd.get_stats()
-                ds = DownloadState(status,self.error,None,stats=stats)
+                (status,stats) = self.sd.get_stats(peerinfo)
+                ds = DownloadState(self,status,self.error,None,stats=stats)
                 self.progressbeforestop = ds.get_progress()
             
-            # TODO: do on other thread    
-            self.getstateusercallback(self,ds)
+                #print >>sys.stderr,"STATS",stats
             
-            # Schedule next invocation, either on general or DL specific
-            # TODO: ensure this continues when dl is stopped. Should be OK.
-            if self.sd is None:
-                self.session.lm.rawserver.add_task(self.network_get_state,self.getstateinterval)
-            else:
-                self.sd.dlrawserver.add_task(self.network_get_state,self.getstateinterval)
+            if sessioncalling:
+                return ds
+                
+            # TODO: do on other thread
+            # DAMN: this messes up the return value    
+            (when,newpeerinfo) = usercallback(ds)
+            if when > 0.0:
+                # Schedule next invocation, either on general or DL specific
+                # TODO: ensure this continues when dl is stopped. Should be OK.
+                func = lambda:self.network_get_state(usercallback,newpeerinfo)
+                if self.sd is None:
+                    self.session.lm.rawserver.add_task(func,when)
+                else:
+                    self.sd.dlrawserver.add_task(func,when)
         finally:
             self.dllock.release()
             
@@ -1349,7 +1369,8 @@ class DownloadState:
     SOL: have parameter for get_state(), indicating "complete"/"simplestats", 
     etc.
     """
-    def __init__(self,status,error,progress,stats=None):
+    def __init__(self,download,status,error,progress,stats=None):
+        self.download = download
         if stats is None:
             self.error = error # readonly access
             self.progress = progress
@@ -1388,6 +1409,10 @@ class DownloadState:
             # POSSIBLE (currently needed for VOD progress bar)
             #
             self.stats = stats
+    
+    def get_download(self):
+        """ returns the Download object of which this is the state """
+        return self.download
     
     def get_progress(self):
         """
@@ -1546,7 +1571,7 @@ class TriblerLaunchMany(Thread):
         try:
             d.stop()
             d._cleanup_disk()
-            del self.downloads[d.get_def().get_infohash()]
+            del self.downloads[d]
         finally:
             self.sesslock.release()
 
@@ -1686,6 +1711,35 @@ class TriblerLaunchMany(Thread):
         else:
             self.sdownloadtohashcheck = None
 
+    def set_download_states_callback(self,usercallback,peerinfo,when=0.0):
+        """ Called by any thread """
+        self.sesslock.acquire()
+        try:
+            # Even if the list of Downloads changes in the mean time this is
+            # no problem. For removals, dllist will still hold a pointer to the
+            # Download, and additions are no problem (just won't be included 
+            # in list of states returned via callback.
+            #
+            dllist = self.downloads[:]
+            func = lambda:self.network_set_download_states_callback(dllist,usercallback,peerinfo)
+            self.rawserver.add_task(func,when)
+        finally:
+            self.sesslock.release()
+        
+    def network_set_download_states_callback(self,dllist,usercallback,peerinfo):
+        """ Called by network thread """
+        dslist = []
+        for d in dllist:
+            ds = d.network_get_state(None,peerinfo,sessioncalling=True)
+            dslist.append(ds)
+            
+        # TODO: by new thread
+        (when,newpeerinfo) = usercallback(dslist)
+        
+        if when > 0.0:
+            # reschedule
+            self.set_download_states_callback(usercallback,newpeerinfo,when=when)
+
 
 
 class SingleDownload:
@@ -1790,7 +1844,7 @@ class SingleDownload:
         callback(direct,speed)
 
 
-    def get_stats(self):  
+    def get_stats(self,peerinfo):  
         if self._getstatsfunc is None:
             return (DLSTATUS_WAITING4HASHCHECK,None)
         elif self._getstatsfunc == SPECIAL_VALUE:
@@ -1798,7 +1852,7 @@ class SingleDownload:
             stats['frac'] = self.hashcheckfrac
             return (DLSTATUS_HASHCHECKING,stats)
         else:
-            return (None,self._getstatsfunc())
+            return (None,self._getstatsfunc(peerinfo=peerinfo))
 
     #
     #
@@ -1843,34 +1897,43 @@ from Tribler.API.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedR
 
     
 s = Session()
-r = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(0,0,100)
+r = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()
+r.set_global_max_speed(DOWNLOAD,100)
 t = 0
+count = 0
 
-def state_callback(d,ds):
-    #print >>sys.stderr,"main: Stats",`d.get_def().get_name()`,ds.get_status()
-    print >>sys.stderr,"main: Stats",`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD)
-
+def states_callback(dslist):
     global s
     global r
     global t
-
-    now = time.time()
-    downloads = s.get_downloads()
-    count = r.add_downloadstate(d,ds)
-    if now-t > 4.0 and count >= len(downloads):
+    global count
+    
+    adjustspeeds = False
+    if count % 4 == 0:
+        adjustspeeds = True
+    count += 1
+    
+    for ds in dslist:
+        d = ds.get_download()
+        print >>sys.stderr,"main: Stats",`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD)
+        if adjustspeeds:
+            r.add_downloadstate(ds)
+        
+    if adjustspeeds:
         r.adjust_speeds()
-        t = time.time()
+    return (1.0,False)
+
 
 
 if __name__ == "__main__":
     
+    s.set_download_states_callback(states_callback,peerinfo=False)
     # Torrent 1
     if sys.platform == 'win32':
         tdef = TorrentDef.load('bla.torrent')
     else:
         tdef = TorrentDef.load('/tmp/bla.torrent')
     d = s.start_download(tdef)
-    d.set_state_callback(state_callback,1)
     
     # Torrent 2
     if sys.platform == 'win32':
@@ -1878,7 +1941,6 @@ if __name__ == "__main__":
     else:
         tdef = TorrentDef.load('/tmp/bla2.torrent')
     d2 = s.start_download(tdef)
-    d2.set_state_callback(state_callback,1)
 
     time.sleep(2500)
     
