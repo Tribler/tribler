@@ -207,16 +207,23 @@ TODO:
 
 - Create a rate manager that gives unused capacity to download that is at max
 
-- Don't hashcheck when file complete / we closed normally
+- Don't hashcheck when file complete / we closed normally (when we have storage
+location)
 
 - Allow VOD when first part of file hashchecked.
-
-- VOD progress bar
 
 - Activate mainlineDHT (when we have storage location)
 
 - persistence
 
+    Currently btlaunchmany saves download state in ~/.Tribler/datacache.
+    BT1Download saves FileSelector which pickles Storage, StorageWrapper
+    and stuff. This is passed to ConfigDir via writeTorrentData which then
+    saves it in ~/.Tribler/datacache
+
+- TODO: file complete but not yet in order on disk?
+
+- Reimplement selected_files with existing 'priority' field
 
 """
 
@@ -2079,9 +2086,10 @@ if __name__ == "__main__":
         tdef = TorrentDef.load('bla.torrent')
     else:
         #tdef = TorrentDef.load('/tmp/bla3multi.torrent')
-        tdef = TorrentDef.load('/tmp/bla.torrent')
+        tdef = TorrentDef.load('/arno/tmp/scandir/bla.torrent')
         
     dcfg = DownloadStartupConfig.get_copy_of_default()
+    dcfg.set_dest_dir('/arno/tmp/scandir')
     """
     dcfg.set_video_on_demand(vod_ready_callback)
     #dcfg.set_selected_files('star-wreck-in-the-pirkinning.txt') # play this video
@@ -2091,13 +2099,14 @@ if __name__ == "__main__":
     
     
     # Torrent 2
+    """
     if sys.platform == 'win32':
         tdef = TorrentDef.load('bla2.torrent')
     else:
         tdef = TorrentDef.load('/tmp/bla2.torrent')
     d2 = s.start_download(tdef)
     d2.set_state_callback(state_callback)
-    
+    """
 
     time.sleep(2500)
     
