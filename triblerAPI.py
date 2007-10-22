@@ -209,6 +209,8 @@ TODO:
 
 - persistence
 
+#TODO: rate manager that gives unused capacity to download that is at max
+
 """
 
 import sys
@@ -586,10 +588,29 @@ class Session(Serializable,SessionConfigInterface):
     def perform_vod_usercallback(self,usercallback,mimetype,stream):
         """ Called by network thread """
         print >>sys.stderr,"Session: perform_vod_user_callback()"
+        def target():
+            try:
+                usercallback(mimetype,stream)
+            except:
+                print_exc()
+        self.perfom_usercallback(target)
+
+    def perform_getstate_usercallback(self,usercallback,data,returncallback):
+        """ Called by network thread """
+        print >>sys.stderr,"Session: perform_getstate_user_callback()"
+        def target():
+            try:
+                (when,peerinfo) = usercallback(data)
+                returncallback(usercallback,when,peerinfo)
+            except:
+                print_exc()
+        self.perform_usercallback(target)
+
+        
+    def perform_usercallback(self,target):
         self.sesslock.acquire()
         try:
             # TODO: thread pool, etc.
-            target = lambda:usercallback(mimetype,stream)
             name = "SessionCallbackThread-"+str(self.threadcount)
             self.threadcount += 1
             t = Thread(target=target,name=name)
@@ -1209,10 +1230,19 @@ class Download(DownloadConfigInterface):
             
             if sessioncalling:
                 return ds
-                
-            # TODO: do on other thread
-            # DAMN: this messes up the return value    
-            (when,newpeerinfo) = usercallback(ds)
+
+            # Invoke the usercallback function via a new thread.
+            # After the callback is invoked, the return values will be passed to
+            # the returncallback for post-callback processing.
+            self.session.perform_getstate_usercallback(usercallback,ds,self.sesscb_get_state_returncallback)
+        finally:
+            self.dllock.release()
+
+
+    def sesscb_get_state_returncallback(self,usercallback,when,newpeerinfo):
+        """ Called by SessionCallbackThread """
+        self.dllock.acquire()
+        try:
             if when > 0.0:
                 # Schedule next invocation, either on general or DL specific
                 # TODO: ensure this continues when dl is stopped. Should be OK.
@@ -1733,9 +1763,13 @@ class TriblerLaunchMany(Thread):
             ds = d.network_get_state(None,peerinfo,sessioncalling=True)
             dslist.append(ds)
             
-        # TODO: by new thread
-        (when,newpeerinfo) = usercallback(dslist)
+        # Invoke the usercallback function via a new thread.
+        # After the callback is invoked, the return values will be passed to
+        # the returncallback for post-callback processing.
+        self.session.perform_getstate_usercallback(usercallback,dslist,self.sesscb_set_download_states_returncallback)
         
+    def sesscb_set_download_states_returncallback(self,usercallback,when,newpeerinfo):
+        """ Called by SessionCallbackThread """
         if when > 0.0:
             # reschedule
             self.set_download_states_callback(usercallback,newpeerinfo,when=when)
@@ -1909,13 +1943,13 @@ def states_callback(dslist):
     global count
     
     adjustspeeds = False
-    if count % 4 == 0:
-        adjustspeeds = True
+    #if count % 4 == 0:
+    #    adjustspeeds = True
     count += 1
     
     for ds in dslist:
         d = ds.get_download()
-        print >>sys.stderr,"main: Stats",`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD)
+        print >>sys.stderr,"main: Stats",`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD),currentThread().getName()
         if adjustspeeds:
             r.add_downloadstate(ds)
         
@@ -1923,6 +1957,12 @@ def states_callback(dslist):
         r.adjust_speeds()
     return (1.0,False)
 
+
+
+def state_callback(ds):
+    d = ds.get_download()
+    print >>sys.stderr,"main: SingleStats",`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD),currentThread().getName()
+    return (1.0,False)
 
 
 if __name__ == "__main__":
@@ -1941,6 +1981,7 @@ if __name__ == "__main__":
     else:
         tdef = TorrentDef.load('/tmp/bla2.torrent')
     d2 = s.start_download(tdef)
+    d2.set_state_callback(state_callback)
 
     time.sleep(2500)
     

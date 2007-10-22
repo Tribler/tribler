@@ -12,9 +12,6 @@ from Tribler.API.simpledefs import *
 DEBUG = True
 
 
-#TODO: rate manager that gives unused capacity to download that is at max
-
-
 class RateManager:
     def __init__(self):
         self.lock = RLock()
