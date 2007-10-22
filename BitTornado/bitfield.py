@@ -80,6 +80,9 @@ class Bitfield:
     def complete(self):
         return not self.numfalse
 
+    def copy(self):
+        return self.array[:self.length]
+
 
 def test_bitfield():
     try:

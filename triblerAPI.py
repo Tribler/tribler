@@ -201,15 +201,22 @@ TODO:
     torrents may not be ideal, if some torrents don't achieve their allocated
     speed, perhaps others could have used it.
     
-    ABC/Scheduler/ratemanager appears to do this
+    ABC/Scheduler/ratemanager appears to do this. 2007-10-19: A port of this to
+    the triblerAPI failed, funky algorithmics. Added an extensible rate mgmt
+    mechanism and a simple rate manager.
+
+- Create a rate manager that gives unused capacity to download that is at max
 
 - Don't hashcheck when file complete / we closed normally
 
 - Allow VOD when first part of file hashchecked.
 
+- VOD progress bar
+
+- Activate mainlineDHT (when we have storage location)
+
 - persistence
 
-#TODO: rate manager that gives unused capacity to download that is at max
 
 """
 
@@ -399,7 +406,7 @@ class SessionConfigInterface:
         self.sessconfig['overlay'] = 0
         self.sessconfig['dialback'] = 0
         
-        # TODO
+        # TODO, when we have a place to save data to (dfile in this case)
         self.sessconfig['internaltracker'] = 0
 
     
@@ -593,7 +600,7 @@ class Session(Serializable,SessionConfigInterface):
                 usercallback(mimetype,stream)
             except:
                 print_exc()
-        self.perfom_usercallback(target)
+        self.perform_usercallback(target)
 
     def perform_getstate_usercallback(self,usercallback,data,returncallback):
         """ Called by network thread """
@@ -614,6 +621,7 @@ class Session(Serializable,SessionConfigInterface):
             name = "SessionCallbackThread-"+str(self.threadcount)
             self.threadcount += 1
             t = Thread(target=target,name=name)
+            t.setDaemon(True)
             t.start()
         finally:
             self.sesslock.release()
@@ -704,7 +712,7 @@ class TorrentDef(Defaultable,Serializable):
         t.input['announce'] = t.metainfo['announce']
         t.input['name'] = t.metainfo['info']['name']
         
-        # TODO: rest
+        # TODO: copy rest of fields from metainfo to input
         return t
     _read = staticmethod(_read)
 
@@ -996,20 +1004,27 @@ class DownloadConfigInterface:
         self.dlconfig['saveas'] = path
 
     def set_video_on_demand(self,usercallback):
-        """ Download the file "file" from the torrent in Video-On-Demand
-        mode. usercallback is a function that accepts a file-like object
-        as its first argument. """
+        """ Download the torrent in Video-On-Demand mode. usercallback is a 
+        function that accepts a file-like object as its first argument. 
+        To fetch a specific file from a multi-file torrent, use the
+        set_selected_files() method. """
         self.dlconfig['mode'] = DLMODE_VOD
         self.dlconfig['vod_usercallback'] = usercallback
 
     def set_selected_files(self,files):
-        # TODO: can't check if files exists.... bugger
+        """ Select which files to download. "files" can be a single filename
+        or a list of filenames (e.g. ['harry.avi','sjaak.avi']). The filenames
+        must be in print format. TODO explain + add methods """
+        # TODO: can't check if files exists, don't have tdef here.... bugger
         if type(files) == StringType: # convenience
-            files =[files]
+            files = [files] 
             
         if self.dlconfig['mode'] == DLMODE_VOD and len(files) > 1:
             raise ValueError("In Video-On-Demand mode only 1 file can be selected for download")
         self.dlconfig['selected_files'] = files
+        
+        print >>sys.stderr,"DownloadStartupConfig: set_selected_files",files
+
 
     
 class DownloadStartupConfig(DownloadConfigInterface,Defaultable,Serializable):
@@ -1075,7 +1090,8 @@ class Download(DownloadConfigInterface):
         self.error = None
         self.sd = None # hack
         # To be able to return the progress of a stopped torrent, how far it got.
-        self.progressbeforestop = 0.0 
+        self.progressbeforestop = 0.0
+        self.filepieceranges = []
     
     def setup(self,session,tdef,dcfg=None,lmcallback=None):
         """
@@ -1107,6 +1123,8 @@ class Download(DownloadConfigInterface):
             else:
                 cdcfg = dcfg
             self.dlconfig = copy.copy(cdcfg.dlconfig)
+    
+            self.set_filepieceranges()
     
             # Things that only exist at runtime
             self.dlruntimeconfig= {}
@@ -1179,7 +1197,8 @@ class Download(DownloadConfigInterface):
         
         if lmcallback is not None:
             lmcallback(sd,exc)
-        
+
+
     #
     # Public methods
     #
@@ -1223,7 +1242,7 @@ class Download(DownloadConfigInterface):
                 ds = DownloadState(DLSTATUS_STOPPED,self.error,self.progressbeforestop)
             else:
                 (status,stats) = self.sd.get_stats(peerinfo)
-                ds = DownloadState(self,status,self.error,None,stats=stats)
+                ds = DownloadState(self,status,self.error,None,stats=stats,filepieceranges=self.filepieceranges)
                 self.progressbeforestop = ds.get_progress()
             
                 #print >>sys.stderr,"STATS",stats
@@ -1355,6 +1374,39 @@ class Download(DownloadConfigInterface):
         self.error = e
         self.dllock.release()
 
+
+    def set_filepieceranges(self):
+        """ Determine which file maps to which piece ranges for progress info """
+        
+        print >>sys.stderr,"Download: set_filepieceranges:",self.dlconfig['selected_files']
+        
+        if len(self.dlconfig['selected_files']) > 0:
+            if 'files' not in self.tdef.metainfo['info']:
+                raise ValueError("Selected more than 1 file, but torrent is single-file torrent")
+            
+            files = self.tdef.metainfo['info']['files']
+            piecesize = self.tdef.metainfo['info']['piece length']
+            
+            total = 0L
+            for i in xrange(len(files)):
+                path = files[i]['path']
+                length = files[i]['length']
+                filename = pathlist2filename(path)
+                
+                print >>sys.stderr,"Download: set_filepieceranges: Torrent file",filename,"in",self.dlconfig['selected_files']
+
+                if filename in self.dlconfig['selected_files'] and length > 0:
+                    
+                    range = (offset2piece(total,piecesize), offset2piece(total + length,piecesize),filename)
+                    
+                    print >>sys.stderr,"Download: set_filepieceranges: Torrent file range append",range
+                    
+                    self.filepieceranges.append(range)
+                total += length
+        else:
+            self.filepieceranges = None 
+
+
     def network_stop(self):
         """ Called by network thread """
         self.dllock.acquire()
@@ -1399,8 +1451,9 @@ class DownloadState:
     SOL: have parameter for get_state(), indicating "complete"/"simplestats", 
     etc.
     """
-    def __init__(self,download,status,error,progress,stats=None):
+    def __init__(self,download,status,error,progress,stats=None,filepieceranges=None):
         self.download = download
+        self.filepieceranges = filepieceranges # NEED CONC CONTROL IF selected_files RUNTIME SETABLE
         if stats is None:
             self.error = error # readonly access
             self.progress = progress
@@ -1439,6 +1492,35 @@ class DownloadState:
             # POSSIBLE (currently needed for VOD progress bar)
             #
             self.stats = stats
+            
+            # for pieces complete
+            statsobj = self.stats['stats']
+            if self.filepieceranges is None:
+                self.haveslice = statsobj.have # is copy of network engine list
+            else:
+                # Show only pieces complete for the selected ranges of files
+                totalpieces =0
+                for t,tl,f in self.filepieceranges:
+                    diff = tl-t
+                    totalpieces += diff
+                    
+                print >>sys.stderr,"DownloadState: get_pieces_complete",totalpieces
+                
+                haveslice = [False] * totalpieces
+                haveall = True
+                index = 0
+                for t,tl,f in self.filepieceranges:
+                    for piece in range(t,tl):
+                        haveslice[index] = statsobj.have[piece]
+                        if haveall and haveslice[index] == False:
+                            haveall = False
+                        index += 1 
+                self.haveslice = haveslice
+                if haveall:
+                    # we have all pieces of the selected files
+                    self.status = DLSTATUS_SEEDING
+                    self.progress = 1.0
+
     
     def get_download(self):
         """ returns the Download object of which this is the state """
@@ -1456,12 +1538,22 @@ class DownloadState:
         """
         return self.status
 
+    def get_error(self):
+        """ 
+        returns: the Exception that caused the download to be moved to 
+        DLSTATUS_STOPPED_ON_ERROR status.
+        """
+        return self.error
+
+    #
+    # Details
+    # 
     def get_current_speed(self,direct):
         """
         returns: current up or download speed in KB/s, as float
         """
         if self.stats is None:
-            return False
+            return 0.0
         if direct == UPLOAD:
             return self.stats['up']/1024.0
         else:
@@ -1478,13 +1570,13 @@ class DownloadState:
         statsobj = self.stats['stats']
         return statsobj.numSeeds+statsobj.numPeers > 0
         
-
-    def get_error(self):
-        """ 
-        returns: the Exception that caused the download to be moved to 
-        DLSTATUS_STOPPED_ON_ERROR status.
-        """
-        return self.error
+    def get_pieces_complete(self):
+        # Hmm... we currently have the complete overview in statsobj.have,
+        # but we want the overview for selected files.
+        if self.stats is None:
+            return []
+        else:
+            return self.haveslice
 
 
 #
@@ -1806,7 +1898,6 @@ class SingleDownload:
                             self.dlrawserver,
                             listenport,
                             videoanalyserpath
-                            # TODO: dht
                             )
         
             file = self.dow.saveAs(self.save_as)
@@ -1926,6 +2017,13 @@ class SingleDownload:
         # Could log this somewhere, or phase it out (only used in Rerequester)
         
 
+def offset2piece(offset,piecesize):
+    
+    p = offset / piecesize 
+    if offset % piecesize > 0:
+        p += 1
+    return p
+
 
 from Tribler.API.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
 
@@ -1950,6 +2048,11 @@ def states_callback(dslist):
     for ds in dslist:
         d = ds.get_download()
         print >>sys.stderr,"main: Stats",`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD),currentThread().getName()
+        
+        complete = ds.get_pieces_complete()
+        print >>sys.stderr,"main: Pieces completed",`d.get_def().get_name()`,"len",len(complete)
+        print >>sys.stderr,"main: Pieces completed",`d.get_def().get_name()`,complete[:60]
+        
         if adjustspeeds:
             r.add_downloadstate(ds)
         
@@ -1965,6 +2068,9 @@ def state_callback(ds):
     return (1.0,False)
 
 
+def vod_ready_callback(mimetype,stream):
+    print >>sys.stderr,"main: VOD ready callback called",currentThread().getName(),"###########################################################",mimetype
+
 if __name__ == "__main__":
     
     s.set_download_states_callback(states_callback,peerinfo=False)
@@ -1972,8 +2078,17 @@ if __name__ == "__main__":
     if sys.platform == 'win32':
         tdef = TorrentDef.load('bla.torrent')
     else:
+        #tdef = TorrentDef.load('/tmp/bla3multi.torrent')
         tdef = TorrentDef.load('/tmp/bla.torrent')
-    d = s.start_download(tdef)
+        
+    dcfg = DownloadStartupConfig.get_copy_of_default()
+    """
+    dcfg.set_video_on_demand(vod_ready_callback)
+    #dcfg.set_selected_files('star-wreck-in-the-pirkinning.txt') # play this video
+    dcfg.set_selected_files('star_wreck_in_the_pirkinning_subtitled_xvid.avi') # play this video
+    """
+    d = s.start_download(tdef,dcfg)
+    
     
     # Torrent 2
     if sys.platform == 'win32':
@@ -1982,6 +2097,7 @@ if __name__ == "__main__":
         tdef = TorrentDef.load('/tmp/bla2.torrent')
     d2 = s.start_download(tdef)
     d2.set_state_callback(state_callback)
+    
 
     time.sleep(2500)
     

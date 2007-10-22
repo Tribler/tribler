@@ -123,6 +123,8 @@ class Statistics:
             s.upRate = 0
         s.upSlots = self.ratelimiter.slots
 
+        s.have = self.storage.get_have_copy()
+
         if self.piecescomplete is None:     # not a multi-file torrent
             return s
         

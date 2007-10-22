@@ -565,6 +565,9 @@ class StorageWrapper:
     def get_have_list(self):
         return self.have.tostring()
 
+    def get_have_copy(self):
+        return self.have.copy()
+
     def get_have_list_cloaked(self):
         if self.have_cloaked_data is None:
             newhave = Bitfield(copyfrom = self.have)

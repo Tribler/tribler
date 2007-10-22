@@ -192,7 +192,7 @@ class RawServer:
                     if self.doneflag.isSet():
                         return
                 except KeyboardInterrupt,e:
-#                    self.exception(e)
+                    self.failfunc(e)
                     return
                 except Exception,e:
                     if DEBUG:

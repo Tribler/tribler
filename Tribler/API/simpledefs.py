@@ -1,5 +1,6 @@
 # Written by Arno Bakker 
 # see LICENSE.txt for license information
+import os
 
 DLSTATUS_ALLOCATING_DISKSPACE = 0 # TODO: make sure this get set when in this alloc mode
 DLSTATUS_WAITING4HASHCHECK = 1
@@ -22,3 +23,10 @@ DOWNLOAD = 'down'
 
 DLMODE_NORMAL = 0
 DLMODE_VOD = 1
+
+
+def pathlist2filename(pathlist):
+    fullpath = ''
+    for elem in pathlist:
+        fullpath = os.path.join(fullpath,elem)
+    return fullpath

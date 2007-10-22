@@ -602,20 +602,6 @@ class MovieOnDemandTransporter(MovieTransport):
 
         # number of pieces in buffer
         self.pieces_in_buffer = 0
-        #
-        # Arno, 2007-05-01: TODO: clean up. I now use the StorageWrapper info
-        # on which pieces are in directly as for non-VOD torrents. The only
-        # part of progress inf used here is to see when things become playable.
-        # 
-        # APICLEANUP
-        self.progressinf = None
-        if self.progressinf:
-            self.bufferinfo = progressinf.get_bufferinfo()
-            #self.bufferinfo.set_numpieces(self.movieselector.num_movie_pieces())
-            self.bufferinfo.set_movieselector(movieselector)
-            self.progressinf.bufferinfo_updated_callback()
-        else:
-            self.bufferinfo = None
 
         self.data_ready = Condition()
         self.prebuffering = True
@@ -962,8 +948,6 @@ class MovieOnDemandTransporter(MovieTransport):
 
     def tick_second(self):
         self.rawserver.add_task( self.tick_second, 1.0 )
-
-        #print >>sys.stderr,"vod: buffer: [%s]" % self.bufferinfo.str()
 
         # Adjust estimate every second, but don't display every second
         display = (int(time.time()) % 5) == 0

@@ -209,7 +209,7 @@ def get_response(file, url, errorfunc):
 class BT1Download:    
     def __init__(self, statusfunc, finfunc, errorfunc, excfunc, doneflag, 
                  config, response, infohash, id, rawserver, port,
-                 videoanalyserpath, appdataobj = None, dht = None):
+                 videoanalyserpath, appdataobj = None):
         self.statusfunc = statusfunc
         self.finfunc = finfunc
         self.errorfunc = errorfunc
@@ -221,7 +221,6 @@ class BT1Download:
         self.myid = id
         self.rawserver = rawserver
         self.port = port
-        self.dht = dht
         
         self.info = self.response['info']  
         #self.infohash = sha(bencode(self.info)).digest()
