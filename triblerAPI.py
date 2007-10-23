@@ -585,8 +585,9 @@ class Session(SessionConfigInterface):
 
 
         # Checkpoint startup config
-        sscfg = self.get_current_startup_config_copy()
-        self.save_pstate_sessconfig(sscfg)
+        # TODO: remove eckeypair
+        ##sscfg = self.get_current_startup_config_copy()
+        ##self.save_pstate_sessconfig(sscfg)
 
         # Create engine with network thread
         self.lm = TriblerLaunchMany(self,self.sesslock)
@@ -869,14 +870,17 @@ class TorrentDef(Defaultable,Serializable):
         bdata = stream.read()
         stream.close()
         data = bdecode(bdata)
+        return TorrentDef._create(data)
+    _read = staticmethod(_read)
         
+    def _create(metainfo): # TODO: replace with constructor
         # raises ValueErrors if not good
-        validTorrentFile(data) 
+        validTorrentFile(metainfo) 
         
         t = TorrentDef()
-        t.metainfo = data
+        t.metainfo = metainfo
         t.metainfo_valid = True
-        t.infohash = sha.sha(bencode(data['info'])).digest()
+        t.infohash = sha.sha(bencode(metainfo['info'])).digest()
         
         # copy stuff into self.input 
         t.input = {}
@@ -885,7 +889,7 @@ class TorrentDef(Defaultable,Serializable):
         
         # TODO: copy rest of fields from metainfo to input
         return t
-    _read = staticmethod(_read)
+    _create = staticmethod(_create)
 
     def load_from_url(url):
         """
@@ -1894,6 +1898,9 @@ class TriblerLaunchMany(Thread):
         if not config['torrent_checking']:
             self.rawserver.add_task(self.torrent_checking, self.torrent_checking_period)
         
+        # Restart Downloads from checkpoint, if any
+        self.load_checkpoint()
+        
 
     def add(self,tdef,dcfg):
         """ Called by any thread """
@@ -2052,6 +2059,22 @@ class TriblerLaunchMany(Thread):
     #
     # Persistence methods
     #
+    def load_checkpoint(self):
+        """ Called by any thread """
+        dir = self.session.get_downloads_pstate_dir()
+        filelist = os.listdir(dir)
+        for filename in filelist:
+            # Make this go on when a torrent fails to start
+            try:
+                pstate = self.load_download_pstate(filename)
+                tdef = TorrentDef._create(pstate['metainfo'])
+                
+                # Resume download
+                self.add(tdef,pstate['dscfg'])
+            except Exception,e:
+                self.rawserver_nonfatalerrorfunc(e)
+
+    
     def checkpoint(self,stop=False):
         """ Called by any thread """
         self.sesslock.acquire()
@@ -2101,10 +2124,11 @@ class TriblerLaunchMany(Thread):
         f.close()
 
 
-    def load_pstate(self):
-        pass
-        # TODO: read dlcheckpoints dir and revive downloads
-
+    def load_download_pstate(self,filename):
+        """ Called by any thread """
+        f = open(filename,"rb")
+        pstate = pickle.load(f)
+        f.close()
 
     #
     # External IP address methods
