@@ -553,12 +553,12 @@ class Session(Serializable,SessionConfigInterface):
         self.lm.remove(d)
 
 
-    def set_download_states_callback(self,usercallback,peerinfo=False):
+    def set_download_states_callback(self,usercallback,getpeerinfo=False):
         """
         See Download.set_state_callback. Calls usercallback(dslist) which should
         return > 0.0 to reschedule.
         """
-        self.lm.set_download_states_callback(usercallback,peerinfo)
+        self.lm.set_download_states_callback(usercallback,getpeerinfo)
 
 
     def get_internal_tracker_url(self):
@@ -614,8 +614,8 @@ class Session(Serializable,SessionConfigInterface):
         print >>sys.stderr,"Session: perform_getstate_user_callback()"
         def target():
             try:
-                (when,peerinfo) = usercallback(data)
-                returncallback(usercallback,when,peerinfo)
+                (when,getpeerinfo) = usercallback(data)
+                returncallback(usercallback,when,getpeerinfo)
             except:
                 print_exc()
         self.perform_usercallback(target)
@@ -1217,14 +1217,14 @@ class Download(DownloadConfigInterface):
         return self.tdef
 
     
-    def set_state_callback(self,usercallback,peerinfo=False):
+    def set_state_callback(self,usercallback,getpeerinfo=False):
         """ 
         Set a callback for retrieving the state of the download. This callback
         will be called immediately with a DownloadState object as first parameter.
-        The callback method must return a tuple (when,peerinfo) where "when" 
+        The callback method must return a tuple (when,getpeerinfo) where "when" 
         indicates whether the callback should be called again and represents a
         number of seconds from now. If "when" <= 0.0 the callback will not be
-        called again. "peerinfo" is a boolean that indicates whether the 
+        called again. "getpeerinfo" is a boolean that indicates whether the 
         DownloadState passed to the callback on the next invocation should
         contain info about the set of current peers.
                 
@@ -1234,21 +1234,21 @@ class Download(DownloadConfigInterface):
         """
         self.dllock.acquire()
         try:
-            func = lambda:self.network_get_state(usercallback,peerinfo)
+            func = lambda:self.network_get_state(usercallback,getpeerinfo)
             # First time on general rawserver
             self.session.lm.rawserver.add_task(func,0.0)
         finally:
             self.dllock.release()
         
         
-    def network_get_state(self,usercallback,peerinfo,sessioncalling=False):
+    def network_get_state(self,usercallback,getpeerinfo,sessioncalling=False):
         """ Called by network thread """
         self.dllock.acquire()
         try:
             if self.sd is None:
                 ds = DownloadState(DLSTATUS_STOPPED,self.error,self.progressbeforestop)
             else:
-                (status,stats) = self.sd.get_stats(peerinfo)
+                (status,stats) = self.sd.get_stats(getpeerinfo)
                 ds = DownloadState(self,status,self.error,None,stats=stats,filepieceranges=self.filepieceranges)
                 self.progressbeforestop = ds.get_progress()
             
@@ -1265,14 +1265,14 @@ class Download(DownloadConfigInterface):
             self.dllock.release()
 
 
-    def sesscb_get_state_returncallback(self,usercallback,when,newpeerinfo):
+    def sesscb_get_state_returncallback(self,usercallback,when,newgetpeerinfo):
         """ Called by SessionCallbackThread """
         self.dllock.acquire()
         try:
             if when > 0.0:
                 # Schedule next invocation, either on general or DL specific
                 # TODO: ensure this continues when dl is stopped. Should be OK.
-                func = lambda:self.network_get_state(usercallback,newpeerinfo)
+                func = lambda:self.network_get_state(usercallback,newgetpeerinfo)
                 if self.sd is None:
                     self.session.lm.rawserver.add_task(func,when)
                 else:
@@ -1840,7 +1840,7 @@ class TriblerLaunchMany(Thread):
         else:
             self.sdownloadtohashcheck = None
 
-    def set_download_states_callback(self,usercallback,peerinfo,when=0.0):
+    def set_download_states_callback(self,usercallback,getpeerinfo,when=0.0):
         """ Called by any thread """
         self.sesslock.acquire()
         try:
@@ -1850,16 +1850,16 @@ class TriblerLaunchMany(Thread):
             # in list of states returned via callback.
             #
             dllist = self.downloads[:]
-            func = lambda:self.network_set_download_states_callback(dllist,usercallback,peerinfo)
+            func = lambda:self.network_set_download_states_callback(dllist,usercallback,getpeerinfo)
             self.rawserver.add_task(func,when)
         finally:
             self.sesslock.release()
         
-    def network_set_download_states_callback(self,dllist,usercallback,peerinfo):
+    def network_set_download_states_callback(self,dllist,usercallback,getpeerinfo):
         """ Called by network thread """
         dslist = []
         for d in dllist:
-            ds = d.network_get_state(None,peerinfo,sessioncalling=True)
+            ds = d.network_get_state(None,getpeerinfo,sessioncalling=True)
             dslist.append(ds)
             
         # Invoke the usercallback function via a new thread.
@@ -1867,11 +1867,11 @@ class TriblerLaunchMany(Thread):
         # the returncallback for post-callback processing.
         self.session.perform_getstate_usercallback(usercallback,dslist,self.sesscb_set_download_states_returncallback)
         
-    def sesscb_set_download_states_returncallback(self,usercallback,when,newpeerinfo):
+    def sesscb_set_download_states_returncallback(self,usercallback,when,newgetpeerinfo):
         """ Called by SessionCallbackThread """
         if when > 0.0:
             # reschedule
-            self.set_download_states_callback(usercallback,newpeerinfo,when=when)
+            self.set_download_states_callback(usercallback,newgetpeerinfo,when=when)
 
 
 
@@ -1976,7 +1976,7 @@ class SingleDownload:
         callback(direct,speed)
 
 
-    def get_stats(self,peerinfo):  
+    def get_stats(self,getpeerinfo):  
         if self._getstatsfunc is None:
             return (DLSTATUS_WAITING4HASHCHECK,None)
         elif self._getstatsfunc == SPECIAL_VALUE:
@@ -1984,7 +1984,7 @@ class SingleDownload:
             stats['frac'] = self.hashcheckfrac
             return (DLSTATUS_HASHCHECKING,stats)
         else:
-            return (None,self._getstatsfunc(peerinfo=peerinfo))
+            return (None,self._getstatsfunc(getpeerinfo=getpeerinfo))
 
     #
     #
@@ -2080,7 +2080,7 @@ def vod_ready_callback(mimetype,stream):
 
 if __name__ == "__main__":
     
-    s.set_download_states_callback(states_callback,peerinfo=False)
+    s.set_download_states_callback(states_callback,getpeerinfo=False)
     # Torrent 1
     if sys.platform == 'win32':
         tdef = TorrentDef.load('bla.torrent')
