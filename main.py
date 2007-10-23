@@ -52,29 +52,6 @@ def vod_ready_callback(mimetype,stream):
     print >>sys.stderr,"main: VOD ready callback called",currentThread().getName(),"###########################################################",mimetype
 
 
-def shutdown_callback(psdict,sscfg):
-    print >>sys.stderr,"main: shutdown callback called"
-    # pickle/bencode sscfg if no override config
-    # pickle/bencode psdict
-    
-def checkpoint_callback(psdict,sscfg):
-    print >>sys.stderr,"main: checkpoint callback called"
-    # pickle/bencode sscfg if no override config
-    # pickle/bencode psdict
-
-    cfgfilename = os.path.join(sscfg.get_state_dir(),'sessconfig.pickle')
-    f = open(cfgfilename,"wb")
-    pickle.dump(sscfg,f)
-    f.close()
-
-    statefilename = os.path.join(sscfg.get_state_dir(),'sessstate.pickle')
-    f = open(statefilename,"wb")
-    pickle.dump(psdict,f)
-    f.close()
-    
-
-
-
 if __name__ == "__main__":
     
     s.set_download_states_callback(states_callback,getpeerlist=False)
@@ -93,8 +70,6 @@ if __name__ == "__main__":
     dcfg.set_selected_files('star_wreck_in_the_pirkinning_subtitled_xvid.avi') # play this video
     """
     d = s.start_download(tdef,dcfg)
-    s.checkpoint(checkpoint_callback)
-    
     
     # Torrent 2
     """

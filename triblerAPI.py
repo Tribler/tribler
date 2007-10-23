@@ -121,9 +121,10 @@ Persistence Support
 ===================
 We use the Python pickling mechanism to make objects persistent. We add a
 version number to the state before it is saved. To indicate serializability
-classes inherit from the Serializable interface. For a Session there is 
-a special checkpointing mechanism. Downloads also be individually 
-checkpointed, although this is not expected to be used much.
+classes inherit from the Serializable interface. 
+
+For a Session there is a special checkpointing mechanism. Downloads also
+be individually checkpointed, although this is not expected to be used much.
 
 ALTERNATIVE: 
 We provide save/load methods. An ISSUE then is do we use filenames as args or 
@@ -243,6 +244,7 @@ import copy
 import sha
 import socket
 import pickle
+import binascii
 from UserDict import DictMixin
 from threading import RLock,Condition,Event,Thread,currentThread
 from traceback import print_exc,print_stack
@@ -489,7 +491,7 @@ class Session(SessionConfigInterface):
     """
     cf. libtorrent session
     """
-    def __init__(self,scfg=None):
+    def __init__(self,scfg=None,state_dir=None):
         """
         A Session object is created which is configured following a copy of the
         SessionStartupConfig scfg. (copy constructor used internally)
@@ -503,15 +505,18 @@ class Session(SessionConfigInterface):
         """
         self.sesslock = RLock()
         self.threadcount=1
-        
-        if scfg is None:
-            cscfg = SessionStartupConfig.get_copy_of_default()
-        else:
-            cscfg = scfg
-     
-        # Work from copy
-        self.sessconfig = copy.copy(cscfg.sessconfig)
 
+        # Determine startup config to use
+        if scfg is not None: # overrides any saved config
+            # Work from copy
+            self.sessconfig = copy.copy(scfg.sessconfig)
+        else:
+            if state_dir is not None:
+                cscfg = self.load_pstate_sessconfig(state_dir)
+            else:
+                cscfg = SessionStartupConfig.get_copy_of_default()
+            self.sessconfig = cscfg.sessconfig
+            
         # Core init
         resetPeerIDs()
         Tribler.Overlay.permid.init()
@@ -538,8 +543,6 @@ class Session(SessionConfigInterface):
         # Set params that depend on state_dir
         #
         # 1. keypair
-        # For convenience we also save this, could theoretically let user to
-        # it via checkpoint callback, but that's a bit of a hassle.
         #
         pairfilename = os.path.join(self.sessconfig['state_dir'],'ec.pem')
         pubfilename = os.path.join(self.sessconfig['state_dir'],'ecpub.pem')
@@ -556,8 +559,13 @@ class Session(SessionConfigInterface):
             Tribler.Overlay.permid.save_keypair(self.sessconfig['eckeypair'],pairfilename)
             Tribler.Overlay.permid.save_pub_key(self.sessconfig['eckeypair'],pubfilename)
         
-        # 2. tracker
-        trackerdir = os.path.join(self.sessconfig['state_dir'],'itracker')
+        # 2. Downloads
+        dldir = os.path.join(self.sessconfig['state_dir'],STATEDIR_DLPSTATE_DIR)
+        if not os.path.isdir(dldir):
+            os.mkdir(dldir)
+        
+        # 3. tracker
+        trackerdir = os.path.join(self.sessconfig['state_dir'],STATEDIR_ITRACKER_DIR)
         if not os.path.isdir(trackerdir):
             os.mkdir(trackerdir)
 
@@ -574,6 +582,11 @@ class Session(SessionConfigInterface):
             else:
                 sink = '/dev/null'
             self.sessconfig['tracker_logfile'] = sink
+
+
+        # Checkpoint startup config
+        sscfg = self.get_current_startup_config_copy()
+        self.save_pstate_sessconfig(sscfg)
 
         # Create engine with network thread
         self.lm = TriblerLaunchMany(self,self.sesslock)
@@ -640,16 +653,18 @@ class Session(SessionConfigInterface):
         url = 'http://'+ip+':'+str(port)+'/announce/'
         return url
 
-    def checkpoint(self,usercallback):
-        """ Called by any thread """
-        self.lm.checkpoint(usercallback,stop=False)
+    def checkpoint(self):
+        """ Saves the internal session state to the Session's state dir.
+        
+        Called by any thread """
+        self.checkpoint_shutdown(stop=False)
     
-    def shutdown(self,usercallback):
-        """ Called by any thread """
-        self.lm.checkpoint(usercallback,stop=True)
-    
-    
-    
+    def shutdown(self):
+        """ Checkpoints the session and closes it, stopping the download engine. 
+        
+        Called by any thread """
+        self.checkpoint_shutdown(stop=True)
+
     #
     # SessionConfigInterface
     #
@@ -690,6 +705,7 @@ class Session(SessionConfigInterface):
     #
     # Internal methods
     #
+    
     def perform_vod_usercallback(self,usercallback,mimetype,stream):
         """ Called by network thread """
         print >>sys.stderr,"Session: perform_vod_usercallback()"
@@ -712,22 +728,6 @@ class Session(SessionConfigInterface):
         self.perform_usercallback(session_getstate_usercallback_target)
 
         
-    def perform_checkpoint_usercallback(self,usercallback,data):
-        """ Called by network thread """
-        print >>sys.stderr,"Session: perform_checkpoint_usercallback()"
-        def session_checkpoint_usercallback_target():
-            try:
-                sscfg = SessionStartupConfig(sessconfig=self.sessconfig)
-                # Reset unpicklable params
-                sscfg.set_permid(None)
-                
-                psdict = data
-                usercallback(psdict,sscfg)
-            except:
-                print_exc()
-        self.perform_usercallback(session_checkpoint_usercallback_target)
-
-        
     def perform_usercallback(self,target):
         self.sesslock.acquire()
         try:
@@ -737,6 +737,63 @@ class Session(SessionConfigInterface):
             t = Thread(target=target,name=name)
             t.setDaemon(True)
             t.start()
+        finally:
+            self.sesslock.release()
+
+    #
+    # Internal persistence methods
+    #
+    def checkpoint_shutdown(self,stop):
+        """ Called by any thread """
+        # No locking required
+        sscfg = self.get_current_startup_config_copy()
+        # Reset unpicklable params
+        sscfg.set_permid(None)
+        try:
+            self.save_pstate_sessconfig(sscfg)
+        except Exception,e:
+            self.lm.rawserver_nonfatalerrorfunc(e)
+
+        # Checkpoint all Downloads
+        self.lm.checkpoint(stop=stop)
+
+    def save_pstate_sessconfig(self,sscfg):
+        """ Called by any thread """
+        cfgfilename = os.path.join(sscfg.get_state_dir(),STATEDIR_SESSCONFIG)
+        f = open(cfgfilename,"wb")
+        pickle.dump(sscfg,f)
+        f.close()
+
+
+    def load_pstate_sessconfig(self,state_dir):
+        cfgfilename = os.path.join(state_dir,STATEDIR_SESSCONFIG)
+        f = open(cfgfilename,"rb")
+        sscfg = pickle.load(f)
+        f.close()
+        return sscfg
+        
+
+    def get_downloads_pstate_dir(self):
+        """ Returns the directory in which to checkpoint the Downloads in this
+        Session.
+         
+        Called by network thread """
+        self.sesslock.acquire()
+        try:
+            return os.path.join(self.sessconfig['state_dir'],STATEDIR_DLPSTATE_DIR)
+        finally:
+            self.sesslock.release()
+        
+        
+    def get_current_startup_config_copy(self):
+        """ Returns a SessionStartupConfig that is a copy of the current runtime 
+        SessionConfig.
+         
+        Called by any thread """
+        self.sesslock.acquire()
+        try:
+            sessconfig = copy.copy(self.sessconfig)
+            return SessionStartupConfig(sessconfig=sessconfig)
         finally:
             self.sesslock.release()
         
@@ -1307,11 +1364,14 @@ class Download(DownloadConfigInterface):
     def network_create_engine_wrapper(self,infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcallback):
         """ Called by network thread """
         self.dllock.acquire()
-        self.sd = SingleDownload(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,self.set_error)
-        sd = self.sd
-        exc = self.error
-        if lmcallback is not None:
-            lmcallback(sd,exc)
+        try:
+            self.sd = SingleDownload(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,self.set_error)
+            sd = self.sd
+            exc = self.error
+            if lmcallback is not None:
+                lmcallback(self,sd,exc)
+        finally:
+            self.dllock.release()
 
 
     #
@@ -1567,10 +1627,12 @@ class Download(DownloadConfigInterface):
         """ Assume dllock already held """
         pstate = {}
         pstate['version'] = PERSISTENTSTATE_CURRENTVERSION
-        pstate['metainfo'] = self.tdef.get_metainfo()
-        pstate['dlconfig'] = self.dlconfig
+        pstate['metainfo'] = self.tdef.get_metainfo() # assumed immutable
+        dlconfig = copy.copy(self.dlconfig)
         # Reset unpicklable params
-        pstate['dlconfig']['vod_usercallback'] = None
+        dlconfig['vod_usercallback'] = None
+        dlconfig['dlmode'] = DLMODE_NORMAL # no callback, no VOD
+        pstate['dscfg'] = DownloadStartupConfig(dlconfig=dlconfig)
 
         pstate['dlstate'] = {}
         ds = self.network_get_state(None,False,sessioncalling=True)
@@ -1846,10 +1908,13 @@ class TriblerLaunchMany(Thread):
             self.sesslock.release()
 
 
-    def network_engine_wrapper_created_callback(self,sd,exc):
+    def network_engine_wrapper_created_callback(self,d,sd,exc):
         """ Called by network thread """
         if exc is None:
             self.queue_for_hashcheck(sd)
+            # Checkpoint at startup
+            (infohash,pstate) = d.network_checkpoint()
+            self.save_download_pstate(infohash,pstate)
         
     def remove(self,d):
         """ Called by any thread """
@@ -1987,7 +2052,7 @@ class TriblerLaunchMany(Thread):
     #
     # Persistence methods
     #
-    def checkpoint(self,usercallback,stop=False,when=0.0):
+    def checkpoint(self,stop=False):
         """ Called by any thread """
         self.sesslock.acquire()
         try:
@@ -1998,7 +2063,7 @@ class TriblerLaunchMany(Thread):
             #
             dllist = self.downloads[:]
             network_checkpoint_callback_lambda = lambda:self.network_checkpoint_callback(dllist,usercallback,stop)
-            self.rawserver.add_task(network_checkpoint_callback_lambda,when)
+            self.rawserver.add_task(network_checkpoint_callback_lambda,0.0)
         finally:
             self.sesslock.release()
         
@@ -2015,13 +2080,30 @@ class TriblerLaunchMany(Thread):
             else:
                 (infohash,pstate) = d.network_checkpoint()
             psdict[infohash] = pstate
-            
-        # Invoke the usercallback function via a new thread.
-        self.session.perform_checkpoint_usercallback(usercallback,psdict)
-        
+
+        try:
+            for infohash,pstate in psdict:
+                self.save_download_pstate(infohash,pstate)
+        except Exception,e:
+            rawserver_nonfatalerrorfunc(e)
+
         if stop:
             # Stop network thread
             self.doneflag.set()
+
+
+    def save_download_pstate(self,infohash,pstate):
+        """ Called by network thread """
+        basename = binascii.hexlify(infohash)+'.pickle'
+        filename = os.path.join(self.session.get_downloads_pstate_dir(),basename)
+        f = open(filename,"wb")
+        pickle.dump(pstate,f)
+        f.close()
+
+
+    def load_pstate(self):
+        pass
+        # TODO: read dlcheckpoints dir and revive downloads
 
 
     #

@@ -26,6 +26,11 @@ DLMODE_VOD = 1
 
 PERSISTENTSTATE_CURRENTVERSION = 1
 
+STATEDIR_ITRACKER_DIR = 'itracker'
+STATEDIR_DLPSTATE_DIR = 'dlcheckpoints'
+STATEDIR_SESSCONFIG = 'sessconfig.pickle' 
+
+
 def pathlist2filename(pathlist):
     fullpath = ''
     for elem in pathlist:
