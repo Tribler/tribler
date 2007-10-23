@@ -6,6 +6,8 @@ from simpledefs import *
 DEFAULTPORT=7762  # Arno: see Utility/configreader.py and Utility/utility.py
 
 sessdefaults = [
+    ('version', PERSISTENTSTATE_CURRENTVERSION, 'version of the SessionConfig schema (i.e., the keys defined here)'),
+    ('state_dir', None, 'Dir to state session state in (default = $HOME/.Tribler/, $APPDATA/.Tribler/)'),
     ('ip', '',
         "ip to report you have to the tracker."),
     ('minport', DEFAULTPORT, 'minimum port to listen on, counts up if unavailable'),
@@ -28,7 +30,7 @@ sessdefaults = [
         'time to wait between checking if any connections have timed out'),
 
 # Tribler session opts
-    ('eckeypair', None, "keypair to use for session"),
+    ('eckeypair', None, "keypair to use for session (default statedir ecpub.pem+ec.pem)"),
     ('cache', 1,
         "use bsddb to cache peers and preferences"),
     ('overlay', 1,
@@ -78,8 +80,8 @@ sessdefaults = [
     ('videoplayerpath', None, 'Path to video analyser (FFMPEG, default is to look for it in $PATH)')]
 
 trackerdefaults = [
-    ('tracker_dfile', None, 'file to store recent downloader info in'),
-    ('tracker_dfile_format', 'bencode', 'format of dfile: either "bencode" (default) or pickle (needed when unicode filenames in state)'),
+    ('tracker_dfile', None, 'file to store recent downloader info in (default = session state dir/itracker/tracker.db'),
+    ('tracker_dfile_format', 'pickle', 'format of dfile: either "bencode" or pickle (needed when unicode filenames in state (default))'),
     ('tracker_socket_timeout', 15, 'timeout for closing connections'),
     ('tracker_save_dfile_interval', 5 * 60, 'seconds between saving dfile'),
     ('tracker_timeout_downloaders_interval', 45 * 60, 'seconds between expiring downloaders'),
@@ -95,7 +97,7 @@ trackerdefaults = [
         'minimum time it must have been since the last flush to do another one'),
     ('tracker_min_time_between_cache_refreshes', 600.0,
         'minimum time in seconds before a cache is considered stale and is flushed'),
-    ('tracker_allowed_dir', '', 'only allow downloads for .torrents in this dir'),
+    ('tracker_allowed_dir', None, 'only allow downloads for .torrents in this dir'),
     ('tracker_allowed_list', '', 'only allow downloads for hashes in this list (hex format, one per line)'),
     ('tracker_allowed_controls', 0, 'allow special keys in torrents in the allowed_dir to affect tracker access'),
     ('tracker_multitracker_enabled', 0, 'whether to enable multitracker operation'),
@@ -131,6 +133,7 @@ sessdefaults = sessdefaults + trackerdefaults
 
 # BT per download opts
 dldefaults = [
+    ('version', PERSISTENTSTATE_CURRENTVERSION, 'version of the DownloadConfig schema (i.e., the keys defined here)'),
     ('max_uploads', 7,
         "the maximum number of uploads to allow at once."),
     ('keepalive_interval', 120.0,
@@ -251,6 +254,7 @@ tdefdictdefaults = [
     ('httpseeds', '',  "default httpseeds") ]
 
 tdefmetadefaults = [
+    ('version', PERSISTENTSTATE_CURRENTVERSION, 'version of the TorrentDef schema (i.e., the keys defined here)'),
     ('piece_size', 0, "piece size as int (0 = automatic)"), 
     ('makehash_md5', 0, "add end-to-end MD5 checksum"), 
     ('makehash_crc32', 0, "add end-to-end CRC32 checksum"), 

@@ -121,7 +121,9 @@ Persistence Support
 ===================
 We use the Python pickling mechanism to make objects persistent. We add a
 version number to the state before it is saved. To indicate serializability
-classes inherit from the Serializable interface. 
+classes inherit from the Serializable interface. For a Session there is 
+a special checkpointing mechanism. Downloads also be individually 
+checkpointed, although this is not expected to be used much.
 
 ALTERNATIVE: 
 We provide save/load methods. An ISSUE then is do we use filenames as args or 
@@ -225,6 +227,13 @@ location)
 
 - Reimplement selected_files with existing 'priority' field
 
+- set/get for all config params
+
+- Move all sourcecode to a tribler dir? So we can do:
+    import tribler
+    s = tribler.Session()
+    etc.
+
 """
 
 import sys
@@ -233,6 +242,7 @@ import time
 import copy
 import sha
 import socket
+import pickle
 from UserDict import DictMixin
 from threading import RLock,Condition,Event,Thread,currentThread
 from traceback import print_exc,print_stack
@@ -275,11 +285,8 @@ class Serializable:
     """
     Interface to signal that the object is pickleable.
     """
-    def __get_state__(self):
-        raise NotYetImplementedException()
-    
-    def __set_state__(self,state):
-        raise NotYetImplementedException()
+    def __init__(self):
+        pass
 
 
 class Defaultable:
@@ -390,7 +397,8 @@ class SessionConfigInterface:
         # Define the built-in default here
         for key,val,expl in sessdefaults:
             self.sessconfig[key] = val
-    
+        
+        # Set video_analyser_path
         if sys.platform == 'win32':
             ffmpegname = "ffmpeg.exe"
         else:
@@ -414,8 +422,14 @@ class SessionConfigInterface:
         self.sessconfig['dialback'] = 0
         
         # TODO, when we have a place to save data to (dfile in this case)
-        self.sessconfig['internaltracker'] = 0
+        #self.sessconfig['internaltracker'] = 0
 
+
+    def set_state_dir(self,statedir):
+        self.sessconfig['state_dir'] = statedir
+    
+    def get_state_dir(self):
+        return self.sessconfig['state_dir']
     
     def set_permid(self,keypair):
         self.sessconfig['eckeypair'] = keypair
@@ -471,7 +485,7 @@ class SessionStartupConfig(SessionConfigInterface,Defaultable,Copyable,Serializa
 
 
 
-class Session(Serializable,SessionConfigInterface):
+class Session(SessionConfigInterface):
     """
     cf. libtorrent session
     """
@@ -497,13 +511,71 @@ class Session(Serializable,SessionConfigInterface):
      
         # Work from copy
         self.sessconfig = copy.copy(cscfg.sessconfig)
-        
+
         # Core init
         resetPeerIDs()
         Tribler.Overlay.permid.init()
+    
+        # Create dir for session state
+        if self.sessconfig['state_dir'] is None:
+            homedirpostfix = '.Tribler'
+            if sys.platform == 'win32':
+                homedirvar = '${APPDATA}'
+            elif sys.platform == 'darwin':
+                homedirvar = '${HOME}'
+                # JD wants $HOME/Libray/Preferences/something TODO
+                #homedirpostfix = os.path.join('Library)
+            else:
+                homedirvar = '${HOME}'  
+            homedir = os.path.expandvars(homedirvar)
+            triblerdir = os.path.join(homedir,homedirpostfix)
+            self.sessconfig['state_dir'] = triblerdir
+            
+        if not os.path.isdir(self.sessconfig['state_dir']):
+            os.mkdir(self.sessconfig['state_dir'])
+
+        #
+        # Set params that depend on state_dir
+        #
+        # 1. keypair
+        # For convenience we also save this, could theoretically let user to
+        # it via checkpoint callback, but that's a bit of a hassle.
+        #
+        pairfilename = os.path.join(self.sessconfig['state_dir'],'ec.pem')
+        pubfilename = os.path.join(self.sessconfig['state_dir'],'ecpub.pem')
+        save = True
         if self.sessconfig['eckeypair'] is None:
-            self.sessconfig['eckeypair'] = Tribler.Overlay.permid.generate_keypair()
+            try:
+                self.sessconfig['eckeypair'] = Tribler.Overlay.permid.read_keypair(pairfilename)
+                save = False
+            except:
+                print_exc()
+                self.sessconfig['eckeypair'] = Tribler.Overlay.permid.generate_keypair()
+        # Always save in state dir
+        if save:
+            Tribler.Overlay.permid.save_keypair(self.sessconfig['eckeypair'],pairfilename)
+            Tribler.Overlay.permid.save_pub_key(self.sessconfig['eckeypair'],pubfilename)
         
+        # 2. tracker
+        trackerdir = os.path.join(self.sessconfig['state_dir'],'itracker')
+        if not os.path.isdir(trackerdir):
+            os.mkdir(trackerdir)
+
+        if self.sessconfig['tracker_dfile'] is None:
+            self.sessconfig['tracker_dfile'] = os.path.join(trackerdir,'tracker.db')    
+
+        if self.sessconfig['tracker_allowed_dir'] is None:
+            self.sessconfig['tracker_allowed_dir'] = trackerdir    
+        
+        if self.sessconfig['tracker_logfile'] is None:
+            if sys.platform == "win32":
+                # Not "Nul:" but "nul" is /dev/null on Win32
+                sink = 'nul'
+            else:
+                sink = '/dev/null'
+            self.sessconfig['tracker_logfile'] = sink
+
+        # Create engine with network thread
         self.lm = TriblerLaunchMany(self,self.sesslock)
         self.lm.start()
         
@@ -568,8 +640,14 @@ class Session(Serializable,SessionConfigInterface):
         url = 'http://'+ip+':'+str(port)+'/announce/'
         return url
 
+    def checkpoint(self,usercallback):
+        """ Called by any thread """
+        self.lm.checkpoint(usercallback,stop=False)
+    
     def shutdown(self,usercallback):
-        self.lm.shutdown(usercallback)
+        """ Called by any thread """
+        self.lm.checkpoint(usercallback,stop=True)
+    
     
     
     #
@@ -577,11 +655,21 @@ class Session(Serializable,SessionConfigInterface):
     #
     # use these to change the session config at runtime
     #
+    def set_state_dir(self,statedir):
+        raise OperationNotPossibleAtRuntimeExeption()
+    
+    def get_state_dir(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_state_dir(self)
+        finally:
+            self.sesslock.release()
+    
     def set_permid(self,keypair):
-        raise OperationNotPossibleAtRuntime()
+        raise OperationNotPossibleAtRuntimeExeption()
         
     def set_listen_port(self,port):
-        raise OperationNotPossibleAtRuntime()
+        raise OperationNotPossibleAtRuntimeExeption()
 
     def get_listen_port(self):
         # To protect self.sessconfig
@@ -624,17 +712,20 @@ class Session(Serializable,SessionConfigInterface):
         self.perform_usercallback(session_getstate_usercallback_target)
 
         
-    def perform_shutdown_usercallback(self,usercallback,data):
+    def perform_checkpoint_usercallback(self,usercallback,data):
         """ Called by network thread """
-        print >>sys.stderr,"Session: perform_shutdown_usercallback()"
-        def session_shutdown_usercallback_target():
+        print >>sys.stderr,"Session: perform_checkpoint_usercallback()"
+        def session_checkpoint_usercallback_target():
             try:
                 sscfg = SessionStartupConfig(sessconfig=self.sessconfig)
+                # Reset unpicklable params
+                sscfg.set_permid(None)
+                
                 psdict = data
                 usercallback(psdict,sscfg)
             except:
                 print_exc()
-        self.perform_usercallback(session_shutdown_usercallback_target)
+        self.perform_usercallback(session_checkpoint_usercallback_target)
 
         
     def perform_usercallback(self,target):
@@ -1209,8 +1300,8 @@ class Download(DownloadConfigInterface):
             vodfileindex = [-1,None,0.0,None,None]
         
         # Delegate creation of engine wrapper to network thread
-        func = lambda:self.network_create_engine_wrapper(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcallback)
-        self.session.lm.rawserver.add_task(func,0) 
+        network_create_engine_wrapper_lambda = lambda:self.network_create_engine_wrapper(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcallback)
+        self.session.lm.rawserver.add_task(network_create_engine_wrapper_lambda,0) 
         
 
     def network_create_engine_wrapper(self,infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcallback):
@@ -1219,8 +1310,6 @@ class Download(DownloadConfigInterface):
         self.sd = SingleDownload(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,self.set_error)
         sd = self.sd
         exc = self.error
-        self.dllock.release()
-        
         if lmcallback is not None:
             lmcallback(sd,exc)
 
@@ -1253,52 +1342,12 @@ class Download(DownloadConfigInterface):
         """
         self.dllock.acquire()
         try:
-            func = lambda:self.network_get_state(usercallback,getpeerlist)
+            network_get_state_lambda = lambda:self.network_get_state(usercallback,getpeerlist)
             # First time on general rawserver
-            self.session.lm.rawserver.add_task(func,0.0)
+            self.session.lm.rawserver.add_task(network_get_state_lambda,0.0)
         finally:
             self.dllock.release()
         
-        
-    def network_get_state(self,usercallback,getpeerlist,sessioncalling=False):
-        """ Called by network thread """
-        self.dllock.acquire()
-        try:
-            if self.sd is None:
-                ds = DownloadState(DLSTATUS_STOPPED,self.error,self.progressbeforestop)
-            else:
-                (status,stats) = self.sd.get_stats(getpeerlist)
-                ds = DownloadState(self,status,self.error,None,stats=stats,filepieceranges=self.filepieceranges)
-                self.progressbeforestop = ds.get_progress()
-            
-                #print >>sys.stderr,"STATS",stats
-            
-            if sessioncalling:
-                return ds
-
-            # Invoke the usercallback function via a new thread.
-            # After the callback is invoked, the return values will be passed to
-            # the returncallback for post-callback processing.
-            self.session.perform_getstate_usercallback(usercallback,ds,self.sesscb_get_state_returncallback)
-        finally:
-            self.dllock.release()
-
-
-    def sesscb_get_state_returncallback(self,usercallback,when,newgetpeerlist):
-        """ Called by SessionCallbackThread """
-        self.dllock.acquire()
-        try:
-            if when > 0.0:
-                # Schedule next invocation, either on general or DL specific
-                # TODO: ensure this continues when dl is stopped. Should be OK.
-                func = lambda:self.network_get_state(usercallback,newgetpeerlist)
-                if self.sd is None:
-                    self.session.lm.rawserver.add_task(func,when)
-                else:
-                    self.sd.dlrawserver.add_task(func,when)
-        finally:
-            self.dllock.release()
-            
 
     def stop(self):
         """ Called by any thread """
@@ -1324,6 +1373,16 @@ class Download(DownloadConfigInterface):
             self.dllock.release()
 
 
+    def checkpoint(self,usercallback,when=0.0):
+        """ Called by any thread """
+        self.dllock.acquire()
+        try:
+            network_checkpoint_callback_lambda = lambda:self.network_checkpoint_callback(usercallback)
+            self.rawserver.add_task(network_checkpoint_callback_lambda,when)
+        finally:
+            self.dllock.release()
+
+
     #
     # DownloadConfigInterface
     #
@@ -1338,8 +1397,8 @@ class Download(DownloadConfigInterface):
             # Don't need to throw an exception when stopped, we then just save the new value and
             # use it at (re)startup.
             if self.sd is not None:
-                func = lambda:self.sd.set_max_speed(direct,speed,self.network_set_max_speed)
-                self.session.lm.rawserver.add_task(func,0)
+                set_max_speed_lambda = lambda:self.sd.set_max_speed(direct,speed,self.network_set_max_speed)
+                self.session.lm.rawserver.add_task(set_max_speed_lambda,0)
             else:
                 DownloadConfigInterface.set_max_speed(self,direct,speed)
         finally:
@@ -1433,21 +1492,92 @@ class Download(DownloadConfigInterface):
             self.filepieceranges = None 
 
 
+    def network_get_state(self,usercallback,getpeerlist,sessioncalling=False):
+        """ Called by network thread """
+        self.dllock.acquire()
+        try:
+            if self.sd is None:
+                ds = DownloadState(DLSTATUS_STOPPED,self.error,self.progressbeforestop)
+            else:
+                (status,stats) = self.sd.get_stats(getpeerlist)
+                ds = DownloadState(self,status,self.error,None,stats=stats,filepieceranges=self.filepieceranges)
+                self.progressbeforestop = ds.get_progress()
+            
+                #print >>sys.stderr,"STATS",stats
+            
+            if sessioncalling:
+                return ds
+
+            # Invoke the usercallback function via a new thread.
+            # After the callback is invoked, the return values will be passed to
+            # the returncallback for post-callback processing.
+            self.session.perform_getstate_usercallback(usercallback,ds,self.sesscb_get_state_returncallback)
+        finally:
+            self.dllock.release()
+
+
+    def sesscb_get_state_returncallback(self,usercallback,when,newgetpeerlist):
+        """ Called by SessionCallbackThread """
+        self.dllock.acquire()
+        try:
+            if when > 0.0:
+                # Schedule next invocation, either on general or DL specific
+                # TODO: ensure this continues when dl is stopped. Should be OK.
+                network_get_state_lambda = lambda:self.network_get_state(usercallback,newgetpeerlist)
+                if self.sd is None:
+                    self.session.lm.rawserver.add_task(network_get_state_lambda,when)
+                else:
+                    self.sd.dlrawserver.add_task(network_get_state_lambda,when)
+        finally:
+            self.dllock.release()
+
     def network_stop(self):
         """ Called by network thread """
         self.dllock.acquire()
         try:
-            pstate = {}
-            pstate['metainfo'] = self.tdef.get_metainfo()
-            pstate['dlconfig'] = self.dlconfig
-            pstate['dlstate'] = {}
-            ds = network_get_state(None,False,sessioncalling=True)
-            pstate['dlstate']['status'] = ds.get_status()
-            pstate['dlstate']['progress'] = ds.get_progress()
+            pstate = self.network_get_persistent_state() 
             pstate['engineresumedata'] = self.sd.shutdown()
             return (self.tdef.get_infohash(),pstate)
         finally:
             self.dllock.release()
+
+
+    def network_checkpoint_callback(self,usercallback):
+        """ Called by network thread """
+        psdict = {}
+        (infohash,pstate) = d.network_checkpoint()
+        psdict[infohash] = pstate
+            
+        # Invoke the usercallback function via a new thread.
+        self.session.perform_checkpoint_usercallback(usercallback,psdict)
+        
+
+    def network_checkpoint(self):
+        """ Called by network thread """
+        self.dllock.acquire()
+        try:
+            pstate = self.network_get_persistent_state() 
+            pstate['engineresumedata'] = self.sd.checkpoint()
+            return (self.tdef.get_infohash(),pstate)
+        finally:
+            self.dllock.release()
+        
+
+    def network_get_persistent_state(self):
+        """ Assume dllock already held """
+        pstate = {}
+        pstate['version'] = PERSISTENTSTATE_CURRENTVERSION
+        pstate['metainfo'] = self.tdef.get_metainfo()
+        pstate['dlconfig'] = self.dlconfig
+        # Reset unpicklable params
+        pstate['dlconfig']['vod_usercallback'] = None
+
+        pstate['dlstate'] = {}
+        ds = self.network_get_state(None,False,sessioncalling=True)
+        pstate['dlstate']['status'] = ds.get_status()
+        pstate['dlstate']['progress'] = ds.get_progress()
+        pstate['engineresumedata'] = None
+        return pstate
 
     def network_set_max_speed(self,direct,speed):
         """ Called by network thread """
@@ -1459,7 +1589,7 @@ class Download(DownloadConfigInterface):
         
 
     
-class DownloadState:
+class DownloadState(Serializable):
     """
     Contains a snapshot of the state of the Download at a specific
     point in time. Using a snapshot instead of providing live data and 
@@ -1761,6 +1891,9 @@ class TriblerLaunchMany(Thread):
             except:
                 print_exc()    
         finally:
+            if self.internaltracker is not None:
+                self.internaltracker.save_state()
+            
             self.stop_upnp()
             self.rawserver.shutdown()
 
@@ -1771,6 +1904,129 @@ class TriblerLaunchMany(Thread):
         Called by network thread """
         self.rawserver.add_task(self.rawserver_keepalive,1)
 
+    #
+    # TODO: called by TorrentMaker when new torrent added to itracker dir
+    # Make it such that when Session.add_torrent() is called and the internal
+    # tracker is used that we write a metainfo to itracker dir and call this.
+    #
+    def tracker_rescan_dir(self):
+        if self.internaltracker is not None:
+            self.internaltracker.parse_allowed(source='TorrentMaker')
+
+    def set_activity(self,type):
+        pass # TODO Jelle
+
+    #
+    # Torrent hash checking
+    #
+    def queue_for_hashcheck(self,sd):
+        """ Schedule a SingleDownload for integrity check of on-disk data
+        
+        Called by network thread """
+        if hash:
+            self.hashcheck_queue.append(sd)
+            # Check smallest torrents first
+            self.hashcheck_queue.sort(lambda x, y: cmp(self.downloads[x].dow.datalength, self.downloads[y].dow.datalength))
+        if not self.sdownloadtohashcheck:
+            self.dequeue_and_start_hashcheck()
+
+    def dequeue_and_start_hashcheck(self):
+        """ Start integriy check for first SingleDownload in queue
+        
+        Called by network thread """
+        self.sdownloadtohashcheck = self.hashcheck_queue.pop(0)
+        self.sdownloadtohashcheck.perform_hashcheck(self.hashcheck_done)
+
+    def hashcheck_done(self):
+        """ Integrity check for first SingleDownload in queue done
+        
+        Called by network thread """
+        self.sdownloadtohashcheck.hashcheck_done()
+        if self.hashcheck_queue:
+            self.dequeue_and_start_hashcheck()
+        else:
+            self.sdownloadtohashcheck = None
+
+
+    #
+    # State retrieval
+    #
+    def set_download_states_callback(self,usercallback,getpeerlist,when=0.0):
+        """ Called by any thread """
+        self.sesslock.acquire()
+        try:
+            # Even if the list of Downloads changes in the mean time this is
+            # no problem. For removals, dllist will still hold a pointer to the
+            # Download, and additions are no problem (just won't be included 
+            # in list of states returned via callback.
+            #
+            dllist = self.downloads[:]
+            network_set_download_states_callback_lambda = lambda:self.network_set_download_states_callback(dllist,usercallback,getpeerlist)
+            self.rawserver.add_task(network_set_download_states_callback_lambda,when)
+        finally:
+            self.sesslock.release()
+        
+    def network_set_download_states_callback(self,dllist,usercallback,getpeerlist):
+        """ Called by network thread """
+        dslist = []
+        for d in dllist:
+            ds = d.network_get_state(None,getpeerlist,sessioncalling=True)
+            dslist.append(ds)
+            
+        # Invoke the usercallback function via a new thread.
+        # After the callback is invoked, the return values will be passed to
+        # the returncallback for post-callback processing.
+        self.session.perform_getstate_usercallback(usercallback,dslist,self.sesscb_set_download_states_returncallback)
+        
+    def sesscb_set_download_states_returncallback(self,usercallback,when,newgetpeerlist):
+        """ Called by SessionCallbackThread """
+        if when > 0.0:
+            # reschedule
+            self.set_download_states_callback(usercallback,newgetpeerlist,when=when)
+
+    #
+    # Persistence methods
+    #
+    def checkpoint(self,usercallback,stop=False,when=0.0):
+        """ Called by any thread """
+        self.sesslock.acquire()
+        try:
+            # Even if the list of Downloads changes in the mean time this is
+            # no problem. For removals, dllist will still hold a pointer to the
+            # Download, and additions are no problem (just won't be included 
+            # in list of states returned via callback.
+            #
+            dllist = self.downloads[:]
+            network_checkpoint_callback_lambda = lambda:self.network_checkpoint_callback(dllist,usercallback,stop)
+            self.rawserver.add_task(network_checkpoint_callback_lambda,when)
+        finally:
+            self.sesslock.release()
+        
+    def network_checkpoint_callback(self,dllist,usercallback,stop):
+        """ Called by network thread """
+        psdict = {'version':PERSISTENTSTATE_CURRENTVERSION}
+        for d in dllist:
+            # Tell all downloads to stop, and save their persistent state
+            # in a infohash -> pstate dict which is then passed to the user
+            # for storage.
+            #
+            if stop:
+                (infohash,pstate) = d.network_stop()
+            else:
+                (infohash,pstate) = d.network_checkpoint()
+            psdict[infohash] = pstate
+            
+        # Invoke the usercallback function via a new thread.
+        self.session.perform_checkpoint_usercallback(usercallback,psdict)
+        
+        if stop:
+            # Stop network thread
+            self.doneflag.set()
+
+
+    #
+    # External IP address methods
+    #
     def guess_ext_ip_from_local_info(self):
         """ Called at creation time """
         ip = get_my_wan_ip()
@@ -1835,102 +2091,7 @@ class TriblerLaunchMany(Thread):
         finally:
             self.sesslock.release()
 
-    def set_activity(self,type):
-        pass # TODO Jelle
 
-
-    def queue_for_hashcheck(self,sd):
-        """ Schedule a SingleDownload for integrity check of on-disk data
-        
-        Called by network thread """
-        if hash:
-            self.hashcheck_queue.append(sd)
-            # Check smallest torrents first
-            self.hashcheck_queue.sort(lambda x, y: cmp(self.downloads[x].dow.datalength, self.downloads[y].dow.datalength))
-        if not self.sdownloadtohashcheck:
-            self.dequeue_and_start_hashcheck()
-
-    def dequeue_and_start_hashcheck(self):
-        """ Start integriy check for first SingleDownload in queue
-        
-        Called by network thread """
-        self.sdownloadtohashcheck = self.hashcheck_queue.pop(0)
-        self.sdownloadtohashcheck.perform_hashcheck(self.hashcheck_done)
-
-    def hashcheck_done(self):
-        """ Integrity check for first SingleDownload in queue done
-        
-        Called by network thread """
-        self.sdownloadtohashcheck.hashcheck_done()
-        if self.hashcheck_queue:
-            self.dequeue_and_start_hashcheck()
-        else:
-            self.sdownloadtohashcheck = None
-
-    def set_download_states_callback(self,usercallback,getpeerlist,when=0.0):
-        """ Called by any thread """
-        self.sesslock.acquire()
-        try:
-            # Even if the list of Downloads changes in the mean time this is
-            # no problem. For removals, dllist will still hold a pointer to the
-            # Download, and additions are no problem (just won't be included 
-            # in list of states returned via callback.
-            #
-            dllist = self.downloads[:]
-            func = lambda:self.network_set_download_states_callback(dllist,usercallback,getpeerlist)
-            self.rawserver.add_task(func,when)
-        finally:
-            self.sesslock.release()
-        
-    def network_set_download_states_callback(self,dllist,usercallback,getpeerlist):
-        """ Called by network thread """
-        dslist = []
-        for d in dllist:
-            ds = d.network_get_state(None,getpeerlist,sessioncalling=True)
-            dslist.append(ds)
-            
-        # Invoke the usercallback function via a new thread.
-        # After the callback is invoked, the return values will be passed to
-        # the returncallback for post-callback processing.
-        self.session.perform_getstate_usercallback(usercallback,dslist,self.sesscb_set_download_states_returncallback)
-        
-    def sesscb_set_download_states_returncallback(self,usercallback,when,newgetpeerlist):
-        """ Called by SessionCallbackThread """
-        if when > 0.0:
-            # reschedule
-            self.set_download_states_callback(usercallback,newgetpeerlist,when=when)
-
-    def shutdown(self,usercallback,when=0.0):
-        """ Called by any thread """
-        self.sesslock.acquire()
-        try:
-            # Even if the list of Downloads changes in the mean time this is
-            # no problem. For removals, dllist will still hold a pointer to the
-            # Download, and additions are no problem (just won't be included 
-            # in list of states returned via callback.
-            #
-            dllist = self.downloads[:]
-            func = lambda:self.network_shutdown_callback(dllist,usercallback)
-            self.rawserver.add_task(func,when)
-        finally:
-            self.sesslock.release()
-        
-    def network_shutdown_callback(self,dllist,usercallback):
-        """ Called by network thread """
-        psdict = {}
-        for d in dllist:
-            # Tell all downloads to stop, and save their persistent state
-            # in a infohash -> pstate dict which is then passed to the user
-            # for storage.
-            #
-            (infohash,pstate) = d.network_stop()
-            psdict[infohash] = pstate
-            
-        # Invoke the usercallback function via a new thread.
-        self.session.perform_shutdown_usercallback(usercallback,psdict)
-        
-        # Stop network thread
-        self.doneflag.set()
 
 
 class SingleDownload:
@@ -2047,6 +2208,12 @@ class SingleDownload:
     #
     #
     #
+    def checkpoint(self):
+        if self.dow is not None:
+            return self.dow.checkpoint()
+        else:
+            return None
+    
     def shutdown(self):
         resumedata = None
         if self.dow is not None:
@@ -2092,90 +2259,3 @@ def offset2piece(offset,piecesize):
     return p
 
 
-from Tribler.API.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
-
-    
-s = Session()
-r = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()
-r.set_global_max_speed(DOWNLOAD,100)
-t = 0
-count = 0
-
-def states_callback(dslist):
-    global s
-    global r
-    global t
-    global count
-    
-    adjustspeeds = False
-    #if count % 4 == 0:
-    #    adjustspeeds = True
-    count += 1
-    
-    for ds in dslist:
-        d = ds.get_download()
-        print >>sys.stderr,"main: Stats",`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD),currentThread().getName()
-        
-        complete = ds.get_pieces_complete()
-        print >>sys.stderr,"main: Pieces completed",`d.get_def().get_name()`,"len",len(complete)
-        print >>sys.stderr,"main: Pieces completed",`d.get_def().get_name()`,complete[:60]
-        
-        if adjustspeeds:
-            r.add_downloadstate(ds)
-        
-    if adjustspeeds:
-        r.adjust_speeds()
-    return (1.0,False)
-
-
-
-def state_callback(ds):
-    d = ds.get_download()
-    print >>sys.stderr,"main: SingleStats",`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD),currentThread().getName()
-    return (1.0,False)
-
-
-def vod_ready_callback(mimetype,stream):
-    print >>sys.stderr,"main: VOD ready callback called",currentThread().getName(),"###########################################################",mimetype
-
-
-def shutdown_callback(psdict,sscfg):
-    print >>sys.stderr,"main: shutdown callback called"
-    # pickle/bencode sscfg if no override config
-    # pickle/bencode psdict
-    
-
-
-
-if __name__ == "__main__":
-    
-    s.set_download_states_callback(states_callback,getpeerlist=False)
-    # Torrent 1
-    if sys.platform == 'win32':
-        tdef = TorrentDef.load('bla.torrent')
-    else:
-        #tdef = TorrentDef.load('/tmp/bla3multi.torrent')
-        tdef = TorrentDef.load('/arno/tmp/scandir/bla.torrent')
-        
-    dcfg = DownloadStartupConfig.get_copy_of_default()
-    dcfg.set_dest_dir('/arno/tmp/scandir')
-    """
-    dcfg.set_video_on_demand(vod_ready_callback)
-    #dcfg.set_selected_files('star-wreck-in-the-pirkinning.txt') # play this video
-    dcfg.set_selected_files('star_wreck_in_the_pirkinning_subtitled_xvid.avi') # play this video
-    """
-    d = s.start_download(tdef,dcfg)
-    
-    
-    # Torrent 2
-    """
-    if sys.platform == 'win32':
-        tdef = TorrentDef.load('bla2.torrent')
-    else:
-        tdef = TorrentDef.load('/tmp/bla2.torrent')
-    d2 = s.start_download(tdef)
-    d2.set_state_callback(state_callback)
-    """
-
-    time.sleep(2500)
-    

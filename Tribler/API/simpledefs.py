@@ -24,6 +24,7 @@ DOWNLOAD = 'down'
 DLMODE_NORMAL = 0
 DLMODE_VOD = 1
 
+PERSISTENTSTATE_CURRENTVERSION = 1
 
 def pathlist2filename(pathlist):
     fullpath = ''

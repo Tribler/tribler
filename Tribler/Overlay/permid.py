@@ -39,6 +39,12 @@ def generate_keypair():
 def read_keypair(keypairfilename):
     return EC.load_key(keypairfilename)
 
+def save_keypair(keypair,keypairfilename):
+    keypair.save_key(keypairfilename, None)    
+
+def save_pub_key(keypair,pubkeyfilename):
+    keypair.save_pub_key(pubkeyfilename)    
+
 
 # def show_permid(permid):
 # See Tribler/utilities.py

@@ -684,6 +684,15 @@ class BT1Download:
         return self.encoder
 
 
+    def checkpoint(self):
+        """ Called by network thread """
+        if self.fileselector and self.started:
+            # self.fileselector.finish() does nothing at the moment, so as
+            # long as the network thread calls this, it should be OK.
+            return self.fileselector.pickle()
+        else:
+            return None
+
     def shutdown(self):
         if self.checking or self.started:
             self.storagewrapper.sync()
