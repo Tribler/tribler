@@ -684,23 +684,19 @@ class BT1Download:
         return self.encoder
 
 
-    def shutdown(self, torrentdata = {}):
+    def shutdown(self):
         if self.checking or self.started:
             self.storagewrapper.sync()
             self.storage.close()
             self.rerequest_stopped()
+        resumedata = None
         if self.fileselector and self.started:
             if not self.failed:
                 self.fileselector.finish()
-                torrentdata['resume data'] = self.fileselector.pickle()
-            try:
-                self.appdataobj.writeTorrentData(self.infohash, torrentdata)
-            except:
-                self.appdataobj.deleteTorrentData(self.infohash) # clear it
+                resumedata = self.fileselector.pickle()
         if self.play_video:
             self.voddownload.stop()
-        return not self.failed and not self.excflag.isSet()
-        # if returns false, you may wish to auto-restart the torrent
+        return resumedata
 
 
     def setUploadRate(self, rate):
