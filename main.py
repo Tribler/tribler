@@ -5,7 +5,7 @@ from triblerAPI import *
 from Tribler.API.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
 
     
-sscfg = SessionStartupConfig.get_copy_of_default()
+sscfg = SessionStartupConfig()
 sscfg.set_state_dir('statedir')
 s = Session(sscfg)
 r = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()
@@ -62,7 +62,7 @@ if __name__ == "__main__":
         #tdef = TorrentDef.load('/tmp/bla3multi.torrent')
         tdef = TorrentDef.load('/arno/tmp/scandir/bla.torrent')
         
-    dcfg = DownloadStartupConfig.get_copy_of_default()
+    dcfg = DownloadStartupConfig()
     dcfg.set_dest_dir('/arno/tmp/scandir')
     """
     dcfg.set_video_on_demand(vod_ready_callback)

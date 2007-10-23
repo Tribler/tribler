@@ -30,7 +30,7 @@ sessdefaults = [
         'time to wait between checking if any connections have timed out'),
 
 # Tribler session opts
-    ('eckeypair', None, "keypair to use for session (default statedir ecpub.pem+ec.pem)"),
+    ('eckeypairfilename', None, "filename containing keypair to use for session (default = generate new keypair)"),
     ('cache', 1,
         "use bsddb to cache peers and preferences"),
     ('overlay', 1,

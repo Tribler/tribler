@@ -20,7 +20,7 @@ Simpler download session
 ========================
     s = Session()
     tdef = TorrentDef.load('/tmp/bla.torrent')
-    dcfg = DownloadStartupConfig.get_copy_of_default()
+    dcfg = DownloadStartupConfig()
     dcfg.set_dest_dir('/tmp')
     d = s.start_download(tdef,dcfg)
 
@@ -29,7 +29,7 @@ Simple VOD download session
 ===========================
     s = Session()
     tdef = TorrentDef.load('/tmp/bla.torrent')
-    dcfg = DownloadStartupConfig.get_copy_of_default()
+    dcfg = DownloadStartupConfig()
     dcfg.set_video_on_demand(vod_ready_callback)
     dcfg.set_selected_files('part2.avi') # play this video
     d = s.start_download(tdef,dcfg)
@@ -290,38 +290,6 @@ class Serializable:
     def __init__(self):
         pass
 
-
-class Defaultable:
-    """
-    Interface for setting a default instance for a class
-    """
-    def get_copy_of_default(*args,**kwargs):
-        """
-        A class method that returns a copy of the current default.
-        """
-        raise NotYetImplementedException()
-    #get_copy_of_default = staticmethod(get_copy_of_default)
-    
-
-    def get_default(*args,**kwargs): 
-        """
-        A class method that returns the current default (not a copy). Use this
-        method to modify the default config once set with set_default()
-        """
-        raise NotYetImplementedException()
-    #get_default = staticmethod(get_default)
-    
-    def set_default(x): # If not singleton
-        """
-        A class method that sets the default for this class to "x" (note: x
-        is not copied)
-        
-        in: x = an unbound instance of the class 
-        """
-        raise NotYetImplementedException()
-    #set_default = staticmethod(set_default)
-
-
 class Copyable:
     """
     Interface for copying an instance (or rather signaling that it can be 
@@ -433,8 +401,8 @@ class SessionConfigInterface:
     def get_state_dir(self):
         return self.sessconfig['state_dir']
     
-    def set_permid(self,keypair):
-        self.sessconfig['eckeypair'] = keypair
+    def set_permid(self,keypairfilename):
+        self.sessconfig['eckeypairfilename'] = keypairfilename
         
     def set_listen_port(self,port):
         """
@@ -452,31 +420,11 @@ class SessionConfigInterface:
     
 
 
-class SessionStartupConfig(SessionConfigInterface,Defaultable,Copyable,Serializable):  
+class SessionStartupConfig(SessionConfigInterface,Copyable,Serializable):  
     # Defaultable only if Session is not singleton
-    
-    _default = None
     
     def __init__(self,sessconfig=None):
         SessionConfigInterface.__init__(self,sessconfig)
-
-    #
-    # Defaultable interface
-    #
-    def get_copy_of_default(*args,**kwargs):
-        """ Not thread safe """
-        if SessionStartupConfig._default is None:
-            SessionStartupConfig._default = SessionStartupConfig()
-        return SessionStartupConfig._default.copy()
-    get_copy_of_default = staticmethod(get_copy_of_default)
-
-    def get_default():
-        """ Not thread safe """
-        return SessionStartupConfig._default
-
-    def set_default(scfg):
-        """ Not thread safe """
-        SessionStartupConfig._default = scfg
 
     #
     # Copyable interface
@@ -491,14 +439,16 @@ class Session(SessionConfigInterface):
     """
     cf. libtorrent session
     """
-    def __init__(self,scfg=None,state_dir=None):
+    def __init__(self,scfg=None):
         """
         A Session object is created which is configured following a copy of the
         SessionStartupConfig scfg. (copy constructor used internally)
         
-        in: scfg = SessionStartupConfig object or None, in which case 
-        SessionStartupConfig.get_copy_of_default() is called and the returned config
-        becomes the bound config of the session.
+        in: scfg = SessionStartupConfig object or None, in which case we
+        look for a saved session in the default location (state dir). If
+        we can't find it, we create a new SessionStartupConfig() object to 
+        serve as startup config. Next, the config is saved in the directory
+        indicated by its 'state_dir' attribute.
         
         In the current implementation only a single session instance can exist
         at a time in a process.
@@ -510,54 +460,53 @@ class Session(SessionConfigInterface):
         if scfg is not None: # overrides any saved config
             # Work from copy
             self.sessconfig = copy.copy(scfg.sessconfig)
+            state_dir = self.sessconfig['state_dir']
         else:
-            if state_dir is not None:
-                cscfg = self.load_pstate_sessconfig(state_dir)
-            else:
-                cscfg = SessionStartupConfig.get_copy_of_default()
-            self.sessconfig = cscfg.sessconfig
+            state_dir = None
+
+        # Create dir for session state
+        if state_dir is None:
+            state_dir = Session.get_default_state_dir()
             
+        if not os.path.isdir(state_dir):
+            os.mkdir(state_dir)
+
+        if scfg is None: # If no override
+            try:
+                # Then try to read from default location
+                scfg = self.load_pstate_sessconfig(state_dir)
+            except:
+                # If that fails, create a fresh config with factory defaults
+                print_exc()
+                scfg = SessionStartupConfig()
+            self.sessconfig = scfg.sessconfig
+
+BLABLA
+        self.sessconfig['state_dir'] = state_dir
+
+        # PERHAPS: load default TorrentDef and DownloadStartupConfig from state dir
+        # Let user handle that, he's got default_state_dir, etc.
+
         # Core init
         resetPeerIDs()
         Tribler.Overlay.permid.init()
-    
-        # Create dir for session state
-        if self.sessconfig['state_dir'] is None:
-            homedirpostfix = '.Tribler'
-            if sys.platform == 'win32':
-                homedirvar = '${APPDATA}'
-            elif sys.platform == 'darwin':
-                homedirvar = '${HOME}'
-                # JD wants $HOME/Libray/Preferences/something TODO
-                #homedirpostfix = os.path.join('Library)
-            else:
-                homedirvar = '${HOME}'  
-            homedir = os.path.expandvars(homedirvar)
-            triblerdir = os.path.join(homedir,homedirpostfix)
-            self.sessconfig['state_dir'] = triblerdir
-            
-        if not os.path.isdir(self.sessconfig['state_dir']):
-            os.mkdir(self.sessconfig['state_dir'])
+
 
         #
         # Set params that depend on state_dir
         #
         # 1. keypair
         #
-        pairfilename = os.path.join(self.sessconfig['state_dir'],'ec.pem')
-        pubfilename = os.path.join(self.sessconfig['state_dir'],'ecpub.pem')
-        save = True
-        if self.sessconfig['eckeypair'] is None:
-            try:
-                self.sessconfig['eckeypair'] = Tribler.Overlay.permid.read_keypair(pairfilename)
-                save = False
-            except:
-                print_exc()
-                self.sessconfig['eckeypair'] = Tribler.Overlay.permid.generate_keypair()
-        # Always save in state dir
-        if save:
-            Tribler.Overlay.permid.save_keypair(self.sessconfig['eckeypair'],pairfilename)
-            Tribler.Overlay.permid.save_pub_key(self.sessconfig['eckeypair'],pubfilename)
+        if self.sessconfig['eckeypairfilename'] is None:
+            self.keypair = Tribler.Overlay.permid.generate_keypair()
+            pairfilename = os.path.join(self.sessconfig['state_dir'],'ec.pem')
+            pubfilename = os.path.join(self.sessconfig['state_dir'],'ecpub.pem')
+            self.sessconfig['eckeypairfilename'] = pairfilename
+            Tribler.Overlay.permid.save_keypair(self.keypair,pairfilename)
+            Tribler.Overlay.permid.save_pub_key(self.keypair,pubfilename)
+        else:
+            # May throw exceptions
+            self.keypair = Tribler.Overlay.permid.read_keypair(self.sessconfig['eckeypairfilename'])
         
         # 2. Downloads
         dldir = os.path.join(self.sessconfig['state_dir'],STATEDIR_DLPSTATE_DIR)
@@ -585,22 +534,39 @@ class Session(SessionConfigInterface):
 
 
         # Checkpoint startup config
-        # TODO: remove eckeypair
-        ##sscfg = self.get_current_startup_config_copy()
-        ##self.save_pstate_sessconfig(sscfg)
+        sscfg = self.get_current_startup_config_copy()
+        self.save_pstate_sessconfig(sscfg)
 
         # Create engine with network thread
         self.lm = TriblerLaunchMany(self,self.sesslock)
         self.lm.start()
-        
+
+
+    def get_default_state_dir():
+        homedirpostfix = '.Tribler'
+        if sys.platform == 'win32':
+            homedirvar = '${APPDATA}'
+        elif sys.platform == 'darwin':
+            homedirvar = '${HOME}'
+            # JD wants $HOME/Libray/Preferences/something TODO
+            #homedirpostfix = os.path.join('Library)
+        else:
+            homedirvar = '${HOME}'  
+        homedir = os.path.expandvars(homedirvar)
+        triblerdir = os.path.join(homedir,homedirpostfix)
+        return triblerdir
+    get_default_state_dir = staticmethod(get_default_state_dir)
+
+
+    # TODO: get_instance()
 
     def start_download(self,tdef,dcfg=None):
         """ 
         Creates a Download object and adds it to the session. The passed 
-        TorrentDef and DownloadStartupConfig are copied into the new Download object
-        and the copies become bound. If the tracker is not set in tdef, it
-        is set to the internal tracker (which must have been enabled in the 
-        session config)
+        TorrentDef and DownloadStartupConfig are copied into the new Download 
+        object and the copies become bound. If the tracker is not set in tdef, 
+        it is set to the internal tracker (which must have been enabled in the 
+        session config). The Download is then started and checkpointed.
         
         in:
         tdef = TorrentDef
@@ -665,6 +631,7 @@ class Session(SessionConfigInterface):
         
         Called by any thread """
         self.checkpoint_shutdown(stop=True)
+
 
     #
     # SessionConfigInterface
@@ -800,8 +767,8 @@ class Session(SessionConfigInterface):
         
         
 
-#class TorrentDef(DictMixin,Defaultable,Serializable):
-class TorrentDef(Defaultable,Serializable):
+#class TorrentDef(DictMixin,Serializable):
+class TorrentDef(Serializable,Copyable):
     """
     Definition of a torrent, i.e. all params required for a torrent file,
     plus optional params such as thumbnail, playtime, etc.
@@ -1106,12 +1073,6 @@ class TorrentDef(Defaultable,Serializable):
     # DictMixin
     #
 
-
-    #
-    # Defaultable interface can be used to things such as default tracker, which
-    # end-to-end checksums to include, etc.
-    #
-
     #
     # Copyable interface
     # 
@@ -1202,7 +1163,7 @@ class DownloadConfigInterface:
 
 
     
-class DownloadStartupConfig(DownloadConfigInterface,Defaultable,Serializable):
+class DownloadStartupConfig(DownloadConfigInterface,Serializable,Copyable):
     """
     (key,value) pair config of per-torrent runtime parameters,
     e.g. destdir, file-allocation policy, etc. Also options to advocate
@@ -1215,30 +1176,10 @@ class DownloadStartupConfig(DownloadConfigInterface,Defaultable,Serializable):
      
     cf. libtorrent torrent_handle
     """
-    _default = None
-    
     def __init__(self,dlconfig=None):
         """ Normal constructor for DownloadStartupConfig (copy constructor 
         used internally) """
         DownloadConfigInterface.__init__(self,dlconfig)
-
-    #
-    # Defaultable interface
-    #
-    def get_copy_of_default(*args,**kwargs):
-        """ Not thread safe """
-        if DownloadStartupConfig._default is None:
-            DownloadStartupConfig._default = DownloadStartupConfig()
-        return DownloadStartupConfig._default.copy()
-    get_copy_of_default = staticmethod(get_copy_of_default)
-
-    def get_default():
-        """ Not thread safe """
-        return DownloadStartupConfig._default
-
-    def set_default(dcfg):
-        """ Not thread safe """
-        DownloadStartupConfig._default = dcfg
 
     #
     # Copyable interface
@@ -1873,7 +1814,7 @@ class TriblerLaunchMany(Thread):
 
         if config['overlay']:
             self.secure_overlay = SecureOverlay.getInstance()
-            mykeypair = config['eckeypair']
+            mykeypair = session.keypair
             self.secure_overlay.register(self.rawserver,self.multihandler,self.listen_port,self.config['max_message_length'],mykeypair)
             self.overlay_apps = OverlayApps.getInstance()
             self.overlay_apps.register(self.secure_overlay, self, self.rawserver, config)
