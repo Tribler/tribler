@@ -479,10 +479,8 @@ class Session(SessionConfigInterface):
                 # If that fails, create a fresh config with factory defaults
                 print_exc()
                 scfg = SessionStartupConfig()
+                scfg.sessconfig['state_dir'] = state_dir
             self.sessconfig = scfg.sessconfig
-
-BLABLA
-        self.sessconfig['state_dir'] = state_dir
 
         # PERHAPS: load default TorrentDef and DownloadStartupConfig from state dir
         # Let user handle that, he's got default_state_dir, etc.
