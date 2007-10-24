@@ -9,7 +9,7 @@ from traceback import print_exc
 
 from BitTornado.ConfigDir import ConfigDir
 from BitTornado.bencode import bdecode
-from BitTornado.download_bt1 import defaults as BTDefaults
+from Tribler.API.defaults import dldefaults as BTDefaults
 from BitTornado.parseargs import parseargs
 from BitTornado.zurllib import urlopen
 

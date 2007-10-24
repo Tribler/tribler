@@ -291,6 +291,7 @@ from Tribler.Overlay.SecureOverlay import SecureOverlay
 from Tribler.Overlay.OverlayApps import OverlayApps
 from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.DecentralizedTracking import mainlineDHT
+from Tribler.DecentralizedTracking.rsconvert import RawServerConverter
 from Tribler.unicode import metainfoname2unicode
 from Tribler.API.defaults import *
 from Tribler.API.osutils import *
