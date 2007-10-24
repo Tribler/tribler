@@ -106,10 +106,10 @@ def validTorrentFile(metainfo):
             raise ValueError('info misses key '+key)
     name = info['name']
     if type(name) != StringType:
-        raise ValueError('info name is not string')
+        raise ValueError('info name is not string but '+`type(name)`)
     pl = info['piece length']
     if type(pl) != IntType:
-        raise ValueError('info piece size is not int')
+        raise ValueError('info piece size is not int, but '+`type(pl)`)
     if 'root hash' in info:
         rh = info['root hash']
         if type(rh) != StringType or len(rh) != 20:
@@ -126,7 +126,7 @@ def validTorrentFile(metainfo):
         
         l = info['length']
         if type(l) != IntType:
-            raise ValueError('info length is not int')
+            raise ValueError('info length is not int, but '+`type(l)`)
     else:
         # multi-file torrent
         if 'length' in info:
@@ -134,7 +134,7 @@ def validTorrentFile(metainfo):
         
         files = info['files']
         if type(files) != ListType:
-            raise ValueError('info files not list')
+            raise ValueError('info files not list, but '+`type(files)`)
         
         filekeys = ['path','length']
         for file in files:
@@ -144,20 +144,20 @@ def validTorrentFile(metainfo):
             
             p = file['path']
             if type(p) != ListType:
-                raise ValueError('info files path is not list')
+                raise ValueError('info files path is not list, but '+`type(p)`)
             for dir in p:
                 if type(dir) != StringType:
-                    raise ValueError('info files path is not string')
+                    raise ValueError('info files path is not string, but '+`type(dir)`)
             
             l = file['length']
             if type(l) != IntType:
-                raise ValueError('info files length is not int')
+                raise ValueError('info files length is not int, but '+`type(l)`)
             
     # common additional fields
     if 'announce-list' in metainfo:
         al = metainfo['announce-list']
         if type(al) != ListType:
-            raise ValueErorr('announce-list is not list')
+            raise ValueErorr('announce-list is not list, but '+`type(al)`)
         for tier in al:
             if type(tier) != ListType:
                 raise ValueErorr('announce-list tier is not list '+`tier`)
@@ -168,11 +168,11 @@ def validTorrentFile(metainfo):
     if 'azureus_properties' in metainfo:
         azprop = metainfo['azureus_properties']
         if type(azprop) != DictType:
-            raise ValueError('azureus_properties is not dict')
+            raise ValueError('azureus_properties is not dict, but '+`type(azprop)`)
         if 'Content' in azprop:
                 content = azprop['Content']
                 if type(content) != DictType:
-                    raise ValueError('azureus_properties content is not dict')
+                    raise ValueError('azureus_properties content is not dict, but '+`type(content)`)
                 if 'thumbnail' in content:
                     thumb = content['thumbnail']
                     if type(content) != StringType:

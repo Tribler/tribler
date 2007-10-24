@@ -539,6 +539,9 @@ class Session(SessionConfigInterface):
         self.lm = TriblerLaunchMany(self,self.sesslock)
         self.lm.start()
 
+        # Restart Downloads from checkpoint, if any
+        self.lm.load_checkpoint()
+
 
     def get_default_state_dir():
         homedirpostfix = '.Tribler'
@@ -721,6 +724,7 @@ class Session(SessionConfigInterface):
             self.lm.rawserver_nonfatalerrorfunc(e)
 
         # Checkpoint all Downloads
+        print >>sys.stderr,"Session: checkpoint_shutdown"
         self.lm.checkpoint(stop=stop)
 
     def save_pstate_sessconfig(self,sscfg):
@@ -1207,7 +1211,7 @@ class Download(DownloadConfigInterface):
         self.progressbeforestop = 0.0
         self.filepieceranges = []
     
-    def setup(self,session,tdef,dcfg=None,lmcallback=None):
+    def setup(self,session,tdef,dcfg=None,pstate=None,lmcallback=None):
         """
         Create a Download object. Used internally by Session. Copies tdef and 
         dcfg and binds them to this download.
@@ -1253,21 +1257,24 @@ class Download(DownloadConfigInterface):
     
             print >>sys.stderr,"Download: setup: get_max_desired",self.dlruntimeconfig['max_desired_upload_rate']
     
-            self.async_create_engine_wrapper(lmcallback)
+            if pstate['dlstate']['status'] != DLSTATUS_STOPPED:
+                # Also restart on STOPPED_ON_ERROR, may have been transient
+                self.create_engine_wrapper(lmcallback,pstate)
+                
             self.dllock.release()
         except Exception,e:
             print_exc()
             self.set_error(e)
             self.dllock.release()
 
-    def async_create_engine_wrapper(self,lmcallback):
+    def create_engine_wrapper(self,lmcallback,pstate):
         """ Called by any thread, assume dllock already acquired """
         if DEBUG:
-            print >>sys.stderr,"Download: async_create_engine_wrapper()"
+            print >>sys.stderr,"Download: create_engine_wrapper()"
         
         # all thread safe
         infohash = self.get_def().get_infohash()
-        metainfo = copy.copy(self.get_def().get_metainfo())
+        metainfo = copy.deepcopy(self.get_def().get_metainfo())
         
         # H4xor this so the 'name' field is safe
         namekey = metainfoname2unicode(metainfo)
@@ -1284,7 +1291,7 @@ class Download(DownloadConfigInterface):
 
         # Define which file to DL in VOD mode
         if self.dlconfig['mode'] == DLMODE_VOD:
-            callback = lambda mimetype,stream:self.session.perform_vod_usercallback(self.dlconfig['vod_usercallback'],mimetype,stream)
+            vod_usercallback_wrapper = lambda mimetype,stream:self.session.perform_vod_usercallback(self.dlconfig['vod_usercallback'],mimetype,stream)
             if len(self.dlconfig['selected_files']) == 0:
                 # single-file torrent
                 file = self.get_def().get_name()
@@ -1295,24 +1302,24 @@ class Download(DownloadConfigInterface):
                 file = self.dlconfig['selected_files'][0]
                 idx = self.get_def().get_index_of_file_in_files(file)
                 bitrate = self.get_def().get_bitrate(file)
-            vodfileindex = [idx,file,bitrate,None,callback]
+            vodfileindex = [idx,file,bitrate,None,vod_usercallback_wrapper]
         else:
             vodfileindex = [-1,None,0.0,None,None]
         
         # Delegate creation of engine wrapper to network thread
-        network_create_engine_wrapper_lambda = lambda:self.network_create_engine_wrapper(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcallback)
+        network_create_engine_wrapper_lambda = lambda:self.network_create_engine_wrapper(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcallback,pstate)
         self.session.lm.rawserver.add_task(network_create_engine_wrapper_lambda,0) 
         
 
-    def network_create_engine_wrapper(self,infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcallback):
+    def network_create_engine_wrapper(self,infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcallback,pstate):
         """ Called by network thread """
         self.dllock.acquire()
         try:
-            self.sd = SingleDownload(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,self.set_error)
+            self.sd = SingleDownload(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,self.set_error,pstate)
             sd = self.sd
             exc = self.error
             if lmcallback is not None:
-                lmcallback(self,sd,exc)
+                lmcallback(self,sd,exc,pstate)
         finally:
             self.dllock.release()
 
@@ -1370,7 +1377,8 @@ class Download(DownloadConfigInterface):
         try:
             if self.sd is None:
                 self.error = None # assume fatal error is reproducible
-                self.async_create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback)
+                # TODO: if seeding don't rehash check
+                self.create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback,pstate=None)
             # No exception if already started, for convenience
         finally:
             self.dllock.release()
@@ -1581,6 +1589,9 @@ class Download(DownloadConfigInterface):
         ds = self.network_get_state(None,False,sessioncalling=True)
         pstate['dlstate']['status'] = ds.get_status()
         pstate['dlstate']['progress'] = ds.get_progress()
+        
+        print >>sys.stderr,"Download: netw_get_pers_state: status",dlstatus_strings[ds.get_status()],"progress",ds.get_progress()
+        
         pstate['engineresumedata'] = None
         return pstate
 
@@ -1837,30 +1848,33 @@ class TriblerLaunchMany(Thread):
         if not config['torrent_checking']:
             self.rawserver.add_task(self.torrent_checking, self.torrent_checking_period)
         
-        # Restart Downloads from checkpoint, if any
-        self.load_checkpoint()
-        
 
-    def add(self,tdef,dcfg):
+    def add(self,tdef,dcfg,pstate=None):
         """ Called by any thread """
         self.sesslock.acquire()
         try:
             d = Download()
             # store in list of Downloads, always
             self.downloads.append(d)
-            d.setup(self.session,tdef,dcfg,self.network_engine_wrapper_created_callback)
+            d.setup(self.session,tdef,dcfg,pstate,self.network_engine_wrapper_created_callback)
             return d
         finally:
             self.sesslock.release()
 
 
-    def network_engine_wrapper_created_callback(self,d,sd,exc):
+    def network_engine_wrapper_created_callback(self,d,sd,exc,pstate):
         """ Called by network thread """
         if exc is None:
+            # Always need to call the hashcheck func, even if we're restarting
+            # a download that was seeding, this is just how the BT engine works
+            # We've provided the BT engine with its resumedata, so this should
+            # be fast.
+            #
             self.queue_for_hashcheck(sd)
-            # Checkpoint at startup
-            (infohash,pstate) = d.network_checkpoint()
-            self.save_download_pstate(infohash,pstate)
+            if pstate is None:
+                # Checkpoint at startup
+                (infohash,pstate) = d.network_checkpoint()
+                self.save_download_pstate(infohash,pstate)
         
     def remove(self,d):
         """ Called by any thread """
@@ -2002,14 +2016,17 @@ class TriblerLaunchMany(Thread):
         """ Called by any thread """
         dir = self.session.get_downloads_pstate_dir()
         filelist = os.listdir(dir)
-        for filename in filelist:
+        for basename in filelist:
             # Make this go on when a torrent fails to start
             try:
+                filename = os.path.join(dir,basename)
                 pstate = self.load_download_pstate(filename)
+                
+                print >>sys.stderr,"tlm: load_checkpoint: pstate is",dlstatus_strings[pstate['dlstate']['status']],pstate['dlstate']['progress']
                 tdef = TorrentDef._create(pstate['metainfo'])
                 
                 # Resume download
-                self.add(tdef,pstate['dscfg'])
+                self.add(tdef,pstate['dscfg'],pstate)
             except Exception,e:
                 self.rawserver_nonfatalerrorfunc(e)
 
@@ -2024,12 +2041,14 @@ class TriblerLaunchMany(Thread):
             # in list of states returned via callback.
             #
             dllist = self.downloads[:]
-            network_checkpoint_callback_lambda = lambda:self.network_checkpoint_callback(dllist,usercallback,stop)
+            print >>sys.stderr,"tlm: checkpointing",len(dllist)
+            
+            network_checkpoint_callback_lambda = lambda:self.network_checkpoint_callback(dllist,stop)
             self.rawserver.add_task(network_checkpoint_callback_lambda,0.0)
         finally:
             self.sesslock.release()
         
-    def network_checkpoint_callback(self,dllist,usercallback,stop):
+    def network_checkpoint_callback(self,dllist,stop):
         """ Called by network thread """
         psdict = {'version':PERSISTENTSTATE_CURRENTVERSION}
         for d in dllist:
@@ -2037,6 +2056,7 @@ class TriblerLaunchMany(Thread):
             # in a infohash -> pstate dict which is then passed to the user
             # for storage.
             #
+            print >>sys.stderr,"tlm: network checkpointing:",`d.get_def().get_name()`
             if stop:
                 (infohash,pstate) = d.network_stop()
             else:
@@ -2044,20 +2064,22 @@ class TriblerLaunchMany(Thread):
             psdict[infohash] = pstate
 
         try:
-            for infohash,pstate in psdict:
+            for infohash,pstate in psdict.iteritems():
                 self.save_download_pstate(infohash,pstate)
         except Exception,e:
-            rawserver_nonfatalerrorfunc(e)
+            self.rawserver_nonfatalerrorfunc(e)
 
         if stop:
             # Stop network thread
-            self.doneflag.set()
+            self.sessdoneflag.set()
 
 
     def save_download_pstate(self,infohash,pstate):
         """ Called by network thread """
         basename = binascii.hexlify(infohash)+'.pickle'
         filename = os.path.join(self.session.get_downloads_pstate_dir(),basename)
+        
+        print >>sys.stderr,"tlm: network checkpointing: to file",filename
         f = open(filename,"wb")
         pickle.dump(pstate,f)
         f.close()
@@ -2068,6 +2090,7 @@ class TriblerLaunchMany(Thread):
         f = open(filename,"rb")
         pstate = pickle.load(f)
         f.close()
+        return pstate
 
     #
     # External IP address methods
@@ -2142,7 +2165,7 @@ class TriblerLaunchMany(Thread):
 class SingleDownload:
     """ This class is accessed solely by the network thread """
     
-    def __init__(self,infohash,metainfo,kvconfig,multihandler,listenport,videoanalyserpath,vodfileindex,set_error_func):
+    def __init__(self,infohash,metainfo,kvconfig,multihandler,listenport,videoanalyserpath,vodfileindex,set_error_func,pstate):
         
         self.dow = None
         self.set_error_func = set_error_func
@@ -2184,9 +2207,15 @@ class SingleDownload:
             print >>sys.stderr,"SingleDownload: setting vodfileindex",vodfileindex
             
             self._hashcheckfunc = None
-            self._hashcheckfunc = self.dow.initFiles()
+            if pstate is not None:
+                # Restarting download
+                resumedata=pstate['engineresumedata']
+            self._hashcheckfunc = self.dow.initFiles(resumedata=resumedata)
             self._getstatsfunc = None
-            self.hashcheckfrac = 0.0
+            if pstate is not None:
+                self.hashcheckfrac = pstate['dlstate']['progress']
+            else:
+                self.hashcheckfrac = 0.0
             
         except Exception,e:
             self.fatalerrorfunc(e)

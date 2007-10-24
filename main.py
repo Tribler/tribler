@@ -6,8 +6,12 @@ from Tribler.API.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedR
 
     
 sscfg = SessionStartupConfig()
-sscfg.set_state_dir('statedir')
-s = Session(sscfg)
+if sys.platform == 'win32':
+    s = Session()
+else:
+    sscfg.set_state_dir('statedir')
+    s = Session(sscfg)
+    
 r = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()
 r.set_global_max_speed(DOWNLOAD,100)
 t = 0
@@ -32,6 +36,12 @@ def states_callback(dslist):
         complete = ds.get_pieces_complete()
         print >>sys.stderr,"main: Pieces completed",`d.get_def().get_name()`,"len",len(complete)
         print >>sys.stderr,"main: Pieces completed",`d.get_def().get_name()`,complete[:60]
+        
+        """
+        if ds.get_status() == DLSTATUS_SEEDING:
+            print >>sys.stderr,"main: Syncing download because complete"
+            d.checkpoint()
+        """
         
         if adjustspeeds:
             r.add_downloadstate(ds)
@@ -63,7 +73,7 @@ if __name__ == "__main__":
         tdef = TorrentDef.load('/arno/tmp/scandir/bla.torrent')
         
     dcfg = DownloadStartupConfig()
-    dcfg.set_dest_dir('/arno/tmp/scandir')
+    #dcfg.set_dest_dir('/arno/tmp/scandir')
     """
     dcfg.set_video_on_demand(vod_ready_callback)
     #dcfg.set_selected_files('star-wreck-in-the-pirkinning.txt') # play this video
@@ -81,5 +91,9 @@ if __name__ == "__main__":
     d2.set_state_callback(state_callback)
     """
 
-    time.sleep(2500)
+    time.sleep(20)
+    
+    s.shutdown()
+    
+    time.sleep(2500) # TODO: make sure we don't quit before shutdown checkpoint complete
     

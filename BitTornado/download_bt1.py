@@ -414,7 +414,7 @@ class BT1Download:
             self.errorfunc(reason)
         
 
-    def initFiles(self, old_style = False, statusfunc = None):
+    def initFiles(self, old_style = False, statusfunc = None, resumedata = None):
         """ Now throws exceptions """
         if self.doneflag.isSet():
             return None
@@ -435,17 +435,10 @@ class BT1Download:
                 except:
                     raise ValueError('bad priority list given, ignored')
                     self.priority = None
-
-            data = self.appdataobj.getTorrentData(self.infohash)
             try:
-                d = data['resume data']['priority']
-                assert len(d) == len(self.files)
-                disabled_files = [x == -1 for x in d]
+                disabled_files = [x == -1 for x in self.priority]
             except:
-                try:
-                    disabled_files = [x == -1 for x in self.priority]
-                except:
-                    pass
+                pass
 
         self.storage = Storage(self.files, self.info['piece length'], 
                                self.doneflag, self.config, disabled_files)
@@ -468,10 +461,8 @@ class BT1Download:
                                              self.storage, self.storagewrapper, 
                                              self.rawserver.add_task, 
                                              self._failed)
-            if data:
-                data = data.get('resume data')
-                if data:
-                    self.fileselector.unpickle(data)
+            if resumedata:
+                self.fileselector.unpickle(resumedata)
                 
         self.checking = True
         if old_style:
