@@ -1256,8 +1256,8 @@ class Download(DownloadConfigInterface):
     
     
             print >>sys.stderr,"Download: setup: get_max_desired",self.dlruntimeconfig['max_desired_upload_rate']
-    
-            if pstate['dlstate']['status'] != DLSTATUS_STOPPED:
+
+            if pstate is None or pstate['dlstate']['status'] != DLSTATUS_STOPPED:
                 # Also restart on STOPPED_ON_ERROR, may have been transient
                 self.create_engine_wrapper(lmcallback,pstate)
                 
@@ -2207,7 +2207,9 @@ class SingleDownload:
             print >>sys.stderr,"SingleDownload: setting vodfileindex",vodfileindex
             
             self._hashcheckfunc = None
-            if pstate is not None:
+            if pstate is None:
+                resumedata = None
+            else:
                 # Restarting download
                 resumedata=pstate['engineresumedata']
             self._hashcheckfunc = self.dow.initFiles(resumedata=resumedata)
