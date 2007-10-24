@@ -1623,7 +1623,7 @@ class Download(DownloadConfigInterface):
         self.dllock.acquire()
         try:
             if self.sd is None:
-                ds = DownloadState(DLSTATUS_STOPPED,self.error,self.progressbeforestop)
+                ds = DownloadState(self,DLSTATUS_STOPPED,self.error,self.progressbeforestop)
             else:
                 (status,stats) = self.sd.get_stats(getpeerlist)
                 ds = DownloadState(self,status,self.error,None,stats=stats,filepieceranges=self.filepieceranges)
@@ -2083,6 +2083,11 @@ class TriblerLaunchMany(Thread):
     #
     def set_download_states_callback(self,usercallback,getpeerlist,when=0.0):
         """ Called by any thread """
+        network_set_download_states_callback_lambda = lambda:self.network_set_download_states_callback(usercallback,getpeerlist)
+        self.rawserver.add_task(network_set_download_states_callback_lambda,when)
+        
+    def network_set_download_states_callback(self,usercallback,getpeerlist):
+        """ Called by network thread """
         self.sesslock.acquire()
         try:
             # Even if the list of Downloads changes in the mean time this is
@@ -2091,13 +2096,9 @@ class TriblerLaunchMany(Thread):
             # in list of states returned via callback.
             #
             dllist = self.downloads[:]
-            network_set_download_states_callback_lambda = lambda:self.network_set_download_states_callback(dllist,usercallback,getpeerlist)
-            self.rawserver.add_task(network_set_download_states_callback_lambda,when)
         finally:
             self.sesslock.release()
-        
-    def network_set_download_states_callback(self,dllist,usercallback,getpeerlist):
-        """ Called by network thread """
+
         dslist = []
         for d in dllist:
             ds = d.network_get_state(None,getpeerlist,sessioncalling=True)
