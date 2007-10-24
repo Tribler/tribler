@@ -2,8 +2,8 @@
 # see LICENSE.txt for license information
 
 """
-triblerAPI v0.0.1rc1
-oct 9, 2007 
+triblerAPI v0.0.2rc1
+Oct 24, 2007 
 
 Using Python style guide
 
@@ -12,9 +12,13 @@ Simplest download session
     s = Session()
     tdef = TorrentDef.load('/tmp/bla.torrent')
     d = s.start_download(tdef)
-    while True: 
-        print d.get_state().get_progress() TODO: say state callback
-        sleep(5)
+    d.set_state_callback(state_callback)
+    
+def state_callback(ds):
+    d = ds.get_download()
+    print `d.get_def().get_name()`,ds.get_status(),ds.get_progress(),ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD)
+    return (5.0,False)
+
 
 Simpler download session
 ========================
@@ -121,13 +125,11 @@ Persistence Support
 ===================
 We use the Python pickling mechanism to make objects persistent. We add a
 version number to the state before it is saved. To indicate serializability
-classes inherit from the Serializable interface. 
-
-For a Session there is a special checkpointing mechanism. Downloads also
-be individually checkpointed, although this is not expected to be used much.
+classes inherit from the Serializable interface.  For a Session there is a 
+special checkpointing mechanism. 
 
 ALTERNATIVE: 
-We provide save/load methods. An ISSUE then is do we use filenames as args or 
+We provide save/load methods. An issue then is do we use filenames as args or 
 file objects like Java uses Input/OutputStreams. The advantage of the latter is
 that we can have simple load()/save() methods on each class which e.g. the 
 Download save_resume_file() can use to marshall all its parts and write them 
@@ -170,6 +172,15 @@ Session had been used to create new torrents that have been distributed to Web
 sites, you cannot simply change the listening port as it means that all torrent 
 files out in the world become invalid.
 
+Push/pull
+=========
+DownloadState is currently pulled periodically from the BT engine. ALTERNATIVE
+is an push-based mechanism, i.e. event driven. Advantage over pull: always 
+accurate. Disadv: how does that work? Do we callback for every change in state, 
+from peer DL speed to...? Tribler currently does periodic pull. You will want to 
+batch things in time (once per sec) and per item (i.e., all events for 1 torrent
+in one batch)
+
         
 Alternative names for "Download"
 ================================
@@ -210,30 +221,41 @@ TODO:
 
 - Create a rate manager that gives unused capacity to download that is at max
 
-- Don't hashcheck when file complete / we closed normally (when we have storage
-location)
-
 - Allow VOD when first part of file hashchecked.
 
-- Activate mainlineDHT (when we have storage location)
-
-- persistence
-
-    Currently btlaunchmany saves download state in ~/.Tribler/datacache.
-    BT1Download saves FileSelector which pickles Storage, StorageWrapper
-    and stuff. This is passed to ConfigDir via writeTorrentData which then
-    saves it in ~/.Tribler/datacache
-
-- TODO: file complete but not yet in order on disk?
+- Is there a state where the file complete but not yet in order on disk?
 
 - Reimplement selected_files with existing 'priority' field
 
 - set/get for all config params
 
+- TorrentDef:
+    Should we make this a simple dict interface, or provide user-friendly
+    functions for e.g. handling encoding issues for filenames, setting 
+    thumbnails, etc. 
+    
+    My proposal is to have both, so novice users can use the simple ones, and 
+    advanced users can still control all fields.
+
+
+- *Config: some values will be runtime modifiable, others may be as well
+    but hard to implement, e.g. destdir or VOD.
+    SOL: We throw exceptions when it is not runtime modifiable, and 
+    document for each method which currently is. TODO: determine which and 
+    document.
+
+
 - Move all sourcecode to a tribler dir? So we can do:
     import tribler
     s = tribler.Session()
     etc.
+
+- persistence
+ 
+    pstate: save TorrentDef rather than metafinfo? to be consistent?
+    Saving internal state is more flex
+    Saving objects is easier, but potentially less efficient as all sort of temp
+    junk is written as well
 
 """
 
@@ -245,6 +267,7 @@ import sha
 import socket
 import pickle
 import binascii
+import shutil
 from UserDict import DictMixin
 from threading import RLock,Condition,Event,Thread,currentThread
 from traceback import print_exc,print_stack
@@ -267,6 +290,7 @@ from Tribler.utilities import find_prog_in_PATH,validTorrentFile
 from Tribler.Overlay.SecureOverlay import SecureOverlay
 from Tribler.Overlay.OverlayApps import OverlayApps
 from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
+from Tribler.DecentralizedTracking import mainlineDHT
 from Tribler.unicode import metainfoname2unicode
 from Tribler.API.defaults import *
 from Tribler.API.osutils import *
@@ -391,9 +415,6 @@ class SessionConfigInterface:
         self.sessconfig['overlay'] = 0
         self.sessconfig['dialback'] = 0
         
-        # TODO, when we have a place to save data to (dfile in this case)
-        #self.sessconfig['internaltracker'] = 0
-
 
     def set_state_dir(self,statedir):
         self.sessconfig['state_dir'] = statedir
@@ -439,6 +460,9 @@ class Session(SessionConfigInterface):
     """
     cf. libtorrent session
     """
+    __single = None
+
+    
     def __init__(self,scfg=None):
         """
         A Session object is created which is configured following a copy of the
@@ -453,6 +477,11 @@ class Session(SessionConfigInterface):
         In the current implementation only a single session instance can exist
         at a time in a process.
         """
+        if Session.__single:
+            raise RuntimeError, "Session is singleton"
+        Session.__single = self
+
+        
         self.sesslock = RLock()
         self.threadcount=1
 
@@ -506,10 +535,10 @@ class Session(SessionConfigInterface):
             # May throw exceptions
             self.keypair = Tribler.Overlay.permid.read_keypair(self.sessconfig['eckeypairfilename'])
         
-        # 2. Downloads
-        dldir = os.path.join(self.sessconfig['state_dir'],STATEDIR_DLPSTATE_DIR)
-        if not os.path.isdir(dldir):
-            os.mkdir(dldir)
+        # 2. Downloads persistent state dir
+        dlpstatedir = os.path.join(self.sessconfig['state_dir'],STATEDIR_DLPSTATE_DIR)
+        if not os.path.isdir(dlpstatedir):
+            os.mkdir(dlpstatedir)
         
         # 3. tracker
         trackerdir = os.path.join(self.sessconfig['state_dir'],STATEDIR_ITRACKER_DIR)
@@ -542,8 +571,20 @@ class Session(SessionConfigInterface):
         # Restart Downloads from checkpoint, if any
         self.lm.load_checkpoint()
 
+    #
+    # Class methods
+    #
+    def get_instance(*args, **kw):
+        """ Returns the Session singleton if it exists or otherwise
+            creates it first, in which case you need to pass the constructor 
+            params """
+        if Session.__single is None:
+            Session(*args, **kw)
+        return Session.__single
+    get_instance = staticmethod(get_instance)
 
     def get_default_state_dir():
+        """ Returns the factory default directory for storing session state """
         homedirpostfix = '.Tribler'
         if sys.platform == 'win32':
             homedirvar = '${APPDATA}'
@@ -559,8 +600,9 @@ class Session(SessionConfigInterface):
     get_default_state_dir = staticmethod(get_default_state_dir)
 
 
-    # TODO: get_instance()
-
+    #
+    # Public methods
+    #
     def start_download(self,tdef,dcfg=None):
         """ 
         Creates a Download object and adds it to the session. The passed 
@@ -598,12 +640,12 @@ class Session(SessionConfigInterface):
         return self.lm.get_downloads()
     
     
-    def remove_download(self,d):  
+    def remove_download(self,d,removecontent=False):  
         """
         Stops the download and removes it from the session.
         """
         # locking by lm
-        self.lm.remove(d)
+        self.lm.remove(d,removecontent=removecontent)
 
 
     def set_download_states_callback(self,usercallback,getpeerlist=False):
@@ -637,7 +679,7 @@ class Session(SessionConfigInterface):
     #
     # SessionConfigInterface
     #
-    # use these to change the session config at runtime
+    # Use these to change the session config at runtime.
     #
     def set_state_dir(self,statedir):
         raise OperationNotPossibleAtRuntimeExeption()
@@ -674,7 +716,6 @@ class Session(SessionConfigInterface):
     #
     # Internal methods
     #
-    
     def perform_vod_usercallback(self,usercallback,mimetype,stream):
         """ Called by network thread """
         print >>sys.stderr,"Session: perform_vod_usercallback()"
@@ -696,6 +737,18 @@ class Session(SessionConfigInterface):
                 print_exc()
         self.perform_usercallback(session_getstate_usercallback_target)
 
+
+    def perform_removestate_callback(self,infohash,correctedinfoname,removecontent,dldestdir):
+        """ Called by network thread """
+        print >>sys.stderr,"Session: perform_removestate_callback()"
+        def session_removestate_callback_target():
+            print >>sys.stderr,"Session: session_removestate_callback_target called",currentThread().getName()
+            try:
+                self.sesscb_removestate(infohash,correctedinfoname,removecontent,dldestdir)
+            except:
+                print_exc()
+        self.perform_usercallback(session_removestate_callback_target)
+        
         
     def perform_usercallback(self,target):
         self.sesslock.acquire()
@@ -708,6 +761,51 @@ class Session(SessionConfigInterface):
             t.start()
         finally:
             self.sesslock.release()
+
+
+    def sesscb_removestate(self,infohash,correctedinfoname,removecontent,dldestdir):
+        """ Called by SessionCallbackThread """
+        print >>sys.stderr,"Session: sesscb_removestate called",`infohash`,`correctedinfoname`,removecontent,dldestdir
+        self.sesslock.acquire()
+        try:
+            dlpstatedir = os.path.join(self.sessconfig['state_dir'],STATEDIR_DLPSTATE_DIR)
+            trackerdir = os.path.join(self.sessconfig['state_dir'],STATEDIR_ITRACKER_DIR)
+        finally:
+            self.sesslock.release()
+
+        # See if torrent uses internal tracker
+        hexinfohash = binascii.hexlify(infohash)
+        try:
+            basename = hexinfohash+'.torrent'
+            filename = os.path.join(trackerdir,basename)
+            print >>sys.stderr,"Session: sesscb_removestate: removing itracker entry",filename
+            if os.access(filename,os.F_OK):
+                os.remove(filename)
+        except:
+            # Show must go on
+            print_exc()
+
+        # Remove checkpoint
+        try:
+            basename = hexinfohash+'.pickle'
+            filename = os.path.join(dlpstatedir,basename)
+            print >>sys.stderr,"Session: sesscb_removestate: removing dlcheckpoint entry",filename
+            if os.access(filename,os.F_OK):
+                os.remove(filename)
+        except:
+            # Show must go on
+            print_exc()
+
+        # Remove downloaded content from disk
+        if removecontent:
+            filename = os.path.join(dldestdir,correctedinfoname)
+            print >>sys.stderr,"Session: sesscb_removestate: removing saved content",filename
+            if not os.path.isdir(filename):
+                # single-file torrent
+                os.remove(filename)
+            else:
+                # multi-file torrent
+                shutil.rmtree(filename,True) # ignore errors
 
     #
     # Internal persistence methods
@@ -775,13 +873,6 @@ class TorrentDef(Serializable,Copyable):
     Definition of a torrent, i.e. all params required for a torrent file,
     plus optional params such as thumbnail, playtime, etc.
 
-    ISSUE: should we make this a simple dict interface, or provide user-friendly
-    functions for e.g. handling encoding issues for filenames, setting 
-    thumbnails, etc. 
-    
-    My proposal is to have both, so novice users can use the simple ones, and 
-    advanced users can still control all fields.
-    
     cf. libtorrent torrent_info
     """
     def __init__(self,config=None,input=None,metainfo=None,infohash=None):
@@ -884,6 +975,12 @@ class TorrentDef(Serializable,Copyable):
         Add a file to this torrent definition. The core will not copy the file
         when starting the sharing, but seeds from the passed file directly.
         
+        IMPLHINT: do something smart: people can just add files. When they finalize,
+        we determine whether it is a single or multi-file torrent. In the latter
+        case we determine the common directory name, which becomes the
+        torrents's info['name'] field. Hmmm.... won't work if stuff comes
+        from different disks, etc. TODO
+        
         in:
         filename = Fully-qualified name of file on local filesystem, as Unicode
                    string
@@ -957,6 +1054,9 @@ class TorrentDef(Serializable,Copyable):
         if self.metainfo_valid:
             return (self.infohash,self.metainfo)
         else:
+            """
+            Read files to calc hashes
+            """
             raise NotYetImplementedException()
 
     #
@@ -977,19 +1077,21 @@ class TorrentDef(Serializable,Copyable):
 
     def save(self,filename):
         """
-        Writes torrent file data (i.e., bencoded dict following BT spec)
+        Finalizes the torrent def and writes a torrent file i.e., bencoded dict 
+        following BT spec) to the specified filename.
+        
         in:
         filename = Fully qualified Unicode filename
-        """
-        # TODO: should be possible when bound/readonly
-        raise NotYetImplementedException()
-        """
-        bn = os.path.basename(filename)
-        # How to encode Unicode filename? TODO
         
-        # When to read file to calc hashes? TODO (could do now and keep pieces in mem until
-        # torrent file / bind time. Update: Need to wait until we know piece size.
-        """ 
+        throws: IOError
+        """
+        if not self.readonly:
+            self.finalize()
+
+        bdata = bencode(self.metainfo)
+        f = open(filename,"wb")
+        f.write(bdata)
+        f.close()
         
         
     def get_bitrate(self,file=None):
@@ -1171,11 +1273,6 @@ class DownloadStartupConfig(DownloadConfigInterface,Serializable,Copyable):
     e.g. destdir, file-allocation policy, etc. Also options to advocate
     torrent, e.g. register in DHT, advertise via Buddycast.
     
-    ISSUE: some values will be runtime modifiable, others may be as well
-    but hard to implement, e.g. destdir or VOD.
-    SOL: We throw exceptions when it is not runtime modifiable, and 
-    document for each method which currently is.
-     
     cf. libtorrent torrent_handle
     """
     def __init__(self,dlconfig=None):
@@ -1229,11 +1326,34 @@ class Download(DownloadConfigInterface):
             # Copy tdef
             self.tdef = tdef.copy()
             tracker = self.tdef.get_tracker()
+            itrackerurl = self.session.get_internal_tracker_url()
             if tracker == '':
-                self.tdef.set_tracker(self.session.get_internal_tracker_url())
+                self.tdef.set_tracker(itrackerurl)
             self.tdef.finalize()
             self.tdef.readonly = True
             
+            # See if internal tracker used
+            infohash = self.tdef.get_infohash()
+            metainfo = self.tdef.get_metainfo()
+            usingitracker = False
+            if metainfo['announce'] == itrackerurl:
+                usingitracker = True
+            elif 'announce-list' in metainfo:
+                for tier in metainfo['announce-list']:
+                    if itrackerurl in tier:
+                         usingitracker = True
+                         break
+                     
+            if usingitracker:
+                # Copy .torrent to state_dir/itracker so the tracker thread 
+                # finds it and accepts peer registrations for it.
+                # 
+                trackerdir = os.path.join(self.sessconfig['state_dir'],STATEDIR_ITRACKER_DIR)
+                basename = binascii.hexlify(infohash)+'.torrent' # ignore .tribe stuff, not vital
+                filename = os.path.join(trackerdir,basename)
+                self.tdef.save(filename)
+                # Bring to attention of Tracker thread
+                session.lm.tracker_rescan_dir()
             
             # Copy dlconfig, from default if not specified
             if dcfg is None:
@@ -1278,7 +1398,8 @@ class Download(DownloadConfigInterface):
         
         # H4xor this so the 'name' field is safe
         namekey = metainfoname2unicode(metainfo)
-        metainfo['info'][namekey] = metainfo['info']['name'] = fix_filebasename(metainfo['info'][namekey])
+        self.correctedinfoname = fix_filebasename(metainfo['info'][namekey])
+        metainfo['info'][namekey] = metainfo['info']['name'] = self.correctedinfoname 
         
         multihandler = self.session.lm.multihandler
         listenport = self.session.get_listen_port()
@@ -1361,13 +1482,7 @@ class Download(DownloadConfigInterface):
 
     def stop(self):
         """ Called by any thread """
-        self.dllock.acquire()
-        try:
-            if self.sd is not None:
-                self.session.lm.rawserver.add_task(self.network_stop,0)
-            # No exception if already stopped, for convenience
-        finally:
-            self.dllock.release()
+        self.stop_remove(removestate=False,removecontent=False)
         
     def restart(self):
         """ Called by any thread """
@@ -1382,17 +1497,6 @@ class Download(DownloadConfigInterface):
             # No exception if already started, for convenience
         finally:
             self.dllock.release()
-
-
-    def checkpoint(self,usercallback,when=0.0):
-        """ Called by any thread """
-        self.dllock.acquire()
-        try:
-            network_checkpoint_callback_lambda = lambda:self.network_checkpoint_callback(usercallback)
-            self.rawserver.add_task(network_checkpoint_callback_lambda,when)
-        finally:
-            self.dllock.release()
-
 
     #
     # DownloadConfigInterface
@@ -1503,6 +1607,17 @@ class Download(DownloadConfigInterface):
             self.filepieceranges = None 
 
 
+    def stop_remove(self,removestate=False,removecontent=False):
+        self.dllock.acquire()
+        try:
+            if self.sd is not None:
+                network_stop_lambda = lambda:self.network_stop(removestate,removecontent)
+                self.session.lm.rawserver.add_task(network_stop_lambda,0.0)
+            # No exception if already stopped, for convenience
+        finally:
+            self.dllock.release()
+
+
     def network_get_state(self,usercallback,getpeerlist,sessioncalling=False):
         """ Called by network thread """
         self.dllock.acquire()
@@ -1542,26 +1657,22 @@ class Download(DownloadConfigInterface):
         finally:
             self.dllock.release()
 
-    def network_stop(self):
+    def network_stop(self,removestate,removecontent):
         """ Called by network thread """
         self.dllock.acquire()
         try:
+            infohash = self.tdef.get_infohash() 
             pstate = self.network_get_persistent_state() 
             pstate['engineresumedata'] = self.sd.shutdown()
-            return (self.tdef.get_infohash(),pstate)
+            
+            # Offload the removal of the content and other disk cleanup to another thread
+            if removestate:
+                self.session.perform_removestate_callback(infohash,self.correctedinfoname,removecontent,self.dlconfig['saveas'])
+            
+            return (infohash,pstate)
         finally:
             self.dllock.release()
 
-
-    def network_checkpoint_callback(self,usercallback):
-        """ Called by network thread """
-        psdict = {}
-        (infohash,pstate) = d.network_checkpoint()
-        psdict[infohash] = pstate
-            
-        # Invoke the usercallback function via a new thread.
-        self.session.perform_checkpoint_usercallback(usercallback,psdict)
-        
 
     def network_checkpoint(self):
         """ Called by network thread """
@@ -1611,25 +1722,7 @@ class DownloadState(Serializable):
     point in time. Using a snapshot instead of providing live data and 
     protecting access via locking should be faster.
     
-    ALT: callback interface: Advantage over pull: always accurate. Disadv: 
-    how does that work? Do we callback for every change in state, from peer 
-    DL speed to...? Tribler currently does periodic pull. You will want to 
-    batch things in time (once per sec) and per item (i.e., all events for 1 
-    torrent in one batch)
-    
-    I propose that for the initial API we use pull.
-    
     cf. libtorrent torrent_status
-
-    ISSUE: some of this state such as piece admin for some file-alloc modes 
-    must be savable. It is wise to also save the torrent runtime config along,
-    so determine at which level we should offer save/load methods. E.g.
-    just let DownloadState and DownloadStartupConfig return data which e.g.
-    Download saves in single file.
-    
-    How do we support this? Copying file alloc admin each time is overhead.
-    SOL: have parameter for get_state(), indicating "complete"/"simplestats", 
-    etc.
     """
     def __init__(self,download,status,error,progress,stats=None,filepieceranges=None):
         self.download = download
@@ -1668,8 +1761,7 @@ class DownloadState(Serializable):
             
             # Safe to store the stats dict. The stats dict is created per
             # invocation of the BT1Download returned statsfunc and contains no
-            # pointers (TODO: EXCEPTION IS stats['have'] TO BE REMOVED IF 
-            # POSSIBLE (currently needed for VOD progress bar)
+            # pointers.
             #
             self.stats = stats
             
@@ -1833,12 +1925,26 @@ class TriblerLaunchMany(Thread):
         
         self.internaltracker = None
         if config['internaltracker']:
-            # TODO: save tracker state when shutting down
             self.internaltracker = Tracker(config, self.rawserver)
             self.httphandler = HTTPHandler(self.internaltracker.get, config['tracker_min_time_between_log_flushes'])
         else:
             self.httphandler = DummyHTTPHandler()
         self.multihandler.set_httphandler(self.httphandler)
+        
+        
+        # Start up mainline DHT
+        # Arno: do this in a try block, as khashmir gives a very funky
+        # error when started from a .dmg (not from cmd line) on Mac. In particular
+        # it complains that it cannot find the 'hex' encoding method when
+        # hstr.encode('hex') is called, and hstr is a string?!
+        #
+        try:
+            rsconvert = RawServerConverter(self.rawserver)
+            # '' = host, TODO: when local bind set
+            mainlineDHT.init('',self.listen_port,config['state_dir'],rawserver=rsconvert)
+        except:
+            print_exc()
+        
         
         # APITODO
         #self.torrent_db = TorrentDBHandler()
@@ -1854,7 +1960,7 @@ class TriblerLaunchMany(Thread):
         self.sesslock.acquire()
         try:
             d = Download()
-            # store in list of Downloads, always
+            # store in list of Downloads, always. 
             self.downloads.append(d)
             d.setup(self.session,tdef,dcfg,pstate,self.network_engine_wrapper_created_callback)
             return d
@@ -1876,13 +1982,12 @@ class TriblerLaunchMany(Thread):
                 (infohash,pstate) = d.network_checkpoint()
                 self.save_download_pstate(infohash,pstate)
         
-    def remove(self,d):
+    def remove(self,d,removecontent=False):
         """ Called by any thread """
         self.sesslock.acquire()
         try:
-            d.stop()
-            d._cleanup_disk()
-            del self.downloads[d]
+            d.stop_remove(removestate=True,removecontent=removecontent)
+            self.downloads.remove(d)
         finally:
             self.sesslock.release()
 
@@ -2058,7 +2163,7 @@ class TriblerLaunchMany(Thread):
             #
             print >>sys.stderr,"tlm: network checkpointing:",`d.get_def().get_name()`
             if stop:
-                (infohash,pstate) = d.network_stop()
+                (infohash,pstate) = d.network_stop(False,False)
             else:
                 (infohash,pstate) = d.network_checkpoint()
             psdict[infohash] = pstate

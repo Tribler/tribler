@@ -93,7 +93,8 @@ if __name__ == "__main__":
 
     time.sleep(20)
     
-    s.shutdown()
+    #s.shutdown()
+    s.remove_download(d,removecontent=True)
     
     time.sleep(2500) # TODO: make sure we don't quit before shutdown checkpoint complete
     
