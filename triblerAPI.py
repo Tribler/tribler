@@ -2361,7 +2361,7 @@ class SingleDownload:
         try:
             self.dow.startEngine()
             self._getstatsfunc = self.dow.startStats() # not possible earlier
-            self.dow.startRerequester()
+            ## TEMP ARNO self.dow.startRerequester()
             self.dlrawserver.start_listening(self.dow.getPortHandler())
         except Exception,e:
             self.fatalerrorfunc(e)

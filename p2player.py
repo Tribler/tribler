@@ -30,30 +30,6 @@ ALLOW_MULTIPLE = False
 
 
 
-def state_callback(d,ds):
-    print >>sys.stderr,"main: Stats",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
-
-def vod_ready_callback(mimetype,stream):
-    print >>sys.stderr,"main: VOD ready callback called",currentThread().getName(),"###########################################################",mimetype
-
-    """
-    f = open("video.avi","wb")
-    while True:
-        data = stream.read()
-        print >>sys.stderr,"main: VOD ready callback: reading",type(data)
-        print >>sys.stderr,"main: VOD ready callback: reading",len(data)
-        if len(data) == 0:
-            break
-        f.write(data)
-    f.close()
-    stream.close()
-    """
-
-    # HACK: TODO: make to work with file-like interface
-    videoserv = VideoHTTPServer.getInstance()
-    videoserv.set_movietransport(stream.mt)
-    
-
 class ABCApp(wx.App):
     def __init__(self, x, params, single_instance_checker, abcpath):
         self.params = params
@@ -80,14 +56,14 @@ class ABCApp(wx.App):
             else:
                 tdef = TorrentDef.load('/tmp/bla.torrent')
             dcfg = DownloadStartupConfig()
-            dcfg.set_video_on_demand(vod_ready_callback)
+            dcfg.set_video_on_demand(self.vod_ready_callback)
             d = self.s.start_download(tdef,dcfg)
-            d.set_state_callback(state_callback,1)
+            ##d.set_state_callback(self.state_callback,1)
 
             self.videoplay = VideoPlayer.getInstance()
             self.videoplay.register(self.utility)
             self.videoplay.set_parentwindow(self.videoFrame)
-            self.videoplay.play_url('http://127.0.0.1:6880/')
+            
 
             self.videoFrame.Show(True)
         except Exception,e:
@@ -104,6 +80,39 @@ class ABCApp(wx.App):
         ClientPassParam("Close Connection")
         return 0
 
+
+
+    def state_callback(self,d,ds):
+        """ Called by Session thread """
+        print >>sys.stderr,"main: Stats",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
+    
+    def vod_ready_callback(self,mimetype,stream):
+        """ Called by Session thread """
+        print >>sys.stderr,"main: VOD ready callback called",currentThread().getName(),"###########################################################",mimetype
+    
+        """
+        f = open("video.avi","wb")
+        while True:
+            data = stream.read()
+            print >>sys.stderr,"main: VOD ready callback: reading",type(data)
+            print >>sys.stderr,"main: VOD ready callback: reading",len(data)
+            if len(data) == 0:
+                break
+            f.write(data)
+        f.close()
+        stream.close()
+        """
+    
+        # HACK: TODO: make to work with file-like interface
+        videoserv = VideoHTTPServer.getInstance()
+        videoserv.set_movietransport(stream.mt)
+
+
+        wx.CallAfter(self.harry)
+        
+    def harry(self):
+        self.videoplay.play_url('http://127.0.0.1:6880/')
+    
     
 class DummySingleInstanceChecker:
     
