@@ -339,6 +339,12 @@ class DownloadIsStoppedException(TriblerException):
         TriblerException.__init__(self,msg)
 
 
+class DuplicateDownloadException(TriblerException):
+    
+    def __init__(self,msg=None):
+        TriblerException.__init__(self,msg)
+
+
 class TriblerLegacyException(TriblerException):
     """ Wrapper around fatal errors that happen in the download engine,
     but which are not reported as Exception objects for legacy reasons,
