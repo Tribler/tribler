@@ -13,6 +13,9 @@
 #
 import os
 import sys
+import time
+from threading import enumerate
+
 if sys.platform == "darwin":
     # on Mac, we can only load VLC/OpenSSL libraries
     # relative to the location of tribler.py
@@ -25,9 +28,32 @@ from triblerAPI import *
 from Tribler.Video.VideoServer import VideoHTTPServer
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Utility.utility import Utility
+from Tribler.Video.EmbeddedPlayer import VideoFrame
 
 ALLOW_MULTIPLE = False
 
+
+class ABCFrame(VideoFrame):
+
+    def __init__(self,parent):
+        VideoFrame.__init__(self,parent)
+        self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
+    
+    def OnCloseWindow(self, event = None):
+        if event is not None:
+            nr = event.GetEventType()
+            lookup = { wx.EVT_CLOSE.evtType[0]: "EVT_CLOSE", wx.EVT_QUERY_END_SESSION.evtType[0]: "EVT_QUERY_END_SESSION", wx.EVT_END_SESSION.evtType[0]: "EVT_END_SESSION" }
+            if nr in lookup: nr = lookup[nr]
+            print "Closing due to event ",nr
+            print >>sys.stderr,"Closing due to event ",nr
+            event.Skip()
+        else:
+            print "Closing untriggered by event"
+    
+        ts = enumerate()
+        for t in ts:
+            print >>sys.stderr,"Thread still running",t.getName(),"daemon",t.isDaemon()
+        
 
 
 class ABCApp(wx.App):
@@ -43,8 +69,8 @@ class ABCApp(wx.App):
             self.utility = Utility(self.abcpath)
             self.utility.app = self
             
-            from Tribler.Video.EmbeddedPlayer import VideoFrame
-            self.videoFrame = VideoFrame(self)
+            
+            self.videoFrame = ABCFrame(self)
             
             self.videoserv = VideoHTTPServer.getInstance() # create
             self.videoserv.background_serve()
@@ -58,12 +84,15 @@ class ABCApp(wx.App):
             dcfg = DownloadStartupConfig()
             dcfg.set_video_on_demand(self.vod_ready_callback)
             d = self.s.start_download(tdef,dcfg)
-            ##d.set_state_callback(self.state_callback,1)
+            d.set_state_callback(self.state_callback,1)
 
             self.videoplay = VideoPlayer.getInstance()
             self.videoplay.register(self.utility)
             self.videoplay.set_parentwindow(self.videoFrame)
             
+            self.Bind(wx.EVT_CLOSE, self.videoFrame.OnCloseWindow)
+            self.Bind(wx.EVT_QUERY_END_SESSION, self.videoFrame.OnCloseWindow)
+            self.Bind(wx.EVT_END_SESSION, self.videoFrame.OnCloseWindow)
 
             self.videoFrame.Show(True)
         except Exception,e:
@@ -71,20 +100,22 @@ class ABCApp(wx.App):
         return True
 
     def OnExit(self):
+        print >>sys.stderr,"ONEXIT"
+        self.s.shutdown()
         
-        self.torrentfeed.shutdown()
-        mainlineDHT.deinit()
+        
+        ###time.sleep(5) # TODO: make network thread non-daemon which MainThread has to end.
         
         if not ALLOW_MULTIPLE:
             del self.single_instance_checker
-        ClientPassParam("Close Connection")
+        ## TODO ClientPassParam("Close Connection")
         return 0
 
 
-
-    def state_callback(self,d,ds):
+    def state_callback(self,ds):
         """ Called by Session thread """
         print >>sys.stderr,"main: Stats",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
+        return (1.0,False)
     
     def vod_ready_callback(self,mimetype,stream):
         """ Called by Session thread """
@@ -154,10 +185,10 @@ def run(params = None):
     #print "[StartUpDebug]---------------- 1", time()-start_time
     if not ALLOW_MULTIPLE and single_instance_checker.IsAnotherRunning():
         #Send  torrent info to abc single instance
-        ClientPassParam(params[0])
+        ## TODO ClientPassParam(params[0])
         #print "[StartUpDebug]---------------- 2", time()-start_time
+        pass
     else:
-        print "NOT OTHER"
         abcpath = os.path.abspath(os.path.dirname(sys.argv[0]))
         # Arno: don't chdir to allow testing as other user from other dir.
         #os.chdir(abcpath)

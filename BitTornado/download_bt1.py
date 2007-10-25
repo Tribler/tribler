@@ -694,7 +694,7 @@ class BT1Download:
             if not self.failed:
                 self.fileselector.finish()
                 resumedata = self.fileselector.pickle()
-        if self.play_video:
+        if self.voddownload is not None:
             self.voddownload.stop()
         return resumedata
 
