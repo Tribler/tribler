@@ -56,7 +56,7 @@ class TriblerLaunchMany(Thread):
         self.session = session
         self.sesslock = sesslock
         
-        self.downloads = []
+        self.downloads = {}
         config = session.sessconfig # Should be safe at startup
 
         self.locally_guessed_ext_ip = self.guess_ext_ip_from_local_info()
@@ -145,14 +145,25 @@ class TriblerLaunchMany(Thread):
             self.rawserver.add_task(self.torrent_checking, self.torrent_checking_period)
         
 
-    def add(self,tdef,dcfg,pstate=None):
+    def add(self,tdef,dscfg,pstate=None):
         """ Called by any thread """
         self.sesslock.acquire()
         try:
-            d = triblerAPI.Download()
-            # store in list of Downloads, always. 
-            self.downloads.append(d)
-            d.setup(self.session,tdef,dcfg,pstate,self.network_engine_wrapper_created_callback)
+            d = triblerAPI.Download(self.session,tdef)
+            infohash = d.get_def().get_infohash() 
+            
+            # Check if running or saved on disk
+            if infohash in self.downloads:
+                raise DuplicateDownloadException()
+            elif pstate is None: # not already resuming
+                d2 = self.resume_download_from_infohash(infohash,dscfg)
+                if d2 is not None:
+                    # Succesfully loaded saved Download
+                    return d2
+            
+            # Store in list of Downloads, always. 
+            self.downloads[d.get_def().get_infohash()] = d
+            d.setup(dscfg,pstate,self.network_engine_wrapper_created_callback)
             return d
         finally:
             self.sesslock.release()
@@ -177,7 +188,7 @@ class TriblerLaunchMany(Thread):
         self.sesslock.acquire()
         try:
             d.stop_remove(removestate=True,removecontent=removecontent)
-            self.downloads.remove(d)
+            del self.downloads.remove[d.get_def().get_infohash()]
         finally:
             self.sesslock.release()
 
@@ -185,7 +196,7 @@ class TriblerLaunchMany(Thread):
         """ Called by any thread """
         self.sesslock.acquire()
         try:
-            return self.downloads[:] #copy, is mutable
+            return self.downloads.values() #copy, is mutable
         finally:
             self.sesslock.release()
     
@@ -285,7 +296,7 @@ class TriblerLaunchMany(Thread):
             # Download, and additions are no problem (just won't be included 
             # in list of states returned via callback.
             #
-            dllist = self.downloads[:]
+            dllist = self.downloads.values()
         finally:
             self.sesslock.release()
 
@@ -310,21 +321,47 @@ class TriblerLaunchMany(Thread):
     #
     def load_checkpoint(self):
         """ Called by any thread """
-        dir = self.session.get_downloads_pstate_dir()
-        filelist = os.listdir(dir)
-        for basename in filelist:
-            # Make this go on when a torrent fails to start
-            try:
+        self.sesslock.acquire()
+        try:
+            dir = self.session.get_downloads_pstate_dir()
+            filelist = os.listdir(dir)
+            for basename in filelist:
+                # Make this go on when a torrent fails to start
                 filename = os.path.join(dir,basename)
-                pstate = self.load_download_pstate(filename)
-                
-                print >>sys.stderr,"tlm: load_checkpoint: pstate is",dlstatus_strings[pstate['dlstate']['status']],pstate['dlstate']['progress']
-                tdef = triblerAPI.TorrentDef._create(pstate['metainfo'])
-                
-                # Resume download
-                self.add(tdef,pstate['dscfg'],pstate)
-            except Exception,e:
-                self.rawserver_nonfatalerrorfunc(e)
+                self.resume_download(filename)
+        finally:
+            self.sesslock.releas()
+
+
+    def resume_download_from_infohash(self,infohash,dscfg):
+        """ Called by any thread, assume sesslock already held """
+        dir = self.session.get_downloads_pstate_dir()
+        basename = binascii.hexlify(infohash)+'.pickle'
+        filename = os.path.join(dir,basename)
+        return self.resume_download(filename,dscfg)
+        
+    def resume_download(self,filename,dscfg=None):
+        try:
+            # TODO: filter for file not found explicitly?
+            pstate = self.load_download_pstate(filename)
+            
+            print >>sys.stderr,"tlm: load_checkpoint: pstate is",dlstatus_strings[pstate['dlstate']['status']],pstate['dlstate']['progress']
+            tdef = triblerAPI.TorrentDef._create(pstate['metainfo'])
+            
+            # Resume download
+            if dscfg is None:
+                dscfg = pstate['dscfg']
+            else:
+                # override saved DownloadStartupConfig
+                pstate['dscfg'] = dscfg
+            
+            # Activate
+            return self.add(tdef,dscfg,pstate)
+            
+        except Exception,e:
+            # TODO: remove saved checkpoint?
+            self.rawserver_nonfatalerrorfunc(e)
+            return None
 
     
     def checkpoint(self,stop=False):
@@ -336,7 +373,7 @@ class TriblerLaunchMany(Thread):
             # Download, and additions are no problem (just won't be included 
             # in list of states returned via callback.
             #
-            dllist = self.downloads[:]
+            dllist = self.downloads.values()
             print >>sys.stderr,"tlm: checkpointing",len(dllist)
             
             network_checkpoint_callback_lambda = lambda:self.network_checkpoint_callback(dllist,stop)

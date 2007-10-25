@@ -56,7 +56,6 @@ copy %SystemRoot%\msvcp71.dll dist\tribler
 copy %PYTHONPATH%\msvcp60.dll dist\tribler
 copy SSLEAY32.dll dist\tribler
 copy LIBEAY32.dll dist\tribler
-rem copy contrib\win32\vlc-0.8.6a-ivaylo-mar2007\vlc.dll dist\tribler
 copy heading.bmp dist\tribler
 mkdir dist\tribler\Lang
 copy superpeer.txt dist

@@ -257,9 +257,9 @@ TODO:
     Saving objects is easier, but potentially less efficient as all sort of temp
     junk is written as well
 
-"""
+- Add ability to run a standalone tracker based on API
 
-# TODO: clean imports
+"""
 
 import sys
 import os
@@ -551,8 +551,6 @@ class Session(SessionConfigInterface):
         self.lm = TriblerLaunchMany(self,self.sesslock)
         self.lm.start()
 
-        # Restart Downloads from checkpoint, if any
-        self.lm.load_checkpoint()
 
     #
     # Class methods
@@ -586,6 +584,15 @@ class Session(SessionConfigInterface):
     #
     # Public methods
     #
+    def load_checkpoint(self):
+        """ Restart Downloads from checkpoint, if any.
+        
+        This must be manageable by the API user for e.g. a video player
+        that wants to start the torrent the user clicked on first, and
+        only then restart any sleeping torrents (e.g. seeding) """
+        self.lm.load_checkpoint()
+    
+    
     def start_download(self,tdef,dcfg=None):
         """ 
         Creates a Download object and adds it to the session. The passed 
@@ -593,6 +600,9 @@ class Session(SessionConfigInterface):
         object and the copies become bound. If the tracker is not set in tdef, 
         it is set to the internal tracker (which must have been enabled in the 
         session config). The Download is then started and checkpointed.
+
+        If a checkpointed version of the Download is found, that is restarted
+        overriding the saved DownloadStartupConfig is "dcfg" is not None.
         
         in:
         tdef = TorrentDef
@@ -1282,7 +1292,7 @@ class Download(DownloadConfigInterface):
     #
     # Internal methods
     #
-    def __init__(self):
+    def __init__(self,session,tdef):
         self.dllock = RLock()
         # just enough so error saving and get_state() works
         self.error = None
@@ -1290,8 +1300,20 @@ class Download(DownloadConfigInterface):
         # To be able to return the progress of a stopped torrent, how far it got.
         self.progressbeforestop = 0.0
         self.filepieceranges = []
+
+        # Copy tdef, so we get an infohash
+        self.session = session
+        self.tdef = tdef.copy()
+        # Need to do this before finalize
+        tracker = self.tdef.get_tracker()
+        itrackerurl = self.session.get_internal_tracker_url()
+        if tracker == '':
+            self.tdef.set_tracker(itrackerurl)
+        self.tdef.finalize()
+        self.tdef.readonly = True
+
     
-    def setup(self,session,tdef,dcfg=None,pstate=None,lmcallback=None):
+    def setup(self,dcfg=None,pstate=None,lmcallback=None):
         """
         Create a Download object. Used internally by Session. Copies tdef and 
         dcfg and binds them to this download.
@@ -1304,18 +1326,9 @@ class Download(DownloadConfigInterface):
         """
         try:
             self.dllock.acquire() # not really needed, no other threads know of it
-            self.session = session
-            
-            # Copy tdef
-            self.tdef = tdef.copy()
-            tracker = self.tdef.get_tracker()
-            itrackerurl = self.session.get_internal_tracker_url()
-            if tracker == '':
-                self.tdef.set_tracker(itrackerurl)
-            self.tdef.finalize()
-            self.tdef.readonly = True
             
             # See if internal tracker used
+            itrackerurl = self.session.get_internal_tracker_url()
             infohash = self.tdef.get_infohash()
             metainfo = self.tdef.get_metainfo()
             usingitracker = False
