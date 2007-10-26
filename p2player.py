@@ -56,7 +56,6 @@ class ABCFrame(VideoFrame):
             print >>sys.stderr,"Thread still running",t.getName(),"daemon",t.isDaemon()
         
 
-
 class ABCApp(wx.App):
     def __init__(self, x, params, single_instance_checker, abcpath):
         self.params = params
@@ -115,7 +114,20 @@ class ABCApp(wx.App):
 
     def state_callback(self,ds):
         """ Called by Session thread """
-        print >>sys.stderr,"main: Stats",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
+        #print >>sys.stderr,"main: Stats",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
+        progress = ds.get_vod_prebuffering_progress()
+        playable = ds.get_vod_playable()
+        print >>sys.stderr,"main: VODStats",progress,playable
+
+        if progress != 1.0:
+            pstr = str(int(progress*100))
+            msg = "Prebuffering "+pstr+"% done"
+        elif playable:
+            msg = "Starting playback"
+        else:
+            msg = "Waiting for sufficient download speed"
+        self.videoFrame.set_player_status(msg)
+        
         return (1.0,False)
     
     def vod_ready_callback(self,mimetype,stream):

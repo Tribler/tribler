@@ -658,7 +658,7 @@ class BT1Download:
             self.ratemeasure, self.storagewrapper.get_stats, 
             self.datalength, self.finflag, self.spewflag, self.statistics, 
             displayfunc, self.config['display_interval'], 
-            infohash = self.infohash)
+            infohash = self.infohash,voddownload=self.voddownload)
 
     def startStats(self):
         self._init_stats()
@@ -667,7 +667,7 @@ class BT1Download:
             self.upmeasure.get_rate, self.downmeasure.get_rate, 
             self.ratemeasure, self.storagewrapper.get_stats, 
             self.datalength, self.finflag, self.spewflag, self.statistics, 
-            infohash = self.infohash)
+            infohash = self.infohash,voddownload=self.voddownload)
         return d.gather
 
 

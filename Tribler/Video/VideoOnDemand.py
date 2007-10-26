@@ -659,6 +659,9 @@ class MovieOnDemandTransporter(MovieTransport):
         self.start_playback = float(2 ** 31) #end of time
 
         self.lasttime=0
+        # For DownloadState
+        self.prebufprogress = 0.0
+        self.playable = False
 
         self.refill_thread()
         self.tick_second()
@@ -784,6 +787,11 @@ class MovieOnDemandTransporter(MovieTransport):
             # extract bitrate once we got the first max_preparse_packets
         missing_pieces = filter( lambda i: not self.movieselector.have_movie_piece( i ), xrange(0,self.max_preparse_packets) )
         gotall = not missing_pieces
+        self.prebufprogress = float(self.max_preparse_packets-len(missing_pieces))/float(self.max_preparse_packets)
+        
+        if DEBUG:
+            print >>sys.stderr,"vod: trans: Already got",(self.prebufprogress*100.0),"% of prebuffer"
+        
         if not gotall and DEBUG:
             print >>sys.stderr,"vod: trans: Still need pieces",missing_pieces,"for prebuffering/FFMPEG analysis"
 
@@ -1193,6 +1201,9 @@ class MovieOnDemandTransporter(MovieTransport):
         #    self.bufferinfo.set_playable()
         #self.progressinf.bufferinfo_updated_callback()
         # triblerAPI
+        self.prebufprogress = 1.0
+        self.playable = True
+        
         print >>sys.stderr,"vod: trans: Calling usercallback to tell it we're ready to play",self.movieselector.videoinfo[4]
         mimetype = self.get_mimetype()
         if mimetype is None:
@@ -1211,3 +1222,14 @@ class MovieOnDemandTransporter(MovieTransport):
         
         self.movieselector.videoinfo[4](mimetype,stream)
 
+    def get_prebuffering_progress(self):
+        """ Called by network thread """
+        return self.prebufprogress
+    
+    def is_playable(self):
+        """ Called by network thread """
+        if not self.playable:
+            self.playable = (self.prebufprogress == 1.0 and self.enough_buffer())
+        return self.playable
+        
+        

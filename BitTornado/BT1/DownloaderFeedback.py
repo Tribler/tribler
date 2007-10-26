@@ -12,7 +12,7 @@ except:
 class DownloaderFeedback:
     def __init__(self, choker, httpdl, add_task, upfunc, downfunc,
             ratemeasure, leftfunc, file_length, finflag, sp, statistics,
-            statusfunc = None, interval = None, infohash = None):
+            statusfunc = None, interval = None, infohash = None, voddownload=None):
         self.choker = choker
         self.httpdl = httpdl
         self.add_task = add_task
@@ -27,6 +27,7 @@ class DownloaderFeedback:
         self.lastids = []
         self.spewdata = None
         self.infohash = infohash
+        self.voddownload = voddownload
         self.doneprocessing = Event()
         self.doneprocessing.set()
         if statusfunc:
@@ -119,6 +120,8 @@ class DownloaderFeedback:
             s['frac'] = 1.0
             s['wanted'] = 0
             s['time'] = 0
+            s['vod_prebuf_frac'] = 1.0
+            s['vod_playable'] = True
             return s
         s['down'] = self.downfunc()
         obtained, desired, have = self.leftfunc()
@@ -132,6 +135,14 @@ class DownloaderFeedback:
             s['time'] = 0
         else:
             s['time'] = self.ratemeasure.get_time_left(desired-obtained)
+            
+        if self.voddownload is not None:
+            s['vod_prebuf_frac'] = self.voddownload.get_prebuffering_progress()
+            s['vod_playable'] = self.voddownload.is_playable()
+        else:
+            s['vod_prebuf_frac'] = 0.0
+            s['vod_playable'] = False
+
         return s        
 
 

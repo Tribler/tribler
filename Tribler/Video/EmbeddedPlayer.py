@@ -123,6 +123,7 @@ class VideoFrame(wx.Frame):
 
 
     def set_player_status(self,s):
+        """ Called by any thread """
         if self.videopanel:
             self.videopanel.set_player_status(s)
 

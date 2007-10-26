@@ -259,6 +259,10 @@ TODO:
 
 - Add ability to run a standalone tracker based on API
 
+- Allow VOD to work from file when download is complete, to enable seeking
+
+- VOD specific progress info.
+
 """
 
 import sys
@@ -1851,6 +1855,19 @@ class DownloadState(Serializable):
             return []
         else:
             return self.haveslice
+
+    def get_vod_prebuffering_progress(self):
+        if self.stats is None:
+            return 0.0
+        else:
+            return self.stats['vod_prebuf_frac']
+    
+    def get_vod_playable(self):
+        if self.stats is None:
+            return False
+        else:
+            return self.stats['vod_playable']
+
 
 def offset2piece(offset,piecesize):
     
