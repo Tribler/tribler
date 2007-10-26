@@ -156,10 +156,10 @@ class TriblerLaunchMany(Thread):
             if infohash in self.downloads:
                 raise DuplicateDownloadException()
             elif pstate is None: # not already resuming
-                d2 = self.resume_download_from_infohash(infohash,dscfg)
-                if d2 is not None:
-                    # Succesfully loaded saved Download
-                    return d2
+                pstate = self.load_download_pstate_noexc(infohash)
+                if pstate is not None:
+                    # Override saved DownloadStartupConfig, just in case
+                    pstate['dscfg'] = dscfg
             
             # Store in list of Downloads, always. 
             self.downloads[d.get_def().get_infohash()] = d
@@ -333,14 +333,19 @@ class TriblerLaunchMany(Thread):
             self.sesslock.releas()
 
 
-    def resume_download_from_infohash(self,infohash,dscfg):
+    def load_download_pstate_noexc(self,infohash):
         """ Called by any thread, assume sesslock already held """
-        dir = self.session.get_downloads_pstate_dir()
-        basename = binascii.hexlify(infohash)+'.pickle'
-        filename = os.path.join(dir,basename)
-        return self.resume_download(filename,dscfg)
+        try:
+            dir = self.session.get_downloads_pstate_dir()
+            basename = binascii.hexlify(infohash)+'.pickle'
+            filename = os.path.join(dir,basename)
+            return self.load_download_pstate(filename)
+        except Exception,e:
+            # TODO: remove saved checkpoint?
+            self.rawserver_nonfatalerrorfunc(e)
+            return None
         
-    def resume_download(self,filename,dscfg=None):
+    def resume_download(self,filename):
         try:
             # TODO: filter for file not found explicitly?
             pstate = self.load_download_pstate(filename)
@@ -348,20 +353,11 @@ class TriblerLaunchMany(Thread):
             print >>sys.stderr,"tlm: load_checkpoint: pstate is",dlstatus_strings[pstate['dlstate']['status']],pstate['dlstate']['progress']
             tdef = triblerAPI.TorrentDef._create(pstate['metainfo'])
             
-            # Resume download
-            if dscfg is None:
-                dscfg = pstate['dscfg']
-            else:
-                # override saved DownloadStartupConfig
-                pstate['dscfg'] = dscfg
-            
             # Activate
-            return self.add(tdef,dscfg,pstate)
-            
+            self.add(tdef,pstate['dscfg'],pstate)
         except Exception,e:
             # TODO: remove saved checkpoint?
             self.rawserver_nonfatalerrorfunc(e)
-            return None
 
     
     def checkpoint(self,stop=False):

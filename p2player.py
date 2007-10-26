@@ -14,6 +14,7 @@
 import os
 import sys
 import time
+import commands
 from threading import enumerate
 
 if sys.platform == "darwin":
