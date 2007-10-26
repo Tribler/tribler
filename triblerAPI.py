@@ -38,7 +38,7 @@ Simple VOD download session
     dcfg.set_selected_files('part2.avi') # play this video
     d = s.start_download(tdef,dcfg)
     
-def vod_ready_callback(mimetype,stream):
+def vod_ready_callback(download,mimetype,stream,filename):
     # Called by new thread 
     while True:
         data = stream.read()
@@ -57,8 +57,9 @@ inside the stream object, blocking the new thread as desired. Note that it must
 be a new thread and not the network thread that calls vod_ready_callback().        
 Another advantage of vod_ready is that users can pass the stream object to an
 HTTP server which can then record a (path,stream) tuple, and start reading from
-the given stream when the path is requested via GET /path HTTP/1.1)
-We throw IOExceptions when the VOD download is stopped / removed.
+the given stream when the path is requested via GET /path HTTP/1.1). Or 
+play the video from the file directly if it is complete. We throw IOExceptions 
+when the VOD download is stopped / removed.
         
 
 Simplest seeding session
@@ -260,8 +261,6 @@ TODO:
 - Add ability to run a standalone tracker based on API
 
 - Allow VOD to work from file when download is complete, to enable seeking
-
-- VOD specific progress info.
 
 """
 
@@ -719,12 +718,12 @@ class Session(SessionConfigInterface):
     #
     # Internal methods TODO: move to TriblerLaunchMany or other internal class
     #
-    def perform_vod_usercallback(self,usercallback,mimetype,stream):
+    def perform_vod_usercallback(self,d,usercallback,mimetype,stream,filename):
         """ Called by network thread """
         print >>sys.stderr,"Session: perform_vod_usercallback()"
         def session_vod_usercallback_target():
             try:
-                usercallback(mimetype,stream)
+                usercallback(d,mimetype,stream,filename)
             except:
                 print_exc()
         self.perform_usercallback(session_vod_usercallback_target)
@@ -1418,7 +1417,7 @@ class Download(DownloadConfigInterface):
 
         # Define which file to DL in VOD mode
         if self.dlconfig['mode'] == DLMODE_VOD:
-            vod_usercallback_wrapper = lambda mimetype,stream:self.session.perform_vod_usercallback(self.dlconfig['vod_usercallback'],mimetype,stream)
+            vod_usercallback_wrapper = lambda mimetype,stream,filename:self.session.perform_vod_usercallback(self,self.dlconfig['vod_usercallback'],mimetype,stream,filename)
             if len(self.dlconfig['selected_files']) == 0:
                 # single-file torrent
                 file = self.get_def().get_name()

@@ -114,10 +114,10 @@ class ABCApp(wx.App):
 
     def state_callback(self,ds):
         """ Called by Session thread """
-        #print >>sys.stderr,"main: Stats",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
+        print >>sys.stderr,"main: Stats",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
         progress = ds.get_vod_prebuffering_progress()
         playable = ds.get_vod_playable()
-        print >>sys.stderr,"main: VODStats",progress,playable
+        #print >>sys.stderr,"main: VODStats",progress,playable
 
         if progress != 1.0:
             pstr = str(int(progress*100))
@@ -130,33 +130,29 @@ class ABCApp(wx.App):
         
         return (1.0,False)
     
-    def vod_ready_callback(self,mimetype,stream):
+    def vod_ready_callback(self,d,mimetype,stream,filename):
         """ Called by Session thread """
         print >>sys.stderr,"main: VOD ready callback called",currentThread().getName(),"###########################################################",mimetype
     
-        """
-        f = open("video.avi","wb")
-        while True:
-            data = stream.read()
-            print >>sys.stderr,"main: VOD ready callback: reading",type(data)
-            print >>sys.stderr,"main: VOD ready callback: reading",len(data)
-            if len(data) == 0:
-                break
-            f.write(data)
-        f.close()
-        stream.close()
-        """
-    
-        # HACK: TODO: make to work with file-like interface
-        videoserv = VideoHTTPServer.getInstance()
-        videoserv.set_movietransport(stream.mt)
-
-
-        wx.CallAfter(self.harry)
+        if filename:
+            func = lambda:self.play_from_file(filename)
+            wx.CallAfter(func)
+        else:
+            # HACK: TODO: make to work with file-like interface
+            videoserv = VideoHTTPServer.getInstance()
+            videoserv.set_movietransport(stream.mt)
+            wx.CallAfter(self.play_from_stream)
         
-    def harry(self):
+    def play_from_stream(self):
+        """ Called by MainThread """
+        print >>sys.stderr,"main: Playing from stream"
         self.videoplay.play_url('http://127.0.0.1:6880/')
     
+    def play_from_file(self,filename):
+        """ Called by MainThread """
+        print >>sys.stderr,"main: Playing from file",filename
+        self.videoplay.play_url(filename)
+
     
 class DummySingleInstanceChecker:
     

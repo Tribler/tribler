@@ -4,7 +4,7 @@
 from math import ceil
 from sys import stdout
 from threading import Lock,Condition,Event,RLock,currentThread
-from traceback import print_exc
+from traceback import print_exc,print_stack
 from select import select
 from tempfile import mkstemp
 from threading import Thread
@@ -105,9 +105,10 @@ class PiecePickerStreaming(PiecePicker):
         #if DEBUG:
         #    print >>sys.stderr,"PiecePickerStreaming: next returns",p
         if p is None:
-            # When the file we selected from a multi-file torrent is complete, we won't
-            # request anymore pieces, so the normal way of detecting we're done is not
-            # working and we won't tell the video player we're playable. Do it here.
+            # When the file we selected from a multi-file torrent is complete,
+            # we won't request anymore pieces, so the normal way of detecting 
+            # we're done is not working and we won't tell the video player 
+            # we're playable. Do it here instead.
             self.transporter.notify_playable()
         return p
 
@@ -151,6 +152,10 @@ class PiecePickerStreaming(PiecePicker):
                 return best
 
         return self.next_new(haves, wantfunc, complete_first, helper_con)
+
+    def am_I_complete(self):
+        return PiecePicker.am_I_complete(self)
+
 
 class PiecePickerEDF(PiecePickerStreaming):
     """ Earliest Deadline First -- pick the piece with the lowest number. """
@@ -555,6 +560,9 @@ class MovieSelector:
 
     def get_moviename(self):
         return os.path.basename(self.download_fileinfo[0])
+
+    def am_I_complete(self):
+        return self.piecepicker.am_I_complete()
 
 
 class MovieOnDemandTransporter(MovieTransport):
@@ -1200,11 +1208,14 @@ class MovieOnDemandTransporter(MovieTransport):
         #if self.bufferinfo:
         #    self.bufferinfo.set_playable()
         #self.progressinf.bufferinfo_updated_callback()
+        
         # triblerAPI
         self.prebufprogress = 1.0
         self.playable = True
         
-        print >>sys.stderr,"vod: trans: Calling usercallback to tell it we're ready to play",self.movieselector.videoinfo[4]
+        print_stack()
+        
+        print >>sys.stderr,"vod: trans: notify_playable: Calling usercallback to tell it we're ready to play",self.movieselector.videoinfo[4]
         mimetype = self.get_mimetype()
         if mimetype is None:
             if sys.platform == 'win32':
@@ -1218,9 +1229,21 @@ class MovieOnDemandTransporter(MovieTransport):
                     mimetype = 'video/mpeg'
             else:
                 mimetype = 'video/mpeg'
-        stream = MovieTransportFileLikeInterfaceWrapper(self)
+                
+        if self.movieselector.am_I_complete():
+            if DEBUG:
+                print >>sys.stderr,"vod: trans: notify_playable: MovieSelector says complete, give filename"
+            filename = self.movieselector.videoinfo[3]
+            stream = None
+        else:
+            if DEBUG:
+                print >>sys.stderr,"vod: trans: notify_playable: MovieSelector says incomplete, give stream"
+            filename = None
+            stream = MovieTransportFileLikeInterfaceWrapper(self)
         
-        self.movieselector.videoinfo[4](mimetype,stream)
+        # Call user callback
+        self.movieselector.videoinfo[4](mimetype,stream,filename)
+
 
     def get_prebuffering_progress(self):
         """ Called by network thread """

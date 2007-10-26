@@ -158,6 +158,7 @@ class TriblerLaunchMany(Thread):
             elif pstate is None: # not already resuming
                 pstate = self.load_download_pstate_noexc(infohash)
                 if pstate is not None:
+                    print >>sys.stderr,"tlm: add: pstate is",dlstatus_strings[pstate['dlstate']['status']],pstate['dlstate']['progress']
                     # Override saved DownloadStartupConfig, just in case
                     pstate['dscfg'] = dscfg
             
