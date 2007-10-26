@@ -66,6 +66,7 @@ class VideoFrame(wx.Frame):
         oldcwd = os.getcwd()
         if sys.platform == 'win32':
             global vlcinstalldir
+            print "VLCPATH",self.utility.getPath()
             vlcinstalldir = os.path.join(self.utility.getPath(),"vlc")
             os.chdir(vlcinstalldir)
 

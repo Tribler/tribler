@@ -505,10 +505,13 @@ class Connecter:
             self.EXTEND_HANDSHAKE_M_DICT.update(d)
             
             
-        # BarterCast    
-        self.peerdb = PeerDBHandler()
-        self.bartercastdb = BarterCastDBHandler()
-            
+        # BarterCast
+        if config['cache']:
+            self.peerdb = PeerDBHandler()
+            self.bartercastdb = BarterCastDBHandler()
+        else:
+            self.peerdb = None
+            self.bartercastdb = None
 
     def how_many_connections(self):
         return len(self.connections)
@@ -546,45 +549,45 @@ class Connecter:
 
         ######################################
         # BarterCast
-
-        ip = c.get_ip(False)       
-        port = c.get_port(False)   
-
-        permid = self.peerdb.getPermIDByIP(ip)
-
-        if DEBUG:
-            print >> sys.stdout, "barter: Up %d down %d peer %s:%s (PermID = %s)" % (c.total_uploaded, c.total_downloaded, ip, port, permid)
-        my_permid = self.bartercastdb.my_permid
-
-        down_kb = int(c.total_downloaded / 1024)
-        up_kb = int(c.total_uploaded / 1024)
-
-        # Save exchanged KBs in BarterCastDB
-        if permid != None:
-
-            name = self.bartercastdb.getName(permid)
-            
-            if down_kb > 0:
-                new_value = self.bartercastdb.incrementItem((my_permid, permid), 'downloaded', down_kb)
- 
-            if up_kb > 0:
-                new_value = self.bartercastdb.incrementItem((my_permid, permid), 'uploaded', up_kb)
- 
-        # For the record: save KBs exchanged with non-tribler peers
-        else:
-            if down_kb > 0:
-                new_value = self.bartercastdb.incrementItem((my_permid, 'non-tribler'), 'downloaded', down_kb)
- 
-            if up_kb > 0:
-                new_value = self.bartercastdb.incrementItem((my_permid, 'non-tribler'), 'uploaded', up_kb)
-        """
-        # paranoid for performance problems, TODO TEMP ARNO fix next release
-        try:
-            # Arno: PARANOID SYNC
-            self.bartercastdb.sync()
-        except:
-            print_exc()
-        """
+        if self.peerdb is not None:
+            ip = c.get_ip(False)       
+            port = c.get_port(False)   
+    
+            permid = self.peerdb.getPermIDByIP(ip)
+    
+            if DEBUG:
+                print >> sys.stdout, "barter: Up %d down %d peer %s:%s (PermID = %s)" % (c.total_uploaded, c.total_downloaded, ip, port, permid)
+            my_permid = self.bartercastdb.my_permid
+    
+            down_kb = int(c.total_downloaded / 1024)
+            up_kb = int(c.total_uploaded / 1024)
+    
+            # Save exchanged KBs in BarterCastDB
+            if permid != None:
+    
+                name = self.bartercastdb.getName(permid)
+                
+                if down_kb > 0:
+                    new_value = self.bartercastdb.incrementItem((my_permid, permid), 'downloaded', down_kb)
+     
+                if up_kb > 0:
+                    new_value = self.bartercastdb.incrementItem((my_permid, permid), 'uploaded', up_kb)
+     
+            # For the record: save KBs exchanged with non-tribler peers
+            else:
+                if down_kb > 0:
+                    new_value = self.bartercastdb.incrementItem((my_permid, 'non-tribler'), 'downloaded', down_kb)
+     
+                if up_kb > 0:
+                    new_value = self.bartercastdb.incrementItem((my_permid, 'non-tribler'), 'uploaded', up_kb)
+            """
+            # paranoid for performance problems, TODO TEMP ARNO fix next release
+            try:
+                # Arno: PARANOID SYNC
+                self.bartercastdb.sync()
+            except:
+                print_exc()
+            """
 
         ###################################### 
 
