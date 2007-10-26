@@ -263,6 +263,8 @@ TODO:
 - Test VOD quick startup with multi-file torrent. PiecePicker.am_I_complete is
   about whole file.
 
+- BT1/Connecter: if 'cache' in config and config['cache']: # TEMP ARNO: TODO: WE EXPECT A SESSION CONFIG HERE
+
 """
 
 import sys

@@ -506,7 +506,7 @@ class Connecter:
             
             
         # BarterCast
-        if config['cache']:
+        if 'cache' in config and config['cache']: # TEMP ARNO: TODO: WE EXPECT A SESSION CONFIG HERE
             self.peerdb = PeerDBHandler()
             self.bartercastdb = BarterCastDBHandler()
         else:
