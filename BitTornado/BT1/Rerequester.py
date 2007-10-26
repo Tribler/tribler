@@ -65,7 +65,7 @@ class Rerequester:
             connect, externalsched, amount_left, up, down, 
             port, ip, myid, infohash, timeout, errorfunc, excfunc, 
             maxpeers, doneflag, upratefunc, downratefunc, 
-            unpauseflag = fakeflag(True)):
+            unpauseflag = fakeflag(True), config=None):
 
         self.excfunc = excfunc
         newtrackerlist = []        
@@ -112,6 +112,7 @@ class Rerequester:
         self.schedid = 'arno481'
         self.infohash = infohash
         self.dht = mainlineDHT.dht
+        self.config = config
 
 
     def start(self):
@@ -372,8 +373,9 @@ class Rerequester:
     def _dht_rerequest(self):
         if DEBUG:
             print >>sys.stderr,"Rerequester: _dht_rerequest",`self.infohash`
-        if DialbackMsgHandler.getInstance().isConnectable():
-            self.dht.getPeersAndAnnounce(self.infohash, self.port, self._dht_got_peers)
+        if 'dialback' in self.config and self.config['dialback']:
+            if DialbackMsgHandler.getInstance().isConnectable():
+                self.dht.getPeersAndAnnounce(self.infohash, self.port, self._dht_got_peers)
         else:
             self.dht.getPeers(self.infohash, self._dht_got_peers)
 

@@ -638,7 +638,7 @@ class BT1Download:
             self.myid, self.infohash, self.config['http_timeout'], 
             self.errorfunc, self.excfunc, self.config['max_initiate'], 
             self.doneflag, self.upmeasure.get_rate, self.downmeasure.get_rate, 
-            self.unpauseflag)
+            self.unpauseflag,self.config)
 
         self.encoder.set_rerequester(self.rerequest)
         self.rerequest.start()

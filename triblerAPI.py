@@ -265,6 +265,8 @@ TODO:
 
 - BT1/Connecter: if 'cache' in config and config['cache']: # TEMP ARNO: TODO: WE EXPECT A SESSION CONFIG HERE
 
+- BT1/Rerequester: if 'dialback' in self.config and self.config['dialback']: EXPECT SESSION CONFIG AND SEE WHO KNOWS CONNECTABLE
+
 """
 
 import sys
