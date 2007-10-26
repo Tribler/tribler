@@ -1322,7 +1322,7 @@ class Download(DownloadConfigInterface):
         self.tdef.readonly = True
 
     
-    def setup(self,dcfg=None,pstate=None,lmcallback=None):
+    def setup(self,dcfg=None,pstate=None,lmcreatedcallback=None,lmvodplayablecallback=None):
         """
         Create a Download object. Used internally by Session. Copies tdef and 
         dcfg and binds them to this download.
@@ -1362,7 +1362,7 @@ class Download(DownloadConfigInterface):
             
             # Copy dlconfig, from default if not specified
             if dcfg is None:
-                cdcfg = DownloadStartupConfig.get_copy_of_default()
+                cdcfg = DownloadStartupConfig()
             else:
                 cdcfg = dcfg
             self.dlconfig = copy.copy(cdcfg.dlconfig)
@@ -1384,7 +1384,7 @@ class Download(DownloadConfigInterface):
 
             if pstate is None or pstate['dlstate']['status'] != DLSTATUS_STOPPED:
                 # Also restart on STOPPED_ON_ERROR, may have been transient
-                self.create_engine_wrapper(lmcallback,pstate)
+                self.create_engine_wrapper(lmcreatedcallback,pstate,lmvodplayablecallback)
                 
             self.dllock.release()
         except Exception,e:
@@ -1392,7 +1392,7 @@ class Download(DownloadConfigInterface):
             self.set_error(e)
             self.dllock.release()
 
-    def create_engine_wrapper(self,lmcallback,pstate):
+    def create_engine_wrapper(self,lmcreatedcallback,pstate,lmvodplayablecallback):
         """ Called by any thread, assume dllock already acquired """
         if DEBUG:
             print >>sys.stderr,"Download: create_engine_wrapper()"
@@ -1433,15 +1433,15 @@ class Download(DownloadConfigInterface):
             vodfileindex = [-1,None,0.0,None,None]
         
         # Delegate creation of engine wrapper to network thread
-        network_create_engine_wrapper_lambda = lambda:self.network_create_engine_wrapper(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcallback,pstate)
+        network_create_engine_wrapper_lambda = lambda:self.network_create_engine_wrapper(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcreatedcallback,pstate,lmvodplayablecallback)
         self.session.lm.rawserver.add_task(network_create_engine_wrapper_lambda,0) 
         
 
-    def network_create_engine_wrapper(self,infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcallback,pstate):
+    def network_create_engine_wrapper(self,infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcallback,pstate,lmvodplayablecallback):
         """ Called by network thread """
         self.dllock.acquire()
         try:
-            self.sd = SingleDownload(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,self.set_error,pstate)
+            self.sd = SingleDownload(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,self.set_error,pstate,lmvodplayablecallback)
             sd = self.sd
             exc = self.error
             if lmcallback is not None:

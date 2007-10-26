@@ -585,11 +585,12 @@ class MovieOnDemandTransporter(MovieTransport):
     # set the bitrate in movieselector.
     MINPLAYBACKRATE = 32*1024
 
-    def __init__(self,movieselector,piecepicker,piecesize,rawserver,videoanalyserpath):
+    def __init__(self,movieselector,piecepicker,piecesize,rawserver,videoanalyserpath,vodplayablefunc):
         self.movieselector = movieselector
         self.piecepicker = piecepicker
         self.piecesize = piecesize
         self.rawserver = rawserver
+        self.vodplayablefunc = vodplayablefunc
         
         # Add quotes around path, as that's what os.popen() wants on win32
         if sys.platform == "win32" and videoanalyserpath is not None and videoanalyserpath.find(' ') != -1:
@@ -670,6 +671,7 @@ class MovieOnDemandTransporter(MovieTransport):
         # For DownloadState
         self.prebufprogress = 0.0
         self.playable = False
+        self.usernotified = False
 
         self.refill_thread()
         self.tick_second()
@@ -1210,6 +1212,9 @@ class MovieOnDemandTransporter(MovieTransport):
         #self.progressinf.bufferinfo_updated_callback()
         
         # triblerAPI
+        if self.usernotified:
+            return
+        self.usernotified = True
         self.prebufprogress = 1.0
         self.playable = True
         
@@ -1217,32 +1222,14 @@ class MovieOnDemandTransporter(MovieTransport):
         
         print >>sys.stderr,"vod: trans: notify_playable: Calling usercallback to tell it we're ready to play",self.movieselector.videoinfo[4]
         mimetype = self.get_mimetype()
-        if mimetype is None:
-            if sys.platform == 'win32':
-                try:
-                    file = self.movieselector.videoinfo[1]
-                    (prefix,ext) = os.path.splitext(file)
-                    ext = ext.lower()
-                    (mimetype,playercmd) = win32_retrieve_video_play_command(ext,'')
-                except:
-                    print_exc()
-                    mimetype = 'video/mpeg'
-            else:
-                mimetype = 'video/mpeg'
-                
-        if self.movieselector.am_I_complete():
-            if DEBUG:
-                print >>sys.stderr,"vod: trans: notify_playable: MovieSelector says complete, give filename"
-            filename = self.movieselector.videoinfo[3]
+        complete = self.movieselector.am_I_complete()
+        if complete:
             stream = None
         else:
-            if DEBUG:
-                print >>sys.stderr,"vod: trans: notify_playable: MovieSelector says incomplete, give stream"
-            filename = None
             stream = MovieTransportFileLikeInterfaceWrapper(self)
-        
+            
         # Call user callback
-        self.movieselector.videoinfo[4](mimetype,stream,filename)
+        self.vodplayablefunc(self.movieselector.videoinfo,complete,mimetype,stream)
 
 
     def get_prebuffering_progress(self):

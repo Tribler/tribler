@@ -164,7 +164,7 @@ class TriblerLaunchMany(Thread):
             
             # Store in list of Downloads, always. 
             self.downloads[d.get_def().get_infohash()] = d
-            d.setup(dscfg,pstate,self.network_engine_wrapper_created_callback)
+            d.setup(dscfg,pstate,self.network_engine_wrapper_created_callback,self.network_vod_playable_callback)
             return d
         finally:
             self.sesslock.release()
@@ -493,13 +493,42 @@ class TriblerLaunchMany(Thread):
         finally:
             self.sesslock.release()
 
+        
+    def network_vod_playable_callback(self,videoinfo,complete,mimetype,stream):
+        """ Called by network thread """
+        
+        if mimetype is None:
+            if sys.platform == 'win32':
+                try:
+                    file = videoinfo[1]
+                    (prefix,ext) = os.path.splitext(file)
+                    ext = ext.lower()
+                    (mimetype,playercmd) = win32_retrieve_video_play_command(ext,'')
+                except:
+                    print_exc()
+                    mimetype = 'video/mpeg'
+            else:
+                mimetype = 'video/mpeg'
+
+        if complete:
+            if DEBUG:
+                print >>sys.stderr,"tlm: vod_playable: PiecePicker says complete, give filename"
+            filename = videoinfo[3]
+        else:
+            if DEBUG:
+                print >>sys.stderr,"vod: vod_playable: PiecePiecker says incomplete, give stream"
+            filename = None
+        
+        # Call Session threadpool to call user's callback        
+        videoinfo[4](mimetype,stream,filename)
+
 
 
 
 class SingleDownload:
     """ This class is accessed solely by the network thread """
     
-    def __init__(self,infohash,metainfo,kvconfig,multihandler,listenport,videoanalyserpath,vodfileindex,set_error_func,pstate):
+    def __init__(self,infohash,metainfo,kvconfig,multihandler,listenport,videoanalyserpath,vodfileindex,set_error_func,pstate,lmvodplayablecallback):
         
         self.dow = None
         self.set_error_func = set_error_func
@@ -507,6 +536,7 @@ class SingleDownload:
             self.dldoneflag = Event()
             
             self.dlrawserver = multihandler.newRawServer(infohash,self.dldoneflag)
+            self.lmvodplayablecallback = lmvodplayablecallback
     
             """
             class BT1Download:    
@@ -586,7 +616,7 @@ class SingleDownload:
         """
         print >>sys.stderr,"SingleDownload: hashcheck_done()"
         try:
-            self.dow.startEngine()
+            self.dow.startEngine(vodplayablefunc = self.lmvodplayablecallback)
             self._getstatsfunc = self.dow.startStats() # not possible earlier
             self.dow.startRerequester()
             self.dlrawserver.start_listening(self.dow.getPortHandler())
@@ -659,4 +689,3 @@ class SingleDownload:
     def nonfatalerrorfunc(self,e):
         print >>sys.stderr,"SingleDownload::nonfatalerrorfunc called",e
         # Could log this somewhere, or phase it out (only used in Rerequester)
-        
