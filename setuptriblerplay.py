@@ -35,7 +35,7 @@ includePanels=[
 #
 ################################################################
 
-target_triblerplay = {
+target_p2player = {
     "script": "p2player.py",
     "icon_resources": [(1, "tribler.ico")],
 }
@@ -46,6 +46,6 @@ setup(
 #    zipfile = None,
     options = {"py2exe": {"packages": ["tribler","encodings"] + ["Tribler.vwxGUI.%s" % x for x in includePanels],
                           "optimize": 2}},
-    data_files = [("tribler", ["tribler.exe.manifest", "triblerplay.nsi", "tribler.ico", "torrenticon.ico", "binary-LICENSE.txt", "readme.txt"])], 
-    windows = [target_triblerplay],
+    data_files = [("tribler", ["p2player.exe.manifest", "triblerplay.nsi", "tribler.ico", "torrenticon.ico", "binary-LICENSE.txt", "readme.txt"])], 
+    windows = [target_p2player],
 )

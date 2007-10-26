@@ -90,6 +90,6 @@ rem %IMGCFG% -a 0x1 tribler.exe
 
 :makeinstaller
 %NSIS% triblerplay.nsi
-move Tribler_*.exe ..
+move p2player_*.exe ..
 cd ..
 cd ..

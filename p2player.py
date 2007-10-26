@@ -68,6 +68,7 @@ class ABCApp(wx.App):
         try:
             self.utility = Utility(self.abcpath)
             self.utility.app = self
+            print self.utility.lang.get('build')
             
             
             self.videoFrame = ABCFrame(self)
@@ -77,10 +78,13 @@ class ABCApp(wx.App):
             
             self.s = Session()
             
-            if sys.platform == 'win32':
-                tdef = TorrentDef.load('bla.torrent')
+            if self.params[0] != "":
+                torrentfilename = self.params[0]
             else:
-                tdef = TorrentDef.load('/tmp/bla.torrent')
+                print >>sys.stderr,"main: No torrent file on cmd line"
+                return True
+
+            tdef = TorrentDef.load(torrentfilename)
             dcfg = DownloadStartupConfig()
             dcfg.set_video_on_demand(self.vod_ready_callback)
             d = self.s.start_download(tdef,dcfg)

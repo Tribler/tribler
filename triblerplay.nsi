@@ -1,4 +1,4 @@
-!define PRODUCT "TriblerPlayer"
+!define PRODUCT "p2player"
 !define VERSION "0.0.1"
 
 !include "MUI.nsh"
@@ -42,7 +42,7 @@ BrandingText "${PRODUCT}"
 !define MUI_LICENSEPAGE_RADIOBUTTONS
 !define MUI_LICENSEPAGE_RADIOBUTTONS_TEXT_ACCEPT "I'm cool"
 !define MUI_LICENSEPAGE_RADIOBUTTONS_TEXT_DECLINE "Go away"
-!define MUI_FINISHPAGE_RUN "$INSTDIR\triblerplay.exe"
+!define MUI_FINISHPAGE_RUN "$INSTDIR\p2player.exe"
 
 !insertmacro MUI_PAGE_LICENSE "binary-LICENSE.txt"
 !insertmacro MUI_PAGE_COMPONENTS
@@ -78,8 +78,8 @@ Section "!Main EXE" SecMain
  File *.ico
  File *.txt
  File category.conf
- File triblerplay.exe.manifest
- File triblerplay.exe
+ File p2player.exe.manifest
+ File p2player.exe
  File ffmpeg.exe
  File /r vlc
  Delete "$INSTDIR\*.pyd"
@@ -115,7 +115,7 @@ Section "!Main EXE" SecMain
 ; Now writing to KHEY_LOCAL_MACHINE only -- remove references to uninstall from current user
  DeleteRegKey HKEY_CURRENT_USER "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}"
 ; Remove old error log if present
- Delete "$INSTDIR\triblerplay.exe.log"
+ Delete "$INSTDIR\p2player.exe.log"
 
  WriteUninstaller "$INSTDIR\Uninstall.exe"
 
