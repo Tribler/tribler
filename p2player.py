@@ -82,7 +82,8 @@ class ABCApp(wx.App):
                 torrentfilename = self.params[0]
             else:
                 print >>sys.stderr,"main: No torrent file on cmd line"
-                return True
+                self.OnExit()
+                return False
 
             tdef = TorrentDef.load(torrentfilename)
             dcfg = DownloadStartupConfig()
