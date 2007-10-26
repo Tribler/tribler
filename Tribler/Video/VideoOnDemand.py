@@ -1218,8 +1218,6 @@ class MovieOnDemandTransporter(MovieTransport):
         self.prebufprogress = 1.0
         self.playable = True
         
-        print_stack()
-        
         print >>sys.stderr,"vod: trans: notify_playable: Calling usercallback to tell it we're ready to play",self.movieselector.videoinfo[4]
         mimetype = self.get_mimetype()
         complete = self.movieselector.am_I_complete()

@@ -260,7 +260,8 @@ TODO:
 
 - Add ability to run a standalone tracker based on API
 
-- Allow VOD to work from file when download is complete, to enable seeking
+- Test VOD quick startup with multi-file torrent. PiecePicker.am_I_complete is
+  about whole file.
 
 """
 
