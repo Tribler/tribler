@@ -89,7 +89,7 @@ rem %IMGCFG% -u tribler.exe
 rem %IMGCFG% -a 0x1 tribler.exe
 
 :makeinstaller
-%NSIS% tribler.nsi
+%NSIS% triblerplay.nsi
 move Tribler_*.exe ..
 cd ..
 cd ..

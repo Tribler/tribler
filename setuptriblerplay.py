@@ -46,6 +46,6 @@ setup(
 #    zipfile = None,
     options = {"py2exe": {"packages": ["tribler","encodings"] + ["Tribler.vwxGUI.%s" % x for x in includePanels],
                           "optimize": 2}},
-    data_files = [("tribler", ["tribler.exe.manifest", "tribler.nsi", "tribler.ico", "torrenticon.ico", "binary-LICENSE.txt", "readme.txt"])], 
+    data_files = [("tribler", ["tribler.exe.manifest", "triblerplay.nsi", "tribler.ico", "torrenticon.ico", "binary-LICENSE.txt", "readme.txt"])], 
     windows = [target_triblerplay],
 )
