@@ -180,7 +180,7 @@ class Connection:
         if self.send_choke_queued:
             self.send_choke_queued = False
             if DEBUG_NORMAL_MSGS:
-                print 'CHOKE SUPPRESSED'
+                print >>sys.stderr,'CHOKE SUPPRESSED'
         else:
             self._send_message(UNCHOKE)
             if (self.partial_message or self.just_unchoked is None
@@ -193,8 +193,8 @@ class Connection:
         self._send_message(REQUEST + tobinary(index) + 
             tobinary(begin) + tobinary(length))
         if DEBUG_NORMAL_MSGS:
-            print "sending REQUEST to",self.get_ip()
-            print 'sent request: '+str(index)+': '+str(begin)+'-'+str(begin+length)
+            print >>sys.stderr,"sending REQUEST to",self.get_ip()
+            print >>sys.stderr,'sent request: '+str(index)+': '+str(begin)+'-'+str(begin+length)
 
     def send_cancel(self, index, begin, length):
         self._send_message(CANCEL + tobinary(index) + 
@@ -637,7 +637,7 @@ class Connecter:
         # before BITFIELD even
         
         #if DEBUG_NORMAL_MSGS:
-        #    print "connecter: Got msg from",getMessageName(t),connection.get_ip()
+        #    print >>sys.stderr,"connecter: Got msg from",getMessageName(t),connection.get_ip()
 
         
         
@@ -646,27 +646,27 @@ class Connecter:
             return
         if t == BITFIELD and c.got_anything:
             if DEBUG:
-                print "Close on BITFIELD"
+                print >>sys.stderr,"Close on BITFIELD"
             connection.close()
             return
         c.got_anything = True
         if (t in [CHOKE, UNCHOKE, INTERESTED, NOT_INTERESTED] and 
                 len(message) != 1):
             if DEBUG:
-                print "Close on bad (UN)CHOKE/(NOT_)INTERESTED",t
+                print >>sys.stderr,"Close on bad (UN)CHOKE/(NOT_)INTERESTED",t
             connection.close()
             return
         if t == CHOKE:
             if DEBUG_NORMAL_MSGS:
-                print "connecter: Got CHOKE from",connection.get_ip()
+                print >>sys.stderr,"connecter: Got CHOKE from",connection.get_ip()
             c.download.got_choke()
         elif t == UNCHOKE:
             if DEBUG_NORMAL_MSGS:
-                print "connecter: Got UNCHOKE from",connection.get_ip()
+                print >>sys.stderr,"connecter: Got UNCHOKE from",connection.get_ip()
             c.download.got_unchoke()
         elif t == INTERESTED:
             if DEBUG_NORMAL_MSGS:
-                print "connecter: Got INTERESTED from",connection.get_ip()
+                print >>sys.stderr,"connecter: Got INTERESTED from",connection.get_ip()
             if c.upload is not None:
                 c.upload.got_interested()
         elif t == NOT_INTERESTED:
@@ -674,26 +674,26 @@ class Connecter:
         elif t == HAVE:
             if len(message) != 5:
                 if DEBUG:
-                    print "Close on bad HAVE: msg len"
+                    print >>sys.stderr,"Close on bad HAVE: msg len"
                 connection.close()
                 return
             i = toint(message[1:])
             if i >= self.numpieces:
                 if DEBUG:
-                    print "Close on bad HAVE: index out of range"
+                    print >>sys.stderr,"Close on bad HAVE: index out of range"
                 connection.close()
                 return
             if DEBUG_NORMAL_MSGS:
-                print "connecter: Got HAVE(",i,") from",connection.get_ip()
+                print >>sys.stderr,"connecter: Got HAVE(",i,") from",connection.get_ip()
             c.download.got_have(i)
         elif t == BITFIELD:
             if DEBUG_NORMAL_MSGS:
-                print "connecter: Got BITFIELD from",connection.get_ip()
+                print >>sys.stderr,"connecter: Got BITFIELD from",connection.get_ip()
             try:
                 b = Bitfield(self.numpieces, message[1:])
             except ValueError:
                 if DEBUG:
-                    print "Close on bad BITFIELD"
+                    print >>sys.stderr,"Close on bad BITFIELD"
                 connection.close()
                 return
             if c.download is not None:
@@ -701,28 +701,28 @@ class Connecter:
         elif t == REQUEST:
             if len(message) != 13:
                 if DEBUG:
-                    print "Close on bad REQUEST: msg len"
+                    print >>sys.stderr,"Close on bad REQUEST: msg len"
                 connection.close()
                 return
             i = toint(message[1:5])
             if i >= self.numpieces:
                 if DEBUG:
-                    print "Close on bad REQUEST: index out of range"
+                    print >>sys.stderr,"Close on bad REQUEST: index out of range"
                 connection.close()
                 return
             if DEBUG_NORMAL_MSGS:
-                print "connecter: Got REQUEST(",i,") from",connection.get_ip()
+                print >>sys.stderr,"connecter: Got REQUEST(",i,") from",connection.get_ip()
             c.got_request(i, toint(message[5:9]), toint(message[9:]))
         elif t == CANCEL:
             if len(message) != 13:
                 if DEBUG:
-                    print "Close on bad CANCEL: msg len"
+                    print >>sys.stderr,"Close on bad CANCEL: msg len"
                 connection.close()
                 return
             i = toint(message[1:5])
             if i >= self.numpieces:
                 if DEBUG:
-                    print "Close on bad CANCEL: index out of range"
+                    print >>sys.stderr,"Close on bad CANCEL: index out of range"
                 connection.close()
                 return
             c.upload.got_cancel(i, toint(message[5:9]), 
@@ -730,17 +730,17 @@ class Connecter:
         elif t == PIECE:
             if len(message) <= 9:
                 if DEBUG:
-                    print "Close on bad PIECE: msg len"
+                    print >>sys.stderr,"Close on bad PIECE: msg len"
                 connection.close()
                 return
             i = toint(message[1:5])
             if i >= self.numpieces:
                 if DEBUG:
-                    print "Close on bad PIECE: msg len"
+                    print >>sys.stderr,"Close on bad PIECE: msg len"
                 connection.close()
                 return
             if DEBUG_NORMAL_MSGS:
-                print "connecter: Got PIECE(",i,") from",connection.get_ip()
+                print >>sys.stderr,"connecter: Got PIECE(",i,") from",connection.get_ip()
             if c.download.got_piece(i, toint(message[5:9]), [], message[9:]):
                 self.got_piece(i)
             
@@ -749,13 +749,13 @@ class Connecter:
             try:
                 if len(message) <= 13:
                     if DEBUG:
-                        print "Close on bad HASHPIECE: msg len"
+                        print >>sys.stderr,"Close on bad HASHPIECE: msg len"
                     connection.close()
                     return
                 i = toint(message[1:5])
                 if i >= self.numpieces:
                     if DEBUG:
-                        print "Close on bad HASHPIECE: index out of range"
+                        print >>sys.stderr,"Close on bad HASHPIECE: index out of range"
                     connection.close()
                     return
                 begin = toint(message[5:9])
@@ -777,19 +777,19 @@ class Connecter:
                     self.got_piece(i)
             except Exception,e:
                 if DEBUG:
-                    print "Close on bad HASHPIECE: exception",str(e)
+                    print >>sys.stderr,"Close on bad HASHPIECE: exception",str(e)
                     traceback.print_exc()
                 connection.close()
                 return
         elif t == G2G_PIECE_XFER:
             if len(message) <= 12:
                 if DEBUG:
-                    print "Close on bad G2G_PIECE_XFER: msg len"
+                    print >>sys.stderr,"Close on bad G2G_PIECE_XFER: msg len"
                 connection.close()
                 return
             if not c.use_g2g:
                 if DEBUG:
-                    print "Close on receiving G2G_PIECE_XFER over non-g2g connection"
+                    print >>sys.stderr,"Close on receiving G2G_PIECE_XFER over non-g2g connection"
                 connection.close()
                 return
 
@@ -808,7 +808,7 @@ class Connecter:
         try:
             if len(message) < 4:
                 if DEBUG:
-                    print "Close on bad EXTEND: msg len"
+                    print >>sys.stderr,"Close on bad EXTEND: msg len"
                 connection.close()
                 return
             ext_id = message[1]
@@ -818,19 +818,19 @@ class Connecter:
                     c.got_extend_handshake(d)
                 else:
                     if DEBUG:
-                        print "Close on bad EXTEND: payload of handshake is not a bencoded dict"
+                        print >>sys.stderr,"Close on bad EXTEND: payload of handshake is not a bencoded dict"
                     connection.close()
                     return
             else:
                 ext_msg_name = c.extend_msg_id_to_name(ext_id)
                 if ext_msg_name is None:
                     if DEBUG:
-                        print "Close on bad EXTEND: peer sent ID it didn't define in handshake"
+                        print >>sys.stderr,"Close on bad EXTEND: peer sent ID it didn't define in handshake"
                     connection.close()
                     return
                 elif ext_msg_name == EXTEND_MSG_OVERLAYSWARM:
                     if DEBUG:
-                        print "Not closing EXTEND+CHALLENGE: peer didn't read our spec right, be liberal"
+                        print >>sys.stderr,"Not closing EXTEND+CHALLENGE: peer didn't read our spec right, be liberal"
                     pass
                 elif ext_msg_name == EXTEND_MSG_UTORRENT_PEX and ut_pex_enabled:
                     d = bdecode(message[2:])
@@ -838,19 +838,19 @@ class Connecter:
                         c.got_ut_pex(d)
                     else:
                         if DEBUG:
-                            print "Close on bad EXTEND: payload of handshake is not a bencoded dict"
+                            print >>sys.stderr,"Close on bad EXTEND: payload of handshake is not a bencoded dict"
                         connection.close()
                         return
                 
                 else:
                     if DEBUG:
-                        print "Close on bad EXTEND: peer sent ID that maps to name we don't support"
+                        print >>sys.stderr,"Close on bad EXTEND: peer sent ID that maps to name we don't support"
                     connection.close()
                     return
             return
         except Exception,e:
             if DEBUG:
-                print "Close on bad EXTEND: exception",str(e)
+                print >>sys.stderr,"Close on bad EXTEND: exception",str(e)
                 traceback.print_exc()
             connection.close()
             return

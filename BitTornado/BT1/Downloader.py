@@ -270,7 +270,11 @@ class SingleDownload(SingleDownloadHelperInterface):
             self.send_interested()
             loop = True
             while len(self.active_requests) < self.backlog and loop:
+                
                 begin, length = self.downloader.storage.new_request(interest)
+                
+                print >>sys.stderr,"Downloader: new_request",interest,begin,length,"to",self.connection.connection.get_ip(),self.connection.connection.get_port()
+                
                 self.downloader.picker.requested(interest)
                 self.active_requests.append((interest, begin, length))
                 self.connection.send_request(interest, begin, length)

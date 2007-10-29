@@ -598,8 +598,10 @@ class BT1Download:
             else:
                 if DEBUG:
                     print >>sys.stderr,"BT1Download: startEngine: Going into VOD mode",self.videoinfo
+                self.picker.set_storagewrapper(self.storagewrapper)
                 self.movieselector = MovieSelector(self.videoinfo,self.fileselector,self.storagewrapper,self.picker)
                 self.voddownload = MovieOnDemandTransporter(self.movieselector,self.picker,self.info['piece length'], self.rawserver, self.videoanalyserpath,vodplayablefunc)
+                
         elif DEBUG:
             print >>sys.stderr,"BT1Download: startEngine: Going into standard mode"
         if not self.doneflag.isSet():

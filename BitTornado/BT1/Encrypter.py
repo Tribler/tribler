@@ -224,6 +224,8 @@ class Connection:
     def read_message(self, s):
         if s != '':
             self.connecter.got_message(self, s)
+        else:
+            print >>sys.stderr,"Encoder: got keepalive from",s.getpeername()
         return 4, self.read_len
 
     def read_dead(self, s):

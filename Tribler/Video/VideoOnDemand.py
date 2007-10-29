@@ -8,6 +8,7 @@ from traceback import print_exc,print_stack
 from select import select
 from tempfile import mkstemp
 from threading import Thread
+from sets import Set
 
 import SocketServer
 import BaseHTTPServer
@@ -59,6 +60,7 @@ class PiecePickerStreaming(PiecePicker):
 
         # video speed in bytes/s
         self.set_bitrate( 512*1024/8 ) # default to 512 Kbit/s
+        self.outstanding = {}
 
     def set_transporter(self, transporter):
         self.transporter = transporter
@@ -84,11 +86,12 @@ class PiecePickerStreaming(PiecePicker):
         PiecePicker.complete( self, piece )
         if self.transporter:
             self.transporter.complete( piece )
+        del self.outstanding[piece]
 
     def set_download_range(self, begin, end):
         self.download_range = [begin,end]
 
-    def streaming_piece_filter(self, piece):
+    def streaming_piece_filter(self, piece): # Arno: isn't this double? rarest and first() already limit
         return (piece >= self.download_range[0]
                 and piece <= self.download_range[1])
 
@@ -151,10 +154,28 @@ class PiecePickerStreaming(PiecePicker):
             if complete_first or (cutoff and len(self.interests) > self.cutoff):
                 return best
 
-        return self.next_new(haves, wantfunc, complete_first, helper_con)
+        now = time.time()
+        newoutstanding = {}
+        for (p,t) in self.outstanding.iteritems():
+            diff = now - t
+            if diff > 30.0:
+                # Peer failed to deliver in 30 secs
+                print >>sys.stderr,"PiecePickerStreaming: request too slow",p,"#"
+                self.storagewrapper.request_too_slow(p)
+            else:
+                newoutstanding[p] = t
+        self.outstanding = newoutstanding
+
+        p = self.next_new(haves, wantfunc, complete_first, helper_con)
+        if p is not None:
+            self.outstanding[p] = time.time()
+        return p
 
     def am_I_complete(self):
         return PiecePicker.am_I_complete(self)
+
+    def set_storagewrapper(self,sw):
+        self.storagewrapper = sw
 
 
 class PiecePickerEDF(PiecePickerStreaming):
@@ -323,13 +344,13 @@ class PiecePickerG2G(PiecePickerStreaming):
         
         def first( f, t ):
             for i in xrange(f,t):
-                if self.has[i]:
+                if self.has[i]: # Is there a piece in the range we don't have?
                     continue
 
-                if not wantfunc(i):
+                if not wantfunc(i): # Is there a piece in the range we want? 
                     continue
 
-                if not haves[i]:
+                if not haves[i]: # Is there a piece in the range the peer has?
                     continue
 
                 if self.helper is None or helper_con or not self.helper.is_ignored(i):
@@ -381,6 +402,7 @@ class PiecePickerG2G(PiecePickerStreaming):
 
 PiecePickerVOD = PiecePickerG2G
 #PiecePickerVOD = PiecePickerBiToS
+
 
 class MovieSelector:
     """ Selects a movie out of a torrent and provides information regarding the pieces

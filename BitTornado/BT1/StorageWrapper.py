@@ -553,7 +553,7 @@ class StorageWrapper:
             l.append((x, self.request_size))
             x += self.request_size
         l.append((x, length - x))
-        self.inactive_requests[index] = l
+        self.inactive_requests[index] = l # Note: letter L not number 1
 
     def is_endgame(self):
         return not self.amount_inactive
@@ -598,8 +598,11 @@ class StorageWrapper:
         return self.amount_obtained, self.amount_desired, self.have
 
     def new_request(self, index):
+        
+        print >>sys.stderr,"StorageWrapper: new_request",index,"#"
+        
         # returns (begin, length)
-        if self.inactive_requests[index] == 1:
+        if self.inactive_requests[index] == 1: # number 1, not letter L
             self._make_inactive(index)
         self.numactive[index] += 1
         self.stat_active[index] = 1
@@ -611,6 +614,17 @@ class StorageWrapper:
         r = rs.pop(0)
         self.amount_inactive -= r[1]
         return r
+
+
+    def request_too_slow(self,index):
+        """ Arno's addition to get pieces we requested from slow peers to be
+        back in the PiecePicker's list of candidates """
+        if self.amount_inactive == 0:
+            # all has been requested, endgame about to start, don't mess around
+            return
+        
+        self.inactive_requests[index] = 1  # number 1, not letter L
+        self.amount_inactive += self._piecelen(index)
 
 
     def write_raw(self, index, begin, data):
@@ -819,7 +833,7 @@ class StorageWrapper:
 
             self.amount_obtained -= length
             self.data_flunked(length, index)
-            self.inactive_requests[index] = 1
+            self.inactive_requests[index] = 1  # number 1, not letter L
             self.amount_inactive += length
             self.stat_numflunked += 1
 
@@ -856,6 +870,9 @@ class StorageWrapper:
 
 
     def request_lost(self, index, begin, length):
+        
+        print >>sys.stderr,"StorageWrapper: request_lost",index,"#"
+        
         assert not (begin, length) in self.inactive_requests[index]
         insort(self.inactive_requests[index], (begin, length))
         self.amount_inactive += length
@@ -864,6 +881,7 @@ class StorageWrapper:
             del self.stat_active[index]
             if self.stat_new.has_key(index):
                 del self.stat_new[index]
+
 
     def get_piece(self, index, begin, length):
         # Merkle: Get (sub)piece from disk and its associated hashes
@@ -960,7 +978,7 @@ class StorageWrapper:
                 if self.have[i]:
                     self.amount_obtained -= length
                     continue
-                if self.inactive_requests[i] == 1:
+                if self.inactive_requests[i] == 1: # number 1, not letter L
                     self.amount_inactive -= length
                     continue
                 inactive = 0
