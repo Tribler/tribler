@@ -33,6 +33,7 @@ from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.DecentralizedTracking import mainlineDHT
 from Tribler.DecentralizedTracking.rsconvert import RawServerConverter
 from Tribler.API.defaults import *
+from Tribler.Video.utils import win32_retrieve_video_play_command
 
 # TEMP
 from Tribler.Dialogs.activities import *
@@ -154,7 +155,7 @@ class TriblerLaunchMany(Thread):
             
             # Check if running or saved on disk
             if infohash in self.downloads:
-                raise DuplicateDownloadException()
+                raise triblerAPI.DuplicateDownloadException()
             elif pstate is None: # not already resuming
                 pstate = self.load_download_pstate_noexc(infohash)
                 if pstate is not None:
@@ -538,6 +539,8 @@ class SingleDownload:
             self.dlrawserver = multihandler.newRawServer(infohash,self.dldoneflag)
             self.lmvodplayablecallback = lmvodplayablecallback
     
+            self.logmsgs = []
+    
             """
             class BT1Download:    
                 def __init__(self, statusfunc, finfunc, errorfunc, excfunc, doneflag, 
@@ -548,6 +551,7 @@ class SingleDownload:
                             self.finishedfunc,
                             self.fatalerrorfunc, 
                             self.nonfatalerrorfunc,
+                            self.logerrorfunc,
                             self.dldoneflag,
                             kvconfig,
                             metainfo, 
@@ -591,6 +595,8 @@ class SingleDownload:
         """ Return the local filename to which to save the file 'name' in the torrent """
         print >>sys.stderr,"SingleDownload: save_as(",name,length,saveas,isdir,")"
         try:
+            if not os.access(saveas,os.F_OK):
+                os.mkdir(saveas)
             path = os.path.join(saveas,name)
             if isdir and not os.path.isdir(path):
                 os.mkdir(path)
@@ -635,15 +641,16 @@ class SingleDownload:
         callback(direct,speed)
 
 
-    def get_stats(self,getpeerlist):  
+    def get_stats(self,getpeerlist):
+        logmsgs = self.logmsgs[:] # copy  
         if self._getstatsfunc is None:
-            return (DLSTATUS_WAITING4HASHCHECK,None)
+            return (DLSTATUS_WAITING4HASHCHECK,None,logmsgs)
         elif self._getstatsfunc == SPECIAL_VALUE:
             stats = {}
             stats['frac'] = self.hashcheckfrac
-            return (DLSTATUS_HASHCHECKING,stats)
+            return (DLSTATUS_HASHCHECKING,stats,logmsgs)
         else:
-            return (None,self._getstatsfunc(getpeerlist=getpeerlist))
+            return (None,self._getstatsfunc(getpeerlist=getpeerlist),logmsgs)
 
     #
     #
@@ -680,7 +687,7 @@ class SingleDownload:
         if type(data) == StringType:
             print >>sys.stderr,"LEGACY CORE FATAL ERROR",data
             print_stack()
-            self.set_error_func(TriblerLegacyException(data))
+            self.set_error_func(triblerAPI.TriblerLegacyException(data))
         else:
             print_exc()
             self.set_error_func(data)
@@ -689,3 +696,14 @@ class SingleDownload:
     def nonfatalerrorfunc(self,e):
         print >>sys.stderr,"SingleDownload::nonfatalerrorfunc called",e
         # Could log this somewhere, or phase it out (only used in Rerequester)
+
+    def logerrorfunc(self,msg):
+        t = time.time()
+        self.logmsgs.append((t,msg))
+        
+        # Keep max 10 log entries, API user should save them if he wants 
+        # complete history
+        if len(self.logmsgs) > 10:
+            self.logmsgs.pop(0)
+            
+        

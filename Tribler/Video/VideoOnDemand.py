@@ -379,8 +379,8 @@ class PiecePickerG2G(PiecePickerStreaming):
 
         return choice
 
-#PiecePickerVOD = PiecePickerG2G
-PiecePickerVOD = PiecePickerBiToS
+PiecePickerVOD = PiecePickerG2G
+#PiecePickerVOD = PiecePickerBiToS
 
 class MovieSelector:
     """ Selects a movie out of a torrent and provides information regarding the pieces

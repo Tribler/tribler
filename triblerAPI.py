@@ -267,6 +267,12 @@ TODO:
 
 - BT1/Rerequester: if 'dialback' in self.config and self.config['dialback']: EXPECT SESSION CONFIG AND SEE WHO KNOWS CONNECTABLE
 
+- VOD: Check why prebuf pieces not obtained and implement rerequest of pieces if needed.
+
+- TODO: determine what are fatal errors for a tracker and move to 
+  DLSTATUS_STOPPED_ON_ERROR if they occur. Currently all tracker errors are
+  put in log messages, and the download does not change status.
+
 """
 
 import sys
@@ -352,6 +358,10 @@ class DuplicateDownloadException(TriblerException):
     def __init__(self,msg=None):
         TriblerException.__init__(self,msg)
 
+class VODNoFileSelectedInMultifileTorrentException(TriblerException):
+    
+    def __init__(self,msg=None):
+        TriblerException.__init__(self,msg)
 
 class TriblerLegacyException(TriblerException):
     """ Wrapper around fatal errors that happen in the download engine,
@@ -1103,6 +1113,10 @@ class TorrentDef(Serializable,Copyable):
         
     def get_bitrate(self,file=None):
         """ Returns the bitrate of the specified file in bytes/sec """ 
+        
+        if DEBUG:
+            print >>sys.stderr,"TorrentDef: get_bitrate called",file
+        
         if not self.metainfo_valid:
             raise NotYetImplementedException() # must save first
 
@@ -1112,8 +1126,10 @@ class TorrentDef(Serializable,Copyable):
             try:
                 playtime = None
                 if info.has_key('playtime'):
+                    print >>sys.stderr,"TorrentDef: get_bitrate: Bitrate in info field"
                     playtime = parse_playtime_to_secs(info['playtime'])
                 elif 'playtime' in self.metainfo: # HACK: encode playtime in non-info part of existing torrent
+                    print >>sys.stderr,"TorrentDef: get_bitrate: Bitrate in metainfo"
                     playtime = parse_playtime_to_secs(self.metainfo['playtime'])
                 """
                 elif 'azureus_properties' in metainfo:
@@ -1155,6 +1171,37 @@ class TorrentDef(Serializable,Copyable):
         else:
             raise ValueError("File not found in single-file torrent")
     
+    
+    def get_video_files(self,videoexts=videoextdefaults):
+        if not self.metainfo_valid:
+            raise NotYetImplementedException() # must save first
+
+        videofiles = []
+        if 'files' in self.metainfo['info']:
+            # Multi-file torrent
+            files = self.metainfo['info']['files']
+            for file in files:
+                
+                p = file['path']
+                print >>sys.stderr,"TorrentDef: get_video_files: file is",p
+                filename = ''
+                for elem in p:
+                    print >>sys.stderr,"TorrentDef: get_video_files: elem is",elem
+                    filename = os.path.join(filename,elem)
+                print >>sys.stderr,"TorrentDef: get_video_files: composed filename is",filename    
+                (prefix,ext) = os.path.splitext(filename)
+                if ext[0] == '.':
+                    ext = ext[1:]
+                print >>sys.stderr,"TorrentDef: get_video_files: ext",ext
+                if ext in videoexts:
+                    videofiles.append(filename)
+        else:
+            filename = self.metainfo['info']['name'] # don't think we need fixed name here
+            (prefix,ext) = os.path.splitext(filename)
+            if ext in videoexts:
+                videofiles.append(filename)
+        return videofiles
+
     
     #
     # Internal methods
@@ -1423,6 +1470,11 @@ class Download(DownloadConfigInterface):
         # Define which file to DL in VOD mode
         if self.dlconfig['mode'] == DLMODE_VOD:
             vod_usercallback_wrapper = lambda mimetype,stream,filename:self.session.perform_vod_usercallback(self,self.dlconfig['vod_usercallback'],mimetype,stream,filename)
+            
+            if 'files' in metainfo['info'] and len(self.dlconfig['selected_files']) == 0:
+                # Multi-file torrent, but no file selected
+                raise VODNoFileSelectedInMultifileTorrentException() 
+            
             if len(self.dlconfig['selected_files']) == 0:
                 # single-file torrent
                 file = self.get_def().get_name()
@@ -1635,8 +1687,8 @@ class Download(DownloadConfigInterface):
             if self.sd is None:
                 ds = DownloadState(self,DLSTATUS_STOPPED,self.error,self.progressbeforestop)
             else:
-                (status,stats) = self.sd.get_stats(getpeerlist)
-                ds = DownloadState(self,status,self.error,None,stats=stats,filepieceranges=self.filepieceranges)
+                (status,stats,logmsgs) = self.sd.get_stats(getpeerlist)
+                ds = DownloadState(self,status,self.error,None,stats=stats,filepieceranges=self.filepieceranges,logmsgs=logmsgs)
                 self.progressbeforestop = ds.get_progress()
             
                 #print >>sys.stderr,"STATS",stats
@@ -1734,9 +1786,10 @@ class DownloadState(Serializable):
     
     cf. libtorrent torrent_status
     """
-    def __init__(self,download,status,error,progress,stats=None,filepieceranges=None):
+    def __init__(self,download,status,error,progress,stats=None,filepieceranges=None,logmsgs=None):
         self.download = download
         self.filepieceranges = filepieceranges # NEED CONC CONTROL IF selected_files RUNTIME SETABLE
+        self.logmsgs = logmsgs
         if stats is None:
             self.error = error # readonly access
             self.progress = progress
@@ -1872,6 +1925,14 @@ class DownloadState(Serializable):
         else:
             return self.stats['vod_playable']
 
+    def get_log_messages(self):
+        """ Returns the last 10 logged non-fatal error messages as a list of 
+        (time,msg) tuples """
+        if self.logmsgs is None:
+            return []
+        else:
+            return self.logmsgs
+    
 
 def offset2piece(offset,piecesize):
     

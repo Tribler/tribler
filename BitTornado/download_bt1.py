@@ -207,13 +207,14 @@ def get_response(file, url, errorfunc):
     return response
 
 class BT1Download:    
-    def __init__(self, statusfunc, finfunc, errorfunc, excfunc, doneflag, 
+    def __init__(self, statusfunc, finfunc, errorfunc, excfunc, logerrorfunc, doneflag, 
                  config, response, infohash, id, rawserver, port,
                  videoanalyserpath, appdataobj = None):
         self.statusfunc = statusfunc
         self.finfunc = finfunc
         self.errorfunc = errorfunc
         self.excfunc = excfunc
+        self.logerrorfunc = logerrorfunc
         self.doneflag = doneflag
         self.config = config
         self.response = response
@@ -636,7 +637,7 @@ class BT1Download:
             self.rawserver.add_task, self.storagewrapper.get_amount_left, 
             self.upmeasure.get_total, self.downmeasure.get_total, self.port, self.config['ip'], 
             self.myid, self.infohash, self.config['http_timeout'], 
-            self.errorfunc, self.excfunc, self.config['max_initiate'], 
+            self.logerrorfunc, self.excfunc, self.config['max_initiate'], 
             self.doneflag, self.upmeasure.get_rate, self.downmeasure.get_rate, 
             self.unpauseflag,self.config)
 

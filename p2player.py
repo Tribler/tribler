@@ -86,8 +86,14 @@ class ABCApp(wx.App):
                 return False
 
             tdef = TorrentDef.load(torrentfilename)
+            videofiles = tdef.get_video_files()
+            if len(videofiles) > 1:
+                raise ValueError("Torrent contains multiple video files, pick manually")
+            print >>sys.stderr,"main: Found video file",videofiles
+            
             dcfg = DownloadStartupConfig()
             dcfg.set_video_on_demand(self.vod_ready_callback)
+            dcfg.set_selected_files(videofiles)
             d = self.s.start_download(tdef,dcfg)
             d.set_state_callback(self.state_callback,1)
 
@@ -120,6 +126,9 @@ class ABCApp(wx.App):
     def state_callback(self,ds):
         """ Called by Session thread """
         print >>sys.stderr,"main: Stats",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
+        logmsgs = ds.get_log_messages()
+        if len(logmsgs) > 0:
+            print >>sys.stderr,"main: Log",logmsgs[0]
         progress = ds.get_vod_prebuffering_progress()
         playable = ds.get_vod_playable()
         #print >>sys.stderr,"main: VODStats",progress,playable

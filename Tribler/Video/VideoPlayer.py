@@ -17,7 +17,7 @@ from Tribler.unicode import unicode2str
 from utils import win32_retrieve_video_play_command,quote_program_path
 
 # Filename extensions for video and audio files
-EXTENSIONS = ['aac','asf','avi','dv','divx','flc','mpeg','mpeg4','mpg4','mp3','mp4','mpg','mkv','mov','m4v','ogm','qt','rm','swf','vob','wmv','wav']
+from Tribler.API.defaults import videoextdefaults as EXTENSIONS # TEMP ARNO
 
 DEBUG = False
 
