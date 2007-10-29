@@ -668,6 +668,7 @@ class MovieOnDemandTransporter(MovieTransport):
         self.start_playback = float(2 ** 31) #end of time
 
         self.lasttime=0
+        self.dropping = False # whether to drop packets that come in too late
         # For DownloadState
         self.prebufprogress = 0.0
         self.playable = False
@@ -805,14 +806,15 @@ class MovieOnDemandTransporter(MovieTransport):
         if not gotall and DEBUG:
             print >>sys.stderr,"vod: trans: Still need pieces",missing_pieces,"for prebuffering/FFMPEG analysis"
 
-        if not self.doing_ffmpeg_analysis and not gotall and not (0 in missing_pieces) and self.nreceived > self.max_preparse_packets:
-            perc = float(self.max_preparse_packets)/10.0
-            if float(len(missing_pieces)) < perc or self.nreceived > (2*len(missing_pieces)):
-                # If less then 10% of packets missing, or we got 2 times the packets we need already,
-                # force start of playback
-                gotall = True
-                if DEBUG:
-                    print >>sys.stderr,"vod: trans: Forcing stop of prebuffering, less than",perc,"missing, or got 2N packets already"
+        if self.dropping:
+            if not self.doing_ffmpeg_analysis and not gotall and not (0 in missing_pieces) and self.nreceived > self.max_preparse_packets:
+                perc = float(self.max_preparse_packets)/10.0
+                if float(len(missing_pieces)) < perc or self.nreceived > (2*len(missing_pieces)):
+                    # If less then 10% of packets missing, or we got 2 times the packets we need already,
+                    # force start of playback
+                    gotall = True
+                    if DEBUG:
+                        print >>sys.stderr,"vod: trans: Forcing stop of prebuffering, less than",perc,"missing, or got 2N packets already"
 
         if gotall and self.doing_ffmpeg_analysis:
             [bitrate,width,height] = self.parse_video()
@@ -1148,18 +1150,24 @@ class MovieOnDemandTransporter(MovieTransport):
                     # We have the piece, but cannot write it to buffer
                     #print >>sys.stderr,"vod: buffer: [%d: queued l=%d]" % (self.pos,loop)
                     pass
-            elif time.time() < self.piece_due( loop ):
+            elif self.dropping:
+                if time.time() < self.piece_due( loop ):
+                    # wait for packet
+                    if DEBUG:
+                        print >>sys.stderr,"vod: trans: %d: due in %.2fs  pos=%d" % (loop,self.piece_due(loop)-time.time(),self.pos)
+                    break
+                else:
+                    # drop packet
+                    if DEBUG:
+                        print >>sys.stderr,"vod: trans: %d: dropped l=%d; deadline expired %.2f sec ago" % (self.pos,loop,time.time()-self.piece_due(loop))
+                    self.pos += 1
+                    self.inc_playback_pos()
+            else:
                 # wait for packet
                 if DEBUG:
-                    print >>sys.stderr,"vod: trans: %d: due in %.2fs  pos=%d" % (loop,self.piece_due(loop)-time.time(),self.pos)
+                    print >>sys.stderr,"vod: trans: %d: due2 in %.2fs  pos=%d" % (loop,self.piece_due(loop)-time.time(),self.pos)
                 break
-            else:
-                # drop packet
-                if DEBUG:
-                    print >>sys.stderr,"vod: trans: %d: dropped l=%d; deadline expired %.2f sec ago" % (self.pos,loop,time.time()-self.piece_due(loop))
-                self.pos += 1
-                self.inc_playback_pos()
-                pass
+                
 
             loop += 1
 
