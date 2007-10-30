@@ -1,5 +1,5 @@
 !define PRODUCT "p2player"
-!define VERSION "0.0.1"
+!define VERSION "0.0.2"
 
 !include "MUI.nsh"
 
