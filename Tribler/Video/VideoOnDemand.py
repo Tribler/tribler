@@ -86,7 +86,10 @@ class PiecePickerStreaming(PiecePicker):
         PiecePicker.complete( self, piece )
         if self.transporter:
             self.transporter.complete( piece )
-        del self.outstanding[piece]
+        try:
+            del self.outstanding[piece]
+        except:
+            pass
 
     def set_download_range(self, begin, end):
         self.download_range = [begin,end]
@@ -154,21 +157,34 @@ class PiecePickerStreaming(PiecePicker):
             if complete_first or (cutoff and len(self.interests) > self.cutoff):
                 return best
 
+        MAXDLTIME = 30.0
+        INBEFORE = 10.0
         now = time.time()
         newoutstanding = {}
         for (p,t) in self.outstanding.iteritems():
-            diff = now - t
-            if diff > 30.0:
-                # Peer failed to deliver in 30 secs
+            diff = t-now
+            if diff < INBEFORE:
+                # Peer failed to deliver intime
                 print >>sys.stderr,"PiecePickerStreaming: request too slow",p,"#"
                 self.storagewrapper.request_too_slow(p)
             else:
                 newoutstanding[p] = t
         self.outstanding = newoutstanding
 
-        p = self.next_new(haves, wantfunc, complete_first, helper_con)
+        p = self.next_new(haves, wantfunc, complete_first, helper_con, self.outstanding)
         if p is not None:
-            self.outstanding[p] = time.time()
+            relpiece = p - self.download_range[0]
+            rawdue = self.transporter.piece_due(relpiece)
+            if p >= self.download_range[0] and p <= self.download_range[0] + self.transporter.max_preparse_packets:
+                # not playing, prioritize prebuf
+                self.outstanding[p] = now+MAXDLTIME
+                print >>sys.stderr,"PiecePickerStreaming: prebuf due in 30",p,"#",str(haves)
+            elif (rawdue-now) > 1000000.0:
+                print >>sys.stderr,"PiecePickerStreaming: prebuf due in 120",p,"#"
+                self.outstanding[p] = now+300.0
+            else:
+                self.outstanding[p] = rawdue # can't make it faster if already late
+                print >>sys.stderr,"PiecePickerStreaming: due in",(rawdue-now),p,"#" 
         return p
 
     def am_I_complete(self):
@@ -332,7 +348,7 @@ class PiecePickerG2G(PiecePickerStreaming):
         else:
                 self.h = 0
 
-    def next_new(self, haves, wantfunc, complete_first, helper_con):
+    def next_new(self, haves, wantfunc, complete_first, helper_con, outstanding):
         """ Determine which piece to download next from a peer.
 
         haves:          set of pieces owned by that peer
@@ -347,6 +363,9 @@ class PiecePickerG2G(PiecePickerStreaming):
                 if self.has[i]: # Is there a piece in the range we don't have?
                     continue
 
+                if i in outstanding:
+                    continue
+                
                 if not wantfunc(i): # Is there a piece in the range we want? 
                     continue
 
@@ -365,6 +384,9 @@ class PiecePickerG2G(PiecePickerStreaming):
                         continue
 
                     if self.has[i]:
+                        continue
+
+                    if i in outstanding:
                         continue
 
                     if not wantfunc(i):
@@ -687,7 +709,7 @@ class MovieOnDemandTransporter(MovieTransport):
         self.curpiece_pos = 0
         self.pos = 0
         self.outbuf = []
-        self.start_playback = float(2 ** 31) #end of time
+        self.start_playback = None
 
         self.lasttime=0
         self.dropping = False # whether to drop packets that come in too late
@@ -1124,8 +1146,11 @@ class MovieOnDemandTransporter(MovieTransport):
 
         return piece
 
-    def piece_due( self, i ):
+    def piece_due(self,i):
         """ Return the time when we expect to have to send a certain piece to the player. """
+
+        if self.start_playback is None:
+            return float(2 ** 31) # end of time
 
         now = time.time() - self.start_playback
 
@@ -1231,7 +1256,7 @@ class MovieOnDemandTransporter(MovieTransport):
 
         self.data_ready.release()
 
-        if self.start_playback == float(2**31):
+        if self.start_playback is None:
             self.start_playback = time.time()
 
         return piece
