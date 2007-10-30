@@ -257,6 +257,9 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_header("Content-Length", size)
             self.end_headers()
             
+            
+            #f = open("/tmp/video.data","wb")
+            
             first = True
             while not movie.done():
                 data = movie.read()
@@ -283,8 +286,11 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                         continue
                     """
                     
-                    #print >>sys.stderr,"videoserv: writing",len(data) 
+                    print >>sys.stderr,"videoserv: writing",len(data) 
                     self.wfile.write(data)
+                    
+                    #f.write(data)
+                    
                     #sleep(1)
                     if first:
                         if self.server.statuscallback is not None:
@@ -310,6 +316,8 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                 print >>sys.stderr,"videoserv: do_GET: Done sending data"
     
             movie.stop()
+            #f.close()
+            
         except Exception,e:
             if DEBUG:
                 print >>sys.stderr,"videoserv: Error occured while serving"

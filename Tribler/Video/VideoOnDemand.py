@@ -127,13 +127,16 @@ class PiecePickerStreaming(PiecePicker):
     def _next(self, haves, wantfunc, complete_first, helper_con):
         """ First, complete any partials if needed. Otherwise, select a new piece. """
 
+        #print >>sys.stderr,"PiecePickerStreaming: complete_first is",complete_first,"started",self.started
+
         # cutoff = True:  random mode
         #          False: rarest-first mode
         cutoff = self.numgot < self.rarest_first_cutoff
 
         # whether to complete existing partials first -- do so before the
         # cutoff, or if forced by complete_first, but not for seeds.
-        complete_first = (complete_first or cutoff) and not haves.complete()
+        #complete_first = (complete_first or cutoff) and not haves.complete()
+        complete_first = (complete_first or cutoff)
 
         # most interesting piece
         best = None
@@ -371,10 +374,8 @@ class PiecePickerG2G(PiecePickerStreaming):
 
         """
         
-        def first( f, t ):
-            r = range(f,t) # not xrange, need to be able to shuffle it
-            random.shuffle(r)
-            for i in r:
+        def first( f, t ): # no shuffle
+            for i in xrange(f,t):
                 if self.has[i]: # Is there a piece in the range we don't have?
                     continue
 
@@ -389,10 +390,14 @@ class PiecePickerG2G(PiecePickerStreaming):
 
             return None
 
-        def rarest( f, t ):
+        def rarest( f, t, doshuffle=True ):
             for piecelist in self.interests:
-                pl = piecelist[:] # must be copy
-                random.shuffle(pl)
+                if doshuffle:
+                    pl = piecelist[:] # must be copy
+                    random.shuffle(pl)
+                else:
+                    pl = piecelist
+                    
                 for i in pl:
                     if i < f or i >= t:
                         continue
@@ -420,15 +425,19 @@ class PiecePickerG2G(PiecePickerStreaming):
             # focus on first packets
             f = self.download_range[0]
             t = f + self.transporter.max_preparse_packets
-            choice = rarest( f, t )
+            choice = rarest(f,t)
+            print >>sys.stderr,"choiceP",f,t
         else:
             choice = None
 
         if choice is None:
+            print >>sys.stderr,"choice1",self.download_range[0], highprob_cutoff
             choice = first( self.download_range[0], highprob_cutoff )
         if choice is None:
+            print >>sys.stderr,"choice2",highprob_cutoff, midprob_cutoff
             choice = rarest( highprob_cutoff, midprob_cutoff )
         if choice is None:
+            print >>sys.stderr,"choice3",midprob_cutoff, self.download_range[1]+1
             choice = rarest( midprob_cutoff, self.download_range[1]+1 )
 
         return choice
@@ -624,7 +633,7 @@ class MovieOnDemandTransporter(MovieTransport):
     """ Takes care of providing a bytestream interface based on the available pieces. """
 
     # max number of seconds in queue to player
-    BUFFER_TIME = 10.0
+    BUFFER_TIME = 2.5
     
     # polling interval to refill buffer
     #REFILL_INTERVAL = BUFFER_TIME * 0.75
@@ -695,7 +704,7 @@ class MovieOnDemandTransporter(MovieTransport):
         # decent prebuffering. We should replace this with a timing based thing, 
         
         if not self.doing_bitrate_est:
-            bytesneeded = self.movieselector.bitrate * 10 # seconds
+            bytesneeded = self.movieselector.bitrate * 20 # seconds
             self.piecepicker.set_bitrate( self.movieselector.bitrate )
         else:
             # Arno, 2007-01-08: for very high bitrate files e.g. 
@@ -1104,7 +1113,7 @@ class MovieOnDemandTransporter(MovieTransport):
         self.curpiece_pos = offset
         self.pos = piece
         self.set_playback_pos( piece )
-        ##self.outbuf = [] # TEMP ARNO, don't think we need this
+        self.outbuf = []
         self.playing = True
         ####self.prebuffering = True # TEMP ARNO, don't think we need this
         self.playbackrate = Measure( 60 )
@@ -1119,6 +1128,8 @@ class MovieOnDemandTransporter(MovieTransport):
         """ Playback is stopped. """
 
         print >>sys.stderr,"vod: trans: === STOP  = player closed conn === "
+        if not self.playing:
+            return
         self.playing = False
 
         # clear buffer and notify possible readers
