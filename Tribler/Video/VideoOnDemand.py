@@ -171,7 +171,7 @@ class PiecePickerStreaming(PiecePicker):
                 newoutstanding[p] = t
         self.outstanding = newoutstanding
 
-        p = self.next_new(haves, wantfunc, complete_first, helper_con, self.outstanding)
+        p = self.next_new(haves, wantfunc, complete_first, helper_con)
         if p is not None:
             relpiece = p - self.download_range[0]
             rawdue = self.transporter.piece_due(relpiece)
@@ -348,7 +348,7 @@ class PiecePickerG2G(PiecePickerStreaming):
         else:
                 self.h = 0
 
-    def next_new(self, haves, wantfunc, complete_first, helper_con, outstanding):
+    def next_new(self, haves, wantfunc, complete_first, helper_con):
         """ Determine which piece to download next from a peer.
 
         haves:          set of pieces owned by that peer
@@ -359,13 +359,12 @@ class PiecePickerG2G(PiecePickerStreaming):
         """
         
         def first( f, t ):
-            for i in xrange(f,t):
+            r = xrange(f,t)
+            random.shuffle(r)
+            for i in r:
                 if self.has[i]: # Is there a piece in the range we don't have?
                     continue
 
-                if i in outstanding:
-                    continue
-                
                 if not wantfunc(i): # Is there a piece in the range we want? 
                     continue
 
@@ -379,14 +378,13 @@ class PiecePickerG2G(PiecePickerStreaming):
 
         def rarest( f, t ):
             for piecelist in self.interests:
-                for i in piecelist:
+                pl = piecelist[:] # TEMP ARNO: see if we need to copy
+                random.shuffle(pl)
+                for i in pl:
                     if i < f or i >= t:
                         continue
 
                     if self.has[i]:
-                        continue
-
-                    if i in outstanding:
                         continue
 
                     if not wantfunc(i):
