@@ -9,6 +9,7 @@ from BitTornado.clock import clock
 from Tribler.toofastbt.Helper import SingleDownloadHelperInterface
 from traceback import print_stack
 # _2fastbt
+from sets import Set
 
 import sys
 
@@ -223,7 +224,7 @@ class SingleDownload(SingleDownloadHelperInterface):
         self.choked = False
 # _2fastbt
 
-    def _request_more(self, new_unchoke = False):
+    def _request_more(self, new_unchoke = False, slowpieces = []):
 # 2fastbt_
         if DEBUG:
             print "Downloader: _request_more()"
@@ -260,7 +261,8 @@ class SingleDownload(SingleDownloadHelperInterface):
                                self.downloader.storage.do_I_have_requests,
                                self,
                                self.downloader.too_many_partials(),
-                               self.connection.connection.is_helper_con())
+                               self.connection.connection.is_helper_con(),
+                               slowpieces = slowpieces)
             if DEBUG:
                 print "Downloader: _request_more: next() returned",interest                               
 # _2fastbt
@@ -616,17 +618,17 @@ class Downloader:
             self.all_requests = new_all_requests
 
         for d in self.downloads:
-            hit = False
+            hitindices = Set()
             for index, nb, nl in d.active_requests:
                 if index in pieces:
-                    hit = True
+                    hitindices.add(index)
                     d.connection.send_cancel(index, nb, nl)
                     if not self.endgamemode:
                         self.storage.request_lost(index, nb, nl)
-            if hit:
+            if len(hitindices) > 0:
                 d.active_requests = [ r for r in d.active_requests
                                       if r[0] not in pieces ]
-                d._request_more()
+                d._request_more(slowpieces=list(hitindices))
             if not self.endgamemode and d.choked:
                 d._check_interests()
 

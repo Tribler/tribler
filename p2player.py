@@ -26,12 +26,15 @@ from wx import xrc
 #import hotshot
 
 from triblerAPI import *
+
 from Tribler.Video.VideoServer import VideoHTTPServer
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Utility.utility import Utility
 from Tribler.Video.EmbeddedPlayer import VideoFrame
+from Tribler.API.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
 
 ALLOW_MULTIPLE = False
+RATELIMITADSL = True
 
 
 class ABCFrame(VideoFrame):
@@ -77,6 +80,13 @@ class ABCApp(wx.App):
             self.videoserv.background_serve()
             
             self.s = Session()
+
+            if RATELIMITADSL:
+                self.count = 0
+                self.r = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()
+                self.r.set_global_max_speed(DOWNLOAD,400)
+                self.r.set_global_max_speed(UPLOAD,90)
+                self.s.set_download_states_callback(self.ratelimit_callback,getpeerlist=False)
             
             if self.params[0] != "":
                 torrentfilename = self.params[0]
@@ -166,6 +176,28 @@ class ABCApp(wx.App):
         """ Called by MainThread """
         print >>sys.stderr,"main: Playing from file",filename
         self.videoplay.play_url(filename)
+
+    def ratelimit_callback(self,dslist):
+        adjustspeeds = False
+        if self.count % 4 == 0:
+            adjustspeeds = True
+        self.count += 1
+        
+        if not adjustspeeds:
+            return (1.0,False)
+        
+        for ds in dslist:
+            d = ds.get_download()
+            complete = ds.get_pieces_complete()
+            print >>sys.stderr,"main: Pieces completed",`d.get_def().get_name()`,"len",len(complete)
+            
+            if adjustspeeds:
+                self.r.add_downloadstate(ds)
+            
+        if adjustspeeds:
+            self.r.adjust_speeds()
+        return (1.0,False)
+
 
     
 class DummySingleInstanceChecker:

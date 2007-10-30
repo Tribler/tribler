@@ -87,6 +87,7 @@ class PiecePickerStreaming(PiecePicker):
         if self.transporter:
             self.transporter.complete( piece )
         try:
+            print >>sys.stderr,"outstanding update",currentThread().getName()
             del self.outstanding[piece]
         except:
             pass
@@ -102,9 +103,9 @@ class PiecePickerStreaming(PiecePicker):
     #   _next: selects next piece to download. completes partial downloads first, if needed, otherwise calls
     #     next_new: selects next piece to download. override this with the piece picking policy
 
-    def next(self, haves, wantfunc, sdownload, complete_first = False, helper_con = False):
+    def next(self, haves, wantfunc, sdownload, complete_first = False, helper_con = False, slowpieces=[]):
         def newwantfunc( piece ):
-            return self.streaming_piece_filter( piece ) and wantfunc( piece )
+            return self.streaming_piece_filter( piece ) and not (piece in slowpieces) and wantfunc( piece )
 
         # fallback: original piece picker
         p = PiecePicker.next(self, haves, newwantfunc, sdownload, complete_first, helper_con)
@@ -157,19 +158,24 @@ class PiecePickerStreaming(PiecePicker):
             if complete_first or (cutoff and len(self.interests) > self.cutoff):
                 return best
 
-        MAXDLTIME = 30.0
+        MAXDLTIME = 20.0
         INBEFORE = 10.0
         now = time.time()
         newoutstanding = {}
+        
+        cancelpieces = []
         for (p,t) in self.outstanding.iteritems():
             diff = t-now
             if diff < INBEFORE:
                 # Peer failed to deliver intime
                 print >>sys.stderr,"PiecePickerStreaming: request too slow",p,"#"
-                self.storagewrapper.request_too_slow(p)
+                cancelpieces.append(p)
             else:
                 newoutstanding[p] = t
         self.outstanding = newoutstanding
+
+        # Cancel all pieces that are too late
+        self.downloader.cancel_piece_download(cancelpieces)
 
         p = self.next_new(haves, wantfunc, complete_first, helper_con)
         if p is not None:
@@ -184,14 +190,15 @@ class PiecePickerStreaming(PiecePicker):
                 self.outstanding[p] = now+300.0
             else:
                 self.outstanding[p] = rawdue # can't make it faster if already late
-                print >>sys.stderr,"PiecePickerStreaming: due in",(rawdue-now),p,"#" 
+                print >>sys.stderr,"PiecePickerStreaming: due in",(rawdue-now),p,"#"
+            print >>sys.stderr,"outstanding update2",currentThread().getName() 
         return p
 
     def am_I_complete(self):
         return PiecePicker.am_I_complete(self)
 
-    def set_storagewrapper(self,sw):
-        self.storagewrapper = sw
+    def set_downloader(self,dl):
+        self.downloader = dl
 
 
 class PiecePickerEDF(PiecePickerStreaming):
@@ -241,7 +248,9 @@ class PiecePickerBiToS(PiecePickerStreaming):
         """
         
         def first( f, t ):
-            for i in xrange(f,t):
+            r = range(f,t) # not xrange, need to be able to shuffle it
+            random.shuffle(r)
+            for i in r:
                 if self.has[i]:
                     continue
 
@@ -258,7 +267,9 @@ class PiecePickerBiToS(PiecePickerStreaming):
 
         def rarest( f, t ):
             for piecelist in self.interests:
-                for i in piecelist:
+                pl = piecelist[:] # must be copy
+                random.shuffle(pl)
+                for i in pl:
                     if i < f or i >= t:
                         continue
 
@@ -359,7 +370,7 @@ class PiecePickerG2G(PiecePickerStreaming):
         """
         
         def first( f, t ):
-            r = xrange(f,t)
+            r = range(f,t) # not xrange, need to be able to shuffle it
             random.shuffle(r)
             for i in r:
                 if self.has[i]: # Is there a piece in the range we don't have?
@@ -378,7 +389,7 @@ class PiecePickerG2G(PiecePickerStreaming):
 
         def rarest( f, t ):
             for piecelist in self.interests:
-                pl = piecelist[:] # TEMP ARNO: see if we need to copy
+                pl = piecelist[:] # must be copy
                 random.shuffle(pl)
                 for i in pl:
                     if i < f or i >= t:
