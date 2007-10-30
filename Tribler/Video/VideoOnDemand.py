@@ -51,7 +51,6 @@ class PiecePickerStreaming(PiecePicker):
 
         # size of each piece
         self.piecesize = piecesize
-        print >>sys.stderr,"PIECE SIZE",piecesize
 
         # range of pieces to download, inclusive: (first,last)
         self.download_range = (0,self.numpieces-1)
@@ -368,10 +367,8 @@ class PiecePickerG2G(PiecePickerStreaming):
 
         if self.piecesize > 0:
             self.h = int(self.HIGH_PROB_SETSIZE * self.bitrate / self.piecesize)
-            print >>sys.stderr,"HIGHPROBSET",self.h
         else:
             self.h = 0
-            print >>sys.stderr,"HIGHPROB NOT SET"
 
     def next_new(self, haves, wantfunc, complete_first, helper_con):
         """ Determine which piece to download next from a peer.
@@ -435,18 +432,18 @@ class PiecePickerG2G(PiecePickerStreaming):
             f = self.download_range[0]
             t = f + self.transporter.max_preparse_packets
             choice = rarest(f,t)
-            print >>sys.stderr,"choiceP",f,t
+            #print >>sys.stderr,"choiceP",f,t
         else:
             choice = None
 
         if choice is None:
-            print >>sys.stderr,"choice1",self.download_range[0], highprob_cutoff
+            #print >>sys.stderr,"choice1",self.download_range[0], highprob_cutoff
             choice = first( self.download_range[0], highprob_cutoff )
         if choice is None:
-            print >>sys.stderr,"choice2",highprob_cutoff, midprob_cutoff
+            #print >>sys.stderr,"choice2",highprob_cutoff, midprob_cutoff
             choice = rarest( highprob_cutoff, midprob_cutoff )
         if choice is None:
-            print >>sys.stderr,"choice3",midprob_cutoff, self.download_range[1]+1
+            #print >>sys.stderr,"choice3",midprob_cutoff, self.download_range[1]+1
             choice = rarest( midprob_cutoff, self.download_range[1]+1 )
 
         return choice

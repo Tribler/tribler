@@ -599,7 +599,8 @@ class StorageWrapper:
 
     def new_request(self, index):
         
-        print >>sys.stderr,"StorageWrapper: new_request",index,"#"
+        if DEBUG:
+            print >>sys.stderr,"StorageWrapper: new_request",index,"#"
         
         # returns (begin, length)
         if self.inactive_requests[index] == 1: # number 1, not letter L
@@ -871,7 +872,8 @@ class StorageWrapper:
 
     def request_lost(self, index, begin, length):
         
-        print >>sys.stderr,"StorageWrapper: request_lost",index,"#"
+        if DEBUG:
+            print >>sys.stderr,"StorageWrapper: request_lost",index,"#"
         
         assert not (begin, length) in self.inactive_requests[index]
         insort(self.inactive_requests[index], (begin, length))

@@ -35,7 +35,7 @@ from Tribler.API.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedR
 
 ALLOW_MULTIPLE = False
 
-RATELIMITADSL = True
+RATELIMITADSL = False
 
 
 class ABCFrame(VideoFrame):

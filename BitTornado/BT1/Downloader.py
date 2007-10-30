@@ -275,7 +275,8 @@ class SingleDownload(SingleDownloadHelperInterface):
                 
                 begin, length = self.downloader.storage.new_request(interest)
                 
-                print >>sys.stderr,"Downloader: new_request",interest,begin,length,"to",self.connection.connection.get_ip(),self.connection.connection.get_port()
+                if DEBUG:
+                    print >>sys.stderr,"Downloader: new_request",interest,begin,length,"to",self.connection.connection.get_ip(),self.connection.connection.get_port()
                 
                 self.downloader.picker.requested(interest)
                 self.active_requests.append((interest, begin, length))
