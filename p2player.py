@@ -118,6 +118,7 @@ class ABCApp(wx.App):
             self.videoFrame.Show(True)
         except Exception,e:
             print_exc()
+            return False
         return True
 
     def OnExit(self):

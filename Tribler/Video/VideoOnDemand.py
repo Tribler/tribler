@@ -87,7 +87,6 @@ class PiecePickerStreaming(PiecePicker):
         if self.transporter:
             self.transporter.complete( piece )
         try:
-            print >>sys.stderr,"outstanding update",currentThread().getName()
             del self.outstanding[piece]
         except:
             pass
@@ -123,7 +122,6 @@ class PiecePickerStreaming(PiecePicker):
         """ Override this function for the streaming piece picking. """
 
         # fallback: original piece picker
-        print "omgwtfbbq"
         return PiecePicker._next(self, haves, wantfunc, complete_first, helper_con)
 
     def _next(self, haves, wantfunc, complete_first, helper_con):
@@ -181,17 +179,21 @@ class PiecePickerStreaming(PiecePicker):
         if p is not None:
             relpiece = p - self.download_range[0]
             rawdue = self.transporter.piece_due(relpiece)
-            if p >= self.download_range[0] and p <= self.download_range[0] + self.transporter.max_preparse_packets:
+            diff = rawdue - now
+            if self.transporter.prebuffering and p >= self.download_range[0] and p <= self.download_range[0] + self.transporter.max_preparse_packets:
                 # not playing, prioritize prebuf
                 self.outstanding[p] = now+MAXDLTIME
                 print >>sys.stderr,"PiecePickerStreaming: prebuf due in 30",p,"#",str(haves)
-            elif (rawdue-now) > 1000000.0:
+            elif diff > 1000000.0:
                 print >>sys.stderr,"PiecePickerStreaming: prebuf due in 120",p,"#"
-                self.outstanding[p] = now+300.0
-            else:
-                self.outstanding[p] = rawdue # can't make it faster if already late
+                #self.outstanding[p] = now+300.0
+                self.outstanding[p] = now+MAXDLTIME+10.0
+            elif diff < 10.0: # need it fast
                 print >>sys.stderr,"PiecePickerStreaming: due in",(rawdue-now),p,"#"
-            print >>sys.stderr,"outstanding update2",currentThread().getName() 
+                self.outstanding[p] = now+INBEFORE+10.0 # otherwise we cancel it again right away
+            else:
+                print >>sys.stderr,"PiecePickerStreaming: due in",(rawdue-now),p,"#"
+                self.outstanding[p] = rawdue-INBEFORE
         return p
 
     def am_I_complete(self):
@@ -481,13 +483,13 @@ class MovieSelector:
         self.bitrate = bitrate
         self.duration = self.size / self.bitrate
         if DEBUG:
-            print >>sys.stderr,"vod: moviesel: Bitrate set to: %.2f KByte/s" % (self.bitrate/1024)
+            print >>sys.stderr,"vod: moviesel: Bitrate set to: %.2f KByte/s" % (self.bitrate/1024.0)
 
     def set_duration(self,duration):
         self.duration = duration
         self.bitrate = self.size / self.duration
         if DEBUG:
-            print >>sys.stderr,"vod: moviesel: Bitrate set to: %.2f KByte/s" % (self.bitrate/1024)
+            print >>sys.stderr,"vod: moviesel: Bitrate set to: %.2f KByte/s" % (self.bitrate/1024.0)
 
     def set_videodim(self,videodim):
         self.videodim = videodim
@@ -547,7 +549,7 @@ class MovieSelector:
             bitrate = videoinfo[2]
             if bitrate:
                 if DEBUG:
-                    print >>sys.stderr,"vod: moviesel: Bitrate from torrent: %.2f KByte/s" % (bitrate/1024)
+                    print >>sys.stderr,"vod: moviesel: Bitrate from torrent: %.2f KByte/s" % (bitrate/1024.0)
                 self.set_bitrate(bitrate)
 
 
@@ -622,7 +624,7 @@ class MovieOnDemandTransporter(MovieTransport):
     """ Takes care of providing a bytestream interface based on the available pieces. """
 
     # max number of seconds in queue to player
-    BUFFER_TIME = 2.0
+    BUFFER_TIME = 10.0
     
     # polling interval to refill buffer
     #REFILL_INTERVAL = BUFFER_TIME * 0.75
@@ -1102,7 +1104,7 @@ class MovieOnDemandTransporter(MovieTransport):
         self.curpiece_pos = offset
         self.pos = piece
         self.set_playback_pos( piece )
-        self.outbuf = []
+        ##self.outbuf = [] # TEMP ARNO, don't think we need this
         self.playing = True
         ####self.prebuffering = True # TEMP ARNO, don't think we need this
         self.playbackrate = Measure( 60 )
@@ -1176,7 +1178,7 @@ class MovieOnDemandTransporter(MovieTransport):
 
         self.data_ready.acquire()
 
-        if self.prebuffering:
+        if self.prebuffering or not self.playing:
             self.data_ready.release()
             return
 
@@ -1184,7 +1186,11 @@ class MovieOnDemandTransporter(MovieTransport):
         #loop = self.download_pos
         abspiece = None
         mx = max( 2, self.BUFFER_TIME * self.movieselector.bitrate )
+        
         outbuflen = sum( [len(d) for (p,d) in self.outbuf] )
+        
+        print >>sys.stderr,"mx is",mx,"outbuflen is",outbuflen
+        
         while loop < self.numpieces():
             abspiece = self.movieselector.download_range[0][0] + loop
             ihavepiece = self.has[abspiece]
