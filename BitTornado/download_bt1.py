@@ -233,6 +233,7 @@ class BT1Download:
             self.pieces = [self.info['pieces'][x:x+20]
                            for x in xrange(0, len(self.info['pieces']), 20)]
         self.len_pieces = len(self.pieces)
+        self.piecesize = self.info['piece length']
         self.argslistheader = argslistheader
         self.unpauseflag = Event()
         self.unpauseflag.set()
@@ -287,7 +288,7 @@ class BT1Download:
             if self.play_video:
                 # Jan-David: Start video-on-demand service
                 self.picker = PiecePickerVOD(self.len_pieces, config['rarest_first_cutoff'], 
-                             config['rarest_first_priority_cutoff'], helper = self.helper)
+                             config['rarest_first_priority_cutoff'], helper = self.helper, piecesize=self.piecesize)
             else:
                 self.picker = PiecePicker(self.len_pieces, config['rarest_first_cutoff'], 
                              config['rarest_first_priority_cutoff'], helper = self.helper)

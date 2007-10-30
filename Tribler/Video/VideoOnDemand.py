@@ -45,12 +45,13 @@ class PiecePickerStreaming(PiecePicker):
 
     def __init__(self, numpieces,
                  rarest_first_cutoff = 1, rarest_first_priority_cutoff = 3,
-                 priority_step = 20, helper = None, rate_predictor = None):
+                 priority_step = 20, helper = None, rate_predictor = None, piecesize = 0):
         PiecePicker.__init__( self, numpieces, rarest_first_cutoff, rarest_first_priority_cutoff,
                               priority_step, helper, rate_predictor )
 
         # size of each piece
-        self.piecesize = 0
+        self.piecesize = piecesize
+        print >>sys.stderr,"PIECE SIZE",piecesize
 
         # range of pieces to download, inclusive: (first,last)
         self.download_range = (0,self.numpieces-1)
@@ -61,6 +62,9 @@ class PiecePickerStreaming(PiecePicker):
         # video speed in bytes/s
         self.set_bitrate( 512*1024/8 ) # default to 512 Kbit/s
         self.outstanding = {}
+        self.MAXDLTIME = 20.0
+        self.INBEFORE = 10.0
+
 
     def set_transporter(self, transporter):
         self.transporter = transporter
@@ -157,17 +161,16 @@ class PiecePickerStreaming(PiecePicker):
             # found a piece -- return it if we are completing partials first
             # or if there is a cutoff
             if complete_first or (cutoff and len(self.interests) > self.cutoff):
+                self.register_piece(best)
                 return best
 
-        MAXDLTIME = 20.0
-        INBEFORE = 10.0
         now = time.time()
         newoutstanding = {}
         
         cancelpieces = []
         for (p,t) in self.outstanding.iteritems():
             diff = t-now
-            if diff < INBEFORE:
+            if diff < self.INBEFORE:
                 # Peer failed to deliver intime
                 print >>sys.stderr,"PiecePickerStreaming: request too slow",p,"#"
                 cancelpieces.append(p)
@@ -180,24 +183,28 @@ class PiecePickerStreaming(PiecePicker):
 
         p = self.next_new(haves, wantfunc, complete_first, helper_con)
         if p is not None:
-            relpiece = p - self.download_range[0]
-            rawdue = self.transporter.piece_due(relpiece)
-            diff = rawdue - now
-            if self.transporter.prebuffering and p >= self.download_range[0] and p <= self.download_range[0] + self.transporter.max_preparse_packets:
-                # not playing, prioritize prebuf
-                self.outstanding[p] = now+MAXDLTIME
-                print >>sys.stderr,"PiecePickerStreaming: prebuf due in 30",p,"#",str(haves)
-            elif diff > 1000000.0:
-                print >>sys.stderr,"PiecePickerStreaming: prebuf due in 120",p,"#"
-                #self.outstanding[p] = now+300.0
-                self.outstanding[p] = now+MAXDLTIME+10.0
-            elif diff < 10.0: # need it fast
-                print >>sys.stderr,"PiecePickerStreaming: due in",(rawdue-now),p,"#"
-                self.outstanding[p] = now+INBEFORE+10.0 # otherwise we cancel it again right away
-            else:
-                print >>sys.stderr,"PiecePickerStreaming: due in",(rawdue-now),p,"#"
-                self.outstanding[p] = rawdue-INBEFORE
+            self.register_piece(p)
         return p
+
+    def register_piece(self,p):
+        now = time.time()
+        relpiece = p - self.download_range[0]
+        rawdue = self.transporter.piece_due(relpiece)
+        diff = rawdue - now
+        if self.transporter.prebuffering and p >= self.download_range[0] and p <= self.download_range[0] + self.transporter.max_preparse_packets:
+            # not playing, prioritize prebuf
+            self.outstanding[p] = now+self.MAXDLTIME
+            print >>sys.stderr,"PiecePickerStreaming: prebuf due in 30",p,"#"
+        elif diff > 1000000.0:
+            print >>sys.stderr,"PiecePickerStreaming: prebuf due in 120",p,"#"
+            #self.outstanding[p] = now+300.0
+            self.outstanding[p] = now+self.MAXDLTIME+10.0
+        elif diff < self.INBEFORE: # need it fast
+            print >>sys.stderr,"PiecePickerStreaming: due in",(rawdue-now),p,"#"
+            self.outstanding[p] = now+self.INBEFORE+10.0 # otherwise we cancel it again right away
+        else:
+            print >>sys.stderr,"PiecePickerStreaming: due in",(rawdue-now),p,"#"
+            self.outstanding[p] = rawdue-self.INBEFORE
 
     def am_I_complete(self):
         return PiecePicker.am_I_complete(self)
@@ -360,9 +367,11 @@ class PiecePickerG2G(PiecePickerStreaming):
         PiecePickerStreaming.set_bitrate(self,bitrate)
 
         if self.piecesize > 0:
-                self.h = int(self.HIGH_PROB_SETSIZE * self.bitrate / self.piecesize)
+            self.h = int(self.HIGH_PROB_SETSIZE * self.bitrate / self.piecesize)
+            print >>sys.stderr,"HIGHPROBSET",self.h
         else:
-                self.h = 0
+            self.h = 0
+            print >>sys.stderr,"HIGHPROB NOT SET"
 
     def next_new(self, haves, wantfunc, complete_first, helper_con):
         """ Determine which piece to download next from a peer.
@@ -633,7 +642,7 @@ class MovieOnDemandTransporter(MovieTransport):
     """ Takes care of providing a bytestream interface based on the available pieces. """
 
     # max number of seconds in queue to player
-    BUFFER_TIME = 2.5
+    BUFFER_TIME = 1.5 # St*pid vlc apparently can't handle lots of data pushed to it
     
     # polling interval to refill buffer
     #REFILL_INTERVAL = BUFFER_TIME * 0.75
