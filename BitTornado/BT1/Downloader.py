@@ -9,7 +9,6 @@ from BitTornado.clock import clock
 from Tribler.toofastbt.Helper import SingleDownloadHelperInterface
 from traceback import print_stack
 # _2fastbt
-from sets import Set
 
 import sys
 
@@ -602,7 +601,7 @@ class Downloader:
         return len(self.storage.dirty) > (len(self.downloads)/2)
 
 
-    def cancel_piece_download(self, pieces):
+    def cancel_piece_download(self, pieces, allowrerequest=True):
         if self.endgamemode:
             if self.endgame_queued_pieces:
                 for piece in pieces:
@@ -619,17 +618,24 @@ class Downloader:
             self.all_requests = new_all_requests
 
         for d in self.downloads:
-            hitindices = Set()
+            hit = False
             for index, nb, nl in d.active_requests:
                 if index in pieces:
-                    hitindices.add(index)
+                    hit = True
                     d.connection.send_cancel(index, nb, nl)
                     if not self.endgamemode:
                         self.storage.request_lost(index, nb, nl)
-            if len(hitindices) > 0:
+            if hit:
                 d.active_requests = [ r for r in d.active_requests
                                       if r[0] not in pieces ]
-                d._request_more(slowpieces=list(hitindices))
+                # Arno: VOD: all these peers were slow for their individually 
+                # assigned pieces. These pieces have high priority, so don't
+                # retrieve any of theses pieces from these slow peers, just
+                # give them something further in the future.
+                if not allowrerequest:
+                    d._request_more(slowpieces=pieces)
+                else:
+                    d._request_more()
             if not self.endgamemode and d.choked:
                 d._check_interests()
 

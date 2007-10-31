@@ -371,7 +371,7 @@ class VLCMediaCtrl(wx.Window):
     # Be sure that this window is visible before
     # calling Play(), otherwise GetHandle() fails
     def Play(self):
-        self.setStatus("Player is loading...")
+        #self.setStatus("Player is loading...")
         if self.GetState() == MEDIASTATE_PLAYING:
             return
 

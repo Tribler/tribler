@@ -395,8 +395,9 @@ class TriblerLaunchMany(Thread):
             psdict[infohash] = pstate
 
         try:
-            for infohash,pstate in psdict.iteritems():
-                self.save_download_pstate(infohash,pstate)
+            if len(psdict) > 1: # not just version:
+                for infohash,pstate in psdict.iteritems():
+                    self.save_download_pstate(infohash,pstate)
         except Exception,e:
             self.rawserver_nonfatalerrorfunc(e)
 

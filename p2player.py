@@ -119,6 +119,8 @@ class ABCApp(wx.App):
             self.videoFrame.Show(True)
         except Exception,e:
             print_exc()
+            if self.s is not None:
+                self.s.shutdown()
             return False
         return True
 
@@ -149,9 +151,9 @@ class ABCApp(wx.App):
             pstr = str(int(progress*100))
             msg = "Prebuffering "+pstr+"% done"
         elif playable:
-            msg = "Starting playback"
+            msg = "Starting playback..."
         else:
-            msg = "Waiting for sufficient download speed"
+            msg = "Waiting for sufficient download speed..."
         self.videoFrame.set_player_status(msg)
         
         return (1.0,False)
@@ -173,11 +175,13 @@ class ABCApp(wx.App):
         """ Called by MainThread """
         print >>sys.stderr,"main: Playing from stream"
         self.videoplay.play_url('http://127.0.0.1:6880/')
+        self.videoFrame.set_player_status('Done')
     
     def play_from_file(self,filename):
         """ Called by MainThread """
         print >>sys.stderr,"main: Playing from file",filename
         self.videoplay.play_url(filename)
+        self.videoFrame.set_player_status('Done')
 
     def ratelimit_callback(self,dslist):
         adjustspeeds = False

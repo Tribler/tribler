@@ -171,14 +171,14 @@ class PiecePickerStreaming(PiecePicker):
             diff = t-now
             if diff < self.INBEFORE:
                 # Peer failed to deliver intime
-                print >>sys.stderr,"PiecePickerStreaming: request too slow",p,"#"
+                print >>sys.stderr,"PiecePickerStreaming: request too slow, due in",diff,p,"#"
                 cancelpieces.append(p)
             else:
                 newoutstanding[p] = t
         self.outstanding = newoutstanding
 
         # Cancel all pieces that are too late
-        self.downloader.cancel_piece_download(cancelpieces)
+        self.downloader.cancel_piece_download(cancelpieces,allowrerequest=False)
 
         p = self.next_new(haves, wantfunc, complete_first, helper_con)
         if p is not None:
@@ -193,17 +193,17 @@ class PiecePickerStreaming(PiecePicker):
         if self.transporter.prebuffering and p >= self.download_range[0] and p <= self.download_range[0] + self.transporter.max_preparse_packets:
             # not playing, prioritize prebuf
             self.outstanding[p] = now+self.MAXDLTIME
-            print >>sys.stderr,"PiecePickerStreaming: prebuf due in 30",p,"#"
+            print >>sys.stderr,"PiecePickerStreaming: prebuf due soonest",p,"#"
         elif diff > 1000000.0:
-            print >>sys.stderr,"PiecePickerStreaming: prebuf due in 120",p,"#"
+            print >>sys.stderr,"PiecePickerStreaming: prebuf due soon",p,"#"
             #self.outstanding[p] = now+300.0
             self.outstanding[p] = now+self.MAXDLTIME+10.0
         elif diff < self.INBEFORE: # need it fast
-            print >>sys.stderr,"PiecePickerStreaming: due in",(rawdue-now),p,"#"
+            print >>sys.stderr,"PiecePickerStreaming: due asap in",(rawdue-now),p,"#"
             self.outstanding[p] = now+self.INBEFORE+10.0 # otherwise we cancel it again right away
         else:
-            print >>sys.stderr,"PiecePickerStreaming: due in",(rawdue-now),p,"#"
-            self.outstanding[p] = rawdue-self.INBEFORE
+            print >>sys.stderr,"PiecePickerStreaming: due later in",(rawdue-now),p,"#"
+            self.outstanding[p] = rawdue
 
     def am_I_complete(self):
         return PiecePicker.am_I_complete(self)
@@ -639,7 +639,7 @@ class MovieOnDemandTransporter(MovieTransport):
     """ Takes care of providing a bytestream interface based on the available pieces. """
 
     # max number of seconds in queue to player
-    BUFFER_TIME = 1.5 # St*pid vlc apparently can't handle lots of data pushed to it
+    BUFFER_TIME = 2.0 # St*pid vlc apparently can't handle lots of data pushed to it
     
     # polling interval to refill buffer
     #REFILL_INTERVAL = BUFFER_TIME * 0.75
