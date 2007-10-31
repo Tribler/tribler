@@ -1131,12 +1131,13 @@ class TorrentDef(Serializable,Copyable):
                 elif 'playtime' in self.metainfo: # HACK: encode playtime in non-info part of existing torrent
                     print >>sys.stderr,"TorrentDef: get_bitrate: Bitrate in metainfo"
                     playtime = parse_playtime_to_secs(self.metainfo['playtime'])
-                """
-                elif 'azureus_properties' in metainfo:
-                    if 'Speed Bps' in metainfo['azureus_properties']:
-                        bitrate = float(metainfo['azureus_properties']['Speed Bps'])/8.0
-                        playtime = file_length / bitrate
-                """
+                elif 'azureus_properties' in self.metainfo:
+                    azprop = self.metainfo['azureus_properties']
+                    if 'Content' in azprop:
+                        content = self.metainfo['azureus_properties']['Content']
+                        if 'Speed Bps' in content:
+                            bitrate = float(content['Speed Bps'])
+                            print >>sys.stderr,"TorrentDef: get_bitrate: Bitrate in Azureus metainfo",bitrate
                 if playtime is not None:
                     bitrate = info['length']/playtime
             except:

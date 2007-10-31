@@ -286,7 +286,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                         continue
                     """
                     
-                    print >>sys.stderr,"videoserv: writing",len(data) 
+                    ##print >>sys.stderr,"videoserv: writing",len(data) 
                     self.wfile.write(data)
                     
                     #f.write(data)

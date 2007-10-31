@@ -1203,10 +1203,7 @@ class MovieOnDemandTransporter(MovieTransport):
         #loop = self.download_pos
         abspiece = None
         mx = max( 2, self.BUFFER_TIME * self.movieselector.bitrate )
-        
         outbuflen = sum( [len(d) for (p,d) in self.outbuf] )
-        
-        print >>sys.stderr,"mx is",mx,"outbuflen is",outbuflen
         
         while loop < self.numpieces():
             abspiece = self.movieselector.download_range[0][0] + loop

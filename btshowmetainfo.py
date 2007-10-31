@@ -29,6 +29,11 @@ for metainfo_name in argv[1:]:
                 for key in content.keys():
                         if key.lower() != 'thumbnail':
                                 print key,"=",content[key]
+        if 'cdn_properties' in azprop:
+            cdnprops = azprop['cdn_properties']
+            print "cdn_properties:",cdnprops.keys()
+            for key in cdnprops:
+                print "cdn_properties:",key,"=",cdnprops[key]
 #    print metainfo
     info = metainfo['info']
     info_hash = sha(bencode(info))
