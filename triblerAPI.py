@@ -1984,6 +1984,13 @@ class DownloadState(Serializable):
         else:
             return self.stats['vod_playable']
 
+    def get_vod_playable_after(self):
+        if self.stats is None:
+            return False
+        else:
+            return self.stats['vod_playable_after']
+
+
     def get_log_messages(self):
         """ Returns the last 10 logged non-fatal error messages as a list of 
         (time,msg) tuples """

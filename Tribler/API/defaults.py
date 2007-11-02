@@ -26,7 +26,7 @@ sessdefaults = [
         '(0 = disabled, 1 = mode 1 [fast,win32], 2 = mode 2 [slow,win32], 3 = mode 3 [any platform])'),
     ('timeout', 300.0,
         'time to wait between closing sockets which nothing has been received on'),
-    ('timeout_check_interval', 3.0,
+    ('timeout_check_interval', 60.0,
         'time to wait between checking if any connections have timed out'),
 
 # Tribler session opts
@@ -217,11 +217,11 @@ dldefaults = [
         "the absolute maximum number of peers to connect with (0 = no limit)"),
     ('auto_kick', 1,
         "whether to allow the client to automatically kick/ban peers that send bad data"),
-    ('double_check', 1,
+    ('double_check', 0,
         "whether to double-check data being written to the disk for errors (may increase CPU load)"),
     ('triple_check', 0,
         "whether to thoroughly check data being written to the disk (may slow disk access)"),
-    ('lock_files', 1,
+    ('lock_files', 0,
         "whether to lock files the client is working with"),
     ('lock_while_reading', 0,
         "whether to lock access to files being read"),

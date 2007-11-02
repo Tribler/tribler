@@ -25,7 +25,7 @@ EXTENSIONS = ['asf','avi','dv','flc','mpeg','mpeg4','mpg4','mp4','mpg','mov','og
 # pull all video data as if a video player was attached
 FAKEPLAYBACK = False
 
-DEBUG = False
+DEBUG = True
 DEBUGPP = False
 
 class PiecePickerStreaming(PiecePicker):
@@ -1019,14 +1019,12 @@ class MovieOnDemandTransporter(MovieTransport):
         """ Expected download time left. """
 
         pieces_left = self.movieselector.num_movie_pieces() - self.playback_pos - self.pieces_in_buffer
+        if pieces_left <= 0:
+            return 0.0
 
         expected_download_speed = self.downloadrate.rate
-
         if expected_download_speed == 0:
-            return 0
-
-        if pieces_left <= 0:
-            return 0
+            return float(2 ** 31)
 
         return pieces_left * self.movieselector.piece_length / expected_download_speed
 
@@ -1036,7 +1034,7 @@ class MovieOnDemandTransporter(MovieTransport):
         pieces_to_play = self.movieselector.num_movie_pieces() - self.playback_pos
 
         if pieces_to_play <= 0:
-            return 0
+            return 0.0
 
         bitrate = self.movieselector.bitrate
 
@@ -1047,13 +1045,13 @@ class MovieOnDemandTransporter(MovieTransport):
     def expected_buffering_time(self):
         """ Expected time required for buffering. """
 
-        return max( 0, self.expected_download_time() - self.expected_playback_time() )
+        return max( 0.0, self.expected_download_time() - self.expected_playback_time() )
 
     def enough_buffer(self):
         """ Returns True if we can safely start playback without expecting to run out of
             buffer. """
 
-        return self.expected_buffering_time() == 0
+        return self.expected_buffering_time() == 0.0
 
     def tick_second(self):
         self.rawserver.add_task( self.tick_second, 1.0 )
@@ -1343,4 +1341,6 @@ class MovieOnDemandTransporter(MovieTransport):
             self.playable = (self.prebufprogress == 1.0 and self.enough_buffer())
         return self.playable
         
-        
+    def get_playable_after(self):
+        """ Called by network thread """
+        return self.expected_buffering_time()

@@ -148,16 +148,34 @@ class ABCApp(wx.App):
             print >>sys.stderr,"main: Log",logmsgs[0]
         progress = ds.get_vod_prebuffering_progress()
         playable = ds.get_vod_playable()
+        t = ds.get_vod_playable_after()
+        print >>sys.stderr,"main: After is",t
+        if t > float(2 ** 30):
+            intime = "inf"
+        elif t == 0.0:
+            intime = "now"
+        else:
+            h, t = divmod(t, 60.0*60.0)
+            m, s = divmod(t, 60.0)
+            if h == 0.0:
+                if m == 0.0:
+                    intime = "%02ds" % (s)
+                else:
+                    intime = "%02dm:%02ds" % (m,s)
+            else:
+                intime = "%dh:%02dm:%02ds" % (h,m,s)
+                
         #print >>sys.stderr,"main: VODStats",progress,playable
 
         if progress != 1.0:
             pstr = str(int(progress*100))
-            msg = "Prebuffering "+pstr+"% done"
+            msg = "Prebuffering "+pstr+"% done, eta "+intime
         elif playable:
             msg = "Starting playback..."
         else:
-            msg = "Waiting for sufficient download speed..."
+            msg = "Waiting for sufficient download speed... "+intime
         self.videoFrame.set_player_status(msg)
+        
         
         return (1.0,False)
     

@@ -8,6 +8,7 @@ from urllib import quote
 from struct import unpack
 from sha import sha
 from time import time
+import random
 
 # 2fastbt_
 from traceback import print_exc, extract_stack, print_stack
@@ -408,6 +409,10 @@ class Encoder:
         if not self.to_connect:
             self.raw_server.add_task(self._start_connection_from_queue)
         self.to_connect.extend(list)
+        # make sure addrs from various sources, like tracker, ut_pex and DHT are mixed
+        # TEMP ARNO: or not? For Tribler Supported we may want the tracker to
+        # be more authoritative, such that official seeders found fast. Nah.
+        random.shuffle(self.to_connect) 
         self.trackertime = int(time()) 
 
     def _start_connection_from_queue(self,sched=True):
