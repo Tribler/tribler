@@ -593,7 +593,7 @@ class SingleDownload:
     
     def save_as(self,name,length,saveas,isdir):
         """ Return the local filename to which to save the file 'name' in the torrent """
-        print >>sys.stderr,"SingleDownload: save_as(",name,length,saveas,isdir,")"
+        print >>sys.stderr,"SingleDownload: save_as(",`name`,length,`saveas`,isdir,")"
         try:
             if not os.access(saveas,os.F_OK):
                 os.mkdir(saveas)

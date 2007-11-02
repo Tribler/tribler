@@ -122,7 +122,7 @@ class DownloaderFeedback:
             s['time'] = 0
             s['vod_prebuf_frac'] = 1.0
             s['vod_playable'] = True
-            s['vod_playable_after'] = 0.0
+            s['vod_playable_after'] = 0.481
             return s
         s['down'] = self.downfunc()
         obtained, desired, have = self.leftfunc()

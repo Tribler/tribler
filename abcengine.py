@@ -128,7 +128,6 @@ class ABCEngine(DelayedEventHandler):
             self.errormsgCallback( msg, "status")
         else:
             btconfig['role'] = 'coordinator'
-            btconfig['helpers_file'] = ''
          # _2fastbt
 
 #        # TODO: setting check_hashes doesn't seem to work quite right

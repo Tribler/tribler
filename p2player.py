@@ -159,9 +159,9 @@ class ABCApp(wx.App):
             m, s = divmod(t, 60.0)
             if h == 0.0:
                 if m == 0.0:
-                    intime = "%02ds" % (s)
+                    intime = "%ds" % (s)
                 else:
-                    intime = "%02dm:%02ds" % (m,s)
+                    intime = "%dm:%02ds" % (m,s)
             else:
                 intime = "%dh:%02dm:%02ds" % (h,m,s)
                 
@@ -172,6 +172,7 @@ class ABCApp(wx.App):
             msg = "Prebuffering "+pstr+"% done, eta "+intime
         elif playable:
             msg = "Starting playback..."
+            print_stack()
         else:
             msg = "Waiting for sufficient download speed... "+intime
         self.videoFrame.set_player_status(msg)

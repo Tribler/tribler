@@ -324,8 +324,8 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                 print >>sys.stderr,"videoserv: do_GET: Done sending data"
     
             movie.stop()
-            #if self.server.statuscallback is not None:
-            #    self.server.statuscallback("Done")
+            if self.server.statuscallback is not None:
+                self.server.statuscallback("Done")
             #f.close()
             
         except Exception,e:
@@ -334,10 +334,13 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
             ##f = open("/tmp/videoserv.log","w")
             print_exc()
             self.error(e,self.path)
+
             ##f.close()
 
     def error(self,e,url):
-       if self.server.errorcallback is not None:
-           self.server.errorcallback(e,url)
-       else:
-           print_exc()
+        if self.server.errorcallback is not None:
+            self.server.errorcallback(e,url)
+        else:
+            print_exc()
+        if self.server.statuscallback is not None:
+            self.server.statuscallback("Error playing video")

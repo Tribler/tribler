@@ -1035,23 +1035,24 @@ class MovieOnDemandTransporter(MovieTransport):
 
         if pieces_to_play <= 0:
             return 0.0
-
-        bitrate = self.movieselector.bitrate
-
-        assert bitrate, "Bitrate should have been set by now"
-
-        return pieces_to_play * self.movieselector.piece_length / bitrate
+        if self.movieselector.bitrate is None or self.movieselector.bitrate == 0.0:
+            return float(2 ** 31)
+        return pieces_to_play * self.movieselector.piece_length / self.movieselector.bitrate
 
     def expected_buffering_time(self):
         """ Expected time required for buffering. """
 
-        return max( 0.0, self.expected_download_time() - self.expected_playback_time() )
+        #print >>sys.stderr,"EXPECT",self.expected_download_time(),self.expected_playback_time()
+        # Infinite minus infinite is still infinite
+        if self.expected_download_time() > float(2 ** 30) and self.expected_playback_time() > float(2 ** 30):
+            return float(2 ** 31)
+        return abs(self.expected_download_time() - self.expected_playback_time() )
 
     def enough_buffer(self):
         """ Returns True if we can safely start playback without expecting to run out of
             buffer. """
 
-        return self.expected_buffering_time() == 0.0
+        return max(0.0,self.expected_download_time() - self.expected_playback_time() ) == 0.0
 
     def tick_second(self):
         self.rawserver.add_task( self.tick_second, 1.0 )

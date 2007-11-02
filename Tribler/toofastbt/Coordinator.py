@@ -18,37 +18,13 @@ MAX_ROUNDS = 137
 
 class Coordinator:
         
-    def __init__(self, torrent_hash, num_pieces, helpers_file = None):
+    def __init__(self, torrent_hash, num_pieces):
         self.reserved_pieces = [False] * num_pieces
         self.torrent_hash = torrent_hash
         self.asked_helpers = []
         # optimization
         self.reserved = []
         self.secure_overlay = SecureOverlay.getInstance()
-
-        # read helpers from file
-        if helpers_file is not None:
-
-            print >> sys.stderr,"Reading helpers from file currently not supported"
-
-            f = open(helpers_file, 'r')
-            while 1:
-                lines = f.readlines(100000)
-                if not lines:
-                    break
-                for line in lines:
-                    line = line.strip()
-                    #-- exclude comment and empty lines
-                    if (len(line) > 0) and (line[0] != '#'):
-                        [ip, port] = line.split()
-                        port = int(port)
-                        # Add a peer comparable to those from cachedb2.py
-                        peer = {}
-                        peer['name'] = 'John Doe'
-                        peer['permid'] = None
-                        peer['ip'] = ip
-                        peer['port'] = port
-            f.close()
 
     def is_helper_permid(self, permid):
         """ Used by HelperMessageHandler to check if RESERVE_PIECES is from good source """

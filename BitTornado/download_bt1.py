@@ -276,10 +276,7 @@ class BT1Download:
             self.coordinator = None
             self.rate_predictor = None
             if self.config['role'] == 'coordinator':
-                if self.config['helpers_file'] == '':
-                    self.coordinator = Coordinator(self.infohash, self.len_pieces)
-                else:
-                    self.coordinator = Coordinator(self.infohash, self.len_pieces, self.config['helpers_file'])
+                self.coordinator = Coordinator(self.infohash, self.len_pieces)
             if self.config['role'] == 'coordinator' or self.config['role'] == 'helper':
                 self.helper = Helper(self.infohash, self.len_pieces, self.config['coordinator_permid'], coordinator = self.coordinator)
                 self.config['role'] = ''
@@ -654,8 +651,6 @@ class BT1Download:
                     self.rerequest_lastfailed, self.filedatflag)
         if self.info.has_key('files'):
             self.statistics.set_dirstats(self.files, self.info['piece length'])
-        if self.config['spew']:
-            self.spewflag.set()
 
     def autoStats(self, displayfunc = None):
         if not displayfunc:

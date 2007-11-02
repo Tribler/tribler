@@ -1986,7 +1986,7 @@ class DownloadState(Serializable):
 
     def get_vod_playable_after(self):
         if self.stats is None:
-            return False
+            return float(2 ** 31)
         else:
             return self.stats['vod_playable_after']
 

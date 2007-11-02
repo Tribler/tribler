@@ -197,8 +197,8 @@ dldefaults = [
         'in order to get around stupid ISP manipulation'),
     ('snub_time', 30.0,
         "seconds to wait for data to come in over a connection before assuming it's semi-permanently choked"),
-    ('spew', 0,
-        "whether to display diagnostic info to stdout"),
+#    ('spew', 0,
+#        "whether to display diagnostic info to stdout"),
     ('rarest_first_cutoff', 2,
         "number of downloads at which to switch from random to rarest first"),
     ('rarest_first_priority_cutoff', 5,
@@ -232,8 +232,6 @@ dldefaults = [
 #
     ('role', '', # 'helper', 'coordinator' # MARKED FOR DELETION
         "role of the peer in the download"),
-    ('helpers_file', '',  # MARKED FOR DELETION
-        "file with the list of friends"),
     ('coordinator_permid', '', # MARKED FOR DELETION
         "PermID of the cooperative download coordinator"),
     ('exclude_ips', '', # MARKED FOR DELETION
