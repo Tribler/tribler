@@ -25,7 +25,7 @@ EXTENSIONS = ['asf','avi','dv','flc','mpeg','mpeg4','mpg4','mp4','mpg','mov','og
 # pull all video data as if a video player was attached
 FAKEPLAYBACK = False
 
-DEBUG = True
+DEBUG = False
 DEBUGPP = False
 
 class PiecePickerStreaming(PiecePicker):

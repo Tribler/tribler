@@ -48,6 +48,7 @@ class SingleSocket:
         self.handler = handler
         self.buffer = []
         self.last_hit = clock()
+        self.only_hit = True
         self.fileno = sock.fileno()
         self.connected = False
         self.skipped = 0
@@ -181,15 +182,21 @@ class SocketHandler:
         self.servers = {}
 
     def scan_for_timeouts(self):
-        t = clock() - self.timeout
+        print >> sys.stderr,"SocketHandler: scan_timeouts"
         tokill = []
         for s in self.single_sockets.values():
+            if s.only_hit: # only initiated connection, never got any data
+                to = 20.0
+            else:
+                to = self.timeout
+            t = clock() - to
+            
             if s.last_hit < t:
                 tokill.append(s)
         for k in tokill:
             if k.socket is not None:
-                if DEBUG:
-                    print >> sys.stderr,"SocketHandler: scan_timeout closing connection",k.get_ip()
+                #if DEBUG:
+                print >> sys.stderr,"SocketHandler: scan_timeout closing connection &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&",k.get_ip()
                 self._close_socket(k)
 
     def bind(self, port, bind = '', reuse = False, ipv6_socket_style = 1):
@@ -427,6 +434,7 @@ class SocketHandler:
                 if (event & POLLIN):
                     try:
                         s.last_hit = clock()
+                        s.only_hit = False
                         data = s.socket.recv(100000)
                         if not data:
                             if DEBUG:

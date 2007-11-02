@@ -26,7 +26,7 @@ sessdefaults = [
         '(0 = disabled, 1 = mode 1 [fast,win32], 2 = mode 2 [slow,win32], 3 = mode 3 [any platform])'),
     ('timeout', 300.0,
         'time to wait between closing sockets which nothing has been received on'),
-    ('timeout_check_interval', 60.0,
+    ('timeout_check_interval', 3.0,
         'time to wait between checking if any connections have timed out'),
 
 # Tribler session opts

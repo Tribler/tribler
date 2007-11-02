@@ -381,7 +381,7 @@ class TriblerLaunchMany(Thread):
         
     def network_checkpoint_callback(self,dllist,stop):
         """ Called by network thread """
-        psdict = {'version':PERSISTENTSTATE_CURRENTVERSION}
+        psdict = {}
         for d in dllist:
             # Tell all downloads to stop, and save their persistent state
             # in a infohash -> pstate dict which is then passed to the user
@@ -395,9 +395,8 @@ class TriblerLaunchMany(Thread):
             psdict[infohash] = pstate
 
         try:
-            if len(psdict) > 1: # not just version:
-                for infohash,pstate in psdict.iteritems():
-                    self.save_download_pstate(infohash,pstate)
+            for infohash,pstate in psdict.iteritems():
+                self.save_download_pstate(infohash,pstate)
         except Exception,e:
             self.rawserver_nonfatalerrorfunc(e)
 

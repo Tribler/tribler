@@ -177,6 +177,7 @@ class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
         BaseHTTPServer.HTTPServer.__init__( self, ("",self.port), SimpleServer )
         self.daemon_threads = True
         self.allow_reuse_address = True
+        #self.request_queue_size = 10
         self.errorcallback = None
         self.statuscallback = None
         
@@ -187,10 +188,11 @@ class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
     getInstance = staticmethod(getInstance)
     
     def background_serve( self ):
-        #name = "VideoHTTPServerThread-1"
-        #self.thread2 = Thread(target=self.serve_forever,name=name)
-        #self.thread2.start()
-        thread.start_new_thread( self.serve_forever, () )
+        name = "VideoHTTPServerThread-1"
+        self.thread2 = Thread(target=self.serve_forever,name=name)
+        self.thread2.setDaemon(True)
+        self.thread2.start()
+        #thread.start_new_thread( self.serve_forever, () )
 
     def register(self,errorcallback,statuscallback):
         self.errorcallback = errorcallback

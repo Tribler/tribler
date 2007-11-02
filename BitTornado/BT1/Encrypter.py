@@ -25,7 +25,14 @@ except:
 
 DEBUG = False
 
-MAX_INCOMPLETE = 32 # Arno: was 8
+if sys.platform == 'win32':
+    # On windows XP SP2 we can't initiate more than 10 conns/second
+    # or have more than 10 pending conns (not clear which), so limit it.
+    # If we use more we get problems e.g. in VOD that the HTTP request
+    # of VLC to our HTTPServer times out. Windows die die die.
+    MAX_INCOMPLETE = 8 # safety margin
+else:
+    MAX_INCOMPLETE = 32
 
 def make_readable(s):
     if not s:
@@ -211,6 +218,9 @@ class Connection:
         if self.locally_initiated:
             self.connection.write(self.Encoder.my_id)
             incompletecounter.decrement()
+            # Arno: open new conn from queue if at limit. Faster than RawServer task
+            self.Encoder._start_connection_from_queue(sched=False)
+            
         c = self.Encoder.connecter.connection_made(self)
         self.keepalive = c.send_keepalive
         return 4, self.read_len
@@ -255,6 +265,8 @@ class Connection:
             self.connecter.connection_lost(self)
         elif self.locally_initiated:
             incompletecounter.decrement()
+            # Arno: open new conn from queue if at limit. Faster than RawServer task
+            self.Encoder._start_connection_from_queue(sched=False)
 
     def send_message_raw(self, message):
         if not self.closed:
@@ -398,31 +410,33 @@ class Encoder:
         self.to_connect.extend(list)
         self.trackertime = int(time()) 
 
-    def _start_connection_from_queue(self):
+    def _start_connection_from_queue(self,sched=True):
+        
+        if not self.to_connect:
+            return
+        
         if self.connecter.external_connection_made:
             max_initiate = self.config['max_initiate']
         else:
             max_initiate = int(self.config['max_initiate']*1.5)
         cons = len(self.connections)
         if cons >= self.max_connections or cons >= max_initiate:
-            #print >>sys.stderr,"encoder: start_from_queue delay 60"
-            delay = 60
+            delay = 60.0
         elif self.paused or incompletecounter.toomany():
-            #print >>sys.stderr,"encoder: start_from_queue delay 1"
-            delay = 1
+            delay = 1.0
         else:
-            #print >>sys.stderr,"encoder: start_from_queue delay 0"
-            delay = 0
+            delay = 0.0
             dns, id = self.to_connect.pop(0)
             self.start_connection(dns, id)
-        if self.to_connect:
+        if self.to_connect and sched:
+            print >>sys.stderr,"encoder: start_from_queue delay",delay
             self.raw_server.add_task(self._start_connection_from_queue, delay)
 
     def start_connection(self, dns, id, coord_con = False):
         """ Locally initiated connection """
         if DEBUG:
             print >>sys.stderr,"encoder: start_connection:",dns
-            print >>sys.stderr,"encoder: start_connection: qlen",len(self.to_connect),"nconns",len(self.connections),"maxi",self.config['max_initiate'],"maxc",self.config['max_connections']
+        print >>sys.stderr,"encoder: start_connection: qlen",len(self.to_connect),"nconns",len(self.connections),"maxi",self.config['max_initiate'],"maxc",self.config['max_connections']
         
         if ( self.paused
              or len(self.connections) >= self.max_connections
