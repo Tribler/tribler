@@ -146,16 +146,16 @@ dldefaults = [
         "maximum number of requests to keep in a single pipe at once."),
     ('max_message_length', 2 ** 23,
         "maximum length prefix encoding you'll accept over the wire - larger values get the connection dropped."),
-    ('responsefile', '',
-        'file the server response was stored in, alternative to url'),
-    ('url', '',
-        'url to get file from, alternative to responsefile'),
+#    ('responsefile', '',
+#        'file the server response was stored in, alternative to url'),
+#    ('url', '',
+#        'url to get file from, alternative to responsefile'),
     ('selector_enabled', 1,
         'whether to enable the file selector and fast resume function'),
     ('expire_cache_data', 10,
         'the number of days after which you wish to expire old cache data ' +
         '(0 = disabled)'),
-    ('priority', '',
+    ('priority', '', # Use select_files() at this moment
         'a list of file priorities separated by commas, must be one per file, ' +
         '0 = highest, 1 = normal, 2 = lowest, -1 = download disabled'),
     ('saveas', '',

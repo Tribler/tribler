@@ -190,6 +190,9 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
         else:
             workingset = self.statusmap[DLSTATUS_DOWNLOADING]
 
+        if DEBUG:
+            print >>sys.stderr,"RateManager: calc_and_set_speed_limits: len workingset",len(workingset)
+
         # Limit working set to active torrents with connections:
         newws = []
         for ds in workingset:
@@ -198,7 +201,10 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
         workingset = newws
 
         if DEBUG:
-            print >>sys.stderr,"RateManager: calc_and_set_speed_limits: len workingset",len(workingset)
+            print >>sys.stderr,"RateManager: calc_and_set_speed_limits: len new workingset",len(workingset)
+            for ds in workingset:
+                d = ds.get_download()
+                print >>sys.stderr,"RateManager: calc_and_set_speed_limits: working is",d.get_def().get_name()
 
         # No active file, not need to calculate
         if not workingset:
@@ -218,7 +224,7 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
 
         # User set priority is always granted, ignoring global limit
         todoset = []
-        for d in workingset:
+        for ds in workingset:
             d = ds.get_download()
             maxdesiredspeed = d.get_max_desired_speed(dir)
             if maxdesiredspeed > 0.0:
@@ -238,10 +244,21 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
             downloadsatmax = False
             downloadsunderutil = False
             for ds in todoset:
+                d = ds.get_download()
                 currspeed = ds.get_current_speed(dir)
-                currmaxspeed = ds.get_max_speed(dir)
+                currmaxspeed = d.get_max_speed(dir)
+                
+                
+                
+                # TEMP ARNO
+                if d.get_def().get_name()[0] == 'M':
+                    currspeed = 50.0
+                
+                
+                
+                
                 newmaxspeed = currspeed+self.ROOM
-                if currspeed >= (currmaxspeed-1.0): # dl needs more
+                if currspeed >= (currmaxspeed-3.0): # dl needs more
                     downloadsatmax = True
                 elif newmaxspeed < localmaxspeed: # dl got quota to spare
                     downloadsunderutil = True
@@ -252,11 +269,23 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
                 for ds in todoset:
                     d = ds.get_download()
                     currspeed = ds.get_current_speed(dir)
+
+
+
+
+                    # TEMP ARNO
+                    if d.get_def().get_name()[0] == 'M':
+                        currspeed = 50.0
+                    
+                    
+                    
+                    
                     newmaxspeed = currspeed+self.ROOM
                     if newmaxspeed < localmaxspeed:
                         # If unterutilizing:
                         totalunused += (localmaxspeed-newmaxspeed)
                         # Give current speed + 5.0 KB/s extra so it can grow
+                        print >>sys.stderr,"RateManager: calc_and_set_speed_limits: Underutil set to",newmaxspeed
                         d.set_max_speed(dir,newmaxspeed)
                     else:
                         todoset2.append(ds)
@@ -267,6 +296,7 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
                     piece = pie / float(len(todoset2))
                     for ds in todoset:
                         d = ds.get_download()
+                        print >>sys.stderr,"RateManager: calc_and_set_speed_limits: Overutil set to",piece
                         d.set_max_speed(dir,piece)
                 else:
                     # what the f? No overutilizers now?
@@ -275,4 +305,5 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
                 # No over and under utilizers, just divide equally
                 for ds in todoset:
                     d = ds.get_download()
+                    print >>sys.stderr,"RateManager: calc_and_set_speed_limits: Normal set to",piece
                     d.set_max_speed(dir,localmaxspeed)

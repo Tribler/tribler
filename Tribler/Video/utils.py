@@ -1,6 +1,7 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
 
+import os
 import sys
 
 from Utility.regchecker import Win32RegChecker

@@ -508,6 +508,7 @@ class SocketHandler:
     #
     def create_udpsocket(self,port,host):
         server = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server.bind((host,port))
         self.servers[server.fileno()] = server
         server.setblocking(0)

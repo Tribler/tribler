@@ -407,7 +407,7 @@ class BT1Download:
     def _data_flunked(self, amount, index):
         self.ratemeasure_datarejected(amount)
         if not self.doneflag.isSet():
-            self.errorfunc('piece %d failed hash check, re-downloading it' % index)
+            self.logerrorfunc('piece %d failed hash check, re-downloading it' % index)
 
     def _failed(self, reason):
         self.failed = True
@@ -577,7 +577,7 @@ class BT1Download:
 # _2fastbt
 
         self.httpdownloader = HTTPDownloader(self.storagewrapper, self.picker, 
-            self.rawserver, self.finflag, self.errorfunc, self.downloader, 
+            self.rawserver, self.finflag, self.logerrorfunc, self.downloader, 
             self.config['max_rate_period'], self.infohash, self._received_http_data, 
             self.connecter.got_piece)
         if self.response.has_key('httpseeds') and not self.finflag.isSet():
@@ -684,7 +684,7 @@ class BT1Download:
         return self.encoder
 
 
-    def checkpoint(self):
+    def checkpoint(self): # Added by Arno
         """ Called by network thread """
         if self.fileselector and self.started:
             # self.fileselector.finish() does nothing at the moment, so as
@@ -708,7 +708,7 @@ class BT1Download:
         return resumedata
 
 
-    def setUploadRate(self, rate):
+    def setUploadRate(self, rate, networkcalling=False):
         try:
             def s(self = self, rate = rate):
                 
@@ -716,11 +716,14 @@ class BT1Download:
                 
                 self.config['max_upload_rate'] = rate
                 self.ratelimiter.set_upload_rate(rate)
-            self.rawserver.add_task(s)
+            if networkcalling:
+                s()
+            else:
+                self.rawserver.add_task(s)
         except AttributeError:
             pass
 
-    def setConns(self, conns, conns2 = None):
+    def setConns(self, conns, conns2 = None,networkcalling=False):
         if not conns2:
             conns2 = conns
         try:
@@ -729,16 +732,22 @@ class BT1Download:
                 self.config['max_uploads'] = conns2
                 if (conns > 30):
                     self.config['max_initiate'] = conns + 10
-            self.rawserver.add_task(s)
+            if networkcalling:
+                s()
+            else:
+                self.rawserver.add_task(s)
         except AttributeError:
             pass
         
-    def setDownloadRate(self, rate):
+    def setDownloadRate(self, rate,networkcalling=False):
         try:
             def s(self = self, rate = rate):
                 self.config['max_download_rate'] = rate
                 self.downloader.set_download_rate(rate)
-            self.rawserver.add_task(s)
+            if networkcalling:
+                s()
+            else:
+                self.rawserver.add_task(s)
         except AttributeError:
             pass
 
@@ -748,13 +757,28 @@ class BT1Download:
     def _startConnection(self, ipandport, id):
         self.encoder._start_connection(ipandport, id)
         
-    def setInitiate(self, initiate):
+    def setInitiate(self, initiate,networkcalling=False):
         try:
             def s(self = self, initiate = initiate):
                 self.config['max_initiate'] = initiate
-            self.rawserver.add_task(s)
+            if networkcalling:
+                s()
+            else:
+                self.rawserver.add_task(s)
         except AttributeError:
             pass
+
+    def setMaxConns(self,nconns,networkcalling=False):
+        try:
+            def s(self = self, nconns = nconns):
+                self.config['max_connections'] = nconns
+            if networkcalling:
+                s()
+            else:
+                self.rawserver.add_task(s)
+        except AttributeError:
+            pass
+
 
     def getConfig(self):
         return self.config
@@ -830,14 +854,17 @@ class BT1Download:
         if self.rerequest and self.whenpaused and clock()-self.whenpaused > 60:
             self.rerequest.announce(3)      # rerequest automatically if paused for >60 seconds
 
-    def set_super_seed(self):
+    def set_super_seed(self,networkcalling=False):
         self.superseedflag.set()
-        self.rawserver.add_task(self._set_super_seed)
+        if networkcalling:
+            self._set_super_seed()
+        else:
+            self.rawserver.add_task(self._set_super_seed)
 
     def _set_super_seed(self):
         if not self.super_seeding_active and self.finflag.isSet():
             self.super_seeding_active = True
-            self.errorfunc('        ** SUPER-SEED OPERATION ACTIVE **\n' +
+            self.logerrorfunc('        ** SUPER-SEED OPERATION ACTIVE **\n' +
                            '  please set Max uploads so each peer gets 6-8 kB/s')
             def s(self = self):
                 self.downloader.set_super_seed()

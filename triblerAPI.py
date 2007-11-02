@@ -221,8 +221,10 @@ TODO:
     mechanism and a simple rate manager.
 
 - Create a rate manager that gives unused capacity to download that is at max
+        See UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager. 
+        Need to TEST
 
-- Allow VOD when first part of file hashchecked.
+- Allow VOD when first part of file hashchecked? For faster start of playback
 
 - Is there a state where the file complete but not yet in order on disk?
 
@@ -267,11 +269,15 @@ TODO:
 
 - BT1/Rerequester: if 'dialback' in self.config and self.config['dialback']: EXPECT SESSION CONFIG AND SEE WHO KNOWS CONNECTABLE
 
-- VOD: Check why prebuf pieces not obtained and implement rerequest of pieces if needed.
+- VOD: Check why prebuf pieces not obtained and implement rerequest of pieces
+  if needed.
+      See PiecePickerVOD: self.outstanding, need to tweak further
 
 - TODO: determine what are fatal errors for a tracker and move to 
   DLSTATUS_STOPPED_ON_ERROR if they occur. Currently all tracker errors are
   put in log messages, and the download does not change status.
+
+- Document all methods in the API.
 
 """
 
@@ -1320,6 +1326,25 @@ class DownloadConfigInterface:
         
         print >>sys.stderr,"DownloadStartupConfig: set_selected_files",files
 
+    def get_selected_files(self):
+        return self.dlconfig['selected_files']
+
+    def set_max_conns_to_initiate(self,nconns):
+        """ Sets the maximum number of connections to initiate for this 
+        Download """
+        self.dlconfig['max_initiate'] = nconns
+
+    def get_max_conns_to_initiate(self):
+        return self.dlconfig['max_initiate']
+
+    def set_max_conns(self,nconns):
+        """ Sets the maximum number of connections to connections for this 
+        Download """
+        self.dlconfig['max_connections'] = nconns
+
+    def get_max_conns(self):
+        return self.dlconfig['max_connections']
+
 
     
 class DownloadStartupConfig(DownloadConfigInterface,Serializable,Copyable):
@@ -1562,11 +1587,9 @@ class Download(DownloadConfigInterface):
             self.dllock.release()
 
     #
-    # DownloadConfigInterface
+    # DownloadConfigInterface: All methods called by any thread
     #
     def set_max_speed(self,direct,speed):
-        """ Called by any thread """
-        
         print >>sys.stderr,"Download: set_max_speed",`self.get_def().get_metainfo()['info']['name']`,direct,speed
         #print_stack()
         
@@ -1575,10 +1598,12 @@ class Download(DownloadConfigInterface):
             # Don't need to throw an exception when stopped, we then just save the new value and
             # use it at (re)startup.
             if self.sd is not None:
-                set_max_speed_lambda = lambda:self.sd.set_max_speed(direct,speed,self.network_set_max_speed)
+                set_max_speed_lambda = lambda:self.sd.set_max_speed(direct,speed,None)
                 self.session.lm.rawserver.add_task(set_max_speed_lambda,0)
-            else:
-                DownloadConfigInterface.set_max_speed(self,direct,speed)
+                
+            # At the moment we can't catch any errors in the engine that this 
+            # causes, so just assume it always works.
+            DownloadConfigInterface.set_max_speed(self,direct,speed)
         finally:
             self.dllock.release()
 
@@ -1596,7 +1621,48 @@ class Download(DownloadConfigInterface):
         raise NotYetImplementedException()
 
     def set_selected_files(self,files):
-        raise NotYetImplementedException()
+        raise OperationNotPossibleAtRuntimeException()
+
+    def get_selected_files(self):
+        self.dllock.acquire()
+        try:
+            return DownloadConfigInterface.get_selected_files(self)
+        finally:
+            self.dllock.release()
+
+    def set_max_conns_to_initiate(self,nconns):
+        self.dllock.acquire()
+        try:
+            if self.sd is not None:
+                set_max_conns2init_lambda = lambda:self.sd.set_max_conns_to_initiate(nconns,None)
+                self.session.lm.rawserver.add_task(set_max_conns2init_lambda,0.0)
+            DownloadConfigInterface.set_max_conns_to_initiate(self,nconns)
+        finally:
+            self.dllock.release()
+
+    def get_max_conns_to_initiate(self):
+        self.dllock.acquire()
+        try:
+            return DownloadConfigInterface.get_max_conns_to_initiate(self)
+        finally:
+            self.dllock.release()
+
+    def set_max_conns(self,nconns):
+        self.dllock.acquire()
+        try:
+            if self.sd is not None:
+                set_max_conns_lambda = lambda:self.sd.set_max_conns(nconns,None)
+                self.session.lm.rawserver.add_task(set_max_conns_lambda,0.0)
+            DownloadConfigInterface.set_max_conns(self,nconns)
+        finally:
+            self.dllock.release()
+    
+    def get_max_conns(self):
+        self.dllock.acquire()
+        try:
+            return DownloadConfigInterface.get_max_conns(self)
+        finally:
+            self.dllock.release()
 
 
     #
@@ -1769,14 +1835,6 @@ class Download(DownloadConfigInterface):
         pstate['engineresumedata'] = None
         return pstate
 
-    def network_set_max_speed(self,direct,speed):
-        """ Called by network thread """
-        self.dllock.acquire()
-        try:
-            DownloadConfigInterface.set_max_speed(self,direct,speed)
-        finally:
-            self.dllock.release()
-        
 
     
 class DownloadState(Serializable):

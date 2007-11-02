@@ -64,6 +64,8 @@ class VideoPlayer:
             self.playbackmode = feasible[0]
         #print >>sys.stderr,"videoplay: playback mode is %d wanted %d" % (self.playbackmode,playbackmode)
 
+        ###self.playbackmode = PLAYBACKMODE_EXTERNAL_MIME
+
     def set_parentwindow(self,parentwindow):
         self.parentwindow = parentwindow
 

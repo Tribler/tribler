@@ -61,10 +61,28 @@ class PiecePickerStreaming(PiecePicker):
         # video speed in bytes/s
         self.set_bitrate( 512*1024/8 ) # default to 512 Kbit/s
         self.outstanding = {}
+        
+        # Piece timeout policy parameters
+        """
+        minprebufspeed = 10.0 # KB/s
+        self.PIECETIME = piecesize/(minprebufspeed*1024.0)
+        self.MAXDLTIME=2.0*self.PIECETIME 
+        self.MAXDLTIME_NONPREBUF=4.0*self.PIECETIME
+        """
+        # Works for 32KB pieces, like vuze.com
+        self.PIECETIME = 10.0
         self.MAXDLTIME = 20.0
-        self.INBEFORE = 10.0
+        self.MAXDLTIME_NONPREBUF=30.0
 
-
+        """
+        # Dynamic
+        prebufsize = 1000000.0 # 1 MB
+        prebuftime = 60.0 # secs, prebuffering should finish in this time
+        prebufspeed = prebufsize/prebuftime
+        PIECETIME = float(piecesize)/prebufspeed # the amount of time a peer has to dl a piece
+        """
+        
+        
     def set_transporter(self, transporter):
         self.transporter = transporter
 
@@ -163,13 +181,15 @@ class PiecePickerStreaming(PiecePicker):
                 self.register_piece(best)
                 return best
 
+        # Arno: Keep track of how long pieces are outstanding. If too slow,
+        # cancel the request and rerequest it from another peer.
         now = time.time()
         newoutstanding = {}
         
         cancelpieces = []
         for (p,t) in self.outstanding.iteritems():
             diff = t-now
-            if diff < self.INBEFORE:
+            if diff < self.PIECETIME:
                 # Peer failed to deliver intime
                 print >>sys.stderr,"PiecePickerStreaming: request too slow, due in",diff,p,"#"
                 cancelpieces.append(p)
@@ -193,16 +213,15 @@ class PiecePickerStreaming(PiecePicker):
         if self.transporter.prebuffering and p >= self.download_range[0] and p <= self.download_range[0] + self.transporter.max_preparse_packets:
             # not playing, prioritize prebuf
             self.outstanding[p] = now+self.MAXDLTIME
-            print >>sys.stderr,"PiecePickerStreaming: prebuf due soonest",p,"#"
+            #print >>sys.stderr,"PiecePickerStreaming: prebuf due soonest",p,"#"
         elif diff > 1000000.0:
-            print >>sys.stderr,"PiecePickerStreaming: prebuf due soon",p,"#"
-            #self.outstanding[p] = now+300.0
-            self.outstanding[p] = now+self.MAXDLTIME+10.0
-        elif diff < self.INBEFORE: # need it fast
-            print >>sys.stderr,"PiecePickerStreaming: due asap in",(rawdue-now),p,"#"
-            self.outstanding[p] = now+self.INBEFORE+10.0 # otherwise we cancel it again right away
+            #print >>sys.stderr,"PiecePickerStreaming: prebuf due soon",p,"#"
+            self.outstanding[p] = now+self.MAXDLTIME_NONPREBUF
+        elif diff < self.PIECETIME: # need it fast
+            #print >>sys.stderr,"PiecePickerStreaming: due asap in",(rawdue-now),p,"#"
+            self.outstanding[p] = now+self.MAXDLTIME # otherwise we cancel it again right away
         else:
-            print >>sys.stderr,"PiecePickerStreaming: due later in",(rawdue-now),p,"#"
+            #print >>sys.stderr,"PiecePickerStreaming: due later in",(rawdue-now),p,"#"
             self.outstanding[p] = rawdue
 
     def am_I_complete(self):

@@ -633,6 +633,9 @@ class Downloader:
                 # retrieve any of theses pieces from these slow peers, just
                 # give them something further in the future.
                 if not allowrerequest:
+                    # Arno: ALT is to just kick peer. Good option if we have lots (See Encryper.to_connect() queue
+                    #print >>sys.stderr,"Downloader: Kicking slow peer",d.ip
+                    #d.connection.close() # bye bye, zwaai zwaai
                     d._request_more(slowpieces=pieces)
                 else:
                     d._request_more()

@@ -25,7 +25,7 @@ except:
 
 DEBUG = False
 
-MAX_INCOMPLETE = 8
+MAX_INCOMPLETE = 32 # Arno: was 8
 
 def make_readable(s):
     if not s:
@@ -393,8 +393,6 @@ class Encoder:
             c.keepalive()
 
     def start_connections(self, list):
-        if DEBUG:
-            print >>sys.stderr,"encoder: connecting to",len(list),"peers"
         if not self.to_connect:
             self.raw_server.add_task(self._start_connection_from_queue)
         self.to_connect.extend(list)
@@ -407,10 +405,13 @@ class Encoder:
             max_initiate = int(self.config['max_initiate']*1.5)
         cons = len(self.connections)
         if cons >= self.max_connections or cons >= max_initiate:
+            #print >>sys.stderr,"encoder: start_from_queue delay 60"
             delay = 60
         elif self.paused or incompletecounter.toomany():
+            #print >>sys.stderr,"encoder: start_from_queue delay 1"
             delay = 1
         else:
+            #print >>sys.stderr,"encoder: start_from_queue delay 0"
             delay = 0
             dns, id = self.to_connect.pop(0)
             self.start_connection(dns, id)
@@ -421,6 +422,7 @@ class Encoder:
         """ Locally initiated connection """
         if DEBUG:
             print >>sys.stderr,"encoder: start_connection:",dns
+            print >>sys.stderr,"encoder: start_connection: qlen",len(self.to_connect),"nconns",len(self.connections),"maxi",self.config['max_initiate'],"maxc",self.config['max_connections']
         
         if ( self.paused
              or len(self.connections) >= self.max_connections

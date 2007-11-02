@@ -34,7 +34,7 @@ vlcstatusmap = {vlc.PlayingStatus:'vlc.PlayingStatus',
                 vlc.EndStatus:'vlc.EndStatus',
                 vlc.UndefinedStatus:'vlc.UndefinedStatus'}
 
-DEBUG = False
+DEBUG = True
 
 
 class VideoItem:
@@ -352,8 +352,8 @@ class VLCMediaCtrl(wx.Window):
                 os.chdir(vlcinstalldir)
 
         # Arno: 2007-05-11: Don't ask me why but without the "--verbose=0" vlc will ignore the key redef.
-        params = ["--verbose=0","--key-fullscreen", "Esc"]
-        ########params = [] # Arno: who added this???
+        #params = ["--verbose=0","--key-fullscreen", "Esc"]
+        params = []
         
         if sys.platform == 'darwin':
             params += ["--plugin-path", "%s/lib/vlc" % (

@@ -9,7 +9,7 @@ import SocketServer
 import BaseHTTPServer
 from SocketServer import ThreadingMixIn
 import thread
-from threading import RLock,currentThread
+from threading import RLock,Thread,currentThread
 from traceback import print_exc
 from __init__ import read,BLOCKSIZE
 
@@ -176,6 +176,7 @@ class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
         self.movietransport = None
         BaseHTTPServer.HTTPServer.__init__( self, ("",self.port), SimpleServer )
         self.daemon_threads = True
+        self.allow_reuse_address = True
         self.errorcallback = None
         self.statuscallback = None
         
@@ -186,6 +187,9 @@ class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
     getInstance = staticmethod(getInstance)
     
     def background_serve( self ):
+        #name = "VideoHTTPServerThread-1"
+        #self.thread2 = Thread(target=self.serve_forever,name=name)
+        #self.thread2.start()
         thread.start_new_thread( self.serve_forever, () )
 
     def register(self,errorcallback,statuscallback):

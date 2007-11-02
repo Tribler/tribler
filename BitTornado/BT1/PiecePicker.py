@@ -324,7 +324,7 @@ class PiecePicker:
         return None
 
 # 2fastbt_
-    def next(self, haves, wantfunc, sdownload, complete_first = False, helper_con = False):
+    def next(self, haves, wantfunc, sdownload, complete_first = False, helper_con = False, slowpieces= []):
 #        try:
         while True:
             piece = self._next(haves, wantfunc, complete_first, helper_con)

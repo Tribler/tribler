@@ -290,7 +290,7 @@ class StorageWrapper:
                     self.check_list.append(i)
                 continue
             if not self.check_hashes:
-                self.failed('told file complete on start-up, but data is missing')
+                self.failed('file supposed to be complete on start-up, but data is missing')
                 return False
             self.holes.append(i)
             if self.blocked[i] or self.check_targets.has_key(self.hashes[i]):
@@ -386,14 +386,14 @@ class StorageWrapper:
                         # Bad luck
                         if DEBUG:
                             print "StorageWrapper: Merkle torrent, NOT a seeder!"
-                        self.failed('download corrupted; please restart and resume')
+                        self.failed('download corrupted, hash tree does not compute; please delete and restart')
                         return 1
                 self.finished()
             return (self.numchecked / self.check_total)
 
         except Exception, e:
             print_exc()
-            self.failed('download corrupted; please restart and resume')
+            self.failed('download corrupted: '+str(e)+'; please delete and restart')
     
     
     def init_movedata(self):
@@ -436,7 +436,7 @@ class StorageWrapper:
                 if old is None:
                     return None
             if sha(old[:]).digest() != self.hashes[i]:
-                self.failed('download corrupted; please restart and resume')
+                self.failed('download corrupted, piece on disk failed triple check; please delete and restart')
                 return None
         old.release()
 
@@ -709,7 +709,7 @@ class StorageWrapper:
                 if old is None:
                     return -1
             if sha(old[:]).digest() != self.hashes[index]:
-                self.failed('download corrupted; please restart and resume')
+                self.failed('download corrupted, piece on disk failed triple check; please delete and restart')
                 return -1
         old.release()
 
@@ -765,7 +765,7 @@ class StorageWrapper:
             if v == index:
                 break
         else:
-            self.failed('download corrupted; please restart and resume')
+            self.failed('download corrupted; please delete and restart')
             return False
         self._move_piece(p, n)
         self.places[index] = index
@@ -904,7 +904,7 @@ class StorageWrapper:
             if data is None:
                 return None
             if sha(data[:]).digest() != self.hashes[index]:
-                self.failed('told file complete on start-up, but piece failed hash check')
+                self.failed('file supposed to be complete on start-up, but piece failed hash check')
                 return None
             self.waschecked[index] = True
             if length == -1 and begin == 0:
@@ -965,7 +965,7 @@ class StorageWrapper:
                 if piece is None:
                     return False
                 if sha(piece[:]).digest() != self.hashes[index]:
-                    self.failed('download corrupted; please restart and resume')
+                    self.failed('download corrupted, piece on disk failed double check; please delete and restart')
                     return False
                 piece.release()
         return True

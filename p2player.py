@@ -105,6 +105,9 @@ class ABCApp(wx.App):
             dcfg = DownloadStartupConfig()
             dcfg.set_video_on_demand(self.vod_ready_callback)
             dcfg.set_selected_files(videofiles)
+            dcfg.set_max_conns_to_initiate(300)
+            dcfg.set_max_conns(300)
+            
             d = self.s.start_download(tdef,dcfg)
             d.set_state_callback(self.state_callback,1)
 
@@ -175,13 +178,11 @@ class ABCApp(wx.App):
         """ Called by MainThread """
         print >>sys.stderr,"main: Playing from stream"
         self.videoplay.play_url('http://127.0.0.1:6880/')
-        self.videoFrame.set_player_status('Done')
     
     def play_from_file(self,filename):
         """ Called by MainThread """
         print >>sys.stderr,"main: Playing from file",filename
         self.videoplay.play_url(filename)
-        self.videoFrame.set_player_status('Done')
 
     def ratelimit_callback(self,dslist):
         adjustspeeds = False

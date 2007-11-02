@@ -51,7 +51,7 @@ class TriblerLaunchMany(Thread):
     def __init__(self,session,sesslock):
         """ Called only once (unless we have multiple Sessions) """
         Thread.__init__(self)
-        ##self.setDaemon(True) 
+        self.setDaemon(True) # TEMP ARNO 
         self.setName("Network"+self.getName())
         
         self.session = session
@@ -636,12 +636,31 @@ class SingleDownload:
         if self.dow is not None:
             #print >>sys.stderr,"SingleDownload: set_max_speed",`self.dow.response['info']['name']`,direct,speed
             if direct == UPLOAD:
-                self.dow.setUploadRate(speed)
+                self.dow.setUploadRate(speed,networkcalling=True)
             else:
-                self.dow.setDownloadRate(speed)
-        callback(direct,speed)
+                self.dow.setDownloadRate(speed,networkcalling=True)
+        if callback is not None:
+            callback(direct,speed)
+
+    def set_max_conns_to_initiate(self,nconns,callback):
+        if self.dow is not None:
+            #print >>sys.stderr,"SingleDownload: set_max_speed",`self.dow.response['info']['name']`,direct,speed
+            self.dow.setInitiate(nconns,networkcalling=True)
+        if callback is not None:
+            callback(nconns)
 
 
+    def set_max_conns(self,nconns,callback):
+        if self.dow is not None:
+            #print >>sys.stderr,"SingleDownload: set_max_speed",`self.dow.response['info']['name']`,direct,speed
+            self.dow.setMaxConns(nconns,networkcalling=True)
+        if callback is not None:
+            callback(nconns)
+
+
+    #
+    # For DownloadState
+    #
     def get_stats(self,getpeerlist):
         logmsgs = self.logmsgs[:] # copy  
         if self._getstatsfunc is None:
@@ -654,7 +673,7 @@ class SingleDownload:
             return (None,self._getstatsfunc(getpeerlist=getpeerlist),logmsgs)
 
     #
-    #
+    # Persistent State
     #
     def checkpoint(self):
         if self.dow is not None:
