@@ -56,14 +56,14 @@ from Tribler.Overlay.permid import permid_for_user
 from Tribler.utilities import show_permid_shorter
 
 
-PEER_SIZE = 1.0 / 8000
-MAX_NUMBER_OF_SIMILAR_PEERS = 50
+PEER_SIZE = 1.0 / 800000
+MAX_NUMBER_OF_SIMILAR_PEERS = 500
 NO_CIRCLES = 4
 MAX_RADIUS = NO_CIRCLES * rs
-MIN_SIZE = 0.1   # Peers with smaller size are not displayed
-LINE_SIZE = 0.5 
+MIN_SIZE = 0.00000001   # Peers with smaller size are not displayed
+LINE_SIZE = 0.0000005 
 TIME_LAG = 0.05
-ANIMATED = False
+ANIMATED = True
 
 ANIMATION_STEPS = 50
 ANIMATION_SPEED = 0.1
@@ -127,8 +127,9 @@ class SocialVisionPanel(wx.Panel, DelayedInvocation):
             cache1 = '/Users/michel/packages/megacache_johan/Tribler1/bsddb'
             cache2 = '/Users/michel/.Tribler/bsddb'
             cache3 = '/Users/michel/packages/megacache_johan/Tribler3/bsddb'
+            cache4 = '/Users/michel/packages/megacache_johan/2nov/bsddb'
             
-            cache = cache3
+            cache = cache4
             self.mydb = CacheDBHandler.MyDBHandler(db_dir = cache)
             self.peersdb = CacheDBHandler.PeerDBHandler(db_dir = cache)
             self.prefdb = CacheDBHandler.PreferenceDBHandler(db_dir = cache)
@@ -199,7 +200,7 @@ class SocialVisionPanel(wx.Panel, DelayedInvocation):
                     peer = {'permid': p, 'name': str(i), 'ip': '0.0.0.0', 'similarity': 0, 'last_seen': 0, 'connected_times': -1, 'buddycast_time': -1}
 
                     # Dirty hack to extract Root as top_peer
-                    if i == 5:
+                    if permid_for_user(p) == 'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAL/l2IyVa6lc3KAqQyEnR++rIzi+AamnbzXHCxOFAFy67COiBhrC79PLzzUiURbHDx21QA4p8w3UDHLA':
                         peer['name'] = 'Root'
                         self.top_peer = peer
                     
