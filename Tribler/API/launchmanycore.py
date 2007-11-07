@@ -25,6 +25,7 @@ from BitTornado.BT1.track import Tracker
 from BitTornado.HTTPHandler import HTTPHandler,DummyHTTPHandler
 
 import triblerAPI
+from Tribler.API.simpledefs import *
 from Tribler.API.exceptions import *
 from Tribler.NATFirewall.guessip import get_my_wan_ip
 from Tribler.NATFirewall.UPnPThread import UPnPThread

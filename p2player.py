@@ -172,7 +172,6 @@ class ABCApp(wx.App):
             msg = "Prebuffering "+pstr+"% done, eta "+intime
         elif playable:
             msg = "Starting playback..."
-            print_stack()
         else:
             msg = "Waiting for sufficient download speed... "+intime
         self.videoFrame.set_player_status(msg)
