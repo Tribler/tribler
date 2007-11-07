@@ -7,8 +7,10 @@ from cStringIO import StringIO
 from ConfigParser import ConfigParser, MissingSectionHeaderError, NoSectionError, ParsingError, DEFAULTSECT
 
 from BitTornado.bencode import bencode, bdecode
-from Tribler.API.defaults import dldefaults as bt1_defaults
-from BitTornado.download_bt1 import DEFAULTPORT
+from Tribler.API.defaults import dldefaults,DEFAULTPORT
+bt1_defaults = []
+for k,v in dldefaults.iteritems():
+    bt1_defaults.append((k,v,"See triblerAPI"))
 
 DEBUG = False
 

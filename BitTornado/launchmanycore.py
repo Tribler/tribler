@@ -242,7 +242,7 @@ class LaunchMany:
             self.rawserver.add_task(self.stats, 0)
 
             # do_cache -> do_overlay -> (do_buddycast, do_download_help)
-            if not config['cache']:
+            if not config['megacache']:
                 config['overlay'] = 0    # overlay
             if not config['overlay']:
                 config['buddycast'] = 0

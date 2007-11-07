@@ -15,7 +15,7 @@ from wx.lib import masked
 from BitTornado.ConfigDir import ConfigDir
 from BitTornado.bencode import bdecode
 from Tribler.API.defaults import dldefaults as BTDefaults
-from BitTornado.download_bt1 import DEFAULTPORT
+from Tribler.API.defaults import dldefaults,DEFAULTPORT
 from Tribler.API.defaults import trackerdefaults as TrackerDefaults 
 from BitTornado.parseargs import parseargs
 from BitTornado.zurllib import urlopen

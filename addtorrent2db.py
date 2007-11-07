@@ -185,7 +185,7 @@ if __name__ == '__main__':
     config['text_mode'] = 1
     if config['seed_only'] == 1:
         # This disables all overlay apps, such as Buddycast etc.
-        config['cache'] = 0
+        config['megacache'] = 0
         config['overlay'] = 0
         # Make sure we don't advertise we understand overlay conns
         #Encrypter.option_pattern = Encrypter.disabled_overlay_option_pattern 

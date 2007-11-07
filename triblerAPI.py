@@ -307,9 +307,11 @@ from Tribler.unicode import metainfoname2unicode
 from Tribler.API.osutils import *
 from Tribler.API.miscutils import *
 
-
 DEBUG = True
 
+#
+# Tribler API base classes
+#
 class Serializable:
     """
     Interface to signal that the object is pickleable.
@@ -330,7 +332,7 @@ class Copyable:
         raise NotYetImplementedException()
 
 
-
+#
 # Exceptions
 #
 class TriblerException(Exception):
@@ -381,9 +383,8 @@ class TriblerLegacyException(TriblerException):
     
 
 #
-# API classes
+# The API classes
 #
-
     
 class SessionConfigInterface:
     """ 
@@ -402,8 +403,7 @@ class SessionConfigInterface:
         self.sessconfig = {}
         
         # Define the built-in default here
-        for key,val,expl in sessdefaults:
-            self.sessconfig[key] = val
+        self.sessconfig.update(sessdefaults)
         
         # Set video_analyser_path
         if sys.platform == 'win32':
@@ -435,8 +435,11 @@ class SessionConfigInterface:
     def get_state_dir(self):
         return self.sessconfig['state_dir']
     
-    def set_permid(self,keypairfilename):
+    def set_permid(self,keypairfilename): # TODO: permid right name?
         self.sessconfig['eckeypairfilename'] = keypairfilename
+
+    def get_permid(self):
+        return self.sessconfig['eckeypairfilename']
         
     def set_listen_port(self,port):
         """
@@ -449,13 +452,527 @@ class SessionConfigInterface:
     def get_listen_port(self):
         return self.sessconfig['minport']
         
+    #
+    # Advanced network settings
+    #
+    def set_ip_for_tracker(self,value):
+        """ ip to report you have to the tracker (default = set automatically) """
+        self.sessconfig['ip'] = value
+
+    def get_ip_for_tracker(self):
+        return self.sessconfig['ip']
+
+    def set_bind_to_address(self,value):
+        """ comma-separated list of ips/hostnames to bind to locally """
+        self.sessconfig['bind'] = value
+
+    def get_bind_to_address(self):
+        return self.sessconfig['bind']
+
+    def set_upnp_mode(self,value):
+        """ attempt to autoconfigure a UPnP router to forward a server port 
+        (0 = disabled, 1 = mode 1 [fast,win32], 2 = mode 2 [slow,win32], 3 = 
+        mode 3 [any platform]) """
+        self.sessconfig['upnp_nat_access'] = value
+
+    def get_upnp_mode(self):
+        return self.sessconfig['upnp_nat_access']
+
+    def set_autoclose_timeout(self,value):
+        """ time to wait between closing sockets which nothing has been received
+        on """
+        self.sessconfig['timeout'] = value
+
+    def get_autoclose_timeout(self):
+        return self.sessconfig['timeout']
+
+    def set_autoclose_check_interval(self,value):
+        """ time to wait between checking if any connections have timed out """
+        self.sessconfig['timeout_check_interval'] = value
+
+    def get_autoclose_check_interval(self):
+        return self.sessconfig['timeout_check_interval']
+
+    #
+    # Enable/disable Tribler features 
+    #
+    def set_megacache(self,value):
+        """ Enable megacache databases to cache peers, torrent files and 
+        preferences (default = True)"""
+        self.sessconfig['megacache'] = value
+
+    def get_megacache(self):
+        return self.sessconfig['megacache']
+
+    def set_overlay(self,value):
+        """ Enable overlay swarm to enable Tribler's special features 
+        (default = True) """
+        self.sessconfig['overlay'] = value
+
+    def get_overlay(self):
+        return self.sessconfig['overlay']
+
+    #
+    # Buddycast
+    #
+    def set_buddycast(self,value):
+        """ Enable buddycast recommendation system at startup (default = True)
+        """
+        self.sessconfig['buddycast'] = value
+
+    def get_buddycast(self):
+        return self.sessconfig['buddycast']
+
+    def set_start_recommender(self,value):
+        """ Buddycast can be temp. disabled via this flag 
+        (default = True) """
+        self.sessconfig['start_recommender'] = value
+
+    def get_start_recommender(self):
+        return self.sessconfig['start_recommender']
+
+    def set_buddycast_interval(self,value):
+        """ number of seconds to pause between exchanging preference with a 
+        peer in buddycast """
+        self.sessconfig['buddycast_interval'] = value
+
+    def get_buddycast_interval(self):
+        return self.sessconfig['buddycast_interval']
+
+
+    #
+    # Download helper / cooperative download
+    #
+    def set_download_help(self,value):
+        """ accept download help request (default = True) """
+        self.sessconfig['download_help'] = value
+
+    def get_download_help(self):
+        return self.sessconfig['download_help']
+
+
+    #
+    # Torrent file collecting
+    #
+    def set_torrent_collecting(self,value):
+        """ automatically collect torrents (default = True)"""
+        self.sessconfig['torrent_collecting'] = value
+
+    def get_torrent_collecting(self):
+        return self.sessconfig['torrent_collecting']
+
+    def set_max_torrents(self,value):
+        """ max number of torrents to collect """
+        self.sessconfig['max_torrents'] = value
+
+    def get_max_torrents(self):
+        return self.sessconfig['max_torrents']
+
+    def set_torrent_collecting_rate(self,value):
+        """ max rate of torrent collecting (Kbps) """
+        self.sessconfig['torrent_collecting_rate'] = value
+
+    def get_torrent_collecting_rate(self):
+        return self.sessconfig['torrent_collecting_rate']
+
+    def set_torrent_checking(self,value):
+        """ automatically check the health of torrents by contacting tracker
+        (default = True) """
+        self.sessconfig['torrent_checking'] = value
+
+    def get_torrent_checking(self):
+        return self.sessconfig['torrent_checking']
+
+    def set_torrent_checking_period(self,value):
+        """ period for auto torrent checking """
+        self.sessconfig['torrent_checking_period'] = value
+
+    def get_torrent_checking_period(self):
+        return self.sessconfig['torrent_checking_period']
+
+    def set_stop_collecting_threshold(self,value):
+        """ stop collecting more torrents if the disk has less than this size 
+        (MB) """
+        self.sessconfig['stop_collecting_threshold'] = value
+
+    def get_stop_collecting_threshold(self):
+        return self.sessconfig['stop_collecting_threshold']
+
+
+    #
+    # Tribler dialback mechanism is used to test whether a Session is
+    # reachable from the outside and what its external IP address is.
+    #
+    def set_dialback(self,value):
+        """ use other peers to determine external IP address (default = True) 
+        """
+        self.sessconfig['dialback'] = value
+
+    def get_dialback(self):
+        return self.sessconfig['dialback']
+
+    def set_dialback_interval(self,value):
+        """ number of seconds to wait for consensus """
+        self.sessconfig['dialback_interval'] = value
+
+    def get_dialback_interval(self):
+        return self.sessconfig['dialback_interval']
+
+    #
+    # Tribler's social networking feature transmits a nickname and picture
+    # to all Tribler peers it meets.
+    #
+    def set_socnet(self,value):
+        """ enable social networking (default = True) """
+        self.sessconfig['socnet'] = value
+
+    def get_socnet(self):
+        return self.sessconfig['socnet']
+
+    def set_nickname(self,value):  # TODO: put in PeerDBHandler? Add method for setting own pic
+        """ the nickname you want to show to others """
+        self.sessconfig['nickname'] = value
+
+    def get_nickname(self):
+        return self.sessconfig['nickname']
+
+    #
+    # Tribler remote query: ask other peers when looking for a torrent file 
+    # or peer
+    #
+    def set_rquery(self,value):
+        """ enable remote query (default = True) """
+        self.sessconfig['rquery'] = value
+
+    def get_rquery(self):
+        return self.sessconfig['rquery']
+
+
+    #
+    # For Tribler superpeer servers
+    #
+    def set_superpeer(self,value):
+        """ run in super peer mode (0 = disabled) """
+        self.sessconfig['superpeer'] = value
+
+    def get_superpeer(self):
+        return self.sessconfig['superpeer']
+
+    def set_overlay_log(self,value):
+        """ log on super peer mode ('' = disabled) """
+        self.sessconfig['overlay_log'] = value
+
+    def get_overlay_log(self):
+        return self.sessconfig['overlay_log']
+
+    #
+    # For Tribler Video-On-Demand
+    #
+    def set_video_analyser_path(self,value):
+        """ Path to video analyser (FFMPEG, default is to look for it in $PATH) """
+        self.sessconfig['videoanalyserpath'] = value
+    
     def get_video_analyser_path(self):
         return self.sessconfig['videoanalyserpath'] # strings immutable
-    
+
+
+    def set_video_player_path(self,value):
+        """ Path to default video player. Defaults are
+            win32: Windows Media Player
+            Mac: QuickTime Player
+            Linux: VideoLAN Client (vlc) 
+            which are looked for in $PATH """
+        self.sessconfig['videoplayerpath'] = value
+
+    def get_video_player_path(self):
+        return self.sessconfig['videoplayerpath']
+
+
+    #
+    # Tribler's internal tracker
+    #
+    def set_internal_tracker(self,value):
+        """ enable internal tracker (default = True) """
+        self.sessconfig['internaltracker'] = value
+
+    def get_internal_tracker(self):
+        return self.sessconfig['internaltracker']
+
+    def set_tracker_allow_get(self,value):
+        """ use with allowed_dir; adds a /file?hash={hash} url that allows users
+        to download the torrent file """
+        self.sessconfig['tracker_allow_get'] = value
+
+    def get_tracker_allow_get(self):
+        return self.sessconfig['tracker_allow_get']
+
+    def set_tracker_scrape_allowed(self,value):
+        """ scrape access allowed (can be none, specific or full) """
+        self.sessconfig['tracker_scrape_allowed'] = value
+
+    def get_tracker_scrape_allowed(self):
+        return self.sessconfig['tracker_scrape_allowed']
+
+    def set_tracker_favicon(self,value):
+        """ file containing x-icon data to return when browser requests 
+        favicon.ico """
+        self.sessconfig['tracker_favicon'] = value
+
+    def get_tracker_favicon(self):
+        return self.sessconfig['tracker_favicon']
+
+    #
+    # Advanced internal tracker settings
+    #
+    def set_tracker_allowed_dir(self,value):
+        """ only allow downloads for .torrents in this dir (default is Session 
+        state-dir/itracker/ """
+        self.sessconfig['tracker_allowed_dir'] = value
+
+    def get_tracker_allowed_dir(self):
+        return self.sessconfig['tracker_allowed_dir']
+
+    def set_tracker_dfile(self,value):
+        """ file to store recent downloader info in (default = Session state 
+        dir/itracker/tracker.db """
+        self.sessconfig['tracker_dfile'] = value
+
+    def get_tracker_dfile(self):
+        return self.sessconfig['tracker_dfile']
+
+    def set_tracker_dfile_format(self,value):
+        """ format of dfile: either "bencode" or pickle. Pickle is needed when
+        Unicode filenames in state (=default) """
+        self.sessconfig['tracker_dfile_format'] = value
+
+    def get_tracker_dfile_format(self):
+        return self.sessconfig['tracker_dfile_format']
+
+    def set_tracker_multitracker_enabled(self,value):
+        """ whether to enable multitracker operation """
+        self.sessconfig['tracker_multitracker_enabled'] = value
+
+    def get_tracker_multitracker_enabled(self):
+        return self.sessconfig['tracker_multitracker_enabled']
+
+    def set_tracker_multitracker_allowed(self,value):
+        """ whether to allow incoming tracker announces (can be none, autodetect
+        or all) """
+        self.sessconfig['tracker_multitracker_allowed'] = value
+
+    def get_tracker_multitracker_allowed(self):
+        return self.sessconfig['tracker_multitracker_allowed']
+
+    def set_tracker_multitracker_reannounce_interval(self,value):
+        """ seconds between outgoing tracker announces """
+        self.sessconfig['tracker_multitracker_reannounce_interval'] = value
+
+    def get_tracker_multitracker_reannounce_interval(self):
+        return self.sessconfig['tracker_multitracker_reannounce_interval']
+
+    def set_tracker_multitracker_maxpeers(self,value):
+        """ number of peers to get in a tracker announce """
+        self.sessconfig['tracker_multitracker_maxpeers'] = value
+
+    def get_tracker_multitracker_maxpeers(self):
+        return self.sessconfig['tracker_multitracker_maxpeers']
+
+    def set_tracker_aggregate_forward(self,value):
+        """ format: <url>[,<password>] - if set, forwards all non-multitracker 
+        to this url with this optional password """
+        self.sessconfig['tracker_aggregate_forward'] = value
+
+    def get_tracker_aggregate_forward(self):
+        return self.sessconfig['tracker_aggregate_forward']
+
+    def set_tracker_aggregator(self,value):
+        """ whether to act as a data aggregator rather than a tracker. If 
+        enabled, may be 1, or <password>; if password is set, then an incoming 
+        password is required for access """
+        self.sessconfig['tracker_aggregator'] = value
+
+    def get_tracker_aggregator(self):
+        return self.sessconfig['tracker_aggregator']
+
+    def set_tracker_socket_timeout(self,value):
+        """ timeout for closing connections """
+        self.sessconfig['tracker_socket_timeout'] = value
+
+    def get_tracker_socket_timeout(self):
+        return self.sessconfig['tracker_socket_timeout']
+
+    def set_tracker_save_dfile_interval(self,value):
+        """ seconds between saving dfile """
+        self.sessconfig['tracker_save_dfile_interval'] = value
+
+    def get_tracker_save_dfile_interval(self):
+        return self.sessconfig['tracker_save_dfile_interval']
+
+    def set_tracker_timeout_downloaders_interval(self,value):
+        """ seconds between expiring downloaders """
+        self.sessconfig['tracker_timeout_downloaders_interval'] = value
+
+    def get_tracker_timeout_downloaders_interval(self):
+        return self.sessconfig['tracker_timeout_downloaders_interval']
+
+    def set_tracker_reannounce_interval(self,value):
+        """ seconds downloaders should wait between reannouncements """
+        self.sessconfig['tracker_reannounce_interval'] = value
+
+    def get_tracker_reannounce_interval(self):
+        return self.sessconfig['tracker_reannounce_interval']
+
+    def set_tracker_response_size(self,value):
+        """ number of peers to send in an info message """
+        self.sessconfig['tracker_response_size'] = value
+
+    def get_tracker_response_size(self):
+        return self.sessconfig['tracker_response_size']
+
+    def set_tracker_timeout_check_interval(self,value):
+        """ time to wait between checking if any connections have timed out """
+        self.sessconfig['tracker_timeout_check_interval'] = value
+
+    def get_tracker_timeout_check_interval(self):
+        return self.sessconfig['tracker_timeout_check_interval']
+
+    def set_tracker_nat_check(self,value):
+        """ how many times to check if a downloader is behind a NAT (0 = don't 
+        check) """
+        self.sessconfig['tracker_nat_check'] = value
+
+    def get_tracker_nat_check(self):
+        return self.sessconfig['tracker_nat_check']
+
+    def set_tracker_log_nat_checks(self,value):
+        """ whether to add entries to the log for NAT-check results """
+        self.sessconfig['tracker_log_nat_checks'] = value
+
+    def get_tracker_log_nat_checks(self):
+        return self.sessconfig['tracker_log_nat_checks']
+
+    def set_tracker_min_time_between_log_flushes(self,value):
+        """ minimum time it must have been since the last flush to do another 
+        one """
+        self.sessconfig['tracker_min_time_between_log_flushes'] = value
+
+    def get_tracker_min_time_between_log_flushes(self):
+        return self.sessconfig['tracker_min_time_between_log_flushes']
+
+    def set_tracker_min_time_between_cache_refreshes(self,value):
+        """ minimum time in seconds before a cache is considered stale and is 
+        flushed """
+        self.sessconfig['tracker_min_time_between_cache_refreshes'] = value
+
+    def get_tracker_min_time_between_cache_refreshes(self):
+        return self.sessconfig['tracker_min_time_between_cache_refreshes']
+
+    def set_tracker_allowed_list(self,value):
+        """ only allow downloads for hashes in this list (hex format, one per 
+        line) """
+        self.sessconfig['tracker_allowed_list'] = value
+
+    def get_tracker_allowed_list(self):
+        return self.sessconfig['tracker_allowed_list']
+
+    def set_tracker_allowed_controls(self,value):
+        """ allow special keys in torrents in the allowed_dir to affect tracker
+        access """
+        self.sessconfig['tracker_allowed_controls'] = value
+
+    def get_tracker_allowed_controls(self):
+        return self.sessconfig['tracker_allowed_controls']
+
+    def set_tracker_hupmonitor(self,value):
+        """ whether to reopen the log file upon receipt of HUP signal """
+        self.sessconfig['tracker_hupmonitor'] = value
+
+    def get_tracker_hupmonitor(self):
+        return self.sessconfig['tracker_hupmonitor']
+
+    def set_tracker_http_timeout(self,value):
+        """ number of seconds to wait before assuming that an HTTP connection
+        has timed out """
+        self.sessconfig['tracker_http_timeout'] = value
+
+    def get_tracker_http_timeout(self):
+        return self.sessconfig['tracker_http_timeout']
+
+    def set_tracker_parse_dir_interval(self,value):
+        """ seconds between reloading of allowed_dir or allowed_file and 
+        allowed_ips and banned_ips lists """
+        self.sessconfig['tracker_parse_dir_interval'] = value
+
+    def get_tracker_parse_dir_interval(self):
+        return self.sessconfig['tracker_parse_dir_interval']
+
+    def set_tracker_show_infopage(self,value):
+        """ whether to display an info page when the tracker's root dir is 
+        loaded """
+        self.sessconfig['tracker_show_infopage'] = value
+
+    def get_tracker_show_infopage(self):
+        return self.sessconfig['tracker_show_infopage']
+
+    def set_tracker_infopage_redirect(self,value):
+        """ a URL to redirect the info page to """
+        self.sessconfig['tracker_infopage_redirect'] = value
+
+    def get_tracker_infopage_redirect(self):
+        return self.sessconfig['tracker_infopage_redirect']
+
+    def set_tracker_show_names(self,value):
+        """ whether to display names from allowed dir """
+        self.sessconfig['tracker_show_names'] = value
+
+    def get_tracker_show_names(self):
+        return self.sessconfig['tracker_show_names']
+
+    def set_tracker_allowed_ips(self,value):
+        """ only allow connections from IPs specified in the given file; file 
+        contains subnet data in the format: aa.bb.cc.dd/len """
+        self.sessconfig['tracker_allowed_ips'] = value
+
+    def get_tracker_allowed_ips(self):
+        return self.sessconfig['tracker_allowed_ips']
+
+    def set_tracker_banned_ips(self,value):
+        """ don't allow connections from IPs specified in the given file; file
+        contains IP range data in the format: xxx:xxx:ip1-ip2 """
+        self.sessconfig['tracker_banned_ips'] = value
+
+    def get_tracker_banned_ips(self):
+        return self.sessconfig['tracker_banned_ips']
+
+    def set_tracker_only_local_override_ip(self,value):
+        """ ignore the ip GET parameter from machines which aren't on local 
+        network IPs (0 = never, 1 = always, 2 = ignore if NAT checking is not 
+        enabled) """
+        self.sessconfig['tracker_only_local_override_ip'] = value
+
+    def get_tracker_only_local_override_ip(self):
+        return self.sessconfig['tracker_only_local_override_ip']
+
+    def set_tracker_logfile(self,value):
+        """ file to write the tracker logs, use - for stdout (default is 
+        /dev/null) """
+        self.sessconfig['tracker_logfile'] = value
+
+    def get_tracker_logfile(self):
+        return self.sessconfig['tracker_logfile']
+
+    def set_tracker_keep_dead(self,value):
+        """ keep dead torrents after they expire (so they still show up on your /scrape and web page) """
+        self.sessconfig['tracker_keep_dead'] = value
+
+    def get_tracker_keep_dead(self):
+        return self.sessconfig['tracker_keep_dead']
+
+
 
 
 class SessionStartupConfig(SessionConfigInterface,Copyable,Serializable):  
-    # Defaultable only if Session is not singleton
+    """ Class to configure a Session """
     
     def __init__(self,sessconfig=None):
         SessionConfigInterface.__init__(self,sessconfig)
@@ -468,9 +985,15 @@ class SessionStartupConfig(SessionConfigInterface,Copyable,Serializable):
         return SessionStartupConfig(config)
 
 
+# Import here to prevent circular dependencies problem
+from Tribler.API.SessionRuntimeConfig import SessionRuntimeConfig
 
-class Session(SessionConfigInterface):
+class Session(SessionRuntimeConfig):
     """
+    
+    A Session implements the SessionConfigInterface which can be used to
+    change session parameters are runtime (for selected parameters).
+    
     cf. libtorrent session
     """
     __single = None
@@ -698,44 +1221,6 @@ class Session(SessionConfigInterface):
         Called by any thread """
         self.checkpoint_shutdown(stop=True)
 
-
-    #
-    # SessionConfigInterface
-    #
-    # Use these to change the session config at runtime.
-    #
-    def set_state_dir(self,statedir):
-        raise OperationNotPossibleAtRuntimeExeption()
-    
-    def get_state_dir(self):
-        self.sesslock.acquire()
-        try:
-            return SessionConfigInterface.get_state_dir(self)
-        finally:
-            self.sesslock.release()
-    
-    def set_permid(self,keypair):
-        raise OperationNotPossibleAtRuntimeExeption()
-        
-    def set_listen_port(self,port):
-        raise OperationNotPossibleAtRuntimeExeption()
-
-    def get_listen_port(self):
-        # To protect self.sessconfig
-        self.sesslock.acquire()
-        try:
-            return SessionConfigInterface.get_listen_port(self)
-        finally:
-            self.sesslock.release()
-        
-    def get_video_analyser_path(self):
-        # To protect self.sessconfig
-        self.sesslock.acquire()
-        try:
-            return SessionConfigInterface.get_video_analyser_path(self)
-        finally:
-            self.sesslock.release()
-
     #
     # Internal methods TODO: move to TriblerLaunchMany or other internal class
     #
@@ -898,18 +1383,17 @@ class TorrentDef(Serializable,Copyable):
 
     cf. libtorrent torrent_info
     """
-    def __init__(self,config=None,input=None,metainfo=None,infohash=None):
+    def __init__(self,input=None,metainfo=None,infohash=None):
         """ Normal constructor for TorrentDef (copy constructor used internally) """
         
         self.readonly = False
-        if config is not None: # copy constructor
-            self.config = config
+        if input is not None: # copy constructor
             self.input = input
+            # self.metainfo_valid set in copy() 
             self.metainfo = metainfo
             self.infohash = infohash
             return
         
-        self.tdefconfig = {}
         self.input = {} # fields added by user, waiting to be turned into torrent file
         self.input['files'] = []
         self.metainfo_valid = False
@@ -917,11 +1401,7 @@ class TorrentDef(Serializable,Copyable):
         self.infohash = None # only valid if metainfo_valid
         
         # Define the built-in default here
-        for key,val,expl in tdefmetadefaults:
-            self.tdefconfig[key] = val
-
-        for key,val,expl in tdefdictdefaults:
-            self.input[key] = val
+        self.input.update(tdefdefaults)
         
         # We cannot set a built-in default for a tracker here, as it depends on
         # a Session. Alternatively, the tracker will be set to the internal
@@ -1018,6 +1498,8 @@ class TorrentDef(Serializable,Copyable):
         self.input['files'].append(d)
         self.metainfo_valid = False
 
+        # TODO: store playtime either as special field or reuse Azureus props
+
     def get_name(self):
         """ Returns info['name'] field """
         return self.input['name']
@@ -1036,9 +1518,7 @@ class TorrentDef(Serializable,Copyable):
     def set_thumbnail(self,thumbfilename):
         """
         Reads image from file and turns it into a torrent thumbnail
-        
-        ISSUE: do we do the image manipulation? If so we need extra libs, 
-        perhaps wx to do this. It is more convenient for the API user.
+        The file should contain an image in JPEG format, preferably 171x96
         
         in:
         thumbfilename = Fully qualified name of image file, as Unicode string.
@@ -1055,17 +1535,130 @@ class TorrentDef(Serializable,Copyable):
         self.metainfo_valid = False
         
 
-    def get_tracker(self):
-        """ Returns 'announce' field """
-        return self.input['announce']
-        
     def set_tracker(self,url):
+        """ Sets the tracker (i.e. the torrent file's 'announce' field).
+        If the tracker is '' (the default) it will be set to the internal
+        tracker when Session:start_download() is called. """
         if self.readonly:
             raise OperationNotPossibleAtRuntimeException()
 
         self.input['announce'] = url 
+
+    def get_tracker(self):
+        return self.input['announce']
+
+    def set_tracker_hierarchy(self,value):
+        """ set hierarchy of trackers (announce-list) """
+        if self.readonly:
+            raise OperationNotPossibleAtRuntimeException()
+
+        self.input['announce-list'] = value
+
+    def get_tracker_hierarchy(self):
+        return self.input['announce-list']
         
+    def set_comment(self,value):
+        """ set comment field """
+        if self.readonly:
+            raise OperationNotPossibleAtRuntimeException()
+
+        self.input['comment'] = value
+
+    def get_comment(self):
+        return self.input['comment']
+
+    def set_created_by(self,value):
+        """ set 'created by' field """
+        if self.readonly:
+            raise OperationNotPossibleAtRuntimeException()
+
+        self.input['created by'] = value
+
+    def get_created_by(self):
+        return self.input['created by']
+
+    def set_httpseeds(self,value):
+        """ set list of HTTP seeds """
+        if self.readonly:
+            raise OperationNotPossibleAtRuntimeException()
+
+        self.input['httpseeds'] = value
+
+    def get_httpseeds(self):
+        return self.input['httpseeds']
+
+    def set_piece_size(self,value):
+        """ piece size as int (0 = automatic = default) """
+        if self.readonly:
+            raise OperationNotPossibleAtRuntimeException()
+
+        self.input['piece_size'] = value
+
+    def get_piece_size(self):
+        return self.input['piece_size']
+
+    def set_add_md5hash(self,value):
+        """ add end-to-end MD5 checksum """
+        if self.readonly:
+            raise OperationNotPossibleAtRuntimeException()
+
+        self.input['makehash_md5'] = value
+
+    def get_add_md5hash(self):
+        return self.input['makehash_md5']
+
+    def set_add_crc32(self,value):
+        """ add end-to-end CRC32 checksum """
+        if self.readonly:
+            raise OperationNotPossibleAtRuntimeException()
+
+        self.input['makehash_crc32'] = value
+
+    def get_add_crc32(self):
+        return self.input['makehash_crc32']
+
+    def set_add_sha1hash(self,value):
+        """ add end-to-end SHA1 checksum """
+        if self.readonly:
+            raise OperationNotPossibleAtRuntimeException()
+
+        self.input['makehash_sha1'] = value
+
+    def get_add_sha1hash(self):
+        return self.input['makehash_sha1']
+
+    def set_create_merkle_torrent(self,value):
+        """ create a Merkle torrent (.tribe, Tribler only) """
+        if self.readonly:
+            raise OperationNotPossibleAtRuntimeException()
+
+        self.input['createmerkletorrent'] = value
+
+    def get_create_merkle_torrent(self):
+        return self.input['createmerkletorrent']
+
+    def set_add_signature(self,value):
+        """ whether to add a signature to the torrent """
+        if self.readonly:
+            raise OperationNotPossibleAtRuntimeException()
+
+        self.input['createtorrentsig'] = value
+
+    def get_add_signature(self):
+        return self.input['createtorrentsig']
+
+    def set_signature_keypair_filename(self,value):
+        """ filename of keypair to be used for signature """
+        if self.readonly:
+            raise OperationNotPossibleAtRuntimeException()
+
+        self.input['torrentsigkeypairfilename'] = value
+
+    def get_signature_keypair_filename(self):
+        return self.input['torrentsigkeypairfilename']
+
         
+    #
     def finalize(self):
         """ Create BT torrent file from input and calculate infohash 
         
@@ -1083,7 +1676,7 @@ class TorrentDef(Serializable,Copyable):
             raise NotYetImplementedException()
 
     #
-    # 
+    # Operations on finalized TorrentDefs
     #
     def get_infohash(self):
         if self.metainfo_valid:
@@ -1115,11 +1708,11 @@ class TorrentDef(Serializable,Copyable):
         f = open(filename,"wb")
         f.write(bdata)
         f.close()
-        
-        
+
     def get_bitrate(self,file=None):
-        """ Returns the bitrate of the specified file in bytes/sec """ 
-        
+        """ Returns the bitrate of the specified file in bytes/sec.
+        If no file is specified, Tribler assumes this is a single-file torrent
+        """ 
         if DEBUG:
             print >>sys.stderr,"TorrentDef: get_bitrate called",file
         
@@ -1242,11 +1835,10 @@ class TorrentDef(Serializable,Copyable):
     # Copyable interface
     # 
     def copy(self):
-        config = copy.copy(self.tdefconfig)
         input = copy.copy(self.input)
         metainfo = copy.copy(self.metainfo)
         infohash = self.infohash
-        t = TorrentDef(config,input,metainfo,infohash)
+        t = TorrentDef(input,metainfo,infohash)
         t.metainfo_valid = self.metainfo_valid
         return t
 
@@ -1272,8 +1864,7 @@ class DownloadConfigInterface:
         self.dlconfig = {}
         
         # Define the built-in default here
-        for key,val,expl in dldefaults:
-            self.dlconfig[key] = val
+        self.dlconfig.update(dldefaults)
        
         if sys.platform == 'win32':
             profiledir = os.path.expandvars('${USERPROFILE}')
@@ -1286,19 +1877,6 @@ class DownloadConfigInterface:
         else:
             self.dlconfig['saveas'] = '/tmp'
 
-    
-    def set_max_speed(self,direct,speed):
-        """ Sets the maximum upload or download speed for this Download in KB/s """
-        if direct == UPLOAD:
-            self.dlconfig['max_upload_rate'] = speed
-        else:
-            self.dlconfig['max_download_rate'] = speed
-
-    def get_max_speed(self,direct):
-        if direct == UPLOAD:
-            return self.dlconfig['max_upload_rate']
-        else:
-            return self.dlconfig['max_download_rate']
 
     def set_dest_dir(self,path):
         """ Sets the directory where to save this Download """
@@ -1311,6 +1889,13 @@ class DownloadConfigInterface:
         set_selected_files() method. """
         self.dlconfig['mode'] = DLMODE_VOD
         self.dlconfig['vod_usercallback'] = usercallback
+
+
+    def get_mode(self):
+        return self.dlconfig['mode']
+
+    def get_vod_callback(self):
+        return self.dlconfig['vod_usercallback']
 
     def set_selected_files(self,files):
         """ Select which files to download. "files" can be a single filename
@@ -1329,6 +1914,22 @@ class DownloadConfigInterface:
     def get_selected_files(self):
         return self.dlconfig['selected_files']
 
+    #
+    # Common download performance parameters
+    #
+    def set_max_speed(self,direct,speed):
+        """ Sets the maximum upload or download speed for this Download in KB/s """
+        if direct == UPLOAD:
+            self.dlconfig['max_upload_rate'] = speed
+        else:
+            self.dlconfig['max_download_rate'] = speed
+
+    def get_max_speed(self,direct):
+        if direct == UPLOAD:
+            return self.dlconfig['max_upload_rate']
+        else:
+            return self.dlconfig['max_download_rate']
+
     def set_max_conns_to_initiate(self,nconns):
         """ Sets the maximum number of connections to initiate for this 
         Download """
@@ -1344,6 +1945,262 @@ class DownloadConfigInterface:
 
     def get_max_conns(self):
         return self.dlconfig['max_connections']
+
+    #
+    # Advanced download parameters
+    # 
+    def set_max_uploads(self,value):
+        """ the maximum number of uploads to allow at once. """
+        self.dlconfig['max_uploads'] = value
+
+    def get_max_uploads(self):
+        return self.dlconfig['max_uploads']
+
+    def set_keepalive_interval(self,value):
+        """ number of seconds to pause between sending keepalives """
+        self.dlconfig['keepalive_interval'] = value
+
+    def get_keepalive_interval(self):
+        return self.dlconfig['keepalive_interval']
+
+    def set_download_slice_size(self,value):
+        """ How many bytes to query for per request. """
+        self.dlconfig['download_slice_size'] = value
+
+    def get_download_slice_size(self):
+        return self.dlconfig['download_slice_size']
+
+    def set_upload_unit_size(self,value):
+        """ when limiting upload rate, how many bytes to send at a time """
+        self.dlconfig['upload_unit_size'] = value
+
+    def get_upload_unit_size(self):
+        return self.dlconfig['upload_unit_size']
+
+    def set_request_backlog(self,value):
+        """ maximum number of requests to keep in a single pipe at once. """
+        self.dlconfig['request_backlog'] = value
+
+    def get_request_backlog(self):
+        return self.dlconfig['request_backlog']
+
+    def set_max_message_length(self,value):
+        """ maximum length prefix encoding you'll accept over the wire - larger values get the connection dropped. """
+        self.dlconfig['max_message_length'] = value
+
+    def get_max_message_length(self):
+        return self.dlconfig['max_message_length']
+
+    def set_max_slice_length(self,value):
+        """ maximum length slice to send to peers, larger requests are ignored """
+        self.dlconfig['max_slice_length'] = value
+
+    def get_max_slice_length(self):
+        return self.dlconfig['max_slice_length']
+
+    def set_max_rate_period(self,value):
+        """ maximum amount of time to guess the current rate estimate represents """
+        self.dlconfig['max_rate_period'] = value
+
+    def get_max_rate_period(self):
+        return self.dlconfig['max_rate_period']
+
+    def set_upload_rate_fudge(self,value):
+        """ time equivalent of writing to kernel-level TCP buffer, for rate adjustment """
+        self.dlconfig['upload_rate_fudge'] = value
+
+    def get_upload_rate_fudge(self):
+        return self.dlconfig['upload_rate_fudge']
+
+    def set_tcp_ack_fudge(self,value):
+        """ how much TCP ACK download overhead to add to upload rate calculations (0 = disabled) """
+        self.dlconfig['tcp_ack_fudge'] = value
+
+    def get_tcp_ack_fudge(self):
+        return self.dlconfig['tcp_ack_fudge']
+
+    def set_rerequest_interval(self,value):
+        """ time to wait between requesting more peers """
+        self.dlconfig['rerequest_interval'] = value
+
+    def get_rerequest_interval(self):
+        return self.dlconfig['rerequest_interval']
+
+    def set_min_peers(self,value):
+        """ minimum number of peers to not do rerequesting """
+        self.dlconfig['min_peers'] = value
+
+    def get_min_peers(self):
+        return self.dlconfig['min_peers']
+
+    def set_http_timeout(self,value):
+        """ number of seconds to wait before assuming that an http connection has timed out """
+        self.dlconfig['http_timeout'] = value
+
+    def get_http_timeout(self):
+        return self.dlconfig['http_timeout']
+
+    def set_check_hashes(self,value):
+        """ whether to check hashes on disk """
+        self.dlconfig['check_hashes'] = value
+
+    def get_check_hashes(self):
+        return self.dlconfig['check_hashes']
+
+    def set_alloc_type(self,value):
+        """ allocation type (may be normal, background, pre-allocate or sparse) """
+        self.dlconfig['alloc_type'] = value
+
+    def get_alloc_type(self):
+        return self.dlconfig['alloc_type']
+
+    def set_alloc_rate(self,value):
+        """ rate (in MiB/s) to allocate space at using background allocation """
+        self.dlconfig['alloc_rate'] = value
+
+    def get_alloc_rate(self):
+        return self.dlconfig['alloc_rate']
+
+    def set_buffer_reads(self,value):
+        """ whether to buffer disk reads """
+        self.dlconfig['buffer_reads'] = value
+
+    def get_buffer_reads(self):
+        return self.dlconfig['buffer_reads']
+
+    def set_write_buffer_size(self,value):
+        """ the maximum amount of space to use for buffering disk writes (in megabytes, 0 = disabled) """
+        self.dlconfig['write_buffer_size'] = value
+
+    def get_write_buffer_size(self):
+        return self.dlconfig['write_buffer_size']
+
+    def set_breakup_seed_bitfield(self,value):
+        """ sends an incomplete bitfield and then fills with have messages, in order to get around stupid ISP manipulation """
+        self.dlconfig['breakup_seed_bitfield'] = value
+
+    def get_breakup_seed_bitfield(self):
+        return self.dlconfig['breakup_seed_bitfield']
+
+    def set_snub_time(self,value):
+        """ seconds to wait for data to come in over a connection before assuming it's semi-permanently choked """
+        self.dlconfig['snub_time'] = value
+
+    def get_snub_time(self):
+        return self.dlconfig['snub_time']
+
+    def set_rarest_first_cutoff(self,value):
+        """ number of downloads at which to switch from random to rarest first """
+        self.dlconfig['rarest_first_cutoff'] = value
+
+    def get_rarest_first_cutoff(self):
+        return self.dlconfig['rarest_first_cutoff']
+
+    def set_rarest_first_priority_cutoff(self,value):
+        """ the number of peers which need to have a piece before other partials take priority over rarest first """
+        self.dlconfig['rarest_first_priority_cutoff'] = value
+
+    def get_rarest_first_priority_cutoff(self):
+        return self.dlconfig['rarest_first_priority_cutoff']
+
+    def set_min_uploads(self,value):
+        """ the number of uploads to fill out to with extra optimistic unchokes """
+        self.dlconfig['min_uploads'] = value
+
+    def get_min_uploads(self):
+        return self.dlconfig['min_uploads']
+
+    def set_max_files_open(self,value):
+        """ the maximum number of files to keep open at a time, 0 means no limit """
+        self.dlconfig['max_files_open'] = value
+
+    def get_max_files_open(self):
+        return self.dlconfig['max_files_open']
+
+    def set_round_robin_period(self,value):
+        """ the number of seconds between the client's switching upload targets """
+        self.dlconfig['round_robin_period'] = value
+
+    def get_round_robin_period(self):
+        return self.dlconfig['round_robin_period']
+
+    def set_super_seeder(self,value):
+        """ whether to use special upload-efficiency-maximizing routines (only for dedicated seeds) """
+        self.dlconfig['super_seeder'] = value
+
+    def get_super_seeder(self):
+        return self.dlconfig['super_seeder']
+
+    def set_security(self,value):
+        """ whether to enable extra security features intended to prevent abuse """
+        self.dlconfig['security'] = value
+
+    def get_security(self):
+        return self.dlconfig['security']
+
+    def set_max_connections(self,value):
+        """ the absolute maximum number of peers to connect with (0 = no limit) """
+        self.dlconfig['max_connections'] = value
+
+    def get_max_connections(self):
+        return self.dlconfig['max_connections']
+
+    def set_auto_kick(self,value):
+        """ whether to allow the client to automatically kick/ban peers that send bad data """
+        self.dlconfig['auto_kick'] = value
+
+    def get_auto_kick(self):
+        return self.dlconfig['auto_kick']
+
+    def set_double_check(self,value):
+        """ whether to double-check data being written to the disk for errors (may increase CPU load) """
+        self.dlconfig['double_check'] = value
+
+    def get_double_check(self):
+        return self.dlconfig['double_check']
+
+    def set_triple_check(self,value):
+        """ whether to thoroughly check data being written to the disk (may slow disk access) """
+        self.dlconfig['triple_check'] = value
+
+    def get_triple_check(self):
+        return self.dlconfig['triple_check']
+
+    def set_lock_files(self,value):
+        """ whether to lock files the client is working with """
+        self.dlconfig['lock_files'] = value
+
+    def get_lock_files(self):
+        return self.dlconfig['lock_files']
+
+    def set_lock_while_reading(self,value):
+        """ whether to lock access to files being read """
+        self.dlconfig['lock_while_reading'] = value
+
+    def get_lock_while_reading(self):
+        return self.dlconfig['lock_while_reading']
+
+    def set_auto_flush(self,value):
+        """ minutes between automatic flushes to disk (0 = disabled) """
+        self.dlconfig['auto_flush'] = value
+
+    def get_auto_flush(self):
+        return self.dlconfig['auto_flush']
+
+    def set_exclude_ips(self,value):
+        """ list of IP addresse to be excluded; comma separated """
+        self.dlconfig['exclude_ips'] = value
+
+    def get_exclude_ips(self):
+        return self.dlconfig['exclude_ips']
+
+    def set_ut_pex_max_addrs_from_peer(self,value):
+        """ maximum number of addresses to accept from peer (0 = disabled PEX) """
+        self.dlconfig['ut_pex_max_addrs_from_peer'] = value
+
+    def get_ut_pex_max_addrs_from_peer(self):
+        return self.dlconfig['ut_pex_max_addrs_from_peer']
+
 
 
     
@@ -1369,9 +2226,16 @@ class DownloadStartupConfig(DownloadConfigInterface,Serializable,Copyable):
 
         
         
-class Download(DownloadConfigInterface):
+# Import here to prevent circular dependencies problem
+from Tribler.API.DownloadRuntimeConfig import DownloadRuntimeConfig
+
+        
+class Download(DownloadRuntimeConfig):
     """
     Representation of a running BT download/upload
+    
+    A Download implements the DownloadConfigInterface which can be used to
+    change download parameters are runtime (for selected parameters).
     
     cf. libtorrent torrent_handle
     """
@@ -1399,7 +2263,92 @@ class Download(DownloadConfigInterface):
         self.tdef.finalize()
         self.tdef.readonly = True
 
+    #
+    # Public methods
+    #
+    def get_def(self):
+        """
+        Returns the read-only TorrentDef
+        """
+        # No lock because attrib immutable and return value protected
+        return self.tdef
+
     
+    def set_state_callback(self,usercallback,getpeerlist=False):
+        """ 
+        Set a callback for retrieving the state of the download. This callback
+        will be called immediately with a DownloadState object as first parameter.
+        The callback method must return a tuple (when,getpeerlist) where "when" 
+        indicates whether the callback should be called again and represents a
+        number of seconds from now. If "when" <= 0.0 the callback will not be
+        called again. "getpeerlist" is a boolean that indicates whether the 
+        DownloadState passed to the callback on the next invocation should
+        contain info about the set of current peers.
+                
+        in: 
+        callback = function that accepts DownloadState as parameter and returns 
+        a (float,boolean) tuple.
+        """
+        self.dllock.acquire()
+        try:
+            network_get_state_lambda = lambda:self.network_get_state(usercallback,getpeerlist)
+            # First time on general rawserver
+            self.session.lm.rawserver.add_task(network_get_state_lambda,0.0)
+        finally:
+            self.dllock.release()
+        
+
+    def stop(self):
+        """ Called by any thread """
+        self.stop_remove(removestate=False,removecontent=False)
+        
+    def restart(self):
+        """ Called by any thread """
+        # Must schedule the hash check via lm. In some cases we have batch stops
+        # and restarts, e.g. we have stop all-but-one & restart-all for VOD)
+        self.dllock.acquire()
+        try:
+            if self.sd is None:
+                self.error = None # assume fatal error is reproducible
+                # TODO: if seeding don't rehash check
+                self.create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback,pstate=None)
+            # No exception if already started, for convenience
+        finally:
+            self.dllock.release()
+
+    #
+    # Config parameters that only exists at runtime 
+    #
+    def set_max_desired_speed(self,direct,speed):
+        """ Sets the maximum desired upload/download speed for this Download in KB/s """
+        
+        print >>sys.stderr,"Download: set_max_desired_speed",direct,speed
+        #if speed < 10:
+        #    print_stack()
+        
+        self.dllock.acquire()
+        if direct == UPLOAD:
+            self.dlruntimeconfig['max_desired_upload_rate'] = speed
+        else:
+            self.dlruntimeconfig['max_desired_download_rate'] = speed
+        self.dllock.release()
+
+    def get_max_desired_speed(self,direct):
+        """ Returns the maximum desired upload/download speed for this Download in KB/s """
+        self.dllock.acquire()
+        try:
+            if direct == UPLOAD:
+                print >>sys.stderr,"Download: get_max_desired_speed: get_max_desired",self.dlruntimeconfig['max_desired_upload_rate']
+                return self.dlruntimeconfig['max_desired_upload_rate']
+            else:
+                return self.dlruntimeconfig['max_desired_download_rate']
+        finally:
+            self.dllock.release()
+
+
+    #
+    # Internal methods
+    #
     def setup(self,dcfg=None,pstate=None,lmcreatedcallback=None,lmvodplayablecallback=None):
         """
         Create a Download object. Used internally by Session. Copies tdef and 
@@ -1532,172 +2481,7 @@ class Download(DownloadConfigInterface):
         finally:
             self.dllock.release()
 
-
-    #
-    # Public methods
-    #
-    def get_def(self):
-        """
-        Returns the read-only TorrentDef
-        """
-        # No lock because attrib immutable and return value protected
-        return self.tdef
-
     
-    def set_state_callback(self,usercallback,getpeerlist=False):
-        """ 
-        Set a callback for retrieving the state of the download. This callback
-        will be called immediately with a DownloadState object as first parameter.
-        The callback method must return a tuple (when,getpeerlist) where "when" 
-        indicates whether the callback should be called again and represents a
-        number of seconds from now. If "when" <= 0.0 the callback will not be
-        called again. "getpeerlist" is a boolean that indicates whether the 
-        DownloadState passed to the callback on the next invocation should
-        contain info about the set of current peers.
-                
-        in: 
-        callback = function that accepts DownloadState as parameter and returns 
-        a (float,boolean) tuple.
-        """
-        self.dllock.acquire()
-        try:
-            network_get_state_lambda = lambda:self.network_get_state(usercallback,getpeerlist)
-            # First time on general rawserver
-            self.session.lm.rawserver.add_task(network_get_state_lambda,0.0)
-        finally:
-            self.dllock.release()
-        
-
-    def stop(self):
-        """ Called by any thread """
-        self.stop_remove(removestate=False,removecontent=False)
-        
-    def restart(self):
-        """ Called by any thread """
-        # Must schedule the hash check via lm. In some cases we have batch stops
-        # and restarts, e.g. we have stop all-but-one & restart-all for VOD)
-        self.dllock.acquire()
-        try:
-            if self.sd is None:
-                self.error = None # assume fatal error is reproducible
-                # TODO: if seeding don't rehash check
-                self.create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback,pstate=None)
-            # No exception if already started, for convenience
-        finally:
-            self.dllock.release()
-
-    #
-    # DownloadConfigInterface: All methods called by any thread
-    #
-    def set_max_speed(self,direct,speed):
-        print >>sys.stderr,"Download: set_max_speed",`self.get_def().get_metainfo()['info']['name']`,direct,speed
-        #print_stack()
-        
-        self.dllock.acquire()
-        try:
-            # Don't need to throw an exception when stopped, we then just save the new value and
-            # use it at (re)startup.
-            if self.sd is not None:
-                set_max_speed_lambda = lambda:self.sd.set_max_speed(direct,speed,None)
-                self.session.lm.rawserver.add_task(set_max_speed_lambda,0)
-                
-            # At the moment we can't catch any errors in the engine that this 
-            # causes, so just assume it always works.
-            DownloadConfigInterface.set_max_speed(self,direct,speed)
-        finally:
-            self.dllock.release()
-
-    def get_max_speed(self,direct):
-        self.dllock.acquire()
-        try:
-            return DownloadConfigInterface.get_max_speed(self,direct)
-        finally:
-            self.dllock.release()
-
-    def set_saveas(self,path):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def set_video_on_demand(self,usercallback):
-        raise NotYetImplementedException()
-
-    def set_selected_files(self,files):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def get_selected_files(self):
-        self.dllock.acquire()
-        try:
-            return DownloadConfigInterface.get_selected_files(self)
-        finally:
-            self.dllock.release()
-
-    def set_max_conns_to_initiate(self,nconns):
-        self.dllock.acquire()
-        try:
-            if self.sd is not None:
-                set_max_conns2init_lambda = lambda:self.sd.set_max_conns_to_initiate(nconns,None)
-                self.session.lm.rawserver.add_task(set_max_conns2init_lambda,0.0)
-            DownloadConfigInterface.set_max_conns_to_initiate(self,nconns)
-        finally:
-            self.dllock.release()
-
-    def get_max_conns_to_initiate(self):
-        self.dllock.acquire()
-        try:
-            return DownloadConfigInterface.get_max_conns_to_initiate(self)
-        finally:
-            self.dllock.release()
-
-    def set_max_conns(self,nconns):
-        self.dllock.acquire()
-        try:
-            if self.sd is not None:
-                set_max_conns_lambda = lambda:self.sd.set_max_conns(nconns,None)
-                self.session.lm.rawserver.add_task(set_max_conns_lambda,0.0)
-            DownloadConfigInterface.set_max_conns(self,nconns)
-        finally:
-            self.dllock.release()
-    
-    def get_max_conns(self):
-        self.dllock.acquire()
-        try:
-            return DownloadConfigInterface.get_max_conns(self)
-        finally:
-            self.dllock.release()
-
-
-    #
-    # Runtime Config 
-    #
-    def set_max_desired_speed(self,direct,speed):
-        """ Sets the maximum desired upload/download speed for this Download in KB/s """
-        
-        print >>sys.stderr,"Download: set_max_desired_speed",direct,speed
-        #if speed < 10:
-        #    print_stack()
-        
-        self.dllock.acquire()
-        if direct == UPLOAD:
-            self.dlruntimeconfig['max_desired_upload_rate'] = speed
-        else:
-            self.dlruntimeconfig['max_desired_download_rate'] = speed
-        self.dllock.release()
-
-    def get_max_desired_speed(self,direct):
-        """ Returns the maximum desired upload/download speed for this Download in KB/s """
-        self.dllock.acquire()
-        try:
-            if direct == UPLOAD:
-                print >>sys.stderr,"Download: get_max_desired_speed: get_max_desired",self.dlruntimeconfig['max_desired_upload_rate']
-                return self.dlruntimeconfig['max_desired_upload_rate']
-            else:
-                return self.dlruntimeconfig['max_desired_download_rate']
-        finally:
-            self.dllock.release()
-
-
-    #
-    # Internal methods
-    #
     def set_error(self,e):
         self.dllock.acquire()
         self.error = e

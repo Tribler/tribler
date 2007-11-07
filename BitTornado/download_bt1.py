@@ -47,7 +47,7 @@ import sys
 from traceback import print_exc,print_stack
 # _2fastbt
 
-from Tribler.API.defaults import *
+from Tribler.API.simpledefs import *
 
 try:
     True
