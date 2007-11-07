@@ -230,8 +230,6 @@ TODO:
 
 - Reimplement selected_files with existing 'priority' field
 
-- set/get for all config params
-
 - TorrentDef:
     Should we make this a simple dict interface, or provide user-friendly
     functions for e.g. handling encoding issues for filenames, setting 
@@ -290,7 +288,7 @@ import pickle
 import binascii
 import shutil
 from UserDict import DictMixin
-from threading import RLock,Event,Thread,currentThread
+from threading import RLock,Thread,currentThread
 from traceback import print_exc,print_stack
 from types import StringType
 
@@ -300,6 +298,7 @@ from BitTornado.RawServer import autodetect_socket_style
 
 from Tribler.API.simpledefs import *
 from Tribler.API.defaults import *
+from Tribler.API.exceptions import *
 import Tribler.Overlay.permid
 from Tribler.API.launchmanycore import TriblerLaunchMany,SingleDownload
 from Tribler.utilities import find_prog_in_PATH,validTorrentFile
@@ -330,57 +329,6 @@ class Copyable:
         in: self = an unbound instance of the class
         """
         raise NotYetImplementedException()
-
-
-#
-# Exceptions
-#
-class TriblerException(Exception):
-    
-    def __init__(self,msg=None):
-        Exception.__init__(self,msg)
-
-    def __str__(self):
-        return str(self.__class__)+': '+Exception.__str__(self)
- 
-
-class OperationNotPossibleAtRuntimeException(TriblerException):
-    
-    def __init__(self,msg=None):
-        TriblerException.__init__(self,msg)
-    
-class NotYetImplementedException(TriblerException):
-    
-    def __init__(self,msg=None):
-        TriblerException.__init__(self,msg)
-
-
-class DownloadIsStoppedException(TriblerException):
-    
-    def __init__(self,msg=None):
-        TriblerException.__init__(self,msg)
-
-
-class DuplicateDownloadException(TriblerException):
-    
-    def __init__(self,msg=None):
-        TriblerException.__init__(self,msg)
-
-class VODNoFileSelectedInMultifileTorrentException(TriblerException):
-    
-    def __init__(self,msg=None):
-        TriblerException.__init__(self,msg)
-
-class TriblerLegacyException(TriblerException):
-    """ Wrapper around fatal errors that happen in the download engine,
-    but which are not reported as Exception objects for legacy reasons,
-    just as text (often containing a stringified Exception).
-    Will be phased out.
-    """
-    
-    def __init__(self,msg=None):
-        TriblerException.__init__(self,msg)
-    
 
 #
 # The API classes

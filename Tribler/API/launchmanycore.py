@@ -25,6 +25,7 @@ from BitTornado.BT1.track import Tracker
 from BitTornado.HTTPHandler import HTTPHandler,DummyHTTPHandler
 
 import triblerAPI
+from Tribler.API.exceptions import *
 from Tribler.NATFirewall.guessip import get_my_wan_ip
 from Tribler.NATFirewall.UPnPThread import UPnPThread
 from Tribler.Overlay.SecureOverlay import SecureOverlay
@@ -32,7 +33,6 @@ from Tribler.Overlay.OverlayApps import OverlayApps
 from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.DecentralizedTracking import mainlineDHT
 from Tribler.DecentralizedTracking.rsconvert import RawServerConverter
-from Tribler.API.defaults import *
 from Tribler.Video.utils import win32_retrieve_video_play_command
 
 # TEMP
