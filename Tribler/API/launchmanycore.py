@@ -311,7 +311,7 @@ class TriblerLaunchMany(Thread):
         # Invoke the usercallback function via a new thread.
         # After the callback is invoked, the return values will be passed to
         # the returncallback for post-callback processing.
-        self.session.perform_getstate_usercallback(usercallback,dslist,self.sesscb_set_download_states_returncallback)
+        self.session.uch.perform_getstate_usercallback(usercallback,dslist,self.sesscb_set_download_states_returncallback)
         
     def sesscb_set_download_states_returncallback(self,usercallback,when,newgetpeerlist):
         """ Called by SessionCallbackThread """

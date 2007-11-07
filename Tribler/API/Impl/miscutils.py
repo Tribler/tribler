@@ -25,8 +25,15 @@ def parse_playtime_to_secs(hhmmss):
             t = int(occ[0])
     return t
     
+
+def offset2piece(offset,piecesize):
     
-    
+    p = offset / piecesize 
+    if offset % piecesize > 0:
+        p += 1
+    return p
+
+
     
 def NamedTimer(*args,**kwargs):
     t = Timer(*args,**kwargs)

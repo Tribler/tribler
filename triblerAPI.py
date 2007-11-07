@@ -277,6 +277,8 @@ TODO:
 
 - Document all methods in the API.
 
+- TODO: move API.launchmanycore to API.Impl.LaunchManyCore.py
+
 """
 
 import sys
@@ -300,11 +302,10 @@ from Tribler.API.simpledefs import *
 from Tribler.API.defaults import *
 from Tribler.API.exceptions import *
 import Tribler.Overlay.permid
-from Tribler.API.launchmanycore import TriblerLaunchMany,SingleDownload
+from Tribler.API.launchmanycore import TriblerLaunchMany
+from Tribler.API.Impl.UserCallbackHandler import UserCallbackHandler
 from Tribler.utilities import find_prog_in_PATH,validTorrentFile
-from Tribler.unicode import metainfoname2unicode
-from Tribler.API.osutils import *
-from Tribler.API.miscutils import *
+from Tribler.API.Impl.miscutils import *
 
 DEBUG = True
 
@@ -934,7 +935,7 @@ class SessionStartupConfig(SessionConfigInterface,Copyable,Serializable):
 
 
 # Import here to prevent circular dependencies problem
-from Tribler.API.SessionRuntimeConfig import SessionRuntimeConfig
+from Tribler.API.Impl.SessionRuntimeConfig import SessionRuntimeConfig
 
 class Session(SessionRuntimeConfig):
     """
@@ -967,7 +968,6 @@ class Session(SessionRuntimeConfig):
 
         
         self.sesslock = RLock()
-        self.threadcount=1
 
         # Determine startup config to use
         if scfg is not None: # overrides any saved config
@@ -1047,6 +1047,10 @@ class Session(SessionRuntimeConfig):
         # Checkpoint startup config
         sscfg = self.get_current_startup_config_copy()
         self.save_pstate_sessconfig(sscfg)
+
+
+        # Create handler for calling back the user via separate threads
+        self.uch = UserCallbackHandler(self.sesslock,self.sessconfig)
 
         # Create engine with network thread
         self.lm = TriblerLaunchMany(self,self.sesslock)
@@ -1168,100 +1172,6 @@ class Session(SessionRuntimeConfig):
         
         Called by any thread """
         self.checkpoint_shutdown(stop=True)
-
-    #
-    # Internal methods TODO: move to TriblerLaunchMany or other internal class
-    #
-    def perform_vod_usercallback(self,d,usercallback,mimetype,stream,filename):
-        """ Called by network thread """
-        print >>sys.stderr,"Session: perform_vod_usercallback()"
-        def session_vod_usercallback_target():
-            try:
-                usercallback(d,mimetype,stream,filename)
-            except:
-                print_exc()
-        self.perform_usercallback(session_vod_usercallback_target)
-
-    def perform_getstate_usercallback(self,usercallback,data,returncallback):
-        """ Called by network thread """
-        print >>sys.stderr,"Session: perform_getstate_usercallback()"
-        def session_getstate_usercallback_target():
-            try:
-                (when,getpeerlist) = usercallback(data)
-                returncallback(usercallback,when,getpeerlist)
-            except:
-                print_exc()
-        self.perform_usercallback(session_getstate_usercallback_target)
-
-
-    def perform_removestate_callback(self,infohash,correctedinfoname,removecontent,dldestdir):
-        """ Called by network thread """
-        print >>sys.stderr,"Session: perform_removestate_callback()"
-        def session_removestate_callback_target():
-            print >>sys.stderr,"Session: session_removestate_callback_target called",currentThread().getName()
-            try:
-                self.sesscb_removestate(infohash,correctedinfoname,removecontent,dldestdir)
-            except:
-                print_exc()
-        self.perform_usercallback(session_removestate_callback_target)
-        
-        
-    def perform_usercallback(self,target):
-        self.sesslock.acquire()
-        try:
-            # TODO: thread pool, etc.
-            name = "SessionCallbackThread-"+str(self.threadcount)
-            self.threadcount += 1
-            t = Thread(target=target,name=name)
-            t.setDaemon(True)
-            t.start()
-        finally:
-            self.sesslock.release()
-
-
-    def sesscb_removestate(self,infohash,correctedinfoname,removecontent,dldestdir):
-        """ Called by SessionCallbackThread """
-        print >>sys.stderr,"Session: sesscb_removestate called",`infohash`,`correctedinfoname`,removecontent,dldestdir
-        self.sesslock.acquire()
-        try:
-            dlpstatedir = os.path.join(self.sessconfig['state_dir'],STATEDIR_DLPSTATE_DIR)
-            trackerdir = os.path.join(self.sessconfig['state_dir'],STATEDIR_ITRACKER_DIR)
-        finally:
-            self.sesslock.release()
-
-        # See if torrent uses internal tracker
-        hexinfohash = binascii.hexlify(infohash)
-        try:
-            basename = hexinfohash+'.torrent'
-            filename = os.path.join(trackerdir,basename)
-            print >>sys.stderr,"Session: sesscb_removestate: removing itracker entry",filename
-            if os.access(filename,os.F_OK):
-                os.remove(filename)
-        except:
-            # Show must go on
-            print_exc()
-
-        # Remove checkpoint
-        try:
-            basename = hexinfohash+'.pickle'
-            filename = os.path.join(dlpstatedir,basename)
-            print >>sys.stderr,"Session: sesscb_removestate: removing dlcheckpoint entry",filename
-            if os.access(filename,os.F_OK):
-                os.remove(filename)
-        except:
-            # Show must go on
-            print_exc()
-
-        # Remove downloaded content from disk
-        if removecontent:
-            filename = os.path.join(dldestdir,correctedinfoname)
-            print >>sys.stderr,"Session: sesscb_removestate: removing saved content",filename
-            if not os.path.isdir(filename):
-                # single-file torrent
-                os.remove(filename)
-            else:
-                # multi-file torrent
-                shutil.rmtree(filename,True) # ignore errors
 
     #
     # Internal persistence methods
@@ -2172,403 +2082,8 @@ class DownloadStartupConfig(DownloadConfigInterface,Serializable,Copyable):
         config = copy.copy(self.dlconfig)
         return DownloadStartupConfig(config)
 
-        
-        
-# Import here to prevent circular dependencies problem
-from Tribler.API.DownloadRuntimeConfig import DownloadRuntimeConfig
-
-        
-class Download(DownloadRuntimeConfig):
-    """
-    Representation of a running BT download/upload
-    
-    A Download implements the DownloadConfigInterface which can be used to
-    change download parameters are runtime (for selected parameters).
-    
-    cf. libtorrent torrent_handle
-    """
-    
-    #
-    # Internal methods
-    #
-    def __init__(self,session,tdef):
-        self.dllock = RLock()
-        # just enough so error saving and get_state() works
-        self.error = None
-        self.sd = None # hack
-        # To be able to return the progress of a stopped torrent, how far it got.
-        self.progressbeforestop = 0.0
-        self.filepieceranges = []
-
-        # Copy tdef, so we get an infohash
-        self.session = session
-        self.tdef = tdef.copy()
-        # Need to do this before finalize
-        tracker = self.tdef.get_tracker()
-        itrackerurl = self.session.get_internal_tracker_url()
-        if tracker == '':
-            self.tdef.set_tracker(itrackerurl)
-        self.tdef.finalize()
-        self.tdef.readonly = True
-
-    #
-    # Public methods
-    #
-    def get_def(self):
-        """
-        Returns the read-only TorrentDef
-        """
-        # No lock because attrib immutable and return value protected
-        return self.tdef
-
-    
-    def set_state_callback(self,usercallback,getpeerlist=False):
-        """ 
-        Set a callback for retrieving the state of the download. This callback
-        will be called immediately with a DownloadState object as first parameter.
-        The callback method must return a tuple (when,getpeerlist) where "when" 
-        indicates whether the callback should be called again and represents a
-        number of seconds from now. If "when" <= 0.0 the callback will not be
-        called again. "getpeerlist" is a boolean that indicates whether the 
-        DownloadState passed to the callback on the next invocation should
-        contain info about the set of current peers.
-                
-        in: 
-        callback = function that accepts DownloadState as parameter and returns 
-        a (float,boolean) tuple.
-        """
-        self.dllock.acquire()
-        try:
-            network_get_state_lambda = lambda:self.network_get_state(usercallback,getpeerlist)
-            # First time on general rawserver
-            self.session.lm.rawserver.add_task(network_get_state_lambda,0.0)
-        finally:
-            self.dllock.release()
-        
-
-    def stop(self):
-        """ Called by any thread """
-        self.stop_remove(removestate=False,removecontent=False)
-        
-    def restart(self):
-        """ Called by any thread """
-        # Must schedule the hash check via lm. In some cases we have batch stops
-        # and restarts, e.g. we have stop all-but-one & restart-all for VOD)
-        self.dllock.acquire()
-        try:
-            if self.sd is None:
-                self.error = None # assume fatal error is reproducible
-                # TODO: if seeding don't rehash check
-                self.create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback,pstate=None)
-            # No exception if already started, for convenience
-        finally:
-            self.dllock.release()
-
-    #
-    # Config parameters that only exists at runtime 
-    #
-    def set_max_desired_speed(self,direct,speed):
-        """ Sets the maximum desired upload/download speed for this Download in KB/s """
-        
-        print >>sys.stderr,"Download: set_max_desired_speed",direct,speed
-        #if speed < 10:
-        #    print_stack()
-        
-        self.dllock.acquire()
-        if direct == UPLOAD:
-            self.dlruntimeconfig['max_desired_upload_rate'] = speed
-        else:
-            self.dlruntimeconfig['max_desired_download_rate'] = speed
-        self.dllock.release()
-
-    def get_max_desired_speed(self,direct):
-        """ Returns the maximum desired upload/download speed for this Download in KB/s """
-        self.dllock.acquire()
-        try:
-            if direct == UPLOAD:
-                print >>sys.stderr,"Download: get_max_desired_speed: get_max_desired",self.dlruntimeconfig['max_desired_upload_rate']
-                return self.dlruntimeconfig['max_desired_upload_rate']
-            else:
-                return self.dlruntimeconfig['max_desired_download_rate']
-        finally:
-            self.dllock.release()
 
 
-    #
-    # Internal methods
-    #
-    def setup(self,dcfg=None,pstate=None,lmcreatedcallback=None,lmvodplayablecallback=None):
-        """
-        Create a Download object. Used internally by Session. Copies tdef and 
-        dcfg and binds them to this download.
-        
-        in: 
-        tdef = unbound TorrentDef
-        dcfg = unbound DownloadStartupConfig or None (in which case 
-        DownloadStartupConfig.get_copy_of_default() is called and the result 
-        becomes the (bound) config of this Download.
-        """
-        try:
-            self.dllock.acquire() # not really needed, no other threads know of it
-            
-            # See if internal tracker used
-            itrackerurl = self.session.get_internal_tracker_url()
-            infohash = self.tdef.get_infohash()
-            metainfo = self.tdef.get_metainfo()
-            usingitracker = False
-            if metainfo['announce'] == itrackerurl:
-                usingitracker = True
-            elif 'announce-list' in metainfo:
-                for tier in metainfo['announce-list']:
-                    if itrackerurl in tier:
-                         usingitracker = True
-                         break
-                     
-            if usingitracker:
-                # Copy .torrent to state_dir/itracker so the tracker thread 
-                # finds it and accepts peer registrations for it.
-                # 
-                trackerdir = os.path.join(self.sessconfig['state_dir'],STATEDIR_ITRACKER_DIR)
-                basename = binascii.hexlify(infohash)+'.torrent' # ignore .tribe stuff, not vital
-                filename = os.path.join(trackerdir,basename)
-                self.tdef.save(filename)
-                # Bring to attention of Tracker thread
-                session.lm.tracker_rescan_dir()
-            
-            # Copy dlconfig, from default if not specified
-            if dcfg is None:
-                cdcfg = DownloadStartupConfig()
-            else:
-                cdcfg = dcfg
-            self.dlconfig = copy.copy(cdcfg.dlconfig)
-    
-            # TODO: copy sessconfig into dlconfig?
-    
-    
-            self.set_filepieceranges()
-    
-            # Things that only exist at runtime
-            self.dlruntimeconfig= {}
-            # We want to remember the desired rates and the actual assigned quota
-            # rates by the RateManager
-            self.dlruntimeconfig['max_desired_upload_rate'] = self.dlconfig['max_upload_rate'] 
-            self.dlruntimeconfig['max_desired_download_rate'] = self.dlconfig['max_download_rate']
-    
-    
-            print >>sys.stderr,"Download: setup: get_max_desired",self.dlruntimeconfig['max_desired_upload_rate']
-
-            if pstate is None or pstate['dlstate']['status'] != DLSTATUS_STOPPED:
-                # Also restart on STOPPED_ON_ERROR, may have been transient
-                self.create_engine_wrapper(lmcreatedcallback,pstate,lmvodplayablecallback)
-                
-            self.dllock.release()
-        except Exception,e:
-            print_exc()
-            self.set_error(e)
-            self.dllock.release()
-
-    def create_engine_wrapper(self,lmcreatedcallback,pstate,lmvodplayablecallback):
-        """ Called by any thread, assume dllock already acquired """
-        if DEBUG:
-            print >>sys.stderr,"Download: create_engine_wrapper()"
-        
-        # all thread safe
-        infohash = self.get_def().get_infohash()
-        metainfo = copy.deepcopy(self.get_def().get_metainfo())
-        
-        # H4xor this so the 'name' field is safe
-        namekey = metainfoname2unicode(metainfo)
-        self.correctedinfoname = fix_filebasename(metainfo['info'][namekey])
-        metainfo['info'][namekey] = metainfo['info']['name'] = self.correctedinfoname 
-        
-        multihandler = self.session.lm.multihandler
-        listenport = self.session.get_listen_port()
-        vapath = self.session.get_video_analyser_path()
-
-        # Note: BT1Download is started with copy of d.dlconfig, not direct access
-        # Set IP to report to tracker. 
-        self.dlconfig['ip'] = self.session.lm.get_ext_ip()
-        kvconfig = copy.copy(self.dlconfig)
-
-        # Define which file to DL in VOD mode
-        if self.dlconfig['mode'] == DLMODE_VOD:
-            vod_usercallback_wrapper = lambda mimetype,stream,filename:self.session.perform_vod_usercallback(self,self.dlconfig['vod_usercallback'],mimetype,stream,filename)
-            
-            if 'files' in metainfo['info'] and len(self.dlconfig['selected_files']) == 0:
-                # Multi-file torrent, but no file selected
-                raise VODNoFileSelectedInMultifileTorrentException() 
-            
-            if len(self.dlconfig['selected_files']) == 0:
-                # single-file torrent
-                file = self.get_def().get_name()
-                idx = -1
-                bitrate = self.get_def().get_bitrate(None)
-            else:
-                # multi-file torrent
-                file = self.dlconfig['selected_files'][0]
-                idx = self.get_def().get_index_of_file_in_files(file)
-                bitrate = self.get_def().get_bitrate(file)
-            vodfileindex = [idx,file,bitrate,None,vod_usercallback_wrapper]
-        else:
-            vodfileindex = [-1,None,0.0,None,None]
-        
-        # Delegate creation of engine wrapper to network thread
-        network_create_engine_wrapper_lambda = lambda:self.network_create_engine_wrapper(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcreatedcallback,pstate,lmvodplayablecallback)
-        self.session.lm.rawserver.add_task(network_create_engine_wrapper_lambda,0) 
-        
-
-    def network_create_engine_wrapper(self,infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcallback,pstate,lmvodplayablecallback):
-        """ Called by network thread """
-        self.dllock.acquire()
-        try:
-            self.sd = SingleDownload(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,self.set_error,pstate,lmvodplayablecallback)
-            sd = self.sd
-            exc = self.error
-            if lmcallback is not None:
-                lmcallback(self,sd,exc,pstate)
-        finally:
-            self.dllock.release()
-
-    
-    def set_error(self,e):
-        self.dllock.acquire()
-        self.error = e
-        self.dllock.release()
-
-
-    def set_filepieceranges(self):
-        """ Determine which file maps to which piece ranges for progress info """
-        
-        print >>sys.stderr,"Download: set_filepieceranges:",self.dlconfig['selected_files']
-        
-        if len(self.dlconfig['selected_files']) > 0:
-            if 'files' not in self.tdef.metainfo['info']:
-                raise ValueError("Selected more than 1 file, but torrent is single-file torrent")
-            
-            files = self.tdef.metainfo['info']['files']
-            piecesize = self.tdef.metainfo['info']['piece length']
-            
-            total = 0L
-            for i in xrange(len(files)):
-                path = files[i]['path']
-                length = files[i]['length']
-                filename = pathlist2filename(path)
-                
-                print >>sys.stderr,"Download: set_filepieceranges: Torrent file",filename,"in",self.dlconfig['selected_files']
-
-                if filename in self.dlconfig['selected_files'] and length > 0:
-                    
-                    range = (offset2piece(total,piecesize), offset2piece(total + length,piecesize),filename)
-                    
-                    print >>sys.stderr,"Download: set_filepieceranges: Torrent file range append",range
-                    
-                    self.filepieceranges.append(range)
-                total += length
-        else:
-            self.filepieceranges = None 
-
-
-    def stop_remove(self,removestate=False,removecontent=False):
-        self.dllock.acquire()
-        try:
-            if self.sd is not None:
-                network_stop_lambda = lambda:self.network_stop(removestate,removecontent)
-                self.session.lm.rawserver.add_task(network_stop_lambda,0.0)
-            # No exception if already stopped, for convenience
-        finally:
-            self.dllock.release()
-
-
-    def network_get_state(self,usercallback,getpeerlist,sessioncalling=False):
-        """ Called by network thread """
-        self.dllock.acquire()
-        try:
-            if self.sd is None:
-                ds = DownloadState(self,DLSTATUS_STOPPED,self.error,self.progressbeforestop)
-            else:
-                (status,stats,logmsgs) = self.sd.get_stats(getpeerlist)
-                ds = DownloadState(self,status,self.error,None,stats=stats,filepieceranges=self.filepieceranges,logmsgs=logmsgs)
-                self.progressbeforestop = ds.get_progress()
-            
-                #print >>sys.stderr,"STATS",stats
-            
-            if sessioncalling:
-                return ds
-
-            # Invoke the usercallback function via a new thread.
-            # After the callback is invoked, the return values will be passed to
-            # the returncallback for post-callback processing.
-            self.session.perform_getstate_usercallback(usercallback,ds,self.sesscb_get_state_returncallback)
-        finally:
-            self.dllock.release()
-
-
-    def sesscb_get_state_returncallback(self,usercallback,when,newgetpeerlist):
-        """ Called by SessionCallbackThread """
-        self.dllock.acquire()
-        try:
-            if when > 0.0:
-                # Schedule next invocation, either on general or DL specific
-                # TODO: ensure this continues when dl is stopped. Should be OK.
-                network_get_state_lambda = lambda:self.network_get_state(usercallback,newgetpeerlist)
-                if self.sd is None:
-                    self.session.lm.rawserver.add_task(network_get_state_lambda,when)
-                else:
-                    self.sd.dlrawserver.add_task(network_get_state_lambda,when)
-        finally:
-            self.dllock.release()
-
-    def network_stop(self,removestate,removecontent):
-        """ Called by network thread """
-        self.dllock.acquire()
-        try:
-            infohash = self.tdef.get_infohash() 
-            pstate = self.network_get_persistent_state() 
-            pstate['engineresumedata'] = self.sd.shutdown()
-            
-            # Offload the removal of the content and other disk cleanup to another thread
-            if removestate:
-                self.session.perform_removestate_callback(infohash,self.correctedinfoname,removecontent,self.dlconfig['saveas'])
-            
-            return (infohash,pstate)
-        finally:
-            self.dllock.release()
-
-
-    def network_checkpoint(self):
-        """ Called by network thread """
-        self.dllock.acquire()
-        try:
-            pstate = self.network_get_persistent_state() 
-            pstate['engineresumedata'] = self.sd.checkpoint()
-            return (self.tdef.get_infohash(),pstate)
-        finally:
-            self.dllock.release()
-        
-
-    def network_get_persistent_state(self):
-        """ Assume dllock already held """
-        pstate = {}
-        pstate['version'] = PERSISTENTSTATE_CURRENTVERSION
-        pstate['metainfo'] = self.tdef.get_metainfo() # assumed immutable
-        dlconfig = copy.copy(self.dlconfig)
-        # Reset unpicklable params
-        dlconfig['vod_usercallback'] = None
-        dlconfig['dlmode'] = DLMODE_NORMAL # no callback, no VOD
-        pstate['dscfg'] = DownloadStartupConfig(dlconfig=dlconfig)
-
-        pstate['dlstate'] = {}
-        ds = self.network_get_state(None,False,sessioncalling=True)
-        pstate['dlstate']['status'] = ds.get_status()
-        pstate['dlstate']['progress'] = ds.get_progress()
-        
-        print >>sys.stderr,"Download: netw_get_pers_state: status",dlstatus_strings[ds.get_status()],"progress",ds.get_progress()
-        
-        pstate['engineresumedata'] = None
-        return pstate
-
-
-    
 class DownloadState(Serializable):
     """
     Contains a snapshot of the state of the Download at a specific
@@ -2732,11 +2247,129 @@ class DownloadState(Serializable):
             return self.logmsgs
     
 
-def offset2piece(offset,piecesize):
+
+        
+        
+# Import here to prevent circular dependencies problem
+from Tribler.API.Impl.DownloadRuntimeConfig import DownloadRuntimeConfig
+from Tribler.API.Impl.DownloadImpl import DownloadImpl
+
+        
+class Download(DownloadRuntimeConfig,DownloadImpl):
+    """
+    Representation of a running BT download/upload
     
-    p = offset / piecesize 
-    if offset % piecesize > 0:
-        p += 1
-    return p
+    A Download implements the DownloadConfigInterface which can be used to
+    change download parameters are runtime (for selected parameters).
+    
+    cf. libtorrent torrent_handle
+    """
+    
+    #
+    # Internal methods
+    #
+    def __init__(self,session,tdef):
+        self.dllock = RLock()
+        # just enough so error saving and get_state() works
+        self.error = None
+        self.sd = None # hack
+        # To be able to return the progress of a stopped torrent, how far it got.
+        self.progressbeforestop = 0.0
+        self.filepieceranges = []
+
+        # Copy tdef, so we get an infohash
+        self.session = session
+        self.tdef = tdef.copy()
+        # Need to do this before finalize
+        tracker = self.tdef.get_tracker()
+        itrackerurl = self.session.get_internal_tracker_url()
+        if tracker == '':
+            self.tdef.set_tracker(itrackerurl)
+        self.tdef.finalize()
+        self.tdef.readonly = True
+
+    #
+    # Public methods
+    #
+    def get_def(self):
+        """
+        Returns the read-only TorrentDef
+        """
+        # No lock because attrib immutable and return value protected
+        return self.tdef
+
+    
+    def set_state_callback(self,usercallback,getpeerlist=False):
+        """ 
+        Set a callback for retrieving the state of the download. This callback
+        will be called immediately with a DownloadState object as first parameter.
+        The callback method must return a tuple (when,getpeerlist) where "when" 
+        indicates whether the callback should be called again and represents a
+        number of seconds from now. If "when" <= 0.0 the callback will not be
+        called again. "getpeerlist" is a boolean that indicates whether the 
+        DownloadState passed to the callback on the next invocation should
+        contain info about the set of current peers.
+                
+        in: 
+        callback = function that accepts DownloadState as parameter and returns 
+        a (float,boolean) tuple.
+        """
+        self.dllock.acquire()
+        try:
+            network_get_state_lambda = lambda:self.network_get_state(usercallback,getpeerlist)
+            # First time on general rawserver
+            self.session.lm.rawserver.add_task(network_get_state_lambda,0.0)
+        finally:
+            self.dllock.release()
+        
+
+    def stop(self):
+        """ Called by any thread """
+        self.stop_remove(removestate=False,removecontent=False)
+        
+    def restart(self):
+        """ Called by any thread """
+        # Must schedule the hash check via lm. In some cases we have batch stops
+        # and restarts, e.g. we have stop all-but-one & restart-all for VOD)
+        self.dllock.acquire()
+        try:
+            if self.sd is None:
+                self.error = None # assume fatal error is reproducible
+                # TODO: if seeding don't rehash check
+                self.create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback,pstate=None)
+            # No exception if already started, for convenience
+        finally:
+            self.dllock.release()
+
+    #
+    # Config parameters that only exists at runtime 
+    #
+    def set_max_desired_speed(self,direct,speed):
+        """ Sets the maximum desired upload/download speed for this Download in KB/s """
+        
+        print >>sys.stderr,"Download: set_max_desired_speed",direct,speed
+        #if speed < 10:
+        #    print_stack()
+        
+        self.dllock.acquire()
+        if direct == UPLOAD:
+            self.dlruntimeconfig['max_desired_upload_rate'] = speed
+        else:
+            self.dlruntimeconfig['max_desired_download_rate'] = speed
+        self.dllock.release()
+
+    def get_max_desired_speed(self,direct):
+        """ Returns the maximum desired upload/download speed for this Download in KB/s """
+        self.dllock.acquire()
+        try:
+            if direct == UPLOAD:
+                print >>sys.stderr,"Download: get_max_desired_speed: get_max_desired",self.dlruntimeconfig['max_desired_upload_rate']
+                return self.dlruntimeconfig['max_desired_upload_rate']
+            else:
+                return self.dlruntimeconfig['max_desired_download_rate']
+        finally:
+            self.dllock.release()
 
 
+
+    
