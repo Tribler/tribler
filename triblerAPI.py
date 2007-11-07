@@ -275,9 +275,22 @@ TODO:
   DLSTATUS_STOPPED_ON_ERROR if they occur. Currently all tracker errors are
   put in log messages, and the download does not change status.
 
-- Document all methods in the API.
-
 - TODO: move API.launchmanycore to API.Impl.LaunchManyCore.py
+
+- Expose the fact that playback is about to freeze to API user, such that
+  he can take action. In particular, he may want to pause the video player
+  before it runs out of data, such that he can resume it at that exact point.
+  This may be needed as the video players behaviour on running out of data
+  may be undesirable. E.g. VLC upon receiving data again will try to fast
+  forward to the point where the playback is supposed to be according to
+  the video's internal timestamps. I.e. it will not just continue playing
+  from the point where it froze.
+
+
+- Document all methods in the API. See if there is a javadoc equiv cf.
+  wxPython automatic docs.
+
+- Write unit tests
 
 """
 
@@ -290,7 +303,7 @@ import pickle
 import binascii
 import shutil
 from UserDict import DictMixin
-from threading import RLock,Thread,currentThread
+from threading import RLock,currentThread
 from traceback import print_exc,print_stack
 from types import StringType
 
