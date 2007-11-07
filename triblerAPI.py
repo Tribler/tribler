@@ -562,7 +562,7 @@ class SessionConfigInterface:
 
 
     #
-    # Tribler dialback mechanism is used to test whether a Session is
+    # The Tribler dialback mechanism is used to test whether a Session is
     # reachable from the outside and what its external IP address is.
     #
     def set_dialback(self,value):
@@ -608,24 +608,6 @@ class SessionConfigInterface:
 
     def get_rquery(self):
         return self.sessconfig['rquery']
-
-
-    #
-    # For Tribler superpeer servers
-    #
-    def set_superpeer(self,value):
-        """ run in super peer mode (0 = disabled) """
-        self.sessconfig['superpeer'] = value
-
-    def get_superpeer(self):
-        return self.sessconfig['superpeer']
-
-    def set_overlay_log(self,value):
-        """ log on super peer mode ('' = disabled) """
-        self.sessconfig['overlay_log'] = value
-
-    def get_overlay_log(self):
-        return self.sessconfig['overlay_log']
 
     #
     # For Tribler Video-On-Demand
@@ -929,6 +911,23 @@ class SessionConfigInterface:
 
     def get_tracker_keep_dead(self):
         return self.sessconfig['tracker_keep_dead']
+
+    #
+    # For Tribler superpeer servers
+    #
+    def set_superpeer(self,value):
+        """ run in super peer mode (0 = disabled) """
+        self.sessconfig['superpeer'] = value
+
+    def get_superpeer(self):
+        return self.sessconfig['superpeer']
+
+    def set_overlay_log(self,value):
+        """ log on super peer mode ('' = disabled) """
+        self.sessconfig['overlay_log'] = value
+
+    def get_overlay_log(self):
+        return self.sessconfig['overlay_log']
 
 
 
@@ -1267,6 +1266,8 @@ class TorrentDef(Serializable,Copyable):
         
         self.input = {} # fields added by user, waiting to be turned into torrent file
         self.input['files'] = []
+        self.input['encoding'] = sys.getfilesystemencoding()
+        
         self.metainfo_valid = False
         self.metainfo = None # copy of loaded or last saved torrent dict
         self.infohash = None # only valid if metainfo_valid
@@ -1344,20 +1345,24 @@ class TorrentDef(Serializable,Copyable):
     #
     # Convenience instance methods for publishing new content
     #
-    def add_file(self,filename,playtime=None):
+    def add_content(self,inpath,outpath=None,playtime=None):
         """
-        Add a file to this torrent definition. The core will not copy the file
-        when starting the sharing, but seeds from the passed file directly.
+        Add a file or directory to this torrent definition. When adding a
+        directory, all files in that directory will be added to the torrent. 
+        The core will not copy the file when starting the sharing, but uploads 
+        from the passed files directly.
         
-        IMPLHINT: do something smart: people can just add files. When they finalize,
-        we determine whether it is a single or multi-file torrent. In the latter
-        case we determine the common directory name, which becomes the
-        torrents's info['name'] field. Hmmm.... won't work if stuff comes
-        from different disks, etc. TODO
+        One can add multiple files and directories to a torrent definition.
+        In that case the "outpath" parameter must be used to indicate how
+        the files/dirs should be named in the torrent. The outpaths used must
+        start with a common prefix which will become the "name" field of the
+        torrent. 
         
         in:
-        filename = Fully-qualified name of file on local filesystem, as Unicode
-                   string
+        inpath = Fully-qualified name of file or directory on local filesystem, 
+                 as Unicode string
+        outpath = (optional) Name of the content to use in the torrent def as
+                Unicode string.
         playtime = (optional) String representing the duration of the multimedia
                    file when played, in [hh:]mm:ss format. 
         """
@@ -1365,21 +1370,38 @@ class TorrentDef(Serializable,Copyable):
             raise OperationNotPossibleAtRuntimeException()
         
         s = os.stat(filename)
-        d = {'fn':filename,'playtime':playtime,'length':s.st_size}
+        d = {'inpath':path,'outpath':outpath,'playtime':playtime,'length':s.st_size}
         self.input['files'].append(d)
+        
+        # Update info
         self.metainfo_valid = False
+        
+        
+        TODO: DEFINE WHETHER NAME IS RAW OR Unicode obj!!!!!!!!!!1
+        self.input['name'] = self.determine_name()
 
-        # TODO: store playtime either as special field or reuse Azureus props
+    def set_encoding(self,enc):
+        self.input['encoding'] = enc
+        
+    def get_encoding(self):
+        return self.input['encoding']
 
     def get_name(self):
-        """ Returns info['name'] field """
-        return self.input['name']
+        """ Returns info['name'] field as raw string of bytes """
+        return self.input['name'] # string immutable
+
+    def get_name_as_unicode(self):
+        if self.metainfo_valid:
+            (namekey,uniname) = metainfoname2unicode(self.metainfo)
+            return uniname
+        else:
+            return self.input['name'].decode(self.input['encoding'])
 
     def get_thumbnail(self):
         """
         returns: (MIME type,thumbnail data) if present or (None,None)
         """
-        if thumb is None:
+        if 'thumb' is not in self.input:
             return (None,None)
         else:
             thumb = self.input['thumb'] # buffer/string immutable
@@ -1580,6 +1602,7 @@ class TorrentDef(Serializable,Copyable):
         f.write(bdata)
         f.close()
 
+
     def get_bitrate(self,file=None):
         """ Returns the bitrate of the specified file in bytes/sec.
         If no file is specified, Tribler assumes this is a single-file torrent
@@ -1697,6 +1720,27 @@ class TorrentDef(Serializable,Copyable):
         else:
             raise ValueError("File not found in single-file torrent")
 
+    def determine_name(self):
+        if len(self.input['files']) == 0:
+            return ValueError('name not set')
+        elif len(self.input['files']) == 1:
+            d = self.input['files'][0]
+            return os.basename(d['inpath'])
+        else:
+            d = self.input['files'][0]
+            path = d['outpath']
+            t = ''
+            while True:
+                (path,t) = os.split(path)
+                if path == '':
+                    break
+            if t == '':
+                raise ValueError('Empty filename')
+            else:
+                for d in self.input['files']:
+                    if not d['outpath'].startswith(t):
+                        raise ValueError('One of the files in the torrent does not have an outpath that starts with '+t)
+            return t
 
     #
     # DictMixin

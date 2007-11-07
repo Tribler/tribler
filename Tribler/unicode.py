@@ -62,16 +62,11 @@ def metainfoname2unicode(metadata):
         namekey = 'name'
     if metadata.has_key('encoding'):
         encoding = metadata['encoding']
-        metadata['info'][namekey] = bin2unicode(metadata['info'][namekey],encoding)
+        name = bin2unicode(metadata['info'][namekey],encoding)
     else:
-        metadata['info'][namekey] = bin2unicode(metadata['info'][namekey])
+        name = bin2unicode(metadata['info'][namekey])
 
-    # change metainfo['info']['name'] to metainfo['info'][namekey], just in case...
-    # roer888 TODO: Never tested the following 2 lines 
-    if namekey != 'name':
-        metadata['info']['name'] = metadata['info'][namekey ]
-
-    return namekey
+    return (namekey,name)
 
 
 def unicode2str(s):

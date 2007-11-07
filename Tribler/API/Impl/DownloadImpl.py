@@ -100,8 +100,8 @@ class DownloadImpl:
         metainfo = copy.deepcopy(self.get_def().get_metainfo())
         
         # H4xor this so the 'name' field is safe
-        namekey = metainfoname2unicode(metainfo)
-        self.correctedinfoname = fix_filebasename(metainfo['info'][namekey])
+        (namekey,uniname) = metainfoname2unicode(metainfo)
+        self.correctedinfoname = fix_filebasename(uniname)
         metainfo['info'][namekey] = metainfo['info']['name'] = self.correctedinfoname 
         
         multihandler = self.session.lm.multihandler
