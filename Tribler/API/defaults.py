@@ -153,12 +153,13 @@ tdefdictdefaults['comment'] = ''
 tdefdictdefaults['created by'] = ''
 tdefdictdefaults['announce'] = ''
 tdefdictdefaults['announce-list'] = ''
+tdefdictdefaults['nodes'] = '' # mainline DHT
 tdefdictdefaults['httpseeds'] = ''
 
 
 tdefmetadefaults = {}
 tdefmetadefaults['version'] = 1
-tdefmetadefaults['piece_size'] = 0
+tdefmetadefaults['piece length'] = 0
 tdefmetadefaults['makehash_md5'] = 0
 tdefmetadefaults['makehash_crc32'] = 0
 tdefmetadefaults['makehash_sha1'] = 0

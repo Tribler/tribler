@@ -66,18 +66,22 @@ Simplest seeding session
 ========================
     s = Session().get_instance()
     # default torrent def is to use internal tracker
-    tdef = TorrentDef.get_copy_of_default()
-    tdef.add_file('/tmp/homevideo.wmv')
+    tdef = TorrentDef()
+    tdef.add_content('/tmp/homevideo.wmv')
+    tdef.set_tracker(s.get_internal_tracker_url())
+    tdef.finalize()
     d = s.start_download(tdef)
 
 
 Simpler seeding session
 =======================
     s = Session().get_instance()
-    tdef.add_file('/tmp/homevideo.wmv')
+    tdef.add_content('/tmp/homevideo.wmv')
     tdef = TorrentDef.get_default() 
-    tdef.add_file('/tmp/homevideo.wmv')
+    tdef.add_content('/tmp/homevideo.wmv')
     tdef.set_thumbnail('/tmp/homevideo.jpg')
+    tdef.set_tracker(s.get_internal_tracker_url())
+    tdef.finalize()
     d = s.start_download(tdef)
 
 
@@ -305,7 +309,7 @@ import shutil
 from UserDict import DictMixin
 from threading import RLock,currentThread
 from traceback import print_exc,print_stack
-from types import StringType
+from types import StringType,ListType,IntType
 
 from BitTornado.__init__ import resetPeerIDs
 from BitTornado.bencode import bencode,bdecode
@@ -317,9 +321,9 @@ from Tribler.API.exceptions import *
 import Tribler.Overlay.permid
 from Tribler.API.launchmanycore import TriblerLaunchMany
 from Tribler.API.Impl.UserCallbackHandler import UserCallbackHandler
-from Tribler.utilities import find_prog_in_PATH,validTorrentFile
+from Tribler.API.Impl.maketorrent import make_torrent_file
 from Tribler.API.Impl.miscutils import *
-
+from Tribler.utilities import find_prog_in_PATH,validTorrentFile
 DEBUG = True
 
 #
@@ -1114,15 +1118,13 @@ class Session(SessionRuntimeConfig):
         """ 
         Creates a Download object and adds it to the session. The passed 
         TorrentDef and DownloadStartupConfig are copied into the new Download 
-        object and the copies become bound. If the tracker is not set in tdef, 
-        it is set to the internal tracker (which must have been enabled in the 
-        session config). The Download is then started and checkpointed.
+        object. The Download is then started and checkpointed.
 
         If a checkpointed version of the Download is found, that is restarted
         overriding the saved DownloadStartupConfig is "dcfg" is not None.
         
         in:
-        tdef = TorrentDef
+        tdef = a finalized TorrentDef
         drcfg = DownloadStartupConfig or None, in which case 
         DownloadStartupConfig.get_copy_of_default() is called and the result becomes 
         the config of this Download.
@@ -1266,7 +1268,10 @@ class TorrentDef(Serializable,Copyable):
         
         self.input = {} # fields added by user, waiting to be turned into torrent file
         self.input['files'] = []
-        self.input['encoding'] = sys.getfilesystemencoding()
+        try:
+            self.input['encoding'] = sys.getfilesystemencoding()
+        except:
+            self.input['encoding'] = sys.getdefaultencoding()
         
         self.metainfo_valid = False
         self.metainfo = None # copy of loaded or last saved torrent dict
@@ -1286,7 +1291,7 @@ class TorrentDef(Serializable,Copyable):
     def load(filename):
         """
         Load a BT .torrent or Tribler .tribe file from disk and convert
-        it into a TorrentDef
+        it into a finalized TorrentDef
         
         in: filename = Fully qualified Unicode filename
         returns: a TorrentDef object
@@ -1369,16 +1374,12 @@ class TorrentDef(Serializable,Copyable):
         if self.readonly:
             raise OperationNotPossibleAtRuntimeException()
         
-        s = os.stat(filename)
-        d = {'inpath':path,'outpath':outpath,'playtime':playtime,'length':s.st_size}
+        s = os.stat(inpath)
+        d = {'inpath':inpath,'outpath':outpath,'playtime':playtime,'length':s.st_size}
         self.input['files'].append(d)
         
         # Update info
         self.metainfo_valid = False
-        
-        
-        TODO: DEFINE WHETHER NAME IS RAW OR Unicode obj!!!!!!!!!!1
-        self.input['name'] = self.determine_name()
 
     def set_encoding(self,enc):
         self.input['encoding'] = enc
@@ -1386,22 +1387,11 @@ class TorrentDef(Serializable,Copyable):
     def get_encoding(self):
         return self.input['encoding']
 
-    def get_name(self):
-        """ Returns info['name'] field as raw string of bytes """
-        return self.input['name'] # string immutable
-
-    def get_name_as_unicode(self):
-        if self.metainfo_valid:
-            (namekey,uniname) = metainfoname2unicode(self.metainfo)
-            return uniname
-        else:
-            return self.input['name'].decode(self.input['encoding'])
-
     def get_thumbnail(self):
         """
         returns: (MIME type,thumbnail data) if present or (None,None)
         """
-        if 'thumb' is not in self.input:
+        if 'thumb' not in self.input:
             return (None,None)
         else:
             thumb = self.input['thumb'] # buffer/string immutable
@@ -1429,12 +1419,13 @@ class TorrentDef(Serializable,Copyable):
         
 
     def set_tracker(self,url):
-        """ Sets the tracker (i.e. the torrent file's 'announce' field).
-        If the tracker is '' (the default) it will be set to the internal
-        tracker when Session:start_download() is called. """
+        """ Sets the tracker (i.e. the torrent file's 'announce' field). """
         if self.readonly:
             raise OperationNotPossibleAtRuntimeException()
 
+        if url.endswith('/'):
+            # Some tracker code can't deal with / at end
+            url = url[:-1]
         self.input['announce'] = url 
 
     def get_tracker(self):
@@ -1445,10 +1436,35 @@ class TorrentDef(Serializable,Copyable):
         if self.readonly:
             raise OperationNotPossibleAtRuntimeException()
 
+        # TODO: check input, in particular remove / at end
+
         self.input['announce-list'] = value
 
     def get_tracker_hierarchy(self):
         return self.input['announce-list']
+
+    def set_dht_nodes(self,nodes):
+        """ Sets the DHT nodes required by the mainline DHT support,
+        See www.bittorrent.org/Draft_DHT_protocol.html """
+        if self.readonly:
+            raise OperationNotPossibleAtRuntimeException()
+
+        # Check input
+        if type(nodes) != ListType:
+            raise ValueError("nodes not a list")
+        else:
+            for node in nodes:
+                if type(node) != ListType and len(node) != 2:
+                    raise ValueError("node in nodes not a 2-item list: "+`node`)
+                if type(node[0]) != StringType:
+                    raise ValueError("host in node is not string:"+`node`)
+                if type(node[1]) != IntType:
+                    raise ValueError("port in node is not int:"+`node`)
+                
+        self.input['nodes'] = nodes 
+
+    def get_dht_nodes(self):
+        return self.input['nodes']
         
     def set_comment(self,value):
         """ set comment field """
@@ -1475,20 +1491,21 @@ class TorrentDef(Serializable,Copyable):
         if self.readonly:
             raise OperationNotPossibleAtRuntimeException()
 
+        # TODO: check input
         self.input['httpseeds'] = value
 
     def get_httpseeds(self):
         return self.input['httpseeds']
 
-    def set_piece_size(self,value):
+    def set_piece_length(self,value):
         """ piece size as int (0 = automatic = default) """
         if self.readonly:
             raise OperationNotPossibleAtRuntimeException()
 
-        self.input['piece_size'] = value
+        self.input['piece length'] = value
 
-    def get_piece_size(self):
-        return self.input['piece_size']
+    def get_piece_length(self):
+        return self.input['piece length']
 
     def set_add_md5hash(self,value):
         """ add end-to-end MD5 checksum """
@@ -1552,21 +1569,34 @@ class TorrentDef(Serializable,Copyable):
 
         
     #
-    def finalize(self):
-        """ Create BT torrent file from input and calculate infohash 
+    def finalize(self,userabortflag=None,userprogresscallback=None):
+        """ Create BT torrent file by reading the files added with
+        add_content() and calculate the torrent file's infohash. 
         
-        returns: (infohash,metainfo) tuple
+        Creating the torrent file can take a long time and will be carried out
+        by the calling thread. The process can be made interruptable by passing 
+        a threading.Event() object via the userabortflag and setting it when 
+        the process should be aborted. The also optional userprogresscallback 
+        will be called by the calling thread periodically, with a progress 
+        percentage as argument. 
         """
         if self.readonly:
             raise OperationNotPossibleAtRuntimeException()
         
         if self.metainfo_valid:
-            return (self.infohash,self.metainfo)
-        else:
-            """
-            Read files to calc hashes
-            """
-            raise NotYetImplementedException()
+            return
+
+        # Note: reading of all files and calc of hashes is done by calling 
+        # thread.
+        (infohash,metainfo) = make_torrent_file(self.input,userabortflag=userabortflag,userprogresscallback=userprogresscallback)
+        if infohash is not None:
+            self.infohash = infohash
+            self.metainfo = metainfo
+            self.metainfo_valid = True
+
+    def is_finalized(self):
+        """ Whether the TorrentDef is finalized or not """
+        return self.metainfo_valid
 
     #
     # Operations on finalized TorrentDefs
@@ -1583,6 +1613,19 @@ class TorrentDef(Serializable,Copyable):
         else:
             raise NotYetImplementedException() # must save first
 
+    def get_name(self):
+        """ Returns info['name'] field as raw string of bytes. Only available when finalized """
+        if self.metainfo_valid:
+            return self.input['name'] # string immutable
+        else:
+            return None
+
+    def get_name_as_unicode(self):
+        if self.metainfo_valid:
+            (namekey,uniname) = metainfoname2unicode(self.metainfo)
+            return uniname
+        else:
+            return None
 
     def save(self,filename):
         """
@@ -1613,57 +1656,7 @@ class TorrentDef(Serializable,Copyable):
         if not self.metainfo_valid:
             raise NotYetImplementedException() # must save first
 
-        info = self.metainfo['info']
-        if file is None:
-            bitrate = None
-            try:
-                playtime = None
-                if info.has_key('playtime'):
-                    print >>sys.stderr,"TorrentDef: get_bitrate: Bitrate in info field"
-                    playtime = parse_playtime_to_secs(info['playtime'])
-                elif 'playtime' in self.metainfo: # HACK: encode playtime in non-info part of existing torrent
-                    print >>sys.stderr,"TorrentDef: get_bitrate: Bitrate in metainfo"
-                    playtime = parse_playtime_to_secs(self.metainfo['playtime'])
-                elif 'azureus_properties' in self.metainfo:
-                    azprop = self.metainfo['azureus_properties']
-                    if 'Content' in azprop:
-                        content = self.metainfo['azureus_properties']['Content']
-                        if 'Speed Bps' in content:
-                            bitrate = float(content['Speed Bps'])
-                            print >>sys.stderr,"TorrentDef: get_bitrate: Bitrate in Azureus metainfo",bitrate
-                if playtime is not None:
-                    bitrate = info['length']/playtime
-            except:
-                print_exc()
-    
-            return bitrate
-    
-        if file is not None and 'files' in info:
-            for i in range(len(info['files'])):
-                x = info['files'][i]
-                    
-                intorrentpath = ''
-                for elem in x['path']:
-                    intorrentpath = os.path.join(intorrentpath,elem)
-                bitrate = None
-                try:
-                    playtime = None
-                    if x.has_key('playtime'):
-                        playtime = parse_playtime_to_secs(x['playtime'])
-                    elif 'playtime' in self.metainfo: # HACK: encode playtime in non-info part of existing torrent
-                        playtime = parse_playtime_to_secs(self.metainfo['playtime'])
-                        
-                    if playtime is not None:
-                        bitrate = x['length']/playtime
-                except:
-                    print_exc()
-                    
-                if intorrentpath == file:
-                    return bitrate
-                
-            raise ValueError("File not found in torrent")
-        else:
-            raise ValueError("File not found in single-file torrent")
+        bitrate = get_bitrate_from_metainfo(file,self.metainfo)
     
     
     def get_video_files(self,videoexts=videoextdefaults):
@@ -1719,28 +1712,6 @@ class TorrentDef(Serializable,Copyable):
             return ValueError("File not found in torrent")
         else:
             raise ValueError("File not found in single-file torrent")
-
-    def determine_name(self):
-        if len(self.input['files']) == 0:
-            return ValueError('name not set')
-        elif len(self.input['files']) == 1:
-            d = self.input['files'][0]
-            return os.basename(d['inpath'])
-        else:
-            d = self.input['files'][0]
-            path = d['outpath']
-            t = ''
-            while True:
-                (path,t) = os.split(path)
-                if path == '':
-                    break
-            if t == '':
-                raise ValueError('Empty filename')
-            else:
-                for d in self.input['files']:
-                    if not d['outpath'].startswith(t):
-                        raise ValueError('One of the files in the torrent does not have an outpath that starts with '+t)
-            return t
 
     #
     # DictMixin
@@ -2337,12 +2308,6 @@ class Download(DownloadRuntimeConfig,DownloadImpl):
         # Copy tdef, so we get an infohash
         self.session = session
         self.tdef = tdef.copy()
-        # Need to do this before finalize
-        tracker = self.tdef.get_tracker()
-        itrackerurl = self.session.get_internal_tracker_url()
-        if tracker == '':
-            self.tdef.set_tracker(itrackerurl)
-        self.tdef.finalize()
         self.tdef.readonly = True
 
     #

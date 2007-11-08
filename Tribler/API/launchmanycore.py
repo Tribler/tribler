@@ -151,6 +151,9 @@ class TriblerLaunchMany(Thread):
         """ Called by any thread """
         self.sesslock.acquire()
         try:
+            if not tdef.is_finalized():
+                raise ValueError("TorrentDef not finalized")
+            
             d = triblerAPI.Download(self.session,tdef)
             infohash = d.get_def().get_infohash() 
             

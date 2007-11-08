@@ -108,7 +108,7 @@ def validTorrentFile(metainfo):
     if type(name) != StringType:
         raise ValueError('info name is not string but '+`type(name)`)
     pl = info['piece length']
-    if type(pl) != IntType:
+    if type(pl) != IntType and type(pl) != LongType:
         raise ValueError('info piece size is not int, but '+`type(pl)`)
     if 'root hash' in info:
         rh = info['root hash']
@@ -125,7 +125,7 @@ def validTorrentFile(metainfo):
             raise ValueError('info may not contain both files and length key')
         
         l = info['length']
-        if type(l) != IntType:
+        if type(l) != IntType and type(l) != LongType:
             raise ValueError('info length is not int, but '+`type(l)`)
     else:
         # multi-file torrent
@@ -150,7 +150,7 @@ def validTorrentFile(metainfo):
                     raise ValueError('info files path is not string, but '+`type(dir)`)
             
             l = file['length']
-            if type(l) != IntType:
+            if type(l) != IntType and type(l) != LongType:
                 raise ValueError('info files length is not int, but '+`type(l)`)
             
     # common additional fields
