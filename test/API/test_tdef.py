@@ -24,7 +24,7 @@ class TestTorrentDef(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def xtest_add_content_file(self):
+    def test_add_content_file(self):
         t = TorrentDef()
         t.set_create_merkle_torrent(False)
         fn = os.path.join(os.getcwd(),"file.wmv")
@@ -35,8 +35,8 @@ class TestTorrentDef(unittest.TestCase):
         s = os.path.getsize("file.wmv")
         
         metainfo = t.get_metainfo()
-        self.assert_(isValidTorrentFile(metainfo))
-        self.assert_(metainfo['announce'] == TRACKER)
+        self.general_check(metainfo)
+        
         self.assert_(metainfo['info']['name'] == "file.wmv")
         self.assert_(metainfo['info']['length'] == s)
         
@@ -61,14 +61,47 @@ class TestTorrentDef(unittest.TestCase):
             exps += os.path.getsize(p) 
 
         metainfo = t.get_metainfo()
-        self.assert_(isValidTorrentFile(metainfo))
-        self.assert_(metainfo['announce'] == TRACKER)
+        self.general_check(metainfo)
         
         self.assert_(metainfo['info']['name'] == 'dirintorrent')
         reals = 0L
         for file in metainfo['info']['files']:
             reals += file['length']
         self.assert_(exps == reals)
+
+
+    def test_add_content_dir_and_file(self):
+        t = TorrentDef()
+        t.set_create_merkle_torrent(False)
+        
+        dn = os.path.join(os.getcwd(),"contentdir")
+        t.add_content(dn,"dirintorrent")
+        
+        fn = os.path.join(os.getcwd(),"file.wmv")
+        t.add_content(fn,os.path.join("dirintorrent","file.wmv"))
+        
+        t.set_tracker(TRACKER)
+        t.finalize()
+
+        # Check
+        exps = os.path.getsize(fn)
+        for f in os.listdir("contentdir"):
+            p = os.path.join("contentdir",f)
+            exps += os.path.getsize(p) 
+
+        metainfo = t.get_metainfo()
+        self.general_check(metainfo)
+        self.assert_(metainfo['info']['name'] == 'dirintorrent')
+        
+        reals = 0L
+        for file in metainfo['info']['files']:
+            reals += file['length']
+        self.assert_(exps == reals)
+
+    def general_check(self,metainfo):
+        self.assert_(isValidTorrentFile(metainfo))
+        self.assert_(metainfo['announce'] == TRACKER)
+        
 
 
 def test_suite():
