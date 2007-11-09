@@ -1,4 +1,4 @@
-# Written by Bram Cohen
+# Written by Arno Bakker, Bram Cohen
 # multitracker extensions by John Hoffman
 # modified for Merkle hashes and digital signatures by Arno Bakker
 # see LICENSE.txt for license information
@@ -46,6 +46,9 @@ DEBUG = True
 #    print ('            url[|url...]')
 
 def make_torrent_file(input, userabortflag = None, userprogresscallback = lambda x: None):
+    """ Create a torrent file from the supplied input. 
+    
+    Returns a (infohash,metainfo) pair, or (None,None) on userabort. """
     
     (info,piece_length) = makeinfo(input,userabortflag,userprogresscallback)
     if userabortflag is not None and userabortflag.isSet():
@@ -107,18 +110,9 @@ def make_torrent_file(input, userabortflag = None, userprogresscallback = lambda
     return (infohash,metainfo)
 
 
-def calcsize(files):
-    total = 0L
-    for file in files:
-        inpath = file['inpath']
-        if os.path.isdir(inpath):
-            for s in subfiles(inpath):
-                total += os.path.getsize(s[1])
-        else:
-            total += os.path.getsize(inpath)
-    return total
-
 def uniconvertl(l, e):
+    """ Convert a pathlist to a list of strings encoded in encoding "e" using
+    uniconvert. """
     r = []
     try:
         for s in l:
@@ -127,13 +121,16 @@ def uniconvertl(l, e):
         raise UnicodeError('bad filename: '+os.path.join(l))
     return r
 
-def uniconvert(s, e):
+def uniconvert(s, enc):
+    """ Convert 's' to a string containing a Unicode sequence encoded using
+    encoding "enc". If 's' is not a Unicode object, we first try to convert
+    it to one, guessing the encoding if necessary. """
     if not isinstance(s, unicode):
         try:
             s = str2unicode(s)
         except UnicodeError:
             raise UnicodeError('bad filename: '+s)
-    return s.encode(e)
+    return s.encode(enc)
 
 
 def makeinfo(input,userabortflag,userprogresscallback):
@@ -309,6 +306,8 @@ def makeinfo(input,userabortflag,userprogresscallback):
 
 
 def subfiles(d):
+    """ Return list of (pathlist,local filename) tuples for all the files in
+    directory 'd' """
     r = []
     stack = [([], d)]
     while stack:
@@ -321,7 +320,10 @@ def subfiles(d):
             r.append((p, n))
     return r
 
+
 def filename2pathlist(path,skipfirst=False):
+    """ Convert a filename to a 'path' entry suitable for a multi-file torrent 
+    file """ 
     #if DEBUG:
     #    print >>sys.stderr,"mktorrent: filename2pathlist:",path,skipfirst
     
@@ -347,6 +349,7 @@ def filename2pathlist(path,skipfirst=False):
 
 
 def pathlist2filename(pathlist):
+    """ Convert a multi-file torrent file 'path' entry to a filename. """
     fullpath = ''
     for elem in pathlist:
         fullpath = os.path.join(fullpath,elem)
@@ -354,6 +357,7 @@ def pathlist2filename(pathlist):
 
 
 def num2num(num):
+    """ Converts long to int if small enough to fit """
     if type(num) == LongType and num < sys.maxint:
         return int(num)
     else:
