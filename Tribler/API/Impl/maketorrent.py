@@ -26,25 +26,6 @@ ignore = [] # Arno: was ['core', 'CVS']
 
 DEBUG = True
 
-#def print_announcelist_details():
-#    print ('    announce_list = optional list of redundant/backup tracker URLs, in the format:')
-#    print ('           url[,url...][|url[,url...]...]')
-#    print ('                where URLs separated by commas are all tried first')
-#    print ('                before the next group of URLs separated by the pipe is checked.')
-#    print ("                If none is given, it is assumed you don't want one in the metafile.")
-#    print ('                If announce_list is given, clients which support it')
-#    print ('                will ignore the <announce> value.')
-#    print ('           Examples:')
-#    print ('                http://tracker1.com|http://tracker2.com|http://tracker3.com')
-#    print ('                     (tries trackers 1-3 in order)')
-#    print ('                http://tracker1.com,http://tracker2.com,http://tracker3.com')
-#    print ('                     (tries trackers 1-3 in a randomly selected order)')
-#    print ('                http://tracker1.com|http://backup1.com,http://backup2.com')
-#    print ('                     (tries tracker 1 first, then tries between the 2 backups randomly)')
-#    print ('')
-#    print ('    httpseeds = optional list of http-seed URLs, in the format:')
-#    print ('            url[|url...]')
-
 def make_torrent_file(input, userabortflag = None, userprogresscallback = lambda x: None):
     """ Create a torrent file from the supplied input. 
     
