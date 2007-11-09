@@ -143,7 +143,7 @@ class TriblerLaunchMany(Thread):
         #self.mypref_db = MyPreferenceDBHandler()
         
         # add task for tracker checking
-        if not config['torrent_checking']:
+        if config['torrent_checking']:
             self.rawserver.add_task(self.torrent_checking, self.torrent_checking_period)
         
 
@@ -164,8 +164,6 @@ class TriblerLaunchMany(Thread):
                 pstate = self.load_download_pstate_noexc(infohash)
                 if pstate is not None:
                     print >>sys.stderr,"tlm: add: pstate is",dlstatus_strings[pstate['dlstate']['status']],pstate['dlstate']['progress']
-                    # Override saved DownloadStartupConfig, just in case
-                    pstate['dscfg'] = dscfg
             
             # Store in list of Downloads, always. 
             self.downloads[d.get_def().get_infohash()] = d
@@ -248,7 +246,7 @@ class TriblerLaunchMany(Thread):
     #
     def tracker_rescan_dir(self):
         if self.internaltracker is not None:
-            self.internaltracker.parse_allowed(source='TorrentMaker')
+            self.internaltracker.parse_allowed(source='Session')
 
     def set_activity(self,type):
         pass # TODO Jelle
@@ -357,10 +355,11 @@ class TriblerLaunchMany(Thread):
             pstate = self.load_download_pstate(filename)
             
             print >>sys.stderr,"tlm: load_checkpoint: pstate is",dlstatus_strings[pstate['dlstate']['status']],pstate['dlstate']['progress']
-            tdef = triblerAPI.TorrentDef._create(pstate['metainfo'])
+            tdef = triblerAPI.TorrentDef.load_from_dict(pstate['metainfo'])
             
             # Activate
-            self.add(tdef,pstate['dscfg'],pstate)
+            dscfg = DownloadStartupConfig(dlconfig=pstate['dlconfig'])
+            self.add(tdef,dscfg,pstate)
         except Exception,e:
             # TODO: remove saved checkpoint?
             self.rawserver_nonfatalerrorfunc(e)
@@ -545,12 +544,8 @@ class SingleDownload:
     
             self.logmsgs = []
     
-            """
-            class BT1Download:    
-                def __init__(self, statusfunc, finfunc, errorfunc, excfunc, doneflag, 
-                     config, response, infohash, id, rawserver, port, play_video,
-                     videoinfo, progressinf, videoanalyserpath, appdataobj = None, dht = None):
-            """
+            print >>sys.stderr,"SingleDownload: __init__: overlay present",('overlay' in kvconfig)
+    
             self.dow = BT1Download(self.hashcheckprogressfunc,
                             self.finishedfunc,
                             self.fatalerrorfunc, 

@@ -24,7 +24,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = False
+DEBUG = True
 
 if sys.platform == 'win32':
     # On windows XP SP2 we can't initiate more than 10 conns/second
@@ -209,12 +209,17 @@ class Connection:
         else:    # locat init with remote id
             if s != self.id:
                 if DEBUG:
-                    print >>sys.stderr,"Encoder.Connection: s != self.id, returning None"
+                    print >>sys.stderr,"Encoder.Connection: read_peer_id: s != self.id, returning None"
                 return None
         self.complete = self.Encoder.got_id(self)
+        
+        if DEBUG:
+            print >>sys.stderr,"Encoder.Connection: read_peer_id: complete is",self.complete
+        
+        
         if not self.complete:
             if DEBUG:
-                print >>sys.stderr,"Encoder.Connection: self not complete!!!, returning None"
+                print >>sys.stderr,"Encoder.Connection: read_peer_id: self not complete!!!, returning None"
             return None
         if self.locally_initiated:
             self.connection.write(self.Encoder.my_id)
@@ -251,7 +256,7 @@ class Connection:
     def close(self):
         if DEBUG:
             print >>sys.stderr,"encoder: closing connection",self.get_ip()
-            ##print_stack()
+            print_stack()
         if not self.closed:
             self.connection.close()
             self.sever()

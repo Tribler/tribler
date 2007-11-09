@@ -6,5 +6,6 @@
 PYTHONPATH=../..:"$PYTHONPATH"
 export PYTHONPATH
 
-python test_tdef.py
+#python test_tdef.py
+python test_seeding.py
 

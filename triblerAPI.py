@@ -252,6 +252,9 @@ TODO:
     Saving internal state is more flex
     Saving objects is easier, but potentially less efficient as all sort of temp
     junk is written as well
+    
+    Arno, 2007-11-9: Saving internal state.
+    
 
 - Add ability to run a standalone tracker based on API
 
@@ -295,7 +298,6 @@ import time
 import copy
 import sha
 import pickle
-import binascii
 import shutil
 from threading import RLock,currentThread
 from traceback import print_exc,print_stack
@@ -379,11 +381,7 @@ class SessionConfigInterface:
             self.sessconfig['videoanalyserpath'] = ffmpegpath
 
         self.sessconfig['ipv6_binds_v4'] = autodetect_socket_style()
-    
-        # TEMP TODO: Delegate to Jelle?
-        self.sessconfig['overlay'] = 0
-        self.sessconfig['dialback'] = 0
-        
+
 
     def set_state_dir(self,statedir):
         self.sessconfig['state_dir'] = statedir
@@ -463,6 +461,9 @@ class SessionConfigInterface:
     def set_overlay(self,value):
         """ Enable overlay swarm to enable Tribler's special features 
         (default = True) """
+        
+        print >>sys.stderr,"SessionStartupConfig: set_overlay",value
+        
         self.sessconfig['overlay'] = value
 
     def get_overlay(self):
@@ -578,11 +579,11 @@ class SessionConfigInterface:
     # Tribler's social networking feature transmits a nickname and picture
     # to all Tribler peers it meets.
     #
-    def set_socnet(self,value):
+    def set_social_networking(self,value):
         """ enable social networking (default = True) """
         self.sessconfig['socnet'] = value
 
-    def get_socnet(self):
+    def get_social_networking(self):
         return self.sessconfig['socnet']
 
     def set_nickname(self,value):  # TODO: put in PeerDBHandler? Add method for setting own pic
@@ -596,11 +597,11 @@ class SessionConfigInterface:
     # Tribler remote query: ask other peers when looking for a torrent file 
     # or peer
     #
-    def set_rquery(self,value):
+    def set_remote_query(self,value):
         """ enable remote query (default = True) """
         self.sessconfig['rquery'] = value
 
-    def get_rquery(self):
+    def get_remote_query(self):
         return self.sessconfig['rquery']
 
     #
@@ -954,7 +955,7 @@ class Session(SessionRuntimeConfig):
     __single = None
 
     
-    def __init__(self,scfg=None):
+    def __init__(self,scfg=None,ignore_singleton=False):
         """
         A Session object is created which is configured following a copy of the
         SessionStartupConfig scfg. (copy constructor used internally)
@@ -966,12 +967,12 @@ class Session(SessionRuntimeConfig):
         indicated by its 'state_dir' attribute.
         
         In the current implementation only a single session instance can exist
-        at a time in a process.
+        at a time in a process. The ignore_singleton flag is used for testing.
         """
-        if Session.__single:
-            raise RuntimeError, "Session is singleton"
-        Session.__single = self
-
+        if not ignore_singleton:
+            if Session.__single:
+                raise RuntimeError, "Session is singleton"
+            Session.__single = self
         
         self.sesslock = RLock()
 
@@ -982,6 +983,9 @@ class Session(SessionRuntimeConfig):
             state_dir = self.sessconfig['state_dir']
         else:
             state_dir = None
+
+
+        print >>sys.stderr,"Session: overlay",self.sessconfig['overlay']
 
         # Create dir for session state
         if state_dir is None:
@@ -1031,7 +1035,7 @@ class Session(SessionRuntimeConfig):
             os.mkdir(dlpstatedir)
         
         # 3. tracker
-        trackerdir = os.path.join(self.sessconfig['state_dir'],STATEDIR_ITRACKER_DIR)
+        trackerdir = self.get_internal_tracker_dir()
         if not os.path.isdir(trackerdir):
             os.mkdir(trackerdir)
 
@@ -1165,6 +1169,9 @@ class Session(SessionRuntimeConfig):
         port = self.get_listen_port() # already thread safe
         url = 'http://'+ip+':'+str(port)+'/announce/'
         return url
+
+    def get_internal_tracker_dir(self):
+        return os.path.join(self.sessconfig['state_dir'],STATEDIR_ITRACKER_DIR)
 
     def checkpoint(self):
         """ Saves the internal session state to the Session's state dir.
@@ -1320,7 +1327,7 @@ class TorrentDef(Serializable,Copyable):
         t.infohash = sha.sha(bencode(metainfo['info'])).digest()
         
         # copy stuff into self.input
-        maketorrent.copy_metainfo_to_input(t.metainfo,self.input)
+        maketorrent.copy_metainfo_to_input(t.metainfo,t.input)
 
         return t
     _create = staticmethod(_create)
@@ -1647,6 +1654,7 @@ class TorrentDef(Serializable,Copyable):
         if infohash is not None:
             self.infohash = infohash
             self.metainfo = metainfo
+            self.input['name'] = metainfo['info']['name']
             self.metainfo_valid = True
 
     def is_finalized(self):
@@ -2390,7 +2398,7 @@ class Download(DownloadRuntimeConfig,DownloadImpl):
         try:
             if self.sd is None:
                 self.error = None # assume fatal error is reproducible
-                # TODO: if seeding don't rehash check
+                # TODO: if seeding don't re-hashcheck
                 self.create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback,pstate=None)
             # No exception if already started, for convenience
         finally:

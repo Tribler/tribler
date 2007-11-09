@@ -4,6 +4,7 @@
 import sys
 import os
 import copy
+import binascii
 from threading import currentThread
 from traceback import print_exc,print_stack
 
@@ -39,24 +40,34 @@ class DownloadImpl:
             infohash = self.tdef.get_infohash()
             metainfo = self.tdef.get_metainfo()
             usingitracker = False
-            if metainfo['announce'] == itrackerurl:
+            
+            print >>sys.stderr,"Download: setup: internal tracker?",metainfo['announce'],itrackerurl,"#"
+
+            if itrackerurl.endswith('/'):
+                slashless = itrackerurl[:-1]
+            else:
+                slashless = itrackerurl
+            if metainfo['announce'] == itrackerurl or metainfo['announce'] == slashless:
                 usingitracker = True
             elif 'announce-list' in metainfo:
                 for tier in metainfo['announce-list']:
-                    if itrackerurl in tier:
+                    if itrackerurl in tier or slashless in tier:
                          usingitracker = True
                          break
                      
             if usingitracker:
+                print >>sys.stderr,"Download: setup: Using internal tracker"
                 # Copy .torrent to state_dir/itracker so the tracker thread 
                 # finds it and accepts peer registrations for it.
                 # 
-                trackerdir = os.path.join(self.sessconfig['state_dir'],STATEDIR_ITRACKER_DIR)
+                trackerdir = self.session.get_internal_tracker_dir()
                 basename = binascii.hexlify(infohash)+'.torrent' # ignore .tribe stuff, not vital
                 filename = os.path.join(trackerdir,basename)
                 self.tdef.save(filename)
                 # Bring to attention of Tracker thread
-                session.lm.tracker_rescan_dir()
+                self.session.lm.tracker_rescan_dir()
+            else:
+                print >>sys.stderr,"Download: setup: Not using internal tracker"
             
             # Copy dlconfig, from default if not specified
             if dcfg is None:
@@ -66,7 +77,7 @@ class DownloadImpl:
             self.dlconfig = copy.copy(cdcfg.dlconfig)
     
             # TODO: copy sessconfig into dlconfig?
-    
+            print >>sys.stderr,"Download: setup: overlay present",('overlay' in self.dlconfig)
     
             self.set_filepieceranges()
     
@@ -278,7 +289,7 @@ class DownloadImpl:
         # Reset unpicklable params
         dlconfig['vod_usercallback'] = None
         dlconfig['dlmode'] = DLMODE_NORMAL # no callback, no VOD
-        pstate['dscfg'] = DownloadStartupConfig(dlconfig=dlconfig)
+        pstate['dlconfig'] = dlconfig
 
         pstate['dlstate'] = {}
         ds = self.network_get_state(None,False,sessioncalling=True)

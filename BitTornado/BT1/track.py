@@ -37,7 +37,7 @@ except:
     True = 1
     False = 0
 
-DEBUG=False
+DEBUG=True
 
 from Tribler.API.defaults import trackerdefaults
 
@@ -294,12 +294,12 @@ class Tracker:
         self.Filter = Filter(rawserver.add_task)
         
         aggregator = config['tracker_aggregator']
-        if aggregator == '0':
+        if aggregator == 0:
             self.is_aggregator = False
             self.aggregator_key = None
         else:
             self.is_aggregator = True
-            if aggregator == '1':
+            if aggregator == 1:
                 self.aggregator_key = None
             else:
                 self.aggregator_key = aggregator
@@ -805,6 +805,7 @@ class Tracker:
             rsize = self.add_data(infohash, event, ip, paramslist)
 
         except ValueError, e:
+            print_exc()
             return (400, 'Bad Request', {'Content-Type': 'text/plain'}, 
                 'you sent me garbage - ' + str(e))
 
@@ -907,6 +908,9 @@ class Tracker:
                           [".torrent",TRIBLER_TORRENT_EXT] )
             ( self.allowed, self.allowed_dir_files, self.allowed_dir_blocked,
                 added, garbage2 ) = r
+            
+            print >>sys.stderr,"tracker: parse_allowed: Found new",`added`
+            
             
             self.state['allowed'] = self.allowed
             self.state['allowed_dir_files'] = self.allowed_dir_files

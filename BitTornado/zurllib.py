@@ -7,6 +7,7 @@ from bencode import bdecode
 from gzip import GzipFile
 from StringIO import StringIO
 from __init__ import product_name, version_short
+from traceback import print_exc
 
 VERSION = product_name+'/'+version_short
 MAX_REDIRECTS = 10
@@ -58,6 +59,7 @@ class urlopen:
                                   'Accept-Encoding': 'gzip' } )
             self.response = self.connection.getresponse()
         except HTTPException, e:
+            print_exc()
             raise IOError, ('http error', str(e))
         status = self.response.status
         if status in (301, 302):

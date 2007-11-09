@@ -22,6 +22,8 @@ from Tribler.Overlay.permid import create_torrent_signature
 from Tribler.unicode import str2unicode
 from Tribler.API.Impl.miscutils import parse_playtime_to_secs
 
+from Tribler.API.defaults import tdefdictdefaults
+
 ignore = [] # Arno: was ['core', 'CVS']
 
 DEBUG = True
@@ -411,16 +413,17 @@ def copy_metainfo_to_input(metainfo,input):
             input[key] = metainfo['info'][key]
         
     # Note: don't know inpath, set to outpath
-    if 'length' in metainfo:
+    if 'length' in metainfo['info']:
         outpath = metainfo['info']['name']
         if 'playtime' in metainfo['info']:
             playtime = metainfo['info']['playtime']
         else:
             playtime = None
-        length = metainfo['length'] 
+        length = metainfo['info']['length'] 
         d = {'inpath':outpath,'outpath':outpath,'playtime':playtime,'length':length}
         input['files'].append(d)
     else: # multi-file torrent
+        files = metainfo['files']
         for file in files:
             outpath = pathlist2filename(file['path'])
             if 'playtime' in file:

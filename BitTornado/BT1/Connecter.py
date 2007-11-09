@@ -32,8 +32,8 @@ except:
     True = 1
     False = 0
 
-DEBUG = False
-DEBUG_NORMAL_MSGS = False
+DEBUG = True
+DEBUG_NORMAL_MSGS = True
 
 UNAUTH_PERMID_PERIOD = 3600
 
@@ -472,9 +472,12 @@ class Connecter:
         self.round = 0
         self.mylistenport = mylistenport
         self.infohash = infohash
-        self.overlay_enabled = 1
+        self.overlay_enabled = 0
         if 'overlay' in self.config:
             self.overlay_enabled = self.config['overlay']
+            
+        print >>sys.stderr,"connecter: Enabling/Disabling overlay",self.overlay_enabled
+            
         self.ut_pex_enabled = 0
         if 'ut_pex_max_addrs_from_peer' in self.config:
             self.ut_pex_max_addrs_from_peer = self.config['ut_pex_max_addrs_from_peer']
