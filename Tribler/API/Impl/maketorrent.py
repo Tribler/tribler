@@ -23,6 +23,8 @@ from Tribler.unicode import str2unicode
 
 ignore = [] # Arno: was ['core', 'CVS']
 
+DEBUG = True
+
 #def print_announcelist_details():
 #    print ('    announce_list = optional list of redundant/backup tracker URLs, in the format:')
 #    print ('           url[,url...][|url[,url...]...]')
@@ -49,8 +51,10 @@ def make_torrent_file(input, userabortflag = None, userprogresscallback = lambda
         return (None,None)
     if info is None:
         return (None,None)
+
+    if DEBUG:
+        print >>sys.stderr,"mktorrent: makeinfo returned",`info`
     
-    input['piece length'] = piece_length
     check_info(info)
     metainfo = {'info': info, 'encoding': input['encoding'], 'creation date': long(time())}
     
@@ -149,6 +153,10 @@ def makeinfo(input,userabortflag,userprogresscallback):
     for file in input['files']:
         inpath = file['inpath']
         outpath = file['outpath']
+        
+        if DEBUG:
+            print >>sys.stderr,"makeinfo: inpath",inpath,"outpath",outpath
+        
         if os.path.isdir(inpath):
             dirsubs = subfiles(inpath)
             subs.extend(dirsubs)
@@ -316,17 +324,14 @@ def subfiles(d):
 def path2list(path,skipfirst=False):
     h = path
     l = []
-    first = True
     while True:
-        print >>sys.stderr,"path2list:",path
         (h,t) = os.path.split(h)
         if h == '' and t == '':
             break
+        if h == '' and skipfirst:
+            continue
         if t != '': # handle case where path ends in / (=path separator)
-            if first and skipfirst:
-                continue
             l.append(t)
-            first = False
     return l
 
 def num2num(num):
