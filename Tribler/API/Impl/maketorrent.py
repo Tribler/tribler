@@ -20,6 +20,7 @@ from BitTornado.BT1.btformats import check_info
 from Tribler.Merkle.merkle import MerkleTree
 from Tribler.Overlay.permid import create_torrent_signature
 from Tribler.unicode import str2unicode
+from Tribler.API.Impl.miscutils import parse_playtime_to_secs
 
 ignore = [] # Arno: was ['core', 'CVS']
 
@@ -59,20 +60,17 @@ def make_torrent_file(input, userabortflag = None, userprogresscallback = lambda
     metainfo = {'info': info, 'encoding': input['encoding'], 'creation date': long(time())}
     
     # See www.bittorrent.org/Draft_DHT_protocol.html
-    if len(input['nodes']) == 0:
+    if input['nodes'] is None:
         metainfo['announce'] = input['announce']
     else:
         metainfo['nodes'] = input['nodes']
 
     for key in ['announce-list','comment','created by','httpseeds']:
-        if len(input[key]) > 0:
+        if input[key] is not None and len(input[key]) > 0:
             metainfo[key] = input[key]
             if key == 'comment':
                 metainfo['comment.utf-8'] = uniconvert(input['comment'],'utf-8')
         
-    if input['createtorrentsig']:
-        create_torrent_signature(metainfo,input['torrentsigkeypairfilename'])
-
     # Assuming 1 file, Azureus format no support multi-file torrent with diff
     # bitrates 
     bitrate = None
@@ -83,7 +81,6 @@ def make_torrent_file(input, userabortflag = None, userprogresscallback = lambda
             break
 
     if bitrate is not None or input['thumb'] is not None:
-        thumb = params['thumb']
         mdict = {}
         mdict['Publisher'] = 'Tribler'
         mdict['Description'] = input['comment']
@@ -97,11 +94,14 @@ def make_torrent_file(input, userabortflag = None, userprogresscallback = lambda
         # Azureus client source code doesn't tell what this is, so just put in random value from real torrent
         mdict['Content Hash'] = 'PT3GQCPW4NPT6WRKKT25IQD4MU5HM4UY'
         mdict['Revision Date'] = long(time())
-        if len(input['thumb']) > 0:
-            mdict['Thumbnail'] = thumb
+        if input['thumb'] is not None:
+            mdict['Thumbnail'] = input['thumb']
         cdict = {}
         cdict['Content'] = mdict
         metainfo['azureus_properties'] = cdict
+
+    if input['torrentsigkeypairfilename'] is not None:
+        create_torrent_signature(metainfo,input['torrentsigkeypairfilename'])
 
     infohash = sha(bencode(info)).digest()
     return (infohash,metainfo)
@@ -164,7 +164,7 @@ def makeinfo(input,userabortflag,userprogresscallback):
             if outpath is None:
                 subs.append(([os.path.basename(inpath)],inpath))
             else:
-                subs.append((path2list(outpath,skipfirst=True),inpath))
+                subs.append((filename2pathlist(outpath,skipfirst=True),inpath))
             
     subs.sort()
     
@@ -258,7 +258,7 @@ def makeinfo(input,userabortflag,userprogresscallback):
         # Find and add playtime
         for file in input['files']:
             if file['inpath'] == f and file['playtime'] is not None:
-                newdict['playtime'] = playtime
+                newdict['playtime'] = file['playtime']
                 break
         
         if input['makehash_md5']:
@@ -285,7 +285,7 @@ def makeinfo(input,userabortflag,userprogresscallback):
         flval = fs
 
         outpath = input['files'][0]['outpath']
-        l = path2list(outpath)
+        l = filename2pathlist(outpath)
         name = l[0]
         
     infodict =  { 'piece length':num2num(piece_length), flkey: flval, 
@@ -303,7 +303,7 @@ def makeinfo(input,userabortflag,userprogresscallback):
         # Find and add playtime
         for file in input['files']:
             if file['inpath'] == f and file['playtime'] is not None:
-                infodict['playtime'] = playtime
+                infodict['playtime'] = file['playtime']
         
     return (infodict,piece_length)
 
@@ -321,10 +321,16 @@ def subfiles(d):
             r.append((p, n))
     return r
 
-def path2list(path,skipfirst=False):
+def filename2pathlist(path,skipfirst=False):
+    #if DEBUG:
+    #    print >>sys.stderr,"mktorrent: filename2pathlist:",path,skipfirst
+    
     h = path
     l = []
     while True:
+        #if DEBUG:
+        #    print >>sys.stderr,"mktorrent: filename2pathlist: splitting",h
+        
         (h,t) = os.path.split(h)
         if h == '' and t == '':
             break
@@ -332,7 +338,20 @@ def path2list(path,skipfirst=False):
             continue
         if t != '': # handle case where path ends in / (=path separator)
             l.append(t)
+            
+    l.reverse()
+    #if DEBUG:
+    #    print >>sys.stderr,"mktorrent: filename2pathlist: returning",l
+
     return l
+
+
+def pathlist2filename(pathlist):
+    fullpath = ''
+    for elem in pathlist:
+        fullpath = os.path.join(fullpath,elem)
+    return fullpath
+
 
 def num2num(num):
     if type(num) == LongType and num < sys.maxint:
@@ -393,3 +412,72 @@ def get_bitrate_from_metainfo(file,metainfo):
         raise ValueError("File not found in torrent")
     else:
         raise ValueError("File not found in single-file torrent")
+
+
+def copy_metainfo_to_input(metainfo,input):
+    
+    for key in tdefdictdefaults.keys():
+        if key in metainfo:
+            input[key] = metainfo[key]
+            
+    infokeys = ['name','piece length']
+    for key in infokeys:
+        if key in metainfo['info']:
+            input[key] = metainfo['info'][key]
+        
+    # Note: don't know inpath, set to outpath
+    if 'length' in metainfo:
+        outpath = metainfo['info']['name']
+        if 'playtime' in metainfo['info']:
+            playtime = metainfo['info']['playtime']
+        else:
+            playtime = None
+        length = metainfo['length'] 
+        d = {'inpath':outpath,'outpath':outpath,'playtime':playtime,'length':length}
+        input['files'].append(d)
+    else: # multi-file torrent
+        for file in files:
+            outpath = pathlist2filename(file['path'])
+            if 'playtime' in file:
+                playtime = file['playtime']
+            else:
+                playtime = None
+            length = file['length'] 
+            d = {'inpath':outpath,'outpath':outpath,'playtime':playtime,'length':length}
+            input['files'].append(d)
+    
+    if 'azureus_properties' in metainfo:
+        azprop = metainfo['azureus_properties']
+        if 'Content' in azprop:
+            content = metainfo['azureus_properties']['Content']
+            if 'Thumbnail' in content:
+                input['thumb'] = content['Thumbnail']
+                
+
+def get_video_files(metainfo):
+    videofiles = []
+    if 'files' in metainfo['info']:
+        # Multi-file torrent
+        files = metainfo['info']['files']
+        for file in files:
+            
+            p = file['path']
+            print >>sys.stderr,"TorrentDef: get_video_files: file is",p
+            filename = ''
+            for elem in p:
+                print >>sys.stderr,"TorrentDef: get_video_files: elem is",elem
+                filename = os.path.join(filename,elem)
+            print >>sys.stderr,"TorrentDef: get_video_files: composed filename is",filename    
+            (prefix,ext) = os.path.splitext(filename)
+            if ext[0] == '.':
+                ext = ext[1:]
+            print >>sys.stderr,"TorrentDef: get_video_files: ext",ext
+            if ext in videoexts:
+                videofiles.append(filename)
+    else:
+        filename = metainfo['info']['name'] # don't think we need fixed name here
+        (prefix,ext) = os.path.splitext(filename)
+        if ext in videoexts:
+            videofiles.append(filename)
+    return videofiles
+            

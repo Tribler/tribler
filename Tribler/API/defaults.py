@@ -149,13 +149,13 @@ dldefaults['ut_pex_max_addrs_from_peer'] = 16
 
 
 tdefdictdefaults = {}
-tdefdictdefaults['comment'] = ''
-tdefdictdefaults['created by'] = ''
-tdefdictdefaults['announce'] = ''
-tdefdictdefaults['announce-list'] = ''
-tdefdictdefaults['nodes'] = '' # mainline DHT
-tdefdictdefaults['httpseeds'] = ''
-
+tdefdictdefaults['comment'] = None
+tdefdictdefaults['created by'] = None
+tdefdictdefaults['announce'] = None
+tdefdictdefaults['announce-list'] = None
+tdefdictdefaults['nodes'] = None # mainline DHT
+tdefdictdefaults['httpseeds'] = None
+tdefdictdefaults['encoding'] = None
 
 tdefmetadefaults = {}
 tdefmetadefaults['version'] = 1
@@ -164,8 +164,7 @@ tdefmetadefaults['makehash_md5'] = 0
 tdefmetadefaults['makehash_crc32'] = 0
 tdefmetadefaults['makehash_sha1'] = 0
 tdefmetadefaults['createmerkletorrent'] = 1
-tdefmetadefaults['createtorrentsig'] = 0
-tdefmetadefaults['torrentsigkeypairfilename'] = ''
+tdefmetadefaults['torrentsigkeypairfilename'] = None
 tdefmetadefaults['thumb'] = None
 
 tdefdefaults = {}

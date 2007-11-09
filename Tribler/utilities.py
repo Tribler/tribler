@@ -11,8 +11,10 @@ import os
 import copy
 from types import UnicodeType, StringType, LongType, IntType, ListType, DictType
 import urlparse
+from traceback import print_exc
 
 STRICT_CHECK = False
+DEBUG = True
 
 permid_len = 112
 infohash_len = 20
@@ -86,12 +88,31 @@ def validTorrentFile(metainfo):
     if type(metainfo) != DictType:
         raise ValueError('metainfo not dict')
     
-    keys = ['announce', 'info']
-    for key in keys:
-        if key not in metainfo:
-            raise ValueError('metainfo misses key '+key)
-    if not isValidURL(metainfo['announce']):
+    
+    if 'info' not in metainfo:
+        raise ValueError('metainfo misses key '+key)
+    
+    if 'announce' in metainfo and not isValidURL(metainfo['announce']):
         raise ValueError('announce URL bad')
+    
+    if 'announce' in metainfo and 'nodes' in metainfo:
+        raise ValueError('both announce and nodes present')
+    
+    if 'nodes' in metainfo:
+        nodes = metainfo['nodes']
+        if type(nodes) != ListType:
+            raise ValueError('nodes not list, but '+`type(nodes)`)
+        for pair in nodes:
+            if type(pair) != ListType and len(pair) != 2:
+                raise ValueError('node not 2-item list, but '+`type(pair)`)
+            host,port = pair
+            if type(host) != StringType:
+                raise ValueError('node host not string, but '+`type(host)`)
+            if type(port) != IntType:
+                raise ValueError('node port not int, but '+`type(port)`)
+
+    if not ('announce' in metainfo or 'nodes' in metainfo):
+        raise ValueError('announce and nodes missing')
     
     info = metainfo['info']
     if type(info) != DictType:
@@ -184,12 +205,16 @@ def isValidTorrentFile(metainfo):
         validTorrentFile(metainfo)
         return True
     except:
+        if DEBUG:
+            print_exc()
         return False
     
     
 def isValidURL(url):
     r = urlparse.urlsplit(url)
-    if r[0] == '' or r[1] == '' or r[2] == '':
+    #if DEBUG:
+    #    print >>sys.stderr,"isValidURL:",r
+    if r[0] == '' or r[1] == '':
         return False
     return True
     

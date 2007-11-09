@@ -234,15 +234,6 @@ TODO:
 
 - Reimplement selected_files with existing 'priority' field
 
-- TorrentDef:
-    Should we make this a simple dict interface, or provide user-friendly
-    functions for e.g. handling encoding issues for filenames, setting 
-    thumbnails, etc. 
-    
-    My proposal is to have both, so novice users can use the simple ones, and 
-    advanced users can still control all fields.
-
-
 - *Config: some values will be runtime modifiable, others may be as well
     but hard to implement, e.g. destdir or VOD.
     SOL: We throw exceptions when it is not runtime modifiable, and 
@@ -306,7 +297,6 @@ import sha
 import pickle
 import binascii
 import shutil
-from UserDict import DictMixin
 from threading import RLock,currentThread
 from traceback import print_exc,print_stack
 from types import StringType,ListType,IntType
@@ -321,9 +311,9 @@ from Tribler.API.exceptions import *
 import Tribler.Overlay.permid
 from Tribler.API.launchmanycore import TriblerLaunchMany
 from Tribler.API.Impl.UserCallbackHandler import UserCallbackHandler
-from Tribler.API.Impl.maketorrent import make_torrent_file
+import Tribler.API.Impl.maketorrent as maketorrent
 from Tribler.API.Impl.miscutils import *
-from Tribler.utilities import find_prog_in_PATH,validTorrentFile
+from Tribler.utilities import find_prog_in_PATH,validTorrentFile,isValidURL
 DEBUG = True
 
 #
@@ -1089,6 +1079,7 @@ class Session(SessionRuntimeConfig):
         """ Returns the factory default directory for storing session state """
         homedirpostfix = '.Tribler'
         if sys.platform == 'win32':
+            homedirpostfix = 'Tribler' # i.e. C:\Documents and Settings\user\Application Data\Tribler
             homedirvar = '${APPDATA}'
         elif sys.platform == 'darwin':
             homedirvar = '${HOME}'
@@ -1247,11 +1238,15 @@ class Session(SessionRuntimeConfig):
         
         
 
-#class TorrentDef(DictMixin,Serializable):
 class TorrentDef(Serializable,Copyable):
     """
     Definition of a torrent, i.e. all params required for a torrent file,
     plus optional params such as thumbnail, playtime, etc.
+    
+    Note: to add fields to the torrent definition which are not supported
+    by its API, first create the torrent def, finalize it, then add the
+    fields to the metainfo, and create a new torrent def from that
+    upgraded metainfo using TorrentDef.load_from_dict()
 
     cf. libtorrent torrent_info
     """
@@ -1267,18 +1262,20 @@ class TorrentDef(Serializable,Copyable):
             return
         
         self.input = {} # fields added by user, waiting to be turned into torrent file
-        self.input['files'] = []
+        # Define the built-in default here
+        self.input.update(tdefdefaults)
         try:
             self.input['encoding'] = sys.getfilesystemencoding()
         except:
             self.input['encoding'] = sys.getdefaultencoding()
+
+        self.input['files'] = []
+
         
         self.metainfo_valid = False
         self.metainfo = None # copy of loaded or last saved torrent dict
         self.infohash = None # only valid if metainfo_valid
         
-        # Define the built-in default here
-        self.input.update(tdefdefaults)
         
         # We cannot set a built-in default for a tracker here, as it depends on
         # a Session. Alternatively, the tracker will be set to the internal
@@ -1293,7 +1290,7 @@ class TorrentDef(Serializable,Copyable):
         Load a BT .torrent or Tribler .tribe file from disk and convert
         it into a finalized TorrentDef
         
-        in: filename = Fully qualified Unicode filename
+        in: filename = Absolute Unicode filename
         returns: a TorrentDef object
         
         throws: IOExceptions,ValueError
@@ -1322,12 +1319,9 @@ class TorrentDef(Serializable,Copyable):
         t.metainfo_valid = True
         t.infohash = sha.sha(bencode(metainfo['info'])).digest()
         
-        # copy stuff into self.input 
-        t.input = {}
-        t.input['announce'] = t.metainfo['announce']
-        t.input['name'] = t.metainfo['info']['name']
-        
-        # TODO: copy rest of fields from metainfo to input
+        # copy stuff into self.input
+        maketorrent.copy_metainfo_to_input(t.metainfo,self.input)
+
         return t
     _create = staticmethod(_create)
 
@@ -1345,6 +1339,21 @@ class TorrentDef(Serializable,Copyable):
         f = urlTimeoutOpen(url)
         return TorrentDef._read(f)
     load_from_url = staticmethod(load_from_url)
+
+
+    def load_from_dict(metainfo):
+        """
+        Load a BT .torrent or Tribler .tribe file from the metainfo dictionary
+        it into a TorrentDef
+        
+        in: metainfo = a dictionary following the BT torrent file spec.
+        returns: a TorrentDef object
+        
+        throws: IOExceptions,ValueError
+        """
+        # Class method, no locking required
+        return TorrentDef._create(metainfo)
+    load_from_dict = staticmethod(load_from_dict)
 
     
     #
@@ -1364,7 +1373,7 @@ class TorrentDef(Serializable,Copyable):
         torrent. 
         
         in:
-        inpath = Fully-qualified name of file or directory on local filesystem, 
+        inpath = Absolute name of file or directory on local filesystem, 
                  as Unicode string
         outpath = (optional) Name of the content to use in the torrent def as
                 Unicode string.
@@ -1378,33 +1387,39 @@ class TorrentDef(Serializable,Copyable):
         d = {'inpath':inpath,'outpath':outpath,'playtime':playtime,'length':s.st_size}
         self.input['files'].append(d)
         
-        # Update info
         self.metainfo_valid = False
 
+
+    def remove_content(self,inpath):
+        """ Remove a file or directory from this torrent definition 
+
+        in:
+        inpath = Absolute name of file or directory on local filesystem, 
+                 as Unicode string
+        """
+        if self.readonly:
+            raise OperationNotPossibleAtRuntimeException()
+        
+        for d in self.input['files']:
+            if d['inpath'] == inpath:
+                self.input['files'].remove(d)
+                break
+            
     def set_encoding(self,enc):
+        """ Set the character encoding for e.g. the 'name' field """
         self.input['encoding'] = enc
+        self.metainfo_valid = False
         
     def get_encoding(self):
         return self.input['encoding']
 
-    def get_thumbnail(self):
-        """
-        returns: (MIME type,thumbnail data) if present or (None,None)
-        """
-        if 'thumb' not in self.input:
-            return (None,None)
-        else:
-            thumb = self.input['thumb'] # buffer/string immutable
-            return ('image/jpeg',thumb)
-        
-        
     def set_thumbnail(self,thumbfilename):
         """
         Reads image from file and turns it into a torrent thumbnail
         The file should contain an image in JPEG format, preferably 171x96
         
         in:
-        thumbfilename = Fully qualified name of image file, as Unicode string.
+        thumbfilename = Absolute name of image file, as Unicode string.
         
         exceptions: ...Error
         """
@@ -1416,6 +1431,17 @@ class TorrentDef(Serializable,Copyable):
         f.close()
         self.input['thumb'] = data 
         self.metainfo_valid = False
+
+
+    def get_thumbnail(self):
+        """
+        returns: (MIME type,thumbnail data) if present or (None,None)
+        """
+        if 'thumb' not in self.input:
+            return (None,None)
+        else:
+            thumb = self.input['thumb'] # buffer/string immutable
+            return ('image/jpeg',thumb)
         
 
     def set_tracker(self,url):
@@ -1423,22 +1449,44 @@ class TorrentDef(Serializable,Copyable):
         if self.readonly:
             raise OperationNotPossibleAtRuntimeException()
 
+        if not isValidURL(url):
+            raise ValueError("Invalid URL")
+        
         if url.endswith('/'):
             # Some tracker code can't deal with / at end
             url = url[:-1]
         self.input['announce'] = url 
+        self.metainfo_valid = False
 
     def get_tracker(self):
         return self.input['announce']
 
-    def set_tracker_hierarchy(self,value):
-        """ set hierarchy of trackers (announce-list) """
+    def set_tracker_hierarchy(self,hier):
+        """ Set hierarchy of trackers (announce-list) following the spec
+        at http://www.bittornado.com/docs/multitracker-spec.txt """
         if self.readonly:
             raise OperationNotPossibleAtRuntimeException()
 
         # TODO: check input, in particular remove / at end
+        newhier = []
+        if type(hier) != ListType:
+            raise ValueError("hierarchy is not a list")
+        for tier in hier:
+            if type(tier) != ListType:
+                raise ValueError("tier is not a list")
+            newtier = []
+            for url in tier:
+                if not isValidURL(url):
+                    raise ValueError("Invalid URL: "+`url`)
+                
+                if url.endswith('/'):
+                    # Some tracker code can't deal with / at end
+                    url = url[:-1]
+                newtier.append(url)
+            newhier.append(newtier)
 
-        self.input['announce-list'] = value
+        self.input['announce-list'] = newhier
+        self.metainfo_valid = False
 
     def get_tracker_hierarchy(self):
         return self.input['announce-list']
@@ -1461,7 +1509,8 @@ class TorrentDef(Serializable,Copyable):
                 if type(node[1]) != IntType:
                     raise ValueError("port in node is not int:"+`node`)
                 
-        self.input['nodes'] = nodes 
+        self.input['nodes'] = nodes
+        self.metainfo_valid = False 
 
     def get_dht_nodes(self):
         return self.input['nodes']
@@ -1472,6 +1521,7 @@ class TorrentDef(Serializable,Copyable):
             raise OperationNotPossibleAtRuntimeException()
 
         self.input['comment'] = value
+        self.metainfo_valid = False
 
     def get_comment(self):
         return self.input['comment']
@@ -1482,17 +1532,23 @@ class TorrentDef(Serializable,Copyable):
             raise OperationNotPossibleAtRuntimeException()
 
         self.input['created by'] = value
+        self.metainfo_valid = False
 
     def get_created_by(self):
         return self.input['created by']
 
     def set_httpseeds(self,value):
-        """ set list of HTTP seeds """
+        """ Set list of HTTP seeds following the spec at
+        http://www.bittornado.com/docs/webseed-spec.txt """
         if self.readonly:
             raise OperationNotPossibleAtRuntimeException()
 
-        # TODO: check input
+        for url in value:
+            if not isValidURL(url):
+                raise ValueError("Invalid URL: "+`url`)
+
         self.input['httpseeds'] = value
+        self.metainfo_valid = False
 
     def get_httpseeds(self):
         return self.input['httpseeds']
@@ -1502,7 +1558,11 @@ class TorrentDef(Serializable,Copyable):
         if self.readonly:
             raise OperationNotPossibleAtRuntimeException()
 
+        if not (type(value) == IntType or type(value) == LongType):
+            raise ValueError("Piece length not an int/long")
+
         self.input['piece length'] = value
+        self.metainfo_valid = False
 
     def get_piece_length(self):
         return self.input['piece length']
@@ -1513,6 +1573,7 @@ class TorrentDef(Serializable,Copyable):
             raise OperationNotPossibleAtRuntimeException()
 
         self.input['makehash_md5'] = value
+        self.metainfo_valid = False
 
     def get_add_md5hash(self):
         return self.input['makehash_md5']
@@ -1523,6 +1584,7 @@ class TorrentDef(Serializable,Copyable):
             raise OperationNotPossibleAtRuntimeException()
 
         self.input['makehash_crc32'] = value
+        self.metainfo_valid = False
 
     def get_add_crc32(self):
         return self.input['makehash_crc32']
@@ -1533,6 +1595,7 @@ class TorrentDef(Serializable,Copyable):
             raise OperationNotPossibleAtRuntimeException()
 
         self.input['makehash_sha1'] = value
+        self.metainfo_valid = False
 
     def get_add_sha1hash(self):
         return self.input['makehash_sha1']
@@ -1543,31 +1606,23 @@ class TorrentDef(Serializable,Copyable):
             raise OperationNotPossibleAtRuntimeException()
 
         self.input['createmerkletorrent'] = value
+        self.metainfo_valid = False
 
     def get_create_merkle_torrent(self):
         return self.input['createmerkletorrent']
 
-    def set_add_signature(self,value):
-        """ whether to add a signature to the torrent """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
-        self.input['createtorrentsig'] = value
-
-    def get_add_signature(self):
-        return self.input['createtorrentsig']
-
     def set_signature_keypair_filename(self,value):
-        """ filename of keypair to be used for signature """
+        """ Set absolute filename of keypair to be used for signature.
+        When set, a signature will be added """
         if self.readonly:
             raise OperationNotPossibleAtRuntimeException()
 
         self.input['torrentsigkeypairfilename'] = value
+        self.metainfo_valid = False
 
     def get_signature_keypair_filename(self):
         return self.input['torrentsigkeypairfilename']
 
-        
     #
     def finalize(self,userabortflag=None,userprogresscallback=None):
         """ Create BT torrent file by reading the files added with
@@ -1588,7 +1643,7 @@ class TorrentDef(Serializable,Copyable):
 
         # Note: reading of all files and calc of hashes is done by calling 
         # thread.
-        (infohash,metainfo) = make_torrent_file(self.input,userabortflag=userabortflag,userprogresscallback=userprogresscallback)
+        (infohash,metainfo) = maketorrent.make_torrent_file(self.input,userabortflag=userabortflag,userprogresscallback=userprogresscallback)
         if infohash is not None:
             self.infohash = infohash
             self.metainfo = metainfo
@@ -1605,35 +1660,44 @@ class TorrentDef(Serializable,Copyable):
         if self.metainfo_valid:
             return self.infohash
         else:
-            raise NotYetImplementedException() # must save first
+            raise TorrentDefNotFinalizedException()
 
     def get_metainfo(self):
         if self.metainfo_valid:
             return self.metainfo
         else:
-            raise NotYetImplementedException() # must save first
+            raise TorrentDefNotFinalizedException()
 
     def get_name(self):
-        """ Returns info['name'] field as raw string of bytes. Only available when finalized """
+        """ Returns info['name'] field as raw string of bytes. """
         if self.metainfo_valid:
             return self.input['name'] # string immutable
         else:
-            return None
+            raise TorrentDefNotFinalizedException()
 
     def get_name_as_unicode(self):
+        """ Returns info['name'] field as Unicode string """
         if self.metainfo_valid:
             (namekey,uniname) = metainfoname2unicode(self.metainfo)
             return uniname
         else:
-            return None
+            raise TorrentDefNotFinalizedException()
+
+    def verify_torrent_signature(self):
+        if self.metainfo_valid:
+            return Tribler.Overlay.permid.verify_torrent_signature(self.metainfo)
+        else:
+            raise TorrentDefNotFinalizedException()
+
 
     def save(self,filename):
         """
         Finalizes the torrent def and writes a torrent file i.e., bencoded dict 
-        following BT spec) to the specified filename.
+        following BT spec) to the specified filename. Note this make take a
+        long time when the torrent def is not yet finalized.
         
         in:
-        filename = Fully qualified Unicode filename
+        filename = Absolute Unicode filename
         
         throws: IOError
         """
@@ -1656,38 +1720,14 @@ class TorrentDef(Serializable,Copyable):
         if not self.metainfo_valid:
             raise NotYetImplementedException() # must save first
 
-        bitrate = get_bitrate_from_metainfo(file,self.metainfo)
+        bitrate = maketorrent.get_bitrate_from_metainfo(file,self.metainfo)
     
     
     def get_video_files(self,videoexts=videoextdefaults):
         if not self.metainfo_valid:
             raise NotYetImplementedException() # must save first
-
-        videofiles = []
-        if 'files' in self.metainfo['info']:
-            # Multi-file torrent
-            files = self.metainfo['info']['files']
-            for file in files:
-                
-                p = file['path']
-                print >>sys.stderr,"TorrentDef: get_video_files: file is",p
-                filename = ''
-                for elem in p:
-                    print >>sys.stderr,"TorrentDef: get_video_files: elem is",elem
-                    filename = os.path.join(filename,elem)
-                print >>sys.stderr,"TorrentDef: get_video_files: composed filename is",filename    
-                (prefix,ext) = os.path.splitext(filename)
-                if ext[0] == '.':
-                    ext = ext[1:]
-                print >>sys.stderr,"TorrentDef: get_video_files: ext",ext
-                if ext in videoexts:
-                    videofiles.append(filename)
-        else:
-            filename = self.metainfo['info']['name'] # don't think we need fixed name here
-            (prefix,ext) = os.path.splitext(filename)
-            if ext in videoexts:
-                videofiles.append(filename)
-        return videofiles
+        
+        return maketorrent.get_video_files(self.metainfo)
 
     
     #
@@ -1703,19 +1743,12 @@ class TorrentDef(Serializable,Copyable):
             for i in range(len(info['files'])):
                 x = info['files'][i]
                     
-                intorrentpath = ''
-                for elem in x['path']:
-                    intorrentpath = os.path.join(intorrentpath,elem)
-                    
+                intorrentpath = pathlist2filename(x['path'])
                 if intorrentpath == file:
                     return i
             return ValueError("File not found in torrent")
         else:
             raise ValueError("File not found in single-file torrent")
-
-    #
-    # DictMixin
-    #
 
     #
     # Copyable interface

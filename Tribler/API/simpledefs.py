@@ -31,8 +31,3 @@ STATEDIR_DLPSTATE_DIR = 'dlcheckpoints'
 STATEDIR_SESSCONFIG = 'sessconfig.pickle' 
 
 
-def pathlist2filename(pathlist):
-    fullpath = ''
-    for elem in pathlist:
-        fullpath = os.path.join(fullpath,elem)
-    return fullpath
