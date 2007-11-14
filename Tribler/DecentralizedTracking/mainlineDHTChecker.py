@@ -3,7 +3,6 @@
 
 import sys
 from threading import currentThread
-from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
 
 DEBUG = False
 

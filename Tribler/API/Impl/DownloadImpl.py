@@ -11,7 +11,7 @@ from traceback import print_exc,print_stack
 import triblerAPI
 from Tribler.API.simpledefs import *
 from Tribler.API.osutils import *
-from Tribler.API.launchmanycore import SingleDownload
+from Tribler.API.Impl.LaunchManyCore import SingleDownload
 from Tribler.unicode import metainfoname2unicode
 
 

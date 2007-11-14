@@ -314,14 +314,14 @@ from Tribler.API.simpledefs import *
 from Tribler.API.defaults import *
 from Tribler.API.exceptions import *
 import Tribler.Overlay.permid
-from Tribler.API.launchmanycore import TriblerLaunchMany
+from Tribler.API.Impl.LaunchManyCore import TriblerLaunchMany
 from Tribler.API.Impl.UserCallbackHandler import UserCallbackHandler
 import Tribler.API.Impl.maketorrent as maketorrent
 from Tribler.API.Impl.miscutils import *
 from Tribler.utilities import find_prog_in_PATH,validTorrentFile,isValidURL
 from Tribler.unicode import metainfoname2unicode
 from Tribler.API.osutils import *
-from Tribler.API.miscutils import *
+from Tribler.API.Impl.miscutils import *
 from Tribler.CacheDB.Notifier import Notifier
 
 DEBUG = True

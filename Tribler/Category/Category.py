@@ -3,9 +3,9 @@
 
 import os
 from Tribler.Category.init_category import getCategoryInfo
-from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
 from BitTornado import bencode
 from Tribler.unicode import str2unicode, dunno2unicode
+from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler
 from sets import Set
 from time import time
 from copy import deepcopy
@@ -41,7 +41,7 @@ class Category (FlaglessDelayedEventHandler):
         filename = make_filename(install_dir, category_file)
         Category.__single = self
         self.invoker = FlaglessDelayedEventHandler()
-        self.torrent_db = SynTorrentDBHandler.getInstance()
+        self.torrent_db = TorrentDBHandler.getInstance()
         self.category_info = getCategoryInfo(filename)
         self.category_info.sort(rankcmp)
         self.config_dir = config_dir

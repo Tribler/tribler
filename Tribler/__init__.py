@@ -21,11 +21,11 @@ except ImportError:
         return 1
 import Overlay.permid as permid
 import CacheDB.cachedb as cachedb
-import CacheDB.superpeer as superpeer
+#import CacheDB.superpeer as superpeer
 from base64 import decodestring 
 import CacheDB.friends as friends
-import Category.Category as category
-from NATFirewall.guessip import get_my_wan_ip
+#import Category.Category as category
+#from NATFirewall.guessip import get_my_wan_ip
 
 ## Global initialization
 TRIBLER_TORRENT_EXT = ".tribe"
@@ -54,20 +54,20 @@ def get_my_ip(name):
     else:
         return ip
 
-def tribler_init(config_dir = None, install_dir = None, db_exception_handler = None):
-    resetPeerIDs()
-    permid.init(config_dir)
-    myinfo = load_myinfo()
+#def tribler_init(config_dir = None, install_dir = None, db_exception_handler = None):
+    #resetPeerIDs()
+    #permid.init(config_dir)
+    #myinfo = load_myinfo()
     # roee88 says we need to revert to encoded here for the databases
     
     # done in launchmanycore
     #cachedb.init(config_dir.encode(sys.getfilesystemencoding()),myinfo,db_exception_handler = db_exception_handler)
     #superpeer.init(install_dir)
 
-    friends.init(config_dir)
-    category.init(install_dir, config_dir)
-    print 'Reading configuration from: ', repr(config_dir)
-
+    #friends.init(config_dir)
+    #category.init(install_dir, config_dir)
+    #print 'Reading configuration from: ', repr(config_dir)
+ 
 def tribler_done(config_dir = None):
     friends.done(config_dir)
     cachedb.done(config_dir)

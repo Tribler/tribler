@@ -42,7 +42,6 @@ from Tribler.Video.utils import win32_retrieve_video_play_command
 from Tribler.CacheDB.Notifier import Notifier
 from Tribler.CacheDB.CacheDBHandler import *
 import Tribler.CacheDB.cachedb as cachedb
-import Tribler.CacheDB.superpeer as superpeer
 from Tribler.utilities import show_permid_short
 from Tribler.API.RequestPolicy import *
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking

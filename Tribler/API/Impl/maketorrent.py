@@ -423,7 +423,7 @@ def copy_metainfo_to_input(metainfo,input):
         d = {'inpath':outpath,'outpath':outpath,'playtime':playtime,'length':length}
         input['files'].append(d)
     else: # multi-file torrent
-        files = metainfo['files']
+        files = metainfo['info']['files']
         for file in files:
             outpath = pathlist2filename(file['path'])
             if 'playtime' in file:

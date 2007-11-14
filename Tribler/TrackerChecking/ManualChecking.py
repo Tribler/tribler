@@ -6,7 +6,6 @@ from traceback import print_exc
 from time import sleep, time
 import os
 from Tribler.TrackerChecking.TrackerChecking import trackerChecking
-from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
 from Tribler.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
 from Tribler.unicode import metainfoname2unicode
 

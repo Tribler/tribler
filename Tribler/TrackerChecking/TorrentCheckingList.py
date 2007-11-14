@@ -4,7 +4,7 @@
 # Arno: Removed dumb yet-another in-core version of the database
 #
 
-from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
+from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler
 
 from threading import RLock
 from time import time
@@ -27,8 +27,7 @@ class TorrentCheckingList:
         self.list_good = []
         self.list_unknown = []
         self.list_dead = []
-#        self.torrent_db = TorrentDBHandler.getInstance()
-        self.torrent_db = SynTorrentDBHandler(updateFun=self.updateFun)
+        self.torrent_db = TorrentDBHandler.getInstance()
         self._prepareData()            # prepare the list
         self.done_init = True
         
