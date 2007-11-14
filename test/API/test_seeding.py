@@ -15,6 +15,7 @@ from test.btconn import BTConnection
 from BitTornado.BT1.MessageID import *
 
 from triblerAPI import *
+from Tribler.API.simpledefs import *
 
 DEBUG=True
 
@@ -40,30 +41,34 @@ class TestSeeding(TestAsServer):
         self.mylistenport = 4810
 
     def setUpPostSession(self):
+        pass
+    
+    def setup_seeder(self,merkle):
         self.tdef = TorrentDef()
         self.sourcefn = os.path.join(os.getcwd(),"file.wmv")
         self.tdef.add_content(self.sourcefn)
+        self.tdef.set_create_merkle_torrent(merkle)
         self.tdef.set_tracker(self.session.get_internal_tracker_url())
         self.tdef.finalize()
 
         self.torrentfn = os.path.join(self.session.get_state_dir(),"gen.torrent")
         self.tdef.save(self.torrentfn)
         
-        print >>sys.stderr,"test: setUpPostSession: name is",self.tdef.metainfo['info']['name']
+        print >>sys.stderr,"test: setup_seeder: name is",self.tdef.metainfo['info']['name']
 
         self.dscfg = DownloadStartupConfig()
-        self.dscfg.set_dest_dir(self.config_path)
+        self.dscfg.set_dest_dir(os.getcwd())
         d = self.session.start_download(self.tdef,self.dscfg)
         
         d.set_state_callback(self.seeder_state_callback)
         
     def seeder_state_callback(self,ds):
         d = ds.get_download()
-        print >>sys.stderr,"test: seeder:",`d.get_def().get_name()`,ds.get_status(),ds.get_progress()
+        print >>sys.stderr,"test: seeder:",`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress()
         return (1.0,False)
 
 
-    def test_all(self):
+    def test_normal_torrent(self):
         """ 
             I want to start a Tribler client once and then connect to
             it many times. So there must be only one test method
@@ -72,9 +77,14 @@ class TestSeeding(TestAsServer):
             The code is constructed so unittest will show the name of the
             (sub)test where the error occured in the traceback it prints.
         """
+        self.setup_seeder(False)
         #self.subtest_is_seeding()
         self.subtest_download()
 
+    def test_merkle_torrent(self):
+        self.setup_seeder(True)
+        self.subtest_is_seeding()
+        self.subtest_download()
 
     def subtest_is_seeding(self):
         infohash = self.tdef.get_infohash()
@@ -96,7 +106,6 @@ class TestSeeding(TestAsServer):
     def subtest_download(self):
         """ Now download the file via another Session """
         
-        """
         self.config2 = self.config.copy() # not really necess
         self.config_path2 = tempfile.mkdtemp()
         self.config2.set_state_dir(self.config_path2)
@@ -114,12 +123,11 @@ class TestSeeding(TestAsServer):
         
         d = self.session2.start_download(tdef2,dscfg2)
         d.set_state_callback(self.downloader_state_callback)
-        """
-        time.sleep(100)
+        time.sleep(20)
     
     def downloader_state_callback(self,ds):
         d = ds.get_download()
-        print >>sys.stderr,"test: download:",`d.get_def().get_name()`,ds.get_status(),ds.get_progress()
+        print >>sys.stderr,"test: download:",`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress()
         
         if ds.get_status() == DLSTATUS_SEEDING:
             # File is in
@@ -435,13 +443,19 @@ class TestSeeding(TestAsServer):
         return EXTEND+chr(1)+bd
 """
 
-
 def test_suite():
     suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(TestSeeding))
+    # We should run the tests in a separate Python interpreter to prevent 
+    # problems with our singleton classes, e.g. PeerDB, etc.
+    if len(sys.argv) != 2:
+        print "Usage: python test_seeding.py <method name>"
+    else:
+        suite.addTest(TestSeeding(sys.argv[1]))
     
     return suite
 
-if __name__ == "__main__":
-    unittest.main()
+def main():
+    unittest.main(defaultTest='test_suite',argv=[sys.argv[0]])
 
+if __name__ == "__main__":
+    main()
