@@ -64,7 +64,7 @@ class TorrentFeedThread(Thread):
         
     def register(self,utility):
         self.metahandler = MetadataHandler.getInstance()
-        self.torrent_db = TorrentDBHandler()
+        self.torrent_db = TorrentDBHandler.getInstance()
     
         self.utility = utility
         self.intertorrentinterval = self.utility.config.Read("torrentcollectsleep","int")

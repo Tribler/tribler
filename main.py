@@ -3,21 +3,30 @@
 
 from triblerAPI import *
 from Tribler.API.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
-
+import time
+from Tribler.CacheDB.Notifier import Notifier
+from Tribler.utilities import show_permid_short
     
 sscfg = SessionStartupConfig()
 if sys.platform == 'win32':
     s = Session()
 else:
-    sscfg.set_state_dir('statedir')
+    sscfg.set_state_dir('/tmp/statedir')
+    sscfg.set_install_dir('/home/jelle/workspace/tribler_api_jelle_branche_5944')
     s = Session(sscfg)
     
+
+
 r = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()
 r.set_global_max_speed(DOWNLOAD,100)
 t = 0
 count = 0
 
-
+def testfunc(subj, change, obj_id, *rest):
+            #if subj == Notifier.PEERS:
+            obj_id = show_permid_short(obj_id) # also infohash :)
+            print 'Observer: %s %s %s: %s' % (subj, change, obj_id, rest)
+            
 def states_callback(dslist):
     global s
     global r
@@ -48,7 +57,9 @@ def states_callback(dslist):
         
     if adjustspeeds:
         r.adjust_speeds()
-    return (1.0,False)
+        
+    #time.sleep(10)
+    return (120.0,False)
 
 
 
@@ -65,12 +76,18 @@ def vod_ready_callback(mimetype,stream):
 if __name__ == "__main__":
     
     s.set_download_states_callback(states_callback,getpeerlist=False)
+    
+    # For testing only! 
+    s.add_observer(testfunc, Notifier.PEERS)
+    s.add_observer(testfunc, Notifier.TORRENTS)
+    #s.remove_observer(testfunc)
+     
     # Torrent 1
     if sys.platform == 'win32':
         tdef = TorrentDef.load('bla.torrent')
     else:
         #tdef = TorrentDef.load('/tmp/bla3multi.torrent')
-        tdef = TorrentDef.load('/arno/tmp/scandir/bla.torrent')
+        tdef = TorrentDef.load('/tmp/bla.torrent')
         
     dcfg = DownloadStartupConfig()
     #dcfg.set_dest_dir('/arno/tmp/scandir')
@@ -94,7 +111,7 @@ if __name__ == "__main__":
     time.sleep(20)
     
     #s.shutdown()
-    s.remove_download(d,removecontent=True)
-    
+    #s.remove_download(d,removecontent=True)
+    print 'step 1'
     time.sleep(2500) # TODO: make sure we don't quit before shutdown checkpoint complete
-    
+    print 'end'

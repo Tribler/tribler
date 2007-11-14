@@ -8,7 +8,7 @@ from traceback import print_exc
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
 
-from Tribler.Dialogs.MugshotManager import MugshotManager,ICON_MAX_SIZE
+from Tribler.Dialogs.MugshotManager import ICON_MAX_SIZE
 from Tribler.utilities import *
 
 DEBUG = False
@@ -17,20 +17,19 @@ MIN_OVERLAP_WAIT = 12.0*3600.0 # half a day in seconds
 
 class OverlapMsgHandler:
     
-    def __init__(self,mypermid,my_db,peer_db,superpeer_db):
-        self.mypermid = mypermid
-        self.my_db = my_db
-        self.peer_db = peer_db
-        self.superpeer_db = superpeer_db
+    def __init__(self):
         
-        self.mm = MugshotManager.getInstance()
         self.recentpeers = {}
 
-    def register(self, secure_overlay, rawserver):
+    def register(self, secure_overlay, launchmany):
         if DEBUG:
             print >> sys.stderr,"socnet: bootstrap: overlap"
+        self.mypermid = launchmany.session.get_user_permid()
+        self.config = launchmany.session.sessconfig
+        self.peer_db = launchmany.peer_db
+        self.superpeer_db = launchmany.superpeer_db
         self.secure_overlay = secure_overlay
-        self.rawserver = rawserver
+        self.rawserver = launchmany.rawserver
 
     #
     # Incoming SOCIAL_OVERLAP
@@ -53,7 +52,6 @@ class OverlapMsgHandler:
         return True
 
     def process_overlap(self,permid,oldict):
-
         #self.print_hashdict(oldict['hashnetwork'])
 
         # 1. Clean recently contacted admin
@@ -89,7 +87,7 @@ class OverlapMsgHandler:
     #
     def initiate_overlap(self,permid,locally_initiated):
         self.clean_recentpeers()
-        if not (permid in self.recentpeers.keys() or permid in self.superpeer_db.getSuperPeerList()):
+        if not (permid in self.recentpeers.keys() or permid in self.superpeer_db.getSuperPeers()):
             if locally_initiated:
                 # Make sure only one sends it
                 self.recentpeers[permid] = time()
@@ -112,14 +110,15 @@ class OverlapMsgHandler:
         is his IP+port and the information obtained from the network
         or from other peers (i.e. BUDDYCAST)
         """
-        persinfo = self.my_db.getMyPeerInfo()
-        ip = persinfo['ip']
-        port = persinfo['port']
-        del persinfo['ip']
-        del persinfo['port']
-                
-        add_icon_persinfo(self.mm,self.mypermid,persinfo,persinfo)
-
+        
+        persinfo = {'name':self.config['nickname']}
+        
+        # See if we can find icon using PermID or name (old style):
+        [type,data] = self.peer_db.getPeerIcon(self.mypermid,persinfo['name'])
+        if not type is None and not data is None:
+            persinfo['icontype'] = type
+            persinfo['icondata'] = str(data)
+        
         oldict = {}
         oldict['persinfo'] = persinfo
 
@@ -237,13 +236,7 @@ def isValidIconData(data):
     
     return len(data) <= ICON_MAX_SIZE
 
-def add_icon_persinfo(mm,permid,persinfo,short):
-    # See if we can find it using PermID or name (old style):
-    [type,data] = mm.load_data(permid,persinfo['name'])
-    if type is None or data is None:
-        return
-    short['icontype'] = type
-    short['icondata'] = str(data)
+
 
 def save_ssocnet_peer(self,permid,record,persinfo_ignore,hrwidinfo_ignore,ipinfo_ignore):
     """ This function is used by both BootstrapMsgHandler and 
@@ -272,5 +265,4 @@ def save_ssocnet_peer(self,permid,record,persinfo_ignore,hrwidinfo_ignore,ipinfo
         if 'icontype' in persinfo and 'icondata' in persinfo: 
             if DEBUG:
                 print >> sys.stderr,"socnet: saving icon for",show_permid_short(permid)
-            self.mm.save_data(permid,persinfo['icontype'],persinfo['icondata'])
-    
+            self.peer_db.updatePeerIcon(permid, persinfo['icontype'],persinfo['icondata'])    

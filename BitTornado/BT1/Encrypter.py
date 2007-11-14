@@ -492,10 +492,14 @@ class Encoder:
         
         if connection.id == self.my_id:
             self.connecter.external_connection_made -= 1
+            if DEBUG:
+                print >>sys.stderr,"Encoder: got_id: connection to myself?"
             return False
         ip = connection.get_ip(True)
         port = connection.get_port(False)
         if self.config['security'] and self.banned.has_key(ip):
+            if DEBUG:
+                print >>sys.stderr,"Encoder: got_id: security ban on IP"
             return False
         for v in self.connections.values():
             if connection is not v:
@@ -503,6 +507,8 @@ class Encoder:
                 if connection.id == v.id and \
                     v.create_time < connection.create_time:
 # _2fastbt
+                    if DEBUG:
+                        print >>sys.stderr,"Encoder: got_id: create time bad?!"
                     return False
                 # don't allow multiple connections from the same ip if security is set.
                 if self.config['security'] and ip != 'unknown' and ip == v.get_ip(True) and port == v.get_port(False):

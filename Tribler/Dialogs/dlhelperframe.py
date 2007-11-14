@@ -87,7 +87,7 @@ class DownloadHelperPanel(wx.Panel):
 
         # 0. Read friends from DB, and figure out who's already helping 
         # for this torrent
-        friends = FriendDBHandler().getFriends()
+        friends = FriendDBHandler.getInstance().getFriends()
         helpingFriends = self.coordinator.get_asked_helpers_copy()
 
         if DEBUG:

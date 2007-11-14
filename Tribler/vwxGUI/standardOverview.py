@@ -19,7 +19,7 @@ import web2
 
 OVERVIEW_MODES = ['filesMode', 'personsMode', 'profileMode', 'friendsMode', 'subscriptionsMode', 'messageMode', 'libraryMode']
 
-DEBUG = False
+DEBUG = True
 
 class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     """
@@ -64,6 +64,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 Thread.__init__(self, name="DataLoadingThread")
                 self.setDaemon(True)
                 self.owner = owner
+                self.buddycast = self.owner.utility.session.lm.overlay_apps.buddycast
 
             def run(self):
                 try:
@@ -72,9 +73,9 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                     #wait for buddycast list only if the recommender is enabled
                     bcactive = self.owner.utility.config.Read('enablerecommender', "boolean")
                     if bcactive:
-                        self.owner.utility.buddycast.data_ready_evt.wait()   # called by buddycast
+                        self.buddycast.data_ready_evt.wait()   # called by buddycast
                         # get the peer list in buddycast. Actually it is a dict, but it can be used
-                        peer_list = self.owner.utility.buddycast.getAllPeerList()
+                        peer_list = self.buddycast.getAllPeerList()
                         if DEBUG:
                             print >>sys.stderr,"standardOverview: Buddycast signals it has loaded, release data for GUI thread", len(peer_list), currentThread().getName()
                             
@@ -87,7 +88,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     #                self.owner.sortData(self.owner.prepareData(buddycast_peer_list))
                     #this initialization can be done in another place also
                     data = self.owner.peer_manager.prepareData(peer_list)
-                    self.owner.utility.buddycast.removeAllPeerList()    # to reduce memory
+                    self.buddycast.removeAllPeerList()    # to reduce memory
             #        self.sortData(data)
                     self.owner.peer_manager.applyFilters(data)
             #        print "<mluc> ################### size of data is ",len(self.filtered_data['all'])
@@ -115,7 +116,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         thr1=DataLoadingThread(self)
         thr1.setDaemon(True)
         thr1.start()
-
+        print 'thread.start()'
         
         #print >> sys.stderr, '[StartUpDebug]----------- standardOverview is in postinit ----------', currentThread().getName(), '\n\n'
         
@@ -399,11 +400,11 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         activeInfohashes = {}
         active = []
         inactive = []
-        for torrent in self.utility.torrents['all']:
-            activeInfohashes[torrent.torrent_hash] = torrent
+        for torrent in self.utility.session.get_downloads():
+            activeInfohashes[torrent.get_def().get_infohash()] = torrent
             if DEBUG:
-                print >>sys.stderr,"standardOverview: Load library active is",`torrent.info['name']`
-            
+                print >>sys.stderr,"standardOverview: Load library active is",`torrent.get_def().get_name()`
+        
         if sort != 'latest':
             preSorting = sort
         else:
@@ -444,7 +445,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         if DEBUG:
             for t in libraryList:
                 print >>sys.stderr,"standardOverview: Loading ITEM",`t['content_name']`, `t['seeder']`, `t['leecher']`
-            print >>sys.stderr,'standardOverview: Loading libraryList: %s' % [(self.isTorrentFinished(t), t.get('download_started',False)) for t in libraryList]
+            #print >>sys.stderr,'standardOverview: Loading libraryList: %s' % [(self.isTorrentFinished(t), t.get('download_started',False)) for t in libraryList]
         self.data[self.mode]['data'] = libraryList
         if DEBUG:
             print >>sys.stderr,'standardOverview: Loaded %d library items' % len(self.data[self.mode]['data'])
@@ -475,8 +476,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 #print 'standardOverview: Error could not get progression of torrent: %s' % torrent
                 return False
         else:
-            progresstxt = abctorrent.getColumnText(COL_PROGRESS)
-            progress = float(progresstxt[:-1])
+            state = abctorrent.network_get_state()
+            progress = state.get_progress()
             return (progress == 100.0)
         
     def loadSubscriptionData(self):

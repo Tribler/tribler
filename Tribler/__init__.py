@@ -59,8 +59,11 @@ def tribler_init(config_dir = None, install_dir = None, db_exception_handler = N
     permid.init(config_dir)
     myinfo = load_myinfo()
     # roee88 says we need to revert to encoded here for the databases
-    cachedb.init(config_dir.encode(sys.getfilesystemencoding()),myinfo,db_exception_handler = db_exception_handler)
-    superpeer.init(install_dir)
+    
+    # done in launchmanycore
+    #cachedb.init(config_dir.encode(sys.getfilesystemencoding()),myinfo,db_exception_handler = db_exception_handler)
+    #superpeer.init(install_dir)
+
     friends.init(config_dir)
     category.init(install_dir, config_dir)
     print 'Reading configuration from: ', repr(config_dir)

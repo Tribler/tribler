@@ -11,9 +11,10 @@ DEBUG = True
 
 class UserCallbackHandler:
     
-    def __init__(self,sesslock,sessconfig):
+    def __init__(self,sesslock,sessconfig,lm):
         self.sesslock = sesslock
         self.sessconfig = sessconfig
+        self.lm = lm
         self.threadcount=1
 
     def perform_vod_usercallback(self,d,usercallback,mimetype,stream,filename):
@@ -49,16 +50,17 @@ class UserCallbackHandler:
                 print_exc()
         self.perform_usercallback(session_removestate_callback_target)
         
-        
     def perform_usercallback(self,target):
         self.sesslock.acquire()
         try:
             # TODO: thread pool, etc.
-            name = "SessionCallbackThread-"+str(self.threadcount)
-            self.threadcount += 1
-            t = Thread(target=target,name=name)
-            t.setDaemon(True)
-            t.start()
+            self.lm.threadpool.queueTask(target)
+            
+#            name = "SessionCallbackThread-"+str(self.threadcount)
+#            self.threadcount += 1
+#            t = Thread(target=target,name=name)
+#            t.setDaemon(True)
+#            t.start()
         finally:
             self.sesslock.release()
 

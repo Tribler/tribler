@@ -15,6 +15,7 @@ from sha import sha
 from time import time, clock
 from string import strip
 import socket
+import random
 try:
     from os import getpid
 except ImportError:
@@ -50,7 +51,13 @@ def resetPeerIDs():
         x = f.read(20)
         f.close()
     except:
+        # Arno: make sure there is some randomization when on win32
+        random.seed()
         x = ''
+        while len(x) < 20:
+            r = random.randint(0,sys.maxint)
+            x += str(r)
+        x = x[:20]
 
     l1 = 0
     t = clock()

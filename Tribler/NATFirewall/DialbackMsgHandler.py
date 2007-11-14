@@ -28,7 +28,6 @@ from traceback import print_exc
 from BitTornado.BT1.MessageID import *
 from BitTornado.bencode import bencode,bdecode
 
-from Tribler.CacheDB.CacheDBHandler import PeerDBHandler, SuperPeerDBHandler
 from Tribler.NATFirewall.ReturnConnHandler import ReturnConnHandler
 from Tribler.Overlay.SecureOverlay import OLPROTO_VER_THIRD
 from Tribler.utilities import *
@@ -62,8 +61,6 @@ class DialbackMsgHandler:
 
         self.peers_asked = {}
         self.myips = []
-        self.peer_db = PeerDBHandler()
-        self.superpeer_db = SuperPeerDBHandler()
         self.consensusip = None # IP address according to peers
         self.fromsuperpeer = False
         self.dbreach = False    # Did I get any DIALBACK_REPLY?
@@ -80,14 +77,16 @@ class DialbackMsgHandler:
         return DialbackMsgHandler.__single
     getInstance = staticmethod(getInstance)
         
-    def register(self,secure_overlay,rawserver,launchmany,multihandler,mylistenport, max_msg_len,active,trust_superpeers,interval):
+    def register(self,secure_overlay,launchmany, config):
         self.secure_overlay = secure_overlay
-        self.rawserver = rawserver
+        self.rawserver = launchmany.rawserver
         self.launchmany = launchmany
-        self.active = active
-        self.trust_superpeers = trust_superpeers
-        self.interval = interval
-        self.returnconnhand.register(rawserver,multihandler,mylistenport,max_msg_len)
+        self.peer_db = launchmany.peer_db
+        self.superpeer_db = launchmany.superpeer_db
+        self.active = config['dialback_active'],
+        self.trust_superpeers = config['dialback_trust_superpeers']
+        self.interval = config['dialback_interval']
+        self.returnconnhand.register(self.rawserver,launchmany.multihandler,launchmany.listen_port,config['overlay_max_message_length'])
         self.returnconnhand.register_conns_callback(self.handleReturnConnConnection)
         self.returnconnhand.register_recv_callback(self.handleReturnConnMessage)
         self.returnconnhand.start_listening()
@@ -371,7 +370,7 @@ class DialbackMsgHandler:
     
     def secover_network_callback(self):
         """ Called by network thread """
-        self.launchmany.reachable_network_callback()
+        self.launchmany.set_activity(ACT_REACHABLE)
         self.secoverreach = True
 
     def isConnectable(self):

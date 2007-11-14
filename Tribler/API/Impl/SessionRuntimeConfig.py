@@ -18,6 +18,16 @@ class SessionRuntimeConfig(triblerAPI.SessionConfigInterface):
             return triblerAPI.SessionConfigInterface.get_state_dir(self)
         finally:
             self.sesslock.release()
+
+    def set_install_dir(self,statedir):
+        raise OperationNotPossibleAtRuntimeExeption()
+    
+    def get_install_dir(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_install_dir(self)
+        finally:
+            self.sesslock.release()
     
     def set_permid(self,keypair):
         raise OperationNotPossibleAtRuntimeExeption()

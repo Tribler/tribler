@@ -6,7 +6,6 @@ import sys
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
 from Tribler.utilities import show_permid_short
-from Tribler.CacheDB.CacheDBHandler import PeerDBHandler
 
 DEBUG = False
 
@@ -48,7 +47,7 @@ class CoordinatorMessageHandler:
             return False
         else:
             if DEBUG:
-                friend = PeerDBHandler().getPeer(permid)
+                friend = self.launchmany.peer_db.getPeer(permid)
                 print >> sys.stderr,"helpcoord: Got RESERVE_PIECES",pieces,"from friend",friend['name']
 
         c.got_reserve_pieces(permid, pieces, all_or_nothing, selversion)

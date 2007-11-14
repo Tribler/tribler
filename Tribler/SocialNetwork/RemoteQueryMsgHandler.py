@@ -19,12 +19,11 @@ from BitTornado.bencode import bencode,bdecode
 from BitTornado.BT1.MessageID import *
 
 from Tribler.Overlay.SecureOverlay import OLPROTO_VER_SIXTH
-from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler, FriendDBHandler, PeerDBHandler
 from Tribler.utilities import show_permid_short,show_permid
 from Tribler.Statistics.Logger import OverlayLogger
 from Tribler.unicode import dunno2unicode
 
-MAX_QUERIES_FROM_RANDOM_PEER = 1000
+
 MAX_RESULTS = 20
 QUERY_ID_SIZE = 20
 MAX_QUERY_REPLY_LEN = 100*1024    # 100K
@@ -50,9 +49,7 @@ class RemoteQueryMsgHandler:
             raise RuntimeError, "RemoteQueryMsgHandler is singleton"
         RemoteQueryMsgHandler.__single = self
 
-        self.torrent_db = TorrentDBHandler()
-        self.friend_db = FriendDBHandler()
-        self.peer_db = PeerDBHandler()
+        
         self.connections = Set()    # only connected remote_search_peers
         self.query_ids2query = {}
         self.overlay_log = None
@@ -70,6 +67,9 @@ class RemoteQueryMsgHandler:
             print >> sys.stderr,"rquery: register"
         self.secure_overlay = secure_overlay
         self.launchmany= launchmany
+        self.torrent_db = launchmany.torrent_db
+        self.friend_db = launchmany.friend_db
+        self.peer_db = launchmany.peer_db
         self.rawserver = rawserver
         self.config = config
         self.bc_fac = bc_fac # May be None
@@ -197,6 +197,10 @@ class RemoteQueryMsgHandler:
         if selversion < OLPROTO_VER_SIXTH:
             return False
 
+        # Check auth
+        if not self.launchmany.overlay_apps.requestAllowed(permid, message[0]):
+            return False
+        
         # Unpack
         try:
             d = bdecode(message[1:])
@@ -209,38 +213,14 @@ class RemoteQueryMsgHandler:
         if not isValidQuery(d,selversion):
             return False
 
-        # Check auth
-        friends = self.friend_db.getFriendList()
-        tastebuddies = []
-        if self.bc_fac is not None:
-            tastebuddies = self.bc_fac.getTasteBuddies()
-        
-        if not (permid in friends or permid in tastebuddies or self.benign_random_peer(permid)):
-            if DEBUG:
-                print >>sys.stderr,"rquery: QUERY not from friend, taste buddy or benign random peer"
-            return False
-
         # Process
         self.process_query(permid, d, selversion)
         
         return True
 
 
-    def get_peer_nqueries(self, permid):
-        peer = self.peer_db.getPeer(permid)
-        return peer['nqueries']
     
-    def inc_peer_nqueries(self, permid):
-        nqueries = self.get_peer_nqueries(permid)
-        self.peer_db.updatePeer(permid, 'nqueries', nqueries+1)
-
-    def benign_random_peer(self,permid):
-        if MAX_QUERIES_FROM_RANDOM_PEER > 0:
-            nqueries = self.get_peer_nqueries(permid)
-            return nqueries < MAX_QUERIES_FROM_RANDOM_PEER
-        else:
-            return True
-
+    
     #
     # Send query reply
     #
@@ -274,9 +254,11 @@ class RemoteQueryMsgHandler:
         config_path = '.Tribler'
         #print "*** create fake data manager", config_path
         utility = FakeUtility(config_path)
-        from Tribler.vwxGUI.torrentManager import TorrentDataManager
-        self.data_manager = TorrentDataManager.getInstance(utility)
-        self.data_manager.loadData()
+        
+        # TODO FIXME: let GUI be updated via Notifier structure
+        #from Tribler.vwxGUI.torrentManager import TorrentDataManager
+        #self.data_manager = TorrentDataManager.getInstance(utility)
+        #self.data_manager.loadData()
         
         
     def create_query_reply(self,id,hits):
@@ -452,3 +434,8 @@ def isValidVal(d):
 #    if len(d) > 4: # no other keys
 #        return False
     return True
+
+def inc_peer_nqueries(self, permid):
+        peer = self.peer_db.getPeer(permid)
+        nqueries = peer['nqueries']
+        self.peer_db.updatePeer(permid, 'nqueries', nqueries+1)

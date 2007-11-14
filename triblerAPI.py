@@ -65,24 +65,27 @@ when the VOD download is stopped / removed.
 Simplest seeding session
 ========================
     s = Session().get_instance()
-    # default torrent def is to use internal tracker
     tdef = TorrentDef()
     tdef.add_content('/tmp/homevideo.wmv')
     tdef.set_tracker(s.get_internal_tracker_url())
     tdef.finalize()
-    d = s.start_download(tdef)
+    dcfg = DownloadStartupConfig()
+    dcfg.set_dest_dir('/tmp')
+    d = s.start_download(tdef,dcfg)
 
 
 Simpler seeding session
 =======================
     s = Session().get_instance()
-    tdef.add_content('/tmp/homevideo.wmv')
-    tdef = TorrentDef.get_default() 
+    tdef = TorrentDef() 
     tdef.add_content('/tmp/homevideo.wmv')
     tdef.set_thumbnail('/tmp/homevideo.jpg')
     tdef.set_tracker(s.get_internal_tracker_url())
     tdef.finalize()
-    d = s.start_download(tdef)
+
+    dcfg = DownloadStartupConfig()
+    dcfg.set_dest_dir('/tmp')
+    d = s.start_download(tdef,dcfg)
 
 
 
@@ -146,7 +149,7 @@ to a single file. Disadvantage is that the used has to open the file always:
     
 instead of
 
-    tdef = TorrentDef.load()
+    tdef = TorrentDef.load("bla.torrent")
     
 Note that using streams is more errorprone, e.g. when the user opens a torrent
 file in non-binary mode by mistake (f = open("bla.torrent","r") this causes
@@ -294,7 +297,7 @@ TODO:
 
 import sys
 import os
-import time
+#import time
 import copy
 import sha
 import pickle
@@ -316,6 +319,11 @@ from Tribler.API.Impl.UserCallbackHandler import UserCallbackHandler
 import Tribler.API.Impl.maketorrent as maketorrent
 from Tribler.API.Impl.miscutils import *
 from Tribler.utilities import find_prog_in_PATH,validTorrentFile,isValidURL
+from Tribler.unicode import metainfoname2unicode
+from Tribler.API.osutils import *
+from Tribler.API.miscutils import *
+from Tribler.CacheDB.Notifier import Notifier
+
 DEBUG = True
 
 #
@@ -389,7 +397,13 @@ class SessionConfigInterface:
     def get_state_dir(self):
         return self.sessconfig['state_dir']
     
-    def set_permid(self,keypairfilename): # TODO: permid right name?
+    def set_install_dir(self,installdir):
+        self.sessconfig['install_dir'] = installdir
+    
+    def get_install_dir(self):
+        return self.sessconfig['install_dir']
+    
+    def set_permid(self,keypairfilename):
         self.sessconfig['eckeypairfilename'] = keypairfilename
 
     def get_permid(self):
@@ -613,6 +627,7 @@ class SessionConfigInterface:
     
     def get_video_analyser_path(self):
         return self.sessconfig['videoanalyserpath'] # strings immutable
+    
 
 
     def set_video_player_path(self,value):
@@ -1002,8 +1017,9 @@ class Session(SessionRuntimeConfig):
                 # If that fails, create a fresh config with factory defaults
                 print_exc()
                 scfg = SessionStartupConfig()
-                scfg.sessconfig['state_dir'] = state_dir
             self.sessconfig = scfg.sessconfig
+            
+        self.sessconfig['state_dir'] = state_dir
 
         # PERHAPS: load default TorrentDef and DownloadStartupConfig from state dir
         # Let user handle that, he's got default_state_dir, etc.
@@ -1012,7 +1028,7 @@ class Session(SessionRuntimeConfig):
         resetPeerIDs()
         Tribler.Overlay.permid.init()
 
-
+        print 'config', self.sessconfig
         #
         # Set params that depend on state_dir
         #
@@ -1059,11 +1075,11 @@ class Session(SessionRuntimeConfig):
         self.save_pstate_sessconfig(sscfg)
 
 
-        # Create handler for calling back the user via separate threads
-        self.uch = UserCallbackHandler(self.sesslock,self.sessconfig)
-
         # Create engine with network thread
         self.lm = TriblerLaunchMany(self,self.sesslock)
+        
+        # Create handler for calling back the user via separate threads
+        self.uch = UserCallbackHandler(self.sesslock,self.sessconfig,self.lm)
         self.lm.start()
 
 
@@ -1184,6 +1200,33 @@ class Session(SessionRuntimeConfig):
         
         Called by any thread """
         self.checkpoint_shutdown(stop=True)
+    
+    def get_user_permid(self):
+        self.sesslock.acquire()
+        try:
+            return str(self.keypair.pub().get_der())
+        finally:
+            self.sesslock.release()
+        
+    def setOverlayRequestPolicy(self, requestPolicy):
+        """
+        Set a function which defines which overlay requests (e.g. dl_helper, rquery msg) 
+        will be answered or will be denied.
+        
+        requestPolicy is a Tribler.API.RequestPolicy.AbstractRequestPolicy object
+        
+        Called by any thread
+        """
+        # to protect self.sessconfig
+        self.sesslock.acquire()
+        try:
+            overlay_loaded = self.sessconfig['overlay']
+        finally:
+            self.sesslock.release()
+        if overlay_loaded:
+            self.lm.overlay_apps.setRequestPolicy(requestPolicy) # already threadsafe
+        else:
+            print >>sys.stderr,"Session: overlay is disabled, so no overlay request policy needed"
 
     #
     # Internal persistence methods
@@ -1242,8 +1285,21 @@ class Session(SessionRuntimeConfig):
             return SessionStartupConfig(sessconfig=sessconfig)
         finally:
             self.sesslock.release()
+            
+    def add_observer(self, func, subject, changeTypes = [Notifier.UPDATE, Notifier.INSERT, Notifier.DELETE], id = None):
+        """ Add function as an observer. It will receive callbacks if the respective data
+        changes.
         
+        Called by any thread
+        """
+        self.lm.notifier.add_observer(func, subject, changeTypes, id) # already threadsafe
         
+    def remove_observer(self, func):
+        """ Remove observer function. No more callbacks will be made.
+        
+        Called by any thread
+        """
+        self.lm.notifier.remove_observer(func) # already threadsafe
 
 class TorrentDef(Serializable,Copyable):
     """
@@ -1369,16 +1425,26 @@ class TorrentDef(Serializable,Copyable):
     def add_content(self,inpath,outpath=None,playtime=None):
         """
         Add a file or directory to this torrent definition. When adding a
-        directory, all files in that directory will be added to the torrent. 
-        The core will not copy the file when starting the sharing, but uploads 
-        from the passed files directly.
+        directory, all files in that directory will be added to the torrent.
         
         One can add multiple files and directories to a torrent definition.
         In that case the "outpath" parameter must be used to indicate how
         the files/dirs should be named in the torrent. The outpaths used must
         start with a common prefix which will become the "name" field of the
         torrent. 
-        
+
+        To seed the torrent via the core (as opposed to e.g. HTTP) you will
+        need to start the download with the dest_dir set to the top-level
+        directory containing the files and directories to seed. For example,
+        a file "c:\Videos\file.avi" is seeded as follows:
+            tdef = TorrentDef()
+            tdef.add_content("c:\Videos\file.avi",playtime="1:59:20")
+            tdef.set_tracker(s.get_internal_tracker_url())
+            tdef.finalize()
+            dscfg = DownloadStartupConfig()
+            dscfg.set_dest_dir("c:\Video")
+            s.start_download(tdef,dscfg)
+
         in:
         inpath = Absolute name of file or directory on local filesystem, 
                  as Unicode string

@@ -112,7 +112,7 @@ def get_prefxchg(nt=num_torrents, np=num_peers):
     return prefxchg
 
 def init_myprefs(bc, num=30):
-    myprefs = MyPreferenceDBHandler()
+    myprefs = MyPreferenceDBHandler.getInstance()
     for i in xrange(num):
         torrent_hash = rand_pref()
         #print "randomly add a preference", torrent_hash

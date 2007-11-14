@@ -167,7 +167,7 @@ class TestDialbackReplyActive(TestAsServer):
             s.close()
 
 
-        my_db = MyDBHandler()
+        my_db = MyDBHandler.getInstance()
         ext_ip = my_db.getMyIP()
         print >>sys.stderr,"test: External IP address after test is",ext_ip
         

@@ -18,7 +18,6 @@ from font import *
 from Utility.constants import * 
 from Utility import *
 
-from ABC.Torrent.status import TorrentStatus
 
 
 import cStringIO
@@ -70,7 +69,7 @@ class LibraryItemPanel(wx.Panel):
         self.guiserver = parent.guiserver
         self.triblerGrey = wx.Colour(128,128,128)
         
-        self.statusTorrent = TorrentStatus(self)
+        #self.statusTorrent = TorrentStatus(self)
         
         self.listItem = True # library always in listmode
         self.data = None
@@ -291,10 +290,10 @@ class LibraryItemPanel(wx.Panel):
         if torrent.get('abctorrent'):
             #print '%s is an active torrent' % torrent['content_name']
             abctorrent = torrent['abctorrent']
-            abctorrent.setLibraryPanel(self)
+            #abctorrent.setLibraryPanel(self)
             
             # Check if torrent just finished for resort
-            abctorrent.status.checkJustFinished()
+            #abctorrent.status.checkJustFinished()
             
             #self.pb.setEnabled(True)
             self.pb.Show()
@@ -309,26 +308,26 @@ class LibraryItemPanel(wx.Panel):
             uls = abctorrent.getColumnText(COL_ULSPEED)
             self.speedUp2.SetLabel(uls)
 #            self.speedUp2.SetLabel(self.utility.lang.get('up')+': '+uls)
-            progresstxt = abctorrent.getColumnText(COL_PROGRESS)
-            progress = round(float(progresstxt[:-1]),0)
+            #progresstxt = abctorrent.getColumnText(COL_PROGRESS)
+            #progress = round(float(progresstxt[:-1]),0)
 
             self.percentage.SetLabel(progresstxt)
-            eta = ''+abctorrent.getColumnText(COL_ETA)
+            #eta = ''+abctorrent.getColumnText(COL_ETA)
             if eta == '' or eta.find('unknown') != -1 or progress == 100.0:
                 eta = ''
             self.eta.SetLabel(eta)
             self.eta.SetToolTipString(self.utility.lang.get('eta')+eta)
             
-            self.statusField.SetLabel(abctorrent.getColumnText(COL_BTSTATUS))
+            #self.statusField.SetLabel(abctorrent.getColumnText(COL_BTSTATUS))
             self.statusField.SetToolTipString(self.statusField.GetLabel())
             
-            status = abctorrent.status.getStatus()
+            #status = abctorrent.status.getStatus()
 #            print "--tb-------------------------------"
 #            print status
             # status is mapped with >Utility/constants.py
-            if status == STATUS_QUEUE :  
+            #if status == STATUS_QUEUE :  
                 #print 'queue'
-                pass
+            #    pass
 ##            elif status == STATUS_STOP or status == STATUS_PAUSE :  
 ##                self.statusIcon.searchBitmap(name = statusLibrary["stopped"])
 ##            elif status == STATUS_ACTIVE:  
@@ -353,9 +352,9 @@ class LibraryItemPanel(wx.Panel):
             showBoost = False
             showPlayFast = False            
             showPlayButton = False
-            statustxt = abctorrent.status.getStatusText()
+            #statustxt = abctorrent.status.getStatusText()
 
-            active = abctorrent.status.isActive(pause = False)
+            active = True # fixme: abctorrent.status.isActive(pause = False)
             
             if abctorrent.caller_data is not None:
                 active = False

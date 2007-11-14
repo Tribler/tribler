@@ -46,18 +46,17 @@ from cStringIO import StringIO
 import urllib
 
 from interconn import ServerListener, ClientPassParam
-from launchmanycore import ABCLaunchMany
 
-from ABC.Toolbars.toolbars import ABCBottomBar2, ABCStatusBar, ABCMenuBar, ABCToolBar
-from ABC.GUI.menu import ABCMenu
-from ABC.Scheduler.scheduler import ABCScheduler
+#from ABC.Toolbars.toolbars import ABCBottomBar2, ABCStatusBar, ABCMenuBar, ABCToolBar
+#from ABC.GUI.menu import ABCMenu
+#from ABC.Scheduler.scheduler import ABCScheduler
 
 from webservice import WebListener
 
 if (sys.platform == 'win32'):
     from Dialogs.regdialog import RegCheckDialog
 
-from ABC.GUI.list import ManagedList
+#from ABC.GUI.list import ManagedList
 from Utility.utility import Utility
 from Utility.constants import * #IGNORE:W0611
 
@@ -66,7 +65,6 @@ from BitTornado.__init__ import product_name
 from safeguiupdate import DelayedInvocation,FlaglessDelayedInvocation
 import webbrowser
 import Tribler.vwxGUI.font as font
-from Tribler.Dialogs.MugshotManager import MugshotManager
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 import Tribler.vwxGUI.updateXRC as updateXRC
 from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
@@ -88,6 +86,9 @@ from Tribler.Web2.util.update import Web2Updater
 from Tribler.CacheDB.CacheDBHandler import BarterCastDBHandler
 from Tribler.Overlay.permid import permid_for_user
 
+from triblerAPI import *
+from Tribler.API.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
+import Tribler.Category.Category
 DEBUG = False
 ALLOW_MULTIPLE = False
 start_time = 0
@@ -114,276 +115,6 @@ class FileDropTarget(wx.FileDropTarget):
         return True
 
 
-##############################################################
-#
-# Class : ABCList
-#
-# ABC List class that contains the torrent list
-#
-############################################################## 
-class ABCList(ManagedList):
-    def __init__(self, parent):
-        style = wx.LC_REPORT|wx.LC_VRULES|wx.CLIP_CHILDREN
-        
-        prefix = 'column'
-        minid = 4
-        maxid = 26
-        exclude = []
-        rightalign = [COL_PROGRESS, 
-                      COL_SIZE, 
-                      COL_DLSPEED, 
-                      COL_ULSPEED, 
-                      COL_RATIO, 
-                      COL_PEERPROGRESS, 
-                      COL_DLSIZE, 
-                      COL_ULSIZE, 
-                      COL_TOTALSPEED]
-
-        ManagedList.__init__(self, parent, style, prefix, minid, maxid, exclude, rightalign)
-        
-        dragdroplist = FileDropTarget(self.utility)
-        self.SetDropTarget(dragdroplist)
-        
-        self.lastcolumnsorted = -1
-        self.reversesort = 0
-
-        self.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
-        self.Bind(wx.EVT_LIST_COL_CLICK, self.OnColLeftClick)
-
-        self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnItemSelected)
-        
-        # Bring up advanced details on left double click
-        self.Bind(wx.EVT_LEFT_DCLICK, self.OnLeftDClick)
-        
-        # Bring up local settings on middle double click
-        self.Bind(wx.EVT_MIDDLE_DCLICK, self.utility.actions[ACTION_LOCALUPLOAD].action)
-
-    # Do thing when keys are pressed down
-    def OnKeyDown(self, event):
-        keycode = event.GetKeyCode()
-        if event.CmdDown():
-            if keycode == ord('a') or keycode == ord('A'):
-                # Select all files (CTRL-A)
-                self.selectAll()
-            elif keycode == ord('x') or keycode == ord('X'):
-                # Invert file selection (CTRL-X)
-                self.invertSelection()
-        elif keycode == wx.WXK_RETURN or keycode == wx.WXK_NUMPAD_ENTER:
-            # Open advanced details (Enter)
-            self.utility.actions[ACTION_DETAILS].action()
-        elif keycode == wx.WXK_SPACE:
-            # Open local settings (Space)
-            self.utility.actions[ACTION_LOCALUPLOAD].action()
-        elif keycode == 399:
-            # Open right-click menu (windows menu key)
-            self.OnItemSelected()
-        
-        event.Skip()
-        
-    def OnColLeftClick(self, event):
-        rank = event.GetColumn()
-        colid = self.columns.getIDfromRank(rank)
-        if colid == self.lastcolumnsorted:
-            self.reversesort = 1 - self.reversesort
-        else:
-            self.reversesort = 0
-        self.lastcolumnsorted = colid
-        self.utility.queue.sortList(colid, self.reversesort)       
-        
-    def selectAll(self):
-        self.updateSelected(select = range(0, self.GetItemCount()))
-
-    def updateSelected(self, unselect = None, select = None):
-        if unselect is not None:
-            for index in unselect:
-                self.SetItemState(index, 0, wx.LIST_STATE_SELECTED)
-        if select is not None:
-            for index in select:
-                self.Select(index)
-        self.SetFocus()
-
-    def getTorrentSelected(self, firstitemonly = False, reverse = False):
-        queue = self.utility.queue
-        
-        torrentselected = []
-        for index in self.getSelected(firstitemonly, reverse):
-            ABCTorrentTemp = queue.getABCTorrent(index = index)
-            if ABCTorrentTemp is not None:
-                torrentselected.append(ABCTorrentTemp)
-        return torrentselected
-
-    def OnItemSelected(self, event = None):
-        selected = self.getTorrentSelected()
-        if not selected:
-            return
-
-        popupmenu = ABCMenu(self.utility, 'menu_listrightclick')
-
-        # Popup the menu.  If an item is selected then its handler
-        # will be called before PopupMenu returns.
-        if event is None:
-            # use the position of the first selected item (key event)
-            ABCTorrentTemp = selected[0]
-            position = self.GetItemPosition(ABCTorrentTemp.listindex)
-        else:
-            # use the cursor position (mouse event)
-            position = event.GetPosition()
-        
-        self.PopupMenu(popupmenu, position)
-
-    def OnLeftDClick(self, event):
-        event.Skip()
-        try:
-            self.utility.actions[ACTION_DETAILS].action()
-        except:
-            print_exc()
-
-
-##############################################################
-#
-# Class : ABCPanel
-#
-# Main ABC Panel class
-#
-############################################################## 
-class ABCPanel(wx.Panel):
-    def __init__(self, parent):
-        style = wx.CLIP_CHILDREN
-        wx.Panel.__init__(self, parent, -1, style = style)
-
-        #Debug Output.
-        sys.stdout.write('Preparing GUI.\n');
-        
-        self.utility    = parent.utility
-        self.utility.window = self
-        self.queue = self.utility.queue
-               
-        # List of deleting torrents events that occur when the RateManager is active
-        # Such events are processed after the RateManager finishes
-        # postponedevents is a list of tupples : each tupple contains the method of ABCPanel to be called to
-        # deal with the event and the event.
-        self.postponedevents = []
-
-        #Manual Bittorrent Adding UI
-        ##############################
-        colSizer = wx.BoxSizer(wx.VERTICAL)
-        
-        self.list = ABCList(self)
-        self.utility.list = self.list
-        colSizer.Add(self.list, 1, wx.ALL|wx.EXPAND, 3)
-            
-        """
-        # Add status bar
-        statbarbox = wx.BoxSizer(wx.HORIZONTAL)
-        self.sb_buttons = ABCStatusButtons(self,self.utility)
-        statbarbox.Add(self.sb_buttons, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 0)
-        self.abc_sb = ABCStatusBar(self,self.utility)
-        statbarbox.Add(self.abc_sb, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 0)
-        colSizer.Add(statbarbox, 0, wx.ALL|wx.EXPAND, 0)
-        """
-        
-        #colSizer.Add(self.contentPanel, 1, wx.ALL|wx.EXPAND, 3)
-        self.SetSizer(colSizer)
-        self.SetAutoLayout(True)
-        
-        self.list.SetFocus()
-        
-        
-    def getSelectedList(self, event = None):
-        return self.list
-
-    ######################################
-    # Update ABC on-the-fly
-    ######################################
-    def updateColumns(self, force = False):
-        # Update display in column for inactive torrent
-        for ABCTorrentTemp in self.utility.torrents["all"]:
-            ABCTorrentTemp.updateColumns(force = force)
- 
-      
-##############################################################
-#
-# Class : ABCTaskBarIcon
-#
-# Task Bar Icon
-#
-############################################################## 
-class ABCTaskBarIcon(wx.TaskBarIcon):
-    def __init__(self, parent):
-        wx.TaskBarIcon.__init__(self)
-        
-        self.utility = parent.utility
-        
-        self.TBMENU_RESTORE = wx.NewId()
-
-        # setup a taskbar icon, and catch some events from it
-        self.Bind(wx.EVT_TASKBAR_LEFT_DCLICK, parent.onTaskBarActivate)
-        self.Bind(wx.EVT_MENU, parent.onTaskBarActivate, id = self.TBMENU_RESTORE)
-               
-        self.updateIcon(False)
-        
-    def updateIcon(self,iconifying = False):
-        remove = True
-        
-        mintray = self.utility.config.Read('mintray', "int")
-        if (mintray >= 2) or ((mintray >= 1) and iconifying):
-            remove = False
-        
-        if remove and self.IsIconInstalled():
-            self.RemoveIcon()
-        elif not remove and not self.IsIconInstalled():
-            self.SetIcon(self.utility.icon, product_name)
-        
-    def CreatePopupMenu(self):        
-        menu = wx.Menu()
-        
-        self.utility.actions[ACTION_STOPALL].addToMenu(menu, bindto = self)
-        self.utility.actions[ACTION_UNSTOPALL].addToMenu(menu, bindto = self)
-        menu.AppendSeparator()
-        menu.Append(self.TBMENU_RESTORE, self.utility.lang.get('showabcwindow'))
-        self.utility.actions[ACTION_EXIT].addToMenu(menu, bindto = self)
-        return menu
-
-
-##############################################################
-#
-# Class : ABColdFrame
-#
-# Main ABC Frame class that contains menu and menu bar management
-# and contains ABCPanel
-#
-############################################################## 
-class ABCOldFrame(wx.Frame,FlaglessDelayedInvocation):
-    def __init__(self, ID, params, utility):
-        self.utility = utility
-        #self.utility.frame = self
-        
-        title = "Old Interface"
-        # Get window size and position from config file
-        size = (400,400)
-        style = wx.DEFAULT_FRAME_STYLE | wx.CLIP_CHILDREN
-        
-        wx.Frame.__init__(self, None, ID, title, size = size, style = style)
-        
-        FlaglessDelayedInvocation.__init__(self)
-
-        self.GUIupdate = True
-
-        self.window = ABCPanel(self)
-        self.Bind(wx.EVT_SET_FOCUS, self.onFocus)
-        self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
-        
-        self.tb = ABCToolBar(self) # new Tribler gui has no toolbar
-        self.SetToolBar(self.tb)
-
-            
-    def onFocus(self, event = None):
-        if event is not None:
-            event.Skip()
-        self.window.getSelectedList(event).SetFocus()
-
-    def OnCloseWindow(self, event = None):
-        self.Hide()
 
 # Custom class loaded by XRC
 class ABCFrame(wx.Frame, DelayedInvocation):
@@ -460,14 +191,14 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         self.GUIupdate = True
 
         # Start the scheduler before creating the ListCtrl
-        self.utility.queue  = ABCScheduler(self.utility)
+        #self.utility.queue  = ABCScheduler(self.utility)
         #self.window = ABCPanel(self)
         #self.abc_sb = self.window.abc_sb
         
         
-        self.oldframe = ABCOldFrame(-1, self.params, self.utility)
-        self.oldframe.Refresh()
-        self.oldframe.Layout()
+        #self.oldframe = ABCOldFrame(-1, self.params, self.utility)
+        #self.oldframe.Refresh()
+        #self.oldframe.Layout()
         #self.oldframe.Show(True)
         
         self.window = self.GetChildren()[0]
@@ -483,14 +214,14 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         """
         #self.window.sb_buttons = ABCStatusButtons(self,self.utility)
         
-        self.utility.window.postponedevents = []
+        #self.utility.window.postponedevents = []
         
         # Menu Options
         ############################
-        menuBar = ABCMenuBar(self)
-        if sys.platform == "darwin":
-            wx.App.SetMacExitMenuItemId(wx.ID_CLOSE)
-        self.SetMenuBar(menuBar)
+        #menuBar = ABCMenuBar(self)
+        #if sys.platform == "darwin":
+        #    wx.App.SetMacExitMenuItemId(wx.ID_CLOSE)
+        #self.SetMenuBar(menuBar)
         
         #self.tb = ABCToolBar(self) # new Tribler gui has no toolbar
         #self.SetToolBar(self.tb)
@@ -527,8 +258,9 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         #self.Bind(wx.EVT_IDLE, self.onIdle)
         
         # Start up the controller
-        self.utility.controller = ABCLaunchMany(self.utility)
-        self.utility.controller.start()
+        #self.utility.controller = ABCLaunchMany(self.utility)
+        #self.utility.controller.start()
+        self.startAPI()
         
         # Start up mainline DHT
         # Arno: do this in a try block, as khashmir gives a very funky
@@ -536,14 +268,14 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         # it complains that it cannot find the 'hex' encoding method when
         # hstr.encode('hex') is called, and hstr is a string?!
         #
-        try:
-            rsconvert = RawServerConverter(self.utility.controller.get_rawserver())
-            mainlineDHT.init('', self.utility.listen_port, self.utility.getConfigPath(),rawserver=rsconvert)
-            # Create torrent-liveliness checker based on DHT
-            c = mainlineDHTChecker.getInstance()
-            c.register(mainlineDHT.dht)
-        except:
-            print_exc()
+#        try:
+#            rsconvert = RawServerConverter(self.utility.controller.get_rawserver())
+#            mainlineDHT.init('', self.utility.listen_port, self.utility.getConfigPath(),rawserver=rsconvert)
+#            # Create torrent-liveliness checker based on DHT
+#            c = mainlineDHTChecker.getInstance()
+#            c.register(mainlineDHT.dht)
+#        except:
+#            print_exc()
 
         # Give GUI time to set up stuff
         wx.Yield()
@@ -557,7 +289,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         if self.params[0] != "":
             success, msg, ABCTorrentTemp = self.utility.queue.addtorrents.AddTorrentFromFile(self.params[0],caller=CALLER_ARGV)
 
-        self.utility.queue.postInitTasks(self.params)
+        #self.utility.queue.postInitTasks(self.params)
 
         if self.params[0] != "":
             # Update torrent.list, but after having read the old list of torrents, otherwise we get interference
@@ -587,7 +319,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         
         
         # Just for debugging: add test permids and display top 5 peers from which the most is downloaded in bartercastdb
-        bartercastdb = BarterCastDBHandler()
+        bartercastdb = BarterCastDBHandler.getInstance()
         mypermid = bartercastdb.my_permid
         
         if DEBUG:
@@ -616,6 +348,18 @@ class ABCFrame(wx.Frame, DelayedInvocation):
 
         self.checkVersion()
 
+    def startAPI(self):
+        sscfg = SessionStartupConfig()
+        sscfg.set_install_dir(os.path.abspath(os.path.dirname(sys.argv[0])))
+        if sys.platform == 'win32':
+            s = Session()
+        else:
+            s = Session(sscfg)
+            
+        print 'config_dir: %s' % s.get_state_dir()
+        self.utility.session = s
+        r = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()
+        r.set_global_max_speed(DOWNLOAD,100)
         
     def checkVersion(self):
         t = Timer(2.0, self._checkVersion)
@@ -842,7 +586,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         self.guiUtility.guiOpen.clear()
         
         # Close the Torrent Maker
-        self.utility.actions[ACTION_MAKETORRENT].closeWin()
+        #self.utility.actions[ACTION_MAKETORRENT].closeWin()
 
         if False:
             try:
@@ -853,14 +597,14 @@ class ABCFrame(wx.Frame, DelayedInvocation):
                 sys.stderr.write(data.getvalue())
                 pass
 
-        try:
-            # tell scheduler to close all active thread
-            self.utility.queue.clearScheduler()
-        except:
-            data = StringIO()
-            print_exc(file = data)
-            sys.stderr.write(data.getvalue())
-            pass
+#        try:
+#            # tell scheduler to close all active thread
+#            self.utility.queue.clearScheduler()
+#        except:
+#            data = StringIO()
+#            print_exc(file = data)
+#            sys.stderr.write(data.getvalue())
+#            pass
 
         try:
             # Restore the window before saving size and position
@@ -881,7 +625,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         except:
             pass
 
-        self.oldframe.Destroy()
+        #self.oldframe.Destroy()
 
         try:
             if self.tbicon is not None:
@@ -1047,8 +791,8 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             # Initialise fonts
             font.init()
 
-            tribler_init(self.utility.getConfigPath(),self.utility.getPath(),self.db_exception_handler)
-            self.utility.setTriblerVariables()
+            #tribler_init(self.utility.getConfigPath(),self.utility.getPath(),self.db_exception_handler)
+            
             self.utility.postAppInit()
             
             # Singleton for executing tasks that are too long for GUI thread and
@@ -1056,10 +800,7 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             self.guiserver = GUIServer.getInstance()
             self.guiserver.register()
     
-            # Singleton for management of user's mugshots (i.e. icons/display pictures)
-            self.mm = MugshotManager.getInstance()
-            self.mm.register(self.utility.getConfigPath(),self.utility.getPath())
-
+            
             # H4x0r a bit
             set_tasteheart_bitmaps(self.utility.getPath())
             set_perfBar_bitmaps(self.utility.getPath())

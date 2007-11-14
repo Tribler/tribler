@@ -163,9 +163,6 @@ import socket
 
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import BUDDYCAST, BARTERCAST, KEEP_ALIVE
-from Tribler.CacheDB.CacheDBHandler import *
-from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
-from Tribler.CacheDB.SynDBHandler import SynPeerDBHandler
 from Tribler.utilities import *
 from Tribler.unicode import dunno2unicode
 from Tribler.Dialogs.activities import ACT_MEET, ACT_RECOMMEND
@@ -179,7 +176,7 @@ from threading import Event, currentThread
 from bartercast import BarterCastCore
 
 DEBUG = False    # for errors
-debug = False    # for status
+debug = False   # for status
 MAX_BUDDYCAST_LENGTH = 10*1024    # 10 KByte
 REMOTE_SEARCH_PEER_NTORRENTS_THRESHOLD = 100    # speedup finding >=4.1 peers in this version
 
@@ -252,7 +249,7 @@ class BuddyCastFactory:
         return BuddyCastFactory.__single
     getInstance = staticmethod(getInstance)
     
-    def register(self, secure_overlay, rawserver, launchmany, port, errorfunc, 
+    def register(self, secure_overlay, rawserver, launchmany, errorfunc, 
                  start, metadata_handler, torrent_collecting_solution, running,
                  max_peers=2000):
         if self.registered:
@@ -265,9 +262,7 @@ class BuddyCastFactory:
         
         self.registered = True
         if start:
-            self.data_handler = DataHandler(self.rawserver, db_dir=self.db_dir, max_num_peers=max_peers)
-            if isValidPort(port):
-                self.data_handler.updatePort(port)
+            self.data_handler = DataHandler(self.launchmany, db_dir=self.db_dir, max_num_peers=max_peers)
                 
             self.bartercast_core = BarterCastCore(self.data_handler, secure_overlay, self.log)
                 
@@ -370,9 +365,19 @@ class BuddyCastFactory:
             return False
     
     def handleConnection(self,exc,permid,selversion,locally_initiated):
+        if DEBUG:
+            nconn = 0
+            conns = self.buddycast_core.connections
+            print >> sys.stdout, "\nbc: conn in buddycast"
+            for peer_permid in conns:
+                _permid = show_permid_short(peer_permid)
+                nconn += 1
+                print >> sys.stdout, "bc: ", nconn, _permid, conns[peer_permid]
+                
         if self.registered:
             if self.running or exc is not None:    # if not running, only close connection
                 self.buddycast_core.handleConnection(exc,permid,selversion,locally_initiated)
+                
     
     def addMyPref(self, torrent):
         if self.registered:
@@ -1569,6 +1574,7 @@ class BuddyCastCore:
                 print "add idle loops", self.next_initiate
         sys.stdout.flush()
         sys.stderr.flush()
+        print "bc: /*****", thread, str(step), "-",
 
     def getAllTasteBuddies(self):
         return self.connected_taste_buddies
@@ -1591,21 +1597,21 @@ class BuddyCastCore:
         
         
 class DataHandler:
-    def __init__(self, rawserver, db_dir='', max_num_peers=2000):
-        self.rawserver = rawserver
+    def __init__(self, launchmany, db_dir='', max_num_peers=2000):
+        self.rawserver = launchmany.rawserver
+        self.launchmany = launchmany
+        self.config = self.launchmany.session.sessconfig # should be safe at startup
         # --- database handlers ---
-        self.my_db = MyDBHandler(db_dir=db_dir)
-        self.peer_db = SynPeerDBHandler(db_dir=db_dir)
-        self.superpeer_db = SuperPeerDBHandler(db_dir=db_dir)
-        self.torrent_db = SynTorrentDBHandler(db_dir=db_dir)
-        self.mypref_db = MyPreferenceDBHandler(db_dir=db_dir)
-        self.pref_db = PreferenceDBHandler(db_dir=db_dir)
-        self.friend_db = FriendDBHandler(db_dir=db_dir)
-        self.superpeer_db = SuperPeerDBHandler(db_dir=db_dir)
-        self.dbs = [self.my_db, self.peer_db, self.superpeer_db,
+        self.peer_db = launchmany.peer_db
+        self.superpeer_db = launchmany.superpeer_db
+        self.torrent_db = launchmany.torrent_db
+        self.mypref_db = launchmany.mypref_db
+        self.pref_db = launchmany.pref_db
+        self.friend_db = launchmany.friend_db
+        self.dbs = [self.peer_db, self.superpeer_db,
                     self.torrent_db, self.mypref_db, self.pref_db]
         self.mypreflist = []    # torrent_infohashes
-        self.myfriends = Set(self.friend_db.getFriendList())
+        self.myfriends = Set() # FIXME: implement friends
         self.myprefhash = array('l',[])
         self.peers = {}    # permid: [similarity, last_seen, prefs]    prefs: array('l')
         self.default_peer = [0,0, array('l',[])]
@@ -1638,22 +1644,17 @@ class DataHandler:
         pass
 
     def getMyName(self, name=''):
-        return self.my_db.get('name', name)
+        return self.config.get('nickname', name)
         
     def getMyIp(self, ip=''):
-        return self.my_db.get('ip', ip)
+        return self.launchmany.get_ext_ip()
     
     def getMyPort(self, port=0):
-        return self.my_db.get('port', port)
+        return self.launchmany.listen_port
     
-    def updatePort(self, port):
-        self.my_db.put('port', port)
-  
     def getMyPermid(self, permid=''):
-        return self.my_db.get('permid', permid)
+        return self.launchmany.session.get_user_permid()
         
-    def getSuperPeers(self):
-        return self.superpeer_db.getSuperPeerList()
         
     def postInit(self):
         # build up a cache layer between app and db

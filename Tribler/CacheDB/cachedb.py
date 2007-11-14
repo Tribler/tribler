@@ -20,20 +20,7 @@ Database design
 Value in bracket is the default value
 Don't use None as a default value
 
-MyDB - (PeerDB)
-  mydata.bsd:    # future keys: pictures, 
-    version: int (curr_version)    # required
-    permid: str                    # required
-    ip: str ('')
-    port: int (0)
-    name: str ('Tribler')
-    torrent_path: str ('')    # default path to store torrents
-    prefxchg_queue: list ([]) # not used
-    bootstrapping: int (1)    # not used
-    max_num_torrents: int (100000)
-    max_num_my_preferences: int (1000)
-    superpeers: Set([permid])
-    friends: Set([permid])
+
             
 PeerDB - (MyFriendDB, PreferenceDB, OwnerDB)   
   peers.bsd:    # future keys: sys_trust, reliablity, speed, personal_info, ..
@@ -154,7 +141,7 @@ def isValidPermid(permid):    # validate permid in outer layer
 def isValidInfohash(infohash):
     return True
 
-def init(config_dir, myinfo, db_exception_handler = None):
+def init(config_dir, db_exception_handler = None):
     """ create all databases """
     
     global home_dir
@@ -162,16 +149,13 @@ def init(config_dir, myinfo, db_exception_handler = None):
     if DEBUG:
         print "Init database at", home_dir
     BasicDB.exception_handler = db_exception_handler
-    MyDB.getInstance(myinfo, home_dir)
     PeerDB.getInstance(home_dir)
     TorrentDB.getInstance(home_dir)
     PreferenceDB.getInstance(home_dir)
     MyPreferenceDB.getInstance(home_dir)
     OwnerDB.getInstance(home_dir)
-    MyDB.updateDBVersion(curr_version)
-    
+        
 def done(config_dir):
-    MyDB.getInstance().close()
     MyPreferenceDB.getInstance().close()
     OwnerDB.getInstance().close()
     PeerDB.getInstance().close()
@@ -362,7 +346,7 @@ class BasicDB:    # Should we use delegation instead of inheritance?
             #return self._data.keys()
         except Exception,e:
             print >> sys.stderr, "cachedb: _keys EXCEPTION BY", currentThread().getName(), self.db_name
-            #print_exc()
+            print_exc()
             self.report_exception(e)
             return []
     
@@ -417,138 +401,6 @@ class BasicDB:    # Should we use delegation instead of inheritance?
         if BasicDB.exception_handler is not None:
             BasicDB.exception_handler(e)
     
-    
-class MyDB(BasicDB):
-    
-    __single = None
-
-    def __init__(self, myinfo=None, db_dir=''):
-        if MyDB.__single:
-            raise RuntimeError, "MyDB is singleton"
-        self.db_name = 'mydata.bsd'
-        self.opened = True
-        
-        self.db_dir = db_dir
-        self.filetype = db.DB_HASH
-        self._data, self.db_dir = open_db(self.db_name, self.db_dir, filetype=self.filetype)
-
-        MyDB.__single = self 
-        self.default_data = {
-            'version':curr_version, 
-            'permid':'', 
-            'ip':'', 
-            'port':0, 
-            'name':'Tribler', 
-            'torrent_path':'',
-            'prefxchg_queue':[],
-            'bootstrapping':1, 
-            'max_num_torrents':100000,
-            'max_num_my_preferences':1000,
-            'superpeers':Set(),
-            'friends':Set(),
-        }
-        self.preload_keys = ['ip', 'torrent_path', 'permid']    # these keys can be changed at each bootstrap
-        self.initData(myinfo)
-        self.friend_set = Set(self._get('friends'))
-            
-    def getInstance(*args, **kw):
-        if MyDB.__single is None:
-            MyDB(*args, **kw)
-        if MyDB.__single._size() < len(MyDB.__single.default_data):
-            MyDB.__single.initData()
-        return MyDB.__single
-    getInstance = staticmethod(getInstance)
-
-    def setDefault(self, data):    # it is only used by validData()
-        dd = deepcopy(self.default_data)
-        dd.update(data)
-        return dd
-
-    def initData(self, myinfo=None):
-        MyDB.checkVersion(self)
-        if not myinfo:
-            myinfo = {}
-        myinfo = self.setDefault(myinfo)
-        self.load(myinfo)
-        
-    def load(self, myinfo):
-        for key in myinfo:
-            if not self._has_key(key) or key in self.preload_keys:    # right?
-                self._put(key, myinfo[key])
-        
-    def checkVersion(db):
-        if not MyDB.__single:
-            MyDB()        # it should never be entered
-        old_version = MyDB.__single._get('version')
-        if not old_version:
-            MyDB.__single._put('version', curr_version)
-        elif old_version < curr_version:
-            db.updateDB(old_version)
-        #elif old_version > curr_version:
-            #FIXME: user first install 3.4.0, then 3.5.0. Now he cannot reinstall 3.4.0 anymore
-        #    raise RuntimeError, "The version of database is too high. Please update the software."
-    checkVersion = staticmethod(checkVersion)
-    
-    def updateDBVersion(db):
-        MyDB.__single._put('version', curr_version)
-        MyDB.__single._sync()
-    updateDBVersion = staticmethod(updateDBVersion)
-    
-    # superpeers
-    def addSuperPeer(self, permid):
-        if isValidPermid(permid):
-            sp = self._get('superpeers')
-            sp.add(permid)
-            self._put('superpeers', sp)
-            
-    def deleteSuperPeer(self, permid):
-        if isValidPermid(permid):
-            try:
-                sp = self._get('superpeers')
-                sp.remove(permid)
-                self._put('superpeers', sp)
-            except:
-                pass
-            
-    def isSuperPeer(self, permid):
-        return permid in self._get('superpeers')
-    
-    def getSuperPeers(self):
-        superpeers = self._get('superpeers')
-        if superpeers is not None:
-            return list(superpeers)
-        else:
-            return []
-    
-    # friends
-    def addFriend(self, permid):
-        if isValidPermid(permid):
-            if not 'friends' in self._keys():
-                print >> sys.stderr, "cachedb: addFriend key error", self._keys()
-            fr = self._get('friends')
-            fr.add(permid)
-            self._put('friends', fr)
-            self.friend_set = Set(fr)
-            
-    def deleteFriend(self, permid):
-        try:
-            fr = self._get('friends')
-            fr.remove(permid)
-            self._put('friends', fr)
-            self.friend_set = Set(fr)
-        except:
-            pass
-            
-    def isFriend(self, permid):
-        return permid in self.friend_set
-    
-    def getFriends(self):
-        friends = self._get('friends')
-        if friends is not None:
-            return list(friends)
-        else:
-            return []
-    
 
 class PeerDB(BasicDB):
     """ List of Peers, e.g. Host Cache """
@@ -565,7 +417,6 @@ class PeerDB(BasicDB):
         self.filetype = db.DB_BTREE
         self._data, self.db_dir = open_db(self.db_name, self.db_dir, filetype=self.filetype)
         
-        MyDB.checkVersion(self)
         PeerDB.__single = self
         self.default_item = {
             'ip':'',
@@ -681,7 +532,6 @@ class TorrentDB(BasicDB):
         self.filetype = db.DB_BTREE
         self._data, self.db_dir = open_db(self.db_name, self.db_dir, filetype=self.filetype)
 
-        MyDB.checkVersion(self)
         TorrentDB.__single = self
         self.default_item = {
             'relevance':0,
@@ -789,7 +639,6 @@ class PreferenceDB(BasicDB):
         self.filetype = db.DB_BTREE
         self._data, self.db_dir = open_db(self.db_name, self.db_dir, filetype=self.filetype)
         
-        MyDB.checkVersion(self)
         PreferenceDB.__single = self 
         self.default_item = {    # subitem actually
             #'relevance':0,     # relevance from the owner of this torrent
@@ -860,7 +709,6 @@ class MyPreferenceDB(BasicDB):     #  = FileDB
         self.filetype = db.DB_BTREE
         self._data, self.db_dir = open_db(self.db_name, self.db_dir, filetype=self.filetype)
         
-        MyDB.checkVersion(self)
         MyPreferenceDB.__single = self 
         self.default_item = {
             'created_time':0,
@@ -1042,7 +890,6 @@ class BarterCastDB(BasicDB):
         self.filetype = db.DB_BTREE
         self._data, self.db_dir = open_db(self.db_name, self.db_dir, filetype=self.filetype)
 
-        MyDB.checkVersion(self)
         BarterCastDB.__single = self
         self.default_item = {
             'last_seen':0,

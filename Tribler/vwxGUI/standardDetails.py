@@ -8,6 +8,7 @@ import urlparse
 
 from wx.lib.stattext import GenStaticText as StaticText
 from font import *
+from triblerAPI import *
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from Tribler.utilities import *
 from Tribler.Dialogs.MugshotManager import MugshotManager
@@ -69,7 +70,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         self.data_manager = TorrentDataManager.getInstance(self.utility)
         #self.optionsButtonLibraryFunc = rightMouseButton.getInstance()
         self.mm = MugshotManager.getInstance()
-        self.mydb = MyPreferenceDBHandler()                    
+        self.mydb = MyPreferenceDBHandler.getInstance()                    
         self.metadatahandler = MetadataHandler.getInstance()
         self.mode = None
         self.item = None
@@ -1460,14 +1461,16 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         
         
         if os.path.isfile(torrent_filename):
-#            str = self.utility.lang.get('download_start') + u' ' + name + u'?'
-#            dlg = wx.MessageDialog(self, str, self.utility.lang.get('click_and_download'), 
-#                                        wx.YES_NO|wx.NO_DEFAULT|wx.ICON_INFORMATION)
-#            result = dlg.ShowModal()
-#            dlg.Destroy()
-#            if result == wx.ID_YES:
-            ret = self.utility.queue.addtorrents.AddTorrentFromFile(torrent_filename, dest = dest)
-            if ret and ret[0]:
+            
+            # Api download
+            tdef = TorrentDef.load(torrent_filename)
+            dcfg = DownloadStartupConfig()
+            if dest:
+                dcfg.set_dest_dir(dest) # set destination dir
+            
+            d = self.utility.session.start_download(tdef,dcfg)
+            
+            if d:
                 if DEBUG:
                     print >>sys.stderr,'standardDetails: download started'
                 # save start download time.
@@ -1691,7 +1694,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             
     def topNListText(self, tab):
         if not self.bartercastdb:
-            self.bartercastdb = BarterCastDBHandler()
+            self.bartercastdb = BarterCastDBHandler.getInstance()
         
         top_stats = self.bartercastdb.getTopNPeers(10)
         top = top_stats['top']

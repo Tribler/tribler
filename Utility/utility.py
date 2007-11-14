@@ -21,7 +21,7 @@ from BitTornado.parseargs import parseargs
 from BitTornado.zurllib import urlopen
 from BitTornado.__init__ import version_id
 
-from ABC.Actions.actions import makeActionList
+#from ABC.Actions.actions import makeActionList
 
 if (sys.platform == 'win32'):
     from Utility.regchecker import RegChecker
@@ -118,12 +118,7 @@ class Utility:
     def getVersion(self):
         return self.version
         
-    def setTriblerVariables(self):    # CacheDB for Tribler
-        self.torrent_db = TorrentDBHandler()
-        self.mypref_db = MyPreferenceDBHandler()
-        self.peer_db = PeerDBHandler()
-        self.friend_db = FriendDBHandler     
-        self.buddycast = BuddyCastFactory.getInstance()
+   
         
 #===============================================================================
 #    def getNumPeers(self):
@@ -518,7 +513,7 @@ class Utility:
         except:
             pass
             
-        makeActionList(self)
+        #makeActionList(self)
             
     def getLastDir(self, operation = "save"):
         lastdir = self.lastdir[operation]

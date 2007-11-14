@@ -10,7 +10,6 @@ from sets import Set
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
 from Tribler.utilities import isValidInfohash, show_permid_short, sort_dictlist
-from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
 from Tribler.Overlay.SecureOverlay import OLPROTO_VER_FOURTH
 from Tribler.unicode import metainfoname2unicode
 from Tribler.Category.Category import Category
@@ -34,7 +33,6 @@ class MetadataHandler:
         if MetadataHandler.__single:
             raise RuntimeError, "MetadataHandler is singleton"
         MetadataHandler.__single = self
-        self.torrent_db = SynTorrentDBHandler()
         self.num_torrents = -100
         self.avg_torrent_size = 25*(2**10)
         self.initialized = False
@@ -52,11 +50,12 @@ class MetadataHandler:
         self.rawserver = secure_overlay.rawserver
         self.dlhelper = dlhelper
         self.launchmany = launchmany
+        self.torrent_db = launchmany.torrent_db
         self.config = config
         self.min_free_space = self.config['stop_collecting_threshold']*(2**20)
         if self.min_free_space <= 0:
             self.min_free_space = 200*(2**20)    # at least 1 MB left on disk
-        self.config_dir = os.path.abspath(self.config['config_path'])
+        self.config_dir = os.path.abspath(self.config['state_dir'])
         self.torrent_dir = os.path.join(self.config_dir, 'torrent2')    #TODO: user can set it
         self.free_space = self.get_free_space()
         print "Available space for database and collecting torrents: %d MB," % (self.free_space/(2**20)), "Min free space", self.min_free_space/(2**20), "MB"
@@ -284,7 +283,7 @@ class MetadataHandler:
         torrent_info = {}
         torrent_info['name'] = info.get(namekey, '')
         
-        catobj = Category.getInstance()
+        catobj = Category.getInstance(self.config['install_dir'], self.config['state_dir'])
         torrent['category'] = catobj.calculateCategory(info, torrent_info['name'])
         
         #if DEBUG:

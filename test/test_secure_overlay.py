@@ -199,7 +199,7 @@ class TestSecureOverlay(unittest.TestCase):
         print >> sys.stderr,"test: test_connect_to_dead_peerB"
         self.wanted = True
 
-        peer_db = PeerDBHandler()
+        peer_db = PeerDBHandler.getInstance()
         hispermid = self.peer2.my_permid
         peer_db.updatePeerIPPort(hispermid, "127.0.0.1", 22220)
 
@@ -222,7 +222,7 @@ class TestSecureOverlay(unittest.TestCase):
         print >> sys.stderr,"test: test_connect_to_live_peer"
         self.wanted = True
 
-        peer_db = PeerDBHandler()
+        peer_db = PeerDBHandler.getInstance()
         hispermid = self.peer2.my_permid
         peer_db.updatePeerIPPort(hispermid, "127.0.0.1", 5678)
 
@@ -247,7 +247,7 @@ class TestSecureOverlay(unittest.TestCase):
         self.wanted = True
         self.wanted2 = True
         
-        peer_db = PeerDBHandler()
+        peer_db = PeerDBHandler.getInstance()
         hispermid = self.peer2.my_permid
         peer_db.updatePeerIPPort(hispermid, "127.0.0.1", 5678)
 
@@ -289,7 +289,7 @@ class TestSecureOverlay(unittest.TestCase):
     def singtest_send_unopenedB(self):
         print >> sys.stderr,"test: test_send_unopenedB"
         self.wanted = True
-        peer_db = PeerDBHandler()
+        peer_db = PeerDBHandler.getInstance()
         hispermid = self.peer2.my_permid
         peer_db.updatePeerIPPort(hispermid, "127.0.0.1", 5678)
         self.peer1.secure_overlay.send(hispermid,'msg=bla',self.send_unopenedB_send_callback)
@@ -379,7 +379,7 @@ class TestSecureOverlay(unittest.TestCase):
         print >> sys.stderr,"test: test_send_opened"
         self.wanted = True
         self.wanted2 = True
-        peer_db = PeerDBHandler()
+        peer_db = PeerDBHandler.getInstance()
         hispermid = self.peer2.my_permid
         peer_db.updatePeerIPPort(hispermid, "127.0.0.1", 5678)
         msg = GET_METADATA+'12345678901234567890'
@@ -437,7 +437,7 @@ class TestSecureOverlay(unittest.TestCase):
         # register handler for messages
         self.peer2.secure_overlay.register_recv_callback(self.receive_msg_callback)
 
-        peer_db = PeerDBHandler()
+        peer_db = PeerDBHandler.getInstance()
         hispermid = self.peer2.my_permid
         peer_db.updatePeerIPPort(hispermid, "127.0.0.1", 5678)
         msg = GET_METADATA+'12345678901234567890'
@@ -479,7 +479,7 @@ class TestSecureOverlay(unittest.TestCase):
         self.peer2.secure_overlay.register_conns_callback(self.got_conn_incoming_conns_callback)
 
 
-        peer_db = PeerDBHandler()
+        peer_db = PeerDBHandler.getInstance()
         hispermid = self.peer2.my_permid
         peer_db.updatePeerIPPort(hispermid, "127.0.0.1", 5678)
         msg = GET_METADATA+'12345678901234567890'
@@ -514,7 +514,7 @@ class TestSecureOverlay(unittest.TestCase):
         # register handler for connections
         self.peer1.secure_overlay.register_conns_callback(self.got_conn_outgoing_conns_callback)
 
-        peer_db = PeerDBHandler()
+        peer_db = PeerDBHandler.getInstance()
         hispermid = self.peer2.my_permid
         peer_db.updatePeerIPPort(hispermid, "127.0.0.1", 5678)
         msg = GET_METADATA+'12345678901234567890'

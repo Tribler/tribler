@@ -22,7 +22,7 @@ def toint(s):
 
 default_task_id = []
 
-DEBUG = False
+DEBUG = True
 
 def show(s):
     for i in xrange(len(s)): 

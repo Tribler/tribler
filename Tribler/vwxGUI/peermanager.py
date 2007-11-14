@@ -191,11 +191,11 @@ class PeerDataManager(DelayedEventHandler):
         self.dataLock = threading.RLock()
         self.callback_dict = {} #empty list for events
         self.guiCallbackFuncList = []#callback function list from the parent, the creator object
-        self.peersdb = SynPeerDBHandler(updateFun = self.callbackPeerChange)#CacheDBHandler.PeerDBHandler()
-        self.prefdb = CacheDBHandler.PreferenceDBHandler()
-#        self.mydb = CacheDBHandler.MyPreferenceDBHandler()
-#        self.tordb = CacheDBHandler.TorrentDBHandler()
-        self.frienddb = CacheDBHandler.FriendDBHandler()
+        self.peersdb = CacheDBHandler.PeerDBHandler.getInstance()
+        self.prefdb = CacheDBHandler.PreferenceDBHandler.getInstance()
+#        self.mydb = CacheDBHandler.MyPreferenceDBHandler.getInstance()
+#        self.tordb = CacheDBHandler.TorrentDBHandler.getInstance()
+        self.frienddb = CacheDBHandler.FriendDBHandler.getInstance()
         self.wantedkeys = ['permid', 'name', 'ip', 'similarity', 'last_connected', 'connected_times', 'buddycast_times', 'port', 'ntorrents', 'npeers', 'nprefs']
         self.peerDeletionScheduled = False
         #there should always be an all key that contains all data

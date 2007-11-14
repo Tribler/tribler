@@ -8,7 +8,7 @@ from Tribler.TrackerChecking.TrackerChecking import trackerChecking
 
 def run():
     print "start run"
-#    torrent_db = TorrentDBHandler()
+#    torrent_db = TorrentDBHandler.getInstance()
 #    key = ['infohash', 'torrent_name', 'torrent_dir', 'relevance', 'info', 
 #                'num_owners', 'leecher', 'seeder', 'category']
 #    data = torrent_db.getRecommendedTorrents(key)

@@ -13,7 +13,7 @@ class SimpleTorrentCollecting:
     """
     
     def __init__(self, metadata_handler):
-        self.torrent_db = TorrentDBHandler()
+        self.torrent_db = TorrentDBHandler.getInstance()
         self.metadata_handler = metadata_handler
         
     def updatePreferences(self, permid, preferences, selversion=-1):

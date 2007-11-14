@@ -14,7 +14,7 @@ from BitTornado.download_bt1 import BT1Download
 from BitTornado.clock import clock
 
 from Utility.constants import * #IGNORE:W0611
-from Utility.helpers import getfreespace
+from Tribler.API.osutils import getfreespace
 
 from Tribler.Worldmap.peer import BTPeer
 from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
@@ -901,7 +901,7 @@ class ABCEngine(DelayedEventHandler):
         elif colid == SPEW_PERMID:
             if spew[line]['unauth_permid'] is not None:
                 text = '*Tribler*'
-                friends = FriendDBHandler().getFriends()
+                friends = FriendDBHandler.getInstance().getFriends()
                 for friend in friends:
                     #print "SPEW COMPARING friend",show_permid_short(friend['permid']),"to spew",show_permid_short(spew[line]['unauth_permid'])
                     if friend['permid'] == spew[line]['unauth_permid']:
@@ -971,7 +971,7 @@ class ABCEngine(DelayedEventHandler):
         elif colid == SPEW_PERMID:
             if spew[line]['unauth_permid'] is not None:
                 text = '*Tribler*'
-                friends = FriendDBHandler().getFriends()
+                friends = FriendDBHandler.getInstance().getFriends()
                 for friend in friends:
                     #print "SPEW COMPARING friend",show_permid_short(friend['permid']),"to spew",show_permid_short(spew[line]['unauth_permid'])
                     if friend['permid'] == spew[line]['unauth_permid']:

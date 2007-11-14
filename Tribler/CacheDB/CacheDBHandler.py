@@ -7,20 +7,31 @@ from sets import Set
 from traceback import print_exc
 from threading import currentThread
 from time import time
+import base64, socket
 
 from BitTornado.bencode import bencode, bdecode
 from Tribler.Overlay.permid import permid_for_user
 from sets import Set
-from Tribler.utilities import show_permid_shorter
 
-from Tribler.utilities import show_permid_shorter
+from Tribler.utilities import show_permid_shorter, validIP, validPort, validPermid, validName
+from Tribler.CacheDB.Notifier import Notifier
+from Tribler.Dialogs.MugshotManager import MugshotManager # move to peerDBHandler
 
 DEBUG = False
 
 class BasicDBHandler:
+    __single = None
+    
     def __init__(self):
         self.dbs = []    # don't include read only database
+        self._single = self
         
+    def getInstance(*args, **kw):
+        if BasicDBHandler.__single is None:
+            BasicDBHandler(*args, **kw)
+        return BasicDBHandler.__single
+    getInstance = staticmethod(getInstance)
+
     def __del__(self):
         try:
             self.sync()
@@ -56,87 +67,122 @@ class BasicDBHandler:
             print key, value 
 
             
-            
-class MyDBHandler(BasicDBHandler):
-
-    def __del__(self):
-        if self.writed:
-            try:
-                self.sync()
-            except:
-                pass
-
-    def __init__(self, db_dir=''):
-        BasicDBHandler.__init__(self)
-        self.my_db = MyDB.getInstance(db_dir = db_dir)
-        self.writed = False
-        self.dbs = [self.my_db]
-        
-    def get(self, key, value=''):
-        ret = self.my_db._get(key, value)
-        return ret
-
-    def put(self, key, value):
-        self.writed = True
-        self.my_db._put(key, value)
-    
-    def getMyPermid(self):
-        return self.get('permid')
-        
-    def getMyIP(self):
-        return self.get('ip', '127.0.0.1')
-
-    def getMyPeerInfo(self):
-        return {'name':self.get('name'),'ip':self.get('ip','127.0.0.1'),'port':self.get('port', 0)}
-
+      
     
 class SuperPeerDBHandler(BasicDBHandler):
-    def __init__(self, db_dir=''):
+    """
+    Jelle: now superpeers are read from file and then kept in memory only.
+    Necessary to pickle?
+    """
+    def __init__(self, config, db_dir=''):
         BasicDBHandler.__init__(self)
-        self.my_db = MyDB.getInstance(db_dir=db_dir)
-        self.superpeers = self.my_db.getSuperPeers()
         self.peer_db = PeerDB.getInstance(db_dir=db_dir)
-        self.dbs = [self.my_db, self.peer_db]
-        
-    def size(self):
-        return len(self.my_db.getSuperPeers())
+        self.dbs = [self.peer_db]
+        self.notifier = Notifier.getInstance()
+        filename = os.path.join(config['install_dir'], config['superpeer_file'])
+        self.superpeer_list = self.readSuperPeerList(filename)
+        #print 'sp list: %s' % self.superpeer_list
+        self.updatePeerDB()   
     
-    def printList(self):
-        print self.my_db.getSuperPeers()
-
-    def getSuperPeerList(self):
-        return self.superpeers
+    __single = None    
+    def getInstance(*args, **kw):
+        if SuperPeerDBHandler.__single is None:
+            SuperPeerDBHandler.__single = SuperPeerDBHandler(*args, **kw)
+        return SuperPeerDBHandler.__single
+    getInstance = staticmethod(getInstance)
+      
+        
+    def clear(self):    # clean database
+        self.superpeer_list = {}
+            
 
     def getSuperPeers(self):
-        sps = self.my_db.getSuperPeers()
-        res = []
-        for permid in sps:
-            peer = self.peer_db.getItem(permid)
-            if peer is not None:
-                peer.update({'permid':permid})
-                res.append(peer)
-        return res
+        # return only permids
+        return [a['permid'] for a in self.superpeer_list]
+    
+    def size(self):
+        return len(self.getSuperPeers())
+    
+    def printList(self):
+        print self.getSuperPeers()
         
-    def addSuperPeer(self, permid):
-        self.my_db.addSuperPeer(permid)
-
-    def addExternalSuperPeer(self, superpeer):
-        if not isinstance(superpeer, dict) or 'permid' not in superpeer:
-            return
-        permid = superpeer.pop('permid')
-        self.peer_db.updateItem(permid, superpeer)
-        if permid not in self.superpeers:
-            self.my_db.addSuperPeer(permid)
-           
-
+    def readSuperPeerList(self, filename=''):
+        """ read (name, permid, superpeer_ip, superpeer_port) lines from a text file """
+        
+        try:
+            filepath = os.path.abspath(filename)
+            file = open(filepath, "r")
+        except IOError:
+            print >> sys.stderr, "superpeer: cannot open superpeer file", filepath
+            return []
+            
+        superpeers = file.readlines()
+        file.close()
+        superpeers_info = []
+        for superpeer in superpeers:
+            if superpeer.strip().startswith("#"):    # skip commended lines
+                continue
+            superpeer_line = superpeer.split(',')
+            superpeer_info = [a.strip() for a in superpeer_line]
+            try:
+                superpeer_info[2] = base64.decodestring(superpeer_info[2]+'\n' )
+            except:
+                print_exc()
+                continue
+            if self.validSuperPeerList(superpeer_info):
+                try:
+                    ip = socket.gethostbyname(superpeer_info[0])
+                    superpeer = {'ip':ip, 'port':superpeer_info[1], 
+                              'permid':superpeer_info[2]}
+                    if len(superpeer_info) > 3:
+                        superpeer['name'] = superpeer_info[3]
+                    superpeers_info.append(superpeer)
+                except:
+                    print_exc()
+                    pass
+                    
+        return superpeers_info
+    
+    def validSuperPeerList(self, superpeer_info):
+        try:
+            if len(superpeer_info) < 3:
+                raise RuntimeError, "one line in superpeers.txt contains at least 3 elements"
+            #validIP(superpeer_info[0])
+            validPort(int(superpeer_info[1]))
+            validPermid(superpeer_info[2])
+        except Exception:
+            if DEBUG:
+                print >>sys.stderr,"superpeer: Parse error reading",superpeer_info
+                print_exc(file=sys.stderr)
+            return False
+        else:
+            return True
+    
+    def updatePeerDB(self):
+        print 'superpeers: updating db'
+        for superpeer in self.superpeer_list:
+            superpeer = deepcopy(superpeer)
+            if not isinstance(superpeer, dict) or 'permid' not in superpeer:
+                continue
+            permid = superpeer.pop('permid')
+            self.peer_db.updateItem(permid, superpeer)
+            self.notifier.notify(Notifier.PEERS, Notifier.UPDATE, permid)
+      
 class FriendDBHandler(BasicDBHandler):
 
     def __init__(self, db_dir=''):
         BasicDBHandler.__init__(self)
-        self.my_db = MyDB.getInstance(db_dir=db_dir)
+        #self.my_db = MyDB.getInstance(db_dir=db_dir)
         self.peer_db = PeerDB.getInstance(db_dir=db_dir)
-        self.dbs = [self.my_db, self.peer_db]
-        
+        self.dbs = [self.peer_db]
+    
+    __single = None    
+    def getInstance(*args, **kw):
+        if FriendDBHandler.__single is None:
+            FriendDBHandler.__single = FriendDBHandler(*args, **kw)
+        return FriendDBHandler.__single
+    getInstance = staticmethod(getInstance)
+    
     def size(self):
         return len(self.my_db.getFriends())
 
@@ -151,10 +197,10 @@ class FriendDBHandler(BasicDBHandler):
         if not isinstance(friend, dict) or 'permid' not in friend:
             return
         permid = friend.pop('permid')
-        if permid not in self.my_db.getFriends():
+        if permid not in self.getFriends():
             self.peer_db.updateItem(permid, friend)
             #self.peer_db._sync()
-            self.my_db.addFriend(permid)
+            #self.my_db.addFriend(permid) # Fixme
             #self.my_db._sync()
         else:
             self.peer_db.updateItem(permid, friend, update_time=False)
@@ -162,40 +208,42 @@ class FriendDBHandler(BasicDBHandler):
             
     def getFriendList(self):
         """returns a list of permids"""
-        return self.my_db.getFriends()
+        return [] # FIXME, no friendsdb yet
             
     def getFriends(self):
         """returns a list of peer infos including permid"""
-        ids = self.my_db.getFriends()
-        friends = []
-        for id in ids:
-            peer = self.peer_db.getItem(id)
-            if peer:
-                peer.update({'permid':id})
-                friends.append(peer)
-        return friends
+        return [] # Fixme
     
     def isFriend(self, permid):
-        return self.my_db.isFriend(permid)
+        return False # Fixme
             
     def deleteFriend(self,permid):
-        self.my_db.deleteFriend(permid)
-        self.my_db._sync()  
+        pass
         
     def updateFriendIcon(self, permid, icon_path):
         self.peer_db.updatePeer(permid, 'icon', icon_path)
         
 class PeerDBHandler(BasicDBHandler):
-    
-    def __init__(self, db_dir=''):
+        
+    def __init__(self, config, db_dir=''):
         BasicDBHandler.__init__(self)
+        self.notifier = Notifier.getInstance()
         self.peer_db = PeerDB.getInstance(db_dir=db_dir)
         self.pref_db = PreferenceDB.getInstance(db_dir=db_dir)
-        self.my_db = MyDB.getInstance(db_dir=db_dir)
+        self.friends_db_handler = FriendDBHandler.getInstance()
         self.pref_db_handler = PreferenceDBHandler(db_dir=db_dir)
         self.ip_db = IP2PermIDDB.getInstance(db_dir=db_dir)
+        self.mm = MugshotManager.getInstance()
+        self.mm.register(config)
         self.dbs = [self.peer_db, self.ip_db]
-        
+    
+    __single = None    
+    def getInstance(*args, **kw):
+        if PeerDBHandler.__single is None:
+            PeerDBHandler.__single = PeerDBHandler(*args, **kw)
+        return PeerDBHandler.__single
+    getInstance = staticmethod(getInstance)
+    
     def __len__(self):
         return self.peer_db._size()
         
@@ -261,7 +309,7 @@ class PeerDBHandler(BasicDBHandler):
         
         return values
     
-    def addPeer(self, permid, value, update_dns=True):
+    def addPeer(self, permid, value, update_dns=True, updateFlag = True):
         
         if value.has_key('last_seen'):    # get the latest last_seen
             old_last_seen = 0
@@ -276,6 +324,9 @@ class PeerDBHandler(BasicDBHandler):
 
         if value.has_key('ip') and update_dns:
             self.updatePeerIP(permid, value['ip'])
+        
+        if updateFlag:
+            self.notifier.notify(Notifier.PEERS, Notifier.INSERT, permid)
         
     def hasPeer(self, permid):
         return self.peer_db.hasItem(permid)        
@@ -298,11 +349,22 @@ class PeerDBHandler(BasicDBHandler):
                     pass
         return res
     
-    def updatePeer(self, permid, key, value):
+    def updatePeer(self, permid, key, value, updateFlag = True):
         self.peer_db.updateItem(permid, {key:value})
         if key == 'ip':
             self.updatePeerIP(permid, value)
+        if updateFlag:
+            self.notifier.notify(Notifier.PEERS, Notifier.UPDATE, permid, key)
     
+    def updatePeerIcon(self, permid, icontype, icondata, updateFlag = True):
+        self.mm.save_data(permid, icontype, icondata)
+        if updateFlag:
+            self.notifier.notify(Notifier.PEERS, Notifier.UPDATE, permid, 'icon')
+    
+        
+    def getPeerIcon(self, permid, name = ''):
+        return self.mm.load_data(permid, name)
+        
     def updatePeerIP(self, permid, ip):
         peer_data = self.peer_db._get(permid, {})
         old_ip = peer_data.get('ip', None)
@@ -317,25 +379,20 @@ class PeerDBHandler(BasicDBHandler):
         if permid2 != permid:
             self.ip_db.addIP(ip,permid)
         
-    
-#===============================================================================
-#    # This function is never used
-#    def updatePeerIPPort(self, permid, ip, port):
-#        self.peer_db.updateItem(permid, {'ip':ip, 'port':port})
-#        self.ip_db.deletePermID(permid,ip)
-#        self.ip_db.addIP(ip,permid)
-#===============================================================================
         
-    def deletePeer(self, permid):
-        if self.my_db.isFriend(permid):
+    def deletePeer(self, permid, updateFlag = True):
+        if self.friends_db_handler.isFriend(permid):
             return False
         self.peer_db._delete(permid)
         self.pref_db_handler.deletePeer(permid)
         self.ip_db.deletePermID(permid)
+        
+        if updateFlag:
+            self.notifier.notify(Notifier.PEERS, Notifier.DELETE, permid)
 
         return True
         
-    def updateTimes(self, permid, key, change):
+    def updateTimes(self, permid, key, change, updateFlag = True):
         item = self.peer_db.getItem(permid)
         if not item:
             return
@@ -345,6 +402,9 @@ class PeerDBHandler(BasicDBHandler):
             value = item[key]
         value += change
         self.peer_db.updateItem(permid, {key:value})
+        
+        if updateFlag:
+            self.notifier.notify(Notifier.PEERS, Notifier.UPDATE, permid, key)
         
     def getPermIDByIP(self,ip):
         return self.ip_db.getPermIDByIP(ip)    
@@ -357,6 +417,13 @@ class PreferenceDBHandler(BasicDBHandler):
         self.pref_db = PreferenceDB.getInstance(db_dir=db_dir)
         self.dbs = [self.pref_db, self.owner_db]
         
+    __single = None    
+    def getInstance(*args, **kw):
+        if PreferenceDBHandler.__single is None:
+            PreferenceDBHandler.__single = PreferenceDBHandler(*args, **kw)
+        return PreferenceDBHandler.__single
+    getInstance = staticmethod(getInstance)
+    
     def getPreferences(self, permid):
         return self.pref_db.getItem(permid)
         
@@ -390,18 +457,28 @@ class TorrentDBHandler(BasicDBHandler):
 
     def __init__(self, db_dir=''):
         BasicDBHandler.__init__(self)
+        self.notifier = Notifier.getInstance()
         self.torrent_db = TorrentDB.getInstance(db_dir=db_dir)
         self.mypref_db = MyPreferenceDB.getInstance(db_dir=db_dir)
         self.owner_db = OwnerDB.getInstance(db_dir=db_dir)
         self.dbs = [self.torrent_db]
         
-    def addTorrent(self, infohash, torrent={}, new_metadata=False):
+    __single = None    
+    def getInstance(*args, **kw):
+        if TorrentDBHandler.__single is None:
+            TorrentDBHandler.__single = TorrentDBHandler(*args, **kw)
+        return TorrentDBHandler.__single
+    getInstance = staticmethod(getInstance)
+    
+    def addTorrent(self, infohash, torrent={}, new_metadata=False, updateFlag = True):
         # add a new torrent or update an old torrent's info
         if not torrent and self.hasTorrent(infohash):    # no need to add
             return False
         self.torrent_db.updateItem(infohash, torrent)
-#        if new_metadata:
-#            self.torrent_db.num_metadatalive += 1
+
+        if updateFlag:
+            self.notifier.notify(Notifier.TORRENTS, Notifier.INSERT, infohash)
+            
         try:
             # Arno: PARANOID SYNC
             self.sync()
@@ -410,9 +487,16 @@ class TorrentDBHandler(BasicDBHandler):
         return True
         
     def updateTorrent(self, infohash, **kw):    # watch the schema of database
+        updateFlag = kw.get('updateFlag', True)
+        if kw.has_key('updateFlag'):
+            del kw['updateFlag']
         self.torrent_db.updateItem(infohash, kw)
+          
+        if updateFlag:
+            self.notifier.notify(Notifier.TORRENTS, Notifier.UPDATE, infohash, kw.keys())
+            
         
-    def deleteTorrent(self, infohash, delete_file=False):
+    def deleteTorrent(self, infohash, delete_file=False, updateFlag = True):
         if self.mypref_db.hasPreference(infohash):  # don't remove torrents in my pref
             return False
 
@@ -430,7 +514,9 @@ class TorrentDBHandler(BasicDBHandler):
         
         if deleted:
             self.torrent_db._delete(infohash)
-        
+            if updateFlag:
+                self.notifier.notify(Notifier.TORRENTS, Notifier.DELETE, infohash)
+                
         return deleted
             
     def eraseTorrentFile(self, infohash):
@@ -643,8 +729,10 @@ class TorrentDBHandler(BasicDBHandler):
     def getOwners(self, infohash):
         return self.owner_db.getItem(infohash)
         
-    def updateTorrentRelevance(self, torrent, relevance):
-        self.torrent_db.updateItem(torrent, {'relevance':relevance})
+    def updateTorrentRelevance(self, infohash, relevance, updateFlag = True):
+        self.torrent_db.updateItem(infohash, {'relevance':relevance})
+        if updateFlag:
+            self.notifier.notify(Notifier.TORRENTS, Notifier.UPDATE, infohash, 'relevance')
             
 #===============================================================================
 #    def getNumMetadataAndLive(self):    # TODO
@@ -655,9 +743,17 @@ class MyPreferenceDBHandler(BasicDBHandler):
     
     def __init__(self, db_dir=''):
         BasicDBHandler.__init__(self)
+        self.notifier = Notifier.getInstance()
         self.mypref_db = MyPreferenceDB.getInstance(db_dir=db_dir)
         self.torrent_db = TorrentDB.getInstance(db_dir=db_dir)
         self.dbs = [self.mypref_db, self.torrent_db]
+    
+    __single = None    
+    def getInstance(*args, **kw):
+        if MyPreferenceDBHandler.__single is None:
+            MyPreferenceDBHandler.__single = MyPreferenceDBHandler(*args, **kw)
+        return MyPreferenceDBHandler.__single
+    getInstance = staticmethod(getInstance)
     
     def getPreferences(self, key=None):
         all_items = self.mypref_db._items()
@@ -749,6 +845,13 @@ class OwnerDBHandler(BasicDBHandler):
         self.dbs = [self.owner_db]
         self.sim_cache = {}    # used to cache the getSimItems
         
+    __single = None    
+    def getInstance(*args, **kw):
+        if OwnerDBHandler.__single is None:
+            OwnerDBHandler.__single = OwnerDBHandler(*args, **kw)
+        return OwnerDBHandler.__single
+    getInstance = staticmethod(getInstance)
+    
     def getTorrents(self):
         return self.owner_db._keys()
         
@@ -832,14 +935,20 @@ class OwnerDBHandler(BasicDBHandler):
         
 class BarterCastDBHandler(BasicDBHandler):
 
-    def __init__(self, db_dir=''):
+    def __init__(self, session, db_dir=''):
         BasicDBHandler.__init__(self)
-        self.my_db_handler = MyDBHandler()
         self.bartercast_db = BarterCastDB.getInstance(db_dir=db_dir)
         self.peer_db = PeerDB.getInstance(db_dir=db_dir)
         self.dbs = [self.bartercast_db]
-        self.my_permid = self.my_db_handler.getMyPermid()
+        self.my_permid = session.get_user_permid()
 
+    __single = None
+    def getInstance(*args, **kw):
+        if BarterCastDBHandler.__single is None:
+            BarterCastDBHandler.__single = BarterCastDBHandler(*args, **kw)
+        return BarterCastDBHandler.__single
+    getInstance = staticmethod(getInstance)
+    
     def __len__(self):
         return self.bartercast_db._size()
 
@@ -1103,16 +1212,13 @@ class BarterCastDBHandler(BasicDBHandler):
 
 
         
-        
-def test_mydb():
-    mydb = MyDBHandler()
+
     
 def test_myprefDB():
-    myprefdb = MyPreferenceDBHandler()
+    myprefdb = MyPreferenceDBHandler.getInstance()
     print myprefdb.getRecentPrefList()
     
 def test_all():
-    test_mydb()
     test_myprefDB()
     
 def test_getSimItems(db_dir):

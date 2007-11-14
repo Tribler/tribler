@@ -6,8 +6,10 @@ try:
     got_wx = True
 except:
     got_wx = False
-    
-import os
+
+got_wx = False # test API without GUI stuff first
+
+import os, os.path
 import sys
 from cStringIO import StringIO
 from sha import sha
@@ -34,7 +36,7 @@ class MugshotManager:
             raise RuntimeError, "MugshotManager is singleton"
         MugshotManager.__single = self
         self.usericonpath = '' # for test suite
-        self.sysiconpath = ''
+        #self.sysiconpath = ''
         
 
     def getInstance(*args, **kw):
@@ -44,10 +46,12 @@ class MugshotManager:
     getInstance = staticmethod(getInstance)
         
 
-    def register(self,userpath,syspath):
-        self.usericonpath = os.path.join(userpath,'icons')
-        self.sysiconpath = os.path.join(syspath,'icons')
-        self.guiImagePath = os.path.join(syspath,'Tribler', 'vwxGUI', 'images')
+    def register(self,config):
+        self.usericonpath = os.path.join(config['state_dir'],config['peer_icon_path'])
+        if not os.path.isdir(self.usericonpath):
+            os.mkdir(self.usericonpath)
+        #self.sysiconpath = os.path.join(syspath,'icons')
+        self.guiImagePath = os.path.join(config['install_dir'],'Tribler', 'vwxGUI', 'images')
         self.defaults = {}
         self.categoryThumbs = {}
 	if not got_wx:

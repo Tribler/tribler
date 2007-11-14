@@ -16,7 +16,7 @@ class mainlineDHTChecker:
         mainlineDHTChecker.__single = self
         
         self.dht = None
-        self.torrent_db = SynTorrentDBHandler()
+        self.torrent_db = SynTorrentDBHandler.getInstance()
 
     def getInstance(*args, **kw):
         if mainlineDHTChecker.__single is None:

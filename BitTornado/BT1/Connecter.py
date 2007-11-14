@@ -137,7 +137,7 @@ class Connection:
         self.looked_for_permid += 1
         if self.looked_for_permid >= UNAUTH_PERMID_PERIOD:
             self.looked_for_permid = 0
-            peerdb = PeerDBHandler()
+            peerdb = PeerDBHandler.getInstance()
             peerList = peerdb.findPeers('ip',self.connection.get_ip())
             if len(peerList) != 1:
                 return # Don't know
@@ -510,8 +510,8 @@ class Connecter:
             
         # BarterCast
         if 'megacache' in config and config['megacache']: # TEMP ARNO: TODO: WE EXPECT A SESSION CONFIG HERE
-            self.peerdb = PeerDBHandler()
-            self.bartercastdb = BarterCastDBHandler()
+            self.peerdb = PeerDBHandler.getInstance()
+            self.bartercastdb = BarterCastDBHandler.getInstance()
         else:
             self.peerdb = None
             self.bartercastdb = None

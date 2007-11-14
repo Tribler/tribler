@@ -24,7 +24,7 @@ class RemoteTorrentHandler:
         if RemoteTorrentHandler.__single:
             raise RuntimeError, "RemoteTorrentHandler is singleton"
         RemoteTorrentHandler.__single = self
-        #self.torrent_db = SynTorrentDBHandler()
+        #self.torrent_db = SynTorrentDBHandler.getInstance()
         self.requestedtorrents = Set()
 
     def getInstance(*args, **kw):

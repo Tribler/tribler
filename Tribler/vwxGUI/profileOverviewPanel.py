@@ -3,7 +3,6 @@ import wx.xrc as xrc
 import random
 from Tribler.vwxGUI.GuiUtility import GUIUtility
 from Tribler.vwxGUI.tribler_topButton import tribler_topButton
-from Tribler.CacheDB.CacheDBHandler import MyDBHandler
 from Tribler.Dialogs.MugshotManager import MugshotManager
 from Tribler.Dialogs.socnetmyinfo import MyInfoWizard
 from Tribler.CacheDB.CacheDBHandler import MyPreferenceDBHandler
@@ -48,8 +47,7 @@ class ProfileOverviewPanel(wx.Panel):
         
         self.utility = self.guiUtility.utility
         self.data_manager = self.guiUtility.standardOverview.data_manager
-        self.bartercast_db = BarterCastDBHandler()
-        self.mydb = MyPreferenceDBHandler()
+        self.bartercast_db = BarterCastDBHandler.getInstance()
 #        self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 #        self.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
         for element in self.elementsName:
@@ -108,8 +106,7 @@ class ProfileOverviewPanel(wx.Panel):
         #wx.CallAfter(self.reloadData())
 
     def getNameMugshot(self):
-        my_db = MyDBHandler()
-        self.myname = my_db.get('name', '')
+        self.utility.session.get_nickname()
         mypermid = my_db.getMyPermid()
         mm = MugshotManager.getInstance()
         self.mugshot = mm.load_wxBitmap(mypermid)

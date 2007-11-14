@@ -2,13 +2,12 @@
 # see LICENSE.txt for license information
 
 
-import sys
+import sys, socket
 from time import time
 
 from BitTornado.BT1.MessageID import *
 from Tribler.Overlay.SecureOverlay import OLPROTO_VER_FIFTH
 from Tribler.SocialNetwork.OverlapMsgHandler import OverlapMsgHandler
-from Tribler.CacheDB.CacheDBHandler import MyDBHandler, PeerDBHandler, SuperPeerDBHandler
 
 from Tribler.utilities import show_permid_short
 
@@ -22,13 +21,7 @@ class SocialNetworkMsgHandler:
         if SocialNetworkMsgHandler.__single:
             raise RuntimeError, "SocialNetworkMsgHandler is singleton"
         SocialNetworkMsgHandler.__single = self
-
-        my_db = MyDBHandler()
-        mypermid = my_db.getMyPermid()
-        peer_db = PeerDBHandler()
-        superpeer_db = SuperPeerDBHandler()
-
-        self.overlap = OverlapMsgHandler(mypermid,my_db,peer_db,superpeer_db)
+        self.overlap = OverlapMsgHandler()
 
     def getInstance(*args, **kw):
         if SocialNetworkMsgHandler.__single is None:
@@ -37,13 +30,13 @@ class SocialNetworkMsgHandler:
     getInstance = staticmethod(getInstance)
         
 
-    def register(self,secure_overlay,rawserver,config):
+    def register(self,secure_overlay,launchmany,config):
         if DEBUG:
             print >> sys.stderr,"socnet: register"
         self.secure_overlay = secure_overlay
-        self.rawserver = rawserver
+        self.rawserver = launchmany.rawserver
         self.config = config
-        self.overlap.register(secure_overlay,rawserver)
+        self.overlap.register(secure_overlay,launchmany)
 
     #
     # Incoming messages
@@ -86,3 +79,5 @@ class SocialNetworkMsgHandler:
 
         self.overlap.initiate_overlap(permid,locally_initiated)
         return True
+
+    

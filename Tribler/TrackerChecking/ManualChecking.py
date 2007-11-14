@@ -33,7 +33,7 @@ class SingleManualChecking(Thread):
         self.setName('SingleManualChecking-'+self.getName())
         
         self.torrent = torrent
-        self.torrent_db = SynTorrentDBHandler()
+        self.torrent_db = SynTorrentDBHandler.getInstance()
         self.mldhtchecker = mainlineDHTChecker.getInstance()
         
 

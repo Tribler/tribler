@@ -121,7 +121,7 @@ from traceback import print_exc
 
 from Tribler.TrackerChecking.TrackerChecking import trackerChecking
 from Tribler.TrackerChecking.TorrentCheckingList import TorrentCheckingList
-from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
+from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler
 from Tribler.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
 
 DEBUG = False
@@ -138,7 +138,7 @@ class TorrentChecking(Thread):
         self.torrentList = TorrentCheckingList.getInstance()
         self.retryThreshold = 10
         self.gnThreashold = 0.9
-        self.torrent_db = SynTorrentDBHandler()
+        self.torrent_db = TorrentDBHandler().getInstance()
         self.mldhtchecker = mainlineDHTChecker.getInstance() 
         
     def run(self):
@@ -279,3 +279,5 @@ class TorrentChecking(Thread):
         if (torrent["retry_number"] > self.retryThreshold):
             return True
         return False
+
+

@@ -51,7 +51,7 @@ class Helper:
         self.coordinator_port = -1
 
         if self.coordinator_permid is not None:
-            peerdb = PeerDBHandler()
+            peerdb = PeerDBHandler.getInstance()
             peer = peerdb.getPeer(coordinator_permid)
             if peer is not None:
                 self.coordinator_ip = peer['ip']

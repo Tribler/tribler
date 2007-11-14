@@ -27,7 +27,7 @@ class TorrentCheckingList:
         self.list_good = []
         self.list_unknown = []
         self.list_dead = []
-#        self.torrent_db = TorrentDBHandler()
+#        self.torrent_db = TorrentDBHandler.getInstance()
         self.torrent_db = SynTorrentDBHandler(updateFun=self.updateFun)
         self._prepareData()            # prepare the list
         self.done_init = True

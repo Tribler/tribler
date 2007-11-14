@@ -14,7 +14,6 @@ import wx.lib.imagebrowser as ib
 # it don't work. This explicit import seems to:
 from wx.wizard import Wizard,WizardPageSimple,EVT_WIZARD_PAGE_CHANGED,EVT_WIZARD_PAGE_CHANGING,EVT_WIZARD_CANCEL,EVT_WIZARD_FINISHED
 
-from Tribler.CacheDB.CacheDBHandler import MyDBHandler
 from Tribler.Dialogs.MugshotManager import MugshotManager
 from Tribler.Overlay.permid import permid_for_user
 from Tribler.unicode import str2unicode
@@ -69,8 +68,7 @@ class MyInfoWizard(Wizard):
 
     def OnFinished(self,event=None):
         (name,iconpath) = self.page1.getNameIconPath()
-        my_db = MyDBHandler()
-        my_db.put('name',name)
+        self.utility.session.set_nickname(name)
         mm = MugshotManager.getInstance()
         if iconpath:
             mypermid = my_db.getMyPermid()
@@ -99,7 +97,7 @@ class NameIconWizardPage(WizardPageSimple):
         topbox = wx.BoxSizer(wx.VERTICAL)
 
         # Ask public name
-        self.my_db = MyDBHandler()
+        self.my_db = MyDBHandler.getInstance()
         name = self.my_db.get('name', '')
 
         name_box = wx.BoxSizer(wx.HORIZONTAL)
@@ -118,7 +116,7 @@ class NameIconWizardPage(WizardPageSimple):
 
         ## TODO: integrate this code with makefriends.py, especially checking code
         self.iconbtn = None
-        my_db = MyDBHandler()
+        my_db = MyDBHandler.getInstance()
         self.mypermid = my_db.getMyPermid()
         self.mm = MugshotManager.getInstance()
         bm = self.mm.load_wxBitmap(self.mypermid)
@@ -236,7 +234,7 @@ class RWIDList(CommonTriblerList):
         self.parent = parent
         self.utility = parent.utility
 
-        self.my_db = MyDBHandler()
+        self.my_db = MyDBHandler.getInstance()
 
         self.min_rank = -1
         self.max_rank = 5

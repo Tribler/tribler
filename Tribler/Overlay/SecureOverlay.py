@@ -16,8 +16,6 @@ from BitTornado.__init__ import createPeerID
 from BitTornado.BT1.MessageID import protocol_name,option_pattern,getMessageName
 from BitTornado.BT1.convert import tobinary,toint
 
-from Tribler.CacheDB.CacheDBHandler import MyDBHandler
-from Tribler.CacheDB.SynDBHandler import SynPeerDBHandler
 from Tribler.Overlay.permid import ChallengeResponse
 from Tribler.utilities import show_permid_short
 
@@ -77,24 +75,25 @@ class SecureOverlay:
         return SecureOverlay.__single
     getInstance = staticmethod(getInstance)
 
-    def register(self,rawserver,multihandler,mylistenport,max_len,mykeypair):
-        self.rawserver = rawserver
+    def register(self,launchmanycore, max_len):
+        self.lm = launchmanycore
+        self.rawserver = self.lm.rawserver
         self.sock_hand = self.rawserver.sockethandler
-        self.multihandler = multihandler
-        self.overlay_rawserver = multihandler.newRawServer(overlay_infohash, 
-                                              self.rawserver.doneflag,
-                                              protocol_name)
-        self.myid = create_my_peer_id(mylistenport)
+        self.multihandler = self.lm.multihandler
+        self.overlay_rawserver = self.multihandler.newRawServer(overlay_infohash, 
+                                                                self.rawserver.doneflag,
+                                                                protocol_name)
         self.max_len = max_len
         self.iplport2oc = {}    # (IP,listen port) -> OverlayConnection
         self.usermsghandler = None
         self.userconnhandler = None
-        self.peer_db = SynPeerDBHandler()
-        self.mykeypair = mykeypair
-        self.permid = str(mykeypair.pub().get_der())
-        self.myip = MyDBHandler().getMyIP()
-        self.myport = mylistenport
-
+        self.peer_db = self.lm.peer_db
+        self.mykeypair = self.lm.session.keypair
+        self.permid = self.lm.session.get_user_permid()
+        self.myip = self.lm.get_ext_ip()
+        self.myport = self.lm.session.get_listen_port()
+        self.myid = create_my_peer_id(self.myport)\
+        
     def resetSingleton(self):
         """ For testing purposes """
         SecureOverlay.__single = None 

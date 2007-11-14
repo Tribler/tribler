@@ -5,6 +5,7 @@
 #
 import sys
 from traceback import print_exc
+from threading import Lock
 
 from time import time
 from BitTornado.BT1.MessageID import *
@@ -17,7 +18,6 @@ from Tribler.SocialNetwork.SocialNetworkMsgHandler import SocialNetworkMsgHandle
 from Tribler.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
 from Tribler.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.utilities import show_permid_short
-from Tribler.CacheDB.CacheDBHandler import MyDBHandler
 
 DEBUG = False
 
@@ -38,11 +38,11 @@ class OverlayApps:
         self.socnet_handler = None
         self.rquery_handler = None
         self.msg_handlers = {}
+        self.connection_handlers = []
         self.text_mode = None
+        self.requestPolicyLock = Lock()
         
-        self.torrent_collecting_solution = 2    # TODO: read from config
-        # 1: simplest solution: per torrent/buddycasted peer/4hours
-        # 2: tig for tag on group base
+        
         
     def getInstance(*args, **kw):
         if OverlayApps.__single is None:
@@ -50,8 +50,10 @@ class OverlayApps:
         return OverlayApps.__single
     getInstance = staticmethod(getInstance)
 
-    def register(self, secure_overlay, launchmany, rawserver, config):
+    def register(self, secure_overlay, launchmany, config, requestPolicy):
         self.secure_overlay = secure_overlay
+        self.launchmany = launchmany
+        self.requestPolicy = requestPolicy
         self.text_mode = config.has_key('text_mode')
         
         # OverlayApps gets all messages, and demultiplexes 
@@ -70,59 +72,53 @@ class OverlayApps:
             self.register_msg_handler(HelpHelperMessages, self.coord_handler.handleMessage)
 
             # Create handler for messages to dlhelp helper
-            self.help_handler = HelperMessageHandler(launchmany)
+            self.help_handler = HelperMessageHandler(launchmany, config)
             self.help_handler.register(self.metadata_handler,secure_overlay)
             self.register_msg_handler(HelpCoordinatorMessages, self.help_handler.handleMessage)
 
         # Part 2:
-        self.metadata_handler.register(secure_overlay, self.help_handler, launchmany, 
-                                       config)
+        self.metadata_handler.register(secure_overlay, self.help_handler, launchmany, config)
         self.register_msg_handler(MetadataMessages, self.metadata_handler.handleMessage)
         
         if not config['torrent_collecting']:
             self.torrent_collecting_solution = 0
         
         if config['buddycast']:
-            
             # Create handler for Buddycast messages
             self.buddycast = BuddyCastFactory.getInstance(superpeer=config['superpeer'], log=config['overlay_log'])
             # Using buddycast to handle torrent collecting since they are dependent
             self.buddycast.register(secure_overlay, launchmany.rawserver, launchmany, 
-                                    launchmany.listen_port, launchmany.exchandler, True,
-                                    self.metadata_handler, self.torrent_collecting_solution, 
+                                    launchmany.rawserver_fatalerrorfunc, True,
+                                    self.metadata_handler, config['buddycast_collecting_solution'], 
                                     config['start_recommender'], config['max_peers'])
             self.register_msg_handler(BuddyCastMessages, self.buddycast.handleMessage)
+            self.register_connection_handler(self.buddycast.handleConnection)
 
         if config['dialback']:
             self.dialback_handler = DialbackMsgHandler.getInstance()
-            self.dialback_handler.register(secure_overlay, launchmany.rawserver, launchmany,
-                                           launchmany.handler, launchmany.listen_port,
-                                           config['max_message_length'], 
-                                           config['dialback_active'],
-                                           config['dialback_trust_superpeers'],
-                                           config['dialback_interval'])
+            self.dialback_handler.register(secure_overlay, launchmany, config)
             self.register_msg_handler([DIALBACK_REQUEST],
                                       self.dialback_handler.handleSecOverlayMessage)
+            self.register_connection_handler(self.dialback_handler.handleSecOverlayConnection)
 
         if config['socnet']:
             self.socnet_handler = SocialNetworkMsgHandler.getInstance()
-            self.socnet_handler.register(secure_overlay, launchmany.rawserver, config)
+            self.socnet_handler.register(secure_overlay, launchmany, config)
             self.register_msg_handler(SocialNetworkMessages,self.socnet_handler.handleMessage)
+            self.register_connection_handler(self.socnet_handler.handleConnection)
 
         if config['rquery']:
             self.rquery_handler = RemoteQueryMsgHandler.getInstance()
             self.rquery_handler.register(secure_overlay,launchmany,launchmany.rawserver,config,self.buddycast,log=config['overlay_log'])
             self.register_msg_handler(RemoteQueryMessages,self.rquery_handler.handleMessage)
+            self.register_connection_handler(self.rquery_handler.handleConnection)
             
             self.rtorrent_handler = RemoteTorrentHandler.getInstance()
             self.rtorrent_handler.register(launchmany.rawserver,self.metadata_handler)
             self.metadata_handler.register2(self.rtorrent_handler)
-
             
-        if config['nickname'] != '__default_name__':    # update my nickname
-            mydb = MyDBHandler()
-            mydb.put('name',config['nickname'])
-
+            
+        
     def register_msg_handler(self, ids, handler):
         """ 
         ids is the [ID1, ID2, ..] where IDn is a sort of message ID in overlay
@@ -133,6 +129,15 @@ class OverlayApps:
             if DEBUG:
                 print >> sys.stderr,"olapps: Handler registered for",getMessageName(id)
             self.msg_handlers[id] = handler
+        
+    def register_connection_handler(self, handler):
+        """
+            Register a handler for if a connection is established
+            handler-function is called like:
+            handler(exc,permid,selversion,locally_initiated)
+        """
+        assert handler not in self.connection_handlers, 'This connection_handler is already registered'
+        self.connection_handlers.append(handler)
         
 
     def handleMessage(self,permid,selversion,message):
@@ -161,37 +166,35 @@ class OverlayApps:
         if DEBUG:
             print >> sys.stderr,"olapps: handleConnection",exc,selversion,locally_initiated
 
-        if self.dialback_handler is not None:
-            # overlay-protocol version check done inside
-            self.dialback_handler.handleSecOverlayConnection(exc,permid,selversion,locally_initiated)
+        for handler in self.connection_handlers:
+            try:
+                #if DEBUG:
+                #    print >> sys.stderr,"olapps: calling connection handler:",'%s.%s' % (handler.__module__, handler.__name__)
+                handler(exc,permid,selversion,locally_initiated)
+            except:
+                print >> sys.stderr, 'olapps: Exception during connection handler calling'
+                print_exc()
+    
+    def requestAllowed(self, permid, messageType):
+        self.requestPolicyLock.acquire()
         try:
-            if exc is None:
-                bOnline = True
+            rp = self.requestPolicy
+        finally:
+            self.requestPolicyLock.release()
+        allowed = rp.allowed(permid, messageType)
+        if DEBUG:
+            if allowed:
+                word = 'allowed'
             else:
-                bOnline = False
-            if not self.text_mode:
-                from Tribler.vwxGUI.peermanager import PeerDataManager
-                PeerDataManager.getInstance().setOnline(permid, bOnline)
-        except:
-            print_exc()
+                word = 'denied'
+            print >> sys.stderr, 'opapps: Request type %s from %s was %s' % (getMessageName(messageType), show_permid_short(permid), word)
+        return allowed
+    
+    def setRequestPolicy(self, requestPolicy):
+        self.requestPolicyLock.acquire()
+        try:
+            self.requestPolicy = requestPolicy
+        finally:
+            self.requestPolicyLock.release()
         
-        if self.buddycast:
-            self.buddycast.handleConnection(exc,permid,selversion,locally_initiated)
-            
-            if DEBUG:
-                nconn = 0
-                conns = self.buddycast.buddycast_core.connections
-                print >> sys.stdout, "\nbc: conn in buddycast"
-                for peer_permid in conns:
-                    _permid = show_permid_short(peer_permid)
-                    nconn += 1
-                    print >> sys.stdout, "bc: ", nconn, _permid, conns[peer_permid]
-
-        if self.socnet_handler is not None:
-            # overlay-protocol version check done inside
-            self.socnet_handler.handleConnection(exc,permid,selversion,locally_initiated)
-            
-        if self.rquery_handler is not None:
-            # overlay-protocol version check done inside
-            self.rquery_handler.handleConnection(exc,permid,selversion,locally_initiated)
-
+    

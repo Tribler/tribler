@@ -12,7 +12,6 @@ import wx.lib.imagebrowser as ib
 from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
 from Tribler.CacheDB.SynDBHandler import SynPeerDBHandler
 from Tribler.Overlay.permid import permid_for_user
-from Tribler.Dialogs.MugshotManager import MugshotManager
 #from Tribler.vwxGUI.peermanager import PeerDataManager
 
 DEBUG = False
@@ -169,7 +168,7 @@ class MakeFriendsDialog(wx.Dialog):
         sizer.Add(btnsizer, 0, wx.ALIGN_CENTER|wx.ALL, 5)
 
 
-        self.mm = MugshotManager.getInstance()
+        
 
         self.SetSizer(sizer)
         sizer.Fit(self)
@@ -196,8 +195,8 @@ class MakeFriendsDialog(wx.Dialog):
         elif port == 0:
             self.show_inputerror(self.utility.lang.get('friendsport_error'))
         else:
-            fdb = FriendDBHandler()
-            pdb = SynPeerDBHandler()
+            fdb = FriendDBHandler.getInstance()
+            pdb = SynPeerDBHandler.getInstance()
             
             #friend = {'permid':permid, 'ip':ip, 'port':port, 'name':name, 'icon':newiconfilename}
             #friend = {'permid':permid, 'ip':ip, 'port':port, 'name':name}

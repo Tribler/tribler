@@ -21,8 +21,7 @@ from Tribler.utilities import friendly_time, sort_dictlist, remove_torrent_from_
 from Tribler.unicode import str2unicode, dunno2unicode
 from Utility.constants import * #IGNORE:W0611
 from Tribler.Category.Category import Category
-from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
-from Tribler.CacheDB.CacheDBHandler import OwnerDBHandler
+from Tribler.CacheDB.CacheDBHandler import OwnerDBHandler, TorrentDBHandler
 from Tribler.Overlay.MetadataHandler import MetadataHandler
 from Tribler.CacheDB.EditDist import editDist
 from Tribler.Search.KeywordSearch import KeywordSearch
@@ -104,15 +103,16 @@ class TorrentDataManager:
 
     def initDBs(self):
         time1 = time()
-        self.torrent_db = SynTorrentDBHandler(updateFun=self.updateFun)
-        self.owner_db = OwnerDBHandler()
-        self.category = Category.getInstance()
+        self.torrent_db = TorrentDBHandler.getInstance()
+        self.owner_db = OwnerDBHandler.getInstance()
+        self.category = Category.getInstance(self.utility.session.get_install_dir(), self.utility.session.get_state_dir())
         
     def loadData(self,parent):
         """ Called by DataLoadingThread (see standardOverview) """
         try:
             # Arno: 1. load my prefs first, so library can be shown
             self.data = self.torrent_db.getRecommendedTorrents(light=True,myprefs=True)
+            print 'data:', self.data
             self.prepareData(self.data,rank=False)
             self.loading_count = len(self.data)
             self.isDataPrepared.set()
@@ -127,7 +127,7 @@ class TorrentDataManager:
             print >>sys.stderr,"torrentManager: getRec took",diff
             
             # 3. Start torrents
-            self.utility.queue.enableScheduling()
+            
             
             # 4. Do remainder of work
             self.category.register(self.metadata_handler)

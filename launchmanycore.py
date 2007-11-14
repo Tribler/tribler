@@ -23,7 +23,7 @@ from cStringIO import StringIO
 from traceback import print_exc, print_stack
 from tempfile import gettempdir
 
-from BitTornado.launchmanycore import LaunchMany
+from Tribler.API.launchmanycore import TriblerLaunchMany
 from BitTornado.bencode import bencode
 from BitTornado.__init__ import createPeerID, mapbase64
 from Utility.constants import * #IGNORE:W0611
@@ -55,7 +55,7 @@ def fmttime(n):
 # Try to do everything in BitTornado.LaunchMany such that the command-line
 # tools also work.
 #
-class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
+class ABCLaunchMany(Thread,TriblerLaunchMany,DelayedEventHandler):
     def __init__(self, utility):
         self.utility = utility        
         self.output = Outputter()
@@ -99,7 +99,7 @@ class ABCLaunchMany(Thread,LaunchMany,DelayedEventHandler):
         self.setDaemon(True)
         self.setName( "ABCLaunchMany"+self.getName() )
         DelayedEventHandler.__init__(self)
-        LaunchMany.__init__(self,btconfig,self.output)
+        TriblerLaunchMany.__init__(self,btconfig,self.output)
         
         
         # set by BitTornado.LaunchMany constructor

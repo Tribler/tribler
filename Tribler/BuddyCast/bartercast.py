@@ -28,7 +28,7 @@ class BarterCastCore:
         self.dnsindb = self.data_handler.get_dns_from_peerdb
         self.log = log
         self.secure_overlay = secure_overlay
-        self.bartercastdb = BarterCastDBHandler()
+        self.bartercastdb = BarterCastDBHandler.getInstance()
         self.buddycast_core = None
         
         self.network_delay = 30

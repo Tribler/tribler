@@ -82,7 +82,7 @@ class NetworkPanel(ABCOptionPanel):
         ABCOptionPanel.__init__(self, parent, dialog)
         sizer = self.sizer
 
-        my_db = MyDBHandler()
+        my_db = MyDBHandler.getInstance()
         ip = self.utility.config.Read('bind')
         if ip is None or ip == '':
             ip = my_db.getMyIP()
@@ -1462,7 +1462,7 @@ class TriblerPanel(ABCOptionPanel):
         myinfosection = wx.StaticBoxSizer(myinfosection_title, wx.VERTICAL)
 
         # Show PermID
-        mypermid = MyDBHandler().getMyPermid()
+        mypermid = MyDBHandler.getInstance().getMyPermid()
         pb64 = permid_for_user(mypermid)
         if True:
             # Make it copy-and-paste able
@@ -1999,7 +1999,7 @@ class ABCOptionDialog(wx.Dialog):
 def get_itracker_url(utility):
     itrackerurl = utility.config.Read('internaltrackerurl')
     if itrackerurl == '':
-        my_db = MyDBHandler()
+        my_db = MyDBHandler.getInstance()
         ip = utility.config.Read('bind')
         if ip is None or ip == '':
             ip = my_db.getMyIP()

@@ -35,7 +35,7 @@ class ManageFriendsPanel(wx.Panel):
 
         # 1. Read friends from DB, and figure out who's already helping 
         # for this torrent
-        self.friendsdb = FriendDBHandler()
+        self.friendsdb = FriendDBHandler.getInstance()
 
         # 2. Build GUI
         mainbox = wx.BoxSizer(wx.VERTICAL)
@@ -234,7 +234,7 @@ class MyInfoDialog(wx.Dialog):
         myinfobox_title = wx.StaticBox(self, -1, self.utility.lang.get('myinfo'))
         myinfobox = wx.StaticBoxSizer(myinfobox_title, wx.VERTICAL)
 
-        self.my_db = MyDBHandler()
+        self.my_db = MyDBHandler.getInstance()
         ip = self.utility.config.Read('bind')
         if ip is None or ip == '':
             ip = self.my_db.getMyIP()

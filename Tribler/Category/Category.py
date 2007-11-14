@@ -22,9 +22,6 @@ import sys
 DEBUG=False
 category_file = "category.conf"
 
-def init(install_dir = None, config_dir = None):
-    filename = make_filename(install_dir, category_file)
-    Category.getInstance(filename, config_dir)
     
 def make_filename(config_dir, filename):
     if config_dir is None:
@@ -38,12 +35,13 @@ class Category (FlaglessDelayedEventHandler):
     __single = None
     __size_change = 1024 * 1024 
     
-    def __init__(self, filename, config_dir):
+    def __init__(self, install_dir, config_dir):
         if Category.__single:
             raise RuntimeError, "Category is singleton"
+        filename = make_filename(install_dir, category_file)
         Category.__single = self
         self.invoker = FlaglessDelayedEventHandler()
-        self.torrent_db = SynTorrentDBHandler()
+        self.torrent_db = SynTorrentDBHandler.getInstance()
         self.category_info = getCategoryInfo(filename)
         self.category_info.sort(rankcmp)
         self.config_dir = config_dir

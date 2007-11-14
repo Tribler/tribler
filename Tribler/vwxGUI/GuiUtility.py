@@ -10,7 +10,6 @@ from sets import Set
 from bgPanel import *
 import updateXRC
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
-from Tribler.CacheDB.CacheDBHandler import MyDBHandler
 from Tribler.Overlay.permid import permid_for_user
 from Tribler.Dialogs.makefriends import MakeFriendsDialog
 from peermanager import PeerDataManager
@@ -376,7 +375,6 @@ class GUIUtility:
    
    
     def emailFriend(self, event):
-        my_db = MyDBHandler()
         ip = self.utility.config.Read('bind')
         if ip is None or ip == '':
             ip = my_db.getMyIP()

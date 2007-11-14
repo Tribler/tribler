@@ -16,7 +16,7 @@ from olconn import OLConnection
 from btconn import BTConnection
 from BitTornado.bencode import bencode,bdecode
 from BitTornado.BT1.MessageID import *
-
+from triblerAPI import *
 from Tribler.utilities import isValidIP
 
 DEBUG=True
@@ -32,7 +32,7 @@ class TestUTorrentPeerExchange(TestAsServer):
         """ override TestAsServer """
         TestAsServer.setUp(self)
         print >>sys.stderr,"test: Giving MyLaunchMany time to startup"
-        time.sleep(5)
+        time.sleep(3)
         print >>sys.stderr,"test: MyLaunchMany should have started up"
     
     def setUpPreTriblerInit(self):
@@ -41,16 +41,21 @@ class TestUTorrentPeerExchange(TestAsServer):
 
         # Let Tribler start downloading an non-functioning torrent, so
         # we can talk to a normal download engine.
-        self.config['torrent_dir'] = os.path.join('extend_hs_dir')
-        self.config['parse_dir_interval'] = 60
-        self.config['saveas_style'] = 1
-        self.config['priority'] = 1
-        self.config['display_path'] = 1
         
         # This is the infohash of the torrent in test/extend_hs_dir
-        self.infohash = '\xccg\x07\xe2\x9e!]\x16\xae{\xb8\x10?\xf9\xa5\xf9\x07\xfdBk'
+        #self.infohash = '\xccg\x07\xe2\x9e!]\x16\xae{\xb8\x10?\xf9\xa5\xf9\x07\xfdBk'
+        self.infohash = 'd\xdd\xd8\xbb\xfe\xc6\xba\xcbV-M\xd5&d\xc3\xab\x85x\xcd\x93'
         self.mylistenport = 4810
 
+    def setUpPostLaunchMany(self):
+        TestAsServer.setUpPostLaunchMany(self)
+        
+        tdef = TorrentDef.load('/tmp/bla.torrent')
+            
+        dcfg = DownloadStartupConfig()
+        dcfg.set_dest_dir('/tmp/dummy')
+        d = self.session.start_download(tdef,dcfg)
+        
     def test_all(self):
         """ 
             I want to start a Tribler client once and then connect to
@@ -60,17 +65,16 @@ class TestUTorrentPeerExchange(TestAsServer):
             The code is constructed so unittest will show the name of the
             (sub)test where the error occured in the traceback it prints.
         """
+
         # Create a fake other client, so the EXTEND ut_pex won't be empty
         msg2 = self.create_good_nontribler_extend_hs(listenport=4321)
         s2 = BTConnection('localhost',self.hisport,mylistenport=4321,user_option_pattern='\x00\x00\x00\x00\x00\x10\x00\x00',user_infohash=self.infohash)
         s2.read_handshake_medium_rare()
         s2.send(msg2)
-
         self.subtest_good_nontribler_ut_pex()
         self.subtest_good_nontribler_ut_pex_diff_id()
         self.subtest_good_tribler_ut_pex()
         self.subtest_bad_ut_pex()
-
 
     #
     # Good ut_pex message

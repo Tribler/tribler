@@ -65,7 +65,7 @@ class standardGrid(wx.Panel):
         
         self.guiserver = GUIServer.getInstance()
         self.mm = MugshotManager.getInstance()
-        self.superpeer_db = SuperPeerDBHandler()
+        self.superpeer_db = SuperPeerDBHandler.getInstance()
         self.torrentfeed = TorrentFeedThread.getInstance()
         
     def OnCreate(self, event):

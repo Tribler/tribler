@@ -9,7 +9,6 @@ from random import randint
 
 from Tribler.Overlay.SecureOverlay import SecureOverlay
 from Tribler.utilities import show_permid_short
-from Tribler.CacheDB.CacheDBHandler import FriendDBHandler,TorrentDBHandler
 from BitTornado.bencode import bencode, bdecode
 from BitTornado.BT1.MessageID import *
 
@@ -23,11 +22,11 @@ def get_random_filename(dir):
             return name
 
 class HelperMessageHandler:
-    def __init__(self,launchmany):
+    def __init__(self,launchmany, config):
         self.metadata_queue = {}
         self.launchmany = launchmany
-        self.helpdir = launchmany.torrent_dir
-        self.torrent_db = TorrentDBHandler()
+        self.helpdir = os.path.join(config['state_dir'], config['download_help_dir'])
+        self.torrent_db = launchmany.torrent_db
 
     def register(self, metadata_handler,secure_overlay):
         self.metadata_handler = metadata_handler
@@ -38,18 +37,7 @@ class HelperMessageHandler:
         #if DEBUG:
         #    print >> sys.stderr,"helper: Got",getMessageName(t)
 
-        # Access control
-        friends = FriendDBHandler().getFriends()
-        flag = 0
-        for peer in friends:
-            if peer['permid'] == permid:
-                if DEBUG:
-                    print >> sys.stderr,"helper: Got",getMessageName(t),"from friend",peer['name']
-                flag = 1
-                break
-        if flag == 0:
-            if DEBUG:
-                print >> sys.stderr,"helper: Got",getMessageName(t),"from unknown peer",show_permid_short(permid)
+        if not self.launchmany.overlay_apps.requestAllowed(permid, t):
             return False
         
         if t == DOWNLOAD_HELP:
@@ -122,7 +110,7 @@ class HelperMessageHandler:
         data['metainfo'] = d
 
         friendname = None
-        friends = FriendDBHandler().getFriends()
+        friends = self.launchmany.fried_db.getFriends()
         for peer in friends:
             if peer['permid'] == permid:
                 friendname = peer['name']

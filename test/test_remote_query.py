@@ -50,7 +50,7 @@ class TestRemoteQuery(TestAsServer):
         #self.mypermid = str(self.my_keypair.pub().get_der())
         #self.hispermid = str(self.his_keypair.pub().get_der())
         
-        self.torrent_db = TorrentDBHandler()
+        self.torrent_db = TorrentDBHandler.getInstance()
         
         # Add two torrents that will match our query and one that shouldn't
         torrent = self.get_default_torrent('Hallo S01E10')

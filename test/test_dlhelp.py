@@ -94,7 +94,7 @@ class TestDownloadHelp(TestAsServer):
         self.torrentfile = os.path.join('extend_hs_dir','dummydata.merkle.torrent')
 
         # Add us as friend, so he will accept the DOWNLOAD_HELP
-        friendsdb = FriendDBHandler()
+        friendsdb = FriendDBHandler.getInstance()
         friendsdb.addFriend(self.mypermid)      
 
     def tearDown(self):

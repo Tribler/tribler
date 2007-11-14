@@ -535,7 +535,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         if mimetype is not None:
             metadata['ThumbnailBitmap'] = self.mm.data2wxBitmap(mimetype,bmpdata)
         else:
-            superpeers = self.superpeer_db.getSuperPeerList()
+            superpeers = self.superpeer_db.getSuperPeers()
             
             """
             if data['name'].lower().startswith("superpeer"):

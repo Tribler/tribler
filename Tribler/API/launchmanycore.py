@@ -6,8 +6,8 @@ import os
 import time
 import copy
 import sha
-import socket
 import pickle
+import socket
 import binascii
 import shutil
 from UserDict import DictMixin
@@ -35,7 +35,17 @@ from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.DecentralizedTracking import mainlineDHT
 from Tribler.DecentralizedTracking.rsconvert import RawServerConverter
 from Tribler.Video.utils import win32_retrieve_video_play_command
+from Tribler.API.ThreadPool import ThreadPool
+from Tribler.Video.utils import win32_retrieve_video_play_command
 
+
+from Tribler.CacheDB.Notifier import Notifier
+from Tribler.CacheDB.CacheDBHandler import *
+import Tribler.CacheDB.cachedb as cachedb
+import Tribler.CacheDB.superpeer as superpeer
+from Tribler.utilities import show_permid_short
+from Tribler.API.RequestPolicy import *
+from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 # TEMP
 from Tribler.Dialogs.activities import *
 
@@ -43,7 +53,6 @@ SPECIAL_VALUE=481
 
 DEBUG = True
 
-#
 # Internal classes
 #
 
@@ -97,20 +106,45 @@ class TriblerLaunchMany(Thread):
         # Arno: disabling out startup of torrents, need to fix this
         # to let text-mode work again.
         #
+        
+        # Notifier for callbacks to API user
+        self.threadpool = ThreadPool(4)
+        self.notifier = Notifier.getInstance(self.threadpool)
 
+         
         # do_cache -> do_overlay -> (do_buddycast, do_download_help)
-        if not config['megacache']:
-            config['overlay'] = 0    # overlay
+        if config['megacache']:
+            # init cache db
+            if config['nickname'] == '__default_name__':
+                config['nickname']  = socket.gethostname()
+                
+            cachedb.init(config['state_dir'], self.rawserver_fatalerrorfunc)
+            
+                        
+            self.peer_db        = PeerDBHandler.getInstance(config)
+            self.torrent_db     = TorrentDBHandler.getInstance()
+            self.superpeer_db   = SuperPeerDBHandler.getInstance(config)
+            self.mypref_db      = MyPreferenceDBHandler.getInstance()
+            self.pref_db        = PreferenceDBHandler.getInstance()
+            self.friend_db      = FriendDBHandler.getInstance()
+            self.bartercast_db   = BarterCastDBHandler.getInstance(self.session)
+            
+        else:
+            config['overlay'] = 0    # turn overlay off
+        
         if not config['overlay']:
             config['buddycast'] = 0
             config['download_help'] = 0
-
+            config['socnet'] = 0
+            
         if config['overlay']:
             self.secure_overlay = SecureOverlay.getInstance()
-            mykeypair = session.keypair
-            self.secure_overlay.register(self.rawserver,self.multihandler,self.listen_port,self.config['max_message_length'],mykeypair)
+            self.secure_overlay.register(self, config['overlay_max_message_length'])
+            
+            # Set policy for which peer requests (dl_helper, rquery) to answer and which to ignore
+                        
             self.overlay_apps = OverlayApps.getInstance()
-            self.overlay_apps.register(self.secure_overlay, self, self.rawserver, config)
+            self.overlay_apps.register(self.secure_overlay, self, config, AllowAllRequestPolicy(self))
             # It's important we don't start listening to the network until
             # all higher protocol-handling layers are properly configured.
             self.secure_overlay.start_listening()
@@ -138,13 +172,11 @@ class TriblerLaunchMany(Thread):
             print_exc()
         
         
-        # APITODO
-        #self.torrent_db = TorrentDBHandler()
-        #self.mypref_db = MyPreferenceDBHandler()
         
         # add task for tracker checking
         if config['torrent_checking']:
-            self.rawserver.add_task(self.torrent_checking, self.torrent_checking_period)
+            self.torrent_checking_period = config['torrent_checking_period']
+            self.rawserver.add_task(self._torrent_checking, self.torrent_checking_period)
         
 
     def add(self,tdef,dscfg,pstate=None):
@@ -208,7 +240,7 @@ class TriblerLaunchMany(Thread):
         """ Called by network thread """
         if DEBUG:
             print >>sys.stderr,"TriblerLaunchMany: RawServer fatal error func called",e
-        print_exc
+        print_exc()
 
     def rawserver_nonfatalerrorfunc(self,e):
         """ Called by network thread """
@@ -248,8 +280,8 @@ class TriblerLaunchMany(Thread):
         if self.internaltracker is not None:
             self.internaltracker.parse_allowed(source='Session')
 
-    def set_activity(self,type):
-        pass # TODO Jelle
+    def set_activity(self,type, str = ''):
+        self.notifier.notify(Notifier.ACTIVITIES, Notifier.INSERT, None, type, str)
 
     #
     # Torrent hash checking
@@ -410,6 +442,8 @@ class TriblerLaunchMany(Thread):
         mainlineDHT.deinit()
         # Stop network thread
         self.sessdoneflag.set()
+        # stop threadpool
+        self.threadpool.joinAll()
 
 
     def save_download_pstate(self,infohash,pstate):
@@ -526,6 +560,17 @@ class TriblerLaunchMany(Thread):
         # Call Session threadpool to call user's callback        
         videoinfo[4](mimetype,stream,filename)
 
+    def _torrent_checking(self):
+        "Called by network thread"
+        self.rawserver.add_task(self._torrent_checking, self.torrent_checking_period)
+        #        print "torrent_checking start"
+        try:
+            t = TorrentChecking()        
+            t.start()
+        except Exception, e:
+            self.rawserver_nonfatalerrorfunc(e)
+        
+
 
 
 
@@ -544,7 +589,8 @@ class SingleDownload:
     
             self.logmsgs = []
     
-            print >>sys.stderr,"SingleDownload: __init__: overlay present",('overlay' in kvconfig)
+            peerid = createPeerID()
+            print >>sys.stderr,"SingleDownload: __init__: My peer ID is",`peerid`
     
             self.dow = BT1Download(self.hashcheckprogressfunc,
                             self.finishedfunc,
@@ -555,7 +601,7 @@ class SingleDownload:
                             kvconfig,
                             metainfo, 
                             infohash,
-                            createPeerID(),
+                            peerid,
                             self.dlrawserver,
                             listenport,
                             videoanalyserpath
