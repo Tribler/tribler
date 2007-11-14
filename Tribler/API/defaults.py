@@ -51,24 +51,13 @@ sessdefaults['stop_collecting_threshold'] = 200
 sessdefaults['internaltracker'] = 1
 sessdefaults['nickname'] = ''
 sessdefaults['videoplayerpath'] = None
-
-
-
-    ('overlay_max_message_length', 2**23,
-         "maximal messagelength over the secure overlay"),
-    ('download_help_dir', 'torrent_help',
-        "directory from download_help relative to state_dir"),
-    ('bartercast', 1,
-        "exchange upload/download statistics with peers"),
-    ('superpeer_file', 'superpeer.txt',
-        "file with addresses of superpeers, relative to install_dir"),
-    ('buddycast_collecting_solution', 2,
-         "1: simplest solution: per torrent/buddycasted peer/4hours, 2: tig for tag on group base"),
-    ('peer_icon_path', 'icons',
-        "directory to store peer icons, relative to statedir"),
-    ('stop_collecting_threshold', 200,
-        "stop collecting more torrents if the disk has less than this size (MB)"),
-
+sessdefaults['overlay_max_message_length'] = 2 ** 23
+sessdefaults['download_help_dir'] = 'torrent_help'
+sessdefaults['bartercast'] = 1
+sessdefaults['superpeer_file'] = 'superpeer.txt'
+sessdefaults['buddycast_collecting_solution'] = 2
+sessdefaults['peer_icon_path'] = 'icons'
+sessdefaults['stop_collecting_threshold'] = 200
 
 trackerdefaults = {}
 trackerdefaults['tracker_dfile'] = None

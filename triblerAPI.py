@@ -390,7 +390,6 @@ class SessionConfigInterface:
 
         self.sessconfig['ipv6_binds_v4'] = autodetect_socket_style()
 
-
     def set_state_dir(self,statedir):
         self.sessconfig['state_dir'] = statedir
     
@@ -472,6 +471,9 @@ class SessionConfigInterface:
     def get_megacache(self):
         return self.sessconfig['megacache']
 
+    #
+    # Secure Overlay
+    #
     def set_overlay(self,value):
         """ Enable overlay swarm to enable Tribler's special features 
         (default = True) """
@@ -482,6 +484,14 @@ class SessionConfigInterface:
 
     def get_overlay(self):
         return self.sessconfig['overlay']
+
+    def set_overlay_max_message_length(self,value):
+        """ maximal messagelength over the secure overlay """
+        self.sessconfig['overlay_max_message_length'] = value
+
+    def get_overlay_max_message_length(self):
+        return self.sessconfig['overlay_max_message_length']
+
 
     #
     # Buddycast
@@ -510,6 +520,12 @@ class SessionConfigInterface:
     def get_buddycast_interval(self):
         return self.sessconfig['buddycast_interval']
 
+    def set_buddycast_collecting_solution(self,value):
+        """ 1: simplest solution: per torrent/buddycasted peer/4hours, 2: tig for tag on group base """
+        self.sessconfig['buddycast_collecting_solution'] = value
+
+    def get_buddycast_collecting_solution(self):
+        return self.sessconfig['buddycast_collecting_solution']
 
     #
     # Download helper / cooperative download
@@ -521,6 +537,12 @@ class SessionConfigInterface:
     def get_download_help(self):
         return self.sessconfig['download_help']
 
+    def set_download_help_dir(self,value):
+        """ directory from download_help relative to state_dir """
+        self.sessconfig['download_help_dir'] = value
+
+    def get_download_help_dir(self):
+        return self.sessconfig['download_help_dir']
 
     #
     # Torrent file collecting
@@ -607,6 +629,13 @@ class SessionConfigInterface:
     def get_nickname(self):
         return self.sessconfig['nickname']
 
+    def set_peer_icon_path(self,value):
+        """ directory to store peer icons, relative to statedir """
+        self.sessconfig['peer_icon_path'] = value
+
+    def get_peer_icon_path(self):
+        return self.sessconfig['peer_icon_path']
+
     #
     # Tribler remote query: ask other peers when looking for a torrent file 
     # or peer
@@ -617,6 +646,17 @@ class SessionConfigInterface:
 
     def get_remote_query(self):
         return self.sessconfig['rquery']
+
+    #
+    # BarterCast
+    #
+    def set_bartercast(self,value):
+        """ exchange upload/download statistics with peers """
+        self.sessconfig['bartercast'] = value
+
+    def get_bartercast(self):
+        return self.sessconfig['bartercast']
+
 
     #
     # For Tribler Video-On-Demand
@@ -931,6 +971,13 @@ class SessionConfigInterface:
 
     def get_superpeer(self):
         return self.sessconfig['superpeer']
+
+    def set_superpeer_file(self,value):
+        """ file with addresses of superpeers, relative to install_dir """
+        self.sessconfig['superpeer_file'] = value
+
+    def get_superpeer_file(self):
+        return self.sessconfig['superpeer_file']
 
     def set_overlay_log(self,value):
         """ log on super peer mode ('' = disabled) """
