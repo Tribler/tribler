@@ -55,37 +55,20 @@ def resetPeerIDs():
         random.seed()
         x = ''
         while len(x) < 20:
-            r = random.randint(0,sys.maxint)
-            x += str(r)
+            #r = random.randint(0,sys.maxint)
+            r = random.randint(0,255)
+            x += chr(r)
         x = x[:20]
 
-    l1 = 0
-    t = clock()
-    while t == clock():
-        l1 += 1
-    l2 = 0
-    t = long(time()*100)
-    while t == long(time()*100):
-        l2 += 1
-    l3 = 0
-    if l2 < 1000:
-        t = long(time()*10)
-        while t == long(clock()*10):
-            l3 += 1
-    x += ( repr(time()) + '/' + str(time()) + '/'
-           + str(l1) + '/' + str(l2) + '/' + str(l3) + '/'
-           + str(getpid()) )
-
     s = ''
-    for i in sha(x).digest()[-11:]:
+    for i in x:
         s += mapbase64[ord(i) & 0x3F]
-    _idrandom[0] = s
+    _idrandom[0] = s[:11] # peer id = iprefix (6) + ins (3) + random
         
-resetPeerIDs()
-
 def createPeerID(ins = '---'):
     assert type(ins) is StringType
     assert len(ins) == 3
+    resetPeerIDs()
     return _idprefix + ins + _idrandom[0]
 
 def decodePeerID(id):

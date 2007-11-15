@@ -287,6 +287,8 @@ TODO:
   the video's internal timestamps. I.e. it will not just continue playing
   from the point where it froze.
 
+  ALTERNATIVE: see if VLC has some startup option that says: "stop clock
+  if no data"
 
 - Document all methods in the API. See if there is a javadoc equiv cf.
   wxPython automatic docs.
@@ -306,7 +308,6 @@ from threading import RLock,currentThread
 from traceback import print_exc,print_stack
 from types import StringType,ListType,IntType
 
-from BitTornado.__init__ import resetPeerIDs
 from BitTornado.bencode import bencode,bdecode
 from BitTornado.RawServer import autodetect_socket_style
 
@@ -477,9 +478,6 @@ class SessionConfigInterface:
     def set_overlay(self,value):
         """ Enable overlay swarm to enable Tribler's special features 
         (default = True) """
-        
-        print >>sys.stderr,"SessionStartupConfig: set_overlay",value
-        
         self.sessconfig['overlay'] = value
 
     def get_overlay(self):
@@ -1046,9 +1044,6 @@ class Session(SessionRuntimeConfig):
         else:
             state_dir = None
 
-
-        print >>sys.stderr,"Session: overlay",self.sessconfig['overlay']
-
         # Create dir for session state
         if state_dir is None:
             state_dir = Session.get_default_state_dir()
@@ -1065,17 +1060,16 @@ class Session(SessionRuntimeConfig):
                 print_exc()
                 scfg = SessionStartupConfig()
             self.sessconfig = scfg.sessconfig
-            
-        self.sessconfig['state_dir'] = state_dir
+            self.sessconfig['state_dir'] = state_dir
 
         # PERHAPS: load default TorrentDef and DownloadStartupConfig from state dir
         # Let user handle that, he's got default_state_dir, etc.
 
         # Core init
-        resetPeerIDs()
         Tribler.Overlay.permid.init()
 
-        print 'config', self.sessconfig
+        #print 'Session: __init__ config is', self.sessconfig
+        
         #
         # Set params that depend on state_dir
         #
@@ -1247,6 +1241,7 @@ class Session(SessionRuntimeConfig):
         
         Called by any thread """
         self.checkpoint_shutdown(stop=True)
+        self.uch.shutdown()
     
     def get_user_permid(self):
         self.sesslock.acquire()

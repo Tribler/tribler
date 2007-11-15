@@ -35,11 +35,9 @@ from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.DecentralizedTracking import mainlineDHT
 from Tribler.DecentralizedTracking.rsconvert import RawServerConverter
 from Tribler.Video.utils import win32_retrieve_video_play_command
-from Tribler.API.ThreadPool import ThreadPool
 from Tribler.Video.utils import win32_retrieve_video_play_command
 
 
-from Tribler.CacheDB.Notifier import Notifier
 from Tribler.CacheDB.CacheDBHandler import *
 import Tribler.CacheDB.cachedb as cachedb
 from Tribler.utilities import show_permid_short
@@ -105,11 +103,6 @@ class TriblerLaunchMany(Thread):
         # Arno: disabling out startup of torrents, need to fix this
         # to let text-mode work again.
         #
-        
-        # Notifier for callbacks to API user
-        self.threadpool = ThreadPool(4)
-        self.notifier = Notifier.getInstance(self.threadpool)
-
          
         # do_cache -> do_overlay -> (do_buddycast, do_download_help)
         if config['megacache']:
@@ -280,7 +273,7 @@ class TriblerLaunchMany(Thread):
             self.internaltracker.parse_allowed(source='Session')
 
     def set_activity(self,type, str = ''):
-        self.notifier.notify(Notifier.ACTIVITIES, Notifier.INSERT, None, type, str)
+        self.uch.notify(Notifier.ACTIVITIES, Notifier.INSERT, None, type, str)
 
     #
     # Torrent hash checking
@@ -441,9 +434,6 @@ class TriblerLaunchMany(Thread):
         mainlineDHT.deinit()
         # Stop network thread
         self.sessdoneflag.set()
-        # stop threadpool
-        self.threadpool.joinAll()
-
 
     def save_download_pstate(self,infohash,pstate):
         """ Called by network thread """

@@ -6,6 +6,8 @@ import os
 import shutil
 from threading import Thread,currentThread
 from traceback import print_exc,print_stack
+from Tribler.API.ThreadPool import ThreadPool
+from Tribler.CacheDB.Notifier import Notifier
 
 DEBUG = True
 
@@ -15,7 +17,14 @@ class UserCallbackHandler:
         self.sesslock = sesslock
         self.sessconfig = sessconfig
         self.lm = lm
-        self.threadcount=1
+
+        # Notifier for callbacks to API user
+        self.threadpool = ThreadPool(4)
+        self.notifier = Notifier.getInstance(self.threadpool)
+
+    def shutdown(self):
+        # stop threadpool
+        self.threadpool.joinAll()
 
     def perform_vod_usercallback(self,d,usercallback,mimetype,stream,filename):
         """ Called by network thread """
@@ -109,3 +118,9 @@ class UserCallbackHandler:
                 # multi-file torrent
                 shutil.rmtree(filename,True) # ignore errors
 
+    def notify(self, subject, changeType, obj_id, *args):
+        """
+        Notify all interested observers about an event with threads from the pool
+        """
+        self.notifier.notify(subject,changeType,obj_id,*args)
+        
