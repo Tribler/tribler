@@ -15,7 +15,7 @@ from threading import currentThread,Event
 from traceback import print_stack,print_exc
 from safeguiupdate import FlaglessDelayedInvocation
 from Progress import ProgressBar
-from Tribler.vwxGUI.tribler_topButton import *
+from Tribler.Main.vwxGUI.tribler_topButton import *
 
 
 

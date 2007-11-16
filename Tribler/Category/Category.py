@@ -3,9 +3,9 @@
 
 import os
 from Tribler.Category.init_category import getCategoryInfo
-from BitTornado import bencode
-from Tribler.unicode import str2unicode, dunno2unicode
-from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler
+from Tribler.Core.BitTornado import bencode
+from Tribler.Core.Utilities.unicode import str2unicode, dunno2unicode
+from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 from sets import Set
 from time import time
 from copy import deepcopy

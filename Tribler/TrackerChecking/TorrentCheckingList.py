@@ -4,7 +4,7 @@
 # Arno: Removed dumb yet-another in-core version of the database
 #
 
-from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler
+from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 
 from threading import RLock
 from time import time

@@ -121,8 +121,8 @@ from traceback import print_exc
 
 from Tribler.TrackerChecking.TrackerChecking import trackerChecking
 from Tribler.TrackerChecking.TorrentCheckingList import TorrentCheckingList
-from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler
-from Tribler.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
+from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
+from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
 
 DEBUG = False
 

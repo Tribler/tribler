@@ -19,7 +19,7 @@ import urllib
 import utilsettings
 from Tribler.Web2.util import observer
 from Tribler.Web2.util.log import log 
-from Tribler.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
 DEBUG = False
 databases = {}

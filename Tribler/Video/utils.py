@@ -4,7 +4,7 @@
 import os
 import sys
 
-from Utility.regchecker import Win32RegChecker
+from Tribler.Main.Utility.regchecker import Win32RegChecker
 
 DEBUG = False
 

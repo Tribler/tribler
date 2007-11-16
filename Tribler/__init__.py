@@ -6,7 +6,7 @@
 ## (here) and correct.
 ##
 
-from BitTornado.__init__ import resetPeerIDs
+from Tribler.Core.BitTornado.__init__ import resetPeerIDs
 
 from types import StringType
 from sha import sha

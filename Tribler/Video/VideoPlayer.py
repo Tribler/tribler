@@ -13,11 +13,11 @@ from safeguiupdate import DelayedInvocation
 from Tribler.Video.__init__ import *
 from Tribler.Video.VideoServer import VideoHTTPServer,MovieFileTransport,MovieTransportDecryptWrapper
 from Tribler.Video.Progress import ProgressBar,BufferInfo, ProgressInf
-from Tribler.unicode import unicode2str
+from Tribler.Core.Utilities.unicode import unicode2str
 from utils import win32_retrieve_video_play_command,quote_program_path
 
 # Filename extensions for video and audio files
-from Tribler.API.defaults import videoextdefaults as EXTENSIONS # TEMP ARNO
+from Tribler.Core.defaults import videoextdefaults as EXTENSIONS # TEMP ARNO
 
 DEBUG = False
 
