@@ -8,7 +8,8 @@ import binascii
 from threading import currentThread
 from traceback import print_exc,print_stack
 
-import Tribler.Core.API
+#import Tribler.Core.API
+import triblerAPI
 from Tribler.Core.simpledefs import *
 from Tribler.Core.osutils import *
 from Tribler.Core.APIImplementation.LaunchManyCore import SingleDownload

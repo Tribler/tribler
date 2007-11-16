@@ -1,5 +1,9 @@
+# Written by Jelle Roozenburg 
+# see LICENSE.txt for license information
+
 import sys
-import Tribler.Core.API
+#import Tribler.Core.API
+import triblerAPI
 
 DEBUG = True
 

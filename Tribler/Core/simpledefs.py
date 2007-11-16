@@ -30,4 +30,5 @@ STATEDIR_ITRACKER_DIR = 'itracker'
 STATEDIR_DLPSTATE_DIR = 'dlcheckpoints'
 STATEDIR_SESSCONFIG = 'sessconfig.pickle' 
 
+TRIBLER_TORRENT_EXT = ".tribe"
 

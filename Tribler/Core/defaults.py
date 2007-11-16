@@ -16,6 +16,7 @@ DEFAULTPORT=7762
 sessdefaults = {}
 sessdefaults['version'] = PERSISTENTSTATE_CURRENTVERSION
 sessdefaults['state_dir'] = None
+sessdefaults['install_dir'] = '.'
 sessdefaults['ip'] = ''
 sessdefaults['minport'] = DEFAULTPORT
 sessdefaults['maxport'] = DEFAULTPORT

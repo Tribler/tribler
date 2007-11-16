@@ -13,7 +13,6 @@ from time import sleep
 from tempfile import mkstemp
 from threading import currentThread,Event
 from traceback import print_stack,print_exc
-from safeguiupdate import FlaglessDelayedInvocation
 from Progress import ProgressBar
 from Tribler.Main.vwxGUI.tribler_topButton import *
 
@@ -118,21 +117,15 @@ class VideoFrame(wx.Frame):
     def reset_videopanel(self):
         self.videopanel.reset()
         
-        
-    def invokeLater(self,*args,**kwargs):
-        self.videopanel.invokeLater(*args,**kwargs)
-
-
     def set_player_status(self,s):
         """ Called by any thread """
         if self.videopanel:
             self.videopanel.set_player_status(s)
 
-class EmbeddedPlayer(wx.Panel,FlaglessDelayedInvocation):
+class EmbeddedPlayer(wx.Panel):
 
     def __init__(self, parent, id, closehandler, allowclose, utility):
         wx.Panel.__init__(self, parent, id)
-        FlaglessDelayedInvocation.__init__(self)
         self.item = None
 
         self.closehandler = closehandler
@@ -187,7 +180,7 @@ class EmbeddedPlayer(wx.Panel,FlaglessDelayedInvocation):
             print >>sys.stderr,"embedplay: Telling player to play",item.getPath(),currentThread().getName()
         self.mediactrl.Load(item.getPath())
         self.update = True
-        self.invokeLater(self.slider.SetValue,(0,))
+        wx.CallAfter(self.slider.SetValue,(0,))
         
         if self.timer is None:
             self.timer = wx.Timer(self)

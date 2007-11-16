@@ -9,7 +9,6 @@ from threading import currentThread,Event
 from traceback import print_exc,print_stack
 import urlparse
 
-from safeguiupdate import DelayedInvocation
 from Tribler.Video.__init__ import *
 from Tribler.Video.VideoServer import VideoHTTPServer,MovieFileTransport,MovieTransportDecryptWrapper
 from Tribler.Video.Progress import ProgressBar,BufferInfo, ProgressInf

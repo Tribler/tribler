@@ -1,7 +1,8 @@
 # Written by Arno Bakker 
 # see LICENSE.txt for license information
 
-import Tribler.Core.API
+#import Tribler.Core.API
+import triblerAPI
 
 class DownloadRuntimeConfig(triblerAPI.DownloadConfigInterface):
     

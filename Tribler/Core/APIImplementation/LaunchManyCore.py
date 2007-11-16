@@ -24,7 +24,8 @@ from Tribler.Core.BitTornado.RateLimiter import RateLimiter
 from Tribler.Core.BitTornado.BT1.track import Tracker
 from Tribler.Core.BitTornado.HTTPHandler import HTTPHandler,DummyHTTPHandler
 
-import Tribler.Core.API
+#import Tribler.Core.API
+import triblerAPI
 from Tribler.Core.simpledefs import *
 from Tribler.Core.exceptions import *
 from Tribler.Core.NATFirewall.guessip import get_my_wan_ip
@@ -111,8 +112,7 @@ class TriblerLaunchMany(Thread):
                 config['nickname']  = socket.gethostname()
                 
             cachedb.init(config['state_dir'], self.rawserver_fatalerrorfunc)
-            
-                        
+
             self.peer_db        = PeerDBHandler.getInstance(config)
             self.torrent_db     = TorrentDBHandler.getInstance()
             self.superpeer_db   = SuperPeerDBHandler.getInstance(config)
@@ -273,7 +273,7 @@ class TriblerLaunchMany(Thread):
             self.internaltracker.parse_allowed(source='Session')
 
     def set_activity(self,type, str = ''):
-        self.uch.notify(Notifier.ACTIVITIES, Notifier.INSERT, None, type, str)
+        self.session.uch.notify(Notifier.ACTIVITIES, Notifier.INSERT, None, type, str)
 
     #
     # Torrent hash checking

@@ -18,9 +18,6 @@ import random,socket,thread,re
 from Tribler.Core.BitTornado.CurrentRateMeasure import Measure
 from Tribler.Core.BitTornado.BT1.PiecePicker import PiecePicker
 from Tribler.Video.VideoServer import MovieTransport,MovieTransportFileLikeInterfaceWrapper
-from utils import win32_retrieve_video_play_command # just for MIME-type guessing
-
-EXTENSIONS = ['asf','avi','dv','flc','mpeg','mpeg4','mpg4','mp4','mpg','mov','ogm','qt','rm','swf','vob','wmv']
 
 # pull all video data as if a video player was attached
 FAKEPLAYBACK = False

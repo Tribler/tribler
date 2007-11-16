@@ -6,17 +6,16 @@ import os
 import shutil
 from threading import Thread,currentThread
 from traceback import print_exc,print_stack
-from Tribler.Core.ThreadPool import ThreadPool
+from Tribler.Core.APIImplementation.ThreadPool import ThreadPool
 from Tribler.Core.CacheDB.Notifier import Notifier
 
 DEBUG = True
 
 class UserCallbackHandler:
     
-    def __init__(self,sesslock,sessconfig,lm):
+    def __init__(self,sesslock,sessconfig):
         self.sesslock = sesslock
         self.sessconfig = sessconfig
-        self.lm = lm
 
         # Notifier for callbacks to API user
         self.threadpool = ThreadPool(4)
@@ -63,7 +62,7 @@ class UserCallbackHandler:
         self.sesslock.acquire()
         try:
             # TODO: thread pool, etc.
-            self.lm.threadpool.queueTask(target)
+            self.threadpool.queueTask(target)
             
 #            name = "SessionCallbackThread-"+str(self.threadcount)
 #            self.threadcount += 1

@@ -1,7 +1,9 @@
 # Written by Arno Bakker 
 # see LICENSE.txt for license information
 
-import Tribler.Core.API
+#import Tribler.Core.API as triblerAPI
+import triblerAPI
+from Tribler.Core.exceptions import *
 
 class SessionRuntimeConfig(triblerAPI.SessionConfigInterface):
     

@@ -4,7 +4,7 @@ import os
 import socket
 import random
 
-from Lang.lang import Lang
+from Tribler.Lang.lang import Lang
 from threading import Event, Semaphore
 from time import sleep
 #from traceback import print_exc

@@ -25,13 +25,14 @@ import wx
 from wx import xrc
 #import hotshot
 
-from Tribler.Core.API import *
+#from Tribler.Core.API import *
+from triblerAPI import *
 
 from Tribler.Video.VideoServer import VideoHTTPServer
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Main.Utility.utility import Utility
 from Tribler.Video.EmbeddedPlayer import VideoFrame
-from Tribler.Core.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
+from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
 
 ALLOW_MULTIPLE = False
 

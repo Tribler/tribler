@@ -1066,7 +1066,7 @@ class Session(SessionRuntimeConfig):
         # Let user handle that, he's got default_state_dir, etc.
 
         # Core init
-        Tribler.Overlay.permid.init()
+        Tribler.Core.Overlay.permid.init()
 
         #print 'Session: __init__ config is', self.sessconfig
         
@@ -1076,15 +1076,15 @@ class Session(SessionRuntimeConfig):
         # 1. keypair
         #
         if self.sessconfig['eckeypairfilename'] is None:
-            self.keypair = Tribler.Overlay.permid.generate_keypair()
+            self.keypair = Tribler.Core.Overlay.permid.generate_keypair()
             pairfilename = os.path.join(self.sessconfig['state_dir'],'ec.pem')
             pubfilename = os.path.join(self.sessconfig['state_dir'],'ecpub.pem')
             self.sessconfig['eckeypairfilename'] = pairfilename
-            Tribler.Overlay.permid.save_keypair(self.keypair,pairfilename)
-            Tribler.Overlay.permid.save_pub_key(self.keypair,pubfilename)
+            Tribler.Core.Overlay.permid.save_keypair(self.keypair,pairfilename)
+            Tribler.Core.Overlay.permid.save_pub_key(self.keypair,pubfilename)
         else:
             # May throw exceptions
-            self.keypair = Tribler.Overlay.permid.read_keypair(self.sessconfig['eckeypairfilename'])
+            self.keypair = Tribler.Core.Overlay.permid.read_keypair(self.sessconfig['eckeypairfilename'])
         
         # 2. Downloads persistent state dir
         dlpstatedir = os.path.join(self.sessconfig['state_dir'],STATEDIR_DLPSTATE_DIR)
@@ -1116,11 +1116,11 @@ class Session(SessionRuntimeConfig):
         self.save_pstate_sessconfig(sscfg)
 
 
+        # Create handler for calling back the user via separate threads
+        self.uch = UserCallbackHandler(self.sesslock,self.sessconfig)
+
         # Create engine with network thread
         self.lm = TriblerLaunchMany(self,self.sesslock)
-        
-        # Create handler for calling back the user via separate threads
-        self.uch = UserCallbackHandler(self.sesslock,self.sessconfig,self.lm)
         self.lm.start()
 
 
@@ -1801,7 +1801,7 @@ class TorrentDef(Serializable,Copyable):
 
     def verify_torrent_signature(self):
         if self.metainfo_valid:
-            return Tribler.Overlay.permid.verify_torrent_signature(self.metainfo)
+            return Tribler.Core.Overlay.permid.verify_torrent_signature(self.metainfo)
         else:
             raise TorrentDefNotFinalizedException()
 
@@ -1843,7 +1843,7 @@ class TorrentDef(Serializable,Copyable):
         if not self.metainfo_valid:
             raise NotYetImplementedException() # must save first
         
-        return maketorrent.get_video_files(self.metainfo)
+        return maketorrent.get_video_files(self.metainfo,videoexts)
 
     
     #

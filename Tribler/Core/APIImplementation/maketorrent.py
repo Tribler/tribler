@@ -442,7 +442,7 @@ def copy_metainfo_to_input(metainfo,input):
                 input['thumb'] = content['Thumbnail']
                 
 
-def get_video_files(metainfo):
+def get_video_files(metainfo,videoexts):
     videofiles = []
     if 'files' in metainfo['info']:
         # Multi-file torrent
