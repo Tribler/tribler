@@ -55,7 +55,6 @@ except:
     True = 1
     False = 0
 
-
 argslistheader = 'Arguments are:\n\n'
 
 DEBUG = False

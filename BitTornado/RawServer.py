@@ -139,10 +139,6 @@ class RawServer:
                     #    print >>sys.stderr,"rawserver: do_poll",period
 
                     events = self.sockethandler.do_poll(period)
-                    
-                    #if DEBUG:
-                    #    print >>sys.stderr,".",
-                    
                     if self.doneflag.isSet():
                         if DEBUG:
                             print >> sys.stderr,"rawserver: stopping because done flag set"
@@ -155,7 +151,7 @@ class RawServer:
 #                            print func.func_name
                             if DEBUG:
                                 if func.func_name != "_bgalloc":
-                                    print >> sys.stderr,"RawServer: calling (not bgalloc)",func.func_name
+                                    print >> sys.stderr,"RawServer:f",func.func_name
                             func()
                         except (SystemError, MemoryError), e:
                             self.failfunc(e)

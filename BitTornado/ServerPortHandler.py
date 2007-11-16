@@ -14,7 +14,7 @@ except:
 
 # 2fastbt_
 from BT1.Encrypter import protocol_name
-from traceback import print_stack
+from traceback import print_exc,print_stack
 # _2fastbt
 
 def toint(s):

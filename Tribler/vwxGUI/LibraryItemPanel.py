@@ -270,6 +270,8 @@ class LibraryItemPanel(wx.Panel):
     def setData(self, torrent):
         # set bitmap, rating, title
         
+        #print_stack()
+        
         if threading.currentThread().getName() != "MainThread":
             print >>sys.stderr,"lip: setData called by nonMainThread!",threading.currentThread().getName()
             print_stack()

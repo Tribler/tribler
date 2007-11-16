@@ -4,7 +4,7 @@ from socket import inet_aton
 import os
 
 #from operator import itemgetter
-from threading import Event, Timer, currentThread
+from threading import Event, currentThread, enumerate
 from time import time, sleep
 #from cStringIO import StringIO
 from traceback import print_stack, print_exc
@@ -16,6 +16,7 @@ from BitTornado.clock import clock
 from Utility.constants import * #IGNORE:W0611
 from Tribler.API.osutils import getfreespace
 
+from ABC.Scheduler.scheduler import NamedTimer
 from Tribler.Worldmap.peer import BTPeer
 from Tribler.CacheDB.CacheDBHandler import FriendDBHandler
 from Tribler.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
@@ -337,6 +338,11 @@ class ABCEngine(DelayedEventHandler):
 
         
     def updateStatus(self, fractionDone = None, timeEst = None, downRate = None, upRate = None, activity = None, statistics = None, spew = None, havedigest = None):
+        
+        #ts = enumerate()
+        #for t in ts:
+        #    print >>sys.stderr,"abcengine: Thread running",t.getName(),"daemon",t.isDaemon()
+        
         # Just in case a torrent was finished
         # but now isn't
         self.torrent.status.completed = self.seed
@@ -574,7 +580,7 @@ class ABCEngine(DelayedEventHandler):
         else:
             nextcheck = 30
         
-        self.timers['infrequent'] = Timer(nextcheck, self.InfrequentTasks)
+        self.timers['infrequent'] = NamedTimer(nextcheck, self.InfrequentTasks)
         self.timers['infrequent'].start()
     
     #

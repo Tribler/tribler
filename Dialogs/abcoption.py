@@ -610,6 +610,7 @@ class DiskPanel(ABCOptionPanel):
 
         sizer.Add(dirbox, 0, wx.ALIGN_LEFT|wx.ALL, 5)
 
+        """
         self.movecompleted = wx.CheckBox(self, -1, self.utility.lang.get('movecompleted'))
 
         self.movedir = wx.TextCtrl(self, -1, "")
@@ -622,6 +623,7 @@ class DiskPanel(ABCOptionPanel):
         movedirbox.Add(movebrowsebtn, 0, wx.ALIGN_CENTER_VERTICAL)
 
         sizer.Add(movedirbox, 0, wx.ALIGN_LEFT|wx.ALL, 5)
+        """
        
 #        self.forcenewdir = wx.CheckBox(self, -1, self.utility.lang.get('forcenewdir'))
 #        self.forcenewdir.SetToolTipString(self.utility.lang.get('forcenewdir_hint'))
@@ -646,8 +648,10 @@ class DiskPanel(ABCOptionPanel):
         self.dir.SetValue(Read('defaultfolder'))
         self.torrentbackup.SetValue(Read('removetorrent', "boolean"))
         self.defaultdir.SetValue(Read('setdefaultfolder', "boolean"))
+        """
         self.movecompleted.SetValue(Read('movecompleted', "boolean"))
         self.movedir.SetValue(Read('defaultmovedir'))
+        """
         
         diskfullthreshold = Read('diskfullthreshold', "int")
         if diskfullthreshold > 0:
@@ -661,8 +665,10 @@ class DiskPanel(ABCOptionPanel):
         self.utility.config.Write('setdefaultfolder', self.defaultdir.GetValue(), "boolean")
         self.utility.config.Write('defaultfolder', self.dir.GetValue())
 
+        """
         self.utility.config.Write('movecompleted', self.movecompleted.GetValue(), "boolean")
         self.utility.config.Write('defaultmovedir', self.movedir.GetValue())
+        """
         
         if self.diskfullcheckbox.GetValue():
             diskfullthreshold = self.diskfullthreshold.GetValue()
@@ -672,6 +678,7 @@ class DiskPanel(ABCOptionPanel):
                 
 #        self.utility.config.Write('forcenewdir', self.forcenewdir.GetValue(), "boolean")
 
+    """
     def onBrowseMoveDir(self, event = None):
         dlg = wx.DirDialog(self.utility.frame, 
                            self.utility.lang.get('choosemovedir'), 
@@ -679,6 +686,7 @@ class DiskPanel(ABCOptionPanel):
         if dlg.ShowModal() == wx.ID_OK:
             self.movedir.SetValue(dlg.GetPath())
         dlg.Destroy()
+    """
         
     def onBrowseDir(self, event = None):
         dlg = wx.DirDialog(self.utility.frame, 
@@ -1473,7 +1481,7 @@ class TriblerPanel(ABCOptionPanel):
             myinfosection.Add(permid_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
         else:
             permid_txt = self.utility.lang.get('mypermid')+": "+pb64
-            label = wx.StaticText(self, -1, self.permid_txt )
+            label = wx.StaticText(self, -1, permid_txt )
             myinfosection.Add( label, 1, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         
         self.myinfo = wx.Button(self, -1, self.utility.lang.get('myinfo') + "...")

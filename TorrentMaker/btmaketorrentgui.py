@@ -793,7 +793,7 @@ class CompleteDir:
     def __init__(self, parent, d, a, params):
         self.d = d
         self.a = a
-        self.startnow = self.parent.fileInfoPanel.startnow.GetValue() 
+        self.startnow = parent.fileInfoPanel.startnow.GetValue() 
         
         self.usinginternaltracker = False
         if 'usinginternaltracker' in params:

@@ -1,11 +1,10 @@
 # Written by Jie Yang
 # see LICENSE.txt for license information
 
-from socket import inet_aton, gethostbyname, getaddrinfo
+import socket
 from time import time, strftime, gmtime
 from base64 import encodestring
 from sha import sha
-from copy import deepcopy
 import sys
 import os
 import copy
@@ -32,12 +31,18 @@ def validPort(port):
 
 def validIP(ip):
     try:
-        getaddrinfo(ip, None)
-    except:
-        if ip.find(':') >= 0:    # ipv6
+        try:
+            # Is IPv4 addr?
+            socket.inet_aton(ip)
             return True
-        raise RuntimeError, "invalid IP address: " + ip
-    return True
+        except socket.error:
+            # Is hostname / IPv6?
+            socket.getaddrinfo(ip, None)
+            return True
+    except:
+        print_exc()
+    raise RuntimeError, "invalid IP address: " + ip
+
     
 def validPermid(permid):
     if not isinstance(permid, str):
@@ -241,7 +246,7 @@ def show_permid_shorter(permid):
 
 def readableBuddyCastMsg(buddycast_data):
     # convert msg to readable format
-    prefxchg_msg = deepcopy(buddycast_data)
+    prefxchg_msg = copy.deepcopy(buddycast_data)
     
     if prefxchg_msg.has_key('permid'):
         prefxchg_msg.pop('permid')

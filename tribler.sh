@@ -14,9 +14,11 @@ fi
 if [ "$WXPYTHONVER25" = "" ];
 then
     PYTHON="python2.4"
+    WXPYTHONVER=$WXPYTHONVER24
     echo "Using python2.4"
 else
     PYTHON="python2.5"
+    WXPYTHONVER=$WXPYTHONVER25
     echo "Using python2.5"
 fi
 
@@ -25,4 +27,4 @@ WXPYTHON=`ls -1d /usr/lib/$PYTHON/site-packages/wx-$WXPYTHONVER* | grep -v ansi 
 PYTHONPATH=/usr/share/tribler/:$WXPYTHON
 export PYTHONPATH
 
-exec $PYTHON /usr/share/tribler/tribler.py > /tmp/$USER-tribler.log 2>&1
+exec $PYTHON /usr/share/tribler/tribler.py "$@" > /tmp/$USER-tribler.log 2>&1

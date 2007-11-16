@@ -2,7 +2,7 @@
 # see LICENSE.txt for license information
 
 from cStringIO import StringIO
-from sys import stdout
+import sys
 import time
 from clock import clock
 from gzip import GzipFile
@@ -158,13 +158,14 @@ class HTTPHandler:
     def log(self, ip, ident, username, header,
             responsecode, length, referrer, useragent):
         year, month, day, hour, minute, second, a, b, c = time.localtime(time.time())
-        print '%s %s %s [%02d/%3s/%04d:%02d:%02d:%02d] "%s" %i %i "%s" "%s"' % (
-            ip, ident, username, day, months[month], year, hour,
-            minute, second, header, responsecode, length, referrer, useragent)
+        if DEBUG:
+            print >>sys.stderr,'HTTPHandler: %s %s %s [%02d/%3s/%04d:%02d:%02d:%02d] "%s" %i %i "%s" "%s"' % (
+                ip, ident, username, day, months[month], year, hour,
+                minute, second, header, responsecode, length, referrer, useragent)
         t = clock()
         if t - self.lastflush > self.minflush:
             self.lastflush = t
-            stdout.flush()
+            sys.stdout.flush()
 
 
 class DummyHTTPHandler:

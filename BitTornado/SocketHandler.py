@@ -341,14 +341,36 @@ class SocketHandler:
 #                socktype = socket.AF_INET
             try:
                 try:
-                    # Jie: we attempt to use this socktype to connect ipv6 addresses.
-                    socktype = socket.AF_UNSPEC
-                    addrinfos = socket.getaddrinfo(dns[0], int(dns[1]),
-                                                   socktype, socket.SOCK_STREAM)
+                    """
+                    Arno: When opening a new connection, the network thread calls the
+                    getaddrinfo() function (=DNS resolve), as apparently the input
+                    sometimes is a hostname. At the same time the tracker thread uses 
+                    this same function to resolve the tracker name to an IP address. 
+                    However, on Python for Windows this method has concurrency control
+                    protection that allows only 1 request at a time. 
+
+                    In some cases resolving the tracker name takes a very long time,
+                    meanwhile blocking the network thread!!!! And that only wanted to
+                    resolve some IP address to some IP address, i.e., do nothing!!! 
+                    
+                    Sol: don't call getaddrinfo() is the input is an IP address, and
+                    submit a bug to python that it shouldn't lock when the op is
+                    a null op
+                    """
+                    socket.inet_aton(dns[0])
+                    #print >>sys.stderr,"SockHand: start_conn: after inet_aton",dns[0],"<",dns,">"
+                    addrinfos=[(socket.AF_INET, None, None, None, (dns[0], dns[1]))]
                 except:
-                    socktype = socket.AF_INET
-                    addrinfos = socket.getaddrinfo(dns[0], int(dns[1]),
-                                                   socktype, socket.SOCK_STREAM)
+                    #print_exc()
+                    try:
+                        # Jie: we attempt to use this socktype to connect ipv6 addresses.
+                        socktype = socket.AF_UNSPEC
+                        addrinfos = socket.getaddrinfo(dns[0], int(dns[1]),
+                                                       socktype, socket.SOCK_STREAM)
+                    except:
+                        socktype = socket.AF_INET
+                        addrinfos = socket.getaddrinfo(dns[0], int(dns[1]),
+                                                       socktype, socket.SOCK_STREAM)
             except socket.error, e:
                 raise
             except Exception, e:

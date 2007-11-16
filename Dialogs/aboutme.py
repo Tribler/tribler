@@ -2,11 +2,10 @@ import sys
 import wx
 import wx.html as html
 
-from BitTornado.zurllib import urlopen
 from webbrowser import open_new
 from threading import Thread
 from traceback import print_exc
-import urllib
+from Tribler.timeouturlopen import urlOpenTimeout
 
 ################################################################
 #
@@ -105,12 +104,13 @@ class VersionDialog(MyHtmlDialog):
     def hasNewVersion(self):
         my_version = self.utility.getVersion()
         try:
-            curr_status = urllib.urlopen('http://tribler.org/version').readlines()
+            # Arno: TODO: don't let this be done by MainThread 
+            curr_status = urlOpenTimeout('http://tribler.org/version/').readlines()
             line1 = curr_status[0]
             if len(curr_status) > 1:
                 self.update_url = curr_status[1].strip()
             else:
-                self.update_url = 'http://tribler.org'
+                self.update_url = 'http://tribler.org/'
             _curr_status = line1.split()
             self.curr_version = _curr_status[0]
             return self.newversion(self.curr_version, my_version)

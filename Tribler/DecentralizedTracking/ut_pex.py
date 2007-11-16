@@ -32,13 +32,13 @@ EXTEND_MSG_UTORRENT_PEX = 'ut_pex' # note case sensitive
 
 DEBUG = False
 
-def create_ut_pex(addedconns,droppedconns):
+def create_ut_pex(addedconns,droppedconns,thisconn):
     d = {}
-    (newadded,compactedpeerstr) = compact_connections(addedconns)
+    compactedpeerstr = compact_connections(addedconns,thisconn)
     d['added'] = compactedpeerstr
     flags = ''
-    for i in range(len(newadded)):
-        conn = newadded[i]
+    for i in range(len(addedconns)):
+        conn = addedconns[i]
         flag = 0
         if conn.get_extend_encryption():
             flag |= 1
@@ -46,7 +46,7 @@ def create_ut_pex(addedconns,droppedconns):
             flag |= 2
         flags += chr(flag)
     d['added.f'] = flags
-    (newremoved,compactedpeerstr) = compact_connections(droppedconns)
+    compactedpeerstr = compact_connections(droppedconns)
     d['dropped'] = compactedpeerstr
     return bencode(d)
 
@@ -83,48 +83,37 @@ def check_ut_pex_peerlist(d,name):
             raise ValueError('ut_pex:'+name+': address is localhost')
     return peers
     
-def ut_pex_get_conns_diff(currconns,thisconn,prevconns):
+def ut_pex_get_conns_diff(currconns,prevconns):
     addedconns = []
     droppedconns = []
     for conn in currconns:
-        if conn in prevconns:
-            # already reported, don't mention
-            pass
-        elif conn != thisconn:
+        if not (conn in prevconns):
             # new conn
             addedconns.append(conn)
     for conn in prevconns:
-        if conn in currconns:
-            # already reported, don't mention
-            pass
-        else:
+        if not (conn in currconns):
             # old conn, was dropped
             droppedconns.append(conn)
     return (addedconns,droppedconns)
 
 
-def compact_connections(conns):
+def compact_connections(conns,thisconn=None):
     """ See BitTornado/BT1/track.py """
     compactpeers = []
-    deletedconns = []
     for conn in conns:
+        if conn == thisconn:
+            continue
         ip = conn.get_ip()
         port = conn.get_extend_listenport()
         if port is None:
-            # peer didn't send it in EXTEND message
-            #print "ut_pex: Don't have a listening port for peer",ip
-            deletedconns.append(conn)
+            raise ValueError("ut_pex: compact: listen port unknown?!")
         else:
             compactpeer = compact_peer_info(ip,port)
             compactpeers.append(compactpeer)
-    # Remove connections for which we had incomplete info
-    newconns = conns[:]
-    for conn in deletedconns:
-        newconns.remove(conn)
         
     # Create compact representation of peers
     compactpeerstr = ''.join(compactpeers)
-    return (newconns,compactpeerstr)
+    return compactpeerstr
 
 
 def decompact_connections(p):

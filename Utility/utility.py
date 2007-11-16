@@ -307,7 +307,6 @@ class Utility:
             'color_nocomplete': '000000150', 
             'color_good': '000150000', 
             'color_stripe': '245245245', 
-            'display_interval': '0.8', 
             'listfont': '', 
             'diskfullthreshold': '1', 
             'stopcollectingthreshold': '200',
@@ -455,6 +454,14 @@ class Utility:
         # Arno: 2007-05-16, Make sure the port is in the abc.conf
         minport = self.config.Read('minport','int')
         self.config.Write('minport', minport)
+
+        # Arno: reenable ut_pex, people may have turned it off at our request
+        # as an attempt to solve a stalling downloads problem.
+        ut_pex_max = self.config.Read('ut_pex_max_addrs_from_peer','int')
+        if ut_pex_max == -1:
+            ut_pex_max = 16
+        self.config.Write('ut_pex_max_addrs_from_peer', ut_pex_max)
+
         
     def setupWebConfig(self):
         defaults = {

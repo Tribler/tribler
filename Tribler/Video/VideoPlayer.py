@@ -562,8 +562,8 @@ class VODWarningDialog(wx.Dialog):
         maxmeasureduploadrate = self.utility.queue.getMaxMeasuredUploadRate()
         
         bitrate = videoinfo[2]
-        """
         msg = self.utility.lang.get('vodwarngeneral')
+        """
         if bitrate is None:
             msg += self.utility.lang.get('vodwarnbitrateunknown')
             msg += self.is_mov_file(videoinfo)
@@ -595,11 +595,9 @@ class VODWarningDialog(wx.Dialog):
         
         """
         sizer = wx.BoxSizer(wx.VERTICAL)
-        """
         text = wx.StaticText(self, -1, msg)
         text.Wrap(500)
         sizer.Add(text, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5)
-        """
 
         self.otherslist = [self.utility.lang.get('vodrestartothertorrents'),
                            self.utility.lang.get('vodstopothertorrents'),

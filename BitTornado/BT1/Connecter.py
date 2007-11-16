@@ -98,7 +98,6 @@ class Connection:
         self.closed = False
         self.extend_hs_dict = {}        # what extended messages does this peer support
         self.initiated_overlay = False
-        self.ut_pex_previous_conns = [] # last value of 'added' field for this peer
 
         self.use_g2g = False # set to true if both sides use G2G, indicated by self.connector.use_g2g
         self.parts_sent = {}
@@ -111,6 +110,9 @@ class Connection:
         # BarterCast counters
         self.total_downloaded = 0
         self.total_uploaded = 0
+        
+        self.ut_pex_first_flag = True # first time we sent a ut_pex to this peer?
+
 
     def get_myip(self, real=False):
         return self.connection.get_myip(real)
@@ -357,11 +359,14 @@ class Connection:
         mx = self.connecter.ut_pex_max_addrs_from_peer
         if DEBUG:
             print >>sys.stderr,"connecter: Got",len(added_peers),"peers via uTorrent PEX, using max",mx
-            #print >>sys.stderr,"connecter: Got",added_peers
-        shuffle(added_peers)
+            
         
+        #print >>sys.stderr,"connecter: Got",added_peers
+        shuffle(added_peers)
         sample_added_peers = added_peers[:mx]
         if len(sample_added_peers) > 0:
+            if DEBUG:
+                print >>sys.stderr,"connecter: Starting conns to",len(sample_added_peers)
             self.connection.Encoder.start_connections(sample_added_peers)
 
     def get_extend_encryption(self):
@@ -369,12 +374,6 @@ class Connection:
     
     def get_extend_listenport(self):
         return self.extend_hs_dict.get('p')
-
-    def get_ut_pex_previous_conns(self):
-        return self.ut_pex_previous_conns
-
-    def set_ut_pex_previous_conns(self,conns):
-        self.ut_pex_previous_conns = conns
 
     def send_extend_handshake(self):
         d = {}
@@ -392,6 +391,14 @@ class Connection:
         self._send_message(msg)
 
             
+    def first_ut_pex(self):
+        if self.ut_pex_first_flag:
+            self.ut_pex_first_flag = False
+            return True
+        else:
+            return False
+            
+    
     #
     # SecureOverlay support
     #
@@ -482,6 +489,7 @@ class Connecter:
         if 'ut_pex_max_addrs_from_peer' in self.config:
             self.ut_pex_max_addrs_from_peer = self.config['ut_pex_max_addrs_from_peer']
             self.ut_pex_enabled = self.ut_pex_max_addrs_from_peer > 0
+        self.ut_pex_previous_conns = [] # last value of 'added' field for all peers
             
         if DEBUG:
             if self.ut_pex_enabled:
@@ -609,28 +617,51 @@ class Connecter:
         for co in self.connections.values():
             co.send_have(i)
 
+    def get_ut_pex_conns(self):
+        conns = []
+        for conn in self.connections.values():
+            if conn.get_extend_listenport() is not None:
+                conns.append(conn)
+        return conns
+            
+    def get_ut_pex_previous_conns(self):
+        return self.ut_pex_previous_conns
+
+    def set_ut_pex_previous_conns(self,conns):
+        self.ut_pex_previous_conns = conns
+
     def ut_pex_callback(self):
         """ Periocially send info about the peers you know to the other peers """
         if DEBUG:
             print >>sys.stderr,"connecter: Periodic ut_pex update"
-        for c in self.connections.values():
+            
+        currconns = self.get_ut_pex_conns()
+        (addedconns,droppedconns) = ut_pex_get_conns_diff(currconns,self.get_ut_pex_previous_conns())
+        self.set_ut_pex_previous_conns(currconns)
+        if DEBUG:
+            for conn in addedconns:
+                print >>sys.stderr,"connecter: ut_pex: Added",conn.get_ip(),conn.get_extend_listenport()
+            for conn in droppedconns:
+                print >>sys.stderr,"connecter: ut_pex: Dropped",conn.get_ip(),conn.get_extend_listenport()
+            
+        for c in currconns:
             if c.supports_extend_msg(EXTEND_MSG_UTORRENT_PEX):
-                if DEBUG:
-                    print >>sys.stderr,"connecter: ut_pex: Creating msg for",c.get_ip(),c.get_extend_listenport()
                 try:
-                    currconns = self.connections.values()
-                    (addedconns,droppedconns) = ut_pex_get_conns_diff(currconns,c,c.get_ut_pex_previous_conns())
-                    c.set_ut_pex_previous_conns(currconns)
-                    if False: # DEBUG
-                        for conn in addedconns:
-                            print >>sys.stderr,"connecter: ut_pex: Added",conn.get_ip(),conn.get_extend_listenport()
-                        for conn in droppedconns:
-                            print >>sys.stderr,"connecter: ut_pex: Dropped",conn.get_ip(),conn.get_extend_listenport()
-                    payload = create_ut_pex(addedconns,droppedconns)
+                    if DEBUG:
+                        print >>sys.stderr,"connecter: ut_pex: Creating msg for",c.get_ip(),c.get_extend_listenport()
+                    if c.first_ut_pex():
+                        aconns = currconns
+                        dconns = []
+                    else:
+                        aconns = addedconns
+                        dconns = droppedconns
+                    payload = create_ut_pex(aconns,dconns,c)    
                     c.send_extend_ut_pex(payload)
                 except:
                     traceback.print_exc()
         self.sched(self.ut_pex_callback,60)
+
+
 
     def got_message(self, connection, message):
         # connection: Encrypter.Connection; c: Connecter.Connection

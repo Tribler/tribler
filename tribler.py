@@ -39,7 +39,7 @@ from wx import xrc
 #import hotshot
 
 
-from threading import Thread, Timer, Event,currentThread,enumerate
+from threading import Thread, Event,currentThread,enumerate
 from time import time, ctime, sleep
 from traceback import print_exc, print_stack
 from cStringIO import StringIO
@@ -362,7 +362,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         r.set_global_max_speed(DOWNLOAD,100)
         
     def checkVersion(self):
-        t = Timer(2.0, self._checkVersion)
+        t = NamedTimer(2.0, self._checkVersion)
         t.start()
         
     def _checkVersion(self):
@@ -741,7 +741,10 @@ class ABCFrame(wx.Frame, DelayedInvocation):
             print  >> sys.stderr,"abc: Setting activity",`text`,"EOT"
         self.messageField.SetLabel(text)
 
-            
+    def set_player_status(self,s):
+        """ Called by VideoServer when using an external player """
+        pass
+
 
 ##############################################################
 #
@@ -1002,7 +1005,7 @@ class DummySingleInstanceChecker:
     def IsAnotherRunning(self):
         "Uses pgrep to find other tribler.py processes"
         # If no pgrep available, it will always start tribler
-        progressInfo = commands.getoutput('pgrep -fl tribler.py | grep -v pgrep')
+        progressInfo = commands.getoutput('pgrep -fl "tribler\.py" | grep -v pgrep')
         numProcesses = len(progressInfo.split('\n'))
         if DEBUG:
             print 'ProgressInfo: %s, num: %d' % (progressInfo, numProcesses)

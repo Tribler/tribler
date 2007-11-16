@@ -9,6 +9,7 @@ from struct import unpack
 from sha import sha
 from time import time
 import random
+from sets import Set
 
 # 2fastbt_
 from traceback import print_exc, extract_stack, print_stack
@@ -345,7 +346,7 @@ class Encoder:
         self.config = config
         self.connections = {}
         self.banned = {}
-        self.to_connect = []
+        self.to_connect = Set()
         self.trackertime = 0
         self.paused = False
         if self.config['max_connections'] == 0:
@@ -411,9 +412,11 @@ class Encoder:
             c.keepalive()
 
     def start_connections(self, list):
+        if DEBUG:
+            print >>sys.stderr,"encoder: adding",len(list),"peers to queue, current len",len(self.to_connect)
         if not self.to_connect:
             self.raw_server.add_task(self._start_connection_from_queue)
-        self.to_connect.extend(list)
+        self.to_connect.update(list)
         # make sure addrs from various sources, like tracker, ut_pex and DHT are mixed
         # TEMP ARNO: or not? For Tribler Supported we may want the tracker to
         # be more authoritative, such that official seeders found fast. Nah.
@@ -430,13 +433,17 @@ class Encoder:
         else:
             max_initiate = int(self.config['max_initiate']*1.5)
         cons = len(self.connections)
+        
+        if DEBUG:
+            print >>sys.stderr,"encoder: conns",cons,"max conns",self.max_connections,"max init",max_initiate
+        
         if cons >= self.max_connections or cons >= max_initiate:
             delay = 60.0
         elif self.paused or incompletecounter.toomany():
             delay = 1.0
         else:
             delay = 0.0
-            dns, id = self.to_connect.pop(0)
+            dns, id = self.to_connect.pop()
             self.start_connection(dns, id)
         if self.to_connect and sched:
             print >>sys.stderr,"encoder: start_from_queue delay",delay
@@ -464,6 +471,7 @@ class Encoder:
                 return True
             ip = v.get_ip(True)
             port = v.get_port(False)
+            
             if self.config['security'] and ip != 'unknown' and ip == dns[0] and port == dns[1]:
                 if DEBUG:
                     print >>sys.stderr,"encoder: start_connection: using existing",ip,"want port",dns[1],"existing port",port,"id",`id`
