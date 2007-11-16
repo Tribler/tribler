@@ -54,7 +54,7 @@ class VideoFrame(wx.Frame):
         self.createMainPanel()
 
 
-        iconpath = os.path.join(self.utility.getPath(),'tribler.ico')
+        iconpath = os.path.join(self.utility.getPath(),'Tribler','Images','tribler.ico')
         self.icons = wx.IconBundle()
         self.icons.AddIconFromFile(iconpath,wx.BITMAP_TYPE_ICO)
         self.SetIcons(self.icons)
@@ -132,7 +132,7 @@ class EmbeddedPlayer(wx.Panel):
         self.utility = utility
         self.SetBackgroundColour(wx.BLACK)
 
-        logofilename = os.path.join(self.utility.getPath(),'icons','logo4video.png')
+        logofilename = os.path.join(self.utility.getPath(),'Tribler','Images','logo4video.png')
         #logofilename = None
 
         mainbox = wx.BoxSizer(wx.VERTICAL)

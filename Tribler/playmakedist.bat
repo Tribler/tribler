@@ -45,42 +45,30 @@ REM ----- Build
 REM Arno: When adding files here, make sure tribler.nsi actually
 REM packs them in the installer .EXE
 
-%PYTHONPATH%\python.exe -O setuptriblerplay.py py2exe
+%PYTHONPATH%\python.exe -O Player\Build\Win32\setuptriblerplay.py py2exe
 
-REM copy %PYTHONPATH%\msvcr71.dll dist\tribler
+REM copy %PYTHONPATH%\msvcr71.dll dist\installdir
 REM For Vista. This works only when building on XP
 REM as Vista doesn't have this DLL by default.
 REM JD: My XP SP2 doesn't have it. It /is/ shipped with wxPython though
-copy %PYTHONPATH%\Lib\site-packages\wx-2.8-msw-unicode\wx\msvcp71.dll dist\tribler
-copy %SystemRoot%\msvcp71.dll dist\tribler
-copy %PYTHONPATH%\msvcp60.dll dist\tribler
-copy SSLEAY32.dll dist\tribler
-copy LIBEAY32.dll dist\tribler
-copy heading.bmp dist\tribler
-mkdir dist\tribler\Lang
-copy superpeer.txt dist
-copy cities.txt dist
-copy FAQ.txt dist
-copy category.conf dist
-copy binary-LICENSE.txt dist
-mkdir dist\tribler\icons
-copy icons\*.* dist\tribler\icons
-mkdir dist\tribler\icons\mugshots
-copy icons\mugshots\*.* dist\tribler\icons\mugshots
-copy Lang\*.lang dist\tribler\Lang
-copy ffmpeg.exe dist\tribler
-copy tor.exe dist\tribler
-xcopy vlc dist\tribler\vlc /E /I
+copy %PYTHONPATH%\Lib\site-packages\wx-2.8-msw-unicode\wx\msvcp71.dll dist\installdir
+copy %SystemRoot%\msvcp71.dll dist\installdir
+copy %PYTHONPATH%\msvcp60.dll dist\installdir
+copy SSLEAY32.dll dist\installdir
+copy LIBEAY32.dll dist\installdir
+mkdir dist\installdir\Tribler
+mkdir dist\installdir\Tribler\Core
+copy superpeer.txt dist\installdir\Tribler\Core
+copy binary-LICENSE.txt dist\installdir
+mkdir dist\installdir\Tribler\Images
+copy Images\*.* dist\installdir\Tribler\Images
+copy Player\Build\Win32\heading.bmp dist\installdir
+mkdir dist\installdir\Tribler\Lang
+copy Lang\*.lang dist\installdir\Tribler\Lang
+copy ffmpeg.exe dist\installdir
+xcopy vlc dist\installdir\vlc /E /I
 
-mkdir dist\tribler\Tribler
-mkdir dist\tribler\Tribler\vwxGUI
-mkdir dist\tribler\Tribler\vwxGUI\images
-copy Tribler\vwxGUI\*.xrc dist\tribler\Tribler\vwxGUI
-copy Tribler\vwxGUI\images\*.* dist\tribler\Tribler\vwxGUI\images
-
-cd dist
-move *.* tribler
-cd tribler
+cd dist\installdir
 
 rem if exist %IMGCFG% goto imageconfig
 rem goto makeinstaller
@@ -89,7 +77,7 @@ rem %IMGCFG% -u tribler.exe
 rem %IMGCFG% -a 0x1 tribler.exe
 
 :makeinstaller
-%NSIS% triblerplay.nsi
+%NSIS% Player\Build\Win32\triblerplay.nsi
 move p2player_*.exe ..
 cd ..
 cd ..

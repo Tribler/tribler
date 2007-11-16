@@ -270,9 +270,10 @@ def run(params = None):
         #print "[StartUpDebug]---------------- 2", time()-start_time
         pass
     else:
-        abcpath = os.path.abspath(os.path.dirname(sys.argv[0]))
+        #abcpath = os.path.abspath(os.path.dirname(sys.argv[0]))
         # Arno: don't chdir to allow testing as other user from other dir.
-        os.chdir(abcpath) # TODO: comment out as soon as all hidden BSDDB create things are worked out.
+        #os.chdir(abcpath) # TODO: comment out as soon as all hidden BSDDB create things are worked out.
+        abcpath = os.getcwd()
 
         # Launch first abc single instance
         app = ABCApp(0, params, single_instance_checker, abcpath)
