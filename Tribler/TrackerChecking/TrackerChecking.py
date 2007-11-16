@@ -3,11 +3,11 @@
 
 # single torrent checking without Thread
 import sys
-from BitTornado.bencode import bdecode
+from Tribler.Core.BitTornado.bencode import bdecode
 from random import shuffle
 import urllib, httplib
 import socket
-import Tribler.timeouturlopen as timeouturlopen
+import Tribler.Core.Utilities.timeouturlopen as timeouturlopen
 from time import time
 from traceback import print_exc
 

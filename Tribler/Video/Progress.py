@@ -178,3 +178,4 @@ class ProgressBar(wx.Control):
 
     def reset(self,colour=0):
         self.blocks = [colour] * 100
+        

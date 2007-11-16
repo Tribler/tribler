@@ -13,9 +13,8 @@ from time import sleep
 from tempfile import mkstemp
 from threading import currentThread,Event
 from traceback import print_stack,print_exc
-from safeguiupdate import FlaglessDelayedInvocation
 from Progress import ProgressBar
-from Tribler.vwxGUI.tribler_topButton import *
+from Tribler.Main.vwxGUI.tribler_topButton import *
 
 
 
@@ -34,7 +33,7 @@ vlcstatusmap = {vlc.PlayingStatus:'vlc.PlayingStatus',
                 vlc.EndStatus:'vlc.EndStatus',
                 vlc.UndefinedStatus:'vlc.UndefinedStatus'}
 
-DEBUG = False
+DEBUG = True
 
 
 class VideoItem:
@@ -66,6 +65,7 @@ class VideoFrame(wx.Frame):
         oldcwd = os.getcwd()
         if sys.platform == 'win32':
             global vlcinstalldir
+            print "VLCPATH",self.utility.getPath()
             vlcinstalldir = os.path.join(self.utility.getPath(),"vlc")
             os.chdir(vlcinstalldir)
 
@@ -89,7 +89,7 @@ class VideoFrame(wx.Frame):
         self.swapout_videopanel()        
         
 
-    def swapin_videopanel(self,url,play=True,progressinf=None):
+    def swapin_videopanel(self,url,play=True):
         
         if DEBUG:
             print >>sys.stderr,"videoframe: Swap IN videopanel"
@@ -102,7 +102,7 @@ class VideoFrame(wx.Frame):
         self.SetFocus()
 
         self.item = VideoItem(url)
-        self.videopanel.SetItem(self.item,play=play,progressinf=progressinf)
+        self.videopanel.SetItem(self.item,play=play)
 
     def swapout_videopanel(self):
         
@@ -114,26 +114,18 @@ class VideoFrame(wx.Frame):
             self.showingvideo = False
             self.Hide()
 
-    def get_video_progressinf(self):
-        return self.videopanel
-
     def reset_videopanel(self):
         self.videopanel.reset()
         
-        
-    def invokeLater(self,*args,**kwargs):
-        self.videopanel.invokeLater(*args,**kwargs)
-
-
     def set_player_status(self,s):
+        """ Called by any thread """
         if self.videopanel:
             self.videopanel.set_player_status(s)
 
-class EmbeddedPlayer(wx.Panel,FlaglessDelayedInvocation):
+class EmbeddedPlayer(wx.Panel):
 
     def __init__(self, parent, id, closehandler, allowclose, utility):
         wx.Panel.__init__(self, parent, id)
-        FlaglessDelayedInvocation.__init__(self)
         self.item = None
 
         self.closehandler = closehandler
@@ -178,31 +170,17 @@ class EmbeddedPlayer(wx.Panel,FlaglessDelayedInvocation):
         self.SetSizerAndFit(mainbox)
         
         self.playtimer = None
-        self.progressinf = None
         self.bitrateset = False
-        self.progress = None
         self.update = False
         self.timer = None
         
-    def SetItem(self, item, play = True,progressinf = None):
+    def SetItem(self, item, play = True):
         self.item = item
         if DEBUG:
             print >>sys.stderr,"embedplay: Telling player to play",item.getPath(),currentThread().getName()
         self.mediactrl.Load(item.getPath())
-
-        if progressinf is not None:
-            self.progressinf = progressinf
-            self.progressinf.set_callback(self.bufferinfo_updated_network_callback)
-            if self.progress is not None:
-                self.progress.set_blocks(self.progressinf.get_bufferinfo().tricolore)
-        else:
-            self.enableInput()
-            if self.progress is not None:
-                self.progress.set_blocks([2]*100)
-                self.progress.Refresh()
-
         self.update = True
-        self.invokeLater(self.slider.SetValue,(0,))
+        wx.CallAfter(self.slider.SetValue,(0,))
         
         if self.timer is None:
             self.timer = wx.Timer(self)
@@ -229,10 +207,6 @@ class EmbeddedPlayer(wx.Panel,FlaglessDelayedInvocation):
     def reset(self):
         self.disableInput()
         self.Stop()
-        if self.progress is not None:
-            self.progress.set_blocks([0]*100)
-            self.progress.Refresh()
-        
 
     def updateSlider(self, evt):
         self.volume.SetValue(int(self.mediactrl.GetVolume() * 100))
@@ -308,28 +282,6 @@ class EmbeddedPlayer(wx.Panel,FlaglessDelayedInvocation):
         self.Stop()
         self.closehandler.swapout_videopanel()
 
-    def bufferinfo_updated_network_callback(self):
-        """ Called by network thread """
-        self.invokeLater(self.bufferinfo_updated_gui_callback)
-        
-    def bufferinfo_updated_gui_callback(self):
-        """ Called by GUI thread """
-        #print >>sys.stderr,"embedplay: Playable is",self.progressinf.get_bufferinfo().get_playable()
-        #print >>sys.stderr,"embedplay: Bitrate is",self.progressinf.get_bufferinfo().get_bitrate()
-        
-        if self.progress is not None:
-            self.progress.Refresh()
-        if not self.ppbtn.IsEnabled() and self.progressinf.get_bufferinfo().get_playable():
-            self.enableInput()
-        """
-        if not self.bitrateset:
-            br = self.progressinf.get_bufferinfo().get_bitrate()
-            if br is not None and br != 0.0:
-                self.bitrateset = True
-                txt = str(int((br/1024.0)*8.0))+ " kbps"  
-                self.br.SetLabel(txt)
-       """     
-
     def set_player_status(self,s):
         if self.mediactrl:
             self.mediactrl.setStatus(s)
@@ -393,8 +345,9 @@ class VLCMediaCtrl(wx.Window):
                 os.chdir(vlcinstalldir)
 
         # Arno: 2007-05-11: Don't ask me why but without the "--verbose=0" vlc will ignore the key redef.
-        params = ["--verbose=0","--key-fullscreen", "Esc"]
-        ########params = [] # Arno: who added this???
+        #params = ["--verbose=0","--key-fullscreen", "Esc"]
+        params = ["--verbose=0"]
+        ###params = []
         
         if sys.platform == 'darwin':
             params += ["--plugin-path", "%s/lib/vlc" % (
@@ -412,7 +365,7 @@ class VLCMediaCtrl(wx.Window):
     # Be sure that this window is visible before
     # calling Play(), otherwise GetHandle() fails
     def Play(self):
-        self.setStatus("Player is loading...")
+        #self.setStatus("Player is loading...")
         if self.GetState() == MEDIASTATE_PLAYING:
             return
 

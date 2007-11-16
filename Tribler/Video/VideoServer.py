@@ -9,11 +9,11 @@ import SocketServer
 import BaseHTTPServer
 from SocketServer import ThreadingMixIn
 import thread
-from threading import RLock,currentThread
+from threading import RLock,Thread,currentThread
 from traceback import print_exc
 from __init__ import read,BLOCKSIZE
 
-DEBUG = False
+DEBUG = True
 
 
 class MovieTransport:
@@ -135,6 +135,30 @@ class MovieTransportDecryptWrapper:
     def get_mimetype(self):
         return self.mt.get_mimetype()
 
+
+
+class MovieTransportFileLikeInterfaceWrapper:
+    """ Provide a file-like interface """
+    def __init__(self,mt):
+        self.mt = mt
+        self.started = False
+        self.done = False
+
+    def read(self,numbytes=None):
+        if self.done:
+            return ''
+        if not self.started:
+            self.mt.start(0)
+        data = self.mt.read(numbytes)
+        if data is None:
+            print >>sys.stderr,"MovieTransportFileLikeInterfaceWrapper: mt read returns None"
+            data = ''
+        self.done = self.mt.done()
+        return data
+        
+    def close(self):
+        self.mt.stop()
+
         
 
 class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
@@ -152,6 +176,8 @@ class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
         self.movietransport = None
         BaseHTTPServer.HTTPServer.__init__( self, ("",self.port), SimpleServer )
         self.daemon_threads = True
+        self.allow_reuse_address = True
+        #self.request_queue_size = 10
         self.errorcallback = None
         self.statuscallback = None
         
@@ -162,7 +188,11 @@ class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
     getInstance = staticmethod(getInstance)
     
     def background_serve( self ):
-        thread.start_new_thread( self.serve_forever, () )
+        name = "VideoHTTPServerThread-1"
+        self.thread2 = Thread(target=self.serve_forever,name=name)
+        self.thread2.setDaemon(True)
+        self.thread2.start()
+        #thread.start_new_thread( self.serve_forever, () )
 
     def register(self,errorcallback,statuscallback):
         self.errorcallback = errorcallback
@@ -204,7 +234,8 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
             if DEBUG:
                 print >>sys.stderr,"videoserv: do_GET: Got request",self.path,self.headers.getheader('range')
                 
-            self.server.statuscallback("Player ready - Attempting to load file...")
+            #if self.server.statuscallback is not None:
+            #    self.server.statuscallback("Player ready - Attempting to load file...")
             movie = self.server.get_movietransport()
             if movie is None:
                 if DEBUG:
@@ -232,6 +263,9 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_header("Content-Length", size)
             self.end_headers()
             
+            
+            #f = open("/tmp/video.data","wb")
+            
             first = True
             while not movie.done():
                 data = movie.read()
@@ -258,12 +292,18 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                         continue
                     """
                     
-                    #print >>sys.stderr,"videoserv: writing",len(data) 
+                    ##print >>sys.stderr,"videoserv: writing",len(data) 
                     self.wfile.write(data)
+                    
+                    #f.write(data)
+                    
                     #sleep(1)
+                    """
                     if first:
-                        self.server.statuscallback("Player ready - Attempting to play file...")
+                        if self.server.statuscallback is not None:
+                            self.server.statuscallback("Player ready - Attempting to play file...")
                         first = False
+                    """
                     
                 except IOError, e:
                     if DEBUG:
@@ -284,14 +324,23 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                 print >>sys.stderr,"videoserv: do_GET: Done sending data"
     
             movie.stop()
+            if self.server.statuscallback is not None:
+                self.server.statuscallback("Done")
+            #f.close()
+            
         except Exception,e:
             if DEBUG:
                 print >>sys.stderr,"videoserv: Error occured while serving"
             ##f = open("/tmp/videoserv.log","w")
             print_exc()
             self.error(e,self.path)
+
             ##f.close()
 
     def error(self,e,url):
-       if self.server.errorcallback is not None:
-           self.server.errorcallback(e,url)
+        if self.server.errorcallback is not None:
+            self.server.errorcallback(e,url)
+        else:
+            print_exc()
+        if self.server.statuscallback is not None:
+            self.server.statuscallback("Error playing video")

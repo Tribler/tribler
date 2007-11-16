@@ -3,9 +3,9 @@
 
 import os
 from Tribler.Category.init_category import getCategoryInfo
-from Tribler.CacheDB.SynDBHandler import SynTorrentDBHandler
-from BitTornado import bencode
-from Tribler.unicode import str2unicode, dunno2unicode
+from Tribler.Core.BitTornado import bencode
+from Tribler.Core.Utilities.unicode import str2unicode, dunno2unicode
+from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 from sets import Set
 from time import time
 from copy import deepcopy
@@ -22,9 +22,6 @@ import sys
 DEBUG=False
 category_file = "category.conf"
 
-def init(install_dir = None, config_dir = None):
-    filename = make_filename(install_dir, category_file)
-    Category.getInstance(filename, config_dir)
     
 def make_filename(config_dir, filename):
     if config_dir is None:
@@ -38,12 +35,13 @@ class Category (FlaglessDelayedEventHandler):
     __single = None
     __size_change = 1024 * 1024 
     
-    def __init__(self, filename, config_dir):
+    def __init__(self, install_dir, config_dir):
         if Category.__single:
             raise RuntimeError, "Category is singleton"
+        filename = make_filename(install_dir, category_file)
         Category.__single = self
         self.invoker = FlaglessDelayedEventHandler()
-        self.torrent_db = SynTorrentDBHandler()
+        self.torrent_db = TorrentDBHandler.getInstance()
         self.category_info = getCategoryInfo(filename)
         self.category_info.sort(rankcmp)
         self.config_dir = config_dir
@@ -65,31 +63,19 @@ class Category (FlaglessDelayedEventHandler):
         
     # check to see whether need to resort torrent file
     # return bool
-    def checkResort(self, data_manager):
-        data = data_manager.data
-#===============================================================================
-#        if not data:
-#            data = data_manager.torrent_db.getRecommendedTorrents(all = True)
-#===============================================================================
+    def checkResort(self, data):
         if not data:
             return False
 
-#        data = data_manager.torrent_db.getRecommendedTorrents(all = True)
-#        self.reSortAll(data)
-#        return True
         torrent = data[0]
         if torrent["category"] == ["?"]:
-            #data = data_manager.torrent_db.getRecommendedTorrents(all = True)
             self.reSortAll(data)
-#            del data
             return True
         
         begin = time()
         for item in data:
             if len(item['category']) > 1:
-                #data = data_manager.torrent_db.getRecommendedTorrents(all = True)
                 self.reSortAll(data)
-#                del data
                 return True
         if DEBUG:
             print 'torrcoll: Checking of %d torrents costs: %f s' % (len(data), time() - begin)

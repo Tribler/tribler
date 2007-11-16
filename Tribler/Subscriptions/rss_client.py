@@ -21,7 +21,7 @@
 import os
 import sys
 import traceback
-from Tribler.timeouturlopen import urlOpenTimeout
+from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 #from BitTornado.zurllib import urlopen
 import re
 import urlparse
@@ -30,9 +30,9 @@ from threading import Thread,RLock,Event
 from time import sleep,time
 from sha import sha
 
-from BitTornado.bencode import bdecode,bencode
-from Tribler.Overlay.MetadataHandler import MetadataHandler
-from Tribler.CacheDB.CacheDBHandler import TorrentDBHandler
+from Tribler.Core.BitTornado.bencode import bdecode,bencode
+from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
+from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 
 URLHIST_TIMEOUT = 7*24*3600.0 # Don't revisit links for this time
 
@@ -64,7 +64,7 @@ class TorrentFeedThread(Thread):
         
     def register(self,utility):
         self.metahandler = MetadataHandler.getInstance()
-        self.torrent_db = TorrentDBHandler()
+        self.torrent_db = TorrentDBHandler.getInstance()
     
         self.utility = utility
         self.intertorrentinterval = self.utility.config.Read("torrentcollectsleep","int")

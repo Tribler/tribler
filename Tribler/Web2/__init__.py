@@ -5,7 +5,7 @@ import util.db
 
 from video.genericsearch import GenericSearch
 from util.update import Web2Config
-import Tribler.vwxGUI.GuiUtility
+import Tribler.Main.vwxGUI.GuiUtility
 
 
 def web2query(query, type):
