@@ -2,8 +2,7 @@
 # see LICENSE.txt for license information
 
 import sys
-#import Tribler.Core.API
-import triblerAPI
+from Tribler.Core.exceptions import *
 
 DEBUG = True
 
@@ -17,7 +16,7 @@ class AbstractRequestPolicy:
 		self.launchmany = launchmany
 	
 	def allowed(self, permid, messageType):
-		raise triblerAPI.NotYetImplementedException()
+		raise NotYetImplementedException()
 	
 	
 	#============ Help methods ====================

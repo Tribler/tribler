@@ -24,7 +24,7 @@ from Tribler.Core.BitTornado.__init__ import version_id
 #from ABC.Actions.actions import makeActionList
 
 if (sys.platform == 'win32'):
-    from Utility.regchecker import RegChecker
+    from Tribler.Main.Utility.regchecker import RegChecker
 
 from Tribler.Main.Utility.configreader import ConfigReader
 from Tribler.Main.Utility.compat import convertINI, moveOldConfigFiles

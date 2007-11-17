@@ -15,7 +15,8 @@ import os
 import sys
 import time
 import commands
-from threading import enumerate
+from threading import enumerate,currentThread
+from traceback import print_exc
 
 if sys.platform == "darwin":
     # on Mac, we can only load VLC/OpenSSL libraries
@@ -25,8 +26,11 @@ import wx
 from wx import xrc
 #import hotshot
 
-#from Tribler.Core.API import *
-from triblerAPI import *
+from Tribler.Core.simpledefs import *
+from Tribler.Core.Session import Session
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.DownloadConfig import DownloadStartupConfig
+
 
 from Tribler.Video.VideoServer import VideoHTTPServer
 from Tribler.Video.VideoPlayer import VideoPlayer

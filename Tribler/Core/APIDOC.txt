@@ -1,0 +1,298 @@
+# Written by Arno Bakker 
+# see LICENSE.txt for license information
+
+triblerAPI v0.0.3rc1
+Nov 17, 2007 
+
+Using Python style guide
+
+Simplest download session
+=========================
+    s = Session()
+    tdef = TorrentDef.load('/tmp/bla.torrent')
+    d = s.start_download(tdef)
+    d.set_state_callback(state_callback)
+    
+def state_callback(ds):
+    d = ds.get_download()
+    print `d.get_def().get_name()`,ds.get_status(),ds.get_progress(),ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD)
+    return (5.0,False)
+
+
+Simpler download session
+========================
+    s = Session()
+    tdef = TorrentDef.load('/tmp/bla.torrent')
+    dcfg = DownloadStartupConfig()
+    dcfg.set_dest_dir('/tmp')
+    d = s.start_download(tdef,dcfg)
+
+
+Simple VOD download session
+===========================
+    s = Session()
+    tdef = TorrentDef.load('/tmp/bla.torrent')
+    dcfg = DownloadStartupConfig()
+    dcfg.set_video_on_demand(vod_ready_callback)
+    dcfg.set_selected_files('part2.avi') # play this video
+    d = s.start_download(tdef,dcfg)
+    
+def vod_ready_callback(download,mimetype,stream,filename):
+    # Called by new thread 
+    while True:
+        data = stream.read()
+        if len(data) == 0:
+            break
+        outstream.write(data)
+    stream.close()
+        
+ALTERNATIVE: the user passes a block_ready_callback, which we call every time
+a new block comes in. This may be less desirable, as the user then has to
+concurrency control to balance the writer (the core) and the reader (e.g. HTTP
+socket). 
+
+In this vod_ready_callback scenario, we do the producer/consumer problem
+inside the stream object, blocking the new thread as desired. Note that it must 
+be a new thread and not the network thread that calls vod_ready_callback().        
+Another advantage of vod_ready is that users can pass the stream object to an
+HTTP server which can then record a (path,stream) tuple, and start reading from
+the given stream when the path is requested via GET /path HTTP/1.1). Or 
+play the video from the file directly if it is complete. We throw IOExceptions 
+when the VOD download is stopped / removed.
+        
+
+Simplest seeding session
+========================
+    s = Session().get_instance()
+    tdef = TorrentDef()
+    tdef.add_content('/tmp/homevideo.wmv')
+    tdef.set_tracker(s.get_internal_tracker_url())
+    tdef.finalize()
+    dcfg = DownloadStartupConfig()
+    dcfg.set_dest_dir('/tmp')
+    d = s.start_download(tdef,dcfg)
+
+
+Simpler seeding session
+=======================
+    s = Session().get_instance()
+    tdef = TorrentDef() 
+    tdef.add_content('/tmp/homevideo.wmv')
+    tdef.set_thumbnail('/tmp/homevideo.jpg')
+    tdef.set_tracker(s.get_internal_tracker_url())
+    tdef.finalize()
+
+    dcfg = DownloadStartupConfig()
+    dcfg.set_dest_dir('/tmp')
+    d = s.start_download(tdef,dcfg)
+
+
+
+Rationale
+=========
+The core API is inspired by the libtorrent interface but makes all 
+configurations first-class objects such that they can be independently 
+manipulated (i.e., loaded, saved, set as default). Making configurations first-
+class objects requires special measures because of their dual nature. First, 
+when the download engine or individual download has not yet started, 
+configurations are more or less (key,value) pairs. Second, when the downloads
+have started the configuration represents actual parameters in the download
+engine, and when config parameters are changed one expects that
+the engine's behaviour also changes directly.
+
+To support configs as first-class objects we therefore distinguish between bound
+and unbound configs. A bound config is associated with the download engine via 
+a Session or Download object. Changing the values of a bound config will alter
+the behaviour of the download in a thread safe way. 
+
+Thread Safety
+=============
+Unbound configs are not thread safe. To prevent concurrency issues, unbound 
+configs passed to a Session/Download object are first copied and the copy is 
+then bound. When passing an unbound config to be bound it may not be modified 
+concurrently. Bound configs are thread safe, as just mentioned. Setting defaults
+is also not thread safe, so you must ensure there are no concurrent calls.
+
+All calls to Session, Download and DownloadState are thread safe.
+
+DONE: Define whether changes to runtime configs is synchronous, i.e., does
+dcfg.set_max_upload(100) sets the upload limit before returning, or 
+asynchronous. SOL: easiest is async, as network thread does actual changing
+2007-10-15: can use Download condition variable for synchronous perhaps?
+2007-10-16: It's all async, errors are reported via callbacks (if needed), 
+and generally for Downloads via the DownloadState. 
+
+ALTERNATIVE:
+Use copy in/out semantics for TorrentDef and DownloadStartupConfig. A 
+disadvantage of copy in/out is that people may forget to call the copy in 
+method.
+
+
+Persistence Support
+===================
+We use the Python pickling mechanism to make objects persistent. We add a
+version number to the state before it is saved. To indicate serializability
+classes inherit from the Serializable interface.  For a Session there is a 
+special checkpointing mechanism. 
+
+ALTERNATIVE: 
+We provide save/load methods. An issue then is do we use filenames as args or 
+file objects like Java uses Input/OutputStreams. The advantage of the latter is
+that we can have simple load()/save() methods on each class which e.g. the 
+Download save_resume_file() can use to marshall all its parts and write them 
+to a single file. Disadvantage is that the used has to open the file always:
+
+    f = open("bla.torrent","rb")
+    tdef = TorrentDef.load(f)
+    f.close()
+    
+instead of
+
+    tdef = TorrentDef.load("bla.torrent")
+    
+Note that using streams is more errorprone, e.g. when the user opens a torrent
+file in non-binary mode by mistake (f = open("bla.torrent","r") this causes
+troubles for us. Not using streams leads to double methods, i.e. Fileable and
+Serializable
+
+
+Session Object
+==============
+FUTURE: Theoretically, Session can be a real class with multiple instances. For
+implementation purposes making it a Singleton is easier, as a lot of our 
+internal stuff are currently singletons (e.g. databases and *MsgHandler, etc.)
+SOL: singleton for now, interface should allow more.
+
+Modifiability of parameters
+===========================
+Many configuration parameters may be modified at runtime. Some parameters may
+be theoretically modifiable but implementing this behaviour may be too complex.
+The class definitions indicate which parameters are runtime modifiable, and
+points of attention.
+
+For example, changing the destination dir of a download a runtime is possible,
+but complex to implement.
+
+Note that some parameters should be modified with great care. For example.
+the listen = tracker port of a Session can be easily modified, but if the 
+Session had been used to create new torrents that have been distributed to Web
+sites, you cannot simply change the listening port as it means that all torrent 
+files out in the world become invalid.
+
+Push/pull
+=========
+DownloadState is currently pulled periodically from the BT engine. ALTERNATIVE
+is an push-based mechanism, i.e. event driven. Advantage over pull: always 
+accurate. Disadv: how does that work? Do we callback for every change in state, 
+from peer DL speed to...? Tribler currently does periodic pull. You will want to 
+batch things in time (once per sec) and per item (i.e., all events for 1 torrent
+in one batch)
+
+        
+Alternative names for "Download"
+================================
+Exchange, i.e. start_exchange()
+Replica, i.e. create_replica(), remove_replica() which abstractly is exactly 
+what BT does. When you start a seed, you basically create a replica. When you 
+start a download you want to create a copy on your local system, i.e. create a
+replica there.
+"""
+
+"""
+TODO:
+
+- queuing of torrents that get activated when others upload low?
+    This relates to unsupervised usage: people turn on tribler,
+    add a couple of torrents to download and then go away, expecting
+    them all to be finished, perhaps with priority.
+    Same for seeding: Tribler now allows seeding up to specific ul/dl ratio,
+    for a specified period of time.
+    
+    
+    We can leave this up to the API user, just providing the mechanism
+    or offer a standard model.
+    
+    Freek says: leave out of core. My addition: OK, but offer standard
+    modules that work on core that use this.
+    One implication is that we don't have a set_max_upload() on Session level,
+    just Download.
+    
+- local/global ratelimiter
+    What is a good policy here? Dividing a global max over the number of 
+    torrents may not be ideal, if some torrents don't achieve their allocated
+    speed, perhaps others could have used it.
+    
+    ABC/Scheduler/ratemanager appears to do this. 2007-10-19: A port of this to
+    the triblerAPI failed, funky algorithmics. Added an extensible rate mgmt
+    mechanism and a simple rate manager.
+
+- Create a rate manager that gives unused capacity to download that is at max
+        See UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager. 
+        Need to TEST
+
+- Allow VOD when first part of file hashchecked? For faster start of playback
+
+- Is there a state where the file complete but not yet in order on disk?
+
+- Reimplement selected_files with existing 'priority' field
+
+- *Config: some values will be runtime modifiable, others may be as well
+    but hard to implement, e.g. destdir or VOD.
+    SOL: We throw exceptions when it is not runtime modifiable, and 
+    document for each method which currently is. TODO: determine which and 
+    document.
+
+
+- Move all sourcecode to a tribler dir? So we can do:
+    import tribler
+    s = tribler.Session()
+    etc.
+
+- persistence
+ 
+    pstate: save TorrentDef rather than metafinfo? to be consistent?
+    Saving internal state is more flex
+    Saving objects is easier, but potentially less efficient as all sort of temp
+    junk is written as well
+    
+    Arno, 2007-11-9: Saving internal state.
+    
+
+- Add ability to run a standalone tracker based on API
+
+- Test VOD quick startup with multi-file torrent. PiecePicker.am_I_complete is
+  about whole file.
+
+- BT1/Connecter: if 'cache' in config and config['cache']: # TEMP ARNO: TODO: WE EXPECT A SESSION CONFIG HERE
+
+- BT1/Rerequester: if 'dialback' in self.config and self.config['dialback']: EXPECT SESSION CONFIG AND SEE WHO KNOWS CONNECTABLE
+
+- VOD: Check why prebuf pieces not obtained and implement rerequest of pieces
+  if needed.
+      See PiecePickerVOD: self.outstanding, need to tweak further
+
+- TODO: determine what are fatal errors for a tracker and move to 
+  DLSTATUS_STOPPED_ON_ERROR if they occur. Currently all tracker errors are
+  put in log messages, and the download does not change status.
+
+- TODO: move API.launchmanycore to API.Impl.LaunchManyCore.py
+
+- Expose the fact that playback is about to freeze to API user, such that
+  he can take action. In particular, he may want to pause the video player
+  before it runs out of data, such that he can resume it at that exact point.
+  This may be needed as the video players behaviour on running out of data
+  may be undesirable. E.g. VLC upon receiving data again will try to fast
+  forward to the point where the playback is supposed to be according to
+  the video's internal timestamps. I.e. it will not just continue playing
+  from the point where it froze.
+
+  ALTERNATIVE: see if VLC has some startup option that says: "stop clock
+  if no data"
+
+- Document all methods in the API. See if there is a javadoc equiv cf.
+  wxPython automatic docs.
+
+- Write unit tests
+
+
+

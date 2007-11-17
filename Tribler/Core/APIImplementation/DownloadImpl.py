@@ -5,23 +5,37 @@ import sys
 import os
 import copy
 import binascii
-from threading import currentThread
 from traceback import print_exc,print_stack
+from threading import RLock,Condition,Event,Thread,currentThread
 
-#import Tribler.Core.API
-import triblerAPI
+from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.simpledefs import *
 from Tribler.Core.osutils import *
-from Tribler.Core.APIImplementation.LaunchManyCore import SingleDownload
+from Tribler.Core.APIImplementation.SingleDownload import SingleDownload
 from Tribler.Core.Utilities.unicode import metainfoname2unicode
 
 
 DEBUG = True
 
 class DownloadImpl:
-    def __init__(self):
-        pass
+    
+    def __init__(self,session,tdef):
+        self.dllock = RLock()
+        # just enough so error saving and get_state() works
+        self.error = None
+        self.sd = None # hack
+        # To be able to return the progress of a stopped torrent, how far it got.
+        self.progressbeforestop = 0.0
+        self.filepieceranges = []
 
+        # Copy tdef, so we get an infohash
+        self.session = session
+        self.tdef = tdef.copy()
+        self.tdef.readonly = True
+
+    #
+    # Creating a Download
+    #
     def setup(self,dcfg=None,pstate=None,lmcreatedcallback=None,lmvodplayablecallback=None):
         """
         Create a Download object. Used internally by Session. Copies tdef and 
@@ -164,7 +178,178 @@ class DownloadImpl:
         finally:
             self.dllock.release()
 
-    
+    #
+    # Public method
+    #
+    def get_def(self):
+        # No lock because attrib immutable and return value protected
+        return self.tdef
+
+    #
+    # Retrieving DownloadState
+    #
+    def set_state_callback(self,usercallback,getpeerlist=False):
+        """ Called by any thread """
+        self.dllock.acquire()
+        try:
+            network_get_state_lambda = lambda:self.network_get_state(usercallback,getpeerlist)
+            # First time on general rawserver
+            self.session.lm.rawserver.add_task(network_get_state_lambda,0.0)
+        finally:
+            self.dllock.release()
+
+
+    def network_get_state(self,usercallback,getpeerlist,sessioncalling=False):
+        """ Called by network thread """
+        self.dllock.acquire()
+        try:
+            if self.sd is None:
+                ds = DownloadState(self,DLSTATUS_STOPPED,self.error,self.progressbeforestop)
+            else:
+                (status,stats,logmsgs) = self.sd.get_stats(getpeerlist)
+                ds = DownloadState(self,status,self.error,None,stats=stats,filepieceranges=self.filepieceranges,logmsgs=logmsgs)
+                self.progressbeforestop = ds.get_progress()
+            
+                #print >>sys.stderr,"STATS",stats
+            
+            if sessioncalling:
+                return ds
+
+            # Invoke the usercallback function via a new thread.
+            # After the callback is invoked, the return values will be passed to
+            # the returncallback for post-callback processing.
+            self.session.uch.perform_getstate_usercallback(usercallback,ds,self.sesscb_get_state_returncallback)
+        finally:
+            self.dllock.release()
+
+
+    def sesscb_get_state_returncallback(self,usercallback,when,newgetpeerlist):
+        """ Called by SessionCallbackThread """
+        self.dllock.acquire()
+        try:
+            if when > 0.0:
+                # Schedule next invocation, either on general or DL specific
+                # TODO: ensure this continues when dl is stopped. Should be OK.
+                network_get_state_lambda = lambda:self.network_get_state(usercallback,newgetpeerlist)
+                if self.sd is None:
+                    self.session.lm.rawserver.add_task(network_get_state_lambda,when)
+                else:
+                    self.sd.dlrawserver.add_task(network_get_state_lambda,when)
+        finally:
+            self.dllock.release()
+
+    #
+    # Download stop/resume
+    #
+    def stop(self):
+        """ Called by any thread """
+        self.stop_remove(removestate=False,removecontent=False)
+
+    def stop_remove(self,removestate=False,removecontent=False):
+        self.dllock.acquire()
+        try:
+            if self.sd is not None:
+                network_stop_lambda = lambda:self.network_stop(removestate,removecontent)
+                self.session.lm.rawserver.add_task(network_stop_lambda,0.0)
+            # No exception if already stopped, for convenience
+        finally:
+            self.dllock.release()
+
+    def network_stop(self,removestate,removecontent):
+        """ Called by network thread """
+        self.dllock.acquire()
+        try:
+            infohash = self.tdef.get_infohash() 
+            pstate = self.network_get_persistent_state() 
+            pstate['engineresumedata'] = self.sd.shutdown()
+            
+            # Offload the removal of the content and other disk cleanup to another thread
+            if removestate:
+                self.session.uch.perform_removestate_callback(infohash,self.correctedinfoname,removecontent,self.dlconfig['saveas'])
+            
+            return (infohash,pstate)
+        finally:
+            self.dllock.release()
+
+        
+    def restart(self):
+        """ Called by any thread """
+        # Must schedule the hash check via lm. In some cases we have batch stops
+        # and restarts, e.g. we have stop all-but-one & restart-all for VOD)
+        self.dllock.acquire()
+        try:
+            if self.sd is None:
+                self.error = None # assume fatal error is reproducible
+                # TODO: if seeding don't re-hashcheck
+                self.create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback,pstate=None)
+            # No exception if already started, for convenience
+        finally:
+            self.dllock.release()
+
+    #
+    # Config parameters that only exists at runtime 
+    #
+    def set_max_desired_speed(self,direct,speed):
+        print >>sys.stderr,"Download: set_max_desired_speed",direct,speed
+        #if speed < 10:
+        #    print_stack()
+        
+        self.dllock.acquire()
+        if direct == UPLOAD:
+            self.dlruntimeconfig['max_desired_upload_rate'] = speed
+        else:
+            self.dlruntimeconfig['max_desired_download_rate'] = speed
+        self.dllock.release()
+
+    def get_max_desired_speed(self,direct):
+        self.dllock.acquire()
+        try:
+            if direct == UPLOAD:
+                print >>sys.stderr,"Download: get_max_desired_speed: get_max_desired",self.dlruntimeconfig['max_desired_upload_rate']
+                return self.dlruntimeconfig['max_desired_upload_rate']
+            else:
+                return self.dlruntimeconfig['max_desired_download_rate']
+        finally:
+            self.dllock.release()
+
+    #
+    # Persistence
+    #
+    def network_checkpoint(self):
+        """ Called by network thread """
+        self.dllock.acquire()
+        try:
+            pstate = self.network_get_persistent_state() 
+            pstate['engineresumedata'] = self.sd.checkpoint()
+            return (self.tdef.get_infohash(),pstate)
+        finally:
+            self.dllock.release()
+        
+
+    def network_get_persistent_state(self):
+        """ Assume dllock already held """
+        pstate = {}
+        pstate['version'] = PERSISTENTSTATE_CURRENTVERSION
+        pstate['metainfo'] = self.tdef.get_metainfo() # assumed immutable
+        dlconfig = copy.copy(self.dlconfig)
+        # Reset unpicklable params
+        dlconfig['vod_usercallback'] = None
+        dlconfig['dlmode'] = DLMODE_NORMAL # no callback, no VOD
+        pstate['dlconfig'] = dlconfig
+
+        pstate['dlstate'] = {}
+        ds = self.network_get_state(None,False,sessioncalling=True)
+        pstate['dlstate']['status'] = ds.get_status()
+        pstate['dlstate']['progress'] = ds.get_progress()
+        
+        print >>sys.stderr,"Download: netw_get_pers_state: status",dlstatus_strings[ds.get_status()],"progress",ds.get_progress()
+        
+        pstate['engineresumedata'] = None
+        return pstate
+
+    #
+    # Internal methods
+    #
     def set_error(self,e):
         self.dllock.acquire()
         self.error = e
@@ -202,102 +387,3 @@ class DownloadImpl:
         else:
             self.filepieceranges = None 
 
-
-    def stop_remove(self,removestate=False,removecontent=False):
-        self.dllock.acquire()
-        try:
-            if self.sd is not None:
-                network_stop_lambda = lambda:self.network_stop(removestate,removecontent)
-                self.session.lm.rawserver.add_task(network_stop_lambda,0.0)
-            # No exception if already stopped, for convenience
-        finally:
-            self.dllock.release()
-
-
-    def network_get_state(self,usercallback,getpeerlist,sessioncalling=False):
-        """ Called by network thread """
-        self.dllock.acquire()
-        try:
-            if self.sd is None:
-                ds = triblerAPI.DownloadState(self,DLSTATUS_STOPPED,self.error,self.progressbeforestop)
-            else:
-                (status,stats,logmsgs) = self.sd.get_stats(getpeerlist)
-                ds = triblerAPI.DownloadState(self,status,self.error,None,stats=stats,filepieceranges=self.filepieceranges,logmsgs=logmsgs)
-                self.progressbeforestop = ds.get_progress()
-            
-                #print >>sys.stderr,"STATS",stats
-            
-            if sessioncalling:
-                return ds
-
-            # Invoke the usercallback function via a new thread.
-            # After the callback is invoked, the return values will be passed to
-            # the returncallback for post-callback processing.
-            self.session.uch.perform_getstate_usercallback(usercallback,ds,self.sesscb_get_state_returncallback)
-        finally:
-            self.dllock.release()
-
-
-    def sesscb_get_state_returncallback(self,usercallback,when,newgetpeerlist):
-        """ Called by SessionCallbackThread """
-        self.dllock.acquire()
-        try:
-            if when > 0.0:
-                # Schedule next invocation, either on general or DL specific
-                # TODO: ensure this continues when dl is stopped. Should be OK.
-                network_get_state_lambda = lambda:self.network_get_state(usercallback,newgetpeerlist)
-                if self.sd is None:
-                    self.session.lm.rawserver.add_task(network_get_state_lambda,when)
-                else:
-                    self.sd.dlrawserver.add_task(network_get_state_lambda,when)
-        finally:
-            self.dllock.release()
-
-    def network_stop(self,removestate,removecontent):
-        """ Called by network thread """
-        self.dllock.acquire()
-        try:
-            infohash = self.tdef.get_infohash() 
-            pstate = self.network_get_persistent_state() 
-            pstate['engineresumedata'] = self.sd.shutdown()
-            
-            # Offload the removal of the content and other disk cleanup to another thread
-            if removestate:
-                self.session.uch.perform_removestate_callback(infohash,self.correctedinfoname,removecontent,self.dlconfig['saveas'])
-            
-            return (infohash,pstate)
-        finally:
-            self.dllock.release()
-
-
-    def network_checkpoint(self):
-        """ Called by network thread """
-        self.dllock.acquire()
-        try:
-            pstate = self.network_get_persistent_state() 
-            pstate['engineresumedata'] = self.sd.checkpoint()
-            return (self.tdef.get_infohash(),pstate)
-        finally:
-            self.dllock.release()
-        
-
-    def network_get_persistent_state(self):
-        """ Assume dllock already held """
-        pstate = {}
-        pstate['version'] = PERSISTENTSTATE_CURRENTVERSION
-        pstate['metainfo'] = self.tdef.get_metainfo() # assumed immutable
-        dlconfig = copy.copy(self.dlconfig)
-        # Reset unpicklable params
-        dlconfig['vod_usercallback'] = None
-        dlconfig['dlmode'] = DLMODE_NORMAL # no callback, no VOD
-        pstate['dlconfig'] = dlconfig
-
-        pstate['dlstate'] = {}
-        ds = self.network_get_state(None,False,sessioncalling=True)
-        pstate['dlstate']['status'] = ds.get_status()
-        pstate['dlstate']['progress'] = ds.get_progress()
-        
-        print >>sys.stderr,"Download: netw_get_pers_state: status",dlstatus_strings[ds.get_status()],"progress",ds.get_progress()
-        
-        pstate['engineresumedata'] = None
-        return pstate
