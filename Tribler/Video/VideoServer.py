@@ -266,6 +266,8 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
             
             #f = open("/tmp/video.data","wb")
             
+            count = 0 
+            
             first = True
             while not movie.done():
                 data = movie.read()
@@ -290,6 +292,9 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                     if (self.count % 2) == 0:
                         print >>sys.stderr,"videoserv: NOT WRITING" 
                         continue
+                    count += 1
+                    if (count % 100) == 50:
+                        time.sleep(10)
                     """
                     
                     ##print >>sys.stderr,"videoserv: writing",len(data) 
