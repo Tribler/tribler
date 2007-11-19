@@ -4,7 +4,7 @@
 import sys
 from traceback import print_exc
 
-from Tribler.Core.DownloadConfigInterface import DownloadConfigInterface
+from Tribler.Core.DownloadConfig import DownloadConfigInterface
 
 
 class DownloadRuntimeConfig(DownloadConfigInterface):

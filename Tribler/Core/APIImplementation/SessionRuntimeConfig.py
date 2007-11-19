@@ -6,7 +6,7 @@ from traceback import print_exc
 
 from Tribler.Core.exceptions import *
 
-from Tribler.Core.SessionConfigInterface import SessionConfigInterface
+from Tribler.Core.SessionConfig import SessionConfigInterface
 
 class SessionRuntimeConfig(SessionConfigInterface):
     """
