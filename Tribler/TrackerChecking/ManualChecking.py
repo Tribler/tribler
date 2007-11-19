@@ -8,6 +8,7 @@ import os
 from Tribler.TrackerChecking.TrackerChecking import trackerChecking
 from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
 from Tribler.Core.Utilities.unicode import metainfoname2unicode
+from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 
 class ManualChecking(Thread):
     
@@ -32,7 +33,7 @@ class SingleManualChecking(Thread):
         self.setName('SingleManualChecking-'+self.getName())
         
         self.torrent = torrent
-        self.torrent_db = SynTorrentDBHandler.getInstance()
+        self.torrent_db = TorrentDBHandler.getInstance()
         self.mldhtchecker = mainlineDHTChecker.getInstance()
         
 

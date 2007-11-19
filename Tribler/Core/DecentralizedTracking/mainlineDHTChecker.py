@@ -3,6 +3,7 @@
 
 import sys
 from threading import currentThread
+from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 
 DEBUG = False
 
@@ -15,7 +16,7 @@ class mainlineDHTChecker:
         mainlineDHTChecker.__single = self
         
         self.dht = None
-        self.torrent_db = SynTorrentDBHandler.getInstance()
+        self.torrent_db = TorrentDBHandler.getInstance()
 
     def getInstance(*args, **kw):
         if mainlineDHTChecker.__single is None:

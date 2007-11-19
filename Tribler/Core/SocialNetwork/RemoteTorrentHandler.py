@@ -14,6 +14,8 @@ try:
 except ImportError:
     pass    #support cmdline version without wx
 
+from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
+
 DEBUG = False
 
 class RemoteTorrentHandler:
@@ -24,7 +26,7 @@ class RemoteTorrentHandler:
         if RemoteTorrentHandler.__single:
             raise RuntimeError, "RemoteTorrentHandler is singleton"
         RemoteTorrentHandler.__single = self
-        #self.torrent_db = SynTorrentDBHandler.getInstance()
+        self.torrent_db = TorrentDBHandler.getInstance()
         self.requestedtorrents = Set()
 
     def getInstance(*args, **kw):
