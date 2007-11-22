@@ -472,7 +472,7 @@ class PeerDB(BasicDB):
         
     def getItem(self, permid, default=False):
         """ Arno: At the moment we keep a copy of the PeerDB in memory,
-         see Tribler.vwxGUI.peermanager. This class, however, already converts
+         see Tribler.Main.vwxGUI.peermanager. This class, however, already converts
          the records using the save-memory by sharing key strings trick (see 
          TorrentDB) so there's no need to have that here. """
         ret = self._get(permid, None)
@@ -580,7 +580,7 @@ class TorrentDB(BasicDB):
         
     def getItem(self, infohash, default=False,savemem=False):
         """ Arno: At the moment we keep a copy of the TorrentDB in memory,
-         see Tribler.vwxGUI.torrentManager. A lot of memory can be saved
+         see Tribler.Main.vwxGUI.torrentManager. A lot of memory can be saved
          by reusing/sharing the strings of the keys in the database records (=dicts).
          When the savemem option is enabled, the dict returned will have the
          key strings of the self.default_item. """

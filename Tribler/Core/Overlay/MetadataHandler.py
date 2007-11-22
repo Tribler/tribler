@@ -13,6 +13,7 @@ from Tribler.Core.Utilities.utilities import isValidInfohash, show_permid_short,
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_FOURTH
 from Tribler.Core.Utilities.unicode import metainfoname2unicode
 from Tribler.Category.Category import Category
+# TEMPARNO: replace with Notifier stuff
 from Tribler.Main.Dialogs.activities import ACT_GOT_METADATA, ACT_DISK_FULL
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 from Tribler.Core.osutils import getfreespace

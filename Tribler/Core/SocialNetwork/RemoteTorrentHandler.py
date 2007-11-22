@@ -1,7 +1,7 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
 #
-# Handles the case where the user did a remote query and now selected on of the
+# Handles the case where the user did a remote query and now selected one of the
 # returned torrents for download. 
 #
 
@@ -9,8 +9,8 @@ import sys
 from sets import Set
 
 try:
-    from Tribler.vwxGUI.GuiUtility import GUIUtility
-    from Tribler.vwxGUI.torrentManager import TorrentDataManager
+    from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+    from Tribler.Main.vwxGUI.torrentManager import TorrentDataManager
 except ImportError:
     pass    #support cmdline version without wx
 

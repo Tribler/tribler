@@ -6,6 +6,7 @@ from traceback import print_exc
 from time import sleep, time
 import os
 from Tribler.TrackerChecking.TrackerChecking import trackerChecking
+from Tribler.Core.BitTornado.bencode import bdecode
 from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
 from Tribler.Core.Utilities.unicode import metainfoname2unicode
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
@@ -59,18 +60,21 @@ class SingleManualChecking(Thread):
         
     def readExtraTorrentInfo(self, torrent):
         if not torrent.has_key('info'):
-            from Tribler.Overlay.MetadataHandler import MetadataHandler
-            from Utility.utility import getMetainfo, printTorrent
+            from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
             
             metadatahandler = MetadataHandler.getInstance()
             (torrent_dir,torrent_name) = metadatahandler.get_std_torrent_dir_name(torrent)
             torrent_filename = os.path.join(torrent_dir, torrent_name)
-            metadata = getMetainfo(torrent_filename)
+            f = open(torrent_filename,"rb")
+            bdata = f.read()
+            f.close()
+            metadata = None
+            try:
+                metadata = bdecode(bdata)
+            except:
+                print_exc()
             if not metadata:
                 raise Exception('No torrent metadata found')
-#
-            #print 'Metainfo'
-            #printTorrent(metadata)
             
             namekey = metainfoname2unicode(metadata)
             torrent['info'] = {}
