@@ -266,7 +266,7 @@ class Session(SessionRuntimeConfig):
         finally:
             self.sesslock.release()
         
-    def setOverlayRequestPolicy(self, requestPolicy):
+    def set_overlay_request_policy(self, requestPolicy):
         """
         Set a function which defines which overlay requests (e.g. dl_helper, rquery msg) 
         will be answered or will be denied.

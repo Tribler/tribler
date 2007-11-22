@@ -56,7 +56,6 @@ from webservice import WebListener
 if (sys.platform == 'win32'):
     from Dialogs.regdialog import RegCheckDialog
 
-#from ABC.GUI.list import ManagedList
 from Tribler.Main.Utility.utility import Utility
 from Tribler.Main.Utility.constants import * #IGNORE:W0611
 

@@ -294,5 +294,6 @@ TODO:
 
 - Write unit tests
 
-
+- Add SingleInstance checker for p2player, i.e., revamp interconn.py to 
+  make general SingleInstance checker and use it in p2player (and Main)
 

@@ -18,7 +18,9 @@ from types import DictType, StringType
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from M2Crypto import EC
 
-from Tribler.Core.API import *
+from Tribler.Core.Session import *
+from Tribler.Core.SessionConfig import *
+
 
 DEBUG=False
 

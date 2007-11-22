@@ -1,6 +1,7 @@
 # setup.py
 import time
 import sys
+import os
 
 try:
     import py2exe.mf as modulefinder
@@ -35,17 +36,26 @@ includePanels=[
 #
 ################################################################
 
+mainfile = os.path.join('Player','p2player.py')
+#manifest = os.path.join('Player','Build','Win32','p2player.exe.manifest')
+#nsifile = os.path.join('Player','Build','Win32','triblerplay.nsi')
+progicofile = os.path.join('Images','tribler.ico')
+#toricofile = os.path.join('Images','torrenticon.ico')
+
 target_p2player = {
-    "script": "p2player.py",
-    "icon_resources": [(1, "tribler.ico")],
+    "script": mainfile,
+    "icon_resources": [(1, progicofile)],
 }
+
 
 setup(
 #    (Disabling bundle_files for now -- apparently causes some issues with Win98)
 #    options = {"py2exe": {"bundle_files": 1}},
 #    zipfile = None,
-    options = {"py2exe": {"packages": ["tribler","encodings"] + ["Tribler.vwxGUI.%s" % x for x in includePanels],
+    options = {"py2exe": {"packages": ["Core","encodings"] + ["Tribler.Main.vwxGUI.%s" % x for x in includePanels],
                           "optimize": 2}},
-    data_files = [("tribler", ["p2player.exe.manifest", "triblerplay.nsi", "tribler.ico", "torrenticon.ico", "binary-LICENSE.txt", "readme.txt"])], 
+    data_files = [("installdir",[])], 
     windows = [target_p2player],
 )
+
+#data_files = [("installdir", [manifest, nsifile, progicofile, toricofile, "binary-LICENSE.txt", "readme.txt"])],

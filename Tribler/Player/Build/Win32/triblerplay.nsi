@@ -1,5 +1,5 @@
 !define PRODUCT "p2player"
-!define VERSION "0.0.2"
+!define VERSION "0.0.4"
 
 !include "MUI.nsh"
 
@@ -75,9 +75,7 @@ LangString DESC_SecDefault ${LANG_ENGLISH} "Associate .torrent files with ${PROD
 Section "!Main EXE" SecMain
  SectionIn RO
  SetOutPath "$INSTDIR"
- File *.ico
  File *.txt
- File category.conf
  File p2player.exe.manifest
  File p2player.exe
  File ffmpeg.exe
@@ -89,25 +87,19 @@ Section "!Main EXE" SecMain
  File *.dll
  Delete "$INSTDIR\*.zip"
  File *.zip
- CreateDirectory "$INSTDIR\icons"
- SetOutPath "$INSTDIR\icons"
- File icons\*.*
-; CreateDirectory "$INSTDIR\icons\mugshots"
-; SetOutPath "$INSTDIR\icons\mugshots"
-; File icons\mugshots\*.*
- CreateDirectory "$INSTDIR\Lang"
- SetOutPath "$INSTDIR\Lang"
- IfFileExists user.lang userlang
- File lang\*.*
- userlang:
- File /x user.lang lang\*.*
  CreateDirectory "$INSTDIR\Tribler"
- CreateDirectory "$INSTDIR\Tribler\vwxGUI"
- CreateDirectory "$INSTDIR\Tribler\vwxGUI\images"
- SetOutPath "$INSTDIR\Tribler\vwxGUI"
- File Tribler\vwxGUI\*.*
- SetOutPath "$INSTDIR\Tribler\vwxGUI\images"
- File Tribler\vwxGUI\images\*.*
+ CreateDirectory "$INSTDIR\Tribler\Core"
+ SetOutPath "$INSTDIR\Tribler\Core"
+ File Tribler\Core\*.txt
+ CreateDirectory "$INSTDIR\Tribler\Images"
+ SetOutPath "$INSTDIR\Tribler\Images"
+ File Tribler\Images\*.*
+ CreateDirectory "$INSTDIR\Tribler\Lang"
+ SetOutPath "$INSTDIR\Tribler\Lang"
+ IfFileExists user.lang userlang
+ File Tribler\Lang\*.*
+ userlang:
+ File /x user.lang Tribler\Lang\*.*
  SetOutPath "$INSTDIR"
  WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "DisplayName" "${PRODUCT} (remove only)"
  WriteRegStr HKEY_LOCAL_MACHINE "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "UninstallString" "$INSTDIR\Uninstall.exe"
@@ -169,14 +161,8 @@ SectionEnd
 
 Section "Uninstall"
 
- Delete "$INSTDIR\torrent\*.*"
- RMDir "$INSTDIR\torrent"
-
- Delete "$INSTDIR\icons\*.*"
- RMDir "$INSTDIR\icons"
-
- Delete "$INSTDIR\lang\*.*"
- RMDir "$INSTDIR\lang"
+ Delete "$INSTDIR\Tribler\*.*"
+ RMDir "$INSTDIR\Tribler"
 
  Delete "$INSTDIR\*.*"
  RMDir "$INSTDIR"

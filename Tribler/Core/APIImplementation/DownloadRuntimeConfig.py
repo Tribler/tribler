@@ -9,7 +9,7 @@ from Tribler.Core.DownloadConfig import DownloadConfigInterface
 
 class DownloadRuntimeConfig(DownloadConfigInterface):
     """
-    Implements the Tribler.Core.API.DownloadConfigInterface
+    Implements the Tribler.Core.DownloadConfig.DownloadConfigInterface
     
     Use these to change the download config at runtime.
     

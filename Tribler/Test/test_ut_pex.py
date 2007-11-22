@@ -16,7 +16,7 @@ from olconn import OLConnection
 from btconn import BTConnection
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
-from Tribler.Core.API import *
+from Tribler.Core.DownloadConfig import *
 from Tribler.Core.Utilities.utilities import isValidIP
 
 DEBUG=True

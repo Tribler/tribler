@@ -2,6 +2,8 @@
 # Written by Arno Bakker, Choopan RATTANAPOKA, Jie Yang
 # see LICENSE.txt for license information
 
+# TODO: Add SingleInstance checker for p2player
+
 # Arno: M2Crypto overrides the method for https:// in the
 # standard Python libraries. This causes msnlib to fail and makes Tribler
 # freakout when "http://www.tribler.org/version" is redirected to
@@ -71,6 +73,7 @@ class ABCApp(wx.App):
         self.single_instance_checker = single_instance_checker
         self.abcpath = abcpath
         self.error = None
+        self.s = None
         wx.App.__init__(self, x)
         
     def OnInit(self):
@@ -134,7 +137,8 @@ class ABCApp(wx.App):
 
     def OnExit(self):
         print >>sys.stderr,"ONEXIT"
-        self.s.shutdown()
+        if self.s is not None:
+            self.s.shutdown()
         
         
         ###time.sleep(5) # TODO: make network thread non-daemon which MainThread has to end.
@@ -274,10 +278,10 @@ def run(params = None):
         #print "[StartUpDebug]---------------- 2", time()-start_time
         pass
     else:
-        #abcpath = os.path.abspath(os.path.dirname(sys.argv[0]))
+        abcpath = os.path.abspath(os.path.dirname(sys.argv[0]))
         # Arno: don't chdir to allow testing as other user from other dir.
         #os.chdir(abcpath) # TODO: comment out as soon as all hidden BSDDB create things are worked out.
-        abcpath = os.getcwd()
+        ##abcpath = os.getcwd()
 
         # Launch first abc single instance
         app = ABCApp(0, params, single_instance_checker, abcpath)
