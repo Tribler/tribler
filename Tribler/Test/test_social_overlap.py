@@ -14,7 +14,7 @@ from threading import Thread
 from time import sleep
 from M2Crypto import Rand,EC
 
-from Tribler.Test_as_server import TestAsServer
+from Tribler.Test.test_as_server import TestAsServer
 from olconn import OLConnection
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *

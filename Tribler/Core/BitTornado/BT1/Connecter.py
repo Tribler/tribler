@@ -32,7 +32,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = True
+DEBUG = False
 DEBUG_NORMAL_MSGS = False
 
 UNAUTH_PERMID_PERIOD = 3600
@@ -531,7 +531,7 @@ class Connecter:
         c = Connection(connection, self)
         self.connections[connection] = c
         
-        if connection.support_extend_messages:
+        if connection.supports_extend_messages():
             # The peer either supports our overlay-swarm extension or 
             # the utorrent extended protocol. And we have overlay swarm enabled.
             [client,version] = decodePeerID(connection.id)

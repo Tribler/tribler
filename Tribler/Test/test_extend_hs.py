@@ -14,9 +14,11 @@ from sha import sha
 from traceback import print_exc
 from types import DictType,StringType,IntType
 
-from Tribler.Test_as_server import TestAsServer
+from Tribler.Test.test_as_server import TestAsServer
 from olconn import OLConnection
 from btconn import BTConnection
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
 
@@ -58,7 +60,7 @@ class TestExtendHandshake(TestAsServer):
         dscfg = DownloadStartupConfig()
         dscfg.set_dest_dir(self.config_path)
         
-        self.session.add_download(tdef,dscfg)
+        self.session.start_download(tdef,dscfg)
 
         # This is the infohash of the torrent in test/extend_hs_dir
         self.infohash = '\xccg\x07\xe2\x9e!]\x16\xae{\xb8\x10?\xf9\xa5\xf9\x07\xfdBk'
@@ -131,6 +133,7 @@ class TestExtendHandshake(TestAsServer):
             s.s.settimeout(10.0)
             resp = s.recv()
             self.assert_(len(resp) > 0)
+            print >>sys.stderr,"test: Got reply",getMessageName(resp[0])
             self.assert_(resp[0] == EXTEND)
             self.check_tribler_extend_hs(resp[1:])
             #s.close()

@@ -16,7 +16,7 @@ from Tribler.Core.BitTornado.BT1.MessageID import QUERY, QUERY_REPLY, getMessage
 
 from btconn import BTConnection
 from olconn import OLConnection
-from Tribler.Test_as_server import TestAsServer
+from Tribler.Test.test_as_server import TestAsServer
 
 DEBUG=True
 

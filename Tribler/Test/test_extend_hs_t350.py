@@ -14,7 +14,7 @@ from types import DictType,StringType,IntType
 import BaseHTTPServer
 from SocketServer import ThreadingMixIn,BaseServer
 
-from Tribler.Test_as_server import TestAsServer
+from Tribler.Test.test_as_server import TestAsServer
 from olconn import OLConnection
 from btconn import BTConnection
 from Tribler.Core.BitTornado.bencode import bencode,bdecode

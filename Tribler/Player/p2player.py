@@ -45,7 +45,7 @@ ALLOW_MULTIPLE = False
 RATELIMITADSL = False
 
 
-class ABCFrame(VideoFrame):
+class PlayerFrame(VideoFrame):
 
     def __init__(self,parent):
         VideoFrame.__init__(self,parent)
@@ -67,7 +67,7 @@ class ABCFrame(VideoFrame):
             print >>sys.stderr,"Thread still running",t.getName(),"daemon",t.isDaemon()
         
 
-class ABCApp(wx.App):
+class PlayerApp(wx.App):
     def __init__(self, x, params, single_instance_checker, abcpath):
         self.params = params
         self.single_instance_checker = single_instance_checker
@@ -83,7 +83,7 @@ class ABCApp(wx.App):
             print self.utility.lang.get('build')
             
             
-            self.videoFrame = ABCFrame(self)
+            self.videoFrame = PlayerFrame(self)
             
             self.videoserv = VideoHTTPServer.getInstance() # create
             self.videoserv.background_serve()
@@ -176,7 +176,11 @@ class ABCApp(wx.App):
                 
         #print >>sys.stderr,"main: VODStats",progress,playable
 
-        if progress != 1.0:
+        if ds.get_status() == DLSTATUS_HASHCHECKING:
+            genprogress = ds.get_progress()
+            pstr = str(int(genprogress*100))
+            msg = "Checking already downloaded parts "+pstr+"% done"
+        elif progress != 1.0:
             pstr = str(int(progress*100))
             msg = "Prebuffering "+pstr+"% done, eta "+intime
         elif playable:
@@ -286,8 +290,11 @@ def run(params = None):
             abcpath = os.getcwd()  
 
         # Launch first abc single instance
-        app = ABCApp(0, params, single_instance_checker, abcpath)
+        app = PlayerApp(0, params, single_instance_checker, abcpath)
         app.MainLoop()
+        
+        print "Sleeping seconds to let other threads finish"
+        time.sleep(5)
 
 if __name__ == '__main__':
     run()

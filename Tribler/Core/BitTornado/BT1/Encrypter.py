@@ -85,7 +85,7 @@ class Connection:
         self.buffer = StringIO()
 # overlay        
         self.dns = dns
-        self.support_olswarm_extend = False
+        self.support_extend_messages = False
         self.connecter_conn = None
 # _overlay
         self.support_merklehash= False
@@ -135,11 +135,14 @@ class Connection:
     def supports_merklehash(self):
         return self.support_merklehash
 
+    def supports_extend_messages(self):
+        return self.support_extend_messages
+
     def set_options(self, s):
 # overlay_
         r = unpack("B", s[5])
         if r[0] & 0x10:    # left + 43 bit
-            self.support_olswarm_extend = True
+            self.support_extend_messages = True
             if DEBUG:
                 print >>sys.stderr,"Peer supports overlay swarm"
         if r[0] & 0x20:    # left + 42 bit
@@ -257,7 +260,7 @@ class Connection:
     def close(self):
         if DEBUG:
             print >>sys.stderr,"encoder: closing connection",self.get_ip()
-            print_stack()
+            #print_stack()
         if not self.closed:
             self.connection.close()
             self.sever()

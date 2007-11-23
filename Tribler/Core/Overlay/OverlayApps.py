@@ -19,7 +19,7 @@ from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandl
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.Utilities.utilities import show_permid_short
 
-DEBUG = False
+DEBUG = True
 
 class OverlayApps:
     # Code to make this a singleton

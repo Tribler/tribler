@@ -3,7 +3,7 @@
 
 import sha
 
-from Tribler.Test_permid import TestPermIDs
+from Tribler.Test.test_permid import TestPermIDs
 from btconn import BTConnection
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *

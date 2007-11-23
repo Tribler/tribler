@@ -50,7 +50,7 @@ class VideoFrame(wx.Frame):
     def __init__(self,parent):
         self.utility = parent.utility
         wx.Frame.__init__(self, None, -1, self.utility.lang.get('tb_video_short'), 
-                          size=(800,650))
+                          size=(800,500)) # Use 16:9 aspect ratio: 500 = (800/16) * 9 + 50 for controls
         self.createMainPanel()
 
 
@@ -497,7 +497,17 @@ class VLCMediaCtrl(wx.Window):
 
         dc.SetTextForeground(wx.WHITE)
         dc.SetTextBackground(wx.BLACK)
-        dc.DrawText(self.getStatus(),halfx,halfy+self.logo.GetHeight()+10)
+        
+        # h4xor centering of text
+        # Take width of logo as measure
+        logochars = 16
+        txt = self.getStatus()
+        chars = len(txt)
+        nlogos = float(chars-logochars) / float(logochars)
+        txtwidth = int(float(self.logo.GetWidth())*nlogos)
+        x = max(0,halfx-txtwidth/2)
+        
+        dc.DrawText(self.getStatus(),x,halfy+self.logo.GetHeight()+10)
         
         dc.EndDrawing()
         if evt is not None:

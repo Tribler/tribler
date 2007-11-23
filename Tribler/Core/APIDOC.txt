@@ -297,3 +297,9 @@ TODO:
 - Add SingleInstance checker for p2player, i.e., revamp interconn.py to 
   make general SingleInstance checker and use it in p2player (and Main)
 
+- Adjust VideoOnDemand, such that when the download speed is < bitrate, but
+  a large part of the video is already in, i.e. prebuffer+20 secs (or even
+  just the 20 sec prebuffer) that it already starts to play, hoping we'll
+  catch up the bitrate in that period.
+
+  

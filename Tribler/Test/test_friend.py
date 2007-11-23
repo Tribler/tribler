@@ -5,7 +5,7 @@ from sets import Set
 import base64
 
 from Tribler.Core.CacheDB.friends import ExternalFriendList
-from Tribler.Core.CacheDB.cachedb import MyDB, PeerDB
+from Tribler.Core.CacheDB.cachedb import PeerDB
 
 lines = [
 'Jie Yang 2, MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAc6ebdH+dmvvgKiE7oOZuQba5I4msyuTJmVpJQVPAT+R9Pg8zsLsuJPV6RjU30RKHnCiaJvjtFW6pLXo, 130.161.158.51, 3966, 23623\n',

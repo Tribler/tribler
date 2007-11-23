@@ -11,7 +11,7 @@ from sha import sha
 from traceback import print_exc
 from types import DictType,StringType,IntType
 
-from Tribler.Test_as_server import TestAsServer
+from Tribler.Test.test_as_server import TestAsServer
 from olconn import OLConnection
 from btconn import BTConnection
 from Tribler.Core.BitTornado.bencode import bencode,bdecode

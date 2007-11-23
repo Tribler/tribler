@@ -18,7 +18,7 @@ from Tribler.Core.NATFirewall.ReturnConnHandler import dialback_infohash
 
 from btconn import BTConnection
 from olconn import OLConnection
-from Tribler.Test_as_server import TestAsServer
+from Tribler.Test.test_as_server import TestAsServer
 
 DEBUG=True
 

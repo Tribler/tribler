@@ -239,14 +239,29 @@ class Session(SessionRuntimeConfig):
 
 
     def get_internal_tracker_url(self):
-        """ Called by any thread """
+        """ Return the announce URL for the internal tracker """
+        # Called by any thread
         ip = self.lm.get_ext_ip() #already thread safe
         port = self.get_listen_port() # already thread safe
         url = 'http://'+ip+':'+str(port)+'/announce/'
         return url
 
     def get_internal_tracker_dir(self):
+        """ Return the directory containing the torrents tracked by the internal 
+        tracker (and associated databases) """
         return os.path.join(self.sessconfig['state_dir'],STATEDIR_ITRACKER_DIR)
+
+    def add_to_internal_tracker(self,tdef):
+        """ Add a torrent def to the list of torrents tracked by the internal
+        tracker. Use this method to use the Session as a standalone tracker. """
+        raise NotYetImplementedException()
+        
+    def remove_from_internal_tracker(self,tdef):
+        """ Remove a torrent def from the list of torrents tracked by the 
+        internal tracker. Use this method to use the Session as a standalone 
+        tracker. """
+        raise NotYetImplementedException()
+
 
     def checkpoint(self):
         """ Saves the internal session state to the Session's state dir.

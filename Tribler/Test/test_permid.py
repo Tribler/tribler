@@ -17,7 +17,7 @@ from StringIO import StringIO
 from threading import Thread,currentThread
 from types import DictType, StringType
 
-from Tribler.Test_as_server import TestAsServer
+from Tribler.Test.test_as_server import TestAsServer
 from btconn import BTConnection
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import CHALLENGE,RESPONSE1,RESPONSE2

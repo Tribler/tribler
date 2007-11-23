@@ -46,6 +46,7 @@ class MyServer(Thread):
     
     def __init__(self,port,testcase):
         Thread.__init__(self)
+        self.setDaemon(True)
         self.testcase = testcase
         self.port = port
         self.my_keypair = EC.gen_params(EC.NID_sect233k1)
@@ -368,8 +369,8 @@ class TestPermIDsResponse1(unittest.TestCase):
     """
     
     def setUp(self):
-        self.config_path = tempfile.mkdtemp()
-        permid.init(self.config_path)
+        self.my_keypair = EC.gen_params(EC.NID_sect233k1)
+        self.my_keypair.gen_key()
 
         self.server_port = 4810
         self.server = MyServer(self.server_port,self)
@@ -379,8 +380,8 @@ class TestPermIDsResponse1(unittest.TestCase):
         self.overlay = SecureOverlay()
 
     def tearDown(self):
-        shutil.rmtree(self.config_path)
-
+        pass
+    
     def test_all(self):
         """ 
             I want to start my test server once and then connect to
@@ -402,7 +403,7 @@ class TestPermIDsResponse1(unittest.TestCase):
         self.conn = ConnecterConnection(self.server_port)
         self.myid = self.conn.get_my_id()
 
-        self.cr = permid.ChallengeResponse(permid.get_my_keypair(),self.myid,self.overlay)
+        self.cr = permid.ChallengeResponse(self.my_keypair,self.myid,self.overlay)
         self.cr.start_cr(self.conn)
         resp1_data = self.conn.get_message()
         success = self.cr.got_message(self.conn,resp1_data)

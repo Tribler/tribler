@@ -33,7 +33,7 @@ from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_THIRD
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.Dialogs.activities import *
 
-DEBUG = False
+DEBUG = True
 
 #
 # Constants
@@ -384,6 +384,7 @@ class DialbackMsgHandler:
     def get_dns_from_peerdb(self,permid):
         dns = None
         peer = self.peer_db.getPeer(permid)
+        #print >>sys.stderr,"dialback: get_dns_from_peerdb: Got peer",peer
         if peer:
             ip = self.to_real_ip(peer['ip'])
             dns = (ip, int(peer['port']))
@@ -393,9 +394,14 @@ class DialbackMsgHandler:
         """ If it's a hostname convert it to IP address first """
         ip = None
         try:
-            ip = gethostbyname(hostname_or_ip)
+            """ Speed up: don't go to DNS resolver unnecessarily """
+            socket.inet_aton(hostname_or_ip)
+            ip = hostname_or_ip
         except:
-            pass
+            try:
+                ip = socket.gethostbyname(hostname_or_ip)
+            except:
+                print_exc()
         return ip
 
         

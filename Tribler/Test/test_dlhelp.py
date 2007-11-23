@@ -21,7 +21,7 @@ from threading import Thread,enumerate
 from time import sleep
 import socket
 
-from Tribler.Test_as_server import TestAsServer
+from Tribler.Test.test_as_server import TestAsServer
 from btconn import BTConnection
 from olconn import OLConnection
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
