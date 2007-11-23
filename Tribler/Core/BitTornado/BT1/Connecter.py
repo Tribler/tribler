@@ -533,13 +533,13 @@ class Connecter:
         
         if connection.supports_extend_messages():
             # The peer either supports our overlay-swarm extension or 
-            # the utorrent extended protocol. And we have overlay swarm enabled.
+            # the utorrent extended protocol. 
             [client,version] = decodePeerID(connection.id)
             
             if DEBUG:
                 print >>sys.stderr,"connecter: Peer is client",client,"version",version
             
-            if client == TRIBLER_PEERID_LETTER and version <= '3.5.0' and connection.locally_initiated:
+            if self.overlay_enabled and client == TRIBLER_PEERID_LETTER and version <= '3.5.0' and connection.locally_initiated:
                 # Old Tribler, establish overlay connection
                 if DEBUG:
                     print >>sys.stderr,"connecter: Peer is previous Tribler version, attempt overlay connection"
