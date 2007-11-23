@@ -6,7 +6,7 @@
 # WARNING: this shell script must use \n as end-of-line, Windows
 # \r\n gives problems running this on Linux
 
-PYTHONPATH=..:"$PYTHONPATH"
+PYTHONPATH=../..:"$PYTHONPATH"
 export PYTHONPATH
 
 python test_dialback_reply_active.py singtest_good_dreply

@@ -4,7 +4,7 @@
 import unittest
 import sys
 
-from Tribler.Test_dialback_reply_active import TestDialbackReplyActive
+from Tribler.Test.test_dialback_reply_active import TestDialbackReplyActive
 
 DEBUG=True
 

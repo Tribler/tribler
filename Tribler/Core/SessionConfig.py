@@ -62,13 +62,13 @@ class SessionConfigInterface:
         return self.sessconfig['install_dir']
     
     
-    def set_permid(self,keypairfilename):
+    def set_permid_keypair_filename(self,keypairfilename):
         self.sessconfig['eckeypairfilename'] = keypairfilename
 
-    def get_permid(self):
+    def get_permid_keypair_filename(self):
         return self.sessconfig['eckeypairfilename']
     
-        
+
     def set_listen_port(self,port):
         """
         FUTURE: do we allow runtime modification of this param? Theoretically
@@ -650,6 +650,8 @@ class SessionConfigInterface:
 
     def get_overlay_log(self):
         return self.sessconfig['overlay_log']
+
+
 
 class SessionStartupConfig(SessionConfigInterface,Copyable,Serializable):  
     """ Class to configure a Session """

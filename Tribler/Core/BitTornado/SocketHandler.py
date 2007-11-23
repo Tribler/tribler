@@ -16,6 +16,7 @@ from random import shuffle, randrange
 from traceback import print_exc
 
 from threading import currentThread
+from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 
 # from BT1.StreamCheck import StreamCheck
 # import inspect
@@ -179,6 +180,7 @@ class SocketHandler:
         self.dead_from_write = []
         self.max_connects = 1000
         self.servers = {}
+        self.btengine_said_reachable = False
 
     def scan_for_timeouts(self):
         t = clock() - self.timeout
@@ -423,11 +425,17 @@ class SocketHandler:
                         newsock, addr = s.accept()
                         if DEBUG:
                             print >> sys.stderr,"SocketHandler: Got connection from",newsock.getpeername()
+                        if not self.btengine_said_reachable:
+                            dmh = DialbackMsgHandler.getInstance()
+                            dmh.btengine_network_callback()
+                            self.btengine_said_reachable = True
+                            
                         newsock.setblocking(0)
                         nss = SingleSocket(self, newsock, self.handler)    # create socket for incoming peers and tracker
                         self.single_sockets[newsock.fileno()] = nss
                         self.poll.register(newsock, POLLIN)
                         self.handler.external_connection_made(nss)
+                        
                     except socket.error,e:
                         if DEBUG:
                             print >> sys.stderr,"SocketHandler: SocketError while accepting new connection",str(e)

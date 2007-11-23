@@ -6,7 +6,7 @@ from Tribler.Core.simpledefs import *
 
 class Notifier:
     
-    SUBJECTS = [NTFY_PEERS, NTFY_TORRENTS, NTFY_YOUTUBE, NTFY_PREFERENCES, NTFY_DOWNLOADS, NTFY_ACTIVITIES]
+    SUBJECTS = [NTFY_PEERS, NTFY_TORRENTS, NTFY_YOUTUBE, NTFY_PREFERENCES, NTFY_DOWNLOADS, NTFY_ACTIVITIES, NTFY_REACHABLE]
 
     #. . .
     # todo: add all datahandler types+other observables

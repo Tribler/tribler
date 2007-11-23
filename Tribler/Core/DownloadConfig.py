@@ -42,17 +42,8 @@ class DownloadConfigInterface:
         
         # Define the built-in default here
         self.dlconfig.update(dldefaults)
-       
-        if sys.platform == 'win32':
-            profiledir = os.path.expandvars('${USERPROFILE}')
-            tempdir = os.path.join(profiledir,'Desktop','TriblerDownloads')
-            self.dlconfig['saveas'] = tempdir 
-        elif sys.platform == 'darwin':
-            profiledir = os.path.expandvars('${HOME}')
-            tempdir = os.path.join(profiledir,'Desktop','TriblerDownloads')
-            self.dlconfig['saveas'] = tempdir
-        else:
-            self.dlconfig['saveas'] = '/tmp'
+
+        self.dlconfig['saveas'] = get_default_dest_dir()
 
 
     def set_dest_dir(self,path):
@@ -400,4 +391,15 @@ class DownloadStartupConfig(DownloadConfigInterface,Serializable,Copyable):
         return DownloadStartupConfig(config)
 
 
-        
+def get_default_dest_dir():
+    if sys.platform == 'win32':
+        profiledir = os.path.expandvars('${USERPROFILE}')
+        tempdir = os.path.join(profiledir,'Desktop','TriblerDownloads')
+        return tempdir 
+    elif sys.platform == 'darwin':
+        profiledir = os.path.expandvars('${HOME}')
+        tempdir = os.path.join(profiledir,'Desktop','TriblerDownloads')
+        return tempdir
+    else:
+        return '/tmp'
+    

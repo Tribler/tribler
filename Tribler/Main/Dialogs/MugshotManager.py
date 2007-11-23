@@ -51,7 +51,7 @@ class MugshotManager:
         if not os.path.isdir(self.usericonpath):
             os.mkdir(self.usericonpath)
         #self.sysiconpath = os.path.join(syspath,'icons')
-        self.guiImagePath = os.path.join(config['install_dir'],'Tribler', 'vwxGUI', 'images')
+        self.guiImagePath = os.path.join(config['install_dir'],'Tribler', 'Main', 'vwxGUI', 'images')
         self.defaults = {}
         self.categoryThumbs = {}
 	if not got_wx:

@@ -19,6 +19,7 @@ import unittest
 from threading import Event, Thread, currentThread
 from socket import error as socketerror
 from time import sleep
+import tempfile
 from traceback import print_exc
 
 from Tribler.Core.BitTornado.RawServer import RawServer
@@ -29,6 +30,20 @@ from M2Crypto import EC
 from Tribler.Core.Overlay.SecureOverlay import SecureOverlay, overlay_infohash, OLPROTO_VER_CURRENT
 from Tribler.Core.CacheDB.CacheDBHandler import PeerDBHandler
 from Tribler.Core.Utilities.utilities import show_permid_short
+
+class FakeSession:
+    
+    def __init__(self,lm,keypair,permid,listen_port):
+        self.lm = lm
+        self.keypair = keypair
+        self.permid = permid
+        self.listen_port = listen_port
+
+    def get_permid(self):
+        return self.permid
+        
+    def get_listen_port(self):
+        return self.listen_port
 
 # Thread must come as first parent class!
 class Peer(Thread):
@@ -49,6 +64,8 @@ class Peer(Thread):
         config['bind'] = ''
         config['ipv6_binds_v4'] = 0
         config['max_message_length'] = 2 ** 23
+        config['state_dir'] = config['install_dir'] = tempfile.mkdtemp()
+        config['peer_icon_path'] = 'icons'
 
         self.rawserver = RawServer(self.doneflag,
                                    config['timeout_check_interval'],
@@ -81,7 +98,11 @@ class Peer(Thread):
         self.my_keypair.gen_key()
         self.my_permid = str(self.my_keypair.pub().get_der())
 
-        self.secure_overlay.register(self.rawserver,self.multihandler,self.listen_port,config['max_message_length'],self.my_keypair)
+
+        self.session = FakeSession(self,self.my_keypair,self.my_permid,self.listen_port)
+        self.peer_db = PeerDBHandler.getInstance(config)
+
+        self.secure_overlay.register(self,config['max_message_length'])
         self.rawserver.sockethandler.set_handler(self.secure_overlay)
         self.secure_overlay.start_listening()
 
@@ -102,6 +123,9 @@ class Peer(Thread):
 
     def dummy_task(self):
         self.rawserver.add_task(self.dummy_task,1)
+
+    def get_ext_ip(self):
+        return '127.0.0.1'
 
     def shutdown(self):
         self.doneflag.set()

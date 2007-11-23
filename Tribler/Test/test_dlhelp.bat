@@ -1,4 +1,4 @@
-set PYTHONPATH=..
+set PYTHONPATH=..\..
 
 python test_dlhelp.py singtest_good_2fast
 python test_dlhelp.py singtest_bad_2fast_dlhelp

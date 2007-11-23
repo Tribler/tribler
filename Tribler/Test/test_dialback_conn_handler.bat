@@ -1,4 +1,4 @@
-set PYTHONPATH=..
+set PYTHONPATH=..\..
 
 python test_dialback_conn_handler.py singtest_connect_dns_to_dead_peer
 python test_dialback_conn_handler.py singtest_connect_dns_to_live_peer

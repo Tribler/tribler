@@ -14,6 +14,7 @@ from struct import pack,unpack
 from StringIO import StringIO
 from threading import Thread,currentThread
 from types import DictType, StringType
+from traceback import print_exc
 
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from M2Crypto import EC
@@ -67,5 +68,10 @@ class TestAsServer(unittest.TestCase):
         self.session.shutdown()
         print >>sys.stderr,"test_as_server: sleeping after session shutdown"
         time.sleep(2)
-        shutil.rmtree(self.config_path)
+        try:
+            shutil.rmtree(self.config_path)
+        except:
+            # Not fatal if something goes wrong here, and Win32 often gives
+            # spurious Permission Denied errors.
+            print_exc()
         

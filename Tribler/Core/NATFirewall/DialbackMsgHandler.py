@@ -65,7 +65,6 @@ class DialbackMsgHandler:
         self.fromsuperpeer = False
         self.dbreach = False    # Did I get any DIALBACK_REPLY?
         self.btenginereach = False # Did BT engine get incoming connections?
-        self.secoverreach = False # Did SecureOverlay get incoming connections?
         self.ntries = 0        
         self.active = False     # Need defaults for test code
         self.rawserver = None
@@ -91,6 +90,8 @@ class DialbackMsgHandler:
         self.returnconnhand.register_recv_callback(self.handleReturnConnMessage)
         self.returnconnhand.start_listening()
 
+        self.old_ext_ip = launchmany.get_ext_ip()
+
     #
     # Called from OverlayApps to signal there is an overlay-connection,
     # see if we should ask it to dialback
@@ -111,10 +112,6 @@ class DialbackMsgHandler:
                 pass
             return
         
-        if not locally_initiated:
-            # Arno: this means we're externally reachable    
-            self.secover_says_reachable()
-
         if self.consensusip is None:
             self.ntries += 1
             if self.ntries >= MAX_TRIES:
@@ -122,7 +119,7 @@ class DialbackMsgHandler:
                     print >> sys.stderr,"dialback: tried too many times, giving up"
                 return True
             
-            if self.dbreach or self.btenginereach or self.secoverreach:
+            if self.dbreach or self.btenginereach:
                 self.launchmany.set_activity(ACT_GET_EXT_IP_FROM_PEERS)
             else:
                 self.launchmany.set_activity(ACT_REACHABLE)
@@ -293,7 +290,7 @@ class DialbackMsgHandler:
 
         # 4. See if superpeer, then we're done, trusted source 
         if self.trust_superpeers:
-            superpeers = self.superpeer_db.getSuperPeerList()
+            superpeers = self.superpeer_db.getSuperPeers()
             if permid in superpeers:
                 if DEBUG:
                     print >> sys.stderr,"dialback: DIALBACK_REPLY: superpeer said my IP address is",myip,"setting it to that"
@@ -338,10 +335,10 @@ class DialbackMsgHandler:
             
             self.launchmany.dialback_got_ext_ip_callback(self.consensusip)
             if DEBUG:
-                print >> sys.stderr,"dialback: DIALBACK_REPLY: I think my IP address is",old_ext_ip,"others say",self.consensusip,", setting it to latter"
+                print >> sys.stderr,"dialback: DIALBACK_REPLY: I think my IP address is",self.old_ext_ip,"others say",self.consensusip,", setting it to latter"
 
         # 9. Notify GUI that we are connectable
-        self.launchmany.reachable_network_callback()
+        self.launchmany.dialback_reachable_callback()
 
         # 10. We're done and no longer need the return connection, so
         # call close explicitly
@@ -352,30 +349,14 @@ class DialbackMsgHandler:
     #
     # Information from other modules
     #
-
-    def btengine_says_reachable(self):
-        """ Called by GUI thread! """
-        if self.rawserver is not None:
-            self.rawserver.add_task(self.btengine_network_callback,0)
-    
     def btengine_network_callback(self):
         """ Called by network thread """
-        self.launchmany.reachable_network_callback()
+        self.launchmany.dialback_reachable_callback()
         self.btenginereach = True
-
-    def secover_says_reachable(self):
-        """ Called by GUI thread! """
-        if self.rawserver is not None:
-            self.rawserver.add_task(self.secover_network_callback,0)
-    
-    def secover_network_callback(self):
-        """ Called by network thread """
-        self.launchmany.set_activity(ACT_REACHABLE)
-        self.secoverreach = True
 
     def isConnectable(self):
         """ Called by network thread """
-        return self.dbreach or self.btenginereach or self.secoverreach
+        return self.dbreach or self.btenginereach
 
 
     #

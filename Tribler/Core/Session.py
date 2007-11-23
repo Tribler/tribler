@@ -12,7 +12,7 @@ from Tribler.Core.defaults import sessdefaults
 from Tribler.Core.Base import *
 from Tribler.Core.SessionConfig import *
 import Tribler.Core.Overlay.permid
-from Tribler.Core.BitTornado.RawServer import autodetect_socket_style
+from Tribler.Core.DownloadConfig import get_default_dest_dir
 from Tribler.Core.Utilities.utilities import find_prog_in_PATH,validTorrentFile,isValidURL
 from Tribler.Core.APIImplementation.SessionRuntimeConfig import SessionRuntimeConfig
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
@@ -128,6 +128,12 @@ class Session(SessionRuntimeConfig):
                 sink = '/dev/null'
             self.sessconfig['tracker_logfile'] = sink
 
+        # 4. superpeer.txt
+        if self.sessconfig['superpeer_file'] is None:
+            self.sessconfig['superpeer_file'] = os.path.join(self.sessconfig['install_dir'],'Tribler','Core','superpeer.txt')
+
+        # 5. download_help_dir
+        self.sessconfig['download_help_dir'] = os.path.join(get_default_dest_dir(),DESTDIR_COOPDOWNLOAD)
 
         # Checkpoint startup config
         sscfg = self.get_current_startup_config_copy()
@@ -175,15 +181,6 @@ class Session(SessionRuntimeConfig):
     #
     # Public methods
     #
-    def load_checkpoint(self):
-        """ Restart Downloads from checkpoint, if any.
-        
-        This must be manageable by the API user for e.g. a video player
-        that wants to start the torrent the user clicked on first, and
-        only then restart any sleeping torrents (e.g. seeding) """
-        self.lm.load_checkpoint()
-    
-    
     def start_download(self,tdef,dcfg=None):
         """ 
         Creates a Download object and adds it to the session. The passed 
@@ -238,6 +235,43 @@ class Session(SessionRuntimeConfig):
         self.lm.set_download_states_callback(usercallback,getpeerlist)
 
 
+    #
+    # Config parameters that only exist at runtime
+    #
+    def get_permid(self):
+        """ Returns the PermID of the Session, as determined by the
+        SessionConfig.set_permid() parameter. A PermID is a public key
+        encoded in a string in DER format. """
+        self.sesslock.acquire()
+        try:
+            return str(self.keypair.pub().get_der())
+        finally:
+            self.sesslock.release()
+
+    def get_external_ip(self):
+        """ Returns the external IP address of this Session, i.e., by which
+        it is reachable from the Internet. This address is determined via
+        various mechanisms such as the UPnP protocol, our dialback mechanism,
+        and an inspection of the local network configuration. """
+        # locking done by lm
+        return self.lm.get_ext_ip()
+        
+
+    def get_current_startup_config_copy(self):
+        """ Returns a SessionStartupConfig that is a copy of the current runtime 
+        SessionConfig.
+         
+        Called by any thread """
+        self.sesslock.acquire()
+        try:
+            sessconfig = copy.copy(self.sessconfig)
+            return SessionStartupConfig(sessconfig=sessconfig)
+        finally:
+            self.sesslock.release()
+            
+    #
+    # Internal tracker 
+    #
     def get_internal_tracker_url(self):
         """ Return the announce URL for the internal tracker """
         # Called by any thread
@@ -263,6 +297,61 @@ class Session(SessionRuntimeConfig):
         raise NotYetImplementedException()
 
 
+    #
+    # Notification of events in the Session
+    #
+    def add_observer(self, func, subject, changeTypes = [NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE], id = None):
+        """ Add function as an observer. It will receive callbacks if the respective data
+        changes.
+        
+        Called by any thread
+        """
+        self.uch.notifier.add_observer(func, subject, changeTypes, id) # already threadsafe
+        
+    def remove_observer(self, func):
+        """ Remove observer function. No more callbacks will be made.
+        
+        Called by any thread
+        """
+        self.uch.notifier.remove_observer(func) # already threadsafe
+
+
+    #
+    # Access control
+    #
+    def set_overlay_request_policy(self, reqpol):
+        """
+        Set a function which defines which overlay requests (e.g. dl_helper, rquery msg) 
+        will be answered or will be denied.
+        
+        in: reqpol is a Tribler.Core.RequestPolicy.AbstractRequestPolicy object
+        
+        Called by any thread
+        """
+        # to protect self.sessconfig
+        self.sesslock.acquire()
+        try:
+            overlay_loaded = self.sessconfig['overlay']
+        finally:
+            self.sesslock.release()
+        if overlay_loaded:
+            self.lm.overlay_apps.setRequestPolicy(reqpol) # already threadsafe
+        elif DEBUG:
+            print >>sys.stderr,"Session: overlay is disabled, so no overlay request policy needed"
+
+
+    #
+    # Persistence and shutdown 
+    #
+    def load_checkpoint(self):
+        """ Restart Downloads from checkpoint, if any.
+        
+        This method allows the API user to manage restoring downloads. 
+        E.g. a video player that wants to start the torrent the user clicked 
+        on first, and only then restart any sleeping torrents (e.g. seeding) """
+        self.lm.load_checkpoint()
+    
+    
     def checkpoint(self):
         """ Saves the internal session state to the Session's state dir.
         
@@ -275,33 +364,17 @@ class Session(SessionRuntimeConfig):
         Called by any thread """
         self.checkpoint_shutdown(stop=True)
         self.uch.shutdown()
-    
-    def get_user_permid(self):
+        
+    def get_downloads_pstate_dir(self):
+        """ Returns the directory in which to checkpoint the Downloads in this
+        Session.
+         
+        Called by network thread """
         self.sesslock.acquire()
         try:
-            return str(self.keypair.pub().get_der())
+            return os.path.join(self.sessconfig['state_dir'],STATEDIR_DLPSTATE_DIR)
         finally:
             self.sesslock.release()
-        
-    def set_overlay_request_policy(self, requestPolicy):
-        """
-        Set a function which defines which overlay requests (e.g. dl_helper, rquery msg) 
-        will be answered or will be denied.
-        
-        requestPolicy is a Tribler.API.RequestPolicy.AbstractRequestPolicy object
-        
-        Called by any thread
-        """
-        # to protect self.sessconfig
-        self.sesslock.acquire()
-        try:
-            overlay_loaded = self.sessconfig['overlay']
-        finally:
-            self.sesslock.release()
-        if overlay_loaded:
-            self.lm.overlay_apps.setRequestPolicy(requestPolicy) # already threadsafe
-        else:
-            print >>sys.stderr,"Session: overlay is disabled, so no overlay request policy needed"
 
     #
     # Internal persistence methods
@@ -310,8 +383,6 @@ class Session(SessionRuntimeConfig):
         """ Called by any thread """
         # No locking required
         sscfg = self.get_current_startup_config_copy()
-        # Reset unpicklable params
-        sscfg.set_permid(None)
         try:
             self.save_pstate_sessconfig(sscfg)
         except Exception,e:
@@ -336,42 +407,3 @@ class Session(SessionRuntimeConfig):
         f.close()
         return sscfg
         
-
-    def get_downloads_pstate_dir(self):
-        """ Returns the directory in which to checkpoint the Downloads in this
-        Session.
-         
-        Called by network thread """
-        self.sesslock.acquire()
-        try:
-            return os.path.join(self.sessconfig['state_dir'],STATEDIR_DLPSTATE_DIR)
-        finally:
-            self.sesslock.release()
-        
-        
-    def get_current_startup_config_copy(self):
-        """ Returns a SessionStartupConfig that is a copy of the current runtime 
-        SessionConfig.
-         
-        Called by any thread """
-        self.sesslock.acquire()
-        try:
-            sessconfig = copy.copy(self.sessconfig)
-            return SessionStartupConfig(sessconfig=sessconfig)
-        finally:
-            self.sesslock.release()
-            
-    def add_observer(self, func, subject, changeTypes = [NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE], id = None):
-        """ Add function as an observer. It will receive callbacks if the respective data
-        changes.
-        
-        Called by any thread
-        """
-        self.uch.notifier.add_observer(func, subject, changeTypes, id) # already threadsafe
-        
-    def remove_observer(self, func):
-        """ Remove observer function. No more callbacks will be made.
-        
-        Called by any thread
-        """
-        self.uch.notifier.remove_observer(func) # already threadsafe

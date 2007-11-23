@@ -24,7 +24,7 @@ class OverlapMsgHandler:
     def register(self, secure_overlay, launchmany):
         if DEBUG:
             print >> sys.stderr,"socnet: bootstrap: overlap"
-        self.mypermid = launchmany.session.get_user_permid()
+        self.mypermid = launchmany.session.get_permid()
         self.config = launchmany.session.sessconfig
         self.peer_db = launchmany.peer_db
         self.superpeer_db = launchmany.superpeer_db

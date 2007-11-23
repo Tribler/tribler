@@ -89,10 +89,10 @@ class SecureOverlay:
         self.userconnhandler = None
         self.peer_db = self.lm.peer_db
         self.mykeypair = self.lm.session.keypair
-        self.permid = self.lm.session.get_user_permid()
+        self.permid = self.lm.session.get_permid()
         self.myip = self.lm.get_ext_ip()
         self.myport = self.lm.session.get_listen_port()
-        self.myid = create_my_peer_id(self.myport)\
+        self.myid = create_my_peer_id(self.myport)
         
     def resetSingleton(self):
         """ For testing purposes """

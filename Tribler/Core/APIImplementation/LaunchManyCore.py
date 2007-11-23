@@ -273,9 +273,6 @@ class TriblerLaunchMany(Thread):
         if self.internaltracker is not None:
             self.internaltracker.parse_allowed(source='Session')
 
-    def set_activity(self,type, str = ''):
-        self.session.uch.notify(NTFY_ACTIVITIES, NTFY_INSERT, None, type, str)
-
     #
     # Torrent hash checking
     #
@@ -507,7 +504,7 @@ class TriblerLaunchMany(Thread):
         self.sesslock.acquire()
         self.dialback_ext_ip = ip
         self.sesslock.release()
-        
+
     def get_ext_ip(self):
         """ Called by any thread """
         self.sesslock.acquire()
@@ -520,6 +517,17 @@ class TriblerLaunchMany(Thread):
                 return self.locally_guessed_ext_ip
         finally:
             self.sesslock.release()
+
+    #
+    # Events from core meant for API user
+    #
+    def dialback_reachable_callback(self):
+        """ Called by network thread """
+        self.session.uch.notify(NTFY_REACHABLE, NTFY_INSERT, None, '', '')
+        
+    def set_activity(self,type, str = ''):
+        """ Called by network thread """
+        self.session.uch.notify(NTFY_ACTIVITIES, NTFY_INSERT, None, type, str)
 
         
     def network_vod_playable_callback(self,videoinfo,complete,mimetype,stream):

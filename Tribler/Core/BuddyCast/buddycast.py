@@ -1655,7 +1655,7 @@ class DataHandler:
         return self.launchmany.listen_port
     
     def getMyPermid(self, permid=''):
-        return self.launchmany.session.get_user_permid()
+        return self.launchmany.session.get_permid()
         
         
     def postInit(self):

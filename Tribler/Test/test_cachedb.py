@@ -65,73 +65,6 @@ class TestBasicDB(unittest.TestCase):
         assert x == 10, x
 
 
-class TestMyDB(unittest.TestCase):
-    
-    def setUp(self):
-        self.dirname = os.path.join(tempfile.gettempdir(), 'testdb')
-        self.name = socket.gethostname()
-        myinfo = {'permid':'my_permid', 'ip':'1.2.3.4', 'name':self.name}
-        self.d = cachedb.MyDB.getInstance(myinfo=myinfo, db_dir=self.dirname)
-        self.d.initData(myinfo)
-        
-    def tearDown(self):
-        self.d._clear()
-    
-    def test_initData(self):
-        init = {
-            'version':cachedb.curr_version, 
-            'permid':'my_permid', 
-            'ip':'1.2.3.4', 
-            'port':0, 
-            'name':self.name, 
-            'torrent_path':'',
-            'prefxchg_queue':[],
-            'bootstrapping':1, 
-            'max_num_torrents':100000,
-            'max_num_my_preferences':1000,
-            'superpeers':Set(),
-            'friends':Set(),
-        }
-        
-        assert self.d._size() == len(init), self.d._data
-        y = {'ip':'1.2.3.4', 'permid':'permid 1'}    # only ip, permid, torrent_path can be updated
-        init.update(y)
-        init.update({'name':'1n;2_qfq2v@$'})
-        self.d.initData(init)
-        assert self.d._get('ip') == '1.2.3.4', self.d._get('ip')
-        assert self.d._get('permid') == 'permid 1', self.d._get('permid')
-        assert self.d._get('name') != '1n;2_qfq2v@$', self.d._get('name')
-        
-      
-    def test_superpeers(self):
-        
-        # test addSuperPeer, deleteSuperPeer, isSuperPeer, getSuperPeers
-        self.d.addSuperPeer('sp1')
-        self.d.addSuperPeer('sp2')
-        self.d.addSuperPeer('sp1')
-        assert self.d.isSuperPeer('sp1'), self.d._data['superpeers']
-        assert self.d.isSuperPeer('sp2'), self.d._data['superpeers']
-        sp = self.d.getSuperPeers()
-        assert isinstance(sp, list)
-        assert Set(sp) == Set(['sp1', 'sp2'])
-        self.d.deleteSuperPeer('sp2')
-        assert not self.d.isSuperPeer('sp2')
-        
-    def test_friends(self):
-        
-        # test addFriend, isFriend, getFriends, deleteFriend
-        self.d.addFriend('friend1')
-        self.d.addFriend('friend2')
-        self.d.addFriend('friend1')
-        assert self.d.isFriend('friend1'), self.d._data['friends']
-        assert self.d.isFriend('friend2'), self.d._data['friends']
-        friends = self.d.getFriends()
-        assert isinstance(friends, list)
-        assert Set(friends) == Set(['friend1', 'friend2'])
-        self.d.deleteFriend('friend2')
-        assert not self.d.isFriend('friend2')
-
-
 class TestPeerDB(unittest.TestCase):
 
     def setUp(self):
@@ -319,7 +252,6 @@ class TestOwnerDB(unittest.TestCase):
 def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestBasicDB))
-    suite.addTest(unittest.makeSuite(TestMyDB))
     suite.addTest(unittest.makeSuite(TestPeerDB))
     suite.addTest(unittest.makeSuite(TestTorrentDB))
     suite.addTest(unittest.makeSuite(TestPreferenceDB))

@@ -941,7 +941,7 @@ class BarterCastDBHandler(BasicDBHandler):
         self.bartercast_db = BarterCastDB.getInstance(db_dir=db_dir)
         self.peer_db = PeerDB.getInstance(db_dir=db_dir)
         self.dbs = [self.bartercast_db]
-        self.my_permid = session.get_user_permid()
+        self.my_permid = session.get_permid()
 
     __single = None
     def getInstance(*args, **kw):

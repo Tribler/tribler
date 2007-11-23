@@ -28,7 +28,9 @@ PERSISTENTSTATE_CURRENTVERSION = 1
 
 STATEDIR_ITRACKER_DIR = 'itracker'
 STATEDIR_DLPSTATE_DIR = 'dlcheckpoints'
-STATEDIR_SESSCONFIG = 'sessconfig.pickle' 
+STATEDIR_PEERICON_DIR = 'icons'
+STATEDIR_SESSCONFIG = 'sessconfig.pickle'
+DESTDIR_COOPDOWNLOAD = 'coopdownload' 
 
 TRIBLER_TORRENT_EXT = ".tribe"
 
@@ -43,6 +45,7 @@ NTFY_PREFERENCES = 'preferences'
 # non data handler subjects
 NTFY_DOWNLOADS = 'downloads'             # a torrent download was added/removed/changed
 NTFY_ACTIVITIES = 'activities'           # an activity was set (peer met/dns resolved)
+NTFY_REACHABLE = 'reachable'             # the Session is reachable from the Internet
 
 # changeTypes
 NTFY_UPDATE = 'update'                   # data is updated

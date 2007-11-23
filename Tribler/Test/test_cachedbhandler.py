@@ -29,8 +29,13 @@ test_prefs2 = [('torrent1', {'name':'File 1'}),
 class TestPeerDBHandler(unittest.TestCase):
     
     def setUp(self):
-        self.tmpdirpath = os.path.join(tempfile.mkdtemp(), 'testdb')
-        self.peer_db = PeerDBHandler(db_dir=self.tmpdirpath)
+        self.tmpdir = tempfile.mkdtemp()
+        self.tmpdirpath = os.path.join(self.tmpdir,'testdb')
+        config = {}
+        config['state_dir'] = self.tmpdir
+        config['install_dir'] = os.path.join('..','..')
+        config['peer_icon_path'] = 'icons'
+        self.peer_db = PeerDBHandler(config,db_dir=self.tmpdirpath)
         self.peer_db.clear()
         
     def tearDown(self):
@@ -49,8 +54,11 @@ class TestPeerDBHandler(unittest.TestCase):
         assert len(res) == 1, len(res)
         # Arno: 'last_seen' is set automatically these days :-(
         res[0]['last_seen'] = 0
-        expected = {'permid':'permid2', 'ip':'22.2.3.4', 'port':22342, 'name':'peer22', 'similarity':0, 'last_seen':0,'buddycast_times':0,'connected_times':0,'last_buddycast_time':0,'oversion':0,'npeers':0,'ntorrents':0,'nprefs':0,'nqueries':0}
+        expected = {'permid':'permid2', 'ip':'22.2.3.4', 'port':22342, 'name':'peer22', 'similarity':0, 'last_seen':0,'last_connected':0,'buddycast_times':0,'connected_times':0,'last_buddycast_time':0,'oversion':0,'npeers':0,'ntorrents':0,'nprefs':0,'nqueries':0}
+        
         """
+        # To find new keys
+        print ""
         k1 = res[0].keys()
         k1.sort()
         print "RES",k1
@@ -58,6 +66,7 @@ class TestPeerDBHandler(unittest.TestCase):
         k2.sort()
         print "EXP",k2
         """
+
         assert res[0] == expected, res
         res = self.peer_db.findPeers('ip', '3.2.3.4')
         assert len(res) == 2, len(res)
@@ -69,7 +78,7 @@ class TestPeerDBHandler(unittest.TestCase):
         assert len(res) == 0, len(res)
         res = self.peer_db.findPeers('nokey', 'abcd')
         assert len(res) == 0, len(res)
-        self.peer_db.updatePeerIPPort('permid1', '4.3.2.1', 4321)
+        self.peer_db.addPeer('permid1', {'ip':'4.3.2.1', 'port':4321})
         x = self.peer_db.getPeer('permid1')
         assert x['ip'] == '4.3.2.1', x
         assert x['port'] == 4321

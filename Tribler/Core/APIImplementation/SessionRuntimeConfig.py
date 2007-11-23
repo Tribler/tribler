@@ -34,8 +34,15 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
     
-    def set_permid(self,keypair):
+    def set_permid_keypair_filename(self,keypair):
         raise OperationNotPossibleAtRuntimeExeption()
+        
+    def get_permid_keypair_filename(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_permid_keypair_filename(self)
+        finally:
+            self.sesslock.release()
         
     def set_listen_port(self,port):
         raise OperationNotPossibleAtRuntimeExeption()

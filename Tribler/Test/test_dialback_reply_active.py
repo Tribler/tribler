@@ -11,8 +11,6 @@ import tempfile
 from M2Crypto import EC
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import DIALBACK_REQUEST, DIALBACK_REPLY, getMessageName
-from Tribler.Core.simpledefs import get_my_ip
-from Tribler.Core.CacheDB.CacheDBHandler import MyDBHandler
 import Tribler.Core.Overlay.permid as permidmod
 from Tribler.Core.NATFirewall.ReturnConnHandler import dialback_infohash
 
@@ -60,9 +58,11 @@ class TestDialbackReplyActive(TestAsServer):
 
         # Write superpeers.txt
         self.install_path = tempfile.mkdtemp()
-        superpeerfilename = os.path.join(self.install_path, 'superpeer.txt')
+        spdir = os.path.join(self.install_path, 'Tribler', 'Core')
+        os.makedirs(spdir)
+        superpeerfilename = os.path.join(spdir, 'superpeer.txt')
         print >> sys.stderr,"test: writing",self.NLISTENERS,"superpeers to",superpeerfilename
-        f = open(superpeerfilename, "wb")
+        f = open(superpeerfilename, "w")
 
         self.mylistenport = []
         self.myss = []
@@ -83,15 +83,22 @@ class TestDialbackReplyActive(TestAsServer):
             content = '127.0.0.1, '+str(self.mylistenport[i])+', '+permidmod.permid_for_user(self.mypermids[i])+', FakeSuperPeer\n'
             f.write(content)
         f.close()
+        
+        self.config.set_install_dir(self.install_path)
 
+        """
         # To avoid errors
         cfilename = os.path.join(self.install_path, 'category.conf')
         f = open(cfilename, "wb")
         f.write('')
         f.close()
-        #sys.exit(-1)
-        self.myoriginalip = get_my_ip(socket.gethostname())
-
+        """
+        
+    def setUpPostSession(self):
+        """ override TestAsServer """
+        TestAsServer.setUpPostSession(self)
+        
+        self.myoriginalip = self.session.get_external_ip()
 
     def tearDown(self):
         """ override TestAsServer """
@@ -165,12 +172,11 @@ class TestDialbackReplyActive(TestAsServer):
             s.close()
 
 
-        my_db = MyDBHandler.getInstance()
-        ext_ip = my_db.getMyIP()
+        ext_ip = self.session.get_external_ip()
         print >>sys.stderr,"test: External IP address after test is",ext_ip
         
         if diff_ips_test:
-            if self.config['dialback_trust_superpeers'] == 1:
+            if self.config.sessconfig['dialback_trust_superpeers'] == 1:
                 good = True
             else:
                 good = False
