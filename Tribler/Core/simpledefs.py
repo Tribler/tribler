@@ -32,3 +32,21 @@ STATEDIR_SESSCONFIG = 'sessconfig.pickle'
 
 TRIBLER_TORRENT_EXT = ".tribe"
 
+# For observer/callback mechanism, see Session.add_observer()
+   
+# subjects
+NTFY_PEERS = 'peers'
+NTFY_TORRENTS = 'torrents'
+NTFY_YOUTUBE = 'youtube'
+NTFY_PREFERENCES = 'preferences'
+
+# non data handler subjects
+NTFY_DOWNLOADS = 'downloads'             # a torrent download was added/removed/changed
+NTFY_ACTIVITIES = 'activities'           # an activity was set (peer met/dns resolved)
+
+# changeTypes
+NTFY_UPDATE = 'update'                   # data is updated
+NTFY_INSERT = 'insert'                   # new data is inserted
+NTFY_DELETE = 'delete'                   # data is deleted
+NTFY_SEARCH_RESULT = 'search_result'     # new search result
+ 

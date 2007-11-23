@@ -160,7 +160,7 @@ if __name__ == '__main__':
         configdir.deleteOldCacheData(config['expire_cache_data'])
         if not os.path.isdir(args[0]):
             raise ValueError("Warning: "+args[0]+" is not a directory")
-        config['torrent_dir'] = args[0]
+        config['torrent_collecting_dir'] = args[0]
     except ValueError, e:
         print 'error: ' + str(e) + '\nrun with no args for parameter explanations'
         exit(1)

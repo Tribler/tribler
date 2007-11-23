@@ -35,16 +35,16 @@ class TestBarterCast(TestAsServer):
         TestAsServer.setUp(self)
         Rand.load_file('randpool.dat', -1)
 
-    def setUpPreTriblerInit(self):
+    def setUpPreSession(self):
         """ override TestAsServer """
-        TestAsServer.setUpPreTriblerInit(self)
+        TestAsServer.setUpPreSession(self)
         # Enable buddycast
-        self.config['buddycast'] = 1
-        self.config['start_recommender'] = 1
+        self.config.set_buddycast(True)
+        self.config.set_bartercast(True)
 
-    def setUpPreLaunchMany(self):
+    def setUpPostSession(self):
         """ override TestAsServer """
-        TestAsServer.setUpPreLaunchMany(self)
+        TestAsServer.setUpPostSession(self)
 
         self.mypermid = str(self.my_keypair.pub().get_der())
         self.hispermid = str(self.his_keypair.pub().get_der())        

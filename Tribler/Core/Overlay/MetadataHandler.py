@@ -57,7 +57,7 @@ class MetadataHandler:
         if self.min_free_space <= 0:
             self.min_free_space = 200*(2**20)    # at least 1 MB left on disk
         self.config_dir = os.path.abspath(self.config['state_dir'])
-        self.torrent_dir = os.path.join(self.config_dir, 'torrent2')    #TODO: user can set it
+        self.torrent_dir = os.path.abspath(self.config['torrent_collecting_dir'])
         self.free_space = self.get_free_space()
         print "Available space for database and collecting torrents: %d MB," % (self.free_space/(2**20)), "Min free space", self.min_free_space/(2**20), "MB"
         self.max_num_torrents = self.init_max_num_torrents = int(self.config['max_torrents'])
@@ -655,7 +655,7 @@ class MetadataHandler:
         """ torrent must be a db-record dict with infohash """
     
         if 'torrent_dir' not in torrent or not os.path.exists(torrent['torrent_dir']):
-            torrent_dir = os.path.join(self.config_dir,'torrent2')
+            torrent_dir = os.path.abspath(self.config['torrent_collecting_dir'])
             torrent_name = self.get_filename(torrent['infohash'])
         else:
             torrent_dir = torrent['torrent_dir']

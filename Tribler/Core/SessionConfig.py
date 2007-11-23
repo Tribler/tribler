@@ -217,6 +217,13 @@ class SessionConfigInterface:
     def get_max_torrents(self):
         return self.sessconfig['max_torrents']
 
+    def set_torrent_collecting_dir(self,value):
+        """ where to place collected torrents? (default is state_dir + 'colltorrents'"""
+        self.sessconfig['torrent_collecting_dir'] = value
+
+    def get_torrent_collecting_dir(self):
+        return self.sessconfig['torrent_collecting_dir']
+
     def set_torrent_collecting_rate(self,value):
         """ max rate of torrent collecting (Kbps) """
         self.sessconfig['torrent_collecting_rate'] = value

@@ -30,19 +30,20 @@ class TestDialbackRequest(TestAsServer):
     #    """ override TestAsServer """
     #    TestAsServer.setUp(self)
 
-    def setUpPreTriblerInit(self):
+    def setUpPreSession(self):
         """ override TestAsServer """
-        TestAsServer.setUpPreTriblerInit(self)
+        TestAsServer.setUpPreSession(self)
 
         # Enable dialback
-        self.config['dialback'] = 1
-        self.config['dialback_active'] = 0
+        self.config.set_dialback(True)
+        # H4X0R: testing only
+        self.config.sessconfig['dialback_active'] = 0
 
         self.setUpMyListenSocket()
 
-    def setUpPreLaunchMany(self):
+    def setUpPostSession(self):
         """ override TestAsServer """
-        TestAsServer.setUpPreLaunchMany(self)
+        TestAsServer.setUpPostSession(self)
         self.myip = '127.0.0.1'
 
     def setUpMyListenSocket(self):

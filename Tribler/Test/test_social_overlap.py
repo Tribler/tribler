@@ -42,15 +42,15 @@ class TestSocialOverlap(TestAsServer):
         TestAsServer.setUp(self)
         Rand.load_file('randpool.dat', -1)
 
-    def setUpPreTriblerInit(self):
+    def setUpPreSession(self):
         """ override TestAsServer """
-        TestAsServer.setUpPreTriblerInit(self)
+        TestAsServer.setUpPreSession(self)
         # Enable social networking
         self.config['socnet'] = 1
 
-    def setUpPreLaunchMany(self):
+    def setUpPostSession(self):
         """ override TestAsServer """
-        TestAsServer.setUpPreLaunchMany(self)
+        TestAsServer.setUpPostSession(self)
 
         self.wxs = wxServer()
         self.wxs.start()

@@ -20,11 +20,12 @@ class TestDialbackReplyActive2(TestDialbackReplyActive):
     This test does NOT allow authoritative answers from superpeers.
     """
 
-    def setUpPreTriblerInit(self):
+    def setUpPreSession(self):
         """ override TestDialbackReplyActive """
         self.NLISTENERS=4 # Must be same as DialbackMsgHandler PEERS_TO_AGREE
-        TestDialbackReplyActive.setUpPreTriblerInit(self)
-        self.config['dialback_trust_superpeers'] = 0
+        TestDialbackReplyActive.setUpPreSession(self)
+        # H4X0R, testing only
+        self.config.sessconfig['dialback_trust_superpeers'] = 0
 
 
 def test_suite():

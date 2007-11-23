@@ -51,13 +51,13 @@ REM packs them in the installer .EXE
 
 mkdir dist\installdir
 
-%PYTHONHOME%\python.exe -O Player\Build\Win32\setuptriblerplay.py py2exe
+%PYTHONHOME%\python.exe -O Tribler\Player\Build\Win32\setuptriblerplay.py py2exe
 
 REM Arno: Move py2exe results to installdir
 move dist\*.* dist\installdir
 
-copy Player\Build\Win32\triblerplay.nsi dist\installdir
-copy Player\Build\Win32\p2player.exe.manifest dist\installdir
+copy Tribler\Player\Build\Win32\triblerplay.nsi dist\installdir
+copy Tribler\Player\Build\Win32\p2player.exe.manifest dist\installdir
 REM copy %PYTHONHOME%\msvcr71.dll dist\installdir
 REM For Vista. This works only when building on XP
 REM as Vista doesn't have this DLL by default.
@@ -67,15 +67,15 @@ copy %SystemRoot%\msvcp71.dll dist\installdir
 copy %PYTHONHOME%\msvcp60.dll dist\installdir
 REM py2exe does this: copy SSLEAY32.dll dist\installdir
 REM copy LIBEAY32.dll dist\installdir
-copy binary-LICENSE.txt dist\installdir
+copy Tribler\binary-LICENSE.txt dist\installdir
 mkdir dist\installdir\Tribler
 mkdir dist\installdir\Tribler\Core
-copy Core\superpeer.txt dist\installdir\Tribler\Core
+copy Tribler\Core\superpeer.txt dist\installdir\Tribler\Core
 mkdir dist\installdir\Tribler\Images
-copy Images\*.* dist\installdir\Tribler\Images
-copy Player\Build\Win32\heading.bmp dist\installdir
+copy Tribler\Images\*.* dist\installdir\Tribler\Images
+copy Tribler\Player\Build\Win32\heading.bmp dist\installdir
 mkdir dist\installdir\Tribler\Lang
-copy Lang\*.lang dist\installdir\Tribler\Lang
+copy Tribler\Lang\*.lang dist\installdir\Tribler\Lang
 
 copy ffmpeg.exe dist\installdir
 xcopy vlc dist\installdir\vlc /E /I

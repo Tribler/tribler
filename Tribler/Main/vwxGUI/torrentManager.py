@@ -89,7 +89,7 @@ class TorrentDataManager:
         self.oldsearchkeywords = {'filesMode':[], 'libraryMode':[]} # previous query
         self.metadata_handler = MetadataHandler.getInstance()
         
-        self.collected_torrent_dir = os.path.join(self.utility.getConfigPath(),'torrent2')
+        self.collected_torrent_dir = os.path.abspath(config['torrent_collecting_dir']) # TEMPARNO
         
         if DEBUG:
             print >>sys.stderr,'torrentManager: ready init'

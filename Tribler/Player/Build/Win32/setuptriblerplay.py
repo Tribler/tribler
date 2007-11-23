@@ -16,14 +16,8 @@ try:
 except ImportError:
     pass
 
-
 from distutils.core import setup
 import py2exe
-
-# gui panels to include
-includePanels=[
-     "standardOverview","standardDetails","standardGrid","standardPager","standardFilter",
-     "TextButton","btn_DetailsHeader","tribler_List","profileOverviewPanel"]
 
 ################################################################
 #
@@ -36,11 +30,8 @@ includePanels=[
 #
 ################################################################
 
-mainfile = os.path.join('Player','p2player.py')
-#manifest = os.path.join('Player','Build','Win32','p2player.exe.manifest')
-#nsifile = os.path.join('Player','Build','Win32','triblerplay.nsi')
-progicofile = os.path.join('Images','tribler.ico')
-#toricofile = os.path.join('Images','torrenticon.ico')
+mainfile = os.path.join('Tribler','Player','p2player.py')
+progicofile = os.path.join('Tribler','Images','tribler.ico')
 
 target_p2player = {
     "script": mainfile,
@@ -52,8 +43,7 @@ setup(
 #    (Disabling bundle_files for now -- apparently causes some issues with Win98)
 #    options = {"py2exe": {"bundle_files": 1}},
 #    zipfile = None,
-    options = {"py2exe": {"packages": ["Core","encodings"] + ["Tribler.Main.vwxGUI.%s" % x for x in includePanels],
-                          "optimize": 2}},
+    options = {"py2exe": {"packages": ["Tribler.Core","encodings"],"optimize": 2}},
     data_files = [("installdir",[])], 
     windows = [target_p2player],
 )

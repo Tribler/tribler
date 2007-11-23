@@ -39,6 +39,7 @@ sessdefaults['overlay_log'] = ''
 sessdefaults['buddycast_interval'] = 15
 sessdefaults['max_torrents'] = 5000
 sessdefaults['max_peers'] = 2000  # max number of peers to use for recommender
+sessdefaults['torrent_collecting_dir'] = None
 sessdefaults['torrent_collecting_rate'] = 5
 sessdefaults['torrent_checking'] = 1
 sessdefaults['torrent_checking_period'] = 60

@@ -18,7 +18,6 @@ from Tribler.Core.APIImplementation.SessionRuntimeConfig import SessionRuntimeCo
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.APIImplementation.UserCallbackHandler import UserCallbackHandler
 
-from Tribler.Core.CacheDB.Notifier import Notifier
 
 class Session(SessionRuntimeConfig):
     """
@@ -344,7 +343,7 @@ class Session(SessionRuntimeConfig):
         finally:
             self.sesslock.release()
             
-    def add_observer(self, func, subject, changeTypes = [Notifier.UPDATE, Notifier.INSERT, Notifier.DELETE], id = None):
+    def add_observer(self, func, subject, changeTypes = [NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE], id = None):
         """ Add function as an observer. It will receive callbacks if the respective data
         changes.
         

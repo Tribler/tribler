@@ -79,9 +79,9 @@ class TestExtendHandshakeT350(TestAsServer):
         time.sleep(5)
         print >>sys.stderr,"test: MyLaunchMany should have started up"
     
-    def setUpPreTriblerInit(self):
+    def setUpPreSession(self):
         """ override TestAsServer """
-        TestAsServer.setUpPreTriblerInit(self)
+        TestAsServer.setUpPreSession(self)
 
         # Let Tribler start downloading an non-functioning torrent, so
         # we can talk to a normal download engine.

@@ -166,6 +166,18 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
+
+    def set_torrent_collecting_dir(self,value):
+        raise OperationNotPossibleAtRuntimeException()
+
+    def get_torrent_collecting_dir(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_torrent_collecting_dir(self)
+        finally:
+            self.sesslock.release()
+
+
     def set_superpeer(self,value):
         raise OperationNotPossibleAtRuntimeException()
 

@@ -275,7 +275,7 @@ class TriblerLaunchMany(Thread):
             self.internaltracker.parse_allowed(source='Session')
 
     def set_activity(self,type, str = ''):
-        self.session.uch.notify(Notifier.ACTIVITIES, Notifier.INSERT, None, type, str)
+        self.session.uch.notify(NTFY_ACTIVITIES, NTFY_INSERT, None, type, str)
 
     #
     # Torrent hash checking

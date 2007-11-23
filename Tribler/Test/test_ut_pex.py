@@ -35,9 +35,9 @@ class TestUTorrentPeerExchange(TestAsServer):
         time.sleep(3)
         print >>sys.stderr,"test: MyLaunchMany should have started up"
     
-    def setUpPreTriblerInit(self):
+    def setUpPreSession(self):
         """ override TestAsServer """
-        TestAsServer.setUpPreTriblerInit(self)
+        TestAsServer.setUpPreSession(self)
 
         # Let Tribler start downloading an non-functioning torrent, so
         # we can talk to a normal download engine.
@@ -51,7 +51,11 @@ class TestUTorrentPeerExchange(TestAsServer):
         TestAsServer.setUpPostLaunchMany(self)
         
         tdef = TorrentDef.load('/tmp/bla.torrent')
-            
+        
+        
+        raise ValueError("TEMPARNO: replace with extend_hs_dir/dummydata.merkle.torrent")
+        
+        
         dcfg = DownloadStartupConfig()
         dcfg.set_dest_dir('/tmp/dummy')
         d = self.session.start_download(tdef,dcfg)

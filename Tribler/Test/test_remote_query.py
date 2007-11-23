@@ -37,15 +37,15 @@ class TestRemoteQuery(TestAsServer):
     Testing QUERY message of Social Network extension V1
     """
     
-    def setUpPreTriblerInit(self):
+    def setUpPreSession(self):
         """ override TestAsServer """
-        TestAsServer.setUpPreTriblerInit(self)
+        TestAsServer.setUpPreSession(self)
         # Enable social networking
         self.config['rquery'] = 1
 
-    def setUpPreLaunchMany(self):
+    def setUpPostSession(self):
         """ override TestAsServer """
-        TestAsServer.setUpPreLaunchMany(self)
+        TestAsServer.setUpPostSession(self)
 
         #self.mypermid = str(self.my_keypair.pub().get_der())
         #self.hispermid = str(self.his_keypair.pub().get_der())

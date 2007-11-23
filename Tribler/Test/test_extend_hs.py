@@ -45,18 +45,21 @@ class TestExtendHandshake(TestAsServer):
         time.sleep(5)
         print >>sys.stderr,"test: MyLaunchMany should have started up"
     
-    def setUpPreTriblerInit(self):
+    def setUpPostSession(self):
         """ override TestAsServer """
-        TestAsServer.setUpPreTriblerInit(self)
+        TestAsServer.setUpPostSession(self)
 
         # Let Tribler start downloading an non-functioning torrent, so
         # we can talk to a normal download engine.
-        self.config['torrent_dir'] = os.path.join('extend_hs_dir')
-        self.config['parse_dir_interval'] = 60
-        self.config['saveas_style'] = 1
-        self.config['priority'] = 1
-        self.config['display_path'] = 1
         
+        self.torrentfn = os.path.join('extend_hs_dir','dummydata.merkle.torrent')
+        tdef = TorrentDef.load(self.torrentfn)
+
+        dscfg = DownloadStartupConfig()
+        dscfg.set_dest_dir(self.config_path)
+        
+        self.session.add_download(tdef,dscfg)
+
         # This is the infohash of the torrent in test/extend_hs_dir
         self.infohash = '\xccg\x07\xe2\x9e!]\x16\xae{\xb8\x10?\xf9\xa5\xf9\x07\xfdBk'
         self.mylistenport = 4810

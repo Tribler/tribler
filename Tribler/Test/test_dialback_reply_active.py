@@ -48,17 +48,15 @@ class TestDialbackReplyActive(TestAsServer):
         self.NLISTENERS=1
         TestAsServer.setUp(self)
 
-    def setUpPreTriblerInit(self):
+    def setUpPreSession(self):
         """ override TestAsServer """
         print >> sys.stderr,"test: Pre Tribler Init"
-        TestAsServer.setUpPreTriblerInit(self)
+        TestAsServer.setUpPreSession(self)
         print >> sys.stderr,"test: Pre Tribler Init: config_path",self.config_path
-        # Enable social networking
-        self.config['dialback'] = 1
-        self.config['dialback_active'] = 1
-        self.config['dialback_trust_superpeers'] = 1
-        self.config['buddycast'] = 1 # make sure overlay connections are being made
-        self.config['start_recommender'] = 1
+        # Enable dialback support
+        self.config.set_dialback(True)
+        self.config.set_buddycast(True) # make sure overlay connections are being made
+        self.config.set_start_recommender(True)
 
         # Write superpeers.txt
         self.install_path = tempfile.mkdtemp()

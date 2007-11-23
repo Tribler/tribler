@@ -40,10 +40,10 @@ class TestQueryReplyActive(TestAsServer):
     classes, e.g. SuperPeerDB, etc.
     """
 
-    def setUpPreTriblerInit(self):
+    def setUpPreSession(self):
         """ override TestAsServer """
         print >> sys.stderr,"test: Pre Tribler Init"
-        TestAsServer.setUpPreTriblerInit(self)
+        TestAsServer.setUpPreSession(self)
         print >> sys.stderr,"test: Pre Tribler Init: config_path",self.config_path
         # Enable social networking
         self.config['rquery'] = 1

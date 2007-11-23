@@ -2,28 +2,12 @@ import threading
 import Queue
 import thread
 
+from Tribler.Core.simpledefs import *
+
 class Notifier:
     
-    # subjects
-    
-    PEERS = 'peers'
-    TORRENTS = 'torrents'
-    YOUTUBE = 'youtube'
-    PREFERENCES = 'preferences'
-    
-    # non data handler subjects
-    DOWNLOADS = 'downloads'             # a torrent download was added/removed/changed
-    ACTIVITIES = 'activities'           # an activity was set (peer met/dns resolved)
-    
-    SUBJECTS = [PEERS, TORRENTS, YOUTUBE, PREFERENCES, DOWNLOADS, ACTIVITIES]
-    
-    # changeTypes
-    UPDATE = 'update'                   # data is updated
-    INSERT = 'insert'                   # new data is inserted
-    DELETE = 'delete'                   # data is deleted
-    SEARCH_RESULT = 'search_result'     # new search result
-    
-    
+    SUBJECTS = [NTFY_PEERS, NTFY_TORRENTS, NTFY_YOUTUBE, NTFY_PREFERENCES, NTFY_DOWNLOADS, NTFY_ACTIVITIES]
+
     #. . .
     # todo: add all datahandler types+other observables
     __single = None
@@ -42,13 +26,15 @@ class Notifier:
         return Notifier.__single
     getInstance = staticmethod(getInstance)
     
-    def add_observer(self, func, subject, changeTypes = [UPDATE, INSERT, DELETE], id = None):
+    def add_observer(self, func, subject, changeTypes = [NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE], id = None):
         """
         Add observer function which will be called upon certain event
         Example: 
-        addObserver(PEERS, [INSERT,DELETE]) -> get callbacks when peers are added or deleted
-        addObserver(PEERS, [SEARCH_RESULT], 'a_search_id') -> get callbacks when peer-searchresults of of search
-                                                              with id=='a_search_id' come in
+        addObserver(NTFY_PEERS, [NTFY_INSERT,NTFY_DELETE]) -> get callbacks 
+                    when peers are added or deleted
+        addObserver(NTFY_PEERS, [NTFY_SEARCH_RESULT], 'a_search_id') -> get 
+                    callbacks when peer-searchresults of of search
+                    with id=='a_search_id' come in
         """
         assert type(changeTypes) == list
         assert subject in self.SUBJECTS

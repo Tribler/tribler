@@ -15,6 +15,7 @@ from sets import Set
 
 from Tribler.Core.Utilities.utilities import show_permid_shorter, validIP, validPort, validPermid, validName
 from Tribler.Core.CacheDB.Notifier import Notifier
+from Tribler.Core.simpledefs import *
 from Tribler.Main.Dialogs.MugshotManager import MugshotManager # move to peerDBHandler
 
 DEBUG = False
@@ -166,7 +167,7 @@ class SuperPeerDBHandler(BasicDBHandler):
                 continue
             permid = superpeer.pop('permid')
             self.peer_db.updateItem(permid, superpeer)
-            self.notifier.notify(Notifier.PEERS, Notifier.UPDATE, permid)
+            self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
       
 class FriendDBHandler(BasicDBHandler):
 
@@ -326,7 +327,7 @@ class PeerDBHandler(BasicDBHandler):
             self.updatePeerIP(permid, value['ip'])
         
         if updateFlag:
-            self.notifier.notify(Notifier.PEERS, Notifier.INSERT, permid)
+            self.notifier.notify(NTFY_PEERS, NTFY_INSERT, permid)
         
     def hasPeer(self, permid):
         return self.peer_db.hasItem(permid)        
@@ -354,12 +355,12 @@ class PeerDBHandler(BasicDBHandler):
         if key == 'ip':
             self.updatePeerIP(permid, value)
         if updateFlag:
-            self.notifier.notify(Notifier.PEERS, Notifier.UPDATE, permid, key)
+            self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid, key)
     
     def updatePeerIcon(self, permid, icontype, icondata, updateFlag = True):
         self.mm.save_data(permid, icontype, icondata)
         if updateFlag:
-            self.notifier.notify(Notifier.PEERS, Notifier.UPDATE, permid, 'icon')
+            self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid, 'icon')
     
         
     def getPeerIcon(self, permid, name = ''):
@@ -388,7 +389,7 @@ class PeerDBHandler(BasicDBHandler):
         self.ip_db.deletePermID(permid)
         
         if updateFlag:
-            self.notifier.notify(Notifier.PEERS, Notifier.DELETE, permid)
+            self.notifier.notify(NTFY_PEERS, NTFY_DELETE, permid)
 
         return True
         
@@ -404,7 +405,7 @@ class PeerDBHandler(BasicDBHandler):
         self.peer_db.updateItem(permid, {key:value})
         
         if updateFlag:
-            self.notifier.notify(Notifier.PEERS, Notifier.UPDATE, permid, key)
+            self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid, key)
         
     def getPermIDByIP(self,ip):
         return self.ip_db.getPermIDByIP(ip)    
@@ -477,7 +478,7 @@ class TorrentDBHandler(BasicDBHandler):
         self.torrent_db.updateItem(infohash, torrent)
 
         if updateFlag:
-            self.notifier.notify(Notifier.TORRENTS, Notifier.INSERT, infohash)
+            self.notifier.notify(NTFY_TORRENTS, NTFY_INSERT, infohash)
             
         try:
             # Arno: PARANOID SYNC
@@ -493,7 +494,7 @@ class TorrentDBHandler(BasicDBHandler):
         self.torrent_db.updateItem(infohash, kw)
           
         if updateFlag:
-            self.notifier.notify(Notifier.TORRENTS, Notifier.UPDATE, infohash, kw.keys())
+            self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash, kw.keys())
             
         
     def deleteTorrent(self, infohash, delete_file=False, updateFlag = True):
@@ -515,7 +516,7 @@ class TorrentDBHandler(BasicDBHandler):
         if deleted:
             self.torrent_db._delete(infohash)
             if updateFlag:
-                self.notifier.notify(Notifier.TORRENTS, Notifier.DELETE, infohash)
+                self.notifier.notify(NTFY_TORRENTS, NTFY_DELETE, infohash)
                 
         return deleted
             
@@ -732,7 +733,7 @@ class TorrentDBHandler(BasicDBHandler):
     def updateTorrentRelevance(self, infohash, relevance, updateFlag = True):
         self.torrent_db.updateItem(infohash, {'relevance':relevance})
         if updateFlag:
-            self.notifier.notify(Notifier.TORRENTS, Notifier.UPDATE, infohash, 'relevance')
+            self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash, 'relevance')
             
 #===============================================================================
 #    def getNumMetadataAndLive(self):    # TODO

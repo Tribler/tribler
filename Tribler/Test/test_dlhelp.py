@@ -45,17 +45,9 @@ class TestDownloadHelp(TestAsServer):
         time.sleep(5)
         print >>sys.stderr,"test: MyLaunchMany should have started up"
 
-    def setUpPreTriblerInit(self):
+    def setUpPreSession(self):
         """ override TestAsServer """
-        TestAsServer.setUpPreTriblerInit(self)
-        
-        torrent2dir = os.path.join(self.config_path,'torrent2')
-        os.mkdir(torrent2dir)
-        
-        self.config['torrent_dir'] = torrent2dir
-        self.config['saveas_style'] = 1 # must be 1 for security during download helping
-        self.config['priority'] = 1
-        self.config['display_path'] = 1
+        TestAsServer.setUpPreSession(self)
 
         self.setUpMyListenSockets()
         
@@ -82,9 +74,9 @@ class TestDownloadHelp(TestAsServer):
         self.myss2.listen(1)
 
 
-    def setUpPreLaunchMany(self):
+    def setUpPostSession(self):
         """ override TestAsServer """
-        TestAsServer.setUpPreLaunchMany(self)
+        TestAsServer.setUpPostSession(self)
 
         self.mypermid = str(self.my_keypair.pub().get_der())
         self.hispermid = str(self.his_keypair.pub().get_der())  

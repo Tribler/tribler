@@ -23,7 +23,7 @@ t = 0
 count = 0
 
 def testfunc(subj, change, obj_id, *rest):
-            #if subj == Notifier.PEERS:
+            #if subj == NTFY_PEERS:
             obj_id = show_permid_short(obj_id) # also infohash :)
             print 'Observer: %s %s %s: %s' % (subj, change, obj_id, rest)
             
@@ -78,8 +78,8 @@ if __name__ == "__main__":
     s.set_download_states_callback(states_callback,getpeerlist=False)
     
     # For testing only! 
-    s.add_observer(testfunc, Notifier.PEERS)
-    s.add_observer(testfunc, Notifier.TORRENTS)
+    s.add_observer(testfunc, NTFY_PEERS)
+    s.add_observer(testfunc, NTFY_TORRENTS)
     #s.remove_observer(testfunc)
      
     # Torrent 1
