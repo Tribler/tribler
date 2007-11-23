@@ -225,7 +225,7 @@ class TestSecureOverlay(unittest.TestCase):
 
         peer_db = PeerDBHandler.getInstance()
         hispermid = self.peer2.my_permid
-        peer_db.updatePeerIPPort(hispermid, "127.0.0.1", 22220)
+        peer_db.addPeer(hispermid, {'ip':"127.0.0.1", 'port':22220})
 
         self.peer1.secure_overlay.connect(hispermid,self.connect_to_dead_peerB_callback)
         sleep(2) # let rawserver thread establish connection, which should fail
@@ -248,7 +248,7 @@ class TestSecureOverlay(unittest.TestCase):
 
         peer_db = PeerDBHandler.getInstance()
         hispermid = self.peer2.my_permid
-        peer_db.updatePeerIPPort(hispermid, "127.0.0.1", 5678)
+        peer_db.addPeer(hispermid,{'ip':"127.0.0.1", 'port':5678})
 
         self.peer1.secure_overlay.connect(hispermid,self.connect_to_live_peer_callback)
         sleep(2) # let rawserver thread establish connection, which should succeed
@@ -273,7 +273,7 @@ class TestSecureOverlay(unittest.TestCase):
         
         peer_db = PeerDBHandler.getInstance()
         hispermid = self.peer2.my_permid
-        peer_db.updatePeerIPPort(hispermid, "127.0.0.1", 5678)
+        peer_db.addPeer(hispermid,{'ip':"127.0.0.1", 'port':5678})
 
         self.peer1.secure_overlay.connect(hispermid,self.connect_to_live_peer_callback)
         sleep(2) # let rawserver thread establish connection, which should succeed
@@ -315,7 +315,7 @@ class TestSecureOverlay(unittest.TestCase):
         self.wanted = True
         peer_db = PeerDBHandler.getInstance()
         hispermid = self.peer2.my_permid
-        peer_db.updatePeerIPPort(hispermid, "127.0.0.1", 5678)
+        peer_db.addPeer(hispermid,{'ip':"127.0.0.1", 'port':5678})
         self.peer1.secure_overlay.send(hispermid,'msg=bla',self.send_unopenedB_send_callback)
         sleep(2) # let rawserver thread close connection, which should succeed
         self.assert_(len(self.peer1.secure_overlay.iplport2oc) == 0)
@@ -405,7 +405,7 @@ class TestSecureOverlay(unittest.TestCase):
         self.wanted2 = True
         peer_db = PeerDBHandler.getInstance()
         hispermid = self.peer2.my_permid
-        peer_db.updatePeerIPPort(hispermid, "127.0.0.1", 5678)
+        peer_db.addPeer(hispermid,{'ip':"127.0.0.1", 'port':5678})
         msg = GET_METADATA+'12345678901234567890'
         self.peer1.secure_overlay.connect(hispermid,lambda e,d,p,s: self.send_opened_connect_callback(e,d,p,s,msg))
 
@@ -463,7 +463,7 @@ class TestSecureOverlay(unittest.TestCase):
 
         peer_db = PeerDBHandler.getInstance()
         hispermid = self.peer2.my_permid
-        peer_db.updatePeerIPPort(hispermid, "127.0.0.1", 5678)
+        peer_db.addPeer(hispermid,{'ip':"127.0.0.1", 'port':5678})
         msg = GET_METADATA+'12345678901234567890'
         self.peer1.secure_overlay.connect(hispermid,lambda e,d,p,s: self.receive_connect_callback(e,d,p,s,msg))
 
@@ -505,7 +505,7 @@ class TestSecureOverlay(unittest.TestCase):
 
         peer_db = PeerDBHandler.getInstance()
         hispermid = self.peer2.my_permid
-        peer_db.updatePeerIPPort(hispermid, "127.0.0.1", 5678)
+        peer_db.addPeer(hispermid,{'ip':"127.0.0.1", 'port':5678})
         msg = GET_METADATA+'12345678901234567890'
         self.peer1.secure_overlay.connect(hispermid,lambda e,d,p,s:self.got_conn_incoming_connect_callback(e,d,p,s,msg))
 
@@ -540,7 +540,7 @@ class TestSecureOverlay(unittest.TestCase):
 
         peer_db = PeerDBHandler.getInstance()
         hispermid = self.peer2.my_permid
-        peer_db.updatePeerIPPort(hispermid, "127.0.0.1", 5678)
+        peer_db.addPeer(hispermid,{'ip':"127.0.0.1", 'port':5678})
         msg = GET_METADATA+'12345678901234567890'
         self.peer1.secure_overlay.connect(hispermid,lambda e,d,p,s:self.got_conn_outgoing_connect_callback(e,d,p,s,msg))
 
