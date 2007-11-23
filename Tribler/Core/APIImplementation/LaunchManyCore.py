@@ -20,7 +20,6 @@ from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.download_bt1 import BT1Download
 from Tribler.Core.BitTornado.RawServer import RawServer
 from Tribler.Core.BitTornado.ServerPortHandler import MultiHandler
-from Tribler.Core.BitTornado.RateLimiter import RateLimiter
 from Tribler.Core.BitTornado.BT1.track import Tracker
 from Tribler.Core.BitTornado.HTTPHandler import HTTPHandler,DummyHTTPHandler
 

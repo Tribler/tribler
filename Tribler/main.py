@@ -1,12 +1,16 @@
 # Written by Arno Bakker 
 # see LICENSE.txt for license information
 
-from Tribler.Core.API import *
-from Tribler.Core.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
+from Tribler.Core.Session import Session
+from Tribler.Core.SessionConfig import *
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.DownloadConfig import *
+from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
 import time
-from Tribler.Core.CacheDB.Notifier import Notifier
+from Tribler.Core.APIImplementation.UserCallbackHandler import Notifier
 from Tribler.Core.Utilities.utilities import show_permid_short
-    
+from threading import currentThread
+
 sscfg = SessionStartupConfig()
 if sys.platform == 'win32':
     s = Session()
@@ -18,7 +22,7 @@ else:
 
 
 r = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()
-r.set_global_max_speed(DOWNLOAD,100)
+#r.set_global_max_speed(DOWNLOAD,25)
 t = 0
 count = 0
 
@@ -33,18 +37,21 @@ def states_callback(dslist):
     global t
     global count
     
-    adjustspeeds = False
-    #if count % 4 == 0:
-    #    adjustspeeds = True
+    adjustspeeds = True
+    r.set_global_max_speed(DOWNLOAD,10000)
+    if count > 10:
+        r.set_global_max_speed(DOWNLOAD,25)
+    if count > 20:
+        count = 0
     count += 1
     
     for ds in dslist:
         d = ds.get_download()
         print >>sys.stderr,"main: Stats",`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD),currentThread().getName()
         
-        complete = ds.get_pieces_complete()
-        print >>sys.stderr,"main: Pieces completed",`d.get_def().get_name()`,"len",len(complete)
-        print >>sys.stderr,"main: Pieces completed",`d.get_def().get_name()`,complete[:60]
+        #complete = ds.get_pieces_complete()
+        #print >>sys.stderr,"main: Pieces completed",`d.get_def().get_name()`,"len",len(complete)
+        #print >>sys.stderr,"main: Pieces completed",`d.get_def().get_name()`,complete[:60]
         
         """
         if ds.get_status() == DLSTATUS_SEEDING:
@@ -52,14 +59,14 @@ def states_callback(dslist):
             d.checkpoint()
         """
         
-        if adjustspeeds:
-            r.add_downloadstate(ds)
+        
         
     if adjustspeeds:
+        r.add_downloadstatelist(dslist)
         r.adjust_speeds()
         
     #time.sleep(10)
-    return (120.0,False)
+    return (2.0,False)
 
 
 
@@ -78,8 +85,10 @@ if __name__ == "__main__":
     s.set_download_states_callback(states_callback,getpeerlist=False)
     
     # For testing only! 
-    s.add_observer(testfunc, NTFY_PEERS)
-    s.add_observer(testfunc, NTFY_TORRENTS)
+
+    #s.add_observer(testfunc, NTFY_PEERS)
+    #s.add_observer(testfunc, NTFY_TORRENTS)
+
     #s.remove_observer(testfunc)
      
     # Torrent 1
@@ -90,6 +99,7 @@ if __name__ == "__main__":
         tdef = TorrentDef.load('/tmp/bla.torrent')
         
     dcfg = DownloadStartupConfig()
+    dcfg.set_max_rate_period(2.0)
     #dcfg.set_dest_dir('/arno/tmp/scandir')
     """
     dcfg.set_video_on_demand(vod_ready_callback)
@@ -108,10 +118,9 @@ if __name__ == "__main__":
     d2.set_state_callback(state_callback)
     """
 
-    time.sleep(20)
     
     #s.shutdown()
     #s.remove_download(d,removecontent=True)
-    print 'step 1'
+
     time.sleep(2500) # TODO: make sure we don't quit before shutdown checkpoint complete
     print 'end'

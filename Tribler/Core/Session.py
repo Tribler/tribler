@@ -349,11 +349,11 @@ class Session(SessionRuntimeConfig):
         
         Called by any thread
         """
-        self.lm.notifier.add_observer(func, subject, changeTypes, id) # already threadsafe
+        self.uch.notifier.add_observer(func, subject, changeTypes, id) # already threadsafe
         
     def remove_observer(self, func):
         """ Remove observer function. No more callbacks will be made.
         
         Called by any thread
         """
-        self.lm.notifier.remove_observer(func) # already threadsafe
+        self.uch.notifier.remove_observer(func) # already threadsafe

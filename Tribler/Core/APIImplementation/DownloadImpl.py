@@ -90,8 +90,11 @@ class DownloadImpl:
             else:
                 cdcfg = dcfg
             self.dlconfig = copy.copy(cdcfg.dlconfig)
+            # Copy sessionconfig in dl config
+            for (k,v) in self.session.get_current_startup_config_copy().sessconfig.iteritems():
+                self.dlconfig.setdefault(k,v)
     
-            # TODO: copy sessconfig into dlconfig?
+            
             print >>sys.stderr,"Download: setup: overlay present",('overlay' in self.dlconfig)
     
             self.set_filepieceranges()
