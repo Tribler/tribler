@@ -77,6 +77,9 @@ class Session(SessionRuntimeConfig):
             self.sessconfig = scfg.sessconfig
             self.sessconfig['state_dir'] = state_dir
 
+        if not self.sessconfig['torrent_collecting_dir']:
+            self.sessconfig['torrent_collecting_dir'] = os.path.join(self.sessconfig['state_dir'], 'torrentcoll')
+            
         # PERHAPS: load default TorrentDef and DownloadStartupConfig from state dir
         # Let user handle that, he's got default_state_dir, etc.
 
