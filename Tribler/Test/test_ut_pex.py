@@ -14,6 +14,8 @@ from types import DictType,StringType,IntType
 from Tribler.Test.test_as_server import TestAsServer
 from olconn import OLConnection
 from btconn import BTConnection
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
 from Tribler.Core.DownloadConfig import *
@@ -35,31 +37,25 @@ class TestUTorrentPeerExchange(TestAsServer):
         time.sleep(3)
         print >>sys.stderr,"test: MyLaunchMany should have started up"
     
-    def setUpPreSession(self):
+    def setUpPostSession(self):
         """ override TestAsServer """
-        TestAsServer.setUpPreSession(self)
+        TestAsServer.setUpPostSession(self)
 
         # Let Tribler start downloading an non-functioning torrent, so
         # we can talk to a normal download engine.
         
+        self.torrentfn = os.path.join('extend_hs_dir','dummydata.merkle.torrent')
+        tdef = TorrentDef.load(self.torrentfn)
+
+        dscfg = DownloadStartupConfig()
+        dscfg.set_dest_dir(self.config_path)
+        
+        self.session.start_download(tdef,dscfg)
+        
         # This is the infohash of the torrent in test/extend_hs_dir
-        #self.infohash = '\xccg\x07\xe2\x9e!]\x16\xae{\xb8\x10?\xf9\xa5\xf9\x07\xfdBk'
-        self.infohash = 'd\xdd\xd8\xbb\xfe\xc6\xba\xcbV-M\xd5&d\xc3\xab\x85x\xcd\x93'
+        self.infohash = '\xccg\x07\xe2\x9e!]\x16\xae{\xb8\x10?\xf9\xa5\xf9\x07\xfdBk'
         self.mylistenport = 4810
 
-    def setUpPostLaunchMany(self):
-        TestAsServer.setUpPostLaunchMany(self)
-        
-        tdef = TorrentDef.load('/tmp/bla.torrent')
-        
-        
-        raise ValueError("TEMPARNO: replace with extend_hs_dir/dummydata.merkle.torrent")
-        
-        
-        dcfg = DownloadStartupConfig()
-        dcfg.set_dest_dir('/tmp/dummy')
-        d = self.session.start_download(tdef,dcfg)
-        
     def test_all(self):
         """ 
             I want to start a Tribler client once and then connect to
@@ -201,10 +197,16 @@ class TestUTorrentPeerExchange(TestAsServer):
     def check_ut_pex(self,data,pex_id):
         self.assert_(data[0] == chr(pex_id))
         d = bdecode(data[1:])
+        
+        print >>sys.stderr,"test: d is",`d`
+        
         self.assert_(type(d) == DictType)
         self.assert_('added' in d.keys())
         cp = d['added']
         apeers = self.check_compact_peers(cp)
+        
+        print >>sys.stderr,"test: apeers is",apeers
+        
         self.assert_('added.f' in d.keys())
         f = d['added.f']
         print "test: Length of added.f",len(f)

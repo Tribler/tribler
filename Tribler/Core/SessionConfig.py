@@ -61,11 +61,13 @@ class SessionConfigInterface:
     def get_install_dir(self):
         return self.sessconfig['install_dir']
     
+    
     def set_permid(self,keypairfilename):
         self.sessconfig['eckeypairfilename'] = keypairfilename
 
     def get_permid(self):
         return self.sessconfig['eckeypairfilename']
+    
         
     def set_listen_port(self,port):
         """

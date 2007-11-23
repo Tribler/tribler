@@ -62,7 +62,7 @@ class TestDialbackReplyActive(TestAsServer):
         self.install_path = tempfile.mkdtemp()
         superpeerfilename = os.path.join(self.install_path, 'superpeer.txt')
         print >> sys.stderr,"test: writing",self.NLISTENERS,"superpeers to",superpeerfilename
-        f = open(superpeerfilename, "w")
+        f = open(superpeerfilename, "wb")
 
         self.mylistenport = []
         self.myss = []
@@ -86,7 +86,7 @@ class TestDialbackReplyActive(TestAsServer):
 
         # To avoid errors
         cfilename = os.path.join(self.install_path, 'category.conf')
-        f = open(cfilename, "w")
+        f = open(cfilename, "wb")
         f.write('')
         f.close()
         #sys.exit(-1)

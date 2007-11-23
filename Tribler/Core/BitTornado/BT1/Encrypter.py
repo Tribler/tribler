@@ -144,11 +144,11 @@ class Connection:
         if r[0] & 0x10:    # left + 43 bit
             self.support_extend_messages = True
             if DEBUG:
-                print >>sys.stderr,"Peer supports overlay swarm"
+                print >>sys.stderr,"encoder: Peer supports EXTEND"
         if r[0] & 0x20:    # left + 42 bit
             self.support_merklehash= True
             if DEBUG:
-                print >>sys.stderr,"Peer supports Merkle hashes"
+                print >>sys.stderr,"encoder: Peer supports Merkle hashes"
 # _overlay
 
     def read_header_len(self, s):

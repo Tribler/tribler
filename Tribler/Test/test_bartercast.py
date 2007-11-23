@@ -1,4 +1,4 @@
-# Written by Arno Bakker
+# Written by Arno Bakker, Michel Meulpolder
 # see LICENSE.txt for license information
 
 import unittest
@@ -17,8 +17,6 @@ from Tribler.Test.test_as_server import TestAsServer
 from olconn import OLConnection
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
-
-from Tribler.Main.Dialogs.MugshotManager import MugshotManager,ICON_MAX_SIZE
 
 from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
 
@@ -40,6 +38,7 @@ class TestBarterCast(TestAsServer):
         TestAsServer.setUpPreSession(self)
         # Enable buddycast
         self.config.set_buddycast(True)
+        self.config.set_start_recommender(True)
         self.config.set_bartercast(True)
 
     def setUpPostSession(self):

@@ -46,7 +46,7 @@ class TestSocialOverlap(TestAsServer):
         """ override TestAsServer """
         TestAsServer.setUpPreSession(self)
         # Enable social networking
-        self.config['socnet'] = 1
+        self.config.set_social_networking(True)
 
     def setUpPostSession(self):
         """ override TestAsServer """
@@ -58,7 +58,7 @@ class TestSocialOverlap(TestAsServer):
         sleep(4)
 
         self.mm = MugshotManager.getInstance()
-        self.mm.register(self.config_path,os.getcwd())
+        self.mm.register(self.config.sessconfig)
 
         self.mypermid = str(self.my_keypair.pub().get_der())
         self.hispermid = str(self.his_keypair.pub().get_der())        
@@ -139,17 +139,11 @@ class TestSocialOverlap(TestAsServer):
         return self.read_file(self.make_filename('usericon-ok.jpg'))
 
     def make_filename(self,filename):
-        """ The main test is run from the main source dir, not test/ 
-            Allow for running from test/ as well. 
-        """
-        cwd = os.getcwd()
-        if cwd.endswith('test'):
-            return filename
-        else:
-            return os.path.join(cwd,'test',filename)
+        """ Test assume to be run from new Tribler/Test """
+        return filename
 
     def read_file(self,filename):
-        f = open( filename, 'r')
+        f = open( filename, 'rb')
         data = f.read()
         f.close()
         return data

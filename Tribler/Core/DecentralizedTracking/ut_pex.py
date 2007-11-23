@@ -33,17 +33,22 @@ EXTEND_MSG_UTORRENT_PEX = 'ut_pex' # note case sensitive
 DEBUG = False
 
 def create_ut_pex(addedconns,droppedconns,thisconn):
+    #print >>sys.stderr,"ut_pex: create_ut_pex:",addedconns,droppedconns,thisconn
     d = {}
     compactedpeerstr = compact_connections(addedconns,thisconn)
     d['added'] = compactedpeerstr
     flags = ''
     for i in range(len(addedconns)):
         conn = addedconns[i]
+        if conn == thisconn:
+            continue
         flag = 0
         if conn.get_extend_encryption():
             flag |= 1
         if conn.download is not None and conn.download.peer_is_complete():
             flag |= 2
+            
+        #print >>sys.stderr,"ut_pex: create_ut_pex: add flag",`flag`
         flags += chr(flag)
     d['added.f'] = flags
     compactedpeerstr = compact_connections(droppedconns)

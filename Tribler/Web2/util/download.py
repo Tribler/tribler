@@ -47,7 +47,7 @@ class Download(observer.Subject, threading.Thread):
         try:
             eof = False
             tmp1fd, tmp1fn = tempfile.mkstemp()
-            tmp1 = os.fdopen(tmp1fd, "w+")
+            tmp1 = os.fdopen(tmp1fd, "wb+")
 
             #print "Temp file: ", tmp1
 

@@ -330,6 +330,8 @@ class BuddyCastFactory:
         
     def handleMessage(self, permid, selversion, message):
         if not self.registered or not self.running:
+            if DEBUG:
+                print >> sys.stderr, "bc: handleMessage got message, but we're not enabled or running"
             return False
         
         t = message[0]
@@ -344,7 +346,7 @@ class BuddyCastFactory:
                 
         elif t == BARTERCAST:
             if DEBUG:
-                print >> sys.stderr, "Received bartercast message"
+                print >> sys.stderr, "bc: Received bartercast message"
             return self.bartercast_core.gotBarterCastMessage(message[1:], permid, selversion)
             
         else:

@@ -17,6 +17,8 @@ from SocketServer import ThreadingMixIn,BaseServer
 from Tribler.Test.test_as_server import TestAsServer
 from olconn import OLConnection
 from btconn import BTConnection
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
 
@@ -79,18 +81,21 @@ class TestExtendHandshakeT350(TestAsServer):
         time.sleep(5)
         print >>sys.stderr,"test: MyLaunchMany should have started up"
     
-    def setUpPreSession(self):
+    def setUpPostSession(self):
         """ override TestAsServer """
-        TestAsServer.setUpPreSession(self)
+        TestAsServer.setUpPostSession(self)
 
         # Let Tribler start downloading an non-functioning torrent, so
         # we can talk to a normal download engine.
-        self.config['torrent_dir'] = os.path.join('extend_hs_dir')
-        self.config['parse_dir_interval'] = 60
-        self.config['saveas_style'] = 1
-        self.config['priority'] = 1
-        self.config['display_path'] = 1
         
+        self.torrentfn = os.path.join('extend_hs_dir','dummydata.merkle.torrent')
+        tdef = TorrentDef.load(self.torrentfn)
+
+        dscfg = DownloadStartupConfig()
+        dscfg.set_dest_dir(self.config_path)
+        
+        self.session.start_download(tdef,dscfg)
+
         # This is the infohash of the torrent in test/extend_hs_dir
         self.infohash = '\xccg\x07\xe2\x9e!]\x16\xae{\xb8\x10?\xf9\xa5\xf9\x07\xfdBk'
 

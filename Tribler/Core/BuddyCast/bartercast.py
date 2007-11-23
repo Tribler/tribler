@@ -49,7 +49,7 @@ class BarterCastCore:
             return
 
         if DEBUG:
-            print "Sending BarterCast msg to ", self.bartercastdb.getName(target_permid)
+            print >> sys.stderr, "bartercast: Sending BarterCast msg to ", self.bartercastdb.getName(target_permid)
 
         # create a new bartercast message
         bartercast_data = self.createBarterCastMessage(target_permid)
@@ -95,10 +95,10 @@ class BarterCastCore:
     def bartercastSendCallback(self, exc, target_permid, other=0):
         if exc is None:
             if DEBUG:
-                print "%s bartercast: *** msg was sent successfully to peer %s" % (ctime(now()), self.bartercastdb.getName(target_permid))
+                print "bartercast: %s *** msg was sent successfully to peer %s" % (ctime(now()), self.bartercastdb.getName(target_permid))
         else:
             if DEBUG:
-                print "%s bartercast: *** warning - error in sending msg to %s" % (ctime(now()), self.bartercastdb.getName(target_permid))
+                print "bartercast: %s *** warning - error in sending msg to %s" % (ctime(now()), self.bartercastdb.getName(target_permid))
 
 
     ################################
@@ -106,7 +106,7 @@ class BarterCastCore:
         """ Received a bartercast message and handle it. Reply if needed """
         
         if DEBUG:
-            print '%s bartercast: Received a BarterCast msg from %s'% (ctime(now()), self.bartercastdb.getName(sender_permid))
+            print >>sys.stderr,'bartercast: %s Received a BarterCast msg from %s'% (ctime(now()), self.bartercastdb.getName(sender_permid))
             
         if not sender_permid or sender_permid == self.bartercastdb.my_permid:
             print >> sys.stderr, "bartercast: error - got BarterCastMsg from a None peer", \
@@ -170,7 +170,7 @@ class BarterCastCore:
     def handleBarterCastMsg(self, sender_permid, data):
         
         if DEBUG:
-            print "Processing bartercast msg from: ", self.bartercastdb.getName(sender_permid)
+            print >> sys.stderr, "bartercast: Processing bartercast msg from: ", self.bartercastdb.getName(sender_permid)
         
         # process bartercast data in database
         for permid in data.keys():
@@ -179,7 +179,7 @@ class BarterCastCore:
             data_from = data[permid]['d']
             
             if DEBUG:
-                print "BarterCast data: (%s, %s) up = %d down = %d" % (self.bartercastdb.getName(sender_permid), self.bartercastdb.getName(permid),\
+                print >> sys.stderr, "bartercast: data: (%s, %s) up = %d down = %d" % (self.bartercastdb.getName(sender_permid), self.bartercastdb.getName(permid),\
                                                                         data_to, data_from)
 
             # update database sender->permid and permid->sender
@@ -225,4 +225,4 @@ class BarterCastCore:
         block_list[peer_permid] = unblock_time
         
         if DEBUG:
-            print '%s bartercast: Blocked peer %s'% (ctime(now()), self.bartercastdb.getName(peer_permid))
+            print >>sys.stderr,'bartercast: %s Blocked peer %s'% (ctime(now()), self.bartercastdb.getName(peer_permid))

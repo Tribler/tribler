@@ -151,7 +151,7 @@ class OverlayApps:
             return False
         else:
             if DEBUG:
-                print >> sys.stderr,"secover: Giving message to handler for",getMessageName(id)
+                print >> sys.stderr,"olapps: Giving message to handler for",getMessageName(id)
             try:
                 return self.msg_handlers[id](permid,selversion,message)
             except:

@@ -44,14 +44,14 @@ def suite():
     import test_permid_response1 as test_permid_response1
     import test_dialback_request as test_dialback_request
     import test_extend_hs as test_extend_hs
-    """
     import test_extend_hs_t350 as test_extend_hs_t350
     import test_social_overlap as test_social_overlap
     import test_gui_server as test_gui_server
+    """
     import test_remote_query as test_remote_query
+    """
     import test_ut_pex as test_ut_pex
     import test_bartercast as test_bartercast
-    """
 
     # Note: There are more tests, but these require a fresh Python interpreter
     # for each test, so they need to be run from shell scripts. See test_*.sh and
@@ -69,17 +69,17 @@ def suite():
         ##test_buddycast,  # currently not working due to unfinished test functions
         ##test_buddycast2_datahandler, # complains about addRemoteSearchPeer 
         ##test_sim, # currently not working due to unfinished test functions
-        #test_merkle,
-        #test_permid,
-        #test_permid_response1,
-        #test_dialback_request,
+        test_merkle,
+        test_permid,
+        test_permid_response1,
+        test_dialback_request,
         test_extend_hs,
-        #test_extend_hs_t350,
-        #test_social_overlap,
-        #test_gui_server,
-        #test_remote_query,
-        #test_ut_pex,
-        #test_bartercast
+        test_extend_hs_t350,
+        test_social_overlap,
+        test_gui_server,
+        ##test_remote_query,
+        test_ut_pex,
+        test_bartercast
         ]
 
     alltests = unittest.TestSuite()
