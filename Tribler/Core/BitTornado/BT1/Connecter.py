@@ -33,7 +33,7 @@ except:
     False = 0
 
 DEBUG = True
-DEBUG_NORMAL_MSGS = True
+DEBUG_NORMAL_MSGS = False
 
 UNAUTH_PERMID_PERIOD = 3600
 
@@ -480,8 +480,8 @@ class Connecter:
         self.mylistenport = mylistenport
         self.infohash = infohash
         self.overlay_enabled = 0
-        if 'overlay' in self.config:
-            self.overlay_enabled = self.config['overlay']
+        if self.config['overlay']:
+            self.overlay_enabled = True
             
         print >>sys.stderr,"connecter: Enabling/Disabling overlay",self.overlay_enabled
             
@@ -517,7 +517,7 @@ class Connecter:
             
             
         # BarterCast
-        if 'megacache' in config and config['megacache']: # TEMP ARNO: TODO: WE EXPECT A SESSION CONFIG HERE
+        if config['megacache']:
             self.peerdb = PeerDBHandler.getInstance()
             self.bartercastdb = BarterCastDBHandler.getInstance()
         else:
@@ -531,7 +531,7 @@ class Connecter:
         c = Connection(connection, self)
         self.connections[connection] = c
         
-        if self.overlay_enabled and connection.support_olswarm_extend:
+        if connection.support_extend_messages:
             # The peer either supports our overlay-swarm extension or 
             # the utorrent extended protocol. And we have overlay swarm enabled.
             [client,version] = decodePeerID(connection.id)
