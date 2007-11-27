@@ -37,7 +37,7 @@ def parsedir(directory, parsed, files, blocked,
             if newtorrent:
                 newtorrents = True
                 p = os.path.join(directory, f)
-                new_files[p] = [(os.path.getmtime(p), os.path.getsize(p)), 0]
+                new_files[p] = [(int(os.path.getmtime(p)), os.path.getsize(p)), 0]
                 torrent_type[p] = newtorrent
         if not newtorrents:
             for f in os.listdir(directory):
