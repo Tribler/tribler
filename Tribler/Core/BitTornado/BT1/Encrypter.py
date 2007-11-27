@@ -25,7 +25,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = True
+DEBUG = False
 
 if sys.platform == 'win32':
     # On windows XP SP2 we can't initiate more than 10 conns/second
@@ -423,7 +423,11 @@ class Encoder:
         # make sure addrs from various sources, like tracker, ut_pex and DHT are mixed
         # TEMP ARNO: or not? For Tribler Supported we may want the tracker to
         # be more authoritative, such that official seeders found fast. Nah.
-        random.shuffle(self.to_connect) 
+        
+        #random.shuffle(self.to_connect) 
+        #Jelle: Since objects are already placed in the Set in pseudo random order, they don't have to 
+        # be shuffled (and a Set cannot be shuffled).
+        
         self.trackertime = int(time()) 
 
     def _start_connection_from_queue(self,sched=True):
