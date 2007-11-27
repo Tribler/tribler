@@ -9,7 +9,7 @@ from traceback import print_exc
 
 from Tribler.Core.simpledefs import *
 
-DEBUG = True
+DEBUG = False
 
 
 class RateManager:
@@ -34,6 +34,10 @@ class RateManager:
         finally:
             self.lock.release()
 
+    def add_downloadstatelist(self, dslist):
+        for ds in dslist:
+            self.add_downloadstate(ds)
+            
     def adjust_speeds(self):
         """ Adjust speeds for the specified set of downloads and clears the set """
         self.lock.acquire()
