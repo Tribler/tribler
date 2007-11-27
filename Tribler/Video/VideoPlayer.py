@@ -78,7 +78,7 @@ class VideoPlayer:
             if videoinfo is None:
                 return # error already given
 
-            bitrate = videoinfo[2]
+            bitrate = videoinfo['bitrate']
             if bitrate is None and not ABCTorrentTemp.status.completed:
                 video_analyser_path = self.utility.config.Read('videoanalyserpath')
                 if not os.access(video_analyser_path,os.F_OK):
@@ -89,7 +89,7 @@ class VideoPlayer:
             # So if the file to play is unicode we play it via HTTP. The alternative is to make
             # Tribler save the data in non-unicode filenames.
             #
-            flag = self.playbackmode == PLAYBACKMODE_INTERNAL and not self.is_ascii_filename(videoinfo[3])
+            flag = self.playbackmode == PLAYBACKMODE_INTERNAL and not self.is_ascii_filename(videoinfo['outpath'])
             
             if ABCTorrentTemp.status.completed:
                 if enc or flag:
@@ -119,7 +119,7 @@ class VideoPlayer:
         enc = stat(ABCTorrentTemp)
         
         # If encoded the prefix is e.g. .mpg.enc and we want the .mpg
-        dest = videoinfo[3]
+        dest = videoinfo['outpath']
         (prefix,ext) = os.path.splitext(dest)
         if enc and ext == '.enc':
             (prefix,ext) = os.path.splitext(prefix)
@@ -135,7 +135,7 @@ class VideoPlayer:
 
     def play_from_file(self,ABCTorrentTemp,videoinfo):
         """ Play video file from disk """
-        dest = videoinfo[3]
+        dest = videoinfo['outpath']
         if DEBUG:
             print >>sys.stderr,"videoplay: Playing file from disk",dest
 
@@ -155,7 +155,7 @@ class VideoPlayer:
         oldvideoinfo = ABCTorrentTemp.get_videoinfo()
         
         # 1. (Re)Start torrent in VOD mode
-        switchfile = oldvideoinfo is not None and oldvideoinfo[0] != videoinfo[0]
+        switchfile = oldvideoinfo is not None and oldvideoinfo['index'] != videoinfo['index']
         if not ABCTorrentTemp.get_on_demand_download() or switchfile:
             
             if switchfile:
@@ -212,7 +212,7 @@ class VideoPlayer:
         
         # 2. Setup video source
         enc = stat(ABCTorrentTemp)
-        dest = videoinfo[1]
+        dest = videoinfo['inpath']
         (prefix,ext) = os.path.splitext(dest)
         if enc and ext == '.enc':
             (prefix,ext) = os.path.splitext(prefix)
@@ -339,8 +339,8 @@ class VideoPlayer:
             return None
         elif len(fileindexlist) == 1:
             videoinfo = fileindexlist[0]
-            if videoinfo[3] is None:
-                self.onWarning(self.utility.lang.get('videoplaycontentnotfound'),videoinfo[1])
+            if videoinfo['outpath'] is None:
+                self.onWarning(self.utility.lang.get('videoplaycontentnotfound'),videoinfo['inpath'])
                 return None
             return fileindexlist[0]
         else:
@@ -456,11 +456,11 @@ class VideoPlayer:
         
         for i in range(len(fileindexlist)):
             videoinfo = fileindexlist[i]
-            if videoinfo[3] is not None:
-                filelist.append(fileindexlist[i][1])
+            if videoinfo['outpath'] is not None:
+                filelist.append(videoinfo['inpath'])
             
         if len(filelist) == 0:
-            self.onWarning(self.utility.lang.get('videoplaycontentnotfound'),videoinfo[1])
+            self.onWarning(self.utility.lang.get('videoplaycontentnotfound'),videoinfo['inpath'])
             return None
             
             
@@ -560,7 +560,7 @@ class VODWarningDialog(wx.Dialog):
         maxuploadrate = self.utility.config.Read('maxuploadrate', 'int')
         maxmeasureduploadrate = self.utility.queue.getMaxMeasuredUploadRate()
         
-        bitrate = videoinfo[2]
+        bitrate = videoinfo['bitrate']
         msg = self.utility.lang.get('vodwarngeneral')
         """
         if bitrate is None:
@@ -634,7 +634,7 @@ class VODWarningDialog(wx.Dialog):
         return idx
 
     def is_mov_file(self,videoinfo):
-        orig = videoinfo[1]
+        orig = videoinfo['inpath']
         (prefix,ext) = os.path.splitext(orig)
         low = ext.lower()
         if low == '.mov':
@@ -686,7 +686,7 @@ def find_video_on_disk(ABCTorrentTemp,enc=False,getdest=True):
             except:
                 print_exc(file=sys.stderr)
 
-            fileindexlist.append([-1,info['name'],bitrate,ABCTorrentTemp.files.dest])
+            fileindexlist.append({'index':-1,'inpath':info['name'],'bitrate':bitrate,'outpath':ABCTorrentTemp.files.dest})
 
     if 'files' in info:
         for i in range(len(info['files'])):
@@ -712,7 +712,7 @@ def find_video_on_disk(ABCTorrentTemp,enc=False,getdest=True):
                     dest = ABCTorrentTemp.files.getSingleFileDest(index=i)
                 else:
                     dest = None
-                fileindexlist.append([i,intorrentpath,bitrate,dest])
+                fileindexlist.append({'index':i,'inpath':intorrentpath,'bitrate':bitrate,'outpath':dest})
     return fileindexlist
 
 

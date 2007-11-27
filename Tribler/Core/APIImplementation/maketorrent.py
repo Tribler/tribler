@@ -65,16 +65,21 @@ def make_torrent_file(input, userabortflag = None, userprogresscallback = lambda
             secs = parse_playtime_to_secs(file['playtime'])
             bitrate = file['length']/secs
             break
+        if file['bps'] is not None:
+            bitrate = file['bps']
+            break
 
     if bitrate is not None or input['thumb'] is not None:
         mdict = {}
         mdict['Publisher'] = 'Tribler'
         mdict['Description'] = input['comment']
+
         if bitrate is not None:
             mdict['Progressive'] = 1
             mdict['Speed Bps'] = bitrate
         else:
             mdict['Progressive'] = 0
+
         mdict['Title'] = metainfo['info']['name']
         mdict['Creation Date'] = long(time())
         # Azureus client source code doesn't tell what this is, so just put in random value from real torrent
@@ -235,10 +240,14 @@ def makeinfo(input,userabortflag,userprogresscallback):
                    'path': uniconvertl(p,encoding),
                    'path.utf-8': uniconvertl(p, 'utf-8') }
         
-        # Find and add playtime
+        # Find and add playtime and live flag
         for file in input['files']:
-            if file['inpath'] == f and file['playtime'] is not None:
-                newdict['playtime'] = file['playtime']
+            if file['inpath'] == f:
+
+                if file['playtime'] is not None:
+                    newdict['playtime'] = file['playtime']
+                if file['live'] is not None:
+                    newdict['live'] = file['live']
                 break
         
         if input['makehash_md5']:
@@ -280,11 +289,15 @@ def makeinfo(input,userabortflag,userprogresscallback):
         infodict.update( {'pieces': ''.join(pieces) } )
 
     if len(subs) == 1:
-        # Find and add playtime
+        # Find and add playtime and live flag
         for file in input['files']:
-            if file['inpath'] == f and file['playtime'] is not None:
-                infodict['playtime'] = file['playtime']
-        
+            if file['inpath'] == f:
+
+                if file['playtime'] is not None:
+                    infodict['playtime'] = file['playtime']
+                if file['live'] is not None:
+                    infodict['live'] = file['live']
+
     return (infodict,piece_length)
 
 
@@ -346,6 +359,25 @@ def num2num(num):
     else:
         return num
 
+def get_file_info(file,metainfo):
+    info = metainfo['info']
+    if file is None:
+        return info
+
+    if file is not None and 'files' in info:
+        for i in range(len(info['files'])):
+            x = info['files'][i]
+                
+            intorrentpath = ''
+            for elem in x['path']:
+                intorrentpath = os.path.join(intorrentpath,elem)
+                
+            if intorrentpath == file:
+                return x
+            
+        raise ValueError("File not found in torrent")
+    else:
+        raise ValueError("File not found in single-file torrent")
 
 def get_bitrate_from_metainfo(file,metainfo):
     info = metainfo['info']

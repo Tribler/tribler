@@ -144,7 +144,7 @@ class TorrentDef(Serializable,Copyable):
     #
     # Convenience instance methods for publishing new content
     #
-    def add_content(self,inpath,outpath=None,playtime=None):
+    def add_content(self,inpath,outpath=None,playtime=None,bps=None,live=None):
         """
         Add a file or directory to this torrent definition. When adding a
         directory, all files in that directory will be added to the torrent.
@@ -174,12 +174,14 @@ class TorrentDef(Serializable,Copyable):
                 Unicode string.
         playtime = (optional) String representing the duration of the multimedia
                    file when played, in [hh:]mm:ss format. 
+        bps = (optional) Bitrate of the multimedia file, in bytes/sec.
+        live = (optional) Integer describing whether the content is live (1 = yes, 0 = no).
         """
         if self.readonly:
             raise OperationNotPossibleAtRuntimeException()
         
         s = os.stat(inpath)
-        d = {'inpath':inpath,'outpath':outpath,'playtime':playtime,'length':s.st_size}
+        d = {'inpath':inpath,'outpath':outpath,'playtime':playtime,'length':s.st_size,'bps':bps,'live':live}
         self.input['files'].append(d)
         
         self.metainfo_valid = False
@@ -517,7 +519,20 @@ class TorrentDef(Serializable,Copyable):
             raise NotYetImplementedException() # must save first
 
         bitrate = maketorrent.get_bitrate_from_metainfo(file,self.metainfo)
-    
+
+    def get_live(self,file=None):
+        """ Returns whether the specified file is being streamed live.
+        If no file is specified, Tribler assumes this is a single-file torrent
+        """ 
+        if DEBUG:
+            print >>sys.stderr,"TorrentDef: get_live called",file
+        
+        if not self.metainfo_valid:
+            raise NotYetImplementedException() # must save first
+
+        info = maketorrent.get_file_info(file,self.metainfo)
+
+        return 'live' in info and info['live']
     
     def get_video_files(self,videoexts=videoextdefaults):
         if not self.metainfo_valid:

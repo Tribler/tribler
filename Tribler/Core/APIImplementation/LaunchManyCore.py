@@ -536,7 +536,7 @@ class TriblerLaunchMany(Thread):
         if mimetype is None:
             if sys.platform == 'win32':
                 try:
-                    file = videoinfo[1]
+                    file = videoinfo['inpath']
                     (prefix,ext) = os.path.splitext(file)
                     ext = ext.lower()
                     (mimetype,playercmd) = win32_retrieve_video_play_command(ext,'')
@@ -549,14 +549,14 @@ class TriblerLaunchMany(Thread):
         if complete:
             if DEBUG:
                 print >>sys.stderr,"tlm: vod_playable: PiecePicker says complete, give filename"
-            filename = videoinfo[3]
+            filename = videoinfo['outpath']
         else:
             if DEBUG:
                 print >>sys.stderr,"vod: vod_playable: PiecePiecker says incomplete, give stream"
             filename = None
         
         # Call Session threadpool to call user's callback        
-        videoinfo[4](mimetype,stream,filename)
+        videoinfo['usercallback'](mimetype,stream,filename)
 
     def _torrent_checking(self):
         "Called by network thread"

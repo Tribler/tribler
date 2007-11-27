@@ -61,10 +61,10 @@ class SingleDownload:
             
             # Set local filename in vodfileindex
             if vodfileindex is not None:
-                index = vodfileindex[0]
+                index = vodfileindex['index']
                 if index == -1:
                     index = 0
-                vodfileindex[3] = self.dow.get_dest(index)
+                vodfileindex['outpath'] = self.dow.get_dest(index)
             self.dow.set_videoinfo(vodfileindex)
 
             print >>sys.stderr,"SingleDownload: setting vodfileindex",vodfileindex

@@ -91,6 +91,7 @@ class StorageWrapper:
         self.unpauseflag = unpauseflag
         
         self.alloc_type = config.get('alloc_type', 'normal')
+        self.live_streaming = config.get('live_streaming', 0)
         self.double_check = config.get('double_check', 0)
         self.triple_check = config.get('triple_check', 0)
         if self.triple_check:
@@ -289,7 +290,7 @@ class StorageWrapper:
                 else:
                     self.check_list.append(i)
                 continue
-            if not self.check_hashes:
+            if not self.live_streaming and not self.check_hashes:
                 self.failed('file supposed to be complete on start-up, but data is missing')
                 return False
             self.holes.append(i)
@@ -830,7 +831,7 @@ class StorageWrapper:
             return True
         hash = sha(data[:]).digest()
         data.release()
-        if hash != self.hashes[index]:
+        if self.live_streaming and hash != self.hashes[index]:
 
             self.amount_obtained -= length
             self.data_flunked(length, index)
@@ -903,7 +904,7 @@ class StorageWrapper:
             data = self.read_raw(self.places[index], 0, self._piecelen(index))
             if data is None:
                 return None
-            if sha(data[:]).digest() != self.hashes[index]:
+            if not self.live_streaming and sha(data[:]).digest() != self.hashes[index]:
                 self.failed('file supposed to be complete on start-up, but piece failed hash check')
                 return None
             self.waschecked[index] = True

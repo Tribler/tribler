@@ -154,14 +154,18 @@ class DownloadImpl:
                 file = self.get_def().get_name()
                 idx = -1
                 bitrate = self.get_def().get_bitrate(None)
+                live = self.get_def().get_live(None)
             else:
                 # multi-file torrent
                 file = self.dlconfig['selected_files'][0]
                 idx = self.get_def().get_index_of_file_in_files(file)
                 bitrate = self.get_def().get_bitrate(file)
-            vodfileindex = [idx,file,bitrate,None,vod_usercallback_wrapper]
+                live = self.get_def().get_live(file)
+            vodfileindex = {'index':idx,'inpath':file,'bitrate':bitrate,'live':live,'usercallback':vod_usercallback_wrapper}
         else:
-            vodfileindex = [-1,None,0.0,None,None]
+            vodfileindex = {'index':-1,'inpath':None,'bitrate':0.0,'live':False,'usercallback':None}
+
+        vodfileindex['outpath'] = None
         
         # Delegate creation of engine wrapper to network thread
         network_create_engine_wrapper_lambda = lambda:self.network_create_engine_wrapper(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcreatedcallback,pstate,lmvodplayablecallback)

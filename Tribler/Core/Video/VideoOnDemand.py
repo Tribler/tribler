@@ -555,10 +555,10 @@ class MovieSelector:
         """ The user selected a movie (self.videoinfo),
             now set download params based on that
         """
-        if not self.videoinfo or self.videoinfo[0] == -1:
+        if not self.videoinfo or self.videoinfo['index'] == -1:
             file_index = 0
         else:
-            file_index = self.videoinfo[0]
+            file_index = self.videoinfo['index']
             
         [name,offset,length,begin,end,videoinfo] = self.fileinfo[file_index]
         
@@ -577,7 +577,7 @@ class MovieSelector:
             print >>sys.stderr,"vod: moviesel: Selected: %s (pieces %d-%d)" % (self.download_fileinfo,begin[0],end[0])
 
         if videoinfo:
-            bitrate = videoinfo[2]
+            bitrate = videoinfo['bitrate']
             if bitrate:
                 if DEBUG:
                     print >>sys.stderr,"vod: moviesel: Bitrate from torrent: %.2f KByte/s" % (bitrate/1024.0)
@@ -1317,7 +1317,7 @@ class MovieOnDemandTransporter(MovieTransport):
         self.prebufprogress = 1.0
         self.playable = True
         
-        print >>sys.stderr,"vod: trans: notify_playable: Calling usercallback to tell it we're ready to play",self.movieselector.videoinfo[4]
+        print >>sys.stderr,"vod: trans: notify_playable: Calling usercallback to tell it we're ready to play",self.movieselector.videoinfo['usercallback']
         mimetype = self.get_mimetype()
         complete = self.movieselector.am_I_complete()
         if complete:
