@@ -163,7 +163,8 @@ class SingleDownload(SingleDownloadHelperInterface):
         """ Returns True if the piece is complete. """
 
         length = len(piece)
-        
+        if DEBUG:
+            print >> sys.stderr, 'Downloader: got piece of length %d' % length
         try:
             self.active_requests.remove((index, begin, length))
         except ValueError:
@@ -247,7 +248,15 @@ class SingleDownload(SingleDownloadHelperInterface):
             return
         if len(self.active_requests) >= self._backlog(new_unchoke):
             if DEBUG:
-                print "Downloader: more req than unchoke"
+                print "Downloader: more req than unchoke (active req: %d >= backlog: %d)" % (len(self.active_requests), self._backlog(new_unchoke))
+            # Jelle: Schedule _request more to be called in some time. Otherwise requesting and receiving packages
+            # may stop, if they arrive to quickly
+            if self.downloader.download_rate:
+                wait_period = self.downloader.chunksize / self.downloader.download_rate / 2.0
+                if DEBUG:
+                    print "Downloader: waiting for %f s to call _request_more again" % wait_period
+                self.downloader.scheduler(self._request_more, wait_period)
+                                          
             if not (self.active_requests or self.backlog):
                 self.downloader.queued_out[self] = 1
             return
@@ -423,7 +432,7 @@ class SingleDownload(SingleDownloadHelperInterface):
 class Downloader:
     def __init__(self, storage, picker, backlog, max_rate_period,
                  numpieces, chunksize, measurefunc, snub_time,
-                 kickbans_ok, kickfunc, banfunc):
+                 kickbans_ok, kickfunc, banfunc, scheduler = None):
         self.storage = storage
         self.picker = picker
         self.backlog = backlog
@@ -455,11 +464,12 @@ class Downloader:
         self.queued_out = {}
         self.requeueing = False
         self.paused = False
+        self.scheduler = scheduler
 
     def set_download_rate(self, rate):
         self.download_rate = rate * 1000
         self.bytes_requested = 0
-
+        
     def queue_limit(self):
         if not self.download_rate:
             return 10e10    # that's a big queue!
@@ -476,7 +486,11 @@ class Downloader:
             self.requeueing = False
         if -self.bytes_requested > 5*self.download_rate:
             self.bytes_requested = -5*self.download_rate
-        return max(int(-self.bytes_requested/self.chunksize), 0)
+        ql = max(int(-self.bytes_requested/self.chunksize), 0)
+        if DEBUG:
+            print >> sys.stderr, 'Downloader: download_rate: %s, bytes_requested: %s, chunk: %s -> queue limit: %d' % \
+                (self.download_rate, self.bytes_requested, self.chunksize, ql)
+        return ql
 
     def chunk_requested(self, size):
         self.bytes_requested += size

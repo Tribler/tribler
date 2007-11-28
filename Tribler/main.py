@@ -16,13 +16,14 @@ if sys.platform == 'win32':
     s = Session()
 else:
     sscfg.set_state_dir('/tmp/statedir')
-    sscfg.set_install_dir('/home/jelle/workspace/tribler_api_jelle_branche_5944')
+    sscfg.set_install_dir('.')
+    sscfg.set_overlay(0)
     s = Session(sscfg)
     
 
 
 r = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()
-#r.set_global_max_speed(DOWNLOAD,25)
+r.set_global_max_speed(DOWNLOAD,25)
 t = 0
 count = 0
 
@@ -38,16 +39,16 @@ def states_callback(dslist):
     global count
     
     adjustspeeds = True
-    r.set_global_max_speed(DOWNLOAD,10000)
-    if count > 10:
-        r.set_global_max_speed(DOWNLOAD,25)
-    if count > 20:
-        count = 0
-    count += 1
+#    r.set_global_max_speed(DOWNLOAD,10)
+#    if count > 10:
+#        r.set_global_max_speed(DOWNLOAD,15)
+#    if count > 20:
+#        count = 0
+#    count += 1
     
     for ds in dslist:
         d = ds.get_download()
-        print >>sys.stderr,"main: Stats",`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD),currentThread().getName()
+        print >>sys.stderr,"main: Stats",`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD),ds.get_num_seeds_peers(), currentThread().getName()
         
         #complete = ds.get_pieces_complete()
         #print >>sys.stderr,"main: Pieces completed",`d.get_def().get_name()`,"len",len(complete)
@@ -66,7 +67,7 @@ def states_callback(dslist):
         r.adjust_speeds()
         
     #time.sleep(10)
-    return (2.0,False)
+    return (4.0,True)
 
 
 
@@ -82,7 +83,7 @@ def vod_ready_callback(mimetype,stream):
 
 if __name__ == "__main__":
     
-    s.set_download_states_callback(states_callback,getpeerlist=False)
+    s.set_download_states_callback(states_callback,getpeerlist=True)
     
     # For testing only! 
 
@@ -99,7 +100,7 @@ if __name__ == "__main__":
         tdef = TorrentDef.load('/tmp/bla.torrent')
         
     dcfg = DownloadStartupConfig()
-    dcfg.set_max_rate_period(2.0)
+    dcfg.set_max_rate_period(4.0)
     #dcfg.set_dest_dir('/arno/tmp/scandir')
     """
     dcfg.set_video_on_demand(vod_ready_callback)

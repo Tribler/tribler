@@ -15,7 +15,7 @@ try:
 except:
     sum = lambda a: reduce(lambda x, y: x+y, a, 0)
 
-DEBUG = False
+DEBUG = True
 
 MAX_RATE_PERIOD = 20.0
 MAX_RATE = 10e10
@@ -79,6 +79,7 @@ class RateLimiter:
     def try_send(self, check_time = False):
         t = clock()
         self.bytes_sent -= (t - self.lasttime) * self.upload_rate
+        #print 'try_send: bytes_sent: %s' % self.bytes_sent
         self.lasttime = t
         if check_time:
             self.bytes_sent = max(self.bytes_sent, 0)
@@ -115,6 +116,7 @@ class RateLimiter:
 
 
     def ping(self, delay):
+        raise Exception('Is this called?')
         if DEBUG:
             print delay
         if not self.autoadjust:

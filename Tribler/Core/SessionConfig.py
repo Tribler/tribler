@@ -1,7 +1,7 @@
 # Written by Arno Bakker 
 # see LICENSE.txt for license information
 
-import sys
+import sys, copy
 from traceback import print_exc
 
 from Tribler.Core.simpledefs import *

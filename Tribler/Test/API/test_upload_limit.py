@@ -47,7 +47,7 @@ class TestSeeding(TestAsServer):
     
     def setup_seeder(self,merkle):
         self.tdef = TorrentDef()
-        self.sourcefn = os.path.join(os.getcwd(),"file.wmv")
+        self.sourcefn = os.path.join(os.getcwd(),"big.wmv")
         self.tdef.add_content(self.sourcefn)
         self.tdef.set_create_merkle_torrent(merkle)
         self.tdef.set_tracker(self.session.get_internal_tracker_url())
@@ -125,7 +125,7 @@ class TestSeeding(TestAsServer):
         
         d = self.session2.start_download(tdef2,dscfg2)
         d.set_state_callback(self.downloader_state_callback)
-        time.sleep(20)
+        time.sleep(140)
     
     def downloader_state_callback(self,ds):
         d = ds.get_download()
@@ -133,7 +133,7 @@ class TestSeeding(TestAsServer):
         
         if ds.get_status() == DLSTATUS_SEEDING:
             # File is in
-            destfn = os.path.join(self.config_path2,"file.wmv")
+            destfn = os.path.join(self.config_path2,"big.wmv")
             f = open(destfn,"rb")
             realdata = f.read()
             f.close()

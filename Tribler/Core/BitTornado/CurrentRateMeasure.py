@@ -22,6 +22,7 @@ class Measure:
 
     def get_rate(self):
         self.update_rate(0)
+        #print 'Rate: %f (%d bytes)' % (self.rate, self.total)
         return self.rate
 
     def get_rate_noupdate(self):

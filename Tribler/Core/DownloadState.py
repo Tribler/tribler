@@ -140,6 +140,18 @@ class DownloadState(Serializable):
         statsobj = self.stats['stats']
         return statsobj.numSeeds+statsobj.numPeers > 0
         
+    def get_num_seeds_peers(self):
+        """
+        returns: tuple: (num seeds, num peers)
+        works only if getpeerlist was true, otherwise returns False
+        """
+        if self.stats is None or self.stats['spew'] is None:
+            return False
+        
+        total = len(self.stats['spew'])
+        seeds = len([i for i in self.stats['spew'] if i['completed'] == 1.0])
+        return seeds, total-seeds
+    
     def get_pieces_complete(self):
         # Hmm... we currently have the complete overview in statsobj.have,
         # but we want the overview for selected files.

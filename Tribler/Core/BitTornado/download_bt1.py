@@ -538,7 +538,7 @@ class BT1Download:
             self.config['request_backlog'], self.config['max_rate_period'], 
             self.len_pieces, self.config['download_slice_size'], 
             self._received_data, self.config['snub_time'], self.config['auto_kick'], 
-            self._kick_peer, self._ban_peer)
+            self._kick_peer, self._ban_peer, scheduler = self.rawserver.add_task)
         self.downloader.set_download_rate(self.config['max_download_rate'])
 # 2fastbt_
         self.connecter = Connecter(self._make_upload, self.downloader, self.choker, 

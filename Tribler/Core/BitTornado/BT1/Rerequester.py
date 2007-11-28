@@ -32,7 +32,7 @@ except:
     True = 1
     False = 0
     
-DEBUG = True
+DEBUG = False
 DEBUG_DHT = False
 
 mapbase64 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-'

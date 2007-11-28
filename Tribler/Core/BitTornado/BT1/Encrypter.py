@@ -453,14 +453,15 @@ class Encoder:
             dns, id = self.to_connect.pop()
             self.start_connection(dns, id)
         if self.to_connect and sched:
-            print >>sys.stderr,"encoder: start_from_queue delay",delay
+            if DEBUG:
+                print >>sys.stderr,"encoder: start_from_queue delay",delay
             self.raw_server.add_task(self._start_connection_from_queue, delay)
 
     def start_connection(self, dns, id, coord_con = False):
         """ Locally initiated connection """
         if DEBUG:
             print >>sys.stderr,"encoder: start_connection:",dns
-        print >>sys.stderr,"encoder: start_connection: qlen",len(self.to_connect),"nconns",len(self.connections),"maxi",self.config['max_initiate'],"maxc",self.config['max_connections']
+            print >>sys.stderr,"encoder: start_connection: qlen",len(self.to_connect),"nconns",len(self.connections),"maxi",self.config['max_initiate'],"maxc",self.config['max_connections']
         
         if ( self.paused
              or len(self.connections) >= self.max_connections
