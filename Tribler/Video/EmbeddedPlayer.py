@@ -180,7 +180,7 @@ class EmbeddedPlayer(wx.Panel):
             print >>sys.stderr,"embedplay: Telling player to play",item.getPath(),currentThread().getName()
         self.mediactrl.Load(item.getPath())
         self.update = True
-        wx.CallAfter(self.slider.SetValue,(0,))
+        wx.CallAfter(self.slider.SetValue,0)
         
         if self.timer is None:
             self.timer = wx.Timer(self)
