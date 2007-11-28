@@ -193,7 +193,7 @@ class RawServer:
                 except Exception,e:
                     if DEBUG:
                         print >> sys.stderr,"rawserver: other exception"
-                        print_exc()
+                    print_exc()
                     self.exception(e)
                 ## Arno: Don't stop till we drop
                 ##if self.exccount > 10:

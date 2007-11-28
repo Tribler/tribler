@@ -133,6 +133,7 @@ class TestUTorrentPeerExchange(TestAsServer):
             self.assert_(False)
 
         # Tribler should send an ut_pex message after a while
+        print "test: Setting 60 second timeout to see if Tribler sends periodic ut_pex"
         try:
             s.s.settimeout(70.0)
             while True:

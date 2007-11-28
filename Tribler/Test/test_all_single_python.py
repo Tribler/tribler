@@ -62,24 +62,24 @@ def suite():
     # '##' = disable temporarily for testing a specific test
     #
     test_modules = [
-        test_cachedb,
+        #test_cachedb,
         ##test_friend,   # TEMPARNO: need to fix MyDB ref
-        test_cachedbhandler,
+        #test_cachedbhandler,
         #test_superpeers, # TEMPARNO: need to fix MyDB + SuperPeerList ref
         ##test_buddycast,  # currently not working due to unfinished test functions
         ##test_buddycast2_datahandler, # complains about addRemoteSearchPeer 
         ##test_sim, # currently not working due to unfinished test functions
-        test_merkle,
-        test_permid,
-        test_permid_response1,
-        test_dialback_request,
-        test_extend_hs,
-        test_extend_hs_t350,
-        test_social_overlap,
-        test_gui_server,
+        #test_merkle,
+        #test_permid,
+        #test_permid_response1,
+        #test_dialback_request,
+        #test_extend_hs,
+        #test_extend_hs_t350,
+        #test_social_overlap,
+        #test_gui_server,
         ##test_remote_query, # TEMPARNO: need to fix torrentManager dependency
         test_ut_pex,
-        test_bartercast
+        #test_bartercast
         ]
 
     alltests = unittest.TestSuite()

@@ -68,6 +68,12 @@ class DialbackMsgHandler:
         self.ntries = 0        
         self.active = False     # Need defaults for test code
         self.rawserver = None
+        self.launchmany = None
+        self.peer_db = None
+        self.superpeer_db = None
+        self.trust_superpeers = None
+        self.interval = None
+        self.old_ext_ip = None
         self.returnconnhand = ReturnConnHandler.getInstance()
 
     def getInstance(*args, **kw):
@@ -351,7 +357,8 @@ class DialbackMsgHandler:
     #
     def btengine_network_callback(self):
         """ Called by network thread """
-        self.launchmany.dialback_reachable_callback()
+        if self.launchmany is not None:
+            self.launchmany.dialback_reachable_callback()
         self.btenginereach = True
 
     def isConnectable(self):
