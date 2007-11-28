@@ -520,19 +520,11 @@ class TorrentDef(Serializable,Copyable):
 
         bitrate = maketorrent.get_bitrate_from_metainfo(file,self.metainfo)
 
-    def get_live(self,file=None):
-        """ Returns whether the specified file is being streamed live.
-        If no file is specified, Tribler assumes this is a single-file torrent
-        """ 
-        if DEBUG:
-            print >>sys.stderr,"TorrentDef: get_live called",file
-        
-        if not self.metainfo_valid:
-            raise NotYetImplementedException() # must save first
+    def get_live(self):
+        return 'live' in self.input and self.input['live']
 
-        info = maketorrent.get_file_info(file,self.metainfo)
-
-        return 'live' in info and info['live']
+    def set_live(self,live=1):
+        self.input['live'] = live
     
     def get_video_files(self,videoexts=videoextdefaults):
         if not self.metainfo_valid:

@@ -40,6 +40,11 @@ class VODNoFileSelectedInMultifileTorrentException(TriblerException):
     def __init__(self,msg=None):
         TriblerException.__init__(self,msg)
 
+class VODLiveTorrentRequiresVODModeException(TriblerException):
+    
+    def __init__(self,msg=None):
+        TriblerException.__init__(self,msg)
+
 class TorrentDefNotFinalizedException(TriblerException):
     
     def __init__(self,msg=None):

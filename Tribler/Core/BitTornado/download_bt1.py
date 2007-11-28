@@ -446,7 +446,7 @@ class BT1Download:
             root_hash = self.info['root hash']
         else:
             root_hash = None
-        self.storagewrapper = StorageWrapper(self.storage, self.config['download_slice_size'],
+        self.storagewrapper = StorageWrapper(self.videoinfo, self.storage, self.config['download_slice_size'],
             self.pieces, self.info['piece length'], root_hash, 
             self._finished, self._failed,
             statusfunc, self.doneflag, self.config['check_hashes'],

@@ -240,14 +240,11 @@ def makeinfo(input,userabortflag,userprogresscallback):
                    'path': uniconvertl(p,encoding),
                    'path.utf-8': uniconvertl(p, 'utf-8') }
         
-        # Find and add playtime and live flag
+        # Find and add playtime
         for file in input['files']:
             if file['inpath'] == f:
-
                 if file['playtime'] is not None:
                     newdict['playtime'] = file['playtime']
-                if file['live'] is not None:
-                    newdict['live'] = file['live']
                 break
         
         if input['makehash_md5']:
@@ -288,15 +285,15 @@ def makeinfo(input,userabortflag,userprogresscallback):
     else:
         infodict.update( {'pieces': ''.join(pieces) } )
 
+    if 'live' in input and input['live']:
+        infodict['live'] = 1
+
     if len(subs) == 1:
-        # Find and add playtime and live flag
+        # Find and add playtime
         for file in input['files']:
             if file['inpath'] == f:
-
                 if file['playtime'] is not None:
                     infodict['playtime'] = file['playtime']
-                if file['live'] is not None:
-                    infodict['live'] = file['live']
 
     return (infodict,piece_length)
 
@@ -439,7 +436,7 @@ def copy_metainfo_to_input(metainfo,input):
         if key in metainfo:
             input[key] = metainfo[key]
             
-    infokeys = ['name','piece length']
+    infokeys = ['name','piece length','live']
     for key in infokeys:
         if key in metainfo['info']:
             input[key] = metainfo['info'][key]

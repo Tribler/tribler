@@ -154,15 +154,19 @@ class DownloadImpl:
                 file = self.get_def().get_name()
                 idx = -1
                 bitrate = self.get_def().get_bitrate(None)
-                live = self.get_def().get_live(None)
             else:
                 # multi-file torrent
                 file = self.dlconfig['selected_files'][0]
                 idx = self.get_def().get_index_of_file_in_files(file)
                 bitrate = self.get_def().get_bitrate(file)
-                live = self.get_def().get_live(file)
+
+            live = self.get_def().get_live()
             vodfileindex = {'index':idx,'inpath':file,'bitrate':bitrate,'live':live,'usercallback':vod_usercallback_wrapper}
         else:
+            if self.get_def().get_live():
+                # live torrents must be streamed
+                raise VODLiveTorrentRequiresVODModeException()
+
             vodfileindex = {'index':-1,'inpath':None,'bitrate':0.0,'live':False,'usercallback':None}
 
         vodfileindex['outpath'] = None

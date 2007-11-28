@@ -328,6 +328,7 @@ class Connection:
                         print >>sys.stderr,"connecter: Peer supports Tr_G2G"
 
                 self.use_g2g = True
+
         # 'p' is peer's listen port, 'v' is peer's version, all optional
         # 'e' is used by uTorrent to show it prefers encryption (whatever that means)
         for key in ['p','e']:
@@ -383,8 +384,8 @@ class Connection:
         d['v'] = ver
         d['e'] = 0  # Apparently this means we don't like uTorrent encryption
         self._send_message(EXTEND + EXTEND_MSG_HANDSHAKE_ID + bencode(d))
-        #if DEBUG:
-        #    print >>sys.stderr,'connecter: sent extend: id=0+',d
+        if DEBUG:
+            print >>sys.stderr,'connecter: sent extend: id=0+',d
 
     def send_extend_ut_pex(self,payload):
         msg = EXTEND+self.extend_msg_name_to_id(EXTEND_MSG_UTORRENT_PEX)+payload

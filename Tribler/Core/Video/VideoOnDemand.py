@@ -32,6 +32,8 @@ class PiecePickerStreaming(PiecePicker):
     # order of initialisation and important function calls
     #   PiecePicker.__init__              (by BitTornado.BT1Download.__init__)
     #   PiecePicker.complete              (by hash checker, for pieces on disk)
+    #   MovieSelector.__init__
+    #   PiecePicker.set_download_range    (indirectly by MovieSelector.__init__)
     #   MovieOnDemandTransporter.__init__ (by BitTornado.BT1Download.startEngine)
     #   PiecePicker.set_bitrate           (by MovieOnDemandTransporter)
     #   PiecePicker.set_transporter       (by MovieOnDemandTransporter)
@@ -82,6 +84,7 @@ class PiecePickerStreaming(PiecePicker):
         
     def set_transporter(self, transporter):
         self.transporter = transporter
+        self.live_streaming = self.transporter.movieselector.videoinfo['live']
 
         # update our information
         self.piecesize = transporter.piecesize
@@ -412,6 +415,31 @@ class PiecePickerG2G(PiecePickerStreaming):
 
             return None
 
+        def randomlast( f, t, lastx ):
+            l = []
+
+            for i in xrange(t-1,f-1,-1):
+                if self.has[i]: # Is there a piece in the range we don't have?
+                    continue
+
+                if not wantfunc(i): # Is there a piece in the range we want? 
+                    continue
+
+                if not haves[i]: # Is there a piece in the range the peer has?
+                    continue
+
+                if self.helper is None or helper_con or not self.helper.is_ignored(i):
+                    return i
+
+                l.append(i)
+                if len(l) == lastx:
+                    break
+
+            if not l:
+                return None
+
+            return random.choice(l)
+
         def rarest( f, t, doshuffle=True ):
             for piecelist in self.interests:
                 if doshuffle:
@@ -444,10 +472,16 @@ class PiecePickerG2G(PiecePickerStreaming):
         midprob_cutoff  = limit( highprob_cutoff + self.MU * self.h )
 
         if self.transporter.prebuffering:
-            # focus on first packets
-            f = self.download_range[0]
-            t = f + self.transporter.max_preparse_packets
-            choice = rarest(f,t)
+            if self.live_streaming:
+                # focus on last packets
+                f = self.download_range[0]
+                t = self.download_range[1]+1
+                choice = randomlast(f,t,self.transporter.max_preparse_packets)
+            else:
+                # focus on first packets
+                f = self.download_range[0]
+                t = f + self.transporter.max_preparse_packets
+                choice = rarest(f,t)
             #print >>sys.stderr,"choiceP",f,t
         else:
             choice = None
@@ -480,6 +514,8 @@ class MovieSelector:
 
     def __init__(self, videoinfo,fileselector, storagewrapper, piecepicker):
         self.videoinfo = videoinfo # info about the selected file
+        self.live_streaming = videoinfo['live']
+
         self.fileselector = fileselector
         self.piecepicker = piecepicker
         self.storagewrapper = storagewrapper
@@ -496,6 +532,7 @@ class MovieSelector:
 
         # (first_piece,offset),(last_piece,offset)
         self.download_range = None
+        self.live_offset_determined = False
 
         # size of each piece
         self.piece_length = 0
@@ -527,6 +564,64 @@ class MovieSelector:
 
     def get_bitrate(self):
         return self.bitrate
+
+    def set_live_offset(self,have=False):
+        """ If watching a live stream, determine where to 'hook in'. Adjusts self.download_range[0]
+            accordingly, never decreasing it. If 'have' is true, we need to have the data
+            ourself. If 'have' is false, we look at availability at our neighbours.
+
+            Return True if succesful, False if more data has to be collected. """
+
+        if self.download_range is None:
+            # nothing selected yet
+            return False
+
+        if not self.live_streaming:
+            # just watch from the start, as is default
+            return True
+
+        # ----- determine highest known piece number
+        if have:
+            numseeds = 0
+            numhaves = self.piecepicker.has 
+            totalhaves = self.piecepicker.numgot
+            FUDGE = 2
+        else:
+            numseeds = self.piecepicker.seeds_connected
+            numhaves = self.piecepicker.numhaves # excludes seeds
+            totalhaves = self.piecepicker.totalcount # excludes seeds
+            FUDGE = 1
+
+        bpiece = self.download_range[0][0]
+        epiece = self.download_range[1][0]
+
+        if numseeds == 0 and totalhaves == 0:
+            # optimisation: without seeds or pieces, just wait
+            return False
+
+        # pieces are known, so we can determine where to start playing
+        self.live_offset_determined = True
+
+        if numseeds > 0 or numhaves[epiece] > 0:
+            # special: if full video is available, do nothing and enter VoD mode
+            return True
+
+        for i in xrange(epiece,bpiece-1,-1):
+            if numhaves[i] > 0:
+                maxnum = i
+                break
+
+        # start watching from maximum piece number, adjusted by fudge.
+        maxnum = max( bpiece, maxnum - FUDGE )
+
+        if maxnum == bpiece:
+            # video has just started -- watch from beginning
+            return True
+
+        # since this isn't the first piece we can start at offset 0
+        print >>sys.stderr,"=== HOOKING IN AT PIECE %d (based on have: %s) ===" % (maxnum,have)
+        self.download_range[0] = (maxnum,0)
+        return True
 
     def parse_torrent(self):
         """ Parse .torrent file information. """
@@ -566,7 +661,7 @@ class MovieSelector:
             print >>sys.stderr,"MovieSelector: ",self.fileinfo[file_index]
         
         self.download_fileinfo = (name,offset,length)
-        self.download_range = (begin,end)
+        self.download_range = [begin,end]
 
         self.size = length
         self.first_piece_length = self.piece_length - begin[1]
@@ -785,6 +880,19 @@ class MovieOnDemandTransporter(MovieTransport):
           
         #self.rawserver.add_task( fakereader, 0.0 )
 
+        self.live_streaming_timer()
+
+    def live_streaming_timer(self):
+        """ Background 'thread' to check where to hook in if live streaming. """
+
+        if self.playing:
+            # Stop adjusting the download range
+            return
+
+        self.movieselector.set_live_offset( False )
+
+        self.rawserver.add_task( self.live_streaming_timer, 2 )
+
     def parse_video(self):
         """ Feeds the first max_preparse_packets to ffmpeg to determine video bitrate. """
         width = None
@@ -959,7 +1067,12 @@ class MovieOnDemandTransporter(MovieTransport):
 
         # determine piece number relative to movie
         bpiece = self.movieselector.download_range[0][0]
+        epiece = self.movieselector.download_range[1][0]
         piece = abspiece - bpiece
+ 
+        if abspiece < bpiece or abspiece > epiece:
+            # received a piece out of our target range -- ignore
+            return
 
         """
         if abspiece == 0 and DEBUG:
@@ -1115,6 +1228,11 @@ class MovieOnDemandTransporter(MovieTransport):
 
         if self.playing:
             return
+
+        # Determine where to start playing. There may be several seconds
+        # between starting the download and starting playback, which we'll
+        # want to skip.
+        self.movieselector.set_live_offset( True )
 
         # Determine piece number and offset
         if bytepos < self.movieselector.first_piece_length:

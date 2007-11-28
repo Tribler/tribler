@@ -70,11 +70,12 @@ class fakeflag:
 
 
 class StorageWrapper:
-    def __init__(self, storage, request_size, hashes, 
+    def __init__(self, videoinfo, storage, request_size, hashes, 
             piece_size, root_hash, finished, failed, 
             statusfunc = dummy_status, flag = fakeflag(), check_hashes = True, 
             data_flunked = lambda x: None, backfunc = None, 
             config = {}, unpauseflag = fakeflag(True)):
+        self.videoinfo = videoinfo
         self.storage = storage
         self.request_size = long(request_size)
         self.hashes = hashes
@@ -89,9 +90,10 @@ class StorageWrapper:
         self.backfunc = backfunc
         self.config = config
         self.unpauseflag = unpauseflag
+
+        self.live_streaming = self.videoinfo['live']
         
         self.alloc_type = config.get('alloc_type', 'normal')
-        self.live_streaming = config.get('live_streaming', 0)
         self.double_check = config.get('double_check', 0)
         self.triple_check = config.get('triple_check', 0)
         if self.triple_check:
@@ -831,7 +833,7 @@ class StorageWrapper:
             return True
         hash = sha(data[:]).digest()
         data.release()
-        if self.live_streaming and hash != self.hashes[index]:
+        if not self.live_streaming and hash != self.hashes[index]:
 
             self.amount_obtained -= length
             self.data_flunked(length, index)
