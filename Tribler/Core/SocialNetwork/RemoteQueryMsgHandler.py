@@ -197,10 +197,6 @@ class RemoteQueryMsgHandler:
         if selversion < OLPROTO_VER_SIXTH:
             return False
 
-        # Check auth
-        if not self.launchmany.overlay_apps.requestAllowed(permid, message[0]):
-            return False
-        
         # Unpack
         try:
             d = bdecode(message[1:])

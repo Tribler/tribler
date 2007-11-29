@@ -43,7 +43,7 @@ if __name__ == "__main__":
     dcfg = DownloadStartupConfig.get_copy_of_default()
     #dcfg.set_saveas('/arno')
     dcfg = DownloadStartupConfig.get_copy_of_default()
-    dcfg.set_video_on_demand(vod_ready_callback)
+    dcfg.set_video_start_callback(vod_ready_callback)
     #dcfg.set_selected_files('MATRIX-XP_engl_L.avi') # play this video
     #dcfg.set_selected_files('field-trip-west-siberia.avi')
     

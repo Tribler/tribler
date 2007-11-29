@@ -137,7 +137,8 @@ class TriblerLaunchMany(Thread):
             # Set policy for which peer requests (dl_helper, rquery) to answer and which to ignore
                         
             self.overlay_apps = OverlayApps.getInstance()
-            self.overlay_apps.register(self.secure_overlay, self, config, AllowAllRequestPolicy(self))
+            policy = FriendsCoopDLOtherRQueryQuotumAllowAllRequestPolicy(self)
+            self.overlay_apps.register(self.secure_overlay, self, config, policy)
             # It's important we don't start listening to the network until
             # all higher protocol-handling layers are properly configured.
             self.secure_overlay.start_listening()

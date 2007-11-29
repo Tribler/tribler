@@ -43,7 +43,7 @@ class DownloadRuntimeConfig(DownloadConfigInterface):
     def set_saveas(self,path):
         raise OperationNotPossibleAtRuntimeException()
 
-    def set_video_on_demand(self,usercallback):
+    def set_video_start_callback(self,usercallback):
         raise NotYetImplementedException()
 
     def get_mode(self):

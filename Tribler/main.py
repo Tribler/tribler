@@ -103,7 +103,7 @@ if __name__ == "__main__":
     dcfg.set_max_rate_period(4.0)
     #dcfg.set_dest_dir('/arno/tmp/scandir')
     """
-    dcfg.set_video_on_demand(vod_ready_callback)
+    dcfg.set_video_start_callback(vod_ready_callback)
     #dcfg.set_selected_files('star-wreck-in-the-pirkinning.txt') # play this video
     dcfg.set_selected_files('star_wreck_in_the_pirkinning_subtitled_xvid.avi') # play this video
     """

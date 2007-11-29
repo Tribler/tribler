@@ -35,7 +35,7 @@ class Session(SessionRuntimeConfig):
         A Session object is created which is configured following a copy of the
         SessionStartupConfig scfg. (copy constructor used internally)
         
-        in: scfg = SessionStartupConfig object or None, in which case we
+        @param scfg SessionStartupConfig object or None, in which case we
         look for a saved session in the default location (state dir). If
         we can't find it, we create a new SessionStartupConfig() object to 
         serve as startup config. Next, the config is saved in the directory
@@ -152,16 +152,16 @@ class Session(SessionRuntimeConfig):
     # Class methods
     #
     def get_instance(*args, **kw):
-        """ Returns the Session singleton if it exists or otherwise
+        """ @return The Session singleton if it exists or otherwise
             creates it first, in which case you need to pass the constructor 
-            params """
+            params. """
         if Session.__single is None:
             Session(*args, **kw)
         return Session.__single
     get_instance = staticmethod(get_instance)
 
     def get_default_state_dir():
-        """ Returns the factory default directory for storing session state """
+        """ @return The factory default directory for storing session state """
         homedirpostfix = '.Tribler'
         if sys.platform == 'win32':
             homedirpostfix = 'Tribler' # i.e. C:\Documents and Settings\user\Application Data\Tribler
@@ -190,12 +190,11 @@ class Session(SessionRuntimeConfig):
         If a checkpointed version of the Download is found, that is restarted
         overriding the saved DownloadStartupConfig is "dcfg" is not None.
         
-        in:
-        tdef = a finalized TorrentDef
-        drcfg = DownloadStartupConfig or None, in which case 
-        DownloadStartupConfig.get_copy_of_default() is called and the result becomes 
-        the config of this Download.
-        returns: a Download object
+        @param tdef  A finalized TorrentDef
+        @param dcfg DownloadStartupConfig or None, in which case 
+        a new DownloadStartupConfig() is created with its default settings
+        and the result becomes the runtime config of this Download.
+        @return A Download object.
         """
         # locking by lm
         return self.lm.add(tdef,dcfg)
@@ -204,7 +203,7 @@ class Session(SessionRuntimeConfig):
         """
         Recreates Download from resume file
         
-        returns: a Download object
+        @return a Download object.
         
         Note: this cannot be made into a method of Download, as the Download 
         needs to be bound to a session, it cannot exist independently.
@@ -213,7 +212,7 @@ class Session(SessionRuntimeConfig):
 
     def get_downloads(self):
         """
-        returns: a copy of the list of Downloads
+        @return a copy of the list of Downloads.
         """
         # locking by lm
         return self.lm.get_downloads()
@@ -222,6 +221,9 @@ class Session(SessionRuntimeConfig):
     def remove_download(self,d,removecontent=False):  
         """
         Stops the download and removes it from the session.
+        @param d The Download to remove
+        @param removecontent Whether to delete the already downloaded content
+        from disk.
         """
         # locking by lm
         self.lm.remove(d,removecontent=removecontent)
@@ -229,8 +231,17 @@ class Session(SessionRuntimeConfig):
 
     def set_download_states_callback(self,usercallback,getpeerlist=False):
         """
-        See Download.set_state_callback. Calls usercallback(dslist) which should
-        return > 0.0 to reschedule.
+        See Download.set_state_callback. Calls usercallback with a list of
+        DownloadStates, one for each Download in the Session as first argument.
+        The usercallback must return a tuple (when,getpeerlist) that indicates
+        when to reinvoke the callback again (as a number of seconds from now,
+        or < 0.0 if not at all) and whether to also include the details of
+        the connected peers in the DownloadStates on that next call.
+        
+        The callback will be called by a popup thread which can be used
+        indefinitely (within reason) by the higher level code.
+        
+        @param usercallback A function adhering to the above spec. 
         """
         self.lm.set_download_states_callback(usercallback,getpeerlist)
 
@@ -239,7 +250,7 @@ class Session(SessionRuntimeConfig):
     # Config parameters that only exist at runtime
     #
     def get_permid(self):
-        """ Returns the PermID of the Session, as determined by the
+        """ @return The PermID of the Session, as determined by the
         SessionConfig.set_permid() parameter. A PermID is a public key
         encoded in a string in DER format. """
         self.sesslock.acquire()
@@ -249,7 +260,7 @@ class Session(SessionRuntimeConfig):
             self.sesslock.release()
 
     def get_external_ip(self):
-        """ Returns the external IP address of this Session, i.e., by which
+        """ @return The external IP address of this Session, i.e., by which
         it is reachable from the Internet. This address is determined via
         various mechanisms such as the UPnP protocol, our dialback mechanism,
         and an inspection of the local network configuration. """
@@ -258,10 +269,10 @@ class Session(SessionRuntimeConfig):
         
 
     def get_current_startup_config_copy(self):
-        """ Returns a SessionStartupConfig that is a copy of the current runtime 
+        """ @return A SessionStartupConfig that is a copy of the current runtime 
         SessionConfig.
-         
-        Called by any thread """
+        """
+        # Called by any thread
         self.sesslock.acquire()
         try:
             sessconfig = copy.copy(self.sessconfig)
@@ -273,7 +284,7 @@ class Session(SessionRuntimeConfig):
     # Internal tracker 
     #
     def get_internal_tracker_url(self):
-        """ Return the announce URL for the internal tracker """
+        """ @return The announce URL for the internal tracker. """
         # Called by any thread
         ip = self.lm.get_ext_ip() #already thread safe
         port = self.get_listen_port() # already thread safe
@@ -281,38 +292,58 @@ class Session(SessionRuntimeConfig):
         return url
 
     def get_internal_tracker_dir(self):
-        """ Return the directory containing the torrents tracked by the internal 
+        """ @return The directory containing the torrents tracked by the internal 
         tracker (and associated databases) """
         return os.path.join(self.sessconfig['state_dir'],STATEDIR_ITRACKER_DIR)
 
     def add_to_internal_tracker(self,tdef):
         """ Add a torrent def to the list of torrents tracked by the internal
-        tracker. Use this method to use the Session as a standalone tracker. """
+        tracker. Use this method to use the Session as a standalone tracker. 
+        @param tdef A finalized TorrentDef. 
+        """
         raise NotYetImplementedException()
         
     def remove_from_internal_tracker(self,tdef):
         """ Remove a torrent def from the list of torrents tracked by the 
         internal tracker. Use this method to use the Session as a standalone 
-        tracker. """
+        tracker. 
+        @param tdef A finalized TorrentDef.
+        """
         raise NotYetImplementedException()
 
 
     #
     # Notification of events in the Session
     #
-    def add_observer(self, func, subject, changeTypes = [NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE], id = None):
-        """ Add function as an observer. It will receive callbacks if the respective data
-        changes.
+    def add_observer(self, func, subject, changeTypes = [NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE], objectID = None):
+        """ Add an observer function function to the Session. The observer 
+        function will be called when one of the specified events (changeTypes)
+        occurs on the specified subject.
         
-        Called by any thread
+        The function will be called by a popup thread which can be used
+        indefinitely (within reason) by the higher level code.
+        
+        @param func The observer function. It should accept as its first argument
+        the subject, as second argument the changeType, as third argument an
+        objectID (e.g. the primary key in the observed database) and an 
+        optional list of arguments.
+        @param subject The subject to observe, one of NTFY_* subjects (see 
+        simpledefs).
+        @param changeTypes The list of events to be notified of one of NTFY_* 
+        events.
+        @param objectID The specific object in the subject to monitor (e.g. a
+        specific primary key in a database to monitor for updates.)
+        
+        
+        TODO: Jelle will add per-subject/event description here ;o)
+        
         """
-        self.uch.notifier.add_observer(func, subject, changeTypes, id) # already threadsafe
+        #Called by any thread
+        self.uch.notifier.add_observer(func, subject, changeTypes, objectID) # already threadsafe
         
     def remove_observer(self, func):
-        """ Remove observer function. No more callbacks will be made.
-        
-        Called by any thread
-        """
+        """ Remove observer function. No more callbacks will be made. """
+        #Called by any thread
         self.uch.notifier.remove_observer(func) # already threadsafe
 
 
@@ -324,10 +355,13 @@ class Session(SessionRuntimeConfig):
         Set a function which defines which overlay requests (e.g. dl_helper, rquery msg) 
         will be answered or will be denied.
         
-        in: reqpol is a Tribler.Core.RequestPolicy.AbstractRequestPolicy object
+        The function will be called by a network thread and must return 
+        as soon as possible to prevent performance problems.
         
-        Called by any thread
+        @param reqpol is a Tribler.Core.RequestPolicy.AbstractRequestPolicy 
+        object.
         """
+        # Called by any thread
         # to protect self.sessconfig
         self.sesslock.acquire()
         try:
@@ -348,28 +382,26 @@ class Session(SessionRuntimeConfig):
         
         This method allows the API user to manage restoring downloads. 
         E.g. a video player that wants to start the torrent the user clicked 
-        on first, and only then restart any sleeping torrents (e.g. seeding) """
+        on first, and only then restart any sleeping torrents (e.g. seeding).
+        """
         self.lm.load_checkpoint()
     
     
     def checkpoint(self):
-        """ Saves the internal session state to the Session's state dir.
-        
-        Called by any thread """
+        """ Saves the internal session state to the Session's state dir. """
+        #Called by any thread
         self.checkpoint_shutdown(stop=False)
     
     def shutdown(self):
-        """ Checkpoints the session and closes it, stopping the download engine. 
-        
-        Called by any thread """
+        """ Checkpoints the session and closes it, stopping the download engine. """ 
+        # Called by any thread
         self.checkpoint_shutdown(stop=True)
         self.uch.shutdown()
         
     def get_downloads_pstate_dir(self):
         """ Returns the directory in which to checkpoint the Downloads in this
-        Session.
-         
-        Called by network thread """
+        Session. """
+        # Called by network thread
         self.sesslock.acquire()
         try:
             return os.path.join(self.sessconfig['state_dir'],STATEDIR_DLPSTATE_DIR)
@@ -380,7 +412,9 @@ class Session(SessionRuntimeConfig):
     # Internal persistence methods
     #
     def checkpoint_shutdown(self,stop):
-        """ Called by any thread """
+        """ Checkpoints the Session and optionally shuts down the Session.
+        @param stop Whether to shutdown the Session as well. """
+        # Called by any thread
         # No locking required
         sscfg = self.get_current_startup_config_copy()
         try:
@@ -393,7 +427,8 @@ class Session(SessionRuntimeConfig):
         self.lm.checkpoint(stop=stop)
 
     def save_pstate_sessconfig(self,sscfg):
-        """ Called by any thread """
+        """ Save the runtime SessionConfig to disk """
+        # Called by any thread
         cfgfilename = os.path.join(sscfg.get_state_dir(),STATEDIR_SESSCONFIG)
         f = open(cfgfilename,"wb")
         pickle.dump(sscfg,f)
@@ -401,6 +436,7 @@ class Session(SessionRuntimeConfig):
 
 
     def load_pstate_sessconfig(self,state_dir):
+        """ Load the runtime SessionConfig from disk """
         cfgfilename = os.path.join(state_dir,STATEDIR_SESSCONFIG)
         f = open(cfgfilename,"rb")
         sscfg = pickle.load(f)

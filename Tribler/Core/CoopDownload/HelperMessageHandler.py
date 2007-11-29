@@ -37,9 +37,6 @@ class HelperMessageHandler:
         #if DEBUG:
         #    print >> sys.stderr,"helper: Got",getMessageName(t)
 
-        if not self.launchmany.overlay_apps.requestAllowed(permid, t):
-            return False
-        
         if t == DOWNLOAD_HELP:
             return self.got_dlhelp_request(permid, message, selversion)
         elif t == STOP_DOWNLOAD_HELP:

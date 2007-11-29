@@ -33,7 +33,7 @@ Simple VOD download session
     s = Session()
     tdef = TorrentDef.load('/tmp/bla.torrent')
     dcfg = DownloadStartupConfig()
-    dcfg.set_video_on_demand(vod_ready_callback)
+    dcfg.set_video_start_callback(vod_ready_callback)
     dcfg.set_selected_files('part2.avi') # play this video
     d = s.start_download(tdef,dcfg)
     
@@ -86,7 +86,26 @@ Simpler seeding session
     dcfg.set_dest_dir('/tmp')
     d = s.start_download(tdef,dcfg)
 
-
+Simple Live broadcast session
+=============================
+    s = Session().get_instance()
+    tdef = TorrentDef()
+    tdef.create_live(bitrate) 
+    tdef.finalize()
+    
+	dcfg = DownloadStartupConfig()
+	dcfg.set_video_source(videosource)
+	s.start_download(tdef,dcfg)
+	
+To watch:
+---------
+    s = Session()
+    tdef = TorrentDef.load('/tmp/live.torrent')
+    dcfg = DownloadStartupConfig()
+    dcfg.set_video_start_callback(vod_ready_callback)
+    d = s.start_download(tdef,dcfg)
+	
+	
 
 Rationale
 =========

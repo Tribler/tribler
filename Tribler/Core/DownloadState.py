@@ -22,6 +22,17 @@ class DownloadState(Serializable):
     cf. libtorrent torrent_status
     """
     def __init__(self,download,status,error,progress,stats=None,filepieceranges=None,logmsgs=None):
+        """ Internal constructor.
+        @param download The Download this state belongs too.
+        @param status The status of the Download (DLSTATUS_*)
+        @param progress The general progress of the Download.
+        @param stats The BT engine statistics for the Download.
+        @param filepieceranges The range of pieces that we are interested in. 
+        The get_pieces_complete() returns only completeness information about 
+        this range. This is used for playing a video in a multi-torrent file.
+        @param logmsgs A list of messages from the BT engine which may be of 
+        interest to the user. E.g. connection to tracker failed.
+        """
         self.download = download
         self.filepieceranges = filepieceranges # NEED CONC CONTROL IF selected_files RUNTIME SETABLE
         self.logmsgs = logmsgs
@@ -93,24 +104,24 @@ class DownloadState(Serializable):
 
     
     def get_download(self):
-        """ returns the Download object of which this is the state """
+        """ @return The Download object of which this is the state """
         return self.download
     
     def get_progress(self):
-        """
-        returns: percentage of torrent downloaded, as float
+        """ The general progress of the Download as a percentage. When status is 
+         * DLSTATUS_HASHCHECKING it is the percentage of already downloaded 
+           content checked for integrity.
+         * DLSTATUS_DOWNLOADING/SEEDING it is the percentage downloaded.
+        @return Progress as a float (0..1).
         """
         return self.progress
         
     def get_status(self):
-        """
-        returns: status of the torrent, e.g. DLSTATUS_* 
-        """
+        """ @return The status of the torrent, e.g. DLSTATUS_* """
         return self.status
 
     def get_error(self):
-        """ 
-        returns: the Exception that caused the download to be moved to 
+        """ @eturn The Exception that caused the download to be moved to 
         DLSTATUS_STOPPED_ON_ERROR status.
         """
         return self.error
@@ -120,7 +131,7 @@ class DownloadState(Serializable):
     # 
     def get_current_speed(self,direct):
         """
-        returns: current up or download speed in KB/s, as float
+        @return The current up or download speed in KB/s, as float
         """
         if self.stats is None:
             return 0.0
@@ -131,7 +142,9 @@ class DownloadState(Serializable):
 
     def has_active_connections(self):
         """ 
-        returns: whether the download has active connections
+        @return Whether the download has active connections. This is used
+        to see if there is any progress when non-fatal errors have occured
+        (e.g. tracker timeout).
         """
         if self.stats is None:
             return False
@@ -142,37 +155,54 @@ class DownloadState(Serializable):
         
     def get_num_seeds_peers(self):
         """
-        returns: tuple: (num seeds, num peers)
-        works only if getpeerlist was true, otherwise returns False
+        Returns the sum of the number of seeds and peers. This function
+        works only if the Download.set_state_callback() / 
+        Session.set_download_states_callback() was called with the getpeerlist 
+        parameter set to True, otherwise returns (None,None)  
+        @return A tuple (num seeds, num peers)
         """
         if self.stats is None or self.stats['spew'] is None:
-            return False
+            return (None,None)
         
         total = len(self.stats['spew'])
         seeds = len([i for i in self.stats['spew'] if i['completed'] == 1.0])
         return seeds, total-seeds
     
     def get_pieces_complete(self):
-        # Hmm... we currently have the complete overview in statsobj.have,
-        # but we want the overview for selected files.
+        """ Returns a list of booleans indicating whether we have completely
+        received that piece of the content. The list of pieces for which 
+        we provide this info depends on which files were selected for download
+        using DownloadStartupConfig.select_files().
+        @return A list of booleans
+        """
         if self.stats is None:
             return []
         else:
             return self.haveslice
 
     def get_vod_prebuffering_progress(self):
+        """ @return The percentage of prebuffering for Video-On-Demand already 
+        completed as a float (0..1) """
         if self.stats is None:
             return 0.0
         else:
             return self.stats['vod_prebuf_frac']
     
     def get_vod_playable(self):
+        """ @return Whether or not the Download started in Video-On-Demand
+        mode has sufficient prebuffer and download speed to be played out
+        to the user. 
+        """
         if self.stats is None:
             return False
         else:
             return self.stats['vod_playable']
 
     def get_vod_playable_after(self):
+        """ Returns the estimated time until the Download started in Video-On-Demand
+        mode can be started to play out to the user. 
+        @return A number of seconds
+        """
         if self.stats is None:
             return float(2 ** 31)
         else:
@@ -180,12 +210,9 @@ class DownloadState(Serializable):
 
 
     def get_log_messages(self):
-        """ Returns the last 10 logged non-fatal error messages as a list of 
-        (time,msg) tuples """
+        """ @return The last 10 logged non-fatal error messages as a list of 
+        (time,msg) tuples. Time is Python time() format. """
         if self.logmsgs is None:
             return []
         else:
             return self.logmsgs
-    
-
-

@@ -41,11 +41,10 @@ class DownloadImpl:
         Create a Download object. Used internally by Session. Copies tdef and 
         dcfg and binds them to this download.
         
-        in: 
-        tdef = unbound TorrentDef
-        dcfg = unbound DownloadStartupConfig or None (in which case 
-        DownloadStartupConfig.get_copy_of_default() is called and the result 
-        becomes the (bound) config of this Download.
+        @param tdef Finalized TorrentDef
+        @param dcfg DownloadStartupConfig or None (in which case 
+        a new DownloadConfig() is created and the result 
+        becomes the runtime config of this Download.
         """
         try:
             self.dllock.acquire() # not really needed, no other threads know of it
@@ -165,7 +164,7 @@ class DownloadImpl:
         else:
             if self.get_def().get_live():
                 # live torrents must be streamed
-                raise VODLiveTorrentRequiresVODModeException()
+                raise LiveTorrentRequiresUsercallbackException()
 
             vodfileindex = {'index':-1,'inpath':None,'bitrate':0.0,'live':False,'usercallback':None}
 

@@ -142,6 +142,11 @@ class OverlayApps:
 
     def handleMessage(self,permid,selversion,message):
         """ demultiplex message stream to handlers """
+        
+        # Check auth
+        if not self.requestAllowed(permid, message[0]):
+            return False
+        
         id = message[0]
         if DEBUG:
             print >> sys.stderr,"olapps: got_message",getMessageName(id),"v"+str(selversion)
@@ -187,7 +192,7 @@ class OverlayApps:
                 word = 'allowed'
             else:
                 word = 'denied'
-            print >> sys.stderr, 'opapps: Request type %s from %s was %s' % (getMessageName(messageType), show_permid_short(permid), word)
+            print >> sys.stderr, 'olapps: Request type %s from %s was %s' % (getMessageName(messageType), show_permid_short(permid), word)
         return allowed
     
     def setRequestPolicy(self, requestPolicy):

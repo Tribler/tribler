@@ -86,10 +86,11 @@ for i in range(32):
     invalidwinfilenamechars += '"*/:<>?\\|'
 
 
-# Check if str is a valid Windows file name (or unit name if unit is true)
-# If the filename isn't valid: returns a fixed name
-# If the filename is valid: returns the filename
-def fix_filebasename(name, unit = False):        
+def fix_filebasename(name, unit = False):
+    """ Check if str is a valid Windows file name (or unit name if unit is true)
+     * If the filename isn't valid: returns a corrected name
+     * If the filename is valid: returns the filename
+    """
     if unit and (len(name) != 2 or name[1] != ':'):
         return 'c:'
     if not name or name == '.' or name == '..':

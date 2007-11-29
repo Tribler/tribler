@@ -144,7 +144,7 @@ class TorrentDef(Serializable,Copyable):
     #
     # Convenience instance methods for publishing new content
     #
-    def add_content(self,inpath,outpath=None,playtime=None,bps=None,live=None):
+    def add_content(self,inpath,outpath=None,playtime=None):
         """
         Add a file or directory to this torrent definition. When adding a
         directory, all files in that directory will be added to the torrent.
@@ -174,14 +174,12 @@ class TorrentDef(Serializable,Copyable):
                 Unicode string.
         playtime = (optional) String representing the duration of the multimedia
                    file when played, in [hh:]mm:ss format. 
-        bps = (optional) Bitrate of the multimedia file, in bytes/sec.
-        live = (optional) Integer describing whether the content is live (1 = yes, 0 = no).
         """
         if self.readonly:
             raise OperationNotPossibleAtRuntimeException()
         
         s = os.stat(inpath)
-        d = {'inpath':inpath,'outpath':outpath,'playtime':playtime,'length':s.st_size,'bps':bps,'live':live}
+        d = {'inpath':inpath,'outpath':outpath,'playtime':playtime,'length':s.st_size}
         self.input['files'].append(d)
         
         self.metainfo_valid = False
@@ -201,7 +199,16 @@ class TorrentDef(Serializable,Copyable):
             if d['inpath'] == inpath:
                 self.input['files'].remove(d)
                 break
-            
+
+    def create_live(self,bitrate):
+        self.input['live'] = True
+        self.input['bps'] = bitrate
+        self.input['playtime'] = '1:00:00' # size of virtual content 
+
+
+    #
+    # Torrent attributes
+    #
     def set_encoding(self,enc):
         """ Set the character encoding for e.g. the 'name' field """
         self.input['encoding'] = enc
@@ -420,6 +427,9 @@ class TorrentDef(Serializable,Copyable):
     def get_signature_keypair_filename(self):
         return self.input['torrentsigkeypairfilename']
 
+    def get_live(self):
+        return 'live' in self.input and self.input['live']
+
     #
     def finalize(self,userabortflag=None,userprogresscallback=None):
         """ Create BT torrent file by reading the files added with
@@ -520,12 +530,6 @@ class TorrentDef(Serializable,Copyable):
 
         bitrate = maketorrent.get_bitrate_from_metainfo(file,self.metainfo)
 
-    def get_live(self):
-        return 'live' in self.input and self.input['live']
-
-    def set_live(self,live=1):
-        self.input['live'] = live
-    
     def get_video_files(self,videoexts=videoextdefaults):
         if not self.metainfo_valid:
             raise NotYetImplementedException() # must save first

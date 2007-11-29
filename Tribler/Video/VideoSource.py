@@ -143,7 +143,8 @@ class VideoSource:
 
 
     def handle_pieces(self):
-        """ Processes all buffered pieces in the main thread. """
+        """ Processes all buffered pieces in the main thread. 
+        Called by network thread """
 
         self.piecelock.acquire()
         try:

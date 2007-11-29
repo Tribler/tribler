@@ -111,7 +111,7 @@ class PlayerApp(wx.App):
             print >>sys.stderr,"main: Found video file",videofiles
             
             dcfg = DownloadStartupConfig()
-            dcfg.set_video_on_demand(self.vod_ready_callback)
+            dcfg.set_video_start_callback(self.vod_ready_callback)
             dcfg.set_selected_files(videofiles)
             dcfg.set_max_conns_to_initiate(300)
             dcfg.set_max_conns(300)

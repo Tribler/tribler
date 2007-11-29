@@ -20,7 +20,10 @@ class SessionConfigInterface:
     before session startup time. This is just a parent class.
     """
     def __init__(self,sessconfig=None):
-        
+        """ Constructor. 
+        @param sessconfig Optional dictionary used internally 
+        to make this a copy constructor.
+        """
         if sessconfig is not None: # copy constructor
             self.sessconfig = sessconfig
             return
@@ -50,9 +53,14 @@ class SessionConfigInterface:
         self.sessconfig['ipv6_binds_v4'] = autodetect_socket_style()
 
     def set_state_dir(self,statedir):
+        """ Set the directory to store the Session's state in.
+        @param statedir  A preferably absolute path name. If the directory
+        does not yet exist it will be created at Session create time.
+        """
         self.sessconfig['state_dir'] = statedir
     
     def get_state_dir(self):
+        """ @return The directory the Session stores its state in. """
         return self.sessconfig['state_dir']
     
     def set_install_dir(self,installdir):

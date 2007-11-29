@@ -52,12 +52,15 @@ class DownloadConfigInterface:
         """
         self.dlconfig['saveas'] = path
 
-    def set_video_on_demand(self,usercallback):
-        """ Download the torrent in Video-On-Demand mode. When the video
-        is ready to play, the usercallback function will be called, with a
-        stream as argument from which the video can be read. To fetch a
-        specific file from a multi-file torrent, use the set_selected_files() 
-        method. 
+    def set_video_start_callback(self,usercallback):
+        """ Download the torrent in Video-On-Demand mode or as live stream.
+        When the video is ready to play, the usercallback function will be 
+        called, with a stream as argument from which the video can be read. To 
+        fetch a specific file from a multi-file torrent, use the 
+        set_selected_files() method. 
+  
+        The usercallback will be called by a popup thread which can be used
+        indefinitely (within reason) by the higher level code.
         
         @param usercallback  A function that accepts a file-like object as its
         first argument (i.e., supports read() and close())
@@ -71,7 +74,7 @@ class DownloadConfigInterface:
         return self.dlconfig['mode']
 
     def get_vod_callback(self):
-        """ @return The function that was passed to set_video_on_demand() """
+        """ @return The function that was passed to set_video_start_callback() """
         return self.dlconfig['vod_usercallback']
 
     def set_selected_files(self,files):

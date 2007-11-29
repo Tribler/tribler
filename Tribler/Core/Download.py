@@ -62,6 +62,9 @@ class Download(DownloadRuntimeConfig,DownloadImpl):
         called again. "getpeerlist" is a boolean that indicates whether the 
         DownloadState passed to the callback on the next invocation should
         contain info about the set of current peers.
+        
+        The callback will be called by a popup thread which can be used
+        indefinitely (within reason) by the higher level code.
                 
         @param callback   Function that accepts DownloadState as parameter and 
         returns a (float,boolean) tuple.
