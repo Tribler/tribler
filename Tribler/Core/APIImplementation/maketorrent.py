@@ -188,7 +188,23 @@ def makeinfo(input,userabortflag,userprogresscallback):
     # 4. Read files and calc hashes
     for p, f, size in subs:
         pos = 0L
-        h = open(f, 'rb')
+
+        if 'live' in input and input['live']:
+            # a live stream -> process fake data
+            class FakeFile:
+                def __init__(self, piece_length):
+                    self.emptypiece = " " * piece_length
+
+                def read(self,len):
+                    return self.emptypiece[:len]
+
+                def close(self):
+                    pass
+
+            h = FakeFile( piece_length )
+        else:
+            # not a live stream -> process real file
+            h = open(f, 'rb')
 
         if input['makehash_md5']:
             hash_md5 = md5.new()

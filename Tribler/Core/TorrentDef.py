@@ -200,11 +200,14 @@ class TorrentDef(Serializable,Copyable):
                 self.input['files'].remove(d)
                 break
 
-    def create_live(self,bitrate):
-        self.input['live'] = True
+    def create_live(self,bitrate,playtime="1:00:00"):
+        secs = parse_playtime_to_secs( playtime )
+        self.input['live'] = 1
         self.input['bps'] = bitrate
-        self.input['playtime'] = '1:00:00' # size of virtual content 
+        self.input['playtime'] = playtime # size of virtual content 
 
+        d = {'inpath':'livestream.mpeg','outpath':None,'playtime':None,'length':bitrate*secs}
+        self.input['files'].append(d)
 
     #
     # Torrent attributes
