@@ -552,11 +552,6 @@ class BT1Download:
             self._received_raw_data, self.config)
         self.encoder_ban = self.encoder.ban
 #--- 2fastbt_
-        try:
-            list_of_banned_ips = self.config['exclude_ips'].split(',')
-            self.config['exclude_ips'] = list_of_banned_ips
-        except:
-            self.config['exclude_ips'] = []
         if DEBUG:
             print str(self.config['exclude_ips'])
         for ip in self.config['exclude_ips']:

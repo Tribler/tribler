@@ -24,7 +24,8 @@ class Copyable:
     """
     def copy(self):
         """
-        Returns a copy of "self"
-        in: self = an unbound instance of the class
+        Copies the instance.
+        @param self     an unbound instance of the class
+        @return Returns a copy of "self"
         """
         raise NotYetImplementedException()

@@ -48,6 +48,7 @@ except:
                 
                     for line in mystdout:
                         line = line.strip()
+                        # Arno: FIXME: this won't work on non-English Windows, as reported by the IRT
                         index = line.rfind("bytes free")
                         if index > -1 and line[index:] == "bytes free":
                             parts = line.split(" ")

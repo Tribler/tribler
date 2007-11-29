@@ -53,3 +53,8 @@ NTFY_INSERT = 'insert'                   # new data is inserted
 NTFY_DELETE = 'delete'                   # data is deleted
 NTFY_SEARCH_RESULT = 'search_result'     # new search result
  
+# Disk-allocation policies for download, see DownloadConfig.set_alloc_type
+DISKALLOC_NORMAL = 'normal'
+DISKALLOC_BACKGROUND = 'background'
+DISKALLOC_PREALLOCATE = 'pre-allocate'
+DISKALLOC_SPARSE = 'sparse'

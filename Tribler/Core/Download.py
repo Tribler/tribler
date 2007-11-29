@@ -37,13 +37,17 @@ class Download(DownloadRuntimeConfig,DownloadImpl):
     # Internal methods
     #
     def __init__(self,session,tdef):
+        """ Internal constructor
+        @param session Session
+        @param tdef TorrentDef 
+        """
         DownloadImpl.__init__(self,session,tdef)
     #
     # Public methods
     #
     def get_def(self):
         """
-        Returns the read-only TorrentDef
+        @return the read-only torrent definition (TorrentDef) for this Download.
         """
         return DownloadImpl.get_def(self)
 
@@ -59,29 +63,35 @@ class Download(DownloadRuntimeConfig,DownloadImpl):
         DownloadState passed to the callback on the next invocation should
         contain info about the set of current peers.
                 
-        in: 
-        callback = function that accepts DownloadState as parameter and returns 
-        a (float,boolean) tuple.
+        @param callback   Function that accepts DownloadState as parameter and 
+        returns a (float,boolean) tuple.
         """
         DownloadImpl.set_state_callback(self,usercallback,getpeerlist=getpeerlist)
         
 
     def stop(self):
-        """ Called by any thread """
+        """ Stops the Download, i.e. closes all connections to other peers """
+        # Called by any thread 
         DownloadImpl.stop(self)
         
     def restart(self):
-        """ Called by any thread """
+        """ Restarts the stopped Download """
+        # Called by any thread
         DownloadImpl.restart(self)
         
     #
     # Config parameters that only exists at runtime 
     #
     def set_max_desired_speed(self,direct,speed):
-        """ Sets the maximum desired upload/download speed for this Download in KB/s """
+        """ Sets the maximum desired upload/download speed for this Download. 
+        @param direct The direction (UPLOAD/DOWNLOAD) 
+        @param speed The speed in KB/s.
+        """
         DownloadImpl.set_max_desired_speed(self,direct,speed)
 
     def get_max_desired_speed(self,direct):
-        """ Returns the maximum desired upload/download speed for this Download in KB/s """
+        """ Returns the maximum desired upload/download speed for this Download.
+        @return The previously set speed in KB/s 
+        """
         return DownloadImpl.get_max_desired_speed(self,direct)
     

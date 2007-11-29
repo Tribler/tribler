@@ -377,16 +377,6 @@ class DownloadRuntimeConfig(DownloadConfigInterface):
         finally:
             self.dllock.release()
 
-    def set_max_connections(self,value):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def get_max_connections(self):
-        self.dllock.acquire()
-        try:
-            return DownloadConfigInterface.get_max_connections(self)
-        finally:
-            self.dllock.release()
-
     def set_auto_kick(self,value):
         raise OperationNotPossibleAtRuntimeException()
 
@@ -397,20 +387,20 @@ class DownloadRuntimeConfig(DownloadConfigInterface):
         finally:
             self.dllock.release()
 
-    def set_double_check(self,value):
+    def set_double_check_writes(self,value):
         raise OperationNotPossibleAtRuntimeException()
 
-    def get_double_check(self):
+    def get_double_check_writes(self):
         self.dllock.acquire()
         try:
             return DownloadConfigInterface.get_double_check(self)
         finally:
             self.dllock.release()
 
-    def set_triple_check(self,value):
+    def set_triple_check_writes(self,value):
         raise OperationNotPossibleAtRuntimeException()
 
-    def get_triple_check(self):
+    def get_triple_check_writes(self):
         self.dllock.acquire()
         try:
             return DownloadConfigInterface.get_triple_check(self)
