@@ -191,10 +191,3 @@ class VideoSourceTransporter:
         self.piecepicker.has[index] = 0
         self.piecepicker.numgot -= 1
     """
-
-class VideoSource(DataSource):
-    """ Reads video data from an external source and turns it into BitTorrent chunks. """
-
-    def __init__(self):
-        ch_out,ch_err = os.popen2( VIDEO_PROVIDER )
-        DataSource.__init__(self,ch_out):

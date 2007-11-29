@@ -38,6 +38,7 @@ from Tribler.Core.simpledefs import TRIBLER_TORRENT_EXT
 from Tribler.Core.Merkle.merkle import create_fake_hashes
 from Tribler.Core.Utilities.unicode import bin2unicode
 from Tribler.Core.Video.VideoOnDemand import MovieSelector,MovieOnDemandTransporter,PiecePickerVOD
+from Tribler.Core.Video.VideoSource import VideoSourceTransporter
 
 # 2fastbt_
 from Tribler.Core.CoopDownload.Coordinator import Coordinator
@@ -593,6 +594,10 @@ class BT1Download:
                 self.picker.set_downloader(self.downloader)
                 self.movieselector = MovieSelector(self.videoinfo,self.fileselector,self.storagewrapper,self.picker)
                 self.voddownload = MovieOnDemandTransporter(self.movieselector,self.picker,self.info['piece length'], self.rawserver, self.videoanalyserpath,vodplayablefunc)
+
+        if self.config['video_source']:
+            self.videosourcetransporter = VideoSourceTransporter(self.config['video_source'],self)
+            self.videosourcetransporter.start()
                 
         elif DEBUG:
             print >>sys.stderr,"BT1Download: startEngine: Going into standard mode"

@@ -153,6 +153,7 @@ dldefaults['coordinator_permid'] = ''
 dldefaults['exclude_ips'] = ''
 dldefaults['mode'] = 0
 dldefaults['vod_usercallback'] = None
+dldefaults['video_source'] = None
 dldefaults['selected_files'] = []
 dldefaults['ut_pex_max_addrs_from_peer'] = 16
 

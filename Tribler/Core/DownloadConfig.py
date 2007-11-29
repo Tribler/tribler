@@ -68,6 +68,14 @@ class DownloadConfigInterface:
         self.dlconfig['mode'] = DLMODE_VOD
         self.dlconfig['vod_usercallback'] = usercallback
 
+    def set_video_source(self,videosource):
+        """ Provides the live video source for this torrent from an external
+        source.
+        
+        @param videosource  A file-like object providing the live video stream
+        (i.e., supports read() and close())
+        """
+        self.dlconfig['video_source'] = videosource
 
     def get_mode(self):
         """ @return The mode of this download (DLMODE_NORMAL/DLMODE_VOD) """
@@ -76,6 +84,10 @@ class DownloadConfigInterface:
     def get_vod_callback(self):
         """ @return The function that was passed to set_video_start_callback() """
         return self.dlconfig['vod_usercallback']
+
+    def get_video_source(self):
+        """ @return The object that was passed to set_video_source() """
+        return self.dlconfig['video_source']
 
     def set_selected_files(self,files):
         """ Select which files in the torrent to download. The filenames must 
