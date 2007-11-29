@@ -6,7 +6,7 @@
 # We assume we are the sole originator of these pieces, i.e. none of the pieces
 # injected are already obtained from another source or requested from some peer.
 
-import os
+import os,sys
 from threading import RLock,Thread
 from traceback import print_exc
 
@@ -38,7 +38,7 @@ class VideoSourceTransporter:
 
         # shortcuts to the parts we use
         self.storagewrapper = bt1download.storagewrapper
-        self.piecepicker = bt1download.piecepicker
+        self.picker = bt1download.picker
         self.rawserver = bt1download.rawserver
         self.connecter = bt1download.connecter
 
@@ -75,11 +75,15 @@ class VideoSourceTransporter:
     def input_thread(self):
         """ A thread reading the stream and buffering it. """
 
+        print "VideoSource: started input thread"
+
         try:
             while not self.exiting:
                 data = self.stream.read(self.piece_size)
                 if not data:
                     break
+
+                print "VideoSource: read %d bytes" % len(data)
 
                 self.process_data(data)
         except IOError:
@@ -89,6 +93,8 @@ class VideoSourceTransporter:
 
     def shutdown(self):
         """ Stop transporting data. """
+
+        print "VideoSource: shutting down"
 
         if self.exiting:
             return
@@ -126,7 +132,7 @@ class VideoSourceTransporter:
 
                     if not self.handling_pieces:
                         # signal to main thread that pieces have arrived
-                        self.rawserver.add_task( self._handle_pieces )
+                        self.rawserver.add_task( self.handle_pieces )
                         self.handling_pieces = True
                 except:
                     print_exc()
@@ -179,7 +185,7 @@ class VideoSourceTransporter:
             x += chunk_size
 
         # also notify the piecepicker
-        self.piecepicker.complete( index )
+        self.picker.complete( index )
 
         # notify our neighbours
         self.connecter.got_piece( index )
@@ -188,6 +194,6 @@ class VideoSourceTransporter:
     def del_piece(self,index):
         self.storagewrapper.have[index] = 0
         self.storagewrapper.inactive_requests[index] = 1
-        self.piecepicker.has[index] = 0
-        self.piecepicker.numgot -= 1
+        self.picker.has[index] = 0
+        self.picker.numgot -= 1
     """
