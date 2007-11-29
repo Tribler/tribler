@@ -27,24 +27,20 @@ else:
 
 VLC_IN_PARAMS = "--demux=ts --codec=mp2,m2v"
 
-class SimpleThread(Thread):
-    """ Wraps a thread around a single function. """
 
-    def __init__(self,runfunc):
-        Thread.__init__(self)
-	self.runfunc = runfunc
+class VideoSourceTransporter:
+    """ Reads data from an external source and turns it into BitTorrent chunks. """
 
-    def run(self):
-	self.runfunc()
+    def __init__(self, stream, bt1download):
+        self.stream = stream
+        self.bt1download = bt1download
+        self.exiting = False
 
-class VideoSource:
-    """ Reads video data from an external source and turns it into BitTorrent chunks. """
-
-    def __init__(self,storagewrapper,piecepicker,rawserver,connecter):
-        self.storagewrapper = storagewrapper
-        self.piecepicker = piecepicker
-        self.rawserver = rawserver
-        self.connecter = connecter
+        # shortcuts to the parts we use
+        self.storagewrapper = bt1download.storagewrapper
+        self.piecepicker = bt1download.piecepicker
+        self.rawserver = bt1download.rawserver
+        self.connecter = bt1download.connecter
 
         # size and number of the pieces we create
         self.piece_size = self.storagewrapper.piece_size
@@ -60,54 +56,53 @@ class VideoSource:
         self.piecelock = RLock()
         self.handling_pieces = False
 
-        # start producing video
-        self.exiting = False
-        self.ch_out = None
-        self.inputthread = SimpleThread(self.video_producer_thread)
-        self.inputthread.start()
+    def start(self):
+        """ Start transporting data. """
 
-    def shutdown(self):
-        self.exiting = True
+        class SimpleThread(Thread):
+            """ Wraps a thread around a single function. """
 
-        if self.ch_out:
-            self.ch_out.close()
+            def __init__(self,runfunc):
+                Thread.__init__(self)
+	        self.runfunc = runfunc
 
-    def video_producer_thread(self):
-        """ A thread producing video data. """
+            def run(self):
+	        self.runfunc()
 
-        if DEBUG:
-            print "VIDEO SOURCE: Starting to receive video input"
+        self.input_thread_handle = SimpleThread(self.input_thread)
+        self.input_thread_handle.start()
+
+    def input_thread(self):
+        """ A thread reading the stream and buffering it. """
 
         try:
-            (ch_in,ch_out) = os.popen2( VIDEO_PROVIDER )
-            self.ch_out = ch_out
-
             while not self.exiting:
-                data = ch_out.read(self.piece_size)
+                data = self.stream.read(self.piece_size)
                 if not data:
                     break
 
-                if DEBUG:
-                    print "VIDEO SOURCE: Read %d bytes" % len(data)
                 self.process_data(data)
         except IOError:
             pass
 
-        if DEBUG:
-            print "VIDEO SOURCE: Done producing data"
+        self.shutdown()
+
+    def shutdown(self):
+        """ Stop transporting data. """
+
+        if self.exiting:
+            return
+
+        self.exiting = True
 
         try:
-            ch_in.close()
-            ch_out.close()
-        except NameError:
-            # in some cases, ch_in/ch_out are not even defined yet
-            pass
+            self.stream.close()
         except IOError:
             # error on closing, nothing we can do
             pass
 
     def process_data(self,data):
-        """ Add some video data. """
+        """ Turn data into pieces and queue them for insertion. """
 
         self.buffer.append( data )
         self.buflen += len( data )
@@ -125,12 +120,13 @@ class VideoSource:
             try:
                 try:
                     while len( buffer ) >= piece_size:
-                        self.pieces.append( buffer[:piece_size] )
+                        self.pieces.append( (self.index, buffer[:piece_size]) )
+                        self.index += 1
                         buffer = buffer[piece_size:]
 
                     if not self.handling_pieces:
                         # signal to main thread that pieces have arrived
-                        self.rawserver.add_task( self.handle_pieces )
+                        self.rawserver.add_task( self._handle_pieces )
                         self.handling_pieces = True
                 except:
                     print_exc()
@@ -141,7 +137,6 @@ class VideoSource:
             self.buffer = [buffer]
             self.buflen = len(buffer)
 
-
     def handle_pieces(self):
         """ Processes all buffered pieces in the main thread. 
         Called by network thread """
@@ -149,12 +144,8 @@ class VideoSource:
         self.piecelock.acquire()
         try:
             try:
-                for p in self.pieces:
-                    self.push_piece( self.index, p )
-                    self.index += 1
-                    #if self.index == self.numpieces:
-                    #     # wrap around
-                    #     self.index = 0
+                for (i,p) in self.pieces:
+                    self.add_piece( i, p )
 
                 self.pieces = []
                 self.handling_pieces = False
@@ -163,16 +154,17 @@ class VideoSource:
         finally:
             self.piecelock.release()
 
-    def push_piece(self,index,piece):
-        """ Process one piece. """
+    def add_piece(self,index,piece):
+        """ Push one piece into the BitTorrent system. """
 
         # Modelled after BitTornado.BT1.Downloader.got_piece
         # We don't need most of that function, since this piece
         # was never requested from another peer.
 
         if index >= self.numpieces:
-            if DEBUG:
-                print "VIDEO SOURCE: Too much video data for torrent. Discarding input."
+            return
+
+        if self.exiting:
             return
 
         # act as if the piece was requested and just came in
@@ -192,15 +184,17 @@ class VideoSource:
         # notify our neighbours
         self.connecter.got_piece( index )
 
-        #numpieces = self.numpieces
-        #if self.piecepicker.numgot > numpieces/2:
-        #    self.lose_piece( (index+numpieces/2) % numpieces )
-
     """
-    def lose_piece(self,index):
+    def del_piece(self,index):
         self.storagewrapper.have[index] = 0
         self.storagewrapper.inactive_requests[index] = 1
         self.piecepicker.has[index] = 0
         self.piecepicker.numgot -= 1
     """
 
+class VideoSource(DataSource):
+    """ Reads video data from an external source and turns it into BitTorrent chunks. """
+
+    def __init__(self):
+        ch_out,ch_err = os.popen2( VIDEO_PROVIDER )
+        DataSource.__init__(self,ch_out):
