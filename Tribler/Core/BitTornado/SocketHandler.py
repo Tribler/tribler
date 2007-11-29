@@ -194,20 +194,18 @@ class SocketHandler:
                     print >> sys.stderr,"SocketHandler: scan_timeout closing connection",k.get_ip()
                 self._close_socket(k)
 
-    def bind(self, port, bind = '', reuse = False, ipv6_socket_style = 1):
+    def bind(self, port, bind = [], reuse = False, ipv6_socket_style = 1):
         port = int(port)
         addrinfos = []
         self.servers = {}
         self.interfaces = []
-        # if bind != "" thread it as a comma seperated list and bind to all
-        # addresses (can be ips or hostnames) else bind to default ipv6 and
-        # ipv4 address
+        # if bind != [] bind to all specified addresses (can be IPs or hostnames)
+        # else bind to default ipv6 and ipv4 address
         if bind:
             if self.ipv6_enable:
                 socktype = socket.AF_UNSPEC
             else:
                 socktype = socket.AF_INET
-            bind = bind.split(',')
             for addr in bind:
                 if sys.version_info < (2, 2):
                     addrinfos.append((socket.AF_INET, None, None, None, (addr, port)))

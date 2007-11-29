@@ -161,6 +161,7 @@ from copy import deepcopy
 import gc
 import socket
 
+from Tribler.Core.simpledefs import *
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import BUDDYCAST, BARTERCAST, KEEP_ALIVE
 from Tribler.Core.Utilities.utilities import *
@@ -481,7 +482,7 @@ class BuddyCastCore:
         # --- dependent modules ---
         self.metadata_handler = metadata_handler
         self.torrent_collecting = None
-        if torrent_collecting_solution >= 1:
+        if torrent_collecting_solution >= BCCOLPOLICY_SIMPLE:
             self.torrent_collecting = SimpleTorrentCollecting(metadata_handler)
         #elif torrent_collecting_solution == 2:
         #    self.torrent_collecting = TiT4TaTTorrentCollecting(metadata_handler, rawserver)

@@ -133,7 +133,8 @@ class Session(SessionRuntimeConfig):
             self.sessconfig['superpeer_file'] = os.path.join(self.sessconfig['install_dir'],'Tribler','Core','superpeer.txt')
 
         # 5. download_help_dir
-        self.sessconfig['download_help_dir'] = os.path.join(get_default_dest_dir(),DESTDIR_COOPDOWNLOAD)
+        if self.sessconfig['download_help_dir'] is None:
+            self.sessconfig['download_help_dir'] = os.path.join(get_default_dest_dir(),DESTDIR_COOPDOWNLOAD)
 
         # Checkpoint startup config
         sscfg = self.get_current_startup_config_copy()

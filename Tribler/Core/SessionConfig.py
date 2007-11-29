@@ -64,69 +64,95 @@ class SessionConfigInterface:
         return self.sessconfig['state_dir']
     
     def set_install_dir(self,installdir):
+        """ Set the directory in which the Tribler Core software is installed. 
+        @param installdir An absolute path name
+        """
         self.sessconfig['install_dir'] = installdir
     
     def get_install_dir(self):
+        """ @return The directory the Tribler Core software is installed in. """
         return self.sessconfig['install_dir']
     
     
     def set_permid_keypair_filename(self,keypairfilename):
+        """ Set the filename containing the Elliptic Curve keypair to use for 
+        PermID-based authentication in this Session. 
+        """
         self.sessconfig['eckeypairfilename'] = keypairfilename
 
     def get_permid_keypair_filename(self):
+        """ @return The filename of the Session's keypair """
         return self.sessconfig['eckeypairfilename']
     
 
     def set_listen_port(self,port):
-        """
-        FUTURE: do we allow runtime modification of this param? Theoretically
-        possible, a bit hard to implement
+        """ Set the UDP and TCP listen port for this Session.
+        @param port A port number.
         """
         self.sessconfig['minport'] = port
         self.sessconfig['maxport'] = port
 
     def get_listen_port(self):
+        """ @return The current UDP/TCP listen port. """
         return self.sessconfig['minport']
         
     #
     # Advanced network settings
     #
     def set_ip_for_tracker(self,value):
-        """ ip to report you have to the tracker (default = set automatically) """
+        """ IP address to report to the tracker (default = set automatically).
+        @param value  An IP address as string. """
         self.sessconfig['ip'] = value
 
     def get_ip_for_tracker(self):
+        """ @return The IP address being reported to the tracker. """
         return self.sessconfig['ip']
 
     def set_bind_to_address(self,value):
-        """ comma-separated list of ips/hostnames to bind to locally """
+        """ Set the list of IP addresses/hostnames to bind to locally.
+        @param value A list of IP addresses as strings. """
         self.sessconfig['bind'] = value
 
     def get_bind_to_address(self):
+        """ @return The list of IP addresses bound to. """
         return self.sessconfig['bind']
 
     def set_upnp_mode(self,value):
-        """ attempt to autoconfigure a UPnP router to forward a server port 
-        (0 = disabled, 1 = mode 1 [fast,win32], 2 = mode 2 [slow,win32], 3 = 
-        mode 3 [any platform]) """
+        """ Use to autoconfigure a UPnP router to forward the UDP/TCP listen 
+        port to this host:
+        <pre>
+         * UPNPMODE_DISABLED: Autoconfigure turned off.
+         * UPNPMODE_WIN32_HNetCfg_NATUPnP: Use Windows COM interface (slow)
+         * UPNPMODE_WIN32_UPnP_UPnPDeviceFinder: Use Windows COM interface (faster)
+         * UPNPMODE_UNIVERSAL_DIRECT: Talk UPnP directly to the network (best)
+        </pre>
+        @param value UPNPMODE_* 
+        """
         self.sessconfig['upnp_nat_access'] = value
 
     def get_upnp_mode(self):
+        """ @return The UPnP mode set. """
         return self.sessconfig['upnp_nat_access']
 
     def set_autoclose_timeout(self,value):
-        """ time to wait between closing sockets which nothing has been received
-        on """
+        """ Time to wait between closing sockets which nothing has been received
+        on.
+        @param value A number of seconds.
+        """
         self.sessconfig['timeout'] = value
 
     def get_autoclose_timeout(self):
+        """ @return The autoclose timeout in seconds. """
         return self.sessconfig['timeout']
 
     def set_autoclose_check_interval(self,value):
-        """ time to wait between checking if any connections have timed out """
+        """ Time to wait between checking if any connections have timed out.
+        @param value A number of seconds.
+        """
         self.sessconfig['timeout_check_interval'] = value
 
     def get_autoclose_check_interval(self):
+        """ @return The autoclose check interval """
         return self.sessconfig['timeout_check_interval']
 
     #
@@ -134,10 +160,12 @@ class SessionConfigInterface:
     #
     def set_megacache(self,value):
         """ Enable megacache databases to cache peers, torrent files and 
-        preferences (default = True)"""
+        preferences (default = True).
+        @param value Boolean. """
         self.sessconfig['megacache'] = value
 
     def get_megacache(self):
+        """ @return Whether Megacache is enabled. """
         return self.sessconfig['megacache']
 
     #
@@ -145,17 +173,23 @@ class SessionConfigInterface:
     #
     def set_overlay(self,value):
         """ Enable overlay swarm to enable Tribler's special features 
-        (default = True) """
+        (default = True).
+        @param value Boolean. 
+        """
         self.sessconfig['overlay'] = value
 
     def get_overlay(self):
+        """ @return Whether Overlay is enabled. """
         return self.sessconfig['overlay']
 
     def set_overlay_max_message_length(self,value):
-        """ maximal messagelength over the secure overlay """
+        """ Maximal message length for messages sent over the secure overlay.
+        @param value A number of bytes.
+        """
         self.sessconfig['overlay_max_message_length'] = value
 
     def get_overlay_max_message_length(self):
+        """ @return The maximum overlay-message length. """
         return self.sessconfig['overlay_max_message_length']
 
 
@@ -164,78 +198,110 @@ class SessionConfigInterface:
     #
     def set_buddycast(self,value):
         """ Enable buddycast recommendation system at startup (default = True)
+        @param value Boolean.
         """
         self.sessconfig['buddycast'] = value
 
     def get_buddycast(self):
+        """ @return Whether buddycast is enabled at startup. """
         return self.sessconfig['buddycast']
 
     def set_start_recommender(self,value):
-        """ Buddycast can be temp. disabled via this flag 
-        (default = True) """
+        """ Buddycast can be temporarily disabled via this parameter 
+        (default = True). Must have been enabled at startup, see
+        set_buddycast().
+        @param value Boolean. 
+        """
         self.sessconfig['start_recommender'] = value
 
     def get_start_recommender(self):
+        """ @return Whether Buddycast is temporarily enabled. """
         return self.sessconfig['start_recommender']
 
     def set_buddycast_interval(self,value):
-        """ number of seconds to pause between exchanging preference with a 
-        peer in buddycast """
+        """ Number of seconds to pause between exchanging preference with a 
+        peer in Buddycast.
+        @param value A number of seconds.
+        """
         self.sessconfig['buddycast_interval'] = value
 
     def get_buddycast_interval(self):
+        """ @return The number of seconds between Buddycast pref. exchanges. """
         return self.sessconfig['buddycast_interval']
 
     def set_buddycast_collecting_solution(self,value):
-        """ 1: simplest solution: per torrent/buddycasted peer/4hours, 2: tig for tag on group base """
+        """ Set the Buddycast collecting solution. Only one policy implemented
+        at the moment:
+        <pre>
+         * BCCOLPOLICY_SIMPLE: Simplest solution: per torrent/buddycasted peer/4 hours,
+         </pre>
+        @param value BCCOLPOLICY_* 
+        """
         self.sessconfig['buddycast_collecting_solution'] = value
 
     def get_buddycast_collecting_solution(self):
+        """ @return The Buddycast collecting solution. """
         return self.sessconfig['buddycast_collecting_solution']
 
     #
     # Download helper / cooperative download
     #
     def set_download_help(self,value):
-        """ accept download help request (default = True) """
+        """ Enable download helping/cooperative download (default = True).
+        @param value Boolean. """
         self.sessconfig['download_help'] = value
 
     def get_download_help(self):
+        """ @return Whether download help is enabled. """
         return self.sessconfig['download_help']
 
     def set_download_help_dir(self,value):
-        """ directory from download_help relative to state_dir """
+        """ Set the directory for storing state and content for download
+        helping (default = Default destination dir (see get_default_dest_dir()
+        +'downloadhelp'.
+        @param value An absolute path. """
         self.sessconfig['download_help_dir'] = value
 
     def get_download_help_dir(self):
+        """ @return The directory for download helping storage. """
         return self.sessconfig['download_help_dir']
 
     #
     # Torrent file collecting
     #
     def set_torrent_collecting(self,value):
-        """ automatically collect torrents (default = True)"""
+        """ Automatically collect torrents from peers in the network (default = 
+        True).
+        @param value Boolean. 
+        """
         self.sessconfig['torrent_collecting'] = value
 
     def get_torrent_collecting(self):
+        """ @return Whether to automatically collect torrents. """
         return self.sessconfig['torrent_collecting']
 
     def set_max_torrents(self,value):
-        """ max number of torrents to collect """
+        """ Set the maximum number of torrents to collect from other peers.
+        @param value A number of torrents.
+        """
         self.sessconfig['max_torrents'] = value
 
     def get_max_torrents(self):
+        """ @return The maximum number of torrents to collect. """
         return self.sessconfig['max_torrents']
 
     def set_torrent_collecting_dir(self,value):
-        """ where to place collected torrents? (default is state_dir + 'colltorrents'"""
+        """ Where to place collected torrents? (default is state_dir + 'colltorrents')
+        @param value An absolute path.
+        """
         self.sessconfig['torrent_collecting_dir'] = value
 
     def get_torrent_collecting_dir(self):
+        """ @return The directory to save collected torrents. """
         return self.sessconfig['torrent_collecting_dir']
 
     def set_torrent_collecting_rate(self,value):
-        """ max rate of torrent collecting (Kbps) """
+        """ max rate of torrent collecting (Kbps) HERETODO """
         self.sessconfig['torrent_collecting_rate'] = value
 
     def get_torrent_collecting_rate(self):

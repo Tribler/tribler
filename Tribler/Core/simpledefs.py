@@ -30,7 +30,7 @@ STATEDIR_ITRACKER_DIR = 'itracker'
 STATEDIR_DLPSTATE_DIR = 'dlcheckpoints'
 STATEDIR_PEERICON_DIR = 'icons'
 STATEDIR_SESSCONFIG = 'sessconfig.pickle'
-DESTDIR_COOPDOWNLOAD = 'coopdownload' 
+DESTDIR_COOPDOWNLOAD = 'downloadhelp' 
 
 TRIBLER_TORRENT_EXT = ".tribe"
 
@@ -43,18 +43,28 @@ NTFY_YOUTUBE = 'youtube'
 NTFY_PREFERENCES = 'preferences'
 
 # non data handler subjects
-NTFY_DOWNLOADS = 'downloads'             # a torrent download was added/removed/changed
-NTFY_ACTIVITIES = 'activities'           # an activity was set (peer met/dns resolved)
-NTFY_REACHABLE = 'reachable'             # the Session is reachable from the Internet
+NTFY_DOWNLOADS = 'downloads'   # a torrent download was added/removed/changed
+NTFY_ACTIVITIES = 'activities' # an activity was set (peer met/dns resolved)
+NTFY_REACHABLE = 'reachable'   # the Session is reachable from the Internet
 
 # changeTypes
-NTFY_UPDATE = 'update'                   # data is updated
-NTFY_INSERT = 'insert'                   # new data is inserted
-NTFY_DELETE = 'delete'                   # data is deleted
+NTFY_UPDATE = 'update'         # data is updated
+NTFY_INSERT = 'insert'         # new data is inserted
+NTFY_DELETE = 'delete'         # data is deleted
 NTFY_SEARCH_RESULT = 'search_result'     # new search result
  
 # Disk-allocation policies for download, see DownloadConfig.set_alloc_type
-DISKALLOC_NORMAL = 'normal'
-DISKALLOC_BACKGROUND = 'background'
+DISKALLOC_NORMAL = 'normal'              
+DISKALLOC_BACKGROUND = 'background'      
 DISKALLOC_PREALLOCATE = 'pre-allocate'
 DISKALLOC_SPARSE = 'sparse'
+
+# UPnP modes, see SessionConfig.set_upnp_mode
+UPNPMODE_DISABLED = 0
+UPNPMODE_WIN32_HNetCfg_NATUPnP = 1
+UPNPMODE_WIN32_UPnP_UPnPDeviceFinder = 2
+UPNPMODE_UNIVERSAL_DIRECT = 3
+
+# Buddycast Collecting Policy parameters
+BCCOLPOLICY_SIMPLE = 1
+# BCCOLPOLICY_T4T = 2 # Future work

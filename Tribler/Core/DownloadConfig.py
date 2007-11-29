@@ -305,11 +305,13 @@ class DownloadConfigInterface:
 
     def set_alloc_type(self,value):
         """ Set disk-allocation type:
+        <pre>
         * DISKALLOC_NORMAL:  Allocates space as data is received
         * DISKALLOC_BACKGROUND: Also adds space in the background
-        * DISKALLOC_PREALLOCATE: Reserves space up front
-        * DISKALLOC_SPARSE: Is only for filesystems that support it by default (UNIX)
-
+        * DISKALLOC_PREALLOCATE: Reserves space up front (slow)
+        * DISKALLOC_SPARSE: Is only for filesystems that support it by default 
+          (UNIX)
+        </pre>
         @param value A DISKALLOC_* policy. 
         """
         self.dlconfig['alloc_type'] = value
@@ -552,9 +554,11 @@ class DownloadStartupConfig(DownloadConfigInterface,Serializable,Copyable):
 
 
 def get_default_dest_dir():
-    """ @return The default dir to save content to. 
+    """ @return The default dir to save content to.
+    <pre> 
     * For Win32/MacOS: Desktop\TriblerDownloads
     * For UNIX: /tmp
+    </pre>
     """ 
     if sys.platform == 'win32':
         profiledir = os.path.expandvars('${USERPROFILE}')
