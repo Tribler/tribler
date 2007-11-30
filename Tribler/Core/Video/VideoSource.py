@@ -107,18 +107,15 @@ class VideoSourceTransporter:
             self.piecelock.acquire()
 
             try:
-                try:
-                    while len( buffer ) >= piece_size:
-                        self.pieces.append( (self.index, buffer[:piece_size]) )
-                        self.index += 1
-                        buffer = buffer[piece_size:]
+                while len( buffer ) >= piece_size:
+                    self.pieces.append( (self.index, buffer[:piece_size]) )
+                    self.index += 1
+                    buffer = buffer[piece_size:]
 
-                    if not self.handling_pieces:
-                        # signal to main thread that pieces have arrived
-                        self.rawserver.add_task( self.handle_pieces )
-                        self.handling_pieces = True
-                except:
-                    print_exc()
+                if not self.handling_pieces:
+                    # signal to main thread that pieces have arrived
+                    self.rawserver.add_task( self.handle_pieces )
+                    self.handling_pieces = True
             finally:
                 self.piecelock.release()
 
@@ -132,14 +129,11 @@ class VideoSourceTransporter:
 
         self.piecelock.acquire()
         try:
-            try:
-                for (i,p) in self.pieces:
-                    self.add_piece( i, p )
+            for (i,p) in self.pieces:
+                self.add_piece( i, p )
 
-                self.pieces = []
-                self.handling_pieces = False
-            except:
-                print_exc()
+            self.pieces = []
+            self.handling_pieces = False
         finally:
             self.piecelock.release()
 
