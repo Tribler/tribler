@@ -72,7 +72,6 @@ class DialbackMsgHandler:
         self.peer_db = None
         self.superpeer_db = None
         self.trust_superpeers = None
-        self.interval = None
         self.old_ext_ip = None
         self.returnconnhand = ReturnConnHandler.getInstance()
 
@@ -90,7 +89,6 @@ class DialbackMsgHandler:
         self.superpeer_db = launchmany.superpeer_db
         self.active = config['dialback_active'],
         self.trust_superpeers = config['dialback_trust_superpeers']
-        self.interval = config['dialback_interval']
         self.returnconnhand.register(self.rawserver,launchmany.multihandler,launchmany.listen_port,config['overlay_max_message_length'])
         self.returnconnhand.register_conns_callback(self.handleReturnConnConnection)
         self.returnconnhand.register_recv_callback(self.handleReturnConnMessage)

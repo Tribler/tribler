@@ -321,4 +321,5 @@ TODO:
   just the 20 sec prebuffer) that it already starts to play, hoping we'll
   catch up the bitrate in that period.
 
-  
+- Make sure torrent gets removed from internal tracker when Download is 
+removed.

@@ -415,7 +415,7 @@ class BuddyCastFactory:
 class BuddyCastCore:
     def __init__(self, secure_overlay, launchmany, data_handler, 
                  buddycast_interval, superpeer, 
-                 metadata_handler, rawserver, torrent_collecting_solution, bartercast_core, log=''):
+                 metadata_handler, rawserver, torrent_collecting_solution, bartercast_core, log=None):
         self.secure_overlay = secure_overlay
         self.launchmany = launchmany
         self.data_handler = data_handler

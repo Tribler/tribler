@@ -1,6 +1,7 @@
 # Written by Bram Cohen
 # see LICENSE.txt for license information
 
+from Tribler.Core.simpledefs import *
 from Tribler.Core.BitTornado.parseargs import parseargs, formatDefinitions
 from Tribler.Core.BitTornado.RawServer import RawServer, autodetect_socket_style
 from Tribler.Core.BitTornado.HTTPHandler import HTTPHandler, months
@@ -183,7 +184,7 @@ class Tracker:
         if exists(self.dfile):
             try:
                 h = open(self.dfile, 'rb')
-                if self.config['tracker_dfile_format'] == 'bencode':
+                if self.config['tracker_dfile_format'] == ITRACKDBFORMAT_BENCODE:
                     ds = h.read()
                     tempstate = bdecode(ds)
                 else:
@@ -259,7 +260,7 @@ class Tracker:
         
         self.t2tlist = T2TList(config['tracker_multitracker_enabled'], self.trackerid,
                                config['tracker_multitracker_reannounce_interval'],
-                               config['tracker_multitracker_maxpeers'], config['tracker_http_timeout'],
+                               config['tracker_multitracker_maxpeers'], config['tracker_multitracker_http_timeout'],
                                self.rawserver)
 
         if config['tracker_allowed_list']:
@@ -271,8 +272,8 @@ class Tracker:
             self.allowed_list_mtime = 0
             self.parse_allowed()
             self.remove_from_state('allowed','allowed_dir_files')
-            if config['tracker_multitracker_allowed'] == 'autodetect':
-                config['tracker_multitracker_allowed'] = 'none'
+            if config['tracker_multitracker_allowed'] == ITRACKMULTI_ALLOW_AUTODETECT:
+                config['tracker_multitracker_allowed'] = ITRACKMULTI_ALLOW_NONE
             config['tracker_allowed_controls'] = 0
 
         elif config['tracker_allowed_dir']:
@@ -285,8 +286,8 @@ class Tracker:
         else:
             self.allowed = None
             self.remove_from_state('allowed','allowed_dir_files', 'allowed_list')
-            if config['tracker_multitracker_allowed'] == 'autodetect':
-                config['tracker_multitracker_allowed'] = 'none'
+            if config['tracker_multitracker_allowed'] == ITRACKMULTI_ALLOW_AUTODETECT:
+                config['tracker_multitracker_allowed'] = ITRACKMULTI_ALLOW_NONE
             config['tracker_allowed_controls'] = 0
                 
         self.uq_broken = unquote('+') != ' '
@@ -310,7 +311,7 @@ class Tracker:
             self.aggregate_forward = None
         else:
             try:
-                self.aggregate_forward, self.aggregate_password = send.split(',')
+                self.aggregate_forward, self.aggregate_password = send
             except:
                 self.aggregate_forward = send
                 self.aggregate_password = None
@@ -447,7 +448,7 @@ class Tracker:
     def get_scrape(self, paramslist):
         fs = {}
         if paramslist.has_key('info_hash'):
-            if self.config['tracker_scrape_allowed'] not in ['specific', 'full']:
+            if self.config['tracker_scrape_allowed'] not in [ITRACKSCRAPE_ALLOW_SPECIFIC,ITRACKSCRAPE_ALLOW_FULL]:
                 return (400, 'Not Authorized', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'},
                     bencode({'failure reason':
                     'specific scrape function is not available with this tracker.'}))
@@ -459,7 +460,7 @@ class Tracker:
                     if self.downloads.has_key(hash):
                         fs[hash] = self.scrapedata(hash)
         else:
-            if self.config['tracker_scrape_allowed'] != 'full':
+            if self.config['tracker_scrape_allowed'] != ITRACKSCRAPE_ALLOW_FULL:
                 return (400, 'Not Authorized', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'},
                     bencode({'failure reason':
                     'full scrape function is not available with this tracker.'}))
@@ -505,12 +506,12 @@ class Tracker:
                         bencode({'failure reason': self.allowed[infohash]['failure reason']}))
 
         if paramslist.has_key('tracker'):
-            if ( self.config['tracker_multitracker_allowed'] == 'none' or       # turned off
+            if ( self.config['tracker_multitracker_allowed'] == ITRACKMULTI_ALLOW_NONE or       # turned off
                           paramslist['peer_id'][0] == self.trackerid ): # oops! contacted myself
                 return (200, 'Not Authorized', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'},
                     bencode({'failure reason': 'disallowed'}))
             
-            if ( self.config['tracker_multitracker_allowed'] == 'autodetect'
+            if ( self.config['tracker_multitracker_allowed'] == ITRACKMULTI_ALLOW_AUTODETECT
                         and not self.allowed[infohash].has_key('announce-list') ):
                 return (200, 'Not Authorized', {'Content-Type': 'text/plain', 'Pragma': 'no-cache'},
                     bencode({'failure reason':
@@ -888,7 +889,7 @@ class Tracker:
     def save_state(self):
         self.rawserver.add_task(self.save_state, self.save_dfile_interval)
         h = open(self.dfile, 'wb')
-        if self.config['tracker_dfile_format'] == 'bencode':
+        if self.config['tracker_dfile_format'] == ITRACKDBFORMAT_BENCODE:
             h.write(bencode(self.state))
         else:
             pickle.dump(self.state,h,-1)

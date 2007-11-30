@@ -40,8 +40,8 @@ from Tribler.Main.Utility.utility import Utility
 from Tribler.Video.EmbeddedPlayer import VideoFrame
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
 
+DEBUG = True
 ALLOW_MULTIPLE = False
-
 RATELIMITADSL = False
 
 

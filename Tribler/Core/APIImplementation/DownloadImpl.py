@@ -152,7 +152,7 @@ class DownloadImpl:
                 # single-file torrent
                 file = self.get_def().get_name()
                 idx = -1
-                bitrate = self.get_def().get_bitrate(None)
+                bitrate = self.get_def().get_bitrate()
             else:
                 # multi-file torrent
                 file = self.dlconfig['selected_files'][0]

@@ -35,7 +35,7 @@ sessdefaults['start_recommender'] = 1
 sessdefaults['download_help'] = 1
 sessdefaults['torrent_collecting'] = 1
 sessdefaults['superpeer'] = 0
-sessdefaults['overlay_log'] = ''
+sessdefaults['overlay_log'] = None
 sessdefaults['buddycast_interval'] = 15
 sessdefaults['max_torrents'] = 5000
 sessdefaults['max_peers'] = 2000  # max number of peers to use for recommender
@@ -46,7 +46,6 @@ sessdefaults['torrent_checking_period'] = 60
 sessdefaults['dialback'] = 1
 sessdefaults['dialback_active'] = 1  # do active discovery (needed to disable for testing only) (0 = disabled)
 sessdefaults['dialback_trust_superpeers'] = 1 # trust superpeer replies (needed to disable for testing only) (0 = disabled)
-sessdefaults['dialback_interval'] = 30
 sessdefaults['socnet'] = 1
 sessdefaults['rquery'] = 1
 sessdefaults['stop_collecting_threshold'] = 200
@@ -58,12 +57,12 @@ sessdefaults['download_help_dir'] = None
 sessdefaults['bartercast'] = 1
 sessdefaults['superpeer_file'] = None
 sessdefaults['buddycast_collecting_solution'] = BCCOLPOLICY_SIMPLE
-sessdefaults['peer_icon_path'] = STATEDIR_PEERICON_DIR
+sessdefaults['peer_icon_path'] = None
 sessdefaults['stop_collecting_threshold'] = 200
 
 trackerdefaults = {}
 trackerdefaults['tracker_dfile'] = None
-trackerdefaults['tracker_dfile_format'] = 'pickle'
+trackerdefaults['tracker_dfile_format'] = ITRACKDBFORMAT_PICKLE
 trackerdefaults['tracker_socket_timeout'] = 15
 trackerdefaults['tracker_save_dfile_interval'] = 300
 trackerdefaults['tracker_timeout_downloaders_interval'] = 2700
@@ -78,25 +77,26 @@ trackerdefaults['tracker_allowed_dir'] = None
 trackerdefaults['tracker_allowed_list'] = ''
 trackerdefaults['tracker_allowed_controls'] = 0
 trackerdefaults['tracker_multitracker_enabled'] = 0
-trackerdefaults['tracker_multitracker_allowed'] = 'autodetect'
+trackerdefaults['tracker_multitracker_allowed'] = ITRACKMULTI_ALLOW_AUTODETECT
 trackerdefaults['tracker_multitracker_reannounce_interval'] = 120
 trackerdefaults['tracker_multitracker_maxpeers'] = 20
-trackerdefaults['tracker_aggregate_forward'] = ''
+trackerdefaults['tracker_aggregate_forward'] = [None,None]
 trackerdefaults['tracker_aggregator'] = 0
 trackerdefaults['tracker_hupmonitor'] = 0
-trackerdefaults['tracker_http_timeout'] = 60
+trackerdefaults['tracker_multitracker_http_timeout'] = 60
 trackerdefaults['tracker_parse_dir_interval'] = 60
 trackerdefaults['tracker_show_infopage'] = 1
-trackerdefaults['tracker_infopage_redirect'] = ''
+trackerdefaults['tracker_infopage_redirect'] = None
 trackerdefaults['tracker_show_names'] = 1
-trackerdefaults['tracker_favicon'] = ''
-trackerdefaults['tracker_allowed_ips'] = ''
-trackerdefaults['tracker_banned_ips'] = ''
-trackerdefaults['tracker_only_local_override_ip'] = 2
-trackerdefaults['tracker_logfile'] = ''
+trackerdefaults['tracker_favicon'] = None
+trackerdefaults['tracker_allowed_ips'] = []
+trackerdefaults['tracker_banned_ips'] = []
+trackerdefaults['tracker_only_local_override_ip'] = ITRACK_IGNORE_ANNOUNCEIP_IFNONATCHECK
+
+trackerdefaults['tracker_logfile'] = None
 trackerdefaults['tracker_allow_get'] = 1
 trackerdefaults['tracker_keep_dead'] = 0
-trackerdefaults['tracker_scrape_allowed'] = 'full'
+trackerdefaults['tracker_scrape_allowed'] = ITRACKSCRAPE_ALLOW_FULL
 
 sessdefaults.update(trackerdefaults)
 

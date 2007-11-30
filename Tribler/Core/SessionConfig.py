@@ -301,33 +301,43 @@ class SessionConfigInterface:
         return self.sessconfig['torrent_collecting_dir']
 
     def set_torrent_collecting_rate(self,value):
-        """ max rate of torrent collecting (Kbps) HERETODO """
+        """ Maximum download rate to use for torrent collecting.
+        @param value A rate in KB/s. """
         self.sessconfig['torrent_collecting_rate'] = value
 
     def get_torrent_collecting_rate(self):
+        """ @return The download rate to use for torrent collecting. """
         return self.sessconfig['torrent_collecting_rate']
 
     def set_torrent_checking(self,value):
-        """ automatically check the health of torrents by contacting tracker
-        (default = True) """
+        """ Whether to automatically check the health of collected torrents by
+        contacting their trackers (default = True).
+        @param value Boolean 
+        """
         self.sessconfig['torrent_checking'] = value
 
     def get_torrent_checking(self):
+        """ @return Whether to check health of collected torrents."""
         return self.sessconfig['torrent_checking']
 
     def set_torrent_checking_period(self,value):
-        """ period for auto torrent checking """
+        """ Interval between automatic torrent health checks.
+        @param value An interval in seconds.
+        """
         self.sessconfig['torrent_checking_period'] = value
 
     def get_torrent_checking_period(self):
+        """ @return The check interval """
         return self.sessconfig['torrent_checking_period']
 
     def set_stop_collecting_threshold(self,value):
-        """ stop collecting more torrents if the disk has less than this size 
-        (MB) """
+        """ Stop collecting more torrents if the disk has less than this limit 
+        @param value A limit in MB.
+        """
         self.sessconfig['stop_collecting_threshold'] = value
 
     def get_stop_collecting_threshold(self):
+        """ @return The disk-space limit when to stop collecting torrents. """
         return self.sessconfig['stop_collecting_threshold']
 
 
@@ -336,43 +346,49 @@ class SessionConfigInterface:
     # reachable from the outside and what its external IP address is.
     #
     def set_dialback(self,value):
-        """ use other peers to determine external IP address (default = True) 
+        """ Use other peers to determine external IP address (default = True)
+        @param value Boolean 
         """
         self.sessconfig['dialback'] = value
 
     def get_dialback(self):
+        """ @return Whether to use the dialback mechanism. """
         return self.sessconfig['dialback']
-
-    def set_dialback_interval(self,value):
-        """ number of seconds to wait for consensus """
-        self.sessconfig['dialback_interval'] = value
-
-    def get_dialback_interval(self):
-        return self.sessconfig['dialback_interval']
 
     #
     # Tribler's social networking feature transmits a nickname and picture
     # to all Tribler peers it meets.
     #
     def set_social_networking(self,value):
-        """ enable social networking (default = True) """
+        """ Enable social networking. If enabled, a message containing the
+        user's nickname and icon is sent to each Tribler peer met
+        (default = True).
+        @param value Boolean 
+        """
         self.sessconfig['socnet'] = value
 
     def get_social_networking(self):
+        """ @return Whether social network is enabled. """
         return self.sessconfig['socnet']
 
     def set_nickname(self,value):  # TODO: put in PeerDBHandler? Add method for setting own pic
-        """ the nickname you want to show to others """
+        """ The nickname you want to show to others.
+        @param value A string.
+        """
         self.sessconfig['nickname'] = value
 
     def get_nickname(self):
+        """ @return The set nickname """
         return self.sessconfig['nickname']
 
     def set_peer_icon_path(self,value):
-        """ directory to store peer icons, relative to statedir """
+        """ Directory to store received peer icons (Default is statedir +
+        STATEDIR_PEERICON_DIR).
+        @param value An absolute path. """
         self.sessconfig['peer_icon_path'] = value
 
     def get_peer_icon_path(self):
+        """ @return The directory to store peer icons """
         return self.sessconfig['peer_icon_path']
 
     #
@@ -380,20 +396,27 @@ class SessionConfigInterface:
     # or peer
     #
     def set_remote_query(self,value):
-        """ enable remote query (default = True) """
+        """ Enable queries from other peers. At the moment peers can ask
+        whether this Session has collected or opened a torrent that matches
+        a specified keyword query. (default = True)
+        @param value Boolean"""
         self.sessconfig['rquery'] = value
 
     def get_remote_query(self):
+        """ @return Whether remote query is enabled. """
         return self.sessconfig['rquery']
 
     #
     # BarterCast
     #
     def set_bartercast(self,value):
-        """ exchange upload/download statistics with peers """
+        """ Exchange upload/download statistics with peers (default = True)
+        @param value Boolean
+        """
         self.sessconfig['bartercast'] = value
 
     def get_bartercast(self):
+        """ @return To exchange statistics with peers """
         return self.sessconfig['bartercast']
 
 
@@ -401,328 +424,490 @@ class SessionConfigInterface:
     # For Tribler Video-On-Demand
     #
     def set_video_analyser_path(self,value):
-        """ Path to video analyser (FFMPEG, default is to look for it in $PATH) """
+        """ Path to video analyser FFMPEG. The analyser is used to guess the
+        bitrate of a video if that information is not present in the torrent
+        definition. (default = look for it in $PATH)
+        @param value An absolute path name.
+        """
         self.sessconfig['videoanalyserpath'] = value
     
     def get_video_analyser_path(self):
+        """ @return The path of the FFMPEG video analyser. """
         return self.sessconfig['videoanalyserpath'] # strings immutable
     
-
-
-    def set_video_player_path(self,value):
-        """ Path to default video player. Defaults are
-            win32: Windows Media Player
-            Mac: QuickTime Player
-            Linux: VideoLAN Client (vlc) 
-            which are looked for in $PATH """
-        self.sessconfig['videoplayerpath'] = value
-
-    def get_video_player_path(self):
-        return self.sessconfig['videoplayerpath']
-
 
     #
     # Tribler's internal tracker
     #
     def set_internal_tracker(self,value):
-        """ enable internal tracker (default = True) """
+        """ Enable internal tracker (default = True)
+        @param value Boolean.
+        """
         self.sessconfig['internaltracker'] = value
 
     def get_internal_tracker(self):
+        """ @return Whether the internal tracker is enabled. """
         return self.sessconfig['internaltracker']
 
-    def set_tracker_allow_get(self,value):
-        """ use with allowed_dir; adds a /file?hash={hash} url that allows users
-        to download the torrent file """
-        self.sessconfig['tracker_allow_get'] = value
-
-    def get_tracker_allow_get(self):
-        return self.sessconfig['tracker_allow_get']
-
-    def set_tracker_scrape_allowed(self,value):
-        """ scrape access allowed (can be none, specific or full) """
-        self.sessconfig['tracker_scrape_allowed'] = value
-
-    def get_tracker_scrape_allowed(self):
-        return self.sessconfig['tracker_scrape_allowed']
-
-    def set_tracker_favicon(self,value):
-        """ file containing x-icon data to return when browser requests 
-        favicon.ico """
-        self.sessconfig['tracker_favicon'] = value
-
-    def get_tracker_favicon(self):
-        return self.sessconfig['tracker_favicon']
-
     #
-    # Advanced internal tracker settings
+    # Internal tracker access control settings
     #
     def set_tracker_allowed_dir(self,value):
-        """ only allow downloads for .torrents in this dir (default is Session 
-        state-dir/itracker/ """
+        """ Only accept tracking requests for torrent in this dir (default is
+        Session state-dir + STATEDIR_ITRACKER_DIR
+        @param value An absolute path name.
+        """
         self.sessconfig['tracker_allowed_dir'] = value
 
     def get_tracker_allowed_dir(self):
+        """ @return The internal tracker's directory of allowed torrents. """
         return self.sessconfig['tracker_allowed_dir']
 
-    def set_tracker_dfile(self,value):
-        """ file to store recent downloader info in (default = Session state 
-        dir/itracker/tracker.db """
-        self.sessconfig['tracker_dfile'] = value
+    def set_tracker_allowed_list(self,value):
+        """ Only allow peers to register for torrents that appear in the
+        specified file. Cannot be used in combination with set_tracker_allowed_dir()
+        @param value An absolute filename containing a list of torrent infohashes in hex format, one per 
+        line. """
+        self.sessconfig['tracker_allowed_list'] = value
 
-    def get_tracker_dfile(self):
-        return self.sessconfig['tracker_dfile']
+    def get_tracker_allowed_list(self):
+        """ @return Filename of the list of allowed torrents. """
+        return self.sessconfig['tracker_allowed_list']
 
-    def set_tracker_dfile_format(self,value):
-        """ format of dfile: either "bencode" or pickle. Pickle is needed when
-        Unicode filenames in state (=default) """
-        self.sessconfig['tracker_dfile_format'] = value
+    def set_tracker_allowed_controls(self,value):
+        """ Allow special keys in torrents in the allowed_dir to affect tracker
+        access.
+        @param value Boolean
+        """
+        self.sessconfig['tracker_allowed_controls'] = value
 
-    def get_tracker_dfile_format(self):
-        return self.sessconfig['tracker_dfile_format']
+    def get_tracker_allowed_controls(self):
+        """ @return Whether to allow allowed torrents to control tracker access. """
+        return self.sessconfig['tracker_allowed_controls']
 
-    def set_tracker_multitracker_enabled(self,value):
-        """ whether to enable multitracker operation """
-        self.sessconfig['tracker_multitracker_enabled'] = value
+    def set_tracker_allowed_ips(self,value):
+        """ Only allow connections from IPs specified in the given file; file 
+        contains subnet data in the format: aa.bb.cc.dd/len.
+        @param value An absolute path name.
+        """
+        self.sessconfig['tracker_allowed_ips'] = value
 
-    def get_tracker_multitracker_enabled(self):
-        return self.sessconfig['tracker_multitracker_enabled']
+    def get_tracker_allowed_ips(self):
+        """ @return The filename containing allowed IP addresses. """
+        return self.sessconfig['tracker_allowed_ips']
 
-    def set_tracker_multitracker_allowed(self,value):
-        """ whether to allow incoming tracker announces (can be none, autodetect
-        or all) """
-        self.sessconfig['tracker_multitracker_allowed'] = value
+    def set_tracker_banned_ips(self,value):
+        """ Don't allow connections from IPs specified in the given file; file
+        contains IP range data in the format: xxx:xxx:ip1-ip2
+        @param value An absolute path name.
+        """
+        self.sessconfig['tracker_banned_ips'] = value
 
-    def get_tracker_multitracker_allowed(self):
-        return self.sessconfig['tracker_multitracker_allowed']
+    def get_tracker_banned_ips(self):
+        """ @return The filename containing banned IP addresses. """
+        return self.sessconfig['tracker_banned_ips']
 
-    def set_tracker_multitracker_reannounce_interval(self,value):
-        """ seconds between outgoing tracker announces """
-        self.sessconfig['tracker_multitracker_reannounce_interval'] = value
+    def set_tracker_only_local_override_ip(self,value):
+        """ Ignore the 'ip' parameter in the GET announce from machines which 
+        aren't on local network IPs.
+        <pre>
+         * ITRACK_IGNORE_ANNOUNCEIP_NEVER
+         * ITRACK_IGNORE_ANNOUNCEIP_ALWAYS
+         * ITRACK_IGNORE_ANNOUNCEIP_IFNONATCHECK
+        </pre>
+        @param value ITRACK_IGNORE_ANNOUNCEIP*
+        """
+        self.sessconfig['tracker_only_local_override_ip'] = value
 
-    def get_tracker_multitracker_reannounce_interval(self):
-        return self.sessconfig['tracker_multitracker_reannounce_interval']
+    def get_tracker_only_local_override_ip(self):
+        """ @return The ignore policy for 'ip' parameters in announces. """
+        return self.sessconfig['tracker_only_local_override_ip']
 
-    def set_tracker_multitracker_maxpeers(self,value):
-        """ number of peers to get in a tracker announce """
-        self.sessconfig['tracker_multitracker_maxpeers'] = value
+    def set_tracker_parse_dir_interval(self,value):
+        """ Seconds between reloading of allowed_dir or allowed_file and 
+        allowed_ips and banned_ips lists.
+        @param value A number of seconds.
+        """
+        self.sessconfig['tracker_parse_dir_interval'] = value
 
-    def get_tracker_multitracker_maxpeers(self):
-        return self.sessconfig['tracker_multitracker_maxpeers']
+    def get_tracker_parse_dir_interval(self):
+        """ @return The number of seconds between refreshes of access control info """
+        return self.sessconfig['tracker_parse_dir_interval']
 
-    def set_tracker_aggregate_forward(self,value):
-        """ format: <url>[,<password>] - if set, forwards all non-multitracker 
-        to this url with this optional password """
-        self.sessconfig['tracker_aggregate_forward'] = value
+    def set_tracker_scrape_allowed(self,value):
+        """ Allow scrape access on the internal tracker (with a scrape request
+        a BitTorrent client can retrieve information about how many peers are
+        downloading the content.
+        <pre>
+        * ITRACKSCRAPE_ALLOW_NONE: Don't allow scrape requests.
+        * ITRACKSCRAPE_ALLOW_SPECIFIC: Allow scrape requests for a specific torrent.
+        * ITRACKSCRAPE_ALLOW_FULL: Allow scrape of all torrents at once.
+        </pre>
+        @param value ITRACKSCRAPE_* 
+        """
+        self.sessconfig['tracker_scrape_allowed'] = value
 
-    def get_tracker_aggregate_forward(self):
-        return self.sessconfig['tracker_aggregate_forward']
+    def get_tracker_scrape_allowed(self):
+        """ @return The scrape access policy """
+        return self.sessconfig['tracker_scrape_allowed']
 
-    def set_tracker_aggregator(self,value):
-        """ whether to act as a data aggregator rather than a tracker. If 
-        enabled, may be 1, or <password>; if password is set, then an incoming 
-        password is required for access """
-        self.sessconfig['tracker_aggregator'] = value
+    def set_tracker_allow_get(self,value):
+        """ Setting this parameter adds a /file?hash={hash} links to the
+        overview page that the internal tracker makes available via HTTP
+        at hostname:listenport. These links allow users to download the 
+        torrent file from the internal tracker. Use with 'allowed_dir' parameter.
+        @param value Boolean.
+        """
+        self.sessconfig['tracker_allow_get'] = value
 
-    def get_tracker_aggregator(self):
-        return self.sessconfig['tracker_aggregator']
+    def get_tracker_allow_get(self):
+        """ @return Whether to allow HTTP torrent-file downloads from the internal tracker. """
+        return self.sessconfig['tracker_allow_get']
 
-    def set_tracker_socket_timeout(self,value):
-        """ timeout for closing connections """
-        self.sessconfig['tracker_socket_timeout'] = value
 
-    def get_tracker_socket_timeout(self):
-        return self.sessconfig['tracker_socket_timeout']
+    #
+    # Controls for internal tracker's output as Web server
+    #
+    def set_tracker_favicon(self,value):
+        """ File containing image/x-icon data to return when browser requests 
+        favicon.ico from the internal tracker. (Default = Tribler/Images/tribler.ico)
+        @param value An absolute filename. 
+        """
+        self.sessconfig['tracker_favicon'] = value
 
-    def set_tracker_save_dfile_interval(self,value):
-        """ seconds between saving dfile """
-        self.sessconfig['tracker_save_dfile_interval'] = value
+    def get_tracker_favicon(self):
+        """ @return The filename of the internal tracker favicon. """
+        return self.sessconfig['tracker_favicon']
 
-    def get_tracker_save_dfile_interval(self):
-        return self.sessconfig['tracker_save_dfile_interval']
+    def set_tracker_show_infopage(self,value):
+        """ Whether to display an info page when the tracker's root dir is 
+        requested via HTTP.
+        @param value Boolean
+        """
+        self.sessconfig['tracker_show_infopage'] = value
 
-    def set_tracker_timeout_downloaders_interval(self,value):
-        """ seconds between expiring downloaders """
-        self.sessconfig['tracker_timeout_downloaders_interval'] = value
+    def get_tracker_show_infopage(self):
+        """ @return Whether to show an info page on the internal tracker. """
+        return self.sessconfig['tracker_show_infopage']
 
-    def get_tracker_timeout_downloaders_interval(self):
-        return self.sessconfig['tracker_timeout_downloaders_interval']
+    def set_tracker_infopage_redirect(self,value):
+        """ A URL to redirect the request for an info page to.
+        @param value URL.
+        """
+        self.sessconfig['tracker_infopage_redirect'] = value
 
+    def get_tracker_infopage_redirect(self):
+        """ @return The URL to redirect request for info pages to. """
+        return self.sessconfig['tracker_infopage_redirect']
+
+    def set_tracker_show_names(self,value):
+        """ Whether to display names from the 'allowed dir'.
+        @param value Boolean.
+        """
+        self.sessconfig['tracker_show_names'] = value
+
+    def get_tracker_show_names(self):
+        """ @return Whether the tracker displays names from the 'allowed dir'. """
+        return self.sessconfig['tracker_show_names']
+
+    def set_tracker_keep_dead(self,value):
+        """ Keep dead torrents after they expire (so they still show up on your
+        /scrape and web page)
+        @param value Boolean.
+        """
+        self.sessconfig['tracker_keep_dead'] = value
+
+    def get_tracker_keep_dead(self):
+        """ @return Whether to keep dead torrents for statistics. """
+        return self.sessconfig['tracker_keep_dead']
+
+    #
+    # Controls for internal tracker replies
+    #
     def set_tracker_reannounce_interval(self,value):
-        """ seconds downloaders should wait between reannouncements """
+        """ Seconds downloaders should wait between reannouncing themselves
+        to the internal tracker.
+        @param value A number of seconds.
+        """
         self.sessconfig['tracker_reannounce_interval'] = value
 
     def get_tracker_reannounce_interval(self):
+        """ @return The reannounce interval for the internal tracker. """
         return self.sessconfig['tracker_reannounce_interval']
 
     def set_tracker_response_size(self,value):
-        """ number of peers to send in an info message """
+        """ Number of peers to send to a peer in a reply to its announce
+        at the internal tracker (i.e., in the info message)
+        @param value A number of peers.
+        """
         self.sessconfig['tracker_response_size'] = value
 
     def get_tracker_response_size(self):
+        """ @return The number of peers to send in a tracker reply. """
         return self.sessconfig['tracker_response_size']
 
-    def set_tracker_timeout_check_interval(self,value):
-        """ time to wait between checking if any connections have timed out """
-        self.sessconfig['tracker_timeout_check_interval'] = value
-
-    def get_tracker_timeout_check_interval(self):
-        return self.sessconfig['tracker_timeout_check_interval']
-
     def set_tracker_nat_check(self,value):
-        """ how many times to check if a downloader is behind a NAT (0 = don't 
-        check) """
+        """ How many times the internal tracker should attempt to check if a 
+        downloader is behind a  Network Address Translator (NAT) or firewall.
+        If it is, the downloader won't be registered at the tracker, as other
+        peers can probably not contact it. 
+        @param value A number of times, 0 = don't check.
+        """
         self.sessconfig['tracker_nat_check'] = value
 
     def get_tracker_nat_check(self):
+        """ @return The number of times to check for a firewall """
         return self.sessconfig['tracker_nat_check']
 
-    def set_tracker_log_nat_checks(self,value):
-        """ whether to add entries to the log for NAT-check results """
-        self.sessconfig['tracker_log_nat_checks'] = value
 
-    def get_tracker_log_nat_checks(self):
-        return self.sessconfig['tracker_log_nat_checks']
+    #
+    # Internal tracker persistence
+    #
+    def set_tracker_dfile(self,value):
+        """ File to store recent downloader info in (default = Session state 
+        dir + STATEDIR_ITRACKER_DIR + tracker.db
+        @param value An absolute path name.
+        """
+        self.sessconfig['tracker_dfile'] = value
+
+    def get_tracker_dfile(self):
+        """ @return The tracker database file. """
+        return self.sessconfig['tracker_dfile']
+
+    def set_tracker_dfile_format(self,value):
+        """ Format of the tracker database file. *_PICKLE is needed when Unicode
+        filenames may appear in the tracker's state (=default).
+        <pre>
+         * TRACKDBFORMAT_BENCODE: Use BitTorrent bencoding to store records.
+         * ITRACKDBFORMAT_PICKLE: Use Python pickling to store records.
+        </pre>
+        @param value ITRACKDBFORFMAT_* 
+        """
+        self.sessconfig['tracker_dfile_format'] = value
+
+    def get_tracker_dfile_format(self):
+        """ @return The format of the tracker database file. """
+        return self.sessconfig['tracker_dfile_format']
+
+    def set_tracker_save_dfile_interval(self,value):
+        """ The interval between saving the internal tracker's state to
+        the tracker database (see set_tracker_dfile()).
+        @param value A number of seconds.
+        """
+        self.sessconfig['tracker_save_dfile_interval'] = value
+
+    def get_tracker_save_dfile_interval(self):
+        """ @return The tracker-database save interval. """
+        return self.sessconfig['tracker_save_dfile_interval']
+
+    def set_tracker_logfile(self,value):
+        """ File to write the tracker logs to (default is NIL: or /dev/null).
+        @param value A device name.
+        """
+        self.sessconfig['tracker_logfile'] = value
+
+    def get_tracker_logfile(self):
+        """ @return The device name to write log messages to. """
+        return self.sessconfig['tracker_logfile']
 
     def set_tracker_min_time_between_log_flushes(self,value):
-        """ minimum time it must have been since the last flush to do another 
-        one """
+        """ Minimum time between flushes of the tracker log.
+        @param value A number of seconds.
+        """
         self.sessconfig['tracker_min_time_between_log_flushes'] = value
 
     def get_tracker_min_time_between_log_flushes(self):
+        """ @return Time between tracker log flushes. """
         return self.sessconfig['tracker_min_time_between_log_flushes']
 
+    def set_tracker_log_nat_checks(self,value):
+        """ Whether to add entries to the tracker log for NAT-check results.
+        @param value Boolean
+        """
+        self.sessconfig['tracker_log_nat_checks'] = value
+
+    def get_tracker_log_nat_checks(self):
+        """ @return Whether to log NAT-check attempts to the tracker log. """
+        return self.sessconfig['tracker_log_nat_checks']
+
+    def set_tracker_hupmonitor(self,value):
+        """ Whether to reopen the tracker log file upon receipt of a SIGHUP 
+        signal (Mac/UNIX only).
+        @param value Boolean.
+        """
+        self.sessconfig['tracker_hupmonitor'] = value
+
+    def get_tracker_hupmonitor(self):
+        """ @return Whether to reopen the tracker log file upon receipt of a 
+        SIGHUP signal. """
+        return self.sessconfig['tracker_hupmonitor']
+
+
+    #
+    # Esoteric tracker config parameters 
+    #
+    def set_tracker_socket_timeout(self,value):
+        """ Set timeout for closing connections to trackers.
+        @param value A number of seconds.
+        """
+        self.sessconfig['tracker_socket_timeout'] = value
+
+    def get_tracker_socket_timeout(self):
+        """ @return The tracker socket timeout. """
+        return self.sessconfig['tracker_socket_timeout']
+
+    def set_tracker_timeout_downloaders_interval(self,value):
+        """ Interval between checks for expired downloaders, i.e., peers
+        no longer in the swarm because they did not reannounce themselves.
+        @param value A number of seconds.
+        """
+        self.sessconfig['tracker_timeout_downloaders_interval'] = value
+
+    def get_tracker_timeout_downloaders_interval(self):
+        """ @return The number of seconds between checks for expired peers. """
+        return self.sessconfig['tracker_timeout_downloaders_interval']
+
+    def set_tracker_timeout_check_interval(self,value):
+        """ Time to wait between checking if any connections to the internal
+        tracker have timed out.
+        @param value A number of seconds.
+        """
+        self.sessconfig['tracker_timeout_check_interval'] = value
+
+    def get_tracker_timeout_check_interval(self):
+        """ @return Timeout for connections to the internal tracker. """
+        return self.sessconfig['tracker_timeout_check_interval']
+
     def set_tracker_min_time_between_cache_refreshes(self,value):
-        """ minimum time in seconds before a cache is considered stale and is 
-        flushed """
+        """ Minimum time before a cache is considered stale and is 
+        flushed.
+        @param value A number of seconds.
+        """
         self.sessconfig['tracker_min_time_between_cache_refreshes'] = value
 
     def get_tracker_min_time_between_cache_refreshes(self):
         return self.sessconfig['tracker_min_time_between_cache_refreshes']
 
-    def set_tracker_allowed_list(self,value):
-        """ only allow downloads for hashes in this list (hex format, one per 
-        line) """
-        self.sessconfig['tracker_allowed_list'] = value
 
-    def get_tracker_allowed_list(self):
-        return self.sessconfig['tracker_allowed_list']
+    #
+    # BitTornado's Multitracker feature
+    #
+    def set_tracker_multitracker_enabled(self,value):
+        """ Whether to enable multitracker operation in which multiple
+        trackers are used to register the peers for a specific torrent.
+        @param value Boolean.
+        """
+        self.sessconfig['tracker_multitracker_enabled'] = value
 
-    def set_tracker_allowed_controls(self,value):
-        """ allow special keys in torrents in the allowed_dir to affect tracker
-        access """
-        self.sessconfig['tracker_allowed_controls'] = value
+    def get_tracker_multitracker_enabled(self):
+        """ @return Whether multitracking is enabled. """
+        return self.sessconfig['tracker_multitracker_enabled']
 
-    def get_tracker_allowed_controls(self):
-        return self.sessconfig['tracker_allowed_controls']
+    def set_tracker_multitracker_allowed(self,value):
+        """ Whether to allow incoming tracker announces.
+        <pre>
+         * ITRACKMULTI_ALLOW_NONE: Don't allow.
+         * ITRACKMULTI_ALLOW_AUTODETECT: Allow for allowed torrents (see set_tracker_allowed_dir())
+         * ITRACKMULTI_ALLOW_ALL: Allow for all. 
+        </pre>
+        @param value ITRACKMULTI_ALLOW_*
+        """
+        self.sessconfig['tracker_multitracker_allowed'] = value
 
-    def set_tracker_hupmonitor(self,value):
-        """ whether to reopen the log file upon receipt of HUP signal """
-        self.sessconfig['tracker_hupmonitor'] = value
+    def get_tracker_multitracker_allowed(self):
+        """ @return value The multitracker allow policy of the internal tracker. """
+        return self.sessconfig['tracker_multitracker_allowed']
 
-    def get_tracker_hupmonitor(self):
-        return self.sessconfig['tracker_hupmonitor']
+    def set_tracker_multitracker_reannounce_interval(self,value):
+        """ Seconds between outgoing tracker announces to the other trackers in
+        a multi-tracker setup.
+        @param value A number of seconds. 
+        """
+        self.sessconfig['tracker_multitracker_reannounce_interval'] = value
 
-    def set_tracker_http_timeout(self,value):
-        """ number of seconds to wait before assuming that an HTTP connection
-        has timed out """
-        self.sessconfig['tracker_http_timeout'] = value
+    def get_tracker_multitracker_reannounce_interval(self):
+        """ @return The multitracker reannouce interval. """
+        return self.sessconfig['tracker_multitracker_reannounce_interval']
 
-    def get_tracker_http_timeout(self):
-        return self.sessconfig['tracker_http_timeout']
+    def set_tracker_multitracker_maxpeers(self,value):
+        """ Number of peers to retrieve from the other trackers in a tracker
+         announce in a multi-tracker setup. 
+         @param value A number of peers.
+         """
+        self.sessconfig['tracker_multitracker_maxpeers'] = value
 
-    def set_tracker_parse_dir_interval(self,value):
-        """ seconds between reloading of allowed_dir or allowed_file and 
-        allowed_ips and banned_ips lists """
-        self.sessconfig['tracker_parse_dir_interval'] = value
+    def get_tracker_multitracker_maxpeers(self):
+        """ @return The number of peers to retrieve from another tracker. """
+        return self.sessconfig['tracker_multitracker_maxpeers']
 
-    def get_tracker_parse_dir_interval(self):
-        return self.sessconfig['tracker_parse_dir_interval']
+    def set_tracker_aggregate_forward(self,value):
+        """ Set an URL to which, if set, all non-multitracker requests are
+        forwarded, with a password added (optional).
+        @param value A 2-item list with format: [<url>,<password>|None]
+        """
+        self.sessconfig['tracker_aggregate_forward'] = value
 
-    def set_tracker_show_infopage(self,value):
-        """ whether to display an info page when the tracker's root dir is 
-        loaded """
-        self.sessconfig['tracker_show_infopage'] = value
+    def get_tracker_aggregate_forward(self):
+        """ @return The aggregate forward URL and optional password as a 2-item 
+        list. """
+        return self.sessconfig['tracker_aggregate_forward']
 
-    def get_tracker_show_infopage(self):
-        return self.sessconfig['tracker_show_infopage']
+    def set_tracker_aggregator(self,value):
+        """ Whether to act as a data aggregator rather than a tracker. 
+        To enable, set to True or <password>; if password is set, then an 
+        incoming password is required for access.
+        @param value Boolean or string.
+        """
+        self.sessconfig['tracker_aggregator'] = value
 
-    def set_tracker_infopage_redirect(self,value):
-        """ a URL to redirect the info page to """
-        self.sessconfig['tracker_infopage_redirect'] = value
+    def get_tracker_aggregator(self):
+        """ @return The tracker aggregator parameter. """
+        return self.sessconfig['tracker_aggregator']
 
-    def get_tracker_infopage_redirect(self):
-        return self.sessconfig['tracker_infopage_redirect']
+    def set_tracker_multitracker_http_timeout(self,value):
+        """ Time to wait before assuming that an HTTP connection
+        to another tracker in a multi-tracker setup has timed out. 
+        @param value A number of seconds.
+        """
+        self.sessconfig['tracker_multitracker_http_timeout'] = value
 
-    def set_tracker_show_names(self,value):
-        """ whether to display names from allowed dir """
-        self.sessconfig['tracker_show_names'] = value
+    def get_tracker_multitracker_http_timeout(self):
+        """ @return Timeout for inter-multi-tracker HTTP connections. """
+        return self.sessconfig['tracker_multitracker_http_timeout']
 
-    def get_tracker_show_names(self):
-        return self.sessconfig['tracker_show_names']
-
-    def set_tracker_allowed_ips(self,value):
-        """ only allow connections from IPs specified in the given file; file 
-        contains subnet data in the format: aa.bb.cc.dd/len """
-        self.sessconfig['tracker_allowed_ips'] = value
-
-    def get_tracker_allowed_ips(self):
-        return self.sessconfig['tracker_allowed_ips']
-
-    def set_tracker_banned_ips(self,value):
-        """ don't allow connections from IPs specified in the given file; file
-        contains IP range data in the format: xxx:xxx:ip1-ip2 """
-        self.sessconfig['tracker_banned_ips'] = value
-
-    def get_tracker_banned_ips(self):
-        return self.sessconfig['tracker_banned_ips']
-
-    def set_tracker_only_local_override_ip(self,value):
-        """ ignore the ip GET parameter from machines which aren't on local 
-        network IPs (0 = never, 1 = always, 2 = ignore if NAT checking is not 
-        enabled) """
-        self.sessconfig['tracker_only_local_override_ip'] = value
-
-    def get_tracker_only_local_override_ip(self):
-        return self.sessconfig['tracker_only_local_override_ip']
-
-    def set_tracker_logfile(self,value):
-        """ file to write the tracker logs, use - for stdout (default is 
-        /dev/null) """
-        self.sessconfig['tracker_logfile'] = value
-
-    def get_tracker_logfile(self):
-        return self.sessconfig['tracker_logfile']
-
-    def set_tracker_keep_dead(self,value):
-        """ keep dead torrents after they expire (so they still show up on your /scrape and web page) """
-        self.sessconfig['tracker_keep_dead'] = value
-
-    def get_tracker_keep_dead(self):
-        return self.sessconfig['tracker_keep_dead']
 
     #
     # For Tribler superpeer servers
     #
     def set_superpeer(self,value):
-        """ run in super peer mode (0 = disabled) """
+        """ Run Session in super peer mode (default = disabled).
+        @param value Boolean.
+        """
         self.sessconfig['superpeer'] = value
 
     def get_superpeer(self):
+        """ @return Whether the Session runs in superpeer mode. """
         return self.sessconfig['superpeer']
 
     def set_superpeer_file(self,value):
-        """ file with addresses of superpeers, relative to install_dir """
+        """ File with addresses of superpeers (default = install_dir+
+        Tribler/Core/superpeer.txt).
+        @param An absolute path name.
+        """
         self.sessconfig['superpeer_file'] = value
 
     def get_superpeer_file(self):
+        """ @return The superpeer file """
         return self.sessconfig['superpeer_file']
 
     def set_overlay_log(self,value):
-        """ log on super peer mode ('' = disabled) """
+        """ File to log message to in super peer mode (default = No logging)
+        @param value An absolute path name.
+        """
         self.sessconfig['overlay_log'] = value
 
     def get_overlay_log(self):
+        """ @return The file to log messages to, or None """
         return self.sessconfig['overlay_log']
 
 

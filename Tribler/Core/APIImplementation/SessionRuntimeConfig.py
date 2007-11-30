@@ -295,16 +295,6 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_dialback_interval(self,value):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def get_dialback_interval(self):
-        self.sesslock.acquire()
-        try:
-            return SessionConfigInterface.get_dialback_interval(self)
-        finally:
-            self.sesslock.release()
-
     def set_socnet(self,value):
         raise OperationNotPossibleAtRuntimeException()
 
@@ -585,13 +575,13 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_http_timeout(self,value):
+    def set_tracker_multitracker_http_timeout(self,value):
         raise OperationNotPossibleAtRuntimeException()
 
-    def get_tracker_http_timeout(self):
+    def get_tracker_multitracker_http_timeout(self):
         self.sesslock.acquire()
         try:
-            return SessionConfigInterface.get_tracker_http_timeout(self)
+            return SessionConfigInterface.get_tracker_multitracker_http_timeout(self)
         finally:
             self.sesslock.release()
 

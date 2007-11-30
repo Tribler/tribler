@@ -442,7 +442,7 @@ class DownloadConfigInterface:
     def set_security(self,value):
         """ Whether to enable extra security features intended to prevent abuse,
         such as checking for multiple connections from the same IP address.
-        @param value Booelan
+        @param value Boolean
         """
         self.dlconfig['security'] = value
 
@@ -463,7 +463,7 @@ class DownloadConfigInterface:
     def set_double_check_writes(self,value):
         """ Whether to double-check data being written to the disk for errors 
         (may increase CPU load).
-        @param value Booelan
+        @param value Boolean
         """
         self.dlconfig['double_check'] = value
 
@@ -474,7 +474,7 @@ class DownloadConfigInterface:
     def set_triple_check_writes(self,value):
         """ Whether to thoroughly check data being written to the disk (may 
         slow disk access).
-        @param value Booelan """
+        @param value Boolean """
         self.dlconfig['triple_check'] = value
 
     def get_triple_check_writes(self):

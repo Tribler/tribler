@@ -78,7 +78,10 @@ class Session(SessionRuntimeConfig):
             self.sessconfig['state_dir'] = state_dir
 
         if not self.sessconfig['torrent_collecting_dir']:
-            self.sessconfig['torrent_collecting_dir'] = os.path.join(self.sessconfig['state_dir'], 'torrentcoll')
+            self.sessconfig['torrent_collecting_dir'] = os.path.join(self.sessconfig['state_dir'], STATEDIR_TORRENTCOLL_DIR)
+            
+        if not self.sessconfig['peer_icon_path']:
+            self.sessconfig['torrent_collecting_dir'] = os.path.join(self.sessconfig['state_dir'], STATEDIR_PEERICON_DIR)
             
         # PERHAPS: load default TorrentDef and DownloadStartupConfig from state dir
         # Let user handle that, he's got default_state_dir, etc.
@@ -135,6 +138,10 @@ class Session(SessionRuntimeConfig):
         # 5. download_help_dir
         if self.sessconfig['download_help_dir'] is None:
             self.sessconfig['download_help_dir'] = os.path.join(get_default_dest_dir(),DESTDIR_COOPDOWNLOAD)
+
+        # 6. peer_icon_path
+        if self.sessconfig['peer_icon_path'] is None:
+            self.sessconfig['peer_icon_path'] = os.path.join(self.sessconfig['state_dir'],STATEDIR_PEERICON_DIR)
 
         # Checkpoint startup config
         sscfg = self.get_current_startup_config_copy()
