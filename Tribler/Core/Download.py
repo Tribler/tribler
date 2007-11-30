@@ -1,5 +1,6 @@
 # Written by Arno Bakker 
 # see LICENSE.txt for license information
+""" The representation of a running BT download/upload """
 
 import sys
 import os
@@ -66,19 +67,19 @@ class Download(DownloadRuntimeConfig,DownloadImpl):
         The callback will be called by a popup thread which can be used
         indefinitely (within reason) by the higher level code.
                 
-        @param callback   Function that accepts DownloadState as parameter and 
+        @param usercallback Function that accepts DownloadState as parameter and 
         returns a (float,boolean) tuple.
         """
         DownloadImpl.set_state_callback(self,usercallback,getpeerlist=getpeerlist)
         
 
     def stop(self):
-        """ Stops the Download, i.e. closes all connections to other peers """
+        """ Stops the Download, i.e. closes all connections to other peers. """
         # Called by any thread 
         DownloadImpl.stop(self)
         
     def restart(self):
-        """ Restarts the stopped Download """
+        """ Restarts the stopped Download. """
         # Called by any thread
         DownloadImpl.restart(self)
         

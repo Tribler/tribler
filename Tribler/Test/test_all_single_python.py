@@ -1,4 +1,8 @@
-""" Run all test cases that can be run in a single python interpreter after one another """
+# Written by Jie Yang, Arno Bakker
+# see LICENSE.txt for license information
+
+# Run all test cases that can be run in a single python interpreter after 
+#one another.
 
 import sys
 import os

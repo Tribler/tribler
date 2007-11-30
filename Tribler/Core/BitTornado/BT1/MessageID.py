@@ -1,10 +1,10 @@
 # Written by Jie Yang, Arno Bakker
 # see LICENSE.txt for license information
-
-""" All message IDs in BitTorrent Protocol and our extensions 
- 
-    Arno: please don't define stuff until the spec is ready
-"""
+#
+# All message IDs in BitTorrent Protocol and our extensions 
+#  
+#    Arno: please don't define stuff until the spec is ready
+#
 
 protocol_name = 'BitTorrent protocol'
 # Enable Tribler extensions:

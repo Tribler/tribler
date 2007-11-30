@@ -1,6 +1,8 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
-""" SecureOverlay message handler for a Coordinator """
+#
+# SecureOverlay message handler for a Coordinator
+#
 import sys
 
 from Tribler.Core.BitTornado.bencode import bencode, bdecode

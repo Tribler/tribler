@@ -1,5 +1,6 @@
 # Written by Arno Bakker 
 # see LICENSE.txt for license information
+""" Controls the operation of a Session """
 
 import sys, copy
 from traceback import print_exc
@@ -892,7 +893,7 @@ class SessionConfigInterface:
     def set_superpeer_file(self,value):
         """ File with addresses of superpeers (default = install_dir+
         Tribler/Core/superpeer.txt).
-        @param An absolute path name.
+        @param value An absolute path name.
         """
         self.sessconfig['superpeer_file'] = value
 

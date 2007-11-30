@@ -1,5 +1,7 @@
 # Written by Arno Bakker, Bram Cohen
 # see LICENSE.txt for license information
+
+FOOL_EPYDOC = 481
 """
 uTorrent Peer Exchange (PEX) Support:
 -------------------------------------

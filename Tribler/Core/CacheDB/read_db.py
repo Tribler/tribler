@@ -1,8 +1,8 @@
-# -*- coding:gb2312 -*- 
+# Written by Jie Yang
+# see LICENSE.txt for license information
 
-"""
-    A GUI to read bsddb or pickle and display the data by a tree ctrl.
-"""
+# -*- coding:gb2312 -*- 
+#    A GUI to read bsddb or pickle and display the data by a tree ctrl.
 
 import sys
 from traceback import print_exc

@@ -38,10 +38,7 @@ class DownloadImpl:
     #
     def setup(self,dcfg=None,pstate=None,lmcreatedcallback=None,lmvodplayablecallback=None):
         """
-        Create a Download object. Used internally by Session. Copies tdef and 
-        dcfg and binds them to this download.
-        
-        @param tdef Finalized TorrentDef
+        Create a Download object. Used internally by Session.
         @param dcfg DownloadStartupConfig or None (in which case 
         a new DownloadConfig() is created and the result 
         becomes the runtime config of this Download.

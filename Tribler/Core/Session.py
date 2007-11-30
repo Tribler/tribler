@@ -1,5 +1,6 @@
 # Written by Arno Bakker 
 # see LICENSE.txt for license information
+""" A Session is a running instance of the Tribler Core and the Core's central class. """
 
 import sys
 import pickle
@@ -22,8 +23,9 @@ from Tribler.Core.APIImplementation.UserCallbackHandler import UserCallbackHandl
 class Session(SessionRuntimeConfig):
     """
     
-    A Session implements the SessionConfigInterface which can be used to
-    change session parameters are runtime (for selected parameters).
+    A Session is a running instance of the Tribler Core and the Core's central
+    class. It implements the SessionConfigInterface which can be used to change
+    session parameters at runtime (for selected parameters).
     
     cf. libtorrent session
     """

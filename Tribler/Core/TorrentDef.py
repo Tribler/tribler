@@ -1,5 +1,6 @@
 # Written by Arno Bakker 
 # see LICENSE.txt for license information
+""" Definition of a torrent, that is, a collection of files or a live stream. """
 import sys
 import os
 #import time
@@ -355,7 +356,7 @@ class TorrentDef(Serializable,Copyable):
     def set_httpseeds(self,value):
         """ Set list of HTTP seeds following the spec at
         http://www.bittornado.com/docs/webseed-spec.txt
-        @param A list of URLs.
+        @param value A list of URLs.
         """
         if self.readonly:
             raise OperationNotPossibleAtRuntimeException()

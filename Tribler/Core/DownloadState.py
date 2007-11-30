@@ -1,3 +1,7 @@
+# Written by Arno Bakker 
+# see LICENSE.txt for license information
+""" Contains a snapshot of the state of the Download at a specific point in time. """
+
 import sys
 import os
 #import time
@@ -121,7 +125,7 @@ class DownloadState(Serializable):
         return self.status
 
     def get_error(self):
-        """ @eturn The Exception that caused the download to be moved to 
+        """ @return The Exception that caused the download to be moved to 
         DLSTATUS_STOPPED_ON_ERROR status.
         """
         return self.error

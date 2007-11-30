@@ -1,8 +1,8 @@
 # Written by Arno Bakker and Bram Cohen 
 # see LICENSE.txt for license information
+""" Default values for all configurarable parameters of the Core"""
 #
-# Default values for all configurable parameters. For an explanation of each
-# parameter, see triblerAPI.py
+# For an explanation of each parameter, see SessionConfig/DownloadConfig.py
 #
 # defaults with comments behind them are not user-setable via the 
 # *ConfigInterface classes, because they are not currently implemented (IPv6)

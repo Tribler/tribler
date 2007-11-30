@@ -1,5 +1,6 @@
 # Written by Jelle Roozenburg 
 # see LICENSE.txt for license information
+""" Controls the authorization of messages received via the Tribler Overlay """
 
 import sys
 from Tribler.Core.exceptions import *

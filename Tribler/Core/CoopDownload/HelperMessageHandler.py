@@ -1,6 +1,8 @@
 # Written by Pawel Garbacki, Arno Bakker
 # see LICENSE.txt for license information
-""" SecureOverlay message handler for a Helper"""
+#
+# SecureOverlay message handler for a Helper
+#
 
 
 from sha import sha

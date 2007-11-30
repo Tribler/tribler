@@ -1,5 +1,6 @@
 # Written by Arno Bakker 
 # see LICENSE.txt for license information
+""" Controls how a TorrentDef is downloaded (rate, where on disk, etc.) """
 
 import sys
 import os
@@ -190,7 +191,7 @@ class DownloadConfigInterface:
 
     def set_upload_unit_size(self,value):
         """ When limiting upload rate, how many bytes to send at a time.
-        @value A number of bytes. """
+        @param value A number of bytes. """
         self.dlconfig['upload_unit_size'] = value
 
     def get_upload_unit_size(self):

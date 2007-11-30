@@ -1,3 +1,6 @@
+# Written by Arno Bakker, ABC authors
+# see LICENSE.txt for license information
+""" OS-independent utility functions """
     
 #
 # Multiple methods for getting free diskspace
