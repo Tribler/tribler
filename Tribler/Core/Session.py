@@ -162,16 +162,18 @@ class Session(SessionRuntimeConfig):
     # Class methods
     #
     def get_instance(*args, **kw):
-        """ @return The Session singleton if it exists or otherwise
+        """ Returns he Session singleton if it exists or otherwise
             creates it first, in which case you need to pass the constructor 
-            params. """
+            params. 
+            @return Session."""
         if Session.__single is None:
             Session(*args, **kw)
         return Session.__single
     get_instance = staticmethod(get_instance)
 
     def get_default_state_dir():
-        """ @return The factory default directory for storing session state """
+        """ Returns the factory default directory for storing session state.
+        @return An absolute path name. """
         homedirpostfix = '.Tribler'
         if sys.platform == 'win32':
             homedirpostfix = 'Tribler' # i.e. C:\Documents and Settings\user\Application Data\Tribler
@@ -204,7 +206,7 @@ class Session(SessionRuntimeConfig):
         @param dcfg DownloadStartupConfig or None, in which case 
         a new DownloadStartupConfig() is created with its default settings
         and the result becomes the runtime config of this Download.
-        @return A Download object.
+        @return Download
         """
         # locking by lm
         return self.lm.add(tdef,dcfg)
@@ -222,7 +224,8 @@ class Session(SessionRuntimeConfig):
 
     def get_downloads(self):
         """
-        @return a copy of the list of Downloads.
+        Returns a copy of the list of Downloads.
+        @return A list of Download objects.
         """
         # locking by lm
         return self.lm.get_downloads()
@@ -260,9 +263,9 @@ class Session(SessionRuntimeConfig):
     # Config parameters that only exist at runtime
     #
     def get_permid(self):
-        """ @return The PermID of the Session, as determined by the
-        SessionConfig.set_permid() parameter. A PermID is a public key
-        encoded in a string in DER format. """
+        """ Returns the PermID of the Session, as determined by the
+        SessionConfig.set_permid() parameter. A PermID is a public key 
+        @return The PermID encoded in a string in DER format. """
         self.sesslock.acquire()
         try:
             return str(self.keypair.pub().get_der())
@@ -270,17 +273,19 @@ class Session(SessionRuntimeConfig):
             self.sesslock.release()
 
     def get_external_ip(self):
-        """ @return The external IP address of this Session, i.e., by which
+        """ Returns the external IP address of this Session, i.e., by which
         it is reachable from the Internet. This address is determined via
         various mechanisms such as the UPnP protocol, our dialback mechanism,
-        and an inspection of the local network configuration. """
+        and an inspection of the local network configuration.
+        @return A string. """
         # locking done by lm
         return self.lm.get_ext_ip()
         
 
     def get_current_startup_config_copy(self):
-        """ @return A SessionStartupConfig that is a copy of the current runtime 
+        """ Returns a SessionStartupConfig that is a copy of the current runtime 
         SessionConfig.
+        @return SessionStartupConfig
         """
         # Called by any thread
         self.sesslock.acquire()
@@ -294,7 +299,8 @@ class Session(SessionRuntimeConfig):
     # Internal tracker 
     #
     def get_internal_tracker_url(self):
-        """ @return The announce URL for the internal tracker. """
+        """ Returns the announce URL for the internal tracker. 
+        @return URL """
         # Called by any thread
         ip = self.lm.get_ext_ip() #already thread safe
         port = self.get_listen_port() # already thread safe
@@ -302,9 +308,13 @@ class Session(SessionRuntimeConfig):
         return url
 
     def get_internal_tracker_dir(self):
-        """ @return The directory containing the torrents tracked by the internal 
-        tracker (and associated databases) """
-        return os.path.join(self.sessconfig['state_dir'],STATEDIR_ITRACKER_DIR)
+        """ Returns the directory containing the torrents tracked by the internal 
+        tracker (and associated databases).
+        @return An absolute path. """
+        if self.sessconfig['state_dir'] is None:
+            return None
+        else:
+            return os.path.join(self.sessconfig['state_dir'],STATEDIR_ITRACKER_DIR)
 
     def add_to_internal_tracker(self,tdef):
         """ Add a torrent def to the list of torrents tracked by the internal
@@ -352,7 +362,8 @@ class Session(SessionRuntimeConfig):
         self.uch.notifier.add_observer(func, subject, changeTypes, objectID) # already threadsafe
         
     def remove_observer(self, func):
-        """ Remove observer function. No more callbacks will be made. """
+        """ Remove observer function. No more callbacks will be made.
+        @param func The observer function to remove. """
         #Called by any thread
         self.uch.notifier.remove_observer(func) # already threadsafe
 

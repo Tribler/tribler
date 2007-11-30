@@ -98,7 +98,8 @@ class FriendsCoopDLOtherRQueryQuotumAllowAllRequestPolicy(CommonRequestPolicy):
 
 	def allowed(self, permid, messageID):
 		""" Returns whether or not the peer identified by permid is allowed to  
-		send us a message of type messageID. """
+		send us a message of type messageID.
+		@return Boolean. """
 		if (messageID in HelpCoordinatorMessages or messageID in HelpHelperMessages) and not isFriend(permid):
 			return False
 		elif messageID == QUERY and not (isFriend(permid) or benign_random_peer(permid)):

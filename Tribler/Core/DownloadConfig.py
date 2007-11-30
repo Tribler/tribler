@@ -79,15 +79,20 @@ class DownloadConfigInterface:
         self.dlconfig['video_source'] = videosource
 
     def get_mode(self):
-        """ @return The mode of this download (DLMODE_NORMAL/DLMODE_VOD) """
+        """ Returns the mode of this download. 
+        @return DLMODE_NORMAL/DLMODE_VOD """
         return self.dlconfig['mode']
 
     def get_vod_callback(self):
-        """ @return The function that was passed to set_video_start_callback() """
+        """ Returns the function that was passed to set_video_start_callback()
+        @return A function.
+        """
         return self.dlconfig['vod_usercallback']
 
     def get_video_source(self):
-        """ @return The object that was passed to set_video_source() """
+        """ Returns the object that was passed to set_video_source().
+        @return A file-like object.
+        """
         return self.dlconfig['video_source']
 
     def set_selected_files(self,files):
@@ -112,7 +117,8 @@ class DownloadConfigInterface:
         print >>sys.stderr,"DownloadStartupConfig: set_selected_files",files
 
     def get_selected_files(self):
-        """ @return The list of files selected for download """
+        """ Returns the list of files selected for download.
+        @return A list of strings. """
         return self.dlconfig['selected_files']
 
     #
@@ -129,7 +135,8 @@ class DownloadConfigInterface:
             self.dlconfig['max_download_rate'] = speed
 
     def get_max_speed(self,direct):
-        """ @return The configured maximum speed in KB/s """
+        """ Returns the configured maximum speed.
+        Returns the speed in KB/s. """
         if direct == UPLOAD:
             return self.dlconfig['max_upload_rate']
         else:
@@ -143,7 +150,9 @@ class DownloadConfigInterface:
         self.dlconfig['max_initiate'] = nconns
 
     def get_max_conns_to_initiate(self):
-        """ @return The configured maximum number of connections to initiate. """
+        """ Returns the configured maximum number of connections to initiate.
+        @return A number of connections.
+        """
         return self.dlconfig['max_initiate']
 
     def set_max_conns(self,nconns):
@@ -154,7 +163,9 @@ class DownloadConfigInterface:
         self.dlconfig['max_connections'] = nconns
 
     def get_max_conns(self):
-        """ @return The configured maximum number of connections."""
+        """ Returns the configured maximum number of connections.
+        @return A number of connections. 
+        """
         return self.dlconfig['max_connections']
 
     #
@@ -167,7 +178,8 @@ class DownloadConfigInterface:
         self.dlconfig['max_uploads'] = value
 
     def get_max_uploads(self):
-        """ @return The maximum number of uploads """
+        """ Returns the maximum number of uploads.
+        @return A number. """
         return self.dlconfig['max_uploads']
 
     def set_keepalive_interval(self,value):
@@ -176,7 +188,8 @@ class DownloadConfigInterface:
         self.dlconfig['keepalive_interval'] = value
 
     def get_keepalive_interval(self):
-        """ @return The keepalive interval. """
+        """ Returns the keepalive interval.
+        @return A number of seconds. """
         return self.dlconfig['keepalive_interval']
 
     def set_download_slice_size(self,value):
@@ -186,7 +199,8 @@ class DownloadConfigInterface:
         self.dlconfig['download_slice_size'] = value
 
     def get_download_slice_size(self):
-        """ @return The number of bytes to query per request. """
+        """ Returns the number of bytes to query per request.
+        @return A number of bytes. """
         return self.dlconfig['download_slice_size']
 
     def set_upload_unit_size(self,value):
@@ -195,7 +209,9 @@ class DownloadConfigInterface:
         self.dlconfig['upload_unit_size'] = value
 
     def get_upload_unit_size(self):
-        """ @return The set upload unit size """
+        """ Returns the set upload unit size.
+        @returns A number of bytes.
+        """
         return self.dlconfig['upload_unit_size']
 
     def set_request_backlog(self,value):
@@ -205,7 +221,9 @@ class DownloadConfigInterface:
         self.dlconfig['request_backlog'] = value
 
     def get_request_backlog(self):
-        """ @return The request backlog """
+        """ Returns the request backlog.
+        @return A number of requests.
+        """
         return self.dlconfig['request_backlog']
 
     def set_max_message_length(self,value):
@@ -216,7 +234,9 @@ class DownloadConfigInterface:
         self.dlconfig['max_message_length'] = value
 
     def get_max_message_length(self):
-        """ @return The maximum message length that is accepted. """
+        """ Returns the maximum message length that is accepted.
+        @return A number of bytes.
+        """
         return self.dlconfig['max_message_length']
 
     def set_max_slice_length(self,value):
@@ -226,7 +246,9 @@ class DownloadConfigInterface:
         self.dlconfig['max_slice_length'] = value
 
     def get_max_slice_length(self):
-        """ @return The maximum slice length that is accepted. """
+        """ Returns the maximum slice length that is accepted. 
+        @return A number of bytes.
+        """
         return self.dlconfig['max_slice_length']
 
     def set_max_rate_period(self,value):
@@ -235,7 +257,9 @@ class DownloadConfigInterface:
         self.dlconfig['max_rate_period'] = value
 
     def get_max_rate_period(self):
-        """ @return The maximum rate period. """
+        """ Returns the maximum rate period. 
+        @return A number of seconds.
+        """
         return self.dlconfig['max_rate_period']
 
     def set_upload_rate_fudge(self,value):
@@ -246,7 +270,9 @@ class DownloadConfigInterface:
         self.dlconfig['upload_rate_fudge'] = value
 
     def get_upload_rate_fudge(self):
-        """ @return The upload rate fudge. """
+        """ Returns the upload rate fudge.
+        @return A number of seconds.
+        """
         return self.dlconfig['upload_rate_fudge']
 
     def set_tcp_ack_fudge(self,value):
@@ -259,7 +285,9 @@ class DownloadConfigInterface:
         self.dlconfig['tcp_ack_fudge'] = value
 
     def get_tcp_ack_fudge(self):
-        """ @return The TCP ACK fudge """
+        """ Returns the TCP ACK fudge.
+        @return A percentage.
+        """
         return self.dlconfig['tcp_ack_fudge']
 
     def set_rerequest_interval(self,value):
@@ -269,7 +297,9 @@ class DownloadConfigInterface:
         self.dlconfig['rerequest_interval'] = value
 
     def get_rerequest_interval(self):
-        """ @return The tracker re-request interval. """
+        """ Returns the tracker re-request interval.
+        @return A number of seconds.
+        """
         return self.dlconfig['rerequest_interval']
 
     def set_min_peers(self,value):
@@ -279,7 +309,9 @@ class DownloadConfigInterface:
         self.dlconfig['min_peers'] = value
 
     def get_min_peers(self):
-        """ @return The minimum number of peers """
+        """ Returns the minimum number of peers.
+        @return A number of peers.
+        """
         return self.dlconfig['min_peers']
 
     def set_http_timeout(self,value):
@@ -290,7 +322,9 @@ class DownloadConfigInterface:
         self.dlconfig['http_timeout'] = value
 
     def get_http_timeout(self):
-        """ @return The HTTP timeout """
+        """ Returns the HTTP timeout.
+        @return A number of seconds.
+        """
         return self.dlconfig['http_timeout']
 
     def set_check_hashes(self,value):
@@ -301,7 +335,8 @@ class DownloadConfigInterface:
         self.dlconfig['check_hashes'] = value
 
     def get_check_hashes(self):
-        """ @return Whether to check hashes """
+        """ Returns whether to check hashes.
+        @return Boolean. """
         return self.dlconfig['check_hashes']
 
     def set_alloc_type(self,value):
@@ -318,7 +353,9 @@ class DownloadConfigInterface:
         self.dlconfig['alloc_type'] = value
 
     def get_alloc_type(self):
-        """ @return The disk-allocation policy. """
+        """ Returns the disk-allocation policy. 
+        @return DISKALLOC_*
+        """
         return self.dlconfig['alloc_type']
 
     def set_alloc_rate(self,value):
@@ -330,7 +367,9 @@ class DownloadConfigInterface:
         self.dlconfig['alloc_rate'] = value
 
     def get_alloc_rate(self):
-        """ @return The background disk-allocation rate. """ 
+        """ Returns the background disk-allocation rate.
+        @return A number of megabytes per second.
+        """ 
         return self.dlconfig['alloc_rate']
 
     def set_buffer_reads(self,value):
@@ -340,7 +379,8 @@ class DownloadConfigInterface:
         self.dlconfig['buffer_reads'] = value
 
     def get_buffer_reads(self):
-        """ @return Whether to buffer reads. """
+        """ Returns whether to buffer reads.
+        @return Boolean. """
         return self.dlconfig['buffer_reads']
 
     def set_write_buffer_size(self,value):
@@ -351,7 +391,9 @@ class DownloadConfigInterface:
         self.dlconfig['write_buffer_size'] = value
 
     def get_write_buffer_size(self):
-        """ @return The write buffer size """
+        """ Returns the write buffer size.
+        @return A number of megabytes.
+        """
         return self.dlconfig['write_buffer_size']
 
     def set_breakup_seed_bitfield(self,value):
@@ -363,7 +405,8 @@ class DownloadConfigInterface:
         self.dlconfig['breakup_seed_bitfield'] = value
 
     def get_breakup_seed_bitfield(self):
-        """ @return Whether to send an incomplete BITFIELD message. """
+        """ Returns whether to send an incomplete BITFIELD message.
+        @return Boolean. """
         return self.dlconfig['breakup_seed_bitfield']
 
     def set_snub_time(self,value):
@@ -374,7 +417,9 @@ class DownloadConfigInterface:
         self.dlconfig['snub_time'] = value
 
     def get_snub_time(self):
-        """ @return The snub time """
+        """ Returns the snub time.
+        @return A number of seconds.
+        """
         return self.dlconfig['snub_time']
 
     def set_rarest_first_cutoff(self,value):
@@ -384,7 +429,9 @@ class DownloadConfigInterface:
         self.dlconfig['rarest_first_cutoff'] = value
 
     def get_rarest_first_cutoff(self):
-        """ @return The rarest first cutoff """
+        """ Returns the rarest first cutoff.
+        @return A number of downloads. 
+        """
         return self.dlconfig['rarest_first_cutoff']
 
     def set_rarest_first_priority_cutoff(self,value):
@@ -395,7 +442,8 @@ class DownloadConfigInterface:
         self.dlconfig['rarest_first_priority_cutoff'] = value
 
     def get_rarest_first_priority_cutoff(self):
-        """ @return The rarest-first priority cutoff """
+        """ Returns the rarest-first priority cutoff.
+        @return A number of peers. """
         return self.dlconfig['rarest_first_priority_cutoff']
 
     def set_min_uploads(self,value):
@@ -405,7 +453,8 @@ class DownloadConfigInterface:
         self.dlconfig['min_uploads'] = value
 
     def get_min_uploads(self):
-        """ @return The minimum number of uploads. """
+        """ Returns the minimum number of uploads. 
+        @return A number of uploads. """
         return self.dlconfig['min_uploads']
 
     def set_max_files_open(self,value):
@@ -416,7 +465,8 @@ class DownloadConfigInterface:
         self.dlconfig['max_files_open'] = value
 
     def get_max_files_open(self):
-        """ @return The maximum number of open files. """
+        """ Returns the maximum number of open files. 
+        @return A number of files. """
         return self.dlconfig['max_files_open']
 
     def set_round_robin_period(self,value):
@@ -426,7 +476,8 @@ class DownloadConfigInterface:
         self.dlconfig['round_robin_period'] = value
 
     def get_round_robin_period(self):
-        """ @return The round-robin period """
+        """ Returns the round-robin period.
+        @return A number of seconds. """
         return self.dlconfig['round_robin_period']
 
     def set_super_seeder(self,value):
@@ -437,7 +488,8 @@ class DownloadConfigInterface:
         self.dlconfig['super_seeder'] = value
 
     def get_super_seeder(self):
-        """ @return Whether super seeding is enabled """
+        """ Returns hether super seeding is enabled.
+        @return Boolean. """
         return self.dlconfig['super_seeder']
 
     def set_security(self,value):
@@ -448,7 +500,8 @@ class DownloadConfigInterface:
         self.dlconfig['security'] = value
 
     def get_security(self):
-        """ @return The security setting """
+        """ Returns the security setting.
+        @return Boolean. """
         return self.dlconfig['security']
 
     def set_auto_kick(self,value):
@@ -458,7 +511,8 @@ class DownloadConfigInterface:
         self.dlconfig['auto_kick'] = value
 
     def get_auto_kick(self):
-        """ @return Whether autokick is enabled """
+        """ Returns whether autokick is enabled.
+        @return Boolean. """
         return self.dlconfig['auto_kick']
 
     def set_double_check_writes(self,value):
@@ -469,7 +523,7 @@ class DownloadConfigInterface:
         self.dlconfig['double_check'] = value
 
     def get_double_check_writes(self):
-        """ @return Whether double-checking on writes is enabled. """
+        """ Returns whether double-checking on writes is enabled. """
         return self.dlconfig['double_check']
 
     def set_triple_check_writes(self,value):
@@ -479,7 +533,7 @@ class DownloadConfigInterface:
         self.dlconfig['triple_check'] = value
 
     def get_triple_check_writes(self):
-        """ @return Whether triple-checking on writes is enabled. """
+        """ Returns whether triple-checking on writes is enabled. """
         return self.dlconfig['triple_check']
 
     def set_lock_files(self,value):
@@ -488,7 +542,7 @@ class DownloadConfigInterface:
         self.dlconfig['lock_files'] = value
 
     def get_lock_files(self):
-        """ @return Whether locking of files is enabled. """
+        """ Returns whether locking of files is enabled. """
         return self.dlconfig['lock_files']
 
     def set_lock_while_reading(self,value):
@@ -498,7 +552,8 @@ class DownloadConfigInterface:
         self.dlconfig['lock_while_reading'] = value
 
     def get_lock_while_reading(self):
-        """ @return Whether locking of files for reading is enabled. """
+        """ Returns whether locking of files for reading is enabled.
+        @return Boolean. """
         return self.dlconfig['lock_while_reading']
 
     def set_auto_flush(self,value):
@@ -508,7 +563,8 @@ class DownloadConfigInterface:
         self.dlconfig['auto_flush'] = value
 
     def get_auto_flush(self):
-        """ @return The auto flush interval. """
+        """ Returns the auto flush interval.
+        @return A number of minutes. """
         return self.dlconfig['auto_flush']
 
     def set_exclude_ips(self,value):
@@ -518,7 +574,8 @@ class DownloadConfigInterface:
         self.dlconfig['exclude_ips'] = value
 
     def get_exclude_ips(self):
-        """ @return The list of excluded IP addresses. """
+        """ Returns the list of excluded IP addresses. 
+        @return A list of strings. """
         return self.dlconfig['exclude_ips']
 
     def set_ut_pex_max_addrs_from_peer(self,value):
@@ -529,7 +586,10 @@ class DownloadConfigInterface:
         self.dlconfig['ut_pex_max_addrs_from_peer'] = value
 
     def get_ut_pex_max_addrs_from_peer(self):
-        """ @return The maximum number of IP addresses to accept from a peer via ut_pex. """
+        """ Returns the maximum number of IP addresses to accept from a peer 
+        via ut_pex. 
+        @return A number of addresses.
+        """
         return self.dlconfig['ut_pex_max_addrs_from_peer']
 
 
@@ -555,7 +615,7 @@ class DownloadStartupConfig(DownloadConfigInterface,Serializable,Copyable):
 
 
 def get_default_dest_dir():
-    """ @return The default dir to save content to.
+    """ Returns the default dir to save content to.
     <pre> 
     * For Win32/MacOS: Desktop\TriblerDownloads
     * For UNIX: /tmp

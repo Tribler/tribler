@@ -1,5 +1,6 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
+""" Base classes for the Core API """
 
 import sys
 

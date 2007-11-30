@@ -48,7 +48,8 @@ class Download(DownloadRuntimeConfig,DownloadImpl):
     #
     def get_def(self):
         """
-        @return the read-only torrent definition (TorrentDef) for this Download.
+        Return the read-only torrent definition (TorrentDef) for this Download.
+        @return A TorrentDef object.
         """
         return DownloadImpl.get_def(self)
 

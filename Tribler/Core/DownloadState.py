@@ -108,7 +108,7 @@ class DownloadState(Serializable):
 
     
     def get_download(self):
-        """ @return The Download object of which this is the state """
+        """ Returns the Download object of which this is the state """
         return self.download
     
     def get_progress(self):
@@ -121,12 +121,14 @@ class DownloadState(Serializable):
         return self.progress
         
     def get_status(self):
-        """ @return The status of the torrent, e.g. DLSTATUS_* """
+        """ Returns the status of the torrent.
+        @return DLSTATUS_* """
         return self.status
 
     def get_error(self):
-        """ @return The Exception that caused the download to be moved to 
+        """ Returns the Exception that caused the download to be moved to 
         DLSTATUS_STOPPED_ON_ERROR status.
+        @return Exception
         """
         return self.error
 
@@ -135,7 +137,8 @@ class DownloadState(Serializable):
     # 
     def get_current_speed(self,direct):
         """
-        @return The current up or download speed in KB/s, as float
+        Returns the current up or download speed.
+        @return The speed in KB/s, as float.
         """
         if self.stats is None:
             return 0.0
@@ -146,9 +149,10 @@ class DownloadState(Serializable):
 
     def has_active_connections(self):
         """ 
-        @return Whether the download has active connections. This is used
+        Returns whether the download has active connections. This is used
         to see if there is any progress when non-fatal errors have occured
         (e.g. tracker timeout).
+        @return Boolean.
         """
         if self.stats is None:
             return False
@@ -185,17 +189,19 @@ class DownloadState(Serializable):
             return self.haveslice
 
     def get_vod_prebuffering_progress(self):
-        """ @return The percentage of prebuffering for Video-On-Demand already 
-        completed as a float (0..1) """
+        """ Returns the percentage of prebuffering for Video-On-Demand already 
+        completed.
+        @return A float (0..1) """
         if self.stats is None:
             return 0.0
         else:
             return self.stats['vod_prebuf_frac']
     
     def get_vod_playable(self):
-        """ @return Whether or not the Download started in Video-On-Demand
+        """ Returns whether or not the Download started in Video-On-Demand
         mode has sufficient prebuffer and download speed to be played out
         to the user. 
+        @return Boolean.
         """
         if self.stats is None:
             return False
@@ -205,7 +211,7 @@ class DownloadState(Serializable):
     def get_vod_playable_after(self):
         """ Returns the estimated time until the Download started in Video-On-Demand
         mode can be started to play out to the user. 
-        @return A number of seconds
+        @return A number of seconds.
         """
         if self.stats is None:
             return float(2 ** 31)
@@ -214,8 +220,8 @@ class DownloadState(Serializable):
 
 
     def get_log_messages(self):
-        """ @return The last 10 logged non-fatal error messages as a list of 
-        (time,msg) tuples. Time is Python time() format. """
+        """ Returns the last 10 logged non-fatal error messages.
+        @return A list of (time,msg) tuples. Time is Python time() format. """
         if self.logmsgs is None:
             return []
         else:
