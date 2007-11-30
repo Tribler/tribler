@@ -1,7 +1,7 @@
 # Written by Jie Yang
 # see LICENSE.txt for license information
 
-FOOL_EPYDOC = 481
+__fool_epydoc = 481
 """
     BuddyCast2 epdemic protocol for p2p recommendation and semantic clustering
     

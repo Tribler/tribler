@@ -1,7 +1,7 @@
 # Written by Jun Wang, Jie Yang
 # see LICENSE.txt for license information
 
-FOOL_EPYDOC = 481
+__fool_epydoc = 481
 """
 Formulas: 
  P(I|U) = sum{U'<-I} P(U'|U)    # U' has I in his profile

@@ -1,7 +1,7 @@
 # Written by John Hoffman
 # see LICENSE.txt for license information
 
-FOOL_EPYDOC = 481
+__fool_epydoc = 481
 '''
 reads/writes a Windows-style INI file
 format:

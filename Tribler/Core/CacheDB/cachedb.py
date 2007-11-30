@@ -15,7 +15,7 @@
 # PeerDB: clean similarity, insert time
 # PreferenceDB: clean  permid:torrent_id:{}
 #
-FOOL_EPYDOC = 481
+__fool_epydoc = 481
 """
 Database design
 Value in bracket is the default value
