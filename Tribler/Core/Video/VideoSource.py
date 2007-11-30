@@ -8,25 +8,8 @@
 
 import os,sys
 from threading import RLock,Thread
-from traceback import print_exc
 
-DEBUG = True
-
-# transcoding parameters
-VIDEO_SOURCE = "http://130.161.158.190:8080"
-TRANSCODE = False
-
-if TRANSCODE:
-    AUDIO_KBITRATE = 96
-    VIDEO_KBITRATE = 512 - AUDIO_KBITRATE
-    FFMPEG = "lib/ffmpeg -i %s -shortest -acodec mp2 -vcodec mpeg2video -r 30 -b %d -ab %d -f mpegts" % (VIDEO_SOURCE,VIDEO_KBITRATE*1000,AUDIO_KBITRATE*1000)
-    VIDEO_PROVIDER = FFMPEG
-else:
-    CURL = "curl -N %s" % (VIDEO_SOURCE,)
-    VIDEO_PROVIDER = CURL
-
-VLC_IN_PARAMS = "--demux=ts --codec=mp2,m2v"
-
+DEBUG = False
 
 class VideoSourceTransporter:
     """ Reads data from an external source and turns it into BitTorrent chunks. """
