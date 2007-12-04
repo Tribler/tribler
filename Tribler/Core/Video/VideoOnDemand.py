@@ -210,7 +210,9 @@ class PiecePickerStreaming(PiecePicker):
         relpiece = p - self.download_range[0]
         rawdue = self.transporter.piece_due(relpiece)
         diff = rawdue - now
-        if self.transporter.prebuffering and p >= self.download_range[0] and p <= self.download_range[0] + self.transporter.max_preparse_packets:
+        pblow = self.download_range[0] + self.transporter.prebuf_offset
+        pbhigh = pblow + self.transporter.max_prebuf_packets 
+        if self.transporter.prebuffering and p >= pblow and p <= pbhigh:
             # not playing, prioritize prebuf
             self.outstanding[p] = now+self.MAXDLTIME
             #print >>sys.stderr,"PiecePickerStreaming: prebuf due soonest",p,"#"
@@ -319,8 +321,8 @@ class PiecePickerBiToS(PiecePickerStreaming):
 
         if self.transporter.prebuffering:
             # focus on first packets
-            f = self.download_range[0]
-            t = f + self.transporter.max_preparse_packets
+            f = self.download_range[0] + self.transporter.prebuf_offset
+            t = f + self.transporter.max_prebuf_packets
             if DEBUGPP:
                 print >>sys.stderr,"BiToS: Prebuffer range is",f,t
             choice = rarest( f, t )
@@ -476,11 +478,11 @@ class PiecePickerG2G(PiecePickerStreaming):
                 # focus on last packets
                 f = self.download_range[0]
                 t = self.download_range[1]+1
-                choice = randomlast(f,t,self.transporter.max_preparse_packets)
+                choice = randomlast(f,t,self.transporter.max_prebuf_packets)
             else:
                 # focus on first packets
-                f = self.download_range[0]
-                t = f + self.transporter.max_preparse_packets
+                f = self.download_range[0] + self.transporter.prebuf_offset
+                t = f + self.transporter.max_prebuf_packets
                 choice = rarest(f,t)
             #print >>sys.stderr,"choiceP",f,t
         else:
@@ -828,11 +830,12 @@ class MovieOnDemandTransporter(MovieTransport):
             # 850 kilobyte/s (500 MB for 10 min 20 secs) this is too small
             # and we'll have packet loss because we start too soon.
             bytesneeded = 1024 * 1024
-            
+
+        self.prebuf_offset = 0
         piecesneeded = 1 + int(ceil((bytesneeded - self.movieselector.first_piece_length) / float(piecesize)))
-        self.max_preparse_packets=min(piecesneeded,self.movieselector.num_movie_pieces())
+        self.max_prebuf_packets=min(piecesneeded,self.movieselector.num_movie_pieces())
         if self.doing_ffmpeg_analysis and DEBUG:
-            print >>sys.stderr,"vod: trans: Want",self.max_preparse_packets,"pieces for FFMPEG analysis, piecesize",piecesize
+            print >>sys.stderr,"vod: trans: Want",self.max_prebuf_packets,"pieces for FFMPEG analysis, piecesize",piecesize
 
         if DEBUG:
             print >>sys.stderr,"vod: trans: Doing bitrate estimation is",self.doing_bitrate_est
@@ -855,7 +858,7 @@ class MovieOnDemandTransporter(MovieTransport):
         self.playable = False
         self.usernotified = False
 
-        self.refill_thread()
+        self.refill_rawserv_tasker()
         self.tick_second()
 
         # link to others (last thing to do)
@@ -894,7 +897,7 @@ class MovieOnDemandTransporter(MovieTransport):
         self.rawserver.add_task( self.live_streaming_timer, 2 )
 
     def parse_video(self):
-        """ Feeds the first max_preparse_packets to ffmpeg to determine video bitrate. """
+        """ Feeds the first max_prebuf_packets to ffmpeg to determine video bitrate. """
         width = None
         height = None
 
@@ -921,7 +924,7 @@ class MovieOnDemandTransporter(MovieTransport):
         """
 
         # feed all the pieces
-        for i in xrange(0,self.max_preparse_packets):
+        for i in xrange(0,self.max_prebuf_packets):
             piece = self.movieselector.get_movie_piece( i )
 
             if piece is None:
@@ -988,11 +991,12 @@ class MovieOnDemandTransporter(MovieTransport):
             self.nreceived += 1
 
         gotall = False
-        #if received_piece is None or received_piece < self.max_preparse_packets:
-            # extract bitrate once we got the first max_preparse_packets
-        missing_pieces = filter( lambda i: not self.movieselector.have_movie_piece( i ), xrange(0,self.max_preparse_packets) )
+        #if received_piece is None or received_piece < self.max_prebuf_packets:
+            # extract bitrate once we got the first max_prebuf_packets
+        prebufrange = xrange(self.prebuf_offset,self.max_prebuf_packets) 
+        missing_pieces = filter( lambda i: not self.movieselector.have_movie_piece( i ), prebufrange)
         gotall = not missing_pieces
-        self.prebufprogress = float(self.max_preparse_packets-len(missing_pieces))/float(self.max_preparse_packets)
+        self.prebufprogress = float(self.max_prebuf_packets-len(missing_pieces))/float(self.max_prebuf_packets)
         
         if DEBUG:
             print >>sys.stderr,"vod: trans: Already got",(self.prebufprogress*100.0),"% of prebuffer"
@@ -1001,8 +1005,8 @@ class MovieOnDemandTransporter(MovieTransport):
             print >>sys.stderr,"vod: trans: Still need pieces",missing_pieces,"for prebuffering/FFMPEG analysis"
 
         if self.dropping:
-            if not self.doing_ffmpeg_analysis and not gotall and not (0 in missing_pieces) and self.nreceived > self.max_preparse_packets:
-                perc = float(self.max_preparse_packets)/10.0
+            if not self.doing_ffmpeg_analysis and not gotall and not (0 in missing_pieces) and self.nreceived > self.max_prebuf_packets:
+                perc = float(self.max_prebuf_packets)/10.0
                 if float(len(missing_pieces)) < perc or self.nreceived > (2*len(missing_pieces)):
                     # If less then 10% of packets missing, or we got 2 times the packets we need already,
                     # force start of playback
@@ -1010,7 +1014,7 @@ class MovieOnDemandTransporter(MovieTransport):
                     if DEBUG:
                         print >>sys.stderr,"vod: trans: Forcing stop of prebuffering, less than",perc,"missing, or got 2N packets already"
 
-        if gotall and self.doing_ffmpeg_analysis:
+        if gotall and self.doing_ffmpeg_analysis and self.prebuf_offset == 0:
             [bitrate,width,height] = self.parse_video()
             self.doing_ffmpeg_analysis = False
             if DEBUG:
@@ -1058,7 +1062,7 @@ class MovieOnDemandTransporter(MovieTransport):
 
         elif DEBUG:
             if self.doing_ffmpeg_analysis:
-                print >>sys.stderr,"vod: trans: Prebuffering: waiting to obtain the first %d packets" % (self.max_preparse_packets)
+                print >>sys.stderr,"vod: trans: Prebuffering: waiting to obtain the first %d packets" % (self.max_prebuf_packets)
             else:
                 print >>sys.stderr,"vod: trans: Prebuffering: %.2f seconds left" % (self.expected_buffering_time())
 
@@ -1340,7 +1344,7 @@ class MovieOnDemandTransporter(MovieTransport):
         
         while loop < self.numpieces():
             abspiece = self.movieselector.download_range[0][0] + loop
-            ihavepiece = self.has[abspiece]
+            ihavepiece = self.do_I_have_abspiece(abspiece)
             if ihavepiece:
                 #if DEBUG:
                 #    print >>sys.stderr,"vod: trans: Got bytes in output buf",outbuflen,"max is",mx
@@ -1384,7 +1388,12 @@ class MovieOnDemandTransporter(MovieTransport):
             self.shift_hipri_set(abspiece)
         self.data_ready.release()
 
-    def refill_thread( self ):
+    def do_I_have_abspiece(self,abspiece):
+        #if abspiece > 50:
+        #    return False
+        return self.has[abspiece]
+
+    def refill_rawserv_tasker( self ):
         
         """
         now = time.time()
@@ -1395,7 +1404,7 @@ class MovieOnDemandTransporter(MovieTransport):
         if self.downloading:
             self.refill_buffer()
 
-        self.rawserver.add_task( self.refill_thread, self.REFILL_INTERVAL )
+        self.rawserver.add_task( self.refill_rawserv_tasker, self.REFILL_INTERVAL )
 
     def pop( self ):
         self.data_ready.acquire()

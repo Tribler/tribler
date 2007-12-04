@@ -28,13 +28,13 @@ sessdefaults['upnp_nat_access'] = UPNPMODE_UNIVERSAL_DIRECT
 sessdefaults['timeout'] = 300.0
 sessdefaults['timeout_check_interval'] = 60.0
 sessdefaults['eckeypairfilename'] = None
-sessdefaults['megacache'] = 1
-sessdefaults['overlay'] = 1
-sessdefaults['buddycast'] = 1
-sessdefaults['start_recommender'] = 1
-sessdefaults['download_help'] = 1
-sessdefaults['torrent_collecting'] = 1
-sessdefaults['superpeer'] = 0
+sessdefaults['megacache'] = True
+sessdefaults['overlay'] = True
+sessdefaults['buddycast'] = True
+sessdefaults['start_recommender'] = True
+sessdefaults['download_help'] = True
+sessdefaults['torrent_collecting'] = True
+sessdefaults['superpeer'] = False
 sessdefaults['overlay_log'] = None
 sessdefaults['buddycast_interval'] = 15
 sessdefaults['max_torrents'] = 5000
@@ -43,18 +43,18 @@ sessdefaults['torrent_collecting_dir'] = None
 sessdefaults['torrent_collecting_rate'] = 5
 sessdefaults['torrent_checking'] = 1
 sessdefaults['torrent_checking_period'] = 60
-sessdefaults['dialback'] = 1
-sessdefaults['dialback_active'] = 1  # do active discovery (needed to disable for testing only) (0 = disabled)
-sessdefaults['dialback_trust_superpeers'] = 1 # trust superpeer replies (needed to disable for testing only) (0 = disabled)
-sessdefaults['socnet'] = 1
-sessdefaults['rquery'] = 1
+sessdefaults['dialback'] = True
+sessdefaults['dialback_active'] = True  # do active discovery (needed to disable for testing only) (0 = disabled)
+sessdefaults['dialback_trust_superpeers'] = True # trust superpeer replies (needed to disable for testing only) (0 = disabled)
+sessdefaults['socnet'] = True
+sessdefaults['rquery'] = True
 sessdefaults['stop_collecting_threshold'] = 200
-sessdefaults['internaltracker'] = 1
+sessdefaults['internaltracker'] = True
 sessdefaults['nickname'] = ''
 sessdefaults['videoplayerpath'] = None
 sessdefaults['overlay_max_message_length'] = 2 ** 23
 sessdefaults['download_help_dir'] = None
-sessdefaults['bartercast'] = 1
+sessdefaults['bartercast'] = True
 sessdefaults['superpeer_file'] = None
 sessdefaults['buddycast_collecting_solution'] = BCCOLPOLICY_SIMPLE
 sessdefaults['peer_icon_path'] = None

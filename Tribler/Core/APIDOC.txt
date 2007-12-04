@@ -323,3 +323,5 @@ TODO:
 
 - Make sure torrent gets removed from internal tracker when Download is 
 removed.
+
+- Have separate $HOME/.Tribler and $HOME/.SwarmPlayer?

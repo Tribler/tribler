@@ -54,20 +54,6 @@ class Session(SessionRuntimeConfig):
         self.sesslock = RLock()
 
         # Determine startup config to use
-        if scfg is not None: # overrides any saved config
-            # Work from copy
-            self.sessconfig = copy.copy(scfg.sessconfig)
-            state_dir = self.sessconfig['state_dir']
-        else:
-            state_dir = None
-
-        # Create dir for session state
-        if state_dir is None:
-            state_dir = Session.get_default_state_dir()
-            
-        if not os.path.isdir(state_dir):
-            os.mkdir(state_dir)
-
         if scfg is None: # If no override
             try:
                 # Then try to read from default location
@@ -77,7 +63,18 @@ class Session(SessionRuntimeConfig):
                 print_exc()
                 scfg = SessionStartupConfig()
             self.sessconfig = scfg.sessconfig
+        else: # overrides any saved config
+            # Work from copy
+            self.sessconfig = copy.copy(scfg.sessconfig)
+        
+        # Create dir for session state, if not exist    
+        state_dir = self.sessconfig['state_dir']
+        if state_dir is None:
+            state_dir = Session.get_default_state_dir()
             self.sessconfig['state_dir'] = state_dir
+            
+        if not os.path.isdir(state_dir):
+            os.mkdir(state_dir)
 
         if not self.sessconfig['torrent_collecting_dir']:
             self.sessconfig['torrent_collecting_dir'] = os.path.join(self.sessconfig['state_dir'], STATEDIR_TORRENTCOLL_DIR)
