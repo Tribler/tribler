@@ -38,7 +38,9 @@ class VideoPlayer:
         if VideoPlayer.__single:
             raise RuntimeError, "VideoPlayer is singleton"
         VideoPlayer.__single = self
+        self.parentwindow = None
         self.extprogress = None
+        self.contentname = None
         
     def getInstance(*args, **kw):
         if VideoPlayer.__single is None:
@@ -49,10 +51,16 @@ class VideoPlayer:
     def register(self,utility):
         self.utility = utility
         
+        # TEMPARNO: Move this outside the player
         videoserver = VideoHTTPServer.getInstance()
         videoserver.register(self.videoserver_error_callback,self.videoserver_set_status_callback)
 
         self.determine_playbackmode()
+
+    def set_content_name(self,name):
+        self.contentname = name
+        if self.playbackmode == PLAYBACKMODE_INTERNAL:
+            self.parentwindow.set_content_name(self.contentname)
 
     def determine_playbackmode(self):
         playbackmode = self.utility.config.Read('videoplaybackmode', "int")

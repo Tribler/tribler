@@ -122,6 +122,12 @@ class VideoFrame(wx.Frame):
         if self.videopanel:
             self.videopanel.set_player_status(s)
 
+    def set_content_name(self,name):
+        """ Called by any thread """
+        if self.videopanel:
+            self.videopanel.set_content_name(name)
+        
+
 class EmbeddedPlayer(wx.Panel):
 
     def __init__(self, parent, id, closehandler, allowclose, utility):
@@ -178,7 +184,7 @@ class EmbeddedPlayer(wx.Panel):
         self.item = item
         if DEBUG:
             print >>sys.stderr,"embedplay: Telling player to play",item.getPath(),currentThread().getName()
-        self.mediactrl.Load(item.getPath())
+        self.mediactrl.Load(self.item.getPath())
         self.update = True
         wx.CallAfter(self.slider.SetValue,0)
         
@@ -286,6 +292,10 @@ class EmbeddedPlayer(wx.Panel):
         if self.mediactrl:
             self.mediactrl.setStatus(s)
 
+    def set_content_name(self,s):
+        if self.mediactrl:
+            self.mediactrl.setContentName(s)
+
 
 class DelayTimer(wx.Timer):
     """ vlc.MediaCtrl needs some time to stop after we give it a stop command.
@@ -316,9 +326,10 @@ class VLCMediaCtrl(wx.Window):
         self.SetMinSize((320,240))
         self.SetBackgroundColour(wx.BLACK)
         self.status = "Player is loading..."
+        self.name = None
 
         if logofilename is not None:
-            self.logo = wx.BitmapFromImage(wx.Image(logofilename).Scale(100,142),-1)
+            self.logo = wx.BitmapFromImage(wx.Image(logofilename),-1)
             self.Bind(wx.EVT_PAINT, self.OnPaint)
 
         #
@@ -498,16 +509,15 @@ class VLCMediaCtrl(wx.Window):
         dc.SetTextForeground(wx.WHITE)
         dc.SetTextBackground(wx.BLACK)
         
-        # h4xor centering of text
-        # Take width of logo as measure
-        logochars = 16
+        lineoffset = 40
+        name = self.getContentName() 
+        if name is not None:
+            txt = u'Loading: '+self.name
+            dc.DrawText(txt,30,halfy+self.logo.GetHeight()+lineoffset)
+            lineoffset += 20
+
         txt = self.getStatus()
-        chars = len(txt)
-        nlogos = float(chars-logochars) / float(logochars)
-        txtwidth = int(float(self.logo.GetWidth())*nlogos)
-        x = max(0,halfx-txtwidth/2)
-        
-        dc.DrawText(self.getStatus(),x,halfy+self.logo.GetHeight()+10)
+        dc.DrawText(txt,30,halfy+self.logo.GetHeight()+lineoffset)
         
         dc.EndDrawing()
         if evt is not None:
@@ -523,3 +533,12 @@ class VLCMediaCtrl(wx.Window):
         self.status = s
         #self.OnPaint(None)
         self.Refresh()
+
+    def setContentName(self,s):
+        wx.CallAfter(self.OnSetContentName,s)
+        
+    def OnSetContentName(self,s):
+        self.name = s
+
+    def getContentName(self):
+        return self.name

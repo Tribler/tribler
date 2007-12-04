@@ -30,6 +30,7 @@ from wx import xrc
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Session import Session
+from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 
@@ -88,6 +89,8 @@ class PlayerApp(wx.App):
             self.videoserv = VideoHTTPServer.getInstance() # create
             self.videoserv.background_serve()
             
+            self.sconfig = SessionStartupConfig()
+            self.sconfig.set_overlay(False)
             self.s = Session()
 
             if RATELIMITADSL:
@@ -104,8 +107,8 @@ class PlayerApp(wx.App):
                 self.OnExit()
                 return False
 
-            tdef = TorrentDef.load(torrentfilename)
-            videofiles = tdef.get_video_files()
+            self.tdef = TorrentDef.load(torrentfilename)
+            videofiles = self.tdef.get_video_files()
             if len(videofiles) > 1:
                 raise ValueError("Torrent contains multiple video files, pick manually")
             print >>sys.stderr,"main: Found video file",videofiles
@@ -116,12 +119,13 @@ class PlayerApp(wx.App):
             dcfg.set_max_conns_to_initiate(300)
             dcfg.set_max_conns(300)
             
-            d = self.s.start_download(tdef,dcfg)
+            d = self.s.start_download(self.tdef,dcfg)
             d.set_state_callback(self.state_callback,1)
 
             self.videoplay = VideoPlayer.getInstance()
             self.videoplay.register(self.utility)
             self.videoplay.set_parentwindow(self.videoFrame)
+            self.videoplay.set_content_name(self.tdef.get_name_as_unicode())
             
             self.Bind(wx.EVT_CLOSE, self.videoFrame.OnCloseWindow)
             self.Bind(wx.EVT_QUERY_END_SESSION, self.videoFrame.OnCloseWindow)
