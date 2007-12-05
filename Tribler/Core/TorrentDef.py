@@ -622,7 +622,7 @@ class TorrentDef(Serializable,Copyable):
             for i in range(len(info['files'])):
                 x = info['files'][i]
                     
-                intorrentpath = pathlist2filename(x['path'])
+                intorrentpath = maketorrent.pathlist2filename(x['path'])
                 if intorrentpath == file:
                     return i
             return ValueError("File not found in torrent")

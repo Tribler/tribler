@@ -91,6 +91,7 @@ class PlayerApp(wx.App):
             
             self.sconfig = SessionStartupConfig()
             self.sconfig.set_overlay(False)
+            self.sconfig.set_megacache(False)
             self.s = Session(self.sconfig)
 
             if RATELIMITADSL:

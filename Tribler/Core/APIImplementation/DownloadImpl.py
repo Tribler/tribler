@@ -12,6 +12,8 @@ from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.simpledefs import *
 from Tribler.Core.osutils import *
 from Tribler.Core.APIImplementation.SingleDownload import SingleDownload
+from Tribler.Core.APIImplementation.maketorrent import pathlist2filename
+from Tribler.Core.APIImplementation.miscutils import offset2piece
 from Tribler.Core.Utilities.unicode import metainfoname2unicode
 
 
