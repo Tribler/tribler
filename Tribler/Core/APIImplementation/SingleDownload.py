@@ -40,7 +40,7 @@ class SingleDownload:
             self.logmsgs = []
     
             peerid = createPeerID()
-            print >>sys.stderr,"SingleDownload: __init__: My peer ID is",`peerid`
+            #print >>sys.stderr,"SingleDownload: __init__: My peer ID is",`peerid`
     
             self.dow = BT1Download(self.hashcheckprogressfunc,
                             self.finishedfunc,
@@ -67,7 +67,8 @@ class SingleDownload:
                 vodfileindex['outpath'] = self.dow.get_dest(index)
             self.dow.set_videoinfo(vodfileindex)
 
-            print >>sys.stderr,"SingleDownload: setting vodfileindex",vodfileindex
+            if DEBUG:
+                print >>sys.stderr,"SingleDownload: setting vodfileindex",vodfileindex
             
             self._hashcheckfunc = None
             if pstate is None:
@@ -88,7 +89,8 @@ class SingleDownload:
     
     def save_as(self,name,length,saveas,isdir):
         """ Return the local filename to which to save the file 'name' in the torrent """
-        print >>sys.stderr,"SingleDownload: save_as(",`name`,length,`saveas`,isdir,")"
+        if DEBUG:
+            print >>sys.stderr,"SingleDownload: save_as(",`name`,length,`saveas`,isdir,")"
         try:
             if not os.access(saveas,os.F_OK):
                 os.mkdir(saveas)
@@ -101,7 +103,8 @@ class SingleDownload:
 
     def perform_hashcheck(self,complete_callback):
         """ Called by any thread """
-        print >>sys.stderr,"SingleDownload: hashcheck()",self._hashcheckfunc
+        if DEBUG:
+            print >>sys.stderr,"SingleDownload: perform_hashcheck()"
         try:
             """ Schedules actually hashcheck on network thread """
             self._getstatsfunc = SPECIAL_VALUE # signal we're hashchecking
@@ -115,7 +118,8 @@ class SingleDownload:
             
             Called by network thread
         """
-        print >>sys.stderr,"SingleDownload: hashcheck_done()"
+        if DEBUG:
+            print >>sys.stderr,"SingleDownload: hashcheck_done()"
         try:
             self.dow.startEngine(vodplayablefunc = self.lmvodplayablecallback)
             self._getstatsfunc = self.dow.startStats() # not possible earlier
@@ -128,7 +132,8 @@ class SingleDownload:
     # DownloadConfigInterface methods
     def set_max_speed(self,direct,speed,callback):
         if self.dow is not None:
-            #print >>sys.stderr,"SingleDownload: set_max_speed",`self.dow.response['info']['name']`,direct,speed
+            if DEBUG:
+                print >>sys.stderr,"SingleDownload: set_max_speed",`self.dow.response['info']['name']`,direct,speed
             if direct == UPLOAD:
                 self.dow.setUploadRate(speed,networkcalling=True)
             else:
@@ -138,7 +143,8 @@ class SingleDownload:
 
     def set_max_conns_to_initiate(self,nconns,callback):
         if self.dow is not None:
-            #print >>sys.stderr,"SingleDownload: set_max_speed",`self.dow.response['info']['name']`,direct,speed
+            if DEBUG:
+                print >>sys.stderr,"SingleDownload: set_max_speed",`self.dow.response['info']['name']`,direct,speed
             self.dow.setInitiate(nconns,networkcalling=True)
         if callback is not None:
             callback(nconns)
@@ -146,7 +152,8 @@ class SingleDownload:
 
     def set_max_conns(self,nconns,callback):
         if self.dow is not None:
-            #print >>sys.stderr,"SingleDownload: set_max_speed",`self.dow.response['info']['name']`,direct,speed
+            if DEBUG:
+                print >>sys.stderr,"SingleDownload: set_max_speed",`self.dow.response['info']['name']`,direct,speed
             self.dow.setMaxConns(nconns,networkcalling=True)
         if callback is not None:
             callback(nconns)

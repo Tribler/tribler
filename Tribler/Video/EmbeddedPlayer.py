@@ -65,7 +65,6 @@ class VideoFrame(wx.Frame):
         oldcwd = os.getcwd()
         if sys.platform == 'win32':
             global vlcinstalldir
-            print "VLCPATH",self.utility.getPath()
             vlcinstalldir = os.path.join(self.utility.getPath(),"vlc")
             os.chdir(vlcinstalldir)
 
@@ -133,9 +132,11 @@ class EmbeddedPlayer(wx.Panel):
     def __init__(self, parent, id, closehandler, allowclose, utility):
         wx.Panel.__init__(self, parent, id)
         self.item = None
+        self.status = 'Loading player...'
 
         self.closehandler = closehandler
         self.utility = utility
+        #self.SetBackgroundColour(wx.WHITE)
         self.SetBackgroundColour(wx.BLACK)
 
         logofilename = os.path.join(self.utility.getPath(),'Tribler','Images','logo4video.png')
@@ -143,6 +144,11 @@ class EmbeddedPlayer(wx.Panel):
 
         mainbox = wx.BoxSizer(wx.VERTICAL)
         self.mediactrl = VLCMediaCtrl(self, -1,logofilename)
+
+        # TEMP ARNO: until we figure out how to show in-playback prebuffering info
+        self.statuslabel = wx.StaticText(self, -1, self.status )
+        self.statuslabel.SetForegroundColour(wx.WHITE)
+        
         ctrlsizer = wx.BoxSizer(wx.HORIZONTAL)        
         self.slider = wx.Slider(self, -1)
         #self.slider.SetBackgroundColor(wx.BLACK)
@@ -172,6 +178,7 @@ class EmbeddedPlayer(wx.Panel):
         ctrlsizer.Add(self.volumebox, 1, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
         ctrlsizer.Add(self.fsbtn, 0, wx.ALIGN_CENTER_VERTICAL)
         mainbox.Add(self.mediactrl, 1, wx.EXPAND, 1)
+        mainbox.Add(self.statuslabel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 15)
         mainbox.Add(ctrlsizer, 0, wx.ALIGN_BOTTOM|wx.EXPAND, 1)
         self.SetSizerAndFit(mainbox)
         
@@ -288,9 +295,15 @@ class EmbeddedPlayer(wx.Panel):
         self.Stop()
         self.closehandler.swapout_videopanel()
 
+
     def set_player_status(self,s):
-        if self.mediactrl:
-            self.mediactrl.setStatus(s)
+        #if self.mediactrl:
+        #    self.mediactrl.setStatus(s)
+        wx.CallAfter(self.OnSetStatus,s)
+        
+    def OnSetStatus(self,s):
+        self.status = s
+        self.statuslabel.SetLabel(self.status)
 
     def set_content_name(self,s):
         if self.mediactrl:
@@ -503,7 +516,7 @@ class VLCMediaCtrl(wx.Window):
 
         dc.SetPen(wx.Pen("#BLACK",0))
         dc.SetBrush(wx.Brush("BLACK"))
-        dc.DrawRectangle(x,y,maxw,maxh)
+        #dc.DrawRectangle(x,y,maxw,maxh)
         dc.DrawBitmap(self.logo,halfx,halfy,True)
 
         dc.SetTextForeground(wx.WHITE)
@@ -516,8 +529,8 @@ class VLCMediaCtrl(wx.Window):
             dc.DrawText(txt,30,halfy+self.logo.GetHeight()+lineoffset)
             lineoffset += 20
 
-        txt = self.getStatus()
-        dc.DrawText(txt,30,halfy+self.logo.GetHeight()+lineoffset)
+        #txt = self.getStatus()
+        #dc.DrawText(txt,30,halfy+self.logo.GetHeight()+lineoffset)
         
         dc.EndDrawing()
         if evt is not None:
@@ -531,8 +544,9 @@ class VLCMediaCtrl(wx.Window):
         
     def OnSetStatus(self,s):
         self.status = s
-        #self.OnPaint(None)
-        self.Refresh()
+        if self.GetState() == MEDIASTATE_STOPPED:
+            #self.OnPaint(None)
+            self.Refresh()
 
     def setContentName(self,s):
         wx.CallAfter(self.OnSetContentName,s)
@@ -542,3 +556,4 @@ class VLCMediaCtrl(wx.Window):
 
     def getContentName(self):
         return self.name
+    

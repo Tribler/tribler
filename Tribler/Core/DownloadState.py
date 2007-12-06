@@ -89,7 +89,7 @@ class DownloadState(Serializable):
                     diff = tl-t
                     totalpieces += diff
                     
-                print >>sys.stderr,"DownloadState: get_pieces_complete",totalpieces
+                #print >>sys.stderr,"DownloadState: get_pieces_complete",totalpieces
                 
                 haveslice = [False] * totalpieces
                 haveall = True

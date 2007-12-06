@@ -671,10 +671,8 @@ class Connecter:
         # EXTEND handshake will be sent just after BT handshake, 
         # before BITFIELD even
         
-        #if DEBUG_NORMAL_MSGS:
-        #    print >>sys.stderr,"connecter: Got msg from",getMessageName(t),connection.get_ip()
-
-        
+        if DEBUG_NORMAL_MSGS:
+            print >>sys.stderr,"connecter: Got",getMessageName(t),connection.get_ip()
         
         if t == EXTEND:
             self.got_extend_message(connection,c,message,self.ut_pex_enabled)
@@ -807,6 +805,9 @@ class Connecter:
                     not ((len(oh[1])==20)): \
                         raise AssertionError, "hashlist entry invalid"
                 piece = message[13+len_hashlist:]
+
+                if DEBUG_NORMAL_MSGS:
+                    print >>sys.stderr,"connecter: Got HASHPIECE",i,begin
 
                 if c.download.got_piece(i, begin, hashlist, piece):
                     self.got_piece(i)
