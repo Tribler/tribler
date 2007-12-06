@@ -75,6 +75,7 @@ class PlayerApp(wx.App):
         self.abcpath = abcpath
         self.error = None
         self.s = None
+        self.said_start_playback = False
         wx.App.__init__(self, x)
         
     def OnInit(self):
@@ -189,7 +190,11 @@ class PlayerApp(wx.App):
             pstr = str(int(progress*100))
             msg = "Prebuffering "+pstr+"% done, eta "+intime
         elif playable:
-            msg = "Starting playback..."
+            if not self.said_start_playback:
+                msg = "Starting playback..."
+                self.said_start_playback = True
+            else:
+                msg = ''
         else:
             msg = "Waiting for sufficient download speed... "+intime
         self.videoFrame.set_player_status(msg)
