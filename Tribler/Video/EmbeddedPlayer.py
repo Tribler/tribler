@@ -516,7 +516,8 @@ class VLCMediaCtrl(wx.Window):
 
         dc.SetPen(wx.Pen("#BLACK",0))
         dc.SetBrush(wx.Brush("BLACK"))
-        #dc.DrawRectangle(x,y,maxw,maxh)
+        if sys.platform == 'linux2':
+            dc.DrawRectangle(x,y,maxw,maxh)
         dc.DrawBitmap(self.logo,halfx,halfy,True)
 
         dc.SetTextForeground(wx.WHITE)
