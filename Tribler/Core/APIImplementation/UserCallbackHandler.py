@@ -9,7 +9,7 @@ from traceback import print_exc,print_stack
 from Tribler.Core.APIImplementation.ThreadPool import ThreadPool
 from Tribler.Core.CacheDB.Notifier import Notifier
 
-DEBUG = True
+DEBUG = False
 
 class UserCallbackHandler:
     
@@ -27,7 +27,8 @@ class UserCallbackHandler:
 
     def perform_vod_usercallback(self,d,usercallback,mimetype,stream,filename):
         """ Called by network thread """
-        print >>sys.stderr,"Session: perform_vod_usercallback()"
+        if DEBUG:
+            print >>sys.stderr,"Session: perform_vod_usercallback()"
         def session_vod_usercallback_target():
             try:
                 usercallback(d,mimetype,stream,filename)
@@ -37,7 +38,8 @@ class UserCallbackHandler:
 
     def perform_getstate_usercallback(self,usercallback,data,returncallback):
         """ Called by network thread """
-        print >>sys.stderr,"Session: perform_getstate_usercallback()"
+        if DEBUG:
+            print >>sys.stderr,"Session: perform_getstate_usercallback()"
         def session_getstate_usercallback_target():
             try:
                 (when,getpeerlist) = usercallback(data)
@@ -49,9 +51,11 @@ class UserCallbackHandler:
 
     def perform_removestate_callback(self,infohash,correctedinfoname,removecontent,dldestdir):
         """ Called by network thread """
-        print >>sys.stderr,"Session: perform_removestate_callback()"
+        if DEBUG:
+            print >>sys.stderr,"Session: perform_removestate_callback()"
         def session_removestate_callback_target():
-            print >>sys.stderr,"Session: session_removestate_callback_target called",currentThread().getName()
+            if DEBUG:
+                print >>sys.stderr,"Session: session_removestate_callback_target called",currentThread().getName()
             try:
                 self.sesscb_removestate(infohash,correctedinfoname,removecontent,dldestdir)
             except:
@@ -64,18 +68,14 @@ class UserCallbackHandler:
             # TODO: thread pool, etc.
             self.threadpool.queueTask(target)
             
-#            name = "SessionCallbackThread-"+str(self.threadcount)
-#            self.threadcount += 1
-#            t = Thread(target=target,name=name)
-#            t.setDaemon(True)
-#            t.start()
         finally:
             self.sesslock.release()
 
 
     def sesscb_removestate(self,infohash,correctedinfoname,removecontent,dldestdir):
         """ Called by SessionCallbackThread """
-        print >>sys.stderr,"Session: sesscb_removestate called",`infohash`,`correctedinfoname`,removecontent,dldestdir
+        if DEBUG:
+            print >>sys.stderr,"Session: sesscb_removestate called",`infohash`,`correctedinfoname`,removecontent,dldestdir
         self.sesslock.acquire()
         try:
             dlpstatedir = os.path.join(self.sessconfig['state_dir'],STATEDIR_DLPSTATE_DIR)
@@ -88,7 +88,8 @@ class UserCallbackHandler:
         try:
             basename = hexinfohash+'.torrent'
             filename = os.path.join(trackerdir,basename)
-            print >>sys.stderr,"Session: sesscb_removestate: removing itracker entry",filename
+            if DEBUG:
+                print >>sys.stderr,"Session: sesscb_removestate: removing itracker entry",filename
             if os.access(filename,os.F_OK):
                 os.remove(filename)
         except:
@@ -99,7 +100,8 @@ class UserCallbackHandler:
         try:
             basename = hexinfohash+'.pickle'
             filename = os.path.join(dlpstatedir,basename)
-            print >>sys.stderr,"Session: sesscb_removestate: removing dlcheckpoint entry",filename
+            if DEBUG:
+                print >>sys.stderr,"Session: sesscb_removestate: removing dlcheckpoint entry",filename
             if os.access(filename,os.F_OK):
                 os.remove(filename)
         except:
@@ -109,7 +111,8 @@ class UserCallbackHandler:
         # Remove downloaded content from disk
         if removecontent:
             filename = os.path.join(dldestdir,correctedinfoname)
-            print >>sys.stderr,"Session: sesscb_removestate: removing saved content",filename
+            if DEBUG:
+                print >>sys.stderr,"Session: sesscb_removestate: removing saved content",filename
             if not os.path.isdir(filename):
                 # single-file torrent
                 os.remove(filename)

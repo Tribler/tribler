@@ -156,7 +156,10 @@ class ThreadPoolThread(threading.Thread):
             cmd, args, callback = self.__pool.getNextTask()
             # If there's nothing to do, just sleep a bit
             if cmd is None:
-                sleep(ThreadPoolThread.threadSleepTime)
+                try:
+                    sleep(ThreadPoolThread.threadSleepTime)
+                except AttributeError: # raised during interpreter shutdown
+                    break
             elif callback is None:
                 cmd(*args)
             else:

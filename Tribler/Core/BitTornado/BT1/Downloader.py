@@ -233,7 +233,8 @@ class SingleDownload(SingleDownloadHelperInterface):
                 print "Downloader: blocked, returning"
             return
 # _2fastbt    
-        assert not self.choked
+        if self.choked:
+            return
 # 2fastbt_
         # do not download from coordinator
         if self.connection.connection.is_coordinator_con():

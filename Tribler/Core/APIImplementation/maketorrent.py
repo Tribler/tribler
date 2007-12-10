@@ -65,7 +65,7 @@ def make_torrent_file(input, userabortflag = None, userprogresscallback = lambda
             secs = parse_playtime_to_secs(file['playtime'])
             bitrate = file['length']/secs
             break
-        if file['bps'] is not None:
+        if file.get('bps') is not None:
             bitrate = file['bps']
             break
 

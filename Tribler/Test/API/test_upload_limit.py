@@ -19,6 +19,9 @@ from Tribler.Core.DownloadConfig import *
 from Tribler.Core.Session import *
 from Tribler.Core.simpledefs import *
 
+from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
+from Tribler.Policies.UploadLimitation import *
+
 DEBUG=True
 
 class TestSeeding(TestAsServer):
@@ -58,15 +61,20 @@ class TestSeeding(TestAsServer):
         
         print >>sys.stderr,"test: setup_seeder: name is",self.tdef.metainfo['info']['name']
 
+        # set upload limitation
+        rateManager = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()
+        uploadLimitation = MeasureUploadLimitation(self.session,rateManager)
+        
         self.dscfg = DownloadStartupConfig()
         self.dscfg.set_dest_dir(os.getcwd())
+        self.dscfg.set_max_rate_period(4.0)
         d = self.session.start_download(self.tdef,self.dscfg)
         
         d.set_state_callback(self.seeder_state_callback)
         
     def seeder_state_callback(self,ds):
         d = ds.get_download()
-        print >>sys.stderr,"test: seeder:",`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress()
+        print >>sys.stderr,"test: seeder:",`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(), "up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD)
         return (1.0,False)
 
 
@@ -125,11 +133,11 @@ class TestSeeding(TestAsServer):
         
         d = self.session2.start_download(tdef2,dscfg2)
         d.set_state_callback(self.downloader_state_callback)
-        time.sleep(140)
+        time.sleep(1400)
     
     def downloader_state_callback(self,ds):
         d = ds.get_download()
-        print >>sys.stderr,"test: download:",`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress()
+        #print >>sys.stderr,"test: download:",`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(), "up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD)
         
         if ds.get_status() == DLSTATUS_SEEDING:
             # File is in
@@ -142,9 +150,9 @@ class TestSeeding(TestAsServer):
             f.close()
             
             self.assert_(realdata == expdata)
-            return (1.0,True)
+            return (2.0,True)
         
-        return (1.0,False)
+        return (2.0,False)
         
         
 """

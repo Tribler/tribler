@@ -6,6 +6,7 @@ from Tribler.Core.SessionConfig import *
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import *
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
+from Tribler.Policies.UploadLimitation import TestUploadLimitation
 import time
 from Tribler.Core.APIImplementation.UserCallbackHandler import Notifier
 from Tribler.Core.Utilities.utilities import show_permid_short
@@ -18,12 +19,13 @@ else:
     sscfg.set_state_dir('/tmp/statedir')
     sscfg.set_install_dir('.')
     sscfg.set_overlay(0)
+    sscfg.set_listen_port(7001)
     s = Session(sscfg)
     
 
 
 r = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()
-r.set_global_max_speed(DOWNLOAD,25)
+uploadLimitation = TestUploadLimitation(s,r)
 t = 0
 count = 0
 
@@ -38,14 +40,14 @@ def states_callback(dslist):
     global t
     global count
     
-    adjustspeeds = True
-#    r.set_global_max_speed(DOWNLOAD,10)
+    adjustspeeds = False
+#    r.set_global_max_speed(DOWNLOAD,10000)
 #    if count > 10:
 #        r.set_global_max_speed(DOWNLOAD,15)
 #    if count > 20:
 #        count = 0
 #    count += 1
-    
+#    
     for ds in dslist:
         d = ds.get_download()
         print >>sys.stderr,"main: Stats",`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD),ds.get_num_seeds_peers(), currentThread().getName()
@@ -67,7 +69,7 @@ def states_callback(dslist):
         r.adjust_speeds()
         
     #time.sleep(10)
-    return (4.0,True)
+    return (20.0,True)
 
 
 
