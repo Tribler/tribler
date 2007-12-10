@@ -595,7 +595,7 @@ class TorrentDef(Serializable,Copyable):
         if not self.metainfo_valid:
             raise NotYetImplementedException() # must save first
 
-        bitrate = maketorrent.get_bitrate_from_metainfo(file,self.metainfo)
+        return maketorrent.get_bitrate_from_metainfo(file,self.metainfo)
 
     def get_video_files(self,videoexts=videoextdefaults):
         """ The list of video files in the finalized torrent def.

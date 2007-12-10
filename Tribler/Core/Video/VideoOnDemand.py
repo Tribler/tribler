@@ -22,7 +22,7 @@ from Tribler.Video.VideoServer import MovieTransport,MovieTransportFileLikeInter
 # pull all video data as if a video player was attached
 FAKEPLAYBACK = False
 
-DEBUG = True
+DEBUG = False
 DEBUGPP = False
 
 class PiecePickerStreaming(PiecePicker):
@@ -130,7 +130,7 @@ class PiecePickerStreaming(PiecePicker):
 
         # fallback: original piece picker
         p = PiecePicker.next(self, haves, newwantfunc, sdownload, complete_first, helper_con)
-        if DEBUG and self.transporter.prebuffering:
+        if DEBUGPP and self.transporter.prebuffering:
             print >>sys.stderr,"PiecePickerStreaming: next returns",p
         if p is None:
             # When the file we selected from a multi-file torrent is complete,
