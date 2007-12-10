@@ -50,7 +50,7 @@ class VideoFrame(wx.Frame):
     def __init__(self,parent):
         self.utility = parent.utility
         wx.Frame.__init__(self, None, -1, self.utility.lang.get('tb_video_short'), 
-                          size=(800,525)) # Use 16:9 aspect ratio: 500 = (800/16) * 9 + 50 for controls
+                          size=(800,520)) # Use 16:9 aspect ratio: 500 = (800/16) * 9 + 50 for controls
         self.createMainPanel()
 
 
