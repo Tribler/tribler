@@ -143,7 +143,8 @@ class ThreadPoolThread(threading.Thread):
         """ Initialize the thread and remember the pool. """
         
         threading.Thread.__init__(self)
-        self.setName('ThreadPool'+self.getName())
+        self.setName('SessionPool'+self.getName())
+        self.setDaemon(True)
         self.__pool = pool
         self.__isDying = False
         

@@ -523,7 +523,7 @@ class VLCMediaCtrl(wx.Window):
         dc.SetTextForeground(wx.WHITE)
         dc.SetTextBackground(wx.BLACK)
         
-        lineoffset = 80
+        lineoffset = 130
         name = self.getContentName() 
         if name is not None:
             txt = u'Loading: '+self.name

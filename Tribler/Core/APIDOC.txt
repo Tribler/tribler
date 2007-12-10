@@ -280,3 +280,7 @@ TODO:
 removed.
 
 - Have separate $HOME/.Tribler and $HOME/.SwarmPlayer?
+
+
+- Allow user seeking: i.e., allow user to set hi/mid/low priority set
+to some point in the future.
