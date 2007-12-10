@@ -30,10 +30,10 @@ import py2exe
 #
 ################################################################
 
-mainfile = os.path.join('Tribler','Player','p2player.py')
+mainfile = os.path.join('Tribler','Player','swarmplayer.py')
 progicofile = os.path.join('Tribler','Images','tribler.ico')
 
-target_p2player = {
+target_player = {
     "script": mainfile,
     "icon_resources": [(1, progicofile)],
 }
@@ -45,7 +45,7 @@ setup(
 #    zipfile = None,
     options = {"py2exe": {"packages": ["Tribler.Core","encodings"],"optimize": 2}},
     data_files = [("installdir",[])], 
-    windows = [target_p2player],
+    windows = [target_player],
 )
 
 #data_files = [("installdir", [manifest, nsifile, progicofile, toricofile, "binary-LICENSE.txt", "readme.txt"])],

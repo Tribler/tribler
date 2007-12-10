@@ -1,4 +1,4 @@
-!define PRODUCT "p2player"
+!define PRODUCT "SwarmPlayer"
 !define VERSION "0.0.4"
 
 !include "MUI.nsh"
@@ -42,7 +42,7 @@ BrandingText "${PRODUCT}"
 !define MUI_LICENSEPAGE_RADIOBUTTONS
 !define MUI_LICENSEPAGE_RADIOBUTTONS_TEXT_ACCEPT "I'm cool"
 !define MUI_LICENSEPAGE_RADIOBUTTONS_TEXT_DECLINE "Go away"
-;   !define MUI_FINISHPAGE_RUN "$INSTDIR\p2player.exe"
+;   !define MUI_FINISHPAGE_RUN "$INSTDIR\swarmplayer.exe"
 
 !insertmacro MUI_PAGE_LICENSE "binary-LICENSE.txt"
 !insertmacro MUI_PAGE_COMPONENTS
@@ -76,8 +76,8 @@ Section "!Main EXE" SecMain
  SectionIn RO
  SetOutPath "$INSTDIR"
  File *.txt
- File p2player.exe.manifest
- File p2player.exe
+ File swarmplayer.exe.manifest
+ File swarmplayer.exe
  File ffmpeg.exe
  File /r vlc
  Delete "$INSTDIR\*.pyd"
@@ -107,7 +107,7 @@ Section "!Main EXE" SecMain
 ; Now writing to KHEY_LOCAL_MACHINE only -- remove references to uninstall from current user
  DeleteRegKey HKEY_CURRENT_USER "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}"
 ; Remove old error log if present
- Delete "$INSTDIR\p2player.exe.log"
+ Delete "$INSTDIR\swarmplayer.exe.log"
 
  WriteUninstaller "$INSTDIR\Uninstall.exe"
 

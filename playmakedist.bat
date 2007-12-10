@@ -57,7 +57,7 @@ REM Arno: Move py2exe results to installdir
 move dist\*.* dist\installdir
 
 copy Tribler\Player\Build\Win32\triblerplay.nsi dist\installdir
-copy Tribler\Player\Build\Win32\p2player.exe.manifest dist\installdir
+copy Tribler\Player\Build\Win32\swarmplayer.exe.manifest dist\installdir
 REM copy %PYTHONHOME%\msvcr71.dll dist\installdir
 REM For Vista. This works only when building on XP
 REM as Vista doesn't have this DLL by default.
@@ -82,14 +82,8 @@ xcopy vlc dist\installdir\vlc /E /I
 
 cd dist\installdir
 
-rem if exist %IMGCFG% goto imageconfig
-rem goto makeinstaller
-rem :imageconfig
-rem %IMGCFG% -u tribler.exe
-rem %IMGCFG% -a 0x1 tribler.exe
-
 :makeinstaller
 %NSIS% triblerplay.nsi
-move p2player_*.exe ..
+move swarmplayer_*.exe ..
 cd ..
 cd ..
