@@ -178,7 +178,7 @@ class EmbeddedPlayer(wx.Panel):
         ctrlsizer.Add(self.volumebox, 1, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
         ctrlsizer.Add(self.fsbtn, 0, wx.ALIGN_CENTER_VERTICAL)
         mainbox.Add(self.mediactrl, 1, wx.EXPAND, 1)
-        mainbox.Add(self.statuslabel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 15)
+        mainbox.Add(self.statuslabel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 30)
         mainbox.Add(ctrlsizer, 0, wx.ALIGN_BOTTOM|wx.EXPAND, 1)
         self.SetSizerAndFit(mainbox)
         
@@ -523,7 +523,7 @@ class VLCMediaCtrl(wx.Window):
         dc.SetTextForeground(wx.WHITE)
         dc.SetTextBackground(wx.BLACK)
         
-        lineoffset = 40
+        lineoffset = 80
         name = self.getContentName() 
         if name is not None:
             txt = u'Loading: '+self.name
