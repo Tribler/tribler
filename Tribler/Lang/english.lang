@@ -196,7 +196,7 @@ tb_spy_long 	= "See current number of seed/peer of torrent on the tracker"
 tb_torrentdetail_short = "Torrent Details"
 tb_buddy_short  = "Manage Friends/Encountered Peers"
 tb_file_short   = "Show Download History"
-tb_video_short  = "Swarm Player"
+tb_video_short  = "Swarm Player 0.0.5"
 tb_dlhelp_short  = "Download Booster"
 
 tb_urm = "URM:"
