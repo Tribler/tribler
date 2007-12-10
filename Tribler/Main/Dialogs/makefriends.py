@@ -10,7 +10,7 @@ from shutil import copy2
 import wx
 import wx.lib.imagebrowser as ib
 from Tribler.Core.CacheDB.CacheDBHandler import FriendDBHandler
-from Tribler.Core.CacheDB.SynDBHandler import SynPeerDBHandler
+from Tribler.Core.CacheDB.CacheDBHandler import PeerDBHandler
 from Tribler.Core.Overlay.permid import permid_for_user
 #from Tribler.vwxGUI.peermanager import PeerDataManager
 
@@ -196,7 +196,7 @@ class MakeFriendsDialog(wx.Dialog):
             self.show_inputerror(self.utility.lang.get('friendsport_error'))
         else:
             fdb = FriendDBHandler.getInstance()
-            pdb = SynPeerDBHandler.getInstance()
+            pdb = PeerDBHandler.getInstance()
             
             #friend = {'permid':permid, 'ip':ip, 'port':port, 'name':name, 'icon':newiconfilename}
             #friend = {'permid':permid, 'ip':ip, 'port':port, 'name':name}

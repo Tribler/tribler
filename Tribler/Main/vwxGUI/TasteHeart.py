@@ -1,4 +1,4 @@
-import wx, os, sys
+import wx, os, sys,time
 from traceback import print_exc
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
@@ -81,6 +81,8 @@ class TasteHeart(wx.Panel):
         self.setHeartIndex(recomm)
         
     def setHeartIndex(self, index):
+        if not BITMAPS:
+            return
         self.heartIndex = index
         self.SetSize(BITMAPS[self.heartIndex].GetSize())
         self.SetMinSize(BITMAPS[self.heartIndex].GetSize())
@@ -198,7 +200,7 @@ class TasteHeart(wx.Panel):
             if self.parentBitmap:
                 dc.DrawBitmap(self.parentBitmap, 0,0, True)
         
-        if BITMAPS[self.heartIndex]:
+        if BITMAPS and BITMAPS[self.heartIndex]:
             dc.DrawBitmap(BITMAPS[self.heartIndex], 0,0, True)
         #if (self.mouseOver or self.selected) and self.bitmaps[1]:
         #    dc.DrawBitmap(self.bitmaps[1], 0,0, True)
@@ -230,10 +232,11 @@ def getHeartBitmap(rank):
                 
 def set_tasteheart_bitmaps(syspath):
     global BITMAPS
-    imagedir = os.path.join(syspath, 'Tribler','vwxGUI', 'images')
+    imagedir = os.path.join(syspath, 'vwxGUI', 'images')
     for i in xrange(NUM_HEARTS):
         filename = os.path.join(imagedir, 'heart%d.png' % (i+1))
         if os.path.isfile(filename):
             BITMAPS.append(wx.Bitmap(filename, wx.BITMAP_TYPE_ANY))
         else:
             print >>sys.stderr,'TasteHeart: Could not find image: %s' % filename
+    print 'Adding %d BITMAPS' % len(BITMAPS)

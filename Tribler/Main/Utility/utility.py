@@ -516,7 +516,7 @@ class Utility:
     # has been created
     def postAppInit(self):
         try:
-            self.icon = wx.Icon(os.path.join(self.getPath(), 'tribler.ico'), wx.BITMAP_TYPE_ICO)
+            self.icon = wx.Icon(self.session.get_tracker_favicon(), wx.BITMAP_TYPE_ICO)
         except:
             pass
             

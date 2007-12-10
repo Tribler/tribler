@@ -45,13 +45,8 @@ from traceback import print_exc, print_stack
 from cStringIO import StringIO
 import urllib
 
-from Tribler.Core.Utilities.interconn import ServerListener, ClientPassParam
+from Tribler.Utilities.interconn import ServerListener, ClientPassParam
 
-#from ABC.Toolbars.toolbars import ABCBottomBar2, ABCStatusBar, ABCMenuBar, ABCToolBar
-#from ABC.GUI.menu import ABCMenu
-#from ABC.Scheduler.scheduler import ABCScheduler
-
-from webservice import WebListener
 
 if (sys.platform == 'win32'):
     from Dialogs.regdialog import RegCheckDialog
@@ -59,7 +54,6 @@ if (sys.platform == 'win32'):
 from Tribler.Main.Utility.utility import Utility
 from Tribler.Main.Utility.constants import * #IGNORE:W0611
 
-from Tribler.Core.simpledefs import tribler_init, tribler_done
 from Tribler.Core.BitTornado.__init__ import product_name
 from safeguiupdate import DelayedInvocation,FlaglessDelayedInvocation
 import webbrowser
@@ -84,9 +78,11 @@ from Tribler.Web2.util.update import Web2Updater
 
 from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
 from Tribler.Core.Overlay.permid import permid_for_user
-
-from Tribler.Core.API import *
-from Tribler.Core.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
+from Tribler.Core.simpledefs import *
+from Tribler.Core.Session import Session
+from Tribler.Core.APIImplementation.miscutils import NamedTimer
+from Tribler.Core.SessionConfig import SessionStartupConfig
+from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
 import Tribler.Category.Category
 DEBUG = False
 ALLOW_MULTIPLE = False
@@ -656,7 +652,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         #if sys.platform == 'linux2':
         #
         
-        tribler_done(self.utility.getConfigPath())            
+        #tribler_done(self.utility.getConfigPath())            
         
         if DEBUG:    
             print >>sys.stderr,"abc: OnCloseWindow END"
@@ -773,7 +769,7 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             sys.stdout.write('Client Starting Up.\n')
             sys.stdout.write('Build: ' + self.utility.lang.get('build') + '\n')
             
-            bm = wx.Bitmap(os.path.join(self.utility.getPath(),'icons','splash.jpg'),wx.BITMAP_TYPE_JPEG)
+            bm = wx.Bitmap(os.path.join(self.utility.getPath(),'..','Images','splash.jpg'),wx.BITMAP_TYPE_JPEG)
             #s = wx.MINIMIZE_BOX | wx.MAXIMIZE_BOX | wx.RESIZE_BORDER | wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX | wx.CLIP_CHILDREN
             #s = wx.SIMPLE_BORDER|wx.FRAME_NO_TASKBAR|wx.FRAME_FLOAT_ON_PARENT
             self.splash = wx.SplashScreen(bm, wx.SPLASH_CENTRE_ON_SCREEN|wx.SPLASH_TIMEOUT, 1000, None, -1)
@@ -790,6 +786,7 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
 
     def PostInit(self):
         try:
+            
             # Initialise fonts
             font.init()
 
@@ -802,7 +799,7 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             self.guiserver = GUIServer.getInstance()
             self.guiserver.register()
     
-            
+            print 'Doing tribler.postinit'
             # H4x0r a bit
             set_tasteheart_bitmaps(self.utility.getPath())
             set_perfBar_bitmaps(self.utility.getPath())
@@ -810,13 +807,7 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             # Put it here so an error is shown in the startup-error popup
             self.serverlistener = ServerListener(self.utility)
             
-            # Check webservice for autostart webservice
-            #######################################################
-            if False:
-                # Arno: disabled, as it is not working at the moment, and nobody uses it
-                WebListener(self.utility)
-                if self.utility.webconfig.Read("webautostart", "boolean"):
-                    self.utility.webserver.start()
+            
                 
             # Start single instance server listenner
             ############################################
@@ -837,8 +828,8 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             #
             #self.frame = ABCFrame(-1, self.params, self.utility)
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params)
-            updateXRC.main([os.path.join(self.utility.getPath(),'Tribler','vwxGUI')])
-            self.res = xrc.XmlResource(os.path.join(self.utility.getPath(),'Tribler','vwxGUI','MyFrame.xrc'))
+            updateXRC.main([os.path.join(self.utility.getPath(),'vwxGUI')])
+            self.res = xrc.XmlResource(os.path.join(self.utility.getPath(),'vwxGUI','MyFrame.xrc'))
             self.guiUtility.xrcResource = self.res
             self.frame = self.res.LoadFrame(None, "MyFrame")
             self.guiUtility.frame = self.frame

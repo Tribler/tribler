@@ -27,7 +27,8 @@ class Lang:
         
         filename = self.utility.config.Read('language_file')
         
-        langpath = os.path.join(self.utility.getPath(), "Tribler","Lang")
+        
+        langpath = os.path.join(self.utility.getPath(), "..","Lang")
         
         sys.stdout.write("Setting up languages\n")
         sys.stdout.write("Language file: " + str(filename) + "\n")

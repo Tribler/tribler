@@ -56,7 +56,7 @@ class ImagePanelBasic(wx.Panel):
         
         # get the image directory
         abcpath = os.path.abspath(os.path.dirname(sys.argv[0]))
-        self.imagedir = os.path.join(abcpath, 'Tribler','vwxGUI', 'images')
+        self.imagedir = os.path.join(abcpath, 'vwxGUI', 'images')
         if not os.path.isdir(self.imagedir):
             olddir = self.imagedir
             # Started app.py in vwxDir?

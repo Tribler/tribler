@@ -1,4 +1,4 @@
-from Tribler.Core.CacheDB.SynDBHandler import SynPeerDBHandler
+from Tribler.Core.CacheDB.CacheDBHandler import PeerDBHandler
 from Tribler.Core.CacheDB import CacheDBHandler
 from Tribler.Core.Utilities.utilities import show_permid_shorter,sort_dictlist,remove_data_from_list,find_content_in_dictlist
 from Tribler.Core.Utilities.unicode import *

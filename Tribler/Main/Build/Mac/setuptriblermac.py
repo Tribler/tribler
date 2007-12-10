@@ -103,7 +103,7 @@ def filterincludes( l, f ):
 
 from Tribler.Main.vwxGUI.updateXRC import main as updateXRC
 
-updateXRC( [os.path.abspath(os.path.dirname(sys.argv[0]))+"/Tribler/vwxGUI"] )
+updateXRC( [os.path.abspath(os.path.dirname(sys.argv[0]))+"/vwxGUI"] )
 
 # ----- build the app bundle
 

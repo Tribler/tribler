@@ -1,6 +1,6 @@
 import wx, os, sys
 from traceback import print_exc
-###from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
 DEBUG = False
 
@@ -36,7 +36,7 @@ class tribler_topButton(wx.Panel):
     def _PostInit(self):
 #        print "<mluc> tribler_topButton in _PostInit"
         # Do all init here
-        ##self.guiUtility = GUIUtility.getInstance()
+        self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
         self.Bind(wx.EVT_LEFT_UP, self.ClickedButton)
@@ -67,7 +67,7 @@ class tribler_topButton(wx.Panel):
                 
         # get the image directory
         abcpath = self.utility.getPath()
-        self.imagedir = os.path.join(abcpath, 'Tribler','vwxGUI', 'images')
+        self.imagedir = os.path.join(abcpath, 'vwxGUI', 'images')
         if not os.path.isdir(self.imagedir):
             olddir = self.imagedir
             # Started app.py in vwxDir?
@@ -292,7 +292,7 @@ class SwitchButton(tribler_topButton):
                 
         # get the image directory
         abcpath = self.utility.getPath()
-        self.imagedir = os.path.join(abcpath, 'Tribler','vwxGUI', 'images')
+        self.imagedir = os.path.join(abcpath, 'vwxGUI', 'images')
         if not os.path.isdir(self.imagedir):
             olddir = self.imagedir
             # Started app.py in vwxDir?

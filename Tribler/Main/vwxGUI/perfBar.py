@@ -121,7 +121,7 @@ def set_perfBar_bitmaps(syspath):
     global BITMAPS_PERFS
     global TRIBLER_GRADES
 #    global TRIBLER_GRADES
-    IMAGEDIR = os.path.join(syspath, 'Tribler','vwxGUI', 'images')
+    IMAGEDIR = os.path.join(syspath, 'vwxGUI', 'images')
     for i in xrange(NUM_PERFS):
         filename = os.path.join(IMAGEDIR, 'perfM%d.png' % i)
         if os.path.isfile(filename):

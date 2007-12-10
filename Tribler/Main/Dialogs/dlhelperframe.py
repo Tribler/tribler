@@ -41,7 +41,7 @@ class DownloadHelperFrame(wx.Frame):
         main_panel.SetSizer(mainbox)
 
 
-        iconpath = os.path.join(self.utility.getPath(),'tribler.ico')
+        iconpath = os.path.join(self.utility.session.get_tracker_favicon())
         # Giving it the whole bundle throws an exception about image 6
         self.icons = wx.IconBundle()
         self.icons.AddIconFromFile(iconpath,wx.BITMAP_TYPE_ICO)

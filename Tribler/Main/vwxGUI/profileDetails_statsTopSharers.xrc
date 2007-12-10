@@ -15,7 +15,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>0</border>
             <option>0</option>
-            <object class="wxPanel" name="black_top_left" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="wxPanel" name="black_top_left" subclass="vwxGUI.bgPanel.bgPanel">
               <pos>3,3</pos>
               <size>10,21</size>
             </object>
@@ -52,7 +52,7 @@
             <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
             <border>0</border>
             <option>0</option>
-            <object class="wxPanel" name="black_top_right" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+            <object class="wxPanel" name="black_top_right" subclass="vwxGUI.bgPanel.bgPanel">
               <pos>275,3</pos>
               <size>10,21</size>
             </object>
@@ -79,7 +79,7 @@
                   <flag>wxTOP|wxFIXED_MINSIZE</flag>
                   <border>4</border>
                   <option>0</option>
-                  <object class="wxPanel" name="infoIcon" subclass="Tribler.vwxGUI.bgPanel.ImagePanel">
+                  <object class="wxPanel" name="infoIcon" subclass="vwxGUI.bgPanel.ImagePanel">
                     <tooltip>Tribler is a special network on top of the overall network.\nThese figures shows the top 10 uploaders within the Tribler network.</tooltip>
                     <pos>10,14</pos>
                     <size>8,8</size>
@@ -253,7 +253,7 @@
         <flag>wxEXPAND|wxFIXED_MINSIZE</flag>
         <border>3</border>
         <option>0</option>
-        <object class="wxPanel" name="white_bottom" subclass="Tribler.vwxGUI.bgPanel.bgPanel">
+        <object class="wxPanel" name="white_bottom" subclass="vwxGUI.bgPanel.bgPanel">
           <pos>0,221</pos>
           <size>300,5</size>
         </object>

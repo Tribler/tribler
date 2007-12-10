@@ -27,7 +27,7 @@ def make_filename(config_dir, filename):
     if config_dir is None:
         return filename
     else:
-        return os.path.join(config_dir,filename)    
+        return os.path.join(config_dir,'..', 'Category', filename)    
 
 class Category (FlaglessDelayedEventHandler):
     

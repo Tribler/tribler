@@ -12,7 +12,7 @@ def changeFile(filename):
     
     # Define all used custom classes here and the related wxPython classes. They will be replaced by the regexp.
     # (customClassName, wxClassName, filename for import)
-    customDir = 'Tribler.vwxGUI.'
+    customDir = 'vwxGUI.'
     customClasses = [('bgPanel', 'wxPanel', customDir+'bgPanel'), 
                      ('ImagePanel', 'wxPanel', customDir+'bgPanel'),
                      ('tribler_topButton', 'wxPanel', customDir+'tribler_topButton'),                     
