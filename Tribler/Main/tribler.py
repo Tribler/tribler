@@ -1032,7 +1032,11 @@ def run(params = None):
         ClientPassParam(params[0])
         #print "[StartUpDebug]---------------- 2", time()-start_time
     else:
-        abcpath = os.path.abspath(os.path.dirname(sys.argv[0]))
+        arg0 = sys.argv[0].lower()
+        if arg0.endswith('.exe'):
+            abcpath = os.path.abspath(os.path.dirname(sys.argv[0]))
+        else:
+            abcpath = os.getcwd()  
         # Arno: don't chdir to allow testing as other user from other dir.
         #os.chdir(abcpath)
 

@@ -57,6 +57,7 @@ class Session(SessionRuntimeConfig):
         if scfg is None: # If no override
             try:
                 # Then try to read from default location
+                state_dir = Session.get_default_state_dir()
                 scfg = self.load_pstate_sessconfig(state_dir)
             except:
                 # If that fails, create a fresh config with factory defaults
