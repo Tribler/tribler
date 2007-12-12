@@ -100,7 +100,6 @@ class DownloaderFeedback:
                 a['dtotal'] = dl.measure.get_total()
                 a['completed'] = 1.0
                 a['speed'] = None
-                a['unauth_permid'] = None
 
                 l.append(a)
 

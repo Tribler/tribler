@@ -226,3 +226,31 @@ class DownloadState(Serializable):
             return []
         else:
             return self.logmsgs
+
+    def get_peerlist(self):
+        """ Returns a list of dictionaries, one for each connected peer
+        containing the statistics for that peer. In particular, the
+        dictionary contains the keys:
+        <pre>
+        'id' = PeerID or 'http seed'
+        'ip' = IP address as string or URL of httpseed
+        'optimistic' = True/False
+        'direction' = 'L'/'R' (outgoing/incoming)
+        'uprate' = Upload rate in KB/s
+        'uinterested' = Upload Interested: True/False
+        'uchoked' = Upload Choked: True/False
+        'downrate' = Download rate in KB/s
+        'dinterested' = Download interested: True/Flase
+        'dchoked' = Download choked: True/False
+        'snubbed' = Download snubbed: True/False
+        'utotal' = Total uploaded from peer in KB
+        'dtotal' = Total downloaded from peer in KB
+        'completed' = Fraction of download completed by peer (0-1.0) 
+        'speed' = The peer's current total download speed (estimated)
+        </pre>
+        """
+        if self.stats is None or 'spew' not in self.stats:
+            return []
+        else:
+            return self.stats['spew']
+
