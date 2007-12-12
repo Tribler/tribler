@@ -171,8 +171,9 @@ class PingUploadLimitation(UploadLimitation):
         UploadLimitation.__init__(self, session, ratemanager)
         
     def upload_speed_callback(self, speed):
-        
+        pass
+    
     def ping(self):
-        
+        pass
           
         

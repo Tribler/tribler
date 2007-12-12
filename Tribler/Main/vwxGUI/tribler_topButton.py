@@ -66,15 +66,10 @@ class tribler_topButton(wx.Panel):
         self.mouseOver = False
                 
         # get the image directory
-        abcpath = self.utility.getPath()
-        self.imagedir = os.path.join(abcpath, 'vwxGUI', 'images')
+        self.imagedir = os.path.join(self.guiUtility.vwxGUI_path, 'images')
+       
         if not os.path.isdir(self.imagedir):
-            olddir = self.imagedir
-            # Started app.py in vwxDir?
-            self.imagedir = os.path.join(abcpath, 'images')
-            
-        if not os.path.isdir(self.imagedir):
-            print 'Error: no image directory found in %s and %s' % (olddir, self.imagedir)
+            print 'Error: no image directory found in %s' % self.imagedir
             return
         
         # find a file with same name as this panel
@@ -292,7 +287,7 @@ class SwitchButton(tribler_topButton):
                 
         # get the image directory
         abcpath = self.utility.getPath()
-        self.imagedir = os.path.join(abcpath, 'vwxGUI', 'images')
+        self.imagedir = os.path.join(self.guiUtility.vwxGUI_path, 'images')
         if not os.path.isdir(self.imagedir):
             olddir = self.imagedir
             # Started app.py in vwxDir?

@@ -1,6 +1,7 @@
 import wx, os, sys
 import wx.xrc as xrc
 
+
 DEBUG = False
 
 class ImagePanelBasic(wx.Panel):
@@ -10,6 +11,9 @@ class ImagePanelBasic(wx.Panel):
             
     def __init__(self, tile, *args, **kw):
         self.backgroundColour = wx.Colour(102,102,102)
+        from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+
+        self.guiUtility = GUIUtility.getInstance()
         self.xpos = self.ypos = 0
         self.tile = tile
         self.bitmap = None
@@ -55,14 +59,10 @@ class ImagePanelBasic(wx.Panel):
         self.bitmap = None
         
         # get the image directory
-        abcpath = os.path.abspath(os.path.dirname(sys.argv[0]))
-        self.imagedir = os.path.join(abcpath, 'vwxGUI', 'images')
+        self.imagedir = os.path.join(self.guiUtility.vwxGUI_path, 'images')
+
         if not os.path.isdir(self.imagedir):
-            olddir = self.imagedir
-            # Started app.py in vwxDir?
-            self.imagedir = os.path.join(abcpath, 'images')
-        if not os.path.isdir(self.imagedir):
-            print '[bgPanel] Error: no image directory found in %s and %s' % (olddir, self.imagedir)
+            print '[bgPanel] Error: no image directory found in %s' % self.imagedir
             return
         
         # find a file with same name as this panel

@@ -1,5 +1,6 @@
 import wx, os, sys
 import wx.xrc as xrc
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
 class standardStatus(wx.Panel):
     """
@@ -23,6 +24,7 @@ class standardStatus(wx.Panel):
     
     def _PostInit(self):
         # Do all init here
+        self.guiUtility = GUIUtility.getInstance()
         self.searchBitmap()
         self.createBackgroundImage()
         
@@ -35,12 +37,8 @@ class standardStatus(wx.Panel):
         self.bitmap = None
         
         # get the image directory
-        abcpath = os.path.abspath(os.path.dirname(sys.argv[0]))
-        self.imagedir = os.path.join(abcpath, 'vwxGUI', 'images')
-        if not os.path.isdir(self.imagedir):
-            olddir = self.imagedir
-            # Started app.py in vwxDir?
-            self.imagedir = os.path.join(abcpath, 'images')
+        self.imagedir = os.path.join(self.guiUtility.vwxGUI_path, 'images')
+      
         if not os.path.isdir(self.imagedir):
             print '[standardStatus] Error: no image directory found in %s and %s' % (olddir, self.imagedir)
             return

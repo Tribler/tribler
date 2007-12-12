@@ -1,5 +1,5 @@
 
-import wx, time, random
+import wx, time, random, os
 from wx import xrc
 from traceback import print_exc,print_stack
 from threading import Event
@@ -35,6 +35,7 @@ class GUIUtility:
         
         self.xrcResource = None
         self.utility = utility
+        self.vwxGUI_path = os.path.join(utility.abcpath, 'Tribler', 'Main', 'vwxGUI')
         self.utility.guiUtility = self
         self.params = params
         self.frame = None

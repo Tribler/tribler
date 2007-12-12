@@ -232,7 +232,7 @@ def getHeartBitmap(rank):
                 
 def set_tasteheart_bitmaps(syspath):
     global BITMAPS
-    imagedir = os.path.join(syspath, 'vwxGUI', 'images')
+    imagedir = os.path.join(syspath, 'Tribler', 'Main', 'vwxGUI', 'images')
     for i in xrange(NUM_HEARTS):
         filename = os.path.join(imagedir, 'heart%d.png' % (i+1))
         if os.path.isfile(filename):
