@@ -399,10 +399,10 @@ def get_bitrate_from_metainfo(file,metainfo):
         try:
             playtime = None
             if info.has_key('playtime'):
-                print >>sys.stderr,"TorrentDef: get_bitrate: Bitrate in info field"
+                #print >>sys.stderr,"TorrentDef: get_bitrate: Bitrate in info field"
                 playtime = parse_playtime_to_secs(info['playtime'])
             elif 'playtime' in metainfo: # HACK: encode playtime in non-info part of existing torrent
-                print >>sys.stderr,"TorrentDef: get_bitrate: Bitrate in metainfo"
+                #print >>sys.stderr,"TorrentDef: get_bitrate: Bitrate in metainfo"
                 playtime = parse_playtime_to_secs(metainfo['playtime'])
             elif 'azureus_properties' in metainfo:
                 azprop = metainfo['azureus_properties']
@@ -410,9 +410,11 @@ def get_bitrate_from_metainfo(file,metainfo):
                     content = metainfo['azureus_properties']['Content']
                     if 'Speed Bps' in content:
                         bitrate = float(content['Speed Bps'])
-                        print >>sys.stderr,"TorrentDef: get_bitrate: Bitrate in Azureus metainfo",bitrate
+                        #print >>sys.stderr,"TorrentDef: get_bitrate: Bitrate in Azureus metainfo",bitrate
             if playtime is not None:
                 bitrate = info['length']/playtime
+                if DEBUG:
+                    print >>sys.stderr,"TorrentDef: get_bitrate: Found bitrate",bitrate
         except:
             print_exc()
 
