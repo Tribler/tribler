@@ -7,7 +7,6 @@ from Tribler.Main.vwxGUI.FriendsItemPanel import FriendsItemPanel
 from Tribler.Main.vwxGUI.ColumnHeader import ColumnHeaderBar
 from Tribler.Main.vwxGUI.SubscriptionsItemPanel import SubscriptionsItemPanel
 from Tribler.Main.Dialogs.GUIServer import GUIServer
-from Tribler.Main.Dialogs.MugshotManager import MugshotManager
 from Tribler.Core.CacheDB.CacheDBHandler import SuperPeerDBHandler
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 
@@ -17,7 +16,7 @@ from traceback import print_exc,print_stack
 import wx.xrc as xrc
 import web2
 
-DEBUG = False
+DEBUG = True
 DEBUG_DOD = False
         
 class standardGrid(wx.Panel):
@@ -64,7 +63,6 @@ class standardGrid(wx.Panel):
             
         
         self.guiserver = GUIServer.getInstance()
-        self.mm = MugshotManager.getInstance()
         self.superpeer_db = SuperPeerDBHandler.getInstance()
         self.torrentfeed = TorrentFeedThread.getInstance()
         
@@ -188,7 +186,7 @@ class standardGrid(wx.Panel):
             #datalength = len(dataList)
         
         if type(dataList) == list or dataList is None:
-            #print 'grid.setData: list'
+            print 'grid.setData: list'
             self.data = dataList
             
         elif dataList.isDod():
@@ -298,6 +296,8 @@ class standardGrid(wx.Panel):
         raise NotImplementedError('Method getSubPanel should be subclassed')
 
     def setDataOfPanel(self, panelNumber, data):
+        if DEBUG:
+            print 'Set data of panel %d with data: %s' % (panelNumber, data)
         try:
             if self.orientation == 'vertical':
                 hSizer = self.vSizer.GetItem(panelNumber%self.currentRows+1).GetSizer()

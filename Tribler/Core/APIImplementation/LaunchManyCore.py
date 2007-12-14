@@ -112,6 +112,7 @@ class TriblerLaunchMany(Thread):
             if config['nickname'] == '__default_name__':
                 config['nickname']  = socket.gethostname()
                 
+            print 'state_dir: %s' % config['state_dir']
             cachedb.init(config['state_dir'], self.rawserver_fatalerrorfunc)
 
             self.peer_db        = PeerDBHandler.getInstance(config)

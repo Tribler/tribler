@@ -12,6 +12,7 @@ from Tribler.Main.vwxGUI.bgPanel import ImagePanel
 from safeguiupdate import FlaglessDelayedInvocation
 from Tribler.Core.Utilities.unicode import *
 from Tribler.Main.Utility.utility import getMetainfo
+from Tribler.Main.vwxGUI.IconsManager import IconsManager
 from copy import deepcopy
 import cStringIO
 import TasteHeart
@@ -65,6 +66,7 @@ class FilesItemPanel(wx.Panel):
         self.guiserver = parent.guiserver
         self.metadatahandler = MetadataHandler.getInstance()
         self.addComponents()
+        self.iconsManager = IconsManager.get_instance()
         self.Show()
         self.Refresh()
         self.Layout()
@@ -479,7 +481,7 @@ class FilesItemPanel(wx.Panel):
         else:
             source = ''
             
-        si = self.parent.mm.getSourceIcon(source)
+        si = self.iconsManager.getSourceIcon(source)
         if self.listItem:
             self.sourceIcon.setBitmap(si)
             self.sourceIcon.Show()
@@ -523,7 +525,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         self.border = None
         self.downloading = False
         self.categoryIcon = None
-        self.mm = self.GetParent().parent.mm
+        self.iconsManager = IconsManager.get_instance()
 
     
     def setTorrent(self, torrent):
@@ -545,7 +547,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
     def setCategoryIcon(self, torrent):
         
         #print >>sys.stderr,"fip: ",`torrent['content_name']`,"has cat",torrent.get('category')
-        self.categoryIcon = self.mm.getCategoryIcon(self.mode, torrent.get('category'), thumbtype='icon', web2 = torrent.get('web2'))
+        self.categoryIcon = self.iconsManager.getCategoryIcon(self.mode, torrent.get('category'), thumbtype='icon', web2 = torrent.get('web2'))
     
     def setSourceIcon(self, si):
         self.sourceIcon = si
@@ -559,7 +561,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         bmp = None
         readable = torrent.get('metadata',{}).get('ThumbReadable')
         if readable == False:
-            bmp = self.mm.getCategoryIcon(self.mode,torrent.get('category'), thumbtype=thumbtype, web2 = torrent.get('web2'))
+            bmp = self.iconsManager.getCategoryIcon(self.mode,torrent.get('category'), thumbtype=thumbtype, web2 = torrent.get('web2'))
         
         else:        
             # Check if we have already read the thumbnail and metadata information from this torrent file
@@ -592,7 +594,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                 # of the ThumbnailViewer object is gone. But we should clean this up. 
             
         if not bmp:
-            bmp = self.mm.getCategoryIcon(self.mode, torrent.get('category'), thumbtype=thumbtype, web2 = torrent.get('web2'))
+            bmp = self.iconsManager.getCategoryIcon(self.mode, torrent.get('category'), thumbtype=thumbtype, web2 = torrent.get('web2'))
         
         assert bmp, 'No bitmap found for %s' % `torrent['content_name']`
         self.setBitmap(bmp)
@@ -744,11 +746,11 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             
         if self.mouseOver:
             dc.SetFont(wx.Font(6, FONTFAMILY,FONTWEIGHT, wx.BOLD, True, FONTFACE))
-            mask = self.mm.get_default('filesMode','MASK_BITMAP')
+            mask = self.iconsManager.get_default('filesMode','MASK_BITMAP')
             dc.DrawBitmap(mask,0 ,0, True)
         
         if heartBitmap:
-            mask = self.mm.get_default('filesMode','MASK_BITMAP_BOTTOM')
+            mask = self.iconsManager.get_default('filesMode','MASK_BITMAP_BOTTOM')
             margin = 52
             dc.DrawBitmap(mask,0 ,margin, True)
             dc.DrawBitmap(heartBitmap,5 ,margin+2, True)

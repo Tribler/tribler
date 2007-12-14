@@ -9,7 +9,7 @@ from traceback import print_exc
 from Tribler.Core.CacheDB.CacheDBHandler import FriendDBHandler
 from Tribler.Core.Utilities.utilities import show_permid_short
 #from managefriends import createImageList
-from Tribler.Main.Dialogs.MugshotManager import MugshotManager
+from Tribler.Core.CacheDB.MugshotManager import MugshotManager
 from Tribler.Core.Utilities.utilities import show_permid_shorter
 
 DEBUG = 0

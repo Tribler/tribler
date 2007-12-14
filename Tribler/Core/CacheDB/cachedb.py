@@ -155,6 +155,7 @@ def init(config_dir, db_exception_handler = None):
     PreferenceDB.getInstance(home_dir)
     MyPreferenceDB.getInstance(home_dir)
     OwnerDB.getInstance(home_dir)
+    print 'Ready init db'
         
 def done(config_dir):
     MyPreferenceDB.getInstance().close()

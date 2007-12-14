@@ -160,7 +160,7 @@ class Session(SessionRuntimeConfig):
     # Class methods
     #
     def get_instance(*args, **kw):
-        """ Returns he Session singleton if it exists or otherwise
+        """ Returns the Session singleton if it exists or otherwise
             creates it first, in which case you need to pass the constructor 
             params. 
             @return Session."""

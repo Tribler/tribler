@@ -8,7 +8,7 @@ from traceback import print_exc
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
 
-from Tribler.Main.Dialogs.MugshotManager import ICON_MAX_SIZE
+from Tribler.Core.CacheDB.MugshotManager import ICON_MAX_SIZE
 from Tribler.Core.Utilities.utilities import *
 
 DEBUG = False

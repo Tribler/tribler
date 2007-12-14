@@ -345,7 +345,8 @@ class ABCFrame(wx.Frame, DelayedInvocation):
 
     def startAPI(self):
         sscfg = SessionStartupConfig()
-        sscfg.set_install_dir(os.path.abspath(os.path.dirname(sys.argv[0])))
+        sscfg.set_install_dir(self.utility.getPath())
+        #sscfg.set_state_dir('/tmp/state_dir')
         if sys.platform == 'win32':
             s = Session()
         else:

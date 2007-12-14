@@ -11,7 +11,7 @@ from font import *
 #from Tribler.Core.API import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Core.Utilities.utilities import *
-from Tribler.Main.Dialogs.MugshotManager import MugshotManager
+from Tribler.Main.vwxGUI.IconsManager import IconsManager
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 from Tribler.Main.vwxGUI.torrentManager import TorrentDataManager
 #from Tribler.vwxGUI.LibraryItemPanel import rightMouseButton
@@ -69,7 +69,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         self.utility = self.guiUtility.utility        
         self.data_manager = TorrentDataManager.getInstance(self.utility)
         #self.optionsButtonLibraryFunc = rightMouseButton.getInstance()
-        self.mm = MugshotManager.getInstance()
+        self.iconsManager = IconsManager.get_instance()
         self.mydb = MyPreferenceDBHandler.getInstance()                    
         self.metadatahandler = MetadataHandler.getInstance()
         self.mode = None
@@ -596,7 +596,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 #                    guiserver = GUIServer.getInstance()
 #                    guiserver.add_task(lambda:self.loadMetadata(item),0)
                 if not bmp:
-                    bmp = self.mm.get_default('personsMode','DEFAULT_THUMB')
+                    bmp = self.iconsManager.get_default('personsMode','DEFAULT_THUMB')
                 
                 thumbField = self.getGuiObj("thumbField")
                 thumbField.setBitmap(bmp)
@@ -639,8 +639,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 
                 if item.get('friend') is not None:
                     if item['friend']:
-                        isfriend = self.mm.get_default('personsMode','ISFRIEND_BITMAP')
-                        isfriend_clicked = self.mm.get_default('personsMode','ISFRIEND_CLICKED_BITMAP')
+                        isfriend = self.iconsManager.get_default('personsMode','ISFRIEND_BITMAP')
+                        isfriend_clicked = self.iconsManager.get_default('personsMode','ISFRIEND_CLICKED_BITMAP')
                         self.getGuiObj('addAsFriend').switchTo(isfriend,isfriend_clicked)
                     else:
                         self.getGuiObj('addAsFriend').switchBack()
@@ -667,8 +667,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
                 if addAsFriend.initDone:
                     if item.get('friend') is not None:
                         if item['friend']:
-                            isfriend = self.mm.get_default('personsMode','ISFRIEND_BITMAP')
-                            isfriend_clicked = self.mm.get_default('personsMode','ISFRIEND_CLICKED_BITMAP')
+                            isfriend = self.iconsManager.get_default('personsMode','ISFRIEND_BITMAP')
+                            isfriend_clicked = self.iconsManager.get_default('personsMode','ISFRIEND_CLICKED_BITMAP')
                             addAsFriend.switchTo(isfriend,isfriend_clicked)
                         else:
                             addAsFriend.switchBack()
@@ -987,11 +987,11 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
         downloadButton = self.getGuiObj('download', tab = tab)
         if downloadButton:
             if torrent.get('myDownloadHistory', False):
-                bitmap, bitmap2 = self.mm.getDownloadButton('library')
+                bitmap, bitmap2 = self.iconsManager.getDownloadButton('library')
             elif torrent.get('web2'):
-                bitmap, bitmap2 = self.mm.getDownloadButton('play')
+                bitmap, bitmap2 = self.iconsManager.getDownloadButton('play')
             else:
-                bitmap, bitmap2 = self.mm.getDownloadButton('download')
+                bitmap, bitmap2 = self.iconsManager.getDownloadButton('download')
             downloadButton.setBitmaps(bitmap, bitmap2)
                  
     def getGuiObj(self, obj_name, tab=None, mode=None):
@@ -1508,7 +1508,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             if False:
                 pass
             else:
-                default = self.mm.get_default('personsMode','DEFAULT_THUMB')
+                default = self.iconsManager.get_default('personsMode','DEFAULT_THUMB')
                 thumbPanel.setBitmap(default)
                 
     def addAsFriend(self):
@@ -1619,7 +1619,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
     def getThumbnailLarge(self,torrent,thumbPanel):
         readable = torrent.get('metadata',{}).get('ThumbReadable')
         if readable == False:
-            default = self.mm.getCategoryIcon('filesMode',torrent.get('category'), 'large')
+            default = self.iconsManager.getCategoryIcon('filesMode',torrent.get('category'), 'large')
             thumbPanel.setBitmap(default)
             return
 
@@ -1667,7 +1667,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
             
             #print "****** torrent", torrent
             
-            default = self.mm.getCategoryIcon('filesMode',torrent.get('category','all'), 'large')
+            default = self.iconsManager.getCategoryIcon('filesMode',torrent.get('category','all'), 'large')
             thumbPanel.setBitmap(default)
 
     def refreshStandardDetailsHeight(self, panel = None):

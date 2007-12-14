@@ -7,7 +7,9 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.bgPanel import ImagePanel
 from safeguiupdate import FlaglessDelayedInvocation
 from Tribler.Core.Utilities.unicode import *
+from Tribler.Core.CacheDB.CacheDBHandler import PeerDBHandler
 from Tribler.Main.vwxGUI.filesItemPanel import getResizedBitmapFromImage
+from Tribler.Main.vwxGUI.IconsManager import IconsManager
 from font import *
 import cStringIO
 import TasteHeart
@@ -48,7 +50,6 @@ class PersonsItemPanel(wx.Panel):
         self.warningMode = False
         self.oldCategoryLabel = None
         self.guiserver = parent.guiserver
-        self.mm = parent.mm
         self.selected = False
         self.superpeer_db = parent.superpeer_db
         self.keyTypedFun = keyTypedFun
@@ -449,8 +450,8 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         self.border = None
         #create the heart
         #I will use TasteHeart.BITMAPS to paint the right one
-
-        self.mm = self.GetParent().parent.mm
+        self.peer_db = PeerDBHandler.getInstance()
+        self.iconsManager = IconsManager.get_instance()
         self.superpeer_db = self.GetParent().parent.superpeer_db
     
     def setData(self, data):
@@ -475,7 +476,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             else:
                 defThumb = 'DEFAULT_THUMB'
                 
-            bmp_default = self.mm.get_default('personsMode',defThumb)
+            bmp_default = self.iconsManager.get_default('personsMode',defThumb)
             # Check if we have already read the thumbnail and metadata information from this torrent file
             if data.get('metadata'):
                 bmp = data['metadata'].get('ThumbnailBitmap')
@@ -522,7 +523,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             
         # We can't do any wx stuff here apparently, so the only thing we can do is to
         # read the data from the file and create the wxBitmap in the GUI callback.
-        [mimetype,bmpdata] = self.mm.load_data(data['permid'],data['name'])
+        [mimetype,bmpdata] = self.peer_db.getPeerIcon(data['permid'],data['name'])
         #print "PersonsItemPanel: ThumbnailViewer: loadMetadata: Got",show_permid_short(permid),mimetype
 
         self.invokeLater(self.metadata_thread_gui_callback,[data,mimetype,bmpdata,type])
@@ -533,7 +534,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         metadata = {}
         metadata['triend_time'] = time()+(random.random()*100)
         if mimetype is not None:
-            metadata['ThumbnailBitmap'] = self.mm.data2wxBitmap(mimetype,bmpdata)
+            metadata['ThumbnailBitmap'] = self.peer_db.mm.data2wxBitmap(mimetype,bmpdata)
         else:
             superpeers = self.superpeer_db.getSuperPeers()
             
@@ -544,7 +545,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                     print >>sys.stderr,"pip: Comparing to superpeer",show_permid_short(speer)
             """
             if data['permid'] in superpeers:
-                bm = self.mm.get_default('personsMode','SUPERPEER_BITMAP')
+                bm = self.iconsManager.get_default('personsMode','SUPERPEER_BITMAP')
                 metadata['ThumbnailBitmap'] = bm
             else:
                 metadata['ThumbnailBitmap'] = None
@@ -626,7 +627,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             #because of the fact that hearts are coded so that lower index means higher ranking, then:
             heartBitmap = TasteHeart.getHeartBitmap(rank)
             if self.mouseOver:
-                mask = self.mm.get_default('personsMode','MASK_BITMAP_CLEAN')
+                mask = self.iconsManager.get_default('personsMode','MASK_BITMAP_CLEAN')
                 y_pos = 0
                 m_height = mask.GetSize()[1]
                 y_height = self.GetSize()[1]
@@ -634,7 +635,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                     dc.DrawBitmap(mask,0 ,y_pos, True)
                     y_pos = y_pos + m_height
             if heartBitmap or self.data.get('friend') or self.data.get('online'):
-                mask = self.mm.get_default('personsMode','MASK_BITMAP')
+                mask = self.iconsManager.get_default('personsMode','MASK_BITMAP')
                 dc.DrawBitmap(mask,0 ,62, True)
             if heartBitmap:
                 dc.DrawBitmap(heartBitmap,5 ,64, True)
@@ -643,9 +644,9 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
                 dc.DrawText(text, 22, 66)
             if self.data.get('friend'):
                 if self.data.get('online'):
-                    friend = self.mm.get_default('personsMode','FRIEND_ONLINE_BITMAP')
+                    friend = self.iconsManager.get_default('personsMode','FRIEND_ONLINE_BITMAP')
                 else:
-                    friend = self.mm.get_default('personsMode','FRIEND_OFFLINE_BITMAP')
+                    friend = self.iconsManager.get_default('personsMode','FRIEND_OFFLINE_BITMAP')
                 dc.DrawBitmap(friend,60 ,65, True)   
             elif self.data.get('online'):         
                 dc.SetFont(wx.Font(FS_ONLINE,FONTFAMILY,FONTWEIGHT, wx.BOLD, False,FONTFACE))
