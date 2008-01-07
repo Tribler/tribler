@@ -486,10 +486,6 @@ class Connecter:
             self.ut_pex_enabled = self.ut_pex_max_addrs_from_peer > 0
         self.ut_pex_previous_conns = [] # last value of 'added' field for all peers
             
-            
-            
-        self.ut_pex_enabled = 0 # TEMP
-            
         if DEBUG:
             if self.ut_pex_enabled:
                 print >>sys.stderr,"connecter: Enabling uTorrent PEX",self.ut_pex_max_addrs_from_peer
