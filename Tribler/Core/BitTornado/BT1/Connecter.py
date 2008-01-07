@@ -335,14 +335,7 @@ class Connection:
             if key in d:
                 self.extend_hs_dict[key] = d[key]
 
-    def extend_msg_id_to_name(self,ext_id):
-        """ find the name for the given message id (byte) """
-        for key,val in self.extend_hs_dict['m'].iteritems():
-            if val == ord(ext_id):
-                return key
-        return None
-    
-    def extend_msg_name_to_id(self,ext_name):
+    def his_extend_msg_name_to_id(self,ext_name):
         """ returns the message id (byte) for the given message name or None """
         val = self.extend_hs_dict['m'].get(ext_name)
         if val is None:
@@ -388,7 +381,7 @@ class Connection:
             print >>sys.stderr,'connecter: sent extend: id=0+',d
 
     def send_extend_ut_pex(self,payload):
-        msg = EXTEND+self.extend_msg_name_to_id(EXTEND_MSG_UTORRENT_PEX)+payload
+        msg = EXTEND+self.his_extend_msg_name_to_id(EXTEND_MSG_UTORRENT_PEX)+payload
         self._send_message(msg)
 
             
@@ -416,7 +409,8 @@ class Connection:
             print >>sys.stderr,"connecter: peer",dns,"said he supported overlay swarm, but we can't connect to him",exc
 
     def send_g2g_piece_xfer(self,index,begin,piece):
-        self._send_message(G2G_PIECE_XFER + tobinary(index) + tobinary(begin) + tobinary(len(piece)))
+        self._send_message(self.his_extend_msg_name_to_id(EXTEND_MSG_G2G) + tobinary(index) + tobinary(begin) + tobinary(len(piece)))
+
 
     def got_g2g_piece_xfer(self,index,begin,length):
         self.g2g_peer_forwarded_piece_part( self, index, begin, length )
@@ -492,6 +486,10 @@ class Connecter:
             self.ut_pex_enabled = self.ut_pex_max_addrs_from_peer > 0
         self.ut_pex_previous_conns = [] # last value of 'added' field for all peers
             
+            
+            
+        self.ut_pex_enabled = 0 # TEMP
+            
         if DEBUG:
             if self.ut_pex_enabled:
                 print >>sys.stderr,"connecter: Enabling uTorrent PEX",self.ut_pex_max_addrs_from_peer
@@ -545,7 +543,7 @@ class Connecter:
                 if DEBUG:
                     print >>sys.stderr,"connecter: Peer is previous Tribler version, attempt overlay connection"
                 c.connect_overlay()
-            else:
+            elif self.ut_pex_enabled:
                 # EXTEND handshake must be sent just after BT handshake, 
                 # before BITFIELD even
                 c.send_extend_handshake()
@@ -617,6 +615,13 @@ class Connecter:
     def got_piece(self, i):
         for co in self.connections.values():
             co.send_have(i)
+
+    def our_extend_msg_id_to_name(self,ext_id):
+        """ find the name for the given message id (byte) """
+        for key,val in self.EXTEND_HANDSHAKE_M_DICT.iteritems():
+            if val == ord(ext_id):
+                return key
+        return None
 
     def get_ut_pex_conns(self):
         conns = []
@@ -858,7 +863,7 @@ class Connecter:
                     connection.close()
                     return
             else:
-                ext_msg_name = c.extend_msg_id_to_name(ext_id)
+                ext_msg_name = self.our_extend_msg_id_to_name(ext_id)
                 if ext_msg_name is None:
                     if DEBUG:
                         print >>sys.stderr,"Close on bad EXTEND: peer sent ID it didn't define in handshake"

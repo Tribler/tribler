@@ -14,7 +14,6 @@ from tempfile import mkstemp
 from threading import currentThread,Event
 from traceback import print_stack,print_exc
 from Progress import ProgressBar
-from Tribler.Main.vwxGUI.tribler_topButton import *
 
 
 

@@ -115,6 +115,8 @@ class PlayerApp(wx.App):
                 raise ValueError("Torrent contains multiple video files, pick manually")
             print >>sys.stderr,"main: Found video file",videofiles
             
+            print >>sys.stderr,"main: infohash is",`self.tdef.get_infohash()`
+            
             dcfg = DownloadStartupConfig()
             dcfg.set_video_start_callback(self.vod_ready_callback)
             dcfg.set_selected_files(videofiles)
@@ -199,6 +201,11 @@ class PlayerApp(wx.App):
             msg = "Waiting for sufficient download speed... "+intime
         self.videoFrame.set_player_status(msg)
         
+        if False: # Only works if the current method returns (x,True)
+            peerlist = ds.get_peerlist()
+            print >>sys.stderr,"main: Connected to",len(peerlist),"peers"
+            for peer in peerlist:
+                print >>sys.stderr,"main: Connected to",peer['ip'],peer['completed']
         
         return (1.0,False)
     

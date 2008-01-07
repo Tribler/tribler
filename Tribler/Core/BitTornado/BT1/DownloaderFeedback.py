@@ -62,7 +62,7 @@ class DownloaderFeedback:
                 a['direction'] = 'L'
             else:
                 a['direction'] = 'R'
-            a['unauth_permid'] = c.get_unauth_permid()
+            ##a['unauth_permid'] = c.get_unauth_permid()
             u = c.get_upload()
             a['uprate'] = int(u.measure.get_rate())
             a['uinterested'] = u.is_interested()
