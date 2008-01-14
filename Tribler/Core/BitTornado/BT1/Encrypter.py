@@ -15,7 +15,7 @@ from sets import Set
 from traceback import print_exc, extract_stack, print_stack
 import sys
 from Tribler.Core.Overlay.SecureOverlay import SecureOverlay
-from Tribler.Core.BitTornado.BT1.MessageID import protocol_name,option_pattern,disabled_overlay_option_pattern
+from Tribler.Core.BitTornado.BT1.MessageID import protocol_name,option_pattern
 from Tribler.Core.BitTornado.BT1.convert import toint
 # _2fastbt
 
@@ -164,6 +164,7 @@ class Connection:
     def read_reserved(self, s):
         if DEBUG:
             print >>sys.stderr,"encoder: Reserved bits:", show(s)
+            print >>sys.stderr,"encoder: Reserved bits=", show(option_pattern)
         self.set_options(s)
         return 20, self.read_download_id
 
@@ -397,12 +398,6 @@ class Encoder:
 # 2fastbt_
         self.toofast_banned = {}
         self.coordinator_ip = None
-        if 'overlay' in self.config and self.config['overlay'] == 0:
-            # Don't say we support the overlay-swarm connection when it's not
-            # enabled.
-            global option_pattern
-            global disabled_overlay_option_pattern 
-            option_pattern = disabled_overlay_option_pattern
 # _2fastbt        
         schedulefunc(self.send_keepalives, keepalive_delay)
         

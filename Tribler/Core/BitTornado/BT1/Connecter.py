@@ -477,8 +477,12 @@ class Connecter:
         self.overlay_enabled = 0
         if self.config['overlay']:
             self.overlay_enabled = True
-            
-        print >>sys.stderr,"connecter: Enabling/Disabling overlay",self.overlay_enabled
+
+        if DEBUG:
+            if self.overlay_enabled:
+                print >>sys.stderr,"connecter: Enabling overlay" 
+            else:
+                print >>sys.stderr,"connecter: Disabling overlay"
             
         self.ut_pex_enabled = 0
         if 'ut_pex_max_addrs_from_peer' in self.config:
@@ -532,7 +536,7 @@ class Connecter:
             [client,version] = decodePeerID(connection.id)
             
             if DEBUG:
-                print >>sys.stderr,"connecter: Peer is client",client,"version",version
+                print >>sys.stderr,"connecter: Peer is client",client,"version",version,c.get_ip()
             
             if self.overlay_enabled and client == TRIBLER_PEERID_LETTER and version <= '3.5.0' and connection.locally_initiated:
                 # Old Tribler, establish overlay connection
@@ -842,6 +846,8 @@ class Connecter:
         # connection: Encrypter.Connection; c: Connecter.Connection
         if DEBUG:
             print >>sys.stderr,"connecter: Got EXTEND message, len",len(message)
+            print >>sys.stderr,"connecter: his handshake",c.extend_hs_dict,c.get_ip()
+            
         try:
             if len(message) < 4:
                 if DEBUG:

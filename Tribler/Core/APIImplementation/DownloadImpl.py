@@ -9,6 +9,7 @@ from traceback import print_exc,print_stack
 from threading import RLock,Condition,Event,Thread,currentThread
 
 from Tribler.Core.DownloadState import DownloadState
+from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.simpledefs import *
 from Tribler.Core.osutils import *
 from Tribler.Core.APIImplementation.SingleDownload import SingleDownload
