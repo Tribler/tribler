@@ -311,7 +311,7 @@ def run(params = None):
         app.MainLoop()
         
         print "Sleeping seconds to let other threads finish"
-        time.sleep(5)
+        time.sleep(2)
 
 if __name__ == '__main__':
     run()
