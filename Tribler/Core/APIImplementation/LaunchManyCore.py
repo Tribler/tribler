@@ -393,21 +393,18 @@ class TriblerLaunchMany(Thread):
 
     
     def checkpoint(self,stop=False):
-        """ Called by any thread """
-        self.sesslock.acquire()
-        try:
-            # Even if the list of Downloads changes in the mean time this is
-            # no problem. For removals, dllist will still hold a pointer to the
-            # Download, and additions are no problem (just won't be included 
-            # in list of states returned via callback.
-            #
-            dllist = self.downloads.values()
-            print >>sys.stderr,"tlm: checkpointing",len(dllist)
-            
-            network_checkpoint_callback_lambda = lambda:self.network_checkpoint_callback(dllist,stop)
-            self.rawserver.add_task(network_checkpoint_callback_lambda,0.0)
-        finally:
-            self.sesslock.release()
+        """ Called by any thread, assume sesslock already held """
+        # Even if the list of Downloads changes in the mean time this is
+        # no problem. For removals, dllist will still hold a pointer to the
+        # Download, and additions are no problem (just won't be included 
+        # in list of states returned via callback.
+        #
+        dllist = self.downloads.values()
+        print >>sys.stderr,"tlm: checkpointing",len(dllist)
+        
+        network_checkpoint_callback_lambda = lambda:self.network_checkpoint_callback(dllist,stop)
+        self.rawserver.add_task(network_checkpoint_callback_lambda,0.0)
+
         
     def network_checkpoint_callback(self,dllist,stop):
         """ Called by network thread """

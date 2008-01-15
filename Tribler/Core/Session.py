@@ -96,16 +96,24 @@ class Session(SessionRuntimeConfig):
         #
         # 1. keypair
         #
+        pairfilename = os.path.join(self.sessconfig['state_dir'],'ec.pem')
         if self.sessconfig['eckeypairfilename'] is None:
-            self.keypair = Tribler.Core.Overlay.permid.generate_keypair()
-            pairfilename = os.path.join(self.sessconfig['state_dir'],'ec.pem')
-            pubfilename = os.path.join(self.sessconfig['state_dir'],'ecpub.pem')
             self.sessconfig['eckeypairfilename'] = pairfilename
-            Tribler.Core.Overlay.permid.save_keypair(self.keypair,pairfilename)
-            Tribler.Core.Overlay.permid.save_pub_key(self.keypair,pubfilename)
-        else:
+            
+        if os.access(self.sessconfig['eckeypairfilename'],os.F_OK):
+            print >>sys.stderr,"ECKEYPAIR IS not NONE",self.sessconfig['eckeypairfilename']
+            
             # May throw exceptions
             self.keypair = Tribler.Core.Overlay.permid.read_keypair(self.sessconfig['eckeypairfilename'])
+        else:
+            print >>sys.stderr,"ECKEYPAIR IS NONE"
+            self.keypair = Tribler.Core.Overlay.permid.generate_keypair()
+
+            # Save keypair
+            pubfilename = os.path.join(self.sessconfig['state_dir'],'ecpub.pem')
+            Tribler.Core.Overlay.permid.save_keypair(self.keypair,pairfilename)
+            Tribler.Core.Overlay.permid.save_pub_key(self.keypair,pubfilename)
+
         
         # 2. Downloads persistent state dir
         dlpstatedir = os.path.join(self.sessconfig['state_dir'],STATEDIR_DLPSTATE_DIR)
@@ -144,9 +152,7 @@ class Session(SessionRuntimeConfig):
             self.sessconfig['peer_icon_path'] = os.path.join(self.sessconfig['state_dir'],STATEDIR_PEERICON_DIR)
 
         # Checkpoint startup config
-        sscfg = self.get_current_startup_config_copy()
-        self.save_pstate_sessconfig(sscfg)
-
+        self.save_pstate_sessconfig(self.sessconfig)
 
         # Create handler for calling back the user via separate threads
         self.uch = UserCallbackHandler(self.sesslock,self.sessconfig)
@@ -434,23 +440,26 @@ class Session(SessionRuntimeConfig):
         """ Checkpoints the Session and optionally shuts down the Session.
         @param stop Whether to shutdown the Session as well. """
         # Called by any thread
-        # No locking required
-        sscfg = self.get_current_startup_config_copy()
+        self.sesslock.acquire()
         try:
-            self.save_pstate_sessconfig(sscfg)
-        except Exception,e:
-            self.lm.rawserver_nonfatalerrorfunc(e)
+            try:
+                self.save_pstate_sessconfig(self.sessconfig)
+            except Exception,e:
+                self.lm.rawserver_nonfatalerrorfunc(e)
 
-        # Checkpoint all Downloads
-        print >>sys.stderr,"Session: checkpoint_shutdown"
-        self.lm.checkpoint(stop=stop)
+            # Checkpoint all Downloads
+            print >>sys.stderr,"Session: checkpoint_shutdown"
+            self.lm.checkpoint(stop=stop)
+        finally:
+            self.sesslock.release()
 
-    def save_pstate_sessconfig(self,sscfg):
+
+    def save_pstate_sessconfig(self,sessconfig):
         """ Save the runtime SessionConfig to disk """
         # Called by any thread
-        cfgfilename = os.path.join(sscfg.get_state_dir(),STATEDIR_SESSCONFIG)
+        cfgfilename = os.path.join(sessconfig['state_dir'],STATEDIR_SESSCONFIG)
         f = open(cfgfilename,"wb")
-        pickle.dump(sscfg,f)
+        pickle.dump(sessconfig,f)
         f.close()
 
 

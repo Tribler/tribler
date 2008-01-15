@@ -80,6 +80,11 @@ class SessionConfigInterface:
     def set_permid_keypair_filename(self,keypairfilename):
         """ Set the filename containing the Elliptic Curve keypair to use for 
         PermID-based authentication in this Session. 
+        
+        Note: if a Session is started with a SessionStartupConfig that
+        points to an existing state dir and that state dir contains a saved
+        keypair, that keypair will be used unless a different keypair is
+        explicitly configured via this method.
         """
         self.sessconfig['eckeypairfilename'] = keypairfilename
 
