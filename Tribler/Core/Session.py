@@ -101,12 +101,9 @@ class Session(SessionRuntimeConfig):
             self.sessconfig['eckeypairfilename'] = pairfilename
             
         if os.access(self.sessconfig['eckeypairfilename'],os.F_OK):
-            print >>sys.stderr,"ECKEYPAIR IS not NONE",self.sessconfig['eckeypairfilename']
-            
             # May throw exceptions
             self.keypair = Tribler.Core.Overlay.permid.read_keypair(self.sessconfig['eckeypairfilename'])
         else:
-            print >>sys.stderr,"ECKEYPAIR IS NONE"
             self.keypair = Tribler.Core.Overlay.permid.generate_keypair()
 
             # Save keypair
