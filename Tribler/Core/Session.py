@@ -345,12 +345,23 @@ class Session(SessionRuntimeConfig):
         tracker. 
         @param tdef A finalized TorrentDef.
         """
+        infohash = tdef.get_infohash()
+        self.remove_from_internal_tracker_by_infohash(infohash)
+        
+    def remove_from_internal_tracker_by_infohash(self,infohash):
+        """ Remove a torrent def from the list of torrents tracked by the 
+        internal tracker. Use this method to use the Session as a standalone 
+        tracker. 
+        @param infohash Identifier of the torrent def to remove.
+        """
         # Called by any thread
         self.sesslock.acquire()
         try:
-            infohash = tdef.get_infohash()
+            if DEBUG:
+                print >>sys.stderr,"Session: removing itracker entry",filename
             filename = self.get_internal_tracker_torrentfilename(infohash)
-            os.remove(filename)
+            if os.access(filename,os.F_OK):
+                os.remove(filename)
             # Bring to attention of Tracker thread
             self.lm.tracker_rescan_dir()
         finally:

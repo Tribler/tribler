@@ -84,19 +84,14 @@ class UserCallbackHandler:
             self.sesslock.release()
 
         # See if torrent uses internal tracker
-        hexinfohash = binascii.hexlify(infohash)
         try:
-            basename = hexinfohash+'.torrent'
-            filename = os.path.join(trackerdir,basename)
-            if DEBUG:
-                print >>sys.stderr,"Session: sesscb_removestate: removing itracker entry",filename
-            if os.access(filename,os.F_OK):
-                os.remove(filename)
+            self.session.remove_from_internal_tracker_by_infohash(infohash)
         except:
             # Show must go on
             print_exc()
 
         # Remove checkpoint
+        hexinfohash = binascii.hexlify(infohash)
         try:
             basename = hexinfohash+'.pickle'
             filename = os.path.join(dlpstatedir,basename)

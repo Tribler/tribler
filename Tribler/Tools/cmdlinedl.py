@@ -5,11 +5,7 @@ import tempfile
 import random
 from traceback import print_exc
 
-from Tribler.Core.simpledefs import *
-from Tribler.Core.Session import *
-from Tribler.Core.SessionConfig import *
-from Tribler.Core.DownloadConfig import *
-from Tribler.Core.TorrentDef import *
+from Tribler.Core.API import *
 
 def state_callback(ds):
     d = ds.get_download()

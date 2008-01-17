@@ -28,12 +28,7 @@ import wx
 from wx import xrc
 #import hotshot
 
-from Tribler.Core.simpledefs import *
-from Tribler.Core.Session import Session
-from Tribler.Core.SessionConfig import SessionStartupConfig
-from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
-
+from Tribler.Core.API import *
 
 from Tribler.Video.VideoServer import VideoHTTPServer
 from Tribler.Video.VideoPlayer import VideoPlayer, PLAYBACKMODE_INTERNAL

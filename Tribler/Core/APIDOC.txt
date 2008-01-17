@@ -107,6 +107,12 @@ To watch:
     dcfg.set_video_start_callback(vod_ready_callback)
     d = s.start_download(tdef,dcfg)
 	
+
+Simplest tracker session
+=========================
+    s = Session()
+    tdef = TorrentDef.load('/tmp/bla.torrent') # must have us as a tracker
+    s.add_to_internal_tracker(tdef)
 	
 
 Rationale
@@ -206,6 +212,7 @@ TODO:
 - Allow VOD when first part of file hashchecked? For faster start of playback
 
 - Is there a state where the file complete but not yet in order on disk?
+      Don't think so.
 
 - Reimplement selected_files with existing 'priority' field
 
@@ -217,9 +224,12 @@ TODO:
 
 
 - Move all sourcecode to a tribler dir? So we can do:
-    import Trible.Core as tribler
+    import Trible.Core.API as tribler
     s = tribler.Session()
     etc.
+
+	Arno, 2008-1-17: Done.
+	    
 
 - persistence
  
@@ -232,9 +242,11 @@ TODO:
     
 
 - Add ability to run a standalone tracker based on API
+	Arno, 2008-1-17: Done.
 
 - Test VOD quick startup with multi-file torrent. PiecePicker.am_I_complete is
   about whole file.
+  	TODO
 
 - BT1/Connecter: if 'cache' in config and config['cache']: 
 - BT1/Rerequester: if 'dialback' in self.config and self.config['dialback']: 
@@ -247,9 +259,10 @@ TODO:
       See PiecePickerVOD: self.outstanding, need to tweak further, especially
       for "wild" torrents (i.e., not supported by publisher via seeders)
 
-- TODO: determine what are fatal errors for a tracker and move to 
+- Determine what are fatal errors for a tracker and move to 
   DLSTATUS_STOPPED_ON_ERROR if they occur. Currently all tracker errors are
   put in log messages, and the download does not change status.
+  	TODO
 
 - Expose the fact that playback is about to freeze to API user, such that
   he can take action. In particular, he may want to pause the video player
@@ -266,25 +279,33 @@ TODO:
   	doesn't appear to work. See perhaps also --no-skip-frames
     and --quiet-synchro
 
+    Arno, 2008-1-17: We now go into prebuffering before we run out of
+    time.
+
 - Write unit tests for API
+	TODO
 
 - Add SingleInstance checker for p2player, i.e., revamp interconn.py to 
   make general SingleInstance checker and use it in p2player (and Main)
+  	TODO
 
 - Adjust VideoOnDemand, such that when the download speed is < bitrate, but
   a large part of the video is already in, i.e. prebuffer+20 secs (or even
   just the 20 sec prebuffer) that it already starts to play, hoping we'll
   catch up the bitrate in that period.
+  	TODO
 
 - Make sure torrent gets removed from internal tracker when Download is 
 removed.
+	Arno, 2008-1-17: Done.
 
 - Have separate $HOME/.Tribler and $HOME/.SwarmPlayer?
-
+	Ask Jelle
 
 - Allow user seeking: i.e., allow user to set hi/mid/low priority set
 to some point in the future.
 
- - SwarmPlayer's VideoPlayer still reads old config to determine int/ext player.
-
-
+- SwarmPlayer's VideoPlayer still reads old config to determine int/ext player.
+   I hacked around it, but it needs to be cleaned up.
+   
+- Search for TEMPARNO tags to see if stuff needs fixing.
