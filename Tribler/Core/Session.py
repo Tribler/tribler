@@ -357,9 +357,9 @@ class Session(SessionRuntimeConfig):
         # Called by any thread
         self.sesslock.acquire()
         try:
+            filename = self.get_internal_tracker_torrentfilename(infohash)
             if DEBUG:
                 print >>sys.stderr,"Session: removing itracker entry",filename
-            filename = self.get_internal_tracker_torrentfilename(infohash)
             if os.access(filename,os.F_OK):
                 os.remove(filename)
             # Bring to attention of Tracker thread
