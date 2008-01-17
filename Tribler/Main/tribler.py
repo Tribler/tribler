@@ -67,7 +67,7 @@ from Tribler.Main.vwxGUI.TasteHeart import set_tasteheart_bitmaps
 from Tribler.Main.vwxGUI.perfBar import set_perfBar_bitmaps
 from Tribler.Main.Dialogs.BandwidthSelector import BandwidthSelector
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
-from Tribler.Main.Dialogs.activities import *
+from Tribler.Core.simpledefs import *
 from Tribler.Core.DecentralizedTracking import mainlineDHT
 from Tribler.Core.DecentralizedTracking.rsconvert import RawServerConverter
 from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
@@ -409,7 +409,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         # TODO: warn multiple times?
     
     def OnUpgrade(self, event=None):
-        self.setActivity(ACT_NEW_VERSION)
+        self.setActivity(NTFY_ACT_NEW_VERSION)
         guiserver = GUIServer.getInstance()
         guiserver.add_task(self.upgradeCallback,10.0)
 
@@ -709,24 +709,24 @@ class ABCFrame(wx.Frame, DelayedInvocation):
             print  >> sys.stderr,"abc: setActivity thread",currentThread().getName(),"is NOT MAIN THREAD"
             print_stack()
     
-        if type == ACT_NONE:
+        if type == NTFY_ACT_NONE:
             prefix = u''
             msg = u''
-        elif type == ACT_UPNP:
+        elif type == NTFY_ACT_UPNP:
             prefix = self.utility.lang.get('act_upnp')
-        elif type == ACT_REACHABLE:
+        elif type == NTFY_ACT_REACHABLE:
             prefix = self.utility.lang.get('act_reachable')
-        elif type == ACT_GET_EXT_IP_FROM_PEERS:
+        elif type == NTFY_ACT_GET_EXT_IP_FROM_PEERS:
             prefix = self.utility.lang.get('act_get_ext_ip_from_peers')
-        elif type == ACT_MEET:
+        elif type == NTFY_ACT_MEET:
             prefix = self.utility.lang.get('act_meet')
-        elif type == ACT_GOT_METADATA:
+        elif type == NTFY_ACT_GOT_METADATA:
             prefix = self.utility.lang.get('act_got_metadata')
-        elif type == ACT_RECOMMEND:
+        elif type == NTFY_ACT_RECOMMEND:
             prefix = self.utility.lang.get('act_recommend')
-        elif type == ACT_DISK_FULL:
+        elif type == NTFY_ACT_DISK_FULL:
             prefix = self.utility.lang.get('act_disk_full')   
-        elif type == ACT_NEW_VERSION:
+        elif type == NTFY_ACT_NEW_VERSION:
             prefix = self.utility.lang.get('act_new_version')   
         if msg == u'':
             text = prefix

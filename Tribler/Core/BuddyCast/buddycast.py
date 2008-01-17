@@ -168,7 +168,7 @@ from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import BUDDYCAST, BARTERCAST, KEEP_ALIVE
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Core.Utilities.unicode import dunno2unicode
-from Tribler.Main.Dialogs.activities import ACT_MEET, ACT_RECOMMEND
+from Tribler.Core.simpledefs import NTFY_ACT_MEET, NTFY_ACT_RECOMMEND
 from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.Core.Overlay.SecureOverlay import *
 from similarity import P2PSim, P2PSimSorted, P2PSimLM
@@ -1110,7 +1110,7 @@ class BuddyCastCore:
 
         # show activity
         buf = dunno2unicode('"'+buddycast_data['name']+'"')
-        self.launchmany.set_activity(ACT_RECOMMEND, buf)
+        self.launchmany.set_activity(NTFY_ACT_RECOMMEND, buf)
         self.data_handler.increaseBuddyCastTimes(sender_permid)
         
         if debug:
@@ -1359,7 +1359,7 @@ class BuddyCastCore:
             
             dns = self.get_peer_info(peer_permid, include_permid=False)
             buf = '%s %s'%(dns, addto)
-            self.launchmany.set_activity(ACT_MEET, buf)
+            self.launchmany.set_activity(NTFY_ACT_MEET, buf)
 
             torrents2down = self.data_handler.getPeerPrefList(peer_permid, cache=False)
             if self.torrent_collecting and torrents2down:

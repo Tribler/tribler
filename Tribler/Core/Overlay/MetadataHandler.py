@@ -13,8 +13,7 @@ from Tribler.Core.Utilities.utilities import isValidInfohash, show_permid_short,
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_FOURTH
 from Tribler.Core.Utilities.unicode import metainfoname2unicode
 from Tribler.Category.Category import Category
-# TEMPARNO: replace with Notifier stuff
-from Tribler.Main.Dialogs.activities import ACT_GOT_METADATA, ACT_DISK_FULL
+from Tribler.Core.simpledefs import *
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 from Tribler.Core.osutils import getfreespace
 
@@ -356,7 +355,7 @@ class MetadataHandler:
                 self.recently_collected_torrents.append(torrent_hash)
             
             # Arno: show activity
-            self.launchmany.set_activity(ACT_GOT_METADATA,unicode('"'+torrent_info['name']+'"'))
+            self.launchmany.set_activity(NTFY_ACT_GOT_METADATA,unicode('"'+torrent_info['name']+'"'))
         
     def set_overflow(self, max_num_torrent):
         self.max_num_torrents = self.init_max_num_torrents = max_num_torrent
@@ -607,7 +606,7 @@ class MetadataHandler:
         drive,dir = os.path.splitdrive(os.path.abspath(self.torrent_dir))
         if not drive:
             drive = dir
-        self.launchmany.set_activity(ACT_DISK_FULL, drive)
+        self.launchmany.set_activity(NTFY_ACT_DISK_FULL, drive)
         
     def get_free_space(self):
         if not self.registered:

@@ -86,7 +86,7 @@ except:
 invalidwinfilenamechars = ''
 for i in range(32):
     invalidwinfilenamechars += chr(i)
-    invalidwinfilenamechars += '"*/:<>?\\|'
+invalidwinfilenamechars += '"*/:<>?\\|'
 
 
 def fix_filebasename(name, unit = False):
@@ -111,7 +111,7 @@ def fix_filebasename(name, unit = False):
         if sys.platform == 'win32':
             invalidchars = invalidwinfilenamechars
         else:
-             invalidchars = ''
+             invalidchars = '"*/:<>?\\|'
              
         if c in invalidchars:
             fixedname += '_'

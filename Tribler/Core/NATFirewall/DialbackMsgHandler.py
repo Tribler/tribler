@@ -31,7 +31,7 @@ from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.NATFirewall.ReturnConnHandler import ReturnConnHandler
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_THIRD
 from Tribler.Core.Utilities.utilities import *
-from Tribler.Main.Dialogs.activities import *
+from Tribler.Core.simpledefs import *
 
 DEBUG = True
 
@@ -124,9 +124,9 @@ class DialbackMsgHandler:
                 return True
             
             if self.dbreach or self.btenginereach:
-                self.launchmany.set_activity(ACT_GET_EXT_IP_FROM_PEERS)
+                self.launchmany.set_activity(NTFY_ACT_GET_EXT_IP_FROM_PEERS)
             else:
-                self.launchmany.set_activity(ACT_REACHABLE)
+                self.launchmany.set_activity(NTFY_ACT_REACHABLE)
 
             # Also do this when the connection is not locally initiated.
             # That tells us that we're connectable, but it doesn't tell us

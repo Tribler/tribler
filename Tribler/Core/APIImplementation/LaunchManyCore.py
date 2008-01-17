@@ -45,8 +45,6 @@ import Tribler.Core.CacheDB.cachedb as cachedb
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Core.RequestPolicy import *
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
-# TEMP
-from Tribler.Main.Dialogs.activities import *
 
 SPECIAL_VALUE=481
 
@@ -480,7 +478,7 @@ class TriblerLaunchMany(Thread):
         Called by network thread """ 
         
         print >>sys.stderr,"tlm: start_upnp()"
-        self.set_activity(ACT_UPNP)
+        self.set_activity(NTFY_ACT_UPNP)
         self.upnp_thread = UPnPThread(self.upnp_type,self.locally_guessed_ext_ip,self.listen_port,self.upnp_failed_callback,self.upnp_got_ext_ip_callback)
         self.upnp_thread.start()
 

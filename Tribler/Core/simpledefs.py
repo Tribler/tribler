@@ -55,6 +55,17 @@ NTFY_INSERT = 'insert'         # new data is inserted
 NTFY_DELETE = 'delete'         # data is deleted
 NTFY_SEARCH_RESULT = 'search_result'     # new search result
  
+# object IDs for NTFY_ACTIVITIES subject 
+NTFY_ACT_NONE = 0
+NTFY_ACT_UPNP = 1
+NTFY_ACT_REACHABLE = 2
+NTFY_ACT_GET_EXT_IP_FROM_PEERS = 3
+NTFY_ACT_MEET = 4
+NTFY_ACT_GOT_METADATA = 5
+NTFY_ACT_RECOMMEND = 6
+NTFY_ACT_DISK_FULL = 7
+NTFY_ACT_NEW_VERSION = 8
+ 
 # Disk-allocation policies for download, see DownloadConfig.set_alloc_type
 DISKALLOC_NORMAL = 'normal'              
 DISKALLOC_BACKGROUND = 'background'      
