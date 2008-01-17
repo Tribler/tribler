@@ -4,7 +4,6 @@
 import sys
 import os
 import copy
-import binascii
 from traceback import print_exc,print_stack
 from threading import RLock,Condition,Event,Thread,currentThread
 
@@ -74,13 +73,8 @@ class DownloadImpl:
                 print >>sys.stderr,"Download: setup: Using internal tracker"
                 # Copy .torrent to state_dir/itracker so the tracker thread 
                 # finds it and accepts peer registrations for it.
-                # 
-                trackerdir = self.session.get_internal_tracker_dir()
-                basename = binascii.hexlify(infohash)+'.torrent' # ignore .tribe stuff, not vital
-                filename = os.path.join(trackerdir,basename)
-                self.tdef.save(filename)
-                # Bring to attention of Tracker thread
-                self.session.lm.tracker_rescan_dir()
+                #
+                self.session.add_to_internal_tracker(self.tdef) 
             else:
                 print >>sys.stderr,"Download: setup: Not using internal tracker"
             

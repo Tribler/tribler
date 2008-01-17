@@ -4,6 +4,7 @@
 
 import sys
 import copy
+import binascii
 from traceback import print_exc
 from threading import RLock,currentThread
 
@@ -311,17 +312,32 @@ class Session(SessionRuntimeConfig):
         """ Returns the directory containing the torrents tracked by the internal 
         tracker (and associated databases).
         @return An absolute path. """
-        if self.sessconfig['state_dir'] is None:
-            return None
-        else:
-            return os.path.join(self.sessconfig['state_dir'],STATEDIR_ITRACKER_DIR)
+        # Called by any thread
+        self.sesslock.acquire()
+        try:
+            if self.sessconfig['state_dir'] is None:
+                return None
+            else:
+                return os.path.join(self.sessconfig['state_dir'],STATEDIR_ITRACKER_DIR)
+        finally:
+            self.sesslock.release()
+
 
     def add_to_internal_tracker(self,tdef):
         """ Add a torrent def to the list of torrents tracked by the internal
         tracker. Use this method to use the Session as a standalone tracker. 
         @param tdef A finalized TorrentDef. 
         """
-        raise NotYetImplementedException()
+        # Called by any thread
+        self.sesslock.acquire()
+        try:
+            infohash = tdef.get_infohash()
+            filename = self.get_internal_tracker_torrentfilename(infohash)
+            tdef.save(filename)
+            # Bring to attention of Tracker thread
+            self.lm.tracker_rescan_dir()
+        finally:
+            self.sesslock.release()
         
     def remove_from_internal_tracker(self,tdef):
         """ Remove a torrent def from the list of torrents tracked by the 
@@ -329,8 +345,16 @@ class Session(SessionRuntimeConfig):
         tracker. 
         @param tdef A finalized TorrentDef.
         """
-        raise NotYetImplementedException()
-
+        # Called by any thread
+        self.sesslock.acquire()
+        try:
+            infohash = tdef.get_infohash()
+            filename = self.get_internal_tracker_torrentfilename(infohash)
+            os.remove(filename)
+            # Bring to attention of Tracker thread
+            self.lm.tracker_rescan_dir()
+        finally:
+            self.sesslock.release()
 
     #
     # Notification of events in the Session
@@ -460,3 +484,8 @@ class Session(SessionRuntimeConfig):
     def get_default_config_filename(state_dir):
         return os.path.join(state_dir,STATEDIR_SESSCONFIG)
     get_default_config_filename = staticmethod(get_default_config_filename)
+
+    def get_internal_tracker_torrentfilename(self,infohash):
+        trackerdir = self.get_internal_tracker_dir()
+        basename = binascii.hexlify(infohash)+'.torrent' # ignore .tribe stuff, not vital
+        return os.path.join(trackerdir,basename)
