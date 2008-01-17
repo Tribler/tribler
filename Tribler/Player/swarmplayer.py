@@ -36,7 +36,7 @@ from Tribler.Core.DownloadConfig import DownloadStartupConfig
 
 
 from Tribler.Video.VideoServer import VideoHTTPServer
-from Tribler.Video.VideoPlayer import VideoPlayer
+from Tribler.Video.VideoPlayer import VideoPlayer, PLAYBACKMODE_INTERNAL
 from Tribler.Main.Utility.utility import Utility
 from Tribler.Video.EmbeddedPlayer import VideoFrame
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
@@ -130,6 +130,8 @@ class PlayerApp(wx.App):
             self.videoplay.register(self.utility)
             self.videoplay.set_parentwindow(self.videoFrame)
             self.videoplay.set_content_name(self.tdef.get_name_as_unicode())
+            # h4xor TEMP ARNO
+            self.videoplay.playbackmode = PLAYBACKMODE_INTERNAL
             
             self.Bind(wx.EVT_CLOSE, self.videoFrame.OnCloseWindow)
             self.Bind(wx.EVT_QUERY_END_SESSION, self.videoFrame.OnCloseWindow)

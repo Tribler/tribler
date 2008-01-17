@@ -49,7 +49,9 @@ class VideoPlayer:
     getInstance = staticmethod(getInstance)
         
     def register(self,utility):
-        self.utility = utility
+        
+        
+        self.utility = utility # TEMPARNO: make sure only used for language strings
         
         # TEMPARNO: Move this outside the player
         videoserver = VideoHTTPServer.getInstance()

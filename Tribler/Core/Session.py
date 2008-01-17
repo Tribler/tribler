@@ -3,7 +3,6 @@
 """ A Session is a running instance of the Tribler Core and the Core's central class. """
 
 import sys
-import pickle
 import copy
 from traceback import print_exc
 from threading import RLock,currentThread
@@ -58,7 +57,8 @@ class Session(SessionRuntimeConfig):
             try:
                 # Then try to read from default location
                 state_dir = Session.get_default_state_dir()
-                scfg = self.load_pstate_sessconfig(state_dir)
+                cfgfilename = Session.get_default_config_filename(state_dir)
+                scfg = SessionStartupConfig.load(cfgfilename)
             except:
                 # If that fails, create a fresh config with factory defaults
                 print_exc()
@@ -149,7 +149,7 @@ class Session(SessionRuntimeConfig):
             self.sessconfig['peer_icon_path'] = os.path.join(self.sessconfig['state_dir'],STATEDIR_PEERICON_DIR)
 
         # Checkpoint startup config
-        self.save_pstate_sessconfig(self.sessconfig)
+        self.save_pstate_sessconfig()
 
         # Create handler for calling back the user via separate threads
         self.uch = UserCallbackHandler(self.sesslock,self.sessconfig)
@@ -177,7 +177,6 @@ class Session(SessionRuntimeConfig):
         @return An absolute path name. """
         homedirpostfix = '.Tribler'
         if sys.platform == 'win32':
-            homedirpostfix = 'Tribler' # i.e. C:\Documents and Settings\user\Application Data\Tribler
             homedirvar = '${APPDATA}'
         elif sys.platform == 'darwin':
             homedirvar = '${HOME}'
@@ -440,7 +439,7 @@ class Session(SessionRuntimeConfig):
         self.sesslock.acquire()
         try:
             try:
-                self.save_pstate_sessconfig(self.sessconfig)
+                self.save_pstate_sessconfig()
             except Exception,e:
                 self.lm.rawserver_nonfatalerrorfunc(e)
 
@@ -450,21 +449,14 @@ class Session(SessionRuntimeConfig):
         finally:
             self.sesslock.release()
 
-
-    def save_pstate_sessconfig(self,sessconfig):
+    def save_pstate_sessconfig(self):
         """ Save the runtime SessionConfig to disk """
         # Called by any thread
-        cfgfilename = os.path.join(sessconfig['state_dir'],STATEDIR_SESSCONFIG)
-        f = open(cfgfilename,"wb")
-        pickle.dump(sessconfig,f)
-        f.close()
+        sscfg = self.get_current_startup_config_copy()
+        cfgfilename = Session.get_default_config_filename(sscfg.get_state_dir())
+        sscfg.save(cfgfilename)
 
 
-    def load_pstate_sessconfig(self,state_dir):
-        """ Load the runtime SessionConfig from disk """
-        cfgfilename = os.path.join(state_dir,STATEDIR_SESSCONFIG)
-        f = open(cfgfilename,"rb")
-        sscfg = pickle.load(f)
-        f.close()
-        return sscfg
-        
+    def get_default_config_filename(state_dir):
+        return os.path.join(state_dir,STATEDIR_SESSCONFIG)
+    get_default_config_filename = staticmethod(get_default_config_filename)

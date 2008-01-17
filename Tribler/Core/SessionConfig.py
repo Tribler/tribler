@@ -2,7 +2,9 @@
 # see LICENSE.txt for license information
 """ Controls the operation of a Session """
 
-import sys, copy
+import sys
+import copy
+import pickle
 from traceback import print_exc
 
 from Tribler.Core.simpledefs import *
@@ -999,6 +1001,33 @@ class SessionStartupConfig(SessionConfigInterface,Copyable,Serializable):
     
     def __init__(self,sessconfig=None):
         SessionConfigInterface.__init__(self,sessconfig)
+
+    #
+    # Class method
+    #
+    def load(filename):
+        """
+        Load a saved SessionStartupConfig from disk.
+        
+        @param filename  An absolute Unicode filename
+        @return SessionStartupConfig object
+        """
+        # Class method, no locking required
+        f = open(filename,"rb")
+        sessconfig = pickle.load(f)
+        sscfg = SessionStartupConfig(sessconfig)
+        f.close()
+        return sscfg
+    load = staticmethod(load)
+
+    def save(self,filename):
+        """ Save the SessionStartupConfig to disk.
+        @param filename  An absolute Unicode filename
+        """
+        # Called by any thread
+        f = open(filename,"wb")
+        pickle.dump(self.sessconfig,f)
+        f.close()
 
     #
     # Copyable interface

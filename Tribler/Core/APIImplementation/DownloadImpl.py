@@ -46,8 +46,9 @@ class DownloadImpl:
         a new DownloadConfig() is created and the result 
         becomes the runtime config of this Download.
         """
+        # Called by any thread
         try:
-            self.dllock.acquire() # not really needed, no other threads know of it
+            self.dllock.acquire() # not really needed, no other threads know of this object
             
             # See if internal tracker used
             itrackerurl = self.session.get_internal_tracker_url()
