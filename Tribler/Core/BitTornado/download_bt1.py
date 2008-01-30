@@ -346,9 +346,6 @@ class BT1Download:
                 if listdir(file):  # if it's not empty
                     for x in self.info['files']:
                         savepath1 = torrentfilerec2savefilename(x,1)
-                        if DEBUG:
-                            print >>sys.stderr,"BT1Download: saveas: EXIST FILE",`savepath1`
-                        
                         if path.exists(path.join(file, savepath1)):
                             existing = 1
                     if not existing:
@@ -367,23 +364,7 @@ class BT1Download:
 
             files = []
             for x in self.info['files']:
-                
-                if DEBUG:
-                    print >>sys.stderr,"BT1Download: saveas: file is",`x`
-
-                
-                n = file
-                if 'path.utf-8' in x:
-                    key = 'path.utf-8'
-                    encoding = 'utf-8'
-                else:
-                    key = 'path'
-                    encoding = None
-                    
-                print >>sys.stderr,"BT1Download: saveas: path elem was",`x`
                 n = torrentfilerec2savefilename(x,len(x['path']))
-                print >>sys.stderr,"BT1Download: saveas: path elem is",`n`
-                
                 files.append((n, x['length']))
                 make(n)
         if DEBUG:
@@ -614,8 +595,14 @@ class BT1Download:
                 self.voddownload = MovieOnDemandTransporter(self.movieselector,self.picker,self.info['piece length'], self.rawserver, self.videoanalyserpath,vodplayablefunc)
 
         if self.config['video_source']:
+            if DEBUG:
+                print >>sys.stderr,"BT1Download: startEngine: Going into Live mode"
+
             self.videosourcetransporter = VideoSourceTransporter(self.config['video_source'],self)
             self.videosourcetransporter.start()
+        elif DEBUG:
+            print >>sys.stderr,"BT1Download: startEngine: Not going into Live mode"
+
                 
         elif DEBUG:
             print >>sys.stderr,"BT1Download: startEngine: Going into standard mode"

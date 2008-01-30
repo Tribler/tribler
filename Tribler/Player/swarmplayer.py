@@ -35,6 +35,7 @@ from Tribler.Video.VideoPlayer import VideoPlayer, VideoChooser, PLAYBACKMODE_IN
 from Tribler.Main.Utility.utility import Utility
 from Tribler.Video.EmbeddedPlayer import VideoFrame
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
+from Tribler.Core.Utilities.unicode import bin2unicode
 
 DEBUG = True
 ALLOW_MULTIPLE = False
@@ -112,7 +113,10 @@ class PlayerApp(wx.App):
                 if selectedvideofile is None:
                     self.OnExit()
                     return False
-                videofiles = [selectedvideofile]
+                dlfile = selectedvideofile
+            else:
+                dlfile = videofiles[0]
+                
                 #raise ValueError("Torrent contains multiple video files, pick manually")
                 
             print >>sys.stderr,"main: Found video file",videofiles
@@ -121,7 +125,7 @@ class PlayerApp(wx.App):
             
             dcfg = DownloadStartupConfig()
             dcfg.set_video_start_callback(self.vod_ready_callback)
-            dcfg.set_selected_files(videofiles)
+            dcfg.set_selected_files([dlfile])
             dcfg.set_max_conns_to_initiate(300)
             dcfg.set_max_conns(300)
             
@@ -131,7 +135,10 @@ class PlayerApp(wx.App):
             self.videoplay = VideoPlayer.getInstance()
             self.videoplay.register(self.utility)
             self.videoplay.set_parentwindow(self.videoFrame)
-            self.videoplay.set_content_name(self.tdef.get_name_as_unicode())
+            cname = self.tdef.get_name_as_unicode()
+            if len(videofiles) > 1:
+                cname += u' - '+bin2unicode(dlfile)
+            self.videoplay.set_content_name(cname)
             # h4xor TEMP ARNO
             self.videoplay.playbackmode = PLAYBACKMODE_INTERNAL
             
