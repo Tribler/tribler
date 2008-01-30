@@ -12,13 +12,13 @@ import urlparse
 from Tribler.Video.__init__ import *
 from Tribler.Video.VideoServer import VideoHTTPServer,MovieFileTransport,MovieTransportDecryptWrapper
 from Tribler.Video.Progress import ProgressBar,BufferInfo, ProgressInf
-from Tribler.Core.Utilities.unicode import unicode2str
+from Tribler.Core.Utilities.unicode import unicode2str,bin2unicode
 from utils import win32_retrieve_video_play_command,quote_program_path
 
 # Filename extensions for video and audio files
 from Tribler.Core.defaults import videoextdefaults as EXTENSIONS # TEMP ARNO
 
-DEBUG = False
+DEBUG = True
 
 
 PLAYBACKMODE_INTERNAL = 0
@@ -522,24 +522,32 @@ class VideoPlayer:
 
 class VideoChooser(wx.Dialog):
     
-    def __init__(self,parent,utility,filelist):
+    def __init__(self,parent,utility,filelist,title=None,expl=None):
         
         self.utility = utility
-        self.filelist = filelist
+        self.filelist = []
+        
+        # Convert to Unicode for display
+        for file in filelist:
+            u = bin2unicode(file)
+            self.filelist.append(u)
 
         if DEBUG:
             print >>sys.stderr,"VideoChooser: filelist",self.filelist
         
         style = wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
-        title = self.utility.lang.get('selectvideofiletitle')
+        if title is None:
+            title = self.utility.lang.get('selectvideofiletitle')
         wx.Dialog.__init__(self,parent,-1,title,style=style)
         
         sizer = wx.BoxSizer(wx.VERTICAL)
         filebox = wx.BoxSizer(wx.VERTICAL)
-        self.file_chooser=wx.Choice(self, -1, wx.Point(-1, -1), wx.Size(-1, -1), self.filelist)
+        self.file_chooser=wx.Choice(self, -1, wx.Point(-1, -1), wx.Size(300, -1), self.filelist)
         self.file_chooser.SetSelection(0)
-
-        filebox.Add(wx.StaticText(self, -1, self.utility.lang.get('selectvideofile')), 1, wx.ALIGN_CENTER_VERTICAL)
+        
+        if expl is None:
+            self.utility.lang.get('selectvideofile')
+        filebox.Add(wx.StaticText(self, -1, expl), 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         filebox.Add(self.file_chooser)
         sizer.Add(filebox, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         

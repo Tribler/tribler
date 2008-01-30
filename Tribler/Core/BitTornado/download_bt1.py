@@ -39,6 +39,7 @@ from Tribler.Core.Merkle.merkle import create_fake_hashes
 from Tribler.Core.Utilities.unicode import bin2unicode
 from Tribler.Core.Video.VideoOnDemand import MovieSelector,MovieOnDemandTransporter,PiecePickerVOD
 from Tribler.Core.Video.VideoSource import VideoSourceTransporter
+from Tribler.Core.APIImplementation.maketorrent import torrentfilerec2savefilename
 
 # 2fastbt_
 from Tribler.Core.CoopDownload.Coordinator import Coordinator
@@ -58,7 +59,7 @@ except:
 
 argslistheader = 'Arguments are:\n\n'
 
-DEBUG = False
+DEBUG = True
 
 def _failfunc(x):
     print x
@@ -344,7 +345,11 @@ class BT1Download:
                     raise IOError(file + 'is not a dir')
                 if listdir(file):  # if it's not empty
                     for x in self.info['files']:
-                        if path.exists(path.join(file, x['path'][0])):
+                        savepath1 = torrentfilerec2savefilename(x,1)
+                        if DEBUG:
+                            print >>sys.stderr,"BT1Download: saveas: EXIST FILE",`savepath1`
+                        
+                        if path.exists(path.join(file, savepath1)):
                             existing = 1
                     if not existing:
                         file = path.join(file, self.info['name'])
@@ -362,9 +367,23 @@ class BT1Download:
 
             files = []
             for x in self.info['files']:
+                
+                if DEBUG:
+                    print >>sys.stderr,"BT1Download: saveas: file is",`x`
+
+                
                 n = file
-                for i in x['path']:
-                    n = path.join(n, i)
+                if 'path.utf-8' in x:
+                    key = 'path.utf-8'
+                    encoding = 'utf-8'
+                else:
+                    key = 'path'
+                    encoding = None
+                    
+                print >>sys.stderr,"BT1Download: saveas: path elem was",`x`
+                n = torrentfilerec2savefilename(x,len(x['path']))
+                print >>sys.stderr,"BT1Download: saveas: path elem is",`n`
+                
                 files.append((n, x['length']))
                 make(n)
         if DEBUG:
@@ -378,7 +397,6 @@ class BT1Download:
             print "BT1Download: saveas returning ", file
                 
         return file
-
 
     def getFilename(self):
         return self.filename

@@ -31,7 +31,7 @@ from wx import xrc
 from Tribler.Core.API import *
 
 from Tribler.Video.VideoServer import VideoHTTPServer
-from Tribler.Video.VideoPlayer import VideoPlayer, PLAYBACKMODE_INTERNAL
+from Tribler.Video.VideoPlayer import VideoPlayer, VideoChooser, PLAYBACKMODE_INTERNAL
 from Tribler.Main.Utility.utility import Utility
 from Tribler.Video.EmbeddedPlayer import VideoFrame
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
@@ -100,14 +100,21 @@ class PlayerApp(wx.App):
             if self.params[0] != "":
                 torrentfilename = self.params[0]
             else:
-                print >>sys.stderr,"main: No torrent file on cmd line"
-                self.OnExit()
-                return False
+                torrentfilename = self.select_torrent_from_disk()
+                if torrentfilename is None:
+                    self.OnExit()
+                    return False
 
             self.tdef = TorrentDef.load(torrentfilename)
             videofiles = self.tdef.get_video_files()
             if len(videofiles) > 1:
-                raise ValueError("Torrent contains multiple video files, pick manually")
+                selectedvideofile = self.ask_user_to_select_video(videofiles)
+                if selectedvideofile is None:
+                    self.OnExit()
+                    return False
+                videofiles = [selectedvideofile]
+                #raise ValueError("Torrent contains multiple video files, pick manually")
+                
             print >>sys.stderr,"main: Found video file",videofiles
             
             print >>sys.stderr,"main: infohash is",`self.tdef.get_infohash()`
@@ -139,6 +146,31 @@ class PlayerApp(wx.App):
                 self.s.shutdown()
             return False
         return True
+
+    def select_torrent_from_disk(self):
+        dlg = wx.FileDialog(self.videoFrame, 
+                            'SwarmPlayer: Select torrent to play', 
+                            '', # default dir
+                            '', # default file
+                            'TSTREAM and TORRENT files (*.tstream;*.torrent)|*.tstream;*.torrent', 
+                            wx.OPEN|wx.FD_FILE_MUST_EXIST)
+        if dlg.ShowModal() == wx.ID_OK:
+            filename = dlg.GetPath()
+        else:
+            filename = None
+        dlg.Destroy()
+        return filename
+
+    def ask_user_to_select_video(self,videofiles):
+        dlg = VideoChooser(self.videoFrame,self.utility,videofiles,title='SwarmPlayer',expl='Select which file to play')
+        result = dlg.ShowModal()
+        if result == wx.ID_OK:
+            index = dlg.getChosenIndex()
+            filename = videofiles[index]
+        else:
+            filename = None
+        dlg.Destroy()
+        return filename
 
     def OnExit(self):
         print >>sys.stderr,"ONEXIT"
@@ -296,7 +328,6 @@ def run(params = None):
         #print "[StartUpDebug]---------------- 2", time()-start_time
         pass
     else:
-        print >>sys.stderr,"ARGVIS",sys.argv
         arg0 = sys.argv[0].lower()
         if arg0.endswith('.exe'):
             abcpath = os.path.abspath(os.path.dirname(sys.argv[0]))

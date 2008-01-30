@@ -38,6 +38,12 @@ class SingleDownload:
             self.lmvodplayablecallback = lmvodplayablecallback
     
             self.logmsgs = []
+            self._hashcheckfunc = None
+            self._getstatsfunc = None
+            if pstate is not None:
+                self.hashcheckfrac = pstate['dlstate']['progress']
+            else:
+                self.hashcheckfrac = 0.0
     
             peerid = createPeerID()
             #print >>sys.stderr,"SingleDownload: __init__: My peer ID is",`peerid`
@@ -70,18 +76,12 @@ class SingleDownload:
             if DEBUG:
                 print >>sys.stderr,"SingleDownload: setting vodfileindex",vodfileindex
             
-            self._hashcheckfunc = None
             if pstate is None:
                 resumedata = None
             else:
                 # Restarting download
                 resumedata=pstate['engineresumedata']
             self._hashcheckfunc = self.dow.initFiles(resumedata=resumedata)
-            self._getstatsfunc = None
-            if pstate is not None:
-                self.hashcheckfrac = pstate['dlstate']['progress']
-            else:
-                self.hashcheckfrac = 0.0
             
         except Exception,e:
             self.fatalerrorfunc(e)

@@ -19,9 +19,9 @@ from Tribler.Core.BitTornado.bencode import bencode
 from Tribler.Core.BitTornado.BT1.btformats import check_info
 from Tribler.Core.Merkle.merkle import MerkleTree
 from Tribler.Core.Overlay.permid import create_torrent_signature
-from Tribler.Core.Utilities.unicode import str2unicode
+from Tribler.Core.Utilities.unicode import str2unicode,bin2unicode
 from Tribler.Core.APIImplementation.miscutils import parse_playtime_to_secs
-
+from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.defaults import tdefdictdefaults
 
 ignore = [] # Arno: was ['core', 'CVS']
@@ -369,6 +369,24 @@ def pathlist2filename(pathlist):
     for elem in pathlist:
         fullpath = os.path.join(fullpath,elem)
     return fullpath
+
+def pathlist2savefilename(pathlist,encoding):
+    fullpath = u''
+    for elem in pathlist:
+        u = bin2unicode(elem,encoding)
+        b = fix_filebasename(u)
+        fullpath = os.path.join(fullpath,b)
+    return fullpath
+
+def torrentfilerec2savefilename(file,length):
+    if 'path.utf-8' in file:
+        key = 'path.utf-8' 
+        encoding = 'utf-8'
+    else:
+        key = 'path'
+        encoding = None
+        
+    return pathlist2savefilename(file[key][:length],encoding)
 
 
 def num2num(num):
