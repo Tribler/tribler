@@ -113,7 +113,7 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
         # Limit working set to active torrents with connections:
         newws = []
         for ds in workingset:
-            if ds.has_active_connections():
+            if ds.get_num_peers() > 0:
                 newws.append(ds)
         workingset = newws
 
@@ -200,7 +200,7 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
         # Limit working set to active torrents with connections:
         newws = []
         for ds in workingset:
-            if ds.has_active_connections():
+            if ds.get_num_peers() > 0:
                 newws.append(ds)
         workingset = newws
 

@@ -46,9 +46,12 @@ class VideoItem:
 
 class VideoFrame(wx.Frame):
     
-    def __init__(self,parent):
+    def __init__(self,parent,title):
         self.utility = parent.utility
-        wx.Frame.__init__(self, None, -1, self.utility.lang.get('tb_video_short'), 
+        if title is None:
+            title = self.utility.lang.get('tb_video_short')
+        
+        wx.Frame.__init__(self, None, -1, title, 
                           size=(800,520)) # Use 16:9 aspect ratio: 500 = (800/16) * 9 + 50 for controls
         self.createMainPanel()
 

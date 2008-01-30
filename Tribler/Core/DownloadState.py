@@ -147,9 +147,9 @@ class DownloadState(Serializable):
         else:
             return self.stats['down']/1024.0
 
-    def has_active_connections(self):
+    def get_num_peers(self):
         """ 
-        Returns whether the download has active connections. This is used
+        Returns the download's number of active connections. This is used
         to see if there is any progress when non-fatal errors have occured
         (e.g. tracker timeout).
         @return Boolean.
@@ -159,7 +159,7 @@ class DownloadState(Serializable):
 
         # Determine if we need statsobj to be requested, same as for spew
         statsobj = self.stats['stats']
-        return statsobj.numSeeds+statsobj.numPeers > 0
+        return statsobj.numSeeds+statsobj.numPeers
         
     def get_num_seeds_peers(self):
         """

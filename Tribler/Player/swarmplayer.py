@@ -45,10 +45,12 @@ RATELIMITADSL = False
 class PlayerFrame(VideoFrame):
 
     def __init__(self,parent):
-        VideoFrame.__init__(self,parent)
+        VideoFrame.__init__(self,parent,title='SwarmPlayer 0.0.6')
+        self.closing = False
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
     
     def OnCloseWindow(self, event = None):
+        self.closing = True
         if event is not None:
             nr = event.GetEventType()
             lookup = { wx.EVT_CLOSE.evtType[0]: "EVT_CLOSE", wx.EVT_QUERY_END_SESSION.evtType[0]: "EVT_QUERY_END_SESSION", wx.EVT_END_SESSION.evtType[0]: "EVT_END_SESSION" }
@@ -199,6 +201,10 @@ class PlayerApp(wx.App):
     def state_callback(self,ds):
         """ Called by Session thread """
         print >>sys.stderr,"main: Stats",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
+        
+        if self.videoFrame.closing:
+            return
+        
         logmsgs = ds.get_log_messages()
         if len(logmsgs) > 0:
             print >>sys.stderr,"main: Log",logmsgs[0]
@@ -229,7 +235,8 @@ class PlayerApp(wx.App):
             msg = "Checking already downloaded parts "+pstr+"% done"
         elif progress != 1.0:
             pstr = str(int(progress*100))
-            msg = "Prebuffering "+pstr+"% done, eta "+intime
+            npeerstr = str(ds.get_num_peers())
+            msg = "Prebuffering "+pstr+"% done, eta "+intime+'  (connected to '+npeerstr+' people)'
         elif playable:
             if not self.said_start_playback:
                 msg = "Starting playback..."

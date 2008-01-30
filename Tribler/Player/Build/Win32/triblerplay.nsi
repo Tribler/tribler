@@ -1,5 +1,5 @@
 !define PRODUCT "SwarmPlayer"
-!define VERSION "0.0.5"
+!define VERSION "0.0.6"
 
 !include "MUI.nsh"
 
