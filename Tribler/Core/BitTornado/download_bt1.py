@@ -364,18 +364,19 @@ class BT1Download:
 
             files = []
             for x in self.info['files']:
-                n = torrentfilerec2savefilename(x,len(x['path']))
-                files.append((n, x['length']))
-                make(n)
+                savepath = torrentfilerec2savefilename(x,len(x['path']))
+                full = os.path.join(file,savepath)
+                files.append((full, x['length']))
+                make(full)
         if DEBUG:
-            print >>sys.stderr,"BT1Download: saveas 2"
+            print >>sys.stderr,"BT1Download: saveas 2 too"
 
         self.filename = file
         self.files = files
         self.datalength = file_length
         
         if DEBUG:
-            print "BT1Download: saveas returning ", file
+            print >>sys.stderr,"BT1Download: saveas returning ",file,"self.files is",self.files
                 
         return file
 

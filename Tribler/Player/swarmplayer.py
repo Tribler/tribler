@@ -108,6 +108,15 @@ class PlayerApp(wx.App):
 
             self.tdef = TorrentDef.load(torrentfilename)
             videofiles = self.tdef.get_video_files()
+
+            print >>sys.stderr,"main: infohash is",`self.tdef.get_infohash()`
+            print >>sys.stderr,"main: Found video files",videofiles
+            
+            if len(videofiles) == 0:
+                print >>sys.stderr,"main: No video files found! Let user select"
+                # Let user choose any file
+                videofiles = self.tdef.get_video_files(videoexts=None)
+                
             if len(videofiles) > 1:
                 selectedvideofile = self.ask_user_to_select_video(videofiles)
                 if selectedvideofile is None:
@@ -116,12 +125,6 @@ class PlayerApp(wx.App):
                 dlfile = selectedvideofile
             else:
                 dlfile = videofiles[0]
-                
-                #raise ValueError("Torrent contains multiple video files, pick manually")
-                
-            print >>sys.stderr,"main: Found video file",videofiles
-            
-            print >>sys.stderr,"main: infohash is",`self.tdef.get_infohash()`
             
             dcfg = DownloadStartupConfig()
             dcfg.set_video_start_callback(self.vod_ready_callback)

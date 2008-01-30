@@ -257,6 +257,9 @@ class EmbeddedPlayer(wx.Panel):
         
 
     def PlayPause(self, evt=None):
+        if DEBUG:
+            print >>sys.stderr,"embedplay: PlayPause pressed"
+        
         if self.mediactrl.GetState() == MEDIASTATE_PLAYING:
             self.ppbtn.SetLabel(self.utility.lang.get('playprompt'))
             self.mediactrl.Pause()
@@ -452,6 +455,9 @@ class VLCMediaCtrl(wx.Window):
 
 
     def Pause(self):
+        if DEBUG:
+            print >>sys.stderr,"VLCMediaCtrl: Pause called"
+
         self.media.pause()
 
 

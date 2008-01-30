@@ -64,6 +64,8 @@ class SingleDownload:
                             )
         
             file = self.dow.saveAs(self.save_as)
+            if DEBUG:
+                print >>sys.stderr,"SingleDownload: dow.saveAs returned",file
             
             # Set local filename in vodfileindex
             if vodfileindex is not None:

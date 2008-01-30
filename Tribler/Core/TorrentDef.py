@@ -606,7 +606,7 @@ class TorrentDef(Serializable,Copyable):
         if not self.metainfo_valid:
             raise NotYetImplementedException() # must save first
         
-        return maketorrent.get_video_files(self.metainfo,videoexts)
+        return maketorrent.get_files(self.metainfo,videoexts)
 
     
     #

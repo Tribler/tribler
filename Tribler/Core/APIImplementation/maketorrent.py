@@ -513,7 +513,8 @@ def copy_metainfo_to_input(metainfo,input):
                 input['thumb'] = content['Thumbnail']
                 
 
-def get_video_files(metainfo,videoexts):
+def get_files(metainfo,exts):
+    
     videofiles = []
     if 'files' in metainfo['info']:
         # Multi-file torrent
@@ -521,22 +522,27 @@ def get_video_files(metainfo,videoexts):
         for file in files:
             
             p = file['path']
-            print >>sys.stderr,"TorrentDef: get_video_files: file is",p
+            #print >>sys.stderr,"TorrentDef: get_files: file is",p
             filename = ''
             for elem in p:
-                print >>sys.stderr,"TorrentDef: get_video_files: elem is",elem
+                #print >>sys.stderr,"TorrentDef: get_files: elem is",elem
                 filename = os.path.join(filename,elem)
-            print >>sys.stderr,"TorrentDef: get_video_files: composed filename is",filename    
+            
+            #print >>sys.stderr,"TorrentDef: get_files: composed filename is",filename    
             (prefix,ext) = os.path.splitext(filename)
-            if ext[0] == '.':
+            if ext != '' and ext[0] == '.':
                 ext = ext[1:]
-            print >>sys.stderr,"TorrentDef: get_video_files: ext",ext
-            if ext in videoexts:
+            #print >>sys.stderr,"TorrentDef: get_files: ext",ext
+            if exts is None or ext in exts:
                 videofiles.append(filename)
     else:
+        #print >>sys.stderr,"TorrentDef: get_files: Single-torrent file"
+        
         filename = metainfo['info']['name'] # don't think we need fixed name here
         (prefix,ext) = os.path.splitext(filename)
-        if ext in videoexts:
+        if ext != '' and ext[0] == '.':
+            ext = ext[1:]
+        if exts is None or ext in exts:
             videofiles.append(filename)
     return videofiles
             

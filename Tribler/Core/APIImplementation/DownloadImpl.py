@@ -139,11 +139,15 @@ class DownloadImpl:
         if self.dlconfig['mode'] == DLMODE_VOD:
             vod_usercallback_wrapper = lambda mimetype,stream,filename:self.session.uch.perform_vod_usercallback(self,self.dlconfig['vod_usercallback'],mimetype,stream,filename)
             
-            if 'files' in metainfo['info'] and len(self.dlconfig['selected_files']) == 0:
+            multi = False
+            if 'files' in metainfo['info']:
+                multi = True
+            
+            if multi and len(self.dlconfig['selected_files']) == 0:
                 # Multi-file torrent, but no file selected
                 raise VODNoFileSelectedInMultifileTorrentException() 
             
-            if len(self.dlconfig['selected_files']) == 0:
+            if not multi:
                 # single-file torrent
                 file = self.get_def().get_name()
                 idx = -1
@@ -365,7 +369,7 @@ class DownloadImpl:
         
         print >>sys.stderr,"Download: set_filepieceranges:",self.dlconfig['selected_files']
         
-        if len(self.dlconfig['selected_files']) > 0:
+        if len(self.dlconfig['selected_files']) > 1:
             if 'files' not in self.tdef.metainfo['info']:
                 raise ValueError("Selected more than 1 file, but torrent is single-file torrent")
             

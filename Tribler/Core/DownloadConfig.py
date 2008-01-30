@@ -21,6 +21,7 @@ from Tribler.Core.APIImplementation.miscutils import *
 from Tribler.Core.Utilities.unicode import metainfoname2unicode
 from Tribler.Core.osutils import *
 
+DEBUG = True
 
 class DownloadConfigInterface:
     """
@@ -114,7 +115,6 @@ class DownloadConfigInterface:
             raise ValueError("In Video-On-Demand mode only 1 file can be selected for download")
         self.dlconfig['selected_files'] = files
         
-        print >>sys.stderr,"DownloadStartupConfig: set_selected_files",files
 
     def get_selected_files(self):
         """ Returns the list of files selected for download.
