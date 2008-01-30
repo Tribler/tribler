@@ -47,6 +47,8 @@ def make_torrent_file(input, userabortflag = None, userprogresscallback = lambda
     
     # See www.bittorrent.org/Draft_DHT_protocol.html
     if input['nodes'] is None:
+        if input['announce'] is None:
+            raise ValueError('No tracker set')
         metainfo['announce'] = input['announce']
     else:
         metainfo['nodes'] = input['nodes']
@@ -72,7 +74,11 @@ def make_torrent_file(input, userabortflag = None, userprogresscallback = lambda
     if bitrate is not None or input['thumb'] is not None:
         mdict = {}
         mdict['Publisher'] = 'Tribler'
-        mdict['Description'] = input['comment']
+        if input['comment'] is None:
+            descr = ''
+        else:
+            descr = input['comment']
+        mdict['Description'] = descr
 
         if bitrate is not None:
             mdict['Progressive'] = 1
