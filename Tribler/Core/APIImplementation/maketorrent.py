@@ -20,9 +20,10 @@ from Tribler.Core.BitTornado.BT1.btformats import check_info
 from Tribler.Core.Merkle.merkle import MerkleTree
 from Tribler.Core.Overlay.permid import create_torrent_signature
 from Tribler.Core.Utilities.unicode import str2unicode,bin2unicode
-from Tribler.Core.APIImplementation.miscutils import parse_playtime_to_secs
+from Tribler.Core.APIImplementation.miscutils import parse_playtime_to_secs,offset2piece
 from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.defaults import tdefdictdefaults
+
 
 ignore = [] # Arno: was ['core', 'CVS']
 
@@ -378,15 +379,17 @@ def pathlist2savefilename(pathlist,encoding):
         fullpath = os.path.join(fullpath,b)
     return fullpath
 
-def torrentfilerec2savefilename(file,length):
-    if 'path.utf-8' in file:
+def torrentfilerec2savefilename(filerec,length=None):
+    if length is None:
+        length = len(filerec['path'])
+    if 'path.utf-8' in filerec:
         key = 'path.utf-8' 
         encoding = 'utf-8'
     else:
         key = 'path'
         encoding = None
         
-    return pathlist2savefilename(file[key][:length],encoding)
+    return pathlist2savefilename(filerec[key][:length],encoding)
 
 
 def num2num(num):
@@ -396,20 +399,17 @@ def num2num(num):
     else:
         return num
 
-def get_file_info(file,metainfo):
+def get_torrentfilerec_from_metainfo(filename,metainfo):
     info = metainfo['info']
-    if file is None:
+    if filename is None:
         return info
 
-    if file is not None and 'files' in info:
+    if filename is not None and 'files' in info:
         for i in range(len(info['files'])):
             x = info['files'][i]
                 
-            intorrentpath = ''
-            for elem in x['path']:
-                intorrentpath = os.path.join(intorrentpath,elem)
-                
-            if intorrentpath == file:
+            intorrentpath = pathlist2filename(x['path'])
+            if intorrentpath == filename:
                 return x
             
         raise ValueError("File not found in torrent")
@@ -470,6 +470,30 @@ def get_bitrate_from_metainfo(file,metainfo):
         raise ValueError("File not found in torrent")
     else:
         raise ValueError("File not found in single-file torrent")
+
+
+def get_length_filepieceranges_from_metainfo(metainfo,selectedfiles):
+    
+    if 'files' not in metainfo['info']:
+        # single-file torrent
+        return (metainfo['info']['length'],None)
+    else:
+        # multi-file torrent
+        files = metainfo['info']['files']
+        piecesize = metainfo['info']['piece length']
+        
+        total = 0L
+        filepieceranges = []
+        for i in xrange(len(files)):
+            path = files[i]['path']
+            length = files[i]['length']
+            filename = pathlist2filename(path)
+            
+            if filename in selectedfiles and length > 0:
+                range = (offset2piece(total,piecesize), offset2piece(total + length,piecesize),filename)
+                filepieceranges.append(range)
+            total += length
+        return (total,filepieceranges)
 
 
 def copy_metainfo_to_input(metainfo,input):

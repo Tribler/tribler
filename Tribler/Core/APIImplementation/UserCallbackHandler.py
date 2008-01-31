@@ -49,7 +49,7 @@ class UserCallbackHandler:
         self.perform_usercallback(session_getstate_usercallback_target)
 
 
-    def perform_removestate_callback(self,infohash,correctedinfoname,removecontent,dldestdir):
+    def perform_removestate_callback(self,infohash,contentdest,removecontent):
         """ Called by network thread """
         if DEBUG:
             print >>sys.stderr,"Session: perform_removestate_callback()"
@@ -57,7 +57,7 @@ class UserCallbackHandler:
             if DEBUG:
                 print >>sys.stderr,"Session: session_removestate_callback_target called",currentThread().getName()
             try:
-                self.sesscb_removestate(infohash,correctedinfoname,removecontent,dldestdir)
+                self.sesscb_removestate(infohash,contentdest,removecontent)
             except:
                 print_exc()
         self.perform_usercallback(session_removestate_callback_target)
@@ -72,10 +72,10 @@ class UserCallbackHandler:
             self.sesslock.release()
 
 
-    def sesscb_removestate(self,infohash,correctedinfoname,removecontent,dldestdir):
+    def sesscb_removestate(self,infohash,contentdest,removecontent):
         """ Called by SessionCallbackThread """
         if DEBUG:
-            print >>sys.stderr,"Session: sesscb_removestate called",`infohash`,`correctedinfoname`,removecontent,dldestdir
+            print >>sys.stderr,"Session: sesscb_removestate called",`infohash`,`correctedinfoname`,removecontent
         self.sesslock.acquire()
         try:
             dlpstatedir = os.path.join(self.sessconfig['state_dir'],STATEDIR_DLPSTATE_DIR)
@@ -105,15 +105,14 @@ class UserCallbackHandler:
 
         # Remove downloaded content from disk
         if removecontent:
-            filename = os.path.join(dldestdir,correctedinfoname)
             if DEBUG:
-                print >>sys.stderr,"Session: sesscb_removestate: removing saved content",filename
-            if not os.path.isdir(filename):
+                print >>sys.stderr,"Session: sesscb_removestate: removing saved content",contentdest
+            if not os.path.isdir(contentdest):
                 # single-file torrent
-                os.remove(filename)
+                os.remove(contentdest)
             else:
                 # multi-file torrent
-                shutil.rmtree(filename,True) # ignore errors
+                shutil.rmtree(contentdest,True) # ignore errors
 
     def notify(self, subject, changeType, obj_id, *args):
         """

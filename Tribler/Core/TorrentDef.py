@@ -608,6 +608,27 @@ class TorrentDef(Serializable,Copyable):
         
         return maketorrent.get_files(self.metainfo,videoexts)
 
+    def get_length(self,selectedfiles=None):
+        """ Returns the total size of the content in the torrent. If the
+        optional selectedfiles argument is specified, the method returns
+        the total size of only those files.
+        @return A length (long)
+        """
+        if not self.metainfo_valid:
+            raise NotYetImplementedException() # must save first
+        
+        (length,filepieceranges) = maketorrent.get_length_filepieceranges_from_metainfo(self.metainfo,selectedfiles)
+        return length
+
+    def is_multifile_torrent(self):
+        """ Returns whether this TorrentDef is a multi-file torrent.
+        @return Boolean
+        """
+        if not self.metainfo_valid:
+            raise NotYetImplementedException() # must save first
+        
+        return 'files' in self.metainfo['info']
+
     
     #
     # Internal methods

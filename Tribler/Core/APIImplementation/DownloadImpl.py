@@ -12,8 +12,7 @@ from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.simpledefs import *
 from Tribler.Core.osutils import *
 from Tribler.Core.APIImplementation.SingleDownload import SingleDownload
-from Tribler.Core.APIImplementation.maketorrent import pathlist2filename
-from Tribler.Core.APIImplementation.miscutils import offset2piece
+import Tribler.Core.APIImplementation.maketorrent as maketorrent
 from Tribler.Core.Utilities.unicode import metainfoname2unicode
 
 
@@ -90,7 +89,7 @@ class DownloadImpl:
             for (k,v) in self.session.get_current_startup_config_copy().sessconfig.iteritems():
                 self.dlconfig.setdefault(k,v)
     
-            self.set_filepieceranges()
+            self.set_filepieceranges(metainfo)
     
             # Things that only exist at runtime
             self.dlruntimeconfig= {}
@@ -99,9 +98,6 @@ class DownloadImpl:
             self.dlruntimeconfig['max_desired_upload_rate'] = self.dlconfig['max_upload_rate'] 
             self.dlruntimeconfig['max_desired_download_rate'] = self.dlconfig['max_download_rate']
     
-    
-            print >>sys.stderr,"Download: setup: get_max_desired",self.dlruntimeconfig['max_desired_upload_rate']
-
             if pstate is None or pstate['dlstate']['status'] != DLSTATUS_STOPPED:
                 # Also restart on STOPPED_ON_ERROR, may have been transient
                 self.create_engine_wrapper(lmcreatedcallback,pstate,lmvodplayablecallback)
@@ -273,7 +269,8 @@ class DownloadImpl:
             
             # Offload the removal of the content and other disk cleanup to another thread
             if removestate:
-                self.session.uch.perform_removestate_callback(infohash,self.correctedinfoname,removecontent,self.dlconfig['saveas'])
+                
+                self.session.uch.perform_removestate_callback(infohash,contentdest,removecontent)
             
             return (infohash,pstate)
         finally:
@@ -320,6 +317,34 @@ class DownloadImpl:
         finally:
             self.dllock.release()
 
+    def get_dest_files(self):
+        """ We could get this from BT1Download.files (see BT1Download.saveAs()),
+        but that object is the domain of the network thread. """
+        self.dllock.acquire()
+        try:
+            f2dlist = []
+            metainfo = self.tdef.get_metainfo() 
+            if 'files' not in metainfo['info']:
+                # single-file torrent
+                diskfn = self.get_content_dest()
+                f2dtuple = (None,diskfn)
+                f2dlist.append(f2dtuple)
+            else:
+                # multi-file torrent
+                for filename in self.dlconfig['selected_files']:
+                    filerec = maketorrent.get_torrentfilerec_from_metainfo(filename,metainfo)
+                    savepath = maketorrent.torrentfilerec2savefilename(filerec)
+                    diskfn = os.path.join(self.get_content_dest(),savepath)
+                    f2dtuple = (filename,diskfn)
+                    f2dlist.append(f2dtuple)
+                
+            return f2dlist
+        finally:
+            self.dllock.release()
+
+
+
+
     #
     # Persistence
     #
@@ -364,34 +389,14 @@ class DownloadImpl:
         self.dllock.release()
 
 
-    def set_filepieceranges(self):
+    def set_filepieceranges(self,metainfo):
         """ Determine which file maps to which piece ranges for progress info """
         
         print >>sys.stderr,"Download: set_filepieceranges:",self.dlconfig['selected_files']
-        
-        if len(self.dlconfig['selected_files']) > 1:
-            if 'files' not in self.tdef.metainfo['info']:
-                raise ValueError("Selected more than 1 file, but torrent is single-file torrent")
-            
-            files = self.tdef.metainfo['info']['files']
-            piecesize = self.tdef.metainfo['info']['piece length']
-            
-            total = 0L
-            for i in xrange(len(files)):
-                path = files[i]['path']
-                length = files[i]['length']
-                filename = pathlist2filename(path)
-                
-                print >>sys.stderr,"Download: set_filepieceranges: Torrent file",filename,"in",self.dlconfig['selected_files']
+        (length,self.filepieceranges) = maketorrent.get_length_filepieceranges_from_metainfo(metainfo,self.dlconfig['selected_files'])
 
-                if filename in self.dlconfig['selected_files'] and length > 0:
-                    
-                    range = (offset2piece(total,piecesize), offset2piece(total + length,piecesize),filename)
-                    
-                    print >>sys.stderr,"Download: set_filepieceranges: Torrent file range append",range
-                    
-                    self.filepieceranges.append(range)
-                total += length
-        else:
-            self.filepieceranges = None 
-
+    def get_content_dest(self):
+        """ Returns the file (single-file torrent) or dir (multi-file torrent)
+        to which the downloaded content is saved. """
+        return os.path.join(self.dlconfig['saveas'],self.correctedinfoname)
+    

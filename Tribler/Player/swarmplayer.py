@@ -41,6 +41,8 @@ DEBUG = True
 ALLOW_MULTIPLE = False
 RATELIMITADSL = False
 
+DISKSPACE_LIMIT = 5L * 1024L * 1024L * 1024L  # 5 GB
+
 
 class PlayerFrame(VideoFrame):
 
@@ -82,12 +84,14 @@ class PlayerApp(wx.App):
             self.utility.app = self
             print self.utility.lang.get('build')
             
-            
+            # Start video frame
             self.videoFrame = PlayerFrame(self)
             
+            # Start HTTP server for serving video to player widget
             self.videoserv = VideoHTTPServer.getInstance() # create
             self.videoserv.background_serve()
             
+            # Start Tribler Session
             self.sconfig = SessionStartupConfig()
             self.sconfig.set_overlay(False)
             self.sconfig.set_megacache(False)
@@ -100,6 +104,7 @@ class PlayerApp(wx.App):
                 self.r.set_global_max_speed(UPLOAD,90)
                 self.s.set_download_states_callback(self.ratelimit_callback,getpeerlist=False)
             
+            # Load torrent
             if self.params[0] != "":
                 torrentfilename = self.params[0]
             else:
@@ -109,9 +114,10 @@ class PlayerApp(wx.App):
                     return False
 
             self.tdef = TorrentDef.load(torrentfilename)
-            videofiles = self.tdef.get_video_files()
-
             print >>sys.stderr,"main: infohash is",`self.tdef.get_infohash()`
+            
+            # Select which video to play (if multiple)
+            videofiles = self.tdef.get_video_files()
             print >>sys.stderr,"main: Found video files",videofiles
             
             if len(videofiles) == 0:
@@ -128,15 +134,33 @@ class PlayerApp(wx.App):
             else:
                 dlfile = videofiles[0]
             
+            # Free diskspace, if needed
+            destdir = os.path.join(self.s.get_state_dir(),'downloads')
+            if not os.access(destdir,os.F_OK):
+                os.mkdir(destdir)
+            
+            if not self.free_up_diskspace(destdir,self.tdef.get_length([dlfile])):
+                self.OnExit()
+                return False
+            
+            # Setup how to download
             dcfg = DownloadStartupConfig()
             dcfg.set_video_start_callback(self.vod_ready_callback)
-            dcfg.set_selected_files([dlfile])
+            dcfg.set_dest_dir(destdir)
+            
+            if self.tdef.is_multifile_torrent():
+                dcfg.set_selected_files([dlfile])
+            
             dcfg.set_max_conns_to_initiate(300)
             dcfg.set_max_conns(300)
             
-            d = self.s.start_download(self.tdef,dcfg)
-            d.set_state_callback(self.state_callback,1)
+            # Start download
+            self.d = self.s.start_download(self.tdef,dcfg)
+            self.d.set_state_callback(self.state_callback,1)
 
+            print >>sys.stderr,"main: Saving content to",self.d.get_dest_files()
+
+            # Fire up the player widget
             self.videoplay = VideoPlayer.getInstance()
             self.videoplay.register(self.utility)
             self.videoplay.set_parentwindow(self.videoFrame)
@@ -152,10 +176,11 @@ class PlayerApp(wx.App):
             self.Bind(wx.EVT_END_SESSION, self.videoFrame.OnCloseWindow)
 
             self.videoFrame.Show(True)
+            
         except Exception,e:
             print_exc()
-            if self.s is not None:
-                self.s.shutdown()
+            self.show_error(str(e))
+            self.OnExit()
             return False
         return True
 
@@ -183,12 +208,50 @@ class PlayerApp(wx.App):
             filename = None
         dlg.Destroy()
         return filename
-
+    
+    def free_up_diskspace(self,destdir,needed):
+        
+        if needed > DISKSPACE_LIMIT:
+            # Not cleaning out whole cache for bigguns
+            return True 
+        
+        inuse = 0L
+        timelist = []
+        for filename in os.listdir(destdir):
+            fullpath = os.path.join(destdir,filename)
+            stat = os.stat(fullpath)
+            inuse += stat.st_size
+            timerec = (stat.st_ctime,fullpath,stat.st_size)
+            timelist.append(timerec)
+            
+        if inuse+needed < DISKSPACE_LIMIT:
+            # Enough available, done.
+            return True
+        
+        # Policy: remove oldest till sufficient
+        timelist.sort()
+        print >> sys.stderr,"main: Found",timelist,"in dest dir"
+        
+        got = 0L
+        for timerec in timelist:
+            print >> sys.stderr,"main: Removing",timerec[1],"to free up diskspace, t",timerec[0]
+            os.remove(timerec[1])
+            got += timerec[2]
+            if got > needed:
+                return True
+        # Deleted all, still no space:
+        return False
+        
+        
+    def show_error(self,msg):
+        dlg = wx.MessageDialog(None, msg, "SwarmPlayer Error", wx.OK|wx.ICON_ERROR)
+        result = dlg.ShowModal()
+        dlg.Destroy()
+        
     def OnExit(self):
         print >>sys.stderr,"ONEXIT"
         if self.s is not None:
             self.s.shutdown()
-        
         
         ###time.sleep(5) # TODO: make network thread non-daemon which MainThread has to end.
         

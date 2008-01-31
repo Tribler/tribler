@@ -100,3 +100,9 @@ class Download(DownloadRuntimeConfig,DownloadImpl):
         """
         return DownloadImpl.get_max_desired_speed(self,direct)
     
+    def get_dest_files(self):
+        """ Returns the filenames on disk to which this Download saves
+        @return A list of (filename-in-torrent, disk filename) tuples.
+        """
+        return DownloadImpl.get_dest_files(self)
+        
