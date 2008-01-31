@@ -86,5 +86,5 @@ class RemoteTorrentHandler:
 
        # Let GUI thread do the normal download stuff now
        stddetails = guiutil.standardDetails
-       stddetails.invokeLater(stddetails.download,[torrent])
+       # TODO: stddetails.invokeLater(stddetails.download,[torrent])
        

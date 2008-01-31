@@ -29,20 +29,6 @@ from Tribler.Main.Dialogs.abcoption import get_itracker_url
 DEBUG = False
 
 
-wxEVT_INVOKE = wx.NewEventType()
-
-def EVT_INVOKE(win, func):
-    win.Connect(-1, -1, wxEVT_INVOKE, func)
-
-class InvokeEvent(wx.PyEvent):
-    def __init__(self, func, args, kwargs):
-        wx.PyEvent.__init__(self)
-        self.SetEventType(wxEVT_INVOKE)
-        self.func = func
-        self.args = args
-        self.kwargs = kwargs
-
-
 ################################################################
 #
 # Class: MiscInfoPanel
@@ -917,7 +903,7 @@ class CompleteDir:
             self.errorCallback(e)
 
     def errorCallback(self,e):
-        self.invokeLater(self.onError,[e])
+        wx.CallAfter(self.onError,e)
     
     def onError(self,e):
         self.currentLabel.SetLabel(self.utility.lang.get('error'))
@@ -933,7 +919,7 @@ class CompleteDir:
         
         self.utility.controller.tracker_rescan_dir()
         
-        self.invokeLater(self.onComplete)
+        wx.CallAfter(self.onComplete)
     
     def onComplete(self):
         self.currentLabel.SetLabel(self.utility.lang.get('Done'))
@@ -941,7 +927,7 @@ class CompleteDir:
         self.button.SetLabel(self.utility.lang.get('close'))
 
     def valCallback(self, amount):
-        self.invokeLater(self.onVal, [amount])
+        wx.CallAfter(self.onVal,amount)
 
     def onVal(self, amount):
         target = int(amount * 1000)
@@ -960,24 +946,12 @@ class CompleteDir:
             absfn = os.path.join(self.utility.getConfigPath(),'itracker',fn)
             shutil.copy(torrent,absfn)
         
-        self.invokeLater(self.onFile, [torrent])
+        wx.CallAfter(self.onFile,torrent)
 
     def onFile(self, torrent):
         if DEBUG:
             print "onFile thread",currentThread()
         self.currentLabel.SetLabel(self.utility.lang.get('building') + torrent)
-
-    def onInvoke(self, event):
-        if not self.flag.isSet():
-            event.func(*event.args, **event.kwargs)
-
-    def invokeLater(self, func, args = None, kwargs = None):
-        if args is None:
-            args = []
-        if kwargs is None:
-            kwargs = {}
-        if not self.flag.isSet():
-            wx.PostEvent(self.frame, InvokeEvent(func, args, kwargs))
 
     def done(self, event):
         if DEBUG:

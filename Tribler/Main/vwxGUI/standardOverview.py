@@ -1,7 +1,6 @@
 import wx, os, sys, os.path
 import wx.xrc as xrc
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from safeguiupdate import FlaglessDelayedInvocation
 from traceback import print_exc,print_stack
 from Tribler.Main.vwxGUI.torrentManager import TorrentDataManager
 from Tribler.Main.vwxGUI.SearchDetails import SearchDetailsPanel
@@ -21,7 +20,7 @@ OVERVIEW_MODES = ['filesMode', 'personsMode', 'profileMode', 'friendsMode', 'sub
 
 DEBUG = True
 
-class standardOverview(wx.Panel,FlaglessDelayedInvocation):
+class standardOverview(wx.Panel):
     """
     Panel that shows one of the overview panels
     """
@@ -44,7 +43,6 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
     
     def _PostInit(self):
         # Do all init here
-        FlaglessDelayedInvocation.__init__(self)
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.categorykey = None
@@ -272,7 +270,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         
     def refreshTorrentStats_network_callback(self):
         """ Called by network thread """
-        self.invokeLater(self.refreshTorrentStats)
+        wx.CallAfter(self.refreshTorrentStats)
         
     def refreshTorrentStats(self):
         if self.mode == 'libraryMode':
@@ -520,7 +518,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
             
         if operate in ['update', 'delete']:
             if detailsPanel and detailsPanel.getIdentifier() == torrent['infohash']:
-                self.invokeLater(detailsPanel.setData, [torrent])
+                wx.CallAfter(detailsPanel.setData,torrent)
         
         #<mluc>[04.05.2007]: using self.mode corrupts the data in peermanager if the 
         #current view selected is persons or friends, so, the solution would be to
@@ -536,22 +534,26 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         
         if self.mode == 'libraryMode':
             # Reload whole library to make sorting ok
-            self.invokeLater(self.filterChanged, [None])
+            wx.CallAfter(self.filterChanged,None)
             return
             
         if operate == 'update':
-            # unhealthy torrents are also updated 
-            self.invokeLater(torrentGrid.updateItem, [torrent], {'onlyupdate':True})
+            # unhealthy torrents are also updated
+            torrentgrid_updateItem_lambda = lambda:torrentGrid.updateItem(torrent],onlyupdate=True) 
         elif operate == 'add' and torrent.get('status') == 'good' or torrent.get('myDownloadHistory'):
             #print "******** add torrent", torrent,self.mode,self.data_manager.inSearchMode(self.mode)
             
             # only show update if we are not searching or update is a RemoteSearchResult
             if not self.data_manager.inSearchMode(self.mode) or torrent.has_key('query_permid'):
                 # new torrents are only added when healthy
-                self.invokeLater(torrentGrid.updateItem, [torrent])
+                torrentgrid_updateItem_lambda = lambda:torrentGrid.updateItem(torrent)
+            else:    
+                torrentgrid_updateItem_lambda = None
+                
         elif operate == 'delete':
-            self.invokeLater(torrentGrid.updateItem, [torrent], {'delete':True})
-            
+            torrentgrid_updateItem_lambda = lambda:torrentGrid.updateItem(torrent,delete=True)
+        if torrentgrid_updateItem_lambda is not None:
+            wx.CallAfter(torrentgrid_updateItem_lambda)
         
     def updateFunPersons(self, peer_data, operate):    
         grid = None
@@ -564,16 +566,16 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
                 if DEBUG:
                     print >>sys.stderr,"standardOverview: updateFunPersons called with",operate,"for",peer_data.get('content_name'),"in mode",self.mode
                 #something changed, so refresh data in grid
-                self.invokeLater(self.refreshData)
+                wx.CallAfter(self.refreshData)
                 #check if the changed peer_data is in the list of visible ones
 #                for index in range(grid.currentData,grid.currentData+grid.items):
 #                    if index<len(grid.data) and grid.data[index]['permid'] == peer_data['permid']:
 #                        if operate in ["update","add","online","offline"]:
-#                            self.invokeLater(self.refreshData)#grid.setDataOfPanel,[index-grid.currentData, grid.data[index]])
+#                            wx.CallAfter(self.refreshData)#grid.setDataOfPanel,[index-grid.currentData, grid.data[index]])
 #                        elif operate in ["delete","hide"]:
-#                            self.invokeLater(self.refreshData)#grid.setData,[grid.data,False])
+#                            wx.CallAfter(self.refreshData)#grid.setData,[grid.data,False])
 #                        elif operate.endswith("and top_changed"):
-#                            self.invokeLater(grid.refreshPanels)
+#                            wx.CallAfter(grid.refreshPanels)
 #                print "#===============================================================================#"
 #                print "#                         dump visible peers                                    #"
 #                for index in range(grid.currentData,grid.currentData+grid.items):
@@ -582,7 +584,7 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
 #                print "#===============================================================================#"
             except:
                 print_exc()
-                self.invokeLater(grid.refreshPanels)
+                wx.CallAfter(grid.refreshPanels)
     
     def getSearchField(self,mode=None):
         if mode is None:
@@ -623,7 +625,8 @@ class standardOverview(wx.Panel,FlaglessDelayedInvocation):
         
     def setSearchFeedback(self,*args,**kwargs):
         """ May be called by web2.0 thread """
-        self.invokeLater(self._setSearchFeedback,args,kwargs)
+        setSearchFeedback_lambda = lambda:self._setSearchFeedback(args,kwargs)
+        wx.CallAfter(setSearchFeedback_lambda)
         
     def getSearchBusy(self):
         searchDetailsPanel = self.data[self.mode].get('searchDetailsPanel')

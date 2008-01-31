@@ -4,8 +4,11 @@
 import sys
 import os
 import shutil
+import binascii
 from threading import Thread,currentThread
 from traceback import print_exc,print_stack
+
+from Tribler.Core.simpledefs import *
 from Tribler.Core.APIImplementation.ThreadPool import ThreadPool
 from Tribler.Core.CacheDB.Notifier import Notifier
 
@@ -13,12 +16,13 @@ DEBUG = False
 
 class UserCallbackHandler:
     
-    def __init__(self,sesslock,sessconfig):
-        self.sesslock = sesslock
-        self.sessconfig = sessconfig
+    def __init__(self,session):
+        self.session = session
+        self.sesslock = session.sesslock
+        self.sessconfig = session.sessconfig
 
         # Notifier for callbacks to API user
-        self.threadpool = ThreadPool(4)
+        self.threadpool = ThreadPool(2)
         self.notifier = Notifier.getInstance(self.threadpool)
 
     def shutdown(self):
@@ -57,7 +61,7 @@ class UserCallbackHandler:
             if DEBUG:
                 print >>sys.stderr,"Session: session_removestate_callback_target called",currentThread().getName()
             try:
-                self.sesscb_removestate(infohash,contentdest,removecontent)
+                self.session.sesscb_removestate(infohash,contentdest,removecontent)
             except:
                 print_exc()
         self.perform_usercallback(session_removestate_callback_target)
@@ -70,49 +74,6 @@ class UserCallbackHandler:
             
         finally:
             self.sesslock.release()
-
-
-    def sesscb_removestate(self,infohash,contentdest,removecontent):
-        """ Called by SessionCallbackThread """
-        if DEBUG:
-            print >>sys.stderr,"Session: sesscb_removestate called",`infohash`,`correctedinfoname`,removecontent
-        self.sesslock.acquire()
-        try:
-            dlpstatedir = os.path.join(self.sessconfig['state_dir'],STATEDIR_DLPSTATE_DIR)
-            trackerdir = os.path.join(self.sessconfig['state_dir'],STATEDIR_ITRACKER_DIR)
-        finally:
-            self.sesslock.release()
-
-        # See if torrent uses internal tracker
-        try:
-            self.session.remove_from_internal_tracker_by_infohash(infohash)
-        except:
-            # Show must go on
-            print_exc()
-
-        # Remove checkpoint
-        hexinfohash = binascii.hexlify(infohash)
-        try:
-            basename = hexinfohash+'.pickle'
-            filename = os.path.join(dlpstatedir,basename)
-            if DEBUG:
-                print >>sys.stderr,"Session: sesscb_removestate: removing dlcheckpoint entry",filename
-            if os.access(filename,os.F_OK):
-                os.remove(filename)
-        except:
-            # Show must go on
-            print_exc()
-
-        # Remove downloaded content from disk
-        if removecontent:
-            if DEBUG:
-                print >>sys.stderr,"Session: sesscb_removestate: removing saved content",contentdest
-            if not os.path.isdir(contentdest):
-                # single-file torrent
-                os.remove(contentdest)
-            else:
-                # multi-file torrent
-                shutil.rmtree(contentdest,True) # ignore errors
 
     def notify(self, subject, changeType, obj_id, *args):
         """

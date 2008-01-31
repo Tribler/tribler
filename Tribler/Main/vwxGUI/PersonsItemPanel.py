@@ -5,7 +5,6 @@ from Tribler.Core.Utilities.utilities import *
 from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.bgPanel import ImagePanel
-from safeguiupdate import FlaglessDelayedInvocation
 from Tribler.Core.Utilities.unicode import *
 from Tribler.Core.CacheDB.CacheDBHandler import PeerDBHandler
 from Tribler.Main.vwxGUI.filesItemPanel import getResizedBitmapFromImage
@@ -410,7 +409,7 @@ class PersonsItemPanel(wx.Panel):
         if self.data:
             return self.data['permid']
 
-class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
+class ThumbnailViewer(wx.Panel):
     """
     Show thumbnail and mast with info on mouseOver
     """
@@ -435,7 +434,6 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
     
     def _PostInit(self):
         # Do all init here
-        FlaglessDelayedInvocation.__init__(self)
         self.backgroundColor = wx.WHITE
         self.dataBitmap = self.maskBitmap = None
         self.data = None
@@ -526,7 +524,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
         [mimetype,bmpdata] = self.peer_db.getPeerIcon(data['permid'],data['name'])
         #print "PersonsItemPanel: ThumbnailViewer: loadMetadata: Got",show_permid_short(permid),mimetype
 
-        self.invokeLater(self.metadata_thread_gui_callback,[data,mimetype,bmpdata,type])
+        wx.CallAfter(self.metadata_thread_gui_callback,data,mimetype,bmpdata,type)
              
     def metadata_thread_gui_callback(self,data,mimetype,bmpdata,type=None):
         """ Called by GUI thread """

@@ -153,7 +153,7 @@ class Session(SessionRuntimeConfig):
         self.save_pstate_sessconfig()
 
         # Create handler for calling back the user via separate threads
-        self.uch = UserCallbackHandler(self.sesslock,self.sessconfig)
+        self.uch = UserCallbackHandler(self)
 
         # Create engine with network thread
         self.lm = TriblerLaunchMany(self,self.sesslock)
@@ -493,10 +493,60 @@ class Session(SessionRuntimeConfig):
 
 
     def get_default_config_filename(state_dir):
+        """ Return the name of the file where a session config is saved by default. 
+        @return A filename 
+        """
         return os.path.join(state_dir,STATEDIR_SESSCONFIG)
     get_default_config_filename = staticmethod(get_default_config_filename)
 
     def get_internal_tracker_torrentfilename(self,infohash):
+        """ Return the absolute pathname of the torrent file used by the
+        internal tracker.
+        @return A filename
+        """
         trackerdir = self.get_internal_tracker_dir()
         basename = binascii.hexlify(infohash)+'.torrent' # ignore .tribe stuff, not vital
         return os.path.join(trackerdir,basename)
+
+
+    def sesscb_removestate(self,infohash,contentdest,removecontent):
+        """ Called by SessionCallbackThread """
+        if DEBUG:
+            print >>sys.stderr,"Session: sesscb_removestate called",`infohash`,`contentdest`,removecontent
+        self.sesslock.acquire()
+        try:
+            dlpstatedir = os.path.join(self.sessconfig['state_dir'],STATEDIR_DLPSTATE_DIR)
+            trackerdir = os.path.join(self.sessconfig['state_dir'],STATEDIR_ITRACKER_DIR)
+        finally:
+            self.sesslock.release()
+
+        # See if torrent uses internal tracker
+        try:
+            self.remove_from_internal_tracker_by_infohash(infohash)
+        except:
+            # Show must go on
+            print_exc()
+
+        # Remove checkpoint
+        hexinfohash = binascii.hexlify(infohash)
+        try:
+            basename = hexinfohash+'.pickle'
+            filename = os.path.join(dlpstatedir,basename)
+            if DEBUG:
+                print >>sys.stderr,"Session: sesscb_removestate: removing dlcheckpoint entry",filename
+            if os.access(filename,os.F_OK):
+                os.remove(filename)
+        except:
+            # Show must go on
+            print_exc()
+
+        # Remove downloaded content from disk
+        if removecontent:
+            if DEBUG:
+                print >>sys.stderr,"Session: sesscb_removestate: removing saved content",contentdest
+            if not os.path.isdir(contentdest):
+                # single-file torrent
+                os.remove(contentdest)
+            else:
+                # multi-file torrent
+                shutil.rmtree(contentdest,True) # ignore errors

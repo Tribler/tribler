@@ -333,7 +333,7 @@ class RemoteQueryMsgHandler:
             return
         
         so = guiutil.standardOverview
-        so.invokeLater(self.notify_hits_guicallback,[so,permid,kws,answers])
+        # TODO: so.invokeLater(self.notify_hits_guicallback,[so,permid,kws,answers])
 
 
     def notify_hits_guicallback(self,standardOverview,permid,kws,answers):

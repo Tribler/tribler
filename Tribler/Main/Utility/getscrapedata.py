@@ -2,7 +2,6 @@ import re
 import binascii
 import sys
 from threading import Thread,Event
-from safeguiupdate import DelayedEventHandler
 
 # The ScrapeThread calls ABCTorrent to update the info. As that updates
 # the GUI, those updates must be done by the MainThread and not this
@@ -18,12 +17,10 @@ DEBUG = False
 # Retrieves scrape data from a tracker.
 #
 ################################################################
-class ScrapeThread(Thread,DelayedEventHandler):
+class ScrapeThread(Thread):
 
     def __init__(self, utility, torrent, manualscrape = False):
         Thread.__init__(self, None, None, None)
-        DelayedEventHandler.__init__(self)
-        self.doneflag = Event()
 
         self.torrent = torrent
         self.utility = utility
@@ -136,7 +133,7 @@ class ScrapeThread(Thread,DelayedEventHandler):
             print "scrapethread: done scraping"
 
     def updateTorrent(self):
-        self.invokeLater(self.OnUpdateTorrent, [])
+        wx.CallAfter(self.OnUpdateTorrent)
 
 
     def OnUpdateTorrent(self):

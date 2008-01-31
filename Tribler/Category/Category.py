@@ -10,11 +10,6 @@ from sets import Set
 from time import time
 from copy import deepcopy
 from traceback import print_exc
-try:
-    from safeguiupdate import FlaglessDelayedEventHandler
-except ImportError:
-    class FlaglessDelayedEventHandler:    # support cmdline version without wx
-        pass
     
 from threading import Condition
 import sys
@@ -29,7 +24,7 @@ def make_filename(config_dir, filename):
     else:
         return os.path.join(config_dir,'Tribler', 'Category', filename)    
 
-class Category (FlaglessDelayedEventHandler):
+class Category:
     
     # Code to make this a singleton
     __single = None
@@ -40,7 +35,6 @@ class Category (FlaglessDelayedEventHandler):
             raise RuntimeError, "Category is singleton"
         filename = make_filename(install_dir, category_file)
         Category.__single = self
-        self.invoker = FlaglessDelayedEventHandler()
         self.torrent_db = TorrentDBHandler.getInstance()
         self.category_info = getCategoryInfo(filename)
         self.category_info.sort(rankcmp)
@@ -104,7 +98,7 @@ class Category (FlaglessDelayedEventHandler):
             cond.notify()
             cond.release()
 
-        self.invoker.invokeLater(makeDialog)
+        wx.CallAfter(makeDialog)
         
         # Wait for dialog to be ready
         cond.acquire()
@@ -119,7 +113,7 @@ class Category (FlaglessDelayedEventHandler):
         for i in xrange(len(data)):
             count += 1
             if count % step == 0:
-                self.invoker.invokeLater(dlg.Update, [count])
+                wx.CallAfter(dlg.Update,count)
             try:
                 # try alternative dir if bsddb doesnt match with current Tribler install
                 rec = data[i]
@@ -150,7 +144,7 @@ class Category (FlaglessDelayedEventHandler):
             data[i]['category'] = category_belong    # should have updated self.data
             self.torrent_db.updateTorrent(data[i]['infohash'], updateFlag=False, category=category_belong)
         self.torrent_db.sync()
-        self.invoker.invokeLater(dlg.Destroy)   
+        wx.CallAfter(dlg.Destroy)   
     
     def getCategoryKeys(self):
         keys = []

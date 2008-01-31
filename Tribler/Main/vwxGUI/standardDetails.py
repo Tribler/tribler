@@ -17,7 +17,6 @@ from Tribler.Main.vwxGUI.torrentManager import TorrentDataManager
 #from Tribler.vwxGUI.LibraryItemPanel import rightMouseButton
 from Tribler.Main.vwxGUI.filesItemPanel import loadAzureusMetadataFromTorrent,createThumbImage
 from Tribler.Core.Utilities.unicode import bin2unicode
-from safeguiupdate import FlaglessDelayedInvocation
 #from Tribler.vwxGUI.tribler_topButton import tribler_topButton
 from Tribler.Main.Utility.constants import COL_PROGRESS
 from Tribler.Video.VideoPlayer import VideoPlayer
@@ -41,7 +40,7 @@ def showInfoHash(infohash):
         pass
     return encodestring(infohash).replace("\n","")
             
-class standardDetails(wx.Panel,FlaglessDelayedInvocation):
+class standardDetails(wx.Panel):
     """
     Wrappers around details xrc panels
     """
@@ -63,7 +62,6 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
     
     def _PostInit(self):
         # Do all init here
-        FlaglessDelayedInvocation.__init__(self)
         self.subscr_old_source = None
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility        
@@ -1536,7 +1534,7 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 
     def refreshTorrentStats_network_callback(self):
         """ Called by network thread """
-        self.invokeLater(self.refreshTorrentStats)
+        wx.CallAfter(self.refreshTorrentStats)
         
     def refreshTorrentStats(self):
         """ Called by GUI thread """
@@ -1577,7 +1575,8 @@ class standardDetails(wx.Panel,FlaglessDelayedInvocation):
 
     def refreshTorrentTotalStats_network_callback(self,*args,**kwargs):
         """ Called by network thread """
-        self.invokeLater(self.refreshTorrentTotalStats,args,kwargs)
+        refresh_torrent_stats_lambda = lambda:self.refreshTorrentTotalStats(args,kwargs)
+        wx.CallAfter(refresh_torrent_stats_lambda)
         
     def refreshTorrentTotalStats(self,totaldlspeed='',totalulspeed=''):
         """ Called by GUI thread """

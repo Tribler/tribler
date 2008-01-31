@@ -17,7 +17,9 @@ import os
 import sys
 import time
 import commands
-from threading import enumerate,currentThread
+import tempfile
+import urllib2
+from threading import enumerate,currentThread,RLock
 from traceback import print_exc
 
 if sys.platform == "darwin":
@@ -29,30 +31,38 @@ from wx import xrc
 #import hotshot
 
 from Tribler.Core.API import *
+from Tribler.Core.Utilities.unicode import bin2unicode
+from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
 
+from Tribler.Video.EmbeddedPlayer import VideoFrame
 from Tribler.Video.VideoServer import VideoHTTPServer
 from Tribler.Video.VideoPlayer import VideoPlayer, VideoChooser, PLAYBACKMODE_INTERNAL
-from Tribler.Main.Utility.utility import Utility
-from Tribler.Video.EmbeddedPlayer import VideoFrame
-from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
-from Tribler.Core.Utilities.unicode import bin2unicode
+from Tribler.Utilities.Instance2Instance import *
+
+from Tribler.Main.Utility.utility import Utility # TO REMOVE
 
 DEBUG = True
 ALLOW_MULTIPLE = False
 RATELIMITADSL = False
 
 DISKSPACE_LIMIT = 5L * 1024L * 1024L * 1024L  # 5 GB
+I2I_LISTENPORT = 57894
 
+closing = False
 
 class PlayerFrame(VideoFrame):
 
     def __init__(self,parent):
         VideoFrame.__init__(self,parent,title='SwarmPlayer 0.0.6')
-        self.closing = False
+        
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
     
     def OnCloseWindow(self, event = None):
-        self.closing = True
+        global closing
+        closing = True
+        
+        self.set_wxclosing()
+        
         if event is not None:
             nr = event.GetEventType()
             lookup = { wx.EVT_CLOSE.evtType[0]: "EVT_CLOSE", wx.EVT_QUERY_END_SESSION.evtType[0]: "EVT_QUERY_END_SESSION", wx.EVT_END_SESSION.evtType[0]: "EVT_END_SESSION" }
@@ -75,6 +85,8 @@ class PlayerApp(wx.App):
         self.abcpath = abcpath
         self.error = None
         self.s = None
+        self.dlock = RLock()
+        self.d = None
         self.said_start_playback = False
         wx.App.__init__(self, x)
         
@@ -84,18 +96,31 @@ class PlayerApp(wx.App):
             self.utility.app = self
             print self.utility.lang.get('build')
             
+            # Start server for instance2instance communication
+            self.i2is = Instance2InstanceServer(I2I_LISTENPORT,self.i2icallback) 
+            self.i2is.start()
+            
             # Start video frame
             self.videoFrame = PlayerFrame(self)
             
             # Start HTTP server for serving video to player widget
             self.videoserv = VideoHTTPServer.getInstance() # create
             self.videoserv.background_serve()
+            self.videoserv.register(self.videoserver_error_callback,self.videoserver_set_status_callback)
+
+            # Fire up the player widget
+            self.videoplay = VideoPlayer.getInstance()
+            self.videoplay.register(self.utility)
+            self.videoplay.set_parentwindow(self.videoFrame)
+            # h4xor TEMP ARNO
+            self.videoplay.playbackmode = PLAYBACKMODE_INTERNAL
             
             # Start Tribler Session
             self.sconfig = SessionStartupConfig()
             self.sconfig.set_overlay(False)
             self.sconfig.set_megacache(False)
             self.s = Session(self.sconfig)
+            self.s.set_download_states_callback(self.sesscb_states_callback)
 
             if RATELIMITADSL:
                 self.count = 0
@@ -113,63 +138,7 @@ class PlayerApp(wx.App):
                     self.OnExit()
                     return False
 
-            self.tdef = TorrentDef.load(torrentfilename)
-            print >>sys.stderr,"main: infohash is",`self.tdef.get_infohash()`
-            
-            # Select which video to play (if multiple)
-            videofiles = self.tdef.get_video_files()
-            print >>sys.stderr,"main: Found video files",videofiles
-            
-            if len(videofiles) == 0:
-                print >>sys.stderr,"main: No video files found! Let user select"
-                # Let user choose any file
-                videofiles = self.tdef.get_video_files(videoexts=None)
-                
-            if len(videofiles) > 1:
-                selectedvideofile = self.ask_user_to_select_video(videofiles)
-                if selectedvideofile is None:
-                    self.OnExit()
-                    return False
-                dlfile = selectedvideofile
-            else:
-                dlfile = videofiles[0]
-            
-            # Free diskspace, if needed
-            destdir = os.path.join(self.s.get_state_dir(),'downloads')
-            if not os.access(destdir,os.F_OK):
-                os.mkdir(destdir)
-            
-            if not self.free_up_diskspace(destdir,self.tdef.get_length([dlfile])):
-                self.OnExit()
-                return False
-            
-            # Setup how to download
-            dcfg = DownloadStartupConfig()
-            dcfg.set_video_start_callback(self.vod_ready_callback)
-            dcfg.set_dest_dir(destdir)
-            
-            if self.tdef.is_multifile_torrent():
-                dcfg.set_selected_files([dlfile])
-            
-            dcfg.set_max_conns_to_initiate(300)
-            dcfg.set_max_conns(300)
-            
-            # Start download
-            self.d = self.s.start_download(self.tdef,dcfg)
-            self.d.set_state_callback(self.state_callback,1)
-
-            print >>sys.stderr,"main: Saving content to",self.d.get_dest_files()
-
-            # Fire up the player widget
-            self.videoplay = VideoPlayer.getInstance()
-            self.videoplay.register(self.utility)
-            self.videoplay.set_parentwindow(self.videoFrame)
-            cname = self.tdef.get_name_as_unicode()
-            if len(videofiles) > 1:
-                cname += u' - '+bin2unicode(dlfile)
-            self.videoplay.set_content_name(cname)
-            # h4xor TEMP ARNO
-            self.videoplay.playbackmode = PLAYBACKMODE_INTERNAL
+            self.start_download(torrentfilename)
             
             self.Bind(wx.EVT_CLOSE, self.videoFrame.OnCloseWindow)
             self.Bind(wx.EVT_QUERY_END_SESSION, self.videoFrame.OnCloseWindow)
@@ -208,6 +177,112 @@ class PlayerApp(wx.App):
             filename = None
         dlg.Destroy()
         return filename
+
+
+    def start_download(self,torrentfilename):
+        
+        # What if DL already running?
+        self.dlock.acquire()
+        try:
+            if self.d is not None:
+                # Policy: Remove current. TODO: seeding policy
+                self.videoplay.stop_playback()
+                self.s.remove_download(self.d)
+        finally:
+            self.dlock.release()
+        
+        self.tdef = TorrentDef.load(torrentfilename)
+        print >>sys.stderr,"main: infohash is",`self.tdef.get_infohash()`
+        
+        # Select which video to play (if multiple)
+        videofiles = self.tdef.get_video_files()
+        print >>sys.stderr,"main: Found video files",videofiles
+        
+        if len(videofiles) == 0:
+            print >>sys.stderr,"main: No video files found! Let user select"
+            # Let user choose any file
+            videofiles = self.tdef.get_video_files(videoexts=None)
+            
+        if len(videofiles) > 1:
+            selectedvideofile = self.ask_user_to_select_video(videofiles)
+            if selectedvideofile is None:
+                self.OnExit()
+                return False
+            dlfile = selectedvideofile
+        else:
+            dlfile = videofiles[0]
+        
+        # Free diskspace, if needed
+        destdir = os.path.join(self.s.get_state_dir(),'downloads')
+        if not os.access(destdir,os.F_OK):
+            os.mkdir(destdir)
+        
+        if not self.free_up_diskspace(destdir,self.tdef.get_length([dlfile])):
+            self.OnExit()
+            return False
+        
+        # Setup how to download
+        dcfg = DownloadStartupConfig()
+        dcfg.set_video_start_callback(self.vod_ready_callback)
+        dcfg.set_dest_dir(destdir)
+        
+        if self.tdef.is_multifile_torrent():
+            dcfg.set_selected_files([dlfile])
+        
+        dcfg.set_max_conns_to_initiate(300)
+        dcfg.set_max_conns(300)
+        
+        # Start download
+        self.d = self.s.start_download(self.tdef,dcfg)
+        
+
+        print >>sys.stderr,"main: Saving content to",self.d.get_dest_files()
+
+        cname = self.tdef.get_name_as_unicode()
+        if len(videofiles) > 1:
+            cname += u' - '+bin2unicode(dlfile)
+        self.videoplay.set_content_name(cname)
+
+
+    def i2icallback(self,cmd,param):
+        """ Called by Instance2Instance thread """
+        
+        print >>sys.stderr,"main: Another instance called us with cmd",cmd,"param",param
+        
+        if cmd == 'START':
+            torrentfilename = None
+            if param.startswith('http:'):
+                # Retrieve from web 
+                f = tempfile.NamedTemporaryFile()
+                n = urllib2.urlopen(url)
+                data = n.read()
+                f.write(data)
+                f.close()
+                n.close()
+                torrentfilename = f.name
+            else:
+                torrentfilename = param
+                
+            # Switch to GUI thread
+            start_download_lambda = lambda:self.start_download(torrentfilename)
+            wx.CallAfter(start_download_lambda)
+
+    def videoserver_error_callback(self,e,url):
+        """ Called by HTTP serving thread """
+        wx.CallAfter(self.videoserver_error_guicallback,e,url)
+        
+    def videoserver_error_guicallback(self,e,url):
+        print >>sys.stderr,"main: Video server reported error",str(e)
+        #global closing
+        #if not closing:
+        #    self.show_error(str(e))
+        pass
+
+    def videoserver_set_status_callback(self,status):
+        global closing
+        if not closing:
+            self.videoFrame.set_player_status(status)
+            
     
     def free_up_diskspace(self,destdir,needed):
         
@@ -261,20 +336,36 @@ class PlayerApp(wx.App):
         return 0
 
 
-    def state_callback(self,ds):
+    def sesscb_states_callback(self,dslist):
         """ Called by Session thread """
+
+        print >>sys.stderr,"main: Stats"
+        
+        # See which Download is currently playing
+        self.dlock.acquire()
+        d = self.d
+        self.dlock.release()
+        ds = None
+        for ds in dslist:
+            if ds.get_download() == d:
+                break
+        if ds is None:
+            return (1.0,False)
+        
         print >>sys.stderr,"main: Stats",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
         
-        if self.videoFrame.closing:
-            return
-        
+        global closing
+        if closing:
+            return (-1,False)
+
+        # Display stats for currently playing Download
         logmsgs = ds.get_log_messages()
         if len(logmsgs) > 0:
             print >>sys.stderr,"main: Log",logmsgs[0]
         progress = ds.get_vod_prebuffering_progress()
         playable = ds.get_vod_playable()
         t = ds.get_vod_playable_after()
-        print >>sys.stderr,"main: After is",t
+        print >>sys.stderr,"main: ETA is",t,"secs"
         if t > float(2 ** 30):
             intime = "inf"
         elif t == 0.0:
@@ -296,6 +387,8 @@ class PlayerApp(wx.App):
             genprogress = ds.get_progress()
             pstr = str(int(genprogress*100))
             msg = "Checking already downloaded parts "+pstr+"% done"
+        elif ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
+            msg = 'Error playing: '+str(ds.get_error())
         elif progress != 1.0:
             pstr = str(int(progress*100))
             npeerstr = str(ds.get_num_peers())
@@ -403,10 +496,9 @@ def run(params = None):
 
     #print "[StartUpDebug]---------------- 1", time()-start_time
     if not ALLOW_MULTIPLE and single_instance_checker.IsAnotherRunning():
-        #Send  torrent info to abc single instance
-        ## TODO ClientPassParam(params[0])
-        #print "[StartUpDebug]---------------- 2", time()-start_time
-        pass
+        if params[0] != "":
+            torrentfilename = params[0]
+            i2ic = Instance2InstanceClient(I2I_LISTENPORT,'START',torrentfilename)
     else:
         arg0 = sys.argv[0].lower()
         if arg0.endswith('.exe'):

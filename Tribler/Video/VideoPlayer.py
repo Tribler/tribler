@@ -50,12 +50,7 @@ class VideoPlayer:
         
     def register(self,utility):
         
-        
         self.utility = utility # TEMPARNO: make sure only used for language strings
-        
-        # TEMPARNO: Move this outside the player
-        videoserver = VideoHTTPServer.getInstance()
-        videoserver.register(self.videoserver_error_callback,self.videoserver_set_status_callback)
 
         self.determine_playbackmode()
 
@@ -242,9 +237,10 @@ class VideoPlayer:
         videoserver.set_movietransport(mtwrap)
  
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
-            self.parentwindow.invokeLater(self.swapin_videopanel_gui_callback,[cmd],{'play':True,'progressinf':progressinf})
+            swapin_videopanel_gui_callback_lambda = lambda:self.swapin_videopanel_gui_callback(cmd,play=True,progressinf=progressinf)
+            wx.CallAfter(swapin_videopanel_gui_callback_lambda)
         else:
-            self.parentwindow.invokeLater(self.progress4ext_gui_callback,[progressinf,cmd])
+            wx.CallAFter(self.progress4ext_gui_callback,progressinf,cmd)
  
     def swapin_videopanel_gui_callback(self,cmd,play=False,progressinf=None):
         """ Called by GUI thread """
@@ -276,7 +272,7 @@ class VideoPlayer:
         """ Called by network thread """
         if DEBUG:
             print >>sys.stderr,"videoplay: VOD failed"
-        self.parentwindow.invokeLater(self.vod_stopped,[ABCTorrentTemp])
+        wx.CallAfter(self.vod_stopped,ABCTorrentTemp)
 
     def vod_download_completed(self,ABCTorrentTemp):
         """ The video is in """
@@ -338,6 +334,10 @@ class VideoPlayer:
         
         self.launch_video_player(cmd)
 
+
+    def stop_playback(self):
+        if self.playbackmode == PLAYBACKMODE_INTERNAL:
+            self.parentwindow.stop_playback()
 
 
     def select_video(self,ABCTorrentTemp,enc=False):        
@@ -492,18 +492,6 @@ class VideoPlayer:
         othertorrents = dlg.get_othertorrents()
         dlg.Destroy()
         return [result == wx.ID_OK,othertorrents]
-
-
-    def videoserver_error_callback(self,e,url):
-        """ Called by HTTP serving thread """
-        self.parentwindow.invokeLater(self.videoserver_error_guicallback,[e,url])
-        
-    def videoserver_error_guicallback(self,e,url):
-        print >>sys.stderr,"videoplay: Video server reported error",str(e)
-        #self.onError(self.utility.lang.get('videoserverservefailure')+self.utility.lang.get('videoserverservefailureadvice'),url,str(e.__class__)+':'+str(e))
-
-    def videoserver_set_status_callback(self,status):
-        self.parentwindow.set_player_status(status)
 
     def create_url(self,videoserver,upath):
         schemeserv = 'http://127.0.0.1:'+str(videoserver.port)

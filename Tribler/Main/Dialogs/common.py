@@ -3,7 +3,6 @@
 
 import wx
 from ABC.GUI.list import ManagedList
-from safeguiupdate import DelayedInvocation
 from threading import Event
 
 def sort_dictlist(dict_list, key, order='increase'):
@@ -27,7 +26,7 @@ def sort_dictlist(dict_list, key, order='increase'):
     return [dict_list[i] for x, i in aux]
 
 
-class CommonTriblerList(ManagedList, DelayedInvocation):
+class CommonTriblerList(ManagedList):
     """ 
     0. Give a unique prefix
     1. IDs in rightalign and centeralign must be set in Utility.constants;
@@ -42,8 +41,6 @@ class CommonTriblerList(ManagedList, DelayedInvocation):
         self.utility = parent.utility
         self.prefix = prefix
         ManagedList.__init__(self, parent, style, prefix, minid, maxid, exclude, rightalign, centeralign)
-        DelayedInvocation.__init__(self)
-        self.doneflag = Event()
         
         self.data = []
         self.lastcolumnsorted, self.reversesort = self.columns.getSortedColumn()

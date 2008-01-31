@@ -4,7 +4,6 @@ from Tribler.Core.Utilities.utilities import *
 from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
-from safeguiupdate import FlaglessDelayedInvocation
 from Tribler.Core.Utilities.unicode import *
 from font import *
 from copy import deepcopy
@@ -330,7 +329,7 @@ class SubscriptionsItemPanel(wx.Panel):
 
 
 
-class FavicoThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
+class FavicoThumbnailViewer(wx.Panel):
     """
     Show thumbnail and mast with info on mouseOver
     """
@@ -353,7 +352,6 @@ class FavicoThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
     
     def _PostInit(self):
         # Do all init here
-        FlaglessDelayedInvocation.__init__(self)
         self.backgroundColor = wx.WHITE
         self.dataBitmap = self.maskBitmap = None
         self.data = None
@@ -433,7 +431,7 @@ class FavicoThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             except:
                 print_exc()
         
-        self.invokeLater(self.metadata_thread_gui_callback,[data,mimetype,bmpdata])
+        wx.CallAfter(self.metadata_thread_gui_callback,data,mimetype,bmpdata)
              
     def metadata_thread_gui_callback(self,data,mimetype,bmpdata):
         """ Called by GUI thread """

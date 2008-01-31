@@ -9,7 +9,6 @@ from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton, SwitchButton
 from Tribler.Main.vwxGUI.bgPanel import ImagePanel
-from safeguiupdate import FlaglessDelayedInvocation
 from Tribler.Core.Utilities.unicode import *
 from Tribler.Main.Utility.utility import getMetainfo
 from Tribler.Main.vwxGUI.IconsManager import IconsManager
@@ -488,7 +487,7 @@ class FilesItemPanel(wx.Panel):
         else:
             self.thumb.setSourceIcon(si)
                 
-class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
+class ThumbnailViewer(wx.Panel):
     """
     Show thumbnail and mast with info on mouseOver
     """
@@ -508,7 +507,6 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
     
     def _PostInit(self):
         # Do all init here
-        FlaglessDelayedInvocation.__init__(self)
         self.backgroundColor = wx.WHITE
         self.torrentBitmap = None
         self.torrent = None
@@ -639,7 +637,7 @@ class ThumbnailViewer(wx.Panel, FlaglessDelayedInvocation):
             newmetadata = { 'Thumbnail' : torrent['preview'] }
 
       
-        self.invokeLater(self.metadata_thread_gui_callback,[torrent,newmetadata])
+        wx.CallAfter(self.metadata_thread_gui_callback,torrent,newmetadata)
 
              
     def metadata_thread_gui_callback(self,torrent,metadata):

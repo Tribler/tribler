@@ -55,7 +55,6 @@ from Tribler.Main.Utility.utility import Utility
 from Tribler.Main.Utility.constants import * #IGNORE:W0611
 
 from Tribler.Core.BitTornado.__init__ import product_name
-from safeguiupdate import DelayedInvocation,FlaglessDelayedInvocation
 import webbrowser
 import Tribler.Main.vwxGUI.font as font
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
@@ -112,7 +111,7 @@ class FileDropTarget(wx.FileDropTarget):
 
 
 # Custom class loaded by XRC
-class ABCFrame(wx.Frame, DelayedInvocation):
+class ABCFrame(wx.Frame):
     def __init__(self, *args):
         if len(args) == 0:
             pre = wx.PreFrame()
@@ -154,7 +153,6 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         #wx.Frame.__init__(self, None, ID, title, position, size, style = style)
         
         self.doneflag = Event()
-        DelayedInvocation.__init__(self)
 
         dragdroplist = FileDropTarget(self.utility)
         self.SetDropTarget(dragdroplist)
@@ -405,7 +403,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
         return False
 
     def upgradeCallback(self):
-        self.invokeLater(self.OnUpgrade)    
+        wx.CallAfter(self.OnUpgrade)    
         # TODO: warn multiple times?
     
     def OnUpgrade(self, event=None):
@@ -430,7 +428,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
 
 
     def taskbarCallback(self):
-        self.invokeLater(self.onTaskBarActivate,[])
+        wx.CallAfter(self.onTaskBarActivate)
 
 
     #######################################
@@ -749,7 +747,7 @@ class ABCFrame(wx.Frame, DelayedInvocation):
 # Main ABC application class that contains ABCFrame Object
 #
 ##############################################################
-class ABCApp(wx.App,FlaglessDelayedInvocation):
+class ABCApp(wx.App):
     def __init__(self, x, params, single_instance_checker, abcpath):
         global start_time, start_time2
         start_time2 = time()
@@ -977,7 +975,8 @@ class ABCApp(wx.App,FlaglessDelayedInvocation):
             print_exc()
             #print_stack()
         self.error = e
-        self.invokeLater(self.onError,[],{'source':"The database layer reported: "})
+        onerror_lambda = lambda:self.onError(source="The database layer reported:  ") 
+        wx.CallAfter(onerror_lambda)
     
     def getConfigPath(self):
         return self.utility.getConfigPath()

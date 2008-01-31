@@ -58,7 +58,7 @@ class TriblerLaunchMany(Thread):
     def __init__(self,session,sesslock):
         """ Called only once (unless we have multiple Sessions) """
         Thread.__init__(self)
-        self.setDaemon(True) # TEMP ARNO 
+        self.setDaemon(True)
         self.setName("Network"+self.getName())
         
         self.session = session
@@ -220,7 +220,7 @@ class TriblerLaunchMany(Thread):
         self.sesslock.acquire()
         try:
             d.stop_remove(removestate=True,removecontent=removecontent)
-            del self.downloads.remove[d.get_def().get_infohash()]
+            del self.downloads[d.get_def().get_infohash()]
         finally:
             self.sesslock.release()
 

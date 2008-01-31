@@ -3,7 +3,6 @@ from Tribler.Core.CacheDB import CacheDBHandler
 from Tribler.Core.Utilities.utilities import show_permid_shorter,sort_dictlist,remove_data_from_list,find_content_in_dictlist
 from Tribler.Core.Utilities.unicode import *
 import time
-from safeguiupdate import *
 import threading
 from traceback import print_exc
 
@@ -160,7 +159,7 @@ def cmpFuncFriendAsc( val1, val2):
 def cmpFuncFriendDesc( val2, val1):
     return cmpFuncFriendAsc( val1, val2)
 
-class PeerDataManager(DelayedEventHandler):
+class PeerDataManager:
     """offers a sync view of the peer database, in an usable form for the
     persons view and not only.
     it adds, deletes and updates data as soon as it is changed in database
@@ -174,8 +173,6 @@ class PeerDataManager(DelayedEventHandler):
             raise RuntimeError, "PeerDataManager is singleton"
         PeerDataManager.__single = self
         self.done_init = False
-        DelayedEventHandler.__init__(self)
-        self.doneflag = threading.Event()
         self.isDataPrepared = False
         self.utility = utility
         # for that, create a separate ordered list with only the first 20 most similar peers
@@ -458,7 +455,7 @@ class PeerDataManager(DelayedEventHandler):
                 del self.callback_dict[k]
             #send the callback event
             #self.treatCallback(treat_dict)
-            self.invokeLater(self.treatCallback, [treat_dict])
+            wx.CallAfter(self.treatCallback,treat_dict)
             #reset the start time
             self.start_callback_int = start_time
             #self.callback_dict = {}

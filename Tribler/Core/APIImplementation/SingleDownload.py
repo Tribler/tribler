@@ -10,7 +10,7 @@ import pickle
 import socket
 import binascii
 from types import StringType,ListType,IntType
-from traceback import print_exc
+from traceback import print_exc,print_stack
 from threading import Event
 
 from Tribler.Core.simpledefs import *

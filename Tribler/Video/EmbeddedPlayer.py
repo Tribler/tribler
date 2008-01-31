@@ -128,6 +128,14 @@ class VideoFrame(wx.Frame):
         if self.videopanel:
             self.videopanel.set_content_name(name)
         
+    def stop_playback(self):
+        """ Called by GUI thread """
+        if self.videopanel:
+            self.videopanel.Stop()
+            
+    def set_wxclosing(self):
+        self.videopanel = None
+            
 
 class EmbeddedPlayer(wx.Panel):
 
@@ -558,10 +566,12 @@ class VLCMediaCtrl(wx.Window):
             self.Refresh()
 
     def setContentName(self,s):
+        #print >>sys.stderr,"VLCMediaCtrl: setContentName",s
         wx.CallAfter(self.OnSetContentName,s)
         
     def OnSetContentName(self,s):
         self.name = s
+        self.Refresh()
 
     def getContentName(self):
         return self.name

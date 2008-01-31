@@ -1366,6 +1366,10 @@ class MovieOnDemandTransporter(MovieTransport):
                     if DEBUG:
                         print >>sys.stderr,"vod: trans: %d: pushed l=%d" % (self.pos,loop)
                     data = self.piece( loop )
+                    if data is None:
+                        # I should have the piece, but I don't: WAAAAHH!
+                        break
+                    
                     self.outbuf.append( (self.pos,data) )
                     outbuflen += len(data)
 

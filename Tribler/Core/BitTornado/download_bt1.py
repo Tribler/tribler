@@ -87,7 +87,6 @@ class BT1Download:
                            for x in xrange(0, len(self.info['pieces']), 20)]
         self.len_pieces = len(self.pieces)
         self.piecesize = self.info['piece length']
-        self.argslistheader = argslistheader
         self.unpauseflag = Event()
         self.unpauseflag.set()
         self.downloader = None
@@ -635,9 +634,6 @@ class BT1Download:
 
     def getDefaults(self):
         return defaultargs(defaults)
-
-    def getUsageText(self):
-        return self.argslistheader
 
     def reannounce(self, special = None):
         try:
