@@ -21,6 +21,7 @@ import tempfile
 import urllib2
 from threading import enumerate,currentThread,RLock
 from traceback import print_exc
+from systray import PlayerTaskBarIcon
 
 if sys.platform == "darwin":
     # on Mac, we can only load VLC/OpenSSL libraries
@@ -79,10 +80,10 @@ class PlayerFrame(VideoFrame):
         
 
 class PlayerApp(wx.App):
-    def __init__(self, x, params, single_instance_checker, abcpath):
+    def __init__(self, x, params, single_instance_checker, installdir):
         self.params = params
         self.single_instance_checker = single_instance_checker
-        self.abcpath = abcpath
+        self.installdir = installdir
         self.error = None
         self.s = None
         self.dlock = RLock()
@@ -92,13 +93,19 @@ class PlayerApp(wx.App):
         
     def OnInit(self):
         try:
-            self.utility = Utility(self.abcpath)
+            self.utility = Utility(self.installdir)
             self.utility.app = self
             print self.utility.lang.get('build')
             
             # Start server for instance2instance communication
             self.i2is = Instance2InstanceServer(I2I_LISTENPORT,self.i2icallback) 
             self.i2is.start()
+
+            # Install systray icon
+            # Note: setting this makes the program not exit when the videoFrame
+            # is being closed.
+            iconpath = os.path.join(self.installdir,'Tribler','Images','tribler.ico')
+            #self.tbicon = PlayerTaskBarIcon(self,iconpath)
             
             # Start video frame
             self.videoFrame = PlayerFrame(self)
@@ -116,7 +123,14 @@ class PlayerApp(wx.App):
             self.videoplay.playbackmode = PLAYBACKMODE_INTERNAL
             
             # Start Tribler Session
-            self.sconfig = SessionStartupConfig()
+            state_dir = Session.get_default_state_dir()
+            cfgfilename = Session.get_default_config_filename(state_dir)
+            try:
+                self.sconfig = SessionStartupConfig.load(cfgfilename)
+            except:
+                print_exc()
+                self.sconfig = SessionStartupConfig()
+                
             self.sconfig.set_overlay(False)
             self.sconfig.set_megacache(False)
             self.s = Session(self.sconfig)
@@ -330,6 +344,10 @@ class PlayerApp(wx.App):
         
         ###time.sleep(5) # TODO: make network thread non-daemon which MainThread has to end.
         
+        if self.tbicon is not None:
+            self.tbicon.RemoveIcon()
+            self.tbicon.Destroy()
+        
         if not ALLOW_MULTIPLE:
             del self.single_instance_checker
         ## TODO ClientPassParam("Close Connection")
@@ -502,12 +520,12 @@ def run(params = None):
     else:
         arg0 = sys.argv[0].lower()
         if arg0.endswith('.exe'):
-            abcpath = os.path.abspath(os.path.dirname(sys.argv[0]))
+            installdir = os.path.abspath(os.path.dirname(sys.argv[0]))
         else:
-            abcpath = os.getcwd()  
+            installdir = os.getcwd()  
 
         # Launch first abc single instance
-        app = PlayerApp(0, params, single_instance_checker, abcpath)
+        app = PlayerApp(0, params, single_instance_checker, installdir)
         app.MainLoop()
         
         print "Sleeping seconds to let other threads finish"
