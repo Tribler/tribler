@@ -45,16 +45,13 @@ def make_torrent_file(input, userabortflag = None, userprogresscallback = lambda
     
     check_info(info)
     metainfo = {'info': info, 'encoding': input['encoding'], 'creation date': long(time())}
-    
-    # See www.bittorrent.org/Draft_DHT_protocol.html
-    if input['nodes'] is None:
-        if input['announce'] is None:
-            raise ValueError('No tracker set')
-        metainfo['announce'] = input['announce']
-    else:
-        metainfo['nodes'] = input['nodes']
 
-    for key in ['announce-list','comment','created by','httpseeds']:
+    # http://www.bittorrent.org/DHT_protocol.html says both announce and nodes
+    # are not allowed, but some torrents (Azureus?) apparently violate this.
+    if input['nodes'] is None and input['announce'] is None:
+            raise ValueError('No tracker set')
+    
+    for key in ['announce','announce-list','nodes','comment','created by','httpseeds']:
         if input[key] is not None and len(input[key]) > 0:
             metainfo[key] = input[key]
             if key == 'comment':

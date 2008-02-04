@@ -195,8 +195,9 @@ class TorrentDef(Serializable,Copyable):
                 self.input['files'].remove(d)
                 break
 
-    def create_live(self,bitrate,playtime="1:00:00"):
+    def create_live(self,name,bitrate,playtime="1:00:00"):
         """ Create a live streaming multimedia torrent with a specific bitrate.
+        @param name The name of the stream.
         @param bitrate The desired bitrate in bytes per second.
         @param playtime The virtual playtime of the stream as a string in 
         [hh:]mm:ss format.
@@ -206,7 +207,7 @@ class TorrentDef(Serializable,Copyable):
         self.input['bps'] = bitrate
         self.input['playtime'] = playtime # size of virtual content 
 
-        d = {'inpath':'livestream.mpeg','outpath':None,'playtime':None,'length':bitrate*secs}
+        d = {'inpath':name,'outpath':None,'playtime':None,'length':bitrate*secs}
         self.input['files'].append(d)
 
     #
@@ -304,7 +305,7 @@ class TorrentDef(Serializable,Copyable):
 
     def set_dht_nodes(self,nodes):
         """ Sets the DHT nodes required by the mainline DHT support,
-        See www.bittorrent.org/Draft_DHT_protocol.html
+        See http://www.bittorrent.org/DHT_protocol.html
         @param nodes A list of [hostname,port] lists.
         """
         if self.readonly:

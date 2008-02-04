@@ -15,7 +15,8 @@ def state_callback(ds):
 
 if __name__ == "__main__":
 
-    if sys.argv <= 1:
+    print sys.argv
+    if len(sys.argv) <= 2:
         print "Usage: cmdlinedl file.torrent [destdir]"
         sys.exit(0)
 
@@ -33,7 +34,7 @@ if __name__ == "__main__":
     s = Session(sscfg)
 
     dscfg = DownloadStartupConfig()
-    if sys.argv == 3:
+    if len(sys.argv) == 3:
         dscfg.set_dest_dir(sys.argv[2])
     else:
         dscfg.set_dest_dir('.')

@@ -100,8 +100,11 @@ def validTorrentFile(metainfo):
     if 'announce' in metainfo and not isValidURL(metainfo['announce']):
         raise ValueError('announce URL bad')
     
-    if 'announce' in metainfo and 'nodes' in metainfo:
-        raise ValueError('both announce and nodes present')
+    # http://www.bittorrent.org/DHT_protocol.html says both announce and nodes
+    # are not allowed, but some torrents (Azureus?) apparently violate this.
+
+    #if 'announce' in metainfo and 'nodes' in metainfo:
+    #    raise ValueError('both announce and nodes present')
     
     if 'nodes' in metainfo:
         nodes = metainfo['nodes']

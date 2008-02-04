@@ -34,7 +34,7 @@ for metainfo_name in argv[1:]:
             print "cdn_properties:",cdnprops.keys()
             for key in cdnprops:
                 print "cdn_properties:",key,"=",cdnprops[key]
-#    print metainfo
+    print `metainfo`
     info = metainfo['info']
     info_hash = sha(bencode(info))
 
