@@ -474,10 +474,15 @@ class Session(SessionRuntimeConfig):
         # Called by any thread
         self.sesslock.acquire()
         try:
-            try:
-                self.save_pstate_sessconfig()
-            except Exception,e:
-                self.lm.rawserver_nonfatalerrorfunc(e)
+            # Arno: Temporarily disable this. At the moment setting the
+            # config at runtime is not possible (see SessionRuntimeConfig)
+            # so this has little use, and interferes with our way of
+            # changing the startup config, which is to write a new
+            # config to disk that will be read at start up.
+            #try:
+            #    self.save_pstate_sessconfig()
+            #except Exception,e:
+            #    self.lm.rawserver_nonfatalerrorfunc(e)
 
             # Checkpoint all Downloads
             print >>sys.stderr,"Session: checkpoint_shutdown"

@@ -73,9 +73,12 @@ class PlayerApp(wx.App):
         self.installdir = installdir
         self.error = None
         self.s = None
+        
         self.dlock = RLock()
         self.d = None # protected by dlock
         self.playermode = DLSTATUS_DOWNLOADING # protected by dlock
+        self.r = None # protected by dlock
+        self.count = 0
         self.said_start_playback = False
         
         
@@ -91,12 +94,6 @@ class PlayerApp(wx.App):
             self.i2is = Instance2InstanceServer(I2I_LISTENPORT,self.i2icallback) 
             self.i2is.start()
 
-            # Install systray icon
-            # Note: setting this makes the program not exit when the videoFrame
-            # is being closed.
-            iconpath = os.path.join(self.installdir,'Tribler','Images','tribler.ico')
-            self.tbicon = PlayerTaskBarIcon(self,iconpath)
-            
             # Start video frame
             self.videoFrame = PlayerFrame(self)
             
@@ -112,8 +109,22 @@ class PlayerApp(wx.App):
             # h4xor TEMP ARNO
             self.videoplay.playbackmode = PLAYBACKMODE_INTERNAL
             
-            # Start Tribler Session
+            # Read config
             state_dir = Session.get_default_state_dir('.SwarmPlayer')
+            
+            # The playerconfig contains all config parameters that are not
+            # saved by checkpointing the Session or its Downloads.
+            self.load_playerconfig(state_dir)
+
+            # Install systray icon
+            # Note: setting this makes the program not exit when the videoFrame
+            # is being closed.
+            iconpath = os.path.join(self.installdir,'Tribler','Images','tribler.ico')
+            self.tbicon = PlayerTaskBarIcon(self,iconpath)
+
+            
+            
+            # Start Tribler Session
             cfgfilename = Session.get_default_config_filename(state_dir)
             
             print >>sys.stderr,"main: Session config",cfgfilename
@@ -130,11 +141,9 @@ class PlayerApp(wx.App):
             self.s.set_download_states_callback(self.sesscb_states_callback)
 
             if RATELIMITADSL:
-                self.count = 0
                 self.r = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()
                 self.r.set_global_max_speed(DOWNLOAD,400)
                 self.r.set_global_max_speed(UPLOAD,90)
-                self.s.set_download_states_callback(self.ratelimit_callback,getpeerlist=False)
             
             # Load torrent
             if self.params[0] != "":
@@ -421,6 +430,8 @@ class PlayerApp(wx.App):
         if playermode == DLSTATUS_SEEDING:
             for ds in dslist:
                 print >>sys.stderr,"main: Stats: Seeding:",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
+                
+            self.ratelimit_callback(dslist)
             return (1.0,False)
         
         ds = None
@@ -500,9 +511,30 @@ class PlayerApp(wx.App):
                 print >>sys.stderr,"main: Connected to",peer['ip'],peer['completed']
         
         return (1.0,False)
+
+
+    def ratelimit_callback(self,dslist):
+        """ When the player is in seeding mode, limit the used upload to
+        the limit set by the user via the options menu. 
+        Called by SessionCallback thread """
+        if self.r is None:
+            return
+
+        # Adjust speeds once every 4 seconds
+        adjustspeeds = False
+        if self.count % 4 == 0:
+            adjustspeeds = True
+        self.count += 1
+        
+        if adjustspeeds:
+            self.r.add_downloadstatelist(dslist)
+            self.r.adjust_speeds()
+
     
     def vod_ready_callback(self,d,mimetype,stream,filename):
-        """ Called by Session thread """
+        """ Called by the Session when the content of the Download is ready
+         
+        Called by Session thread """
         print >>sys.stderr,"main: VOD ready callback called",currentThread().getName(),"###########################################################",mimetype
     
         if filename:
@@ -524,37 +556,54 @@ class PlayerApp(wx.App):
         print >>sys.stderr,"main: Playing from file",filename
         self.videoplay.play_url(filename)
 
-    def ratelimit_callback(self,dslist):
-        adjustspeeds = False
-        if self.count % 4 == 0:
-            adjustspeeds = True
-        self.count += 1
-        
-        if not adjustspeeds:
-            return (1.0,False)
-        
-        for ds in dslist:
-            d = ds.get_download()
-            complete = ds.get_pieces_complete()
-            print >>sys.stderr,"main: Pieces completed",`d.get_def().get_name()`,"len",len(complete)
-            
-            if adjustspeeds:
-                self.r.add_downloadstate(ds)
-            
-        if adjustspeeds:
-            self.r.adjust_speeds()
-        return (1.0,False)
 
     def restart_other_downloads(self):
         """ Called by GUI thread """
-        self.dlock.acquire()
-        self.playermode = DLSTATUS_SEEDING
-        self.dlock.release()
+        try:
+            self.dlock.acquire()
+            self.playermode = DLSTATUS_SEEDING
+            self.r = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()
+            uploadrate = float(self.playerconfig['total_max_upload_rate'])
+            print >>sys.stderr,"main: restart_other_downloads: Setting max upload rate to",uploadrate
+            self.r.set_global_max_speed(UPLOAD,uploadrate)
+        finally:
+            self.dlock.release()
 
         dlist = self.s.get_downloads()
         for d in dlist:
-            d.restart() # checkpointed torrents always restarted in DLMODE_NORMAL
+            d.set_mode(DLMODE_NORMAL) # checkpointed torrents always restarted in DLMODE_NORMAL, just make extra sure
+            d.restart() 
+
+    def load_playerconfig(self,state_dir):
+        self.playercfgfilename = os.path.join(state_dir,'playerconf.pickle')
+        self.playerconfig = None
+        try:
+            f = open(self.playercfgfilename,"rb")
+            self.playerconfig = pickle.load(f)
+            f.close()
+        except:
+            print_exc()
+            self.playerconfig = {}
+            self.playerconfig['total_max_upload_rate'] = 100 # KB/s
+
+    def save_playerconfig(self):
+        try:
+            f = open(self.playercfgfilename,"wb")
+            pickle.dump(self.playerconfig,f)
+            f.close()
+        except:
+            print_exc()
             
+    def set_playerconfig(self,key,value):
+        self.playerconfig[key] = value
+        
+        if key == 'total_max_upload_rate':
+            pass
+    
+    def get_playerconfig(self,key):
+        return self.playerconfig[key]
+    
+    
     
 class DummySingleInstanceChecker:
     

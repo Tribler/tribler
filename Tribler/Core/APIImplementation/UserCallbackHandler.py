@@ -32,7 +32,7 @@ class UserCallbackHandler:
     def perform_vod_usercallback(self,d,usercallback,mimetype,stream,filename):
         """ Called by network thread """
         if DEBUG:
-            print >>sys.stderr,"Session: perform_vod_usercallback()"
+            print >>sys.stderr,"Session: perform_vod_usercallback()",`d.get_def().get_name_as_unicode()`
         def session_vod_usercallback_target():
             try:
                 usercallback(d,mimetype,stream,filename)

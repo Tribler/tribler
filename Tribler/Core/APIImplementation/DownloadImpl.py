@@ -385,7 +385,7 @@ class DownloadImpl:
         dlconfig = copy.copy(self.dlconfig)
         # Reset unpicklable params
         dlconfig['vod_usercallback'] = None
-        dlconfig['dlmode'] = DLMODE_NORMAL # no callback, no VOD
+        dlconfig['mode'] = DLMODE_NORMAL # no callback, no VOD
         pstate['dlconfig'] = dlconfig
 
         pstate['dlstate'] = {}

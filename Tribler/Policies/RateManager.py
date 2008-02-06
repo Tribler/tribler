@@ -9,7 +9,7 @@ from traceback import print_exc
 
 from Tribler.Core.simpledefs import *
 
-DEBUG = False
+DEBUG = True
 
 
 class RateManager:
@@ -22,10 +22,14 @@ class RateManager:
         
     def add_downloadstate(self,ds):
         """ Returns the number of unique states currently stored """
+        if DEBUG:
+            print >>sys.stderr,"RateManager: add_downloadstate",`ds.get_download().get_def().get_infohash()`
+            
         self.lock.acquire()
         try:
             d = ds.get_download()
             if d not in self.dset:
+                print >>sys.stderr,"RateManager: add_downloadstate: adding",`d.get_def().get_infohash()`,"to",dlstatus_strings[ds.get_status()]
                 self.statusmap[ds.get_status()].append(ds)
                 for dir in [UPLOAD,DOWNLOAD]:
                     self.currenttotal[dir] += ds.get_current_speed(dir)
@@ -110,6 +114,9 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
         else:
             workingset = self.statusmap[DLSTATUS_DOWNLOADING]
 
+        if DEBUG:
+            print >>sys.stderr,"RateManager: calc_and_set_speed_limits: len workingset",len(workingset)
+
         # Limit working set to active torrents with connections:
         newws = []
         for ds in workingset:
@@ -118,7 +125,7 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
         workingset = newws
 
         if DEBUG:
-            print >>sys.stderr,"RateManager: calc_and_set_speed_limits: len workingset",len(workingset)
+            print >>sys.stderr,"RateManager: calc_and_set_speed_limits: len active workingset",len(workingset)
 
         # No active file, not need to calculate
         if not workingset:
@@ -252,15 +259,6 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
                 currspeed = ds.get_current_speed(dir)
                 currmaxspeed = d.get_max_speed(dir)
                 
-                
-                
-                # TEMP ARNO
-                if d.get_def().get_name()[0] == 'M':
-                    currspeed = 50.0
-                
-                
-                
-                
                 newmaxspeed = currspeed+self.ROOM
                 if currspeed >= (currmaxspeed-3.0): # dl needs more
                     downloadsatmax = True
@@ -274,16 +272,6 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
                     d = ds.get_download()
                     currspeed = ds.get_current_speed(dir)
 
-
-
-
-                    # TEMP ARNO
-                    if d.get_def().get_name()[0] == 'M':
-                        currspeed = 50.0
-                    
-                    
-                    
-                    
                     newmaxspeed = currspeed+self.ROOM
                     if newmaxspeed < localmaxspeed:
                         # If unterutilizing:

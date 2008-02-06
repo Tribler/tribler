@@ -55,13 +55,13 @@ class PlayerOptionsDialog(wx.Dialog):
 
         mainbox = wx.BoxSizer(wx.VERTICAL)
         
-        uploadrate = 100
+        uploadrate = self.wxapp.get_playerconfig('total_max_upload_rate')
         
         uploadratebox = wx.BoxSizer(wx.HORIZONTAL)
         label = wx.StaticText(self, -1, 'Upload rate')
-        self.uploadrate = wx.TextCtrl(self, -1, str(uploadrate))
+        self.uploadratectrl = wx.TextCtrl(self, -1, str(uploadrate))
         uploadratebox.Add(label, 1, wx.ALIGN_CENTER_VERTICAL)
-        uploadratebox.Add(self.uploadrate)
+        uploadratebox.Add(self.uploadratectrl)
 
 
         buttonbox2 = wx.BoxSizer(wx.HORIZONTAL)
@@ -77,7 +77,7 @@ class PlayerOptionsDialog(wx.Dialog):
         applybtn = wx.Button(self, -1, 'Apply')
         buttonbox.Add(applybtn, 0, wx.ALL, 5)
 
-        mainbox.Add(uploadratebox, 1, wx.EXPAND, 1)
+        mainbox.Add(uploadratebox, 1, wx.EXPAND|wx.ALL, 5)
         mainbox.Add(buttonbox2, 1, wx.EXPAND, 1)
         mainbox.Add(buttonbox, 1, wx.EXPAND, 1)
         self.SetSizerAndFit(mainbox)
@@ -96,7 +96,7 @@ class PlayerOptionsDialog(wx.Dialog):
     #    self.EndModal(wx.ID_CANCEL)
         
     def OnApply(self,event = None):
-        print >>sys.stderr,"PlayerOptionsDialog: OnApply"
+        print >>sys.stderr,"PlayerOptionsDialog: OnApply",self.port
         
         if self.port is not None:
             session = self.wxapp.s
@@ -105,9 +105,13 @@ class PlayerOptionsDialog(wx.Dialog):
             scfg = SessionStartupConfig.load(cfgfilename)
             
             scfg.set_listen_port(self.port)
-            
+            print >>sys.stderr,"PlayerOptionsDialog: OnApply: Saving SessionStartupConfig to",cfgfilename
             scfg.save(cfgfilename)
         
+        uploadrate = int(self.uploadratectrl.GetValue())
+        self.wxapp.set_playerconfig('total_max_upload_rate',uploadrate)
+        self.wxapp.save_playerconfig()
+         
         # TODO: For max upload, etc. we also have to modify the runtime Session.
 
     def OnAdvanced(self,event = None):
@@ -146,7 +150,7 @@ class PlayerAdvancedOptionsDialog(wx.Dialog):
         cancelbtn = wx.Button(self, wx.ID_CANCEL, 'Cancel')
         buttonbox.Add(cancelbtn, 0, wx.ALL, 5)
 
-        mainbox.Add(portbox, 1, wx.EXPAND, 1)
+        mainbox.Add(portbox, 1, wx.EXPAND|wx.ALL, 5)
         mainbox.Add(buttonbox, 1, wx.EXPAND, 1)
         self.SetSizerAndFit(mainbox)
 
