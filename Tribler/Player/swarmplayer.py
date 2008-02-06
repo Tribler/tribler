@@ -258,18 +258,30 @@ class PlayerApp(wx.App):
         # Start download
         dlist = self.s.get_downloads()
         infohash = tdef.get_infohash()
+        
+        newd = None
         for d in dlist:
             if d.get_def().get_infohash() == infohash:
                 # Download already exists.
-                # Safe option is to remove it (but not its downloaded content)
-                # so we can start with a fresh DownloadStartupConfig. 
-                # Alternative is to set VOD callback, etc. at Runtime,
-                # not yet implemented.
-                print >>sys.stderr,"main: Removing old duplicate Download prior to starting new",`infohash`
-                self.s.remove_download(d,removecontent=False)
-                
-        self.d = self.s.start_download(tdef,dcfg)
+                # One safe option is to remove it (but not its downloaded content)
+                # so we can start with a fresh DownloadStartupConfig. However,
+                # this gives funky concurrency errors and could prevent a
+                # Download from starting without hashchecking (as its checkpoint
+                # was removed) 
+                # Alternative is to set VOD callback, etc. at Runtime:
+                print >>sys.stderr,"main: Reusing old duplicate Download",`infohash`
+                d.set_video_start_callback(self.vod_ready_callback)
+                d.restart()
+                newd = d
+                #self.s.remove_download(d,removecontent=False)
+                break
         
+        if newd is None:
+            newd = self.s.start_download(tdef,dcfg)
+            
+        self.dlock.acquire()
+        self.d = newd
+        self.dlock.release()
 
         print >>sys.stderr,"main: Saving content to",self.d.get_dest_files()
 
@@ -347,7 +359,7 @@ class PlayerApp(wx.App):
             timerec = (stat.st_ctime,dinuse,d)
             timelist.append(timerec)
             
-        if inuse+needed > DISKSPACE_LIMIT:
+        if inuse+needed < DISKSPACE_LIMIT:
             # Enough available, done.
             print >> sys.stderr,"main: free_up: Enough avail",inuse
             return True
@@ -374,13 +386,12 @@ class PlayerApp(wx.App):
         
     def OnExit(self):
         print >>sys.stderr,"main: ONEXIT"
-        
+
+        # To let Threads in Session finish their business before we shut it down.
         time.sleep(1) 
         
         if self.s is not None:
             self.s.shutdown()
-        
-        time.sleep(2) 
         
         if self.tbicon is not None:
             self.tbicon.RemoveIcon()
@@ -542,8 +553,7 @@ class PlayerApp(wx.App):
 
         dlist = self.s.get_downloads()
         for d in dlist:
-            d.set_mode(DLMODE_NORMAL)
-            d.restart()
+            d.restart() # checkpointed torrents always restarted in DLMODE_NORMAL
             
     
 class DummySingleInstanceChecker:

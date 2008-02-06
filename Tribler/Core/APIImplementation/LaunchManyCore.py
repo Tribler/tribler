@@ -381,6 +381,11 @@ class TriblerLaunchMany(Thread):
             pstate = self.load_download_pstate(filename)
             
             print >>sys.stderr,"tlm: load_checkpoint: pstate is",dlstatus_strings[pstate['dlstate']['status']],pstate['dlstate']['progress']
+            if pstate['engineresumedata'] is None:
+                print >>sys.stderr,"tlm: load_checkpoint: resumedata None"
+            else:
+                print >>sys.stderr,"tlm: load_checkpoint: resumedata",len(pstate['engineresumedata'])
+            
             tdef = TorrentDef.load_from_dict(pstate['metainfo'])
             
             # Activate

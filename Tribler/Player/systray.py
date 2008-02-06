@@ -31,7 +31,7 @@ class PlayerTaskBarIcon(wx.TaskBarIcon):
         
     def OnOptions(self,event=None):
         print >>sys.stderr,"PlayerTaskBarIcon: OnOptions"
-        dlg = PlayerOptionsDialog(self.wxapp)
+        dlg = PlayerOptionsDialog(self.wxapp,self.icons)
         ret = dlg.ShowModal()
         #print >>sys.stderr,"PlayerTaskBarIcon: Dialog returned",ret
         dlg.Destroy()
@@ -43,16 +43,14 @@ class PlayerTaskBarIcon(wx.TaskBarIcon):
     
 class PlayerOptionsDialog(wx.Dialog):
     
-    def __init__(self,wxapp):
+    def __init__(self,wxapp,icons):
         style = wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
         wx.Dialog.__init__(self, None, -1, 'SwarmPlayer Options', size=(400,200), style=style)
         self.wxapp = wxapp
 
         self.port = None
 
-        iconpath = os.path.join(wxapp.installdir,'Tribler','Images','tribler.ico')
-        self.icons = wx.IconBundle()
-        self.icons.AddIconFromFile(iconpath,wx.BITMAP_TYPE_ICO)
+        self.icons = icons
         self.SetIcons(self.icons)
 
         mainbox = wx.BoxSizer(wx.VERTICAL)
@@ -118,7 +116,7 @@ class PlayerOptionsDialog(wx.Dialog):
             self.port = self.wxapp.s.get_listen_port()
         #destdir = self.wxapp.s.get_dest_dir()
 
-        dlg = PlayerAdvancedOptionsDialog(self.port)
+        dlg = PlayerAdvancedOptionsDialog(self.icons,self.port)
         ret = dlg.ShowModal()
         if ret == wx.ID_OK:
             self.port = dlg.get_port()
@@ -127,14 +125,11 @@ class PlayerOptionsDialog(wx.Dialog):
 
 class PlayerAdvancedOptionsDialog(wx.Dialog):
     
-    def __init__(self,port):
+    def __init__(self,icons,port):
         style = wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER  # TODO: Add OK+Cancel
         wx.Dialog.__init__(self, None, -1, 'SwarmPlayer Advanced Options', size=(400,200), style=style)
 
-        iconpath = os.path.join(wxapp.installdir,'Tribler','Images','tribler.ico')
-        self.icons = wx.IconBundle()
-        self.icons.AddIconFromFile(iconpath,wx.BITMAP_TYPE_ICO)
-        self.SetIcons(self.icons)
+        self.SetIcons(icons)
 
         mainbox = wx.BoxSizer(wx.VERTICAL)
         
@@ -153,12 +148,6 @@ class PlayerAdvancedOptionsDialog(wx.Dialog):
 
         mainbox.Add(portbox, 1, wx.EXPAND, 1)
         mainbox.Add(buttonbox, 1, wx.EXPAND, 1)
-        self.SetSizerAndFit(mainbox)
-
-        self.Bind(wx.EVT_BUTTON, self.OnOK, okbtn)
-        self.Bind(wx.EVT_BUTTON, self.OnCancel, cancelbtn)
-
-        mainbox.Add(portbox, 1, wx.EXPAND, 1)
         self.SetSizerAndFit(mainbox)
 
     def get_port(self):

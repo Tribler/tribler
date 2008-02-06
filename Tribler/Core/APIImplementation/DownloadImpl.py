@@ -28,6 +28,7 @@ class DownloadImpl:
         # To be able to return the progress of a stopped torrent, how far it got.
         self.progressbeforestop = 0.0
         self.filepieceranges = []
+        self.pstate_for_restart = None # h4x0r to remember resumedata
 
         # Copy tdef, so we get an infohash
         self.session = session
@@ -112,6 +113,8 @@ class DownloadImpl:
                 if pstate is None or pstate['dlstate']['status'] != DLSTATUS_STOPPED: 
                     # Also restart on STOPPED_ON_ERROR, may have been transient
                     self.create_engine_wrapper(lmcreatedcallback,pstate,lmvodplayablecallback)
+                
+            self.pstate_for_restart = pstate
                 
             self.dllock.release()
         except Exception,e:
@@ -278,6 +281,9 @@ class DownloadImpl:
             pstate = self.network_get_persistent_state()
             if self.sd is not None:
                 pstate['engineresumedata'] = self.sd.shutdown()
+                print >>sys.stderr,"DownloadImpl: network_stop: Was active, saving resumedata",len(pstate['engineresumedata'])
+            
+                self.pstate_for_restart = pstate
             
             # Offload the removal of the content and other disk cleanup to another thread
             if removestate:
@@ -297,8 +303,8 @@ class DownloadImpl:
         try:
             if self.sd is None:
                 self.error = None # assume fatal error is reproducible
-                # TODO: if seeding don't re-hashcheck
-                self.create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback,pstate=None,lmvodplayablecallback=None)
+                # h4xor: restart using earlier loaded resumedata
+                self.create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback,pstate=self.pstate_for_restart,lmvodplayablecallback=self.session.lm.network_vod_playable_callback)
             # No exception if already started, for convenience
         finally:
             self.dllock.release()

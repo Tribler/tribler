@@ -316,8 +316,11 @@ to some point in the future.
    It may mean he didn't like it, so we should not redistribute it further.
   
    ISSUE: when user start downloading a torrent that is already being seeded.
+   	Arno: We remove the download before starting the new instance, without
+   	deleting the downloaded content.
    
    ISSUE: when restarting download, make sure it's not running in VOD mode.
+     Arno: The mode is now explicitly reset to DLMODE_NORMAL.
   
   Plan:
      Wait till current download is seeding.
