@@ -1,18 +1,8 @@
 #!/usr/bin/python
 # Written by Arno Bakker, Choopan RATTANAPOKA, Jie Yang
 # see LICENSE.txt for license information
-
-# TODO: Add SingleInstance checker for p2player
-
-# Arno: M2Crypto overrides the method for https:// in the
-# standard Python libraries. This causes msnlib to fail and makes Tribler
-# freakout when "http://www.tribler.org/version" is redirected to
-# "https://www.tribler.org/version/" (which happened during our website
-# changeover) Until M2Crypto 0.16 is patched I'll restore the method to the
-# original, as follows.
 #
-# This must be done in the first python file that is started.
-#
+
 import os
 import sys
 import time
@@ -74,9 +64,6 @@ class PlayerFrame(VideoFrame):
         else:
             print "Closing untriggered by event"
     
-        ts = enumerate()
-        for t in ts:
-            print >>sys.stderr,"Thread still running",t.getName(),"daemon",t.isDaemon()
         
 
 class PlayerApp(wx.App):
@@ -87,8 +74,11 @@ class PlayerApp(wx.App):
         self.error = None
         self.s = None
         self.dlock = RLock()
-        self.d = None
+        self.d = None # protected by dlock
+        self.playermode = DLSTATUS_DOWNLOADING # protected by dlock
         self.said_start_playback = False
+        
+        
         wx.App.__init__(self, x)
         
     def OnInit(self):
@@ -105,7 +95,7 @@ class PlayerApp(wx.App):
             # Note: setting this makes the program not exit when the videoFrame
             # is being closed.
             iconpath = os.path.join(self.installdir,'Tribler','Images','tribler.ico')
-            #self.tbicon = PlayerTaskBarIcon(self,iconpath)
+            self.tbicon = PlayerTaskBarIcon(self,iconpath)
             
             # Start video frame
             self.videoFrame = PlayerFrame(self)
@@ -123,13 +113,16 @@ class PlayerApp(wx.App):
             self.videoplay.playbackmode = PLAYBACKMODE_INTERNAL
             
             # Start Tribler Session
-            state_dir = Session.get_default_state_dir()
+            state_dir = Session.get_default_state_dir('.SwarmPlayer')
             cfgfilename = Session.get_default_config_filename(state_dir)
+            
+            print >>sys.stderr,"main: Session config",cfgfilename
             try:
                 self.sconfig = SessionStartupConfig.load(cfgfilename)
             except:
                 print_exc()
                 self.sconfig = SessionStartupConfig()
+                self.sconfig.set_state_dir(state_dir)
                 
             self.sconfig.set_overlay(False)
             self.sconfig.set_megacache(False)
@@ -149,10 +142,21 @@ class PlayerApp(wx.App):
             else:
                 torrentfilename = self.select_torrent_from_disk()
                 if torrentfilename is None:
+                    print >>sys.stderr,"main: User selected no file"
                     self.OnExit()
                     return False
 
-            self.start_download(torrentfilename)
+            # Arno: For extra robustness, ignore any errors related to restarting
+            try:
+                # Load all other downloads in cache, but in STOPPED state
+                self.s.load_checkpoint(initialdlstatus=DLSTATUS_STOPPED)
+            except:
+                print_exc()
+
+            # Start download
+            if not self.start_download(torrentfilename):
+                self.OnExit()
+                return False
             
             self.Bind(wx.EVT_CLOSE, self.videoFrame.OnCloseWindow)
             self.Bind(wx.EVT_QUERY_END_SESSION, self.videoFrame.OnCloseWindow)
@@ -166,6 +170,7 @@ class PlayerApp(wx.App):
             self.OnExit()
             return False
         return True
+
 
     def select_torrent_from_disk(self):
         dlg = wx.FileDialog(self.videoFrame, 
@@ -199,28 +204,27 @@ class PlayerApp(wx.App):
         self.dlock.acquire()
         try:
             if self.d is not None:
-                # Policy: Remove current. TODO: seeding policy
                 self.videoplay.stop_playback()
-                self.s.remove_download(self.d)
+                self.d.stop()
         finally:
             self.dlock.release()
         
-        self.tdef = TorrentDef.load(torrentfilename)
-        print >>sys.stderr,"main: infohash is",`self.tdef.get_infohash()`
+        tdef = TorrentDef.load(torrentfilename)
+        print >>sys.stderr,"main: infohash is",`tdef.get_infohash()`
         
         # Select which video to play (if multiple)
-        videofiles = self.tdef.get_video_files()
+        videofiles = tdef.get_video_files()
         print >>sys.stderr,"main: Found video files",videofiles
         
         if len(videofiles) == 0:
             print >>sys.stderr,"main: No video files found! Let user select"
             # Let user choose any file
-            videofiles = self.tdef.get_video_files(videoexts=None)
+            videofiles = tdef.get_video_files(videoexts=None)
             
         if len(videofiles) > 1:
             selectedvideofile = self.ask_user_to_select_video(videofiles)
             if selectedvideofile is None:
-                self.OnExit()
+                print >>sys.stderr,"main: User selected no video"
                 return False
             dlfile = selectedvideofile
         else:
@@ -230,33 +234,51 @@ class PlayerApp(wx.App):
         destdir = os.path.join(self.s.get_state_dir(),'downloads')
         if not os.access(destdir,os.F_OK):
             os.mkdir(destdir)
-        
-        if not self.free_up_diskspace(destdir,self.tdef.get_length([dlfile])):
-            self.OnExit()
-            return False
+
+        # Arno: For extra robustness, ignore any errors related to restarting
+        try:
+            if not self.free_up_diskspace_by_downloads(tdef.get_infohash(),tdef.get_length([dlfile])):
+                print >>sys.stderr,"main: Not enough free diskspace, ignoring"
+                #return False
+                pass # Let it slide
+        except:
+            print_exc()
         
         # Setup how to download
         dcfg = DownloadStartupConfig()
         dcfg.set_video_start_callback(self.vod_ready_callback)
         dcfg.set_dest_dir(destdir)
         
-        if self.tdef.is_multifile_torrent():
+        if tdef.is_multifile_torrent():
             dcfg.set_selected_files([dlfile])
         
         dcfg.set_max_conns_to_initiate(300)
         dcfg.set_max_conns(300)
         
         # Start download
-        self.d = self.s.start_download(self.tdef,dcfg)
+        dlist = self.s.get_downloads()
+        infohash = tdef.get_infohash()
+        for d in dlist:
+            if d.get_def().get_infohash() == infohash:
+                # Download already exists.
+                # Safe option is to remove it (but not its downloaded content)
+                # so we can start with a fresh DownloadStartupConfig. 
+                # Alternative is to set VOD callback, etc. at Runtime,
+                # not yet implemented.
+                print >>sys.stderr,"main: Removing old duplicate Download prior to starting new",`infohash`
+                self.s.remove_download(d,removecontent=False)
+                
+        self.d = self.s.start_download(tdef,dcfg)
         
 
         print >>sys.stderr,"main: Saving content to",self.d.get_dest_files()
 
-        cname = self.tdef.get_name_as_unicode()
+        cname = tdef.get_name_as_unicode()
         if len(videofiles) > 1:
             cname += u' - '+bin2unicode(dlfile)
         self.videoplay.set_content_name(cname)
 
+        return True
 
     def i2icallback(self,cmd,param):
         """ Called by Instance2Instance thread """
@@ -298,34 +320,47 @@ class PlayerApp(wx.App):
             self.videoFrame.set_player_status(status)
             
     
-    def free_up_diskspace(self,destdir,needed):
+    def free_up_diskspace_by_downloads(self,infohash,needed):
         
+        print >> sys.stderr,"main: free_up: needed",needed,DISKSPACE_LIMIT
         if needed > DISKSPACE_LIMIT:
             # Not cleaning out whole cache for bigguns
+            print >> sys.stderr,"main: free_up: No cleanup for bigguns"
             return True 
         
         inuse = 0L
         timelist = []
-        for filename in os.listdir(destdir):
-            fullpath = os.path.join(destdir,filename)
-            stat = os.stat(fullpath)
-            inuse += stat.st_size
-            timerec = (stat.st_ctime,fullpath,stat.st_size)
+        dlist = self.s.get_downloads()
+        for d in dlist:
+            hisinfohash = d.get_def().get_infohash()
+            if infohash == hisinfohash:
+                # Don't delete the torrent we want to play
+                continue
+            destfiles = d.get_dest_files()
+            print >> sys.stderr,"main: free_up: Downloaded content",`destfiles`
+            
+            dinuse = 0L
+            for (filename,savepath) in destfiles:
+                stat = os.stat(savepath)
+                dinuse += stat.st_size
+            inuse += dinuse
+            timerec = (stat.st_ctime,dinuse,d)
             timelist.append(timerec)
             
-        if inuse+needed < DISKSPACE_LIMIT:
+        if inuse+needed > DISKSPACE_LIMIT:
             # Enough available, done.
+            print >> sys.stderr,"main: free_up: Enough avail",inuse
             return True
         
         # Policy: remove oldest till sufficient
         timelist.sort()
-        print >> sys.stderr,"main: Found",timelist,"in dest dir"
+        print >> sys.stderr,"main: free_up: Found",timelist,"in dest dir"
         
         got = 0L
-        for timerec in timelist:
-            print >> sys.stderr,"main: Removing",timerec[1],"to free up diskspace, t",timerec[0]
-            os.remove(timerec[1])
-            got += timerec[2]
+        for ctime,dinuse,d in timelist:
+            print >> sys.stderr,"main: free_up: Removing",`d.get_def().get_name_as_unicode()`,"to free up diskspace, t",ctime
+            self.s.remove_download(d,removecontent=True)
+            got += dinuse
             if got > needed:
                 return True
         # Deleted all, still no space:
@@ -338,39 +373,56 @@ class PlayerApp(wx.App):
         dlg.Destroy()
         
     def OnExit(self):
-        print >>sys.stderr,"ONEXIT"
+        print >>sys.stderr,"main: ONEXIT"
+        
+        time.sleep(1) 
+        
         if self.s is not None:
             self.s.shutdown()
         
-        ###time.sleep(5) # TODO: make network thread non-daemon which MainThread has to end.
+        time.sleep(2) 
         
         if self.tbicon is not None:
             self.tbicon.RemoveIcon()
             self.tbicon.Destroy()
+
+        ts = enumerate()
+        for t in ts:
+            print >>sys.stderr,"main: ONEXIT: Thread still running",t.getName(),"daemon",t.isDaemon()
         
         if not ALLOW_MULTIPLE:
             del self.single_instance_checker
         ## TODO ClientPassParam("Close Connection")
-        return 0
+        self.ExitMainLoop()
 
 
     def sesscb_states_callback(self,dslist):
         """ Called by Session thread """
 
-        print >>sys.stderr,"main: Stats"
+        print >>sys.stderr,"main: Stats",`dslist`
         
         # See which Download is currently playing
         self.dlock.acquire()
+        playermode = self.playermode
         d = self.d
         self.dlock.release()
+        
+        if playermode == DLSTATUS_SEEDING:
+            for ds in dslist:
+                print >>sys.stderr,"main: Stats: Seeding:",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
+            return (1.0,False)
+        
         ds = None
-        for ds in dslist:
-            if ds.get_download() == d:
-                break
+        for ds2 in dslist:
+            if ds2.get_download() == d:
+                ds = ds2
+            else:
+                print >>sys.stderr,"main: Stats: Waiting:",dlstatus_strings[ds2.get_status()],ds2.get_progress(),"%",ds2.get_error()
+                
         if ds is None:
             return (1.0,False)
         
-        print >>sys.stderr,"main: Stats",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
+        print >>sys.stderr,"main: Stats: DL:",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
         
         global closing
         if closing:
@@ -407,6 +459,15 @@ class PlayerApp(wx.App):
             msg = "Checking already downloaded parts "+pstr+"% done"
         elif ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
             msg = 'Error playing: '+str(ds.get_error())
+        elif ds.get_status() == DLSTATUS_SEEDING:
+            npeerstr = str(ds.get_num_peers())
+            msg = u"Helping "+npeerstr+" people to enjoy "+d.get_def().get_name_as_unicode()+". Please don't close the SwarmPlayer completely"
+
+            # As we're seeding we can now restart any previous downloads to 
+            # seed them.
+            # Arno: For extra robustness, ignore any errors related to restarting
+            wx.CallAfter(self.restart_other_downloads)
+            
         elif progress != 1.0:
             pstr = str(int(progress*100))
             npeerstr = str(ds.get_num_peers())
@@ -441,7 +502,7 @@ class PlayerApp(wx.App):
             videoserv = VideoHTTPServer.getInstance()
             videoserv.set_movietransport(stream.mt)
             wx.CallAfter(self.play_from_stream)
-        
+
     def play_from_stream(self):
         """ Called by MainThread """
         print >>sys.stderr,"main: Playing from stream"
@@ -473,7 +534,17 @@ class PlayerApp(wx.App):
             self.r.adjust_speeds()
         return (1.0,False)
 
+    def restart_other_downloads(self):
+        """ Called by GUI thread """
+        self.dlock.acquire()
+        self.playermode = DLSTATUS_SEEDING
+        self.dlock.release()
 
+        dlist = self.s.get_downloads()
+        for d in dlist:
+            d.set_mode(DLMODE_NORMAL)
+            d.restart()
+            
     
 class DummySingleInstanceChecker:
     

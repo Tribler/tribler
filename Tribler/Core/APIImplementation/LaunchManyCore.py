@@ -27,6 +27,7 @@ from Tribler.Core.BitTornado.HTTPHandler import HTTPHandler,DummyHTTPHandler
 from Tribler.Core.simpledefs import *
 from Tribler.Core.exceptions import *
 from Tribler.Core.Download import Download
+from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.APIImplementation.SingleDownload import SingleDownload
 from Tribler.Core.NATFirewall.guessip import get_my_wan_ip
@@ -175,7 +176,7 @@ class TriblerLaunchMany(Thread):
             self.rawserver.add_task(self._torrent_checking, self.torrent_checking_period)
         
 
-    def add(self,tdef,dscfg,pstate=None):
+    def add(self,tdef,dscfg,pstate=None,initialdlstatus=None):
         """ Called by any thread """
         self.sesslock.acquire()
         try:
@@ -195,7 +196,7 @@ class TriblerLaunchMany(Thread):
             
             # Store in list of Downloads, always. 
             self.downloads[d.get_def().get_infohash()] = d
-            d.setup(dscfg,pstate,self.network_engine_wrapper_created_callback,self.network_vod_playable_callback)
+            d.setup(dscfg,pstate,initialdlstatus,self.network_engine_wrapper_created_callback,self.network_vod_playable_callback)
             return d
         finally:
             self.sesslock.release()
@@ -348,7 +349,7 @@ class TriblerLaunchMany(Thread):
     #
     # Persistence methods
     #
-    def load_checkpoint(self):
+    def load_checkpoint(self,initialdlstatus=None):
         """ Called by any thread """
         self.sesslock.acquire()
         try:
@@ -357,9 +358,9 @@ class TriblerLaunchMany(Thread):
             for basename in filelist:
                 # Make this go on when a torrent fails to start
                 filename = os.path.join(dir,basename)
-                self.resume_download(filename)
+                self.resume_download(filename,initialdlstatus)
         finally:
-            self.sesslock.releas()
+            self.sesslock.release()
 
 
     def load_download_pstate_noexc(self,infohash):
@@ -374,7 +375,7 @@ class TriblerLaunchMany(Thread):
             self.rawserver_nonfatalerrorfunc(e)
             return None
         
-    def resume_download(self,filename):
+    def resume_download(self,filename,initialdlstatus=None):
         try:
             # TODO: filter for file not found explicitly?
             pstate = self.load_download_pstate(filename)
@@ -384,7 +385,7 @@ class TriblerLaunchMany(Thread):
             
             # Activate
             dscfg = DownloadStartupConfig(dlconfig=pstate['dlconfig'])
-            self.add(tdef,dscfg,pstate)
+            self.add(tdef,dscfg,pstate,initialdlstatus)
         except Exception,e:
             # TODO: remove saved checkpoint?
             self.rawserver_nonfatalerrorfunc(e)

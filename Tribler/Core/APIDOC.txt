@@ -287,7 +287,7 @@ TODO:
 
 - Add SingleInstance checker for p2player, i.e., revamp interconn.py to 
   make general SingleInstance checker and use it in p2player (and Main)
-  	TODO
+  	Arno, 2008-2-6: Done
 
 - Adjust VideoOnDemand, such that when the download speed is < bitrate, but
   a large part of the video is already in, i.e. prebuffer+20 secs (or even
@@ -301,6 +301,7 @@ removed.
 
 - Have separate $HOME/.Tribler and $HOME/.SwarmPlayer?
 	Ask Jelle
+	Arno, 2008-2-5: Separate.
 
 - Allow user seeking: i.e., allow user to set hi/mid/low priority set
 to some point in the future.
@@ -309,3 +310,20 @@ to some point in the future.
    I hacked around it, but it needs to be cleaned up.
    
 - Search for TEMPARNO tags to see if stuff needs fixing.
+
+- More than 1 download seeding:
+   ISSUE: What if person started download but closed app before end.
+   It may mean he didn't like it, so we should not redistribute it further.
+  
+   ISSUE: when user start downloading a torrent that is already being seeded.
+   
+   ISSUE: when restarting download, make sure it's not running in VOD mode.
+  
+  Plan:
+     Wait till current download is seeding.
+     Then load Session checkpoint
+     And limit upload speed of Session to user-specified limit.
+     
+     
+  Arno: let's postpone this, first build stable version for 14 feb.
+  

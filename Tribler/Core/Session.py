@@ -173,10 +173,9 @@ class Session(SessionRuntimeConfig):
         return Session.__single
     get_instance = staticmethod(get_instance)
 
-    def get_default_state_dir():
+    def get_default_state_dir(homedirpostfix='.Tribler'):
         """ Returns the factory default directory for storing session state.
         @return An absolute path name. """
-        homedirpostfix = '.Tribler'
         if sys.platform == 'win32':
             homedirvar = '${APPDATA}'
         elif sys.platform == 'darwin':
@@ -433,14 +432,16 @@ class Session(SessionRuntimeConfig):
     #
     # Persistence and shutdown 
     #
-    def load_checkpoint(self):
+    def load_checkpoint(self,initialdlstatus=None):
         """ Restart Downloads from checkpoint, if any.
         
         This method allows the API user to manage restoring downloads. 
         E.g. a video player that wants to start the torrent the user clicked 
         on first, and only then restart any sleeping torrents (e.g. seeding).
+        The optional initialdlstatus parameter can be set to DLSTATUS_STOPPED
+        to restore all the Downloads in DLSTATUS_STOPPED state.
         """
-        self.lm.load_checkpoint()
+        self.lm.load_checkpoint(initialdlstatus)
     
     
     def checkpoint(self):
@@ -507,46 +508,3 @@ class Session(SessionRuntimeConfig):
         trackerdir = self.get_internal_tracker_dir()
         basename = binascii.hexlify(infohash)+'.torrent' # ignore .tribe stuff, not vital
         return os.path.join(trackerdir,basename)
-
-
-    def sesscb_removestate(self,infohash,contentdest,removecontent):
-        """ Called by SessionCallbackThread """
-        if DEBUG:
-            print >>sys.stderr,"Session: sesscb_removestate called",`infohash`,`contentdest`,removecontent
-        self.sesslock.acquire()
-        try:
-            dlpstatedir = os.path.join(self.sessconfig['state_dir'],STATEDIR_DLPSTATE_DIR)
-            trackerdir = os.path.join(self.sessconfig['state_dir'],STATEDIR_ITRACKER_DIR)
-        finally:
-            self.sesslock.release()
-
-        # See if torrent uses internal tracker
-        try:
-            self.remove_from_internal_tracker_by_infohash(infohash)
-        except:
-            # Show must go on
-            print_exc()
-
-        # Remove checkpoint
-        hexinfohash = binascii.hexlify(infohash)
-        try:
-            basename = hexinfohash+'.pickle'
-            filename = os.path.join(dlpstatedir,basename)
-            if DEBUG:
-                print >>sys.stderr,"Session: sesscb_removestate: removing dlcheckpoint entry",filename
-            if os.access(filename,os.F_OK):
-                os.remove(filename)
-        except:
-            # Show must go on
-            print_exc()
-
-        # Remove downloaded content from disk
-        if removecontent:
-            if DEBUG:
-                print >>sys.stderr,"Session: sesscb_removestate: removing saved content",contentdest
-            if not os.path.isdir(contentdest):
-                # single-file torrent
-                os.remove(contentdest)
-            else:
-                # multi-file torrent
-                shutil.rmtree(contentdest,True) # ignore errors

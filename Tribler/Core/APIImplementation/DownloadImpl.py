@@ -37,7 +37,7 @@ class DownloadImpl:
     #
     # Creating a Download
     #
-    def setup(self,dcfg=None,pstate=None,lmcreatedcallback=None,lmvodplayablecallback=None):
+    def setup(self,dcfg=None,pstate=None,initialdlstatus=None,lmcreatedcallback=None,lmvodplayablecallback=None):
         """
         Create a Download object. Used internally by Session.
         @param dcfg DownloadStartupConfig or None (in which case 
@@ -47,6 +47,12 @@ class DownloadImpl:
         # Called by any thread
         try:
             self.dllock.acquire() # not really needed, no other threads know of this object
+
+            metainfo = self.get_def().get_metainfo()
+            # H4xor this so the 'name' field is safe
+            (namekey,uniname) = metainfoname2unicode(metainfo)
+            self.correctedinfoname = fix_filebasename(uniname)
+
             
             # See if internal tracker used
             itrackerurl = self.session.get_internal_tracker_url()
@@ -98,9 +104,14 @@ class DownloadImpl:
             self.dlruntimeconfig['max_desired_upload_rate'] = self.dlconfig['max_upload_rate'] 
             self.dlruntimeconfig['max_desired_download_rate'] = self.dlconfig['max_download_rate']
     
-            if pstate is None or pstate['dlstate']['status'] != DLSTATUS_STOPPED:
-                # Also restart on STOPPED_ON_ERROR, may have been transient
-                self.create_engine_wrapper(lmcreatedcallback,pstate,lmvodplayablecallback)
+    
+            print >>sys.stderr,"DownloadImpl: setup: initialdlstatus",`self.tdef.get_name_as_unicode()`,initialdlstatus
+    
+            # Note: initialdlstatus now only works for STOPPED
+            if initialdlstatus != DLSTATUS_STOPPED:
+                if pstate is None or pstate['dlstate']['status'] != DLSTATUS_STOPPED: 
+                    # Also restart on STOPPED_ON_ERROR, may have been transient
+                    self.create_engine_wrapper(lmcreatedcallback,pstate,lmvodplayablecallback)
                 
             self.dllock.release()
         except Exception,e:
@@ -119,7 +130,6 @@ class DownloadImpl:
         
         # H4xor this so the 'name' field is safe
         (namekey,uniname) = metainfoname2unicode(metainfo)
-        self.correctedinfoname = fix_filebasename(uniname)
         metainfo['info'][namekey] = metainfo['info']['name'] = self.correctedinfoname 
         
         multihandler = self.session.lm.multihandler
@@ -208,12 +218,14 @@ class DownloadImpl:
         self.dllock.acquire()
         try:
             if self.sd is None:
+                print >>sys.stderr,"DownloadImpl: network_get_state: state is DLSTATUS_STOPPED"
                 ds = DownloadState(self,DLSTATUS_STOPPED,self.error,self.progressbeforestop)
             else:
                 (status,stats,logmsgs) = self.sd.get_stats(getpeerlist)
                 ds = DownloadState(self,status,self.error,None,stats=stats,filepieceranges=self.filepieceranges,logmsgs=logmsgs)
                 self.progressbeforestop = ds.get_progress()
-            
+                
+                print >>sys.stderr,"DownloadImpl: network_get_state: state is2",status
                 #print >>sys.stderr,"STATS",stats
             
             if sessioncalling:
@@ -250,12 +262,11 @@ class DownloadImpl:
         self.stop_remove(removestate=False,removecontent=False)
 
     def stop_remove(self,removestate=False,removecontent=False):
+        print >>sys.stderr,"DownloadImpl: stop_remove: state",removestate,"content",removecontent
         self.dllock.acquire()
         try:
-            if self.sd is not None:
-                network_stop_lambda = lambda:self.network_stop(removestate,removecontent)
-                self.session.lm.rawserver.add_task(network_stop_lambda,0.0)
-            # No exception if already stopped, for convenience
+            network_stop_lambda = lambda:self.network_stop(removestate,removecontent)
+            self.session.lm.rawserver.add_task(network_stop_lambda,0.0)
         finally:
             self.dllock.release()
 
@@ -264,8 +275,9 @@ class DownloadImpl:
         self.dllock.acquire()
         try:
             infohash = self.tdef.get_infohash() 
-            pstate = self.network_get_persistent_state() 
-            pstate['engineresumedata'] = self.sd.shutdown()
+            pstate = self.network_get_persistent_state()
+            if self.sd is not None:
+                pstate['engineresumedata'] = self.sd.shutdown()
             
             # Offload the removal of the content and other disk cleanup to another thread
             if removestate:
@@ -286,7 +298,7 @@ class DownloadImpl:
             if self.sd is None:
                 self.error = None # assume fatal error is reproducible
                 # TODO: if seeding don't re-hashcheck
-                self.create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback,pstate=None)
+                self.create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback,pstate=None,lmvodplayablecallback=None)
             # No exception if already started, for convenience
         finally:
             self.dllock.release()

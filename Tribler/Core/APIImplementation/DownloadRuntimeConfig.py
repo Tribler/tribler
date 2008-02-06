@@ -46,6 +46,14 @@ class DownloadRuntimeConfig(DownloadConfigInterface):
     def set_video_start_callback(self,usercallback):
         raise NotYetImplementedException()
 
+    def set_mode(self,mode):
+        """ Note: this currently works only when the download is stopped. """
+        self.dllock.acquire()
+        try:
+            return DownloadConfigInterface.set_mode(self,mode)
+        finally:
+            self.dllock.release()
+
     def get_mode(self):
         self.dllock.acquire()
         try:

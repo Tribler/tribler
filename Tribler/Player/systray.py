@@ -48,30 +48,108 @@ class PlayerOptionsDialog(wx.Dialog):
         wx.Dialog.__init__(self, None, -1, 'SwarmPlayer Options', size=(400,200), style=style)
         self.wxapp = wxapp
 
+        self.port = None
+
         iconpath = os.path.join(wxapp.installdir,'Tribler','Images','tribler.ico')
         self.icons = wx.IconBundle()
         self.icons.AddIconFromFile(iconpath,wx.BITMAP_TYPE_ICO)
         self.SetIcons(self.icons)
 
-        port = wxapp.s.get_listen_port()
-        #destdir = wxapp.s.get_dest_dir()
+        mainbox = wx.BoxSizer(wx.VERTICAL)
+        
+        uploadrate = 100
+        
+        uploadratebox = wx.BoxSizer(wx.HORIZONTAL)
+        label = wx.StaticText(self, -1, 'Upload rate')
+        self.uploadrate = wx.TextCtrl(self, -1, str(uploadrate))
+        uploadratebox.Add(label, 1, wx.ALIGN_CENTER_VERTICAL)
+        uploadratebox.Add(self.uploadrate)
+
+
+        buttonbox2 = wx.BoxSizer(wx.HORIZONTAL)
+        advbtn = wx.Button(self, -1, 'Advanced...')
+        buttonbox2.Add(advbtn, 0, wx.ALL, 5)
+
+        
+        buttonbox = wx.BoxSizer(wx.HORIZONTAL)
+        okbtn = wx.Button(self, wx.ID_OK, 'OK')
+        buttonbox.Add(okbtn, 0, wx.ALL, 5)
+        cancelbtn = wx.Button(self, wx.ID_CANCEL, 'Cancel')
+        buttonbox.Add(cancelbtn, 0, wx.ALL, 5)
+        applybtn = wx.Button(self, -1, 'Apply')
+        buttonbox.Add(applybtn, 0, wx.ALL, 5)
+
+        mainbox.Add(uploadratebox, 1, wx.EXPAND, 1)
+        mainbox.Add(buttonbox2, 1, wx.EXPAND, 1)
+        mainbox.Add(buttonbox, 1, wx.EXPAND, 1)
+        self.SetSizerAndFit(mainbox)
+
+        self.Bind(wx.EVT_BUTTON, self.OnAdvanced, advbtn)
+        self.Bind(wx.EVT_BUTTON, self.OnOK, okbtn)
+        #self.Bind(wx.EVT_BUTTON, self.OnCancel, cancelbtn)
+        self.Bind(wx.EVT_BUTTON, self.OnApply, applybtn)
+        #self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
+
+    def OnOK(self,event = None):
+        self.OnApply(event)
+        self.EndModal(wx.ID_OK)
+        
+    #def OnCancel(self,event = None):
+    #    self.EndModal(wx.ID_CANCEL)
+        
+    def OnApply(self,event = None):
+        print >>sys.stderr,"PlayerOptionsDialog: OnApply"
+        
+        if self.port is not None:
+            session = self.wxapp.s
+            state_dir = session.get_state_dir()
+            cfgfilename = Session.get_default_config_filename(state_dir)
+            scfg = SessionStartupConfig.load(cfgfilename)
+            
+            scfg.set_listen_port(self.port)
+            
+            scfg.save(cfgfilename)
+        
+        # TODO: For max upload, etc. we also have to modify the runtime Session.
+
+    def OnAdvanced(self,event = None):
+
+        if self.port is None:
+            self.port = self.wxapp.s.get_listen_port()
+        #destdir = self.wxapp.s.get_dest_dir()
+
+        dlg = PlayerAdvancedOptionsDialog(self.port)
+        ret = dlg.ShowModal()
+        if ret == wx.ID_OK:
+            self.port = dlg.get_port()
+        dlg.Destroy()
+
+
+class PlayerAdvancedOptionsDialog(wx.Dialog):
+    
+    def __init__(self,port):
+        style = wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER  # TODO: Add OK+Cancel
+        wx.Dialog.__init__(self, None, -1, 'SwarmPlayer Advanced Options', size=(400,200), style=style)
+
+        iconpath = os.path.join(wxapp.installdir,'Tribler','Images','tribler.ico')
+        self.icons = wx.IconBundle()
+        self.icons.AddIconFromFile(iconpath,wx.BITMAP_TYPE_ICO)
+        self.SetIcons(self.icons)
 
         mainbox = wx.BoxSizer(wx.VERTICAL)
         
         portbox = wx.BoxSizer(wx.HORIZONTAL)
         label = wx.StaticText(self, -1, 'Port')
-        self.port = wx.TextCtrl(self, -1, str(port))
+        self.portctrl = wx.TextCtrl(self, -1, str(port))
         portbox.Add(label, 1, wx.ALIGN_CENTER_VERTICAL)
-        portbox.Add(self.port)
+        portbox.Add(self.portctrl)
 
         
         buttonbox = wx.BoxSizer(wx.HORIZONTAL)
-        okbtn = wx.Button(self, -1, 'OK')
+        okbtn = wx.Button(self, wx.ID_OK, 'OK')
         buttonbox.Add(okbtn, 0, wx.ALL, 5)
-        cancelbtn = wx.Button(self, -1, 'Cancel')
+        cancelbtn = wx.Button(self, wx.ID_CANCEL, 'Cancel')
         buttonbox.Add(cancelbtn, 0, wx.ALL, 5)
-        applybtn = wx.Button(self, -1, 'Apply')
-        buttonbox.Add(applybtn, 0, wx.ALL, 5)
 
         mainbox.Add(portbox, 1, wx.EXPAND, 1)
         mainbox.Add(buttonbox, 1, wx.EXPAND, 1)
@@ -79,25 +157,10 @@ class PlayerOptionsDialog(wx.Dialog):
 
         self.Bind(wx.EVT_BUTTON, self.OnOK, okbtn)
         self.Bind(wx.EVT_BUTTON, self.OnCancel, cancelbtn)
-        self.Bind(wx.EVT_BUTTON, self.OnApply, applybtn)
-        #self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
 
-    def OnOK(self,event = None):
-        self.EndModal(wx.ID_OK)
+        mainbox.Add(portbox, 1, wx.EXPAND, 1)
+        self.SetSizerAndFit(mainbox)
+
+    def get_port(self):
+        return int(self.portctrl.GetValue())
         
-    def OnCancel(self,event = None):
-        self.EndModal(wx.ID_CANCEL)
-        
-    def OnApply(self,event = None):
-        print >>sys.stderr,"PlayerOptionsDialog: OnApply"
-        session = self.wxapp.s
-        state_dir = session.get_state_dir()
-        cfgfilename = Session.get_default_config_filename(state_dir)
-        scfg = SessionStartupConfig.load(cfgfilename)
-        
-        port = int(self.port.GetValue())
-        scfg.set_listen_port(port)
-        
-        scfg.save(cfgfilename)
-        
-        # For max upload, etc. we also have to modify the runtime Session.

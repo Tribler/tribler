@@ -59,7 +59,7 @@ class DownloadConfigInterface:
         When the video is ready to play, the usercallback function will be 
         called, with a stream as argument from which the video can be read. To 
         fetch a specific file from a multi-file torrent, use the 
-        set_selected_files() method. 
+        set_selected_files() method. This method sets the mode to DLMODE_VOD 
   
         The usercallback will be called by a popup thread which can be used
         indefinitely (within reason) by the higher level code.
@@ -78,6 +78,11 @@ class DownloadConfigInterface:
         (i.e., supports read() and close())
         """
         self.dlconfig['video_source'] = videosource
+
+    def set_mode(self,mode):
+        """ Sets the mode of this download. 
+        @param DLMODE_NORMAL/DLMODE_VOD """
+        self.dlconfig['mode'] = mode 
 
     def get_mode(self):
         """ Returns the mode of this download. 
