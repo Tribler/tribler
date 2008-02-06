@@ -209,15 +209,6 @@ class PlayerApp(wx.App):
 
     def start_download(self,torrentfilename):
         
-        # What if DL already running?
-        self.dlock.acquire()
-        try:
-            if self.d is not None:
-                self.videoplay.stop_playback()
-                self.d.stop()
-        finally:
-            self.dlock.release()
-        
         tdef = TorrentDef.load(torrentfilename)
         print >>sys.stderr,"main: infohash is",`tdef.get_infohash()`
         
@@ -286,11 +277,24 @@ class PlayerApp(wx.App):
                 break
         
         if newd is None:
+            print >>sys.stderr,"main: Starting new Download",`infohash`
             newd = self.s.start_download(tdef,dcfg)
-            
+
+        # What if DL already running?
         self.dlock.acquire()
-        self.d = newd
-        self.dlock.release()
+        try:
+            if self.d is not None and newd != self.d:
+                try:
+                    print >>sys.stderr,"main: Stopping previous Download",`self.d.get_def().get_name_as_unicode()`
+                    self.videoplay.stop_playback()
+                    self.d.stop()
+                except:
+                    print_exc()
+                
+            self.d = newd
+            self.playermode = DLSTATUS_DOWNLOADING
+        finally:
+            self.dlock.release()
 
         print >>sys.stderr,"main: Saving content to",self.d.get_dest_files()
 

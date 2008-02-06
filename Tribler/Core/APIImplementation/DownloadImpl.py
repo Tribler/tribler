@@ -281,8 +281,7 @@ class DownloadImpl:
             pstate = self.network_get_persistent_state()
             if self.sd is not None:
                 pstate['engineresumedata'] = self.sd.shutdown()
-                print >>sys.stderr,"DownloadImpl: network_stop: Was active, saving resumedata",len(pstate['engineresumedata'])
-            
+                self.sd = None
                 self.pstate_for_restart = pstate
             
             # Offload the removal of the content and other disk cleanup to another thread
