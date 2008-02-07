@@ -11,7 +11,7 @@ import tempfile
 import urllib2
 from threading import enumerate,currentThread,RLock
 from traceback import print_exc
-from systray import PlayerTaskBarIcon
+from Tribler.Player.systray import PlayerTaskBarIcon
 
 if sys.platform == "darwin":
     # on Mac, we can only load VLC/OpenSSL libraries
