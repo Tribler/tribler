@@ -383,10 +383,11 @@ class VLCMediaCtrl(wx.Window):
 
         # Arno: 2007-05-11: Don't ask me why but without the "--verbose=0" vlc will ignore the key redef.
         params = ["--verbose=0"]
-        params += ["--key-fullscreen", "Esc"]
+        #params += ["--key-fullscreen", "Esc"]
         params += ["--no-drop-late-frames"] # Arno: 2007-11-19: don't seem to work as expected DEBUG
         params += ["--no-skip-frames"]
         params += ["--quiet-synchro"]
+        params += ["--key-fullscreen", "Esc"] # must come last somehow on Win32
         
         if sys.platform == 'darwin':
             params += ["--plugin-path", "%s/lib/vlc" % (

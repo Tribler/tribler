@@ -74,7 +74,14 @@ class DownloadRuntimeConfig(DownloadConfigInterface):
             self.dllock.release()
 
     def set_selected_files(self,files):
-        raise OperationNotPossibleAtRuntimeException()
+        """ Note: this currently works only when the download is stopped. """
+        self.dllock.acquire()
+        try:
+            DownloadConfigInterface.set_selected_files(self,files)
+            self.set_filepieceranges(self.tdef.get_metainfo())
+        finally:
+            self.dllock.release()
+
 
     def get_selected_files(self):
         self.dllock.acquire()

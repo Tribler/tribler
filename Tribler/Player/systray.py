@@ -55,6 +55,12 @@ class PlayerOptionsDialog(wx.Dialog):
 
         mainbox = wx.BoxSizer(wx.VERTICAL)
         
+        aboutbox = wx.BoxSizer(wx.VERTICAL)
+        aboutlabel1 = wx.StaticText(self, -1, 'SwarmPlayer is a product of the Tribler team.')
+        aboutlabel2 = wx.StaticText(self, -1, 'Visit us at www.tribler.org!')
+        aboutbox.Add(aboutlabel1, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, 5)
+        aboutbox.Add(aboutlabel2, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, 5)
+        
         uploadrate = self.wxapp.get_playerconfig('total_max_upload_rate')
         
         uploadratebox = wx.BoxSizer(wx.HORIZONTAL)
@@ -77,6 +83,7 @@ class PlayerOptionsDialog(wx.Dialog):
         applybtn = wx.Button(self, -1, 'Apply')
         buttonbox.Add(applybtn, 0, wx.ALL, 5)
 
+        mainbox.Add(aboutbox, 1, wx.ALL, 5)
         mainbox.Add(uploadratebox, 1, wx.EXPAND|wx.ALL, 5)
         mainbox.Add(buttonbox2, 1, wx.EXPAND, 1)
         mainbox.Add(buttonbox, 1, wx.EXPAND, 1)

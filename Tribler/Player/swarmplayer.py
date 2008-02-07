@@ -39,20 +39,15 @@ RATELIMITADSL = False
 DISKSPACE_LIMIT = 5L * 1024L * 1024L * 1024L  # 5 GB
 I2I_LISTENPORT = 57894
 
-closing = False
-
 class PlayerFrame(VideoFrame):
 
     def __init__(self,parent):
         VideoFrame.__init__(self,parent,title='SwarmPlayer 0.0.6')
+        self.parent = parent
         
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
     
     def OnCloseWindow(self, event = None):
-        global closing
-        closing = True
-        
-        self.set_wxclosing()
         
         if event is not None:
             nr = event.GetEventType()
@@ -64,7 +59,7 @@ class PlayerFrame(VideoFrame):
         else:
             print "Closing untriggered by event"
     
-        
+        self.parent.videoFrame = None 
 
 class PlayerApp(wx.App):
     def __init__(self, x, params, single_instance_checker, installdir):
@@ -94,8 +89,8 @@ class PlayerApp(wx.App):
             self.i2is = Instance2InstanceServer(I2I_LISTENPORT,self.i2icallback) 
             self.i2is.start()
 
-            # Start video frame
-            self.videoFrame = PlayerFrame(self)
+            self.videoplay = None 
+            self.startVideoFrame()
             
             # Start HTTP server for serving video to player widget
             self.videoserv = VideoHTTPServer.getInstance() # create
@@ -138,7 +133,7 @@ class PlayerApp(wx.App):
             self.sconfig.set_overlay(False)
             self.sconfig.set_megacache(False)
             self.s = Session(self.sconfig)
-            self.s.set_download_states_callback(self.sesscb_states_callback)
+            self.s.set_download_states_callback(self.sesscb_states_protected_callback)
 
             if RATELIMITADSL:
                 self.r = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()
@@ -167,12 +162,6 @@ class PlayerApp(wx.App):
                 self.OnExit()
                 return False
             
-            self.Bind(wx.EVT_CLOSE, self.videoFrame.OnCloseWindow)
-            self.Bind(wx.EVT_QUERY_END_SESSION, self.videoFrame.OnCloseWindow)
-            self.Bind(wx.EVT_END_SESSION, self.videoFrame.OnCloseWindow)
-
-            self.videoFrame.Show(True)
-            
         except Exception,e:
             print_exc()
             self.show_error(str(e))
@@ -180,6 +169,16 @@ class PlayerApp(wx.App):
             return False
         return True
 
+    def startVideoFrame(self):
+        # Start video frame
+        self.videoFrame = PlayerFrame(self)
+        self.Bind(wx.EVT_CLOSE, self.videoFrame.OnCloseWindow)
+        self.Bind(wx.EVT_QUERY_END_SESSION, self.videoFrame.OnCloseWindow)
+        self.Bind(wx.EVT_END_SESSION, self.videoFrame.OnCloseWindow)
+        self.videoFrame.Show(True)
+
+        if self.videoplay is not None:
+            self.videoplay.set_parentwindow(self.videoFrame)
 
     def select_torrent_from_disk(self):
         dlg = wx.FileDialog(self.videoFrame, 
@@ -259,8 +258,12 @@ class PlayerApp(wx.App):
         dlist = self.s.get_downloads()
         infohash = tdef.get_infohash()
 
-        # Stop playing
-        self.videoplay.stop_playback()
+        # Start video window if not open
+        if self.videoFrame is None:
+            self.startVideoFrame()
+        else:
+            # Stop playing
+            self.videoplay.stop_playback()
         
         # Stop all
         newd = None
@@ -285,6 +288,8 @@ class PlayerApp(wx.App):
                 newd = self.s.start_download(tdef,dcfg)
             else:
                 newd.set_video_start_callback(self.vod_ready_callback)
+                if tdef.is_multifile_torrent():
+                    newd.set_selected_files([dlfile])
                 newd.restart()
 
             self.d = newd
@@ -329,14 +334,11 @@ class PlayerApp(wx.App):
         
     def videoserver_error_guicallback(self,e,url):
         print >>sys.stderr,"main: Video server reported error",str(e)
-        #global closing
-        #if not closing:
         #    self.show_error(str(e))
         pass
 
     def videoserver_set_status_callback(self,status):
-        global closing
-        if not closing:
+        if self.videoFrame is not None:
             self.videoFrame.set_player_status(status)
             
     
@@ -415,9 +417,15 @@ class PlayerApp(wx.App):
         self.ExitMainLoop()
 
 
-    def sesscb_states_callback(self,dslist):
+    def sesscb_states_protected_callback(self,dslist):
         """ Called by Session thread """
+        try:
+            self.sesscb_states_callback(dslist)
+        except:
+            print_exc()
+        return (1.0,False)
 
+    def sesscb_states_callback(self,dslist):
         print >>sys.stderr,"main: Stats",`dslist`
         
         # See which Download is currently playing
@@ -445,8 +453,7 @@ class PlayerApp(wx.App):
         
         print >>sys.stderr,"main: Stats: DL:",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
         
-        global closing
-        if closing:
+        if self.videoFrame is None:
             return (-1,False)
 
         # Display stats for currently playing Download
