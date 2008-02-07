@@ -9,7 +9,7 @@ from traceback import print_exc
 
 from Tribler.Core.simpledefs import *
 
-DEBUG = True
+DEBUG = False
 
 
 class RateManager:

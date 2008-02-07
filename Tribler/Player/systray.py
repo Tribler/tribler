@@ -58,7 +58,7 @@ class PlayerOptionsDialog(wx.Dialog):
         uploadrate = self.wxapp.get_playerconfig('total_max_upload_rate')
         
         uploadratebox = wx.BoxSizer(wx.HORIZONTAL)
-        label = wx.StaticText(self, -1, 'Upload rate')
+        label = wx.StaticText(self, -1, 'Max upload to others (KB/s)')
         self.uploadratectrl = wx.TextCtrl(self, -1, str(uploadrate))
         uploadratebox.Add(label, 1, wx.ALIGN_CENTER_VERTICAL)
         uploadratebox.Add(self.uploadratectrl)

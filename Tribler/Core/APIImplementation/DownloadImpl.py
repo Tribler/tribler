@@ -228,7 +228,7 @@ class DownloadImpl:
                 ds = DownloadState(self,status,self.error,None,stats=stats,filepieceranges=self.filepieceranges,logmsgs=logmsgs)
                 self.progressbeforestop = ds.get_progress()
                 
-                print >>sys.stderr,"DownloadImpl: network_get_state: state is2",status
+                #print >>sys.stderr,"DownloadImpl: network_get_state: state is2",status
                 #print >>sys.stderr,"STATS",stats
             
             if sessioncalling:
@@ -265,7 +265,8 @@ class DownloadImpl:
         self.stop_remove(removestate=False,removecontent=False)
 
     def stop_remove(self,removestate=False,removecontent=False):
-        print >>sys.stderr,"DownloadImpl: stop_remove: state",removestate,"content",removecontent
+        """ Called by any thread """
+        print >>sys.stderr,"DownloadImpl: stop_remove:",`self.tdef.get_name_as_unicode()`,"state",removestate,"content",removecontent
         self.dllock.acquire()
         try:
             network_stop_lambda = lambda:self.network_stop(removestate,removecontent)
@@ -275,6 +276,7 @@ class DownloadImpl:
 
     def network_stop(self,removestate,removecontent):
         """ Called by network thread """
+        print >>sys.stderr,"DownloadImpl: network_stop",`self.tdef.get_name_as_unicode()`
         self.dllock.acquire()
         try:
             infohash = self.tdef.get_infohash() 
@@ -295,9 +297,23 @@ class DownloadImpl:
 
         
     def restart(self):
-        """ Called by any thread """
+        """ Restart the Download. Technically this action does not need to be
+        delegated to the network thread, but does so removes some concurrency
+        problems. By scheduling both stops and restarts via the network task 
+        queue we ensure that they are executed in the order they were called.  
+        Called by any thread """
+        print >>sys.stderr,"DownloadImpl: restart:",`self.tdef.get_name_as_unicode()`
+        self.dllock.acquire()
+        try:
+            self.session.lm.rawserver.add_task(self.network_restart,0.0)
+        finally:
+            self.dllock.release()
+
+    def network_restart(self):
+        """ Called by network thread """
         # Must schedule the hash check via lm. In some cases we have batch stops
         # and restarts, e.g. we have stop all-but-one & restart-all for VOD)
+        print >>sys.stderr,"DownloadImpl: network_restart",`self.tdef.get_name_as_unicode()`
         self.dllock.acquire()
         try:
             if self.sd is None:

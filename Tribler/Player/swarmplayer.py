@@ -258,7 +258,11 @@ class PlayerApp(wx.App):
         # Start download
         dlist = self.s.get_downloads()
         infohash = tdef.get_infohash()
+
+        # Stop playing
+        self.videoplay.stop_playback()
         
+        # Stop all
         newd = None
         for d in dlist:
             if d.get_def().get_infohash() == infohash:
@@ -270,29 +274,20 @@ class PlayerApp(wx.App):
                 # was removed) 
                 # Alternative is to set VOD callback, etc. at Runtime:
                 print >>sys.stderr,"main: Reusing old duplicate Download",`infohash`
-                d.set_video_start_callback(self.vod_ready_callback)
-                d.restart()
                 newd = d
-                #self.s.remove_download(d,removecontent=False)
-                break
-        
-        if newd is None:
-            print >>sys.stderr,"main: Starting new Download",`infohash`
-            newd = self.s.start_download(tdef,dcfg)
+            d.stop()
 
-        # What if DL already running?
         self.dlock.acquire()
         try:
-            if self.d is not None and newd != self.d:
-                try:
-                    print >>sys.stderr,"main: Stopping previous Download",`self.d.get_def().get_name_as_unicode()`
-                    self.videoplay.stop_playback()
-                    self.d.stop()
-                except:
-                    print_exc()
-                
-            self.d = newd
             self.playermode = DLSTATUS_DOWNLOADING
+            if newd is None:
+                print >>sys.stderr,"main: Starting new Download",`infohash`
+                newd = self.s.start_download(tdef,dcfg)
+            else:
+                newd.set_video_start_callback(self.vod_ready_callback)
+                newd.restart()
+
+            self.d = newd
         finally:
             self.dlock.release()
 
