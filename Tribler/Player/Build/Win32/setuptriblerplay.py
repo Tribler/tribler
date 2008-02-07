@@ -31,7 +31,7 @@ import py2exe
 ################################################################
 
 mainfile = os.path.join('Tribler','Player','swarmplayer.py')
-progicofile = os.path.join('Tribler','Images','tribler.ico')
+progicofile = os.path.join('Tribler','Images','swarmplayer.ico')
 
 target_player = {
     "script": mainfile,

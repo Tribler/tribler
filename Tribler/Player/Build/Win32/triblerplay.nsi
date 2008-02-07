@@ -132,7 +132,7 @@ Section "Make Default For .tstream" SecDefaultTorrent
    WriteRegBin HKCR tstream EditFlags 00000100
    WriteRegStr HKCR "tstream\shell" "" open
    WriteRegStr HKCR "tstream\shell\open\command" "" '"$INSTDIR\${PRODUCT}.exe" "%1"'
-   WriteRegStr HKCR "tstream\DefaultIcon" "" "$INSTDIR\Tribler\Images\torrenticon.ico"
+   WriteRegStr HKCR "tstream\DefaultIcon" "" "$INSTDIR\Tribler\Images\swarmplayer.ico"
 SectionEnd
 
 Section /o "Make Default For .torrent" SecDefaultTStream
