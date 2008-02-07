@@ -1,6 +1,8 @@
 # Written by Bram Cohen
 # see LICENSE.txt for license information
 
+import sys
+from traceback import print_exc
 from threading import Event
 
 try:

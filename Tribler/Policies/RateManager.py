@@ -29,7 +29,6 @@ class RateManager:
         try:
             d = ds.get_download()
             if d not in self.dset:
-                print >>sys.stderr,"RateManager: add_downloadstate: adding",`d.get_def().get_infohash()`,"to",dlstatus_strings[ds.get_status()]
                 self.statusmap[ds.get_status()].append(ds)
                 for dir in [UPLOAD,DOWNLOAD]:
                     self.currenttotal[dir] += ds.get_current_speed(dir)
@@ -145,7 +144,7 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
 
         # User set priority is always granted, ignoring global limit
         todoset = []
-        for d in workingset:
+        for ds in workingset:
             d = ds.get_download()
             maxdesiredspeed = d.get_max_desired_speed(dir)
             if maxdesiredspeed > 0.0:

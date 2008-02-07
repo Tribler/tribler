@@ -101,7 +101,7 @@ class DownloadState(Serializable):
                             haveall = False
                         index += 1 
                 self.haveslice = haveslice
-                if haveall:
+                if haveall and len(self.filepieceranges) > 0:
                     # we have all pieces of the selected files
                     self.status = DLSTATUS_SEEDING
                     self.progress = 1.0
@@ -155,7 +155,7 @@ class DownloadState(Serializable):
         @return Boolean.
         """
         if self.stats is None:
-            return False
+            return 0
 
         # Determine if we need statsobj to be requested, same as for spew
         statsobj = self.stats['stats']

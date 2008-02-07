@@ -210,11 +210,16 @@ class TriblerLaunchMany(Thread):
             # We've provided the BT engine with its resumedata, so this should
             # be fast.
             #
-            self.queue_for_hashcheck(sd)
-            if pstate is None:
-                # Checkpoint at startup
-                (infohash,pstate) = d.network_checkpoint()
-                self.save_download_pstate(infohash,pstate)
+            try:
+                self.queue_for_hashcheck(sd)
+                if pstate is None:
+                    # Checkpoint at startup
+                    (infohash,pstate) = d.network_checkpoint()
+                    self.save_download_pstate(infohash,pstate)
+            except Except,e:
+                print_exc()
+                sd.set_error(e)
+                
         
     def remove(self,d,removecontent=False):
         """ Called by any thread """
@@ -574,5 +579,12 @@ class TriblerLaunchMany(Thread):
         except Exception, e:
             self.rawserver_nonfatalerrorfunc(e)
         
-
+    def h4xor_reset_init_conn_counter(self):
+        self.rawserver.add_task(self.network_h4xor_reset,0)
+        
+    def network_h4xor_reset(self):
+        from Tribler.Core.BitTornado.BT1.Encrypter import incompletecounter
+        print >>sys.stderr,"tlm: h4x0r RESET $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$",incompletecounter.c,"==="
+        incompletecounter.c = 0
+        
         

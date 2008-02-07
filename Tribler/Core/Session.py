@@ -513,3 +513,4 @@ class Session(SessionRuntimeConfig):
         trackerdir = self.get_internal_tracker_dir()
         basename = binascii.hexlify(infohash)+'.torrent' # ignore .tribe stuff, not vital
         return os.path.join(trackerdir,basename)
+

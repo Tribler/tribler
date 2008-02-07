@@ -42,7 +42,7 @@ I2I_LISTENPORT = 57894
 class PlayerFrame(VideoFrame):
 
     def __init__(self,parent):
-        VideoFrame.__init__(self,parent,title='SwarmPlayer 0.0.6')
+        VideoFrame.__init__(self,parent,'SwarmPlayer 0.0.6',parent.iconpath)
         self.parent = parent
         
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
@@ -84,6 +84,7 @@ class PlayerApp(wx.App):
             self.utility = Utility(self.installdir)
             self.utility.app = self
             print self.utility.lang.get('build')
+            self.iconpath = os.path.join(self.installdir,'Tribler','Images','swarmplayer.ico')
             
             # Start server for instance2instance communication
             self.i2is = Instance2InstanceServer(I2I_LISTENPORT,self.i2icallback) 
@@ -114,8 +115,8 @@ class PlayerApp(wx.App):
             # Install systray icon
             # Note: setting this makes the program not exit when the videoFrame
             # is being closed.
-            iconpath = os.path.join(self.installdir,'Tribler','Images','tribler.ico')
-            self.tbicon = PlayerTaskBarIcon(self,iconpath)
+            
+            self.tbicon = PlayerTaskBarIcon(self,self.iconpath)
 
             
             
@@ -279,6 +280,8 @@ class PlayerApp(wx.App):
                 print >>sys.stderr,"main: Reusing old duplicate Download",`infohash`
                 newd = d
             d.stop()
+
+        self.s.lm.h4xor_reset_init_conn_counter()
 
         self.dlock.acquire()
         try:

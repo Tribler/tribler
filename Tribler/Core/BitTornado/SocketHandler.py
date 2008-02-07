@@ -409,6 +409,7 @@ class SocketHandler:
                         if not data:
                             if DEBUG:
                                 print >> sys.stderr,"SocketHandler: UDP no-data",addr
+                            pass
                         else:
                             if DEBUG:
                                 print >> sys.stderr,"SocketHandler: Got UDP data",addr,"len",len(data)

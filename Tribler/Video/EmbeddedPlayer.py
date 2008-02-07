@@ -46,7 +46,7 @@ class VideoItem:
 
 class VideoFrame(wx.Frame):
     
-    def __init__(self,parent,title):
+    def __init__(self,parent,title,iconpath):
         self.utility = parent.utility
         if title is None:
             title = self.utility.lang.get('tb_video_short')
@@ -56,7 +56,6 @@ class VideoFrame(wx.Frame):
         self.createMainPanel()
 
 
-        iconpath = os.path.join(self.utility.getPath(),'Tribler','Images','tribler.ico')
         self.icons = wx.IconBundle()
         self.icons.AddIconFromFile(iconpath,wx.BITMAP_TYPE_ICO)
         self.SetIcons(self.icons)

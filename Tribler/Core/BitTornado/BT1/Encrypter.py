@@ -52,10 +52,13 @@ class IncompleteCounter:
     def increment(self):
         self.c += 1
     def decrement(self):
+        #print_stack()
         self.c -= 1
     def toomany(self):
+        #print >>sys.stderr,"IncompleteCounter: c",self.c
         return self.c >= MAX_INCOMPLETE
 
+# Arno: This is a global counter!!!!
 incompletecounter = IncompleteCounter()
 
 
