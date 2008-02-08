@@ -173,7 +173,7 @@ tdefmetadefaults['piece length'] = 0
 tdefmetadefaults['makehash_md5'] = 0
 tdefmetadefaults['makehash_crc32'] = 0
 tdefmetadefaults['makehash_sha1'] = 0
-tdefmetadefaults['createmerkletorrent'] = 1
+tdefmetadefaults['createmerkletorrent'] = 0
 tdefmetadefaults['torrentsigkeypairfilename'] = None
 tdefmetadefaults['thumb'] = None
 

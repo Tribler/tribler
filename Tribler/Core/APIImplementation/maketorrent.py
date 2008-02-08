@@ -40,8 +40,8 @@ def make_torrent_file(input, userabortflag = None, userprogresscallback = lambda
     if info is None:
         return (None,None)
 
-    if DEBUG:
-        print >>sys.stderr,"mktorrent: makeinfo returned",`info`
+    #if DEBUG:
+    #    print >>sys.stderr,"mktorrent: makeinfo returned",`info`
     
     check_info(info)
     metainfo = {'info': info, 'encoding': input['encoding'], 'creation date': long(time())}
@@ -160,7 +160,10 @@ def makeinfo(input,userabortflag,userprogresscallback):
     # 2. Calc total size
     newsubs = []
     for p, f in subs:
-        size = os.path.getsize(f)
+        if 'live' in input and input['live']:
+            size = input['files'][0]['length']
+        else:
+            size = os.path.getsize(f)
         totalsize += size
         newsubs.append((p,f,size))
     subs = newsubs

@@ -212,15 +212,15 @@ class TriblerLaunchMany(Thread):
             #
             try:
                 self.queue_for_hashcheck(sd)
-                if pstate is None:
+                if pstate is None and not d.get_def().get_live():
                     # Checkpoint at startup
                     (infohash,pstate) = d.network_checkpoint()
                     self.save_download_pstate(infohash,pstate)
-            except Except,e:
+            except Exception,e:
                 # There was a bug in queue_for_hashcheck that is now fixed.
                 # Leave this in place to catch unexpected errors.
                 print_exc()
-                sd.set_error(e)
+                d.set_error(e)
                 
         
     def remove(self,d,removecontent=False):

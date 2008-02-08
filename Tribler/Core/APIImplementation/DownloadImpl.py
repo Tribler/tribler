@@ -10,6 +10,7 @@ from threading import RLock,Condition,Event,Thread,currentThread
 from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.simpledefs import *
+from Tribler.Core.exceptions import *
 from Tribler.Core.osutils import *
 from Tribler.Core.APIImplementation.SingleDownload import SingleDownload
 import Tribler.Core.APIImplementation.maketorrent as maketorrent
