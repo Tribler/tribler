@@ -348,4 +348,4 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
         else:
             print_exc()
         if self.server.statuscallback is not None:
-            self.server.statuscallback("Error playing video")
+            self.server.statuscallback("Error playing video:"+str(e))

@@ -41,6 +41,11 @@ class PlayerTaskBarIcon(wx.TaskBarIcon):
         self.wxapp.ExitMainLoop()
     
     
+    def set_icon_tooltip(self,txt):
+        self.SetIcon(self.icon,txt)
+    
+    
+    
 class PlayerOptionsDialog(wx.Dialog):
     
     def __init__(self,wxapp,icons):

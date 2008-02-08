@@ -119,22 +119,31 @@ class VideoFrame(wx.Frame):
         
     def set_player_status(self,s):
         """ Called by any thread """
-        if self.videopanel:
+        if self.videopanel is not None:
             self.videopanel.set_player_status(s)
 
     def set_content_name(self,name):
         """ Called by any thread """
-        if self.videopanel:
+        if self.videopanel is not None:
             self.videopanel.set_content_name(name)
         
     def stop_playback(self):
         """ Called by GUI thread """
-        if self.videopanel:
+        if self.videopanel is not None:
             self.videopanel.Stop()
             
     def set_wxclosing(self):
         self.videopanel = None
-            
+      
+    def get_state(self):
+        """ Returns the state of VLC as summarized by Fabian: 
+        MEDIASTATE_PLAYING, MEDIASTATE_PAUSED, MEDIASTATE_STOPPED or None """
+
+        if self.videopanel is None:
+            return None
+        else:
+            return self.videopanel.GetState()
+              
 
 class EmbeddedPlayer(wx.Panel):
 
@@ -298,6 +307,12 @@ class EmbeddedPlayer(wx.Panel):
             self.timer.Stop()
         self.bitrateset = False
 
+    def GetState(self):
+        if self.mediactrl is None:
+            return None
+        else:
+            return self.mediactrl.GetState()
+
     def __del__(self):
         self.Stop()
         wx.Panel.__del__(self)
@@ -444,6 +459,9 @@ class VLCMediaCtrl(wx.Window):
 
 
     def GetState(self):
+        """ Returns the state of VLC as summarized by Fabian: 
+        MEDIASTATE_PLAYING, MEDIASTATE_PAUSED, MEDIASTATE_STOPPED """
+        
         status = self.media.get_stream_information()["status"]
         #if DEBUG:
         #    print "VLCMediaCtrl: VLC reports status",status,vlcstatusmap[status]

@@ -69,7 +69,7 @@ if sys.platform == 'win32':
 else:
     MAX_INCOMPLETE = 32
 
-AUTOCLOSE_TIMEOUT = 7 # secs
+AUTOCLOSE_TIMEOUT = 15 # secs. Setting this to e.g. 7 causes Video HTTP timeouts
 
 def make_readable(s):
     if not s:

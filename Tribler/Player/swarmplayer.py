@@ -25,7 +25,7 @@ from Tribler.Core.API import *
 from Tribler.Core.Utilities.unicode import bin2unicode
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
 
-from Tribler.Video.EmbeddedPlayer import VideoFrame
+from Tribler.Video.EmbeddedPlayer import VideoFrame,MEDIASTATE_STOPPED
 from Tribler.Video.VideoServer import VideoHTTPServer
 from Tribler.Video.VideoPlayer import VideoPlayer, VideoChooser, PLAYBACKMODE_INTERNAL
 from Tribler.Utilities.Instance2Instance import *
@@ -49,6 +49,8 @@ class PlayerFrame(VideoFrame):
     
     def OnCloseWindow(self, event = None):
         
+        self.set_wxclosing() # Call VideoFrame superclass
+        
         if event is not None:
             nr = event.GetEventType()
             lookup = { wx.EVT_CLOSE.evtType[0]: "EVT_CLOSE", wx.EVT_QUERY_END_SESSION.evtType[0]: "EVT_QUERY_END_SESSION", wx.EVT_END_SESSION.evtType[0]: "EVT_END_SESSION" }
@@ -60,6 +62,8 @@ class PlayerFrame(VideoFrame):
             print "Closing untriggered by event"
     
         self.parent.videoFrame = None 
+
+
 
 class PlayerApp(wx.App):
     def __init__(self, x, params, single_instance_checker, installdir):
@@ -75,7 +79,6 @@ class PlayerApp(wx.App):
         self.r = None # protected by dlock
         self.count = 0
         self.said_start_playback = False
-        
         
         wx.App.__init__(self, x)
         
@@ -180,6 +183,7 @@ class PlayerApp(wx.App):
 
         if self.videoplay is not None:
             self.videoplay.set_parentwindow(self.videoFrame)
+        self.said_start_playback = False
 
     def select_torrent_from_disk(self):
         dlg = wx.FileDialog(self.videoFrame, 
@@ -341,9 +345,12 @@ class PlayerApp(wx.App):
         pass
 
     def videoserver_set_status_callback(self,status):
+        """ Called by HTTP serving thread """
+        wx.CallAfter(self.videoserver_set_status_guicallback,status)
+
+    def videoserver_set_status_guicallback(self,status):
         if self.videoFrame is not None:
             self.videoFrame.set_player_status(status)
-            
     
     def free_up_diskspace_by_downloads(self,infohash,needed):
         
@@ -429,41 +436,50 @@ class PlayerApp(wx.App):
         return (1.0,False)
 
     def sesscb_states_callback(self,dslist):
-        print >>sys.stderr,"main: Stats",`dslist`
+        print >>sys.stderr,"main: Stats:"
         
         # See which Download is currently playing
         self.dlock.acquire()
         playermode = self.playermode
         d = self.d
         self.dlock.release()
+
+        totalspeed = {}
+        totalspeed[UPLOAD] = 0.0
+        totalspeed[DOWNLOAD] = 0.0
         
         if playermode == DLSTATUS_SEEDING:
             for ds in dslist:
                 print >>sys.stderr,"main: Stats: Seeding:",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
                 
             self.ratelimit_callback(dslist)
-            return (1.0,False)
-        
+            
         ds = None
         for ds2 in dslist:
             if ds2.get_download() == d:
                 ds = ds2
-            else:
+            elif playermode == DLSTATUS_DOWNLOADING:
                 print >>sys.stderr,"main: Stats: Waiting:",dlstatus_strings[ds2.get_status()],ds2.get_progress(),"%",ds2.get_error()
+            
+            for dir in [UPLOAD,DOWNLOAD]:
+                totalspeed[dir] += ds2.get_current_speed(dir)
                 
         if ds is None:
             return (1.0,False)
-        
-        print >>sys.stderr,"main: Stats: DL:",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
+        elif playermode == DLSTATUS_DOWNLOADING:
+            print >>sys.stderr,"main: Stats: DL:",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
         
         if self.videoFrame is None:
             return (-1,False)
+        else:
+            videoplayer_mediastate = self.videoFrame.get_state()
+            print >>sys.stderr,"main: Stats: VideoPlayer state",videoplayer_mediastate
 
         # Display stats for currently playing Download
         logmsgs = ds.get_log_messages()
         if len(logmsgs) > 0:
             print >>sys.stderr,"main: Log",logmsgs[0]
-        progress = ds.get_vod_prebuffering_progress()
+        preprogress = ds.get_vod_prebuffering_progress()
         playable = ds.get_vod_playable()
         t = ds.get_vod_playable_after()
         print >>sys.stderr,"main: ETA is",t,"secs"
@@ -482,7 +498,14 @@ class PlayerApp(wx.App):
             else:
                 intime = "%dh:%02dm:%02ds" % (h,m,s)
                 
-        #print >>sys.stderr,"main: VODStats",progress,playable
+        #print >>sys.stderr,"main: VODStats",preprogress,playable
+
+        if playermode != DLSTATUS_SEEDING and ds.get_status() == DLSTATUS_SEEDING:
+            # As we're seeding we can now restart any previous downloads to 
+            # seed them.
+            # Arno: For extra robustness, ignore any errors related to restarting
+            wx.CallAfter(self.restart_other_downloads)
+
 
         if ds.get_status() == DLSTATUS_HASHCHECKING:
             genprogress = ds.get_progress()
@@ -490,23 +513,21 @@ class PlayerApp(wx.App):
             msg = "Checking already downloaded parts "+pstr+"% done"
         elif ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
             msg = 'Error playing: '+str(ds.get_error())
-        elif ds.get_status() == DLSTATUS_SEEDING:
-            npeerstr = str(ds.get_num_peers())
-            msg = u"Helping "+npeerstr+" people to enjoy "+d.get_def().get_name_as_unicode()+". Please don't close the SwarmPlayer completely"
-
-            # As we're seeding we can now restart any previous downloads to 
-            # seed them.
-            # Arno: For extra robustness, ignore any errors related to restarting
-            wx.CallAfter(self.restart_other_downloads)
-            
-        elif progress != 1.0:
-            pstr = str(int(progress*100))
+        elif preprogress != 1.0:
+            pstr = str(int(preprogress*100))
             npeerstr = str(ds.get_num_peers())
             msg = "Prebuffering "+pstr+"% done, eta "+intime+'  (connected to '+npeerstr+' people)'
         elif playable:
             if not self.said_start_playback:
                 msg = "Starting playback..."
                 self.said_start_playback = True
+            elif videoplayer_mediastate == MEDIASTATE_STOPPED:
+                npeers = ds.get_num_peers()
+                npeerstr = str(npeers)
+                if npeers == 0:
+                    msg = u"Please don't close the SwarmPlayer completely, this will help other SwarmPlayer users to download faster."
+                else:
+                    msg = u"Helping "+npeerstr+" SwarmPlayer users to enjoy "+d.get_def().get_name_as_unicode()+". Please don't close the player completely."
             else:
                 msg = ''
         else:
@@ -518,6 +539,13 @@ class PlayerApp(wx.App):
             print >>sys.stderr,"main: Connected to",len(peerlist),"peers"
             for peer in peerlist:
                 print >>sys.stderr,"main: Connected to",peer['ip'],peer['completed']
+
+        # Set systray icon tooltip
+        txt = 'SwarmPlayer\n\n'
+        txt += 'Current download: %.1f KB/s\n' % (totalspeed[DOWNLOAD])
+        txt += 'Current upload:   %.1f KB/s\n' % (totalspeed[UPLOAD])
+        #print >>sys.stderr,"main: ToolTip summary",txt
+        wx.CallAfter(self.OnSetSysTrayTooltip,txt)
         
         return (1.0,False)
 
@@ -538,6 +566,10 @@ class PlayerApp(wx.App):
         if adjustspeeds:
             self.r.add_downloadstatelist(dslist)
             self.r.adjust_speeds()
+
+    def OnSetSysTrayTooltip(self,txt):         
+        if self.tbicon is not None:
+            self.tbicon.set_icon_tooltip(txt)
 
     
     def vod_ready_callback(self,d,mimetype,stream,filename):
