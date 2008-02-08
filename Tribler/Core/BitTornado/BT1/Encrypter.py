@@ -28,10 +28,29 @@ except:
 DEBUG = False
 
 if sys.platform == 'win32':
-    # On windows XP SP2 we can't initiate more than 10 conns/second
-    # or have more than 10 pending conns (not clear which), so limit it.
+    # On windows XP SP2 there is a limit on "the number of concurrent, 
+    # incomplete outbound TCP connection attempts. When the limit is reached, 
+    # subsequent connection attempts are put in a queue and resolved at a fixed 
+    # rate so that there are only a limited number of connections in the 
+    # incomplete state. During normal operation, when programs are connecting 
+    # to available hosts at valid IP addresses, no limit is imposed on the 
+    # number of connections in the incomplete state. When the number of 
+    # incomplete connections exceeds the limit, for example, as a result of 
+    # programs connecting to IP addresses that are not valid, connection-rate 
+    # limitations are invoked, and this event is logged." 
+    # Source: http://go.microsoft.com/fwlink/events.asp and fill in 
+    # Product: "Windos Operating System"
+    # Event: 4226
+    # Which directs to:
+    # http://www.microsoft.com/technet/support/ee/transform.aspx?ProdName=Windows%20Operating%20System&ProdVer=5.2&EvtID=4226&EvtSrc=Tcpip&LCID=1033
+    #
+    # ABC/BitTornado people felt the need to therefore impose a rate limit
+    # themselves.
+
+    
     # If we use more we get problems e.g. in VOD that the HTTP request
     # of VLC to our HTTPServer times out. Windows die die die.
+    #
     MAX_INCOMPLETE = 8 # safety margin
 else:
     MAX_INCOMPLETE = 32

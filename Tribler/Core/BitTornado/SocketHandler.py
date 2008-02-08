@@ -382,7 +382,8 @@ class SocketHandler:
                     s = self.start_connection_raw(addrinfo[4], addrinfo[0], handler)
                     break
                 except Exception,e:
-                    pass
+                    print_exc()
+                    pass # Arno: ???? raise e
             else:
                 raise socket.error('unable to connect')
         return s
