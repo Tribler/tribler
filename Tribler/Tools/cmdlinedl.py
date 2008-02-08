@@ -16,7 +16,7 @@ def state_callback(ds):
 if __name__ == "__main__":
 
     print sys.argv
-    if len(sys.argv) <= 2:
+    if len(sys.argv) < 2:
         print "Usage: cmdlinedl file.torrent [destdir]"
         sys.exit(0)
 
