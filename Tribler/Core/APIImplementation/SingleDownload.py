@@ -88,6 +88,8 @@ class SingleDownload:
         except Exception,e:
             self.fatalerrorfunc(e)
     
+    def get_bt1download(self):
+        return self.dow
     
     def save_as(self,name,length,saveas,isdir):
         """ Return the local filename to which to save the file 'name' in the torrent """

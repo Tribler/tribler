@@ -235,6 +235,9 @@ class BT1Download:
     def get_dest(self,index):
         return self.files[index][0]
 
+    def get_datalength(self):
+        return self.datalength 
+
     def _finished(self):
         self.finflag.set()
         try:

@@ -65,7 +65,7 @@ class TriblerLaunchMany(Thread):
         self.session = session
         self.sesslock = sesslock
         
-        self.downloads = {}
+        self.downloads = {} 
         config = session.sessconfig # Should be safe at startup
 
         self.locally_guessed_ext_ip = self.guess_ext_ip_from_local_info()
@@ -75,7 +75,7 @@ class TriblerLaunchMany(Thread):
         # Orig
         self.sessdoneflag = Event()
         
-        # Following two attributes set/get by network thread
+        # Following two attributes set/get by network thread ONLY
         self.hashcheck_queue = []
         self.sdownloadtohashcheck = None
         
@@ -217,6 +217,8 @@ class TriblerLaunchMany(Thread):
                     (infohash,pstate) = d.network_checkpoint()
                     self.save_download_pstate(infohash,pstate)
             except Except,e:
+                # There was a bug in queue_for_hashcheck that is now fixed.
+                # Leave this in place to catch unexpected errors.
                 print_exc()
                 sd.set_error(e)
                 
@@ -292,7 +294,8 @@ class TriblerLaunchMany(Thread):
         if hash:
             self.hashcheck_queue.append(sd)
             # Check smallest torrents first
-            self.hashcheck_queue.sort(lambda x, y: cmp(self.downloads[x].dow.datalength, self.downloads[y].dow.datalength))
+            self.hashcheck_queue.sort(lambda x, y: cmp(x.get_bt1download().get_datalength(), y.get_bt1download().get_datalength()))
+            
         if not self.sdownloadtohashcheck:
             self.dequeue_and_start_hashcheck()
 
