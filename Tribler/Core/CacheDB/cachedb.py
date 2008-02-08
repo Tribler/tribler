@@ -344,6 +344,7 @@ class BasicDB:    # Should we use delegation instead of inheritance?
 
     def _keys(self):
         try:
+            print_stack()
             return dbutils.DeadlockWrap(self._data.keys, max_retries=MAX_RETRIES)
             #return self._data.keys()
         except Exception,e:

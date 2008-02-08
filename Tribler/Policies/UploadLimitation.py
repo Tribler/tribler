@@ -1,4 +1,4 @@
-import sys
+import sys, commands, re
 from Tribler.Core.simpledefs import UPLOAD
 from Tribler.Core.exceptions import NotYetImplementedException
 
@@ -161,19 +161,92 @@ class MeasureUploadLimitation(UploadLimitation):
         else:
             return None
     
-   
+
+from Tribler.Tools.BandwidthCounter import get_bandwidth_speed
+
 class PingUploadLimitation(UploadLimitation):
     """
-    UploadLimitation based on ping delays.
-    Keep a moving average of pings. If new pings are much slower than old ones, limit bandwidth
+    This upload limitation uses ping times to some hosts to see if the upload capacity is consumed
+    """
+    
+    unix_ping_regexp = re.compile(r'= ?[\d.]+/([\d.]+)/[\d.]+/[\d.]+')
+    hosts = ['www.google.com', 'www.yahoo.com', 'www.bbc.co.uk']
+    
+    
+    def __init__(self, session, ratemanager):
+        UploadLimitation.__init__(self, session, ratemanager)
+        self.ping_hosts = {}
+        self.low_upload = 5 # Less than 5 kb/s upload is considered low upload with no delaying in pings
+        self.upload_limit = None
+        self.idletime = {}
+        
+    def upload_speed_callback(self, speed):
+        total_down, total_up = get_bandwidth_speed()
+        self.log('Tribler upload speed: %f, total upload speed: %f, total down speed %f ' % (speed, total_up, total_down))
+        if total_up < low_upload:
+            self.addIdlePing()
+        else:
+            pass # Todo
+        
+    def addIdlePing(self):
+        ping_times = self.ping_hosts()
+        for host, time in ping_times.iteritems():
+            oldtimes = self.idletime.get(host)
+            if oldtimes:
+                self.idletime[host] = ((oldtimes[0]*oldtimes[1]+ping_times[host])/oldtimes[1]+1, oldtimes[1]+1)
+            else:
+                self.idletime[host] = (ping_times[host], 1)
+            
+
+    def ping_hosts(self):
+        data = {}
+        for host in self.hosts:
+            data[host] = self.ping(host)
+        return data
+    
+    def ping(self, host):
+        if sys.platform == 'win32':
+            return self.ping_win(host)
+        elif sys.platform.find('linux') != -1:
+            return self.ping_unix(host, 'linux')
+        elif sys.platform == 'darwin':
+            return self.ping_unix(host, 'darwin')
+    
+    def ping_win(self, host):
+        raise Exception('not yet implemented')
+    
+    def ping_unix(self, host, os):
+        if os == 'linux':
+            com = 'ping -c 3 -i0.2 -n %s' % host
+        else:
+            raise Exception('Not yet implemented')
+        
+        status, output = commands.getstatusoutput(com)
+        if status != 0:
+            self.log('Error: could not call ping')
+        else:
+            avg = self.unix_ping_regexp.findall(output)
+            try:
+                assert len(avg) == 1
+                return avg[0]
+            except:
+                self.log('Incorrect ping output: %s' % output)
+                
+    
+    
+class TotalUploadLimitation(UploadLimitation):          
+    """
+    This upload limitation uses the Tribler.Tools.BandwidthCounter to measure the system wide upload-
+    and download usage. If the upload usage encloses the total
     """
     def __init__(self, session, ratemanager):
         UploadLimitation.__init__(self, session, ratemanager)
         
     def upload_speed_callback(self, speed):
-        pass
-    
-    def ping(self):
-        pass
-          
+        total_down, total_up = get_bandwidth_speed()
+        self.log('Tribler upload speed: %f, total upload speed: %f, total down speed %f ' % (speed, total_up, total_down))
         
+        #self.set_max_upload_speed(newspeed)
+    
+
+

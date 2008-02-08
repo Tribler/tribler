@@ -1,8 +1,8 @@
 # Written by Arno Bakker, Jan David Mol
 # see LICENSE.txt for license information
 
-import wx
-import sys
+import wx,time
+import sys,os
 
 
 class BufferInfo:
@@ -178,4 +178,334 @@ class ProgressBar(wx.Control):
 
     def reset(self,colour=0):
         self.blocks = [colour] * 100
+        
+class ProgressSlider(wx.Panel):
+    
+    def __init__(self, parent, utility, colours = ["#ffffff","#CBCBCB","#ff3300"], *args, **kwargs ):
+        self.colours = colours
+        #self.backgroundImage = wx.Image('')
+        self.progress      = 0.0
+        self.videobuffer  = 0.0
+        self.videoPosition = 0
+        self.timeposition = None
+        self.videoLength   = None
+        #wx.Control.__init__(self, parent, -1)
+        wx.Panel.__init__(self, parent, -1)
+        self.SetMaxSize((-1,25))
+        self.SetMinSize((1,25))
+        self.SetBackgroundColour(wx.WHITE)
+        self.utility = utility
+        self.bgImage = wx.Bitmap(os.path.join(self.utility.getPath(), 'Tribler','Images','background.png'))
+        self.sliderPosition = None
+        self.rectHeight = 5
+        self.rectBorderColour = wx.LIGHT_GREY
+        self.textWidth = 70
+        self.margin = 10
+        self.radius = 7
+        self.doneColor = wx.RED
+        self.bufferColor = wx.GREEN
+        self.sliderWidth = 0
+        self.range = (0,1)
+        self.dragging = False
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_SIZE, self.OnSize)
+        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+        self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
+        #self.SetSize((-1,self.bgImage.GetSize()[1]))
+        
+    def AcceptsFocus(self):
+        return False
+
+    def OnEraseBackground(self, event):
+        pass # Or None
+    
+    def OnSize(self, event):
+        self.Refresh()
+    
+    def OnMouse(self, event):
+        pos = event.GetPosition()
+        if event.ButtonDown():
+            if self.onSliderButton(pos):
+                print >> sys.stderr, 'Start drag'
+                self.dragging = True
+            elif self.onSlider(pos): # click somewhere on the slider
+                self.setSliderPosition(pos,True)
+        elif event.ButtonUp():
+            if self.dragging:
+                self.setSliderPosition(pos, True)
+                print >> sys.stderr, 'End drag'
+            self.dragging = False
+        elif event.Dragging():
+            if self.dragging:
+                self.setSliderPosition(pos, False)
+        elif event.Leaving():
+            if self.dragging:
+                self.setSliderPosition(pos,True)
+                
+    def onSliderButton(self, pos):
+        if not self.sliderPosition:
+            return False
+        x,y = pos
+        bx, by = self.sliderPosition
+        return abs(x-bx) < self.radius and abs(y-by)<self.radius # take rect instead of circle for speed reasons
+        
+    def onSlider(self, pos):
+        x,y = pos
+        width, height = self.GetClientSizeTuple()
+        return (x > self.margin and x<= self.margin+self.sliderWidth and \
+                abs(y - height/2) < self.rectHeight/2+4)
+        
+    def setSliderPosition(self, pos, ready):
+        x, y = pos
+        tmp_progress = (x-self.margin)/float(self.sliderWidth)
+        self.progress = min(1.0, max(0.0, tmp_progress))
+        self.videoPosition = self
+        self.Refresh()
+        if ready:
+            #theEvent = wx.ScrollEvent(pos=self.progress)
+            #self.GetEventHandler().ProcessEvent(theEvent)
+            #print >> sys.stderr, 'Posted event'
+            print >> sys.stderr, 'Set progress to : %f' % self.progress
+            self.sliderChangedAction()
+            
+    def sliderChangedAction(self):
+        self.GetParent().Seek(None)
+            
+        
+                
+        
+    def setBufferFromPieces(self, pieces_complete):
+        if not pieces_complete:
+            self.videobuffer = 0.0
+            return
+        current_piece = int(len(pieces_complete)*self.progress)
+        last_buffered_piece = current_piece
+        while last_buffered_piece<len(pieces_complete) and pieces_complete[last_buffered_piece]:
+            last_buffered_piece+=1
+        bufferlen = (last_buffered_piece - current_piece+1)
+        print >> sys.stderr, '%d/%d pieces continuous buffer (frac %f)' % \
+            (bufferlen, len(pieces_complete), bufferlen / float(len(pieces_complete)))
+        self.videobuffer = bufferlen/float(len(pieces_complete))+self.progress
+                    
+            
+    def SetValue(self, b):
+        if self.range[0] == self.range[1]:
+            return
+        
+        if not self.dragging:
+            self.progress = max(0.0, min((b - self.range[0]) / float(self.range[1] - self.range[0]), 1.0))
+            self.Refresh()
+        
+    def GetValue(self):
+        print >>sys.stderr, 'Progress: %f, Range (%f, %f)' % (self.progress, self.range[0], self.range[1])
+        return self.progress * (self.range[1] - self.range[0])+ self.range[0]
+
+    def SetRange(self, a,b):
+        self.range = (a,b)
+    
+    def setVideoBuffer(self, buf):
+        self.videobuffer = buf
+    
+    def SetTimePosition(self, timepos, duration):
+        self.timeposition = timepos
+        self.videoLength = duration
+        
+    def formatTime(self, s):
+        longformat = time.strftime('%d:%H:%M:%S', time.gmtime(s))
+        if longformat.startswith('01:'):
+            longformat = longformat[3:]
+        while longformat.startswith('00:') and len(longformat) > len('00:00'):
+            longformat = longformat[3:]
+        return longformat
+    
+    def OnPaint(self, evt):
+        width, height = self.GetClientSizeTuple()
+        buffer = wx.EmptyBitmap(width, height)
+        #dc = wx.PaintDC(self)
+        dc = wx.BufferedPaintDC(self, buffer)
+        dc.BeginDrawing()
+        dc.Clear()
+        
+        # Draw background
+        bgSize = self.bgImage.GetSize()
+        for i in xrange(width/bgSize[0]+1):
+            dc.DrawBitmap(self.bgImage, i*(bgSize[0]-1),0)
+        
+        
+        self.sliderWidth = width-(3*self.margin+self.textWidth)
+        position = self.sliderWidth * self.progress
+        self.sliderPosition = position+self.margin, height/2
+        self.bufferlength = (self.videobuffer-self.progress) * self.sliderWidth
+        self.bufferlength = min(self.bufferlength, self.sliderWidth-position)
+        
+        # Time strings
+        if self.videoLength is not None:
+            durationString = self.formatTime(self.videoLength)
+        else:
+            durationString = '--:--'
+        if self.timeposition is not None:
+            timePositionString = self.formatTime(self.timeposition)
+        else:
+            timePositionString = '--:--'
+        
+        if width > 3*self.margin+self.textWidth:
+            # Draw slider rect
+            dc.SetPen(wx.Pen(self.rectBorderColour, 2))
+            dc.DrawRectangle(self.margin,height/2-self.rectHeight/2, self.sliderWidth, self.rectHeight)
+            # Draw slider rect inside
+            dc.SetPen(wx.Pen(self.doneColor, 0))
+            dc.SetBrush(wx.Brush(self.doneColor))
+            smallRectHeight = self.rectHeight - 2
+            dc.DrawRectangle(self.margin,height/2-smallRectHeight/2, position, smallRectHeight)
+            dc.SetBrush(wx.Brush(self.bufferColor))
+            dc.SetPen(wx.Pen(self.bufferColor, 0))
+            dc.DrawRectangle(position+self.margin,height/2-smallRectHeight/2, self.bufferlength, smallRectHeight)
+            # draw circle
+            dc.SetPen(wx.NullPen)
+            dc.SetBrush(wx.Brush(self.rectBorderColour))
+            dc.DrawCircle(position+self.margin, height/2, self.radius)
+        if width > 2*self.margin+self.textWidth:
+            # Draw times
+            font = self.GetFont()
+            font.SetPointSize(8)
+            dc.SetFont(font)
+            dc.DrawText('%s / %s' % (timePositionString, durationString), width-self.margin-self.textWidth, height/2-dc.GetCharHeight()/2)
+
+        dc.EndDrawing()
+
+  
+class VolumeSlider(wx.Panel):
+    
+    def __init__(self, parent, utility):
+        self.progress      = 0.0
+        self.position = 0
+        
+        #wx.Control.__init__(self, parent, -1)
+        wx.Panel.__init__(self, parent, -1)
+        self.SetMaxSize((-1,25))
+        self.SetMinSize((1,25))
+        self.SetBackgroundColour(wx.WHITE)
+        self.utility = utility
+        self.bgImage = wx.Bitmap(os.path.join(self.utility.getPath(), 'Tribler','Images','background.png'))
+        self.sliderPosition = None
+        self.rectHeight = 5
+        self.rectBorderColour = wx.LIGHT_GREY
+        self.margin = 10
+        self.radius = 7
+        self.doneColor = wx.RED
+        self.sliderWidth = 0
+        self.range = (0,1)
+        self.dragging = False
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_SIZE, self.OnSize)
+        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+        self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
+        #self.SetSize((-1,self.bgImage.GetSize()[1]))
+        
+    def AcceptsFocus(self):
+        return False
+
+    def OnEraseBackground(self, event):
+        pass # Or None
+    
+    def OnSize(self, event):
+        self.Refresh()
+    
+    def OnMouse(self, event):
+        pos = event.GetPosition()
+        if event.ButtonDown():
+            if self.onSliderButton(pos):
+                print >> sys.stderr, 'Start drag'
+                self.dragging = True
+            elif self.onSlider(pos): # click somewhere on the slider
+                self.setSliderPosition(pos,True)
+        elif event.ButtonUp():
+            if self.dragging:
+                self.setSliderPosition(pos, True)
+                print >> sys.stderr, 'End drag'
+            self.dragging = False
+        elif event.Dragging():
+            if self.dragging:
+                self.setSliderPosition(pos, False)
+        elif event.Leaving():
+            if self.dragging:
+                self.setSliderPosition(pos,True)
+                
+    def onSliderButton(self, pos):
+        if not self.sliderPosition:
+            return False
+        x,y = pos
+        bx, by = self.sliderPosition
+        return abs(x-bx) < self.radius and abs(y-by)<self.radius # take rect instead of circle for speed reasons
+        
+    def onSlider(self, pos):
+        x,y = pos
+        width, height = self.GetClientSizeTuple()
+        return (x > self.margin and x<= self.margin+self.sliderWidth and \
+                abs(y - height/2) < self.rectHeight/2+4)
+        
+    def setSliderPosition(self, pos, ready):
+        x, y = pos
+        tmp_progress = (x-self.margin)/float(self.sliderWidth)
+        self.progress = min(1.0, max(0.0, tmp_progress))
+        self.videoPosition = self
+        self.Refresh()
+        if ready:
+            #theEvent = wx.ScrollEvent(pos=self.progress)
+            #self.GetEventHandler().ProcessEvent(theEvent)
+            #print >> sys.stderr, 'Posted event'
+            print >> sys.stderr, 'Set progress to : %f' % self.progress
+            self.sliderChangedAction()
+            
+    def sliderChangedAction(self):
+        self.GetParent().SetVolume()
+            
+            
+    def SetValue(self, b):
+        if not self.dragging:
+            self.progress = min((b - self.range[0]) / float(self.range[1] - self.range[0]), 1.0)
+            self.Refresh()
+        
+    def GetValue(self):
+        print >>sys.stderr, 'Progress: %f, Range (%f, %f)' % (self.progress, self.range[0], self.range[1])
+        return self.progress * (self.range[1] - self.range[0])+ self.range[0]
+
+    def SetRange(self, a,b):
+        self.range = (a,b)
+    
+    def OnPaint(self, evt):
+        width, height = self.GetClientSizeTuple()
+        buffer = wx.EmptyBitmap(width, height)
+        #dc = wx.PaintDC(self)
+        dc = wx.BufferedPaintDC(self, buffer)
+        dc.BeginDrawing()
+        dc.Clear()
+        
+        # Draw background
+        bgSize = self.bgImage.GetSize()
+        for i in xrange(width/bgSize[0]+1):
+            dc.DrawBitmap(self.bgImage, i*(bgSize[0]-1),0)
+        
+        
+        self.sliderWidth = width-(2*self.margin)
+        position = self.sliderWidth * self.progress
+        self.sliderPosition = position+self.margin, height/2
+        
+        cursorsize = [4,19]
+        if width > 2*self.margin:
+            # Draw slider rect
+            dc.SetPen(wx.Pen(self.rectBorderColour, 2))
+            dc.DrawRectangle(self.margin,height/2-self.rectHeight/2, self.sliderWidth, self.rectHeight)
+            # Draw slider rect inside
+            dc.SetPen(wx.Pen(self.doneColor, 0))
+            dc.SetBrush(wx.Brush(self.doneColor))
+            smallRectHeight = self.rectHeight - 2
+            dc.DrawRectangle(self.margin,height/2-smallRectHeight/2, position, smallRectHeight)
+            # draw circle
+            dc.SetPen(wx.NullPen)
+            dc.SetBrush(wx.Brush(self.rectBorderColour))
+            dc.DrawRectangle(position+self.margin-cursorsize[0]/2, height/2-cursorsize[1]/2, cursorsize[0], cursorsize[1])
+        
+        dc.EndDrawing()
+
         

@@ -63,7 +63,7 @@ class TestSeeding(TestAsServer):
 
         # set upload limitation
         rateManager = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()
-        uploadLimitation = MeasureUploadLimitation(self.session,rateManager)
+        uploadLimitation = TotalUploadLimitation(self.session,rateManager)
         
         self.dscfg = DownloadStartupConfig()
         self.dscfg.set_dest_dir(os.getcwd())

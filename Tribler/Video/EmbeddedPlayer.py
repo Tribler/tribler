@@ -13,8 +13,8 @@ from time import sleep
 from tempfile import mkstemp
 from threading import currentThread,Event
 from traceback import print_stack,print_exc
-from Progress import ProgressBar
-
+from Progress import ProgressBar, ProgressSlider, VolumeSlider
+from Buttons import PlayerSwitchButton, PlayerButton
 
 
 # Fabian: can't use the constants from wx.media since 
@@ -168,31 +168,31 @@ class EmbeddedPlayer(wx.Panel):
         self.statuslabel.SetForegroundColour(wx.WHITE)
         
         ctrlsizer = wx.BoxSizer(wx.HORIZONTAL)        
-        self.slider = wx.Slider(self, -1)
-        #self.slider.SetBackgroundColor(wx.BLACK)
-        self.slider.Bind(wx.EVT_SCROLL_THUMBRELEASE, self.Seek)
-        self.slider.Bind(wx.EVT_SCROLL_THUMBTRACK, self.stopSliderUpdate)
+        #self.slider = wx.Slider(self, -1)
+        self.slider = ProgressSlider(self, self.utility)
+        #self.slider.Bind(wx.EVT_SCROLL_THUMBRELEASE, self.Seek)
+        #self.slider.Bind(wx.EVT_SCROLL_THUMBTRACK, self.stopSliderUpdate)
         self.slider.SetRange(0,1)
         self.slider.SetValue(0)
-        ctrlsizer.Add(self.slider, 1, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
+        self.oldvolume = None
         
-        #self.ppbtn = tribler_topButton(self, name="playerPause")
-        self.ppbtn = wx.Button(self, -1, self.utility.lang.get('playprompt'))
-        #self.ppbtn.setBackground(wx.BLACK)
-        self.ppbtn.Bind(wx.EVT_BUTTON, self.PlayPause)
+                        
+        self.ppbtn = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), 'Tribler', 'Images'), 'play', 'pause')
+        self.ppbtn.Bind(wx.EVT_LEFT_UP, self.PlayPause)
 
         self.volumebox = wx.BoxSizer(wx.HORIZONTAL)
-        self.volumetext = wx.StaticText(self, -1, self.utility.lang.get('volumeprompt'))        
-        self.volume = wx.Slider(self, -1)
+        self.volumeicon = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), 'Tribler', 'Images'), 'volume', 'mute')   
+        self.volumeicon.Bind(wx.EVT_LEFT_UP, self.Mute)
+        self.volume = VolumeSlider(self, self.utility)
         self.volume.SetRange(0, 100)
-        self.volume.Bind(wx.EVT_SCROLL_THUMBTRACK, self.SetVolume)
-        self.volumebox.Add(self.volumetext, 0, wx.ALIGN_CENTER_VERTICAL)
-        self.volumebox.Add(self.volume, 1, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        self.volumebox.Add(self.volumeicon, 0, wx.ALIGN_CENTER_VERTICAL)
+        self.volumebox.Add(self.volume, 1, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 0)
 
-        self.fsbtn = wx.Button(self, -1, self.utility.lang.get('fullscreen'))
-        self.fsbtn.Bind(wx.EVT_BUTTON, self.FullScreen)
+        self.fsbtn = PlayerButton(self, os.path.join(self.utility.getPath(), 'Tribler', 'Images'), 'fullScreen')
+        self.fsbtn.Bind(wx.EVT_LEFT_UP, self.FullScreen)
 
         ctrlsizer.Add(self.ppbtn, 0, wx.ALIGN_CENTER_VERTICAL)
+        ctrlsizer.Add(self.slider, 1, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
         ctrlsizer.Add(self.volumebox, 1, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
         ctrlsizer.Add(self.fsbtn, 0, wx.ALIGN_CENTER_VERTICAL)
         mainbox.Add(self.mediactrl, 1, wx.EXPAND, 1)
@@ -227,7 +227,10 @@ class EmbeddedPlayer(wx.Panel):
         self.slider.Enable(True)
         self.fsbtn.Enable(True)
 
-
+    def updateProgressSlider(self, pieces_complete):
+        self.slider.setBufferFromPieces(pieces_complete)
+        self.slider.Refresh()
+        
     def disableInput(self):
         return # Not currently used
         
@@ -254,6 +257,7 @@ class EmbeddedPlayer(wx.Panel):
 
             self.slider.SetRange(0, len)
             self.slider.SetValue(cur)
+            self.slider.SetTimePosition(self.mediactrl.getPosition(), len)
 
     def stopSliderUpdate(self, evt):
         self.update = False
@@ -264,6 +268,7 @@ class EmbeddedPlayer(wx.Panel):
             return
         
         oldsliderpos = self.slider.GetValue()
+        print >>sys.stderr, 'GetValue returned %s' % oldsliderpos
         pos = oldsliderpos * 1000
         
         if DEBUG:
@@ -271,6 +276,8 @@ class EmbeddedPlayer(wx.Panel):
         try:
             self.mediactrl.Seek(pos)
         except vlc.InvalidPosition,e:
+            if DEBUG:
+                print >> sys.stderr, 'embedplay: could not seek'
             self.slider.SetValue(oldsliderpos)
         self.update = True
         
@@ -280,16 +287,28 @@ class EmbeddedPlayer(wx.Panel):
             print >>sys.stderr,"embedplay: PlayPause pressed"
         
         if self.mediactrl.GetState() == MEDIASTATE_PLAYING:
-            self.ppbtn.SetLabel(self.utility.lang.get('playprompt'))
+            self.ppbtn.setToggled(True)
             self.mediactrl.Pause()
+
         else:
-            self.ppbtn.SetLabel(self.utility.lang.get('pauseprompt'))
+            self.ppbtn.setToggled(False)
             self.mediactrl.Play()
 
     def FullScreen(self,evt=None):
         self.mediactrl.FullScreen()
 
-    def SetVolume(self, evt):
+    def Mute(self, evt = None):
+        if self.volumeicon.isToggled():
+            if self.oldvolume is not None:
+                self.mediactrl.SetVolume(self.oldvolume)
+            self.volumeicon.setToggled(False)
+        else:
+            self.oldvolume = self.mediactrl.GetVolume()
+            self.mediactrl.SetVolume(0) # mute sound
+            self.volumeicon.setToggled(True)
+        
+    def SetVolume(self, evt = None):
+        print >> sys.stderr, self.volume.GetValue()
         self.mediactrl.SetVolume(float(self.volume.GetValue()) / 100)
 
     """
@@ -402,7 +421,7 @@ class VLCMediaCtrl(wx.Window):
         params += ["--no-skip-frames"]
         params += ["--quiet-synchro"]
         params += ["--key-fullscreen", "Esc"] # must come last somehow on Win32
-        
+
         if sys.platform == 'darwin':
             params += ["--plugin-path", "%s/lib/vlc" % (
                  # location of plugins: next to tribler.py
@@ -443,7 +462,6 @@ class VLCMediaCtrl(wx.Window):
                 print >>sys.stderr,"VLCMediaCtrl: Actual resume command"
             self.media.resume()
 
-
     def Length(self):
         if self.GetState() == MEDIASTATE_STOPPED:
             return -1
@@ -472,6 +490,8 @@ class VLCMediaCtrl(wx.Window):
         else:
             return MEDIASTATE_STOPPED
 
+    def getPosition(self):
+        return self.media.get_media_position(vlc.AbsolutePosition, vlc.MediaTime).value/1000.0
 
     def Load(self,url):
         self.media.exit()
@@ -495,7 +515,8 @@ class VLCMediaCtrl(wx.Window):
             then do not return the right value always
         """
         pos = vlc.Position() 
-
+        where = int(where)
+        print >> sys.stderr, 'Seeking to: %s' % where
         if mode == wx.FromStart:
             pos.origin = vlc.AbsolutePosition
             pos.key = vlc.MediaTime
@@ -513,6 +534,8 @@ class VLCMediaCtrl(wx.Window):
             self.media.start(pos)
         else:
             self.media.set_media_position(pos)
+        
+        
 
     def Stop(self):
         self.media.stop()

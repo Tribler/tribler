@@ -217,6 +217,14 @@ class DownloadState(Serializable):
             return float(2 ** 31)
         else:
             return self.stats['vod_playable_after']
+        
+#    def get_vod_duration(self):
+#        """ Returns video total duration if vod system managed to detect it
+#        
+#        @return int duration in seconds or None if unknown
+#        """
+#        if self.stats is not None:
+#            return self.stats['vod_duration']
 
 
     def get_log_messages(self):

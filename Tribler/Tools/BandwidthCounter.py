@@ -2,11 +2,12 @@ import sys, commands, re, time
 
 IFCONFIG_REGEXP = re.compile('rx bytes:(\d+).*?tx bytes:(\d+)')
 DEBUG = True
-
+MEASURE_LOOPBACK_INTERFACE = False
+KILOBYTE = 1024
 
 def get_bandwidth_speed():
     """
-    Returns down, upload speed in Bytes/sec between the last call and this one
+    Returns down, upload speed in KBytes/sec between the last call and this one
     """
     if sys.platform == 'win32':
         return get_bandwidth_speed_win()
@@ -35,7 +36,7 @@ def init_bandwidth_speed_win():
     items, instances = win32pdh.EnumObjectItems(None, None, 'Network Interface', win32pdh.PERF_DETAIL_WIZARD)
     WIN_QUERY = win32pdh.OpenQuery()
     for instance in instances:
-        if instance.lower().find('loop') == -1:
+        if instance.lower().find('loop') == -1 or MEASURE_LOOPBACK_INTERFACE:
             if DEBUG:
                 print 'BandwidthCounter: Adding counters for interface: %s' % instance
 
@@ -63,7 +64,7 @@ def get_bandwidth_speed_win():
         total_up += up
         total_down +=down
         
-    return total_down, total_up
+    return total_down/KILOBYTE, total_up/KILOBYTE
     
 UNIX_LAST_CALL = 0
 UNIX_LAST_COUNT = None
@@ -80,11 +81,14 @@ def get_bandwidth_speed_unix(os_string):
     now = time.time()
     if not UNIX_LAST_CALL == 0 and down is not None:
         diff = now - UNIX_LAST_CALL
-        speed = (down - UNIX_LAST_COUNT[0])/diff, (up - UNIX_LAST_COUNT[1])/diff
+        if UNIX_LAST_COUNT[0] is not None and UNIX_LAST_COUNT[1] is not None:
+            speed = (down - UNIX_LAST_COUNT[0])/diff, (up - UNIX_LAST_COUNT[1])/diff
+        else:
+            speed = (0.0,0.0)
             
     UNIX_LAST_CALL = now
     UNIX_LAST_COUNT = (down, up)
-    return speed
+    return [a/KILOBYTE for a in speed]
     
 def get_bandwidth_count_linux():
     """
@@ -121,7 +125,7 @@ def get_bandwidth_count_linux():
         print data
     total_up = total_down = 0
     for interface, down, up in data:
-        if interface != 'lo':
+        if interface != 'lo' or MEASURE_LOOPBACK_INTERFACE:
             total_down+=down
             total_up += up
             
@@ -143,7 +147,7 @@ def get_bandwidth_count_darwin():
     for line in output.splitlines():
         if line and not line.startswith('Name'):
             parts = [p for p in line.split(' ') if p]
-            if parts[0] != 'lo0' and parts[0] not in [a[0] for a in data]:
+            if (parts[0] != 'lo0' or MEASURE_LOOPBACK_INTERFACE) and parts[0] not in [a[0] for a in data]:
                 if len(parts) == 10: # netstat row without network address
                     #            Interface, IBytes,          OBytes
                     data.append([parts[0], int(parts[5]), int(parts[8])])

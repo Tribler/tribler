@@ -124,6 +124,7 @@ class TriblerLaunchMany(Thread):
             
         else:
             config['overlay'] = 0    # turn overlay off
+            config['torrent_checking'] = 0
         
         
         print >>sys.stderr,"tlm: config overlay is",config['overlay']

@@ -220,8 +220,9 @@ def isValidTorrentFile(metainfo):
     
 def isValidURL(url):
     r = urlparse.urlsplit(url)
-    #if DEBUG:
-    #    print >>sys.stderr,"isValidURL:",r
+    # if DEBUG:
+    #     print >>sys.stderr,"isValidURL:",r
+    
     if r[0] == '' or r[1] == '':
         return False
     return True

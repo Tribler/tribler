@@ -18,7 +18,7 @@ if sys.platform == "darwin":
     # relative to the location of tribler.py
     os.chdir(os.path.abspath(os.path.dirname(sys.argv[0])))
 import wx
-from wx import xrc
+#from wx import xrc
 #import hotshot
 
 from Tribler.Core.API import *
@@ -539,9 +539,11 @@ class PlayerApp(wx.App):
                 self.videoplay.set_content_name(topmsg)
             else:
                 msg = ''
+            
         else:
             msg = "Waiting for sufficient download speed... "+intime
         self.videoFrame.set_player_status(msg)
+        self.videoFrame.videopanel.updateProgressSlider(ds.get_pieces_complete())    
         
         if False: # Only works if the current method returns (x,True)
             peerlist = ds.get_peerlist()
@@ -700,7 +702,7 @@ class DummySingleInstanceChecker:
     def IsAnotherRunning(self):
         "Uses pgrep to find other tribler.py processes"
         # If no pgrep available, it will always start tribler
-        progressInfo = commands.getoutput('pgrep -fl tribler.py | grep -v pgrep')
+        progressInfo = commands.getoutput('pgrep -fl "tribler\.py" | grep -v pgrep')
         numProcesses = len(progressInfo.split('\n'))
         if DEBUG:
             print 'ProgressInfo: %s, num: %d' % (progressInfo, numProcesses)

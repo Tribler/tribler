@@ -1142,6 +1142,22 @@ class MovieOnDemandTransporter(MovieTransport):
         self.download_pos = end
         self.piecepicker.download_range[0] = end
 
+#    def buffered_time_period(self):
+#        """Length of period of Buffered pieces"""
+#        if self.movieselector.bitrate is None or self.movieselector.bitrate == 0.0:
+#            return 0
+#        else:
+#            return self.pieces_in_buffer * self.movieselector.piece_length / self.movieselector.bitrate
+#    
+#    def playback_time_position(self):
+#        """Time of playback_pos and total duration
+#            Return playback_time in seconds
+#        """
+#        if self.movieselector.bitrate is None or self.movieselector.bitrate == 0.0:
+#            return 0
+#        else:
+#            return self.playback_pos * self.movieselector.piece_length / self.movieselector.bitrate
+    
     def expected_download_time(self):
         """ Expected download time left. """
 
@@ -1490,3 +1506,6 @@ class MovieOnDemandTransporter(MovieTransport):
     def get_playable_after(self):
         """ Called by network thread """
         return self.expected_buffering_time()
+    
+    def get_duration(self):
+        return self.movieselector.duration
