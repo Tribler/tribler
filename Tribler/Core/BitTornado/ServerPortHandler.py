@@ -22,7 +22,7 @@ def toint(s):
 
 default_task_id = []
 
-DEBUG = False
+DEBUG = True
 
 def show(s):
     for i in xrange(len(s)): 
@@ -180,15 +180,14 @@ class NewSocketHandler:     # hand a new socket off where it belongs
             if x == True:       # ready to process
                 if self.protocol == 'HTTP':
                     if DEBUG:
-                        print >> sys.stderr,"NewSocketHandler: Reporting HTTP connection" 
+                        print >> sys.stderr,"NewSocketHandler: Reporting HTTP connection"
                     self.multihandler.httphandler.external_connection_made(self.connection)
                     self.multihandler.httphandler.data_came_in(self.connection,self.firstbyte)
                     self.multihandler.httphandler.data_came_in(self.connection,s)
                 else:
                     if DEBUG:
                         print >> sys.stderr,"NewSocketHandler: Reporting connection via",self.multihandler.singlerawservers[m]._external_connection_made
-                    self.multihandler.singlerawservers[m]._external_connection_made(
-                        self.connection, self.options, s)
+                    self.multihandler.singlerawservers[m]._external_connection_made(self.connection, self.options, s)
                 self.complete = True
                 return
             self.next_len, self.next_func = x

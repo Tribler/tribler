@@ -58,7 +58,7 @@ class VideoSourceTransporter:
     def input_thread(self):
         """ A thread reading the stream and buffering it. """
 
-        print "VideoSource: started input thread"
+        print >>sys.stderr,"VideoSource: started input thread"
 
         try:
             while not self.exiting:
@@ -66,7 +66,7 @@ class VideoSourceTransporter:
                 if not data:
                     break
 
-                print "VideoSource: read %d bytes" % len(data)
+                print >>sys.stderr,"VideoSource: read %d bytes" % len(data)
 
                 self.process_data(data)
         except IOError:

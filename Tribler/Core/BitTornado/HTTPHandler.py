@@ -12,7 +12,7 @@ except:
     True = 1
     False = 0
 
-DEBUG = False
+DEBUG = True
 
 weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
@@ -33,6 +33,9 @@ class HTTPConnection:
         return self.connection.get_ip()
 
     def data_came_in(self, data):
+        
+        print >>sys.stderr,"HTTPConnection: Got data",len(data),data
+        
         if self.donereading or self.next_func is None:
             return True
         self.buf += data
@@ -137,6 +140,7 @@ class HTTPHandler:
         self.lastflush = clock()
 
     def external_connection_made(self, connection):
+        print >>sys.stderr,"HTTPHandler: ext_conn_made"
         self.connections[connection] = HTTPConnection(self, connection)
 
     def connection_flushed(self, connection):
@@ -151,6 +155,8 @@ class HTTPHandler:
         del self.connections[connection]
 
     def data_came_in(self, connection, data):
+        print >>sys.stderr,"HTTPHandler: data_came_in"
+        
         c = self.connections[connection]
         if not c.data_came_in(data) and not c.closed:
             c.connection.shutdown(1)
@@ -173,6 +179,7 @@ class DummyHTTPHandler:
         pass
 
     def external_connection_made(self, connection):
+        print >> sys.stderr,"DummyHTTPHandler: ext_conn_made"
         reply = 'HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\nTribler Internal Tracker not activated.\r\n'
         connection.write(reply)
         connection.close()
@@ -184,6 +191,7 @@ class DummyHTTPHandler:
         pass
 
     def data_came_in(self, connection, data):
+        print >> sys.stderr,"DummyHTTPHandler: data_came_in",len(data)
         pass
 
     def log(self, ip, ident, username, header,

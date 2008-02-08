@@ -446,18 +446,17 @@ class BT1Download:
                 self.picker.set_downloader(self.downloader)
                 self.movieselector = MovieSelector(self.videoinfo,self.fileselector,self.storagewrapper,self.picker)
                 self.voddownload = MovieOnDemandTransporter(self.movieselector,self.picker,self.info['piece length'], self.rawserver, self.videoanalyserpath,vodplayablefunc)
-
-            if self.config['video_source']:
-                if DEBUG:
-                    print >>sys.stderr,"BT1Download: startEngine: Going into Live mode"
-    
-                self.videosourcetransporter = VideoSourceTransporter(self.config['video_source'],self)
-                self.videosourcetransporter.start()
-            elif DEBUG:
-                print >>sys.stderr,"BT1Download: startEngine: Not going into Live mode"
-                
         elif DEBUG:
             print >>sys.stderr,"BT1Download: startEngine: Going into standard mode"
+
+        if self.config['video_source']:
+            if DEBUG:
+                print >>sys.stderr,"BT1Download: startEngine: Acting as VideoSource"
+
+            self.videosourcetransporter = VideoSourceTransporter(self.config['video_source'],self)
+            self.videosourcetransporter.start()
+        elif DEBUG:
+            print >>sys.stderr,"BT1Download: startEngine: Not a VideoSource"
         if not self.doneflag.isSet():
             self.started = True
 
