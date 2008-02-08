@@ -54,6 +54,7 @@ class DownloadImpl:
             (namekey,uniname) = metainfoname2unicode(metainfo)
             self.correctedinfoname = fix_filebasename(uniname)
 
+            print >>sys.stderr,"Download: setup: piece size",metainfo['info']['piece length']
             
             # See if internal tracker used
             itrackerurl = self.session.get_internal_tracker_url()

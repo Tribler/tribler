@@ -34,6 +34,7 @@ except:
 
 DEBUG = False
 DEBUG_NORMAL_MSGS = False
+DEBUG_UT_PEX = False
 
 UNAUTH_PERMID_PERIOD = 3600
 
@@ -344,24 +345,29 @@ class Connection:
             return chr(val)
 
     def got_ut_pex(self,d):
-        if DEBUG:
+        if DEBUG_UT_PEX:
             print >>sys.stderr,"connecter: Got uTorrent PEX:",d
         (added_peers,dropped_peers) = check_ut_pex(d)
         
         # DoS protection: we're accepting IP addresses from 
         # an untrusted source, so be a bit careful
         mx = self.connecter.ut_pex_max_addrs_from_peer
-        if DEBUG:
+        if DEBUG_UT_PEX:
             print >>sys.stderr,"connecter: Got",len(added_peers),"peers via uTorrent PEX, using max",mx
             
-        
         #print >>sys.stderr,"connecter: Got",added_peers
+        # Take random sample of mx peers
         shuffle(added_peers)
-        sample_added_peers = added_peers[:mx]
-        if len(sample_added_peers) > 0:
-            if DEBUG:
-                print >>sys.stderr,"connecter: Starting conns to",len(sample_added_peers)
-            self.connection.Encoder.start_connections(sample_added_peers)
+        sample_added_peers_with_id = []
+        
+        # Put the sample in the format desired by Encoder.start_connections()
+        for dns in added_peers[:mx]:
+            peer_with_id = (dns, 0)
+            sample_added_peers_with_id.append(peer_with_id)
+        if len(sample_added_peers_with_id) > 0:
+            if DEBUG_UT_PEX:
+                print >>sys.stderr,"connecter: Starting ut_pex conns to",len(sample_added_peers_with_id)
+            self.connection.Encoder.start_connections(sample_added_peers_with_id)
 
     def get_extend_encryption(self):
         return self.extend_hs_dict.get('e',0)
@@ -383,7 +389,6 @@ class Connection:
     def send_extend_ut_pex(self,payload):
         msg = EXTEND+self.his_extend_msg_name_to_id(EXTEND_MSG_UTORRENT_PEX)+payload
         self._send_message(msg)
-
             
     def first_ut_pex(self):
         if self.ut_pex_first_flag:
@@ -490,7 +495,7 @@ class Connecter:
             self.ut_pex_enabled = self.ut_pex_max_addrs_from_peer > 0
         self.ut_pex_previous_conns = [] # last value of 'added' field for all peers
             
-        if DEBUG:
+        if DEBUG_UT_PEX:
             if self.ut_pex_enabled:
                 print >>sys.stderr,"connecter: Enabling uTorrent PEX",self.ut_pex_max_addrs_from_peer
             else:
@@ -638,13 +643,13 @@ class Connecter:
 
     def ut_pex_callback(self):
         """ Periocially send info about the peers you know to the other peers """
-        if DEBUG:
+        if DEBUG_UT_PEX:
             print >>sys.stderr,"connecter: Periodic ut_pex update"
             
         currconns = self.get_ut_pex_conns()
         (addedconns,droppedconns) = ut_pex_get_conns_diff(currconns,self.get_ut_pex_previous_conns())
         self.set_ut_pex_previous_conns(currconns)
-        if DEBUG:
+        if DEBUG_UT_PEX:
             for conn in addedconns:
                 print >>sys.stderr,"connecter: ut_pex: Added",conn.get_ip(),conn.get_extend_listenport()
             for conn in droppedconns:
@@ -653,7 +658,7 @@ class Connecter:
         for c in currconns:
             if c.supports_extend_msg(EXTEND_MSG_UTORRENT_PEX):
                 try:
-                    if DEBUG:
+                    if DEBUG_UT_PEX:
                         print >>sys.stderr,"connecter: ut_pex: Creating msg for",c.get_ip(),c.get_extend_listenport()
                     if c.first_ut_pex():
                         aconns = currconns

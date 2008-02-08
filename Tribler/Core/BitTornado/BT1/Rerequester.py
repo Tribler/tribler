@@ -418,7 +418,7 @@ class Rerequester:
                 for x in xrange(0, len(p), 6):
                     ip = '.'.join([str(ord(i)) for i in p[x:x+4]])
                     port = (ord(p[x+4]) << 8) | ord(p[x+5])
-                    peers.append(((ip, port), 0))
+                    peers.append(((ip, port), 0)) # Arno: note: not just (ip,port)!!!
             else:
                 for x in p:
                     peers.append(((x['ip'].strip(), x['port']), x.get('peer id', 0)))

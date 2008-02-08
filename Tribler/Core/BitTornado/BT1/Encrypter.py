@@ -28,7 +28,7 @@ except:
 DEBUG = False
 
 if sys.platform == 'win32':
-    # On windows XP SP2 there is a limit on "the number of concurrent, 
+    # Arno: On windows XP SP2 there is a limit on "the number of concurrent, 
     # incomplete outbound TCP connection attempts. When the limit is reached, 
     # subsequent connection attempts are put in a queue and resolved at a fixed 
     # rate so that there are only a limited number of connections in the 
@@ -44,16 +44,32 @@ if sys.platform == 'win32':
     # Which directs to:
     # http://www.microsoft.com/technet/support/ee/transform.aspx?ProdName=Windows%20Operating%20System&ProdVer=5.2&EvtID=4226&EvtSrc=Tcpip&LCID=1033
     #
-    # ABC/BitTornado people felt the need to therefore impose a rate limit
-    # themselves.
-
-    
-    # If we use more we get problems e.g. in VOD that the HTTP request
-    # of VLC to our HTTPServer times out. Windows die die die.
+    # The ABC/BitTornado people felt the need to therefore impose a rate limit
+    # themselves. Normally, I would be against this, because the kernel usually
+    # does a better job at this than some app programmers. But here it makes 
+    # somewhat sense because it appears that when the Win32 "connection-rate 
+    # limitations" are triggered, this causes socket timeout
+    # errors. For ABC/BitTornado this should not be a big problem, as none of 
+    # the TCP connections it initiates are really vital that they proceed 
+    # quickly.
     #
-    MAX_INCOMPLETE = 8 # safety margin
+    # For Tribler, we have one very important TCP connection at the moment,
+    # that is when the VideoPlayer/VLC tries to connect to our HTTP-based
+    # VideoServer on 127.0.0.1 to play the video. We have actually seen these
+    # connections timeout when we set MAX_INCOMPLETE to > 10.
+    #
+    # So we keep this app-level rate limit mechanism FOR NOW and add a security
+    # margin. To support our SwarmPlayer that wants quick startup of many
+    # connections we decrease the autoclosing timeout, such that bad conns
+    # get removed from this rate-limit admin faster. 
+    #
+    # Windows die die die.
+    #
+    MAX_INCOMPLETE = 8 # safety margin. Even 9 gives video socket timeout
 else:
     MAX_INCOMPLETE = 32
+
+AUTOCLOSE_TIMEOUT = 7 # secs
 
 def make_readable(s):
     if not s:
@@ -128,7 +144,7 @@ class Connection:
             self.next_len, self.next_func = 20, self.read_peer_id
         else:
             self.next_len, self.next_func = 1, self.read_header_len
-        self.Encoder.raw_server.add_task(self._auto_close, 15)
+        self.Encoder.raw_server.add_task(self._auto_close, AUTOCLOSE_TIMEOUT)
 
     def get_ip(self, real=False):
         return self.connection.get_ip(real)
@@ -431,12 +447,17 @@ class Encoder:
         for c in self.connections.values():
             c.keepalive()
 
-    def start_connections(self, list):
+    def start_connections(self, dnsidlist):
+        """ Arno: dnsidlist is a list of tuples (dns,id) where dns is a (ip,port) tuple
+        and id is apparently always 0. It must be unequal to None at least,
+        because Encrypter.Connection used the id to see if a connection is
+        locally initiated?! """
+        
         if DEBUG:
-            print >>sys.stderr,"encoder: adding",len(list),"peers to queue, current len",len(self.to_connect)
+            print >>sys.stderr,"encoder: adding",len(dnsidlist),"peers to queue, current len",len(self.to_connect)
         if not self.to_connect:
             self.raw_server.add_task(self._start_connection_from_queue)
-        self.to_connect.update(list)
+        self.to_connect.update(dnsidlist)
         # make sure addrs from various sources, like tracker, ut_pex and DHT are mixed
         # TEMP ARNO: or not? For Tribler Supported we may want the tracker to
         # be more authoritative, such that official seeders found fast. Nah.
@@ -448,31 +469,34 @@ class Encoder:
         self.trackertime = int(time()) 
 
     def _start_connection_from_queue(self,sched=True):
-        
-        if not self.to_connect:
-            return
-        
-        if self.connecter.external_connection_made:
-            max_initiate = self.config['max_initiate']
-        else:
-            max_initiate = int(self.config['max_initiate']*1.5)
-        cons = len(self.connections)
-        
-        if DEBUG:
-            print >>sys.stderr,"encoder: conns",cons,"max conns",self.max_connections,"max init",max_initiate
-        
-        if cons >= self.max_connections or cons >= max_initiate:
-            delay = 60.0
-        elif self.paused or incompletecounter.toomany():
-            delay = 1.0
-        else:
-            delay = 0.0
-            dns, id = self.to_connect.pop()
-            self.start_connection(dns, id)
-        if self.to_connect and sched:
+        try:
+            if not self.to_connect:
+                return
+            
+            if self.connecter.external_connection_made:
+                max_initiate = self.config['max_initiate']
+            else:
+                max_initiate = int(self.config['max_initiate']*1.5)
+            cons = len(self.connections)
+            
             if DEBUG:
-                print >>sys.stderr,"encoder: start_from_queue delay",delay
-            self.raw_server.add_task(self._start_connection_from_queue, delay)
+                print >>sys.stderr,"encoder: conns",cons,"max conns",self.max_connections,"max init",max_initiate
+            
+            if cons >= self.max_connections or cons >= max_initiate:
+                delay = 60.0
+            elif self.paused or incompletecounter.toomany():
+                delay = 1.0
+            else:
+                delay = 0.0
+                dns, id = self.to_connect.pop()
+                self.start_connection(dns, id)
+            if self.to_connect and sched:
+                if DEBUG:
+                    print >>sys.stderr,"encoder: start_from_queue delay",delay
+                self.raw_server.add_task(self._start_connection_from_queue, delay)
+        except:
+            print_exc()
+            raise
 
     def start_connection(self, dns, id, coord_con = False):
         """ Locally initiated connection """
