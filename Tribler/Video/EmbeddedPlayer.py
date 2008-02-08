@@ -560,7 +560,7 @@ class VLCMediaCtrl(wx.Window):
         lineoffset = 130
         name = self.getContentName() 
         if name is not None:
-            txt = u'Loading: '+self.name
+            txt = self.name
             dc.DrawText(txt,30,halfy+self.logo.GetHeight()+lineoffset)
             lineoffset += 20
 

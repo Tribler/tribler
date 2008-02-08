@@ -132,7 +132,7 @@ class PlayerOptionsDialog(wx.Dialog):
             self.port = self.wxapp.s.get_listen_port()
         #destdir = self.wxapp.s.get_dest_dir()
 
-        dlg = PlayerAdvancedOptionsDialog(self.icons,self.port)
+        dlg = PlayerAdvancedOptionsDialog(self.icons,self.port,self.wxapp)
         ret = dlg.ShowModal()
         if ret == wx.ID_OK:
             self.port = dlg.get_port()
@@ -141,9 +141,10 @@ class PlayerOptionsDialog(wx.Dialog):
 
 class PlayerAdvancedOptionsDialog(wx.Dialog):
     
-    def __init__(self,icons,port):
+    def __init__(self,icons,port,wxapp):
         style = wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER  # TODO: Add OK+Cancel
         wx.Dialog.__init__(self, None, -1, 'SwarmPlayer Advanced Options', size=(400,200), style=style)
+        self.wxapp = wxapp
 
         self.SetIcons(icons)
 
@@ -155,6 +156,10 @@ class PlayerAdvancedOptionsDialog(wx.Dialog):
         portbox.Add(label, 1, wx.ALIGN_CENTER_VERTICAL)
         portbox.Add(self.portctrl)
 
+        button2box = wx.BoxSizer(wx.HORIZONTAL)
+        clearbtn = wx.Button(self, -1, 'Clear disk cache and exit')
+        button2box.Add(clearbtn, 0, wx.ALL, 5)
+        self.Bind(wx.EVT_BUTTON, self.OnClear, clearbtn)
         
         buttonbox = wx.BoxSizer(wx.HORIZONTAL)
         okbtn = wx.Button(self, wx.ID_OK, 'OK')
@@ -163,9 +168,14 @@ class PlayerAdvancedOptionsDialog(wx.Dialog):
         buttonbox.Add(cancelbtn, 0, wx.ALL, 5)
 
         mainbox.Add(portbox, 1, wx.EXPAND|wx.ALL, 5)
+        mainbox.Add(button2box, 1, wx.EXPAND, 1)
         mainbox.Add(buttonbox, 1, wx.EXPAND, 1)
         self.SetSizerAndFit(mainbox)
 
     def get_port(self):
         return int(self.portctrl.GetValue())
+        
+    def OnClear(self,event=None):
+        self.wxapp.clear_session_state()
+        
         

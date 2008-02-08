@@ -38,6 +38,7 @@ RATELIMITADSL = False
 
 DISKSPACE_LIMIT = 5L * 1024L * 1024L * 1024L  # 5 GB
 I2I_LISTENPORT = 57894
+PLAYER_LISTENPORT = 8620
 
 class PlayerFrame(VideoFrame):
 
@@ -133,9 +134,11 @@ class PlayerApp(wx.App):
                 print_exc()
                 self.sconfig = SessionStartupConfig()
                 self.sconfig.set_state_dir(state_dir)
-                
+            
+            self.sconfig.set_listen_port(PLAYER_LISTENPORT)    
             self.sconfig.set_overlay(False)
             self.sconfig.set_megacache(False)
+            
             self.s = Session(self.sconfig)
             self.s.set_download_states_callback(self.sesscb_states_protected_callback)
 
@@ -235,7 +238,7 @@ class PlayerApp(wx.App):
             dlfile = videofiles[0]
         
         # Free diskspace, if needed
-        destdir = os.path.join(self.s.get_state_dir(),'downloads')
+        destdir = self.get_default_destdir()
         if not os.access(destdir,os.F_OK):
             os.mkdir(destdir)
 
@@ -308,7 +311,7 @@ class PlayerApp(wx.App):
         cname = tdef.get_name_as_unicode()
         if len(videofiles) > 1:
             cname += u' - '+bin2unicode(dlfile)
-        self.videoplay.set_content_name(cname)
+        self.videoplay.set_content_name(u'Loading: '+cname)
 
         return True
 
@@ -525,9 +528,15 @@ class PlayerApp(wx.App):
                 npeers = ds.get_num_peers()
                 npeerstr = str(npeers)
                 if npeers == 0:
-                    msg = u"Please don't close the SwarmPlayer completely, this will help other SwarmPlayer users to download faster."
+                    topmsg = u"Please don't close the SwarmPlayer completely, this will help other SwarmPlayer users to download faster."
                 else:
-                    msg = u"Helping "+npeerstr+" SwarmPlayer users to enjoy "+d.get_def().get_name_as_unicode()+". Please don't close the player completely."
+                    topmsg = u"Helping "+npeerstr+" SwarmPlayer users to enjoy "+d.get_def().get_name_as_unicode()+". Please don't close the player completely."
+                    
+                # Display this on status line
+                msg = 'You can safely close this window, though (Use rightclick on systray icon to close completely, if you must)'
+                
+                # Display helping info on "content name" line.
+                self.videoplay.set_content_name(topmsg)
             else:
                 msg = ''
         else:
@@ -643,6 +652,43 @@ class PlayerApp(wx.App):
     
     def get_playerconfig(self,key):
         return self.playerconfig[key]
+    
+    
+    def clear_session_state(self):
+        """ Try to fix SwarmPlayer """
+        try:
+            self.videoplay.stop_playback()
+        except:
+            print_exc()
+        try:
+            if self.s is not None:
+                dlist = self.s.get_downloads()
+                for d in dlist:
+                    self.s.remove_download(d,removecontent=True)
+        except:
+            print_exc()
+        time.sleep(1) # give network thread time to do stuff
+        try:
+                dldestdir = self.get_default_destdir()
+                shutil.rmtree(dldestdir,True) # ignore errors
+        except:
+            print_exc()
+        try:
+                dlcheckpointsdir = os.path.join(self.s.get_state_dir(),STATEDIR_DLPSTATE_DIR)
+                shutil.rmtree(dlcheckpointsdir,True) # ignore errors
+        except:
+            print_exc()
+        try:
+                cfgfilename = os.path.join(self.s.get_state_dir(),STATEDIR_SESSCONFIG)
+                os.remove(cfgfilename)
+        except:
+            print_exc()
+
+        self.s = None # HARD EXIT
+        self.OnExit()
+    
+    def get_default_destdir(self):
+        return os.path.join(self.s.get_state_dir(),'downloads')
     
     
     
