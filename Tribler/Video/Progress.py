@@ -436,7 +436,8 @@ class VolumeSlider(wx.Panel):
             return False
         x,y = pos
         bx, by = self.sliderPosition
-        return abs(x-bx) < self.cursorsize[0]/2 and abs(y-by)<self.cursorsize[1]/2
+        extraGrip = 3 # 3px extra grip on sliderButton
+        return abs(x-bx) < self.cursorsize[0]/2+extraGrip and abs(y-by)<self.cursorsize[1]/2
         
     def onSlider(self, pos):
         x,y = pos

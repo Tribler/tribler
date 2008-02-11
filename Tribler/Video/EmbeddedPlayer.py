@@ -243,7 +243,8 @@ class EmbeddedPlayer(wx.Panel):
         self.Stop()
 
     def updateSlider(self, evt):
-        self.volume.SetValue(int(self.mediactrl.GetVolume() * 100))
+        if not self.volumeicon.isToggled():
+            self.volume.SetValue(int(self.mediactrl.GetVolume() * 100))
 
         #s = self.mediactrl.GetState()
 
