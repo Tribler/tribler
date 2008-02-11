@@ -21,8 +21,6 @@ from Tribler.Core.APIImplementation.miscutils import *
 from Tribler.Core.Utilities.unicode import metainfoname2unicode
 from Tribler.Core.osutils import *
 
-DEBUG = True
-
 class DownloadConfigInterface:
     """
     (key,value) pair config of per-torrent runtime parameters,

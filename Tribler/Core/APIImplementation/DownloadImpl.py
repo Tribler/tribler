@@ -55,7 +55,8 @@ class DownloadImpl:
             (namekey,uniname) = metainfoname2unicode(metainfo)
             self.correctedinfoname = fix_filebasename(uniname)
 
-            print >>sys.stderr,"Download: setup: piece size",metainfo['info']['piece length']
+            if DEBUG:
+                print >>sys.stderr,"Download: setup: piece size",metainfo['info']['piece length']
             
             # See if internal tracker used
             itrackerurl = self.session.get_internal_tracker_url()
@@ -63,7 +64,8 @@ class DownloadImpl:
             metainfo = self.tdef.get_metainfo()
             usingitracker = False
             
-            print >>sys.stderr,"Download: setup: internal tracker?",metainfo['announce'],itrackerurl,"#"
+            if DEBUG:
+                print >>sys.stderr,"Download: setup: internal tracker?",metainfo['announce'],itrackerurl,"#"
 
             if itrackerurl.endswith('/'):
                 slashless = itrackerurl[:-1]
@@ -78,12 +80,13 @@ class DownloadImpl:
                          break
                      
             if usingitracker:
-                print >>sys.stderr,"Download: setup: Using internal tracker"
+                if DEBUG:
+                    print >>sys.stderr,"Download: setup: Using internal tracker"
                 # Copy .torrent to state_dir/itracker so the tracker thread 
                 # finds it and accepts peer registrations for it.
                 #
                 self.session.add_to_internal_tracker(self.tdef) 
-            else:
+            elif DEBUG:
                 print >>sys.stderr,"Download: setup: Not using internal tracker"
             
             # Copy dlconfig, from default if not specified
@@ -107,8 +110,8 @@ class DownloadImpl:
             self.dlruntimeconfig['max_desired_upload_rate'] = self.dlconfig['max_upload_rate'] 
             self.dlruntimeconfig['max_desired_download_rate'] = self.dlconfig['max_download_rate']
     
-    
-            print >>sys.stderr,"DownloadImpl: setup: initialdlstatus",`self.tdef.get_name_as_unicode()`,initialdlstatus
+            if DEBUG:
+                print >>sys.stderr,"DownloadImpl: setup: initialdlstatus",`self.tdef.get_name_as_unicode()`,initialdlstatus
     
             # Note: initialdlstatus now only works for STOPPED
             if initialdlstatus != DLSTATUS_STOPPED:
@@ -223,16 +226,12 @@ class DownloadImpl:
         self.dllock.acquire()
         try:
             if self.sd is None:
-                print >>sys.stderr,"DownloadImpl: network_get_state: state is DLSTATUS_STOPPED"
                 ds = DownloadState(self,DLSTATUS_STOPPED,self.error,self.progressbeforestop)
             else:
                 (status,stats,logmsgs) = self.sd.get_stats(getpeerlist)
                 ds = DownloadState(self,status,self.error,None,stats=stats,filepieceranges=self.filepieceranges,logmsgs=logmsgs)
                 self.progressbeforestop = ds.get_progress()
                 
-                #print >>sys.stderr,"DownloadImpl: network_get_state: state is2",status
-                #print >>sys.stderr,"STATS",stats
-            
             if sessioncalling:
                 return ds
 
@@ -268,7 +267,8 @@ class DownloadImpl:
 
     def stop_remove(self,removestate=False,removecontent=False):
         """ Called by any thread """
-        print >>sys.stderr,"DownloadImpl: stop_remove:",`self.tdef.get_name_as_unicode()`,"state",removestate,"content",removecontent
+        if DEBUG:
+            print >>sys.stderr,"DownloadImpl: stop_remove:",`self.tdef.get_name_as_unicode()`,"state",removestate,"content",removecontent
         self.dllock.acquire()
         try:
             network_stop_lambda = lambda:self.network_stop(removestate,removecontent)
@@ -278,7 +278,8 @@ class DownloadImpl:
 
     def network_stop(self,removestate,removecontent):
         """ Called by network thread """
-        print >>sys.stderr,"DownloadImpl: network_stop",`self.tdef.get_name_as_unicode()`
+        if DEBUG:
+            print >>sys.stderr,"DownloadImpl: network_stop",`self.tdef.get_name_as_unicode()`
         self.dllock.acquire()
         try:
             infohash = self.tdef.get_infohash() 
@@ -304,7 +305,8 @@ class DownloadImpl:
         problems. By scheduling both stops and restarts via the network task 
         queue we ensure that they are executed in the order they were called.  
         Called by any thread """
-        print >>sys.stderr,"DownloadImpl: restart:",`self.tdef.get_name_as_unicode()`
+        if DEBUG:
+            print >>sys.stderr,"DownloadImpl: restart:",`self.tdef.get_name_as_unicode()`
         self.dllock.acquire()
         try:
             self.session.lm.rawserver.add_task(self.network_restart,0.0)
@@ -315,7 +317,8 @@ class DownloadImpl:
         """ Called by network thread """
         # Must schedule the hash check via lm. In some cases we have batch stops
         # and restarts, e.g. we have stop all-but-one & restart-all for VOD)
-        print >>sys.stderr,"DownloadImpl: network_restart",`self.tdef.get_name_as_unicode()`
+        if DEBUG:
+            print >>sys.stderr,"DownloadImpl: network_restart",`self.tdef.get_name_as_unicode()`
         self.dllock.acquire()
         try:
             if self.sd is None:
@@ -330,7 +333,8 @@ class DownloadImpl:
     # Config parameters that only exists at runtime 
     #
     def set_max_desired_speed(self,direct,speed):
-        print >>sys.stderr,"Download: set_max_desired_speed",direct,speed
+        if DEBUG:
+            print >>sys.stderr,"Download: set_max_desired_speed",direct,speed
         #if speed < 10:
         #    print_stack()
         
@@ -345,7 +349,6 @@ class DownloadImpl:
         self.dllock.acquire()
         try:
             if direct == UPLOAD:
-                print >>sys.stderr,"Download: get_max_desired_speed: get_max_desired",self.dlruntimeconfig['max_desired_upload_rate']
                 return self.dlruntimeconfig['max_desired_upload_rate']
             else:
                 return self.dlruntimeconfig['max_desired_download_rate']
@@ -410,7 +413,8 @@ class DownloadImpl:
         pstate['dlstate']['status'] = ds.get_status()
         pstate['dlstate']['progress'] = ds.get_progress()
         
-        print >>sys.stderr,"Download: netw_get_pers_state: status",dlstatus_strings[ds.get_status()],"progress",ds.get_progress()
+        if DEBUG:
+            print >>sys.stderr,"Download: netw_get_pers_state: status",dlstatus_strings[ds.get_status()],"progress",ds.get_progress()
         
         pstate['engineresumedata'] = None
         return pstate
@@ -427,7 +431,8 @@ class DownloadImpl:
     def set_filepieceranges(self,metainfo):
         """ Determine which file maps to which piece ranges for progress info """
         
-        print >>sys.stderr,"Download: set_filepieceranges:",self.dlconfig['selected_files']
+        if DEBUG:
+            print >>sys.stderr,"Download: set_filepieceranges:",self.dlconfig['selected_files']
         (length,self.filepieceranges) = maketorrent.get_length_filepieceranges_from_metainfo(metainfo,self.dlconfig['selected_files'])
 
     def get_content_dest(self):

@@ -1,3 +1,6 @@
+# Written by Jelle Roozenburg
+# see LICENSE.txt for license information
+
 import threading
 from time import sleep
 

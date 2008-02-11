@@ -97,7 +97,9 @@ class TriblerLaunchMany(Thread):
                     reuse = True,
                     ipv6_socket_style = config['ipv6_binds_v4'], 
                     randomizer = config['random_port'])
-        print "Got listen port", self.listen_port
+        
+        if DEBUG:
+            print >>sys.stderr,"tlm: Got listen port", self.listen_port
         
         self.multihandler = MultiHandler(self.rawserver, self.sessdoneflag)
         #
@@ -111,7 +113,8 @@ class TriblerLaunchMany(Thread):
             if config['nickname'] == '__default_name__':
                 config['nickname']  = socket.gethostname()
                 
-            print 'state_dir: %s' % config['state_dir']
+            if DEBUG:
+                print >>sys.stderr,'tlm: Reading Session state from',config['state_dir']
             cachedb.init(config['state_dir'], self.rawserver_fatalerrorfunc)
 
             self.peer_db        = PeerDBHandler.getInstance(config)
@@ -126,8 +129,6 @@ class TriblerLaunchMany(Thread):
             config['overlay'] = 0    # turn overlay off
             config['torrent_checking'] = 0
         
-        
-        print >>sys.stderr,"tlm: config overlay is",config['overlay']
         
         if not config['overlay']:
             config['buddycast'] = 0
@@ -193,7 +194,9 @@ class TriblerLaunchMany(Thread):
             elif pstate is None: # not already resuming
                 pstate = self.load_download_pstate_noexc(infohash)
                 if pstate is not None:
-                    print >>sys.stderr,"tlm: add: pstate is",dlstatus_strings[pstate['dlstate']['status']],pstate['dlstate']['progress']
+                    if DEBUG:
+                        print >>sys.stderr,"tlm: add: pstate is",dlstatus_strings[pstate['dlstate']['status']],pstate['dlstate']['progress']
+                    pass
             
             # Store in list of Downloads, always. 
             self.downloads[d.get_def().get_infohash()] = d
@@ -389,11 +392,12 @@ class TriblerLaunchMany(Thread):
             # TODO: filter for file not found explicitly?
             pstate = self.load_download_pstate(filename)
             
-            print >>sys.stderr,"tlm: load_checkpoint: pstate is",dlstatus_strings[pstate['dlstate']['status']],pstate['dlstate']['progress']
-            if pstate['engineresumedata'] is None:
-                print >>sys.stderr,"tlm: load_checkpoint: resumedata None"
-            else:
-                print >>sys.stderr,"tlm: load_checkpoint: resumedata",len(pstate['engineresumedata'])
+            if DEBUG:
+                print >>sys.stderr,"tlm: load_checkpoint: pstate is",dlstatus_strings[pstate['dlstate']['status']],pstate['dlstate']['progress']
+                if pstate['engineresumedata'] is None:
+                    print >>sys.stderr,"tlm: load_checkpoint: resumedata None"
+                else:
+                    print >>sys.stderr,"tlm: load_checkpoint: resumedata",len(pstate['engineresumedata'])
             
             tdef = TorrentDef.load_from_dict(pstate['metainfo'])
             
@@ -413,7 +417,8 @@ class TriblerLaunchMany(Thread):
         # in list of states returned via callback.
         #
         dllist = self.downloads.values()
-        print >>sys.stderr,"tlm: checkpointing",len(dllist)
+        if DEBUG:
+            print >>sys.stderr,"tlm: checkpointing",len(dllist)
         
         network_checkpoint_callback_lambda = lambda:self.network_checkpoint_callback(dllist,stop)
         self.rawserver.add_task(network_checkpoint_callback_lambda,0.0)
@@ -427,7 +432,8 @@ class TriblerLaunchMany(Thread):
             # in a infohash -> pstate dict which is then passed to the user
             # for storage.
             #
-            print >>sys.stderr,"tlm: network checkpointing:",`d.get_def().get_name()`
+            if DEBUG:
+                print >>sys.stderr,"tlm: network checkpointing:",`d.get_def().get_name()`
             if stop:
                 (infohash,pstate) = d.network_stop(False,False)
             else:
@@ -453,7 +459,8 @@ class TriblerLaunchMany(Thread):
         basename = binascii.hexlify(infohash)+'.pickle'
         filename = os.path.join(self.session.get_downloads_pstate_dir(),basename)
         
-        print >>sys.stderr,"tlm: network checkpointing: to file",filename
+        if DEBUG:
+            print >>sys.stderr,"tlm: network checkpointing: to file",filename
         f = open(filename,"wb")
         pickle.dump(pstate,f)
         f.close()
@@ -492,7 +499,8 @@ class TriblerLaunchMany(Thread):
         
         Called by network thread """ 
         
-        print >>sys.stderr,"tlm: start_upnp()"
+        if DEBUG:
+            print >>sys.stderr,"tlm: start_upnp()"
         self.set_activity(NTFY_ACT_UPNP)
         self.upnp_thread = UPnPThread(self.upnp_type,self.locally_guessed_ext_ip,self.listen_port,self.upnp_failed_callback,self.upnp_got_ext_ip_callback)
         self.upnp_thread.start()
@@ -588,7 +596,7 @@ class TriblerLaunchMany(Thread):
         
     def network_h4xor_reset(self):
         from Tribler.Core.BitTornado.BT1.Encrypter import incompletecounter
-        print >>sys.stderr,"tlm: h4x0r RESET $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$",incompletecounter.c,"==="
+        print >>sys.stderr,"tlm: h4x0r Resetting outgoing TCP connection rate limiter",incompletecounter.c,"==="
         incompletecounter.c = 0
         
         

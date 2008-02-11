@@ -205,7 +205,9 @@ class SingleDownload:
 
     def finishedfunc(self):
         """ Download is complete """
-        print >>sys.stderr,"SingleDownload::finishedfunc called *******************************"
+        if DEBUG:
+            print >>sys.stderr,"SingleDownload::finishedfunc called: Download is complete *******************************"
+        pass
 
     def fatalerrorfunc(self,data):
         print >>sys.stderr,"SingleDownload::fatalerrorfunc called",data

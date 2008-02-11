@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # Written by Arno Bakker, Choopan RATTANAPOKA, Jie Yang
 # see LICENSE.txt for license information
 #
@@ -55,12 +54,12 @@ class PlayerFrame(VideoFrame):
         if event is not None:
             nr = event.GetEventType()
             lookup = { wx.EVT_CLOSE.evtType[0]: "EVT_CLOSE", wx.EVT_QUERY_END_SESSION.evtType[0]: "EVT_QUERY_END_SESSION", wx.EVT_END_SESSION.evtType[0]: "EVT_END_SESSION" }
-            if nr in lookup: nr = lookup[nr]
-            print "Closing due to event ",nr
-            print >>sys.stderr,"Closing due to event ",nr
+            if nr in lookup: 
+                nr = lookup[nr]
+            print >>sys.stderr,"main: Closing due to event ",nr
             event.Skip()
         else:
-            print "Closing untriggered by event"
+            print >>sys.stderr,"main: Closing untriggered by event"
     
         self.parent.videoFrame = None 
 
@@ -87,7 +86,7 @@ class PlayerApp(wx.App):
         try:
             self.utility = Utility(self.installdir)
             self.utility.app = self
-            print self.utility.lang.get('build')
+            print >>sys.stderr,self.utility.lang.get('build')
             self.iconpath = os.path.join(self.installdir,'Tribler','Images','swarmplayer.ico')
             
             # Start server for instance2instance communication
@@ -127,7 +126,8 @@ class PlayerApp(wx.App):
             # Start Tribler Session
             cfgfilename = Session.get_default_config_filename(state_dir)
             
-            print >>sys.stderr,"main: Session config",cfgfilename
+            if DEBUG:
+                print >>sys.stderr,"main: Session config",cfgfilename
             try:
                 self.sconfig = SessionStartupConfig.load(cfgfilename)
             except:
@@ -357,10 +357,12 @@ class PlayerApp(wx.App):
     
     def free_up_diskspace_by_downloads(self,infohash,needed):
         
-        print >> sys.stderr,"main: free_up: needed",needed,DISKSPACE_LIMIT
+        if DEBUG:
+            print >> sys.stderr,"main: free_up: needed",needed,DISKSPACE_LIMIT
         if needed > DISKSPACE_LIMIT:
             # Not cleaning out whole cache for bigguns
-            print >> sys.stderr,"main: free_up: No cleanup for bigguns"
+            if DEBUG:
+                print >> sys.stderr,"main: free_up: No cleanup for bigguns"
             return True 
         
         inuse = 0L
@@ -372,7 +374,8 @@ class PlayerApp(wx.App):
                 # Don't delete the torrent we want to play
                 continue
             destfiles = d.get_dest_files()
-            print >> sys.stderr,"main: free_up: Downloaded content",`destfiles`
+            if DEBUG:
+                print >> sys.stderr,"main: free_up: Downloaded content",`destfiles`
             
             dinuse = 0L
             for (filename,savepath) in destfiles:
@@ -384,12 +387,14 @@ class PlayerApp(wx.App):
             
         if inuse+needed < DISKSPACE_LIMIT:
             # Enough available, done.
-            print >> sys.stderr,"main: free_up: Enough avail",inuse
+            if DEBUG:
+                print >> sys.stderr,"main: free_up: Enough avail",inuse
             return True
         
         # Policy: remove oldest till sufficient
         timelist.sort()
-        print >> sys.stderr,"main: free_up: Found",timelist,"in dest dir"
+        if DEBUG:
+            print >> sys.stderr,"main: free_up: Found",timelist,"in dest dir"
         
         got = 0L
         for ctime,dinuse,d in timelist:
@@ -450,13 +455,14 @@ class PlayerApp(wx.App):
         totalspeed = {}
         totalspeed[UPLOAD] = 0.0
         totalspeed[DOWNLOAD] = 0.0
-        
+
+        # When not playing, display stats for all Downloads and apply rate control.
         if playermode == DLSTATUS_SEEDING:
             for ds in dslist:
                 print >>sys.stderr,"main: Stats: Seeding:",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
-                
             self.ratelimit_callback(dslist)
             
+        # Calc total dl/ul speed and find DownloadState for current Download
         ds = None
         for ds2 in dslist:
             if ds2.get_download() == d:
@@ -466,22 +472,34 @@ class PlayerApp(wx.App):
             
             for dir in [UPLOAD,DOWNLOAD]:
                 totalspeed[dir] += ds2.get_current_speed(dir)
-                
+        
+        # No current Download        
         if ds is None:
             return (1.0,False)
         elif playermode == DLSTATUS_DOWNLOADING:
             print >>sys.stderr,"main: Stats: DL:",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
-        
+
+        # Don't display stats if there is no video frame to show them on.
         if self.videoFrame is None:
             return (-1,False)
         else:
             videoplayer_mediastate = self.videoFrame.get_state()
             print >>sys.stderr,"main: Stats: VideoPlayer state",videoplayer_mediastate
 
+
+        # If we're done playing we can now restart any previous downloads to 
+        # seed them.
+        if playermode != DLSTATUS_SEEDING and ds.get_status() == DLSTATUS_SEEDING:
+            wx.CallAfter(self.restart_other_downloads)
+
+
         # Display stats for currently playing Download
         logmsgs = ds.get_log_messages()
+        logmsg = None
         if len(logmsgs) > 0:
             print >>sys.stderr,"main: Log",logmsgs[0]
+            logmsg = logmsgs[-1]
+            
         preprogress = ds.get_vod_prebuffering_progress()
         playable = ds.get_vod_playable()
         t = ds.get_vod_playable_after()
@@ -503,13 +521,6 @@ class PlayerApp(wx.App):
                 
         #print >>sys.stderr,"main: VODStats",preprogress,playable
 
-        if playermode != DLSTATUS_SEEDING and ds.get_status() == DLSTATUS_SEEDING:
-            # As we're seeding we can now restart any previous downloads to 
-            # seed them.
-            # Arno: For extra robustness, ignore any errors related to restarting
-            wx.CallAfter(self.restart_other_downloads)
-
-
         if ds.get_status() == DLSTATUS_HASHCHECKING:
             genprogress = ds.get_progress()
             pstr = str(int(genprogress*100))
@@ -518,8 +529,12 @@ class PlayerApp(wx.App):
             msg = 'Error playing: '+str(ds.get_error())
         elif preprogress != 1.0:
             pstr = str(int(preprogress*100))
-            npeerstr = str(ds.get_num_peers())
-            msg = "Prebuffering "+pstr+"% done, eta "+intime+'  (connected to '+npeerstr+' people)'
+            npeers = ds.get_num_peers()
+            npeerstr = str(npeers)
+            if npeers == 0 and logmsg is not None:
+                msg = logmsg
+            else:
+                msg = "Prebuffering "+pstr+"% done, eta "+intime+'  (connected to '+npeerstr+' people)'
         elif playable:
             if not self.said_start_playback:
                 msg = "Starting playback..."
@@ -705,7 +720,7 @@ class DummySingleInstanceChecker:
         progressInfo = commands.getoutput('pgrep -fl "tribler\.py" | grep -v pgrep')
         numProcesses = len(progressInfo.split('\n'))
         if DEBUG:
-            print 'ProgressInfo: %s, num: %d' % (progressInfo, numProcesses)
+            print 'main: ProgressInfo: %s, num: %d' % (progressInfo, numProcesses)
         return numProcesses > 1
                 
         
@@ -747,7 +762,7 @@ def run(params = None):
         app = PlayerApp(0, params, single_instance_checker, installdir)
         app.MainLoop()
         
-        print "Sleeping seconds to let other threads finish"
+        print >>sys.stderr,"Sleeping seconds to let other threads finish"
         time.sleep(2)
 
 if __name__ == '__main__':

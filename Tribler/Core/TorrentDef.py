@@ -23,7 +23,6 @@ from Tribler.Core.Utilities.utilities import find_prog_in_PATH,validTorrentFile,
 from Tribler.Core.Utilities.unicode import metainfoname2unicode
 from Tribler.Core.osutils import *
 
-
 class TorrentDef(Serializable,Copyable):
     """
     Definition of a torrent, i.e. all params required for a torrent file,
@@ -590,9 +589,6 @@ class TorrentDef(Serializable,Copyable):
         @param file (Optional) the file in the torrent to retrieve the bitrate of.
         @return The bitrate in bytes per second.
         """ 
-        if DEBUG:
-            print >>sys.stderr,"TorrentDef: get_bitrate called",file
-        
         if not self.metainfo_valid:
             raise NotYetImplementedException() # must save first
 

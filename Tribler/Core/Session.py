@@ -20,6 +20,8 @@ from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.APIImplementation.UserCallbackHandler import UserCallbackHandler
 
 
+DEBUG = True
+
 class Session(SessionRuntimeConfig):
     """
     
@@ -485,7 +487,8 @@ class Session(SessionRuntimeConfig):
             #    self.lm.rawserver_nonfatalerrorfunc(e)
 
             # Checkpoint all Downloads
-            print >>sys.stderr,"Session: checkpoint_shutdown"
+            if DEBUG:
+                print >>sys.stderr,"Session: checkpoint_shutdown"
             self.lm.checkpoint(stop=stop)
         finally:
             self.sesslock.release()

@@ -6,6 +6,7 @@ from traceback import print_exc
 
 from Tribler.Core.DownloadConfig import DownloadConfigInterface
 
+DEBUG = True
 
 class DownloadRuntimeConfig(DownloadConfigInterface):
     """
@@ -16,7 +17,8 @@ class DownloadRuntimeConfig(DownloadConfigInterface):
     DownloadConfigInterface: All methods called by any thread
     """
     def set_max_speed(self,direct,speed):
-        print >>sys.stderr,"Download: set_max_speed",`self.get_def().get_metainfo()['info']['name']`,direct,speed
+        if DEBUG:
+            print >>sys.stderr,"Download: set_max_speed",`self.get_def().get_metainfo()['info']['name']`,direct,speed
         #print_stack()
         
         self.dllock.acquire()
