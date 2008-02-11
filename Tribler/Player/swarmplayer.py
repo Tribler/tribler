@@ -501,6 +501,7 @@ class PlayerApp(wx.App):
             logmsg = logmsgs[-1]
             
         preprogress = ds.get_vod_prebuffering_progress()
+        print >> sys.stderr, 'JR: %s' % preprogress
         playable = ds.get_vod_playable()
         t = ds.get_vod_playable_after()
         print >>sys.stderr,"main: ETA is",t,"secs"
