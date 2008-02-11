@@ -177,7 +177,7 @@ class EmbeddedPlayer(wx.Panel):
         self.oldvolume = None
         
                         
-        self.ppbtn = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), 'Tribler', 'Images'), 'play', 'pause')
+        self.ppbtn = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), 'Tribler', 'Images'), 'pause', 'play')
         self.ppbtn.Bind(wx.EVT_LEFT_UP, self.PlayPause)
 
         self.volumebox = wx.BoxSizer(wx.HORIZONTAL)
@@ -310,6 +310,9 @@ class EmbeddedPlayer(wx.Panel):
     def SetVolume(self, evt = None):
         print >> sys.stderr, self.volume.GetValue()
         self.mediactrl.SetVolume(float(self.volume.GetValue()) / 100)
+        # reset mute
+        if self.volumeicon.isToggled():
+            self.volumeicon.setToggled(False)
 
     """
     def run(self):

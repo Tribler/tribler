@@ -196,12 +196,12 @@ class ProgressSlider(wx.Panel):
         self.SetBackgroundColour(wx.WHITE)
         self.utility = utility
         self.bgImage = wx.Bitmap(os.path.join(self.utility.getPath(), 'Tribler','Images','background.png'))
+        self.dotImage = wx.Bitmap(os.path.join(self.utility.getPath(), 'Tribler','Images','sliderDot.png'))
         self.sliderPosition = None
         self.rectHeight = 5
         self.rectBorderColour = wx.LIGHT_GREY
         self.textWidth = 70
         self.margin = 10
-        self.radius = 7
         self.doneColor = wx.RED
         self.bufferColor = wx.GREEN
         self.sliderWidth = 0
@@ -247,7 +247,8 @@ class ProgressSlider(wx.Panel):
             return False
         x,y = pos
         bx, by = self.sliderPosition
-        return abs(x-bx) < self.radius and abs(y-by)<self.radius # take rect instead of circle for speed reasons
+        dotSize = self.dotImage.GetSize()
+        return abs(x-bx) < dotSize[0]/2 and abs(y-by)<dotSize[1]/2
         
     def onSlider(self, pos):
         x,y = pos
@@ -361,9 +362,8 @@ class ProgressSlider(wx.Panel):
             dc.SetPen(wx.Pen(self.bufferColor, 0))
             dc.DrawRectangle(position+self.margin,height/2-smallRectHeight/2, self.bufferlength, smallRectHeight)
             # draw circle
-            dc.SetPen(wx.NullPen)
-            dc.SetBrush(wx.Brush(self.rectBorderColour))
-            dc.DrawCircle(position+self.margin, height/2, self.radius)
+            dotSize = self.dotImage.GetSize()
+            dc.DrawBitmap(self.dotImage, position+self.margin-dotSize[0]/2, height/2-dotSize[1]/2)
         if width > 2*self.margin+self.textWidth:
             # Draw times
             font = self.GetFont()
@@ -391,7 +391,7 @@ class VolumeSlider(wx.Panel):
         self.rectHeight = 5
         self.rectBorderColour = wx.LIGHT_GREY
         self.margin = 10
-        self.radius = 7
+        self.cursorsize = [4,19]
         self.doneColor = wx.RED
         self.sliderWidth = 0
         self.range = (0,1)
@@ -436,7 +436,7 @@ class VolumeSlider(wx.Panel):
             return False
         x,y = pos
         bx, by = self.sliderPosition
-        return abs(x-bx) < self.radius and abs(y-by)<self.radius # take rect instead of circle for speed reasons
+        return abs(x-bx) < self.cursorsize[0]/2 and abs(y-by)<self.cursorsize[1]/2
         
     def onSlider(self, pos):
         x,y = pos
@@ -491,7 +491,7 @@ class VolumeSlider(wx.Panel):
         position = self.sliderWidth * self.progress
         self.sliderPosition = position+self.margin, height/2
         
-        cursorsize = [4,19]
+        
         if width > 2*self.margin:
             # Draw slider rect
             dc.SetPen(wx.Pen(self.rectBorderColour, 2))
@@ -504,7 +504,7 @@ class VolumeSlider(wx.Panel):
             # draw circle
             dc.SetPen(wx.NullPen)
             dc.SetBrush(wx.Brush(self.rectBorderColour))
-            dc.DrawRectangle(position+self.margin-cursorsize[0]/2, height/2-cursorsize[1]/2, cursorsize[0], cursorsize[1])
+            dc.DrawRectangle(position+self.margin-self.cursorsize[0]/2, height/2-self.cursorsize[1]/2, self.cursorsize[0], self.cursorsize[1])
         
         dc.EndDrawing()
 
