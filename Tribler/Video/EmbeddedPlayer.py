@@ -126,6 +126,14 @@ class VideoFrame(wx.Frame):
         """ Called by any thread """
         if self.videopanel is not None:
             self.videopanel.set_content_name(name)
+
+    def set_content_image(self,wximg):
+        """ Called by GUI thread """
+        if self.videopanel is None:
+            return None
+        else:
+            return self.videopanel.set_content_image(wximg)
+
         
     def stop_playback(self):
         """ Called by GUI thread """
@@ -143,7 +151,8 @@ class VideoFrame(wx.Frame):
             return None
         else:
             return self.videopanel.GetState()
-              
+     
+                  
 
 class EmbeddedPlayer(wx.Panel):
 
@@ -359,6 +368,10 @@ class EmbeddedPlayer(wx.Panel):
         if self.mediactrl:
             self.mediactrl.setContentName(s)
 
+    def set_content_image(self,wximg):
+        if self.mediactrl:
+            self.mediactrl.setContentImage(wximg)
+        
 
 class DelayTimer(wx.Timer):
     """ vlc.MediaCtrl needs some time to stop after we give it a stop command.
@@ -390,6 +403,7 @@ class VLCMediaCtrl(wx.Window):
         self.SetBackgroundColour(wx.BLACK)
         self.status = "Player is loading..."
         self.name = None
+        self.contentbm = None
 
         if logofilename is not None:
             self.logo = wx.BitmapFromImage(wx.Image(logofilename),-1)
@@ -585,14 +599,19 @@ class VLCMediaCtrl(wx.Window):
         dc.SetTextBackground(wx.BLACK)
         
         lineoffset = 130
+        txty = halfy+self.logo.GetHeight()+lineoffset
         name = self.getContentName() 
         if name is not None:
             txt = self.name
-            dc.DrawText(txt,30,halfy+self.logo.GetHeight()+lineoffset)
+            dc.DrawText(txt,30,txty)
             lineoffset += 20
 
         #txt = self.getStatus()
         #dc.DrawText(txt,30,halfy+self.logo.GetHeight()+lineoffset)
+        
+        if self.contentbm is not None:
+            bmy = max(0,txty-20-self.contentbm.GetHeight())
+            dc.DrawBitmap(self.contentbm,30,bmy,True)
         
         dc.EndDrawing()
         if evt is not None:
@@ -620,4 +639,7 @@ class VLCMediaCtrl(wx.Window):
 
     def getContentName(self):
         return self.name
-    
+
+    def setContentImage(self,wximg):
+        self.contentbm = wx.BitmapFromImage(wximg,-1)
+        

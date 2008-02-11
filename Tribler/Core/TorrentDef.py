@@ -240,7 +240,7 @@ class TorrentDef(Serializable,Copyable):
     def get_thumbnail(self):
         """ Returns (MIME type,thumbnail data) if present or (None,None)
         @return A tuple. """
-        if 'thumb' not in self.input:
+        if 'thumb' not in self.input or self.input['thumb'] is None:
             return (None,None)
         else:
             thumb = self.input['thumb'] # buffer/string immutable

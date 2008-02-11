@@ -312,6 +312,16 @@ class PlayerApp(wx.App):
         if len(videofiles) > 1:
             cname += u' - '+bin2unicode(dlfile)
         self.videoplay.set_content_name(u'Loading: '+cname)
+        
+        try:
+            [mime,imgdata] = tdef.get_thumbnail()
+            if mime is not None:
+                f = StringIO(imgdata)
+                img = wx.EmptyImage(-1,-1)
+                img.LoadMimeStream(f,mime,-1)
+                self.videoplay.set_content_image(img)
+        except:
+            print_exc()
 
         return True
 
