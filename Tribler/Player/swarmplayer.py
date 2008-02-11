@@ -528,14 +528,6 @@ class PlayerApp(wx.App):
             msg = "Checking already downloaded parts "+pstr+"% done"
         elif ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
             msg = 'Error playing: '+str(ds.get_error())
-        elif preprogress != 1.0:
-            pstr = str(int(preprogress*100))
-            npeers = ds.get_num_peers()
-            npeerstr = str(npeers)
-            if npeers == 0 and logmsg is not None:
-                msg = logmsg
-            else:
-                msg = "Prebuffering "+pstr+"% done, eta "+intime+'  (connected to '+npeerstr+' people)'
         elif playable:
             if not self.said_start_playback:
                 msg = "Starting playback..."
@@ -555,7 +547,14 @@ class PlayerApp(wx.App):
                 self.videoplay.set_content_name(topmsg)
             else:
                 msg = ''
-            
+        elif preprogress != 1.0:
+            pstr = str(int(preprogress*100))
+            npeers = ds.get_num_peers()
+            npeerstr = str(npeers)
+            if npeers == 0 and logmsg is not None:
+                msg = logmsg
+            else:
+                msg = "Prebuffering "+pstr+"% done, eta "+intime+'  (connected to '+npeerstr+' people)'
         else:
             msg = "Waiting for sufficient download speed... "+intime
         self.videoFrame.set_player_status(msg)

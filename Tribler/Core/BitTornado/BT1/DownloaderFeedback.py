@@ -130,7 +130,7 @@ class DownloaderFeedback:
 #                s['vod_duration'] = self.voddownload.get_duration()
 #            else:
 #                s['vod_duration'] = None
-#            return s
+            return s
         s['down'] = self.downfunc()
         obtained, desired, have = self.leftfunc()
         s['done'] = obtained
