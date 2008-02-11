@@ -330,7 +330,7 @@ class ProgressSlider(wx.Panel):
         # Draw background
         bgSize = self.bgImage.GetSize()
         for i in xrange(width/bgSize[0]+1):
-            dc.DrawBitmap(self.bgImage, i*(bgSize[0]-1),0)
+            dc.DrawBitmap(self.bgImage, i*bgSize[0],0)
         
         
         self.sliderWidth = width-(3*self.margin+self.textWidth)
@@ -382,8 +382,8 @@ class VolumeSlider(wx.Panel):
         
         #wx.Control.__init__(self, parent, -1)
         wx.Panel.__init__(self, parent, -1)
-        self.SetMaxSize((-1,25))
-        self.SetMinSize((1,25))
+        self.SetMaxSize((150,25))
+        self.SetMinSize((150,25))
         self.SetBackgroundColour(wx.WHITE)
         self.utility = utility
         self.bgImage = wx.Bitmap(os.path.join(self.utility.getPath(), 'Tribler','Images','background.png'))
@@ -485,7 +485,7 @@ class VolumeSlider(wx.Panel):
         # Draw background
         bgSize = self.bgImage.GetSize()
         for i in xrange(width/bgSize[0]+1):
-            dc.DrawBitmap(self.bgImage, i*(bgSize[0]-1),0)
+            dc.DrawBitmap(self.bgImage, i*bgSize[0],0)
         
         
         self.sliderWidth = width-(2*self.margin)

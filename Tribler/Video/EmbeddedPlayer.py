@@ -186,14 +186,14 @@ class EmbeddedPlayer(wx.Panel):
         self.volume = VolumeSlider(self, self.utility)
         self.volume.SetRange(0, 100)
         self.volumebox.Add(self.volumeicon, 0, wx.ALIGN_CENTER_VERTICAL)
-        self.volumebox.Add(self.volume, 1, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 0)
+        self.volumebox.Add(self.volume, 0, wx.ALIGN_CENTER_VERTICAL, 0)
 
         self.fsbtn = PlayerButton(self, os.path.join(self.utility.getPath(), 'Tribler', 'Images'), 'fullScreen')
         self.fsbtn.Bind(wx.EVT_LEFT_UP, self.FullScreen)
 
         ctrlsizer.Add(self.ppbtn, 0, wx.ALIGN_CENTER_VERTICAL)
         ctrlsizer.Add(self.slider, 1, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
-        ctrlsizer.Add(self.volumebox, 1, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
+        ctrlsizer.Add(self.volumebox, 0, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
         ctrlsizer.Add(self.fsbtn, 0, wx.ALIGN_CENTER_VERTICAL)
         mainbox.Add(self.mediactrl, 1, wx.EXPAND, 1)
         mainbox.Add(self.statuslabel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 30)
