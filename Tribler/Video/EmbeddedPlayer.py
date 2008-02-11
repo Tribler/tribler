@@ -594,17 +594,19 @@ class VLCMediaCtrl(wx.Window):
         if sys.platform == 'linux2':
             dc.DrawRectangle(x,y,maxw,maxh)
         dc.DrawBitmap(self.logo,halfx,halfy,True)
+        #logox = max(0,maxw-self.logo.GetWidth()-30)
+        #dc.DrawBitmap(self.logo,logox,20,True)
 
         dc.SetTextForeground(wx.WHITE)
         dc.SetTextBackground(wx.BLACK)
         
-        lineoffset = 130
+        lineoffset = 120
         txty = halfy+self.logo.GetHeight()+lineoffset
         name = self.getContentName() 
         if name is not None:
             txt = self.name
             dc.DrawText(txt,30,txty)
-            lineoffset += 20
+            lineoffset += 30
 
         #txt = self.getStatus()
         #dc.DrawText(txt,30,halfy+self.logo.GetHeight()+lineoffset)
