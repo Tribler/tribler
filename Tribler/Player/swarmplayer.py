@@ -739,7 +739,14 @@ class PlayerApp(wx.App):
         if (ds.get_status() == DLSTATUS_DOWNLOADING and ds.get_progress() >= 0.9) or ds.get_status() == DLSTATUS_SEEDING:
             pass
         else:
-            self.s.remove_download(d,removecontent=True)
+            self.dlock.acquire()
+            try:
+                if self.s is not None:
+                    self.s.remove_download(d,removecontent=True)
+                self.d = None
+            finally:
+                self.dlock.release()
+
         return (-1.0,False)
         
     
@@ -777,9 +784,9 @@ def run(params = None):
     #
     # TEMPORARILY DISABLED on Linux
     if sys.platform != 'linux2':
-        single_instance_checker = wx.SingleInstanceChecker("tribler-" + wx.GetUserId())
+        single_instance_checker = wx.SingleInstanceChecker("swarmplayer-" + wx.GetUserId())
     else:
-        single_instance_checker = DummySingleInstanceChecker("tribler-")
+        single_instance_checker = DummySingleInstanceChecker("swarmplayer-")
 
     #print "[StartUpDebug]---------------- 1", time()-start_time
     if not ALLOW_MULTIPLE and single_instance_checker.IsAnotherRunning():
