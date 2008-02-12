@@ -49,6 +49,7 @@ class PlayerFrame(VideoFrame):
     
     def OnCloseWindow(self, event = None):
         
+        
         self.set_wxclosing() # Call VideoFrame superclass
         
         if event is not None:
@@ -60,8 +61,12 @@ class PlayerFrame(VideoFrame):
             event.Skip()
         else:
             print >>sys.stderr,"main: Closing untriggered by event"
-    
-        self.parent.videoFrame = None 
+         
+        # This gets called multiple times somehow
+        if self.parent.videoFrame is not None:
+            self.parent.remove_current_download_if_not_complete()
+            
+        self.parent.videoFrame = None
 
 
 
@@ -424,9 +429,10 @@ class PlayerApp(wx.App):
         
     def OnExit(self):
         print >>sys.stderr,"main: ONEXIT"
+        self.remove_current_download_if_not_complete()
 
         # To let Threads in Session finish their business before we shut it down.
-        time.sleep(1) 
+        time.sleep(2) 
         
         if self.s is not None:
             self.s.shutdown()
@@ -465,6 +471,7 @@ class PlayerApp(wx.App):
         totalspeed = {}
         totalspeed[UPLOAD] = 0.0
         totalspeed[DOWNLOAD] = 0.0
+        totalhelping = 0
 
         # When not playing, display stats for all Downloads and apply rate control.
         if playermode == DLSTATUS_SEEDING:
@@ -482,6 +489,7 @@ class PlayerApp(wx.App):
             
             for dir in [UPLOAD,DOWNLOAD]:
                 totalspeed[dir] += ds2.get_current_speed(dir)
+            totalhelping += ds2.get_num_peers()
         
         # No current Download        
         if ds is None:
@@ -579,6 +587,7 @@ class PlayerApp(wx.App):
         txt = 'SwarmPlayer\n\n'
         txt += 'Current download: %.1f KB/s\n' % (totalspeed[DOWNLOAD])
         txt += 'Current upload:   %.1f KB/s\n' % (totalspeed[UPLOAD])
+        txt += 'Helping:          %d people\n',totalhelping
         #print >>sys.stderr,"main: ToolTip summary",txt
         wx.CallAfter(self.OnSetSysTrayTooltip,txt)
         
@@ -716,6 +725,19 @@ class PlayerApp(wx.App):
     def get_default_destdir(self):
         return os.path.join(self.s.get_state_dir(),'downloads')
     
+    def remove_current_download_if_not_complete(self):
+        self.dlock.acquire()
+        d = self.d
+        self.dlock.release()
+        d.set_state_callback(self.remove_current_callback)
+        
+    def remove_current_callback(self,ds):
+        """ Called by SessionThread """
+        d = ds.get_download()
+        if ds.get_status() != DLSTATUS_SEEDING:
+            self.s.remove_download(d,removecontent=True)
+        return (-1.0,False)
+        
     
     
 class DummySingleInstanceChecker:
