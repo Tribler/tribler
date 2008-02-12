@@ -491,6 +491,15 @@ class PlayerApp(wx.App):
             for dir in [UPLOAD,DOWNLOAD]:
                 totalspeed[dir] += ds2.get_current_speed(dir)
             totalhelping += ds2.get_num_peers()
+
+        # Set systray icon tooltip. This has limited size on Win32!
+        txt = 'SwarmPlayer\n\n'
+        txt += 'DL: %.1f\n' % (totalspeed[DOWNLOAD])
+        txt += 'UL:   %.1f\n' % (totalspeed[UPLOAD])
+        txt += 'Helping: %d\n' % (totalhelping)
+        #print >>sys.stderr,"main: ToolTip summary",txt
+        wx.CallAfter(self.OnSetSysTrayTooltip,txt)
+
         
         # No current Download        
         if ds is None:
@@ -551,12 +560,12 @@ class PlayerApp(wx.App):
                 msg = "Starting playback..."
                 self.said_start_playback = True
             elif videoplayer_mediastate == MEDIASTATE_STOPPED:
-                npeers = ds.get_num_peers()
-                npeerstr = str(npeers)
-                if npeers == 0:
+                #npeers = ds.get_num_peers()
+                #npeerstr = str(npeers)
+                if totalhelping == 0:
                     topmsg = u"Please don't close the SwarmPlayer completely, this will help other SwarmPlayer users to download faster."
                 else:
-                    topmsg = u"Helping "+npeerstr+" SwarmPlayer users to download. Please don't close the player completely."
+                    topmsg = u"Helping "+str(totalhelping)+" SwarmPlayer users to download. Please don't close the player completely."
                     
                 # Display this on status line
                 msg = 'You can safely close this window, though (Use rightclick on systray icon to close completely, if you must)'
@@ -584,14 +593,6 @@ class PlayerApp(wx.App):
             for peer in peerlist:
                 print >>sys.stderr,"main: Connected to",peer['ip'],peer['completed']
 
-        # Set systray icon tooltip. This has limited size on Win32!
-        txt = 'SwarmPlayer\n\n'
-        txt += 'DL: %.1f\n' % (totalspeed[DOWNLOAD])
-        txt += 'UL:   %.1f\n' % (totalspeed[UPLOAD])
-        txt += 'Helping: %d\n' % (totalhelping)
-        #print >>sys.stderr,"main: ToolTip summary",txt
-        wx.CallAfter(self.OnSetSysTrayTooltip,txt)
-        
         return (1.0,False)
 
 
