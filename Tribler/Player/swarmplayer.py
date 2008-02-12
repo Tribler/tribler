@@ -556,7 +556,7 @@ class PlayerApp(wx.App):
                 if npeers == 0:
                     topmsg = u"Please don't close the SwarmPlayer completely, this will help other SwarmPlayer users to download faster."
                 else:
-                    topmsg = u"Helping "+npeerstr+" SwarmPlayer users to enjoy "+d.get_def().get_name_as_unicode()+". Please don't close the player completely."
+                    topmsg = u"Helping "+npeerstr+" SwarmPlayer users to download. Please don't close the player completely."
                     
                 # Display this on status line
                 msg = 'You can safely close this window, though (Use rightclick on systray icon to close completely, if you must)'

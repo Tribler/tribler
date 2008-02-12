@@ -116,7 +116,7 @@ class RateLimiter:
 
 
     def ping(self, delay):
-        raise Exception('Is this called?')
+        ##raise Exception('Is this called?')
         if DEBUG:
             print delay
         if not self.autoadjust:
