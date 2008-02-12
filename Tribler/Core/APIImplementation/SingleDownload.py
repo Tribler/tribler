@@ -187,12 +187,16 @@ class SingleDownload:
             return None
     
     def shutdown(self):
+        if DEBUG:
+            print >>sys.stderr,"SingleDownload: shutdown"
         resumedata = None
         if self.dow is not None:
             self.dldoneflag.set()
             self.dlrawserver.shutdown()
             resumedata = self.dow.shutdown()
             self.dow = None
+            if DEBUG:
+                print >>sys.stderr,"SingleDownload: stopped dow"
         return resumedata
 
     #

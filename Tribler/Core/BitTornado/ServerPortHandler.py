@@ -22,7 +22,7 @@ def toint(s):
 
 default_task_id = []
 
-DEBUG = True
+DEBUG = False
 
 def show(s):
     for i in xrange(len(s)): 
@@ -46,6 +46,8 @@ class SingleRawServer:
             self.multihandler.shutdown_torrent(self.info_hash)
 
     def _shutdown(self):
+        if DEBUG:
+            print >>sys.stderr,"SingleRawServer: _shutdown"
         if not self.finished:
             self.finished = True
             self.running = False
@@ -213,6 +215,8 @@ class MultiHandler:
         return new
 
     def shutdown_torrent(self, info_hash):
+        if DEBUG:
+            print >>sys.stderr,"MultiHandler: shutdown_torrent",`info_hash`
         self.singlerawservers[info_hash]._shutdown()
         del self.singlerawservers[info_hash]
 

@@ -36,6 +36,7 @@ ALLOW_MULTIPLE = False
 RATELIMITADSL = False
 
 DISKSPACE_LIMIT = 5L * 1024L * 1024L * 1024L  # 5 GB
+DEFAULT_MAX_UPLOAD_SEED_WHEN_SEEDING = 75 # KB/s
 I2I_LISTENPORT = 57894
 PLAYER_LISTENPORT = 8620
 
@@ -583,11 +584,11 @@ class PlayerApp(wx.App):
             for peer in peerlist:
                 print >>sys.stderr,"main: Connected to",peer['ip'],peer['completed']
 
-        # Set systray icon tooltip
+        # Set systray icon tooltip. This has limited size on Win32!
         txt = 'SwarmPlayer\n\n'
-        txt += 'Current download: %.1f KB/s\n' % (totalspeed[DOWNLOAD])
-        txt += 'Current upload:   %.1f KB/s\n' % (totalspeed[UPLOAD])
-        txt += 'Helping:          %d people\n',totalhelping
+        txt += 'DL: %.1f\n' % (totalspeed[DOWNLOAD])
+        txt += 'UL:   %.1f\n' % (totalspeed[UPLOAD])
+        txt += 'Helping: %d\n' % (totalhelping)
         #print >>sys.stderr,"main: ToolTip summary",txt
         wx.CallAfter(self.OnSetSysTrayTooltip,txt)
         
@@ -669,7 +670,7 @@ class PlayerApp(wx.App):
         except:
             print_exc()
             self.playerconfig = {}
-            self.playerconfig['total_max_upload_rate'] = 100 # KB/s
+            self.playerconfig['total_max_upload_rate'] = DEFAULT_MAX_UPLOAD_SEED_WHEN_SEEDING # KB/s
 
     def save_playerconfig(self):
         try:
@@ -729,12 +730,15 @@ class PlayerApp(wx.App):
         self.dlock.acquire()
         d = self.d
         self.dlock.release()
-        d.set_state_callback(self.remove_current_callback)
+        if d is not None:
+            d.set_state_callback(self.remove_current_callback)
         
     def remove_current_callback(self,ds):
         """ Called by SessionThread """
         d = ds.get_download()
-        if ds.get_status() != DLSTATUS_SEEDING:
+        if (ds.get_status() == DLSTATUS_DOWNLOADING and ds.get_progress() >= 0.9) or ds.get_status() == DLSTATUS_SEEDING:
+            pass
+        else:
             self.s.remove_download(d,removecontent=True)
         return (-1.0,False)
         

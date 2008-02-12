@@ -296,16 +296,16 @@ class Connection:
                 print >>sys.stderr,"encoder: autoclosing ",self.get_myip(),self.get_myport(),"to",self.get_ip(),self.get_port()
             self.close()
 
-    def close(self):
+    def close(self,closeall=False):
         if DEBUG:
             print >>sys.stderr,"encoder: closing connection",self.get_ip()
             #print_stack()
         if not self.closed:
             self.connection.close()
-            self.sever()
+            self.sever(closeall=closeall)
             
 
-    def sever(self):
+    def sever(self,closeall=False):
         self.closed = True
         if self.Encoder.connections.has_key(self.connection):
             self.Encoder.admin_close(self.connection)
@@ -315,7 +315,8 @@ class Connection:
         elif self.locally_initiated:
             incompletecounter.decrement()
             # Arno: open new conn from queue if at limit. Faster than RawServer task
-            self.Encoder._start_connection_from_queue(sched=False)
+            if not closeall:
+                self.Encoder._start_connection_from_queue(sched=False)
 
     def send_message_raw(self, message):
         if not self.closed:
@@ -613,7 +614,7 @@ class Encoder:
             print >>sys.stderr,"encoder: closing all connections"
         copy = self.connections.values()[:]
         for c in copy:
-            c.close()
+            c.close(closeall=True)
         self.connections = {}
 
     def ban(self, ip):
