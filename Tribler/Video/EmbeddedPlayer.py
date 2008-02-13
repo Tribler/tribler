@@ -11,7 +11,7 @@ import time
 import traceback
 from time import sleep
 from tempfile import mkstemp
-from threading import currentThread,Event
+from threading import currentThread,Event, Thread
 from traceback import print_stack,print_exc
 from Progress import ProgressBar, ProgressSlider, VolumeSlider
 from Buttons import PlayerSwitchButton, PlayerButton
@@ -332,6 +332,13 @@ class EmbeddedPlayer(wx.Panel):
         if not self.save_button.isToggled():
             return # save is disabled, because download not complete
         
+        t = Thread(target = self.save_callback)
+        t.setName( "SwarmplayerSave"+t.getName() )
+        t.setDaemon(True)
+        t.start()
+        
+    def save_callback(self):
+        # called by new thread
         try:
             if sys.platform == 'win32':
                 # Jelle also goes win32, find location of "My Documents"
@@ -344,6 +351,8 @@ class EmbeddedPlayer(wx.Panel):
         except Exception, msg:
             defaultpath = ''
             print_exc()
+        
+        assert self.latest_copy_download, 'No download instance set by network callback'
         
         dest_files = self.latest_copy_download.get_dest_files()
         dest_file = dest_files[0] # only single file for the moment in swarmplayer
