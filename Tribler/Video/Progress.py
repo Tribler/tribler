@@ -282,7 +282,7 @@ class ProgressSlider(wx.Panel):
         last_buffered_piece = 0
         while last_buffered_piece<len(pieces_complete) and pieces_complete[last_buffered_piece]:
             last_buffered_piece+=1
-        if last_buffered_piece == len(pieces_comple)-1:
+        if last_buffered_piece == len(pieces_complete)-1:
             last_buffered_piece += 1
         
         self.videobuffer = last_buffered_piece/float(len(pieces_complete)) 
