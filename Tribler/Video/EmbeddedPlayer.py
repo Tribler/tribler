@@ -332,7 +332,7 @@ class EmbeddedPlayer(wx.Panel):
         if not self.save_button.isToggled():
             return # save is disabled, because download not complete
         
-        dl = wx.DirDialog(self.panel, 'Choose a directory to save to', 
+        dl = wx.DirDialog(self, 'Choose a directory to save to', 
                           d, style = wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
         if dl.ShowModal() == wxID_OK:
             path = dl.GetPath()
