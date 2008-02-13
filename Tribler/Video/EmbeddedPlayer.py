@@ -200,7 +200,7 @@ class EmbeddedPlayer(wx.Panel):
         self.fsbtn = PlayerButton(self, os.path.join(self.utility.getPath(), 'Tribler', 'Images'), 'fullScreen')
         self.fsbtn.Bind(wx.EVT_LEFT_UP, self.FullScreen)
 
-        self.save_button = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), 'Tribler', 'Images'), 'volume', 'mute')   
+        self.save_button = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), 'Tribler', 'Images'), 'saveDisabled', 'save')   
         self.save_button.Bind(wx.EVT_LEFT_UP, self.Save)
         self.latest_copy_download = None
         

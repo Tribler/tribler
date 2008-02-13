@@ -363,7 +363,7 @@ class ProgressSlider(wx.Panel):
             dc.DrawRectangle(position+self.margin,height/2-smallRectHeight/2, self.bufferlength, smallRectHeight)
             # draw circle
             dotSize = self.dotImage.GetSize()
-            dc.DrawBitmap(self.dotImage, position+self.margin-dotSize[0]/2, height/2-dotSize[1]/2)
+            dc.DrawBitmap(self.dotImage, position+self.margin-dotSize[0]/2, height/2-dotSize[1]/2, True)
         if width > 2*self.margin+self.textWidth:
             # Draw times
             font = self.GetFont()
@@ -387,7 +387,7 @@ class VolumeSlider(wx.Panel):
         self.SetBackgroundColour(wx.WHITE)
         self.utility = utility
         self.bgImage = wx.Bitmap(os.path.join(self.utility.getPath(), 'Tribler','Images','background.png'))
-        self.dotImage = wx.Bitmap(os.path.join(self.utility.getPath(), 'Tribler','Images','sliderDot.png'))
+        self.dotImage = wx.Bitmap(os.path.join(self.utility.getPath(), 'Tribler','Images','sliderVolume.png'))
         self.sliderPosition = None
         self.rectHeight = 5
         self.rectBorderColour = wx.LIGHT_GREY
@@ -505,7 +505,7 @@ class VolumeSlider(wx.Panel):
             dc.DrawRectangle(self.margin,height/2-smallRectHeight/2, position, smallRectHeight)
             # draw slider button
             dotSize = self.dotImage.GetSize()
-            dc.DrawBitmap(self.dotImage, position+self.margin-dotSize[0]/2, height/2-dotSize[1]/2)
+            dc.DrawBitmap(self.dotImage, position+self.margin-dotSize[0]/2, height/2-dotSize[1]/2, True)
         dc.EndDrawing()
 
         
