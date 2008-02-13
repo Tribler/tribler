@@ -79,7 +79,7 @@ class PlayerApp(wx.App):
         self.error = None
         self.s = None
         
-        self.dlock = RLock()
+        self.dlock = RLock() # TODO: Arno: we can get rid of this now stats processing is delegated to GUI thread
         self.d = None # protected by dlock
         self.playermode = DLSTATUS_DOWNLOADING # protected by dlock
         self.r = None # protected by dlock
@@ -467,7 +467,9 @@ class PlayerApp(wx.App):
         return (1.0,False)
 
     def gui_states_callback(self,dslist):
-        """ Called by *GUI* thread """
+        """ Called by *GUI* thread.
+        CAUTION: As this method is called by the GUI thread don't to any 
+        time-consuming stuff here! """
         print >>sys.stderr,"main: Stats:"
         
         # See which Download is currently playing
@@ -607,7 +609,7 @@ class PlayerApp(wx.App):
     def ratelimit_callback(self,dslist):
         """ When the player is in seeding mode, limit the used upload to
         the limit set by the user via the options menu. 
-        Called by SessionCallback thread """
+        Called by *GUI* thread """
         if self.r is None:
             return
 
