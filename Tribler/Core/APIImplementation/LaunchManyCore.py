@@ -215,11 +215,14 @@ class TriblerLaunchMany(Thread):
             # be fast.
             #
             try:
-                self.queue_for_hashcheck(sd)
-                if pstate is None and not d.get_def().get_live():
-                    # Checkpoint at startup
-                    (infohash,pstate) = d.network_checkpoint()
-                    self.save_download_pstate(infohash,pstate)
+                if sd is not None:
+                    self.queue_for_hashcheck(sd)
+                    if pstate is None and not d.get_def().get_live():
+                        # Checkpoint at startup
+                        (infohash,pstate) = d.network_checkpoint()
+                        self.save_download_pstate(infohash,pstate)
+                else:
+                    raise TriblerException("tlm: network_engine_wrapper_created_callback: sd is None!")
             except Exception,e:
                 # There was a bug in queue_for_hashcheck that is now fixed.
                 # Leave this in place to catch unexpected errors.

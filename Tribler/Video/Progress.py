@@ -202,8 +202,8 @@ class ProgressSlider(wx.Panel):
         self.rectBorderColour = wx.LIGHT_GREY
         self.textWidth = 70
         self.margin = 10
-        self.doneColor = wx.RED
-        self.bufferColor = wx.GREEN
+        self.doneColor = "#13bd00" # wx.RED 
+        self.bufferColor = "#0b7100" # wx.GREEN
         self.sliderWidth = 0
         self.range = (0,1)
         self.dragging = False
@@ -392,7 +392,7 @@ class VolumeSlider(wx.Panel):
         self.rectBorderColour = wx.LIGHT_GREY
         self.margin = 10
         self.cursorsize = [4,19]
-        self.doneColor = wx.RED
+        self.doneColor = wx.BLACK #wx.RED
         self.sliderWidth = 0
         self.range = (0,1)
         self.dragging = False

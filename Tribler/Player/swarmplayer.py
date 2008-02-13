@@ -278,6 +278,7 @@ class PlayerApp(wx.App):
         else:
             # Stop playing
             self.videoplay.stop_playback()
+        self.videoFrame.videopanel.updateProgressSlider([False])
         
         # Stop all
         newd = None
@@ -527,7 +528,7 @@ class PlayerApp(wx.App):
         # If we're done playing we can now restart any previous downloads to 
         # seed them.
         if playermode != DLSTATUS_SEEDING and ds.get_status() == DLSTATUS_SEEDING:
-            wx.CallAfter(self.restart_other_downloads)
+            self.restart_other_downloads() # GUI UPDATE
 
 
         # Display stats for currently playing Download
