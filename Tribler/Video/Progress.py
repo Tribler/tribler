@@ -279,14 +279,16 @@ class ProgressSlider(wx.Panel):
         if not pieces_complete:
             self.videobuffer = 0.0
             return
-        current_piece = int(len(pieces_complete)*self.progress)
-        last_buffered_piece = current_piece
+        last_buffered_piece = 0
         while last_buffered_piece<len(pieces_complete) and pieces_complete[last_buffered_piece]:
             last_buffered_piece+=1
-        bufferlen = (last_buffered_piece - current_piece+1)
+        if last_buffered_piece == len(pieces_comple)-1:
+            last_buffered_piece += 1
+        
+        self.videobuffer = last_buffered_piece/float(len(pieces_complete)) 
         print >> sys.stderr, '%d/%d pieces continuous buffer (frac %f)' % \
-            (bufferlen, len(pieces_complete), bufferlen / float(len(pieces_complete)))
-        self.videobuffer = bufferlen/float(len(pieces_complete))+self.progress
+            (last_buffered_piece, len(pieces_complete), self.videobuffer)
+        
                     
             
     def SetValue(self, b):
