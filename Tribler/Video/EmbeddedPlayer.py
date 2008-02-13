@@ -344,14 +344,15 @@ class EmbeddedPlayer(wx.Panel):
         except Exception, msg:
             defaultpath = ''
             print_exc()
-        print >> sys.stderr, 'Defaultpath:', defaultpath
+        
         dest_files = self.latest_copy_download.get_dest_files()
         dest_file = dest_files[0] # only single file for the moment in swarmplayer
-        
+        dest_file_only = os.path.split(dest_file[1])[1]
+        print >> sys.stderr, 'Defaultpath:', defaultpath, 'Dest:', dest_file
         dlg = wx.FileDialog(self, 
                             message = self.utility.lang.get('savemedia'), 
                             defaultDir = defaultpath, 
-                            defaultFile = os.path.split(dest_file[1])[1],
+                            defaultFile = dest_file_only,
                             wildcard = self.utility.lang.get('allfileswildcard') + ' (*.*)|*.*', 
                             style = wx.SAVE)
         dlg.Raise()
@@ -361,11 +362,9 @@ class EmbeddedPlayer(wx.Panel):
         if result == wx.ID_OK:
             path = dlg.GetPath()
             print >> sys.stderr, 'Path:', path
-            
-            for torrent_file, dest_file in dest_files:
-                print >> sys.stderr, 'Path:', path, 'Filepath:', torrent_file
-                new_dest_file = os.path.join(path, torrent_file)
-                print >> sys.stderr, 'Copy: %s to %s' % (dest_file, new_dest_file)
+            new_dest_file = os.path.join(path, dest_file_only)
+            print >> sys.stderr, 'Filepath:', new_dest_file
+            print >> sys.stderr, 'Copy: %s to %s' % (dest_file[0], new_dest_file)
                 # shutil.copyfile(dest_file, new_dest_file)
     
     def SetVolume(self, evt = None):
