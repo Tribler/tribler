@@ -363,7 +363,15 @@ class EmbeddedPlayer(wx.Panel):
             path = dlg.GetPath()
             print >> sys.stderr, 'Path:', path
             print >> sys.stderr, 'Copy: %s to %s' % (dest_file[1], path)
-            shutil.copyfile(dest_file[1], path)
+            if sys.platform == 'win32':
+                try:
+                    import win32file
+                    win32file.CopyFile(dest_file[1], path, 0) # do succeed on collision
+                except:
+                    shutil.copyfile(dest_file[1], path)
+            else:
+                shutil.copyfile(dest_file[1], path)
+                
     
     def SetVolume(self, evt = None):
         print >> sys.stderr, self.volume.GetValue()
