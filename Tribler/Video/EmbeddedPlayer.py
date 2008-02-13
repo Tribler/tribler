@@ -344,11 +344,11 @@ class EmbeddedPlayer(wx.Panel):
         except Exception, msg:
             defaultpath = ''
             print_exc()
-        
+        print >> sys.stderr, 'Defaultpath:', defaultpath
         dest_files = self.latest_copy_download.get_dest_files()
         dest_file = dest_files[0] # only single file for the moment in swarmplayer
         
-        dlg = wx.FileDialog(self.dialog, 
+        dlg = wx.FileDialog(self, 
                             message = self.utility.lang.get('savemedia'), 
                             defaultDir = defaultpath, 
                             defaultFile = os.path.split(dest_file[1])[1],
