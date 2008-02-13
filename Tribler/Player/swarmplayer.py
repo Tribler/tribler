@@ -795,7 +795,7 @@ class PlayerApp(wx.App):
         dest_file = dest_files[0] # only single file for the moment in swarmplayer
         dest_file_only = os.path.split(dest_file[1])[1]
         print >> sys.stderr, 'Defaultpath:', defaultpath, 'Dest:', dest_file
-        dlg = wx.FileDialog(self, 
+        dlg = wx.FileDialog(self.videoFrame, 
                             message = self.utility.lang.get('savemedia'), 
                             defaultDir = defaultpath, 
                             defaultFile = dest_file_only,
