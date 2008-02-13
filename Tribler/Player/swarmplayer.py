@@ -599,6 +599,9 @@ class PlayerApp(wx.App):
             self.videoFrame.set_player_status(msg)
             self.videoFrame.videopanel.updateProgressSlider(ds.get_pieces_complete())    
         
+        # Toggle save button
+        self.videoFrame.videopanel.enableSaveButton(ds.get_status() == DLSTATUS_SEEDING, ds.get_download())    
+            
         if False: # Only works if the current method returns (x,True)
             peerlist = ds.get_peerlist()
             print >>sys.stderr,"main: Connected to",len(peerlist),"peers"

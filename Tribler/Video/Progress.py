@@ -387,6 +387,7 @@ class VolumeSlider(wx.Panel):
         self.SetBackgroundColour(wx.WHITE)
         self.utility = utility
         self.bgImage = wx.Bitmap(os.path.join(self.utility.getPath(), 'Tribler','Images','background.png'))
+        self.dotImage = wx.Bitmap(os.path.join(self.utility.getPath(), 'Tribler','Images','sliderDot.png'))
         self.sliderPosition = None
         self.rectHeight = 5
         self.rectBorderColour = wx.LIGHT_GREY
@@ -502,11 +503,9 @@ class VolumeSlider(wx.Panel):
             dc.SetBrush(wx.Brush(self.doneColor))
             smallRectHeight = self.rectHeight - 2
             dc.DrawRectangle(self.margin,height/2-smallRectHeight/2, position, smallRectHeight)
-            # draw circle
-            dc.SetPen(wx.NullPen)
-            dc.SetBrush(wx.Brush(self.rectBorderColour))
-            dc.DrawRectangle(position+self.margin-self.cursorsize[0]/2, height/2-self.cursorsize[1]/2, self.cursorsize[0], self.cursorsize[1])
-        
+            # draw slider button
+            dotSize = self.dotImage.GetSize()
+            dc.DrawBitmap(self.dotImage, position+self.margin-dotSize[0]/2, height/2-dotSize[1]/2)
         dc.EndDrawing()
 
         

@@ -6,7 +6,7 @@ import sys
 
 import vlc
 
-import os
+import os, shutil
 import time
 import traceback
 from time import sleep
@@ -200,10 +200,16 @@ class EmbeddedPlayer(wx.Panel):
         self.fsbtn = PlayerButton(self, os.path.join(self.utility.getPath(), 'Tribler', 'Images'), 'fullScreen')
         self.fsbtn.Bind(wx.EVT_LEFT_UP, self.FullScreen)
 
+        self.save_button = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), 'Tribler', 'Images'), 'volume', 'mute')   
+        self.save_button.Bind(wx.EVT_LEFT_UP, self.Save)
+        self.latest_copy_download = None
+        
         ctrlsizer.Add(self.ppbtn, 0, wx.ALIGN_CENTER_VERTICAL)
         ctrlsizer.Add(self.slider, 1, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
         ctrlsizer.Add(self.volumebox, 0, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
         ctrlsizer.Add(self.fsbtn, 0, wx.ALIGN_CENTER_VERTICAL)
+        ctrlsizer.Add(self.save_button, 0, wx.ALIGN_CENTER_VERTICAL)
+        
         mainbox.Add(self.mediactrl, 1, wx.EXPAND, 1)
         mainbox.Add(self.statuslabel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 30)
         mainbox.Add(ctrlsizer, 0, wx.ALIGN_BOTTOM|wx.EXPAND, 1)
@@ -239,6 +245,10 @@ class EmbeddedPlayer(wx.Panel):
     def updateProgressSlider(self, pieces_complete):
         self.slider.setBufferFromPieces(pieces_complete)
         self.slider.Refresh()
+        
+    def enableSaveButton(self, b, download):
+        self.save_button.setToggled(b)
+        self.latest_copy_download = download
         
     def disableInput(self):
         return # Not currently used
@@ -317,6 +327,21 @@ class EmbeddedPlayer(wx.Panel):
             self.mediactrl.SetVolume(0) # mute sound
             self.volumeicon.setToggled(True)
         
+    def Save(self, evt = None):
+        # save media content in different directory
+        if not self.save_button.isToggled():
+            return # save is disabled, because download not complete
+        
+        dl = wx.DirDialog(self.panel, 'Choose a directory to save to', 
+                          d, style = wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
+        if dl.ShowModal() == wxID_OK:
+            path = dl.GetPath()
+            dest_files = self.latest_copy_download.get_dest_files()
+            for torrent_file, dest_file in dest_files:
+                new_dest_file = os.path.join(path, torrent_file)
+                print >> sys.stderr, 'Copy: %s to %s' % (dest_file, new_dest_file)
+                # shutil.copyfile(dest_file, new_dest_file)
+    
     def SetVolume(self, evt = None):
         print >> sys.stderr, self.volume.GetValue()
         self.mediactrl.SetVolume(float(self.volume.GetValue()) / 100)
