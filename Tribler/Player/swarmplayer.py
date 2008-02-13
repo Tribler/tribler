@@ -761,7 +761,10 @@ class PlayerApp(wx.App):
                 self.d = None
             finally:
                 self.dlock.release()
-
+        
+        # Restart others        
+        wx.CallAfter(self.restart_other_downloads)
+        
         return (-1.0,False)
         
     def save_video_copy(self):

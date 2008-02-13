@@ -12,7 +12,7 @@ from Tribler.Core.simpledefs import *
 from Tribler.Core.APIImplementation.ThreadPool import ThreadPool
 from Tribler.Core.CacheDB.Notifier import Notifier
 
-DEBUG = True
+DEBUG = False
 
 class UserCallbackHandler:
     
