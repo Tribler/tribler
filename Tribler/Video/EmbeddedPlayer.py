@@ -359,7 +359,7 @@ class EmbeddedPlayer(wx.Panel):
         dlg.Destroy()
         
         if result == wx.ID_OK:
-            dest = dlg.GetPath()
+            path = dlg.GetPath()
             print >> sys.stderr, 'Path:', path
             
             for torrent_file, dest_file in dest_files:
