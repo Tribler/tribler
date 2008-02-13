@@ -50,7 +50,6 @@ class PlayerFrame(VideoFrame):
     
     def OnCloseWindow(self, event = None):
         
-        
         self.set_wxclosing() # Call VideoFrame superclass
         
         if event is not None:
@@ -573,12 +572,13 @@ class PlayerApp(wx.App):
                 #npeers = ds.get_num_peers()
                 #npeerstr = str(npeers)
                 if totalhelping == 0:
-                    topmsg = u"Please don't close the SwarmPlayer completely, this will help other SwarmPlayer users to download faster."
+                    topmsg = u"Please leave the SwarmPlayer running, this will help other SwarmPlayer users to download faster."
                 else:
-                    topmsg = u"Helping "+str(totalhelping)+" SwarmPlayer users to download. Please don't close the player completely."
+                    topmsg = u"Helping "+str(totalhelping)+" SwarmPlayer users to download. Please leave it running in the background."
                     
                 # Display this on status line
-                msg = 'You can safely close this window, though (Use rightclick on systray icon to close completely, if you must)'
+                # TODO: Show balloon in systray when closing window to indicate things continue there
+                msg = ''
                 
                 # Display helping info on "content name" line.
                 self.videoplay.set_content_name(topmsg)

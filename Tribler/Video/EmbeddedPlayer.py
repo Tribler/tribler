@@ -373,6 +373,7 @@ class EmbeddedPlayer(wx.Panel):
     def Stop(self):
         self.ppbtn.SetLabel(self.utility.lang.get('playprompt'))
         self.mediactrl.Stop()
+        self.slider.SetValue(0)
         if self.timer is not None:
             self.timer.Stop()
         self.bitrateset = False
