@@ -202,7 +202,7 @@ class EmbeddedPlayer(wx.Panel):
 
         self.save_button = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), 'Tribler', 'Images'), 'saveDisabled', 'save')   
         self.save_button.Bind(wx.EVT_LEFT_UP, self.Save)
-        self.latest_copy_download = None
+        self.save_callback = lambda:None
         
         ctrlsizer.Add(self.ppbtn, 0, wx.ALIGN_CENTER_VERTICAL)
         ctrlsizer.Add(self.slider, 1, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
@@ -246,9 +246,12 @@ class EmbeddedPlayer(wx.Panel):
         self.slider.setBufferFromPieces(pieces_complete)
         self.slider.Refresh()
         
-    def enableSaveButton(self, b, download):
+    def enableSaveButton(self, b, callback):
         self.save_button.setToggled(b)
-        self.latest_copy_download = download
+        if b:
+            self.save_callback = callback
+        else:
+            self.save_callback = lambda:None
         
     def disableInput(self):
         return # Not currently used
@@ -329,57 +332,9 @@ class EmbeddedPlayer(wx.Panel):
         
     def Save(self, evt = None):
         # save media content in different directory
-        if not self.save_button.isToggled():
-            return # save is disabled, because download not complete
-        
-        t = Thread(target = self.save_callback)
-        t.setName( "SwarmplayerSave"+t.getName() )
-        t.setDaemon(True)
-        t.start()
-        
-    def save_callback(self):
-        # called by new thread
-        try:
-            if sys.platform == 'win32':
-                # Jelle also goes win32, find location of "My Documents"
-                # see http://www.mvps.org/access/api/api0054.htm
-                from win32com.shell import shell
-                pidl = shell.SHGetSpecialFolderLocation(0,0x05)
-                defaultpath = shell.SHGetPathFromIDList(pidl)
-            else:
-                defaultpath = os.path.expandvars('$HOME')
-        except Exception, msg:
-            defaultpath = ''
-            print_exc()
-        
-        assert self.latest_copy_download, 'No download instance set by network callback'
-        
-        dest_files = self.latest_copy_download.get_dest_files()
-        dest_file = dest_files[0] # only single file for the moment in swarmplayer
-        dest_file_only = os.path.split(dest_file[1])[1]
-        print >> sys.stderr, 'Defaultpath:', defaultpath, 'Dest:', dest_file
-        dlg = wx.FileDialog(self, 
-                            message = self.utility.lang.get('savemedia'), 
-                            defaultDir = defaultpath, 
-                            defaultFile = dest_file_only,
-                            wildcard = self.utility.lang.get('allfileswildcard') + ' (*.*)|*.*', 
-                            style = wx.SAVE)
-        dlg.Raise()
-        result = dlg.ShowModal()
-        dlg.Destroy()
-        
-        if result == wx.ID_OK:
-            path = dlg.GetPath()
-            print >> sys.stderr, 'Path:', path
-            print >> sys.stderr, 'Copy: %s to %s' % (dest_file[1], path)
-            if sys.platform == 'win32':
-                try:
-                    import win32file
-                    win32file.CopyFile(dest_file[1], path, 0) # do succeed on collision
-                except:
-                    shutil.copyfile(dest_file[1], path)
-            else:
-                shutil.copyfile(dest_file[1], path)
+        if self.save_button.isToggled():
+            self.save_callback()
+            
                 
     
     def SetVolume(self, evt = None):

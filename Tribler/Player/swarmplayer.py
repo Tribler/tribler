@@ -600,7 +600,7 @@ class PlayerApp(wx.App):
             self.videoFrame.videopanel.updateProgressSlider(ds.get_pieces_complete())    
         
         # Toggle save button
-        self.videoFrame.videopanel.enableSaveButton(ds.get_status() == DLSTATUS_SEEDING, ds.get_download())    
+        self.videoFrame.videopanel.enableSaveButton(ds.get_status() == DLSTATUS_SEEDING, self.save_video_copy)    
             
         if False: # Only works if the current method returns (x,True)
             peerlist = ds.get_peerlist()
@@ -764,7 +764,59 @@ class PlayerApp(wx.App):
 
         return (-1.0,False)
         
+    def save_video_copy(self):
+        # Save a copy of current download to other location
+        # called by gui thread
+        t = Thread(target = self.save_callback)
+        t.setName( "SwarmplayerSave"+t.getName() )
+        t.setDaemon(True)
+        t.start()
     
+    def save_callback(self):
+        # Save a copy of current download to other location
+        # called by new thread from self.save_video_copy
+        try:
+            if sys.platform == 'win32':
+                # Jelle also goes win32, find location of "My Documents"
+                # see http://www.mvps.org/access/api/api0054.htm
+                from win32com.shell import shell
+                pidl = shell.SHGetSpecialFolderLocation(0,0x05)
+                defaultpath = shell.SHGetPathFromIDList(pidl)
+            else:
+                defaultpath = os.path.expandvars('$HOME')
+        except Exception, msg:
+            defaultpath = ''
+            print_exc()
+        
+        self.dlock.acquire()
+        dest_files = self.d.get_dest_files()
+        self.dlock.release()
+        
+        dest_file = dest_files[0] # only single file for the moment in swarmplayer
+        dest_file_only = os.path.split(dest_file[1])[1]
+        print >> sys.stderr, 'Defaultpath:', defaultpath, 'Dest:', dest_file
+        dlg = wx.FileDialog(self, 
+                            message = self.utility.lang.get('savemedia'), 
+                            defaultDir = defaultpath, 
+                            defaultFile = dest_file_only,
+                            wildcard = self.utility.lang.get('allfileswildcard') + ' (*.*)|*.*', 
+                            style = wx.SAVE)
+        dlg.Raise()
+        result = dlg.ShowModal()
+        dlg.Destroy()
+        
+        if result == wx.ID_OK:
+            path = dlg.GetPath()
+            print >> sys.stderr, 'Path:', path
+            print >> sys.stderr, 'Copy: %s to %s' % (dest_file[1], path)
+            if sys.platform == 'win32':
+                try:
+                    import win32file
+                    win32file.CopyFile(dest_file[1], path, 0) # do succeed on collision
+                except:
+                    shutil.copyfile(dest_file[1], path)
+            else:
+                shutil.copyfile(dest_file[1], path)
     
 class DummySingleInstanceChecker:
     
