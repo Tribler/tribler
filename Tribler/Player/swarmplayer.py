@@ -672,8 +672,9 @@ class PlayerApp(wx.App):
 
         dlist = self.s.get_downloads()
         for d in dlist:
-            d.set_mode(DLMODE_NORMAL) # checkpointed torrents always restarted in DLMODE_NORMAL, just make extra sure
-            d.restart() 
+            if d != self.d:
+                d.set_mode(DLMODE_NORMAL) # checkpointed torrents always restarted in DLMODE_NORMAL, just make extra sure
+                d.restart() 
 
     def load_playerconfig(self,state_dir):
         self.playercfgfilename = os.path.join(state_dir,'playerconf.pickle')
