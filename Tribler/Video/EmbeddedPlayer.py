@@ -332,11 +332,22 @@ class EmbeddedPlayer(wx.Panel):
         if not self.save_button.isToggled():
             return # save is disabled, because download not complete
         
+        try:
+            if sys.platform == 'win32':
+                # Jelle also goes win32, find location of "My Documents"
+                # see http://www.mvps.org/access/api/api0054.htm
+                from win32com.shell import shell
+                pidl = shell.SHGetSpecialFolderLocation(0,0x05)
+                defaultpath = shell.SHGetPathFromIDList(pidl)
+            else:
+                defaultpath = os.path.expandvars('$HOME')
+        except Exception, msg:
+            defaultpath = ''
+            print_exc()
         
-        d = ''
         dl = wx.DirDialog(self, 'Choose a directory to save to', 
-                          d, style = wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
-        if dl.ShowModal() == wxID_OK:
+                          defaultpath, style = wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
+        if dl.ShowModal() == wx.ID_OK:
             path = dl.GetPath()
             dest_files = self.latest_copy_download.get_dest_files()
             for torrent_file, dest_file in dest_files:
