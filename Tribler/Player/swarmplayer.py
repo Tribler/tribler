@@ -326,6 +326,8 @@ class PlayerApp(wx.App):
                 img = wx.EmptyImage(-1,-1)
                 img.LoadMimeStream(f,mime,-1)
                 self.videoplay.set_content_image(img)
+            else:
+                self.videoplay.set_content_image(None)
         except:
             print_exc()
 
@@ -455,12 +457,17 @@ class PlayerApp(wx.App):
     def sesscb_states_protected_callback(self,dslist):
         """ Called by Session thread """
         try:
-            self.sesscb_states_callback(dslist)
+            
+            # Arno: delegate to GUI thread. This makes some things (especially
+            #access control to self.videoFrame easier
+            #self.gui_states_callback(dslist)
+            wx.CallAfter(self.gui_states_callback,dslist)
         except:
             print_exc()
         return (1.0,False)
 
-    def sesscb_states_callback(self,dslist):
+    def gui_states_callback(self,dslist):
+        """ Called by *GUI* thread """
         print >>sys.stderr,"main: Stats:"
         
         # See which Download is currently playing
@@ -503,16 +510,16 @@ class PlayerApp(wx.App):
         
         # No current Download        
         if ds is None:
-            return (1.0,False)
+            return
         elif playermode == DLSTATUS_DOWNLOADING:
             print >>sys.stderr,"main: Stats: DL:",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
 
         # Don't display stats if there is no video frame to show them on.
         if self.videoFrame is None:
-            return (-1,False)
+            return
         else:
             videoplayer_mediastate = self.videoFrame.get_state()
-            print >>sys.stderr,"main: Stats: VideoPlayer state",videoplayer_mediastate
+            #print >>sys.stderr,"main: Stats: VideoPlayer state",videoplayer_mediastate
 
 
         # If we're done playing we can now restart any previous downloads to 
@@ -584,8 +591,10 @@ class PlayerApp(wx.App):
                 msg = "Prebuffering "+pstr+"% done, eta "+intime+'  (connected to '+npeerstr+' people)'
         else:
             msg = "Waiting for sufficient download speed... "+intime
-        self.videoFrame.set_player_status(msg)
-        self.videoFrame.videopanel.updateProgressSlider(ds.get_pieces_complete())    
+            
+        if self.videoFrame is not None:
+            self.videoFrame.set_player_status(msg)
+            self.videoFrame.videopanel.updateProgressSlider(ds.get_pieces_complete())    
         
         if False: # Only works if the current method returns (x,True)
             peerlist = ds.get_peerlist()
@@ -593,7 +602,6 @@ class PlayerApp(wx.App):
             for peer in peerlist:
                 print >>sys.stderr,"main: Connected to",peer['ip'],peer['completed']
 
-        return (1.0,False)
 
 
     def ratelimit_callback(self,dslist):

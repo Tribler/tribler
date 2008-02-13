@@ -643,5 +643,8 @@ class VLCMediaCtrl(wx.Window):
         return self.name
 
     def setContentImage(self,wximg):
-        self.contentbm = wx.BitmapFromImage(wximg,-1)
+        if wximg is not None:
+            self.contentbm = wx.BitmapFromImage(wximg,-1)
+        else:
+            self.contentbm = None
         
