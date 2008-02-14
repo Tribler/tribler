@@ -121,9 +121,9 @@ def fix_filebasename(name, unit = False):
             if c == ' ':
                 spaces += 1
     if fixed:
-        return fixedname
+        return fixedname.strip() # Arno: remove initial or ending space
     elif spaces == len(name):
         # contains only spaces
         return '_'
     else:
-        return name
+        return name.strip() # Arno: remove initial or ending space

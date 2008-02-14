@@ -460,7 +460,7 @@ class Encoder:
             self.raw_server.add_task(self._start_connection_from_queue)
         self.to_connect.update(dnsidlist)
         # make sure addrs from various sources, like tracker, ut_pex and DHT are mixed
-        # TEMP ARNO: or not? For Tribler Supported we may want the tracker to
+        # TODO: or not? For Tribler Supported we may want the tracker to
         # be more authoritative, such that official seeders found fast. Nah.
         
         #random.shuffle(self.to_connect) 

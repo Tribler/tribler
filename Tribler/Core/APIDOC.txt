@@ -209,8 +209,6 @@ TODO:
         See UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager. 
         Need to TEST
 
-- Allow VOD when first part of file hashchecked? For faster start of playback
-
 - Is there a state where the file complete but not yet in order on disk?
       Don't think so.
 
@@ -245,12 +243,14 @@ TODO:
 	Arno, 2008-1-17: Done.
 
 - Test VOD quick startup with multi-file torrent. PiecePicker.am_I_complete is
-  about whole file.
+  about whole file. This causes complete files in multi-file torrents to
+  be played via HTTP instead of from file. Thus .movs won't play at all.
   	TODO
+  	
 
 - BT1/Connecter: if 'cache' in config and config['cache']: 
 - BT1/Rerequester: if 'dialback' in self.config and self.config['dialback']: 
-  # WE EXPECT SESSION CONFIG HERE
+  -> We expect Session config here
 	Done, Jelle now copies session config to dlconfig
 
 
@@ -289,6 +289,9 @@ TODO:
   make general SingleInstance checker and use it in p2player (and Main)
   	Arno, 2008-2-6: Done
 
+- Allow VOD when first part of file hashchecked? For faster start of playback
+	TODO
+
 - Adjust VideoOnDemand, such that when the download speed is < bitrate, but
   a large part of the video is already in, i.e. prebuffer+20 secs (or even
   just the 20 sec prebuffer) that it already starts to play, hoping we'll
@@ -300,8 +303,7 @@ removed.
 	Arno, 2008-1-17: Done.
 
 - Have separate $HOME/.Tribler and $HOME/.SwarmPlayer?
-	Ask Jelle
-	Arno, 2008-2-5: Separate.
+	Arno, 2008-2-5: Separate. Also diff port,
 
 - Allow user seeking: i.e., allow user to set hi/mid/low priority set
 to some point in the future.
@@ -310,23 +312,9 @@ to some point in the future.
    I hacked around it, but it needs to be cleaned up.
    
 - Search for TEMPARNO tags to see if stuff needs fixing.
-
-- More than 1 download seeding:
-   ISSUE: What if person started download but closed app before end.
-   It may mean he didn't like it, so we should not redistribute it further.
-  
-   ISSUE: when user start downloading a torrent that is already being seeded.
-   	Arno: We remove the download before starting the new instance, without
-   	deleting the downloaded content.
-   
-   ISSUE: when restarting download, make sure it's not running in VOD mode.
-     Arno: The mode is now explicitly reset to DLMODE_NORMAL.
-  
-  Plan:
-     Wait till current download is seeding.
-     Then load Session checkpoint
-     And limit upload speed of Session to user-specified limit.
+     Arno: mostly done. See VideoPlayer about EXTENSIONS
      
+- Replace ffmpeg.exe and VLC with newer version
      
-  Arno: let's postpone this, first build stable version for 14 feb.
-  
+- Make sure dest filenames on Win32 cannot exceed 255 chars. See
+  download_bt1.py saveAs     

@@ -217,6 +217,10 @@ class BT1Download:
             for x in self.info['files']:
                 savepath = torrentfilerec2savefilename(x)
                 full = os.path.join(file,savepath)
+                # Arno: TODO: this sometimes gives too long filenames for 
+                # Windows. When fixing this take into account that 
+                # Download.get_dest_files() should still produce the same
+                # filenames as your modifications here.
                 files.append((full, x['length']))
                 make(full)
 
@@ -561,9 +565,8 @@ class BT1Download:
     def setUploadRate(self, rate, networkcalling=False):
         try:
             def s(self = self, rate = rate):
-                
-                #print >>sys.stderr,"BT1Download: set max upload to",rate # TEMP ARNO
-                
+                if DEBUG:
+                    print >>sys.stderr,"BT1Download: set max upload to",rate
                 self.config['max_upload_rate'] = rate
                 self.ratelimiter.set_upload_rate(rate)
             if networkcalling:

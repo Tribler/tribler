@@ -145,7 +145,7 @@ class PlayerApp(wx.App):
             self.sconfig.set_megacache(False)
             
             self.s = Session(self.sconfig)
-            self.s.set_download_states_callback(self.sesscb_states_protected_callback)
+            self.s.set_download_states_callback(self.sesscb_states_callback)
 
             if RATELIMITADSL:
                 self.r = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()
@@ -248,6 +248,10 @@ class PlayerApp(wx.App):
             os.mkdir(destdir)
 
         # Arno: For extra robustness, ignore any errors related to restarting
+        # TODO: Extend code such that we can also delete files from the 
+        # disk cache, not just Downloads. This would allow us to keep the
+        # parts of a Download that we already have, but that is being aborted
+        # by the user by closing the video window. See remove_current_*
         try:
             if not self.free_up_diskspace_by_downloads(tdef.get_infohash(),tdef.get_length([dlfile])):
                 print >>sys.stderr,"main: Not enough free diskspace, ignoring"
@@ -453,17 +457,12 @@ class PlayerApp(wx.App):
         ## TODO ClientPassParam("Close Connection")
         self.ExitMainLoop()
 
-
-    def sesscb_states_protected_callback(self,dslist):
+    def sesscb_states_callback(self,dslist):
         """ Called by Session thread """
-        try:
-            
-            # Arno: delegate to GUI thread. This makes some things (especially
-            #access control to self.videoFrame easier
-            #self.gui_states_callback(dslist)
-            wx.CallAfter(self.gui_states_callback,dslist)
-        except:
-            print_exc()
+        # Arno: delegate to GUI thread. This makes some things (especially
+        #access control to self.videoFrame easier
+        #self.gui_states_callback(dslist)
+        wx.CallAfter(self.gui_states_callback,dslist)
         return (1.0,False)
 
     def gui_states_callback(self,dslist):

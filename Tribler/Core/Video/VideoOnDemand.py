@@ -503,7 +503,7 @@ class PiecePickerG2G(PiecePickerStreaming):
             #print >>sys.stderr,"choice3",midprob_cutoff, self.download_range[1]+1
             choice = rarest( midprob_cutoff, self.download_range[1]+1 )
 
-        # TEMP ARNO Emulate freeze while playback
+        # TEST: Emulate freeze while playback
         #if self.transporter.prebuf_offset == 0 and choice >= 20 and choice <= 100:
         #    print >>sys.stderr,"$",
         #    choice = rarest( midprob_cutoff, self.download_range[1]+1 )
@@ -1287,7 +1287,7 @@ class MovieOnDemandTransporter(MovieTransport):
         self.set_playback_pos( piece )
         self.outbuf = []
         self.playing = True
-        ####self.prebuffering = True # TEMP ARNO, don't think we need this
+        ####self.prebuffering = True # Arno, don't think we need this
         self.playbackrate = Measure( 60 )
         self.data_ready.release()
 
