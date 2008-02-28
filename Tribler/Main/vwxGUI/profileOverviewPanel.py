@@ -107,7 +107,7 @@ class ProfileOverviewPanel(wx.Panel):
 
     def getNameMugshot(self):
         self.utility.session.get_nickname()
-        mypermid = my_db.getMyPermid()
+        mypermid = self.utility.session.get_permid()
         mm = MugshotManager.getInstance()
         self.mugshot = mm.load_wxBitmap(mypermid)
         if self.mugshot is None:

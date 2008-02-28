@@ -106,3 +106,44 @@ class Download(DownloadRuntimeConfig,DownloadImpl):
         """
         return DownloadImpl.get_dest_files(self)
         
+    #
+    # Cooperative download
+    #
+    def ask_coopdl_helpers(self,permidlist):
+        """ Ask the specified list of peers to help speed up this download """
+        # called by any thread
+        self.dllock.acquire()
+        try:
+            # LITETHREAD: WE NEED PERMID+IP FOR COOP DL. How to access DB? Can't
+            # do it on main thread, can't do it on network thread.
+            
+            peerreclist = self.session.lm.peer_db.getPeers(self, peer_list, ['permid','ip','port']) # LITETHREAD
+            
+            if self.sd is not None:
+                ask_coopdl_helpers_lambda = lambda:self.sd.ask_coopdl_helpers(peerreclist)
+                self.session.lm.rawserver.add_task(ask_coopdl_helpers_lambda,0)
+            else:
+                raise OperationNotPossibleWhenStoppedException()
+        finally:
+            self.dllock.release()
+        
+    # To retrieve the list of current helpers, see DownloadState
+    
+    def stop_coopdl_helpers(self,permidlist):
+        """ Ask the specified list of peers to stop helping speed up this 
+        download """
+        # called by any thread
+        self.dllock.acquire()
+        try:
+            peerreclist = []
+            for permid in permidlist:
+                peerrec = {'permid':permid}
+                peerreclist.append(peerrec)
+            
+            if self.sd is not None:
+                stop_coopdl_helpers_lambda = lambda:self.sd.stop_coopdl_helpers(peerreclist)
+                self.session.lm.rawserver.add_task(stop_coopdl_helpers_lambda,0)
+            else:
+                raise OperationNotPossibleWhenStoppedException()
+        finally:
+            self.dllock.release()

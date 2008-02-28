@@ -1,0 +1,3 @@
+Please download bsddb from
+http://www.st.ewi.tudelft.nl/~jyang/donotremove/bsddb.zip
+for test_bsddb2sqlite.py

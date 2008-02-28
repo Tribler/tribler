@@ -138,7 +138,7 @@ class TorrentChecking(Thread):
         self.torrentList = TorrentCheckingList.getInstance()
         self.retryThreshold = 10
         self.gnThreashold = 0.9
-        self.torrent_db = TorrentDBHandler().getInstance()
+        self.torrent_db = TorrentDBHandler.getInstance()
         self.mldhtchecker = mainlineDHTChecker.getInstance() 
         
     def run(self):

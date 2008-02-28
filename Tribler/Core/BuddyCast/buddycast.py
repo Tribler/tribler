@@ -178,7 +178,7 @@ from threading import Event, currentThread
 
 from bartercast import BarterCastCore
 
-DEBUG = False    # for errors
+DEBUG = True   # for errors
 debug = False   # for status
 MAX_BUDDYCAST_LENGTH = 10*1024    # 10 KByte
 REMOTE_SEARCH_PEER_NTORRENTS_THRESHOLD = 100    # speedup finding >=4.1 peers in this version
@@ -252,30 +252,34 @@ class BuddyCastFactory:
         return BuddyCastFactory.__single
     getInstance = staticmethod(getInstance)
     
-    def register(self, secure_overlay, rawserver, launchmany, errorfunc, 
+    def register(self, overlay_bridge, launchmany, errorfunc, 
                  start, metadata_handler, torrent_collecting_solution, running,
                  max_peers=2000):
         if self.registered:
             return
-        self.secure_overlay = secure_overlay
-        self.rawserver = rawserver
+        self.overlay_bridge = overlay_bridge
         self.launchmany = launchmany
         self.errorfunc = errorfunc
         self.running = bool(running)
         
         self.registered = True
         if start:
-            self.data_handler = DataHandler(self.launchmany, db_dir=self.db_dir, max_num_peers=max_peers)
+            def _register():
+                self.data_handler = DataHandler(self.launchmany, db_dir=self.db_dir, max_num_peers=max_peers)
                 
-            self.bartercast_core = BarterCastCore(self.data_handler, secure_overlay, self.log)
+                self.bartercast_core = None #BarterCastCore(self.data_handler, overlay_bridge, self.log)
+                    
+                self.buddycast_core = BuddyCastCore(overlay_bridge, launchmany, 
+                       self.data_handler, self.buddycast_interval, self.superpeer,
+                       metadata_handler, torrent_collecting_solution, self.bartercast_core, self.log)
                 
-            self.buddycast_core = BuddyCastCore(secure_overlay, launchmany, 
-                   self.data_handler, self.buddycast_interval, self.superpeer,
-                   metadata_handler, rawserver, torrent_collecting_solution, self.bartercast_core, self.log
-                   )
-            self.data_handler.buddycast_core = self.buddycast_core
-            self.start_time = now()
-            self.startup()
+                self.data_handler.buddycast_core = self.buddycast_core
+                self.start_time = now()
+                self.startup()
+            
+            if debug:
+                print >> sys.stderr, "bc: Register BuddyCast", currentThread().getName()
+            self.overlay_bridge.add_task(_register, 0)
     
     def startup(self):
         if self.registered:
@@ -284,17 +288,20 @@ class BuddyCastFactory:
             # if any. So when you change this time, make sure it allows for UPnP to
             # do its thing, or add explicit coordination between UPnP and BC.
             # See BitTornado/launchmany.py
-            self.rawserver.add_task(self.data_handler.postInit, 0)    # avoid flash crowd
-            self.rawserver.add_task(self.doBuddyCast, 2)
-            self.rawserver.add_task(self.data_handler.updateAllSim, randint(60,5*60))
-            self.rawserver.add_task(self.sync, self.sync_interval)
-            print >> sys.stdout, "BuddyCast starts up"
+            self.overlay_bridge.add_task(self.data_handler.postInit, 0)    # avoid flash crowd
+            self.overlay_bridge.add_task(self.doBuddyCast, 2)
+            self.overlay_bridge.add_task(self.data_handler.updateAllSim, randint(60,5*60))
+            print >> sys.stderr, "BuddyCast starts up", currentThread().getName()
             
     def doBuddyCast(self):
         if not self.running:
             return
-        buddycast_interval = self.getCurrrentInterval()
-        self.rawserver.add_task(self.doBuddyCast, buddycast_interval)
+        
+        if debug:
+            print >>sys.stderr,"bc: doBuddyCast!", currentThread().getName()
+        
+        buddycast_interval = 5#self.getCurrrentInterval()
+        self.overlay_bridge.add_task(self.doBuddyCast, buddycast_interval)
         self.buddycast_core.work()
         
     def pauseBuddyCast(self):
@@ -328,34 +335,38 @@ class BuddyCastFactory:
         return interval
         
     def sync(self):
-        self.rawserver.add_task(self.sync, self.sync_interval)
+        self.overlay_bridge.add_task(self.sync, self.sync_interval)
         self.data_handler.sync()
         
     def handleMessage(self, permid, selversion, message):
-        if not self.registered or not self.running:
-            if DEBUG:
-                print >> sys.stderr, "bc: handleMessage got message, but we're not enabled or running"
-            return False
-        
-        t = message[0]
-        
-        if t == BUDDYCAST:
-            return self.gotBuddyCastMessage(message[1:], permid, selversion)
-        elif t == KEEP_ALIVE:
-            if message[1:] == '':
-                return self.gotKeepAliveMessage(permid)
-            else:
+        def _handleMessage():
+            if not self.registered or not self.running:
+                if DEBUG:
+                    print >> sys.stderr, "bc: handleMessage got message, but we're not enabled or running"
                 return False
-                
-        elif t == BARTERCAST:
-            if DEBUG:
-                print >> sys.stderr, "bc: Received bartercast message"
-            return self.bartercast_core.gotBarterCastMessage(message[1:], permid, selversion)
             
-        else:
-            if DEBUG:
-                print >> sys.stderr, "bc: wrong message to buddycast", ord(t), "Round", self.buddycast_core.round
-            return False
+            t = message[0]
+            
+            if t == BUDDYCAST:
+                return self.gotBuddyCastMessage(message[1:], permid, selversion)
+            elif t == KEEP_ALIVE:
+                if message[1:] == '':
+                    return self.gotKeepAliveMessage(permid)
+                else:
+                    return False
+                    
+            elif t == BARTERCAST:
+                if DEBUG:
+                    print >> sys.stderr, "bc: Received bartercast message"
+                if self.bartercast_core != None:
+                    return self.bartercast_core.gotBarterCastMessage(message[1:], permid, selversion)
+                
+            else:
+                if DEBUG:
+                    print >> sys.stderr, "bc: wrong message to buddycast", ord(t), "Round", self.buddycast_core.round
+                return False
+            
+        self.overlay_bridge.add_task(_handleMessage, 0)
         
     def gotBuddyCastMessage(self, msg, permid, selversion):
         if self.registered and self.running:
@@ -371,18 +382,23 @@ class BuddyCastFactory:
     
     def handleConnection(self,exc,permid,selversion,locally_initiated):
         if DEBUG:
-            nconn = 0
-            conns = self.buddycast_core.connections
-            print >> sys.stdout, "\nbc: conn in buddycast"
-            for peer_permid in conns:
-                _permid = show_permid_short(peer_permid)
-                nconn += 1
-                print >> sys.stdout, "bc: ", nconn, _permid, conns[peer_permid]
+            print >> sys.stderr, "bc: handleConnection",exc,show_permid_short(permid),selversion,locally_initiated,currentThread().getName()
                 
-        if self.registered:
+        def _handleConnection():
+            if DEBUG:
+                print >> sys.stderr, "bc: _handleConnection",exc,show_permid_short(permid),selversion,locally_initiated,currentThread().getName()
+                nconn = 0
+                conns = self.buddycast_core.connections
+                print >> sys.stderr, "\nbc: conn in buddycast", len(conns)
+                for peer_permid in conns:
+                    _permid = show_permid_short(peer_permid)
+                    nconn += 1
+                    print >> sys.stderr, "bc: ", nconn, _permid, conns[peer_permid]
+                    
             if self.running or exc is not None:    # if not running, only close connection
                 self.buddycast_core.handleConnection(exc,permid,selversion,locally_initiated)
-                
+        if self.registered:
+            self.overlay_bridge.add_task(_handleConnection, 0)
     
     def addMyPref(self, torrent):
         if self.registered:
@@ -415,10 +431,10 @@ class BuddyCastFactory:
 
     
 class BuddyCastCore:
-    def __init__(self, secure_overlay, launchmany, data_handler, 
+    def __init__(self, overlay_bridge, launchmany, data_handler, 
                  buddycast_interval, superpeer, 
-                 metadata_handler, rawserver, torrent_collecting_solution, bartercast_core, log=None):
-        self.secure_overlay = secure_overlay
+                 metadata_handler, torrent_collecting_solution, bartercast_core, log=None):
+        self.overlay_bridge = overlay_bridge
         self.launchmany = launchmany
         self.data_handler = data_handler
         self.buddycast_interval = buddycast_interval
@@ -486,6 +502,8 @@ class BuddyCastCore:
         self.torrent_collecting = None
         if torrent_collecting_solution >= BCCOLPOLICY_SIMPLE:
             self.torrent_collecting = SimpleTorrentCollecting(metadata_handler)
+        self.data_handler.registerTorrentCollecting(self.torrent_collecting)
+        
         #elif torrent_collecting_solution == 2:
         #    self.torrent_collecting = TiT4TaTTorrentCollecting(metadata_handler, rawserver)
 
@@ -496,7 +514,7 @@ class BuddyCastCore:
             
         # Bartercast
         self.bartercast_core = bartercast_core
-        self.bartercast_core.buddycast_core = self    
+        #self.bartercast_core.buddycast_core = self    
                     
     def get_peer_info(self, target_permid, include_permid=True, may_be_deleted=False):
         if not target_permid:
@@ -524,12 +542,14 @@ class BuddyCastCore:
         
         try:
             self.round += 1
+            print >> sys.stderr, '************ working buddycast', currentThread().getName()
             self.print_debug_info('Active', 2)
             if self.log:
                 nPeer, nPref, nCc, nBs, nBr, nSO, nCo, nCt, nCr, nCu = self.get_stats()
                 self.overlay_log('BUCA_STA', self.round, (nPeer,nPref,nCc), (nBs,nBr), (nSO,nCo), (nCt,nCr,nCu))
         
             self.print_debug_info('Active', 3)
+            print >> sys.stderr, '************ working buddycast 2'
             self.updateSendBlockList()
             
             _now = now()
@@ -686,7 +706,7 @@ class BuddyCastCore:
             if overlay_protocol_version >= OLPROTO_VER_THIRD:
                 # From this version, support KEEP_ALIVE message in secure overlay
                 keepalive_msg = ''
-                self.secure_overlay.send(peer_permid, KEEP_ALIVE+keepalive_msg, 
+                self.overlay_bridge.send(peer_permid, KEEP_ALIVE+keepalive_msg, 
                                          self.keepaliveSendCallback)
             if debug:
                 print "*** Send keep alive to peer", self.get_peer_info(peer_permid),  \
@@ -766,7 +786,9 @@ class BuddyCastCore:
             return
         
         if not self.isBlocked(target_permid, self.send_block_list):
-            self.secure_overlay.connect(target_permid, self.buddycastConnectCallback)
+            if debug:
+                print >> sys.stderr, 'bc: connect a peer', show_permid(target_permid), currentThread().getName()
+            self.overlay_bridge.connect(target_permid, self.buddycastConnectCallback)
                         
             self.print_debug_info('Active', 12, target_permid)
             if self.log:
@@ -804,16 +826,18 @@ class BuddyCastCore:
             except:
                 print_exc()
                 print >> sys.stderr, "bc: error in reply buddycast msg",\
-                    exc, dns, show_permid_short(target_permid), selversion, "Round", self.round
+                    exc, dns, show_permid_short(target_permid), selversion, "Round", self.round, 
 
         else:
             if debug:
-                print >> sys.stdout, "bc: warning - connecting to",\
+                print >> sys.stderr, "bc: warning - connecting to",\
                     show_permid_short(target_permid),exc,dns, ctime(now())
                     
     def createAndSendBuddyCastMessage(self, target_permid, selversion, active):
         
         buddycast_data = self.createBuddyCastMessage(target_permid, selversion)
+        if debug:
+            print >> sys.stderr, "bc: createAndSendBuddyCastMessage", len(buddycast_data), currentThread().getName()
         try:
             buddycast_msg = bencode(buddycast_data)
         except:
@@ -826,7 +850,7 @@ class BuddyCastCore:
         else:
             self.print_debug_info('Passive', 6, target_permid)
             
-        self.secure_overlay.send(target_permid, BUDDYCAST+buddycast_msg, self.buddycastSendCallback)
+        self.overlay_bridge.send(target_permid, BUDDYCAST+buddycast_msg, self.buddycastSendCallback)
         if active:
             self.print_debug_info('Active', 17, target_permid)
         else:
@@ -892,7 +916,7 @@ class BuddyCastCore:
         tb_list = self.connected_taste_buddies[:]
         if target_permid in tb_list:
             tb_list.remove(target_permid)
-        peers = self.data_handler.getPeers(tb_list, ['permid', 'ip', 'port', 'similarity', 'oversion', 'ntorrents'])
+        peers = self.data_handler.getPeers(tb_list, ['permid', 'ip', 'port', 'similarity', 'oversion', 'num_torrents'])
         # filter peers with the same ip and port
         peers = filter(lambda p:p['ip']!=target_ip or int(p['port'])!=target_port, peers)
         
@@ -919,7 +943,7 @@ class BuddyCastCore:
         # Every peer >= 6 in message attachs nfiles and oversion for remote search from version 6
         for i in range(len(peers)):
             oversion = peers[i].pop('oversion')
-            nfiles = peers[i].pop('ntorrents')
+            nfiles = peers[i].pop('num_torrents')
             if selversion >= OLPROTO_VER_SIXTH and oversion >= OLPROTO_VER_SIXTH and nfiles >= REMOTE_SEARCH_PEER_NTORRENTS_THRESHOLD:
                 peers[i]['oversion'] = oversion
                 # ascribe it to the inconsistent name of the same concept in msg and db
@@ -943,7 +967,7 @@ class BuddyCastCore:
             
         if target_permid in rp_list:
             rp_list.remove(target_permid)
-        peers = self.data_handler.getPeers(rp_list, ['permid', 'ip', 'port', 'similarity', 'oversion', 'ntorrents'])
+        peers = self.data_handler.getPeers(rp_list, ['permid', 'ip', 'port', 'similarity', 'oversion', 'num_torrents'])
         peers = filter(lambda p:p['ip']!=target_ip or int(p['port'])!=target_port, peers)
         
         for i in range(len(peers)):
@@ -960,12 +984,15 @@ class BuddyCastCore:
 
         if selversion >= OLPROTO_VER_FOURTH:
             for i in range(len(peers)):
-                peers[i]['similarity'] = int(peers[i]['similarity']+0.5)
+                old_sim = peers[i]['similarity']
+                if old_sim is None:
+                    old_sim = 0.0
+                peers[i]['similarity'] = int(old_sim+0.5)
         
         # Every peer >= 6 in message attachs nfiles and oversion for remote search from version 6
         for i in range(len(peers)):
             oversion = peers[i].pop('oversion')
-            nfiles = peers[i].pop('ntorrents')
+            nfiles = peers[i].pop('num_torrents')
             # only include remote-search-peers
             if selversion >= OLPROTO_VER_SIXTH and oversion >= OLPROTO_VER_SIXTH and nfiles >= REMOTE_SEARCH_PEER_NTORRENTS_THRESHOLD:
                 peers[i]['oversion'] = oversion
@@ -1005,6 +1032,9 @@ class BuddyCastCore:
     def gotBuddyCastMessage(self, recv_msg, sender_permid, selversion):
         """ Received a buddycast message and handle it. Reply if needed """
         
+        if debug:
+            print >> sys.stderr, "bc: got and handle buddycast msg", currentThread().getName()
+        
         if not sender_permid or sender_permid == self.permid:
             print >> sys.stderr, "bc: error - got BuddyCastMsg from a None peer", \
                         sender_permid, recv_msg, "Round", self.round
@@ -1035,7 +1065,7 @@ class BuddyCastCore:
             self.print_debug_info('Active', 18, sender_permid)
         else:
             self.print_debug_info('Passive', 2, sender_permid)
-            
+        
         buddycast_data = {}
         try:
             buddycast_data = bdecode(recv_msg)
@@ -1113,9 +1143,9 @@ class BuddyCastCore:
         self.launchmany.set_activity(NTFY_ACT_RECOMMEND, buf)
         self.data_handler.increaseBuddyCastTimes(sender_permid)
         
-        if debug:
-            print "********************* Got BuddyCast Message from", \
-                self.get_peer_info(sender_permid), " Yahoo!!! *********************"
+        if DEBUG:
+            print >> sys.stderr, "======================= Got BuddyCast Message from", \
+                self.get_peer_info(sender_permid), " Yahoo!!! ======================="
         
         return True
         
@@ -1345,12 +1375,13 @@ class BuddyCastCore:
             self.closeConnection(permid, 'overlayswarm:'+str(exc))
 
         if debug:
-            print >> sys.stdout, "bc: handle conn from overlay", exc, \
+            print >> sys.stderr, "bc: handle conn from overlay", exc, \
                 self.get_peer_info(permid), "selversion:", selversion, \
                 "local_init:", locally_initiated, ctime(now())
         
     def addConnection(self, peer_permid, selversion, locally_initiated):
         _now = now()
+        print >> sys.stderr, "bc: addConnection", self.isConnected(peer_permid)
         if not self.isConnected(peer_permid):
             self.connections[peer_permid] = selversion # add a new connection
             self.data_handler.addPeer(peer_permid, _now)
@@ -1366,7 +1397,7 @@ class BuddyCastCore:
                 self.torrent_collecting.updatePreferences(peer_permid, torrents2down, selversion)
             
             if debug:
-                print >> sys.stdout, "bc: add connection", \
+                print >> sys.stderr, "bc: add connection", \
                     self.get_peer_info(peer_permid), "to", addto
             if self.log:
                 dns = self.dnsindb(peer_permid)
@@ -1378,7 +1409,7 @@ class BuddyCastCore:
         """ Close connection with a peer, and remove it from connection lists """
         
         if debug:
-            print >> sys.stdout, "bc: close connection:", self.get_peer_info(peer_permid, may_be_deleted=True)
+            print >> sys.stderr, "bc: close connection:", self.get_peer_info(peer_permid, may_be_deleted=True)
         
         if self.isConnected(peer_permid):
             self.connections.pop(peer_permid)
@@ -1407,7 +1438,7 @@ class BuddyCastCore:
         nCc = len(self.connection_candidates)
         nBs = len(self.send_block_list)
         nBr = len(self.recv_block_list)
-        nSO = len(self.secure_overlay.debug_get_live_connections())
+        nSO = -1 # TEMP ARNO len(self.overlay_bridge.debug_get_live_connections())
         nCo = len(self.connections)
         nCt = len(self.connected_taste_buddies)
         nCr = len(self.connected_random_peers)
@@ -1420,36 +1451,36 @@ class BuddyCastCore:
         print "bc: *****", thread, str(step), "-",
         if thread == 'Active':
             if step == 2:
-                print "Working:", now() - self.start_time, \
+                print >> sys.stderr, "Working:", now() - self.start_time, \
                     "seconds since start. Round", self.round, "Time:", ctime(now())
                 nPeer, nPref, nCc, nBs, nBr, nSO, nCo, nCt, nCr, nCu = self.get_stats()
-                print "bc: *** Status: nPeer nPref nCc: %d %d %d  nBs nBr: %d %d  nSO nCo nCt nCr nCu: %d %d %d %d %d" % \
+                print >> sys.stderr, "bc: *** Status: nPeer nPref nCc: %d %d %d  nBs nBr: %d %d  nSO nCo nCt nCr nCu: %d %d %d %d %d" % \
                                       (nPeer,nPref,nCc,           nBs,nBr,        nSO,nCo, nCt,nCr,nCu)
                 if nSO != nCo:
-                    print "bc: warning - nSo and nCo is inconsistent"
+                    print >> sys.stderr, "bc: warning - nSo and nCo is inconsistent"
                 if nCc > self.max_conn_cand or nCt > self.max_conn_tb or nCr > self.max_conn_rp or nCu > self.max_conn_up:
-                    print "bc: warning - nCC or nCt or nCr or nCu overloads"
+                    print >> sys.stderr, "bc: warning - nCC or nCt or nCr or nCu overloads"
                 _now = now()
                 buf = ""
                 i = 1
                 for p in self.connected_taste_buddies:
                     buf += "bc: %d taste buddies: "%i + self.get_peer_info(p) + str(_now-self.connected_connectable_peers[p]) + " version: " + str(self.connections[p]) + "\n"
                     i += 1
-                print buf
+                print >> sys.stderr, buf
                 
                 buf = ""
                 i = 1
                 for p in self.connected_random_peers:
                     buf += "bc: %d random peers: "%i + self.get_peer_info(p) + str(_now-self.connected_connectable_peers[p]) + " version: " + str(self.connections[p]) + "\n"
                     i += 1
-                print buf
+                print >> sys.stderr, buf
                 
                 buf = ""
                 i = 1
                 for p in self.connected_unconnectable_peers:
                     buf += "bc: %d unconnectable peers: "%i + self.get_peer_info(p) + str(_now-self.connected_unconnectable_peers[p]) + " version: " + str(self.connections[p]) + "\n"
                     i += 1
-                print buf
+                print >> sys.stderr, buf
                 buf = ""
                 totalsim = 0
                 nsimpeers = 0
@@ -1467,26 +1498,26 @@ class BuddyCastCore:
                     meansim = totalsim/nsimpeers
                 else:
                     meansim = 0
-                print "bc: * sim peer: %d %.3f %.3f %.3f %.3f\n" % (nsimpeers, totalsim, meansim, minsim, maxsim)
+                print >> sys.stderr, "bc: * sim peer: %d %.3f %.3f %.3f %.3f\n" % (nsimpeers, totalsim, meansim, minsim, maxsim)
 
             elif step == 3:
-                print "check blocked peers: Round", self.round
+                print >> sys.stderr, "check blocked peers: Round", self.round
                 
             elif step == 4:
-                print "keep connections with peers: Round", self.round
+                print >> sys.stderr, "keep connections with peers: Round", self.round
                 
             elif step == 6:
-                print "idle loop:", self.next_initiate
+                print >> sys.stderr, "idle loop:", self.next_initiate
                 
             elif step == 9: 
-                print "bootstrapping: select", self.bootstrap_num, \
+                print >> sys.stderr, "bootstrapping: select", self.bootstrap_num, \
                     "peers recently seen from Mega Cache"
                 if self.booted < 0:
-                    print "bc: *** bootstrapped recently, so wait for a while"
+                    print >> sys.stderr, "bc: *** bootstrapped recently, so wait for a while"
                 elif self.booted == 0:
-                    print "bc: *** no peers to bootstrap. Try next time"
+                    print >> sys.stderr, "bc: *** no peers to bootstrap. Try next time"
                 else:
-                    print "bc: *** bootstrapped, got", len(self.connection_candidates), \
+                    print >> sys.stderr, "bc: *** bootstrapped, got", len(self.connection_candidates), \
                       "peers in Cc. Times of bootstrapped", self.total_bootstrapped_time
                     buf = ""
                     for p in self.connection_candidates:
@@ -1494,7 +1525,7 @@ class BuddyCastCore:
                     buf += "\nbc: Remote Search Peer Candidates:\n"
                     for p in self.remote_search_peer_candidates:
                         buf += "bc: * remote: %d "%p[0] + self.get_peer_info(p[1]) + "\n"
-                    print buf
+                    print >> sys.stderr, buf
             
             elif step == 11:
                 buf = "select "
@@ -1511,75 +1542,75 @@ class BuddyCastCore:
                      ctime(self.data_handler.getPeerLastSeen(target_permid)))
                 else:
                     buf += "bc: *** no target to select. Skip this round"
-                print buf
+                print >> sys.stderr, buf
 
             elif step == 12:
-                print "connect a peer to start buddycast", self.get_peer_info(target_permid)
+                print >> sys.stderr, "connect a peer to start buddycast", self.get_peer_info(target_permid)
                 
             elif step == 13:
-                print "block connected peer in send block list", \
+                print >> sys.stderr, "block connected peer in send block list", \
                     self.get_peer_info(target_permid), self.send_block_list[target_permid]
                     
             elif step == 14:
-                print "remove connected peer from Cc", \
+                print >> sys.stderr, "remove connected peer from Cc", \
                     self.get_peer_info(target_permid), "removed?", target_permid not in self.connection_candidates
 
             elif step == 15:
-                print "peer is connected", \
-                    self.get_peer_info(target_permid), "overlay version", selversion
+                print >> sys.stderr, "peer is connected", \
+                    self.get_peer_info(target_permid), "overlay version", selversion, currentThread().getName()
                 
             elif step == 16:
-                print "create buddycast to send to", self.get_peer_info(target_permid)
+                print >> sys.stderr, "create buddycast to send to", self.get_peer_info(target_permid)
                 
             elif step == 17:
-                print "send buddycast msg to", self.get_peer_info(target_permid)
+                print >> sys.stderr, "send buddycast msg to", self.get_peer_info(target_permid)
                 
             elif step == 18:
-                print "receive buddycast message from peer %s" % self.get_peer_info(target_permid)
+                print >> sys.stderr, "receive buddycast message from peer %s" % self.get_peer_info(target_permid)
                 
             elif step == 19:
-                print "store peers from incoming msg to cache and db"
+                print >> sys.stderr, "store peers from incoming msg to cache and db"
                 
             elif step == 20:
-                print "add connected peer %s to connection list %s" % (self.get_peer_info(target_permid), addto)
+                print >> sys.stderr, "add connected peer %s to connection list %s" % (self.get_peer_info(target_permid), addto)
                 
             elif step == 21:
-                print "block connected peer in recv block list", \
+                print >> sys.stderr, "block connected peer in recv block list", \
                     self.get_peer_info(target_permid), self.recv_block_list[target_permid]
                 
         if thread == 'Passive': 
             if step == 2:
-                print "receive buddycast message from peer %s" % self.get_peer_info(target_permid)
+                print >> sys.stderr,  "receive buddycast message from peer %s" % self.get_peer_info(target_permid)
                 
             elif step == 3:
-                print "store peers from incoming msg to cache and db"
+                print >> sys.stderr, "store peers from incoming msg to cache and db"
                 
             elif step == 4:
-                print "add connected peer %s to connection list %s" % (self.get_peer_info(target_permid), addto)
+                print >> sys.stderr, "add connected peer %s to connection list %s" % (self.get_peer_info(target_permid), addto)
         
             elif step == 5:
-                print "block connected peer in recv block list", \
+                print >> sys.stderr, "block connected peer in recv block list", \
                     self.get_peer_info(target_permid), self.recv_block_list[target_permid]
             
             elif step == 6:
-                print "create buddycast to reply to", self.get_peer_info(target_permid)
+                print >> sys.stderr, "create buddycast to reply to", self.get_peer_info(target_permid)
             
             elif step == 7:
-                print "reply buddycast msg to", self.get_peer_info(target_permid)
+                print >> sys.stderr, "reply buddycast msg to", self.get_peer_info(target_permid)
                 
             elif step == 8:
-                print "block connected peer in send block list", \
+                print >> sys.stderr, "block connected peer in send block list", \
                     self.get_peer_info(target_permid), self.send_block_list[target_permid]
         
             elif step == 9:
-                print "remove connected peer from Cc", \
+                print >> sys.stderr, "remove connected peer from Cc", \
                     self.get_peer_info(target_permid), "removed?", target_permid not in self.connection_candidates
 
             elif step == 10:
-                print "add idle loops", self.next_initiate
+                print >> sys.stderr, "add idle loops", self.next_initiate
         sys.stdout.flush()
         sys.stderr.flush()
-        print "bc: /*****", thread, str(step), "-",
+        print >> sys.stderr, "bc: *****", thread, str(step), "-",
 
     def getAllTasteBuddies(self):
         return self.connected_taste_buddies
@@ -1603,7 +1634,6 @@ class BuddyCastCore:
         
 class DataHandler:
     def __init__(self, launchmany, db_dir='', max_num_peers=2000):
-        self.rawserver = launchmany.rawserver
         self.launchmany = launchmany
         self.config = self.launchmany.session.sessconfig # should be safe at startup
         # --- database handlers ---
@@ -1613,8 +1643,6 @@ class DataHandler:
         self.mypref_db = launchmany.mypref_db
         self.pref_db = launchmany.pref_db
         self.friend_db = launchmany.friend_db
-        self.dbs = [self.peer_db, self.superpeer_db,
-                    self.torrent_db, self.mypref_db, self.pref_db]
         self.mypreflist = []    # torrent_infohashes
         self.myfriends = Set() # FIXME: implement friends
         self.myprefhash = array('l',[])
@@ -1635,10 +1663,7 @@ class DataHandler:
         self.all_peer_list = None
         self.num_peers_ui = None
         self.num_torrents_ui = None
-
-    def sync(self):
-        for db in self.dbs:
-            db.sync()
+        self.torrent_collecting = None
             
     def close(self):
         for db in self.dbs:
@@ -1648,6 +1673,21 @@ class DataHandler:
         #self.close()
         pass
 
+#    def getMyName(self, name=''):
+#        return self.config.get('nickname', name)
+#        
+#    def getMyIp(self, ip=''):
+#        return self.launchmany.get_ext_ip()
+#    
+#    def getMyPort(self, port=0):
+#        return self.launchmany.listen_port
+#    
+#    def getMyPermid(self, permid=''):
+#        return self.launchmany.session.get_permid()
+#        
+#    def getMyPort(self, port=0):
+#        return self.my_db.get('port', port)
+    
     def getMyName(self, name=''):
         return self.config.get('nickname', name)
         
@@ -1659,12 +1699,22 @@ class DataHandler:
     
     def getMyPermid(self, permid=''):
         return self.launchmany.session.get_permid()
+    
+    def updatePort(self, port):
+        self.my_db.put('port', port)
+  
+    def registerTorrentCollecting(self, torrent_collecting):
+        self.torrent_collecting = self.torrent_collecting
         
+#    def updateAllCooccurrence(self):
+#        if self.torrent_collecting != None:
+#            self.torrent_collecting.updateAllCooccurrence()
         
     def postInit(self):
         # build up a cache layer between app and db
         self.updateMyPreferences()
-        self.updateAllPeers(self.max_num_peers)
+        #self.updateAllCooccurrence()
+        #self.updateAllPeers(self.max_num_peers)
         self.updateAllPref()
         #self.updateAllSim()
         #self.updateAllI2ISim()
@@ -1696,34 +1746,30 @@ class DataHandler:
             torrent_hash = hash(torrent)
             insort(self.myprefhash, torrent_hash)
             self.updateOwners(torrent)
-            self.rawserver.add_task(self.updateAllSim, 5)
+            self.overlay_bridge.add_task(self.updateAllSim, 5)
             self.total_pref_changed += self.update_i2i_threshold
             
     def delMyPref(self, torrent):
         if torrent in self.mypreflist:
             self.mypreflist.remove(torrent)
-            torrent_hash = hash(torrent)
+            torrent_hash = self.torrent_db.getTorrentID(torrent)
             self.myprefhash.remove(torrent_hash)
             self.owners.pop(torrent_hash)
-            self.rawserver.add_task(self.updateAllSim, 10)
+            self.overlay_bridge.add_task(self.updateAllSim, 10)
             self.total_pref_changed += self.update_i2i_threshold
 
     def updateOwners(self, torrent):
-        torrent_hash = hash(torrent)
+        torrent_hash = self.torrent_db.getTorrentID(torrent)
         self.owners[torrent_hash] = Set()
         for peer in self.peers:
             if torrent_hash in self.getPeerPrefList(peer):
                 self.owners[torrent_hash].add(peer)
         
     def updateMyPreferences(self):
-        self.mypreflist = self.mypref_db.getRecentPrefList()
-        for torrent in self.mypreflist:
-            torrent_hash = hash(torrent)
-            self.owners[torrent_hash] = Set()
-        self.myprefhash = self.owners.keys()
-        self.myprefhash.sort()
-        self.myprefhash = array('l', self.myprefhash)
-    
+        #self.mypreflist = self.mypref_db.getRecentLivePrefList()
+        self.mypref_db.loadData()
+        self.myprefhash = self.mypref_db.getMyPrefList(order_by='torrent_id')
+        
     def updateAllPeers(self, num_peers=None):
         """ Read peers from db and put them in self.peers.
             At most self.max_num_peers recently seen peers can be cached.
@@ -1738,13 +1784,13 @@ class DataHandler:
         except ValueError:
             pass
         
-        _peer_values = self.getPeers(self.all_peer_list, ['similarity','last_seen','ntorrents','oversion'])
+        _peer_values = self.getPeers(self.all_peer_list, ['similarity','last_seen','num_torrents','oversion'])
         peer_values = []
         for i in range(len(_peer_values)):
             p = _peer_values[i]
             permid = self.all_peer_list[i]
             peer_values.append([p['similarity'], p['last_seen']])
-            self.buddycast_core.addRemoteSearchPeer(permid, p['oversion'], p['ntorrents'], p['last_seen'])
+            self.buddycast_core.addRemoteSearchPeer(permid, p['oversion'], p['num_torrents'], p['last_seen'])
         if not num_peers or len(self.all_peer_list) <= num_peers:
             self.peers = dict(zip(self.all_peer_list, peer_values))   # all peers
         else:
@@ -1762,7 +1808,7 @@ class DataHandler:
                     self.all_peer_list = [peer for (_, _, peer) in tmp_list[:len(tmp_list)-num_peers_2_del]]
                     #print >> sys.stderr, "**** buddycast delete peers from db", "#peers2del", len(peers2del), "#peers in db", len(tmp_list), "max limit", self.max_peer_in_db
                     #remove_peers_func = lambda:self.remove_overhead_peers(peers2del)
-                    #self.rawserver.add_task(remove_peers_func,5)
+                    #self.overlay_bridge.add_task(remove_peers_func,5)
                     self.remove_overhead_peers(peers2del)
                 
                 tmp_list = [(peer, peer_value) for (_, peer_value, peer) in tmp_list[:num_peers]]
@@ -1843,11 +1889,13 @@ class DataHandler:
     def getMyLivePreferences(self, num):
         """ Get a number of my preferences. Get all if num==0 """
         
-        mypreflist = self.torrent_db.getLiveTorrents(self.mypreflist)
-        if num > 0 and len(mypreflist) > num:
-            return mypreflist[:num]
-        else:
-            return mypreflist
+        return self.mypref_db.getRecentLivePrefList(num)
+#        
+#        mypreflist = self.torrent_db.getLiveTorrents(self.mypreflist)
+#        if num > 0 and len(mypreflist) > num:
+#            return mypreflist[:num]
+#        else:
+#            return mypreflist
     
     def getPeerLastSeen(self, peer_permid):
         if peer_permid not in self.peers:
@@ -1861,15 +1909,18 @@ class DataHandler:
                 print >> sys.stderr, "bc: try to get a peer sim but it isn't in cache", \
                     show_permid_short(peer_permid), ctime(now())
             return 0
+        sim = self.peers[peer_permid][0]
+        if sim is None:
+            sim = 0
         if not raw:    
             # negative value means it is calculated from other peers, not itself. See addRelativeSim()
-            return abs(self.peers[peer_permid][0])
+            return abs(sim)
         else:
-            return self.peers[peer_permid][0]
+            return sim
     
     def setPeerSim(self, peer_permid, sim):
         self.peers[peer_permid][0] = sim
-        self.peer_db.updatePeer(peer_permid, 'similarity', sim, updateFlag=False)
+        #self.peer_db.updatePeer(peer_permid, similarity=sim)
 
     def _addPeer(self, peer_permid, last_seen):
         """ add a peer to cache """
@@ -1940,7 +1991,8 @@ class DataHandler:
             
     def checkUpdate(self):
         if self.total_pref_changed >= self.update_i2i_threshold:
-            self.updateAllI2ISim()
+            #self.updateAllI2ISim()
+            pass
             
         npeers = len(self.peers)
         if npeers > self.max_num_peers*1.05:    # remove peers when exceeded 5%
@@ -2030,7 +2082,7 @@ class DataHandler:
                 new_peer_data['name'] = dunno2unicode(peer_data['name'])    # store in db as unicode
 
             exist = self.peer_db.hasPeer(peer_permid)
-            self.peer_db.addPeer(peer_permid, new_peer_data, update_dns=True, updateFlag=(not exist))
+            self.peer_db.addPeer(peer_permid, new_peer_data, update_dns=True)
             
         except KeyError:
             print_exc()
@@ -2039,10 +2091,10 @@ class DataHandler:
             print >> sys.stderr, "bc: _addPeerToDB cannot find host by name", peer_data['ip']
         except:
             print_exc()
-
+            
     def increaseBuddyCastTimes(self, peer_permid):
         self.peer_db.updateTimes(peer_permid, 'buddycast_times', 1)
-        self.peer_db.updatePeer(peer_permid, 'last_buddycast_time', now())
+        self.peer_db.updatePeer(peer_permid, last_buddycast=now())
 
     def get_dns_from_peerdb(self,permid):
         dns = (None, None)
@@ -2097,9 +2149,8 @@ class DataHandler:
         return self.mypref_db.size()
     
     def updatePeerLevelStats(self,permid,npeers,ntorrents,nprefs):
-        d = {'npeers':npeers,'ntorrents':ntorrents,'nprefs':nprefs}
-        for k,v in d.items():
-            self.peer_db.updatePeer(permid,k,v)
+        d = {'num_peers':npeers,'num_torrents':ntorrents,'num_prefs':nprefs}
+        self.peer_db.updatePeer(permid, **d)
         
     def getAllPeerList(self):
         return self.all_peer_list

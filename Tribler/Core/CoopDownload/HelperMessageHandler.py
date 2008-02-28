@@ -8,31 +8,27 @@
 from sha import sha
 import sys, os
 from random import randint
+import binascii
 
-from Tribler.Core.Overlay.SecureOverlay import SecureOverlay
+from Tribler.Core.TorrentDef import *
+from Tribler.Core.Session import *
+from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
 
-DEBUG = False
-
-def get_random_filename(dir):
-    while True:
-        name = str(randint(1, sys.maxint - 1))
-        p = os.path.join(dir, name)
-        if not os.path.exists(p):
-            return name
+DEBUG = True
 
 class HelperMessageHandler:
-    def __init__(self,launchmany, config):
+    def __init__(self):
         self.metadata_queue = {}
-        self.launchmany = launchmany
-        self.helpdir = os.path.join(config['state_dir'], config['download_help_dir'])
-        self.torrent_db = launchmany.torrent_db
 
-    def register(self, metadata_handler,secure_overlay):
+    def register(self,session,metadata_handler,helpdir):
+        self.session = session
+        self.helpdir = helpdir
+        self.torrent_db = TorrentDBHandler.getInstance() # LITETHREAD
         self.metadata_handler = metadata_handler
-        self.secure_overlay = secure_overlay
 
     def handleMessage(self,permid,selversion,message):
         t = message[0]
@@ -49,21 +45,21 @@ class HelperMessageHandler:
 
     def got_dlhelp_request(self, permid, message,selversion):
         try:
-            torrent_hash = message[1:]
+            infohash = message[1:]
         except:
             print >> sys.stderr,"helper: warning: bad data in dlhelp_request"
             return False
         
-        if len(torrent_hash) != 20:
+        if len(infohash) != 20:
             return False
         
-        if not self.can_help(torrent_hash):
+        if not self.can_help(infohash):
             return False
-        torrent_data = self.find_torrent(torrent_hash)
+        torrent_data = self.find_torrent(infohash)
         if torrent_data:
-            self.do_help(torrent_hash, torrent_data, permid)
+            self.do_help(infohash, torrent_data, permid)
         else:
-            self.get_metadata(permid, torrent_hash,selversion)
+            self.get_metadata(permid, infohash,selversion)
         return True
 
 
@@ -71,99 +67,53 @@ class HelperMessageHandler:
     # not be possible for a coordinator to send a METADATA message that causes
     # important files to be overwritten
     #
-    def do_help(self, torrent_hash, torrent_data, permid):
-        d = bdecode(torrent_data)
-        data = {}
-        data['file'] = get_random_filename(self.helpdir)
-        data['type'] = 'torrent'
-        i = d['info']
-        h = sha(bencode(d['info'])).digest()
-        assert(h == torrent_hash)
-        l = 0
-        nf = 0
-        if i.has_key('length'):
-            l = i.get('length', 0)
-            nf = 1
-        elif i.has_key('files'):
-            for li in i['files']:
-                nf += 1
-                if li.has_key('length'):
-                    l += li['length']
-        data['numfiles'] = nf
-        data['length'] = l
-        data['name'] = i.get('name', data['file'])
-        dest = os.path.join(self.helpdir, data['file'] )
-        data['dest'] = dest        
+    def do_help(self, infohash, torrent_data, permid):
 
-        # These values are used by abcengine.py to create BT1Download
-        data['coordinator_permid'] = permid
+        basename = binascii.hexlify(infohash)+'.torrent' # ignore .tribe stuff, not vital
+        torrentfilename = os.path.join(self.helpdir,basename)
 
-        tfile = os.path.join(self.helpdir, data['file'] + '.torrent')
-        data['path'] = tfile
-        def setkey(k, d = d, data = data):
-            if d.has_key(k):
-                data[k] = d[k]
-        setkey('failure reason')
-        setkey('warning message')
-        setkey('announce-list')
-        data['metainfo'] = d
-
-        friendname = None
-        friends = self.launchmany.fried_db.getFriends()
-        for peer in friends:
-            if peer['permid'] == permid:
-                friendname = peer['name']
-                break
-        data['friendname'] = friendname
+        tfile = open(torrentfilename, "wb")
+        tfile.write(torrent_data)
+        tfile.close()
 
         if DEBUG:
-            print >> sys.stderr,"helpmsg: Got metadata required for helping",friendname
-            print >> sys.stderr,"helpmsg: name:   ", data['name']
-            print >> sys.stderr,"helpmsg: torrent: ", data['path']
-            print >> sys.stderr,"helpmsg: saveas: ", data['file']
+            print >> sys.stderr,"helpmsg: Got metadata required for helping",show_permid_short(permid)
+            print >> sys.stderr,"helpmsg: torrent: ",torrentfilename
 
-        # TODO: instead of writing .torrent to the disk keep it only in the memory
-        torrent_file = open(data['path'], "wb")
-        torrent_file.write(torrent_data)
-        torrent_file.close()
-
-        self.launchmany.torrent_cache[torrent_hash] = data
-        self.launchmany.file_cache[data['path']] = \
-            [(os.path.getmtime(data['path']), os.path.getsize(data['path'])), torrent_hash]
-
-        # These values are used by launchmanycore??? in text mode????
-        self.launchmany.config['role'] = 'helper'
-        self.launchmany.config['coordinator_permid'] = permid
+        tdef = TorrentDef.load(torrentfilename)
+        dscfg = DownloadStartupConfig()
+        dscfg.set_coopdl_coordinator_permid(permid)
+        dscfg.set_dest_dir(self.helpdir)
 
         # Start new download
-        self.launchmany.add(torrent_hash, data)
+        self.session.start_download(tdef,dscfg)
 
-    def get_metadata(self, permid, torrent_hash, selversion):
+    def get_metadata(self, permid, infohash, selversion):
         if DEBUG:
             print >> sys.stderr,"helpmsg: Don't have torrent yet, ask coordinator"
-        if not self.metadata_queue.has_key(torrent_hash):
-            self.metadata_queue[torrent_hash] = []
-        self.metadata_queue[torrent_hash].append(permid)
-        self.metadata_handler.send_metadata_request(permid, torrent_hash, selversion,caller="dlhelp")
+        if not self.metadata_queue.has_key(infohash):
+            self.metadata_queue[infohash] = []
+        self.metadata_queue[infohash].append(permid)
+        self.metadata_handler.send_metadata_request(permid, infohash, selversion,caller="dlhelp")
 
-    def call_dlhelp_task(self, torrent_hash, torrent_data):
+    def metadatahandler_received_torrent(self, infohash, torrent_data):
         if DEBUG:
             print >> sys.stderr,"helpmsg: Metadata handler reports torrent is in."
-        if not self.metadata_queue.has_key(torrent_hash) or not self.metadata_queue[torrent_hash]:
+        if not self.metadata_queue.has_key(infohash) or not self.metadata_queue[infohash]:
             if DEBUG:
                 print >> sys.stderr,"helpmsg: Metadata handler reported a torrent we are not waiting for."
             return
         
-        for permid in self.metadata_queue[torrent_hash]:
+        for permid in self.metadata_queue[infohash]:
             # only ask for metadata once
-            self.do_help(torrent_hash, torrent_data, permid)
-        del self.metadata_queue[torrent_hash]
+            self.do_help(infohash, torrent_data, permid)
+        del self.metadata_queue[infohash]
 
-    def can_help(self, torrent_hash):    #TODO: test if I can help the cordinator to download this file
+    def can_help(self, infohash):    #TODO: test if I can help the cordinator to download this file
         return True                      #Future support: make the decision based on my preference
 
-    def find_torrent(self, torrent_hash):
-        torrent = self.torrent_db.getTorrent(torrent_hash)
+    def find_torrent(self, infohash):
+        torrent = self.torrent_db.getTorrent(infohash)
         if torrent is None:
             return None
         elif 'torrent_dir' in torrent:
@@ -181,43 +131,63 @@ class HelperMessageHandler:
 
     def got_stop_dlhelp_request(self, permid, message, selversion):
         try:
-            torrent_hash = message[1:]
+            infohash = message[1:]
         except:
             print >> sys.stderr,"helper: warning: bad data in STOP_DOWNLOAD_HELP"
             return False
 
-        h = self.launchmany.get_helper(torrent_hash)
+        network_got_stop_dlhelp_lambda = lambda:self.network_got_stop_dlhelp(permid,message,selversion,infohash)
+        self.session.lm.rawserver.add_task(network_got_stop_dlhelp_lambda,0)
+        
+        # If the request is from a unauthorized peer, we close
+        # If the request is from an authorized peer (=coordinator) we close as 
+        # well. So return False
+        return False 
+    
+
+    def network_got_stop_dlhelp(self,permid,message,selversion,infohash):
+        # Called by network thread
+        
+        h = self.session.lm.get_coopdl_role_object(infohash,COOPDL_ROLE_HELPER)
         if h is None:
-            return False
+            return
 
         if not h.is_coordinator(permid): 
-            return False
+            if DEBUG:
+                print >> sys.stderr,"helpmsg: Got a STOP_DOWNLOAD_HELP message from non-coordinator",show_permid_short(permid)
+            return
 
-        self.launchmany.remove(torrent_hash)
-        
-        self.secure_overlay.close(permid)
-        
-        return True
-
+        # Find and remove download
+        dlist = self.session.get_downloads()
+        for d in dlist:
+            if d.get_def().get_infohash() == infohash:
+                self.session.remove_download(d)
+                break
 
     def got_pieces_reserved(self,permid, message, selversion):
         try:
-            torrent_hash = message[1:21]
+            infohash = message[1:21]
             pieces = bdecode(message[21:])
         except:
             print >> sys.stderr,"helper: warning: bad data in PIECES_RESERVED"
             return False
 
+        network_got_pieces_reserved_lambda = lambda:self.network_got_pieces_reserved(permid,message,selversion,infohash,pieces)
+        self.session.lm.rawserver.add_task(network_got_pieces_reserved_lambda,0)
+        
+        return True
 
-        h = self.launchmany.get_helper(torrent_hash)
+    def network_got_pieces_reserved(self,permid,message,selversion,infohash,pieces):
+       # Called by network thread
+       
+        h = self.session.lm.get_coopdl_role_object(infohash,COOPDL_ROLE_HELPER)
         if h is None:
-            return False
+            return
 
         if not h.is_coordinator(permid): 
-            return False
+            return
 
         h.got_pieces_reserved(permid, pieces)
         # Wake up download thread
         h.notify()
-        return True
         

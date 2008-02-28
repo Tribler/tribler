@@ -22,6 +22,21 @@ class OperationNotPossibleAtRuntimeException(TriblerException):
     """
     def __init__(self,msg=None):
         TriblerException.__init__(self,msg)
+
+class OperationNotPossibleWhenStoppedException(TriblerException):
+    """ The requested operation is not possible when the Download
+    has been stopped.
+    """
+    def __init__(self,msg=None):
+        TriblerException.__init__(self,msg)
+
+class OperationNotEnabledByConfigurationException(TriblerException):
+    """ The requested operation is not possible with the current
+    Session/Download configuration.
+    """
+    def __init__(self,msg=None):
+        TriblerException.__init__(self,msg)
+
     
 class NotYetImplementedException(TriblerException):
     """ The requested operation is not yet fully implemented. """

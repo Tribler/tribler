@@ -4,7 +4,7 @@
 # GUIServer is a server that executes tasks on behalf of the GUI that are too
 # time consuming to be run by the actual GUI Thread (MainThread). Note that
 # you still need to delegate the actual updating of the GUI to the MainThread via
-# the wx.CallAfter() mechanism. 
+# the invokeLater() mechanism. See safeguiupdate.py
 #
 
 from threading import Thread,Condition

@@ -1,10 +1,10 @@
-from Tribler.Core.CacheDB.CacheDBHandler import PeerDBHandler
-from Tribler.Core.CacheDB import CacheDBHandler
+from Tribler.Core.CacheDB.CacheDBHandler import PeerDBHandler, PreferenceDBHandler, FriendDBHandler
 from Tribler.Core.Utilities.utilities import show_permid_shorter,sort_dictlist,remove_data_from_list,find_content_in_dictlist
+from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 from Tribler.Core.Utilities.unicode import *
 import time
 import threading
-from traceback import print_exc
+from traceback import print_exc, print_stack
 
 #===============================================================================
 # TODO:
@@ -188,11 +188,9 @@ class PeerDataManager:
         self.dataLock = threading.RLock()
         self.callback_dict = {} #empty list for events
         self.guiCallbackFuncList = []#callback function list from the parent, the creator object
-        self.peersdb = CacheDBHandler.PeerDBHandler.getInstance()
-        self.prefdb = CacheDBHandler.PreferenceDBHandler.getInstance()
-#        self.mydb = CacheDBHandler.MyPreferenceDBHandler.getInstance()
-#        self.tordb = CacheDBHandler.TorrentDBHandler.getInstance()
-        self.frienddb = CacheDBHandler.FriendDBHandler.getInstance()
+        self.peer_db = PeerDBHandler.getInstance()
+        self.pref_db = PreferenceDBHandler.getInstance()
+        self.friend_db = FriendDBHandler.getInstance()
         self.wantedkeys = ['permid', 'name', 'ip', 'similarity', 'last_connected', 'connected_times', 'buddycast_times', 'port', 'ntorrents', 'npeers', 'nprefs']
         self.peerDeletionScheduled = False
         #there should always be an all key that contains all data
@@ -200,6 +198,7 @@ class PeerDataManager:
         self.filtered_data = { 'all':all_data}
         #there should anways be no filtering function for this all data
         self.filtered_func = { 'all':[None,None] } #a sorting function can be added later
+        self.overlay_bridge = OverlayThreadingBridge.getInstance()
 #        stubCN = "no data"
 #        if utility is not None:
 #            stubCN = utility.lang.get('persons_view_no_data')
@@ -213,9 +212,31 @@ class PeerDataManager:
         return PeerDataManager.__single
     getInstance = staticmethod(getInstance)
     
+    def loadData(self):
+        try:
+            data = self.peer_db.loadPeers()
+            self.prepareData(data)
+            self.applyFilters(data)
+            self.isDataPrepared = True
+        except:
+            print_exc()
+            raise Exception('Could not load peer data !!')
+
+    def prepareData(self, localdata):
+        """ prepares the data first time this manager is initialized """        
+        #update top 20
+        self.updateTopList(localdata, self.top20similar, 'similarity')
+        #set the rankings to data
+        self.updateSimTopValues(localdata)
+        #save the data information
+        return localdata
+
     def applyFilter(self, filter_name, source_data=None):
         """regenerates the data list of the filter based on the source data or all data if source is not provided"""
+        
         data = self.filtered_data[filter_name]
+        
+        #print >> sys.stderr, filter_name, self.filtered_data.keys(), len(data), self.filtered_func[filter_name]
         #first clear data in filters
         while len(data)>0:
             data.pop()
@@ -302,11 +323,11 @@ class PeerDataManager:
     
     def isFriend(self, permid):
         """checks the local snapshot for friendship status of a peer based on it's permid"""
-        peer_data = self.getPeerData(permid)
-        if peer_data!=None and peer_data['friend']:
-            return True
-        return False
-#        return self.frienddb.isFriend(permid)
+#        peer_data = self.getPeerData(permid)
+#        if peer_data!=None and peer_data['friend']:
+#            return True
+#        return False
+        return self.friend_db.isFriend(permid)
     
     def setOnline(self, permid, bOnline):
         """sets online status for a peer given its permid"""
@@ -333,7 +354,7 @@ class PeerDataManager:
         if peer_d!=None:
             peer_d['friend']=True
             peer_data['friend']=True
-            self.frienddb.addFriend(permid)
+            self.overlay_bridge.add_task(lambda:self.friend_db.addFriend(permid))
             self.insertInFilters(peer_d)
             self.notifyGui(peer_d, "add")
             return True
@@ -346,7 +367,7 @@ class PeerDataManager:
         peer_data = self.getPeerData(permid)
         if peer_data!=None:
             peer_data['friend']=True
-            self.frienddb.addFriend(permid)
+            self.overlay_bridge.add_task(lambda:self.friend_db.addFriend(permid))
             self.insertInFilters(peer_data)
             self.notifyGui(peer_data, "add")
         else:
@@ -357,7 +378,7 @@ class PeerDataManager:
         peer_data = self.getPeerData(permid)
         if peer_data!=None:
             peer_data['friend']=False
-            self.frienddb.deleteFriend(permid)
+            self.overlay_bridge.add_task(lambda:self.friend_db.deleteFriend(permid))
             self.removeFromFilters(permid)
             self.notifyGui(peer_data, "delete")
         else:
@@ -373,7 +394,7 @@ class PeerDataManager:
         if peer_d!=None:
             peer_d['friend']=False
             peer_data['friend']=False
-            self.frienddb.deleteFriend(permid)
+            self.overlay_bridge.add_task(lambda:self.friend_db.deleteFriend(permid))
             self.removeFromFilters(permid)
             self.notifyGui(peer_d, "delete")
             return True
@@ -382,45 +403,11 @@ class PeerDataManager:
         return False
         
         
-    def prepareData(self, peer_list=None):
-        """it receives an optional peer_list parameter with the list of permids that should be the peers
-        prepares the data first time this manager is initialized
-        for a peer it sets up some data by calling preparePeer"""        
-        # first, obtain values
-        ##update
-        #myprefs = self.mydb.getPrefList()
-        if DEBUG:
-            print >>sys.stderr,'peerMgr: --tb-- setting data', len(peer_list)
-        if peer_list is None:
-            peer_list = self.peersdb.getPeerList()
-        #make sure we have only unique items
-        unique_peer_list = set(peer_list + self.frienddb.getFriendList()) 
-        
-        localdata = []
-        #select only tribler peers
-        for permid in unique_peer_list:
-            peer = self.peersdb.getPeer(permid)
-            if not peer:
-                continue
-            peer[key_permid] = permid
-            isFriend = self.frienddb.isFriend(permid)
-            
-            if peer['buddycast_times'] > 0 or isFriend:
-                newpeer = self.preparePeer(peer,isFriend)
-                localdata.append(newpeer)
-        #update top 20
-        self.updateTopList(localdata, self.top20similar, 'similarity')
-        #set the rankings to data
-        self.updateSimTopValues(localdata)
-        #save the data information
-        return localdata
-
     def getNumEncounteredPeers(self):
         """waits first for another thread or function to initialize the database
         on the first read"""
         if not self.isDataPrepared:    #
             return -1
-#            return self.peersdb.getNumEncounteredPeers()    
         return len(self.filtered_data['all'])
     
     def computeSimilarityPercent(self, similarity_value):
@@ -468,8 +455,8 @@ class PeerDataManager:
             peer_data = None
             if mode in ['update', 'add']:
                 #first get the new data from database
-                peer_data = self.peersdb.getPeer(permid)
-                isFriend = self.frienddb.isFriend(permid)
+                peer_data = self.peer_db.getPeer(permid)
+                isFriend = self.friend_db.isFriend(permid)
                 #check if is a valid peer
                 if not peer_data or peer_data.get('connected_times', 0) == 0 and not isFriend:
                     # quick fix: sometimes peer_data['connected_times'] got error. problematic db?
@@ -615,7 +602,7 @@ class PeerDataManager:
         if isFriend is not None:
             peer_data[key_friend] = isFriend
         else:
-            peer_data[key_friend] = self.frienddb.isFriend(peer_data['permid'])#permid in self.friend_list
+            peer_data[key_friend] = self.friend_db.isFriend(peer_data['permid'])#permid in self.friend_list
         # compute the maximal value for similarity
         # in order to be able to compute top-n persons based on similarity
         if peer_data.get('similarity'):
@@ -815,7 +802,7 @@ class PeerDataManager:
             
     def getPeerHistFiles(self, permid):
         """returns a list of hashes for the files this peer has in it's download history"""
-        return self.prefdb.getPrefList(permid)
+        return self.pref_db.getPrefList(permid)
     
     def getCountOfSimilarPeers(self):
         count = 0

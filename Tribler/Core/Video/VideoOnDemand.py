@@ -22,7 +22,7 @@ from Tribler.Video.VideoServer import MovieTransport,MovieTransportFileLikeInter
 # pull all video data as if a video player was attached
 FAKEPLAYBACK = False
 
-DEBUG = False
+DEBUG = True
 DEBUGPP = False
 
 class PiecePickerStreaming(PiecePicker):

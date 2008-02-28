@@ -30,13 +30,12 @@ class SocialNetworkMsgHandler:
     getInstance = staticmethod(getInstance)
         
 
-    def register(self,secure_overlay,launchmany,config):
+    def register(self,overlay_bridge,launchmany,config):
         if DEBUG:
             print >> sys.stderr,"socnet: register"
-        self.secure_overlay = secure_overlay
-        self.rawserver = launchmany.rawserver
+        self.overlay_bridge = overlay_bridge
         self.config = config
-        self.overlap.register(secure_overlay,launchmany)
+        self.overlap.register(overlay_bridge,launchmany)
 
     #
     # Incoming messages

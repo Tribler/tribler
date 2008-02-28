@@ -36,8 +36,12 @@ class Category:
         filename = make_filename(install_dir, category_file)
         Category.__single = self
         self.torrent_db = TorrentDBHandler.getInstance()
-        self.category_info = getCategoryInfo(filename)
-        self.category_info.sort(rankcmp)
+        try:
+            self.category_info = getCategoryInfo(filename)
+            self.category_info.sort(rankcmp)
+        except:
+            self.category_info = None
+            print_exc()
         self.config_dir = config_dir
         
         
@@ -69,6 +73,8 @@ class Category:
         begin = time()
         for item in data:
             if len(item['category']) > 1:
+                print_stack()
+                print >> sys.stderr, item['category']
                 self.reSortAll(data)
                 return True
         if DEBUG:
@@ -147,6 +153,9 @@ class Category:
         wx.CallAfter(dlg.Destroy)   
     
     def getCategoryKeys(self):
+        if self.category_info is None:
+            return []
+        
         keys = []
         keys.append("All")
         keys.append("other")
@@ -156,6 +165,8 @@ class Category:
         return keys
     
     def getCategoryNames(self):
+        if self.category_info is None:
+            return []
         
         keys = []
         for category in self.category_info:
@@ -166,6 +177,9 @@ class Category:
         return keys
     
     def getCategoryRank(self,cat):
+        if self.category_info is None:
+            return None
+        
         for category in self.category_info:
             if category['name'] == cat:
                 return category['rank']
@@ -175,9 +189,12 @@ class Category:
     # return list
     def calculateCategory(self, torrent_dict, display_name):  # torrent_dict is the info dict of 
                                                 # a torrent file
+        if self.category_info is None:
+            return []
+
         
         # return value: list of category the torrent belongs to
-        torrent_category = None
+        torrent_category = []
 
         filename_list = []
         filesize_list = []        
@@ -201,7 +218,7 @@ class Category:
                 torrent_category = [category['name']]
                 strongest_cat = strength
         
-        if torrent_category == None:
+        if len(torrent_category) == 0:
             torrent_category = ['other']
         
         return torrent_category

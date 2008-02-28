@@ -65,6 +65,8 @@ class SecureOverlay:
             raise RuntimeError, "SecureOverlay is Singleton"
         SecureOverlay.__single = self 
         self.olproto_ver_current = OLPROTO_VER_CURRENT
+        self.usermsghandler = None
+        self.userconnhandler = None
 
     #
     # Interface for upper layer
@@ -85,8 +87,6 @@ class SecureOverlay:
                                                                 protocol_name)
         self.max_len = max_len
         self.iplport2oc = {}    # (IP,listen port) -> OverlayConnection
-        self.usermsghandler = None
-        self.userconnhandler = None
         self.peer_db = self.lm.peer_db
         self.mykeypair = self.lm.session.keypair
         self.permid = self.lm.session.get_permid()
@@ -135,10 +135,12 @@ class SecureOverlay:
             seconds of inactivity.
         """
         if DEBUG:
-            print >> sys.stderr,"secover: connect",show_permid_short(permid)
+            print >> sys.stderr,"secover: connect",show_permid_short(permid), currentThread().getName()
         # To prevent concurrency problems on sockets the calling thread 
         # delegates to the network thread.
-        task = Task(self._connect,permid,callback)
+        
+        dns = self.get_dns_from_peerdb(permid)
+        task = Task(self._connect,permid,dns,callback)
         self.rawserver.add_task(task.start, 0)
 
 
@@ -153,7 +155,8 @@ class SecureOverlay:
         """
         # To prevent concurrency problems on sockets the calling thread 
         # delegates to the network thread.
-        task = Task(self._send,permid,msg,callback)
+        dns = self.get_dns_from_peerdb(permid)
+        task = Task(self._send,permid,dns,msg,callback)
         self.rawserver.add_task(task.start, 0)
 
 
@@ -227,15 +230,14 @@ class SecureOverlay:
                 print_exc()
             callback(exc,dns,None,0)
 
-    def _connect(self,expectedpermid,callback):
+    def _connect(self,expectedpermid,dns,callback):
         if DEBUG:
-            print >> sys.stderr,"secover: actual connect",show_permid_short(expectedpermid)
+            print >> sys.stderr,"secover: actual connect",show_permid_short(expectedpermid), currentThread().getName()
         if expectedpermid == self.permid:
             callback(KeyError('The target permid is the same as my permid'),None,expectedpermid,0)
         try:
             oc = self.get_oc_by_permid(expectedpermid)
             if oc is None:
-                dns = self.get_dns_from_peerdb(expectedpermid)
                 if dns is None:
                     callback(KeyError('IP address + port for permid unknown'),dns,expectedpermid,0)
                 else:
@@ -269,12 +271,11 @@ class SecureOverlay:
                 print_exc()
             callback(exc,dns,expectedpermid,0)
 
-    def _send(self,permid,message,callback):
+    def _send(self,permid,dns,message,callback):
         if DEBUG:
             print >> sys.stderr,"secover: actual send",getMessageName(message[0]),\
-                        "to",show_permid_short(permid)
+                        "to",show_permid_short(permid), currentThread().getName()
         try:
-            dns = self.get_dns_from_peerdb(permid)
             if dns is None:
                 callback(KeyError('IP address + port for permid unknown'),permid)
             else:
@@ -316,6 +317,9 @@ class SecureOverlay:
     #
     # Interface for SocketHandler
     #
+    def get_handler(self):
+        return self
+    
     def external_connection_made(self,singsock):
         """ incoming connection (never used) """
         if DEBUG:
@@ -328,7 +332,7 @@ class SecureOverlay:
         if DEBUG:
             print >> sys.stderr,"secover: connection_flushed",singsock.get_ip(),singsock.get_port()
         pass
-
+    
     #
     # Interface for ServerPortHandler
     #
@@ -353,7 +357,7 @@ class SecureOverlay:
         """ authentication of peer via identity protocol succesful """
         if DEBUG:
             print >> sys.stderr,"secover: got_auth_connection", \
-                show_permid_short(oc.get_auth_permid()),oc.get_ip(),oc.get_auth_listen_port()
+                show_permid_short(oc.get_auth_permid()),oc.get_ip(),oc.get_auth_listen_port(), currentThread().getName()
 
         if oc.is_locally_initiated() and oc.get_port() != oc.get_auth_listen_port():
             if DEBUG:
@@ -379,11 +383,17 @@ class SecureOverlay:
             ret = False
             
         if ret:
-            self.add_peer_to_db(oc)
+            if oc.is_auth_done():
+                hisdns = (oc.get_ip(),oc.get_auth_listen_port())
+            else:
+                hisdns = None
+            
+            #if DEBUG:
+            #    print >>sys.stderr,"secover: userconnhandler is",self.userconnhandler
             
             if self.userconnhandler is not None:
                 try:
-                    self.userconnhandler(None,oc.get_auth_permid(),oc.get_sel_proto_ver(),oc.is_locally_initiated())
+                    self.userconnhandler(None,oc.get_auth_permid(),oc.get_sel_proto_ver(),oc.is_locally_initiated(),hisdns)
                 except:
                     # Catch all
                     print_exc()
@@ -394,41 +404,14 @@ class SecureOverlay:
         """ our side is closing the connection """
         if DEBUG:
             print >> sys.stderr,"secover: local_close"
-        self.update_peer_status(oc)
-        self.cleanup_admin_and_callbacks(oc,Exception('local close'))
+        self.cleanup_admin_and_callbacks(oc,CloseException('local close',oc.is_auth_done()))
 
     def connection_lost(self,oc):
         """ overlay connection telling us to clear admin """
         if DEBUG:
             print >> sys.stderr,"secover: connection_lost"
-        self.update_peer_status(oc)
-        self.cleanup_admin_and_callbacks(oc,Exception('connection lost'))
+        self.cleanup_admin_and_callbacks(oc,CloseException('connection lost',oc.is_auth_done()))
 
-    def add_peer_to_db(self,oc):
-        """ add a connected peer to database """
-        if oc.is_auth_done():
-            ip = oc.get_ip()
-            port = oc.get_auth_listen_port()
-            peer_permid = oc.get_auth_permid()
-            oversion = oc.get_cur_proto_ver()
-            now = int(time())
-            peer_data = {'permid':peer_permid, 'ip':ip, 'port':port, 'oversion':oversion, 'last_seen':now, 'last_connected':now}
-            self.peer_db.addPeer(peer_permid, peer_data, update_dns=True)
-            self.peer_db.updateTimes(peer_permid, 'connected_times', 1)
-            try:
-                # Arno: PARANOID SYNC
-                self.peer_db.sync()
-            except:
-                print_exc()
-        
-    def update_peer_status(self, oc):
-        """ update last_seen and last_connected in peer db when close """
-        now = int(time())
-        if oc.is_auth_done():
-            peer_permid = oc.get_auth_permid()
-            self.peer_db.updatePeer(peer_permid, 'last_seen', now)
-            self.peer_db.updatePeer(peer_permid, 'last_connected', now)
-        
 
     def got_message(self,permid,message,selversion):
         """ received message from authenticated peer, pass to upper layer """
@@ -440,6 +423,10 @@ class SecureOverlay:
                 print >> sys.stderr,"secover: User receive callback not set"
             return
         try:
+            
+            #if DEBUG:
+            #    print >>sys.stderr,"secover: usermsghandler is",self.usermsghandler
+            
             ret = self.usermsghandler(permid,selversion,message)
             if ret is None:
                 if DEBUG:
@@ -468,6 +455,57 @@ class SecureOverlay:
         pass
 
     #
+    # Interface for OverlayThreadingBridge
+    #
+    def get_dns_from_peerdb(self,permid):
+        # Called by any thread, except NetworkThread
+        
+        if currentThread().getName().startswith("NetworkThread"):
+            print >>sys.stderr,"secover: get_dns_from_peerdb: called by NetworkThread!"
+            print_stack()
+        
+        dns = None
+        peer = self.peer_db.getPeer(permid)
+        if peer:
+            ip = self.to_real_ip(peer['ip'])
+            dns = (ip, int(peer['port']))
+        return dns
+
+    
+    def add_peer_to_db(self,permid,dns,selversion):
+        """ add a connected peer to database """
+        # Called by OverlayThread
+        
+        if currentThread().getName().startswith("NetworkThread"):
+            print >>sys.stderr,"secover: add_peer_to_peerdb: called by NetworkThread!"
+            print_stack()
+
+        
+        ip = dns[0]
+        port = dns[1]
+        now = int(time())
+        peer_data = {'permid':permid, 'ip':ip, 'port':port, 'oversion':selversion, 'last_seen':now, 'last_connected':now}
+        self.peer_db.addPeer(permid, peer_data, update_dns=True)
+        self.peer_db.updateTimes(permid, 'connected_times', 1)
+        try:
+            # Arno: PARANOID SYNC
+            self.peer_db.sync()
+        except:
+            print_exc()
+        
+    def update_peer_status(self,permid,authwasdone):
+        """ update last_seen and last_connected in peer db when close """
+        # Called by OverlayThread
+        
+        if currentThread().getName().startswith("NetworkThread"):
+            print >>sys.stderr,"secover: update_peer_status: called by NetworkThread!"
+            print_stack()
+        
+        now = int(time())
+        if authwasdone:
+            self.peer_db.updatePeer(permid, last_seen=now, last_connected=now)
+
+    #
     # Interface for debugging
     #
     def debug_get_live_connections(self):
@@ -483,17 +521,10 @@ class SecureOverlay:
                     live_conn.append((peer_permid,(oc.get_ip(),oc.get_port())))
         return live_conn
 
+
     #
     # Internal methods
     #
-    def get_dns_from_peerdb(self,permid):
-        dns = None
-        peer = self.peer_db.getPeer(permid)
-        if peer:
-            ip = self.to_real_ip(peer['ip'])
-            dns = (ip, int(peer['port']))
-        return dns
-
     def to_real_ip(self,hostname_or_ip):
         """ If it's a hostname convert it to IP address first """
         ip = None
@@ -517,7 +548,7 @@ class SecureOverlay:
         self.cleanup_admin(oc)
         if oc.is_auth_done() and self.userconnhandler is not None:
             self.userconnhandler(exc,oc.get_auth_permid(),oc.get_sel_proto_ver(),
-                                 oc.is_locally_initiated())
+                                 oc.is_locally_initiated(),None)
 
     def cleanup_admin(self,oc):
         iplports = []
@@ -551,6 +582,18 @@ class Task:
             print >> sys.stderr,"secover: task: start",self.method
             #print_stack()
         self.method(*self.args,**self.kwargs)
+
+    
+class CloseException(Exception):
+    def __init__(self,msg=None,authdone=False):
+        Exception.__init__(self,msg)
+        self.authdone= authdone
+
+    def __str__(self):
+        return str(self.__class__)+': '+Exception.__str__(self)
+
+    def was_auth_done(self):
+        return self.authdone
     
 
 class OverlayConnection:
@@ -616,7 +659,7 @@ class OverlayConnection:
             self.buffer.truncate()
             try:
                 if DEBUG:
-                    print >> sys.stderr,"olconn: Trying to read",self.next_len,"using",self.next_func
+                    print >> sys.stderr,"olconn: Trying to read",self.next_len #,"using",self.next_func
                 x = self.next_func(m)
             except:
                 self.next_len, self.next_func = 1, self.read_dead

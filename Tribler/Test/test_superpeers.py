@@ -1,11 +1,21 @@
-import os
+import os, sys
 import tempfile
 import unittest
 from sets import Set
 import base64
 
-from Tribler.Core.CacheDB.CacheDBHandler import SuperPeerDBHandler
-from Tribler.Core.CacheDB.cachedb import PeerDB
+if os.path.exists('test_sqlitecachedb.py'):
+    BASE_DIR = '..'
+    sys.path.insert(1, os.path.abspath('..'))
+elif os.path.exists('LICENSE.txt'):
+    BASE_DIR = '.'
+
+from Core.CacheDB.cachedb import SQLiteCacheDB
+from Core.CacheDB.CacheDBHandler import SuperPeerDBHandler, PeerDBHandler
+
+CREATE_SQL_FILE = os.path.join(BASE_DIR, 'tribler_sdb_v1.sql')
+assert os.path.isfile(CREATE_SQL_FILE)
+    
 
 lines = [
 'superpeer1.das2.ewi.tudelft.nl, 7001, MG0CAQEEHR/bQNvwga7Ury5+8vg/DTGgmMpGCz35Zs/2iz7coAcGBSuBBAAaoUADPgAEAL2I5yVc1+dWVEx3nbriRKJmOSlQePZ9LU7yYQoGABMvU1uGHvqnT9t+53eaCGziV12MZ1g2p0GLmZP9, superpeer1@TUD\n',
@@ -17,53 +27,63 @@ lines = [
 class TestSuperPeerList(unittest.TestCase):
     
     def setUp(self):
-        tuple = tempfile.mkstemp()
-        os.close(tuple[0])
-        self.tmpfilepath = tuple[1]
-        self.tmpdirpath = os.path.join(tempfile.mkdtemp(), 'testdb')
+        self.file_path = tempfile.mktemp()
+        self.db_path = tempfile.mktemp()
+        
         self.writeSuperPeers()
-        print "test: Temp database path",self.tmpdirpath
-        (head,tail) = os.path.split(self.tmpfilepath)
-        config = {}
-        config['install_dir'] = head
-        config['superpeer_file'] = tail
-        self.splist = SuperPeerDBHandler(config, db_dir=self.tmpdirpath)
+        head,tail = os.path.split(self.file_path)
+        self.config = {'install_dir':head, 'superpeer_file':tail}
+        
+        self.db = SQLiteCacheDB.getInstance()
+        SQLiteCacheDB.initDB(self.db_path, None, CREATE_SQL_FILE, lib=0, check_version=False)
+        self.splist = SuperPeerDBHandler.getInstance()
+        
+#        cur = SQLiteCacheDB.getCursor()
+#        print cur, cur.connection
         
     def tearDown(self):
-        self.splist.clear()
-        try:
-            os.remove(self.tmpfilepath)
-        except Exception, msg:
-            pass
+        self.db.close(clean=True)
+        for path in [self.file_path, self.db_path]:
+            try:
+                os.remove(path)
+            except Exception, msg:
+                pass
 
     def writeSuperPeers(self):
-        tf = open(self.tmpfilepath, "w")
+        tf = open(self.file_path, "w")
         tf.writelines(lines)
         tf.close()
             
     def test_readSuperPeerList(self):
-        res = self.splist.readSuperPeerList(self.tmpfilepath)
-        self.assert_(len(res) == 4)
+        res = self.splist.readSuperPeerList(self.file_path)
+        assert len(res) == 4, len(res)
 
-    def test_updatePeerDB(self):
+    def test_loadSuperPeer(self):
         """ The SuperPeerDBHandler constructor writes the superpeers to the PeerDB """
-        self.peer_db = PeerDB.getInstance()
+        
+        self.splist.loadSuperPeers(self.config, True)
+        assert self.splist.size() == 3, self.splist.size()
+        
+        self.peer_db = PeerDBHandler.getInstance()
         # Arno: must be 3, as there is a duplicate PermID in the lines list
-        self.assert_(self.peer_db._size() == 3)
+        assert self.peer_db.size() == 3, self.peer_db.size()
         
     def test_getSuperPeers(self):
+        self.splist.loadSuperPeers(self.config, True)
         superpeers = self.splist.getSuperPeers()
-        self.assert_(len(superpeers) == 4)
+        assert len(superpeers) == 3, superpeers
 
-    def xxtest_normal(self):
-        splist = SuperPeerList()
-        splist.updateSuperPeerList()
-        superpeers = splist.getSuperPeers()
-        print superpeers
 
 def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestSuperPeerList))
     
     return suite
+
+        
+def main():
+    unittest.main(defaultTest='test_suite')
+
     
+if __name__ == '__main__':
+    main()        

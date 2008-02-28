@@ -61,7 +61,8 @@ class ReturnConnHandler:
     getInstance = staticmethod(getInstance)
 
     def register(self,rawserver,multihandler,mylistenport,max_len):
-        self.rawserver = rawserver
+        """ Called by MainThread """
+        self.rawserver = rawserver # real rawserver, not overlay_bridge
         self.sock_hand = self.rawserver.sockethandler
         self.multihandler = multihandler
         self.dialback_rawserver = multihandler.newRawServer(dialback_infohash, 
@@ -78,6 +79,7 @@ class ReturnConnHandler:
         ReturnConnHandler.__single = None 
 
     def start_listening(self):
+        """ Called by MainThread """
         self.dialback_rawserver.start_listening(self)
 
     def connect_dns(self,dns,callback):
@@ -93,12 +95,13 @@ class ReturnConnHandler:
             The established connection will auto close after EXPIRE_THRESHOLD
             seconds of inactivity.
         """
+        # Called by overlay thread
         if DEBUG:
             print >> sys.stderr,"dlbreturn: connect_dns",dns
         # To prevent concurrency problems on sockets the calling thread 
         # delegates to the network thread.
         task = Task(self._connect_dns,dns,callback)
-        self.rawserver.add_task(task.start, 0)
+        self.rawserver.add_task(task.start, 0) 
 
 
     def send(self,dns,msg,callback):
@@ -110,6 +113,7 @@ class ReturnConnHandler:
             or when an error occurs during sending. In the former case, exc 
             is None, otherwise it contains an Exception.
         """
+        # Called by overlay thread
         # To prevent concurrency problems on sockets the calling thread 
         # delegates to the network thread.
         task = Task(self._send,dns,msg,callback)
@@ -125,6 +129,7 @@ class ReturnConnHandler:
             Network thread calls "callback(exc,permid,selver)" when the connection
             is closed.
         """
+        # Called by overlay thread
         # To prevent concurrency problems on sockets the calling thread 
         # delegates to the network thread.
         task = Task(self._close,dns)
@@ -161,6 +166,7 @@ class ReturnConnHandler:
     # Internal methods
     #
     def _connect_dns(self,dns,callback):
+        # Called by network thread
         try:
             if DEBUG:
                 print >> sys.stderr,"dlbreturn: actual connect_dns",dns
@@ -182,6 +188,7 @@ class ReturnConnHandler:
             callback(exc,dns)
 
     def _send(self,dns,message,callback):
+        # Called by network thread
         try:
             iplport = ip_and_port2str(dns[0],dns[1])
             oc = None
@@ -201,6 +208,7 @@ class ReturnConnHandler:
 
 
     def _close(self,dns):
+        # Called by network thread
         if DEBUG:
             print >> sys.stderr,"dlbreturn: actual close",dns
         try:
@@ -370,6 +378,7 @@ class Task:
 class ReturnConnection:
     def __init__(self,handler,singsock,rawserver,locally_initiated = False,
                  specified_dns = None, ext_handshake = False,options = None):
+        # Called by network thread
         self.handler = handler        
         self.singsock = singsock # for writing
         self.rawserver = rawserver

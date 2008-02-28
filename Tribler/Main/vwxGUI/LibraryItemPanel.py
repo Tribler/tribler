@@ -289,7 +289,7 @@ class LibraryItemPanel(wx.Panel):
             
 
         
-        if torrent.get('abctorrent'):
+        if torrent.get('abctorrent2'):    # Jie: temporary disable it by set it as 'abctorrent2'
             #print '%s is an active torrent' % torrent['content_name']
             abctorrent = torrent['abctorrent']
             #abctorrent.setLibraryPanel(self)
@@ -535,7 +535,7 @@ class LibraryItemPanel(wx.Panel):
         except:
             pass
             
-        if self.data.get('abctorrent'):
+        if self.data.get('abctorrent2'):    # Jie: temporary disable it. It should set back to abctorrent.
                 
             abctorrent = self.data.get('abctorrent')
             if name == 'deleteLibraryitem':
@@ -666,6 +666,7 @@ class LibraryItemPanel(wx.Panel):
         if ABCTorrentTemp is not None:
             #print >>sys.stderr,"GUIUtil: buttonClicked: dlbooster: Torrent is",ABCTorrentTemp.files.dest
             engine = ABCTorrentTemp.connection.engine
+            raise RuntimeException("arno: core: engine class no longer exists")
             if engine is not None and engine.getDownloadhelpCoordinator() is not None:
                 self.dlhelperframe = DownloadHelperFrame(self,self.utility,engine)
                 self.dlhelperframe.Show()

@@ -18,6 +18,7 @@ from Tribler.Core.SocialNetwork.SocialNetworkMsgHandler import SocialNetworkMsgH
 from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
 from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.Utilities.utilities import show_permid_short
+from threading import currentThread
 
 DEBUG = False
 
@@ -50,15 +51,15 @@ class OverlayApps:
         return OverlayApps.__single
     getInstance = staticmethod(getInstance)
 
-    def register(self, secure_overlay, launchmany, config, requestPolicy):
-        self.secure_overlay = secure_overlay
+    def register(self, overlay_bridge, session, launchmany, config, requestPolicy):
+        self.overlay_bridge = overlay_bridge
         self.launchmany = launchmany
         self.requestPolicy = requestPolicy
         self.text_mode = config.has_key('text_mode')
         
         # OverlayApps gets all messages, and demultiplexes 
-        secure_overlay.register_recv_callback(self.handleMessage)
-        secure_overlay.register_conns_callback(self.handleConnection)
+        overlay_bridge.register_recv_callback(self.handleMessage)
+        overlay_bridge.register_conns_callback(self.handleConnection)
 
         # Create handler for metadata messages in two parts, as 
         # download help needs to know the metadata_handler and we need
@@ -72,12 +73,12 @@ class OverlayApps:
             self.register_msg_handler(HelpHelperMessages, self.coord_handler.handleMessage)
 
             # Create handler for messages to dlhelp helper
-            self.help_handler = HelperMessageHandler(launchmany, config)
-            self.help_handler.register(self.metadata_handler,secure_overlay)
+            self.help_handler = HelperMessageHandler()
+            self.help_handler.register(session,self.metadata_handler,config['download_help_dir'])
             self.register_msg_handler(HelpCoordinatorMessages, self.help_handler.handleMessage)
 
         # Part 2:
-        self.metadata_handler.register(secure_overlay, self.help_handler, launchmany, config)
+        self.metadata_handler.register(overlay_bridge, self.help_handler, launchmany, config)
         self.register_msg_handler(MetadataMessages, self.metadata_handler.handleMessage)
         
         if not config['torrent_collecting']:
@@ -87,7 +88,7 @@ class OverlayApps:
             # Create handler for Buddycast messages
             self.buddycast = BuddyCastFactory.getInstance(superpeer=config['superpeer'], log=config['overlay_log'])
             # Using buddycast to handle torrent collecting since they are dependent
-            self.buddycast.register(secure_overlay, launchmany.rawserver, launchmany, 
+            self.buddycast.register(overlay_bridge, launchmany, 
                                     launchmany.rawserver_fatalerrorfunc, True,
                                     self.metadata_handler, config['buddycast_collecting_solution'], 
                                     config['start_recommender'], config['max_peers'])
@@ -96,26 +97,27 @@ class OverlayApps:
 
         if config['dialback']:
             self.dialback_handler = DialbackMsgHandler.getInstance()
-            self.dialback_handler.register(secure_overlay, launchmany, config)
+            # The Dialback mechanism needs the real rawserver, not the overlay_bridge
+            self.dialback_handler.register(overlay_bridge, launchmany, launchmany.rawserver, config)
             self.register_msg_handler([DIALBACK_REQUEST],
-                                      self.dialback_handler.handleSecOverlayMessage)
-            self.register_connection_handler(self.dialback_handler.handleSecOverlayConnection)
+                                      self.dialback_handler.olthread_handleSecOverlayMessage)
+            self.register_connection_handler(self.dialback_handler.olthread_handleSecOverlayConnection)
 
         if config['socnet']:
             self.socnet_handler = SocialNetworkMsgHandler.getInstance()
-            self.socnet_handler.register(secure_overlay, launchmany, config)
+            self.socnet_handler.register(overlay_bridge, launchmany, config)
             self.register_msg_handler(SocialNetworkMessages,self.socnet_handler.handleMessage)
             self.register_connection_handler(self.socnet_handler.handleConnection)
 
         if config['rquery']:
             self.rquery_handler = RemoteQueryMsgHandler.getInstance()
-            self.rquery_handler.register(secure_overlay,launchmany,launchmany.rawserver,config,self.buddycast,log=config['overlay_log'])
+            self.rquery_handler.register(overlay_bridge,launchmany,config,self.buddycast,log=config['overlay_log'])
             self.register_msg_handler(RemoteQueryMessages,self.rquery_handler.handleMessage)
             self.register_connection_handler(self.rquery_handler.handleConnection)
             
-            self.rtorrent_handler = RemoteTorrentHandler.getInstance()
-            self.rtorrent_handler.register(launchmany.rawserver,self.metadata_handler)
-            self.metadata_handler.register2(self.rtorrent_handler)
+        self.rtorrent_handler = RemoteTorrentHandler.getInstance()
+        self.rtorrent_handler.register(overlay_bridge,self.metadata_handler,session)
+        self.metadata_handler.register2(self.rtorrent_handler)
             
             
         
@@ -169,7 +171,7 @@ class OverlayApps:
         """ An overlay-connection was established. Notify interested parties. """
 
         if DEBUG:
-            print >> sys.stderr,"olapps: handleConnection",exc,selversion,locally_initiated
+            print >> sys.stderr,"olapps: handleConnection",exc,selversion,locally_initiated,currentThread().getName()
 
         for handler in self.connection_handlers:
             try:

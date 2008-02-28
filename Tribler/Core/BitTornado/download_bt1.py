@@ -36,7 +36,7 @@ from __init__ import createPeerID
 
 from Tribler.Core.simpledefs import TRIBLER_TORRENT_EXT
 from Tribler.Core.Merkle.merkle import create_fake_hashes
-from Tribler.Core.Utilities.unicode import bin2unicode
+from Tribler.Core.Utilities.unicode import bin2unicode, dunno2unicode
 from Tribler.Core.Video.VideoOnDemand import MovieSelector,MovieOnDemandTransporter,PiecePickerVOD
 from Tribler.Core.Video.VideoSource import VideoSourceTransporter
 from Tribler.Core.APIImplementation.maketorrent import torrentfilerec2savefilename
@@ -127,12 +127,15 @@ class BT1Download:
             self.helper = None
             self.coordinator = None
             self.rate_predictor = None
-            if self.config['role'] == 'coordinator':
+            
+            print >>sys.stderr,"BT1Download: coopdl_role is",self.config['coopdl_role'],`self.config['coopdl_coordinator_permid']`
+            
+            if self.config['coopdl_role'] == COOPDL_ROLE_COORDINATOR:
                 self.coordinator = Coordinator(self.infohash, self.len_pieces)
-            if self.config['role'] == 'coordinator' or self.config['role'] == 'helper':
-                self.helper = Helper(self.infohash, self.len_pieces, self.config['coordinator_permid'], coordinator = self.coordinator)
-                self.config['role'] = ''
-                self.config['coordinator_permid'] = ''
+            if self.config['coopdl_role'] == COOPDL_ROLE_COORDINATOR or self.config['coopdl_role'] == COOPDL_ROLE_HELPER:
+                self.helper = Helper(self.infohash, self.len_pieces, self.config['coopdl_coordinator_permid'], coordinator = self.coordinator)
+                self.config['coopdl_role'] = ''
+                self.config['coopdl_coordinator_permid'] = ''
 
             if self.play_video:
                 # Jan-David: Start video-on-demand service
@@ -143,7 +146,7 @@ class BT1Download:
                              config['rarest_first_priority_cutoff'], helper = self.helper)
         except:
             print_exc()
-            print >> sys.stderr,"download_bt1.BT1Download: EXCEPTION in __init__ :'" + str(sys.exc_info()) + "' '"
+            print >> sys.stderr,"BT1Download: EXCEPTION in __init__ :'" + str(sys.exc_info()) + "' '"
 # _2fastbt
 
         self.choker = Choker(config, rawserver.add_task, 
@@ -200,7 +203,10 @@ class BT1Download:
                         if path.exists(path.join(file, savepath1)):
                             existing = 1
                     if not existing:
-                        file = path.join(file, self.info['name'])
+                        try:
+                            file = path.join(file, self.info['name'])
+                        except UnicodeDecodeError:
+                            file = path.join(file, dunno2unicode(self.info['name']))
                         if path.exists(file) and not path.isdir(file):
                             if file.endswith('.torrent') or file.endswith(TRIBLER_TORRENT_EXT):
                                 (prefix,ext) = os.path.splitext(file)

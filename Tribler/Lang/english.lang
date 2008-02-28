@@ -666,7 +666,7 @@ rRemoveFromListAndHD= "   Remove from library and harddisk"
 
 ############# PERSONS and FRIENDS
 rAddAsFriend		= "   Add as friend"
-rRemoveAsFriend		= "   Remove as friend"
+rRemoveAsFriend		= "   Remove this friend"
 rChangeInfo			= "   Change friend info"
 
 ############# FRIENDS

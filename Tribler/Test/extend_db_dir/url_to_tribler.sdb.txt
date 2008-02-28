@@ -1,0 +1,4 @@
+Please download tribler.sdb from
+http://www.st.ewi.tudelft.nl/~jyang/donotremove/bak_tribler.sdb
+for test_sqlitecachedb.py and test_sqlitecachedbhandler.py and save it as bak_tribler.sdb. 
+it will copied to tribler.sdb everytime for the test, to avoid changing in the database

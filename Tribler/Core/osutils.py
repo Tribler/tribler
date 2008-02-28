@@ -87,9 +87,9 @@ invalidwinfilenamechars = ''
 for i in range(32):
     invalidwinfilenamechars += chr(i)
 invalidwinfilenamechars += '"*/:<>?\\|'
+invalidlinuxfilenamechars = '/'
 
-
-def fix_filebasename(name, unit = False):
+def fix_filebasename(name, unit=False, maxlen=255):
     """ Check if str is a valid Windows file name (or unit name if unit is true)
      * If the filename isn't valid: returns a corrected name
      * If the filename is valid: returns the filename
@@ -98,20 +98,21 @@ def fix_filebasename(name, unit = False):
         return 'c:'
     if not name or name == '.' or name == '..':
         return '_'
+    
     if unit:
         name = name[0]
     fixed = False
-    if sys.platform == 'win32':
-        if len(name) > 250:
-            name = name[:250]
-            fixed = True
+    if len(name) > maxlen:
+        name = name[:maxlen]
+        fixed = True
+
     fixedname = ''
     spaces = 0
     for c in name:
-        if sys.platform == 'win32':
+        if sys.platform.startswith('win'):
             invalidchars = invalidwinfilenamechars
         else:
-             invalidchars = '"*/:<>?\\|'
+            invalidchars = invalidlinuxfilenamechars
              
         if c in invalidchars:
             fixedname += '_'
@@ -120,6 +121,17 @@ def fix_filebasename(name, unit = False):
             fixedname += c
             if c == ' ':
                 spaces += 1
+    
+    file_dir, basename = os.path.split(fixedname)
+    while file_dir != '':
+        fixedname = basename
+        file_dir, basename = os.path.split(fixedname)
+        fixed = True
+    
+    if fixedname == '':
+        fixedname = '_'
+        fixed = True
+        
     if fixed:
         return fixedname.strip() # Arno: remove initial or ending space
     elif spaces == len(name):

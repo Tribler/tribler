@@ -1,5 +1,5 @@
 import sys
-from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
+from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler,MyPreferenceDBHandler
 from Tribler.Core.Utilities.utilities import show_permid
 from random import randint
 from time import time
@@ -14,12 +14,23 @@ class SimpleTorrentCollecting:
     
     def __init__(self, metadata_handler):
         self.torrent_db = TorrentDBHandler.getInstance()
+        self.mypref_db = MyPreferenceDBHandler.getInstance()
         self.metadata_handler = metadata_handler
+#        self.cooccurrence = {}
+        
+#    def updateAllCooccurrence(self):
+#        self.cooccurrence = self.mypref_db.getAllTorrentCoccurrence()
+        
+    def getInfohashRelevance(self, infohash):
+        return self.mypref_db.getInfohashRelevance(infohash)
         
     def updatePreferences(self, permid, preferences, selversion=-1):
+        # called by overlay thread
         torrent = self.selecteTorrentToCollect(preferences)
-        if torrent:
+        #print >> sys.stderr, '================= updatePreferences', `torrent`
+        if torrent and self.metadata_handler:
             self.metadata_handler.send_metadata_request(permid, torrent, selversion)
+        return torrent
     
     def closeConnection(self, permid):
         pass
@@ -35,42 +46,15 @@ class SimpleTorrentCollecting:
             return None
         
         if not random:
-            relevances = self.torrent_db.getTorrentsValue(candidates, 'relevance')
+            relevances = []
+            for infohash in candidates:
+                rel = self.getInfohashRelevance(infohash)
+                relevances.append(rel)
             idx = relevances.index(max(relevances))
             return candidates[idx]
         else:
-            idx = randint(0, len(preferences)-1)
+            idx = randint(0, len(candidates)-1)
             selected = candidates[idx]
             return selected
     
-class TiT4TaTTorrentCollecting(SimpleTorrentCollecting):
-    """
-    """
-    
-    def __init__(self, metadata_handler, rawserver):
-        SimpleTorrentCollecting.__init__(self, metadata_handler)
-        self.rawserver = rawserver
-        self.peers = {}
-        self.starttime = time()
-        self.work()
-        
-    def work(self):
-        interval = self.getCurrrentInterval()
-        self.rawserver.add_task(self.work, interval)
-        if not self.peers:
-            return
-        
-    def _work(self):
-        pass
-    
-    def getCurrrentInterval(self):
-        now = time()
-        if now - self.starttime < 5*60:
-            return 5
-         
-    def closeConnection(self, permid):
-        try:
-            self.peers.pop(permid)
-        except KeyError:
-            print >> sys.stderr, "tc: close not existed connection", show_permid(permid)
-    
+

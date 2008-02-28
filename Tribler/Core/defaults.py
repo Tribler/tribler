@@ -148,8 +148,8 @@ dldefaults['auto_flush'] = 0
 #
 # Tribler per-download opts
 #
-dldefaults['role'] = ''
-dldefaults['coordinator_permid'] = ''
+dldefaults['coopdl_role'] = COOPDL_ROLE_COORDINATOR
+dldefaults['coopdl_coordinator_permid'] = ''
 dldefaults['exclude_ips'] = ''
 dldefaults['mode'] = 0
 dldefaults['vod_usercallback'] = None

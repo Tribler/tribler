@@ -44,14 +44,14 @@ class GrowlNotifier( Notifier ):
         self.growler.register()
 
     def notify( self, type, title, content ):
-	import Growl
+        import Growl
 
         # lookup the type
         x = [x for x in types if x[0]==type]
         assert x, "Notification type not found: notify(%s,'%s','%s')" % (type,title,content)
         info = x[0]
-	iconfile = self.icons[info[1]]
-	mesg = self.utility.lang.get(info[2])
+        iconfile = self.icons[info[1]]
+        mesg = self.utility.lang.get(info[2])
 
         # fetch the icon
         nIcon = Growl.Image.imageFromPath( os.path.join( self.icondir, iconfile ) )
@@ -68,7 +68,7 @@ def init( utility ):
 
     if sys.platform == "darwin":
         try:
-	    notifier = GrowlNotifier( utility )
+            notifier = GrowlNotifier( utility )
             notify = notifier.notify
         except:
             pass

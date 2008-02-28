@@ -52,6 +52,11 @@ class DownloadConfigInterface:
         """
         self.dlconfig['saveas'] = path
 
+    def get_dest_dir(self):
+        """ Gets the directory where to save this Download.
+        """
+        return self.dlconfig['saveas']
+
     def set_video_start_callback(self,usercallback):
         """ Download the torrent in Video-On-Demand mode or as live stream.
         When the video is ready to play, the usercallback function will be 
@@ -172,6 +177,40 @@ class DownloadConfigInterface:
         @return A number of connections. 
         """
         return self.dlconfig['max_connections']
+
+    #
+    # Cooperative Download parameters
+    #
+    def get_coopdl_role(self):
+        """ Returns the role which the download plays in a cooperative download,
+        <pre>
+        - COOPDL_ROLE_COORDINATOR: other peers help this download
+        - COOPDL_ROLE_HELPER: this download helps another peer download faster.
+        </pre>
+        The default is coordinator, and it is set to helper by the
+        set_coopdl_coordinator_permid() method. 
+        """
+        return self.dlconfig['coopdl_role']
+
+    def set_coopdl_coordinator_permid(self,permid):
+        """ Calling this method makes this download a helper in a cooperative
+        download, helping the peer identified by the specified permid. This peer
+        acts as coordinator, telling this download which parts of the content
+        to download. 
+        @param permid A PermID.
+        """
+        self.dlconfig['coopdl_role'] = COOPDL_ROLE_HELPER
+        self.dlconfig['coopdl_coordinator_permid'] = permid
+
+    def get_coopdl_coordinator_permid(self):
+        """ Returns the configured coordinator permid.
+        @return A PermID
+        """
+        return self.dlconfig['coopdl_coordinator_permid'] 
+
+    # See DownloadRuntime config for adding, removing and getting list of
+    # helping peers.
+        
 
     #
     # Advanced download parameters

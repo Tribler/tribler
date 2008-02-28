@@ -24,6 +24,7 @@ import socket
 from Tribler.Test.test_as_server import TestAsServer
 from btconn import BTConnection
 from olconn import OLConnection
+from Tribler.Core.RequestPolicy import AllowAllRequestPolicy
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.bitfield import Bitfield
 from Tribler.Core.BitTornado.BT1.MessageID import *
@@ -58,7 +59,7 @@ class TestDownloadHelp(TestAsServer):
         self.mytracker.background_serve()
 
         self.myid2 = 'R410-----56789HuGyx0'
-
+        
     def setUpMyListenSockets(self):
         # Start our server side, to with Tribler will try to connect
         self.mylistenport = 4810
@@ -86,8 +87,12 @@ class TestDownloadHelp(TestAsServer):
         self.torrentfile = os.path.join('extend_hs_dir','dummydata.merkle.torrent')
 
         # Add us as friend, so he will accept the DOWNLOAD_HELP
-        friendsdb = FriendDBHandler.getInstance()
-        friendsdb.addFriend(self.mypermid)      
+        if False:  # TEMP
+            friendsdb = FriendDBHandler.getInstance()
+            friendsdb.addFriend(self.mypermid)
+        else:
+            self.session.set_overlay_request_policy(AllowAllRequestPolicy())
+              
 
     def tearDown(self):
         """ override TestAsServer """

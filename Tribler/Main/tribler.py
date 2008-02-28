@@ -49,7 +49,10 @@ from Tribler.Utilities.interconn import ServerListener, ClientPassParam
 
 
 if (sys.platform == 'win32'):
-    from Dialogs.regdialog import RegCheckDialog
+    try:
+        from Dialogs.regdialog import RegCheckDialog
+    except:
+        from Tribler.Main.Dialogs.regdialog import RegCheckDialog
 
 from Tribler.Main.Utility.utility import Utility
 from Tribler.Main.Utility.constants import * #IGNORE:W0611
@@ -67,6 +70,7 @@ from Tribler.Main.vwxGUI.perfBar import set_perfBar_bitmaps
 from Tribler.Main.Dialogs.BandwidthSelector import BandwidthSelector
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Core.simpledefs import *
+from Tribler.Core.CacheDB.MugshotManager import MugshotManager
 from Tribler.Core.DecentralizedTracking import mainlineDHT
 from Tribler.Core.DecentralizedTracking.rsconvert import RawServerConverter
 from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
@@ -75,7 +79,7 @@ from Tribler.Main.notification import init as notification_init
 from Tribler.Main.vwxGUI.font import *
 from Tribler.Web2.util.update import Web2Updater
 
-from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
+#from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
 from Tribler.Core.Overlay.permid import permid_for_user
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Session import Session
@@ -294,7 +298,8 @@ class ABCFrame(wx.Frame):
         if PLAYBACKMODE_INTERNAL in feasible:
             # This means vlc is available
             from Tribler.Video.EmbeddedPlayer import VideoFrame
-            self.videoFrame = VideoFrame(self)
+            iconpath = os.path.join(self.utility.getPath(),'Tribler','Images','tribler.ico')
+            self.videoFrame = VideoFrame(self,'Tribler Video',iconpath)
 
             #self.videores = xrc.XmlResource("Tribler/vwxGUI/MyPlayer.xrc")
             #self.videoframe = self.videores.LoadFrame(None, "MyPlayer")
@@ -312,22 +317,22 @@ class ABCFrame(wx.Frame):
         
         
         # Just for debugging: add test permids and display top 5 peers from which the most is downloaded in bartercastdb
-        bartercastdb = BarterCastDBHandler.getInstance()
-        mypermid = bartercastdb.my_permid
-        
-        if DEBUG:
-            
-            top = bartercastdb.getTopNPeers(5)['top']
-    
-            print 'My Permid: ', permid_for_user(mypermid)
-            
-            print 'Top 5 BarterCast peers:'
-            print '======================='
-    
-            i = 1
-            for (permid, up, down) in top:
-                print '%2d: %15s  -  %10d up  %10d down' % (i, bartercastdb.getName(permid), up, down)
-                i += 1
+#        bartercastdb = BarterCastDBHandler.getInstance()
+#        mypermid = bartercastdb.my_permid
+#        
+#        if DEBUG:
+#            
+#            top = bartercastdb.getTopNPeers(5)['top']
+#    
+#            print 'My Permid: ', permid_for_user(mypermid)
+#            
+#            print 'Top 5 BarterCast peers:'
+#            print '======================='
+#    
+#            i = 1
+#            for (permid, up, down) in top:
+#                print '%2d: %15s  -  %10d up  %10d down' % (i, bartercastdb.getName(permid), up, down)
+#                i += 1
         
         
         # Check to see if ABC is associated with torrents
@@ -342,17 +347,24 @@ class ABCFrame(wx.Frame):
         self.checkVersion()
 
     def startAPI(self):
+        
+        # ARNO: LITETHREAD: Use stored config, not create new one always
+        
         sscfg = SessionStartupConfig()
         sscfg.set_install_dir(self.utility.getPath())
-        #sscfg.set_state_dir('/tmp/state_dir')
         if sys.platform == 'win32':
-            s = Session()
+            #s = Session()    # Jie: why not use sscfg?
+            s = Session(sscfg)
         else:
             s = Session(sscfg)
             
         print 'config_dir: %s' % s.get_state_dir()
         self.utility.session = s
-        r = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()
+
+        mm = MugshotManager.getInstance()
+        mm.register(s.sessconfig)
+        
+        r = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()    # Jie: what a big name!
         r.set_global_max_speed(DOWNLOAD,100)
         
     def checkVersion(self):
@@ -544,6 +556,14 @@ class ABCFrame(wx.Frame):
     ##################################
                
     def OnCloseWindow(self, event = None):
+        
+        # Jie: commit database before confirm
+        from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
+        db = SQLiteCacheDB.getInstance()
+        from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
+        overlay_bridge = OverlayThreadingBridge.getInstance()
+        overlay_bridge.add_task(lambda:db.commit, 0)
+
         if event != None:
             nr = event.GetEventType()
             lookup = { wx.EVT_CLOSE.evtType[0]: "EVT_CLOSE", wx.EVT_QUERY_END_SESSION.evtType[0]: "EVT_QUERY_END_SESSION", wx.EVT_END_SESSION.evtType[0]: "EVT_END_SESSION" }
@@ -656,7 +676,7 @@ class ABCFrame(wx.Frame):
         if DEBUG:    
             print >>sys.stderr,"abc: OnCloseWindow END"
 
-        if not DEBUG:
+        if DEBUG:
             ts = enumerate()
             for t in ts:
                 print >>sys.stderr,"abc: Thread still running",t.getName(),"daemon",t.isDaemon()

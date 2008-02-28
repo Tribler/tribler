@@ -78,7 +78,7 @@ class SingleManualChecking(Thread):
             
             namekey = metainfoname2unicode(metadata)
             torrent['info'] = {}
-            torrent['info']['name'] = metadata['info'][namekey]
+            torrent['info']['name'] = namekey[1]
             if metadata.get('announce'):
                 torrent['info']['announce'] = metadata.get('announce')
             if metadata.get('announce-list'):

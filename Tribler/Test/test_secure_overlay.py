@@ -20,7 +20,7 @@ from threading import Event, Thread, currentThread
 from socket import error as socketerror
 from time import sleep
 import tempfile
-from traceback import print_exc
+from traceback import print_exc,print_stack
 
 from Tribler.Core.BitTornado.RawServer import RawServer
 from Tribler.Core.BitTornado.ServerPortHandler import MultiHandler
@@ -47,7 +47,7 @@ class FakeSession:
 
 # Thread must come as first parent class!
 class Peer(Thread):
-    def __init__(self,testcase,port):
+    def __init__(self,testcase,port,secover):
         Thread.__init__(self)
         self.setDaemon(True)
 
@@ -91,8 +91,7 @@ class Peer(Thread):
         self.multihandler = MultiHandler(self.rawserver, self.doneflag)
         # Note: We don't want a singleton, we want
         # two different instances for peer1 and peer2
-        self.secure_overlay = SecureOverlay.getInstance()
-        self.secure_overlay.resetSingleton()
+        self.secure_overlay = secover
 
         self.my_keypair = EC.gen_params(EC.NID_sect233k1)
         self.my_keypair.gen_key()
@@ -103,7 +102,8 @@ class Peer(Thread):
         self.peer_db = PeerDBHandler.getInstance(config)
 
         self.secure_overlay.register(self,config['max_message_length'])
-        self.rawserver.sockethandler.set_handler(self.secure_overlay)
+        print >>sys.stderr,"Peer: Setting",self.secure_overlay.get_handler(),"as handler at SocketHandler"
+        self.rawserver.sockethandler.set_handler(self.secure_overlay.get_handler())
         self.secure_overlay.start_listening()
 
         # Stupid rawserver goes into very long wait if there are no short
@@ -135,8 +135,13 @@ class Peer(Thread):
 class TestSecureOverlay(unittest.TestCase):
     
     def setUp(self):
-        self.peer1 = Peer(self,1234)
-        self.peer2 = Peer(self,5678)
+        secover1 = SecureOverlay.getInstance()
+        secover1.resetSingleton()
+        secover2 = SecureOverlay.getInstance()
+        secover2.resetSingleton()
+        
+        self.peer1 = Peer(self,1234,secover1)
+        self.peer2 = Peer(self,5678,secover2)
         self.peer1.start()
         self.peer2.start()
         self.wanted = False

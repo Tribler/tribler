@@ -374,7 +374,6 @@ class standardGrid(wx.Panel):
         
     
     def updatePanel(self, oldRows, newRows):
-        #print 'update from %d to %d rows' % (oldRows, newRows)
         # put torrent items in grid 
         if newRows > oldRows:
             for i in range(oldRows, newRows):

@@ -220,7 +220,7 @@ class PingUploadLimitation(UploadLimitation):
             com = 'ping -c 3 -i0.2 -n %s' % host
         else:
             raise Exception('Not yet implemented')
-        
+        pass
         status, output = commands.getstatusoutput(com)
         if status != 0:
             self.log('Error: could not call ping')

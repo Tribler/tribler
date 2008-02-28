@@ -21,15 +21,14 @@ class OverlapMsgHandler:
         
         self.recentpeers = {}
 
-    def register(self, secure_overlay, launchmany):
+    def register(self, overlay_bridge, launchmany):
         if DEBUG:
             print >> sys.stderr,"socnet: bootstrap: overlap"
         self.mypermid = launchmany.session.get_permid()
         self.config = launchmany.session.sessconfig
-        self.peer_db = launchmany.peer_db
-        self.superpeer_db = launchmany.superpeer_db
-        self.secure_overlay = secure_overlay
-        self.rawserver = launchmany.rawserver
+        self.peer_db = launchmany.peer_db # LITETHREAD: opened by MainThread used by OverlayThread
+        self.superpeer_db = launchmany.superpeer_db # LITETHREAD: opened by MainThread used by OverlayThread
+        self.overlay_bridge = overlay_bridge
 
     #
     # Incoming SOCIAL_OVERLAP
@@ -114,10 +113,10 @@ class OverlapMsgHandler:
         persinfo = {'name':self.config['nickname']}
         
         # See if we can find icon using PermID or name (old style):
-        [type,data] = self.peer_db.getPeerIcon(self.mypermid,persinfo['name'])
-        if not type is None and not data is None:
-            persinfo['icontype'] = type
-            persinfo['icondata'] = str(data)
+#        [type,data] = self.peer_db.getPeerIcon(self.mypermid,persinfo['name'])
+#        if not type is None and not data is None:
+#            persinfo['icontype'] = type
+#            persinfo['icondata'] = str(data)
         
         oldict = {}
         oldict['persinfo'] = persinfo
@@ -133,7 +132,7 @@ class OverlapMsgHandler:
         try:
             body = bencode(oldict)
             ## Optimization: we know we're currently connected
-            self.secure_overlay.send(permid, SOCIAL_OVERLAP + body,self.send_callback)
+            self.overlay_bridge.send(permid, SOCIAL_OVERLAP + body,self.send_callback)
         except:
             if DEBUG:
                 print_exc(file=sys.stderr)
@@ -257,7 +256,7 @@ def save_ssocnet_peer(self,permid,record,persinfo_ignore,hrwidinfo_ignore,ipinfo
             print >>sys.stderr,"socnet: Got persinfo",persinfo.keys()
         
         if self.peer_db.hasPeer(permid):
-            self.peer_db.updatePeer(permid,'name',persinfo['name'])
+            self.peer_db.updatePeer(permid, name=persinfo['name'])
         else:
             self.peer_db.addPeer(permid,{'name':persinfo['name']})
     

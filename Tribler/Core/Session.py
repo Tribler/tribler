@@ -78,13 +78,21 @@ class Session(SessionRuntimeConfig):
             self.sessconfig['state_dir'] = state_dir
             
         if not os.path.isdir(state_dir):
-            os.mkdir(state_dir)
+            os.makedirs(state_dir)
+
 
         if not self.sessconfig['torrent_collecting_dir']:
-            self.sessconfig['torrent_collecting_dir'] = os.path.join(self.sessconfig['state_dir'], STATEDIR_TORRENTCOLL_DIR)
+            collected_torrent_dir = os.path.join(self.sessconfig['state_dir'], STATEDIR_TORRENTCOLL_DIR)
+            
+            # rename old collected torrent directory
+            self.sessconfig['torrent_collecting_dir'] = collected_torrent_dir
+            old_collected_torrent_dir = os.path.join(self.sessconfig['state_dir'], 'torrent2')
+            if not os.path.exists(collected_torrent_dir) and os.path.isdir(old_collected_torrent_dir):
+                os.rename(old_collected_torrent_dir, self.sessconfig['torrent_collecting_dir'])
+                print "Changed torrent collecting dir to", os.path.abspath(self.sessconfig['torrent_collecting_dir'])
             
         if not self.sessconfig['peer_icon_path']:
-            self.sessconfig['torrent_collecting_dir'] = os.path.join(self.sessconfig['state_dir'], STATEDIR_PEERICON_DIR)
+            self.sessconfig['peer_icon_path'] = os.path.join(self.sessconfig['state_dir'], STATEDIR_PEERICON_DIR)
             
         # PERHAPS: load default TorrentDef and DownloadStartupConfig from state dir
         # Let user handle that, he's got default_state_dir, etc.
@@ -146,10 +154,14 @@ class Session(SessionRuntimeConfig):
         # 5. download_help_dir
         if self.sessconfig['download_help_dir'] is None:
             self.sessconfig['download_help_dir'] = os.path.join(get_default_dest_dir(),DESTDIR_COOPDOWNLOAD)
+            if not os.path.isdir(self.sessconfig['download_help_dir']):
+                os.makedirs(self.sessconfig['download_help_dir'])
 
         # 6. peer_icon_path
         if self.sessconfig['peer_icon_path'] is None:
             self.sessconfig['peer_icon_path'] = os.path.join(self.sessconfig['state_dir'],STATEDIR_PEERICON_DIR)
+            if not os.path.isdir(self.sessconfig['peer_icon_path']):
+                os.mkdir(self.sessconfig['peer_icon_path'])
 
         # Checkpoint startup config
         self.save_pstate_sessconfig()
@@ -176,7 +188,8 @@ class Session(SessionRuntimeConfig):
     get_instance = staticmethod(get_instance)
 
     def get_default_state_dir(homedirpostfix='.Tribler'):
-        """ Returns the factory default directory for storing session state.
+        """ Returns the factory default directory for storing session state
+        on the current platform (Win32,Mac,Unix).
         @return An absolute path name. """
         if sys.platform == 'win32':
             homedirvar = '${APPDATA}'
@@ -466,6 +479,31 @@ class Session(SessionRuntimeConfig):
             return os.path.join(self.sessconfig['state_dir'],STATEDIR_DLPSTATE_DIR)
         finally:
             self.sesslock.release()
+
+    #
+    # Tribler Core special features
+    #
+    def download_torrentfile_from_peer(self,permid,infohash,usercallback):
+        """ Ask the designated peer to send us the torrentfile for the torrent
+        identified by the passed infohash. If the torrent is succesfully 
+        received, the usercallback method is called with the infohash as first
+        and the contents of the torrentfile (bencoded dict) as second parameter.
+        If the torrent could not be obtained, the callback is not called.
+        
+        @param permid The PermID of the peer to query.
+        @param infohash The infohash of the torrent.
+        @param usercallback A function adhering to the above spec.
+        """
+        self.sesslock.acquire()
+        try:
+            if self.sessconfig['overlay']:
+                rtorrent_handler = RemoteTorrentHandler.getInstance()
+                rtorrent_handler.download_torrent(permid,infohash,usercallback)
+            else:
+                raise OperationNotEnabledByConfigurationException("Overlay not enabled")
+        finally:
+            self.sesslock.release()
+        
 
     #
     # Internal persistence methods

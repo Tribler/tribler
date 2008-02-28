@@ -13,6 +13,7 @@ from Tribler.Core.BitTornado.clock import clock
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.__init__ import version_short,decodePeerID,TRIBLER_PEERID_LETTER
 from Tribler.Core.BitTornado.BT1.convert import tobinary,toint
+from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge 
 
 from MessageID import *
 
@@ -81,6 +82,7 @@ def show(s):
     for i in xrange(len(s)): 
         text.append(ord(s[i]))
     return text
+
     
 class Connection:
     def __init__(self, connection, connecter):
@@ -126,26 +128,6 @@ class Connection:
 
     def get_port(self, real=False):
         return self.connection.get_port(real)
-
-    #def set_permid(self, permid):
-    #    self.permid = permid
-
-    def get_unauth_permid(self):
-        """ Linking this normal connection to the PermID of its peer in all
-            cases is non-trivial. I currently hack this unsafe solution where
-            we look at the database periodically.
-
-            FIXME: very expensive operation in 50.000 peer DB indexed on permid
-        """
-        self.looked_for_permid += 1
-        if self.looked_for_permid >= UNAUTH_PERMID_PERIOD:
-            self.looked_for_permid = 0
-            peerdb = PeerDBHandler.getInstance()
-            peerList = peerdb.findPeers('ip',self.connection.get_ip())
-            if len(peerList) != 1:
-                return # Don't know
-            self.unauth_permid = peerList[0]['permid']
-        return self.unauth_permid
 
     def get_id(self):
         return self.connection.get_id()
@@ -406,10 +388,15 @@ class Connection:
             print >>sys.stderr,"connecter: Initiating overlay connection"
         if not self.initiated_overlay:
             self.initiated_overlay = True
-            so = SecureOverlay.getInstance()
-            so.connect_dns(self.connection.dns,self.connect_dns_callback)
+            # We use the SecureOverlay directly to create a overlay connection
+            # to a Tribler peer we meet in a swarm, instead of 
+            # OverlayThreadingBridge. 
 
-    def connect_dns_callback(self,exc,dns,permid,selversion):
+            so = SecureOverlay.getInstance()
+            so.connect_dns(self.connection.dns,self.network_connect_dns_callback)
+
+    def network_connect_dns_callback(self,exc,dns,permid,selversion):
+        # WARNING: WILL BE CALLED BY NetworkThread
         if exc is not None:
             print >>sys.stderr,"connecter: peer",dns,"said he supported overlay swarm, but we can't connect to him",exc
 
@@ -489,6 +476,12 @@ class Connecter:
             else:
                 print >>sys.stderr,"connecter: Disabling overlay"
             
+        if DEBUG:
+            if self.overlay_enabled:
+                print >>sys.stderr,"connecter: Enabling overlay"
+            else:
+                print >>sys.stderr,"connecter: Disabling overlay"
+            
         self.ut_pex_enabled = 0
         if 'ut_pex_max_addrs_from_peer' in self.config:
             self.ut_pex_max_addrs_from_peer = self.config['ut_pex_max_addrs_from_peer']
@@ -521,12 +514,10 @@ class Connecter:
             
             
         # BarterCast
-        if config['megacache']:
-            self.peerdb = PeerDBHandler.getInstance()
-            self.bartercastdb = BarterCastDBHandler.getInstance()
+        if config['overlay']:
+            self.overlay_bridge = OverlayThreadingBridge.getInstance()
         else:
-            self.peerdb = None
-            self.bartercastdb = None
+            self.overlay_bridge = None
 
     def how_many_connections(self):
         return len(self.connections)
@@ -534,10 +525,11 @@ class Connecter:
     def connection_made(self, connection):
         c = Connection(connection, self)
         self.connections[connection] = c
-        
+
         if connection.supports_extend_messages():
             # The peer either supports our overlay-swarm extension or 
-            # the utorrent extended protocol. 
+            # the utorrent extended protocol.
+            
             [client,version] = decodePeerID(connection.id)
             
             if DEBUG:
@@ -564,39 +556,15 @@ class Connecter:
 
         ######################################
         # BarterCast
-        if self.peerdb is not None:
+        if self.overlay_bridge is not None:
             ip = c.get_ip(False)       
             port = c.get_port(False)   
-    
-            permid = self.peerdb.getPermIDByIP(ip)
-    
-            if DEBUG:
-                print >> sys.stdout, "barter: Up %d down %d peer %s:%s (PermID = %s)" % (c.total_uploaded, c.total_downloaded, ip, port, permid)
-            my_permid = self.bartercastdb.my_permid
-    
             down_kb = int(c.total_downloaded / 1024)
             up_kb = int(c.total_uploaded / 1024)
-    
-            # Save exchanged KBs in BarterCastDB
-            if permid != None:
-    
-                name = self.bartercastdb.getName(permid)
-                
-                if down_kb > 0:
-                    new_value = self.bartercastdb.incrementItem((my_permid, permid), 'downloaded', down_kb)
-     
-                if up_kb > 0:
-                    new_value = self.bartercastdb.incrementItem((my_permid, permid), 'uploaded', up_kb)
-     
-            # For the record: save KBs exchanged with non-tribler peers
-            else:
-                if down_kb > 0:
-                    new_value = self.bartercastdb.incrementItem((my_permid, 'non-tribler'), 'downloaded', down_kb)
-     
-                if up_kb > 0:
-                    new_value = self.bartercastdb.incrementItem((my_permid, 'non-tribler'), 'uploaded', up_kb)
-
-        ###################################### 
+            
+            olthread_bartercast_conn_lost_lambda = lambda :olthread_bartercast_conn_lost(ip,port,down_kb,up_kb)
+            self.overlay_bridge.add_task(olthread_bartercast_conn_lost_lambda,0)
+        #########################
 
         del self.connections[connection]
         if c.download:
@@ -894,3 +862,36 @@ class Connecter:
                 traceback.print_exc()
             connection.close()
             return
+
+
+def olthread_bartercast_conn_lost(ip,port,down_kb,up_kb):
+    """ Called by OverlayThread to store information about the peer to
+    whom the connection was just closed in the (slow) databases. """
+    
+    peerdb = PeerDBHandler.getInstance()
+    bartercastdb = BarterCastDBHandler.getInstance()
+    if bartercastdb:
+        permid = peerdb.getPermIDByIP(ip)
+        my_permid = bartercastdb.my_permid
+    
+        if DEBUG:
+            print >> sys.stderr, "barter: Up %d down %d peer %s:%s (PermID = %s)" % (up_kb, down_kb, ip, port, permid)
+    
+        # Save exchanged KBs in BarterCastDB
+        if permid is not None:
+            name = bartercastdb.getName(permid)
+            
+            if down_kb > 0:
+                new_value = bartercastdb.incrementItem((my_permid, permid), 'downloaded', down_kb)
+     
+            if up_kb > 0:
+                new_value = bartercastdb.incrementItem((my_permid, permid), 'uploaded', up_kb)
+     
+            # For the record: save KBs exchanged with non-tribler peers
+        else:
+            if down_kb > 0:
+                new_value = bartercastdb.incrementItem((my_permid, 'non-tribler'), 'downloaded', down_kb)
+     
+            if up_kb > 0:
+                new_value = bartercastdb.incrementItem((my_permid, 'non-tribler'), 'uploaded', up_kb)
+

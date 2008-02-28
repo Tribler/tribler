@@ -4,7 +4,7 @@ import sys
 import os
 from sha import sha
 from time import time, ctime
-from traceback import print_exc
+from traceback import print_exc, print_stack
 from sets import Set
 
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
@@ -17,7 +17,8 @@ from Tribler.Core.simpledefs import *
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 from Tribler.Core.osutils import getfreespace
 
-DEBUG = False
+from threading import currentThread
+DEBUG = True
 
 # Python no recursive imports?
 # from overlayswarm import overlay_infohash
@@ -44,13 +45,12 @@ class MetadataHandler:
         return MetadataHandler.__single
     getInstance = staticmethod(getInstance)
         
-    def register(self, secure_overlay, dlhelper, launchmany, config):
+    def register(self, overlay_bridge, dlhelper, launchmany, config):
         self.registered = True
-        self.secure_overlay = secure_overlay
-        self.rawserver = secure_overlay.rawserver
+        self.overlay_bridge = overlay_bridge
         self.dlhelper = dlhelper
         self.launchmany = launchmany
-        self.torrent_db = launchmany.torrent_db
+        self.torrent_db = launchmany.torrent_db # LITETHREAD: openend by MainThread, used by Overlay
         self.config = config
         self.min_free_space = self.config['stop_collecting_threshold']*(2**20)
         if self.min_free_space <= 0:
@@ -90,22 +90,21 @@ class MetadataHandler:
                 print >> sys.stderr,"metadata: UNKNOWN OVERLAY MESSAGE", ord(t)
             return False
 
-    def send_metadata_request(self, permid, torrent_hash, selversion=-1, caller="BC"):
+    def send_metadata_request(self, permid, infohash, selversion=-1, caller="BC"):
         if DEBUG:
             print >> sys.stderr,"metadata: Connect to send GET_METADATA to",show_permid_short(permid)
-        if not isValidInfohash(torrent_hash):
+        if not isValidInfohash(infohash):
             return False
         
-        metadata = self.torrent_exists(torrent_hash)
+        metadata = self.torrent_exists(infohash)
         if metadata is not None:    # torrent already exists on disk
             if DEBUG:
                 print >> sys.stderr,"metadata: send_meta_req: Already on disk??!"
-            if self.dlhelper is not None:
-                self.dlhelper.call_dlhelp_task(torrent_hash, metadata)
+            self.notify_torrent_is_in(infohash, metadata)
             return True
         
         if caller == "dlhelp":
-            self.requested_torrents.add(torrent_hash)
+            self.requested_torrents.add(infohash)
         
         if self.free_space - self.avg_torrent_size < self.min_free_space:   # no space to collect
             self.free_space = self.get_free_space()
@@ -117,40 +116,40 @@ class MetadataHandler:
             # Optimization: don't connect if we're connected, although it won't 
             # do any harm.
             if selversion == -1: # not currently connected
-                self.secure_overlay.connect(permid,lambda e,d,p,s:self.get_metadata_connect_callback(e,d,p,s,torrent_hash))
+                self.overlay_bridge.connect(permid,lambda e,d,p,s:self.get_metadata_connect_callback(e,d,p,s,infohash))
             else:
-                self.get_metadata_connect_callback(None,None,permid,selversion,torrent_hash)
+                self.get_metadata_connect_callback(None,None,permid,selversion,infohash)
             
         except:
-            print_exc(file=sys.stderr)
+            print_exc()
             return False
         return True
 
-    def torrent_exists(self, torrent_hash):
+    def torrent_exists(self, infohash):
         # if the torrent is already on disk, put it in db
         
-        file_name = sha(torrent_hash).hexdigest()+'.torrent'
+        file_name = sha(infohash).hexdigest()+'.torrent'
         torrent_path = os.path.join(self.torrent_dir, file_name)
         if not os.path.exists(torrent_path):
             return None
         else:
             metadata = self.read_torrent(torrent_path)
-            if not self.valid_metadata(torrent_hash, metadata):
+            if not self.valid_metadata(infohash, metadata):
                 return None
-            self.addTorrentToDB(torrent_path, torrent_hash, metadata, source="BC", extra_info={})
+            self.addTorrentToDB(torrent_path, infohash, metadata, source="BC", extra_info={})
             return metadata
 
-    def get_metadata_connect_callback(self,exc,dns,permid,selversion,torrent_hash):
+    def get_metadata_connect_callback(self,exc,dns,permid,selversion,infohash):
         if exc is None:
             if DEBUG:
                 print >> sys.stderr,"metadata: Sending GET_METADATA to",show_permid_short(permid)
             ## Create metadata_request according to protocol version
             try:
-                metadata_request = bencode(torrent_hash)
-                self.secure_overlay.send(permid, GET_METADATA + metadata_request,self.get_metadata_send_callback)
-                self.requested_torrents.add(torrent_hash)
+                metadata_request = bencode(infohash)
+                self.overlay_bridge.send(permid, GET_METADATA + metadata_request,self.get_metadata_send_callback)
+                self.requested_torrents.add(infohash)
             except:
-                print_exc(file=sys.stderr)
+                print_exc()
         elif DEBUG:
             print >> sys.stderr,"metadata: GET_METADATA: error connecting to",show_permid_short(permid)
 
@@ -164,46 +163,63 @@ class MetadataHandler:
         
     def send_metadata(self, permid, message, selversion):
         try:
-            torrent_hash = bdecode(message[1:])
+            infohash = bdecode(message[1:])
         except:
-            print_exc(file=sys.stderr)
+            print_exc()
             if DEBUG:
                 print >> sys.stderr,"metadata: GET_METADATA: error becoding"
             return False
-        if not isValidInfohash(torrent_hash):
+        if not isValidInfohash(infohash):
             if DEBUG:
                 print >> sys.stderr,"metadata: GET_METADATA: invalid hash"
             return False
 
-        data = self.torrent_db.getTorrent(torrent_hash)
-        if not data or not data['torrent_name']:
-            return True     # don't close connection
-        live = data.get('status', 'unknown')
-        #print "**************** check live before send metadata", live
-        if live == 'dead':
-            return True    # don't send dead torrents around
-        
-        torrent_path = None
-        try:
-            torrent_path = os.path.join(data['torrent_dir'], data['torrent_name'])
-            if not os.path.isfile(torrent_path):
-                torrent_path = None
-        except:
-            print_exc(file=sys.stderr)
-            
-        if not torrent_path:
+        # TODO:
+        res = self.torrent_db.getTorrent(infohash, ('torrent_file_name', 'status_id'))
+        if not res:
             if DEBUG:
-                print >> sys.stderr,"metadata: GET_METADATA: not torrent path"
+                print >> sys.stderr,"metadata: GET_METADATA: not in database"
+            return True    # don't close connection because I don't have the torrent
+        torrent_file_name, status_id = res
+        if status_id == self.torrent_db._getStatusID('dead'):
+            if DEBUG:
+                print >> sys.stderr,"metadata: GET_METADATA: Torrent was dead"
             return True
+        torrent_path = os.path.join(self.torrent_dir, torrent_file_name)
+        if not os.path.isfile(torrent_path):
+            if DEBUG:
+                print >> sys.stderr,"metadata: GET_METADATA: not existing", res, torrent_path
+            return True
+#        
+#        data = self.torrent_db.getTorrent(infohash)
+#        if not data or not data['torrent_name']:
+#            return True     # don't close connection
+#        live = data.get('status', 'unknown')
+#        #print "**************** check live before send metadata", live
+#        if live == 'dead':
+#            return True    # don't send dead torrents around
+#        
+#        torrent_path = None
+#        try:
+#            torrent_path = os.path.join(data['torrent_dir'], data['torrent_name'])
+#            if not os.path.isfile(torrent_path):
+#                torrent_path = None
+#        except:
+#            print_exc()
+#            
+#        if not torrent_path:
+#            if DEBUG:
+#                print >> sys.stderr,"metadata: GET_METADATA: not torrent path"
+#            return True
         
-        task = {'permid':permid, 'torrent_hash':torrent_hash, 'torrent_path':torrent_path, 'selversion':selversion}
+        task = {'permid':permid, 'infohash':infohash, 'torrent_path':torrent_path, 'selversion':selversion}
         self.upload_queue.append(task)
         if int(time()) >= self.next_upload_time:
             self.checking_upload_queue()
         
         return True
 
-    def read_and_send_metadata(self, permid, torrent_hash, torrent_path, selversion):
+    def read_and_send_metadata(self, permid, infohash, torrent_path, selversion):
         torrent_data = self.read_torrent(torrent_path)
         if torrent_data:
             # Arno: Don't send private torrents
@@ -220,10 +236,10 @@ class MetadataHandler:
 
             if DEBUG:
                 print >> sys.stderr,"metadata: sending torrent", `torrent_path`, len(torrent_data)
-            torrent = {'torrent_hash':torrent_hash, 
+            torrent = {'torrent_hash':infohash, 
                        'metadata':torrent_data}
             if selversion >= OLPROTO_VER_FOURTH:
-                data = self.torrent_db.getTorrent(torrent_hash)
+                data = self.torrent_db.getTorrent(infohash)
                 nleechers = data.get('leecher', -1)
                 nseeders = data.get('seeder', -1)
                 last_check_time = int(time()) - data.get('last_check_time', 0)
@@ -236,7 +252,7 @@ class MetadataHandler:
 
             return self.do_send_metadata(permid, torrent, selversion)
         else:    # deleted before sending it
-            self.torrent_db.deleteTorrent(torrent_hash, delete_file=True, updateFlag=True)
+            self.torrent_db.deleteTorrent(infohash, delete_file=True, updateFlag=True)
             if DEBUG:
                 print >> sys.stderr,"metadata: GET_METADATA: no torrent data to send"
             return 0
@@ -246,7 +262,7 @@ class MetadataHandler:
         if DEBUG:
             print >> sys.stderr,"metadata: send metadata", len(metadata_request)
         ## Optimization: we know we're currently connected
-        self.secure_overlay.send(permid,METADATA + metadata_request,self.metadata_send_callback)
+        self.overlay_bridge.send(permid,METADATA + metadata_request,self.metadata_send_callback)
         return len(metadata_request)
 
     def metadata_send_callback(self,exc,permid):
@@ -272,81 +288,17 @@ class MetadataHandler:
 
 
     def addTorrentToDB(self, filename, torrent_hash, metadata, source='BC', extra_info={}, hack=False):
-        
-        metainfo = bdecode(metadata)
-        namekey = metainfoname2unicode(metainfo)  # convert info['name'] to type(unicode)
-        info = metainfo['info']
-        
-        torrent = {}
-        torrent['torrent_dir'], torrent['torrent_name'] = os.path.split(filename)
-        
-        torrent_info = {}
-        torrent_info['name'] = info.get(namekey, '')
-        
-        catobj = Category.getInstance(self.config['install_dir'], self.config['state_dir'])
-        torrent['category'] = catobj.calculateCategory(info, torrent_info['name'])
-        
-        #if DEBUG:
-        #    print >>sys.stderr,"metadata: Category for",`torrent_info['name']`,torrent['category']
-        
-        for cat in torrent['category']:
-            rank = catobj.getCategoryRank(cat)
-            if rank == -1:
-                if DEBUG:
-                    print >>sys.stderr,"metadata: Got torrent",`torrent_info['name']`,"from banned category",cat,", discarded it."
-                return
-        
-        length = 0
-        nf = 0
-        if info.has_key('length'):
-            length = info.get('length', 0)
-            nf = 1
-        elif info.has_key('files'):
-            for li in info['files']:
-                nf += 1
-                if li.has_key('length'):
-                    length += li['length']
-        torrent_info['length'] = length
-        torrent_info['num_files'] = nf
-        torrent_info['announce'] = metainfo.get('announce', '')
-        torrent_info['announce-list'] = metainfo.get('announce-list', '')
-        torrent_info['creation date'] = metainfo.get('creation date', 0)
-        torrent['info'] = torrent_info
-        
-        torrent["ignore_number"] = 0
-        torrent["retry_number"] = 0
-        if hack:
-            torrent["seeder"] = 1
-            torrent["leecher"] = 1
-            torrent["status"] = "good"
-            torrent["last_check_time"] = 0
-        else:
-            torrent["seeder"] = extra_info.get('seeder', -1)
-            torrent["leecher"] = extra_info.get('leecher', -1)
-            other_last_check = extra_info.get('last_check_time', -1)
-            if other_last_check >= 0:
-                torrent["last_check_time"] = int(time()) - other_last_check
-            else:
-                torrent["last_check_time"] = 0
-            torrent["status"] = extra_info.get('status', "unknown")
-        
-        torrent["source"] = source
-        torrent["inserttime"] = long(time())
-
-        #if (torrent['category'] != []):
-        #    print '### one torrent added from MetadataHandler: ' + str(torrent['category']) + ' ' + torrent['torrent_name'] + '###'
-        
-        self.torrent_db.addTorrent(torrent_hash, torrent, new_metadata=True, updateFlag=True)
-        self.torrent_db.sync()
+        def _addTorrentToDB():
+            self.torrent_db.addExternalTorrent(filename, source, extra_info)
+        self.overlay_bridge.add_task(_addTorrentToDB, 0)
 
         if self.initialized:
             self.num_torrents += 1
-            #print "---------- add Torrent To DB", self.num_torrents
             self.check_overflow()
         
-            if not extra_info:
-                torrent.update({'infohash':torrent_hash})
-                self.refreshTrackerStatus(torrent)
+#            if not extra_info:
+#                torrent.update({'infohash':torrent_hash})
+#                self.refreshTrackerStatus(torrent)
             
             if len(self.recently_collected_torrents) < 50:    # Queue of 50
                 self.recently_collected_torrents.append(torrent_hash)
@@ -357,21 +309,88 @@ class MetadataHandler:
             # Arno: show activity
             self.launchmany.set_activity(NTFY_ACT_GOT_METADATA,unicode('"'+torrent_info['name']+'"'))
         
+#
+#    def addTorrentToDB(self, filename, torrent_hash, metadata, source='BC', extra_info={}, hack=False):
+#        
+#        metainfo = bdecode(metadata)
+#        namekey = metainfoname2unicode(metainfo)  # convert info['name'] to type(unicode)
+#        info = metainfo['info']
+#        
+#        torrent = {}
+#        torrent['torrent_dir'], torrent['torrent_name'] = os.path.split(filename)
+#        
+#        torrent_info = {}
+#        torrent_info['name'] = info.get(namekey, '')
+#        
+#        catobj = Category.getInstance(self.config['install_dir'], self.config['state_dir'])
+#        torrent['category'] = catobj.calculateCategory(info, torrent_info['name'])
+#        
+#        #if DEBUG:
+#        #    print >>sys.stderr,"metadata: Category for",`torrent_info['name']`,torrent['category']
+#        
+#        for cat in torrent['category']:
+#            rank = catobj.getCategoryRank(cat)
+#            if rank == -1:
+#                if DEBUG:
+#                    print >>sys.stderr,"metadata: Got torrent",`torrent_info['name']`,"from banned category",cat,", discarded it."
+#                return
+#        
+#        length = 0
+#        nf = 0
+#        if info.has_key('length'):
+#            length = info.get('length', 0)
+#            nf = 1
+#        elif info.has_key('files'):
+#            for li in info['files']:
+#                nf += 1
+#                if li.has_key('length'):
+#                    length += li['length']
+#        torrent_info['length'] = length
+#        torrent_info['num_files'] = nf
+#        torrent_info['announce'] = metainfo.get('announce', '')
+#        torrent_info['announce-list'] = metainfo.get('announce-list', '')
+#        torrent_info['creation date'] = metainfo.get('creation date', 0)
+#        torrent['info'] = torrent_info
+#        
+#        torrent["ignore_number"] = 0
+#        torrent["retry_number"] = 0
+#        if hack:
+#            torrent["seeder"] = 1
+#            torrent["leecher"] = 1
+#            torrent["status"] = "good"
+#            torrent["last_check_time"] = 0
+#        else:
+#            torrent["seeder"] = extra_info.get('seeder', -1)
+#            torrent["leecher"] = extra_info.get('leecher', -1)
+#            other_last_check = extra_info.get('last_check_time', -1)
+#            if other_last_check >= 0:
+#                torrent["last_check_time"] = int(time()) - other_last_check
+#            else:
+#                torrent["last_check_time"] = 0
+#            torrent["status"] = extra_info.get('status', "unknown")
+#        
+#        torrent["source"] = source
+#        torrent["inserttime"] = long(time())
+#
+#        #if (torrent['category'] != []):
+#        #    print '### one torrent added from MetadataHandler: ' + str(torrent['category']) + ' ' + torrent['torrent_name'] + '###'
+#        
+#        self.torrent_db.addTorrent(torrent_hash, torrent, new_metadata=True)#, updateFlag=True)
+#        self.torrent_db.sync()
+
     def set_overflow(self, max_num_torrent):
         self.max_num_torrents = self.init_max_num_torrents = max_num_torrent
         
     def delayed_check_overflow(self, delay=2):
         if not self.initialized:
             return
-        rawserver = self.secure_overlay.rawserver    # not a good way, but simple
-        rawserver.add_task(self.check_overflow, delay)
+        self.overlay_bridge.add_task(self.check_overflow, delay)
         
     def delayed_check_free_space(self, delay=2):
         self.free_space = self.get_free_space()
         #if not self.initialized:
         #    return
-        #rawserver = self.secure_overlay.rawserver    # not a good way, but simple
-        #rawserver.add_task(self.check_free_space, delay)
+        #self.overlay_bridge.add_task(self.check_free_space, delay)
         
     def check_overflow(self):    # check if there are too many torrents relative to the free disk space
         if self.num_torrents < 0:
@@ -388,6 +407,8 @@ class MetadataHandler:
             self.limit_space(num_delete)
             
     def limit_space(self, num_delete):
+        return 
+        # TODO: 
         def get_weight(torrent):
             # policy of removing torrent:
             # status*1000 + retry_number*100 - relevance/10 + date - leechers - 3*seeders
@@ -462,7 +483,7 @@ class MetadataHandler:
 #        self.max_num_torrents = self.init_max_num_torrents
 #===============================================================================
         
-    def save_torrent(self, torrent_hash, metadata, source='BC', extra_info={}):
+    def save_torrent(self, infohash, metadata, source='BC', extra_info={}):
         if not self.initialized:
             return
 
@@ -475,15 +496,15 @@ class MetadataHandler:
                 self.warn_disk_full()
                 return
         
-        file_name = self.get_filename(torrent_hash)
+        file_name = self.get_filename(infohash)
         if DEBUG:
-            print >> sys.stderr,"metadata: Storing torrent", sha(torrent_hash).hexdigest(),"in",file_name
+            print >> sys.stderr,"metadata: Storing torrent", sha(infohash).hexdigest(),"in",file_name
         
         save_path = self.write_torrent(metadata, self.torrent_dir, file_name)
         if save_path:
             self.num_collected_torrents += 1
             self.free_space -= len(metadata)
-            self.addTorrentToDB(save_path, torrent_hash, metadata, source=source, extra_info=extra_info)
+            self.addTorrentToDB(save_path, infohash, metadata, source=source, extra_info=extra_info)
             # check if space is enough and remove old torrents
         
         
@@ -494,8 +515,8 @@ class MetadataHandler:
         check = SingleManualChecking(torrent)
         check.start()
         
-    def get_filename(self,torrent_hash):
-        file_name = sha(torrent_hash).hexdigest()+'.torrent'
+    def get_filename(self,infohash):
+        file_name = sha(infohash).hexdigest()+'.torrent'
         #_path = os.path.join(self.torrent_dir, file_name)
         #if os.path.exists(_path):
             # assign a name for the torrent. add a timestamp if it exists.
@@ -515,17 +536,17 @@ class MetadataHandler:
                 print >> sys.stderr,"metadata: write torrent", `save_path`, len(metadata), hash(metadata)
             return save_path
         except:
-            print_exc(file=sys.stderr)
+            print_exc()
             print >> sys.stderr, "metadata: write torrent failed"
             return None
 
-    def valid_metadata(self, torrent_hash, metadata):
+    def valid_metadata(self, infohash, metadata):
         try:
             metainfo = bdecode(metadata)
-            infohash = sha(bencode(metainfo['info'])).digest()
-            if infohash != torrent_hash:
+            got_infohash = sha(bencode(metainfo['info'])).digest()
+            if infohash != got_infohash:
                 print >> sys.stderr, "metadata: infohash doesn't match the torrent " + \
-                "hash. Required: " + `torrent_hash` + ", but got: " + `infohash`
+                "hash. Required: " + `infohash` + ", but got: " + `got_infohash`
                 return False
             return True
         except:
@@ -546,26 +567,26 @@ class MetadataHandler:
         try:
             message = bdecode(message[1:])
         except:
-            print_exc(file=sys.stderr)
+            print_exc()
             return False
         if not isinstance(message, dict):
             return False
         try:
-            torrent_hash = message['torrent_hash']
-            if not isValidInfohash(torrent_hash):
+            infohash = message['torrent_hash']
+            if not isValidInfohash(infohash):
                 return False
 
-            if not torrent_hash in self.requested_torrents:    # got a torrent which was not requested
+            if not infohash in self.requested_torrents:    # got a torrent which was not requested
                 return True
-            if self.torrent_db.hasMetaData(torrent_hash):
+            if self.torrent_db.hasMetaData(infohash):
                 return True
             
             metadata = message['metadata']
-            if not self.valid_metadata(torrent_hash, metadata):
+            if not self.valid_metadata(infohash, metadata):
                 return False
             if DEBUG:
                 torrent_size = len(metadata)
-                print >> sys.stderr,"metadata: Recvd torrent", `torrent_hash`, sha(torrent_hash).hexdigest(), torrent_size
+                print >> sys.stderr,"metadata: Recvd torrent", `infohash`, sha(infohash).hexdigest(), torrent_size
             
             extra_info = {}
             if selversion >= OLPROTO_VER_FOURTH:
@@ -579,23 +600,26 @@ class MetadataHandler:
                     print >> sys.stderr, "metadata: wrong extra info in msg - ", message
                     extra_info = {}
                 
-            self.save_torrent(torrent_hash, metadata, extra_info=extra_info)
-            self.requested_torrents.remove(torrent_hash)
+            self.save_torrent(infohash, metadata, extra_info=extra_info)
+            self.requested_torrents.remove(infohash)
             
             if DEBUG:
                 print >>sys.stderr,"metadata: Was I asked to dlhelp someone",self.dlhelper
-            
-            if self.dlhelper is not None:
-                self.dlhelper.call_dlhelp_task(torrent_hash, metadata)
-            if self.rquerytorrenthandler is not None:
-                self.rquerytorrenthandler.got_torrent(torrent_hash,metadata)
+
+            self.notify_torrent_is_in(infohash,metadata)
                 
         except Exception, e:
             print_exc()
-            print >> sys.stderr,"metadata: Received metadata is broken",e
+            print >> sys.stderr,"metadata: Received metadata is broken",e, message.keys()
             return False
         
         return True
+
+    def notify_torrent_is_in(self,infohash,metadata):
+        if self.dlhelper is not None:
+            self.dlhelper.metadatahandler_received_torrent(infohash, metadata)
+        if self.rquerytorrenthandler is not None:
+            self.rquerytorrenthandler.metadatahandler_got_torrent(infohash,metadata)
         
     def get_num_torrents(self):
         return self.num_torrents
@@ -636,13 +660,13 @@ class MetadataHandler:
         if self.upload_rate > 0 and int(time()) >= self.next_upload_time and len(self.upload_queue) > 0:
             task = self.upload_queue.pop(0)
             permid = task['permid']
-            torrent_hash = task['torrent_hash']
+            infohash = task['infohash']
             torrent_path = task['torrent_path']
             selversion = task['selversion']
-            sent_size = self.read_and_send_metadata(permid, torrent_hash, torrent_path, selversion)
+            sent_size = self.read_and_send_metadata(permid, infohash, torrent_path, selversion)
             idel = sent_size / self.upload_rate + 1
             self.next_upload_time = int(time()) + idel
-            self.rawserver.add_task(self.checking_upload_queue, idel)
+            self.overlay_bridge.add_task(self.checking_upload_queue, idel)
 
     def getRecentlyCollectedTorrents(self, num):
         if not self.initialized:

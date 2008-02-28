@@ -183,7 +183,6 @@ class GUIUtility:
             print >>sys.stderr,"GUIUtil: MainButtonClicked: unhandled name",name
             
     def standardFilesOverview(self ):        
-        
         self.standardOverview.setMode('filesMode')
         filters = self.standardOverview.getFilter().getState()
         #if filters:
@@ -444,7 +443,7 @@ class GUIUtility:
             
             num_remote_queries = min((self.remote_search_threshold - nhits)/2, self.max_remote_queries)
             if num_remote_queries > 0:
-                self.rqmh.sendQuery(q, num_remote_queries) 
+                self.rqmh.send_query(q, num_remote_queries) 
                 self.standardOverview.setSearchFeedback('remote', False, 0)
 
         
@@ -696,7 +695,7 @@ class GUIUtility:
         self.standardOverview.removeTorrentFromLibrary(item)
     
     def addAbcTorrent(self, item):
-        from Tribler.vwxGUI.torrentManager import key_abctorrent
+        from Tribler.Main.vwxGUI.torrentManager import key_abctorrent
         
         for torrent in self.utility.torrents['all']:
             if torrent.torrent_hash == item['infohash']:

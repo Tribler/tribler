@@ -427,7 +427,7 @@ class SocketHandler:
                             print >> sys.stderr,"SocketHandler: Got connection from",newsock.getpeername()
                         if not self.btengine_said_reachable:
                             dmh = DialbackMsgHandler.getInstance()
-                            dmh.btengine_network_callback()
+                            dmh.network_btengine_reachable_callback()
                             self.btengine_said_reachable = True
                             
                         newsock.setblocking(0)

@@ -5,8 +5,10 @@ from traceback import print_exc,print_stack
 from Tribler.Main.vwxGUI.torrentManager import TorrentDataManager
 from Tribler.Main.vwxGUI.SearchDetails import SearchDetailsPanel
 from Tribler.Main.vwxGUI.LoadingDetails import LoadingDetailsPanel
+from Tribler.Core.Utilities.utilities import sort_dictlist
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.Utility.constants import *
+from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 from peermanager import PeerDataManager
 import peermanager
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
@@ -67,30 +69,36 @@ class standardOverview(wx.Panel):
             def run(self):
                 try:
                     #first load the peer data
-                    peer_list = None
+#                    peer_list = None
                     #wait for buddycast list only if the recommender is enabled
-                    bcactive = self.owner.utility.config.Read('enablerecommender', "boolean")
-                    if bcactive:
-                        self.buddycast.data_ready_evt.wait()   # called by buddycast
-                        # get the peer list in buddycast. Actually it is a dict, but it can be used
-                        peer_list = self.buddycast.getAllPeerList()
-                        if DEBUG:
-                            print >>sys.stderr,"standardOverview: Buddycast signals it has loaded, release data for GUI thread", len(peer_list), currentThread().getName()
-                            
+                    
                     #print >> sys.stderr, '[StartUpDebug]----------- thread data loading started'
                     #first load torrent data from database
-                    self.owner.data_manager.loadData(self)
+                    self.owner.data_manager.loadData()
+                    self.refreshView()
                     #print >> sys.stderr, '[StartUpDebug]----------- thread torrent data loaded'
                             
+                    self.owner.peer_manager.loadData()
                             
     #                self.owner.sortData(self.owner.prepareData(buddycast_peer_list))
                     #this initialization can be done in another place also
-                    data = self.owner.peer_manager.prepareData(peer_list)
-                    self.buddycast.removeAllPeerList()    # to reduce memory
-            #        self.sortData(data)
-                    self.owner.peer_manager.applyFilters(data)
-            #        print "<mluc> ################### size of data is ",len(self.filtered_data['all'])
-                    self.owner.peer_manager.isDataPrepared = True
+                    
+#                    bcactive = self.owner.utility.config.Read('buddycast', "boolean")
+#                    if bcactive:
+#                        self.buddycast.data_ready_evt.wait()   # called by buddycast
+#                        # get the peer list in buddycast. Actually it is a dict, but it can be used
+#                        peer_list = self.buddycast.getAllPeerList()
+#                        if DEBUG:
+#                            print >>sys.stderr,"standardOverview: Buddycast signals it has loaded, release data for GUI thread", len(peer_list), currentThread().getName()
+                            
+#                    data = self.owner.peer_manager.prepareData()
+##                    if bcactive:
+##                        self.buddycast.removeAllPeerList()    # to reduce memory
+#                        
+#            #        self.sortData(data)
+#                    self.owner.peer_manager.applyFilters(data)
+#            #        print "<mluc> ################### size of data is ",len(self.filtered_data['all'])
+#                    self.owner.peer_manager.isDataPrepared = True
                     #print >> sys.stderr, '[StartUpDebug]----------- thread peer data loaded'
                     
                 except:
@@ -108,18 +116,22 @@ class standardOverview(wx.Panel):
         self.addComponents()
         #self.Refresh()
         
-        self.guiUtility.initStandardOverview(self)
-
+        self.guiUtility.initStandardOverview(self)    # show file panel
         self.toggleLoadingDetailsPanel(True)
+        
+        # Jie TODO: add task to overlay bridge
+        #overlay_bridge = OverlayThreadingBridge.getInstance()
+        #overlay_bridge.add_task(run, 0)
+        
         thr1=DataLoadingThread(self)
         thr1.setDaemon(True)
         thr1.start()
-        print 'thread.start()'
+        #print 'thread.start()'
         
         #print >> sys.stderr, '[StartUpDebug]----------- standardOverview is in postinit ----------', currentThread().getName(), '\n\n'
         
     def OnLoadingDone(self):
-        self.data_manager.mergeData()
+        #self.data_manager.mergeData()
         self.filterChanged()
         self.toggleLoadingDetailsPanel(False)
         
@@ -130,6 +142,8 @@ class standardOverview(wx.Panel):
         self.Layout()
         
     def setMode(self, mode):
+        # switch to another view, 
+        # mode is one of the [filesMode, personsMode, friendsMode, profileMode, libraryMode, subscriptionsMode]
         if self.mode != mode:
             self.stopWeb2Search()
             self.mode = mode
@@ -165,8 +179,9 @@ class standardOverview(wx.Panel):
         currentPanel = self.data[self.mode].get('panel',None)
         modeString = self.mode[:-4]
         if DEBUG:
-            print >>sys.stderr,'standardOverview: loadPanel: modeString='+modeString
-        if not currentPanel:
+            print >>sys.stderr,'standardOverview: loadPanel: modeString='+modeString,'currentPanel:',currentPanel
+        # create the panel for the first click. panel could be one of the [file,person,friend,library,profile,rss]
+        if not currentPanel:    
             xrcResource = os.path.join(self.guiUtility.vwxGUI_path, modeString+'Overview.xrc')
             panelName = modeString+'Overview'
             try:
@@ -174,8 +189,8 @@ class standardOverview(wx.Panel):
                 res = xrc.XmlResource(xrcResource)
                 # create panel
                 currentPanel = res.LoadPanel(self, panelName)
-                grid = xrc.XRCCTRL(currentPanel, modeString+'Grid')
-                pager = xrc.XRCCTRL(currentPanel, 'standardPager')
+                grid = xrc.XRCCTRL(currentPanel, modeString+'Grid')    
+                pager = xrc.XRCCTRL(currentPanel, 'standardPager')    # Jie:not really used for profile, rss and library?
                 search = xrc.XRCCTRL(currentPanel, 'searchField')
                 filter = xrc.XRCCTRL(currentPanel, modeString+'Filter')
                 if not currentPanel:
@@ -248,6 +263,7 @@ class standardOverview(wx.Panel):
                 if type(data) == list:
                     print >>sys.stderr,"standardOverview: refreshData: refreshing",len(data)
             
+            # load and show the data in the grid
             grid.setData(self.data[self.mode].get('data'), resetPages = False)
 
         
@@ -328,6 +344,8 @@ class standardOverview(wx.Panel):
                 
             
     def loadTorrentData(self, cat, sort):
+        # cat can be 'all', 'friends', 'search', 'search_friends', None, self.data[self.mode].get('filterState')[0]
+        # sort can be 'seeder',..
         if DEBUG:
             print >>sys.stderr,'standardOverview: loadTorrentData: Category set to %s, %s' % (str(cat), str(sort))
         
@@ -539,7 +557,7 @@ class standardOverview(wx.Panel):
             
         if operate == 'update':
             # unhealthy torrents are also updated
-            torrentgrid_updateItem_lambda = lambda:torrentGrid.updateItem(torrent],onlyupdate=True) 
+            torrentgrid_updateItem_lambda = lambda:torrentGrid.updateItem(torrent,onlyupdate=True) 
         elif operate == 'add' and torrent.get('status') == 'good' or torrent.get('myDownloadHistory'):
             #print "******** add torrent", torrent,self.mode,self.data_manager.inSearchMode(self.mode)
             
@@ -657,8 +675,6 @@ class standardOverview(wx.Panel):
     def removeTorrentFromLibrary(self, torrent):
         "Remove torrent from the library. Add it to discovered files?"
         infohash = torrent['infohash']
-        self.utility.mypref_db.deletePreference(infohash)
-        self.utility.mypref_db.sync()
         self.data_manager.setBelongsToMyDowloadHistory(infohash, False)
         
     def gotRemoteHits(self,permid,kws,answers):

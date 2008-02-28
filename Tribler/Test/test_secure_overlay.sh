@@ -27,3 +27,5 @@ python test_secure_overlay.py singtest_got_conn_outgoing
 python test_secure_overlay.py singtest_got_conn_local_close
 python test_secure_overlay.py singtest_got_conn_remote_close
 
+python test_connect_overlay.py singtest_connect_overlay
+

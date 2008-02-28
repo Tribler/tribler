@@ -23,7 +23,8 @@
 import sys
 from time import time
 from random import shuffle
-from traceback import print_exc
+from traceback import print_exc,print_stack
+from threading import currentThread
 
 from Tribler.Core.BitTornado.BT1.MessageID import *
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
@@ -81,27 +82,29 @@ class DialbackMsgHandler:
         return DialbackMsgHandler.__single
     getInstance = staticmethod(getInstance)
         
-    def register(self,secure_overlay,launchmany, config):
-        self.secure_overlay = secure_overlay
-        self.rawserver = launchmany.rawserver
+    def register(self,overlay_bridge,launchmany,rawserver,config):
+        """ Called by MainThread """
+        self.overlay_bridge = overlay_bridge
+        self.rawserver = rawserver
         self.launchmany = launchmany
-        self.peer_db = launchmany.peer_db
-        self.superpeer_db = launchmany.superpeer_db
+        self.peer_db = launchmany.peer_db   # LITETHREAD: don't work: must be overlay thread that opens DB connection
+        self.superpeer_db = launchmany.superpeer_db # LITETHREAD: don't work: must be overlay thread that opens DB connection
         self.active = config['dialback_active'],
         self.trust_superpeers = config['dialback_trust_superpeers']
         self.returnconnhand.register(self.rawserver,launchmany.multihandler,launchmany.listen_port,config['overlay_max_message_length'])
-        self.returnconnhand.register_conns_callback(self.handleReturnConnConnection)
-        self.returnconnhand.register_recv_callback(self.handleReturnConnMessage)
+        self.returnconnhand.register_conns_callback(self.network_handleReturnConnConnection)
+        self.returnconnhand.register_recv_callback(self.network_handleReturnConnMessage)
         self.returnconnhand.start_listening()
 
         self.old_ext_ip = launchmany.get_ext_ip()
 
-    #
-    # Called from OverlayApps to signal there is an overlay-connection,
-    # see if we should ask it to dialback
-    #
-    def handleSecOverlayConnection(self,exc,permid,selversion,locally_initiated):
-        
+
+    def olthread_handleSecOverlayConnection(self,exc,permid,selversion,locally_initiated):
+        """
+        Called from OverlayApps to signal there is an overlay-connection,
+        see if we should ask it to dialback
+        """
+        # Called by overlay thread
         if DEBUG:
             print >> sys.stderr,"dialback: handleConnection",exc,"v",selversion,"local",locally_initiated
         if selversion < OLPROTO_VER_THIRD:
@@ -131,14 +134,15 @@ class DialbackMsgHandler:
             # Also do this when the connection is not locally initiated.
             # That tells us that we're connectable, but it doesn't tell us
             # our external IP address.
-            self.attempt_request_dialback(permid)
+            self.olthread_attempt_request_dialback(permid)
         return True
             
-    def attempt_request_dialback(self,permid):
+    def olthread_attempt_request_dialback(self,permid):
+        # Called by overlay thread
         if DEBUG:
             print >> sys.stderr,"dialback: attempt dialback request",show_permid_short(permid)
                     
-        dns = self.get_dns_from_peerdb(permid)
+        dns = self.olthread_get_dns_from_peerdb(permid)
         ipinuse = False
 
         # 1. Remove peers we asked but didn't succeed in connecting back 
@@ -161,47 +165,50 @@ class DialbackMsgHandler:
                 print >> sys.stderr,"dialback: No request made to",show_permid_short(permid),"already asked",pipa,"IP in use",ipinuse,"nasked",lpa
 
             return
-        dns = self.get_dns_from_peerdb(permid)
+        dns = self.olthread_get_dns_from_peerdb(permid)
         
         # 3. Ask him to dialback
         peerrec = {'dns':dns,'reqtime':time()}
         self.peers_asked[permid] = peerrec
-        self.secure_overlay.connect(permid,self.request_connect_callback)
+        self.overlay_bridge.connect(permid,self.olthread_request_connect_callback)
     
-    def request_connect_callback(self,exc,dns,permid,selversion):
+    def olthread_request_connect_callback(self,exc,dns,permid,selversion):
+        # Called by overlay thread
         if exc is None:
             if selversion >= OLPROTO_VER_THIRD:
-                self.secure_overlay.send(permid, DIALBACK_REQUEST+'',self.request_send_callback)
+                self.overlay_bridge.send(permid, DIALBACK_REQUEST+'',self.olthread_request_send_callback)
             elif DEBUG:
                 print >> sys.stderr,"dialback: DIALBACK_REQUEST: peer speaks old protocol, weird",show_permid_short(permid)
         elif DEBUG:
             print >> sys.stderr,"dialback: DIALBACK_REQUEST: error connecting to",show_permid_short(permid),exc
 
 
-    def request_send_callback(self,exc,permid):
+    def olthread_request_send_callback(self,exc,permid):
+        # Called by overlay thread
         if exc is not None:
             if DEBUG:
                 print >> sys.stderr,"dialback: DIALBACK_REQUEST error sending to",show_permid_short(permid),exc
             pass
 
-    #
-    # Handle incoming DIALBACK_REQUEST messages
-    #
-    def handleSecOverlayMessage(self,permid,selversion,message):
-        
+    def olthread_handleSecOverlayMessage(self,permid,selversion,message):
+        """
+        Handle incoming DIALBACK_REQUEST messages
+        """
+        # Called by overlay thread
         t = message[0]
         
         if t == DIALBACK_REQUEST:
             if DEBUG:
                 print >> sys.stderr,"dialback: Got DIALBACK_REQUEST",len(message),show_permid_short(permid)
-            return self.process_dialback_request(permid, message, selversion)
+            return self.olthread_process_dialback_request(permid, message, selversion)
         else:
             if DEBUG:
                 print >> sys.stderr,"dialback: UNKNOWN OVERLAY MESSAGE", ord(t)
             return False
 
 
-    def process_dialback_request(self,permid,message,selversion):
+    def olthread_process_dialback_request(self,permid,message,selversion):
+        # Called by overlay thread
         # 1. Check
         if len(message) != 1:
             if DEBUG:
@@ -209,30 +216,39 @@ class DialbackMsgHandler:
             return False
 
         # 2. Retrieve peer's IP address
-        dns = self.get_dns_from_peerdb(permid)
+        dns = self.olthread_get_dns_from_peerdb(permid)
 
         # 3. Send back reply
-        self.returnconnhand.connect_dns(dns,self.returnconn_reply_connect_callback)
+        # returnconnhand uses the network thread to do stuff, so the callback
+        # will be made by the network thread
+        self.returnconnhand.connect_dns(dns,self.network_returnconn_reply_connect_callback)
 
         # 4. Message processed OK, don't know about sending of reply though
         return True
 
-    def returnconn_reply_connect_callback(self,exc,dns):
+
+    def network_returnconn_reply_connect_callback(self,exc,dns):
+        # Called by network thread
+        
+        if not currentThread().getName().startswith("NetworkThread"):
+            print >>sys.stderr,"dialback: network_returnconn_reply_connect_callback: called by",currentThread().getName()," not NetworkThread"
+            print_stack()
+        
         if exc is None:
             hisip = dns[0]
             try:
                 reply = bencode(hisip)
                 if DEBUG:
                     print >> sys.stderr,"dialback: DIALBACK_REPLY: sending to",dns
-                self.returnconnhand.send(dns, DIALBACK_REPLY+reply, self.returnconn_reply_send_callback)
+                self.returnconnhand.send(dns, DIALBACK_REPLY+reply, self.network_returnconn_reply_send_callback)
             except:
-                print_exc(file=sys.stderr)
+                print_exc()
                 return False
         elif DEBUG:
             print >> sys.stderr,"dialback: DIALBACK_REPLY: error connecting to",dns,exc
 
-    def returnconn_reply_send_callback(self,exc,dns):
-        
+    def network_returnconn_reply_send_callback(self,exc,dns):
+        # Called by network thread
         if DEBUG:
             print >> sys.stderr,"dialback: DIALBACK_REPLY: send callback:",dns,exc
 
@@ -245,32 +261,42 @@ class DialbackMsgHandler:
     #
     # Receipt of connection that would carry DIALBACK_REPLY 
     #
-    def handleReturnConnConnection(self,exc,dns,locally_initiated):
+    def network_handleReturnConnConnection(self,exc,dns,locally_initiated):
+        # Called by network thread
         if DEBUG:
             print >> sys.stderr,"dialback: DIALBACK_REPLY: Got connection from",dns,exc
         pass
 
-    def handleReturnConnMessage(self,dns,message):
-        
+    def network_handleReturnConnMessage(self,dns,message):
+        # Called by network thread
         t = message[0]
         
         if t == DIALBACK_REPLY:
             if DEBUG:
                 print >> sys.stderr,"dialback: Got DIALBACK_REPLY",len(message),dns
-            return self.process_dialback_reply(dns, message)
+
+            # Hand over processing to overlay thread
+            olthread_process_dialback_reply_lambda = lambda:self.olthread_process_dialback_reply(dns, message)
+            self.overlay_bridge.add_task(olthread_process_dialback_reply_lambda,0)
+        
+            # We're done and no longer need the return connection, so
+            # call close explicitly
+            self.returnconnhand.close(dns)
+            return True
         else:
             if DEBUG:
                 print >> sys.stderr,"dialback: UNKNOWN RETURNCONN MESSAGE", ord(t)
             return False
 
 
-    def process_dialback_reply(self,dns,message):
+    def olthread_process_dialback_reply(self,dns,message):
+        # Called by overlay thread
         
         # 1. Yes, we're reachable, now just matter of determining ext IP
         self.dbreach = True
         
         # 2. Authentication: did I ask this peer?
-        permid = self.permid_of_asked_peer(dns)
+        permid = self.olthread_permid_of_asked_peer(dns)
         if permid is None:
             if DEBUG:
                 print >> sys.stderr,"dialback: DIALBACK_REPLY: Got reply from peer I didn't ask",dns
@@ -282,7 +308,7 @@ class DialbackMsgHandler:
         try:
             myip = bdecode(message[1:])
         except:
-            print_exc(file=sys.stderr)
+            print_exc()
             if DEBUG:
                 print >> sys.stderr,"dialback: DIALBACK_REPLY: error becoding"
             return False
@@ -344,30 +370,33 @@ class DialbackMsgHandler:
         # 9. Notify GUI that we are connectable
         self.launchmany.dialback_reachable_callback()
 
-        # 10. We're done and no longer need the return connection, so
-        # call close explicitly
-        self.returnconnhand.close(dns)
         return True
-
+    
 
     #
     # Information from other modules
     #
-    def btengine_network_callback(self):
+    def network_btengine_reachable_callback(self):
         """ Called by network thread """
         if self.launchmany is not None:
             self.launchmany.dialback_reachable_callback()
+            
+        # network thread updating our state. Ignoring concurrency, as this is a
+        # one time op.
         self.btenginereach = True
 
     def isConnectable(self):
-        """ Called by network thread """
+        """ Called by overlay (BuddyCast) and network (Rerequester) thread """
+
+        # network thread updating our state. Ignoring concurrency, as these
+        # variables go from False to True once and stay there, or remain False
         return self.dbreach or self.btenginereach
 
 
     #
     # Internal methods
     #
-    def get_dns_from_peerdb(self,permid):
+    def olthread_get_dns_from_peerdb(self,permid):
         dns = None
         peer = self.peer_db.getPeer(permid)
         #print >>sys.stderr,"dialback: get_dns_from_peerdb: Got peer",peer
@@ -391,7 +420,7 @@ class DialbackMsgHandler:
         return ip
 
         
-    def permid_of_asked_peer(self,dns):
+    def olthread_permid_of_asked_peer(self,dns):
         for permid,peerrec in self.peers_asked.iteritems():
             if peerrec['dns'] == dns:
                 # Yes, we asked this peer

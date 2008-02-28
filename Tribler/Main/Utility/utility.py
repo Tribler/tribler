@@ -32,7 +32,6 @@ from Tribler.Main.Utility.constants import * #IGNORE:W0611
 
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler, PreferenceDBHandler
 from Tribler.Core.CacheDB.CacheDBHandler import PeerDBHandler, FriendDBHandler
-from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.Core.Utilities.utilities import find_prog_in_PATH  
   
 ################################################################

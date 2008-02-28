@@ -90,6 +90,7 @@ def isValidName(name):
     
     
 def validTorrentFile(metainfo):
+    # Jie: is this function too strict? Many torrents could not be downloaded
     if type(metainfo) != DictType:
         raise ValueError('metainfo not dict')
     
@@ -190,9 +191,10 @@ def validTorrentFile(metainfo):
         for tier in al:
             if type(tier) != ListType:
                 raise ValueErorr('announce-list tier is not list '+`tier`)
-            for url in tier:
-                if not isValidURL(url):
-                    raise ValueError('announce-list url is not valid '+`url`)
+        # Jie: this limitation is not necessary
+#            for url in tier:
+#                if not isValidURL(url):
+#                    raise ValueError('announce-list url is not valid '+`url`)
 
     if 'azureus_properties' in metainfo:
         azprop = metainfo['azureus_properties']
@@ -219,6 +221,8 @@ def isValidTorrentFile(metainfo):
     
     
 def isValidURL(url):
+    if url.lower().startswith('udp'):    # exception for udp
+        url = url.lower().replace('udp','http',1)
     r = urlparse.urlsplit(url)
     # if DEBUG:
     #     print >>sys.stderr,"isValidURL:",r

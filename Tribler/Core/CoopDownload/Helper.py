@@ -9,7 +9,7 @@ from time import time
 from Tribler.Core.BitTornado.bencode import bencode
 from Tribler.Core.BitTornado.BT1.MessageID import RESERVE_PIECES
 
-from Tribler.Core.Overlay.SecureOverlay import SecureOverlay
+from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 from Tribler.Core.CacheDB.CacheDBHandler import PeerDBHandler
 from Tribler.Core.Utilities.utilities import show_permid_short
 
@@ -41,7 +41,7 @@ class SingleDownloadHelperInterface:
 
 class Helper:
     def __init__(self, torrent_hash, num_pieces, coordinator_permid, coordinator = None):
-        self.secure_overlay = SecureOverlay.getInstance()
+        self.overlay_bridge = OverlayThreadingBridge.getInstance()
         self.torrent_hash = torrent_hash
         if coordinator_permid is not None and coordinator_permid == '':
             self.coordinator_permid = None
@@ -51,7 +51,7 @@ class Helper:
         self.coordinator_port = -1
 
         if self.coordinator_permid is not None:
-            peerdb = PeerDBHandler.getInstance()
+            peerdb = PeerDBHandler.getInstance() #LITETHREAD
             peer = peerdb.getPeer(coordinator_permid)
             if peer is not None:
                 self.coordinator_ip = peer['ip']
@@ -102,7 +102,10 @@ class Helper:
         else:
             return False
 
-### PiecePicker and Downloader interface
+    #
+    # Interface for PiecePicker and Downloader
+    # 
+    # Called by network thread
     def is_reserved(self, piece):
         if self.reserved_pieces[piece] or (self.coordinator is not None and self.is_complete()):
             return True
@@ -143,7 +146,7 @@ class Helper:
         if self.coordinator is not None:
             if DEBUG:
                 print >>sys.stderr,"helper: reserve_pieces: calling self.coordinator.reserve_pieces"
-            new_reserved_pieces = self.coordinator.reserve_pieces(pieces_to_send, all_or_nothing)
+            new_reserved_pieces = self.coordinator.network_reserve_pieces(pieces_to_send, all_or_nothing)
             for piece in new_reserved_pieces:
                 self._reserve_piece(piece)
         else:
@@ -237,9 +240,17 @@ class Helper:
 
 ## Coordinator comm.       
     def send_reserve_pieces(self, pieces, all_or_nothing = False):
-        self.secure_overlay.connect(self.coordinator_permid,lambda e,d,p,s:self.reserve_pieces_connect_callback(e,d,p,s,pieces,all_or_nothing))
+        # called by network thread, delegate to overlay thread
+        olthread_send_reserve_pieces_lambda = lambda:self.olthread_send_reserve_pieces(pieces,all_or_nothing)
+        self.overlay_bridge.add_task(olthread_send_reserve_pieces_lambda,0)
+        
+    def olthread_send_reserve_pieces(self, pieces, all_or_nothing = False):
+        # We need to create the message according to protocol version, so need 
+        # to pass all info.
+        olthread_reserve_pieces_connect_callback_lambda = lambda e,d,p,s:self.olthread_reserve_pieces_connect_callback(e,d,p,s,pieces,all_or_nothing)
+        self.overlay_bridge.connect(self.coordinator_permid,olthread_reserve_pieces_connect_callback_lambda)
 
-    def reserve_pieces_connect_callback(self,exc,dns,permid,selversion,pieces,all_or_nothing):
+    def olthread_reserve_pieces_connect_callback(self,exc,dns,permid,selversion,pieces,all_or_nothing):
         if exc is None:
             ## Create message according to protocol version
             if all_or_nothing:
@@ -248,18 +259,22 @@ class Helper:
                 all_or_nothing = chr(0)
             payload = self.torrent_hash + all_or_nothing + bencode(pieces)
 
-            self.secure_overlay.send(permid, RESERVE_PIECES + payload,self.reserve_pieces_send_callback)
+            self.overlay_bridge.send(permid, RESERVE_PIECES + payload,self.olthread_reserve_pieces_send_callback)
         elif DEBUG:
             print >> sys.stderr,"helper: RESERVE_PIECES: error connecting to",show_permid_short(permid),exc
 
-    def reserve_pieces_send_callback(self,exc,permid):
+    def olthread_reserve_pieces_send_callback(self,exc,permid):
         if exc is not None:
             if DEBUG:
                 print >> sys.stderr,"helper: RESERVE_PIECES: error sending to",show_permid_short(permid),exc
             pass
 
 
-### HelperMessageHandler interface
+    #
+    # Interface for HelperMessageHandler
+    #
+    # All called by network thread
+    #
     def got_pieces_reserved(self, permid, pieces):
         self.handle_pieces_reserved(pieces)
         self.start_data_connection()

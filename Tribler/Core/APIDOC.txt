@@ -1,8 +1,8 @@
 # Written by Arno Bakker 
 # see LICENSE.txt for license information
 
-triblerAPI v0.0.4rc1
-Dec 5, 2007 
+triblerAPI v0.0.5rc1
+Jan 8, 2008 
 
 Using Python style guide
 
@@ -317,4 +317,100 @@ to some point in the future.
 - Replace ffmpeg.exe and VLC with newer version
      
 - Make sure dest filenames on Win32 cannot exceed 255 chars. See
-  download_bt1.py saveAs     
+  download_bt1.py saveAs     =======
+- Fix create live torrent such that:
+	- The name of the stream is settable
+    - We create unique infohashes (consequence of above, but may need more uniqueness
+      to make it foolproof (disadv of more uniqueness is that making live torrents
+      becomes non-reproducible)
+    - Get rid of info-less empty pieces, see if we can use Merkle torrents
+
+- Tool to seed live stream
+    
+- HTTP seeding in the version that does not require server-support
+
+- See how people can modify the SessionConfig after the session is created.
+
+
+
+TODO SQLLITE:
+    
+ - check links to BT engine e.g. RESERVE_PIECES + PiecePicker
+
+    - MetaData: call_dlhelp_task: Done.
+    - 2fast: Done (ugly)
+
+ - special case: Dialback & ReturnConnHandler
+     Done.
+
+ - connect_dns() special case?
+       Yes. We use the SecureOverlay directly to create a overlay connection
+       to a Tribler peer we meet in a swarm. We can do this as connect_dns()
+       doesn't need a database.
+       Done.
+ 
+ - get rid of all rawserver things in olapps, should use 
+   OverlayThreadingBridge.add_task()
+       Done.
+       
+- Make sure that RemoteQueryMsgHandler uses SQLlite and not TorrentDataManager
+
+- Check RemoteTorrentHandler: make sure it is run by right thread and uses DB 
+  and not TorrentDataManager
+  	Assigned to Arno
+  	
+  	TODO: determine how Core user accesses this functionality.
+  	Need Session method to call this function, and need mechanism to report back
+  	received torrent.
+  		Done, TODO = TEST
+  	
+  	Same holds for RemoteQuery: need Session method for sendQuery 
+  	
+
+- Allow Core user to access DB: add getPeerDB to Session, make sure it
+  handles separate-db-conn-per-thread issue.
+  	Arno + Jie together
+
+- Check all DBHandler usages and see if the db object uses the DB connection
+  for the thread that accesses the database. I've marked some with LITETHREAD 
+  tags. 
+  	Delegated to Jie. Handled via DBconn table. TODO: Closing of databases.
+
+- Write to bartercast DB?
+	Done
+  
+- Add torrents started with Session.start_download() to torrent_db
+      
+      CAREFUL: Make sure it is not network thread that access DB.
+      Should not be a problem: The MetadataHandler that calls
+      start_download() for a coop download is run by OverlayThread
+      
+      *Ask Jie to do this*, DB code unclear. SqliteCacheDBHandler has
+      addExternalTorrent that does something like MetadataHandler
+      addTorrentToDB, but is not used anywhere. And doesn't call DB!
+
+- Get rid of MyPermID, MyIP and MyPeerInfo from SQLite MyDBHandler
+
+	Arno: I once mailed Jie about this. This info is now kept
+	in state_dir/ec*.pem, determined dynamically, or stored in
+	Session config (nickname), respectively. There must not be 
+	duplication in a DB.
+	
+	Also: why is there an index on MyInfo, if it just contains
+	1 entry.
+	   
+	   
+- Read docs for Database LockedException that is troubling Jie.	   
+
+- Check for LITETHREAD and LAYERVIOLATION comments
+
+C:\build\newmain>svn merge -r 6302:6877 https://svn.tribler.org/abc/branches/a
+rno/d07-12-11-secover-threaded-from-mb-r6302 > mergelog.txt 2>&1
+
+- Commit my secover-threaded and merge to mainbranch
+
+- Install pysqlite2 / switch to Python 2.5 <-- Good idea to do now.
+  Switch to latest M2Crypto, OpenSSL, wxWidgets
+
+- Can somebody clarify the status of the Mugshotmanager? There is a now
+an vwx_GUI/IconsManager and MM was moved to Tribler.Core.CacheDB.

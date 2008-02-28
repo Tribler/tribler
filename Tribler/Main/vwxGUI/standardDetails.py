@@ -12,6 +12,8 @@ from font import *
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.vwxGUI.IconsManager import IconsManager
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 from Tribler.Main.vwxGUI.torrentManager import TorrentDataManager
 #from Tribler.vwxGUI.LibraryItemPanel import rightMouseButton
@@ -1003,7 +1005,9 @@ class standardDetails(wx.Panel):
      
     def fillSimTorrentsList(self, infohash):
         """fills the list of torrents from library or file view with the files that are similar to the currently selected one"""
-        
+        # Jie TODO:
+        return 
+    
         self.data_manager.getSimilarTitles(self.item, 30)
         
         sim_torrent_list = self.getGuiObj('peopleWhoField')
@@ -1440,9 +1444,11 @@ class standardDetails(wx.Panel):
                 print >>sys.stderr,"standardDetails: User selected query result for download"
             try:
                 rth = RemoteTorrentHandler.getInstance()
-                rth.download(torrent)
+                # Jie TODO: this is just a quick fix
+                rth.download_torrent(torrent['query_permid'],torrent['infohash'], self.refreshTorrentStats_network_callback)
             except:
                 print_exc()
+                print >> sys.stderr, torrent, torrent.keys()
             return True
 
         self.data_manager.setSecret(torrent['infohash'], secret)

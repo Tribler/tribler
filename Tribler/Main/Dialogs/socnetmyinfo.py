@@ -17,7 +17,7 @@ from wx.wizard import Wizard,WizardPageSimple,EVT_WIZARD_PAGE_CHANGED,EVT_WIZARD
 from Tribler.Main.Dialogs.MugshotManager import MugshotManager
 from Tribler.Core.Overlay.permid import permid_for_user
 from Tribler.Core.Utilities.unicode import str2unicode
-from common import CommonTriblerList
+#from common import CommonTriblerList
 from Tribler.Main.Utility.constants import *
 
 SERVICETYPES = []
@@ -228,126 +228,128 @@ class RWIDsWizardPage(WizardPageSimple):
     def add(self,service,id):
         self.rwidlist.add(service,id)
 
-
-class RWIDList(CommonTriblerList):
-    def __init__(self, parent):
-        self.parent = parent
-        self.utility = parent.utility
-
-        self.my_db = MyDBHandler.getInstance()
-
-        self.min_rank = -1
-        self.max_rank = 5
-        self.reversesort = 0
-        self.lastcolumnsorted = -1
-        
-        style = wx.LC_REPORT|wx.LC_HRULES|wx.LC_VRULES
-        
-        prefix = 'myrwid'
-        minid = 0
-        maxid = 2
-        rightalign = []
-        centeralign = [
-            IMPORT_SERVICE,
-            IMPORT_ID
-        ]
-        
-        exclude = []
-        self.data = []
-
-        self.keys = ['service', 'id']
-
-        CommonTriblerList.__init__(self, parent, style, prefix, minid, maxid, 
-                                     exclude, rightalign, centeralign)
-
-    def getText(self, data, row, col):
-        key = self.keys[col]
-        if row < len(data):
-            return str2unicode(data[row][key])
-        else:
-            return u''
-                
-    def reloadData(self):
-        self.data = []
-        rwids = self.my_db.getRWIDs()
-        i = 0
-        for rwid in rwids:
-            self.data.append({})
-            self.data[i]['service'] = rwid[0]
-            self.data[i]['id'] = rwid[1]
-            i += 1
-
-    def remove(self):
-        selected = self.getSelectedItems()
-        for i in selected:
-            self.my_db.deleteRWID(self.data[i]['service'],self.data[i]['id'])
-        self.loadList()
-
-    def add(self,service,id):
-        self.my_db.addRWID(service,id)
-        self.loadList()
-
-
-class RWIDDialog(wx.Dialog):
-    def __init__(self, parent):
-        self.utility = parent.utility
-        self.parent = parent
-
-        style = wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
-        pos = wx.DefaultPosition
-        size = wx.Size(530, 420)
-        #size, split = self.getWindowSettings()
-
-        title = self.utility.lang.get('addrwid')
-        wx.Dialog.__init__(self, parent, -1, title, size = size, style = style)
-
-        mainbox = wx.BoxSizer(wx.VERTICAL)
-        topbox = wx.BoxSizer(wx.VERTICAL)
-
-        servicebox = wx.BoxSizer(wx.HORIZONTAL)
-        servicebox.Add(wx.StaticText(self, -1, self.utility.lang.get('service')+':'), 0, wx.ALIGN_CENTRE|wx.ALL, 5)
-        self.servicetypes = SERVICETYPES
-        self.servicechoice= wx.Choice(self, -1, wx.Point(-1, -1), wx.Size(-1, -1), self.servicetypes)
-        servicebox.Add(self.servicechoice, 1, wx.ALIGN_CENTRE|wx.ALL, 5)        
-        topbox.Add(servicebox, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
-
-        # name
-        namebox = wx.BoxSizer(wx.HORIZONTAL)
-        namebox.Add(wx.StaticText(self, -1, self.utility.lang.get('identifier')+':'), 0, wx.ALIGN_CENTRE|wx.ALL, 5)
-        self.name_text = wx.TextCtrl(self, -1, '', size=(80,-1))
-        namebox.Add(self.name_text, 1, wx.ALIGN_CENTRE|wx.ALL, 5)
-        topbox.Add(namebox, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
-
-        btnsizer = wx.StdDialogButtonSizer()
-        lbl = self.utility.lang.get('buttons_add')
-        btn = wx.Button(self, wx.ID_OK, label=lbl)
-        btn.SetDefault()
-        btnsizer.AddButton(btn)
-        self.Bind(wx.EVT_BUTTON, self.OnAddRWID, btn)
-
-        btn = wx.Button(self, wx.ID_CANCEL)
-        btnsizer.AddButton(btn)
-        btnsizer.Realize()
-
-        mainbox.Add(topbox, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
-        mainbox.Add(btnsizer, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
-
-        self.SetSizer(mainbox)
-        mainbox.Fit(self)
-        
-    def OnAddRWID(self, event=None):
-        idx = self.servicechoice.GetCurrentSelection()
-        print "SERVICE CHOICE",idx
-        if idx == -1:
-            idx = 0
-        servicetype = self.servicetypes[idx]
-        id = self.name_text.GetValue()
-
-        # Add to DB
-        if DEBUG:
-            print "rwid: adding rwid",id,"for service",servicetype
-        self.parent.add(servicetype,id)
-
-        event.Skip()    # must be done, otherwise ShowModal() returns wrong error 
-        self.Destroy()
+#===============================================================================
+# 
+# class RWIDList(CommonTriblerList):
+#    def __init__(self, parent):
+#        self.parent = parent
+#        self.utility = parent.utility
+# 
+#        self.my_db = MyDBHandler.getInstance()
+# 
+#        self.min_rank = -1
+#        self.max_rank = 5
+#        self.reversesort = 0
+#        self.lastcolumnsorted = -1
+#        
+#        style = wx.LC_REPORT|wx.LC_HRULES|wx.LC_VRULES
+#        
+#        prefix = 'myrwid'
+#        minid = 0
+#        maxid = 2
+#        rightalign = []
+#        centeralign = [
+#            IMPORT_SERVICE,
+#            IMPORT_ID
+#        ]
+#        
+#        exclude = []
+#        self.data = []
+# 
+#        self.keys = ['service', 'id']
+# 
+#        CommonTriblerList.__init__(self, parent, style, prefix, minid, maxid, 
+#                                     exclude, rightalign, centeralign)
+# 
+#    def getText(self, data, row, col):
+#        key = self.keys[col]
+#        if row < len(data):
+#            return str2unicode(data[row][key])
+#        else:
+#            return u''
+#                
+#    def reloadData(self):
+#        self.data = []
+#        rwids = self.my_db.getRWIDs()
+#        i = 0
+#        for rwid in rwids:
+#            self.data.append({})
+#            self.data[i]['service'] = rwid[0]
+#            self.data[i]['id'] = rwid[1]
+#            i += 1
+# 
+#    def remove(self):
+#        selected = self.getSelectedItems()
+#        for i in selected:
+#            self.my_db.deleteRWID(self.data[i]['service'],self.data[i]['id'])
+#        self.loadList()
+# 
+#    def add(self,service,id):
+#        self.my_db.addRWID(service,id)
+#        self.loadList()
+# 
+# 
+# class RWIDDialog(wx.Dialog):
+#    def __init__(self, parent):
+#        self.utility = parent.utility
+#        self.parent = parent
+# 
+#        style = wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
+#        pos = wx.DefaultPosition
+#        size = wx.Size(530, 420)
+#        #size, split = self.getWindowSettings()
+# 
+#        title = self.utility.lang.get('addrwid')
+#        wx.Dialog.__init__(self, parent, -1, title, size = size, style = style)
+# 
+#        mainbox = wx.BoxSizer(wx.VERTICAL)
+#        topbox = wx.BoxSizer(wx.VERTICAL)
+# 
+#        servicebox = wx.BoxSizer(wx.HORIZONTAL)
+#        servicebox.Add(wx.StaticText(self, -1, self.utility.lang.get('service')+':'), 0, wx.ALIGN_CENTRE|wx.ALL, 5)
+#        self.servicetypes = SERVICETYPES
+#        self.servicechoice= wx.Choice(self, -1, wx.Point(-1, -1), wx.Size(-1, -1), self.servicetypes)
+#        servicebox.Add(self.servicechoice, 1, wx.ALIGN_CENTRE|wx.ALL, 5)        
+#        topbox.Add(servicebox, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
+# 
+#        # name
+#        namebox = wx.BoxSizer(wx.HORIZONTAL)
+#        namebox.Add(wx.StaticText(self, -1, self.utility.lang.get('identifier')+':'), 0, wx.ALIGN_CENTRE|wx.ALL, 5)
+#        self.name_text = wx.TextCtrl(self, -1, '', size=(80,-1))
+#        namebox.Add(self.name_text, 1, wx.ALIGN_CENTRE|wx.ALL, 5)
+#        topbox.Add(namebox, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+# 
+#        btnsizer = wx.StdDialogButtonSizer()
+#        lbl = self.utility.lang.get('buttons_add')
+#        btn = wx.Button(self, wx.ID_OK, label=lbl)
+#        btn.SetDefault()
+#        btnsizer.AddButton(btn)
+#        self.Bind(wx.EVT_BUTTON, self.OnAddRWID, btn)
+# 
+#        btn = wx.Button(self, wx.ID_CANCEL)
+#        btnsizer.AddButton(btn)
+#        btnsizer.Realize()
+# 
+#        mainbox.Add(topbox, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+#        mainbox.Add(btnsizer, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+# 
+#        self.SetSizer(mainbox)
+#        mainbox.Fit(self)
+#        
+#    def OnAddRWID(self, event=None):
+#        idx = self.servicechoice.GetCurrentSelection()
+#        print "SERVICE CHOICE",idx
+#        if idx == -1:
+#            idx = 0
+#        servicetype = self.servicetypes[idx]
+#        id = self.name_text.GetValue()
+# 
+#        # Add to DB
+#        if DEBUG:
+#            print "rwid: adding rwid",id,"for service",servicetype
+#        self.parent.add(servicetype,id)
+# 
+#        event.Skip()    # must be done, otherwise ShowModal() returns wrong error 
+#        self.Destroy()
+#===============================================================================
 

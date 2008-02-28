@@ -99,3 +99,4 @@ class OLConnection:
 
     def close(self):
         self.b.close()
+        

@@ -167,15 +167,21 @@ class SingleDownload:
     # For DownloadState
     #
     def get_stats(self,getpeerlist):
-        logmsgs = self.logmsgs[:] # copy  
+        logmsgs = self.logmsgs[:] # copy
+        coopdl_helpers = []
+        if self.dow is not None and self.dow.coordinator is not None: 
+            # No coordinator when you're a helper
+            peerreclist = self.dow.coordinator.network_get_asked_helpers_copy()
+            for peerrec in peerreclist:
+                coopdl_helpers.append(peerrec['permid'])
         if self._getstatsfunc is None:
-            return (DLSTATUS_WAITING4HASHCHECK,None,logmsgs)
+            return (DLSTATUS_WAITING4HASHCHECK,None,logmsgs,coopdl_helpers)
         elif self._getstatsfunc == SPECIAL_VALUE:
             stats = {}
             stats['frac'] = self.hashcheckfrac
-            return (DLSTATUS_HASHCHECKING,stats,logmsgs)
+            return (DLSTATUS_HASHCHECKING,stats,logmsgs,coopdl_helpers)
         else:
-            return (None,self._getstatsfunc(getpeerlist=getpeerlist),logmsgs)
+            return (None,self._getstatsfunc(getpeerlist=getpeerlist),logmsgs,coopdl_helpers)
 
     #
     # Persistent State
@@ -198,6 +204,27 @@ class SingleDownload:
             if DEBUG:
                 print >>sys.stderr,"SingleDownload: stopped dow"
         return resumedata
+
+    #
+    # Cooperative download
+    #
+    def ask_coopdl_helpers(self,peerreclist):
+        if self.dow is not None:
+            self.dow.coordinator.network_request_help(peerreclist)
+
+    def stop_coopdl_helpers(self,peerreclist):
+        if self.dow is not None:
+            self.dow.coordinator.network_stop_help(peerreclist,force=True)
+
+    def get_coopdl_role_object(self,role):
+        # Used by Coordinator/HelperMessageHandler indirectly
+        if self.dow is not None:
+            if role == COOPDL_ROLE_COORDINATOR:
+                return self.dow.coordinator
+            else:
+                return self.dow.helper
+        else:
+            return None
 
     #
     # Internal methods

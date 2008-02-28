@@ -29,7 +29,7 @@ QUERY_ID_SIZE = 20
 MAX_QUERY_REPLY_LEN = 100*1024    # 100K
 MAX_NQUERIES = 10
 
-DEBUG = False
+DEBUG = True
 
 class FakeUtility:
     
@@ -62,15 +62,14 @@ class RemoteQueryMsgHandler:
     getInstance = staticmethod(getInstance)
         
 
-    def register(self,secure_overlay,launchmany,rawserver,config,bc_fac,log=''):
+    def register(self,overlay_bridge,launchmany,config,bc_fac,log=''):
         if DEBUG:
             print >> sys.stderr,"rquery: register"
-        self.secure_overlay = secure_overlay
+        self.overlay_bridge = overlay_bridge
         self.launchmany= launchmany
-        self.torrent_db = launchmany.torrent_db
-        self.friend_db = launchmany.friend_db
-        self.peer_db = launchmany.peer_db
-        self.rawserver = rawserver
+        self.torrent_db = launchmany.torrent_db # LITETHREAD: opened by MainThread, used by OverlayThread
+        self.friend_db = launchmany.friend_db # LITETHREAD: opened by MainThread, used by OverlayThread
+        self.peer_db = launchmany.peer_db # LITETHREAD: opened by MainThread, used by OverlayThread
         self.config = config
         self.bc_fac = bc_fac # May be None
         self.data_manager = None
@@ -128,40 +127,40 @@ class RemoteQueryMsgHandler:
     # Send query
     # 
 
-    def sendQuery(self,query, max_nqueries=MAX_NQUERIES):
+    def send_query(self,query, max_nqueries=MAX_NQUERIES):
         """ Called by GUI Thread """
         if DEBUG:
-            print >>sys.stderr,"rquery: sendQuery",query
+            print >>sys.stderr,"rquery: send_query",query
         if max_nqueries > 0:
-            send_query_func = lambda:self.sendQueryNetworkCallback(query,max_nqueries)
-            self.rawserver.add_task(send_query_func,0)
+            send_query_func = lambda:self.network_send_query_callback(query,max_nqueries)
+            self.overlay_bridge.add_task(send_query_func,0)
 
 
-    def sendQueryNetworkCallback(self,query,max_nqueries):
-        """ Called by network thread """
+    def network_send_query_callback(self,query,max_nqueries):
+        """ Called by overlay thread """
         p = self.create_query(query)
         m = QUERY+p
         func = lambda exc,dns,permid,selversion:self.conn_callback(exc,dns,permid,selversion,m)
 
         if DEBUG:
-            print >>sys.stderr,"rquery: sendQuery: Connected",len(self.connections),"peers"
+            print >>sys.stderr,"rquery: send_query: Connected",len(self.connections),"peers"
         
         #print "******** send query net cb:", query, len(self.connections), self.connections
         
         nqueries = 0
         for permid in self.connections:
-            self.secure_overlay.connect(permid,func)
+            self.overlay_bridge.connect(permid,func)
             nqueries += 1
         
         if nqueries < max_nqueries and self.bc_fac and self.bc_fac.buddycast_core:
             query_cand = self.bc_fac.buddycast_core.getRemoteSearchPeers(MAX_NQUERIES-nqueries)
             for permid in query_cand:
                 if permid not in self.connections:    # don't call twice
-                    self.secure_overlay.connect(permid,func)
+                    self.overlay_bridge.connect(permid,func)
                     nqueries += 1
         
         if DEBUG:
-            print >>sys.stderr,"rquery: sendQuery: Sent to",nqueries,"peers"
+            print >>sys.stderr,"rquery: send_query: Sent to",nqueries,"peers"
         
     def create_query(self,query):
         d = {}
@@ -182,7 +181,7 @@ class RemoteQueryMsgHandler:
         
     def conn_callback(self,exc,dns,permid,selversion,message):
         if exc is None and selversion >= OLPROTO_VER_SIXTH:
-            self.secure_overlay.send(permid,message,self.send_callback)
+            self.overlay_bridge.send(permid,message,self.send_callback)
             
     def send_callback(self,exc,permid):
         #print "******* queury was sent to", show_permid_short(permid), exc
@@ -242,7 +241,7 @@ class RemoteQueryMsgHandler:
             # RPLY_QRY PERMID NUM_HITS MSG
             self.overlay_log('RPLY_QRY', show_permid(permid), len(hits), repr(p))
 
-        self.secure_overlay.send(permid, m, self.send_callback)
+        self.overlay_bridge.send(permid, m, self.send_callback)
         
         self.inc_peer_nqueries(permid)
         
@@ -326,7 +325,9 @@ class RemoteQueryMsgHandler:
             print >>sys.stderr,"rquery: QUERY_REPLY: no results found"
 
     def notify_of_remote_hits(self,permid,kws,answers):
-        guiutil = self.launchmany.get_gui_util()
+        #guiutil = self.launchmany.get_gui_util()
+        from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+        guiutil = GUIUtility.getInstance()
         if guiutil is None:
             if DEBUG:
                 print >>sys.stderr,"rquery: QUERY_REPLY: cannot pass remote hits to GUI layer"
@@ -341,10 +342,10 @@ class RemoteQueryMsgHandler:
         standardOverview.gotRemoteHits(permid,kws,answers)
 
 
-    def test_sendQuery(self,query):
+    def test_send_query(self,query):
         """ Called by GUI Thread """
         add_remote_hits_func = lambda:self.add_remote_query_hits(query)
-        self.rawserver.add_task(add_remote_hits_func,3)
+        self.overlay_bridge.add_task(add_remote_hits_func,3)
         
     def add_remote_query_hits(self,query):
         torrent = {}
@@ -434,4 +435,5 @@ def isValidVal(d):
 def inc_peer_nqueries(self, permid):
         peer = self.peer_db.getPeer(permid)
         nqueries = peer['nqueries']
-        self.peer_db.updatePeer(permid, 'nqueries', nqueries+1)
+        self.peer_db.updatePeer(permid, num_queries=nqueries+1)
+        

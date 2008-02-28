@@ -6,13 +6,6 @@
 #
 
 import sys
-from sets import Set
-
-try:
-    from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-    from Tribler.Main.vwxGUI.torrentManager import TorrentDataManager
-except ImportError:
-    pass    #support cmdline version without wx
 
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 
@@ -27,7 +20,7 @@ class RemoteTorrentHandler:
             raise RuntimeError, "RemoteTorrentHandler is singleton"
         RemoteTorrentHandler.__single = self
         self.torrent_db = TorrentDBHandler.getInstance()
-        self.requestedtorrents = Set()
+        self.requestedtorrents = {}
 
     def getInstance(*args, **kw):
         if RemoteTorrentHandler.__single is None:
@@ -36,55 +29,44 @@ class RemoteTorrentHandler:
     getInstance = staticmethod(getInstance)
 
 
-    def register(self,rawserver,metadatahandler):
-        self.rawserver = rawserver
+    def register(self,overlay_bridge,metadatahandler,session):
+        self.overlay_bridge = overlay_bridge
         self.metadatahandler = metadatahandler
+        self.session = session
     
-    def download(self,torrent):
-        """ Called by GUI thread """
-        # The user has selected a torrent referred to by a peer in a query reply.
-        # Try to obtain the actual .torrent file from the peer and then start
-        # the actual download.
-        #
-        # NOTE: torrent not in DB
-        #self.data_manager.setBelongsToMyDowloadHistory(torrent['infohash'], True)
+    def download_torrent(self,permid,infohash,usercallback):
+        """ The user has selected a torrent referred to by a peer in a query 
+        reply. Try to obtain the actual .torrent file from the peer and then 
+        start the actual download. 
+        """
+        # Called by GUI thread 
 
-        remote_torrent_download_func = lambda:self.downloadNetworkCallback(torrent)
-        self.rawserver.add_task(remote_torrent_download_func,0)
+        olthread_remote_torrent_download_lambda = lambda:self.olthread_download_torrent_callback(permid,infohash,usercallback)
+        self.overlay_bridge.add_task(olthread_remote_torrent_download_lambda,0)
         
-    def downloadNetworkCallback(self,torrent):
-        """ Called by network thread """
+    def olthread_download_torrent_callback(self,permid,infohash,usercallback):
+        """ Called by overlay thread """
     
-        permid = torrent['query_permid']
-        infohash = torrent['infohash']
-       
         #if infohash in self.requestedtorrents:
         #    return    # TODO RS:the previous request could have failed
-       
-        self.requestedtorrents.add(torrent['infohash'])
+              
+        self.requestedtorrents[infohash] = usercallback
+        
         self.metadatahandler.send_metadata_request(permid,infohash,caller="rquery")
         if DEBUG:
-            print 'Requested torrent: %s' % `torrent['content_name']`
+            print >>sys.stderr,'rtorrent: download: Requested torrent: %s' % `infohash`
        
-    def got_torrent(self,torrent_hash,metadata):
-       """ Called by network thread """
-       
-       #print "***** got remote, torrent", torrent_hash in self.requestedtorrents, self.requestedtorrents
-       if torrent_hash not in self.requestedtorrents:
+    def metadatahandler_got_torrent(self,infohash,metadata):
+        """ Called by MetadataHandler when the requested torrent comes in """
+        #Called by overlay thread
+
+        if DEBUG:
+            print >>sys.stderr,"rtorrent: got requested torrent from peer, wanted", infohash in self.requestedtorrents, `self.requestedtorrents`
+        if infohash not in self.requestedtorrents:
            return
-       
-       self.requestedtorrents.remove(torrent_hash)
 
-       # torrent data manager should be initialized somewhere else first, 
-       # this class' __init__ or register() would be the first, so we don't
-       guiutil = GUIUtility.getInstance()
-       data_manager = TorrentDataManager.getInstance()
-       
-       # It's now a normal torrent
-       torrent = data_manager.getTorrent(torrent_hash)
-       torrent['infohash'] = torrent_hash
-
-       # Let GUI thread do the normal download stuff now
-       stddetails = guiutil.standardDetails
-       # TODO: stddetails.invokeLater(stddetails.download,[torrent])
-       
+        usercallback = self.requestedtorrents[infohash]
+        del self.requestedtorrents[infohash]
+        
+        remote_torrent_usercallback_lambda = lambda:usercallback(infohash,metadata)
+        self.session.uch.perform_usercallback(remote_torrent_usercallback_lambda)

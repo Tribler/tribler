@@ -25,7 +25,7 @@ class DownloadState(Serializable):
     
     cf. libtorrent torrent_status
     """
-    def __init__(self,download,status,error,progress,stats=None,filepieceranges=None,logmsgs=None):
+    def __init__(self,download,status,error,progress,stats=None,filepieceranges=None,logmsgs=None,coopdl_helpers=None):
         """ Internal constructor.
         @param download The Download this state belongs too.
         @param status The status of the Download (DLSTATUS_*)
@@ -40,6 +40,7 @@ class DownloadState(Serializable):
         self.download = download
         self.filepieceranges = filepieceranges # NEED CONC CONTROL IF selected_files RUNTIME SETABLE
         self.logmsgs = logmsgs
+        self.coopdl_helpers = coopdl_helpers
         if stats is None:
             self.error = error # readonly access
             self.progress = progress
@@ -262,3 +263,12 @@ class DownloadState(Serializable):
         else:
             return self.stats['spew']
 
+
+    def get_coopdl_helpers(self):
+        """ Returns the peers currently helping.
+        @return A list of PermIDs.
+        """
+        if self.coopdl_helpers is None:
+            return []
+        else:
+           return self.coopdl_helpers 

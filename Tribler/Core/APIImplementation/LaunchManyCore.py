@@ -33,6 +33,7 @@ from Tribler.Core.APIImplementation.SingleDownload import SingleDownload
 from Tribler.Core.NATFirewall.guessip import get_my_wan_ip
 from Tribler.Core.NATFirewall.UPnPThread import UPnPThread
 from Tribler.Core.Overlay.SecureOverlay import SecureOverlay
+from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 from Tribler.Core.Overlay.OverlayApps import OverlayApps
 from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.Core.DecentralizedTracking import mainlineDHT
@@ -46,6 +47,7 @@ import Tribler.Core.CacheDB.cachedb as cachedb
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Core.RequestPolicy import *
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
+from Tribler.Core.osutils import fix_filebasename
 
 SPECIAL_VALUE=481
 
@@ -57,7 +59,7 @@ DEBUG = True
 class TriblerLaunchMany(Thread):
     
     def __init__(self,session,sesslock):
-        """ Called only once (unless we have multiple Sessions) """
+        """ Called only once (unless we have multiple Sessions) by MainThread """
         Thread.__init__(self)
         self.setDaemon(True)
         self.setName("Network"+self.getName())
@@ -119,21 +121,28 @@ class TriblerLaunchMany(Thread):
 
             self.peer_db        = PeerDBHandler.getInstance(config)
             self.torrent_db     = TorrentDBHandler.getInstance()
-            self.superpeer_db   = SuperPeerDBHandler.getInstance(config)
             self.mypref_db      = MyPreferenceDBHandler.getInstance()
             self.pref_db        = PreferenceDBHandler.getInstance()
+            self.superpeer_db   = SuperPeerDBHandler.getInstance()
+            self.superpeer_db.loadSuperPeers(config)
             self.friend_db      = FriendDBHandler.getInstance()
-            self.bartercast_db   = BarterCastDBHandler.getInstance(self.session)
+            #self.bartercast_db   = BarterCastDBHandler.getInstance(self.session)
             
         else:
             config['overlay'] = 0    # turn overlay off
             config['torrent_checking'] = 0
-        
+            self.peer_db        = None
+            self.torrent_db     = None
+            self.mypref_db      = None
+            self.pref_db        = None
+            self.superpeer_db   = None
+            self.friend_db      = None
         
         if not config['overlay']:
             config['buddycast'] = 0
             config['download_help'] = 0
             config['socnet'] = 0
+            config['rquery'] = 0
             
         if config['overlay']:
             self.secure_overlay = SecureOverlay.getInstance()
@@ -143,10 +152,17 @@ class TriblerLaunchMany(Thread):
                         
             self.overlay_apps = OverlayApps.getInstance()
             policy = FriendsCoopDLOtherRQueryQuotumAllowAllRequestPolicy(self)
-            self.overlay_apps.register(self.secure_overlay, self, config, policy)
+            
+            # For the new DB layer we need to run all overlay apps in a
+            # separate thread instead of the NetworkThread as before.
+            self.overlay_bridge = OverlayThreadingBridge.getInstance()
+            self.overlay_bridge.register_bridge(self.secure_overlay,self.overlay_apps)
+            self.overlay_bridge.add_task(self.overlay_bridge.periodic_commit, 5)
+            
+            self.overlay_apps.register(self.overlay_bridge,self.session,self,config,policy)
             # It's important we don't start listening to the network until
             # all higher protocol-handling layers are properly configured.
-            self.secure_overlay.start_listening()
+            self.overlay_bridge.start_listening()
         
         self.internaltracker = None
         if config['internaltracker']:
@@ -173,9 +189,9 @@ class TriblerLaunchMany(Thread):
         
         
         # add task for tracker checking
-        if config['torrent_checking']:
-            self.torrent_checking_period = config['torrent_checking_period']
-            self.rawserver.add_task(self._torrent_checking, self.torrent_checking_period)
+        #if config['torrent_checking']:
+        #    self.torrent_checking_period = config['torrent_checking_period']
+        #    self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
         
 
     def add(self,tdef,dscfg,pstate=None,initialdlstatus=None):
@@ -201,6 +217,26 @@ class TriblerLaunchMany(Thread):
             # Store in list of Downloads, always. 
             self.downloads[d.get_def().get_infohash()] = d
             d.setup(dscfg,pstate,initialdlstatus,self.network_engine_wrapper_created_callback,self.network_vod_playable_callback)
+            
+            def add_torrent_to_db():
+                if self.torrent_db != None and self.mypref_db != None:
+                    raw_filename = tdef.get_name_as_unicode()
+                    torrent_dir = self.session.sessconfig['torrent_collecting_dir']
+                    infohash = tdef.get_infohash()
+                    hex_infohash = binascii.hexlify(infohash)
+                    suffix = '__' + hex_infohash + '.torrent'
+                    save_name = fix_filebasename(raw_filename, maxlen=255-len(suffix)) + suffix
+                    save_path = os.path.join(torrent_dir, save_name)
+                    if not os.path.exists(save_path):
+                        tdef.save(save_path)
+                    self.torrent_db.addExternalTorrent(save_path, '')
+                    dest_path = d.get_dest_dir()    
+                    # TODO: if user renamed the dest_path for single-file-torrent
+                    data = {'destination_path':dest_path}
+                    self.mypref_db.addMyPreference(infohash, data)
+
+            self.overlay_bridge.add_task(add_torrent_to_db, 3)
+            
             return d
         finally:
             self.sesslock.release()
@@ -210,7 +246,7 @@ class TriblerLaunchMany(Thread):
         """ Called by network thread """
         if exc is None:
             # Always need to call the hashcheck func, even if we're restarting
-            # a download that was seeding, this is just how the BT engine works
+            # a download that was seeding, this is just how the BT engine works.
             # We've provided the BT engine with its resumedata, so this should
             # be fast.
             #
@@ -387,7 +423,7 @@ class TriblerLaunchMany(Thread):
             return self.load_download_pstate(filename)
         except Exception,e:
             # TODO: remove saved checkpoint?
-            self.rawserver_nonfatalerrorfunc(e)
+            #self.rawserver_nonfatalerrorfunc(e)
             return None
         
     def resume_download(self,filename,initialdlstatus=None):
@@ -548,12 +584,13 @@ class TriblerLaunchMany(Thread):
     # Events from core meant for API user
     #
     def dialback_reachable_callback(self):
-        """ Called by network thread """
+        """ Called by overlay+network thread """
         self.session.uch.notify(NTFY_REACHABLE, NTFY_INSERT, None, '', '')
         
+        
     def set_activity(self,type, str = ''):
-        """ Called by network thread """
-        self.session.uch.notify(NTFY_ACTIVITIES, NTFY_INSERT, None, type, str)
+        """ Called by overlay + network thread """
+        self.session.uch.notify(NTFY_ACTIVITIES, NTFY_INSERT, type, str)
 
         
     def network_vod_playable_callback(self,videoinfo,complete,mimetype,stream):
@@ -574,25 +611,38 @@ class TriblerLaunchMany(Thread):
 
         if complete:
             if DEBUG:
-                print >>sys.stderr,"tlm: vod_playable: PiecePicker says complete, give filename"
+                print >>sys.stderr,"tlm: network_vod_playable_callback: PiecePicker says complete, give filename"
             filename = videoinfo['outpath']
         else:
             if DEBUG:
-                print >>sys.stderr,"vod: vod_playable: PiecePiecker says incomplete, give stream"
+                print >>sys.stderr,"tlm: network_vod_playable_callback: PiecePiecker says incomplete, give stream"
             filename = None
         
         # Call Session threadpool to call user's callback        
         videoinfo['usercallback'](mimetype,stream,filename)
 
-    def _torrent_checking(self):
-        "Called by network thread"
-        self.rawserver.add_task(self._torrent_checking, self.torrent_checking_period)
+    def run_torrent_check(self):
+        """ Called by network thread """
+        self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
         #        print "torrent_checking start"
         try:
             t = TorrentChecking()        
             t.start()
         except Exception, e:
             self.rawserver_nonfatalerrorfunc(e)
+
+    def get_coopdl_role_object(self,infohash,role):
+        """ Called by network thread """
+        role_object = None
+        self.sesslock.acquire()
+        try:
+            if infohash in self.downloads:
+                d = self.downloads[infohash]
+                role_object = d.get_coopdl_role_object(role)
+        finally:
+            self.sesslock.release()
+        return role_object
+
         
     def h4xor_reset_init_conn_counter(self):
         self.rawserver.add_task(self.network_h4xor_reset,0)
@@ -601,6 +651,8 @@ class TriblerLaunchMany(Thread):
         from Tribler.Core.BitTornado.BT1.Encrypter import incompletecounter
         print >>sys.stderr,"tlm: h4x0r Resetting outgoing TCP connection rate limiter",incompletecounter.c,"==="
         incompletecounter.c = 0
+
+
         
         
 def singledownload_size_cmp(x,y):
@@ -629,3 +681,4 @@ def singledownload_size_cmp(x,y):
                 return -1
             else:
                 return 1
+

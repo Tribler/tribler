@@ -21,17 +21,19 @@ from Tribler.Core.Utilities.utilities import friendly_time, sort_dictlist, remov
 from Tribler.Core.Utilities.unicode import str2unicode, dunno2unicode
 from Tribler.Main.Utility.constants import * #IGNORE:W0611
 from Tribler.Category.Category import Category
-from Tribler.Core.CacheDB.CacheDBHandler import OwnerDBHandler, TorrentDBHandler
+from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
 from Tribler.Core.CacheDB.EditDist import editDist
 from Tribler.Core.Search.KeywordSearch import KeywordSearch
+from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
+
 try:
     import web2
 except ImportError:
     print 'Could not import web2'
     
 
-DEBUG = False
+DEBUG = True
 DEBUG_RANKING = False
 
 # Arno: save memory by reusing dict keys
@@ -67,11 +69,11 @@ class TorrentDataManager:
         self.utility = utility
         self.rankList = []
         self.isDataPrepared = Event()
-        self.data = []
-        self.complete_data = [] # temporary storage
+        self.data = []    # [{torrent}]
+        #self.complete_data = [] # temporary storage
         self.loading_count = 1
         self.loading_count_db = 0
-        self.is_data_merged = False
+        self.is_data_prepared = False
         self.hits = []
         self.remoteHits = None
         self.dod = None
@@ -80,7 +82,6 @@ class TorrentDataManager:
         self.info_dict = {}    # reverse map
         self.title_dict = {} # for similar titles search
         self.initDBs()
-#        self.loadData()
         self.dict_FunList = {}
         self.titleIndexLength = 4
         self.done_init = True
@@ -88,11 +89,11 @@ class TorrentDataManager:
         self.searchkeywords = {'filesMode':[], 'libraryMode':[]}
         self.oldsearchkeywords = {'filesMode':[], 'libraryMode':[]} # previous query
         self.metadata_handler = MetadataHandler.getInstance()
-        
+        self.overlay_bridge = OverlayThreadingBridge.getInstance()
         self.collected_torrent_dir = self.utility.session.get_torrent_collecting_dir()
         
         if DEBUG:
-            print >>sys.stderr,'torrentManager: ready init'
+            print >>sys.stderr,'torrentManager: ready init', self.collected_torrent_dir
 
         
     def getInstance(*args, **kw):
@@ -104,37 +105,23 @@ class TorrentDataManager:
     def initDBs(self):
         time1 = time()
         self.torrent_db = TorrentDBHandler.getInstance()
-        self.owner_db = OwnerDBHandler.getInstance()
+        self.owner_db = None#OwnerDBHandler.getInstance()
         self.category = Category.getInstance(self.utility.session.get_install_dir(), self.utility.session.get_state_dir())
         
-    def loadData(self,parent):
-        """ Called by DataLoadingThread (see standardOverview) """
+    def loadData(self):
+        """ Load torrent data to cache for GUI. Called by DataLoadingThread (see standardOverview) """
         try:
-            # Arno: 1. load my prefs first, so library can be shown
-            self.data = self.torrent_db.getRecommendedTorrents(light=True,myprefs=True)
-            print 'data:', self.data
-            self.prepareData(self.data,rank=False)
+            self.data = self.torrent_db.loadTorrents()#(light=True,myprefs=True)
+            self.is_data_prepared = True
+            self.prepareData(self.data,rank=True)
             self.loading_count = len(self.data)
             self.isDataPrepared.set()
-            parent.refreshView()
-
-            # 2. Load complete torrent db in temp data structure
-            print >>sys.stderr,"torrentManager: getRec: start"
-            st = time()
-            self.complete_data = self.torrent_db.getRecommendedTorrents(light=True,all=True,countcallback=self.loadingCountCallback) #gets torrents with mypref
-            et = time()
-            diff = et-st
-            print >>sys.stderr,"torrentManager: getRec took",diff
             
-            # 3. Start torrents
-            
-            
-            # 4. Do remainder of work
             self.category.register(self.metadata_handler)
-            updated = self.category.checkResort(self.complete_data) # the database is upgraded from v1 to v2
+            updated = self.category.checkResort(self.data) # the database is upgraded from v1 to v2
             if updated:
-                self.complete_data = self.torrent_db.getRecommendedTorrents(light=False,all=True)
-            self.prepareData(self.complete_data)
+                self.data = self.torrent_db.loadTorrents()
+            self.prepareData(self.data)
         except:
             print_exc()
             raise Exception('Could not load torrent data !!')
@@ -164,11 +151,11 @@ class TorrentDataManager:
         count = 0
         for torrent in data:      
             # prepare to display
-            torrent = self.cleanItem(torrent)
+            #torrent = self.cleanItem(torrent)
 
             count += 1
             if count % 1000 == 0:
-                print >>sys.stderr,"torrentManager: clean item",count
+                #print >>sys.stderr,"torrentManager: clean item",count
                 self.loading_count = self.loading_count_db + count/2
 
 
@@ -176,30 +163,30 @@ class TorrentDataManager:
         self.loading_count = count/2
         self.loading_count_db = self.loading_count 
 
-    def mergeData(self):
-        """ Called by MainThread """
-        print >>sys.stderr,"torrentManager: mergeData"
-        infohashes = []
-        
-        # Which torrents are already in self.data?
-        for torrent in self.data:
-            infohashes.append(torrent['infohash'])
-
-        # Delete already loaded torrents from complete_data    
-        i = 0
-        while i < len(self.complete_data):
-            if self.complete_data[i]['infohash'] in infohashes:
-                print >>sys.stderr,"torrentManager: mergeData: Removing",`self.complete_data[i]['content_name']`
-                del self.complete_data[i]
-            else:
-                i += 1
-            
-            if i % 1000 == 0:
-                print >> sys.stderr,"torrentManager: mergeData: Purged items",i
-            
-        # Add complete_data to self.data
-        self.data.extend(self.complete_data)
-        self.is_data_merged = True
+#    def mergeData(self):
+#        """ Called by MainThread """
+#        print >>sys.stderr,"torrentManager: mergeData"
+#        infohashes = []
+#        
+#        # Which torrents are already in self.data?
+#        for torrent in self.data:
+#            infohashes.append(torrent['infohash'])
+#
+#        # Delete already loaded torrents from complete_data    
+#        i = 0
+#        while i < len(self.complete_data):
+#            if self.complete_data[i]['infohash'] in infohashes:
+#                print >>sys.stderr,"torrentManager: mergeData: Removing",`self.complete_data[i]['content_name']`
+#                del self.complete_data[i]
+#            else:
+#                i += 1
+#            
+#            if i % 1000 == 0:
+#                print >> sys.stderr,"torrentManager: mergeData: Purged items",i
+#            
+#        # Add complete_data to self.data
+#        self.data.extend(self.complete_data)
+#        self.is_data_prepared = True
 
         
     def getDownloadHistCount(self):
@@ -217,6 +204,9 @@ class TorrentDataManager:
         return count
         
     def getCategory(self, categorykey, mode):
+        # categorykey can be 'all', 'Video', 'Document', ...
+        # mode is 'filesMode', 'libraryMode'
+        # Jie TODO:
         if not self.done_init:
             return []
         
@@ -295,7 +285,6 @@ class TorrentDataManager:
             
             return data
                 
-
     def getTorrents(self, hash_list):
         """builds a list with torrents that have the infohash in the list provided as an input parameter"""
         torrents_list = []
@@ -308,7 +297,9 @@ class TorrentDataManager:
         return self.torrent_db.getTorrent(infohash)
 
     def deleteTorrent(self, infohash, delete_file=False):
-        self.torrent_db.deleteTorrent(infohash, delete_file=False, updateFlag=True)
+        def _deleteTorrent():
+            self.torrent_db.deleteTorrent(infohash, delete_file)
+        self.overlay_bridge.add_task(_deleteTorrent)
 
     # register update function
     def register(self, fun, key, library):
@@ -405,10 +396,9 @@ class TorrentDataManager:
     def addItem(self, infohash):
         if self.info_dict.has_key(infohash):
             return
-        torrent = self.torrent_db.getTorrent(infohash,savemem=True)
+        torrent = self.getTorrent(infohash)
         if not torrent:
             return
-        torrent[key_infohash] = infohash
         item = self.prepareItem(torrent)
         self.data.append(item)
         self.info_dict[infohash] = item
@@ -433,20 +423,22 @@ class TorrentDataManager:
         
         
         self.updateRankList(old_torrent, 'update')
-        
-        if b:    # update buddycast after view was updated
-            #self.utility.buddycast.addMyPref(infohash)    # will be called somewhere
-            pass
-        else:
-            self.utility.buddycast.delMyPref(infohash)
+
+#        Jie TODO: let buddycast know the deleted torrent
+#        if b:    # update buddycast after view was updated
+#            #self.utility.buddycast.addMyPref(infohash)    # will be called somewhere
+#            pass
+#        else:
+#            print >> sys.stderr, self.utility
+#            self.utility.buddycast.delMyPref(infohash)
+#            
                 
     def addNewPreference(self, infohash): 
         if self.info_dict.has_key(infohash):
             return
-        torrent = self.torrent_db.getTorrent(infohash)
+        torrent = self.getTorrent(infohash)
         if not torrent:
             return
-        torrent[key_infohash] = infohash
         item = self.prepareItem(torrent)
         torrent[key_myDownloadHistory] = True
         self.data.append(item)
@@ -457,10 +449,9 @@ class TorrentDataManager:
         old_torrent = self.info_dict.get(infohash, None)
         if not old_torrent:
             return
-        torrent = self.torrent_db.getTorrent(infohash)
+        torrent = self.getTorrent(infohash)
         if not torrent:
             return
-        torrent[key_infohash] = infohash
         item = self.prepareItem(torrent)
         
         #old_torrent.update(item)
@@ -483,19 +474,21 @@ class TorrentDataManager:
 
     def prepareItem(self, torrent):    # change self.data
         
-        info = torrent['info']
-        if not info.get('name'):
-            print 'torrentMgr: Error in torrent. No name found',info.get('name')
-        
-        torrent[key_length] = info.get('length', 0)
-        torrent[key_content_name] = dunno2unicode(info.get('name', '?'))
+#        info = torrent['info']
+#        if not info.get('name'):
+#            print 'torrentMgr: Error in torrent. No name found',info.get('name')
+#        
+#        torrent[key_length] = info.get('length', 0)
+        torrent[key_content_name] = dunno2unicode(torrent.get('name', '?'))
         if key_torrent_name not in torrent or torrent[key_torrent_name] == '':
             torrent[key_torrent_name] = '?'
-        torrent[key_num_files] = int(info.get('num_files', 0))
-        torrent[key_date] = info.get('creation date', 0) 
-        torrent[key_tracker] = info.get('announce', '')
-        torrent[key_leecher] = torrent.get('leecher', -1)
-        torrent[key_seeder] = torrent.get('seeder', -1)
+            print_stack()
+            print >> sys.stderr, torrent, key_torrent_name not in torrent, `torrent[key_torrent_name]`
+#        torrent[key_num_files] = int(info.get('num_files', 0))
+#        torrent[key_date] = info.get('creation date', 0) 
+#        torrent[key_tracker] = info.get('announce', '')
+#        torrent[key_leecher] = torrent.get('leecher', -1)
+#        torrent[key_seeder] = torrent.get('seeder', -1)
         torrent[key_swarmsize] = torrent['seeder'] + torrent['leecher']
 
         # No deletions here, that slows down enormously
@@ -791,6 +784,8 @@ class TorrentDataManager:
         return hits
     
     def getSimItems(self, infohash, num=15):
+        # TODO:
+        return []
         return self.owner_db.getSimItems(infohash, num)
 
     def getSimilarTitles(self, storrent, num=30):
@@ -819,7 +814,7 @@ class TorrentDataManager:
             print >>sys.stderr,"torrentManager: getNumDisc: loaded",self.loading_count 
         self.standardOverview.setLoadingCount(self.loading_count)
         
-        if not self.is_data_merged:
+        if not self.is_data_prepared:
             return -1
         else:
             ntorrents = self.metadata_handler.get_num_torrents()
@@ -828,9 +823,11 @@ class TorrentDataManager:
             return ntorrents
         
     def setSecret(self, infohash, b):
-        if b:
-            self.torrent_db.updateTorrent(infohash, **{'secret':True})
-        else:
-            self.torrent_db.updateTorrent(infohash, **{'secret':False})
+        def _setSecret():
+            if b:
+                self.torrent_db.updateTorrent(infohash, **{'secret':True})
+            else:
+                self.torrent_db.updateTorrent(infohash, **{'secret':False})
+        self.overlay_bridge.add_task(_setSecret)
         
             

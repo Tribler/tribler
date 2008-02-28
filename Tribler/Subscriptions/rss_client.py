@@ -64,7 +64,6 @@ class TorrentFeedThread(Thread):
         
     def register(self,utility):
         self.metahandler = MetadataHandler.getInstance()
-        self.torrent_db = TorrentDBHandler.getInstance()
     
         self.utility = utility
         self.intertorrentinterval = self.utility.config.Read("torrentcollectsleep","int")
@@ -169,7 +168,8 @@ class TorrentFeedThread(Thread):
     
                             data = bdecode(bdata)
                             torrent_hash = sha(bencode(data['info'])).digest()
-                            if not self.torrent_db.hasTorrent(torrent_hash):
+                            torrent_db = TorrentDBHandler.getInstance()
+                            if not torrent_db.hasTorrent(torrent_hash):
                                 if DEBUG:
                                     print >>sys.stderr,"subscript: Storing",`title`
                                 self.metahandler.save_torrent(torrent_hash,bdata,source=rssurl)

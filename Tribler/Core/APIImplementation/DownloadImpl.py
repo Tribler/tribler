@@ -228,8 +228,8 @@ class DownloadImpl:
             if self.sd is None:
                 ds = DownloadState(self,DLSTATUS_STOPPED,self.error,self.progressbeforestop)
             else:
-                (status,stats,logmsgs) = self.sd.get_stats(getpeerlist)
-                ds = DownloadState(self,status,self.error,None,stats=stats,filepieceranges=self.filepieceranges,logmsgs=logmsgs)
+                (status,stats,logmsgs,coopdl_helpers) = self.sd.get_stats(getpeerlist)
+                ds = DownloadState(self,status,self.error,None,stats=stats,filepieceranges=self.filepieceranges,logmsgs=logmsgs,coopdl_helpers=coopdl_helpers)
                 self.progressbeforestop = ds.get_progress()
                 
             if sessioncalling:
@@ -418,6 +418,22 @@ class DownloadImpl:
         
         pstate['engineresumedata'] = None
         return pstate
+
+    #
+    # Coop download
+    #
+    def get_coopdl_role_object(self,role):
+        """ Called by network thread """
+        role_object = None
+        self.dllock.acquire()
+        try:
+            if self.sd is not None:
+                role_object = self.sd.get_coopdl_role_object(role)
+        finally:
+            self.dllock.release()
+        return role_object
+
+
 
     #
     # Internal methods
