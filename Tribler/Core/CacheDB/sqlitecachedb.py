@@ -548,11 +548,15 @@ class SQLiteCacheDB:
     def fetchone(self, sql, args=None):
         # returns NULL: if the result is null 
         # return None: if it doesn't found any match results
-        find = list(self.execute(sql, args))
+        find = self.execute(sql, args)
         if not find:
             return NULL
         else:
-            find = find[0]
+            find = list(find)
+            if len(find) > 0:
+                find = find[0]
+            else:
+                return NULL
         if len(find)>1:
             return find
         else:
