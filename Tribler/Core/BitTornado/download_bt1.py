@@ -462,11 +462,11 @@ class BT1Download:
         if self.config['video_source']:
             if DEBUG:
                 print >>sys.stderr,"BT1Download: startEngine: Acting as VideoSource"
-
             self.videosourcetransporter = VideoSourceTransporter(self.config['video_source'],self)
             self.videosourcetransporter.start()
         elif DEBUG:
             print >>sys.stderr,"BT1Download: startEngine: Not a VideoSource"
+            
         if not self.doneflag.isSet():
             self.started = True
 

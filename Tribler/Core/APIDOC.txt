@@ -1,8 +1,8 @@
 # Written by Arno Bakker 
 # see LICENSE.txt for license information
 
-triblerAPI v0.0.5rc1
-Jan 8, 2008 
+triblerAPI v0.0.6rc1
+Jan 30, 2008 
 
 Using Python style guide
 
@@ -414,3 +414,16 @@ rno/d07-12-11-secover-threaded-from-mb-r6302 > mergelog.txt 2>&1
 
 - Can somebody clarify the status of the Mugshotmanager? There is a now
 an vwx_GUI/IconsManager and MM was moved to Tribler.Core.CacheDB.
+
+- Let RemoteQueryHandler use usercallback to report hits and use
+the database to resolve queries.
+
+
+TODO MAIN CLIENT:
+
+- See all ARNOCOMMENT issues
+
+- Let all code use Tribler.Core.API as sole import.
+
+- Let TorrentMaker use TorrentDef funcs.
+

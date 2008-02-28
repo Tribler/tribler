@@ -127,7 +127,10 @@ class RemoteQueryMsgHandler:
     # Send query
     # 
 
-    def send_query(self,query, max_nqueries=MAX_NQUERIES):
+    #
+    # ARNOCOMMENT: Change code and use usercallback to report hits
+    #
+    def send_query(self,query,usercallback,max_nqueries=MAX_NQUERIES):
         """ Called by GUI Thread """
         if DEBUG:
             print >>sys.stderr,"rquery: send_query",query
@@ -325,6 +328,8 @@ class RemoteQueryMsgHandler:
             print >>sys.stderr,"rquery: QUERY_REPLY: no results found"
 
     def notify_of_remote_hits(self,permid,kws,answers):
+        
+        # ARNOCOMMENT: LAYERVIOLATION: this has to go.
         #guiutil = self.launchmany.get_gui_util()
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
         guiutil = GUIUtility.getInstance()

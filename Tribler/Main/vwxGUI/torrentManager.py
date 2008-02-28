@@ -88,8 +88,14 @@ class TorrentDataManager:
         self.standardOverview = None
         self.searchkeywords = {'filesMode':[], 'libraryMode':[]}
         self.oldsearchkeywords = {'filesMode':[], 'libraryMode':[]} # previous query
+        
+        
+        # ARNOCOMMENT: LAYERVIOLATION
         self.metadata_handler = MetadataHandler.getInstance()
+        
+        # ARNOCOMMENT: LAYERVIOLATION
         self.overlay_bridge = OverlayThreadingBridge.getInstance()
+        
         self.collected_torrent_dir = self.utility.session.get_torrent_collecting_dir()
         
         if DEBUG:

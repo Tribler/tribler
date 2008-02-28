@@ -558,9 +558,12 @@ class ABCFrame(wx.Frame):
     def OnCloseWindow(self, event = None):
         
         # Jie: commit database before confirm
+        # ARNO: LAYERVIOLATION
         from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
         db = SQLiteCacheDB.getInstance()
         from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
+        
+        # ARNO: LAYERVIOLATION
         overlay_bridge = OverlayThreadingBridge.getInstance()
         overlay_bridge.add_task(lambda:db.commit, 0)
 

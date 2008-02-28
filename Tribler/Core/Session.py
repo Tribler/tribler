@@ -483,6 +483,51 @@ class Session(SessionRuntimeConfig):
     #
     # Tribler Core special features
     #
+    def query_connected_peers(self,query,usercallback):
+        """ Ask all Tribler peers we're currently connected to resolve the
+        specified query and return the hits. For each peer that returns
+        hits the usercallback method is called with first parameter the
+        permid of the peer and as second parameter the query string and
+        as third parameter a dictionary of hits. The number of times the 
+        usercallback method will be called is undefined.
+
+        At the moment we support one type of query, which is a query for
+        torrent files that match a set of keywords. The format of the
+        query string is "SIMPLE kw1 kw2 kw3". In the future we plan
+        to support full SQL queries.
+        
+        For SIMPLE queries the dictionary of hits consists of 
+        (infohash,torrentrecord) pairs. The torrentrecord is a 
+        dictionary that contains the following keys:
+        <pre>
+        * 'content_name': The 'name' field of the torrent.
+        * 'length': The total size of the content in the torrent.
+        * 'leecher': The currently known number of downloaders.
+        * 'seeder': The currently known number of seeders.
+        * 'category': A list of category strings the torrent was classified into
+          by the remote peer.
+        </pre>
+        
+        @param query A Unicode query string adhering to the above spec.
+        @param usercallback A function adhering to the above spec.
+        """
+        self.sesslock.acquire()
+        try:
+            if self.sessconfig['overlay']:
+                if not query.startswith('SIMPLE '):
+                    raise ValueError('Query does start with SIMPLE')
+                
+                query_usercallback_lambda = lambda permid,hits:usercallback(permid,query,hits)
+                kws = query[len('SIMPLE '):]
+                
+                rqmh = RemoteQueryMsgHandler.getInstance()
+                rqmh.send_query(kws,query_usercallback_lambda)
+            else:
+                raise OperationNotEnabledByConfigurationException("Overlay not enabled")
+        finally:
+            self.sesslock.release()
+
+    
     def download_torrentfile_from_peer(self,permid,infohash,usercallback):
         """ Ask the designated peer to send us the torrentfile for the torrent
         identified by the passed infohash. If the torrent is succesfully 
@@ -503,6 +548,8 @@ class Session(SessionRuntimeConfig):
                 raise OperationNotEnabledByConfigurationException("Overlay not enabled")
         finally:
             self.sesslock.release()
+
+
         
 
     #

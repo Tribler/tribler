@@ -59,11 +59,14 @@ class standardOverview(wx.Panel):
         #register for gui events
         self.peer_manager.registerGui(self.updateFunPersons) #no matter which of the two, persons or friends, is on, the same function is used
 
+        # ARNOCOMMENT: Can't we get rid of this thread now we have SQLlite?
+        # ARNOCOMMENT: Can't we get rid of PeerManager and DataManager now we have SQLlite?
         class DataLoadingThread(Thread):
             def __init__(self,owner):
                 Thread.__init__(self, name="DataLoadingThread")
                 self.setDaemon(True)
                 self.owner = owner
+                # ARNOCOMMENT: LAYERVIOLATION
                 self.buddycast = self.owner.utility.session.lm.overlay_apps.buddycast
 
             def run(self):
@@ -120,6 +123,7 @@ class standardOverview(wx.Panel):
         self.toggleLoadingDetailsPanel(True)
         
         # Jie TODO: add task to overlay bridge
+        # ARNOCOMMENT: LAYERVIOLATION
         #overlay_bridge = OverlayThreadingBridge.getInstance()
         #overlay_bridge.add_task(run, 0)
         

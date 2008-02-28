@@ -198,6 +198,8 @@ class PeerDataManager:
         self.filtered_data = { 'all':all_data}
         #there should anways be no filtering function for this all data
         self.filtered_func = { 'all':[None,None] } #a sorting function can be added later
+        
+        # ARNOCOMMENT: LAYERVIOLATION
         self.overlay_bridge = OverlayThreadingBridge.getInstance()
 #        stubCN = "no data"
 #        if utility is not None:

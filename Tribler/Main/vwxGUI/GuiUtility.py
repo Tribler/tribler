@@ -250,7 +250,13 @@ class GUIUtility:
         filesButton.setSelected(True)
         self.selectedMainButton = filesButton
         
+        # ARNOCOMMENT: LAYERVIOLATION. We need to add a method to Session
+        # to make this functionality accessible. 
         self.rqmh = RemoteQueryMsgHandler.getInstance()
+        
+        # ARNOCOMMENT: Also RemoteQueryMsgHandler may not depend on datamanager
+        # but must access the TorrentDB directly. Not all clients built on the
+        # Core will have a DataManager, nor should they be required to.
         self.rqmh.register2(self.data_manager)
             
      

@@ -494,7 +494,7 @@ class SQLiteCacheDB:
         if SQLiteCacheDB.DEBUG:
             thread_name = threading.currentThread().getName()
             print >> self.file, 'sdb: executemany', thread_name, cur, sql, args
-            if not thread_name.startswith('OverlayThread-6'):
+            if not thread_name.startswith('OverlayThread'):
                 st = extract_stack()
                 for line in st:
                     print >> self.file, '\t', line
