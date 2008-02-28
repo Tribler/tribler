@@ -126,7 +126,7 @@ class TriblerLaunchMany(Thread):
             self.superpeer_db   = SuperPeerDBHandler.getInstance()
             self.superpeer_db.loadSuperPeers(config)
             self.friend_db      = FriendDBHandler.getInstance()
-            #self.bartercast_db   = BarterCastDBHandler.getInstance(self.session)
+            self.bartercast_db  = BarterCastDBHandler.getInstance(self.session)
             
         else:
             config['overlay'] = 0    # turn overlay off
@@ -137,6 +137,7 @@ class TriblerLaunchMany(Thread):
             self.pref_db        = None
             self.superpeer_db   = None
             self.friend_db      = None
+            self.bartercast_db  = None
         
         if not config['overlay']:
             config['buddycast'] = 0

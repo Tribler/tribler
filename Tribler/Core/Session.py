@@ -416,6 +416,51 @@ class Session(SessionRuntimeConfig):
         #Called by any thread
         self.uch.notifier.remove_observer(func) # already threadsafe
 
+    def open_dbhandler(self,subject):
+        """ Opens a connection to the specified database. Only the thread 
+        calling this method may use this connection. The connection must be 
+        closed with close_dbhandler() when this thread exits.
+        
+        @param subject The database to open. Must be one of the subjects
+        specified here.
+        @return A reference to a DBHandler class for the specified subject or 
+        None when the Session was not started with megacaches enabled. 
+        <pre> NTFY_PEERS -> PeerDBHandler
+        NTFY_TORRENTS -> TorrentDBHandler
+        NTFY_PREFERENCES -> PreferenceDBHandler
+        NTFY_SUPERPEERS -> SuperpeerDBHandler
+        NTFY_FRIENDS -> FriendsDBHandler
+        NTFY_MYPREFERENCES -> MyPreferenceDBHandler
+        NTFY_BARTERCAST -> BartercastDBHandler
+        </pre>
+        """ 
+        # Called by any thread
+        self.sesslock.acquire()
+        try:
+            if subject == NTFY_PEERS:
+                return self.session.lm.peer_db
+            elif subject == NTFY_TORRENTS:
+                return self.session.lm.torrent_db
+            elif subject == NTFT_PREFRENCES:
+                return self.session.lm.pref_db
+            elif subject == NTFT_SUPERPEERS:
+                return self.session.lm.superpeer_db
+            elif subject == NTFT_FRIENDS:
+                return self.session.lm.friend_db
+            elif subject == NTFT_MYPREFRENCES:
+                return self.session.lm.mypref_db
+            elif subject == NTFT_BARTERCAST:
+                return self.session.lm.bartercast_db
+            else:
+                raise ValueError('Cannot open DB subject: '+subject)
+        finally:
+            self.sesslock.release()
+        
+        
+    def close_dbhandler(self,dbhandler):
+        """ Closes the given database connection """
+        raise NotYetImplementedException()
+    
 
     #
     # Access control

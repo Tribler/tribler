@@ -107,14 +107,6 @@ class MyDBHandler(BasicDBHandler):
             where = "entry=" + repr(key)
             self._db.update(self.table_name, where, value=value)
         
-    def getMyPermid(self, permid=None):
-        return str2bin(self.get('permid', permid))
-        
-    def getMyIP(self, ip='127.0.0.1'):
-        return self.get('ip', ip)
-
-    def getMyPeerInfo(self):
-        return {'name':self.get('name'),'ip':self.get('ip','127.0.0.1'),'port':self.get('port', 0)}
 
 
 class PeerViewHandler(BasicDBHandler):    

@@ -43,6 +43,10 @@ NTFY_PEERS = 'peers'
 NTFY_TORRENTS = 'torrents'
 NTFY_YOUTUBE = 'youtube'
 NTFY_PREFERENCES = 'preferences'
+NTFY_SUPERPEERS = 'superpeers' # currently not observable 
+NTFY_FRIENDS = 'friends'       # currently not observable
+NTFY_MYPREFERENCES = 'mypreferences' # currently not observable
+NTFY_BARTERCAST = 'bartercast' # currently not observable
 
 # non data handler subjects
 NTFY_DOWNLOADS = 'downloads'   # a torrent download was added/removed/changed
@@ -65,6 +69,7 @@ NTFY_ACT_GOT_METADATA = 5
 NTFY_ACT_RECOMMEND = 6
 NTFY_ACT_DISK_FULL = 7
 NTFY_ACT_NEW_VERSION = 8
+ 
  
 # Disk-allocation policies for download, see DownloadConfig.set_alloc_type
 DISKALLOC_NORMAL = 'normal'              
