@@ -1,6 +1,9 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
 #
+# Tribler Core API v0.0.7rc1
+# Feb 28, 2008 
+#
 # To use the Tribler Core just do:
 # from Tribler.Core.API import *
 #
