@@ -1085,7 +1085,8 @@ class TorrentDBHandler(BasicDBHandler):
         Return a list of dictionaries. Each dict has an 'infohash' and 'name'
         key.
         """
-        sql = 'select torrent_id,name from Torrent where status_id == 1 and'
+        sql = 'select Infohash.infohash,Torrent.name from Torrent INNER JOIN Infohash ON Torrent.torrent_id = Infohash.torrent_id where status_id = 1 and' 
+        
         for i in range(len(kws)):
             kw = kws[i]
             sql += ' name like "%'+kw+'%"'
@@ -1096,9 +1097,9 @@ class TorrentDBHandler(BasicDBHandler):
         print >>sys.stderr,"torrent_db: searchNames res",`res`
         
         all = []
-        for torrent_id,name in res:
-            print >>sys.stderr,"torrent_db: searchNames Got",`torrent_id`,`name`
-            infohash = self.getInfohash(torrent_id)
+        for base64infohash,name in res:
+            print >>sys.stderr,"torrent_db: searchNames Got",`base64infohash`,`name`
+            infohash = str2bin(base64infohash)
             d = {'infohash':infohash,'name':name}
             all.append(d)
         return all
