@@ -33,7 +33,7 @@ class KeywordSearch:
             wbsearch.append(re.compile(r'\b%s\b' % needle))
                                               
         for item in searchspace:
-            title = item['content_name'].lower()
+            title = item['name'].lower()
             score = 0
             for i in xrange(len(needles)):
                 wb = wbsearch[i].findall(title)
@@ -72,12 +72,12 @@ class KeywordSearch:
                 searchRegexp+= needle+'|'
             searchRegexp = re.compile(searchRegexp[:-1])
             for item in haystack:
-                title = item['content_name'].lower()
+                title = item['name'].lower()
                 if len(searchRegexp.findall(title)) > 0:
                     hits.append(item)
         elif searchtype == 'AND':
             for item in haystack:
-                title = item['content_name'].lower()
+                title = item['name'].lower()
                 foundAll = True
                 for needle in needles:
                     if title.find(needle) == -1:
@@ -89,11 +89,11 @@ class KeywordSearch:
 
 
 def test():
-    data = [{'content_name':'Fedoras 3.10'},
-            {'content_name':'Fedora 2.10'},
-            {'content_name':'Movie 3.10'},
-            {'content_name':'fedora_2'},
-            {'content_name':'movie_theater.avi'}
+    data = [{'name':'Fedoras 3.10'},
+            {'name':'Fedora 2.10'},
+            {'name':'Movie 3.10'},
+            {'name':'fedora_2'},
+            {'name':'movie_theater.avi'}
             ]
     words = ['fedora', '1']
     #print KeywordSearch().simpleSearch(data, words)

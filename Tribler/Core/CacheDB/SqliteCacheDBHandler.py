@@ -1064,71 +1064,6 @@ class TorrentDBHandler(BasicDBHandler):
         # torrent_list consumes about 2MB for 4836 torrents, and this function costs about 0.15 second
         #print time()-s
         return  torrent_list
-
-#===============================================================================
-#        
-#        
-#        #print '>>>>>>'*5, "loadTorrents", currentThread().getName()
-#        #print_stack()
-#        #loaded by DataLoadingThread
-#        
-#        start_time = time()
-#        mypref_set = Set(self.mypref_db._keys())
-#        
-#        if all:
-#            all_list = self.torrent_db._keys()
-#        else:
-#            all_list = Set(self.torrent_db._keys()) - mypref_set
-# 
-#        # Arno: save memory by reusing dict keys
-#        key_infohash = 'infohash'
-#        key_myDownloadHistory = 'myDownloadHistory'
-#        key_download_started = 'download_started'
-#        key_num_owners = 'key_num_owners'
-#        
-#        torrents = []
-# #        num_live_torrents = 0 
-#        setOfInfohashes = Set()
-#        for torrent in all_list:
-#            if torrent in setOfInfohashes: # do not add 2 torrents with same infohash
-#                continue
-#            p = self.torrent_db.getItem(torrent,savemem=True)
-#            if not p:
-#                break #database not available any more
-#            if not type(p) == dict or not p.get('torrent_name', None) or not p.get('info', None):
-#                deleted = self.deleteTorrent(torrent)     # remove infohashes without torrent
-#                print >> sys.stderr, "TorrentDBHandler: deleted empty torrent", deleted, p.get('torrent_name', None), p.get('info', None)
-#            
-# #            if torrent not in mypref_set:
-# #                live = p.get('status', 'unknown')
-# #                if live != 'dead' and live != 'unknown':
-# #                    num_live_torrents += 1
-#                    
-#            if all and torrent in mypref_set:
-#                p[key_myDownloadHistory] = True
-#                mypref_obj = self.mypref_db.getItem(torrent)
-#                if mypref_obj:
-#                    p[key_download_started] = mypref_obj['created_time']
-#                    
-#            p[key_infohash] = torrent
-#            setOfInfohashes.add(torrent)
-#            if not light:    # set light as ture to be faster
-#                p[key_num_owners] = self.owner_db.getNumOwners(torrent)
-#                
-#            torrents.append(p)
-#            
-#        del all_list
-#        del setOfInfohashes
-#        
-# #        from traceback import print_stack
-# #        print_stack()
-# #        print >> sys.stderr, '[StartUpDebug]----------- from loadTorrents ----------', time()-start_time, currentThread().getName(), '\n\n'
-#        
-# #        self.torrent_db.num_metadatalive = num_live_torrents
-#        #print 'Returning %d torrents' % len(torrents)
-#        
-#        return torrents
-#===============================================================================
         
     def getCollectedTorrentHashes(self): 
         """ get infohashes of torrents on disk, used by torrent checking, 
@@ -1137,58 +1072,38 @@ class TorrentDBHandler(BasicDBHandler):
         sql = "select infohash from Infohash where torrent_id in (select torrent_id from Torrent)"
         res = self._db.fetchall(sql)
         return [t[0] for t in res]
-#    
-#        all_list = Set(self.torrent_db._keys())
-#        all_list -= Set(self.mypref_db._keys())
-#
-#        return all_list
-    
-#===============================================================================
-#    def getLiveTorrents(self, peerlist):
-#        raise NotImplementedError
-#        
-#        ret = []
-#        for infohash in peerlist:
-#            data = self.torrent_db._get(infohash)
-#            if isinstance(data, dict):
-#                live = data.get('status', 'unknown')
-#                if live != 'dead':
-#                    ret.append(infohash)
-#        return ret
-#    
-#    def getTorrentsValue(self, torrent_list, keys=None):    # get a list of values given peer list 
-#        raise NotImplementedError
-#    
-#        if not keys:
-#            keys = self.torrent_db.default_item.keys()
-#        if not isinstance(keys, list):
-#            keys = [str(keys)]
-#        values = []
-#        for torrent in torrent_list:
-#            t = self.torrent_db.getItem(torrent, default=True)
-#            if len(keys) == 1:
-#                values.append(t[keys[0]])
-#            else:
-#                d = []
-#                for key in keys:
-#                    d.append(t[key])
-#                values.append(d)
-#        
-#        return values
-#===============================================================================
         
     def hasMetaData(self, infohash):
         return self.hasTorrent(infohash)
     
-#    def getTorrentStatus(self, infohash):
-#        torrent_id = self._db.getTorrentID(infohash)
-#        if torrent_id is None:
-#            return None
-#        sid = self.getOne('status_id', torrent_id=torrent_id)
-#        return sid
-            
     def updateTorrentRelevance(self, infohash, relevance):
         self.updateTorrent(infohash, relevance=relevance)
+
+
+    def searchNames(self,kws):
+        """ Get all good torrents that have the specified keywords in their name. 
+        Return a list of dictionaries. Each dict has an 'infohash' and 'name'
+        key.
+        """
+        sql = 'select torrent_id,name from Torrent where status_id == 1 and'
+        for i in range(len(kws)):
+            kw = kws[i]
+            sql += ' name like "%'+kw+'%"'
+            if (i+1) != len(kws):
+                sql += ' and'  
+        print >>sys.stderr,"torrent_db: searchNames sql",sql
+        res = self._db.execute(sql)
+        print >>sys.stderr,"torrent_db: searchNames res",`res`
+        
+        all = []
+        for torrent_id,name in res:
+            print >>sys.stderr,"torrent_db: searchNames Got",`torrent_id`,`name`
+            infohash = self.getInfohash(torrent_id)
+            d = {'infohash':infohash,'name':name}
+            all.append(d)
+        return all
+            
+
 
 
 class MyPreferenceDBHandler(BasicDBHandler):
@@ -1331,97 +1246,6 @@ class MyPreferenceDBHandler(BasicDBHandler):
             """
         self.coccurrence = dict(self._db.fetchall(sql))
 
-#===============================================================================
-# 
-# class OwnerDBHandler(BasicDBHandler):
-#    
-#    def __init__(self):
-#        BasicDBHandler.__init__(self, 'Preference')
-# 
-#    
-#    def getTorrents(self):
-#        raise NotImplementedError
-#        return self.owner_db._keys()
-#        
-#    def getSimItems(self, torrent_hash, num=15):
-#        raise NotImplementedError
-#        """ Get a list of similar torrents given a torrent hash. The torrents
-#        must exist and be not dead.
-#        Input
-#           torrent_hash: the infohash of a torrent
-#           num: the number of similar torrents to get
-#        output: 
-#           returns a list of infohashes, sorted by similarity,
-#        """
-# 
-#        start = time()
-#        mypref_list = self.mypref_db._keys()
-#        if torrent_hash in self.sim_cache:
-#            mypref_set = Set(mypref_list)
-#            oldrec = self.sim_cache[torrent_hash]
-#            for item in oldrec[:]:    # remove common torrents
-#                if item in mypref_set:
-#                    oldrec.remove(item)
-#            return oldrec
-#        
-#        owners = self.owner_db._get(torrent_hash, {})
-#        nowners = len(owners)
-#        if not owners or nowners < 1:
-#            return []
-#        co_torrents = {}    # torrents have co
-#        for owner in owners:
-#            prefs = self.pref_db.getItem(owner)
-#            for torrent in prefs:
-#                if torrent not in co_torrents:
-#                    co_torrents[torrent] = 1
-#                else:
-#                    co_torrents[torrent] += 1
-#        if torrent_hash in co_torrents:
-#            co_torrents.pop(torrent_hash)
-#        for infohash in mypref_list:
-#            if infohash in co_torrents:
-#                co_torrents.pop(infohash)
-#        
-#        sim_items = []
-#        
-#        for torrent in co_torrents:
-#            co = co_torrents[torrent]
-# #            if co <= 1:
-# #                continue
-#            
-#            # check if the torrent is collected and live
-#            has_key = self.torrent_db._has_key(torrent)
-#            if has_key == False:
-#                continue
-#            elif has_key == None:
-#                break
-#            value = self.torrent_db._get(torrent)
-#            if not value:    # sth. is wrong
-#                print >> sys.stderr, "cachedbhandler: getSimItems meets error in getting data"
-#                break
-#            info = value.get('info', {})
-#            name = info.get('name', None)
-#            if not name:
-#                continue
-#            live = value.get('status', 'unknown')
-#            if live == 'dead':
-#                continue
-#            
-#            nowners2 = self.owner_db.getNumOwners(torrent)
-#            if nowners2 == 0:    # sth. is wrong
-#                continue
-#            sim = co/(nowners*nowners2)**0.5
-#            sim_items.append((sim, torrent))
-#            
-#        sim_items.sort()
-#        sim_items.reverse()
-#        sim_torrents = [torrent for sim, torrent in sim_items[:num]]
-#        
-#        self.sim_cache[torrent_hash] = sim_torrents
-#        return sim_torrents
-#        
-#        
-#===============================================================================
         
 class BarterCastDBHandler(BasicDBHandler):
 
@@ -1445,37 +1269,4 @@ class BarterCastDBHandler(BasicDBHandler):
         BasicDBHandler.__init__(self, 'BarterCast')
         raise NotImplementedError
         
-#        self.my_db_handler = MyDBHandler.getInstance()
-#        self.peer_db = PeerDBHandler()
-#        self.my_permid = self.my_db_handler.getMyPermid()
-#        self.default_item = {
-#            'last_seen':0,
-#            'value': 0,
-#            'downloaded': 0,
-#            'uploaded': 0,
-#        }
-#
-#
-#    def __len__(self):
-#        return self.size()
-#
-#    def getName(self, permid):
-#
-#        if permid == 'testpermid_1':
-#            return "Test_1"
-#        elif permid == 'testpermid_2':
-#            return "Test_2"
-#        elif permid == 'non-tribler':
-#            return "Non-tribler"
-#        
-#        peer = self.peer_db.getPeer(permid)
-#        if peer == None:
-#            return 'peer %s' % show_permid_shorter(permid) 
-#        else:
-#            name = peer.get('name', '')
-#            if name == '':
-#                name = 'peer %s' % show_permid_shorter(permid)
-#            return name
-
-    #TODO: bartercast db
 

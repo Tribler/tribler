@@ -67,7 +67,7 @@ class standardOverview(wx.Panel):
                 self.setDaemon(True)
                 self.owner = owner
                 # ARNOCOMMENT: LAYERVIOLATION
-                self.buddycast = self.owner.utility.session.lm.overlay_apps.buddycast
+                #self.buddycast = self.owner.utility.session.lm.overlay_apps.buddycast
 
             def run(self):
                 try:
@@ -647,7 +647,7 @@ class standardOverview(wx.Panel):
         
     def setSearchFeedback(self,*args,**kwargs):
         """ May be called by web2.0 thread """
-        setSearchFeedback_lambda = lambda:self._setSearchFeedback(args,kwargs)
+        setSearchFeedback_lambda = lambda:self._setSearchFeedback(*args,**kwargs)
         wx.CallAfter(setSearchFeedback_lambda)
         
     def getSearchBusy(self):

@@ -18,6 +18,7 @@ from Tribler.Core.Utilities.utilities import find_prog_in_PATH,validTorrentFile,
 from Tribler.Core.APIImplementation.SessionRuntimeConfig import SessionRuntimeConfig
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.APIImplementation.UserCallbackHandler import UserCallbackHandler
+from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
 
 
 DEBUG = True
@@ -438,19 +439,19 @@ class Session(SessionRuntimeConfig):
         self.sesslock.acquire()
         try:
             if subject == NTFY_PEERS:
-                return self.session.lm.peer_db
+                return self.lm.peer_db
             elif subject == NTFY_TORRENTS:
-                return self.session.lm.torrent_db
+                return self.lm.torrent_db
             elif subject == NTFT_PREFRENCES:
-                return self.session.lm.pref_db
+                return self.lm.pref_db
             elif subject == NTFT_SUPERPEERS:
-                return self.session.lm.superpeer_db
+                return self.lm.superpeer_db
             elif subject == NTFT_FRIENDS:
-                return self.session.lm.friend_db
+                return self.lm.friend_db
             elif subject == NTFT_MYPREFRENCES:
-                return self.session.lm.mypref_db
+                return self.lm.mypref_db
             elif subject == NTFT_BARTERCAST:
-                return self.session.lm.bartercast_db
+                return self.lm.bartercast_db
             else:
                 raise ValueError('Cannot open DB subject: '+subject)
         finally:
@@ -528,11 +529,11 @@ class Session(SessionRuntimeConfig):
     #
     # Tribler Core special features
     #
-    def query_connected_peers(self,query,usercallback):
+    def query_connected_peers(self,query,usercallback,max_peers_to_query=None):
         """ Ask all Tribler peers we're currently connected to resolve the
         specified query and return the hits. For each peer that returns
         hits the usercallback method is called with first parameter the
-        permid of the peer and as second parameter the query string and
+        permid of the peer, as second parameter the query string and
         as third parameter a dictionary of hits. The number of times the 
         usercallback method will be called is undefined.
 
@@ -562,11 +563,10 @@ class Session(SessionRuntimeConfig):
                 if not query.startswith('SIMPLE '):
                     raise ValueError('Query does start with SIMPLE')
                 
-                query_usercallback_lambda = lambda permid,hits:usercallback(permid,query,hits)
                 kws = query[len('SIMPLE '):]
                 
                 rqmh = RemoteQueryMsgHandler.getInstance()
-                rqmh.send_query(kws,query_usercallback_lambda)
+                rqmh.send_query(kws,usercallback,max_nqueries=max_peers_to_query)
             else:
                 raise OperationNotEnabledByConfigurationException("Overlay not enabled")
         finally:

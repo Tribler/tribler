@@ -267,6 +267,11 @@ class TorrentDataManager:
         
         web2on = self.utility.config.Read('enableweb2search',"boolean")
         
+        
+        # ARNOTEMP
+        web2on = False
+        
+        
         #if DEBUG:
         #    print >>sys.stderr,"torrentManager: getCategory: mode",mode,"webon",web2on,"insearch",self.inSearchMode(mode),"catekey",categorykey
         

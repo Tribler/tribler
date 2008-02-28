@@ -22,7 +22,7 @@ from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SIXTH
 from Tribler.Core.Utilities.utilities import show_permid_short,show_permid
 from Tribler.Core.Statistics.Logger import OverlayLogger
 from Tribler.Core.Utilities.unicode import dunno2unicode
-
+from Tribler.Core.Search.SearchManager import SearchManager
 
 MAX_RESULTS = 20
 QUERY_ID_SIZE = 20
@@ -51,7 +51,7 @@ class RemoteQueryMsgHandler:
 
         
         self.connections = Set()    # only connected remote_search_peers
-        self.query_ids2query = {}
+        self.query_ids2rec = {}    # ARNOUGLY: TODO: purge old entries...
         self.overlay_log = None
         self.registered = False
 
@@ -67,19 +67,14 @@ class RemoteQueryMsgHandler:
             print >> sys.stderr,"rquery: register"
         self.overlay_bridge = overlay_bridge
         self.launchmany= launchmany
-        self.torrent_db = launchmany.torrent_db # LITETHREAD: opened by MainThread, used by OverlayThread
-        self.friend_db = launchmany.friend_db # LITETHREAD: opened by MainThread, used by OverlayThread
-        self.peer_db = launchmany.peer_db # LITETHREAD: opened by MainThread, used by OverlayThread
+        self.search_manager = SearchManager(launchmany.torrent_db)
+        self.peer_db = launchmany.peer_db
         self.config = config
         self.bc_fac = bc_fac # May be None
-        self.data_manager = None
         if log:
             self.overlay_log = OverlayLogger.getInstance(log)
         self.registered = True
         
-    def register2(self,data_manager):
-        self.data_manager = data_manager
-
     #
     # Incoming messages
     # 
@@ -126,24 +121,22 @@ class RemoteQueryMsgHandler:
     #
     # Send query
     # 
-
-    #
-    # ARNOCOMMENT: Change code and use usercallback to report hits
-    #
     def send_query(self,query,usercallback,max_nqueries=MAX_NQUERIES):
         """ Called by GUI Thread """
+        if max_nqueries is None:
+            max_nqueries = MAX_NQUERIES
         if DEBUG:
             print >>sys.stderr,"rquery: send_query",query
         if max_nqueries > 0:
-            send_query_func = lambda:self.network_send_query_callback(query,max_nqueries)
+            send_query_func = lambda:self.network_send_query_callback(query,usercallback,max_nqueries)
             self.overlay_bridge.add_task(send_query_func,0)
 
 
-    def network_send_query_callback(self,query,max_nqueries):
+    def network_send_query_callback(self,query,usercallback,max_nqueries):
         """ Called by overlay thread """
-        p = self.create_query(query)
+        p = self.create_query(query,usercallback)
         m = QUERY+p
-        func = lambda exc,dns,permid,selversion:self.conn_callback(exc,dns,permid,selversion,m)
+        query_conn_callback_lambda = lambda exc,dns,permid,selversion:self.conn_callback(exc,dns,permid,selversion,m)
 
         if DEBUG:
             print >>sys.stderr,"rquery: send_query: Connected",len(self.connections),"peers"
@@ -152,33 +145,34 @@ class RemoteQueryMsgHandler:
         
         nqueries = 0
         for permid in self.connections:
-            self.overlay_bridge.connect(permid,func)
+            self.overlay_bridge.connect(permid,query_conn_callback_lambda)
             nqueries += 1
         
         if nqueries < max_nqueries and self.bc_fac and self.bc_fac.buddycast_core:
             query_cand = self.bc_fac.buddycast_core.getRemoteSearchPeers(MAX_NQUERIES-nqueries)
             for permid in query_cand:
                 if permid not in self.connections:    # don't call twice
-                    self.overlay_bridge.connect(permid,func)
+                    self.overlay_bridge.connect(permid,query_conn_callback_lambda)
                     nqueries += 1
         
         if DEBUG:
             print >>sys.stderr,"rquery: send_query: Sent to",nqueries,"peers"
         
-    def create_query(self,query):
+    def create_query(self,query,usercallback):
         d = {}
         d['q'] = 'SIMPLE '+query
-        d['id'] = self.create_and_register_query_id(query)
+        d['id'] = self.create_and_register_query_id(query,usercallback)
         return bencode(d)
         
-    def create_and_register_query_id(self,query):
+    def create_and_register_query_id(self,query,usercallback):
         id = Rand.rand_bytes(QUERY_ID_SIZE)
-        self.query_ids2query[id] = query
+        queryrec = {'query':query,'usercallback':usercallback}
+        self.query_ids2rec[id] = queryrec
         return id
         
     def is_registered_query_id(self,id):
-        if id in self.query_ids2query:
-            return self.query_ids2query[id]
+        if id in self.query_ids2rec:
+            return self.query_ids2rec[id]
         else:
             return None
         
@@ -229,9 +223,7 @@ class RemoteQueryMsgHandler:
         # In the future we could support full SQL queries:
         # SELECT infohash,torrent_name FROM torrent_db WHERE status = ALIVE
         kws = q.split()
-        if self.data_manager is None:    # running on text terminate
-            self.create_data_manager()
-        hits = self.data_manager.remoteSearch(kws, maxhits=MAX_RESULTS)
+        hits = self.search_manager.search(kws, maxhits=MAX_RESULTS)
         
         p = self.create_query_reply(d['id'],hits)
         m = QUERY_REPLY+p
@@ -247,16 +239,6 @@ class RemoteQueryMsgHandler:
         self.overlay_bridge.send(permid, m, self.send_callback)
         
         self.inc_peer_nqueries(permid)
-        
-    def create_data_manager(self):
-        config_path = '.Tribler'
-        #print "*** create fake data manager", config_path
-        utility = FakeUtility(config_path)
-        
-        # TODO FIXME: let GUI be updated via Notifier structure
-        #from Tribler.vwxGUI.torrentManager import TorrentDataManager
-        #self.data_manager = TorrentDataManager.getInstance(utility)
-        #self.data_manager.loadData()
         
         
     def create_query_reply(self,id,hits):
@@ -305,46 +287,25 @@ class RemoteQueryMsgHandler:
             return False
 
         # Check auth
-        query = self.is_registered_query_id(d['id'])
-        if not query:
+        queryrec = self.is_registered_query_id(d['id'])
+        if not queryrec:
             if DEBUG:
                 print >>sys.stderr,"rquery: QUERY_REPLY has unknown query ID"
             return False
 
         # Process
-        self.process_query_reply(permid,query,d)
+        self.process_query_reply(permid,queryrec['query'],queryrec['usercallback'],d)
         return True
 
 
-    def process_query_reply(self,permid,query,d):
+    def process_query_reply(self,permid,query,usercallback,d):
         
-        #print "****** recv query reply:", query, d
+        print >>sys.stderr,"rquery: process_query_reply:",show_permid_short(permid),query,d
         
         if len(d['a']) > 0:
-            #TODO: report to standardOverview instead
-            kws = query.split()
-            self.notify_of_remote_hits(permid,kws,d['a'])
+            usercallback(permid,query,d['a'])
         elif DEBUG:
             print >>sys.stderr,"rquery: QUERY_REPLY: no results found"
-
-    def notify_of_remote_hits(self,permid,kws,answers):
-        
-        # ARNOCOMMENT: LAYERVIOLATION: this has to go.
-        #guiutil = self.launchmany.get_gui_util()
-        from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-        guiutil = GUIUtility.getInstance()
-        if guiutil is None:
-            if DEBUG:
-                print >>sys.stderr,"rquery: QUERY_REPLY: cannot pass remote hits to GUI layer"
-            return
-        
-        so = guiutil.standardOverview
-        # TODO: so.invokeLater(self.notify_hits_guicallback,[so,permid,kws,answers])
-
-
-    def notify_hits_guicallback(self,standardOverview,permid,kws,answers):
-        """ Called by GUI thread """
-        standardOverview.gotRemoteHits(permid,kws,answers)
 
 
     def test_send_query(self,query):

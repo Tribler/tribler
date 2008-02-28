@@ -369,6 +369,11 @@ class ABCFrame(wx.Frame):
         s.add_observer(self.sesscb_ntfy_activities_callback,NTFY_ACTIVITIES,[NTFY_INSERT])
         
         
+        # ARNOCOMMENT: Not yet working as Jie's sqlDB stuff was not yet 
+        # instrumented with notifier calls.
+        s.add_observer(self.sesscb_ntfy_dbstats_callback,NTFY_TORRENTS,[NTFY_INSERT])
+        s.add_observer(self.sesscb_ntfy_dbstats_callback,NTFY_PEERS,[NTFY_INSERT])
+        
     def checkVersion(self):
         t = NamedTimer(2.0, self._checkVersion)
         t.start()
@@ -716,7 +721,26 @@ class ABCFrame(wx.Frame):
             if tt is not None:
                 tt.SetTip(self.utility.lang.get('reachable_tooltip'))
 
+    def sesscb_ntfy_dbstats_callback(self,subject,changeType,objectID,args):
+        """ Called by SessionCallback thread """
+        wx.CallAfter(setDBStats)
+        
+        
+    def setDBStats(self):
+        """ Set total # peers and torrents discovered """
+        
+        # Arno: GUI thread accessing database
+        peer_db = self.utility.session.open_dbhandler(NTFY_PEERS)
+        npeers = peer_db.size()
+        torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
+        nfiles = torrent_db.size()
+        # Arno: not closing db connections, assuming main thread's will be 
+        # closed at end.
+                
+        self.utility.frame.numberPersons.SetLabel(npeers)
+        self.utility.frame.numberFiles.SetLabel(nfiles)
 
+        
     def sesscb_ntfy_activities_callback(self,subject,changeType,objectID,msg):
         # Called by SessionCallback thread
         print >>sys.stderr,"main: sesscb_ntfy_activities called:",subject,changeType,objectID,msg

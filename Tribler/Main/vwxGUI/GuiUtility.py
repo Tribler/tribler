@@ -14,7 +14,6 @@ from Tribler.Core.Overlay.permid import permid_for_user
 from Tribler.Main.Dialogs.makefriends import MakeFriendsDialog
 from peermanager import PeerDataManager
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
-from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
 from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 #from Tribler.vwxGUI.filesFilter import filesFilter
 
@@ -250,15 +249,6 @@ class GUIUtility:
         filesButton.setSelected(True)
         self.selectedMainButton = filesButton
         
-        # ARNOCOMMENT: LAYERVIOLATION. We need to add a method to Session
-        # to make this functionality accessible. 
-        self.rqmh = RemoteQueryMsgHandler.getInstance()
-        
-        # ARNOCOMMENT: Also RemoteQueryMsgHandler may not depend on datamanager
-        # but must access the TorrentDB directly. Not all clients built on the
-        # Core will have a DataManager, nor should they be required to.
-        self.rqmh.register2(self.data_manager)
-            
      
     def getOverviewElement(self):
         """should get the last selected item for the current standard overview, or
@@ -439,18 +429,19 @@ class GUIUtility:
         #
         nhits = len(self.data_manager.hits)
         if nhits < self.remote_search_threshold and mode == 'filesMode':
-            q = ''
+            q = 'SIMPLE '
             for kw in wantkeywords:
                 q += kw+' '
                 
-            # For TEST suite
-            #rqmh.test_sendQuery(q) 
-            #print "************** send query", q
-            
             num_remote_queries = min((self.remote_search_threshold - nhits)/2, self.max_remote_queries)
             if num_remote_queries > 0:
-                self.rqmh.send_query(q, num_remote_queries) 
+                self.utility.session.query_connected_peers(q,self.sesscb_remote_hits,num_remote_queries)
+                 
                 self.standardOverview.setSearchFeedback('remote', False, 0)
+
+    def sesscb_remote_hits(self,permid,query,hits):
+        print >>sys.stderr,"GUIUtil: sesscb_remote_hits $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
+        print >>sys.stderr,"GUIUtil: sesscb_remote_hits",`hits`
 
         
     def searchPersons(self, mode, input):
