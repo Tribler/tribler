@@ -542,16 +542,14 @@ class BuddyCastCore:
         
         try:
             self.round += 1
-            if DEBUG:
-                print >> sys.stderr, '************ working buddycast', currentThread().getName()
+            #print >> sys.stderr, 'bc: ************ working buddycast', currentThread().getName()
             self.print_debug_info('Active', 2)
             if self.log:
                 nPeer, nPref, nCc, nBs, nBr, nSO, nCo, nCt, nCr, nCu = self.get_stats()
                 self.overlay_log('BUCA_STA', self.round, (nPeer,nPref,nCc), (nBs,nBr), (nSO,nCo), (nCt,nCr,nCu))
         
             self.print_debug_info('Active', 3)
-            if DEBUG:
-                print >> sys.stderr, '************ working buddycast 2'
+            #print >> sys.stderr, 'bc: ************ working buddycast 2'
             self.updateSendBlockList()
             
             _now = now()
@@ -1146,8 +1144,7 @@ class BuddyCastCore:
         self.data_handler.increaseBuddyCastTimes(sender_permid)
         
         if DEBUG:
-            print >> sys.stderr, "======================= Got BuddyCast Message from", \
-                self.get_peer_info(sender_permid), " Yahoo!!! ======================="
+            print >> sys.stderr, "bc: Got BuddyCast Message from",self.get_peer_info(sender_permid)
         
         return True
         

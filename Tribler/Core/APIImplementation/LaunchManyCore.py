@@ -591,6 +591,7 @@ class TriblerLaunchMany(Thread):
         
     def set_activity(self,type, str = ''):
         """ Called by overlay + network thread """
+        print >>sys.stderr,"tlm: set_activity",type,str
         self.session.uch.notify(NTFY_ACTIVITIES, NTFY_INSERT, type, str)
 
         

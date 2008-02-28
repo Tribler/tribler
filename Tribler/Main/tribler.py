@@ -79,14 +79,12 @@ from Tribler.Main.notification import init as notification_init
 from Tribler.Main.vwxGUI.font import *
 from Tribler.Web2.util.update import Web2Updater
 
-#from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
+from Tribler.Core.API import *
 from Tribler.Core.Overlay.permid import permid_for_user
-from Tribler.Core.simpledefs import *
-from Tribler.Core.Session import Session
 from Tribler.Core.APIImplementation.miscutils import NamedTimer
-from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
 import Tribler.Category.Category
+
 DEBUG = False
 ALLOW_MULTIPLE = False
 start_time = 0
@@ -348,24 +346,28 @@ class ABCFrame(wx.Frame):
 
     def startAPI(self):
         
-        # ARNO: LITETHREAD: Use stored config, not create new one always
+        # Start Tribler Session
+        state_dir = Session.get_default_state_dir()
+        cfgfilename = Session.get_default_config_filename(state_dir)
+        if DEBUG:
+            print >>sys.stderr,"main: Session config",cfgfilename
+        try:
+            self.sconfig = SessionStartupConfig.load(cfgfilename)
+        except:
+            print_exc()
+            self.sconfig = SessionStartupConfig()
+            self.sconfig.set_state_dir(state_dir)
         
-        sscfg = SessionStartupConfig()
-        sscfg.set_install_dir(self.utility.getPath())
-        if sys.platform == 'win32':
-            #s = Session()    # Jie: why not use sscfg?
-            s = Session(sscfg)
-        else:
-            s = Session(sscfg)
-            
-        print 'config_dir: %s' % s.get_state_dir()
+        s = Session(self.sconfig)
+        #s.set_download_states_callback(self.sesscb_states_callback)
+
         self.utility.session = s
 
         mm = MugshotManager.getInstance()
-        mm.register(s.sessconfig)
+        mm.register(s.sessconfig) # ARNOUGLY
         
-        r = UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager()    # Jie: what a big name!
-        r.set_global_max_speed(DOWNLOAD,100)
+        s.add_observer(self.sesscb_ntfy_activities_callback,NTFY_ACTIVITIES,[NTFY_INSERT])
+        
         
     def checkVersion(self):
         t = NamedTimer(2.0, self._checkVersion)
@@ -614,15 +616,6 @@ class ABCFrame(wx.Frame):
                 sys.stderr.write(data.getvalue())
                 pass
 
-#        try:
-#            # tell scheduler to close all active thread
-#            self.utility.queue.clearScheduler()
-#        except:
-#            data = StringIO()
-#            print_exc(file = data)
-#            sys.stderr.write(data.getvalue())
-#            pass
-
         try:
             # Restore the window before saving size and position
             # (Otherwise we'll get the size of the taskbar button and a negative position)
@@ -722,6 +715,12 @@ class ABCFrame(wx.Frame):
             tt = self.firewallStatus.GetToolTip()
             if tt is not None:
                 tt.SetTip(self.utility.lang.get('reachable_tooltip'))
+
+
+    def sesscb_ntfy_activities_callback(self,subject,changeType,objectID,msg):
+        # Called by SessionCallback thread
+        print >>sys.stderr,"main: sesscb_ntfy_activities called:",subject,changeType,objectID,msg
+        wx.CallAfter(self.setActivity,objectID,msg)
 
 
     def setActivity(self,type,msg=u''):

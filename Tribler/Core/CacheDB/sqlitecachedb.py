@@ -664,7 +664,7 @@ class SQLiteCacheDB:
         if not os.path.isfile(peerdb_filepath):
             return False
         else:
-            print >> sys.stderr, "************ convert bsddb to sqlite"
+            print >> sys.stderr, "cachedb: ************ convert bsddb to sqlite"
             converted = convert_db(bsddb_dirpath, dbfile_path, sql_filename)
             if converted is True and delete_bsd is True:
                 print >> sys.stderr, "delete bsddb directory"
