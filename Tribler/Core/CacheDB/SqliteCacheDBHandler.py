@@ -44,7 +44,7 @@ class BasicDBHandler:
         
     def close(self):
         try:
-            self.sync()
+            self._db.close()
         except:
             if SHOW_ERROR:
                 print_exc()

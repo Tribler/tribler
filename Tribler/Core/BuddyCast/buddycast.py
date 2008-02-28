@@ -542,14 +542,16 @@ class BuddyCastCore:
         
         try:
             self.round += 1
-            print >> sys.stderr, '************ working buddycast', currentThread().getName()
+            if DEBUG:
+                print >> sys.stderr, '************ working buddycast', currentThread().getName()
             self.print_debug_info('Active', 2)
             if self.log:
                 nPeer, nPref, nCc, nBs, nBr, nSO, nCo, nCt, nCr, nCu = self.get_stats()
                 self.overlay_log('BUCA_STA', self.round, (nPeer,nPref,nCc), (nBs,nBr), (nSO,nCo), (nCt,nCr,nCu))
         
             self.print_debug_info('Active', 3)
-            print >> sys.stderr, '************ working buddycast 2'
+            if DEBUG:
+                print >> sys.stderr, '************ working buddycast 2'
             self.updateSendBlockList()
             
             _now = now()
@@ -1448,7 +1450,8 @@ class BuddyCastCore:
     def print_debug_info(self, thread, step, target_permid=None, selversion=0, r=0, addto=''):
         if not debug:
             return
-        print "bc: *****", thread, str(step), "-",
+        if DEBUG:
+            print "bc: *****", thread, str(step), "-",
         if thread == 'Active':
             if step == 2:
                 print >> sys.stderr, "Working:", now() - self.start_time, \
@@ -1610,7 +1613,8 @@ class BuddyCastCore:
                 print >> sys.stderr, "add idle loops", self.next_initiate
         sys.stdout.flush()
         sys.stderr.flush()
-        print >> sys.stderr, "bc: *****", thread, str(step), "-",
+        if DEBUG:
+            print >> sys.stderr, "bc: *****", thread, str(step), "-",
 
     def getAllTasteBuddies(self):
         return self.connected_taste_buddies

@@ -44,10 +44,6 @@ CREATE TABLE MyInfo (
   value  text
 );
 
-CREATE UNIQUE INDEX MyInfo_entry_idx
-  ON MyInfo
-  (entry);
-
 ----------------------------------------
 
 CREATE TABLE MyPreference (
