@@ -543,11 +543,12 @@ class LibraryItemPanel(wx.Panel):
                 self.utility.actionhandler.procREMOVE([abctorrent], removefiles = removeFiles)
                             
             elif name == 'pause':
+                # ARNOCOMMENT: need to get/store/cache current status of Download somehow
                 if abctorrent.status.value in [STATUS_PAUSE, STATUS_STOP, STATUS_QUEUE ]:
-                    self.utility.actionhandler.procRESUME([abctorrent])
+                    abctorrent.restart()
                     obj.setToggled(False)
                 else:
-                    self.utility.actionhandler.procSTOP([abctorrent])
+                    abctorrent.stop()
                     obj.setToggled(True)
                     
             elif name == 'playFast':

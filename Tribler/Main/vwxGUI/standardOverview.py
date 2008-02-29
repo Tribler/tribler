@@ -413,10 +413,10 @@ class standardOverview(wx.Panel):
         activeInfohashes = {}
         active = []
         inactive = []
-        for torrent in self.utility.session.get_downloads():
-            activeInfohashes[torrent.get_def().get_infohash()] = torrent
+        for abctorrent in self.utility.session.get_downloads():
+            activeInfohashes[abctorrent.get_def().get_infohash()] = abctorrent
             if DEBUG:
-                print >>sys.stderr,"standardOverview: Load library active is",`torrent.get_def().get_name()`
+                print >>sys.stderr,"standardOverview: Load library active is",`abctorrent.get_def().get_name()`
         
         if sort != 'latest':
             preSorting = sort

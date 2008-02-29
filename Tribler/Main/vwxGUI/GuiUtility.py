@@ -672,9 +672,8 @@ class GUIUtility:
         abctorrent = item.get('abctorrent')
         
         if abctorrent:
-            self.utility.actionhandler.procREMOVE([abctorrent], removefiles = True)
-        #else:
-        #    print 'Error: Could not delete torrent: %s' % repr(item['content_name'])
+            self.utility.session.remove_download(abctorrent,removeContent = True)
+            
         self.standardOverview.removeTorrentFromLibrary(item)
 
                 
@@ -689,9 +688,8 @@ class GUIUtility:
         abctorrent = item.get('abctorrent')    
         
         if abctorrent:
-            self.utility.actionhandler.procREMOVE([abctorrent], removefiles = False)
-        #else:
-        #    print 'Error: Could not delete torrent: %s' % repr(item['content_name'])
+            self.utility.session.remove_download(abctorrent,removeContent = False)
+            
         self.standardOverview.removeTorrentFromLibrary(item)
     
     def addAbcTorrent(self, item):
