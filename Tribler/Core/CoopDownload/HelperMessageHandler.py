@@ -27,7 +27,7 @@ class HelperMessageHandler:
     def register(self,session,metadata_handler,helpdir):
         self.session = session
         self.helpdir = helpdir
-        self.torrent_db = TorrentDBHandler.getInstance() # LITETHREAD
+        self.torrent_db = TorrentDBHandler.getInstance()
         self.metadata_handler = metadata_handler
 
     def handleMessage(self,permid,selversion,message):

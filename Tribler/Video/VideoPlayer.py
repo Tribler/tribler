@@ -160,6 +160,8 @@ class VideoPlayer:
     def play_vod_via_http(self,ABCTorrentTemp,videoinfo):
         """ Called by GUI thread when clicking "Play ASAP" button """
 
+        # ARNOCOMMENT: Rewrite this using Core API. See SwarmPlayer for examples
+
         # For multi-file torrent: when the user selects a different file, play that
         oldvideoinfo = ABCTorrentTemp.get_videoinfo()
         

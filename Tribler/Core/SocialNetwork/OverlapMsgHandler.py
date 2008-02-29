@@ -26,8 +26,8 @@ class OverlapMsgHandler:
             print >> sys.stderr,"socnet: bootstrap: overlap"
         self.mypermid = launchmany.session.get_permid()
         self.config = launchmany.session.sessconfig
-        self.peer_db = launchmany.peer_db # LITETHREAD: opened by MainThread used by OverlayThread
-        self.superpeer_db = launchmany.superpeer_db # LITETHREAD: opened by MainThread used by OverlayThread
+        self.peer_db = launchmany.peer_db 
+        self.superpeer_db = launchmany.superpeer_db
         self.overlay_bridge = overlay_bridge
 
     #

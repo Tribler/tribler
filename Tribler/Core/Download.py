@@ -114,10 +114,10 @@ class Download(DownloadRuntimeConfig,DownloadImpl):
         # called by any thread
         self.dllock.acquire()
         try:
-            # LITETHREAD: WE NEED PERMID+IP FOR COOP DL. How to access DB? Can't
+            # ARNOCOMMENT: WE NEED PERMID+IP FOR COOP DL. How to access DB? Can't
             # do it on main thread, can't do it on network thread.
             
-            peerreclist = self.session.lm.peer_db.getPeers(self, peer_list, ['permid','ip','port']) # LITETHREAD
+            peerreclist = self.session.lm.peer_db.getPeers(self, peer_list, ['permid','ip','port'])
             
             if self.sd is not None:
                 ask_coopdl_helpers_lambda = lambda:self.sd.ask_coopdl_helpers(peerreclist)

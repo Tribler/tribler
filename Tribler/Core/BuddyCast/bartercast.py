@@ -3,7 +3,6 @@ from Tribler.Core.Statistics.Logger import OverlayLogger
 from Tribler.Core.BitTornado.BT1.MessageID import BARTERCAST #, KEEP_ALIVE
 from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
 from Tribler.Core.Utilities.utilities import *
-from Tribler.Core.Overlay.permid import permid_for_user
 from traceback import print_exc, print_stack
 from types import StringType, ListType, DictType
 from time import time, gmtime, strftime, ctime

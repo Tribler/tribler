@@ -89,13 +89,6 @@ class TorrentDataManager:
         self.searchkeywords = {'filesMode':[], 'libraryMode':[]}
         self.oldsearchkeywords = {'filesMode':[], 'libraryMode':[]} # previous query
         
-        
-        # ARNOCOMMENT: LAYERVIOLATION
-        self.metadata_handler = MetadataHandler.getInstance()
-        
-        # ARNOCOMMENT: LAYERVIOLATION
-        self.overlay_bridge = OverlayThreadingBridge.getInstance()
-        
         self.collected_torrent_dir = self.utility.session.get_torrent_collecting_dir()
         
         if DEBUG:
@@ -123,10 +116,6 @@ class TorrentDataManager:
             self.loading_count = len(self.data)
             self.isDataPrepared.set()
             
-            self.category.register(self.metadata_handler)
-            updated = self.category.checkResort(self.data) # the database is upgraded from v1 to v2
-            if updated:
-                self.data = self.torrent_db.loadTorrents()
             self.prepareData(self.data)
         except:
             print_exc()
@@ -308,9 +297,7 @@ class TorrentDataManager:
         return self.torrent_db.getTorrent(infohash)
 
     def deleteTorrent(self, infohash, delete_file=False):
-        def _deleteTorrent():
-            self.torrent_db.deleteTorrent(infohash, delete_file)
-        self.overlay_bridge.add_task(_deleteTorrent)
+        self.torrent_db.deleteTorrent(infohash, delete_file)
 
     # register update function
     def register(self, fun, key, library):
@@ -834,11 +821,9 @@ class TorrentDataManager:
             return ntorrents
         
     def setSecret(self, infohash, b):
-        def _setSecret():
-            if b:
-                self.torrent_db.updateTorrent(infohash, **{'secret':True})
-            else:
-                self.torrent_db.updateTorrent(infohash, **{'secret':False})
-        self.overlay_bridge.add_task(_setSecret)
+        if b:
+            self.torrent_db.updateTorrent(infohash, **{'secret':True})
+        else:
+            self.torrent_db.updateTorrent(infohash, **{'secret':False})
         
             

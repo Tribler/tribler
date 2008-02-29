@@ -10,7 +10,7 @@ from sets import Set
 from bgPanel import *
 import updateXRC
 from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
-from Tribler.Core.Overlay.permid import permid_for_user
+from Tribler.Core.Utilities.utilities import show_permid
 from Tribler.Main.Dialogs.makefriends import MakeFriendsDialog
 from peermanager import PeerDataManager
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
@@ -375,7 +375,7 @@ class GUIUtility:
         if ip is None or ip == '':
             ip = my_db.getMyIP()
         mypermid = my_db.getMyPermid()
-        permid_txt = self.utility.lang.get('permid')+": "+permid_for_user(mypermid)
+        permid_txt = self.utility.lang.get('permid')+": "+show_permid(mypermid)
         ip_txt = self.utility.lang.get('ipaddress')+": "+ip
 
         # port = self.utility.controller.listen_port

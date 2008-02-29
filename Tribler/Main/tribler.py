@@ -44,51 +44,37 @@ from time import time, ctime, sleep
 from traceback import print_exc, print_stack
 from cStringIO import StringIO
 import urllib
+import webbrowser
 
 from Tribler.Utilities.interconn import ServerListener, ClientPassParam
-
-
 if (sys.platform == 'win32'):
-    try:
-        from Dialogs.regdialog import RegCheckDialog
-    except:
         from Tribler.Main.Dialogs.regdialog import RegCheckDialog
 
 from Tribler.Main.Utility.utility import Utility
 from Tribler.Main.Utility.constants import * #IGNORE:W0611
-
-from Tribler.Core.BitTornado.__init__ import product_name
-import webbrowser
 import Tribler.Main.vwxGUI.font as font
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 import Tribler.Main.vwxGUI.updateXRC as updateXRC
-from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
-from Tribler.Video.VideoServer import VideoHTTPServer
 from Tribler.Main.Dialogs.GUIServer import GUIServer
 from Tribler.Main.vwxGUI.TasteHeart import set_tasteheart_bitmaps
 from Tribler.Main.vwxGUI.perfBar import set_perfBar_bitmaps
 from Tribler.Main.Dialogs.BandwidthSelector import BandwidthSelector
-from Tribler.Subscriptions.rss_client import TorrentFeedThread
-from Tribler.Core.simpledefs import *
-from Tribler.Core.CacheDB.MugshotManager import MugshotManager
-from Tribler.Core.DecentralizedTracking import mainlineDHT
-from Tribler.Core.DecentralizedTracking.rsconvert import RawServerConverter
-from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
-
 from Tribler.Main.notification import init as notification_init
 from Tribler.Main.vwxGUI.font import *
+
+from Tribler.Subscriptions.rss_client import TorrentFeedThread
+from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
+from Tribler.Video.VideoServer import VideoHTTPServer
 from Tribler.Web2.util.update import Web2Updater
+import Tribler.Category.Category
+from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
 
 from Tribler.Core.API import *
-from Tribler.Core.Overlay.permid import permid_for_user
-from Tribler.Core.APIImplementation.miscutils import NamedTimer
-from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
-import Tribler.Category.Category
+from Tribler.Core.CacheDB.MugshotManager import MugshotManager
+from Tribler.Core.Utilities.utilities import show_permid
 
 DEBUG = False
 ALLOW_MULTIPLE = False
-start_time = 0
-start_time2 = 0
 
 
 ################################################################
@@ -251,46 +237,20 @@ class ABCFrame(wx.Frame):
         self.Bind(wx.EVT_SIZE, self.onSize)
         self.Bind(wx.EVT_MAXIMIZE, self.onSize)
         #self.Bind(wx.EVT_IDLE, self.onIdle)
-        
-        # Start up the controller
-        #self.utility.controller = ABCLaunchMany(self.utility)
-        #self.utility.controller.start()
-        ##self.startAPI()
-        
-        # Start up mainline DHT
-        # Arno: do this in a try block, as khashmir gives a very funky
-        # error when started from a .dmg (not from cmd line) on Mac. In particular
-        # it complains that it cannot find the 'hex' encoding method when
-        # hstr.encode('hex') is called, and hstr is a string?!
-        #
-#        try:
-#            rsconvert = RawServerConverter(self.utility.controller.get_rawserver())
-#            mainlineDHT.init('', self.utility.listen_port, self.utility.getConfigPath(),rawserver=rsconvert)
-#            # Create torrent-liveliness checker based on DHT
-#            c = mainlineDHTChecker.getInstance()
-#            c.register(mainlineDHT.dht)
-#        except:
-#            print_exc()
 
-        # Give GUI time to set up stuff
-        wx.Yield()
 
-        #if server start with params run it
-        #####################################
         
+
+        # If the user passed a torrentfile on the cmdline, load it.
         if DEBUG:
             print >>sys.stderr,"abc: wxFrame: params is",self.params
-        
-        if self.params[0] != "":
-            success, msg, ABCTorrentTemp = self.utility.queue.addtorrents.AddTorrentFromFile(self.params[0],caller=CALLER_ARGV)
-
-        #self.utility.queue.postInitTasks(self.params)
 
         if self.params[0] != "":
-            # Update torrent.list, but after having read the old list of torrents, otherwise we get interference
-            ABCTorrentTemp.torrentconfig.writeSrc(False)
-            self.utility.torrentconfig.Flush()
+            torrentfilename = self.params[0]
+            tdef = TorrentDef.load(torrentfilename)
+            self.utility.session.start_download(tdef)
 
+        # Init video player
         self.videoFrame = None
         feasible = return_feasible_playback_modes(self.utility.getPath())
         if PLAYBACKMODE_INTERNAL in feasible:
@@ -322,7 +282,7 @@ class ABCFrame(wx.Frame):
 #            
 #            top = bartercastdb.getTopNPeers(5)['top']
 #    
-#            print 'My Permid: ', permid_for_user(mypermid)
+#            print 'My Permid: ', show_permid(mypermid)
 #            
 #            print 'Top 5 BarterCast peers:'
 #            print '======================='
@@ -346,10 +306,11 @@ class ABCFrame(wx.Frame):
 
         
     def checkVersion(self):
-        t = NamedTimer(2.0, self._checkVersion)
-        t.start()
-        
+        guiserver = GUIServer.getInstance()
+        guiserver.add_task(self._checkVersion,10.0)
+
     def _checkVersion(self):
+        # Called by GUIServer thread
         my_version = self.utility.getVersion()
         try:
             curr_status = urllib.urlopen('http://tribler.org/version').readlines()
@@ -534,17 +495,6 @@ class ABCFrame(wx.Frame):
     ##################################
                
     def OnCloseWindow(self, event = None):
-        
-        # Jie: commit database before confirm
-        # ARNO: LAYERVIOLATION
-        from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
-        db = SQLiteCacheDB.getInstance()
-        from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
-        
-        # ARNO: LAYERVIOLATION
-        overlay_bridge = OverlayThreadingBridge.getInstance()
-        overlay_bridge.add_task(lambda:db.commit, 0)
-
         if event != None:
             nr = event.GetEventType()
             lookup = { wx.EVT_CLOSE.evtType[0]: "EVT_CLOSE", wx.EVT_QUERY_END_SESSION.evtType[0]: "EVT_QUERY_END_SESSION", wx.EVT_END_SESSION.evtType[0]: "EVT_END_SESSION" }
@@ -740,9 +690,6 @@ class ABCFrame(wx.Frame):
 ##############################################################
 class ABCApp(wx.App):
     def __init__(self, x, params, single_instance_checker, abcpath):
-        global start_time, start_time2
-        start_time2 = time()
-        #print "[StartUpDebug]----------- from ABCApp.__init__ ----------Tribler starts up at", ctime(start_time2), "after", start_time2 - start_time
         self.params = params
         self.single_instance_checker = single_instance_checker
         self.abcpath = abcpath
@@ -867,21 +814,6 @@ class ABCApp(wx.App):
             #self.frame.Refresh()
             #self.frame.Layout()
             self.frame.Show(True)
-#===============================================================================
-#            global start_time2
-#            current_time = time()
-#            print "\n\n[StartUpDebug]-----------------------------------------"
-#            print "[StartUpDebug]"
-#            print "[StartUpDebug]----------- from ABCApp.OnInit ----------Tribler frame is shown after", current_time-start_time2
-#            print "[StartUpDebug]"
-#            print "[StartUpDebug]-----------------------------------------\n\n"
-#===============================================================================
-            
-            # GUI start
-            # - load myFrame 
-            # - load standardGrid
-            # - gui utility > button mainButtonFiles = clicked
-        
 
             self.Bind(wx.EVT_QUERY_END_SESSION, self.frame.OnCloseWindow)
             self.Bind(wx.EVT_END_SESSION, self.frame.OnCloseWindow)
@@ -964,6 +896,9 @@ class ABCApp(wx.App):
         s.add_observer(self.sesscb_ntfy_dbstats_callback,NTFY_TORRENTS,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_dbstats_callback,NTFY_PEERS,[NTFY_INSERT])
 
+        # Load all other downloads
+        s.load_checkpoint()
+
 
     def sesscb_ntfy_dbstats_callback(self,subject,changeType,objectID,args):
         """ Called by SessionCallback thread """
@@ -1011,7 +946,8 @@ class ABCApp(wx.App):
     def OnExit(self):
         
         self.torrentfeed.shutdown()
-        mainlineDHT.deinit()
+
+        self.utility.session.shutdown()
         
         if not ALLOW_MULTIPLE:
             del self.single_instance_checker
@@ -1064,8 +1000,6 @@ class DummySingleInstanceChecker:
 #
 ##############################################################
 def run(params = None):
-    global start_time
-    start_time = time()
     if params is None:
         params = [""]
     
@@ -1076,17 +1010,14 @@ def run(params = None):
     # Arno: On Linux and wxPython-2.8.1.1 the SingleInstanceChecker appears
     # to mess up stderr, i.e., I get IOErrors when writing to it via print_exc()
     #
-    # TEMPORARILY DISABLED on Linux
     if sys.platform != 'linux2':
         single_instance_checker = wx.SingleInstanceChecker("tribler-" + wx.GetUserId())
     else:
         single_instance_checker = DummySingleInstanceChecker("tribler-")
 
-    #print "[StartUpDebug]---------------- 1", time()-start_time
     if not ALLOW_MULTIPLE and single_instance_checker.IsAnotherRunning():
         #Send  torrent info to abc single instance
         ClientPassParam(params[0])
-        #print "[StartUpDebug]---------------- 2", time()-start_time
     else:
         arg0 = sys.argv[0].lower()
         if arg0.endswith('.exe'):
@@ -1099,7 +1030,6 @@ def run(params = None):
         # Launch first abc single instance
         app = ABCApp(0, params, single_instance_checker, abcpath)
         configpath = app.getConfigPath()
-#        print "[StartUpDebug]---------------- 3", time()-start_time
         app.MainLoop()
 
         print "Client shutting down. Sleeping for a few seconds to allow other threads to finish"

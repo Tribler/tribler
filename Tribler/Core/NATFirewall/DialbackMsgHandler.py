@@ -87,8 +87,8 @@ class DialbackMsgHandler:
         self.overlay_bridge = overlay_bridge
         self.rawserver = rawserver
         self.launchmany = launchmany
-        self.peer_db = launchmany.peer_db   # LITETHREAD: don't work: must be overlay thread that opens DB connection
-        self.superpeer_db = launchmany.superpeer_db # LITETHREAD: don't work: must be overlay thread that opens DB connection
+        self.peer_db = launchmany.peer_db 
+        self.superpeer_db = launchmany.superpeer_db 
         self.active = config['dialback_active'],
         self.trust_superpeers = config['dialback_trust_superpeers']
         self.returnconnhand.register(self.rawserver,launchmany.multihandler,launchmany.listen_port,config['overlay_max_message_length'])

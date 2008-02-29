@@ -15,7 +15,6 @@ import wx.lib.imagebrowser as ib
 from wx.wizard import Wizard,WizardPageSimple,EVT_WIZARD_PAGE_CHANGED,EVT_WIZARD_PAGE_CHANGING,EVT_WIZARD_CANCEL,EVT_WIZARD_FINISHED
 
 from Tribler.Main.Dialogs.MugshotManager import MugshotManager
-from Tribler.Core.Overlay.permid import permid_for_user
 from Tribler.Core.Utilities.unicode import str2unicode
 #from common import CommonTriblerList
 from Tribler.Main.Utility.constants import *

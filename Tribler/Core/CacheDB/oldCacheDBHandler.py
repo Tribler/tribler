@@ -10,7 +10,6 @@ from time import time
 import base64, socket
 
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
-from Tribler.Core.Overlay.permid import permid_for_user
 from sets import Set
 
 from Tribler.Core.Utilities.utilities import show_permid_shorter, validIP, validPort, validPermid, validName

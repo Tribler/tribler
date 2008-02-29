@@ -16,7 +16,7 @@ from Tribler.Main.Utility.constants import * #IGNORE:W0611
 from Tribler.Main.Dialogs.socnetmyinfo import MyInfoWizard
 from Tribler.Core.CacheDB.CacheDBHandler import MyDBHandler
 from Tribler.Video.VideoPlayer import *
-from Tribler.Core.Overlay.permid import permid_for_user
+from Tribler.Core.Utilities import show_permid
 from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
 
 
@@ -1471,7 +1471,7 @@ class TriblerPanel(ABCOptionPanel):
 
         # Show PermID
         mypermid = MyDBHandler.getInstance().getMyPermid()
-        pb64 = permid_for_user(mypermid)
+        pb64 = show_permid(mypermid)
         if True:
             # Make it copy-and-paste able
             permid_box = wx.BoxSizer(wx.HORIZONTAL)

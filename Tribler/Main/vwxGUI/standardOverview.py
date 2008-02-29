@@ -66,8 +66,6 @@ class standardOverview(wx.Panel):
                 Thread.__init__(self, name="DataLoadingThread")
                 self.setDaemon(True)
                 self.owner = owner
-                # ARNOCOMMENT: LAYERVIOLATION
-                #self.buddycast = self.owner.utility.session.lm.overlay_apps.buddycast
 
             def run(self):
                 try:
@@ -121,11 +119,6 @@ class standardOverview(wx.Panel):
         
         self.guiUtility.initStandardOverview(self)    # show file panel
         self.toggleLoadingDetailsPanel(True)
-        
-        # Jie TODO: add task to overlay bridge
-        # ARNOCOMMENT: LAYERVIOLATION
-        #overlay_bridge = OverlayThreadingBridge.getInstance()
-        #overlay_bridge.add_task(run, 0)
         
         thr1=DataLoadingThread(self)
         thr1.setDaemon(True)

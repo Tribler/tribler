@@ -38,7 +38,8 @@ from Tribler.Core.Overlay.OverlayApps import OverlayApps
 from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 from Tribler.Core.DecentralizedTracking import mainlineDHT
 from Tribler.Core.DecentralizedTracking.rsconvert import RawServerConverter
-from Tribler.Video.utils import win32_retrieve_video_play_command
+from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.Video.utils import win32_retrieve_video_play_command
 
 
@@ -184,9 +185,12 @@ class TriblerLaunchMany(Thread):
             rsconvert = RawServerConverter(self.rawserver)
             # '' = host, TODO: when local bind set
             mainlineDHT.init('',self.listen_port,config['state_dir'],rawserver=rsconvert)
+
+            # Create torrent-liveliness checker based on DHT
+            c = mainlineDHTChecker.getInstance()
+            c.register(mainlineDHT.dht)
         except:
             print_exc()
-        
         
         
         # add task for tracker checking
@@ -490,6 +494,12 @@ class TriblerLaunchMany(Thread):
             self.shutdown()
             
     def shutdown(self):
+        
+        # Detect if megacache is enabled
+        if self.peer_db is not None:
+            db = SQLiteCacheDB.getInstance()
+            db.commit()
+        
         mainlineDHT.deinit()
         # Stop network thread
         self.sessdoneflag.set()

@@ -50,7 +50,7 @@ class MetadataHandler:
         self.overlay_bridge = overlay_bridge
         self.dlhelper = dlhelper
         self.launchmany = launchmany
-        self.torrent_db = launchmany.torrent_db # LITETHREAD: openend by MainThread, used by Overlay
+        self.torrent_db = launchmany.torrent_db 
         self.config = config
         self.min_free_space = self.config['stop_collecting_threshold']*(2**20)
         if self.min_free_space <= 0:

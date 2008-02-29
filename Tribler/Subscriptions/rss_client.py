@@ -173,6 +173,7 @@ class TorrentFeedThread(Thread):
                             # ARNOCOMMENT: Need to adjust this to core interface.
                             # Now especially broken because metadatahandler code
                             # is supposed to be executed by the OverlayThread
+                            # LAYERVIOLATION
                             traceback.print_stack()
                             
                             

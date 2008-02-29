@@ -232,7 +232,7 @@ def isValidURL(url):
     return True
     
 def show_permid(permid):
-    # Full BASE64-encoded 
+    # Full BASE64-encoded. Must not be abbreviated in any way. 
     if not permid:
         return 'None'
     return encodestring(permid).replace("\n","")

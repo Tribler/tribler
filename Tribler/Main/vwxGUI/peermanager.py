@@ -199,13 +199,6 @@ class PeerDataManager:
         #there should anways be no filtering function for this all data
         self.filtered_func = { 'all':[None,None] } #a sorting function can be added later
         
-        # ARNOCOMMENT: LAYERVIOLATION
-        self.overlay_bridge = OverlayThreadingBridge.getInstance()
-#        stubCN = "no data"
-#        if utility is not None:
-#            stubCN = utility.lang.get('persons_view_no_data')
-#        noDataStub = {'content_name':stubCN, 'permid':'000001', 'last_connected':-1, 'similarity':0, 'friend':False, 'name':''}
-#        all_data.append(noDataStub)
         self.done_init = True
 
     def getInstance(*args, **kw):
@@ -356,7 +349,7 @@ class PeerDataManager:
         if peer_d!=None:
             peer_d['friend']=True
             peer_data['friend']=True
-            self.overlay_bridge.add_task(lambda:self.friend_db.addFriend(permid))
+            self.friend_db.addFriend(permid)
             self.insertInFilters(peer_d)
             self.notifyGui(peer_d, "add")
             return True
@@ -369,7 +362,7 @@ class PeerDataManager:
         peer_data = self.getPeerData(permid)
         if peer_data!=None:
             peer_data['friend']=True
-            self.overlay_bridge.add_task(lambda:self.friend_db.addFriend(permid))
+            self.friend_db.addFriend(permid)
             self.insertInFilters(peer_data)
             self.notifyGui(peer_data, "add")
         else:
@@ -380,7 +373,7 @@ class PeerDataManager:
         peer_data = self.getPeerData(permid)
         if peer_data!=None:
             peer_data['friend']=False
-            self.overlay_bridge.add_task(lambda:self.friend_db.deleteFriend(permid))
+            self.friend_db.deleteFriend(permid)
             self.removeFromFilters(permid)
             self.notifyGui(peer_data, "delete")
         else:
@@ -396,7 +389,7 @@ class PeerDataManager:
         if peer_d!=None:
             peer_d['friend']=False
             peer_data['friend']=False
-            self.overlay_bridge.add_task(lambda:self.friend_db.deleteFriend(permid))
+            self.friend_db.deleteFriend(permid)
             self.removeFromFilters(permid)
             self.notifyGui(peer_d, "delete")
             return True

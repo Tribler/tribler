@@ -23,8 +23,6 @@ from Tribler.Core.Overlay.SecureOverlay import SecureOverlay
 from Tribler.Core.DecentralizedTracking.ut_pex import *
 # _2fastbt
 
-from Tribler.Core.Overlay.permid import permid_for_user
-
 from Tribler.Core.BitTornado.CurrentRateMeasure import Measure
 
 try:

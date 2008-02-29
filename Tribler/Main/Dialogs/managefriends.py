@@ -9,7 +9,7 @@ import urllib
 import webbrowser
 
 from Tribler.Core.CacheDB.CacheDBHandler import FriendDBHandler,MyDBHandler
-from Tribler.Core.Overlay.permid import permid_for_user
+from Tribler.Core.Utilities.utilities import show_permid
 
 from makefriends import MakeFriendsDialog
 
@@ -239,7 +239,7 @@ class MyInfoDialog(wx.Dialog):
         if ip is None or ip == '':
             ip = self.my_db.getMyIP()
         permid = self.my_db.getMyPermid()
-        self.permid_txt = self.utility.lang.get('permid')+": "+permid_for_user(permid)
+        self.permid_txt = self.utility.lang.get('permid')+": "+show_permid(permid)
         self.ip_txt = self.utility.lang.get('ipaddress')+": "+ip
 
         # port = self.utility.controller.listen_port

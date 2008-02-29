@@ -11,7 +11,7 @@ import tempfile
 from M2Crypto import EC
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import DIALBACK_REQUEST, DIALBACK_REPLY, getMessageName
-import Tribler.Core.Overlay.permid as permidmod
+from Tribler.Core.Utilities.utilities import show_permid
 from Tribler.Core.NATFirewall.ReturnConnHandler import dialback_infohash
 
 from btconn import BTConnection
@@ -80,7 +80,7 @@ class TestDialbackReplyActive(TestAsServer):
             self.mykeypairs[i].gen_key()
             self.mypermids.append(str(self.mykeypairs[i].pub().get_der()))
 
-            content = '127.0.0.1, '+str(self.mylistenport[i])+', '+permidmod.permid_for_user(self.mypermids[i])+', FakeSuperPeer\n'
+            content = '127.0.0.1, '+str(self.mylistenport[i])+', '+show_permid(self.mypermids[i])+', FakeSuperPeer\n'
             f.write(content)
         f.close()
         

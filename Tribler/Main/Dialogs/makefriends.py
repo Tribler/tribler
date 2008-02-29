@@ -11,7 +11,7 @@ import wx
 import wx.lib.imagebrowser as ib
 from Tribler.Core.CacheDB.CacheDBHandler import FriendDBHandler
 from Tribler.Core.CacheDB.CacheDBHandler import PeerDBHandler
-from Tribler.Core.Overlay.permid import permid_for_user
+from Tribler.Core.Utilities.utilities import show_permid
 #from Tribler.vwxGUI.peermanager import PeerDataManager
 
 DEBUG = False
@@ -110,7 +110,7 @@ class MakeFriendsDialog(wx.Dialog):
         box.Add(label, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
 
         if editfriend is not None:
-            permid = permid_for_user(editfriend['permid'])
+            permid = show_permid(editfriend['permid'])
         else:   
             permid = ''
         self.permid_text = wx.TextCtrl(self, -1, permid, size=(300,-1))
