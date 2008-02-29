@@ -713,7 +713,7 @@ class ABCApp(wx.App):
             
             # Arno: Do heavy startup on GUI thread after splash screen has been
             # painted.
-            self.Bind(wx.EVT_IDLE, self.OnIdle)
+            wx.CallAfter(self.PostInit)
             return True
             
         except Exception,e:
@@ -722,13 +722,9 @@ class ABCApp(wx.App):
             self.onError()
             return False
 
-    def OnIdle(self,event=None):
-        self.Unbind(wx.EVT_IDLE)
-        self.PostInit()
-        
-
     def PostInit(self):
         try:
+            wx.Yield() # Let splashscreen be painted
             
             # Initialise fonts
             font.init()
@@ -769,11 +765,12 @@ class ABCApp(wx.App):
             #
             #self.frame = ABCFrame(-1, self.params, self.utility)
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params)
-            updateXRC.main([os.path.join(self.utility.getPath(),'vwxGUI')])
+            updateXRC.main([os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI')])
             self.res = xrc.XmlResource(os.path.join(self.utility.getPath(),'Tribler', 'Main','vwxGUI','MyFrame.xrc'))
             self.guiUtility.xrcResource = self.res
             self.frame = self.res.LoadFrame(None, "MyFrame")
             self.guiUtility.frame = self.frame
+            
             self.guiUtility.scrollWindow = xrc.XRCCTRL(self.frame, "level0")
             self.guiUtility.mainSizer = self.guiUtility.scrollWindow.GetSizer()
             self.frame.topBackgroundRight = xrc.XRCCTRL(self.frame, "topBG3")
@@ -781,6 +778,7 @@ class ABCApp(wx.App):
             self.guiUtility.scrollWindow.SetScrollRate(15,15)
             self.frame.mainButtonPersons = xrc.XRCCTRL(self.frame, "mainButtonPersons")
 
+            self.setMainMenuBar()
 
             self.frame.numberPersons = xrc.XRCCTRL(self.frame, "numberPersons")
             numperslabel = xrc.XRCCTRL(self.frame, "persons")
@@ -925,6 +923,45 @@ class ABCApp(wx.App):
         print >>sys.stderr,"main: sesscb_ntfy_activities called:",subject,changeType,objectID,msg
         wx.CallAfter(self.frame.setActivity,objectID,msg)
 
+
+    def setMainMenuBar(self):
+
+        self.guiUtility.mainmenubar = xrc.XRCCTRL(self.frame, "mainmenubar")
+        print >>sys.stderr,"mainmenubar returned is",self.guiUtility.mainmenubar
+        if self.guiUtility.mainmenubar is None:
+            self.guiUtility.mainmenubar = wx.MenuBar()
+            self.frame.SetMenuBar(self.guiUtility.mainmenubar)
+
+        filemenu = wx.Menu()
+        item = filemenu.Append(-1,self.utility.lang.get('menu_addtorrentfile'))
+        self.Bind(wx.EVT_MENU,self.OnMenu,id = item.GetId())
+        filemenu.Append(-1,self.utility.lang.get('menu_addtorrentnondefault'))
+        filemenu.Append(-1,self.utility.lang.get('menu_addtorrenturl'))
+        filemenu.Append(wx.ID_PREFERENCES,self.utility.lang.get('menupreference'))
+        filemenu.Append(wx.ID_CLOSE,self.utility.lang.get('menuexit'))
+        
+        toolsmenu = wx.Menu()
+        toolsmenu.Append(-1,self.utility.lang.get('menucreatetorrent'))
+        
+        aboutmenu = wx.Menu()
+        aboutmenu.Append(-1,self.utility.lang.get('menuchecklatestversion'))
+        aboutmenu.Append(wx.ID_ABOUT,self.utility.lang.get('menuaboutabc'))
+        
+        #self.Bind(wx.EVT_MENU, self.OnMenu)
+        
+        menus = [(filemenu,self.utility.lang.get('menu_file')),(toolsmenu,self.utility.lang.get('menutools')),(aboutmenu,self.utility.lang.get('menuversion'))]
+        self.guiUtility.mainmenubar.SetMenus(menus)
+
+
+    def OnMenu(self,event=None):
+        if event is not None:
+            obj = event.GetEventObject()
+            name = obj.GetTitle()
+            print >>sys.stderr,"main: MenuEvent",name,obj,event.GetEventType(),event.GetId()
+            print >>sys.stderr,"main: MenuEvent CLOSE",wx.ID_CLOSE,"PREFS",wx.ID_PREFERENCES
+            
+            item = obj.FindItemById(event.GetId())
+            print >>sys.stderr,"main: MenuItem",item.GetText(),self.utility.lang.get('menuchecklatestversion')
 
     def onError(self,source=None):
         # Don't use language independence stuff, self.utility may not be
