@@ -8,7 +8,7 @@ from traceback import print_exc
 import urllib
 import webbrowser
 
-from Tribler.Core.CacheDB.CacheDBHandler import FriendDBHandler,MyDBHandler
+from Tribler.Core.CacheDB.CacheDBHandler import FriendDBHandler
 from Tribler.Core.Utilities.utilities import show_permid
 
 from makefriends import MakeFriendsDialog
@@ -234,11 +234,8 @@ class MyInfoDialog(wx.Dialog):
         myinfobox_title = wx.StaticBox(self, -1, self.utility.lang.get('myinfo'))
         myinfobox = wx.StaticBoxSizer(myinfobox_title, wx.VERTICAL)
 
-        self.my_db = MyDBHandler.getInstance()
-        ip = self.utility.config.Read('bind')
-        if ip is None or ip == '':
-            ip = self.my_db.getMyIP()
-        permid = self.my_db.getMyPermid()
+        ip = self.utility.session.get_external_ip()
+        permid = self.utility.session.get_permid()
         self.permid_txt = self.utility.lang.get('permid')+": "+show_permid(permid)
         self.ip_txt = self.utility.lang.get('ipaddress')+": "+ip
 

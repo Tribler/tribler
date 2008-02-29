@@ -25,7 +25,7 @@ class OverlapMsgHandler:
         if DEBUG:
             print >> sys.stderr,"socnet: bootstrap: overlap"
         self.mypermid = launchmany.session.get_permid()
-        self.config = launchmany.session.sessconfig
+        self.session = launchmany.session
         self.peer_db = launchmany.peer_db 
         self.superpeer_db = launchmany.superpeer_db
         self.overlay_bridge = overlay_bridge
@@ -110,7 +110,7 @@ class OverlapMsgHandler:
         or from other peers (i.e. BUDDYCAST)
         """
         
-        persinfo = {'name':self.config['nickname']}
+        persinfo = {'name':self.session.get_nickname()}
         
         # See if we can find icon using PermID or name (old style):
 #        [type,data] = self.peer_db.getPeerIcon(self.mypermid,persinfo['name'])

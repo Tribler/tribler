@@ -1,3 +1,6 @@
+# ARNOCOMMENT: Rewrite this such that it uses SessionConfig and cleanup of
+# unused abc.conf params. See also Tribler/Utility/utility.py and others.
+
 import sys
 import wx
 import os
@@ -14,7 +17,6 @@ from Tribler.Main.Utility.configreader import ConfigReader
 from Tribler.Main.Utility.constants import * #IGNORE:W0611
 
 from Tribler.Main.Dialogs.socnetmyinfo import MyInfoWizard
-from Tribler.Core.CacheDB.CacheDBHandler import MyDBHandler
 from Tribler.Video.VideoPlayer import *
 from Tribler.Core.Utilities import show_permid
 from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
@@ -82,10 +84,7 @@ class NetworkPanel(ABCOptionPanel):
         ABCOptionPanel.__init__(self, parent, dialog)
         sizer = self.sizer
 
-        my_db = MyDBHandler.getInstance()
-        ip = self.utility.config.Read('bind')
-        if ip is None or ip == '':
-            ip = my_db.getMyIP()
+        ip = self.utility.session.get_external_ip()
         ip_txt = self.utility.lang.get('currentdiscoveredipaddress')+": "+ip
         label = wx.StaticText(self, -1, ip_txt )
         sizer.Add( label, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
@@ -132,13 +131,13 @@ class NetworkPanel(ABCOptionPanel):
         if Read is None:
             Read = self.utility.config.Read
         
-        self.minport.SetValue(Read('minport', 'int'))
+        self.minport.SetValue(self.utility.session.get_listen_port())
         
         self.kickban.SetValue(Read('kickban', "boolean"))
         self.notsameip.SetValue(Read('notsameip', "boolean"))
         self.scrape.SetValue(Read('scrape', "boolean"))
         
-        itrackerurl = get_itracker_url(self.utility)
+        itrackerurl = self.utility.get_itracker_url(self.utility)
 
         self.itrack.SetValue(itrackerurl)
 
@@ -1470,7 +1469,7 @@ class TriblerPanel(ABCOptionPanel):
         myinfosection = wx.StaticBoxSizer(myinfosection_title, wx.VERTICAL)
 
         # Show PermID
-        mypermid = MyDBHandler.getInstance().getMyPermid()
+        mypermid = self.utility.session.get_permid()
         pb64 = show_permid(mypermid)
         if True:
             # Make it copy-and-paste able
@@ -2004,13 +2003,3 @@ class ABCOptionDialog(wx.Dialog):
             
             self.EndModal(wx.ID_OK)
 
-def get_itracker_url(utility):
-    itrackerurl = utility.config.Read('internaltrackerurl')
-    if itrackerurl == '':
-        my_db = MyDBHandler.getInstance()
-        ip = utility.config.Read('bind')
-        if ip is None or ip == '':
-            ip = my_db.getMyIP()
-        port = utility.config.Read('minport', 'int')
-        itrackerurl = 'http://'+ip+':'+str(port)+'/announce'
-    return itrackerurl
