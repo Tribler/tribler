@@ -168,6 +168,16 @@ class TorrentFeedThread(Thread):
     
                             data = bdecode(bdata)
                             torrent_hash = sha(bencode(data['info'])).digest()
+                            
+                            
+                            # ARNOCOMMENT: Need to adjust this to core interface.
+                            # Now especially broken because metadatahandler code
+                            # is supposed to be executed by the OverlayThread
+                            traceback.print_stack()
+                            
+                            
+                            
+                            
                             torrent_db = TorrentDBHandler.getInstance()
                             if not torrent_db.hasTorrent(torrent_hash):
                                 if DEBUG:

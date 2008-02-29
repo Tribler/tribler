@@ -440,8 +440,11 @@ class GUIUtility:
                 self.standardOverview.setSearchFeedback('remote', False, 0)
 
     def sesscb_remote_hits(self,permid,query,hits):
-        print >>sys.stderr,"GUIUtil: sesscb_remote_hits $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
+        # Called by SessionCallback thread 
         print >>sys.stderr,"GUIUtil: sesscb_remote_hits",`hits`
+
+        kws = query.split()
+        wx.CallAfter(self.standardOverview.gotRemoteHits,permid,kws,hits)
 
         
     def searchPersons(self, mode, input):

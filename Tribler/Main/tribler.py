@@ -255,7 +255,7 @@ class ABCFrame(wx.Frame):
         # Start up the controller
         #self.utility.controller = ABCLaunchMany(self.utility)
         #self.utility.controller.start()
-        self.startAPI()
+        ##self.startAPI()
         
         # Start up mainline DHT
         # Arno: do this in a try block, as khashmir gives a very funky
@@ -344,35 +344,6 @@ class ABCFrame(wx.Frame):
 
         self.checkVersion()
 
-    def startAPI(self):
-        
-        # Start Tribler Session
-        state_dir = Session.get_default_state_dir()
-        cfgfilename = Session.get_default_config_filename(state_dir)
-        if DEBUG:
-            print >>sys.stderr,"main: Session config",cfgfilename
-        try:
-            self.sconfig = SessionStartupConfig.load(cfgfilename)
-        except:
-            print_exc()
-            self.sconfig = SessionStartupConfig()
-            self.sconfig.set_state_dir(state_dir)
-        
-        s = Session(self.sconfig)
-        #s.set_download_states_callback(self.sesscb_states_callback)
-
-        self.utility.session = s
-
-        mm = MugshotManager.getInstance()
-        mm.register(s.sessconfig) # ARNOUGLY
-        
-        s.add_observer(self.sesscb_ntfy_activities_callback,NTFY_ACTIVITIES,[NTFY_INSERT])
-        
-        
-        # ARNOCOMMENT: Not yet working as Jie's sqlDB stuff was not yet 
-        # instrumented with notifier calls.
-        s.add_observer(self.sesscb_ntfy_dbstats_callback,NTFY_TORRENTS,[NTFY_INSERT])
-        s.add_observer(self.sesscb_ntfy_dbstats_callback,NTFY_PEERS,[NTFY_INSERT])
         
     def checkVersion(self):
         t = NamedTimer(2.0, self._checkVersion)
@@ -721,32 +692,6 @@ class ABCFrame(wx.Frame):
             if tt is not None:
                 tt.SetTip(self.utility.lang.get('reachable_tooltip'))
 
-    def sesscb_ntfy_dbstats_callback(self,subject,changeType,objectID,args):
-        """ Called by SessionCallback thread """
-        wx.CallAfter(setDBStats)
-        
-        
-    def setDBStats(self):
-        """ Set total # peers and torrents discovered """
-        
-        # Arno: GUI thread accessing database
-        peer_db = self.utility.session.open_dbhandler(NTFY_PEERS)
-        npeers = peer_db.size()
-        torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
-        nfiles = torrent_db.size()
-        # Arno: not closing db connections, assuming main thread's will be 
-        # closed at end.
-                
-        self.utility.frame.numberPersons.SetLabel(npeers)
-        self.utility.frame.numberFiles.SetLabel(nfiles)
-
-        
-    def sesscb_ntfy_activities_callback(self,subject,changeType,objectID,msg):
-        # Called by SessionCallback thread
-        print >>sys.stderr,"main: sesscb_ntfy_activities called:",subject,changeType,objectID,msg
-        wx.CallAfter(self.setActivity,objectID,msg)
-
-
     def setActivity(self,type,msg=u''):
     
         if currentThread().getName() != "MainThread":
@@ -819,7 +764,9 @@ class ABCApp(wx.App):
             #s = wx.SIMPLE_BORDER|wx.FRAME_NO_TASKBAR|wx.FRAME_FLOAT_ON_PARENT
             self.splash = wx.SplashScreen(bm, wx.SPLASH_CENTRE_ON_SCREEN|wx.SPLASH_TIMEOUT, 1000, None, -1)
             
-            wx.CallAfter(self.PostInit)
+            # Arno: Do heavy startup on GUI thread after splash screen has been
+            # painted.
+            self.Bind(wx.EVT_IDLE, self.OnIdle)
             return True
             
         except Exception,e:
@@ -828,6 +775,10 @@ class ABCApp(wx.App):
             self.onError()
             return False
 
+    def OnIdle(self,event=None):
+        self.Unbind(wx.EVT_IDLE)
+        self.PostInit()
+        
 
     def PostInit(self):
         try:
@@ -852,8 +803,6 @@ class ABCApp(wx.App):
             # Put it here so an error is shown in the startup-error popup
             self.serverlistener = ServerListener(self.utility)
             
-            
-                
             # Start single instance server listenner
             ############################################
             self.serverthread   = Thread(target = self.serverlistener.start)
@@ -910,6 +859,10 @@ class ABCApp(wx.App):
             
             self.frame.searchtxtctrl = xrc.XRCCTRL(self.frame, "tx220cCCC")
             """
+
+            # Make sure self.utility.frame is set
+            self.startAPI()
+            
             
             #self.frame.Refresh()
             #self.frame.Layout()
@@ -980,6 +933,63 @@ class ABCApp(wx.App):
             return False
 
         return True
+
+    def startAPI(self):
+        
+        # Start Tribler Session
+        state_dir = Session.get_default_state_dir()
+        cfgfilename = Session.get_default_config_filename(state_dir)
+        if DEBUG:
+            print >>sys.stderr,"main: Session config",cfgfilename
+        try:
+            self.sconfig = SessionStartupConfig.load(cfgfilename)
+        except:
+            print_exc()
+            self.sconfig = SessionStartupConfig()
+            self.sconfig.set_state_dir(state_dir)
+        
+        s = Session(self.sconfig)
+        #s.set_download_states_callback(self.sesscb_states_callback)
+
+        self.utility.session = s
+
+        mm = MugshotManager.getInstance()
+        mm.register(s.sessconfig) # ARNOUGLY
+        
+        s.add_observer(self.sesscb_ntfy_activities_callback,NTFY_ACTIVITIES,[NTFY_INSERT])
+        
+        
+        # ARNOCOMMENT: Not yet working as Jie's sqlDB stuff was not yet 
+        # instrumented with notifier calls.
+        s.add_observer(self.sesscb_ntfy_dbstats_callback,NTFY_TORRENTS,[NTFY_INSERT])
+        s.add_observer(self.sesscb_ntfy_dbstats_callback,NTFY_PEERS,[NTFY_INSERT])
+
+
+    def sesscb_ntfy_dbstats_callback(self,subject,changeType,objectID,args):
+        """ Called by SessionCallback thread """
+        wx.CallAfter(setDBStats)
+        
+        
+    def setDBStats(self):
+        """ Set total # peers and torrents discovered """
+        
+        # Arno: GUI thread accessing database
+        peer_db = self.utility.session.open_dbhandler(NTFY_PEERS)
+        npeers = peer_db.size()
+        torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
+        nfiles = torrent_db.size()
+        # Arno: not closing db connections, assuming main thread's will be 
+        # closed at end.
+                
+        self.frame.numberPersons.SetLabel(npeers)
+        self.frame.numberFiles.SetLabel(nfiles)
+
+        
+    def sesscb_ntfy_activities_callback(self,subject,changeType,objectID,msg):
+        # Called by SessionCallback thread
+        print >>sys.stderr,"main: sesscb_ntfy_activities called:",subject,changeType,objectID,msg
+        wx.CallAfter(self.frame.setActivity,objectID,msg)
+
 
     def onError(self,source=None):
         # Don't use language independence stuff, self.utility may not be

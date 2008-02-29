@@ -14,7 +14,10 @@ from traceback import print_exc, extract_stack, print_stack
 try:
     import sqlite
 except:
-    from pysqlite2 import dbapi2 as sqlite
+    try:
+        from pysqlite2 import dbapi2 as sqlite
+    except:
+        from sqlite3 import dbapi2 as sqlite
 try:
     import apsw
 except:

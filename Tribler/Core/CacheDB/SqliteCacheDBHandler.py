@@ -1079,23 +1079,29 @@ class TorrentDBHandler(BasicDBHandler):
     def updateTorrentRelevance(self, infohash, relevance):
         self.updateTorrent(infohash, relevance=relevance)
 
-
     def searchNames(self,kws):
         """ Get all good torrents that have the specified keywords in their name. 
         Return a list of dictionaries. Each dict has an 'infohash' and 'name'
         key.
         """
-        sql = 'select Infohash.infohash,Torrent.name from Torrent INNER JOIN Infohash ON Torrent.torrent_id = Infohash.torrent_id where status_id = 1 and' 
+        sql = 'select Infohash.infohash,Torrent.* from Torrent INNER JOIN Infohash ON Torrent.torrent_id = Infohash.torrent_id where' # Torrent.status_id = 1 and' 
+        #sql = 'select torrent_id,name from Torrent where' # Torrent.status_id = 1 and'
         
         for i in range(len(kws)):
             kw = kws[i]
             sql += ' name like "%'+kw+'%"'
             if (i+1) != len(kws):
                 sql += ' and'  
-        print >>sys.stderr,"torrent_db: searchNames sql",sql
+        print >>sys.stderr,"torrent_db: searchNames: sql",sql
         res = self._db.execute(sql)
-        print >>sys.stderr,"torrent_db: searchNames res",`res`
+        print >>sys.stderr,"torrent_db: searchNames: res",`res`
         
+        for data in res:
+            print >>sys.stderr,"torrent_db: searchNames: Got Record",`data`
+            
+        
+        return []
+    
         all = []
         for base64infohash,name in res:
             print >>sys.stderr,"torrent_db: searchNames Got",`base64infohash`,`name`
@@ -1103,6 +1109,7 @@ class TorrentDBHandler(BasicDBHandler):
             d = {'infohash':infohash,'name':name}
             all.append(d)
         return all
+            
             
 
 

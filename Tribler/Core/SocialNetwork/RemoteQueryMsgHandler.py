@@ -303,7 +303,8 @@ class RemoteQueryMsgHandler:
         print >>sys.stderr,"rquery: process_query_reply:",show_permid_short(permid),query,d
         
         if len(d['a']) > 0:
-            usercallback(permid,query,d['a'])
+            remote_query_usercallback_lambda = lambda:usercallback(permid,query,d['a'])
+            self.launchmany.session.uch.perform_usercallback(remote_query_usercallback_lambda)
         elif DEBUG:
             print >>sys.stderr,"rquery: QUERY_REPLY: no results found"
 
