@@ -19,7 +19,7 @@ from Tribler.Core.APIImplementation.SessionRuntimeConfig import SessionRuntimeCo
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.APIImplementation.UserCallbackHandler import UserCallbackHandler
 from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
-
+from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 
 DEBUG = True
 
@@ -579,6 +579,8 @@ class Session(SessionRuntimeConfig):
         received, the usercallback method is called with the infohash as first
         and the contents of the torrentfile (bencoded dict) as second parameter.
         If the torrent could not be obtained, the callback is not called.
+        The torrent will have been added to the TorrentDBHandler (if enabled)
+        at the time of the call.
         
         @param permid The PermID of the peer to query.
         @param infohash The infohash of the torrent.

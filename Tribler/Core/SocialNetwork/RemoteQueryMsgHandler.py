@@ -51,7 +51,7 @@ class RemoteQueryMsgHandler:
 
         
         self.connections = Set()    # only connected remote_search_peers
-        self.query_ids2rec = {}    # ARNOUGLY: TODO: purge old entries...
+        self.query_ids2rec = {}    # ARNOCOMMENT: TODO: purge old entries...
         self.overlay_log = None
         self.registered = False
 

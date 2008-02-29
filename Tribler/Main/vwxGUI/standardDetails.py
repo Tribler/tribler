@@ -25,7 +25,6 @@ from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Main.Dialogs.GUIServer import GUIServer
 from Tribler.Core.CacheDB.CacheDBHandler import MyPreferenceDBHandler
 from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
-from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
 
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'subscriptionsMode', 'messageMode']
@@ -1443,9 +1442,7 @@ class standardDetails(wx.Panel):
             if DEBUG:
                 print >>sys.stderr,"standardDetails: User selected query result for download"
             try:
-                rth = RemoteTorrentHandler.getInstance()
-                # Jie TODO: this is just a quick fix
-                rth.download_torrent(torrent['query_permid'],torrent['infohash'], self.refreshTorrentStats_network_callback)
+                self.utility.session.download_torrentfile_from_peer(torrent['query_permid'],torrent['infohash'],self.sesscb_got_requested_torrent)
             except:
                 print_exc()
                 print >> sys.stderr, torrent, torrent.keys()
@@ -1498,6 +1495,22 @@ class standardDetails(wx.Panel):
                 return True
             else:
                 return False
+
+    def sesscb_got_requested_torrent(self,infohash,metadata):
+        """ The torrent file requested from another peer came in.
+        @param infohash The infohash of the torrent file.
+        @param metadata The contents of the torrent file (still bencoded)
+        """
+        # Called by SessionCallback thread
+        print >>sys.stderr,"standardDetails: sesscb_got_requested_torrent:",`infohash`
+        
+        # ARNOCOMMENT: h4x0r this
+        torrent = {}
+        torrent['infohash'] = infohash
+        
+        wx.CallAfter(self.download,torrent)
+
+
 
     def setTorrentThumb(self, mode, torrent, thumbPanel):
         

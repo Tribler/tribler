@@ -954,7 +954,7 @@ class ABCApp(wx.App):
         self.utility.session = s
 
         mm = MugshotManager.getInstance()
-        mm.register(s.sessconfig) # ARNOUGLY
+        mm.register(s.sessconfig) # ARNOCOMMENT
         
         s.add_observer(self.sesscb_ntfy_activities_callback,NTFY_ACTIVITIES,[NTFY_INSERT])
         

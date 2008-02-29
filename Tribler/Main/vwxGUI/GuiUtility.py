@@ -435,13 +435,13 @@ class GUIUtility:
                 
             num_remote_queries = min((self.remote_search_threshold - nhits)/2, self.max_remote_queries)
             if num_remote_queries > 0:
-                self.utility.session.query_connected_peers(q,self.sesscb_remote_hits,num_remote_queries)
+                self.utility.session.query_connected_peers(q,self.sesscb_got_remote_hits,num_remote_queries)
                  
                 self.standardOverview.setSearchFeedback('remote', False, 0)
 
-    def sesscb_remote_hits(self,permid,query,hits):
+    def sesscb_got_remote_hits(self,permid,query,hits):
         # Called by SessionCallback thread 
-        print >>sys.stderr,"GUIUtil: sesscb_remote_hits",`hits`
+        print >>sys.stderr,"GUIUtil: sesscb_got_remote_hits",`hits`
 
         kws = query.split()
         wx.CallAfter(self.standardOverview.gotRemoteHits,permid,kws,hits)
