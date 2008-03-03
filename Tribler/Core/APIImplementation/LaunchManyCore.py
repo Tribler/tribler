@@ -596,7 +596,7 @@ class TriblerLaunchMany(Thread):
     #
     def dialback_reachable_callback(self):
         """ Called by overlay+network thread """
-        self.session.uch.notify(NTFY_REACHABLE, NTFY_INSERT, None, '', '')
+        self.session.uch.notify(NTFY_REACHABLE, NTFY_INSERT, None, '')
         
         
     def set_activity(self,type, str = ''):

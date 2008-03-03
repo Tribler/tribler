@@ -113,7 +113,7 @@ dldefaults['max_message_length'] = 2 ** 23
 dldefaults['selector_enabled'] = 1  # whether to enable the file selector and fast resume function
 dldefaults['expire_cache_data'] = 10 # the number of days after which you wish to expire old cache data (0 = disabled)
 dldefaults['priority'] = []  # a list of file priorities separated by commas, must be one per file, 0 = highest, 1 = normal, 2 = lowest, -1 = download disabled'
-dldefaults['saveas'] = None
+dldefaults['saveas'] = None # Set to get_default_destdir()
 dldefaults['max_slice_length'] = 2 ** 17
 dldefaults['max_rate_period'] = 20.0
 dldefaults['upload_rate_fudge'] = 5.0

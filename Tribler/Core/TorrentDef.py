@@ -21,6 +21,7 @@ from Tribler.Core.APIImplementation.miscutils import *
 
 from Tribler.Core.Utilities.utilities import find_prog_in_PATH,validTorrentFile,isValidURL
 from Tribler.Core.Utilities.unicode import metainfoname2unicode
+from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 from Tribler.Core.osutils import *
 
 class TorrentDef(Serializable,Copyable):
@@ -118,7 +119,7 @@ class TorrentDef(Serializable,Copyable):
         @return TorrentDef.
         """
         # Class method, no locking required
-        f = urlTimeoutOpen(url)
+        f = urlOpenTimeout(url)
         return TorrentDef._read(f)
     load_from_url = staticmethod(load_from_url)
 

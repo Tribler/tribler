@@ -58,6 +58,7 @@ import Tribler.Main.vwxGUI.updateXRC as updateXRC
 from Tribler.Main.Dialogs.GUIServer import GUIServer
 from Tribler.Main.vwxGUI.TasteHeart import set_tasteheart_bitmaps
 from Tribler.Main.vwxGUI.perfBar import set_perfBar_bitmaps
+from Tribler.Main.vwxGUI.MainMenuBar import MainMenuBar
 from Tribler.Main.Dialogs.BandwidthSelector import BandwidthSelector
 from Tribler.Main.notification import init as notification_init
 from Tribler.Main.vwxGUI.font import *
@@ -247,8 +248,7 @@ class ABCFrame(wx.Frame):
 
         if self.params[0] != "":
             torrentfilename = self.params[0]
-            tdef = TorrentDef.load(torrentfilename)
-            self.utility.session.start_download(tdef)
+            self.startDownload(torrentfilename)
 
         # Init video player
         self.videoFrame = None
@@ -303,6 +303,20 @@ class ABCFrame(wx.Frame):
                     dialog.Destroy()
 
         self.checkVersion()
+
+
+    def startDownload(self,torrentfilename,destdir=None,tdef = None):
+        try:
+            if tdef is None:
+                tdef = TorrentDef.load(torrentfilename)
+            if destdir is not None:
+                dscfg = DownloadStartupConfig()
+                dscfg.set_dest_dir(destdir)
+                self.utility.session.start_download(tdef,dscfg)
+            else:
+                self.utility.session.start_download(tdef)
+        except Exception,e:
+            self.onWarning(e)
 
         
     def checkVersion(self):
@@ -634,6 +648,7 @@ class ABCFrame(wx.Frame):
         result = dlg.ShowModal()
         dlg.Destroy()
 
+
     def onReachable(self,event=None):
         """ Called by GUI thread """
         if self.firewallStatus is not None:
@@ -778,8 +793,6 @@ class ABCApp(wx.App):
             self.guiUtility.scrollWindow.SetScrollRate(15,15)
             self.frame.mainButtonPersons = xrc.XRCCTRL(self.frame, "mainButtonPersons")
 
-            self.setMainMenuBar()
-
             self.frame.numberPersons = xrc.XRCCTRL(self.frame, "numberPersons")
             numperslabel = xrc.XRCCTRL(self.frame, "persons")
             self.frame.numberFiles = xrc.XRCCTRL(self.frame, "numberFiles")
@@ -796,14 +809,8 @@ class ABCApp(wx.App):
                 self.frame.messageField.SetFont(wx.Font(9,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
                 numperslabel.SetFont(wx.Font(9,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
                 numfileslabel.SetFont(wx.Font(9,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
-            """
-            searchfilebut = xrc.XRCCTRL(self.frame, "bt257cC")
-            searchfilebut.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
-            searchpersbut = xrc.XRCCTRL(self.frame, "bt258cC")
-            searchpersbut.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)     
-            
-            self.frame.searchtxtctrl = xrc.XRCCTRL(self.frame, "tx220cCCC")
-            """
+
+            self.menubar = MainMenuBar(self.frame,self.utility)
 
             # Make sure self.utility.frame is set
             self.startAPI()
@@ -886,19 +893,20 @@ class ABCApp(wx.App):
         mm = MugshotManager.getInstance()
         mm.register(s.sessconfig) # ARNOCOMMENT
         
-        s.add_observer(self.sesscb_ntfy_activities_callback,NTFY_ACTIVITIES,[NTFY_INSERT])
+        s.add_observer(self.sesscb_ntfy_reachable,NTFY_REACHABLE,[NTFY_INSERT])
+        s.add_observer(self.sesscb_ntfy_activities,NTFY_ACTIVITIES,[NTFY_INSERT])
         
         
         # ARNOCOMMENT: Not yet working as Jie's sqlDB stuff was not yet 
         # instrumented with notifier calls.
-        s.add_observer(self.sesscb_ntfy_dbstats_callback,NTFY_TORRENTS,[NTFY_INSERT])
-        s.add_observer(self.sesscb_ntfy_dbstats_callback,NTFY_PEERS,[NTFY_INSERT])
+        s.add_observer(self.sesscb_ntfy_dbstats,NTFY_TORRENTS,[NTFY_INSERT])
+        s.add_observer(self.sesscb_ntfy_dbstats,NTFY_PEERS,[NTFY_INSERT])
 
         # Load all other downloads
         s.load_checkpoint()
 
 
-    def sesscb_ntfy_dbstats_callback(self,subject,changeType,objectID,args):
+    def sesscb_ntfy_dbstats(self,subject,changeType,objectID,args):
         """ Called by SessionCallback thread """
         wx.CallAfter(setDBStats)
         
@@ -918,50 +926,13 @@ class ABCApp(wx.App):
         self.frame.numberFiles.SetLabel(nfiles)
 
         
-    def sesscb_ntfy_activities_callback(self,subject,changeType,objectID,msg):
+    def sesscb_ntfy_activities(self,subject,changeType,objectID,msg):
         # Called by SessionCallback thread
         print >>sys.stderr,"main: sesscb_ntfy_activities called:",subject,changeType,objectID,msg
         wx.CallAfter(self.frame.setActivity,objectID,msg)
 
-
-    def setMainMenuBar(self):
-
-        self.guiUtility.mainmenubar = xrc.XRCCTRL(self.frame, "mainmenubar")
-        print >>sys.stderr,"mainmenubar returned is",self.guiUtility.mainmenubar
-        if self.guiUtility.mainmenubar is None:
-            self.guiUtility.mainmenubar = wx.MenuBar()
-            self.frame.SetMenuBar(self.guiUtility.mainmenubar)
-
-        filemenu = wx.Menu()
-        item = filemenu.Append(-1,self.utility.lang.get('menu_addtorrentfile'))
-        self.Bind(wx.EVT_MENU,self.OnMenu,id = item.GetId())
-        filemenu.Append(-1,self.utility.lang.get('menu_addtorrentnondefault'))
-        filemenu.Append(-1,self.utility.lang.get('menu_addtorrenturl'))
-        filemenu.Append(wx.ID_PREFERENCES,self.utility.lang.get('menupreference'))
-        filemenu.Append(wx.ID_CLOSE,self.utility.lang.get('menuexit'))
-        
-        toolsmenu = wx.Menu()
-        toolsmenu.Append(-1,self.utility.lang.get('menucreatetorrent'))
-        
-        aboutmenu = wx.Menu()
-        aboutmenu.Append(-1,self.utility.lang.get('menuchecklatestversion'))
-        aboutmenu.Append(wx.ID_ABOUT,self.utility.lang.get('menuaboutabc'))
-        
-        #self.Bind(wx.EVT_MENU, self.OnMenu)
-        
-        menus = [(filemenu,self.utility.lang.get('menu_file')),(toolsmenu,self.utility.lang.get('menutools')),(aboutmenu,self.utility.lang.get('menuversion'))]
-        self.guiUtility.mainmenubar.SetMenus(menus)
-
-
-    def OnMenu(self,event=None):
-        if event is not None:
-            obj = event.GetEventObject()
-            name = obj.GetTitle()
-            print >>sys.stderr,"main: MenuEvent",name,obj,event.GetEventType(),event.GetId()
-            print >>sys.stderr,"main: MenuEvent CLOSE",wx.ID_CLOSE,"PREFS",wx.ID_PREFERENCES
-            
-            item = obj.FindItemById(event.GetId())
-            print >>sys.stderr,"main: MenuItem",item.GetText(),self.utility.lang.get('menuchecklatestversion')
+    def sesscb_ntfy_reachable(self,subject,changeType,objectID,msg):
+        wx.CallAfter(self.frame.onReachable)
 
     def onError(self,source=None):
         # Don't use language independence stuff, self.utility may not be

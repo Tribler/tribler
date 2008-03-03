@@ -90,7 +90,9 @@ class Session(SessionRuntimeConfig):
             old_collected_torrent_dir = os.path.join(self.sessconfig['state_dir'], 'torrent2')
             if not os.path.exists(collected_torrent_dir) and os.path.isdir(old_collected_torrent_dir):
                 os.rename(old_collected_torrent_dir, self.sessconfig['torrent_collecting_dir'])
-                print "Changed torrent collecting dir to", os.path.abspath(self.sessconfig['torrent_collecting_dir'])
+                print >>sys.stderr,"Session: Changed torrent collecting dir to", os.path.abspath(self.sessconfig['torrent_collecting_dir'])
+            elif not os.path.exists(collected_torrent_dir):
+                os.makedirs(collected_torrent_dir)
             
         if not self.sessconfig['peer_icon_path']:
             self.sessconfig['peer_icon_path'] = os.path.join(self.sessconfig['state_dir'], STATEDIR_PEERICON_DIR)
