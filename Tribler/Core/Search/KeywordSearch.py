@@ -16,16 +16,19 @@ class KeywordSearch:
       (done in self.search() )
     3. Searching is case insensitive
     """
-    def search(self, haystack, needles):
+    def search(self, haystack, needles, haystackismatching=False):
         if DEBUG:
             print 'unprocessed keywords: %s' % needles
         needles = self.unRegExpifySearchwords(needles)
         if DEBUG:
             print 'Searching for %s in %d items' % (repr(needles), len(haystack))
             
-        searchspace = self.simpleSearch(haystack, needles)
-        if DEBUG:
-            print 'Found %s items using simple search' % len(searchspace)
+        if not haystackismatching:
+            searchspace = self.simpleSearch(haystack, needles)
+            if DEBUG:
+                print 'Found %s items using simple search' % len(searchspace)
+        else:
+            searchspace = haystack
         results = []
         wbsearch = []
         

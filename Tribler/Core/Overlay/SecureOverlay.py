@@ -479,7 +479,7 @@ class SecureOverlay:
         if currentThread().getName().startswith("NetworkThread"):
             print >>sys.stderr,"secover: add_peer_to_peerdb: called by NetworkThread!"
             print_stack()
-
+        print >>sys.stderr,"secover: add_peer_to_peerdb: called by",currentThread().getName()
         
         ip = dns[0]
         port = dns[1]

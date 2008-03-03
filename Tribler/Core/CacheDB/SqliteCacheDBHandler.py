@@ -368,6 +368,9 @@ class PeerDBHandler(BasicDBHandler):
     
     def addPeer(self, permid, value, update_dns=True, update_lastseen=True):
         # add or update a peer
+        # ARNO: AAARGGH a method that silently changes the passed value param!!!
+        
+        print >>sys.stderr,"sqldbhand: addPeer",`permid`,`value`
         
         _permid = _last_seen = _ip = _port = None
         if 'permid' in value:
@@ -1081,37 +1084,40 @@ class TorrentDBHandler(BasicDBHandler):
 
     def searchNames(self,kws):
         """ Get all good torrents that have the specified keywords in their name. 
-        Return a list of dictionaries. Each dict has an 'infohash' and 'name'
-        key.
+        Return a list of dictionaries. Each dict is in the NEWDBSTANDARD format.
         """
-        sql = 'select Infohash.infohash,Torrent.* from Torrent INNER JOIN Infohash ON Torrent.torrent_id = Infohash.torrent_id where' # Torrent.status_id = 1 and' 
-        #sql = 'select torrent_id,name from Torrent where' # Torrent.status_id = 1 and'
+        sql = 'select Infohash.infohash,Torrent.* from Torrent INNER JOIN Infohash ON Torrent.torrent_id = Infohash.torrent_id where Torrent.status_id = 1 and' 
         
         for i in range(len(kws)):
             kw = kws[i]
             sql += ' name like "%'+kw+'%"'
             if (i+1) != len(kws):
                 sql += ' and'  
-        print >>sys.stderr,"torrent_db: searchNames: sql",sql
+        #print >>sys.stderr,"torrent_db: searchNames: sql",sql
         res = self._db.execute(sql)
-        print >>sys.stderr,"torrent_db: searchNames: res",`res`
+        #print >>sys.stderr,"torrent_db: searchNames: res",`res`
         
-        for data in res:
-            print >>sys.stderr,"torrent_db: searchNames: Got Record",`data`
-            
-        
-        return []
-    
         all = []
-        for base64infohash,name in res:
-            print >>sys.stderr,"torrent_db: searchNames Got",`base64infohash`,`name`
-            infohash = str2bin(base64infohash)
-            d = {'infohash':infohash,'name':name}
+        for flist in res:
+            #print >>sys.stderr,"torrent_db: searchNames: Got Record",`flist`
+            infohash = str2bin(flist[0])
+            d = self._selectStar2dict(flist[1:])
+            # Extra field
+            d['infohash'] = infohash
             all.append(d)
         return all
             
-            
-
+    def _selectStar2dict(self,flist):
+        """ CAUTION: keys must contain the names of the fields as they appear in the
+        Torrent table. I.e. the order of the fields when you do SELECT * from Torrent.
+        NEWDBSTANDARD
+        """
+        keys = ['torrent_id','name','torrent_file_name','length','creation_date','num_files','thumbnail','insert_time','secret','relevance','source_id','category_id','status_id','num_seeders','num_leechers','comment']
+        torent = dict(zip(keys,flist))
+        torrent['source'] = self.id2src[torrent['source_id']]
+        del torrent['source_id']
+        torrent['category'] = [self.id2category[torrent['category_id']]]
+        del torrent['category_id']
 
 
 class MyPreferenceDBHandler(BasicDBHandler):

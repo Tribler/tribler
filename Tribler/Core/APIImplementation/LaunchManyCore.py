@@ -118,7 +118,7 @@ class TriblerLaunchMany(Thread):
                 
             if DEBUG:
                 print >>sys.stderr,'tlm: Reading Session state from',config['state_dir']
-            cachedb.init(config['state_dir'], self.rawserver_fatalerrorfunc)
+            cachedb.init(config['state_dir'],config['install_dir'],self.rawserver_fatalerrorfunc)
 
             self.peer_db        = PeerDBHandler.getInstance(config)
             self.torrent_db     = TorrentDBHandler.getInstance()
@@ -153,7 +153,7 @@ class TriblerLaunchMany(Thread):
             # Set policy for which peer requests (dl_helper, rquery) to answer and which to ignore
                         
             self.overlay_apps = OverlayApps.getInstance()
-            policy = FriendsCoopDLOtherRQueryQuotumAllowAllRequestPolicy(self)
+            policy = FriendsCoopDLOtherRQueryQuotumAllowAllRequestPolicy(self.session)
             
             # For the new DB layer we need to run all overlay apps in a
             # separate thread instead of the NetworkThread as before.

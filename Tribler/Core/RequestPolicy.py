@@ -3,6 +3,8 @@
 """ Controls the authorization of messages received via the Tribler Overlay """
 
 import sys
+from threading import currentThread
+
 from Tribler.Core.exceptions import *
 from Tribler.Core.BitTornado.BT1.MessageID import *
 
@@ -55,7 +57,7 @@ class CommonRequestPolicy(AbstractRequestPolicy):
 		"""
 		friends = self.session.lm.friend_db.getFriends()
 		friend_permids = [peer['permid'] for peer in friends]
-		return permid in fried_permids
+		return permid in friend_permids
 
 	def benign_random_peer(self,permid):
 		"""
@@ -76,7 +78,12 @@ class CommonRequestPolicy(AbstractRequestPolicy):
 		this peer.
 		"""
 		peer = self.session.lm.peer_db.getPeer(permid)
-		return peer['nqueries']
+		print >>sys.stderr,"CommonRequestPolicy: get_peer_nqueries: getPeer",`permid`,peer
+		print >>sys.stderr,"CommonRequestPolicy: get_peer_nqueries: called by",currentThread().getName()
+		if peer is None:
+			return 0
+		else:
+			return peer['nqueries']
     
 	
 class AllowFriendsRequestPolicy(CommonRequestPolicy):
@@ -102,7 +109,7 @@ class FriendsCoopDLOtherRQueryQuotumAllowAllRequestPolicy(CommonRequestPolicy):
 		@return Boolean. """
 		if (messageID in HelpCoordinatorMessages or messageID in HelpHelperMessages) and not isFriend(permid):
 			return False
-		elif messageID == QUERY and not (self.isFriend(permid) or benign_random_peer(permid)):
+		elif messageID == QUERY and not (self.isFriend(permid) or self.benign_random_peer(permid)):
 			return False
 		else:
 			return True

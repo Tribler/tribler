@@ -247,10 +247,10 @@ class RemoteQueryMsgHandler:
         d2 = {}
         for torrent in hits:
             r = {}
-            r['content_name'] = torrent['content_name']
+            r['content_name'] = torrent['name'] # NEWDBSTANDARD
             r['length'] = torrent['length']
-            r['leecher'] = torrent['leecher']
-            r['seeder'] = torrent['seeder']
+            r['leecher'] = torrent['num_leechers']
+            r['seeder'] = torrent['num_seeders']
             # Arno: TODO: sending category doesn't make sense as that's user-defined
             # leaving it now because of time constraints
             r['category'] = torrent['category']
@@ -338,6 +338,12 @@ class RemoteQueryMsgHandler:
         permid = None
         self.notify_of_remote_hits(permid,kws,d)
 
+    def inc_peer_nqueries(self, permid):
+            peer = self.peer_db.getPeer(permid)
+            if peer is not None:
+                nqueries = peer['nqueries']
+                self.peer_db.updatePeer(permid, num_queries=nqueries+1)
+
 
 def isValidQuery(d,selversion):
     if not isinstance(d,dict):
@@ -399,8 +405,4 @@ def isValidVal(d):
 #        return False
     return True
 
-def inc_peer_nqueries(self, permid):
-        peer = self.peer_db.getPeer(permid)
-        nqueries = peer['nqueries']
-        self.peer_db.updatePeer(permid, num_queries=nqueries+1)
         

@@ -34,9 +34,9 @@ def test_suite():
     return suite
 
 def suite():
-    import test_cachedb as test_cachedb
-    import test_friend as test_friend
-    import test_cachedbhandler as test_cachedbhandler
+    #import test_cachedb as test_cachedb
+    #import test_friend as test_friend
+    #import test_cachedbhandler as test_cachedbhandler
     import test_superpeers as test_superpeers
     """
     import test_buddycast as test_buddycast
@@ -49,11 +49,9 @@ def suite():
     import test_dialback_request as test_dialback_request
     import test_extend_hs as test_extend_hs
     import test_extend_hs_t350 as test_extend_hs_t350
-    import test_social_overlap as test_social_overlap
+    #import test_social_overlap as test_social_overlap
     import test_gui_server as test_gui_server
-    """
     import test_remote_query as test_remote_query
-    """
     import test_ut_pex as test_ut_pex
     import test_bartercast as test_bartercast
 
@@ -81,8 +79,8 @@ def suite():
         #test_extend_hs_t350,
         #test_social_overlap,
         #test_gui_server,
-        ##test_remote_query, # TEMPARNO: need to fix torrentManager dependency
-        test_ut_pex,
+        test_remote_query,
+        #test_ut_pex,
         #test_bartercast
         ]
 

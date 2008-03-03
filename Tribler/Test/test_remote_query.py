@@ -15,22 +15,13 @@ from M2Crypto import Rand,EC
 
 from Tribler.Test.test_as_server import TestAsServer
 from olconn import OLConnection
+from Tribler.Core.API import *
 from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.BitTornado.BT1.MessageID import *
-from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
-from Tribler.Main.vwxGUI.torrentManager import TorrentDataManager
-from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
+
 
 DEBUG=True
 
-class FakeUtility:
-    
-    def __init__(self,config_path):
-        self.config_path = config_path
-        
-    def getConfigPath(self):
-        return self.config_path
-        
 
 class TestRemoteQuery(TestAsServer):
     """ 
@@ -40,8 +31,8 @@ class TestRemoteQuery(TestAsServer):
     def setUpPreSession(self):
         """ override TestAsServer """
         TestAsServer.setUpPreSession(self)
-        # Enable social networking
-        self.config['rquery'] = 1
+        # Enable remote query
+        self.config.set_remote_query(True)
 
     def setUpPostSession(self):
         """ override TestAsServer """
@@ -50,7 +41,7 @@ class TestRemoteQuery(TestAsServer):
         #self.mypermid = str(self.my_keypair.pub().get_der())
         #self.hispermid = str(self.his_keypair.pub().get_der())
         
-        self.torrent_db = TorrentDBHandler.getInstance()
+        self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         
         # Add two torrents that will match our query and one that shouldn't
         torrent = self.get_default_torrent('Hallo S01E10')
@@ -65,19 +56,9 @@ class TestRemoteQuery(TestAsServer):
         ih = 'd' * 20
         self.torrent_db.addTorrent(ih,torrent)
 
-        self.utility = FakeUtility(self.config_path)
-        self.data_manager = TorrentDataManager.getInstance(self.utility)
-        self.data_manager.loadData()
-        
-        data = self.data_manager.data
-        
-        print >>sys.stderr,"test: Data in TorrentDataManager is"
-        for torrent in data:
-            print >>sys.stderr,"test: content_name",torrent['content_name']
-
-    def setUpPostLaunchMany(self):
-        rqmh = RemoteQueryMsgHandler.getInstance()
-        rqmh.register2(self.data_manager)
+    def tearDown(self):
+        TestAsServer.tearDown()
+        self.session.close_dbhandler(self.torrent_db)
       
 
     def get_default_torrent(self,title):

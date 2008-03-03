@@ -25,7 +25,8 @@ except:
 
 #print "SQLite Wrapper:", {0:'PySQLite', 1:'APSW'}[lib]
 
-CREATE_SQL_FILE = os.path.join('Tribler', 'tribler_sdb_v1.sql')
+CREATE_SQL_FILE = None
+CREATE_SQL_FILE_POSTFIX = os.path.join('Tribler', 'tribler_sdb_v1.sql')
 DB_FILE_NAME = 'tribler.sdb'
 DB_DIR_NAME = 'sqlite'    # db file path = DB_DIR_NAME/DB_FILE_NAME
 BSDDB_DIR_NAME = 'bsddb'
@@ -33,8 +34,10 @@ CURRENT_DB_VERSION = 1
 DEFAULT_LIB = 0    # SQLITE
 NULL = None
 
-def init(config_dir, db_exception_handler = None):
+def init(config_dir, install_dir, db_exception_handler = None):
     """ create sqlite database """
+    global CREATE_SQL_FILE
+    CREATE_SQL_FILE = os.path.join(install_dir,CREATE_SQL_FILE_POSTFIX)
     SQLiteCacheDB.exception_handler = db_exception_handler
     sqlite = SQLiteCacheDB.getInstance()
     sqlite_db_path = os.path.join(config_dir, DB_DIR_NAME, DB_FILE_NAME)
@@ -244,7 +247,7 @@ class SQLiteCacheDB:
         return cur
 
     def initDB(sqlite_filepath=None, bsddb_dirpath=None, 
-               create_sql_filename=CREATE_SQL_FILE, 
+               create_sql_filename=None, 
                lib=None, autocommit=0, busytimeout=5000,
                check_version=True):
         """ 
@@ -260,6 +263,9 @@ class SQLiteCacheDB:
         @busytimeout       Set the maximum time, in milliseconds, that SQLite will wait if the database is locked. 
         """
         
+        if create_sql_filename is None:
+            create_sql_filename=CREATE_SQL_FILE
+        print >>sys.stderr,"CREAETE_SQL_FILE IS",CREATE_SQL_FILE
         try:
                 SQLiteCacheDB.lock.acquire()    # TODO: improve performance
                 thread_name = threading.currentThread().getName()
@@ -699,7 +705,11 @@ class SQLiteCacheDB:
             if update:
                 where='peer_id=%d'%peer_id
                 self.update('Peer', where, **argv)
+                
+                print >>sys.stderr,"sqldb: insertPeer: existing, updatePeer",`permid`
         else:
+            print >>sys.stderr,"sqldb: insertPeer, new",`permid`
+            
             self.insert('Peer', permid=bin2str(permid), **argv)
                 
     def deletePeer(self, permid=None, peer_id=None, force=True):
