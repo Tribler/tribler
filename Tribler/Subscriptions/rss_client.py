@@ -289,6 +289,8 @@ class TorrentFeedReader:
                     item in feed_dom.getElementsByTagName("item")]
                    if link.endswith(".torrent") and not self.urls_already_seen.contains(link)]
 
+        #for item in feed_dom.getElementsByTagName("item"):
+        #    print >>sys.stderr,"RSS DEBUG: content",item.getElementsByTagName("content")[0].childNodes[0].data
 
         # vuze feeds contain "enclosure" tags that contain the link to the torrent file as an attribute
         # optimize for that

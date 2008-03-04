@@ -695,6 +695,12 @@ class TorrentDBHandler(BasicDBHandler):
     
     def addExternalTorrent(self, filename, source='BC', extra_info={}, metadata=None):
         infohash, torrent = self.readTorrentData(filename, source, extra_info, metadata)
+
+        # DEBUG
+        #torrent["seeder"] = 1
+        #torrent["leecher"] = 1
+        #torrent["status"] = 'good'
+        
         self.addTorrent(infohash, torrent)
         self.commit()
         
