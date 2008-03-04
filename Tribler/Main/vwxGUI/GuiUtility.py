@@ -348,7 +348,7 @@ class GUIUtility:
         if DEBUG:
             print >>sys.stderr,'GUIUtility: refresh ' + repr(torrent.get('content_name', 'no_name'))
         if torrent:
-            check = SingleManualChecking(torrent)
+            check = SingleManualChecking(torrent,self.utility.session)
             check.start()
             
     def refreshTorrentStats(self):

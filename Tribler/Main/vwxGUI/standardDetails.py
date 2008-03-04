@@ -1414,7 +1414,7 @@ class standardDetails(wx.Panel):
     def refresh(self, torrent):
         if DEBUG:
             print >>sys.stderr,'standardDetails: refresh ' + repr(torrent.get('name', 'no_name'))
-        check = SingleManualChecking(torrent)
+        check = SingleManualChecking(torrent,self.utility.session)
         check.start()
         
  

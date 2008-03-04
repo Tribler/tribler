@@ -513,7 +513,7 @@ class MetadataHandler:
         "Upon the reception of a new discovered torrent, directly check its tracker"
         if DEBUG:
             print >> sys.stderr, "metadata: checking tracker status of new torrent"
-        check = SingleManualChecking(torrent)
+        check = SingleManualChecking(torrent,self.launchmany.session)
         check.start()
         
     def get_filename(self,infohash):
