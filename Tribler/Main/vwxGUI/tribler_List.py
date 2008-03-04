@@ -71,8 +71,9 @@ class FilesList(tribler_List):
                 self.onListResize(None)
                 return {}
 
-            (torrent_dir,torrent_name) = metadatahandler.get_std_torrent_dir_name(torrent)
-            torrent_filename = os.path.join(torrent_dir, torrent_name)
+            torrent_dir = self.utility.session.get_torrent_collecting_dir()
+            torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
+
             if not os.path.exists(torrent_filename):
                 if DEBUG:    
                     print >>sys.stderr,"tribler_List: Torrent: %s does not exist" % torrent_filename

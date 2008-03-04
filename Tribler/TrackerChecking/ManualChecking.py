@@ -13,7 +13,8 @@ from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 
 class ManualChecking(Thread):
     
-    def __init__(self, check_list):
+    def __init__(self, check_list, session):
+        self.session = session
         self.check_list = check_list
         Thread.__init__(self)
         self.setName('ManualChecking-'+self.getName())
@@ -21,19 +22,20 @@ class ManualChecking(Thread):
         
     def run(self):
         for torrent in self.check_list:
-            t = SingleManualChecking(torrent)
+            t = SingleManualChecking(torrent,self.session)
             t.setDaemon(True)
             t.start()
             sleep(1)
             
 class SingleManualChecking(Thread):
     
-    def __init__(self,torrent):
+    def __init__(self,torrent,session):
         Thread.__init__(self)
         self.setDaemon(True)
         self.setName('SingleManualChecking-'+self.getName())
         
         self.torrent = torrent
+        self.session = session
         self.torrent_db = TorrentDBHandler.getInstance()
         self.mldhtchecker = mainlineDHTChecker.getInstance()
         
@@ -62,9 +64,9 @@ class SingleManualChecking(Thread):
         if not torrent.has_key('info'):
             from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
             
-            metadatahandler = MetadataHandler.getInstance()
-            (torrent_dir,torrent_name) = metadatahandler.get_std_torrent_dir_name(torrent)
-            torrent_filename = os.path.join(torrent_dir, torrent_name)
+            torrent_dir = self.session.get_torrent_collecting_dir()
+            torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
+
             f = open(torrent_filename,"rb")
             bdata = f.read()
             f.close()

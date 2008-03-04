@@ -577,8 +577,8 @@ class ThumbnailViewer(wx.Panel):
                 elif self.mode == 'filesMode':
                     bmp = torrent['metadata'].get('ThumbnailBitmap')
             else:
-                (torrent_dir,torrent_name) = self.metadatahandler.get_std_torrent_dir_name(torrent)
-                torrent_filename = os.path.join(torrent_dir, torrent_name)
+                torrent_dir = self.guiUtility.utility.session.get_torrent_collecting_dir()
+                torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
                 
                 if DEBUG:
                     print "fip: Scheduling read of thumbnail for",torrent_filename

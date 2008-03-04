@@ -219,7 +219,7 @@ class standardPager(wx.Panel):
         
         
         # if dummy item "Searching for content is shown, do not count it as content
-        if self.totalItems == 1 and grid.data[0].get('content_name','no_name') == self.utility.lang.get('searching_content'):
+        if self.totalItems == 1 and len(grid.data) > 0 and grid.data[0].get('content_name','no_name') == self.utility.lang.get('searching_content'):
             self.totalItems = 0
         
         

@@ -23,8 +23,8 @@ from Tribler.Core.Utilities.unicode import bin2unicode
 from Tribler.Main.Utility.constants import COL_PROGRESS
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
+# LAYERVIOLATION
 from Tribler.Core.CacheDB.CacheDBHandler import MyPreferenceDBHandler
-from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
 from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
 
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'subscriptionsMode', 'messageMode']
@@ -70,7 +70,6 @@ class standardDetails(wx.Panel):
         #self.optionsButtonLibraryFunc = rightMouseButton.getInstance()
         self.iconsManager = IconsManager.get_instance()
         self.mydb = MyPreferenceDBHandler.getInstance()                    
-        self.metadatahandler = MetadataHandler.getInstance()
         self.mode = None
         self.item = None
         self.bartercastdb = None
@@ -548,7 +547,7 @@ class standardDetails(wx.Panel):
             elif self.getGuiObj('files_detailsTab').isSelected():
                 tab = 'filesTab_files'
                 filesList = self.getGuiObj('includedFiles', tab = tab)
-                filesList.setData(torrent,self.metadatahandler)
+                filesList.setData(torrent)
                 self.getGuiObj('filesField', tab = tab).SetLabel('%d' % filesList.getNumFiles())
                 # Remove download button for libraryview
                 self.setDownloadbutton(torrent, tab = tab)
@@ -1450,8 +1449,8 @@ class standardDetails(wx.Panel):
 
         self.data_manager.setSecret(torrent['infohash'], secret)
             
-        (torrent_dir,torrent_name) = self.metadatahandler.get_std_torrent_dir_name(torrent)
-        torrent_filename = os.path.join(torrent_dir, torrent_name)
+        torrent_dir = self.utility.session.get_torrent_collecting_dir()
+        torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
 
         if torrent.get('name'):
             name = torrent['name']
@@ -1645,8 +1644,8 @@ class standardDetails(wx.Panel):
             thumbnailString = torrent['preview']
         else:
             # Arno: Read big image on demand
-            (torrent_dir,torrent_name) = self.metadatahandler.get_std_torrent_dir_name(torrent)
-            torrent_filename = os.path.join(torrent_dir, torrent_name)
+            torrent_dir = self.utility.session.get_torrent_collecting_dir()
+            torrent_filename = os.path.join(torrent_dir, torrent['torrent_file_name'])
             metadata = loadAzureusMetadataFromTorrent(torrent_filename)
             if metadata:
                 thumbnailString = metadata.get('Thumbnail')

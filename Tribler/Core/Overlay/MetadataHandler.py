@@ -674,14 +674,3 @@ class MetadataHandler:
             return []
         return self.recently_collected_torrents[-1*num:]    # get the last ones
 
-
-    def get_std_torrent_dir_name(self,torrent):
-        """ torrent must be a db-record dict with infohash """
-    
-        if 'torrent_dir' not in torrent or not os.path.exists(torrent['torrent_dir']):
-            torrent_dir = os.path.abspath(self.config['torrent_collecting_dir'])
-            torrent_name = self.get_filename(torrent['infohash'])
-        else:
-            torrent_dir = torrent['torrent_dir']
-            torrent_name = torrent['torrent_name']
-        return (torrent_dir,torrent_name)
