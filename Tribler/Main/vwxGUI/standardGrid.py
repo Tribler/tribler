@@ -6,7 +6,7 @@ from Tribler.Main.vwxGUI.PersonsItemPanel import PersonsItemPanel
 from Tribler.Main.vwxGUI.FriendsItemPanel import FriendsItemPanel
 from Tribler.Main.vwxGUI.ColumnHeader import ColumnHeaderBar
 from Tribler.Main.vwxGUI.SubscriptionsItemPanel import SubscriptionsItemPanel
-from Tribler.Main.Dialogs.GUIServer import GUIServer
+from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Core.CacheDB.CacheDBHandler import SuperPeerDBHandler
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 
@@ -62,7 +62,7 @@ class standardGrid(wx.Panel):
             
             
         
-        self.guiserver = GUIServer.getInstance()
+        self.guiserver = GUITaskQueue.getInstance()
         self.superpeer_db = SuperPeerDBHandler.getInstance()
         self.torrentfeed = TorrentFeedThread.getInstance()
         

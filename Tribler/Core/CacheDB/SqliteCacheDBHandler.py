@@ -324,10 +324,10 @@ class PeerDBHandler(BasicDBHandler):
             # make it compatible for calls to old bsddb interface
             # Jie TODO: ugly codes. should focus on single task. move these codes to modules
             value_name = ('permid', 'name', 'ip', 'port', 'similarity', 'friend',
-                      'num_peers', 'num_torrents', 'num_prefs', 
+                      'num_peers', 'num_torrents', 'num_prefs', 'num_queries', 
                       'connected_times', 'buddycast_times', 'last_connected', 'last_seen')
             key_name = ('permid', 'name', 'ip', 'port', 'similarity', 'friend',
-                      'npeers', 'ntorrents', 'nprefs', 
+                      'npeers', 'ntorrents', 'nprefs', 'nqueries',
                       'connected_times', 'buddycast_times', 'last_connected', 'last_seen')
             
             item = self.getOne(value_name, permid=bin2str(permid))
@@ -370,7 +370,7 @@ class PeerDBHandler(BasicDBHandler):
         # add or update a peer
         # ARNO: AAARGGH a method that silently changes the passed value param!!!
         
-        print >>sys.stderr,"sqldbhand: addPeer",`permid`,`value`
+        #print >>sys.stderr,"sqldbhand: addPeer",`permid`,`value`
         
         _permid = _last_seen = _ip = _port = None
         if 'permid' in value:
@@ -725,6 +725,7 @@ class TorrentDBHandler(BasicDBHandler):
         if self.hasTorrent(infohash):    # already added
             return
         
+        #print >>sys.stderr,"sqldbhand: addTorrent",currentThread().getName()
         data = self._prepareData(db_data)
         self._addTorrentToDB(infohash, data)
 
@@ -1113,11 +1114,12 @@ class TorrentDBHandler(BasicDBHandler):
         NEWDBSTANDARD
         """
         keys = ['torrent_id','name','torrent_file_name','length','creation_date','num_files','thumbnail','insert_time','secret','relevance','source_id','category_id','status_id','num_seeders','num_leechers','comment']
-        torent = dict(zip(keys,flist))
+        torrent = dict(zip(keys,flist))
         torrent['source'] = self.id2src[torrent['source_id']]
         del torrent['source_id']
         torrent['category'] = [self.id2category[torrent['category_id']]]
         del torrent['category_id']
+        return torrent
 
 
 class MyPreferenceDBHandler(BasicDBHandler):

@@ -479,7 +479,8 @@ class SecureOverlay:
         if currentThread().getName().startswith("NetworkThread"):
             print >>sys.stderr,"secover: add_peer_to_peerdb: called by NetworkThread!"
             print_stack()
-        print >>sys.stderr,"secover: add_peer_to_peerdb: called by",currentThread().getName()
+        if DEBUG:
+            print >>sys.stderr,"secover: add_peer_to_peerdb: called by",currentThread().getName()
         
         ip = dns[0]
         port = dns[1]
@@ -487,11 +488,6 @@ class SecureOverlay:
         peer_data = {'permid':permid, 'ip':ip, 'port':port, 'oversion':selversion, 'last_seen':now, 'last_connected':now}
         self.peer_db.addPeer(permid, peer_data, update_dns=True)
         self.peer_db.updateTimes(permid, 'connected_times', 1)
-        try:
-            # Arno: PARANOID SYNC
-            self.peer_db.sync()
-        except:
-            print_exc()
         
     def update_peer_status(self,permid,authwasdone):
         """ update last_seen and last_connected in peer db when close """

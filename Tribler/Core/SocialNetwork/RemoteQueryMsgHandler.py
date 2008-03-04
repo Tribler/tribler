@@ -247,7 +247,9 @@ class RemoteQueryMsgHandler:
         d2 = {}
         for torrent in hits:
             r = {}
-            r['content_name'] = torrent['name'] # NEWDBSTANDARD
+            # NEWDBSTANDARD. Do not rename r's fields: they are part of the 
+            # rquery protocol spec.
+            r['content_name'] = torrent['name'] 
             r['length'] = torrent['length']
             r['leecher'] = torrent['num_leechers']
             r['seeder'] = torrent['num_seeders']
@@ -341,6 +343,7 @@ class RemoteQueryMsgHandler:
     def inc_peer_nqueries(self, permid):
             peer = self.peer_db.getPeer(permid)
             if peer is not None:
+                print >>sys.stderr,"rqmh: inc_peer_nqueries: getPeer",peer
                 nqueries = peer['nqueries']
                 self.peer_db.updatePeer(permid, num_queries=nqueries+1)
 

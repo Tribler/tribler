@@ -1,13 +1,13 @@
 import unittest
-from Tribler.Main.Dialogs.GUIServer import GUIServer
+from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from time import sleep
 
-class TestGUIServer(unittest.TestCase):
+class TestGUITaskQueue(unittest.TestCase):
     
     def setUp(self):
         self.ntasks = 0
         self.completed = []
-        self.guiserver = GUIServer()
+        self.guiserver = GUITaskQueue()
         
     def tearDown(self):
         sleep(2)
@@ -58,7 +58,7 @@ class TestGUIServer(unittest.TestCase):
 
 def test_suite():
     suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(TestGUIServer))
+    suite.addTest(unittest.makeSuite(TestGUITaskQueue))
     
     return suite
     

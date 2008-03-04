@@ -22,7 +22,7 @@ from Tribler.Core.Utilities.unicode import bin2unicode
 #from Tribler.vwxGUI.tribler_topButton import tribler_topButton
 from Tribler.Main.Utility.constants import COL_PROGRESS
 from Tribler.Video.VideoPlayer import VideoPlayer
-from Tribler.Main.Dialogs.GUIServer import GUIServer
+from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Core.CacheDB.CacheDBHandler import MyPreferenceDBHandler
 from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
 from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
@@ -592,7 +592,7 @@ class standardDetails(wx.Panel):
                     bmp = item['metadata'].get('ThumbnailBitmap')
                 else:
                     pass
-#                    guiserver = GUIServer.getInstance()
+#                    guiserver = GUITaskQueue.getInstance()
 #                    guiserver.add_task(lambda:self.loadMetadata(item),0)
                 if not bmp:
                     bmp = self.iconsManager.get_default('personsMode','DEFAULT_THUMB')

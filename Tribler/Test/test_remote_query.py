@@ -55,9 +55,12 @@ class TestRemoteQuery(TestAsServer):
         torrent = self.get_default_torrent('Halo Demo')
         ih = 'd' * 20
         self.torrent_db.addTorrent(ih,torrent)
+        
+        # Arno: broken commit policy:
+        self.torrent_db.commit()
 
     def tearDown(self):
-        TestAsServer.tearDown()
+        TestAsServer.tearDown(self)
         self.session.close_dbhandler(self.torrent_db)
       
 

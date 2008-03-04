@@ -1980,12 +1980,6 @@ class DataHandler:
                 self.pref_db.addPreference(peer_permid, torrent)
                 changed += 1
         
-        try:
-            # Arno: PARANOID SYNC
-            self.pref_db.sync()
-        except:
-            print_exc()
-        
         if changed:
             self.total_pref_changed += changed
             self.updateSimilarity(peer_permid)

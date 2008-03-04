@@ -55,7 +55,7 @@ from Tribler.Main.Utility.constants import * #IGNORE:W0611
 import Tribler.Main.vwxGUI.font as font
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 import Tribler.Main.vwxGUI.updateXRC as updateXRC
-from Tribler.Main.Dialogs.GUIServer import GUIServer
+from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.vwxGUI.TasteHeart import set_tasteheart_bitmaps
 from Tribler.Main.vwxGUI.perfBar import set_perfBar_bitmaps
 from Tribler.Main.vwxGUI.MainMenuBar import MainMenuBar
@@ -320,11 +320,11 @@ class ABCFrame(wx.Frame):
 
         
     def checkVersion(self):
-        guiserver = GUIServer.getInstance()
+        guiserver = GUITaskQueue.getInstance()
         guiserver.add_task(self._checkVersion,10.0)
 
     def _checkVersion(self):
-        # Called by GUIServer thread
+        # Called by GUITaskQueue thread
         my_version = self.utility.getVersion()
         try:
             curr_status = urllib.urlopen('http://tribler.org/version').readlines()
@@ -373,7 +373,7 @@ class ABCFrame(wx.Frame):
     
     def OnUpgrade(self, event=None):
         self.setActivity(NTFY_ACT_NEW_VERSION)
-        guiserver = GUIServer.getInstance()
+        guiserver = GUITaskQueue.getInstance()
         guiserver.add_task(self.upgradeCallback,10.0)
 
     def onFocus(self, event = None):
@@ -750,7 +750,7 @@ class ABCApp(wx.App):
             
             # Singleton for executing tasks that are too long for GUI thread and
             # network thread
-            self.guiserver = GUIServer.getInstance()
+            self.guiserver = GUITaskQueue.getInstance()
             self.guiserver.register()
     
             print 'Doing tribler.postinit'

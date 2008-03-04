@@ -60,7 +60,7 @@ def setDBPath(db_dir = ''):
         try: 
             os.mkdir(db_dir)
         except os.error, msg:
-            print >> sys.stderr, "bsdcachedb: cannot set db path:", msg
+            print >> sys.stderr, "sqldb: cannot set db path:", msg
             db_dir = '.'
     return db_dir
 
@@ -225,7 +225,7 @@ class SQLiteCacheDB:
             if not os.path.isdir(db_dir):
                 os.makedirs(db_dir)
             
-        #print >> sys.stderr, '******** connect db', lib, dbfile_path
+        #print >> sys.stderr, 'sqldb: ******** connect db', lib, dbfile_path
         if autocommit:
             if lib==0:
                 con = sqlite.connect(dbfile_path, isolation_level=None, timeout=busytimeout/1000.0)
@@ -265,7 +265,7 @@ class SQLiteCacheDB:
         
         if create_sql_filename is None:
             create_sql_filename=CREATE_SQL_FILE
-        print >>sys.stderr,"CREAETE_SQL_FILE IS",CREATE_SQL_FILE
+        #print >>sys.stderr,"sqldb: CREATE_SQL_FILE IS",CREATE_SQL_FILE
         try:
                 SQLiteCacheDB.lock.acquire()    # TODO: improve performance
                 thread_name = threading.currentThread().getName()
@@ -405,7 +405,7 @@ class SQLiteCacheDB:
             try:
                 cur.executescript(sql_create_tables)
             except Exception, msg:
-                #print >> sys.stderr, 'Wrong sql script:', sql_create_tables
+                #print >> sys.stderr, 'sqldb: Wrong sql script:', sql_create_tables
                 #raise Exception, msg
                 # try again
                 sql_statements = sql_create_tables.split(';')
@@ -413,8 +413,8 @@ class SQLiteCacheDB:
                     try:
                         cur.execute(sql)
                     except Exception, msg:
-                        print >> sys.stderr, 'Wrong sql statement:', repr(sql)
-                        print >> sys.stderr, "Did you end the statement with ';' ?"
+                        print >> sys.stderr, 'sqldb: Wrong sql statement:', repr(sql)
+                        print >> sys.stderr, "sqldb: Did you end the statement with ';' ?"
                         raise Exception, msg
 
             if lib == 0:
@@ -484,7 +484,7 @@ class SQLiteCacheDB:
         #print >> sys.stderr, 'sdb: execute', sql, args
         if SQLiteCacheDB.DEBUG:
             thread_name = threading.currentThread().getName()
-            print >> self.file, 'sdb: execute', thread_name, cur, sql, args
+            print >> self.file, 'sqldb: execute', thread_name, cur, sql, args
             if not thread_name.startswith('OverlayThread'):
                 st = extract_stack()
                 for line in st:
@@ -496,7 +496,7 @@ class SQLiteCacheDB:
             else:
                 return cur.execute(sql, args)
         except sqlite.OperationalError, msg:
-            print >> sys.stderr, 'execute: ', msg, threading.currentThread().getName()
+            print >> sys.stderr, 'sqldb: execute: ', msg, threading.currentThread().getName()
 
     def executemany(self, sql, args):
         cur = SQLiteCacheDB.getCursor()
@@ -666,7 +666,7 @@ class SQLiteCacheDB:
         try:
             return self.fetchall(sql, arg)
         except Exception, msg:
-            print >> sys.stderr, "SQLite: Wrong getAll sql statement:", sql
+            print >> sys.stderr, "sqldb: Wrong getAll sql statement:", sql
             raise Exception, msg
     
     # ----- Tribler DB operations ----
@@ -677,10 +677,10 @@ class SQLiteCacheDB:
         if not os.path.isfile(peerdb_filepath):
             return False
         else:
-            print >> sys.stderr, "cachedb: ************ convert bsddb to sqlite"
+            print >> sys.stderr, "sqldb: ************ convert bsddb to sqlite"
             converted = convert_db(bsddb_dirpath, dbfile_path, sql_filename)
             if converted is True and delete_bsd is True:
-                print >> sys.stderr, "delete bsddb directory"
+                print >> sys.stderr, "sqldb: delete bsddb directory"
                 for filename in os.listdir(bsddb_dirpath):
                     if filename.endswith('.bsd'):
                         abs_path = os.path.join(bsddb_dirpath, filename)
@@ -706,9 +706,9 @@ class SQLiteCacheDB:
                 where='peer_id=%d'%peer_id
                 self.update('Peer', where, **argv)
                 
-                print >>sys.stderr,"sqldb: insertPeer: existing, updatePeer",`permid`
+                #print >>sys.stderr,"sqldb: insertPeer: existing, updatePeer",`permid`
         else:
-            print >>sys.stderr,"sqldb: insertPeer, new",`permid`
+            #print >>sys.stderr,"sqldb: insertPeer, new",`permid`
             
             self.insert('Peer', permid=bin2str(permid), **argv)
                 
@@ -757,7 +757,7 @@ class SQLiteCacheDB:
         
         if infohash in self.infohash_id:
             if check_dup:
-                print >> sys.stderr, 'SQLiteCacheDB: infohash to insert already exists', `infohash`
+                print >> sys.stderr, 'sqldb: infohash to insert already exists', `infohash`
             return
         
         infohash_str = bin2str(infohash)
@@ -766,7 +766,7 @@ class SQLiteCacheDB:
             self.execute(sql_insert_torrent, (infohash_str,))
         except sqlite.IntegrityError, msg:
             if check_dup:
-                print >> sys.stderr, 'SQLiteCacheDB:', sqlite.IntegrityError, msg, `infohash`
+                print >> sys.stderr, 'sqldb:', sqlite.IntegrityError, msg, `infohash`
     
     def deleteInfohash(self, infohash=None, torrent_id=None):
         if torrent_id is None:
@@ -822,7 +822,7 @@ def convert_db(bsddb_dir, dbfile_path, sql_filename):
     # Jie: here I can convert the database created by the new Core version, but
     # what we should consider is to convert the database created by the old version
     # under .Tribler directory.
-    print >>sys.stderr, "start converting db"
+    print >>sys.stderr, "sqldb: start converting db"
     from bsddb2sqlite import Bsddb2Sqlite
     bsddb2sqlite = Bsddb2Sqlite(bsddb_dir, dbfile_path, sql_filename)
     return bsddb2sqlite.run()   
