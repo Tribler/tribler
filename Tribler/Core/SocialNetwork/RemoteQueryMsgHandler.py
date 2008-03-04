@@ -342,11 +342,13 @@ class RemoteQueryMsgHandler:
 
     def inc_peer_nqueries(self, permid):
             peer = self.peer_db.getPeer(permid)
-            if peer is not None:
-                print >>sys.stderr,"rqmh: inc_peer_nqueries: getPeer",peer
-                nqueries = peer['nqueries']
-                self.peer_db.updatePeer(permid, num_queries=nqueries+1)
-
+            try:
+                if peer is not None:
+                    print >>sys.stderr,"rqmh: inc_peer_nqueries: getPeer",peer
+                    nqueries = peer['nqueries']
+                    self.peer_db.updatePeer(permid, num_queries=nqueries+1)
+            except:
+                print_exc()
 
 def isValidQuery(d,selversion):
     if not isinstance(d,dict):

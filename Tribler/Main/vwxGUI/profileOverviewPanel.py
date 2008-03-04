@@ -4,6 +4,7 @@ import random
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton
 from Tribler.Main.Dialogs.MugshotManager import MugshotManager
+from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.Dialogs.socnetmyinfo import MyInfoWizard
 from Tribler.Core.CacheDB.CacheDBHandler import MyPreferenceDBHandler
 from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
@@ -91,7 +92,11 @@ class ProfileOverviewPanel(wx.Panel):
 #        self.Update()
         self.initData()
         self.timer = None
-        self.Bind(wx.EVT_SHOW, self.OnShow) 
+        self.Bind(wx.EVT_SHOW, self.OnShow)
+
+        self.newversion = False
+        self.checkNewVersion()
+         
         wx.CallAfter(self.reloadData)
         wx.CallAfter(self.Refresh)
         
@@ -275,7 +280,7 @@ class ProfileOverviewPanel(wx.Panel):
         #use index_h computed above
         #<<<get new version
         index_v = 0
-        bCheckVersionChange = self.checkNewVersion()
+        bCheckVersionChange = self.newversion
         if bCheckVersionChange:
             self.data['new_version']=self.new_version
             self.data['update_url'] = self.update_url
@@ -342,6 +347,18 @@ class ProfileOverviewPanel(wx.Panel):
         self.showNameMugshot()
 
     def checkNewVersion(self):
+        # delegate to GUIServer
+        guiserver = GUITaskQueue.getInstance()
+        guiserver.add_task(self.guiserver_checkVersion,0)
+        
+    def guiserver_checkVersion(self):
+        wx.CallAfter(self.setVersion,guiserver_DoCheckVersion)
+        
+    def setVersion(self,newversion):
+        self.newversion = newversion
+        self.reloadData()
+        
+    def guiserver_DoCheckVersion(self):
         """check for new version on the website
         saves compare result between version on site and the 
         one the user has, that means a value of -1,0,1, or -2 if there was an 
