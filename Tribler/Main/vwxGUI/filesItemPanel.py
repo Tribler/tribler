@@ -65,7 +65,7 @@ class FilesItemPanel(wx.Panel):
         self.guiserver = parent.guiserver
         self.metadatahandler = MetadataHandler.getInstance()
         self.addComponents()
-        self.iconsManager = IconsManager.get_instance()
+        self.iconsManager = IconsManager.getInstance()
         self.Show()
         self.Refresh()
         self.Layout()
@@ -523,7 +523,7 @@ class ThumbnailViewer(wx.Panel):
         self.border = None
         self.downloading = False
         self.categoryIcon = None
-        self.iconsManager = IconsManager.get_instance()
+        self.iconsManager = IconsManager.getInstance()
 
     
     def setTorrent(self, torrent):

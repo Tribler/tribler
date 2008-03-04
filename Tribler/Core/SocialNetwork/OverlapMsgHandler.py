@@ -11,7 +11,7 @@ from Tribler.Core.BitTornado.BT1.MessageID import *
 from Tribler.Core.CacheDB.MugshotManager import ICON_MAX_SIZE
 from Tribler.Core.Utilities.utilities import *
 
-DEBUG = False
+DEBUG = True
 
 MIN_OVERLAP_WAIT = 12.0*3600.0 # half a day in seconds
 
@@ -112,11 +112,11 @@ class OverlapMsgHandler:
         
         persinfo = {'name':self.session.get_nickname()}
         
-        # See if we can find icon using PermID or name (old style):
-#        [type,data] = self.peer_db.getPeerIcon(self.mypermid,persinfo['name'])
-#        if not type is None and not data is None:
-#            persinfo['icontype'] = type
-#            persinfo['icondata'] = str(data)
+        # See if we can find icon using PermID:
+        [type,data] = self.peer_db.getPeerIcon(self.mypermid)
+        if not type is None and not data is None:
+            persinfo['icontype'] = type
+            persinfo['icondata'] = str(data)
         
         oldict = {}
         oldict['persinfo'] = persinfo
@@ -254,6 +254,8 @@ def save_ssocnet_peer(self,permid,record,persinfo_ignore,hrwidinfo_ignore,ipinfo
         
         if DEBUG:
             print >>sys.stderr,"socnet: Got persinfo",persinfo.keys()
+            if len(persinfo.keys()) > 1:
+                 print >>sys.stderr,"socnet: Got persinfo THUMB THUMB THUMB THUMB"
         
         if self.peer_db.hasPeer(permid):
             self.peer_db.updatePeer(permid, name=persinfo['name'])

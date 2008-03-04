@@ -14,7 +14,7 @@ import wx.lib.imagebrowser as ib
 # it don't work. This explicit import seems to:
 from wx.wizard import Wizard,WizardPageSimple,EVT_WIZARD_PAGE_CHANGED,EVT_WIZARD_PAGE_CHANGING,EVT_WIZARD_CANCEL,EVT_WIZARD_FINISHED
 
-from Tribler.Main.Dialogs.MugshotManager import MugshotManager
+from Tribler.Main.vwxGUI.IconsManager import IconsManager
 from Tribler.Core.Utilities.unicode import str2unicode
 #from common import CommonTriblerList
 from Tribler.Main.Utility.constants import *
@@ -68,12 +68,9 @@ class MyInfoWizard(Wizard):
     def OnFinished(self,event=None):
         (name,iconpath) = self.page1.getNameIconPath()
         self.utility.session.set_nickname(name)
-        mm = MugshotManager.getInstance()
+        im = IconsManager.getInstance()
         if iconpath:
-            mypermid = self.utility.session.get_permid()
-            oldiconpath = mm.find_filename(mypermid,name)
-            if oldiconpath != iconpath:
-                mm.create_from_file(mypermid,iconpath)
+            im.create_from_file(mypermid,iconpath)
 
         self.parent.WizardFinished(self)
 
@@ -105,18 +102,16 @@ class NameIconWizardPage(WizardPageSimple):
         topbox.Add(name_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
 
         # Ask public user icon / avatar
-        self.mypermid = self.utility.session.get_permid()
-        self.mm = MugshotManager.getInstance()
-        self.iconpath = self.mm.find_filename(self.mypermid,name)
-
         icon_box = wx.BoxSizer(wx.HORIZONTAL)
         icon_box.Add(wx.StaticText(self, -1, self.utility.lang.get('myicon')), 0, wx.ALIGN_CENTER_VERTICAL)
 
         ## TODO: integrate this code with makefriends.py, especially checking code
         self.iconbtn = None
-        bm = self.mm.load_wxBitmap(self.mypermid)
+        self.mypermid = self.utility.session.get_permid()
+        im = IconsManager.getInstance()
+        bm = im.load_wxBitmap(self.mypermid)
         if bm is None:
-            bm = mm.get_default('personsMode','DEFAULT_THUMB')
+            bm = im.get_default('personsMode','DEFAULT_THUMB')
         self.iconbtn = wx.BitmapButton(self, -1, bm)
         icon_box.Add(self.iconbtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
         #label = wx.StaticText(self, -1, self.utility.lang.get('obligiconformat'))

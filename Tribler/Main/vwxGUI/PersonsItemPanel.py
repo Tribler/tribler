@@ -8,7 +8,7 @@ from Tribler.Main.vwxGUI.bgPanel import ImagePanel
 from Tribler.Core.Utilities.unicode import *
 from Tribler.Core.CacheDB.CacheDBHandler import PeerDBHandler
 from Tribler.Main.vwxGUI.filesItemPanel import getResizedBitmapFromImage
-from Tribler.Main.vwxGUI.IconsManager import IconsManager
+from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxBitmap
 from font import *
 import cStringIO
 import TasteHeart
@@ -449,7 +449,7 @@ class ThumbnailViewer(wx.Panel):
         #create the heart
         #I will use TasteHeart.BITMAPS to paint the right one
         self.peer_db = PeerDBHandler.getInstance()
-        self.iconsManager = IconsManager.get_instance()
+        self.iconsManager = IconsManager.getInstance()
         self.superpeer_db = self.GetParent().parent.superpeer_db
     
     def setData(self, data):
@@ -513,7 +513,7 @@ class ThumbnailViewer(wx.Panel):
         self.xpos, self.ypos = (w-iw)/2, (h-ih)/2
         
 
-    def loadMetadata(self,data,type=None):
+    def loadMetadata(self,data,type=''):
         """ Called by non-GUI thread """
         
         if DEBUG:
@@ -521,18 +521,18 @@ class ThumbnailViewer(wx.Panel):
             
         # We can't do any wx stuff here apparently, so the only thing we can do is to
         # read the data from the file and create the wxBitmap in the GUI callback.
-        [mimetype,bmpdata] = self.peer_db.getPeerIcon(data['permid'],data['name'])
-        #print "PersonsItemPanel: ThumbnailViewer: loadMetadata: Got",show_permid_short(permid),mimetype
+        [mimetype,bmpdata] = self.peer_db.getPeerIcon(data['permid'])
+        #print >>sys.stderr,"PersonsItemPanel: ThumbnailViewer: loadMetadata: Got",show_permid_short(data['permid']),mimetype
 
         wx.CallAfter(self.metadata_thread_gui_callback,data,mimetype,bmpdata,type)
              
-    def metadata_thread_gui_callback(self,data,mimetype,bmpdata,type=None):
+    def metadata_thread_gui_callback(self,data,mimetype,bmpdata,type=''):
         """ Called by GUI thread """
 
         metadata = {}
         metadata['triend_time'] = time()+(random.random()*100)
         if mimetype is not None:
-            metadata['ThumbnailBitmap'] = self.peer_db.mm.data2wxBitmap(mimetype,bmpdata)
+            metadata['ThumbnailBitmap'] = data2wxBitmap(mimetype,bmpdata)
         else:
             superpeers = self.superpeer_db.getSuperPeers()
             
@@ -562,7 +562,7 @@ class ThumbnailViewer(wx.Panel):
                 img = wx.ImageFromBitmap(metadata['ThumbnailBitmap'])
                 img.Rescale(nw, nh)
                 metadata['ThumbnailBitmap'+type] = wx.BitmapFromImage(img)
-            #print >>sys.stderr,"pip: Netresult is",metadata['ThumbnailBitmap']
+                #print >>sys.stderr,"pip: Netresult is",metadata['ThumbnailBitmap']
 
         if DEBUG:
             print "pip: ThumbnailViewer: GUI callback"

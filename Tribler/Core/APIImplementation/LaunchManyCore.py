@@ -40,6 +40,7 @@ from Tribler.Core.DecentralizedTracking import mainlineDHT
 from Tribler.Core.DecentralizedTracking.rsconvert import RawServerConverter
 from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
+from Tribler.Core.CacheDB.MugshotManager import MugshotManager
 from Tribler.Video.utils import win32_retrieve_video_play_command
 
 
@@ -129,6 +130,10 @@ class TriblerLaunchMany(Thread):
             self.friend_db      = FriendDBHandler.getInstance()
             self.bartercast_db  = BarterCastDBHandler.getInstance(self.session)
             
+            
+            self.mm = MugshotManager.getInstance()
+            self.mm.register(config)
+            self.peer_db.setMugshotManager(self.mm)
         else:
             config['overlay'] = 0    # turn overlay off
             config['torrent_checking'] = 0
@@ -139,6 +144,7 @@ class TriblerLaunchMany(Thread):
             self.superpeer_db   = None
             self.friend_db      = None
             self.bartercast_db  = None
+            self.mm = None
         
         if not config['overlay']:
             config['buddycast'] = 0
@@ -601,7 +607,7 @@ class TriblerLaunchMany(Thread):
         
     def set_activity(self,type, str = ''):
         """ Called by overlay + network thread """
-        print >>sys.stderr,"tlm: set_activity",type,str
+        #print >>sys.stderr,"tlm: set_activity",type,str
         self.session.uch.notify(NTFY_ACTIVITIES, NTFY_INSERT, type, str)
 
         

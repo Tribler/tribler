@@ -308,6 +308,7 @@ class PeerDBHandler(BasicDBHandler):
         
         #self.notifier = Notifier.getInstance()
         self.pref_db = PreferenceDBHandler.getInstance()
+        self.mm = None
 
     def __len__(self):
         return self.size()
@@ -453,12 +454,6 @@ class PeerDBHandler(BasicDBHandler):
         else:
             return None
         
-    def updatePeerIcon(self, permid, icontype, icondata, updateFlag = True):
-         return
-#        self.mm.save_data(permid, icontype, icondata)
-#        if updateFlag:
-#            self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid, 'icon')
-#    
     def getNumberPeers(self, category_name = 'all'):
         table = 'Peer'
         value = 'count(*)'
@@ -514,6 +509,22 @@ class PeerDBHandler(BasicDBHandler):
         # peer_list consumes about 1.5M for 1400 peers, and this function costs about 0.015 second
         
         return  peer_list
+
+    def setMugshotManager(self,mm):
+        self.mm = mm
+
+    def updatePeerIcon(self, permid, icontype, icondata, updateFlag = True):
+         if self.mm is not None:
+             self.mm.save_data(permid, icontype, icondata)
+#        if updateFlag:
+#            self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid, 'icon')
+#    
+
+    def getPeerIcon(self, permid):
+        if self.mm is not None:
+            return self.mm.load_data(permid)
+        else:
+            return None
 
         
 class PreferenceDBHandler(BasicDBHandler):

@@ -752,4 +752,4 @@ class GUIUtility:
                 item.GetSizer().Layout()
             elif item.IsWindow():
                 item.GetWindow().Refresh()
-    
+

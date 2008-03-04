@@ -68,7 +68,7 @@ class standardDetails(wx.Panel):
         self.utility = self.guiUtility.utility        
         self.data_manager = TorrentDataManager.getInstance(self.utility)
         #self.optionsButtonLibraryFunc = rightMouseButton.getInstance()
-        self.iconsManager = IconsManager.get_instance()
+        self.iconsManager = IconsManager.getInstance()
         self.mydb = MyPreferenceDBHandler.getInstance()                    
         self.mode = None
         self.item = None

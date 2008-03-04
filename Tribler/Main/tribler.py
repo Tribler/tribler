@@ -71,7 +71,6 @@ import Tribler.Category.Category
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
 
 from Tribler.Core.API import *
-from Tribler.Core.CacheDB.MugshotManager import MugshotManager
 from Tribler.Core.Utilities.utilities import show_permid
 
 DEBUG = False
@@ -890,9 +889,6 @@ class ABCApp(wx.App):
 
         self.utility.session = s
 
-        mm = MugshotManager.getInstance()
-        mm.register(s.sessconfig) # ARNOCOMMENT
-        
         s.add_observer(self.sesscb_ntfy_reachable,NTFY_REACHABLE,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_activities,NTFY_ACTIVITIES,[NTFY_INSERT])
         
@@ -928,7 +924,7 @@ class ABCApp(wx.App):
         
     def sesscb_ntfy_activities(self,subject,changeType,objectID,msg):
         # Called by SessionCallback thread
-        print >>sys.stderr,"main: sesscb_ntfy_activities called:",subject,changeType,objectID,msg
+        #print >>sys.stderr,"main: sesscb_ntfy_activities called:",subject,changeType,objectID,msg
         wx.CallAfter(self.frame.setActivity,objectID,msg)
 
     def sesscb_ntfy_reachable(self,subject,changeType,objectID,msg):

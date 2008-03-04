@@ -517,6 +517,7 @@ class MetadataHandler:
         check.start()
         
     def get_filename(self,infohash):
+        # Arno: Better would have been the infohash in hex.
         file_name = sha(infohash).hexdigest()+'.torrent'
         #_path = os.path.join(self.torrent_dir, file_name)
         #if os.path.exists(_path):

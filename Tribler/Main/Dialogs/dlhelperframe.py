@@ -9,7 +9,7 @@ from traceback import print_exc
 from Tribler.Core.CacheDB.CacheDBHandler import FriendDBHandler
 from Tribler.Core.Utilities.utilities import show_permid_short
 #from managefriends import createImageList
-from Tribler.Core.CacheDB.MugshotManager import MugshotManager
+from Tribler.Main.vwxGUI.IconsManager import IconsManager
 from Tribler.Core.Utilities.utilities import show_permid_shorter
 
 DEBUG = 0
@@ -102,8 +102,8 @@ class DownloadHelperPanel(wx.Panel):
         if type != wx.LC_REPORT:
             try:
                 #imgList = createImageList(self.utility,friends)
-                mm = MugshotManager.getInstance()
-                imgList = mm.create_wxImageList(friends,setindex=True)
+                im = IconsManager.getInstance()
+                imgList = im.create_wxImageList(friends,setindex=True)
             except:
                 print_exc()
                 # disable icons

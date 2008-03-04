@@ -1,16 +1,21 @@
 import wx, math, time, os, sys, threading
 from traceback import print_exc
-from Tribler.Core.Utilities.utilities import *
 from wx.lib.stattext import GenStaticText as StaticText
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+
+# LAYERVIOLATION
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
+
+
 from Tribler.Core.Utilities.unicode import *
-from font import *
-from copy import deepcopy
-import cStringIO
-from tribler_topButton import *
-from urlparse import urlparse
+from Tribler.Core.Utilities.utilities import *
 from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
+
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.IconsManager import IconsManager,data2wxBitmap
+
+
+from font import *
+from tribler_topButton import *
 import TasteHeart
 
 DEBUG = False
@@ -48,6 +53,8 @@ class SubscriptionsItemPanel(wx.Panel):
         self.warningMode = False
         self.guiserver = parent.guiserver
         self.torrentfeed = parent.torrentfeed
+        self.iconsManager = IconsManager.getInstance()
+        
         self.oldCategoryLabel = None
         self.addComponents()
         self.Show()
@@ -363,7 +370,7 @@ class FavicoThumbnailViewer(wx.Panel):
         self.selected = False
         self.border = None
     
-        self.mm = self.GetParent().parent.mm
+        self.iconsManager = IconsManager.getInstance()
         
     def setData(self, data):
         
@@ -381,12 +388,12 @@ class FavicoThumbnailViewer(wx.Panel):
     def setThumbnail(self, data):
         # Get the file(s)data for this torrent
         try:
-            bmp = self.mm.get_default('subscriptionsMode','DEFAULT_THUMB')
+            bmp = self.iconsManager.get_default('subscriptionsMode','DEFAULT_THUMB')
             # Check if we have already read the thumbnail and metadata information from this torrent file
             if data.get('metadata'):
                 bmp = data['metadata'].get('ThumbnailBitmap')
                 if not bmp:
-                    bmp = self.mm.get_default('subscriptionMode','DEFAULT_THUMB')
+                    bmp = self.iconsManager.get_default('subscriptionMode','DEFAULT_THUMB')
             else:
                 self.GetParent().guiserver.add_task(lambda:self.loadMetadata(data),0)
             
@@ -419,7 +426,7 @@ class FavicoThumbnailViewer(wx.Panel):
         bmpdata = None
         if not ('persistent' in data):
             try:
-                t = urlparse(data['url'])
+                t = urlparse.urlparse(data['url'])
                 #print >>sys.stderr,"subip: ThumbnailViewer: loadMetadata: parsed url",t
                 newurl = t[0]+'://'+t[1]+'/'+'favicon.ico'
                 if DEBUG:
@@ -441,10 +448,10 @@ class FavicoThumbnailViewer(wx.Panel):
 
         metadata = {}
         if 'persistent' in data:
-            metadata['ThumbnailBitmap'] = self.mm.get_default('subscriptionsMode','BUDDYCAST_THUMB')
+            metadata['ThumbnailBitmap'] = self.iconsManager.get_default('subscriptionsMode','BUDDYCAST_THUMB')
         else:
             if mimetype is not None:
-                metadata['ThumbnailBitmap'] = self.mm.data2wxBitmap(mimetype,bmpdata,dim=16)
+                metadata['ThumbnailBitmap'] = data2wxBitmap(mimetype,bmpdata,dim=16)
             else:
                 metadata['ThumbnailBitmap'] = None
 

@@ -1,6 +1,8 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
-
+#
+# Just manage peer icons. No wx stuff here. See Tribler.Main.vwxGUI.IconsManager
+# for that.
 
 import os, os.path
 import sys
@@ -15,9 +17,6 @@ ICON_MAX_SIZE = 10*1024
 NETW_EXT = '.jpg'
 NETW_MIME_TYPE = 'image/jpeg'
 
-ICON_MAX_DIM = 80
-SMALL_ICON_MAX_DIM = 32
-
 DEBUG = False
 
 class MugshotManager:
@@ -29,7 +28,6 @@ class MugshotManager:
             raise RuntimeError, "MugshotManager is singleton"
         MugshotManager.__single = self
         self.usericonpath = '' # for test suite
-        #self.sysiconpath = ''
         
 
     def getInstance(*args, **kw):
@@ -43,65 +41,7 @@ class MugshotManager:
         self.usericonpath = os.path.join(config['state_dir'],config['peer_icon_path'])
         if not os.path.isdir(self.usericonpath):
             os.mkdir(self.usericonpath)
-        #self.sysiconpath = os.path.join(syspath,'icons')
-        self.guiImagePath = os.path.join(config['install_dir'],'Tribler', 'Main', 'vwxGUI', 'images')
-        self.defaults = {}
-        self.categoryThumbs = {}
 	
-        
-    def create_wxImageList(self,peerswpermid,setindex=False):
-        """ peerswpermid is a list of dictionaries that contain the
-            name and permid of a peer
-        """
-        if len(peerswpermid) == 0:
-            return None
-
-        # scale default to proper size
-        defaultThumb = self.get_default('personsMode','DEFAULT_THUMB')
-        defaultThumb = wx.BitmapFromImage(defaultThumb.ConvertToImage().Scale(SMALL_ICON_MAX_DIM,SMALL_ICON_MAX_DIM))
-
-        list = []
-        for peer in peerswpermid:
-            filename = self.find_filename(peer['permid'],peer['name'])
-            bm = None
-            if filename is None:
-                bm = defaultThumb
-            else:
-                try:
-                    im = wx.Image(filename)
-                    bm = wx.BitmapFromImage(im.Scale(SMALL_ICON_MAX_DIM,SMALL_ICON_MAX_DIM),-1)
-                except:
-                    try:
-                        bm = defaultThumb
-                    except:
-                        return None
-            list.append(bm)
-        imgList = wx.ImageList(SMALL_ICON_MAX_DIM,SMALL_ICON_MAX_DIM)
-        if imgList is None:
-            return None
-        for peer in peerswpermid:
-            bm = list.pop(0)
-            index = imgList.Add(bm)
-            if setindex:
-                peer['tempiconindex'] = index
-        return imgList
-
-    def find_filename(self,permid,name):
-        # See if we can find it using PermID or name (old style):
-        filename = self._permid2iconfilename(permid)
-        if not os.access(filename,os.R_OK):
-            if name is not None:
-                # Old style, < 3.5.0
-                try:
-                    filename = os.path.join(self.usericonpath,name+NETW_EXT)
-                    if not os.access(filename,os.R_OK):
-                        return None
-                except:
-                    return None
-            else:
-                return None
-        return filename
-
     def load_data(self,permid,name=None):
 
         if DEBUG:
@@ -135,27 +75,12 @@ class MugshotManager:
 
 
     def save_data(self,permid,type,data):
-        import wx
         filename = self._permid2iconfilename(permid)
         
         if DEBUG:
             print >>sys.stderr,"mugmgr: save_data: filename is",filename,type
-        
         try:
-            
-            #f = open("maarten.bmp","wb")
-            #f.write(data)
-            #f.close()
-            
-            mi = StringIO(data)
-            # St*pid wx says "No handler for image/bmp defined" while this
-            # is the image handler that is guaranteed to always be there,
-            # according to the docs :-(
-            if type == 'image/bmp':
-                im = wx.ImageFromStream(mi,wx.BITMAP_TYPE_BMP)
-            else:
-                im = wx.ImageFromStreamMime(mi,type)
-            im.SaveMimeFile(filename,NETW_MIME_TYPE)
+            # Arno: no longer wx conversion
             f = open(filename,"wb")
             f.write(data)
             f.close()
@@ -165,71 +90,24 @@ class MugshotManager:
                 print_exc()
             return False
 
-    def copy_file(self,permid,srcfilename):
-        """ srcfilename must point to a .JPG file """
-        dstfilename = self._permid2iconfilename(permid)
-        if DEBUG:
-            print >>sys.stderr,"mugmgr: copying icon",srcfilename,"to",dstfilename
-        try:
-            copy2(os.path.normpath(srcfilename),dstfilename)
-        except:
-            if DEBUG:
-                print_exc()
-            pass
 
-    def create_from_file(self,permid,srcfilename):
-        """ srcfilename must point to an image file processable by wx.Image """
-        dstfilename = self._permid2iconfilename(permid)
-        try:
-            sim = wx.Image(srcfilename).Scale(ICON_MAX_DIM,ICON_MAX_DIM)
-            sim.SaveFile(dstfilename,wx.BITMAP_TYPE_JPEG)
-            return True
-        except:
-            if DEBUG:
-                print_exc()
-            return False
-
-    def load_wxBitmap(self,permid,name=None):
-        filename = self.find_filename(permid,name)
-        if filename is None:
-            return None
-        return self.load_wxBitmap_from_file(filename)
-
-    def load_wxBitmap_from_file(self,filename):
-        try:
-            im = wx.Image(filename)
-            bm = wx.BitmapFromImage(im.Scale(ICON_MAX_DIM,ICON_MAX_DIM),-1)
-            return bm
-        except:
-            if DEBUG:
-                print_exc()
-            pass
-        return None
+    def find_filename(self,permid,name):
+        # See if we can find it using PermID or name (old style):
+        filename = self._permid2iconfilename(permid)
+        if not os.access(filename,os.R_OK):
+            if name is not None:
+                # Old style, < 3.5.0
+                try:
+                    filename = os.path.join(self.usericonpath,name+NETW_EXT)
+                    if not os.access(filename,os.R_OK):
+                        return None
+                except:
+                    return None
+            else:
+                return None
+        return filename
 
     def _permid2iconfilename(self,permid):
         safename = sha(permid).hexdigest()
         return os.path.join(self.usericonpath, safename+NETW_EXT)
 
-
-    def data2wxBitmap(self,type,data,dim=ICON_MAX_DIM):
-        try:
-            mi = StringIO(data)
-            # St*pid wx says "No handler for image/bmp defined" while this
-            # is the image handler that is guaranteed to always be there,
-            # according to the docs :-(
-            if type == 'image/bmp':
-                im = wx.ImageFromStream(mi,wx.BITMAP_TYPE_BMP)
-            else:
-                im = wx.ImageFromStreamMime(mi,type)
-            
-            bm = wx.BitmapFromImage(im.Scale(dim,dim),-1)
-            return bm
-        except:
-            if DEBUG:
-                print_exc()
-            return None
-
-
-   
-    
-    

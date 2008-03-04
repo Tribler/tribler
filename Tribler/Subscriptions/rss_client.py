@@ -28,15 +28,14 @@ import urlparse
 from xml.dom.minidom import parseString
 from threading import Thread,RLock,Event
 from time import sleep,time
-from sha import sha
+import sha
 
+from Tribler.Core.API import *
 from Tribler.Core.BitTornado.bencode import bdecode,bencode
-from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
-from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 
 URLHIST_TIMEOUT = 7*24*3600.0 # Don't revisit links for this time
 
-DEBUG = False
+DEBUG = True
 
 
 class TorrentFeedThread(Thread):
@@ -63,10 +62,11 @@ class TorrentFeedThread(Thread):
     getInstance = staticmethod(getInstance)
         
     def register(self,utility):
-        self.metahandler = MetadataHandler.getInstance()
-    
         self.utility = utility
         self.intertorrentinterval = self.utility.config.Read("torrentcollectsleep","int")
+        
+        self.torrent_dir = self.utility.session.get_torrent_collecting_dir()
+        self.torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
         
         filename = self.getfilename()
         try:
@@ -109,7 +109,7 @@ class TorrentFeedThread(Thread):
 
     def gethistfilename(self,url):
         # TODO: url2pathname or something that gives a readable filename
-        h = sha(url).hexdigest()
+        h = sha.sha(url).hexdigest()
         return os.path.join(self.getdir(),h+'.txt')
         
     def getdir(self):
@@ -147,7 +147,7 @@ class TorrentFeedThread(Thread):
         self.lock.release()
         
     def run(self):
-        sleep(10) # Let other Tribler components, in particular, MetadataHandler startup
+        sleep(10) # Let other Tribler components, in particular, Session startup
         while not self.done.isSet():
             self.lock.acquire()
             cfeeds = self.feeds[:]
@@ -167,7 +167,7 @@ class TorrentFeedThread(Thread):
                             urlopenobj.close()
     
                             data = bdecode(bdata)
-                            torrent_hash = sha(bencode(data['info'])).digest()
+                            infohash = sha.sha(bencode(data['info'])).digest()
                             
                             
                             # ARNOCOMMENT: Need to adjust this to core interface.
@@ -176,14 +176,10 @@ class TorrentFeedThread(Thread):
                             # LAYERVIOLATION
                             traceback.print_stack()
                             
-                            
-                            
-                            
-                            torrent_db = TorrentDBHandler.getInstance()
-                            if not torrent_db.hasTorrent(torrent_hash):
+                            if not self.torrent_db.hasTorrent(infohash):
                                 if DEBUG:
                                     print >>sys.stderr,"subscript: Storing",`title`
-                                self.metahandler.save_torrent(torrent_hash,bdata,source=rssurl)
+                                self.save_torrent(infohash,bdata,source=rssurl)
                             elif DEBUG:
                                 print >>sys.stderr,"subscript: Not storing",`title`,"already have it"
                         # Sleep in between torrent retrievals        
@@ -222,6 +218,16 @@ class TorrentFeedThread(Thread):
                 sleep(30)
 
 
+    def save_torrent(self,infohash,bdata,source=''):
+        hexinfohash = binascii.hexlify(infohash)
+        filename = os.path.join(self.torrent_dir, hexinfohash+'.torrent' )
+        f = open(filename,"wb")
+        f.write(bdata)
+        f.close()
+
+        self.torrent_db.addExternalTorrent(filename,source=source)
+
+
     def shutdown(self):
         if DEBUG:
             print >>sys.stderr,"subscrip: Shutting down subscriptions module"
@@ -231,6 +237,8 @@ class TorrentFeedThread(Thread):
         self.lock.release()
         for feed in cfeeds:
             feed.shutdown()
+            
+        self.utility.session.close_dbhandler(self.torrent_db)
 
 """
     def process_statscopy(self,statscopy):

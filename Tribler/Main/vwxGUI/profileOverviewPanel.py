@@ -3,7 +3,7 @@ import wx.xrc as xrc
 import random
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton
-from Tribler.Main.Dialogs.MugshotManager import MugshotManager
+from Tribler.Main.vwxGUI.IconsManager import IconsManager
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.Dialogs.socnetmyinfo import MyInfoWizard
 from Tribler.Core.CacheDB.CacheDBHandler import MyPreferenceDBHandler
@@ -111,13 +111,13 @@ class ProfileOverviewPanel(wx.Panel):
         #wx.CallAfter(self.reloadData())
 
     def getNameMugshot(self):
-        self.utility.session.get_nickname()
+        self.myname = self.utility.session.get_nickname()
         mypermid = self.utility.session.get_permid()
-        mm = MugshotManager.getInstance()
-        self.mugshot = mm.load_wxBitmap(mypermid)
+        im = IconsManager.getInstance()
+        self.mugshot = im.load_wxBitmap(mypermid)
         if self.mugshot is None:
             print "profileOverviewPanel: Bitmap for mypermid not found"
-            self.mugshot = mm.get_default('personsMode','DEFAULT_THUMB')
+            self.mugshot = im.get_default('personsMode','DEFAULT_THUMB')
         
     def showNameMugshot(self):
         self.getGuiElement('myNameField').SetLabel(self.myname)
