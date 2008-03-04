@@ -169,13 +169,6 @@ class TorrentFeedThread(Thread):
                             data = bdecode(bdata)
                             infohash = sha.sha(bencode(data['info'])).digest()
                             
-                            
-                            # ARNOCOMMENT: Need to adjust this to core interface.
-                            # Now especially broken because metadatahandler code
-                            # is supposed to be executed by the OverlayThread
-                            # LAYERVIOLATION
-                            traceback.print_stack()
-                            
                             if not self.torrent_db.hasTorrent(infohash):
                                 if DEBUG:
                                     print >>sys.stderr,"subscript: Storing",`title`
@@ -220,12 +213,18 @@ class TorrentFeedThread(Thread):
 
     def save_torrent(self,infohash,bdata,source=''):
         hexinfohash = binascii.hexlify(infohash)
+        if DEBUG:
+            print >>sys.stderr,"subscript: Writing",hexinfohash
+
         filename = os.path.join(self.torrent_dir, hexinfohash+'.torrent' )
         f = open(filename,"wb")
         f.write(bdata)
         f.close()
 
         self.torrent_db.addExternalTorrent(filename,source=source)
+        
+        # ARNOCOMMENT: remove later
+        self.torrent_db.commit()
 
 
     def shutdown(self):
