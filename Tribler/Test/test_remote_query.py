@@ -57,7 +57,7 @@ class TestRemoteQuery(TestAsServer):
         self.torrent_db.addTorrent(ih,torrent)
         
         # Arno: broken commit policy:
-        self.torrent_db.commit()
+        #self.torrent_db.commit()
 
     def tearDown(self):
         TestAsServer.tearDown(self)

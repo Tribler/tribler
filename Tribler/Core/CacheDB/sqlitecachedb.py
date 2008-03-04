@@ -204,7 +204,7 @@ class SQLiteCacheDB:
             cur = curs.get(thread_name)
         return cur
        
-    def openDB(dbfile_path, lib, autocommit=0, busytimeout=5000):
+    def openDB(dbfile_path, lib, autocommit=0, busytimeout=5000.0):
         """ 
         Open a SQLite database.
         @dbfile_path       The path to store the database file. If dbfile_path=':memory:', create a db in memory.
@@ -225,15 +225,15 @@ class SQLiteCacheDB:
             if not os.path.isdir(db_dir):
                 os.makedirs(db_dir)
             
-        #print >> sys.stderr, 'sqldb: ******** connect db', lib, dbfile_path
+        print >> sys.stderr, 'sqldb: ******** connect db', lib, dbfile_path, busytimeout/1000.0
         if autocommit:
             if lib==0:
-                con = sqlite.connect(dbfile_path, isolation_level=None, timeout=busytimeout/1000.0)
+                con = sqlite.connect(dbfile_path, isolation_level=None, timeout=(busytimeout/1000.0))
             elif lib==1:
                 con = apsw.Connection(dbfile_path)
         else:
             if lib==0:
-                con = sqlite.connect(dbfile_path, timeout=busytimeout/1000.0)
+                con = sqlite.connect(dbfile_path, timeout=(busytimeout/1000.0))
             elif lib==1:
                 con = apsw.Connection(dbfile_path)
         if lib==1:
@@ -248,7 +248,7 @@ class SQLiteCacheDB:
 
     def initDB(sqlite_filepath=None, bsddb_dirpath=None, 
                create_sql_filename=None, 
-               lib=None, autocommit=0, busytimeout=5000,
+               lib=None, autocommit=0, busytimeout=5000.0,
                check_version=True):
         """ 
         Create and initinitialize a SQLite database given a sql script.

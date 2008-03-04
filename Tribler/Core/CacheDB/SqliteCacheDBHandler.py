@@ -1095,7 +1095,8 @@ class TorrentDBHandler(BasicDBHandler):
             order_by = None
         res_list = self._db.getAll(table_name, value_name, where, limit=limit, offset=offset, order_by=order_by)
         
-        mypref_stats = self.mypref_db.getMyPrefStats()
+        if library:
+            mypref_stats = self.mypref_db.getMyPrefStats()
         
         torrent_list = []
         for item in res_list:
@@ -1110,7 +1111,7 @@ class TorrentDBHandler(BasicDBHandler):
             del torrent['category_id']
             del torrent['status_id']
             torrent_id = torrent['torrent_id']
-            if all and torrent_id in mypref_stats:
+            if library and torrent_id in mypref_stats:
                 # add extra info for torrent in mypref
                 torrent['myDownloadHistory'] = True
                 data = mypref_stats[torrent_id]  #(create_time,progress,destdir)
@@ -1119,7 +1120,7 @@ class TorrentDBHandler(BasicDBHandler):
                 torrent['destdir'] = data[2]
             torrent_list.append(torrent)
         del res_list
-        if all:
+        if library:
             del mypref_stats
         # torrent_list consumes about 2MB for 4836 torrents, and this function costs about 0.15 second
         #print time()-s
