@@ -252,7 +252,7 @@ class LibraryItemPanel(wx.Panel):
             
     def getColumns(self):
         return [{'sort':'', 'title':'', 'width':35, 'tip':''},
-                {'sort':'content_name', 'reverse':True, 'title':'name', 'weight':1,'tip':self.utility.lang.get('C_filename'), 'order':'down'},
+                {'sort':'name', 'reverse':True, 'title':'name', 'weight':1,'tip':self.utility.lang.get('C_filename'), 'order':'down'},
                 {'sort':'progress', 'title':'progress', 'width':120, 'tip':self.utility.lang.get('C_progress')},
                 {'sort':'??','dummy':True, 'pic':'downSpeedColumn','title':'down', 'width':70, 'tip':self.utility.lang.get('C_downspeed')},
                 {'sort':'??', 'dummy':True, 'pic':'upSpeedColumn','title':'up','width':70, 'tip':self.utility.lang.get('C_upspeed')},                
@@ -290,7 +290,7 @@ class LibraryItemPanel(wx.Panel):
 
         
         if torrent.get('abctorrent2'):    # Jie: temporary disable it by set it as 'abctorrent2'
-            #print '%s is an active torrent' % torrent['content_name']
+            #print '%s is an active torrent' % torrent['name']
             abctorrent = torrent['abctorrent']
             #abctorrent.setLibraryPanel(self)
             
@@ -445,12 +445,12 @@ class LibraryItemPanel(wx.Panel):
             self.pb.Show()
             self.pb.Refresh()
             
-        if torrent.get('content_name'):
-            title = torrent['content_name'][:self.titleLength]
+        if torrent.get('name'):
+            title = torrent['name'][:self.titleLength]
             self.title.Show()
             self.title.SetLabel(title)
             self.title.Wrap(self.title.GetSize()[0])
-            self.title.SetToolTipString(torrent['content_name'])
+            self.title.SetToolTipString(torrent['name'])
         else:
             self.title.SetLabel('')
             self.title.SetToolTipString('')
@@ -573,22 +573,22 @@ class LibraryItemPanel(wx.Panel):
                  if  dest_dir is not None:
                      # Start torrent again
                      if DEBUG:
-                         print >>sys.stderr,'lip: starting torrent %s with data in dir %s' % (repr(self.data['content_name']), dest_dir)
+                         print >>sys.stderr,'lip: starting torrent %s with data in dir %s' % (repr(self.data['name']), dest_dir)
                      self.guiUtility.standardDetails.download(self.data, dest = dest_dir, force = True)
                  
                  elif DEBUG:
-                     print >>sys.stderr,'lip: Could not make abctorrent active, no destdir in dictionary: %s' % repr(self.data.get('content_name'))
+                     print >>sys.stderr,'lip: Could not make abctorrent active, no destdir in dictionary: %s' % repr(self.data.get('name'))
             elif name == 'libraryPlay':
                 # Todo: make non-abctorrent files playable.
                 dest_dir = self.data.get('destdir')
                 if  dest_dir is not None:
                     # Start torrent again
                     if DEBUG:
-                        print >>sys.stderr,'lip: starting torrent %s with data in dir %s' % (repr(self.data['content_name']), dest_dir)
+                        print >>sys.stderr,'lip: starting torrent %s with data in dir %s' % (repr(self.data['name']), dest_dir)
                     self.guiUtility.standardDetails.download(self.data, dest = dest_dir, force = True)
                     
                 elif DEBUG:
-                    print >>sys.stderr,'lip: Could not make abctorrent active, no destdir in dictionary: %s' % repr(self.data.get('content_name'))
+                    print >>sys.stderr,'lip: Could not make abctorrent active, no destdir in dictionary: %s' % repr(self.data.get('name'))
                 
         if name == 'deleteLibraryitem':
             # delete works for active and inactive torrents

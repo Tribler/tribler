@@ -3,8 +3,10 @@ import wx.xrc as xrc
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from traceback import print_exc,print_stack
 from Tribler.Main.vwxGUI.torrentManager import TorrentDataManager
+from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 from Tribler.Main.vwxGUI.SearchDetails import SearchDetailsPanel
 from Tribler.Main.vwxGUI.LoadingDetails import LoadingDetailsPanel
+from Tribler.Main.vwxGUI.standardGrid import GridState
 from Tribler.Core.Utilities.utilities import sort_dictlist
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.Utility.constants import *
@@ -49,6 +51,7 @@ class standardOverview(wx.Panel):
         self.utility = self.guiUtility.utility
         self.categorykey = None
         self.data_manager = TorrentDataManager.getInstance(self.utility)
+        self.torrent_db = TorrentDBHandler.getInstance()
         self.peer_manager = PeerDataManager.getInstance(self.utility) #the updateFunc is called after the data is updated in the peer manager so that the GUI has the newest information
 
         def filterFuncFriend(peer_data):
@@ -75,11 +78,11 @@ class standardOverview(wx.Panel):
                     
                     #print >> sys.stderr, '[StartUpDebug]----------- thread data loading started'
                     #first load torrent data from database
-                    self.owner.data_manager.loadData()
+                    #self.owner.data_manager.loadData()
                     self.refreshView()
                     #print >> sys.stderr, '[StartUpDebug]----------- thread torrent data loaded'
                             
-                    self.owner.peer_manager.loadData()
+                    #self.owner.peer_manager.loadData()
                             
     #                self.owner.sortData(self.owner.prepareData(buddycast_peer_list))
                     #this initialization can be done in another place also
@@ -104,7 +107,7 @@ class standardOverview(wx.Panel):
                     
                 except:
                     print_exc()
-                wx.CallAfter(self.owner.OnLoadingDone)
+                #wx.CallAfter(self.owner.OnLoadingDone)
 
             def refreshView(self):
                 wx.CallAfter(self.owner.filterChanged)
@@ -142,7 +145,7 @@ class standardOverview(wx.Panel):
         # switch to another view, 
         # mode is one of the [filesMode, personsMode, friendsMode, profileMode, libraryMode, subscriptionsMode]
         if self.mode != mode:
-            self.stopWeb2Search()
+            #self.stopWeb2Search()
             self.mode = mode
             self.refreshMode()
             
@@ -261,7 +264,7 @@ class standardOverview(wx.Panel):
                     print >>sys.stderr,"standardOverview: refreshData: refreshing",len(data)
             
             # load and show the data in the grid
-            grid.setData(self.data[self.mode].get('data'), resetPages = False)
+            grid.setData(self.data[self.mode].get('data'))
 
         
     def updateSelection(self):
@@ -294,29 +297,32 @@ class standardOverview(wx.Panel):
         if DEBUG:
             print >>sys.stderr,"standardOverview: filterChanged",filterState,setgui,self.mode#,self.data[self.mode]
         
+        assert filterState is None or 'GridState' in str(type(filterState)), 'filterState is %s' % str(filterState)
         oldFilterState = self.data[self.mode].get('filterState')
         
         if DEBUG:
             print >>sys.stderr,"standardOverview: filterChanged: from",oldFilterState,"to",filterState
         
-        if filterState is None or len(filterState) == 0:
+        if filterState is None :
             filterState = oldFilterState
         
-        if filterState and oldFilterState:
-            for i in xrange(len(filterState)):
-                if filterState[i] == None:
-                    filterState[i] = oldFilterState[i]
-                        
+#        if filterState and oldFilterState:
+#            for i in xrange(len(filterState)):
+#                if filterState[i] == None:
+#                    filterState[i] = oldFilterState[i]
+#                        
         if filterState is not None:
-                    
-            if self.mode == 'filesMode':
-                self.loadTorrentData(filterState[0], filterState[1])
+            
+            if self.mode in ('filesMode', 'personsMode', 'libraryMode'):
+                #self.loadTorrentData(filterState[0], filterState[1])
+                self.data[self.mode]['grid'].gridManager.set_state(filterState)
                 
-            elif self.mode == 'personsMode':
-                self.loadPersonsData(filterState[0], filterState[1])
+            #elif self.mode == 'personsMode':
+                #self.loadPersonsData(filterState[0], filterState[1])
             
             elif self.mode == 'libraryMode':
                 self.loadLibraryData(filterState[0], filterState[1])
+                
             elif self.mode == 'friendsMode':
                 self.loadPersonsData(filterState[0], filterState[1])
                 
@@ -331,16 +337,16 @@ class standardOverview(wx.Panel):
             print >>sys.stderr,"standardOverview: before refreshData"
 
         
-        if setgui:
-            filter = self.data[self.mode]['filter']
-            if filter is not None:
-                filter.setSelectionToFilter(filterState)
+#        if setgui:
+#            filter = self.data[self.mode]['filter']
+#            if filter is not None:
+#                filter.setSelectionToFilter(filterState)
         
-        self.refreshData()
+        #self.refreshData()
         self.data[self.mode]['filterState'] = filterState
                 
             
-    def loadTorrentData(self, cat, sort):
+    def loadTorrentData(self, cat, sort, range = None):
         # cat can be 'all', 'friends', 'search', 'search_friends', None, self.data[self.mode].get('filterState')[0]
         # sort can be 'seeder',..
         if DEBUG:
@@ -351,29 +357,16 @@ class standardOverview(wx.Panel):
             self.data_manager.unregisterAll(self.updateFunTorrents)
             
             # Register for new one    
-            
-            self.data_manager.register(self.updateFunTorrents, cat, self.mode == 'libraryMode')
+            library = self.mode == 'libraryMode'
+            self.data_manager.register(self.updateFunTorrents, cat, library)
             self.type = sort
             
-            torrentData = self.data_manager.getCategory(cat, self.mode)
+            torrentData = self.torrent_db.getTorrents(category_name = cat, library = library, range = range)
 
             if DEBUG:
                 if type(torrentData)  == list:
                     print >>sys.stderr,"standardOverview: getCategory returned",len(torrentData)
             
-            # Jelle: This is now done in data_manager.getCategory()
-#            if type(data) == list:
-#                self.filtered = []
-#                for torrent in data:
-#                    if torrent.get('status') == 'good' or torrent.get('myDownloadHistory'):
-#                        
-#                        if DEBUG:
-#                            print >>sys.stderr,"standardOverview: prefilter adding",`torrent['content_name']`
-#
-#                        self.filtered.append(torrent)
-#            elif data.isDod():
-#                data.addFilter(lambda x:x.get('status') == 'good' or x.get('myDownloadHistory'))
-
         if type(torrentData) == list:
             if type(sort) == str:
                 torrentData = sort_dictlist(torrentData, sort, 'decrease')
@@ -622,7 +615,7 @@ class standardOverview(wx.Panel):
     def getSorting(self):
         fs = self.data[self.mode].get('filterState')
         if fs:
-            return fs[1]
+            return fs.sort
         else:
             return None
     

@@ -9,6 +9,8 @@ from Tribler.Main.vwxGUI.SubscriptionsItemPanel import SubscriptionsItemPanel
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Core.CacheDB.CacheDBHandler import SuperPeerDBHandler
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
+from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler, PeerDBHandler
+from Tribler.Core.simpledefs import *
 
 from Tribler.Core.Utilities.utilities import *
 from traceback import print_exc,print_stack
@@ -16,9 +18,83 @@ from traceback import print_exc,print_stack
 import wx.xrc as xrc
 import web2
 
-DEBUG = True
-DEBUG_DOD = False
+DEBUG = False
+
+class GridState(object):
+    def __init__(self, db, category, sort, reverse = False, library = False):
+        self.db = db        # Constant from simpledefs, f.i. NTFY_TORRENTS
+        self.category = category
+        self.sort = sort
+        self.reverse = reverse
+        self.library = library
+    def __str__(self):
+        return '(db: %s, cat: %s, sort: %s, rev: %s, lib: %s)' % (self.db,self.category,self.sort,self.reverse,self.library)
         
+    def copy(self):
+        return GridState(self.db, self.category, self.sort, self.reverse, self.library)
+    
+class GridManager(object):
+    """ Grid manager handles:
+         - handling of notifies in grid
+         - retrieval of data from db on paging events
+         - retrieval of data from db on state changes from GUI
+        
+    """
+    def __init__(self, grid):
+        self.torrent_db_handler = TorrentDBHandler.getInstance()
+        self.peer_db_handler = PeerDBHandler.getInstance()
+        self.total_items = 0
+        self.page = 0
+        self.grid = grid
+        self.data = []
+        
+    def set_state(self, state, reset_page = False):
+        self.state = state
+        if reset_page:
+            page = 0
+        self.refresh()
+        
+    def refresh(self):
+        """
+        Refresh the data of the grid
+        """
+        if not self.grid.initReady:
+            wx.CallAfter(self.refresh)
+        self.data, self.total_items = self._getData(self.state)
+        print >> sys.stderr, 'Data length: %d/%d' % (len(self.data), self.total_items)
+        self.grid.setData(self.data)
+        #if DEBUG:
+        print >> sys.stderr, 'GridManager: state: %s gave %d results' % (self.state, len(self.data))
+        
+    def set_page(self, page):
+        if page != self.page:
+            self.page = page
+            self.refresh()
+
+    def get_total_items(self):
+        return self.total_items
+    
+    def _getData(self, state):
+        range = (self.page * self.grid.items, (self.page+1)*self.grid.items)
+        if state.db in ('filesMode', 'libraryMode'):
+            total_items = self.torrent_db_handler.getNumberTorrents(category_name = state.category, library = (state.db == 'libraryMode'))
+            data = self.torrent_db_handler.getTorrents(category_name = state.category, 
+                                                       sort = state.sort,
+                                                       range = range,
+                                                       library = (state.db == 'libraryMode'),
+                                                       reverse = state.reverse)
+            
+        elif state.db == 'personsMode':
+            total_items = self.peer_db_handler.getNumberPeers(category_name = state.category)
+            data = self.peer_db_handler.getGUIPeers(category_name = state.category, 
+                                                    sort = state.sort,
+                                                    range = range)
+            
+        else:
+            raise Exception('Unknown data db in GridManager: %s' % state.db)
+    
+        return data, total_items
+    
 class standardGrid(wx.Panel):
     """
     Panel which shows a grid with static number of columns and dynamic number
@@ -27,18 +103,17 @@ class standardGrid(wx.Panel):
     def __init__(self, cols, subPanelHeight, orientation='horizontal', viewmode = 'thumbnails'):
         self.initReady = False
         self.data = None
-        self.dod = None
         self.detailPanel = None
         self.orientation = orientation
         self.subPanelClass = None
         self.items = 0 #number of items that are currently visible 
-        self.currentData = 0 #current starting index in the list for visible items
         self.currentRows = 0
         self.sizeMode = 'auto'
         self.columnHeader = None
         self.topMargin = 5
         self.panels = []
         self.viewmode = viewmode
+        self.gridManager = GridManager(self)
         pre = wx.PrePanel()
         # the Create step is done by XRC.
         self.PostCreate(pre)
@@ -162,23 +237,23 @@ class standardGrid(wx.Panel):
                 
         
     def refreshData(self):
-        self.setData(self.data, resetPages = False)
+        self.setData(self.data)
         
 
     def getData(self):
         return self.data
 
 
-    def updateDod(self, item=None):
-        if DEBUG or DEBUG_DOD:
-            print >>sys.stderr,'standardGrid: WEB2.0 -> updateDod'
-        #self.data = self.dod.getData()
-        if item:
-            self.data.append(item)
-            wx.CallAfter(self.refreshData)
+#    def updateDod(self, item=None):
+#        if DEBUG or DEBUG_DOD:
+#            print >>sys.stderr,'standardGrid: WEB2.0 -> updateDod'
+#        #self.data = self.dod.getData()
+#        if item:
+#            self.data.append(item)
+#            wx.CallAfter(self.refreshData)
         
     
-    def setData(self, dataList, resetPages = True):
+    def setData(self, dataList):
         
         #if dataList is None:
             #datalength = 0
@@ -189,27 +264,14 @@ class standardGrid(wx.Panel):
             print 'grid.setData: list'
             self.data = dataList
             
-        elif dataList.isDod():
-            #print 'grid.setData: dod'
-            if self.dod != dataList:
-                self.stopWeb2Search()
-
-            self.data = dataList.getData()
-            self.dod = dataList
-            self.dod.register(self.updateDod)
-            self.moreData()
-
-        
+                
         if not self.initReady:
             return
                 
-        if resetPages:
-            self.currentData = 0
-            if self.getStandardPager():
-                self.standardPager.currentPage = 0
+       
         self.refreshPanels()
         if DEBUG:
-            print >>sys.stderr,'standardGrid: <mluc>start pos:',self.currentData,'columns:',self.cols,'rows:',self.currentRows,'items:',self.items
+            print >>sys.stderr,'standardGrid: <mluc>start columns:',self.cols,'rows:',self.currentRows,'items:',self.items
 
         self.Layout()
         
@@ -254,10 +316,9 @@ class standardGrid(wx.Panel):
         if self.data is None:
             self.clearAllData()
         else:
-            for i in range(0, self.items):
-                dataIndex = i+ self.currentData
-                if dataIndex < len(self.data):
-                    self.setDataOfPanel(i, self.data[dataIndex])
+            for i in xrange(0, self.items):
+                if i < len(self.data):
+                    self.setDataOfPanel(i, self.data[i])
                 else:
                     self.setDataOfPanel(i, None)
         
@@ -267,19 +328,8 @@ class standardGrid(wx.Panel):
         self.items = self.cols * rows
         self.refreshPanels()
 
-        self.moreData()
-        
-    def setPageNumber(self, page):
-        if not self.data:
-            return
-        old = self.currentData
-        if self.items * page < len(self.data) and page>=0:
-            self.currentData = self.items*page
-        if old != self.currentData:
-            self.refreshPanels()
-
-        self.moreData()
-        
+       
+            
     def getStandardPager(self):
         try:
             if self.standardPager:
@@ -296,8 +346,8 @@ class standardGrid(wx.Panel):
         raise NotImplementedError('Method getSubPanel should be subclassed')
 
     def setDataOfPanel(self, panelNumber, data):
-        if DEBUG:
-            print 'Set data of panel %d with data: %s' % (panelNumber, data)
+        #if DEBUG:
+        #    print >> sys.stderr, 'Set data of panel %d with data: %s' % (panelNumber, data)
         try:
             if self.orientation == 'vertical':
                 hSizer = self.vSizer.GetItem(panelNumber%self.currentRows+1).GetSizer()
@@ -454,21 +504,21 @@ class standardGrid(wx.Panel):
             pass
         return self.detailPanel is not None
 
-    def moreData(self):
-
-        if self.dod:
-            needed = self.items * 3 + self.currentData # 3 -> load 2 pages in advance
-
-            if needed > 0:
-                if DEBUG:
-                    print >>sys.stderr,"standardGrid: Web2.0: fetching total of", needed,"items"
-                self.dod.request(needed)
+#    def moreData(self):
+#
+#        if self.dod:
+#            needed = self.items * 3 # 3 -> load 2 pages in advance
+#
+#            if needed > 0:
+#                if DEBUG:
+#                    print >>sys.stderr,"standardGrid: Web2.0: fetching total of", needed,"items"
+#                self.dod.request(needed)
     
-    def __del__(self):
-        if self.dod:
-            self.dod.unregister(self.updateDod)
-            self.dod.stop()
-            
+#    def __del__(self):
+#        if self.dod:
+#            self.dod.unregister(self.updateDod)
+#            self.dod.stop()
+#            
     def keyTypedOnGridItem(self, event):
         obj = event.GetEventObject()
         if DEBUG:
@@ -562,10 +612,10 @@ class standardGrid(wx.Panel):
             self.columnHeaderSizer.Layout()
         self.vSizer.Layout()
     
-    def stopWeb2Search(self):
-        if self.dod:
-            self.dod.unregister(self.updateDod)
-            self.dod.stop()
+#    def stopWeb2Search(self):
+#        if self.dod:
+#            self.dod.unregister(self.updateDod)
+#            self.dod.stop()
             
 class filesGrid(standardGrid):
     def __init__(self):

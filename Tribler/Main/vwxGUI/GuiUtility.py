@@ -25,13 +25,12 @@ DEBUG = False
 
 class GUIUtility:
     __single = None
-
+    
     def __init__(self, utility = None, params = None):
         if GUIUtility.__single:
             raise RuntimeError, "GUIUtility is singleton"
         GUIUtility.__single = self 
         # do other init
-        
         self.xrcResource = None
         self.utility = utility
         self.vwxGUI_path = os.path.join(utility.abcpath, 'Tribler', 'Main', 'vwxGUI')
@@ -182,13 +181,14 @@ class GUIUtility:
             print >>sys.stderr,"GUIUtil: MainButtonClicked: unhandled name",name
             
     def standardFilesOverview(self ):        
+        from Tribler.Main.vwxGUI.standardGrid import GridState
         self.standardOverview.setMode('filesMode')
-        filters = self.standardOverview.getFilter().getState()
+        filters = None #self.standardOverview.getFilter().getState()
         #if filters:
         #    filters[1] = 'seeder'
         if not filters:
-            filters = ['all', 'seeder']
-            self.standardOverview.filterChanged(filters,setgui=True)
+            gridState = GridState('filesMode', 'all', 'num_seeders')
+            self.standardOverview.filterChanged(gridState,setgui=True)
         try:
             if self.standardDetails:
                 self.standardDetails.setMode('filesMode', None)
@@ -196,9 +196,11 @@ class GUIUtility:
             pass
         
     def standardPersonsOverview(self):
+        from Tribler.Main.vwxGUI.standardGrid import GridState
         self.standardOverview.setMode('personsMode')
         if not self.standardOverview.getSorting():
-            self.standardOverview.filterChanged(('all', 'content_name'))
+            gridState = GridState('personsMode', 'all', 'name')
+            self.standardOverview.filterChanged(gridState)
         self.standardDetails.setMode('personsMode')
         #self.standardOverview.clearSearch()
         #self.standardOverview.toggleSearchDetailsPanel(False)

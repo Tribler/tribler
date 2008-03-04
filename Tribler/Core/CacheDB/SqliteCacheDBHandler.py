@@ -459,8 +459,18 @@ class PeerDBHandler(BasicDBHandler):
 #        if updateFlag:
 #            self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid, 'icon')
 #    
-    def loadPeers(self):
+    def getNumberPeers(self, category_name = 'all'):
+        table = 'Peer'
+        value = 'count(*)'
+        where = '(buddycast_times>0 or friend=1)'
+        if category_name == 'friend':
+            where += ' and friend=1'
+        
+        return self._db.getOne(table, value, where)
+    
+    def getGUIPeers(self, category_name = 'all', range = None, sort = None, reverse = False):
         # load peers for GUI
+        print >> sys.stderr, 'getGUIPeers(%s, %s, %s, %s)' % (category_name, range, sort, reverse)
         """
         old keys: 'content_name', 'simTop', 'name', 'last_connected', 'ip', 'port', 
                   'similarity', 'ntorrents', 'nprefs', 'permid', 
@@ -477,15 +487,31 @@ class PeerDBHandler(BasicDBHandler):
         key_name = ('permid', 'name', 'ip', 'port', 'similarity', 'friend',
                       'npeers', 'ntorrents', 'nprefs', 
                       'connected_times', 'buddycast_times', 'last_connected')
-        where = 'buddycast_times>0 or friend=1'
-        res_list = self.getAll(value_name, where)
+        where = '(buddycast_times>0 or friend=1) '
+        if category_name == 'friend':
+            where += 'and friend=1'
+        if range:
+            offset= range[0]
+            limit = range[1] - range[0]
+        else:
+            limit = offset = None
+        if sort:
+            desc = (not reverse) and 'desc' or ''
+            if sort in ('name'):
+                order_by = ' lower(%s) %s' % (sort, desc)
+            else:
+                order_by = ' %s %s' % (sort, desc)
+        else:
+            order_by = None
+            
+        res_list = self.getAll(value_name, where, offset= offset, limit=limit, order_by=order_by)
         peer_list = []
         for item in res_list:
             peer = dict(zip(key_name, item))
             peer['content_name'] = dunno2unicode(peer['name'])
             peer['permid'] = str2bin(peer['permid'])
             peer_list.append(peer)
-        # peer_list consumes about 1.5M for 1400 torrents, and this function costs about 0.015 second
+        # peer_list consumes about 1.5M for 1400 peers, and this function costs about 0.015 second
         
         return  peer_list
 
@@ -617,7 +643,7 @@ class TorrentDBHandler(BasicDBHandler):
         # 2 - dead
         
         self.category_table = self._db.getTorrentCategoryTable()
-        self.category_table['Unknown'] = 0 
+        self.category_table['unknown'] = 0 
         self.id2category = dict([(x,y) for (y,x) in self.category_table.items()])
         # 1 - Video
         # 2 - VideoClips
@@ -1006,6 +1032,7 @@ class TorrentDBHandler(BasicDBHandler):
 #===============================================================================
      
     def getAllTorrents(self):
+        # Return a list of infohashes
         sql = 'select infohash from Torrent,Infohash where Torrent.torrent_id=Infohash.torrent_id and status_id>=0'
         res = self._db.execute(sql)
         return [str2bin(p[0]) for p in res]
@@ -1017,42 +1044,71 @@ class TorrentDBHandler(BasicDBHandler):
 #        return [str2bin(p[0]) for p in res]
 #    
 
-
-    def loadTorrents(self, all=True):
+    def getNumberTorrents(self, category_name = 'all', library = False):
+        table = 'Torrent'
+        value = 'count(*)'
+        where = 'status_id=%d ' % self.status_table['good']
+        if category_name != 'all':
+            where += ' and category_id= %d' % self.category_table.get(category_name.lower(), -1) # unkown category_name returns no torrents
+        if library:
+            where += ' and Torrent.torrent_id in (select torrent_id from MyPreference)'
         
-        """ get torrents on disk but not in my pref for GUI
-           old keys: 'category', 'status', 'content_name', 'date', 'num_files', 
-           'leecher', 'seeder', 'last_check_time'*, 'length', 'ignore_number', 
-           'secret', 'tracker', 'swarmsize', 'inserttime', 'source',
-           'relevance', 'infohash', 'retry_number'
+        return self._db.getOne(table, value, where)
+        
+    def getTorrents(self, category_name = 'all', range = None, library = False, sort = None, reverse = False):
+        
         """
+        get Torrents of some category and with alive status.
+        
+        @return Returns a list of dicts with keys: 
+            torrent_id, infohash, name, category, status, creation_date, num_files, num_leechers, num_seeders,
+            length, secret, insert_time, source, torrent_filename, relevance, 
+            (if in library: myDownloadHistory, download_started, progress, dest_dir)
+        
+        """
+        
+        #print >> sys.stderr, 'getTorrents(%s, %s, %s, %s, %s)' % (category_name, range, library, sort, reverse)
         s = time()
-        value_name = ('Torrent.torrent_id', 'category_id', 'status_id', 'name', 'creation_date', 'num_files',
-                      'num_leechers', 'num_seeders',   'length', 
+        value_name = ['Torrent.torrent_id', 'category_id', 'status_id', 'name', 'creation_date', 'num_files',
+                      'num_leechers', 'num_seeders', 'length', 
                       'secret', 'insert_time', 'source_id', 'torrent_file_name',
-                      'relevance', 'infohash')
-        key_name = ('torrent_id', 'category', 'status', 'name', 'date', 'num_files', 
-                   'leecher', 'seeder',  'length', 
-                   'secret', 'inserttime', 'source', 'torrent_name',
-                   'relevance', 'infohash')
+                      'relevance', 'infohash']
         
         table_name = ('Torrent', 'Infohash')
-        where = 'Torrent.torrent_id = Infohash.torrent_id'
-        if not all:
-            where += ' and Torrent.torrent_id not in (select torrent_id from MyPreference)'
-        res_list = self._db.getAll(table_name, value_name, where)
+        where = 'Torrent.torrent_id = Infohash.torrent_id and status_id=%d ' % self.status_table['good']
+        if category_name != 'all':
+            where += ' and category_id= %d' % self.category_table.get(category_name.lower(), -1) # unkown category_name returns no torrents
+        if library:
+            where += ' and Torrent.torrent_id in (select torrent_id from MyPreference)'
+        if range:
+            offset= range[0]
+            limit = range[1] - range[0]
+        else:
+            limit = offset = None
+        if sort:
+            desc = (not reverse) and 'desc' or ''
+            if sort in ('name'):
+                order_by = ' lower(%s) %s' % (sort, desc)
+            else:
+                order_by = ' %s %s' % (sort, desc)
+        else:
+            order_by = None
+        res_list = self._db.getAll(table_name, value_name, where, limit=limit, offset=offset, order_by=order_by)
         
-        if all:
-            mypref_stats = self.mypref_db.getMyPrefStats()
+        mypref_stats = self.mypref_db.getMyPrefStats()
         
         torrent_list = []
         for item in res_list:
-            torrent = dict(zip(key_name, item))
-            torrent['source'] = self.id2src[torrent['source']]
-            torrent['category'] = [self.id2category[torrent['category']]]
-            torrent['status'] = self.id2status[torrent['status']]
+            value_name[0] = 'torrent_id'
+            torrent = dict(zip(value_name, item))
+            torrent['source'] = self.id2src[torrent['source_id']]
+            torrent['category'] = [self.id2category[torrent['category_id']]]
+            torrent['status'] = self.id2status[torrent['status_id']]
             torrent['infohash'] = str2bin(torrent['infohash'])
-            torrent['swarmsize'] = torrent['leecher'] + torrent['seeder'] 
+            #torrent['num_swarm'] = torrent['num_seeders'] + torrent['num_leechers'] 
+            del torrent['source_id']
+            del torrent['category_id']
+            del torrent['status_id']
             torrent_id = torrent['torrent_id']
             if all and torrent_id in mypref_stats:
                 # add extra info for torrent in mypref

@@ -209,13 +209,13 @@ class FilesItemPanel(wx.Panel):
             #window.Bind(wx.EVT_RIGHT_DOWN, self.rightMouseButton)  
             
     def getColumns(self):
-        return [{'sort':'content_name', 'reverse':True, 'title':'name', 'weight':1,'tip':self.utility.lang.get('C_filename')},
+        return [{'sort':'name', 'reverse':True, 'title':'name', 'weight':1,'tip':self.utility.lang.get('C_filename')},
                 {'sort':'length', 'title':'size', 'width':75, 'tip':self.utility.lang.get('C_filesize')},
-                {'sort':'date', 'title':'creation date','width':110, 'tip':self.utility.lang.get('C_creationdate')},
-                {'sort':'seeder', 'pic':'upSmall','title':'se', 'width':47, 'tip':self.utility.lang.get('C_uploaders')},
-                {'sort':'leecher', 'pic':'downSmall','title':'le', 'width':47, 'tip':self.utility.lang.get('C_downloaders')},
+                {'sort':'creation_date', 'title':'creation date','width':110, 'tip':self.utility.lang.get('C_creationdate')},
+                {'sort':'num_seeders', 'pic':'upSmall','title':'se', 'width':47, 'tip':self.utility.lang.get('C_uploaders')},
+                {'sort':'num_leechers', 'pic':'downSmall','title':'le', 'width':47, 'tip':self.utility.lang.get('C_downloaders')},
                 {'sort':'relevance', 'pic':'heartSmall', 'width':60, 'tip':self.utility.lang.get('C_recommfiles')},
-                {'sort':'source', 'title':'-', 'width':26, 'tip':self.utility.lang.get('C_source')}
+                {'sort':'source_id', 'title':'-', 'width':26, 'tip':self.utility.lang.get('C_source')}
                 ]
 
                  
@@ -226,7 +226,7 @@ class FilesItemPanel(wx.Panel):
             if torrent is None:
                 stat = 'None'
             else:
-                stat = `torrent['content_name']`
+                stat = `torrent['name']`
             print >>sys.stderr,"fip: setData:",stat
         """
         
@@ -236,8 +236,8 @@ class FilesItemPanel(wx.Panel):
         # set bitmap, rating, title
         if self.datacopy and torrent and self.datacopy['infohash'] == torrent['infohash']:
             # Do not update torrents that have no new seeders/leechers/size
-            if (self.datacopy['seeder'] == torrent['seeder'] and
-                self.datacopy['leecher'] == torrent['leecher'] and
+            if (self.datacopy['num_seeders'] == torrent['num_seeders'] and
+                self.datacopy['num_leechers'] == torrent['num_leechers'] and
                 self.datacopy['length'] == torrent['length'] and
                 self.datacopy.get('myDownloadHistory') == torrent.get('myDownloadHistory')):
                 return
@@ -249,8 +249,8 @@ class FilesItemPanel(wx.Panel):
             # deepcopy no longer works with 'ThumnailBitmap' on board
             self.datacopy = {}
             self.datacopy['infohash'] = torrent['infohash']
-            self.datacopy['seeder'] = torrent['seeder']
-            self.datacopy['leecher'] = torrent['leecher']
+            self.datacopy['num_seeders'] = torrent['num_seeders']
+            self.datacopy['num_leechers'] = torrent['num_leechers']
             self.datacopy['length'] = torrent.get('length')
             self.datacopy['myDownloadHistory'] = torrent.get('myDownloadHistory')
             #web2.0 item elements
@@ -261,12 +261,12 @@ class FilesItemPanel(wx.Panel):
             
         self.thumb.setTorrent(torrent)
 
-        if torrent.get('content_name'):
-            title = torrent['content_name'][:self.titleLength]
+        if torrent.get('name'):
+            title = torrent['name'][:self.titleLength]
             self.title.Enable(True)
             self.title.SetLabel(title)
             self.title.Wrap(self.title.GetSize()[0])
-            self.title.SetToolTipString(torrent['content_name'])
+            self.title.SetToolTipString(torrent['name'])
             self.setSourceIcon(torrent)
             if self.listItem:
                 self.fileSize.Enable(True)
@@ -281,9 +281,9 @@ class FilesItemPanel(wx.Panel):
                     self.creationDate.SetLabel('')
                     
                 self.creationDate.Enable(True)
-                if torrent['seeder'] >= 0:
-                    self.seedersNumber.SetLabel('%d' % torrent['seeder'])
-                    self.leechersNumber.SetLabel('%d' % torrent['leecher'])
+                if torrent['num_seeders'] >= 0:
+                    self.seedersNumber.SetLabel('%d' % torrent['num_seeders'])
+                    self.leechersNumber.SetLabel('%d' % torrent['num_leechers'])
                 else:
                     self.seedersNumber.SetLabel('?')
                     self.leechersNumber.SetLabel('?')
@@ -544,7 +544,7 @@ class ThumbnailViewer(wx.Panel):
                             
     def setCategoryIcon(self, torrent):
         
-        #print >>sys.stderr,"fip: ",`torrent['content_name']`,"has cat",torrent.get('category')
+        #print >>sys.stderr,"fip: ",`torrent['name']`,"has cat",torrent.get('category')
         self.categoryIcon = self.iconsManager.getCategoryIcon(self.mode, torrent.get('category'), thumbtype='icon', web2 = torrent.get('web2'))
     
     def setSourceIcon(self, si):
@@ -594,7 +594,7 @@ class ThumbnailViewer(wx.Panel):
         if not bmp:
             bmp = self.iconsManager.getCategoryIcon(self.mode, torrent.get('category'), thumbtype=thumbtype, web2 = torrent.get('web2'))
         
-        assert bmp, 'No bitmap found for %s' % `torrent['content_name']`
+        assert bmp, 'No bitmap found for %s' % `torrent['name']`
         self.setBitmap(bmp)
         width, height = self.GetSize()
         d = 1
@@ -673,7 +673,7 @@ class ThumbnailViewer(wx.Panel):
         # This item may be displaying another torrent right now, only show the icon
         # when it's still the same torrent
         
-        #print >>sys.stderr,"fip: meta_gui_cb: old torrent",`torrent['content_name']`,"new torrent",`self.torrent['content_name']`
+        #print >>sys.stderr,"fip: meta_gui_cb: old torrent",`torrent['name']`,"new torrent",`self.torrent['name']`
         #print >>sys.stderr,"fip: meta_gui_cb: old torrent",`torrent['infohash']`,"new torrent",`self.torrent['infohash']`
         
         if torrent['infohash'] == self.torrent['infohash']:

@@ -497,6 +497,7 @@ class SQLiteCacheDB:
                 return cur.execute(sql, args)
         except sqlite.OperationalError, msg:
             print >> sys.stderr, 'sqldb: execute: ', msg, threading.currentThread().getName()
+            raise
 
     def executemany(self, sql, args):
         cur = SQLiteCacheDB.getCursor()
@@ -664,7 +665,7 @@ class SQLiteCacheDB:
             sql += ' offset %d'%offset
 
         try:
-            return self.fetchall(sql, arg)
+            return self.fetchall(sql, arg) or []
         except Exception, msg:
             print >> sys.stderr, "sqldb: Wrong getAll sql statement:", sql
             raise Exception, msg

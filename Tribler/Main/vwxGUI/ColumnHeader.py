@@ -184,10 +184,15 @@ class ColumnHeaderBar(wx.Panel):
             if header != column:
                 header.setOrdering(None)
         if ordering == 'up' and not column.reverse or ordering == 'down' and column.reverse:
-            self.sorting = (column.sorting, 'increase')
+            
+            reverse = True
         else:
-            self.sorting = (column.sorting, 'decrease')
-        self.guiUtility.standardOverview.filterChanged([None, self.sorting])
+            reverse = False
+        oldfilter = self.guiUtility.standardOverview.getFilter().getState()
+        self.sorting = oldfilter.copy()
+        self.sorting.sort = column.sorting
+        self.sorting.reverse = reverse
+        self.guiUtility.standardOverview.filterChanged(self.sorting)
         
     def getSorting(self):
         return self.sorting

@@ -41,13 +41,13 @@ DEBUG_RANKING = False
 #     torrent[key_length] = 481
 # In other cases you can just use 'length'.
 key_length = 'length'
-key_content_name = 'content_name'
+key_content_name = 'name'
 key_torrent_name = 'torrent_name'
 key_num_files = 'num_files'
 key_date = 'date'
 key_tracker = 'tracker'
-key_leecher = 'leecher'
-key_seeder = 'seeder'
+key_leecher = 'num_leechers'
+key_seeder = 'num_seeders'
 key_swarmsize ='swarmsize'
 key_relevance = 'relevance'
 key_infohash = 'infohash'
@@ -107,7 +107,7 @@ class TorrentDataManager:
         self.owner_db = None#OwnerDBHandler.getInstance()
         self.category = Category.getInstance(self.utility.session.get_install_dir(), self.utility.session.get_state_dir())
         
-    def loadData(self):
+    def ___loadData(self):
         """ Load torrent data to cache for GUI. Called by DataLoadingThread (see standardOverview) """
         try:
             self.data = self.torrent_db.loadTorrents()#(light=True,myprefs=True)
@@ -121,7 +121,7 @@ class TorrentDataManager:
             print_exc()
             raise Exception('Could not load torrent data !!')
 
-    def prepareData(self,data,rank=True):
+    def ___prepareData(self,data,rank=True):
         
         count = 0
         for torrent in data:      
@@ -129,7 +129,7 @@ class TorrentDataManager:
             torrent = self.prepareItem(torrent)
             self.info_dict[torrent["infohash"]] = torrent
             # save dict for similar titles search
-            beginTitle = torrent['content_name'][:self.titleIndexLength].lower()
+            beginTitle = torrent['name'][:self.titleIndexLength].lower()
             if self.title_dict.has_key(beginTitle):
                 self.title_dict[beginTitle].append(torrent)
             else:
@@ -171,7 +171,7 @@ class TorrentDataManager:
 #        i = 0
 #        while i < len(self.complete_data):
 #            if self.complete_data[i]['infohash'] in infohashes:
-#                print >>sys.stderr,"torrentManager: mergeData: Removing",`self.complete_data[i]['content_name']`
+#                print >>sys.stderr,"torrentManager: mergeData: Removing",`self.complete_data[i]['name']`
 #                del self.complete_data[i]
 #            else:
 #                i += 1
@@ -198,7 +198,9 @@ class TorrentDataManager:
                     count = count + 1
         return count
         
-    def getCategory(self, categorykey, mode):
+   
+    
+    def ___getCategory(self, categorykey, mode):
         # categorykey can be 'all', 'Video', 'Document', ...
         # mode is 'filesMode', 'libraryMode'
         # Jie TODO:
@@ -485,9 +487,9 @@ class TorrentDataManager:
 #        torrent[key_num_files] = int(info.get('num_files', 0))
 #        torrent[key_date] = info.get('creation date', 0) 
 #        torrent[key_tracker] = info.get('announce', '')
-#        torrent[key_leecher] = torrent.get('leecher', -1)
-#        torrent[key_seeder] = torrent.get('seeder', -1)
-        torrent[key_swarmsize] = torrent['seeder'] + torrent['leecher']
+#        torrent[key_leecher] = torrent.get('num_leechers', -1)
+#        torrent[key_seeder] = torrent.get('num_seeders', -1)
+        torrent[key_swarmsize] = torrent['num_seeders'] + torrent['num_leechers']
 
         # No deletions here, that slows down enormously
         
@@ -511,7 +513,7 @@ class TorrentDataManager:
         "Update the ranking list, so that it always shows the top20 most similar torrents"
         
         if DEBUG_RANKING:
-            print >>sys.stderr,'torrentManager: UpdateRankList: %s, for: %s' % (operate, repr(torrent.get('content_name')))
+            print >>sys.stderr,'torrentManager: UpdateRankList: %s, for: %s' % (operate, repr(torrent.get('name')))
         
         sim = torrent.get('relevance')
         good = sim > 0 and torrent.get('status') == 'good' and not torrent.get('myDownloadHistory', False)
@@ -576,7 +578,7 @@ class TorrentDataManager:
         if self.info_dict.has_key(infohash):
             torrent = self.info_dict[infohash]
             if DEBUG_RANKING:
-                print >>sys.stderr,'torrentManager: Del rank %d of %s' % (torrent.get('simRank', -1), repr(torrent.get('content_name')))
+                print >>sys.stderr,'torrentManager: Del rank %d of %s' % (torrent.get('simRank', -1), repr(torrent.get('name')))
             if torrent.has_key('simRank'):
                 del torrent['simRank']
             if not initializing:
@@ -591,7 +593,7 @@ class TorrentDataManager:
             if self.info_dict.has_key(infohash):
                 torrent = self.info_dict[infohash]
                 if DEBUG_RANKING:
-                    print >>sys.stderr,'torrentManager: Give rank %d to %s' % (rank, repr(torrent.get('content_name')))
+                    print >>sys.stderr,'torrentManager: Give rank %d to %s' % (rank, repr(torrent.get('name')))
                 torrent[key_simRank] = rank
                 if not initializing:
                     self.notifyView(torrent, 'update')
@@ -630,7 +632,7 @@ class TorrentDataManager:
         for (sim, infohash) in self.rankList:
             if self.info_dict.has_key(infohash):
                 torrent = self.info_dict[infohash]
-                print >>sys.stderr,'torrentManager: %d: %.2f, %s' % (rank, torrent.get('relevance', -1), repr(torrent.get('content_name', 'no name')))
+                print >>sys.stderr,'torrentManager: %d: %.2f, %s' % (rank, torrent.get('relevance', -1), repr(torrent.get('name', 'no name')))
             else:
                 print_stack()
                 print >>sys.stderr,'torrentManager: Not found infohash: %s in info_dict.' % repr(infohash)
@@ -648,7 +650,7 @@ class TorrentDataManager:
             if not inRankList:
                 if torrent.has_key('simRank'):
                     wrong += 1
-                    print >>sys.stderr,'torrentManager: Torrent %s was not in ranklist: sim: %f, rank: %d' % (repr(torrent.get('content_name')), torrent.get('relevance'), torrent['simRank'])
+                    print >>sys.stderr,'torrentManager: Torrent %s was not in ranklist: sim: %f, rank: %d' % (repr(torrent.get('name')), torrent.get('relevance'), torrent['simRank'])
                 else:
                     right+=1
         print >>sys.stderr,'torrentManager: %d right, %d wrong torrents' % (right, wrong)
@@ -741,13 +743,13 @@ class TorrentDataManager:
                     value['status'] = 'good'
                     
                     # Add values to enable filters (popular/rec/size) to work
-                    value['swarmsize'] = value['seeder']+value['leecher']
+                    value['swarmsize'] = value['num_seeders']+value['num_leechers']
                     value['relevance'] = 0
                     value['date'] = None # gives '?' in GUI
                     
                     if DEBUG:
-                        print >>sys.stderr,"torrentDataManager: gotRemoteHist: appending hit",`value['content_name']`
-                        #value['content_name'] = 'REMOTE '+value['content_name']
+                        print >>sys.stderr,"torrentDataManager: gotRemoteHist: appending hit",`value['name']`
+                        #value['name'] = 'REMOTE '+value['name']
                         
                     # Filter out results from unwanted categories
                     flag = False
@@ -755,7 +757,7 @@ class TorrentDataManager:
                         rank = catobj.getCategoryRank(cat)
                         if rank == -1:
                             if DEBUG:
-                                print >>sys.stderr,"torrentDataManager: gotRemoteHits: Got",`value['content_name']`,"from banned category",cat,", discarded it."
+                                print >>sys.stderr,"torrentDataManager: gotRemoteHits: Got",`value['name']`,"from banned category",cat,", discarded it."
                             flag = True
                             break
                     if flag:
@@ -788,21 +790,21 @@ class TorrentDataManager:
 
     def getSimilarTitles(self, storrent, num=30):
 #        starttime = time()
-        title = storrent['content_name']
+        title = storrent['name']
         beginTitle = title[:self.titleIndexLength].lower()
         infohash = storrent['infohash']
         simTorrents = []
         for torrent in self.title_dict.get(beginTitle, []):
             if torrent['infohash'] != infohash and torrent['status'] == 'good':
-                distance = editDist(torrent.get('content_name',''), title)
+                distance = editDist(torrent.get('name',''), title)
                 if distance < 0.45:
-                    insort(simTorrents, (distance, torrent['content_name'], torrent['infohash']))
+                    insort(simTorrents, (distance, torrent['name'], torrent['infohash']))
                     if len(simTorrents) > num:
                         simTorrents = simTorrents[:-1]
                 
         result = [self.info_dict[a[2]] for a in simTorrents]
 #        for r in result:
-#            print result.index(r)+1, simTorrents[result.index(r)][0], r['content_name']
+#            print result.index(r)+1, simTorrents[result.index(r)][0], r['name']
 #        print 'Searched %d similar titles in %f s' % (len(self.data), time()-starttime)
         return result
         

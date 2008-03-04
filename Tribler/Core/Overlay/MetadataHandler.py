@@ -18,7 +18,7 @@ from Tribler.TrackerChecking.ManualChecking import SingleManualChecking
 from Tribler.Core.osutils import getfreespace
 
 from threading import currentThread
-DEBUG = True
+DEBUG = False
 
 # Python no recursive imports?
 # from overlayswarm import overlay_infohash

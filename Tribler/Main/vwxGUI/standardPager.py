@@ -114,7 +114,7 @@ class standardPager(wx.Panel):
         leftDots = self.beginPage != 0
         self.setPageNumbers(self.beginPage, min(self.numPages,self.totalPages) , self.currentPage, leftDots, rightDots)
         if self.hasGrid():
-            self.grid.setPageNumber(self.currentPage)
+            self.grid.gridManager.set_page(self.currentPage)
         
         
     def setPageNumbers(self, begin, number, current, leftDots, rightDots):
@@ -211,7 +211,7 @@ class standardPager(wx.Panel):
                 
         grid = self.grid
         try:
-            self.totalItems = len(grid.data)
+            self.totalItems = grid.gridManager.get_total_items()
             self.itemsPerPage = grid.items
         except:
             self.totalItems = 0

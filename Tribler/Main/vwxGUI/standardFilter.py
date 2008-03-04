@@ -4,9 +4,10 @@ import wx.xrc as xrc
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from traceback import print_exc
 from Tribler.Category.Category import Category
+from Tribler.Main.vwxGUI.standardGrid import GridState
 from font import *
 
-DEBUG = False
+DEBUG = True
 
 class standardFilter(wx.Panel):
     """
@@ -14,8 +15,9 @@ class standardFilter(wx.Panel):
     """
     def __init__(self, filterData = []):
         self.filterData = filterData
-        self.filterState = None
-        self.filters = []
+        self.filterState = {}
+        self.filters = {}
+        self.state = None
         pre = wx.PrePanel()
         # the Create step is done by XRC.
         self.PostCreate(pre)
@@ -51,22 +53,22 @@ class standardFilter(wx.Panel):
         # Add Sizer
         self.hSizer.Add([20,10],0,wx.EXPAND|wx.FIXED_MINSIZE,0)        
         # filter 1 is making a selection
-        for pullDownData in self.filterData:
+        for name, pullDownData in self.filterData:
             titles = [item[1] for item in pullDownData]
             try:
-                if self.filterState is None:
-                    self.filterState = []
-                self.filterState.append(pullDownData[0][0])
+                #if self.filterState is None:
+                #    self.filterState = {}
+                self.filterState[name] = pullDownData[0][0]
             except:
                 if DEBUG:
                     print >>sys.stderr,'standardFilter: Error getting default filterState, data: %s' % pullDownData
-                pass
+                raise
             filter = wx.ComboBox(self,-1,titles[0], wx.Point(8,3),wx.Size(160,21),titles, wx.CB_DROPDOWN|wx.CB_READONLY)
             #filter = wx.Choice(self,-1, wx.Point(8,3),wx.Size(180,21),titles)
             filter.SetFont(wx.Font(10,FONTFAMILY,FONTWEIGHT,wx.NORMAL,False,FONTFACE))
 #            filter.SetBackgroundColour(wx.WHITE)
             filter.Bind(wx.EVT_COMBOBOX, self.mouseAction)
-            self.filters.append(filter)
+            self.filters[name] = filter
             self.hSizer.Add(filter, 0, wx.TOP|wx.LEFT|wx.RIGHT|wx.EXPAND|wx.FIXED_MINSIZE,3)
                 
         self.hSizer.Add([8,10],0,wx.EXPAND|wx.FIXED_MINSIZE,2)
@@ -79,52 +81,48 @@ class standardFilter(wx.Panel):
         self.Update()
         wx.CallAfter(self.mouseAction,[None])
         
-    def mouseAction(self, event):
-
+    def mouseAction(self, event = None):
+        filterState = {}
         #print >>sys.stderr,"standardFilter: mouseAction: event is",event
-        filterIndex = []
-        for filter in self.filters:
+        for name, filter in self.filters.iteritems():
             idx = filter.GetSelection()
             if idx == -1:
                 idx = 0
-            filterIndex.append(idx)
-        filterState = []
-        for filterNum in range(len(self.filters)):
-            filterState.append(self.filterData[filterNum][filterIndex[filterNum]][0])
+            values= [a[1] for a in self.filterData if a[0] == name][0]
+            filterState[name] = values[idx][0]
             
-        filterState.append(None) #replacement for old ordering filter
         if DEBUG:
             print >>sys.stderr,"standardFilter: filterState is",filterState,"old",self.filterState
-        if filterState != self.filterState:
+        if filterState != self.filterState or self.state is None:
             self.filterChanged(filterState)
             self.filterState = filterState
             
-    def filterChanged(self, state):
+    def filterChanged(self, dict_state):
         try:
-            self.guiUtility.standardOverview.filterChanged(state)
+            self.state = GridState(self.guiUtility.standardOverview.mode,
+                              dict_state.get('category'),
+                              None)
+            self.guiUtility.standardOverview.filterChanged(self.state)
         except:
             if DEBUG:
                 print >>sys.stderr,'standardFilter: Error could not call standardOverview.filterChanged()'
             print_exc()
 
-    def setSelectionToFilter(self,filterState):
-        try:
-            for j in range(len(filterState)):
-                for i in range(len(self.filterData[j])):
-                    if filterState[j] == self.filterData[j][i][0]:
-                        self.filters[j].SetSelection(i)
-                        break
-        except:
-            pass
-        self.filterState = filterState
+#    def setSelectionToFilter(self,filterState):
+#        try:
+#            for j in range(len(filterState)):
+#                for i in range(len(self.filterData[j])):
+#                    if filterState[j] == self.filterData[j][i][0]:
+#                        self.filters[j].SetSelection(i)
+#                        break
+#        except:
+#            pass
+#        self.filterState = filterState
     
     def getState(self):
-        if self.filterState is None:
-            state = []
-            for i in xrange(len(self.filters)):
-                state.append(self.filterData[i][0][0])
-            return state
-        return self.filterState
+        if not self.state:
+            self.mouseAction()
+        return self.state
 
 
 class filesFilter(standardFilter):
@@ -133,17 +131,9 @@ class filesFilter(standardFilter):
         nametuples += Category.getInstance().getCategoryNames()
         nametuples.append(('other', 'Other'))
         #nametuples.append(('search', 'Search Results'))
-        filterData = [
-                       nametuples
-#                       [(('content_name', 'increase'), 'Name'),
-#                        ('swarmsize', 'Popular'),
-#                        ('relevance','Recommended'),
-#                        ('date','Creation date'),
-#                        ('length', 'Size'),                        
-#                        #('tracker', 'Tracker'),
-#                        #('num_owners', 'Often received')
-#                        ]
-                      ]
+        
+        filterData = [['category', nametuples]]
+                     
         standardFilter.__init__(self, filterData = filterData)
         
 #class personsFilter(standardFilter):
@@ -166,18 +156,8 @@ class libraryFilter(standardFilter):
         nametuples = [('all', 'All')] + nametuples
         nametuples += [('other', 'Other')]
         #nametuples += [('search', 'Search Results')]
-        filterData = [
-                       nametuples,
-                       #[('latest', 'Latest downloaded'),
-                       # (('content_name', 'increase'), 'Name'),
-                        #('swarmsize', 'Popular'),
-                        #('relevance','Recommended'),
-                        #('date','Creation date'),
-                        #('length', 'Size'),                        
-                        #('tracker', 'Tracker'),
-                        #('num_owners', 'Often received')
-                        #]
-                      ]
+        filterData = [['category', nametuples]]
+                       
         standardFilter.__init__(self, filterData = filterData)
 
 #class friendsFilter(standardFilter):

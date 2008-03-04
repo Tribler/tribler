@@ -411,7 +411,7 @@ class standardDetails(wx.Panel):
             torrent = item
                         
             titleField = self.getGuiObj('titleField')
-            title = torrent.get('content_name')
+            title = torrent.get('name')
             title = title[:77]
             titleField.SetLabel(title)
             titleField.Wrap(-1) # doesn't appear to work
@@ -507,8 +507,8 @@ class standardDetails(wx.Panel):
                     self.getGuiObj('down').Show()
                     self.getGuiObj('refresh').Show()
 
-                    if torrent.has_key('seeder'):
-                        seeders = torrent['seeder']
+                    if torrent.has_key('num_seeders'):
+                        seeders = torrent['num_seeders']
                         seedersField = self.getGuiObj('popularityField1')
                         leechersField = self.getGuiObj('popularityField2')
                         
@@ -516,9 +516,9 @@ class standardDetails(wx.Panel):
                             seedersField.SetLabel('%d' % seeders)
                             seedersField.SetToolTipString(self.utility.lang.get('seeder_tool') % seeders)
                             self.getGuiObj('up').SetToolTipString(self.utility.lang.get('seeder_tool') % seeders)
-                            leechersField.SetLabel('%d' % torrent['leecher'])
-                            self.getGuiObj('down').SetToolTipString(self.utility.lang.get('leecher_tool') % torrent['leecher'])
-                            leechersField.SetToolTipString(self.utility.lang.get('leecher_tool') % torrent['leecher'])
+                            leechersField.SetLabel('%d' % torrent['num_leechers'])
+                            self.getGuiObj('down').SetToolTipString(self.utility.lang.get('leecher_tool') % torrent['num_leechers'])
+                            leechersField.SetToolTipString(self.utility.lang.get('leecher_tool') % torrent['num_leechers'])
                             
                         else:
                             seedersField.SetLabel('?')
@@ -581,7 +581,7 @@ class standardDetails(wx.Panel):
 #                return #no valid torrent
             
             titleField = self.getGuiObj('titleField')
-            titleField.SetLabel(item.get('content_name',''))
+            titleField.SetLabel(item.get('name',''))
             titleField.Wrap(-1)
             
             #set the picture
@@ -728,7 +728,7 @@ class standardDetails(wx.Panel):
             
             today_infohashes = []
             for torrent in todayl:
-                todayList.Append([torrent['content_name']])
+                todayList.Append([torrent['name']])
                 today_infohashes.append(torrent['infohash'])
             todayList.setInfoHashList(today_infohashes)
 
@@ -750,7 +750,7 @@ class standardDetails(wx.Panel):
             ydayList.DeleteAllItems()
             yesterday_infohashes = []
             for torrent in yesterdayl:
-                ydayList.Append([torrent['content_name']])
+                ydayList.Append([torrent['name']])
                 yesterday_infohashes.append(torrent['infohash'])
             ydayList.setInfoHashList(yesterday_infohashes)
         
@@ -1063,7 +1063,7 @@ class standardDetails(wx.Panel):
             sim_torrent_list.setInfoHashList(None)
             alist = []
             for torrent in sim_torrents:
-                name = torrent.get('content_name')
+                name = torrent.get('name')
                 index = sim_torrent_list.InsertStringItem(sys.maxint, name)
                 alist.append(torrent)
 #              
@@ -1113,7 +1113,7 @@ class standardDetails(wx.Panel):
                 else:
                     the_list = ofList
                 if f['status'] != 'dead':
-                    index = the_list.InsertStringItem(sys.maxint, f['content_name'])
+                    index = the_list.InsertStringItem(sys.maxint, f['name'])
                     if the_list == ofList:
                         alist.append(infohash)
 #                color = "black"
@@ -1414,7 +1414,7 @@ class standardDetails(wx.Panel):
             
     def refresh(self, torrent):
         if DEBUG:
-            print >>sys.stderr,'standardDetails: refresh ' + repr(torrent.get('content_name', 'no_name'))
+            print >>sys.stderr,'standardDetails: refresh ' + repr(torrent.get('name', 'no_name'))
         check = SingleManualChecking(torrent)
         check.start()
         
@@ -1453,8 +1453,8 @@ class standardDetails(wx.Panel):
         (torrent_dir,torrent_name) = self.metadatahandler.get_std_torrent_dir_name(torrent)
         torrent_filename = os.path.join(torrent_dir, torrent_name)
 
-        if torrent.get('content_name'):
-            name = torrent['content_name']
+        if torrent.get('name'):
+            name = torrent['name']
         else:
             name = showInfoHash(torrent['infohash'])
         #start_download = self.utility.lang.get('start_downloading')
@@ -1540,11 +1540,11 @@ class standardDetails(wx.Panel):
                 if self.guiUtility.peer_manager.isFriend(peer_data['permid']):
                     bRemoved = self.guiUtility.peer_manager.deleteFriendwData(peer_data)
                     if DEBUG:
-                        print >>sys.stderr,"standardDetails: removed friendship with",`peer_data['content_name']`,":",bRemoved
+                        print >>sys.stderr,"standardDetails: removed friendship with",`peer_data['name']`,":",bRemoved
                 else:
                     bAdded = self.guiUtility.peer_manager.addFriendwData(peer_data)
                     if DEBUG:
-                        print >>sys.stderr,"standardDetails: added",`peer_data['content_name']`,"as friend:",bAdded
+                        print >>sys.stderr,"standardDetails: added",`peer_data['name']`,"as friend:",bAdded
                 
                 #should refresh?
                 self.guiUtility.selectPeer(peer_data)

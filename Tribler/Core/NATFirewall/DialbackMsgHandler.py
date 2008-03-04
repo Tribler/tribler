@@ -34,7 +34,7 @@ from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_THIRD
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Core.simpledefs import *
 
-DEBUG = True
+DEBUG = False
 
 #
 # Constants
