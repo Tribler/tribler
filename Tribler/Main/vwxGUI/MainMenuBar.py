@@ -4,7 +4,7 @@ import wx
 from traceback import print_exc,print_stack
 
 from Tribler.Core.API import *
-from Tribler.Main.Dialogs.GUIServer import GUIServer
+#from Tribler.Main.Dialogs.GUIServer import GUIServer
 from Tribler.Main.Dialogs.aboutme import *    
 #from Tribler.Main.Dialogs.abcoption import ABCOptionDialog
 #from Tribler.Main.TorrentMaker.btmaketorrentgui import TorrentMaker
@@ -109,9 +109,10 @@ class MainMenuBar(wx.MenuBar):
             return
 
         if btlink != "":
-            guiserver = GUIServer.getInstance()
+            #guiserver = GUIServer.getInstance()
             load_url_lambda = lambda:self.load_torrent_from_url(btlink)
-            guiserver.add_task(load_url_lambda,0)
+            wx.CallAfter(load_url_lambda)
+            #guiserver.add_task(load_url_lambda,0)
 
 
     def load_torrent_from_url(self,url):
