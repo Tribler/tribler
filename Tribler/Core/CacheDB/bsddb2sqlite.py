@@ -96,15 +96,17 @@ class Bsddb2Sqlite:
     def _getTorrentID(self, infohash, bin=True):
         if bin:
             infohash = bin2str(infohash)
-        sql_get_torrent_id = "SELECT torrent_id FROM Infohash WHERE infohash==?"
+        sql_get_torrent_id = "SELECT torrent_id FROM Torrent WHERE infohash==?"
         arg = (infohash,)
         return self._fetchone(sql_get_torrent_id, arg)
         
-    def _insertInfohash(self, infohash, bin=True):
-        if bin:
-            infohash = bin2str(infohash)
-        sql_insert_torrent = "INSERT INTO Infohash (infohash) VALUES (?)"
-        self.cur.execute(sql_insert_torrent, (infohash,))
+#===============================================================================
+#    def _insertInfohash(self, infohash, bin=True):
+#        if bin:
+#            infohash = bin2str(infohash)
+#        sql_insert_torrent = "INSERT INTO Infohash (infohash) VALUES (?)"
+#        self.cur.execute(sql_insert_torrent, (infohash,))
+#===============================================================================
     
     def _begin(self):
         if LIB == 1:
@@ -181,78 +183,81 @@ class Bsddb2Sqlite:
                   data['npeers'], data['ntorrents'], data['nprefs'], data['nqueries'])
          )
 
+    def convert_torrent_data(self, db_data):
+        data = {
+            'torrent_name':None,   # name of the torrent
+            'leecher': -1,
+            'seeder': -1,
+            'ignore_number': 0,
+            'retry_number': 0,
+            'last_check_time': 0,
+            'status': 0,    # status table: unknown, good, dead
+            
+            'category': 0,    # category table
+            'source': 0,    # source table, from buddycast, rss or others
+            'thumbnail':None,    # 1 - the torrent has a thumbnail
+            'relevance':0,
+            
+            'inserttime': 0, # when the torrent file is written to the disk
+            'progress': 0.0,    # download progress
+            'secret':0, # download secretly
+            
+            'name':None,
+            'length':0,
+            'creation_date':0,
+            'comment':None,
+            'num_files':0,
+            
+            'ignore_number':0,
+            'retry_number':0,
+            'last_check_time':0,
+        }
+        
+        if 'info' in db_data:
+            info = db_data.pop('info')
+            data['name'] = info.get('name', None)
+            data['length'] = info.get('length', 0)
+            data['num_files'] = info.get('num_files', 0)
+            data['creation_date'] = info.get('creation date', 0)
+            data['announce'] = info.get('announce', '')
+            data['announce-list'] = info.get('announce-list', [])
+            
+        # change torrent dir
+        torrent_dir = db_data.get('torrent_dir',None)
+            
+        # change status
+        status = db_data.get('status', 'unknown')
+        status_table = {'unknown':0, 'good':1, 'dead':2}
+        db_data['status'] = status_table[status]
+        
+        # change category
+        category_list = db_data.get('category', [])
+        category_table = {'Picture':6, 'Document':5, 'xxx':7, 'VideoClips':2, 'other':8, 'Video':1, 'Compressed':4, 'Audio':3}
+        if len(category_list) > 0:
+            category = category_list[0]
+            cat_int = category_table[category]
+        else:
+            cat_int = 0
+        db_data['category'] = cat_int
+        
+        # change source
+        src = db_data.get('source', '')
+        if src in self.src_table:
+            src_int = self.src_table[src]
+        else:
+            src_int = self.insertNewSrc(src)    # add a new src, e.g., a RSS feed
+            self.src_table[src] = src_int
+        db_data['source'] = src_int
+        data.update(db_data)
+        return data            
+
     def convert_TorrentDB(self, limit=0):
         print >>sys.stderr, "convert_TorrentDB"
         torrent_db = TorrentDB.getInstance(self.bsddb_dir)
         ntorrents = 0
         
         for infohash, db_data in torrent_db._data.iteritems():
-            data = {
-                'torrent_name':None,   # name of the torrent
-                'leecher': -1,
-                'seeder': -1,
-                'ignore_number': 0,
-                'retry_number': 0,
-                'last_check_time': 0,
-                'status': 0,    # status table: unknown, good, dead
-                
-                'category': 0,    # category table
-                'source': 0,    # source table, from buddycast, rss or others
-                'thumbnail':None,    # 1 - the torrent has a thumbnail
-                'relevance':0,
-                
-                'inserttime': 0, # when the torrent file is written to the disk
-                'progress': 0.0,    # download progress
-                'secret':0, # download secretly
-                
-                'name':None,
-                'length':0,
-                'creation_date':0,
-                'comment':None,
-                'num_files':0,
-                
-                'ignore_number':0,
-                'retry_number':0,
-                'last_check_time':0,
-            }
-            
-            if 'info' in db_data:
-                info = db_data.pop('info')
-                data['name'] = info.get('name', None)
-                data['length'] = info.get('length', 0)
-                data['num_files'] = info.get('num_files', 0)
-                data['creation_date'] = info.get('creation date', 0)
-                data['announce'] = info.get('announce', '')
-                data['announce-list'] = info.get('announce-list', [])
-                
-            # change torrent dir
-            torrent_dir = db_data.get('torrent_dir',None)
-                
-            # change status
-            status = db_data.get('status', 'unknown')
-            status_table = {'unknown':0, 'good':1, 'dead':2}
-            db_data['status'] = status_table[status]
-            
-            # change category
-            category_list = db_data.get('category', [])
-            category_table = {'Picture':6, 'Document':5, 'xxx':7, 'VideoClips':2, 'other':8, 'Video':1, 'Compressed':4, 'Audio':3}
-            if len(category_list) > 0:
-                category = category_list[0]
-                cat_int = category_table[category]
-            else:
-                cat_int = 0
-            db_data['category'] = cat_int
-            
-            # change source
-            src = db_data.get('source', '')
-            if src in self.src_table:
-                src_int = self.src_table[src]
-            else:
-                src_int = self.insertNewSrc(src)    # add a new src, e.g., a RSS feed
-                self.src_table[src] = src_int
-            db_data['source'] = src_int
-            data.update(db_data)
-            
+            data = self.convert_torrent_data(db_data)
             self._addTorrentToDB(infohash, data)
             ntorrents += 1
             if limit and ntorrents >= limit:
@@ -280,19 +285,19 @@ class Bsddb2Sqlite:
         return src_id
         
     def _addTorrentToDB(self, infohash, data=None):
-        self._insertInfohash(infohash)
-        torrent_id = self._getTorrentID(infohash)
-        self.infohash_id[infohash] = torrent_id
+#        self._insertInfohash(infohash)
+#        torrent_id = self._getTorrentID(infohash)
+        infohash_str = bin2str(infohash)
         if not data:
-            sql_insert_torrent = "INSERT INTO Torrent (torrent_id) VALUES (?)"
-            self.cur.execute(sql_insert_torrent, (torrent_id,))
+            sql_insert_torrent = "INSERT INTO Torrent (infohash) VALUES (?)"
+            self.cur.execute(sql_insert_torrent, (infohash_str,))
         else:
             if data['progress'] > 0:
-                self.progress[torrent_id] = data['progress']
+                self.progress[infohash] = data['progress']
 
             sql_insert_torrent = """
             INSERT INTO Torrent 
-            (torrent_id, name, torrent_file_name,
+            (infohash, name, torrent_file_name,
             length, creation_date, num_files, thumbnail,
             insert_time, secret, relevance,
             source_id, category_id, status_id,
@@ -301,7 +306,7 @@ class Bsddb2Sqlite:
             """
             try:
                 self.cur.execute(sql_insert_torrent,
-                 (torrent_id, data['name'], data['torrent_name'], 
+                 (infohash_str, data['name'], data['torrent_name'], 
                   data['length'], data['creation_date'], data['num_files'], data['thumbnail'], 
                   data['inserttime'], data['secret'], data['relevance'],
                   data['source'], data['category'], data['status'], 
@@ -311,6 +316,9 @@ class Bsddb2Sqlite:
                 print >> sys.stderr, "error input for _addTorrentToDB:", data, Exception, msg
                 #sys.exit(1)
             
+        torrent_id = self._getTorrentID(infohash_str, False)
+        self.infohash_id[infohash] = torrent_id
+        if data:
             self.addTorrentTracker(torrent_id, data)
             
         return torrent_id
@@ -362,7 +370,7 @@ class Bsddb2Sqlite:
                 continue
             for infohash in prefs:
                 if infohash not in self.infohash_id:
-                    self._insertInfohash(infohash)
+                    self._addTorrentToDB(infohash)
                     tid = self._getTorrentID(infohash)
                     self.infohash_id[infohash] = tid
                 else:
@@ -403,7 +411,7 @@ class Bsddb2Sqlite:
             download_dir = data.get('content_dir', '')
             dest_path = os.path.join(download_dir, download_name)
             creation_time = data.get('created_time', 0)
-            prog = self.progress.get(torrent_id, 0)    
+            prog = self.progress.get(infohash, 0)    
             self.cur.execute(sql, (torrent_id, dest_path, prog, creation_time)
             )
         #self.cur.execute('select count(*) from MyPreference')
@@ -460,8 +468,9 @@ class Bsddb2Sqlite:
         if os.path.exists(file_path):
             print >>sys.stderr, "sqlite db already exists", os.path.abspath(file_path)
             return False
-        if not os.path.exists(os.path.dirname(file_path)):
-            os.makedirs(os.path.dirname(file_path))
+        db_dir = os.path.dirname(os.path.abspath(file_path))
+        if not os.path.exists(db_dir):
+            os.makedirs(db_dir)
 
         self.sdb = sqlite.connect(file_path, isolation_level=None)    # auto-commit
         self.cur = self.sdb.cursor()
@@ -537,7 +546,7 @@ class Bsddb2Sqlite:
 
 if __name__ == '__main__':
     bsddb_dir = sys.argv[1]
-    bsddb2sqlite = Bsddb2Sqlite(bsddb_dir, 'tribler.sdb', 'tribler_sdb_v1.sql')
+    bsddb2sqlite = Bsddb2Sqlite(bsddb_dir, 'tribler.sdb', '../../tribler_sdb_v1.sql')
     start = time()
     peer_limit = torrent_limit = 0
     if len(sys.argv)>2:

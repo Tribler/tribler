@@ -45,6 +45,9 @@ class TestSqliteCacheDB(unittest.TestCase):
             assert nconnpeers == 1466
             
             ntorrents = sdb.fetchone('select count(*) from torrent;')
+            assert ntorrents == 42934
+            
+            ntorrents = sdb.fetchone('select count(torrent_file_name) from torrent;')
             assert ntorrents == 4848
             
             nprefs = sdb.fetchone('select count(*) from Preference;')

@@ -133,7 +133,7 @@ class SQLitePerformanceTest:
     def testBrowse(self):
         #print "page_time, pages_sec, nrec, num_pages, total_time"
         nitems = 20
-        table_name = 'Torrent'
+        table_name = 'CollectedTorrent'
         torrent_sort_keys = [None, 'length','creation_date', 'num_seeders', 'num_leechers', 'relevance', 'source_id', 'name']
         torrent_table_row = self.banchTestBrowse(table_name, nitems, torrent_sort_keys)
         print
@@ -161,7 +161,7 @@ class SQLitePerformanceTest:
         
     def testBrowseCategory(self):
         nitems = 20
-        table_name = 'Torrent'
+        table_name = 'CollectedTorrent'
         key = 'num_seeders'
         categories = range(1,9)
         nrecs = self.db.size(table_name)
@@ -202,7 +202,7 @@ class SQLitePerformanceTest:
         return pop_torrent
     
 #    def getTorrentName(self, torrent_id):
-#        torrent_name_sql = "select name from Torrent where torrent_id=?"
+#        torrent_name_sql = "select name from CollectedTorrent where torrent_id=?"
 #        self.cur.execute(torrent_name_sql, (torrent_id,))
 #        name = self.cur.fetchone()
 #        if name is not None:
@@ -210,7 +210,7 @@ class SQLitePerformanceTest:
 #        return None
     
     def testGetSimilarTorrents(self, num, num_sim=10):
-        sql = 'select torrent_id from Torrent'
+        sql = 'select torrent_id from CollectedTorrent'
         res = self.db.fetchall(sql)
         shuffle(res)
         start = time()
@@ -229,7 +229,7 @@ class SQLitePerformanceTest:
                 select torrent_id,count(torrent_id) as pop from Preference 
                 where peer_id in
                 (select peer_id from Preference where torrent_id=?) and 
-                torrent_id in (select torrent_id from Torrent)
+                torrent_id in (select torrent_id from CollectedTorrent)
                 group by torrent_id 
             """
             sim_torrents = self.db.fetchall(sql, (torrent_id,))
@@ -252,7 +252,7 @@ class SQLitePerformanceTest:
                 sim_torrents_id = tuple([ti for (ti,co) in sim_torrents])
 
             if len(sim_torrents_id) > 0:
-                sql = "select name,torrent_id from Torrent where torrent_id in " + \
+                sql = "select name,torrent_id from CollectedTorrent where torrent_id in " + \
                     repr(sim_torrents_id) + " order by name"
                 sim_names = self.db.fetchall(sql)
                 #for name,ti in sim_names:
@@ -272,7 +272,7 @@ class SQLitePerformanceTest:
     # TODO: 
     # suggest: 1. include torrent name in buddycast 
     #          2. create a table like pocketlens to maintain sim(Ii,Ij)
-    #          3. torrent in Torrent table may have no owners due to remove peers
+    #          3. torrent in CollectedTorrent table may have no owners due to remove peers
     #          4. In GUI, we may need a async display for sim torrents
         
     def testGetPeerHistory(self, num):
@@ -283,7 +283,7 @@ class SQLitePerformanceTest:
         real_num = 0
         for peer_id in res[:num]:
             peer_id = peer_id[0]
-            sql = """select name, torrent_id from Torrent 
+            sql = """select name, torrent_id from CollectedTorrent 
                      where torrent_id in 
                      (select torrent_id from Preference where peer_id=?)
                   """
@@ -707,7 +707,7 @@ def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestSqliteCacheDB))
     suite.addTest(unittest.makeSuite(TestThreadedSqliteCacheDB))
-    #suite.addTest(unittest.makeSuite(TestSQLitePerformanceTest))
+    suite.addTest(unittest.makeSuite(TestSQLitePerformanceTest))
     
     return suite
         

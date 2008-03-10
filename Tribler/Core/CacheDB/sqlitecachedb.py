@@ -225,7 +225,7 @@ class SQLiteCacheDB:
             if not os.path.isdir(db_dir):
                 os.makedirs(db_dir)
             
-        print >> sys.stderr, 'sqldb: ******** connect db', lib, dbfile_path, busytimeout/1000.0
+        #print >> sys.stderr, 'sqldb: ******** connect db', lib, dbfile_path, busytimeout/1000.0
         if autocommit:
             if lib==0:
                 con = sqlite.connect(dbfile_path, isolation_level=None, timeout=(busytimeout/1000.0))
@@ -518,7 +518,6 @@ class SQLiteCacheDB:
             
     # -------- Write Operations --------
     def insert(self, table_name, **argv):
-        #"INSERT INTO Infohash (infohash) VALUES (?)"
         questions = '?,'*len(argv)
         sql = 'INSERT INTO %s %s VALUES (%s);'%(table_name, tuple(argv.keys()), questions[:-1])
         self.execute(sql, argv.values())
@@ -762,7 +761,7 @@ class SQLiteCacheDB:
             return
         
         infohash_str = bin2str(infohash)
-        sql_insert_torrent = "INSERT INTO Infohash (infohash) VALUES (?)"
+        sql_insert_torrent = "INSERT INTO Torrent (infohash) VALUES (?)"
         try:
             self.execute(sql_insert_torrent, (infohash_str,))
         except sqlite.IntegrityError, msg:
@@ -774,7 +773,7 @@ class SQLiteCacheDB:
             torrent_id = self.getTorrentID(infohash)
             
         if torrent_id != None:
-            self.delete('Infohash', torrent_id=torrent_id)
+            self.delete('Torrent', torrent_id=torrent_id)
             if infohash in self.infohash_id:
                 self.infohash_id.pop(infohash)
     
@@ -784,7 +783,7 @@ class SQLiteCacheDB:
         
         infohash_str = bin2str(infohash)
             
-        sql_get_torrent_id = "SELECT torrent_id FROM Infohash WHERE infohash==?"
+        sql_get_torrent_id = "SELECT torrent_id FROM Torrent WHERE infohash==?"
         args = (infohash_str,)
         tid = self.fetchone(sql_get_torrent_id, args)
         if tid != None:
@@ -792,7 +791,7 @@ class SQLiteCacheDB:
         return tid
         
     def getInfohash(self, torrent_id):
-        sql_get_infohash = "SELECT infohash FROM Infohash WHERE torrent_id==?"
+        sql_get_infohash = "SELECT infohash FROM Torrent WHERE torrent_id==?"
         arg = (torrent_id,)
         ret = self.fetchone(sql_get_infohash, arg)
         ret = str2bin(ret)
@@ -833,5 +832,4 @@ if __name__ == '__main__':
     sqlite_test = SQLiteCacheDB()#, DB_DIR_NAME, DB_FILE_NAME, CREATE_SQL_FILE)
     sqlite_test.initDB(configure_dir, lib=0)
     sqlite_test.test()
-    
-    
+

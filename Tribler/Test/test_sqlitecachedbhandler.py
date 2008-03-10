@@ -39,7 +39,7 @@ def init():
         sys.exit(1)
     if os.path.isfile(TRIBLER_DB_PATH_BACKUP):
         copyFile(TRIBLER_DB_PATH_BACKUP, TRIBLER_DB_PATH)
-        #print "refresh sqlite db", TRIBLER_DB_PATH
+        print "refresh sqlite db", TRIBLER_DB_PATH
 
 SQLiteCacheDB.DEBUG = False
 
@@ -577,7 +577,7 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
     def test_loadPeers(self):
         db = PeerDBHandler.getInstance()
         peer_size = db.size()
-        res = db.loadPeers()
+        res = db.getGUIPeers()
         assert len(res) == 1407
         data = res[0]
         p = db.getPeer(data['permid'])
@@ -617,7 +617,7 @@ class TestPreferenceDBHandler(unittest.TestCase):
         peer_x = {'permid':fake_permid_x, 'ip':'1.2.3.4', 'port':234, 
                   'name':'fake peer x', 'last_seen':12345, 'connected_times':3}
         oldsize = db.size()
-        oldinfohash_size = db._db.size('Infohash')
+        oldinfohash_size = db._db.size('Torrent')
         p = db.getPeer(fake_permid_x)
         assert p == None, p
         
@@ -632,7 +632,7 @@ class TestPreferenceDBHandler(unittest.TestCase):
         prefdb.addPreference(fake_permid_x, fake_infoahsh)
         prefdb.addPreference(fake_permid_x, fake_infoahsh2)
         assert prefdb.size() == oldpref_size + 2
-        assert oldinfohash_size + 2 == db._db.size('Infohash')
+        assert oldinfohash_size + 2 == db._db.size('Torrent')
         
         pl = prefdb.getPrefList(fake_permid_x)
         assert len(pl) == 2
@@ -660,7 +660,7 @@ class TestPreferenceDBHandler(unittest.TestCase):
         prefdb.addPreference(fake_permid_x, fake_infoahsh)
         prefdb.addPreference(fake_permid_x, fake_infoahsh2)
         assert prefdb.size() == oldpref_size + 2
-        assert oldinfohash_size + 2 == db._db.size('Infohash')
+        assert oldinfohash_size + 2 == db._db.size('Torrent')
         
         pl = prefdb.getPrefList(fake_permid_x)
         assert len(pl) == 2
@@ -680,7 +680,7 @@ class TestPreferenceDBHandler(unittest.TestCase):
         assert tid is None
         tid = db._db.getTorrentID(fake_infoahsh2)
         assert tid is None
-        assert oldinfohash_size == db._db.size('Infohash'), [oldinfohash_size, db._db.size('Infohash')]
+        assert oldinfohash_size == db._db.size('Torrent'), [oldinfohash_size, db._db.size('Torrent')]
 
     def test_addPeerPreferences(self):
         db = PeerDBHandler.getInstance()
@@ -688,7 +688,7 @@ class TestPreferenceDBHandler(unittest.TestCase):
         peer_x = {'permid':fake_permid_x, 'ip':'1.2.3.4', 'port':234, 
                   'name':'fake peer x', 'last_seen':12345, 'connected_times':3}
         oldsize = db.size()
-        oldinfohash_size = db._db.size('Infohash')
+        oldinfohash_size = db._db.size('Torrent')
         p = db.getPeer(fake_permid_x)
         assert p == None, p
         
@@ -703,7 +703,7 @@ class TestPreferenceDBHandler(unittest.TestCase):
         oldpref_size = prefdb.size()
         prefdb.addPreferences(fake_permid_x, fi)
         assert prefdb.size() == oldpref_size + 2, [prefdb.size(), oldpref_size]
-        assert oldinfohash_size + 2 == db._db.size('Infohash')
+        assert oldinfohash_size + 2 == db._db.size('Torrent')
         
         pl = prefdb.getPrefList(fake_permid_x)
         assert len(pl) == 2
@@ -730,7 +730,7 @@ class TestPreferenceDBHandler(unittest.TestCase):
         
         prefdb.addPreferences(fake_permid_x, fi)
         assert prefdb.size() == oldpref_size + 2
-        assert oldinfohash_size + 2 == db._db.size('Infohash')
+        assert oldinfohash_size + 2 == db._db.size('Torrent')
         
         pl = prefdb.getPrefList(fake_permid_x)
         assert len(pl) == 2
@@ -750,7 +750,7 @@ class TestPreferenceDBHandler(unittest.TestCase):
         assert tid is None
         tid = db._db.getTorrentID(fake_infoahsh2)
         assert tid is None
-        assert oldinfohash_size == db._db.size('Infohash'), [oldinfohash_size, db._db.size('Infohash')]
+        assert oldinfohash_size == db._db.size('Torrent'), [oldinfohash_size, db._db.size('Torrent')]
 
         
 class TestTorrentDBHandler(unittest.TestCase):
@@ -792,20 +792,22 @@ class TestTorrentDBHandler(unittest.TestCase):
 
     def test_getAllTorrents(self):
         db = TorrentDBHandler.getInstance()
-        old_size = db.size()
+        old_size = db._db.size('CollectedTorrent')
         res = db.getAllTorrents()
         assert len(res) == old_size
         assert len(res[0])==20
         
     def test_loadTorrents(self):
         db = TorrentDBHandler.getInstance()
-        torrent_size = db.size()
+        torrent_size = db._db.size('CollectedTorrent')
         db2 = MyPreferenceDBHandler.getInstance()
         mypref_size = db2.size()
-        res = db.loadTorrents(False)
-        assert len(res) == torrent_size - mypref_size
-        res = db.loadTorrents(True)
-        len(res) == torrent_size
+        res = db.getTorrents(library=False)
+        #assert len(res) == torrent_size - mypref_size, (len(res), torrent_size - mypref_size, torrent_size, mypref_size)
+        assert len(res) == 4483
+        res = db.getTorrents(library=True)
+        #assert len(res) == torrent_size, (len(res), torrent_size)
+        assert len(res) == 11
         data = res[0]
         #print data
         assert data['category'][0] in db.category_table.keys(), data['category']
@@ -970,6 +972,18 @@ class TestTorrentDBHandler(unittest.TestCase):
 #        for i in range(100):
 #            res = db.getAllTorrents2()
 #        print time()-s
+
+    def test_getNumberTorrents(self):
+        pass
+    
+    def test_getTorrents(self):
+        pass
+    
+    def test_searchNames(self):
+        pass
+    
+    def test_selectStar2dict(self):
+        pass
         
         
 class TestMyPreferenceDBHandler(unittest.TestCase):
@@ -1001,7 +1015,7 @@ class TestMyPreferenceDBHandler(unittest.TestCase):
     def test_getRecentLivePrefList(self):
         db = MyPreferenceDBHandler.getInstance()
         pl = db.getRecentLivePrefList()
-        assert len(pl) == 11, len(pl)
+        assert len(pl) == 11, (len(pl), pl)
         infohash_str_126 = 'ByJho7yj9mWY1ORWgCZykLbU1Xc='
         assert bin2str(pl[0]) == infohash_str_126
         infohash_str_1279 = 'R+grUhp884MnFkt6NuLnnauZFsc='

@@ -28,17 +28,6 @@ CREATE TABLE Category (
 
 ----------------------------------------
 
-CREATE TABLE Infohash (
-  torrent_id  integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-  infohash    text NOT NULL
-);
-
-CREATE UNIQUE INDEX infohash_idx
-  ON Infohash
-  (infohash);
-
-----------------------------------------
-
 CREATE TABLE MyInfo (
   entry  PRIMARY KEY,
   value  text
@@ -131,7 +120,8 @@ CREATE UNIQUE INDEX pref_idx
 ----------------------------------------
 
 CREATE TABLE Torrent (
-  torrent_id       integer PRIMARY KEY NOT NULL,
+  torrent_id       integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+  infohash		   text NOT NULL,
   name             text,
   torrent_file_name text,
   length           integer,
@@ -148,6 +138,10 @@ CREATE TABLE Torrent (
   num_leechers     integer,
   comment          text
 );
+
+CREATE UNIQUE INDEX infohash_idx
+  ON Torrent
+  (infohash);
 
 CREATE INDEX Torrent_length_idx
   ON Torrent
@@ -168,6 +162,10 @@ CREATE INDEX Torrent_num_seeders_idx
 CREATE INDEX Torrent_num_leechers_idx
   ON Torrent
   (num_leechers);
+
+CREATE INDEX Torrent_name_idx 
+  ON Torrent
+  (name);
 
 ----------------------------------------
 
@@ -209,6 +207,8 @@ CREATE UNIQUE INDEX torrent_tracker_idx
 CREATE VIEW SuperPeer AS SELECT * FROM Peer WHERE superpeer=1;
 
 CREATE VIEW Friend AS SELECT * FROM Peer WHERE friend=1;
+
+CREATE VIEW CollectedTorrent AS SELECT * FROM Torrent WHERE torrent_file_name IS NOT NULL;
 
 COMMIT TRANSACTION create_table;
 

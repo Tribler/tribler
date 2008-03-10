@@ -25,6 +25,7 @@ class ProfileOverviewPanel(wx.Panel):
                              'myNameField', 'thumb', 'edit', 'downloadedNumber', 'uploadedNumber']
         self.elements = {}
         self.data = {} #data related to profile information, to be used in details panel
+        self.mypref = None
         if len(args) == 0: 
             pre = wx.PrePanel() 
             # the Create step is done by XRC. 
@@ -213,7 +214,9 @@ class ProfileOverviewPanel(wx.Panel):
         
         #--- Quality of tribler recommendation
         #<<<get the number of downloads for this user
-        count = len(self.mydb.getPrefList())
+        if self.mypref is None:
+            self.mypref = MyPreferenceDBHandler.getInstance()
+        count = len(self.mypref.getMyPrefList())
         index_q = self.indexValue(count,100, max_index_bar) #from 0 to 5
         if count != self.quality_value:
             self.data['downloaded_files'] = count

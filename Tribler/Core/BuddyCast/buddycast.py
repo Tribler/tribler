@@ -1899,8 +1899,9 @@ class DataHandler:
 #            return mypreflist
     
     def getPeerLastSeen(self, peer_permid):
-        if peer_permid not in self.peers:
+        if peer_permid not in self.peers or self.peers[peer_permid][1] is None:
             return 0
+        #print >> sys.stderr, '***** getPeerLastSeen', self.peers[peer_permid], `peer_permid`
         return self.peers[peer_permid][1]
     
     def getPeerSim(self, peer_permid, may_be_deleted=False, raw=False):
@@ -1960,7 +1961,8 @@ class DataHandler:
             if self.peers.has_key(peer):
                 self.peers.pop(peer)
                 if peer not in self.myfriends:
-                    self.peer_db.hidePeer(peer)
+                    #self.peer_db.hidePeer(peer)
+                    pass
                 
     def addPeerPreferences(self, peer_permid, prefs):
         """ add a peer's preferences to both cache and db """
