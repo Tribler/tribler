@@ -62,7 +62,7 @@ from Tribler.Main.vwxGUI.MainMenuBar import MainMenuBar
 from Tribler.Main.Dialogs.BandwidthSelector import BandwidthSelector
 from Tribler.Main.notification import init as notification_init
 from Tribler.Main.vwxGUI.font import *
-
+from Tribler.Category.Category import Category
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
 from Tribler.Video.VideoServer import VideoHTTPServer
@@ -268,6 +268,7 @@ class ABCFrame(wx.Frame):
             videoplayer = VideoPlayer.getInstance()
             videoplayer.set_parentwindow(self)
 
+        
         sys.stdout.write('GUI Complete.\n')
 
         self.Show(True)
@@ -656,8 +657,11 @@ class ABCFrame(wx.Frame):
             if tt is not None:
                 tt.SetTip(self.utility.lang.get('reachable_tooltip'))
 
-    def setActivity(self,type,msg=u''):
-    
+    def setActivity(self,type,msg=u'', utility=None):
+        
+        if utility is None:
+            utility = self.utility
+            
         if currentThread().getName() != "MainThread":
             print  >> sys.stderr,"abc: setActivity thread",currentThread().getName(),"is NOT MAIN THREAD"
             print_stack()
@@ -666,21 +670,21 @@ class ABCFrame(wx.Frame):
             prefix = u''
             msg = u''
         elif type == NTFY_ACT_UPNP:
-            prefix = self.utility.lang.get('act_upnp')
+            prefix = utility.lang.get('act_upnp')
         elif type == NTFY_ACT_REACHABLE:
-            prefix = self.utility.lang.get('act_reachable')
+            prefix = utility.lang.get('act_reachable')
         elif type == NTFY_ACT_GET_EXT_IP_FROM_PEERS:
-            prefix = self.utility.lang.get('act_get_ext_ip_from_peers')
+            prefix = utility.lang.get('act_get_ext_ip_from_peers')
         elif type == NTFY_ACT_MEET:
-            prefix = self.utility.lang.get('act_meet')
+            prefix = utility.lang.get('act_meet')
         elif type == NTFY_ACT_GOT_METADATA:
-            prefix = self.utility.lang.get('act_got_metadata')
+            prefix = utility.lang.get('act_got_metadata')
         elif type == NTFY_ACT_RECOMMEND:
-            prefix = self.utility.lang.get('act_recommend')
+            prefix = utility.lang.get('act_recommend')
         elif type == NTFY_ACT_DISK_FULL:
-            prefix = self.utility.lang.get('act_disk_full')   
+            prefix = utility.lang.get('act_disk_full')   
         elif type == NTFY_ACT_NEW_VERSION:
-            prefix = self.utility.lang.get('act_new_version')   
+            prefix = utility.lang.get('act_new_version')   
         if msg == u'':
             text = prefix
         else:
@@ -756,6 +760,7 @@ class ABCApp(wx.App):
             # H4x0r a bit
             set_tasteheart_bitmaps(self.utility.getPath())
             set_perfBar_bitmaps(self.utility.getPath())
+            
     
             # Put it here so an error is shown in the startup-error popup
             self.serverlistener = ServerListener(self.utility)
@@ -814,11 +819,13 @@ class ABCApp(wx.App):
             # Make sure self.utility.frame is set
             self.startAPI()
             
+            Category.getInstance(self.utility.session.get_install_dir(), self.utility.session.get_state_dir())
             
             #self.frame.Refresh()
             #self.frame.Layout()
             self.frame.Show(True)
-
+            self.setDBStats()
+            
             self.Bind(wx.EVT_QUERY_END_SESSION, self.frame.OnCloseWindow)
             self.Bind(wx.EVT_END_SESSION, self.frame.OnCloseWindow)
             
@@ -902,9 +909,9 @@ class ABCApp(wx.App):
         s.load_checkpoint()
 
 
-    def sesscb_ntfy_dbstats(self,subject,changeType,objectID,args):
+    def sesscb_ntfy_dbstats(self,subject,changeType,objectID,*args):
         """ Called by SessionCallback thread """
-        wx.CallAfter(setDBStats)
+        wx.CallAfter(self.setDBStats)
         
         
     def setDBStats(self):
@@ -912,20 +919,20 @@ class ABCApp(wx.App):
         
         # Arno: GUI thread accessing database
         peer_db = self.utility.session.open_dbhandler(NTFY_PEERS)
-        npeers = peer_db.size()
+        npeers = peer_db.getNumberPeers()
         torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
-        nfiles = torrent_db.size()
+        nfiles = torrent_db.getNumberTorrents()
         # Arno: not closing db connections, assuming main thread's will be 
         # closed at end.
                 
-        self.frame.numberPersons.SetLabel(npeers)
-        self.frame.numberFiles.SetLabel(nfiles)
+        self.frame.numberPersons.SetLabel('%d' % npeers)
+        self.frame.numberFiles.SetLabel('%d' % nfiles)
 
         
     def sesscb_ntfy_activities(self,subject,changeType,objectID,msg):
         # Called by SessionCallback thread
         #print >>sys.stderr,"main: sesscb_ntfy_activities called:",subject,changeType,objectID,msg
-        wx.CallAfter(self.frame.setActivity,objectID,msg)
+        wx.CallAfter(self.frame.setActivity,objectID,msg, self.utility)
 
     def sesscb_ntfy_reachable(self,subject,changeType,objectID,msg):
         wx.CallAfter(self.frame.onReachable)

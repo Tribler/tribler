@@ -17,6 +17,8 @@ class standardFilter(wx.Panel):
         self.filterData = filterData
         self.filterState = {}
         self.filters = {}
+        self.guiUtility = GUIUtility.getInstance()
+        self.utility = self.guiUtility.utility
         self.state = None
         pre = wx.PrePanel()
         # the Create step is done by XRC.
@@ -34,8 +36,6 @@ class standardFilter(wx.Panel):
         # Do all init here
         self.SetBackgroundColour(wx.Colour(153,153,153))   
         self.parent = None
-        self.guiUtility = GUIUtility.getInstance()
-        self.utility = self.guiUtility.utility
         self.detailPanel = None
         self.addComponents()
         self.Show()

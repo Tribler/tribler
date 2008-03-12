@@ -176,11 +176,11 @@ class PersonsItemPanel(wx.Panel):
             window.Bind(wx.EVT_RIGHT_DOWN, self.mouseAction)            
 
     def getColumns(self):
-        return [{'sort':'content_name', 'reverse':True, 'title':'name', 'weight':1,'tip':self.utility.lang.get('C_personname') },
-                {'sort':'last_connected', 'reverse': True, 'title':'status', 'width':165, 'tip':self.utility.lang.get('C_status'), 'order':'down'},
-                {'sort':'nfiles', 'reverse':True, 'pic':'iconDiscFiles','width':40, 'tip':self.utility.lang.get('C_discfiles')},
-                {'sort':'npeers', 'reverse':True, 'pic':'iconDiscPersons', 'width':40, 'tip':self.utility.lang.get('C_discpersons')},                
-                {'sort':'similarity', 'reverse':True, 'pic':'heartSmall', 'width':60, 'tip':self.utility.lang.get('C_recommpersons')},
+        return [{'sort':'name', 'reverse':True, 'title':'name', 'weight':1,'tip':self.utility.lang.get('C_personname') },
+                {'sort':'last_connected', 'reverse': False, 'title':'status', 'width':165, 'tip':self.utility.lang.get('C_status'), 'order':'down'},
+                {'sort':'num_torrents', 'reverse':False, 'pic':'iconDiscFiles','width':40, 'tip':self.utility.lang.get('C_discfiles')},
+                {'sort':'num_peers', 'reverse':False, 'pic':'iconDiscPersons', 'width':40, 'tip':self.utility.lang.get('C_discpersons')},                
+                {'sort':'similarity', 'reverse':False, 'pic':'heartSmall', 'width':60, 'tip':self.utility.lang.get('C_recommpersons')},
                 {'sort':'friend', 'reverse':True, 'pic':'iconfriends', 'width':22, 'tip':self.utility.lang.get('C_friends')}
                 ]
                          
@@ -188,7 +188,7 @@ class PersonsItemPanel(wx.Panel):
         # set bitmap, rating, title
         
         #print >>sys.stderr,"pip: setData:",peer_data
-            
+                
         if peer_data is None:
             self.datacopy = None
         
@@ -196,7 +196,6 @@ class PersonsItemPanel(wx.Panel):
             if (self.datacopy['last_connected'] == peer_data['last_connected'] and
                 self.datacopy['similarity'] == peer_data['similarity'] and
                 self.datacopy['name'] == peer_data['name'] and
-                self.datacopy['content_name'] == peer_data['content_name'] and
                 self.datacopy.get('friend') == peer_data.get('friend')):
                 return
         
@@ -209,14 +208,13 @@ class PersonsItemPanel(wx.Panel):
             self.datacopy['last_connected'] = peer_data['last_connected']
             self.datacopy['similarity'] = peer_data['similarity']
             self.datacopy['name'] = peer_data['name']
-            self.datacopy['content_name'] = peer_data['content_name']
             self.datacopy['friend'] = peer_data.get('friend')
             
         else:
             peer_data = {}
         
-        if peer_data.get('content_name'):
-            title = peer_data['content_name'][:self.titleLength]
+        if peer_data.get('name'):
+            title = peer_data['name'][:self.titleLength]
             self.title.Enable(True)
             self.title.SetLabel(title)
             
@@ -226,7 +224,7 @@ class PersonsItemPanel(wx.Panel):
             try:
                 ipport = peer_data['ip']+':'+str(peer_data['port'])
             except:
-                ipport = peer_data['content_name']
+                ipport = peer_data['name']
             self.title.SetToolTipString(ipport)            
             
             if self.listItem:
@@ -257,19 +255,19 @@ class PersonsItemPanel(wx.Panel):
                     self.status.SetLabel( 'unknown')
                 
                 # number of Discovered files and persons
-                n = unicode(peer_data.get('npeers'))
+                n = unicode(peer_data.get('num_peers'))
                 if not n or n=='0':
                     n = '?'
                 self.discPersons.SetLabel(n)
 
-                t = unicode(peer_data.get('ntorrents'))
+                t = unicode(peer_data.get('num_torrents'))
                 if not t or t == '0':
                     t = '?'
                 self.discFiles.SetLabel(t)
 
                 
                 # -- taste issues
-                rank = peer_data.get('simTop',-1) 
+                rank = peer_data.get('simRank',-1) 
                 recommField = self.taste
                 if rank!=-1:
                     if rank == 1:
@@ -620,8 +618,8 @@ class ThumbnailViewer(wx.Panel):
         if self.dataBitmap:
             dc.DrawBitmap(self.dataBitmap, self.xpos,self.ypos, True)
 #        if self.mouseOver:
-        if self.data is not None and type(self.data)==type({}) and self.data.get('permid'):
-            rank = self.guiUtility.peer_manager.getRank(peer_data = self.data)#['permid'])
+        if self.data is not None and type(self.data)==dict and self.data.get('permid'):
+            rank = self.data['simRank']
             #because of the fact that hearts are coded so that lower index means higher ranking, then:
             heartBitmap = TasteHeart.getHeartBitmap(rank)
             if self.mouseOver:

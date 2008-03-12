@@ -1,19 +1,26 @@
 import wx, os, sys,time
 from traceback import print_exc
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from threading import currentThread
 
 DEBUG = False
 
 # find the heart bitmaps
 
-NUM_HEARTS = 5 #??
-BITMAPS = []
+try:
+    BITMAPS
+except:
+    BITMAPS = []
+    
+NUM_HEARTS = 5
+
                 
 class TasteHeart(wx.Panel):
     """
     Show an image of a heart
     """
-
+    
+    
     def __init__(self, *args, **kw):    
         if len(args) == 0: 
             self.backgroundColor = wx.Colour(102,102,102) 
@@ -39,7 +46,7 @@ class TasteHeart(wx.Panel):
         self.Bind(wx.EVT_LEFT_UP, self.guiUtility.buttonClicked)
         self.searchBitmaps()
         self.createBackgroundImage()
-        self.setHeartIndex(0)
+        self.setRank(1)
         #if self.bitmaps[0]:
         #    self.SetSize(self.bitmaps[0].GetSize())
 #        print self.Name
@@ -78,15 +85,12 @@ class TasteHeart(wx.Panel):
         else:
             recomm = 4
         
-        self.setHeartIndex(recomm)
-        
-    def setHeartIndex(self, index):
-        if not BITMAPS:
-            return
-        self.heartIndex = index
-        self.SetSize(BITMAPS[self.heartIndex].GetSize())
-        self.SetMinSize(BITMAPS[self.heartIndex].GetSize())
-        self.Refresh()
+        self.heartIndex = recomm
+        bitmap = getHeartBitmap(rank)
+        if bitmap:
+            self.SetSize(bitmap.GetSize())
+            self.SetMinSize(bitmap.GetSize())
+            self.Refresh()
         
     def mouseAction(self, event):
         if event.Entering():
@@ -207,8 +211,8 @@ class TasteHeart(wx.Panel):
         
 
 def getHeartBitmap(rank):
-    global BITMAPS
     #because of the fact that hearts are coded so that lower index means higher ranking, then:
+    # print >> sys.stderr, 'getHeartBitmap(%d) called in %s' % (rank, currentThread().getName())
     if rank > 0 and rank <= 5:
         recomm = 0
     elif rank > 5 and rank <= 10:
@@ -220,6 +224,7 @@ def getHeartBitmap(rank):
     else:
         recomm = -1
         
+    #print >> sys.stderr, 'Showing bitmap %d/%d' % (recomm, len(BITMAPS))
     if recomm >= 0:
         b = BITMAPS[recomm]
         if not b:
@@ -231,7 +236,6 @@ def getHeartBitmap(rank):
         return None
                 
 def set_tasteheart_bitmaps(syspath):
-    global BITMAPS
     imagedir = os.path.join(syspath, 'Tribler', 'Main', 'vwxGUI', 'images')
     for i in xrange(NUM_HEARTS):
         filename = os.path.join(imagedir, 'heart%d.png' % (i+1))
@@ -239,4 +243,4 @@ def set_tasteheart_bitmaps(syspath):
             BITMAPS.append(wx.Bitmap(filename, wx.BITMAP_TYPE_ANY))
         else:
             print >>sys.stderr,'TasteHeart: Could not find image: %s' % filename
-    print 'Adding %d BITMAPS' % len(BITMAPS)
+    print 'Adding %d BITMAPS in %s' % (len(BITMAPS), currentThread().getName())

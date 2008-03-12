@@ -26,6 +26,7 @@ from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 # LAYERVIOLATION
 from Tribler.Core.CacheDB.CacheDBHandler import MyPreferenceDBHandler
 from Tribler.Core.CacheDB.CacheDBHandler import BarterCastDBHandler
+from Tribler.Core.simpledefs import *
 
 DETAILS_MODES = ['filesMode', 'personsMode', 'profileMode', 'libraryMode', 'friendsMode', 'subscriptionsMode', 'messageMode']
 
@@ -67,6 +68,7 @@ class standardDetails(wx.Panel):
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility        
         self.data_manager = TorrentDataManager.getInstance(self.utility)
+        self.peer_db = self.utility.session.open_dbhandler(NTFY_PEERS)
         #self.optionsButtonLibraryFunc = rightMouseButton.getInstance()
         self.iconsManager = IconsManager.getInstance()
         self.mydb = MyPreferenceDBHandler.getInstance()                    
@@ -474,8 +476,8 @@ class standardDetails(wx.Panel):
                     sizeField.SetLabel(torrent['length'])
 
                 creationField = self.getGuiObj('creationdateField')
-                if torrent.get('date',0):
-                    creationField.SetLabel(friendly_time(torrent['date']))
+                if torrent.get('creation_date',0):
+                    creationField.SetLabel(friendly_time(torrent['creation_date']))
                 else:
                     creationField.SetLabel('?')
                     
@@ -609,10 +611,11 @@ class standardDetails(wx.Panel):
             
 
             if self.getGuiObj('info_detailsTab').isSelected():
-                rank = self.guiUtility.peer_manager.getRank(peer_data=item)#['permid'])
                 
-                self.setRankToRecommendationField(rank)
-                self.getGuiObj('TasteHeart').setRank(rank)
+                if item.get('simRank'):
+                    print >> sys.stderr, 'SimRank of peer: %s' % item['simRank']
+                    self.setRankToRecommendationField(item['simRank'])
+                    self.getGuiObj('TasteHeart').setRank(item['simRank'])
                 
                 if item.get('online'):
                     self.getGuiObj('statusField').SetLabel( 'online')
@@ -1532,22 +1535,7 @@ class standardDetails(wx.Panel):
         if self.mode in ["personsMode","friendsMode"]:
             peer_data = self.item
             if peer_data is not None and peer_data.get('permid'):
-                #update the database
-#                    if not self.peer_manager.isFriend(peer_data['permid']):
-#                        self.contentFrontPanel.frienddb.deleteFriend(self.data['permid'])
-#                    else:
-                if self.guiUtility.peer_manager.isFriend(peer_data['permid']):
-                    bRemoved = self.guiUtility.peer_manager.deleteFriendwData(peer_data)
-                    if DEBUG:
-                        print >>sys.stderr,"standardDetails: removed friendship with",`peer_data['name']`,":",bRemoved
-                else:
-                    bAdded = self.guiUtility.peer_manager.addFriendwData(peer_data)
-                    if DEBUG:
-                        print >>sys.stderr,"standardDetails: added",`peer_data['name']`,"as friend:",bAdded
-                
-                #should refresh?
-                self.guiUtility.selectPeer(peer_data)
-
+               self.peer_db.toggleFriend(peer_data['permid'])
 
 
     def refreshTorrentStats_network_callback(self):

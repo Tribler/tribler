@@ -50,68 +50,8 @@ class standardOverview(wx.Panel):
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility
         self.categorykey = None
-        self.data_manager = TorrentDataManager.getInstance(self.utility)
         self.torrent_db = TorrentDBHandler.getInstance()
-        self.peer_manager = PeerDataManager.getInstance(self.utility) #the updateFunc is called after the data is updated in the peer manager so that the GUI has the newest information
-
-        def filterFuncFriend(peer_data):
-            return peer_data.get('friend')
-        self.peer_manager.registerFilter( 'friends', filterFuncFriend)
-        
-       
-        #register for gui events
-        self.peer_manager.registerGui(self.updateFunPersons) #no matter which of the two, persons or friends, is on, the same function is used
-
-        # ARNOCOMMENT: Can't we get rid of this thread now we have SQLlite?
-        # ARNOCOMMENT: Can't we get rid of PeerManager and DataManager now we have SQLlite?
-        class DataLoadingThread(Thread):
-            def __init__(self,owner):
-                Thread.__init__(self, name="DataLoadingThread")
-                self.setDaemon(True)
-                self.owner = owner
-
-            def run(self):
-                try:
-                    #first load the peer data
-#                    peer_list = None
-                    #wait for buddycast list only if the recommender is enabled
-                    
-                    #print >> sys.stderr, '[StartUpDebug]----------- thread data loading started'
-                    #first load torrent data from database
-                    #self.owner.data_manager.loadData()
-                    self.refreshView()
-                    #print >> sys.stderr, '[StartUpDebug]----------- thread torrent data loaded'
-                            
-                    #self.owner.peer_manager.loadData()
-                            
-    #                self.owner.sortData(self.owner.prepareData(buddycast_peer_list))
-                    #this initialization can be done in another place also
-                    
-#                    bcactive = self.owner.utility.config.Read('buddycast', "boolean")
-#                    if bcactive:
-#                        self.buddycast.data_ready_evt.wait()   # called by buddycast
-#                        # get the peer list in buddycast. Actually it is a dict, but it can be used
-#                        peer_list = self.buddycast.getAllPeerList()
-#                        if DEBUG:
-#                            print >>sys.stderr,"standardOverview: Buddycast signals it has loaded, release data for GUI thread", len(peer_list), currentThread().getName()
-                            
-#                    data = self.owner.peer_manager.prepareData()
-##                    if bcactive:
-##                        self.buddycast.removeAllPeerList()    # to reduce memory
-#                        
-#            #        self.sortData(data)
-#                    self.owner.peer_manager.applyFilters(data)
-#            #        print "<mluc> ################### size of data is ",len(self.filtered_data['all'])
-#                    self.owner.peer_manager.isDataPrepared = True
-                    #print >> sys.stderr, '[StartUpDebug]----------- thread peer data loaded'
-                    
-                except:
-                    print_exc()
-                #wx.CallAfter(self.owner.OnLoadingDone)
-
-            def refreshView(self):
-                wx.CallAfter(self.owner.filterChanged)
-
+      
         self.mode = None
         self.data = {} #keeps gui elements for each mode
         for mode in OVERVIEW_MODES:
@@ -123,17 +63,8 @@ class standardOverview(wx.Panel):
         self.guiUtility.initStandardOverview(self)    # show file panel
         self.toggleLoadingDetailsPanel(True)
         
-        thr1=DataLoadingThread(self)
-        thr1.setDaemon(True)
-        thr1.start()
-        #print 'thread.start()'
-        
         #print >> sys.stderr, '[StartUpDebug]----------- standardOverview is in postinit ----------', currentThread().getName(), '\n\n'
         
-    def OnLoadingDone(self):
-        #self.data_manager.mergeData()
-        self.filterChanged()
-        self.toggleLoadingDetailsPanel(False)
         
     def addComponents(self):
         self.hSizer = wx.BoxSizer(wx.VERTICAL)
@@ -293,9 +224,9 @@ class standardOverview(wx.Panel):
             grid = self.data[self.mode].get('grid')
             grid.refreshData()
     
-    def filterChanged(self, filterState = None, setgui = False):
+    def filterChanged(self, filterState):
         if DEBUG:
-            print >>sys.stderr,"standardOverview: filterChanged",filterState,setgui,self.mode#,self.data[self.mode]
+            print >>sys.stderr,"standardOverview: filterChanged",filterState,self.mode#,self.data[self.mode]
         
         assert filterState is None or 'GridState' in str(type(filterState)), 'filterState is %s' % str(filterState)
         oldFilterState = self.data[self.mode].get('filterState')
@@ -303,16 +234,10 @@ class standardOverview(wx.Panel):
         if DEBUG:
             print >>sys.stderr,"standardOverview: filterChanged: from",oldFilterState,"to",filterState
         
-        if filterState is None :
-            filterState = oldFilterState
-        
-#        if filterState and oldFilterState:
-#            for i in xrange(len(filterState)):
-#                if filterState[i] == None:
-#                    filterState[i] = oldFilterState[i]
-#                        
-        if filterState is not None:
+        if filterState:
+            filterState.setDefault(oldFilterState)
             
+        if filterState and filterState.isValid():
             if self.mode in ('filesMode', 'personsMode', 'libraryMode'):
                 #self.loadTorrentData(filterState[0], filterState[1])
                 self.data[self.mode]['grid'].gridManager.set_state(filterState)
@@ -332,19 +257,15 @@ class standardOverview(wx.Panel):
                 if DEBUG:
                     print >>sys.stderr,'standardOverview: Filters not yet implemented in this mode'
                 return
-        
-        if DEBUG:
-            print >>sys.stderr,"standardOverview: before refreshData"
-
-        
-#        if setgui:
-#            filter = self.data[self.mode]['filter']
-#            if filter is not None:
-#                filter.setSelectionToFilter(filterState)
-        
-        #self.refreshData()
-        self.data[self.mode]['filterState'] = filterState
-                
+            
+            if DEBUG:
+                print >>sys.stderr,"standardOverview: before refreshData"
+    
+          
+            #self.refreshData()
+            self.data[self.mode]['filterState'] = filterState
+        else:
+            print >> sys.stderr, 'Invalid Filterstate:', filterState    
             
     def loadTorrentData(self, cat, sort, range = None):
         # cat can be 'all', 'friends', 'search', 'search_friends', None, self.data[self.mode].get('filterState')[0]

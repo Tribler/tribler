@@ -184,12 +184,16 @@ class ColumnHeaderBar(wx.Panel):
             if header != column:
                 header.setOrdering(None)
         if ordering == 'up' and not column.reverse or ordering == 'down' and column.reverse:
-            
             reverse = True
         else:
             reverse = False
-        oldfilter = self.guiUtility.standardOverview.getFilter().getState()
-        self.sorting = oldfilter.copy()
+        oldfilter = self.guiUtility.standardOverview.getFilter()
+        if oldfilter:
+            self.sorting = oldfilter.getState().copy()
+        else:
+            from Tribler.Main.vwxGUI.standardGrid import GridState
+            self.sorting = GridState(self.guiUtility.standardOverview.mode, 'all', None) # peerview has no filter
+        
         self.sorting.sort = column.sorting
         self.sorting.reverse = reverse
         self.guiUtility.standardOverview.filterChanged(self.sorting)

@@ -16,7 +16,7 @@ from peermanager import PeerDataManager
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
 #from Tribler.vwxGUI.filesFilter import filesFilter
-
+from Tribler.Main.vwxGUI.GridState import GridState
 
 from Tribler.Core.Utilities.utilities import *
 from Tribler.Main.Utility.constants import *
@@ -181,14 +181,13 @@ class GUIUtility:
             print >>sys.stderr,"GUIUtil: MainButtonClicked: unhandled name",name
             
     def standardFilesOverview(self ):        
-        from Tribler.Main.vwxGUI.standardGrid import GridState
         self.standardOverview.setMode('filesMode')
-        filters = None #self.standardOverview.getFilter().getState()
+        gridState = self.standardOverview.getFilter().getState()
         #if filters:
         #    filters[1] = 'seeder'
-        if not filters:
+        if not gridState or not gridState.isValid():
             gridState = GridState('filesMode', 'all', 'num_seeders')
-            self.standardOverview.filterChanged(gridState,setgui=True)
+        self.standardOverview.filterChanged(gridState)
         try:
             if self.standardDetails:
                 self.standardDetails.setMode('filesMode', None)
@@ -196,10 +195,9 @@ class GUIUtility:
             pass
         
     def standardPersonsOverview(self):
-        from Tribler.Main.vwxGUI.standardGrid import GridState
         self.standardOverview.setMode('personsMode')
         if not self.standardOverview.getSorting():
-            gridState = GridState('personsMode', 'all', 'name')
+            gridState = GridState('personsMode', 'all', 'name', reverse=True)
             self.standardOverview.filterChanged(gridState)
         self.standardDetails.setMode('personsMode')
         #self.standardOverview.clearSearch()
@@ -208,7 +206,8 @@ class GUIUtility:
     def standardFriendsOverview(self):
         self.standardOverview.setMode('friendsMode')
         if not self.standardOverview.getSorting():
-            self.standardOverview.filterChanged(('friends', 'content_name'))
+            gridState = GridState('friendsMode', 'all', 'name', reverse=True)
+            self.standardOverview.filterChanged(gridState)
         self.standardDetails.setMode('friendsMode')
         #self.standardOverview.clearSearch()
         #self.standardOverview.toggleSearchDetailsPanel(False)
@@ -220,8 +219,11 @@ class GUIUtility:
         
     def standardLibraryOverview(self):       
         self.standardOverview.setMode('libraryMode')
-        filters = self.standardOverview.getFilter().getState()        
-        self.standardOverview.filterChanged(filters, setgui = True)
+        gridState = self.standardOverview.getFilter().getState()
+        if not gridState:
+            gridState = GridState('libraryMode', 'all', 'name')
+        self.standardOverview.filterChanged(gridState)
+        
         self.standardDetails.setMode('libraryMode')
         
     def standardSubscriptionsOverview(self, filters = ['','']):       
@@ -241,8 +243,6 @@ class GUIUtility:
     def initStandardOverview(self, standardOverview):
         "Called by standardOverview when ready with init"
         self.standardOverview = standardOverview
-        self.peer_manager = standardOverview.peer_manager
-        self.data_manager = standardOverview.data_manager
         self.standardFilesOverview()
         wx.CallAfter(self.refreshOnResize)
 

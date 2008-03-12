@@ -275,8 +275,8 @@ class FilesItemPanel(wx.Panel):
                 else:
                     self.fileSize.SetLabel(self.utility.size_format(torrent['length']))
                 
-                if torrent.get('date'):
-                    self.creationDate.SetLabel(friendly_time(torrent['date']))
+                if torrent.get('creation_date'):
+                    self.creationDate.SetLabel(friendly_time(torrent['creation_date']))
                 else:
                     self.creationDate.SetLabel('')
                     
@@ -295,16 +295,16 @@ class FilesItemPanel(wx.Panel):
                     ##print '--tb-- there is taste'
                     print rank
                     if rank == 1:
-                        self.tasteHeart.SetToolTipString("%d" % rank + "st of top 20 of all discovered persons")
+                        self.tasteHeart.SetToolTipString("%d" % rank + "st of top 20 of all discovered files")
                         recommField.SetLabel("%d" % rank + "st")
                     elif rank == 2:
-                        self.tasteHeart.SetToolTipString("%d" % rank + "nd of top 20 of all discovered persons")
+                        self.tasteHeart.SetToolTipString("%d" % rank + "nd of top 20 of all discovered files")
                         recommField.SetLabel("%d" % rank + "nd")                        
                     elif rank == 3:
-                        self.tasteHeart.SetToolTipString("%d" % rank + "rd of top 20 of all discovered persons")
+                        self.tasteHeart.SetToolTipString("%d" % rank + "rd of top 20 of all discovered files")
                         recommField.SetLabel("%d" % rank + "rd")
                     else:
-                        self.tasteHeart.SetToolTipString("%d" % rank + "th of top 20 of all discovered persons")
+                        self.tasteHeart.SetToolTipString("%d" % rank + "th of top 20 of all discovered files")
                         recommField.SetLabel("%d" % rank + "th")
                     self.tasteHeart.Show()
                     self.tasteHeart.setRank(rank)

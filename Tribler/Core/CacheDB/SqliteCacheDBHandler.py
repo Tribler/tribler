@@ -18,8 +18,9 @@ import socket
 import threading
 import base64
 
+from Tribler.Core.simpledefs import *
 from bencode import bencode, bdecode
-#from Notifier import Notifier
+from Tribler.Core.CacheDB.Notifier import Notifier
 
 SHOW_ERROR = True
 
@@ -34,6 +35,7 @@ class BasicDBHandler:
     def __init__(self, table_name):
         self._db = SQLiteCacheDB.getInstance()
         self.table_name = table_name
+        self.notifier = Notifier.getInstance()
         
     def __del__(self):
         try:
@@ -306,7 +308,8 @@ class PeerDBHandler(BasicDBHandler):
             raise RuntimeError, "PeerDBHandler is singleton"
         PeerDBHandler.__single = self
         BasicDBHandler.__init__(self, 'Peer')
-        
+        self.rankList = None 
+        self.rankList_dirty = False
         #self.notifier = Notifier.getInstance()
         self.pref_db = PreferenceDBHandler.getInstance()
         self.mm = None
@@ -397,12 +400,14 @@ class PeerDBHandler(BasicDBHandler):
         
         if _permid is not None:
             value['permid'] = permid
-        if _permid is not None:
+        if _last_seen is not None:
             value['last_seen'] = _last_seen
-        if _permid is not None:
+        if _ip is not None:
             value['ip'] = _ip
-        if _permid is not None:
+        if _port is not None:
             value['port'] = _port
+            
+        self.notifier.notify(NTFY_PEERS, NTFY_INSERT, permid)
             
     def hasPeer(self, permid):
         return self._db.hasPeer(permid)
@@ -421,6 +426,7 @@ class PeerDBHandler(BasicDBHandler):
     
     def updatePeer(self, permid, **argv):
         self._db.update(self.table_name,  'permid='+repr(bin2str(permid)), **argv)
+        self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
 
     def deletePeer(self, permid=None, peer_id=None, force=False):
         # don't delete friend of superpeers, except that force is True
@@ -434,6 +440,7 @@ class PeerDBHandler(BasicDBHandler):
         if deleted:
             self.pref_db._deletePeer(peer_id=peer_id)
         #self._db._commit()
+        self.notifier.notify(NTFY_PEERS, NTFY_DELETE, permid)
             
     def updateTimes(self, permid, key, change=1):
         permid_str = bin2str(permid)
@@ -447,6 +454,7 @@ class PeerDBHandler(BasicDBHandler):
                 value += change
             sql_update_peer = "UPDATE Peer SET %s=? WHERE peer_id=?"%key
             self._db.execute(sql_update_peer, (value, peer_id))
+        self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
         
     def getPermIDByIP(self,ip):
         permid = self.getOne('permid', ip=ip)
@@ -468,10 +476,6 @@ class PeerDBHandler(BasicDBHandler):
         # load peers for GUI
         #print >> sys.stderr, 'getGUIPeers(%s, %s, %s, %s)' % (category_name, range, sort, reverse)
         """
-        old keys: 'content_name', 'simTop', 'name', 'last_connected', 'ip', 'port', 
-                  'similarity', 'ntorrents', 'nprefs', 'permid', 
-                  'connected_times', 'npeers', 'friend', 'buddycast_times'
-                  
         db keys: peer_id, permid, name, ip, port, thumbnail, oversion, 
                  similarity, friend, superpeer, last_seen, last_connected, 
                  last_buddycast, connected_times, buddycast_times, num_peers, 
@@ -479,9 +483,6 @@ class PeerDBHandler(BasicDBHandler):
         """
         value_name = ('permid', 'name', 'ip', 'port', 'similarity', 'friend',
                       'num_peers', 'num_torrents', 'num_prefs', 
-                      'connected_times', 'buddycast_times', 'last_connected')
-        key_name = ('permid', 'name', 'ip', 'port', 'similarity', 'friend',
-                      'npeers', 'ntorrents', 'nprefs', 
                       'connected_times', 'buddycast_times', 'last_connected')
         where = '(buddycast_times>0 or friend=1) '
         if category_name == 'friend':
@@ -503,23 +504,38 @@ class PeerDBHandler(BasicDBHandler):
         res_list = self.getAll(value_name, where, offset= offset, limit=limit, order_by=order_by)
         peer_list = []
         for item in res_list:
-            peer = dict(zip(key_name, item))
-            peer['content_name'] = dunno2unicode(peer['name'])
+            peer = dict(zip(value_name, item))
+            peer['name'] = dunno2unicode(peer['name'])
+            peer['simRank'] = self.getRank(peer['permid'])
             peer['permid'] = str2bin(peer['permid'])
             peer_list.append(peer)
         # peer_list consumes about 1.5M for 1400 peers, and this function costs about 0.015 second
         
         return  peer_list
 
+            
+    def getRank(self, permid):
+        #self.rankList_dirty = True # test: always read from db
+        if not self.rankList or self.rankList_dirty:
+            self.rankList_dirty = False
+            value_name = 'permid'
+            order_by = 'similarity desc'
+            rankList_size = 20
+            where = '(buddycast_times>0 or friend=1) '
+            res_list = self._db.getAll('Peer', value_name, where=where, limit=rankList_size, order_by=order_by)
+            self.rankList = [a[0] for a in res_list]
+        try:
+            return self.rankList.index(permid)+1
+        except:
+            return -1
+        
     def setMugshotManager(self,mm):
         self.mm = mm
 
     def updatePeerIcon(self, permid, icontype, icondata, updateFlag = True):
          if self.mm is not None:
              self.mm.save_data(permid, icontype, icondata)
-#        if updateFlag:
-#            self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid, 'icon')
-#    
+    
 
     def getPeerIcon(self, permid):
         if self.mm is not None:
@@ -671,7 +687,8 @@ class TorrentDBHandler(BasicDBHandler):
         # 0 - ''    # local added
         # 1 - BC
         # 2,3,4... - URL of RSS feed
-        
+        self.rankList = None
+        self.rankList_dirty = False
         self.keys = ['torrent_id', 'name', 'torrent_file_name',
                 'length', 'creation_date', 'num_files', 'thumbnail',
                 'insert_time', 'secret', 'relevance',
@@ -770,6 +787,9 @@ class TorrentDBHandler(BasicDBHandler):
         #print >>sys.stderr,"sqldbhand: addTorrent",currentThread().getName()
         data = self._prepareData(db_data)
         self._addTorrentToDB(infohash, data)
+        
+        self.notifier.notify(NTFY_TORRENTS, NTFY_INSERT, infohash)
+        
 
     def _prepareData(self, db_data):
         # prepare data to insert into torrent table
@@ -954,6 +974,8 @@ class TorrentDBHandler(BasicDBHandler):
             infohash_str = bin2str(infohash)
             where = "infohash='%s'"%infohash_str
             self._db.update(self.table_name, where, **kw)
+            
+        self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
         
     def updateTracker(self, infohash, kw, tier=1, tracker=None):
         torrent_id = self._db.getTorrentID(infohash)
@@ -971,6 +993,7 @@ class TorrentDBHandler(BasicDBHandler):
         else:
             where = 'torrent_id=%d AND tracker=%s'%(torrent_id, repr(tracker))
         self._db.update('TorrentTracker', where, **update)
+        self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
         
     def deleteTorrent(self, infohash, delete_file=False):
         if not self.hasTorrent(infohash):
@@ -987,6 +1010,7 @@ class TorrentDBHandler(BasicDBHandler):
         if deleted:
             self._deleteTorrent(infohash)
         
+        self.notifier.notify(NTFY_TORRENTS, NTFY_DELETE, infohash)
         return deleted
 
     def _deleteTorrent(self, infohash):
@@ -1035,17 +1059,13 @@ class TorrentDBHandler(BasicDBHandler):
                       'num_leechers', 'num_seeders',   'length', 
                       'secret', 'insert_time', 'source_id', 'torrent_file_name',
                       'relevance', 'infohash')
-            key_name = ('category', 'status', 'name', 'date', 'num_files', 
-                       'leecher', 'seeder',  'length', 
-                       'secret', 'inserttime', 'source', 'torrent_name',
-                       'relevance', 'infohash')
-            item = self._db.getOne(table_name, value_name, where, infohash=bin2str(infohash))
+            item = self._db.getOne('CollectedTorrent', value_name, where= "infohash='%s'" % bin2str(infohash))
             if not item:
                 return None
-            torrent = dict(zip(key_name, item))
-            torrent['source'] = self.id2src[torrent['source']]
-            torrent['category'] = [self.id2category[torrent['category']]]
-            torrent['status'] = self.id2status[torrent['status']]
+            torrent = dict(zip(value_name, item))
+            torrent['source'] = self.id2src[torrent['source_id']]
+            torrent['category'] = [self.id2category[torrent['category_id']]]
+            torrent['status'] = self.id2status[torrent['status_id']]
             torrent['infohash'] = str2bin(torrent['infohash'])
             return torrent
 
@@ -1055,13 +1075,13 @@ class TorrentDBHandler(BasicDBHandler):
         return [str2bin(p[0]) for p in res]
         
     def getNumberTorrents(self, category_name = 'all', library = False):
-        table = 'Torrent'
+        table = 'CollectedTorrent'
         value = 'count(*)'
         where = 'status_id=%d ' % self.status_table['good']
         if category_name != 'all':
             where += ' and category_id= %d' % self.category_table.get(category_name.lower(), -1) # unkown category_name returns no torrents
         if library:
-            where += ' and Torrent.torrent_id in (select torrent_id from MyPreference)'
+            where += ' and torrent_id in (select torrent_id from MyPreference)'
         return self._db.getOne(table, value, where)
         
     def getTorrents(self, category_name = 'all', range = None, library = False, sort = None, reverse = False):
@@ -1071,7 +1091,7 @@ class TorrentDBHandler(BasicDBHandler):
         
         @return Returns a list of dicts with keys: 
             torrent_id, infohash, name, category, status, creation_date, num_files, num_leechers, num_seeders,
-            length, secret, insert_time, source, torrent_filename, relevance, 
+            length, secret, insert_time, source, torrent_filename, relevance, simRank
             (if in library: myDownloadHistory, download_started, progress, dest_dir)
         
         """
@@ -1101,7 +1121,7 @@ class TorrentDBHandler(BasicDBHandler):
                 order_by = ' %s %s' % (sort, desc)
         else:
             order_by = None
-        res_list = self._db.getAll('Torrent', value_name, where, limit=limit, offset=offset, order_by=order_by)
+        res_list = self._db.getAll('CollectedTorrent', value_name, where, limit=limit, offset=offset, order_by=order_by)
         
         if library:
             mypref_stats = self.mypref_db.getMyPrefStats()
@@ -1113,6 +1133,7 @@ class TorrentDBHandler(BasicDBHandler):
             torrent['source'] = self.id2src[torrent['source_id']]
             torrent['category'] = [self.id2category[torrent['category_id']]]
             torrent['status'] = self.id2status[torrent['status_id']]
+            torrent['simRank'] = self.getRank(torrent['infohash'])
             torrent['infohash'] = str2bin(torrent['infohash'])
             #torrent['num_swarm'] = torrent['num_seeders'] + torrent['num_leechers'] 
             del torrent['source_id']
@@ -1134,6 +1155,23 @@ class TorrentDBHandler(BasicDBHandler):
         #print time()-s
         return  torrent_list
         
+    def getRank(self, infohash):
+        #self.rankList_dirty = True # test: always read from db
+        if not self.rankList or self.rankList_dirty:
+            self.rankList_dirty = False
+            value_name = 'infohash'
+            order_by = 'relevance desc'
+            rankList_size = 20
+            where = 'status_id=%d ' % self.status_table['good']
+            res_list = self._db.getAll('Torrent', value_name, where = where, limit=rankList_size, order_by=order_by)
+            self.rankList = [a[0] for a in res_list]
+        try:
+            return self.rankList.index(infohash)+1
+        except:
+            return -1
+        
+            
+            
     def getCollectedTorrentHashes(self): 
         """ get infohashes of torrents on disk, used by torrent checking, 
             and metadata handler
@@ -1150,7 +1188,7 @@ class TorrentDBHandler(BasicDBHandler):
         """ Get all good torrents that have the specified keywords in their name. 
         Return a list of dictionaries. Each dict is in the NEWDBSTANDARD format.
         """
-        sql = 'select Infohash.infohash,Torrent.* from Torrent INNER JOIN Infohash ON Torrent.torrent_id = Infohash.torrent_id where Torrent.status_id = 1 and' 
+        sql = 'select * from Torrent where Torrent.status_id = 1 and' 
         
         for i in range(len(kws)):
             kw = kws[i]
@@ -1184,7 +1222,8 @@ class TorrentDBHandler(BasicDBHandler):
         del torrent['category_id']
         return torrent
 
-
+    
+        
 class MyPreferenceDBHandler(BasicDBHandler):
     
     __single = None    # used for multithreaded singletons pattern

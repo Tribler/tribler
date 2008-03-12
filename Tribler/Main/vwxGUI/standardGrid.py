@@ -11,7 +11,7 @@ from Tribler.Core.CacheDB.CacheDBHandler import SuperPeerDBHandler
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler, PeerDBHandler
 from Tribler.Core.simpledefs import *
-
+from Tribler.Main.vwxGUI.GridState import GridState
 from Tribler.Core.Utilities.utilities import *
 from traceback import print_exc,print_stack
 
@@ -20,19 +20,7 @@ import web2
 
 DEBUG = False
 
-class GridState(object):
-    def __init__(self, db, category, sort, reverse = False, library = False):
-        self.db = db        # Constant from simpledefs, f.i. NTFY_TORRENTS
-        self.category = category
-        self.sort = sort
-        self.reverse = reverse
-        self.library = library
-    def __str__(self):
-        return '(db: %s, cat: %s, sort: %s, rev: %s, lib: %s)' % (self.db,self.category,self.sort,self.reverse,self.library)
-        
-    def copy(self):
-        return GridState(self.db, self.category, self.sort, self.reverse, self.library)
-    
+
 class GridManager(object):
     """ Grid manager handles:
          - handling of notifies in grid
@@ -40,15 +28,20 @@ class GridManager(object):
          - retrieval of data from db on state changes from GUI
         
     """
-    def __init__(self, grid):
-        self.torrent_db_handler = TorrentDBHandler.getInstance()
-        self.peer_db_handler = PeerDBHandler.getInstance()
+    def __init__(self, grid, utility):
+        self.session = utility.session
+        
+        self.peer_db_handler = self.session.open_dbhandler(NTFY_PEERS)
+        self.torrent_db_handler = self.session.open_dbhandler(NTFY_TORRENTS)
+        
+        self.state = None
         self.total_items = 0
         self.page = 0
         self.grid = grid
         self.data = []
         
     def set_state(self, state, reset_page = False):
+        self.setObserver(state, self.state)
         self.state = state
         if reset_page:
             page = 0
@@ -61,7 +54,7 @@ class GridManager(object):
         if not self.grid.initReady:
             wx.CallAfter(self.refresh)
         self.data, self.total_items = self._getData(self.state)
-        print >> sys.stderr, 'Data length: %d/%d' % (len(self.data), self.total_items)
+        # print >> sys.stderr, 'Data length: %d/%d' % (len(self.data), self.total_items)
         self.grid.setData(self.data)
         #if DEBUG:
         print >> sys.stderr, 'GridManager: state: %s gave %d results' % (self.state, len(self.data))
@@ -88,6 +81,7 @@ class GridManager(object):
             total_items = self.peer_db_handler.getNumberPeers(category_name = state.category)
             data = self.peer_db_handler.getGUIPeers(category_name = state.category, 
                                                     sort = state.sort,
+                                                    reverse = state.reverse,
                                                     range = range)
             
         else:
@@ -95,6 +89,69 @@ class GridManager(object):
     
         return data, total_items
     
+    def _last_page(self):
+        return 0 < len(self.data) < self.grid.items
+    
+    def setObserver(self, newstate, oldstate):
+        if oldstate is None or newstate.db != oldstate.db:
+            self.session.remove_observer(self.item_network_callback)
+            self.session.add_observer(self.item_network_callback,ntfy_mappings[newstate.db])
+        
+    def item_network_callback(self, *args):
+        wx.CallAfter(self.itemChanged, *args)
+        
+    def itemChanged(self,subject,changeType,objectID,*args):
+        print >> sys.stderr, 'GridManager: itemChanged: %s %s %s %s' % (subject, changeType, objectID, args)
+        if changeType == NTFY_INSERT:
+            self.itemAdded(subject, objectID, args)
+        elif changeType == NTFY_UPDATE:
+            self.itemUpdated(subject, objectID, args)
+        elif changeType == NTFY_DELETE:
+            self.itemDeleted(subject, objectID, args)
+        else:
+            raise Exception()
+    
+    def itemAdded(self,subject, objectID, args):
+        if self._last_page():
+            if self.isRelevantItem(subject, objectID):
+                self.refresh()
+    
+    def itemUpdated(self,subject, objectID, args):
+        if self._objectOnPage(subject, objectID):
+            self.refresh()
+    
+    def itemDeleted(self,subject, objectID, args):
+        if self._objectOnPage(subject, objectID):
+            self.refresh()
+    
+    def _objectOnPage(self, subject, objectID):
+        if subject in (NTFY_PEERS, NTFY_FRIENDS):
+            id_name = 'permid'
+        elif subject in (NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_SUPERPEERS):
+            id_name = 'infohash'
+        elif subject in (NTFY_YOUTUBE):
+            raise Exception('Not yet implemented')
+        
+        return objectID in [a[id_name] for a in self.data]
+       
+    def isRelevantItem(self, subject, objectID):
+        if subject == NTFY_PEERS:
+            raise Exception('Not yet implemented')
+        elif subject == NTFY_FRIENDS:
+            raise Exception('Not yet implemented')
+        elif subject in (NTFY_TORRENTS):
+            id_name = 'infohash'
+            torrent = self.session.open_dbhandler(subject).getTorrent(objectID)
+            return torrent is not None and torrent['status'] == 'good'
+        
+        elif subject in (NTFY_YOUTUBE):
+            raise Exception('Not yet implemented')
+        
+        return objectID in [a[id_name] for a in self.data]
+    
+        
+            
+        
 class standardGrid(wx.Panel):
     """
     Panel which shows a grid with static number of columns and dynamic number
@@ -113,7 +170,9 @@ class standardGrid(wx.Panel):
         self.topMargin = 5
         self.panels = []
         self.viewmode = viewmode
-        self.gridManager = GridManager(self)
+        self.guiUtility = GUIUtility.getInstance()
+        self.utility = self.guiUtility.utility
+        self.gridManager = GridManager(self, self.utility)
         pre = wx.PrePanel()
         # the Create step is done by XRC.
         self.PostCreate(pre)
@@ -153,8 +212,7 @@ class standardGrid(wx.Panel):
 
         #self.SetSize((500,500))
         self.SetBackgroundColour(wx.BLACK)
-        self.guiUtility = GUIUtility.getInstance()
-        self.utility = self.guiUtility.utility
+        
         #self.cols = 5
         
         self.Bind(wx.EVT_SIZE, self.onResize)
@@ -263,8 +321,7 @@ class standardGrid(wx.Panel):
         if type(dataList) == list or dataList is None:
             print 'grid.setData: list'
             self.data = dataList
-            
-                
+     
         if not self.initReady:
             return
                 

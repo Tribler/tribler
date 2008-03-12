@@ -56,7 +56,7 @@ class FilesList(tribler_List):
             self.Bind(wx.EVT_SIZE, self.onListResize)
         self.initReady = True
 
-    def setData(self, torrent, metadatahandler):
+    def setData(self, torrent, metadatahandler=None):
         # Get the file(s)data for this torrent
         if not self.initReady:
             self._PostInit()
