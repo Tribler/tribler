@@ -20,6 +20,12 @@ import web2
 
 DEBUG = False
 
+ntfy_mappings = {'filesMode':NTFY_TORRENTS,
+                 'personsMode':NTFY_PEERS,
+                 'libraryMode':NTFY_DOWNLOADS,
+                 'friendsMode':NTFY_FRIENDS
+                 }
+
 
 class GridManager(object):
     """ Grid manager handles:

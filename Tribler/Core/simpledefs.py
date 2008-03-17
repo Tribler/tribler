@@ -54,12 +54,6 @@ NTFY_ACTIVITIES = 'activities' # an activity was set (peer met/dns resolved)
 NTFY_REACHABLE = 'reachable'   # the Session is reachable from the Internet
 
 
-ntfy_mappings = {'filesMode':NTFY_TORRENTS,
-                 'peersMode':NTFY_PEERS,
-                 'libraryMode':NTFY_DOWNLOADS,
-                 'friendsMode':NTFY_FRIENDS
-                 }
-
 # changeTypes
 NTFY_UPDATE = 'update'         # data is updated
 NTFY_INSERT = 'insert'         # new data is inserted
