@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Written by Bram Cohen
 # modified for multitracker by John Hoffman
 # modified for Merkle hashes and digital signatures by Arno Bakker
@@ -9,22 +7,14 @@ import sys
 import wx
 import wx.lib.imagebrowser as ib
 import os
-import cStringIO
-import shutil
 
-from os.path import join, isdir, exists, normpath, split
 from threading import Event, Thread, currentThread
-from shutil import copy2
 from tempfile import mkstemp
-from binascii import hexlify
-
 from traceback import print_exc
 
-from Tribler.Main.TorrentMaker.btmakemetafile import make_meta_file, completedir
+from Tribler.Core.API import *
 
-from Tribler.Main.Utility.helpers import union
-from Tribler.Main.Utility.constants import * #IGNORE:W0611
-from Tribler.Main.Dialogs.abcoption import get_itracker_url
+FILESTOIGNORE = ['core', 'CVS']
 
 DEBUG = False
 
@@ -92,7 +82,6 @@ class MiscInfoPanel(wx.Panel):
 
         thumbfn = self.thumbCtl.GetValue()
         if len(thumbfn) > 0:
-            jpgdata = None
             try:
                 im = wx.Image(thumbfn)
                 ims = im.Scale(171,96)
@@ -100,14 +89,9 @@ class MiscInfoPanel(wx.Panel):
                 [thumbhandle,thumbfilename] = mkstemp("torrent-thumb")
                 os.close(thumbhandle)
                 ims.SaveFile(thumbfilename,wx.BITMAP_TYPE_JPEG)
-                f = open(thumbfilename,"rb")
-                jpgdata = f.read()
-                f.close()
+                params['thumb'] = thumbfilename 
             except:
                 print_exc()
-            
-            if jpgdata is not None:
-                params['thumb'] = jpgdata
 
         playt = self.playtCtl.GetValue()
         if playt != '':
@@ -175,7 +159,7 @@ class TrackerInfoPanel(wx.Panel):
 
         # Use internal tracker?
         itracker_box = wx.BoxSizer(wx.HORIZONTAL)
-        prompt = self.utility.lang.get('useinternaltracker')+' ('+get_itracker_url(self.utility)+')'
+        prompt = self.utility.lang.get('useinternaltracker')+' ('+self.utility.session.get_internal_tracker_url()+')'
         self.itracker = wx.CheckBox(self, -1, prompt)
         wx.EVT_CHECKBOX(self, self.itracker.GetId(), self.OnInternalTracker)
         itracker_box.Add(self.itracker, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
@@ -383,7 +367,7 @@ class TrackerInfoPanel(wx.Panel):
             # Announce list
             annlist = self.getAnnounceList()
             if annlist:
-                params['real_announce_list'] = annlist
+                params['announce-list'] = annlist
             
             # Announce URL
             announceurl = None
@@ -404,12 +388,12 @@ class TrackerInfoPanel(wx.Panel):
             params['announce'] = announceurl
         else:
             # Use just internal tracker
-            params['announce'] = get_itracker_url(self.utility)
+            params['announce'] = self.utility.session.get_internal_tracker_url()
                    
         # HTTP Seeds
         httpseedlist = self.getHTTPSeedList()
         if httpseedlist:
-            params['real_httpseeds'] = httpseedlist
+            params['httpseeds'] = httpseedlist
 
         return params
     
@@ -474,7 +458,7 @@ class FileInfoPanel(wx.Panel):
                          '64' + abbrev_kb, 
                          '32' + abbrev_kb]
         self.piece_length = wx.Choice(self, -1, choices = piece_choices)
-        self.piece_length_list = [0, 21, 20, 19, 18, 17, 16, 15]
+        self.piece_length_list = [0, 2**21, 2**20, 2**19, 2**18, 2**17, 2**16, 2**15]
         piecesize_box.Add(self.piece_length, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         
         outerbox.Add(piecesize_box, 0, wx.EXPAND)
@@ -599,18 +583,16 @@ class FileInfoPanel(wx.Panel):
         params = {}
         self.targeted = []
         
-        params['piece_size_pow2'] = self.piece_length_list[self.piece_length.GetSelection()]
+        params['piece length'] = self.piece_length_list[self.piece_length.GetSelection()]
         
-        gethash = {}
         if self.makehash_md5.GetValue():
-            gethash['md5'] = True
+            params['makehash_md5'] = True
         if self.makehash_crc32.GetValue():
-            gethash['crc32'] = True
+            params['makehash_crc32'] = True
         if self.makehash_sha1.GetValue():
-            gethash['sha1'] = True   
-        params['gethash'] = gethash
+            params['makehash_sha1'] = True   
         if self.createmerkletorrent.GetValue():
-            params['merkle_torrent'] = 1
+            params['createmerkletorrent'] = 1
         if self.createtorrentsig.GetValue():
             params['permid signature'] = 1
 ##
@@ -728,8 +710,6 @@ class TorrentMaker(wx.Frame):
         self.Show()
 
     def closeWin(self, event = None):
-        self.utility.actions[ACTION_MAKETORRENT].torrentmaker = None
-        
         savetordeffolder = self.fileInfoPanel.savetordeftext.GetValue()
         self.utility.makerconfig.Write('savetordeffolder', savetordeffolder)
         self.utility.makerconfig.Write('announcehistory', self.trackerInfoPanel.announcehistory, "bencode-list")
@@ -755,12 +735,14 @@ class TorrentMaker(wx.Frame):
             dlg.Destroy()
             return
         
-        params = self.fileInfoPanel.getParams()
-        params = union(params, self.trackerInfoPanel.getParams())
-        params = union(params, self.miscInfoPanel.getParams())
+        params = {}
+        params.update(tdefdefaults)
+        params.update(self.fileInfoPanel.getParams())
+        params.update(self.trackerInfoPanel.getParams())
+        params.update(self.miscInfoPanel.getParams())
 
         try:
-            CompleteDir(self, filename, params['announce'], params)
+            CompleteDir(self, filename, params)
         except:
             oldstdout = sys.stdout
             sys.stdout = sys.stderr
@@ -776,9 +758,9 @@ class TorrentMaker(wx.Frame):
 #
 ################################################################
 class CompleteDir:
-    def __init__(self, parent, d, a, params):
-        self.d = d
-        self.a = a
+    def __init__(self, parent, srcpath, params):
+        self.srcpath = srcpath
+        self.params = params
         self.startnow = parent.fileInfoPanel.startnow.GetValue() 
         
         self.usinginternaltracker = False
@@ -794,16 +776,6 @@ class CompleteDir:
         self.separatetorrents = False
         self.files = []
         
-        # See if we need to get md5sums for each file
-        if 'gethash' in params:
-            self.gethash = params['gethash']
-        else:
-            self.gethash = None
-            
-        # Can remove it from params before we pass things on
-        if 'gethash' in params:
-            del params['gethash']
-
         if isdir(d):
             self.choicemade = Event()
             frame = wx.Frame(None, -1, self.utility.lang.get('btmaketorrenttitle'), size = (1, 1))
@@ -877,8 +849,8 @@ class CompleteDir:
         g2.AddGrowableCol(0)
         panel.SetSizer(g2)
         panel.SetAutoLayout(True)
-        wx.EVT_BUTTON(frame, self.button.GetId(), self.done)
-        wx.EVT_CLOSE(frame, self.done)
+        wx.EVT_BUTTON(frame, self.button.GetId(), self.onDone)
+        wx.EVT_CLOSE(frame, self.onDone)
         EVT_INVOKE(frame, self.onInvoke)
         frame.Show(True)
         Thread(target = self.complete).start()
@@ -886,19 +858,11 @@ class CompleteDir:
     def complete(self):        
         try:
             if self.separatetorrents:
-                completedir(self.d, self.a, self.params, self.flag, self.valCallback, self.fileCallback, gethash = self.gethash)
+                completedir(self.d, self.a, self.params, self.flag, self.progressCallback, self.fileCallback, gethash = self.gethash)
             else:
-                make_meta_file(self.d, self.a, self.params, self.flag, self.valCallback, progress_percent = 1, fileCallback = self.fileCallback, gethash = self.gethash)
+                make_meta_file(self.srcpath, self.params, self.flag, self.progressCallback, progress_percent = 1, fileCallback = self.fileCallback)
             if not self.flag.isSet():
                 self.completeCallback()
-
-            if self.startnow:
-                # When seeding immediately, copy torrents to config dir
-                for list in self.files:
-                    torrentfile = list[1]
-                    copy2(normpath(torrentfile), os.path.join(self.utility.getConfigPath(), "torrent"))
-                    torrentfile4seed = os.path.join(self.utility.getConfigPath(), "torrent", split(normpath(torrentfile))[1])
-                    list.append(torrentfile4seed)
         except (OSError, IOError), e:
             self.errorCallback(e)
 
@@ -926,26 +890,18 @@ class CompleteDir:
         self.gauge.SetValue(1000)
         self.button.SetLabel(self.utility.lang.get('close'))
 
-    def valCallback(self, amount):
-        wx.CallAfter(self.onVal,amount)
+    def progressCallback(self, amount):
+        wx.CallAfter(self.OnProgressUpdate,amount)
 
-    def onVal(self, amount):
+    def OnProgressUpdate(self, amount):
         target = int(amount * 1000)
         old = self.gauge.GetValue()
         perc10 = self.gauge.GetRange()/10
         if target > old+perc10: # 10% increments
             self.gauge.SetValue(target)
 
-    def fileCallback(self, orig, torrent, infohash):
+    def fileCallback(self, orig, torrent):
         self.files.append([orig,torrent])
-        
-        # Internal tracker
-        if self.usinginternaltracker:
-            # Use predictable filename so we can delete it when the user deletes the torrent
-            fn = hexlify(infohash)+'.torrent'
-            absfn = os.path.join(self.utility.getConfigPath(),'itracker',fn)
-            shutil.copy(torrent,absfn)
-        
         wx.CallAfter(self.onFile,torrent)
 
     def onFile(self, torrent):
@@ -953,14 +909,113 @@ class CompleteDir:
             print "onFile thread",currentThread()
         self.currentLabel.SetLabel(self.utility.lang.get('building') + torrent)
 
-    def done(self, event):
-        if DEBUG:
-            print "done thread",currentThread()
+    def onDone(self, event):
         self.flag.set()
         self.frame.Destroy()
-        if self.parent.fileInfoPanel.startnow.GetValue():
+        if self.startnow:
             # When seeding immediately, add torrents to queue
-            for list in self.files:
-                orig = list[0]
-                torrentfile4seed = list[2]
-                self.utility.queue.addtorrents.AddTorrentFromFile(torrentfile4seed, dest = orig, caller='torrentmaker')
+            for orig,torrentfilename in self.files:
+                try:
+                    absorig = os.path.abspath(orig)
+                    if os.path.isfile(absorig):
+                        # To seed a file, destdir must be one up.
+                        destdir = os.path.dirname(absorig) 
+                    else:
+                        destdir = absorig
+                        
+                    tdef = TorrentDef.load(torrentfilename)
+                    dscfg = DownloadStartupConfig()
+                    dscfg.set_dest_dir(destdir)
+                    self.utility.session.start_download(tdef,dscfg)
+                    
+                except Exception,e:
+                    print_exc()
+                    self.onError(e)
+
+
+def make_meta_file(srcpath,params,userabortflag,progressCallback,torrentfilenameCallback):
+    
+    tdef = TorrentDef()
+    
+    if not os.path.isdir(srcpath):
+        tdef.add_content(srcpath,playtime=params['playtime'])
+    else:
+        srcbasename = os.path.basename(os.path.normpath(srcpath))
+        for filename in os.listdir(srcpath):
+            inpath = os.path.join(srcpath,filename)
+            outpath = os.path.join(srcbasename,filename)
+            # h4x0r playtime
+            tdef.add_content(inpath,outpath,playtime=params['playtime'])
+            
+    if params['comment']:
+        tdef.set_comment(params['comment'])
+    if params['created by']:
+        tdef.set_created_by(params['created by'])
+    if params['announce']:
+        tdef.set_tracker(params['announce'])
+    if params['announce-list']:
+        tdef.set_tracker_hierarchy(params['announce-list'])
+    if params['nodes']: # mainline DHT
+        tdef.set_dht_nodes(params['nodes'])
+    if params['httpseeds']:
+        tdef.set_httpseeds(params['httpseeds'])
+    if params['encoding']:
+        tdef.set_encoding(params['encoding'])
+    if params['piece length']:
+        tdef.set_piece_length(params['piece length'])
+    if params['makehash_md5']:
+        tdef.set_add_md5hash(params['makehash_md5'])
+    if params['makehash_crc32']:
+        tdef.set_add_crc32(params['makehash_crc32'])
+    if params['makehash_sha1']:
+        tdef.set_add_sha1hash(params['makehash_sha1'])
+    if params['createmerkletorrent']:
+        tdef.set_create_merkle_torrent(params['createmerkletorrent'])
+    if params['torrentsigkeypairfilename']:
+        tdef.set_signature_keypair_filename(params['torrentsigkeypairfilename'])
+    if params['thumb']:
+        tdef.set_thumbnail(params['thumb'])
+        
+    tdef.finalize(userabortflag=userabortflag,userprogresscallback=progressCallback)
+    
+    if params['createmerkletorrent']:
+        postfix = TRIBLER_TORRENT_EXT
+    else:
+        postfix = '.torrent'
+    
+    if 'target' in params and params['target']:
+        torrentfilename = os.path.join(params['target'], os.path.split(os.path.normpath(srcpath))[1] + postfix)
+    else:
+        a, b = os.path.split(srcpath)
+        if b == '':
+            torrentfilename = a + postfix
+        else:
+            torrentfilename = os.path.join(a, b + postfix)
+            
+    tdef.save(torrentfilename)
+    
+    # Inform higher layer we created torrent
+    torrentfilenameCallback(srcpath,torrentfilename)
+    
+def completedir(srcpath, params, userabortflag, progressCallback, torrentfilenameCallback):
+    merkle_torrent = params['createmerkletorrent'] == 1
+    if merkle_torrent:
+        ext = TRIBLER_TORRENT_EXT
+    else:
+        ext = '.torrent'
+    srcfiles = listdir(srcpath)
+    srcfiles.sort()
+
+    # Filter out any .torrent files
+    goodfiles = []
+    for srcfile in srcfiles:
+        if srcfile[-len(ext):] != ext and (srcfile + ext) not in srcfiles:
+            goodfile = os.path.join(srcpath, srcfile)
+            goodfiles.append(goodfile)
+        
+    for goodfile in goodfiles:
+        basename = split(goodfile)[-1]
+        # Ignore cores, CVS and dotfiles
+        if basename not in FILESTOIGNORE and basename[0] != '.':
+            make_meta_file(goodfile, params,userabortflag,progressCallback,torrentfilenameCallback)
+    

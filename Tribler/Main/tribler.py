@@ -32,12 +32,21 @@ original_open_https = urllib.URLopener.open_https
 import M2Crypto
 urllib.URLopener.open_https = original_open_https
 
-import locale
+# Arno, 2008-03-21: see what happens when we disable this locale thing. Gives
+# errors on Vista in "Regional and Language Settings Options" different from 
+# "English[United Kingdom]" 
+#import locale
 import signal
-import wx, commands
+import commands
+
+try:
+    import wxversion
+    wxversion.select('2.8')
+except:
+    pass
+import wx
 from wx import xrc
 #import hotshot
-
 
 from threading import Thread, Event,currentThread,enumerate
 from time import time, ctime, sleep
@@ -707,19 +716,19 @@ class ABCFrame(wx.Frame):
 #
 ##############################################################
 class ABCApp(wx.App):
-    def __init__(self, x, params, single_instance_checker, abcpath):
+    def __init__(self, x, params, single_instance_checker, installdir):
         self.params = params
         self.single_instance_checker = single_instance_checker
-        self.abcpath = abcpath
+        self.installdir = installdir
         self.error = None
         wx.App.__init__(self, x)
         
     def OnInit(self):
         try:
-            self.utility = Utility(self.abcpath)
+            self.utility = Utility(self.installdir)
             self.utility.app = self
             # Set locale to determine localisation
-            locale.setlocale(locale.LC_ALL, '')
+            #locale.setlocale(locale.LC_ALL, '')
 
             sys.stdout.write('Client Starting Up.\n')
             sys.stdout.write('Build: ' + self.utility.lang.get('build') + '\n')
@@ -749,7 +758,7 @@ class ABCApp(wx.App):
 
             #tribler_init(self.utility.getConfigPath(),self.utility.getPath(),self.db_exception_handler)
             
-            self.utility.postAppInit()
+            self.utility.postAppInit(os.path.join(self.installdir,'Tribler','Images','tribler.ico'))
             
             # Singleton for executing tasks that are too long for GUI thread and
             # network thread
@@ -1032,14 +1041,14 @@ def run(params = None):
     else:
         arg0 = sys.argv[0].lower()
         if arg0.endswith('.exe'):
-            abcpath = os.path.abspath(os.path.dirname(sys.argv[0]))
+            installdir = os.path.abspath(os.path.dirname(sys.argv[0]))
         else:
-            abcpath = os.getcwd()  
+            installdir = os.getcwd()  
         # Arno: don't chdir to allow testing as other user from other dir.
-        #os.chdir(abcpath)
+        #os.chdir(installdir)
 
         # Launch first abc single instance
-        app = ABCApp(0, params, single_instance_checker, abcpath)
+        app = ABCApp(0, params, single_instance_checker, installdir)
         configpath = app.getConfigPath()
         app.MainLoop()
 

@@ -16,7 +16,8 @@ from Tribler.Core.BitTornado.ConfigDir import ConfigDir
 from Tribler.Core.BitTornado.bencode import bdecode
 from Tribler.Core.defaults import dldefaults as BTDefaults
 from Tribler.Core.defaults import dldefaults,DEFAULTPORT
-from Tribler.Core.defaults import trackerdefaults as TrackerDefaults 
+from Tribler.Core.defaults import trackerdefaults as TrackerDefaults
+from Tribler.Core.defaults import tdefdefaults as TorrentDefDefaults 
 from Tribler.Core.BitTornado.parseargs import parseargs
 from Tribler.Core.BitTornado.zurllib import urlopen
 from Tribler.Core.BitTornado.__init__ import version_id
@@ -485,17 +486,18 @@ class Utility:
         self.webconfig = ConfigReader(webconfigfilepath, "ABC/Webservice", defaults)
 
     def setupTorrentMakerConfig(self):
+        # To keep fileformat compatible
         defaults = {
-            'piece_size': '0', 
-            'comment': '', 
-            'created_by': '', 
-            'announcedefault': '', 
+            'piece_size': '0', # An index into TorrentMaker.FileInfoPanel.piece_choices
+            'comment': TorrentDefDefaults['comment'], 
+            'created_by': TorrentDefDefaults['created by'], 
+            'announcedefault': TorrentDefDefaults['announce'], 
             'announcehistory': '', 
-            'announce-list': '', 
-            'httpseeds': '', 
-            'makehash_md5': '0', 
-            'makehash_crc32': '0', 
-            'makehash_sha1': '0', 
+            'announce-list': TorrentDefDefaults['announce-list'], 
+            'httpseeds': TorrentDefDefaults['httpseeds'], 
+            'makehash_md5': str(TorrentDefDefaults['makehash_md5']), 
+            'makehash_crc32': str(TorrentDefDefaults['makehash_crc32']), 
+            'makehash_sha1': str(TorrentDefDefaults['makehash_sha1']),
             'startnow': '1', 
             'savetorrent': '1',
             'createmerkletorrent': '1',
@@ -503,7 +505,7 @@ class Utility:
             'useitracker': '1',
             'manualtrackerconfig': '0'
         }
-
+        
         torrentmakerconfigfilepath = os.path.join(self.getConfigPath(), "maker.conf")
         self.makerconfig = ConfigReader(torrentmakerconfigfilepath, "ABC/TorrentMaker", defaults)
         
@@ -513,9 +515,9 @@ class Utility:
                
     # Initialization that has to be done after the wx.App object
     # has been created
-    def postAppInit(self):
+    def postAppInit(self,iconpath):
         try:
-            self.icon = wx.Icon(self.session.get_tracker_favicon(), wx.BITMAP_TYPE_ICO)
+            self.icon = wx.Icon(iconpath, wx.BITMAP_TYPE_ICO)
         except:
             pass
             

@@ -5,7 +5,8 @@ from traceback import print_exc,print_stack
 
 from Tribler.Core.API import *
 #from Tribler.Main.Dialogs.GUIServer import GUIServer
-from Tribler.Main.Dialogs.aboutme import *    
+from Tribler.Main.Dialogs.aboutme import *
+from Tribler.Main.Dialogs.TorrentMaker import TorrentMaker    
 #from Tribler.Main.Dialogs.abcoption import ABCOptionDialog
 #from Tribler.Main.TorrentMaker.btmaketorrentgui import TorrentMaker
     
@@ -128,9 +129,7 @@ class MainMenuBar(wx.MenuBar):
         pass
 
     def OnMenuCreateTorrent(self,event=None):
-        #self.torrentmaker = TorrentMaker(self.utility.frame)
-        pass
-
+        self.torrentmaker = TorrentMaker(self.utility.frame)
     
     def OnMenuCheckVersion(self,event=None):
         dialog = VersionDialog(self.utility.frame)

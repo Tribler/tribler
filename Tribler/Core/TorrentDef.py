@@ -494,7 +494,7 @@ class TorrentDef(Serializable,Copyable):
         The userprogresscallback function will be called by the calling thread. 
         
         @param userabortflag threading.Event() object
-        @param userprogresscallback Function accepting a percentage as first
+        @param userprogresscallback Function accepting a fraction as first
         argument. 
         """
         if self.readonly:

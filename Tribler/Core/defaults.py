@@ -175,7 +175,7 @@ tdefmetadefaults['makehash_crc32'] = 0
 tdefmetadefaults['makehash_sha1'] = 0
 tdefmetadefaults['createmerkletorrent'] = 0
 tdefmetadefaults['torrentsigkeypairfilename'] = None
-tdefmetadefaults['thumb'] = None
+tdefmetadefaults['thumb'] = None # JPEG data
 
 tdefdefaults = {}
 tdefdefaults.update(tdefdictdefaults)
