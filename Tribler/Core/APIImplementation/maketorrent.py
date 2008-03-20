@@ -214,10 +214,13 @@ def makeinfo(input,userabortflag,userprogresscallback):
             h = open(f, 'rb')
 
         if input['makehash_md5']:
+            print >>sys.stderr,"maketorrent: make MD5"
             hash_md5 = md5.new()
         if input['makehash_sha1']:
+            print >>sys.stderr,"maketorrent: make SHA1"
             hash_sha1 = sha()
         if input['makehash_crc32']:
+            print >>sys.stderr,"maketorrent: make CRC32"
             hash_crc32 = zlib.crc32('')
         
         while pos < size:
@@ -271,10 +274,13 @@ def makeinfo(input,userabortflag,userprogresscallback):
                 break
         
         if input['makehash_md5']:
+            print >>sys.stderr,"maketorrent: make md5 add"
             newdict['md5sum'] = hash_md5.hexdigest()
         if input['makehash_crc32']:
+            print >>sys.stderr,"maketorrent: make CRC32 add"
             newdict['crc32'] = "%08X" % hash_crc32
         if input['makehash_sha1']:
+            print >>sys.stderr,"maketorrent: make sha1 add"
             newdict['sha1'] = hash_sha1.digest()
         
         fs.append(newdict)
@@ -284,23 +290,24 @@ def makeinfo(input,userabortflag,userprogresscallback):
     if done > 0:
         pieces.append(sh.digest())
        
-    # 5. Create info dict         
+    # 5. Create info dict
+    adddict = {}         
     if len(subs) == 1:
-        flkey = 'length'
-        flval = num2num(totalsize)
+        adddict['length'] = num2num(totalsize)
+        adddict.update(fs[0]) 
         name = subs[0][0][0]
     else:
-        flkey = 'files'
-        flval = fs
-
+        adddict['files'] = fs
         outpath = input['files'][0]['outpath']
         l = filename2pathlist(outpath)
         name = l[0]
-        
-    infodict =  { 'piece length':num2num(piece_length), flkey: flval, 
-            'name': uniconvert(name,encoding),
-            'name.utf-8': uniconvert(name,'utf-8')}
-    
+
+    infodict =  { 'piece length':num2num(piece_length), 
+        'name': uniconvert(name,encoding),
+        'name.utf-8': uniconvert(name,'utf-8')}
+    infodict.update(adddict)
+
+    # Add piece info
     if input['createmerkletorrent']:
         merkletree = MerkleTree(piece_length,totalsize,None,pieces)
         root_hash = merkletree.get_root_hash()
@@ -311,8 +318,8 @@ def makeinfo(input,userabortflag,userprogresscallback):
     if 'live' in input and input['live']:
         infodict['live'] = 1
 
+    # Find and add playtime
     if len(subs) == 1:
-        # Find and add playtime
         for file in input['files']:
             if file['inpath'] == f:
                 if file['playtime'] is not None:

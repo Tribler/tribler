@@ -594,7 +594,7 @@ class FileInfoPanel(wx.Panel):
         if self.createmerkletorrent.GetValue():
             params['createmerkletorrent'] = 1
         if self.createtorrentsig.GetValue():
-            params['permid signature'] = 1
+            params['torrentsigkeypairfilename'] = self.utility.session.get_permid_keypair_filename()
 ##
         for i in range(3):
             if self.savetor[i].GetValue():
@@ -606,7 +606,7 @@ class FileInfoPanel(wx.Panel):
 
             # Check if default download folder is not a file and create it if necessary
             if exists(defdestfolder):
-                if not isdir(defdestfolder):
+                if not os.path.isdir(defdestfolder):
                     dlg = wx.MessageDialog(self, 
                                            message = self.utility.lang.get('notadir') + '\n' + \
                                                      self.utility.lang.get('savedtofolderwithsource'), 
@@ -776,7 +776,7 @@ class CompleteDir:
         self.separatetorrents = False
         self.files = []
         
-        if isdir(d):
+        if os.path.isdir(srcpath):
             self.choicemade = Event()
             frame = wx.Frame(None, -1, self.utility.lang.get('btmaketorrenttitle'), size = (1, 1))
             self.frame = frame
@@ -851,16 +851,15 @@ class CompleteDir:
         panel.SetAutoLayout(True)
         wx.EVT_BUTTON(frame, self.button.GetId(), self.onDone)
         wx.EVT_CLOSE(frame, self.onDone)
-        EVT_INVOKE(frame, self.onInvoke)
         frame.Show(True)
         Thread(target = self.complete).start()
 
     def complete(self):        
         try:
             if self.separatetorrents:
-                completedir(self.d, self.a, self.params, self.flag, self.progressCallback, self.fileCallback, gethash = self.gethash)
+                completedir(self.srcpath, self.params, self.flag, self.progressCallback, self.fileCallback)
             else:
-                make_meta_file(self.srcpath, self.params, self.flag, self.progressCallback, progress_percent = 1, fileCallback = self.fileCallback)
+                make_meta_file(self.srcpath, self.params, self.flag, self.progressCallback, self.fileCallback)
             if not self.flag.isSet():
                 self.completeCallback()
         except (OSError, IOError), e:
@@ -880,9 +879,6 @@ class CompleteDir:
         dlg.Destroy()
 
     def completeCallback(self):
-        
-        self.utility.controller.tracker_rescan_dir()
-        
         wx.CallAfter(self.onComplete)
     
     def onComplete(self):
@@ -938,14 +934,20 @@ def make_meta_file(srcpath,params,userabortflag,progressCallback,torrentfilename
     tdef = TorrentDef()
     
     if not os.path.isdir(srcpath):
-        tdef.add_content(srcpath,playtime=params['playtime'])
+        if 'playtime' in params:
+            tdef.add_content(srcpath,playtime=params['playtime'])
+        else:
+            tdef.add_content(srcpath)
     else:
         srcbasename = os.path.basename(os.path.normpath(srcpath))
         for filename in os.listdir(srcpath):
             inpath = os.path.join(srcpath,filename)
             outpath = os.path.join(srcbasename,filename)
             # h4x0r playtime
-            tdef.add_content(inpath,outpath,playtime=params['playtime'])
+            if 'playtime' in params:
+                tdef.add_content(inpath,outpath,playtime=params['playtime'])
+            else:
+                tdef.add_content(inpath,outpath)
             
     if params['comment']:
         tdef.set_comment(params['comment'])
@@ -964,10 +966,13 @@ def make_meta_file(srcpath,params,userabortflag,progressCallback,torrentfilename
     if params['piece length']:
         tdef.set_piece_length(params['piece length'])
     if params['makehash_md5']:
+        print >>sys.stderr,"TorrentMaker: make MD5"
         tdef.set_add_md5hash(params['makehash_md5'])
     if params['makehash_crc32']:
+        print >>sys.stderr,"TorrentMaker: make CRC32"
         tdef.set_add_crc32(params['makehash_crc32'])
     if params['makehash_sha1']:
+        print >>sys.stderr,"TorrentMaker: make SHA1"
         tdef.set_add_sha1hash(params['makehash_sha1'])
     if params['createmerkletorrent']:
         tdef.set_create_merkle_torrent(params['createmerkletorrent'])
