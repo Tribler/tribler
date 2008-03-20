@@ -10,7 +10,7 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton, SwitchButton
 from Tribler.Main.vwxGUI.bgPanel import ImagePanel
 from Tribler.Core.Utilities.unicode import *
-from Tribler.Main.Utility.utility import getMetainfo
+from Tribler.Main.Utility.utility import getMetainfo, similarTorrent, copyTorrent
 from Tribler.Main.vwxGUI.IconsManager import IconsManager
 from copy import deepcopy
 import cStringIO
@@ -56,7 +56,7 @@ class FilesItemPanel(wx.Panel):
         self.parent = parent
         self.listItem = (self.parent.cols == 1)
         self.data = None
-        self.datacopy = None
+        self.datacopy = {}
         self.titleLength = 137 # num characters
         self.triblerGrey = wx.Colour(128,128,128)
         self.selected = False
@@ -230,35 +230,15 @@ class FilesItemPanel(wx.Panel):
             print >>sys.stderr,"fip: setData:",stat
         """
         
-        if torrent is None:
-            self.datacopy = None
-            
-        # set bitmap, rating, title
-        if self.datacopy and torrent and self.datacopy['infohash'] == torrent['infohash']:
-            # Do not update torrents that have no new seeders/leechers/size
-            if (self.datacopy['num_seeders'] == torrent['num_seeders'] and
-                self.datacopy['num_leechers'] == torrent['num_leechers'] and
-                self.datacopy['length'] == torrent['length'] and
-                self.datacopy.get('myDownloadHistory') == torrent.get('myDownloadHistory')):
-                return
-                
-            
         self.data = torrent
-
-        if torrent is not None:
-            # deepcopy no longer works with 'ThumnailBitmap' on board
-            self.datacopy = {}
-            self.datacopy['infohash'] = torrent['infohash']
-            self.datacopy['num_seeders'] = torrent['num_seeders']
-            self.datacopy['num_leechers'] = torrent['num_leechers']
-            self.datacopy['length'] = torrent.get('length')
-            self.datacopy['myDownloadHistory'] = torrent.get('myDownloadHistory')
-            #web2.0 item elements
-            self.datacopy['web2'] = torrent.get('web2')
-            self.datacopy['preview'] = torrent.get('preview')
-        else:
+        
+        # Do not update if 'similar torrent' is set
+        if similarTorrent(self.datacopy, self.data):
+            return
+        self.datacopy = copyTorrent(self.data)
+        
+        if not torrent:
             torrent = {}
-            
         self.thumb.setTorrent(torrent)
 
         if torrent.get('name'):

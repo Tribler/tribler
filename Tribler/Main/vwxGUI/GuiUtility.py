@@ -81,7 +81,6 @@ class GUIUtility:
             self.refreshTracker()
         elif name == "addAsFriend" or name == 'deleteFriend':
             self.standardDetails.addAsFriend()
-            self.standardOverview.refreshData()
         elif name == 'download':
             self.standardDetails.download()
         elif name == 'addFriend':
@@ -731,7 +730,6 @@ class GUIUtility:
         
     def onChangeFriendStatus(self, event = None):
         self.standardDetails.addAsFriend()
-        self.standardOverview.refreshData()
         event.Skip()
 
     def onChangeFriendInfo(self, event = None):

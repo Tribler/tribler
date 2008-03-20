@@ -5,6 +5,7 @@ from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.Main.Dialogs.makefriends import MakeFriendsDialog
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.PersonsItemPanel import ThumbnailViewer
+from Tribler.Main.Utility.utility import similarPeer, copyPeer
 from Tribler.Core.Utilities.unicode import *
 from Tribler.Core.Utilities.utilities import show_permid_short
 from font import *
@@ -42,7 +43,7 @@ class FriendsItemPanel(wx.Panel):
         self.utility = self.guiUtility.utility
         self.parent = parent
         self.data = None
-        self.datacopy = None
+        self.datacopy = {}
         self.titleLength = 77 # num characters
         self.triblerGrey = wx.Colour(128,128,128)
         self.selected = False
@@ -170,29 +171,14 @@ class FriendsItemPanel(wx.Panel):
                                      
     def setData(self, peer_data):
         # set bitmap, rating, title
-        if peer_data is None:
-            self.datacopy = None
-                        
-        if self.datacopy is not None and peer_data is not None and self.datacopy['permid'] == peer_data['permid']:
-            if (self.datacopy['last_connected'] == peer_data['last_connected'] and
-                self.datacopy['similarity'] == peer_data['similarity'] and
-                self.datacopy['name'] == peer_data['name'] and
-                self.datacopy['content_name'] == peer_data['content_name'] and
-                self.datacopy.get('friend') == peer_data.get('friend')):
-                return
         
         self.data = peer_data
-        
-        if peer_data is not None:
-            # deepcopy no longer works with 'ThumnailBitmap' on board
-            self.datacopy = {}
-            self.datacopy['permid'] = peer_data['permid']
-            self.datacopy['last_connected'] = peer_data['last_connected']
-            self.datacopy['similarity'] = peer_data['similarity']
-            self.datacopy['name'] = peer_data['name']
-            self.datacopy['content_name'] = peer_data['content_name']
-            self.datacopy['friend'] = peer_data.get('friend')
-        else:
+        # do not reload similar peers
+        if similarPeer(peer_data, self.datacopy):
+            return
+        self.datacopy = copyPeer(peer_data)
+                        
+        if peer_data is None:
             peer_data = {}
 
         if peer_data.get('content_name'):
@@ -393,7 +379,7 @@ class FriendThumbnailViewer(ThumbnailViewer):
                 self.GetParent().helping.SetLabel(helping)
                 self.GetParent().helping.SetToolTipString(helping)
 #                self.GetParent().status.SetLabel(helping)
-            rank = self.guiUtility.peer_manager.getRank(peer_data = self.data)#['permid'])
+            rank = self.data.get('simRank',-1) 
             #because of the fact that hearts are coded so that lower index means higher ranking, then:
             if rank > 0 and rank <= 5:
                 recomm = 0

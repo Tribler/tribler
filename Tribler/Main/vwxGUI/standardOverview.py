@@ -185,7 +185,8 @@ class standardOverview(wx.Panel):
     def refreshData(self):        
         if DEBUG:
             print >>sys.stderr,"standardOverview: refreshData"
-        
+            print_stack()
+            
         grid = self.data[self.mode].get('grid')
         if grid:
             
@@ -238,18 +239,9 @@ class standardOverview(wx.Panel):
             filterState.setDefault(oldFilterState)
             
         if filterState and filterState.isValid():
-            if self.mode in ('filesMode', 'personsMode', 'libraryMode'):
+            if self.mode in ('filesMode', 'personsMode', 'libraryMode', 'friendsMode'):
                 #self.loadTorrentData(filterState[0], filterState[1])
                 self.data[self.mode]['grid'].gridManager.set_state(filterState)
-                
-            #elif self.mode == 'personsMode':
-                #self.loadPersonsData(filterState[0], filterState[1])
-            
-            elif self.mode == 'libraryMode':
-                self.loadLibraryData(filterState[0], filterState[1])
-                
-            elif self.mode == 'friendsMode':
-                self.loadPersonsData(filterState[0], filterState[1])
                 
             elif self.mode == 'subscriptionsMode':
                 self.loadSubscriptionData()

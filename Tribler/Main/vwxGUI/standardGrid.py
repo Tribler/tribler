@@ -22,8 +22,9 @@ DEBUG = False
 
 ntfy_mappings = {'filesMode':NTFY_TORRENTS,
                  'personsMode':NTFY_PEERS,
+                 'friendsMode':NTFY_PEERS,
                  'libraryMode':NTFY_DOWNLOADS,
-                 'friendsMode':NTFY_FRIENDS
+                 
                  }
 
 
@@ -83,7 +84,9 @@ class GridManager(object):
                                                        library = (state.db == 'libraryMode'),
                                                        reverse = state.reverse)
             
-        elif state.db == 'personsMode':
+        elif state.db in ('personsMode', 'friendsMode'):
+            if state.db == 'friendsMode':
+                state.category = 'friend'
             total_items = self.peer_db_handler.getNumberPeers(category_name = state.category)
             data = self.peer_db_handler.getGUIPeers(category_name = state.category, 
                                                     sort = state.sort,
@@ -96,7 +99,7 @@ class GridManager(object):
         return data, total_items
     
     def _last_page(self):
-        return 0 < len(self.data) < self.grid.items
+        return self.total_items == 0 or (0 < len(self.data) < self.grid.items)
     
     def setObserver(self, newstate, oldstate):
         if oldstate is None or newstate.db != oldstate.db:
@@ -118,9 +121,9 @@ class GridManager(object):
             raise Exception()
     
     def itemAdded(self,subject, objectID, args):
-        if self._last_page():
-            if self.isRelevantItem(subject, objectID):
-                self.refresh()
+        #if self._last_page(): # This doesn't work as the pager is not updated if page becomes full
+        if self.isRelevantItem(subject, objectID):
+            self.refresh()
     
     def itemUpdated(self,subject, objectID, args):
         if self._objectOnPage(subject, objectID):
@@ -131,7 +134,7 @@ class GridManager(object):
             self.refresh()
     
     def _objectOnPage(self, subject, objectID):
-        if subject in (NTFY_PEERS, NTFY_FRIENDS):
+        if subject == NTFY_PEERS:
             id_name = 'permid'
         elif subject in (NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_SUPERPEERS):
             id_name = 'infohash'
@@ -141,14 +144,17 @@ class GridManager(object):
         return objectID in [a[id_name] for a in self.data]
        
     def isRelevantItem(self, subject, objectID):
+        db_handler = self.session.open_dbhandler(subject)
         if subject == NTFY_PEERS:
-            raise Exception('Not yet implemented')
-        elif subject == NTFY_FRIENDS:
-            raise Exception('Not yet implemented')
+            peer = db_handler.getPeer(objectID)
+            return peer['buddycast_times']>0 or peer['friend']
         elif subject in (NTFY_TORRENTS):
             id_name = 'infohash'
-            torrent = self.session.open_dbhandler(subject).getTorrent(objectID)
-            return torrent is not None and torrent['status'] == 'good'
+            torrent = db_handler.getTorrent(objectID)
+            ok = torrent is not None and torrent['status'] == 'good'
+            if not ok:
+                print >> sys.stderr, 'Gridmanager: Torrent is not relevant: %s' % torrent
+            return ok
         
         elif subject in (NTFY_YOUTUBE):
             raise Exception('Not yet implemented')

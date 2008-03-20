@@ -68,7 +68,7 @@ class standardDetails(wx.Panel):
         self.guiUtility = GUIUtility.getInstance()
         self.utility = self.guiUtility.utility        
         self.data_manager = TorrentDataManager.getInstance(self.utility)
-        self.peer_db = self.utility.session.open_dbhandler(NTFY_PEERS)
+        self.friend_db = self.utility.session.open_dbhandler(NTFY_FRIENDS)
         #self.optionsButtonLibraryFunc = rightMouseButton.getInstance()
         self.iconsManager = IconsManager.getInstance()
         self.mydb = MyPreferenceDBHandler.getInstance()                    
@@ -1535,7 +1535,7 @@ class standardDetails(wx.Panel):
         if self.mode in ["personsMode","friendsMode"]:
             peer_data = self.item
             if peer_data is not None and peer_data.get('permid'):
-               self.peer_db.toggleFriend(peer_data['permid'])
+               self.friend_db.toggleFriend(peer_data['permid'])
 
 
     def refreshTorrentStats_network_callback(self):

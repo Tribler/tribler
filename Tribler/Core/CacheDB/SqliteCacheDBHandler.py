@@ -21,6 +21,7 @@ import base64
 from Tribler.Core.simpledefs import *
 from bencode import bencode, bdecode
 from Tribler.Core.CacheDB.Notifier import Notifier
+from Tribler.Category.Category import Category
 
 SHOW_ERROR = True
 
@@ -38,6 +39,7 @@ class BasicDBHandler:
         self.notifier = Notifier.getInstance()
         
     def __del__(self):
+        print_stack()
         try:
             self.sync()
         except:
@@ -110,129 +112,14 @@ class MyDBHandler(BasicDBHandler):
             self._db.update(self.table_name, where, value=value)
         
 
-class PeerViewHandler(BasicDBHandler):    
-    def __init__(self, table_name, key_name):
-        self.key_name = key_name
-        BasicDBHandler.__init__(self, table_name)
-        self.list = []    #TODO: not thread safe
-        
-    def getList(self, refresh=True):
-        if not refresh and self.list:
-            return self.list
-        
-        permids = self.getAll('permid')
-        all = []
-        for p in permids:
-            all.append(str2bin(p[0]))
-        self.list = all
-        return self.list
-        
-    def setPeerStatus(self, permid=None, status=1, peer_id=None):
-        if peer_id is None:
-            peer_id = self._db.getPeerID(permid)
-            
-        if peer_id is not None:
-            where = 'peer_id=%d'%peer_id
-            self._db.update('Peer', where, **{self.key_name:status})
-        else:
-            print >> sys.stderr, self.__class__.__name__,": permid not in db", `permid`
-
-    def addExternalPeer(self, peer, status=1, update=False):
-        permid = peer.pop('permid')
-        self._db.insertPeer(permid, update=update, **peer)
-        self.setPeerStatus(permid, status)
-        peer['permid'] = permid
 
 
-class SuperPeerDBHandler(PeerViewHandler):
-    
-    __single = None    # used for multithreaded singletons pattern
-    lock = threading.Lock()
-    
-    def getInstance(*args, **kw):
-        # Singleton pattern with double-checking
-        if SuperPeerDBHandler.__single is None:
-            SuperPeerDBHandler.lock.acquire()   
-            try:
-                if SuperPeerDBHandler.__single is None:
-                    SuperPeerDBHandler(*args, **kw)
-            finally:
-                SuperPeerDBHandler.lock.release()
-        return SuperPeerDBHandler.__single
-    
-    getInstance = staticmethod(getInstance)
-    
-    def __init__(self):
-        if SuperPeerDBHandler.__single is not None:
-            raise RuntimeError, "SuperPeerDBHandler is singleton"
-        SuperPeerDBHandler.__single = self
-        PeerViewHandler.__init__(self, 'SuperPeer', 'superpeer')
-        
-    def loadSuperPeers(self, config, refresh=False):
-        filename = os.path.join(config['install_dir'], config['superpeer_file'])
-        superpeer_list = self.readSuperPeerList(filename)
-        self.insertSuperPeers(superpeer_list, refresh)
-
-    def readSuperPeerList(self, filename=''):
-        """ read (name, permid, superpeer_ip, superpeer_port) lines from a text file """
-        
-        try:
-            filepath = os.path.abspath(filename)
-            file = open(filepath, "r")
-        except IOError:
-            print >> sys.stderr, "superpeer: cannot open superpeer file", filepath
-            return []
-            
-        superpeers = file.readlines()
-        file.close()
-        superpeers_info = []
-        for superpeer in superpeers:
-            if superpeer.strip().startswith("#"):    # skip commended lines
-                continue
-            superpeer_line = superpeer.split(',')
-            superpeer_info = [a.strip() for a in superpeer_line]
-            try:
-                superpeer_info[2] = base64.decodestring(superpeer_info[2]+'\n' )
-            except:
-                print_exc()
-                continue
-            try:
-                ip = socket.gethostbyname(superpeer_info[0])
-                superpeer = {'ip':ip, 'port':superpeer_info[1], 
-                          'permid':superpeer_info[2]}
-                if len(superpeer_info) > 3:
-                    superpeer['name'] = superpeer_info[3]
-                superpeers_info.append(superpeer)
-            except:
-                pass
-                    
-        return superpeers_info
-
-    def insertSuperPeers(self, superpeer_list, refresh=False):
-        for superpeer in superpeer_list:
-            superpeer = deepcopy(superpeer)
-            if not isinstance(superpeer, dict) or 'permid' not in superpeer:
-                continue
-            self.addExternalSuperPeer(superpeer, refresh)
-        self.commit()
-        
-    def getSuperPeerList(self, refresh=False):
-        return self.getList(refresh)
-    
-    def getSuperPeers(self, refresh=False):
-        return self.getList(refresh)
-        
-    def addExternalSuperPeer(self, peer, refresh=False):
-        permid = peer['permid']
-        if not self.isSuperPeer(permid, refresh):
-            self.addExternalPeer(peer, 1)
-            self.list.append(permid)
-            
-    def isSuperPeer(self, permid, refresh=False):
-        return permid in self.getSuperPeerList(refresh)
 
 
-class FriendDBHandler(PeerViewHandler):
+        
+
+
+class FriendDBHandler(BasicDBHandler):
     
     __single = None    # used for multithreaded singletons pattern
     lock = threading.Lock()
@@ -254,36 +141,33 @@ class FriendDBHandler(PeerViewHandler):
         if FriendDBHandler.__single is not None:
             raise RuntimeError, "FriendDBHandler is singleton"
         FriendDBHandler.__single = self
-        PeerViewHandler.__init__(self, 'Friend', 'friend')
+        BasicDBHandler.__init__(self, 'Peer')
         
-    def getFriendList(self, refresh=False):
-        return self.getList(refresh)
-        
-    def addExternalFriend(self, peer):
-        self.addExternalPeer(peer, 1)
+#    def getFriendList(self, refresh=False):
+#        return self.getList(refresh)
+#        
+#    def addExternalFriend(self, peer):
+#        self.addExternalPeer(peer, 1)
 
-    def addFriend(self, permid):
-        if not self.isFriend(permid):
-            self.setPeerStatus(permid, 1)
-            self.list.append(permid)
+    def setFriend(self, permid, friend=True):
+        
+        self._db.update(self.table_name,  'permid='+repr(bin2str(permid)), friend=friend)
+        self.commit()
+        #self.rankList_dirty = True # Friend status doesnt change rank
+        self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
 
     def getFriends(self):
-        """returns a list of peer infos including permid"""
-        value_name = ('permid', 'ip', 'port', 'name')
-        friends = []
-        peers = self.getAll(value_name)
-        for p in peers:
-            peer = dict(zip(value_name, p))
-            friends.append(peer)
-        return friends
-    
+        raise Exception('Use PeerDBHandler getGUIPeers(category = "friend")!')
+
     def isFriend(self, permid):
-        return permid in self.getFriendList()
-            
+        res = self.getOne('friend', permid=bin2str(permid))
+        return res == 1
+        
+    def toggleFriend(self, permid):
+        self.setFriend(permid, not self.isFriend(permid))
+        
     def deleteFriend(self,permid):
-        if self.isFriend(permid):
-            self.setPeerStatus(permid, 0)
-            self.list.remove(permid)
+        self.setFriend(permid, False)
         
 class PeerDBHandler(BasicDBHandler):
     
@@ -303,14 +187,13 @@ class PeerDBHandler(BasicDBHandler):
     
     getInstance = staticmethod(getInstance)
     
-    def __init__(self, config=None):
+    def __init__(self):
         if PeerDBHandler.__single is not None:
             raise RuntimeError, "PeerDBHandler is singleton"
         PeerDBHandler.__single = self
         BasicDBHandler.__init__(self, 'Peer')
         self.rankList = None 
         self.rankList_dirty = False
-        #self.notifier = Notifier.getInstance()
         self.pref_db = PreferenceDBHandler.getInstance()
         self.mm = None
 
@@ -331,14 +214,11 @@ class PeerDBHandler(BasicDBHandler):
             value_name = ('permid', 'name', 'ip', 'port', 'similarity', 'friend',
                       'num_peers', 'num_torrents', 'num_prefs', 'num_queries', 
                       'connected_times', 'buddycast_times', 'last_connected', 'last_seen')
-            key_name = ('permid', 'name', 'ip', 'port', 'similarity', 'friend',
-                      'npeers', 'ntorrents', 'nprefs', 'nqueries',
-                      'connected_times', 'buddycast_times', 'last_connected', 'last_seen')
             
             item = self.getOne(value_name, permid=bin2str(permid))
             if not item:
                 return None
-            peer = dict(zip(key_name, item))
+            peer = dict(zip(value_name, item))
             peer['permid'] = str2bin(peer['permid'])
             return peer
         
@@ -406,7 +286,9 @@ class PeerDBHandler(BasicDBHandler):
             value['ip'] = _ip
         if _port is not None:
             value['port'] = _port
-            
+        
+        self.commit()
+        self.rankList_dirty = True
         self.notifier.notify(NTFY_PEERS, NTFY_INSERT, permid)
             
     def hasPeer(self, permid):
@@ -426,6 +308,8 @@ class PeerDBHandler(BasicDBHandler):
     
     def updatePeer(self, permid, **argv):
         self._db.update(self.table_name,  'permid='+repr(bin2str(permid)), **argv)
+        self.commit()
+        self.rankList_dirty = True
         self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
 
     def deletePeer(self, permid=None, peer_id=None, force=False):
@@ -439,7 +323,8 @@ class PeerDBHandler(BasicDBHandler):
         deleted = self._db.deletePeer(permid=permid, peer_id=peer_id, force=force)
         if deleted:
             self.pref_db._deletePeer(peer_id=peer_id)
-        #self._db._commit()
+        self._db._commit()
+        self.rankList_dirty = True
         self.notifier.notify(NTFY_PEERS, NTFY_DELETE, permid)
             
     def updateTimes(self, permid, key, change=1):
@@ -543,6 +428,85 @@ class PeerDBHandler(BasicDBHandler):
         else:
             return None
 
+class SuperPeerDBHandler(BasicDBHandler):
+    
+    __single = None    # used for multithreaded singletons pattern
+    lock = threading.Lock()
+    
+    def getInstance(*args, **kw):
+        # Singleton pattern with double-checking
+        if SuperPeerDBHandler.__single is None:
+            SuperPeerDBHandler.lock.acquire()   
+            try:
+                if SuperPeerDBHandler.__single is None:
+                    SuperPeerDBHandler(*args, **kw)
+            finally:
+                SuperPeerDBHandler.lock.release()
+        return SuperPeerDBHandler.__single
+    
+    getInstance = staticmethod(getInstance)
+    
+    def __init__(self):
+        if SuperPeerDBHandler.__single is not None:
+            raise RuntimeError, "SuperPeerDBHandler is singleton"
+        SuperPeerDBHandler.__single = self
+        BasicDBHandler.__init__(self, 'SuperPeer')
+        self.peer_db_handler = PeerDBHandler.getInstance()
+        
+    def loadSuperPeers(self, config, refresh=False):
+        filename = os.path.join(config['install_dir'], config['superpeer_file'])
+        superpeer_list = self.readSuperPeerList(filename)
+        self.insertSuperPeers(superpeer_list, refresh)
+
+    def readSuperPeerList(self, filename=''):
+        """ read (name, permid, superpeer_ip, superpeer_port) lines from a text file """
+        
+        try:
+            filepath = os.path.abspath(filename)
+            file = open(filepath, "r")
+        except IOError:
+            print >> sys.stderr, "superpeer: cannot open superpeer file", filepath
+            return []
+            
+        superpeers = file.readlines()
+        file.close()
+        superpeers_info = []
+        for superpeer in superpeers:
+            if superpeer.strip().startswith("#"):    # skip commended lines
+                continue
+            superpeer_line = superpeer.split(',')
+            superpeer_info = [a.strip() for a in superpeer_line]
+            try:
+                superpeer_info[2] = base64.decodestring(superpeer_info[2]+'\n' )
+            except:
+                print_exc()
+                continue
+            try:
+                ip = socket.gethostbyname(superpeer_info[0])
+                superpeer = {'ip':ip, 'port':superpeer_info[1], 
+                          'permid':superpeer_info[2]}
+                if len(superpeer_info) > 3:
+                    superpeer['name'] = superpeer_info[3]
+                superpeers_info.append(superpeer)
+            except:
+                pass
+                    
+        return superpeers_info
+
+    def insertSuperPeers(self, superpeer_list, refresh=False):
+        for superpeer in superpeer_list:
+            superpeer = deepcopy(superpeer)
+            if not isinstance(superpeer, dict) or 'permid' not in superpeer:
+                continue
+            permid = superpeer.pop('permid')
+            self.peer_db_handler.addPeer(permid, superpeer)
+    
+    def getSuperPeers(self):
+        # return list with permids of superpeers
+        res_list = self._db.getAll(self.table_name, 'permid')
+        return [str2bin(a[0]) for a in res_list]
+        
+    
         
 class PreferenceDBHandler(BasicDBHandler):
     
@@ -717,8 +681,8 @@ class TorrentDBHandler(BasicDBHandler):
         #torrent["leecher"] = 1
         #torrent["status"] = 'good'
         
-        self.addTorrent(infohash, torrent)
-        self.commit()
+        self.addTorrent(infohash, torrent) # commit in here
+        return torrent
         
     def readTorrentData(self, filename, source='BC', extra_info={}, metadata=None):
 
@@ -736,13 +700,9 @@ class TorrentDBHandler(BasicDBHandler):
         info = metainfo['info']
         infohash = sha(bencode(info)).digest()
 
-        torrent = {}
-        torrent['torrent_dir'], torrent['torrent_name'] = os.path.split(filename)
-        
-        torrent_info = {}
-        torrent_info['name'] = info.get(namekey, '')
-        
-        torrent['category'] = ['other']
+        torrent = {'infohash': infohash}
+        torrent['torrent_file_name'] = os.path.split(filename)[1]
+        torrent['name'] = info.get(namekey, '')
         
         length = 0
         nf = 0
@@ -754,28 +714,35 @@ class TorrentDBHandler(BasicDBHandler):
                 nf += 1
                 if li.has_key('length'):
                     length += li['length']
-        torrent_info['length'] = length
-        torrent_info['num_files'] = nf
-        torrent_info['announce'] = metainfo.get('announce', '')
-        torrent_info['announce-list'] = metainfo.get('announce-list', '')
-        torrent_info['creation date'] = metainfo.get('creation date', 0)
-        torrent['info'] = torrent_info
+        torrent['length'] = length
+        torrent['num_files'] = nf
+        torrent['announce'] = metainfo.get('announce', '')
+        torrent['announce-list'] = metainfo.get('announce-list', '')
+        torrent['creation_date'] = metainfo.get('creation date', 0)
+        
         torrent['comment'] = metainfo.get('comment', None)
         
         torrent["ignore_number"] = 0
         torrent["retry_number"] = 0
-        torrent["seeder"] = extra_info.get('seeder', -1)
-        torrent["leecher"] = extra_info.get('leecher', -1)
+        torrent["num_seeders"] = extra_info.get('seeder', -1)
+        torrent["num_leechers"] = extra_info.get('leecher', -1)
         other_last_check = extra_info.get('last_check_time', -1)
         if other_last_check >= 0:
             torrent["last_check_time"] = int(time()) - other_last_check
         else:
             torrent["last_check_time"] = 0
-        torrent["status"] = extra_info.get('status', "unknown")
+        torrent["status"] = self._getStatusID(extra_info.get('status', "unknown"))
         
-        torrent["source"] = source
-        torrent["inserttime"] = long(time())
+        torrent["source"] = self._getSourceID(source)
+        torrent["insert_time"] = long(time())
 
+        category = Category.getInstance()
+        torrent['category'] = self._getCategoryID(category.calculateCategory(info, torrent['name']))
+        torrent['thumbnail'] = 0 # TODO: check if thumbnail is there
+        torrent['secret'] = 0 # TODO: check if torrent is secret
+        torrent['relevance'] = 0.0
+        
+        
         #if (torrent['category'] != []):
         #    print '### one torrent added from MetadataHandler: ' + str(torrent['category']) + ' ' + torrent['torrent_name'] + '###'
         return infohash, torrent
@@ -785,70 +752,65 @@ class TorrentDBHandler(BasicDBHandler):
             return
         
         #print >>sys.stderr,"sqldbhand: addTorrent",currentThread().getName()
-        data = self._prepareData(db_data)
-        self._addTorrentToDB(infohash, data)
+        #data = self._prepareData(db_data)
+        self._addTorrentToDB(infohash, db_data)
         
         self.notifier.notify(NTFY_TORRENTS, NTFY_INSERT, infohash)
         
 
-    def _prepareData(self, db_data):
-        # prepare data to insert into torrent table
-        data = {
-            'torrent_name':None,   # name of the torrent
-            'leecher': -1,
-            'seeder': -1,
-            'ignore_number': 0,
-            'retry_number': 0,
-            'last_check_time': 0,
-            'status': 0,    # status table: unknown, good, dead
-            
-            'category': 0,    # category table
-            'source': 0,    # source table, from buddycast, rss or others
-            'thumbnail':None,    # 1 - the torrent has a thumbnail
-            'relevance':0,
-            
-            'inserttime': 0, # when the torrent file is written to the disk
-            'secret':0, # download secretly
-            
-            'name':None,
-            'length':0,
-            'creation_date':0,
-            'comment':None,
-            'num_files':0,
-            
-            'ignore_number':0,
-            'retry_number':0,
-            'last_check_time':0,
-        }
-        
-        if 'info' in db_data:
-            info = db_data.pop('info')
-            data['name'] = info.get('name', None)
-            data['length'] = info.get('length', 0)
-            data['num_files'] = info.get('num_files', 0)
-            data['creation_date'] = info.get('creation date', 0)
-            data['announce'] = info.get('announce', '')
-            data['announce-list'] = info.get('announce-list', [])
-            
-        # change torrent dir
-        torrent_dir = db_data.get('torrent_dir',None)
-            
-        # change status
-        status = db_data.get('status', 'unknown')
-        status_id = self._getStatusID(status)
-        db_data['status'] = status_id
-        
-        # change category
-        category_list = db_data.get('category', [])
-        cat_int = self._getCategoryID(category_list)
-        db_data['category'] = cat_int
-        
-        # change source
-        src = db_data.get('source', '')
-        src_int = self._getSourceID(src)
-        db_data['source'] = src_int
-        data.update(db_data)
-        return data
+#    def _prepareData(self, db_data):
+#        # prepare data to insert into torrent table
+#        data = {
+#            'torrent_file_name':None,   # name of the torrent
+#            'num_leechers': -1,
+#            'num_seeders': -1,
+#            'status': 0,    # status table: unknown, good, dead
+#            
+#            'category': 0,    # category table
+#            'source': 0,    # source table, from buddycast, rss or others
+#            'thumbnail':None,    # 1 - the torrent has a thumbnail
+#            'relevance':0,
+#            
+#            'insert_time': 0, # when the torrent file is written to the disk
+#            'secret':0, # download secretly
+#            
+#            'name':None,
+#            'length':0,
+#            'creation_date':0,
+#            'comment':None,
+#            'num_files':0,
+#            
+#            'ignore_number':0,
+#            'retry_number':0,
+#            'last_check_time':0,
+#        }
+#        
+#        if 'info' in db_data:
+#            info = db_data.pop('info')
+#            data['name'] = info.get('name', None)
+#            data['length'] = info.get('length', 0)
+#            data['num_files'] = info.get('num_files', 0)
+#            data['creation_date'] = info.get('creation date', 0)
+#            data['announce'] = info.get('announce', '')
+#            data['announce-list'] = info.get('announce-list', [])
+#            
+#            
+#        # change status
+#        status = db_data.get('status', 'unknown')
+#        status_id = self._getStatusID(status)
+#        db_data['status'] = status_id
+#        
+#        # change category
+#        category_list = db_data.get('category', [])
+#        cat_int = self._getCategoryID(category_list)
+#        db_data['category'] = cat_int
+#        
+#        # change source
+#        src = db_data.get('source', '')
+#        src_int = self._getSourceID(src)
+#        db_data['source'] = src_int
+#        data.update(db_data)
+#        return data
     
     def _getStatusID(self, status):
         return self.status_table.get(status.lower(), 0)
@@ -876,42 +838,44 @@ class TorrentDBHandler(BasicDBHandler):
             self._db.insert('Torrent', 
                             infohash = infohash_str,
                             name = data['name'],
-                            torrent_file_name = data['torrent_name'],
+                            torrent_file_name = data['torrent_file_name'],
                             length = data['length'], 
                             creation_date = data['creation_date'], 
                             num_files = data['num_files'], 
                             thumbnail = data['thumbnail'],
-                            insert_time = data['inserttime'], 
+                            insert_time = data['insert_time'], 
                             secret = data['secret'], 
                             relevance = data['relevance'],
                             source_id = data['source'], 
                             category_id = data['category'], 
                             status_id = data['status'],
-                            num_seeders = data['seeder'], 
-                            num_leechers = data['leecher'], 
+                            num_seeders = data['num_seeders'], 
+                            num_leechers = data['num_leechers'], 
                             comment = data['comment'])
             torrent_id = self._db.getTorrentID(infohash)
         else:
             where = 'torrent_id = %d'%torrent_id
             self._db.update('Torrent', where = where,
                             name = data['name'],
-                            torrent_file_name = data['torrent_name'],
+                            torrent_file_name = data['torrent_file_name'],
                             length = data['length'], 
                             creation_date = data['creation_date'], 
                             num_files = data['num_files'], 
                             thumbnail = data['thumbnail'],
-                            insert_time = data['inserttime'], 
+                            insert_time = data['insert_time'], 
                             secret = data['secret'], 
                             relevance = data['relevance'],
                             source_id = data['source'], 
                             category_id = data['category'], 
                             status_id = data['status'],
-                            num_seeders = data['seeder'], 
-                            num_leechers = data['leecher'], 
+                            num_seeders = data['num_seeders'], 
+                            num_leechers = data['num_leechers'], 
                             comment = data['comment'])
             
         self._addTorrentTracker(torrent_id, data)
-            
+        
+        self.commit()    
+        self.rankList_dirty = True
         return torrent_id
     
     def _insertNewSrc(self, src):
@@ -975,6 +939,8 @@ class TorrentDBHandler(BasicDBHandler):
             where = "infohash='%s'"%infohash_str
             self._db.update(self.table_name, where, **kw)
             
+        self.commit()
+        self.rankList_dirty = True
         self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
         
     def updateTracker(self, infohash, kw, tier=1, tracker=None):
@@ -1165,6 +1131,7 @@ class TorrentDBHandler(BasicDBHandler):
             where = 'status_id=%d ' % self.status_table['good']
             res_list = self._db.getAll('Torrent', value_name, where = where, limit=rankList_size, order_by=order_by)
             self.rankList = [a[0] for a in res_list]
+            print >> sys.stderr, self.rankList
         try:
             return self.rankList.index(infohash)+1
         except:

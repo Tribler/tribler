@@ -444,15 +444,15 @@ class Session(SessionRuntimeConfig):
                 return self.lm.peer_db
             elif subject == NTFY_TORRENTS:
                 return self.lm.torrent_db
-            elif subject == NTFT_PREFRENCES:
+            elif subject == NTFY_PREFERENCES:
                 return self.lm.pref_db
-            elif subject == NTFT_SUPERPEERS:
+            elif subject == NTFY_SUPERPEERS:
                 return self.lm.superpeer_db
-            elif subject == NTFT_FRIENDS:
+            elif subject == NTFY_FRIENDS:
                 return self.lm.friend_db
-            elif subject == NTFT_MYPREFRENCES:
+            elif subject == NTFY_MYPREFRENCES:
                 return self.lm.mypref_db
-            elif subject == NTFT_BARTERCAST:
+            elif subject == NTFY_BARTERCAST:
                 return self.lm.bartercast_db
             else:
                 raise ValueError('Cannot open DB subject: '+subject)

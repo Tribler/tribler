@@ -5,7 +5,6 @@ import os
 from Tribler.Category.init_category import getCategoryInfo
 from Tribler.Core.BitTornado import bencode
 from Tribler.Core.Utilities.unicode import str2unicode, dunno2unicode
-from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 from sets import Set
 from time import time
 from copy import deepcopy
@@ -35,7 +34,7 @@ class Category:
             raise RuntimeError, "Category is singleton"
         filename = make_filename(install_dir, category_file)
         Category.__single = self
-        self.torrent_db = TorrentDBHandler.getInstance()
+        #self.torrent_db = TorrentDBHandler.getInstance()
         try:
             self.category_info = getCategoryInfo(filename)
             self.category_info.sort(rankcmp)

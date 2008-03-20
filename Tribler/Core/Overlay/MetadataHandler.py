@@ -289,20 +289,17 @@ class MetadataHandler:
 
     def addTorrentToDB(self, filename, torrent_hash, metadata, source='BC', extra_info={}, hack=False):
         """ Arno: no need to delegate to olbridge, this is already run by OverlayThread """
-        self.torrent_db.addExternalTorrent(filename, source, extra_info)
+        torrent = self.torrent_db.addExternalTorrent(filename, source, extra_info)
 
-        # Arno: show activity
-        metainfo = bdecode(metadata)
-        (namekey,name) = metainfoname2unicode(metainfo)  # convert info['name'] to type(unicode)
-        self.launchmany.set_activity(NTFY_ACT_GOT_METADATA,unicode('"'+name+'"'))
+        
+        self.launchmany.set_activity(NTFY_ACT_GOT_METADATA,unicode('"'+torrent['name']+'"'))
 
         if self.initialized:
-            self.num_torrents += 1
+            self.num_torrents += 1 # for free disk limitation
             self.check_overflow()
         
-#            if not extra_info:
-#                torrent.update({'infohash':torrent_hash})
-#                self.refreshTrackerStatus(torrent)
+            if not extra_info:
+                self.refreshTrackerStatus(torrent)
             
             if len(self.recently_collected_torrents) < 50:    # Queue of 50
                 self.recently_collected_torrents.append(torrent_hash)

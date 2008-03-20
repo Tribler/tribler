@@ -981,3 +981,64 @@ def getMetainfo(src, openoptions = 'rb', style = "file"):
                 pass
         metainfo = None
     return metainfo
+
+def copyTorrent(torrent):
+    # make a copy of a torrent, to check if any of its "basic" props has been changed
+    # NB: only copies basic properties
+    basic_keys =  ['infohash', 'num_seeders','num_leechers',
+                   'myDownloadHistory','web2', 'preview', 'simRank']
+    if torrent is None:
+        return None
+    ntorrent = {}
+    for key in basic_keys:
+        value = ntorrent.get(key)
+        if not value is None:
+            ntorrent[key] = value
+    return ntorrent
+
+def similarTorrent(t1, t2):
+    # make a copy of a torrent, to check if any of its "basic" props has been changed
+    # NB: only copies basic properties
+    basic_keys =  ['infohash', 'num_seeders','num_leechers',
+                   'myDownloadHistory','web2', 'preview', 'simRank']
+    
+    if (t1 is None or t2 is None):
+        return (t1 is None and t2 is None)
+
+    for key in basic_keys:
+        v1 = t1.get(key)
+        v2 = t2.get(key)
+        if v1 != v2:
+            return False
+    return True
+
+def copyPeer(peer):
+    # make a copy of a peer, to check if any of its "basic" props has been changed
+    # NB: only copies basic properties
+    basic_keys =  ['permid', 'last_connected', 'simRank', 'similarity', 'name', 'friend', 
+                   'num_peers', 'num_torrents', 'num_prefs', 'num_queries']
+    if peer is None:
+        return None
+    npeer = {}
+    for key in basic_keys:
+        value = npeer.get(key)
+        if not value is None:
+            npeer[key] = value
+    return npeer
+
+def similarPeer(t1, t2):
+    # make a copy of a peer, to check if any of its "basic" props has been changed
+    # NB: only copies basic properties
+    basic_keys =  ['permid', 'last_connected', 'simRank', 'similarity', 'name', 'friend', 
+                   'num_peers', 'num_torrents', 'num_prefs', 'num_queries']
+    
+    if (t1 is None or t2 is None):
+        return (t1 is None and t2 is None)
+
+    for key in basic_keys:
+        v1 = t1.get(key)
+        v2 = t2.get(key)
+        if v1 != v2:
+            return False
+    return True
+

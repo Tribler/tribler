@@ -4,6 +4,7 @@ from traceback import print_exc
 from Tribler.Core.Utilities.utilities import *
 from wx.lib.stattext import GenStaticText as StaticText
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.Utility.utility import copyPeer, similarPeer
 from Tribler.Main.vwxGUI.bgPanel import ImagePanel
 from Tribler.Core.Utilities.unicode import *
 from Tribler.Core.CacheDB.CacheDBHandler import PeerDBHandler
@@ -42,7 +43,7 @@ class PersonsItemPanel(wx.Panel):
         self.parent = parent
         self.listItem = (self.parent.cols == 1)
         self.data = None
-        self.datacopy = None
+        self.datacopy = {}
         self.titleLength = 137 # num characters
         self.triblerGrey = wx.Colour(128,128,128)
         self.selected = False
@@ -189,28 +190,15 @@ class PersonsItemPanel(wx.Panel):
         
         #print >>sys.stderr,"pip: setData:",peer_data
                 
-        if peer_data is None:
-            self.datacopy = None
-        
-        if self.datacopy is not None and peer_data is not None and self.datacopy['permid'] == peer_data['permid']:
-            if (self.datacopy['last_connected'] == peer_data['last_connected'] and
-                self.datacopy['similarity'] == peer_data['similarity'] and
-                self.datacopy['name'] == peer_data['name'] and
-                self.datacopy.get('friend') == peer_data.get('friend')):
-                return
-        
         self.data = peer_data
+        
+        # do not reload similar peers
+        if similarPeer(self.data, self.datacopy):
+            return
+        self.datacopy = copyPeer(peer_data)
 
-        if peer_data is not None:
-            # deepcopy no longer works with 'ThumnailBitmap' on board
-            self.datacopy = {}
-            self.datacopy['permid'] = peer_data['permid']
-            self.datacopy['last_connected'] = peer_data['last_connected']
-            self.datacopy['similarity'] = peer_data['similarity']
-            self.datacopy['name'] = peer_data['name']
-            self.datacopy['friend'] = peer_data.get('friend')
-            
-        else:
+
+        if peer_data is None:
             peer_data = {}
         
         if peer_data.get('name'):

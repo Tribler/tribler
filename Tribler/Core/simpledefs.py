@@ -44,7 +44,7 @@ NTFY_TORRENTS = 'torrents'
 NTFY_YOUTUBE = 'youtube'
 NTFY_PREFERENCES = 'preferences'
 NTFY_SUPERPEERS = 'superpeers' # currently not observable 
-NTFY_FRIENDS = 'friends'       # currently not observable
+NTFY_FRIENDS = 'friends'       # use NTFY_PEERS !!
 NTFY_MYPREFERENCES = 'mypreferences' # currently not observable
 NTFY_BARTERCAST = 'bartercast' # currently not observable
 
