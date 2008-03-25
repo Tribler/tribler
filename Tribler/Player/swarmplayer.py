@@ -454,7 +454,6 @@ class PlayerApp(wx.App):
         
         if not ALLOW_MULTIPLE:
             del self.single_instance_checker
-        ## TODO ClientPassParam("Close Connection")
         self.ExitMainLoop()
 
     def sesscb_states_callback(self,dslist):

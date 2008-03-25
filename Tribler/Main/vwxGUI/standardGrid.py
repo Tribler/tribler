@@ -110,7 +110,7 @@ class GridManager(object):
         wx.CallAfter(self.itemChanged, *args)
         
     def itemChanged(self,subject,changeType,objectID,*args):
-        print >> sys.stderr, 'GridManager: itemChanged: %s %s %s %s' % (subject, changeType, objectID, args)
+        print >> sys.stderr, 'GridManager: itemChanged: %s %s %s %s' % (subject, changeType, `objectID`, args)
         if changeType == NTFY_INSERT:
             self.itemAdded(subject, objectID, args)
         elif changeType == NTFY_UPDATE:

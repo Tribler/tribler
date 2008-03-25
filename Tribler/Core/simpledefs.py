@@ -53,7 +53,6 @@ NTFY_DOWNLOADS = 'downloads'   # a torrent download was added/removed/changed
 NTFY_ACTIVITIES = 'activities' # an activity was set (peer met/dns resolved)
 NTFY_REACHABLE = 'reachable'   # the Session is reachable from the Internet
 
-
 # changeTypes
 NTFY_UPDATE = 'update'         # data is updated
 NTFY_INSERT = 'insert'         # new data is inserted

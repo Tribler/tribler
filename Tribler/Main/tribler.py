@@ -55,7 +55,6 @@ from cStringIO import StringIO
 import urllib
 import webbrowser
 
-from Tribler.Utilities.interconn import ServerListener, ClientPassParam
 if (sys.platform == 'win32'):
         from Tribler.Main.Dialogs.regdialog import RegCheckDialog
 
@@ -78,9 +77,14 @@ from Tribler.Video.VideoServer import VideoHTTPServer
 from Tribler.Web2.util.update import Web2Updater
 import Tribler.Category.Category
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager
+from Tribler.Utilities.Instance2Instance import *
+
 
 from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import show_permid
+
+I2I_LISTENPORT = 57891
+
 
 DEBUG = False
 ALLOW_MULTIPLE = False
@@ -770,17 +774,11 @@ class ABCApp(wx.App):
             set_tasteheart_bitmaps(self.utility.getPath())
             set_perfBar_bitmaps(self.utility.getPath())
             
-    
             # Put it here so an error is shown in the startup-error popup
-            self.serverlistener = ServerListener(self.utility)
+            # Start server for instance2instance communication
+            self.i2is = Instance2InstanceServer(I2I_LISTENPORT,self.i2icallback) 
+            self.i2is.start()
             
-            # Start single instance server listenner
-            ############################################
-            self.serverthread   = Thread(target = self.serverlistener.start)
-            self.serverthread.setDaemon(True)
-            self.serverthread.setName("SingleInstanceServer"+self.serverthread.getName())
-            self.serverthread.start()
-    
             self.videoplayer = VideoPlayer.getInstance()
             self.videoplayer.register(self.utility)
             self.videoserver = VideoHTTPServer.getInstance()
@@ -996,7 +994,30 @@ class ABCApp(wx.App):
     def startWithRightView(self):
         if self.params[0] != "":
             self.guiUtility.standardLibraryOverview()
-    
+ 
+ 
+    def i2icallback(self,cmd,param):
+        """ Called by Instance2Instance thread """
+        
+        print >>sys.stderr,"abc: Another instance called us with cmd",cmd,"param",param
+        
+        if cmd == 'START':
+            torrentfilename = None
+            if param.startswith('http:'):
+                # Retrieve from web 
+                f = tempfile.NamedTemporaryFile()
+                n = urllib2.urlopen(url)
+                data = n.read()
+                f.write(data)
+                f.close()
+                n.close()
+                torrentfilename = f.name
+            else:
+                torrentfilename = param
+                
+            # Switch to GUI thread
+            start_download_lambda = lambda:self.frame.startDownload(torrentfilename)
+            wx.CallAfter(start_download_lambda)
     
         
 class DummySingleInstanceChecker:
@@ -1037,7 +1058,9 @@ def run(params = None):
 
     if not ALLOW_MULTIPLE and single_instance_checker.IsAnotherRunning():
         #Send  torrent info to abc single instance
-        ClientPassParam(params[0])
+        if params[0] != "":
+            torrentfilename = params[0]
+            i2ic = Instance2InstanceClient(I2I_LISTENPORT,'START',torrentfilename)
     else:
         arg0 = sys.argv[0].lower()
         if arg0.endswith('.exe'):
@@ -1052,15 +1075,15 @@ def run(params = None):
         configpath = app.getConfigPath()
         app.MainLoop()
 
-        print "Client shutting down. Sleeping for a few seconds to allow other threads to finish"
-        sleep(4)
+    print "Client shutting down. Sleeping for a few seconds to allow other threads to finish"
+    sleep(4)
 
-        # This is the right place to close the database, unfortunately Linux has
-        # a problem, see ABCFrame.OnCloseWindow
-        #
-        #if sys.platform != 'linux2':
-        #    tribler_done(configpath)
-        os._exit(0)
+    # This is the right place to close the database, unfortunately Linux has
+    # a problem, see ABCFrame.OnCloseWindow
+    #
+    #if sys.platform != 'linux2':
+    #    tribler_done(configpath)
+    #os._exit(0)
 
 if __name__ == '__main__':
     run()
