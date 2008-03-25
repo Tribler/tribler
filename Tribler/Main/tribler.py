@@ -969,7 +969,6 @@ class ABCApp(wx.App):
         
         if not ALLOW_MULTIPLE:
             del self.single_instance_checker
-        ClientPassParam("Close Connection")
         return 0
     
     def db_exception_handler(self,e):
